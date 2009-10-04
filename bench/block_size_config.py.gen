@@ -1,0 +1,9 @@
+
+# Parameters to the benchmark
+duration = 60
+password = 'password'
+devices = ['/dev/sda', '/dev/sdb']
+distros = ['uniform', 'normal', 'pow']
+blocks = [x * 512 for x in range(1, 21)]
+logname = 'stats'
+
