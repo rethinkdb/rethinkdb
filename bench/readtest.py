@@ -7,9 +7,9 @@ from datetime import datetime
 
 # Load the parameters
 try:
-    from block_size_config import *
+    from readtest_config import *
 except:
-    print "Please copy block_size_config.py.gen to block_size_config.py and set appropriate variables"
+    print "Please copy readtest_config.py.gen to readtest_config.py and set appropriate variables"
     sys.exit(-1)
 
 
