@@ -23,12 +23,20 @@ def main(argv):
         for distro in distros:
             stats_file.write('# %s (%s)\n' % (device, distro))
 
+    # Time estimation
+    estimate = duration * len(blocks) * len(devices) * len(distros) / 60
+    print("Estimated time: %d mins\n" % estimate)
+
     # Run the benchmark
+    step = 0
     for block in blocks:
         # Output the block size
         stats_file.write('%d\t' % block)
         for device in devices:
             for distro in distros:
+                # Output status
+                print("[size: %d, device: %s, distribution: %s] - %d mins left"
+                      % (block, device, distro, estimate - (duration * step / 60)))
                 # Run the benchmark
                 p = subprocess.Popen(['sudo', '-S', 'rebench', '-n', '-d', str(duration),
                                       '-b', str(block), '-u', distro, device],
@@ -38,6 +46,7 @@ def main(argv):
                 p.wait()
                 # Output the result for the run
                 stats_file.write('%s\t' % p.stdout.readline().split()[0])
+                step += 1
         stats_file.write('\n')
 
     stats_file.close()
