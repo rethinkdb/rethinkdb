@@ -24,7 +24,7 @@ def total_benchmarks():
 def calc_estimate(benchmarks_left):
     return int(duration / 60.0
                * benchmarks_left
-               * ((most_runs - least_runs) / 2.0))
+               * ((most_runs + least_runs) / 2.0))
 
 def main(argv):
     # Open the results file
