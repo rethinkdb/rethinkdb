@@ -1,0 +1,16 @@
+#-*- gnuplot -*-
+
+set terminal png 
+set output "graph-sdb-log.png"
+set rmargin 3
+
+set title 'Block size vs. ops/sec on a solid-state drive (log scale)'
+set xlabel 'Block size'
+set ylabel 'ops/sec'
+set yr [0:6000]
+set grid
+set logscale x
+set xtics (512,1024,2048,4096,8192,16384,32768,65536,131072)
+
+plot 'results' using 1:2 title 'Block size vs. ops/sec (uniform)' with lines
+

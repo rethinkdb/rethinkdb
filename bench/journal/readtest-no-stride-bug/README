@@ -1,0 +1,1 @@
+Similar to the readtest-stride-bug entry (tests block size and random distributions for random reads and their effect on IOPS), but the stride bug is fixed. As a result, we no longer see the peaks in the graph (which probably were a result of picking certain page boundaries).

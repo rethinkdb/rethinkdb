@@ -1,0 +1,16 @@
+#-*- gnuplot -*-
+
+set terminal png size 2000 800
+set rmargin 3
+set output "graph-sdb.png"
+
+set title 'Block size vs. ops/sec on a solid-state drive'
+set xlabel 'Block size'
+set ylabel 'ops/sec'
+set xtics 512,512
+set yr [0:6000]
+set grid
+
+plot 'results' using 1:5 title 'Block size vs. ops/sec (uniform)' with lines,\
+     'results' using 1:6 title 'Block size vs. ops/sec (normal)' with lines,\
+     'results' using 1:7 title 'Block size vs. ops/ses (pow)' with lines
