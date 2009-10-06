@@ -2,8 +2,8 @@
 # Parameters to the benchmark
 duration = 30
 password = 'legion25'
-devices = ['/dev/sdb']
-distros = ['uniform']
+devices = ['/dev/sda', '/dev/sdb']
+distros = ['uniform', 'normal', 'pow']
 blocks = [2**x * 512 for x in range(0, 9)]
 logname = 'stats'
 

@@ -1,0 +1,18 @@
+#-*- gnuplot -*-
+
+set terminal png 
+set output "graph-sda-log.png"
+set rmargin 3
+
+set title 'Block size vs. ops/sec on a rotational drive (log scale)'
+set xlabel 'Block size'
+set ylabel 'ops/sec'
+set yr [0:130]
+set grid
+set logscale x
+set xtics (512,1024,2048,4096,8192,16384,32768,65536,131072)
+
+plot 'results' using 1:2 title 'Uniform dist' with lines,\
+     'results' using 1:3 title 'Normal dist' with lines,\
+     'results' using 1:4 title 'Power dist' with lines
+
