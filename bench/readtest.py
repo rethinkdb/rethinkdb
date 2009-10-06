@@ -2,6 +2,7 @@
 
 import sys
 import subprocess
+from copy import deepcopy
 from StringIO import StringIO
 from datetime import datetime
 from statistics import stats
@@ -14,17 +15,78 @@ except:
     sys.exit(-1)
 
 # Run variables
-least_runs = runs[0]
-most_runs = runs[1]
-error_ratio = runs[2]
+least_runs = margins[0]
+most_runs = margins[1]
+error_ratio = margins[2]
 
-def total_benchmarks():
-    return len(blocks) * len(devices) * len(distros)
+def total_benchmarks(runs):
+    def acc_fn(acc, i):
+        if type(acc) == type(1):
+            return acc * len(i)
+        else:
+            return len(acc) * len(i)
+    return len(devices) * reduce(acc_fn, map(lambda i: i[1:][0], runs))
 
+# Time calculation
 def calc_estimate(benchmarks_left):
     return int(duration / 60.0
                * benchmarks_left
                * ((most_runs + least_runs) / 2.0))
+
+# Inner loop
+step = 0
+def run_bench_loop(args, fn, fn_args=[]):
+    global step
+    if not args:
+        fn(fn_args, step)
+        step += 1
+    else:
+        arg_name = args[0][0]
+        arg_vals = args[0][1]
+        for arg_val in arg_vals:
+            lst = deepcopy(fn_args)
+            lst.append((arg_name, arg_val))
+            run_bench_loop(args[1:], fn, lst)
+
+def do_benchmark(device, stats_file):
+    def do_benchmark_aux(args, step):
+        # Print the parameters
+        stats_file.write('%s\t' % device)
+        for arg in args:
+            stats_file.write('%s\t' % arg[1])
+        # Go through the runs
+        values = []
+        rebench_args = ['sudo', '-S', 'rebench', '-n', '-d', str(duration)]
+        for arg in args:
+            rebench_args.append('--%s' % arg[0])
+            rebench_args.append(str(arg[1]))
+        rebench_args.append(device)
+        run_name = reduce(lambda acc, i: '%s %s' % (str(acc), str(i)), rebench_args[2:])
+        print("%s, ~%d mins left"
+              % (run_name, int(calc_estimate(total_benchmarks(run_config) - step))))
+        for run in range(1, most_runs + 1):
+            print("Run %d of ~%d..%d" % (run, least_runs, most_runs))
+            # Runs the benchmark
+            p = subprocess.Popen(rebench_args,
+                                 stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+            p.stdin.write(password)
+            p.stdin.close()
+            p.wait()
+            # Compute the stats
+            value = int(p.stdout.readline().split()[0])
+            values.append(value)
+            if run >= least_runs:
+                (mean, median, std, minimum, maximum, confidence) = stats(values)
+                confidence_reqs_met = confidence / 2.0 < mean * error_ratio
+                if(confidence_reqs_met):
+                    print("Met confidence requirements at %dth run\n" % run)
+                    break
+                if(run == most_runs and (not confidence_reqs_met)):
+                    sys.stderr.write("Confidence requirements weren't met for %s\n\n" % run_name)
+        # Output the result for the run
+        stats_file.write('%d\t' % mean)
+        stats_file.write('\n')
+    return do_benchmark_aux
 
 def main(argv):
     # Open the results file
@@ -32,55 +94,17 @@ def main(argv):
     stats_file = open('%s@%s' % (logname, now.strftime("%Y-%m-%d.%H-%M-%S")), 'w')
 
     # Print the headers
-    stats_file.write('# block-size\n')
-    for device in devices:
-        for distro in distros:
-            stats_file.write('# %s (%s)\n' % (device, distro))
+    stats_file.write('# device\n')
+    for arg in run_config:
+        stats_file.write('# %s\n' % arg[0])
+    stats_file.write('# iops\n')
 
     # Time estimation
-    print("Estimated time: ~%d mins\n" % calc_estimate(total_benchmarks()))
-
+    print("Estimated time: ~%d mins\n" % calc_estimate(total_benchmarks(run_config)))
+    
     # Run the benchmark
-    step = 0
-    for block in blocks:
-        # Output the block size
-        stats_file.write('%d\t' % block)
-        for device in devices:
-            for distro in distros:
-                values = []
-                # Status for this benchmark
-                run_name = ("[size: %d, device: %s, distribution: %s]"
-                            % (block, device, distro))
-                print("%s, ~%d mins left"
-                      % (run_name, int(calc_estimate(total_benchmarks() - step))))
-                for run in range(1, most_runs + 1):
-                    # Status for this run
-                    print("run %d of ~%d..%d" % (run, least_runs, most_runs))
-                    
-                    # Run the benchmark
-                    p = subprocess.Popen(['sudo', '-S', 'rebench', '-n', '-d', str(duration),
-                                          '-b', str(block), '-u', distro, device],
-                                         stdin=subprocess.PIPE, stdout=subprocess.PIPE)
-                    p.stdin.write(password)
-                    p.stdin.close()
-                    p.wait()
-                    
-                    # Compute the stats
-                    value = int(p.stdout.readline().split()[0])
-                    values.append(value)
-                    if run >= least_runs:
-                        (mean, median, std, minimum, maximum, confidence) = stats(values)
-                        confidence_reqs_met = confidence / 2.0 < mean * error_ratio
-                        if(confidence_reqs_met):
-                            print("Met confidence requirements at %dth run\n" % run)
-                            break
-                        if(run == most_runs and (not confidence_reqs_met)):
-                            sys.stderr.write("Confidence requirements weren't met for %s\n\n" % run_name)
-                            
-                # Output the result for the run
-                stats_file.write('%d\t' % mean)
-                step += 1
-        stats_file.write('\n')
+    for device in devices:
+        run_bench_loop(run_config, do_benchmark(device, stats_file))
 
     stats_file.close()
 
