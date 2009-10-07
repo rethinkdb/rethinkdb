@@ -2,7 +2,7 @@
 
 set terminal png
 set lmargin 5
-set output "graph-sdb.png"
+set output "graph-sdb-3d.png"
 
 set title 'Block size, stride, and ops/sec on a solid-state drive'
 set xlabel 'Stride'
