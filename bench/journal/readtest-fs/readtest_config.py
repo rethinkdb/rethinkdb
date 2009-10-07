@@ -2,7 +2,7 @@
 from readtest_fs_setup import *
 
 # Some config values
-duration = 1
+duration = 30
 password = 'legion25'
 logname = 'stats'
 

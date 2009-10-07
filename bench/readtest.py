@@ -98,11 +98,17 @@ def do_benchmark(args, step):
     # Go through the runs
     values = []
     rebench_args = ['sudo', '-S', 'rebench', '-n', '-d', str(duration)]
+    exceptions = []
     for arg in args:
         if not arg[0] in rebench_except:
             rebench_args.append('--%s' % arg[0])
             rebench_args.append(str(arg[1]))
+        else:
+            exceptions.append((arg[0], str(arg[1])))
     rebench_args.append(get_device(args))
+    for ex in exceptions:
+        sys.stdout.write("%s: %s; " % (ex[0], ex[1]))
+    print
     run_name = reduce(lambda acc, i: '%s %s' % (str(acc), str(i)), rebench_args[2:])
     print("%s, ~%d mins left"
           % (run_name, int(calc_estimate(total_benchmarks(run_config) - step))))
