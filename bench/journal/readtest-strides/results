@@ -1,0 +1,147 @@
+# device
+# block_size
+# stride
+# iops
+/dev/sda	512	512	86	
+/dev/sda	512	1024	86	
+/dev/sda	512	1536	86	
+/dev/sda	512	2048	86	
+/dev/sda	512	2560	86	
+/dev/sda	512	3072	86	
+/dev/sda	512	3584	87	
+/dev/sda	512	4096	86	
+
+/dev/sda	1024	512	86	
+/dev/sda	1024	1024	86	
+/dev/sda	1024	1536	86	
+/dev/sda	1024	2048	86	
+/dev/sda	1024	2560	86	
+/dev/sda	1024	3072	87	
+/dev/sda	1024	3584	86	
+/dev/sda	1024	4096	86	
+
+/dev/sda	1536	512	86	
+/dev/sda	1536	1024	80	
+/dev/sda	1536	1536	85	
+/dev/sda	1536	2048	81	
+/dev/sda	1536	2560	85	
+/dev/sda	1536	3072	81	
+/dev/sda	1536	3584	81	
+/dev/sda	1536	4096	80	
+
+/dev/sda	2048	512	86	
+/dev/sda	2048	1024	81	
+/dev/sda	2048	1536	86	
+/dev/sda	2048	2048	80	
+/dev/sda	2048	2560	86	
+/dev/sda	2048	3072	81	
+/dev/sda	2048	3584	85	
+/dev/sda	2048	4096	81	
+
+/dev/sda	2560	512	86	
+/dev/sda	2560	1024	84	
+/dev/sda	2560	1536	81	
+/dev/sda	2560	2048	86	
+/dev/sda	2560	2560	84	
+/dev/sda	2560	3072	81	
+/dev/sda	2560	3584	85	
+/dev/sda	2560	4096	86	
+
+/dev/sda	3072	512	80	
+/dev/sda	3072	1024	86	
+/dev/sda	3072	1536	86	
+/dev/sda	3072	2048	80	
+/dev/sda	3072	2560	85	
+/dev/sda	3072	3072	85	
+/dev/sda	3072	3584	80	
+/dev/sda	3072	4096	86	
+
+/dev/sda	3584	512	84	
+/dev/sda	3584	1024	80	
+/dev/sda	3584	1536	86	
+/dev/sda	3584	2048	80	
+/dev/sda	3584	2560	86	
+/dev/sda	3584	3072	80	
+/dev/sda	3584	3584	86	
+/dev/sda	3584	4096	81	
+
+/dev/sda	4096	512	85	
+/dev/sda	4096	1024	84	
+/dev/sda	4096	1536	81	
+/dev/sda	4096	2048	85	
+/dev/sda	4096	2560	80	
+/dev/sda	4096	3072	86	
+/dev/sda	4096	3584	86	
+/dev/sda	4096	4096	80	
+
+/dev/sdb	512	512	4749	
+/dev/sdb	512	1024	4802	
+/dev/sdb	512	1536	4750	
+/dev/sdb	512	2048	4920	
+/dev/sdb	512	2560	4748	
+/dev/sdb	512	3072	4802	
+/dev/sdb	512	3584	4767	
+/dev/sdb	512	4096	5198	
+
+/dev/sdb	1024	512	4601	
+/dev/sdb	1024	1024	4714	
+/dev/sdb	1024	1536	4600	
+/dev/sdb	1024	2048	4812	
+/dev/sdb	1024	2560	4595	
+/dev/sdb	1024	3072	4683	
+/dev/sdb	1024	3584	4577	
+/dev/sdb	1024	4096	5007	
+
+/dev/sdb	1536	512	4407	
+/dev/sdb	1536	1024	4442	
+/dev/sdb	1536	1536	4408	
+/dev/sdb	1536	2048	4651	
+/dev/sdb	1536	2560	4406	
+/dev/sdb	1536	3072	4444	
+/dev/sdb	1536	3584	4408	
+/dev/sdb	1536	4096	4855	
+
+/dev/sdb	2048	512	4251	
+/dev/sdb	2048	1024	4350	
+/dev/sdb	2048	1536	4255	
+/dev/sdb	2048	2048	4539	
+/dev/sdb	2048	2560	4254	
+/dev/sdb	2048	3072	4347	
+/dev/sdb	2048	3584	4254	
+/dev/sdb	2048	4096	4717	
+
+/dev/sdb	2560	512	4119	
+/dev/sdb	2560	1024	4142	
+/dev/sdb	2560	1536	4116	
+/dev/sdb	2560	2048	4203	
+/dev/sdb	2560	2560	4116	
+/dev/sdb	2560	3072	4145	
+/dev/sdb	2560	3584	4111	
+/dev/sdb	2560	4096	4612	
+
+/dev/sdb	3072	512	4004	
+/dev/sdb	3072	1024	4081	
+/dev/sdb	3072	1536	3997	
+/dev/sdb	3072	2048	4117	
+/dev/sdb	3072	2560	3985	
+/dev/sdb	3072	3072	4058	
+/dev/sdb	3072	3584	3987	
+/dev/sdb	3072	4096	4449	
+
+/dev/sdb	3584	512	3880	
+/dev/sdb	3584	1024	3899	
+/dev/sdb	3584	1536	3876	
+/dev/sdb	3584	2048	4034	
+/dev/sdb	3584	2560	3881	
+/dev/sdb	3584	3072	3901	
+/dev/sdb	3584	3584	3881	
+/dev/sdb	3584	4096	4328	
+
+/dev/sdb	4096	512	3783	
+/dev/sdb	4096	1024	3838	
+/dev/sdb	4096	1536	3781	
+/dev/sdb	4096	2048	3960	
+/dev/sdb	4096	2560	3783	
+/dev/sdb	4096	3072	3856	
+/dev/sdb	4096	3584	3798	
+/dev/sdb	4096	4096	4220	
