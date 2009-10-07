@@ -2,6 +2,7 @@
 
 import sys
 import subprocess
+import inspect
 from copy import deepcopy
 from StringIO import StringIO
 from datetime import datetime
@@ -10,9 +11,16 @@ from statistics import stats
 # Load the parameters
 try:
     from readtest_config import *
-except:
+except Exception as ex:
+    print ex
+    print
     print "Please copy readtest_config.py.gen to readtest_config.py and set appropriate variables"
     sys.exit(-1)
+
+try:
+    rebench_except.append('device')
+except NameError:
+    rebench_except = ['device']
 
 # Run variables
 least_runs = margins[0]
@@ -33,13 +41,25 @@ def calc_estimate(benchmarks_left):
                * benchmarks_left
                * ((most_runs + least_runs) / 2.0))
 
+# Find the device in the args
+def get_device(args):
+    for arg in args:
+        if arg[0] == 'device':
+            return arg[1]
+
 # Inner loop
 step = 0
 stats_file = None
 def run_bench_loop(args, fn, fn_args=[]):
     global step
     if not args:
+        # Print the parameters
+        stats_file.write('%s\t' % get_device(args))
+        for arg in fn_args:
+            stats_file.write('%s\t' % arg[1])
+        # Call the benchmark function
         fn(fn_args, step)
+        # One, two, step :)
         step += 1
     else:
         arg_name = args[0][0]
@@ -48,53 +68,68 @@ def run_bench_loop(args, fn, fn_args=[]):
             arg_conf = args[0][2]
         else:
             arg_conf = {}
-
         for arg_val in arg_vals:
+            # Copy a list of vars to pass on
             lst = deepcopy(fn_args)
             lst.append((arg_name, arg_val))
+            # Setup the benchmark
+            setup_fn = arg_conf.get('setup')
+            if setup_fn:
+                if len(inspect.getargspec(setup_fn).args) == 2:
+                    _lst = setup_fn(arg_val, lst)
+                    if _lst:
+                        lst = _lst
+                else:
+                    setup_fn(arg_val)
+            # Run the benchmark
             run_bench_loop(args[1:], fn, lst)
+            # Teardown the benchmark
+            teardown_fn = arg_conf.get('teardown')
+            if teardown_fn:
+                teardown_fn(arg_val)
+            # Honor line breaks
             if arg_conf.get('line-break') == True:
                 stats_file.write('\n')
 
-def do_benchmark(device):
-    def do_benchmark_aux(args, step):
-        # Print the parameters
-        stats_file.write('%s\t' % device)
-        for arg in args:
-            stats_file.write('%s\t' % arg[1])
-        # Go through the runs
-        values = []
-        rebench_args = ['sudo', '-S', 'rebench', '-n', '-d', str(duration)]
-        for arg in args:
+def do_benchmark(args, step):
+    # Go through the runs
+    values = []
+    rebench_args = ['sudo', '-S', 'rebench', '-n', '-d', str(duration)]
+    for arg in args:
+        if not arg[0] in rebench_except:
             rebench_args.append('--%s' % arg[0])
             rebench_args.append(str(arg[1]))
-        rebench_args.append(device)
-        run_name = reduce(lambda acc, i: '%s %s' % (str(acc), str(i)), rebench_args[2:])
-        print("%s, ~%d mins left"
-              % (run_name, int(calc_estimate(total_benchmarks(run_config) - step))))
-        for run in range(1, most_runs + 1):
-            print("Run %d of ~%d..%d" % (run, least_runs, most_runs))
-            # Runs the benchmark
-            p = subprocess.Popen(rebench_args,
-                                 stdin=subprocess.PIPE, stdout=subprocess.PIPE)
-            p.stdin.write(password)
-            p.stdin.close()
-            p.wait()
-            # Compute the stats
-            value = int(p.stdout.readline().split()[0])
-            values.append(value)
-            if run >= least_runs:
-                (mean, median, std, minimum, maximum, confidence) = stats(values)
-                confidence_reqs_met = confidence / 2.0 < mean * error_ratio
-                if(confidence_reqs_met):
-                    print("Met confidence requirements at %dth run\n" % run)
-                    break
-                if(run == most_runs and (not confidence_reqs_met)):
-                    sys.stderr.write("Confidence requirements weren't met for %s\n\n" % run_name)
-        # Output the result for the run
-        stats_file.write('%d\t' % mean)
-        stats_file.write('\n')
-    return do_benchmark_aux
+    rebench_args.append(get_device(args))
+    run_name = reduce(lambda acc, i: '%s %s' % (str(acc), str(i)), rebench_args[2:])
+    print("%s, ~%d mins left"
+          % (run_name, int(calc_estimate(total_benchmarks(run_config) - step))))
+    for run in range(1, most_runs + 1):
+        print("Run %d of ~%d..%d" % (run, least_runs, most_runs))
+        # Runs the benchmark
+        p = subprocess.Popen(rebench_args,
+                             stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+        p.stdin.write(password)
+        p.stdin.close()
+        p.wait()
+        # Compute the stats
+        rebench_value = p.stdout.readline()
+        try:
+            rebench_value = int(rebench_value.split()[0])
+        except:
+            print("Could not parse '%s' returned by rebench" % rebench_value)
+            sys.exit()
+        values.append(rebench_value)
+        if run >= least_runs:
+            (mean, median, std, minimum, maximum, confidence) = stats(values)
+            confidence_reqs_met = confidence / 2.0 < mean * error_ratio
+            if(confidence_reqs_met):
+                print("Met confidence requirements at %dth run\n" % run)
+                break
+            if(run == most_runs and (not confidence_reqs_met)):
+                sys.stderr.write("Confidence requirements weren't met for %s\n\n" % run_name)
+    # Output the result for the run
+    stats_file.write('%d\t' % mean)
+    stats_file.write('\n')
 
 def main(argv):
     global stats_file
@@ -113,7 +148,7 @@ def main(argv):
     
     # Run the benchmark
     for device in devices:
-        run_bench_loop(run_config, do_benchmark(device))
+        run_bench_loop(run_config, do_benchmark, [('device', device)])
 
     stats_file.close()
 
