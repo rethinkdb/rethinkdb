@@ -2,7 +2,7 @@
 from readtest_fs_setup import *
 
 # Some config values
-duration = 1
+duration = 30
 password = 'legion25'
 logname = 'stats'
 
@@ -25,9 +25,9 @@ run_config = [('partitioning', ['none', 'regular', 'aligned'],
               ('filesystem', ['none', 'ext2'],
                { 'setup' : prepare_fs(password, mount_dir, test_file_size),
                  'teardown' : cleanup_fs(password, mount_dir) }),
-              ('block_size', [x * 512 for x in range(1, 2)],
+              ('block_size', [x * 512 for x in range(1, 9)],
                { 'line-break': True }),
-              ('stride', [x * 512 for x in range(1, 2)])]
+              ('stride', [x * 512 for x in range(1, 9)])]
 
 # Arguments on this list will not be passed to rebench
 rebench_except = ['partitioning', 'filesystem']
