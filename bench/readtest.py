@@ -86,7 +86,10 @@ def run_bench_loop(args, fn, fn_args=[]):
             # Teardown the benchmark
             teardown_fn = arg_conf.get('teardown')
             if teardown_fn:
-                teardown_fn(arg_val)
+                if len(inspect.getargspec(teardown_fn).args) == 2:
+                    teardown_fn(arg_val, lst)
+                else:
+                    teardown_fn(arg_val)
             # Honor line breaks
             if arg_conf.get('line-break') == True:
                 stats_file.write('\n')

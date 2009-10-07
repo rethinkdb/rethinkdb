@@ -1,13 +1,5 @@
 
-from readtest_util import *
-
-# Setting up the benchmark
-def fdisk(mode, args):
-    device = get_arg(args, 'device')
-    return set_arg(args, 'device', device)
-
-def prepare_fs(name, args):
-    pass
+from readtest_fs_setup import *
 
 # Some config values
 duration = 1
@@ -28,11 +20,11 @@ devices = ['/dev/sdb']
 # settings (documented below).
 run_config = [('partitioning', ['none', 'regular', 'aligned'],
                { 'setup' : fdisk }),
-              ('filesystem', ['ext2', 'ext3'],
-               { 'setup' : prepare_fs }),
-              ('block_size', [x * 512 for x in range(1, 2)],
+              ('filesystem', ['none', 'ext2'],
+               { 'setup' : prepare_fs, 'teardown' : teardown_fs }),
+              ('block_size', [x * 512 for x in range(1, 9)],
                { 'line-break': True }),
-              ('stride', [x * 512 for x in range(1, 2)])]
+              ('stride', [x * 512 for x in range(1, 9)])]
 
 # Arguments on this list will not be passed to rebench
 rebench_except = ['partitioning', 'filesystem']
