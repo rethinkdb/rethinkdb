@@ -35,6 +35,7 @@ def calc_estimate(benchmarks_left):
 
 # Inner loop
 step = 0
+stats_file = None
 def run_bench_loop(args, fn, fn_args=[]):
     global step
     if not args:
@@ -43,12 +44,19 @@ def run_bench_loop(args, fn, fn_args=[]):
     else:
         arg_name = args[0][0]
         arg_vals = args[0][1]
+        if(len(args[0]) == 3):
+            arg_conf = args[0][2]
+        else:
+            arg_conf = {}
+
         for arg_val in arg_vals:
             lst = deepcopy(fn_args)
             lst.append((arg_name, arg_val))
             run_bench_loop(args[1:], fn, lst)
+            if arg_conf.get('line-break') == True:
+                stats_file.write('\n')
 
-def do_benchmark(device, stats_file):
+def do_benchmark(device):
     def do_benchmark_aux(args, step):
         # Print the parameters
         stats_file.write('%s\t' % device)
@@ -89,6 +97,7 @@ def do_benchmark(device, stats_file):
     return do_benchmark_aux
 
 def main(argv):
+    global stats_file
     # Open the results file
     now = datetime.now()
     stats_file = open('%s@%s' % (logname, now.strftime("%Y-%m-%d.%H-%M-%S")), 'w')
@@ -104,7 +113,7 @@ def main(argv):
     
     # Run the benchmark
     for device in devices:
-        run_bench_loop(run_config, do_benchmark(device, stats_file))
+        run_bench_loop(run_config, do_benchmark(device))
 
     stats_file.close()
 

@@ -11,9 +11,17 @@ margins = (3, 10, 0.05)
 # Parameters for the run
 devices = ['/dev/sda', '/dev/sdb']
 
-# Run description - a list of tuples. For each tuple, the first element
-# is passed to rebench (with '--' prepended to it), the second element
-# is treated as a list of values to pass on every iteration.
-run_config = [('block_size', [x * 512 for x in range(1, 9)]),
+# Run description - a list of tuples. For each tuple, the first
+# element is passed to rebench (with '--' prepended to it), the second
+# element is treated as a list of values to pass on every
+# iteration. The third (optional) element is a hash with various
+# settings (documented below).
+run_config = [('block_size', [x * 512 for x in range(1, 9)],
+               { 'line-break': True }),
               ('stride', [x * 512 for x in range(1, 9)])]
+
+# Documentation of hash parameters:
+#
+# 'line-break' - if True, puts a line break into the output file after
+# each benchmark is completed.
 
