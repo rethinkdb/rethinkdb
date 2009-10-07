@@ -2,7 +2,7 @@
 from readtest_fs_setup import *
 
 # Some config values
-duration = 30
+duration = 1
 password = 'legion25'
 logname = 'stats'
 
@@ -12,6 +12,8 @@ margins = (3, 10, 0.05)
 
 # Parameters for the run
 devices = ['/dev/sdb']
+mount_dir = '/mnt/ssd'
+test_file_size = 1048576 # This is in 1024 blocks, so 1GB
 
 # Run description - a list of tuples. For each tuple, the first
 # element is passed to rebench (with '--' prepended to it), the second
@@ -19,12 +21,13 @@ devices = ['/dev/sdb']
 # iteration. The third (optional) element is a hash with various
 # settings (documented below).
 run_config = [('partitioning', ['none', 'regular', 'aligned'],
-               { 'setup' : fdisk }),
+               { 'setup' : fdisk(password) }),
               ('filesystem', ['none', 'ext2'],
-               { 'setup' : prepare_fs, 'teardown' : teardown_fs }),
-              ('block_size', [x * 512 for x in range(1, 9)],
+               { 'setup' : prepare_fs(password, mount_dir, test_file_size),
+                 'teardown' : cleanup_fs(password, mount_dir) }),
+              ('block_size', [x * 512 for x in range(1, 2)],
                { 'line-break': True }),
-              ('stride', [x * 512 for x in range(1, 9)])]
+              ('stride', [x * 512 for x in range(1, 2)])]
 
 # Arguments on this list will not be passed to rebench
 rebench_except = ['partitioning', 'filesystem']

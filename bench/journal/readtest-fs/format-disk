@@ -1,0 +1,2 @@
+#!/bin/bash
+echo $1 | sudo -S sfdisk $2 < $3

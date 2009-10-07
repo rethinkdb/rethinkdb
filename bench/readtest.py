@@ -1,6 +1,11 @@
 #!/usr/bin/python
 
 import sys
+
+# Add current dir path, if provided
+if len(sys.argv) > 1:
+    sys.path.append(sys.argv[1])
+
 import subprocess
 import inspect
 from copy import deepcopy
@@ -54,7 +59,6 @@ def run_bench_loop(args, fn, fn_args=[]):
     global step
     if not args:
         # Print the parameters
-        stats_file.write('%s\t' % get_device(args))
         for arg in fn_args:
             stats_file.write('%s\t' % arg[1])
         # Call the benchmark function
