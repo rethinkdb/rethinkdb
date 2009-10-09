@@ -1,0 +1,24 @@
+#-*- gnuplot -*-
+
+set terminal png
+set rmargin 3
+set output "graph-sdb-2d.png"
+
+set title 'Block size, stride, and ops/sec on a solid-state drive'
+set xlabel 'Stride'
+set ylabel 'Ops/Sec'
+set logscale x
+set xtics (512,1024,2048,4096,8192,16384,32768,65536,131072,262144)
+set grid
+
+plot 'results2' using 3:4 every :::0::0 with lines title "block 512b",\
+     'results2' using 3:4 every :::1::1 with lines title "block 1k",\
+     'results2' using 3:4 every :::2::2 with lines title "block 2k",\
+     'results2' using 3:4 every :::3::3 with lines title "block 4k",\
+     'results2' using 3:4 every :::4::4 with lines title "block 8k",\
+     'results2' using 3:4 every :::5::5 with lines title "block 16k",\
+     'results2' using 3:4 every :::6::6 with lines title "block 32k",\
+     'results2' using 3:4 every :::7::7 with lines title "block 64k",\
+     'results2' using 3:4 every :::8::8 with lines title "block 128k",\
+     'results2' using 3:4 every :::9::9 with lines title "block 256k"
+
