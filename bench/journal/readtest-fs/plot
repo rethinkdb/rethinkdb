@@ -1,0 +1,19 @@
+#-*- gnuplot -*-
+
+set terminal png
+set rmargin 3
+set output "graph.png"
+
+set title 'Stride, and ops/sec on different setups (512B blocks)'
+set xlabel 'Stride'
+set ylabel 'Ops/Sec'
+set xtics 512,512
+set grid
+
+plot 'results' using 5:6 every :::0::0 with lines title "No partition, no FS",\
+     'results' using 5:6 every :::8::8 with lines title "No partition, ext2",\
+     'results' using 5:6 every :::16::16 with lines title "Default partition, no FS",\
+     'results' using 5:6 every :::24::24 with lines title "Default partition, ext2",\
+     'results' using 5:6 every :::32::32 with lines title "Aligned partition, no FS",\
+     'results' using 5:6 every :::40::40 with lines title "Aligned partition, ext2"
+
