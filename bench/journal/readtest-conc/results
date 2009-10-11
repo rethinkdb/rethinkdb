@@ -1,0 +1,607 @@
+# device
+# type
+# workload
+# threads
+# block_size
+# stride
+# iops
+/dev/sdb	stateless	seq	1	512	512	4772	
+/dev/sdb	stateless	seq	1	512	1024	4823	
+/dev/sdb	stateless	seq	1	512	2048	4965	
+/dev/sdb	stateless	seq	1	512	4096	5205	
+/dev/sdb	stateless	seq	1	512	8192	5205	
+
+/dev/sdb	stateless	seq	1	1024	512	7724	
+/dev/sdb	stateless	seq	1	1024	1024	4720	
+/dev/sdb	stateless	seq	1	1024	2048	4842	
+/dev/sdb	stateless	seq	1	1024	4096	5072	
+/dev/sdb	stateless	seq	1	1024	8192	5064	
+
+/dev/sdb	stateless	seq	1	2048	512	7183	
+/dev/sdb	stateless	seq	1	2048	1024	7422	
+/dev/sdb	stateless	seq	1	2048	2048	4574	
+/dev/sdb	stateless	seq	1	2048	4096	4767	
+/dev/sdb	stateless	seq	1	2048	8192	4765	
+
+/dev/sdb	stateless	seq	1	4096	512	6322	
+/dev/sdb	stateless	seq	1	4096	1024	6505	
+/dev/sdb	stateless	seq	1	4096	2048	6951	
+/dev/sdb	stateless	seq	1	4096	4096	4248	
+/dev/sdb	stateless	seq	1	4096	8192	4279	
+
+/dev/sdb	stateless	seq	1	8192	512	5092	
+/dev/sdb	stateless	seq	1	8192	1024	5214	
+/dev/sdb	stateless	seq	1	8192	2048	5481	
+/dev/sdb	stateless	seq	1	8192	4096	6098	
+/dev/sdb	stateless	seq	1	8192	8192	3803	
+
+/dev/sdb	stateless	seq	2	512	512	5087	
+/dev/sdb	stateless	seq	2	512	1024	5143	
+/dev/sdb	stateless	seq	2	512	2048	5273	
+/dev/sdb	stateless	seq	2	512	4096	5563	
+/dev/sdb	stateless	seq	2	512	8192	5565	
+
+/dev/sdb	stateless	seq	2	1024	512	6492	
+/dev/sdb	stateless	seq	2	1024	1024	4992	
+/dev/sdb	stateless	seq	2	1024	2048	5116	
+/dev/sdb	stateless	seq	2	1024	4096	5387	
+/dev/sdb	stateless	seq	2	1024	8192	5386	
+
+/dev/sdb	stateless	seq	2	2048	512	6961	
+/dev/sdb	stateless	seq	2	2048	1024	6941	
+/dev/sdb	stateless	seq	2	2048	2048	4834	
+/dev/sdb	stateless	seq	2	2048	4096	5074	
+/dev/sdb	stateless	seq	2	2048	8192	5079	
+
+/dev/sdb	stateless	seq	2	4096	512	5730	
+/dev/sdb	stateless	seq	2	4096	1024	5797	
+/dev/sdb	stateless	seq	2	4096	2048	6747	
+/dev/sdb	stateless	seq	2	4096	4096	4502	
+/dev/sdb	stateless	seq	2	4096	8192	4514	
+
+/dev/sdb	stateless	seq	2	8192	512	5086	
+/dev/sdb	stateless	seq	2	8192	1024	5112	
+/dev/sdb	stateless	seq	2	8192	2048	5143	
+/dev/sdb	stateless	seq	2	8192	4096	5647	
+/dev/sdb	stateless	seq	2	8192	8192	4008	
+
+/dev/sdb	stateless	seq	4	512	512	7158	
+/dev/sdb	stateless	seq	4	512	1024	5146	
+/dev/sdb	stateless	seq	4	512	2048	5266	
+/dev/sdb	stateless	seq	4	512	4096	5563	
+/dev/sdb	stateless	seq	4	512	8192	5564	
+
+/dev/sdb	stateless	seq	4	1024	512	7944	
+/dev/sdb	stateless	seq	4	1024	1024	7034	
+/dev/sdb	stateless	seq	4	1024	2048	5120	
+/dev/sdb	stateless	seq	4	1024	4096	5389	
+/dev/sdb	stateless	seq	4	1024	8192	5396	
+
+/dev/sdb	stateless	seq	4	2048	512	6099	
+/dev/sdb	stateless	seq	4	2048	1024	6586	
+/dev/sdb	stateless	seq	4	2048	2048	6501	
+/dev/sdb	stateless	seq	4	2048	4096	5068	
+/dev/sdb	stateless	seq	4	2048	8192	5076	
+
+/dev/sdb	stateless	seq	4	4096	512	6258	
+/dev/sdb	stateless	seq	4	4096	1024	6035	
+/dev/sdb	stateless	seq	4	4096	2048	7113	
+/dev/sdb	stateless	seq	4	4096	4096	6288	
+/dev/sdb	stateless	seq	4	4096	8192	4515	
+
+/dev/sdb	stateless	seq	4	8192	512	4921	
+/dev/sdb	stateless	seq	4	8192	1024	4879	
+/dev/sdb	stateless	seq	4	8192	2048	4995	
+/dev/sdb	stateless	seq	4	8192	4096	6215	
+/dev/sdb	stateless	seq	4	8192	8192	7002	
+
+/dev/sdb	stateless	seq	8	512	512	14162	
+/dev/sdb	stateless	seq	8	512	1024	5142	
+/dev/sdb	stateless	seq	8	512	2048	5264	
+/dev/sdb	stateless	seq	8	512	4096	5567	
+/dev/sdb	stateless	seq	8	512	8192	5568	
+
+/dev/sdb	stateless	seq	8	1024	512	13298	
+/dev/sdb	stateless	seq	8	1024	1024	13045	
+/dev/sdb	stateless	seq	8	1024	2048	5119	
+/dev/sdb	stateless	seq	8	1024	4096	5396	
+/dev/sdb	stateless	seq	8	1024	8192	5404	
+
+/dev/sdb	stateless	seq	8	2048	512	9411	
+/dev/sdb	stateless	seq	8	2048	1024	11280	
+/dev/sdb	stateless	seq	8	2048	2048	11498	
+/dev/sdb	stateless	seq	8	2048	4096	5070	
+/dev/sdb	stateless	seq	8	2048	8192	5080	
+
+/dev/sdb	stateless	seq	8	4096	512	5105	
+/dev/sdb	stateless	seq	8	4096	1024	7850	
+/dev/sdb	stateless	seq	8	4096	2048	10356	
+/dev/sdb	stateless	seq	8	4096	4096	12164	
+/dev/sdb	stateless	seq	8	4096	8192	4516	
+
+/dev/sdb	stateless	seq	8	8192	512	4260	
+/dev/sdb	stateless	seq	8	8192	1024	4253	
+/dev/sdb	stateless	seq	8	8192	2048	6821	
+/dev/sdb	stateless	seq	8	8192	4096	8329	
+/dev/sdb	stateless	seq	8	8192	8192	8984	
+
+/dev/sdb	stateless	seq	16	512	512	24020	
+/dev/sdb	stateless	seq	16	512	1024	5147	
+/dev/sdb	stateless	seq	16	512	2048	5277	
+/dev/sdb	stateless	seq	16	512	4096	5569	
+/dev/sdb	stateless	seq	16	512	8192	5571	
+
+/dev/sdb	stateless	seq	16	1024	512	15031	
+/dev/sdb	stateless	seq	16	1024	1024	22215	
+/dev/sdb	stateless	seq	16	1024	2048	5118	
+/dev/sdb	stateless	seq	16	1024	4096	5393	
+/dev/sdb	stateless	seq	16	1024	8192	5395	
+
+/dev/sdb	stateless	seq	16	2048	512	11460	
+/dev/sdb	stateless	seq	16	2048	1024	14061	
+/dev/sdb	stateless	seq	16	2048	2048	18016	
+/dev/sdb	stateless	seq	16	2048	4096	5074	
+/dev/sdb	stateless	seq	16	2048	8192	5079	
+
+/dev/sdb	stateless	seq	16	4096	512	8193	
+/dev/sdb	stateless	seq	16	4096	1024	10247	
+/dev/sdb	stateless	seq	16	4096	2048	10523	
+/dev/sdb	stateless	seq	16	4096	4096	16062	
+/dev/sdb	stateless	seq	16	4096	8192	4509	
+
+/dev/sdb	stateless	seq	16	8192	512	4159	
+/dev/sdb	stateless	seq	16	8192	1024	6845	
+/dev/sdb	stateless	seq	16	8192	2048	7318	
+/dev/sdb	stateless	seq	16	8192	4096	8984	
+/dev/sdb	stateless	seq	16	8192	8192	10964	
+
+/dev/sdb	stateless	seq	32	512	512	22218	
+/dev/sdb	stateless	seq	32	512	1024	5152	
+/dev/sdb	stateless	seq	32	512	2048	5279	
+/dev/sdb	stateless	seq	32	512	4096	5568	
+/dev/sdb	stateless	seq	32	512	8192	5567	
+
+/dev/sdb	stateless	seq	32	1024	512	15221	
+/dev/sdb	stateless	seq	32	1024	1024	25090	
+/dev/sdb	stateless	seq	32	1024	2048	5116	
+/dev/sdb	stateless	seq	32	1024	4096	5387	
+/dev/sdb	stateless	seq	32	1024	8192	5392	
+
+/dev/sdb	stateless	seq	32	2048	512	12326	
+/dev/sdb	stateless	seq	32	2048	1024	16511	
+/dev/sdb	stateless	seq	32	2048	2048	20244	
+/dev/sdb	stateless	seq	32	2048	4096	5065	
+/dev/sdb	stateless	seq	32	2048	8192	5072	
+
+/dev/sdb	stateless	seq	32	4096	512	11251	
+/dev/sdb	stateless	seq	32	4096	1024	11790	
+/dev/sdb	stateless	seq	32	4096	2048	14110	
+/dev/sdb	stateless	seq	32	4096	4096	17809	
+/dev/sdb	stateless	seq	32	4096	8192	4508	
+
+/dev/sdb	stateless	seq	32	8192	512	7966	
+/dev/sdb	stateless	seq	32	8192	1024	8838	
+/dev/sdb	stateless	seq	32	8192	2048	8996	
+/dev/sdb	stateless	seq	32	8192	4096	10107	
+/dev/sdb	stateless	seq	32	8192	8192	12040	
+
+/dev/sdb	stateless	seq	64	512	512	26793	
+/dev/sdb	stateless	seq	64	512	1024	5148	
+/dev/sdb	stateless	seq	64	512	2048	5276	
+/dev/sdb	stateless	seq	64	512	4096	5569	
+/dev/sdb	stateless	seq	64	512	8192	5565	
+
+/dev/sdb	stateless	seq	64	1024	512	18408	
+/dev/sdb	stateless	seq	64	1024	1024	23502	
+/dev/sdb	stateless	seq	64	1024	2048	5130	
+/dev/sdb	stateless	seq	64	1024	4096	5395	
+/dev/sdb	stateless	seq	64	1024	8192	5397	
+
+/dev/sdb	stateless	seq	64	2048	512	14249	
+/dev/sdb	stateless	seq	64	2048	1024	18029	
+/dev/sdb	stateless	seq	64	2048	2048	21994	
+/dev/sdb	stateless	seq	64	2048	4096	5069	
+/dev/sdb	stateless	seq	64	2048	8192	5074	
+
+/dev/sdb	stateless	seq	64	4096	512	11057	
+/dev/sdb	stateless	seq	64	4096	1024	12946	
+/dev/sdb	stateless	seq	64	4096	2048	14527	
+/dev/sdb	stateless	seq	64	4096	4096	19095	
+/dev/sdb	stateless	seq	64	4096	8192	4511	
+
+/dev/sdb	stateless	seq	64	8192	512	8774	
+/dev/sdb	stateless	seq	64	8192	1024	9412	
+/dev/sdb	stateless	seq	64	8192	2048	9206	
+/dev/sdb	stateless	seq	64	8192	4096	10194	
+/dev/sdb	stateless	seq	64	8192	8192	11845	
+
+/dev/sdb	stateless	seq	128	512	512	26703	
+/dev/sdb	stateless	seq	128	512	1024	5190	
+/dev/sdb	stateless	seq	128	512	2048	5291	
+/dev/sdb	stateless	seq	128	512	4096	5575	
+/dev/sdb	stateless	seq	128	512	8192	5568	
+
+/dev/sdb	stateless	seq	128	1024	512	19873	
+/dev/sdb	stateless	seq	128	1024	1024	24847	
+/dev/sdb	stateless	seq	128	1024	2048	5143	
+/dev/sdb	stateless	seq	128	1024	4096	5405	
+/dev/sdb	stateless	seq	128	1024	8192	5400	
+
+/dev/sdb	stateless	seq	128	2048	512	14897	
+/dev/sdb	stateless	seq	128	2048	1024	18653	
+/dev/sdb	stateless	seq	128	2048	2048	24545	
+/dev/sdb	stateless	seq	128	2048	4096	5080	
+/dev/sdb	stateless	seq	128	2048	8192	5082	
+
+/dev/sdb	stateless	seq	128	4096	512	11718	
+/dev/sdb	stateless	seq	128	4096	1024	12836	
+/dev/sdb	stateless	seq	128	4096	2048	15589	
+/dev/sdb	stateless	seq	128	4096	4096	19408	
+/dev/sdb	stateless	seq	128	4096	8192	4519	
+
+/dev/sdb	stateless	seq	128	8192	512	9899	
+/dev/sdb	stateless	seq	128	8192	1024	9634	
+/dev/sdb	stateless	seq	128	8192	2048	10330	
+/dev/sdb	stateless	seq	128	8192	4096	10466	
+/dev/sdb	stateless	seq	128	8192	8192	11895	
+
+/dev/sdb	stateless	seq	256	512	512	25406	
+/dev/sdb	stateless	seq	256	512	1024	5240	
+/dev/sdb	stateless	seq	256	512	2048	5317	
+/dev/sdb	stateless	seq	256	512	4096	5579	
+/dev/sdb	stateless	seq	256	512	8192	5563	
+
+/dev/sdb	stateless	seq	256	1024	512	19086	
+/dev/sdb	stateless	seq	256	1024	1024	25582	
+/dev/sdb	stateless	seq	256	1024	2048	5158	
+/dev/sdb	stateless	seq	256	1024	4096	5389	
+/dev/sdb	stateless	seq	256	1024	8192	5383	
+
+/dev/sdb	stateless	seq	256	2048	512	15615	
+/dev/sdb	stateless	seq	256	2048	1024	18638	
+/dev/sdb	stateless	seq	256	2048	2048	22409	
+/dev/sdb	stateless	seq	256	2048	4096	5071	
+/dev/sdb	stateless	seq	256	2048	8192	5064	
+
+/dev/sdb	stateless	seq	256	4096	512	14229	
+/dev/sdb	stateless	seq	256	4096	1024	14021	
+/dev/sdb	stateless	seq	256	4096	2048	15184	
+/dev/sdb	stateless	seq	256	4096	4096	17813	
+/dev/sdb	stateless	seq	256	4096	8192	4511	
+
+/dev/sdb	stateless	seq	256	8192	512	8739	
+/dev/sdb	stateless	seq	256	8192	1024	9476	
+/dev/sdb	stateless	seq	256	8192	2048	9532	
+/dev/sdb	stateless	seq	256	8192	4096	10741	
+/dev/sdb	stateless	seq	256	8192	8192	11945	
+
+/dev/sdb	stateless	seq	512	512	512	29684	
+/dev/sdb	stateless	seq	512	512	1024	5329	
+/dev/sdb	stateless	seq	512	512	2048	5364	
+/dev/sdb	stateless	seq	512	512	4096	5592	
+/dev/sdb	stateless	seq	512	512	8192	5572	
+
+/dev/sdb	stateless	seq	512	1024	512	13122	
+/dev/sdb	stateless	seq	512	1024	1024	27603	
+/dev/sdb	stateless	seq	512	1024	2048	5209	
+/dev/sdb	stateless	seq	512	1024	4096	5409	
+/dev/sdb	stateless	seq	512	1024	8192	5398	
+
+/dev/sdb	stateless	seq	512	2048	512	11873	
+/dev/sdb	stateless	seq	512	2048	1024	13950	
+/dev/sdb	stateless	seq	512	2048	2048	24233	
+/dev/sdb	stateless	seq	512	2048	4096	5095	
+/dev/sdb	stateless	seq	512	2048	8192	5080	
+
+/dev/sdb	stateless	seq	512	4096	512	10779	
+/dev/sdb	stateless	seq	512	4096	1024	10920	
+/dev/sdb	stateless	seq	512	4096	2048	15104	
+/dev/sdb	stateless	seq	512	4096	4096	19554	
+/dev/sdb	stateless	seq	512	4096	8192	4522	
+
+/dev/sdb	stateless	seq	512	8192	512	8906	
+/dev/sdb	stateless	seq	512	8192	1024	8385	
+/dev/sdb	stateless	seq	512	8192	2048	8816	
+/dev/sdb	stateless	seq	512	8192	4096	11586	
+/dev/sdb	stateless	seq	512	8192	8192	12342	
+
+/dev/sdb	stateless	rnd	1	512	512	4790	
+/dev/sdb	stateless	rnd	1	512	1024	4841	
+/dev/sdb	stateless	rnd	1	512	2048	4949	
+/dev/sdb	stateless	rnd	1	512	4096	5175	
+/dev/sdb	stateless	rnd	1	512	8192	5197	
+
+/dev/sdb	stateless	rnd	1	1024	512	4613	
+/dev/sdb	stateless	rnd	1	1024	1024	4722	
+/dev/sdb	stateless	rnd	1	1024	2048	4818	
+/dev/sdb	stateless	rnd	1	1024	4096	5052	
+/dev/sdb	stateless	rnd	1	1024	8192	5055	
+
+/dev/sdb	stateless	rnd	1	2048	512	4290	
+/dev/sdb	stateless	rnd	1	2048	1024	4383	
+/dev/sdb	stateless	rnd	1	2048	2048	4562	
+/dev/sdb	stateless	rnd	1	2048	4096	4728	
+/dev/sdb	stateless	rnd	1	2048	8192	4738	
+
+/dev/sdb	stateless	rnd	1	4096	512	3790	
+/dev/sdb	stateless	rnd	1	4096	1024	3846	
+/dev/sdb	stateless	rnd	1	4096	2048	3964	
+/dev/sdb	stateless	rnd	1	4096	4096	4227	
+/dev/sdb	stateless	rnd	1	4096	8192	4238	
+
+/dev/sdb	stateless	rnd	1	8192	512	3202	
+/dev/sdb	stateless	rnd	1	8192	1024	3239	
+/dev/sdb	stateless	rnd	1	8192	2048	3320	
+/dev/sdb	stateless	rnd	1	8192	4096	3492	
+/dev/sdb	stateless	rnd	1	8192	8192	3788	
+
+/dev/sdb	stateless	rnd	2	512	512	5077	
+/dev/sdb	stateless	rnd	2	512	1024	5134	
+/dev/sdb	stateless	rnd	2	512	2048	5270	
+/dev/sdb	stateless	rnd	2	512	4096	5559	
+/dev/sdb	stateless	rnd	2	512	8192	5561	
+
+/dev/sdb	stateless	rnd	2	1024	512	4869	
+/dev/sdb	stateless	rnd	2	1024	1024	5001	
+/dev/sdb	stateless	rnd	2	1024	2048	5128	
+/dev/sdb	stateless	rnd	2	1024	4096	5389	
+/dev/sdb	stateless	rnd	2	1024	8192	5395	
+
+/dev/sdb	stateless	rnd	2	2048	512	4512	
+/dev/sdb	stateless	rnd	2	2048	1024	4611	
+/dev/sdb	stateless	rnd	2	2048	2048	4818	
+/dev/sdb	stateless	rnd	2	2048	4096	5060	
+/dev/sdb	stateless	rnd	2	2048	8192	5066	
+
+/dev/sdb	stateless	rnd	2	4096	512	3993	
+/dev/sdb	stateless	rnd	2	4096	1024	4055	
+/dev/sdb	stateless	rnd	2	4096	2048	4203	
+/dev/sdb	stateless	rnd	2	4096	4096	4497	
+/dev/sdb	stateless	rnd	2	4096	8192	4508	
+
+/dev/sdb	stateless	rnd	2	8192	512	3347	
+/dev/sdb	stateless	rnd	2	8192	1024	3395	
+/dev/sdb	stateless	rnd	2	8192	2048	3476	
+/dev/sdb	stateless	rnd	2	8192	4096	3666	
+/dev/sdb	stateless	rnd	2	8192	8192	4004	
+
+/dev/sdb	stateless	rnd	4	512	512	5081	
+/dev/sdb	stateless	rnd	4	512	1024	5135	
+/dev/sdb	stateless	rnd	4	512	2048	5270	
+/dev/sdb	stateless	rnd	4	512	4096	5564	
+/dev/sdb	stateless	rnd	4	512	8192	5564	
+
+/dev/sdb	stateless	rnd	4	1024	512	4874	
+/dev/sdb	stateless	rnd	4	1024	1024	5000	
+/dev/sdb	stateless	rnd	4	1024	2048	5124	
+/dev/sdb	stateless	rnd	4	1024	4096	5385	
+/dev/sdb	stateless	rnd	4	1024	8192	5394	
+
+/dev/sdb	stateless	rnd	4	2048	512	4508	
+/dev/sdb	stateless	rnd	4	2048	1024	4604	
+/dev/sdb	stateless	rnd	4	2048	2048	4817	
+/dev/sdb	stateless	rnd	4	2048	4096	5058	
+/dev/sdb	stateless	rnd	4	2048	8192	5065	
+
+/dev/sdb	stateless	rnd	4	4096	512	3992	
+/dev/sdb	stateless	rnd	4	4096	1024	4062	
+/dev/sdb	stateless	rnd	4	4096	2048	4196	
+/dev/sdb	stateless	rnd	4	4096	4096	4493	
+/dev/sdb	stateless	rnd	4	4096	8192	4506	
+
+/dev/sdb	stateless	rnd	4	8192	512	3348	
+/dev/sdb	stateless	rnd	4	8192	1024	3391	
+/dev/sdb	stateless	rnd	4	8192	2048	3477	
+/dev/sdb	stateless	rnd	4	8192	4096	3663	
+/dev/sdb	stateless	rnd	4	8192	8192	4002	
+
+/dev/sdb	stateless	rnd	8	512	512	5075	
+/dev/sdb	stateless	rnd	8	512	1024	5134	
+/dev/sdb	stateless	rnd	8	512	2048	5271	
+/dev/sdb	stateless	rnd	8	512	4096	5563	
+/dev/sdb	stateless	rnd	8	512	8192	5564	
+
+/dev/sdb	stateless	rnd	8	1024	512	4865	
+/dev/sdb	stateless	rnd	8	1024	1024	4995	
+/dev/sdb	stateless	rnd	8	1024	2048	5122	
+/dev/sdb	stateless	rnd	8	1024	4096	5386	
+/dev/sdb	stateless	rnd	8	1024	8192	5395	
+
+/dev/sdb	stateless	rnd	8	2048	512	4506	
+/dev/sdb	stateless	rnd	8	2048	1024	4608	
+/dev/sdb	stateless	rnd	8	2048	2048	4815	
+/dev/sdb	stateless	rnd	8	2048	4096	5054	
+/dev/sdb	stateless	rnd	8	2048	8192	5066	
+
+/dev/sdb	stateless	rnd	8	4096	512	3994	
+/dev/sdb	stateless	rnd	8	4096	1024	4060	
+/dev/sdb	stateless	rnd	8	4096	2048	4197	
+/dev/sdb	stateless	rnd	8	4096	4096	4495	
+/dev/sdb	stateless	rnd	8	4096	8192	4507	
+
+/dev/sdb	stateless	rnd	8	8192	512	3346	
+/dev/sdb	stateless	rnd	8	8192	1024	3386	
+/dev/sdb	stateless	rnd	8	8192	2048	3478	
+/dev/sdb	stateless	rnd	8	8192	4096	3657	
+/dev/sdb	stateless	rnd	8	8192	8192	3999	
+
+/dev/sdb	stateless	rnd	16	512	512	5073	
+/dev/sdb	stateless	rnd	16	512	1024	5134	
+/dev/sdb	stateless	rnd	16	512	2048	5271	
+/dev/sdb	stateless	rnd	16	512	4096	5560	
+/dev/sdb	stateless	rnd	16	512	8192	5563	
+
+/dev/sdb	stateless	rnd	16	1024	512	4865	
+/dev/sdb	stateless	rnd	16	1024	1024	4995	
+/dev/sdb	stateless	rnd	16	1024	2048	5120	
+/dev/sdb	stateless	rnd	16	1024	4096	5382	
+/dev/sdb	stateless	rnd	16	1024	8192	5387	
+
+/dev/sdb	stateless	rnd	16	2048	512	4510	
+/dev/sdb	stateless	rnd	16	2048	1024	4609	
+/dev/sdb	stateless	rnd	16	2048	2048	4817	
+/dev/sdb	stateless	rnd	16	2048	4096	5060	
+/dev/sdb	stateless	rnd	16	2048	8192	5065	
+
+/dev/sdb	stateless	rnd	16	4096	512	3994	
+/dev/sdb	stateless	rnd	16	4096	1024	4058	
+/dev/sdb	stateless	rnd	16	4096	2048	4195	
+/dev/sdb	stateless	rnd	16	4096	4096	4494	
+/dev/sdb	stateless	rnd	16	4096	8192	4505	
+
+/dev/sdb	stateless	rnd	16	8192	512	3345	
+/dev/sdb	stateless	rnd	16	8192	1024	3386	
+/dev/sdb	stateless	rnd	16	8192	2048	3477	
+/dev/sdb	stateless	rnd	16	8192	4096	3661	
+/dev/sdb	stateless	rnd	16	8192	8192	3999	
+
+/dev/sdb	stateless	rnd	32	512	512	5071	
+/dev/sdb	stateless	rnd	32	512	1024	5131	
+/dev/sdb	stateless	rnd	32	512	2048	5269	
+/dev/sdb	stateless	rnd	32	512	4096	5558	
+/dev/sdb	stateless	rnd	32	512	8192	5560	
+
+/dev/sdb	stateless	rnd	32	1024	512	4864	
+/dev/sdb	stateless	rnd	32	1024	1024	4996	
+/dev/sdb	stateless	rnd	32	1024	2048	5123	
+/dev/sdb	stateless	rnd	32	1024	4096	5387	
+/dev/sdb	stateless	rnd	32	1024	8192	5389	
+
+/dev/sdb	stateless	rnd	32	2048	512	4511	
+/dev/sdb	stateless	rnd	32	2048	1024	4608	
+/dev/sdb	stateless	rnd	32	2048	2048	4815	
+/dev/sdb	stateless	rnd	32	2048	4096	5058	
+/dev/sdb	stateless	rnd	32	2048	8192	5063	
+
+/dev/sdb	stateless	rnd	32	4096	512	3992	
+/dev/sdb	stateless	rnd	32	4096	1024	4058	
+/dev/sdb	stateless	rnd	32	4096	2048	4194	
+/dev/sdb	stateless	rnd	32	4096	4096	4489	
+/dev/sdb	stateless	rnd	32	4096	8192	4502	
+
+/dev/sdb	stateless	rnd	32	8192	512	3348	
+/dev/sdb	stateless	rnd	32	8192	1024	3390	
+/dev/sdb	stateless	rnd	32	8192	2048	3478	
+/dev/sdb	stateless	rnd	32	8192	4096	3661	
+/dev/sdb	stateless	rnd	32	8192	8192	3998	
+
+/dev/sdb	stateless	rnd	64	512	512	5070	
+/dev/sdb	stateless	rnd	64	512	1024	5131	
+/dev/sdb	stateless	rnd	64	512	2048	5265	
+/dev/sdb	stateless	rnd	64	512	4096	5557	
+/dev/sdb	stateless	rnd	64	512	8192	5558	
+
+/dev/sdb	stateless	rnd	64	1024	512	4866	
+/dev/sdb	stateless	rnd	64	1024	1024	4994	
+/dev/sdb	stateless	rnd	64	1024	2048	5121	
+/dev/sdb	stateless	rnd	64	1024	4096	5381	
+/dev/sdb	stateless	rnd	64	1024	8192	5387	
+
+/dev/sdb	stateless	rnd	64	2048	512	4506	
+/dev/sdb	stateless	rnd	64	2048	1024	4607	
+/dev/sdb	stateless	rnd	64	2048	2048	4812	
+/dev/sdb	stateless	rnd	64	2048	4096	5055	
+/dev/sdb	stateless	rnd	64	2048	8192	5064	
+
+/dev/sdb	stateless	rnd	64	4096	512	3990	
+/dev/sdb	stateless	rnd	64	4096	1024	4058	
+/dev/sdb	stateless	rnd	64	4096	2048	4193	
+/dev/sdb	stateless	rnd	64	4096	4096	4492	
+/dev/sdb	stateless	rnd	64	4096	8192	4504	
+
+/dev/sdb	stateless	rnd	64	8192	512	3342	
+/dev/sdb	stateless	rnd	64	8192	1024	3388	
+/dev/sdb	stateless	rnd	64	8192	2048	3475	
+/dev/sdb	stateless	rnd	64	8192	4096	3658	
+/dev/sdb	stateless	rnd	64	8192	8192	3997	
+
+/dev/sdb	stateless	rnd	128	512	512	5075	
+/dev/sdb	stateless	rnd	128	512	1024	5133	
+/dev/sdb	stateless	rnd	128	512	2048	5265	
+/dev/sdb	stateless	rnd	128	512	4096	5556	
+/dev/sdb	stateless	rnd	128	512	8192	5556	
+
+/dev/sdb	stateless	rnd	128	1024	512	4863	
+/dev/sdb	stateless	rnd	128	1024	1024	4993	
+/dev/sdb	stateless	rnd	128	1024	2048	5116	
+/dev/sdb	stateless	rnd	128	1024	4096	5379	
+/dev/sdb	stateless	rnd	128	1024	8192	5389	
+
+/dev/sdb	stateless	rnd	128	2048	512	4508	
+/dev/sdb	stateless	rnd	128	2048	1024	4601	
+/dev/sdb	stateless	rnd	128	2048	2048	4810	
+/dev/sdb	stateless	rnd	128	2048	4096	5047	
+/dev/sdb	stateless	rnd	128	2048	8192	5062	
+
+/dev/sdb	stateless	rnd	128	4096	512	3992	
+/dev/sdb	stateless	rnd	128	4096	1024	4058	
+/dev/sdb	stateless	rnd	128	4096	2048	4193	
+/dev/sdb	stateless	rnd	128	4096	4096	4491	
+/dev/sdb	stateless	rnd	128	4096	8192	4504	
+
+/dev/sdb	stateless	rnd	128	8192	512	3343	
+/dev/sdb	stateless	rnd	128	8192	1024	3385	
+/dev/sdb	stateless	rnd	128	8192	2048	3473	
+/dev/sdb	stateless	rnd	128	8192	4096	3657	
+/dev/sdb	stateless	rnd	128	8192	8192	3996	
+
+/dev/sdb	stateless	rnd	256	512	512	5052	
+/dev/sdb	stateless	rnd	256	512	1024	5111	
+/dev/sdb	stateless	rnd	256	512	2048	5248	
+/dev/sdb	stateless	rnd	256	512	4096	5534	
+/dev/sdb	stateless	rnd	256	512	8192	5536	
+
+/dev/sdb	stateless	rnd	256	1024	512	4843	
+/dev/sdb	stateless	rnd	256	1024	1024	4970	
+/dev/sdb	stateless	rnd	256	1024	2048	5093	
+/dev/sdb	stateless	rnd	256	1024	4096	5341	
+/dev/sdb	stateless	rnd	256	1024	8192	5350	
+
+/dev/sdb	stateless	rnd	256	2048	512	4487	
+/dev/sdb	stateless	rnd	256	2048	1024	4586	
+/dev/sdb	stateless	rnd	256	2048	2048	4790	
+/dev/sdb	stateless	rnd	256	2048	4096	5030	
+/dev/sdb	stateless	rnd	256	2048	8192	5037	
+
+/dev/sdb	stateless	rnd	256	4096	512	3975	
+/dev/sdb	stateless	rnd	256	4096	1024	4042	
+/dev/sdb	stateless	rnd	256	4096	2048	4176	
+/dev/sdb	stateless	rnd	256	4096	4096	4473	
+/dev/sdb	stateless	rnd	256	4096	8192	4485	
+
+/dev/sdb	stateless	rnd	256	8192	512	3333	
+/dev/sdb	stateless	rnd	256	8192	1024	3376	
+/dev/sdb	stateless	rnd	256	8192	2048	3461	
+/dev/sdb	stateless	rnd	256	8192	4096	3645	
+/dev/sdb	stateless	rnd	256	8192	8192	3980	
+
+/dev/sdb	stateless	rnd	512	512	512	5046	
+/dev/sdb	stateless	rnd	512	512	1024	5108	
+/dev/sdb	stateless	rnd	512	512	2048	5241	
+/dev/sdb	stateless	rnd	512	512	4096	5529	
+/dev/sdb	stateless	rnd	512	512	8192	5532	
+
+/dev/sdb	stateless	rnd	512	1024	512	4840	
+/dev/sdb	stateless	rnd	512	1024	1024	4966	
+/dev/sdb	stateless	rnd	512	1024	2048	5089	
+/dev/sdb	stateless	rnd	512	1024	4096	5345	
+/dev/sdb	stateless	rnd	512	1024	8192	5349	
+
+/dev/sdb	stateless	rnd	512	2048	512	4484	
+/dev/sdb	stateless	rnd	512	2048	1024	4583	
+/dev/sdb	stateless	rnd	512	2048	2048	4786	
+/dev/sdb	stateless	rnd	512	2048	4096	5025	
+/dev/sdb	stateless	rnd	512	2048	8192	5033	
+
+/dev/sdb	stateless	rnd	512	4096	512	3974	
+/dev/sdb	stateless	rnd	512	4096	1024	4044	
+/dev/sdb	stateless	rnd	512	4096	2048	4170	
+/dev/sdb	stateless	rnd	512	4096	4096	4467	
+/dev/sdb	stateless	rnd	512	4096	8192	4483	
+
+/dev/sdb	stateless	rnd	512	8192	512	3332	
+/dev/sdb	stateless	rnd	512	8192	1024	3372	
+/dev/sdb	stateless	rnd	512	8192	2048	3458	
+/dev/sdb	stateless	rnd	512	8192	4096	3642	
+/dev/sdb	stateless	rnd	512	8192	8192	3977	
+
