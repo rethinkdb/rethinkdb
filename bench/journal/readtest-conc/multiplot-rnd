@@ -1,0 +1,92 @@
+#-*- gnuplot -*-
+
+set terminal png
+set rmargin 3
+
+set xlabel 'Stride'
+set ylabel 'ops/sec'
+set grid
+set logscale x
+set xtics (512,1024,2048,4096,8192)
+
+# Top three graphs
+set output "rnd-1-thread.png"
+set title "1 thread"
+plot 'results' using 6:7 every :::50::50 with lines title "512b block",\
+     'results' using 6:7 every :::51::51 with lines title "1k block",\
+     'results' using 6:7 every :::52::52 with lines title "2k block",\
+     'results' using 6:7 every :::53::53 with lines title "4k block",\
+     'results' using 6:7 every :::54::54 with lines title "8k block"
+
+set output "rnd-2-threads.png"
+set title "2 threads"
+plot 'results' using 6:7 every :::55::55 with lines title "512b block",\
+     'results' using 6:7 every :::56::56 with lines title "1k block",\
+     'results' using 6:7 every :::57::57 with lines title "2k block",\
+     'results' using 6:7 every :::58::58 with lines title "4k block",\
+     'results' using 6:7 every :::59::59 with lines title "8k block"
+
+set output "rnd-4-threads.png"
+set title "4 threads"
+plot 'results' using 6:7 every :::60::60 with lines title "512b block",\
+     'results' using 6:7 every :::61::61 with lines title "1k block",\
+     'results' using 6:7 every :::62::62 with lines title "2k block",\
+     'results' using 6:7 every :::63::63 with lines title "4k block",\
+     'results' using 6:7 every :::64::64 with lines title "8k block"
+
+set output "rnd-8-threads.png"
+set title "8 threads"
+plot 'results' using 6:7 every :::65::65 with lines title "512b block",\
+     'results' using 6:7 every :::66::66 with lines title "1k block",\
+     'results' using 6:7 every :::67::67 with lines title "2k block",\
+     'results' using 6:7 every :::68::68 with lines title "4k block",\
+     'results' using 6:7 every :::69::69 with lines title "8k block"
+
+set output "rnd-16-threads.png"
+set title "16 threads"
+plot 'results' using 6:7 every :::70::70 with lines title "512b block",\
+     'results' using 6:7 every :::71::71 with lines title "1k block",\
+     'results' using 6:7 every :::72::72 with lines title "2k block",\
+     'results' using 6:7 every :::73::73 with lines title "4k block",\
+     'results' using 6:7 every :::74::74 with lines title "8k block"
+
+set output "rnd-32-threads.png"
+set title "32 threads"
+plot 'results' using 6:7 every :::75::75 with lines title "512b block",\
+     'results' using 6:7 every :::76::76 with lines title "1k block",\
+     'results' using 6:7 every :::77::77 with lines title "2k block",\
+     'results' using 6:7 every :::78::78 with lines title "4k block",\
+     'results' using 6:7 every :::79::79 with lines title "8k block"
+
+set output "rnd-64-threads.png"
+set title "64 threads"
+plot 'results' using 6:7 every :::80::80 with lines title "512b block",\
+     'results' using 6:7 every :::81::81 with lines title "1k block",\
+     'results' using 6:7 every :::82::82 with lines title "2k block",\
+     'results' using 6:7 every :::83::83 with lines title "4k block",\
+     'results' using 6:7 every :::84::84 with lines title "8k block"
+
+set output "rnd-128-threads.png"
+set title "128 threads"
+plot 'results' using 6:7 every :::85::85 with lines title "512b block",\
+     'results' using 6:7 every :::86::86 with lines title "1k block",\
+     'results' using 6:7 every :::87::87 with lines title "2k block",\
+     'results' using 6:7 every :::88::88 with lines title "4k block",\
+     'results' using 6:7 every :::89::89 with lines title "8k block"
+
+set output "rnd-256-threads.png"
+set title "256 threads"
+plot 'results' using 6:7 every :::90::90 with lines title "512b block",\
+     'results' using 6:7 every :::91::91 with lines title "1k block",\
+     'results' using 6:7 every :::92::92 with lines title "2k block",\
+     'results' using 6:7 every :::93::93 with lines title "4k block",\
+     'results' using 6:7 every :::94::94 with lines title "8k block"
+
+set output "rnd-512-threads.png"
+set title "512 threads"
+plot 'results' using 6:7 every :::95::95 with lines title "512b block",\
+     'results' using 6:7 every :::96::96 with lines title "1k block",\
+     'results' using 6:7 every :::97::97 with lines title "2k block",\
+     'results' using 6:7 every :::98::98 with lines title "4k block",\
+     'results' using 6:7 every :::99::99 with lines title "8k block"
+
