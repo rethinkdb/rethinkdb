@@ -47,6 +47,10 @@ def total_benchmarks(runs):
 
 # Time calculation
 def calc_estimate(benchmarks_left):
+    try:
+        duration
+    except NameError:
+        return 0
     return int(duration / 60.0
                * benchmarks_left
                * ((most_runs + least_runs) / 2.0))
@@ -106,7 +110,12 @@ def run_bench_loop(args, fn, fn_args=[]):
 def do_benchmark(args, step):
     # Go through the runs
     values = []
-    rebench_args = ['sudo', '-S', 'rebench', '-n', '-d', str(duration)]
+    rebench_args = ['sudo', '-S', 'rebench', '-n']
+    try:
+        duration
+        rebench_args.extend(['-d', str(duration)])
+    except NameError:
+        pass
     rebench_args.extend(rebench_args_ex)
     exceptions = []
     for arg in args:
