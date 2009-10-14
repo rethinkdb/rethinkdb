@@ -15,17 +15,22 @@ from statistics import stats
 
 # Load the parameters
 try:
-    from readtest_config import *
+    from benchbelt_config import *
 except Exception as ex:
     print ex
     print
-    print "Please copy readtest_config.py.gen to readtest_config.py and set appropriate variables"
+    print "Please copy benchbelt_config.py.gen to benchbelt_config.py and set appropriate variables"
     sys.exit(-1)
 
 try:
     rebench_except.append('device')
 except NameError:
     rebench_except = ['device']
+
+try:
+    rebench_args_ex
+except NameError:
+    rebench_args_ex = []
 
 # Run variables
 least_runs = margins[0]
@@ -102,6 +107,7 @@ def do_benchmark(args, step):
     # Go through the runs
     values = []
     rebench_args = ['sudo', '-S', 'rebench', '-n', '-d', str(duration)]
+    rebench_args.extend(rebench_args_ex)
     exceptions = []
     for arg in args:
         if not arg[0] in rebench_except:
