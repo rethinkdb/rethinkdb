@@ -8,29 +8,33 @@
 # $6 - path to file
 # $7 - size of file in KB
 
-### Partition the drive ###
-# Unmount the fs (might fail, that's ok)
-echo sudo -S umount $4
+# Echo the commands
+set -v
+
+### Unmount the fs (might fail, that's ok) ###
 echo $1 | sudo -S umount $4
 
-# Partition the drive
+### Do the ATA erase operation ###
+echo $1 | sudo -S hdparm --user-master u --security-set-pass test $2
+echo $1 | sudo -S hdparm --user-master u --security-erase test $2
+
+### Partition the drive ###
 echo $1 | sudo -S sfdisk $2 < $3
 
 ### Setup the FS ###
 # Create the filesystem
-echo sudo -S mke2fs -t ext2 -q $5
 echo $1 | sudo -S mke2fs -t ext2 -q -F $5
 
 # Mount the filesystem
-echo sudo -S mount -t ext2 $5 $4
 echo $1 | sudo -S mount -t ext2 $5 $4
 
 ### Fill the appropriate file ###
 # Remove the file in case it already exists
-echo sudo -S rm -f $6
 echo $1 | sudo -S rm -f $6
 
 # Create the file
-echo sudo -S dd if=/dev/zero of=$6 bs=1024 count=$7
 echo $1 | sudo -S dd if=/dev/zero of=$6 bs=1024 count=$7
+
+### Prime the drive ###
+echo $1 | sudo -S rebench -d 100% -b 131072 $2
 
