@@ -1,0 +1,2 @@
+#!/bin/bash
+./setup-disk legion25 /dev/sdb sdb.aligned /mnt/ssd /dev/sdb1 /mnt/ssd/test 51200
