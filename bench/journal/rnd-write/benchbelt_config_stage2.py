@@ -23,9 +23,9 @@ run_config = [('used-space', [15, 50, 85], # specified in percentages
                { 'setup' : setup_disk(password, mount_dir) }),
               ('duration', [15, 50, 85, 120],  # specified in percentages
                { 'setup' : adjust_duration }),
-              ('block_size', [512, 4096, 131072],
+              ('block_size', [4096],
                { 'line-break': True }),
-              ('stride', [131072])]
+              ('stride', [4096])]
 
 # Arguments on this list will not be passed to rebench
 rebench_except = ['used-space']
