@@ -148,8 +148,12 @@ def do_benchmark(args, step):
             sys.exit()
         values.append(rebench_value)
         if run >= least_runs:
-            (mean, median, std, minimum, maximum, confidence) = stats(values)
-            confidence_reqs_met = confidence / 2.0 < mean * error_ratio
+            if run > 1:
+                (mean, median, std, minimum, maximum, confidence) = stats(values)
+                confidence_reqs_met = confidence / 2.0 < mean * error_ratio
+            else:
+                confidence_reqs_met = False
+                mean = rebench_value
             if(confidence_reqs_met):
                 print("Met confidence requirements at %dth run\n" % run)
                 break
@@ -158,6 +162,7 @@ def do_benchmark(args, step):
     # Output the result for the run
     stats_file.write('%d\t' % mean)
     stats_file.write('\n')
+    print("%d IOPS\n" % mean)
 
 def main(argv):
     global stats_file

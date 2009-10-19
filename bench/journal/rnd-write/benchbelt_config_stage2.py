@@ -7,7 +7,7 @@ logname = 'stats'
 
 # Run each benchmark at least 3 times. Stop after 10 runs or when the
 # margin of error is less than 5% of the mean, whichever comes first
-margins = (3, 10, 0.05)
+margins = (1, 1, 0.05)
 
 # Parameters for the run
 devices = ['/dev/sdb']
@@ -21,7 +21,7 @@ rebench_args_ex = ['-o', 'write']
 # settings (documented below).
 run_config = [('used-space', [15, 50, 85], # specified in percentages
                { 'setup' : setup_disk(password, mount_dir) }),
-              ('duration', [15, 50, 85, 120],  # specified in percentages
+              ('duration', [3, 15, 50, 85, 120],  # specified in percentages
                { 'setup' : adjust_duration }),
               ('block_size', [131072],
                { 'line-break': True }),
