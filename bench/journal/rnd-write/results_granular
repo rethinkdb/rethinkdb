@@ -1,0 +1,75 @@
+# device
+# used-space
+# duration
+# block_size
+# stride
+# iops
+/mnt/ssd/bench_file	1	153m	131072	131072	208
+
+/mnt/ssd/bench_file	1	461m	131072	131072	213
+
+/mnt/ssd/bench_file	1	769m	131072	131072	209
+
+/mnt/ssd/bench_file	1	1539m	131072	131072	215
+
+/mnt/ssd/bench_file	1	2308m	131072	131072	217
+
+/mnt/ssd/bench_file	1	4617m	131072	131072	214
+
+/mnt/ssd/bench_file	1	7695m	131072	131072	218
+
+/mnt/ssd/bench_file	1	11543m	131072	131072	215
+
+/mnt/ssd/bench_file	1	15391m	131072	131072	217
+
+/mnt/ssd/bench_file	1	18470m	131072	131072	213
+
+/mnt/ssd/bench_file	3	153m	131072	131072	179
+
+/mnt/ssd/bench_file	3	461m	131072	131072	178
+
+/mnt/ssd/bench_file	3	769m	131072	131072	178
+
+/mnt/ssd/bench_file	3	1539m	131072	131072	184
+
+/mnt/ssd/bench_file	3	2308m	131072	131072	186
+
+/mnt/ssd/bench_file	3	4617m	131072	131072	189
+
+/mnt/ssd/bench_file	3	7695m	131072	131072	188
+
+/mnt/ssd/bench_file	3	11543m	131072	131072	189
+
+/mnt/ssd/bench_file	3	15391m	131072	131072	190
+
+/mnt/ssd/bench_file	3	18470m	131072	131072	190
+
+/mnt/ssd/bench_file	5	153m	131072	131072	111
+
+/mnt/ssd/bench_file	5	461m	131072	131072	159
+
+/mnt/ssd/bench_file	5	769m	131072	131072	138
+
+/mnt/ssd/bench_file	5	1539m	131072	131072	125
+
+/mnt/ssd/bench_file	5	2308m	131072	131072	130
+
+/mnt/ssd/bench_file	5	4617m	131072	131072	129
+
+/mnt/ssd/bench_file	5	7695m	131072	131072	129
+
+/mnt/ssd/bench_file	5	11543m	131072	131072	129
+
+/mnt/ssd/bench_file	5	15391m	131072	131072	128
+
+/mnt/ssd/bench_file	5	18470m	131072	131072	129
+
+/mnt/ssd/bench_file	10	153m	131072	131072	13
+
+/mnt/ssd/bench_file	10	461m	131072	131072	13
+
+/mnt/ssd/bench_file	10	769m	131072	131072	13
+
+/mnt/ssd/bench_file	10	1539m	131072	131072	13
+
+/mnt/ssd/bench_file	10	2308m	131072	131072	

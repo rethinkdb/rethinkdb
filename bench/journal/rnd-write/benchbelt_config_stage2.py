@@ -19,10 +19,9 @@ rebench_args_ex = ['-o', 'write']
 # element is treated as a list of values to pass on every
 # iteration. The third (optional) element is a hash with various
 # settings (documented below).
-run_config = [('used-space', [15, 50, 85], # specified in percentages
+run_config = [('used-space', [10, 15, 30, 50, 75]), # specified in percentages
+              ('duration', [1, 3, 5, 10, 15, 30, 50, 75, 100, 120],    # specified in percentages
                { 'setup' : setup_disk(password, mount_dir) }),
-              ('duration', [3, 15, 50, 85, 120],  # specified in percentages
-               { 'setup' : adjust_duration }),
               ('block_size', [131072],
                { 'line-break': True }),
               ('stride', [131072])]

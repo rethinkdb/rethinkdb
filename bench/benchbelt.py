@@ -160,8 +160,8 @@ def do_benchmark(args, step):
             if(run == most_runs and (not confidence_reqs_met)):
                 sys.stderr.write("Confidence requirements weren't met for %s\n\n" % run_name)
     # Output the result for the run
-    stats_file.write('%d\t' % mean)
-    stats_file.write('\n')
+    stats_file.write('%d\n' % mean)
+    stats_file.flush()
     print("%d IOPS\n" % mean)
 
 def main(argv):

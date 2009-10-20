@@ -1,0 +1,21 @@
+# device
+# used-space
+# duration
+# block_size
+# stride
+# iops
+/mnt/ssd/bench_file	10	153m	131072	131072	14
+
+/mnt/ssd/bench_file	10	461m	131072	131072	14
+
+/mnt/ssd/bench_file	10	769m	131072	131072	14
+
+/mnt/ssd/bench_file	10	1539m	131072	131072	13
+
+/mnt/ssd/bench_file	10	2308m	131072	131072	13
+
+/mnt/ssd/bench_file	10	4617m	131072	131072	13
+
+/mnt/ssd/bench_file	10	7695m	131072	131072	13
+
+/mnt/ssd/bench_file	10	11543m	131072	131072	

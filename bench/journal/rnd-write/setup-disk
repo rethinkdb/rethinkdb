@@ -23,7 +23,7 @@ echo $1 | sudo -S sfdisk $2 < $3
 
 ### Setup the FS ###
 # Create the filesystem
-echo $1 | sudo -S mke2fs -t ext2 -q -F $5
+echo $1 | sudo -S mke2fs -t ext2 -E stripe-width=32 -q -F $5
 
 # Mount the filesystem
 echo $1 | sudo -S mount -t ext2 $5 $4
