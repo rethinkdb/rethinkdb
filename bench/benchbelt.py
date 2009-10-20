@@ -12,6 +12,7 @@ from copy import deepcopy
 from StringIO import StringIO
 from datetime import datetime
 from statistics import stats
+import os
 
 # Load the parameters
 try:
@@ -168,13 +169,22 @@ def main(argv):
     global stats_file
     # Open the results file
     now = datetime.now()
-    stats_file = open('%s@%s' % (logname, now.strftime("%Y-%m-%d.%H-%M-%S")), 'w')
-
+    stats_path = os.path.join(sys.argv[1], 'log')
+    if not os.path.exists(stats_path):
+        os.makedirs(stats_path)
+    stats_file = open(os.path.join(stats_path, now.strftime(logname)), 'w')
+    # Print the config (for easy reference later)
+    with open(os.path.join(sys.argv[1], 'benchbelt_config.py'), 'r') as cf:
+        for cl in cf:
+            if not cl.strip().startswith('#'):
+                stats_file.write('# %s' % cl)
+        stats_file.write('\n')
     # Print the headers
     stats_file.write('# device\n')
     for arg in run_config:
         stats_file.write('# %s\n' % arg[0])
     stats_file.write('# iops\n')
+    stats_file.flush()
 
     # Time estimation
     print("Estimated time: ~%d mins\n" % calc_estimate(total_benchmarks(run_config)))

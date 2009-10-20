@@ -3,7 +3,7 @@ from rnd_write_setup import *
 
 # Some config values
 password = 'legion25'
-logname = 'stats'
+logname = 'stats-%Y-%m-%d.%H-%M-%S'
 
 # Run each benchmark at least 3 times. Stop after 10 runs or when the
 # margin of error is less than 5% of the mean, whichever comes first
