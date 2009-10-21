@@ -3,7 +3,7 @@ from rnd_write_setup import *
 
 # Some config values
 password = 'legion25'
-logname = 'stats-%Y-%m-%d.%H-%M-%S'
+logname = 'stats-intel-slc-%Y-%m-%d.%H-%M-%S'
 
 # Run each benchmark at least 3 times. Stop after 10 runs or when the
 # margin of error is less than 5% of the mean, whichever comes first
@@ -19,8 +19,8 @@ rebench_args_ex = ['-o', 'write']
 # element is treated as a list of values to pass on every
 # iteration. The third (optional) element is a hash with various
 # settings (documented below).
-run_config = [('used-space', [10, 15, 30, 50, 75]), # specified in percentages
-              ('duration', [1, 3, 5, 10, 15, 30, 50, 75, 100, 120],    # specified in percentages
+run_config = [('used-space', [1, 3, 5, 7, 10, 15, 30, 50, 75]), # specified in percentages
+              ('duration', [1, 3, 5, 7, 10, 15, 30, 50, 75, 100, 120],    # specified in percentages
                { 'setup' : setup_disk(password, mount_dir) }),
               ('block_size', [131072],
                { 'line-break': True }),

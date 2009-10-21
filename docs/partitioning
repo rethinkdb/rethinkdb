@@ -1,0 +1,15 @@
+
+*** Partition the disk with alignment ***
+After partitioning:
+
+x - for expert command
+b - to move data in the partition
+After selecting the partition:
+128 - to move the first cylinder to 64k aligned block
+
+*** List partitions in dump format ***
+sfdisk -d /dev/sdX > partition.dump
+
+*** Partition the disk ***
+sfdisk /dev/sdX < partition.dump
+
