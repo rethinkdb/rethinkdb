@@ -11,7 +11,7 @@ def get_device_length(device, password):
     p.wait()
     return int(p.stdout.readline())
 
-def setup_disk(password, mount_dir):
+def setup_disk(password, mount_dir, partition_dump):
     def fdisk_aux(duration, args):
         # some setup
         space = get_arg(args, 'used-space')
@@ -22,7 +22,7 @@ def setup_disk(password, mount_dir):
         file_size = int(device_length / 100.0 * space / 1024.0)
         # setup disk
         subprocess.call([os.path.join(sys.argv[1], 'setup-disk'),
-                         password, device, 'sdb.aligned', mount_dir, device + '1', file_path, str(file_size)])
+                         password, device, partition_dump, mount_dir, device + '1', file_path, str(file_size)])
         # Set the target file and duration
         args = set_arg(args, 'device', file_path)
         args = set_arg(args, 'duration',

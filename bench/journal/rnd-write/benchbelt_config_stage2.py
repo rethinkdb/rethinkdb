@@ -13,6 +13,7 @@ margins = (1, 1, 0.05)
 devices = ['/dev/sdb']
 mount_dir = '/mnt/ssd'
 rebench_args_ex = ['-o', 'write']
+partition_dump = 'sdb32.aligned'
 
 # Run description - a list of tuples. For each tuple, the first
 # element is passed to rebench (with '--' prepended to it), the second
@@ -21,7 +22,7 @@ rebench_args_ex = ['-o', 'write']
 # settings (documented below).
 run_config = [('used-space', [1, 3, 5, 7, 10, 15, 30, 50, 75]), # specified in percentages
               ('duration', [1, 3, 5, 7, 10, 15, 30, 50, 75, 100, 120],    # specified in percentages
-               { 'setup' : setup_disk(password, mount_dir) }),
+               { 'setup' : setup_disk(password, mount_dir, partition_dump) }),
               ('block_size', [131072],
                { 'line-break': True }),
               ('stride', [131072])]
