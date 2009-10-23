@@ -1,0 +1,7 @@
+
+*** Check IO scheduler ***
+$ cat /sys/block/{SDX}/queue/scheduler
+
+*** Set IO scheduler ***
+# echo {SCHEDULER-NAME} > /sys/block/{SDX}/queue/scheduler
+
