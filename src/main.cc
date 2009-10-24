@@ -29,10 +29,12 @@ void check(const char *str, int error) {
 struct worker_t {
     pthread_t thread;
     int epoll_fd;
+    int id;
 };
 
 void* worker_routine(void *arg) {
     int res;
+    ssize_t sz;
     worker_t *self = (worker_t*)arg;
     epoll_event events[10];
     char buf[256];
@@ -42,9 +44,24 @@ void* worker_routine(void *arg) {
         check("Waiting for an event failed", res == -1);
 
         for(int i = 0; i < res; i++) {
-            bzero(buf, sizeof(buf));
-            read(events[i].data.fd, buf, sizeof(buf));
-            printf("Msg: %s\n", buf);
+            sz = -1;
+            if(events[i].events == EPOLLIN) {
+                bzero(buf, sizeof(buf));
+                sz = read(events[i].data.fd, buf, sizeof(buf));
+                check("Could not read from socket", sz == -1);
+                if(sz > 0) {
+                    printf("(worker: %d, event: %d, size: %d) Msg: %s", self->id, i, (int)sz, buf);
+                }
+            }
+            if(events[i].events == EPOLLRDHUP ||
+               events[i].events == EPOLLERR ||
+               events[i].events == EPOLLHUP ||
+               sz == 0) {
+                printf("Closing socket %d\n", events[i].data.fd);
+                res = epoll_ctl(self->epoll_fd, EPOLL_CTL_DEL, events[i].data.fd, &events[i]);
+                check("Could not pass socket to worker", res != 0);
+                close(events[i].data.fd);
+            }
         }
     } while(1);
     
@@ -52,6 +69,8 @@ void* worker_routine(void *arg) {
 }
 
 void create_worker(worker_t *worker) {
+    worker->id = -1;
+    
     // Create a poll fd
     worker->epoll_fd = epoll_create(0);
     check("Could not create epoll fd", worker->epoll_fd == -1);
@@ -75,6 +94,7 @@ void create_worker_pool(int workers, worker_pool_t *worker_pool) {
     worker_pool->workers = (worker_t*)malloc(sizeof(worker_t) * workers);
     for(int i = 0; i < workers; i++) {
         create_worker(&worker_pool->workers[i]);
+        worker_pool->workers[i].id = i;
     }
     worker_pool->active_worker = 0;
 }
@@ -104,6 +124,7 @@ void process_socket(int sockfd, worker_pool_t *worker_pool) {
     event.data.fd = sockfd;
     int res = epoll_ctl(worker->epoll_fd, EPOLL_CTL_ADD, sockfd, &event);
     check("Could not pass socket to worker", res != 0);
+    printf("Connected to socket %d\n", sockfd);
 }
 
 int main(int argc, char *argv[])
@@ -134,6 +155,7 @@ int main(int argc, char *argv[])
 
     // Accept incoming connections
     while(1) {
+        // TODO: add a sound way to get out of this loop
         int newsockfd;
         sockaddr_in client_addr;
         socklen_t client_addr_len = sizeof(client_addr);
