@@ -23,7 +23,7 @@ void* aio_poll_routine(void *arg) {
         res = io_getevents(self->aio_context, 1, sizeof(events), events, NULL);
         check("Could not get AIO events", res < 0);
         for(int i = 0; i < res; i++) {
-            printf("Completion notification for AIO event %d\n", i);
+            printf("(worker: %d) AIO event %d completed\n", self->id, i);
         }
     } while(1);
 }
