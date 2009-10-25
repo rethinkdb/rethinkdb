@@ -1,6 +1,7 @@
 
 #include <sys/epoll.h>
 #include <unistd.h>
+#include <sched.h>
 #include "config.hpp"
 #include "utils.hpp"
 #include "event_queue.hpp"
@@ -72,6 +73,17 @@ void create_event_queue(event_queue_t *event_queue, int queue_id, event_handler_
     // Start the epoll thread
     res = pthread_create(&event_queue->epoll_thread, NULL, epoll_handler, (void*)event_queue);
     check("Could not create epoll thread", res != 0);
+
+    // Set affinity for threads
+    // TODO: do we actually want file IO thread and socket IO thread to be on the same CPU?
+    int ncpus = get_cpu_count();
+    cpu_set_t mask;
+    CPU_ZERO(&mask);
+    CPU_SET(queue_id % ncpus, &mask);
+    res = pthread_setaffinity_np(event_queue->aio_thread, sizeof(cpu_set_t), &mask);
+    check("Could not set thread affinity", res != 0);
+    res = pthread_setaffinity_np(event_queue->epoll_thread, sizeof(cpu_set_t), &mask);
+    check("Could not set thread affinity", res != 0);
 }
 
 void destroy_event_queue(event_queue_t *event_queue) {

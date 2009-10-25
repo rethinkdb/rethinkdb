@@ -6,7 +6,7 @@
 #include "utils.hpp"
 
 void create_worker_pool(worker_pool_t *worker_pool, event_handler_t event_handler) {
-    int ncpus = sysconf(_SC_NPROCESSORS_ONLN);
+    int ncpus = get_cpu_count();
     printf("Number of CPUs: %d\n", ncpus);
     create_worker_pool(worker_pool, event_handler, ncpus);
 }
