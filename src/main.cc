@@ -4,17 +4,12 @@
 #include <strings.h>
 #include <unistd.h>
 #include <fcntl.h>
-#include <poll.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
-#include <sys/epoll.h>
-#include <libaio.h>
 #include "utils.hpp"
 #include "worker_pool.hpp"
 
-/******
- * Main loops
- **/
+/*
 void* aio_poll_routine(void *arg) {
     int res;
     io_event events[10];
@@ -71,30 +66,23 @@ void* epoll_routine(void *arg) {
     
     return NULL;
 }
+*/
 
 /******
  * Socket handling
  **/
 void process_socket(int sockfd, worker_pool_t *worker_pool) {
-    int nworker = next_active_worker(worker_pool);
-    worker_t *worker = &worker_pool->workers[nworker];
-    epoll_event event;
-    event.events = EPOLLIN; // TODO: figure out edge vs. level triggering
-    event.data.ptr = NULL;
-    event.data.fd = sockfd;
-    int res = epoll_ctl(worker->epoll_fd, EPOLL_CTL_ADD, sockfd, &event);
-    check("Could not pass socket to worker", res != 0);
+    event_queue_t *event_queue = next_active_worker(worker_pool);
+    queue_watch_resource(event_queue, sockfd);
     printf("Connected to socket %d\n", sockfd);
 }
 
 int main(int argc, char *argv[])
 {
     // Create a pool of workers
-    int ncpus = sysconf(_SC_NPROCESSORS_ONLN);
-    printf("Number of CPUs: %d\n", ncpus);
     worker_pool_t worker_pool;
-    worker_pool.file_fd = open("leo.txt", O_DIRECT | O_NOATIME | O_RDONLY);
-    create_worker_pool(ncpus, &worker_pool, epoll_routine, aio_poll_routine);
+    worker_pool.data = (void*)open("leo.txt", O_DIRECT | O_NOATIME | O_RDONLY);
+    create_worker_pool(&worker_pool, NULL);
     
     // Create the socket
     int sockfd, res;
@@ -134,7 +122,7 @@ int main(int argc, char *argv[])
     // Cleanup the resources
     res = close(sockfd);
     check("Could not shutdown socket", res != 0);
-    res = close(worker_pool.file_fd);
+    res = close((int)(long)worker_pool.data);
     check("Could not close served file", res != 0);
     destroy_worker_pool(&worker_pool);
 }
