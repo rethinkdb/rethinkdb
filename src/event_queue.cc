@@ -6,6 +6,10 @@
 #include "event_queue.hpp"
 
 void* aio_poll_handler(void *arg) {
+    // TODO: we might want to use eventfd to send this notification
+    // back to the epoll_handler. This will mean both socket and file
+    // events will be processed in the same thread, which might
+    // minimize race condition considerations.
     int res;
     io_event events[MAX_IO_EVENT_PROCESSING_BATCH_SIZE];
     event_queue_t *self = (event_queue_t*)arg;

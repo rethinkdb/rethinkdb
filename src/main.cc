@@ -11,7 +11,7 @@
 
 void event_handler(event_queue_t *event_queue, event_t *event) {
     int res;
-    ssize_t sz;
+    size_t sz;
     char buf[256];
 
     if(event != NULL) {
