@@ -49,6 +49,7 @@ void* epoll_handler(void *arg) {
 void create_event_queue(event_queue_t *event_queue, int queue_id, event_handler_t event_handler) {
     int res;
     event_queue->queue_id = queue_id;
+    event_queue->event_handler = event_handler;
     
     // Create aio context
     res = io_setup(MAX_CONCURRENT_IO_REQUESTS, &event_queue->aio_context);
@@ -75,12 +76,11 @@ void destroy_event_queue(event_queue_t *event_queue) {
 
 void queue_watch_resource(event_queue_t *event_queue, resource_t resource) {
     epoll_event event;
-    event.events = EPOLLIN;
+    event.events = EPOLLIN | EPOLLET;
     event.data.ptr = NULL;
     event.data.fd = resource;
     int res = epoll_ctl(event_queue->epoll_fd, EPOLL_CTL_ADD, resource, &event);
     check("Could not pass socket to worker", res != 0);
-    // TODO: figure out edge vs. level triggering
 }
 
 void queue_forget_resource(event_queue_t *event_queue, resource_t resource) {

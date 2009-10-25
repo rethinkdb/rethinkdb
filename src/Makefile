@@ -11,4 +11,4 @@ event_queue.o: utils.hpp event_queue.hpp event_queue_impl.hpp config.hpp
 utils.o: utils.hpp
 
 clean:
-	rm -f rethinkdb *~ *.o
+	rm -f main *~ *.o

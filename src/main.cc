@@ -9,6 +9,9 @@
 #include "utils.hpp"
 #include "worker_pool.hpp"
 
+void event_handler(void *) {
+    printf("hala\n");
+}
 /*
 void* aio_poll_routine(void *arg) {
     int res;
@@ -82,7 +85,7 @@ int main(int argc, char *argv[])
     // Create a pool of workers
     worker_pool_t worker_pool;
     worker_pool.data = (void*)open("leo.txt", O_DIRECT | O_NOATIME | O_RDONLY);
-    create_worker_pool(&worker_pool, NULL);
+    create_worker_pool(&worker_pool, event_handler);
     
     // Create the socket
     int sockfd, res;
