@@ -1,7 +1,7 @@
 CC=g++
 CXX=g++
 CXXFLAGS=-g -O2
-LDFLAGS=-lrt -lm
+LDFLAGS=-lrt -lm -laio
 
 main: main.o utils.o worker_pool.o
 

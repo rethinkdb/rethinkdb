@@ -8,13 +8,27 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <sys/epoll.h>
+#include <libaio.h>
 #include "utils.hpp"
 #include "worker_pool.hpp"
 
 /******
- * Main loop
+ * Main loops
  **/
-void* worker_routine(void *arg) {
+void* aio_poll_routine(void *arg) {
+    int res;
+    io_event events[10];
+    worker_t *self = (worker_t*)arg;
+    do {
+        res = io_getevents(self->aio_context, 1, sizeof(events), events, NULL);
+        check("Could not get AIO events", res < 0);
+        for(int i = 0; i < res; i++) {
+            printf("Completion notification for AIO event %d\n", i);
+        }
+    } while(1);
+}
+
+void* epoll_routine(void *arg) {
     int res;
     ssize_t sz;
     worker_t *self = (worker_t*)arg;
@@ -33,6 +47,14 @@ void* worker_routine(void *arg) {
                 check("Could not read from socket", sz == -1);
                 if(sz > 0) {
                     printf("(worker: %d, event: %d, size: %d) Msg: %s", self->id, i, (int)sz, buf);
+                    int offset = atoi(buf);
+                    iocb request;
+                    // TODO: gotta have a buffer per IO
+                    io_prep_pread(&request, self->pool->file_fd, buf, 15, offset);
+                    iocb* requests[1];
+                    requests[0] = &request;
+                    res = io_submit(self->aio_context, 1, requests);
+                    check("Could not submit IO request", res < 1);
                 }
             }
             if(events[i].events == EPOLLRDHUP ||
@@ -71,7 +93,8 @@ int main(int argc, char *argv[])
     int ncpus = sysconf(_SC_NPROCESSORS_ONLN);
     printf("Number of CPUs: %d\n", ncpus);
     worker_pool_t worker_pool;
-    create_worker_pool(ncpus, &worker_pool, worker_routine);
+    worker_pool.file_fd = open("leo.txt", O_DIRECT | O_NOATIME | O_RDONLY);
+    create_worker_pool(ncpus, &worker_pool, epoll_routine, aio_poll_routine);
     
     // Create the socket
     int sockfd, res;
@@ -111,6 +134,8 @@ int main(int argc, char *argv[])
     // Cleanup the resources
     res = close(sockfd);
     check("Could not shutdown socket", res != 0);
+    res = close(worker_pool.file_fd);
+    check("Could not close served file", res != 0);
     destroy_worker_pool(&worker_pool);
 }
 
