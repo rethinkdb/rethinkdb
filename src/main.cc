@@ -1,37 +1,19 @@
 
-#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <strings.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <poll.h>
-#include <pthread.h>
 #include <sys/socket.h>
-#include <sys/epoll.h>
 #include <netinet/in.h>
+#include <sys/epoll.h>
+#include "utils.hpp"
+#include "worker_pool.hpp"
 
 /******
- * Utils
+ * Main loop
  **/
-void check(const char *str, int error) {
-    if (error) {
-        if(errno == 0)
-            errno = EINVAL;
-        perror(str);
-        exit(-1);
-    }
-}
-
-/******
- * Worker
- **/
-struct worker_t {
-    pthread_t thread;
-    int epoll_fd;
-    int id;
-};
-
 void* worker_routine(void *arg) {
     int res;
     ssize_t sz;
@@ -59,7 +41,7 @@ void* worker_routine(void *arg) {
                sz == 0) {
                 printf("Closing socket %d\n", events[i].data.fd);
                 res = epoll_ctl(self->epoll_fd, EPOLL_CTL_DEL, events[i].data.fd, &events[i]);
-                check("Could not pass socket to worker", res != 0);
+                check("Could remove socket from watching", res != 0);
                 close(events[i].data.fd);
             }
         }
@@ -68,52 +50,8 @@ void* worker_routine(void *arg) {
     return NULL;
 }
 
-void create_worker(worker_t *worker) {
-    worker->id = -1;
-    
-    // Create a poll fd
-    worker->epoll_fd = epoll_create(0);
-    check("Could not create epoll fd", worker->epoll_fd == -1);
-
-    // Start the thread
-    int res = pthread_create(&worker->thread, NULL, worker_routine, (void*)worker);
-    check("Could not create worker thread", res != 0);
-}
-
 /******
- * Worker Pool
- **/
-struct worker_pool_t {
-    worker_t *workers;
-    int nworkers;
-    int active_worker;
-};
-
-void create_worker_pool(int workers, worker_pool_t *worker_pool) {
-    worker_pool->nworkers = workers;
-    worker_pool->workers = (worker_t*)malloc(sizeof(worker_t) * workers);
-    for(int i = 0; i < workers; i++) {
-        create_worker(&worker_pool->workers[i]);
-        worker_pool->workers[i].id = i;
-    }
-    worker_pool->active_worker = 0;
-}
-
-void destroy_worker_pool(worker_pool_t *worker_pool) {
-    // TODO: ensure threads are terminated
-    free(worker_pool->workers);
-    worker_pool->nworkers = 0;
-}
-
-int next_active_worker(worker_pool_t *worker_pool) {
-    int worker = worker_pool->active_worker++;
-    if(worker_pool->active_worker >= worker_pool->nworkers)
-        worker_pool->active_worker = 0;
-    return worker;
-}
-
-/******
- * Main loop
+ * Socket handling
  **/
 void process_socket(int sockfd, worker_pool_t *worker_pool) {
     int nworker = next_active_worker(worker_pool);
@@ -133,7 +71,7 @@ int main(int argc, char *argv[])
     int ncpus = sysconf(_SC_NPROCESSORS_ONLN);
     printf("Number of CPUs: %d\n", ncpus);
     worker_pool_t worker_pool;
-    create_worker_pool(ncpus, &worker_pool);
+    create_worker_pool(ncpus, &worker_pool, worker_routine);
     
     // Create the socket
     int sockfd, res;
