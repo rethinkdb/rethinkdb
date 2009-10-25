@@ -5,6 +5,9 @@
 #include <pthread.h>
 #include <libaio.h>
 
+// Forward declarations
+struct event_t;
+
 // Resource type. In linux it's an int for file descriptors
 typedef int resource_t;
 
@@ -18,7 +21,7 @@ struct event_queue_t {
     pthread_t epoll_thread;
     int epoll_fd;
 
-    void (*event_handler)(void*);
+    void (*event_handler)(event_queue_t*, event_t*);
 };
 
 #endif // __EVENT_QUEUE_IMPL_HPP__

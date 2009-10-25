@@ -14,7 +14,7 @@ void* aio_poll_handler(void *arg) {
         check("Could not get AIO events", res < 0);
         for(int i = 0; i < res; i++) {
             if(self->event_handler) {
-                self->event_handler(NULL);
+                self->event_handler(self, NULL);
             }
         }
     } while(1);
@@ -32,7 +32,9 @@ void* epoll_handler(void *arg) {
         for(int i = 0; i < res; i++) {
             if(events[i].events == EPOLLIN) {
                 if(self->event_handler) {
-                    self->event_handler(NULL);
+                    event_t qevent;
+                    qevent.resource = events[i].data.fd;
+                    self->event_handler(self, &qevent);
                 }
             }
             if(events[i].events == EPOLLRDHUP ||

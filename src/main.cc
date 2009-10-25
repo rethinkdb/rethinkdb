@@ -9,67 +9,33 @@
 #include "utils.hpp"
 #include "worker_pool.hpp"
 
-void event_handler(void *) {
-    printf("hala\n");
-}
-/*
-void* aio_poll_routine(void *arg) {
-    int res;
-    io_event events[10];
-    worker_t *self = (worker_t*)arg;
-    do {
-        res = io_getevents(self->aio_context, 1, sizeof(events), events, NULL);
-        check("Could not get AIO events", res < 0);
-        for(int i = 0; i < res; i++) {
-            printf("(worker: %d) AIO event %d completed\n", self->id, i);
-        }
-    } while(1);
-}
-
-void* epoll_routine(void *arg) {
+void event_handler(event_queue_t *event_queue, event_t *event) {
     int res;
     ssize_t sz;
-    worker_t *self = (worker_t*)arg;
-    epoll_event events[10];
     char buf[256];
-    
-    do {
-        res = epoll_wait(self->epoll_fd, events, sizeof(events), -1);
-        check("Waiting for an event failed", res == -1);
 
-        for(int i = 0; i < res; i++) {
-            sz = -1;
-            if(events[i].events == EPOLLIN) {
-                bzero(buf, sizeof(buf));
-                sz = read(events[i].data.fd, buf, sizeof(buf));
-                check("Could not read from socket", sz == -1);
-                if(sz > 0) {
-                    printf("(worker: %d, event: %d, size: %d) Msg: %s", self->id, i, (int)sz, buf);
-                    int offset = atoi(buf);
-                    iocb request;
-                    // TODO: gotta have a buffer per IO
-                    io_prep_pread(&request, self->pool->file_fd, buf, 15, offset);
-                    iocb* requests[1];
-                    requests[0] = &request;
-                    res = io_submit(self->aio_context, 1, requests);
-                    check("Could not submit IO request", res < 1);
-                }
-            }
-            if(events[i].events == EPOLLRDHUP ||
-               events[i].events == EPOLLERR ||
-               events[i].events == EPOLLHUP ||
-               sz == 0) {
-                printf("Closing socket %d\n", events[i].data.fd);
-                res = epoll_ctl(self->epoll_fd, EPOLL_CTL_DEL, events[i].data.fd, &events[i]);
-                check("Could remove socket from watching", res != 0);
-                close(events[i].data.fd);
-            }
+    if(event != NULL) {
+        bzero(buf, sizeof(buf));
+        sz = read(event->resource, buf, sizeof(buf));
+        check("Could not read from socket", sz == -1);
+        if(sz > 0) {
+            printf("(worker: %d, size: %d) Msg: %s", event_queue->queue_id, (int)sz, buf);
+            int offset = atoi(buf);
+            /*
+            iocb request;
+            // TODO: gotta have a buffer per IO
+            io_prep_pread(&request, event_queue->pool->file_fd, buf, 15, offset);
+            iocb* requests[1];
+            requests[0] = &request;
+            res = io_submit(event_queue->aio_context, 1, requests);
+            check("Could not submit IO request", res < 1);*/
+        } else {
+            printf("Closing socket %d\n", event->resource);
+            queue_forget_resource(event_queue, event->resource);
+            close(event->resource);
         }
-    } while(1);
-    
-    return NULL;
+    }
 }
-*/
 
 /******
  * Socket handling
