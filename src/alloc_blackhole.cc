@@ -14,6 +14,7 @@
 void create_allocator(alloc_blackhole_t *allocator, size_t size) {
     allocator->avail = allocator->heap = malloc(size);
     allocator->size = size;
+    allocator->alignment = 0;
 }
 
 void destroy_allocator(alloc_blackhole_t *allocator) {
@@ -31,9 +32,9 @@ void set_alignment(alloc_blackhole_t *allocator, size_t alignment) {
 
 void* malloc(alloc_blackhole_t *allocator, size_t size) {
     if(allocator->alignment) {
-        char *a = (char*)allocator->avail;
-        a = a + ((long)a % allocator->alignment);
-        allocator->avail = (void*)a;
+        long aa = (long)allocator->avail;
+        aa = aa / allocator->alignment * allocator->alignment + allocator->alignment;
+        allocator->avail = (void*)aa;
     }
     check("No more memory to allocate in the black hole.",
           ((char*)allocator->avail - (char*)allocator->heap) + size >= allocator->size);

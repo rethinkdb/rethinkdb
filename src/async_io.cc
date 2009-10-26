@@ -3,14 +3,11 @@
 #include "async_io.hpp"
 
 void schedule_aio_read(resource_t resource,
-                       size_t offset, size_t length, char *buf,
+                       size_t offset, size_t length, void *buf,
                        event_queue_t *notify_target,
                        alloc_blackhole_t *allocator)
 {
-    size_t old_alignment = get_alignment(allocator);
-    set_alignment(allocator, 512);
     iocb *request = (iocb*)malloc(allocator, sizeof(iocb));
-    set_alignment(allocator, old_alignment);
     io_prep_pread(request, resource, buf, length, offset);
     iocb* requests[1];
     requests[0] = request;
