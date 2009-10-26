@@ -26,7 +26,7 @@ void event_handler(event_queue_t *event_queue, event_t *event) {
         if(sz > 0) {
             printf("(worker: %d, size: %d) Msg: %s", event_queue->queue_id, (int)sz, buf);
             if(strncmp(buf, "quit", 4) == 0) {
-                printf("Quitting server\n");
+                printf("Quitting server...\n");
                 res = pthread_kill(event_queue->parent_pool->main_thread, SIGTERM);
                 check("Could not send kill signal to main thread", res != 0);
                 return;
@@ -64,12 +64,17 @@ int main(int argc, char *argv[])
 {
     int res;
     
-    // Setup termination handler
+    // Setup termination handlers
     struct sigaction action;
     bzero((char*)&action, sizeof(action));
     action.sa_handler = term_handler;
     res = sigaction(SIGTERM, &action, NULL);
     check("Could not install TERM handler", res < 0);
+    
+    bzero((char*)&action, sizeof(action));
+    action.sa_handler = term_handler;
+    res = sigaction(SIGINT, &action, NULL);
+    check("Could not install INT handler", res < 0);
     
     // Create a pool of workers
     worker_pool_t worker_pool;
@@ -126,5 +131,6 @@ int main(int argc, char *argv[])
     check("Could not close main socket", res != 0);
     res = close((int)(long)worker_pool.data);
     check("Could not close served file", res != 0);
+    printf("Server offline\n");
 }
 
