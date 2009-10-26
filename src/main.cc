@@ -26,29 +26,34 @@ void event_handler(event_queue_t *event_queue, event_t *event) {
         check("Could not read from socket", sz == -1);
         if(sz > 0) {
             printf("(worker: %d, size: %d) Msg: %s", event_queue->queue_id, (int)sz, buf);
+            // See if we have a quit message
             if(strncmp(buf, "quit", 4) == 0) {
                 printf("Quitting server...\n");
                 res = pthread_kill(event_queue->parent_pool->main_thread, SIGTERM);
                 check("Could not send kill signal to main thread", res != 0);
                 return;
             }
-            int offset = atoi(buf);
 
+            // Allocate a buffer to read file into
             size_t old_alignment = get_alignment(&event_queue->allocator);
             set_alignment(&event_queue->allocator, 512);
             void *gbuf = malloc(&event_queue->allocator, 512);
             set_alignment(&event_queue->allocator, old_alignment);
 
+            // Fire off an async IO event
             bzero(gbuf, 512);
+            int offset = atoi(buf);
             schedule_aio_read((int)(long)event_queue->parent_pool->data,
                               offset, 512, gbuf, event_queue,
                               &event_queue->allocator);
         } else {
+            // No data left, close the socket
             printf("Closing socket %d\n", event->source);
             queue_forget_resource(event_queue, event->source);
             close(event->source);
         }
     } else {
+        // We got async IO event back
         if(event->result < 0) {
             printf("File notify (fd %d, res: %d) %s\n",
                    event->source, event->result, strerror(-event->result));
