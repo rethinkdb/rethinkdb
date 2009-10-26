@@ -38,11 +38,6 @@ void event_handler(event_queue_t *event_queue, event_t *event) {
             void *gbuf = malloc(&event_queue->allocator, 512);
             set_alignment(&event_queue->allocator, old_alignment);
 
-            /*
-            void *gbuf;
-            posix_memalign(&gbuf, 512, 512);
-            */
-            
             bzero(gbuf, 512);
             schedule_aio_read((int)(long)event_queue->parent_pool->data,
                               offset, 512, gbuf, event_queue,
