@@ -11,9 +11,13 @@ typedef int resource_t;
 enum event_type_t {
     et_disk_event, et_sock_event
 };
+enum event_op_t {
+    eo_read, eo_write
+};
 struct event_t {
     event_type_t event_type;
     resource_t source;
+    event_op_t op;
 
     void *state;  // State associated with the communication
 
@@ -43,8 +47,8 @@ void create_event_queue(event_queue_t *event_queue, int queue_id, event_handler_
                         worker_pool_t *parent_pool);
 void destroy_event_queue(event_queue_t *event_queue);
 
-// Event queue operation
-void queue_watch_resource(event_queue_t *event_queue, resource_t resource, void *state);
+void queue_watch_resource(event_queue_t *event_queue, resource_t resource,
+                          event_op_t event_op, void *state);
 void queue_forget_resource(event_queue_t *event_queue, resource_t resource);
 
 #endif // __EVENT_QUEUE_HPP__

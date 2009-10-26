@@ -40,6 +40,10 @@ void* aio_poll_handler(void *arg) {
                 qevent.result = events[i].res;
                 qevent.buf = op->u.c.buf;
                 qevent.state = events[i].data;
+                if(op->aio_lio_opcode == IO_CMD_PREAD)
+                    qevent.op = eo_read;
+                else
+                    qevent.op = eo_write;
                 self->event_handler(self, &qevent);
             }
         }
@@ -64,13 +68,19 @@ void* epoll_handler(void *arg) {
         check("Waiting for epoll events failed", res == -1);
 
         for(int i = 0; i < res; i++) {
-            if(events[i].events == EPOLLIN) {
+            if(events[i].events == EPOLLIN ||
+               events[i].events == EPOLLOUT)
+            {
                 if(self->event_handler) {
                     event_t qevent;
                     bzero((char*)&qevent, sizeof(qevent));
                     qevent.event_type = et_sock_event;
                     qevent.source = events[i].data.fd;
                     qevent.state = events[i].data.ptr;
+                    if(events[i].events & EPOLLIN)
+                        qevent.op = eo_read;
+                    else
+                        qevent.op = eo_write;
                     self->event_handler(self, &qevent);
                 }
             }
@@ -148,10 +158,17 @@ void destroy_event_queue(event_queue_t *event_queue) {
     destroy_allocator(&event_queue->allocator);
 }
 
-void queue_watch_resource(event_queue_t *event_queue, resource_t resource, void *state) {
+void queue_watch_resource(event_queue_t *event_queue, resource_t resource,
+                          event_op_t watch_mode, void *state) {
     epoll_event event;
-    event.events = EPOLLIN | EPOLLET;
+    
+    event.events = EPOLLET;
+    if(watch_mode == eo_read)
+        event.events |= EPOLLIN;
+    else
+        event.events |= EPOLLOUT;
     event.data.ptr = state;
+    
     event.data.fd = resource;
     int res = epoll_ctl(event_queue->epoll_fd, EPOLL_CTL_ADD, resource, &event);
     check("Could not pass socket to worker", res != 0);

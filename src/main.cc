@@ -74,7 +74,7 @@ void term_handler(int signum) {
  **/
 void process_socket(int sockfd, worker_pool_t *worker_pool) {
     event_queue_t *event_queue = next_active_worker(worker_pool);
-    queue_watch_resource(event_queue, sockfd, NULL);
+    queue_watch_resource(event_queue, sockfd, eo_read, NULL);
 }
 
 int main(int argc, char *argv[])
