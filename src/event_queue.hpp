@@ -25,7 +25,7 @@ struct event_queue_t {
     event_handler_t event_handler;
     alloc_blackhole_t allocator;
     worker_pool_t *parent_pool;
-    bool dying;
+    volatile bool dying;
 };
 
 // Event queue initialization/destruction
