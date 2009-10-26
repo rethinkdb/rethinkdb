@@ -19,9 +19,9 @@ void event_handler(event_queue_t *event_queue, event_t *event) {
     size_t sz;
     char buf[256];
 
-    if(event != NULL) {
+    if(event->event_type == et_sock_event) {
         bzero(buf, sizeof(buf));
-        sz = read(event->resource, buf, sizeof(buf));
+        sz = read(event->source, buf, sizeof(buf));
         check("Could not read from socket", sz == -1);
         if(sz > 0) {
             printf("(worker: %d, size: %d) Msg: %s", event_queue->queue_id, (int)sz, buf);
@@ -35,14 +35,21 @@ void event_handler(event_queue_t *event_queue, event_t *event) {
             char *gbuf = (char*)malloc(&event_queue->allocator, 512);
             bzero(gbuf, 512);
             schedule_aio_read((int)(long)event_queue->parent_pool->data,
-                              offset, 512, gbuf, event_queue);
+                              offset, 512, gbuf, event_queue,
+                              &event_queue->allocator);
         } else {
-            printf("Closing socket %d\n", event->resource);
-            queue_forget_resource(event_queue, event->resource);
-            close(event->resource);
+            printf("Closing socket %d\n", event->source);
+            queue_forget_resource(event_queue, event->source);
+            close(event->source);
         }
     } else {
-        printf("Got a file IO notification\n");
+        if(event->result < 0) {
+            printf("File notify (fd %d, res: %d) %s\n",
+                   event->source, event->result, strerror(-event->result));
+        } else {
+            printf("File notify (fd %d, res: %d) %s\n",
+                   event->source, event->result, (char*)event->buf);
+        }
     }
 }
 

@@ -32,7 +32,14 @@ void* aio_poll_handler(void *arg) {
         check("Waiting for AIO events failed", res < 0);
         for(int i = 0; i < res; i++) {
             if(self->event_handler) {
-                self->event_handler(self, NULL);
+                event_t qevent;
+                bzero((char*)&qevent, sizeof(qevent));
+                qevent.event_type = et_disk_event;
+                iocb *op = (iocb*)events[i].obj;
+                qevent.source = op->aio_fildes;
+                qevent.result = events[i].res;
+                qevent.buf = op->u.c.buf;
+                self->event_handler(self, &qevent);
             }
         }
     } while(1);
@@ -59,6 +66,7 @@ void* epoll_handler(void *arg) {
             if(events[i].events == EPOLLIN) {
                 if(self->event_handler) {
                     event_t qevent;
+                    bzero((char*)&qevent, sizeof(qevent));
                     qevent.event_type = et_sock_event;
                     qevent.source = events[i].data.fd;
                     self->event_handler(self, &qevent);
