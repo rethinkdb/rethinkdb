@@ -18,6 +18,8 @@ void create_worker_pool(worker_pool_t *worker_pool, event_handler_t event_handle
         create_event_queue(&worker_pool->workers[i], i, event_handler);
     }
     worker_pool->active_worker = 0;
+    // TODO: consider creating lower priority threads to standby in
+    // case main threads block.
 }
 
 void destroy_worker_pool(worker_pool_t *worker_pool) {
