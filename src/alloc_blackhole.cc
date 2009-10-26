@@ -11,6 +11,9 @@
 
 // TODO: report allocator statistics.
 
+// TODO: add debug mode code to ensure the allocator is always called
+// from a single thread.
+
 void create_allocator(alloc_blackhole_t *allocator, size_t size) {
     allocator->avail = allocator->heap = malloc(size);
     allocator->size = size;
