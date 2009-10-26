@@ -57,6 +57,7 @@ void event_handler(event_queue_t *event_queue, event_t *event) {
             printf("File notify (fd %d, res: %d) %s\n",
                    event->source, event->result, strerror(-event->result));
         } else {
+            ((char*)event->buf)[11] = 0;
             printf("File notify (fd %d, res: %d) %s\n",
                    event->source, event->result, (char*)event->buf);
         }
