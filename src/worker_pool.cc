@@ -5,13 +5,17 @@
 #include "worker_pool.hpp"
 #include "utils.hpp"
 
-void create_worker_pool(worker_pool_t *worker_pool, event_handler_t event_handler) {
+void create_worker_pool(worker_pool_t *worker_pool, event_handler_t event_handler,
+    pthread_t main_thread) {
     int ncpus = get_cpu_count();
     printf("Number of CPUs: %d\n", ncpus);
-    create_worker_pool(worker_pool, event_handler, ncpus);
+    create_worker_pool(worker_pool, event_handler, main_thread, ncpus);
 }
 
-void create_worker_pool(worker_pool_t *worker_pool, event_handler_t event_handler, int workers) {
+void create_worker_pool(worker_pool_t *worker_pool, event_handler_t event_handler, pthread_t main_thread,
+                        int workers)
+{
+    worker_pool->main_thread = main_thread;
     worker_pool->nworkers = workers;
     worker_pool->workers = (event_queue_t*)malloc(sizeof(event_queue_t) * workers);
     for(int i = 0; i < workers; i++) {

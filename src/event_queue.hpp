@@ -18,18 +18,14 @@ typedef void (*event_handler_t)(event_queue_t*, event_t*);
 struct worker_pool_t;
 struct event_queue_t {
     int queue_id;
-    
     pthread_t aio_thread;
     io_context_t aio_context;
-
     pthread_t epoll_thread;
     int epoll_fd;
-
     event_handler_t event_handler;
-
     alloc_blackhole_t allocator;
-
     worker_pool_t *parent_pool;
+    bool dying;
 };
 
 // Event queue initialization/destruction

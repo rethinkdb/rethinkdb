@@ -2,6 +2,9 @@
 #include <sys/epoll.h>
 #include <unistd.h>
 #include <sched.h>
+#include <stdio.h>
+#include <errno.h>
+#include <signal.h>
 #include "config.hpp"
 #include "utils.hpp"
 #include "event_queue.hpp"
@@ -18,7 +21,15 @@ void* aio_poll_handler(void *arg) {
     event_queue_t *self = (event_queue_t*)arg;
     do {
         res = io_getevents(self->aio_context, 1, sizeof(events), events, NULL);
-        check("Could not get AIO events", res < 0);
+        // io_getevents might return with EINTR in some cases (in
+        // particular under GDB), we just need to retry.
+        if(-res == EINTR) {
+            if(self->dying)
+                break;
+            else
+                continue;
+        }
+        check("Waiting for AIO events failed", res < 0);
         for(int i = 0; i < res; i++) {
             if(self->event_handler) {
                 self->event_handler(self, NULL);
@@ -34,7 +45,15 @@ void* epoll_handler(void *arg) {
     
     do {
         res = epoll_wait(self->epoll_fd, events, sizeof(events), -1);
-        check("Waiting for an event failed", res == -1);
+        // epoll_wait might return with EINTR in some cases (in
+        // particular under GDB), we just need to retry.
+        if(res == -1 && errno == EINTR) {
+            if(self->dying)
+                break;
+            else
+                continue;
+        }
+        check("Waiting for epoll events failed", res == -1);
 
         for(int i = 0; i < res; i++) {
             if(events[i].events == EPOLLIN) {
@@ -61,11 +80,13 @@ void create_event_queue(event_queue_t *event_queue, int queue_id, event_handler_
     event_queue->queue_id = queue_id;
     event_queue->event_handler = event_handler;
     event_queue->parent_pool = parent_pool;
+    event_queue->dying = false;
 
     // Initialize the allocator
     create_allocator(&event_queue->allocator, ALLOCATOR_WORKER_HEAP);
     
     // Create aio context
+    event_queue->aio_context = 0;
     res = io_setup(MAX_CONCURRENT_IO_REQUESTS, &event_queue->aio_context);
     check("Could not setup aio context", res != 0);
     
@@ -94,10 +115,26 @@ void create_event_queue(event_queue_t *event_queue, int queue_id, event_handler_
 }
 
 void destroy_event_queue(event_queue_t *event_queue) {
+    int res;
+
+    event_queue->dying = true;
+
+    // Kill the threads
+    res = pthread_kill(event_queue->aio_thread, SIGTERM);
+    check("Could not send kill signal to aio thread", res != 0);
+    res = pthread_kill(event_queue->epoll_thread, SIGTERM);
+    check("Could not send kill signal to epoll thread", res != 0);
+
+    // Wait for the threads to die
+    res = pthread_join(event_queue->aio_thread, NULL);
+    check("Could not join with aio thread", res != 0);
+    res = pthread_join(event_queue->epoll_thread, NULL);
+    check("Could not join with epoll thread", res != 0);
+    
+    // Cleanup resources
     close(event_queue->epoll_fd);
     io_destroy(event_queue->aio_context);
     destroy_allocator(&event_queue->allocator);
-    // TODO: kill epoll and aio threads
 }
 
 void queue_watch_resource(event_queue_t *event_queue, resource_t resource) {
