@@ -21,6 +21,7 @@ void event_handler(event_queue_t *event_queue, event_t *event) {
 
     if(event->event_type == et_sock_event) {
         bzero(buf, sizeof(buf));
+        // TODO: make sure we don't leave any data in the socket
         sz = read(event->source, buf, sizeof(buf));
         check("Could not read from socket", sz == -1);
         if(sz > 0) {
