@@ -15,7 +15,7 @@ void create_worker_pool(worker_pool_t *worker_pool, event_handler_t event_handle
     worker_pool->nworkers = workers;
     worker_pool->workers = (event_queue_t*)malloc(sizeof(event_queue_t) * workers);
     for(int i = 0; i < workers; i++) {
-        create_event_queue(&worker_pool->workers[i], i, event_handler);
+        create_event_queue(&worker_pool->workers[i], i, event_handler, worker_pool);
     }
     worker_pool->active_worker = 0;
     // TODO: consider creating lower priority threads to standby in
@@ -35,5 +35,8 @@ event_queue_t* next_active_worker(worker_pool_t *worker_pool) {
     if(worker_pool->active_worker >= worker_pool->nworkers)
         worker_pool->active_worker = 0;
     return &worker_pool->workers[worker];
+    // TODO: consider introducing randomness to avoid potential
+    // (intentional and unintentional) attacks on memory allocation
+    // and CPU utilization.
 }
 

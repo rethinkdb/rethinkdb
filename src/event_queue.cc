@@ -6,6 +6,8 @@
 #include "utils.hpp"
 #include "event_queue.hpp"
 
+// TODO: report event queue statistics.
+
 void* aio_poll_handler(void *arg) {
     // TODO: we might want to use eventfd to send this notification
     // back to the epoll_handler. This will mean both socket and file
@@ -53,10 +55,15 @@ void* epoll_handler(void *arg) {
     return NULL;
 }
 
-void create_event_queue(event_queue_t *event_queue, int queue_id, event_handler_t event_handler) {
+void create_event_queue(event_queue_t *event_queue, int queue_id, event_handler_t event_handler,
+                        worker_pool_t *parent_pool) {
     int res;
     event_queue->queue_id = queue_id;
     event_queue->event_handler = event_handler;
+    event_queue->parent_pool = parent_pool;
+
+    // Initialize the allocator
+    create_allocator(&event_queue->allocator, ALLOCATOR_WORKER_HEAP);
     
     // Create aio context
     res = io_setup(MAX_CONCURRENT_IO_REQUESTS, &event_queue->aio_context);
@@ -89,6 +96,7 @@ void create_event_queue(event_queue_t *event_queue, int queue_id, event_handler_
 void destroy_event_queue(event_queue_t *event_queue) {
     close(event_queue->epoll_fd);
     io_destroy(event_queue->aio_context);
+    destroy_allocator(&event_queue->allocator);
     // TODO: kill epoll and aio threads
 }
 

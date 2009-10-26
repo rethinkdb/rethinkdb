@@ -8,6 +8,8 @@
 #include <netinet/in.h>
 #include "utils.hpp"
 #include "worker_pool.hpp"
+#include "async_io.hpp"
+#include "alloc_blackhole.hpp"
 
 void event_handler(event_queue_t *event_queue, event_t *event) {
     int res;
@@ -21,19 +23,16 @@ void event_handler(event_queue_t *event_queue, event_t *event) {
         if(sz > 0) {
             printf("(worker: %d, size: %d) Msg: %s", event_queue->queue_id, (int)sz, buf);
             int offset = atoi(buf);
-            /*
-            iocb request;
-            // TODO: gotta have a buffer per IO
-            io_prep_pread(&request, event_queue->pool->file_fd, buf, 15, offset);
-            iocb* requests[1];
-            requests[0] = &request;
-            res = io_submit(event_queue->aio_context, 1, requests);
-            check("Could not submit IO request", res < 1);*/
+            char *gbuf = (char*)malloc(&event_queue->allocator, 512);
+            schedule_aio_read((int)(long)event_queue->parent_pool->data,
+                              offset, 512, gbuf, event_queue);
         } else {
             printf("Closing socket %d\n", event->resource);
             queue_forget_resource(event_queue, event->resource);
             close(event->resource);
         }
+    } else {
+        printf("Got a file IO notification\n");
     }
 }
 
