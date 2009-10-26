@@ -25,7 +25,6 @@ void event_handler(event_queue_t *event_queue, event_t *event) {
         sz = read(event->source, buf, sizeof(buf));
         check("Could not read from socket", sz == -1);
         if(sz > 0) {
-            printf("(worker: %d, size: %d) Msg: %s", event_queue->queue_id, (int)sz, buf);
             // See if we have a quit message
             if(strncmp(buf, "quit", 4) == 0) {
                 printf("Quitting server...\n");
@@ -55,12 +54,10 @@ void event_handler(event_queue_t *event_queue, event_t *event) {
     } else {
         // We got async IO event back
         if(event->result < 0) {
-            printf("File notify (fd %d, res: %d) %s\n",
+            printf("File notify error (fd %d, res: %d) %s\n",
                    event->source, event->result, strerror(-event->result));
         } else {
             ((char*)event->buf)[11] = 0;
-            printf("File notify (fd %d, res: %d) %s\n",
-                   event->source, event->result, (char*)event->buf);
             res = write((int)(long)event->state, event->buf, 10);
             check("Could not write to socket", res == -1);
         }
@@ -78,7 +75,6 @@ void term_handler(int signum) {
 void process_socket(int sockfd, worker_pool_t *worker_pool) {
     event_queue_t *event_queue = next_active_worker(worker_pool);
     queue_watch_resource(event_queue, sockfd, NULL);
-    printf("Connected to socket %d\n", sockfd);
 }
 
 int main(int argc, char *argv[])
