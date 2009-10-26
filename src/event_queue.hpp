@@ -15,6 +15,8 @@ struct event_t {
     event_type_t event_type;
     resource_t source;
 
+    void *state;  // State associated with the communication
+
     /* For event_type == et_disk_event */
     int result;   // Result of the io operation
     void *buf;    // Location of the buffer where data was copied (for read events)
@@ -42,7 +44,7 @@ void create_event_queue(event_queue_t *event_queue, int queue_id, event_handler_
 void destroy_event_queue(event_queue_t *event_queue);
 
 // Event queue operation
-void queue_watch_resource(event_queue_t *event_queue, resource_t resource);
+void queue_watch_resource(event_queue_t *event_queue, resource_t resource, void *state);
 void queue_forget_resource(event_queue_t *event_queue, resource_t resource);
 
 #endif // __EVENT_QUEUE_HPP__

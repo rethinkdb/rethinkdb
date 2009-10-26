@@ -44,7 +44,7 @@ void event_handler(event_queue_t *event_queue, event_t *event) {
             bzero(gbuf, 512);
             int offset = atoi(buf);
             schedule_aio_read((int)(long)event_queue->parent_pool->data,
-                              offset, 512, gbuf, event_queue,
+                              offset, 512, gbuf, event_queue, (void*)event->source,
                               &event_queue->allocator);
         } else {
             // No data left, close the socket
@@ -75,7 +75,7 @@ void term_handler(int signum) {
  **/
 void process_socket(int sockfd, worker_pool_t *worker_pool) {
     event_queue_t *event_queue = next_active_worker(worker_pool);
-    queue_watch_resource(event_queue, sockfd);
+    queue_watch_resource(event_queue, sockfd, NULL);
     printf("Connected to socket %d\n", sockfd);
 }
 

@@ -39,6 +39,7 @@ void* aio_poll_handler(void *arg) {
                 qevent.source = op->aio_fildes;
                 qevent.result = events[i].res;
                 qevent.buf = op->u.c.buf;
+                qevent.state = events[i].data;
                 self->event_handler(self, &qevent);
             }
         }
@@ -69,6 +70,7 @@ void* epoll_handler(void *arg) {
                     bzero((char*)&qevent, sizeof(qevent));
                     qevent.event_type = et_sock_event;
                     qevent.source = events[i].data.fd;
+                    qevent.state = events[i].data.ptr;
                     self->event_handler(self, &qevent);
                 }
             }
@@ -146,10 +148,10 @@ void destroy_event_queue(event_queue_t *event_queue) {
     destroy_allocator(&event_queue->allocator);
 }
 
-void queue_watch_resource(event_queue_t *event_queue, resource_t resource) {
+void queue_watch_resource(event_queue_t *event_queue, resource_t resource, void *state) {
     epoll_event event;
     event.events = EPOLLIN | EPOLLET;
-    event.data.ptr = NULL;
+    event.data.ptr = state;
     event.data.fd = resource;
     int res = epoll_ctl(event_queue->epoll_fd, EPOLL_CTL_ADD, resource, &event);
     check("Could not pass socket to worker", res != 0);
