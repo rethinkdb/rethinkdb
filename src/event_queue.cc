@@ -59,7 +59,8 @@ void* epoll_handler(void *arg) {
             if(events[i].events == EPOLLIN) {
                 if(self->event_handler) {
                     event_t qevent;
-                    qevent.resource = events[i].data.fd;
+                    qevent.event_type = et_sock_event;
+                    qevent.source = events[i].data.fd;
                     self->event_handler(self, &qevent);
                 }
             }

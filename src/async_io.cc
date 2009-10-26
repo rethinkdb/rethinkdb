@@ -6,7 +6,6 @@ void schedule_aio_read(resource_t resource,
                        size_t offset, size_t length, char *buf,
                        event_queue_t *notify_target)
 {
-    // TODO: consider doing automatic GC'ed buffer management
     iocb request;
     io_prep_pread(&request, resource, buf, length, offset);
     iocb* requests[1];

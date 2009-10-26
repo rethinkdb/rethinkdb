@@ -8,8 +8,12 @@
 
 // Event handling
 typedef int resource_t;
+enum event_type_t {
+    et_disk_event, et_sock_event;
+};
 struct event_t {
-    resource_t resource;
+    event_type_t event_type;
+    resource_t source;
 };
 struct event_queue_t;
 typedef void (*event_handler_t)(event_queue_t*, event_t*);
