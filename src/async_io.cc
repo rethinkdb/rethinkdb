@@ -9,6 +9,7 @@ void schedule_aio_read(resource_t resource,
 {
     iocb *request = (iocb*)malloc(allocator, sizeof(iocb));
     io_prep_pread(request, resource, buf, length, offset);
+    io_set_eventfd(request, notify_target->aio_notify_fd);
     request->data = state;
     iocb* requests[1];
     requests[0] = request;

@@ -32,8 +32,8 @@ typedef void (*event_handler_t)(event_queue_t*, event_t*);
 struct worker_pool_t;
 struct event_queue_t {
     int queue_id;
-    pthread_t aio_thread;
     io_context_t aio_context;
+    int aio_notify_fd;
     pthread_t epoll_thread;
     int epoll_fd;
     event_handler_t event_handler;
