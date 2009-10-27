@@ -1,4 +1,5 @@
 
+#include <pthread.h>
 #include <time.h>
 #include <libaio.h>
 #include <errno.h>
@@ -36,7 +37,6 @@ off64_t get_device_length(const char* device) {
 
 off64_t get_rnd_block_offset(size_t block_size, off64_t device_length) {
     off64_t off = block_size * (rand() % (device_length / block_size) - 1);
-    return 1024;
     return off;
 }
 
@@ -45,9 +45,24 @@ off64_t get_rnd_block_offset(size_t block_size, off64_t device_length) {
 #define BLOCK_SIZE     512
 #define USE_AIO        1
 
+static io_context_t ctx;
+
+void* aio_poll_worker(void *arg) {
+    int res;
+    io_event events[1000];
+    int count = 0;
+    do {
+        res = io_getevents(ctx, 1, sizeof(events), events, NULL);
+        check("Waiting for AIO events failed", res < 0);
+        for(int i = 0; i < res; i++) {
+            check("Bad result", events[i].res != BLOCK_SIZE);
+            count++;
+        }
+    } while(count < REQUEST_COUNT);
+}
+
 int main() {
     srand(time(NULL));
-    io_context_t ctx;
     ctx = 0;
     int rpb = REQUEST_COUNT / REQUEST_BURSTS;
     int res;
@@ -56,7 +71,7 @@ int main() {
         check("io_setup failed", res != 0);
     }
 
-    char device[] = "/dev/sda";
+    char device[] = "/dev/sdb";
     off64_t length = get_device_length(device);
     int fd = open(device, O_DIRECT | O_NOATIME | O_RDONLY);
     check("Couldn't open device", fd == -1);
@@ -65,6 +80,11 @@ int main() {
     char *buf;
     res = posix_memalign((void**)&buf, 512, BLOCK_SIZE);
     check("Couldn't alloc buffer", res != 0);
+
+    // start the thread
+    pthread_t listener;
+    res = pthread_create(&listener, NULL, aio_poll_worker, NULL);
+    check("Could not start thread", res != 0);
 
     float times[REQUEST_BURSTS];
     float max_time = 0;
@@ -79,11 +99,11 @@ int main() {
                               get_rnd_block_offset(BLOCK_SIZE, length));
                 request->data = NULL;
                 iocb* requests[1];
-                requests[0] = request;
+                requests[0] = &request[j * rpb + i];
                 res = 0;
                 do {
                     if(res == -EAGAIN) {
-                        sleep(1);
+                        //sleep(1);
                     }
                     res = io_submit(ctx, 1, requests);
                 } while(res == -EAGAIN);
@@ -106,6 +126,9 @@ int main() {
         if(diff > max_time)
             max_time = diff;
     }
+
+    res = pthread_join(listener, NULL);
+    check("Could not join threads", res != 0);
 
     float sum = 0;
     for(int i = 0; i < REQUEST_BURSTS; i ++) {
