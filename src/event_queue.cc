@@ -15,7 +15,8 @@ void* aio_poll_handler(void *arg) {
     // TODO: we might want to use eventfd to send this notification
     // back to the epoll_handler. This will mean both socket and file
     // events will be processed in the same thread, which might
-    // minimize race condition considerations.
+    // minimize race condition considerations. Note, we might not need
+    // to do this from userspace - check out linux/fs/aio.c:1608.
     int res;
     io_event events[MAX_IO_EVENT_PROCESSING_BATCH_SIZE];
     event_queue_t *self = (event_queue_t*)arg;
