@@ -1,0 +1,5 @@
+
+The depth of AIO queue (i.e. number of outstanding requests before
+io_submit returns -EAGAIN) is equal to min(nrevents, nr_requests),
+where nrevents is passed to io_setup, and nr_requests can be found in
+/sys/block/sda/queue/nr_requests.
