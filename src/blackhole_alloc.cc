@@ -1,7 +1,7 @@
 
 #include <stdlib.h>
 #include "utils.hpp"
-#include "alloc_blackhole.hpp"
+#include "blackhole_alloc.hpp"
 
 // TODO: the allocator isn't thread safe. Consider implementing an
 // efficient, thread-safe allocator. Since we assign sockets in a

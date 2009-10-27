@@ -4,7 +4,7 @@
 
 #include <pthread.h>
 #include <libaio.h>
-#include "alloc_blackhole.hpp"
+#include "blackhole_alloc.hpp"
 
 // Event handling
 typedef int resource_t;
