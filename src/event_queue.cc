@@ -15,39 +15,44 @@
 // TODO: report event queue statistics.
 
 void process_aio_notify(event_queue_t *self) {
-    int res;
-    eventfd_t nevents;
-    res = eventfd_read(self->aio_notify_fd, &nevents);
+    int res, nevents;
+    eventfd_t nevents_total;
+    res = eventfd_read(self->aio_notify_fd, &nevents_total);
     check("Could not read aio_notify_fd value", res != 0);
 
-    // TODO: we need an array allocator here
-    io_event *events = (io_event*)malloc(&self->allocator, sizeof(io_event) * nevents);
+    // Note: O(1) array allocators are hard. To avoid all the
+    // complexity, we'll use a fixed sized array and call io_getevents
+    // multiple times if we have to (which should be very unlikely,
+    // anyway).
+    io_event events[MAX_IO_EVENT_PROCESSING_BATCH_SIZE];
     
-    // Grab the events
-    nevents = io_getevents(self->aio_context, 1, 1, events, NULL);
-    check("Waiting for AIO event failed", nevents != 1);
+    do {
+        // Grab the events
+        nevents = io_getevents(self->aio_context, 1, MAX_IO_EVENT_PROCESSING_BATCH_SIZE,
+                               events, NULL);
+        check("Waiting for AIO event failed", nevents < 1);
         
-    // Process the events
-    for(int i = 0; i < nevents; i++) {
-        if(self->event_handler) {
-            event_t qevent;
-            bzero((char*)&qevent, sizeof(qevent));
-            qevent.event_type = et_disk_event;
-            iocb *op = (iocb*)events[i].obj;
-            qevent.source = op->aio_fildes;
-            qevent.result = events[i].res;
-            qevent.buf = op->u.c.buf;
-            qevent.state = events[i].data;
-            if(op->aio_lio_opcode == IO_CMD_PREAD)
-                qevent.op = eo_read;
-            else
-                qevent.op = eo_write;
-            self->event_handler(self, &qevent);
+        // Process the events
+        for(int i = 0; i < nevents; i++) {
+            if(self->event_handler) {
+                event_t qevent;
+                bzero((char*)&qevent, sizeof(qevent));
+                qevent.event_type = et_disk_event;
+                iocb *op = (iocb*)events[i].obj;
+                qevent.source = op->aio_fildes;
+                qevent.result = events[i].res;
+                qevent.buf = op->u.c.buf;
+                qevent.state = events[i].data;
+                if(op->aio_lio_opcode == IO_CMD_PREAD)
+                    qevent.op = eo_read;
+                else
+                    qevent.op = eo_write;
+                self->event_handler(self, &qevent);
+            }
+            free(&self->allocator, events[i].obj);
         }
-        free(&self->allocator, events[i].obj);
-    }
-
-    free(&self->allocator, events);
+        nevents_total -= nevents;
+    } while(nevents_total > 0);
 }
 
 void* epoll_handler(void *arg) {
