@@ -43,8 +43,7 @@ void event_handler(event_queue_t *event_queue, event_t *event) {
             bzero(gbuf, 512);
             int offset = atoi(buf);
             schedule_aio_read((int)(long)event_queue->parent_pool->data,
-                              offset, 512, gbuf, event_queue, (void*)event->source,
-                              &event_queue->allocator);
+                              offset, 512, gbuf, event_queue, (void*)event->source);
         } else {
             // No data left, close the socket
             printf("Closing socket %d\n", event->source);
@@ -52,6 +51,7 @@ void event_handler(event_queue_t *event_queue, event_t *event) {
             close(event->source);
         }
     } else {
+        // TODO: free the block
         // We got async IO event back
         if(event->result < 0) {
             printf("File notify error (fd %d, res: %d) %s\n",

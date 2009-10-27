@@ -8,8 +8,7 @@
 // Sending a single IO read request to a file
 void schedule_aio_read(resource_t resource,
                        size_t offset, size_t length, void *buf,
-                       event_queue_t *notify_target, void *state,
-                       alloc_blackhole_t *allocator);
+                       event_queue_t *notify_target, void *state);
 
 #endif // __ASYNC_IO_HPP__
 

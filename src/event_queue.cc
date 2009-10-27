@@ -38,6 +38,7 @@ void process_aio_notify(event_queue_t *self) {
             qevent.op = eo_write;
         self->event_handler(self, &qevent);
     }
+    free(&self->allocator, event.obj);
 }
 
 void* epoll_handler(void *arg) {
