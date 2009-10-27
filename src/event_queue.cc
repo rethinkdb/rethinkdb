@@ -15,30 +15,39 @@
 // TODO: report event queue statistics.
 
 void process_aio_notify(event_queue_t *self) {
-    int nevents;
-    io_event event;
+    int res;
+    eventfd_t nevents;
+    res = eventfd_read(self->aio_notify_fd, &nevents);
+    check("Could not read aio_notify_fd value", res != 0);
 
-    // Grab the event
-    nevents = io_getevents(self->aio_context, 1, 1, &event, NULL);
+    // TODO: we need an array allocator here
+    io_event *events = (io_event*)malloc(&self->allocator, sizeof(io_event) * nevents);
+    
+    // Grab the events
+    nevents = io_getevents(self->aio_context, 1, 1, events, NULL);
     check("Waiting for AIO event failed", nevents != 1);
         
-    // Process the event
-    if(self->event_handler) {
-        event_t qevent;
-        bzero((char*)&qevent, sizeof(qevent));
-        qevent.event_type = et_disk_event;
-        iocb *op = (iocb*)event.obj;
-        qevent.source = op->aio_fildes;
-        qevent.result = event.res;
-        qevent.buf = op->u.c.buf;
-        qevent.state = event.data;
-        if(op->aio_lio_opcode == IO_CMD_PREAD)
-            qevent.op = eo_read;
-        else
-            qevent.op = eo_write;
-        self->event_handler(self, &qevent);
+    // Process the events
+    for(int i = 0; i < nevents; i++) {
+        if(self->event_handler) {
+            event_t qevent;
+            bzero((char*)&qevent, sizeof(qevent));
+            qevent.event_type = et_disk_event;
+            iocb *op = (iocb*)events[i].obj;
+            qevent.source = op->aio_fildes;
+            qevent.result = events[i].res;
+            qevent.buf = op->u.c.buf;
+            qevent.state = events[i].data;
+            if(op->aio_lio_opcode == IO_CMD_PREAD)
+                qevent.op = eo_read;
+            else
+                qevent.op = eo_write;
+            self->event_handler(self, &qevent);
+        }
+        free(&self->allocator, events[i].obj);
     }
-    free(&self->allocator, event.obj);
+
+    free(&self->allocator, events);
 }
 
 void* epoll_handler(void *arg) {
