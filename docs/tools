@@ -1,7 +1,7 @@
 
 -- Indispensable --
 dstat - replacement for vmstat, iostat, mpstat, sar, etc.
-blktrace - traces all IO activity in the system
+blktrace (btrace) - traces all IO activity in the system
 strace - traces all system calls a process makes
 ltrace - traces all dlyb calls a process makes
 filefrag - deterime file fragmentation
