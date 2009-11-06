@@ -61,7 +61,7 @@ void* epoll_handler(void *arg) {
     epoll_event events[MAX_IO_EVENT_PROCESSING_BATCH_SIZE];
     
     do {
-        res = epoll_wait(self->epoll_fd, events, sizeof(events), -1);
+        res = epoll_wait(self->epoll_fd, events, MAX_IO_EVENT_PROCESSING_BATCH_SIZE, -1);
         // epoll_wait might return with EINTR in some cases (in
         // particular under GDB), we just need to retry.
         if(res == -1 && errno == EINTR) {
