@@ -1,0 +1,11 @@
+
+The following command allows tracing all IO queue operations in real
+time:
+
+sudo btrace /dev/sdX
+
+We can limit the trace to include only requests issued to the device
+driver like this:
+
+sudo btrace -a issue /dev/sdX
+
