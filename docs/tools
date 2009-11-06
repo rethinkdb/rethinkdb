@@ -6,6 +6,8 @@ strace - traces all system calls a process makes
 ltrace - traces all dlyb calls a process makes
 filefrag - deterime file fragmentation
 
+pidstat - display process statistics (use -t to show threads)
+
 -- Check out --
 rrdtool (and converters like sar2rrd)
 
