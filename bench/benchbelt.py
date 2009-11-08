@@ -126,9 +126,6 @@ def do_benchmark(args, step):
         else:
             exceptions.append((arg[0], str(arg[1])))
     rebench_args.append(get_device(args))
-    for ex in exceptions:
-        sys.stdout.write("%s: %s; " % (ex[0], ex[1]))
-    print
     run_name = reduce(lambda acc, i: '%s %s' % (str(acc), str(i)), rebench_args[2:])
     print("%s, ~%d mins left"
           % (run_name, int(calc_estimate(total_benchmarks(run_config) - step))))
