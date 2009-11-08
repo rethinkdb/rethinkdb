@@ -1,0 +1,65 @@
+# 
+# from benchbelt_util import *
+# 
+# duration = 30
+# password = 'legion'
+# logname = 'stats-ncq-%Y-%m-%d.%H-%M-%S'
+# 
+# margins = (3, 10, 0.05)
+# 
+# devices = ['/mnt/ssd/test']
+# rebench_args_ex = ['-b', '4096', '-s', '4096']
+# 
+# def setup_run(depth, args):
+#     run = get_arg(args, 'type')
+#     args = set_arg(args, 'eventfd', 'off')
+#     if run == 'stateless':
+#         args = set_arg(args, 'threads', depth)
+#         args = del_arg(args, 'queue-depth')
+#     elif run == 'naio_eventfd':
+#         args = set_arg(args, 'type', 'naio')
+#         args = set_arg(args, 'eventfd', 'on')
+#         rebench_args_ex.extend(['--eventfd'])
+#     return args
+# 
+# run_config = [('type', ['stateless', 'naio', 'naio_eventfd'],
+#                { 'line-break': True }),
+#               ('eventfd', ['']),     # We want this to show up in the log
+#               ('queue-depth', [2**x for x in range(0, 8)],
+#                { 'setup' : setup_run })]
+# 
+# rebench_except = ['eventfd']
+# 
+
+# device
+# type
+# eventfd
+# queue-depth
+# iops
+/mnt/ssd/test	stateless	off	1	5808
+/mnt/ssd/test	stateless	off	2	11159
+/mnt/ssd/test	stateless	off	4	19579
+/mnt/ssd/test	stateless	off	8	28458
+/mnt/ssd/test	stateless	off	16	35422
+/mnt/ssd/test	stateless	off	32	40434
+/mnt/ssd/test	stateless	off	64	40227
+/mnt/ssd/test	stateless	off	128	40403
+
+/mnt/ssd/test	naio	off	1	5770
+/mnt/ssd/test	naio	off	2	11117
+/mnt/ssd/test	naio	off	4	19537
+/mnt/ssd/test	naio	off	8	28421
+/mnt/ssd/test	naio	off	16	35419
+/mnt/ssd/test	naio	off	32	40394
+/mnt/ssd/test	naio	off	64	40193
+/mnt/ssd/test	naio	off	128	40376
+
+/mnt/ssd/test	naio	on	1	5738
+/mnt/ssd/test	naio	on	2	11056
+/mnt/ssd/test	naio	on	4	19463
+/mnt/ssd/test	naio	on	8	28414
+/mnt/ssd/test	naio	on	16	35424
+/mnt/ssd/test	naio	on	32	40386
+/mnt/ssd/test	naio	on	64	40201
+/mnt/ssd/test	naio	on	128	40360
+
