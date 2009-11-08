@@ -1,7 +1,6 @@
 
 # Some config values
 duration = 30
-password = ''
 logname = 'stats'
 
 # Run each benchmark at least 3 times. Stop after 10 runs or when the

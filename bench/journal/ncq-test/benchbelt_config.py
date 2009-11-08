@@ -3,7 +3,6 @@ from benchbelt_util import *
 
 # Some config values
 duration = 30
-password = 'legion'
 logname = 'stats-ncq-%Y-%m-%d.%H-%M-%S'
 
 # Run each benchmark at least 3 times. Stop after 10 runs or when the

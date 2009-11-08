@@ -111,7 +111,7 @@ def run_bench_loop(args, fn, fn_args=[]):
 def do_benchmark(args, step):
     # Go through the runs
     values = []
-    rebench_args = ['sudo', '-S', 'rebench', '-n']
+    rebench_args = ['rebench', '-n']
     try:
         duration
         rebench_args.extend(['-d', str(duration)])
@@ -126,7 +126,7 @@ def do_benchmark(args, step):
         else:
             exceptions.append((arg[0], str(arg[1])))
     rebench_args.append(get_device(args))
-    run_name = reduce(lambda acc, i: '%s %s' % (str(acc), str(i)), rebench_args[2:])
+    run_name = reduce(lambda acc, i: '%s %s' % (str(acc), str(i)), rebench_args)
     print("%s, ~%d mins left"
           % (run_name, int(calc_estimate(total_benchmarks(run_config) - step))))
     for run in range(1, most_runs + 1):
@@ -134,8 +134,6 @@ def do_benchmark(args, step):
         # Runs the benchmark
         p = subprocess.Popen(rebench_args,
                              stdin=subprocess.PIPE, stdout=subprocess.PIPE)
-        p.stdin.write(password)
-        p.stdin.close()
         p.wait()
         # Compute the stats
         rebench_value = p.stdout.readline()
