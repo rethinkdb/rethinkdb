@@ -20,17 +20,17 @@ void check(const char *str, int error) {
     }
 }
 
-#define REPEAT        500000000L
-#define NOBJECTS      10
+#define REPEAT        10000000L
+#define NOBJECTS      100
 #define OBJECT_SIZE   4 * 12
 #define USEC          1000000L
-#define THREADS       7
+#define THREADS       1
 
 void* run_test(void *arg) {
     void *objects[NOBJECTS];
-    // malloc_alloc_t pool;
+    malloc_alloc_t pool;
     //pool_alloc_t<malloc_alloc_t> pool(NOBJECTS, OBJECT_SIZE);
-    pool_alloc_t<memalign_alloc_t<> > pool(NOBJECTS, OBJECT_SIZE);
+    //pool_alloc_t<memalign_alloc_t<> > pool(NOBJECTS, OBJECT_SIZE);
     for(int c = 0; c < REPEAT; c++) {
         for(int i = 0; i < NOBJECTS; i++) {
             objects[i] = pool.malloc(OBJECT_SIZE);
