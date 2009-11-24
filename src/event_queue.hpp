@@ -37,12 +37,6 @@ struct event_queue_t {
     pthread_t epoll_thread;
     int epoll_fd;
     event_handler_t event_handler;
-    // TODO: we have a single non thread-safe allocator per event
-    // queue, but event queue contains two threads (albeit on the same
-    // processor, but still will cause problems). Currently it's not a
-    // problem since we only allocate from the epoll thread, but will
-    // become a problem if/when we need to allocate from the AIO IO
-    // thread.
     alloc_blackhole_t allocator;
     worker_pool_t *parent_pool;
     volatile bool dying;
