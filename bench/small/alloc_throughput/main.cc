@@ -1,4 +1,5 @@
 
+#include <pthread.h>
 #include <time.h>
 #include <errno.h>
 #include <stdio.h>
@@ -18,25 +19,38 @@ void check(const char *str, int error) {
     }
 }
 
-#define REPEAT        1000
-#define NOBJECTS      1000000
+#define REPEAT        25000000
+#define NOBJECTS      100
 #define OBJECT_SIZE   4 * 12
 #define USEC          1000000L
+#define THREADS       1
 
-int main() {
+void* run_test(void *arg) {
     void *objects[NOBJECTS];
-    timeval tvb, tve;
-    gettimeofday(&tvb, NULL);
-
     //malloc_alloc_t pool;
     pool_alloc_t<malloc_alloc_t> pool(NOBJECTS, OBJECT_SIZE);
     for(int c = 0; c < REPEAT; c++) {
         for(int i = 0; i < NOBJECTS; i++) {
             objects[i] = pool.malloc(OBJECT_SIZE);
+            *(int*)objects[i] = 10;
+        }
+        for(int i = 0; i < NOBJECTS; i++) {
             pool.free(objects[i]);
         }
     }
-        
+}
+
+int main() {
+    timeval tvb, tve;
+    pthread_t threads[THREADS];
+
+    gettimeofday(&tvb, NULL);
+    for(int i = 0; i < THREADS; i++) {
+        pthread_create(&threads[i], NULL, run_test, NULL);
+    }
+    for(int i = 0; i < THREADS; i++) {
+        pthread_join(threads[i], NULL);
+    }
     gettimeofday(&tve, NULL);
 
     long bu = tvb.tv_sec * USEC + tvb.tv_usec;
