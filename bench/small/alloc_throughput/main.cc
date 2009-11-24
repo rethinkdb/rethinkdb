@@ -43,6 +43,6 @@ int main() {
     long eu = tve.tv_sec * USEC + tve.tv_usec;
     float diff = (float)(eu - bu) / USEC;
 
-    printf("time: %f.2s\n", diff);
+    printf("time: %.2fs\n", diff);
     
 }
