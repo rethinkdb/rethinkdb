@@ -4,7 +4,9 @@
 #include <pthread.h>
 #include "utils.hpp"
 #include "malloc_alloc.hpp"
+#include "memalign_alloc.hpp"
 #include "pool_alloc.hpp"
+#include "sizeheap_alloc.hpp"
 
 struct object_t {
     int foo;
@@ -15,13 +17,14 @@ struct object_t {
 #define NOBJECTS    10
 
 int run_test(int i) {
-    pool_alloc_t<malloc_alloc_t> pool(NOBJECTS, sizeof(object_t));
+    sizeheap_alloc_t<pool_alloc_t<memalign_alloc_t<> > > pool;
+    //pool_alloc_t<malloc_alloc_t> pool(NOBJECTS, sizeof(object_t));
     void *ptr;
     object_t *obj;
     object_t *objects[NOBJECTS];
     
     int count = 0;
-    while((ptr = pool.malloc()) != NULL) {
+    while((ptr = pool.malloc(sizeof(object_t))) != NULL) {
         obj = (object_t*)ptr;
         objects[count] = obj;
         obj->foo = i * 3 + 1;
@@ -31,7 +34,7 @@ int run_test(int i) {
         count++;
     }
     check("Could not allocate all objects", count != NOBJECTS);
-    check("Shouldn't be able to go beyond the pool", pool.malloc() != NULL);
+    check("Shouldn't be able to go beyond the pool", pool.malloc(sizeof(object_t)) != NULL);
 
     for(int j = 0; j < NOBJECTS; j++) {
         obj = objects[j];

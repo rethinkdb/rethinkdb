@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <sys/time.h>
 #include "../../../src/utils.hpp"
+#include "../../../src/sizeheap_alloc.hpp"
 #include "../../../src/malloc_alloc.hpp"
 #include "../../../src/memalign_alloc.hpp"
 #include "../../../src/pool_alloc.hpp"
@@ -28,12 +29,14 @@ void check(const char *str, int error) {
 
 void* run_test(void *arg) {
     void *objects[NOBJECTS];
-    malloc_alloc_t pool;
+    //sizeheap_alloc_t<pool_alloc_t<memalign_alloc_t<> > > pool;
+    //malloc_alloc_t pool;
     //pool_alloc_t<malloc_alloc_t> pool(NOBJECTS, OBJECT_SIZE);
-    //pool_alloc_t<memalign_alloc_t<> > pool(NOBJECTS, OBJECT_SIZE);
+    pool_alloc_t<memalign_alloc_t<> > pool(NOBJECTS, OBJECT_SIZE);
     for(int c = 0; c < REPEAT; c++) {
         for(int i = 0; i < NOBJECTS; i++) {
             objects[i] = pool.malloc(OBJECT_SIZE);
+            check("Could not allocate object (out of memory)", objects[i] == NULL);
             *(int*)objects[i] = 10;
         }
         for(int i = 0; i < NOBJECTS; i++) {
