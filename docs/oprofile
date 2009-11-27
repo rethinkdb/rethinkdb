@@ -1,0 +1,4 @@
+
+List available CPU events (cache misses, ticks, etc).
+
+opcontrol --list-events

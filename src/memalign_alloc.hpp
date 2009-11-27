@@ -9,8 +9,10 @@ struct memalign_alloc_t {
     void* malloc(size_t size) {
         void *ptr;
         int res = posix_memalign(&ptr, alignment, size);
-        check("Could not memalign memory", res != 0);
-        return ptr;
+        if(res != 0)
+            return NULL;
+        else
+            return ptr;
     }
     
     void free(void* ptr) {

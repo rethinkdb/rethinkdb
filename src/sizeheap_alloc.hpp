@@ -20,10 +20,10 @@ struct sizeheap_alloc_t {
     void* malloc(size_t size) {
         size_t new_size = size + sizeof(void*);
         // Look up super alloc in hashtable
-        typename heap_map_t::iterator parent_alloc = heaps.find(size);
+        typename heap_map_t::const_iterator parent_alloc = heaps.find(size);
         if(parent_alloc == heaps.end()) {
             // If doesn't exist, create and insert it
-            super_alloc_t *alloc = new super_alloc_t(10, new_size);
+            super_alloc_t *alloc = new super_alloc_t(100, new_size);
             parent_alloc = heaps.insert(std::pair<size_t, super_alloc_t*>(size, alloc))
                 .first;
         }
