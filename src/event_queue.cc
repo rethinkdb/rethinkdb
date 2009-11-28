@@ -8,6 +8,7 @@
 #include <errno.h>
 #include <signal.h>
 #include <strings.h>
+#include <new>
 #include "config.hpp"
 #include "utils.hpp"
 #include "event_queue.hpp"
@@ -49,7 +50,7 @@ void process_aio_notify(event_queue_t *self) {
                     qevent.op = eo_write;
                 self->event_handler(self, &qevent);
             }
-            free(&self->allocator, events[i].obj);
+            self->alloc.free(events[i].obj);
         }
         nevents_total -= nevents;
     } while(nevents_total > 0);
@@ -112,8 +113,8 @@ void create_event_queue(event_queue_t *event_queue, int queue_id, event_handler_
     event_queue->parent_pool = parent_pool;
     event_queue->dying = false;
 
-    // Initialize the allocator
-    create_allocator(&event_queue->allocator, ALLOCATOR_WORKER_HEAP);
+    // Initialize the allocator using placement new
+    new ((void*)&event_queue->alloc) event_queue_t::small_obj_alloc_t();
     
     // Create aio context
     event_queue->aio_context = 0;
@@ -163,7 +164,7 @@ void destroy_event_queue(event_queue_t *event_queue) {
     close(event_queue->aio_notify_fd);
     close(event_queue->epoll_fd);
     io_destroy(event_queue->aio_context);
-    destroy_allocator(&event_queue->allocator);
+    (&event_queue->alloc)->~objectheap_alloc_t();
 }
 
 void queue_watch_resource(event_queue_t *event_queue, resource_t resource,

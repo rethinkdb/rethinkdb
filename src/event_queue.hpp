@@ -4,7 +4,10 @@
 
 #include <pthread.h>
 #include <libaio.h>
-#include "blackhole_alloc.hpp"
+#include "memalign_alloc.hpp"
+#include "pool_alloc.hpp"
+#include "objectheap_alloc.hpp"
+#include "dynamic_pool_alloc.hpp"
 
 // Event handling
 typedef int resource_t;
@@ -37,7 +40,10 @@ struct event_queue_t {
     pthread_t epoll_thread;
     int epoll_fd;
     event_handler_t event_handler;
-    alloc_blackhole_t allocator;
+    // TODO: add a checking allocator (check if malloc returns NULL)
+    typedef objectheap_alloc_t<dynamic_pool_alloc_t<pool_alloc_t<memalign_alloc_t<> > >,
+                               iocb, char[512]> small_obj_alloc_t;
+    small_obj_alloc_t alloc;
     worker_pool_t *parent_pool;
     volatile bool dying;
 };

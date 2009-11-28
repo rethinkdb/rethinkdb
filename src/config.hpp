@@ -13,8 +13,5 @@
 // decrease concurrency
 #define MAX_IO_EVENT_PROCESSING_BATCH_SIZE        10
 
-// Define the size of the allocator heap per worker in bytes
-#define ALLOCATOR_WORKER_HEAP                     1024*1024*8
-
 #endif // __CONFIG__H__
 

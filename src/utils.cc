@@ -22,7 +22,7 @@ int get_cpu_count() {
 
 // Redefine operator new to do cache-lines alignment
 void* operator new(size_t size) throw(std::bad_alloc) {
-    void *ptr;
+    void *ptr = NULL;
     int res = posix_memalign(&ptr, 64, size);
     if(res != 0)
         throw std::bad_alloc();
@@ -32,4 +32,13 @@ void* operator new(size_t size) throw(std::bad_alloc) {
 
 void operator delete(void *p) {
     free(p);
+}
+
+void *malloc_aligned(size_t size, size_t alignment) {
+    void *ptr = NULL;
+    int res = posix_memalign(&ptr, alignment, size);
+    if(res != 0)
+        return NULL;
+    else
+        return ptr;
 }

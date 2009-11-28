@@ -7,6 +7,8 @@
 // behavior (compared to a freelist stored in a separate
 // array). Investigate this further once we can test real workloads.
 
+#include "utils.hpp"
+
 template <class super_alloc_t>
 struct pool_alloc_t : public super_alloc_t {
     pool_alloc_t(size_t nobjects, size_t _object_size)

@@ -34,14 +34,17 @@ void event_handler(event_queue_t *event_queue, event_t *event) {
             }
 
             // Allocate a buffer to read file into
-            size_t old_alignment = get_alignment(&event_queue->allocator);
-            set_alignment(&event_queue->allocator, 512);
-            void *gbuf = malloc(&event_queue->allocator, 512);
-            set_alignment(&event_queue->allocator, old_alignment);
+            // TODO: change this to small object allocator
+            //void *gbuf = malloc_aligned(512, 8192);
+            void *gbuf = event_queue->alloc.malloc<char[512]>();
 
             // Fire off an async IO event
             bzero(gbuf, 512);
             int offset = atoi(buf);
+            // TODO: Using parent_pool might cause cache line
+            // alignment issues. Can we eliminate it (perhaps by
+            // giving each thread its own private copy of the
+            // necessary data)?
             schedule_aio_read((int)(long)event_queue->parent_pool->data,
                               offset, 512, gbuf, event_queue, (void*)event->source);
         } else {
