@@ -53,6 +53,7 @@ void event_handler(event_queue_t *event_queue, event_t *event) {
         }
     } else {
         // We got async IO event back
+        // TODO: what happens to unfreed memory if event doesn't come back? (is it possible?)
         if(event->result < 0) {
             printf("File notify error (fd %d, res: %d) %s\n",
                    event->source, event->result, strerror(-event->result));
