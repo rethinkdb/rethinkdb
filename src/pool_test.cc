@@ -7,6 +7,8 @@
 #include "memalign_alloc.hpp"
 #include "pool_alloc.hpp"
 #include "sizeheap_alloc.hpp"
+#include "objectheap_alloc.hpp"
+#include "dynamic_pool_alloc.hpp"
 
 struct object_t {
     int foo;
@@ -14,11 +16,13 @@ struct object_t {
     int baz;
 };
 
-#define NOBJECTS    10
+#define NOBJECTS    100
 
 int run_test(int i) {
-    sizeheap_alloc_t<pool_alloc_t<memalign_alloc_t<> > > pool;
+    //sizeheap_alloc_t<pool_alloc_t<memalign_alloc_t<> > > pool;
     //pool_alloc_t<malloc_alloc_t> pool(NOBJECTS, sizeof(object_t));
+    objectheap_adapter_t<objectheap_alloc_t<dynamic_pool_alloc_t<pool_alloc_t<memalign_alloc_t<> > >, object_t>, object_t> pool;
+    
     void *ptr;
     object_t *obj;
     object_t *objects[NOBJECTS];
@@ -46,6 +50,12 @@ int run_test(int i) {
 }
 
 int main(int argc, char *argv[]) {
+
+    // Rudimentary test for multiple object allocation
+    objectheap_alloc_t<dynamic_pool_alloc_t<pool_alloc_t<malloc_alloc_t> >, long, unsigned long> pool;
+    pool.malloc<long>();
+    pool.malloc<unsigned long>();
+
     // TODO: automate test (make sure numbers aren't overwritten)
     // TODO: create a test suite
     int i = run_test(0);

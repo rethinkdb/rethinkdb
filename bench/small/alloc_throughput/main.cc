@@ -13,27 +13,33 @@
 #include "../../../src/malloc_alloc.hpp"
 #include "../../../src/memalign_alloc.hpp"
 #include "../../../src/pool_alloc.hpp"
+#include "../../../src/dynamic_pool_alloc.hpp"
+#include "../../../src/objectheap_alloc.hpp"
 
 // We want redefined operator new here as well as some functions
 #include "../../../src/utils.cc"
 
 #define REPEAT        10000000L
 #define NOBJECTS      100
-#define OBJECT_SIZE   4 * 12
 #define USEC          1000000L
 #define THREADS       8
 
+struct object_t {
+    int foo, bar, baz;
+};
+
 void* run_test(void *arg) {
-    void *objects[NOBJECTS];
-    sizeheap_alloc_t<pool_alloc_t<memalign_alloc_t<> > > pool;
+    object_t *objects[NOBJECTS];
+    //sizeheap_alloc_t<pool_alloc_t<memalign_alloc_t<> > > pool;
     //malloc_alloc_t pool;
-    //pool_alloc_t<malloc_alloc_t> pool(NOBJECTS, OBJECT_SIZE);
-    //pool_alloc_t<memalign_alloc_t<> > pool(NOBJECTS, OBJECT_SIZE);
+    //pool_alloc_t<malloc_alloc_t> pool(NOBJECTS, sizeof(object_t));
+    //pool_alloc_t<memalign_alloc_t<> > pool(NOBJECTS, sizeof(object_t));
+    objectheap_adapter_t<objectheap_alloc_t<dynamic_pool_alloc_t<pool_alloc_t<memalign_alloc_t<> > >, object_t>, object_t> pool;
     for(int c = 0; c < REPEAT; c++) {
         for(int i = 0; i < NOBJECTS; i++) {
-            objects[i] = pool.malloc(OBJECT_SIZE);
+            objects[i] = (object_t*)pool.malloc(sizeof(object_t));
             check("Could not allocate object (out of memory)", objects[i] == NULL);
-            *(int*)objects[i] = 10;
+            objects[i]->foo = 10;
         }
         for(int i = 0; i < NOBJECTS; i++) {
             pool.free(objects[i]);

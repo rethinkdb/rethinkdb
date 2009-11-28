@@ -3,6 +3,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
+#include <new>
+#include <exception>
 #include "utils.hpp"
 
 void check(const char *str, int error) {
@@ -23,7 +25,7 @@ void* operator new(size_t size) throw(std::bad_alloc) {
     void *ptr;
     int res = posix_memalign(&ptr, 64, size);
     if(res != 0)
-        std::__throw_bad_alloc();
+        throw std::bad_alloc();
     else
         return ptr;
 }
