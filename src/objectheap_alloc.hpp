@@ -101,6 +101,28 @@ public:
     GEN_ALLOC_IMPL(T1, _p1)
 };
 
+// Specialization with 3 allocators
+template <class super_alloc_t, typename T0, typename T1, typename T2>
+struct objectheap_alloc_t<super_alloc_t,
+                          T0, T1,
+                          T2, null_3_t,
+                          null_4_t, null_5_t,
+                          null_6_t, null_7_t,
+                          null_8_t, null_9_t>
+{
+public:
+    objectheap_alloc_t() :
+        _p0(sizeof(T0)),
+        _p1(sizeof(T1)),
+        _p2(sizeof(T2))
+        {}
+
+    GEN_WRAPPER
+    GEN_ALLOC_IMPL(T0, _p0)
+    GEN_ALLOC_IMPL(T1, _p1)
+    GEN_ALLOC_IMPL(T2, _p2)
+};
+
 // Adapter from objectheap_alloc_t to a standard allocator (for test code uniformity)
 template<typename super_alloc_t, typename T>
 struct objectheap_adapter_t : public super_alloc_t {
