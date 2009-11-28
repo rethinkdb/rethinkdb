@@ -34,9 +34,7 @@ void event_handler(event_queue_t *event_queue, event_t *event) {
             }
 
             // Allocate a buffer to read file into
-            // TODO: change this to small object allocator
-            //void *gbuf = malloc_aligned(512, 8192);
-            void *gbuf = event_queue->alloc.malloc<char[512]>();
+            void *gbuf = event_queue->alloc.malloc<buffer_t<512> >();
 
             // Fire off an async IO event
             bzero(gbuf, 512);
@@ -54,7 +52,6 @@ void event_handler(event_queue_t *event_queue, event_t *event) {
             close(event->source);
         }
     } else {
-        // TODO: free the block
         // We got async IO event back
         if(event->result < 0) {
             printf("File notify error (fd %d, res: %d) %s\n",
@@ -63,7 +60,9 @@ void event_handler(event_queue_t *event_queue, event_t *event) {
             ((char*)event->buf)[11] = 0;
             res = write((int)(long)event->state, event->buf, 10);
             check("Could not write to socket", res == -1);
+            // TODO: make sure we write everything we intend to
         }
+        event_queue->alloc.free((buffer_t<512>*)event->buf);
     }
 }
 

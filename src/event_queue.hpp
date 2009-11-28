@@ -31,6 +31,14 @@ struct event_t {
 struct event_queue_t;
 typedef void (*event_handler_t)(event_queue_t*, event_t*);
 
+// Helper structure for blocks of 512 bytes.
+// TODO: get rid of this when we have a full memory caching
+// architecture.
+template<int N>
+struct buffer_t {
+    char _buf[N];
+};
+
 // Event queue structure
 struct worker_pool_t;
 struct event_queue_t {
@@ -42,7 +50,7 @@ struct event_queue_t {
     event_handler_t event_handler;
     // TODO: add a checking allocator (check if malloc returns NULL)
     typedef objectheap_alloc_t<dynamic_pool_alloc_t<pool_alloc_t<memalign_alloc_t<> > >,
-                               iocb, char[512]> small_obj_alloc_t;
+                               iocb, buffer_t<512> > small_obj_alloc_t;
     small_obj_alloc_t alloc;
     worker_pool_t *parent_pool;
     volatile bool dying;
