@@ -185,10 +185,7 @@ void destroy_event_queue(event_queue_t *event_queue) {
 
     event_queue->dying = true;
 
-    // Stop the timer
-    queue_stop_timer(event_queue);
-
-    // Kill the threads
+    // Kill the poll thread
     res = pthread_kill(event_queue->epoll_thread, SIGTERM);
     check("Could not send kill signal to epoll thread", res != 0);
 
@@ -196,6 +193,9 @@ void destroy_event_queue(event_queue_t *event_queue) {
     res = pthread_join(event_queue->epoll_thread, NULL);
     check("Could not join with epoll thread", res != 0);
     
+    // Stop the timer
+    queue_stop_timer(event_queue);
+
     // Cleanup resources
     close(event_queue->aio_notify_fd);
     close(event_queue->epoll_fd);

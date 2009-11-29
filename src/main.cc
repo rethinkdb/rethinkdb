@@ -79,6 +79,7 @@ void term_handler(int signum) {
 void process_socket(int sockfd, worker_pool_t *worker_pool) {
     event_queue_t *event_queue = next_active_worker(worker_pool);
     queue_watch_resource(event_queue, sockfd, eo_read, NULL);
+    printf("Opened socket %d\n", sockfd);
 }
 
 int main(int argc, char *argv[])
@@ -125,8 +126,7 @@ int main(int argc, char *argv[])
     check("Couldn't listen to the socket", res != 0);
 
     // Accept incoming connections
-    while(1) {
-        // TODO: add a sound way to get out of this loop
+    while(true) {
         int newsockfd;
         sockaddr_in client_addr;
         socklen_t client_addr_len = sizeof(client_addr);
