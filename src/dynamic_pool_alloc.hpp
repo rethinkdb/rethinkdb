@@ -54,6 +54,12 @@ struct dynamic_pool_alloc_t {
     }
 
     void free(void *ptr) {
+        // We have an option of prepending an allocator pointer to
+        // each object, making deallocation constant time. However,
+        // this messes with user's exepctations of alignment and
+        // increases memory consumption. Since the chain of allocators
+        // is expected to be very short (probably no more than 10), a
+        // loop is an easier solution for now.
         for(int i = 0; i < nallocs; i++) {
             if(allocs[i]->in_range(ptr)) {
                 allocs[i]->free(ptr);
@@ -73,8 +79,16 @@ struct dynamic_pool_alloc_t {
     // as was required during peak utilization. Note that this isn't
     // strictly a garbage collector, as the garbage doesn't
     // accumilate.
-    void relelase_unused_memory() {
-        // TODO: collect as many allocators from the end as we can.
+    void gc() {
+        for(int i = nallocs - 1; i > 0; i--) {
+            if(allocs[i]->empty()) {
+                delete allocs[i];
+                allocs[i] = NULL;
+                nallocs--;
+            }
+        }
+        if(smallest_free > nallocs - 1)
+            smallest_free = nallocs - 1;
     }
 
 private:

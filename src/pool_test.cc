@@ -9,6 +9,7 @@
 #include "sizeheap_alloc.hpp"
 #include "objectheap_alloc.hpp"
 #include "dynamic_pool_alloc.hpp"
+#include "alloc_stats.hpp"
 
 struct object_t {
     int foo;
@@ -50,7 +51,7 @@ int run_test(int i) {
 
 int run_test_dynamic(int i) {
     //objectheap_adapter_t<objectheap_alloc_t<dynamic_pool_alloc_t<pool_alloc_t<memalign_alloc_t<> > >, object_t>, object_t> pool;
-    dynamic_pool_alloc_t<pool_alloc_t<memalign_alloc_t<> > > pool(sizeof(object_t));
+    dynamic_pool_alloc_t<alloc_stats_t<pool_alloc_t<memalign_alloc_t<> > > > pool(sizeof(object_t));
     
     void *ptr;
     object_t *obj;
@@ -77,6 +78,8 @@ int run_test_dynamic(int i) {
         printf("%d: (%d, %d, %d)\n", j + 1, obj->foo, obj->bar, obj->baz);
         pool.free((void*)obj);
     }
+
+    pool.gc();
 
     return i;
 }
