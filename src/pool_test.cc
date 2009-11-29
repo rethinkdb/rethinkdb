@@ -16,12 +16,11 @@ struct object_t {
     int baz;
 };
 
-#define NOBJECTS    100
+#define NOBJECTS    155
 
 int run_test(int i) {
     //sizeheap_alloc_t<pool_alloc_t<memalign_alloc_t<> > > pool;
-    //pool_alloc_t<malloc_alloc_t> pool(NOBJECTS, sizeof(object_t));
-    objectheap_adapter_t<objectheap_alloc_t<dynamic_pool_alloc_t<pool_alloc_t<memalign_alloc_t<> > >, object_t>, object_t> pool;
+    pool_alloc_t<malloc_alloc_t> pool(NOBJECTS, sizeof(object_t));
     
     void *ptr;
     object_t *obj;
@@ -49,6 +48,39 @@ int run_test(int i) {
     return i;
 }
 
+int run_test_dynamic(int i) {
+    //objectheap_adapter_t<objectheap_alloc_t<dynamic_pool_alloc_t<pool_alloc_t<memalign_alloc_t<> > >, object_t>, object_t> pool;
+    dynamic_pool_alloc_t<pool_alloc_t<memalign_alloc_t<> > > pool(sizeof(object_t));
+    
+    void *ptr;
+    object_t *obj;
+    object_t *objects[NOBJECTS];
+
+    int count;
+    for(count = 0; count < NOBJECTS; count++) {
+        ptr = pool.malloc(sizeof(object_t));
+        if(ptr == NULL) {
+            break;
+        }
+        obj = (object_t*)ptr;
+        objects[count] = obj;
+        obj->foo = i * 3 + 1;
+        obj->bar = i * 3 + 2;
+        obj->baz = i * 3 + 3;
+        i++;
+    }
+    printf("count: %d\n", count);
+    check("Could not allocate all objects", count != NOBJECTS);
+
+    for(int j = 0; j < NOBJECTS; j++) {
+        obj = objects[j];
+        printf("%d: (%d, %d, %d)\n", j + 1, obj->foo, obj->bar, obj->baz);
+        pool.free((void*)obj);
+    }
+
+    return i;
+}
+
 int main(int argc, char *argv[]) {
 
     // Rudimentary test for multiple object allocation
@@ -58,7 +90,12 @@ int main(int argc, char *argv[]) {
 
     // TODO: automate test (make sure numbers aren't overwritten)
     // TODO: create a test suite
+    /*
     int i = run_test(0);
     printf("\n");
     run_test(i);
+    */
+    int i = run_test_dynamic(0);
+    printf("\n");
+    run_test_dynamic(i);
 }

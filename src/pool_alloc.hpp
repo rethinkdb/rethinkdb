@@ -11,8 +11,8 @@
 
 template <class super_alloc_t>
 struct pool_alloc_t : public super_alloc_t {
-    pool_alloc_t(size_t nobjects, size_t _object_size)
-        : object_size(_object_size)
+    pool_alloc_t(size_t _nobjects, size_t _object_size)
+        : nobjects(_nobjects), object_size(_object_size)
     {
         check("Object size must be at least the size of a pointer.",
               object_size < sizeof(void*));
@@ -53,7 +53,12 @@ struct pool_alloc_t : public super_alloc_t {
         // TODO: add debug code
     }
 
+    bool in_range(void *ptr) {
+        return ptr >= mem && ptr < (char*)mem + object_size * nobjects;
+    }
+
 private:
+    size_t nobjects;
     size_t object_size;
     void *mem;
 
