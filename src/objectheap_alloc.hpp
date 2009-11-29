@@ -77,6 +77,10 @@ public:
         _p0(sizeof(T0))
         {}
 
+    void gc() {
+        _p0.gc();
+    }
+
     GEN_WRAPPER
     GEN_ALLOC_IMPL(T0, _p0)
 };
@@ -95,6 +99,11 @@ public:
         _p0(sizeof(T0)),
         _p1(sizeof(T1))
         {}
+
+    void gc() {
+        _p0.gc();
+        _p1.gc();
+    }
 
     GEN_WRAPPER
     GEN_ALLOC_IMPL(T0, _p0)
@@ -116,6 +125,12 @@ public:
         _p1(sizeof(T1)),
         _p2(sizeof(T2))
         {}
+
+    void gc() {
+        _p0.gc();
+        _p1.gc();
+        _p2.gc();
+    }
 
     GEN_WRAPPER
     GEN_ALLOC_IMPL(T0, _p0)

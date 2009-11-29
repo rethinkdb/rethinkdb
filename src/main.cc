@@ -51,7 +51,7 @@ void event_handler(event_queue_t *event_queue, event_t *event) {
             queue_forget_resource(event_queue, event->source);
             close(event->source);
         }
-    } else {
+    } else if(event->event_type == et_disk_event) {
         // We got async IO event back
         // TODO: what happens to unfreed memory if event doesn't come back? (is it possible?)
         if(event->result < 0) {
@@ -64,6 +64,7 @@ void event_handler(event_queue_t *event_queue, event_t *event) {
             // TODO: make sure we write everything we intend to
         }
         event_queue->alloc.free((buffer_t<512>*)event->buf);
+    } else if(event->event_type == et_timer_event) {
     }
 }
 

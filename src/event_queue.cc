@@ -1,6 +1,7 @@
 
 #include <sys/epoll.h>
 #include <sys/eventfd.h>
+#include <sys/timerfd.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <sched.h>
@@ -56,6 +57,32 @@ void process_aio_notify(event_queue_t *self) {
     } while(nevents_total > 0);
 }
 
+void process_timer_notify(event_queue_t *self) {
+    int res;
+    eventfd_t nexpirations;
+    res = eventfd_read(self->timer_fd, &nexpirations);
+    check("Could not read timer_fd value", res != 0);
+
+    self->total_expirations += nexpirations;
+
+    // Internal ops to perform on the timer
+    if(self->total_expirations % ALLOC_GC_IN_TICKS == 0) {
+        // Perform allocator gc
+        self->alloc.gc();
+    }
+
+    // Let queue user handle the event, if they wish
+    if(self->event_handler) {
+        event_t qevent;
+        bzero((char*)&qevent, sizeof(qevent));
+        qevent.event_type = et_timer_event;
+        qevent.source = self->timer_fd;
+        qevent.result = nexpirations;
+        qevent.op = eo_read;
+        self->event_handler(self, &qevent);
+    }
+}
+
 void* epoll_handler(void *arg) {
     int res;
     event_queue_t *self = (event_queue_t*)arg;
@@ -76,6 +103,10 @@ void* epoll_handler(void *arg) {
         for(int i = 0; i < res; i++) {
             if(events[i].data.fd == self->aio_notify_fd) {
                 process_aio_notify(self);
+                continue;
+            }
+            if(events[i].data.fd == self->timer_fd) {
+                process_timer_notify(self);
                 continue;
             }
             if(events[i].events == EPOLLIN ||
@@ -112,6 +143,8 @@ void create_event_queue(event_queue_t *event_queue, int queue_id, event_handler_
     event_queue->event_handler = event_handler;
     event_queue->parent_pool = parent_pool;
     event_queue->dying = false;
+    event_queue->timer_fd = -1;
+    event_queue->total_expirations = 0;
 
     // Initialize the allocator using placement new
     new ((void*)&event_queue->alloc) event_queue_t::small_obj_alloc_t();
@@ -152,6 +185,9 @@ void destroy_event_queue(event_queue_t *event_queue) {
 
     event_queue->dying = true;
 
+    // Stop the timer
+    queue_stop_timer(event_queue);
+
     // Kill the threads
     res = pthread_kill(event_queue->epoll_thread, SIGTERM);
     check("Could not send kill signal to epoll thread", res != 0);
@@ -191,5 +227,57 @@ void queue_forget_resource(event_queue_t *event_queue, resource_t resource) {
     event.data.fd = resource;
     int res = epoll_ctl(event_queue->epoll_fd, EPOLL_CTL_DEL, resource, &event);
     check("Could remove socket from watching", res != 0);
+}
+
+void queue_init_timer(event_queue_t *event_queue, time_t secs) {
+    int res = -1;
+
+    // Kill the old timer first (if necessary)
+    if(event_queue->timer_fd != -1) {
+        queue_stop_timer(event_queue);
+    }
+
+    // Create the timer
+    event_queue->timer_fd = timerfd_create(CLOCK_MONOTONIC, 0);
+    check("Could not create timer", event_queue->timer_fd < 0);
+
+    // Set the timer_fd to be nonblocking
+    res = fcntl(event_queue->timer_fd, F_SETFL, O_NONBLOCK);
+    check("Could not make timer non-blocking", res != 0);
+
+    // Arm the timer
+    itimerspec timer_spec;
+    bzero(&timer_spec, sizeof(timer_spec));
+    
+    timer_spec.it_value.tv_sec = secs;
+    timer_spec.it_value.tv_nsec = 0;
+    timer_spec.it_interval.tv_sec = secs;
+    timer_spec.it_interval.tv_nsec = 0;
+    
+    res = timerfd_settime(event_queue->timer_fd, 0, &timer_spec, NULL);
+    check("Could not arm the timer.", res != 0);
+
+    // Watch the timer
+    queue_watch_resource(event_queue, event_queue->timer_fd, eo_read, NULL);
+}
+
+void queue_stop_timer(event_queue_t *event_queue) {
+    if(event_queue->timer_fd == -1)
+        return;
+    
+    // Stop watching the timer
+    queue_forget_resource(event_queue, event_queue->timer_fd);
+    
+    int res = -1;
+    // Disarm the timer (should happen automatically on close, but what the hell)
+    itimerspec timer_spec;
+    bzero(&timer_spec, sizeof(timer_spec));
+    res = timerfd_settime(event_queue->timer_fd, 0, &timer_spec, NULL);
+    check("Could not disarm the timer.", res != 0);
+    
+    // Close the timer fd
+    res = close(event_queue->timer_fd);
+    check("Could not close the timer.", res != 0);
+    event_queue->timer_fd = -1;
 }
 

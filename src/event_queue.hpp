@@ -8,11 +8,12 @@
 #include "pool_alloc.hpp"
 #include "objectheap_alloc.hpp"
 #include "dynamic_pool_alloc.hpp"
+#include "alloc_stats.hpp"
 
 // Event handling
 typedef int resource_t;
 enum event_type_t {
-    et_disk_event, et_sock_event
+    et_disk_event, et_sock_event, et_timer_event
 };
 enum event_op_t {
     eo_read, eo_write
@@ -22,10 +23,16 @@ struct event_t {
     resource_t source;
     event_op_t op;
 
-    void *state;  // State associated with the communication
+    // State associated with the communication (must have been passed
+    // to queue_watch_resource).
+    void *state;
+
+    /* For event_type == et_disk_event, contains the result of the IO
+     * operation. For event_type == et_timer_event, contains the
+     * number of experiations of the timer that have occurred. */
+    int result;
 
     /* For event_type == et_disk_event */
-    int result;   // Result of the io operation
     void *buf;    // Location of the buffer where data was copied (for read events)
 };
 struct event_queue_t;
@@ -45,12 +52,15 @@ struct event_queue_t {
     int queue_id;
     io_context_t aio_context;
     int aio_notify_fd;
+    int timer_fd;
+    long total_expirations;
     pthread_t epoll_thread;
     int epoll_fd;
     event_handler_t event_handler;
     // TODO: add a checking allocator (check if malloc returns NULL)
-    typedef objectheap_alloc_t<dynamic_pool_alloc_t<pool_alloc_t<memalign_alloc_t<> > >,
-                               iocb, buffer_t<512> > small_obj_alloc_t;
+    typedef objectheap_alloc_t<
+        dynamic_pool_alloc_t<alloc_stats_t<pool_alloc_t<memalign_alloc_t<> > > >,
+        iocb, buffer_t<512> > small_obj_alloc_t;
     small_obj_alloc_t alloc;
     worker_pool_t *parent_pool;
     volatile bool dying;
@@ -64,6 +74,9 @@ void destroy_event_queue(event_queue_t *event_queue);
 void queue_watch_resource(event_queue_t *event_queue, resource_t resource,
                           event_op_t event_op, void *state);
 void queue_forget_resource(event_queue_t *event_queue, resource_t resource);
+
+void queue_init_timer(event_queue_t *event_queue, time_t secs);
+void queue_stop_timer(event_queue_t *event_queue);
 
 #endif // __EVENT_QUEUE_HPP__
 

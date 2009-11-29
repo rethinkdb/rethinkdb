@@ -20,6 +20,7 @@ void create_worker_pool(worker_pool_t *worker_pool, event_handler_t event_handle
     worker_pool->workers = (event_queue_t*)malloc(sizeof(event_queue_t) * workers);
     for(int i = 0; i < workers; i++) {
         create_event_queue(&worker_pool->workers[i], i, event_handler, worker_pool);
+        queue_init_timer(&worker_pool->workers[i], TIMER_TICKS_IN_SECS);
     }
     worker_pool->active_worker = 0;
     // TODO: consider creating lower priority threads to standby in
@@ -28,6 +29,7 @@ void create_worker_pool(worker_pool_t *worker_pool, event_handler_t event_handle
 
 void destroy_worker_pool(worker_pool_t *worker_pool) {
     for(int i = 0; i < worker_pool->nworkers; i++) {
+        queue_stop_timer(&worker_pool->workers[i]);
         destroy_event_queue(&worker_pool->workers[i]);
     }
     free(worker_pool->workers);
