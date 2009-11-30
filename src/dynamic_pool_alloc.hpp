@@ -80,15 +80,27 @@ struct dynamic_pool_alloc_t {
     // strictly a garbage collector, as the garbage doesn't
     // accumilate.
     void gc() {
+        int blocks_reclaimed = 0;
+        int mem_reclaimed = 0;
+
         for(int i = nallocs - 1; i > 0; i--) {
             if(allocs[i]->empty()) {
                 delete allocs[i];
                 allocs[i] = NULL;
                 nallocs--;
+                blocks_reclaimed++;
+                mem_reclaimed += compute_alloc_nobjects(i) * object_size;
+            } else {
+                break;
             }
         }
         if(smallest_free > nallocs - 1)
             smallest_free = nallocs - 1;
+
+        // TODO: convert this to a logging infrustructure (when it's in place)
+        if(blocks_reclaimed > 0) {
+            printf("gc (%dB in %d blocks)", mem_reclaimed, blocks_reclaimed);
+        }
     }
 
 private:
