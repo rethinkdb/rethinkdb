@@ -149,12 +149,13 @@ int main(int argc, char *argv[])
         process_socket(newsockfd, &worker_pool);
     }
 
-    // Cleanup the resources
-    destroy_worker_pool(&worker_pool);
+    // Stop accepting connections
     res = shutdown(sockfd, SHUT_RDWR);
     check("Could not shutdown main socket", res == -1);
     res = close(sockfd);
     check("Could not close main socket", res != 0);
+    // Clean up the rest
+    destroy_worker_pool(&worker_pool);
     res = close((int)(long)worker_pool.data);
     check("Could not close served file", res != 0);
     printf("Server offline\n");

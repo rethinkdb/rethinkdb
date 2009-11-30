@@ -75,8 +75,5 @@ void queue_watch_resource(event_queue_t *event_queue, resource_t resource,
                           event_op_t event_op, void *state);
 void queue_forget_resource(event_queue_t *event_queue, resource_t resource);
 
-void queue_init_timer(event_queue_t *event_queue, time_t secs);
-void queue_stop_timer(event_queue_t *event_queue);
-
 #endif // __EVENT_QUEUE_HPP__
 

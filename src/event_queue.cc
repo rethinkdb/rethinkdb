@@ -10,11 +10,16 @@
 #include <signal.h>
 #include <strings.h>
 #include <new>
+#include <algorithm>
 #include "config.hpp"
 #include "utils.hpp"
 #include "event_queue.hpp"
 
 // TODO: report event queue statistics.
+
+// Some forward declarations
+void queue_init_timer(event_queue_t *event_queue, time_t secs);
+void queue_stop_timer(event_queue_t *event_queue);
 
 void process_aio_notify(event_queue_t *self) {
     int res, nevents;
@@ -29,8 +34,12 @@ void process_aio_notify(event_queue_t *self) {
     io_event events[MAX_IO_EVENT_PROCESSING_BATCH_SIZE];
     
     do {
-        // Grab the events
-        nevents = io_getevents(self->aio_context, 1, MAX_IO_EVENT_PROCESSING_BATCH_SIZE,
+        // Grab the events. Note: we need to make sure we don't read
+        // more than nevents_total, otherwise we risk reading an io
+        // event and getting an eventfd for this read event later due
+        // to the way the kernel is structured. Better avoid this
+        // complexity (hence std::min below).
+        nevents = io_getevents(self->aio_context, 0, std::min((int)nevents_total, MAX_IO_EVENT_PROCESSING_BATCH_SIZE),
                                events, NULL);
         check("Waiting for AIO event failed", nevents < 1);
         
@@ -93,11 +102,14 @@ void* epoll_handler(void *arg) {
         // epoll_wait might return with EINTR in some cases (in
         // particular under GDB), we just need to retry.
         if(res == -1 && errno == EINTR) {
-            if(self->dying)
-                break;
-            else
+            if(!self->dying)
                 continue;
         }
+
+        // See if we need to quit
+        if(self->dying)
+            break;
+        
         check("Waiting for epoll events failed", res == -1);
 
         for(int i = 0; i < res; i++) {
@@ -178,6 +190,9 @@ void create_event_queue(event_queue_t *event_queue, int queue_id, event_handler_
     CPU_SET(queue_id % ncpus, &mask);
     res = pthread_setaffinity_np(event_queue->epoll_thread, sizeof(cpu_set_t), &mask);
     check("Could not set thread affinity", res != 0);
+
+    // Start the timer
+    queue_init_timer(event_queue, TIMER_TICKS_IN_SECS);
 }
 
 void destroy_event_queue(event_queue_t *event_queue) {
@@ -189,7 +204,7 @@ void destroy_event_queue(event_queue_t *event_queue) {
     res = pthread_kill(event_queue->epoll_thread, SIGTERM);
     check("Could not send kill signal to epoll thread", res != 0);
 
-    // Wait for the threads to die
+    // Wait for the poll thread to die
     res = pthread_join(event_queue->epoll_thread, NULL);
     check("Could not join with epoll thread", res != 0);
     
@@ -197,9 +212,15 @@ void destroy_event_queue(event_queue_t *event_queue) {
     queue_stop_timer(event_queue);
 
     // Cleanup resources
-    close(event_queue->aio_notify_fd);
-    close(event_queue->epoll_fd);
-    io_destroy(event_queue->aio_context);
+    res = close(event_queue->aio_notify_fd);
+    check("Could not close aio_notify_fd", res != 0);
+    
+    res = close(event_queue->epoll_fd);
+    check("Could not close epoll_fd", res != 0);
+    
+    res = io_destroy(event_queue->aio_context);
+    check("Could not destroy aio_context", res != 0);
+    
     (&event_queue->alloc)->~objectheap_alloc_t();
 }
 
