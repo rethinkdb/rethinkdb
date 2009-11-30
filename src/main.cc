@@ -101,8 +101,8 @@ int main(int argc, char *argv[])
     // Create a pool of workers
     worker_pool_t worker_pool;
     
-    int datafd = open("leo.txt", O_DIRECT | O_NOATIME | O_RDONLY);
-    //int datafd = open("/mnt/ssd/test", O_DIRECT | O_NOATIME | O_RDONLY);
+    //int datafd = open("leo.txt", O_DIRECT | O_NOATIME | O_RDONLY);
+    int datafd = open("/mnt/ssd/test", O_DIRECT | O_NOATIME | O_RDONLY);
     check("Could not open data file", datafd < 0);
     
     worker_pool.data = (void*)datafd;

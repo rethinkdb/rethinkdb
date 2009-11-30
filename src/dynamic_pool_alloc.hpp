@@ -99,7 +99,7 @@ struct dynamic_pool_alloc_t {
 
         // TODO: convert this to a logging infrustructure (when it's in place)
         if(blocks_reclaimed > 0) {
-            printf("gc (%dB in %d blocks)", mem_reclaimed, blocks_reclaimed);
+            printf("gc (%dB in %d blocks)\n", mem_reclaimed, blocks_reclaimed);
         }
     }
 

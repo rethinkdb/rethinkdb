@@ -14,7 +14,7 @@
 // Defines the maximum size of the batch of IO events to process on
 // each loop iteration. A larger number will increase throughput but
 // decrease concurrency
-#define MAX_IO_EVENT_PROCESSING_BATCH_SIZE        10
+#define MAX_IO_EVENT_PROCESSING_BATCH_SIZE        50
 
 
 // Defines the maximum number of allocators in
