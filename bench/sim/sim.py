@@ -4,8 +4,8 @@ from threading import Thread
 import socket
 import random
 
-nthreads = 3
-nrequests = 100000
+nthreads = 8
+nrequests = 5000
 ip = '192.168.2.5'
 port = 8080
 
