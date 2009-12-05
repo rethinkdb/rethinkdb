@@ -4,8 +4,5 @@ io_submit returns -EAGAIN) is equal to min(nrevents, nr_requests),
 where nrevents is passed to io_setup, and nr_requests can be found in
 /sys/block/sda/queue/nr_requests.
 
-/proc/sys/fs/aio-nr is supposed to report the number of aio requests
-currently being processed in the system. However, it looks to report
-the reserved space of the aio context queue, which might be larger
-than the number of active events (possibly peak numbers of events on
-that queue).
+/proc/sys/fs/aio-nr shows the sum of all aio_context sizes (each
+context size is passed during io_setup).
