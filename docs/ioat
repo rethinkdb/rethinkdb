@@ -1,0 +1,7 @@
+
+Enable Intel DMA technology for the network stack
+
+- Enable IOAT and DCA in BIOS (two separate options).
+- Run modprobe ioatdma
+- (Ensure successful ioat initialization - check dmesg).
+- See ioat_readme

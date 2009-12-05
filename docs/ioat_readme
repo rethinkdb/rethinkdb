@@ -1,0 +1,307 @@
+Intel(R) I/O Acceleration Technology Software Guide for Linux* 
+=============================================================
+
+July 13, 2009
+
+
+Contents
+========
+- Overview
+- Configuration
+- Direct Cache Access (DCA)
+- Relevant System Variables
+- Enabling and Disabling Intel I/OAT
+- Intel I/OAT sysfs Interface
+- Known Issues
+- Support
+- License
+
+
+Overview
+========
+
+This document contains instructions on how to configure the ioatdma 
+engine for Linux.  For additional information on Intel(R) I/O 
+Acceleration Technology (Intel(R) I/OAT), see the following web 
+page: http://www.intel.com/technology/ioacceleration/index.htm. 
+
+Where applicable, please consult the End User Guide for specific instructions
+to enable and configure I/OAT.
+
+These instructions are intended for the following platform configuration:
+
+- Mainboard chipset: 
+  Intel(R) 5000 Series Chipset QuickData Technology Device - 0x1A38
+  Intel(R) 5100 Chipset QuickData Technology Device - 0x65ff
+  Intel(R) 7300 Chipset QuickData Technology Device - 0x360b
+  Intel(R) 5400 Chipset QuickData 2 Technology Device - 0x402f
+  Intel(R) X58 Express Chipset QuickData 3 Technology Device - 0x3430
+  Intel(R) X58 Express Chipset QuickData 3 Technology Device - 0x3431
+  Intel(R) X58 Express Chipset QuickData 3 Technology Device - 0x3432
+  Intel(R) X58 Express Chipset QuickData 3 Technology Device - 0x3433
+  Intel(R) X58 Express Chipset QuickData 3 Technology Device - 0x3429
+  Intel(R) X58 Express Chipset QuickData 3 Technology Device - 0x342A
+  Intel(R) X58 Express Chipset QuickData 3 Technology Device - 0x342B
+  Intel(R) X58 Express Chipset QuickData 3 Technology Device - 0x342C
+   
+
+- BIOS: A BIOS that supports Intel I/OAT.
+
+- Linux OS: The ioatdma driver will build on kernels with I/OAT support - 
+  2.6.18 and above.
+
+- Drivers: 
+  - e1000 LAN driver, version 7.0.xx or higher, igb driver, e1000e driver, 
+    ixgb driver, ixgbe driver
+  - ioatdma driver (in this tarball)
+
+
+I/OAT is focused on optimizing performance - throughput & CPU utilization - 
+for applications that 1) use TCP protocol 2) have a significant portion
+of their traffic that is Receive-based 3) use large buffer sizes
+(applications with larger packets typically see greater gains with I/OAT -
+refer to "Relevant Sysctl Settings" for details regarding limit buffer sizes
+for particular QuickData versions).
+ 
+For optimal benefits from the Intel I/OAT network solution, system memory 
+channels should be fully populated. Customers with limited system memory 
+may not receive the full benefits of I/OAT. Please refer to your system guide
+to specific information regarding memory channels.
+
+When adding network adapters to a system, where possible please use slots
+that are directly connected to the MCH (for QuickData 1 and 2)
+or IOH (for QuickData 3). Please refer to your system guide
+for specific information on slots that are attached to the MCH/IOH.
+
+Users are encouraged to work with their applications & systems to determine
+how they can best take advantage of I/OAT.
+
+
+Configuration
+=============
+
+The ioatdma driver is a loadable module. Listed below are the steps
+required to make and install the module.
+
+
+1) Make and install the ioatdma module
+
+	make install 
+
+2) Optionally, you should rename the old module to minimize the potential for 
+   confusion.
+ 
+	mv /lib/modules/`uname -r`/kernel/drivers/dma/ioatdma.ko 
+	/lib/modules/`uname -r`/kernel/drivers/dma/ioatdma_old.ko
+
+3) If you had previously loaded an older version of ioatdma make sure to remove
+   it:
+
+        rmmod ioatdma
+
+   NOTES: Some older versions of ioatdma cannot be removed once loaded. If the 
+   rmmod command fails you will have to reboot the system in order to start 
+   using the newly installed driver.
+   For kernel versions 2.6.29 and above ioatdma module removal is possible only
+   when all I/OAT clients are disabled, i.e. all eth interfaces
+   including loopback are down.
+
+NOTE: Make sure that I/OAT support is configured into the kernel.
+ 
+       CONFIG_NET_DMA=y, CONFIG_INTEL_IOATDMA=m, and CONFIG_DCA=m
+
+
+Patches
+=======
+
+07-dont_offload_without_context_switch.patch
+     Performance enhancements may be realized with having the DMA copy engine
+     performing the copies in parallel with the context switch. If there is 
+     enough data ready on the socket at receive time, just use a regular copy.
+
+
+Direct Cache Access (DCA)
+=========================
+
+NOTE: DCA is functional with the igb and ixgbe drivers, but not with the e1000
+driver.
+
+Direct Cache Access (DCA) allows a capable I/O device, such as a network 
+controller, to place data directly into a CPU cache. The objective of DCA 
+is to reduce cache misses in processing data immediately after it has been 
+DMAed into system memory. DCA requires support from the I/O device, system 
+chipset, and CPUs.
+
+The DCA implementation for Linux works with the concepts of provider and 
+requester drivers. A provider driver ensures that the chipset and CPUs 
+support DCA and are properly configured. The ioatdma driver is the DCA 
+provider for current DCA enabled platforms. A requester is a driver for an 
+I/O device that wants to issue DCA hinted bus transactions. Examples
+of DCA requesters are igb and ixgbe drivers. There is an additional DCA kernel
+module that provides the in kernel API for implementing providers
+and requesters.
+
+NOTE: It has been observed that on some platforms, disabling Direct Cache 
+Access (DCA) in BIOS may cause invalid DMA channels number detection 
+(i.e. zero) during initialization. This may lead to unpredictible ioatdma
+behavior, in some cases even kernel panic. The ioatdma driver stops
+initialization and fails to load in case of zero channels detection to prevent
+the kernel panic.
+
+
+Building Drivers with DCA Support
+---------------------------------
+
+The DCA module and ioatdma driver ship together. Both igb and ixgbe drivers
+ship with DCA support in the source code. However, they need to be built
+specially to enable DCA for kernel versions older than 2.6.24, where DCA
+support has not yet been included. To build the igb or ixgbe driver
+with DCA support for older kernels, you must set a flag and provide
+the path to the ioatdma source.
+
+This example assumes the ioatdma and igb sources are in /usr/src
+
+# unpack the ioatdma source, build and install
+cd /usr/src
+tar zxf ioatdma-<ioat version>.tar.gz
+cd ioatdma-<ioat version>
+make
+make install
+
+# unpack the igb driver, build with DCA support and install
+cd /usr/src
+tar zxf igb-<igb version>.tar.gz
+cd igb-<igb-version>/src
+make CFLAGS_EXTRA="-DIGB_DCA -I/usr/src/ioatdma-<ioat version>/include"
+make install
+depmod -a
+
+# load the dca, ioatdma, and igb drivers
+modprobe ioatdma
+modprobe igb
+
+
+System information
+------------------
+DCA providers and requesters show up in sysfs, and this can be used to verify 
+that DCA is set up correctly. Provider devices are listed in /sys/class/dca, 
+requester devices show up as children of the provider they are connected to.
+
+Assuming eth0 and eth1 are requester devices, you get something such as:
+
+/sys/class/dca0/device -> /sys/bus/pci/<where the CB device is>
+/sys/class/dca0/requester0/device -> /sys/bus/pci/<where eth0 is>
+/sys/class/dca0/requester1/device -> /sys/bus/pci/<where eth1 is>
+
+In that device directory there will be a symlink back to every class device, 
+including the networking interface.  So you can see things such as:
+
+/sys/class/dca0/requester0/device/net:eth0 -> /sys/class/net/eth0
+/sys/class/net/eth0/device/dca:requester0 -> /sys/class/dca/dca0/requester0
+
+
+Relevant Sysctl Settings
+========================
+
+The tcp_dma_copybreak system variable (/proc/sys/net/ipv4/tcp_dma_copybreak)
+represents the lower limit of the size of the socket reads that will be
+offloaded to the DMA copy engine when CONFIG_NET_DMA is enabled.
+The default value is:
+ - 4096 bytes for I/OAT version 1
+ - 2048 bytes for I/OAT version 2
+ - 262144 bytes for I/OAT version 3.
+Lowering this limit reduces the threshold when offloading will be enabled.
+
+The tcp_low_latency system variable (/proc/sys/net/ipv4/tcp_low_latency) 
+ensures data is forwarded through the TCP stack to the application buffer. 
+When set to a value of 1, it disables tcp_prequeue in the Linux ipv4 TCP 
+stack and no offloading will occur.
+
+
+Enabling and Disabling Intel I/OAT
+==================================
+
+The Intel I/OAT network accelerations are enabled by loading the Intel 
+I/OATDMA engine driver at runtime.  The driver module filename is ioatdma.ko.  
+
+To enable Intel I/OAT, load the ioatdma driver module:
+
+    modprobe ioatdma
+
+Intel I/OAT may be disabled by removing the ioatdma driver module:
+
+    rmmod ioatdma
+
+Removing the ioatdma module once it has been loaded is not recommended 
+since TCP holds a reference to the ioatdma driver when offloading receive
+traffic. 
+
+WARNING: The command above may hang the system if done while waiting on TCP 
+receive traffic.
+
+For kernel versions 2.6.29 and above, ioatdma module removal is possible only
+when all I/OAT clients are disabled, i.e. all eth interfaces including 
+loopback are down.
+
+
+Intel I/OAT sysfs Interface
+===========================
+
+When the Intel I/OAT driver is properly loaded, there will be directories 
+created in sysfs, under /sys/class/dma, named dma0chanX, where X is 0-3
+(for I/OAT versions 1 and 2) or dmaXchan0, where X is 0-7 (for I/OAT version 3)
+
+
+Channel Entries:
+
+in_use
+------
+1 if the DMA channel is allocated to a client, such as the network stack.  
+
+bytes_transferred
+-----------------
+The total number of bytes transferred by the DMA engine.  
+
+memcpy_count
+------------
+The total number of copy operations initiated.  
+
+
+Known Issues
+============
+
+Using I/OAT with IPv6 may degrade performance
+---------------------------------------------
+
+tbench reports throughput of 0.00MB/sec and won't terminate when ioatdma loaded
+-------------------------------------------------------------------------------
+
+Removing the ioatdma module while traffic is being handled may cause a kernel 
+panic
+-----------------------------------------------------------------------------
+
+
+Support
+=======
+
+For general information, go to the Intel support website at:
+
+    www.intel.com/support/
+
+If an issue is identified with the released source code on the supported
+kernel with a supported adapter, email the specific information related 
+to the issue to linux.nics@intel.com.  
+
+
+License
+=======
+
+This software program is released under the terms of a license agreement 
+between you ('Licensee') and Intel.  Do not use or load this software or 
+any associated materials (collectively, the 'Software') until you have 
+carefully read the full terms and conditions of the LICENSE located in 
+this software package.  By loading or using the Software, you agree to 
+the terms of this Agreement.  If you do not agree with the terms of this 
+Agreement, do not install or use the Software.  
+
+* Other names and brands may be claimed as the property of others.  

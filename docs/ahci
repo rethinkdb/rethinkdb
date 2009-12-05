@@ -1,0 +1,9 @@
+
+For full utilization of the drive, the IO controller must support AHCI
+and NCQ, and AHCI must be enabled in the BIOS. Then, searching for NCQ
+in dmesg should result in:
+
+[    2.550267] ata6.00: 156301488 sectors, multi 1: LBA48 NCQ (depth 31/32)
+
+Searching for pio/PIO in dmesg should return nothing, and searching
+for ahci/AHCI should return results.
