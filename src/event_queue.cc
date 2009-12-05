@@ -247,6 +247,9 @@ void destroy_event_queue(event_queue_t *event_queue) {
     queue_stop_timer(event_queue);
 
     // Cleanup resources
+    res = close(event_queue->epoll_fd);
+    check("Could not close epoll_fd", res != 0);
+    
     res = close(event_queue->itc_pipe[0]);
     check("Could not close itc pipe (read end)", res != 0);
 
@@ -255,9 +258,6 @@ void destroy_event_queue(event_queue_t *event_queue) {
     
     res = close(event_queue->aio_notify_fd);
     check("Could not close aio_notify_fd", res != 0);
-    
-    res = close(event_queue->epoll_fd);
-    check("Could not close epoll_fd", res != 0);
     
     res = io_destroy(event_queue->aio_context);
     check("Could not destroy aio_context", res != 0);
