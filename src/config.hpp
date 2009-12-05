@@ -8,9 +8,6 @@
 // Max concurrent IO requests per event queue
 #define MAX_CONCURRENT_IO_REQUESTS                300
 
-// A hint about the average number of concurrent network events
-#define CONCURRENT_NETWORK_EVENTS_COUNT_HINT      300
-
 // Defines the maximum size of the batch of IO events to process on
 // each loop iteration. A larger number will increase throughput but
 // decrease concurrency

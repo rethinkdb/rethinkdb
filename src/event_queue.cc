@@ -191,7 +191,7 @@ void create_event_queue(event_queue_t *event_queue, int queue_id, event_handler_
     check("Could not setup aio context", res != 0);
     
     // Create a poll fd
-    event_queue->epoll_fd = epoll_create(CONCURRENT_NETWORK_EVENTS_COUNT_HINT);
+    event_queue->epoll_fd = epoll_create1(0);
     check("Could not create epoll fd", event_queue->epoll_fd == -1);
 
     // Start the epoll thread
