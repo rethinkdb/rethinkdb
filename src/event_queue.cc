@@ -7,7 +7,6 @@
 #include <sched.h>
 #include <stdio.h>
 #include <errno.h>
-#include <signal.h>
 #include <strings.h>
 #include <new>
 #include <algorithm>
@@ -92,6 +91,24 @@ void process_timer_notify(event_queue_t *self) {
     }
 }
 
+int process_itc_notify(event_queue_t *self) {
+    int res;
+    itc_event_t event;
+
+    // Read the event
+    res = read(self->itc_pipe[0], &event, sizeof(event));
+    check("Could not read itc event", res != sizeof(event));
+
+    // Process the event
+    switch(event.event_type) {
+    case iet_shutdown:
+        return 1;
+        break;
+    }
+
+    return 0;
+}
+
 void* epoll_handler(void *arg) {
     int res;
     event_queue_t *self = (event_queue_t*)arg;
@@ -102,14 +119,8 @@ void* epoll_handler(void *arg) {
         // epoll_wait might return with EINTR in some cases (in
         // particular under GDB), we just need to retry.
         if(res == -1 && errno == EINTR) {
-            if(!self->dying)
-                continue;
+            continue;
         }
-
-        // See if we need to quit
-        if(self->dying)
-            break;
-        
         check("Waiting for epoll events failed", res == -1);
 
         for(int i = 0; i < res; i++) {
@@ -120,6 +131,15 @@ void* epoll_handler(void *arg) {
             if(events[i].data.fd == self->timer_fd) {
                 process_timer_notify(self);
                 continue;
+            }
+            if(events[i].data.fd == self->itc_pipe[0]) {
+                if(process_itc_notify(self)) {
+                    // We're shutting down
+                    return NULL;
+                }
+                else {
+                    continue;
+                }
             }
             if(events[i].events == EPOLLIN ||
                events[i].events == EPOLLOUT)
@@ -136,12 +156,17 @@ void* epoll_handler(void *arg) {
                         qevent.op = eo_write;
                     self->event_handler(self, &qevent);
                 }
-            }
-            if(events[i].events == EPOLLRDHUP ||
+            } else if(events[i].events == EPOLLRDHUP ||
                events[i].events == EPOLLERR ||
                events[i].events == EPOLLHUP) {
+                // TODO: if the connection dies we leak resources
+                // (memory, etc). We need to establish a state machine
+                // for each connection. We also might need our own
+                // timeout before we close the connection.
                 queue_forget_resource(self, events[i].data.fd);
                 close(events[i].data.fd);
+            } else {
+                check("epoll_wait came back with an unhandled event", 1);
             }
         }
     } while(1);
@@ -154,7 +179,6 @@ void create_event_queue(event_queue_t *event_queue, int queue_id, event_handler_
     event_queue->queue_id = queue_id;
     event_queue->event_handler = event_handler;
     event_queue->parent_pool = parent_pool;
-    event_queue->dying = false;
     event_queue->timer_fd = -1;
     event_queue->total_expirations = 0;
 
@@ -179,9 +203,21 @@ void create_event_queue(event_queue_t *event_queue, int queue_id, event_handler_
     check("Could not create aio notification fd", event_queue->aio_notify_fd == -1);
 
     res = fcntl(event_queue->aio_notify_fd, F_SETFL, O_NONBLOCK);
-    check("Could not make aio notify socket non-blocking", res != 0);
+    check("Could not make aio notify fd non-blocking", res != 0);
 
     queue_watch_resource(event_queue, event_queue->aio_notify_fd, eo_read, NULL);
+    
+    // Create ITC notify pipe
+    res = pipe(event_queue->itc_pipe);
+    check("Could not create itc pipe", res != 0);
+
+    res = fcntl(event_queue->itc_pipe[0], F_SETFL, O_NONBLOCK);
+    check("Could not make itc pipe non-blocking (read end)", res != 0);
+
+    res = fcntl(event_queue->itc_pipe[1], F_SETFL, O_NONBLOCK);
+    check("Could not make itc pipe non-blocking (write end)", res != 0);
+
+    queue_watch_resource(event_queue, event_queue->itc_pipe[0], eo_read, NULL);
     
     // Set thread affinity
     int ncpus = get_cpu_count();
@@ -198,11 +234,10 @@ void create_event_queue(event_queue_t *event_queue, int queue_id, event_handler_
 void destroy_event_queue(event_queue_t *event_queue) {
     int res;
 
-    event_queue->dying = true;
-
     // Kill the poll thread
-    res = pthread_kill(event_queue->epoll_thread, SIGTERM);
-    check("Could not send kill signal to epoll thread", res != 0);
+    itc_event_t event;
+    event.event_type = iet_shutdown;
+    post_itc_message(event_queue, &event);
 
     // Wait for the poll thread to die
     res = pthread_join(event_queue->epoll_thread, NULL);
@@ -212,6 +247,12 @@ void destroy_event_queue(event_queue_t *event_queue) {
     queue_stop_timer(event_queue);
 
     // Cleanup resources
+    res = close(event_queue->itc_pipe[0]);
+    check("Could not close itc pipe (read end)", res != 0);
+
+    res = close(event_queue->itc_pipe[1]);
+    check("Could not close itc pipe (write end)", res != 0);
+    
     res = close(event_queue->aio_notify_fd);
     check("Could not close aio_notify_fd", res != 0);
     
@@ -300,5 +341,19 @@ void queue_stop_timer(event_queue_t *event_queue) {
     res = close(event_queue->timer_fd);
     check("Could not close the timer.", res != 0);
     event_queue->timer_fd = -1;
+}
+
+void post_itc_message(event_queue_t *event_queue, itc_event_t *event) {
+    int res;
+    // Note: This will be atomic as long as sizeof(itc_event_t) <
+    // PIPE_BUF
+    res = write(event_queue->itc_pipe[1], event, sizeof(itc_event_t));
+    check("Could not post message to itc queue", res != sizeof(itc_event_t));
+    
+    // TODO: serialization of the whole structure isn't as fast as
+    // serializing a pointer (but that would involve heap allocation,
+    // and a thread-safe allocator, which is a whole other can of
+    // worms). We should revisit this when it's more clear how ITC is
+    // used.
 }
 

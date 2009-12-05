@@ -10,7 +10,7 @@
 #include "dynamic_pool_alloc.hpp"
 #include "alloc_stats.hpp"
 
-// Event handling
+// Queue event handling
 typedef int resource_t;
 enum event_type_t {
     et_disk_event, et_sock_event, et_timer_event
@@ -38,6 +38,15 @@ struct event_t {
 struct event_queue_t;
 typedef void (*event_handler_t)(event_queue_t*, event_t*);
 
+// Inter-thread communication event (ITC)
+enum itc_event_type_t {
+    iet_shutdown
+};
+
+struct itc_event_t {
+    itc_event_type_t event_type;
+};
+
 // Helper structure for blocks of 512 bytes.
 // TODO: get rid of this when we have a full memory caching
 // architecture.
@@ -56,6 +65,7 @@ struct event_queue_t {
     long total_expirations;
     pthread_t epoll_thread;
     int epoll_fd;
+    int itc_pipe[2];
     event_handler_t event_handler;
     // TODO: add a checking allocator (check if malloc returns NULL)
     typedef objectheap_alloc_t<
@@ -63,7 +73,6 @@ struct event_queue_t {
         iocb, buffer_t<512> > small_obj_alloc_t;
     small_obj_alloc_t alloc;
     worker_pool_t *parent_pool;
-    volatile bool dying;
 };
 
 // Event queue initialization/destruction
@@ -71,9 +80,14 @@ void create_event_queue(event_queue_t *event_queue, int queue_id, event_handler_
                         worker_pool_t *parent_pool);
 void destroy_event_queue(event_queue_t *event_queue);
 
+// Watching and forgetting resources (from the queue's POV)
 void queue_watch_resource(event_queue_t *event_queue, resource_t resource,
                           event_op_t event_op, void *state);
 void queue_forget_resource(event_queue_t *event_queue, resource_t resource);
+
+// Posting an ITC message on the queue. The instance of itc_event_t
+// is serialized and need not be kept after the function returns.
+void post_itc_message(event_queue_t *event_queue, itc_event_t *event);
 
 #endif // __EVENT_QUEUE_HPP__
 
