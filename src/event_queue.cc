@@ -38,7 +38,8 @@ void process_aio_notify(event_queue_t *self) {
         // event and getting an eventfd for this read event later due
         // to the way the kernel is structured. Better avoid this
         // complexity (hence std::min below).
-        nevents = io_getevents(self->aio_context, 0, std::min((int)nevents_total, MAX_IO_EVENT_PROCESSING_BATCH_SIZE),
+        nevents = io_getevents(self->aio_context, 0,
+                               std::min((int)nevents_total, MAX_IO_EVENT_PROCESSING_BATCH_SIZE),
                                events, NULL);
         check("Waiting for AIO event failed", nevents < 1);
         
@@ -123,6 +124,13 @@ void* epoll_handler(void *arg) {
         }
         check("Waiting for epoll events failed", res == -1);
 
+        // TODO: instead of processing the events immediately, we
+        // might want to queue them up and then process the queue in
+        // bursts. This might reduce response time but increase
+        // overall throughput because it will minimize cache faults
+        // associated with instructions as well as data structures
+        // (see section 7 [CPU scheduling] in B-tree Indexes and CPU
+        // Caches by Goetz Graege and Pre-Ake Larson).
         for(int i = 0; i < res; i++) {
             if(events[i].data.fd == self->aio_notify_fd) {
                 process_aio_notify(self);
