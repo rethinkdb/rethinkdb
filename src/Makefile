@@ -1,8 +1,17 @@
+# Define configuration variables
 CXX=g++
 LDFLAGS=-lrt -laio
-CXXFLAGS=-g -O2 -Iinclude
+CXXFLAGS=-Iinclude
 SERVER_EXEC_NAME=rethink
 
+# Configure debug vs. release
+ifeq (${DEBUG},1)
+CXXFLAGS:=$(CXXFLAGS) -g
+else
+CXXFLAGS:=$(CXXFLAGS) -O3 -DNDEBUG
+endif
+
+# Define our objects
 OBJS =  main.o \
 	async_io.o \
 	event_queue.o \
