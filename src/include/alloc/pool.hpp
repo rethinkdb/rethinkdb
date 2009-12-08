@@ -7,6 +7,7 @@
 // behavior (compared to a freelist stored in a separate
 // array). Investigate this further once we can test real workloads.
 
+#include <assert.h>
 #include "utils.hpp"
 
 template <class super_alloc_t>
@@ -38,19 +39,17 @@ struct pool_alloc_t : public super_alloc_t {
     }
 
     void *malloc(size_t size) {
-        //check("Could not allocate object of different size", size != object_size);
+        assert(size == object_size);
         void *addr = (void*)free_list;
         if(addr) {
             free_list = free_list->next;
         }
         return addr;
-        // TODO: add debug code
     }
 
     void free(void *ptr) {
         ((free_node_t*)ptr)->next = free_list;
         free_list = (free_node_t*)ptr;
-        // TODO: add debug code
     }
 
     bool in_range(void *ptr) {

@@ -3,6 +3,7 @@
 #define __DYNAMIC_POOL_ALLOC_HPP__
 
 #include <math.h>
+#include <assert.h>
 #include "config.hpp"
 #include "utils.hpp"
 
@@ -60,17 +61,22 @@ struct dynamic_pool_alloc_t {
         // increases memory consumption. Since the chain of allocators
         // is expected to be very short (probably no more than 10), a
         // loop is an easier solution for now.
+#ifndef NDEBUG
+        bool ptr_freed = false;
+#endif
         for(int i = 0; i < nallocs; i++) {
             if(allocs[i]->in_range(ptr)) {
                 allocs[i]->free(ptr);
                 if(i < smallest_free) {
                     smallest_free = i;
                 }
+#ifndef NDEBUG
+                ptr_freed = true;
+#endif
                 break;
             }
         }
-        // TODO: add debug code for when ptr isn't in any of the
-        // allocators
+        assert(ptr_freed);
     }
 
     // This function should be called periodically (probably on
