@@ -4,11 +4,11 @@
 
 #include <pthread.h>
 #include <libaio.h>
-#include "memalign_alloc.hpp"
-#include "pool_alloc.hpp"
-#include "objectheap_alloc.hpp"
-#include "dynamic_pool_alloc.hpp"
-#include "alloc_stats.hpp"
+#include "alloc/memalign.hpp"
+#include "alloc/pool.hpp"
+#include "alloc/object_static.hpp"
+#include "alloc/dynamic_pool.hpp"
+#include "alloc/stats.hpp"
 
 // Queue event handling
 typedef int resource_t;
@@ -68,7 +68,7 @@ struct event_queue_t {
     int itc_pipe[2];
     event_handler_t event_handler;
     // TODO: add a checking allocator (check if malloc returns NULL)
-    typedef objectheap_alloc_t<
+    typedef object_static_alloc_t<
         dynamic_pool_alloc_t<alloc_stats_t<pool_alloc_t<memalign_alloc_t<> > > >,
         iocb, buffer_t<512> > small_obj_alloc_t;
     small_obj_alloc_t alloc;

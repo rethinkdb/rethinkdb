@@ -1,6 +1,6 @@
 
-#ifndef __OBJECTHEAP_ALLOC_HPP__
-#define __OBJECTHEAP_ALLOC_HPP__
+#ifndef __OBJECT_STATIC_ALLOC_HPP__
+#define __OBJECT_STATIC_ALLOC_HPP__
 
 // Implementation helpers
 enum null_0_t {};
@@ -48,32 +48,32 @@ template <class super_alloc_t,
           typename T4 = null_4_t, typename T5 = null_5_t,
           typename T6 = null_6_t, typename T7 = null_7_t,
           typename T8 = null_8_t, typename T9 = null_9_t>
-struct objectheap_alloc_t
+struct object_static_alloc_t
 {
     // TODO: implement
 };
 
 // Specialization with 0 allocators
 template <class super_alloc_t>
-struct objectheap_alloc_t<super_alloc_t,
-                          null_0_t, null_1_t,
-                          null_2_t, null_3_t,
-                          null_4_t, null_5_t,
-                          null_6_t, null_7_t,
-                          null_8_t, null_9_t>
+struct object_static_alloc_t<super_alloc_t,
+                             null_0_t, null_1_t,
+                             null_2_t, null_3_t,
+                             null_4_t, null_5_t,
+                             null_6_t, null_7_t,
+                             null_8_t, null_9_t>
 {};
 
 // Specialization with 1 allocator
 template <class super_alloc_t, typename T0>
-struct objectheap_alloc_t<super_alloc_t,
-                          T0, null_1_t,
-                          null_2_t, null_3_t,
-                          null_4_t, null_5_t,
-                          null_6_t, null_7_t,
-                          null_8_t, null_9_t>
+struct object_static_alloc_t<super_alloc_t,
+                             T0, null_1_t,
+                             null_2_t, null_3_t,
+                             null_4_t, null_5_t,
+                             null_6_t, null_7_t,
+                             null_8_t, null_9_t>
 {
 public:
-    objectheap_alloc_t() :
+    object_static_alloc_t() :
         _p0(sizeof(T0))
         {}
 
@@ -87,15 +87,15 @@ public:
 
 // Specialization with 2 allocators
 template <class super_alloc_t, typename T0, typename T1>
-struct objectheap_alloc_t<super_alloc_t,
-                          T0, T1,
-                          null_2_t, null_3_t,
-                          null_4_t, null_5_t,
-                          null_6_t, null_7_t,
-                          null_8_t, null_9_t>
+struct object_static_alloc_t<super_alloc_t,
+                             T0, T1,
+                             null_2_t, null_3_t,
+                             null_4_t, null_5_t,
+                             null_6_t, null_7_t,
+                             null_8_t, null_9_t>
 {
 public:
-    objectheap_alloc_t() :
+    object_static_alloc_t() :
         _p0(sizeof(T0)),
         _p1(sizeof(T1))
         {}
@@ -112,15 +112,15 @@ public:
 
 // Specialization with 3 allocators
 template <class super_alloc_t, typename T0, typename T1, typename T2>
-struct objectheap_alloc_t<super_alloc_t,
-                          T0, T1,
-                          T2, null_3_t,
-                          null_4_t, null_5_t,
-                          null_6_t, null_7_t,
-                          null_8_t, null_9_t>
+struct object_static_alloc_t<super_alloc_t,
+                             T0, T1,
+                             T2, null_3_t,
+                             null_4_t, null_5_t,
+                             null_6_t, null_7_t,
+                             null_8_t, null_9_t>
 {
 public:
-    objectheap_alloc_t() :
+    object_static_alloc_t() :
         _p0(sizeof(T0)),
         _p1(sizeof(T1)),
         _p2(sizeof(T2))
@@ -140,15 +140,15 @@ public:
 
 // Specialization with 4 allocators
 template <class super_alloc_t, typename T0, typename T1, typename T2, typename T3>
-struct objectheap_alloc_t<super_alloc_t,
-                          T0, T1,
-                          T2, T3,
-                          null_4_t, null_5_t,
-                          null_6_t, null_7_t,
-                          null_8_t, null_9_t>
+struct object_static_alloc_t<super_alloc_t,
+                             T0, T1,
+                             T2, T3,
+                             null_4_t, null_5_t,
+                             null_6_t, null_7_t,
+                             null_8_t, null_9_t>
 {
 public:
-    objectheap_alloc_t() :
+    object_static_alloc_t() :
         _p0(sizeof(T0)),
         _p1(sizeof(T1)),
         _p2(sizeof(T2)),
@@ -169,9 +169,9 @@ public:
     GEN_ALLOC_IMPL(T3, _p3)
 };
 
-// Adapter from objectheap_alloc_t to a standard allocator (for test code uniformity)
+// Adapter from object_static_alloc_t to a standard allocator (for test code uniformity)
 template<typename super_alloc_t, typename T>
-struct objectheap_adapter_t : public super_alloc_t {
+struct object_static_adapter_t : public super_alloc_t {
     void* malloc(size_t size) {
         return (void*)super_alloc_t::template malloc<T>();
     }
@@ -181,5 +181,5 @@ struct objectheap_adapter_t : public super_alloc_t {
     }
 };
 
-#endif // __OBJECTHEAP_ALLOC_HPP__
+#endif // __OBJECT_STATIC_ALLOC_HPP__
 

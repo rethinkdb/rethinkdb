@@ -12,7 +12,6 @@
 #include "utils.hpp"
 #include "worker_pool.hpp"
 #include "async_io.hpp"
-#include "blackhole_alloc.hpp"
 
 void event_handler(event_queue_t *event_queue, event_t *event) {
     int res;

@@ -270,7 +270,7 @@ void destroy_event_queue(event_queue_t *event_queue) {
     res = io_destroy(event_queue->aio_context);
     check("Could not destroy aio_context", res != 0);
     
-    (&event_queue->alloc)->~objectheap_alloc_t();
+    (&event_queue->alloc)->~object_static_alloc_t();
 }
 
 void queue_watch_resource(event_queue_t *event_queue, resource_t resource,

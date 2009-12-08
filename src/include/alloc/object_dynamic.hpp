@@ -1,6 +1,6 @@
 
-#ifndef __SIZEHEAP_ALLOC_HPP__
-#define __SIZEHEAP_ALLOC_HPP__
+#ifndef __OBJECT_DYNAMIC_HPP__
+#define __OBJECT_DYNAMIC_HPP__
 
 #include <ext/hash_map>
 
@@ -8,7 +8,7 @@
 // slower than the parent allocator - we should do this statically.
 
 template <class super_alloc_t>
-struct sizeheap_alloc_t {
+struct object_dynamic_alloc_t {
 
     ~sizeheap_alloc_t() {
         // Delete all parent allocators
@@ -52,5 +52,5 @@ private:
     heap_map_t heaps;
 };
 
-#endif // __SIZEHEAP_ALLOC_HPP__
+#endif // __OBJECT_DYNAMIC_HPP__
 

@@ -1,18 +1,43 @@
-CC=g++
 CXX=g++
-CXXFLAGS=-g -O2
 LDFLAGS=-lrt -lm -laio
+CXXFLAGS=-g -O2 -Iinclude
+SERVER_EXEC_NAME=rethink
 
-all: main pool_test
-main: main.o utils.o worker_pool.o event_queue.o async_io.o blackhole_alloc.o
-pool_test: pool_test.o utils.o
+OBJS =  main.o \
+	async_io.o \
+	event_queue.o \
+	utils.o \
+	worker_pool.o
 
-main.o: utils.hpp worker_pool.hpp async_io.hpp blackhole_alloc.o event_queue.hpp
-worker_pool.o: worker_pool.hpp event_queue.hpp utils.hpp
-event_queue.o: utils.hpp event_queue.hpp config.hpp blackhole_alloc.hpp
-async_io.o: async_io.hpp event_queue.hpp utils.hpp blackhole_alloc.hpp
-utils.o: utils.hpp
-blackhole_alloc: blackhole_alloc.hpp utils.hpp
+# High level build targets
+$(SERVER_EXEC_NAME): $(OBJS)
+	$(quiet_ld)
+	$(Q) $(CXX) $(LDFLAGS) $(OBJS) -o $(SERVER_EXEC_NAME)
 
 clean:
-	rm -f main pool_test *~ *.o
+	rm -f $(SERVER_EXEC_NAME) pool_test
+	rm -rf *~ *.o *.d
+
+# Compiling files
+%.o: %.cc Makefile
+	$(quiet_cc)
+	$(Q) $(CXX) $(CXXFLAGS) -c $<
+
+# Build and include header file dependencies
+%.d: %.cc
+	@$(CXX) $(CXXFLAGS) -M $< > $@.$$$$;                \
+	sed 's,\($*\)\.o[ :]*,\1.o $@ : ,g' < $@.$$$$ > $@; \
+	rm -f $@.$$$$
+-include $(OBJS:.o=.d)
+
+# Define  pretty printing functions
+ifeq (${VERBOSE},1)
+	quiet_cc =
+	quiet_ld =
+	Q =
+else
+	quiet_cc = @echo "  CC " $<
+	quiet_ld = @echo "  LD " $@
+	Q = @
+endif
+
