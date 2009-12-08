@@ -16,7 +16,9 @@ OBJS =  main.o \
 	async_io.o \
 	event_queue.o \
 	utils.o \
-	worker_pool.o
+	worker_pool.o \
+	tty.o \
+	server.o
 
 # High level build targets
 $(SERVER_EXEC_NAME): $(OBJS)

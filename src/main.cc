@@ -12,6 +12,8 @@
 #include "utils.hpp"
 #include "worker_pool.hpp"
 #include "async_io.hpp"
+#include "tty.hpp"
+#include "server.hpp"
 
 void event_handler(event_queue_t *event_queue, event_t *event) {
     int res;
@@ -27,7 +29,7 @@ void event_handler(event_queue_t *event_queue, event_t *event) {
             // See if we have a quit message
             if(strncmp(buf, "quit", 4) == 0) {
                 printf("Quitting server...\n");
-                res = pthread_kill(event_queue->parent_pool->main_thread, SIGTERM);
+                res = pthread_kill(event_queue->parent_pool->main_thread, SIGINT);
                 check("Could not send kill signal to main thread", res != 0);
                 return;
             }
@@ -56,6 +58,9 @@ void event_handler(event_queue_t *event_queue, event_t *event) {
         if(event->result < 0) {
             printf("File notify error (fd %d, res: %d) %s\n",
                    event->source, event->result, strerror(-event->result));
+            res = write((int)(long)event->state, "err", 4);
+            check("Could not write to socket", res == -1);
+            // TODO: make sure we write everything we intend to
         } else {
             ((char*)event->buf)[11] = 0;
             res = write((int)(long)event->state, event->buf, 10);
@@ -68,21 +73,11 @@ void event_handler(event_queue_t *event_queue, event_t *event) {
 }
 
 void term_handler(int signum) {
-    // Do nothing, we'll naturally break out of the main loop because
-    // the accept syscall will get interrupted.
+    // We'll naturally break out of the main loop because the accept
+    // syscall will get interrupted.
 }
 
-/******
- * Socket handling
- **/
-void process_socket(int sockfd, worker_pool_t *worker_pool) {
-    event_queue_t *event_queue = next_active_worker(worker_pool);
-    queue_watch_resource(event_queue, sockfd, eo_read, NULL);
-    printf("Opened socket %d\n", sockfd);
-}
-
-int main(int argc, char *argv[])
-{
+void install_handlers() {
     int res;
     
     // Setup termination handlers
@@ -91,68 +86,40 @@ int main(int argc, char *argv[])
     action.sa_handler = term_handler;
     res = sigaction(SIGTERM, &action, NULL);
     check("Could not install TERM handler", res < 0);
-    
+
     bzero((char*)&action, sizeof(action));
     action.sa_handler = term_handler;
     res = sigaction(SIGINT, &action, NULL);
     check("Could not install INT handler", res < 0);
-    
+};
+
+int main(int argc, char *argv[])
+{
+    int res;
+
+    // Setup signal handlers
+    install_handlers();
+
     // Create a pool of workers
     worker_pool_t worker_pool;
     
-    //int datafd = open("leo.txt", O_DIRECT | O_NOATIME | O_RDONLY);
-    int datafd = open("/mnt/ssd/test", O_DIRECT | O_NOATIME | O_RDONLY);
+    int datafd = open("leo.txt", O_DIRECT | O_NOATIME | O_RDONLY);
+    //int datafd = open("/mnt/ssd/test", O_DIRECT | O_NOATIME | O_RDONLY);
     check("Could not open data file", datafd < 0);
     
     worker_pool.data = (void*)datafd;
     create_worker_pool(&worker_pool, event_handler, pthread_self());
-    
-    // Create the socket
-    int sockfd;
-    sockfd = socket(AF_INET, SOCK_STREAM, 0);
-    check("Couldn't create socket", sockfd == -1);
 
-    int sockoptval = 1;
-    res = setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &sockoptval, sizeof(sockoptval));
-    check("Could not set REUSEADDR option", res == -1);
+    // Start the server
+    int sockfd = start_server(&worker_pool);
 
-    // Bind the socket
-    sockaddr_in serv_addr;
-    bzero((char*)&serv_addr, sizeof(serv_addr));
-    serv_addr.sin_family = AF_INET;
-    serv_addr.sin_port = htons(8080);
-    serv_addr.sin_addr.s_addr = INADDR_ANY;
-    res = bind(sockfd, (sockaddr*)&serv_addr, sizeof(serv_addr));
-    check("Couldn't bind socket", res != 0);
+    // Start a thread that feeds the terminal into the listening
+    // socket
+    do_tty_loop(sockfd);
 
-    // Start listening to connections
-    res = listen(sockfd, 5);
-    check("Couldn't listen to the socket", res != 0);
+    // At this point we broke out of the tty loop. Stop the server.
+    stop_server(sockfd);
 
-    // Accept incoming connections
-    while(true) {
-        int newsockfd;
-        sockaddr_in client_addr;
-        socklen_t client_addr_len = sizeof(client_addr);
-        newsockfd = accept(sockfd, 
-                           (sockaddr*)&client_addr, 
-                           &client_addr_len);
-        // Break out of the loop on sigterm
-        if(newsockfd == -1 && errno == EINTR)
-            break;
-        check("Could not accept connection", newsockfd == -1);
-
-        // Process the socket
-        res = fcntl(newsockfd, F_SETFL, O_NONBLOCK);
-        check("Could not make socket non-blocking", res != 0);
-        process_socket(newsockfd, &worker_pool);
-    }
-
-    // Stop accepting connections
-    res = shutdown(sockfd, SHUT_RDWR);
-    check("Could not shutdown main socket", res == -1);
-    res = close(sockfd);
-    check("Could not close main socket", res != 0);
     // Clean up the rest
     destroy_worker_pool(&worker_pool);
     res = close((int)(long)worker_pool.data);
