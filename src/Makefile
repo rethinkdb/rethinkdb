@@ -1,5 +1,5 @@
 CXX=g++
-LDFLAGS=-lrt -lm -laio
+LDFLAGS=-lrt -laio
 CXXFLAGS=-g -O2 -Iinclude
 SERVER_EXEC_NAME=rethink
 
