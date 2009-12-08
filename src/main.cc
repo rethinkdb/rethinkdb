@@ -110,11 +110,10 @@ int main(int argc, char *argv[])
     worker_pool.data = (void*)datafd;
     create_worker_pool(&worker_pool, event_handler, pthread_self());
 
-    // Start the server
+    // Start the server (in a separate thread)
     int sockfd = start_server(&worker_pool);
 
-    // Start a thread that feeds the terminal into the listening
-    // socket
+    // Feed the terminal into the listening socket
     do_tty_loop(sockfd);
 
     // At this point we broke out of the tty loop. Stop the server.
