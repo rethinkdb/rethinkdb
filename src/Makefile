@@ -28,8 +28,7 @@ OBJS:=$(OBJS:%.o=$(OBJ_DIR)/%.o)
 
 # High level build targets
 $(SERVER_EXEC_NAME): $(OBJS)
-	$(quiet_ld)
-	$(Q) $(CXX) $(LDFLAGS) $(OBJS) -o $(SERVER_EXEC_NAME)
+	$(quiet_ld) $(CXX) $(LDFLAGS) $(OBJS) -o $(SERVER_EXEC_NAME)
 
 clean:
 	$(call quiet_rm, *~) rm -rf *~
@@ -39,8 +38,7 @@ clean:
 
 # Compiling files
 $(OBJ_DIR)/%.o: %.cc Makefile
-	$(quiet_cc)
-	$(Q) $(CXX) $(CXXFLAGS) -c -o $@ $<
+	$(quiet_cc) $(CXX) $(CXXFLAGS) -c -o $@ $<
 
 # Build and include header file dependencies
 $(DEP_DIR)/%.d: %.cc
@@ -54,11 +52,9 @@ ifeq (${VERBOSE},1)
 	quiet_cc =
 	quiet_ld =
 	quiet_rm =
-	Q =
 else
-	quiet_cc = @echo "  CC " $<
-	quiet_ld = @echo "  LD " $@
+	quiet_cc = @echo "  CC " $< ;
+	quiet_ld = @echo "  LD " $@ ;
 	quiet_rm = @echo "  RM " $(1) ;
-	Q = @
 endif
 
