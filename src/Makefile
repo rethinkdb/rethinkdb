@@ -32,11 +32,10 @@ $(SERVER_EXEC_NAME): $(OBJS)
 	$(Q) $(CXX) $(LDFLAGS) $(OBJS) -o $(SERVER_EXEC_NAME)
 
 clean:
-	@echo $(OBJS)
-	rm -f $(SERVER_EXEC_NAME) pool_test
-	rm -rf *~
-	rm -f $(OBJS)
-	rm -f $(DEPS)
+	$(call quiet_rm, *~) rm -rf *~
+	$(call quiet_rm, $(SERVER_EXEC_NAME)) rm -f $(SERVER_EXEC_NAME)
+	$(call quiet_rm, DEPS) rm -f $(DEPS)
+	$(call quiet_rm, OBJS) rm -f $(OBJS)
 
 # Compiling files
 $(OBJ_DIR)/%.o: %.cc Makefile
@@ -54,10 +53,12 @@ $(DEP_DIR)/%.d: %.cc
 ifeq (${VERBOSE},1)
 	quiet_cc =
 	quiet_ld =
+	quiet_rm =
 	Q =
 else
 	quiet_cc = @echo "  CC " $<
 	quiet_ld = @echo "  LD " $@
+	quiet_rm = @echo "  RM " $(1) ;
 	Q = @
 endif
 
