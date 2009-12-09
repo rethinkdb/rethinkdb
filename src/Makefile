@@ -2,10 +2,10 @@
 CXX=g++
 LDFLAGS=-lrt -laio
 CXXFLAGS=-Iinclude
-SERVER_EXEC_NAME=rethink
 
 DEP_DIR=dep
 OBJ_DIR=obj
+SERVER_EXEC_NAME=rethink
 
 # Configure debug vs. release
 ifeq (${DEBUG},1)
@@ -49,7 +49,7 @@ $(DEP_DIR)/%.d: %.cc
 	rm -f $@.$$$$
 -include $(DEPS)
 
-# Define  pretty printing functions
+# Define pretty printing functions
 ifeq (${VERBOSE},1)
 	quiet_cc =
 	quiet_ld =
