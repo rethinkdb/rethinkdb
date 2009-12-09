@@ -31,7 +31,7 @@ $(SERVER_EXEC_NAME): $(OBJS)
 	$(quiet_ld) $(CXX) $(LDFLAGS) $(OBJS) -o $(SERVER_EXEC_NAME)
 
 clean:
-	$(call quiet_rm, *~) rm -rf *~
+	$(call quiet_rm, *~) find -name *~ -exec rm {} \;
 	$(call quiet_rm, $(SERVER_EXEC_NAME)) rm -f $(SERVER_EXEC_NAME)
 	$(call quiet_rm, DEPS) rm -f $(DEPS)
 	$(call quiet_rm, OBJS) rm -f $(OBJS)
