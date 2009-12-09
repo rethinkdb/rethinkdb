@@ -5,6 +5,7 @@ CXXFLAGS=-Iinclude
 SERVER_EXEC_NAME=rethink
 
 DEP_DIR=dep
+OBJ_DIR=obj
 
 # Configure debug vs. release
 ifeq (${DEBUG},1)
@@ -22,27 +23,32 @@ OBJS =  main.o \
 	tty.o \
 	server.o
 
+DEPS:=$(OBJS:%.o=$(DEP_DIR)/%.d)
+OBJS:=$(OBJS:%.o=$(OBJ_DIR)/%.o)
+
 # High level build targets
 $(SERVER_EXEC_NAME): $(OBJS)
 	$(quiet_ld)
 	$(Q) $(CXX) $(LDFLAGS) $(OBJS) -o $(SERVER_EXEC_NAME)
 
 clean:
+	@echo $(OBJS)
 	rm -f $(SERVER_EXEC_NAME) pool_test
-	rm -rf *~ *.o
-	rm -f $(DEP_DIR)/*
+	rm -rf *~
+	rm -f $(OBJS)
+	rm -f $(DEPS)
 
 # Compiling files
-%.o: %.cc Makefile
+$(OBJ_DIR)/%.o: %.cc Makefile
 	$(quiet_cc)
-	$(Q) $(CXX) $(CXXFLAGS) -c $<
+	$(Q) $(CXX) $(CXXFLAGS) -c -o $@ $<
 
 # Build and include header file dependencies
 $(DEP_DIR)/%.d: %.cc
 	@$(CXX) $(CXXFLAGS) -M $< > $@.$$$$;                   \
 	sed 's,\($*\)\.o[ :]*,\1.o $@ : ,g' < $@.$$$$ > $@;    \
 	rm -f $@.$$$$
--include $(OBJS:%.o=$(DEP_DIR)/%.d)
+-include $(DEPS)
 
 # Define  pretty printing functions
 ifeq (${VERBOSE},1)
