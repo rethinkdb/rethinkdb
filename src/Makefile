@@ -4,6 +4,8 @@ LDFLAGS=-lrt -laio
 CXXFLAGS=-Iinclude
 SERVER_EXEC_NAME=rethink
 
+DEP_DIR=dep
+
 # Configure debug vs. release
 ifeq (${DEBUG},1)
 CXXFLAGS:=$(CXXFLAGS) -g
@@ -27,7 +29,8 @@ $(SERVER_EXEC_NAME): $(OBJS)
 
 clean:
 	rm -f $(SERVER_EXEC_NAME) pool_test
-	rm -rf *~ *.o *.d
+	rm -rf *~ *.o
+	rm -f $(DEP_DIR)/*
 
 # Compiling files
 %.o: %.cc Makefile
@@ -35,11 +38,11 @@ clean:
 	$(Q) $(CXX) $(CXXFLAGS) -c $<
 
 # Build and include header file dependencies
-%.d: %.cc
-	@$(CXX) $(CXXFLAGS) -M $< > $@.$$$$;                \
-	sed 's,\($*\)\.o[ :]*,\1.o $@ : ,g' < $@.$$$$ > $@; \
+$(DEP_DIR)/%.d: %.cc
+	@$(CXX) $(CXXFLAGS) -M $< > $@.$$$$;                   \
+	sed 's,\($*\)\.o[ :]*,\1.o $@ : ,g' < $@.$$$$ > $@;    \
 	rm -f $@.$$$$
--include $(OBJS:.o=.d)
+-include $(OBJS:%.o=$(DEP_DIR)/%.d)
 
 # Define  pretty printing functions
 ifeq (${VERBOSE},1)
