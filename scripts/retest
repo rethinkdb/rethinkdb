@@ -115,6 +115,8 @@ def print_test_status(test, res):
     else:
         res = 'F'
     print '%s [%s]' % (test, res)
+    if res == 'F':
+        print ''
     performed_tests_count += 1
 
 def print_results():
