@@ -171,8 +171,8 @@ def process_test_file(file):
     # Generate new configuration file
     gen_conf_file(file, conf)
 
-def recursive_retest():
-    for root, dirs, files in os.walk(os.path.abspath('.')):
+def recursive_retest(dir):
+    for root, dirs, files in os.walk(os.path.abspath(dir)):
         for file in files:
             if os.path.splitext(file)[1] == '.cc' and file[0] != '.':
                 os.chdir(os.path.abspath(root))
@@ -180,8 +180,33 @@ def recursive_retest():
     # Results!
     print_results()
 
+def recursive_clean():
+    for root, dirs, files in os.walk(os.path.abspath('.')):
+        for file in files:
+            if os.path.splitext(file)[1] == '.cc' and file[0] != '.':
+                os.chdir(os.path.abspath(root))
+                call(['rm', '-f', '%s.xml' % file])
+                call(['rm', '-f', source_name(file)])
+                call(['rm', '-f', exec_name(file)])
+                call(['rm', '-f', conf_name(file)])
+
 def main(argv):
-    recursive_retest()
+    if(len(argv) > 2):
+        print("Usage: %s [clean | file.cc | dir]" % argv[0])
+        sys.exit()
+    if(len(argv) == 2):
+        if(argv[1] == 'clean'):
+            recursive_clean()
+        else:
+            if os.path.splitext(argv[1])[1] == '.cc':
+                if(os.path.split(argv[1])[0] != ''):
+                    os.chdir(os.path.split(argv[1])[0])
+                process_test_file(os.path.split(argv[1])[1])
+                print_results()
+            else:
+                recursive_retest(argv[1])
+        return
+    recursive_retest(os.curdir)
 
 if __name__ == '__main__':
     sys.exit(main(sys.argv))
