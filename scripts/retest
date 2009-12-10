@@ -2,12 +2,17 @@
 # -*- mode: Python; -*-
 
 import sys
+import os
 import os.path
 from subprocess import call
 from xml.dom.minidom import parse
 import hashlib
 
 test_function_prefix = 'test_'
+
+visited_tests = []
+performed_tests = []
+performed_tests_count = 0
 
 # Utility functions
 def source_name(file_name):
@@ -24,7 +29,10 @@ def test_cmp(x, y):
 
 def gen_fn_hash(source, node):
     begin = int(node.getAttribute('line'))
-    end = int(node.getAttribute('endline'))
+    if(node.getAttribute('endline') != ''):
+        end = int(node.getAttribute('endline'))
+    else:
+        end = begin
     m = hashlib.md5()
     with open(source, 'r') as src:
         i = 1
@@ -100,15 +108,34 @@ def compare_configs(new_conf, conf_file):
     old_conf['test_list'] = new_conf['test_list']
     return old_conf
 
+def print_test_status(test, res):
+    global performed_tests_count
+    if res:
+        res = 'P'
+    else:
+        res = 'F'
+    print '%s [%s]' % (test, res)
+    performed_tests_count += 1
+
+def print_results():
+    print("Ran %d of %d, %d failed"
+          % (len(performed_tests),
+             len(visited_tests),
+             len(filter(lambda x: x[1] != True, performed_tests))))
+
 def run_tests(exec_file, conf):
+    global visited_tests, performed_tests
     for test in conf['test_list']:
+        visited_tests.append(test)
         if conf['tests'][test]['known_state'] != True:
             ret = call(['./%s' % exec_file, test[len(test_function_prefix):]])
+            print_test_status(test, ret == 0)
+            performed_tests.append((test, (ret == 0)))
             conf['tests'][test]['known_state'] = (ret == 0)
     return conf
 
 def process_test_file(file):
-    xml_file = '.%s.xml' % file
+    xml_file = '%s.xml' % file
     source_file = source_name(file)
     exec_file = exec_name(file)
     conf_file = conf_name(file)
@@ -144,8 +171,17 @@ def process_test_file(file):
     # Generate new configuration file
     gen_conf_file(file, conf)
 
+def recursive_retest():
+    for root, dirs, files in os.walk(os.path.abspath('.')):
+        for file in files:
+            if os.path.splitext(file)[1] == '.cc' and file[0] != '.':
+                os.chdir(os.path.abspath(root))
+                process_test_file(file)
+    # Results!
+    print_results()
+
 def main(argv):
-    process_test_file(argv[1])
+    recursive_retest()
 
 if __name__ == '__main__':
     sys.exit(main(sys.argv))
