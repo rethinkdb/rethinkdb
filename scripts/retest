@@ -209,6 +209,8 @@ def main(argv):
                 recursive_retest(argv[1])
         return
     recursive_retest(os.curdir)
+    if len(filter(lambda x: x[1] != True, performed_tests)) > 0:
+        sys.exit(1)
 
 if __name__ == '__main__':
     sys.exit(main(sys.argv))
