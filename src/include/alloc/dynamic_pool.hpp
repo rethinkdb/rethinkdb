@@ -85,7 +85,7 @@ struct dynamic_pool_alloc_t {
     // as was required during peak utilization. Note that this isn't
     // strictly a garbage collector, as the garbage doesn't
     // accumilate.
-    void gc() {
+    int gc() {
         int blocks_reclaimed = 0;
         int mem_reclaimed = 0;
 
@@ -104,9 +104,12 @@ struct dynamic_pool_alloc_t {
             smallest_free = nallocs - 1;
 
         // TODO: convert this to a logging infrustructure (when it's in place)
+#ifndef NDEBUG
         if(blocks_reclaimed > 0) {
             printf("gc (%dB in %d blocks)\n", mem_reclaimed, blocks_reclaimed);
         }
+#endif
+        return blocks_reclaimed;
     }
 
 private:
