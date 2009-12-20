@@ -7,6 +7,10 @@
 // behavior (compared to a freelist stored in a separate
 // array). Investigate this further once we can test real workloads.
 
+// TODO: we might want to consider internal alignment of objects. We
+// should test this out and see if the performance changes in the
+// grand scheme of things.
+
 #include <assert.h>
 #include "utils.hpp"
 
