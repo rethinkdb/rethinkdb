@@ -8,9 +8,11 @@
 struct array_leaf_node_t;
 struct array_internal_node_t;
 
-// TODO: this shouldn't be a compile time option
+// TODO: this shouldn't be a compile time option (or perhaps it should
+// in this case)
 #define NODE_ORDER    16
 
+// TODO: optimize for cache alignment/cache misses/etc.
 struct array_node_t {
     array_node_t(bool _leaf) : leaf(_leaf), nkeys(0) {}
     
