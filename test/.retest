@@ -5,5 +5,5 @@ MAKE_CMD = "make -C /home/coffeemug/projects/rethinkkv/src"
 # Arguments to pass to the compiler
 CXXFLAGS = "-I/home/coffeemug/projects/retest/ -I/home/coffeemug/projects/rethinkkv/src/include/"
 # Arguments to pass to the linker
-LDFLAGS = None #"/home/coffeemug/projects/rethinkkv/src/obj/* -lrt -laio"
+LDFLAGS = "/home/coffeemug/projects/rethinkkv/src/obj/utils.o"
 

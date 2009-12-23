@@ -8,7 +8,6 @@
 // TODO: ignoring duplicates, allow duplicate elements
 // TODO: stays only in memory, add disk support
 // TODO: not thread safe, implement concurrency control methods
-// TODO: develop a memory allocator
 // TODO: develop a page cache
 // TODO: perhaps allow memory reclamation due to oversplitting?
 // TODO: multiple values require cursor/iterator mechanism
@@ -16,74 +15,122 @@
 // TODO: consider redoing with a visitor pattern to avoid ugly casts
 // TODO: consider B#/B* trees to improve space efficiency
 
-template <class node_t>
-class btree {
+template <class node_t, class cache_t>
+class btree : public cache_t {
 public:
-    btree() {
-        // TODO: We need a good allocator here
-        root = new leaf_node_t();
-    }
+    btree(size_t _block_size) : cache_t(_block_size), root_id(NULL) {}
 
     int lookup(int key, int *value) {
-        node_t *node = root;
+        if(root_id == NULL)
+            return 0;
+        // TODO: handle async IO/state
+        block_id_t node_id = root_id;
+        node_t *node = (node_t*)acquire(node_id, NULL);
         while(node->is_internal()) {
-            node = ((internal_node_t*)node)->lookup(key);
-            assert(node);
+            block_id_t next_node_id = ((internal_node_t*)node)->lookup(key);
+            release(node_id, false);
+            node_id = next_node_id;
+            node = (node_t*)acquire(node_id, NULL);
         }
-        return ((leaf_node_t*)node)->lookup(key, value);
+        int result = ((leaf_node_t*)node)->lookup(key, value);
+        release(node_id, false);
+        return result;
     }
     
     void insert(int key, int value) {
-        node_t *node = root;
+        // TODO: handle async IO/state
+        node_t *node;
+        block_id_t node_id = root_id;
+        bool node_dirty = false;
+
         internal_node_t *last_node = NULL;
+        block_id_t last_node_id = NULL;
+        bool last_node_dirty = false;
+
+        // Grab the root
+        if(node_id == NULL) {
+            void *ptr = allocate(&root_id);
+            node = new (ptr) leaf_node_t();
+            node_dirty = true;
+            node_id = root_id;
+        } else {
+            node = (node_t*)acquire(node_id, NULL);
+        }
+        
         do {
+            // Proactively split the node
             if(node->is_full()) {
                 int median;
-                node_t *lnode, *rnode;
-                split_node(node, &lnode, &rnode, &median);
+                node_t *rnode;
+                block_id_t rnode_id;
+                split_node(node, &rnode, &rnode_id, &median);
                 if(last_node == NULL) {
-                    // TODO: We need a good allocator here
-                    root = new internal_node_t();
-                    ((internal_node_t*)root)->insert(median, lnode, rnode);
-                } else {
-                    last_node->insert(median, lnode, rnode);
+                    void *ptr = allocate(&root_id);
+                    last_node = new (ptr) internal_node_t();
+                    last_node_id = root_id;
                 }
+                // TODO: we should be inserting block_id's, not nodes here
+                last_node->insert(median, node, rnode);
+                last_node_dirty = true;
+                
+                // Figure out where the key goes
                 if(key < median) {
-                    node = lnode;
-                } else if(key > median) {
+                    // Left node and node are the same thing
+                    release(rnode_id, true);
+                } else if(key >= median) {
+                    release(node_id, true);
                     node = rnode;
-                } else {
-                    // TODO: what to do here?
+                    node_id = rnode_id;
                 }
             }
+
+            // Insert the value, or move up the tree
             if(node->is_leaf()) {
                 ((leaf_node_t*)node)->insert(key, value);
+                release(node_id, true);
                 break;
             } else {
+                // Release and update the last node
+                if(last_node_id) {
+                    release(last_node_id, last_node_dirty);
+                }
                 last_node = (internal_node_t*)node;
-                node = ((internal_node_t*)node)->lookup(key);
+                last_node_id = node_id;
+                last_node_dirty = false;
+                
+                // Look up the next node; release and update the node
+                node_id = ((internal_node_t*)node)->lookup(key);
+                node = (node_t*)acquire(node_id, NULL);
+                node_dirty = false;
             }
         } while(1);
+
+        // Release the final last node
+        if(last_node_id) {
+            release(last_node_id, last_node_dirty);
+        }
     }
 
     typedef typename node_t::leaf_node_t leaf_node_t;
     typedef typename node_t::internal_node_t internal_node_t;
+    typedef typename cache_t::block_id_t block_id_t;
 
 private:
-    void split_node(node_t *node, node_t **lnode, node_t **rnode, int *median) {
+    void split_node(node_t *node, node_t **rnode, block_id_t *rnode_id, int *median) {
+        void *ptr = allocate(rnode_id);
         if(node->is_leaf()) {
-            ((leaf_node_t*)node)->split((leaf_node_t**)lnode,
-                                        (leaf_node_t**)rnode,
+            *rnode = new (ptr) leaf_node_t();
+            ((leaf_node_t*)node)->split((leaf_node_t*)*rnode,
                                         median);
         } else {
-            ((internal_node_t*)node)->split((internal_node_t**)lnode,
-                                            (internal_node_t**)rnode,
+            *rnode = new (ptr) internal_node_t();
+            ((internal_node_t*)node)->split((internal_node_t*)*rnode,
                                             median);
         }
     }
     
 private:
-    node_t *root;
+    typename cache_t::block_id_t root_id;
 };
 
 #endif // __BTREE_HPP__

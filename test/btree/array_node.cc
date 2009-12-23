@@ -79,10 +79,12 @@ void test_leaf_split() {
         assert_cond(node.insert(i, i));
     }
     int median, value;
-    array_leaf_node_t *lnode, *rnode;
+    array_leaf_node_t
+        *lnode = &node,
+        *rnode = new array_leaf_node_t();
 
     // Split it
-    node.split(&lnode, &rnode, &median);
+    node.split(rnode, &median);
 
     // Make sure median is right
     assert_eq(median, NODE_ORDER / 2);
@@ -194,8 +196,10 @@ void test_internal_split() {
     
     // Split the node
     int median;
-    array_internal_node_t *lnode, *rnode;
-    node.split(&lnode, &rnode, &median);
+    array_internal_node_t
+        *lnode = &node,
+        *rnode = new array_internal_node_t();
+    node.split(rnode, &median);
 
     // Check the left node
     for(int i = -1; i < NODE_ORDER; i++) {

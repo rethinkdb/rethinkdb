@@ -82,20 +82,15 @@ struct array_leaf_node_t : public array_node_t {
         }
     }
 
-    void split(array_leaf_node_t **lnode, array_leaf_node_t **rnode, int *median) {
+    void split(array_leaf_node_t *rnode, int *median) {
         *median = keys[nkeys / 2];
         
-        // TODO: we need a good allocator here
-        array_leaf_node_t *_rnode = new array_leaf_node_t();
         int rkeys = nkeys - nkeys / 2;
-        memcpy(_rnode->keys, keys + nkeys / 2, rkeys * sizeof(*keys));
-        memcpy(_rnode->values, values + nkeys / 2, rkeys * sizeof(*values));
-        _rnode->nkeys = rkeys;
+        memcpy(rnode->keys, keys + nkeys / 2, rkeys * sizeof(*keys));
+        memcpy(rnode->values, values + nkeys / 2, rkeys * sizeof(*values));
+        rnode->nkeys = rkeys;
         
         nkeys /= 2;
-        
-        *lnode = this;
-        *rnode = _rnode;
     }
 
 private:
@@ -152,22 +147,19 @@ struct array_internal_node_t : public array_node_t  {
         }
     }
 
-    void split(array_internal_node_t **lnode, array_internal_node_t **rnode, int *median) {
+    void split(array_internal_node_t *rnode, int *median) {
         *median = keys[nkeys / 2];
         
-        // TODO: we need a good allocator here
-        array_internal_node_t *_rnode = new array_internal_node_t();
         int rkeys = nkeys - nkeys / 2 - 1;
-        memcpy(_rnode->keys, keys + (nkeys / 2 + 1), rkeys * sizeof(*keys));
-        memcpy(_rnode->values, values + (nkeys / 2 + 1), (rkeys + 1) * sizeof(*values));
-        _rnode->nkeys = rkeys;
+        memcpy(rnode->keys, keys + (nkeys / 2 + 1), rkeys * sizeof(*keys));
+        memcpy(rnode->values, values + (nkeys / 2 + 1), (rkeys + 1) * sizeof(*values));
+        rnode->nkeys = rkeys;
 
         nkeys /= 2;
-        *lnode = this;
-        *rnode = _rnode;
     }
 
 private:
+    // TODO: these should contain block id structures
     array_node_t* values[NODE_ORDER + 1];
 };
 
