@@ -4,14 +4,12 @@
 
 #include <assert.h>
 
+// TODO: support AIO via a state machine
 // TODO: mapping only int->int, allow arbitrary key and value types
 // TODO: ignoring duplicates, allow duplicate elements
-// TODO: stays only in memory, add disk support
 // TODO: not thread safe, implement concurrency control methods
-// TODO: develop a page cache
 // TODO: perhaps allow memory reclamation due to oversplitting?
 // TODO: multiple values require cursor/iterator mechanism
-// TODO: because of AIO we need a state machine
 // TODO: consider redoing with a visitor pattern to avoid ugly casts
 // TODO: consider B#/B* trees to improve space efficiency
 
