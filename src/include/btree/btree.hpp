@@ -67,8 +67,7 @@ public:
                     last_node = new (ptr) internal_node_t();
                     last_node_id = root_id;
                 }
-                // TODO: we should be inserting block_id's, not nodes here
-                last_node->insert(median, node, rnode);
+                last_node->insert(median, node_id, rnode_id);
                 last_node_dirty = true;
                 
                 // Figure out where the key goes

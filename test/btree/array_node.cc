@@ -2,12 +2,16 @@
 #include <retest.hpp>
 #include "btree/array_node.hpp"
 
+typedef void* block_id_t;
+typedef array_leaf_node_t<block_id_t> test_leaf_node_t;
+typedef array_internal_node_t<block_id_t> test_internal_node_t;
+
 /**
  * Testing leaf node
  */
 void test_leaf_basic() {
     int value;
-    array_leaf_node_t node;
+    test_leaf_node_t node;
     for(int i = 0; i < NODE_ORDER; i++) {
         assert_cond(node.insert(i, i));
     }
@@ -21,7 +25,7 @@ void test_leaf_basic() {
 
 void test_leaf_middle() {
     int value;
-    array_leaf_node_t node;
+    test_leaf_node_t node;
     // Insert items except one in the middle
     for(int i = 0; i < NODE_ORDER; i++) {
         if(i != NODE_ORDER / 2) {
@@ -49,7 +53,7 @@ void test_leaf_middle() {
 
 void test_leaf_basic_reverse() {
     int value;
-    array_leaf_node_t node;
+    test_leaf_node_t node;
     for(int i = 0; i < NODE_ORDER; i++) {
         int j = NODE_ORDER - i;
         assert_cond(node.insert(j, j));
@@ -65,7 +69,7 @@ void test_leaf_basic_reverse() {
 
 void test_leaf_negative() {
     int value;
-    array_leaf_node_t node;
+    test_leaf_node_t node;
     for(int i = 0; i < NODE_ORDER; i++) {
         assert_cond(node.insert(i, i));
     }
@@ -74,14 +78,14 @@ void test_leaf_negative() {
 
 void test_leaf_split() {
     // Fill up the node
-    array_leaf_node_t node;
+    test_leaf_node_t node;
     for(int i = 0; i < NODE_ORDER; i++) {
         assert_cond(node.insert(i, i));
     }
     int median, value;
-    array_leaf_node_t
+    test_leaf_node_t
         *lnode = &node,
-        *rnode = new array_leaf_node_t();
+        *rnode = new test_leaf_node_t();
 
     // Split it
     node.split(rnode, &median);
@@ -91,27 +95,27 @@ void test_leaf_split() {
 
     // Check the left node
     for(int i = 0; i < median; i++) {
-        assert_cond(((array_leaf_node_t*)lnode)->lookup(i, &value));
+        assert_cond(((test_leaf_node_t*)lnode)->lookup(i, &value));
         assert_eq(i, value);
     }
-    assert_cond(!((array_leaf_node_t*)lnode)->lookup(median, &value));
+    assert_cond(!((test_leaf_node_t*)lnode)->lookup(median, &value));
     
     // Check the right node
     for(int i = median; i < NODE_ORDER; i++) {
-        assert_cond(((array_leaf_node_t*)rnode)->lookup(i, &value));
+        assert_cond(((test_leaf_node_t*)rnode)->lookup(i, &value));
         assert_eq(i, value);
     }
-    assert_cond(!((array_leaf_node_t*)lnode)->lookup(NODE_ORDER, &value));
+    assert_cond(!((test_leaf_node_t*)lnode)->lookup(NODE_ORDER, &value));
 }
 
 /**
  * Testing internal node
  */
 void test_internal_basic() {
-    array_internal_node_t node;
+    test_internal_node_t node;
 
     for(int i = 0; i < NODE_ORDER; i++) {
-        assert_cond(node.insert(i * 2, (array_node_t*)(i * 2), (array_node_t*)(i * 2 + 1)));
+        assert_cond(node.insert(i * 2, (block_id_t)(i * 2), (block_id_t)(i * 2 + 1)));
     }
     assert_cond(!node.insert(0, 0, 0));
     for(int i = -1; i < NODE_ORDER * 2; i++) {
@@ -129,11 +133,11 @@ void test_internal_basic() {
 }
 
 void test_internal_reverse() {
-    array_internal_node_t node;
+    test_internal_node_t node;
 
     for(int i = 0; i < NODE_ORDER; i++) {
         int j = NODE_ORDER - i - 1;
-        assert_cond(node.insert(j * 2, (array_node_t*)(j * 2), (array_node_t*)(j * 2 + 1)));
+        assert_cond(node.insert(j * 2, (block_id_t)(j * 2), (block_id_t)(j * 2 + 1)));
     }
     assert_cond(!node.insert(0, 0, 0));
     for(int i = -1; i < NODE_ORDER * 2; i++) {
@@ -151,18 +155,18 @@ void test_internal_reverse() {
 }
 
 void test_internal_middle() {
-    array_internal_node_t node;
+    test_internal_node_t node;
 
     // Insert all but one
     for(int i = 0; i < NODE_ORDER; i++) {
         if(i != NODE_ORDER / 2) {
-            assert_cond(node.insert(i * 2, (array_node_t*)(i * 2), (array_node_t*)(i * 2 + 1)));
+            assert_cond(node.insert(i * 2, (block_id_t)(i * 2), (block_id_t)(i * 2 + 1)));
         }
     }
 
     // Add the element in the middle
     int i = NODE_ORDER / 2;
-    assert_cond(node.insert(i * 2, (array_node_t*)(i * 2), (array_node_t*)(i * 2 + 1)));
+    assert_cond(node.insert(i * 2, (block_id_t)(i * 2), (block_id_t)(i * 2 + 1)));
 
     // Check elements
     for(int i = -1; i < NODE_ORDER * 2; i++) {
@@ -188,17 +192,17 @@ void test_internal_middle() {
 }
 
 void test_internal_split() {
-    array_internal_node_t node;
+    test_internal_node_t node;
     // Insert elements
     for(int i = 0; i < NODE_ORDER; i++) {
-        assert_cond(node.insert(i * 2, (array_node_t*)(i * 2), (array_node_t*)(i * 2 + 1)));
+        assert_cond(node.insert(i * 2, (block_id_t)(i * 2), (block_id_t)(i * 2 + 1)));
     }
     
     // Split the node
     int median;
-    array_internal_node_t
+    test_internal_node_t
         *lnode = &node,
-        *rnode = new array_internal_node_t();
+        *rnode = new test_internal_node_t();
     node.split(rnode, &median);
 
     // Check the left node

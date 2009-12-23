@@ -10,20 +10,21 @@
 #define NODE_SIZE 1024
 
 typedef cache_stats_t<volatile_cache_t> test_cache_t;
+typedef btree<array_node_t<test_cache_t::block_id_t>, test_cache_t> test_btree_t;
 
 void test_lookup_api() {
-    btree<array_node_t, test_cache_t> tree(NODE_SIZE);
+    test_btree_t tree(NODE_SIZE);
     int value;
     assert_eq(tree.lookup(1, &value), 0);
 }
 
 void test_insert_api() {
-    btree<array_node_t, test_cache_t> tree(NODE_SIZE);
+    test_btree_t tree(NODE_SIZE);
     tree.insert(1, 1);
 }
 
 void test_small_insert() {
-    btree<array_node_t, test_cache_t> tree(NODE_SIZE);
+    test_btree_t tree(NODE_SIZE);
 
     // Insert a node full of items
     for(int i = 0; i < NODE_ORDER; i++) {
@@ -39,7 +40,7 @@ void test_small_insert() {
 }
 
 void test_multinode_insert() {
-    btree<array_node_t, test_cache_t> tree(NODE_SIZE);
+    test_btree_t tree(NODE_SIZE);
 
     // Insert a node full of items, plus one more
     for(int i = 0; i < NODE_ORDER + 1; i++) {
@@ -57,7 +58,7 @@ void test_multinode_insert() {
 void test_large_insert() {
     const int lots_of_items = 1000000;
     
-    btree<array_node_t, test_cache_t> tree(NODE_SIZE);
+    test_btree_t tree(NODE_SIZE);
 
     for(int i = 0; i < lots_of_items; i++) {
         tree.insert(i, i);
@@ -80,7 +81,7 @@ void test_large_insert_permuted() {
     std::random_shuffle(numbers.begin(), numbers.end());
 
     // Insert the permuted array into a btree
-    btree<array_node_t, test_cache_t> tree(NODE_SIZE);
+    test_btree_t tree(NODE_SIZE);
     for(int i = 0; i < lots_of_items; i++) {
         tree.insert(i, numbers[i]);
     }
