@@ -13,7 +13,7 @@
 // Queue event handling
 typedef int resource_t;
 enum event_type_t {
-    et_disk_event, et_sock_event, et_timer_event
+    et_disk, et_sock, et_timer
 };
 enum event_op_t {
     eo_read, eo_write

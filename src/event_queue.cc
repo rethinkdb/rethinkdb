@@ -48,7 +48,7 @@ void process_aio_notify(event_queue_t *self) {
             if(self->event_handler) {
                 event_t qevent;
                 bzero((char*)&qevent, sizeof(qevent));
-                qevent.event_type = et_disk_event;
+                qevent.event_type = et_disk;
                 iocb *op = (iocb*)events[i].obj;
                 qevent.source = op->aio_fildes;
                 qevent.result = events[i].res;
@@ -84,7 +84,7 @@ void process_timer_notify(event_queue_t *self) {
     if(self->event_handler) {
         event_t qevent;
         bzero((char*)&qevent, sizeof(qevent));
-        qevent.event_type = et_timer_event;
+        qevent.event_type = et_timer;
         qevent.source = self->timer_fd;
         qevent.result = nexpirations;
         qevent.op = eo_read;
@@ -155,7 +155,7 @@ void* epoll_handler(void *arg) {
                 if(self->event_handler) {
                     event_t qevent;
                     bzero((char*)&qevent, sizeof(qevent));
-                    qevent.event_type = et_sock_event;
+                    qevent.event_type = et_sock;
                     qevent.source = events[i].data.fd;
                     qevent.state = events[i].data.ptr;
                     if(events[i].events & EPOLLIN)
