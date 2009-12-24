@@ -20,6 +20,7 @@ static loop_info_t loop_info;
 
 void process_socket(int sockfd, worker_pool_t *worker_pool) {
     event_queue_t *event_queue = next_active_worker(worker_pool);
+    // TODO: what about when socket is ready to write?
     queue_watch_resource(event_queue, sockfd, eo_read, NULL);
     printf("Opened socket %d\n", sockfd);
 }
