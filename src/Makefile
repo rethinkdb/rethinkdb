@@ -21,7 +21,8 @@ OBJS =  main.o \
 	utils.o \
 	worker_pool.o \
 	tty.o \
-	server.o
+	server.o \
+	fsm.o
 
 DEPS:=$(OBJS:%.o=$(DEP_DIR)/%.d)
 OBJS:=$(OBJS:%.o=$(OBJ_DIR)/%.o)
@@ -31,7 +32,7 @@ $(SERVER_EXEC_NAME): $(OBJS)
 	$(quiet_ld) $(CXX) $(LDFLAGS) $(OBJS) -o $(SERVER_EXEC_NAME)
 
 clean:
-	$(call quiet_rm, *~) find -name *~ -exec rm {} \;
+	$(call quiet_rm, *~) find -name '*~' -exec rm {} \;
 	$(call quiet_rm, $(SERVER_EXEC_NAME)) rm -f $(SERVER_EXEC_NAME)
 	$(call quiet_rm, DEPS) rm -f $(DEPS)
 	$(call quiet_rm, OBJS) rm -f $(OBJS)

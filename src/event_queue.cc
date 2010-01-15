@@ -50,10 +50,9 @@ void process_aio_notify(event_queue_t *self) {
                 bzero((char*)&qevent, sizeof(qevent));
                 qevent.event_type = et_disk;
                 iocb *op = (iocb*)events[i].obj;
-                qevent.source = op->aio_fildes;
                 qevent.result = events[i].res;
                 qevent.buf = op->u.c.buf;
-                qevent.state = events[i].data;
+                qevent.state = (event_state_t*)events[i].data;
                 if(op->aio_lio_opcode == IO_CMD_PREAD)
                     qevent.op = eo_read;
                 else
@@ -85,7 +84,7 @@ void process_timer_notify(event_queue_t *self) {
         event_t qevent;
         bzero((char*)&qevent, sizeof(qevent));
         qevent.event_type = et_timer;
-        qevent.source = self->timer_fd;
+        qevent.state = (event_state_t*)&self->timer_fd;
         qevent.result = nexpirations;
         qevent.op = eo_read;
         self->event_handler(self, &qevent);
@@ -132,15 +131,16 @@ void* epoll_handler(void *arg) {
         // (see section 7 [CPU scheduling] in B-tree Indexes and CPU
         // Caches by Goetz Graege and Pre-Ake Larson).
         for(int i = 0; i < res; i++) {
-            if(events[i].data.fd == self->aio_notify_fd) {
+            resource_t source = ((event_state_t*)events[i].data.ptr)->source;
+            if(source == self->aio_notify_fd) {
                 process_aio_notify(self);
                 continue;
             }
-            if(events[i].data.fd == self->timer_fd) {
+            if(source == self->timer_fd) {
                 process_timer_notify(self);
                 continue;
             }
-            if(events[i].data.fd == self->itc_pipe[0]) {
+            if(source == self->itc_pipe[0]) {
                 if(process_itc_notify(self)) {
                     // We're shutting down
                     return NULL;
@@ -156,8 +156,7 @@ void* epoll_handler(void *arg) {
                     event_t qevent;
                     bzero((char*)&qevent, sizeof(qevent));
                     qevent.event_type = et_sock;
-                    qevent.source = events[i].data.fd;
-                    qevent.state = events[i].data.ptr;
+                    qevent.state = (event_state_t*)events[i].data.ptr;
                     if(events[i].events & EPOLLIN)
                         qevent.op = eo_read;
                     else
@@ -171,8 +170,8 @@ void* epoll_handler(void *arg) {
                 // (memory, etc). We need to establish a state machine
                 // for each connection. We also might need our own
                 // timeout before we close the connection.
-                queue_forget_resource(self, events[i].data.fd);
-                close(events[i].data.fd);
+                queue_forget_resource(self, source);
+                close(source);
             } else {
                 check("epoll_wait came back with an unhandled event", 1);
             }
@@ -213,7 +212,7 @@ void create_event_queue(event_queue_t *event_queue, int queue_id, event_handler_
     res = fcntl(event_queue->aio_notify_fd, F_SETFL, O_NONBLOCK);
     check("Could not make aio notify fd non-blocking", res != 0);
 
-    queue_watch_resource(event_queue, event_queue->aio_notify_fd, eo_read, NULL);
+    queue_watch_resource(event_queue, event_queue->aio_notify_fd, eo_read, (event_state_t*)&(event_queue->aio_notify_fd));
     
     // Create ITC notify pipe
     res = pipe(event_queue->itc_pipe);
@@ -225,7 +224,7 @@ void create_event_queue(event_queue_t *event_queue, int queue_id, event_handler_
     res = fcntl(event_queue->itc_pipe[1], F_SETFL, O_NONBLOCK);
     check("Could not make itc pipe non-blocking (write end)", res != 0);
 
-    queue_watch_resource(event_queue, event_queue->itc_pipe[0], eo_read, NULL);
+    queue_watch_resource(event_queue, event_queue->itc_pipe[0], eo_read, (event_state_t*)&(event_queue->itc_pipe[0]));
     
     // Set thread affinity
     int ncpus = get_cpu_count();
@@ -274,7 +273,8 @@ void destroy_event_queue(event_queue_t *event_queue) {
 }
 
 void queue_watch_resource(event_queue_t *event_queue, resource_t resource,
-                          event_op_t watch_mode, void *state) {
+                          event_op_t watch_mode, event_state_t *state) {
+    assert(state);
     epoll_event event;
     
     // only trigger if new events come in
@@ -283,9 +283,9 @@ void queue_watch_resource(event_queue_t *event_queue, resource_t resource,
         event.events |= EPOLLIN;
     else
         event.events |= EPOLLOUT;
-    event.data.ptr = state;
+
+    event.data.ptr = (void*)state;
     
-    event.data.fd = resource;
     int res = epoll_ctl(event_queue->epoll_fd, EPOLL_CTL_ADD, resource, &event);
     check("Could not pass socket to worker", res != 0);
 }
@@ -294,7 +294,6 @@ void queue_forget_resource(event_queue_t *event_queue, resource_t resource) {
     epoll_event event;
     event.events = EPOLLIN;
     event.data.ptr = NULL;
-    event.data.fd = resource;
     int res = epoll_ctl(event_queue->epoll_fd, EPOLL_CTL_DEL, resource, &event);
     check("Could remove socket from watching", res != 0);
 }
@@ -328,7 +327,7 @@ void queue_init_timer(event_queue_t *event_queue, time_t secs) {
     check("Could not arm the timer.", res != 0);
 
     // Watch the timer
-    queue_watch_resource(event_queue, event_queue->timer_fd, eo_read, NULL);
+    queue_watch_resource(event_queue, event_queue->timer_fd, eo_read, (event_state_t*)&(event_queue->timer_fd));
 }
 
 void queue_stop_timer(event_queue_t *event_queue) {

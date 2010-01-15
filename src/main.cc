@@ -14,7 +14,9 @@
 #include "async_io.hpp"
 #include "tty.hpp"
 #include "server.hpp"
+#include "fsm.hpp"
 
+/*
 void event_handler(event_queue_t *event_queue, event_t *event) {
     int res;
     size_t sz;
@@ -69,6 +71,13 @@ void event_handler(event_queue_t *event_queue, event_t *event) {
         }
         event_queue->alloc.free((buffer_t<512>*)event->buf);
     } else if(event->event_type == et_timer) {
+    }
+}
+*/
+
+void event_handler(event_queue_t *event_queue, event_t *event) {
+    if(event->event_type != et_timer) {
+        do_transition(event_queue, event);
     }
 }
 

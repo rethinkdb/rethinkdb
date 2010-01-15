@@ -26,12 +26,12 @@ public:
         node_t *node = (node_t*)acquire(node_id, NULL);
         while(node->is_internal()) {
             block_id_t next_node_id = ((internal_node_t*)node)->lookup(key);
-            release(node_id, false);
+            release(node_id, (void*)node, false, NULL);
             node_id = next_node_id;
             node = (node_t*)acquire(node_id, NULL);
         }
         int result = ((leaf_node_t*)node)->lookup(key, value);
-        release(node_id, false);
+        release(node_id, (void*)node, false, NULL);
         return result;
     }
     
@@ -73,9 +73,9 @@ public:
                 // Figure out where the key goes
                 if(key < median) {
                     // Left node and node are the same thing
-                    release(rnode_id, true);
+                    release(rnode_id, (void*)rnode, true, NULL);
                 } else if(key >= median) {
-                    release(node_id, true);
+                    release(node_id, (void*)node, true, NULL);
                     node = rnode;
                     node_id = rnode_id;
                 }
@@ -84,12 +84,12 @@ public:
             // Insert the value, or move up the tree
             if(node->is_leaf()) {
                 ((leaf_node_t*)node)->insert(key, value);
-                release(node_id, true);
+                release(node_id, (void*)node, true, NULL);
                 break;
             } else {
                 // Release and update the last node
                 if(last_node_id) {
-                    release(last_node_id, last_node_dirty);
+                    release(last_node_id, (void*)last_node, last_node_dirty, NULL);
                 }
                 last_node = (internal_node_t*)node;
                 last_node_id = node_id;
@@ -104,7 +104,7 @@ public:
 
         // Release the final last node
         if(last_node_id) {
-            release(last_node_id, last_node_dirty);
+            release(last_node_id, (void*)last_node, last_node_dirty, NULL);
         }
     }
 

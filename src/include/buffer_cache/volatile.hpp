@@ -45,7 +45,7 @@ public:
      * any time. Returns the new id of the block - it may or may not
      * be the same as the old block id, depending on the behavior of
      * the underlying serializer. */
-    block_id_t release(block_id_t block_id, bool dirty) {
+    block_id_t release(block_id_t block_id, void *block, bool dirty, void *state) {
         // Since this is a volatile cache, we have nothing to do here.
         return block_id;
     }

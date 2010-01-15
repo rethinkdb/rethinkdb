@@ -34,15 +34,14 @@ public:
         return parent_cache_t::acquire(block_id, state);
     }
 
-    block_id_t release(block_id_t block_id, bool dirty) {
+    block_id_t release(block_id_t block_id, void *block, bool dirty, void *state) {
         nreleased++;
-        return parent_cache_t::release(block_id, dirty);
+        return parent_cache_t::release(block_id, block, dirty, state);
     }
 
 private:
     int nacquired, nreleased;
 };
-
 
 #endif // __CACHE_STATS_HPP__
 

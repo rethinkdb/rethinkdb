@@ -9,9 +9,10 @@
 #include "alloc/object_static.hpp"
 #include "alloc/dynamic_pool.hpp"
 #include "alloc/stats.hpp"
+#include "arch/common.hpp"
+#include "fsm.hpp"
 
 // Queue event handling
-typedef int resource_t;
 enum event_type_t {
     et_disk, et_sock, et_timer
 };
@@ -20,12 +21,11 @@ enum event_op_t {
 };
 struct event_t {
     event_type_t event_type;
-    resource_t source;
     event_op_t op;
 
     // State associated with the communication (must have been passed
     // to queue_watch_resource).
-    void *state;
+    event_state_t *state;
 
     /* For event_type == et_disk_event, contains the result of the IO
      * operation. For event_type == et_timer_event, contains the
@@ -60,17 +60,17 @@ struct worker_pool_t;
 struct event_queue_t {
     int queue_id;
     io_context_t aio_context;
-    int aio_notify_fd;
-    int timer_fd;
+    resource_t aio_notify_fd;
+    resource_t timer_fd;
     long total_expirations;
     pthread_t epoll_thread;
-    int epoll_fd;
-    int itc_pipe[2];
+    resource_t epoll_fd;
+    resource_t itc_pipe[2];
     event_handler_t event_handler;
     // TODO: add a checking allocator (check if malloc returns NULL)
     typedef object_static_alloc_t<
         dynamic_pool_alloc_t<alloc_stats_t<pool_alloc_t<memalign_alloc_t<> > > >,
-        iocb, buffer_t<512> > small_obj_alloc_t;
+        iocb, buffer_t<512>, fsm_state_t> small_obj_alloc_t;
     small_obj_alloc_t alloc;
     worker_pool_t *parent_pool;
 };
@@ -82,7 +82,7 @@ void destroy_event_queue(event_queue_t *event_queue);
 
 // Watching and forgetting resources (from the queue's POV)
 void queue_watch_resource(event_queue_t *event_queue, resource_t resource,
-                          event_op_t event_op, void *state);
+                          event_op_t event_op, event_state_t *state);
 void queue_forget_resource(event_queue_t *event_queue, resource_t resource);
 
 // Posting an ITC message on the queue. The instance of itc_event_t
