@@ -19,7 +19,8 @@ void process_command(char *buf, size_t size, event_queue_t *event_queue, event_t
     }
     else {
         // TODO: do the whole read from file/send business
-        printf("Gotta do smtg here...\n");
+        int sz = write(event->state->source, "Gotta do smtg here...", 21);
+        check("Couldn't send message to client", sz != 21);
     }
 }
 
