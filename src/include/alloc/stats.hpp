@@ -14,7 +14,8 @@ struct alloc_stats_t : public super_alloc_t {
         : nallocs(0), super_alloc_t(nobjects, object_size)
         {}
     ~alloc_stats_t() {
-        check("Memory leak detected", nallocs != 0);
+        check("Memory leak detected", nallocs > 0);
+        check("Some objects were freed twice", nallocs < 0);
     }
     
     void* malloc(size_t size) {

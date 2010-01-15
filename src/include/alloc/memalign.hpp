@@ -6,6 +6,9 @@
 
 template<int alignment = 1024 * 8>
 struct memalign_alloc_t {
+    memalign_alloc_t() {}
+    memalign_alloc_t(size_t size) {} // For compatibility
+    
     void* malloc(size_t size) {
         void *ptr = NULL;
         int res = posix_memalign(&ptr, alignment, size);
