@@ -42,7 +42,7 @@ void fsm_socket_connected(event_queue_t *event_queue, event_t *event) {
             printf("Closing socket %d\n", event->state->source);
             queue_forget_resource(event_queue, event->state->source);
             close(event->state->source);
-            // TODO: free associated fsm state
+            event_queue->alloc.free((fsm_state_t*)event->state);
             // TODO: if the fsm is not in a finished state, free any
             // intermediate associated resources.
             // TODO: what about keepalive
@@ -54,7 +54,7 @@ void fsm_socket_connected(event_queue_t *event_queue, event_t *event) {
 
 // Switch on the current state and call the appropriate transition
 // function.
-void do_transition(event_queue_t *event_queue, event_t *event) {
+void fsm_do_transition(event_queue_t *event_queue, event_t *event) {
     fsm_state_t *state = (fsm_state_t*)event->state;
     assert(state);
     
@@ -72,3 +72,6 @@ void do_transition(event_queue_t *event_queue, event_t *event) {
     }
 }
 
+void fsm_init_state(fsm_state_t *state) {
+    state->state = fsm_state_t::fsm_socket_connected;
+}

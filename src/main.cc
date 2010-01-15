@@ -77,7 +77,7 @@ void event_handler(event_queue_t *event_queue, event_t *event) {
 
 void event_handler(event_queue_t *event_queue, event_t *event) {
     if(event->event_type != et_timer) {
-        do_transition(event_queue, event);
+        fsm_do_transition(event_queue, event);
     }
 }
 

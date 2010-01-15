@@ -104,6 +104,17 @@ int process_itc_notify(event_queue_t *self) {
     case iet_shutdown:
         return 1;
         break;
+    case iet_new_socket:
+        // The state will be freed within the fsm when the socket is
+        // closed (or killed for a variety of possible reasons)
+        fsm_state_t *state = self->alloc.malloc<fsm_state_t>();
+        fsm_init_state(state);
+        state->source = event.data;
+        
+        // TODO: what about when socket is ready to write?
+        queue_watch_resource(self, event.data, eo_read, state);
+        printf("Opened socket %d\n", event.data);
+        break;
     }
 
     return 0;

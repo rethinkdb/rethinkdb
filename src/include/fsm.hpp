@@ -20,7 +20,9 @@ struct fsm_state_t : public event_state_t {
 
 struct event_queue_t;
 struct event_t;
-void do_transition(event_queue_t *event_queue, event_t *event);
+
+void fsm_init_state(fsm_state_t *state);
+void fsm_do_transition(event_queue_t *event_queue, event_t *event);
 
 #endif // __FSM_HPP__
 

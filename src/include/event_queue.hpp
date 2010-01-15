@@ -40,11 +40,13 @@ typedef void (*event_handler_t)(event_queue_t*, event_t*);
 
 // Inter-thread communication event (ITC)
 enum itc_event_type_t {
-    iet_shutdown
+    iet_shutdown,
+    iet_new_socket
 };
 
 struct itc_event_t {
     itc_event_type_t event_type;
+    int data;
 };
 
 // Helper structure for blocks of 512 bytes.

@@ -21,17 +21,11 @@ static loop_info_t loop_info;
 void process_socket(int sockfd, worker_pool_t *worker_pool) {
     // Grab the queue where this socket will go
     event_queue_t *event_queue = next_active_worker(worker_pool);
-    
-    // Allocate a state for the socket
-    // TODO: We must delete the state!
-    // TODO: The allocation ain't thread safe!!!
-    fsm_state_t *state = event_queue->alloc.malloc<fsm_state_t>();
-    state->state = fsm_state_t::fsm_socket_connected;
-    state->source = sockfd;
-        
-    // TODO: what about when socket is ready to write?
-    queue_watch_resource(event_queue, sockfd, eo_read, state);
-    printf("Opened socket %d\n", sockfd);
+
+    itc_event_t event;
+    event.event_type = iet_new_socket;
+    event.data = sockfd;
+    post_itc_message(event_queue, &event);
 }
 
 void* do_server_loop(void *arg) {
