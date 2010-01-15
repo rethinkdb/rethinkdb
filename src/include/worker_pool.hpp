@@ -6,7 +6,6 @@
 
 // Worker pool
 struct worker_pool_t {
-    void *data;
     event_queue_t *workers;
     int nworkers;
     int active_worker;
