@@ -20,9 +20,6 @@ struct fsm_state_t : public event_state_t, public fsm_list_node_t {
         fsm_socket_connected
     };
     state_t state;
-
-    // TODO: Remove this - this is added to meet minimum size requirements of the allocator
-    char temp[8];
 };
 
 struct event_queue_t;
