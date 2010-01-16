@@ -5,6 +5,7 @@
 template <class derived_t>
 class intrusive_list_node_t {
 public:
+    intrusive_list_node_t() : prev(NULL), next(NULL) {}
     derived_t *prev, *next;
 };
 

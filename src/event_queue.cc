@@ -110,6 +110,8 @@ int process_itc_notify(event_queue_t *self) {
         fsm_state_t *state = self->alloc.malloc<fsm_state_t>();
         fsm_init_state(state);
         state->source = event.data;
+        state->prev = NULL;
+        state->next = NULL;
 
         self->live_fsms.push_back(state);
 
