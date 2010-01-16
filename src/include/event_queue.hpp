@@ -62,10 +62,16 @@ struct event_queue_t {
     resource_t itc_pipe[2];
     event_handler_t event_handler;
     // TODO: add a checking allocator (check if malloc returns NULL)
+    // TODO: we should abstract the allocator away from here via a
+    // template argument. This would probably require changing the
+    // queue to be more C++ friendly.
     typedef object_static_alloc_t<
         dynamic_pool_alloc_t<alloc_stats_t<pool_alloc_t<memalign_alloc_t<> > > >,
         iocb, fsm_state_t> small_obj_alloc_t;
     small_obj_alloc_t alloc;
+    // TODO: we should abstract live_fsms away from the queue. The
+    // user of the queue provide an object that holds queue-local
+    // state.
     fsm_list_t live_fsms;
     worker_pool_t *parent_pool;
 };
