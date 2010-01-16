@@ -3,12 +3,19 @@
 #define __FSM_HPP__
 
 #include "arch/common.hpp"
+#include "containers/intrusive_list.hpp"
 
 struct event_state_t {
     resource_t source;
 };
 
-struct fsm_state_t : public event_state_t {
+// The states are collected via an intrusive list
+struct fsm_state_t;
+typedef intrusive_list_node_t<fsm_state_t> fsm_list_node_t;
+typedef intrusive_list_t<fsm_state_t> fsm_list_t;
+
+// Define the state structure
+struct fsm_state_t : public event_state_t, public fsm_list_node_t {
     enum state_t {
         fsm_socket_connected
     };

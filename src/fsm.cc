@@ -43,6 +43,7 @@ void fsm_socket_connected(event_queue_t *event_queue, event_t *event) {
             printf("Closing socket %d\n", event->state->source);
             queue_forget_resource(event_queue, event->state->source);
             close(event->state->source);
+            event_queue->live_fsms.remove((fsm_state_t*)event->state);
             event_queue->alloc.free((fsm_state_t*)event->state);
             // TODO: if the fsm is not in a finished state, free any
             // intermediate associated resources.

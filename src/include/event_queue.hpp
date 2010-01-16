@@ -66,6 +66,7 @@ struct event_queue_t {
         dynamic_pool_alloc_t<alloc_stats_t<pool_alloc_t<memalign_alloc_t<> > > >,
         iocb, fsm_state_t> small_obj_alloc_t;
     small_obj_alloc_t alloc;
+    fsm_list_t live_fsms;
     worker_pool_t *parent_pool;
 };
 

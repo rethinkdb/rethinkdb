@@ -111,6 +111,8 @@ int process_itc_notify(event_queue_t *self) {
         fsm_init_state(state);
         state->source = event.data;
 
+        self->live_fsms.push_back(state);
+
         // TODO: what about when socket is ready to write?
         queue_watch_resource(self, event.data, eo_read, state);
         printf("Opened socket %d\n", event.data);
@@ -202,6 +204,9 @@ void create_event_queue(event_queue_t *event_queue, int queue_id, event_handler_
 
     // Initialize the allocator using placement new
     new ((void*)&event_queue->alloc) event_queue_t::small_obj_alloc_t();
+
+    // Initialize the list of live fsms using placement new
+    new ((void*)&event_queue->live_fsms) fsm_list_t();
     
     // Create aio context
     event_queue->aio_context = 0;
@@ -264,6 +269,13 @@ void destroy_event_queue(event_queue_t *event_queue) {
     // Stop the timer
     queue_stop_timer(event_queue);
 
+    // Cleanup remaining fsms
+    fsm_state_t *state = event_queue->live_fsms.head();
+    while(state) {
+        event_queue->alloc.free(state);
+        state = state->next;
+    }
+
     // Cleanup resources
     res = close(event_queue->epoll_fd);
     check("Could not close epoll_fd", res != 0);
@@ -280,6 +292,7 @@ void destroy_event_queue(event_queue_t *event_queue) {
     res = io_destroy(event_queue->aio_context);
     check("Could not destroy aio_context", res != 0);
     
+    (&event_queue->live_fsms)->~fsm_list_t();
     (&event_queue->alloc)->~object_static_alloc_t();
 }
 
