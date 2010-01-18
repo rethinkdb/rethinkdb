@@ -19,7 +19,7 @@ enum event_type_t {
     et_disk, et_sock, et_timer
 };
 enum event_op_t {
-    eo_read, eo_write
+    eo_read, eo_write, eo_rdwr
 };
 struct event_t {
     event_type_t event_type;

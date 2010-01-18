@@ -21,14 +21,19 @@ struct fsm_state_t : public event_state_t, public fsm_list_node_t {
         // Socket is connected, is in a clean state (no outstanding ops) and ready to go
         fsm_socket_connected,
         // Socket has received an incomplete packet and waiting for the rest of the command
-        fsm_socket_recv_incomplete
+        fsm_socket_recv_incomplete,
+        // We sent a msg over the socket but were only able to send a partial packet
+        fsm_socket_send_incomplete
     };
     state_t state;
 
     // A buffer with IO communication (possibly incomplete). The nbuf
-    // variable indicates how many bytes are stored in the buffer.
+    // variable indicates how many bytes are stored in the buffer. The
+    // snbuf variable indicates how many bytes out of the buffer have
+    // been sent (in case of a send workflow).
     char *buf;
-    unsigned int nbuf;
+    unsigned int nbuf, snbuf;
+    
 };
 
 struct event_queue_t;

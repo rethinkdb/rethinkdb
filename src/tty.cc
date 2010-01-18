@@ -49,6 +49,9 @@ void do_tty_loop(int sockfd) {
                 break;
             }
             check("Could not read the response of the server", res < 0);
+            
+            // TODO: we should make sure the message was completed,
+            // and read again if we only got a partial response.
         
             printf("%s\n", buf);
         }

@@ -116,7 +116,7 @@ int process_itc_notify(event_queue_t *self) {
         self->live_fsms.push_back(state);
 
         // TODO: what about when socket is ready to write?
-        queue_watch_resource(self, event.data, eo_read, state);
+        queue_watch_resource(self, event.data, eo_rdwr, state);
         printf("Opened socket %d\n", event.data);
         break;
     }
@@ -164,18 +164,22 @@ void* epoll_handler(void *arg) {
                     continue;
                 }
             }
-            if(events[i].events == EPOLLIN ||
-               events[i].events == EPOLLOUT)
+            if(events[i].events & EPOLLIN ||
+               events[i].events & EPOLLOUT)
             {
                 if(self->event_handler) {
                     event_t qevent;
                     bzero((char*)&qevent, sizeof(qevent));
                     qevent.event_type = et_sock;
                     qevent.state = (event_state_t*)events[i].data.ptr;
-                    if(events[i].events & EPOLLIN)
+                    if((events[i].events & EPOLLIN) && !(events[i].events & EPOLLOUT)) {
                         qevent.op = eo_read;
-                    else
+                    }
+                    else if(!(events[i].events & EPOLLIN) && (events[i].events & EPOLLOUT)) {
                         qevent.op = eo_write;
+                    } else {
+                        qevent.op = eo_rdwr;
+                    }
                     self->event_handler(self, &qevent);
                 }
             } else if(events[i].events == EPOLLRDHUP ||
@@ -305,10 +309,16 @@ void queue_watch_resource(event_queue_t *event_queue, resource_t resource,
     
     // only trigger if new events come in
     event.events = EPOLLET;
-    if(watch_mode == eo_read)
+    if(watch_mode == eo_read) {
         event.events |= EPOLLIN;
-    else
+    } else if(watch_mode == eo_write) {
         event.events |= EPOLLOUT;
+    } else if(watch_mode == eo_rdwr) {
+        event.events |= EPOLLIN;
+        event.events |= EPOLLOUT;
+    } else {
+        check("Invalid watch mode", 1);
+    }
 
     event.data.ptr = (void*)state;
     
