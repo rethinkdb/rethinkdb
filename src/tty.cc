@@ -33,6 +33,14 @@ void do_tty_loop(int sockfd) {
         line = fgets(buf, sizeof(buf), stdin);
         if(line == NULL)
             break;
+
+        if(strcmp(line, "quit\r") == 0 ||
+           strcmp(line, "quit\n") == 0 ||
+           strcmp(line, "quit\r\n") == 0)
+        {
+            printf("Cannot quit tty connection, use 'shutdown' instead\n");
+            continue;
+        }
         
         // Process the line
         int len = strlen(line);

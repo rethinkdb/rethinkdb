@@ -76,13 +76,25 @@ int process_command(event_queue_t *event_queue, event_t *event) {
     
     // Execute command
     if(token_size == 4 && strncmp(token, "quit", 4) == 0) {
+        // Make sure there's no more tokens
         if((token = tokenize(token + token_size,
                              buf + size - (token + token_size),
                              delims, &token_size)) != NULL) {
             return -1;
         }
-        // Quit the server
-        printf("Quitting server...\n");
+        // Quit the connection (the fsm will be freed when "socket
+        // closed" message hits epoll)
+        close(state->source);
+        state->source = -1;
+    } else if(token_size == 8 && strncmp(token, "shutdown", 8) == 0) {
+        // Make sure there's no more tokens
+        if((token = tokenize(token + token_size,
+                             buf + size - (token + token_size),
+                             delims, &token_size)) != NULL) {
+            return -1;
+        }
+        // Shutdown the server
+        printf("Shutting down server...\n");
         res = pthread_kill(event_queue->parent_pool->main_thread, SIGINT);
         check("Could not send kill signal to main thread", res != 0);
     } else {
