@@ -98,6 +98,70 @@ int process_command(event_queue_t *event_queue, event_t *event) {
         printf("Shutting down server...\n");
         res = pthread_kill(event_queue->parent_pool->main_thread, SIGINT);
         check("Could not send kill signal to main thread", res != 0);
+    } else if(token_size == 3 && strncmp(token, "set", 3) == 0) {
+        // Make sure we have two more tokens
+        unsigned int key_size;
+        char *key = tokenize(token + token_size,
+                             buf + size - (token + token_size),
+                             delims, &key_size);
+        if(key == NULL)
+            return -1;
+        key[key_size] = '\0';
+        unsigned int value_size;
+        char *value = tokenize(key + key_size + 1,
+                               buf + size - (key + key_size + 1),
+                               delims, &value_size);
+        if(value == NULL)
+            return -1;
+        value[value_size] = '\0';
+        if((token = tokenize(value + value_size + 1,
+                             buf + size - (value + value_size + 1),
+                             delims, &token_size)) != NULL)
+            return -1;
+
+        // Ok, we've got a key, a value, and no more tokens, add them
+        // to the tree
+        int key_int = atoi(key);
+        int value_int = atoi(value);
+        event_queue->parent_pool->btree.insert(key_int, value_int);
+
+        // Since we're in the middle of processing a command,
+        // state->buf must exist at this point.
+        char msg[] = "ok\n";
+        strcpy(state->buf, msg);
+        state->nbuf = strlen(msg) + 1;
+        send_msg_to_client(event_queue, state);
+    } else if(token_size == 3 && strncmp(token, "get", 3) == 0) {
+        // Make sure we have one more token
+        unsigned int key_size;
+        char *key = tokenize(token + token_size,
+                             buf + size - (token + token_size),
+                             delims, &key_size);
+        if(key == NULL)
+            return -1;
+        key[key_size] = '\0';
+        if((token = tokenize(key + key_size + 1,
+                             buf + size - (key + key_size + 1),
+                             delims, &token_size)) != NULL)
+            return -1;
+
+        // Ok, we've got a key and no more tokens, look them up
+        int key_int = atoi(key);
+        int value_int;
+        if(event_queue->parent_pool->btree.lookup(key_int, &value_int)) {
+            // Since we're in the middle of processing a command,
+            // state->buf must exist at this point.
+            sprintf(state->buf, "%d", value_int);
+            state->nbuf = strlen(state->buf) + 1;
+            send_msg_to_client(event_queue, state);
+        } else {
+            // Since we're in the middle of processing a command,
+            // state->buf must exist at this point.
+            char msg[] = "NIL\n";
+            strcpy(state->buf, msg);
+            state->nbuf = strlen(msg) + 1;
+            send_msg_to_client(event_queue, state);
+        }
     } else {
         char err_msg[] = "(ERROR) Unknown command\n";
         // Since we're in the middle of processing a command,
@@ -125,6 +189,7 @@ void fsm_socket_ready(event_queue_t *event_queue, event_t *event) {
                 state->buf = (char*)event_queue->alloc.malloc<io_buffer_t>();
                 state->nbuf = 0;
             }
+            
             // TODO: we assume the command will fit comfortably into
             // IO_BUFFER_SIZE. We'll need to implement streaming later.
             sz = read(state->source,

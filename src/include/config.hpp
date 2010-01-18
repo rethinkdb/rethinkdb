@@ -13,7 +13,6 @@
 // decrease concurrency
 #define MAX_IO_EVENT_PROCESSING_BATCH_SIZE        50
 
-
 // Defines the maximum number of allocators in
 // dynamic_pool_alloc_t. Since the size of each allocator is doubled
 // every time, a reasonably small number should be sufficient.
@@ -27,6 +26,9 @@
 
 // Size of the buffer used to perform IO operations (in bytes).
 #define IO_BUFFER_SIZE                            4096
+
+// Size of each btree node (in bytes)
+#define BTREE_BLOCK_SIZE                          1024
 
 #endif // __CONFIG__H__
 
