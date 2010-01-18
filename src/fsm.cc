@@ -26,24 +26,26 @@ void send_msg_to_client(event_queue_t *event_queue, fsm_state_t *state) {
     assert(state->snbuf == 0 || state->state == fsm_state_t::fsm_socket_send_incomplete);
 
     int len = state->nbuf - state->snbuf;
-    int sz = write(state->source, state->buf + state->snbuf, len);
-    
-    // If we can't send the message now at all, wait 'till we can
-    if(sz < 0 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
-        state->state = fsm_state_t::fsm_socket_send_incomplete;
-        return;
-    }
-
-    // There was some other error
-    check("Couldn't send message to client", sz < 0);
-
-    // We've actually sent something, let's see the result...
-    if(sz < len) {
+    int sz = 0;
+    do {
         state->snbuf += sz;
-        state->state = fsm_state_t::fsm_socket_send_incomplete;
-    } else {
-        state->snbuf = 0;
-    }
+        len -= sz;
+        
+        sz = write(state->source, state->buf + state->snbuf, len);
+        if(sz < 0) {
+            if(errno == EAGAIN || errno == EWOULDBLOCK) {
+                // If we can't send the message now, wait 'till we can
+                state->state = fsm_state_t::fsm_socket_send_incomplete;
+                return;
+            } else {
+                // There was some other error
+                check("Couldn't send message to client", sz < 0);
+            }
+        }
+    } while(sz < len);
+
+    // We've successfully sent everything out
+    state->snbuf = 0;
 }
 
 // Process commands received from the user
@@ -84,7 +86,7 @@ int process_command(event_queue_t *event_queue, event_t *event) {
         res = pthread_kill(event_queue->parent_pool->main_thread, SIGINT);
         check("Could not send kill signal to main thread", res != 0);
     } else {
-        char err_msg[] = "(ERROR) Unkown command";
+        char err_msg[] = "(ERROR) Unknown command\n";
         // Since we're in the middle of processing a command,
         // state->buf must exist at this point.
         strcpy(state->buf, err_msg);
@@ -120,6 +122,17 @@ void fsm_socket_ready(event_queue_t *event_queue, event_t *event) {
                 state->nbuf += sz;
                 res = process_command(event_queue, event);
                 if(res == 0 || res == -1) {
+                    // TODO: presumably, since we're using edge
+                    // trigerred version of epoll, we should try to
+                    // read from the socket again in this case, and
+                    // only move into fsm_socket_send_incomplete state
+                    // when we can't parse the message *and* read
+                    // returns EAGAIN or EWOULDBLOCK. Actually, even
+                    // if we parse the message successfully, we should
+                    // keep reading until these two error messages
+                    // (although no transition to incomplete state is
+                    // necessary here). This should be done before
+                    // production, least we experience weird behavior.
                     if(state->state != fsm_state_t::fsm_socket_send_incomplete) {
                         // Command is either completed or malformed, in any
                         // case get back to clean connected state
