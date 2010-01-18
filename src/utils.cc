@@ -31,3 +31,41 @@ void *malloc_aligned(size_t size, size_t alignment) {
     else
         return ptr;
 }
+
+/**
+ * Tokenizer
+ */
+bool is_delim(char c, const char *delims) {
+    while(*delims != '\0') {
+        if(c == *delims) {
+            return true;
+        }
+        ++delims;
+    }
+    return false;
+}
+
+const char* tokenize(const char *str, unsigned int size,
+                     const char *delims, unsigned int *token_size)
+{
+    unsigned int pos = 0;
+    
+    // Skip delimeters
+    for(; pos < size; pos++) {
+        if(!is_delim(str[pos], delims))
+            break;
+    }
+    if(pos == size)
+        return NULL;
+    
+    // Determine token length
+    unsigned int end = pos;
+    for(; end < size; end++) {
+        if(is_delim(str[end], delims))
+            break;
+    }
+
+    // Return
+    *token_size = end - pos;
+    return str + pos;
+}
