@@ -27,7 +27,17 @@ void send_msg_to_client(event_queue_t *event_queue, fsm_state_t *state) {
 
     int len = state->nbuf - state->snbuf;
     int sz = write(state->source, state->buf + state->snbuf, len);
+    
+    // If we can't send the message now at all, wait 'till we can
+    if(sz < 0 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
+        state->state = fsm_state_t::fsm_socket_send_incomplete;
+        return;
+    }
+
+    // There was some other error
     check("Couldn't send message to client", sz < 0);
+
+    // We've actually sent something, let's see the result...
     if(sz < len) {
         state->snbuf += sz;
         state->state = fsm_state_t::fsm_socket_send_incomplete;
