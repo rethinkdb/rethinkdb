@@ -16,8 +16,6 @@ int process_command(event_queue_t *event_queue, event_t *event) {
     char *buf = state->buf;
     unsigned int size = state->nbuf;
 
-    printf("Processing (%d): %s\n", size, buf);
-
     // Make sure the string is properly terminated
     if(buf[size - 1] != '\n' && buf[size - 1] != '\r') {
         return 1;
@@ -43,8 +41,10 @@ int process_command(event_queue_t *event_queue, event_t *event) {
         check("Could not send kill signal to main thread", res != 0);
     } else {
         // TODO: unknown command
-        int sz = write(event->state->source, "Gotta do smtg here...", 21);
-        check("Couldn't send message to client", sz != 21);
+        char err_msg[] = "(ERROR) Unkown command";
+        int len = strlen(err_msg);
+        int sz = write(event->state->source, err_msg, len);
+        check("Couldn't send message to client", sz != len);
     }
     return 0;
 }
