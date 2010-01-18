@@ -18,7 +18,9 @@ typedef intrusive_list_t<fsm_state_t> fsm_list_t;
 // Define the state structure
 struct fsm_state_t : public event_state_t, public fsm_list_node_t {
     enum state_t {
+        // Socket is connected, is in a clean state (no outstanding ops) and ready to go
         fsm_socket_connected,
+        // Socket has received an incomplete packet and waiting for the rest of the command
         fsm_socket_recv_incomplete
     };
     state_t state;
