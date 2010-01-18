@@ -21,6 +21,8 @@ void *malloc_aligned(size_t size, size_t alignment = 64);
 // Tokenizing strings
 const char* tokenize(const char *str, unsigned int size,
                      const char *delims, unsigned int *token_size);
+char* tokenize(char *str, unsigned int size,
+               const char *delims, unsigned int *token_size);
 
 #endif // __UTILS_HPP__
 

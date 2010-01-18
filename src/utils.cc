@@ -45,6 +45,12 @@ bool is_delim(char c, const char *delims) {
     return false;
 }
 
+char* tokenize(char *str, unsigned int size,
+               const char *delims, unsigned int *token_size)
+{
+    return (char*)tokenize((const char*)str, size, delims, token_size);
+}
+
 const char* tokenize(const char *str, unsigned int size,
                      const char *delims, unsigned int *token_size)
 {

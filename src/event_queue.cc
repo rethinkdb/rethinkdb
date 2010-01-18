@@ -274,8 +274,8 @@ void destroy_event_queue(event_queue_t *event_queue) {
     // Cleanup remaining fsms
     fsm_state_t *state = event_queue->live_fsms.head();
     while(state) {
-        event_queue->alloc.free(state);
-        state = state->next;
+        fsm_destroy_state(state, event_queue);
+        state = event_queue->live_fsms.head();
     }
 
     // Cleanup resources

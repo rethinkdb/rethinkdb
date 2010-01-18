@@ -25,5 +25,8 @@
 // Perform allocator GC every N ticks (where a tick is TIMER_TICKS_IN_SECS seconds)
 #define ALLOC_GC_IN_TICKS                         3
 
+// Size of the buffer used to perform IO operations (in bytes).
+#define IO_BUFFER_SIZE                            4096
+
 #endif // __CONFIG__H__
 
