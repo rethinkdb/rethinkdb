@@ -76,9 +76,13 @@ void fsm_socket_ready(event_queue_t *event_queue, event_t *event) {
                 // No data left, destroy the connection
                 queue_forget_resource(event_queue, state->source);
                 fsm_destroy_state(state, event_queue);
-                // TODO: if the fsm is not in a finished state, free any
-                // intermediate associated resources.
-                // TODO: what about keepalive
+                    
+                // TODO: what if the fsm is not in a finished
+                // state? What if we free it during an AIO
+                // request, and the AIO request comes back? We
+                // need an fsm_terminated flag for these cases.
+
+                // TODO: what about application-level keepalive?
             }
         } else {
             // The kernel tells us we're ready to write even when we
