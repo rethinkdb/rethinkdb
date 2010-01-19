@@ -103,16 +103,12 @@ void fsm_socket_send_incomplete(event_queue_t *event_queue, event_t *event) {
         fsm_state_t *state = (fsm_state_t*)event->state;
         if(event->op == eo_rdwr || event->op == eo_write) {
             send_msg_to_client(event_queue, state);
-            if(state->state != fsm_state_t::fsm_socket_send_incomplete) {
-                // We've successfully finished sending the message
-                return_to_fsm_socket_connected(event_queue, state);
-            } else {
-                // We still didn't send the full message yet
-            }
         }
         if(state->state != fsm_state_t::fsm_socket_send_incomplete) {
             // We've finished sending completely, now see if there is
-            // anything left to read from the old epoll notification
+            // anything left to read from the old epoll notification,
+            // and let fsm_socket_ready do the cleanup
+            event->op = eo_read;
             fsm_socket_ready(event_queue, event);
         }
     } else {

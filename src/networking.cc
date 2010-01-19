@@ -32,6 +32,8 @@ void send_msg_to_client(event_queue_t *event_queue, fsm_state_t *state) {
 
     // We've successfully sent everything out
     state->snbuf = 0;
+    state->nbuf = 0;
+    state->state = fsm_state_t::fsm_socket_connected;
 }
 
 void send_err_to_client(event_queue_t *event_queue, fsm_state_t *state) {
