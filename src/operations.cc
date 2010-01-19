@@ -7,6 +7,9 @@
 #include "worker_pool.hpp"
 #include "networking.hpp"
 
+// TODO: we should have a nicer way of switching on the command than a
+// giant if/else statement (at least break them out into functions).
+
 // Process commands received from the user
 int process_command(event_queue_t *event_queue, event_t *event) {
     int res;
