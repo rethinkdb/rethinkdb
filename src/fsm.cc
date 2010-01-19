@@ -6,6 +6,10 @@
 #include "worker_pool.hpp"
 #include "networking.hpp"
 
+// TODO: we should refactor the FSM to be able to unit test state
+// transitions independant of the OS network subsystem (via mock-ups,
+// or via turning the code 'inside-out' in a Haskell sense).
+
 // Process commands received from the user
 int process_command(event_queue_t *event_queue, event_t *event);
 
