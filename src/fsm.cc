@@ -11,10 +11,8 @@ int process_command(event_queue_t *event_queue, event_t *event);
 
 // This function returns the socket to clean connected state
 void return_to_fsm_socket_connected(event_queue_t *event_queue, fsm_state_t *state) {
-    state->state = fsm_state_t::fsm_socket_connected;
     event_queue->alloc.free((io_buffer_t*)state->buf);
-    state->buf = NULL;
-    state->nbuf = 0;
+    fsm_init_state(state);
 }
 
 // This state represents a connected socket with no outstanding
@@ -36,54 +34,58 @@ void fsm_socket_ready(event_queue_t *event_queue, event_t *event) {
             
             // TODO: we assume the command will fit comfortably into
             // IO_BUFFER_SIZE. We'll need to implement streaming later.
-            sz = read(state->source,
-                      state->buf + state->nbuf,
-                      IO_BUFFER_SIZE - state->nbuf);
-            check("Could not read from socket", sz == -1);
-            if(sz > 0) {
-                state->nbuf += sz;
-                res = process_command(event_queue, event);
-                if(res == -1) {
-                    // Command wasn't processed correctly, send error
-                    send_err_to_client(event_queue, state);
-                }
-                if(res == 0 || res == -1) {
-                    // TODO: presumably, since we're using edge
-                    // trigerred version of epoll, we should try to
-                    // read from the socket again in this case, and
-                    // only move into fsm_socket_send_incomplete state
-                    // when we can't parse the message *and* read
-                    // returns EAGAIN or EWOULDBLOCK. Actually, even
-                    // if we parse the message successfully, we should
-                    // keep reading until these two error messages
-                    // (although no transition to incomplete state is
-                    // necessary here). This should be done before
-                    // production, least we experience weird behavior.
-                    if(state->state != fsm_state_t::fsm_socket_send_incomplete) {
-                        // Command is either completed or malformed, in any
-                        // case get back to clean connected state
-                        return_to_fsm_socket_connected(event_queue, state);
-                    } else {
-                        // We've sent a partial packet to the client, so
-                        // we must remain in the partial send state. At
-                        // this point there is nothing to do but wait
-                        // until we can write to the socket.
-                    }
-                } else if(res == 1) {
-                    state->state = fsm_state_t::fsm_socket_recv_incomplete;
-                }
-            } else {
-                // No data left, destroy the connection
-                queue_forget_resource(event_queue, state->source);
-                fsm_destroy_state(state, event_queue);
-                    
-                // TODO: what if the fsm is not in a finished
-                // state? What if we free it during an AIO
-                // request, and the AIO request comes back? We
-                // need an fsm_terminated flag for these cases.
 
-                // TODO: what about application-level keepalive?
-            }
+            do {
+                sz = read(state->source,
+                          state->buf + state->nbuf,
+                          IO_BUFFER_SIZE - state->nbuf);
+                if(sz == -1) {
+                    if(errno == EAGAIN || errno == EWOULDBLOCK) {
+                        // The machine can't be in
+                        // fsm_socket_send_incomplete state here,
+                        // since we break out in these cases. So it's
+                        // safe to free the buffer.
+                        if(state->state != fsm_state_t::fsm_socket_recv_incomplete)
+                            return_to_fsm_socket_connected(event_queue, state);
+                        break;
+                    } else {
+                        check("Could not read from socket", sz == -1);
+                    }
+                } else if(sz > 0) {
+                    state->nbuf += sz;
+                    res = process_command(event_queue, event);
+                    if(res == -1 || res == 0) {
+                        if(res == -1) {
+                            // Command wasn't processed correctly, send error
+                            send_err_to_client(event_queue, state);
+                        }
+                        if(state->state != fsm_state_t::fsm_socket_send_incomplete) {
+                            // Command is either completed or malformed, in any
+                            // case get back to clean connected state
+                            state->state = fsm_state_t::fsm_socket_connected;
+                            state->nbuf = 0;
+                            state->snbuf = 0;
+                        } else {
+                            // Wait for the socket to finish sending
+                            break;
+                        }
+                    } else if(res == 1) {
+                        state->state = fsm_state_t::fsm_socket_recv_incomplete;
+                    }
+                } else {
+                    // Socket has been closed, destroy the connection
+                    queue_forget_resource(event_queue, state->source);
+                    fsm_destroy_state(state, event_queue);
+                    break;
+                    
+                    // TODO: what if the fsm is not in a finished
+                    // state? What if we free it during an AIO
+                    // request, and the AIO request comes back? We
+                    // need an fsm_terminated flag for these cases.
+
+                    // TODO: what about application-level keepalive?
+                }
+            } while(1);
         } else {
             // The kernel tells us we're ready to write even when we
             // didn't ask it.
@@ -100,8 +102,8 @@ void fsm_socket_send_incomplete(event_queue_t *event_queue, event_t *event) {
     // clear how to get the kernel to artifically limit the send
     // buffer.
     if(event->event_type == et_sock) {
+        fsm_state_t *state = (fsm_state_t*)event->state;
         if(event->op == eo_rdwr || event->op == eo_write) {
-            fsm_state_t *state = (fsm_state_t*)event->state;
             send_msg_to_client(event_queue, state);
             if(state->state != fsm_state_t::fsm_socket_send_incomplete) {
                 // We've successfully finished sending the message
@@ -109,13 +111,11 @@ void fsm_socket_send_incomplete(event_queue_t *event_queue, event_t *event) {
             } else {
                 // We still didn't send the full message yet
             }
-        } else {
-            // TODO: we've received a message from the client while
-            // we're in the process of sending him a message. For now
-            // we're dropping the message received out of bound, but
-            // what is the proper solution here? (note: same is true
-            // above if op == eo_rdwr)
-            printf("received out-of-bound msg from client (during a partial response)\n");
+        }
+        if(state->state != fsm_state_t::fsm_socket_send_incomplete) {
+            // We've finished sending completely, now see if there is
+            // anything left to read from the old epoll notification
+            fsm_socket_ready(event_queue, event);
         }
     } else {
         check("fsm_socket_send_ready: Invalid event", 1);
