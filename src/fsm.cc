@@ -23,8 +23,6 @@ void fsm_socket_ready(event_queue_t *event_queue, event_t *event) {
     size_t sz;
     fsm_state_t *state = (fsm_state_t*)event->state;
 
-    // TODO: Are we checking for reading here? What about when socket
-    // is ready to write?
     if(event->event_type == et_sock) {
         if(event->op == eo_rdwr || event->op == eo_read) {
             if(state->buf == NULL) {
