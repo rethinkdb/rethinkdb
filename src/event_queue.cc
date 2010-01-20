@@ -253,8 +253,14 @@ void create_event_queue(event_queue_t *event_queue, int queue_id, event_handler_
     queue_init_timer(event_queue, TIMER_TICKS_IN_SECS);
 }
 
+// This method gets called from the main (worker pool's thread),
+// unlike others that should only be called from the event_queue
+// thread.
 void destroy_event_queue(event_queue_t *event_queue) {
     int res;
+
+    // Stop the timer
+    queue_stop_timer(event_queue);
 
     // Kill the poll thread
     itc_event_t event;
@@ -265,9 +271,6 @@ void destroy_event_queue(event_queue_t *event_queue) {
     res = pthread_join(event_queue->epoll_thread, NULL);
     check("Could not join with epoll thread", res != 0);
     
-    // Stop the timer
-    queue_stop_timer(event_queue);
-
     // Cleanup remaining fsms
     fsm_state_t *state = event_queue->live_fsms.head();
     while(state) {
