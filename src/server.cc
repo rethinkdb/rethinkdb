@@ -20,7 +20,7 @@ static loop_info_t loop_info;
 
 void process_socket(int sockfd, worker_pool_t *worker_pool) {
     // Grab the queue where this socket will go
-    event_queue_t *event_queue = next_active_worker(worker_pool);
+    event_queue_t *event_queue = worker_pool->next_active_worker();
 
     itc_event_t event;
     event.event_type = iet_new_socket;

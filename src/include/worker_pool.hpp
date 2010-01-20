@@ -19,6 +19,8 @@ struct worker_pool_t {
     worker_pool_t(event_handler_t event_handler, pthread_t main_thread, int _nworkers);
     ~worker_pool_t();
     
+    event_queue_t* next_active_worker();
+    
     event_queue_t *workers;
     int nworkers;
     int active_worker;
@@ -29,8 +31,6 @@ private:
     void create_worker_pool(event_handler_t event_handler, pthread_t main_thread,
                             int _nworkers);
 };
-
-event_queue_t* next_active_worker(worker_pool_t *worker_pool);
 
 #endif // __WORKER_POOL_HPP__
 

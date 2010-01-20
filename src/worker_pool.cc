@@ -42,11 +42,11 @@ worker_pool_t::~worker_pool_t() {
     nworkers = 0;
 }
 
-event_queue_t* next_active_worker(worker_pool_t *worker_pool) {
-    int worker = worker_pool->active_worker++;
-    if(worker_pool->active_worker >= worker_pool->nworkers)
-        worker_pool->active_worker = 0;
-    return &worker_pool->workers[worker];
+event_queue_t* worker_pool_t::next_active_worker() {
+    int worker = active_worker++;
+    if(active_worker >= nworkers)
+        active_worker = 0;
+    return &workers[worker];
     // TODO: consider introducing randomness to avoid potential
     // (intentional and unintentional) attacks on memory allocation
     // and CPU utilization.
