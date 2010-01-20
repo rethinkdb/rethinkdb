@@ -183,13 +183,9 @@ void* epoll_handler(void *arg) {
                 }
             } else if(events[i].events == EPOLLRDHUP ||
                events[i].events == EPOLLERR ||
-               events[i].events == EPOLLHUP) {
-                // TODO: if the connection dies we leak resources
-                // (memory, etc). We need to establish a state machine
-                // for each connection. We also might need our own
-                // timeout before we close the connection.
-                queue_forget_resource(self, source);
-                close(source);
+               events[i].events == EPOLLHUP)
+            {
+                fsm_destroy_state((fsm_state_t*)events[i].data.ptr, self);
             } else {
                 check("epoll_wait came back with an unhandled event", 1);
             }
@@ -330,7 +326,7 @@ void queue_forget_resource(event_queue_t *event_queue, resource_t resource) {
     event.events = EPOLLIN;
     event.data.ptr = NULL;
     int res = epoll_ctl(event_queue->epoll_fd, EPOLL_CTL_DEL, resource, &event);
-    check("Could remove socket from watching", res != 0);
+    check("Couldn't remove socket from watching", res != 0);
 }
 
 void queue_init_timer(event_queue_t *event_queue, time_t secs) {

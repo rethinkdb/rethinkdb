@@ -79,7 +79,6 @@ void fsm_socket_ready(event_queue_t *event_queue, event_t *event) {
                     }
                 } else {
                     // Socket has been closed, destroy the connection
-                    queue_forget_resource(event_queue, state->source);
                     fsm_destroy_state(state, event_queue);
                     break;
                     
@@ -160,6 +159,7 @@ void fsm_destroy_state(fsm_state_t *state, event_queue_t *event_queue) {
     }
     if(state->source != -1) {
         printf("Closing socket %d\n", state->source);
+        queue_forget_resource(event_queue, state->source);
         close(state->source);
     }
     event_queue->live_fsms.remove(state);
