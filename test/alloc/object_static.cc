@@ -11,6 +11,15 @@ struct object2_t {
     int bar, baz;
 };
 
+struct object3_t {
+    object3_t(int *_bak, int _value) : bak(_bak), value(_value) {}
+    ~object3_t() {
+        *bak = value;
+    }
+    int *bak;
+    int value;
+};
+
 // Adapter because object_static_alloc expects super_alloc's constructor to take a parameter
 template<typename super_alloc_t>
 struct sized_malloc_adapter_t : public super_alloc_t {
@@ -38,3 +47,13 @@ void test_object_alloc() {
     pool.free(obj2);
 }
 
+void test_constructor_destructor() {
+    object_static_alloc_t<sized_malloc_adapter_t<malloc_alloc_t>, object3_t> pool;
+
+    int res = 0;
+    object3_t *obj = pool.malloc<object3_t>(&res, 123);
+    assert_eq(res, 0);
+
+    pool.free(obj);
+    assert_eq(res, 123);
+}

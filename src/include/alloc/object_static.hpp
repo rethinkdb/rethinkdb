@@ -2,6 +2,8 @@
 #ifndef __OBJECT_STATIC_ALLOC_HPP__
 #define __OBJECT_STATIC_ALLOC_HPP__
 
+#include <new>
+
 // Implementation helpers
 enum null_0_t {};
 enum null_1_t {};
@@ -18,6 +20,7 @@ enum null_9_t {};
 #define GEN_ALLOC_IMPL(T, P)  \
 public:                       \
     void free(T *ptr) {       \
+        ptr->~T();            \
         P.free(ptr);          \
     }                         \
                               \
@@ -31,14 +34,58 @@ private:                      \
 /* End of the implementation macro */
 
 /* The implementation macro */
-#define GEN_WRAPPER           \
-public:                       \
-    template<typename U>      \
-    U* malloc() {             \
-        U *ptr = NULL;        \
-        malloc(&ptr);         \
-        return ptr;           \
+#define GEN_WRAPPER                   \
+public:                               \
+    template<typename U>              \
+    U* malloc() {                     \
+        U *ptr = NULL;                \
+        malloc(&ptr);                 \
+        return new ((void*)ptr) U();  \
+    }                                 \
+                                      \
+    template<typename U, typename A0T>              \
+    U* malloc(A0T a0) {                             \
+        U *ptr = NULL;                              \
+        malloc(&ptr);                               \
+        return new ((void*)ptr) U(a0);              \
+    }                                               \
+                                                    \
+    template<typename U, typename A0T,              \
+             typename A1T>                          \
+    U* malloc(A0T a0, A1T a1) {                     \
+        U *ptr = NULL;                              \
+        malloc(&ptr);                               \
+        return new ((void*)ptr) U(a0, a1);          \
+    }                                               \
+                                                    \
+    template<typename U, typename A0T,              \
+             typename A1T, typename A2T>            \
+    U* malloc(A0T a0, A1T a1, A2T a2) {             \
+        U *ptr = NULL;                              \
+        malloc(&ptr);                               \
+        return new ((void*)ptr) U(a0, a1, a2);      \
+    }                                               \
+                                                    \
+    template<typename U, typename A0T,              \
+             typename A1T, typename A2T,            \
+             typename A3T>                          \
+    U* malloc(A0T a0, A1T a1, A2T a2, A3T a3) {     \
+        U *ptr = NULL;                              \
+        malloc(&ptr);                               \
+        return new ((void*)ptr) U(a0, a1, a2, a3);  \
+    }                                               \
+                                                    \
+    template<typename U, typename A0T,              \
+             typename A1T, typename A2T,            \
+             typename A3T, typename A4T>            \
+    U* malloc(A0T a0, A1T a1, A2T a2, A3T a3,       \
+              A4T a4) {                             \
+        U *ptr = NULL;                              \
+        malloc(&ptr);                               \
+        return new ((void*)ptr) U(a0, a1, a2, a3,   \
+                                  a4);              \
     }
+
 /* End of the implementation macro */
 
 // Generic allocator (10 allocators)
