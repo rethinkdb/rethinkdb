@@ -15,18 +15,21 @@ typedef btree<array_node_t<rethink_cache_t::block_id_t>, rethink_cache_t> rethin
 
 // Worker pool
 struct worker_pool_t {
-    worker_pool_t() : btree(BTREE_BLOCK_SIZE) {}
+    worker_pool_t(event_handler_t event_handler, pthread_t main_thread);
+    worker_pool_t(event_handler_t event_handler, pthread_t main_thread, int _nworkers);
+    ~worker_pool_t();
+    
     event_queue_t *workers;
     int nworkers;
     int active_worker;
     pthread_t main_thread;
     rethink_tree_t btree;
+
+private:
+    void create_worker_pool(event_handler_t event_handler, pthread_t main_thread,
+                            int _nworkers);
 };
 
-void create_worker_pool(worker_pool_t *worker_pool, event_handler_t event_handler, pthread_t main_thread);
-void create_worker_pool(worker_pool_t *worker_pool, event_handler_t event_handler, pthread_t main_thread,
-                        int workers);
-void destroy_worker_pool(worker_pool_t *worker_pool);
 event_queue_t* next_active_worker(worker_pool_t *worker_pool);
 
 #endif // __WORKER_POOL_HPP__

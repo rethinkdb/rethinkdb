@@ -51,8 +51,7 @@ int main(int argc, char *argv[])
     install_handlers();
 
     // Create a pool of workers
-    worker_pool_t worker_pool;
-    create_worker_pool(&worker_pool, event_handler, pthread_self());
+    worker_pool_t worker_pool(event_handler, pthread_self());
 
     // Start the server (in a separate thread)
     int sockfd = start_server(&worker_pool);
@@ -62,9 +61,6 @@ int main(int argc, char *argv[])
 
     // At this point we broke out of the tty loop. Stop the server.
     stop_server(sockfd);
-
-    // Clean up the rest
-    destroy_worker_pool(&worker_pool);
 
     printf("Server offline\n");
 }

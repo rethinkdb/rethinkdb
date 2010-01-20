@@ -5,33 +5,41 @@
 #include "worker_pool.hpp"
 #include "utils.hpp"
 
-void create_worker_pool(worker_pool_t *worker_pool, event_handler_t event_handler,
-    pthread_t main_thread) {
-    int ncpus = get_cpu_count();
-    printf("Number of CPUs: %d\n", ncpus);
-    create_worker_pool(worker_pool, event_handler, main_thread, ncpus);
-}
-
-void create_worker_pool(worker_pool_t *worker_pool, event_handler_t event_handler, pthread_t main_thread,
-                        int workers)
+void worker_pool_t::create_worker_pool(event_handler_t event_handler, pthread_t main_thread,
+                                       int _nworkers)
 {
-    worker_pool->main_thread = main_thread;
-    worker_pool->nworkers = workers;
-    worker_pool->workers = (event_queue_t*)malloc(sizeof(event_queue_t) * workers);
-    for(int i = 0; i < workers; i++) {
-        create_event_queue(&worker_pool->workers[i], i, event_handler, worker_pool);
+    main_thread = main_thread;
+    nworkers = _nworkers;
+    workers = (event_queue_t*)malloc(sizeof(event_queue_t) * nworkers);
+    for(int i = 0; i < nworkers; i++) {
+        create_event_queue(&workers[i], i, event_handler, this);
     }
-    worker_pool->active_worker = 0;
+    active_worker = 0;
     // TODO: consider creating lower priority threads to standby in
     // case main threads block.
 }
 
-void destroy_worker_pool(worker_pool_t *worker_pool) {
-    for(int i = 0; i < worker_pool->nworkers; i++) {
-        destroy_event_queue(&worker_pool->workers[i]);
+worker_pool_t::worker_pool_t(event_handler_t event_handler, pthread_t main_thread)
+    : btree(BTREE_BLOCK_SIZE)
+{
+    int ncpus = get_cpu_count();
+    printf("Number of CPUs: %d\n", ncpus);
+    create_worker_pool(event_handler, main_thread, ncpus);
+}
+
+worker_pool_t::worker_pool_t(event_handler_t event_handler, pthread_t main_thread,
+                             int _nworkers)
+    : btree(BTREE_BLOCK_SIZE)
+{
+    create_worker_pool(event_handler, main_thread, _nworkers);
+}
+
+worker_pool_t::~worker_pool_t() {
+    for(int i = 0; i < nworkers; i++) {
+        destroy_event_queue(&workers[i]);
     }
-    free(worker_pool->workers);
-    worker_pool->nworkers = 0;
+    free(workers);
+    nworkers = 0;
 }
 
 event_queue_t* next_active_worker(worker_pool_t *worker_pool) {
