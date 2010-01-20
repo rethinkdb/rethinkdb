@@ -123,6 +123,35 @@ int process_itc_notify(event_queue_t *self) {
     return 0;
 }
 
+int process_network_notify(event_queue_t *self, epoll_event *event) {
+    if(event->events & EPOLLIN ||
+       event->events & EPOLLOUT)
+    {
+        if(self->event_handler) {
+            event_t qevent;
+            bzero((char*)&qevent, sizeof(qevent));
+            qevent.event_type = et_sock;
+            qevent.state = (event_state_t*)(event->data.ptr);
+            if((event->events & EPOLLIN) && !(event->events & EPOLLOUT)) {
+                qevent.op = eo_read;
+            }
+            else if(!(event->events & EPOLLIN) && (event->events & EPOLLOUT)) {
+                qevent.op = eo_write;
+            } else {
+                qevent.op = eo_rdwr;
+            }
+            self->event_handler(self, &qevent);
+        }
+    } else if(event->events == EPOLLRDHUP ||
+              event->events == EPOLLERR ||
+              event->events == EPOLLHUP)
+    {
+        fsm_destroy_state((fsm_state_t*)(event->data.ptr), self);
+    } else {
+        check("epoll_wait came back with an unhandled event", 1);
+    }
+}
+
 void* epoll_handler(void *arg) {
     int res;
     event_queue_t *self = (event_queue_t*)arg;
@@ -148,46 +177,15 @@ void* epoll_handler(void *arg) {
             resource_t source = ((event_state_t*)events[i].data.ptr)->source;
             if(source == self->aio_notify_fd) {
                 process_aio_notify(self);
-                continue;
-            }
-            if(source == self->timer_fd) {
+            } else if(source == self->timer_fd) {
                 process_timer_notify(self);
-                continue;
-            }
-            if(source == self->itc_pipe[0]) {
+            } else if(source == self->itc_pipe[0]) {
                 if(process_itc_notify(self)) {
                     // We're shutting down
                     return NULL;
                 }
-                else {
-                    continue;
-                }
-            }
-            if(events[i].events & EPOLLIN ||
-               events[i].events & EPOLLOUT)
-            {
-                if(self->event_handler) {
-                    event_t qevent;
-                    bzero((char*)&qevent, sizeof(qevent));
-                    qevent.event_type = et_sock;
-                    qevent.state = (event_state_t*)events[i].data.ptr;
-                    if((events[i].events & EPOLLIN) && !(events[i].events & EPOLLOUT)) {
-                        qevent.op = eo_read;
-                    }
-                    else if(!(events[i].events & EPOLLIN) && (events[i].events & EPOLLOUT)) {
-                        qevent.op = eo_write;
-                    } else {
-                        qevent.op = eo_rdwr;
-                    }
-                    self->event_handler(self, &qevent);
-                }
-            } else if(events[i].events == EPOLLRDHUP ||
-               events[i].events == EPOLLERR ||
-               events[i].events == EPOLLHUP)
-            {
-                fsm_destroy_state((fsm_state_t*)events[i].data.ptr, self);
             } else {
-                check("epoll_wait came back with an unhandled event", 1);
+                process_network_notify(self, &events[i]);
             }
         }
     } while(1);
