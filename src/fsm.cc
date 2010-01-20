@@ -10,6 +10,13 @@
 // transitions independant of the OS network subsystem (via mock-ups,
 // or via turning the code 'inside-out' in a Haskell sense).
 
+void fsm_init_state(fsm_state_t *state) {
+    state->state = fsm_state_t::fsm_socket_connected;
+    state->buf = NULL;
+    state->nbuf = 0;
+    state->snbuf = 0;
+}
+
 // Process commands received from the user
 int process_command(event_queue_t *event_queue, event_t *event);
 
@@ -79,7 +86,7 @@ void fsm_socket_ready(event_queue_t *event_queue, event_t *event) {
                     }
                 } else {
                     // Socket has been closed, destroy the connection
-                    fsm_destroy_state(state, event_queue);
+                    event_queue->alloc.free(state);
                     break;
                     
                     // TODO: what if the fsm is not in a finished
@@ -146,22 +153,23 @@ void fsm_do_transition(event_queue_t *event_queue, event_t *event) {
     }
 }
 
-void fsm_init_state(fsm_state_t *state) {
-    state->state = fsm_state_t::fsm_socket_connected;
-    state->buf = NULL;
-    state->nbuf = 0;
-    state->snbuf = 0;
+fsm_state_t::fsm_state_t(event_queue_t *_event_queue, resource_t _source)
+    : event_state_t(_source), event_queue(_event_queue)
+{
+    fsm_init_state(this);
+    event_queue->live_fsms.push_back(this);
+    queue_watch_resource(event_queue, source, eo_rdwr, this);
 }
 
-void fsm_destroy_state(fsm_state_t *state, event_queue_t *event_queue) {
-    if(state->buf) {
-        event_queue->alloc.free((io_buffer_t*)state->buf);
+fsm_state_t::~fsm_state_t() {
+    if(this->buf) {
+        event_queue->alloc.free((io_buffer_t*)this->buf);
     }
-    if(state->source != -1) {
-        printf("Closing socket %d\n", state->source);
-        queue_forget_resource(event_queue, state->source);
-        close(state->source);
+    if(this->source != -1) {
+        printf("Closing socket %d\n", this->source);
+        queue_forget_resource(event_queue, this->source);
+        close(this->source);
     }
-    event_queue->live_fsms.remove(state);
-    event_queue->alloc.free(state);
+    event_queue->live_fsms.remove(this);
 }
+

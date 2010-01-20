@@ -44,7 +44,7 @@ int process_command(event_queue_t *event_queue, event_t *event) {
                              delims, &token_size)) != NULL)
             return -1;
         // Quit the connection
-        fsm_destroy_state(state, event_queue);
+        event_queue->alloc.free(state);
         return 2;
     } else if(token_size == 8 && strncmp(token, "shutdown", 8) == 0) {
         // Make sure there's no more tokens

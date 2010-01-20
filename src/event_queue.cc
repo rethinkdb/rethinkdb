@@ -107,15 +107,7 @@ int process_itc_notify(event_queue_t *self) {
     case iet_new_socket:
         // The state will be freed within the fsm when the socket is
         // closed (or killed for a variety of possible reasons)
-        fsm_state_t *state = self->alloc.malloc<fsm_state_t>();
-        fsm_init_state(state);
-        state->source = event.data;
-        state->prev = NULL;
-        state->next = NULL;
-
-        self->live_fsms.push_back(state);
-
-        queue_watch_resource(self, event.data, eo_rdwr, state);
+        fsm_state_t *state = self->alloc.malloc<fsm_state_t>(self, event.data);
         printf("Opened socket %d\n", event.data);
         break;
     }
@@ -146,7 +138,7 @@ int process_network_notify(event_queue_t *self, epoll_event *event) {
               event->events == EPOLLERR ||
               event->events == EPOLLHUP)
     {
-        fsm_destroy_state((fsm_state_t*)(event->data.ptr), self);
+        self->alloc.free((fsm_state_t*)(event->data.ptr));
     } else {
         check("epoll_wait came back with an unhandled event", 1);
     }
@@ -274,7 +266,7 @@ void destroy_event_queue(event_queue_t *event_queue) {
     // Cleanup remaining fsms
     fsm_state_t *state = event_queue->live_fsms.head();
     while(state) {
-        fsm_destroy_state(state, event_queue);
+        event_queue->alloc.free(state);
         state = event_queue->live_fsms.head();
     }
 
