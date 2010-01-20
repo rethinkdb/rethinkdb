@@ -184,105 +184,105 @@ void* epoll_handler(void *arg) {
     return NULL;
 }
 
-void create_event_queue(event_queue_t *event_queue, int queue_id, event_handler_t event_handler,
-                        worker_pool_t *parent_pool) {
+event_queue_t::event_queue_t(int queue_id, event_handler_t event_handler,
+                             worker_pool_t *parent_pool)
+{
     int res;
-    event_queue->queue_id = queue_id;
-    event_queue->event_handler = event_handler;
-    event_queue->parent_pool = parent_pool;
-    event_queue->timer_fd = -1;
-    event_queue->total_expirations = 0;
+    this->queue_id = queue_id;
+    this->event_handler = event_handler;
+    this->parent_pool = parent_pool;
+    this->timer_fd = -1;
+    this->total_expirations = 0;
 
     // Create aio context
-    event_queue->aio_context = 0;
-    res = io_setup(MAX_CONCURRENT_IO_REQUESTS, &event_queue->aio_context);
+    this->aio_context = 0;
+    res = io_setup(MAX_CONCURRENT_IO_REQUESTS, &this->aio_context);
     check("Could not setup aio context", res != 0);
     
     // Create a poll fd
-    event_queue->epoll_fd = epoll_create1(0);
-    check("Could not create epoll fd", event_queue->epoll_fd == -1);
+    this->epoll_fd = epoll_create1(0);
+    check("Could not create epoll fd", this->epoll_fd == -1);
 
     // Start the epoll thread
-    res = pthread_create(&event_queue->epoll_thread, NULL, epoll_handler, (void*)event_queue);
+    res = pthread_create(&this->epoll_thread, NULL, epoll_handler, (void*)this);
     check("Could not create epoll thread", res != 0);
 
     // Create aio notify fd
-    event_queue->aio_notify_fd = eventfd(0, 0);
-    check("Could not create aio notification fd", event_queue->aio_notify_fd == -1);
+    this->aio_notify_fd = eventfd(0, 0);
+    check("Could not create aio notification fd", this->aio_notify_fd == -1);
 
-    res = fcntl(event_queue->aio_notify_fd, F_SETFL, O_NONBLOCK);
+    res = fcntl(this->aio_notify_fd, F_SETFL, O_NONBLOCK);
     check("Could not make aio notify fd non-blocking", res != 0);
 
-    queue_watch_resource(event_queue, event_queue->aio_notify_fd, eo_read, (event_state_t*)&(event_queue->aio_notify_fd));
+    watch_resource(this->aio_notify_fd, eo_read, (event_state_t*)&(this->aio_notify_fd));
     
     // Create ITC notify pipe
-    res = pipe(event_queue->itc_pipe);
+    res = pipe(this->itc_pipe);
     check("Could not create itc pipe", res != 0);
 
-    res = fcntl(event_queue->itc_pipe[0], F_SETFL, O_NONBLOCK);
+    res = fcntl(this->itc_pipe[0], F_SETFL, O_NONBLOCK);
     check("Could not make itc pipe non-blocking (read end)", res != 0);
 
-    res = fcntl(event_queue->itc_pipe[1], F_SETFL, O_NONBLOCK);
+    res = fcntl(this->itc_pipe[1], F_SETFL, O_NONBLOCK);
     check("Could not make itc pipe non-blocking (write end)", res != 0);
 
-    queue_watch_resource(event_queue, event_queue->itc_pipe[0], eo_read, (event_state_t*)&(event_queue->itc_pipe[0]));
+    watch_resource(this->itc_pipe[0], eo_read, (event_state_t*)&(this->itc_pipe[0]));
     
     // Set thread affinity
     int ncpus = get_cpu_count();
     cpu_set_t mask;
     CPU_ZERO(&mask);
     CPU_SET(queue_id % ncpus, &mask);
-    res = pthread_setaffinity_np(event_queue->epoll_thread, sizeof(cpu_set_t), &mask);
+    res = pthread_setaffinity_np(this->epoll_thread, sizeof(cpu_set_t), &mask);
     check("Could not set thread affinity", res != 0);
 
     // Start the timer
-    queue_init_timer(event_queue, TIMER_TICKS_IN_SECS);
+    queue_init_timer(this, TIMER_TICKS_IN_SECS);
 }
 
-// This method gets called from the main (worker pool's thread),
-// unlike others that should only be called from the event_queue
-// thread.
-void destroy_event_queue(event_queue_t *event_queue) {
+event_queue_t::~event_queue_t()
+{
     int res;
 
     // Stop the timer
-    queue_stop_timer(event_queue);
+    queue_stop_timer(this);
 
     // Kill the poll thread
     itc_event_t event;
     event.event_type = iet_shutdown;
-    post_itc_message(event_queue, &event);
+    post_itc_message(&event);
 
     // Wait for the poll thread to die
-    res = pthread_join(event_queue->epoll_thread, NULL);
+    res = pthread_join(this->epoll_thread, NULL);
     check("Could not join with epoll thread", res != 0);
     
     // Cleanup remaining fsms
-    fsm_state_t *state = event_queue->live_fsms.head();
+    fsm_state_t *state = this->live_fsms.head();
     while(state) {
-        event_queue->alloc.free(state);
-        state = event_queue->live_fsms.head();
+        this->alloc.free(state);
+        state = this->live_fsms.head();
     }
 
     // Cleanup resources
-    res = close(event_queue->epoll_fd);
+    res = close(this->epoll_fd);
     check("Could not close epoll_fd", res != 0);
     
-    res = close(event_queue->itc_pipe[0]);
+    res = close(this->itc_pipe[0]);
     check("Could not close itc pipe (read end)", res != 0);
 
-    res = close(event_queue->itc_pipe[1]);
+    res = close(this->itc_pipe[1]);
     check("Could not close itc pipe (write end)", res != 0);
     
-    res = close(event_queue->aio_notify_fd);
+    res = close(this->aio_notify_fd);
     check("Could not close aio_notify_fd", res != 0);
     
-    res = io_destroy(event_queue->aio_context);
+    res = io_destroy(this->aio_context);
     check("Could not destroy aio_context", res != 0);
 }
 
-void queue_watch_resource(event_queue_t *event_queue, resource_t resource,
-                          event_op_t watch_mode, event_state_t *state) {
+
+void event_queue_t::watch_resource(resource_t resource, event_op_t watch_mode,
+                                   event_state_t *state) {
     assert(state);
     epoll_event event;
     
@@ -301,15 +301,15 @@ void queue_watch_resource(event_queue_t *event_queue, resource_t resource,
 
     event.data.ptr = (void*)state;
     
-    int res = epoll_ctl(event_queue->epoll_fd, EPOLL_CTL_ADD, resource, &event);
+    int res = epoll_ctl(this->epoll_fd, EPOLL_CTL_ADD, resource, &event);
     check("Could not pass socket to worker", res != 0);
 }
 
-void queue_forget_resource(event_queue_t *event_queue, resource_t resource) {
+void event_queue_t::forget_resource(resource_t resource) {
     epoll_event event;
     event.events = EPOLLIN;
     event.data.ptr = NULL;
-    int res = epoll_ctl(event_queue->epoll_fd, EPOLL_CTL_DEL, resource, &event);
+    int res = epoll_ctl(this->epoll_fd, EPOLL_CTL_DEL, resource, &event);
     check("Couldn't remove socket from watching", res != 0);
 }
 
@@ -342,7 +342,7 @@ void queue_init_timer(event_queue_t *event_queue, time_t secs) {
     check("Could not arm the timer.", res != 0);
 
     // Watch the timer
-    queue_watch_resource(event_queue, event_queue->timer_fd, eo_read, (event_state_t*)&(event_queue->timer_fd));
+    event_queue->watch_resource(event_queue->timer_fd, eo_read, (event_state_t*)&(event_queue->timer_fd));
 }
 
 void queue_stop_timer(event_queue_t *event_queue) {
@@ -350,7 +350,7 @@ void queue_stop_timer(event_queue_t *event_queue) {
         return;
     
     // Stop watching the timer
-    queue_forget_resource(event_queue, event_queue->timer_fd);
+    event_queue->forget_resource(event_queue->timer_fd);
     
     int res = -1;
     // Disarm the timer (should happen automatically on close, but what the hell)
@@ -365,11 +365,11 @@ void queue_stop_timer(event_queue_t *event_queue) {
     event_queue->timer_fd = -1;
 }
 
-void post_itc_message(event_queue_t *event_queue, itc_event_t *event) {
+void event_queue_t::post_itc_message(itc_event_t *event) {
     int res;
     // Note: This will be atomic as long as sizeof(itc_event_t) <
     // PIPE_BUF
-    res = write(event_queue->itc_pipe[1], event, sizeof(itc_event_t));
+    res = write(this->itc_pipe[1], event, sizeof(itc_event_t));
     check("Could not post message to itc queue", res != sizeof(itc_event_t));
     
     // TODO: serialization of the whole structure isn't as fast as

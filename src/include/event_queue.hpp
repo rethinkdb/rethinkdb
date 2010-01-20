@@ -26,7 +26,7 @@ struct event_t {
     event_op_t op;
 
     // State associated with the communication (must have been passed
-    // to queue_watch_resource).
+    // to watch_resource).
     event_state_t *state;
 
     /* For event_type == et_disk_event, contains the result of the IO
@@ -55,6 +55,23 @@ struct itc_event_t {
 struct worker_pool_t;
 typedef buffer_t<IO_BUFFER_SIZE> io_buffer_t;
 struct event_queue_t {
+public:
+    event_queue_t(int queue_id, event_handler_t event_handler,
+                  worker_pool_t *parent_pool);
+    ~event_queue_t();
+    
+    // Watching and forgetting resources (from the queue's POV)
+    void watch_resource(resource_t resource, event_op_t event_op,
+                        event_state_t *state);
+    void forget_resource(resource_t resource);
+
+    // Posting an ITC message on the queue. The instance of
+    // itc_event_t is serialized and need not be kept after the
+    // function returns.
+    void post_itc_message(itc_event_t *event);
+
+public:
+    // TODO: be clear on what should and shouldn't be public here
     int queue_id;
     io_context_t aio_context;
     resource_t aio_notify_fd;
@@ -78,20 +95,6 @@ struct event_queue_t {
     fsm_list_t live_fsms;
     worker_pool_t *parent_pool;
 };
-
-// Event queue initialization/destruction
-void create_event_queue(event_queue_t *event_queue, int queue_id, event_handler_t event_handler,
-                        worker_pool_t *parent_pool);
-void destroy_event_queue(event_queue_t *event_queue);
-
-// Watching and forgetting resources (from the queue's POV)
-void queue_watch_resource(event_queue_t *event_queue, resource_t resource,
-                          event_op_t event_op, event_state_t *state);
-void queue_forget_resource(event_queue_t *event_queue, resource_t resource);
-
-// Posting an ITC message on the queue. The instance of itc_event_t
-// is serialized and need not be kept after the function returns.
-void post_itc_message(event_queue_t *event_queue, itc_event_t *event);
 
 #endif // __EVENT_QUEUE_HPP__
 

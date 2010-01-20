@@ -158,7 +158,7 @@ fsm_state_t::fsm_state_t(event_queue_t *_event_queue, resource_t _source)
 {
     fsm_init_state(this);
     event_queue->live_fsms.push_back(this);
-    queue_watch_resource(event_queue, source, eo_rdwr, this);
+    event_queue->watch_resource(source, eo_rdwr, this);
 }
 
 fsm_state_t::~fsm_state_t() {
@@ -167,7 +167,7 @@ fsm_state_t::~fsm_state_t() {
     }
     if(this->source != -1) {
         printf("Closing socket %d\n", this->source);
-        queue_forget_resource(event_queue, this->source);
+        event_queue->forget_resource(this->source);
         close(this->source);
     }
     event_queue->live_fsms.remove(this);

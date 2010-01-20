@@ -25,7 +25,7 @@ void process_socket(int sockfd, worker_pool_t *worker_pool) {
     itc_event_t event;
     event.event_type = iet_new_socket;
     event.data = sockfd;
-    post_itc_message(event_queue, &event);
+    event_queue->post_itc_message(&event);
 }
 
 void* do_server_loop(void *arg) {
