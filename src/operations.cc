@@ -43,11 +43,9 @@ int process_command(event_queue_t *event_queue, event_t *event) {
                              buf + size - (token + token_size),
                              delims, &token_size)) != NULL)
             return -1;
-        // Quit the connection (the fsm will be freed when "socket
-        // closed" message hits epoll)
-        printf("Closing socket %d\n", state->source);
-        close(state->source);
-        state->source = -1;
+        // Quit the connection
+        fsm_destroy_state(state, event_queue);
+        return 2;
     } else if(token_size == 8 && strncmp(token, "shutdown", 8) == 0) {
         // Make sure there's no more tokens
         if((token = tokenize(token + token_size,

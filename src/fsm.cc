@@ -73,6 +73,9 @@ void fsm_socket_ready(event_queue_t *event_queue, event_t *event) {
                         }
                     } else if(res == 1) {
                         state->state = fsm_state_t::fsm_socket_recv_incomplete;
+                    } else if(res == 2) {
+                        // The connection has been closed
+                        break;
                     }
                 } else {
                     // Socket has been closed, destroy the connection
