@@ -115,7 +115,6 @@ int process_itc_notify(event_queue_t *self) {
 
         self->live_fsms.push_back(state);
 
-        // TODO: what about when socket is ready to write?
         queue_watch_resource(self, event.data, eo_rdwr, state);
         printf("Opened socket %d\n", event.data);
         break;
