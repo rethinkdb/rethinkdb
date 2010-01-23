@@ -10,6 +10,14 @@ class operations_t {
 public:
     virtual ~operations_t() {}
 
+    enum result_t {
+        malformed_command,
+        incomplete_command,
+        shutdown_server,
+        quit_connection,
+        command_success
+    };
+
     virtual int process_command(event_t *event) = 0;
 };
 

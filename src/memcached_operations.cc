@@ -24,7 +24,7 @@ int memcached_operations_t::process_command(event_t *event)
     
     // Make sure the string is properly terminated
     if(buf[size - 1] != '\n' && buf[size - 1] != '\r') {
-        return 1;
+        return incomplete_command;
     }
 
     // Grab the command out of the string
@@ -32,7 +32,7 @@ int memcached_operations_t::process_command(event_t *event)
     char delims[] = " \t\n\r\0";
     char *token = tokenize(buf, size, delims, &token_size);
     if(token == NULL)
-        return -1;
+        return malformed_command;
     
     // Execute command
     if(token_size == 4 && strncmp(token, "quit", 4) == 0) {
@@ -40,17 +40,17 @@ int memcached_operations_t::process_command(event_t *event)
         if((token = tokenize(token + token_size,
                              buf + size - (token + token_size),
                              delims, &token_size)) != NULL)
-            return -1;
+            return malformed_command;
         // Quit the connection
-        return 2;
+        return quit_connection;
     } else if(token_size == 8 && strncmp(token, "shutdown", 8) == 0) {
         // Make sure there's no more tokens
         if((token = tokenize(token + token_size,
                              buf + size - (token + token_size),
                              delims, &token_size)) != NULL)
-            return -1;
+            return malformed_command;
         // Shutdown the server
-        return 3;
+        return shutdown_server;
     } else if(token_size == 3 && strncmp(token, "set", 3) == 0) {
         // Make sure we have two more tokens
         unsigned int key_size;
@@ -58,19 +58,19 @@ int memcached_operations_t::process_command(event_t *event)
                              buf + size - (token + token_size),
                              delims, &key_size);
         if(key == NULL)
-            return -1;
+            return malformed_command;
         key[key_size] = '\0';
         unsigned int value_size;
         char *value = tokenize(key + key_size + 1,
                                buf + size - (key + key_size + 1),
                                delims, &value_size);
         if(value == NULL)
-            return -1;
+            return malformed_command;
         value[value_size] = '\0';
         if((token = tokenize(value + value_size + 1,
                              buf + size - (value + value_size + 1),
                              delims, &token_size)) != NULL)
-            return -1;
+            return malformed_command;
 
         // Ok, we've got a key, a value, and no more tokens, add them
         // to the tree
@@ -91,12 +91,12 @@ int memcached_operations_t::process_command(event_t *event)
                              buf + size - (token + token_size),
                              delims, &key_size);
         if(key == NULL)
-            return -1;
+            return malformed_command;
         key[key_size] = '\0';
         if((token = tokenize(key + key_size + 1,
                              buf + size - (key + key_size + 1),
                              delims, &token_size)) != NULL)
-            return -1;
+            return malformed_command;
 
         // Ok, we've got a key and no more tokens, look them up
         int key_int = atoi(key);
@@ -117,10 +117,10 @@ int memcached_operations_t::process_command(event_t *event)
         }
     } else {
         // Invalid command
-        return -1;
+        return malformed_command;
     }
     
     // The command was processed successfully
-    return 0;
+    return command_success;
 }
 

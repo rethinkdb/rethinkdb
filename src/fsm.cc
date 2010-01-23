@@ -58,8 +58,9 @@ int fsm_state_t::do_socket_ready(event_t *event) {
             } else if(sz > 0) {
                 state->nbuf += sz;
                 res = operations->process_command(event);
-                if(res == -1 || res == 0) {
-                    if(res == -1) {
+                if(res == operations_t::malformed_command ||
+                   res == operations_t::command_success) {
+                    if(res == operations_t::malformed_command) {
                         // Command wasn't processed correctly, send error
                         send_err_to_client(state);
                     }
@@ -73,14 +74,16 @@ int fsm_state_t::do_socket_ready(event_t *event) {
                         // Wait for the socket to finish sending
                         break;
                     }
-                } else if(res == 1) {
+                } else if(res == operations_t::incomplete_command) {
                     state->state = fsm_state_t::fsm_socket_recv_incomplete;
-                } else if(res == 2) {
+                } else if(res == operations_t::quit_connection) {
                     // The connection has been closed
                     return 2;
-                } else if(res == 3) {
+                } else if(res == operations_t::shutdown_server) {
                     // Shutdown has been initiated
                     return 1;
+                } else {
+                    check("Unhandled result", 1);
                 }
             } else {
                 // Socket has been closed, destroy the connection
