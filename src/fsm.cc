@@ -4,6 +4,7 @@
 #include "event_queue.hpp"
 #include "fsm.hpp"
 #include "worker_pool.hpp"
+#include "env/fsm_state_reg.hpp"
 
 // TODO: we should refactor the FSM to be able to unit test state
 // transitions independant of the OS network subsystem (via mock-ups,
@@ -32,7 +33,7 @@ int fsm_state_t::do_socket_ready(event_t *event) {
 
     if(event->event_type == et_sock) {
         if(state->buf == NULL) {
-            state->buf = (char*)event_queue->alloc.malloc<io_buffer_t>();
+            state->buf = (char*)alloc->malloc<io_buffer_t>();
             state->nbuf = 0;
         }
             
@@ -84,7 +85,7 @@ int fsm_state_t::do_socket_ready(event_t *event) {
                 }
             } else {
                 // Socket has been closed, destroy the connection
-                event_queue->alloc.free(state);
+                alloc->free(state);
                 break;
                     
                 // TODO: what if the fsm is not in a finished
@@ -152,25 +153,23 @@ int fsm_state_t::do_transition(event_t *event) {
     return res;
 }
 
-fsm_state_t::fsm_state_t(event_queue_t *_event_queue, resource_t _source,
-                         rethink_tree_t *_btree, small_obj_alloc_t* _alloc)
-    : event_state_t(_source), event_queue(_event_queue),
-      btree(_btree), alloc(_alloc)
+fsm_state_t::fsm_state_t(resource_t _source, rethink_tree_t *_btree,
+                         small_obj_alloc_t* _alloc, void *_registration_arg)
+    : event_state_t(_source), btree(_btree),
+      alloc(_alloc), registration_arg(_registration_arg)
 {
     fsm_init_state(this);
-    event_queue->live_fsms.push_back(this);
-    event_queue->watch_resource(source, eo_rdwr, this);
+    fsm_state_registration_t reg;
+    reg.register_fsm(this, registration_arg);
 }
 
 fsm_state_t::~fsm_state_t() {
     if(this->buf) {
-        event_queue->alloc.free((io_buffer_t*)this->buf);
+        alloc->free((io_buffer_t*)this->buf);
     }
-    if(this->source != -1) {
-        printf("Closing socket %d\n", this->source);
-        event_queue->forget_resource(this->source);
-        close(this->source);
-    }
-    event_queue->live_fsms.remove(this);
+    printf("Closing socket %d\n", this->source);
+    fsm_state_registration_t reg;
+    reg.deregister_fsm(this, registration_arg);
+    close(this->source);
 }
 

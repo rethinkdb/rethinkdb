@@ -19,12 +19,11 @@ typedef intrusive_list_node_t<fsm_state_t> fsm_list_node_t;
 typedef intrusive_list_t<fsm_state_t> fsm_list_t;
 
 // Define the state structure
-struct event_queue_t;
 struct event_t;
 
 struct fsm_state_t : public event_state_t, public fsm_list_node_t {
-    fsm_state_t(event_queue_t *_event_queue, resource_t _source,
-                rethink_tree_t *_btree, small_obj_alloc_t* _alloc);
+    fsm_state_t(resource_t _source, rethink_tree_t *_btree,
+                small_obj_alloc_t* _alloc, void *_registration_arg);
     ~fsm_state_t();
     
     int do_transition(event_t *event);
@@ -45,10 +44,9 @@ struct fsm_state_t : public event_state_t, public fsm_list_node_t {
     // been sent (in case of a send workflow).
     char *buf;
     unsigned int nbuf, snbuf;
-    event_queue_t *event_queue;
     rethink_tree_t *btree;
     small_obj_alloc_t *alloc;
-
+    void *registration_arg;
 private:
     int do_socket_ready(event_t *event);
     int do_socket_send_incomplete(event_t *event);

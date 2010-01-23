@@ -109,9 +109,9 @@ int process_itc_notify(event_queue_t *self) {
         // The state will be freed within the fsm when the socket is
         // closed (or killed for a variety of possible reasons)
         fsm_state_t *state =
-            self->alloc.malloc<fsm_state_t>(self, event.data,
+            self->alloc.malloc<fsm_state_t>(event.data,
                                             &self->parent_pool->btree,
-                                            &self->alloc);
+                                            &self->alloc, (void*)self);
         printf("Opened socket %d\n", event.data);
         break;
     }
