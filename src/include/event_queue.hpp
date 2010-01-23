@@ -4,15 +4,10 @@
 
 #include <pthread.h>
 #include <libaio.h>
-#include "alloc/memalign.hpp"
-#include "alloc/pool.hpp"
-#include "alloc/object_static.hpp"
-#include "alloc/dynamic_pool.hpp"
-#include "alloc/stats.hpp"
-#include "arch/common.hpp"
-#include "fsm.hpp"
 #include "common.hpp"
-#include "config.hpp"
+#include "arch/common.hpp"
+#include "env/common.hpp"
+#include "fsm.hpp"
 
 // Queue event handling
 enum event_type_t {
@@ -53,7 +48,6 @@ struct itc_event_t {
 
 // Event queue structure
 struct worker_pool_t;
-typedef buffer_t<IO_BUFFER_SIZE> io_buffer_t;
 struct event_queue_t {
 public:
     event_queue_t(int queue_id, event_handler_t event_handler,
@@ -81,13 +75,6 @@ public:
     resource_t epoll_fd;
     resource_t itc_pipe[2];
     event_handler_t event_handler;
-    // TODO: add a checking allocator (check if malloc returns NULL)
-    // TODO: we should abstract the allocator away from here via a
-    // template argument. This would probably require changing the
-    // queue to be more C++ friendly.
-    typedef object_static_alloc_t<
-        dynamic_pool_alloc_t<alloc_stats_t<pool_alloc_t<memalign_alloc_t<> > > >,
-        iocb, fsm_state_t, io_buffer_t> small_obj_alloc_t;
     small_obj_alloc_t alloc;
     // TODO: we should abstract live_fsms away from the queue. The
     // user of the queue provide an object that holds queue-local

@@ -4,6 +4,8 @@
 
 #include "arch/common.hpp"
 #include "containers/intrusive_list.hpp"
+#include "arch/common.hpp"
+#include "env/common.hpp"
 #include "common.hpp"
 
 struct event_state_t {

@@ -3,15 +3,8 @@
 #define __WORKER_POOL_HPP__
 
 #include "event_queue.hpp"
-#include "btree/btree.hpp"
-#include "btree/array_node.hpp"
-#include "buffer_cache/volatile.hpp"
+#include "env/common.hpp"
 #include "config.hpp"
-
-// The tree we're using
-// TODO: This is *VERY* not thread safe
-typedef volatile_cache_t rethink_cache_t;
-typedef btree<array_node_t<rethink_cache_t::block_id_t>, rethink_cache_t> rethink_tree_t;
 
 // Worker pool
 struct worker_pool_t {
