@@ -83,7 +83,7 @@ int memcached_operations_t::process_command(event_t *event)
         char msg[] = "ok\n";
         strcpy(state->buf, msg);
         state->nbuf = strlen(msg) + 1;
-        send_msg_to_client(state);
+        return command_success_response_ready;
     } else if(token_size == 3 && strncmp(token, "get", 3) == 0) {
         // Make sure we have one more token
         unsigned int key_size;
@@ -106,21 +106,20 @@ int memcached_operations_t::process_command(event_t *event)
             // state->buf must exist at this point.
             sprintf(state->buf, "%d", value_int);
             state->nbuf = strlen(state->buf) + 1;
-            send_msg_to_client(state);
         } else {
             // Since we're in the middle of processing a command,
             // state->buf must exist at this point.
             char msg[] = "NIL\n";
             strcpy(state->buf, msg);
             state->nbuf = strlen(msg) + 1;
-            send_msg_to_client(state);
         }
+        return command_success_response_ready;
     } else {
         // Invalid command
         return malformed_command;
     }
     
     // The command was processed successfully
-    return command_success;
+    return command_success_no_response;
 }
 

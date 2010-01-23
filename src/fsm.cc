@@ -59,10 +59,15 @@ int fsm_state_t::do_socket_ready(event_t *event) {
                 state->nbuf += sz;
                 res = operations->process_command(event);
                 if(res == operations_t::malformed_command ||
-                   res == operations_t::command_success) {
+                   res == operations_t::command_success_no_response ||
+                   res == operations_t::command_success_response_ready)
+                {
                     if(res == operations_t::malformed_command) {
                         // Command wasn't processed correctly, send error
-                        send_err_to_client(state);
+                        send_err_to_client();
+                    } else if(res == operations_t::command_success_response_ready) {
+                        // Command wasn't processed correctly, send error
+                        send_msg_to_client();
                     }
                     if(state->state != fsm_state_t::fsm_socket_send_incomplete) {
                         // Command is either completed or malformed, in any
@@ -111,11 +116,10 @@ int fsm_state_t::do_socket_send_incomplete(event_t *event) {
     // clear how to get the kernel to artifically limit the send
     // buffer.
     if(event->event_type == et_sock) {
-        fsm_state_t *state = (fsm_state_t*)event->state;
         if(event->op == eo_rdwr || event->op == eo_write) {
-            send_msg_to_client(state);
+            send_msg_to_client();
         }
-        if(state->state != fsm_state_t::fsm_socket_send_incomplete) {
+        if(this->state != fsm_state_t::fsm_socket_send_incomplete) {
             // We've finished sending completely, now see if there is
             // anything left to read from the old epoll notification,
             // and let fsm_socket_ready do the cleanup
@@ -165,5 +169,46 @@ fsm_state_t::~fsm_state_t() {
     if(this->buf) {
         alloc->free((io_buffer_t*)this->buf);
     }
+}
+
+// Send a message to the client. The message should be contained
+// within buf (nbuf should be the full size). If state has been
+// switched to fsm_socket_send_incomplete, then buf must not be freed
+// after the return of this function.
+void fsm_state_t::send_msg_to_client() {
+    // Either number of bytes already sent should be zero, or we
+    // should be in the middle of an incomplete send.
+    assert(this->snbuf == 0 || this->state == fsm_state_t::fsm_socket_send_incomplete);
+
+    int len = this->nbuf - this->snbuf;
+    int sz = 0;
+    do {
+        this->snbuf += sz;
+        len -= sz;
+        
+        sz = write(this->source, this->buf + this->snbuf, len);
+        if(sz < 0) {
+            if(errno == EAGAIN || errno == EWOULDBLOCK) {
+                // If we can't send the message now, wait 'till we can
+                this->state = fsm_state_t::fsm_socket_send_incomplete;
+                return;
+            } else {
+                // There was some other error
+                check("Couldn't send message to client", sz < 0);
+            }
+        }
+    } while(sz < len);
+
+    // We've successfully sent everything out
+    this->snbuf = 0;
+    this->nbuf = 0;
+    this->state = fsm_state_t::fsm_socket_connected;
+}
+
+void fsm_state_t::send_err_to_client() {
+    char err_msg[] = "(ERROR) Unknown command\n";
+    strcpy(this->buf, err_msg);
+    this->nbuf = strlen(err_msg) + 1;
+    send_msg_to_client();
 }
 

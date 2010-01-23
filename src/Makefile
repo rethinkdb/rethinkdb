@@ -23,7 +23,6 @@ OBJS =  main.o \
 	tty.o \
 	server.o \
 	fsm.o \
-	fsm_msg.o \
 	memcached_operations.o
 
 DEPS:=$(OBJS:%.o=$(DEP_DIR)/%.d)

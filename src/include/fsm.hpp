@@ -50,11 +50,9 @@ public:
 private:
     int do_socket_ready(event_t *event);
     int do_socket_send_incomplete(event_t *event);
+    void send_msg_to_client();
+    void send_err_to_client();
 };
-
-// Some internal functions
-void send_msg_to_client(fsm_state_t *state);
-void send_err_to_client(fsm_state_t *state);
 
 #endif // __FSM_HPP__
 

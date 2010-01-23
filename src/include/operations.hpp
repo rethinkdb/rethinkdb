@@ -15,7 +15,8 @@ public:
         incomplete_command,
         shutdown_server,
         quit_connection,
-        command_success
+        command_success_no_response,
+        command_success_response_ready
     };
 
     virtual int process_command(event_t *event) = 0;
