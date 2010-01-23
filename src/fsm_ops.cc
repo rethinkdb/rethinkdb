@@ -1,7 +1,6 @@
 
 #include <signal.h>
 #include <unistd.h>
-#include "event_queue.hpp"
 #include "fsm.hpp"
 #include "utils.hpp"
 #include "worker_pool.hpp"
@@ -10,7 +9,9 @@
 // giant if/else statement (at least break them out into functions).
 
 // Process commands received from the user
-int process_command(event_queue_t *event_queue, event_t *event) {
+int process_command(event_t *event, small_obj_alloc_t *alloc,
+                    rethink_tree_t *btree)
+{
     int res;
 
     fsm_state_t *state = (fsm_state_t*)event->state;
@@ -43,7 +44,7 @@ int process_command(event_queue_t *event_queue, event_t *event) {
                              delims, &token_size)) != NULL)
             return -1;
         // Quit the connection
-        event_queue->alloc.free(state);
+        alloc->free(state);
         return 2;
     } else if(token_size == 8 && strncmp(token, "shutdown", 8) == 0) {
         // Make sure there's no more tokens
@@ -78,7 +79,7 @@ int process_command(event_queue_t *event_queue, event_t *event) {
         // to the tree
         int key_int = atoi(key);
         int value_int = atoi(value);
-        event_queue->parent_pool->btree.insert(key_int, value_int);
+        btree->insert(key_int, value_int);
 
         // Since we're in the middle of processing a command,
         // state->buf must exist at this point.
@@ -103,7 +104,7 @@ int process_command(event_queue_t *event_queue, event_t *event) {
         // Ok, we've got a key and no more tokens, look them up
         int key_int = atoi(key);
         int value_int;
-        if(event_queue->parent_pool->btree.lookup(key_int, &value_int)) {
+        if(btree->lookup(key_int, &value_int)) {
             // Since we're in the middle of processing a command,
             // state->buf must exist at this point.
             sprintf(state->buf, "%d", value_int);

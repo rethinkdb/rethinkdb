@@ -48,12 +48,16 @@ struct fsm_state_t : public event_state_t, public fsm_list_node_t {
     event_queue_t *event_queue;
     rethink_tree_t *btree;
     small_obj_alloc_t *alloc;
+
+private:
+    int do_socket_ready(event_t *event);
+    int do_socket_send_incomplete(event_t *event);
 };
 
 // Some internal functions
 void send_msg_to_client(fsm_state_t *state);
 void send_err_to_client(fsm_state_t *state);
-int process_command(event_queue_t *event_queue, event_t *event);
+int process_command(event_t *event, small_obj_alloc_t *alloc, rethink_tree_t *btree);
 
 #endif // __FSM_HPP__
 
