@@ -8,30 +8,9 @@
 #include "arch/common.hpp"
 #include "common.hpp"
 #include "fsm.hpp"
+#include "operations.hpp"
+#include "event.hpp"
 
-// Queue event handling
-enum event_type_t {
-    et_disk, et_sock, et_timer
-};
-enum event_op_t {
-    eo_read, eo_write, eo_rdwr
-};
-struct event_t {
-    event_type_t event_type;
-    event_op_t op;
-
-    // State associated with the communication (must have been passed
-    // to watch_resource).
-    event_state_t *state;
-
-    /* For event_type == et_disk_event, contains the result of the IO
-     * operation. For event_type == et_timer_event, contains the
-     * number of experiations of the timer that have occurred. */
-    int result;
-
-    /* For event_type == et_disk_event */
-    void *buf;    // Location of the buffer where data was copied (for read events)
-};
 struct event_queue_t;
 typedef void (*event_handler_t)(event_queue_t*, event_t*);
 
@@ -86,6 +65,7 @@ public:
     // state.
     fsm_list_t live_fsms;
     worker_pool_t *parent_pool;
+    operations_t *operations;
 };
 
 #endif // __EVENT_QUEUE_HPP__

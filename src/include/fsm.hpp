@@ -5,11 +5,8 @@
 #include "containers/intrusive_list.hpp"
 #include "arch/common.hpp"
 #include "common.hpp"
-
-struct event_state_t {
-    event_state_t(resource_t _source) : source(_source) {}
-    resource_t source;
-};
+#include "operations.hpp"
+#include "event.hpp"
 
 // The states are collected via an intrusive list
 struct fsm_state_t;
@@ -20,8 +17,7 @@ typedef intrusive_list_t<fsm_state_t> fsm_list_t;
 struct event_t;
 
 struct fsm_state_t : public event_state_t, public fsm_list_node_t {
-    fsm_state_t(resource_t _source, rethink_tree_t *_btree,
-                small_obj_alloc_t* _alloc);
+    fsm_state_t(resource_t _source, small_obj_alloc_t* _alloc, operations_t *_ops);
     ~fsm_state_t();
     
     int do_transition(event_t *event);
@@ -42,8 +38,8 @@ struct fsm_state_t : public event_state_t, public fsm_list_node_t {
     // been sent (in case of a send workflow).
     char *buf;
     unsigned int nbuf, snbuf;
-    rethink_tree_t *btree;
     small_obj_alloc_t *alloc;
+    operations_t *operations;
 private:
     int do_socket_ready(event_t *event);
     int do_socket_send_incomplete(event_t *event);
@@ -52,7 +48,6 @@ private:
 // Some internal functions
 void send_msg_to_client(fsm_state_t *state);
 void send_err_to_client(fsm_state_t *state);
-int process_command(event_t *event, rethink_tree_t *btree);
 
 #endif // __FSM_HPP__
 

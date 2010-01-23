@@ -57,7 +57,7 @@ int fsm_state_t::do_socket_ready(event_t *event) {
                 }
             } else if(sz > 0) {
                 state->nbuf += sz;
-                res = process_command(event, btree);
+                res = operations->process_command(event);
                 if(res == -1 || res == 0) {
                     if(res == -1) {
                         // Command wasn't processed correctly, send error
@@ -151,9 +151,9 @@ int fsm_state_t::do_transition(event_t *event) {
     return res;
 }
 
-fsm_state_t::fsm_state_t(resource_t _source, rethink_tree_t *_btree,
-                         small_obj_alloc_t* _alloc)
-    : event_state_t(_source), btree(_btree), alloc(_alloc)
+fsm_state_t::fsm_state_t(resource_t _source, small_obj_alloc_t* _alloc,
+                         operations_t *_ops)
+    : event_state_t(_source), alloc(_alloc), operations(_ops)
 {
     fsm_init_state(this);
 }
