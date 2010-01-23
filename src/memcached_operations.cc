@@ -12,7 +12,7 @@ int memcached_operations_t::process_command(event_t *event)
 {
     int res;
 
-    fsm_state_t *state = (fsm_state_t*)event->state;
+    rethink_fsm_t *state = (rethink_fsm_t*)event->state;
     char *buf = state->buf;
     unsigned int size = state->nbuf;
 

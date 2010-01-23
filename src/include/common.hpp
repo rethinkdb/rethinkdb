@@ -26,12 +26,19 @@ typedef btree<array_node_t<rethink_cache_t::block_id_t>, rethink_cache_t> rethin
 // Define the allocator
 // TODO: add a checking allocator (check if malloc returns NULL)
 struct iocb;
+
+template<class io_calls_t>
 struct fsm_state_t;
+
+struct nil_t {};
+
+typedef fsm_state_t<nil_t> rethink_fsm_t;
+
 typedef buffer_t<IO_BUFFER_SIZE> io_buffer_t;
 
 typedef object_static_alloc_t<
     dynamic_pool_alloc_t<alloc_stats_t<pool_alloc_t<memalign_alloc_t<> > > >,
-    iocb, fsm_state_t, io_buffer_t> small_obj_alloc_t;
+    iocb, rethink_fsm_t, io_buffer_t> small_obj_alloc_t;
 
 #endif // __COMMON_HPP__
 

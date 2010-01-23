@@ -45,8 +45,8 @@ public:
 
 
     // FSM registration
-    void register_fsm(fsm_state_t *fsm);
-    void deregister_fsm(fsm_state_t *fsm);
+    void register_fsm(rethink_fsm_t *fsm);
+    void deregister_fsm(rethink_fsm_t *fsm);
 
 public:
     // TODO: be clear on what should and shouldn't be public here

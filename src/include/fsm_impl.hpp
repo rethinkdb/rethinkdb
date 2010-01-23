@@ -1,31 +1,36 @@
 
+#ifndef __FSM_IMPL_HPP__
+#define __FSM_IMPL_HPP__
+
 #include <assert.h>
 #include <unistd.h>
 #include "event_queue.hpp"
 #include "fsm.hpp"
-#include "worker_pool.hpp"
 
 // TODO: we should refactor the FSM to be able to unit test state
 // transitions independant of the OS network subsystem (via mock-ups,
 // or via turning the code 'inside-out' in a Haskell sense).
 
-void fsm_init_state(fsm_state_t *state) {
-    state->state = fsm_state_t::fsm_socket_connected;
-    state->buf = NULL;
-    state->nbuf = 0;
-    state->snbuf = 0;
+template<class io_calls_t>
+void fsm_state_t<io_calls_t>::init_state() {
+    this->state = fsm_socket_connected;
+    this->buf = NULL;
+    this->nbuf = 0;
+    this->snbuf = 0;
 }
 
 // This function returns the socket to clean connected state
-void return_to_fsm_socket_connected(small_obj_alloc_t *alloc, fsm_state_t *state) {
-    alloc->free((io_buffer_t*)state->buf);
-    fsm_init_state(state);
+template<class io_calls_t>
+void fsm_state_t<io_calls_t>::return_to_socket_connected() {
+    alloc->free((io_buffer_t*)this->buf);
+    init_state();
 }
 
 // This state represents a connected socket with no outstanding
 // operations. Incoming events should be user commands received by the
 // socket.
-int fsm_state_t::do_socket_ready(event_t *event) {
+template<class io_calls_t>
+int fsm_state_t<io_calls_t>::do_socket_ready(event_t *event) {
     int res;
     size_t sz;
     fsm_state_t *state = (fsm_state_t*)event->state;
@@ -50,7 +55,7 @@ int fsm_state_t::do_socket_ready(event_t *event) {
                     // since we break out in these cases. So it's
                     // safe to free the buffer.
                     if(state->state != fsm_state_t::fsm_socket_recv_incomplete)
-                        return_to_fsm_socket_connected(alloc, state);
+                        return_to_socket_connected();
                     break;
                 } else {
                     check("Could not read from socket", sz == -1);
@@ -111,7 +116,8 @@ int fsm_state_t::do_socket_ready(event_t *event) {
 
 // The socket is ready for sending more information and we were in the
 // middle of an incomplete send request.
-int fsm_state_t::do_socket_send_incomplete(event_t *event) {
+template<class io_calls_t>
+int fsm_state_t<io_calls_t>::do_socket_send_incomplete(event_t *event) {
     // TODO: incomplete send needs to be tested therally. It's not
     // clear how to get the kernel to artifically limit the send
     // buffer.
@@ -134,7 +140,8 @@ int fsm_state_t::do_socket_send_incomplete(event_t *event) {
 
 // Switch on the current state and call the appropriate transition
 // function.
-int fsm_state_t::do_transition(event_t *event) {
+template<class io_calls_t>
+int fsm_state_t<io_calls_t>::do_transition(event_t *event) {
     // TODO: Using parent_pool member variable within state
     // transitions might cause cache line alignment issues. Can we
     // eliminate it (perhaps by giving each thread its own private
@@ -158,14 +165,16 @@ int fsm_state_t::do_transition(event_t *event) {
     return res;
 }
 
-fsm_state_t::fsm_state_t(resource_t _source, small_obj_alloc_t* _alloc,
-                         operations_t *_ops)
+template<class io_calls_t>
+fsm_state_t<io_calls_t>::fsm_state_t(resource_t _source, small_obj_alloc_t* _alloc,
+                                     operations_t *_ops)
     : event_state_t(_source), alloc(_alloc), operations(_ops)
 {
-    fsm_init_state(this);
+    init_state();
 }
 
-fsm_state_t::~fsm_state_t() {
+template<class io_calls_t>
+fsm_state_t<io_calls_t>::~fsm_state_t() {
     if(this->buf) {
         alloc->free((io_buffer_t*)this->buf);
     }
@@ -175,7 +184,8 @@ fsm_state_t::~fsm_state_t() {
 // within buf (nbuf should be the full size). If state has been
 // switched to fsm_socket_send_incomplete, then buf must not be freed
 // after the return of this function.
-void fsm_state_t::send_msg_to_client() {
+template<class io_calls_t>
+void fsm_state_t<io_calls_t>::send_msg_to_client() {
     // Either number of bytes already sent should be zero, or we
     // should be in the middle of an incomplete send.
     assert(this->snbuf == 0 || this->state == fsm_state_t::fsm_socket_send_incomplete);
@@ -205,10 +215,13 @@ void fsm_state_t::send_msg_to_client() {
     this->state = fsm_state_t::fsm_socket_connected;
 }
 
-void fsm_state_t::send_err_to_client() {
+template<class io_calls_t>
+void fsm_state_t<io_calls_t>::send_err_to_client() {
     char err_msg[] = "(ERROR) Unknown command\n";
     strcpy(this->buf, err_msg);
     this->nbuf = strlen(err_msg) + 1;
     send_msg_to_client();
 }
+
+#endif // __FSM_IMPL_HPP__
 

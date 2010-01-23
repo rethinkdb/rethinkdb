@@ -9,14 +9,14 @@
 #include "event.hpp"
 
 // The states are collected via an intrusive list
-struct fsm_state_t;
-typedef intrusive_list_node_t<fsm_state_t> fsm_list_node_t;
-typedef intrusive_list_t<fsm_state_t> fsm_list_t;
+typedef intrusive_list_node_t<rethink_fsm_t> fsm_list_node_t;
+typedef intrusive_list_t<rethink_fsm_t> fsm_list_t;
 
 // Define the state structure
 struct event_t;
 
-struct fsm_state_t : public event_state_t, public fsm_list_node_t {
+template<class io_calls_t>
+struct fsm_state_t : public event_state_t, public fsm_list_node_t, public io_calls_t {
     fsm_state_t(resource_t _source, small_obj_alloc_t* _alloc, operations_t *_ops);
     ~fsm_state_t();
     
@@ -52,7 +52,11 @@ private:
     int do_socket_send_incomplete(event_t *event);
     void send_msg_to_client();
     void send_err_to_client();
+    void init_state();
+    void return_to_socket_connected();
 };
+
+#include "fsm_impl.hpp"
 
 #endif // __FSM_HPP__
 
