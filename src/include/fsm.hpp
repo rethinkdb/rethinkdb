@@ -23,6 +23,12 @@ struct fsm_state_t : public event_state_t, public fsm_list_node_t {
     int do_transition(event_t *event);
 
 public:
+    enum result_t {
+        shutdown_server,
+        quit_connection,
+        transition_ok
+    };
+    
     enum state_t {
         // Socket is connected, is in a clean state (no outstanding ops) and ready to go
         fsm_socket_connected,

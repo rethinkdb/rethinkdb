@@ -78,16 +78,16 @@ int fsm_state_t::do_socket_ready(event_t *event) {
                     state->state = fsm_state_t::fsm_socket_recv_incomplete;
                 } else if(res == operations_t::quit_connection) {
                     // The connection has been closed
-                    return 2;
+                    return quit_connection;
                 } else if(res == operations_t::shutdown_server) {
                     // Shutdown has been initiated
-                    return 1;
+                    return shutdown_server;
                 } else {
                     check("Unhandled result", 1);
                 }
             } else {
                 // Socket has been closed, destroy the connection
-                return 2;
+                return quit_connection;
                     
                 // TODO: what if the fsm is not in a finished
                 // state? What if we free it during an AIO
@@ -101,7 +101,7 @@ int fsm_state_t::do_socket_ready(event_t *event) {
         check("fsm_socket_ready: Invalid event", 1);
     }
 
-    return 0;
+    return transition_ok;
 }
 
 // The socket is ready for sending more information and we were in the
