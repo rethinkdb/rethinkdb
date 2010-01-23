@@ -6,7 +6,7 @@
 #include <libaio.h>
 #include "common.hpp"
 #include "arch/common.hpp"
-#include "env/common.hpp"
+#include "common.hpp"
 #include "fsm.hpp"
 
 // Queue event handling

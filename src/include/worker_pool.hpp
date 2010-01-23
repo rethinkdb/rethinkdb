@@ -3,7 +3,8 @@
 #define __WORKER_POOL_HPP__
 
 #include "event_queue.hpp"
-#include "env/common.hpp"
+#include "arch/common.hpp"
+#include "common.hpp"
 #include "config.hpp"
 
 // Worker pool

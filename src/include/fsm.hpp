@@ -2,11 +2,9 @@
 #ifndef __FSM_HPP__
 #define __FSM_HPP__
 
-#include "arch/common.hpp"
 #include "containers/intrusive_list.hpp"
-#include "common.hpp"
 #include "arch/common.hpp"
-#include "env/common.hpp"
+#include "common.hpp"
 
 struct event_state_t {
     event_state_t(resource_t _source) : source(_source) {}
