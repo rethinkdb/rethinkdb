@@ -60,6 +60,7 @@ public:
     resource_t itc_pipe[2];
     event_handler_t event_handler;
     small_obj_alloc_t alloc;
+    iobuf_alloc_t iobuf_alloc;
     // TODO: we should abstract live_fsms away from the queue. The
     // user of the queue provide an object that holds queue-local
     // state.

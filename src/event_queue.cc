@@ -111,7 +111,7 @@ int process_itc_notify(event_queue_t *self) {
         // closed (or killed for a variety of possible reasons)
         rethink_fsm_t *state =
             self->alloc.malloc<rethink_fsm_t>(event.data,
-                                              &self->alloc,
+                                              &self->iobuf_alloc,
                                               self->operations);
         self->register_fsm(state);
         break;
@@ -191,6 +191,7 @@ void* epoll_handler(void *arg) {
 
 event_queue_t::event_queue_t(int queue_id, event_handler_t event_handler,
                              worker_pool_t *parent_pool)
+    : iobuf_alloc(IO_BUFFER_SIZE)
 {
     int res;
     this->queue_id = queue_id;

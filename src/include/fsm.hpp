@@ -15,9 +15,9 @@ typedef intrusive_list_t<rethink_fsm_t> fsm_list_t;
 // Define the state structure
 struct event_t;
 
-template<class io_calls_t>
+template<class io_calls_t, class alloc_t>
 struct fsm_state_t : public event_state_t, public fsm_list_node_t, public io_calls_t {
-    fsm_state_t(resource_t _source, small_obj_alloc_t* _alloc, operations_t *_ops);
+    fsm_state_t(resource_t _source, alloc_t* _alloc, operations_t *_ops);
     ~fsm_state_t();
     
     int do_transition(event_t *event);
@@ -45,7 +45,7 @@ public:
     // been sent (in case of a send workflow).
     char *buf;
     unsigned int nbuf, snbuf;
-    small_obj_alloc_t *alloc;
+    alloc_t *alloc;
     operations_t *operations;
 private:
     int do_socket_ready(event_t *event);

@@ -11,8 +11,8 @@
 // transitions independant of the OS network subsystem (via mock-ups,
 // or via turning the code 'inside-out' in a Haskell sense).
 
-template<class io_calls_t>
-void fsm_state_t<io_calls_t>::init_state() {
+template<class io_calls_t, class alloc_t>
+void fsm_state_t<io_calls_t, alloc_t>::init_state() {
     this->state = fsm_socket_connected;
     this->buf = NULL;
     this->nbuf = 0;
@@ -20,24 +20,24 @@ void fsm_state_t<io_calls_t>::init_state() {
 }
 
 // This function returns the socket to clean connected state
-template<class io_calls_t>
-void fsm_state_t<io_calls_t>::return_to_socket_connected() {
-    alloc->free((io_buffer_t*)this->buf);
+template<class io_calls_t, class alloc_t>
+void fsm_state_t<io_calls_t, alloc_t>::return_to_socket_connected() {
+    alloc->free(this->buf);
     init_state();
 }
 
 // This state represents a connected socket with no outstanding
 // operations. Incoming events should be user commands received by the
 // socket.
-template<class io_calls_t>
-int fsm_state_t<io_calls_t>::do_socket_ready(event_t *event) {
+template<class io_calls_t, class alloc_t>
+int fsm_state_t<io_calls_t, alloc_t>::do_socket_ready(event_t *event) {
     int res;
     size_t sz;
     fsm_state_t *state = (fsm_state_t*)event->state;
 
     if(event->event_type == et_sock) {
         if(state->buf == NULL) {
-            state->buf = (char*)alloc->malloc<io_buffer_t>();
+            state->buf = (char*)alloc->malloc(IO_BUFFER_SIZE);
             state->nbuf = 0;
         }
             
@@ -116,8 +116,8 @@ int fsm_state_t<io_calls_t>::do_socket_ready(event_t *event) {
 
 // The socket is ready for sending more information and we were in the
 // middle of an incomplete send request.
-template<class io_calls_t>
-int fsm_state_t<io_calls_t>::do_socket_send_incomplete(event_t *event) {
+template<class io_calls_t, class alloc_t>
+int fsm_state_t<io_calls_t, alloc_t>::do_socket_send_incomplete(event_t *event) {
     // TODO: incomplete send needs to be tested therally. It's not
     // clear how to get the kernel to artifically limit the send
     // buffer.
@@ -140,8 +140,8 @@ int fsm_state_t<io_calls_t>::do_socket_send_incomplete(event_t *event) {
 
 // Switch on the current state and call the appropriate transition
 // function.
-template<class io_calls_t>
-int fsm_state_t<io_calls_t>::do_transition(event_t *event) {
+template<class io_calls_t, class alloc_t>
+int fsm_state_t<io_calls_t, alloc_t>::do_transition(event_t *event) {
     // TODO: Using parent_pool member variable within state
     // transitions might cause cache line alignment issues. Can we
     // eliminate it (perhaps by giving each thread its own private
@@ -165,18 +165,18 @@ int fsm_state_t<io_calls_t>::do_transition(event_t *event) {
     return res;
 }
 
-template<class io_calls_t>
-fsm_state_t<io_calls_t>::fsm_state_t(resource_t _source, small_obj_alloc_t* _alloc,
+template<class io_calls_t, class alloc_t>
+fsm_state_t<io_calls_t, alloc_t>::fsm_state_t(resource_t _source, alloc_t* _alloc,
                                      operations_t *_ops)
     : event_state_t(_source), alloc(_alloc), operations(_ops)
 {
     init_state();
 }
 
-template<class io_calls_t>
-fsm_state_t<io_calls_t>::~fsm_state_t() {
+template<class io_calls_t, class alloc_t>
+fsm_state_t<io_calls_t, alloc_t>::~fsm_state_t() {
     if(this->buf) {
-        alloc->free((io_buffer_t*)this->buf);
+        alloc->free(this->buf);
     }
 }
 
@@ -184,8 +184,8 @@ fsm_state_t<io_calls_t>::~fsm_state_t() {
 // within buf (nbuf should be the full size). If state has been
 // switched to fsm_socket_send_incomplete, then buf must not be freed
 // after the return of this function.
-template<class io_calls_t>
-void fsm_state_t<io_calls_t>::send_msg_to_client() {
+template<class io_calls_t, class alloc_t>
+void fsm_state_t<io_calls_t, alloc_t>::send_msg_to_client() {
     // Either number of bytes already sent should be zero, or we
     // should be in the middle of an incomplete send.
     assert(this->snbuf == 0 || this->state == fsm_state_t::fsm_socket_send_incomplete);
@@ -215,8 +215,8 @@ void fsm_state_t<io_calls_t>::send_msg_to_client() {
     this->state = fsm_state_t::fsm_socket_connected;
 }
 
-template<class io_calls_t>
-void fsm_state_t<io_calls_t>::send_err_to_client() {
+template<class io_calls_t, class alloc_t>
+void fsm_state_t<io_calls_t, alloc_t>::send_err_to_client() {
     char err_msg[] = "(ERROR) Unknown command\n";
     strcpy(this->buf, err_msg);
     this->nbuf = strlen(err_msg) + 1;
