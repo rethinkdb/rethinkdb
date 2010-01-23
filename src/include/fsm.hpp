@@ -24,6 +24,8 @@ struct fsm_state_t : public event_state_t, public fsm_list_node_t {
     fsm_state_t(event_queue_t *_event_queue, resource_t _source);
     ~fsm_state_t();
     
+    int do_transition(event_t *event);
+
     enum state_t {
         // Socket is connected, is in a clean state (no outstanding ops) and ready to go
         fsm_socket_connected,
@@ -43,7 +45,10 @@ struct fsm_state_t : public event_state_t, public fsm_list_node_t {
     event_queue_t *event_queue;
 };
 
-void fsm_do_transition(event_queue_t *event_queue, event_t *event);
+// Some internal functions
+void send_msg_to_client(fsm_state_t *state);
+void send_err_to_client(fsm_state_t *state);
+int process_command(event_queue_t *event_queue, event_t *event);
 
 #endif // __FSM_HPP__
 

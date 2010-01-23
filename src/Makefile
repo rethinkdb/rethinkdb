@@ -23,8 +23,8 @@ OBJS =  main.o \
 	tty.o \
 	server.o \
 	fsm.o \
-	operations.o \
-	networking.o
+	fsm_ops.o \
+	fsm_msg.o
 
 DEPS:=$(OBJS:%.o=$(DEP_DIR)/%.d)
 OBJS:=$(OBJS:%.o=$(OBJ_DIR)/%.o)

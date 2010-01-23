@@ -4,7 +4,6 @@
 #include "event_queue.hpp"
 #include "fsm.hpp"
 #include "worker_pool.hpp"
-#include "networking.hpp"
 
 // TODO: we should refactor the FSM to be able to unit test state
 // transitions independant of the OS network subsystem (via mock-ups,
@@ -17,9 +16,6 @@ void fsm_init_state(fsm_state_t *state) {
     state->snbuf = 0;
 }
 
-// Process commands received from the user
-int process_command(event_queue_t *event_queue, event_t *event);
-
 // This function returns the socket to clean connected state
 void return_to_fsm_socket_connected(event_queue_t *event_queue, fsm_state_t *state) {
     event_queue->alloc.free((io_buffer_t*)state->buf);
@@ -29,7 +25,7 @@ void return_to_fsm_socket_connected(event_queue_t *event_queue, fsm_state_t *sta
 // This state represents a connected socket with no outstanding
 // operations. Incoming events should be user commands received by the
 // socket.
-void fsm_socket_ready(event_queue_t *event_queue, event_t *event) {
+int fsm_socket_ready(event_queue_t *event_queue, event_t *event) {
     int res;
     size_t sz;
     fsm_state_t *state = (fsm_state_t*)event->state;
@@ -66,7 +62,7 @@ void fsm_socket_ready(event_queue_t *event_queue, event_t *event) {
                     if(res == -1 || res == 0) {
                         if(res == -1) {
                             // Command wasn't processed correctly, send error
-                            send_err_to_client(event_queue, state);
+                            send_err_to_client(state);
                         }
                         if(state->state != fsm_state_t::fsm_socket_send_incomplete) {
                             // Command is either completed or malformed, in any
@@ -83,6 +79,9 @@ void fsm_socket_ready(event_queue_t *event_queue, event_t *event) {
                     } else if(res == 2) {
                         // The connection has been closed
                         break;
+                    } else if(res == 3) {
+                        // Shutdown has been initiated
+                        return 1;
                     }
                 } else {
                     // Socket has been closed, destroy the connection
@@ -104,18 +103,20 @@ void fsm_socket_ready(event_queue_t *event_queue, event_t *event) {
     } else {
         check("fsm_socket_ready: Invalid event", 1);
     }
+
+    return 0;
 }
 
 // The socket is ready for sending more information and we were in the
 // middle of an incomplete send request.
-void fsm_socket_send_incomplete(event_queue_t *event_queue, event_t *event) {
+int fsm_socket_send_incomplete(event_queue_t *event_queue, event_t *event) {
     // TODO: incomplete send needs to be tested therally. It's not
     // clear how to get the kernel to artifically limit the send
     // buffer.
     if(event->event_type == et_sock) {
         fsm_state_t *state = (fsm_state_t*)event->state;
         if(event->op == eo_rdwr || event->op == eo_write) {
-            send_msg_to_client(event_queue, state);
+            send_msg_to_client(state);
         }
         if(state->state != fsm_state_t::fsm_socket_send_incomplete) {
             // We've finished sending completely, now see if there is
@@ -127,30 +128,33 @@ void fsm_socket_send_incomplete(event_queue_t *event_queue, event_t *event) {
     } else {
         check("fsm_socket_send_ready: Invalid event", 1);
     }
+    return 0;
 }
 
 // Switch on the current state and call the appropriate transition
 // function.
-void fsm_do_transition(event_queue_t *event_queue, event_t *event) {
-    fsm_state_t *state = (fsm_state_t*)event->state;
-    assert(state);
-    
+int fsm_state_t::do_transition(event_t *event) {
     // TODO: Using parent_pool member variable within state
     // transitions might cause cache line alignment issues. Can we
     // eliminate it (perhaps by giving each thread its own private
     // copy of the necessary data)?
 
-    switch(state->state) {
+    int res;
+
+    switch(state) {
     case fsm_state_t::fsm_socket_connected:
     case fsm_state_t::fsm_socket_recv_incomplete:
-        fsm_socket_ready(event_queue, event);
+        res = fsm_socket_ready(event_queue, event);
         break;
     case fsm_state_t::fsm_socket_send_incomplete:
-        fsm_socket_send_incomplete(event_queue, event);
+        res = ::fsm_socket_send_incomplete(event_queue, event);
         break;
     default:
+        res = -1;
         check("Invalid state", 1);
     }
+
+    return res;
 }
 
 fsm_state_t::fsm_state_t(event_queue_t *_event_queue, resource_t _source)

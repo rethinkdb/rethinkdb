@@ -5,7 +5,6 @@
 #include "fsm.hpp"
 #include "utils.hpp"
 #include "worker_pool.hpp"
-#include "networking.hpp"
 
 // TODO: we should have a nicer way of switching on the command than a
 // giant if/else statement (at least break them out into functions).
@@ -53,9 +52,7 @@ int process_command(event_queue_t *event_queue, event_t *event) {
                              delims, &token_size)) != NULL)
             return -1;
         // Shutdown the server
-        printf("Shutting down server...\n");
-        res = pthread_kill(event_queue->parent_pool->main_thread, SIGINT);
-        check("Could not send kill signal to main thread", res != 0);
+        return 3;
     } else if(token_size == 3 && strncmp(token, "set", 3) == 0) {
         // Make sure we have two more tokens
         unsigned int key_size;
@@ -88,7 +85,7 @@ int process_command(event_queue_t *event_queue, event_t *event) {
         char msg[] = "ok\n";
         strcpy(state->buf, msg);
         state->nbuf = strlen(msg) + 1;
-        send_msg_to_client(event_queue, state);
+        send_msg_to_client(state);
     } else if(token_size == 3 && strncmp(token, "get", 3) == 0) {
         // Make sure we have one more token
         unsigned int key_size;
@@ -111,14 +108,14 @@ int process_command(event_queue_t *event_queue, event_t *event) {
             // state->buf must exist at this point.
             sprintf(state->buf, "%d", value_int);
             state->nbuf = strlen(state->buf) + 1;
-            send_msg_to_client(event_queue, state);
+            send_msg_to_client(state);
         } else {
             // Since we're in the middle of processing a command,
             // state->buf must exist at this point.
             char msg[] = "NIL\n";
             strcpy(state->buf, msg);
             state->nbuf = strlen(msg) + 1;
-            send_msg_to_client(event_queue, state);
+            send_msg_to_client(state);
         }
     } else {
         // Invalid command
