@@ -11,6 +11,7 @@
 #include "alloc/object_static.hpp"
 #include "alloc/dynamic_pool.hpp"
 #include "alloc/stats.hpp"
+#include "arch/io_calls.hpp"
 
 // Memory buffer
 template <int size>
@@ -30,9 +31,7 @@ struct iocb;
 template<class io_calls_t>
 struct fsm_state_t;
 
-struct nil_t {};
-
-typedef fsm_state_t<nil_t> rethink_fsm_t;
+typedef fsm_state_t<posix_io_calls_t> rethink_fsm_t;
 
 typedef buffer_t<IO_BUFFER_SIZE> io_buffer_t;
 

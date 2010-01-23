@@ -45,9 +45,9 @@ int fsm_state_t<io_calls_t>::do_socket_ready(event_t *event) {
         // IO_BUFFER_SIZE. We'll need to implement streaming later.
 
         do {
-            sz = read(state->source,
-                      state->buf + state->nbuf,
-                      IO_BUFFER_SIZE - state->nbuf);
+            sz = io_calls_t::read(state->source,
+                                  state->buf + state->nbuf,
+                                  IO_BUFFER_SIZE - state->nbuf);
             if(sz == -1) {
                 if(errno == EAGAIN || errno == EWOULDBLOCK) {
                     // The machine can't be in
@@ -196,7 +196,7 @@ void fsm_state_t<io_calls_t>::send_msg_to_client() {
         this->snbuf += sz;
         len -= sz;
         
-        sz = write(this->source, this->buf + this->snbuf, len);
+        sz = io_calls_t::write(this->source, this->buf + this->snbuf, len);
         if(sz < 0) {
             if(errno == EAGAIN || errno == EWOULDBLOCK) {
                 // If we can't send the message now, wait 'till we can
