@@ -19,10 +19,13 @@
 void event_handler(event_queue_t *event_queue, event_t *event) {
     if(event->event_type != et_timer) {
         fsm_state_t *state = (fsm_state_t*)event->state;
-        if(state->do_transition(event) == 1) {
+        int res = state->do_transition(event);
+        if(res == 1) {
             printf("Shutting down server...\n");
             int res = pthread_kill(event_queue->parent_pool->main_thread, SIGINT);
             check("Could not send kill signal to main thread", res != 0);
+        } else if(res == 2) {
+            event_queue->deregister_fsm(state);
         }
     }
 }

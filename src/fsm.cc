@@ -4,7 +4,6 @@
 #include "event_queue.hpp"
 #include "fsm.hpp"
 #include "worker_pool.hpp"
-#include "env/fsm_state_reg.hpp"
 
 // TODO: we should refactor the FSM to be able to unit test state
 // transitions independant of the OS network subsystem (via mock-ups,
@@ -58,7 +57,7 @@ int fsm_state_t::do_socket_ready(event_t *event) {
                 }
             } else if(sz > 0) {
                 state->nbuf += sz;
-                res = process_command(event, alloc, btree);
+                res = process_command(event, btree);
                 if(res == -1 || res == 0) {
                     if(res == -1) {
                         // Command wasn't processed correctly, send error
@@ -78,15 +77,14 @@ int fsm_state_t::do_socket_ready(event_t *event) {
                     state->state = fsm_state_t::fsm_socket_recv_incomplete;
                 } else if(res == 2) {
                     // The connection has been closed
-                    break;
+                    return 2;
                 } else if(res == 3) {
                     // Shutdown has been initiated
                     return 1;
                 }
             } else {
                 // Socket has been closed, destroy the connection
-                alloc->free(state);
-                break;
+                return 2;
                     
                 // TODO: what if the fsm is not in a finished
                 // state? What if we free it during an AIO
@@ -154,22 +152,15 @@ int fsm_state_t::do_transition(event_t *event) {
 }
 
 fsm_state_t::fsm_state_t(resource_t _source, rethink_tree_t *_btree,
-                         small_obj_alloc_t* _alloc, void *_registration_arg)
-    : event_state_t(_source), btree(_btree),
-      alloc(_alloc), registration_arg(_registration_arg)
+                         small_obj_alloc_t* _alloc)
+    : event_state_t(_source), btree(_btree), alloc(_alloc)
 {
     fsm_init_state(this);
-    fsm_state_registration_t reg;
-    reg.register_fsm(this, registration_arg);
 }
 
 fsm_state_t::~fsm_state_t() {
     if(this->buf) {
         alloc->free((io_buffer_t*)this->buf);
     }
-    printf("Closing socket %d\n", this->source);
-    fsm_state_registration_t reg;
-    reg.deregister_fsm(this, registration_arg);
-    close(this->source);
 }
 

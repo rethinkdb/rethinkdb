@@ -111,8 +111,8 @@ int process_itc_notify(event_queue_t *self) {
         fsm_state_t *state =
             self->alloc.malloc<fsm_state_t>(event.data,
                                             &self->parent_pool->btree,
-                                            &self->alloc, (void*)self);
-        printf("Opened socket %d\n", event.data);
+                                            &self->alloc);
+        self->register_fsm(state);
         break;
     }
 
@@ -142,7 +142,7 @@ int process_network_notify(event_queue_t *self, epoll_event *event) {
               event->events == EPOLLERR ||
               event->events == EPOLLHUP)
     {
-        self->alloc.free((fsm_state_t*)(event->data.ptr));
+        self->deregister_fsm((fsm_state_t*)(event->data.ptr));
     } else {
         check("epoll_wait came back with an unhandled event", 1);
     }
@@ -263,7 +263,7 @@ event_queue_t::~event_queue_t()
     // Cleanup remaining fsms
     fsm_state_t *state = this->live_fsms.head();
     while(state) {
-        this->alloc.free(state);
+        deregister_fsm(state);
         state = this->live_fsms.head();
     }
 
@@ -383,3 +383,16 @@ void event_queue_t::post_itc_message(itc_event_t *event) {
     // used.
 }
 
+void event_queue_t::register_fsm(fsm_state_t *fsm) {
+    live_fsms.push_back(fsm);
+    watch_resource(fsm->source, eo_rdwr, fsm);
+    printf("Opened socket %d\n", fsm->source);
+}
+
+void event_queue_t::deregister_fsm(fsm_state_t *fsm) {
+    printf("Closing socket %d\n", fsm->source);
+    forget_resource(fsm->source);
+    live_fsms.remove(fsm);
+    close(fsm->source);
+    alloc.free(fsm);
+}

@@ -9,8 +9,7 @@
 // giant if/else statement (at least break them out into functions).
 
 // Process commands received from the user
-int process_command(event_t *event, small_obj_alloc_t *alloc,
-                    rethink_tree_t *btree)
+int process_command(event_t *event, rethink_tree_t *btree)
 {
     int res;
 
@@ -44,7 +43,6 @@ int process_command(event_t *event, small_obj_alloc_t *alloc,
                              delims, &token_size)) != NULL)
             return -1;
         // Quit the connection
-        alloc->free(state);
         return 2;
     } else if(token_size == 8 && strncmp(token, "shutdown", 8) == 0) {
         // Make sure there's no more tokens

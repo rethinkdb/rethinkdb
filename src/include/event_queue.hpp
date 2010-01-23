@@ -64,6 +64,11 @@ public:
     // function returns.
     void post_itc_message(itc_event_t *event);
 
+
+    // FSM registration
+    void register_fsm(fsm_state_t *fsm);
+    void deregister_fsm(fsm_state_t *fsm);
+
 public:
     // TODO: be clear on what should and shouldn't be public here
     int queue_id;
