@@ -13,6 +13,7 @@
 #include "config.hpp"
 #include "utils.hpp"
 #include "event_queue.hpp"
+#include "worker_pool.hpp"
 
 // TODO: report event queue statistics.
 
@@ -107,7 +108,10 @@ int process_itc_notify(event_queue_t *self) {
     case iet_new_socket:
         // The state will be freed within the fsm when the socket is
         // closed (or killed for a variety of possible reasons)
-        fsm_state_t *state = self->alloc.malloc<fsm_state_t>(self, event.data);
+        fsm_state_t *state =
+            self->alloc.malloc<fsm_state_t>(self, event.data,
+                                            &self->parent_pool->btree,
+                                            &self->alloc);
         printf("Opened socket %d\n", event.data);
         break;
     }

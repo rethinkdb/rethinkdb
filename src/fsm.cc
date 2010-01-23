@@ -157,8 +157,10 @@ int fsm_state_t::do_transition(event_t *event) {
     return res;
 }
 
-fsm_state_t::fsm_state_t(event_queue_t *_event_queue, resource_t _source)
-    : event_state_t(_source), event_queue(_event_queue)
+fsm_state_t::fsm_state_t(event_queue_t *_event_queue, resource_t _source,
+                         rethink_tree_t *_btree, small_obj_alloc_t* _alloc)
+    : event_state_t(_source), event_queue(_event_queue),
+      btree(_btree), alloc(_alloc)
 {
     fsm_init_state(this);
     event_queue->live_fsms.push_back(this);

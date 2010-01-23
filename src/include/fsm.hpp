@@ -4,9 +4,9 @@
 
 #include "arch/common.hpp"
 #include "containers/intrusive_list.hpp"
+#include "common.hpp"
 #include "arch/common.hpp"
 #include "env/common.hpp"
-#include "common.hpp"
 
 struct event_state_t {
     event_state_t(resource_t _source) : source(_source) {}
@@ -23,7 +23,8 @@ struct event_queue_t;
 struct event_t;
 
 struct fsm_state_t : public event_state_t, public fsm_list_node_t {
-    fsm_state_t(event_queue_t *_event_queue, resource_t _source);
+    fsm_state_t(event_queue_t *_event_queue, resource_t _source,
+                rethink_tree_t *_btree, small_obj_alloc_t* _alloc);
     ~fsm_state_t();
     
     int do_transition(event_t *event);
@@ -45,6 +46,8 @@ struct fsm_state_t : public event_state_t, public fsm_list_node_t {
     char *buf;
     unsigned int nbuf, snbuf;
     event_queue_t *event_queue;
+    rethink_tree_t *btree;
+    small_obj_alloc_t *alloc;
 };
 
 // Some internal functions
