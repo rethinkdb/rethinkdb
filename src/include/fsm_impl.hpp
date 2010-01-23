@@ -30,7 +30,7 @@ void fsm_state_t<io_calls_t, alloc_t>::return_to_socket_connected() {
 // operations. Incoming events should be user commands received by the
 // socket.
 template<class io_calls_t, class alloc_t>
-int fsm_state_t<io_calls_t, alloc_t>::do_socket_ready(event_t *event) {
+fsm_result_t fsm_state_t<io_calls_t, alloc_t>::do_socket_ready(event_t *event) {
     int res;
     size_t sz;
     fsm_state_t *state = (fsm_state_t*)event->state;
@@ -88,16 +88,16 @@ int fsm_state_t<io_calls_t, alloc_t>::do_socket_ready(event_t *event) {
                     state->state = fsm_state_t::fsm_socket_recv_incomplete;
                 } else if(res == operations_t::quit_connection) {
                     // The connection has been closed
-                    return quit_connection;
+                    return fsm_quit_connection;
                 } else if(res == operations_t::shutdown_server) {
                     // Shutdown has been initiated
-                    return shutdown_server;
+                    return fsm_shutdown_server;
                 } else {
                     check("Unhandled result", 1);
                 }
             } else {
                 // Socket has been closed, destroy the connection
-                return quit_connection;
+                return fsm_quit_connection;
                     
                 // TODO: what if the fsm is not in a finished
                 // state? What if we free it during an AIO
@@ -111,13 +111,13 @@ int fsm_state_t<io_calls_t, alloc_t>::do_socket_ready(event_t *event) {
         check("fsm_socket_ready: Invalid event", 1);
     }
 
-    return transition_ok;
+    return fsm_transition_ok;
 }
 
 // The socket is ready for sending more information and we were in the
 // middle of an incomplete send request.
 template<class io_calls_t, class alloc_t>
-int fsm_state_t<io_calls_t, alloc_t>::do_socket_send_incomplete(event_t *event) {
+fsm_result_t fsm_state_t<io_calls_t, alloc_t>::do_socket_send_incomplete(event_t *event) {
     // TODO: incomplete send needs to be tested therally. It's not
     // clear how to get the kernel to artifically limit the send
     // buffer.
@@ -135,19 +135,19 @@ int fsm_state_t<io_calls_t, alloc_t>::do_socket_send_incomplete(event_t *event) 
     } else {
         check("fsm_socket_send_ready: Invalid event", 1);
     }
-    return 0;
+    return fsm_transition_ok;
 }
 
 // Switch on the current state and call the appropriate transition
 // function.
 template<class io_calls_t, class alloc_t>
-int fsm_state_t<io_calls_t, alloc_t>::do_transition(event_t *event) {
+fsm_result_t fsm_state_t<io_calls_t, alloc_t>::do_transition(event_t *event) {
     // TODO: Using parent_pool member variable within state
     // transitions might cause cache line alignment issues. Can we
     // eliminate it (perhaps by giving each thread its own private
     // copy of the necessary data)?
 
-    int res;
+    fsm_result_t res;
 
     switch(state) {
     case fsm_state_t::fsm_socket_connected:
@@ -158,7 +158,7 @@ int fsm_state_t<io_calls_t, alloc_t>::do_transition(event_t *event) {
         res = do_socket_send_incomplete(event);
         break;
     default:
-        res = -1;
+        res = fsm_invalid;
         check("Invalid state", 1);
     }
 

@@ -15,20 +15,22 @@ typedef intrusive_list_t<rethink_fsm_t> fsm_list_t;
 // Define the state structure
 struct event_t;
 
+enum fsm_result_t {
+    fsm_invalid,
+    fsm_shutdown_server,
+    fsm_quit_connection,
+    fsm_transition_ok,
+};
+
 template<class io_calls_t, class alloc_t>
 struct fsm_state_t : public event_state_t, public fsm_list_node_t, public io_calls_t {
     fsm_state_t(resource_t _source, alloc_t* _alloc, operations_t *_ops);
     ~fsm_state_t();
     
-    int do_transition(event_t *event);
+public:
+    fsm_result_t do_transition(event_t *event);
 
 public:
-    enum result_t {
-        shutdown_server,
-        quit_connection,
-        transition_ok
-    };
-    
     enum state_t {
         // Socket is connected, is in a clean state (no outstanding ops) and ready to go
         fsm_socket_connected,
@@ -48,8 +50,8 @@ public:
     alloc_t *alloc;
     operations_t *operations;
 private:
-    int do_socket_ready(event_t *event);
-    int do_socket_send_incomplete(event_t *event);
+    fsm_result_t do_socket_ready(event_t *event);
+    fsm_result_t do_socket_send_incomplete(event_t *event);
     void send_msg_to_client();
     void send_err_to_client();
     void init_state();

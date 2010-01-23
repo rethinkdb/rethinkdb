@@ -8,7 +8,7 @@
 // giant if/else statement (at least break them out into functions).
 
 // Process commands received from the user
-int memcached_operations_t::process_command(event_t *event)
+memcached_operations_t::result_t memcached_operations_t::process_command(event_t *event)
 {
     int res;
 

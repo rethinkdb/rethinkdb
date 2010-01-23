@@ -11,7 +11,7 @@ public:
         : btree(_btree)
         {}
     
-    virtual int process_command(event_t *event);
+    virtual result_t process_command(event_t *event);
 
 private:
     rethink_tree_t *btree;

@@ -19,7 +19,7 @@ public:
         command_success_response_ready
     };
 
-    virtual int process_command(event_t *event) = 0;
+    virtual result_t process_command(event_t *event) = 0;
 };
 
 #endif // __OPERATIONS_HPP__
