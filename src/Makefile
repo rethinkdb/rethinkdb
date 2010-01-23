@@ -46,7 +46,7 @@ $(OBJ_DIR)/%.o: %.cc Makefile
 # Build and include header file dependencies
 $(DEP_DIR)/%.d: %.cc
 	@$(CXX) $(CXXFLAGS) -M $< > $@.$$$$;                   \
-	sed 's,\($*\)\.o[ :]*,\1.o $@ : ,g' < $@.$$$$ > $@;    \
+	sed 's,\($*\)\.o[ :]*,$(OBJ_DIR)/\1.o $@ : ,g' < $@.$$$$ > $@;    \
 	rm -f $@.$$$$
 -include $(DEPS)
 
