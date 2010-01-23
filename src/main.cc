@@ -55,17 +55,21 @@ int main(int argc, char *argv[])
     // Setup signal handlers
     install_handlers();
 
-    // Create a pool of workers
-    worker_pool_t worker_pool(event_handler, pthread_self());
+    // We're using the scope here to make sure worker_pool is
+    // auto-destroyed before the rest of the operations.
+    {
+        // Create a pool of workers
+        worker_pool_t worker_pool(event_handler, pthread_self());
 
-    // Start the server (in a separate thread)
-    int sockfd = start_server(&worker_pool);
+        // Start the server (in a separate thread)
+        int sockfd = start_server(&worker_pool);
 
-    // Feed the terminal into the listening socket
-    do_tty_loop(sockfd);
+        // Feed the terminal into the listening socket
+        do_tty_loop(sockfd);
 
-    // At this point we broke out of the tty loop. Stop the server.
-    stop_server(sockfd);
+        // At this point we broke out of the tty loop. Stop the server.
+        stop_server(sockfd);
+    }
 
     printf("Server offline\n");
 }
