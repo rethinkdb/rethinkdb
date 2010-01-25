@@ -2,6 +2,8 @@
 #ifndef __FALLTHROUGH_CACHE_HPP__
 #define __FALLTHROUGH_CACHE_HPP__
 
+#include "utils.hpp"
+
 /* Every operation in this cache fall through to the serializer - no
  * attempt is made to cache anything in memory. This is useful for
  * testing of serializers as well as consumers of caches without
@@ -15,8 +17,8 @@ public:
     fallthrough_cache_t(size_t _block_size) : block_size(_block_size) {}
 
     void* allocate(block_id_t *block_id) {
-        *block_id = malloc_aligned(block_size, block_size);
-        return *block_id;
+        *block_id = serializer_t::gen_block_id();
+        return malloc_aligned(block_size, block_size);
     }
     
     void* acquire(block_id_t block_id, void *state) {
@@ -28,7 +30,7 @@ public:
     block_id_t release(block_id_t block_id, void *block, bool dirty, void *state) {
         if(dirty) {
             // TODO: we need to free the block after do_write completes
-            return do_write(block_id, buf, state);
+            return do_write(block_id, (char*)block, state);
         } else {
             free(block);
         }

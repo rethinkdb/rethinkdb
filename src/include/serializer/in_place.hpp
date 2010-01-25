@@ -17,6 +17,10 @@
  * FTL. It's also a good sanity check that the rest of the system
  * isn't tightly coupled with a log-structured serializer. */
 struct in_place_serializer_t {
+public:
+    typedef off64_t block_id_t;
+
+public:
     /* Fires off an async request to read the block identified by
      * block_id into buf, associating state with the request. */
     void do_read(block_id_t block_id, void *buf, void *state) {
@@ -30,9 +34,16 @@ struct in_place_serializer_t {
      * value will be the id of the newly written block. */
     block_id_t do_write(block_id_t block_id, void *buf, void *state) {
     }
-    
-public:
-    typedef off64_t block_id_t;
+
+    /* Returns true iff block_id is NULL. */
+    bool is_block_id_null(block_id_t block_id) {
+        return block_id == -1;
+    }
+
+    /* Generates a unique block id. */
+    block_id_t gen_block_id() {
+        return 0;
+    }
 };
 
 #endif // __IN_PLACE_SERIALIZER_HPP__

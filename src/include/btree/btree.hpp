@@ -19,7 +19,7 @@ public:
     btree(size_t _block_size) : cache_t(_block_size), root_id(NULL) {}
 
     int lookup(int key, int *value) {
-        if(root_id == NULL)
+        if(is_block_id_null(root_id))
             return 0;
         // TODO: handle async IO/state
         block_id_t node_id = root_id;
@@ -46,7 +46,7 @@ public:
         bool last_node_dirty = false;
 
         // Grab the root
-        if(node_id == NULL) {
+        if(is_block_id_null(node_id)) {
             void *ptr = allocate(&root_id);
             node = new (ptr) leaf_node_t();
             node_dirty = true;

@@ -5,7 +5,8 @@
 #include "config.hpp"
 #include "btree/btree.hpp"
 #include "btree/array_node.hpp"
-#include "buffer_cache/volatile.hpp"
+#include "buffer_cache/fallthrough.hpp"
+#include "serializer/in_place.hpp"
 #include "alloc/memalign.hpp"
 #include "alloc/pool.hpp"
 #include "alloc/object_static.hpp"
@@ -17,7 +18,7 @@
  * Define the btree
  */
 // TODO: This is *VERY* not thread safe
-typedef volatile_cache_t rethink_cache_t;
+typedef fallthrough_cache_t<in_place_serializer_t> rethink_cache_t;
 typedef btree<array_node_t<rethink_cache_t::block_id_t>, rethink_cache_t> rethink_tree_t;
 
 /**
