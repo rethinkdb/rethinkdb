@@ -1,6 +1,6 @@
 
-#ifndef __VOLATILE_HPP__
-#define __VOLATILE_HPP__
+#ifndef __VOLATILE_CACHE_HPP__
+#define __VOLATILE_CACHE_HPP__
 
 #include <stdlib.h>
 #include "utils.hpp"
@@ -54,5 +54,5 @@ protected:
     size_t block_size;
 };
 
-#endif // __VOLATILE_HPP__
+#endif // __VOLATILE_CACHE_HPP__
 
