@@ -16,13 +16,13 @@
 template <class node_t, class cache_t>
 class btree : public cache_t {
 public:
-    btree(size_t _block_size) : cache_t(_block_size), root_id(NULL) {}
+    btree(size_t _block_size) : cache_t(_block_size) {}
 
     int lookup(int key, int *value) {
-        if(is_block_id_null(root_id))
+        if(cache_t::is_block_id_null(cache_t::get_superblock_id()))
             return 0;
         // TODO: handle async IO/state
-        block_id_t node_id = root_id;
+        block_id_t node_id = cache_t::get_superblock_id();
         node_t *node = (node_t*)acquire(node_id, NULL);
         while(node->is_internal()) {
             block_id_t next_node_id = ((internal_node_t*)node)->lookup(key);
@@ -38,16 +38,18 @@ public:
     void insert(int key, int value) {
         // TODO: handle async IO/state
         node_t *node;
-        block_id_t node_id = root_id;
+        block_id_t node_id = cache_t::get_superblock_id();
         bool node_dirty = false;
 
         internal_node_t *last_node = NULL;
-        block_id_t last_node_id = NULL;
+        block_id_t last_node_id = cache_t::null_block_id;
         bool last_node_dirty = false;
 
         // Grab the root
-        if(is_block_id_null(node_id)) {
+        if(cache_t::is_block_id_null(node_id)) {
+            block_id_t root_id;
             void *ptr = allocate(&root_id);
+            cache_t::set_superblock_id(root_id);
             node = new (ptr) leaf_node_t();
             node_dirty = true;
             node_id = root_id;
@@ -63,7 +65,9 @@ public:
                 block_id_t rnode_id;
                 split_node(node, &rnode, &rnode_id, &median);
                 if(last_node == NULL) {
+                    block_id_t root_id;
                     void *ptr = allocate(&root_id);
+                    cache_t::set_superblock_id(root_id);
                     last_node = new (ptr) internal_node_t();
                     last_node_id = root_id;
                 }
@@ -88,7 +92,7 @@ public:
                 break;
             } else {
                 // Release and update the last node
-                if(last_node_id) {
+                if(!cache_t::is_block_id_null(last_node_id)) {
                     release(last_node_id, (void*)last_node, last_node_dirty, NULL);
                 }
                 last_node = (internal_node_t*)node;
@@ -103,7 +107,7 @@ public:
         } while(1);
 
         // Release the final last node
-        if(last_node_id) {
+        if(!cache_t::is_block_id_null(last_node_id)) {
             release(last_node_id, (void*)last_node, last_node_dirty, NULL);
         }
     }
@@ -125,9 +129,6 @@ private:
                                             median);
         }
     }
-    
-private:
-    typename cache_t::block_id_t root_id;
 };
 
 #endif // __BTREE_HPP__

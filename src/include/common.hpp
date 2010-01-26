@@ -5,21 +5,12 @@
 #include "config.hpp"
 #include "btree/btree.hpp"
 #include "btree/array_node.hpp"
-#include "buffer_cache/fallthrough.hpp"
-#include "serializer/in_place.hpp"
 #include "alloc/memalign.hpp"
 #include "alloc/pool.hpp"
 #include "alloc/object_static.hpp"
 #include "alloc/dynamic_pool.hpp"
 #include "alloc/stats.hpp"
 #include "arch/io_calls.hpp"
-
-/**
- * Define the btree
- */
-// TODO: This is *VERY* not thread safe
-typedef fallthrough_cache_t<in_place_serializer_t> rethink_cache_t;
-typedef btree<array_node_t<rethink_cache_t::block_id_t>, rethink_cache_t> rethink_tree_t;
 
 /**
  * Define the IO buffer allocator
@@ -34,6 +25,24 @@ template<class io_calls_t, class alloc_t>
 struct fsm_state_t;
 
 typedef fsm_state_t<posix_io_calls_t, iobuf_alloc_t> rethink_fsm_t;
+
+/**
+ * Forward declare the event queue
+ */
+struct event_queue_t;
+
+/**
+ * Load the serializer and the cache
+ */
+#include "serializer/in_place.hpp"
+#include "buffer_cache/fallthrough.hpp"
+
+/**
+ * Define the btree
+ */
+// TODO: This is *VERY* not thread safe
+typedef fallthrough_cache_t<in_place_serializer_t> rethink_cache_t;
+typedef btree<array_node_t<rethink_cache_t::block_id_t>, rethink_cache_t> rethink_tree_t;
 
 /**
  * Define the small object allocator

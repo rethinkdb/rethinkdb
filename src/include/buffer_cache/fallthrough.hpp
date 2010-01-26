@@ -14,20 +14,20 @@ public:
     typedef typename serializer_t::block_id_t block_id_t;
 
 public:
-    fallthrough_cache_t(size_t _block_size) : block_size(_block_size) {}
+    fallthrough_cache_t(size_t _block_size) : serializer_t(_block_size) {}
 
     void* allocate(block_id_t *block_id) {
         *block_id = serializer_t::gen_block_id();
-        return malloc_aligned(block_size, block_size);
+        return malloc_aligned(serializer_t::block_size, serializer_t::block_size);
     }
     
-    void* acquire(block_id_t block_id, void *state) {
-        void *buf = malloc_aligned(block_size, block_size);
+    void* acquire(block_id_t block_id, rethink_fsm_t *state) {
+        void *buf = malloc_aligned(serializer_t::block_size, serializer_t::block_size);
         do_read(block_id, buf, state);
         return NULL;
     }
 
-    block_id_t release(block_id_t block_id, void *block, bool dirty, void *state) {
+    block_id_t release(block_id_t block_id, void *block, bool dirty, rethink_fsm_t *state) {
         if(dirty) {
             // TODO: we need to free the block after do_write completes
             return do_write(block_id, (char*)block, state);
@@ -36,9 +36,6 @@ public:
         }
         return block_id;
     }
-
-private:
-    size_t block_size;
 };
 
 #endif // __FALLTHROUGH_CACHE_HPP__

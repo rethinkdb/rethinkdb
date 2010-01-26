@@ -4,7 +4,6 @@
 
 #include <assert.h>
 #include <unistd.h>
-#include "event_queue.hpp"
 #include "fsm.hpp"
 
 // TODO: we should refactor the FSM to be able to unit test state

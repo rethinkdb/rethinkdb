@@ -22,6 +22,8 @@ enum fsm_result_t {
     fsm_transition_ok,
 };
 
+struct event_queue_t;
+
 template<class io_calls_t, class alloc_t>
 struct fsm_state_t : public event_state_t, public fsm_list_node_t, public io_calls_t {
     fsm_state_t(resource_t _source, alloc_t* _alloc, operations_t *_ops);
@@ -49,6 +51,7 @@ public:
     unsigned int nbuf, snbuf;
     alloc_t *alloc;
     operations_t *operations;
+    event_queue_t *event_queue;
 private:
     fsm_result_t do_socket_ready(event_t *event);
     fsm_result_t do_socket_send_incomplete(event_t *event);
