@@ -166,8 +166,8 @@ fsm_result_t fsm_state_t<io_calls_t, alloc_t>::do_transition(event_t *event) {
 
 template<class io_calls_t, class alloc_t>
 fsm_state_t<io_calls_t, alloc_t>::fsm_state_t(resource_t _source, alloc_t* _alloc,
-                                     operations_t *_ops)
-    : event_state_t(_source), alloc(_alloc), operations(_ops)
+                                              operations_t *_ops, event_queue_t *_event_queue)
+    : event_state_t(_source), alloc(_alloc), operations(_ops), event_queue(_event_queue)
 {
     init_state();
 }

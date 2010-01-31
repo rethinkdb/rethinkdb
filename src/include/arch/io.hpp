@@ -4,7 +4,7 @@
 
 #include <unistd.h>
 #include <stdio.h>
-#include "arch/common.hpp"
+#include "arch/resource.hpp"
 
 struct posix_io_calls_t {
     ssize_t read(resource_t fd, void *buf, size_t count) {

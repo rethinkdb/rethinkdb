@@ -101,7 +101,7 @@ memcached_operations_t::result_t memcached_operations_t::process_command(event_t
         // Ok, we've got a key and no more tokens, look them up
         int key_int = atoi(key);
         int value_int;
-        if(btree->lookup(key_int, &value_int)) {
+        if(btree->lookup(key_int, &value_int, state)) {
             // Since we're in the middle of processing a command,
             // state->buf must exist at this point.
             sprintf(state->buf, "%d", value_int);

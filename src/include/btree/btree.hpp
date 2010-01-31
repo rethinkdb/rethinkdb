@@ -3,6 +3,8 @@
 #define __BTREE_HPP__
 
 #include <assert.h>
+#include <string.h>
+#include "btree/btree_fsm.hpp"
 
 // TODO: support AIO via a state machine
 // TODO: mapping only int->int, allow arbitrary key and value types
@@ -18,11 +20,21 @@ class btree : public cache_t {
 public:
     btree(size_t _block_size) : cache_t(_block_size) {}
 
-    int lookup(int key, int *value) {
-        if(cache_t::is_block_id_null(cache_t::get_superblock_id()))
+    template<typename fsm_state_t>
+    int lookup(int key, int *value, fsm_state_t *fsm) {
+        block_id_t node_id;
+        if(get_root_id(&node_id) == 0) {
+            // TODO: use efficient allocator here
+            btree_fsm_t<block_id_t> *btree_fsm = new btree_fsm_t<block_id_t>();
+            btree_fsm->state = btree_fsm_t<block_id_t>::lookup_waiting_for_superblock;
+            btree_fsm->key = key;
+            btree_fsm->value = value;
+            
+            fsm->btree_fsm = btree_fsm;
+            return 2;
+        }
+        if(cache_t::is_block_id_null(node_id))
             return 0;
-        // TODO: handle async IO/state
-        block_id_t node_id = cache_t::get_superblock_id();
         node_t *node = (node_t*)acquire(node_id, NULL);
         while(node->is_internal()) {
             block_id_t next_node_id = ((internal_node_t*)node)->lookup(key);
@@ -38,7 +50,8 @@ public:
     void insert(int key, int value) {
         // TODO: handle async IO/state
         node_t *node;
-        block_id_t node_id = cache_t::get_superblock_id();
+        block_id_t node_id;
+        get_root_id(&node_id);
         bool node_dirty = false;
 
         internal_node_t *last_node = NULL;
@@ -49,7 +62,7 @@ public:
         if(cache_t::is_block_id_null(node_id)) {
             block_id_t root_id;
             void *ptr = allocate(&root_id);
-            cache_t::set_superblock_id(root_id);
+            set_root_id(root_id);
             node = new (ptr) leaf_node_t();
             node_dirty = true;
             node_id = root_id;
@@ -67,7 +80,7 @@ public:
                 if(last_node == NULL) {
                     block_id_t root_id;
                     void *ptr = allocate(&root_id);
-                    cache_t::set_superblock_id(root_id);
+                    set_root_id(root_id);
                     last_node = new (ptr) internal_node_t();
                     last_node_id = root_id;
                 }
@@ -128,6 +141,26 @@ private:
             ((internal_node_t*)node)->split((internal_node_t*)*rnode,
                                             median);
         }
+    }
+
+    int get_root_id(block_id_t *root_id) {
+        block_id_t superblock_id = cache_t::get_superblock_id();
+        // TODO: what happens if buf is NULL (AIO and all)
+        void *buf = acquire(superblock_id, NULL);
+        if(buf == NULL) {
+            return 0;
+        }
+        memcpy((void*)&root_id, buf, sizeof(root_id));
+        release(superblock_id, buf, false, NULL);
+        return 1;
+    }
+
+    void set_root_id(block_id_t root_id) {
+        block_id_t superblock_id = cache_t::get_superblock_id();
+        // TODO: what happens if buf is NULL (AIO and all)
+        void *buf = acquire(superblock_id, NULL);
+        memcpy(buf, (void*)&root_id, sizeof(root_id));
+        release(superblock_id, buf, true, NULL);
     }
 };
 

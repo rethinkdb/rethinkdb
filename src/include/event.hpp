@@ -2,7 +2,7 @@
 #ifndef __EVENT_HPP__
 #define __EVENT_HPP__
 
-#include "arch/common.hpp"
+#include "arch/resource.hpp"
 
 // Event
 struct event_state_t {

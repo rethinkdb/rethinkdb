@@ -3,14 +3,13 @@
 #define __COMMON_HPP__
 
 #include "config.hpp"
-#include "btree/btree.hpp"
-#include "btree/array_node.hpp"
 #include "alloc/memalign.hpp"
 #include "alloc/pool.hpp"
 #include "alloc/object_static.hpp"
 #include "alloc/dynamic_pool.hpp"
 #include "alloc/stats.hpp"
-#include "arch/io_calls.hpp"
+#include "arch/io.hpp"
+#include "btree/btree_fsm.hpp"
 
 /**
  * Define the IO buffer allocator
@@ -36,6 +35,8 @@ struct event_queue_t;
  */
 #include "serializer/in_place.hpp"
 #include "buffer_cache/fallthrough.hpp"
+#include "btree/btree.hpp"
+#include "btree/array_node.hpp"
 
 /**
  * Define the btree

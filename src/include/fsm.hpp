@@ -3,10 +3,11 @@
 #define __FSM_HPP__
 
 #include "containers/intrusive_list.hpp"
-#include "arch/common.hpp"
+#include "arch/resource.hpp"
 #include "common.hpp"
 #include "operations.hpp"
 #include "event.hpp"
+#include "btree/btree_fsm.hpp"
 
 // The states are collected via an intrusive list
 typedef intrusive_list_node_t<rethink_fsm_t> fsm_list_node_t;
@@ -26,7 +27,8 @@ struct event_queue_t;
 
 template<class io_calls_t, class alloc_t>
 struct fsm_state_t : public event_state_t, public fsm_list_node_t, public io_calls_t {
-    fsm_state_t(resource_t _source, alloc_t* _alloc, operations_t *_ops);
+    fsm_state_t(resource_t _source, alloc_t* _alloc, operations_t *_ops,
+                event_queue_t *_event_queue);
     ~fsm_state_t();
     
 public:
@@ -52,6 +54,7 @@ public:
     alloc_t *alloc;
     operations_t *operations;
     event_queue_t *event_queue;
+    void *btree_fsm;
 private:
     fsm_result_t do_socket_ready(event_t *event);
     fsm_result_t do_socket_send_incomplete(event_t *event);

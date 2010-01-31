@@ -6,7 +6,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <fcntl.h>
-#include "arch/common.hpp"
+#include "arch/resource.hpp"
 #include "async_io.hpp"
 #include "fsm.hpp"
 
@@ -92,27 +92,17 @@ public:
         return new_block_id;
     }
 
+    /* Consumer of the serializer can store bootstrapping information
+     * in the superblock. For the in place serializer the superblock
+     * is always at the beginning of the file. */
     block_id_t get_superblock_id() {
-        // TODO: we're doing sync IO here, we need to eliminate it
-        // (easy for read case)
-        off64_t superblock_id;
-        ssize_t res = pread(dbfd, (void*)&superblock_id, sizeof(superblock_id), 0);
-        check("Could not read superblock id", res != sizeof(superblock_id));
-        return superblock_id;
-    }
-
-    void set_superblock_id(block_id_t superblock_id) {
-        // TODO: we're doing sync IO here, we need to eliminate it
-        // (how do we do it for write?)
-        ssize_t res = pwrite(dbfd, (void*)&superblock_id, sizeof(superblock_id), 0);
-        check("Could not write superblock id", res != sizeof(superblock_id));
+        return 0;
     }
 
 public:
     resource_t dbfd;
     off64_t dbsize;
     size_t block_size;
-    block_id_t superblock_id;
     const block_id_t null_block_id;
 };
 

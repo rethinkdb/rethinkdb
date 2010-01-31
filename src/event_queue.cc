@@ -112,7 +112,8 @@ int process_itc_notify(event_queue_t *self) {
         rethink_fsm_t *state =
             self->alloc.malloc<rethink_fsm_t>(event.data,
                                               &self->iobuf_alloc,
-                                              self->operations);
+                                              self->operations,
+                                              self);
         self->register_fsm(state);
         break;
     }

@@ -4,8 +4,7 @@
 
 #include <pthread.h>
 #include <libaio.h>
-#include "common.hpp"
-#include "arch/common.hpp"
+#include "arch/resource.hpp"
 #include "common.hpp"
 #include "fsm.hpp"
 #include "operations.hpp"
