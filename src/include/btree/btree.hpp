@@ -29,8 +29,8 @@ public:
     int lookup(int key, int *value, fsm_state_t *fsm) {
         block_id_t node_id;
         if(get_root_id(&node_id) == 0) {
-            // TODO: use efficient allocator here
-            btree_fsm_t *bfsm = new btree_fsm_t();
+            // TODO: this needs to be freed somewhere
+            btree_fsm_t *bfsm = fsm->event_queue->alloc.template malloc<btree_fsm_t>();
             bfsm->state = btree_fsm_t::lookup_waiting_for_superblock;
             bfsm->key = key;
             bfsm->value = value;

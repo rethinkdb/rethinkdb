@@ -1,5 +1,6 @@
 
 #include <string.h>
+#include "event_queue.hpp"
 #include "memcached_operations.hpp"
 #include "fsm.hpp"
 

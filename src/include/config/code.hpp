@@ -44,7 +44,7 @@ struct standard_config_t {
     // Small object allocator
     typedef object_static_alloc_t<
         dynamic_pool_alloc_t<alloc_stats_t<pool_alloc_t<memalign_alloc_t<> > > >,
-        iocb, fsm_t, iobuf_t> alloc_t;
+        iocb, fsm_t, iobuf_t, btree_fsm_t> alloc_t;
 };
 
 typedef standard_config_t code_config_t;
