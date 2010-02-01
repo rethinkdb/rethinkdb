@@ -16,7 +16,8 @@ public:
         shutdown_server,
         quit_connection,
         command_success_no_response,
-        command_success_response_ready
+        command_success_response_ready,
+        command_aio_wait
     };
 
     virtual result_t process_command(event_t *event) = 0;

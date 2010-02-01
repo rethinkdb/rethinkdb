@@ -101,19 +101,25 @@ memcached_operations_t::result_t memcached_operations_t::process_command(event_t
         // Ok, we've got a key and no more tokens, look them up
         int key_int = atoi(key);
         int value_int;
-        if(btree->lookup(key_int, &value_int, state)) {
+        btree_t::result_t res = btree->lookup(key_int, &value_int, state);
+        if(res == btree_t::btree_found) {
             // Since we're in the middle of processing a command,
             // state->buf must exist at this point.
             sprintf(state->buf, "%d", value_int);
             state->nbuf = strlen(state->buf) + 1;
-        } else {
+            return command_success_response_ready;
+        } else if(res == btree_t::btree_not_found) {
             // Since we're in the middle of processing a command,
             // state->buf must exist at this point.
             char msg[] = "NIL\n";
             strcpy(state->buf, msg);
             state->nbuf = strlen(msg) + 1;
+            return command_success_response_ready;
+        } else if(res == btree_t::btree_aio_wait) {
+            return command_aio_wait;
+        } else {
+            check("Invalid btree response", 1);
         }
-        return command_success_response_ready;
     } else {
         // Invalid command
         return malformed_command;

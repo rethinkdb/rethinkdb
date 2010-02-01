@@ -9,12 +9,19 @@ void worker_pool_t::create_worker_pool(event_handler_t event_handler, pthread_t 
                                        int _nworkers)
 {
     this->main_thread = main_thread;
+
+    // Create the workers
     nworkers = _nworkers;
     workers = (event_queue_t*)malloc(sizeof(event_queue_t) * nworkers);
     for(int i = 0; i < nworkers; i++) {
         new ((void*)&workers[i]) event_queue_t(i, event_handler, this);
     }
     active_worker = 0;
+
+    // Init btree
+    // TODO: file name clearly shouldn't be hardcoded
+    btree.init((char*)"data.file");
+    
     // TODO: consider creating lower priority threads to standby in
     // case main threads block.
 }

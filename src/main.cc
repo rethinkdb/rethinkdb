@@ -20,13 +20,13 @@ void event_handler(event_queue_t *event_queue, event_t *event) {
     if(event->event_type != et_timer) {
         code_config_t::fsm_t *state = (code_config_t::fsm_t*)event->state;
         int res = state->do_transition(event);
-        if(res == fsm_shutdown_server) {
+        if(res == event_queue_t::fsm_t::fsm_shutdown_server) {
             printf("Shutting down server...\n");
             int res = pthread_kill(event_queue->parent_pool->main_thread, SIGINT);
             check("Could not send kill signal to main thread", res != 0);
-        } else if(res == fsm_quit_connection) {
+        } else if(res == event_queue_t::fsm_t::fsm_quit_connection) {
             event_queue->deregister_fsm(state);
-        } else if(res == fsm_transition_ok) {
+        } else if(res == event_queue_t::fsm_t::fsm_transition_ok) {
             // Nothing todo
         } else {
             check("Unhandled fsm transition result", 1);

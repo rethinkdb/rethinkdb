@@ -31,7 +31,7 @@ void fsm_state_t<config_t>::return_to_socket_connected() {
 // operations. Incoming events should be user commands received by the
 // socket.
 template<class config_t>
-fsm_result_t fsm_state_t<config_t>::do_socket_ready(event_t *event) {
+typename fsm_state_t<config_t>::result_t fsm_state_t<config_t>::do_socket_ready(event_t *event) {
     int res;
     size_t sz;
     fsm_state_t *state = (fsm_state_t*)event->state;
@@ -93,8 +93,11 @@ fsm_result_t fsm_state_t<config_t>::do_socket_ready(event_t *event) {
                 } else if(res == operations_t::shutdown_server) {
                     // Shutdown has been initiated
                     return fsm_shutdown_server;
+                } else if(res == operations_t::command_aio_wait) {
+                    state->state = fsm_btree_incomplete;
+                    break;
                 } else {
-                    check("Unhandled result", 1);
+                    check("Invalid operation result", 1);
                 }
             } else {
                 // Socket has been closed, destroy the connection
@@ -118,7 +121,7 @@ fsm_result_t fsm_state_t<config_t>::do_socket_ready(event_t *event) {
 // The socket is ready for sending more information and we were in the
 // middle of an incomplete send request.
 template<class config_t>
-fsm_result_t fsm_state_t<config_t>::do_socket_send_incomplete(event_t *event) {
+typename fsm_state_t<config_t>::result_t fsm_state_t<config_t>::do_socket_send_incomplete(event_t *event) {
     // TODO: incomplete send needs to be tested therally. It's not
     // clear how to get the kernel to artifically limit the send
     // buffer.
@@ -142,13 +145,13 @@ fsm_result_t fsm_state_t<config_t>::do_socket_send_incomplete(event_t *event) {
 // Switch on the current state and call the appropriate transition
 // function.
 template<class config_t>
-fsm_result_t fsm_state_t<config_t>::do_transition(event_t *event) {
+typename fsm_state_t<config_t>::result_t fsm_state_t<config_t>::do_transition(event_t *event) {
     // TODO: Using parent_pool member variable within state
     // transitions might cause cache line alignment issues. Can we
     // eliminate it (perhaps by giving each thread its own private
     // copy of the necessary data)?
 
-    fsm_result_t res;
+    result_t res;
 
     switch(state) {
     case fsm_state_t::fsm_socket_connected:

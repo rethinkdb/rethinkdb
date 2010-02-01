@@ -18,28 +18,38 @@
 template <class config_t>
 class btree : public config_t::cache_t {
 public:
+    typedef typename config_t::fsm_t fsm_t;
     typedef typename config_t::node_t node_t;
     typedef typename config_t::cache_t cache_t;
     typedef typename config_t::btree_fsm_t btree_fsm_t;
+
+public:
+    enum result_t {
+        btree_not_found,
+        btree_found,
+        btree_aio_wait
+    };
     
 public:
     btree(size_t _block_size) : cache_t(_block_size) {}
 
-    template<typename fsm_state_t>
-    int lookup(int key, int *value, fsm_state_t *fsm) {
+    result_t lookup(int key, int *value, fsm_t *fsm) {
         block_id_t node_id;
-        if(get_root_id(&node_id) == 0) {
+        if(get_root_id(&node_id, fsm) == 0) {
             // TODO: this needs to be freed somewhere
+            // TODO: setting fsm->btree_fsm directly is kind of rude -
+            // it should be done by the fsm implementation itself on
+            // appropriate lookup return value.
             btree_fsm_t *bfsm = fsm->event_queue->alloc.template malloc<btree_fsm_t>();
             bfsm->state = btree_fsm_t::lookup_waiting_for_superblock;
             bfsm->key = key;
             bfsm->value = value;
             
             fsm->btree_fsm = bfsm;
-            return 2;
+            return btree_aio_wait;
         }
         if(cache_t::is_block_id_null(node_id))
-            return 0;
+            return btree_not_found;
         node_t *node = (node_t*)acquire(node_id, NULL);
         while(node->is_internal()) {
             block_id_t next_node_id = ((internal_node_t*)node)->lookup(key);
@@ -49,14 +59,14 @@ public:
         }
         int result = ((leaf_node_t*)node)->lookup(key, value);
         release(node_id, (void*)node, false, NULL);
-        return result;
+        return result == 1 ? btree_found : btree_not_found;
     }
     
     void insert(int key, int value) {
         // TODO: handle async IO/state
         node_t *node;
         block_id_t node_id;
-        get_root_id(&node_id);
+        get_root_id(&node_id, NULL);
         bool node_dirty = false;
 
         internal_node_t *last_node = NULL;
@@ -148,15 +158,15 @@ private:
         }
     }
 
-    int get_root_id(block_id_t *root_id) {
+    int get_root_id(block_id_t *root_id, fsm_t *fsm) {
         block_id_t superblock_id = cache_t::get_superblock_id();
         // TODO: what happens if buf is NULL (AIO and all)
-        void *buf = acquire(superblock_id, NULL);
+        void *buf = acquire(superblock_id, fsm);
         if(buf == NULL) {
             return 0;
         }
         memcpy((void*)&root_id, buf, sizeof(root_id));
-        release(superblock_id, buf, false, NULL);
+        release(superblock_id, buf, false, fsm);
         return 1;
     }
 
