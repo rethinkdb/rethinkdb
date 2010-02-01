@@ -21,9 +21,11 @@
  * efficient for rotational drives and flash drives with a very good
  * FTL. It's also a good sanity check that the rest of the system
  * isn't tightly coupled with a log-structured serializer. */
+template<class config_t>
 struct in_place_serializer_t {
 public:
     typedef off64_t block_id_t;
+    typedef typename config_t::fsm_t fsm_t;
 
 public:
     in_place_serializer_t(size_t _block_size)
@@ -62,7 +64,7 @@ public:
     
     /* Fires off an async request to read the block identified by
      * block_id into buf, associating state with the request. */
-    void do_read(block_id_t block_id, void *buf, rethink_fsm_t *fsm) {
+    void do_read(block_id_t block_id, void *buf, fsm_t *fsm) {
         schedule_aio_read(dbfd, block_id, block_size, buf,
                           fsm->event_queue, (event_state_t*)fsm);
     }
@@ -73,7 +75,7 @@ public:
      * always the same as the original id). If the block is new, NULL
      * can be passed in place of block_id, in which case the return
      * value will be the id of the newly written block. */
-    block_id_t do_write(block_id_t block_id, void *buf, rethink_fsm_t *fsm) {
+    block_id_t do_write(block_id_t block_id, void *buf, fsm_t *fsm) {
         schedule_aio_write(dbfd, block_id, block_size, buf,
                            fsm->event_queue, (event_state_t*)fsm);
         return block_id;

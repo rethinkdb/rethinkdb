@@ -1,6 +1,5 @@
 
 #include <string.h>
-#include "common.hpp"
 #include "memcached_operations.hpp"
 #include "fsm.hpp"
 
@@ -12,7 +11,7 @@ memcached_operations_t::result_t memcached_operations_t::process_command(event_t
 {
     int res;
 
-    rethink_fsm_t *state = (rethink_fsm_t*)event->state;
+    fsm_t *state = (fsm_t*)event->state;
     char *buf = state->buf;
     unsigned int size = state->nbuf;
 

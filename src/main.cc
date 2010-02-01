@@ -18,7 +18,7 @@
 
 void event_handler(event_queue_t *event_queue, event_t *event) {
     if(event->event_type != et_timer) {
-        rethink_fsm_t *state = (rethink_fsm_t*)event->state;
+        code_config_t::fsm_t *state = (code_config_t::fsm_t*)event->state;
         int res = state->do_transition(event);
         if(res == fsm_shutdown_server) {
             printf("Shutting down server...\n");

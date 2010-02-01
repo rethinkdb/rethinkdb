@@ -1,7 +1,11 @@
 
-#ifndef __CONFIG__H__
-#define __CONFIG__H__
+#ifndef __CONFIG_ARGS_H__
+#define __CONFIG_ARGS_H__
 
+/**
+ * Basic configuration parameters.
+ * TODO: Many of these should be runtime switches.
+ */
 // Ticks (in seconds) the internal timed tasks are performed at
 #define TIMER_TICKS_IN_SECS                       1
 
@@ -30,5 +34,5 @@
 // Size of each btree node (in bytes)
 #define BTREE_BLOCK_SIZE                          1024
 
-#endif // __CONFIG__H__
+#endif // __CONFIG_ARGS_H__
 

@@ -5,12 +5,12 @@
 #include <pthread.h>
 #include <libaio.h>
 #include "arch/resource.hpp"
-#include "common.hpp"
 #include "fsm.hpp"
 #include "operations.hpp"
 #include "event.hpp"
+#include "corefwd.hpp"
+#include "config/code.hpp"
 
-struct event_queue_t;
 typedef void (*event_handler_t)(event_queue_t*, event_t*);
 
 // Inter-thread communication event (ITC)
@@ -25,8 +25,12 @@ struct itc_event_t {
 };
 
 // Event queue structure
-struct worker_pool_t;
 struct event_queue_t {
+public:
+    typedef code_config_t::fsm_t fsm_t;
+    typedef code_config_t::alloc_t alloc_t;
+    typedef code_config_t::fsm_list_t fsm_list_t;
+    
 public:
     event_queue_t(int queue_id, event_handler_t event_handler,
                   worker_pool_t *parent_pool);
@@ -44,8 +48,8 @@ public:
 
 
     // FSM registration
-    void register_fsm(rethink_fsm_t *fsm);
-    void deregister_fsm(rethink_fsm_t *fsm);
+    void register_fsm(fsm_t *fsm);
+    void deregister_fsm(fsm_t *fsm);
 
 public:
     // TODO: be clear on what should and shouldn't be public here
@@ -58,8 +62,7 @@ public:
     resource_t epoll_fd;
     resource_t itc_pipe[2];
     event_handler_t event_handler;
-    small_obj_alloc_t alloc;
-    iobuf_alloc_t iobuf_alloc;
+    alloc_t alloc;
     // TODO: we should abstract live_fsms away from the queue. The
     // user of the queue provide an object that holds queue-local
     // state.

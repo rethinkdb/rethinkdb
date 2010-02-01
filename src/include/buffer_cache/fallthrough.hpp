@@ -8,10 +8,12 @@
  * attempt is made to cache anything in memory. This is useful for
  * testing of serializers as well as consumers of caches without
  * depending on complex internal cache behavior. */
-template <class serializer_t>
-struct fallthrough_cache_t : public serializer_t {
+template <class config_t>
+struct fallthrough_cache_t : public config_t::serializer_t {
 public:
+    typedef typename config_t::serializer_t serializer_t;
     typedef typename serializer_t::block_id_t block_id_t;
+    typedef typename config_t::fsm_t fsm_t;
 
 public:
     fallthrough_cache_t(size_t _block_size) : serializer_t(_block_size) {}
@@ -21,13 +23,13 @@ public:
         return malloc_aligned(serializer_t::block_size, serializer_t::block_size);
     }
     
-    void* acquire(block_id_t block_id, rethink_fsm_t *state) {
+    void* acquire(block_id_t block_id, fsm_t *state) {
         void *buf = malloc_aligned(serializer_t::block_size, serializer_t::block_size);
         do_read(block_id, buf, state);
         return NULL;
     }
 
-    block_id_t release(block_id_t block_id, void *block, bool dirty, rethink_fsm_t *state) {
+    block_id_t release(block_id_t block_id, void *block, bool dirty, fsm_t *state) {
         if(dirty) {
             // TODO: we need to free the block after do_write completes
             return do_write(block_id, (char*)block, state);

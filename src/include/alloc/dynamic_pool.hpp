@@ -4,7 +4,7 @@
 
 #include <math.h>
 #include <assert.h>
-#include "config.hpp"
+#include "config/args.hpp"
 #include "utils.hpp"
 
 // TODO: We double the size of the allocator every time, which means

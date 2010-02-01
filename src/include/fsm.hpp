@@ -4,18 +4,12 @@
 
 #include "containers/intrusive_list.hpp"
 #include "arch/resource.hpp"
-#include "common.hpp"
 #include "operations.hpp"
 #include "event.hpp"
 #include "btree/btree_fsm.hpp"
+#include "corefwd.hpp"
 
-// The states are collected via an intrusive list
-typedef intrusive_list_node_t<rethink_fsm_t> fsm_list_node_t;
-typedef intrusive_list_t<rethink_fsm_t> fsm_list_t;
-
-// Define the state structure
-struct event_t;
-
+// Possible transition results
 enum fsm_result_t {
     fsm_invalid,
     fsm_shutdown_server,
@@ -23,10 +17,18 @@ enum fsm_result_t {
     fsm_transition_ok,
 };
 
-struct event_queue_t;
-
-template<class io_calls_t, class alloc_t>
-struct fsm_state_t : public event_state_t, public fsm_list_node_t, public io_calls_t {
+// The actual state structure
+template<class config_t>
+struct fsm_state_t : public event_state_t,
+                     public config_t::iocalls_t,
+                     public intrusive_list_node_t<fsm_state_t<config_t> >
+{
+public:
+    typedef typename config_t::alloc_t alloc_t;
+    typedef typename config_t::iocalls_t iocalls_t;
+    typedef typename config_t::iobuf_t iobuf_t;
+    
+public:
     fsm_state_t(resource_t _source, alloc_t* _alloc, operations_t *_ops,
                 event_queue_t *_event_queue);
     ~fsm_state_t();
@@ -64,6 +66,7 @@ private:
     void return_to_socket_connected();
 };
 
+// Include the implementation
 #include "fsm_impl.hpp"
 
 #endif // __FSM_HPP__

@@ -15,8 +15,12 @@
 // TODO: consider redoing with a visitor pattern to avoid ugly casts
 // TODO: consider B#/B* trees to improve space efficiency
 
-template <class node_t, class cache_t>
-class btree : public cache_t {
+template <class config_t>
+class btree : public config_t::cache_t {
+public:
+    typedef typename config_t::node_t node_t;
+    typedef typename config_t::cache_t cache_t;
+    
 public:
     btree(size_t _block_size) : cache_t(_block_size) {}
 

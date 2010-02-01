@@ -10,7 +10,6 @@
 #include <strings.h>
 #include <new>
 #include <algorithm>
-#include "config.hpp"
 #include "utils.hpp"
 #include "event_queue.hpp"
 #include "worker_pool.hpp"
@@ -109,11 +108,11 @@ int process_itc_notify(event_queue_t *self) {
     case iet_new_socket:
         // The state will be freed within the fsm when the socket is
         // closed (or killed for a variety of possible reasons)
-        rethink_fsm_t *state =
-            self->alloc.malloc<rethink_fsm_t>(event.data,
-                                              &self->iobuf_alloc,
-                                              self->operations,
-                                              self);
+        event_queue_t::fsm_t *state =
+            self->alloc.malloc<event_queue_t::fsm_t>(event.data,
+                                      &self->alloc,
+                                      self->operations,
+                                      self);
         self->register_fsm(state);
         break;
     }
@@ -144,7 +143,7 @@ int process_network_notify(event_queue_t *self, epoll_event *event) {
               event->events == EPOLLERR ||
               event->events == EPOLLHUP)
     {
-        self->deregister_fsm((rethink_fsm_t*)(event->data.ptr));
+        self->deregister_fsm((event_queue_t::fsm_t*)(event->data.ptr));
     } else {
         check("epoll_wait came back with an unhandled event", 1);
     }
@@ -192,7 +191,6 @@ void* epoll_handler(void *arg) {
 
 event_queue_t::event_queue_t(int queue_id, event_handler_t event_handler,
                              worker_pool_t *parent_pool)
-    : iobuf_alloc(IO_BUFFER_SIZE)
 {
     int res;
     this->queue_id = queue_id;
@@ -269,7 +267,7 @@ event_queue_t::~event_queue_t()
     delete operations;
     
     // Cleanup remaining fsms
-    rethink_fsm_t *state = this->live_fsms.head();
+    fsm_t *state = this->live_fsms.head();
     while(state) {
         deregister_fsm(state);
         state = this->live_fsms.head();
@@ -391,13 +389,13 @@ void event_queue_t::post_itc_message(itc_event_t *event) {
     // used.
 }
 
-void event_queue_t::register_fsm(rethink_fsm_t *fsm) {
+void event_queue_t::register_fsm(fsm_t *fsm) {
     live_fsms.push_back(fsm);
     watch_resource(fsm->source, eo_rdwr, fsm);
     printf("Opened socket %d\n", fsm->source);
 }
 
-void event_queue_t::deregister_fsm(rethink_fsm_t *fsm) {
+void event_queue_t::deregister_fsm(fsm_t *fsm) {
     printf("Closing socket %d\n", fsm->source);
     forget_resource(fsm->source);
     live_fsms.remove(fsm);

@@ -24,5 +24,12 @@ const char* tokenize(const char *str, unsigned int size,
 char* tokenize(char *str, unsigned int size,
                const char *delims, unsigned int *token_size);
 
+// Buffer
+template <int _size>
+struct buffer_t {
+    char buf[_size];
+    static const int size = _size;
+};
+
 #endif // __UTILS_HPP__
 
