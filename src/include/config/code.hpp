@@ -38,7 +38,7 @@ struct standard_config_t {
 
     // BTree
     typedef array_node_t<serializer_t::block_id_t> node_t;
-    typedef btree_fsm<serializer_t::block_id_t> btree_fsm_t;
+    typedef btree_fsm<standard_config_t> btree_fsm_t;
     typedef btree<standard_config_t> btree_t;
 
     // Small object allocator

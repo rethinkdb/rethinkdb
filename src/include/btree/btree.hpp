@@ -40,8 +40,8 @@ public:
             // TODO: setting fsm->btree_fsm directly is kind of rude -
             // it should be done by the fsm implementation itself on
             // appropriate lookup return value.
-            btree_fsm_t *bfsm = fsm->event_queue->alloc.template malloc<btree_fsm_t>();
-            bfsm->state = btree_fsm_t::lookup_waiting_for_superblock;
+            btree_fsm_t *bfsm = fsm->event_queue
+                ->alloc.template malloc<btree_fsm_t>(this, btree_fsm_t::lookup_waiting_for_superblock);
             bfsm->key = key;
             bfsm->value = value;
             

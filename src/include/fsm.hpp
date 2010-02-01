@@ -19,6 +19,7 @@ public:
     typedef typename config_t::alloc_t alloc_t;
     typedef typename config_t::iocalls_t iocalls_t;
     typedef typename config_t::iobuf_t iobuf_t;
+    typedef typename config_t::btree_t btree_t;
     typedef typename config_t::btree_fsm_t btree_fsm_t;
     
 public:
@@ -65,6 +66,8 @@ public:
 private:
     result_t do_socket_ready(event_t *event);
     result_t do_socket_send_incomplete(event_t *event);
+    result_t do_fsm_btree_incomplete(event_t *event);
+    
     void send_msg_to_client();
     void send_err_to_client();
     void init_state();

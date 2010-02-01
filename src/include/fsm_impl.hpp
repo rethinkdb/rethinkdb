@@ -118,6 +118,14 @@ typename fsm_state_t<config_t>::result_t fsm_state_t<config_t>::do_socket_ready(
     return fsm_transition_ok;
 }
 
+template<class config_t>
+typename fsm_state_t<config_t>::result_t fsm_state_t<config_t>::do_fsm_btree_incomplete(event_t *event)
+{
+    assert(btree_fsm);
+    btree_t *btree = btree_fsm->btree;
+    check("TODO: Implement do_fsm_btree_incomplete", 1);
+}
+
 // The socket is ready for sending more information and we were in the
 // middle of an incomplete send request.
 template<class config_t>
@@ -154,12 +162,15 @@ typename fsm_state_t<config_t>::result_t fsm_state_t<config_t>::do_transition(ev
     result_t res;
 
     switch(state) {
-    case fsm_state_t::fsm_socket_connected:
-    case fsm_state_t::fsm_socket_recv_incomplete:
+    case fsm_socket_connected:
+    case fsm_socket_recv_incomplete:
         res = do_socket_ready(event);
         break;
-    case fsm_state_t::fsm_socket_send_incomplete:
+    case fsm_socket_send_incomplete:
         res = do_socket_send_incomplete(event);
+        break;
+    case fsm_btree_incomplete:
+        res = do_fsm_btree_incomplete(event);
         break;
     default:
         res = fsm_invalid;
