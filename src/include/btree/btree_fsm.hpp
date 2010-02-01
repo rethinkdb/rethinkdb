@@ -3,7 +3,7 @@
 #define __BTREE_FSM_HPP__
 
 template <typename block_id_t>
-class btree_fsm_t {
+class btree_fsm {
 public:
     enum state_t {
         lookup_waiting_for_superblock,

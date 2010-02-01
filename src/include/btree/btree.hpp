@@ -20,6 +20,7 @@ class btree : public config_t::cache_t {
 public:
     typedef typename config_t::node_t node_t;
     typedef typename config_t::cache_t cache_t;
+    typedef typename config_t::btree_fsm_t btree_fsm_t;
     
 public:
     btree(size_t _block_size) : cache_t(_block_size) {}
@@ -29,12 +30,12 @@ public:
         block_id_t node_id;
         if(get_root_id(&node_id) == 0) {
             // TODO: use efficient allocator here
-            btree_fsm_t<block_id_t> *btree_fsm = new btree_fsm_t<block_id_t>();
-            btree_fsm->state = btree_fsm_t<block_id_t>::lookup_waiting_for_superblock;
-            btree_fsm->key = key;
-            btree_fsm->value = value;
+            btree_fsm_t *bfsm = new btree_fsm_t();
+            bfsm->state = btree_fsm_t::lookup_waiting_for_superblock;
+            bfsm->key = key;
+            bfsm->value = value;
             
-            fsm->btree_fsm = btree_fsm;
+            fsm->btree_fsm = bfsm;
             return 2;
         }
         if(cache_t::is_block_id_null(node_id))

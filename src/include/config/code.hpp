@@ -13,6 +13,7 @@
 #include "serializer/in_place.hpp"
 #include "buffer_cache/fallthrough.hpp"
 #include "btree/btree.hpp"
+#include "btree/btree_fsm.hpp"
 #include "btree/array_node.hpp"
 
 /**
@@ -37,6 +38,7 @@ struct standard_config_t {
 
     // BTree
     typedef array_node_t<serializer_t::block_id_t> node_t;
+    typedef btree_fsm<serializer_t::block_id_t> btree_fsm_t;
     typedef btree<standard_config_t> btree_t;
 
     // Small object allocator
