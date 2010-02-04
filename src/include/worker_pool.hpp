@@ -9,7 +9,7 @@
 // Worker pool
 struct worker_pool_t {
 public:
-    typedef code_config_t::btree_t btree_t;
+    typedef code_config_t::cache_t cache_t;
     
 public:
     worker_pool_t(event_handler_t event_handler, pthread_t main_thread);
@@ -22,7 +22,7 @@ public:
     int nworkers;
     int active_worker;
     pthread_t main_thread;
-    btree_t btree;
+    cache_t cache;
 
 private:
     void create_worker_pool(event_handler_t event_handler, pthread_t main_thread,

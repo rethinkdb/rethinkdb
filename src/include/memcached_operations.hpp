@@ -7,18 +7,20 @@
 
 class memcached_operations_t : public operations_t {
 public:
-    typedef code_config_t::fsm_t fsm_t;
-    typedef code_config_t::btree_t btree_t;
+    typedef code_config_t::alloc_t alloc_t;
+    typedef code_config_t::cache_t cache_t;
     
 public:
-    memcached_operations_t(btree_t *_btree)
-        : btree(_btree)
+    memcached_operations_t(cache_t *_cache, alloc_t *_alloc)
+        : cache(_cache), alloc(_alloc)
         {}
     
     virtual result_t process_command(event_t *event);
+    virtual void complete_op(btree_fsm_t *btree_fsm, event_t *event);
 
 private:
-    btree_t *btree;
+    cache_t *cache;
+    alloc_t *alloc;
 };
 
 #endif // __MEMCACHED_OPERATIONS_HPP__

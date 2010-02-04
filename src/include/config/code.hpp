@@ -34,12 +34,12 @@ struct standard_config_t {
     typedef in_place_serializer_t<standard_config_t> serializer_t;
 
     // Cache
+    // TODO: add cache_stats_t here, to make sure we acquire/release properly
     typedef fallthrough_cache_t<standard_config_t> cache_t;
 
     // BTree
     typedef array_node_t<serializer_t::block_id_t> node_t;
     typedef btree_fsm<standard_config_t> btree_fsm_t;
-    typedef btree<standard_config_t> btree_t;
 
     // Small object allocator
     typedef object_static_alloc_t<

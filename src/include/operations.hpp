@@ -3,10 +3,15 @@
 #define __OPERATIONS_HPP__
 
 #include "event.hpp"
+#include "config/code.hpp"
 
 struct event_t;
 
 class operations_t {
+public:
+    typedef code_config_t::fsm_t fsm_t;
+    typedef code_config_t::btree_fsm_t btree_fsm_t;
+    
 public:
     virtual ~operations_t() {}
 
@@ -21,6 +26,7 @@ public:
     };
 
     virtual result_t process_command(event_t *event) = 0;
+    virtual void complete_op(btree_fsm_t *btree_fsm, event_t *event) = 0;
 };
 
 #endif // __OPERATIONS_HPP__

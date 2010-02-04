@@ -121,9 +121,37 @@ typename fsm_state_t<config_t>::result_t fsm_state_t<config_t>::do_socket_ready(
 template<class config_t>
 typename fsm_state_t<config_t>::result_t fsm_state_t<config_t>::do_fsm_btree_incomplete(event_t *event)
 {
+    printf("HALA~\n");
     assert(btree_fsm);
-    btree_t *btree = btree_fsm->btree;
-    check("TODO: Implement do_fsm_btree_incomplete", 1);
+    if(event->event_type == et_sock) {
+        // We're not going to process anything else from the socket
+        // until we complete the currently executing command.
+
+        // TODO: This strategy destroys any possibility of pipelining
+        // commands on a single socket. We should enable this in the
+        // future (fsm would need to associate IO responses with a
+        // given command).
+    } else if(event->event_type == et_disk) {
+        typename btree_fsm_t::result_t res = btree_fsm->do_transition(event);
+        if(res == btree_fsm_t::btree_fsm_complete) {
+            operations->complete_op(btree_fsm, event);
+
+            // TODO: make sure there is stuff to send!
+            
+            send_msg_to_client();
+            if(this->state != fsm_state_t::fsm_socket_send_incomplete) {
+                // We've finished sending completely, now see if there is
+                // anything left to read from the old epoll notification,
+                // and let fsm_socket_ready do the cleanup
+                event->op = eo_read;
+                do_socket_ready(event);
+            }
+        }
+    } else {
+        check("fsm_btree_incomplete: Invalid event", 1);
+    }
+    
+    return fsm_transition_ok;
 }
 
 // The socket is ready for sending more information and we were in the

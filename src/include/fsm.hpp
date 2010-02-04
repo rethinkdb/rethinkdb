@@ -19,7 +19,6 @@ public:
     typedef typename config_t::alloc_t alloc_t;
     typedef typename config_t::iocalls_t iocalls_t;
     typedef typename config_t::iobuf_t iobuf_t;
-    typedef typename config_t::btree_t btree_t;
     typedef typename config_t::btree_fsm_t btree_fsm_t;
     
 public:

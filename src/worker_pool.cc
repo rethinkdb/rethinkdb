@@ -18,16 +18,16 @@ void worker_pool_t::create_worker_pool(event_handler_t event_handler, pthread_t 
     }
     active_worker = 0;
 
-    // Init btree
+    // Init the cache
     // TODO: file name clearly shouldn't be hardcoded
-    btree.init((char*)"data.file");
+    cache.init((char*)"data.file");
     
     // TODO: consider creating lower priority threads to standby in
     // case main threads block.
 }
 
 worker_pool_t::worker_pool_t(event_handler_t event_handler, pthread_t main_thread)
-    : btree(BTREE_BLOCK_SIZE)
+    : cache(BTREE_BLOCK_SIZE)
 {
     int ncpus = get_cpu_count();
     printf("Number of CPUs: %d\n", ncpus);
@@ -36,7 +36,7 @@ worker_pool_t::worker_pool_t(event_handler_t event_handler, pthread_t main_threa
 
 worker_pool_t::worker_pool_t(event_handler_t event_handler, pthread_t main_thread,
                              int _nworkers)
-    : btree(BTREE_BLOCK_SIZE)
+    : cache(BTREE_BLOCK_SIZE)
 {
     create_worker_pool(event_handler, main_thread, _nworkers);
 }
@@ -47,6 +47,7 @@ worker_pool_t::~worker_pool_t() {
     }
     free(workers);
     nworkers = 0;
+    cache.close();
 }
 
 event_queue_t* worker_pool_t::next_active_worker() {
