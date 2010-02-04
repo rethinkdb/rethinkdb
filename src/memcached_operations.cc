@@ -26,7 +26,8 @@ memcached_operations_t::result_t memcached_operations_t::process_command(event_t
     // next command. That means we can't check that the end of the
     // recv buffer in NULL terminated, we gotta scan. It also means
     // that we can't use one buffer for both recv and send, we need to
-    // add a send buffer.
+    // add a send buffer (assuming we want to support out of band
+    // commands).
     
     // Make sure the string is properly terminated
     if(buf[size - 1] != '\n' && buf[size - 1] != '\r') {
