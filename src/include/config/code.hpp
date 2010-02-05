@@ -38,6 +38,7 @@ struct standard_config_t {
     typedef fallthrough_cache_t<standard_config_t> cache_t;
 
     // BTree
+    typedef btree_admin<standard_config_t> btree_admin_t;
     typedef array_node_t<serializer_t::block_id_t> node_t;
     typedef btree_fsm<standard_config_t> btree_fsm_t;
 

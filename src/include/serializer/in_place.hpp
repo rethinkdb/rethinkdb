@@ -9,6 +9,7 @@
 #include "arch/resource.hpp"
 #include "async_io.hpp"
 #include "fsm.hpp"
+#include "btree/btree_admin.hpp"
 
 // TODO: what about multiple modifications to the tree that need to be
 // performed atomically?
@@ -26,10 +27,11 @@ struct in_place_serializer_t {
 public:
     typedef off64_t block_id_t;
     typedef typename config_t::fsm_t fsm_t;
+    typedef typename config_t::btree_admin_t btree_admin_t;
 
 public:
     in_place_serializer_t(size_t _block_size)
-        : dbfd(-1), dbsize(-1), block_size(_block_size), null_block_id(-1)
+        : dbfd(-1), dbsize(-1), block_size(_block_size)
         {}
     ~in_place_serializer_t() {
         check("Database file was not properly closed", dbfd != -1);
@@ -51,6 +53,7 @@ public:
         
         // Leave space for the metablock if necessary
         if(dbsize == 0) {
+            btree_admin_t::create_db(dbfd);
             dbsize = block_size;
         }
     }
@@ -83,7 +86,7 @@ public:
 
 public:
     /* Returns true iff block_id is NULL. */
-    bool is_block_id_null(block_id_t block_id) {
+    static bool is_block_id_null(block_id_t block_id) {
         return block_id == -1;
     }
 
@@ -105,7 +108,7 @@ public:
     resource_t dbfd;
     off64_t dbsize;
     size_t block_size;
-    const block_id_t null_block_id;
+    static const block_id_t null_block_id = -1;
 };
 
 #endif // __IN_PLACE_SERIALIZER_HPP__

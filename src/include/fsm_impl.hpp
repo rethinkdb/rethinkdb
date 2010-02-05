@@ -121,7 +121,6 @@ typename fsm_state_t<config_t>::result_t fsm_state_t<config_t>::do_socket_ready(
 template<class config_t>
 typename fsm_state_t<config_t>::result_t fsm_state_t<config_t>::do_fsm_btree_incomplete(event_t *event)
 {
-    printf("HALA~\n");
     assert(btree_fsm);
     if(event->event_type == et_sock) {
         // We're not going to process anything else from the socket
@@ -144,6 +143,7 @@ typename fsm_state_t<config_t>::result_t fsm_state_t<config_t>::do_fsm_btree_inc
                 // anything left to read from the old epoll notification,
                 // and let fsm_socket_ready do the cleanup
                 event->op = eo_read;
+                event->event_type = et_sock;
                 do_socket_ready(event);
             }
         }

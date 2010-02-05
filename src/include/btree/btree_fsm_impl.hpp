@@ -68,8 +68,16 @@ typename btree_fsm<config_t>::result_t btree_fsm<config_t>::do_lookup_acquiring_
 template <class config_t>
 typename btree_fsm<config_t>::result_t btree_fsm<config_t>::do_transition(event_t *event) {
     result_t res = btree_transition_ok;
+    // TODO: If event is null, we're initiating the first
+    // transition. Is this the API we want?
     if(event == NULL || event->event_type == et_disk) {
-        // TODO: update the cache with the event
+        // Update the cache with the event
+        if(event) {
+            check("Could not complete AIO operation",
+                  event->result == 0 ||
+                  event->result == -1);
+            cache->aio_complete(node_id, event->buf);
+        }
 
         // First, acquire the superblock (to get root node ID)
         if(res == btree_transition_ok && state == lookup_acquiring_superblock)

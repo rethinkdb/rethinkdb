@@ -2,6 +2,7 @@
 #ifndef __FALLTHROUGH_CACHE_HPP__
 #define __FALLTHROUGH_CACHE_HPP__
 
+#include <map>
 #include "utils.hpp"
 
 /* Every operation in this cache fall through to the serializer - no
@@ -24,9 +25,14 @@ public:
     }
     
     void* acquire(block_id_t block_id, fsm_t *state) {
-        void *buf = malloc_aligned(serializer_t::block_size, serializer_t::block_size);
-        do_read(block_id, buf, state);
-        return NULL;
+        typename ft_map_t::iterator block = ft_map.find(block_id);
+        if(block == ft_map.end()) {
+            void *buf = malloc_aligned(serializer_t::block_size, serializer_t::block_size);
+            do_read(block_id, buf, state);
+            return NULL;
+        } else {
+            return (*block).second;
+        }
     }
 
     block_id_t release(block_id_t block_id, void *block, bool dirty, fsm_t *state) {
@@ -34,10 +40,19 @@ public:
             // TODO: we need to free the block after do_write completes
             return do_write(block_id, (char*)block, state);
         } else {
+            ft_map.erase(ft_map.find(block_id));
             free(block);
         }
         return block_id;
     }
+
+    void aio_complete(block_id_t block_id, void *buf) {
+        ft_map[block_id] = buf;
+    }
+
+private:
+    typedef std::map<block_id_t, void*> ft_map_t;
+    ft_map_t ft_map;
 };
 
 #endif // __FALLTHROUGH_CACHE_HPP__
