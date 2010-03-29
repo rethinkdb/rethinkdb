@@ -1,14 +1,14 @@
 
 #include <string.h>
 #include "event_queue.hpp"
-#include "memcached_operations.hpp"
+#include "request_handler/memcached_handler.hpp"
 #include "fsm.hpp"
 
 // TODO: we should have a nicer way of switching on the command than a
 // giant if/else statement (at least break them out into functions).
 
 // Process commands received from the user
-memcached_operations_t::result_t memcached_operations_t::initiate_op(event_t *event)
+memcached_handler_t::parse_result_t memcached_handler_t::parse_request(event_t *event)
 {
     int res;
 
@@ -31,7 +31,7 @@ memcached_operations_t::result_t memcached_operations_t::initiate_op(event_t *ev
     
     // Make sure the string is properly terminated
     if(buf[size - 1] != '\n' && buf[size - 1] != '\r') {
-        return incomplete_command;
+        return op_partial_packet;
     }
 
     // Grab the command out of the string
@@ -39,7 +39,7 @@ memcached_operations_t::result_t memcached_operations_t::initiate_op(event_t *ev
     char delims[] = " \t\n\r\0";
     char *token = tokenize(buf, size, delims, &token_size);
     if(token == NULL)
-        return malformed_command;
+        return op_malformed;
     
     // Execute command
     if(token_size == 4 && strncmp(token, "quit", 4) == 0) {
@@ -47,17 +47,17 @@ memcached_operations_t::result_t memcached_operations_t::initiate_op(event_t *ev
         if((token = tokenize(token + token_size,
                              buf + size - (token + token_size),
                              delims, &token_size)) != NULL)
-            return malformed_command;
+            return op_malformed;
         // Quit the connection
-        return quit_connection;
+        return op_req_quit;
     } else if(token_size == 8 && strncmp(token, "shutdown", 8) == 0) {
         // Make sure there's no more tokens
         if((token = tokenize(token + token_size,
                              buf + size - (token + token_size),
                              delims, &token_size)) != NULL)
-            return malformed_command;
+            return op_malformed;
         // Shutdown the server
-        return shutdown_server;
+        return op_req_shutdown;
     } else if(token_size == 3 && strncmp(token, "set", 3) == 0) {
         /*
         // Make sure we have two more tokens
@@ -66,19 +66,19 @@ memcached_operations_t::result_t memcached_operations_t::initiate_op(event_t *ev
                              buf + size - (token + token_size),
                              delims, &key_size);
         if(key == NULL)
-            return malformed_command;
+            return op_malformed;
         key[key_size] = '\0';
         unsigned int value_size;
         char *value = tokenize(key + key_size + 1,
                                buf + size - (key + key_size + 1),
                                delims, &value_size);
         if(value == NULL)
-            return malformed_command;
+            return op_malformed;
         value[value_size] = '\0';
         if((token = tokenize(value + value_size + 1,
                              buf + size - (value + value_size + 1),
                              delims, &token_size)) != NULL)
-            return malformed_command;
+            return op_malformed;
 
         // Ok, we've got a key, a value, and no more tokens, add them
         // to the tree
@@ -91,7 +91,7 @@ memcached_operations_t::result_t memcached_operations_t::initiate_op(event_t *ev
         char msg[] = "ok\n";
         strcpy(fsm->buf, msg);
         fsm->nbuf = strlen(msg) + 1;
-        return command_success_response_ready;
+        return op_req_complex;
         */
         check("TODO: implement 'set' command", 1);
     } else if(token_size == 3 && strncmp(token, "get", 3) == 0) {
@@ -101,12 +101,12 @@ memcached_operations_t::result_t memcached_operations_t::initiate_op(event_t *ev
                              buf + size - (token + token_size),
                              delims, &key_size);
         if(key == NULL)
-            return malformed_command;
+            return op_malformed;
         key[key_size] = '\0';
         if((token = tokenize(key + key_size + 1,
                              buf + size - (key + key_size + 1),
                              delims, &token_size)) != NULL)
-            return malformed_command;
+            return op_malformed;
 
         int key_int = atoi(key);
 
@@ -114,28 +114,18 @@ memcached_operations_t::result_t memcached_operations_t::initiate_op(event_t *ev
         btree_fsm_t *btree_fsm = alloc->malloc<btree_fsm_t>(cache, fsm);
         btree_fsm->init_lookup(key_int);
         fsm->btree_fsm = btree_fsm;
-        
-        btree_fsm_t::result_t res = btree_fsm->do_transition(NULL);
 
-        if(res == btree_fsm_t::btree_transition_incomplete) {
-            return command_aio_wait;
-        } else if(res == btree_fsm_t::btree_fsm_complete) {
-            complete_op(btree_fsm, event);
-            return command_success_response_ready;
-        } else {
-            check("Invalid btree response", 1);
-        }
+        return op_req_complex;
     } else {
         // Invalid command
-        return malformed_command;
+        return op_malformed;
     }
     
     // The command was processed successfully
-    return command_success_no_response;
+    return op_malformed;
 }
 
-void memcached_operations_t::complete_op(event_t *event) {
-    fsm_t *fsm = (fsm_t*)event->state;
+void memcached_handler_t::build_response(fsm_t *fsm) {
     btree_fsm_t *btree_fsm = fsm->btree_fsm;
     
     // Since we're in the middle of processing a command,

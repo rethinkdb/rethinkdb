@@ -22,7 +22,7 @@ OBJS =  main.o \
 	worker_pool.o \
 	tty.o \
 	server.o \
-	memcached_operations.o
+	memcached_handler.o
 
 DEPS:=$(OBJS:%.o=$(DEP_DIR)/%.d)
 OBJS:=$(OBJS:%.o=$(OBJ_DIR)/%.o)

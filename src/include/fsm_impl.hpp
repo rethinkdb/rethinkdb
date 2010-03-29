@@ -32,7 +32,6 @@ void fsm_state_t<config_t>::return_to_socket_connected() {
 // socket.
 template<class config_t>
 typename fsm_state_t<config_t>::result_t fsm_state_t<config_t>::do_socket_ready(event_t *event) {
-    int res;
     size_t sz;
     fsm_state_t *state = (fsm_state_t*)event->state;
 
@@ -63,41 +62,51 @@ typename fsm_state_t<config_t>::result_t fsm_state_t<config_t>::do_socket_ready(
                 }
             } else if(sz > 0) {
                 state->nbuf += sz;
-                res = operations->initiate_op(event);
-                if(res == operations_t::op_malformed ||
-                   res == operations_t::command_success_initiated ||
-                   res == operations_t::command_success_completed)
-                {
-                    if(res == operations_t::op_malformed) {
-                        // Command wasn't processed correctly, send error
-                        send_err_to_client();
-                    } else if(res == operations_t::op_completed) {
-                        // Command completed, send result to client
-                        send_msg_to_client();
-                    }
-                    if(state->state != fsm_state_t::fsm_socket_send_incomplete) {
-                        // Command is either completed or malformed, in any
-                        // case get back to clean connected state
-                        state->state = fsm_state_t::fsm_socket_connected;
-                        state->nbuf = 0;
-                        state->snbuf = 0;
-                    } else {
-                        // Wait for the socket to finish sending
-                        break;
-                    }
-                } else if(res == operations_t::op_partial_packet) {
+                typename request_handler_t::parse_result_t handler_res =
+                    req_handler->parse_request(event);
+                typename btree_fsm_t::result_t btree_res;
+                switch(handler_res) {
+                case request_handler_t::op_malformed:
+                    // Command wasn't processed correctly, send error
+                    send_err_to_client();
+                    break;
+                case request_handler_t::op_partial_packet:
+                    // The data is incomplete, keep trying to read in
+                    // the current read loop
                     state->state = fsm_state_t::fsm_socket_recv_incomplete;
-                } else if(res == operations_t::quit_connection) {
-                    // The connection has been closed
-                    return fsm_quit_connection;
-                } else if(res == operations_t::shutdown_server) {
+                    break;
+                case request_handler_t::op_req_shutdown:
                     // Shutdown has been initiated
                     return fsm_shutdown_server;
-                } else if(res == operations_t::command_aio_wait) {
-                    state->state = fsm_btree_incomplete;
+                case request_handler_t::op_req_quit:
+                    // The connection has been closed
+                    return fsm_quit_connection;
+                case request_handler_t::op_req_complex:
+                    // btree_fsm should have been generated, now
+                    // initiate the first transition
+                    assert(btree_fsm);
+                    btree_res = btree_fsm->do_transition(NULL);
+                    if(btree_res == btree_fsm_t::btree_transition_incomplete) {
+                        // The btree is waiting on an AIO request
+                        state->state = fsm_btree_incomplete;
+                        return fsm_transition_ok;
+                    } else if(btree_res == btree_fsm_t::btree_fsm_complete) {
+                        // The btree returned the final result. Send
+                        // the response, and keep reading (or break
+                        // later, if send is incomplete)
+                        req_handler->build_response(this);
+                        send_msg_to_client();
+                    } else {
+                        check("Invalid btree response", 1);
+                    }
                     break;
-                } else {
-                    check("Invalid operation result", 1);
+                default:
+                    check("Unknown request parse result", 1);
+                }
+
+                if(state->state == fsm_state_t::fsm_socket_send_incomplete) {
+                    // Wait for the socket to finish sending
+                    break;
                 }
             } else {
                 // Socket has been closed, destroy the connection
@@ -133,10 +142,7 @@ typename fsm_state_t<config_t>::result_t fsm_state_t<config_t>::do_fsm_btree_inc
     } else if(event->event_type == et_disk) {
         typename btree_fsm_t::result_t res = btree_fsm->do_transition(event);
         if(res == btree_fsm_t::btree_fsm_complete) {
-            operations->complete_op(event);
-
-            // TODO: make sure there is stuff to send!
-            
+            req_handler->build_response(this);
             send_msg_to_client();
             if(this->state != fsm_state_t::fsm_socket_send_incomplete) {
                 // We've finished sending completely, now see if there is
@@ -210,8 +216,9 @@ typename fsm_state_t<config_t>::result_t fsm_state_t<config_t>::do_transition(ev
 
 template<class config_t>
 fsm_state_t<config_t>::fsm_state_t(resource_t _source, alloc_t* _alloc,
-                                   operations_t *_ops, event_queue_t *_event_queue)
-    : event_state_t(_source), alloc(_alloc), operations(_ops), event_queue(_event_queue)
+                                   request_handler_t *_req_handler, event_queue_t *_event_queue)
+    : event_state_t(_source), alloc(_alloc), req_handler(_req_handler),
+      event_queue(_event_queue)
 {
     init_state();
 }

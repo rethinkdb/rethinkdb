@@ -6,7 +6,7 @@
 #include <libaio.h>
 #include "arch/resource.hpp"
 #include "fsm.hpp"
-#include "operations.hpp"
+#include "request_handler/request_handler.hpp"
 #include "event.hpp"
 #include "corefwd.hpp"
 #include "config/code.hpp"
@@ -47,7 +47,7 @@ public:
     void post_itc_message(itc_event_t *event);
 
 
-    // FSM registration
+    // Maintain a list of live FSMs
     void register_fsm(fsm_t *fsm);
     void deregister_fsm(fsm_t *fsm);
 
@@ -68,7 +68,7 @@ public:
     // state.
     fsm_list_t live_fsms;
     worker_pool_t *parent_pool;
-    operations_t *operations;
+    request_handler_t *req_handler;
 };
 
 #endif // __EVENT_QUEUE_HPP__

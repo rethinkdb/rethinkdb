@@ -4,7 +4,7 @@
 
 #include "containers/intrusive_list.hpp"
 #include "arch/resource.hpp"
-#include "operations.hpp"
+#include "request_handler/request_handler.hpp"
 #include "event.hpp"
 #include "btree/btree_fsm.hpp"
 #include "corefwd.hpp"
@@ -42,7 +42,7 @@ public:
     };
     
 public:
-    fsm_state_t(resource_t _source, alloc_t* _alloc, operations_t *_ops,
+    fsm_state_t(resource_t _source, alloc_t* _alloc, request_handler_t *_req_handler,
                 event_queue_t *_event_queue);
     ~fsm_state_t();
     
@@ -58,7 +58,7 @@ public:
     char *buf;
     unsigned int nbuf, snbuf;
     alloc_t *alloc;
-    operations_t *operations;
+    request_handler_t *req_handler;
     event_queue_t *event_queue;
     btree_fsm_t *btree_fsm;
     

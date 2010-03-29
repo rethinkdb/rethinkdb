@@ -13,7 +13,7 @@
 #include "utils.hpp"
 #include "event_queue.hpp"
 #include "worker_pool.hpp"
-#include "memcached_operations.hpp"
+#include "request_handler/memcached_handler.hpp"
 
 // TODO: report event queue statistics.
 
@@ -111,7 +111,7 @@ int process_itc_notify(event_queue_t *self) {
         event_queue_t::fsm_t *state =
             self->alloc.malloc<event_queue_t::fsm_t>(event.data,
                                       &self->alloc,
-                                      self->operations,
+                                      self->req_handler,
                                       self);
         self->register_fsm(state);
         break;
@@ -199,7 +199,7 @@ event_queue_t::event_queue_t(int queue_id, event_handler_t event_handler,
     this->timer_fd = -1;
     this->total_expirations = 0;
 
-    this->operations = new memcached_operations_t(&parent_pool->cache, &alloc);
+    this->req_handler = new memcached_handler_t(&parent_pool->cache, &alloc);
 
     // Create aio context
     this->aio_context = 0;
@@ -264,7 +264,7 @@ event_queue_t::~event_queue_t()
     check("Could not join with epoll thread", res != 0);
 
     // Delete the ops class
-    delete operations;
+    delete req_handler;
     
     // Cleanup remaining fsms
     fsm_t *state = this->live_fsms.head();

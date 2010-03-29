@@ -98,6 +98,8 @@ typename btree_fsm<config_t>::result_t btree_fsm<config_t>::do_transition(event_
     } else {
         check("btree_fsm::do_transition - invalid event", 1);
     }
+    assert(res == btree_transition_incomplete ||
+           res == btree_fsm_complete);
     return res;
 }
 
