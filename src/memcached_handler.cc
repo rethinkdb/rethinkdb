@@ -2,7 +2,7 @@
 #include <string.h>
 #include "event_queue.hpp"
 #include "request_handler/memcached_handler.hpp"
-#include "fsm.hpp"
+#include "conn_fsm.hpp"
 
 // TODO: we should have a nicer way of switching on the command than a
 // giant if/else statement (at least break them out into functions).

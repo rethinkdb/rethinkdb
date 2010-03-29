@@ -1,6 +1,6 @@
 
-#ifndef __FSM_HPP__
-#define __FSM_HPP__
+#ifndef __CONN_FSM_HPP__
+#define __CONN_FSM_HPP__
 
 #include "containers/intrusive_list.hpp"
 #include "arch/resource.hpp"
@@ -11,9 +11,9 @@
 
 // The actual state structure
 template<class config_t>
-struct fsm_state_t : public event_state_t,
-                     public config_t::iocalls_t,
-                     public intrusive_list_node_t<fsm_state_t<config_t> >
+struct conn_fsm_t : public event_state_t,
+                    public config_t::iocalls_t,
+                    public intrusive_list_node_t<conn_fsm_t<config_t> >
 {
 public:
     typedef typename config_t::alloc_t alloc_t;
@@ -42,9 +42,9 @@ public:
     };
     
 public:
-    fsm_state_t(resource_t _source, alloc_t* _alloc, request_handler_t *_req_handler,
-                event_queue_t *_event_queue);
-    ~fsm_state_t();
+    conn_fsm_t(resource_t _source, alloc_t* _alloc, request_handler_t *_req_handler,
+               event_queue_t *_event_queue);
+    ~conn_fsm_t();
     
     result_t do_transition(event_t *event);
 
@@ -74,7 +74,7 @@ private:
 };
 
 // Include the implementation
-#include "fsm_impl.hpp"
+#include "conn_fsm_impl.hpp"
 
-#endif // __FSM_HPP__
+#endif // __CONN_FSM_HPP__
 

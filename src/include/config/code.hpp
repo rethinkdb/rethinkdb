@@ -27,7 +27,7 @@ struct standard_config_t {
     typedef posix_io_calls_t iocalls_t;
     
     // FSM
-    typedef fsm_state_t<standard_config_t> fsm_t;
+    typedef conn_fsm_t<standard_config_t> fsm_t;
     typedef intrusive_list_t<fsm_t> fsm_list_t;
 
     // Serializer
