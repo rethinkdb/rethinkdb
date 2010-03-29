@@ -63,16 +63,16 @@ typename fsm_state_t<config_t>::result_t fsm_state_t<config_t>::do_socket_ready(
                 }
             } else if(sz > 0) {
                 state->nbuf += sz;
-                res = operations->process_command(event);
-                if(res == operations_t::malformed_command ||
-                   res == operations_t::command_success_no_response ||
-                   res == operations_t::command_success_response_ready)
+                res = operations->initiate_op(event);
+                if(res == operations_t::op_malformed ||
+                   res == operations_t::command_success_initiated ||
+                   res == operations_t::command_success_completed)
                 {
-                    if(res == operations_t::malformed_command) {
+                    if(res == operations_t::op_malformed) {
                         // Command wasn't processed correctly, send error
                         send_err_to_client();
-                    } else if(res == operations_t::command_success_response_ready) {
-                        // Command wasn't processed correctly, send error
+                    } else if(res == operations_t::op_completed) {
+                        // Command completed, send result to client
                         send_msg_to_client();
                     }
                     if(state->state != fsm_state_t::fsm_socket_send_incomplete) {
@@ -85,7 +85,7 @@ typename fsm_state_t<config_t>::result_t fsm_state_t<config_t>::do_socket_ready(
                         // Wait for the socket to finish sending
                         break;
                     }
-                } else if(res == operations_t::incomplete_command) {
+                } else if(res == operations_t::op_partial_packet) {
                     state->state = fsm_state_t::fsm_socket_recv_incomplete;
                 } else if(res == operations_t::quit_connection) {
                     // The connection has been closed
@@ -133,7 +133,7 @@ typename fsm_state_t<config_t>::result_t fsm_state_t<config_t>::do_fsm_btree_inc
     } else if(event->event_type == et_disk) {
         typename btree_fsm_t::result_t res = btree_fsm->do_transition(event);
         if(res == btree_fsm_t::btree_fsm_complete) {
-            operations->complete_op(btree_fsm, event);
+            operations->complete_op(event);
 
             // TODO: make sure there is stuff to send!
             

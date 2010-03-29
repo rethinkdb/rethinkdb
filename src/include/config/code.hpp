@@ -33,8 +33,8 @@ struct standard_config_t {
     // Serializer
     typedef in_place_serializer_t<standard_config_t> serializer_t;
 
-    // Cache
-    // TODO: add cache_stats_t here, to make sure we acquire/release properly
+    // Cache TODO: add cache_stats_t for debug builds here, to make
+    // sure we acquire/release properly
     typedef fallthrough_cache_t<standard_config_t> cache_t;
 
     // BTree

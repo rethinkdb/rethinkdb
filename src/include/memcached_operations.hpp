@@ -15,8 +15,8 @@ public:
         : cache(_cache), alloc(_alloc)
         {}
     
-    virtual result_t process_command(event_t *event);
-    virtual void complete_op(btree_fsm_t *btree_fsm, event_t *event);
+    virtual initial_result_t initiate_op(event_t *event) = 0;
+    virtual complete_result_t complete_op(event_t *event) = 0;
 
 private:
     cache_t *cache;

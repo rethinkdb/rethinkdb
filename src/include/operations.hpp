@@ -15,18 +15,21 @@ public:
 public:
     virtual ~operations_t() {}
 
-    enum result_t {
-        malformed_command,
-        incomplete_command,
-        shutdown_server,
-        quit_connection,
-        command_success_no_response,
-        command_success_response_ready,
-        command_aio_wait
+    enum initial_result_t {
+        op_malformed,
+        op_partial_packet,
+        op_completed,
+        op_initiated
     };
 
-    virtual result_t process_command(event_t *event) = 0;
-    virtual void complete_op(btree_fsm_t *btree_fsm, event_t *event) = 0;
+    enum complete_result_t {
+        op_shutdown,
+        op_quit,
+        op_response_ready
+    };
+
+    virtual initial_result_t initiate_op(event_t *event) = 0;
+    virtual complete_result_t complete_op(event_t *event) = 0;
 };
 
 #endif // __OPERATIONS_HPP__

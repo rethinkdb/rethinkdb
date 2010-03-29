@@ -8,7 +8,7 @@
 // giant if/else statement (at least break them out into functions).
 
 // Process commands received from the user
-memcached_operations_t::result_t memcached_operations_t::process_command(event_t *event)
+memcached_operations_t::result_t memcached_operations_t::initiate_op(event_t *event)
 {
     int res;
 
@@ -134,17 +134,16 @@ memcached_operations_t::result_t memcached_operations_t::process_command(event_t
     return command_success_no_response;
 }
 
-void memcached_operations_t::complete_op(btree_fsm_t *btree_fsm, event_t *event) {
+void memcached_operations_t::complete_op(event_t *event) {
     fsm_t *fsm = (fsm_t*)event->state;
+    btree_fsm_t *btree_fsm = fsm->btree_fsm;
     
+    // Since we're in the middle of processing a command,
+    // fsm->buf must exist at this point.
     if(btree_fsm->op_result == btree_fsm_t::btree_found) {
-        // Since we're in the middle of processing a command,
-        // fsm->buf must exist at this point.
         sprintf(fsm->buf, "%d", btree_fsm->value);
         fsm->nbuf = strlen(fsm->buf) + 1;
     } else if(btree_fsm->op_result == btree_fsm_t::btree_not_found) {
-        // Since we're in the middle of processing a command,
-        // fsm->buf must exist at this point.
         char msg[] = "NIL\n";
         strcpy(fsm->buf, msg);
         fsm->nbuf = strlen(msg) + 1;
