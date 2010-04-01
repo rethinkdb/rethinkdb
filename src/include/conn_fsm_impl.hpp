@@ -64,7 +64,7 @@ typename conn_fsm_t<config_t>::result_t conn_fsm_t<config_t>::do_socket_ready(ev
                 state->nbuf += sz;
                 typename request_handler_t::parse_result_t handler_res =
                     req_handler->parse_request(event);
-                typename btree_fsm_t::result_t btree_res;
+                typename btree_fsm_t::transition_result_t btree_res;
                 switch(handler_res) {
                 case request_handler_t::op_malformed:
                     // Command wasn't processed correctly, send error
@@ -86,11 +86,11 @@ typename conn_fsm_t<config_t>::result_t conn_fsm_t<config_t>::do_socket_ready(ev
                     // initiate the first transition
                     assert(btree_fsm);
                     btree_res = btree_fsm->do_transition(NULL);
-                    if(btree_res == btree_fsm_t::btree_transition_incomplete) {
+                    if(btree_res == btree_fsm_t::transition_incomplete) {
                         // The btree is waiting on an AIO request
                         state->state = fsm_btree_incomplete;
                         return fsm_transition_ok;
-                    } else if(btree_res == btree_fsm_t::btree_get_fsm_complete) {
+                    } else if(btree_res == btree_fsm_t::transition_complete) {
                         // The btree returned the final result. Send
                         // the response, and keep reading (or break
                         // later, if send is incomplete)
@@ -140,8 +140,8 @@ typename conn_fsm_t<config_t>::result_t conn_fsm_t<config_t>::do_fsm_btree_incom
         // future (fsm would need to associate IO responses with a
         // given command).
     } else if(event->event_type == et_disk) {
-        typename btree_fsm_t::result_t res = btree_fsm->do_transition(event);
-        if(res == btree_fsm_t::btree_get_fsm_complete) {
+        typename btree_fsm_t::transition_result_t res = btree_fsm->do_transition(event);
+        if(res == btree_fsm_t::transition_complete) {
             req_handler->build_response(this);
             send_msg_to_client();
             if(this->state != conn_fsm_t::fsm_socket_send_incomplete) {

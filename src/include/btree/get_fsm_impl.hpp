@@ -11,39 +11,39 @@ void btree_get_fsm<config_t>::init_lookup(int _key) {
 }
 
 template <class config_t>
-typename btree_get_fsm<config_t>::result_t btree_get_fsm<config_t>::do_lookup_acquiring_superblock() {
+typename btree_get_fsm<config_t>::transition_result_t btree_get_fsm<config_t>::do_lookup_acquiring_superblock() {
     assert(state == lookup_acquiring_superblock);
     
     if(get_root_id(&node_id) == 0) {
-        return btree_transition_incomplete;
+        return btree_fsm_t::transition_incomplete;
     } else {
         state = lookup_acquiring_root;
-        return btree_transition_ok;
+        return btree_fsm_t::transition_ok;
     }
 }
 
 template <class config_t>
-typename btree_get_fsm<config_t>::result_t btree_get_fsm<config_t>::do_lookup_acquiring_root() {
+typename btree_get_fsm<config_t>::transition_result_t btree_get_fsm<config_t>::do_lookup_acquiring_root() {
     assert(state == lookup_acquiring_root);
     
     // Make sure root exists
     if(cache->is_block_id_null(node_id)) {
         op_result = btree_not_found;
-        return btree_get_fsm_complete;
+        return btree_fsm_t::transition_complete;
     }
 
     // Acquire the actual root node
     node = (node_t*)cache->acquire(node_id, netfsm);
     if(node == NULL) {
-        return btree_transition_incomplete;
+        return btree_fsm_t::transition_incomplete;
     } else {
         state = lookup_acquiring_node;
-        return btree_transition_ok;
+        return btree_fsm_t::transition_ok;
     }
 }
 
 template <class config_t>
-typename btree_get_fsm<config_t>::result_t btree_get_fsm<config_t>::do_lookup_acquiring_node() {
+typename btree_get_fsm<config_t>::transition_result_t btree_get_fsm<config_t>::do_lookup_acquiring_node() {
     assert(state == lookup_acquiring_node);
     assert(node);
     
@@ -53,21 +53,21 @@ typename btree_get_fsm<config_t>::result_t btree_get_fsm<config_t>::do_lookup_ac
         node_id = next_node_id;
         node = (node_t*)cache->acquire(node_id, netfsm);
         if(node) {
-            return btree_transition_ok;
+            return btree_fsm_t::transition_ok;
         } else {
-            return btree_transition_incomplete;
+            return btree_fsm_t::transition_incomplete;
         }
     } else {
         int result = ((leaf_node_t*)node)->lookup(key, &value);
         cache->release(node_id, (void*)node, false, netfsm);
         op_result = result == 1 ? btree_found : btree_not_found;
-        return btree_get_fsm_complete;
+        return btree_fsm_t::transition_complete;
     }
 }
 
 template <class config_t>
-typename btree_get_fsm<config_t>::result_t btree_get_fsm<config_t>::do_transition(event_t *event) {
-    result_t res = btree_transition_ok;
+typename btree_get_fsm<config_t>::transition_result_t btree_get_fsm<config_t>::do_transition(event_t *event) {
+    transition_result_t res = btree_fsm_t::transition_ok;
     // TODO: If event is null, we're initiating the first
     // transition. Is this the API we want?
     if(event == NULL || event->event_type == et_disk) {
@@ -80,15 +80,15 @@ typename btree_get_fsm<config_t>::result_t btree_get_fsm<config_t>::do_transitio
         }
 
         // First, acquire the superblock (to get root node ID)
-        if(res == btree_transition_ok && state == lookup_acquiring_superblock)
+        if(res == btree_fsm_t::transition_ok && state == lookup_acquiring_superblock)
             res = do_lookup_acquiring_superblock();
         
         // Then, acquire the root block
-        if(res == btree_transition_ok && state == lookup_acquiring_root)
+        if(res == btree_fsm_t::transition_ok && state == lookup_acquiring_root)
             res = do_lookup_acquiring_root();
         
         // Then, acquire the nodes, until we hit the leaf
-        while(res == btree_transition_ok && state == lookup_acquiring_node) {
+        while(res == btree_fsm_t::transition_ok && state == lookup_acquiring_node) {
             res = do_lookup_acquiring_node();
         }
 
@@ -98,7 +98,7 @@ typename btree_get_fsm<config_t>::result_t btree_get_fsm<config_t>::do_transitio
     } else {
         check("btree_get_fsm::do_transition - invalid event", 1);
     }
-    assert(res == btree_transition_incomplete ||
+    assert(res == btree_fsm_t::transition_incomplete ||
            res == btree_get_fsm_complete);
     return res;
 }

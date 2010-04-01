@@ -21,6 +21,9 @@ struct array_node_t;
 template <typename block_id_t>
 class btree_fsm;
 
+template <typename block_id_t>
+class btree_get_fsm;
+
 // Event queue
 struct event_t;
 struct event_queue_t;

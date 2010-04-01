@@ -4,10 +4,12 @@
 
 #include "corefwd.hpp"
 #include "event.hpp"
+#include "btree/fsm.hpp"
 
 template <class config_t>
-class btree_get_fsm {
+class btree_get_fsm : public btree_fsm<config_t> {
 public:
+    typedef typename config_t::btree_fsm_t btree_fsm_t;
     typedef typename config_t::node_t node_t;
     typedef typename node_t::leaf_node_t leaf_node_t;
     typedef typename node_t::internal_node_t internal_node_t;
@@ -15,19 +17,13 @@ public:
     typedef typename config_t::cache_t cache_t;
     typedef typename config_t::serializer_t serializer_t;
     typedef typename serializer_t::block_id_t block_id_t;
-    
+    typedef typename btree_fsm_t::transition_result_t transition_result_t;
 public:
     enum state_t {
         uninitialized,
         lookup_acquiring_superblock,
         lookup_acquiring_root,
         lookup_acquiring_node
-    };
-
-    enum result_t {
-        btree_transition_incomplete,
-        btree_transition_ok,
-        btree_get_fsm_complete
     };
 
     enum op_result_t {
@@ -41,16 +37,16 @@ public:
         {}
 
     void init_lookup(int _key);
-    result_t do_transition(event_t *event);
+    virtual transition_result_t do_transition(event_t *event);
 
 public:
     op_result_t op_result;
     int value;
 
 private:
-    result_t do_lookup_acquiring_superblock();
-    result_t do_lookup_acquiring_root();
-    result_t do_lookup_acquiring_node();
+    transition_result_t do_lookup_acquiring_superblock();
+    transition_result_t do_lookup_acquiring_root();
+    transition_result_t do_lookup_acquiring_node();
 
 private:
     int get_root_id(block_id_t *root_id);

@@ -111,7 +111,7 @@ memcached_handler_t::parse_result_t memcached_handler_t::parse_request(event_t *
         int key_int = atoi(key);
 
         // Ok, we've got a key and no more tokens, look them up
-        btree_fsm_t *btree_fsm = alloc->malloc<btree_fsm_t>(cache, fsm);
+        btree_get_fsm_t *btree_fsm = alloc->malloc<btree_get_fsm_t>(cache, fsm);
         btree_fsm->init_lookup(key_int);
         fsm->btree_fsm = btree_fsm;
 
@@ -126,14 +126,14 @@ memcached_handler_t::parse_result_t memcached_handler_t::parse_request(event_t *
 }
 
 void memcached_handler_t::build_response(fsm_t *fsm) {
-    btree_fsm_t *btree_fsm = fsm->btree_fsm;
+    btree_get_fsm_t *btree_fsm = (btree_get_fsm_t*)fsm->btree_fsm;
     
     // Since we're in the middle of processing a command,
     // fsm->buf must exist at this point.
-    if(btree_fsm->op_result == btree_fsm_t::btree_found) {
+    if(btree_fsm->op_result == btree_get_fsm_t::btree_found) {
         sprintf(fsm->buf, "%d", btree_fsm->value);
         fsm->nbuf = strlen(fsm->buf) + 1;
-    } else if(btree_fsm->op_result == btree_fsm_t::btree_not_found) {
+    } else if(btree_fsm->op_result == btree_get_fsm_t::btree_not_found) {
         char msg[] = "NIL\n";
         strcpy(fsm->buf, msg);
         fsm->nbuf = strlen(msg) + 1;
