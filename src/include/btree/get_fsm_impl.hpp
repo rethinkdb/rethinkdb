@@ -1,17 +1,17 @@
 
-#ifndef __BTREE_FSM_IMPL_HPP__
-#define __BTREE_FSM_IMPL_HPP__
+#ifndef __BTREE_GET_FSM_IMPL_HPP__
+#define __BTREE_GET_FSM_IMPL_HPP__
 
 #include "utils.hpp"
 
 template <class config_t>
-void btree_fsm<config_t>::init_lookup(int _key) {
+void btree_get_fsm<config_t>::init_lookup(int _key) {
     key = _key;
     state = lookup_acquiring_superblock;
 }
 
 template <class config_t>
-typename btree_fsm<config_t>::result_t btree_fsm<config_t>::do_lookup_acquiring_superblock() {
+typename btree_get_fsm<config_t>::result_t btree_get_fsm<config_t>::do_lookup_acquiring_superblock() {
     assert(state == lookup_acquiring_superblock);
     
     if(get_root_id(&node_id) == 0) {
@@ -23,13 +23,13 @@ typename btree_fsm<config_t>::result_t btree_fsm<config_t>::do_lookup_acquiring_
 }
 
 template <class config_t>
-typename btree_fsm<config_t>::result_t btree_fsm<config_t>::do_lookup_acquiring_root() {
+typename btree_get_fsm<config_t>::result_t btree_get_fsm<config_t>::do_lookup_acquiring_root() {
     assert(state == lookup_acquiring_root);
     
     // Make sure root exists
     if(cache->is_block_id_null(node_id)) {
         op_result = btree_not_found;
-        return btree_fsm_complete;
+        return btree_get_fsm_complete;
     }
 
     // Acquire the actual root node
@@ -43,7 +43,7 @@ typename btree_fsm<config_t>::result_t btree_fsm<config_t>::do_lookup_acquiring_
 }
 
 template <class config_t>
-typename btree_fsm<config_t>::result_t btree_fsm<config_t>::do_lookup_acquiring_node() {
+typename btree_get_fsm<config_t>::result_t btree_get_fsm<config_t>::do_lookup_acquiring_node() {
     assert(state == lookup_acquiring_node);
     assert(node);
     
@@ -61,12 +61,12 @@ typename btree_fsm<config_t>::result_t btree_fsm<config_t>::do_lookup_acquiring_
         int result = ((leaf_node_t*)node)->lookup(key, &value);
         cache->release(node_id, (void*)node, false, netfsm);
         op_result = result == 1 ? btree_found : btree_not_found;
-        return btree_fsm_complete;
+        return btree_get_fsm_complete;
     }
 }
 
 template <class config_t>
-typename btree_fsm<config_t>::result_t btree_fsm<config_t>::do_transition(event_t *event) {
+typename btree_get_fsm<config_t>::result_t btree_get_fsm<config_t>::do_transition(event_t *event) {
     result_t res = btree_transition_ok;
     // TODO: If event is null, we're initiating the first
     // transition. Is this the API we want?
@@ -96,15 +96,15 @@ typename btree_fsm<config_t>::result_t btree_fsm<config_t>::do_transition(event_
         // we are likely to call acquire twice, but release only
         // once. We need to figure out how to get around that cleanly.
     } else {
-        check("btree_fsm::do_transition - invalid event", 1);
+        check("btree_get_fsm::do_transition - invalid event", 1);
     }
     assert(res == btree_transition_incomplete ||
-           res == btree_fsm_complete);
+           res == btree_get_fsm_complete);
     return res;
 }
 
 template <class config_t>
-int btree_fsm<config_t>::get_root_id(block_id_t *root_id) {
+int btree_get_fsm<config_t>::get_root_id(block_id_t *root_id) {
     block_id_t superblock_id = cache->get_superblock_id();
     void *buf = cache->acquire(superblock_id, netfsm);
     if(buf == NULL) {
@@ -115,5 +115,5 @@ int btree_fsm<config_t>::get_root_id(block_id_t *root_id) {
     return 1;
 }
 
-#endif // __BTREE_FSM_IMPL_HPP__
+#endif // __BTREE_GET_FSM_IMPL_HPP__
 

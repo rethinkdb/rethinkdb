@@ -6,7 +6,7 @@
 #include "arch/resource.hpp"
 #include "request_handler/request_handler.hpp"
 #include "event.hpp"
-#include "btree/btree_fsm.hpp"
+#include "btree/get_fsm.hpp"
 #include "corefwd.hpp"
 
 // The actual state structure

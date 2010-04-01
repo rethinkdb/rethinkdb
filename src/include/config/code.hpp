@@ -12,8 +12,7 @@
 #include "arch/io.hpp"
 #include "serializer/in_place.hpp"
 #include "buffer_cache/fallthrough.hpp"
-#include "btree/btree.hpp"
-#include "btree/btree_fsm.hpp"
+#include "btree/get_fsm.hpp"
 #include "btree/array_node.hpp"
 
 /**
@@ -40,7 +39,7 @@ struct standard_config_t {
     // BTree
     typedef btree_admin<standard_config_t> btree_admin_t;
     typedef array_node_t<serializer_t::block_id_t> node_t;
-    typedef btree_fsm<standard_config_t> btree_fsm_t;
+    typedef btree_get_fsm<standard_config_t> btree_fsm_t;
 
     // Small object allocator
     typedef object_static_alloc_t<

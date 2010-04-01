@@ -4,7 +4,6 @@
 
 #include "event_queue.hpp"
 #include "arch/resource.hpp"
-#include "btree/btree.hpp"
 
 // Worker pool
 struct worker_pool_t {

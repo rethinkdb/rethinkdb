@@ -90,7 +90,7 @@ typename conn_fsm_t<config_t>::result_t conn_fsm_t<config_t>::do_socket_ready(ev
                         // The btree is waiting on an AIO request
                         state->state = fsm_btree_incomplete;
                         return fsm_transition_ok;
-                    } else if(btree_res == btree_fsm_t::btree_fsm_complete) {
+                    } else if(btree_res == btree_fsm_t::btree_get_fsm_complete) {
                         // The btree returned the final result. Send
                         // the response, and keep reading (or break
                         // later, if send is incomplete)
@@ -141,7 +141,7 @@ typename conn_fsm_t<config_t>::result_t conn_fsm_t<config_t>::do_fsm_btree_incom
         // given command).
     } else if(event->event_type == et_disk) {
         typename btree_fsm_t::result_t res = btree_fsm->do_transition(event);
-        if(res == btree_fsm_t::btree_fsm_complete) {
+        if(res == btree_fsm_t::btree_get_fsm_complete) {
             req_handler->build_response(this);
             send_msg_to_client();
             if(this->state != conn_fsm_t::fsm_socket_send_incomplete) {

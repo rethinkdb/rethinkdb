@@ -1,12 +1,12 @@
 
-#ifndef __BTREE_FSM_HPP__
-#define __BTREE_FSM_HPP__
+#ifndef __BTREE_GET_FSM_HPP__
+#define __BTREE_GET_FSM_HPP__
 
 #include "corefwd.hpp"
 #include "event.hpp"
 
 template <class config_t>
-class btree_fsm {
+class btree_get_fsm {
 public:
     typedef typename config_t::node_t node_t;
     typedef typename node_t::leaf_node_t leaf_node_t;
@@ -27,7 +27,7 @@ public:
     enum result_t {
         btree_transition_incomplete,
         btree_transition_ok,
-        btree_fsm_complete
+        btree_get_fsm_complete
     };
 
     enum op_result_t {
@@ -36,7 +36,7 @@ public:
     };
 
 public:
-    btree_fsm(cache_t *_cache, fsm_t *_netfsm)
+    btree_get_fsm(cache_t *_cache, fsm_t *_netfsm)
         : state(uninitialized), cache(_cache), netfsm(_netfsm)
         {}
 
@@ -66,7 +66,7 @@ private:
     int key;
 };
 
-#include "btree/btree_fsm_impl.hpp"
+#include "btree/get_fsm_impl.hpp"
 
-#endif // __BTREE_FSM_HPP__
+#endif // __BTREE_GET_FSM_HPP__
 

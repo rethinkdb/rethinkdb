@@ -18,9 +18,6 @@ struct fallthrough_cache_t;
 template <typename block_id_t>
 struct array_node_t;
 
-template <class config_t>
-class btree;
-
 template <typename block_id_t>
 class btree_fsm;
 
