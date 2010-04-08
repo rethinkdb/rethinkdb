@@ -7,6 +7,9 @@ class btree_fsm {
 public:
     typedef typename config_t::cache_t cache_t;
     typedef typename config_t::fsm_t fsm_t;
+    typedef typename config_t::serializer_t serializer_t;
+    typedef typename serializer_t::block_id_t block_id_t;
+    typedef typename config_t::btree_fsm_t btree_fsm_t;
 
 public:
     btree_fsm(cache_t *_cache, fsm_t *_netfsm)
@@ -31,10 +34,15 @@ public:
      * difference. */
     virtual transition_result_t do_transition(event_t *event) = 0;
 
+protected:
+    int get_root_id(block_id_t *root_id);
+
 public:
     cache_t *cache;
     fsm_t *netfsm;
 };
+
+#include "btree/fsm_impl.hpp"
 
 #endif // __FSM_BTREE_HPP__
 

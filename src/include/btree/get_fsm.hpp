@@ -49,9 +49,6 @@ private:
     transition_result_t do_lookup_acquiring_node();
 
 private:
-    int get_root_id(block_id_t *root_id);
-    
-private:
     // Some relevant state information
     state_t state;
     block_id_t node_id;

@@ -103,17 +103,5 @@ typename btree_get_fsm<config_t>::transition_result_t btree_get_fsm<config_t>::d
     return res;
 }
 
-template <class config_t>
-int btree_get_fsm<config_t>::get_root_id(block_id_t *root_id) {
-    block_id_t superblock_id = btree_fsm_t::cache->get_superblock_id();
-    void *buf = btree_fsm_t::cache->acquire(superblock_id, btree_fsm_t::netfsm);
-    if(buf == NULL) {
-        return 0;
-    }
-    memcpy((void*)root_id, buf, sizeof(*root_id));
-    btree_fsm_t::cache->release(superblock_id, buf, false, btree_fsm_t::netfsm);
-    return 1;
-}
-
 #endif // __BTREE_GET_FSM_IMPL_HPP__
 
