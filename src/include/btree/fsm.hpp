@@ -4,8 +4,14 @@
 
 template <class config_t>
 class btree_fsm {
+public:
+    typedef typename config_t::cache_t cache_t;
+    typedef typename config_t::fsm_t fsm_t;
 
 public:
+    btree_fsm(cache_t *_cache, fsm_t *_netfsm)
+        : cache(_cache), netfsm(_netfsm)
+        {}
     virtual ~btree_fsm() {}
 
 public:
@@ -24,6 +30,10 @@ public:
      * using a virtual function, and testing the performance
      * difference. */
     virtual transition_result_t do_transition(event_t *event) = 0;
+
+public:
+    cache_t *cache;
+    fsm_t *netfsm;
 };
 
 #endif // __FSM_BTREE_HPP__

@@ -27,13 +27,13 @@ typename btree_get_fsm<config_t>::transition_result_t btree_get_fsm<config_t>::d
     assert(state == lookup_acquiring_root);
     
     // Make sure root exists
-    if(cache->is_block_id_null(node_id)) {
+    if(btree_fsm_t::cache->is_block_id_null(node_id)) {
         op_result = btree_not_found;
         return btree_fsm_t::transition_complete;
     }
 
     // Acquire the actual root node
-    node = (node_t*)cache->acquire(node_id, netfsm);
+    node = (node_t*)btree_fsm_t::cache->acquire(node_id, btree_fsm_t::netfsm);
     if(node == NULL) {
         return btree_fsm_t::transition_incomplete;
     } else {
@@ -49,9 +49,9 @@ typename btree_get_fsm<config_t>::transition_result_t btree_get_fsm<config_t>::d
     
     if(node->is_internal()) {
         block_id_t next_node_id = ((internal_node_t*)node)->lookup(key);
-        cache->release(node_id, (void*)node, false, netfsm);
+        btree_fsm_t::cache->release(node_id, (void*)node, false, btree_fsm_t::netfsm);
         node_id = next_node_id;
-        node = (node_t*)cache->acquire(node_id, netfsm);
+        node = (node_t*)btree_fsm_t::cache->acquire(node_id, btree_fsm_t::netfsm);
         if(node) {
             return btree_fsm_t::transition_ok;
         } else {
@@ -59,7 +59,7 @@ typename btree_get_fsm<config_t>::transition_result_t btree_get_fsm<config_t>::d
         }
     } else {
         int result = ((leaf_node_t*)node)->lookup(key, &value);
-        cache->release(node_id, (void*)node, false, netfsm);
+        btree_fsm_t::cache->release(node_id, (void*)node, false, btree_fsm_t::netfsm);
         op_result = result == 1 ? btree_found : btree_not_found;
         return btree_fsm_t::transition_complete;
     }
@@ -76,7 +76,7 @@ typename btree_get_fsm<config_t>::transition_result_t btree_get_fsm<config_t>::d
             check("Could not complete AIO operation",
                   event->result == 0 ||
                   event->result == -1);
-            cache->aio_complete(node_id, event->buf);
+            btree_fsm_t::cache->aio_complete(node_id, event->buf);
         }
 
         // First, acquire the superblock (to get root node ID)
@@ -105,13 +105,13 @@ typename btree_get_fsm<config_t>::transition_result_t btree_get_fsm<config_t>::d
 
 template <class config_t>
 int btree_get_fsm<config_t>::get_root_id(block_id_t *root_id) {
-    block_id_t superblock_id = cache->get_superblock_id();
-    void *buf = cache->acquire(superblock_id, netfsm);
+    block_id_t superblock_id = btree_fsm_t::cache->get_superblock_id();
+    void *buf = btree_fsm_t::cache->acquire(superblock_id, btree_fsm_t::netfsm);
     if(buf == NULL) {
         return 0;
     }
     memcpy((void*)root_id, buf, sizeof(*root_id));
-    cache->release(superblock_id, buf, false, netfsm);
+    btree_fsm_t::cache->release(superblock_id, buf, false, btree_fsm_t::netfsm);
     return 1;
 }
 

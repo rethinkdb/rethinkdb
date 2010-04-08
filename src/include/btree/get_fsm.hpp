@@ -33,7 +33,7 @@ public:
 
 public:
     btree_get_fsm(cache_t *_cache, fsm_t *_netfsm)
-        : state(uninitialized), cache(_cache), netfsm(_netfsm)
+        : btree_fsm_t(_cache, _netfsm), state(uninitialized)
         {}
 
     void init_lookup(int _key);
@@ -52,11 +52,8 @@ private:
     int get_root_id(block_id_t *root_id);
     
 private:
+    // Some relevant state information
     state_t state;
-    cache_t *cache;
-    fsm_t *netfsm;
-
-    // Lookup mode
     block_id_t node_id;
     node_t *node;
     int key;
