@@ -123,18 +123,36 @@ memcached_handler_t::parse_result_t memcached_handler_t::parse_request(event_t *
 }
 
 void memcached_handler_t::build_response(fsm_t *fsm) {
-    btree_get_fsm_t *btree_fsm = (btree_get_fsm_t*)fsm->btree_fsm;
-    
     // Since we're in the middle of processing a command,
     // fsm->buf must exist at this point.
-    if(btree_fsm->op_result == btree_get_fsm_t::btree_found) {
-        sprintf(fsm->buf, "%d", btree_fsm->value);
-        fsm->nbuf = strlen(fsm->buf) + 1;
-    } else if(btree_fsm->op_result == btree_get_fsm_t::btree_not_found) {
-        char msg[] = "NIL\n";
-        strcpy(fsm->buf, msg);
-        fsm->nbuf = strlen(msg) + 1;
+
+    char msg_nil[] = "NIL\n";
+    char msg_ok[] = "ok\n";
+    btree_get_fsm_t *btree_get_fsm = NULL;
+    btree_set_fsm_t *btree_set_fsm = NULL;
+    switch(fsm->btree_fsm->fsm_type) {
+    case btree_fsm_t::btree_get_fsm:
+        btree_get_fsm = (btree_get_fsm_t*)fsm->btree_fsm;
+        if(btree_get_fsm->op_result == btree_get_fsm_t::btree_found) {
+            sprintf(fsm->buf, "%d", btree_get_fsm->value);
+            fsm->nbuf = strlen(fsm->buf) + 1;
+        } else if(btree_get_fsm->op_result == btree_get_fsm_t::btree_not_found) {
+            strcpy(fsm->buf, msg_nil);
+            fsm->nbuf = strlen(msg_nil) + 1;
+        }
+        alloc->free(btree_get_fsm);
+        break;
+ 
+    case btree_fsm_t::btree_set_fsm:
+        btree_set_fsm = (btree_set_fsm_t*)fsm->btree_fsm;
+        strcpy(fsm->buf, msg_ok);
+        fsm->nbuf = strlen(msg_ok) + 1;
+        alloc->free(btree_set_fsm);
+        break;
+
+    default:
+        check("memcached_handler_t::build_response - Unknown btree op", 1);
+        break;
     }
-    alloc->free(btree_fsm);
     fsm->btree_fsm = NULL;
 }

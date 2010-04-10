@@ -102,8 +102,6 @@ typename btree_get_fsm<config_t>::transition_result_t btree_get_fsm<config_t>::d
     // we are likely to call acquire twice, but release only
     // once. We need to figure out how to get around that cleanly.
 
-    assert(res == btree_fsm_t::transition_incomplete ||
-           res == btree_fsm_t::transition_ok);
     return res;
 }
 
