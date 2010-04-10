@@ -12,6 +12,7 @@ public:
     typedef code_config_t::fsm_t fsm_t;
     typedef code_config_t::btree_fsm_t btree_fsm_t;
     typedef code_config_t::btree_get_fsm_t btree_get_fsm_t;
+    typedef code_config_t::btree_set_fsm_t btree_set_fsm_t;
     
 public:
     virtual ~request_handler_t() {}

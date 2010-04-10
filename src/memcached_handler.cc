@@ -3,6 +3,8 @@
 #include "event_queue.hpp"
 #include "request_handler/memcached_handler.hpp"
 #include "conn_fsm.hpp"
+#include "btree/get_fsm.hpp"
+#include "btree/set_fsm.hpp"
 
 // TODO: we should have a nicer way of switching on the command than a
 // giant if/else statement (at least break them out into functions).
@@ -59,7 +61,6 @@ memcached_handler_t::parse_result_t memcached_handler_t::parse_request(event_t *
         // Shutdown the server
         return op_req_shutdown;
     } else if(token_size == 3 && strncmp(token, "set", 3) == 0) {
-        /*
         // Make sure we have two more tokens
         unsigned int key_size;
         char *key = tokenize(token + token_size,
@@ -80,20 +81,16 @@ memcached_handler_t::parse_result_t memcached_handler_t::parse_request(event_t *
                              delims, &token_size)) != NULL)
             return op_malformed;
 
-        // Ok, we've got a key, a value, and no more tokens, add them
-        // to the tree
         int key_int = atoi(key);
         int value_int = atoi(value);
-        btree->insert(key_int, value_int);
 
-        // Since we're in the middle of processing a command,
-        // fsm->buf must exist at this point.
-        char msg[] = "ok\n";
-        strcpy(fsm->buf, msg);
-        fsm->nbuf = strlen(msg) + 1;
+        // Ok, we've got a key, a value, and no more tokens, add them
+        // to the tree
+        btree_set_fsm_t *btree_fsm = alloc->malloc<btree_set_fsm_t>(cache, fsm);
+        btree_fsm->init_update(key_int, value_int);
+        fsm->btree_fsm = btree_fsm;
+
         return op_req_complex;
-        */
-        check("TODO: implement 'set' command", 1);
     } else if(token_size == 3 && strncmp(token, "get", 3) == 0) {
         // Make sure we have one more token
         unsigned int key_size;

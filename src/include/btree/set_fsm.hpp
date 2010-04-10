@@ -22,14 +22,16 @@ public:
         update_acquiring_root,
         update_inserting_root,
         update_inserting_root_on_split,
-        update_acquiring_node
+        update_acquiring_node,
+        update_complete
     };
 
 public:
     btree_set_fsm(cache_t *_cache, fsm_t *_netfsm)
         : btree_fsm_t(_cache, _netfsm), state(uninitialized),
           node(NULL), last_node(NULL), node_id(cache_t::null_block_id),
-          last_node_id(cache_t::null_block_id), last_node_dirty(false)
+          last_node_id(cache_t::null_block_id), new_root_id(cache_t::null_block_id),
+          new_split_root_id(cache_t::null_block_id), last_node_dirty(false)
         {}
 
     void init_update(int _key, int _value);
@@ -44,6 +46,7 @@ private:
 
 private:
     int set_root_id(block_id_t root_id);
+    void split_node(node_t *node, node_t **rnode, block_id_t *rnode_id, int *median);
     
 private:
     // Some relevant state information
@@ -53,7 +56,7 @@ private:
 
     node_t *node;
     internal_node_t *last_node;
-    block_id_t node_id, last_node_id;
+    block_id_t node_id, last_node_id, new_root_id, new_split_root_id;
     bool last_node_dirty;
 };
 

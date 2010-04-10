@@ -216,6 +216,79 @@ public:
     GEN_ALLOC_IMPL(T3, _p3)
 };
 
+// Specialization with 5 allocators
+template <class super_alloc_t, typename T0, typename T1, typename T2, typename T3, typename T4>
+struct object_static_alloc_t<super_alloc_t,
+                             T0, T1,
+                             T2, T3,
+                             T4, null_5_t,
+                             null_6_t, null_7_t,
+                             null_8_t, null_9_t>
+{
+public:
+    object_static_alloc_t() :
+        _p0(sizeof(T0)),
+        _p1(sizeof(T1)),
+        _p2(sizeof(T2)),
+        _p3(sizeof(T3)),
+        _p4(sizeof(T4))
+        {}
+
+    void gc() {
+        _p0.gc();
+        _p1.gc();
+        _p2.gc();
+        _p3.gc();
+        _p4.gc();
+    }
+
+    GEN_WRAPPER
+    GEN_ALLOC_IMPL(T0, _p0)
+    GEN_ALLOC_IMPL(T1, _p1)
+    GEN_ALLOC_IMPL(T2, _p2)
+    GEN_ALLOC_IMPL(T3, _p3)
+    GEN_ALLOC_IMPL(T4, _p4)
+};
+
+// Specialization with 6 allocators
+template <class super_alloc_t,
+          typename T0, typename T1, typename T2, typename T3, 
+          typename T4, typename T5>
+struct object_static_alloc_t<super_alloc_t,
+                             T0, T1,
+                             T2, T3,
+                             T4, T5,
+                             null_6_t, null_7_t,
+                             null_8_t, null_9_t>
+{
+public:
+    object_static_alloc_t() :
+        _p0(sizeof(T0)),
+        _p1(sizeof(T1)),
+        _p2(sizeof(T2)),
+        _p3(sizeof(T3)),
+        _p4(sizeof(T4)),
+        _p5(sizeof(T5))
+        {}
+
+    void gc() {
+        _p0.gc();
+        _p1.gc();
+        _p2.gc();
+        _p3.gc();
+        _p4.gc();
+        _p5.gc();
+    }
+
+    GEN_WRAPPER
+    GEN_ALLOC_IMPL(T0, _p0)
+    GEN_ALLOC_IMPL(T1, _p1)
+    GEN_ALLOC_IMPL(T2, _p2)
+    GEN_ALLOC_IMPL(T3, _p3)
+    GEN_ALLOC_IMPL(T4, _p4)
+    GEN_ALLOC_IMPL(T5, _p5)
+};
+
 // Adapter from object_static_alloc_t to a standard allocator (for test code uniformity)
 template<typename super_alloc_t, typename T>
 struct object_static_adapter_t : public super_alloc_t {

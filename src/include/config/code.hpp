@@ -13,6 +13,7 @@
 #include "serializer/in_place.hpp"
 #include "buffer_cache/fallthrough.hpp"
 #include "btree/get_fsm.hpp"
+#include "btree/set_fsm.hpp"
 #include "btree/array_node.hpp"
 
 /**
@@ -41,11 +42,12 @@ struct standard_config_t {
     typedef array_node_t<serializer_t::block_id_t> node_t;
     typedef btree_fsm<standard_config_t> btree_fsm_t;
     typedef btree_get_fsm<standard_config_t> btree_get_fsm_t;
+    typedef btree_set_fsm<standard_config_t> btree_set_fsm_t;
 
     // Small object allocator
     typedef object_static_alloc_t<
         dynamic_pool_alloc_t<alloc_stats_t<pool_alloc_t<memalign_alloc_t<> > > >,
-        iocb, fsm_t, iobuf_t, btree_get_fsm_t> alloc_t;
+        iocb, fsm_t, iobuf_t, btree_get_fsm_t, btree_set_fsm_t> alloc_t;
 };
 
 typedef standard_config_t code_config_t;
