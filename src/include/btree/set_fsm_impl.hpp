@@ -2,6 +2,14 @@
 #ifndef __BTREE_SET_FSM_IMPL_HPP__
 #define __BTREE_SET_FSM_IMPL_HPP__
 
+// TODO: consider B#/B* trees to improve space efficiency
+
+// TODO: perhaps allow memory reclamation due to oversplitting? We can
+// be smart and only use a limited amount of ram for incomplete nodes
+// (doing this efficiently very tricky for high insert
+// workloads). Also, if the serializer is log-structured, we can write
+// only a small part of each node.
+
 template <class config_t>
 void btree_set_fsm<config_t>::init_update(int _key, int _value) {
     key = _key;
