@@ -67,7 +67,6 @@ public:
         node_t *node;
         block_id_t node_id;
         get_root_id(&node_id, NULL);
-        bool node_dirty = false;
 
         internal_node_t *last_node = NULL;
         block_id_t last_node_id = cache_t::null_block_id;
@@ -79,7 +78,6 @@ public:
             void *ptr = allocate(&root_id);
             set_root_id(root_id);
             node = new (ptr) leaf_node_t();
-            node_dirty = true;
             node_id = root_id;
         } else {
             node = (node_t*)acquire(node_id, NULL);
@@ -127,10 +125,9 @@ public:
                 last_node_id = node_id;
                 last_node_dirty = false;
                 
-                // Look up the next node; release and update the node
+                // Look up the next node; update the node
                 node_id = ((internal_node_t*)node)->lookup(key);
                 node = (node_t*)acquire(node_id, NULL);
-                node_dirty = false;
             }
         } while(1);
 

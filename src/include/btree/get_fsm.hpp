@@ -33,7 +33,8 @@ public:
 
 public:
     btree_get_fsm(cache_t *_cache, fsm_t *_netfsm)
-        : btree_fsm_t(_cache, _netfsm), state(uninitialized)
+        : btree_fsm_t(_cache, _netfsm), state(uninitialized),
+          node(NULL), node_id(cache_t::null_block_id)
         {}
 
     void init_lookup(int _key);
@@ -51,9 +52,10 @@ private:
 private:
     // Some relevant state information
     state_t state;
-    block_id_t node_id;
     node_t *node;
     int key;
+
+    block_id_t node_id;
 };
 
 #include "btree/get_fsm_impl.hpp"

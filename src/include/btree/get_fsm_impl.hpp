@@ -15,6 +15,10 @@ typename btree_get_fsm<config_t>::transition_result_t btree_get_fsm<config_t>::d
     assert(state == lookup_acquiring_superblock);
     
     if(get_root_id(&node_id) == 0) {
+        // We're temporarily assigning superblock id to node_id
+        // variable, so that when we get the next disk completion
+        // event, we can notify the cache.
+        node_id = btree_fsm_t::cache->get_superblock_id();
         return btree_fsm_t::transition_incomplete;
     } else {
         state = lookup_acquiring_root;
@@ -27,7 +31,7 @@ typename btree_get_fsm<config_t>::transition_result_t btree_get_fsm<config_t>::d
     assert(state == lookup_acquiring_root);
     
     // Make sure root exists
-    if(btree_fsm_t::cache->is_block_id_null(node_id)) {
+    if(serializer_t::is_block_id_null(node_id)) {
         op_result = btree_not_found;
         return btree_fsm_t::transition_complete;
     }
@@ -46,7 +50,7 @@ template <class config_t>
 typename btree_get_fsm<config_t>::transition_result_t btree_get_fsm<config_t>::do_lookup_acquiring_node() {
     assert(state == lookup_acquiring_node);
     assert(node);
-    
+
     if(node->is_internal()) {
         block_id_t next_node_id = ((internal_node_t*)node)->lookup(key);
         btree_fsm_t::cache->release(node_id, (void*)node, false, btree_fsm_t::netfsm);
@@ -68,38 +72,38 @@ typename btree_get_fsm<config_t>::transition_result_t btree_get_fsm<config_t>::d
 template <class config_t>
 typename btree_get_fsm<config_t>::transition_result_t btree_get_fsm<config_t>::do_transition(event_t *event) {
     transition_result_t res = btree_fsm_t::transition_ok;
-    // TODO: If event is null, we're initiating the first
-    // transition. Is this the API we want?
-    if(event == NULL || event->event_type == et_disk) {
-        // Update the cache with the event
-        if(event) {
-            check("Could not complete AIO operation",
-                  event->result == 0 ||
-                  event->result == -1);
-            btree_fsm_t::cache->aio_complete(node_id, event->buf);
-        }
 
-        // First, acquire the superblock (to get root node ID)
-        if(res == btree_fsm_t::transition_ok && state == lookup_acquiring_superblock)
-            res = do_lookup_acquiring_superblock();
-        
-        // Then, acquire the root block
-        if(res == btree_fsm_t::transition_ok && state == lookup_acquiring_root)
-            res = do_lookup_acquiring_root();
-        
-        // Then, acquire the nodes, until we hit the leaf
-        while(res == btree_fsm_t::transition_ok && state == lookup_acquiring_node) {
-            res = do_lookup_acquiring_node();
-        }
+    // Make sure we've got either an empty or a disk event
+    check("btree_fsm::do_transition - invalid event",
+          event != NULL && event->event_type != et_disk);
 
-        // TODO: we consider state transitions reentrant, which means
-        // we are likely to call acquire twice, but release only
-        // once. We need to figure out how to get around that cleanly.
-    } else {
-        check("btree_get_fsm::do_transition - invalid event", 1);
+    // Update the cache with the event
+    if(event) {
+        check("Could not complete AIO operation",
+              event->result == 0 ||
+              event->result == -1);
+        btree_fsm_t::cache->aio_complete(node_id, event->buf);
     }
+    
+    // First, acquire the superblock (to get root node ID)
+    if(res == btree_fsm_t::transition_ok && state == lookup_acquiring_superblock)
+        res = do_lookup_acquiring_superblock();
+        
+    // Then, acquire the root block
+    if(res == btree_fsm_t::transition_ok && state == lookup_acquiring_root)
+        res = do_lookup_acquiring_root();
+        
+    // Then, acquire the nodes, until we hit the leaf
+    while(res == btree_fsm_t::transition_ok && state == lookup_acquiring_node) {
+        res = do_lookup_acquiring_node();
+    }
+
+    // TODO: we consider state transitions reentrant, which means
+    // we are likely to call acquire twice, but release only
+    // once. We need to figure out how to get around that cleanly.
+
     assert(res == btree_fsm_t::transition_incomplete ||
-           res == btree_get_fsm_complete);
+           res == btree_fsm_t::transition_ok);
     return res;
 }
 

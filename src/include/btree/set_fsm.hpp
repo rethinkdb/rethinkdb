@@ -5,25 +5,59 @@
 template <class config_t>
 class btree_set_fsm : public btree_fsm<config_t> {
 public:
+    typedef typename config_t::btree_fsm_t btree_fsm_t;
+    typedef typename config_t::node_t node_t;
+    typedef typename node_t::leaf_node_t leaf_node_t;
+    typedef typename node_t::internal_node_t internal_node_t;
+    typedef typename config_t::fsm_t fsm_t;
+    typedef typename config_t::cache_t cache_t;
+    typedef typename config_t::serializer_t serializer_t;
+    typedef typename serializer_t::block_id_t block_id_t;
+    typedef typename btree_fsm_t::transition_result_t transition_result_t;
+
+public:
     enum state_t {
         uninitialized,
-        
+        update_acquiring_superblock,
+        update_acquiring_root,
+        update_inserting_root,
+        update_inserting_root_on_split,
+        update_acquiring_node
     };
 
 public:
     btree_set_fsm(cache_t *_cache, fsm_t *_netfsm)
-        : btree_fsm_t(_cache, _netfsm), state(uninitialized)
+        : btree_fsm_t(_cache, _netfsm), state(uninitialized),
+          node(NULL), last_node(NULL), node_id(cache_t::null_block_id),
+          last_node_id(cache_t::null_block_id), last_node_dirty(false)
         {}
 
-    void init_insert(int _key, int _value);
+    void init_update(int _key, int _value);
     virtual transition_result_t do_transition(event_t *event);
 
+private:
+    transition_result_t do_update_acquiring_superblock();
+    transition_result_t do_update_acquiring_root();
+    transition_result_t do_update_inserting_root();
+    transition_result_t do_update_inserting_root_on_split();
+    transition_result_t do_update_acquiring_node();
+
+private:
+    int set_root_id(block_id_t root_id);
+    
 private:
     // Some relevant state information
     state_t state;
     int key;
     int value;
+
+    node_t *node;
+    internal_node_t *last_node;
+    block_id_t node_id, last_node_id;
+    bool last_node_dirty;
 };
+
+#include "btree/set_fsm_impl.hpp"
 
 #endif // __BTREE_SET_FSM_HPP__
 

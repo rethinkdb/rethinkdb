@@ -140,6 +140,12 @@ typename conn_fsm_t<config_t>::result_t conn_fsm_t<config_t>::do_fsm_btree_incom
         // future (fsm would need to associate IO responses with a
         // given command).
     } else if(event->event_type == et_disk) {
+        // TODO: Right now we route IO to conn_fsm_t, and then reroute
+        // it to btree_fsm here. This is stupid, we should route IO to
+        // btree_fsm directly, and when it completes, do a final
+        // conn_fsm_t transition. This is an artifact of blocked IO
+        // (we used to not have a separate btree state machine), and
+        // needs to be removed.
         typename btree_fsm_t::transition_result_t res = btree_fsm->do_transition(event);
         if(res == btree_fsm_t::transition_complete) {
             req_handler->build_response(this);

@@ -32,6 +32,11 @@ public:
      * might want to consider hardcoding a switch statement instead of
      * using a virtual function, and testing the performance
      * difference. */
+
+    // If event is null, we're initiating the first transition
+    // (i.e. do_transition is getting called for the first time in
+    // this fsm instance). After this, do_transition should only get
+    // called on disk events (when a node has been read from disk).
     virtual transition_result_t do_transition(event_t *event) = 0;
 
 protected:
