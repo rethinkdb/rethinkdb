@@ -238,6 +238,7 @@ int btree_set_fsm<config_t>::set_root_id(block_id_t root_id) {
     }
     memcpy(buf, (void*)&root_id, sizeof(root_id));
     btree_fsm_t::cache->release(superblock_id, buf, true, btree_fsm_t::netfsm);
+    nwrites++;
     return 1;
 }
 
