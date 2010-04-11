@@ -121,11 +121,22 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
         } else if(event->op == eo_write) {
             btree_fsm_t::cache->aio_complete(event->offset, event->buf, true);
             nwrites--;
+            // See if we're done
+            if(res == btree_fsm_t::transition_ok && state == update_complete) {
+                if(nwrites == 0) {
+                    return btree_fsm_t::transition_complete;
+                } else {
+                    return btree_fsm_t::transition_incomplete;
+                }
+            } else {
+                return btree_fsm_t::transition_incomplete;
+            }
+        
         } else {
             check("btree_set_fsm::do_transition - invalid event", 1);
         }
     }
-    
+
     // First, acquire the superblock (to get root node ID)
     if(res == btree_fsm_t::transition_ok && state == update_acquiring_superblock)
         res = do_update_acquiring_superblock();
@@ -153,15 +164,23 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
                 break;
             }
         }
+
+        printf("While start last node id: %ld\n", last_node_id);
+        printf("While start node id: %ld\n", node_id);
         
         // Proactively split the node
         if(node->is_full()) {
-            printf("Splitting node\n");
+            printf("******Splitting node******... Original node(%ld):\n", node_id);
+            node->print();
             int median;
             node_t *rnode;
             block_id_t rnode_id;
             bool new_root = false;
             split_node(node, &rnode, &rnode_id, &median);
+            printf("Left node(%ld):\n", node_id);
+            node->print();
+            printf("Right node(%ld):\n", rnode_id);
+            rnode->print();
             // Create a new root if we're splitting a root
             if(last_node == NULL) {
                 printf("Allocating root on split\n");
@@ -176,15 +195,14 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
             if(key < median) {
                 // Left node and node are the same thing
                 btree_fsm_t::cache->release(rnode_id, (void*)rnode, true, btree_fsm_t::netfsm);
-                rnode->print();
                 nwrites++;
             } else if(key >= median) {
                 btree_fsm_t::cache->release(node_id, (void*)node, true, btree_fsm_t::netfsm);
-                node->print();
                 nwrites++;
                 node = rnode;
                 node_id = rnode_id;
             }
+            node_dirty = true;
 
             if(new_root) {
                 state = update_inserting_root_on_split;
@@ -199,7 +217,6 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
             printf("Inserting into leaf\n");
             ((leaf_node_t*)node)->insert(key, value);
             btree_fsm_t::cache->release(node_id, (void*)node, true, btree_fsm_t::netfsm);
-            node->print();
             nwrites++;
             state = update_complete;
             res = btree_fsm_t::transition_ok;
@@ -210,12 +227,11 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
                 btree_fsm_t::cache->release(last_node_id, (void*)last_node, last_node_dirty,
                                             btree_fsm_t::netfsm);
                 last_node_dirty ? (nwrites++) : 0;
-                if(last_node_dirty)
-                    last_node->print();
             }
             last_node = (internal_node_t*)node;
             last_node_id = node_id;
-            last_node_dirty = false;
+            last_node_dirty = node_dirty;
+            node_dirty = false;
                 
             // Look up the next node
             node_id = ((internal_node_t*)node)->lookup(key);
@@ -229,18 +245,10 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
             btree_fsm_t::cache->release(last_node_id, (void*)last_node, last_node_dirty,
                                         btree_fsm_t::netfsm);
             last_node_dirty ? (nwrites++) : 0;
-            if(last_node_dirty)
-                last_node->print();
             last_node_id = cache_t::null_block_id;
         }
     }
 
-    // Wait until we're done writing
-    if(res == btree_fsm_t::transition_ok && state == update_complete) {
-        if(nwrites == 0)
-            res = btree_fsm_t::transition_complete;
-    }
-        
     return res;
 }
 

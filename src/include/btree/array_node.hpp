@@ -13,7 +13,7 @@ struct array_internal_node_t;
 
 // TODO: this shouldn't be a compile time option (or perhaps it should
 // in this case)
-#define NODE_ORDER    16
+#define NODE_ORDER    4
 
 // TODO: optimize for cache alignment/cache misses/etc.
 template <typename block_id_t>

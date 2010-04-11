@@ -68,6 +68,7 @@ public:
     /* Fires off an async request to read the block identified by
      * block_id into buf, associating state with the request. */
     void do_read(block_id_t block_id, void *buf, fsm_t *fsm) {
+        printf("Loading block id %ld\n", block_id);
         schedule_aio_read(dbfd, block_id, block_size, buf,
                           fsm->event_queue, (event_state_t*)fsm);
     }
@@ -79,7 +80,10 @@ public:
      * can be passed in place of block_id, in which case the return
      * value will be the id of the newly written block. */
     block_id_t do_write(block_id_t block_id, void *buf, fsm_t *fsm) {
-        printf("writing nid: %ld\n", block_id);
+        if(block_id != 0) {
+            printf("writing node(%ld):\n", block_id);
+            ((typename config_t::node_t*)buf)->print();
+        }
         schedule_aio_write(dbfd, block_id, block_size, buf,
                            fsm->event_queue, (event_state_t*)fsm);
         return block_id;
