@@ -14,8 +14,12 @@ using namespace std;
 
 // Forward declarations
 struct mock_io_calls_t;
+
 template <class config_t>
 class mock_handler_t;
+
+template <class config_t>
+class mock_btree_fsm;
 
 // Typedef test fsm
 struct mock_config_t {
@@ -29,8 +33,7 @@ struct mock_config_t {
     // btree
     typedef array_node_t<cache_t::block_id_t> node_t;
     typedef btree_fsm<mock_config_t> btree_fsm_t;
-    typedef btree_get_fsm<mock_config_t> btree_get_fsm_t;
-    typedef btree_set_fsm<mock_config_t> btree_set_fsm_t;
+    typedef mock_btree_fsm<mock_config_t> mock_btree_t;
 
     // Connection fsm
     typedef conn_fsm_t<mock_config_t> fsm_t;
@@ -102,6 +105,7 @@ struct mock_io_calls_t {
 template <class config_t>
 class mock_handler_t : public request_handler_t<config_t> {
 public:
+    typedef typename config_t::mock_btree_t mock_btree_t;
     typedef typename config_t::req_handler_t req_handler_t;
     typedef typename req_handler_t::parse_result_t parse_result_t;
     
@@ -110,6 +114,7 @@ public:
     virtual parse_result_t parse_request(event_t *event) {
         test_fsm_t *state = (test_fsm_t*)event->state;
         if(strncmp(state->buf, "hello", 5) == 0) {
+            state->btree_fsm = new mock_btree_t();
             return req_handler_t::op_req_complex;
         } else if(strncmp(state->buf, "hello", 1) == 0 ||
                   strncmp(state->buf, "hello", 2) == 0 ||
@@ -123,8 +128,24 @@ public:
     }
     
     virtual void build_response(test_fsm_t *fsm) {
+        delete(fsm->btree_fsm);
         strcpy(fsm->buf, "okey");
         fsm->nbuf = 5;
+    }
+};
+
+// Mock btree
+template <class config_t>
+class mock_btree_fsm : public btree_fsm<config_t> {
+public:
+    typedef typename config_t::btree_fsm_t btree_fsm_t;
+    typedef typename btree_fsm_t::transition_result_t transition_result_t;
+    
+public:
+    mock_btree_fsm() : btree_fsm_t(NULL, NULL, btree_fsm_t::btree_mock_fsm) {}
+    
+    virtual transition_result_t do_transition(event_t *event) {
+        return btree_fsm_t::transition_complete;
     }
 };
 

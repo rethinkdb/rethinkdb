@@ -21,8 +21,9 @@ public:
     // nicer to do it with a visitor pattern (oh C++, give me
     // multimethods), but meh.
     enum fsm_type_t {
+        btree_mock_fsm,
         btree_get_fsm,
-        btree_set_fsm
+        btree_set_fsm,
     };
 
 public:
