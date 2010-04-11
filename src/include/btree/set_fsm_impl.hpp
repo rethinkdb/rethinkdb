@@ -21,7 +21,6 @@ template <class config_t>
 typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::do_update_acquiring_superblock()
 {
     assert(state == update_acquiring_superblock);
-    printf("do_update_acquiring_superblock\n");
     
     if(get_root_id(&node_id) == 0) {
         // We're temporarily assigning superblock id to node_id
@@ -43,7 +42,6 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
     // If root didn't exist, we should have ended up in
     // do_update_inserting_root()
     assert(!serializer_t::is_block_id_null(node_id));
-    printf("do_update_acquiring_root\n");
 
     // Acquire the actual root node
     node = (node_t*)btree_fsm_t::cache->acquire(node_id, btree_fsm_t::netfsm);
@@ -58,7 +56,6 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
 template <class config_t>
 typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::do_update_inserting_root()
 {
-    printf("do_update_inserting_root\n");
     // If this is the first time we're entering this function,
     // allocate the root (otherwise, the root has already been
     // allocated here, and we just need to set its id in the metadata)
@@ -77,8 +74,6 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
 template <class config_t>
 typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::do_update_inserting_root_on_split()
 {
-    printf("do_update_inserting_root_on_split\n");
-    
     if(set_root_id(last_node_id)) {
         state = update_acquiring_node;
         return btree_fsm_t::transition_ok;
@@ -90,7 +85,6 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
 template <class config_t>
 typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::do_update_acquiring_node()
 {
-    printf("do_update_acquiring_node\n");
     node = (node_t*)btree_fsm_t::cache->acquire(node_id, btree_fsm_t::netfsm);
     if(node)
         return btree_fsm_t::transition_ok;
@@ -165,25 +159,15 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
             }
         }
 
-        printf("While start last node id: %ld\n", last_node_id);
-        printf("While start node id: %ld\n", node_id);
-        
         // Proactively split the node
         if(node->is_full()) {
-            printf("******Splitting node******... Original node(%ld):\n", node_id);
-            node->print();
             int median;
             node_t *rnode;
             block_id_t rnode_id;
             bool new_root = false;
             split_node(node, &rnode, &rnode_id, &median);
-            printf("Left node(%ld):\n", node_id);
-            node->print();
-            printf("Right node(%ld):\n", rnode_id);
-            rnode->print();
             // Create a new root if we're splitting a root
             if(last_node == NULL) {
-                printf("Allocating root on split\n");
                 new_root = true;
                 void *ptr = btree_fsm_t::cache->allocate(&last_node_id);
                 last_node = new (ptr) internal_node_t();
@@ -214,7 +198,6 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
         }
         // Insert the value, or move up the tree
         if(node->is_leaf()) {
-            printf("Inserting into leaf\n");
             ((leaf_node_t*)node)->insert(key, value);
             btree_fsm_t::cache->release(node_id, (void*)node, true, btree_fsm_t::netfsm);
             nwrites++;
@@ -260,7 +243,6 @@ int btree_set_fsm<config_t>::set_root_id(block_id_t root_id) {
         return 0;
     }
     memcpy(buf, (void*)&root_id, sizeof(root_id));
-    printf("new root: %ld\n", root_id);
     btree_fsm_t::cache->release(superblock_id, buf, true, btree_fsm_t::netfsm);
     nwrites++;
     return 1;

@@ -44,7 +44,6 @@ public:
             ft_map.erase(ft_map.find(block_id));
             free(block);
         }
-        printf("%ld items remain in the cache\n", ft_map.size());
         return block_id;
     }
 
@@ -55,10 +54,6 @@ public:
             ft_map.erase(i);
             free(block);
         } else {
-            if(block_id != 0) {
-                printf("read block id %ld:\n", block_id);
-                ((typename config_t::node_t*)block)->print();
-            }
             ft_map[block_id] = block;
         }
     }
