@@ -7,6 +7,10 @@
 // understand what is happening here). Needs to be redesigned (with
 // UML and all).
 
+// TODO: we should combine multiple writes into a single call to OS
+// whenever possible. Perhaps the cache should do it itself (let's
+// wait 'till we add transactions, perhaps it will be easier then).
+
 // TODO: consider B#/B* trees to improve space efficiency
 
 // TODO: perhaps allow memory reclamation due to oversplitting? We can
