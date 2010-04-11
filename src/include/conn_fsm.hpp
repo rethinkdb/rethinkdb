@@ -20,6 +20,7 @@ public:
     typedef typename config_t::iocalls_t iocalls_t;
     typedef typename config_t::iobuf_t iobuf_t;
     typedef typename config_t::btree_fsm_t btree_fsm_t;
+    typedef typename config_t::req_handler_t req_handler_t;
     
 public:
     // Possible transition results
@@ -42,7 +43,7 @@ public:
     };
     
 public:
-    conn_fsm_t(resource_t _source, alloc_t* _alloc, request_handler_t *_req_handler,
+    conn_fsm_t(resource_t _source, alloc_t* _alloc, req_handler_t *_req_handler,
                event_queue_t *_event_queue);
     ~conn_fsm_t();
     
@@ -58,7 +59,7 @@ public:
     char *buf;
     unsigned int nbuf, snbuf;
     alloc_t *alloc;
-    request_handler_t *req_handler;
+    req_handler_t *req_handler;
     event_queue_t *event_queue;
     btree_fsm_t *btree_fsm;
     

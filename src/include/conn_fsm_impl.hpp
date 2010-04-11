@@ -62,26 +62,26 @@ typename conn_fsm_t<config_t>::result_t conn_fsm_t<config_t>::do_socket_ready(ev
                 }
             } else if(sz > 0) {
                 state->nbuf += sz;
-                typename request_handler_t::parse_result_t handler_res =
+                typename req_handler_t::parse_result_t handler_res =
                     req_handler->parse_request(event);
                 typename btree_fsm_t::transition_result_t btree_res;
                 switch(handler_res) {
-                case request_handler_t::op_malformed:
+                case req_handler_t::op_malformed:
                     // Command wasn't processed correctly, send error
                     send_err_to_client();
                     break;
-                case request_handler_t::op_partial_packet:
+                case req_handler_t::op_partial_packet:
                     // The data is incomplete, keep trying to read in
                     // the current read loop
                     state->state = conn_fsm_t::fsm_socket_recv_incomplete;
                     break;
-                case request_handler_t::op_req_shutdown:
+                case req_handler_t::op_req_shutdown:
                     // Shutdown has been initiated
                     return fsm_shutdown_server;
-                case request_handler_t::op_req_quit:
+                case req_handler_t::op_req_quit:
                     // The connection has been closed
                     return fsm_quit_connection;
-                case request_handler_t::op_req_complex:
+                case req_handler_t::op_req_complex:
                     // btree_fsm should have been generated, now
                     // initiate the first transition
                     assert(btree_fsm);
@@ -222,7 +222,7 @@ typename conn_fsm_t<config_t>::result_t conn_fsm_t<config_t>::do_transition(even
 
 template<class config_t>
 conn_fsm_t<config_t>::conn_fsm_t(resource_t _source, alloc_t* _alloc,
-                                   request_handler_t *_req_handler, event_queue_t *_event_queue)
+                                 req_handler_t *_req_handler, event_queue_t *_event_queue)
     : event_state_t(_source), alloc(_alloc), req_handler(_req_handler),
       event_queue(_event_queue)
 {

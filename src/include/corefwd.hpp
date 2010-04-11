@@ -34,6 +34,13 @@ struct event_queue_t;
 // Worker pool
 struct worker_pool_t;
 
+// Request ahdnler
+template <class config_t>
+class request_handler_t;
+
+template <class config_t>
+class memcached_handler_t;
+
 // IOCB
 struct iocb;
 

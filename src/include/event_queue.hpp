@@ -30,6 +30,7 @@ public:
     typedef code_config_t::fsm_t fsm_t;
     typedef code_config_t::alloc_t alloc_t;
     typedef code_config_t::fsm_list_t fsm_list_t;
+    typedef code_config_t::req_handler_t req_handler_t;
     
 public:
     event_queue_t(int queue_id, event_handler_t event_handler,
@@ -68,7 +69,7 @@ public:
     // state.
     fsm_list_t live_fsms;
     worker_pool_t *parent_pool;
-    request_handler_t *req_handler;
+    req_handler_t *req_handler;
 };
 
 #endif // __EVENT_QUEUE_HPP__

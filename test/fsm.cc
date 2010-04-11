@@ -4,15 +4,42 @@
 #include <retest.hpp>
 #include <unistd.h>
 #include <errno.h>
-#include "fsm.hpp"
+#include "conn_fsm.hpp"
 #include "alloc/malloc.hpp"
-#include "operations.hpp"
+#include "alloc/object_static.hpp"
+#include "request_handler/request_handler.hpp"
+#include "buffer_cache/volatile.hpp"
 
 using namespace std;
 
-// Typedef test fsm
+// Forward declarations
 struct mock_io_calls_t;
-typedef fsm_state_t<mock_io_calls_t, malloc_alloc_t> test_fsm_t;
+template <class config_t>
+class mock_handler_t;
+
+// Typedef test fsm
+struct mock_config_t {
+    typedef buffer_t<IO_BUFFER_SIZE> iobuf_t;
+    typedef mock_io_calls_t iocalls_t;
+    typedef object_static_alloc_t<malloc_alloc_t, iobuf_t> alloc_t;
+
+    // TODO: add cache_stats_t to make sure we acquire/release right
+    typedef volatile_cache_t cache_t;
+
+    // btree
+    typedef array_node_t<cache_t::block_id_t> node_t;
+    typedef btree_fsm<mock_config_t> btree_fsm_t;
+    typedef btree_get_fsm<mock_config_t> btree_get_fsm_t;
+    typedef btree_set_fsm<mock_config_t> btree_set_fsm_t;
+
+    // Connection fsm
+    typedef conn_fsm_t<mock_config_t> fsm_t;
+
+    // Request handler
+    typedef mock_handler_t<mock_config_t> req_handler_t;
+};
+
+typedef mock_config_t::fsm_t test_fsm_t;
 
 // Mock IO
 struct mock_io_calls_t {
@@ -71,30 +98,34 @@ struct mock_io_calls_t {
     int soft_sendlim, hard_sendlim, bytes_sent;
 };
 
-// Mock ops
-class mock_operations_t : public operations_t {
+// Mock handler
+template <class config_t>
+class mock_handler_t : public request_handler_t<config_t> {
 public:
-    mock_operations_t() {}
-    virtual result_t process_command(event_t *event) {
+    typedef typename config_t::req_handler_t req_handler_t;
+    typedef typename req_handler_t::parse_result_t parse_result_t;
+    
+public:
+    mock_handler_t() {}
+    virtual parse_result_t parse_request(event_t *event) {
         test_fsm_t *state = (test_fsm_t*)event->state;
         if(strncmp(state->buf, "hello", 5) == 0) {
-            strcpy(state->buf, "okey");
-            state->nbuf = 5;
-            return command_success_response_ready;
+            return req_handler_t::op_req_complex;
         } else if(strncmp(state->buf, "hello", 1) == 0 ||
                   strncmp(state->buf, "hello", 2) == 0 ||
                   strncmp(state->buf, "hello", 3) == 0 ||
                   strncmp(state->buf, "hello", 4) == 0)
         {
-            return incomplete_command;
-        } else {
-            return malformed_command;
+            return req_handler_t::op_partial_packet;
         }
-        return command_success_no_response;
+        
+        return req_handler_t::op_malformed;
     }
-
-private:
-    rethink_tree_t *btree;
+    
+    virtual void build_response(test_fsm_t *fsm) {
+        strcpy(fsm->buf, "okey");
+        fsm->nbuf = 5;
+    }
 };
 
 // Setup event
@@ -105,11 +136,11 @@ void setup_event(event_t *event, test_fsm_t *fsm) {
 }
 
 // Unit test header helper
-#define DEFINE_FSM(alloc, ops, event, fsm)  \
-    malloc_alloc_t alloc;                   \
-    mock_operations_t ops;                  \
-    event_t event;                          \
-    test_fsm_t fsm(0, &(alloc), &(ops));    \
+#define DEFINE_FSM(alloc, handler, event, fsm)       \
+    mock_config_t::alloc_t alloc;                    \
+    mock_handler_t<mock_config_t> handler;           \
+    event_t event;                                   \
+    test_fsm_t fsm(0, &(alloc), &(handler), NULL);   \
     setup_event(&(event), &(fsm));
     
 
@@ -117,7 +148,7 @@ void setup_event(event_t *event, test_fsm_t *fsm) {
 // fsm to write a complete response. Note that we test soft limit
 // loops but not hard limits here (see the io mock implementation).
 void test_fsm_basic() {
-    DEFINE_FSM(alloc, ops, event, fsm);
+    DEFINE_FSM(alloc, handler, event, fsm);
 
     fsm.recvbuf += "hello";
     fsm.do_transition(&event);
@@ -129,7 +160,7 @@ void test_fsm_basic() {
 // complete error response. Note that we test soft limit loops but not
 // hard limits here (see the io mock implementation).
 void test_fsm_malformed() {
-    DEFINE_FSM(alloc, ops, event, fsm);
+    DEFINE_FSM(alloc, handler, event, fsm);
 
     fsm.recvbuf += "malformed";
     fsm.do_transition(&event);
@@ -140,7 +171,7 @@ void test_fsm_malformed() {
 // Go through the well formed, incomplete receive cycle. We test both
 // soft and hard limits here (see io mock implementation).
 void test_fsm_incomplete_recv() {
-    DEFINE_FSM(alloc, ops, event, fsm);
+    DEFINE_FSM(alloc, handler, event, fsm);
     fsm.hard_recvlim = 2;
 
     // Make sure we're transitioned to an incomplete state
@@ -163,7 +194,7 @@ void test_fsm_incomplete_recv() {
 // Go through the well formed, incomplete send cycle. We test both
 // soft and hard limits here (see io mock implementation).
 void test_fsm_incomplete_send() {
-    DEFINE_FSM(alloc, ops, event, fsm);
+    DEFINE_FSM(alloc, handler, event, fsm);
     fsm.hard_sendlim = 2;
 
     // Make sure we're transitioned to an incomplete state
