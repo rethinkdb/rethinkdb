@@ -2,6 +2,11 @@
 #ifndef __BTREE_SET_FSM_IMPL_HPP__
 #define __BTREE_SET_FSM_IMPL_HPP__
 
+// TODO: holy shit this state machine is a fucking mess. We should
+// make it NOT write only (i.e. human beings should be able to easily
+// understand what is happening here). Needs to be redesigned (with
+// UML and all).
+
 // TODO: consider B#/B* trees to improve space efficiency
 
 // TODO: perhaps allow memory reclamation due to oversplitting? We can
