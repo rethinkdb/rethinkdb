@@ -4,6 +4,12 @@
 
 #include "arch/resource.hpp"
 
+// TODO: the way we have conn_fsm_t derive from event_state_t is
+// stupid. We should change this to have event_state_t compose proper
+// state that we need, so we can get it out. Casting event_state_t to
+// a connection state machine is 1) ackward, 2) doesn't let us add
+// additional state.
+
 // Event
 struct event_state_t {
     event_state_t(resource_t _source) : source(_source) {}
@@ -30,7 +36,8 @@ struct event_t {
     int result;
 
     /* For event_type == et_disk_event */
-    void *buf;    // Location of the buffer where data was copied (for read events)
+    void *buf;        // Location of the buffer
+    off64_t offset;   // Offset into the file
 };
 
 #endif // __EVENT_HPP__

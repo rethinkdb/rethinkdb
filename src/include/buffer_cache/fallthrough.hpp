@@ -21,7 +21,9 @@ public:
 
     void* allocate(block_id_t *block_id) {
         *block_id = serializer_t::gen_block_id();
-        return malloc_aligned(serializer_t::block_size, serializer_t::block_size);
+        void *block = malloc_aligned(serializer_t::block_size, serializer_t::block_size);
+        ft_map[*block_id] = block;
+        return block;
     }
     
     void* acquire(block_id_t block_id, fsm_t *state) {
@@ -37,17 +39,24 @@ public:
 
     block_id_t release(block_id_t block_id, void *block, bool dirty, fsm_t *state) {
         if(dirty) {
-            // TODO: we need to free the block after do_write completes
             return do_write(block_id, (char*)block, state);
         } else {
             ft_map.erase(ft_map.find(block_id));
             free(block);
         }
+        printf("%ld items remain in the cache\n", ft_map.size());
         return block_id;
     }
 
-    void aio_complete(block_id_t block_id, void *buf) {
-        ft_map[block_id] = buf;
+    void aio_complete(block_id_t block_id, void *block, bool written) {
+        if(written) {
+            typename ft_map_t::iterator i = ft_map.find(block_id);
+            check("aio_complete: Attempting to erase a non-existing record", i == ft_map.end());
+            ft_map.erase(i);
+            free(block);
+        } else {
+            ft_map[block_id] = block;
+        }
     }
 
 private:

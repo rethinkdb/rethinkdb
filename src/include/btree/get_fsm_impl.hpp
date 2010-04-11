@@ -12,13 +12,13 @@ void btree_get_fsm<config_t>::init_lookup(int _key) {
 
 template <class config_t>
 typename btree_get_fsm<config_t>::transition_result_t btree_get_fsm<config_t>::do_lookup_acquiring_superblock() {
+    printf("do_lookup_acquiring_superblock\n");
     assert(state == lookup_acquiring_superblock);
     
     if(get_root_id(&node_id) == 0) {
         // We're temporarily assigning superblock id to node_id
         // variable, so that when we get the next disk completion
         // event, we can notify the cache.
-        node_id = btree_fsm_t::cache->get_superblock_id();
         return btree_fsm_t::transition_incomplete;
     } else {
         state = lookup_acquiring_root;
@@ -29,6 +29,7 @@ typename btree_get_fsm<config_t>::transition_result_t btree_get_fsm<config_t>::d
 template <class config_t>
 typename btree_get_fsm<config_t>::transition_result_t btree_get_fsm<config_t>::do_lookup_acquiring_root() {
     assert(state == lookup_acquiring_root);
+    printf("do_lookup_acquiring_root\n");
     
     // Make sure root exists
     if(serializer_t::is_block_id_null(node_id)) {
@@ -49,10 +50,16 @@ typename btree_get_fsm<config_t>::transition_result_t btree_get_fsm<config_t>::d
 template <class config_t>
 typename btree_get_fsm<config_t>::transition_result_t btree_get_fsm<config_t>::do_lookup_acquiring_node() {
     assert(state == lookup_acquiring_node);
-    assert(node);
+    printf("do_lookup_acquiring_node\n");
 
+    if(!node) {
+        printf("reading: %ld\n", node_id);
+        node = (node_t*)btree_fsm_t::cache->acquire(node_id, btree_fsm_t::netfsm);
+    }
+    node->print();
     if(node->is_internal()) {
         block_id_t next_node_id = ((internal_node_t*)node)->lookup(key);
+        printf("next_node_id: %ld\n", next_node_id);
         btree_fsm_t::cache->release(node_id, (void*)node, false, btree_fsm_t::netfsm);
         node_id = next_node_id;
         node = (node_t*)btree_fsm_t::cache->acquire(node_id, btree_fsm_t::netfsm);
@@ -79,10 +86,16 @@ typename btree_get_fsm<config_t>::transition_result_t btree_get_fsm<config_t>::d
 
     // Update the cache with the event
     if(event) {
+        check("btree_set_fsm::do_transition - invalid event", event->op != eo_read);
         check("Could not complete AIO operation",
               event->result == 0 ||
               event->result == -1);
-        btree_fsm_t::cache->aio_complete(node_id, event->buf);
+
+        // TODO: right now we assume that block_id_t is the same thing
+        // as event->offset. In the future (once we fix the event
+        // system), the block_id_t state should really be stored
+        // within the event state.
+        btree_fsm_t::cache->aio_complete(event->offset, event->buf, false);
     }
     
     // First, acquire the superblock (to get root node ID)

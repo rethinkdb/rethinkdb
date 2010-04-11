@@ -30,9 +30,8 @@ public:
     btree_set_fsm(cache_t *_cache, fsm_t *_netfsm)
         : btree_fsm_t(_cache, _netfsm, btree_fsm_t::btree_set_fsm),
           state(uninitialized), node(NULL), last_node(NULL), node_id(cache_t::null_block_id),
-          last_node_id(cache_t::null_block_id), new_root_id(cache_t::null_block_id),
-          new_split_root_id(cache_t::null_block_id), last_node_dirty(false),
-          nwrites(0)
+          last_node_id(cache_t::null_block_id), loading_superblock(false),
+          last_node_dirty(false), nwrites(0)
         {}
 
     void init_update(int _key, int _value);
@@ -57,8 +56,8 @@ private:
 
     node_t *node;
     internal_node_t *last_node;
-    block_id_t node_id, last_node_id, new_root_id, new_split_root_id;
-    bool last_node_dirty;
+    block_id_t node_id, last_node_id;
+    bool loading_superblock, last_node_dirty;
     int nwrites;
 };
 

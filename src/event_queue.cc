@@ -53,6 +53,7 @@ void process_aio_notify(event_queue_t *self) {
                 iocb *op = (iocb*)events[i].obj;
                 qevent.result = events[i].res;
                 qevent.buf = op->u.c.buf;
+                qevent.offset = op->u.c.offset;
                 qevent.state = (event_state_t*)events[i].data;
                 if(op->aio_lio_opcode == IO_CMD_PREAD)
                     qevent.op = eo_read;

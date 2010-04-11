@@ -35,6 +35,16 @@ struct array_node_t {
     typedef array_leaf_node_t<block_id_t> leaf_node_t;
     typedef array_internal_node_t<block_id_t> internal_node_t;
 
+    void print() {
+#ifndef NDEBUG
+        if(is_leaf()) {
+            ((leaf_node_t*)this)->print();
+        } else {
+            ((internal_node_t*)this)->print();
+        }
+#endif
+    }
+    
 protected:
     int lookup(int key) {
         int *_value = std::lower_bound(keys, keys + nkeys, key);
@@ -54,14 +64,14 @@ public:
 public:
     array_leaf_node_t() : parent_t(true) {}
 
-#ifndef NDEBUG
     void print() {
+#ifndef NDEBUG
         for(int i = 0; i < this->nkeys; i++) {
             printf("%d : %d, ", this->keys[i], values[i]);
         }
         printf("\n");
-    }
 #endif
+    }
 
     int insert(int key, int value) {
         if(this->nkeys == NODE_ORDER) {
@@ -115,8 +125,8 @@ public:
 public:
     array_internal_node_t() : parent_t(false) {}
 
-#ifndef NDEBUG
     void print() {
+#ifndef NDEBUG
         printf("  ");
         for(int i = 0; i < this->nkeys; i++) {
             printf("%d, ", this->keys[i]);
@@ -126,8 +136,8 @@ public:
             printf("%d, ", (int)(long)values[i]);
         }
         printf("\n\n");
-    }
 #endif
+    }
 
     int insert(int key, block_id_t lnode, block_id_t rnode) {
         if(this->nkeys == NODE_ORDER) {

@@ -79,6 +79,7 @@ public:
      * can be passed in place of block_id, in which case the return
      * value will be the id of the newly written block. */
     block_id_t do_write(block_id_t block_id, void *buf, fsm_t *fsm) {
+        printf("writing nid: %ld\n", block_id);
         schedule_aio_write(dbfd, block_id, block_size, buf,
                            fsm->event_queue, (event_state_t*)fsm);
         return block_id;
