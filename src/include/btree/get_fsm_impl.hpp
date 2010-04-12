@@ -30,7 +30,7 @@ typename btree_get_fsm<config_t>::transition_result_t btree_get_fsm<config_t>::d
     assert(state == lookup_acquiring_root);
     
     // Make sure root exists
-    if(serializer_t::is_block_id_null(node_id)) {
+    if(cache_t::is_block_id_null(node_id)) {
         op_result = btree_not_found;
         return btree_fsm_t::transition_complete;
     }
@@ -88,8 +88,10 @@ typename btree_get_fsm<config_t>::transition_result_t btree_get_fsm<config_t>::d
         // TODO: right now we assume that block_id_t is the same thing
         // as event->offset. In the future (once we fix the event
         // system), the block_id_t state should really be stored
-        // within the event state.
-        btree_fsm_t::cache->aio_complete(event->offset, event->buf, false);
+        // within the event state. Currently, we cast the offset to
+        // block_id_t, but it's a big hack, we need to get rid of this
+        // later.
+        btree_fsm_t::cache->aio_complete((block_id_t)event->offset, event->buf, false);
     }
     
     // First, acquire the superblock (to get root node ID)

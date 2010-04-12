@@ -37,7 +37,7 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
         // event, we can notify the cache.
         return btree_fsm_t::transition_incomplete;
     } else {
-        if(serializer_t::is_block_id_null(node_id))
+        if(cache_t::is_block_id_null(node_id))
             state = update_inserting_root;
         else
             state = update_acquiring_root;
@@ -50,7 +50,7 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
 {
     // If root didn't exist, we should have ended up in
     // do_update_inserting_root()
-    assert(!serializer_t::is_block_id_null(node_id));
+    assert(!cache_t::is_block_id_null(node_id));
 
     // Acquire the actual root node
     node = (node_t*)btree_fsm_t::cache->acquire(node_id, btree_fsm_t::netfsm);
@@ -68,7 +68,7 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
     // If this is the first time we're entering this function,
     // allocate the root (otherwise, the root has already been
     // allocated here, and we just need to set its id in the metadata)
-    if(serializer_t::is_block_id_null(node_id)) {
+    if(cache_t::is_block_id_null(node_id)) {
         void *ptr = btree_fsm_t::cache->allocate(&node_id);
         node = new (ptr) leaf_node_t();
     }
@@ -118,13 +118,20 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
         // TODO: right now we assume that block_id_t is the same thing
         // as event->offset. In the future (once we fix the event
         // system), the block_id_t state should really be stored
-        // within the event state.
+        // within the event state. Currently, we cast the offset to
+        // block_id_t, but it's a big hack, we need to get rid of this
+        // later.
         if(event->op == eo_read) {
-            btree_fsm_t::cache->aio_complete(event->offset, event->buf, false);
+            btree_fsm_t::cache->aio_complete((block_id_t)event->offset, event->buf, false);
         } else if(event->op == eo_write) {
-            btree_fsm_t::cache->aio_complete(event->offset, event->buf, true);
+            btree_fsm_t::cache->aio_complete((block_id_t)event->offset, event->buf, true);
             nwrites--;
-            // See if we're done
+            // TODO: right now we expect to get all AIO write
+            // notifications back before we return
+            // "transition_complete" status. This will be a big
+            // problem when we build caches with different (possibly
+            // delayed) writeback strategies. We need to figure out
+            // how to change this behavior.
             if(res == btree_fsm_t::transition_ok && state == update_complete) {
                 if(nwrites == 0) {
                     return btree_fsm_t::transition_complete;

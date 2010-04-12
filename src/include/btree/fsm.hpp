@@ -2,6 +2,8 @@
 #ifndef __FSM_BTREE_HPP__
 #define __FSM_BTREE_HPP__
 
+#include <assert.h>
+
 template <class config_t>
 class btree_fsm {
 public:

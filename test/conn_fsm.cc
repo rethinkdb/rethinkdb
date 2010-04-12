@@ -21,13 +21,12 @@ class mock_handler_t;
 template <class config_t>
 class mock_btree_fsm;
 
-// Typedef test fsm
+// Mock config
 struct mock_config_t {
     typedef buffer_t<IO_BUFFER_SIZE> iobuf_t;
     typedef mock_io_calls_t iocalls_t;
     typedef object_static_alloc_t<malloc_alloc_t, iobuf_t> alloc_t;
 
-    // TODO: add cache_stats_t to make sure we acquire/release right
     typedef volatile_cache_t cache_t;
 
     // btree

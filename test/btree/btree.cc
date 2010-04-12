@@ -2,72 +2,209 @@
 #include <vector>
 #include <algorithm>
 #include <retest.hpp>
-#include "btree/btree.hpp"
+#include "config/args.hpp"
+#include "alloc/malloc.hpp"
+#include "alloc/object_static.hpp"
 #include "btree/array_node.hpp"
+#include "btree/get_fsm.hpp"
+#include "btree/set_fsm.hpp"
 #include "buffer_cache/volatile.hpp"
-#include "buffer_cache/cache_stats.hpp"
+#include "event.hpp"
 
-#define NODE_SIZE 1024
+using namespace std;
 
-typedef cache_stats_t<volatile_cache_t> test_cache_t;
-typedef btree<array_node_t<test_cache_t::block_id_t>, test_cache_t> test_btree_t;
+// Forward declarations
+struct mock_config_t;
+
+// Mock definitions
+template <class config_t>
+struct mock_fsm_t {};
+
+// TODO: we're only testing the case where cache reads return
+// immediately. We should also test the case where the reads come back
+// via AIO.
+
+template <class config_t>
+struct recording_cache_t : public volatile_cache_t<config_t> {
+public:
+    typedef volatile_cache_t<config_t> vcache_t;
+    typedef typename vcache_t::block_id_t block_id_t;
+    typedef typename vcache_t::fsm_t fsm_t;
+    typedef typename config_t::btree_fsm_t btree_fsm_t;
+
+public:
+    recording_cache_t(size_t _block_size) : vcache_t(_block_size) {}
+
+    block_id_t release(block_id_t block_id, void *block, bool dirty, fsm_t *state) {
+        if(dirty) {
+            // Record the write
+            event_t e;
+            e.event_type = et_disk;
+            e.result = BTREE_BLOCK_SIZE;
+            e.op = eo_write;
+            e.offset = (off64_t)block_id;
+            e.buf = block;
+            record.push_back(e);
+        }
+        return vcache_t::release(block_id, block, dirty, state);
+    }
+
+    typename btree_fsm_t::transition_result_t writes_notify(btree_fsm_t *btree) {
+        typename btree_fsm_t::transition_result_t res;
+        for(vector<event_t>::iterator i = record.begin(); i != record.end(); i++) {
+            res = btree->do_transition(&(*i));
+        }
+        record.clear();
+        return res;
+    }
+
+public:
+    vector<event_t> record;
+};
+
+// Mock config
+struct mock_config_t {
+    typedef buffer_t<IO_BUFFER_SIZE> iobuf_t;
+    typedef object_static_alloc_t<malloc_alloc_t, iobuf_t> alloc_t;
+
+    // Connection fsm
+    typedef mock_fsm_t<mock_config_t> fsm_t;
+
+    // Btree base
+    typedef btree_fsm<mock_config_t> btree_fsm_t;
+
+    // TODO: add cache_stats_t to make sure we acquire/release right
+    typedef recording_cache_t<mock_config_t> cache_t;
+
+    // BTree rest
+    typedef array_node_t<cache_t::block_id_t> node_t;
+    typedef btree_get_fsm<mock_config_t> btree_get_fsm_t;
+    typedef btree_set_fsm<mock_config_t> btree_set_fsm_t;
+};
+
+typedef mock_config_t::cache_t cache_t;
+typedef mock_config_t::btree_fsm_t btree_fsm_t;
+typedef mock_config_t::btree_get_fsm_t get_fsm_t;
+typedef mock_config_t::btree_set_fsm_t set_fsm_t;
+
+// Helpers
+get_fsm_t::op_result_t lookup(cache_t *cache, int k, int expected = -1) {
+    // Initialize get operation state machine
+    get_fsm_t tree(cache, NULL);
+
+    // Perform lookup
+    tree.init_lookup(k);
+    btree_fsm_t::transition_result_t res = tree.do_transition(NULL);
+
+    // Ensure transaction is complete
+    assert_eq(res, btree_fsm_t::transition_complete);
+    if(tree.op_result == get_fsm_t::btree_found)
+        assert_eq(tree.value, expected);
+
+    return tree.op_result;
+}
+
+bool insert(cache_t *cache, int k, int v) {
+    // Initialize set operation state machine
+    set_fsm_t tree(cache, NULL);
+
+    // Perform update
+    tree.init_update(k, v);
+    btree_fsm_t::transition_result_t res = tree.do_transition(NULL);
+
+    // Ensure we inserted the item successfully
+    assert_eq(res, btree_fsm_t::transition_ok);
+
+    // Notify the btree fsm of writes
+    res = cache->writes_notify(&tree);
+
+    return res == btree_fsm_t::transition_complete;
+}
+
+// Tests
 
 void test_lookup_api() {
-    test_btree_t tree(NODE_SIZE);
-    int value;
-    assert_eq(tree.lookup(1, &value), 0);
+    // Initialize underlying cache
+    cache_t cache(BTREE_BLOCK_SIZE);
+
+    get_fsm_t::op_result_t res = lookup(&cache, 1);
+    assert_eq(res, get_fsm_t::btree_not_found);
 }
 
 void test_insert_api() {
-    test_btree_t tree(NODE_SIZE);
-    tree.insert(1, 1);
+    // Initialize underlying cache
+    cache_t cache(BTREE_BLOCK_SIZE);
+    
+    bool complete = insert(&cache, 1, 1);
+    assert(complete);
 }
 
 void test_small_insert() {
-    test_btree_t tree(NODE_SIZE);
+    // Initialize underlying cache
+    cache_t cache(BTREE_BLOCK_SIZE);
 
     // Insert a node full of items
     for(int i = 0; i < NODE_ORDER; i++) {
-        tree.insert(i, i);
+        bool complete = insert(&cache, i, i);
+        assert(complete);
     }
 
     // Make sure the items are there
     int value;
     for(int i = 0; i < NODE_ORDER; i++) {
-        assert_cond(tree.lookup(i, &value));
-        assert_eq(value, i);
+        get_fsm_t::op_result_t res = lookup(&cache, i, i);
+        assert_eq(res, get_fsm_t::btree_found);
     }
+
+    // Make sure missing items aren't there
+    get_fsm_t::op_result_t res = lookup(&cache, NODE_ORDER);
+    assert_eq(res, get_fsm_t::btree_not_found);
 }
 
 void test_multinode_insert() {
-    test_btree_t tree(NODE_SIZE);
+    // Initialize underlying cache
+    cache_t cache(BTREE_BLOCK_SIZE);
 
-    // Insert a node full of items, plus one more
+    // Insert a node full of items
     for(int i = 0; i < NODE_ORDER + 1; i++) {
-        tree.insert(i, i);
+        bool complete = insert(&cache, i, i);
+        assert(complete);
     }
 
     // Make sure the items are there
     int value;
     for(int i = 0; i < NODE_ORDER + 1; i++) {
-        assert_cond(tree.lookup(i, &value));
-        assert_eq(value, i);
+        get_fsm_t::op_result_t res = lookup(&cache, i, i);
+        assert_eq(res, get_fsm_t::btree_found);
     }
+
+    // Make sure missing items aren't there
+    get_fsm_t::op_result_t res = lookup(&cache, NODE_ORDER + 1);
+    assert_eq(res, get_fsm_t::btree_not_found);
 }
 
 void test_large_insert() {
     const int lots_of_items = 1000000;
     
-    test_btree_t tree(NODE_SIZE);
+    // Initialize underlying cache
+    cache_t cache(BTREE_BLOCK_SIZE);
 
+    // Insert a node full of items
     for(int i = 0; i < lots_of_items; i++) {
-        tree.insert(i, i);
+        bool complete = insert(&cache, i, i);
+        assert(complete);
     }
+
+    // Make sure the items are there
+    int value;
     for(int i = 0; i < lots_of_items; i++) {
-        int value;
-        assert_cond(tree.lookup(i, &value));
-        assert_eq(i, value);
+        get_fsm_t::op_result_t res = lookup(&cache, i, i);
+        assert_eq(res, get_fsm_t::btree_found);
     }
+
+    // Make sure missing items aren't there
+    get_fsm_t::op_result_t res = lookup(&cache, lots_of_items + 1);
+    assert_eq(res, get_fsm_t::btree_not_found);
 }
 
 void test_large_insert_permuted() {
@@ -80,20 +217,24 @@ void test_large_insert_permuted() {
     }
     std::random_shuffle(numbers.begin(), numbers.end());
 
-    // Insert the permuted array into a btree
-    test_btree_t tree(NODE_SIZE);
+    // Initialize underlying cache
+    cache_t cache(BTREE_BLOCK_SIZE);
+
+    // Insert a node full of items
     for(int i = 0; i < lots_of_items; i++) {
-        tree.insert(i, numbers[i]);
+        bool complete = insert(&cache, numbers[i], numbers[i]);
+        assert(complete);
     }
 
-    // Look the numbers up
+    // Make sure the items are there
     int value;
     for(int i = 0; i < lots_of_items; i++) {
-        assert_cond(tree.lookup(i, &value));
-        assert_eq(numbers[i], value);
+        get_fsm_t::op_result_t res = lookup(&cache, numbers[i], numbers[i]);
+        assert_eq(res, get_fsm_t::btree_found);
     }
 
-    // Perform a negative test
-    assert_cond(!tree.lookup(lots_of_items, &value));
+    // Make sure missing items aren't there
+    get_fsm_t::op_result_t res = lookup(&cache, lots_of_items + 1);
+    assert_eq(res, get_fsm_t::btree_not_found);
 }
 
