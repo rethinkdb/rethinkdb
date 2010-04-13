@@ -9,6 +9,7 @@
 #include "btree/get_fsm.hpp"
 #include "btree/set_fsm.hpp"
 #include "buffer_cache/volatile.hpp"
+#include "buffer_cache/stats.hpp"
 #include "event.hpp"
 
 using namespace std;
@@ -22,7 +23,8 @@ struct mock_fsm_t {};
 
 // TODO: we're only testing the case where cache reads return
 // immediately. We should also test the case where the reads come back
-// via AIO.
+// via AIO. (Note, since we're doing it this way, cache_stats is
+// unlikely to fail, though it might fail with AIO)
 
 template <class config_t>
 struct recording_cache_t : public volatile_cache_t<config_t> {
@@ -30,7 +32,6 @@ public:
     typedef volatile_cache_t<config_t> vcache_t;
     typedef typename vcache_t::block_id_t block_id_t;
     typedef typename vcache_t::fsm_t fsm_t;
-    typedef typename config_t::btree_fsm_t btree_fsm_t;
 
 public:
     recording_cache_t(size_t _block_size) : vcache_t(_block_size) {}
@@ -49,15 +50,6 @@ public:
         return vcache_t::release(block_id, block, dirty, state);
     }
 
-    typename btree_fsm_t::transition_result_t writes_notify(btree_fsm_t *btree) {
-        typename btree_fsm_t::transition_result_t res;
-        for(vector<event_t>::iterator i = record.begin(); i != record.end(); i++) {
-            res = btree->do_transition(&(*i));
-        }
-        record.clear();
-        return res;
-    }
-
 public:
     vector<event_t> record;
 };
@@ -70,14 +62,12 @@ struct mock_config_t {
     // Connection fsm
     typedef mock_fsm_t<mock_config_t> fsm_t;
 
-    // Btree base
-    typedef btree_fsm<mock_config_t> btree_fsm_t;
+    // Caching
+    typedef cache_stats_t<recording_cache_t<mock_config_t> > cache_t;
 
-    // TODO: add cache_stats_t to make sure we acquire/release right
-    typedef recording_cache_t<mock_config_t> cache_t;
-
-    // BTree rest
+    // BTree
     typedef array_node_t<cache_t::block_id_t> node_t;
+    typedef btree_fsm<mock_config_t> btree_fsm_t;
     typedef btree_get_fsm<mock_config_t> btree_get_fsm_t;
     typedef btree_set_fsm<mock_config_t> btree_set_fsm_t;
 };
@@ -104,6 +94,15 @@ get_fsm_t::op_result_t lookup(cache_t *cache, int k, int expected = -1) {
     return tree.op_result;
 }
 
+btree_fsm_t::transition_result_t writes_notify(btree_fsm_t *btree, cache_t *cache) {
+    btree_fsm_t::transition_result_t res;
+    for(vector<event_t>::iterator i = cache->record.begin(); i != cache->record.end(); i++) {
+        res = btree->do_transition(&(*i));
+    }
+    cache->record.clear();
+    return res;
+}
+
 bool insert(cache_t *cache, int k, int v) {
     // Initialize set operation state machine
     set_fsm_t tree(cache, NULL);
@@ -116,7 +115,7 @@ bool insert(cache_t *cache, int k, int v) {
     assert_eq(res, btree_fsm_t::transition_ok);
 
     // Notify the btree fsm of writes
-    res = cache->writes_notify(&tree);
+    res = writes_notify(&tree, cache);
 
     return res == btree_fsm_t::transition_complete;
 }
