@@ -12,6 +12,7 @@
 #include "arch/io.hpp"
 #include "serializer/in_place.hpp"
 #include "buffer_cache/fallthrough.hpp"
+#include "buffer_cache/stats.hpp"
 #include "btree/get_fsm.hpp"
 #include "btree/set_fsm.hpp"
 #include "btree/array_node.hpp"
@@ -33,9 +34,13 @@ struct standard_config_t {
     // Serializer
     typedef in_place_serializer_t<standard_config_t> serializer_t;
 
-    // Cache TODO: add cache_stats_t for debug builds here, to make
-    // sure we acquire/release properly
-    typedef fallthrough_cache_t<standard_config_t> cache_t;
+    // Caching
+    typedef fallthrough_cache_t<standard_config_t> cache_impl_t;
+#ifdef NDEBUG
+    typedef cache_impl_t cache_t;
+#else
+    typedef cache_stats_t<cache_impl_t> cache_t;
+#endif
 
     // BTree
     typedef btree_admin<standard_config_t> btree_admin_t;
