@@ -27,15 +27,16 @@ struct mock_config_t {
     typedef mock_io_calls_t iocalls_t;
     typedef object_static_alloc_t<malloc_alloc_t, iobuf_t> alloc_t;
 
-    typedef volatile_cache_t cache_t;
+    // Connection fsm
+    typedef conn_fsm_t<mock_config_t> fsm_t;
+
+    // Cache
+    typedef volatile_cache_t<mock_config_t> cache_t;
 
     // btree
     typedef array_node_t<cache_t::block_id_t> node_t;
     typedef btree_fsm<mock_config_t> btree_fsm_t;
     typedef mock_btree_fsm<mock_config_t> mock_btree_t;
-
-    // Connection fsm
-    typedef conn_fsm_t<mock_config_t> fsm_t;
 
     // Request handler
     typedef mock_handler_t<mock_config_t> req_handler_t;
