@@ -5,7 +5,7 @@ CXXFLAGS=-Iinclude
 
 DEP_DIR=dep
 OBJ_DIR=obj
-SERVER_EXEC_NAME=rethink
+SERVER_EXEC_NAME=rethinkdb
 
 # Configure debug vs. release
 ifeq (${DEBUG},1)
