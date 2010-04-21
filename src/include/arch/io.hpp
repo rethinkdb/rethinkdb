@@ -6,6 +6,8 @@
 #include <stdio.h>
 #include "arch/resource.hpp"
 
+// TODO: AIO API should probably be moved here as well.
+
 struct posix_io_calls_t {
     ssize_t read(resource_t fd, void *buf, size_t count) {
         return ::read(fd, buf, count);

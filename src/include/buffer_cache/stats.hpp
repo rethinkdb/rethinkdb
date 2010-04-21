@@ -5,6 +5,10 @@
 #include <assert.h>
 #include <stdio.h>
 
+// TODO: this cache isn't concurrency controlled (its members aren't
+// protected).
+// TODO: Measure all kinds of interesting things (cache faults, etc.)
+
 /* This class wraps around another cache and collects some basic
  * statistics. It is useful to ensure that every acquired block is
  * eventually released. */
