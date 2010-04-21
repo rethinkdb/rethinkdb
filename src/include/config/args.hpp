@@ -34,5 +34,8 @@
 // Size of each btree node (in bytes)
 #define BTREE_BLOCK_SIZE                          1024
 
+// Max size of database file name
+#define MAX_DB_FILE_NAME                          1024
+
 #endif // __CONFIG_ARGS_H__
 

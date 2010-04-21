@@ -15,6 +15,7 @@
 #include "tty.hpp"
 #include "server.hpp"
 #include "conn_fsm.hpp"
+#include "config/cmd_args.hpp"
 
 void event_handler(event_queue_t *event_queue, event_t *event) {
     if(event->event_type != et_timer) {
@@ -59,6 +60,10 @@ int main(int argc, char *argv[])
 {
     int res;
 
+    // Parse command line arguments
+    cmd_config_t config;
+    parse_cmd_args(argc, argv, &config);
+
     // Setup signal handlers
     install_handlers();
 
@@ -66,7 +71,7 @@ int main(int argc, char *argv[])
     // auto-destroyed before the rest of the operations.
     {
         // Create a pool of workers
-        worker_pool_t worker_pool(event_handler, pthread_self());
+        worker_pool_t worker_pool(event_handler, pthread_self(), &config);
 
         // Start the server (in a separate thread)
         int sockfd = start_server(&worker_pool);

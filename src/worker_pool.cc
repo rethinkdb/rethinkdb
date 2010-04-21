@@ -5,6 +5,8 @@
 #include "worker_pool.hpp"
 #include "utils.hpp"
 
+using namespace std;
+
 void worker_pool_t::create_worker_pool(event_handler_t event_handler, pthread_t main_thread,
                                        int _nworkers)
 {
@@ -12,6 +14,10 @@ void worker_pool_t::create_worker_pool(event_handler_t event_handler, pthread_t 
 
     // Create the workers
     nworkers = _nworkers;
+
+    // TODO: there is a good chance here event queue structures may
+    // end up sharing a cache line if they're not packed to cache line
+    // size. We should just use an array of pointers here.
     workers = (event_queue_t*)malloc(sizeof(event_queue_t) * nworkers);
     for(int i = 0; i < nworkers; i++) {
         new ((void*)&workers[i]) event_queue_t(i, event_handler, this);
@@ -19,24 +25,36 @@ void worker_pool_t::create_worker_pool(event_handler_t event_handler, pthread_t 
     active_worker = 0;
 
     // Init the cache
-    // TODO: file name clearly shouldn't be hardcoded
-    cache.init((char*)"data.file");
+    cache.init((char*)cmd_config->db_file_name);
     
     // TODO: consider creating lower priority threads to standby in
     // case main threads block.
 }
 
-worker_pool_t::worker_pool_t(event_handler_t event_handler, pthread_t main_thread)
-    : cache(BTREE_BLOCK_SIZE)
+worker_pool_t::worker_pool_t(event_handler_t event_handler, pthread_t main_thread,
+                             cmd_config_t *_cmd_config)
+    : cache(BTREE_BLOCK_SIZE), cmd_config(_cmd_config)
 {
-    int ncpus = get_cpu_count();
-    printf("Number of CPUs: %d\n", ncpus);
-    create_worker_pool(event_handler, main_thread, ncpus);
+    int ncores = get_cpu_count(),
+        nmaxcores = cmd_config->max_cores <= 0  ? ncores : cmd_config->max_cores,
+        nusecores = min(ncores, nmaxcores);
+
+    // TODO: can we move the printing out of here?
+    printf("Physical cores: %d\n", ncores);
+    printf("Max cores: ");
+    if(cmd_config->max_cores <= 0)
+        printf("N/A");
+    else
+        printf("%d", nmaxcores);
+    printf("\n");
+    printf("Using cores: %d\n", nusecores);
+    
+    create_worker_pool(event_handler, main_thread, nusecores);
 }
 
 worker_pool_t::worker_pool_t(event_handler_t event_handler, pthread_t main_thread,
-                             int _nworkers)
-    : cache(BTREE_BLOCK_SIZE)
+                             int _nworkers, cmd_config_t *_cmd_config)
+    : cache(BTREE_BLOCK_SIZE), cmd_config(_cmd_config)
 {
     create_worker_pool(event_handler, main_thread, _nworkers);
 }
