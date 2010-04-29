@@ -12,7 +12,22 @@ struct in_place_serializer_t;
 
 // Caches
 template <class config_t>
+struct unlocked_hash_map_t;
+
+template <class config_t>
+struct page_repl_random_t;
+
+template <class config_t>
 struct fallthrough_cache_t;
+
+template <class config_t>
+struct mirrored_cache_t;
+
+template <class config_t>
+struct immediate_writeback_t;
+
+template <class config_t>
+struct buffer_cache_bkl;
 
 // Btree
 template <typename block_id_t>
