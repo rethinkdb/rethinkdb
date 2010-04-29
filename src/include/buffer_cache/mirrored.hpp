@@ -28,7 +28,18 @@ public:
     typedef typename config_t::fsm_t fsm_t;
 
 public:
-    mirrored_cache_t(size_t _block_size) : serializer_t(_block_size), page_repl_t(_block_size, _block_size * 100) {}
+    // TODO: how do we design communication between cache policies?
+    // Should they all have access to the cache, or should they only
+    // be given access to each other as necessary? The first is more
+    // flexible as anyone can access anyone else, but encourages too
+    // many dependencies. The second is more strict, but might not be
+    // extensible when some policy implementation requires access to
+    // components it wasn't originally given.
+    mirrored_cache_t(size_t _block_size) : 
+        serializer_t(_block_size),
+        page_repl_t(_block_size, _block_size * 100),
+        writeback_t(this, this)
+        {}
 
     void* allocate(block_id_t *block_id) {
         concurrency_t::begin_allocate(block_id);
@@ -62,8 +73,9 @@ public:
 
         block_id_t new_block_id = block_id;
         if(dirty) {
-            new_block_id = writeback_t::mark_dirty(block_id);
-            page_repl_t::unpin(block_id);
+            new_block_id = writeback_t::mark_dirty(block_id, block, state);
+            // Already pinned by 'acquire'. Will unpin in aio_complete
+            // when the block is written
         } else {
             page_repl_t::unpin(block_id);
         }

@@ -86,7 +86,8 @@ typename conn_fsm_t<config_t>::result_t conn_fsm_t<config_t>::do_socket_ready(ev
                     // initiate the first transition
                     assert(btree_fsm);
                     btree_res = btree_fsm->do_transition(NULL);
-                    if(btree_res == btree_fsm_t::transition_incomplete) {
+                    if(btree_res == btree_fsm_t::transition_incomplete ||
+                       btree_res == btree_fsm_t::transition_ok) {
                         // The btree is waiting on an AIO request
                         state->state = fsm_btree_incomplete;
                         return fsm_transition_ok;

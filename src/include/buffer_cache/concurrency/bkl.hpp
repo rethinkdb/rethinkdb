@@ -4,6 +4,11 @@
 
 #include <pthread.h>
 
+// TODO: concurrency should operate on the blocks
+// (i.e. acquire_block/release_block, without necessary implication of
+// locks). It shouldn't work on internal cache datastructures (they
+// ought to be responsible for their own concurrency).
+
 template <class config_t>
 struct buffer_cache_bkl_t {
 public:
@@ -55,6 +60,13 @@ public:
         pthread_mutex_lock(&mutex);
     }
     void end_aio_complete() {
+        pthread_mutex_unlock(&mutex);
+    }
+
+    void begin_mark_dirty(block_id_t block_id, void *block, fsm_t *state) {
+        pthread_mutex_lock(&mutex);
+    }
+    void end_mark_dirty() {
         pthread_mutex_unlock(&mutex);
     }
     

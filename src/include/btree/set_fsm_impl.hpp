@@ -247,6 +247,7 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
             last_node_id = cache_t::null_block_id;
         }
 
+        /*
         // TODO: this is a hack to return 'transition_complete' status
         // despite the fact that not all writes have returned (see the
         // nwrites variable, and the relevant todo close to the
@@ -256,7 +257,7 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
         // writes to disk are done, or when all writes to memory are
         // done? This should probably be configurable).
         return btree_fsm_t::transition_complete;
-
+        */
     }
 
     return res;
