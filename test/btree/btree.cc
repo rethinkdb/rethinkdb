@@ -34,7 +34,8 @@ public:
     typedef typename vcache_t::fsm_t fsm_t;
 
 public:
-    recording_cache_t(size_t _block_size) : vcache_t(_block_size) {}
+    recording_cache_t(size_t _block_size, size_t _max_size)
+        : vcache_t(_block_size, _max_size) {}
 
     block_id_t release(block_id_t block_id, void *block, bool dirty, fsm_t *state) {
         if(dirty) {
@@ -124,7 +125,7 @@ bool insert(cache_t *cache, int k, int v) {
 
 void test_lookup_api() {
     // Initialize underlying cache
-    cache_t cache(BTREE_BLOCK_SIZE);
+    cache_t cache(BTREE_BLOCK_SIZE, 0);
 
     get_fsm_t::op_result_t res = lookup(&cache, 1);
     assert_eq(res, get_fsm_t::btree_not_found);
@@ -132,7 +133,7 @@ void test_lookup_api() {
 
 void test_insert_api() {
     // Initialize underlying cache
-    cache_t cache(BTREE_BLOCK_SIZE);
+    cache_t cache(BTREE_BLOCK_SIZE, 0);
     
     bool complete = insert(&cache, 1, 1);
     assert(complete);
@@ -140,7 +141,7 @@ void test_insert_api() {
 
 void test_small_insert() {
     // Initialize underlying cache
-    cache_t cache(BTREE_BLOCK_SIZE);
+    cache_t cache(BTREE_BLOCK_SIZE, 0);
 
     // Insert a node full of items
     for(int i = 0; i < NODE_ORDER; i++) {
@@ -162,7 +163,7 @@ void test_small_insert() {
 
 void test_multinode_insert() {
     // Initialize underlying cache
-    cache_t cache(BTREE_BLOCK_SIZE);
+    cache_t cache(BTREE_BLOCK_SIZE, 0);
 
     // Insert a node full of items
     for(int i = 0; i < NODE_ORDER + 1; i++) {
@@ -186,7 +187,7 @@ void test_large_insert() {
     const int lots_of_items = 1000000;
     
     // Initialize underlying cache
-    cache_t cache(BTREE_BLOCK_SIZE);
+    cache_t cache(BTREE_BLOCK_SIZE, 0);
 
     // Insert a node full of items
     for(int i = 0; i < lots_of_items; i++) {
@@ -217,7 +218,7 @@ void test_large_insert_permuted() {
     std::random_shuffle(numbers.begin(), numbers.end());
 
     // Initialize underlying cache
-    cache_t cache(BTREE_BLOCK_SIZE);
+    cache_t cache(BTREE_BLOCK_SIZE, 0);
 
     // Insert a node full of items
     for(int i = 0; i < lots_of_items; i++) {

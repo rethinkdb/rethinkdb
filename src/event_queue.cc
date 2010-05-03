@@ -200,7 +200,7 @@ event_queue_t::event_queue_t(int queue_id, event_handler_t event_handler,
     this->timer_fd = -1;
     this->total_expirations = 0;
 
-    this->req_handler = new memcached_handler_t<code_config_t>(&parent_pool->cache, &alloc);
+    this->req_handler = new memcached_handler_t<code_config_t>(parent_pool->cache, &alloc);
 
     // Create aio context
     this->aio_context = 0;

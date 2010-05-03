@@ -16,6 +16,10 @@ static void check(const char *msg, bool err) {
 }
 
 int get_cpu_count();
+long get_available_ram();
+long get_total_ram();
+
+
 void *malloc_aligned(size_t size, size_t alignment = 64);
 
 // Tokenizing strings

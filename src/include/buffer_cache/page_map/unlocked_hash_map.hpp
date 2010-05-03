@@ -25,8 +25,11 @@ public:
         ft_map[block_id] = block;
     }
     
-    void erase(block_id_t block_id) {
-        ft_map.erase(ft_map.find(block_id));
+    void* erase(block_id_t block_id) {
+        typename ft_map_t::iterator i = ft_map.find(block_id);
+        void *block = (*i).second;
+        ft_map.erase(i);
+        return block;
     }
 
 private:

@@ -19,8 +19,8 @@ public:
     typedef typename parent_cache_t::fsm_t fsm_t;
 
 public:
-    cache_stats_t(size_t _block_size)
-        : parent_cache_t(_block_size), nacquired(0), nreleased(0) {}
+    cache_stats_t(size_t _block_size, size_t _max_size)
+        : parent_cache_t(_block_size, _max_size), nacquired(0), nreleased(0) {}
 
     ~cache_stats_t() {
         if(nacquired != nreleased) {

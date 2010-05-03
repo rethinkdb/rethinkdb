@@ -69,6 +69,20 @@ public:
     void end_mark_dirty() {
         pthread_mutex_unlock(&mutex);
     }
+
+    void begin_pin(block_id_t block_id) {
+        pthread_mutex_lock(&mutex);
+    }
+    void end_pin() {
+        pthread_mutex_unlock(&mutex);
+    }
+    
+    void begin_unpin(block_id_t block_id) {
+        pthread_mutex_lock(&mutex);
+    }
+    void end_unpin() {
+        pthread_mutex_unlock(&mutex);
+    }
     
 private:
     pthread_mutex_t mutex;

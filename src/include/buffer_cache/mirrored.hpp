@@ -35,11 +35,19 @@ public:
     // many dependencies. The second is more strict, but might not be
     // extensible when some policy implementation requires access to
     // components it wasn't originally given.
-    mirrored_cache_t(size_t _block_size) : 
+    mirrored_cache_t(size_t _block_size, size_t _max_size) : 
         serializer_t(_block_size),
-        page_repl_t(_block_size, _block_size * 100),
+        page_repl_t(_block_size, _max_size, this, this, this),
         writeback_t(this, this)
-        {}
+        {
+            // TODO: can we move the printing out of here?
+            printf("Total RAM: %ldMB\n", get_total_ram() / 1024 / 1024);
+            printf("Free RAM: %ldMB (%.2f%%)\n",
+                   get_available_ram() / 1024 / 1024,
+                   (double)get_available_ram() / (double)get_total_ram() * 100.0f);
+            printf("Max cache size: %ldMB\n",
+                   _max_size / 1024 / 1024);
+        }
 
     void* allocate(block_id_t *block_id) {
         concurrency_t::begin_allocate(block_id);

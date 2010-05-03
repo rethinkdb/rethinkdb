@@ -33,7 +33,8 @@ public:
     }
 
 public:
-    volatile_cache_t(size_t _block_size) : block_size(_block_size) {
+    volatile_cache_t(size_t _block_size, size_t _max_size) : block_size(_block_size) {
+        // We ignore the maximum size of the cache for volatile caches
         superblock_id = malloc_aligned(block_size, block_size);
     }
 

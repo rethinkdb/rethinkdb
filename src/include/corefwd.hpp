@@ -15,7 +15,7 @@ template <class config_t>
 struct unlocked_hash_map_t;
 
 template <class config_t>
-struct page_repl_random_t;
+struct page_repl_last_t;
 
 template <class config_t>
 struct fallthrough_cache_t;

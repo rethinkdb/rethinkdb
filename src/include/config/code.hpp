@@ -15,7 +15,7 @@
 #include "buffer_cache/stats.hpp"
 #include "buffer_cache/mirrored.hpp"
 #include "buffer_cache/page_map/unlocked_hash_map.hpp"
-#include "buffer_cache/page_repl/random.hpp"
+#include "buffer_cache/page_repl/last.hpp"
 #include "buffer_cache/writeback/immediate.hpp"
 #include "buffer_cache/concurrency/bkl.hpp"
 #include "btree/get_fsm.hpp"
@@ -42,7 +42,7 @@ struct standard_config_t {
     // Caching
     typedef memalign_alloc_t<BTREE_BLOCK_SIZE> buffer_alloc_t;
     typedef unlocked_hash_map_t<standard_config_t> page_map_t;
-    typedef page_repl_random_t<standard_config_t> page_repl_t;
+    typedef page_repl_last_t<standard_config_t> page_repl_t;
     typedef buffer_cache_bkl_t<standard_config_t> concurrency_t;
     typedef immediate_writeback_t<standard_config_t> writeback_t;
     typedef mirrored_cache_t<standard_config_t> cache_impl_t;

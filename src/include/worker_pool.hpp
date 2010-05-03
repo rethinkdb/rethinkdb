@@ -24,7 +24,7 @@ public:
     int nworkers;
     int active_worker;
     pthread_t main_thread;
-    cache_t cache;
+    cache_t *cache;
     cmd_config_t *cmd_config;
     
 private:

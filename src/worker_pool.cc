@@ -7,34 +7,7 @@
 
 using namespace std;
 
-void worker_pool_t::create_worker_pool(event_handler_t event_handler, pthread_t main_thread,
-                                       int _nworkers)
-{
-    this->main_thread = main_thread;
-
-    // Create the workers
-    nworkers = _nworkers;
-
-    // TODO: there is a good chance here event queue structures may
-    // end up sharing a cache line if they're not packed to cache line
-    // size. We should just use an array of pointers here.
-    workers = (event_queue_t*)malloc(sizeof(event_queue_t) * nworkers);
-    for(int i = 0; i < nworkers; i++) {
-        new ((void*)&workers[i]) event_queue_t(i, event_handler, this);
-    }
-    active_worker = 0;
-
-    // Init the cache
-    cache.init((char*)cmd_config->db_file_name);
-    
-    // TODO: consider creating lower priority threads to standby in
-    // case main threads block.
-}
-
-worker_pool_t::worker_pool_t(event_handler_t event_handler, pthread_t main_thread,
-                             cmd_config_t *_cmd_config)
-    : cache(BTREE_BLOCK_SIZE), cmd_config(_cmd_config)
-{
+int get_core_info(cmd_config_t *cmd_config) {
     int ncores = get_cpu_count(),
         nmaxcores = cmd_config->max_cores <= 0  ? ncores : cmd_config->max_cores,
         nusecores = min(ncores, nmaxcores);
@@ -48,14 +21,50 @@ worker_pool_t::worker_pool_t(event_handler_t event_handler, pthread_t main_threa
         printf("%d", nmaxcores);
     printf("\n");
     printf("Using cores: %d\n", nusecores);
+
+    return nusecores;
+}
+
+void worker_pool_t::create_worker_pool(event_handler_t event_handler, pthread_t main_thread,
+                                       int _nworkers)
+{
+    this->main_thread = main_thread;
+
+    // Create the workers
+    nworkers = _nworkers;
+
+    // Init the cache
+    cache = new cache_t(BTREE_BLOCK_SIZE, cmd_config->max_cache_size);
+    cache->init((char*)cmd_config->db_file_name);
     
-    create_worker_pool(event_handler, main_thread, nusecores);
+    // TODO: there is a good chance here event queue structures may
+    // end up sharing a cache line if they're not packed to cache line
+    // size. We should just use an array of pointers here.
+    workers = (event_queue_t*)malloc(sizeof(event_queue_t) * nworkers);
+    for(int i = 0; i < nworkers; i++) {
+        new ((void*)&workers[i]) event_queue_t(i, event_handler, this);
+    }
+    active_worker = 0;
+
+    // TODO: consider creating lower priority threads to standby in
+    // case main threads block.
+}
+
+worker_pool_t::worker_pool_t(event_handler_t event_handler, pthread_t main_thread,
+                             cmd_config_t *_cmd_config)
+    : cache(NULL), cmd_config(_cmd_config)
+{
+
+    create_worker_pool(event_handler, main_thread, get_core_info(cmd_config));
 }
 
 worker_pool_t::worker_pool_t(event_handler_t event_handler, pthread_t main_thread,
                              int _nworkers, cmd_config_t *_cmd_config)
-    : cache(BTREE_BLOCK_SIZE), cmd_config(_cmd_config)
+    : cache(NULL), cmd_config(_cmd_config)
 {
+    // Currently, get_core_info is called only for printing here. We
+    // can get rid of it once we move printing elsewhere.
+    get_core_info(cmd_config);
     create_worker_pool(event_handler, main_thread, _nworkers);
 }
 
@@ -65,7 +74,8 @@ worker_pool_t::~worker_pool_t() {
     }
     free(workers);
     nworkers = 0;
-    cache.close();
+    cache->close();
+    delete cache;
 }
 
 event_queue_t* worker_pool_t::next_active_worker() {

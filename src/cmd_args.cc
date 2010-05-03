@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "utils.hpp"
 #include "config/cmd_args.hpp"
 
 static const char* default_db_file_name = "data.file";
@@ -24,6 +25,9 @@ void usage(const char *name) {
     printf("  -c, --max-cores\tDo not use more than this number of cores for\n");
     printf("\t\t\thandling user requests.\n");
     
+    printf("  -m, --max-cache-size\tMaximum amount of RAM to use for caching disk\n");
+    printf("\t\t\tblocks, in megabytes.\n");
+    
     exit(-1);
 }
 
@@ -33,6 +37,8 @@ void init_config(cmd_config_t *config) {
     // Initialize default database name
     strncpy(config->db_file_name, default_db_file_name, MAX_DB_FILE_NAME);
     config->db_file_name[MAX_DB_FILE_NAME - 1] = 0;
+
+    config->max_cache_size = DEFAULT_MAX_CACHE_RATIO * get_available_ram();
 }
 
 void parse_cmd_args(int argc, char *argv[], cmd_config_t *config)
@@ -45,13 +51,14 @@ void parse_cmd_args(int argc, char *argv[], cmd_config_t *config)
         int do_help = 0;
         struct option long_options[] =
             {
-                {"max-cores",   required_argument, 0, 'c'},
-                {"help",        no_argument, &do_help, 1},
+                {"max-cores",        required_argument, 0, 'c'},
+                {"max-cache-size",   required_argument, 0, 'm'},
+                {"help",             no_argument, &do_help, 1},
                 {0, 0, 0, 0}
             };
 
         int option_index = 0;
-        int c = getopt_long(argc, argv, "c:h", long_options, &option_index);
+        int c = getopt_long(argc, argv, "c:m:h", long_options, &option_index);
 
         if(do_help)
             c = 'h';
@@ -66,6 +73,9 @@ void parse_cmd_args(int argc, char *argv[], cmd_config_t *config)
             break;
         case 'c':
             config->max_cores = atoi(optarg);
+            break;
+        case 'm':
+            config->max_cache_size = atoi(optarg) * 1024 * 1024;
             break;
             
         case 'h':

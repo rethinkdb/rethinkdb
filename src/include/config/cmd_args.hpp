@@ -7,6 +7,7 @@
 struct cmd_config_t {
     int max_cores;
     char db_file_name[MAX_DB_FILE_NAME];
+    size_t max_cache_size;
 };
 
 void parse_cmd_args(int argc, char *argv[], cmd_config_t *config);

@@ -37,5 +37,8 @@
 // Max size of database file name
 #define MAX_DB_FILE_NAME                          1024
 
+// Ratio of free ram to use for the cache by default
+#define DEFAULT_MAX_CACHE_RATIO                   0.8f
+
 #endif // __CONFIG_ARGS_H__
 
