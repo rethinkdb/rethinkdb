@@ -44,7 +44,7 @@ public:
         return parent_cache_t::release(block_id, block, dirty, state);
     }
 
-private:
+protected:
     int nacquired, nreleased;
 };
 
