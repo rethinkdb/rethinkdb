@@ -54,7 +54,7 @@ void process_aio_notify(event_queue_t *self) {
                 qevent.result = events[i].res;
                 qevent.buf = op->u.c.buf;
                 qevent.offset = op->u.c.offset;
-                qevent.state = (event_state_t*)events[i].data;
+                qevent.state = events[i].data;
                 if(op->aio_lio_opcode == IO_CMD_PREAD)
                     qevent.op = eo_read;
                 else
@@ -86,7 +86,7 @@ void process_timer_notify(event_queue_t *self) {
         event_t qevent;
         bzero((char*)&qevent, sizeof(qevent));
         qevent.event_type = et_timer;
-        qevent.state = (event_state_t*)&self->timer_fd;
+        qevent.state = (void*)self->timer_fd;
         qevent.result = nexpirations;
         qevent.op = eo_read;
         self->event_handler(self, &qevent);
@@ -129,7 +129,7 @@ int process_network_notify(event_queue_t *self, epoll_event *event) {
             event_t qevent;
             bzero((char*)&qevent, sizeof(qevent));
             qevent.event_type = et_sock;
-            qevent.state = (event_state_t*)(event->data.ptr);
+            qevent.state = event->data.ptr;
             if((event->events & EPOLLIN) && !(event->events & EPOLLOUT)) {
                 qevent.op = eo_read;
             }
@@ -172,7 +172,7 @@ void* epoll_handler(void *arg) {
         // (see section 7 [CPU scheduling] in B-tree Indexes and CPU
         // Caches by Goetz Graege and Pre-Ake Larson).
         for(int i = 0; i < res; i++) {
-            resource_t source = ((event_state_t*)events[i].data.ptr)->source;
+            resource_t source = reinterpret_cast<intptr_t>(events[i].data.ptr);
             if(source == self->aio_notify_fd) {
                 process_aio_notify(self);
             } else if(source == self->timer_fd) {
@@ -222,7 +222,7 @@ event_queue_t::event_queue_t(int queue_id, event_handler_t event_handler,
     res = fcntl(this->aio_notify_fd, F_SETFL, O_NONBLOCK);
     check("Could not make aio notify fd non-blocking", res != 0);
 
-    watch_resource(this->aio_notify_fd, eo_read, (event_state_t*)&(this->aio_notify_fd));
+    watch_resource(this->aio_notify_fd, eo_read, (void*)this->aio_notify_fd);
     
     // Create ITC notify pipe
     res = pipe(this->itc_pipe);
@@ -234,7 +234,7 @@ event_queue_t::event_queue_t(int queue_id, event_handler_t event_handler,
     res = fcntl(this->itc_pipe[1], F_SETFL, O_NONBLOCK);
     check("Could not make itc pipe non-blocking (write end)", res != 0);
 
-    watch_resource(this->itc_pipe[0], eo_read, (event_state_t*)&(this->itc_pipe[0]));
+    watch_resource(this->itc_pipe[0], eo_read, (void*)this->itc_pipe[0]);
     
     // Set thread affinity
     int ncpus = get_cpu_count();
@@ -293,7 +293,7 @@ event_queue_t::~event_queue_t()
 
 
 void event_queue_t::watch_resource(resource_t resource, event_op_t watch_mode,
-                                   event_state_t *state) {
+                                   void *state) {
     assert(state);
     epoll_event event;
     
@@ -310,7 +310,7 @@ void event_queue_t::watch_resource(resource_t resource, event_op_t watch_mode,
         check("Invalid watch mode", 1);
     }
 
-    event.data.ptr = (void*)state;
+    event.data.ptr = state;
     
     int res = epoll_ctl(this->epoll_fd, EPOLL_CTL_ADD, resource, &event);
     check("Could not pass socket to worker", res != 0);
@@ -353,7 +353,7 @@ void queue_init_timer(event_queue_t *event_queue, time_t secs) {
     check("Could not arm the timer.", res != 0);
 
     // Watch the timer
-    event_queue->watch_resource(event_queue->timer_fd, eo_read, (event_state_t*)&(event_queue->timer_fd));
+    event_queue->watch_resource(event_queue->timer_fd, eo_read, (void*)event_queue->timer_fd);
 }
 
 void queue_stop_timer(event_queue_t *event_queue) {
@@ -392,14 +392,14 @@ void event_queue_t::post_itc_message(itc_event_t *event) {
 
 void event_queue_t::register_fsm(conn_fsm_t *fsm) {
     live_fsms.push_back(fsm);
-    watch_resource(fsm->source, eo_rdwr, fsm);
-    printf("Opened socket %d\n", fsm->source);
+    watch_resource(fsm->get_source(), eo_rdwr, fsm);
+    printf("Opened socket %d\n", fsm->get_source());
 }
 
 void event_queue_t::deregister_fsm(conn_fsm_t *fsm) {
-    printf("Closing socket %d\n", fsm->source);
-    forget_resource(fsm->source);
+    printf("Closing socket %d\n", fsm->get_source());
+    forget_resource(fsm->get_source());
     live_fsms.remove(fsm);
-    close(fsm->source);
+    close(fsm->get_source());
     alloc.free(fsm);
 }

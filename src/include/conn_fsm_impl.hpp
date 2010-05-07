@@ -220,7 +220,7 @@ typename conn_fsm<config_t>::result_t conn_fsm<config_t>::do_transition(event_t 
 template<class config_t>
 conn_fsm<config_t>::conn_fsm(resource_t _source, alloc_t* _alloc,
                                  req_handler_t *_req_handler, event_queue_t *_event_queue)
-    : event_state_t(_source), alloc(_alloc), req_handler(_req_handler),
+    : source(_source), alloc(_alloc), req_handler(_req_handler),
       event_queue(_event_queue)
 {
     init_state();

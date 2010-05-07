@@ -11,9 +11,8 @@
 
 // The actual state structure
 template<class config_t>
-struct conn_fsm : public event_state_t,
-                    public config_t::iocalls_t,
-                    public intrusive_list_node_t<conn_fsm<config_t> >
+struct conn_fsm : public config_t::iocalls_t,
+                  public intrusive_list_node_t<conn_fsm<config_t> >
 {
 public:
     typedef typename config_t::alloc_t alloc_t;
@@ -49,7 +48,12 @@ public:
     
     result_t do_transition(event_t *event);
 
+    int get_source() {
+        return source;
+    }
+
 public:
+    int source;
     state_t state;
 
     // A buffer with IO communication (possibly incomplete). The nbuf

@@ -69,7 +69,7 @@ public:
      * block_id into buf, associating state with the request. */
     void do_read(block_id_t block_id, void *buf, conn_fsm_t *fsm) {
         schedule_aio_read(dbfd, block_id, block_size, buf,
-                          fsm->event_queue, (event_state_t*)fsm);
+                          fsm->event_queue, fsm);
     }
     
     /* Fires off an async request to write the block identified by
@@ -80,7 +80,7 @@ public:
      * value will be the id of the newly written block. */
     block_id_t do_write(block_id_t block_id, void *buf, conn_fsm_t *fsm) {
         schedule_aio_write(dbfd, block_id, block_size, buf,
-                           fsm->event_queue, (event_state_t*)fsm);
+                           fsm->event_queue, fsm);
         return block_id;
     }
 

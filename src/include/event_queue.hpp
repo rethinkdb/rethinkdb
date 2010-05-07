@@ -38,8 +38,7 @@ public:
     ~event_queue_t();
     
     // Watching and forgetting resources (from the queue's POV)
-    void watch_resource(resource_t resource, event_op_t event_op,
-                        event_state_t *state);
+    void watch_resource(resource_t resource, event_op_t event_op, void *state);
     void forget_resource(resource_t resource);
 
     // Posting an ITC message on the queue. The instance of
