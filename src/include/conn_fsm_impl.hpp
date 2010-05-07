@@ -8,10 +8,6 @@
 #include "utils.hpp"
 #include "conn_fsm.hpp"
 
-// TODO: we should refactor the FSM to be able to unit test state
-// transitions independant of the OS network subsystem (via mock-ups,
-// or via turning the code 'inside-out' in a Haskell sense).
-
 template<class config_t>
 void conn_fsm_t<config_t>::init_state() {
     this->state = fsm_socket_connected;
