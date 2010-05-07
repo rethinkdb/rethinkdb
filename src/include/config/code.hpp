@@ -33,8 +33,8 @@ struct standard_config_t {
     typedef posix_io_calls_t iocalls_t;
     
     // FSM
-    typedef conn_fsm_t<standard_config_t> fsm_t;
-    typedef intrusive_list_t<fsm_t> fsm_list_t;
+    typedef conn_fsm<standard_config_t> conn_fsm_t;
+    typedef intrusive_list_t<conn_fsm_t> fsm_list_t;
 
     // Serializer
     typedef in_place_serializer_t<standard_config_t> serializer_t;
@@ -67,7 +67,7 @@ struct standard_config_t {
     // Small object allocator
     typedef object_static_alloc_t<
         dynamic_pool_alloc_t<alloc_stats_t<pool_alloc_t<memalign_alloc_t<> > > >,
-        iocb, fsm_t, iobuf_t, btree_get_fsm_t, btree_set_fsm_t> alloc_t;
+        iocb, conn_fsm_t, iobuf_t, btree_get_fsm_t, btree_set_fsm_t> alloc_t;
 };
 
 typedef standard_config_t code_config_t;

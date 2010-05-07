@@ -10,7 +10,7 @@ class memcached_handler_t : public request_handler_t<config_t> {
 public:
     typedef typename config_t::alloc_t alloc_t;
     typedef typename config_t::cache_t cache_t;
-    typedef typename config_t::fsm_t fsm_t;
+    typedef typename config_t::conn_fsm_t conn_fsm_t;
     typedef typename config_t::req_handler_t req_handler_t;
     typedef typename req_handler_t::parse_result_t parse_result_t;
     typedef typename code_config_t::btree_fsm_t btree_fsm_t;
@@ -23,7 +23,7 @@ public:
         {}
     
     virtual parse_result_t parse_request(event_t *event);
-    virtual void build_response(fsm_t *fsm);
+    virtual void build_response(conn_fsm_t *fsm);
 
 private:
     cache_t *cache;

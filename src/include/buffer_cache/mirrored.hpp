@@ -25,7 +25,7 @@ public:
     typedef typename config_t::concurrency_t concurrency_t;
     typedef typename config_t::buffer_alloc_t buffer_alloc_t;
     typedef typename config_t::page_map_t page_map_t;
-    typedef typename config_t::fsm_t fsm_t;
+    typedef typename config_t::conn_fsm_t conn_fsm_t;
 
 public:
     // TODO: how do we design communication between cache policies?
@@ -61,7 +61,7 @@ public:
         return block;
     }
     
-    void* acquire(block_id_t block_id, fsm_t *state) {
+    void* acquire(block_id_t block_id, conn_fsm_t *state) {
         concurrency_t::begin_acquire(block_id, state);
 
         void *block = page_map_t::find(block_id);
@@ -76,7 +76,7 @@ public:
         return block;
     }
 
-    block_id_t release(block_id_t block_id, void *block, bool dirty, fsm_t *state) {
+    block_id_t release(block_id_t block_id, void *block, bool dirty, conn_fsm_t *state) {
         concurrency_t::begin_release(block_id, block, dirty, state);
 
         block_id_t new_block_id = block_id;

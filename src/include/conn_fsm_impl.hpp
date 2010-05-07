@@ -9,7 +9,7 @@
 #include "conn_fsm.hpp"
 
 template<class config_t>
-void conn_fsm_t<config_t>::init_state() {
+void conn_fsm<config_t>::init_state() {
     this->state = fsm_socket_connected;
     this->buf = NULL;
     this->nbuf = 0;
@@ -18,7 +18,7 @@ void conn_fsm_t<config_t>::init_state() {
 
 // This function returns the socket to clean connected state
 template<class config_t>
-void conn_fsm_t<config_t>::return_to_socket_connected() {
+void conn_fsm<config_t>::return_to_socket_connected() {
     alloc->free((iobuf_t*)this->buf);
     init_state();
 }
@@ -27,9 +27,9 @@ void conn_fsm_t<config_t>::return_to_socket_connected() {
 // operations. Incoming events should be user commands received by the
 // socket.
 template<class config_t>
-typename conn_fsm_t<config_t>::result_t conn_fsm_t<config_t>::do_socket_ready(event_t *event) {
+typename conn_fsm<config_t>::result_t conn_fsm<config_t>::do_socket_ready(event_t *event) {
     size_t sz;
-    conn_fsm_t *state = (conn_fsm_t*)event->state;
+    conn_fsm *state = (conn_fsm*)event->state;
 
     if(event->event_type == et_sock) {
         if(state->buf == NULL) {
@@ -50,7 +50,7 @@ typename conn_fsm_t<config_t>::result_t conn_fsm_t<config_t>::do_socket_ready(ev
                     // fsm_socket_send_incomplete state here,
                     // since we break out in these cases. So it's
                     // safe to free the buffer.
-                    if(state->state != conn_fsm_t::fsm_socket_recv_incomplete)
+                    if(state->state != conn_fsm::fsm_socket_recv_incomplete)
                         return_to_socket_connected();
                     break;
                 } else {
@@ -69,7 +69,7 @@ typename conn_fsm_t<config_t>::result_t conn_fsm_t<config_t>::do_socket_ready(ev
                 case req_handler_t::op_partial_packet:
                     // The data is incomplete, keep trying to read in
                     // the current read loop
-                    state->state = conn_fsm_t::fsm_socket_recv_incomplete;
+                    state->state = conn_fsm::fsm_socket_recv_incomplete;
                     break;
                 case req_handler_t::op_req_shutdown:
                     // Shutdown has been initiated
@@ -101,7 +101,7 @@ typename conn_fsm_t<config_t>::result_t conn_fsm_t<config_t>::do_socket_ready(ev
                     check("Unknown request parse result", 1);
                 }
 
-                if(state->state == conn_fsm_t::fsm_socket_send_incomplete) {
+                if(state->state == conn_fsm::fsm_socket_send_incomplete) {
                     // Wait for the socket to finish sending
                     break;
                 }
@@ -125,7 +125,7 @@ typename conn_fsm_t<config_t>::result_t conn_fsm_t<config_t>::do_socket_ready(ev
 }
 
 template<class config_t>
-typename conn_fsm_t<config_t>::result_t conn_fsm_t<config_t>::do_fsm_btree_incomplete(event_t *event)
+typename conn_fsm<config_t>::result_t conn_fsm<config_t>::do_fsm_btree_incomplete(event_t *event)
 {
     assert(btree_fsm);
     if(event->event_type == et_sock) {
@@ -137,17 +137,17 @@ typename conn_fsm_t<config_t>::result_t conn_fsm_t<config_t>::do_fsm_btree_incom
         // future (fsm would need to associate IO responses with a
         // given command).
     } else if(event->event_type == et_disk) {
-        // TODO: Right now we route IO to conn_fsm_t, and then reroute
+        // TODO: Right now we route IO to conn_fsm, and then reroute
         // it to btree_fsm here. This is stupid, we should route IO to
         // btree_fsm directly, and when it completes, do a final
-        // conn_fsm_t transition. This is an artifact of blocked IO
+        // conn_fsm transition. This is an artifact of blocked IO
         // (we used to not have a separate btree state machine), and
         // needs to be removed.
         typename btree_fsm_t::transition_result_t res = btree_fsm->do_transition(event);
         if(res == btree_fsm_t::transition_complete) {
             req_handler->build_response(this);
             send_msg_to_client();
-            if(this->state != conn_fsm_t::fsm_socket_send_incomplete) {
+            if(this->state != conn_fsm::fsm_socket_send_incomplete) {
                 // We've finished sending completely, now see if there is
                 // anything left to read from the old epoll notification,
                 // and let fsm_socket_ready do the cleanup
@@ -166,7 +166,7 @@ typename conn_fsm_t<config_t>::result_t conn_fsm_t<config_t>::do_fsm_btree_incom
 // The socket is ready for sending more information and we were in the
 // middle of an incomplete send request.
 template<class config_t>
-typename conn_fsm_t<config_t>::result_t conn_fsm_t<config_t>::do_socket_send_incomplete(event_t *event) {
+typename conn_fsm<config_t>::result_t conn_fsm<config_t>::do_socket_send_incomplete(event_t *event) {
     // TODO: incomplete send needs to be tested therally. It's not
     // clear how to get the kernel to artifically limit the send
     // buffer.
@@ -174,7 +174,7 @@ typename conn_fsm_t<config_t>::result_t conn_fsm_t<config_t>::do_socket_send_inc
         if(event->op == eo_rdwr || event->op == eo_write) {
             send_msg_to_client();
         }
-        if(this->state != conn_fsm_t::fsm_socket_send_incomplete) {
+        if(this->state != conn_fsm::fsm_socket_send_incomplete) {
             // We've finished sending completely, now see if there is
             // anything left to read from the old epoll notification,
             // and let fsm_socket_ready do the cleanup
@@ -190,7 +190,7 @@ typename conn_fsm_t<config_t>::result_t conn_fsm_t<config_t>::do_socket_send_inc
 // Switch on the current state and call the appropriate transition
 // function.
 template<class config_t>
-typename conn_fsm_t<config_t>::result_t conn_fsm_t<config_t>::do_transition(event_t *event) {
+typename conn_fsm<config_t>::result_t conn_fsm<config_t>::do_transition(event_t *event) {
     // TODO: Using parent_pool member variable within state
     // transitions might cause cache line alignment issues. Can we
     // eliminate it (perhaps by giving each thread its own private
@@ -218,7 +218,7 @@ typename conn_fsm_t<config_t>::result_t conn_fsm_t<config_t>::do_transition(even
 }
 
 template<class config_t>
-conn_fsm_t<config_t>::conn_fsm_t(resource_t _source, alloc_t* _alloc,
+conn_fsm<config_t>::conn_fsm(resource_t _source, alloc_t* _alloc,
                                  req_handler_t *_req_handler, event_queue_t *_event_queue)
     : event_state_t(_source), alloc(_alloc), req_handler(_req_handler),
       event_queue(_event_queue)
@@ -227,7 +227,7 @@ conn_fsm_t<config_t>::conn_fsm_t(resource_t _source, alloc_t* _alloc,
 }
 
 template<class config_t>
-conn_fsm_t<config_t>::~conn_fsm_t() {
+conn_fsm<config_t>::~conn_fsm() {
     if(this->buf) {
         alloc->free((iobuf_t*)this->buf);
     }
@@ -238,10 +238,10 @@ conn_fsm_t<config_t>::~conn_fsm_t() {
 // switched to fsm_socket_send_incomplete, then buf must not be freed
 // after the return of this function.
 template<class config_t>
-void conn_fsm_t<config_t>::send_msg_to_client() {
+void conn_fsm<config_t>::send_msg_to_client() {
     // Either number of bytes already sent should be zero, or we
     // should be in the middle of an incomplete send.
-    assert(this->snbuf == 0 || this->state == conn_fsm_t::fsm_socket_send_incomplete);
+    assert(this->snbuf == 0 || this->state == conn_fsm::fsm_socket_send_incomplete);
 
     int len = this->nbuf - this->snbuf;
     int sz = 0;
@@ -253,7 +253,7 @@ void conn_fsm_t<config_t>::send_msg_to_client() {
         if(sz < 0) {
             if(errno == EAGAIN || errno == EWOULDBLOCK) {
                 // If we can't send the message now, wait 'till we can
-                this->state = conn_fsm_t::fsm_socket_send_incomplete;
+                this->state = conn_fsm::fsm_socket_send_incomplete;
                 return;
             } else {
                 // There was some other error
@@ -265,11 +265,11 @@ void conn_fsm_t<config_t>::send_msg_to_client() {
     // We've successfully sent everything out
     this->snbuf = 0;
     this->nbuf = 0;
-    this->state = conn_fsm_t::fsm_socket_connected;
+    this->state = conn_fsm::fsm_socket_connected;
 }
 
 template<class config_t>
-void conn_fsm_t<config_t>::send_err_to_client() {
+void conn_fsm<config_t>::send_err_to_client() {
     char err_msg[] = "(ERROR) Unknown command\n";
     strcpy(this->buf, err_msg);
     this->nbuf = strlen(err_msg) + 1;

@@ -8,7 +8,7 @@ template <class config_t>
 class btree_fsm {
 public:
     typedef typename config_t::cache_t cache_t;
-    typedef typename config_t::fsm_t fsm_t;
+    typedef typename config_t::conn_fsm_t conn_fsm_t;
     typedef typename cache_t::block_id_t block_id_t;
     typedef typename config_t::btree_fsm_t btree_fsm_t;
 
@@ -29,7 +29,7 @@ public:
     };
 
 public:
-    btree_fsm(cache_t *_cache, fsm_t *_netfsm, fsm_type_t _fsm_type)
+    btree_fsm(cache_t *_cache, conn_fsm_t *_netfsm, fsm_type_t _fsm_type)
         : cache(_cache), netfsm(_netfsm), fsm_type(_fsm_type)
         {}
     virtual ~btree_fsm() {}
@@ -53,7 +53,7 @@ protected:
 
 public:
     cache_t *cache;
-    fsm_t *netfsm;
+    conn_fsm_t *netfsm;
     fsm_type_t fsm_type;
 };
 

@@ -11,9 +11,9 @@
 
 // The actual state structure
 template<class config_t>
-struct conn_fsm_t : public event_state_t,
+struct conn_fsm : public event_state_t,
                     public config_t::iocalls_t,
-                    public intrusive_list_node_t<conn_fsm_t<config_t> >
+                    public intrusive_list_node_t<conn_fsm<config_t> >
 {
 public:
     typedef typename config_t::alloc_t alloc_t;
@@ -43,9 +43,9 @@ public:
     };
     
 public:
-    conn_fsm_t(resource_t _source, alloc_t* _alloc, req_handler_t *_req_handler,
+    conn_fsm(resource_t _source, alloc_t* _alloc, req_handler_t *_req_handler,
                event_queue_t *_event_queue);
-    ~conn_fsm_t();
+    ~conn_fsm();
     
     result_t do_transition(event_t *event);
 

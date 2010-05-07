@@ -13,7 +13,7 @@ public:
     typedef typename config_t::node_t node_t;
     typedef typename node_t::leaf_node_t leaf_node_t;
     typedef typename node_t::internal_node_t internal_node_t;
-    typedef typename config_t::fsm_t fsm_t;
+    typedef typename config_t::conn_fsm_t conn_fsm_t;
     typedef typename config_t::cache_t cache_t;
     typedef typename cache_t::block_id_t block_id_t;
     typedef typename btree_fsm_t::transition_result_t transition_result_t;
@@ -31,7 +31,7 @@ public:
     };
 
 public:
-    btree_get_fsm(cache_t *_cache, fsm_t *_netfsm)
+    btree_get_fsm(cache_t *_cache, conn_fsm_t *_netfsm)
         : btree_fsm_t(_cache, _netfsm, btree_fsm_t::btree_get_fsm),
           state(uninitialized), node(NULL), node_id(cache_t::null_block_id)
         {}

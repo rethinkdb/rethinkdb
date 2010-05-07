@@ -4,7 +4,7 @@
 
 // FSM
 template<class config_t>
-struct conn_fsm_t;
+struct conn_fsm;
 
 // Serializers
 template <class config_t>

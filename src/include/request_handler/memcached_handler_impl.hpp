@@ -18,7 +18,7 @@ typename memcached_handler_t<config_t>::parse_result_t memcached_handler_t<confi
 {
     int res;
 
-    fsm_t *fsm = (fsm_t*)event->state;
+    conn_fsm_t *fsm = (conn_fsm_t*)event->state;
     char *buf = fsm->buf;
     unsigned int size = fsm->nbuf;
 
@@ -127,7 +127,7 @@ typename memcached_handler_t<config_t>::parse_result_t memcached_handler_t<confi
 }
 
 template<class config_t>
-void memcached_handler_t<config_t>::build_response(fsm_t *fsm) {
+void memcached_handler_t<config_t>::build_response(conn_fsm_t *fsm) {
     // Since we're in the middle of processing a command,
     // fsm->buf must exist at this point.
 

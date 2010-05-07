@@ -27,7 +27,7 @@ struct itc_event_t {
 // Event queue structure
 struct event_queue_t {
 public:
-    typedef code_config_t::fsm_t fsm_t;
+    typedef code_config_t::conn_fsm_t conn_fsm_t;
     typedef code_config_t::alloc_t alloc_t;
     typedef code_config_t::fsm_list_t fsm_list_t;
     typedef code_config_t::req_handler_t req_handler_t;
@@ -49,8 +49,8 @@ public:
 
 
     // Maintain a list of live FSMs
-    void register_fsm(fsm_t *fsm);
-    void deregister_fsm(fsm_t *fsm);
+    void register_fsm(conn_fsm_t *fsm);
+    void deregister_fsm(conn_fsm_t *fsm);
 
 public:
     // TODO: be clear on what should and shouldn't be public here
