@@ -27,22 +27,24 @@ struct mock_config_t {
     typedef mock_io_calls_t iocalls_t;
     typedef object_static_alloc_t<malloc_alloc_t, iobuf_t> alloc_t;
 
+    // Faking a btree
+    typedef btree_fsm<mock_config_t> btree_fsm_t;
+    typedef mock_btree_fsm<mock_config_t> mock_btree_t;
+
     // Connection fsm
-    typedef conn_fsm_t<mock_config_t> fsm_t;
+    typedef conn_fsm<mock_config_t> conn_fsm_t;
 
     // Cache
     typedef volatile_cache_t<mock_config_t> cache_t;
 
-    // btree
+    // Btree nodes
     typedef array_node_t<cache_t::block_id_t> node_t;
-    typedef btree_fsm<mock_config_t> btree_fsm_t;
-    typedef mock_btree_fsm<mock_config_t> mock_btree_t;
 
     // Request handler
     typedef mock_handler_t<mock_config_t> req_handler_t;
 };
 
-typedef mock_config_t::fsm_t test_fsm_t;
+typedef mock_config_t::conn_fsm_t test_fsm_t;
 
 // Mock IO
 struct mock_io_calls_t {
@@ -153,7 +155,7 @@ public:
 void setup_event(event_t *event, test_fsm_t *fsm) {
     event->event_type = et_sock;
     event->op = eo_rdwr;
-    event->state = (event_state_t*)fsm;
+    event->state = (void*)fsm;
 }
 
 // Unit test header helper

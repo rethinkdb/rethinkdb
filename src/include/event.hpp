@@ -6,7 +6,7 @@
 
 // Event
 enum event_type_t {
-    et_disk, et_sock, et_timer
+    et_disk, et_sock, et_timer, et_btree_op_complete
 };
 enum event_op_t {
     eo_read, eo_write, eo_rdwr

@@ -14,7 +14,7 @@ struct buffer_cache_bkl_t {
 public:
     typedef typename config_t::serializer_t serializer_t;
     typedef typename serializer_t::block_id_t block_id_t;
-    typedef typename config_t::conn_fsm_t conn_fsm_t;
+    typedef typename config_t::btree_fsm_t btree_fsm_t;
     
 public:
     buffer_cache_bkl_t() {
@@ -42,14 +42,14 @@ public:
         pthread_mutex_unlock(&mutex);
     }    
     
-    void* begin_acquire(block_id_t block_id, conn_fsm_t *state) {
+    void* begin_acquire(block_id_t block_id, btree_fsm_t *state) {
         pthread_mutex_lock(&mutex);
     }
     void* end_acquire() {
         pthread_mutex_unlock(&mutex);
     }
 
-    block_id_t begin_release(block_id_t block_id, void *block, bool dirty, conn_fsm_t *state) {
+    block_id_t begin_release(block_id_t block_id, void *block, bool dirty, btree_fsm_t *state) {
         pthread_mutex_lock(&mutex);
     }
     block_id_t end_release() {
@@ -63,7 +63,7 @@ public:
         pthread_mutex_unlock(&mutex);
     }
 
-    void begin_mark_dirty(block_id_t block_id, void *block, conn_fsm_t *state) {
+    void begin_mark_dirty(block_id_t block_id, void *block, btree_fsm_t *state) {
         pthread_mutex_lock(&mutex);
     }
     void end_mark_dirty() {

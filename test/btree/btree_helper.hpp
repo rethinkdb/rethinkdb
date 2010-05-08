@@ -37,13 +37,13 @@ struct recording_cache_t : public cache_stats_t<volatile_cache_t<config_t> > {
 public:
     typedef cache_stats_t<volatile_cache_t<config_t> > vcache_t;
     typedef typename vcache_t::block_id_t block_id_t;
-    typedef typename vcache_t::fsm_t fsm_t;
+    typedef typename vcache_t::btree_fsm_t btree_fsm_t;
 
 public:
     recording_cache_t(size_t _block_size, aio_mode_t _aio_mode)
         : vcache_t(_block_size, 0), aio_mode(_aio_mode), read_event_exists(false) {}
 
-    void* acquire(block_id_t block_id, fsm_t *state) {
+    void* acquire(block_id_t block_id, btree_fsm_t *state) {
         aio_mode_t mode = aio_mode;
         if(aio_mode == rc_mixed)
             mode = rand() % 2 ? rc_immediate : rc_delayed;
@@ -79,7 +79,7 @@ public:
         assert(0);
     }
     
-    block_id_t release(block_id_t block_id, void *block, bool dirty, fsm_t *state) {
+    block_id_t release(block_id_t block_id, void *block, bool dirty, btree_fsm_t *state) {
         if(dirty) {
             // Record the write
             event_t e;
@@ -116,14 +116,16 @@ struct mock_config_t {
     typedef object_static_alloc_t<malloc_alloc_t, iobuf_t> alloc_t;
 
     // Connection fsm
-    typedef mock_fsm_t<mock_config_t> fsm_t;
+    typedef mock_fsm_t<mock_config_t> conn_fsm_t;
+
+    // BTree
+    typedef btree_fsm<mock_config_t> btree_fsm_t;
 
     // Caching
     typedef recording_cache_t<mock_config_t> cache_t;
 
     // BTree
     typedef array_node_t<cache_t::block_id_t> node_t;
-    typedef btree_fsm<mock_config_t> btree_fsm_t;
     typedef btree_get_fsm<mock_config_t> btree_get_fsm_t;
     typedef btree_set_fsm<mock_config_t> btree_set_fsm_t;
 };

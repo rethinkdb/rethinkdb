@@ -32,9 +32,10 @@ struct standard_config_t {
     // IO syscalls
     typedef posix_io_calls_t iocalls_t;
     
-    // FSM
+    // FSMs
     typedef conn_fsm<standard_config_t> conn_fsm_t;
     typedef intrusive_list_t<conn_fsm_t> fsm_list_t;
+    typedef btree_fsm<standard_config_t> btree_fsm_t;
 
     // Serializer
     typedef in_place_serializer_t<standard_config_t> serializer_t;
@@ -57,7 +58,6 @@ struct standard_config_t {
     // BTree
     typedef btree_admin<standard_config_t> btree_admin_t;
     typedef array_node_t<serializer_t::block_id_t> node_t;
-    typedef btree_fsm<standard_config_t> btree_fsm_t;
     typedef btree_get_fsm<standard_config_t> btree_get_fsm_t;
     typedef btree_set_fsm<standard_config_t> btree_set_fsm_t;
 

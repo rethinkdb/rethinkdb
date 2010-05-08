@@ -16,7 +16,7 @@ template <class parent_cache_t>
 struct cache_stats_t : public parent_cache_t {
 public:
     typedef typename parent_cache_t::block_id_t block_id_t;
-    typedef typename parent_cache_t::fsm_t fsm_t;
+    typedef typename parent_cache_t::btree_fsm_t btree_fsm_t;
 
 public:
     cache_stats_t(size_t _block_size, size_t _max_size)
@@ -34,12 +34,12 @@ public:
         return parent_cache_t::allocate(block_id);
     }
     
-    void* acquire(block_id_t block_id, fsm_t *state) {
+    void* acquire(block_id_t block_id, btree_fsm_t *state) {
         nacquired++;
         return parent_cache_t::acquire(block_id, state);
     }
 
-    block_id_t release(block_id_t block_id, void *block, bool dirty, fsm_t *state) {
+    block_id_t release(block_id_t block_id, void *block, bool dirty, btree_fsm_t *state) {
         nreleased++;
         return parent_cache_t::release(block_id, block, dirty, state);
     }

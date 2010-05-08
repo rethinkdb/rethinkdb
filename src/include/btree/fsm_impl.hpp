@@ -11,12 +11,12 @@
 template <class config_t>
 int btree_fsm<config_t>::get_root_id(block_id_t *root_id) {
     block_id_t superblock_id = btree_fsm_t::cache->get_superblock_id();
-    void *buf = btree_fsm_t::cache->acquire(superblock_id, btree_fsm_t::netfsm);
+    void *buf = btree_fsm_t::cache->acquire(superblock_id, this);
     if(buf == NULL) {
         return 0;
     }
     memcpy((void*)root_id, buf, sizeof(*root_id));
-    btree_fsm_t::cache->release(superblock_id, buf, false, btree_fsm_t::netfsm);
+    btree_fsm_t::cache->release(superblock_id, buf, false, this);
     return 1;
 }
 

@@ -127,7 +127,6 @@ typename conn_fsm<config_t>::result_t conn_fsm<config_t>::do_socket_ready(event_
 template<class config_t>
 typename conn_fsm<config_t>::result_t conn_fsm<config_t>::do_fsm_btree_incomplete(event_t *event)
 {
-    assert(btree_fsm);
     if(event->event_type == et_sock) {
         // We're not going to process anything else from the socket
         // until we complete the currently executing command.
@@ -136,25 +135,16 @@ typename conn_fsm<config_t>::result_t conn_fsm<config_t>::do_fsm_btree_incomplet
         // commands on a single socket. We should enable this in the
         // future (fsm would need to associate IO responses with a
         // given command).
-    } else if(event->event_type == et_disk) {
-        // TODO: Right now we route IO to conn_fsm, and then reroute
-        // it to btree_fsm here. This is stupid, we should route IO to
-        // btree_fsm directly, and when it completes, do a final
-        // conn_fsm transition. This is an artifact of blocked IO
-        // (we used to not have a separate btree state machine), and
-        // needs to be removed.
-        typename btree_fsm_t::transition_result_t res = btree_fsm->do_transition(event);
-        if(res == btree_fsm_t::transition_complete) {
-            req_handler->build_response(this);
-            send_msg_to_client();
-            if(this->state != conn_fsm::fsm_socket_send_incomplete) {
-                // We've finished sending completely, now see if there is
-                // anything left to read from the old epoll notification,
-                // and let fsm_socket_ready do the cleanup
-                event->op = eo_read;
-                event->event_type = et_sock;
-                do_socket_ready(event);
-            }
+    } else if(event->event_type == et_btree_op_complete) {
+        req_handler->build_response(this);
+        send_msg_to_client();
+        if(this->state != conn_fsm::fsm_socket_send_incomplete) {
+            // We've finished sending completely, now see if there is
+            // anything left to read from the old epoll notification,
+            // and let fsm_socket_ready do the cleanup
+            event->op = eo_read;
+            event->event_type = et_sock;
+            do_socket_ready(event);
         }
     } else {
         check("fsm_btree_incomplete: Invalid event", 1);

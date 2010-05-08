@@ -53,7 +53,7 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
     assert(!cache_t::is_block_id_null(node_id));
 
     // Acquire the actual root node
-    node = (node_t*)btree_fsm_t::cache->acquire(node_id, btree_fsm_t::netfsm);
+    node = (node_t*)btree_fsm_t::cache->acquire(node_id, this);
     if(node == NULL) {
         return btree_fsm_t::transition_incomplete;
     } else {
@@ -94,7 +94,7 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
 template <class config_t>
 typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::do_update_acquiring_node()
 {
-    node = (node_t*)btree_fsm_t::cache->acquire(node_id, btree_fsm_t::netfsm);
+    node = (node_t*)btree_fsm_t::cache->acquire(node_id, this);
     if(node)
         return btree_fsm_t::transition_ok;
     else
@@ -194,10 +194,10 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
             // Figure out where the key goes
             if(key < median) {
                 // Left node and node are the same thing
-                btree_fsm_t::cache->release(rnode_id, (void*)rnode, true, btree_fsm_t::netfsm);
+                btree_fsm_t::cache->release(rnode_id, (void*)rnode, true, this);
                 nwrites++;
             } else if(key >= median) {
-                btree_fsm_t::cache->release(node_id, (void*)node, true, btree_fsm_t::netfsm);
+                btree_fsm_t::cache->release(node_id, (void*)node, true, this);
                 nwrites++;
                 node = rnode;
                 node_id = rnode_id;
@@ -215,7 +215,7 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
         // Insert the value, or move up the tree
         if(node->is_leaf()) {
             ((leaf_node_t*)node)->insert(key, value);
-            btree_fsm_t::cache->release(node_id, (void*)node, true, btree_fsm_t::netfsm);
+            btree_fsm_t::cache->release(node_id, (void*)node, true, this);
             nwrites++;
             state = update_complete;
             res = btree_fsm_t::transition_ok;
@@ -224,7 +224,7 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
             // Release and update the last node
             if(!cache_t::is_block_id_null(last_node_id)) {
                 btree_fsm_t::cache->release(last_node_id, (void*)last_node, last_node_dirty,
-                                            btree_fsm_t::netfsm);
+                                            this);
                 last_node_dirty ? (nwrites++) : 0;
             }
             last_node = (internal_node_t*)node;
@@ -242,7 +242,7 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
     if(res == btree_fsm_t::transition_ok && state == update_complete) {
         if(!cache_t::is_block_id_null(last_node_id)) {
             btree_fsm_t::cache->release(last_node_id, (void*)last_node, last_node_dirty,
-                                        btree_fsm_t::netfsm);
+                                        this);
             last_node_dirty ? (nwrites++) : 0;
             last_node_id = cache_t::null_block_id;
         }
@@ -266,12 +266,12 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
 template <class config_t>
 int btree_set_fsm<config_t>::set_root_id(block_id_t root_id) {
     block_id_t superblock_id = btree_fsm_t::cache->get_superblock_id();
-    void *buf = btree_fsm_t::cache->acquire(superblock_id, btree_fsm_t::netfsm);
+    void *buf = btree_fsm_t::cache->acquire(superblock_id, this);
     if(buf == NULL) {
         return 0;
     }
     memcpy(buf, (void*)&root_id, sizeof(root_id));
-    btree_fsm_t::cache->release(superblock_id, buf, true, btree_fsm_t::netfsm);
+    btree_fsm_t::cache->release(superblock_id, buf, true, this);
     nwrites++;
     return 1;
 }

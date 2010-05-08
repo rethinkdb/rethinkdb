@@ -36,7 +36,7 @@ typename btree_get_fsm<config_t>::transition_result_t btree_get_fsm<config_t>::d
     }
 
     // Acquire the actual root node
-    node = (node_t*)btree_fsm_t::cache->acquire(node_id, btree_fsm_t::netfsm);
+    node = (node_t*)btree_fsm_t::cache->acquire(node_id, this);
     if(node == NULL) {
         return btree_fsm_t::transition_incomplete;
     } else {
@@ -50,13 +50,13 @@ typename btree_get_fsm<config_t>::transition_result_t btree_get_fsm<config_t>::d
     assert(state == lookup_acquiring_node);
 
     if(!node) {
-        node = (node_t*)btree_fsm_t::cache->acquire(node_id, btree_fsm_t::netfsm);
+        node = (node_t*)btree_fsm_t::cache->acquire(node_id, this);
     }
     if(node->is_internal()) {
         block_id_t next_node_id = ((internal_node_t*)node)->lookup(key);
-        btree_fsm_t::cache->release(node_id, (void*)node, false, btree_fsm_t::netfsm);
+        btree_fsm_t::cache->release(node_id, (void*)node, false, this);
         node_id = next_node_id;
-        node = (node_t*)btree_fsm_t::cache->acquire(node_id, btree_fsm_t::netfsm);
+        node = (node_t*)btree_fsm_t::cache->acquire(node_id, this);
         if(node) {
             return btree_fsm_t::transition_ok;
         } else {
@@ -64,7 +64,7 @@ typename btree_get_fsm<config_t>::transition_result_t btree_get_fsm<config_t>::d
         }
     } else {
         int result = ((leaf_node_t*)node)->lookup(key, &value);
-        btree_fsm_t::cache->release(node_id, (void*)node, false, btree_fsm_t::netfsm);
+        btree_fsm_t::cache->release(node_id, (void*)node, false, this);
         op_result = result == 1 ? btree_found : btree_not_found;
         return btree_fsm_t::transition_complete;
     }

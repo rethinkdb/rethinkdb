@@ -17,7 +17,7 @@
 template <class config_t>
 struct volatile_cache_t {
 public:
-    typedef typename config_t::fsm_t fsm_t;
+    typedef typename config_t::btree_fsm_t btree_fsm_t;
     typedef void* block_id_t;
 
 public:
@@ -56,7 +56,7 @@ public:
      * state to the asynchronous request. The acquired block is
      * guranteed not to be evicted from the cache until release is
      * called on it. */
-    void* acquire(block_id_t block_id, fsm_t *state) {
+    void* acquire(block_id_t block_id, btree_fsm_t *state) {
         return block_id;
     }
 
@@ -66,7 +66,7 @@ public:
      * any time. Returns the new id of the block - it may or may not
      * be the same as the old block id, depending on the behavior of
      * the underlying serializer. */
-    block_id_t release(block_id_t block_id, void *block, bool dirty, fsm_t *state) {
+    block_id_t release(block_id_t block_id, void *block, bool dirty, btree_fsm_t *state) {
         // Since this is a volatile cache, we have nothing to do here.
         return block_id;
     }

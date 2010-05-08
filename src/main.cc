@@ -17,21 +17,39 @@
 #include "conn_fsm.hpp"
 #include "config/cmd_args.hpp"
 
+void initiate_conn_fsm_transition(event_queue_t *event_queue, event_t *event) {
+    code_config_t::conn_fsm_t *fsm = (code_config_t::conn_fsm_t*)event->state;
+    int res = fsm->do_transition(event);
+    if(res == event_queue_t::conn_fsm_t::fsm_shutdown_server) {
+        printf("Shutting down server...\n");
+        int res = pthread_kill(event_queue->parent_pool->main_thread, SIGINT);
+        check("Could not send kill signal to main thread", res != 0);
+    } else if(res == event_queue_t::conn_fsm_t::fsm_quit_connection) {
+        event_queue->deregister_fsm(fsm);
+    } else if(res == event_queue_t::conn_fsm_t::fsm_transition_ok) {
+        // Nothing todo
+    } else {
+        check("Unhandled fsm transition result", 1);
+    }
+}
+
+// Handle events coming from the event queue
 void event_handler(event_queue_t *event_queue, event_t *event) {
-    if(event->event_type != et_timer) {
-        code_config_t::conn_fsm_t *state = (code_config_t::conn_fsm_t*)event->state;
-        int res = state->do_transition(event);
-        if(res == event_queue_t::conn_fsm_t::fsm_shutdown_server) {
-            printf("Shutting down server...\n");
-            int res = pthread_kill(event_queue->parent_pool->main_thread, SIGINT);
-            check("Could not send kill signal to main thread", res != 0);
-        } else if(res == event_queue_t::conn_fsm_t::fsm_quit_connection) {
-            event_queue->deregister_fsm(state);
-        } else if(res == event_queue_t::conn_fsm_t::fsm_transition_ok) {
-            // Nothing todo
-        } else {
-            check("Unhandled fsm transition result", 1);
+    if(event->event_type == et_timer) {
+        // Nothing to do here, move along
+    } else if(event->event_type == et_disk) {
+        // Got some disk action, let the btree know
+        code_config_t::btree_fsm_t *btree_fsm = (code_config_t::btree_fsm_t*)event->state;
+        code_config_t::btree_fsm_t::transition_result_t res = btree_fsm->do_transition(event);
+        if(res == code_config_t::btree_fsm_t::transition_complete) {
+            // Booooyahh, btree completed, let the socket fsm know
+            event->event_type = et_btree_op_complete;
+            event->state = btree_fsm->netfsm;
+            initiate_conn_fsm_transition(event_queue, event);
         }
+    } else if(event->event_type == et_sock) {
+        // Got some socket action, let the connection fsm know
+        initiate_conn_fsm_transition(event_queue, event);
     }
 }
 
