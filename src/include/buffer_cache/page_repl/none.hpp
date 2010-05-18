@@ -1,6 +1,6 @@
 
-#ifndef __PAGE_REPL_LAST_HPP__
-#define __PAGE_REPL_LAST_HPP__
+#ifndef __PAGE_REPL_NONE_HPP__
+#define __PAGE_REPL_NONE_HPP__
 
 // TODO: we might want to decouple selection of pages to free from the
 // actual cleaning process (e.g. we might have random vs. lru
@@ -10,7 +10,7 @@
 // If we run out of cache space, just remove the block we're currently
 // unpinning. Really really dumb, but hey, it's a placeholder
 template <class config_t>
-struct page_repl_last_t {
+struct page_repl_none_t {
 public:
     typedef typename config_t::serializer_t serializer_t;
     typedef typename serializer_t::block_id_t block_id_t;
@@ -19,7 +19,7 @@ public:
     typedef typename config_t::buffer_alloc_t buffer_alloc_t;
     
 public:
-    page_repl_last_t(size_t _block_size, size_t _max_size,
+    page_repl_none_t(size_t _block_size, size_t _max_size,
                      concurrency_t *_concurrency,
                      page_map_t *_page_map,
                      buffer_alloc_t *_alloc)
@@ -39,11 +39,7 @@ public:
     void unpin(block_id_t block_id) {
         concurrency->begin_unpin(block_id);
         if(block_size * nblocks >= max_size) {
-            // Note, block_id could never reference a dirty block,
-            // because of the way mirrored cache is implemented
-            // (blocks remain pinned until they're flushed to disk).
-            void *block = page_map->erase(block_id);
-            alloc->free(block);
+            check("No more cache memory available", 1);
         }
         concurrency->end_unpin();
     }
@@ -56,5 +52,5 @@ private:
     buffer_alloc_t *alloc;
 };
 
-#endif // __PAGE_REPL_LAST_HPP__
+#endif // __PAGE_REPL_NONE_HPP__
 
