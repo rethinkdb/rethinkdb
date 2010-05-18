@@ -106,32 +106,23 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
 {
     transition_result_t res = btree_fsm_t::transition_ok;
 
-    // Make sure we've got either an empty or a disk event
+    // Make sure we've got either an empty or a cache event
     check("btree_fsm::do_transition - invalid event",
-          event != NULL && event->event_type != et_disk);
+          event != NULL && event->event_type != et_cache);
 
     // Update the cache with the event
     if(event) {
         check("Could not complete AIO operation",
               event->result == 0 ||
               event->result == -1);
-        // TODO: right now we assume that block_id_t is the same thing
-        // as event->offset. In the future (once we fix the event
-        // system), the block_id_t state should really be stored
-        // within the event state. Currently, we cast the offset to
-        // block_id_t, but it's a big hack, we need to get rid of this
-        // later.
-        if(event->op == eo_read) {
-            btree_fsm_t::cache->aio_complete((block_id_t)event->offset, event->buf, false);
-        } else if(event->op == eo_write) {
-            btree_fsm_t::cache->aio_complete((block_id_t)event->offset, event->buf, true);
+
+        if(event->op == eo_write) {
             nwrites--;
-            // TODO: right now we expect to get all AIO write
+            // TODO: We always expect to get all AIO write cache
             // notifications back before we return
-            // "transition_complete" status. This will be a big
-            // problem when we build caches with different (possibly
-            // delayed) writeback strategies. We need to figure out
-            // how to change this behavior.
+            // "transition_complete" status. This means that caches
+            // with delayed writeback policies must emulate write
+            // completion events before they actually happen on disk.
             if(res == btree_fsm_t::transition_ok && state == update_complete) {
                 if(nwrites == 0) {
                     return btree_fsm_t::transition_complete;
@@ -141,9 +132,8 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
             } else {
                 return btree_fsm_t::transition_incomplete;
             }
-        
-        } else {
-            check("btree_set_fsm::do_transition - invalid event", 1);
+        } else if(event->op != eo_read) {
+            check("btree_set_fsm::do_transition - invalid event type", 1);
         }
     }
 
@@ -246,18 +236,6 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
             last_node_dirty ? (nwrites++) : 0;
             last_node_id = cache_t::null_block_id;
         }
-
-        /*
-        // TODO: this is a hack to return 'transition_complete' status
-        // despite the fact that not all writes have returned (see the
-        // nwrites variable, and the relevant todo close to the
-        // beginning of this function. We should really redesign this
-        // to account for the fact that writes may not remove
-        // immediately (do we return 'transaction_complete' when all
-        // writes to disk are done, or when all writes to memory are
-        // done? This should probably be configurable).
-        return btree_fsm_t::transition_complete;
-        */
     }
 
     return res;

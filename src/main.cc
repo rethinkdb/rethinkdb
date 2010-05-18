@@ -20,14 +20,14 @@
 void initiate_conn_fsm_transition(event_queue_t *event_queue, event_t *event) {
     code_config_t::conn_fsm_t *fsm = (code_config_t::conn_fsm_t*)event->state;
     int res = fsm->do_transition(event);
-    if(res == event_queue_t::conn_fsm_t::fsm_shutdown_server) {
+    if(res == event_queue_t::conn_fsm_t::fsm_transition_ok) {
+        // Nothing todo
+    } else if(res == event_queue_t::conn_fsm_t::fsm_shutdown_server) {
         printf("Shutting down server...\n");
         int res = pthread_kill(event_queue->parent_pool->main_thread, SIGINT);
         check("Could not send kill signal to main thread", res != 0);
     } else if(res == event_queue_t::conn_fsm_t::fsm_quit_connection) {
         event_queue->deregister_fsm(fsm);
-    } else if(res == event_queue_t::conn_fsm_t::fsm_transition_ok) {
-        // Nothing todo
     } else {
         check("Unhandled fsm transition result", 1);
     }
@@ -38,8 +38,23 @@ void event_handler(event_queue_t *event_queue, event_t *event) {
     if(event->event_type == et_timer) {
         // Nothing to do here, move along
     } else if(event->event_type == et_disk) {
-        // Got some disk action, let the btree know
+        // TODO: right now we assume that block_id_t is the same thing
+        // as event->offset. In the future (once we fix the event
+        // system), the block_id_t state should really be stored
+        // within the event state. Currently, we cast the offset to
+        // block_id_t, but it's a big hack, we need to get rid of this
+        // later.
+
+        // Grab the btree FSM
         code_config_t::btree_fsm_t *btree_fsm = (code_config_t::btree_fsm_t*)event->state;
+        
+        // Let the cache know about the disk action
+        btree_fsm->cache->aio_complete((code_config_t::btree_fsm_t::block_id_t)event->offset,
+                                       event->buf,
+                                       event->op == eo_read ? false : true);
+        
+        // Generate the cache event and forward it to the appropriate btree fsm
+        event->event_type = et_cache;
         code_config_t::btree_fsm_t::transition_result_t res = btree_fsm->do_transition(event);
         if(res == code_config_t::btree_fsm_t::transition_complete) {
             // Booooyahh, btree completed, let the socket fsm know
