@@ -9,6 +9,12 @@
 // TODO: consider redoing nodes with a visitor pattern to avoid ugly casts
 
 template <class config_t>
+typename btree_fsm<config_t>::block_id_t btree_fsm<config_t>::get_root_id(void *superblock_buf) {
+    return *((block_id_t*)superblock_buf);
+}
+
+// TODO: this is obselete. Get rid of this.
+template <class config_t>
 int btree_fsm<config_t>::get_root_id(block_id_t *root_id) {
     block_id_t superblock_id = btree_fsm_t::cache->get_superblock_id();
     void *buf = btree_fsm_t::cache->acquire(superblock_id, this);
@@ -19,6 +25,5 @@ int btree_fsm<config_t>::get_root_id(block_id_t *root_id) {
     btree_fsm_t::cache->release(superblock_id, buf, false, this);
     return 1;
 }
-
 #endif // __BTREE_FSM_IMPL_HPP__
 

@@ -58,20 +58,25 @@ public:
         } else if(mode == rc_delayed) {
             typename set<block_id_t>::iterator i = previously_requested.find(block_id);
             if(i != previously_requested.end()) {
+                // The block was requested previously. Erase it from
+                // previously requested, and forward the request to
+                // the real cache.
                 previously_requested.erase(i);
                 return vcache_t::acquire(block_id, state);
             } else {
+                // The block was not previously requiested. Insert it
+                // into the previously requested set, and fire off an
+                // event.
                 previously_requested.insert(block_id);
 
                 // Store the read event
                 read_event_exists = true;
-                read_event.event_type = et_disk;
+                read_event.event_type = et_cache;
                 read_event.result = BTREE_BLOCK_SIZE;
                 read_event.op = eo_read;
                 read_event.offset = (off64_t)block_id;
-                read_event.buf = NULL;
+                read_event.buf = vcache_t::acquire(block_id, state);
                 
-                vcache_t::nacquired++;
                 return NULL;
             }
         }
@@ -83,7 +88,7 @@ public:
         if(dirty) {
             // Record the write
             event_t e;
-            e.event_type = et_disk;
+            e.event_type = et_cache;
             e.result = BTREE_BLOCK_SIZE;
             e.op = eo_write;
             e.offset = (off64_t)block_id;

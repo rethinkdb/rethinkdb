@@ -20,9 +20,9 @@ public:
 public:
     enum state_t {
         uninitialized,
-        lookup_acquiring_superblock,
-        lookup_acquiring_root,
-        lookup_acquiring_node
+        acquire_superblock,
+        acquire_root,
+        acquire_node,
     };
 
     enum op_result_t {
@@ -44,9 +44,9 @@ public:
     int value;
 
 private:
-    transition_result_t do_lookup_acquiring_superblock();
-    transition_result_t do_lookup_acquiring_root();
-    transition_result_t do_lookup_acquiring_node();
+    transition_result_t do_acquire_superblock(event_t *event);
+    transition_result_t do_acquire_root(event_t *event);
+    transition_result_t do_acquire_node(event_t *event);
 
 private:
     // Some relevant state information

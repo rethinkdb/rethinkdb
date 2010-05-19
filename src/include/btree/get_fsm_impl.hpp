@@ -7,27 +7,43 @@
 template <class config_t>
 void btree_get_fsm<config_t>::init_lookup(int _key) {
     key = _key;
-    state = lookup_acquiring_superblock;
+    state = acquire_superblock;
 }
 
 template <class config_t>
-typename btree_get_fsm<config_t>::transition_result_t btree_get_fsm<config_t>::do_lookup_acquiring_superblock() {
-    assert(state == lookup_acquiring_superblock);
-    
-    if(get_root_id(&node_id) == 0) {
-        // We're temporarily assigning superblock id to node_id
-        // variable, so that when we get the next disk completion
-        // event, we can notify the cache.
-        return btree_fsm_t::transition_incomplete;
+typename btree_get_fsm<config_t>::transition_result_t btree_get_fsm<config_t>::do_acquire_superblock(event_t *event) {
+    assert(state == acquire_superblock);
+
+    void *buf = NULL;
+    if(event == NULL) {
+        // First entry into the FSM. Try to grab the superblock.
+        block_id_t superblock_id = btree_fsm_t::cache->get_superblock_id();
+        buf = btree_fsm_t::cache->acquire(superblock_id, this);
     } else {
-        state = lookup_acquiring_root;
+        // We already tried to grab the superblock, and we're getting
+        // a cache notification about it.
+        assert(event->buf);
+        buf = event->buf;
+    }
+    
+    if(buf) {
+        // Got the superblock buffer (either right away or through
+        // cache notification). Grab the root id, and move on to
+        // acquiring the root.
+        node_id = btree_fsm_t::get_root_id(buf);
+        btree_fsm_t::cache->release(btree_fsm_t::cache->get_superblock_id(), buf, false, this);
+        state = acquire_root;
         return btree_fsm_t::transition_ok;
+    } else {
+        // Can't get the superblock buffer right away. Let's wait for
+        // the cache notification.
+        return btree_fsm_t::transition_incomplete;
     }
 }
 
 template <class config_t>
-typename btree_get_fsm<config_t>::transition_result_t btree_get_fsm<config_t>::do_lookup_acquiring_root() {
-    assert(state == lookup_acquiring_root);
+typename btree_get_fsm<config_t>::transition_result_t btree_get_fsm<config_t>::do_acquire_root(event_t *event) {
+    assert(state == acquire_root);
     
     // Make sure root exists
     if(cache_t::is_block_id_null(node_id)) {
@@ -35,23 +51,41 @@ typename btree_get_fsm<config_t>::transition_result_t btree_get_fsm<config_t>::d
         return btree_fsm_t::transition_complete;
     }
 
-    // Acquire the actual root node
-    node = (node_t*)btree_fsm_t::cache->acquire(node_id, this);
+    if(event == NULL) {
+        // Acquire the actual root node
+        node = (node_t*)btree_fsm_t::cache->acquire(node_id, this);
+    } else {
+        // We already tried to grab the root, and we're getting a
+        // cache notification about it.
+        assert(event->buf);
+        node = (node_t*)event->buf;
+    }
+    
     if(node == NULL) {
+        // Can't grab the root right away. Wait for a cache event.
         return btree_fsm_t::transition_incomplete;
     } else {
-        state = lookup_acquiring_node;
+        // Got the root, move on to grabbing the node
+        state = acquire_node;
         return btree_fsm_t::transition_ok;
     }
 }
 
 template <class config_t>
-typename btree_get_fsm<config_t>::transition_result_t btree_get_fsm<config_t>::do_lookup_acquiring_node() {
-    assert(state == lookup_acquiring_node);
+typename btree_get_fsm<config_t>::transition_result_t btree_get_fsm<config_t>::do_acquire_node(event_t *event) {
+    assert(state == acquire_node);
+    // Either we already have the node (then event should be NULL), or
+    // we don't have the node (in which case we asked for it before,
+    // and it should be getting to us via an event)
+    assert((node && !event) || (!node && event));
 
     if(!node) {
-        node = (node_t*)btree_fsm_t::cache->acquire(node_id, this);
+        // We asked for a node before and couldn't get it right
+        // away. It must be in the event.
+        assert(event && event->buf);
+        node = (node_t*)event->buf;
     }
+    assert(node);
     if(node->is_internal()) {
         block_id_t next_node_id = ((internal_node_t*)node)->lookup(key);
         btree_fsm_t::cache->release(node_id, (void*)node, false, this);
@@ -74,9 +108,9 @@ template <class config_t>
 typename btree_get_fsm<config_t>::transition_result_t btree_get_fsm<config_t>::do_transition(event_t *event) {
     transition_result_t res = btree_fsm_t::transition_ok;
 
-    // Make sure we've got either an empty or a disk event
+    // Make sure we've got either an empty or a cache event
     check("btree_fsm::do_transition - invalid event",
-          event != NULL && event->event_type != et_cache);
+          !(!event || event->event_type == et_cache));
 
     // Update the cache with the event
     if(event) {
@@ -87,21 +121,22 @@ typename btree_get_fsm<config_t>::transition_result_t btree_get_fsm<config_t>::d
     }
     
     // First, acquire the superblock (to get root node ID)
-    if(res == btree_fsm_t::transition_ok && state == lookup_acquiring_superblock)
-        res = do_lookup_acquiring_superblock();
+    if(res == btree_fsm_t::transition_ok && state == acquire_superblock) {
+        res = do_acquire_superblock(event);
+        event = NULL;
+    }
         
     // Then, acquire the root block
-    if(res == btree_fsm_t::transition_ok && state == lookup_acquiring_root)
-        res = do_lookup_acquiring_root();
+    if(res == btree_fsm_t::transition_ok && state == acquire_root) {
+        res = do_acquire_root(event);
+        event = NULL;
+    }
         
     // Then, acquire the nodes, until we hit the leaf
-    while(res == btree_fsm_t::transition_ok && state == lookup_acquiring_node) {
-        res = do_lookup_acquiring_node();
+    while(res == btree_fsm_t::transition_ok && state == acquire_node) {
+        res = do_acquire_node(event);
+        event = NULL;
     }
-
-    // TODO: we consider state transitions reentrant, which means
-    // we are likely to call acquire twice, but release only
-    // once. We need to figure out how to get around that cleanly.
 
     return res;
 }

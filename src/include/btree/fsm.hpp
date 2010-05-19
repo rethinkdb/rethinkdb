@@ -49,6 +49,7 @@ public:
     virtual transition_result_t do_transition(event_t *event) = 0;
 
 protected:
+    block_id_t get_root_id(void *superblock_buf);
     int get_root_id(block_id_t *root_id);
 
 public:
