@@ -102,58 +102,68 @@ void do_test_large_insert_permuted(cache_t &cache) {
 }
 
 // Actual tests
-void test_lookup_api() {
-    cache_t cache1(BTREE_BLOCK_SIZE, rc_immediate);
-    do_test_lookup_api(cache1);
-
-    cache_t cache2(BTREE_BLOCK_SIZE, rc_delayed);
-    do_test_lookup_api(cache2);
+void test_lookup_api_immediate() {
+    cache_t cache(BTREE_BLOCK_SIZE, rc_immediate);
+    do_test_lookup_api(cache);
 }
 
-void test_insert_api() {
-    cache_t cache1(BTREE_BLOCK_SIZE, rc_immediate);
-    do_test_insert_api(cache1);
-
-    cache_t cache2(BTREE_BLOCK_SIZE, rc_delayed);
-    do_test_insert_api(cache2);
+void test_lookup_api_delayed() {
+    cache_t cache(BTREE_BLOCK_SIZE, rc_delayed);
+    do_test_lookup_api(cache);
 }
 
-void test_small_insert() {
-    cache_t cache1(BTREE_BLOCK_SIZE, rc_immediate);
-    do_test_small_insert(cache1);
-
-    cache_t cache2(BTREE_BLOCK_SIZE, rc_delayed);
-    do_test_small_insert(cache2);
+void test_insert_api_immediate() {
+    cache_t cache(BTREE_BLOCK_SIZE, rc_immediate);
+    do_test_insert_api(cache);
 }
 
-void test_multinode_insert() {
-    cache_t cache1(BTREE_BLOCK_SIZE, rc_immediate);
-    do_test_multinode_insert(cache1);
-
-    cache_t cache2(BTREE_BLOCK_SIZE, rc_delayed);
-    do_test_multinode_insert(cache2);
+void test_insert_api_delayed() {
+    cache_t cache(BTREE_BLOCK_SIZE, rc_delayed);
+    do_test_insert_api(cache);
 }
 
-void test_large_insert() {
-    cache_t cache1(BTREE_BLOCK_SIZE, rc_immediate);
-    do_test_large_insert(cache1);
+void test_small_insert_immediate() {
+    cache_t cache(BTREE_BLOCK_SIZE, rc_immediate);
+    do_test_small_insert(cache);
+}
+
+void test_small_insert_delayed() {
+    cache_t cache(BTREE_BLOCK_SIZE, rc_delayed);
+    do_test_small_insert(cache);
+}
+
+void test_multinode_insert_immediate() {
+    cache_t cache(BTREE_BLOCK_SIZE, rc_immediate);
+    do_test_multinode_insert(cache);
+}
+
+void test_multinode_insert_delayed() {
+    cache_t cache(BTREE_BLOCK_SIZE, rc_delayed);
+    do_test_multinode_insert(cache);
+}
+
+void test_large_insert_immediate() {
+    cache_t cache(BTREE_BLOCK_SIZE, rc_immediate);
+    do_test_large_insert(cache);
+}
     
-    cache_t cache2(BTREE_BLOCK_SIZE, rc_delayed);
-    do_test_large_insert(cache2);
+void test_large_insert_delayed() {
+    cache_t cache(BTREE_BLOCK_SIZE, rc_delayed);
+    do_test_large_insert(cache);
 }
 
-void test_large_insert_permuted() {
-    cache_t cache1(BTREE_BLOCK_SIZE, rc_immediate);
-    do_test_large_insert_permuted(cache1);
+void test_large_insert_permuted_immediate() {
+    cache_t cache(BTREE_BLOCK_SIZE, rc_immediate);
+    do_test_large_insert_permuted(cache);
+}
 
-    cache_t cache2(BTREE_BLOCK_SIZE, rc_delayed);
-    do_test_large_insert_permuted(cache2);
+void test_large_insert_permuted_delayed() {
+    cache_t cache(BTREE_BLOCK_SIZE, rc_delayed);
+    do_test_large_insert_permuted(cache);
+}
 
-    /*
-      // TODO: get this test to pass. Looks like there is a bug in the
-      // btree that will make it fail in a real cache.
-    cache_t cache3(BTREE_BLOCK_SIZE, rc_mixed);
-    do_test_large_insert_permuted(cache3);
-    */
+void test_large_insert_permuted_mixed() {
+    cache_t cache(BTREE_BLOCK_SIZE, rc_mixed);
+    do_test_large_insert_permuted(cache);
 }
 
