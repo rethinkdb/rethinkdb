@@ -17,11 +17,11 @@ public:
 public:
     enum state_t {
         uninitialized,
-        update_acquiring_superblock,
-        update_acquiring_root,
-        update_inserting_root,
-        update_inserting_root_on_split,
-        update_acquiring_node,
+        acquire_superblock,
+        acquire_root,
+        insert_root,
+        insert_root_on_split,
+        acquire_node,
         update_complete
     };
 
@@ -37,14 +37,14 @@ public:
     virtual transition_result_t do_transition(event_t *event);
 
 private:
-    transition_result_t do_update_acquiring_superblock();
-    transition_result_t do_update_acquiring_root();
-    transition_result_t do_update_inserting_root();
-    transition_result_t do_update_inserting_root_on_split();
-    transition_result_t do_update_acquiring_node();
+    transition_result_t do_acquire_superblock(event_t *event);
+    transition_result_t do_acquire_root(event_t *event);
+    transition_result_t do_insert_root(event_t *event);
+    transition_result_t do_insert_root_on_split(event_t *event);
+    transition_result_t do_acquire_node(event_t *event);
 
 private:
-    int set_root_id(block_id_t root_id);
+    int set_root_id(block_id_t root_id, event_t *event);
     void split_node(node_t *node, node_t **rnode, block_id_t *rnode_id, int *median);
     
 private:

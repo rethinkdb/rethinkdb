@@ -23,47 +23,71 @@ template <class config_t>
 void btree_set_fsm<config_t>::init_update(int _key, int _value) {
     key = _key;
     value = _value;
-    state = update_acquiring_superblock;
+    state = acquire_superblock;
 }
 
 template <class config_t>
-typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::do_update_acquiring_superblock()
+typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::do_acquire_superblock(event_t *event)
 {
-    assert(state == update_acquiring_superblock);
+    assert(state == acquire_superblock);
     
-    if(get_root_id(&node_id) == 0) {
-        // We're temporarily assigning superblock id to node_id
-        // variable, so that when we get the next disk completion
-        // event, we can notify the cache.
-        return btree_fsm_t::transition_incomplete;
+    void *buf = NULL;
+    if(event == NULL) {
+        // First entry into the FSM. Try to grab the superblock.
+        block_id_t superblock_id = btree_fsm_t::cache->get_superblock_id();
+        buf = btree_fsm_t::cache->acquire(superblock_id, this);
     } else {
+        // We already tried to grab the superblock, and we're getting
+        // a cache notification about it.
+        assert(event->buf);
+        buf = event->buf;
+    }
+
+    if(buf) {
+        // Got the superblock buffer (either right away or through
+        // cache notification). Grab the root id, and move on to
+        // acquiring the root.
+        node_id = btree_fsm_t::get_root_id(buf);
+        btree_fsm_t::cache->release(btree_fsm_t::cache->get_superblock_id(), buf, false, this);
         if(cache_t::is_block_id_null(node_id))
-            state = update_inserting_root;
+            state = insert_root;
         else
-            state = update_acquiring_root;
+            state = acquire_root;
         return btree_fsm_t::transition_ok;
+    } else {
+        // Can't get the superblock buffer right away. Let's wait for
+        // the cache notification.
+        return btree_fsm_t::transition_incomplete;
     }
 }
 
 template <class config_t>
-typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::do_update_acquiring_root()
+typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::do_acquire_root(event_t *event)
 {
     // If root didn't exist, we should have ended up in
-    // do_update_inserting_root()
+    // do_insert_root()
     assert(!cache_t::is_block_id_null(node_id));
 
-    // Acquire the actual root node
-    node = (node_t*)btree_fsm_t::cache->acquire(node_id, this);
+    if(event == NULL) {
+        // Acquire the actual root node
+        node = (node_t*)btree_fsm_t::cache->acquire(node_id, this);
+    } else {
+        // We already tried to acquire the root node, and here it is
+        // via the cache notification.
+        assert(event->buf);
+        node = (node_t*)event->buf;
+    }
+    
     if(node == NULL) {
         return btree_fsm_t::transition_incomplete;
     } else {
-        state = update_acquiring_node;
+        state = acquire_node;
         return btree_fsm_t::transition_ok;
     }
 }
 
 template <class config_t>
-typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::do_update_inserting_root()
+typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::do_insert_root(event_t *event)
 {
     // If this is the first time we're entering this function,
     // allocate the root (otherwise, the root has already been
@@ -72,8 +96,8 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
         void *ptr = btree_fsm_t::cache->allocate(&node_id);
         node = new (ptr) leaf_node_t();
     }
-    if(set_root_id(node_id)) {
-        state = update_acquiring_node;
+    if(set_root_id(node_id, event)) {
+        state = acquire_node;
         return btree_fsm_t::transition_ok;
     } else {
         return btree_fsm_t::transition_incomplete;
@@ -81,10 +105,10 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
 }
 
 template <class config_t>
-typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::do_update_inserting_root_on_split()
+typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::do_insert_root_on_split(event_t *event)
 {
-    if(set_root_id(last_node_id)) {
-        state = update_acquiring_node;
+    if(set_root_id(last_node_id, event)) {
+        state = acquire_node;
         return btree_fsm_t::transition_ok;
     } else {
         return btree_fsm_t::transition_incomplete;
@@ -92,9 +116,15 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
 }
 
 template <class config_t>
-typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::do_update_acquiring_node()
+typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::do_acquire_node(event_t *event)
 {
-    node = (node_t*)btree_fsm_t::cache->acquire(node_id, this);
+    if(event == NULL) {
+        node = (node_t*)btree_fsm_t::cache->acquire(node_id, this);
+    } else {
+        assert(event->buf);
+        node = (node_t*)event->buf;
+    }
+
     if(node)
         return btree_fsm_t::transition_ok;
     else
@@ -118,7 +148,7 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
 
         if(event->op == eo_write) {
             nwrites--;
-            // TODO: We always expect to get all AIO write cache
+            // We always expect to get all AIO write cache
             // notifications back before we return
             // "transition_complete" status. This means that caches
             // with delayed writeback policies must emulate write
@@ -138,29 +168,35 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
     }
 
     // First, acquire the superblock (to get root node ID)
-    if(res == btree_fsm_t::transition_ok && state == update_acquiring_superblock)
-        res = do_update_acquiring_superblock();
+    if(res == btree_fsm_t::transition_ok && state == acquire_superblock) {
+        res = do_acquire_superblock(event);
+        event = NULL;
+    }
 
     // Then, acquire the root block (or create it if it's missing)
-    if(res == btree_fsm_t::transition_ok) {
-        if(state == update_acquiring_root)
-            res = do_update_acquiring_root();
-        else if(state == update_inserting_root)
-            res = do_update_inserting_root();
+    if(res == btree_fsm_t::transition_ok && (state == acquire_root || state == insert_root)) {
+        if(state == acquire_root)
+            res = do_acquire_root(event);
+        else if(state == insert_root)
+            res = do_insert_root(event);
+        event = NULL;
     }
 
     // If we were inserting root on split, do that
-    if(res == btree_fsm_t::transition_ok && state == update_inserting_root_on_split)
-        res = do_update_inserting_root_on_split();
+    if(res == btree_fsm_t::transition_ok && state == insert_root_on_split) {
+        res = do_insert_root_on_split(event);
+        event = NULL;
+    }
 
     // If we were acquiring a node, do that
     // Go up the tree...
-    while(res == btree_fsm_t::transition_ok && state == update_acquiring_node)
+    while(res == btree_fsm_t::transition_ok && state == acquire_node)
     {
         if(!node) {
-            state = update_acquiring_node;
-            res = do_update_acquiring_node();
-            if(res != btree_fsm_t::transition_ok || state != update_acquiring_node) {
+            state = acquire_node;
+            res = do_acquire_node(event);
+            event = NULL;
+            if(res != btree_fsm_t::transition_ok || state != acquire_node) {
                 break;
             }
         }
@@ -195,9 +231,9 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
             node_dirty = true;
 
             if(new_root) {
-                state = update_inserting_root_on_split;
-                res = do_update_inserting_root_on_split();
-                if(res != btree_fsm_t::transition_ok || state != update_acquiring_node) {
+                state = insert_root_on_split;
+                res = do_insert_root_on_split(NULL);
+                if(res != btree_fsm_t::transition_ok || state != acquire_node) {
                     break;
                 }
             }
@@ -242,16 +278,24 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
 }
 
 template <class config_t>
-int btree_set_fsm<config_t>::set_root_id(block_id_t root_id) {
-    block_id_t superblock_id = btree_fsm_t::cache->get_superblock_id();
-    void *buf = btree_fsm_t::cache->acquire(superblock_id, this);
-    if(buf == NULL) {
+int btree_set_fsm<config_t>::set_root_id(block_id_t root_id, event_t *event) {
+    void *buf;
+    if(event == NULL) {
+        block_id_t superblock_id = btree_fsm_t::cache->get_superblock_id();
+        buf = btree_fsm_t::cache->acquire(superblock_id, this);
+    } else {
+        assert(event->buf);
+        buf = event->buf;
+    }
+    
+    if(buf) {
+        memcpy(buf, (void*)&root_id, sizeof(root_id));
+        btree_fsm_t::cache->release(btree_fsm_t::cache->get_superblock_id(), buf, true, this);
+        nwrites++;
+        return 1;
+    } else {
         return 0;
     }
-    memcpy(buf, (void*)&root_id, sizeof(root_id));
-    btree_fsm_t::cache->release(superblock_id, buf, true, this);
-    nwrites++;
-    return 1;
 }
 
 template <class config_t>

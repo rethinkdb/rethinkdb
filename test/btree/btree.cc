@@ -34,7 +34,7 @@ void do_test_small_insert(cache_t &cache) {
 }
 
 void do_test_multinode_insert(cache_t &cache) {
-    // Insert a node full of items
+    // Insert a node full of items, plus one extra
     for(int i = 0; i < NODE_ORDER + 1; i++) {
         bool complete = insert(&cache, i, i);
         assert(complete);
