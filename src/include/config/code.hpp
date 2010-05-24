@@ -41,7 +41,7 @@ struct standard_config_t {
     typedef in_place_serializer_t<standard_config_t> serializer_t;
 
     // Caching
-    typedef memalign_alloc_t<BTREE_BLOCK_SIZE> buffer_alloc_t;
+    typedef memalign_alloc_t<BTREE_BLOCK_SIZE> buffer_alloc_t; // TODO: we need a better allocator
     typedef unlocked_hash_map_t<standard_config_t> page_map_t;
     typedef page_repl_none_t<standard_config_t> page_repl_t;
     typedef buffer_cache_bkl_t<standard_config_t> concurrency_t;
