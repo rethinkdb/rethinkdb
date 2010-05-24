@@ -8,6 +8,7 @@ template <class config_t>
 void btree_get_fsm<config_t>::init_lookup(int _key) {
     key = _key;
     state = acquire_superblock;
+    btree_fsm_t::transaction = btree_fsm_t::cache->begin_transaction(btree_fsm_t::netfsm);
 }
 
 template <class config_t>
@@ -18,7 +19,7 @@ typename btree_get_fsm<config_t>::transition_result_t btree_get_fsm<config_t>::d
     if(event == NULL) {
         // First entry into the FSM. Try to grab the superblock.
         block_id_t superblock_id = btree_fsm_t::cache->get_superblock_id();
-        buf = btree_fsm_t::cache->acquire(superblock_id, this);
+        buf = btree_fsm_t::cache->acquire(btree_fsm_t::transaction, superblock_id, this);
     } else {
         // We already tried to grab the superblock, and we're getting
         // a cache notification about it.
@@ -31,7 +32,7 @@ typename btree_get_fsm<config_t>::transition_result_t btree_get_fsm<config_t>::d
         // cache notification). Grab the root id, and move on to
         // acquiring the root.
         node_id = btree_fsm_t::get_root_id(buf);
-        btree_fsm_t::cache->release(btree_fsm_t::cache->get_superblock_id(), buf, false, this);
+        btree_fsm_t::cache->release(btree_fsm_t::transaction, btree_fsm_t::cache->get_superblock_id(), buf, false, this);
         state = acquire_root;
         return btree_fsm_t::transition_ok;
     } else {
@@ -48,12 +49,14 @@ typename btree_get_fsm<config_t>::transition_result_t btree_get_fsm<config_t>::d
     // Make sure root exists
     if(cache_t::is_block_id_null(node_id)) {
         op_result = btree_not_found;
+        // End the transaction
+        btree_fsm_t::cache->end_transaction(btree_fsm_t::transaction);
         return btree_fsm_t::transition_complete;
     }
 
     if(event == NULL) {
         // Acquire the actual root node
-        node = (node_t*)btree_fsm_t::cache->acquire(node_id, this);
+        node = (node_t*)btree_fsm_t::cache->acquire(btree_fsm_t::transaction, node_id, this);
     } else {
         // We already tried to grab the root, and we're getting a
         // cache notification about it.
@@ -88,9 +91,9 @@ typename btree_get_fsm<config_t>::transition_result_t btree_get_fsm<config_t>::d
     assert(node);
     if(node->is_internal()) {
         block_id_t next_node_id = ((internal_node_t*)node)->lookup(key);
-        btree_fsm_t::cache->release(node_id, (void*)node, false, this);
+        btree_fsm_t::cache->release(btree_fsm_t::transaction, node_id, (void*)node, false, this);
         node_id = next_node_id;
-        node = (node_t*)btree_fsm_t::cache->acquire(node_id, this);
+        node = (node_t*)btree_fsm_t::cache->acquire(btree_fsm_t::transaction, node_id, this);
         if(node) {
             return btree_fsm_t::transition_ok;
         } else {
@@ -98,8 +101,10 @@ typename btree_get_fsm<config_t>::transition_result_t btree_get_fsm<config_t>::d
         }
     } else {
         int result = ((leaf_node_t*)node)->lookup(key, &value);
-        btree_fsm_t::cache->release(node_id, (void*)node, false, this);
+        btree_fsm_t::cache->release(btree_fsm_t::transaction, node_id, (void*)node, false, this);
         op_result = result == 1 ? btree_found : btree_not_found;
+        // End the transaction
+        btree_fsm_t::cache->end_transaction(btree_fsm_t::transaction);
         return btree_fsm_t::transition_complete;
     }
 }

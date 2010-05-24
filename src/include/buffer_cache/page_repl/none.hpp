@@ -14,40 +14,32 @@ struct page_repl_none_t {
 public:
     typedef typename config_t::serializer_t serializer_t;
     typedef typename serializer_t::block_id_t block_id_t;
-    typedef typename config_t::concurrency_t concurrency_t;
     typedef typename config_t::page_map_t page_map_t;
     typedef typename config_t::buffer_alloc_t buffer_alloc_t;
     
 public:
     page_repl_none_t(size_t _block_size, size_t _max_size,
-                     concurrency_t *_concurrency,
                      page_map_t *_page_map,
                      buffer_alloc_t *_alloc)
         : nblocks(0), block_size(_block_size),
           max_size(_max_size),
-          concurrency(_concurrency),
           page_map(_page_map),
           alloc(_alloc)
         {}
 
     void pin(block_id_t block_id) {
-        concurrency->begin_pin(block_id);
         nblocks++;
-        concurrency->end_pin();
     }
 
     void unpin(block_id_t block_id) {
-        concurrency->begin_unpin(block_id);
         if(block_size * nblocks >= max_size) {
             check("No more cache memory available", 1);
         }
-        concurrency->end_unpin();
     }
 
 private:
     unsigned int nblocks;
     size_t block_size, max_size;
-    concurrency_t * concurrency;
     page_map_t *page_map;
     buffer_alloc_t *alloc;
 };

@@ -11,6 +11,7 @@ public:
     typedef typename config_t::conn_fsm_t conn_fsm_t;
     typedef typename cache_t::block_id_t block_id_t;
     typedef typename config_t::btree_fsm_t btree_fsm_t;
+    typedef typename cache_t::transaction_t transaction_t;
 
 public:
     enum transition_result_t {
@@ -30,7 +31,7 @@ public:
 
 public:
     btree_fsm(cache_t *_cache, conn_fsm_t *_netfsm, fsm_type_t _fsm_type)
-        : cache(_cache), netfsm(_netfsm), fsm_type(_fsm_type)
+        : cache(_cache), netfsm(_netfsm), fsm_type(_fsm_type), transaction(NULL)
         {}
     virtual ~btree_fsm() {}
 
@@ -55,6 +56,7 @@ public:
     cache_t *cache;
     conn_fsm_t *netfsm;
     fsm_type_t fsm_type;
+    transaction_t *transaction;
 };
 
 #include "btree/fsm_impl.hpp"

@@ -26,6 +26,8 @@ public:
     typedef typename config_t::buffer_alloc_t buffer_alloc_t;
     typedef typename config_t::page_map_t page_map_t;
     typedef typename config_t::btree_fsm_t btree_fsm_t;
+    typedef typename config_t::conn_fsm_t conn_fsm_t;
+    typedef typename concurrency_t::transaction_t transaction_t;
 
 public:
     // TODO: how do we design communication between cache policies?
@@ -37,8 +39,8 @@ public:
     // components it wasn't originally given.
     mirrored_cache_t(size_t _block_size, size_t _max_size) : 
         serializer_t(_block_size),
-        page_repl_t(_block_size, _max_size, this, this, this),
-        writeback_t(this, this)
+        page_repl_t(_block_size, _max_size, this, this),
+        writeback_t(this)
         {
             // TODO: can we move the printing out of here?
             printf("Total RAM: %ldMB\n", get_total_ram() / 1024 / 1024);
@@ -49,20 +51,37 @@ public:
                    _max_size / 1024 / 1024);
         }
 
-    void* allocate(block_id_t *block_id) {
-        concurrency_t::begin_allocate(block_id);
-        
+    // Transaction API
+    transaction_t* begin_transaction(conn_fsm_t *state) {
+        return concurrency_t::begin_transaction(state);
+    }
+    void end_transaction(transaction_t* transaction) {
+        concurrency_t::end_transaction(transaction);
+    }
+
+    // TODO: right now we don't honor the fact that concurrency class
+    // might return a -1 on acquire. We need to implement this
+    // functionality.
+
+    // TODO: Most of the operations below depend on the concurrency
+    // being implemented as the BKL. Fix this.
+
+    // TODO: each operation can only be performed within a
+    // transaction. Much the API nicer (from the OOP/C++ point of
+    // view), and move the following methods into a separate
+    // transaction class.
+    void* allocate(transaction_t* tm, block_id_t *block_id) {
         *block_id = serializer_t::gen_block_id();
         void *block = buffer_alloc_t::malloc(serializer_t::block_size);
         page_map_t::set(*block_id, block);
         page_repl_t::pin(*block_id);
         
-        concurrency_t::end_allocate();
+        concurrency_t::acquire(tm, *block_id);
         return block;
     }
     
-    void* acquire(block_id_t block_id, btree_fsm_t *state) {
-        concurrency_t::begin_acquire(block_id, state);
+    void* acquire(transaction_t* tm, block_id_t block_id, btree_fsm_t *state) {
+        concurrency_t::acquire(tm, block_id);
 
         void *block = page_map_t::find(block_id);
         if(!block) {
@@ -72,12 +91,10 @@ public:
             page_repl_t::pin(block_id);
         }
 
-        concurrency_t::end_acquire();
         return block;
     }
 
-    block_id_t release(block_id_t block_id, void *block, bool dirty, btree_fsm_t *state) {
-        concurrency_t::begin_release(block_id, block, dirty, state);
+    block_id_t release(transaction_t* tm, block_id_t block_id, void *block, bool dirty, btree_fsm_t *state) {
 
         block_id_t new_block_id = block_id;
         if(dirty) {
@@ -88,21 +105,17 @@ public:
             page_repl_t::unpin(block_id);
         }
 
-        concurrency_t::end_release();
+        concurrency_t::release(tm, block_id, block, dirty);
         return new_block_id;
     }
 
     void aio_complete(block_id_t block_id, void *block, bool written) {
-        concurrency_t::begin_aio_complete(block_id, block, written);
-        
         if(written) {
             page_repl_t::unpin(block_id);
         } else {
             page_map_t::set(block_id, block);
             page_repl_t::pin(block_id);
         }
-
-        concurrency_t::end_aio_complete();
     }
 };
 

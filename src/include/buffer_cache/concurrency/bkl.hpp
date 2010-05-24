@@ -14,7 +14,8 @@ struct buffer_cache_bkl_t {
 public:
     typedef typename config_t::serializer_t serializer_t;
     typedef typename serializer_t::block_id_t block_id_t;
-    typedef typename config_t::btree_fsm_t btree_fsm_t;
+    typedef typename config_t::conn_fsm_t conn_fsm_t;
+    typedef int transaction_t;
     
 public:
     buffer_cache_bkl_t() {
@@ -35,54 +36,22 @@ public:
         check("Could not destroy bkl mutex attributes", res != 0);
     }
 
-    void* begin_allocate(block_id_t *block_id) {
+    transaction_t* begin_transaction(conn_fsm_t *state) {
         pthread_mutex_lock(&mutex);
-    }    
-    void* end_allocate() {
-        pthread_mutex_unlock(&mutex);
-    }    
-    
-    void* begin_acquire(block_id_t block_id, btree_fsm_t *state) {
-        pthread_mutex_lock(&mutex);
-    }
-    void* end_acquire() {
-        pthread_mutex_unlock(&mutex);
-    }
-
-    block_id_t begin_release(block_id_t block_id, void *block, bool dirty, btree_fsm_t *state) {
-        pthread_mutex_lock(&mutex);
-    }
-    block_id_t end_release() {
-        pthread_mutex_unlock(&mutex);
-    }
-
-    void begin_aio_complete(block_id_t block_id, void *block, bool written) {
-        pthread_mutex_lock(&mutex);
-    }
-    void end_aio_complete() {
-        pthread_mutex_unlock(&mutex);
-    }
-
-    void begin_mark_dirty(block_id_t block_id, void *block, btree_fsm_t *state) {
-        pthread_mutex_lock(&mutex);
-    }
-    void end_mark_dirty() {
-        pthread_mutex_unlock(&mutex);
-    }
-
-    void begin_pin(block_id_t block_id) {
-        pthread_mutex_lock(&mutex);
-    }
-    void end_pin() {
-        pthread_mutex_unlock(&mutex);
+        return NULL;
     }
     
-    void begin_unpin(block_id_t block_id) {
-        pthread_mutex_lock(&mutex);
-    }
-    void end_unpin() {
+    void end_transaction(transaction_t *tm) {
         pthread_mutex_unlock(&mutex);
     }
+
+    /* Returns zero if the block has been acquired, -1 is someone else
+     * is using the block. In case -1 is returned, the request for the
+     * block is queued, and the concurrency strategy should notify the
+     * cache when the block is available. */
+    int acquire(transaction_t *tm, block_id_t block_id) { return 0; }
+    void release(transaction_t *tm, block_id_t block_id, void *block, bool dirty) {}
+    
     
 private:
     pthread_mutex_t mutex;

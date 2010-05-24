@@ -38,18 +38,19 @@ public:
     typedef cache_stats_t<volatile_cache_t<config_t> > vcache_t;
     typedef typename vcache_t::block_id_t block_id_t;
     typedef typename vcache_t::btree_fsm_t btree_fsm_t;
+    typedef typename vcache_t::transaction_t transaction_t;
 
 public:
     recording_cache_t(size_t _block_size, aio_mode_t _aio_mode)
         : vcache_t(_block_size, 0), aio_mode(_aio_mode), read_event_exists(false) {}
 
-    void* acquire(block_id_t block_id, btree_fsm_t *state) {
+    void* acquire(transaction_t *tm, block_id_t block_id, btree_fsm_t *state) {
         aio_mode_t mode = aio_mode;
         if(aio_mode == rc_mixed)
             mode = rand() % 2 ? rc_immediate : rc_delayed;
 
         if(mode == rc_immediate) {
-            return vcache_t::acquire(block_id, state);
+            return vcache_t::acquire(tm, block_id, state);
         } else if(mode == rc_delayed) {
             // Store the read event
             read_event_exists = true;
@@ -57,7 +58,7 @@ public:
             read_event.result = BTREE_BLOCK_SIZE;
             read_event.op = eo_read;
             read_event.offset = (off64_t)block_id;
-            read_event.buf = vcache_t::acquire(block_id, state);
+            read_event.buf = vcache_t::acquire(tm, block_id, state);
                 
             return NULL;
         }
@@ -65,7 +66,7 @@ public:
         assert(0);
     }
     
-    block_id_t release(block_id_t block_id, void *block, bool dirty, btree_fsm_t *state) {
+    block_id_t release(transaction_t *tm, block_id_t block_id, void *block, bool dirty, btree_fsm_t *state) {
         if(dirty) {
             // Record the write
             event_t e;
@@ -76,7 +77,7 @@ public:
             e.buf = block;
             record.push_back(e);
         }
-        return vcache_t::release(block_id, block, dirty, state);
+        return vcache_t::release(tm, block_id, block, dirty, state);
     }
 
     bool get_read_event(event_t *_read_event) {
