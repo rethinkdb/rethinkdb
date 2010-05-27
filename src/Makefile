@@ -6,6 +6,7 @@ CXXFLAGS=-Iinclude
 DEP_DIR=dep
 OBJ_DIR=obj
 SERVER_EXEC_NAME=rethinkdb
+TAGS=.tags
 
 # Configure debug vs. release
 ifeq (${DEBUG},1)
@@ -31,11 +32,15 @@ OBJS:=$(OBJS:%.o=$(OBJ_DIR)/%.o)
 $(SERVER_EXEC_NAME): $(OBJS)
 	$(quiet_ld) $(CXX) $(LDFLAGS) $(OBJS) -o $(SERVER_EXEC_NAME)
 
+ctags:
+	ctags -R -f $(TAGS)
+
 clean:
 	$(call quiet_rm, *~) find -name '*~' -exec rm {} \;
 	$(call quiet_rm, $(SERVER_EXEC_NAME)) rm -f $(SERVER_EXEC_NAME)
 	$(call quiet_rm, DEPS) rm -f $(DEPS)
 	$(call quiet_rm, OBJS) rm -f $(OBJS)
+	$(call quiet_rm, $(TAGS)) rm -f $(TAGS)
 
 # Compiling files
 $(OBJ_DIR)/%.o: %.cc Makefile
