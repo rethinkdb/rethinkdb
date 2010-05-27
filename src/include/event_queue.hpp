@@ -5,8 +5,6 @@
 #include <pthread.h>
 #include <libaio.h>
 #include "arch/resource.hpp"
-#include "conn_fsm.hpp"
-#include "request_handler/request_handler.hpp"
 #include "event.hpp"
 #include "corefwd.hpp"
 #include "config/code.hpp"

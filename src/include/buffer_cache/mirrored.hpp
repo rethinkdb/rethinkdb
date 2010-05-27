@@ -10,6 +10,17 @@
 // improve performance.
 
 template <class config_t>
+struct aio_context {
+    typedef typename config_t::alloc_t alloc_t;
+    typedef typename config_t::serializer_t serializer_t;
+    typedef typename serializer_t::block_id_t block_id_t;
+
+    alloc_t *alloc;
+    void *user_state;
+    block_id_t block_id;
+};
+
+template <class config_t>
 struct mirrored_cache_t : public config_t::serializer_t,
                           public config_t::buffer_alloc_t,
                           public config_t::page_map_t,
@@ -28,6 +39,7 @@ public:
     typedef typename config_t::btree_fsm_t btree_fsm_t;
     typedef typename config_t::conn_fsm_t conn_fsm_t;
     typedef typename concurrency_t::transaction_t transaction_t;
+    typedef aio_context<config_t> aio_context_t;
 
 public:
     // TODO: how do we design communication between cache policies?
@@ -86,7 +98,13 @@ public:
         void *block = page_map_t::find(block_id);
         if(!block) {
             void *buf = buffer_alloc_t::malloc(serializer_t::block_size);
-            do_read(block_id, buf, state);
+            aio_context_t *ctx = state->netfsm->event_queue->
+                alloc.template malloc<aio_context_t>();
+            ctx->alloc = &state->netfsm->event_queue->alloc;
+            ctx->user_state = state;
+            ctx->block_id = block_id;
+
+            do_read(state->netfsm->event_queue, block_id, buf, ctx);
         } else {
             page_repl_t::pin(block_id);
         }
@@ -109,7 +127,10 @@ public:
         return new_block_id;
     }
 
-    void aio_complete(block_id_t block_id, void *block, bool written) {
+    void aio_complete(aio_context_t *ctx, void *block, bool written) {
+        block_id_t block_id = ctx->block_id;
+
+        ctx->alloc->free(ctx);
         if(written) {
             page_repl_t::unpin(block_id);
         } else {

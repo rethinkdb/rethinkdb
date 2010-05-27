@@ -47,6 +47,7 @@ struct standard_config_t {
     typedef buffer_cache_bkl_t<standard_config_t> concurrency_t;
     typedef immediate_writeback_t<standard_config_t> writeback_t;
     typedef mirrored_cache_t<standard_config_t> cache_impl_t;
+    typedef aio_context<standard_config_t> aio_context_t;
     
     //typedef fallthrough_cache_t<standard_config_t> cache_impl_t;
 #ifdef NDEBUG
@@ -67,7 +68,8 @@ struct standard_config_t {
     // Small object allocator
     typedef object_static_alloc_t<
         dynamic_pool_alloc_t<alloc_stats_t<pool_alloc_t<memalign_alloc_t<> > > >,
-        iocb, conn_fsm_t, iobuf_t, btree_get_fsm_t, btree_set_fsm_t> alloc_t;
+        iocb, conn_fsm_t, iobuf_t, btree_get_fsm_t, btree_set_fsm_t,
+        aio_context_t> alloc_t;
 };
 
 typedef standard_config_t code_config_t;

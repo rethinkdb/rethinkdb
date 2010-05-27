@@ -67,9 +67,9 @@ public:
     
     /* Fires off an async request to read the block identified by
      * block_id into buf, associating state with the request. */
-    void do_read(block_id_t block_id, void *buf, btree_fsm_t *fsm) {
-        schedule_aio_read(dbfd, block_id, block_size, buf,
-                          fsm->netfsm->event_queue, fsm);
+    void do_read(event_queue_t *queue, block_id_t block_id, void *buf,
+                 void *state) {
+        schedule_aio_read(dbfd, block_id, block_size, buf, queue, state);
     }
     
     /* Fires off an async request to write the block identified by
@@ -78,9 +78,9 @@ public:
      * always the same as the original id). If the block is new, NULL
      * can be passed in place of block_id, in which case the return
      * value will be the id of the newly written block. */
-    block_id_t do_write(block_id_t block_id, void *buf, btree_fsm_t *fsm) {
-        schedule_aio_write(dbfd, block_id, block_size, buf,
-                           fsm->netfsm->event_queue, fsm);
+    block_id_t do_write(event_queue_t *queue, block_id_t block_id, void *buf,
+                        void *state) {
+        schedule_aio_write(dbfd, block_id, block_size, buf, queue, state);
         return block_id;
     }
 

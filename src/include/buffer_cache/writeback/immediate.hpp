@@ -14,6 +14,7 @@ public:
     typedef typename serializer_t::block_id_t block_id_t;
     typedef typename config_t::cache_t cache_t;
     typedef typename config_t::btree_fsm_t btree_fsm_t;
+    typedef aio_context<config_t> aio_context_t;
     
 public:
     immediate_writeback_t(serializer_t *_serializer)
@@ -21,7 +22,15 @@ public:
         {}
     
     block_id_t mark_dirty(block_id_t block_id, void *block, btree_fsm_t *state) {
-        block_id_t new_block_id = serializer->do_write(block_id, block, state);
+        aio_context_t *ctx =
+            state->netfsm->event_queue->alloc.template malloc<aio_context_t>();
+        ctx->alloc = &state->netfsm->event_queue->alloc;
+        ctx->user_state = state;
+        ctx->block_id = block_id;
+
+        block_id_t new_block_id;
+        new_block_id = serializer->do_write(state->netfsm->event_queue,
+            block_id, block, ctx);
         
         return new_block_id;
     }

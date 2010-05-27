@@ -49,7 +49,7 @@ struct event_queue_t;
 // Worker pool
 struct worker_pool_t;
 
-// Request ahdnler
+// Request handler
 template <class config_t>
 class request_handler_t;
 

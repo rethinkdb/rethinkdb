@@ -38,20 +38,14 @@ void event_handler(event_queue_t *event_queue, event_t *event) {
     if(event->event_type == et_timer) {
         // Nothing to do here, move along
     } else if(event->event_type == et_disk) {
-        // TODO: right now we assume that block_id_t is the same thing
-        // as event->offset. In the future (once we fix the event
-        // system), the block_id_t state should really be stored
-        // within the event state. Currently, we cast the offset to
-        // block_id_t, but it's a big hack, we need to get rid of this
-        // later.
-
         // Grab the btree FSM
-        code_config_t::btree_fsm_t *btree_fsm = (code_config_t::btree_fsm_t*)event->state;
+        code_config_t::aio_context_t *ctx =
+            (code_config_t::aio_context_t *)event->state;
+        code_config_t::btree_fsm_t *btree_fsm =
+            (code_config_t::btree_fsm_t *)ctx->user_state;
         
-        // Let the cache know about the disk action
-        btree_fsm->cache->aio_complete((code_config_t::btree_fsm_t::block_id_t)event->offset,
-                                       event->buf,
-                                       event->op == eo_read ? false : true);
+        // Let the cache know about the disk action and free the ctx.
+        btree_fsm->cache->aio_complete(ctx, event->buf, event->op != eo_read);
         
         // Generate the cache event and forward it to the appropriate btree fsm
         event->event_type = et_cache;
