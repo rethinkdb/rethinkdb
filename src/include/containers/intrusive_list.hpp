@@ -13,6 +13,15 @@ template <class node_t>
 class intrusive_list_t {
 public:
     intrusive_list_t() : _head(NULL), _tail(NULL) {}
+
+    bool empty() {
+        return !head();
+    }
+
+    void clear() {
+        _head = NULL;
+        _tail = NULL;
+    }
     
     node_t* head() {
         return _head;
@@ -56,6 +65,22 @@ public:
         } else {
             _head = value->next;
         }
+    }
+
+    void append_and_clear(intrusive_list_t<node_t> &list) {
+        if(!_head) {
+            // We're empty, just set head and tail to the new list
+            _head = list.head();
+            _tail = list.tail();
+        } else {
+            // Just continue to new list
+            _tail->next = list.head();
+            list.head()->prev = _tail;
+            _tail = list.tail();
+        }
+        // Note, we can't do appends without clear because we'd break
+        // the previous pointer in the head of the appended list.
+        list.clear();
     }
 
 protected:
