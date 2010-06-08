@@ -19,6 +19,7 @@ public:
     typedef typename config_t::iocalls_t iocalls_t;
     typedef typename config_t::iobuf_t iobuf_t;
     typedef typename config_t::btree_fsm_t btree_fsm_t;
+    typedef typename config_t::request_t request_t;
     typedef typename config_t::req_handler_t req_handler_t;
     
 public:
@@ -65,7 +66,7 @@ public:
     alloc_t *alloc;
     req_handler_t *req_handler;
     event_queue_t *event_queue;
-    btree_fsm_t *btree_fsm;
+    request_t *current_request;
     
 private:
     result_t do_socket_ready(event_t *event);

@@ -18,7 +18,7 @@
 // TODO: report event queue statistics.
 
 // Some forward declarations
-void queue_init_timer(event_queue_t *event_queue, time_t secs);
+void queue_init_timer(event_queue_t *event_queue, time_t ms);
 void queue_stop_timer(event_queue_t *event_queue);
 
 void process_aio_notify(event_queue_t *self) {
@@ -150,13 +150,40 @@ int process_network_notify(event_queue_t *self, epoll_event *event) {
     }
 }
 
+int process_cpu_core_notify(event_queue_t *self, message_hub_t::msg_list_t *messages) {
+    message_hub_t::payload_t *head = messages->head(), *tmp;
+    while(head) {
+        // Pass the event to the handler
+        event_t cpu_event;
+        cpu_event.event_type = et_cpu_event;
+        cpu_event.state = head->data;
+        self->event_handler(self, &cpu_event);
+
+        // Move on to next element
+        tmp = head;
+        head = head->next;
+
+        // TODO: replace with real (de)allocator when Nate is done. It
+        // looks like we're deallocating from a different thread here
+        // than where the allocation was made.
+        delete tmp;
+    }
+}
+
 void* epoll_handler(void *arg) {
     int res;
     event_queue_t *self = (event_queue_t*)arg;
     epoll_event events[MAX_IO_EVENT_PROCESSING_BATCH_SIZE];
     
+    int timeout = 0;
     do {
-        res = epoll_wait(self->epoll_fd, events, MAX_IO_EVENT_PROCESSING_BATCH_SIZE, -1);
+        res = epoll_wait(self->epoll_fd, events, MAX_IO_EVENT_PROCESSING_BATCH_SIZE, timeout);
+        
+        // Reset the timeout to zero, so that epoll_wait doesn't block
+        // when there are no more descriptors. We can check cross CPU
+        // messaging at that point.
+        timeout = 0;
+        
         // epoll_wait might return with EINTR in some cases (in
         // particular under GDB), we just need to retry.
         if(res == -1 && errno == EINTR) {
@@ -186,21 +213,41 @@ void* epoll_handler(void *arg) {
                 process_network_notify(self, &events[i]);
             }
         }
+
+        if(res == 0) {
+            // Push the messages we collected so far to other CPUs
+            self->message_hub.push_messages();
+            
+            // Process cross CPU requests
+            message_hub_t::msg_list_t cpu_requests;
+            self->pull_messages_for_cpu(&cpu_requests);
+            process_cpu_core_notify(self, &cpu_requests);
+
+            // Reset the timeout to block epoll_wait. We'll let
+            // cross-CPU messages collect because we'll wake up soon
+            // enough because of the timer event.
+            timeout = -1;
+
+            // TODO: since picking up outstanding events depends on
+            // the timer, we should make the timer much more granular.
+        }
     } while(1);
     return NULL;
 }
 
-event_queue_t::event_queue_t(int queue_id, event_handler_t event_handler,
+event_queue_t::event_queue_t(int queue_id, int _nqueues, event_handler_t event_handler,
                              worker_pool_t *parent_pool)
+    : message_hub(queue_id, _nqueues)
 {
     int res;
     this->queue_id = queue_id;
+    this->nqueues = _nqueues;
     this->event_handler = event_handler;
     this->parent_pool = parent_pool;
     this->timer_fd = -1;
     this->total_expirations = 0;
 
-    this->req_handler = new memcached_handler_t<code_config_t>(parent_pool->cache, &alloc);
+    this->req_handler = new memcached_handler_t<code_config_t>(parent_pool->cache, &alloc, this);
 
     // Create aio context
     this->aio_context = 0;
@@ -245,7 +292,7 @@ event_queue_t::event_queue_t(int queue_id, event_handler_t event_handler,
     check("Could not set thread affinity", res != 0);
 
     // Start the timer
-    queue_init_timer(this, TIMER_TICKS_IN_SECS);
+    queue_init_timer(this, TIMER_TICKS_IN_MS);
 }
 
 event_queue_t::~event_queue_t()
@@ -291,7 +338,6 @@ event_queue_t::~event_queue_t()
     check("Could not destroy aio_context", res != 0);
 }
 
-
 void event_queue_t::watch_resource(resource_t resource, event_op_t watch_mode,
                                    void *state) {
     assert(state);
@@ -324,7 +370,7 @@ void event_queue_t::forget_resource(resource_t resource) {
     check("Couldn't remove socket from watching", res != 0);
 }
 
-void queue_init_timer(event_queue_t *event_queue, time_t secs) {
+void queue_init_timer(event_queue_t *event_queue, time_t ms) {
     int res = -1;
 
     // Kill the old timer first (if necessary)
@@ -344,10 +390,10 @@ void queue_init_timer(event_queue_t *event_queue, time_t secs) {
     itimerspec timer_spec;
     bzero(&timer_spec, sizeof(timer_spec));
     
-    timer_spec.it_value.tv_sec = secs;
-    timer_spec.it_value.tv_nsec = 0;
-    timer_spec.it_interval.tv_sec = secs;
-    timer_spec.it_interval.tv_nsec = 0;
+    timer_spec.it_value.tv_sec = 0;
+    timer_spec.it_value.tv_nsec = ms * 1000;
+    timer_spec.it_interval.tv_sec = 0;
+    timer_spec.it_interval.tv_nsec = ms * 1000;
     
     res = timerfd_settime(event_queue->timer_fd, 0, &timer_spec, NULL);
     check("Could not arm the timer.", res != 0);
@@ -402,4 +448,16 @@ void event_queue_t::deregister_fsm(conn_fsm_t *fsm) {
     live_fsms.remove(fsm);
     close(fsm->get_source());
     alloc.free(fsm);
+    // TODO: there might be outstanding btrees that we're missing (if
+    // we're quitting before the the operation completes). We need to
+    // free the btree structure in this case (more likely the request
+    // and all the btrees associated with it).
+}
+
+void event_queue_t::pull_messages_for_cpu(message_hub_t::msg_list_t *target) {
+    for(int i = 0; i < parent_pool->nworkers; i++) {
+        message_hub_t::msg_list_t tmp_list;
+        parent_pool->workers[i].message_hub.pull_messages(queue_id, &tmp_list);
+        target->append_and_clear(tmp_list);
+    }
 }

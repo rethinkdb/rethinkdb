@@ -12,6 +12,11 @@
 // TODO: we should have a nicer way of switching on the command than a
 // giant if/else statement (at least break them out into functions).
 
+// TODO: if we receive a small request from the user that can be
+// satisfied on the same CPU, we should probably special case it and
+// do it right away, no need to send it to itself, process it, and
+// then send it back to itself.
+
 // Process commands received from the user
 template<class config_t>
 typename memcached_handler_t<config_t>::parse_result_t memcached_handler_t<config_t>::parse_request(event_t *event)
@@ -92,11 +97,19 @@ typename memcached_handler_t<config_t>::parse_result_t memcached_handler_t<confi
         // to the tree
         btree_set_fsm_t *btree_fsm = alloc->template malloc<btree_set_fsm_t>(cache, fsm);
         btree_fsm->init_update(key_int, value_int);
-        fsm->btree_fsm = btree_fsm;
+        req_handler_t::event_queue->message_hub.store_message(key_to_cpu(key_int, req_handler_t::event_queue->nqueues),
+                                                              btree_fsm);
+
+        // Create request
+        request_t *request = alloc->template malloc<request_t>();
+        request->fsms[request->nstarted] = btree_fsm;
+        request->nstarted++;
+        fsm->current_request = request;
+        btree_fsm->request = request;
 
         return req_handler_t::op_req_complex;
     } else if(token_size == 3 && strncmp(token, "get", 3) == 0) {
-        // Make sure we have one more token
+        // Make sure we have at least one more token
         unsigned int key_size;
         char *key = tokenize(token + token_size,
                              buf + size - (token + token_size),
@@ -104,17 +117,40 @@ typename memcached_handler_t<config_t>::parse_result_t memcached_handler_t<confi
         if(key == NULL)
             return req_handler_t::op_malformed;
         key[key_size] = '\0';
-        if((token = tokenize(key + key_size + 1,
-                             buf + size - (key + key_size + 1),
-                             delims, &token_size)) != NULL)
-            return req_handler_t::op_malformed;
 
-        int key_int = atoi(key);
+        // Create request
+        request_t *request = alloc->template malloc<request_t>();
 
-        // Ok, we've got a key and no more tokens, look them up
-        btree_get_fsm_t *btree_fsm = alloc->template malloc<btree_get_fsm_t>(cache, fsm);
-        btree_fsm->init_lookup(key_int);
-        fsm->btree_fsm = btree_fsm;
+        do {
+            // See if we can fit one more request
+            if(request->nstarted == MAX_OPS_IN_REQUEST) {
+                alloc->free(request);
+                return req_handler_t::op_malformed;
+            }
+            
+            key[key_size] = '\0';
+            int key_int = atoi(key);
+
+            // Ok, we've got a key, initialize the FSM and add it to
+            // the request
+            btree_get_fsm_t *btree_fsm = alloc->template malloc<btree_get_fsm_t>(cache, fsm);
+            btree_fsm->request = request;
+            btree_fsm->init_lookup(key_int);
+            request->fsms[request->nstarted] = btree_fsm;
+            request->nstarted++;
+            
+            // Add the fsm to appropriate queue
+            req_handler_t::event_queue->message_hub.store_message(key_to_cpu(key_int, req_handler_t::event_queue->nqueues),
+                                                   btree_fsm);
+
+            // Grab the next token
+            key = tokenize(key + key_size + 1,
+                           buf + size - (key + key_size + 1),
+                           delims, &key_size);
+        } while(key);
+
+        // Set the current request in the connection fsm
+        fsm->current_request = request;
 
         return req_handler_t::op_req_complex;
     } else {
@@ -130,27 +166,42 @@ template<class config_t>
 void memcached_handler_t<config_t>::build_response(conn_fsm_t *fsm) {
     // Since we're in the middle of processing a command,
     // fsm->buf must exist at this point.
-
     char msg_nil[] = "NIL\n";
     char msg_ok[] = "ok\n";
     btree_get_fsm_t *btree_get_fsm = NULL;
     btree_set_fsm_t *btree_set_fsm = NULL;
-    switch(fsm->btree_fsm->fsm_type) {
+    int i = 0;
+    char *buf = fsm->buf;
+    fsm->nbuf = 0;
+    int count;
+    
+    assert(fsm->current_request->nstarted > 0 && fsm->current_request->nstarted == fsm->current_request->ncompleted);
+    switch(fsm->current_request->fsms[0]->fsm_type) {
     case btree_fsm_t::btree_get_fsm:
-        btree_get_fsm = (btree_get_fsm_t*)fsm->btree_fsm;
-        if(btree_get_fsm->op_result == btree_get_fsm_t::btree_found) {
-            sprintf(fsm->buf, "%d", btree_get_fsm->value);
-            fsm->nbuf = strlen(fsm->buf) + 1;
-        } else if(btree_get_fsm->op_result == btree_get_fsm_t::btree_not_found) {
-            strcpy(fsm->buf, msg_nil);
-            fsm->nbuf = strlen(msg_nil) + 1;
+        // TODO: make sure we don't overflow the buffer with sprintf
+        for(i = 0; i < fsm->current_request->nstarted; i++) {
+            btree_get_fsm = (btree_get_fsm_t*)fsm->current_request->fsms[i];
+            if(btree_get_fsm->op_result == btree_get_fsm_t::btree_found) {
+                count = sprintf(buf, "%d\n", btree_get_fsm->value);
+                fsm->nbuf += count;
+                buf += count;
+            } else if(btree_get_fsm->op_result == btree_get_fsm_t::btree_not_found) {
+                count = strlen(msg_nil);
+                strcpy(buf, msg_nil);
+                fsm->nbuf += count;
+                buf += count;
+            }
+            alloc->free(btree_get_fsm);
         }
-        alloc->free(btree_get_fsm);
+        fsm->nbuf++;
         break;
- 
+
     case btree_fsm_t::btree_set_fsm:
-        btree_set_fsm = (btree_set_fsm_t*)fsm->btree_fsm;
-        strcpy(fsm->buf, msg_ok);
+        // For now we only support one set operation at a time
+        assert(fsm->current_request->nstarted == 1);
+
+        btree_set_fsm = (btree_set_fsm_t*)fsm->current_request->fsms[0];
+        strcpy(buf, msg_ok);
         fsm->nbuf = strlen(msg_ok) + 1;
         alloc->free(btree_set_fsm);
         break;
@@ -159,7 +210,8 @@ void memcached_handler_t<config_t>::build_response(conn_fsm_t *fsm) {
         check("memcached_handler_t::build_response - Unknown btree op", 1);
         break;
     }
-    fsm->btree_fsm = NULL;
+    alloc->free(fsm->current_request);
+    fsm->current_request = NULL;
 }
 
 #endif // __MEMCACHED_HANDLER_IMPL_HPP__

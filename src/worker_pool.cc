@@ -42,7 +42,7 @@ void worker_pool_t::create_worker_pool(event_handler_t event_handler, pthread_t 
     // size. We should just use an array of pointers here.
     workers = (event_queue_t*)malloc(sizeof(event_queue_t) * nworkers);
     for(int i = 0; i < nworkers; i++) {
-        new ((void*)&workers[i]) event_queue_t(i, event_handler, this);
+        new ((void*)&workers[i]) event_queue_t(i, nworkers, event_handler, this);
     }
     active_worker = 0;
 

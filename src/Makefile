@@ -23,7 +23,8 @@ OBJS =  main.o \
 	worker_pool.o \
 	tty.o \
 	server.o \
-	cmd_args.o
+	cmd_args.o \
+	message_hub.o
 
 DEPS:=$(OBJS:%.o=$(DEP_DIR)/%.d)
 OBJS:=$(OBJS:%.o=$(OBJ_DIR)/%.o)

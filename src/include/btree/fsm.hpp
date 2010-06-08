@@ -3,12 +3,14 @@
 #define __FSM_BTREE_HPP__
 
 #include <assert.h>
+#include "message_hub.hpp"
 
 template <class config_t>
-class btree_fsm {
+class btree_fsm : public cpu_message_t {
 public:
     typedef typename config_t::cache_t cache_t;
     typedef typename config_t::conn_fsm_t conn_fsm_t;
+    typedef typename config_t::request_t request_t;
     typedef typename cache_t::block_id_t block_id_t;
     typedef typename config_t::btree_fsm_t btree_fsm_t;
     typedef typename cache_t::transaction_t transaction_t;
@@ -49,6 +51,9 @@ public:
     // called on disk events (when a node has been read from disk).
     virtual transition_result_t do_transition(event_t *event) = 0;
 
+    // Return true if the state machine is in a completed state
+    virtual bool is_finished() = 0;
+
 protected:
     block_id_t get_root_id(void *superblock_buf);
 
@@ -57,6 +62,7 @@ public:
     conn_fsm_t *netfsm;
     fsm_type_t fsm_type;
     transaction_t *transaction;
+    request_t *request;
 };
 
 #include "btree/fsm_impl.hpp"

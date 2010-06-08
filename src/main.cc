@@ -33,6 +33,9 @@ void initiate_conn_fsm_transition(event_queue_t *event_queue, event_t *event) {
     }
 }
 
+void initiate_btree_transition() {
+}
+
 // Handle events coming from the event queue
 void event_handler(event_queue_t *event_queue, event_t *event) {
     if(event->event_type == et_timer) {
@@ -51,14 +54,34 @@ void event_handler(event_queue_t *event_queue, event_t *event) {
         event->event_type = et_cache;
         code_config_t::btree_fsm_t::transition_result_t res = btree_fsm->do_transition(event);
         if(res == code_config_t::btree_fsm_t::transition_complete) {
-            // Booooyahh, btree completed, let the socket fsm know
-            event->event_type = et_btree_op_complete;
-            event->state = btree_fsm->netfsm;
-            initiate_conn_fsm_transition(event_queue, event);
+            // Booooyahh, btree completed. Send the completed btree to
+            // the right CPU
+            event_queue->message_hub.store_message(btree_fsm->return_cpu, btree_fsm);
         }
     } else if(event->event_type == et_sock) {
         // Got some socket action, let the connection fsm know
         initiate_conn_fsm_transition(event_queue, event);
+    } else if(event->event_type == et_cpu_event) {
+        code_config_t::btree_fsm_t *btree_fsm = (code_config_t::btree_fsm_t *)event->state;
+        if(btree_fsm->is_finished()) {
+            // We received a completed btree that belongs to us
+            btree_fsm->request->ncompleted++;
+            if(btree_fsm->request->ncompleted == btree_fsm->request->nstarted) {
+                event_queue->req_handler->build_response(btree_fsm->netfsm);
+                event->event_type = et_request_complete;
+                event->state = btree_fsm->netfsm;
+                initiate_conn_fsm_transition(event_queue, event);
+            }
+        } else {
+            // We received a new btree that we need to process
+            code_config_t::btree_fsm_t::transition_result_t btree_res = btree_fsm->do_transition(NULL);
+            if(btree_res == code_config_t::btree_fsm_t::transition_complete) {
+                // Btree completed right away, just send the response back.
+                event_queue->message_hub.store_message(btree_fsm->return_cpu, btree_fsm);
+            }
+        }
+    } else {
+        check("Unknown event in event_handler", 1);
     }
 }
 

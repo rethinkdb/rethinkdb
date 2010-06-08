@@ -60,7 +60,6 @@ typename conn_fsm<config_t>::result_t conn_fsm<config_t>::do_socket_ready(event_
                 state->nbuf += sz;
                 typename req_handler_t::parse_result_t handler_res =
                     req_handler->parse_request(event);
-                typename btree_fsm_t::transition_result_t btree_res;
                 switch(handler_res) {
                 case req_handler_t::op_malformed:
                     // Command wasn't processed correctly, send error
@@ -78,24 +77,12 @@ typename conn_fsm<config_t>::result_t conn_fsm<config_t>::do_socket_ready(event_
                     // The connection has been closed
                     return fsm_quit_connection;
                 case req_handler_t::op_req_complex:
-                    // btree_fsm should have been generated, now
-                    // initiate the first transition
-                    assert(btree_fsm);
-                    btree_res = btree_fsm->do_transition(NULL);
-                    if(btree_res == btree_fsm_t::transition_incomplete ||
-                       btree_res == btree_fsm_t::transition_ok) {
-                        // The btree is waiting on an AIO request
-                        state->state = fsm_btree_incomplete;
-                        return fsm_transition_ok;
-                    } else if(btree_res == btree_fsm_t::transition_complete) {
-                        // The btree returned the final result. Send
-                        // the response, and keep reading (or break
-                        // later, if send is incomplete)
-                        req_handler->build_response(this);
-                        send_msg_to_client();
-                    } else {
-                        check("Invalid btree response", 1);
-                    }
+                    // Ain't nothing we can do now - the operations
+                    // have been distributed accross CPUs. We can just
+                    // sit back and wait until they come back.
+                    assert(current_request);
+                    state->state = fsm_btree_incomplete;
+                    return fsm_transition_ok;
                     break;
                 default:
                     check("Unknown request parse result", 1);
@@ -135,8 +122,7 @@ typename conn_fsm<config_t>::result_t conn_fsm<config_t>::do_fsm_btree_incomplet
         // commands on a single socket. We should enable this in the
         // future (fsm would need to associate IO responses with a
         // given command).
-    } else if(event->event_type == et_btree_op_complete) {
-        req_handler->build_response(this);
+    } else if(event->event_type == et_request_complete) {
         send_msg_to_client();
         if(this->state != conn_fsm::fsm_socket_send_incomplete) {
             // We've finished sending completely, now see if there is

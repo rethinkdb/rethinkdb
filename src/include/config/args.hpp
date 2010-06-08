@@ -7,7 +7,7 @@
  * TODO: Many of these should be runtime switches.
  */
 // Ticks (in seconds) the internal timed tasks are performed at
-#define TIMER_TICKS_IN_SECS                       1
+#define TIMER_TICKS_IN_MS                         5
 
 // Max concurrent IO requests per event queue
 #define MAX_CONCURRENT_IO_REQUESTS                300
@@ -39,6 +39,14 @@
 
 // Ratio of free ram to use for the cache by default
 #define DEFAULT_MAX_CACHE_RATIO                   0.8f
+
+// Maximum number of operations packed into a single request
+// TODO: make this dynamic and get rid of this parameter
+#define MAX_OPS_IN_REQUEST                        16
+
+// Maximum number of CPUs we support
+// TODO: make this dynamic where possible
+#define MAX_CPUS                                  16
 
 #endif // __CONFIG_ARGS_H__
 

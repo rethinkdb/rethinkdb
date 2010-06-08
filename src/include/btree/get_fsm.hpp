@@ -23,6 +23,7 @@ public:
         acquire_superblock,
         acquire_root,
         acquire_node,
+        lookup_complete
     };
 
     enum op_result_t {
@@ -38,6 +39,8 @@ public:
 
     void init_lookup(int _key);
     virtual transition_result_t do_transition(event_t *event);
+
+    virtual bool is_finished() { return state == lookup_complete; }
 
 public:
     op_result_t op_result;

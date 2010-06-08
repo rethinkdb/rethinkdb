@@ -21,6 +21,7 @@
 #include "btree/get_fsm.hpp"
 #include "btree/set_fsm.hpp"
 #include "btree/array_node.hpp"
+#include "request.hpp"
 
 /**
  * Code configuration - instantiating various templated classes.
@@ -64,12 +65,13 @@ struct standard_config_t {
 
     // Request handler
     typedef request_handler_t<standard_config_t> req_handler_t;
+    typedef request<standard_config_t> request_t;
 
     // Small object allocator
     typedef object_static_alloc_t<
         dynamic_pool_alloc_t<alloc_stats_t<pool_alloc_t<memalign_alloc_t<> > > >,
         iocb, conn_fsm_t, iobuf_t, btree_get_fsm_t, btree_set_fsm_t,
-        aio_context_t> alloc_t;
+        aio_context_t, request_t> alloc_t;
 };
 
 typedef standard_config_t code_config_t;

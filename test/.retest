@@ -5,5 +5,5 @@ MAKE_CMD = "make -C /home/coffeemug/projects/rethinkdb/src"
 # Arguments to pass to the compiler
 CXXFLAGS = "-I/home/coffeemug/projects/retest/ -I/home/coffeemug/projects/rethinkdb/src/include/"
 # Arguments to pass to the linker
-LDFLAGS = "/home/coffeemug/projects/rethinkdb/src/obj/utils.o"
+LDFLAGS = "/home/coffeemug/projects/rethinkdb/src/obj/utils.o -lrt"
 

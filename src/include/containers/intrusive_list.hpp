@@ -68,6 +68,9 @@ public:
     }
 
     void append_and_clear(intrusive_list_t<node_t> &list) {
+        if(list.empty())
+            return;
+        
         if(!_head) {
             // We're empty, just set head and tail to the new list
             _head = list.head();

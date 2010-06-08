@@ -49,6 +49,7 @@ typename btree_get_fsm<config_t>::transition_result_t btree_get_fsm<config_t>::d
     // Make sure root exists
     if(cache_t::is_block_id_null(node_id)) {
         op_result = btree_not_found;
+        state = lookup_complete;
         // End the transaction
         btree_fsm_t::cache->end_transaction(btree_fsm_t::transaction);
         return btree_fsm_t::transition_complete;
@@ -102,6 +103,7 @@ typename btree_get_fsm<config_t>::transition_result_t btree_get_fsm<config_t>::d
     } else {
         int result = ((leaf_node_t*)node)->lookup(key, &value);
         btree_fsm_t::cache->release(btree_fsm_t::transaction, node_id, (void*)node, false, this);
+        state = lookup_complete;
         op_result = result == 1 ? btree_found : btree_not_found;
         // End the transaction
         btree_fsm_t::cache->end_transaction(btree_fsm_t::transaction);

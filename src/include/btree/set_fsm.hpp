@@ -36,6 +36,8 @@ public:
     void init_update(int _key, int _value);
     virtual transition_result_t do_transition(event_t *event);
 
+    virtual bool is_finished() { return state == update_complete; }
+
 private:
     transition_result_t do_acquire_superblock(event_t *event);
     transition_result_t do_acquire_root(event_t *event);

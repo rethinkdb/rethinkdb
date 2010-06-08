@@ -144,3 +144,10 @@ void test_append() {
     assert_eq(list2.empty(), true);
 }
 
+void test_empty_append() {
+    my_t m0(0), m1(1);
+    intrusive_list_t<my_t> list1, list2;
+    list1.push_back(&m0);
+    list1.push_back(&m1);
+    list1.append_and_clear(list2);
+}
