@@ -40,8 +40,6 @@ public:
     }
     
     // Collects a message for a given CPU onto a local list.
-
-    // TODO: change void msg_ptr to cpu_message_t*.
     void store_message(unsigned int ncpu, cpu_message_t *msg) {
         assert(ncpu < ncpus);
         // TODO: change the new to our allocator, once nate finishes
