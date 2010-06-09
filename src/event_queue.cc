@@ -175,14 +175,9 @@ void* epoll_handler(void *arg) {
     event_queue_t *self = (event_queue_t*)arg;
     epoll_event events[MAX_IO_EVENT_PROCESSING_BATCH_SIZE];
     
-    int timeout = 0;
     do {
-        res = epoll_wait(self->epoll_fd, events, MAX_IO_EVENT_PROCESSING_BATCH_SIZE, timeout);
-        
-        // Reset the timeout to zero, so that epoll_wait doesn't block
-        // when there are no more descriptors. We can check cross CPU
-        // messaging at that point.
-        timeout = 0;
+        // Grab the events from the kernel!
+        res = epoll_wait(self->epoll_fd, events, MAX_IO_EVENT_PROCESSING_BATCH_SIZE, -1);
         
         // epoll_wait might return with EINTR in some cases (in
         // particular under GDB), we just need to retry.
@@ -204,6 +199,9 @@ void* epoll_handler(void *arg) {
                 process_aio_notify(self);
             } else if(source == self->timer_fd) {
                 process_timer_notify(self);
+            } else if(source == self->core_notify_fd) {
+                // Great, we needed to wake up to process batch jobs
+                // from other cores, no need to do anything here.
             } else if(source == self->itc_pipe[0]) {
                 if(process_itc_notify(self)) {
                     // We're shutting down
@@ -214,30 +212,22 @@ void* epoll_handler(void *arg) {
             }
         }
 
-        if(res == 0) {
-            // Push the messages we collected so far to other CPUs
-            self->message_hub.push_messages();
-            
-            // Process cross CPU requests
-            message_hub_t::msg_list_t cpu_requests;
-            self->pull_messages_for_cpu(&cpu_requests);
-            process_cpu_core_notify(self, &cpu_requests);
+        // We're done with the current batch of events, process cross
+        // CPU requests
+        message_hub_t::msg_list_t cpu_requests;
+        self->pull_messages_for_cpu(&cpu_requests);
+        process_cpu_core_notify(self, &cpu_requests);
 
-            // Reset the timeout to block epoll_wait. We'll let
-            // cross-CPU messages collect because we'll wake up soon
-            // enough because of the timer event.
-            timeout = -1;
-
-            // TODO: since picking up outstanding events depends on
-            // the timer, we should make the timer much more granular.
-        }
+        // Push the messages we collected in this batch for other
+        // CPUs
+        self->message_hub.push_messages();
     } while(1);
+    
     return NULL;
 }
 
 event_queue_t::event_queue_t(int queue_id, int _nqueues, event_handler_t event_handler,
                              worker_pool_t *parent_pool)
-    : message_hub(queue_id, _nqueues)
 {
     int res;
     this->queue_id = queue_id;
@@ -270,6 +260,15 @@ event_queue_t::event_queue_t(int queue_id, int _nqueues, event_handler_t event_h
     check("Could not make aio notify fd non-blocking", res != 0);
 
     watch_resource(this->aio_notify_fd, eo_read, (void*)this->aio_notify_fd);
+
+    // Create notify fd for other cores that send work to us
+    this->core_notify_fd = eventfd(0, 0);
+    check("Could not create core notification fd", this->core_notify_fd == -1);
+
+    res = fcntl(this->core_notify_fd, F_SETFL, O_NONBLOCK);
+    check("Could not make core notify fd non-blocking", res != 0);
+
+    watch_resource(this->core_notify_fd, eo_read, (void*)this->core_notify_fd);
     
     // Create ITC notify pipe
     res = pipe(this->itc_pipe);
@@ -331,6 +330,9 @@ event_queue_t::~event_queue_t()
     res = close(this->itc_pipe[1]);
     check("Could not close itc pipe (write end)", res != 0);
     
+    res = close(this->core_notify_fd);
+    check("Could not close core_notify_fd", res != 0);
+    
     res = close(this->aio_notify_fd);
     check("Could not close aio_notify_fd", res != 0);
     
@@ -390,10 +392,17 @@ void queue_init_timer(event_queue_t *event_queue, uint64_t ms) {
     itimerspec timer_spec;
     bzero(&timer_spec, sizeof(timer_spec));
     
-    timer_spec.it_value.tv_sec = 0;
-    timer_spec.it_value.tv_nsec = ms * 1000000L;
-    timer_spec.it_interval.tv_sec = 0;
-    timer_spec.it_interval.tv_nsec = ms * 1000000L;
+    if(ms >= 1000) {
+        timer_spec.it_value.tv_sec = ms / 1000;
+        timer_spec.it_value.tv_nsec = 0;
+        timer_spec.it_interval.tv_sec = ms / 1000;
+        timer_spec.it_interval.tv_nsec = 0;
+    } else {
+        timer_spec.it_value.tv_sec = 0;
+        timer_spec.it_value.tv_nsec = ms * 1000000L;
+        timer_spec.it_interval.tv_sec = 0;
+        timer_spec.it_interval.tv_nsec = ms * 1000000L;
+    }
     
     res = timerfd_settime(event_queue->timer_fd, 0, &timer_spec, NULL);
     check("Could not arm the timer.", res != 0);

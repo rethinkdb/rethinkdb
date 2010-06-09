@@ -57,7 +57,7 @@ public:
     int queue_id;
     int nqueues;
     io_context_t aio_context;
-    resource_t aio_notify_fd;
+    resource_t aio_notify_fd, core_notify_fd;
     resource_t timer_fd;
     long total_expirations;
     pthread_t epoll_thread;

@@ -21,7 +21,13 @@ public:
     buffer_cache_bkl_t()
         : nlock(0), nunlock(0)
     {
-        int res = pthread_mutex_init(&mutex, NULL);
+        int res = pthread_mutexattr_init(&mutex_attr);
+        check("Could not initialize buffer cache bkl mutex attributes", res != 0);
+
+        res = pthread_mutexattr_settype(&mutex_attr, PTHREAD_MUTEX_ERRORCHECK_NP);
+        check("Could not set bkl mutex type to recursive", res != 0);
+        
+        res = pthread_mutex_init(&mutex, &mutex_attr);
         check("Could not initialize buffer cache bkl mutex", res != 0);
     }
 
@@ -35,16 +41,21 @@ public:
         
         int res = pthread_mutex_destroy(&mutex);
         check("Could not destroy buffer cache bkl mutex", res != 0);
+
+        res = pthread_mutexattr_destroy(&mutex_attr);
+        check("Could not destroy mutex attributes", res != 0);
     }
 
     transaction_t* begin_transaction(conn_fsm_t *state) {
-        pthread_mutex_lock(&mutex);
+        int res = pthread_mutex_lock(&mutex);
+        check("Could not lock mutex", res != 0);
         nlock++;
         return NULL;
     }
     
     void end_transaction(transaction_t *tm) {
-        pthread_mutex_unlock(&mutex);
+        int res = pthread_mutex_unlock(&mutex);
+        check("Could not unlock mutex", res != 0);
         nunlock++;
     }
 
@@ -57,6 +68,7 @@ public:
     
     
 private:
+    pthread_mutexattr_t mutex_attr;
     pthread_mutex_t mutex;
     unsigned long nlock, nunlock;
 };

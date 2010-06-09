@@ -97,6 +97,10 @@ public:
 
         void *block = page_map_t::find(block_id);
         if(!block) {
+            // TODO: we can't say state->netfsm->event_queue anymore,
+            // because it will give us the event queue from the wrong
+            // core. We need to pass the event queue that we're using
+            // to the transaction instead.
             void *buf = buffer_alloc_t::malloc(serializer_t::block_size);
             aio_context_t *ctx = state->netfsm->event_queue->
                 alloc.template malloc<aio_context_t>();

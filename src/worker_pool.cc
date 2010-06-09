@@ -46,6 +46,18 @@ void worker_pool_t::create_worker_pool(event_handler_t event_handler, pthread_t 
     }
     active_worker = 0;
 
+    // Now that we set up all event queues, go through them and pass
+    // information across hubs
+    typedef event_queue_t* event_queue_ptr_t;
+    event_queue_ptr_t *queues = new event_queue_ptr_t [nworkers];
+    for(int i = 0; i < nworkers; i++) {
+        queues[i] = &workers[i];
+    }
+    for(int i = 0; i < nworkers; i++) {
+        workers[i].message_hub.init(i, nworkers, queues);
+    }
+    delete[] queues;
+
     // TODO: consider creating lower priority threads to standby in
     // case main threads block.
 }
