@@ -6,7 +6,7 @@
  * Basic configuration parameters.
  * TODO: Many of these should be runtime switches.
  */
-// Ticks (in seconds) the internal timed tasks are performed at
+// Ticks (in milliseconds) the internal timed tasks are performed at
 #define TIMER_TICKS_IN_MS                         5
 
 // Max concurrent IO requests per event queue
@@ -25,8 +25,8 @@
 // Initial number of objects in the first dynamic pool allocator.
 #define DYNAMIC_POOL_INITIAL_NOBJECTS             100
 
-// Perform allocator GC every N ticks (where a tick is TIMER_TICKS_IN_SECS seconds)
-#define ALLOC_GC_IN_TICKS                         3
+// Perform allocator GC every N milliseconds
+#define ALLOC_GC_IN_MS                            3000
 
 // Size of the buffer used to perform IO operations (in bytes).
 #define IO_BUFFER_SIZE                            4096

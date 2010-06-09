@@ -18,7 +18,7 @@
 // TODO: report event queue statistics.
 
 // Some forward declarations
-void queue_init_timer(event_queue_t *event_queue, time_t ms);
+void queue_init_timer(event_queue_t *event_queue, uint64_t ms);
 void queue_stop_timer(event_queue_t *event_queue);
 
 void process_aio_notify(event_queue_t *self) {
@@ -76,7 +76,7 @@ void process_timer_notify(event_queue_t *self) {
     self->total_expirations += nexpirations;
 
     // Internal ops to perform on the timer
-    if(self->total_expirations % ALLOC_GC_IN_TICKS == 0) {
+    if((self->total_expirations * TIMER_TICKS_IN_MS) % ALLOC_GC_IN_MS == 0) {
         // Perform allocator gc
         self->alloc.gc();
     }
@@ -370,7 +370,7 @@ void event_queue_t::forget_resource(resource_t resource) {
     check("Couldn't remove socket from watching", res != 0);
 }
 
-void queue_init_timer(event_queue_t *event_queue, time_t ms) {
+void queue_init_timer(event_queue_t *event_queue, uint64_t ms) {
     int res = -1;
 
     // Kill the old timer first (if necessary)
@@ -391,9 +391,9 @@ void queue_init_timer(event_queue_t *event_queue, time_t ms) {
     bzero(&timer_spec, sizeof(timer_spec));
     
     timer_spec.it_value.tv_sec = 0;
-    timer_spec.it_value.tv_nsec = ms * 1000;
+    timer_spec.it_value.tv_nsec = ms * 1000000L;
     timer_spec.it_interval.tv_sec = 0;
-    timer_spec.it_interval.tv_nsec = ms * 1000;
+    timer_spec.it_interval.tv_nsec = ms * 1000000L;
     
     res = timerfd_settime(event_queue->timer_fd, 0, &timer_spec, NULL);
     check("Could not arm the timer.", res != 0);
