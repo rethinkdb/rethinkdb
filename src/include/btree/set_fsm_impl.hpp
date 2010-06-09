@@ -24,7 +24,6 @@ void btree_set_fsm<config_t>::init_update(int _key, int _value) {
     key = _key;
     value = _value;
     state = acquire_superblock;
-    btree_fsm_t::transaction = btree_fsm_t::cache->begin_transaction(btree_fsm_t::netfsm);
 }
 
 template <class config_t>
@@ -34,7 +33,10 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
     
     void *buf = NULL;
     if(event == NULL) {
-        // First entry into the FSM. Try to grab the superblock.
+        // First entry into the FSM. First, grab the transaction.
+        btree_fsm_t::transaction = btree_fsm_t::cache->begin_transaction(btree_fsm_t::netfsm);
+
+        // Now try to grab the superblock.
         block_id_t superblock_id = btree_fsm_t::cache->get_superblock_id();
         buf = btree_fsm_t::cache->acquire(btree_fsm_t::transaction, superblock_id, this);
     } else {
