@@ -434,6 +434,9 @@ void event_queue_t::post_itc_message(itc_event_t *event) {
     // and a thread-safe allocator, which is a whole other can of
     // worms). We should revisit this when it's more clear how ITC is
     // used.
+
+    // TODO: since we now have a new, efficient ITC for passing btrees
+    // around, we should get rid of this ITC system all together.
 }
 
 void event_queue_t::register_fsm(conn_fsm_t *fsm) {
