@@ -67,7 +67,7 @@ void event_handler(event_queue_t *event_queue, event_t *event) {
             (code_config_t::btree_fsm_t *)ctx->user_state;
         
         // Let the cache know about the disk action and free the ctx.
-        btree_fsm->cache->aio_complete(ctx, event->buf, event->op != eo_read);
+        event_queue->cache->aio_complete(ctx, event->buf, event->op != eo_read);
         
         // Generate the cache event and forward it to the appropriate btree fsm
         event->event_type = et_cache;

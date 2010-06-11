@@ -6,8 +6,7 @@
 #include "event_queue.hpp"
 #include "request_handler/memcached_handler.hpp"
 #include "conn_fsm.hpp"
-#include "btree/get_fsm.hpp"
-#include "btree/set_fsm.hpp"
+#include "corefwd.hpp"
 
 // TODO: we should have a nicer way of switching on the command than a
 // giant if/else statement (at least break them out into functions).
@@ -97,7 +96,7 @@ typename memcached_handler_t<config_t>::parse_result_t memcached_handler_t<confi
         // to the tree
         // TODO: fix this when Nate commits the new allocator system
         // btree_set_fsm_t *btree_fsm = alloc->template malloc<btree_set_fsm_t>(cache);
-        btree_set_fsm_t *btree_fsm = new btree_set_fsm_t(cache);
+        btree_set_fsm_t *btree_fsm = new btree_set_fsm_t();
         btree_fsm->init_update(key_int, value_int);
         req_handler_t::event_queue->message_hub.store_message(key_to_cpu(key_int, req_handler_t::event_queue->nqueues),
                                                               btree_fsm);
@@ -143,7 +142,7 @@ typename memcached_handler_t<config_t>::parse_result_t memcached_handler_t<confi
             // the request
             // TODO: fix this when Nate commits the new allocator system
             //btree_get_fsm_t *btree_fsm = alloc->template malloc<btree_get_fsm_t>(cache);
-            btree_get_fsm_t *btree_fsm = new btree_get_fsm_t(cache);
+            btree_get_fsm_t *btree_fsm = new btree_get_fsm_t();
             btree_fsm->request = request;
             btree_fsm->init_lookup(key_int);
             request->fsms[request->nstarted] = btree_fsm;

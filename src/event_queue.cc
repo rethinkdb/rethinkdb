@@ -13,7 +13,6 @@
 #include <string>
 #include <sstream>
 #include "utils.hpp"
-#include "event_queue.hpp"
 #include "worker_pool.hpp"
 #include "request_handler/memcached_handler.hpp"
 #include "arch/io.hpp"
@@ -29,6 +28,7 @@
 #include "btree/set_fsm.hpp"
 #include "btree/array_node.hpp"
 #include "request.hpp"
+#include "event_queue.hpp"
 
 
 // TODO: report event queue statistics.

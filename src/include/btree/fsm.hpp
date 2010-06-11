@@ -31,8 +31,8 @@ public:
     };
 
 public:
-    btree_fsm(cache_t *_cache, fsm_type_t _fsm_type)
-        : cache(_cache), fsm_type(_fsm_type), transaction(NULL)
+    btree_fsm(fsm_type_t _fsm_type)
+        : fsm_type(_fsm_type), transaction(NULL)
         {}
     virtual ~btree_fsm() {}
 
@@ -55,9 +55,13 @@ public:
 
 protected:
     block_id_t get_root_id(void *superblock_buf);
+    cache_t* get_cache() {
+        // TODO: once we make the event queue a global (thread local)
+        // variable, we should use that here.
+        return transaction->cache;
+    }
 
 public:
-    cache_t *cache;
     fsm_type_t fsm_type;
     transaction_t *transaction;
     request_t *request;
