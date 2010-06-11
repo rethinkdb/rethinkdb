@@ -86,9 +86,11 @@ void event_handler(event_queue_t *event_queue, event_t *event) {
             // We received a completed btree that belongs to us
             btree_fsm->request->ncompleted++;
             if(btree_fsm->request->ncompleted == btree_fsm->request->nstarted) {
-                event_queue->req_handler->build_response(btree_fsm->request);
-                event->event_type = et_request_complete;
+                // This should be before build_response, as the
+                // request handler will destroy the btree
                 event->state = btree_fsm->request->netfsm;
+                event->event_type = et_request_complete;
+                event_queue->req_handler->build_response(btree_fsm->request);
                 initiate_conn_fsm_transition(event_queue, event);
             }
         } else {

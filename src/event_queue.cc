@@ -29,7 +29,7 @@
 #include "btree/array_node.hpp"
 #include "request.hpp"
 #include "event_queue.hpp"
-
+#include "buffer_cache/stats.hpp"
 
 // TODO: report event queue statistics.
 
