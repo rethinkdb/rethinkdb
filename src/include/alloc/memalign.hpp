@@ -14,8 +14,13 @@ struct memalign_alloc_t {
         int res = posix_memalign(&ptr, alignment, size);
         if(res != 0)
             return NULL;
-        else
+        else {
+#ifndef NDEBUG
+            // Zero out the buffer in debug mode so valgrind doesn't complain
+            bzero(ptr, size);
+#endif
             return ptr;
+        }
     }
     
     void free(void* ptr) {

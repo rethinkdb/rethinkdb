@@ -341,6 +341,7 @@ event_queue_t::~event_queue_t()
 
     // Kill the poll thread
     itc_event_t event;
+    bzero((void*)&event, sizeof(itc_event_t));
     event.event_type = iet_shutdown;
     post_itc_message(&event);
 
