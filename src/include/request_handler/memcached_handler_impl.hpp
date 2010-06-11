@@ -95,13 +95,17 @@ typename memcached_handler_t<config_t>::parse_result_t memcached_handler_t<confi
 
         // Ok, we've got a key, a value, and no more tokens, add them
         // to the tree
-        btree_set_fsm_t *btree_fsm = alloc->template malloc<btree_set_fsm_t>(cache);
+        // TODO: fix this when Nate commits the new allocator system
+        // btree_set_fsm_t *btree_fsm = alloc->template malloc<btree_set_fsm_t>(cache);
+        btree_set_fsm_t *btree_fsm = new btree_set_fsm_t(cache);
         btree_fsm->init_update(key_int, value_int);
         req_handler_t::event_queue->message_hub.store_message(key_to_cpu(key_int, req_handler_t::event_queue->nqueues),
                                                               btree_fsm);
 
         // Create request
-        request_t *request = alloc->template malloc<request_t>(fsm);
+        // TODO: fix this when Nate commits the new allocator system
+        //request_t *request = alloc->template malloc<request_t>(fsm);
+        request_t *request = new request_t(fsm);
         request->fsms[request->nstarted] = btree_fsm;
         request->nstarted++;
         fsm->current_request = request;
@@ -119,12 +123,16 @@ typename memcached_handler_t<config_t>::parse_result_t memcached_handler_t<confi
         key[key_size] = '\0';
 
         // Create request
-        request_t *request = alloc->template malloc<request_t>(fsm);
+        // TODO: fix this when Nate commits the new allocator system
+        //request_t *request = alloc->template malloc<request_t>(fsm);
+        request_t *request = new request_t(fsm);
 
         do {
             // See if we can fit one more request
             if(request->nstarted == MAX_OPS_IN_REQUEST) {
-                alloc->free(request);
+                // TODO: fix this when Nate commits the new allocator system
+                //alloc->free(request);
+                delete request;
                 return req_handler_t::op_malformed;
             }
             
@@ -133,7 +141,9 @@ typename memcached_handler_t<config_t>::parse_result_t memcached_handler_t<confi
 
             // Ok, we've got a key, initialize the FSM and add it to
             // the request
-            btree_get_fsm_t *btree_fsm = alloc->template malloc<btree_get_fsm_t>(cache);
+            // TODO: fix this when Nate commits the new allocator system
+            //btree_get_fsm_t *btree_fsm = alloc->template malloc<btree_get_fsm_t>(cache);
+            btree_get_fsm_t *btree_fsm = new btree_get_fsm_t(cache);
             btree_fsm->request = request;
             btree_fsm->init_lookup(key_int);
             request->fsms[request->nstarted] = btree_fsm;
@@ -192,7 +202,9 @@ void memcached_handler_t<config_t>::build_response(request_t *request) {
                 fsm->nbuf += count;
                 buf += count;
             }
-            alloc->free(btree_get_fsm);
+            // TODO: fix this when Nate commits the new allocator system
+            //alloc->free(btree_get_fsm);
+            delete btree_get_fsm;
         }
         fsm->nbuf++;
         break;
@@ -204,14 +216,18 @@ void memcached_handler_t<config_t>::build_response(request_t *request) {
         btree_set_fsm = (btree_set_fsm_t*)request->fsms[0];
         strcpy(buf, msg_ok);
         fsm->nbuf = strlen(msg_ok) + 1;
-        alloc->free(btree_set_fsm);
+        // TODO: fix this when Nate commits the new allocator system
+        //alloc->free(btree_set_fsm);
+        delete btree_set_fsm;
         break;
 
     default:
         check("memcached_handler_t::build_response - Unknown btree op", 1);
         break;
     }
-    alloc->free(request);
+    // TODO: fix this when Nate commits the new allocator system
+    //alloc->free(request);
+    delete request;
     fsm->current_request = NULL;
 }
 

@@ -24,7 +24,7 @@ public:
     block_id_t mark_dirty(event_queue_t *event_queue, block_id_t block_id, void *block, void *state) {
         // TODO: fix this when Nate completes allocation system
         aio_context_t *ctx = new aio_context_t();
-        ctx->alloc = NULL;
+        //ctx->alloc = NULL;
         ctx->user_state = state;
         ctx->block_id = block_id;
 

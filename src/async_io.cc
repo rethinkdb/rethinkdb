@@ -7,7 +7,9 @@ void schedule_aio_read(resource_t resource,
                        size_t offset, size_t length, void *buf,
                        event_queue_t *notify_target, void *state)
 {
-    iocb *request = notify_target->alloc.malloc<iocb>();
+    // TODO: fix this when Nate commits the new allocation system
+    //iocb *request = notify_target->alloc.malloc<iocb>();
+    iocb *request = (iocb*)malloc(sizeof(iocb));
     io_prep_pread(request, resource, buf, length, offset);
     io_set_eventfd(request, notify_target->aio_notify_fd);
     request->data = state;
@@ -21,7 +23,9 @@ void schedule_aio_write(resource_t resource,
                         size_t offset, size_t length, void *buf,
                         event_queue_t *notify_target, void *state)
 {
-    iocb *request = notify_target->alloc.malloc<iocb>();
+    // TODO: fix this when Nate commits the new allocation system
+    //iocb *request = notify_target->alloc.malloc<iocb>();
+    iocb *request = (iocb*)malloc(sizeof(iocb));
     io_prep_pwrite(request, resource, buf, length, offset);
     io_set_eventfd(request, notify_target->aio_notify_fd);
     request->data = state;

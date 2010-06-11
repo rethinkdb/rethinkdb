@@ -18,7 +18,9 @@ void conn_fsm<config_t>::init_state() {
 // This function returns the socket to clean connected state
 template<class config_t>
 void conn_fsm<config_t>::return_to_socket_connected() {
-    alloc->free((iobuf_t*)this->buf);
+    // TODO: fix this when Nate commits the new allocation system
+    //alloc->free((iobuf_t*)this->buf);
+    delete ((iobuf_t*)this->buf);
     init_state();
 }
 
@@ -32,7 +34,8 @@ typename conn_fsm<config_t>::result_t conn_fsm<config_t>::do_socket_ready(event_
 
     if(event->event_type == et_sock) {
         if(state->buf == NULL) {
-            state->buf = (char*)alloc->template malloc<iobuf_t>();
+            // TODO: fix this when Nate commits the new allocation system
+            state->buf = (char*)new iobuf_t();
             state->nbuf = 0;
         }
             
@@ -193,9 +196,8 @@ typename conn_fsm<config_t>::result_t conn_fsm<config_t>::do_transition(event_t 
 }
 
 template<class config_t>
-conn_fsm<config_t>::conn_fsm(resource_t _source, alloc_t* _alloc,
-                                 req_handler_t *_req_handler, event_queue_t *_event_queue)
-    : source(_source), alloc(_alloc), req_handler(_req_handler),
+conn_fsm<config_t>::conn_fsm(resource_t _source, req_handler_t *_req_handler, event_queue_t *_event_queue)
+    : source(_source), req_handler(_req_handler),
       event_queue(_event_queue)
 {
     init_state();
@@ -204,7 +206,9 @@ conn_fsm<config_t>::conn_fsm(resource_t _source, alloc_t* _alloc,
 template<class config_t>
 conn_fsm<config_t>::~conn_fsm() {
     if(this->buf) {
-        alloc->free((iobuf_t*)this->buf);
+        // TODO: fix this when Nate commits the new allocation system
+        //alloc->free((iobuf_t*)this->buf);
+        delete ((iobuf_t*)this->buf);
     }
 }
 

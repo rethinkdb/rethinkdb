@@ -15,7 +15,7 @@ template <class config_t>
 struct unlocked_hash_map_t;
 
 template <class config_t>
-struct page_repl_last_t;
+struct page_repl_none_t;
 
 template <class config_t>
 struct fallthrough_cache_t;
@@ -39,6 +39,9 @@ class btree_get_fsm;
 template <typename block_id_t>
 class btree_set_fsm;
 
+template <class config_t>
+class btree_admin;
+
 // Event queue
 struct event_t;
 struct event_queue_t;
@@ -53,8 +56,17 @@ class request_handler_t;
 template <class config_t>
 class memcached_handler_t;
 
-// IOCB
+// Context
 struct iocb;
+
+template <class config_t>
+class aio_context;
+
+template <class config_t>
+class request;
+
+// IO Calls
+struct posix_io_calls_t;
 
 #endif // __COREFWD_HPP__
 

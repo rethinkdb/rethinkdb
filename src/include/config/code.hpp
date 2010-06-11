@@ -4,24 +4,6 @@
 
 #include "corefwd.hpp"
 #include "alloc/memalign.hpp"
-#include "alloc/pool.hpp"
-#include "alloc/object_static.hpp"
-#include "alloc/dynamic_pool.hpp"
-#include "alloc/stats.hpp"
-#include "config/args.hpp"
-#include "arch/io.hpp"
-#include "conn_fsm.hpp"
-#include "serializer/in_place.hpp"
-#include "buffer_cache/fallthrough.hpp"
-#include "buffer_cache/stats.hpp"
-#include "buffer_cache/mirrored.hpp"
-#include "buffer_cache/page_map/unlocked_hash_map.hpp"
-#include "buffer_cache/page_repl/none.hpp"
-#include "buffer_cache/writeback/immediate.hpp"
-#include "btree/get_fsm.hpp"
-#include "btree/set_fsm.hpp"
-#include "btree/array_node.hpp"
-#include "request.hpp"
 
 /**
  * Code configuration - instantiating various templated classes.
@@ -58,19 +40,13 @@ struct standard_config_t {
 
     // BTree
     typedef btree_admin<standard_config_t> btree_admin_t;
-    typedef array_node_t<serializer_t::block_id_t> node_t;
+    typedef array_node_t<off64_t> node_t;
     typedef btree_get_fsm<standard_config_t> btree_get_fsm_t;
     typedef btree_set_fsm<standard_config_t> btree_set_fsm_t;
 
     // Request handler
     typedef request_handler_t<standard_config_t> req_handler_t;
     typedef request<standard_config_t> request_t;
-
-    // Small object allocator
-    typedef object_static_alloc_t<
-        dynamic_pool_alloc_t<alloc_stats_t<pool_alloc_t<memalign_alloc_t<> > > >,
-        iocb, conn_fsm_t, iobuf_t, btree_get_fsm_t, btree_set_fsm_t,
-        aio_context_t, request_t> alloc_t;
 };
 
 typedef standard_config_t code_config_t;

@@ -29,7 +29,6 @@ struct event_queue_t {
 public:
     typedef code_config_t::cache_t cache_t;
     typedef code_config_t::conn_fsm_t conn_fsm_t;
-    typedef code_config_t::alloc_t alloc_t;
     typedef code_config_t::fsm_list_t fsm_list_t;
     typedef code_config_t::req_handler_t req_handler_t;
     
@@ -67,7 +66,6 @@ public:
     resource_t epoll_fd;
     resource_t itc_pipe[2];
     event_handler_t event_handler;
-    alloc_t alloc;
     // TODO: we should abstract live_fsms away from the queue. The
     // user of the queue provide an object that holds queue-local
     // state.

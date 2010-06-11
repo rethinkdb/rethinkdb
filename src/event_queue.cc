@@ -16,6 +16,20 @@
 #include "event_queue.hpp"
 #include "worker_pool.hpp"
 #include "request_handler/memcached_handler.hpp"
+#include "arch/io.hpp"
+#include "conn_fsm.hpp"
+#include "serializer/in_place.hpp"
+#include "buffer_cache/fallthrough.hpp"
+#include "buffer_cache/stats.hpp"
+#include "buffer_cache/mirrored.hpp"
+#include "buffer_cache/page_map/unlocked_hash_map.hpp"
+#include "buffer_cache/page_repl/none.hpp"
+#include "buffer_cache/writeback/immediate.hpp"
+#include "btree/get_fsm.hpp"
+#include "btree/set_fsm.hpp"
+#include "btree/array_node.hpp"
+#include "request.hpp"
+
 
 // TODO: report event queue statistics.
 
@@ -68,7 +82,9 @@ void process_aio_notify(event_queue_t *self) {
                     qevent.op = eo_write;
                 self->event_handler(self, &qevent);
             }
-            self->alloc.free(events[i].obj);
+            // TODO: fix this when Nate commits the new allocation system
+            //self->alloc.free(events[i].obj);
+            free(events[i].obj);
         }
         nevents_total -= nevents;
     } while(nevents_total > 0);
@@ -85,7 +101,8 @@ void process_timer_notify(event_queue_t *self) {
     // Internal ops to perform on the timer
     if((self->total_expirations * TIMER_TICKS_IN_MS) % ALLOC_GC_IN_MS == 0) {
         // Perform allocator gc
-        self->alloc.gc();
+        // TODO: fix this when Nate commits the new allocator system
+        //self->alloc.gc();
     }
 
     // Let queue user handle the event, if they wish
@@ -116,11 +133,15 @@ int process_itc_notify(event_queue_t *self) {
     case iet_new_socket:
         // The state will be freed within the fsm when the socket is
         // closed (or killed for a variety of possible reasons)
+        /*
         event_queue_t::conn_fsm_t *state =
             self->alloc.malloc<event_queue_t::conn_fsm_t>(event.data,
                                       &self->alloc,
                                       self->req_handler,
                                       self);
+        */
+        // TODO: fix this when Nate commits the new allocation system
+        event_queue_t::conn_fsm_t *state = new event_queue_t::conn_fsm_t(event.data, self->req_handler, self);
         self->register_fsm(state);
         break;
     }
@@ -291,7 +312,7 @@ event_queue_t::event_queue_t(int queue_id, int _nqueues, event_handler_t event_h
     str += out.str();
     cache->init((char*)str.c_str());
 
-    req_handler = new memcached_handler_t<code_config_t>(cache, &alloc, this);
+    req_handler = new memcached_handler_t<code_config_t>(cache, this);
 }
 
 void event_queue_t::start_queue() {
@@ -480,7 +501,11 @@ void event_queue_t::deregister_fsm(conn_fsm_t *fsm) {
     forget_resource(fsm->get_source());
     live_fsms.remove(fsm);
     close(fsm->get_source());
-    alloc.free(fsm);
+
+    // TODO: fix this when Nate commits the new allocator system
+    //alloc.free(fsm);
+    delete fsm;
+    
     // TODO: there might be outstanding btrees that we're missing (if
     // we're quitting before the the operation completes). We need to
     // free the btree structure in this case (more likely the request
