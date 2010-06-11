@@ -6,7 +6,6 @@
 #include <unistd.h>
 #include <errno.h>
 #include "utils.hpp"
-#include "conn_fsm.hpp"
 
 template<class config_t>
 void conn_fsm<config_t>::init_state() {

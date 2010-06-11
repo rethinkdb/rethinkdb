@@ -10,6 +10,7 @@
 #include "alloc/stats.hpp"
 #include "config/args.hpp"
 #include "arch/io.hpp"
+#include "conn_fsm.hpp"
 #include "serializer/in_place.hpp"
 #include "buffer_cache/fallthrough.hpp"
 #include "buffer_cache/stats.hpp"
@@ -17,7 +18,6 @@
 #include "buffer_cache/page_map/unlocked_hash_map.hpp"
 #include "buffer_cache/page_repl/none.hpp"
 #include "buffer_cache/writeback/immediate.hpp"
-#include "buffer_cache/concurrency/bkl.hpp"
 #include "btree/get_fsm.hpp"
 #include "btree/set_fsm.hpp"
 #include "btree/array_node.hpp"
@@ -45,7 +45,6 @@ struct standard_config_t {
     typedef memalign_alloc_t<BTREE_BLOCK_SIZE> buffer_alloc_t; // TODO: we need a better allocator
     typedef unlocked_hash_map_t<standard_config_t> page_map_t;
     typedef page_repl_none_t<standard_config_t> page_repl_t;
-    typedef buffer_cache_bkl_t<standard_config_t> concurrency_t;
     typedef immediate_writeback_t<standard_config_t> writeback_t;
     typedef mirrored_cache_t<standard_config_t> cache_impl_t;
     typedef aio_context<standard_config_t> aio_context_t;

@@ -24,7 +24,7 @@ public:
         {}
     
     virtual parse_result_t parse_request(event_t *event);
-    virtual void build_response(conn_fsm_t *fsm);
+    virtual void build_response(request_t *request);
 
 private:
     cache_t *cache;

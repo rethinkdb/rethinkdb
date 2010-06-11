@@ -48,5 +48,14 @@
 // TODO: make this dynamic where possible
 #define MAX_CPUS                                  16
 
+// The number of ways we split a BTree (the most optimal is the number
+// of cores, but we use a higher split factor to allow upgrading to
+// more cores without migrating the database file).
+// TODO: when we build a real serializer, we should make this option
+// configurable on a per-database level (with a sensible default), and
+// provide a migration tool in case the customers upgrade to more
+// cores than was originally anticipated.
+#define BTREE_SPLIT_FACTOR                        16
+
 #endif // __CONFIG_ARGS_H__
 

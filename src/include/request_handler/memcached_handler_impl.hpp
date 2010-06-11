@@ -95,13 +95,13 @@ typename memcached_handler_t<config_t>::parse_result_t memcached_handler_t<confi
 
         // Ok, we've got a key, a value, and no more tokens, add them
         // to the tree
-        btree_set_fsm_t *btree_fsm = alloc->template malloc<btree_set_fsm_t>(cache, fsm);
+        btree_set_fsm_t *btree_fsm = alloc->template malloc<btree_set_fsm_t>(cache);
         btree_fsm->init_update(key_int, value_int);
         req_handler_t::event_queue->message_hub.store_message(key_to_cpu(key_int, req_handler_t::event_queue->nqueues),
                                                               btree_fsm);
 
         // Create request
-        request_t *request = alloc->template malloc<request_t>();
+        request_t *request = alloc->template malloc<request_t>(fsm);
         request->fsms[request->nstarted] = btree_fsm;
         request->nstarted++;
         fsm->current_request = request;
@@ -119,7 +119,7 @@ typename memcached_handler_t<config_t>::parse_result_t memcached_handler_t<confi
         key[key_size] = '\0';
 
         // Create request
-        request_t *request = alloc->template malloc<request_t>();
+        request_t *request = alloc->template malloc<request_t>(fsm);
 
         do {
             // See if we can fit one more request
@@ -133,7 +133,7 @@ typename memcached_handler_t<config_t>::parse_result_t memcached_handler_t<confi
 
             // Ok, we've got a key, initialize the FSM and add it to
             // the request
-            btree_get_fsm_t *btree_fsm = alloc->template malloc<btree_get_fsm_t>(cache, fsm);
+            btree_get_fsm_t *btree_fsm = alloc->template malloc<btree_get_fsm_t>(cache);
             btree_fsm->request = request;
             btree_fsm->init_lookup(key_int);
             request->fsms[request->nstarted] = btree_fsm;
@@ -163,9 +163,10 @@ typename memcached_handler_t<config_t>::parse_result_t memcached_handler_t<confi
 }
 
 template<class config_t>
-void memcached_handler_t<config_t>::build_response(conn_fsm_t *fsm) {
+void memcached_handler_t<config_t>::build_response(request_t *request) {
     // Since we're in the middle of processing a command,
     // fsm->buf must exist at this point.
+    conn_fsm_t *fsm = request->netfsm;
     char msg_nil[] = "NIL\n";
     char msg_ok[] = "ok\n";
     btree_get_fsm_t *btree_get_fsm = NULL;
@@ -175,12 +176,12 @@ void memcached_handler_t<config_t>::build_response(conn_fsm_t *fsm) {
     fsm->nbuf = 0;
     int count;
     
-    assert(fsm->current_request->nstarted > 0 && fsm->current_request->nstarted == fsm->current_request->ncompleted);
-    switch(fsm->current_request->fsms[0]->fsm_type) {
+    assert(request->nstarted > 0 && request->nstarted == request->ncompleted);
+    switch(request->fsms[0]->fsm_type) {
     case btree_fsm_t::btree_get_fsm:
         // TODO: make sure we don't overflow the buffer with sprintf
-        for(i = 0; i < fsm->current_request->nstarted; i++) {
-            btree_get_fsm = (btree_get_fsm_t*)fsm->current_request->fsms[i];
+        for(i = 0; i < request->nstarted; i++) {
+            btree_get_fsm = (btree_get_fsm_t*)request->fsms[i];
             if(btree_get_fsm->op_result == btree_get_fsm_t::btree_found) {
                 count = sprintf(buf, "%d\n", btree_get_fsm->value);
                 fsm->nbuf += count;
@@ -198,9 +199,9 @@ void memcached_handler_t<config_t>::build_response(conn_fsm_t *fsm) {
 
     case btree_fsm_t::btree_set_fsm:
         // For now we only support one set operation at a time
-        assert(fsm->current_request->nstarted == 1);
+        assert(request->nstarted == 1);
 
-        btree_set_fsm = (btree_set_fsm_t*)fsm->current_request->fsms[0];
+        btree_set_fsm = (btree_set_fsm_t*)request->fsms[0];
         strcpy(buf, msg_ok);
         fsm->nbuf = strlen(msg_ok) + 1;
         alloc->free(btree_set_fsm);
@@ -210,7 +211,7 @@ void memcached_handler_t<config_t>::build_response(conn_fsm_t *fsm) {
         check("memcached_handler_t::build_response - Unknown btree op", 1);
         break;
     }
-    alloc->free(fsm->current_request);
+    alloc->free(request);
     fsm->current_request = NULL;
 }
 

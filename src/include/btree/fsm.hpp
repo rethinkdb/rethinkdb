@@ -9,7 +9,6 @@ template <class config_t>
 class btree_fsm : public cpu_message_t {
 public:
     typedef typename config_t::cache_t cache_t;
-    typedef typename config_t::conn_fsm_t conn_fsm_t;
     typedef typename config_t::request_t request_t;
     typedef typename cache_t::block_id_t block_id_t;
     typedef typename config_t::btree_fsm_t btree_fsm_t;
@@ -32,8 +31,8 @@ public:
     };
 
 public:
-    btree_fsm(cache_t *_cache, conn_fsm_t *_netfsm, fsm_type_t _fsm_type)
-        : cache(_cache), netfsm(_netfsm), fsm_type(_fsm_type), transaction(NULL)
+    btree_fsm(cache_t *_cache, fsm_type_t _fsm_type)
+        : cache(_cache), fsm_type(_fsm_type), transaction(NULL)
         {}
     virtual ~btree_fsm() {}
 
@@ -49,7 +48,7 @@ public:
     // (i.e. do_transition is getting called for the first time in
     // this fsm instance). After this, do_transition should only get
     // called on disk events (when a node has been read from disk).
-    virtual transition_result_t do_transition(event_t *event) = 0;
+    virtual transition_result_t do_transition(event_t *event, event_queue_t *event_queue) = 0;
 
     // Return true if the state machine is in a completed state
     virtual bool is_finished() = 0;
@@ -59,7 +58,6 @@ protected:
 
 public:
     cache_t *cache;
-    conn_fsm_t *netfsm;
     fsm_type_t fsm_type;
     transaction_t *transaction;
     request_t *request;

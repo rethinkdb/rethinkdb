@@ -21,16 +21,15 @@ public:
         : serializer(_serializer)
         {}
     
-    block_id_t mark_dirty(block_id_t block_id, void *block, btree_fsm_t *state) {
-        aio_context_t *ctx =
-            state->netfsm->event_queue->alloc.template malloc<aio_context_t>();
-        ctx->alloc = &state->netfsm->event_queue->alloc;
+    block_id_t mark_dirty(event_queue_t *event_queue, block_id_t block_id, void *block, void *state) {
+        // TODO: fix this when Nate completes allocation system
+        aio_context_t *ctx = new aio_context_t();
+        ctx->alloc = NULL;
         ctx->user_state = state;
         ctx->block_id = block_id;
 
         block_id_t new_block_id;
-        new_block_id = serializer->do_write(state->netfsm->event_queue,
-            block_id, block, ctx);
+        new_block_id = serializer->do_write(event_queue, block_id, block, ctx);
         
         return new_block_id;
     }

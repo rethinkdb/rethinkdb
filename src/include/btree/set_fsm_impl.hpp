@@ -27,14 +27,16 @@ void btree_set_fsm<config_t>::init_update(int _key, int _value) {
 }
 
 template <class config_t>
-typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::do_acquire_superblock(event_t *event)
+typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::do_acquire_superblock(event_t *event,
+                                                                                                     event_queue_t *event_queue)
 {
     assert(state == acquire_superblock);
     
     void *buf = NULL;
     if(event == NULL) {
         // First entry into the FSM. First, grab the transaction.
-        btree_fsm_t::transaction = btree_fsm_t::cache->begin_transaction(btree_fsm_t::netfsm);
+        // TODO: we should begin transaction with the event queue
+        btree_fsm_t::transaction = btree_fsm_t::cache->begin_transaction(event_queue);
 
         // Now try to grab the superblock.
         block_id_t superblock_id = btree_fsm_t::cache->get_superblock_id();
@@ -135,7 +137,8 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
 }
 
 template <class config_t>
-typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::do_transition(event_t *event)
+typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::do_transition(event_t *event,
+                                                                                             event_queue_t *event_queue)
 {
     transition_result_t res = btree_fsm_t::transition_ok;
 
@@ -174,7 +177,7 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
 
     // First, acquire the superblock (to get root node ID)
     if(res == btree_fsm_t::transition_ok && state == acquire_superblock) {
-        res = do_acquire_superblock(event);
+        res = do_acquire_superblock(event, event_queue);
         event = NULL;
     }
 

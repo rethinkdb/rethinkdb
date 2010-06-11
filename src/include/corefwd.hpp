@@ -26,9 +26,6 @@ struct mirrored_cache_t;
 template <class config_t>
 struct immediate_writeback_t;
 
-template <class config_t>
-struct buffer_cache_bkl;
-
 // Btree
 template <typename block_id_t>
 struct array_node_t;

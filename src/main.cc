@@ -14,8 +14,8 @@
 #include "async_io.hpp"
 #include "tty.hpp"
 #include "server.hpp"
-#include "conn_fsm.hpp"
 #include "config/cmd_args.hpp"
+#include "config/code.hpp"
 
 void initiate_conn_fsm_transition(event_queue_t *event_queue, event_t *event) {
     code_config_t::conn_fsm_t *fsm = (code_config_t::conn_fsm_t*)event->state;
@@ -52,7 +52,7 @@ void event_handler(event_queue_t *event_queue, event_t *event) {
         
         // Generate the cache event and forward it to the appropriate btree fsm
         event->event_type = et_cache;
-        code_config_t::btree_fsm_t::transition_result_t res = btree_fsm->do_transition(event);
+        code_config_t::btree_fsm_t::transition_result_t res = btree_fsm->do_transition(event, event_queue);
         if(res == code_config_t::btree_fsm_t::transition_complete) {
             // Booooyahh, btree completed. Send the completed btree to
             // the right CPU
@@ -67,14 +67,14 @@ void event_handler(event_queue_t *event_queue, event_t *event) {
             // We received a completed btree that belongs to us
             btree_fsm->request->ncompleted++;
             if(btree_fsm->request->ncompleted == btree_fsm->request->nstarted) {
-                event_queue->req_handler->build_response(btree_fsm->netfsm);
+                event_queue->req_handler->build_response(btree_fsm->request);
                 event->event_type = et_request_complete;
-                event->state = btree_fsm->netfsm;
+                event->state = btree_fsm->request->netfsm;
                 initiate_conn_fsm_transition(event_queue, event);
             }
         } else {
             // We received a new btree that we need to process
-            code_config_t::btree_fsm_t::transition_result_t btree_res = btree_fsm->do_transition(NULL);
+            code_config_t::btree_fsm_t::transition_result_t btree_res = btree_fsm->do_transition(NULL, event_queue);
             if(btree_res == code_config_t::btree_fsm_t::transition_complete) {
                 // Btree completed right away, just send the response back.
                 event_queue->message_hub.store_message(btree_fsm->return_cpu, btree_fsm);

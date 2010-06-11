@@ -10,12 +10,19 @@
 #include <strings.h>
 #include <new>
 #include <algorithm>
+#include <string>
+#include <sstream>
 #include "utils.hpp"
 #include "event_queue.hpp"
 #include "worker_pool.hpp"
 #include "request_handler/memcached_handler.hpp"
 
 // TODO: report event queue statistics.
+
+// TODO: at this point the event queue contains all kinds of code that
+// really doesn't belong here. When we ship v1, we should sit down,
+// think what should belong to the event queue and what shouldn't, and
+// abstract all the pieces that really should be somewhere else.
 
 // Some forward declarations
 void queue_init_timer(event_queue_t *event_queue, uint64_t ms);
@@ -227,7 +234,7 @@ void* epoll_handler(void *arg) {
 }
 
 event_queue_t::event_queue_t(int queue_id, int _nqueues, event_handler_t event_handler,
-                             worker_pool_t *parent_pool)
+                             worker_pool_t *parent_pool, cmd_config_t *cmd_config)
 {
     int res;
     this->queue_id = queue_id;
@@ -237,8 +244,6 @@ event_queue_t::event_queue_t(int queue_id, int _nqueues, event_handler_t event_h
     this->timer_fd = -1;
     this->total_expirations = 0;
 
-    this->req_handler = new memcached_handler_t<code_config_t>(parent_pool->cache, &alloc, this);
-
     // Create aio context
     this->aio_context = 0;
     res = io_setup(MAX_CONCURRENT_IO_REQUESTS, &this->aio_context);
@@ -247,10 +252,6 @@ event_queue_t::event_queue_t(int queue_id, int _nqueues, event_handler_t event_h
     // Create a poll fd
     this->epoll_fd = epoll_create1(0);
     check("Could not create epoll fd", this->epoll_fd == -1);
-
-    // Start the epoll thread
-    res = pthread_create(&this->epoll_thread, NULL, epoll_handler, (void*)this);
-    check("Could not create epoll thread", res != 0);
 
     // Create aio notify fd
     this->aio_notify_fd = eventfd(0, 0);
@@ -282,6 +283,22 @@ event_queue_t::event_queue_t(int queue_id, int _nqueues, event_handler_t event_h
 
     watch_resource(this->itc_pipe[0], eo_read, (void*)this->itc_pipe[0]);
     
+    // Init the cache
+    cache = new cache_t(BTREE_BLOCK_SIZE, cmd_config->max_cache_size / nqueues);
+    std::string str((char*)cmd_config->db_file_name);
+    std::stringstream out;
+    out << queue_id;
+    str += out.str();
+    cache->init((char*)str.c_str());
+
+    req_handler = new memcached_handler_t<code_config_t>(cache, &alloc, this);
+}
+
+void event_queue_t::start_queue() {
+    // Start the epoll thread
+    int res = pthread_create(&this->epoll_thread, NULL, epoll_handler, (void*)this);
+    check("Could not create epoll thread", res != 0);
+
     // Set thread affinity
     int ncpus = get_cpu_count();
     cpu_set_t mask;
@@ -310,9 +327,6 @@ event_queue_t::~event_queue_t()
     res = pthread_join(this->epoll_thread, NULL);
     check("Could not join with epoll thread", res != 0);
 
-    // Delete the ops class
-    delete req_handler;
-    
     // Cleanup remaining fsms
     conn_fsm_t *state = this->live_fsms.head();
     while(state) {
@@ -320,6 +334,13 @@ event_queue_t::~event_queue_t()
         state = this->live_fsms.head();
     }
 
+    // Free the cache
+    cache->close();
+    delete cache;
+
+    // Delete the ops class
+    delete req_handler;
+    
     // Cleanup resources
     res = close(this->epoll_fd);
     check("Could not close epoll_fd", res != 0);

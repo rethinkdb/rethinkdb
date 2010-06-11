@@ -7,8 +7,9 @@
 #include "arch/resource.hpp"
 #include "event.hpp"
 #include "corefwd.hpp"
-#include "config/code.hpp"
 #include "message_hub.hpp"
+#include "config/code.hpp"
+#include "config/cmd_args.hpp"
 
 typedef void (*event_handler_t)(event_queue_t*, event_t*);
 
@@ -26,6 +27,7 @@ struct itc_event_t {
 // Event queue structure
 struct event_queue_t {
 public:
+    typedef code_config_t::cache_t cache_t;
     typedef code_config_t::conn_fsm_t conn_fsm_t;
     typedef code_config_t::alloc_t alloc_t;
     typedef code_config_t::fsm_list_t fsm_list_t;
@@ -33,8 +35,9 @@ public:
     
 public:
     event_queue_t(int queue_id, int _nqueues, event_handler_t event_handler,
-                  worker_pool_t *parent_pool);
+                  worker_pool_t *parent_pool, cmd_config_t *cmd_config);
     ~event_queue_t();
+    void start_queue();
     
     // Watching and forgetting resources (from the queue's POV)
     void watch_resource(resource_t resource, event_op_t event_op, void *state);
@@ -72,6 +75,9 @@ public:
     worker_pool_t *parent_pool;
     req_handler_t *req_handler;
     message_hub_t message_hub;
+
+    // Caches responsible for serving a particular queue
+    cache_t *cache;
 };
 
 #endif // __EVENT_QUEUE_HPP__

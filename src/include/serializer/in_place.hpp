@@ -8,7 +8,6 @@
 #include <fcntl.h>
 #include "arch/resource.hpp"
 #include "async_io.hpp"
-#include "conn_fsm.hpp"
 #include "btree/admin.hpp"
 
 // TODO: what about multiple modifications to the tree that need to be
