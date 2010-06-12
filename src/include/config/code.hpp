@@ -4,6 +4,9 @@
 
 #include "corefwd.hpp"
 #include "alloc/memalign.hpp"
+#include "alloc/malloc.hpp"
+#include "alloc/stats.hpp"
+#include "alloc/alloc_mixin.hpp"
 
 /**
  * Code configuration - instantiating various templated classes.
@@ -47,6 +50,9 @@ struct standard_config_t {
     // Request handler
     typedef request_handler_t<standard_config_t> req_handler_t;
     typedef request<standard_config_t> request_t;
+
+    // Small object allocator
+    typedef alloc_stats_t<malloc_alloc_t> alloc_t;
 };
 
 typedef standard_config_t code_config_t;

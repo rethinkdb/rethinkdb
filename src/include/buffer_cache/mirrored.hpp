@@ -10,14 +10,12 @@
 // into a coherent whole. This allows easily experimenting with
 // various components of the cache to improve performance.
 
+/* XXX NNW These are currently freed on a different core; is this intended? */
 template <class config_t>
-struct aio_context {
-//    typedef typename config_t::alloc_t alloc_t;
+struct aio_context : public alloc_runtime_mixin_t<typename config_t::alloc_t> {
     typedef typename config_t::serializer_t serializer_t;
     typedef typename serializer_t::block_id_t block_id_t;
 
-    // TODO: fix this when Nate commits the new allocation system
-    //alloc_t *alloc;
     void *user_state;
     block_id_t block_id;
 };
@@ -87,10 +85,7 @@ public:
         void *block = page_map_t::find(block_id);
         if(!block) {
             void *buf = buffer_alloc_t::malloc(serializer_t::block_size);
-            //aio_context_t *ctx = tm->alloc.template malloc<aio_context_t>();
-            // TODO: fix this when Nate completes the new allocation system.
-            aio_context_t *ctx = new aio_context_t();
-            //ctx->alloc = NULL;
+            aio_context_t *ctx = new (&tm->alloc) aio_context_t();
             ctx->user_state = state;
             ctx->block_id = block_id;
 
@@ -119,9 +114,7 @@ public:
     void aio_complete(aio_context_t *ctx, void *block, bool written) {
         block_id_t block_id = ctx->block_id;
 
-        // TODO: fix this when Nate completes the allocator system
         delete ctx;
-        //ctx->alloc->free(ctx);
         if(written) {
             page_repl_t::unpin(block_id);
         } else {

@@ -12,9 +12,11 @@
 // The actual state structure
 template<class config_t>
 struct conn_fsm : public config_t::iocalls_t,
-                  public intrusive_list_node_t<conn_fsm<config_t> >
+                  public intrusive_list_node_t<conn_fsm<config_t> >,
+                  public alloc_mixin_t<typename config_t::alloc_t>
 {
 public:
+    typedef typename config_t::alloc_t alloc_t;
     typedef typename config_t::iocalls_t iocalls_t;
     typedef typename config_t::iobuf_t iobuf_t;
     typedef typename config_t::btree_fsm_t btree_fsm_t;
@@ -42,7 +44,7 @@ public:
     };
     
 public:
-    conn_fsm(resource_t _source, req_handler_t *_req_handler,
+    conn_fsm(resource_t _source, alloc_t *_alloc, req_handler_t *_req_handler,
                event_queue_t *_event_queue);
     ~conn_fsm();
     
@@ -62,6 +64,7 @@ public:
     // been sent (in case of a send workflow).
     char *buf;
     unsigned int nbuf, snbuf;
+    alloc_t *alloc;
     req_handler_t *req_handler;
     event_queue_t *event_queue;
     request_t *current_request;

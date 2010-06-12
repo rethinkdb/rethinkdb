@@ -5,7 +5,7 @@
 #include "config/args.hpp"
 
 template <class config_t>
-struct request {
+struct request : alloc_mixin_t<typename config_t::alloc_t> {
 public:
     typedef typename config_t::btree_fsm_t btree_fsm_t;
     typedef typename config_t::conn_fsm_t conn_fsm_t;

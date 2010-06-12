@@ -9,6 +9,7 @@ template <class super_alloc_t>
 struct alloc_stats_t : public super_alloc_t {
     // A general purpose constructor
     alloc_stats_t() : nallocs(0) {}
+    alloc_stats_t(size_t) : nallocs(0) {}
     // Constructor version for the pool allocator
     alloc_stats_t(size_t nobjects, size_t object_size)
         : nallocs(0), super_alloc_t(nobjects, object_size)
@@ -29,6 +30,8 @@ struct alloc_stats_t : public super_alloc_t {
         super_alloc_t::free(ptr);
         nallocs--;
     }
+
+    int gc() {} // For interface symmetry
 
     bool empty() {
         return nallocs == 0;

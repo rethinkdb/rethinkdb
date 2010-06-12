@@ -6,7 +6,8 @@
 #include "message_hub.hpp"
 
 template <class config_t>
-class btree_fsm : public cpu_message_t {
+class btree_fsm : public cpu_message_t,
+                  public alloc_mixin_t<typename config_t::alloc_t> {
 public:
     typedef typename config_t::cache_t cache_t;
     typedef typename config_t::request_t request_t;

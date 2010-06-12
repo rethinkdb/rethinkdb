@@ -82,9 +82,7 @@ void process_aio_notify(event_queue_t *self) {
                     qevent.op = eo_write;
                 self->event_handler(self, &qevent);
             }
-            // TODO: fix this when Nate commits the new allocation system
-            //self->alloc.free(events[i].obj);
-            free(events[i].obj);
+            self->alloc.free(events[i].obj);
         }
         nevents_total -= nevents;
     } while(nevents_total > 0);
@@ -101,8 +99,7 @@ void process_timer_notify(event_queue_t *self) {
     // Internal ops to perform on the timer
     if((self->total_expirations * TIMER_TICKS_IN_MS) % ALLOC_GC_IN_MS == 0) {
         // Perform allocator gc
-        // TODO: fix this when Nate commits the new allocator system
-        //self->alloc.gc();
+        self->alloc.gc();
     }
 
     // Let queue user handle the event, if they wish
@@ -133,15 +130,9 @@ int process_itc_notify(event_queue_t *self) {
     case iet_new_socket:
         // The state will be freed within the fsm when the socket is
         // closed (or killed for a variety of possible reasons)
-        /*
         event_queue_t::conn_fsm_t *state =
-            self->alloc.malloc<event_queue_t::conn_fsm_t>(event.data,
-                                      &self->alloc,
-                                      self->req_handler,
-                                      self);
-        */
-        // TODO: fix this when Nate commits the new allocation system
-        event_queue_t::conn_fsm_t *state = new event_queue_t::conn_fsm_t(event.data, self->req_handler, self);
+            new event_queue_t::conn_fsm_t(event.data, &self->alloc,
+                self->req_handler, self);
         self->register_fsm(state);
         break;
     }
@@ -203,6 +194,9 @@ void* epoll_handler(void *arg) {
     event_queue_t *self = (event_queue_t*)arg;
     epoll_event events[MAX_IO_EVENT_PROCESSING_BATCH_SIZE];
     
+    // Save our allocator in the alloc_mixin_helper_t TLS variable.
+    alloc_mixin_helper_t<code_config_t::alloc_t>::alloc = &self->alloc;
+
     do {
         // Grab the events from the kernel!
         res = epoll_wait(self->epoll_fd, events, MAX_IO_EVENT_PROCESSING_BATCH_SIZE, -1);
@@ -340,8 +334,7 @@ event_queue_t::~event_queue_t()
     queue_stop_timer(this);
 
     // Kill the poll thread
-    itc_event_t event;
-    bzero((void*)&event, sizeof(itc_event_t));
+    itc_event_t event = {};
     event.event_type = iet_shutdown;
     post_itc_message(&event);
 
@@ -502,9 +495,6 @@ void event_queue_t::deregister_fsm(conn_fsm_t *fsm) {
     forget_resource(fsm->get_source());
     live_fsms.remove(fsm);
     close(fsm->get_source());
-
-    // TODO: fix this when Nate commits the new allocator system
-    //alloc.free(fsm);
     delete fsm;
     
     // TODO: there might be outstanding btrees that we're missing (if

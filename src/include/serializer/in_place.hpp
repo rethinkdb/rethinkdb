@@ -25,7 +25,6 @@ template<class config_t>
 struct in_place_serializer_t {
 public:
     typedef off64_t block_id_t;
-    typedef typename config_t::btree_fsm_t btree_fsm_t;
     typedef typename config_t::btree_admin_t btree_admin_t;
 
 public:
