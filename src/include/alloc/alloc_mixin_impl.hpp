@@ -2,25 +2,23 @@
 #ifndef __ALLOC_MIXIN_IMPL_HPP__
 #define __ALLOC_MIXIN_IMPL_HPP__
 
-template <class alloc_t>
-class alloc_mixin_helper_t {
-public:
-    static __thread alloc_t *alloc;
-};
-
-template <class alloc_t> __thread alloc_t *alloc_mixin_helper_t<alloc_t>::alloc;
+/**
+ * The small object accessor creates small object allocators per
+ * thread per type on the fly.
+ */
+template <class alloc_t> __thread std::vector<alloc_t*>* tls_small_obj_alloc_accessor<alloc_t>::allocs = NULL;
 
 /**
- * Allocation mixin using a TLS variable for all new() and delete() calls.
+ * Allocation mixin using a TLS accessor for all new() and delete() calls.
  */
-template<class alloc_t>
-void *alloc_mixin_t<alloc_t>::operator new(size_t size) {
-    return alloc_mixin_helper_t<alloc_t>::alloc->malloc(size);
+template<class accessor_t, class type_t>
+void *alloc_mixin_t<accessor_t, type_t>::operator new(size_t size) {
+    return accessor_t::template get_alloc<type_t>()->malloc(size);
 }
 
-template<class alloc_t>
-void alloc_mixin_t<alloc_t>::operator delete(void *ptr) {
-    alloc_mixin_helper_t<alloc_t>::alloc->free(ptr);
+template<class accessor_t, class type_t>
+void alloc_mixin_t<accessor_t, type_t>::operator delete(void *ptr) {
+    accessor_t::template get_alloc<type_t>()->free(ptr);
 }
 
 /**

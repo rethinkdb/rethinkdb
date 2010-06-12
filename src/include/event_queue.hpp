@@ -67,7 +67,6 @@ public:
     resource_t epoll_fd;
     resource_t itc_pipe[2];
     event_handler_t event_handler;
-    alloc_t alloc;
     // TODO: we should abstract live_fsms away from the queue. The
     // user of the queue provide an object that holds queue-local
     // state.

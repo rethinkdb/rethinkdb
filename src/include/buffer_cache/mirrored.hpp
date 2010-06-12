@@ -12,7 +12,7 @@
 
 /* XXX NNW These are currently freed on a different core; is this intended? */
 template <class config_t>
-struct aio_context : public alloc_mixin_t<typename config_t::alloc_t> {
+struct aio_context : public alloc_mixin_t<tls_small_obj_alloc_accessor<typename config_t::alloc_t>, aio_context<config_t> > {
     typedef typename config_t::serializer_t serializer_t;
     typedef typename serializer_t::block_id_t block_id_t;
 

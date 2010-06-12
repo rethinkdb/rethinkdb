@@ -18,6 +18,7 @@ void conn_fsm<config_t>::init_state() {
 // This function returns the socket to clean connected state
 template<class config_t>
 void conn_fsm<config_t>::return_to_socket_connected() {
+    event_queue_t::alloc_t *alloc = tls_small_obj_alloc_accessor<event_queue_t::alloc_t>::template get_alloc<iobuf_t>();
     alloc->free(this->buf);
     init_state();
 }
@@ -32,6 +33,7 @@ typename conn_fsm<config_t>::result_t conn_fsm<config_t>::do_socket_ready(event_
 
     if(event->event_type == et_sock) {
         if(state->buf == NULL) {
+            event_queue_t::alloc_t *alloc = tls_small_obj_alloc_accessor<event_queue_t::alloc_t>::template get_alloc<iobuf_t>();
             state->buf = (char *)alloc->malloc(sizeof(iobuf_t));
             state->nbuf = 0;
         }
@@ -193,8 +195,8 @@ typename conn_fsm<config_t>::result_t conn_fsm<config_t>::do_transition(event_t 
 }
 
 template<class config_t>
-conn_fsm<config_t>::conn_fsm(resource_t _source, alloc_t *_alloc, req_handler_t *_req_handler, event_queue_t *_event_queue)
-    : source(_source), alloc(_alloc), req_handler(_req_handler),
+conn_fsm<config_t>::conn_fsm(resource_t _source, req_handler_t *_req_handler, event_queue_t *_event_queue)
+    : source(_source), req_handler(_req_handler),
       event_queue(_event_queue)
 {
     init_state();
@@ -203,6 +205,7 @@ conn_fsm<config_t>::conn_fsm(resource_t _source, alloc_t *_alloc, req_handler_t 
 template<class config_t>
 conn_fsm<config_t>::~conn_fsm() {
     if(this->buf) {
+        event_queue_t::alloc_t *alloc = tls_small_obj_alloc_accessor<event_queue_t::alloc_t>::template get_alloc<iobuf_t>();
         alloc->free(this->buf);
     }
 }

@@ -71,5 +71,15 @@ class request;
 // IO Calls
 struct posix_io_calls_t;
 
+// Allocators
+template <class super_alloc_t>
+struct dynamic_pool_alloc_t;
+
+template <class super_alloc_t>
+struct pool_alloc_t;
+
+template <class super_alloc_t>
+struct alloc_stats_t;
+
 #endif // __COREFWD_HPP__
 

@@ -12,6 +12,11 @@
 #include <algorithm>
 #include <string>
 #include <sstream>
+#include "alloc/memalign.hpp"
+#include "alloc/pool.hpp"
+#include "alloc/dynamic_pool.hpp"
+#include "alloc/stats.hpp"
+#include "alloc/alloc_mixin.hpp"
 #include "utils.hpp"
 #include "worker_pool.hpp"
 #include "request_handler/memcached_handler.hpp"
@@ -82,7 +87,8 @@ void process_aio_notify(event_queue_t *self) {
                     qevent.op = eo_write;
                 self->event_handler(self, &qevent);
             }
-            self->alloc.free(events[i].obj);
+            event_queue_t::alloc_t *alloc = tls_small_obj_alloc_accessor<event_queue_t::alloc_t>::get_alloc<iocb>();
+            alloc->free(events[i].obj);
         }
         nevents_total -= nevents;
     } while(nevents_total > 0);
@@ -99,7 +105,12 @@ void process_timer_notify(event_queue_t *self) {
     // Internal ops to perform on the timer
     if((self->total_expirations * TIMER_TICKS_IN_MS) % ALLOC_GC_IN_MS == 0) {
         // Perform allocator gc
-        self->alloc.gc();
+        std::vector<event_queue_t::alloc_t*> *allocs = tls_small_obj_alloc_accessor<event_queue_t::alloc_t>::allocs;
+        if(allocs) {
+            for(int i = 0; i < allocs->size(); i++) {
+                allocs->operator[](i)->gc();
+            }
+        }
     }
 
     // Let queue user handle the event, if they wish
@@ -131,8 +142,7 @@ int process_itc_notify(event_queue_t *self) {
         // The state will be freed within the fsm when the socket is
         // closed (or killed for a variety of possible reasons)
         event_queue_t::conn_fsm_t *state =
-            new event_queue_t::conn_fsm_t(event.data, &self->alloc,
-                self->req_handler, self);
+            new event_queue_t::conn_fsm_t(event.data, self->req_handler, self);
         self->register_fsm(state);
         break;
     }
@@ -194,9 +204,6 @@ void* epoll_handler(void *arg) {
     event_queue_t *self = (event_queue_t*)arg;
     epoll_event events[MAX_IO_EVENT_PROCESSING_BATCH_SIZE];
     
-    // Save our allocator in the alloc_mixin_helper_t TLS variable.
-    alloc_mixin_helper_t<code_config_t::alloc_t>::alloc = &self->alloc;
-
     do {
         // Grab the events from the kernel!
         res = epoll_wait(self->epoll_fd, events, MAX_IO_EVENT_PROCESSING_BATCH_SIZE, -1);
@@ -227,7 +234,7 @@ void* epoll_handler(void *arg) {
             } else if(source == self->itc_pipe[0]) {
                 if(process_itc_notify(self)) {
                     // We're shutting down
-                    return NULL;
+                    goto breakout;
                 }
             } else {
                 process_network_notify(self, &events[i]);
@@ -244,7 +251,33 @@ void* epoll_handler(void *arg) {
         // CPUs
         self->message_hub.push_messages();
     } while(1);
+
+breakout:
+    // Clean up some objects that should be deleted on the same core where they were allocated
+    // Cleanup remaining fsms
+    event_queue_t::conn_fsm_t *state = self->live_fsms.head();
+    while(state) {
+        self->deregister_fsm(state);
+        state = self->live_fsms.head();
+    }
+
+    // Free the cache
+    self->cache->close();
+    delete self->cache;
+
+    // Delete the ops class
+    delete self->req_handler;
     
+    // Ok, we're about to die here. Let's do one last thing before our
+    // demise - delete all the custom small object allocators!
+    std::vector<event_queue_t::alloc_t*> *allocs = tls_small_obj_alloc_accessor<event_queue_t::alloc_t>::allocs;
+    if(allocs) {
+        for(int i = 0; i < allocs->size(); i++) {
+            delete allocs->operator[](i);
+        }
+        delete allocs;
+    }
+
     return NULL;
 }
 
@@ -342,20 +375,6 @@ event_queue_t::~event_queue_t()
     res = pthread_join(this->epoll_thread, NULL);
     check("Could not join with epoll thread", res != 0);
 
-    // Cleanup remaining fsms
-    conn_fsm_t *state = this->live_fsms.head();
-    while(state) {
-        deregister_fsm(state);
-        state = this->live_fsms.head();
-    }
-
-    // Free the cache
-    cache->close();
-    delete cache;
-
-    // Delete the ops class
-    delete req_handler;
-    
     // Cleanup resources
     res = close(this->epoll_fd);
     check("Could not close epoll_fd", res != 0);

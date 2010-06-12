@@ -7,7 +7,9 @@
 #include "btree/fsm.hpp"
 
 template <class config_t>
-class btree_get_fsm : public btree_fsm<config_t> {
+class btree_get_fsm : public btree_fsm<config_t>,
+                      public alloc_mixin_t<tls_small_obj_alloc_accessor<typename config_t::alloc_t>, btree_get_fsm<config_t> >
+{
 public:
     typedef typename config_t::btree_fsm_t btree_fsm_t;
     typedef typename config_t::node_t node_t;
