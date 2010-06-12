@@ -12,7 +12,7 @@
 
 /* XXX NNW These are currently freed on a different core; is this intended? */
 template <class config_t>
-struct aio_context : public alloc_runtime_mixin_t<typename config_t::alloc_t> {
+struct aio_context : public alloc_mixin_t<typename config_t::alloc_t> {
     typedef typename config_t::serializer_t serializer_t;
     typedef typename serializer_t::block_id_t block_id_t;
 
@@ -85,7 +85,7 @@ public:
         void *block = page_map_t::find(block_id);
         if(!block) {
             void *buf = buffer_alloc_t::malloc(serializer_t::block_size);
-            aio_context_t *ctx = new (&tm->alloc) aio_context_t();
+            aio_context_t *ctx = new aio_context_t();
             ctx->user_state = state;
             ctx->block_id = block_id;
 
