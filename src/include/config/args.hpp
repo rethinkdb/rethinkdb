@@ -57,5 +57,8 @@
 // cores than was originally anticipated.
 #define BTREE_SPLIT_FACTOR                        16
 
+// Default port to listen on
+#define DEFAULT_LISTEN_PORT                       8080
+
 #endif // __CONFIG_ARGS_H__
 

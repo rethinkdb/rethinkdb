@@ -28,6 +28,8 @@ void usage(const char *name) {
     printf("  -m, --max-cache-size\tMaximum amount of RAM to use for caching disk\n");
     printf("\t\t\tblocks, in megabytes.\n");
     
+    printf("  -p, --port\t\tSocket port to listen on. Defaults to %d.\n", DEFAULT_LISTEN_PORT);
+    
     exit(-1);
 }
 
@@ -39,6 +41,7 @@ void init_config(cmd_config_t *config) {
     config->db_file_name[MAX_DB_FILE_NAME - 1] = 0;
 
     config->max_cache_size = DEFAULT_MAX_CACHE_RATIO * get_available_ram();
+    config->port = DEFAULT_LISTEN_PORT;
 }
 
 void parse_cmd_args(int argc, char *argv[], cmd_config_t *config)
@@ -53,12 +56,13 @@ void parse_cmd_args(int argc, char *argv[], cmd_config_t *config)
             {
                 {"max-cores",        required_argument, 0, 'c'},
                 {"max-cache-size",   required_argument, 0, 'm'},
+                {"port",             required_argument, 0, 'p'},
                 {"help",             no_argument, &do_help, 1},
                 {0, 0, 0, 0}
             };
 
         int option_index = 0;
-        int c = getopt_long(argc, argv, "c:m:h", long_options, &option_index);
+        int c = getopt_long(argc, argv, "c:m:p:h", long_options, &option_index);
 
         if(do_help)
             c = 'h';
@@ -70,6 +74,9 @@ void parse_cmd_args(int argc, char *argv[], cmd_config_t *config)
         switch (c)
         {
         case 0:
+            break;
+        case 'p':
+            config->port = atoi(optarg);
             break;
         case 'c':
             config->max_cores = atoi(optarg);
