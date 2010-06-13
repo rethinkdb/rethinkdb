@@ -53,9 +53,6 @@ void initiate_conn_fsm_transition(event_queue_t *event_queue, event_t *event) {
     }
 }
 
-void initiate_btree_transition() {
-}
-
 // Handle events coming from the event queue
 void event_handler(event_queue_t *event_queue, event_t *event) {
     if(event->event_type == et_timer) {

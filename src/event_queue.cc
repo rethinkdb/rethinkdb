@@ -179,8 +179,14 @@ int process_network_notify(event_queue_t *self, epoll_event *event) {
 }
 
 int process_cpu_core_notify(event_queue_t *self, message_hub_t::msg_list_t *messages) {
-    cpu_message_t *head = messages->head();
+    cpu_message_t *head = messages->head(), *tmp = NULL;
     while(head) {
+        // Store the pointer to the next element. It is important to
+        // do this now, because head->next may not exist after the
+        // event handler is done, since the internal list pointers are
+        // reused.
+        tmp = head->next;
+        
         // Pass the event to the handler
         event_t cpu_event;
         cpu_event.event_type = et_cpu_event;
@@ -188,7 +194,7 @@ int process_cpu_core_notify(event_queue_t *self, message_hub_t::msg_list_t *mess
         self->event_handler(self, &cpu_event);
 
         // Move on to next element
-        head = head->next;
+        head = tmp;
 
         // Note, deallocation of cpu messages currently occurs in
         // build response (since a cpu message is right now guranteed

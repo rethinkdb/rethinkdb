@@ -123,8 +123,14 @@ typename memcached_handler_t<config_t>::parse_result_t memcached_handler_t<confi
         do {
             // See if we can fit one more request
             if(request->nstarted == MAX_OPS_IN_REQUEST) {
-                delete request;
-                return req_handler_t::op_malformed;
+                // We can't fit any more operations, let's just break
+                // and complete the ones we already sent out to other
+                // cores.
+                break;
+
+                // TODO: to a user, it will look like some of his
+                // requests aren't satisfied. We need to notify them
+                // somehow.
             }
             
             key[key_size] = '\0';
@@ -139,8 +145,8 @@ typename memcached_handler_t<config_t>::parse_result_t memcached_handler_t<confi
             request->nstarted++;
             
             // Add the fsm to appropriate queue
-            req_handler_t::event_queue->message_hub.store_message(key_to_cpu(key_int, req_handler_t::event_queue->nqueues),
-                                                   btree_fsm);
+            req_handler_t::event_queue->message_hub
+                .store_message(key_to_cpu(key_int, req_handler_t::event_queue->nqueues), btree_fsm);
 
             // Grab the next token
             key = tokenize(key + key_size + 1,
