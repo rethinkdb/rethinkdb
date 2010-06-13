@@ -87,8 +87,7 @@ void process_aio_notify(event_queue_t *self) {
                     qevent.op = eo_write;
                 self->event_handler(self, &qevent);
             }
-            event_queue_t::alloc_t *alloc = tls_small_obj_alloc_accessor<event_queue_t::alloc_t>::get_alloc<iocb>();
-            alloc->free(events[i].obj);
+            delete (iocb*)events[i].obj;
         }
         nevents_total -= nevents;
     } while(nevents_total > 0);

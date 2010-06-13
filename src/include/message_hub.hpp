@@ -4,9 +4,16 @@
 
 #include <pthread.h>
 #include <assert.h>
+#include <strings.h>
 #include "containers/intrusive_list.hpp"
-#include "config/args.hpp"
 #include "utils.hpp"
+#include "config/args.hpp"
+#include "config/code.hpp"
+#include "alloc/memalign.hpp"
+#include "alloc/pool.hpp"
+#include "alloc/dynamic_pool.hpp"
+#include "alloc/stats.hpp"
+#include "alloc/alloc_mixin.hpp"
 
 // TODO: perhaps we can issue cache prefetching commands to the CPU to
 // speed up the process of sending messages across cores.
@@ -22,7 +29,9 @@ struct event_queue_t;
 
 struct message_hub_t {
 public:
-    struct payload_t : public intrusive_list_node_t<payload_t> {
+    struct payload_t : public intrusive_list_node_t<payload_t>,
+                       public alloc_mixin_t<tls_small_obj_alloc_accessor<code_config_t::alloc_t>, payload_t>
+    {
         payload_t(cpu_message_t *_data) : data(_data) {}
         cpu_message_t *data;
     };

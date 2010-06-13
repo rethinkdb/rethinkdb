@@ -43,7 +43,12 @@ public:
             allocs = new std::vector<alloc_t*>;
 
         if(!alloc) {
+#ifdef NDEBUG
             alloc = new alloc_t(sizeof(type_t));
+#else
+            // In debug mode, we need space for an extra pointer
+            alloc = new alloc_t(sizeof(void*) + sizeof(type_t));
+#endif
             allocs->push_back(alloc);
         }
         return alloc;
