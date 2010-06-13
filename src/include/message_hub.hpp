@@ -20,7 +20,8 @@
 
 int key_to_cpu(int key, unsigned int ncpus);
 
-struct cpu_message_t {
+struct cpu_message_t : public intrusive_list_node_t<cpu_message_t>
+{
     virtual ~cpu_message_t() {}
     unsigned int return_cpu;
 };
@@ -29,13 +30,7 @@ struct event_queue_t;
 
 struct message_hub_t {
 public:
-    struct payload_t : public intrusive_list_node_t<payload_t>,
-                       public alloc_mixin_t<tls_small_obj_alloc_accessor<code_config_t::alloc_t>, payload_t>
-    {
-        payload_t(cpu_message_t *_data) : data(_data) {}
-        cpu_message_t *data;
-    };
-    typedef intrusive_list_t<payload_t> msg_list_t;
+    typedef intrusive_list_t<cpu_message_t> msg_list_t;
     
 public:
     void init(unsigned int cpu_id, unsigned int _ncpus, event_queue_t *eqs[]);

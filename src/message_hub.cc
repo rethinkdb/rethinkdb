@@ -30,11 +30,8 @@ message_hub_t::~message_hub_t() {
 // Collects a message for a given CPU onto a local list.
 void message_hub_t::store_message(unsigned int ncpu, cpu_message_t *msg) {
     assert(ncpu < ncpus);
-    // TODO: change the new to our allocator, once nate finishes
-    // it.
     msg->return_cpu = current_cpu;
-    payload_t *payload = new payload_t(msg);
-    queues[ncpu].msg_local_list.push_back(payload);
+    queues[ncpu].msg_local_list.push_back(msg);
 }
 
 // Pushes messages collected locally global lists available to all

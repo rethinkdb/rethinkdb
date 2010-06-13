@@ -179,22 +179,21 @@ int process_network_notify(event_queue_t *self, epoll_event *event) {
 }
 
 int process_cpu_core_notify(event_queue_t *self, message_hub_t::msg_list_t *messages) {
-    message_hub_t::payload_t *head = messages->head(), *tmp;
+    cpu_message_t *head = messages->head();
     while(head) {
         // Pass the event to the handler
         event_t cpu_event;
         cpu_event.event_type = et_cpu_event;
-        cpu_event.state = head->data;
+        cpu_event.state = head;
         self->event_handler(self, &cpu_event);
 
         // Move on to next element
-        tmp = head;
         head = head->next;
 
-        // TODO: replace with real (de)allocator when Nate is done. It
-        // looks like we're deallocating from a different thread here
-        // than where the allocation was made.
-        delete tmp;
+        // Note, deallocation of cpu messages currently occurs in
+        // build response (since a cpu message is right now guranteed
+        // to be a btree, and build response deletes btrees as it
+        // sends out the results over network)
     }
 }
 
