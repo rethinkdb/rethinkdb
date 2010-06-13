@@ -3,6 +3,7 @@
 #define __MIRRORED_CACHE_HPP__
 
 #include "event_queue.hpp"
+#include "cpu_context.hpp"
 
 // This cache doesn't actually do any operations itself. Instead, it
 // provides a framework that collects all components of the cache
@@ -18,6 +19,11 @@ struct aio_context : public alloc_mixin_t<tls_small_obj_alloc_accessor<typename 
 
     void *user_state;
     block_id_t block_id;
+#ifndef NDEBUG
+    // We use this member in debug mode to ensure all operations
+    // associated with the context occur on the same event queue.
+    event_queue_t *event_queue;
+#endif
 };
 
 template <class config_t>
@@ -65,6 +71,7 @@ public:
         return event_queue;
     }
     void end_transaction(transaction_t* transaction) {
+        assert(transaction == get_cpu_context()->event_queue);
     }
 
     // TODO: each operation can only be performed within a
@@ -72,6 +79,8 @@ public:
     // view), and move the following methods into a separate
     // transaction class.
     void* allocate(transaction_t* tm, block_id_t *block_id) {
+        assert(tm == get_cpu_context()->event_queue);
+        
         *block_id = serializer_t::gen_block_id();
         void *block = buffer_alloc_t::malloc(serializer_t::block_size);
         page_map_t::set(*block_id, block);
@@ -81,6 +90,8 @@ public:
     }
     
     void* acquire(transaction_t* tm, block_id_t block_id, void *state) {
+        assert(tm == get_cpu_context()->event_queue);
+        
         // TODO: we might get a request for a block id while the block
         // with that block id is still loading (consider two requests
         // in a row). We need to keep track of this so we don't
@@ -92,6 +103,9 @@ public:
             aio_context_t *ctx = new aio_context_t();
             ctx->user_state = state;
             ctx->block_id = block_id;
+#ifndef NDEBUG            
+            ctx->event_queue = tm;
+#endif
 
             do_read(tm, block_id, buf, ctx);
         } else {
@@ -102,7 +116,8 @@ public:
     }
 
     block_id_t release(transaction_t* tm, block_id_t block_id, void *block, bool dirty, void *state) {
-
+        assert(tm == get_cpu_context()->event_queue);
+        
         block_id_t new_block_id = block_id;
         if(dirty) {
             new_block_id = writeback_t::mark_dirty(tm, block_id, block, state);
@@ -116,8 +131,11 @@ public:
     }
 
     void aio_complete(aio_context_t *ctx, void *block, bool written) {
-        block_id_t block_id = ctx->block_id;
+#ifndef NDEBUG            
+        assert(ctx->event_queue = get_cpu_context()->event_queue);
+#endif
 
+        block_id_t block_id = ctx->block_id;
         delete ctx;
         if(written) {
             page_repl_t::unpin(block_id);

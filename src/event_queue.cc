@@ -35,6 +35,7 @@
 #include "request.hpp"
 #include "event_queue.hpp"
 #include "buffer_cache/stats.hpp"
+#include "cpu_context.hpp"
 
 // TODO: report event queue statistics.
 
@@ -207,7 +208,11 @@ void* epoll_handler(void *arg) {
     int res;
     event_queue_t *self = (event_queue_t*)arg;
     epoll_event events[MAX_IO_EVENT_PROCESSING_BATCH_SIZE];
+
+    // First, set the cpu context structure
+    get_cpu_context()->event_queue = self;
     
+    // Now, start the loop
     do {
         // Grab the events from the kernel!
         res = epoll_wait(self->epoll_fd, events, MAX_IO_EVENT_PROCESSING_BATCH_SIZE, -1);
