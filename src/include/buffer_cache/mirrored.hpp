@@ -81,6 +81,10 @@ public:
     }
     
     void* acquire(transaction_t* tm, block_id_t block_id, void *state) {
+        // TODO: we might get a request for a block id while the block
+        // with that block id is still loading (consider two requests
+        // in a row). We need to keep track of this so we don't
+        // unnecessarily double IO and/or lose memory.
 
         void *block = page_map_t::find(block_id);
         if(!block) {
