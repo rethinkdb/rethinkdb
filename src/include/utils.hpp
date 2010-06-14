@@ -6,7 +6,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-static void check(const char *msg, bool err) {
+static inline void check(const char *msg, bool err) {
     if (err) {
         if(errno == 0)
             errno = EINVAL;

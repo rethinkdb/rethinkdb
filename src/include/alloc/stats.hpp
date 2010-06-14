@@ -12,7 +12,8 @@ struct alloc_stats_t : public super_alloc_t {
     alloc_stats_t(size_t) : nallocs(0) {}
     // Constructor version for the pool allocator
     alloc_stats_t(size_t nobjects, size_t object_size)
-        : nallocs(0), super_alloc_t(nobjects, object_size)
+        : super_alloc_t(nobjects, object_size),
+          nallocs(0)
         {}
     ~alloc_stats_t() {
         check("Memory leak detected", nallocs > 0);
@@ -31,7 +32,7 @@ struct alloc_stats_t : public super_alloc_t {
         nallocs--;
     }
 
-    int gc() {} // For interface symmetry
+    int gc() { return 0; } // For interface symmetry
 
     bool empty() {
         return nallocs == 0;

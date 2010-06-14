@@ -27,7 +27,7 @@ void conn_fsm<config_t>::return_to_socket_connected() {
 // socket.
 template<class config_t>
 typename conn_fsm<config_t>::result_t conn_fsm<config_t>::do_socket_ready(event_t *event) {
-    size_t sz;
+    ssize_t sz;
     conn_fsm *state = (conn_fsm*)event->state;
 
     if(event->event_type == et_sock) {

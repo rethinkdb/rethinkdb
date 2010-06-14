@@ -34,6 +34,7 @@ public:
 
     bool is_dirty(block_id_t block_id) {
         check("TODO: implement immediate_writeback_t::is_dirty", 1);
+        return false;
     }
 
 private:
