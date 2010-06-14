@@ -127,8 +127,6 @@ void install_handlers() {
 
 int main(int argc, char *argv[])
 {
-    int res;
-
     // Parse command line arguments
     cmd_config_t config;
     parse_cmd_args(argc, argv, &config);

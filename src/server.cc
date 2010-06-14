@@ -50,6 +50,8 @@ void* do_server_loop(void *arg) {
         check("Could not make socket non-blocking", res != 0);
         process_socket(newsockfd, worker_pool);
     }
+
+    return NULL;
 }
 
 int start_server(worker_pool_t *worker_pool) {

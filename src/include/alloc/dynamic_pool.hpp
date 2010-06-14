@@ -23,7 +23,7 @@ struct dynamic_pool_alloc_t {
             check("Could not allocate memory in dynamic pool", allocs[0] == NULL);
         }
     ~dynamic_pool_alloc_t() {
-        for(int i = 0; i < nallocs; i++) {
+        for(unsigned int i = 0; i < nallocs; i++) {
             delete allocs[i];
         }
     }
@@ -64,7 +64,7 @@ struct dynamic_pool_alloc_t {
 #ifndef NDEBUG
         bool ptr_freed = false;
 #endif
-        for(int i = 0; i < nallocs; i++) {
+        for(unsigned int i = 0; i < nallocs; i++) {
             if(allocs[i]->in_range(ptr)) {
                 allocs[i]->free(ptr);
                 if(i < smallest_free) {

@@ -21,8 +21,6 @@
 template<class config_t>
 typename memcached_handler_t<config_t>::parse_result_t memcached_handler_t<config_t>::parse_request(event_t *event)
 {
-    int res;
-
     conn_fsm_t *fsm = (conn_fsm_t*)event->state;
     char *buf = fsm->buf;
     unsigned int size = fsm->nbuf;
@@ -177,7 +175,6 @@ void memcached_handler_t<config_t>::build_response(request_t *request) {
     char msg_ok[] = "ok\n";
     btree_get_fsm_t *btree_get_fsm = NULL;
     btree_set_fsm_t *btree_set_fsm = NULL;
-    int i = 0;
     char *buf = fsm->buf;
     fsm->nbuf = 0;
     int count;
@@ -186,7 +183,7 @@ void memcached_handler_t<config_t>::build_response(request_t *request) {
     switch(request->fsms[0]->fsm_type) {
     case btree_fsm_t::btree_get_fsm:
         // TODO: make sure we don't overflow the buffer with sprintf
-        for(i = 0; i < request->nstarted; i++) {
+        for(unsigned int i = 0; i < request->nstarted; i++) {
             btree_get_fsm = (btree_get_fsm_t*)request->fsms[i];
             if(btree_get_fsm->op_result == btree_get_fsm_t::btree_found) {
                 count = sprintf(buf, "%d\n", btree_get_fsm->value);

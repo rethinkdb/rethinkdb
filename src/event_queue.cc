@@ -106,9 +106,10 @@ void process_timer_notify(event_queue_t *self) {
     // Internal ops to perform on the timer
     if((self->total_expirations * TIMER_TICKS_IN_MS) % ALLOC_GC_IN_MS == 0) {
         // Perform allocator gc
-        std::vector<event_queue_t::alloc_t*> *allocs = tls_small_obj_alloc_accessor<event_queue_t::alloc_t>::allocs;
+        std::vector<event_queue_t::alloc_t*> *allocs =
+            tls_small_obj_alloc_accessor<event_queue_t::alloc_t>::allocs;
         if(allocs) {
-            for(int i = 0; i < allocs->size(); i++) {
+            for(size_t i = 0; i < allocs->size(); i++) {
                 allocs->operator[](i)->gc();
             }
         }
@@ -151,7 +152,7 @@ int process_itc_notify(event_queue_t *self) {
     return 0;
 }
 
-int process_network_notify(event_queue_t *self, epoll_event *event) {
+void process_network_notify(event_queue_t *self, epoll_event *event) {
     if(event->events & EPOLLIN ||
        event->events & EPOLLOUT)
     {
@@ -180,7 +181,7 @@ int process_network_notify(event_queue_t *self, epoll_event *event) {
     }
 }
 
-int process_cpu_core_notify(event_queue_t *self, message_hub_t::msg_list_t *messages) {
+void process_cpu_core_notify(event_queue_t *self, message_hub_t::msg_list_t *messages) {
     cpu_message_t *head = messages->head(), *tmp = NULL;
     while(head) {
         // Store the pointer to the next element. It is important to
@@ -282,7 +283,7 @@ breakout:
     // demise - delete all the custom small object allocators!
     std::vector<event_queue_t::alloc_t*> *allocs = tls_small_obj_alloc_accessor<event_queue_t::alloc_t>::allocs;
     if(allocs) {
-        for(int i = 0; i < allocs->size(); i++) {
+        for(size_t i = 0; i < allocs->size(); i++) {
             delete allocs->operator[](i);
         }
         delete allocs;

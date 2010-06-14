@@ -15,7 +15,7 @@ void message_hub_t::init(unsigned int cpu_id, unsigned int _ncpus, event_queue_t
     current_cpu = cpu_id;
     ncpus = _ncpus;
     check("Can't support so many CPUs", ncpus > MAX_CPUS);
-    for(int i = 0; i < ncpus; i++) {
+    for(unsigned int i = 0; i < ncpus; i++) {
         pthread_spin_init(&queues[i].lock, PTHREAD_PROCESS_PRIVATE);
         // TODO: unit tests currently don't mock the event queue, but
         // pass NULL instead. Make event_queue mockable.
@@ -28,7 +28,7 @@ void message_hub_t::init(unsigned int cpu_id, unsigned int _ncpus, event_queue_t
 }
 
 message_hub_t::~message_hub_t() {
-    for(int i = 0; i < ncpus; i++) {
+    for(unsigned int i = 0; i < ncpus; i++) {
         pthread_spin_destroy(&queues[i].lock);
     }
 }
@@ -45,7 +45,7 @@ void message_hub_t::store_message(unsigned int ncpu, cpu_message_t *msg) {
 // Pushes messages collected locally global lists available to all
 // CPUs.
 void message_hub_t::push_messages() {
-    for(int i = 0; i < ncpus; i++) {
+    for(unsigned int i = 0; i < ncpus; i++) {
         // Append the local list for ith cpu to that cpu's global
         // message list.
         cpu_queue_t *queue = &queues[i];

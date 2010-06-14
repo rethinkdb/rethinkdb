@@ -1,7 +1,7 @@
 # Define configuration variables
 CXX=g++
 LDFLAGS=-lrt -laio
-CXXFLAGS=-Iinclude -Werror
+CXXFLAGS=-Iinclude -Wall -Werror
 
 DEP_DIR=dep
 OBJ_DIR=obj
