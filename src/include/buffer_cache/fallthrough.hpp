@@ -14,14 +14,12 @@ struct fallthrough_cache_t : public config_t::serializer_t {
 public:
     typedef typename config_t::serializer_t serializer_t;
     typedef typename serializer_t::block_id_t block_id_t;
-    typedef typename config_t::btree_fsm_t btree_fsm_t;
-    typedef typename config_t::conn_fsm_t conn_fsm_t;
     typedef void transaction_t;
 
 public:
     fallthrough_cache_t(size_t _block_size) : serializer_t(_block_size) {}
 
-    transaction_t* begin_transaction(conn_fsm_t *state) {
+    transaction_t* begin_transaction() {
         return NULL;
     }
     void end_transaction(transaction_t* transaction) {
@@ -34,7 +32,7 @@ public:
         return block;
     }
     
-    void* acquire(transaction_t *tm, block_id_t block_id, btree_fsm_t *state) {
+    void* acquire(transaction_t *tm, block_id_t block_id, void *state) {
         typename ft_map_t::iterator block = ft_map.find(block_id);
         if(block == ft_map.end()) {
             void *buf = malloc_aligned(serializer_t::block_size, serializer_t::block_size);
@@ -45,7 +43,7 @@ public:
         }
     }
 
-    block_id_t release(transaction_t *tm, block_id_t block_id, void *block, bool dirty, btree_fsm_t *state) {
+    block_id_t release(transaction_t *tm, block_id_t block_id, void *block, bool dirty, void *state) {
         if(dirty) {
             return do_write(block_id, (char*)block, state);
         } else {

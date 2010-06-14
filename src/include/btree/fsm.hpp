@@ -32,8 +32,8 @@ public:
     };
 
 public:
-    btree_fsm(fsm_type_t _fsm_type)
-        : fsm_type(_fsm_type), transaction(NULL)
+    btree_fsm(cache_t *_cache, fsm_type_t _fsm_type)
+        : cache(_cache), fsm_type(_fsm_type), transaction(NULL)
         {}
     virtual ~btree_fsm() {}
 
@@ -49,7 +49,7 @@ public:
     // (i.e. do_transition is getting called for the first time in
     // this fsm instance). After this, do_transition should only get
     // called on disk events (when a node has been read from disk).
-    virtual transition_result_t do_transition(event_t *event, event_queue_t *event_queue) = 0;
+    virtual transition_result_t do_transition(event_t *event) = 0;
 
     // Return true if the state machine is in a completed state
     virtual bool is_finished() = 0;
@@ -57,15 +57,14 @@ public:
 protected:
     block_id_t get_root_id(void *superblock_buf);
     cache_t* get_cache() {
-        // TODO: once we make the event queue a global (thread local)
-        // variable, we should use that here.
-        return transaction->cache;
+        return cache;
     }
 
 public:
     fsm_type_t fsm_type;
     transaction_t *transaction;
     request_t *request;
+    cache_t *cache;
 };
 
 #include "btree/fsm_impl.hpp"

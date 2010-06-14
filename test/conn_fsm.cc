@@ -4,6 +4,10 @@
 #include <retest.hpp>
 #include <unistd.h>
 #include <errno.h>
+#include "config/args.hpp"
+#include "alloc/alloc_mixin.hpp"
+#include "request.hpp"
+#include "utils.hpp"
 #include "conn_fsm.hpp"
 #include "alloc/malloc.hpp"
 #include "alloc/object_static.hpp"
@@ -25,7 +29,7 @@ class mock_btree_fsm;
 struct mock_config_t {
     typedef buffer_t<IO_BUFFER_SIZE> iobuf_t;
     typedef mock_io_calls_t iocalls_t;
-    typedef object_static_alloc_t<malloc_alloc_t, iobuf_t> alloc_t;
+    typedef malloc_alloc_t alloc_t;
 
     // Faking a btree
     typedef btree_fsm<mock_config_t> btree_fsm_t;
@@ -42,6 +46,9 @@ struct mock_config_t {
 
     // Request handler
     typedef mock_handler_t<mock_config_t> req_handler_t;
+
+    // Request
+    typedef request<mock_config_t> request_t;
 };
 
 typedef mock_config_t::conn_fsm_t test_fsm_t;
@@ -107,16 +114,20 @@ struct mock_io_calls_t {
 template <class config_t>
 class mock_handler_t : public request_handler_t<config_t> {
 public:
+    typedef typename config_t::request_t request_t;
     typedef typename config_t::mock_btree_t mock_btree_t;
     typedef typename config_t::req_handler_t req_handler_t;
     typedef typename req_handler_t::parse_result_t parse_result_t;
     
 public:
-    mock_handler_t() {}
+    mock_handler_t() : request_handler_t<config_t>(NULL) {}
     virtual parse_result_t parse_request(event_t *event) {
         test_fsm_t *state = (test_fsm_t*)event->state;
         if(strncmp(state->buf, "hello", 5) == 0) {
-            state->btree_fsm = new mock_btree_t();
+            request_t *request = new request_t(state);
+            request->fsms[0] = new mock_btree_t();
+            request->nstarted++;
+            state->current_request = request;
             return req_handler_t::op_req_complex;
         } else if(strncmp(state->buf, "hello", 1) == 0 ||
                   strncmp(state->buf, "hello", 2) == 0 ||
@@ -129,10 +140,9 @@ public:
         return req_handler_t::op_malformed;
     }
     
-    virtual void build_response(test_fsm_t *fsm) {
-        delete(fsm->btree_fsm);
-        strcpy(fsm->buf, "okey");
-        fsm->nbuf = 5;
+    virtual void build_response(request_t *request) {
+        delete(request->fsms[0]);
+        delete(request);
     }
 };
 
@@ -144,11 +154,17 @@ public:
     typedef typename btree_fsm_t::transition_result_t transition_result_t;
     
 public:
-    mock_btree_fsm() : btree_fsm_t(NULL, NULL, btree_fsm_t::btree_mock_fsm) {}
+    mock_btree_fsm() : btree_fsm_t(NULL, btree_fsm_t::btree_mock_fsm), finished(false) {}
     
     virtual transition_result_t do_transition(event_t *event) {
+        finished = true;
         return btree_fsm_t::transition_complete;
     }
+
+    bool is_finished() {
+        return finished;
+    }
+    bool finished;
 };
 
 // Setup event
@@ -163,7 +179,7 @@ void setup_event(event_t *event, test_fsm_t *fsm) {
     mock_config_t::alloc_t alloc;                    \
     mock_handler_t<mock_config_t> handler;           \
     event_t event;                                   \
-    test_fsm_t fsm(0, &(alloc), &(handler), NULL);   \
+    test_fsm_t fsm(0, &(handler), NULL);   \
     setup_event(&(event), &(fsm));
     
 
@@ -175,7 +191,17 @@ void test_fsm_basic() {
 
     fsm.recvbuf += "hello";
     fsm.do_transition(&event);
-    assert_eq(strcmp(fsm.sendbuf.c_str(), "okey"), 0);
+
+    assert_ne(fsm.current_request, (void*)NULL);
+    assert_eq(fsm.current_request->nstarted, 1);
+    assert_eq(fsm.state, test_fsm_t::fsm_btree_incomplete);
+    
+    // Clean up the request
+    handler.build_response(fsm.current_request);
+
+    // Get to final state
+    event.event_type = et_request_complete;
+    fsm.do_transition(&event);
     assert_eq(fsm.state, test_fsm_t::fsm_socket_connected);
 }
 
@@ -208,9 +234,18 @@ void test_fsm_incomplete_recv() {
     assert_eq(strcmp(fsm.sendbuf.c_str(), ""), 0);
     assert_eq(fsm.state, test_fsm_t::fsm_socket_recv_incomplete);
 
-    // Complete the command
+    // Complete the receive
     fsm.do_transition(&event);
-    assert_eq(strcmp(fsm.sendbuf.c_str(), "okey"), 0);
+    assert_ne(fsm.current_request, (void*)NULL);
+    assert_eq(fsm.current_request->nstarted, 1);
+    assert_eq(fsm.state, test_fsm_t::fsm_btree_incomplete);
+
+    // Clean up the request
+    handler.build_response(fsm.current_request);
+
+    // Complete the send
+    event.event_type = et_request_complete;
+    fsm.do_transition(&event);
     assert_eq(fsm.state, test_fsm_t::fsm_socket_connected);
 }
 
@@ -220,20 +255,30 @@ void test_fsm_incomplete_send() {
     DEFINE_FSM(alloc, handler, event, fsm);
     fsm.hard_sendlim = 2;
 
-    // Make sure we're transitioned to an incomplete state
+    // Process the request
     fsm.recvbuf += "hello";
     fsm.do_transition(&event);
-    assert_eq(strcmp(fsm.sendbuf.c_str(), "ok"), 0);
+    assert_ne(fsm.current_request, (void*)NULL);
+    assert_eq(fsm.current_request->nstarted, 1);
+    assert_eq(fsm.state, test_fsm_t::fsm_btree_incomplete);
+
+    // Clean up the response and initiate the send
+    handler.build_response(fsm.current_request);
+    event_t event2;
+    event2.event_type = et_request_complete;
+    fsm.sendbuf += "okey";
+    fsm.nbuf = 5;
+    fsm.do_transition(&event2);
+
+    // Make sure we're transitioned to an incomplete state
     assert_eq(fsm.state, test_fsm_t::fsm_socket_send_incomplete);
 
     // One more incomplete
     fsm.do_transition(&event);
-    assert_eq(strcmp(fsm.sendbuf.c_str(), "okey"), 0);
     assert_eq(fsm.state, test_fsm_t::fsm_socket_send_incomplete);
 
     // And now we're done (sends the last \0)
     fsm.do_transition(&event);
-    assert_eq(strcmp(fsm.sendbuf.c_str(), "okey"), 0);
     assert_eq(fsm.state, test_fsm_t::fsm_socket_connected);
 }
 

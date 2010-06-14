@@ -33,13 +33,13 @@ public:
     };
 
 public:
-    btree_get_fsm()
-        : btree_fsm_t(btree_fsm_t::btree_get_fsm),
+    btree_get_fsm(cache_t *cache)
+        : btree_fsm_t(cache, btree_fsm_t::btree_get_fsm),
           state(uninitialized), node(NULL), node_id(cache_t::null_block_id)
         {}
 
     void init_lookup(int _key);
-    virtual transition_result_t do_transition(event_t *event, event_queue_t *event_queue);
+    virtual transition_result_t do_transition(event_t *event);
 
     virtual bool is_finished() { return state == lookup_complete; }
 
@@ -48,7 +48,7 @@ public:
     int value;
 
 private:
-    transition_result_t do_acquire_superblock(event_t *event, event_queue_t *event_queue);
+    transition_result_t do_acquire_superblock(event_t *event);
     transition_result_t do_acquire_root(event_t *event);
     transition_result_t do_acquire_node(event_t *event);
 

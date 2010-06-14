@@ -17,7 +17,13 @@ void message_hub_t::init(unsigned int cpu_id, unsigned int _ncpus, event_queue_t
     check("Can't support so many CPUs", ncpus > MAX_CPUS);
     for(int i = 0; i < ncpus; i++) {
         pthread_spin_init(&queues[i].lock, PTHREAD_PROCESS_PRIVATE);
-        queues[i].eq = eqs[i];
+        // TODO: unit tests currently don't mock the event queue, but
+        // pass NULL instead. Make event_queue mockable.
+        if(eqs) {
+            queues[i].eq = eqs[i];
+        } else {
+            queues[i].eq = NULL;
+        }
     }
 }
 
@@ -48,17 +54,23 @@ void message_hub_t::push_messages() {
             queue->msg_global_list.append_and_clear(queue->msg_local_list);
             pthread_spin_unlock(&queue->lock);
             
-            // Wakey wakey eggs and bakey
-            int res = eventfd_write(queue->eq->core_notify_fd, 1);
-            if(res != 0) {
-                // Perhaps the fd is overflown, let's clear it and try writing again
-                eventfd_t temp;
-                res = eventfd_read(queue->eq->core_notify_fd, &temp);
-                check("Could not clear an overflown core_notify_fd", res != 0);
+            // TODO: event queue isn't mockable right now, so unit
+            // tests pass NULL instead. When we refactor
+            // event_queue_t, we should refactor other places so that
+            // we can pass a mock version instead.
+            if(queue->eq) {
+                // Wakey wakey eggs and bakey
+                int res = eventfd_write(queue->eq->core_notify_fd, 1);
+                if(res != 0) {
+                    // Perhaps the fd is overflown, let's clear it and try writing again
+                    eventfd_t temp;
+                    res = eventfd_read(queue->eq->core_notify_fd, &temp);
+                    check("Could not clear an overflown core_notify_fd", res != 0);
 
-                // If it doesn't work this time, we're fucked beyond recovery
-                res = eventfd_write(queue->eq->core_notify_fd, 1);
-                check("Could not send a core notification via core_notify_fd", res != 0);
+                    // If it doesn't work this time, we're fucked beyond recovery
+                    res = eventfd_write(queue->eq->core_notify_fd, 1);
+                    check("Could not send a core notification via core_notify_fd", res != 0);
+                }
             }
         }
 

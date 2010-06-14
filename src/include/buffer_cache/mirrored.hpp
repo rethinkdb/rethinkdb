@@ -62,12 +62,8 @@ public:
         {}
 
     // Transaction API
-    transaction_t* begin_transaction(event_queue_t *event_queue) {
-        // TODO: event queue should be accessed as a globally
-        // available thread local variable. We should store it at the
-        // beginning of the transaction, and then check for every
-        // cache operation that the global thread local variable is
-        // the same as the one stored at the very beginning.
+    transaction_t* begin_transaction() {
+        event_queue_t *event_queue = get_cpu_context()->event_queue;
         return event_queue;
     }
     void end_transaction(transaction_t* transaction) {

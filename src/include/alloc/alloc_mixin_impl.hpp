@@ -2,6 +2,8 @@
 #ifndef __ALLOC_MIXIN_IMPL_HPP__
 #define __ALLOC_MIXIN_IMPL_HPP__
 
+#include <assert.h>
+
 /**
  * The small object accessor creates small object allocators per
  * thread per type on the fly.

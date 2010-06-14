@@ -69,7 +69,7 @@ void event_handler(event_queue_t *event_queue, event_t *event) {
         
         // Generate the cache event and forward it to the appropriate btree fsm
         event->event_type = et_cache;
-        code_config_t::btree_fsm_t::transition_result_t res = btree_fsm->do_transition(event, event_queue);
+        code_config_t::btree_fsm_t::transition_result_t res = btree_fsm->do_transition(event);
         if(res == code_config_t::btree_fsm_t::transition_complete) {
             // Booooyahh, btree completed. Send the completed btree to
             // the right CPU
@@ -93,7 +93,7 @@ void event_handler(event_queue_t *event_queue, event_t *event) {
             }
         } else {
             // We received a new btree that we need to process
-            code_config_t::btree_fsm_t::transition_result_t btree_res = btree_fsm->do_transition(NULL, event_queue);
+            code_config_t::btree_fsm_t::transition_result_t btree_res = btree_fsm->do_transition(NULL);
             if(btree_res == code_config_t::btree_fsm_t::transition_complete) {
                 // Btree completed right away, just send the response back.
                 event_queue->message_hub.store_message(btree_fsm->return_cpu, btree_fsm);

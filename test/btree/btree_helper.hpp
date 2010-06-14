@@ -7,7 +7,6 @@
 #include <algorithm>
 #include "config/args.hpp"
 #include "alloc/malloc.hpp"
-#include "alloc/object_static.hpp"
 #include "btree/array_node.hpp"
 #include "buffer_cache/volatile.hpp"
 #include "buffer_cache/stats.hpp"
@@ -17,10 +16,6 @@ using namespace std;
 
 // Forward declarations
 struct mock_config_t;
-
-// Mock definitions
-template <class config_t>
-struct mock_fsm_t {};
 
 // The recording cache emulates a real cache with various IO modes
 // (returns blocks immediately as if they were always in ram, always
@@ -37,14 +32,13 @@ struct recording_cache_t : public cache_stats_t<volatile_cache_t<config_t> > {
 public:
     typedef cache_stats_t<volatile_cache_t<config_t> > vcache_t;
     typedef typename vcache_t::block_id_t block_id_t;
-    typedef typename vcache_t::btree_fsm_t btree_fsm_t;
     typedef typename vcache_t::transaction_t transaction_t;
 
 public:
     recording_cache_t(size_t _block_size, aio_mode_t _aio_mode)
         : vcache_t(_block_size, 0), aio_mode(_aio_mode), read_event_exists(false) {}
 
-    void* acquire(transaction_t *tm, block_id_t block_id, btree_fsm_t *state) {
+    void* acquire(transaction_t *tm, block_id_t block_id, void *state) {
         aio_mode_t mode = aio_mode;
         if(aio_mode == rc_mixed)
             mode = rand() % 2 ? rc_immediate : rc_delayed;
@@ -66,7 +60,7 @@ public:
         assert(0);
     }
     
-    block_id_t release(transaction_t *tm, block_id_t block_id, void *block, bool dirty, btree_fsm_t *state) {
+    block_id_t release(transaction_t *tm, block_id_t block_id, void *block, bool dirty, void *state) {
         if(dirty) {
             // Record the write
             event_t e;
@@ -99,10 +93,7 @@ public:
 // Mock config
 struct mock_config_t {
     typedef buffer_t<IO_BUFFER_SIZE> iobuf_t;
-    typedef object_static_alloc_t<malloc_alloc_t, iobuf_t> alloc_t;
-
-    // Connection fsm
-    typedef mock_fsm_t<mock_config_t> conn_fsm_t;
+    typedef malloc_alloc_t alloc_t;
 
     // BTree
     typedef btree_fsm<mock_config_t> btree_fsm_t;
@@ -114,6 +105,9 @@ struct mock_config_t {
     typedef array_node_t<cache_t::block_id_t> node_t;
     typedef btree_get_fsm<mock_config_t> btree_get_fsm_t;
     typedef btree_set_fsm<mock_config_t> btree_set_fsm_t;
+
+    // Request
+    typedef request<mock_config_t> request_t;
 };
 
 typedef mock_config_t::cache_t cache_t;
@@ -124,7 +118,7 @@ typedef mock_config_t::btree_set_fsm_t set_fsm_t;
 // Helpers
 get_fsm_t::op_result_t lookup(cache_t *cache, int k, int expected = -1) {
     // Initialize get operation state machine
-    get_fsm_t tree(cache, NULL);
+    get_fsm_t tree(cache);
 
     // Perform lookup
     tree.init_lookup(k);
@@ -160,7 +154,7 @@ btree_fsm_t::transition_result_t writes_notify(btree_fsm_t *btree, cache_t *cach
 
 bool insert(cache_t *cache, int k, int v) {
     // Initialize set operation state machine
-    set_fsm_t tree(cache, NULL);
+    set_fsm_t tree(cache);
 
     // Perform update
     tree.init_update(k, v);

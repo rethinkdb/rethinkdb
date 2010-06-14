@@ -36,6 +36,7 @@
 #include "event_queue.hpp"
 #include "buffer_cache/stats.hpp"
 #include "cpu_context.hpp"
+#include "config/code.hpp"
 
 // TODO: report event queue statistics.
 

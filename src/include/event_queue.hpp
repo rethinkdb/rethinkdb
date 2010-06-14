@@ -8,7 +8,6 @@
 #include "event.hpp"
 #include "corefwd.hpp"
 #include "message_hub.hpp"
-#include "config/code.hpp"
 #include "config/cmd_args.hpp"
 
 typedef void (*event_handler_t)(event_queue_t*, event_t*);

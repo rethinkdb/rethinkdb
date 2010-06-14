@@ -3,6 +3,7 @@
 #define __BTREE_GET_FSM_IMPL_HPP__
 
 #include "utils.hpp"
+#include "cpu_context.hpp"
 
 template <class config_t>
 void btree_get_fsm<config_t>::init_lookup(int _key) {
@@ -11,15 +12,13 @@ void btree_get_fsm<config_t>::init_lookup(int _key) {
 }
 
 template <class config_t>
-typename btree_get_fsm<config_t>::transition_result_t btree_get_fsm<config_t>::do_acquire_superblock(event_t *event,
-                                                                                                     event_queue_t *event_queue) {
+typename btree_get_fsm<config_t>::transition_result_t btree_get_fsm<config_t>::do_acquire_superblock(event_t *event) {
     assert(state == acquire_superblock);
 
     void *buf = NULL;
     if(event == NULL) {
         // First entry into the FSM. First, grab the transaction.
-        // TODO: we should begin transaction with the event queue
-        btree_fsm_t::transaction = event_queue->cache->begin_transaction(event_queue);
+        btree_fsm_t::transaction = btree_fsm_t::get_cache()->begin_transaction();
 
         // Now try to grab the superblock.
         block_id_t superblock_id = btree_fsm_t::get_cache()->get_superblock_id();
@@ -116,8 +115,7 @@ typename btree_get_fsm<config_t>::transition_result_t btree_get_fsm<config_t>::d
 }
 
 template <class config_t>
-typename btree_get_fsm<config_t>::transition_result_t btree_get_fsm<config_t>::do_transition(event_t *event,
-                                                                                             event_queue_t *event_queue) {
+typename btree_get_fsm<config_t>::transition_result_t btree_get_fsm<config_t>::do_transition(event_t *event) {
     transition_result_t res = btree_fsm_t::transition_ok;
 
     // Make sure we've got either an empty or a cache event
@@ -134,7 +132,7 @@ typename btree_get_fsm<config_t>::transition_result_t btree_get_fsm<config_t>::d
     
     // First, acquire the superblock (to get root node ID)
     if(res == btree_fsm_t::transition_ok && state == acquire_superblock) {
-        res = do_acquire_superblock(event, event_queue);
+        res = do_acquire_superblock(event);
         event = NULL;
     }
         

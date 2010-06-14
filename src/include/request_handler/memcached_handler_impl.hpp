@@ -3,6 +3,7 @@
 #define __MEMCACHED_HANDLER_IMPL_HPP__
 
 #include <string.h>
+#include "cpu_context.hpp"
 #include "event_queue.hpp"
 #include "request_handler/memcached_handler.hpp"
 #include "conn_fsm.hpp"
@@ -94,7 +95,7 @@ typename memcached_handler_t<config_t>::parse_result_t memcached_handler_t<confi
 
         // Ok, we've got a key, a value, and no more tokens, add them
         // to the tree
-        btree_set_fsm_t *btree_fsm = new btree_set_fsm_t();
+        btree_set_fsm_t *btree_fsm = new btree_set_fsm_t(get_cpu_context()->event_queue->cache);
         btree_fsm->init_update(key_int, value_int);
         req_handler_t::event_queue->message_hub.store_message(key_to_cpu(key_int, req_handler_t::event_queue->nqueues),
                                                               btree_fsm);
@@ -138,7 +139,7 @@ typename memcached_handler_t<config_t>::parse_result_t memcached_handler_t<confi
 
             // Ok, we've got a key, initialize the FSM and add it to
             // the request
-            btree_get_fsm_t *btree_fsm = new btree_get_fsm_t();
+            btree_get_fsm_t *btree_fsm = new btree_get_fsm_t(get_cpu_context()->event_queue->cache);
             btree_fsm->request = request;
             btree_fsm->init_lookup(key_int);
             request->fsms[request->nstarted] = btree_fsm;
