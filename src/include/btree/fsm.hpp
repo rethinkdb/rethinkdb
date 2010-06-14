@@ -33,7 +33,7 @@ public:
 
 public:
     btree_fsm(cache_t *_cache, fsm_type_t _fsm_type)
-        : cache(_cache), fsm_type(_fsm_type), transaction(NULL)
+        : fsm_type(_fsm_type), transaction(NULL), request(NULL), cache(_cache)
         {}
     virtual ~btree_fsm() {}
 
