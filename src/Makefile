@@ -1,7 +1,7 @@
 # Define configuration variables
 CXX=g++
 LDFLAGS=-lrt -laio
-CXXFLAGS=-Iinclude -Wall -Werror
+CXXFLAGS=-Iinclude -Wall -Wextra -Wformat=2 -Wno-unused-parameter -Werror
 
 DEP_DIR=dep
 OBJ_DIR=obj

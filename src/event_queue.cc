@@ -378,7 +378,8 @@ event_queue_t::~event_queue_t()
     queue_stop_timer(this);
 
     // Kill the poll thread
-    itc_event_t event = {};
+    itc_event_t event;
+    bzero(&event, sizeof event);
     event.event_type = iet_shutdown;
     post_itc_message(&event);
 
