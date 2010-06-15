@@ -17,7 +17,7 @@ public:
     typedef aio_context<config_t> aio_context_t;
     
 public:
-    immediate_writeback_t(serializer_t *_serializer)
+    explicit immediate_writeback_t(serializer_t *_serializer)
         : serializer(_serializer)
         {}
     

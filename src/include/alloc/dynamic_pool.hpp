@@ -15,7 +15,7 @@
 
 template <class super_alloc_t>
 struct dynamic_pool_alloc_t {
-    dynamic_pool_alloc_t(size_t _object_size)
+    explicit dynamic_pool_alloc_t(size_t _object_size)
         : nallocs(1), smallest_free(0), object_size(_object_size)
         {
             check("Dynamic pool configuration error", DYNAMIC_POOL_MAX_ALLOCS < nallocs);

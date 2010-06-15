@@ -12,7 +12,7 @@ template <class accessor_t, class type_t>
 class alloc_mixin_t {
 public:
     static void *operator new(size_t);
-    static void operator delete(void *);
+    static void operator delete(void *ptr);
 };
 
 /**
@@ -24,7 +24,7 @@ class alloc_runtime_mixin_t {
 public:
     static void *operator new(size_t, alloc_t *);
     static void operator delete(void *, alloc_t *);
-    static void operator delete(void *);
+    static void operator delete(void *ptr);
 };
 
 /**

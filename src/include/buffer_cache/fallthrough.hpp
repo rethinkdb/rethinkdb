@@ -17,7 +17,8 @@ public:
     typedef void transaction_t;
 
 public:
-    fallthrough_cache_t(size_t _block_size) : serializer_t(_block_size) {}
+    explicit fallthrough_cache_t(size_t _block_size) :
+        serializer_t(_block_size) {}
 
     transaction_t* begin_transaction() {
         return NULL;
