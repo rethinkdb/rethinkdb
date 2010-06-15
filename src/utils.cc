@@ -1,5 +1,6 @@
 
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 #include <new>
 #include <exception>
@@ -14,8 +15,7 @@ long get_available_ram() {
 }
 
 long get_total_ram() {
-    return (long)sysconf(_SC_PHYS_PAGES) * (long)sysconf(_SC_PAGESIZE);
-}
+    return (long)sysconf(_SC_PHYS_PAGES) * (long)sysconf(_SC_PAGESIZE); }
 
 // Redefine operator new to do cache-lines alignment
 void* operator new(size_t size) throw(std::bad_alloc) {
@@ -82,4 +82,18 @@ const char* tokenize(const char *str, unsigned int size,
     // Return
     *token_size = end - pos;
     return str + pos;
+}
+
+bool token_eq(const char *str, char *token, int token_size) {
+    int len = strlen(str);
+    return len == token_size && strncmp(token, str, len) == 0;
+}
+
+bool contains_tokens(char *start, char *end, const char *delims) {
+    while (start < end) {
+        if (!is_delim(*start, delims))
+            return true;
+        start++;
+    }
+    return false;
 }

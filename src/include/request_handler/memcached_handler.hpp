@@ -27,6 +27,8 @@ public:
 
 private:
     cache_t *cache;
+    void set_key(conn_fsm_t *fsm, int key, int value);
+    void get_key(conn_fsm_t *fsm, char *key, unsigned int key_size, const char *delims);
 };
 
 #include "request_handler/memcached_handler_impl.hpp"

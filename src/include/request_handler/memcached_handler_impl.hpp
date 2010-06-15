@@ -45,29 +45,28 @@ typename memcached_handler_t<config_t>::parse_result_t memcached_handler_t<confi
 
     // Grab the command out of the string
     unsigned int token_size;
-    char delims[] = " \t\n\r\0";
+    char delims[] = " \t\n\r\0"; //This will not work quite as expected - the \0 will be processed as the end of the cstring, not as another delimiter
+                                 //also, this seems more suited to a constant or a #define
     char *token = tokenize(buf, size, delims, &token_size);
     if(token == NULL)
         return req_handler_t::op_malformed;
     
     // Execute command
-    if(token_size == 4 && strncmp(token, "quit", 4) == 0) {
+    if(token_eq("quit", token, token_size)) {
         // Make sure there's no more tokens
-        if((token = tokenize(token + token_size,
-                             buf + size - (token + token_size),
-                             delims, &token_size)) != NULL)
+        if (contains_tokens(token+token_size, buf+size, delims))
             return req_handler_t::op_malformed;
         // Quit the connection
         return req_handler_t::op_req_quit;
-    } else if(token_size == 8 && strncmp(token, "shutdown", 8) == 0) {
+
+    } else if(token_eq("shutdown", token, token_size)) {
         // Make sure there's no more tokens
-        if((token = tokenize(token + token_size,
-                             buf + size - (token + token_size),
-                             delims, &token_size)) != NULL)
+        if (contains_tokens(token+token_size, buf+size, delims))
             return req_handler_t::op_malformed;
         // Shutdown the server
         return req_handler_t::op_req_shutdown;
-    } else if(token_size == 3 && strncmp(token, "set", 3) == 0) {
+
+    } else if(token_eq("set", token, token_size)) {
         // Make sure we have two more tokens
         unsigned int key_size;
         char *key = tokenize(token + token_size,
@@ -88,25 +87,13 @@ typename memcached_handler_t<config_t>::parse_result_t memcached_handler_t<confi
                              delims, &token_size)) != NULL)
             return req_handler_t::op_malformed;
 
-        int key_int = atoi(key);
-        int value_int = atoi(value);
-
         // Ok, we've got a key, a value, and no more tokens, add them
         // to the tree
-        btree_set_fsm_t *btree_fsm = new btree_set_fsm_t(get_cpu_context()->event_queue->cache);
-        btree_fsm->init_update(key_int, value_int);
-        req_handler_t::event_queue->message_hub.store_message(key_to_cpu(key_int, req_handler_t::event_queue->nqueues),
-                                                              btree_fsm);
-
-        // Create request
-        request_t *request = new request_t(fsm);
-        request->fsms[request->nstarted] = btree_fsm;
-        request->nstarted++;
-        fsm->current_request = request;
-        btree_fsm->request = request;
+        set_key(fsm, atoi(key), atoi(value));
 
         return req_handler_t::op_req_complex;
-    } else if(token_size == 3 && strncmp(token, "get", 3) == 0) {
+
+    } else if(token_eq("get", token, token_size)) {
         // Make sure we have at least one more token
         unsigned int key_size;
         char *key = tokenize(token + token_size,
@@ -116,47 +103,10 @@ typename memcached_handler_t<config_t>::parse_result_t memcached_handler_t<confi
             return req_handler_t::op_malformed;
         key[key_size] = '\0';
 
-        // Create request
-        request_t *request = new request_t(fsm);
-
-        do {
-            // See if we can fit one more request
-            if(request->nstarted == MAX_OPS_IN_REQUEST) {
-                // We can't fit any more operations, let's just break
-                // and complete the ones we already sent out to other
-                // cores.
-                break;
-
-                // TODO: to a user, it will look like some of his
-                // requests aren't satisfied. We need to notify them
-                // somehow.
-            }
-            
-            key[key_size] = '\0';
-            int key_int = atoi(key);
-
-            // Ok, we've got a key, initialize the FSM and add it to
-            // the request
-            btree_get_fsm_t *btree_fsm = new btree_get_fsm_t(get_cpu_context()->event_queue->cache);
-            btree_fsm->request = request;
-            btree_fsm->init_lookup(key_int);
-            request->fsms[request->nstarted] = btree_fsm;
-            request->nstarted++;
-            
-            // Add the fsm to appropriate queue
-            req_handler_t::event_queue->message_hub
-                .store_message(key_to_cpu(key_int, req_handler_t::event_queue->nqueues), btree_fsm);
-
-            // Grab the next token
-            key = tokenize(key + key_size + 1,
-                           buf + size - (key + key_size + 1),
-                           delims, &key_size);
-        } while(key);
-
-        // Set the current request in the connection fsm
-        fsm->current_request = request;
+        get_key(fsm, key, key_size, delims);
 
         return req_handler_t::op_req_complex;
+
     } else {
         // Invalid command
         return req_handler_t::op_malformed;
@@ -165,6 +115,67 @@ typename memcached_handler_t<config_t>::parse_result_t memcached_handler_t<confi
     // The command was processed successfully
     return req_handler_t::op_malformed;
 }
+
+
+	
+
+template<class config_t> void memcached_handler_t<config_t>::set_key(conn_fsm_t *fsm, int key, int value){
+    btree_set_fsm_t *btree_fsm = new btree_set_fsm_t(get_cpu_context()->event_queue->cache);
+    btree_fsm->init_update(key, value);
+    req_handler_t::event_queue->message_hub.store_message(key_to_cpu(key, req_handler_t::event_queue->nqueues),
+            btree_fsm);
+
+    // Create request
+    request_t *request = new request_t(fsm);
+    request->fsms[request->nstarted] = btree_fsm;
+    request->nstarted++;
+    fsm->current_request = request;
+    btree_fsm->request = request;
+}
+
+template<class config_t> void memcached_handler_t<config_t>::get_key(conn_fsm_t *fsm, char *key, unsigned int key_size, const char *delims){
+    // Create request
+    request_t *request = new request_t(fsm);
+
+    do {
+        // See if we can fit one more request
+        if(request->nstarted == MAX_OPS_IN_REQUEST) {
+            // We can't fit any more operations, let's just break
+            // and complete the ones we already sent out to other
+            // cores.
+            break;
+
+            // TODO: to a user, it will look like some of his
+            // requests aren't satisfied. We need to notify them
+            // somehow.
+        }
+
+        key[key_size] = '\0';
+        int key_int = atoi(key);
+
+        // Ok, we've got a key, initialize the FSM and add it to
+        // the request
+        btree_get_fsm_t *btree_fsm = new btree_get_fsm_t(get_cpu_context()->event_queue->cache);
+        btree_fsm->request = request;
+        btree_fsm->init_lookup(key_int);
+        request->fsms[request->nstarted] = btree_fsm;
+        request->nstarted++;
+
+        // Add the fsm to appropriate queue
+        req_handler_t::event_queue->message_hub
+            .store_message(key_to_cpu(key_int, req_handler_t::event_queue->nqueues), btree_fsm);
+
+        // Grab the next token
+        key = tokenize(key + key_size + 1,
+                fsm->buf + fsm->nbuf - (key + key_size + 1),
+                delims, &key_size);
+    } while(key);
+
+    // Set the current request in the connection fsm
+    fsm->current_request = request;
+}
+
+
 
 template<class config_t>
 void memcached_handler_t<config_t>::build_response(request_t *request) {

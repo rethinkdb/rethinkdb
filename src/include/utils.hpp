@@ -27,6 +27,9 @@ const char* tokenize(const char *str, unsigned int size,
                      const char *delims, unsigned int *token_size);
 char* tokenize(char *str, unsigned int size,
                const char *delims, unsigned int *token_size);
+bool token_eq(const char *str, char *token, int token_size);
+bool contains_tokens(char *start, char *end, const char *delims);
+
 
 // Buffer
 template <int _size>
