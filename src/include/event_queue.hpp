@@ -74,6 +74,8 @@ public:
     req_handler_t *req_handler;
     message_hub_t message_hub;
 
+    // TODO: right now we only have one slice per event queue. We
+    // should support multiple slices per queue.
     // Caches responsible for serving a particular queue
     cache_t *cache;
 };
