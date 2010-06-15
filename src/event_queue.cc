@@ -153,9 +153,7 @@ int process_itc_notify(event_queue_t *self) {
 }
 
 void process_network_notify(event_queue_t *self, epoll_event *event) {
-    if(event->events & EPOLLIN ||
-       event->events & EPOLLOUT)
-    {
+    if(event->events & EPOLLIN || event->events & EPOLLOUT) {
         if(self->event_handler) {
             event_t qevent;
             bzero((char*)&qevent, sizeof(qevent));
@@ -163,8 +161,7 @@ void process_network_notify(event_queue_t *self, epoll_event *event) {
             qevent.state = event->data.ptr;
             if((event->events & EPOLLIN) && !(event->events & EPOLLOUT)) {
                 qevent.op = eo_read;
-            }
-            else if(!(event->events & EPOLLIN) && (event->events & EPOLLOUT)) {
+            } else if(!(event->events & EPOLLIN) && (event->events & EPOLLOUT)) {
                 qevent.op = eo_write;
             } else {
                 qevent.op = eo_rdwr;
@@ -173,8 +170,7 @@ void process_network_notify(event_queue_t *self, epoll_event *event) {
         }
     } else if(event->events == EPOLLRDHUP ||
               event->events == EPOLLERR ||
-              event->events == EPOLLHUP)
-    {
+              event->events == EPOLLHUP) {
         self->deregister_fsm((event_queue_t::conn_fsm_t*)(event->data.ptr));
     } else {
         check("epoll_wait came back with an unhandled event", 1);
@@ -378,7 +374,8 @@ event_queue_t::~event_queue_t()
     queue_stop_timer(this);
 
     // Kill the poll thread
-    itc_event_t event = {};
+    itc_event_t event;
+    bzero(&event, sizeof event);
     event.event_type = iet_shutdown;
     post_itc_message(&event);
 
@@ -537,6 +534,6 @@ void event_queue_t::pull_messages_for_cpu(message_hub_t::msg_list_t *target) {
     for(int i = 0; i < parent_pool->nworkers; i++) {
         message_hub_t::msg_list_t tmp_list;
         parent_pool->workers[i].message_hub.pull_messages(queue_id, &tmp_list);
-        target->append_and_clear(tmp_list);
+        target->append_and_clear(&tmp_list);
     }
 }

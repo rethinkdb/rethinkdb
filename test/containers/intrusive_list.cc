@@ -126,7 +126,7 @@ void test_append() {
     list2.push_back(&m3);
 
     // Append list2 to list1
-    list1.append_and_clear(list2);
+    list1.append_and_clear(&list2);
 
     // Check that list1 has m0 - m3
     assert_eq(list1.head(), &m0);
@@ -149,5 +149,5 @@ void test_empty_append() {
     intrusive_list_t<my_t> list1, list2;
     list1.push_back(&m0);
     list1.push_back(&m1);
-    list1.append_and_clear(list2);
+    list1.append_and_clear(&list2);
 }

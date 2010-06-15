@@ -7,14 +7,14 @@
 template<int alignment = 1024 * 8>
 struct memalign_alloc_t {
     memalign_alloc_t() {}
-    memalign_alloc_t(size_t size) {} // For compatibility
+    explicit memalign_alloc_t(size_t size) {} // For compatibility
     
     void* malloc(size_t size) {
         void *ptr = NULL;
         int res = posix_memalign(&ptr, alignment, size);
-        if(res != 0)
+        if(res != 0) {
             return NULL;
-        else {
+        } else {
 #ifndef NDEBUG
             // Zero out the buffer in debug mode so valgrind doesn't complain
             bzero(ptr, size);

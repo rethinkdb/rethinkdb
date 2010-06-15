@@ -6,12 +6,10 @@
 #include "worker_pool.hpp"
 #include "utils.hpp"
 
-using namespace std;
-
 int get_core_info(cmd_config_t *cmd_config) {
     int ncores = get_cpu_count(),
         nmaxcores = cmd_config->max_cores <= 0  ? ncores : cmd_config->max_cores,
-        nusecores = min(ncores, nmaxcores);
+        nusecores = std::min(ncores, nmaxcores);
 
     // TODO: can we move the printing out of here?
     printf("Physical cores: %d\n", ncores);
@@ -79,7 +77,6 @@ worker_pool_t::worker_pool_t(event_handler_t event_handler, pthread_t main_threa
                              cmd_config_t *_cmd_config)
     : cmd_config(_cmd_config)
 {
-
     create_worker_pool(event_handler, main_thread, get_core_info(cmd_config));
 }
 

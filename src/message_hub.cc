@@ -51,7 +51,7 @@ void message_hub_t::push_messages() {
         cpu_queue_t *queue = &queues[i];
         if(!queue->msg_local_list.empty()) {
             pthread_spin_lock(&queue->lock);
-            queue->msg_global_list.append_and_clear(queue->msg_local_list);
+            queue->msg_global_list.append_and_clear(&queue->msg_local_list);
             pthread_spin_unlock(&queue->lock);
             
             // TODO: event queue isn't mockable right now, so unit

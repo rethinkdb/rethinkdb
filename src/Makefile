@@ -1,7 +1,7 @@
 # Define configuration variables
 CXX=g++
 LDFLAGS=-lrt -laio
-CXXFLAGS=-Iinclude -Wall -Werror
+CXXFLAGS=-Iinclude -Wall -Wextra -Wformat=2 -Wno-unused-parameter -Werror
 
 DEP_DIR=dep
 OBJ_DIR=obj
@@ -36,6 +36,9 @@ $(SERVER_EXEC_NAME): $(OBJS)
 
 ctags:
 	ctags -R -f $(TAGS)
+
+style:
+	@find . -name \*.cc -o -name \*.hpp | xargs ../scripts/cpplint --verbose 2 --filter=-whitespace/end_of_line,-whitespace/parens,-whitespace/line_length,-readability/casting,-whitespace/braces,-readability/todo,-legal/copyright,-whitespace/comments,-build/include,-whitespace/labels,-runtime/int,-runtime/printf 2>&1 | grep -v Done\ processing
 
 clean:
 	$(call quiet_rm, *~) find -name '*~' -exec rm {} \;

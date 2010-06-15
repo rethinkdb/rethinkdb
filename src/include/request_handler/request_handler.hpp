@@ -16,7 +16,7 @@ public:
     typedef typename config_t::request_t request_t;
     
 public:
-    request_handler_t(event_queue_t *eq) : event_queue(eq) {}
+    explicit request_handler_t(event_queue_t *eq) : event_queue(eq) {}
     virtual ~request_handler_t() {}
 
     enum parse_result_t {

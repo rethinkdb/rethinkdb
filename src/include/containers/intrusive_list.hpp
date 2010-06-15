@@ -67,23 +67,23 @@ public:
         }
     }
 
-    void append_and_clear(intrusive_list_t<node_t> &list) {
-        if(list.empty())
+    void append_and_clear(intrusive_list_t<node_t> *list) {
+        if(list->empty())
             return;
         
         if(!_head) {
             // We're empty, just set head and tail to the new list
-            _head = list.head();
-            _tail = list.tail();
+            _head = list->head();
+            _tail = list->tail();
         } else {
             // Just continue to new list
-            _tail->next = list.head();
-            list.head()->prev = _tail;
-            _tail = list.tail();
+            _tail->next = list->head();
+            list->head()->prev = _tail;
+            _tail = list->tail();
         }
         // Note, we can't do appends without clear because we'd break
         // the previous pointer in the head of the appended list.
-        list.clear();
+        list->clear();
     }
 
 protected:
