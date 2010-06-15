@@ -37,6 +37,9 @@ $(SERVER_EXEC_NAME): $(OBJS)
 ctags:
 	ctags -R -f $(TAGS)
 
+style:
+	@find . -name \*.cc -o -name \*.hpp | xargs ../scripts/cpplint --verbose 2 --filter=-whitespace/end_of_line,-whitespace/parens,-whitespace/line_length,-readability/casting,-whitespace/braces,-readability/todo,-legal/copyright,-whitespace/comments,-build/include,-whitespace/labels,-runtime/int,-runtime/printf 2>&1 | grep -v Done\ processing
+
 clean:
 	$(call quiet_rm, *~) find -name '*~' -exec rm {} \;
 	$(call quiet_rm, $(SERVER_EXEC_NAME)) rm -f $(SERVER_EXEC_NAME)

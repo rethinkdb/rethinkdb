@@ -36,48 +36,48 @@ private:                      \
 /* The implementation macro */
 #define GEN_WRAPPER                   \
 public:                               \
-    template<typename U>              \
+    template <typename U>             \
     U* malloc() {                     \
         U *ptr = NULL;                \
         malloc(&ptr);                 \
         return new ((void*)ptr) U();  \
     }                                 \
                                       \
-    template<typename U, typename A0T>              \
+    template <typename U, typename A0T>             \
     U* malloc(A0T a0) {                             \
         U *ptr = NULL;                              \
         malloc(&ptr);                               \
         return new ((void*)ptr) U(a0);              \
     }                                               \
                                                     \
-    template<typename U, typename A0T,              \
-             typename A1T>                          \
+    template <typename U, typename A0T,             \
+              typename A1T>                         \
     U* malloc(A0T a0, A1T a1) {                     \
         U *ptr = NULL;                              \
         malloc(&ptr);                               \
         return new ((void*)ptr) U(a0, a1);          \
     }                                               \
                                                     \
-    template<typename U, typename A0T,              \
-             typename A1T, typename A2T>            \
+    template <typename U, typename A0T,             \
+              typename A1T, typename A2T>           \
     U* malloc(A0T a0, A1T a1, A2T a2) {             \
         U *ptr = NULL;                              \
         malloc(&ptr);                               \
         return new ((void*)ptr) U(a0, a1, a2);      \
     }                                               \
                                                     \
-    template<typename U, typename A0T,              \
-             typename A1T, typename A2T,            \
-             typename A3T>                          \
+    template <typename U, typename A0T,             \
+              typename A1T, typename A2T,           \
+              typename A3T>                         \
     U* malloc(A0T a0, A1T a1, A2T a2, A3T a3) {     \
         U *ptr = NULL;                              \
         malloc(&ptr);                               \
         return new ((void*)ptr) U(a0, a1, a2, a3);  \
     }                                               \
                                                     \
-    template<typename U, typename A0T,              \
-             typename A1T, typename A2T,            \
-             typename A3T, typename A4T>            \
+    template <typename U, typename A0T,             \
+              typename A1T, typename A2T,           \
+              typename A3T, typename A4T>           \
     U* malloc(A0T a0, A1T a1, A2T a2, A3T a3,       \
               A4T a4) {                             \
         U *ptr = NULL;                              \
@@ -108,7 +108,8 @@ struct object_static_alloc_t<super_alloc_t,
                              null_4_t, null_5_t,
                              null_6_t, null_7_t,
                              null_8_t, null_9_t>
-{};
+{
+};
 
 // Specialization with 1 allocator
 template <class super_alloc_t, typename T0>

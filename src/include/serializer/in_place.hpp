@@ -28,7 +28,7 @@ public:
     typedef typename config_t::btree_admin_t btree_admin_t;
 
 public:
-    in_place_serializer_t(size_t _block_size)
+    explicit in_place_serializer_t(size_t _block_size)
         : dbfd(-1), dbsize(-1), block_size(_block_size)
         {}
     ~in_place_serializer_t() {

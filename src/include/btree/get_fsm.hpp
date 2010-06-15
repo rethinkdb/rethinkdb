@@ -33,7 +33,7 @@ public:
     };
 
 public:
-    btree_get_fsm(cache_t *cache)
+    explicit btree_get_fsm(cache_t *cache)
         : btree_fsm_t(cache, btree_fsm_t::btree_get_fsm),
           state(uninitialized), node(NULL), node_id(cache_t::null_block_id)
         {}

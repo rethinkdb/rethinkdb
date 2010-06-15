@@ -18,7 +18,7 @@ struct array_internal_node_t;
 // TODO: optimize for cache alignment/cache misses/etc.
 template <typename block_id_t>
 struct array_node_t {
-    array_node_t(bool _leaf) : leaf(_leaf), nkeys(0) {}
+    explicit array_node_t(bool _leaf) : leaf(_leaf), nkeys(0) {}
     
     bool leaf;
     bool is_leaf() {

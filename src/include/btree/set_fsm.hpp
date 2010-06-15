@@ -27,7 +27,7 @@ public:
     };
 
 public:
-    btree_set_fsm(cache_t *cache)
+    explicit btree_set_fsm(cache_t *cache)
         : btree_fsm_t(cache, btree_fsm_t::btree_set_fsm),
           state(uninitialized), node(NULL), last_node(NULL), node_id(cache_t::null_block_id),
           last_node_id(cache_t::null_block_id), loading_superblock(false),

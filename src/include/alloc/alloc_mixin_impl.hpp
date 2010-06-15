@@ -47,7 +47,7 @@ template<class alloc_t>
 void *alloc_runtime_mixin_t<alloc_t>::operator new(size_t size,
          alloc_t *alloc) {
     alloc_t **ap =
-        static_cast<alloc_t **>(alloc->malloc(size + sizeof(alloc_t *)));
+        static_cast<alloc_t **>(alloc->malloc(size + sizeof alloc));
     *ap = alloc;
     return &ap[1];
 }
@@ -56,14 +56,14 @@ void *alloc_runtime_mixin_t<alloc_t>::operator new(size_t size,
 template<class alloc_t>
 void alloc_runtime_mixin_t<alloc_t>::operator delete(void *ptr,
         alloc_t *alloc) {
-    alloc_t **ap = &static_cast<alloc_t **>(ptr)[-1], *a = *ap;
+    alloc_t **ap = static_cast<alloc_t **>(ptr - 1), *a = *ap;
     assert(a == alloc);
     a->free(ap);
 }
 
 template<class alloc_t>
 void alloc_runtime_mixin_t<alloc_t>::operator delete(void *ptr) {
-    alloc_t **ap = &static_cast<alloc_t **>(ptr)[-1], *a = *ap;
+    alloc_t **ap = static_cast<alloc_t **>(ptr - 1), *a = *ap;
     a->free(ap);
 }
 

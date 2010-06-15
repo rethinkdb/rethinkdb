@@ -12,7 +12,8 @@ public:
     typedef typename config_t::conn_fsm_t conn_fsm_t;
     
 public:
-    request(conn_fsm_t *_netfsm) : nstarted(0), ncompleted(0), netfsm(_netfsm) {}
+    explicit request(conn_fsm_t *_netfsm) :
+        nstarted(0), ncompleted(0), netfsm(_netfsm) {}
     unsigned int nstarted, ncompleted;
 
     // TODO: make this dynamic
