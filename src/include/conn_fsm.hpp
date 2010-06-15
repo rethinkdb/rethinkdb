@@ -9,6 +9,13 @@
 #include "btree/fsm.hpp"
 #include "corefwd.hpp"
 
+// TODO: the lifetime of conn_fsm isn't well defined - some objects
+// may persist for far longer than others. The small object dynamic
+// pool allocator (currently defined as alloc_t in config_t) is
+// designed for objects that have roughly the same lifetime. We should
+// use a different allocator for objects like conn_fsm (and btree
+// buffers).
+
 // The actual state structure
 template<class config_t>
 struct conn_fsm : public config_t::iocalls_t,
