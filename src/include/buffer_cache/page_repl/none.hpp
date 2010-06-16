@@ -2,6 +2,10 @@
 #ifndef __PAGE_REPL_NONE_HPP__
 #define __PAGE_REPL_NONE_HPP__
 
+// TODO: We should use mlock (or mlockall or related) to make sure the
+// OS doesn't swap out our pages, since we're doing swapping
+// ourselves.
+
 // TODO: we might want to decouple selection of pages to free from the
 // actual cleaning process (e.g. we might have random vs. lru
 // selection strategies, and immediate vs. proactive cleaing
