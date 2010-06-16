@@ -18,6 +18,8 @@ public:
     typedef typename config_t::cache_t cache_t;
     typedef typename cache_t::block_id_t block_id_t;
     typedef typename btree_fsm_t::transition_result_t transition_result_t;
+    typedef typename cache_t::buf_t buf_t;
+
 public:
     enum state_t {
         uninitialized,
@@ -48,6 +50,8 @@ public:
     int value;
 
 private:
+    using btree_fsm<config_t>::transaction;
+
     transition_result_t do_acquire_superblock(event_t *event);
     transition_result_t do_acquire_root(event_t *event);
     transition_result_t do_acquire_node(event_t *event);

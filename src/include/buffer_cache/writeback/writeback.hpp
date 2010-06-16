@@ -24,8 +24,8 @@ public:
 
     void start();
 
-    block_id_t mark_dirty(event_queue_t *event_queue, block_id_t block_id,
-            void *block, void *state);
+    bool is_dirty(block_id_t);
+    void set_dirty(block_id_t);
 
 private:
     static void timer_callback(void *ctx);

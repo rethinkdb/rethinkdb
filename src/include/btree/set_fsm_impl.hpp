@@ -33,10 +33,10 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
 {
     assert(state == acquire_superblock);
 
-    void *buf = NULL;
+    buf_t *buf = NULL;
     if(event == NULL) {
         // First entry into the FSM. First, grab the transaction.
-        btree_fsm_t::transaction = btree_fsm_t::get_cache()->begin_transaction();
+        transaction = cache->begin_transaction();
 
         // Now try to grab the superblock.
         block_id_t superblock_id = btree_fsm_t::get_cache()->get_superblock_id();

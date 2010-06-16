@@ -86,11 +86,11 @@ public:
 private:
     struct timer {
         itimerspec it;
-        void (*callback)(void *);
+        void (*callback)(void *ctx);
         void *context;
     };
 
-    static void *epoll_handler(void *);
+    static void *epoll_handler(void *ctx);
     void process_timer_notify();
 
     std::priority_queue<timer *> timers;

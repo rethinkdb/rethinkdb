@@ -39,12 +39,29 @@ public:
     typedef typename config_t::writeback_t writeback_t;
     typedef typename config_t::buffer_alloc_t buffer_alloc_t;
     typedef typename config_t::page_map_t page_map_t;
-    typedef typename config_t::conn_fsm_t conn_fsm_t;
     typedef aio_context<config_t> aio_context_t;
+    class transaction_t;
 
-    // For now the transaction object contains nothing other than the
-    // event_queue pointer, so we don't create an extra structure.
-    typedef event_queue_t transaction_t;
+    class buf_t {
+    public:
+        void release();
+    private:
+        transaction_t *txn;
+    };
+
+    class transaction_t {
+    public:
+        void commit(void *state); /* XXX This is going to require a callback. */
+        //void abort(void *state); // TODO: We need this someday, but not yet.
+
+        buf_t *acquire(block_id_t, void *state);
+        buf_t *allocate(block_id_t, block_id_t *new_block_id);
+
+    private:
+#ifndef NDEBUG
+        event_queue_t *event_queue; // For asserts that we haven't changed CPU.
+#endif
+    };
 
 public:
     // TODO: how do we design communication between cache policies?
@@ -65,11 +82,11 @@ public:
     }
 
     // Transaction API
-    transaction_t* begin_transaction() {
+    transaction_t *begin_transaction() {
         event_queue_t *event_queue = get_cpu_context()->event_queue;
         return event_queue;
     }
-    void end_transaction(transaction_t* transaction) {
+    void end_transaction(transaction_t* transaction) { /* XXX Kill me. */
         assert(transaction == get_cpu_context()->event_queue);
     }
 
@@ -114,19 +131,9 @@ public:
         return block;
     }
 
-    block_id_t release(transaction_t* tm, block_id_t block_id, void *block, bool dirty, void *state) {
-        assert(tm == get_cpu_context()->event_queue);
-        
-        block_id_t new_block_id = block_id;
-        if(dirty) {
-            new_block_id = writeback_t::mark_dirty(tm, block_id, block, state);
-            // Already pinned by 'acquire'. Will unpin in aio_complete
-            // when the block is written
-        } else {
+    void release(block_id_t block_id) {
+        if (!is_dirty(block_id))
             page_repl_t::unpin(block_id);
-        }
-
-        return new_block_id;
     }
 
     void aio_complete(aio_context_t *ctx, void *block, bool written) {

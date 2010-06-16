@@ -37,9 +37,9 @@ public:
         return parent_cache_t::acquire(tm, block_id, state);
     }
 
-    block_id_t release(transaction_t *tm, block_id_t block_id, void *block, bool dirty, void *state) {
+    block_id_t release(block_id_t block_id) {
         nreleased++;
-        return parent_cache_t::release(tm, block_id, block, dirty, state);
+        return parent_cache_t::release(block_id);
     }
 
 protected:

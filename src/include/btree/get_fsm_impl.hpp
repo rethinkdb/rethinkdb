@@ -15,14 +15,14 @@ template <class config_t>
 typename btree_get_fsm<config_t>::transition_result_t btree_get_fsm<config_t>::do_acquire_superblock(event_t *event) {
     assert(state == acquire_superblock);
 
-    void *buf = NULL;
+    buf_t *buf = NULL;
     if(event == NULL) {
         // First entry into the FSM. First, grab the transaction.
         btree_fsm_t::transaction = btree_fsm_t::get_cache()->begin_transaction();
 
         // Now try to grab the superblock.
         block_id_t superblock_id = btree_fsm_t::get_cache()->get_superblock_id();
-        buf = btree_fsm_t::get_cache()->acquire(btree_fsm_t::transaction, superblock_id, this);
+        buf = transaction->acquire(superblock_id, this);
     } else {
         // We already tried to grab the superblock, and we're getting
         // a cache notification about it.
