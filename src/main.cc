@@ -31,7 +31,7 @@
 #include "buffer_cache/mirrored.hpp"
 #include "buffer_cache/page_map/unlocked_hash_map.hpp"
 #include "buffer_cache/page_repl/none.hpp"
-#include "buffer_cache/writeback/immediate.hpp"
+#include "buffer_cache/writeback/writeback.hpp"
 #include "btree/get_fsm.hpp"
 #include "btree/set_fsm.hpp"
 #include "btree/array_node.hpp"

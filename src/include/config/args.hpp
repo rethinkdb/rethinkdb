@@ -7,7 +7,7 @@
  * TODO: Many of these should be runtime switches.
  */
 // Ticks (in milliseconds) the internal timed tasks are performed at
-#define TIMER_TICKS_IN_MS                         3000
+#define TIMER_TICKS_IN_MS                         50
 
 // Max concurrent IO requests per event queue
 #define MAX_CONCURRENT_IO_REQUESTS                300

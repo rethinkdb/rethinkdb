@@ -27,6 +27,9 @@ template <class config_t>
 struct immediate_writeback_t;
 
 template <class config_t>
+struct writeback_tmpl_t;
+
+template <class config_t>
 struct cache_stats_t;
 
 // Btree

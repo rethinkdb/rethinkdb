@@ -12,8 +12,6 @@ struct immediate_writeback_t {
 public:
     typedef typename config_t::serializer_t serializer_t;
     typedef typename serializer_t::block_id_t block_id_t;
-    typedef typename config_t::cache_t cache_t;
-    typedef typename config_t::btree_fsm_t btree_fsm_t;
     typedef aio_context<config_t> aio_context_t;
     
 public:
