@@ -4,6 +4,8 @@
 
 #include <pthread.h>
 #include <libaio.h>
+#include <queue>
+
 #include "arch/resource.hpp"
 #include "event.hpp"
 #include "corefwd.hpp"
@@ -54,6 +56,8 @@ public:
 
     void pull_messages_for_cpu(message_hub_t::msg_list_t *target);
 
+    void set_timer(timespec *, void (*callback)(void *ctx), void *ctx);
+
 public:
     // TODO: be clear on what should and shouldn't be public here
     int queue_id;
@@ -78,7 +82,18 @@ public:
     // should support multiple slices per queue.
     // Caches responsible for serving a particular queue
     cache_t *cache;
+
+private:
+    struct timer {
+        itimerspec it;
+        void (*callback)(void *);
+        void *context;
+    };
+
+    static void *epoll_handler(void *);
+    void process_timer_notify();
+
+    std::priority_queue<timer *> timers;
 };
 
 #endif // __EVENT_QUEUE_HPP__
-

@@ -60,6 +60,10 @@ public:
         writeback_t(this)
         {}
 
+    void start() {
+        writeback_t::start();
+    }
+
     // Transaction API
     transaction_t* begin_transaction() {
         event_queue_t *event_queue = get_cpu_context()->event_queue;
