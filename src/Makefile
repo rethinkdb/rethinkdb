@@ -1,3 +1,6 @@
+# Default DEBUG variable to "on".  This should be changed on a release branch.
+DEBUG ?= 1
+
 # Define configuration variables
 CXX=g++
 LDFLAGS=-lrt -laio
@@ -34,8 +37,8 @@ OBJS:=$(OBJS:%.o=$(OBJ_DIR)/%.o)
 $(SERVER_EXEC_NAME): $(OBJS)
 	$(quiet_ld) $(CXX) $(LDFLAGS) $(OBJS) -o $(SERVER_EXEC_NAME)
 
-ctags:
-	ctags -R -f $(TAGS)
+tags:
+	@ctags -R -f $(TAGS)
 
 style:
 	@find . -name \*.cc -o -name \*.hpp | xargs ../scripts/cpplint --verbose 2 --filter=-whitespace/end_of_line,-whitespace/parens,-whitespace/line_length,-readability/casting,-whitespace/braces,-readability/todo,-legal/copyright,-whitespace/comments,-build/include,-whitespace/labels,-runtime/int,-runtime/printf 2>&1 | grep -v Done\ processing

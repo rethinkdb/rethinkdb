@@ -28,7 +28,7 @@
 #include "buffer_cache/mirrored.hpp"
 #include "buffer_cache/page_map/unlocked_hash_map.hpp"
 #include "buffer_cache/page_repl/none.hpp"
-#include "buffer_cache/writeback/immediate.hpp"
+#include "buffer_cache/writeback/writeback.hpp"
 #include "btree/get_fsm.hpp"
 #include "btree/set_fsm.hpp"
 #include "btree/array_node.hpp"
@@ -95,16 +95,17 @@ void process_aio_notify(event_queue_t *self) {
     } while(nevents_total > 0);
 }
 
-void process_timer_notify(event_queue_t *self) {
+void event_queue_t::process_timer_notify() {
     int res;
     eventfd_t nexpirations;
-    res = eventfd_read(self->timer_fd, &nexpirations);
+
+    res = eventfd_read(timer_fd, &nexpirations);
     check("Could not read timer_fd value", res != 0);
 
-    self->total_expirations += nexpirations;
+    total_expirations += nexpirations;
 
     // Internal ops to perform on the timer
-    if((self->total_expirations * TIMER_TICKS_IN_MS) % ALLOC_GC_IN_MS == 0) {
+    if((total_expirations * TIMER_TICKS_IN_MS) % ALLOC_GC_IN_MS == 0) {
         // Perform allocator gc
         std::vector<event_queue_t::alloc_t*> *allocs =
             tls_small_obj_alloc_accessor<event_queue_t::alloc_t>::allocs;
@@ -116,14 +117,39 @@ void process_timer_notify(event_queue_t *self) {
     }
 
     // Let queue user handle the event, if they wish
-    if(self->event_handler) {
+    if(event_handler) {
         event_t qevent;
         bzero((char*)&qevent, sizeof(qevent));
         qevent.event_type = et_timer;
-        qevent.state = (void*)self->timer_fd;
+        qevent.state = (void*)timer_fd;
         qevent.result = nexpirations;
         qevent.op = eo_read;
-        self->event_handler(self, &qevent);
+        event_handler(this, &qevent);
+    }
+
+    /* Check for and execute any expired timers. */
+    timespec now;
+    clock_gettime(CLOCK_MONOTONIC, &now);
+
+    timer *t = timers.empty() ? NULL : timers.top();
+    while (t && (t->it.it_value.tv_sec < now.tv_sec ||
+           (t->it.it_value.tv_sec == now.tv_sec &&
+            t->it.it_value.tv_nsec <= now.tv_nsec))) {
+        timers.pop();
+
+        t->callback(t->context);
+
+        /* Adjust value for next iteration. */
+        t->it.it_value = now;
+        t->it.it_value.tv_sec += t->it.it_interval.tv_sec;
+        t->it.it_value.tv_nsec += t->it.it_interval.tv_nsec;
+        if (t->it.it_value.tv_nsec > 1000 * 1000 * 1000) {
+            t->it.it_value.tv_nsec -= 1000 * 1000 * 1000;
+            t->it.it_value.tv_sec += 1;
+        }
+        timers.push(t);
+
+        t = timers.empty() ? NULL : timers.top();
     }
 }
 
@@ -202,13 +228,14 @@ void process_cpu_core_notify(event_queue_t *self, message_hub_t::msg_list_t *mes
     }
 }
 
-void* epoll_handler(void *arg) {
+void *event_queue_t::epoll_handler(void *arg) {
     int res;
     event_queue_t *self = (event_queue_t*)arg;
     epoll_event events[MAX_IO_EVENT_PROCESSING_BATCH_SIZE];
 
     // First, set the cpu context structure
     get_cpu_context()->event_queue = self;
+    self->cache->start();
     
     // Now, start the loop
     do {
@@ -234,7 +261,7 @@ void* epoll_handler(void *arg) {
             if(source == self->aio_notify_fd) {
                 process_aio_notify(self);
             } else if(source == self->timer_fd) {
-                process_timer_notify(self);
+                self->process_timer_notify();
             } else if(source == self->core_notify_fd) {
                 // Great, we needed to wake up to process batch jobs
                 // from other cores, no need to do anything here.
@@ -536,4 +563,26 @@ void event_queue_t::pull_messages_for_cpu(message_hub_t::msg_list_t *target) {
         parent_pool->workers[i].message_hub.pull_messages(queue_id, &tmp_list);
         target->append_and_clear(&tmp_list);
     }
+}
+
+/**
+ * Timer API
+ */
+void
+event_queue_t::set_timer(timespec *ts, void (*callback)(void *), void *ctx) {
+    timespec now;
+
+    clock_gettime(CLOCK_MONOTONIC, &now);
+    timer *t = new timer;
+    t->it.it_interval = *ts;
+    t->it.it_value = now;
+    t->it.it_value.tv_sec += ts->tv_sec;
+    t->it.it_value.tv_nsec += ts->tv_nsec;
+    if (t->it.it_value.tv_nsec > 1000 * 1000 * 1000) {
+        t->it.it_value.tv_nsec -= 1000 * 1000 * 1000;
+        t->it.it_value.tv_sec += 1;
+    }
+    t->callback = callback;
+    t->context = ctx;
+    timers.push(t);
 }
