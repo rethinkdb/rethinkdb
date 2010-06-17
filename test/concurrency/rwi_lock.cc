@@ -9,7 +9,7 @@ struct mock_config_t {
 
 typedef rwi_lock<mock_config_t> rwi_lock_t;
 
-/* Read, followed by an op */
+/* Read, followed by an op (or two) */
 void test_basic_rr() {
     rwi_lock_t lock;
     assert_eq(lock.lock(rwi_lock_t::rwi_read, NULL), true);
@@ -35,7 +35,7 @@ void test_basic_rii() {
     assert_eq(lock.lock(rwi_lock_t::rwi_intent, NULL), false);
 }
 
-/* Write followed by an op */
+/* Write followed by an op  (or two) */
 void test_basic_wr() {
     rwi_lock_t lock;
     assert_eq(lock.lock(rwi_lock_t::rwi_write, NULL), true);
@@ -79,7 +79,7 @@ void test_basic_iu() {
     assert_eq(lock.upgrade_intent_to_write(NULL), true);
 }
 
-void test_basic_iur() {
+void test_basic_ipr() {
     rwi_lock_t lock;
     assert_eq(lock.lock(rwi_lock_t::rwi_intent, NULL), true);
     assert_eq(lock.upgrade_intent_to_write(NULL), true);
