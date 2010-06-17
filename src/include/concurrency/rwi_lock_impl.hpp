@@ -167,13 +167,13 @@ void rwi_lock<config_t>::enqueue_request(access_t access, void *state) {
 
 template<class config_t>
 void rwi_lock<config_t>::process_queue() {
-    lock_request_t *req = queue.head;
+    lock_request_t *req = queue.head();
     while(req) {
         if(!try_lock(req->op))
             break;
         else
             send_notify(req);
-        req = queue.head->next;
+        req = queue.head()->next;
     }
 }
 
