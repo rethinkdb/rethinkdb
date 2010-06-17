@@ -27,8 +27,11 @@ public:
 protected:
     class buf_t {
     public:
-        bool is_dirty() const;
-        void set_dirty();
+        bool is_dirty() const { return dirty; }
+        void set_dirty() { dirty = true; }
+
+    private:
+        bool dirty;
     };
 
 private:

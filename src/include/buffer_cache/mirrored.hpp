@@ -45,7 +45,7 @@ public:
 
     class buf_t : public writeback_t::buf_t {
     public:
-        void *ptr();
+        void *ptr() { return data; } /* XXX Should we have const version? */
         void release(void *state); /* XXX: This callback needs to be removed. */
 
         node_t *node(); /* XXX Return data as the correct node_t type. */
@@ -160,6 +160,8 @@ public:
         }
     }
 };
+
+#include "buffer_cache/mirrored_impl.hpp"
 
 #endif // __MIRRORED_CACHE_HPP__
 
