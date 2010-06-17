@@ -13,17 +13,6 @@ bool rwi_lock<config_t>::lock(access_t access, void *state) {
     }
 }
 
-template<class config_t>
-bool rwi_lock<config_t>::upgrade_intent_to_write(void *state) {
-    assert(this->state == rwis_reading_with_intent);
-    if(try_upgrade_intent_to_write()) {
-        return true;
-    } else {
-        // TODO: enqueue_request(rwi_upgrade, state);
-        return false;
-    }
-}
-
 // Call if you've locked for read or write, or upgraded to write,
 // and are now unlocking.
 template<class config_t>
@@ -40,8 +29,6 @@ void rwi_lock<config_t>::unlock() {
         break;
     case rwis_reading_with_intent:
         nreaders--;
-        if(nreaders == 0)
-            state = rwis_unlocked;
         assert(nreaders >= 0);
         break;
     }
@@ -73,6 +60,8 @@ bool rwi_lock<config_t>::try_lock(access_t access) {
         return try_lock_write();
     case rwi_intent:
         return try_lock_intent();
+    case rwi_upgrade:
+        return try_lock_upgrade();
     }
     assert(0);
 }
@@ -151,7 +140,7 @@ bool rwi_lock<config_t>::try_lock_intent() {
 }
 
 template<class config_t>
-bool rwi_lock<config_t>::try_upgrade_intent_to_write() {
+bool rwi_lock<config_t>::try_lock_upgrade() {
     assert(state == rwis_reading_with_intent);
     if(nreaders == 0) {
         state = rwis_writing;
@@ -173,13 +162,23 @@ void rwi_lock<config_t>::process_queue() {
             break;
         else
             send_notify(req);
-        req = queue.head()->next;
+        req = ((intrusive_list_node_t<lock_request_t>*)(queue.head()))->next;
     }
+
+    // TODO: currently if a request cannot be satisfied it is pushed
+    // onto a queue. When it is possible to satisfy requests because
+    // the state changes, they are processed in first-in-first-out
+    // order. This prevents starvation, but currently there is no
+    // attempt at reordering to increase throughput. For example,
+    // rwrwrw should probably be reordered to rrrwww so that the reads
+    // could be executed in parallel.
 }
 
 template<class config_t>
 void rwi_lock<config_t>::send_notify(lock_request_t *req) {
-    // TODO: figure out notification sending
+    // Hub might be NULL due to unit tests.
+    if(hub)
+        hub->store_message(cpu, req);
 }
 
 #endif // __RWI_LOCK_IMPL_HPP__

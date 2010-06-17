@@ -220,12 +220,11 @@ void process_cpu_core_notify(event_queue_t *self, message_hub_t::msg_list_t *mes
 
         // Move on to next element
         head = tmp;
-
-        // Note, deallocation of cpu messages currently occurs in
-        // build response (since a cpu message is right now guranteed
-        // to be a btree, and build response deletes btrees as it
-        // sends out the results over network)
     }
+
+        // Note, the event handler is responsible for the deallocation
+        // of cpu messages. For btree_fsms, for example this currently
+        // occurs in build_response.
 }
 
 void *event_queue_t::epoll_handler(void *arg) {

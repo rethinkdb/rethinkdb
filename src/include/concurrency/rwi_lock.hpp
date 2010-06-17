@@ -4,6 +4,7 @@
 
 #include "alloc/alloc_mixin.hpp"
 #include "containers/intrusive_list.hpp"
+#include "message_hub.hpp"
 
 /* Read/write/intent lock allows locking a resource for reading,
  * reading with the intent to potentially upgrade to write, and
@@ -15,17 +16,30 @@ public:
     enum access_t {
         rwi_read,
         rwi_write,
-        rwi_intent
+        rwi_intent,
+        rwi_upgrade
     };
 
-    rwi_lock() : state(rwis_unlocked), nreaders(0) {}
-    
-    // Call to lock for read, write, or intent, but not to upgrade.
-    bool lock(access_t access, void *state);
+    struct lock_request_t : public cpu_message_t,
+                            public alloc_mixin_t<tls_small_obj_alloc_accessor<typename config_t::alloc_t>,
+                                                 lock_request_t>,
+                            public intrusive_list_node_t<lock_request_t>
+    {
+        lock_request_t(access_t _op, void *_state)
+            : op(_op), state(_state)
+            {}
+        access_t op;
+        void *state;
+    };
 
-    // Call if you've locked for intent and are now upgrading to
-    // write.
-    bool upgrade_intent_to_write(void *state);
+    // Note, the receiver of lock_request_t completion notifications
+    // is responsible for freeing associated memory by calling delete.
+    rwi_lock(message_hub_t *_hub, unsigned int _cpu)
+        : hub(_hub), cpu(_cpu), state(rwis_unlocked), nreaders(0)
+        {}
+    
+    // Call to lock for read, write, intent, or upgrade intent to write
+    bool lock(access_t access, void *state);
 
     // Call if you've locked for read or write, or upgraded to write,
     // and are now unlocking.
@@ -43,28 +57,20 @@ private:
         rwis_reading_with_intent
     };
 
-    struct lock_request_t : public intrusive_list_node_t<lock_request_t>,
-                            public alloc_mixin_t<tls_small_obj_alloc_accessor<typename config_t::alloc_t>, lock_request_t>
-    {
-        lock_request_t(access_t _op, void *_state)
-            : op(_op), state(_state)
-            {}
-        access_t op;
-        void *state;
-    };
-
     typedef intrusive_list_t<lock_request_t> request_list_t;
     
     bool try_lock(access_t access);
     bool try_lock_read();
     bool try_lock_write();
     bool try_lock_intent();
-    bool try_upgrade_intent_to_write();
+    bool try_lock_upgrade();
     void enqueue_request(access_t access, void *state);
     void process_queue();
     void send_notify(lock_request_t *req);
 
 private:
+    message_hub_t *hub;
+    unsigned int cpu;
     rwi_state state;
     unsigned int nreaders; // not counting reader with intent
     request_list_t queue;
