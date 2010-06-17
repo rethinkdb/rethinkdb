@@ -7,6 +7,11 @@ struct my_t : public intrusive_list_node_t<my_t> {
     int value;
 };
 
+struct my2_t : public my_t,
+               public intrusive_list_node_t<my2_t> {
+    my2_t(int _value) : my_t(_value) {}
+};
+
 void test_back() {
     my_t m0(0), m1(1), m2(2);
 
@@ -150,4 +155,49 @@ void test_empty_append() {
     list1.push_back(&m0);
     list1.push_back(&m1);
     list1.append_and_clear(&list2);
+}
+
+// Test two intrusive lists in one structure
+void test_two_lists() {
+    my2_t m0(0), m1(1), m2(2);
+
+    // Insert some elements
+    intrusive_list_t<my_t> list1, _list1;
+    intrusive_list_t<my2_t> list2, _list2;
+
+    // Create the first list
+    list1.push_back(&m0);
+    list1.push_back(&m1);
+    list1.push_back(&m2);
+
+    // Create the second list
+    list2.push_front(&m0);
+    list2.push_front(&m1);
+    list2.push_front(&m2);
+
+    // Check the first list
+    assert_eq(list1.head(), &m0);
+    assert_eq(list1.tail(), &m2);
+    assert_eq(((intrusive_list_node_t<my_t>)m0).prev, (my_t*)NULL);
+    assert_eq(((intrusive_list_node_t<my_t>)m0).next, &m1);
+    assert_eq(((intrusive_list_node_t<my_t>)m1).prev, &m0);
+    assert_eq(((intrusive_list_node_t<my_t>)m1).next, &m2);
+    assert_eq(((intrusive_list_node_t<my_t>)m2).prev, &m1);
+    assert_eq(((intrusive_list_node_t<my_t>)m2).next, (my_t*)NULL);
+
+    // Check the second list
+    assert_eq(list2.head(), &m2);
+    assert_eq(list2.tail(), &m0);
+    assert_eq(((intrusive_list_node_t<my2_t>)m2).prev, (my2_t*)NULL);
+    assert_eq(((intrusive_list_node_t<my2_t>)m2).next, &m1);
+    assert_eq(((intrusive_list_node_t<my2_t>)m1).prev, &m2);
+    assert_eq(((intrusive_list_node_t<my2_t>)m1).next, &m0);
+    assert_eq(((intrusive_list_node_t<my2_t>)m0).prev, &m1);
+    assert_eq(((intrusive_list_node_t<my2_t>)m0).next, (my2_t*)NULL);
+
+    // Just to make sure everything compiles right
+    list1.remove(&m1);
+    list2.remove(&m1);
+    list1.append_and_clear(&_list1);
+    list2.append_and_clear(&_list2);
 }
