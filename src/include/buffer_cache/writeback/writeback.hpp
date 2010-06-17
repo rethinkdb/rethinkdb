@@ -24,8 +24,12 @@ public:
 
     void start();
 
-    bool is_dirty(block_id_t);
-    void set_dirty(block_id_t);
+protected:
+    class buf_t {
+    public:
+        bool is_dirty() const;
+        void set_dirty();
+    };
 
 private:
     static void timer_callback(void *ctx);

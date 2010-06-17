@@ -40,12 +40,12 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
 
         // Now try to grab the superblock.
         block_id_t superblock_id = btree_fsm_t::get_cache()->get_superblock_id();
-        buf = btree_fsm_t::get_cache()->acquire(btree_fsm_t::transaction, superblock_id, this);
+        buf = transaction->acquire(superblock_id, this);
     } else {
         // We already tried to grab the superblock, and we're getting
         // a cache notification about it.
         assert(event->buf);
-        buf = event->buf;
+        buf = (buf_t *)event->buf; /* XXX Event should hold a buf, not a void **/
     }
 
     if(buf) {
@@ -53,7 +53,7 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
         // cache notification). Grab the root id, and move on to
         // acquiring the root.
         node_id = btree_fsm_t::get_root_id(buf);
-        btree_fsm_t::get_cache()->release(btree_fsm_t::transaction, btree_fsm_t::get_cache()->get_superblock_id(), buf, false, this);
+        buf->release(this); /* XXX Not a continuation point. */
         if(cache_t::is_block_id_null(node_id))
             state = insert_root;
         else
@@ -75,15 +75,15 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
 
     if(event == NULL) {
         // Acquire the actual root node
-        node = (node_t*)btree_fsm_t::get_cache()->acquire(btree_fsm_t::transaction, node_id, this);
+        buf = transaction->acquire(node_id, this);
     } else {
         // We already tried to acquire the root node, and here it is
         // via the cache notification.
         assert(event->buf);
-        node = (node_t*)event->buf;
+        buf = (buf_t *)event->buf;
     }
     
-    if(node == NULL) {
+    if(buf == NULL) {
         return btree_fsm_t::transition_incomplete;
     } else {
         state = acquire_node;
@@ -98,8 +98,8 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
     // allocate the root (otherwise, the root has already been
     // allocated here, and we just need to set its id in the metadata)
     if(cache_t::is_block_id_null(node_id)) {
-        void *ptr = btree_fsm_t::get_cache()->allocate(btree_fsm_t::transaction, &node_id);
-        node = new (ptr) leaf_node_t();
+        buf = transaction->allocate(&node_id);
+        new (buf->ptr()) leaf_node_t(); /* XXX Is this right? */
     }
     if(set_root_id(node_id, event)) {
         state = acquire_node;
@@ -124,13 +124,13 @@ template <class config_t>
 typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::do_acquire_node(event_t *event)
 {
     if(event == NULL) {
-        node = (node_t*)btree_fsm_t::get_cache()->acquire(btree_fsm_t::transaction, node_id, this);
+        buf = transaction->acquire(node_id, this);
     } else {
         assert(event->buf);
-        node = (node_t*)event->buf;
+        buf = (buf_t*)event->buf;
     }
 
-    if(node)
+    if(buf)
         return btree_fsm_t::transition_ok;
     else
         return btree_fsm_t::transition_incomplete;
@@ -161,7 +161,7 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
             if(res == btree_fsm_t::transition_ok && state == update_complete) {
                 if(nwrites == 0) {
                     // End the transaction
-                    btree_fsm_t::get_cache()->end_transaction(btree_fsm_t::transaction);
+                    transaction->commit(); /* XXX Add a callback here. */
                     return btree_fsm_t::transition_complete;
                 } else {
                     return btree_fsm_t::transition_incomplete;
@@ -197,9 +197,8 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
 
     // If we were acquiring a node, do that
     // Go up the tree...
-    while(res == btree_fsm_t::transition_ok && state == acquire_node)
-    {
-        if(!node) {
+    while(res == btree_fsm_t::transition_ok && state == acquire_node) {
+        if(!buf) {
             state = acquire_node;
             res = do_acquire_node(event);
             event = NULL;
@@ -209,30 +208,36 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
         }
 
         // Proactively split the node
+        node_t *node = buf->node();
         if(node->is_full()) {
             int median;
-            node_t *rnode;
+            buf_t *rbuf;
+            internal_node_t *last_node;
             block_id_t rnode_id;
             bool new_root = false;
-            split_node(node, &rnode, &rnode_id, &median);
+            split_node(node, &rbuf, &rnode_id, &median);
             // Create a new root if we're splitting a root
-            if(last_node == NULL) {
+            if(last_buf == NULL) {
                 new_root = true;
-                void *ptr = btree_fsm_t::get_cache()->allocate(btree_fsm_t::transaction, &last_node_id);
-                last_node = new (ptr) internal_node_t();
-            };
+                last_buf = transaction->allocate(&last_node_id);
+                last_node = new (last_buf->ptr()) internal_node_t();
+            } else {
+                last_node = (internal_node_t *)last_buf->node(); /* XXX */
+            }
             last_node->insert(median, node_id, rnode_id);
-            last_node_dirty = true;
+            last_buf->set_dirty();
                 
             // Figure out where the key goes
             if(key < median) {
                 // Left node and node are the same thing
-                btree_fsm_t::get_cache()->release(btree_fsm_t::transaction, rnode_id, (void*)rnode, true, this);
+                rbuf->set_dirty();
+                rbuf->release(this); /* XXX We don't need to wait here. */
                 nwrites++;
             } else if(key >= median) {
-                btree_fsm_t::get_cache()->release(btree_fsm_t::transaction, node_id, (void*)node, true, this);
+                buf->set_dirty();
+                buf->release(this);
                 nwrites++;
-                node = rnode;
+                buf = rbuf;
                 node_id = rnode_id;
             }
             node_dirty = true;
@@ -248,7 +253,8 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
         // Insert the value, or move up the tree
         if(node->is_leaf()) {
             ((leaf_node_t*)node)->insert(key, value);
-            btree_fsm_t::get_cache()->release(btree_fsm_t::transaction, node_id, (void*)node, true, this);
+            buf->set_dirty();
+            buf->release(this); /* XXX Not a blocking point. */
             nwrites++;
             state = update_complete;
             res = btree_fsm_t::transition_ok;
@@ -256,27 +262,27 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
         } else {
             // Release and update the last node
             if(!cache_t::is_block_id_null(last_node_id)) {
-                btree_fsm_t::get_cache()->release(btree_fsm_t::transaction, last_node_id, (void*)last_node, last_node_dirty,
-                                            this);
-                last_node_dirty ? (nwrites++) : 0;
+                if (last_buf->is_dirty())
+                    nwrites++;
+                last_buf->release(this); /* XXX This shouldn't be blocking. */
             }
-            last_node = (internal_node_t*)node;
+            last_buf = buf;
             last_node_id = node_id;
             last_node_dirty = node_dirty;
             node_dirty = false;
                 
             // Look up the next node
             node_id = ((internal_node_t*)node)->lookup(key);
-            node = NULL;
+            buf = NULL;
         }
     }
 
     // Release the final node
     if(res == btree_fsm_t::transition_ok && state == update_complete) {
         if(!cache_t::is_block_id_null(last_node_id)) {
-            btree_fsm_t::get_cache()->release(btree_fsm_t::transaction, last_node_id, (void*)last_node, last_node_dirty,
-                                        this);
-            last_node_dirty ? (nwrites++) : 0;
+            if (last_buf->is_dirty())
+                nwrites++;
+            last_buf->release(this); /* XXX This shouldn't be blocking. */
             last_node_id = cache_t::null_block_id;
         }
     }
@@ -286,18 +292,19 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
 
 template <class config_t>
 int btree_set_fsm<config_t>::set_root_id(block_id_t root_id, event_t *event) {
-    void *buf;
+    buf_t *buf;
     if(event == NULL) {
-        block_id_t superblock_id = btree_fsm_t::get_cache()->get_superblock_id();
-        buf = btree_fsm_t::get_cache()->acquire(btree_fsm_t::transaction, superblock_id, this);
+        block_id_t superblock_id = cache->get_superblock_id();
+        buf = transaction->acquire(superblock_id, this);
     } else {
         assert(event->buf);
         buf = event->buf;
     }
     
     if(buf) {
-        memcpy(buf, (void*)&root_id, sizeof(root_id));
-        btree_fsm_t::get_cache()->release(btree_fsm_t::transaction, btree_fsm_t::get_cache()->get_superblock_id(), buf, true, this);
+        buf->set_dirty();
+        memcpy(buf->ptr(), (void*)&root_id, sizeof(root_id));
+        buf->release(this);
         nwrites++;
         return 1;
     } else {
@@ -306,18 +313,17 @@ int btree_set_fsm<config_t>::set_root_id(block_id_t root_id, event_t *event) {
 }
 
 template <class config_t>
-void btree_set_fsm<config_t>::split_node(node_t *node, node_t **rnode,
+void btree_set_fsm<config_t>::split_node(node_t *node, buf_t **rbuf,
                                          block_id_t *rnode_id, int *median) {
-    void *ptr = btree_fsm_t::get_cache()->allocate(btree_fsm_t::transaction, rnode_id);
+    buf_t *res = transaction->allocate(rnode_id);
     if(node->is_leaf()) {
-        *rnode = new (ptr) leaf_node_t();
-        ((leaf_node_t*)node)->split((leaf_node_t*)*rnode,
-                                    median);
+        leaf_node_t *rnode = new (res->ptr()) leaf_node_t();
+        ((leaf_node_t*)node)->split(rnode, median);
     } else {
-        *rnode = new (ptr) internal_node_t();
-        ((internal_node_t*)node)->split((internal_node_t*)*rnode,
-                                        median);
+        internal_node_t *rnode = new (res->ptr()) internal_node_t();
+        ((internal_node_t*)node)->split(rnode, median);
     }
+    *rbuf = res;
 }
 
 

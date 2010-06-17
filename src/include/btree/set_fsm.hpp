@@ -30,7 +30,7 @@ public:
 public:
     explicit btree_set_fsm(cache_t *cache)
         : btree_fsm_t(cache, btree_fsm_t::btree_set_fsm),
-          state(uninitialized), node(NULL), last_node(NULL), node_id(cache_t::null_block_id),
+          state(uninitialized), buf(NULL), last_buf(NULL), node_id(cache_t::null_block_id),
           last_node_id(cache_t::null_block_id), loading_superblock(false),
           node_dirty(false), last_node_dirty(false), nwrites(0)
         {}
@@ -52,7 +52,7 @@ private:
 
 private:
     int set_root_id(block_id_t root_id, event_t *event);
-    void split_node(node_t *node, node_t **rnode, block_id_t *rnode_id, int *median);
+    void split_node(node_t *node, buf_t **rnode, block_id_t *rnode_id, int *median);
     
 private:
     // Some relevant state information
@@ -60,9 +60,11 @@ private:
     int key;
     int value;
 
-    node_t *node;
-    internal_node_t *last_node;
-    block_id_t node_id, last_node_id;
+    buf_t *buf;
+    //node_t *node;
+    buf_t *last_buf;
+    //internal_node_t *last_node;
+    block_id_t node_id, last_node_id; /* XXX These should be removed. */
     bool loading_superblock, node_dirty, last_node_dirty;
     int nwrites;
 };

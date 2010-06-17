@@ -4,6 +4,7 @@
 
 #include "event_queue.hpp"
 #include "cpu_context.hpp"
+//#include "btree/array_node.hpp" /* XXX */
 
 // This cache doesn't actually do any operations itself. Instead, it
 // provides a framework that collects all components of the cache
@@ -39,23 +40,28 @@ public:
     typedef typename config_t::writeback_t writeback_t;
     typedef typename config_t::buffer_alloc_t buffer_alloc_t;
     typedef typename config_t::page_map_t page_map_t;
+    typedef typename config_t::node_t node_t;
     typedef aio_context<config_t> aio_context_t;
     class transaction_t;
 
-    class buf_t {
+    class buf_t : public writeback_t::buf_t {
     public:
-        void release();
+        void *ptr();
+        void release(void *state); /* XXX: This callback needs to be removed. */
+
+        node_t *node(); /* XXX Return data as the correct node_t type. */
     private:
         transaction_t *txn;
+        void *data;
     };
 
     class transaction_t {
     public:
-        void commit(void *state); /* XXX This is going to require a callback. */
+        void commit(/*void *state*/); /* XXX This will require a callback. */
         //void abort(void *state); // TODO: We need this someday, but not yet.
 
         buf_t *acquire(block_id_t, void *state);
-        buf_t *allocate(block_id_t, block_id_t *new_block_id);
+        buf_t *allocate(block_id_t *new_block_id);
 
     private:
 #ifndef NDEBUG
@@ -82,7 +88,7 @@ public:
     }
 
     // Transaction API
-    transaction_t *begin_transaction() {
+    transaction_t *begin_transaction() { /* XXX Should this take ro/rw flag? */
         event_queue_t *event_queue = get_cpu_context()->event_queue;
         return event_queue;
     }
