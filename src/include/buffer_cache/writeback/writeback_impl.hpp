@@ -15,10 +15,12 @@ void writeback_tmpl_t<config_t>::start() {
     get_cpu_context()->event_queue->set_timer(&ts, timer_callback, this);
 }
 
+#if 0
 template <class config_t>
 void writeback_tmpl_t<config_t>::set_dirty(block_id_t block_id) {
     dirty_blocks.insert(block_id);
 }
+#endif
 
 template <class config_t>
 void writeback_tmpl_t<config_t>::timer_callback(void *ctx) {

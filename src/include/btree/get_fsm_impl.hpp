@@ -18,24 +18,24 @@ typename btree_get_fsm<config_t>::transition_result_t btree_get_fsm<config_t>::d
     buf_t *buf = NULL;
     if(event == NULL) {
         // First entry into the FSM. First, grab the transaction.
-        btree_fsm_t::transaction = btree_fsm_t::get_cache()->begin_transaction();
+        transaction = cache->begin_transaction();
 
         // Now try to grab the superblock.
-        block_id_t superblock_id = btree_fsm_t::get_cache()->get_superblock_id();
+        block_id_t superblock_id = cache->get_superblock_id();
         buf = transaction->acquire(superblock_id, this);
     } else {
         // We already tried to grab the superblock, and we're getting
         // a cache notification about it.
         assert(event->buf);
-        buf = event->buf;
+        buf = (buf_t *)event->buf;
     }
     
     if(buf) {
         // Got the superblock buffer (either right away or through
         // cache notification). Grab the root id, and move on to
         // acquiring the root.
-        node_id = btree_fsm_t::get_root_id(buf);
-        btree_fsm_t::get_cache()->release(btree_fsm_t::transaction, btree_fsm_t::get_cache()->get_superblock_id(), buf, false, this);
+        node_id = btree_fsm_t::get_root_id(buf->ptr());
+        buf->release(this); /* XXX Not a continuation point. */
         state = acquire_root;
         return btree_fsm_t::transition_ok;
     } else {
@@ -54,21 +54,21 @@ typename btree_get_fsm<config_t>::transition_result_t btree_get_fsm<config_t>::d
         op_result = btree_not_found;
         state = lookup_complete;
         // End the transaction
-        btree_fsm_t::get_cache()->end_transaction(btree_fsm_t::transaction);
+        transaction->commit(); /* XXX This is a continuation point. */
         return btree_fsm_t::transition_complete;
     }
 
     if(event == NULL) {
         // Acquire the actual root node
-        node = (node_t*)btree_fsm_t::get_cache()->acquire(btree_fsm_t::transaction, node_id, this);
+        buf = transaction->acquire(node_id, this);
     } else {
         // We already tried to grab the root, and we're getting a
         // cache notification about it.
         assert(event->buf);
-        node = (node_t*)event->buf;
+        buf = (buf_t*)event->buf;
     }
     
-    if(node == NULL) {
+    if(buf == NULL) {
         // Can't grab the root right away. Wait for a cache event.
         return btree_fsm_t::transition_incomplete;
     } else {
@@ -84,20 +84,22 @@ typename btree_get_fsm<config_t>::transition_result_t btree_get_fsm<config_t>::d
     // Either we already have the node (then event should be NULL), or
     // we don't have the node (in which case we asked for it before,
     // and it should be getting to us via an event)
-    assert((node && !event) || (!node && event));
+    assert((buf && !event) || (!buf && event));
 
-    if(!node) {
+    if(!buf) {
         // We asked for a node before and couldn't get it right
         // away. It must be in the event.
         assert(event && event->buf);
-        node = (node_t*)event->buf;
+        buf = (buf_t*)event->buf;
     }
-    assert(node);
+    assert(buf);
+    node_t *node = buf->node();
     if(node->is_internal()) {
         block_id_t next_node_id = ((internal_node_t*)node)->lookup(key);
-        btree_fsm_t::get_cache()->release(btree_fsm_t::transaction, node_id, (void*)node, false, this);
+        /* XXX XXX Cannot release until the next acquire succeeds for locks! */
+        buf->release(this); /* XXX Not a continuation point. */
         node_id = next_node_id;
-        node = (node_t*)btree_fsm_t::get_cache()->acquire(btree_fsm_t::transaction, node_id, this);
+        buf = transaction->acquire(node_id, this);
         if(node) {
             return btree_fsm_t::transition_ok;
         } else {
@@ -105,11 +107,12 @@ typename btree_get_fsm<config_t>::transition_result_t btree_get_fsm<config_t>::d
         }
     } else {
         int result = ((leaf_node_t*)node)->lookup(key, &value);
-        btree_fsm_t::get_cache()->release(btree_fsm_t::transaction, node_id, (void*)node, false, this);
+        buf->release(this); /* XXX Not a continuation point. */
         state = lookup_complete;
         op_result = result == 1 ? btree_found : btree_not_found;
         // End the transaction
-        btree_fsm_t::get_cache()->end_transaction(btree_fsm_t::transaction);
+        /* XXX This is a continuation point, but a read-only commit should be non-blocking. */
+        transaction->commit();
         return btree_fsm_t::transition_complete;
     }
 }

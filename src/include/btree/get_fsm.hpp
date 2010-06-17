@@ -37,7 +37,7 @@ public:
 public:
     explicit btree_get_fsm(cache_t *cache)
         : btree_fsm_t(cache, btree_fsm_t::btree_get_fsm),
-          state(uninitialized), node(NULL), node_id(cache_t::null_block_id)
+          state(uninitialized), buf(NULL), node_id(cache_t::null_block_id)
         {}
 
     void init_lookup(int _key);
@@ -50,6 +50,7 @@ public:
     int value;
 
 private:
+    using btree_fsm<config_t>::cache;
     using btree_fsm<config_t>::transaction;
 
     transition_result_t do_acquire_superblock(event_t *event);
@@ -59,7 +60,7 @@ private:
 private:
     // Some relevant state information
     state_t state;
-    node_t *node;
+    buf_t *buf;
     int key;
 
     block_id_t node_id;

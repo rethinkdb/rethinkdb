@@ -298,7 +298,7 @@ int btree_set_fsm<config_t>::set_root_id(block_id_t root_id, event_t *event) {
         buf = transaction->acquire(superblock_id, this);
     } else {
         assert(event->buf);
-        buf = event->buf;
+        buf = (buf_t *)event->buf;
     }
     
     if(buf) {

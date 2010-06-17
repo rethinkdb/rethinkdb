@@ -4,7 +4,6 @@
 
 #include "event_queue.hpp"
 #include "cpu_context.hpp"
-//#include "btree/array_node.hpp" /* XXX */
 
 // This cache doesn't actually do any operations itself. Instead, it
 // provides a framework that collects all components of the cache
@@ -90,16 +89,19 @@ public:
     // Transaction API
     transaction_t *begin_transaction() { /* XXX Should this take ro/rw flag? */
         event_queue_t *event_queue = get_cpu_context()->event_queue;
-        return event_queue;
+        return (transaction_t *)event_queue; /* XXX XXX XXX */
     }
+#if 0
     void end_transaction(transaction_t* transaction) { /* XXX Kill me. */
         assert(transaction == get_cpu_context()->event_queue);
     }
+#endif
 
     // TODO: each operation can only be performed within a
     // transaction. Much the API nicer (from the OOP/C++ point of
     // view), and move the following methods into a separate
     // transaction class.
+#if 0
     void* allocate(transaction_t* tm, block_id_t *block_id) {
         assert(tm == get_cpu_context()->event_queue);
         
@@ -141,6 +143,7 @@ public:
         if (!is_dirty(block_id))
             page_repl_t::unpin(block_id);
     }
+#endif
 
     void aio_complete(aio_context_t *ctx, void *block, bool written) {
 #ifndef NDEBUG            
