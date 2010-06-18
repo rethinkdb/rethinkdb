@@ -71,6 +71,8 @@ public:
         explicit transaction_t(mirrored_cache_t *cache);
         ~transaction_t();
 
+        mirrored_cache_t *get_cache() const { return cache; }
+
         void commit(/*void *state*/); /* XXX This will require a callback. */
         //void abort(void *state); // TODO: We need this someday, but not yet.
 

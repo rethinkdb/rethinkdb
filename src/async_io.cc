@@ -33,6 +33,7 @@ void schedule_aio_write(resource_t resource,
     iocb* requests[1];
     requests[0] = request;
     int res = io_submit(notify_target->aio_context, 1, requests);
+    printf("offset %ld ptr %p len %ld res = %d\n", offset, buf, length, res);
     check("Could not submit IO write request", res < 1);
 }
 

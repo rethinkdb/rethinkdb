@@ -18,7 +18,17 @@ mirrored_cache_t<config_t>::buf_t::buf_t(transaction_t *transaction,
 }
 
 template <class config_t>
-void mirrored_cache_t<config_t>::buf_t::release(void *ctx) {
+void mirrored_cache_t<config_t>::buf_t::release(void *state) {
+    /* XXX vvv This is incorrect. */
+    if (this->is_dirty()) {
+        aio_context_t *ctx = new aio_context_t();
+        ctx->user_state = state;
+        ctx->buf = this;
+        ctx->block_id = block_id;
+        transaction->get_cache()->do_write(get_cpu_context()->event_queue,
+            block_id, ptr(), ctx);
+    }
+    /* XXX ^^^ This is incorrect. */
     if (!this->is_dirty())
         this->unpin();
 }
