@@ -51,10 +51,11 @@ public:
     };
     
 public:
-    conn_fsm(resource_t _source, req_handler_t *_req_handler, event_queue_t *_event_queue);
+    conn_fsm(resource_t _source, event_queue_t *_event_queue);
     ~conn_fsm();
     
     result_t do_transition(event_t *event);
+    void consume(unsigned int bytes);
 
     int get_source() {
         return source;

@@ -11,7 +11,6 @@
 #include "event_queue.hpp"
 #include "server.hpp"
 
-static pthread_t server_thread;
 struct loop_info_t {
     int sockfd;
     worker_pool_t *worker_pool;
@@ -28,8 +27,7 @@ void process_socket(int sockfd, worker_pool_t *worker_pool) {
     event_queue->post_itc_message(&event);
 }
 
-void* do_server_loop(void *arg) {
-    loop_info_t *loop_info = (loop_info_t*)arg;
+void do_server_loop(loop_info_t *loop_info) {
     int sockfd = loop_info->sockfd;
     worker_pool_t *worker_pool = loop_info->worker_pool;
     
@@ -50,11 +48,9 @@ void* do_server_loop(void *arg) {
         check("Could not make socket non-blocking", res != 0);
         process_socket(newsockfd, worker_pool);
     }
-
-    return NULL;
 }
 
-int start_server(worker_pool_t *worker_pool) {
+void start_server(worker_pool_t *worker_pool) {
     // Create the socket
     int res, sockfd;
     sockfd = socket(AF_INET, SOCK_STREAM, 0);
@@ -80,21 +76,12 @@ int start_server(worker_pool_t *worker_pool) {
     // Start the server loop
     loop_info.sockfd = sockfd;
     loop_info.worker_pool = worker_pool;
-    res = pthread_create(&server_thread, NULL, do_server_loop, (void*)&loop_info);
-    check("Could not create server thread", res != 0);
-
-    return sockfd;
+    do_server_loop(&loop_info);
+    stop_server(sockfd);
 }
 
 void stop_server(int sockfd) {
     int res;
-    
-    // Break the loop
-    res = pthread_kill(server_thread, SIGINT);
-    check("Could not send kill signal to server thread", res != 0);
-    
-    res = pthread_join(server_thread, NULL);
-    check("Could not join with the server thread", res != 0);
 
     // Stop accepting connections
     res = shutdown(sockfd, SHUT_RDWR);

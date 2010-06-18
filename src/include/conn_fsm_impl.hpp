@@ -6,9 +6,11 @@
 #include <unistd.h>
 #include <errno.h>
 #include "utils.hpp"
+#include "request_handler/memcached_handler.hpp"
 
 template<class config_t>
 void conn_fsm<config_t>::init_state() {
+    this->req_handler = new memcached_handler_t<config_t>(event_queue->cache, event_queue);
     this->state = fsm_socket_connected;
     this->buf = NULL;
     this->nbuf = 0;
@@ -62,7 +64,8 @@ typename conn_fsm<config_t>::result_t conn_fsm<config_t>::do_socket_ready(event_
                 switch(handler_res) {
                 case req_handler_t::op_malformed:
                     // Command wasn't processed correctly, send error
-                    send_err_to_client();
+                    // Error should already be placed in buffer by parser
+                    send_msg_to_client();
                     break;
                 case req_handler_t::op_partial_packet:
                     // The data is incomplete, keep trying to read in
@@ -193,15 +196,15 @@ typename conn_fsm<config_t>::result_t conn_fsm<config_t>::do_transition(event_t 
 }
 
 template<class config_t>
-conn_fsm<config_t>::conn_fsm(resource_t _source, req_handler_t *_req_handler, event_queue_t *_event_queue)
-    : source(_source), req_handler(_req_handler),
-      event_queue(_event_queue)
+conn_fsm<config_t>::conn_fsm(resource_t _source, event_queue_t *_event_queue)
+    : source(_source), event_queue(_event_queue)
 {
     init_state();
 }
 
 template<class config_t>
 conn_fsm<config_t>::~conn_fsm() {
+    delete req_handler;
     if(this->buf) {
         delete this->buf;
     }
@@ -248,6 +251,12 @@ void conn_fsm<config_t>::send_err_to_client() {
     strcpy(this->buf, err_msg);
     this->nbuf = strlen(err_msg) + 1;
     send_msg_to_client();
+}
+
+template<class config_t>
+void conn_fsm<config_t>::consume(unsigned int bytes) {
+    memmove(this->buf, this->buf + bytes, this->nbuf - bytes);
+    this->nbuf -= bytes;
 }
 
 #endif // __FSM_IMPL_HPP__

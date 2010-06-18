@@ -24,7 +24,6 @@ OBJS =  main.o \
 	event_queue.o \
 	utils.o \
 	worker_pool.o \
-	tty.o \
 	server.o \
 	cmd_args.o \
 	message_hub.o \

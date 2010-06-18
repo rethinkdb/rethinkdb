@@ -32,7 +32,6 @@ public:
     typedef code_config_t::conn_fsm_t conn_fsm_t;
     typedef code_config_t::alloc_t alloc_t;
     typedef code_config_t::fsm_list_t fsm_list_t;
-    typedef code_config_t::req_handler_t req_handler_t;
     
 public:
     event_queue_t(int queue_id, int _nqueues, event_handler_t event_handler,
@@ -75,7 +74,6 @@ public:
     // state.
     fsm_list_t live_fsms;
     worker_pool_t *parent_pool;
-    req_handler_t *req_handler;
     message_hub_t message_hub;
 
     // TODO: right now we only have one slice per event queue. We

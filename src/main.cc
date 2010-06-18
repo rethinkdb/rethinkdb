@@ -13,7 +13,6 @@
 #include "utils.hpp"
 #include "worker_pool.hpp"
 #include "async_io.hpp"
-#include "tty.hpp"
 #include "server.hpp"
 #include "config/cmd_args.hpp"
 #include "config/code.hpp"
@@ -91,9 +90,10 @@ void event_handler(event_queue_t *event_queue, event_t *event) {
             if(btree_fsm->request->ncompleted == btree_fsm->request->nstarted) {
                 // This should be before build_response, as the
                 // request handler will destroy the btree
-                event->state = btree_fsm->request->netfsm;
+                code_config_t::conn_fsm_t *netfsm = btree_fsm->request->netfsm;
+                event->state =  netfsm;
                 event->event_type = et_request_complete;
-                event_queue->req_handler->build_response(btree_fsm->request);
+                netfsm->req_handler->build_response(btree_fsm->request);
                 initiate_conn_fsm_transition(event_queue, event);
             }
         } else {
@@ -146,15 +146,7 @@ int main(int argc, char *argv[])
         worker_pool_t worker_pool(event_handler, pthread_self(), &config);
 
         // Start the server (in a separate thread)
-        int sockfd = start_server(&worker_pool);
-
-        // Feed the terminal into the listening socket
-        do_tty_loop(sockfd);
-
-        // At this point we broke out of the tty loop. Stop the server.
-        stop_server(sockfd);
+        start_server(&worker_pool);
     }
-
-    printf("Server offline\n");
 }
 

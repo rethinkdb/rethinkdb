@@ -19,7 +19,6 @@
 #include "alloc/alloc_mixin.hpp"
 #include "utils.hpp"
 #include "worker_pool.hpp"
-#include "request_handler/memcached_handler.hpp"
 #include "arch/io.hpp"
 #include "conn_fsm.hpp"
 #include "serializer/in_place.hpp"
@@ -170,7 +169,7 @@ int process_itc_notify(event_queue_t *self) {
         // The state will be freed within the fsm when the socket is
         // closed (or killed for a variety of possible reasons)
         event_queue_t::conn_fsm_t *state =
-            new event_queue_t::conn_fsm_t(event.data, self->req_handler, self);
+            new event_queue_t::conn_fsm_t(event.data, self);
         self->register_fsm(state);
         break;
     }
@@ -298,9 +297,7 @@ breakout:
     self->cache->close();
     delete self->cache;
 
-    // Delete the ops class
-    delete self->req_handler;
-    
+    // FIXME: the following block of code crashes
     // Ok, we're about to die here. Let's do one last thing before our
     // demise - delete all the custom small object allocators!
     std::vector<event_queue_t::alloc_t*> *allocs = tls_small_obj_alloc_accessor<event_queue_t::alloc_t>::allocs;
@@ -371,8 +368,6 @@ event_queue_t::event_queue_t(int queue_id, int _nqueues, event_handler_t event_h
     out << queue_id;
     str += out.str();
     cache->init((char*)str.c_str());
-
-    req_handler = new memcached_handler_t<code_config_t>(cache, this);
 }
 
 void event_queue_t::start_queue() {
@@ -396,9 +391,6 @@ event_queue_t::~event_queue_t()
 {
     int res;
 
-    // Stop the timer
-    queue_stop_timer(this);
-
     // Kill the poll thread
     itc_event_t event;
     bzero(&event, sizeof event);
@@ -408,6 +400,9 @@ event_queue_t::~event_queue_t()
     // Wait for the poll thread to die
     res = pthread_join(this->epoll_thread, NULL);
     check("Could not join with epoll thread", res != 0);
+
+    // Stop the timer
+    queue_stop_timer(this);
 
     // Cleanup resources
     res = close(this->epoll_fd);

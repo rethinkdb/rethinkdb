@@ -45,6 +45,7 @@ public:
 
 public:
     op_result_t op_result;
+    int key;
     int value;
 
 private:
@@ -56,7 +57,6 @@ private:
     // Some relevant state information
     state_t state;
     node_t *node;
-    int key;
 
     block_id_t node_id;
 };

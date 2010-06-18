@@ -9,8 +9,11 @@
 #include "conn_fsm.hpp"
 #include "corefwd.hpp"
 
-// TODO: we should have a nicer way of switching on the command than a
-// giant if/else statement (at least break them out into functions).
+#define DELIMS " \t\n\r"
+#define MALFORMED_RESPONSE "ERROR\r\n"
+#define UNIMPLEMENTED_RESPONSE "SERVER_ERROR functionality not supported\r\n"
+#define STORAGE_SUCCESS "STORED\r\n"
+#define RETRIEVE_TERMINATOR "END\r\n"
 
 // TODO: if we receive a small request from the user that can be
 // satisfied on the same CPU, we should probably special case it and
@@ -25,99 +28,219 @@ typename memcached_handler_t<config_t>::parse_result_t memcached_handler_t<confi
     char *buf = fsm->buf;
     unsigned int size = fsm->nbuf;
 
-    // TODO: if we get incomplete packets, we retokenize the entire
-    // message every time we get a new piece of the packet. Perhaps it
-    // would be more efficient to store tokenizer state across
-    // requests. In general, tokenizing a request is silly, we should
-    // really provide a binary API.
-
     // TODO: we might end up getting a command, and a piece of the
-    // next command. That means we can't check that the end of the
-    // recv buffer in NULL terminated, we gotta scan. It also means
-    // that we can't use one buffer for both recv and send, we need to
-    // add a send buffer (assuming we want to support out of band
-    // commands).
+    // next command. It also means that we can't use one buffer
+    //for both recv and send, we need to add a send buffer
+    // (assuming we want to support out of band  commands).
     
-    // Make sure the string is properly terminated
-    if(buf[size - 1] != '\n' && buf[size - 1] != '\r') {
-        return req_handler_t::op_partial_packet;
-    }
+    // Find the first line in the buffer
+    char *line_end = (char *)memchr(buf, '\n', size);
+    if (line_end == NULL)   //make sure \n is in the buffer
+        return req_handler_t::op_partial_packet;    //if \n is at the beginning of the buffer, or if it is not preceeded by \r, the request is malformed
 
-    // Grab the command out of the string
-    unsigned int token_size;
-    char delims[] = " \t\n\r\0"; //This will not work quite as expected - the \0 will be processed as the end of the cstring, not as another delimiter
-                                 //also, this seems more suited to a constant or a #define
-    char *token = tokenize(buf, size, delims, &token_size);
-    if(token == NULL)
-        return req_handler_t::op_malformed;
+    if (loading_data)
+        return read_data(buf, size, fsm);
+
+    if (line_end == buf || line_end[-1] != '\r')
+        return malformed_request(fsm);
+
+    // if we're not reading a binary blob, then the line will be a string - let's null terminate it
+    *line_end = '\0';
+    unsigned int line_len = line_end - buf + 1;
+
+    // get the first token to determine the command
+    char *state;
+    char *cmd_str = strtok_r(buf, DELIMS, &state);
+
+    if(cmd_str == NULL)
+        return malformed_request(fsm);
     
     // Execute command
-    if(token_eq("quit", token, token_size)) {
+    if(!strcmp(cmd_str, "quit")) {
         // Make sure there's no more tokens
-        if (contains_tokens(token+token_size, buf+size, delims))
-            return req_handler_t::op_malformed;
+        if (strtok_r(NULL, DELIMS, &state))  //strtok will return NULL if there are no more tokens
+            return malformed_request(fsm);
         // Quit the connection
         return req_handler_t::op_req_quit;
 
-    } else if(token_eq("shutdown", token, token_size)) {
+    } else if(!strcmp(cmd_str, "shutdown")) {
         // Make sure there's no more tokens
-        if (contains_tokens(token+token_size, buf+size, delims))
-            return req_handler_t::op_malformed;
+        if (strtok_r(NULL, DELIMS, &state))  //strtok will return NULL if there are no more tokens
+            return malformed_request(fsm);
         // Shutdown the server
         return req_handler_t::op_req_shutdown;
 
-    } else if(token_eq("set", token, token_size)) {
-        // Make sure we have two more tokens
-        unsigned int key_size;
-        char *key = tokenize(token + token_size,
-                             buf + size - (token + token_size),
-                             delims, &key_size);
-        if(key == NULL)
-            return req_handler_t::op_malformed;
-        key[key_size] = '\0';
-        unsigned int value_size;
-        char *value = tokenize(key + key_size + 1,
-                               buf + size - (key + key_size + 1),
-                               delims, &value_size);
-        if(value == NULL)
-            return req_handler_t::op_malformed;
-        value[value_size] = '\0';
-        if((token = tokenize(value + value_size + 1,
-                             buf + size - (value + value_size + 1),
-                             delims, &token_size)) != NULL)
-            return req_handler_t::op_malformed;
+    } else if(!strcmp(cmd_str, "set")) {     // check for storage commands
+            return parse_storage_command(SET, state, line_len, fsm);
+    } else if(!strcmp(cmd_str, "add")) {
+            return parse_storage_command(ADD, state, line_len, fsm);
+    } else if(!strcmp(cmd_str, "replace")) {
+            return parse_storage_command(REPLACE, state, line_len, fsm);
+    } else if(!strcmp(cmd_str, "append")) {
+            return parse_storage_command(APPEND, state, line_len, fsm);
+    } else if(!strcmp(cmd_str, "prepend")) {
+            return parse_storage_command(PREPEND, state, line_len, fsm);
+    } else if(!strcmp(cmd_str, "cas")) {
+            return parse_storage_command(CAS, state, line_len, fsm);
 
-        // Ok, we've got a key, a value, and no more tokens, add them
-        // to the tree
-        set_key(fsm, atoi(key), atoi(value));
+    } else if(!strcmp(cmd_str, "get")) {    // check for retrieval commands
+            return get(state, false, fsm);
+    } else if(!strcmp(cmd_str, "gets")) {
+            return get(state, true, fsm);
 
-        return req_handler_t::op_req_complex;
+    } else if(!strcmp(cmd_str, "delete")) {
+        return remove(state, fsm);
 
-    } else if(token_eq("get", token, token_size)) {
-        // Make sure we have at least one more token
-        unsigned int key_size;
-        char *key = tokenize(token + token_size,
-                             buf + size - (token + token_size),
-                             delims, &key_size);
-        if(key == NULL)
-            return req_handler_t::op_malformed;
-        key[key_size] = '\0';
-
-        get_key(fsm, key, key_size, delims);
-
-        return req_handler_t::op_req_complex;
-
+    } else if(!strcmp(cmd_str, "incr")) {
+        return adjust(state, true, fsm);
+    } else if(!strcmp(cmd_str, "decr")) {
+        return adjust(state, false, fsm);
     } else {
         // Invalid command
-        return req_handler_t::op_malformed;
+        return malformed_request(fsm);
     }
-    
-    // The command was processed successfully
+}
+
+template <class config_t>
+typename memcached_handler_t<config_t>::parse_result_t memcached_handler_t<config_t>::parse_storage_command(storage_command command, char *state, unsigned int line_len, conn_fsm_t *fsm) {
+    char *key_tmp = strtok_r(NULL, DELIMS, &state);
+    char *flags_str = strtok_r(NULL, DELIMS, &state);
+    char *exptime_str = strtok_r(NULL, DELIMS, &state);
+    char *bytes_str = strtok_r(NULL, DELIMS, &state);
+    char *cas_unique_str = NULL;
+    if (command == CAS)
+        cas_unique_str = strtok_r(NULL, DELIMS, &state);
+    char *noreply_str = strtok_r(NULL, DELIMS, &state); //optional
+
+    if (key_tmp == NULL || flags_str == NULL || exptime_str == NULL || bytes_str == NULL || (command == CAS && cas_unique_str == NULL)) //check for proper number of arguments
+        return malformed_request(fsm);
+
+    cmd = command;
+    key = strdup(key_tmp);
+
+    char *invalid_char;
+    flags = strtoul(flags_str, &invalid_char, 10);  //a 32 bit integer.  int alone does not guarantee 32 bit length
+    if (*invalid_char != '\0')  // ensure there were no improper characters in the token - i.e. parse was successful
+        return malformed_request(fsm);
+
+    exptime = strtoul(exptime_str, &invalid_char, 10);
+    if (*invalid_char != '\0')
+        return malformed_request(fsm);
+
+    bytes = strtoul(bytes_str, &invalid_char, 10);
+    if (*invalid_char != '\0')
+        return malformed_request(fsm);
+
+    if (cmd == CAS) {
+        cas_unique = strtoull(cas_unique_str, &invalid_char, 10);
+        if (*invalid_char != '\0')
+            return malformed_request(fsm);
+    }
+
+    noreply = false;
+    if (noreply_str != NULL) {
+        if (!strcmp(noreply_str, "noreply")) {
+            noreply = true;
+        } else {
+            return malformed_request(fsm);
+        }
+    }
+
+    fsm->consume(line_len); //consume the line
+    loading_data = true;
+
+    return read_data(fsm->buf, fsm->nbuf, fsm);
+}
+	
+template <class config_t>
+typename memcached_handler_t<config_t>::parse_result_t memcached_handler_t<config_t>::read_data(char *data, unsigned int size, conn_fsm_t *fsm) {
+    check("memcached handler should be in loading data state", loading_data!=true);
+    if (size < bytes + 2){//check that the buffer contains enough data.  must also include \r\n
+        return req_handler_t::op_partial_packet;
+    }
+
+    loading_data = false;
+    switch(cmd) {
+        case SET:
+            return set(data, fsm);
+        case ADD:
+            return add(data, fsm);
+        case REPLACE:
+            return replace(data, fsm);
+        case APPEND:
+            return append(data, fsm);
+        case PREPEND:
+            return prepend(data, fsm);
+        case CAS:
+            return prepend(data, fsm);
+        default:
+            return malformed_request(fsm);
+    }
+}
+
+template <class config_t>
+typename memcached_handler_t<config_t>::parse_result_t memcached_handler_t<config_t>::set(char *data, conn_fsm_t *fsm) {
+    //TODO: For now, we assume the data is an integer, because that is the only data type the database can handle
+    data[bytes] = '\0'; //null terminate string
+    char *invalid_char;
+    unsigned int value_int = (int)strtoul(data, &invalid_char, 10);
+    if (*invalid_char != '\0')  // ensure there were no improper characters in the token - i.e. parse was successful
+        return unimplemented_request(fsm);
+
+
+    unsigned int key_int = (int)strtoul(key, &invalid_char, 10);
+    if (*invalid_char != '\0')  // ensure there were no improper characters in the token - i.e. parse was successful
+        return unimplemented_request(fsm);
+
+    set_key(fsm, key_int, value_int);
+
+    fsm->consume(bytes+2);
+    return req_handler_t::op_req_complex;
+}
+
+template <class config_t>
+typename memcached_handler_t<config_t>::parse_result_t memcached_handler_t<config_t>::add(char *data, conn_fsm_t *fsm) {
+    return unimplemented_request(fsm);
+}
+
+template <class config_t>
+typename memcached_handler_t<config_t>::parse_result_t memcached_handler_t<config_t>::replace(char *data, conn_fsm_t *fsm) {
+    return unimplemented_request(fsm);
+}
+
+template <class config_t>
+typename memcached_handler_t<config_t>::parse_result_t memcached_handler_t<config_t>::append(char *data, conn_fsm_t *fsm) {
+    return unimplemented_request(fsm);
+}
+
+template <class config_t>
+typename memcached_handler_t<config_t>::parse_result_t memcached_handler_t<config_t>::prepend(char *data, conn_fsm_t *fsm) {
+    return unimplemented_request(fsm);
+}
+
+template <class config_t>
+typename memcached_handler_t<config_t>::parse_result_t memcached_handler_t<config_t>::cas(char *data, conn_fsm_t *fsm) {
+    return unimplemented_request(fsm);
+}
+
+template <class config_t>
+typename memcached_handler_t<config_t>::parse_result_t memcached_handler_t<config_t>::malformed_request(conn_fsm_t *fsm) {
+    write_msg(fsm, MALFORMED_RESPONSE);
     return req_handler_t::op_malformed;
 }
 
+template <class config_t>
+typename memcached_handler_t<config_t>::parse_result_t memcached_handler_t<config_t>::unimplemented_request(conn_fsm_t *fsm) {
+    write_msg(fsm, UNIMPLEMENTED_RESPONSE);
+    return req_handler_t::op_malformed;
+}
 
-	
+template <class config_t>
+void memcached_handler_t<config_t>::write_msg(conn_fsm_t *fsm, const char *str) {
+    int len = strlen(str);
+    memcpy(fsm->buf, str, len+1);
+    fsm->nbuf = len+1;
+}
 
 template<class config_t> void memcached_handler_t<config_t>::set_key(conn_fsm_t *fsm, int key, int value){
     btree_set_fsm_t *btree_fsm = new btree_set_fsm_t(get_cpu_context()->event_queue->cache);
@@ -133,10 +256,18 @@ template<class config_t> void memcached_handler_t<config_t>::set_key(conn_fsm_t 
     btree_fsm->request = request;
 }
 
-template<class config_t> void memcached_handler_t<config_t>::get_key(conn_fsm_t *fsm, char *key, unsigned int key_size, const char *delims){
+
+template <class config_t>
+typename memcached_handler_t<config_t>::parse_result_t memcached_handler_t<config_t>::get(char *state, bool include_unique, conn_fsm_t *fsm) {
+    char *key_str = strtok_r(NULL, DELIMS, &state);
+    if (key_str == NULL)
+        return malformed_request(fsm);
+
+    if (include_unique)
+        return unimplemented_request(fsm);
+
     // Create request
     request_t *request = new request_t(fsm);
-
     do {
         // See if we can fit one more request
         if(request->nstarted == MAX_OPS_IN_REQUEST) {
@@ -150,8 +281,8 @@ template<class config_t> void memcached_handler_t<config_t>::get_key(conn_fsm_t 
             // somehow.
         }
 
-        key[key_size] = '\0';
-        int key_int = atoi(key);
+        //TODO: do not assume key is an integer
+        int key_int = atoi(key_str);
 
         // Ok, we've got a key, initialize the FSM and add it to
         // the request
@@ -162,33 +293,82 @@ template<class config_t> void memcached_handler_t<config_t>::get_key(conn_fsm_t 
         request->nstarted++;
 
         // Add the fsm to appropriate queue
-        req_handler_t::event_queue->message_hub
-            .store_message(key_to_cpu(key_int, req_handler_t::event_queue->nqueues), btree_fsm);
-
-        // Grab the next token
-        key = tokenize(key + key_size + 1,
-                fsm->buf + fsm->nbuf - (key + key_size + 1),
-                delims, &key_size);
-    } while(key);
+        req_handler_t::event_queue->message_hub.store_message(key_to_cpu(key_int, req_handler_t::event_queue->nqueues), btree_fsm);
+        key_str = strtok_r(NULL, DELIMS, &state);
+    } while(key_str);
 
     // Set the current request in the connection fsm
     fsm->current_request = request;
+    return req_handler_t::op_req_complex;
 }
 
 
+template <class config_t>
+typename memcached_handler_t<config_t>::parse_result_t memcached_handler_t<config_t>::remove(char *state, conn_fsm_t *fsm) {
+    char *key_str = strtok_r(NULL, DELIMS, &state);
+    if (key_str == NULL)
+        return malformed_request(fsm);
 
+    unsigned long time = 0;
+    bool noreply = false;
+    char *time_or_noreply_str = strtok_r(NULL, DELIMS, &state);
+    if (time_or_noreply_str != NULL) {
+        if (!strcmp(time_or_noreply_str, "noreply")) {
+            noreply = true;
+        } else { //must represent a time, then
+            char *invalid_char;
+            time = strtoul(time_or_noreply_str, &invalid_char, 10);
+            if (*invalid_char != '\0')  // ensure there were no improper characters in the token - i.e. parse was successful
+                return unimplemented_request(fsm);
+
+            // see if there's a noreply arg too
+            char *noreply_str = strtok_r(NULL, DELIMS, &state);
+            if (noreply_str != NULL) {
+                if (!strcmp(noreply_str, "noreply")) {
+                    noreply = true;
+                } else {
+                    return malformed_request(fsm);
+                }
+            }
+        }
+    }
+
+    // parsed successfully, but functionality not yet implemented
+    return unimplemented_request(fsm);
+}
+
+template <class config_t>
+typename memcached_handler_t<config_t>::parse_result_t memcached_handler_t<config_t>::adjust(char *state, bool inc, conn_fsm_t *fsm) {
+    char *key_str = strtok_r(NULL, DELIMS, &state);
+    char *value_str = strtok_r(NULL, DELIMS, &state);
+    if (key_str == NULL || value_str == NULL)
+        return malformed_request(fsm);
+
+    bool noreply = false;
+    char *noreply_str = strtok_r(NULL, DELIMS, &state);
+    if (noreply_str != NULL) {
+        if (!strcmp(noreply_str, "noreply")) {
+            noreply = true;
+        } else {
+            return malformed_request(fsm);
+        }
+    }
+
+    // parsed successfully, but functionality not yet implemented
+    return unimplemented_request(fsm);
+}
+    
 template<class config_t>
 void memcached_handler_t<config_t>::build_response(request_t *request) {
     // Since we're in the middle of processing a command,
     // fsm->buf must exist at this point.
     conn_fsm_t *fsm = request->netfsm;
-    char msg_nil[] = "NIL\n";
-    char msg_ok[] = "ok\n";
     btree_get_fsm_t *btree_get_fsm = NULL;
     btree_set_fsm_t *btree_set_fsm = NULL;
     char *buf = fsm->buf;
     fsm->nbuf = 0;
     int count;
+    char value_str[15];
     
     assert(request->nstarted > 0 && request->nstarted == request->ncompleted);
     switch(request->fsms[0]->fsm_type) {
@@ -197,18 +377,19 @@ void memcached_handler_t<config_t>::build_response(request_t *request) {
         for(unsigned int i = 0; i < request->nstarted; i++) {
             btree_get_fsm = (btree_get_fsm_t*)request->fsms[i];
             if(btree_get_fsm->op_result == btree_get_fsm_t::btree_found) {
-                count = sprintf(buf, "%d\n", btree_get_fsm->value);
+                int value_len = sprintf(value_str, "%d", btree_get_fsm->value);
+
+                //TODO: support flags
+                count = sprintf(buf, "VALUE %u %u %u\r\n%s\r\n", btree_get_fsm->key, 0, value_len, value_str);
                 fsm->nbuf += count;
                 buf += count;
             } else if(btree_get_fsm->op_result == btree_get_fsm_t::btree_not_found) {
-                count = strlen(msg_nil);
-                strcpy(buf, msg_nil);
-                fsm->nbuf += count;
-                buf += count;
+                // do nothing
             }
             delete btree_get_fsm;
         }
-        fsm->nbuf++;
+        count = sprintf(buf, RETRIEVE_TERMINATOR);
+        fsm->nbuf += count;
         break;
 
     case btree_fsm_t::btree_set_fsm:
@@ -216,8 +397,12 @@ void memcached_handler_t<config_t>::build_response(request_t *request) {
         assert(request->nstarted == 1);
 
         btree_set_fsm = (btree_set_fsm_t*)request->fsms[0];
-        strcpy(buf, msg_ok);
-        fsm->nbuf = strlen(msg_ok) + 1;
+        if (!noreply) {
+            strcpy(buf, STORAGE_SUCCESS);
+            fsm->nbuf = strlen(STORAGE_SUCCESS);
+        } else {
+            fsm->nbuf = 0;
+        }
         delete btree_set_fsm;
         break;
 

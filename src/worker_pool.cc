@@ -98,6 +98,7 @@ worker_pool_t::~worker_pool_t() {
     nworkers = 0;
 }
 
+
 event_queue_t* worker_pool_t::next_active_worker() {
     int worker = active_worker++;
     if(active_worker >= nworkers)
