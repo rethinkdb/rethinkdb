@@ -80,6 +80,11 @@ void event_handler(event_queue_t *event_queue, event_t *event) {
         initiate_conn_fsm_transition(event_queue, event);
     } else if(event->event_type == et_cpu_event) {
         code_config_t::btree_fsm_t *btree_fsm = (code_config_t::btree_fsm_t *)event->state;
+        // The FSM should work on the local cache, not on the cache of
+        // the sender.
+        // TODO: btree_fsm should not be constructed with a cache, as
+        // it acts both as the cross-cpu message and the fsm.
+        btree_fsm->cache = event_queue->cache;
         if(btree_fsm->is_finished()) {
             // We received a completed btree that belongs to us
             btree_fsm->request->ncompleted++;
