@@ -396,9 +396,6 @@ event_queue_t::~event_queue_t()
 {
     int res;
 
-    // Stop the timer
-    queue_stop_timer(this);
-
     // Kill the poll thread
     itc_event_t event;
     bzero(&event, sizeof event);
@@ -408,6 +405,9 @@ event_queue_t::~event_queue_t()
     // Wait for the poll thread to die
     res = pthread_join(this->epoll_thread, NULL);
     check("Could not join with epoll thread", res != 0);
+
+    // Stop the timer
+    queue_stop_timer(this);
 
     // Cleanup resources
     res = close(this->epoll_fd);

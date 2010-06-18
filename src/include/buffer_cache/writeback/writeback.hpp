@@ -33,7 +33,10 @@ protected:
         void set_dirty() { dirty = true; }
 
     protected:
-        void set_clean() { assert(dirty); dirty = false; }
+        void set_clean() {
+            assert(dirty);
+            dirty = false;
+        }
 
     private:
         bool dirty;
