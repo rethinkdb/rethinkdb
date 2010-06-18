@@ -27,6 +27,8 @@ public:
 protected:
     class buf_t {
     public:
+        buf_t() : dirty(false) {}
+
         bool is_dirty() const { return dirty; }
         void set_dirty() { dirty = true; }
 

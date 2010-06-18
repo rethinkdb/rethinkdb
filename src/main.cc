@@ -63,13 +63,16 @@ void event_handler(event_queue_t *event_queue, event_t *event) {
             (code_config_t::aio_context_t *)event->state;
         code_config_t::btree_fsm_t *btree_fsm =
             (code_config_t::btree_fsm_t *)ctx->user_state;
+        printf("disk event: lbn %ld, read %d, buf %p result %d\n", ctx->block_id, event->op == eo_read, event->buf, event->result);
         
         // Let the cache know about the disk action and free the ctx.
         event_queue->cache->aio_complete(ctx, event->buf, event->op != eo_read);
         
         // Generate the cache event and forward it to the appropriate btree fsm
         event->event_type = et_cache;
+        event->buf = ctx->buf;
         code_config_t::btree_fsm_t::transition_result_t res = btree_fsm->do_transition(event);
+        printf("res = %d\n", res);
         if(res == code_config_t::btree_fsm_t::transition_complete) {
             // Booooyahh, btree completed. Send the completed btree to
             // the right CPU

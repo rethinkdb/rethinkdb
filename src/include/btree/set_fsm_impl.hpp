@@ -52,7 +52,7 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
         // Got the superblock buffer (either right away or through
         // cache notification). Grab the root id, and move on to
         // acquiring the root.
-        node_id = btree_fsm_t::get_root_id(buf);
+        node_id = btree_fsm_t::get_root_id(buf->ptr());
         buf->release(this); /* XXX Not a continuation point. */
         if(cache_t::is_block_id_null(node_id))
             state = insert_root;
@@ -286,6 +286,8 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
             last_node_id = cache_t::null_block_id;
         }
     }
+
+    //transaction->commit(); /* XXX This should be here, with a callback. */
 
     return res;
 }
