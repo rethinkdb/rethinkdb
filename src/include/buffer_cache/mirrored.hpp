@@ -98,8 +98,7 @@ public:
     mirrored_cache_t(size_t _block_size, size_t _max_size) : 
         serializer_t(_block_size),
         page_repl_t(_block_size, _max_size, this, this),
-        writeback_t(this)
-        {}
+        writeback_t(this) {}
 
     void start() {
         writeback_t::start();

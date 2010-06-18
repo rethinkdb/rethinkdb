@@ -36,7 +36,7 @@ struct standard_config_t {
     typedef cache_impl_t cache_t;
 #else
     typedef cache_impl_t cache_t;
-    //typedef cache_stats_t<cache_impl_t> cache_t;
+    //typedef cache_stats_t<cache_impl_t> cache_t; TODO(NNW): Update API.
 #endif
 
     // BTree

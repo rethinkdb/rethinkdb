@@ -34,7 +34,7 @@ public:
 protected:
     class buf_t {
     public:
-        explicit buf_t(page_repl_none_t *page_repl) : page_repl(page_repl) {}
+        explicit buf_t(page_repl_none_t *_page_repl) : page_repl(_page_repl) {}
 
         void pin() { page_repl->num_pinned++; }
         void unpin() { page_repl->num_pinned--; }
@@ -42,17 +42,6 @@ protected:
     private:
         page_repl_none_t *page_repl;
     };
-
-#if 0
-    void pin(block_id_t block_id) {
-    }
-
-    void unpin(block_id_t block_id) {
-        if(block_size * nblocks >= max_size) { /* XXX What is this doing? */
-            check("No more cache memory available", 1);
-        }
-    }
-#endif
 
 private:
     unsigned int num_pinned;

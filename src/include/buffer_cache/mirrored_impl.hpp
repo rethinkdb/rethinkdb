@@ -9,12 +9,11 @@ template <class config_t>
 mirrored_cache_t<config_t>::buf_t::buf_t(transaction_t *transaction,
         block_id_t block_id, void *data)
     : writeback_t::buf_t(),
-      page_repl_t::buf_t((page_repl_t *)transaction),
+      page_repl_t::buf_t(transaction->get_cache()),
       transaction(transaction),
       block_id(block_id),
       cached(false),
       data(data) {
-      printf("New buf_t made at %p for %ld with data %p\n", this, block_id, data);
 }
 
 template <class config_t>
@@ -27,6 +26,7 @@ void mirrored_cache_t<config_t>::buf_t::release(void *state) {
         ctx->block_id = block_id;
         transaction->get_cache()->do_write(get_cpu_context()->event_queue,
             block_id, ptr(), ctx);
+        this->set_clean(); /* XXX XXX Can't do this until the I/O comes back! */
     }
     /* XXX ^^^ This is incorrect. */
     if (!this->is_dirty())
@@ -91,7 +91,6 @@ mirrored_cache_t<config_t>::transaction_t::acquire(block_id_t block_id,
     // unnecessarily double IO and/or lose memory.
 
     buf_t *buf = (buf_t *)cache->find(block_id);
-    printf("Acquire for %ld, buf %p\n", block_id, buf);
     if (!buf) {
         buf_t *buf;
 
@@ -109,7 +108,6 @@ mirrored_cache_t<config_t>::transaction_t::acquire(block_id_t block_id,
 
         cache->do_read(get_cpu_context()->event_queue, block_id, buf->ptr(), ctx);
     } else {
-        printf("Acquire for %ld, cached %d\n", block_id, buf->is_cached());
         buf->pin();
         if (!buf->is_cached()) { /* The data is not yet ready, queue us up. */
             /* XXX Add us to waiters queue; maybe lock code handles this? */
@@ -133,14 +131,12 @@ mirrored_cache_t<config_t>::begin_transaction() {
 template <class config_t>
 void mirrored_cache_t<config_t>::aio_complete(aio_context_t *ctx,
         void *block, bool written) {
-    printf("Aio complete! block %ld written %d (%p %p %p)\n", ctx->block_id, written, ctx->buf, ctx->buf->ptr(), block);
 #ifndef NDEBUG            
     assert(ctx->event_queue = get_cpu_context()->event_queue);
 #endif
 
     buf_t *buf = ctx->buf;
     buf->set_cached(true);
-    printf("Buf %p, cached %d\n", buf, buf->is_cached());
     delete ctx;
     if(written) {
         buf->unpin();

@@ -53,7 +53,7 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
         // cache notification). Grab the root id, and move on to
         // acquiring the root.
         node_id = btree_fsm_t::get_root_id(buf->ptr());
-        buf->release(this); /* XXX Not a continuation point. */
+        buf->release(this);
         if(cache_t::is_block_id_null(node_id))
             state = insert_root;
         else
@@ -231,7 +231,7 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
             if(key < median) {
                 // Left node and node are the same thing
                 rbuf->set_dirty();
-                rbuf->release(this); /* XXX We don't need to wait here. */
+                rbuf->release(this);
                 nwrites++;
             } else if(key >= median) {
                 buf->set_dirty();
@@ -254,7 +254,7 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
         if(node->is_leaf()) {
             ((leaf_node_t*)node)->insert(key, value);
             buf->set_dirty();
-            buf->release(this); /* XXX Not a blocking point. */
+            buf->release(this);
             nwrites++;
             state = update_complete;
             res = btree_fsm_t::transition_ok;
@@ -264,7 +264,7 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
             if(!cache_t::is_block_id_null(last_node_id)) {
                 if (last_buf->is_dirty())
                     nwrites++;
-                last_buf->release(this); /* XXX This shouldn't be blocking. */
+                last_buf->release(this);
             }
             last_buf = buf;
             last_node_id = node_id;
@@ -282,7 +282,7 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
         if(!cache_t::is_block_id_null(last_node_id)) {
             if (last_buf->is_dirty())
                 nwrites++;
-            last_buf->release(this); /* XXX This shouldn't be blocking. */
+            last_buf->release(this);
             last_node_id = cache_t::null_block_id;
         }
     }

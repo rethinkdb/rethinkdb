@@ -61,9 +61,7 @@ private:
     int value;
 
     buf_t *buf;
-    //node_t *node;
-    buf_t *last_buf;
-    //internal_node_t *last_node;
+    buf_t *last_buf; /* This is always an internal_node. */
     block_id_t node_id, last_node_id; /* XXX These should be removed. */
     bool loading_superblock, node_dirty, last_node_dirty;
     int nwrites;

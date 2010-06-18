@@ -32,6 +32,9 @@ protected:
         bool is_dirty() const { return dirty; }
         void set_dirty() { dirty = true; }
 
+    protected:
+        void set_clean() { assert(dirty); dirty = false; }
+
     private:
         bool dirty;
     };

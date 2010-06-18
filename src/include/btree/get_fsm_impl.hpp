@@ -35,7 +35,7 @@ typename btree_get_fsm<config_t>::transition_result_t btree_get_fsm<config_t>::d
         // cache notification). Grab the root id, and move on to
         // acquiring the root.
         node_id = btree_fsm_t::get_root_id(buf->ptr());
-        buf->release(this); /* XXX Not a continuation point. */
+        buf->release(this);
         state = acquire_root;
         return btree_fsm_t::transition_ok;
     } else {
@@ -97,7 +97,7 @@ typename btree_get_fsm<config_t>::transition_result_t btree_get_fsm<config_t>::d
     if(node->is_internal()) {
         block_id_t next_node_id = ((internal_node_t*)node)->lookup(key);
         /* XXX XXX Cannot release until the next acquire succeeds for locks! */
-        buf->release(this); /* XXX Not a continuation point. */
+        buf->release(this);
         node_id = next_node_id;
         buf = transaction->acquire(node_id, this);
         if(node) {
@@ -107,7 +107,7 @@ typename btree_get_fsm<config_t>::transition_result_t btree_get_fsm<config_t>::d
         }
     } else {
         int result = ((leaf_node_t*)node)->lookup(key, &value);
-        buf->release(this); /* XXX Not a continuation point. */
+        buf->release(this);
         state = lookup_complete;
         op_result = result == 1 ? btree_found : btree_not_found;
         // End the transaction
