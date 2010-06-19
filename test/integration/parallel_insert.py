@@ -6,7 +6,7 @@ from multiprocessing import Pool
 import memcache
 from random import shuffle
 
-NUM_INTS=1000000
+NUM_INTS=10000
 NUM_THREADS=8
 HOST="localhost"
 PORT="11211"

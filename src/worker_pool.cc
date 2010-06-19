@@ -91,11 +91,23 @@ worker_pool_t::worker_pool_t(event_handler_t event_handler, pthread_t main_threa
 }
 
 worker_pool_t::~worker_pool_t() {
+    // Free the event queues
     for(int i = 0; i < nworkers; i++) {
         workers[i].~event_queue_t();
     }
     free(workers);
     nworkers = 0;
+
+    // Delete all the custom allocators in the system
+    for(size_t i = 0; i < all_allocs.size(); i++) {
+        std::vector<event_queue_t::alloc_t*> *allocs = (std::vector<event_queue_t::alloc_t*>*)(all_allocs[i]);
+        if(allocs) {
+            for(size_t j = 0; j < allocs->size(); j++) {
+                delete allocs->operator[](j);
+            }
+        }
+        delete allocs;
+    }
 }
 
 

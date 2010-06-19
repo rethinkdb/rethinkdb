@@ -39,8 +39,8 @@ public:
     template <class type_t>
     static alloc_t* get_alloc() {
         static __thread alloc_t *alloc = NULL;
-        if(!allocs)
-            allocs = new std::vector<alloc_t*>;
+        if(!allocs_tl)
+            allocs_tl = new std::vector<alloc_t*>;
 
         if(!alloc) {
 #ifdef NDEBUG
@@ -49,12 +49,12 @@ public:
             // In debug mode, we need space for an extra pointer
             alloc = new alloc_t(sizeof(void*) + sizeof(type_t));
 #endif
-            allocs->push_back(alloc);
+            allocs_tl->push_back(alloc);
         }
         return alloc;
     }
     
-    static __thread std::vector<alloc_t*> *allocs;
+    static __thread std::vector<alloc_t*> *allocs_tl;
 };
 
 #include "alloc/alloc_mixin_impl.hpp"

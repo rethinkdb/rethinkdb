@@ -10,7 +10,6 @@
 
 template<class config_t>
 void conn_fsm<config_t>::init_state() {
-    this->req_handler = new memcached_handler_t<config_t>(event_queue->cache, event_queue);
     this->state = fsm_socket_connected;
     this->buf = NULL;
     this->nbuf = 0;
@@ -197,8 +196,9 @@ typename conn_fsm<config_t>::result_t conn_fsm<config_t>::do_transition(event_t 
 
 template<class config_t>
 conn_fsm<config_t>::conn_fsm(resource_t _source, event_queue_t *_event_queue)
-    : source(_source), event_queue(_event_queue)
+    : source(_source), req_handler(NULL), event_queue(_event_queue)
 {
+    req_handler = new memcached_handler_t<config_t>(event_queue->cache, event_queue);
     init_state();
 }
 

@@ -107,7 +107,7 @@ void event_queue_t::process_timer_notify() {
     if((total_expirations * TIMER_TICKS_IN_MS) % ALLOC_GC_IN_MS == 0) {
         // Perform allocator gc
         std::vector<event_queue_t::alloc_t*> *allocs =
-            tls_small_obj_alloc_accessor<event_queue_t::alloc_t>::allocs;
+            tls_small_obj_alloc_accessor<event_queue_t::alloc_t>::allocs_tl;
         if(allocs) {
             for(size_t i = 0; i < allocs->size(); i++) {
                 allocs->operator[](i)->gc();
@@ -297,18 +297,7 @@ breakout:
     self->cache->close();
     delete self->cache;
 
-    // FIXME: the following block of code crashes
-    // Ok, we're about to die here. Let's do one last thing before our
-    // demise - delete all the custom small object allocators!
-    std::vector<event_queue_t::alloc_t*> *allocs = tls_small_obj_alloc_accessor<event_queue_t::alloc_t>::allocs;
-    if(allocs) {
-        for(size_t i = 0; i < allocs->size(); i++) {
-            delete allocs->operator[](i);
-        }
-        delete allocs;
-    }
-
-    return NULL;
+    return tls_small_obj_alloc_accessor<event_queue_t::alloc_t>::allocs_tl;
 }
 
 event_queue_t::event_queue_t(int queue_id, int _nqueues, event_handler_t event_handler,
@@ -398,11 +387,21 @@ event_queue_t::~event_queue_t()
     post_itc_message(&event);
 
     // Wait for the poll thread to die
-    res = pthread_join(this->epoll_thread, NULL);
+    void *allocs_tl = NULL;
+    res = pthread_join(this->epoll_thread, &allocs_tl);
     check("Could not join with epoll thread", res != 0);
+    parent_pool->all_allocs.push_back(allocs_tl);
 
-    // Stop the timer
+    // Stop the hardcoded timer (TODO: we should use register timer
+    // API for it)
     queue_stop_timer(this);
+
+    // Delete the registered timers
+    while(!timers.empty()) {
+        timer *t = timers.top();
+        delete t;
+        timers.pop();
+    }
 
     // Cleanup resources
     res = close(this->epoll_fd);
