@@ -18,6 +18,9 @@ bool rwi_lock<config_t>::lock(access_t access, void *state) {
 template<class config_t>
 void rwi_lock<config_t>::unlock() {
     switch(state) {
+    case rwis_unlocked:
+        assert(0);
+        break;
     case rwis_reading:
         nreaders--;
         if(nreaders == 0)

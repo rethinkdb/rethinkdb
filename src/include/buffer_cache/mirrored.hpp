@@ -4,6 +4,7 @@
 
 #include "event_queue.hpp"
 #include "cpu_context.hpp"
+#include "concurrency/access.hpp"
 
 // This cache doesn't actually do any operations itself. Instead, it
 // provides a framework that collects all components of the cache
@@ -32,13 +33,15 @@ struct mirrored_cache_t : public config_t::serializer_t,
                           public config_t::buffer_alloc_t,
                           public config_t::page_map_t,
                           public config_t::page_repl_t,
-                          public config_t::writeback_t
+                          public config_t::writeback_t,
+                          public config_t::concurrency_t
 {
 public:
     typedef typename config_t::serializer_t serializer_t;
     typedef typename serializer_t::block_id_t block_id_t;
     typedef typename config_t::page_repl_t page_repl_t;
     typedef typename config_t::writeback_t writeback_t;
+    typedef typename config_t::concurrency_t concurrency_t;
     typedef typename config_t::buffer_alloc_t buffer_alloc_t;
     typedef typename config_t::page_map_t page_map_t;
     typedef typename config_t::node_t node_t;
@@ -47,7 +50,9 @@ public:
 
     /* Buffer class. */
     class buf_t : public writeback_t::buf_t,
-                  public page_repl_t::buf_t {
+                  public page_repl_t::buf_t,
+                  public concurrency_t::buf_t
+    {
     public:
         buf_t(transaction_t *transaction, block_id_t block_id, void *data);
 
@@ -76,7 +81,7 @@ public:
         void commit(/*void *state*/); /* XXX This will require a callback. */
         //void abort(void *state); // TODO: We need this someday, but not yet.
 
-        buf_t *acquire(block_id_t, void *state);
+        buf_t *acquire(block_id_t, void *state, access_t mode);
         buf_t *allocate(block_id_t *new_block_id);
 
     private:

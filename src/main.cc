@@ -32,6 +32,7 @@
 #include "buffer_cache/page_map/unlocked_hash_map.hpp"
 #include "buffer_cache/page_repl/none.hpp"
 #include "buffer_cache/writeback/writeback.hpp"
+#include "buffer_cache/concurrency/rwi_conc.hpp"
 #include "btree/get_fsm.hpp"
 #include "btree/set_fsm.hpp"
 #include "btree/array_node.hpp"

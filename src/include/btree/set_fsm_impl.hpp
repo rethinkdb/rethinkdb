@@ -21,6 +21,9 @@
 // workloads). Also, if the serializer is log-structured, we can write
 // only a small part of each node.
 
+// TODO: change rwi_write to rwi_intent followed by rwi_upgrade where
+// relevant.
+
 template <class config_t>
 void btree_set_fsm<config_t>::init_update(int _key, int _value) {
     key = _key;
@@ -40,7 +43,7 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
 
         // Now try to grab the superblock.
         block_id_t superblock_id = btree_fsm_t::get_cache()->get_superblock_id();
-        buf = transaction->acquire(superblock_id, this);
+        buf = transaction->acquire(superblock_id, this, rwi_write);
     } else {
         // We already tried to grab the superblock, and we're getting
         // a cache notification about it.
@@ -75,7 +78,7 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
 
     if(event == NULL) {
         // Acquire the actual root node
-        buf = transaction->acquire(node_id, this);
+        buf = transaction->acquire(node_id, this, rwi_write);
     } else {
         // We already tried to acquire the root node, and here it is
         // via the cache notification.
@@ -124,7 +127,7 @@ template <class config_t>
 typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::do_acquire_node(event_t *event)
 {
     if(event == NULL) {
-        buf = transaction->acquire(node_id, this);
+        buf = transaction->acquire(node_id, this, rwi_write);
     } else {
         assert(event->buf);
         buf = (buf_t*)event->buf;
@@ -297,7 +300,7 @@ int btree_set_fsm<config_t>::set_root_id(block_id_t root_id, event_t *event) {
     buf_t *buf;
     if(event == NULL) {
         block_id_t superblock_id = cache->get_superblock_id();
-        buf = transaction->acquire(superblock_id, this);
+        buf = transaction->acquire(superblock_id, this, rwi_write);
     } else {
         assert(event->buf);
         buf = (buf_t *)event->buf;

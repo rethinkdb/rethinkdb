@@ -31,6 +31,11 @@ void mirrored_cache_t<config_t>::buf_t::release(void *state) {
     /* XXX ^^^ This is incorrect. */
     if (!this->is_dirty())
         this->unpin();
+    ((concurrency_t*)(transaction->get_cache()))->release(this);
+
+    // TODO: pinning/unpinning a block should come implicitly from
+    // concurrency_t because it maintains all relevant reference
+    // counts.
 }
 
 template <class config_t>
@@ -75,6 +80,7 @@ mirrored_cache_t<config_t>::transaction_t::allocate(block_id_t *block_id) {
                            cache->malloc(((serializer_t *)cache)->block_size));
     cache->set(*block_id, buf);
     buf->pin();
+    ((concurrency_t*)cache)->acquire(buf, rwi_write);
         
     return buf;
 }
@@ -82,7 +88,8 @@ mirrored_cache_t<config_t>::transaction_t::allocate(block_id_t *block_id) {
 template <class config_t>
 typename mirrored_cache_t<config_t>::buf_t *
 mirrored_cache_t<config_t>::transaction_t::acquire(block_id_t block_id,
-        void *state) {
+                                                   void *state,
+                                                   access_t mode) {
     assert(event_queue == get_cpu_context()->event_queue);
        
     // TODO: we might get a request for a block id while the block
@@ -96,6 +103,7 @@ mirrored_cache_t<config_t>::transaction_t::acquire(block_id_t block_id,
 
         buf = new buf_t(this, block_id,
                         cache->malloc(((serializer_t *)cache)->block_size));
+        ((concurrency_t*)cache)->acquire(buf, mode);
         assert(buf->ptr()); /* XXX */
         ((mirrored_cache_t::page_map_t *)cache)->set(block_id, buf);
         aio_context_t *ctx = new aio_context_t();
@@ -109,12 +117,13 @@ mirrored_cache_t<config_t>::transaction_t::acquire(block_id_t block_id,
         cache->do_read(get_cpu_context()->event_queue, block_id, buf->ptr(), ctx);
     } else {
         buf->pin();
+        ((concurrency_t*)cache)->acquire(buf, mode);
         if (!buf->is_cached()) { /* The data is not yet ready, queue us up. */
             /* XXX Add us to waiters queue; maybe lock code handles this? */
             buf = NULL;
         }
-    } 
-        
+    }
+
     return buf;
 }
 
