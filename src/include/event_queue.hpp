@@ -80,6 +80,7 @@ public:
 
     // TODO: right now we only have one slice per event queue. We
     // should support multiple slices per queue.
+    // TODO: implement slice writeback scheduling and admin tools.
     // Caches responsible for serving a particular queue
     cache_t *cache;
 
