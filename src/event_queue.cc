@@ -214,6 +214,7 @@ void process_cpu_core_notify(event_queue_t *self, message_hub_t::msg_list_t *mes
         
         // Pass the event to the handler
         event_t cpu_event;
+        bzero((char*)&cpu_event, sizeof(cpu_event));
         cpu_event.event_type = et_cpu_event;
         cpu_event.state = head;
         self->event_handler(self, &cpu_event);

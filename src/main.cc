@@ -92,7 +92,9 @@ void process_lock_msg(event_queue_t *event_queue, event_t *event, rwi_lock<code_
     // here. We need to refactor all of this shit to work through
     // callbacks to it doesn't all go through main.cc.
     event->event_type = et_cache;
+    event->op = eo_read;
     event->buf = ctx->buf;
+    event->result = 1;
     code_config_t::btree_fsm_t::transition_result_t res = btree_fsm->do_transition(event);
     if(res == code_config_t::btree_fsm_t::transition_complete) {
         // Booooyahh, btree completed. Send the completed btree to

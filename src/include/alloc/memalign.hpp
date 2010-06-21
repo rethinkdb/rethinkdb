@@ -15,7 +15,7 @@ struct memalign_alloc_t {
         if(res != 0) {
             return NULL;
         } else {
-#ifndef NDEBUG
+#ifdef VALGRIND
             // Zero out the buffer in debug mode so valgrind doesn't complain
             bzero(ptr, size);
 #endif

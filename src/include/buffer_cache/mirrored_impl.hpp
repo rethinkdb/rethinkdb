@@ -79,7 +79,7 @@ transaction<config_t>::allocate(block_id_t *block_id) {
 
     // This must pass since no one else holds references to this
     // block.
-    bool acquired = ((concurrency_t*)cache)->acquire(buf, rwi_write, NULL);
+    bool acquired __attribute__((unused)) = ((concurrency_t*)cache)->acquire(buf, rwi_write, NULL);
     assert(acquired);
         
     return buf;
@@ -104,7 +104,7 @@ transaction<config_t>::acquire(block_id_t block_id, void *state,
                         cache->malloc(((serializer_t *)cache)->block_size));
         
         // This must pass since no one else holds references to this block.
-        bool acquired = ((concurrency_t*)cache)->acquire(buf, mode, NULL);
+        bool acquired __attribute__((unused)) = ((concurrency_t*)cache)->acquire(buf, mode, NULL);
         assert(acquired);
         
         assert(buf->ptr()); /* XXX */
@@ -123,7 +123,8 @@ transaction<config_t>::acquire(block_id_t block_id, void *state,
             // handles the lock acquisition event later is responsible
             // for freeing associated context memory.
             delete ctx;
-        }
+        } else
+            printf("Conflict (cpu: %d)!\n", get_cpu_context()->event_queue->queue_id);
         
         if (!acquired || !buf->is_cached()) {
             /* The data is not yet ready, queue us up. */

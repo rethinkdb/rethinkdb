@@ -55,11 +55,11 @@ private:
 
     typedef intrusive_list_t<lock_request_t> request_list_t;
     
-    bool try_lock(access_t access);
-    bool try_lock_read();
-    bool try_lock_write();
-    bool try_lock_intent();
-    bool try_lock_upgrade();
+    bool try_lock(access_t access, bool from_queue);
+    bool try_lock_read(bool from_queue);
+    bool try_lock_write(bool from_queue);
+    bool try_lock_intent(bool from_queue);
+    bool try_lock_upgrade(bool from_queue);
     void enqueue_request(access_t access, void *state);
     void process_queue();
     void send_notify(lock_request_t *req);
