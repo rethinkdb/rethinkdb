@@ -73,6 +73,8 @@ void start_server(worker_pool_t *worker_pool) {
     res = listen(sockfd, 5);
     check("Couldn't listen to the socket", res != 0);
 
+    printf("Server started\n");
+
     // Start the server loop
     loop_info.sockfd = sockfd;
     loop_info.worker_pool = worker_pool;
