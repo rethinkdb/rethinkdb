@@ -28,6 +28,7 @@
 #include "buffer_cache/page_map/unlocked_hash_map.hpp"
 #include "buffer_cache/page_repl/none.hpp"
 #include "buffer_cache/writeback/writeback.hpp"
+#include "buffer_cache/concurrency/rwi_conc.hpp"
 #include "btree/get_fsm.hpp"
 #include "btree/set_fsm.hpp"
 #include "btree/array_node.hpp"
@@ -221,9 +222,9 @@ void process_cpu_core_notify(event_queue_t *self, message_hub_t::msg_list_t *mes
         head = tmp;
     }
 
-        // Note, the event handler is responsible for the deallocation
-        // of cpu messages. For btree_fsms, for example this currently
-        // occurs in build_response.
+    // Note, the event handler is responsible for the deallocation
+    // of cpu messages. For btree_fsms, for example this currently
+    // occurs in build_response.
 }
 
 void *event_queue_t::epoll_handler(void *arg) {
@@ -402,6 +403,9 @@ event_queue_t::~event_queue_t()
         delete t;
         timers.pop();
     }
+
+    // Stop the timer
+    queue_stop_timer(this);
 
     // Cleanup resources
     res = close(this->epoll_fd);

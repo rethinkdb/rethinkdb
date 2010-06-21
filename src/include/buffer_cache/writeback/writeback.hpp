@@ -24,8 +24,23 @@ public:
 
     void start();
 
-    block_id_t mark_dirty(event_queue_t *event_queue, block_id_t block_id,
-            void *block, void *state);
+protected:
+    class buf_t {
+    public:
+        buf_t() : dirty(false) {}
+
+        bool is_dirty() const { return dirty; }
+        void set_dirty() { dirty = true; }
+
+    protected:
+        void set_clean() {
+            assert(dirty);
+            dirty = false;
+        }
+
+    private:
+        bool dirty;
+    };
 
 private:
     static void timer_callback(void *ctx);

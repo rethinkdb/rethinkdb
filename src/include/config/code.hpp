@@ -28,6 +28,7 @@ struct standard_config_t {
     typedef unlocked_hash_map_t<standard_config_t> page_map_t;
     typedef page_repl_none_t<standard_config_t> page_repl_t;
     typedef writeback_tmpl_t<standard_config_t> writeback_t;
+    typedef rwi_conc_t<standard_config_t> concurrency_t;
     typedef mirrored_cache_t<standard_config_t> cache_impl_t;
     typedef aio_context<standard_config_t> aio_context_t;
     
@@ -35,7 +36,8 @@ struct standard_config_t {
 #ifdef NDEBUG
     typedef cache_impl_t cache_t;
 #else
-    typedef cache_stats_t<cache_impl_t> cache_t;
+    typedef cache_impl_t cache_t;
+    //typedef cache_stats_t<cache_impl_t> cache_t; TODO(NNW): Update API.
 #endif
 
     // BTree

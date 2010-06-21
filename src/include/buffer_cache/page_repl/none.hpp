@@ -25,24 +25,26 @@ public:
     page_repl_none_t(size_t _block_size, size_t _max_size,
                      page_map_t *_page_map,
                      buffer_alloc_t *_alloc)
-        : nblocks(0), block_size(_block_size),
+        : num_pinned(0), block_size(_block_size),
           max_size(_max_size),
           page_map(_page_map),
           alloc(_alloc)
         {}
 
-    void pin(block_id_t block_id) {
-        nblocks++;
-    }
+protected:
+    class buf_t {
+    public:
+        explicit buf_t(page_repl_none_t *_page_repl) : page_repl(_page_repl) {}
 
-    void unpin(block_id_t block_id) {
-        if(block_size * nblocks >= max_size) {
-            check("No more cache memory available", 1);
-        }
-    }
+        void pin() { page_repl->num_pinned++; }
+        void unpin() { page_repl->num_pinned--; }
+
+    private:
+        page_repl_none_t *page_repl;
+    };
 
 private:
-    unsigned int nblocks;
+    unsigned int num_pinned;
     size_t block_size, max_size;
     page_map_t *page_map;
     buffer_alloc_t *alloc;

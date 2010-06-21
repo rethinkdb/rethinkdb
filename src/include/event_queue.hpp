@@ -78,17 +78,18 @@ public:
 
     // TODO: right now we only have one slice per event queue. We
     // should support multiple slices per queue.
+    // TODO: implement slice writeback scheduling and admin tools.
     // Caches responsible for serving a particular queue
     cache_t *cache;
 
 private:
     struct timer {
         itimerspec it;
-        void (*callback)(void *);
+        void (*callback)(void *ctx);
         void *context;
     };
 
-    static void *epoll_handler(void *);
+    static void *epoll_handler(void *ctx);
     void process_timer_notify();
 
     std::priority_queue<timer *> timers;
