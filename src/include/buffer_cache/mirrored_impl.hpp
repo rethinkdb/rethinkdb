@@ -6,26 +6,21 @@
  * Buffer implementation.
  */
 template <class config_t>
-mirrored_cache_t<config_t>::buf_t::buf_t(transaction_t *transaction,
-                                         block_id_t block_id, void *data,
-                                         message_hub_t *hub, unsigned int cpu)
-    : writeback_t::buf_t(),
-      page_repl_t::buf_t(transaction->get_cache()),
-      concurrency_t::buf_t(hub, cpu),
-      transaction(transaction),
-      block_id(block_id),
-      cached(false),
-      data(data) {
+buf<config_t>::buf(transaction_t *transaction, block_id_t block_id, void *data)
+    : config_t::writeback_t::buf_t(transaction->get_cache()),
+      config_t::page_repl_t::buf_t(transaction->get_cache()),
+      config_t::concurrency_t::buf_t(),
+    transaction(transaction),
+    block_id(block_id),
+    cached(false),
+    data(data) {
 }
 
 template <class config_t>
-void mirrored_cache_t<config_t>::buf_t::release(void *state) {
+void buf<config_t>::release(void *state) {
     /* XXX vvv This is incorrect. */
     if (this->is_dirty()) {
-        aio_context_t *ctx = new aio_context_t(this, state, block_id);
-#ifndef NDEBUG            
-        ctx->event_queue = get_cpu_context()->event_queue;
-#endif
+        aio_context_t *ctx = new aio_context_t(this, state);
         transaction->get_cache()->do_write(get_cpu_context()->event_queue,
             block_id, ptr(), ctx);
         this->set_clean(); /* XXX XXX Can't do this until the I/O comes back! */
@@ -41,9 +36,7 @@ void mirrored_cache_t<config_t>::buf_t::release(void *state) {
 }
 
 template <class config_t>
-typename mirrored_cache_t<config_t>::node_t *
-mirrored_cache_t<config_t>::buf_t::node() {
-    /* TODO(NNW): Implement!! */
+typename config_t::node_t *buf<config_t>::buf::node() {
     assert(data);
     return (typename config_t::node_t *)data;
 }
@@ -52,36 +45,35 @@ mirrored_cache_t<config_t>::buf_t::node() {
  * Transaction implementation.
  */
 template <class config_t>
-mirrored_cache_t<config_t>::transaction_t::transaction_t(
-        mirrored_cache_t *cache) : cache(cache), open(true) {
+transaction<config_t>::transaction(cache_t *cache)
+    : cache(cache), open(true) {
 #ifndef NDEBUG
     event_queue = get_cpu_context()->event_queue;
 #endif
 }
 
 template <class config_t>
-mirrored_cache_t<config_t>::transaction_t::~transaction_t() {
+transaction<config_t>::~transaction() {
     assert(!open);
 }
 
 template <class config_t>
-void mirrored_cache_t<config_t>::transaction_t::commit() {
+bool transaction<config_t>::commit(void *state) {
     /* TODO(NNW): Implement!! */
-    /* XXX This should only actually occur when the commit is complete, not
-     * merely when it has been started. */
-    open = false;
+    bool res = true; //cache->commit(this, state);
+    if (res)
+        open = false;
+    return res;
 }
 
 template <class config_t>
-typename mirrored_cache_t<config_t>::buf_t *
-mirrored_cache_t<config_t>::transaction_t::allocate(block_id_t *block_id) {
+typename config_t::buf_t *
+transaction<config_t>::allocate(block_id_t *block_id) {
     assert(event_queue == get_cpu_context()->event_queue);
         
     *block_id = cache->gen_block_id();
     buf_t *buf = new buf_t(this, *block_id,
-                           cache->malloc(((serializer_t *)cache)->block_size),
-                           &(get_cpu_context()->event_queue->message_hub),
-                           get_cpu_context()->event_queue->queue_id);
+                           cache->malloc(((serializer_t *)cache)->block_size));
     cache->set(*block_id, buf);
     buf->pin();
 
@@ -94,13 +86,12 @@ mirrored_cache_t<config_t>::transaction_t::allocate(block_id_t *block_id) {
 }
 
 template <class config_t>
-typename mirrored_cache_t<config_t>::buf_t *
-mirrored_cache_t<config_t>::transaction_t::acquire(block_id_t block_id,
-                                                   void *state,
-                                                   access_t mode) {
+typename config_t::buf_t *
+transaction<config_t>::acquire(block_id_t block_id, void *state,
+                               access_t mode) {
     assert(event_queue == get_cpu_context()->event_queue);
        
-    // TODO: we might get a request for a block id while the block
+    // TODO(NNW): we might get a request for a block id while the block
     // with that block id is still loading (consider two requests
     // in a row). We need to keep track of this so we don't
     // unnecessarily double IO and/or lose memory.
@@ -110,30 +101,21 @@ mirrored_cache_t<config_t>::transaction_t::acquire(block_id_t block_id,
         buf_t *buf;
 
         buf = new buf_t(this, block_id,
-                        cache->malloc(((serializer_t *)cache)->block_size),
-                        &(get_cpu_context()->event_queue->message_hub),
-                        get_cpu_context()->event_queue->queue_id);
+                        cache->malloc(((serializer_t *)cache)->block_size));
         
-        // This must pass since no one else holds references to this
-        // block.
+        // This must pass since no one else holds references to this block.
         bool acquired = ((concurrency_t*)cache)->acquire(buf, mode, NULL);
         assert(acquired);
         
         assert(buf->ptr()); /* XXX */
-        ((mirrored_cache_t::page_map_t *)cache)->set(block_id, buf);
-        aio_context_t *ctx = new aio_context_t(buf, state, block_id);
-#ifndef NDEBUG            
-        ctx->event_queue = get_cpu_context()->event_queue;
-#endif
-
-        cache->do_read(get_cpu_context()->event_queue, block_id, buf->ptr(), ctx);
+        cache->set(block_id, buf);
+        aio_context_t *ctx = new aio_context_t(buf, state);
+        cache->do_read(get_cpu_context()->event_queue, block_id, buf->ptr(),
+            ctx);
     } else {
         buf->pin();
 
-        aio_context_t *ctx = new aio_context_t(buf, state, block_id);
-#ifndef NDEBUG            
-        ctx->event_queue = get_cpu_context()->event_queue;
-#endif
+        aio_context_t *ctx = new aio_context_t(buf, state);
         bool acquired = ((concurrency_t*)cache)->acquire(buf, mode, ctx);
         if(acquired) {
             // Since we got the lock right away, we can delete the
@@ -157,7 +139,7 @@ mirrored_cache_t<config_t>::transaction_t::acquire(block_id_t block_id,
  * Cache implementation.
  */
 template <class config_t>
-typename mirrored_cache_t<config_t>::transaction_t *
+typename config_t::transaction_t *
 mirrored_cache_t<config_t>::begin_transaction() {
     transaction_t *txn = new transaction_t(this);
     return txn;
@@ -166,9 +148,7 @@ mirrored_cache_t<config_t>::begin_transaction() {
 template <class config_t>
 void mirrored_cache_t<config_t>::aio_complete(aio_context_t *ctx,
         void *block, bool written) {
-#ifndef NDEBUG            
     assert(ctx->event_queue = get_cpu_context()->event_queue);
-#endif
 
     buf_t *buf = ctx->buf;
     buf->set_cached(true);

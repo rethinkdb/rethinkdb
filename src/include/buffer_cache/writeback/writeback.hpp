@@ -24,13 +24,12 @@ public:
 
     void start();
 
-protected:
     class buf_t {
     public:
-        buf_t() : dirty(false) {}
+        explicit buf_t(writeback_tmpl_t *wb) : writeback(wb), dirty(false) {}
 
         bool is_dirty() const { return dirty; }
-        void set_dirty() { dirty = true; }
+        void set_dirty(typename config_t::buf_t *);
 
     protected:
         void set_clean() {
@@ -39,6 +38,7 @@ protected:
         }
 
     private:
+        writeback_tmpl_t *writeback;
         bool dirty;
     };
 
@@ -47,7 +47,8 @@ private:
     void writeback();
 
     serializer_t *serializer;
-    std::set<block_id_t> dirty_blocks;
+    std::set<typename config_t::transaction_t *> txns;
+    std::set<typename config_t::buf_t *> dirty_bufs;
 };
 
 #include "buffer_cache/writeback/writeback_impl.hpp"

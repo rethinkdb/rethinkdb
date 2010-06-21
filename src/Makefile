@@ -18,6 +18,10 @@ else
 CXXFLAGS:=$(CXXFLAGS) -O3 -DNDEBUG
 endif
 
+ifdef VALGRIND
+CXXFLAGS += -DVALGRIND
+endif
+
 # Define our objects
 OBJS =  main.o \
 	async_io.o \

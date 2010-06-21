@@ -28,6 +28,8 @@ public:
 
     // Note, the receiver of lock_request_t completion notifications
     // is responsible for freeing associated memory by calling delete.
+    // TODO(NNW): We may want to select our message hub implicitly, rather than
+    // making the user pass it in.  Either way, CPU is implicit from the hub.
     rwi_lock(message_hub_t *_hub, unsigned int _cpu)
         : hub(_hub), cpu(_cpu), state(rwis_unlocked), nreaders(0)
         {}

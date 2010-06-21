@@ -145,8 +145,8 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
     transition_result_t res = btree_fsm_t::transition_ok;
 
     // Make sure we've got either an empty or a cache event
-    check("btree_fsm::do_transition - invalid event",
-          event != NULL && event->event_type != et_cache);
+    check("btree_fsm::do_transition - invalid event", event != NULL &&
+          event->event_type != et_cache && event->event_type != et_commit);
 
     // Update the cache with the event
     if(event) {
@@ -164,7 +164,9 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
             if(res == btree_fsm_t::transition_ok && state == update_complete) {
                 if(nwrites == 0) {
                     // End the transaction
-                    transaction->commit(); /* XXX Add a callback here. */
+                    /* XXX This will require asynchrony once we fix writes. */
+                    bool commit = transaction->commit(NULL);
+                    assert(commit);
                     return btree_fsm_t::transition_complete;
                 } else {
                     return btree_fsm_t::transition_incomplete;

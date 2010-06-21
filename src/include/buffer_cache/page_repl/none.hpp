@@ -31,7 +31,6 @@ public:
           alloc(_alloc)
         {}
 
-protected:
     class buf_t {
     public:
         explicit buf_t(page_repl_none_t *_page_repl) : page_repl(_page_repl) {}

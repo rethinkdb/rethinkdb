@@ -24,6 +24,12 @@ template <class config_t>
 struct mirrored_cache_t;
 
 template <class config_t>
+struct buf;
+
+template <class config_t>
+struct transaction;
+
+template <class config_t>
 struct immediate_writeback_t;
 
 template <class config_t>

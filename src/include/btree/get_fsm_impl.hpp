@@ -53,9 +53,7 @@ typename btree_get_fsm<config_t>::transition_result_t btree_get_fsm<config_t>::d
     if(cache_t::is_block_id_null(node_id)) {
         op_result = btree_not_found;
         state = lookup_complete;
-        // End the transaction
-        transaction->commit(); /* XXX This is a continuation point. */
-        return btree_fsm_t::transition_complete;
+        return btree_fsm_t::transition_ok;
     }
 
     if(event == NULL) {
@@ -110,10 +108,7 @@ typename btree_get_fsm<config_t>::transition_result_t btree_get_fsm<config_t>::d
         buf->release(this);
         state = lookup_complete;
         op_result = result == 1 ? btree_found : btree_not_found;
-        // End the transaction
-        /* XXX This is a continuation point, but a read-only commit should be non-blocking. */
-        transaction->commit();
-        return btree_fsm_t::transition_complete;
+        return btree_fsm_t::transition_ok;
     }
 }
 
@@ -149,6 +144,13 @@ typename btree_get_fsm<config_t>::transition_result_t btree_get_fsm<config_t>::d
     while(res == btree_fsm_t::transition_ok && state == acquire_node) {
         res = do_acquire_node(event);
         event = NULL;
+    }
+
+    // Finally, end our transaction.  This should always succeed immediately.
+    if (res == btree_fsm_t::transition_ok && state == lookup_complete) {
+        bool committed = transaction->commit(NULL);
+        assert(committed); /* Read-only commits always finish immediately. */
+        res = btree_fsm_t::transition_complete;
     }
 
     return res;

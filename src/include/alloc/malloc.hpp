@@ -11,6 +11,8 @@ struct malloc_alloc_t {
     // We really don't need to take size here, but some super
     // allocators expect a constructor like this
     explicit malloc_alloc_t(size_t _size) {}
+
+    void gc() {}
     
     void* malloc(size_t size) {
         return ::malloc(size);

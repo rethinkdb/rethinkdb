@@ -18,8 +18,9 @@ struct rwi_conc_t {
     typedef rwi_lock<config_t> rwi_lock_t;
     
     struct buf_t {
-        buf_t(message_hub_t *_hub, unsigned int _cpu)
-            : lock(_hub, _cpu)
+        buf_t()
+            : lock(&get_cpu_context()->event_queue->message_hub,
+                   get_cpu_context()->event_queue->queue_id)
             {}
         
         rwi_lock_t lock;

@@ -26,7 +26,7 @@ struct cpu_message_t : public intrusive_list_node_t<cpu_message_t>
         mt_btree,
         mt_lock
     };
-    cpu_message_t(msg_type_t _type)
+    explicit cpu_message_t(msg_type_t _type)
         : type(_type)
         {}
     virtual ~cpu_message_t() {}

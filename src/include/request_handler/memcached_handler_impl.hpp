@@ -154,7 +154,7 @@ typename memcached_handler_t<config_t>::parse_result_t memcached_handler_t<confi
 	
 template <class config_t>
 typename memcached_handler_t<config_t>::parse_result_t memcached_handler_t<config_t>::read_data(char *data, unsigned int size, conn_fsm_t *fsm) {
-    check("memcached handler should be in loading data state", loading_data!=true);
+    check("memcached handler should be in loading data state", !loading_data);
     if (size < bytes + 2){//check that the buffer contains enough data.  must also include \r\n
         return req_handler_t::op_partial_packet;
     }

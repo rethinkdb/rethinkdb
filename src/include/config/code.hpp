@@ -4,6 +4,9 @@
 
 #include "corefwd.hpp"
 #include "alloc/memalign.hpp"
+#ifdef VALGRIND
+#include "alloc/malloc.hpp"
+#endif
 
 /**
  * Code configuration - instantiating various templated classes.
@@ -39,6 +42,8 @@ struct standard_config_t {
     typedef cache_impl_t cache_t;
     //typedef cache_stats_t<cache_impl_t> cache_t; TODO(NNW): Update API.
 #endif
+    typedef buf<standard_config_t> buf_t;
+    typedef transaction<standard_config_t> transaction_t;
 
     // BTree
     typedef btree_admin<standard_config_t> btree_admin_t;
@@ -51,7 +56,11 @@ struct standard_config_t {
     typedef request<standard_config_t> request_t;
 
     // Small object allocator
+#ifdef VALGRIND
+    typedef malloc_alloc_t alloc_t;
+#else
     typedef dynamic_pool_alloc_t<alloc_stats_t<pool_alloc_t<memalign_alloc_t<> > > > alloc_t;
+#endif
 };
 
 typedef standard_config_t code_config_t;

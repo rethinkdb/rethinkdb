@@ -21,7 +21,7 @@ public:
     
 public:
     memcached_handler_t(cache_t *_cache, event_queue_t *eq)
-        : req_handler_t(eq), cache(_cache)
+        : req_handler_t(eq), cache(_cache), loading_data(false)
         {}
     
     virtual parse_result_t parse_request(event_t *event);

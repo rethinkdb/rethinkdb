@@ -6,8 +6,7 @@ template<class config_t>
 bool rwi_lock<config_t>::lock(access_t access, void *state) {
     if(try_lock(access)) {
         return true;
-    }
-    else {
+    } else {
         enqueue_request(access, state);
         return false;
     }
@@ -148,8 +147,9 @@ bool rwi_lock<config_t>::try_lock_upgrade() {
     if(nreaders == 0) {
         state = rwis_writing;
         return true;
-    } else
+    } else {
         return false;
+    }
 }
     
 template<class config_t>
