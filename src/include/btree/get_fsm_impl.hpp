@@ -150,6 +150,7 @@ typename btree_get_fsm<config_t>::transition_result_t btree_get_fsm<config_t>::d
     if (res == btree_fsm_t::transition_ok && state == lookup_complete) {
         bool committed = transaction->commit(NULL);
         assert(committed); /* Read-only commits always finish immediately. */
+        delete transaction;
         res = btree_fsm_t::transition_complete;
     }
 

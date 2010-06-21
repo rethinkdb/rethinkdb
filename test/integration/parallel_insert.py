@@ -6,7 +6,7 @@ from multiprocessing import Pool
 import memcache
 from random import shuffle
 
-NUM_INTS=10000
+NUM_INTS=100
 NUM_THREADS=8
 HOST="localhost"
 PORT="11211"
@@ -17,6 +17,7 @@ PORT="11211"
 def rethinkdb_insert(ints):
     mc = memcache.Client([HOST + ":" + PORT], debug=0)
     for i in ints:
+	print "Inserting %d" % i
         mc.set(str(i), str(i))
     mc.disconnect_all()
 

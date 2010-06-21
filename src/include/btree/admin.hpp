@@ -20,6 +20,10 @@ public:
         check("Could not truncate db file", res != 0);
 
         char *buf = (char*)malloc_aligned(IO_BUFFER_SIZE, IO_BUFFER_SIZE);
+#ifdef VALGRIND
+            // Zero out the buffer in debug mode so valgrind doesn't complain
+            bzero(buf, IO_BUFFER_SIZE);
+#endif
         *((block_id_t*)buf) = serializer_t::null_block_id;
 
         res = write(fd, buf, IO_BUFFER_SIZE);

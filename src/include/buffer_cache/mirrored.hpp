@@ -41,13 +41,16 @@ class buf : public config_t::writeback_t::buf_t,
             public config_t::page_repl_t::buf_t,
             public config_t::concurrency_t::buf_t {
 public:
-    typedef typename config_t::serializer_t::block_id_t block_id_t;
+    typedef typename config_t::serializer_t serializer_t;
+    typedef typename serializer_t::block_id_t block_id_t;
     typedef typename config_t::aio_context_t aio_context_t;
     typedef typename config_t::transaction_t transaction_t;
     typedef typename config_t::concurrency_t concurrency_t;
+    typedef typename config_t::cache_t cache_t;
     typedef typename config_t::node_t node_t;
 
-    buf(transaction_t *transaction, block_id_t block_id, void *data);
+    buf(transaction_t *transaction, block_id_t block_id);
+    ~buf();
 
     void release(void *state); /* TODO(NNW): Callback should be removed. */
 
@@ -62,7 +65,8 @@ public:
     transaction_t *get_transaction() { return transaction; }
 
 private:
-    transaction_t *transaction;
+    transaction_t *transaction; // TODO(NNW): We need to invalidate this.
+    cache_t *cache;
     block_id_t block_id;
     bool cached; /* Is data valid, or are we waiting for a read? */
     void *data;
@@ -112,6 +116,7 @@ public:
     typedef typename config_t::writeback_t writeback_t;
     typedef typename config_t::transaction_t transaction_t;
     typedef typename config_t::buffer_alloc_t buffer_alloc_t;
+    typedef typename config_t::concurrency_t concurrency_t;
     typedef typename config_t::page_map_t page_map_t;
     typedef typename config_t::buf_t buf_t;
     typedef aio_context<config_t> aio_context_t;
@@ -128,6 +133,7 @@ public:
         serializer_t(_block_size),
         page_repl_t(_block_size, _max_size, this, this),
         writeback_t(this) {}
+    ~mirrored_cache_t();
 
     void start() {
         writeback_t::start();
@@ -137,6 +143,9 @@ public:
     transaction_t *begin_transaction();
 
     void aio_complete(aio_context_t *ctx, void *block, bool written);
+
+private:
+    using page_map_t::ft_map;
 };
 
 #include "buffer_cache/mirrored_impl.hpp"

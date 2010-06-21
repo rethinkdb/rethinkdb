@@ -15,7 +15,12 @@ struct malloc_alloc_t {
     void gc() {}
     
     void* malloc(size_t size) {
-        return ::malloc(size);
+        void *ptr = ::malloc(size);
+#ifdef VALGRIND
+            // Zero out the buffer in debug mode so valgrind doesn't complain
+            bzero(ptr, size);
+#endif
+        return ptr;
     }
     
     void free(void* ptr) {

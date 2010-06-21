@@ -116,7 +116,7 @@ typename memcached_handler_t<config_t>::parse_result_t memcached_handler_t<confi
         return malformed_request(fsm);
 
     cmd = command;
-    key = strdup(key_tmp);
+    key = strdup(key_tmp); //TODO: Consider not allocating with malloc
 
     char *invalid_char;
     flags = strtoul(flags_str, &invalid_char, 10);  //a 32 bit integer.  int alone does not guarantee 32 bit length
@@ -160,22 +160,35 @@ typename memcached_handler_t<config_t>::parse_result_t memcached_handler_t<confi
     }
 
     loading_data = false;
+    parse_result_t ret;
     switch(cmd) {
         case SET:
-            return set(data, fsm);
+            ret = set(data, fsm);
+            break;
         case ADD:
-            return add(data, fsm);
+            ret = add(data, fsm);
+            break;
         case REPLACE:
-            return replace(data, fsm);
+            ret = replace(data, fsm);
+            break;
         case APPEND:
-            return append(data, fsm);
+            ret = append(data, fsm);
+            break;
         case PREPEND:
-            return prepend(data, fsm);
+            ret = prepend(data, fsm);
+            break;
         case CAS:
-            return prepend(data, fsm);
+            ret = prepend(data, fsm);
+            break;
         default:
-            return malformed_request(fsm);
+            ret = malformed_request(fsm);
+            break;
     }
+
+    //free stored state
+    free(key);
+
+    return ret;
 }
 
 template <class config_t>

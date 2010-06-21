@@ -4,7 +4,7 @@
 
 template<class config_t>
 bool rwi_lock<config_t>::lock(access_t access, void *state) {
-    if(try_lock(access)) {
+    if(try_lock(access, false)) {
         return true;
     } else {
         enqueue_request(access, state);
@@ -54,23 +54,23 @@ void rwi_lock<config_t>::unlock_intent() {
 }
 
 template<class config_t>
-bool rwi_lock<config_t>::try_lock(access_t access) {
+bool rwi_lock<config_t>::try_lock(access_t access, bool from_queue) {
     switch(access) {
     case rwi_read:
-        return try_lock_read();
+        return try_lock_read(from_queue);
     case rwi_write:
-        return try_lock_write();
+        return try_lock_write(from_queue);
     case rwi_intent:
-        return try_lock_intent();
+        return try_lock_intent(from_queue);
     case rwi_upgrade:
-        return try_lock_upgrade();
+        return try_lock_upgrade(from_queue);
     }
     assert(0);
 }
 
 template<class config_t>
-bool rwi_lock<config_t>::try_lock_read() {
-    if(queue.head() && queue.head()->op == rwi_write)
+bool rwi_lock<config_t>::try_lock_read(bool from_queue) {
+    if(!from_queue && queue.head() && queue.head()->op == rwi_write)
         return false;
         
     switch(state) {
@@ -93,8 +93,8 @@ bool rwi_lock<config_t>::try_lock_read() {
 }
 
 template<class config_t>
-bool rwi_lock<config_t>::try_lock_write() {
-    if(queue.head() &&
+bool rwi_lock<config_t>::try_lock_write(bool from_queue) {
+    if(!from_queue && queue.head() &&
        (queue.head()->op == rwi_write ||
         queue.head()->op == rwi_read ||
         queue.head()->op == rwi_intent))
@@ -118,8 +118,8 @@ bool rwi_lock<config_t>::try_lock_write() {
 }
     
 template<class config_t>
-bool rwi_lock<config_t>::try_lock_intent() {
-    if(queue.head() &&
+bool rwi_lock<config_t>::try_lock_intent(bool from_queue) {
+    if(!from_queue && queue.head() &&
        (queue.head()->op == rwi_write ||
         queue.head()->op == rwi_intent))
         return false;
@@ -142,7 +142,7 @@ bool rwi_lock<config_t>::try_lock_intent() {
 }
 
 template<class config_t>
-bool rwi_lock<config_t>::try_lock_upgrade() {
+bool rwi_lock<config_t>::try_lock_upgrade(bool from_queue) {
     assert(state == rwis_reading_with_intent);
     if(nreaders == 0) {
         state = rwis_writing;
@@ -159,13 +159,17 @@ void rwi_lock<config_t>::enqueue_request(access_t access, void *state) {
 
 template<class config_t>
 void rwi_lock<config_t>::process_queue() {
-    lock_request_t *req = queue.head();
+    lock_request_t *req = queue.head(), *tmp = NULL;
     while(req) {
-        if(!try_lock(req->op))
+        tmp = ((intrusive_list_node_t<lock_request_t>*)(queue.head()))->next;
+        if(!try_lock(req->op, true)) {
             break;
-        else
+        }
+        else {
+            queue.remove(req);
             send_notify(req);
-        req = ((intrusive_list_node_t<lock_request_t>*)(queue.head()))->next;
+        }
+        req = tmp;
     }
 
     // TODO: currently if a request cannot be satisfied it is pushed
