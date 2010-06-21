@@ -18,6 +18,13 @@ struct aio_context : public alloc_mixin_t<tls_small_obj_alloc_accessor<typename 
     typedef typename serializer_t::block_id_t block_id_t;
     typedef typename config_t::cache_t::buf_t buf_t;
 
+    aio_context(buf_t *_buf, void *_state, block_id_t _id)
+        : buf(_buf), user_state(_state), block_id(_id)
+#ifndef NDEBUG
+        , event_queue(NULL)
+#endif
+        {}
+
     buf_t *buf;
     void *user_state;
     block_id_t block_id;
@@ -49,12 +56,14 @@ public:
     class transaction_t;
 
     /* Buffer class. */
+    // TODO: make sure we use small object allocator for buf_t
     class buf_t : public writeback_t::buf_t,
                   public page_repl_t::buf_t,
                   public concurrency_t::buf_t
     {
     public:
-        buf_t(transaction_t *transaction, block_id_t block_id, void *data);
+        buf_t(transaction_t *transaction, block_id_t block_id, void *data,
+              message_hub_t *hub, unsigned int cpu);
 
         void set_cached(bool _cached) { cached = _cached; }
         bool is_cached() const { return cached; }

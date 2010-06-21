@@ -22,7 +22,16 @@ int key_to_cpu(int key, unsigned int ncpus);
 
 struct cpu_message_t : public intrusive_list_node_t<cpu_message_t>
 {
+    enum msg_type_t {
+        mt_btree,
+        mt_lock
+    };
+    cpu_message_t(msg_type_t _type)
+        : type(_type)
+        {}
     virtual ~cpu_message_t() {}
+    
+    msg_type_t type;
     unsigned int return_cpu;
 };
 

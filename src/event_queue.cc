@@ -223,9 +223,9 @@ void process_cpu_core_notify(event_queue_t *self, message_hub_t::msg_list_t *mes
         head = tmp;
     }
 
-        // Note, the event handler is responsible for the deallocation
-        // of cpu messages. For btree_fsms, for example this currently
-        // occurs in build_response.
+    // Note, the event handler is responsible for the deallocation
+    // of cpu messages. For btree_fsms, for example this currently
+    // occurs in build_response.
 }
 
 void *event_queue_t::epoll_handler(void *arg) {

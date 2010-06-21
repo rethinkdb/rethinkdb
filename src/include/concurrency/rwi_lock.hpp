@@ -20,7 +20,7 @@ public:
                             public intrusive_list_node_t<lock_request_t>
     {
         lock_request_t(access_t _op, void *_state)
-            : op(_op), state(_state)
+            : cpu_message_t(cpu_message_t::mt_lock), op(_op), state(_state)
             {}
         access_t op;
         void *state;

@@ -54,6 +54,54 @@ void initiate_conn_fsm_transition(event_queue_t *event_queue, event_t *event) {
     }
 }
 
+void process_btree_msg(event_queue_t *event_queue, event_t *event, code_config_t::btree_fsm_t *btree_fsm) {
+    if(btree_fsm->is_finished()) {
+        // We received a completed btree that belongs to us
+        btree_fsm->request->ncompleted++;
+        if(btree_fsm->request->ncompleted == btree_fsm->request->nstarted) {
+            // This should be before build_response, as the
+            // request handler will destroy the btree
+            event->state = btree_fsm->request->netfsm;
+            event->event_type = et_request_complete;
+            event_queue->req_handler->build_response(btree_fsm->request);
+            initiate_conn_fsm_transition(event_queue, event);
+        }
+    } else {
+        // We received a new btree that we need to process
+        code_config_t::btree_fsm_t::transition_result_t btree_res = btree_fsm->do_transition(NULL);
+        if(btree_res == code_config_t::btree_fsm_t::transition_complete) {
+            // Btree completed right away, just send the response back.
+            event_queue->message_hub.store_message(btree_fsm->return_cpu, btree_fsm);
+        }
+    }
+}
+
+void process_lock_msg(event_queue_t *event_queue, event_t *event, rwi_lock<code_config_t>::lock_request_t *lr) {
+    // We got a lock notification event - a btree that's been waiting
+    // on a lock can now proceed
+    code_config_t::aio_context_t *ctx = (code_config_t::aio_context_t*)lr->state;
+    assert(event_queue == ctx->event_queue);
+    code_config_t::btree_fsm_t *btree_fsm = (code_config_t::btree_fsm_t*)ctx->user_state;
+
+    // TODO: we're duplicating this btree processing code a lot
+    // here. We need to refactor all of this shit to work through
+    // callbacks to it doesn't all go through main.cc.
+    event->event_type = et_cache;
+    event->buf = ctx->buf;
+    code_config_t::btree_fsm_t::transition_result_t res = btree_fsm->do_transition(event);
+    if(res == code_config_t::btree_fsm_t::transition_complete) {
+        // Booooyahh, btree completed. Send the completed btree to
+        // the right CPU
+        event_queue->message_hub.store_message(btree_fsm->return_cpu, btree_fsm);
+    }
+
+    // Delete the aio context, and the event structure. This is kosher
+    // because we're guranteed the message arrives at the same cpu
+    // core it was sent from.
+    delete ctx;
+    delete lr;
+}
+
 // Handle events coming from the event queue
 void event_handler(event_queue_t *event_queue, event_t *event) {
     if(event->event_type == et_timer) {
@@ -81,25 +129,14 @@ void event_handler(event_queue_t *event_queue, event_t *event) {
         // Got some socket action, let the connection fsm know
         initiate_conn_fsm_transition(event_queue, event);
     } else if(event->event_type == et_cpu_event) {
-        code_config_t::btree_fsm_t *btree_fsm = (code_config_t::btree_fsm_t *)event->state;
-        if(btree_fsm->is_finished()) {
-            // We received a completed btree that belongs to us
-            btree_fsm->request->ncompleted++;
-            if(btree_fsm->request->ncompleted == btree_fsm->request->nstarted) {
-                // This should be before build_response, as the
-                // request handler will destroy the btree
-                event->state = btree_fsm->request->netfsm;
-                event->event_type = et_request_complete;
-                event_queue->req_handler->build_response(btree_fsm->request);
-                initiate_conn_fsm_transition(event_queue, event);
-            }
-        } else {
-            // We received a new btree that we need to process
-            code_config_t::btree_fsm_t::transition_result_t btree_res = btree_fsm->do_transition(NULL);
-            if(btree_res == code_config_t::btree_fsm_t::transition_complete) {
-                // Btree completed right away, just send the response back.
-                event_queue->message_hub.store_message(btree_fsm->return_cpu, btree_fsm);
-            }
+        cpu_message_t *msg = (cpu_message_t*)event->state;
+        switch(msg->type) {
+        case cpu_message_t::mt_btree:
+            process_btree_msg(event_queue, event, (code_config_t::btree_fsm_t*)msg);
+            break;
+        case cpu_message_t::mt_lock:
+            process_lock_msg(event_queue, event, (rwi_lock<code_config_t>::lock_request_t*)msg);
+            break;
         }
     } else {
         check("Unknown event in event_handler", 1);

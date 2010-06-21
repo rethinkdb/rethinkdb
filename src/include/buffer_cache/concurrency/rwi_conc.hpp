@@ -18,17 +18,16 @@ struct rwi_conc_t {
     typedef rwi_lock<config_t> rwi_lock_t;
     
     struct buf_t {
-        buf_t()
-            : lock(NULL, 0) // TODO: we gotta pass real values here
+        buf_t(message_hub_t *_hub, unsigned int _cpu)
+            : lock(_hub, _cpu)
             {}
         
         rwi_lock_t lock;
     };
 
     /* Returns true if acquired successfully */
-    bool acquire(buf_t *buf, access_t mode) {
-        // TODO: pass real state instead of NULL
-        if(buf->lock.lock(mode, NULL))
+    bool acquire(buf_t *buf, access_t mode, void *state) {
+        if(buf->lock.lock(mode, state))
             return true;
         else
             return false;

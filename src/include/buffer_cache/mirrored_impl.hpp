@@ -7,9 +7,11 @@
  */
 template <class config_t>
 mirrored_cache_t<config_t>::buf_t::buf_t(transaction_t *transaction,
-        block_id_t block_id, void *data)
+                                         block_id_t block_id, void *data,
+                                         message_hub_t *hub, unsigned int cpu)
     : writeback_t::buf_t(),
       page_repl_t::buf_t(transaction->get_cache()),
+      concurrency_t::buf_t(hub, cpu),
       transaction(transaction),
       block_id(block_id),
       cached(false),
@@ -20,10 +22,10 @@ template <class config_t>
 void mirrored_cache_t<config_t>::buf_t::release(void *state) {
     /* XXX vvv This is incorrect. */
     if (this->is_dirty()) {
-        aio_context_t *ctx = new aio_context_t();
-        ctx->user_state = state;
-        ctx->buf = this;
-        ctx->block_id = block_id;
+        aio_context_t *ctx = new aio_context_t(this, state, block_id);
+#ifndef NDEBUG            
+        ctx->event_queue = get_cpu_context()->event_queue;
+#endif
         transaction->get_cache()->do_write(get_cpu_context()->event_queue,
             block_id, ptr(), ctx);
         this->set_clean(); /* XXX XXX Can't do this until the I/O comes back! */
@@ -77,10 +79,16 @@ mirrored_cache_t<config_t>::transaction_t::allocate(block_id_t *block_id) {
         
     *block_id = cache->gen_block_id();
     buf_t *buf = new buf_t(this, *block_id,
-                           cache->malloc(((serializer_t *)cache)->block_size));
+                           cache->malloc(((serializer_t *)cache)->block_size),
+                           &(get_cpu_context()->event_queue->message_hub),
+                           get_cpu_context()->event_queue->queue_id);
     cache->set(*block_id, buf);
     buf->pin();
-    ((concurrency_t*)cache)->acquire(buf, rwi_write);
+
+    // This must pass since no one else holds references to this
+    // block.
+    bool acquired = ((concurrency_t*)cache)->acquire(buf, rwi_write, NULL);
+    assert(acquired);
         
     return buf;
 }
@@ -102,14 +110,18 @@ mirrored_cache_t<config_t>::transaction_t::acquire(block_id_t block_id,
         buf_t *buf;
 
         buf = new buf_t(this, block_id,
-                        cache->malloc(((serializer_t *)cache)->block_size));
-        ((concurrency_t*)cache)->acquire(buf, mode);
+                        cache->malloc(((serializer_t *)cache)->block_size),
+                        &(get_cpu_context()->event_queue->message_hub),
+                        get_cpu_context()->event_queue->queue_id);
+        
+        // This must pass since no one else holds references to this
+        // block.
+        bool acquired = ((concurrency_t*)cache)->acquire(buf, mode, NULL);
+        assert(acquired);
+        
         assert(buf->ptr()); /* XXX */
         ((mirrored_cache_t::page_map_t *)cache)->set(block_id, buf);
-        aio_context_t *ctx = new aio_context_t();
-        ctx->buf = buf;
-        ctx->user_state = state;
-        ctx->block_id = block_id;
+        aio_context_t *ctx = new aio_context_t(buf, state, block_id);
 #ifndef NDEBUG            
         ctx->event_queue = get_cpu_context()->event_queue;
 #endif
@@ -117,8 +129,22 @@ mirrored_cache_t<config_t>::transaction_t::acquire(block_id_t block_id,
         cache->do_read(get_cpu_context()->event_queue, block_id, buf->ptr(), ctx);
     } else {
         buf->pin();
-        ((concurrency_t*)cache)->acquire(buf, mode);
-        if (!buf->is_cached()) { /* The data is not yet ready, queue us up. */
+
+        aio_context_t *ctx = new aio_context_t(buf, state, block_id);
+#ifndef NDEBUG            
+        ctx->event_queue = get_cpu_context()->event_queue;
+#endif
+        bool acquired = ((concurrency_t*)cache)->acquire(buf, mode, ctx);
+        if(acquired) {
+            // Since we got the lock right away, we can delete the
+            // context. If we couldn't acquire the lock, whoever
+            // handles the lock acquisition event later is responsible
+            // for freeing associated context memory.
+            delete ctx;
+        }
+        
+        if (!acquired || !buf->is_cached()) {
+            /* The data is not yet ready, queue us up. */
             /* XXX Add us to waiters queue; maybe lock code handles this? */
             buf = NULL;
         }
