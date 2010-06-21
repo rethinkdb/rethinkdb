@@ -167,6 +167,7 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
                     /* XXX This will require asynchrony once we fix writes. */
                     bool commit = transaction->commit(NULL);
                     assert(commit);
+                    delete transaction;
                     return btree_fsm_t::transition_complete;
                 } else {
                     return btree_fsm_t::transition_incomplete;
