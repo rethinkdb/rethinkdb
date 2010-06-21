@@ -10,9 +10,10 @@ struct unlocked_hash_map_t
 public:
     typedef typename config_t::serializer_t serializer_t;
     typedef typename serializer_t::block_id_t block_id_t;
+    typedef typename config_t::buf_t buf_t;
     
 public:
-    void* find(block_id_t block_id) {
+    buf_t* find(block_id_t block_id) {
         typename ft_map_t::iterator block = ft_map.find(block_id);
         if(block == ft_map.end()) {
             return NULL;
@@ -21,7 +22,7 @@ public:
         }
     }
     
-    void set(block_id_t block_id, void *block) {
+    void set(block_id_t block_id, buf_t *block) {
         ft_map[block_id] = block;
     }
     
@@ -32,8 +33,8 @@ public:
         return block;
     }
 
-private:
-    typedef std::map<block_id_t, void*> ft_map_t;
+protected:
+    typedef std::map<block_id_t, buf_t *> ft_map_t;
     ft_map_t ft_map;
 };
 

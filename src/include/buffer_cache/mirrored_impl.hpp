@@ -6,14 +6,20 @@
  * Buffer implementation.
  */
 template <class config_t>
-buf<config_t>::buf(transaction_t *transaction, block_id_t block_id, void *data)
+buf<config_t>::buf(transaction_t *transaction, block_id_t block_id)
     : config_t::writeback_t::buf_t(transaction->get_cache()),
       config_t::page_repl_t::buf_t(transaction->get_cache()),
       config_t::concurrency_t::buf_t(),
     transaction(transaction),
+    cache(transaction->get_cache()),
     block_id(block_id),
-    cached(false),
-    data(data) {
+    cached(false) {
+    data = cache->malloc(((serializer_t *)cache)->block_size);
+}
+
+template <class config_t>
+buf<config_t>::~buf() {
+    cache->free(data);
 }
 
 template <class config_t>
@@ -21,14 +27,13 @@ void buf<config_t>::release(void *state) {
     /* XXX vvv This is incorrect. */
     if (this->is_dirty()) {
         aio_context_t *ctx = new aio_context_t(this, state);
-        transaction->get_cache()->do_write(get_cpu_context()->event_queue,
-            block_id, ptr(), ctx);
+        cache->do_write(get_cpu_context()->event_queue, block_id, ptr(), ctx);
         this->set_clean(); /* XXX XXX Can't do this until the I/O comes back! */
     }
     /* XXX ^^^ This is incorrect. */
     if (!this->is_dirty())
         this->unpin();
-    ((concurrency_t*)(transaction->get_cache()))->release(this);
+    ((concurrency_t *)cache)->release(this);
 
     // TODO: pinning/unpinning a block should come implicitly from
     // concurrency_t because it maintains all relevant reference
@@ -72,8 +77,7 @@ transaction<config_t>::allocate(block_id_t *block_id) {
     assert(event_queue == get_cpu_context()->event_queue);
         
     *block_id = cache->gen_block_id();
-    buf_t *buf = new buf_t(this, *block_id,
-                           cache->malloc(((serializer_t *)cache)->block_size));
+    buf_t *buf = new buf_t(this, *block_id);
     cache->set(*block_id, buf);
     buf->pin();
 
@@ -100,8 +104,7 @@ transaction<config_t>::acquire(block_id_t block_id, void *state,
     if (!buf) {
         buf_t *buf;
 
-        buf = new buf_t(this, block_id,
-                        cache->malloc(((serializer_t *)cache)->block_size));
+        buf = new buf_t(this, block_id);
         
         // This must pass since no one else holds references to this block.
         bool acquired = ((concurrency_t*)cache)->acquire(buf, mode, NULL);
@@ -138,6 +141,17 @@ transaction<config_t>::acquire(block_id_t block_id, void *state,
 /**
  * Cache implementation.
  */
+template <class config_t>
+mirrored_cache_t<config_t>::~mirrored_cache_t() {
+    for (typename page_map_t::ft_map_t::iterator it = ft_map.begin();
+         it != ft_map.end(); ++it) {
+        buf_t *buf = (*it).second;
+        bool acquired = ((concurrency_t *)this)->acquire(buf, rwi_write, NULL);
+        assert(acquired); // TODO: This should be an RASSERT().
+        delete buf;
+    }
+}
+
 template <class config_t>
 typename config_t::transaction_t *
 mirrored_cache_t<config_t>::begin_transaction() {
