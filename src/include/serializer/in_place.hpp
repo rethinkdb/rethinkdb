@@ -17,6 +17,8 @@
 
 // TODO: how to maintain the id of the root block?
 
+// TODO: we need have a version field for the file format.
+
 /* This is a serializer that writes blocks in place. It should be
  * efficient for rotational drives and flash drives with a very good
  * FTL. It's also a good sanity check that the rest of the system
