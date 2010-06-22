@@ -78,8 +78,38 @@ public:
      * value will be the id of the newly written block. */
     block_id_t do_write(event_queue_t *queue, block_id_t block_id, void *buf,
                         void *state) {
-        schedule_aio_write(dbfd, block_id, block_size, buf, queue, state);
+        aio_write_t aio_writes[1];
+
+        aio_writes[0].resource = dbfd;
+        aio_writes[0].offset = block_id;
+        aio_writes[0].length = block_size;
+        aio_writes[0].buf = buf;
+        aio_writes[0].state = state;
+
+        schedule_aio_write(aio_writes, 1, queue);
+
         return block_id;
+    }
+
+    struct write {
+        block_id_t  block_id;
+        void        *buf;
+        void        *state;
+    };
+
+    void do_write(event_queue_t *queue, write *writes, int num_writes) {
+        aio_write_t aio_writes[num_writes];
+        int i;
+        for (i = 0; i < num_writes; i++) {
+            aio_writes[i].resource = dbfd;
+            aio_writes[i].offset = writes[i].block_id;
+            aio_writes[i].length = block_size;
+            aio_writes[i].buf = writes[i].buf;
+            aio_writes[i].state = writes[i].state;
+        }
+
+        schedule_aio_write(aio_writes, num_writes, queue);
+
     }
 
 public:
