@@ -92,13 +92,11 @@ private:
     static void *epoll_handler(void *ctx);
     void process_timer_notify();
     static void garbage_collect(void *ctx);
-    struct timer_comp {
-        bool operator()(const timer* timer1, const timer* timer2) const {
-            return (timer1->it.it_value.tv_sec + timer1->it.it_value.tv_nsec > timer2->it.it_value.tv_sec + timer2->it.it_value.tv_nsec);
-        }
-    };
 
-    std::priority_queue<timer *, std::vector<timer *>, timer_comp> timers;
+    struct timer_gt {
+        bool operator()(const timer *t1, const timer *t2);
+    };
+    std::priority_queue<timer *, std::vector<timer *>, timer_gt> timers;
 };
 
 #endif // __EVENT_QUEUE_HPP__

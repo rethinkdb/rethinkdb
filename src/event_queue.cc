@@ -38,6 +38,8 @@
 #include "cpu_context.hpp"
 #include "config/code.hpp"
 
+static const int NSEC_IN_SEC = 1000 * 1000 * 1000;
+
 // TODO: report event queue statistics.
 
 // TODO: at this point the event queue contains all kinds of code that
@@ -131,8 +133,8 @@ void event_queue_t::process_timer_notify() {
         t->it.it_value = now;
         t->it.it_value.tv_sec += t->it.it_interval.tv_sec;
         t->it.it_value.tv_nsec += t->it.it_interval.tv_nsec;
-        if (t->it.it_value.tv_nsec > 1000 * 1000 * 1000) {
-            t->it.it_value.tv_nsec -= 1000 * 1000 * 1000;
+        if (t->it.it_value.tv_nsec > NSEC_IN_SEC) {
+            t->it.it_value.tv_nsec -= NSEC_IN_SEC;
             t->it.it_value.tv_sec += 1;
         }
         timers.push(t);
@@ -351,7 +353,7 @@ event_queue_t::event_queue_t(int queue_id, int _nqueues, event_handler_t event_h
     timespec ts;
     ts.tv_sec = 3;
     ts.tv_nsec = 0;
-    set_timer(&ts, (void (*)(void *))&this->garbage_collect, (void *) NULL);
+    set_timer(&ts, this->garbage_collect, NULL);
 }
 
 void event_queue_t::start_queue() {
@@ -566,6 +568,12 @@ void event_queue_t::garbage_collect(void *ctx) {
 /**
  * Timer API
  */
+bool event_queue_t::timer_gt::operator()(const timer *t1, const timer *t2) {
+    if (t1->it.it_value.tv_sec != t2->it.it_value.tv_sec)
+        return t1->it.it_value.tv_sec > t2->it.it_value.tv_sec;
+    return t1->it.it_value.tv_nsec > t2->it.it_value.tv_nsec;
+}
+
 void
 event_queue_t::set_timer(timespec *ts, void (*callback)(void *), void *ctx) {
     timespec now;
@@ -576,8 +584,8 @@ event_queue_t::set_timer(timespec *ts, void (*callback)(void *), void *ctx) {
     t->it.it_value = now;
     t->it.it_value.tv_sec += ts->tv_sec;
     t->it.it_value.tv_nsec += ts->tv_nsec;
-    if (t->it.it_value.tv_nsec > 1000 * 1000 * 1000) {
-        t->it.it_value.tv_nsec -= 1000 * 1000 * 1000;
+    if (t->it.it_value.tv_nsec > NSEC_IN_SEC) {
+        t->it.it_value.tv_nsec -= NSEC_IN_SEC;
         t->it.it_value.tv_sec += 1;
     }
     t->callback = callback;
