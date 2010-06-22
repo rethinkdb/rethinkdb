@@ -91,8 +91,12 @@ private:
 
     static void *epoll_handler(void *ctx);
     void process_timer_notify();
+    static void garbage_collect(void *ctx);
 
-    std::priority_queue<timer *> timers;
+    struct timer_gt {
+        bool operator()(const timer *t1, const timer *t2);
+    };
+    std::priority_queue<timer *, std::vector<timer *>, timer_gt> timers;
 };
 
 #endif // __EVENT_QUEUE_HPP__
