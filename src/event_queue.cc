@@ -104,18 +104,6 @@ void event_queue_t::process_timer_notify() {
 
     total_expirations += nexpirations;
 
-    // Internal ops to perform on the timer
-    if((total_expirations * TIMER_TICKS_IN_MS) % ALLOC_GC_IN_MS == 0) {
-        // Perform allocator gc
-        std::vector<event_queue_t::alloc_t*> *allocs =
-            tls_small_obj_alloc_accessor<event_queue_t::alloc_t>::allocs_tl;
-        if(allocs) {
-            for(size_t i = 0; i < allocs->size(); i++) {
-                allocs->operator[](i)->gc();
-            }
-        }
-    }
-
     // Let queue user handle the event, if they wish
     if(event_handler) {
         event_t qevent;
@@ -148,7 +136,7 @@ void event_queue_t::process_timer_notify() {
             t->it.it_value.tv_sec += 1;
         }
         timers.push(t);
-
+        
         t = timers.empty() ? NULL : timers.top();
     }
 }
@@ -214,7 +202,6 @@ void process_cpu_core_notify(event_queue_t *self, message_hub_t::msg_list_t *mes
         
         // Pass the event to the handler
         event_t cpu_event;
-        bzero((char*)&cpu_event, sizeof(cpu_event));
         cpu_event.event_type = et_cpu_event;
         cpu_event.state = head;
         self->event_handler(self, &cpu_event);
@@ -359,6 +346,12 @@ event_queue_t::event_queue_t(int queue_id, int _nqueues, event_handler_t event_h
     out << queue_id;
     str += out.str();
     cache->init((char*)str.c_str());
+
+    //Add garbage collection timer
+    timespec ts;
+    ts.tv_sec = 3;
+    ts.tv_nsec = 0;
+    set_timer(&ts, (void (*)(void *))&this->garbage_collect, (void *) NULL);
 }
 
 void event_queue_t::start_queue() {
@@ -556,6 +549,17 @@ void event_queue_t::pull_messages_for_cpu(message_hub_t::msg_list_t *target) {
         message_hub_t::msg_list_t tmp_list;
         parent_pool->workers[i].message_hub.pull_messages(queue_id, &tmp_list);
         target->append_and_clear(&tmp_list);
+    }
+}
+
+void event_queue_t::garbage_collect(void *ctx) {
+    // Perform allocator gc
+    std::vector<event_queue_t::alloc_t*> *allocs =
+        tls_small_obj_alloc_accessor<event_queue_t::alloc_t>::allocs_tl;
+    if(allocs) {
+        for(size_t i = 0; i < allocs->size(); i++) {
+            allocs->operator[](i)->gc();
+        }
     }
 }
 
