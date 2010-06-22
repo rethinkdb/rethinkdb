@@ -126,9 +126,8 @@ transaction<config_t>::acquire(block_id_t block_id, void *state,
             // handles the lock acquisition event later is responsible
             // for freeing associated context memory.
             delete ctx;
-        } else
-            printf("Conflict (cpu: %d)!\n", get_cpu_context()->event_queue->queue_id);
-        
+        }
+
         if (!acquired || !buf->is_cached()) {
             /* The data is not yet ready, queue us up. */
             /* XXX Add us to waiters queue; maybe lock code handles this? */

@@ -55,17 +55,25 @@ void rwi_lock<config_t>::unlock_intent() {
 
 template<class config_t>
 bool rwi_lock<config_t>::try_lock(access_t access, bool from_queue) {
+    bool res = false;
     switch(access) {
     case rwi_read:
-        return try_lock_read(from_queue);
+        res = try_lock_read(from_queue);
+        break;
     case rwi_write:
-        return try_lock_write(from_queue);
+        res = try_lock_write(from_queue);
+        break;
     case rwi_intent:
-        return try_lock_intent(from_queue);
+        res = try_lock_intent(from_queue);
+        break;
     case rwi_upgrade:
-        return try_lock_upgrade(from_queue);
+        res = try_lock_upgrade(from_queue);
+        break;
+    default:
+        check("Invalid lock state", 1);
     }
-    assert(0);
+
+    return res;
 }
 
 template<class config_t>
@@ -159,9 +167,8 @@ void rwi_lock<config_t>::enqueue_request(access_t access, void *state) {
 
 template<class config_t>
 void rwi_lock<config_t>::process_queue() {
-    lock_request_t *req = queue.head(), *tmp = NULL;
+    lock_request_t *req = queue.head();
     while(req) {
-        tmp = ((intrusive_list_node_t<lock_request_t>*)(queue.head()))->next;
         if(!try_lock(req->op, true)) {
             break;
         }
@@ -169,7 +176,7 @@ void rwi_lock<config_t>::process_queue() {
             queue.remove(req);
             send_notify(req);
         }
-        req = tmp;
+        req = queue.head();
     }
 
     // TODO: currently if a request cannot be satisfied it is pushed
