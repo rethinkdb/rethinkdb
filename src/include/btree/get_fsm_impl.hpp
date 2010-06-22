@@ -122,7 +122,7 @@ typename btree_get_fsm<config_t>::transition_result_t btree_get_fsm<config_t>::d
 
     // Update the cache with the event
     if(event) {
-        check("btree_set_fsm::do_transition - invalid event", event->op != eo_read);
+        check("btree_get_fsm::do_transition - invalid event", event->op != eo_read);
         check("Could not complete AIO operation",
               event->result == 0 ||
               event->result == -1);
