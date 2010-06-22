@@ -23,6 +23,7 @@ void schedule_aio_read(resource_t resource,
 }
 
 void schedule_aio_write(aio_write_t *writes, int num_writes, event_queue_t *notify_target) {
+    //TODO watch how we're allocating
     iocb* requests[num_writes];
     int i;
     for (i = 0; i < num_writes; i++) {
