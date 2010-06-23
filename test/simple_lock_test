@@ -1,0 +1,33 @@
+#!/usr/bin/env python
+import sys
+import os
+import pexpect
+import memcache
+
+def start_rethinkdb(port):
+    rethinkdb = pexpect.spawn("./rethinkdb -p " + port)
+    try:
+        rethinkdb.expect("Server started")
+    except pexpect.EOF:
+        print "ERROR: Could not start RethinkDB"
+        sys.exit(-1)
+    return rethinkdb
+
+def test_concurrency(db):
+    db.get_multi(['0']*2)
+
+def main():
+    os.chdir("../src") #assumes this script is in the rethinkdb/test directory
+    port = "9999"
+    rethinkdb_proc = start_rethinkdb(port)
+
+    rethinkdb = memcache.Client(["localhost:"+port])
+    print "Testing lock.  Will hang if test fails"
+    test_concurrency(rethinkdb)
+    print "Lock test succeeded"
+    
+    rethinkdb_proc.terminate()
+    rethinkdb_proc.read()
+
+if __name__ == "__main__":
+    main()
