@@ -41,14 +41,12 @@ void buf<config_t>::release(void *state) {
 
 template <class config_t>
 void buf<config_t>::add_lock_callback(block_available_callback_t *callback) {
-    printf("Waiting on a lock: %p\n", this);
     if(callback)
         lock_callbacks.push(callback);
 }
 
 template <class config_t>
 void buf<config_t>::add_load_callback(block_available_callback_t *callback) {
-    printf("Waiting on a load: %p\n", this);
     if(callback)
         load_callbacks.push(callback);
 }
@@ -58,7 +56,6 @@ void buf<config_t>::notify_on_lock() {
     // We're calling back objects that were waiting on a lock. Because
     // of that, we can only call one.
     if(!lock_callbacks.empty()) {
-        printf("Done waiting on a lock: %p\n", this);
         lock_callbacks.front()->on_block_available(this);
         lock_callbacks.pop();
     }
@@ -70,7 +67,6 @@ void buf<config_t>::notify_on_load() {
     // but are waiting on a load. Because of this, we can notify all
     // of them.
     while(!load_callbacks.empty()) {
-        printf("Done waiting on a load: %p\n", this);
         load_callbacks.front()->on_block_available(this);
         load_callbacks.pop();
     }
@@ -206,10 +202,8 @@ void mirrored_cache_t<config_t>::aio_complete(buf_t *buf,
     buf->set_cached(true);
 
     if(written) {
-        printf("Written: %p\n", buf);
         buf->unpin();
     } else {
-        printf("Loaded: %p\n", buf);
         buf->pin();
         buf->notify_on_load();
     }
