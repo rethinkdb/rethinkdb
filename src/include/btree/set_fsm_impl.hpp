@@ -219,6 +219,7 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
                 buf->set_dirty();
                 buf->release(this);
                 buf = rbuf;
+                node = rbuf->node();
                 node_id = rnode_id;
             }
             node_dirty = true;
