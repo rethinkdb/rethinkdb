@@ -34,7 +34,7 @@ void rwi_lock<config_t>::unlock() {
         assert(nreaders >= 0);
         break;
     }
-        
+
     // See if we can satisfy any requests from the queue
     process_queue();
 }

@@ -149,21 +149,25 @@ int process_itc_notify(event_queue_t *self) {
     itc_event_t event;
 
     // Read the event
-    res = read(self->itc_pipe[0], &event, sizeof(event));
-    check("Could not read itc event", res != sizeof(event));
+    while(1) {
+        res = read(self->itc_pipe[0], &event, sizeof(event));
+        if(res == -1 && (errno == EAGAIN || errno == EWOULDBLOCK))
+            break;
+        check("Could not read itc event", res != sizeof(event));
 
-    // Process the event
-    switch(event.event_type) {
-    case iet_shutdown:
-        return 1;
-        break;
-    case iet_new_socket:
-        // The state will be freed within the fsm when the socket is
-        // closed (or killed for a variety of possible reasons)
-        event_queue_t::conn_fsm_t *state =
-            new event_queue_t::conn_fsm_t(event.data, self);
-        self->register_fsm(state);
-        break;
+        // Process the event
+        switch(event.event_type) {
+        case iet_shutdown:
+            return 1;
+            break;
+        case iet_new_socket:
+            // The state will be freed within the fsm when the socket is
+            // closed (or killed for a variety of possible reasons)
+            event_queue_t::conn_fsm_t *state =
+                new event_queue_t::conn_fsm_t(event.data, self);
+            self->register_fsm(state);
+            break;
+        }
     }
 
     return 0;
