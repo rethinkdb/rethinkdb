@@ -4,9 +4,11 @@
 
 #include <assert.h>
 #include "message_hub.hpp"
+#include "buffer_cache/callbacks.hpp"
 
 template <class config_t>
-class btree_fsm : public cpu_message_t
+class btree_fsm : public cpu_message_t,
+                  public block_available_callback<config_t>
 {
 public:
     typedef typename config_t::cache_t cache_t;
@@ -14,7 +16,8 @@ public:
     typedef typename cache_t::block_id_t block_id_t;
     typedef typename config_t::btree_fsm_t btree_fsm_t;
     typedef typename cache_t::transaction_t transaction_t;
-
+    typedef typename cache_t::buf_t buf_t;
+    typedef void (*on_complete_t)(btree_fsm_t*);
 public:
     enum transition_result_t {
         transition_incomplete,
@@ -34,7 +37,8 @@ public:
 public:
     btree_fsm(cache_t *_cache, fsm_type_t _fsm_type)
         : cpu_message_t(cpu_message_t::mt_btree),
-          fsm_type(_fsm_type), transaction(NULL), request(NULL), cache(_cache)
+          fsm_type(_fsm_type), transaction(NULL), request(NULL), cache(_cache),
+          on_complete(NULL)
         {}
     virtual ~btree_fsm() {}
 
@@ -55,6 +59,8 @@ public:
     // Return true if the state machine is in a completed state
     virtual bool is_finished() = 0;
 
+    virtual void on_block_available(buf_t *buf);
+
 protected:
     block_id_t get_root_id(void *superblock_buf);
     cache_t* get_cache() {
@@ -66,6 +72,7 @@ public:
     transaction_t *transaction;
     request_t *request;
     cache_t *cache;
+    on_complete_t on_complete;
 };
 
 #include "btree/fsm_impl.hpp"

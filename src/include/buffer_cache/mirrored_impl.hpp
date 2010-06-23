@@ -26,8 +26,7 @@ template <class config_t>
 void buf<config_t>::release(void *state) {
     /* XXX vvv This is incorrect. */
     if (this->is_dirty()) {
-        aio_context_t *ctx = new aio_context_t(this, state);
-        cache->do_write(get_cpu_context()->event_queue, block_id, ptr(), ctx);
+        cache->do_write(get_cpu_context()->event_queue, block_id, ptr(), this);
         this->set_clean(); /* XXX XXX Can't do this until the I/O comes back! */
     }
     /* XXX ^^^ This is incorrect. */
@@ -38,6 +37,39 @@ void buf<config_t>::release(void *state) {
     // TODO: pinning/unpinning a block should come implicitly from
     // concurrency_t because it maintains all relevant reference
     // counts.
+}
+
+template <class config_t>
+void buf<config_t>::add_lock_callback(block_available_callback_t *callback) {
+    if(callback)
+        lock_callbacks.push(callback);
+}
+
+template <class config_t>
+void buf<config_t>::add_load_callback(block_available_callback_t *callback) {
+    if(callback)
+        load_callbacks.push(callback);
+}
+
+template <class config_t>
+void buf<config_t>::notify_on_lock() {
+    // We're calling back objects that were waiting on a lock. Because
+    // of that, we can only call one.
+    if(!lock_callbacks.empty()) {
+        lock_callbacks.front()->on_block_available(this);
+        lock_callbacks.pop();
+    }
+}
+
+template <class config_t>
+void buf<config_t>::notify_on_load() {
+    // We're calling back objects that were all able to grab a lock,
+    // but are waiting on a load. Because of this, we can notify all
+    // of them.
+    while(!load_callbacks.empty()) {
+        load_callbacks.front()->on_block_available(this);
+        load_callbacks.pop();
+    }
 }
 
 template <class config_t>
@@ -78,6 +110,7 @@ transaction<config_t>::allocate(block_id_t *block_id) {
         
     *block_id = cache->gen_block_id();
     buf_t *buf = new buf_t(this, *block_id);
+    buf->set_cached(true);
     cache->set(*block_id, buf);
     buf->pin();
 
@@ -91,8 +124,8 @@ transaction<config_t>::allocate(block_id_t *block_id) {
 
 template <class config_t>
 typename config_t::buf_t *
-transaction<config_t>::acquire(block_id_t block_id, void *state,
-                               access_t mode) {
+transaction<config_t>::acquire(block_id_t block_id, access_t mode,
+                               block_available_callback_t *callback) {
     assert(event_queue == get_cpu_context()->event_queue);
        
     // TODO(NNW): we might get a request for a block id while the block
@@ -112,25 +145,26 @@ transaction<config_t>::acquire(block_id_t block_id, void *state,
         
         assert(buf->ptr()); /* XXX */
         cache->set(block_id, buf);
-        aio_context_t *ctx = new aio_context_t(buf, state);
-        cache->do_read(get_cpu_context()->event_queue, block_id, buf->ptr(),
-            ctx);
+
+        buf->add_load_callback(callback);
+
+        cache->do_read(get_cpu_context()->event_queue, block_id, buf->ptr(), buf);
     } else {
         buf->pin();
 
-        aio_context_t *ctx = new aio_context_t(buf, state);
-        bool acquired = ((concurrency_t*)cache)->acquire(buf, mode, ctx);
-        if(acquired) {
-            // Since we got the lock right away, we can delete the
-            // context. If we couldn't acquire the lock, whoever
-            // handles the lock acquisition event later is responsible
-            // for freeing associated context memory.
-            delete ctx;
+        bool acquired = ((concurrency_t*)cache)->acquire(buf, mode, buf);
+
+        if (!acquired) {
+            // Could not acquire block because of locking, add
+            // callback to lock_callbacks.
+            buf->add_lock_callback(callback);
+        } else if(!buf->is_cached()) {
+            // Acquired the block, but it's not cached yet, add
+            // callback to load_callbacks.
+            buf->add_load_callback(callback);
         }
 
         if (!acquired || !buf->is_cached()) {
-            /* The data is not yet ready, queue us up. */
-            /* XXX Add us to waiters queue; maybe lock code handles this? */
             buf = NULL;
         }
     }
@@ -160,17 +194,18 @@ mirrored_cache_t<config_t>::begin_transaction() {
 }
 
 template <class config_t>
-void mirrored_cache_t<config_t>::aio_complete(aio_context_t *ctx,
+void mirrored_cache_t<config_t>::aio_complete(buf_t *buf,
         void *block, bool written) {
-    assert(ctx->event_queue = get_cpu_context()->event_queue);
+    // TODO: add an assert to make sure aio_complete is called by the
+    // same event_queue as the one on which the buf_t was created.
 
-    buf_t *buf = ctx->buf;
     buf->set_cached(true);
-    delete ctx;
+
     if(written) {
         buf->unpin();
     } else {
         buf->pin();
+        buf->notify_on_load();
     }
 }
 

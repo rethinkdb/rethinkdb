@@ -33,7 +33,6 @@ struct standard_config_t {
     typedef writeback_tmpl_t<standard_config_t> writeback_t;
     typedef rwi_conc_t<standard_config_t> concurrency_t;
     typedef mirrored_cache_t<standard_config_t> cache_impl_t;
-    typedef aio_context<standard_config_t> aio_context_t;
     
     //typedef fallthrough_cache_t<standard_config_t> cache_impl_t;
 #ifdef NDEBUG
@@ -50,6 +49,7 @@ struct standard_config_t {
     typedef array_node_t<off64_t> node_t;
     typedef btree_get_fsm<standard_config_t> btree_get_fsm_t;
     typedef btree_set_fsm<standard_config_t> btree_set_fsm_t;
+    typedef btree_delete_fsm<standard_config_t> btree_delete_fsm_t;
 
     // Request handler
     typedef request_handler_t<standard_config_t> req_handler_t;
