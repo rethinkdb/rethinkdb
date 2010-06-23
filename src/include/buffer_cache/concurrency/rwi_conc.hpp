@@ -27,14 +27,16 @@ struct rwi_conc_t {
     };
 
     /* Returns true if acquired successfully */
-    bool acquire(buf_t *buf, access_t mode, void *state) {
-        if(buf->lock.lock(mode, state))
+    bool acquire(typename config_t::buf_t *buf, access_t mode, void *state) {
+        if(buf->lock.lock(mode, state)) {
             return true;
-        else
+        }
+        else {
             return false;
+        }
     }
 
-    void release(buf_t *buf) {
+    void release(typename config_t::buf_t *buf) {
         buf->lock.unlock();
     }
 };
