@@ -31,6 +31,7 @@
 #include "buffer_cache/concurrency/rwi_conc.hpp"
 #include "btree/get_fsm.hpp"
 #include "btree/set_fsm.hpp"
+#include "btree/delete_fsm.hpp"
 #include "btree/array_node.hpp"
 #include "request.hpp"
 #include "event_queue.hpp"

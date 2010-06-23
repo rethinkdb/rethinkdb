@@ -113,6 +113,17 @@ public:
         this->nkeys /= 2;
     }
 
+    int remove(int key) {
+        int index = parent_t::lookup(key);
+        for(int i = index; i < this->nkeys; i++) {
+            this->keys[i] = this->keys[i + 1];
+            this->values[i] = this->values[i + 1];
+        }
+
+        this->nkeys--;
+        return 1;
+    }
+
 private:
     int values[NODE_ORDER];
 };
@@ -183,6 +194,27 @@ public:
         rnode->nkeys = rkeys;
 
         this->nkeys /= 2;
+    }
+
+    int remove(int key) {
+        int index = parent_t::lookup(key);
+        for(int i = index; i < this->nkeys; i++) {
+            this->keys[i] = this->keys[i + 1];
+            this->values[i] = this->values[i + 1];
+        }
+
+        this->nkeys--;
+        return 1;
+    }
+
+    void merge(array_internal_node_t<block_id_t> *rnode) {
+        assert(this->nkeys + rnode->nkeys <= NODE_ORDER);
+
+        memcpy(this->keys, rnode->keys, rnode->nkeys * sizeof(*this->keys));
+
+        this->nkeys += rnode->nkeys;
+
+        delete rnode; //TODO figure out if this is the right place to do this
     }
 
 private:

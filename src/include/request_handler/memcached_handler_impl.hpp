@@ -347,7 +347,28 @@ typename memcached_handler_t<config_t>::parse_result_t memcached_handler_t<confi
     }
 
     // parsed successfully, but functionality not yet implemented
-    return unimplemented_request(fsm);
+    //return unimplemented_request(fsm);
+
+    request_t *request = new request_t(fsm);
+
+    do {
+        if(request->nstarted == MAX_OPS_IN_REQUEST) {
+            break;
+        }
+
+        int key_int = atoi(key_str);
+        btree_delete_fsm_t *btree_fsm = new btree_delete_fsm_t(get_cpu_context()->event_queue->cache);
+        btree_fsm->request = request;
+        btree_fsm->init_delete(key_int);
+        request->fsms[request->nstarted] = btree_fsm;
+        request->nstarted++;
+
+        req_handler_t::event_queue->message_hub.store_message(key_to_cpu(key_int, req_handler_t::event_queue->nqueues), btree_fsm);
+        key_str = strtok_r(NULL, DELIMS, &state);
+    } while(key_str);
+
+    fsm->current_request = request;
+    return req_handler_t::op_req_complex;
 }
 
 template <class config_t>
