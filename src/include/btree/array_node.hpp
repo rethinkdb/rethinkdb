@@ -32,6 +32,10 @@ struct array_node_t {
         return nkeys == NODE_ORDER;
     }
 
+    bool is_underfull() {
+        return nkeys < NODE_ORDER / 2;
+    }
+
     typedef array_leaf_node_t<block_id_t> leaf_node_t;
     typedef array_internal_node_t<block_id_t> internal_node_t;
 
