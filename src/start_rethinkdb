@@ -14,6 +14,7 @@ def main():
     except pexpect.EOF:
         sys.exit(-1)
 
+    port = "8080"
     opts, extra = getopt.getopt(sys.argv[1:], "p:", "port=")
     if len(opts) > 0:
         port = opts[0][1]
