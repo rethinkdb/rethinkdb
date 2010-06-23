@@ -75,9 +75,6 @@ class memcached_handler_t;
 struct iocb;
 
 template <class config_t>
-class aio_context;
-
-template <class config_t>
 class request;
 
 // IO Calls

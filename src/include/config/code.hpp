@@ -33,7 +33,6 @@ struct standard_config_t {
     typedef writeback_tmpl_t<standard_config_t> writeback_t;
     typedef rwi_conc_t<standard_config_t> concurrency_t;
     typedef mirrored_cache_t<standard_config_t> cache_impl_t;
-    typedef aio_context<standard_config_t> aio_context_t;
     
     //typedef fallthrough_cache_t<standard_config_t> cache_impl_t;
 #ifdef NDEBUG

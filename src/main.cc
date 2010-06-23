@@ -37,6 +37,11 @@
 #include "btree/array_node.hpp"
 #include "request.hpp"
 
+// TODO: we should redo the plumbing for the entire callback system so
+// that nothing is hardcoded here. Messages should flow dynamically to
+// their destinations without having a central place with all the
+// handlers.
+
 void initiate_conn_fsm_transition(event_queue_t *event_queue, event_t *event) {
     code_config_t::conn_fsm_t *fsm = (code_config_t::conn_fsm_t*)event->state;
     int res = fsm->do_transition(event);
@@ -53,7 +58,14 @@ void initiate_conn_fsm_transition(event_queue_t *event_queue, event_t *event) {
     }
 }
 
-void process_btree_msg(event_queue_t *event_queue, event_t *event, code_config_t::btree_fsm_t *btree_fsm) {
+void on_btree_completed(code_config_t::btree_fsm_t *btree_fsm) {
+    // We received a completed btree that belongs to another
+    // core. Send it off and be merry!
+    get_cpu_context()->event_queue->message_hub.store_message(btree_fsm->return_cpu, btree_fsm);
+}
+
+void process_btree_msg(code_config_t::btree_fsm_t *btree_fsm) {
+    event_queue_t *event_queue = get_cpu_context()->event_queue;
     // The FSM should work on the local cache, not on the cache of
     // the sender.
     // TODO: btree_fsm should not be constructed with a cache, as
@@ -66,46 +78,31 @@ void process_btree_msg(event_queue_t *event_queue, event_t *event, code_config_t
             // This should be before build_response, as the
             // request handler will destroy the btree
             code_config_t::conn_fsm_t *netfsm = btree_fsm->request->netfsm;
-            event->state = netfsm;
-            event->event_type = et_request_complete;
+            event_t event;
+            bzero((void*)&event, sizeof(event));
+            event.state = netfsm;
+            event.event_type = et_request_complete;
             netfsm->req_handler->build_response(btree_fsm->request);
-            initiate_conn_fsm_transition(event_queue, event);
+            initiate_conn_fsm_transition(event_queue, &event);
         }
     } else {
         // We received a new btree that we need to process
+        btree_fsm->on_complete = on_btree_completed;
         code_config_t::btree_fsm_t::transition_result_t btree_res = btree_fsm->do_transition(NULL);
         if(btree_res == code_config_t::btree_fsm_t::transition_complete) {
-            // Btree completed right away, just send the response back.
-            event_queue->message_hub.store_message(btree_fsm->return_cpu, btree_fsm);
+            on_btree_completed(btree_fsm);
         }
     }
 }
 
 void process_lock_msg(event_queue_t *event_queue, event_t *event, rwi_lock<code_config_t>::lock_request_t *lr) {
-    // We got a lock notification event - a btree that's been waiting
-    // on a lock can now proceed
-    code_config_t::aio_context_t *ctx = (code_config_t::aio_context_t*)lr->state;
-    assert(event_queue == ctx->event_queue);
-    code_config_t::btree_fsm_t *btree_fsm = (code_config_t::btree_fsm_t*)ctx->user_state;
-
-    // TODO: we're duplicating this btree processing code a lot
-    // here. We need to refactor all of this shit to work through
-    // callbacks to it doesn't all go through main.cc.
-    event->event_type = et_cache;
-    event->op = eo_read;
-    event->buf = ctx->buf;
-    event->result = 1;
-    code_config_t::btree_fsm_t::transition_result_t res = btree_fsm->do_transition(event);
-    if(res == code_config_t::btree_fsm_t::transition_complete) {
-        // Booooyahh, btree completed. Send the completed btree to
-        // the right CPU
-        event_queue->message_hub.store_message(btree_fsm->return_cpu, btree_fsm);
-    }
-
-    // Delete the aio context, and the event structure. This is kosher
-    // because we're guranteed the message arrives at the same cpu
-    // core it was sent from.
-    delete ctx;
+    // TODO: currently the cache calls the lock with a buf as user
+    // state, and if the object can't be locked right away, we get a
+    // message from the lock through the event queue here. We then
+    // call notify_callbacks on buf, but really, the cache should be
+    // getting this event and calling notify_callbacks.
+    code_config_t::buf_t *buf = (code_config_t::buf_t*)lr->state;
+    buf->notify_on_lock();
     delete lr;
 }
 
@@ -114,24 +111,8 @@ void event_handler(event_queue_t *event_queue, event_t *event) {
     if(event->event_type == et_timer) {
         // Nothing to do here, move along
     } else if(event->event_type == et_disk) {
-        // Grab the btree FSM
-        code_config_t::aio_context_t *ctx =
-            (code_config_t::aio_context_t *)event->state;
-        code_config_t::btree_fsm_t *btree_fsm =
-            (code_config_t::btree_fsm_t *)ctx->user_state;
-        
-        // Let the cache know about the disk action and free the ctx.
-        event->buf = ctx->buf; // Must occur before aio_complete.
-        event_queue->cache->aio_complete(ctx, event->buf, event->op != eo_read);
-        
-        // Generate the cache event and forward it to the appropriate btree fsm
-        event->event_type = et_cache;
-        code_config_t::btree_fsm_t::transition_result_t res = btree_fsm->do_transition(event);
-        if(res == code_config_t::btree_fsm_t::transition_complete) {
-            // Booooyahh, btree completed. Send the completed btree to
-            // the right CPU
-            event_queue->message_hub.store_message(btree_fsm->return_cpu, btree_fsm);
-        }
+        // Let the cache know about the disk action
+        event_queue->cache->aio_complete((code_config_t::buf_t*)event->state, event->buf, event->op != eo_read);
     } else if(event->event_type == et_sock) {
         // Got some socket action, let the connection fsm know
         initiate_conn_fsm_transition(event_queue, event);
@@ -139,7 +120,7 @@ void event_handler(event_queue_t *event_queue, event_t *event) {
         cpu_message_t *msg = (cpu_message_t*)event->state;
         switch(msg->type) {
         case cpu_message_t::mt_btree:
-            process_btree_msg(event_queue, event, (code_config_t::btree_fsm_t*)msg);
+            process_btree_msg((code_config_t::btree_fsm_t*)msg);
             break;
         case cpu_message_t::mt_lock:
             process_lock_msg(event_queue, event, (rwi_lock<code_config_t>::lock_request_t*)msg);
