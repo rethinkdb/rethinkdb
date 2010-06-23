@@ -18,7 +18,6 @@ struct writeback_tmpl_t {
 public:
     typedef typename config_t::serializer_t serializer_t;
     typedef typename serializer_t::block_id_t block_id_t;
-    typedef aio_context<config_t> aio_context_t;
     
     explicit writeback_tmpl_t(serializer_t *_serializer);
 

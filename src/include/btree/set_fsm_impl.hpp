@@ -43,7 +43,7 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
 
         // Now try to grab the superblock.
         block_id_t superblock_id = btree_fsm_t::get_cache()->get_superblock_id();
-        buf = transaction->acquire(superblock_id, this, rwi_write);
+        buf = transaction->acquire(superblock_id, rwi_write, this);
     } else {
         // We already tried to grab the superblock, and we're getting
         // a cache notification about it.
@@ -78,7 +78,7 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
 
     if(event == NULL) {
         // Acquire the actual root node
-        buf = transaction->acquire(node_id, this, rwi_write);
+        buf = transaction->acquire(node_id, rwi_write, this);
     } else {
         // We already tried to acquire the root node, and here it is
         // via the cache notification.
@@ -127,7 +127,7 @@ template <class config_t>
 typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::do_acquire_node(event_t *event)
 {
     if(event == NULL) {
-        buf = transaction->acquire(node_id, this, rwi_write);
+        buf = transaction->acquire(node_id, rwi_write, this);
     } else {
         assert(event->buf);
         buf = (buf_t*)event->buf;
@@ -154,30 +154,7 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
               event->result == 0 ||
               event->result == -1);
 
-        if(event->op == eo_write) {
-            nwrites--;
-            // We always expect to get all AIO write cache
-            // notifications back before we return
-            // "transition_complete" status. This means that caches
-            // with delayed writeback policies must emulate write
-            // completion events before they actually happen on disk.
-            if(res == btree_fsm_t::transition_ok && state == update_complete) {
-                if(nwrites == 0) {
-                    // End the transaction
-                    /* XXX This will require asynchrony once we fix writes. */
-                    bool commit = transaction->commit(NULL);
-                    assert(commit);
-                    delete transaction;
-                    return btree_fsm_t::transition_complete;
-                } else {
-                    return btree_fsm_t::transition_incomplete;
-                }
-            } else {
-                return btree_fsm_t::transition_incomplete;
-            }
-        } else if(event->op != eo_read) {
-            check("btree_set_fsm::do_transition - invalid event type", 1);
-        }
+        check("btree_set_fsm::do_transition - invalid event type", event->op != eo_read);
     }
 
     // First, acquire the superblock (to get root node ID)
@@ -238,11 +215,9 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
                 // Left node and node are the same thing
                 rbuf->set_dirty();
                 rbuf->release(this);
-                nwrites++;
             } else if(key >= median) {
                 buf->set_dirty();
                 buf->release(this);
-                nwrites++;
                 buf = rbuf;
                 node_id = rnode_id;
             }
@@ -261,15 +236,12 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
             ((leaf_node_t*)node)->insert(key, value);
             buf->set_dirty();
             buf->release(this);
-            nwrites++;
             state = update_complete;
             res = btree_fsm_t::transition_ok;
             break;
         } else {
             // Release and update the last node
             if(!cache_t::is_block_id_null(last_node_id)) {
-                if (last_buf->is_dirty())
-                    nwrites++;
                 last_buf->release(this);
             }
             last_buf = buf;
@@ -283,17 +255,21 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
         }
     }
 
-    // Release the final node
+    // Finalize the operation
     if(res == btree_fsm_t::transition_ok && state == update_complete) {
+        // Release the final node
         if(!cache_t::is_block_id_null(last_node_id)) {
-            if (last_buf->is_dirty())
-                nwrites++;
             last_buf->release(this);
             last_node_id = cache_t::null_block_id;
         }
-    }
 
-    //transaction->commit(); /* XXX This should be here, with a callback. */
+        // End the transaction
+        /* XXX This will require asynchrony once we fix writes. */
+        bool commit = transaction->commit(NULL); /* XXX This should be here, with a callback. */
+        assert(commit);
+        delete transaction;
+        res = btree_fsm_t::transition_complete;
+    }
 
     return res;
 }
@@ -303,7 +279,7 @@ int btree_set_fsm<config_t>::set_root_id(block_id_t root_id, event_t *event) {
     buf_t *buf;
     if(event == NULL) {
         block_id_t superblock_id = cache->get_superblock_id();
-        buf = transaction->acquire(superblock_id, this, rwi_write);
+        buf = transaction->acquire(superblock_id, rwi_write, this);
     } else {
         assert(event->buf);
         buf = (buf_t *)event->buf;
@@ -313,7 +289,6 @@ int btree_set_fsm<config_t>::set_root_id(block_id_t root_id, event_t *event) {
         buf->set_dirty();
         memcpy(buf->ptr(), (void*)&root_id, sizeof(root_id));
         buf->release(this);
-        nwrites++;
         return 1;
     } else {
         return 0;

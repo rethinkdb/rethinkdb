@@ -32,7 +32,7 @@ public:
         : btree_fsm_t(cache, btree_fsm_t::btree_set_fsm),
           state(uninitialized), buf(NULL), last_buf(NULL), node_id(cache_t::null_block_id),
           last_node_id(cache_t::null_block_id), loading_superblock(false),
-          node_dirty(false), last_node_dirty(false), nwrites(0)
+          node_dirty(false), last_node_dirty(false)
         {}
 
     void init_update(int _key, int _value);
@@ -64,7 +64,6 @@ private:
     buf_t *last_buf; /* This is always an internal_node. */
     block_id_t node_id, last_node_id; /* XXX These should be removed. */
     bool loading_superblock, node_dirty, last_node_dirty;
-    int nwrites;
 };
 
 #include "btree/set_fsm_impl.hpp"

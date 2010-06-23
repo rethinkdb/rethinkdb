@@ -22,7 +22,7 @@ typename btree_get_fsm<config_t>::transition_result_t btree_get_fsm<config_t>::d
 
         // Now try to grab the superblock.
         block_id_t superblock_id = cache->get_superblock_id();
-        buf = transaction->acquire(superblock_id, this, rwi_read);
+        buf = transaction->acquire(superblock_id, rwi_read, this);
     } else {
         // We already tried to grab the superblock, and we're getting
         // a cache notification about it.
@@ -58,7 +58,7 @@ typename btree_get_fsm<config_t>::transition_result_t btree_get_fsm<config_t>::d
 
     if(event == NULL) {
         // Acquire the actual root node
-        buf = transaction->acquire(node_id, this, rwi_read);
+        buf = transaction->acquire(node_id, rwi_read, this);
     } else {
         // We already tried to grab the root, and we're getting a
         // cache notification about it.
@@ -97,7 +97,7 @@ typename btree_get_fsm<config_t>::transition_result_t btree_get_fsm<config_t>::d
         /* XXX XXX Cannot release until the next acquire succeeds for locks! */
         buf->release(this);
         node_id = next_node_id;
-        buf = transaction->acquire(node_id, this, rwi_read);
+        buf = transaction->acquire(node_id, rwi_read, this);
         if(node) {
             return btree_fsm_t::transition_ok;
         } else {
