@@ -3,16 +3,18 @@
 import sys
 import subprocess
 from multiprocessing import Pool
+from multiprocessing import Process
+from multiprocessing import Queue
 import memcache
 from random import randint
 from time import time
 
-NUM_KEYS=1000          # Total number of key to insert
-NUM_VALUES=20          # Number of values a given key can assume
+NUM_KEYS=1000           # Total number of key to insert
+NUM_VALUES=20           # Number of values a given key can assume
 
-TEST_DURATION=5        # Duration of the test in seconds
-NUM_READ_THREADS=64    # Number of concurrent reader threads
-NUM_WRITE_THREADS=16   # Number of concurrent writer threads
+TEST_DURATION=15        # Duration of the test in seconds
+NUM_READ_THREADS=64     # Number of concurrent reader threads
+NUM_UPDATE_THREADS=16   # Number of concurrent threads updating existing values
 
 # Server location
 HOST="localhost"
@@ -38,7 +40,7 @@ def cycle_values(matrix):
             mc.disconnect_all()
             return
 
-def check_values(matrix):
+def check_values(queue, matrix):
     mc = memcache.Client([HOST + ":" + PORT], debug=0)
     time_start = time()
     while True:
@@ -46,11 +48,13 @@ def check_values(matrix):
         j = randint(0, NUM_KEYS - 1)
         value = mc.get(str(j))
         if (not value) or (not (int(value) in matrix[j])):
+            queue.put(-1)
             print "A key (%d) has an incorrect or missing value" % j
-            sys.exit(-1)
+            return
         # Disconnect if our time is out
         if(time() - time_start > TEST_DURATION):
             mc.disconnect_all()
+            queue.put(0)
             return
 
 def main(argv):
@@ -62,11 +66,31 @@ def main(argv):
     print "Insert initial values"
     insert_initial(matrix)
 
+    # Start cycling and checking
     print "Start cycling values"
-    cycle_values(matrix)
-    print "Start checking values"
-    check_values(matrix)
+    p_cyclers = Pool(NUM_UPDATE_THREADS)
+    p_cyclers.map_async(cycle_values, [matrix for _ in xrange(0, NUM_UPDATE_THREADS)])
+    p_cyclers.close()
 
-    
+    print "Start checking values"
+    queue = Queue()
+    procs = []
+    for i in xrange(0, NUM_READ_THREADS):
+        p = Process(target=check_values, args=(queue, matrix))
+        procs.append(p)
+        p.start()
+
+    # Wait for all the checkers to complete
+    i = 0
+    while(i != NUM_READ_THREADS):
+        res = queue.get()
+        if res == -1:
+            map(Process.terminate, procs)
+            sys.exit(-1)
+        i += 1
+
+    # Wait for all the updates to complete
+    p_cyclers.join()
+
 if __name__ == '__main__':
     sys.exit(main(sys.argv))
