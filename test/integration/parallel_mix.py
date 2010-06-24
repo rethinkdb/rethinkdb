@@ -47,9 +47,13 @@ def check_values(queue, matrix):
         # Get a random key and make sure its value is in the permitted range
         j = randint(0, NUM_KEYS - 1)
         value = mc.get(str(j))
-        if (not value) or (not (int(value) in matrix[j])):
+        if (not value):
             queue.put(-1)
-            print "A key (%d) has an incorrect or missing value" % j
+            print "A key (%d) is missing a value" % j
+            return
+        if (not (int(value) in matrix[j])):
+            queue.put(-1)
+            print "A key (%d) has incorrect value" % j
             return
         # Disconnect if our time is out
         if(time() - time_start > TEST_DURATION):
@@ -67,10 +71,11 @@ def main(argv):
     insert_initial(matrix)
 
     # Start cycling and checking
-    print "Start cycling values"
-    p_cyclers = Pool(NUM_UPDATE_THREADS)
-    p_cyclers.map_async(cycle_values, [matrix for _ in xrange(0, NUM_UPDATE_THREADS)])
-    p_cyclers.close()
+    if NUM_UPDATE_THREADS:
+        print "Start cycling values"
+        p_cyclers = Pool(NUM_UPDATE_THREADS)
+        p_cyclers.map_async(cycle_values, [matrix for _ in xrange(0, NUM_UPDATE_THREADS)])
+        p_cyclers.close()
 
     print "Start checking values"
     queue = Queue()
@@ -90,7 +95,8 @@ def main(argv):
         i += 1
 
     # Wait for all the updates to complete
-    p_cyclers.join()
+    if NUM_UPDATE_THREADS:
+        p_cyclers.join()
 
 if __name__ == '__main__':
     sys.exit(main(sys.argv))

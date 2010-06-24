@@ -78,13 +78,19 @@ public:
     }
 
     int insert(int key, int value) {
+        int index = parent_t::lookup(key);
+        // TODO: this is likely suboptimal, we might want two for
+        // loops (one for keys, one for values)
+        if(index < this->nkeys && this->keys[index] == key) {
+            // We already have the key, just change the value
+            values[index] = value;
+            return 1;
+        }
+        
         if(this->nkeys == NODE_ORDER) {
             return 0;
         }
-        int index = parent_t::lookup(key);
-        // TODO: handle duplicates
-        // TODO: this is likely suboptimal, we might want two for
-        // loops (one for keys, one for values)
+
         for(int i = this->nkeys - 1; i >= index; i--) {
             this->keys[i + 1] = this->keys[i];
             values[i + 1] = values[i];
