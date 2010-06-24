@@ -272,7 +272,7 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
 
         // End the transaction
         /* XXX This will require asynchrony once we fix writes. */
-        bool commit = transaction->commit(NULL); /* XXX This should be here, with a callback. */
+        bool commit __attribute__((unused)) = transaction->commit(NULL); /* XXX This should be here, with a callback. */
         assert(commit);
         delete transaction;
         res = btree_fsm_t::transition_complete;

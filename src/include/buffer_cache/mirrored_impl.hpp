@@ -164,7 +164,7 @@ mirrored_cache_t<config_t>::~mirrored_cache_t() {
     for (typename page_map_t::ft_map_t::iterator it = ft_map.begin();
          it != ft_map.end(); ++it) {
         buf_t *buf = (*it).second;
-        bool acquired = ((concurrency_t *)this)->acquire(buf, rwi_write, NULL);
+        bool acquired __attribute__((unused)) = ((concurrency_t *)this)->acquire(buf, rwi_write, NULL);
         assert(acquired); // TODO: This should be an RASSERT().
         delete buf;
     }

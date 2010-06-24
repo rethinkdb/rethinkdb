@@ -159,7 +159,7 @@ typename btree_delete_fsm<config_t>::transition_result_t btree_delete_fsm<config
 
     // Finally, end our transaction.  This should always succeed immediately.
     if (res == btree_fsm_t::transition_ok && state == delete_complete) {
-        bool committed = transaction->commit(NULL);
+        bool committed __attribute__((unused)) = transaction->commit(NULL);
         assert(committed); /* Read-only commits always finish immediately. */
         delete transaction;
         res = btree_fsm_t::transition_complete;

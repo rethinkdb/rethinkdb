@@ -148,7 +148,7 @@ typename btree_get_fsm<config_t>::transition_result_t btree_get_fsm<config_t>::d
 
     // Finally, end our transaction.  This should always succeed immediately.
     if (res == btree_fsm_t::transition_ok && state == lookup_complete) {
-        bool committed = transaction->commit(NULL);
+        bool committed __attribute__((unused)) = transaction->commit(NULL);
         assert(committed); /* Read-only commits always finish immediately. */
         delete transaction;
         res = btree_fsm_t::transition_complete;
