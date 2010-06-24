@@ -96,14 +96,9 @@ void process_btree_msg(code_config_t::btree_fsm_t *btree_fsm) {
     }
 }
 
+// TODO: this should really be moved into the event queue.
 void process_lock_msg(event_queue_t *event_queue, event_t *event, rwi_lock<code_config_t>::lock_request_t *lr) {
-    // TODO: currently the cache calls the lock with a buf as user
-    // state, and if the object can't be locked right away, we get a
-    // message from the lock through the event queue here. We then
-    // call notify_callbacks on buf, but really, the cache should be
-    // getting this event and calling notify_callbacks.
-    code_config_t::buf_t *buf = (code_config_t::buf_t*)lr->state;
-    buf->notify_on_lock();
+    lr->callback->on_lock_available();
     delete lr;
 }
 

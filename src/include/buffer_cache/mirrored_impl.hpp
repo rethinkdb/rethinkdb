@@ -9,7 +9,7 @@ template <class config_t>
 buf<config_t>::buf(transaction_t *transaction, block_id_t block_id)
     : config_t::writeback_t::buf_t(transaction->get_cache()),
       config_t::page_repl_t::buf_t(transaction->get_cache()),
-      config_t::concurrency_t::buf_t(),
+      config_t::concurrency_t::buf_t(this),
     transaction(transaction),
     cache(transaction->get_cache()),
     block_id(block_id),
@@ -40,25 +40,9 @@ void buf<config_t>::release(void *state) {
 }
 
 template <class config_t>
-void buf<config_t>::add_lock_callback(block_available_callback_t *callback) {
-    if(callback)
-        lock_callbacks.push(callback);
-}
-
-template <class config_t>
 void buf<config_t>::add_load_callback(block_available_callback_t *callback) {
     if(callback)
         load_callbacks.push(callback);
-}
-
-template <class config_t>
-void buf<config_t>::notify_on_lock() {
-    // We're calling back objects that were waiting on a lock. Because
-    // of that, we can only call one.
-    if(!lock_callbacks.empty()) {
-        lock_callbacks.front()->on_block_available(this);
-        lock_callbacks.pop();
-    }
 }
 
 template <class config_t>
@@ -157,7 +141,7 @@ transaction<config_t>::acquire(block_id_t block_id, access_t mode,
         if (!acquired) {
             // Could not acquire block because of locking, add
             // callback to lock_callbacks.
-            buf->add_lock_callback(callback);
+            ((typename config_t::concurrency_t::buf_t*)buf)->add_lock_callback(callback);
         } else if(!buf->is_cached()) {
             // Acquired the block, but it's not cached yet, add
             // callback to load_callbacks.
