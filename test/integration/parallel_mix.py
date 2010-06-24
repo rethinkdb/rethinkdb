@@ -15,6 +15,7 @@ NUM_VALUES=20           # Number of values a given key can assume
 TEST_DURATION=15        # Duration of the test in seconds
 NUM_READ_THREADS=64     # Number of concurrent reader threads
 NUM_UPDATE_THREADS=16   # Number of concurrent threads updating existing values
+NUM_INSERT_THREADS=8    # Number of concurrent threads inserting values that aren't yet in the db
 
 # Server location
 HOST="localhost"
@@ -61,6 +62,19 @@ def check_values(queue, matrix):
             queue.put(0)
             return
 
+def insert_values(_):
+    mc = memcache.Client([HOST + ":" + PORT], debug=0)
+    time_start = time()
+    j = NUM_KEYS
+    while True:
+        # Set a random key to one of its permitted values
+        mc.set(str(j), str(j))
+        j += 1
+        # Disconnect if our time is out
+        if(time() - time_start > TEST_DURATION):
+            mc.disconnect_all()
+            return
+
 def main(argv):
     # Generate a matrix of values a given key can assume
     print "Generating values"
@@ -77,6 +91,12 @@ def main(argv):
         p_cyclers.map_async(cycle_values, [matrix for _ in xrange(0, NUM_UPDATE_THREADS)])
         p_cyclers.close()
 
+    if NUM_INSERT_THREADS:
+        print "Start inserting values"
+        p_inserters = Pool(NUM_INSERT_THREADS)
+        p_inserters.map_async(insert_values, [0 for _ in xrange(0, NUM_INSERT_THREADS)])
+        p_inserters.close()
+        
     print "Start checking values"
     queue = Queue()
     procs = []
@@ -97,6 +117,8 @@ def main(argv):
     # Wait for all the updates to complete
     if NUM_UPDATE_THREADS:
         p_cyclers.join()
+    if NUM_INSERT_THREADS:
+        p_inserters.join()
 
 if __name__ == '__main__':
     sys.exit(main(sys.argv))
