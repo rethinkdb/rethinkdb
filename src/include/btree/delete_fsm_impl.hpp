@@ -154,7 +154,6 @@ typename btree_delete_fsm<config_t>::transition_result_t btree_delete_fsm<config
 
         res = do_acquire_node(event);
         event = NULL;
-
     }
 
     // Finally, end our transaction.  This should always succeed immediately.

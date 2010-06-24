@@ -23,7 +23,6 @@ public:
 public:
     virtual ~lock_available_callback() {}
     virtual void on_lock_available() = 0;
-    
 };
 
 /**

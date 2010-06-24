@@ -23,7 +23,7 @@ struct rwi_conc_t {
     typedef typename config_t::buf_t global_buf_t;
     
     struct buf_t : public lock_available_callback_t {
-        buf_t(global_buf_t *_gbuf)
+        explicit buf_t(global_buf_t *_gbuf)
             : lock(&get_cpu_context()->event_queue->message_hub,
                    get_cpu_context()->event_queue->queue_id),
               gbuf(_gbuf)
@@ -54,8 +54,7 @@ struct rwi_conc_t {
     bool acquire(typename config_t::buf_t *buf, access_t mode, void *state) {
         if(buf->lock.lock(mode, buf)) {
             return true;
-        }
-        else {
+        } else {
             return false;
         }
     }

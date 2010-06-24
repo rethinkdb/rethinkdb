@@ -17,7 +17,7 @@ public:
     typedef typename config_t::btree_fsm_t btree_fsm_t;
     typedef typename cache_t::transaction_t transaction_t;
     typedef typename cache_t::buf_t buf_t;
-    typedef void (*on_complete_t)(btree_fsm_t*);
+    typedef void (*on_complete_t)(btree_fsm_t* btree_fsm);
 public:
     enum transition_result_t {
         transition_incomplete,

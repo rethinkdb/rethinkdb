@@ -171,8 +171,7 @@ void rwi_lock<config_t>::process_queue() {
     while(req) {
         if(!try_lock(req->op, true)) {
             break;
-        }
-        else {
+        } else {
             queue.remove(req);
             send_notify(req);
         }

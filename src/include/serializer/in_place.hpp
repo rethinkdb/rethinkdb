@@ -111,7 +111,6 @@ public:
         }
 
         schedule_aio_write(aio_writes, num_writes, queue);
-
     }
 
 public:
