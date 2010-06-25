@@ -3,6 +3,7 @@
 #define __IO_CALLS_HPP__
 
 #include <vector>
+#include <assert.h>
 #include "arch/resource.hpp"
 #include "event.hpp"
 #include "corefwd.hpp"
@@ -14,8 +15,13 @@ struct iocallback_t {
 struct io_calls_t {
 public:
     io_calls_t(event_queue_t *_queue)
-        : queue(_queue)
+        : queue(_queue),
+          n_pending(0)
         {}
+
+    virtual ~io_calls_t() {
+        assert(n_pending == 0);
+    }
     
     /**
      * Synchronous (but possibly non-blocking, depending on fd) API
@@ -49,13 +55,16 @@ public:
     void aio_notify(event_t *event);
 
 private:
-    void process_remaining_requests();
+    void process_requests();
+    int process_request_batch(std::vector<iocb*> *requests);
 
 private:
     event_queue_t *queue;
 
     // TODO: watch the allocation
-    std::vector<iocb*> remaining_requests;
+    std::vector<iocb*> r_requests, w_requests;
+
+    int n_pending;
 };
 
 #endif // __IO_CALLS_HPP__

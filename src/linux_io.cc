@@ -1,7 +1,9 @@
 
+#include <algorithm>
 #include <unistd.h>
 #include <stdio.h>
 #include "arch/io.hpp"
+#include "config/args.hpp"
 #include "utils.hpp"
 #include "event_queue.hpp"
 #include "alloc/memalign.hpp"
@@ -28,11 +30,11 @@ void io_calls_t::schedule_aio_read(resource_t resource,
     io_set_eventfd(request, notify_target->aio_notify_fd);
     request->data = callback;
 
-    // Add it to a list of outstanding requests
-    remaining_requests.push_back(request);
+    // Add it to a list of outstanding read requests
+    r_requests.push_back(request);
 
     // Process whatever is left
-    process_remaining_requests();
+    process_requests();
 }
 
 // TODO: we should build a flow control/diagnostics system into the
@@ -51,17 +53,18 @@ void io_calls_t::schedule_aio_write(aio_write_t *writes, int num_writes, event_q
         io_set_eventfd(request, notify_target->aio_notify_fd);
         request->data = writes[i].callback;
 
-        // Add it to a list of outstanding requests
-        remaining_requests.push_back(request);
+        // Add it to a list of outstanding write requests
+        w_requests.push_back(request);
     }
 
     // Process whatever is left
-    process_remaining_requests();
+    process_requests();
 }
 
 void io_calls_t::aio_notify(event_t *event) {
     // Schedule the requests we couldn't finish last time
-    process_remaining_requests();
+    n_pending--;
+    process_requests();
     
     // Notify the interested party about the event
     iocallback_t *callback = (iocallback_t*)event->state;
@@ -69,15 +72,34 @@ void io_calls_t::aio_notify(event_t *event) {
     callback->on_io_complete(event);
 }
 
-void io_calls_t::process_remaining_requests() {
+void io_calls_t::process_requests() {
+    if(n_pending > TARGET_IO_QUEUE_DEPTH)
+        return;
+    
     int res = 0;
-    while(!remaining_requests.empty() && res >= 0) {
-        res = io_submit(queue->aio_context,
-                        remaining_requests.size(),
-                        &remaining_requests[0]);
-        if(res > 0)
-            remaining_requests.erase(remaining_requests.begin(), remaining_requests.begin() + res);
+    while(!r_requests.empty() || !w_requests.empty()) {
+        res = process_request_batch(&r_requests);
+        if(res < 0)
+            break;
+        
+        res = process_request_batch(&w_requests);
+        if(res < 0)
+            break;
     }
-    check("Could not submit IO write request",
-          res < 0 && res != -EAGAIN);
+    check("Could not submit IO request", res < 0 && res != -EAGAIN);
+}
+
+int io_calls_t::process_request_batch(std::vector<iocb*> *requests) {
+    // Submit a batch
+    int res = 0;
+    if(requests->size() > 0) {
+        res = io_submit(queue->aio_context,
+                        std::min(requests->size(), size_t(TARGET_IO_QUEUE_DEPTH / 2)),
+                        &requests->operator[](0));
+        if(res > 0) {
+            requests->erase(requests->begin(), requests->begin() + res);
+            n_pending += res;
+        }
+    }
+    return res;
 }
