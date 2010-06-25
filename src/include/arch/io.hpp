@@ -2,10 +2,10 @@
 #ifndef __IO_CALLS_HPP__
 #define __IO_CALLS_HPP__
 
+#include <vector>
 #include "arch/resource.hpp"
 #include "event.hpp"
-
-struct event_queue_t;
+#include "corefwd.hpp"
 
 struct iocallback_t {
     virtual void on_io_complete(event_t *event) = 0;
@@ -49,7 +49,13 @@ public:
     void aio_notify(event_t *event);
 
 private:
+    void process_remaining_requests();
+
+private:
     event_queue_t *queue;
+
+    // TODO: watch the allocation
+    std::vector<iocb*> remaining_requests;
 };
 
 #endif // __IO_CALLS_HPP__
