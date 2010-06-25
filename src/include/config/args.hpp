@@ -55,10 +55,13 @@
 // configurable on a per-database level (with a sensible default), and
 // provide a migration tool in case the customers upgrade to more
 // cores than was originally anticipated.
-#define BTREE_SPLIT_FACTOR                        16
+#define BTREE_SHARD_FACTOR                        16
 
 // Default port to listen on
 #define DEFAULT_LISTEN_PORT                       8080
+
+// How many milliseconds between flushes.
+#define DEFAULT_WRITEBACK_INTERVAL_MS             5000
 
 #endif // __CONFIG_ARGS_H__
 

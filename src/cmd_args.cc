@@ -28,8 +28,9 @@ void usage(const char *name) {
     printf("\t\t\tblocks, in megabytes.\n");
     
     printf("  -p, --port\t\tSocket port to listen on. Defaults to %d.\n", DEFAULT_LISTEN_PORT);
-    printf("      --delay-commits\tDo not respond to commands until changes are durable\n");
-    printf("      --flush-interval\tInterval in milliseconds between flushes to disk\n");
+    printf("      --delay-commits\tDo not respond to commands until changes are durable.\n");
+    printf("      --flush-interval\tInterval in milliseconds between flushes to disk.\n");
+    printf("\t\t\tDefaults to %dms.\n", DEFAULT_WRITEBACK_INTERVAL_MS);
     
     exit(-1);
 }
@@ -44,8 +45,8 @@ void init_config(cmd_config_t *config) {
     config->max_cache_size = DEFAULT_MAX_CACHE_RATIO * get_available_ram();
     config->port = DEFAULT_LISTEN_PORT;
 
-    config->delay_commits = true;
-    config->flush_interval_ms = 100;
+    config->delay_commits = false;
+    config->flush_interval_ms = DEFAULT_WRITEBACK_INTERVAL_MS;
 }
 
 enum {
