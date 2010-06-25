@@ -48,7 +48,6 @@ void initiate_conn_fsm_transition(event_queue_t *event_queue, event_t *event) {
     if(res == event_queue_t::conn_fsm_t::fsm_transition_ok) {
         // Nothing todo
     } else if(res == event_queue_t::conn_fsm_t::fsm_shutdown_server) {
-        printf("Shutting down server...\n");
         int res = pthread_kill(event_queue->parent_pool->main_thread, SIGINT);
         check("Could not send kill signal to main thread", res != 0);
     } else if(res == event_queue_t::conn_fsm_t::fsm_quit_connection) {
@@ -164,6 +163,9 @@ int main(int argc, char *argv[])
 
         // Start the server (in a separate thread)
         start_server(&worker_pool);
+
+        // If we got out of start_server, we're about to shut down.
+        printf("Shutting down server...\n");
     }
 }
 
