@@ -51,19 +51,13 @@ void buf<config_t>::notify_on_load() {
     }
 }
 
-template <class config_t>
-typename config_t::node_t *buf<config_t>::buf::node() {
-    assert(data);
-    return (typename config_t::node_t *)data;
-}
-
 /**
  * Transaction implementation.
  */
 template <class config_t>
 transaction<config_t>::transaction(cache_t *cache, access_t access,
         transaction_begin_callback_t *callback)
-    : cache(cache), access(access), state(open) {
+    : cache(cache), access(access), state(state_open) {
 #ifndef NDEBUG
     event_queue = get_cpu_context()->event_queue;
 #endif
@@ -76,16 +70,26 @@ transaction<config_t>::~transaction() {
 #ifndef NDEBUG
     cache->n_trans_freed++;
 #endif
-    assert(state == committed);
+    assert(state == state_committed);
 }
 
 template <class config_t>
 bool transaction<config_t>::commit(transaction_commit_callback_t *callback) {
+    assert(state == state_open);
     bool res = cache->commit(this, callback);
-    state = res ? committed : committing;
+    state = res ? state_committed : state_committing;
     if (res)
         delete this;
     return res;
+}
+
+template <class config_t>
+void transaction<config_t>::committed(transaction_commit_callback_t *callback) {
+    assert(state == state_committing);
+    state = state_committed;
+    // TODO(NNW): We should push notifications through event queue.
+    callback->on_txn_commit(this);
+    delete this;
 }
 
 template <class config_t>

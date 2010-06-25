@@ -119,7 +119,7 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
     // allocated here, and we just need to set its id in the metadata)
     if(cache_t::is_block_id_null(node_id)) {
         buf = transaction->allocate(&node_id);
-        new (buf->ptr()) leaf_node_t(); /* XXX Is this right? */
+        new (buf->ptr()) leaf_node_t();
     }
     if(set_root_id(node_id, event)) {
         state = acquire_node;
@@ -219,7 +219,7 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
         }
 
         // Proactively split the node
-        node_t *node = buf->node();
+        node_t *node = (node_t *)buf->ptr();
         if(node->is_full()) {
             int median;
             buf_t *rbuf;
@@ -233,7 +233,7 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
                 last_buf = transaction->allocate(&last_node_id);
                 last_node = new (last_buf->ptr()) internal_node_t();
             } else {
-                last_node = (internal_node_t *)last_buf->node(); /* XXX */
+                last_node = (internal_node_t *)last_buf->ptr();
             }
             last_node->insert(median, node_id, rnode_id);
             last_buf->set_dirty();
@@ -247,7 +247,7 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
                 buf->set_dirty();
                 buf->release();
                 buf = rbuf;
-                node = rbuf->node();
+                node = (node_t *)rbuf->ptr();
                 node_id = rnode_id;
             }
 

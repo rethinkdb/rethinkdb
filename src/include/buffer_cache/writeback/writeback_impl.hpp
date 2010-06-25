@@ -145,10 +145,7 @@ void writeback_tmpl_t<config_t>::writeback(buf_t *buf) {
             /* Notify all waiting transactions of completion. */
             for (typename std::set<txn_state_t>::iterator it =
                 flush_txns.begin(); it != flush_txns.end(); ++it) {
-                it->first->state = transaction_t::committed;
-                // TODO(NNW): We should push notifications through event queue
-                it->second->on_txn_commit(it->first);
-                delete it->first; // TODO(NNW): There should be a better place.
+                it->first->committed(it->second);
             }
             flush_txns.clear();
 

@@ -35,8 +35,10 @@ public:
 
     void release();
 
-    void *ptr() { return data; } /* TODO(NNW) We may want const version. */
-    node_t *node();
+    // TODO(NNW) We may want a const version of ptr() as well so the non-const
+    // version can verify that the buf is writable; requires pushing const
+    // through a bunch of other places (such as array_node also, however.
+    void *ptr() { return data; }
 
     block_id_t get_block_id() const { return block_id; }
 
@@ -84,14 +86,16 @@ public:
                    block_available_callback_t *callback);
     buf_t *allocate(block_id_t *new_block_id);
 
+    /* The below function should *only* be called from writeback. */
+    void committed(transaction_commit_callback_t *callback);
+
 private:
     virtual void on_lock_available() { begin_callback->on_txn_begin(this); }
 
     cache_t *cache;
     access_t access;
     transaction_begin_callback_t *begin_callback;
-public: // XXX(NNW) This is a hack for writeback
-    enum { open, committing, committed } state;
+    enum { state_open, state_committing, state_committed } state;
 
 public:
 #ifndef NDEBUG
