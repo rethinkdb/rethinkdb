@@ -1,6 +1,8 @@
 
+#include <unistd.h>
+#include <stdio.h>
+#include "arch/io.hpp"
 #include "utils.hpp"
-#include "async_io.hpp"
 #include "event_queue.hpp"
 #include "alloc/memalign.hpp"
 #include "alloc/pool.hpp"
@@ -8,9 +10,17 @@
 #include "alloc/stats.hpp"
 #include "alloc/alloc_mixin.hpp"
 
-void schedule_aio_read(resource_t resource,
-                       size_t offset, size_t length, void *buf,
-                       event_queue_t *notify_target, void *state)
+ssize_t io_calls_t::read(resource_t fd, void *buf, size_t count) {
+    return ::read(fd, buf, count);
+}
+
+ssize_t io_calls_t::write(resource_t fd, const void *buf, size_t count) {
+    return ::write(fd, buf, count);
+}
+
+void io_calls_t::schedule_aio_read(resource_t resource,
+                                   size_t offset, size_t length, void *buf,
+                                   event_queue_t *notify_target, void *state)
 {
     iocb *request = new iocb();
     io_prep_pread(request, resource, buf, length, offset);
@@ -28,7 +38,7 @@ void schedule_aio_read(resource_t resource,
 // synchroniously, and also stop reading from sockets so their socket
 // buffers fill up during sends in case they're using our API
 // asynchronously.
-void schedule_aio_write(aio_write_t *writes, int num_writes, event_queue_t *notify_target) {
+void io_calls_t::schedule_aio_write(aio_write_t *writes, int num_writes, event_queue_t *notify_target) {
     // TODO: watch how we're allocating
     iocb* requests[num_writes];
     int i;

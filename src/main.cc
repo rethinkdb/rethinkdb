@@ -12,7 +12,6 @@
 
 #include "utils.hpp"
 #include "worker_pool.hpp"
-#include "async_io.hpp"
 #include "server.hpp"
 #include "config/cmd_args.hpp"
 #include "config/code.hpp"

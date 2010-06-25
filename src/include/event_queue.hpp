@@ -5,8 +5,8 @@
 #include <pthread.h>
 #include <libaio.h>
 #include <queue>
-
 #include "arch/resource.hpp"
+#include "arch/io.hpp"
 #include "event.hpp"
 #include "corefwd.hpp"
 #include "message_hub.hpp"
@@ -82,6 +82,8 @@ public:
     // TODO: implement slice writeback scheduling and admin tools.
     // Caches responsible for serving a particular queue
     cache_t *cache;
+
+    io_calls_t iosys;
 
 private:
     struct timer {

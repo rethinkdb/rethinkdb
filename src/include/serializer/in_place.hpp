@@ -7,7 +7,6 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include "arch/resource.hpp"
-#include "async_io.hpp"
 #include "btree/admin.hpp"
 
 // TODO: what about multiple modifications to the tree that need to be
@@ -67,7 +66,7 @@ public:
      * block_id into buf, associating state with the request. */
     void do_read(event_queue_t *queue, block_id_t block_id, void *buf,
                  void *state) {
-        schedule_aio_read(dbfd, block_id, block_size, buf, queue, state);
+        queue->iosys.schedule_aio_read(dbfd, block_id, block_size, buf, queue, state);
     }
     
     /* Fires off an async request to write the block identified by
@@ -78,7 +77,7 @@ public:
      * value will be the id of the newly written block. */
     void do_write(event_queue_t *queue, block_id_t block_id, void *buf,
                         void *state) {
-        aio_write_t aio_writes[1];
+        io_calls_t::aio_write_t aio_writes[1];
 
         aio_writes[0].resource = dbfd;
         aio_writes[0].offset = block_id;
@@ -86,7 +85,7 @@ public:
         aio_writes[0].buf = buf;
         aio_writes[0].state = state;
 
-        schedule_aio_write(aio_writes, 1, queue);
+        queue->iosys.schedule_aio_write(aio_writes, 1, queue);
     }
 
     struct write {
@@ -96,8 +95,8 @@ public:
     };
 
     void do_write(event_queue_t *queue, write *writes, int num_writes) {
-        //TODO watch how we're allocating
-        aio_write_t aio_writes[num_writes];
+        // TODO: watch how we're allocating
+        io_calls_t::aio_write_t aio_writes[num_writes];
         int i;
 
         for (i = 0; i < num_writes; i++) {
@@ -108,7 +107,7 @@ public:
             aio_writes[i].state = writes[i].state;
         }
 
-        schedule_aio_write(aio_writes, num_writes, queue);
+        queue->iosys.schedule_aio_write(aio_writes, num_writes, queue);
     }
 
 public:
