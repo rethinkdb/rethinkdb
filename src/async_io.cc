@@ -22,8 +22,14 @@ void schedule_aio_read(resource_t resource,
     check("Could not submit IO read request", res < 1);
 }
 
+// TODO: we should build a flow control/diagnostics system into the
+// AIO scheduler. If the system can't handle too much IO, we should
+// slow down responses to the client in case they're using our API
+// synchroniously, and also stop reading from sockets so their socket
+// buffers fill up during sends in case they're using our API
+// asynchronously.
 void schedule_aio_write(aio_write_t *writes, int num_writes, event_queue_t *notify_target) {
-    //TODO watch how we're allocating
+    // TODO: watch how we're allocating
     iocb* requests[num_writes];
     int i;
     for (i = 0; i < num_writes; i++) {
