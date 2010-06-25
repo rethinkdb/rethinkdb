@@ -65,7 +65,7 @@ private:
     int value;
 
     buf_t *sb_buf, *buf, *last_buf;
-    block_id_t node_id, last_node_id; /* XXX These should be removed. */
+    block_id_t node_id, last_node_id; // TODO(NNW): Bufs may suffice for these.
 };
 
 #include "btree/set_fsm_impl.hpp"

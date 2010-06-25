@@ -97,7 +97,7 @@ typename btree_get_fsm<config_t>::transition_result_t btree_get_fsm<config_t>::d
     last_buf->release();
     last_buf = NULL;
     
-    node_t *node = buf->node();
+    node_t *node = (node_t *)buf->ptr();
     if(node->is_internal()) {
         block_id_t next_node_id = ((internal_node_t*)node)->lookup(key);
         last_buf = buf;

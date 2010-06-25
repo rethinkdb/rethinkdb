@@ -110,10 +110,10 @@ typename btree_delete_fsm<config_t>::transition_result_t btree_delete_fsm<config
         buf = (buf_t*)event->buf;
     }
     assert(buf);
-    node_t *node = buf->node();
+    node_t *node = (node_t *)buf->ptr();
     if(node->is_internal()) {
         block_id_t next_node_id = ((internal_node_t*)node)->lookup(key);
-        /* XXX XXX Cannot release until the next acquire succeeds for locks! */
+        /* TODO(NNW) Can't release until we lock the next level's buf. */
         buf->release();
         node_id = next_node_id;
         buf = transaction->acquire(node_id, rwi_read, this);
