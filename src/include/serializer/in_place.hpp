@@ -63,35 +63,36 @@ public:
 public:
     
     /* Fires off an async request to read the block identified by
-     * block_id into buf, associating state with the request. */
+     * block_id into buf, associating callback with the request. */
     void do_read(event_queue_t *queue, block_id_t block_id, void *buf,
-                 void *state) {
-        queue->iosys.schedule_aio_read(dbfd, block_id, block_size, buf, queue, state);
+                 iocallback_t *callback) {
+        queue->iosys.schedule_aio_read(dbfd, block_id, block_size, buf, queue, callback);
     }
     
     /* Fires off an async request to write the block identified by
-     * block_id into buf, associating state with the request. Returns
-     * the new block id (in the case of the in_place_serializer, it is
-     * always the same as the original id). If the block is new, NULL
-     * can be passed in place of block_id, in which case the return
-     * value will be the id of the newly written block. */
+     * block_id into buf, associating callback with the
+     * request. Returns the new block id (in the case of the
+     * in_place_serializer, it is always the same as the original
+     * id). If the block is new, NULL can be passed in place of
+     * block_id, in which case the return value will be the id of the
+     * newly written block. */
     void do_write(event_queue_t *queue, block_id_t block_id, void *buf,
-                        void *state) {
+                        iocallback_t *callback) {
         io_calls_t::aio_write_t aio_writes[1];
 
         aio_writes[0].resource = dbfd;
         aio_writes[0].offset = block_id;
         aio_writes[0].length = block_size;
         aio_writes[0].buf = buf;
-        aio_writes[0].state = state;
+        aio_writes[0].callback = callback;
 
         queue->iosys.schedule_aio_write(aio_writes, 1, queue);
     }
 
     struct write {
-        block_id_t  block_id;
-        void        *buf;
-        void        *state;
+        block_id_t    block_id;
+        void          *buf;
+        iocallback_t  *callback;
     };
 
     void do_write(event_queue_t *queue, write *writes, int num_writes) {
@@ -104,7 +105,7 @@ public:
             aio_writes[i].offset = writes[i].block_id;
             aio_writes[i].length = block_size;
             aio_writes[i].buf = writes[i].buf;
-            aio_writes[i].state = writes[i].state;
+            aio_writes[i].callback = writes[i].callback;
         }
 
         queue->iosys.schedule_aio_write(aio_writes, num_writes, queue);

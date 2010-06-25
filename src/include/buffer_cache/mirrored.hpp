@@ -18,7 +18,8 @@
 /* Buffer class. */
 // TODO: make sure we use small object allocator for buf_t
 template <class config_t>
-class buf : public config_t::writeback_t::local_buf_t,
+class buf : public iocallback_t,
+            public config_t::writeback_t::local_buf_t,
             public config_t::page_repl_t::buf_t,
             public config_t::concurrency_t::buf_t {
 public:
@@ -51,6 +52,8 @@ public:
     void add_load_callback(block_available_callback_t *callback);
 
     void notify_on_load();
+
+    virtual void on_io_complete(event_t *event);
 
 private:
     cache_t *cache;

@@ -90,7 +90,8 @@ void process_aio_notify(event_queue_t *self) {
                     qevent.op = eo_read;
                 else
                     qevent.op = eo_write;
-                self->event_handler(self, &qevent);
+                
+                self->iosys.aio_notify(&qevent);
             }
             delete (iocb*)events[i].obj;
         }
@@ -302,6 +303,7 @@ breakout:
 
 event_queue_t::event_queue_t(int queue_id, int _nqueues, event_handler_t event_handler,
                              worker_pool_t *parent_pool, cmd_config_t *cmd_config)
+    : iosys(this)
 {
     int res;
     this->queue_id = queue_id;

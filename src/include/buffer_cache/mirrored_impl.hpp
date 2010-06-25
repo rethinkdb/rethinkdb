@@ -51,6 +51,12 @@ void buf<config_t>::notify_on_load() {
     }
 }
 
+template <class config_t>
+void buf<config_t>::on_io_complete(event_t *event) {
+    // Let the cache know about the disk action
+    cache->aio_complete(this, event->op != eo_read);
+}
+
 /**
  * Transaction implementation.
  */

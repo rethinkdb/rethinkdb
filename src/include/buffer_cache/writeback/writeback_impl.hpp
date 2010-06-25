@@ -126,7 +126,7 @@ void writeback_tmpl_t<config_t>::writeback(buf_t *buf) {
              it != flush_bufs.end(); ++it, i++) {
             writes[i].block_id = (*it)->get_block_id();
             writes[i].buf = (*it)->ptr();
-            writes[i].state = (*it);
+            writes[i].callback = (*it);
         }
         if (flush_bufs.size())
             cache->do_write(get_cpu_context()->event_queue, writes,
