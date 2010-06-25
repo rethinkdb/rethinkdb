@@ -34,6 +34,19 @@ void schedule_aio_write(aio_write_t *writes, int num_writes, event_queue_t *noti
         requests[i] = request;
     }
 
-    int res = io_submit(notify_target->aio_context, num_writes, requests);
-    check("Could not submit IO write request", res < 1);
+#ifndef NDEBUG
+    int num_submitted = 0;
+#endif
+    while(num_submitted != num_writes) {
+        int res = io_submit(notify_target->aio_context, num_writes, requests);
+#ifndef NDEBUG
+        if(res < 1) {
+            printf("Sumitted %d requests so far, %d left\n", num_submitted, num_writes - num_submitted);
+        }
+#endif
+        check("Could not submit IO write request", res < 1);
+#ifndef NDEBUG
+        num_submitted += res;
+#endif
+    }
 }
