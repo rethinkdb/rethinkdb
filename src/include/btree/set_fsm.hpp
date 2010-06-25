@@ -19,12 +19,14 @@ public:
 public:
     enum state_t {
         uninitialized,
+        start_transaction,
         acquire_superblock,
         acquire_root,
         insert_root,
         insert_root_on_split,
         acquire_node,
-        update_complete
+        update_complete,
+        committing,
     };
 
 public:
@@ -37,12 +39,15 @@ public:
     void init_update(int _key, int _value);
     virtual transition_result_t do_transition(event_t *event);
 
-    virtual bool is_finished() { return state == update_complete; }
+    virtual bool is_finished() {
+        return state == committing && transaction == NULL;
+    }
 
 private:
     using btree_fsm<config_t>::transaction;
     using btree_fsm<config_t>::cache;
 
+    transition_result_t do_start_transaction(event_t *event);
     transition_result_t do_acquire_superblock(event_t *event);
     transition_result_t do_acquire_root(event_t *event);
     transition_result_t do_insert_root(event_t *event);

@@ -8,7 +8,9 @@
 
 template <class config_t>
 class btree_fsm : public cpu_message_t,
-                  public block_available_callback<config_t>
+                  public block_available_callback<config_t>,
+                  public transaction_begin_callback<config_t>,
+                  public transaction_commit_callback<config_t>
 {
 public:
     typedef typename config_t::cache_t cache_t;
@@ -60,6 +62,8 @@ public:
     virtual bool is_finished() = 0;
 
     virtual void on_block_available(buf_t *buf);
+    virtual void on_txn_begin(transaction_t *txn);
+    virtual void on_txn_commit(transaction_t *txn);
 
 protected:
     block_id_t get_root_id(void *superblock_buf);

@@ -130,15 +130,19 @@ void event_queue_t::process_timer_notify() {
 
         t->callback(t->context);
 
-        /* Adjust value for next iteration. */
-        t->it.it_value = now;
-        t->it.it_value.tv_sec += t->it.it_interval.tv_sec;
-        t->it.it_value.tv_nsec += t->it.it_interval.tv_nsec;
-        if (t->it.it_value.tv_nsec > NSEC_IN_SEC) {
-            t->it.it_value.tv_nsec -= NSEC_IN_SEC;
-            t->it.it_value.tv_sec += 1;
+        /* Adjust value for next iteration if the internal is non-zero. */
+        if (t->it.it_interval.tv_sec || t->it.it_interval.tv_nsec) {
+            t->it.it_value = now;
+            t->it.it_value.tv_sec += t->it.it_interval.tv_sec;
+            t->it.it_value.tv_nsec += t->it.it_interval.tv_nsec;
+            if (t->it.it_value.tv_nsec > NSEC_IN_SEC) {
+                t->it.it_value.tv_nsec -= NSEC_IN_SEC;
+                t->it.it_value.tv_sec += 1;
+            }
+            timers.push(t);
+        } else {
+            delete t;
         }
-        timers.push(t);
         
         t = timers.empty() ? NULL : timers.top();
     }
@@ -347,7 +351,8 @@ event_queue_t::event_queue_t(int queue_id, int _nqueues, event_handler_t event_h
     watch_resource(this->itc_pipe[0], eo_read, (void*)this->itc_pipe[0]);
     
     // Init the cache
-    cache = new cache_t(BTREE_BLOCK_SIZE, cmd_config->max_cache_size / nqueues);
+    cache = new cache_t(BTREE_BLOCK_SIZE, cmd_config->max_cache_size / nqueues,
+        cmd_config->delay_commits, cmd_config->flush_interval_ms);
     std::string str((char*)cmd_config->db_file_name);
     std::stringstream out;
     out << queue_id;
@@ -358,7 +363,7 @@ event_queue_t::event_queue_t(int queue_id, int _nqueues, event_handler_t event_h
     timespec ts;
     ts.tv_sec = 3;
     ts.tv_nsec = 0;
-    set_timer(&ts, this->garbage_collect, NULL);
+    timer_add(&ts, this->garbage_collect, NULL);
 }
 
 void event_queue_t::start_queue() {
@@ -579,13 +584,18 @@ bool event_queue_t::timer_gt::operator()(const timer *t1, const timer *t2) {
     return t1->it.it_value.tv_nsec > t2->it.it_value.tv_nsec;
 }
 
-void
-event_queue_t::set_timer(timespec *ts, void (*callback)(void *), void *ctx) {
+void event_queue_t::timer_add_internal(timespec *ts, void (*callback)(void *),
+    void *ctx, bool once) {
     timespec now;
 
     clock_gettime(CLOCK_MONOTONIC, &now);
     timer *t = new timer;
-    t->it.it_interval = *ts;
+    if (once) {
+        t->it.it_interval.tv_sec = 0;
+        t->it.it_interval.tv_nsec = 0;
+    } else {
+        t->it.it_interval = *ts;
+    }
     t->it.it_value = now;
     t->it.it_value.tv_sec += ts->tv_sec;
     t->it.it_value.tv_nsec += ts->tv_nsec;
@@ -596,4 +606,12 @@ event_queue_t::set_timer(timespec *ts, void (*callback)(void *), void *ctx) {
     t->callback = callback;
     t->context = ctx;
     timers.push(t);
+}
+
+void event_queue_t::timer_add(timespec *ts, void (*cb)(void *), void *ctx) {
+    timer_add_internal(ts, cb, ctx, false);
+}
+
+void event_queue_t::timer_once(timespec *ts, void (*cb)(void *), void *ctx) {
+    timer_add_internal(ts, cb, ctx, true);
 }

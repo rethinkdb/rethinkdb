@@ -55,7 +55,8 @@ public:
 
     void pull_messages_for_cpu(message_hub_t::msg_list_t *target);
 
-    void set_timer(timespec *, void (*callback)(void *ctx), void *ctx);
+    void timer_add(timespec *, void (*callback)(void *ctx), void *ctx);
+    void timer_once(timespec *, void (*callback)(void *ctx), void *ctx);
 
 public:
     // TODO: be clear on what should and shouldn't be public here
@@ -92,6 +93,8 @@ private:
     static void *epoll_handler(void *ctx);
     void process_timer_notify();
     static void garbage_collect(void *ctx);
+    void timer_add_internal(timespec *, void (*callback)(void *ctx), void *ctx,
+        bool once);
 
     struct timer_gt {
         bool operator()(const timer *t1, const timer *t2);

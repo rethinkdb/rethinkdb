@@ -21,7 +21,6 @@ void usage(const char *name) {
     printf("\nOptions:\n");
     
     printf("  -h, --help\t\tPrint these usage options.\n");
-    
     printf("  -c, --max-cores\tDo not use more than this number of cores for\n");
     printf("\t\t\thandling user requests.\n");
     
@@ -29,6 +28,8 @@ void usage(const char *name) {
     printf("\t\t\tblocks, in megabytes.\n");
     
     printf("  -p, --port\t\tSocket port to listen on. Defaults to %d.\n", DEFAULT_LISTEN_PORT);
+    printf("      --delay-commits\tDo not respond to commands until changes are durable\n");
+    printf("      --flush-interval\tInterval in milliseconds between flushes to disk\n");
     
     exit(-1);
 }
@@ -42,7 +43,15 @@ void init_config(cmd_config_t *config) {
 
     config->max_cache_size = DEFAULT_MAX_CACHE_RATIO * get_available_ram();
     config->port = DEFAULT_LISTEN_PORT;
+
+    config->delay_commits = true;
+    config->flush_interval_ms = 100;
 }
+
+enum {
+    delay_commits = 256, // Start these values above the ASCII range.
+    flush_interval,
+};
 
 void parse_cmd_args(int argc, char *argv[], cmd_config_t *config)
 {
@@ -54,6 +63,8 @@ void parse_cmd_args(int argc, char *argv[], cmd_config_t *config)
         int do_help = 0;
         struct option long_options[] =
             {
+                {"delay-commits",    required_argument, 0, delay_commits},
+                {"flush-interval",   required_argument, 0, flush_interval},
                 {"max-cores",        required_argument, 0, 'c'},
                 {"max-cache-size",   required_argument, 0, 'm'},
                 {"port",             required_argument, 0, 'p'},
@@ -83,6 +94,12 @@ void parse_cmd_args(int argc, char *argv[], cmd_config_t *config)
             break;
         case 'm':
             config->max_cache_size = atoi(optarg) * 1024 * 1024;
+            break;
+        case delay_commits:
+            config->delay_commits = atoi(optarg); // TODO(NNW): t/f/y/n, etc.
+            break;
+        case flush_interval:
+            config->flush_interval_ms = atoi(optarg);
             break;
             
         case 'h':

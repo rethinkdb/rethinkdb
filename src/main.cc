@@ -108,7 +108,7 @@ void event_handler(event_queue_t *event_queue, event_t *event) {
         // Nothing to do here, move along
     } else if(event->event_type == et_disk) {
         // Let the cache know about the disk action
-        event_queue->cache->aio_complete((code_config_t::buf_t*)event->state, event->buf, event->op != eo_read);
+        event_queue->cache->aio_complete((code_config_t::buf_t*)event->state, event->op != eo_read);
     } else if(event->event_type == et_sock) {
         // Got some socket action, let the connection fsm know
         initiate_conn_fsm_transition(event_queue, event);

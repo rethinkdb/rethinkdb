@@ -76,7 +76,7 @@ public:
      * always the same as the original id). If the block is new, NULL
      * can be passed in place of block_id, in which case the return
      * value will be the id of the newly written block. */
-    block_id_t do_write(event_queue_t *queue, block_id_t block_id, void *buf,
+    void do_write(event_queue_t *queue, block_id_t block_id, void *buf,
                         void *state) {
         aio_write_t aio_writes[1];
 
@@ -87,8 +87,6 @@ public:
         aio_writes[0].state = state;
 
         schedule_aio_write(aio_writes, 1, queue);
-
-        return block_id;
     }
 
     struct write {
