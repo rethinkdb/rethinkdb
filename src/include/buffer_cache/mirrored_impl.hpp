@@ -24,6 +24,9 @@ buf<config_t>::~buf() {
 
 template <class config_t>
 void buf<config_t>::release(void *state) {
+#ifndef NDEBUG
+    cache->n_blocks_released++;
+#endif
     /* XXX vvv This is incorrect. */
     if (this->is_dirty()) {
         cache->do_write(get_cpu_context()->event_queue, block_id, ptr(), this);
@@ -67,7 +70,8 @@ typename config_t::node_t *buf<config_t>::buf::node() {
  */
 template <class config_t>
 transaction<config_t>::transaction(cache_t *cache)
-    : cache(cache), open(true) {
+    : cache(cache), open(true)
+{
 #ifndef NDEBUG
     event_queue = get_cpu_context()->event_queue;
 #endif
@@ -75,6 +79,9 @@ transaction<config_t>::transaction(cache_t *cache)
 
 template <class config_t>
 transaction<config_t>::~transaction() {
+#ifndef NDEBUG
+    cache->n_trans_freed++;
+#endif
     assert(!open);
 }
 
@@ -91,6 +98,9 @@ template <class config_t>
 typename config_t::buf_t *
 transaction<config_t>::allocate(block_id_t *block_id) {
     assert(event_queue == get_cpu_context()->event_queue);
+#ifndef NDEBUG
+    cache->n_blocks_acquired++;
+#endif
         
     *block_id = cache->gen_block_id();
     buf_t *buf = new buf_t(this, *block_id);
@@ -116,6 +126,10 @@ transaction<config_t>::acquire(block_id_t block_id, access_t mode,
     // with that block id is still loading (consider two requests
     // in a row). We need to keep track of this so we don't
     // unnecessarily double IO and/or lose memory.
+
+#ifndef NDEBUG
+    cache->n_blocks_acquired++;
+#endif
 
     buf_t *buf = (buf_t *)cache->find(block_id);
     if (!buf) {
@@ -161,6 +175,8 @@ transaction<config_t>::acquire(block_id_t block_id, access_t mode,
  */
 template <class config_t>
 mirrored_cache_t<config_t>::~mirrored_cache_t() {
+    assert(n_blocks_released == n_blocks_acquired);
+    assert(n_trans_created == n_trans_freed);
     for (typename page_map_t::ft_map_t::iterator it = ft_map.begin();
          it != ft_map.end(); ++it) {
         buf_t *buf = (*it).second;
@@ -174,6 +190,9 @@ template <class config_t>
 typename config_t::transaction_t *
 mirrored_cache_t<config_t>::begin_transaction() {
     transaction_t *txn = new transaction_t(this);
+#ifndef NDEBUG
+    n_trans_created++;
+#endif
     return txn;
 }
 

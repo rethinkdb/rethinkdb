@@ -45,9 +45,7 @@ public:
     transaction_t *get_transaction() { return transaction; }
 
     // Callback API
-    void add_lock_callback(block_available_callback_t *callback);
     void add_load_callback(block_available_callback_t *callback);
-    void notify_on_lock();
     void notify_on_load();
 
 private:
@@ -56,7 +54,6 @@ private:
     block_id_t block_id;
     bool cached; /* Is data valid, or are we waiting for a read? */
     void *data;
-    std::queue<block_available_callback_t*> lock_callbacks;
     std::queue<block_available_callback_t*> load_callbacks;
 };
 
@@ -122,7 +119,12 @@ public:
     mirrored_cache_t(size_t _block_size, size_t _max_size) : 
         serializer_t(_block_size),
         page_repl_t(_block_size, _max_size, this, this),
-        writeback_t(this) {}
+        writeback_t(this)
+#ifndef NDEBUG
+        , n_trans_created(0), n_trans_freed(0),
+        n_blocks_acquired(0), n_blocks_released(0)
+#endif
+        {}
     ~mirrored_cache_t();
 
     void start() {
@@ -136,6 +138,12 @@ public:
 
 private:
     using page_map_t::ft_map;
+
+#ifndef NDEBUG
+public:
+    int n_trans_created, n_trans_freed;
+    int n_blocks_acquired, n_blocks_released;
+#endif
 };
 
 #include "buffer_cache/mirrored_impl.hpp"
