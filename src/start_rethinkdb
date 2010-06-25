@@ -2,9 +2,15 @@
 
 import optparse
 import pexpect
+import signal
 import subprocess
 import sys
 import threading
+
+def sigint(sig, frame, db):
+    db.terminate()
+    db.read()
+    sys.exit(0)
 
 def thread(db, started, eof):
     '''Watch pexpect object 'db', signaling 'started' on "Server started"'''
@@ -39,6 +45,7 @@ def main():
 
     db = pexpect.spawn("%s -p %s " % (command, options.port) + " ".join(args))
     db.logfile_read = sys.stdout
+    signal.signal(signal.SIGINT, lambda sig, frame: sigint(sig, frame, db))
 
     # Start a thread to watch the expect stream, allowing output to be streamed
     started = threading.Event()
@@ -58,6 +65,7 @@ def main():
     telnet = subprocess.Popen("telnet localhost " + options.port, shell=True)
     telnet.wait()
     db.terminate()
+    db.read()
 
 if __name__ == "__main__":
     main()
