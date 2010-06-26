@@ -52,6 +52,7 @@ void initiate_conn_fsm_transition(event_queue_t *event_queue, event_t *event) {
         check("Could not send kill signal to main thread", res != 0);
     } else if(res == event_queue_t::conn_fsm_t::fsm_quit_connection) {
         event_queue->deregister_fsm(fsm);
+        delete fsm;
     } else {
         check("Unhandled fsm transition result", 1);
     }
@@ -167,5 +168,7 @@ int main(int argc, char *argv[])
         // If we got out of start_server, we're about to shut down.
         printf("Shutting down server...\n");
     }
+    // TODO(NNW): When shutting down, we must halt all event_queues fully
+    // before we destroy any of them because of the core_notify_fd.
 }
 

@@ -11,13 +11,15 @@
 #include "corefwd.hpp"
 #include "message_hub.hpp"
 #include "config/cmd_args.hpp"
+#include "buffer_cache/callbacks.hpp"
 
 typedef void (*event_handler_t)(event_queue_t*, event_t*);
 
 // Inter-thread communication event (ITC)
 enum itc_event_type_t {
-    iet_shutdown,
-    iet_new_socket
+    iet_shutdown = 1,
+    iet_new_socket,
+    iet_cache_synced,
 };
 
 struct itc_event_t {
@@ -26,7 +28,7 @@ struct itc_event_t {
 };
 
 // Event queue structure
-struct event_queue_t {
+struct event_queue_t : public sync_callback<code_config_t> {
 public:
     typedef code_config_t::cache_t cache_t;
     typedef code_config_t::conn_fsm_t conn_fsm_t;
@@ -57,6 +59,8 @@ public:
 
     void timer_add(timespec *, void (*callback)(void *ctx), void *ctx);
     void timer_once(timespec *, void (*callback)(void *ctx), void *ctx);
+
+    virtual void on_sync();
 
 public:
     // TODO: be clear on what should and shouldn't be public here

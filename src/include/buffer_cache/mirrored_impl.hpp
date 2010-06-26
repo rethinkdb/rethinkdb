@@ -176,8 +176,6 @@ transaction<config_t>::acquire(block_id_t block_id, access_t mode,
  */
 template <class config_t>
 mirrored_cache_t<config_t>::~mirrored_cache_t() {
-    assert(n_blocks_released == n_blocks_acquired);
-    assert(n_trans_created == n_trans_freed);
     for (typename page_map_t::ft_map_t::iterator it = ft_map.begin();
          it != ft_map.end(); ++it) {
         buf_t *buf = (*it).second;
@@ -188,6 +186,9 @@ mirrored_cache_t<config_t>::~mirrored_cache_t() {
         assert(!buf->is_dirty());
         delete buf;
     }
+    assert(n_blocks_released == n_blocks_acquired);
+    assert(n_trans_created == n_trans_freed);
+    serializer_t::close();
 }
 
 template <class config_t>

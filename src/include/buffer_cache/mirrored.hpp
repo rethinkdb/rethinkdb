@@ -144,9 +144,8 @@ public:
         {}
     ~mirrored_cache_t();
 
-    void start() {
-        writeback_t::start();
-    }
+    void start() { writeback_t::start(); }
+    void shutdown(sync_callback<config_t> *cb) { writeback_t::shutdown(cb); }
 
     // Transaction API
     transaction_t *begin_transaction(access_t access,

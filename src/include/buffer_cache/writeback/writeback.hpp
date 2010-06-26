@@ -16,7 +16,10 @@ public:
     writeback_tmpl_t(cache_t *cache, bool delay, unsigned int interval_ms);
     virtual ~writeback_tmpl_t();
 
-    void start(); // Start the writeback thread as part of database startup.
+    void start(); // Start the writeback process as part of database startup.
+    void shutdown(sync_callback<config_t> *callback);
+
+    void sync(sync_callback<config_t> *callback);
 
     bool begin_transaction(transaction_t *txn);
     bool commit(transaction_t *transaction,
@@ -45,6 +48,7 @@ private:
     typedef typename config_t::serializer_t serializer_t;
     typedef typename serializer_t::block_id_t block_id_t;
     typedef transaction_commit_callback<config_t> transaction_commit_callback_t;
+    typedef sync_callback<config_t> sync_callback_t;
     typedef std::pair<transaction_t *, transaction_commit_callback_t *>
         txn_state_t;
 
@@ -65,9 +69,13 @@ private:
 
     /* Internal variables used at all times. */
     cache_t *cache;
+    unsigned int num_txns;
     rwi_lock<config_t> *flush_lock;
     std::set<txn_state_t> txns;
     std::set<block_id_t> dirty_blocks;
+    std::vector<sync_callback_t *> sync_callbacks;
+    sync_callback_t *shutdown_callback;
+    bool final_sync;
 
     /* Internal variables used only during a flush operation. */
     enum state state;

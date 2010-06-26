@@ -204,6 +204,7 @@ conn_fsm<config_t>::conn_fsm(resource_t _source, event_queue_t *_event_queue)
 
 template<class config_t>
 conn_fsm<config_t>::~conn_fsm() {
+    close(source);
     delete req_handler;
     if(this->buf) {
         delete this->buf;

@@ -8,6 +8,9 @@ writeback_tmpl_t<config_t>::writeback_tmpl_t(cache_t *cache,
     : delay_commits(delay_commits),
       interval_ms(flush_interval_ms),
       cache(cache),
+      num_txns(0),
+      shutdown_callback(NULL),
+      final_sync(NULL),
       state(state_none),
       transaction(NULL) {
 }
@@ -29,8 +32,28 @@ void writeback_tmpl_t<config_t>::start() {
 }
 
 template <class config_t>
+void writeback_tmpl_t<config_t>::shutdown(sync_callback<config_t> *callback) {
+    assert(shutdown_callback == NULL);
+    shutdown_callback = callback;
+    if (!num_txns && state == state_none) // If num_txns, commit() will do this
+        sync(callback);
+}
+
+template <class config_t>
+void writeback_tmpl_t<config_t>::sync(sync_callback<config_t> *callback) {
+    sync_callbacks.push_back(callback);
+    // Start a new writeback process if one isn't in progress.
+    if (state == state_none)
+        writeback(NULL);
+}
+
+template <class config_t>
 bool writeback_tmpl_t<config_t>::begin_transaction(transaction_t *txn) {
     assert(txn->get_access() == rwi_read || txn->get_access() == rwi_write);
+    // TODO(NNW): If there's ever any asynchrony between socket reads and
+    // begin_transaction, we'll need a better check here.
+    assert(shutdown_callback == NULL || final_sync);
+    num_txns++;
     if (txn->get_access() == rwi_read)
         return true;
     bool locked = flush_lock->lock(rwi_read, txn);
@@ -40,6 +63,9 @@ bool writeback_tmpl_t<config_t>::begin_transaction(transaction_t *txn) {
 template <class config_t>
 bool writeback_tmpl_t<config_t>::commit(transaction_t *txn,
         transaction_commit_callback_t *callback) {
+    if (!--num_txns && shutdown_callback != NULL) {
+        sync(shutdown_callback); // All txns shut down, start final sync.
+    }
     if (txn->get_access() == rwi_read)
         return true;
     flush_lock->unlock();
@@ -89,7 +115,10 @@ void writeback_tmpl_t<config_t>::writeback(buf_t *buf) {
 
         /* Start a read transaction so we can request bufs. */
         assert(transaction == NULL);
+        if (shutdown_callback) // Backdoor around "no new transactions" assert.
+            final_sync = true;
         transaction = cache->begin_transaction(rwi_read, NULL);
+        final_sync = false;
         assert(transaction != NULL); // Read txns always start immediately.
 
         /* Request exclusive flush_lock, forcing all write txns to complete. */
@@ -128,6 +157,9 @@ void writeback_tmpl_t<config_t>::writeback(buf_t *buf) {
             writes[i].buf = (*it)->ptr();
             writes[i].callback = (*it);
         }
+        // TODO(NNW): Now that the serializer/aio-system breaks writes up into
+        // chunks, we may want to worry about submitting more heavily contended
+        // bufs earlier in the process so more write FSMs can proceed sooner.
         if (flush_bufs.size())
             cache->do_write(get_cpu_context()->event_queue, writes,
                 flush_bufs.size());
@@ -148,6 +180,11 @@ void writeback_tmpl_t<config_t>::writeback(buf_t *buf) {
                 it->first->committed(it->second);
             }
             flush_txns.clear();
+
+            for (typename std::vector<sync_callback_t *>::iterator it =
+                 sync_callbacks.begin(); it != sync_callbacks.end(); ++it)
+                (*it)->on_sync();
+            sync_callbacks.clear();
 
             /* Reset all of our state. */
             bool committed = transaction->commit(NULL);
