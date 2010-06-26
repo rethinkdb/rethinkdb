@@ -79,20 +79,23 @@ public:
     }
 
     int insert(int key, int value) {
-        if(this->nkeys == NODE_ORDER) {
-            return 0;
-        }
         int index = parent_t::lookup(key);
         // TODO: this is likely suboptimal, we might want two for
         // loops (one for keys, one for values)
+<<<<<<< Updated upstream:src/include/btree/array_node.hpp
         if(index < this->nkeys && this->keys[index] == key) {
             // We already have the key, just change the value
             values[index] = value;
             return 1;
         }
         
+        if(this->nkeys == NODE_ORDER) {
+            return 0;
+        }
 
+=======
         // TODO: use memmove instead
+>>>>>>> Stashed changes:src/include/btree/array_node.hpp
         for(int i = this->nkeys - 1; i >= index; i--) {
             this->keys[i + 1] = this->keys[i];
             values[i + 1] = values[i];

@@ -16,7 +16,7 @@ public:
     typedef typename config_t::btree_fsm_t btree_fsm_t;
     typedef typename config_t::btree_set_fsm_t btree_set_fsm_t;
     typedef typename config_t::btree_get_fsm_t btree_get_fsm_t;
-    typedef typename config_t::btree_delete_fsm_t btree_delete_fsm_t;
+    //typedef typename config_t::btree_delete_fsm_t btree_delete_fsm_t;
     typedef typename config_t::req_handler_t req_handler_t;
     typedef typename req_handler_t::parse_result_t parse_result_t;
     
@@ -50,7 +50,7 @@ private:
     parse_result_t append(char *data, conn_fsm_t *fsm);
     parse_result_t prepend(char *data, conn_fsm_t *fsm);
     parse_result_t cas(char *data, conn_fsm_t *fsm);
-    void set_key(conn_fsm_t *fsm, int key, int value);
+    void set_key(conn_fsm_t *fsm, btree_key *key, int value);
 
     parse_result_t get(char *state, bool include_unique, conn_fsm_t *fsm);
 

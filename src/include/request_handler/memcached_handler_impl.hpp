@@ -201,11 +201,7 @@ typename memcached_handler_t<config_t>::parse_result_t memcached_handler_t<confi
         return unimplemented_request(fsm);
 
 
-    unsigned int key_int = (int)strtoul(key, &invalid_char, 10);
-    if (*invalid_char != '\0')  // ensure there were no improper characters in the token - i.e. parse was successful
-        return unimplemented_request(fsm);
-
-    set_key(fsm, key_int, value_int);
+    set_key(fsm, btree::str_to_key(key), value_int);
 
     fsm->consume(bytes+2);
     return req_handler_t::op_req_complex;
@@ -255,7 +251,7 @@ void memcached_handler_t<config_t>::write_msg(conn_fsm_t *fsm, const char *str) 
     fsm->nbuf = len+1;
 }
 
-template<class config_t> void memcached_handler_t<config_t>::set_key(conn_fsm_t *fsm, int key, int value){
+template<class config_t> void memcached_handler_t<config_t>::set_key(conn_fsm_t *fsm, btree_key *key, int value){
     btree_set_fsm_t *btree_fsm = new btree_set_fsm_t(get_cpu_context()->event_queue->cache);
     btree_fsm->init_update(key, value);
     req_handler_t::event_queue->message_hub.store_message(key_to_cpu(key, req_handler_t::event_queue->nqueues),
@@ -294,19 +290,18 @@ typename memcached_handler_t<config_t>::parse_result_t memcached_handler_t<confi
             // somehow.
         }
 
-        //TODO: do not assume key is an integer
-        int key_int = atoi(key_str);
+        btree_key *key = btree::str_to_key(key_str);
 
         // Ok, we've got a key, initialize the FSM and add it to
         // the request
         btree_get_fsm_t *btree_fsm = new btree_get_fsm_t(get_cpu_context()->event_queue->cache);
         btree_fsm->request = request;
-        btree_fsm->init_lookup(key_int);
+        btree_fsm->init_lookup(key);
         request->fsms[request->nstarted] = btree_fsm;
         request->nstarted++;
 
         // Add the fsm to appropriate queue
-        req_handler_t::event_queue->message_hub.store_message(key_to_cpu(key_int, req_handler_t::event_queue->nqueues), btree_fsm);
+        req_handler_t::event_queue->message_hub.store_message(key_to_cpu(key, req_handler_t::event_queue->nqueues), btree_fsm);
         key_str = strtok_r(NULL, DELIMS, &state);
     } while(key_str);
 
@@ -347,8 +342,8 @@ typename memcached_handler_t<config_t>::parse_result_t memcached_handler_t<confi
     }
 
     // parsed successfully, but functionality not yet implemented
-    //return unimplemented_request(fsm);
-
+    return unimplemented_request(fsm);
+    /*
     request_t *request = new request_t(fsm);
 
     do {
@@ -369,6 +364,7 @@ typename memcached_handler_t<config_t>::parse_result_t memcached_handler_t<confi
 
     fsm->current_request = request;
     return req_handler_t::op_req_complex;
+    */
 }
 
 template <class config_t>
@@ -414,7 +410,8 @@ void memcached_handler_t<config_t>::build_response(request_t *request) {
                 int value_len = sprintf(value_str, "%d", btree_get_fsm->value);
 
                 //TODO: support flags
-                count = sprintf(buf, "VALUE %u %u %u\r\n%s\r\n", btree_get_fsm->key, 0, value_len, value_str);
+                btree_key *key = btree_get_fsm->key;
+                count = sprintf(buf, "VALUE %*.*s %u %u\r\n%s\r\n", key->size, key->size, key->contents, 0, value_len, value_str);
                 fsm->nbuf += count;
                 buf += count;
             } else if(btree_get_fsm->op_result == btree_get_fsm_t::btree_not_found) {

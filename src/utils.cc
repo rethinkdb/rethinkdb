@@ -5,6 +5,7 @@
 #include <new>
 #include <exception>
 #include "utils.hpp"
+#include <algorithm>
 
 int get_cpu_count() {
     return sysconf(_SC_NPROCESSORS_ONLN);
@@ -39,3 +40,13 @@ void *malloc_aligned(size_t size, size_t alignment) {
     else
         return ptr;
 }
+
+// fast non-null terminated string comparison
+int sized_strcmp(const char *str1, int len1, const char *str2, int len2) {
+    int min_len = std::min(len1, len2);
+    int res = memcmp(str1, str2, min_len);
+    if (res == 0)
+        res = len1-len2;
+    return res;
+}
+

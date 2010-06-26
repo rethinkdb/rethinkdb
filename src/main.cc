@@ -32,10 +32,16 @@
 #include "buffer_cache/page_repl/none.hpp"
 #include "buffer_cache/writeback/writeback.hpp"
 #include "buffer_cache/concurrency/rwi_conc.hpp"
+
+#include "btree/btree_internal_node_impl.hpp"
+#include "btree/btree_leaf_node_impl.hpp"
+
 #include "btree/get_fsm.hpp"
 #include "btree/set_fsm.hpp"
-#include "btree/delete_fsm.hpp"
+//#include "btree/delete_fsm.hpp"
 #include "btree/array_node.hpp"
+
+
 #include "request.hpp"
 
 // TODO: we should redo the plumbing for the entire callback system so
