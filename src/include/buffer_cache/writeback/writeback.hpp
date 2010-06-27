@@ -6,6 +6,9 @@
 
 #include "concurrency/rwi_lock.hpp"
 
+// TODO: What about interval=0 (flush on every transaction)?
+// TODO: What about interval=+inf (never flush)?
+
 template <class config_t>
 struct writeback_tmpl_t : public lock_available_callback<config_t> {
 public:
