@@ -16,7 +16,7 @@ public:
     typedef typename config_t::cache_t cache_t;
     typedef typename config_t::buf_t buf_t;
     
-    writeback_tmpl_t(cache_t *cache, bool delay, unsigned int interval_ms);
+    writeback_tmpl_t(cache_t *cache, bool wait_for_flush, unsigned int interval_ms);
     virtual ~writeback_tmpl_t();
 
     void start(); // Start the writeback process as part of database startup.
@@ -62,12 +62,13 @@ private:
         state_write_bufs,
     };
 
+	void start_flush_timer(void);
     static void timer_callback(void *ctx);
     virtual void on_lock_available();
     void writeback(buf_t *buf);
 
     /* User-controlled settings. */
-    bool delay_commits;
+    bool wait_for_flush;
     uint64_t interval_ms;
 
     /* Internal variables used at all times. */

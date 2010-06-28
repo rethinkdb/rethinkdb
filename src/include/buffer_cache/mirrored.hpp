@@ -132,11 +132,11 @@ public:
     // many dependencies. The second is more strict, but might not be
     // extensible when some policy implementation requires access to
     // components it wasn't originally given.
-    mirrored_cache_t(size_t _block_size, size_t _max_size, bool delay_commits,
+    mirrored_cache_t(size_t _block_size, size_t _max_size, bool wait_for_flush,
             unsigned int flush_interval_ms) : 
         serializer_t(_block_size),
         page_repl_t(_block_size, _max_size, this, this),
-        writeback_t(this, delay_commits, flush_interval_ms)
+        writeback_t(this, wait_for_flush, flush_interval_ms)
 #ifndef NDEBUG
         , n_trans_created(0), n_trans_freed(0),
         n_blocks_acquired(0), n_blocks_released(0)

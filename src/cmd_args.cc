@@ -28,7 +28,7 @@ void usage(const char *name) {
     printf("\t\t\tblocks, in megabytes.\n");
     
     printf("  -p, --port\t\tSocket port to listen on. Defaults to %d.\n", DEFAULT_LISTEN_PORT);
-    printf("      --delay-commits\tDo not respond to commands until changes are durable.\n");
+    printf("      --wait-for-flush\tDo not respond to commands until changes are durable.\n");
     printf("      --flush-interval\tInterval in milliseconds between flushes to disk.\n");
     printf("\t\t\tDefaults to %dms.\n", DEFAULT_WRITEBACK_INTERVAL_MS);
     
@@ -45,12 +45,12 @@ void init_config(cmd_config_t *config) {
     config->max_cache_size = DEFAULT_MAX_CACHE_RATIO * get_available_ram();
     config->port = DEFAULT_LISTEN_PORT;
 
-    config->delay_commits = false;
+    config->wait_for_flush = false;
     config->flush_interval_ms = DEFAULT_WRITEBACK_INTERVAL_MS;
 }
 
 enum {
-    delay_commits = 256, // Start these values above the ASCII range.
+    wait_for_flush = 256, // Start these values above the ASCII range.
     flush_interval,
 };
 
@@ -64,7 +64,7 @@ void parse_cmd_args(int argc, char *argv[], cmd_config_t *config)
         int do_help = 0;
         struct option long_options[] =
             {
-                {"delay-commits",    required_argument, 0, delay_commits},
+                {"wait-for-flush",   required_argument, 0, wait_for_flush},
                 {"flush-interval",   required_argument, 0, flush_interval},
                 {"max-cores",        required_argument, 0, 'c'},
                 {"max-cache-size",   required_argument, 0, 'm'},
@@ -96,8 +96,10 @@ void parse_cmd_args(int argc, char *argv[], cmd_config_t *config)
         case 'm':
             config->max_cache_size = atoi(optarg) * 1024 * 1024;
             break;
-        case delay_commits:
-            config->delay_commits = atoi(optarg); // TODO(NNW): t/f/y/n, etc.
+        case wait_for_flush:
+        	if (strcmp(optarg, "y")==0) config->wait_for_flush = 1;
+        	else if (strcmp(optarg, "n")==0) config->wait_for_flush = 0;
+        	else check("wait-for-flush expects 'y' or 'n'", 1);
             break;
         case flush_interval:
             config->flush_interval_ms = atoi(optarg);

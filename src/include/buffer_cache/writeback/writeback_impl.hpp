@@ -4,8 +4,8 @@
 
 template <class config_t>
 writeback_tmpl_t<config_t>::writeback_tmpl_t(cache_t *cache,
-        bool delay_commits, unsigned int flush_interval_ms)
-    : delay_commits(delay_commits),
+        bool wait_for_flush, unsigned int flush_interval_ms)
+    : wait_for_flush(wait_for_flush),
       interval_ms(flush_interval_ms),
       cache(cache),
       num_txns(0),
@@ -25,10 +25,7 @@ void writeback_tmpl_t<config_t>::start() {
     flush_lock =
         new rwi_lock<config_t>(&get_cpu_context()->event_queue->message_hub,
                                get_cpu_context()->event_queue->queue_id);
-    timespec ts;
-    ts.tv_sec = interval_ms / 1000;
-    ts.tv_nsec = (interval_ms % 1000) * 1000 * 1000;
-    get_cpu_context()->event_queue->timer_add(&ts, timer_callback, this);
+    start_flush_timer();
 }
 
 template <class config_t>
@@ -69,7 +66,7 @@ bool writeback_tmpl_t<config_t>::commit(transaction_t *txn,
     if (txn->get_access() == rwi_read)
         return true;
     flush_lock->unlock();
-    if (!delay_commits)
+    if (!wait_for_flush)
         return true;
     txns.insert(txn_state_t(txn, callback));
     return false;
@@ -87,6 +84,14 @@ void writeback_tmpl_t<config_t>::local_buf_t::set_dirty(buf_t *super) {
         super->pin();
     dirty = true;
     writeback->dirty_blocks.insert(super->get_block_id());
+}
+
+template <class config_t>
+void writeback_tmpl_t<config_t>::start_flush_timer() {
+	timespec ts;
+    ts.tv_sec = interval_ms / 1000;
+    ts.tv_nsec = (interval_ms % 1000) * 1000 * 1000;
+    get_cpu_context()->event_queue->timer_once(&ts, timer_callback, this);
 }
 
 template <class config_t>
@@ -191,6 +196,13 @@ void writeback_tmpl_t<config_t>::writeback(buf_t *buf) {
             assert(committed); // Read-only transactions commit immediately.
             transaction = NULL;
             state = state_none;
+            
+            // The timer for the next flush is not started until the current flush is complete. This
+            // is a bit dangerous because if anything causes the current flush to abort prematurely,
+            // the flush timer will never get restarted. As of 2010-06-28 this should never happen,
+            // but keep it in mind when changing the behavior of the writeback.
+            start_flush_timer();
+            
             //printf("Writeback complete\n");
         } else {
             //printf("Flush bufs, waiting for %ld more\n", flush_bufs.size());

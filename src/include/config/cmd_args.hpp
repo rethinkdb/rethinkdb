@@ -9,7 +9,7 @@ struct cmd_config_t {
     int max_cores;
     char db_file_name[MAX_DB_FILE_NAME];
     size_t max_cache_size;
-    bool delay_commits;
+    bool wait_for_flush;
     unsigned int flush_interval_ms;
 };
 
