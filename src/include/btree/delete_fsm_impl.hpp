@@ -133,6 +133,35 @@ typename btree_delete_fsm<config_t>::transition_result_t btree_delete_fsm<config
 }
 
 template <class config_t>
+typename btree_delete_fsm<config_t>::transition_result_t btree_delete_fsm<config_t>::do_acquire_sibling(event_t *event) {
+    assert(state == acquire_sibling);
+
+    assert((sib_buf && !event) || (!sib_buf && event));
+
+    if (!sib_buf) {
+        assert(event && event->buf);
+        sib_buf = (buf_t*)event->buf;
+        state = acquire_node;
+        return btree_fsm_t::transition_ok;
+    }
+
+    //event is NULL, so we need to start to sibling finding process
+
+    assert(last_buf);
+    node_t *last_node = (node_t *)last_buf->node();
+
+    int sib_key;
+    ((internal_node_t*)last_node)->sibling(key, &sib_key);
+    block_id_t sib_node_id = ((internal_node_t*)last_node)->lookup(sib_key);
+    sib_buf = transaction->acquire(sib_node_id, rwi_write, this);
+
+    if (sib_buf)
+        return btree_fsm_t::transition_ok;
+    else
+        return btree_fsm_t::transition_incomplete;
+}
+
+template <class config_t>
 typename btree_delete_fsm<config_t>::transition_result_t btree_delete_fsm<config_t>::do_transition(event_t *event) {
     transition_result_t res = btree_fsm_t::transition_ok;
 
@@ -166,8 +195,14 @@ typename btree_delete_fsm<config_t>::transition_result_t btree_delete_fsm<config
         res = do_acquire_root(event);
         event = NULL;
     }
-        
-    // Then, acquire the nodes, until we hit the leaf
+
+    //Acquire a sibling
+    if(res == btree_fsm_t::transition_ok && state == acquire_sibling) {
+        res = do_acquire_sibling(event);
+        event = NULL;
+    }
+
+    // Acquire nodes
     while(res == btree_fsm_t::transition_ok && state == acquire_node) {
         if(!buf) {
             state = acquire_node;
@@ -176,6 +211,42 @@ typename btree_delete_fsm<config_t>::transition_result_t btree_delete_fsm<config
             if(res != btree_fsm_t::transition_ok || state != acquire_node) {
                 break;
             }
+        }
+
+        node_t* node = (node_t*)buf->node();
+
+        //Deal with underfull nodes if we find them
+        if (node->is_underfull()) {
+            if(!sib_buf) {
+                state = acquire_sibling;
+                res = do_acquire_sibling(event);
+                event = NULL;
+            } else {
+                // we have our sibling so we're ready to go
+                node_t *sib_node = sib_buf->node();
+                if(sib_node->is_underfull()) {
+                    if (node->is_leaf())
+                        ((leaf_node_t*)node)->merge((internal_node_t*) last_buf->node(), (leaf_node_t*) sib_node);
+                    else
+                        ((internal_node_t*)node)->merge((internal_node_t*) last_buf->node(), (internal_node_t*) sib_node);
+
+                } else {
+                    if (node->is_leaf())
+                        ((leaf_node_t*)node)->level((internal_node_t*) last_buf->node(), (leaf_node_t*) sib_node);
+                    else
+                        ((internal_node_t*)node)->level((internal_node_t*) last_buf->node(), (internal_node_t*) sib_node); 
+                }
+            }
+        }
+
+        //actually do some deleting 
+        if (node->is_leaf()) {
+            ((leaf_node_t*)node)->remove(key);
+            buf->set_dirty();
+            buf->release(this);
+            state = delete_complete;
+            res = btree_fsm_t::transition_ok;
+            break;
         }
 
         res = do_acquire_node(event);
@@ -204,6 +275,7 @@ typename btree_delete_fsm<config_t>::transition_result_t btree_delete_fsm<config
     }
 
     assert(res != btree_fsm_t::transition_complete || is_finished());
+
     return res;
 }
 
