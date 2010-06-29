@@ -10,7 +10,11 @@
 #define TIMER_TICKS_IN_MS                         50
 
 // Max concurrent IO requests per event queue
-#define MAX_CONCURRENT_IO_REQUESTS                300
+#define MAX_CONCURRENT_IO_REQUESTS                256
+
+// Don't send more IO requests to the system until the per-thread
+// queue of IO requests is higher than this depth
+#define TARGET_IO_QUEUE_DEPTH                     128
 
 // Defines the maximum size of the batch of IO events to process on
 // each loop iteration. A larger number will increase throughput but
@@ -55,10 +59,13 @@
 // configurable on a per-database level (with a sensible default), and
 // provide a migration tool in case the customers upgrade to more
 // cores than was originally anticipated.
-#define BTREE_SPLIT_FACTOR                        16
+#define BTREE_SHARD_FACTOR                        16
 
 // Default port to listen on
 #define DEFAULT_LISTEN_PORT                       8080
+
+// How many milliseconds between flushes.
+#define DEFAULT_WRITEBACK_INTERVAL_MS             5000
 
 #endif // __CONFIG_ARGS_H__
 

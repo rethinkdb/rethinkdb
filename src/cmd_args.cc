@@ -21,7 +21,6 @@ void usage(const char *name) {
     printf("\nOptions:\n");
     
     printf("  -h, --help\t\tPrint these usage options.\n");
-    
     printf("  -c, --max-cores\tDo not use more than this number of cores for\n");
     printf("\t\t\thandling user requests.\n");
     
@@ -29,6 +28,9 @@ void usage(const char *name) {
     printf("\t\t\tblocks, in megabytes.\n");
     
     printf("  -p, --port\t\tSocket port to listen on. Defaults to %d.\n", DEFAULT_LISTEN_PORT);
+    printf("      --wait-for-flush\tDo not respond to commands until changes are durable.\n");
+    printf("      --flush-interval\tInterval in milliseconds between flushes to disk.\n");
+    printf("\t\t\tDefaults to %dms.\n", DEFAULT_WRITEBACK_INTERVAL_MS);
     
     exit(-1);
 }
@@ -42,7 +44,15 @@ void init_config(cmd_config_t *config) {
 
     config->max_cache_size = DEFAULT_MAX_CACHE_RATIO * get_available_ram();
     config->port = DEFAULT_LISTEN_PORT;
+
+    config->wait_for_flush = false;
+    config->flush_interval_ms = DEFAULT_WRITEBACK_INTERVAL_MS;
 }
+
+enum {
+    wait_for_flush = 256, // Start these values above the ASCII range.
+    flush_interval,
+};
 
 void parse_cmd_args(int argc, char *argv[], cmd_config_t *config)
 {
@@ -54,6 +64,8 @@ void parse_cmd_args(int argc, char *argv[], cmd_config_t *config)
         int do_help = 0;
         struct option long_options[] =
             {
+                {"wait-for-flush",   required_argument, 0, wait_for_flush},
+                {"flush-interval",   required_argument, 0, flush_interval},
                 {"max-cores",        required_argument, 0, 'c'},
                 {"max-cache-size",   required_argument, 0, 'm'},
                 {"port",             required_argument, 0, 'p'},
@@ -83,6 +95,21 @@ void parse_cmd_args(int argc, char *argv[], cmd_config_t *config)
             break;
         case 'm':
             config->max_cache_size = atoi(optarg) * 1024 * 1024;
+            break;
+        case wait_for_flush:
+        	if (strcmp(optarg, "y")==0) config->wait_for_flush = 1;
+        	else if (strcmp(optarg, "n")==0) config->wait_for_flush = 0;
+        	else check("wait-for-flush expects 'y' or 'n'", 1);
+            break;
+        case flush_interval:
+        	if (strcmp(optarg, "never")==0) config->flush_interval_ms = NEVER_FLUSH;
+        	else {
+        		config->flush_interval_ms = atoi(optarg);
+        		check("flush interval should not be negative; use 'never' to not flush at all",
+        			config->flush_interval_ms < 0);
+        		check("flush interval of 0 is broken at the moment",
+        			config->flush_interval_ms == 0);
+        	}
             break;
             
         case 'h':
