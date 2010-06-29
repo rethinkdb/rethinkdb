@@ -18,13 +18,11 @@
 
 // The actual state structure
 template<class config_t>
-struct conn_fsm : public config_t::iocalls_t,
-                  public intrusive_list_node_t<conn_fsm<config_t> >,
+struct conn_fsm : public intrusive_list_node_t<conn_fsm<config_t> >,
                   public alloc_mixin_t<tls_small_obj_alloc_accessor<typename config_t::alloc_t>, conn_fsm<config_t> >
 {
 public:
     typedef typename config_t::alloc_t alloc_t;
-    typedef typename config_t::iocalls_t iocalls_t;
     typedef typename config_t::iobuf_t iobuf_t;
     typedef typename config_t::btree_fsm_t btree_fsm_t;
     typedef typename config_t::request_t request_t;

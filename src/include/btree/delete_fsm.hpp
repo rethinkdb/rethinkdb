@@ -23,12 +23,13 @@ public:
 public:
     enum state_t {
         uninitialized,
+        start_transaction,
         acquire_superblock,
         acquire_root,
         acquire_node,
-        acquire_sibling,
         delete_complete,
-        committing
+        acquire_sibling,
+        committing,
     };
 
     enum op_result_t {
@@ -45,7 +46,9 @@ public:
     void init_delete(int _key);
     virtual transition_result_t do_transition(event_t *event);
 
-    virtual bool is_finished() { return state == delete_complete; }
+    virtual bool is_finished() {
+        return state == committing && transaction == NULL;
+    }
 
 public:
     op_result_t op_result;
@@ -56,6 +59,7 @@ private:
     using btree_fsm<config_t>::cache;
     using btree_fsm<config_t>::transaction;
 
+    transition_result_t do_start_transaction(event_t *event);
     transition_result_t do_acquire_superblock(event_t *event);
     transition_result_t do_acquire_root(event_t *event);
     transition_result_t do_acquire_node(event_t *event);

@@ -36,5 +36,26 @@ void btree_fsm<config_t>::on_block_available(buf_t *buf) {
     }
 }
 
-#endif // __BTREE_FSM_IMPL_HPP__
+template <class config_t>
+void btree_fsm<config_t>::on_txn_begin(transaction_t *txn) {
+    assert(transaction == NULL);
+    event_t event;
+    memset(&event, 0, sizeof(event));
+    event.event_type = et_cache; // TODO(NNW): This is pretty hacky
+    event.buf = txn;
+    event.result = 1;
+    if (do_transition(&event) == transition_complete && on_complete)
+        on_complete(this);
+}
 
+template <class config_t>
+void btree_fsm<config_t>::on_txn_commit(transaction_t *txn) {
+    event_t event;
+    memset(&event, 0, sizeof(event));
+    event.event_type = et_commit;
+    event.buf = txn;
+    if (do_transition(&event) == transition_complete && on_complete)
+        on_complete(this);
+}
+
+#endif // __BTREE_FSM_IMPL_HPP__

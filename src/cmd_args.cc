@@ -21,7 +21,6 @@ void usage(const char *name) {
     printf("\nOptions:\n");
     
     printf("  -h, --help\t\tPrint these usage options.\n");
-    
     printf("  -c, --max-cores\tDo not use more than this number of cores for\n");
     printf("\t\t\thandling user requests.\n");
     
@@ -31,8 +30,8 @@ void usage(const char *name) {
     printf("  -p, --port\t\tSocket port to listen on. Defaults to %d.\n", DEFAULT_LISTEN_PORT);
     printf("      --wait-for-flush\tDo not respond to commands until changes are durable. Expects "
     	"'y' or 'n'.\n");
-    printf("      --flush-interval\tInterval in milliseconds between flushes to disk. Pass "
-    	"'never' to not flush changes to disk until server shuts down.\n");
+    printf("      --flush-interval\tInterval in milliseconds between flushes to disk. Pass\n"
+           "\t\t\t'never' to not flush changes to disk until server shuts down.\n");
     if (DEFAULT_WRITEBACK_INTERVAL_MS == NEVER_FLUSH) printf("\t\t\tDefaults to 'never'.\n");
     else printf("\t\t\tDefaults to %dms.\n", DEFAULT_WRITEBACK_INTERVAL_MS);
     
@@ -48,7 +47,15 @@ void init_config(cmd_config_t *config) {
 
     config->max_cache_size = DEFAULT_MAX_CACHE_RATIO * get_available_ram();
     config->port = DEFAULT_LISTEN_PORT;
+
+    config->wait_for_flush = false;
+    config->flush_interval_ms = DEFAULT_WRITEBACK_INTERVAL_MS;
 }
+
+enum {
+    wait_for_flush = 256, // Start these values above the ASCII range.
+    flush_interval,
+};
 
 void parse_cmd_args(int argc, char *argv[], cmd_config_t *config)
 {
@@ -60,6 +67,8 @@ void parse_cmd_args(int argc, char *argv[], cmd_config_t *config)
         int do_help = 0;
         struct option long_options[] =
             {
+                {"wait-for-flush",   required_argument, 0, wait_for_flush},
+                {"flush-interval",   required_argument, 0, flush_interval},
                 {"max-cores",        required_argument, 0, 'c'},
                 {"max-cache-size",   required_argument, 0, 'm'},
                 {"port",             required_argument, 0, 'p'},
@@ -123,8 +132,9 @@ void parse_cmd_args(int argc, char *argv[], cmd_config_t *config)
     }
     
     if (config->wait_for_flush == true && config->flush_interval_ms == NEVER_FLUSH) {
-    	printf("Server is configured to wait for data to be flushed to disk before returning, but "
-    		"also configured to never flush data to disk. Setting wait-for-flush to NO.\n")
+    	printf("WARNING: Server is configured to wait for data to be flushed\n"
+               "to disk before returning, but also configured to never flush\n"
+               "data to disk. Setting wait-for-flush to 'no'.\n\n");
     	config->wait_for_flush = false;
     }
 }
