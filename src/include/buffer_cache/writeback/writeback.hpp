@@ -4,39 +4,33 @@
 
 #include <set>
 
-#include "concurrency/rwi_lock.hpp"
-
-// TODO: What about interval=0 (flush on every transaction)?
-// TODO: What about interval=+inf (never flush)?
+/*
+ * TODO:
+ * o Add data structure to track dirty block_id set.
+ * o Take required locks to safely begin writeback procedure.
+ * o Pass set of block_ids to the serializer in one group to allow for a flush
+ *   transaction.
+ * o Plumb through user setting for writeback frequency.
+ */
 
 template <class config_t>
-struct writeback_tmpl_t : public lock_available_callback<config_t> {
+struct writeback_tmpl_t {
 public:
-    typedef typename config_t::transaction_t transaction_t;
-    typedef typename config_t::cache_t cache_t;
-    typedef typename config_t::buf_t buf_t;
+    typedef typename config_t::serializer_t serializer_t;
+    typedef typename serializer_t::block_id_t block_id_t;
     
-    writeback_tmpl_t(cache_t *cache, bool wait_for_flush, unsigned int interval_ms);
-    virtual ~writeback_tmpl_t();
+    explicit writeback_tmpl_t(serializer_t *_serializer);
 
-    void start(); // Start the writeback process as part of database startup.
-    void shutdown(sync_callback<config_t> *callback);
+    void start();
 
-    void sync(sync_callback<config_t> *callback);
-
-    bool begin_transaction(transaction_t *txn);
-    bool commit(transaction_t *transaction,
-        transaction_commit_callback<config_t> *callback);
-    void aio_complete(buf_t *, bool written);
-
-    class local_buf_t {
+    class buf_t {
     public:
-        explicit local_buf_t(writeback_tmpl_t *wb)
-            : writeback(wb), dirty(false) {}
+        explicit buf_t(writeback_tmpl_t *wb) : writeback(wb), dirty(false) {}
 
         bool is_dirty() const { return dirty; }
-        void set_dirty(buf_t *buf);
+        void set_dirty(typename config_t::buf_t *);
 
+    protected:
         void set_clean() {
             assert(dirty);
             dirty = false;
@@ -48,44 +42,12 @@ public:
     };
 
 private:
-    typedef typename config_t::serializer_t serializer_t;
-    typedef typename serializer_t::block_id_t block_id_t;
-    typedef transaction_commit_callback<config_t> transaction_commit_callback_t;
-    typedef sync_callback<config_t> sync_callback_t;
-    typedef std::pair<transaction_t *, transaction_commit_callback_t *>
-        txn_state_t;
-
-    enum state {
-        state_none,
-        state_locking,
-        state_locked,
-        state_write_bufs,
-    };
-
-	void start_flush_timer(void);
     static void timer_callback(void *ctx);
-    virtual void on_lock_available();
-    void writeback(buf_t *buf);
+    void writeback();
 
-    /* User-controlled settings. */
-    bool wait_for_flush;
-    int interval_ms;
-
-    /* Internal variables used at all times. */
-    cache_t *cache;
-    unsigned int num_txns;
-    rwi_lock<config_t> *flush_lock;
-    std::set<txn_state_t> txns;
-    std::set<block_id_t> dirty_blocks;
-    std::vector<sync_callback_t *> sync_callbacks;
-    sync_callback_t *shutdown_callback;
-    bool final_sync;
-
-    /* Internal variables used only during a flush operation. */
-    enum state state;
-    transaction_t *transaction;
-    std::set<txn_state_t> flush_txns;
-    std::set<buf_t *> flush_bufs;
+    serializer_t *serializer;
+    std::set<typename config_t::transaction_t *> txns;
+    std::set<typename config_t::buf_t *> dirty_bufs;
 };
 
 #include "buffer_cache/writeback/writeback_impl.hpp"

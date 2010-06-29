@@ -11,6 +11,12 @@
 #include "event_queue.hpp"
 #include "server.hpp"
 
+struct loop_info_t {
+    int sockfd;
+    worker_pool_t *worker_pool;
+};
+static loop_info_t loop_info;
+
 void process_socket(int sockfd, worker_pool_t *worker_pool) {
     // Grab the queue where this socket will go
     event_queue_t *event_queue = worker_pool->next_active_worker();
@@ -19,6 +25,29 @@ void process_socket(int sockfd, worker_pool_t *worker_pool) {
     event.event_type = iet_new_socket;
     event.data = sockfd;
     event_queue->post_itc_message(&event);
+}
+
+void do_server_loop(loop_info_t *loop_info) {
+    int sockfd = loop_info->sockfd;
+    worker_pool_t *worker_pool = loop_info->worker_pool;
+    
+    while(true) {
+        int newsockfd;
+        sockaddr_in client_addr;
+        socklen_t client_addr_len = sizeof(client_addr);
+        newsockfd = accept(sockfd, 
+                           (sockaddr*)&client_addr, 
+                           &client_addr_len);
+        // Break out of the loop on sigterm
+        if(newsockfd == -1 && errno == EINTR)
+            break;
+        check("Could not accept connection", newsockfd == -1);
+
+        // Process the socket
+        int res = fcntl(newsockfd, F_SETFL, O_NONBLOCK);
+        check("Could not make socket non-blocking", res != 0);
+        process_socket(newsockfd, worker_pool);
+    }
 }
 
 void start_server(worker_pool_t *worker_pool) {
@@ -47,23 +76,14 @@ void start_server(worker_pool_t *worker_pool) {
     printf("Server started\n");
 
     // Start the server loop
-    while(true) {
-        int newsockfd;
-        sockaddr_in client_addr;
-        socklen_t client_addr_len = sizeof(client_addr);
-        newsockfd = accept(sockfd, 
-                           (sockaddr*)&client_addr, 
-                           &client_addr_len);
-        // Break out of the loop on sigterm
-        if(newsockfd == -1 && errno == EINTR)
-            break;
-        check("Could not accept connection", newsockfd == -1);
+    loop_info.sockfd = sockfd;
+    loop_info.worker_pool = worker_pool;
+    do_server_loop(&loop_info);
+    stop_server(sockfd);
+}
 
-        // Process the socket
-        int res = fcntl(newsockfd, F_SETFL, O_NONBLOCK);
-        check("Could not make socket non-blocking", res != 0);
-        process_socket(newsockfd, worker_pool);
-    }
+void stop_server(int sockfd) {
+    int res;
 
     // Stop accepting connections
     res = shutdown(sockfd, SHUT_RDWR);

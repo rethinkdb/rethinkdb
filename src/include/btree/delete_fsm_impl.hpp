@@ -8,29 +8,7 @@
 template <class config_t>
 void btree_delete_fsm<config_t>::init_delete(int _key) {
     key = _key;
-    state = start_transaction;
-}
-
-template <class config_t>
-typename btree_delete_fsm<config_t>::transition_result_t btree_delete_fsm<config_t>::do_start_transaction(event_t *event) {
-    assert(state == start_transaction);
-
-    /* Either start a new transaction or retrieve the one we started. */
-    assert(transaction == NULL);
-    if (event == NULL) {
-        transaction = cache->begin_transaction(rwi_write, this);
-    } else {
-        assert(event->buf); // We shouldn't get a callback unless this is valid
-        transaction = (typename config_t::transaction_t *)event->buf;
-    }
-
-    /* Determine our forward progress based on our new state. */
-    if (transaction) {
-        state = acquire_superblock;
-        return btree_fsm_t::transition_ok;
-    } else {
-        return btree_fsm_t::transition_incomplete; // Flush lock is held.
-    }
+    state = acquire_superblock;
 }
 
 template <class config_t>
@@ -39,7 +17,10 @@ typename btree_delete_fsm<config_t>::transition_result_t btree_delete_fsm<config
 
     buf_t *buf = NULL;
     if(event == NULL) {
-        // First entry into the FSM; try to grab the superblock.
+        // First entry into the FSM. First, grab the transaction.
+        transaction = cache->begin_transaction();
+
+        // Now try to grab the superblock.
         block_id_t superblock_id = cache->get_superblock_id();
         buf = transaction->acquire(superblock_id, rwi_read, this);
     } else {
@@ -54,7 +35,7 @@ typename btree_delete_fsm<config_t>::transition_result_t btree_delete_fsm<config
         // cache notification). Grab the root id, and move on to
         // acquiring the root.
         node_id = btree_fsm_t::get_root_id(buf->ptr());
-        buf->release();
+        buf->release(this);
         state = acquire_root;
         return btree_fsm_t::transition_ok;
     } else {
@@ -110,11 +91,11 @@ typename btree_delete_fsm<config_t>::transition_result_t btree_delete_fsm<config
         buf = (buf_t*)event->buf;
     }
     assert(buf);
-    node_t *node = (node_t *)buf->ptr();
+    node_t *node = buf->node();
     if(node->is_internal()) {
         block_id_t next_node_id = ((internal_node_t*)node)->lookup(key);
-        /* TODO(NNW) Can't release until we lock the next level's buf. */
-        buf->release();
+        /* XXX XXX Cannot release until the next acquire succeeds for locks! */
+        buf->release(this);
         node_id = next_node_id;
         buf = transaction->acquire(node_id, rwi_read, this);
         if(node) {
@@ -125,11 +106,40 @@ typename btree_delete_fsm<config_t>::transition_result_t btree_delete_fsm<config
     } else {
         int result = ((leaf_node_t*)node)->lookup(key, &value);
         ((leaf_node_t*)node)->remove(key);
-        buf->release();
+        buf->release(this);
         state = delete_complete;
         op_result = result == 1 ? btree_found : btree_not_found;
         return btree_fsm_t::transition_ok;
     }
+}
+
+template <class config_t>
+typename btree_delete_fsm<config_t>::transition_result_t btree_delete_fsm<config_t>::do_acquire_sibling(event_t *event) {
+    assert(state == acquire_sibling);
+
+    assert((sib_buf && !event) || (!sib_buf && event));
+
+    if (!sib_buf) {
+        assert(event && event->buf);
+        sib_buf = (buf_t*)event->buf;
+        state = acquire_node;
+        return btree_fsm_t::transition_ok;
+    }
+
+    //event is NULL, so we need to start to sibling finding process
+
+    assert(last_buf);
+    node_t *last_node = (node_t *)last_buf->node();
+
+    int sib_key;
+    ((internal_node_t*)last_node)->sibling(key, &sib_key);
+    block_id_t sib_node_id = ((internal_node_t*)last_node)->lookup(sib_key);
+    sib_buf = transaction->acquire(sib_node_id, rwi_write, this);
+
+    if (sib_buf)
+        return btree_fsm_t::transition_ok;
+    else
+        return btree_fsm_t::transition_incomplete;
 }
 
 template <class config_t>
@@ -141,22 +151,15 @@ typename btree_delete_fsm<config_t>::transition_result_t btree_delete_fsm<config
           !(!event || event->event_type == et_cache));
 
     // Update the cache with the event
-    if(event && event->event_type == et_cache) {
+    if(event) {
         check("btree_delete _fsm::do_transition - invalid event", event->op != eo_read);
         check("Could not complete AIO operation",
               event->result == 0 ||
               event->result == -1);
     }
-
-    // First, begin a transaction.
-    if(res == btree_fsm_t::transition_ok && state == start_transaction) {
-        res = do_start_transaction(event);
-        event = NULL;
-    }
-
-    // Next, acquire the superblock (to get root node ID)
+    
+    // First, acquire the superblock (to get root node ID)
     if(res == btree_fsm_t::transition_ok && state == acquire_superblock) {
-        assert(transaction); // We must have started our transaction by now.
         res = do_acquire_superblock(event);
         event = NULL;
     }
@@ -166,8 +169,14 @@ typename btree_delete_fsm<config_t>::transition_result_t btree_delete_fsm<config
         res = do_acquire_root(event);
         event = NULL;
     }
-        
-    // Then, acquire the nodes, until we hit the leaf
+
+    //Acquire a sibling
+    if(res == btree_fsm_t::transition_ok && state == acquire_sibling) {
+        res = do_acquire_sibling(event);
+        event = NULL;
+    }
+
+    // Acquire nodes
     while(res == btree_fsm_t::transition_ok && state == acquire_node) {
         if(!buf) {
             state = acquire_node;
@@ -178,29 +187,53 @@ typename btree_delete_fsm<config_t>::transition_result_t btree_delete_fsm<config
             }
         }
 
+        node_t* node = (node_t*)buf->node();
+
+        //Deal with underfull nodes if we find them
+        if (node->is_underfull()) {
+            if(!sib_buf) {
+                state = acquire_sibling;
+                res = do_acquire_sibling(event);
+                event = NULL;
+            } else {
+                // we have our sibling so we're ready to go
+                node_t *sib_node = sib_buf->node();
+                if(sib_node->is_underfull()) {
+                    if (node->is_leaf())
+                        ((leaf_node_t*)node)->merge((internal_node_t*) last_buf->node(), (leaf_node_t*) sib_node);
+                    else
+                        ((internal_node_t*)node)->merge((internal_node_t*) last_buf->node(), (internal_node_t*) sib_node);
+
+                } else {
+                    if (node->is_leaf())
+                        ((leaf_node_t*)node)->level((internal_node_t*) last_buf->node(), (leaf_node_t*) sib_node);
+                    else
+                        ((internal_node_t*)node)->level((internal_node_t*) last_buf->node(), (internal_node_t*) sib_node); 
+                }
+            }
+        }
+
+        //actually do some deleting 
+        if (node->is_leaf()) {
+            ((leaf_node_t*)node)->remove(key);
+            buf->set_dirty();
+            buf->release(this);
+            state = delete_complete;
+            res = btree_fsm_t::transition_ok;
+            break;
+        }
+
         res = do_acquire_node(event);
         event = NULL;
+
     }
 
     // Finally, end our transaction.  This should always succeed immediately.
     if (res == btree_fsm_t::transition_ok && state == delete_complete) {
-        bool committed __attribute__((unused)) = transaction->commit(this);
-        state = committing;
-        if (committed) {
-            transaction = NULL;
-            res = btree_fsm_t::transition_complete;
-        }
-        event = NULL;
-    }
-
-    // Finalize the transaction commit
-    if(res == btree_fsm_t::transition_ok && state == committing) {
-        if (event != NULL) {
-            assert(event->event_type == et_commit);
-            assert(event->buf == transaction);
-            transaction = NULL;
-            res = btree_fsm_t::transition_complete;
-        }
+        bool committed = transaction->commit(NULL);
+        assert(committed); /* Read-only commits always finish immediately. */
+        delete transaction;
+        res = btree_fsm_t::transition_complete;
     }
 
     assert(res != btree_fsm_t::transition_complete || is_finished());

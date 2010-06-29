@@ -16,7 +16,6 @@ enum event_op_t {
     eo_read, eo_write, eo_rdwr
 };
 struct event_t {
-    /* TODO(NNW): We should make a constructor for this type. */
     event_type_t event_type;
     event_op_t op;
 

@@ -28,29 +28,7 @@ template <class config_t>
 void btree_set_fsm<config_t>::init_update(int _key, int _value) {
     key = _key;
     value = _value;
-    state = start_transaction;
-}
-
-template <class config_t>
-typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::do_start_transaction(event_t *event) {
-    assert(state == start_transaction);
-
-    /* Either start a new transaction or retrieve the one we started. */
-    assert(transaction == NULL);
-    if (event == NULL) {
-        transaction = cache->begin_transaction(rwi_write, this);
-    } else {
-        assert(event->buf); // We shouldn't get a callback unless this is valid
-        transaction = (typename config_t::transaction_t *)event->buf;
-    }
-
-    /* Determine our forward progress based on our new state. */
-    if (transaction) {
-        state = acquire_superblock;
-        return btree_fsm_t::transition_ok;
-    } else {
-        return btree_fsm_t::transition_incomplete; // Flush lock is held.
-    }
+    state = acquire_superblock;
 }
 
 template <class config_t>
@@ -58,22 +36,27 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
 {
     assert(state == acquire_superblock);
 
+    buf_t *buf = NULL;
     if(event == NULL) {
-        // First entry into the FSM; try to grab the superblock.
+        // First entry into the FSM. First, grab the transaction.
+        transaction = cache->begin_transaction();
+
+        // Now try to grab the superblock.
         block_id_t superblock_id = btree_fsm_t::get_cache()->get_superblock_id();
-        sb_buf = transaction->acquire(superblock_id, rwi_write, this);
+        buf = transaction->acquire(superblock_id, rwi_write, this);
     } else {
         // We already tried to grab the superblock, and we're getting
         // a cache notification about it.
         assert(event->buf);
-        sb_buf = (buf_t *)event->buf;
+        buf = (buf_t *)event->buf; /* XXX Event should hold a buf, not a void **/
     }
 
-    if(sb_buf) {
+    if(buf) {
         // Got the superblock buffer (either right away or through
         // cache notification). Grab the root id, and move on to
         // acquiring the root.
-        node_id = btree_fsm_t::get_root_id(sb_buf->ptr());
+        node_id = btree_fsm_t::get_root_id(buf->ptr());
+        buf->release(this);
         if(cache_t::is_block_id_null(node_id))
             state = insert_root;
         else
@@ -119,12 +102,10 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
     // allocated here, and we just need to set its id in the metadata)
     if(cache_t::is_block_id_null(node_id)) {
         buf = transaction->allocate(&node_id);
-        new (buf->ptr()) leaf_node_t();
+        new (buf->ptr()) leaf_node_t(); /* XXX Is this right? */
     }
     if(set_root_id(node_id, event)) {
         state = acquire_node;
-        sb_buf->release();
-        sb_buf = NULL;
         return btree_fsm_t::transition_ok;
     } else {
         return btree_fsm_t::transition_incomplete;
@@ -136,8 +117,6 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
 {
     if(set_root_id(last_node_id, event)) {
         state = acquire_node;
-        sb_buf->release();
-        sb_buf = NULL;
         return btree_fsm_t::transition_ok;
     } else {
         return btree_fsm_t::transition_incomplete;
@@ -170,7 +149,7 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
           event->event_type != et_cache && event->event_type != et_commit);
 
     // Update the cache with the event
-    if(event && event->event_type == et_cache) {
+    if(event) {
         check("Could not complete AIO operation",
               event->result == 0 ||
               event->result == -1);
@@ -178,15 +157,8 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
         check("btree_set_fsm::do_transition - invalid event type", event->op != eo_read);
     }
 
-    // First, begin a transaction.
-    if(res == btree_fsm_t::transition_ok && state == start_transaction) {
-        res = do_start_transaction(event);
-        event = NULL;
-    }
-
-    // Next, acquire the superblock (to get root node ID)
+    // First, acquire the superblock (to get root node ID)
     if(res == btree_fsm_t::transition_ok && state == acquire_superblock) {
-        assert(transaction); // We must have started our transaction by now.
         res = do_acquire_superblock(event);
         event = NULL;
     }
@@ -219,7 +191,7 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
         }
 
         // Proactively split the node
-        node_t *node = (node_t *)buf->ptr();
+        node_t *node = buf->node();
         if(node->is_full()) {
             int median;
             buf_t *rbuf;
@@ -233,7 +205,7 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
                 last_buf = transaction->allocate(&last_node_id);
                 last_node = new (last_buf->ptr()) internal_node_t();
             } else {
-                last_node = (internal_node_t *)last_buf->ptr();
+                last_node = (internal_node_t *)last_buf->node(); /* XXX */
             }
             last_node->insert(median, node_id, rnode_id);
             last_buf->set_dirty();
@@ -242,14 +214,14 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
             if(key < median) {
                 // Left node and node are the same thing
                 rbuf->set_dirty();
-                rbuf->release();
+                rbuf->release(this);
             } else if(key >= median) {
                 buf->set_dirty();
-                buf->release();
+                buf->release(this);
                 buf = rbuf;
-                node = (node_t *)rbuf->ptr();
                 node_id = rnode_id;
             }
+            node_dirty = true;
 
             if(new_root) {
                 state = insert_root_on_split;
@@ -259,28 +231,23 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
                 }
             }
         }
-
-        // Release the superblock, if we haven't already
-        if(sb_buf) {
-            sb_buf->release();
-            sb_buf = NULL;
-        }
-        
         // Insert the value, or move up the tree
         if(node->is_leaf()) {
             ((leaf_node_t*)node)->insert(key, value);
             buf->set_dirty();
-            buf->release();
+            buf->release(this);
             state = update_complete;
             res = btree_fsm_t::transition_ok;
             break;
         } else {
             // Release and update the last node
             if(!cache_t::is_block_id_null(last_node_id)) {
-                last_buf->release();
+                last_buf->release(this);
             }
             last_buf = buf;
             last_node_id = node_id;
+            last_node_dirty = node_dirty;
+            node_dirty = false;
                 
             // Look up the next node
             node_id = ((internal_node_t*)node)->lookup(key);
@@ -292,39 +259,40 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
     if(res == btree_fsm_t::transition_ok && state == update_complete) {
         // Release the final node
         if(!cache_t::is_block_id_null(last_node_id)) {
-            last_buf->release();
+            last_buf->release(this);
             last_node_id = cache_t::null_block_id;
         }
 
         // End the transaction
-        bool committed = transaction->commit(this);
-        state = committing;
-        if (committed) {
-            transaction = NULL;
-            res = btree_fsm_t::transition_complete;
-        }
-        event = NULL;
+        /* XXX This will require asynchrony once we fix writes. */
+        bool commit = transaction->commit(NULL); /* XXX This should be here, with a callback. */
+        assert(commit);
+        delete transaction;
+        res = btree_fsm_t::transition_complete;
     }
 
-    // Finalize the transaction commit
-    if(res == btree_fsm_t::transition_ok && state == committing) {
-        if (event != NULL) {
-            assert(event->event_type == et_commit);
-            assert(event->buf == transaction);
-            transaction = NULL;
-            res = btree_fsm_t::transition_complete;
-        }
-    }
-
-    assert(res != btree_fsm_t::transition_complete || is_finished());
     return res;
 }
 
 template <class config_t>
 int btree_set_fsm<config_t>::set_root_id(block_id_t root_id, event_t *event) {
-    sb_buf->set_dirty();
-    memcpy(sb_buf->ptr(), (void*)&root_id, sizeof(root_id));
-    return 1;
+    buf_t *buf;
+    if(event == NULL) {
+        block_id_t superblock_id = cache->get_superblock_id();
+        buf = transaction->acquire(superblock_id, rwi_write, this);
+    } else {
+        assert(event->buf);
+        buf = (buf_t *)event->buf;
+    }
+    
+    if(buf) {
+        buf->set_dirty();
+        memcpy(buf->ptr(), (void*)&root_id, sizeof(root_id));
+        buf->release(this);
+        return 1;
+    } else {
+        return 0;
+    }
 }
 
 template <class config_t>

@@ -23,12 +23,12 @@ public:
 public:
     enum state_t {
         uninitialized,
-        start_transaction,
         acquire_superblock,
         acquire_root,
         acquire_node,
+        acquire_sibling,
         delete_complete,
-        committing,
+        committing
     };
 
     enum op_result_t {
@@ -39,15 +39,13 @@ public:
 public:
     explicit btree_delete_fsm(cache_t *cache)
         : btree_fsm_t(cache, btree_fsm_t::btree_get_fsm),
-          state(uninitialized), buf(NULL), node_id(cache_t::null_block_id)
+          state(uninitialized), buf(NULL), last_buf(NULL), node_id(cache_t::null_block_id)
         {}
 
     void init_delete(int _key);
     virtual transition_result_t do_transition(event_t *event);
 
-    virtual bool is_finished() {
-        return state == committing && transaction == NULL;
-    }
+    virtual bool is_finished() { return state == delete_complete; }
 
 public:
     op_result_t op_result;
@@ -58,16 +56,18 @@ private:
     using btree_fsm<config_t>::cache;
     using btree_fsm<config_t>::transaction;
 
-    transition_result_t do_start_transaction(event_t *event);
     transition_result_t do_acquire_superblock(event_t *event);
     transition_result_t do_acquire_root(event_t *event);
     transition_result_t do_acquire_node(event_t *event);
+    transition_result_t do_acquire_sibling(event_t *event);
 
 private:
     // Some relevant state information
     state_t state;
     buf_t *buf;
-    block_id_t node_id;
+    buf_t *last_buf;
+    buf_t *sib_buf;
+    block_id_t node_id, last_node_id, sib_node_id;
 };
 
 #include "btree/delete_fsm_impl.hpp"

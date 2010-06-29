@@ -3,11 +3,11 @@
 #define __RWI_LOCK_IMPL_HPP__
 
 template<class config_t>
-bool rwi_lock<config_t>::lock(access_t access, lock_available_callback_t *callback) {
+bool rwi_lock<config_t>::lock(access_t access, void *state) {
     if(try_lock(access, false)) {
         return true;
     } else {
-        enqueue_request(access, callback);
+        enqueue_request(access, state);
         return false;
     }
 }
@@ -34,7 +34,7 @@ void rwi_lock<config_t>::unlock() {
         assert(nreaders >= 0);
         break;
     }
-
+        
     // See if we can satisfy any requests from the queue
     process_queue();
 }
@@ -161,8 +161,8 @@ bool rwi_lock<config_t>::try_lock_upgrade(bool from_queue) {
 }
     
 template<class config_t>
-void rwi_lock<config_t>::enqueue_request(access_t access, lock_available_callback_t *callback) {
-    queue.push_back(new lock_request_t(access, callback));
+void rwi_lock<config_t>::enqueue_request(access_t access, void *state) {
+    queue.push_back(new lock_request_t(access, state));
 }
 
 template<class config_t>
@@ -171,7 +171,8 @@ void rwi_lock<config_t>::process_queue() {
     while(req) {
         if(!try_lock(req->op, true)) {
             break;
-        } else {
+        }
+        else {
             queue.remove(req);
             send_notify(req);
         }

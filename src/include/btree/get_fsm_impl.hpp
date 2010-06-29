@@ -15,26 +15,27 @@ template <class config_t>
 typename btree_get_fsm<config_t>::transition_result_t btree_get_fsm<config_t>::do_acquire_superblock(event_t *event) {
     assert(state == acquire_superblock);
 
+    buf_t *buf = NULL;
     if(event == NULL) {
         // First entry into the FSM. First, grab the transaction.
-        transaction = cache->begin_transaction(rwi_read, NULL);
-        assert(transaction); // Read-only transaction always begin immediately.
+        transaction = cache->begin_transaction();
 
         // Now try to grab the superblock.
         block_id_t superblock_id = cache->get_superblock_id();
-        last_buf = transaction->acquire(superblock_id, rwi_read, this);
+        buf = transaction->acquire(superblock_id, rwi_read, this);
     } else {
         // We already tried to grab the superblock, and we're getting
         // a cache notification about it.
         assert(event->buf);
-        last_buf = (buf_t *)event->buf;
+        buf = (buf_t *)event->buf;
     }
     
-    if(last_buf) {
+    if(buf) {
         // Got the superblock buffer (either right away or through
         // cache notification). Grab the root id, and move on to
         // acquiring the root.
-        node_id = btree_fsm_t::get_root_id(last_buf->ptr());
+        node_id = btree_fsm_t::get_root_id(buf->ptr());
+        buf->release(this);
         state = acquire_root;
         return btree_fsm_t::transition_ok;
     } else {
@@ -50,8 +51,6 @@ typename btree_get_fsm<config_t>::transition_result_t btree_get_fsm<config_t>::d
     
     // Make sure root exists
     if(cache_t::is_block_id_null(node_id)) {
-        last_buf->release();
-        last_buf = NULL;
         op_result = btree_not_found;
         state = lookup_complete;
         return btree_fsm_t::transition_ok;
@@ -92,25 +91,21 @@ typename btree_get_fsm<config_t>::transition_result_t btree_get_fsm<config_t>::d
         buf = (buf_t*)event->buf;
     }
     assert(buf);
-
-    // Release the previous buffer
-    last_buf->release();
-    last_buf = NULL;
-    
-    node_t *node = (node_t *)buf->ptr();
+    node_t *node = buf->node();
     if(node->is_internal()) {
         block_id_t next_node_id = ((internal_node_t*)node)->lookup(key);
-        last_buf = buf;
+        /* XXX XXX Cannot release until the next acquire succeeds for locks! */
+        buf->release(this);
         node_id = next_node_id;
         buf = transaction->acquire(node_id, rwi_read, this);
-        if(buf) {
+        if(node) {
             return btree_fsm_t::transition_ok;
         } else {
             return btree_fsm_t::transition_incomplete;
         }
     } else {
         int result = ((leaf_node_t*)node)->lookup(key, &value);
-        buf->release();
+        buf->release(this);
         state = lookup_complete;
         op_result = result == 1 ? btree_found : btree_not_found;
         return btree_fsm_t::transition_ok;
@@ -153,8 +148,9 @@ typename btree_get_fsm<config_t>::transition_result_t btree_get_fsm<config_t>::d
 
     // Finally, end our transaction.  This should always succeed immediately.
     if (res == btree_fsm_t::transition_ok && state == lookup_complete) {
-        bool committed __attribute__((unused)) = transaction->commit(NULL);
+        bool committed = transaction->commit(NULL);
         assert(committed); /* Read-only commits always finish immediately. */
+        delete transaction;
         res = btree_fsm_t::transition_complete;
     }
 

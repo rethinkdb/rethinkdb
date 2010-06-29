@@ -15,6 +15,9 @@ struct standard_config_t {
     // IO buffer
     typedef buffer_t<IO_BUFFER_SIZE> iobuf_t;
     
+    // IO syscalls
+    typedef posix_io_calls_t iocalls_t;
+    
     // FSMs
     typedef conn_fsm<standard_config_t> conn_fsm_t;
     typedef intrusive_list_t<conn_fsm_t> fsm_list_t;

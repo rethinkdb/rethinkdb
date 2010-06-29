@@ -37,7 +37,6 @@ public:
 
         void pin() { page_repl->num_pinned++; }
         void unpin() { page_repl->num_pinned--; }
-        unsigned int is_pinned() const { return page_repl->num_pinned; }
 
     private:
         page_repl_none_t *page_repl;
