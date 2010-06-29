@@ -32,9 +32,19 @@ struct array_node_t {
         return nkeys == NODE_ORDER;
     }
 
+    bool is_empty() {
+        return nkeys == 0;
+    }
+
     bool is_underfull() {
         return nkeys < NODE_ORDER / 2;
     }
+
+    int lookup_key(int key) {
+        int index = lookup(key);
+        return keys[index];
+    }
+
 
     typedef array_leaf_node_t<block_id_t> leaf_node_t;
     typedef array_internal_node_t<block_id_t> internal_node_t;
@@ -119,13 +129,100 @@ public:
 
     int remove(int key) {
         int index = parent_t::lookup(key);
-        for(int i = index; i < this->nkeys; i++) {
-            this->keys[i] = this->keys[i + 1];
-            this->values[i] = this->values[i + 1];
+        if(index == this->nkeys || this->keys[index] != key) {
+            return 0;
+        } else {
+            for(int i = index; i < this->nkeys; i++) {
+                this->keys[i] = this->keys[i + 1];
+                this->values[i] = this->values[i + 1];
+            }
+
+            this->nkeys--;
+            return 1;
+        }
+    }
+
+    void shift(int amount) {
+        if (amount > 0) {
+            for (int i = NODE_ORDER - 1; i >0; i--) {
+                if (i - amount >= 0) {
+                    this->keys[i] = this->keys[i - amount];
+                    this->values[i] = this->values[i - amount];
+                } else {
+                    break;
+                }
+            }
+        } else if (amount < 0) {
+            amount = -amount;
+            for (int i = 0; i < NODE_ORDER; i++) {
+                if (i + amount < NODE_ORDER) {
+                    this->keys[i] = this->keys[i + amount];
+                    this->values[i] = this->values[i + amount];
+                } else {
+                    break;
+                }
+            }
+        }
+    }
+
+    int merge(array_internal_node_t<block_id_t> *parent, array_leaf_node_t<block_id_t> *sibling) {
+        if(!(this->is_underfull() && sibling->is_underfull()))
+            return 0;
+
+        if(this->keys[0] < sibling->keys[0]) {
+            // [ this ] [ sibling ] -> [ this sibling ]
+            memcpy(this->keys + this->nkeys, sibling->keys, sibling->nkeys * sizeof(*this->keys));
+            memcpy(this->values + this->nkeys, sibling->values, sibling->nkeys * sizeof(*this->keys));
+            if(!parent->remove(this->keys[0], sibling->keys[0]))
+                return 0;
+        } else {
+            // [ sibling ] [ this ] -> [ sibling this ]
+            //make some space
+            this->shift(sibling->nkeys);
+
+            //copy in the sibling
+            memcpy(this->keys, sibling->keys, sibling->nkeys * sizeof(*this->keys));
+            memcpy(this->values, sibling->values, sibling->nkeys * sizeof(*this->keys));
+            if(!parent->remove(this->keys[sibling->nkeys], sibling->keys[0]))
+                return 0;
         }
 
-        this->nkeys--;
+        this->nkeys += sibling->nkeys;
+
+        //update the parent
         return 1;
+    }
+
+    //make us have the same number of nodes as the sibling
+    void level(array_internal_node_t<block_id_t> *parent, array_leaf_node_t<block_id_t> *sibling) {
+        int to_copy = (sibling->nkeys - this->nkeys) / 2;
+        if (this->keys[0] < sibling->keys[0]) {
+            //    [ this ] <-- [ sibling ]
+            // copy from sibling to this
+            memcpy(this->keys + this->nkeys, sibling->keys, to_copy * sizeof(*this->keys));
+            memcpy(this->values + this->nkeys, sibling->values, to_copy * sizeof(*this->values));
+
+            // shift the sibling
+            sibling->shift(-to_copy);
+
+            this->nkeys += to_copy;
+            sibling->nkeys -= to_copy;
+
+            parent->change_key(this->keys[0], sibling->keys[0]);
+        } else {
+            //    [ sibling ] --> [ this ]
+            //shift to make room for new stuff
+            this->shift(to_copy);
+
+            //copy from sibling to this
+            memcpy(this->keys, sibling->keys + (sibling->nkeys - to_copy), to_copy * sizeof(*this->keys));
+            memcpy(this->values, sibling->values + (sibling->nkeys - to_copy), to_copy * sizeof(*this->values));
+
+            this->nkeys += to_copy;
+            sibling->nkeys -= to_copy;
+
+            parent->change_key(sibling->keys[0], this->keys[0]);
+        }
     }
 
 private:
@@ -200,25 +297,155 @@ public:
         this->nkeys /= 2;
     }
 
-    int remove(int key) {
-        int index = parent_t::lookup(key);
-        for(int i = index; i < this->nkeys; i++) {
+    int remove(int key, int sib_key) {
+        int index = parent_t::lookup(key), sib_index = parent_t::lookup(sib_key);
+        if (sib_key == this->keys[sib_index])
+            sib_index++;
+        if (key == this->keys[index])
+            index++;
+
+        if (index == sib_index)
+            return 0;
+
+        block_id_t value_to_keep = this->values[index];
+
+        int index_to_remove = index < sib_index ? index : sib_index;
+
+        //shift over to remove the index
+        for (int i = index_to_remove; i < this->nkeys - 1; i++) {
             this->keys[i] = this->keys[i + 1];
             this->values[i] = this->values[i + 1];
         }
 
+        //copy over the last element
+        this->values[this->nkeys - 1] = this->values[this->nkeys];
+
+        //make sure the remaining key points to the new node
+        this->values[index_to_remove] = value_to_keep;
+
         this->nkeys--;
+        
         return 1;
     }
 
-    void merge(array_internal_node_t<block_id_t> *rnode) {
-        assert(this->nkeys + rnode->nkeys <= NODE_ORDER);
+    void shift(int amount) {
+        if (amount > 0) {
+            for (int i = NODE_ORDER; i >= 0; i--) {
+                if (0 <= (i - amount) && i < NODE_ORDER)
+                    this->keys[i] = this->keys[i - amount];
+                if (0 <= (i - amount))
+                    this->values[i] = this->values[i - amount];
+                else
+                    break;
+            }
+        } else {
+            amount = -amount;
+            for (int i = 0; i <= NODE_ORDER; i++) {
+                if (i + amount < NODE_ORDER)
+                    this->keys[i] = this->keys[i + amount];
+                if (i + amount <= NODE_ORDER)
+                    this->values[i] = this->values[i + amount];
+                else
+                    break;
+            }
+        }
+    }
 
-        memcpy(this->keys, rnode->keys, rnode->nkeys * sizeof(*this->keys));
+    int merge(array_internal_node_t<block_id_t> *parent, array_internal_node_t<block_id_t> *sibling) {
+        if(!(this->is_underfull() && sibling->is_underfull())) {
+            return 0;
+        }
 
-        this->nkeys += rnode->nkeys;
+        if(this->keys[0] < sibling->keys[0]) {
+            int parent_key = parent->lookup_key(this->keys[this->nkeys - 1]);
 
-        delete rnode; //TODO figure out if this is the right place to do this
+            // [ this ] [ sibling ] -> [ this sibling ]
+            this->keys[this->nkeys] = parent_key;
+            memcpy(this->keys + this->nkeys + 1, sibling->keys, sibling->nkeys * sizeof(*this->keys));
+            memcpy(this->values + this->nkeys + 1, sibling->values, sibling->nkeys * sizeof(*this->values));
+
+            //fix the parent
+            parent->remove(this->keys[0], sibling->keys[0]);
+        } else {
+            int parent_key = parent->lookup_key(sibling->keys[sibling->nkeys - 1]);
+            // [ sibling ] [ this ] -> [ sibling this ]
+            //make some space
+            shift(sibling->nkeys + 1);
+            this->keys[sibling->nkeys] = parent_key;
+
+            //copy in the sibling
+            memcpy(this->keys, sibling->keys, sibling->nkeys * sizeof(*this->keys));
+            memcpy(this->values, sibling->values, (sibling->nkeys + 1) * sizeof(*this->values));
+
+            //fix the parent
+            parent->remove(this->keys[sibling->nkeys + 1], sibling->keys[0]);
+        }
+
+        this->nkeys += sibling->nkeys;
+
+        return 1;
+    }
+
+    // find a sibling of the key, returns -1 if the sibling is before (lower keys)
+    // and 1 if it's after (higher keys)
+    int sibling(int key, int *sib_key) {
+        assert(this->nkeys > 1);
+        int index = parent_t::lookup(key);
+
+        if (index + 1 < this->nkeys) {
+            *sib_key = this->keys[index + 1];
+            return 1;
+        } else {
+            *sib_key = this->keys[index - 1];
+            return -1;
+        }
+    }
+
+    void change_key(int key, int new_key) {
+        int index = parent_t::lookup(key);
+
+        this->keys[index] = new_key;
+    }
+    //make us have the same number of nodes as the sibling
+    void level(array_internal_node_t<block_id_t> *parent, array_internal_node_t<block_id_t> *sibling) {
+        int to_copy = (sibling->nkeys - this->nkeys) / 2;
+        if (this->keys[0] < sibling->keys[0]) {
+            //first grab a key from the parent
+            this->keys[this->nkeys] = parent->lookup_key(this->keys[0]);
+
+            //    [ this ] <-- [ sibling ]
+            // copy from sibling to this
+            memcpy(this->keys + this->nkeys + 1, sibling->keys, to_copy * sizeof(*this->keys));
+            memcpy(this->values + this->nkeys + 1, sibling->values, to_copy * sizeof(*this->values));
+
+            // shift the sibling
+            sibling->shift(-to_copy);
+
+            this->nkeys += to_copy;
+            sibling->nkeys -= to_copy;
+
+            parent->change_key(this->keys[0], this->keys[this->nkeys]);
+        } else {
+            //    [ sibling ] --> [ this ]
+            //shift to make room for new stuff
+            this->shift(to_copy);
+
+            //copy from sibling to this
+            memcpy(this->keys, sibling->keys + (sibling->nkeys - to_copy) + 1, (to_copy - 1) * sizeof(*this->keys));
+            memcpy(this->values, sibling->values + (sibling->nkeys - to_copy) + 1, to_copy * sizeof(*this->values));
+
+            //fill in the missing key
+            this->keys[to_copy - 1] = parent->lookup_key(sibling->keys[0]);
+
+            //clean up the sibling
+            memset(sibling->keys + (sibling->nkeys - to_copy), 0, to_copy * sizeof(*this->keys));
+            memset(sibling->values + (sibling->nkeys + 1 - to_copy), 0, to_copy * sizeof(*this->keys));
+
+            this->nkeys += to_copy;
+            sibling->nkeys -= to_copy;
+
+            parent->change_key(sibling->keys[0], this->keys[0]);
+        }
     }
 
 private:
