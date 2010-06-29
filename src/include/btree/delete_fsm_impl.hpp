@@ -190,7 +190,7 @@ typename btree_delete_fsm<config_t>::transition_result_t btree_delete_fsm<config
         node_t* node = (node_t*)buf->node();
 
         //Deal with underfull nodes if we find them
-        if (node->is_underfull()) {
+        if (node->is_underfull() && last_buf) {
             if(!sib_buf) {
                 state = acquire_sibling;
                 res = do_acquire_sibling(event);
