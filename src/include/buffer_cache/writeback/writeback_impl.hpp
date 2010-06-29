@@ -66,6 +66,20 @@ bool writeback_tmpl_t<config_t>::commit(transaction_t *txn,
     if (txn->get_access() == rwi_read)
         return true;
     flush_lock->unlock();
+    // TODO: If wait_for_flush is true but the server shuts down before the next writeback, then
+    // there is a memory leak of some sort. Problem can be demonstrated with:
+    // Terminal 1:
+    //        ./rethinkdb --flush-interval 1000000 --wait-for-flush y
+    // Terminal 2:
+    //        telnet localhost 8080
+    //        set 1 0 0 1
+    //        8
+    // Terminal 3:
+    //        telnet localhost 8080
+    //        shutdown
+    // After issuing the "set" command, terminal 2 will block because data has not been flushed to
+    // disk. When terminal 3 issues the "shutdown" command, the server will shut down, but a message
+    // like "Memory leak detected: Interrupted system call" will be printed on terminal 1.
     if (!wait_for_flush)
         return true;
     txns.insert(txn_state_t(txn, callback));
