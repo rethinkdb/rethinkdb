@@ -100,8 +100,8 @@ void parse_cmd_args(int argc, char *argv[], cmd_config_t *config)
             config->max_cache_size = atoi(optarg) * 1024 * 1024;
             break;
         case wait_for_flush:
-        	if (strcmp(optarg, "y")==0) config->wait_for_flush = true;
-        	else if (strcmp(optarg, "n")==0) config->wait_for_flush = false;
+        	if (strcmp(optarg, "y")==0) config->wait_for_flush = 1;
+        	else if (strcmp(optarg, "n")==0) config->wait_for_flush = 0;
         	else check("wait-for-flush expects 'y' or 'n'", 1);
             break;
         case flush_interval:
