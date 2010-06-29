@@ -19,31 +19,35 @@ public:
 public:
     enum state_t {
         uninitialized,
+        start_transaction,
         acquire_superblock,
         acquire_root,
         insert_root,
         insert_root_on_split,
         acquire_node,
-        update_complete
+        update_complete,
+        committing,
     };
 
 public:
     explicit btree_set_fsm(cache_t *cache)
         : btree_fsm_t(cache, btree_fsm_t::btree_set_fsm),
-          state(uninitialized), buf(NULL), last_buf(NULL), node_id(cache_t::null_block_id),
-          last_node_id(cache_t::null_block_id), loading_superblock(false),
-          node_dirty(false), last_node_dirty(false)
+          state(uninitialized), sb_buf(NULL), buf(NULL), last_buf(NULL),
+          node_id(cache_t::null_block_id), last_node_id(cache_t::null_block_id)
         {}
 
     void init_update(int _key, int _value);
     virtual transition_result_t do_transition(event_t *event);
 
-    virtual bool is_finished() { return state == update_complete; }
+    virtual bool is_finished() {
+        return state == committing && transaction == NULL;
+    }
 
 private:
     using btree_fsm<config_t>::transaction;
     using btree_fsm<config_t>::cache;
 
+    transition_result_t do_start_transaction(event_t *event);
     transition_result_t do_acquire_superblock(event_t *event);
     transition_result_t do_acquire_root(event_t *event);
     transition_result_t do_insert_root(event_t *event);
@@ -60,10 +64,8 @@ private:
     int key;
     int value;
 
-    buf_t *buf;
-    buf_t *last_buf; /* This is always an internal_node. */
-    block_id_t node_id, last_node_id; /* XXX These should be removed. */
-    bool loading_superblock, node_dirty, last_node_dirty;
+    buf_t *sb_buf, *buf, *last_buf;
+    block_id_t node_id, last_node_id; // TODO(NNW): Bufs may suffice for these.
 };
 
 #include "btree/set_fsm_impl.hpp"

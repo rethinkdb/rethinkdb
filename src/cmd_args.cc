@@ -21,7 +21,6 @@ void usage(const char *name) {
     printf("\nOptions:\n");
     
     printf("  -h, --help\t\tPrint these usage options.\n");
-    
     printf("  -c, --max-cores\tDo not use more than this number of cores for\n");
     printf("\t\t\thandling user requests.\n");
     
@@ -48,7 +47,15 @@ void init_config(cmd_config_t *config) {
 
     config->max_cache_size = DEFAULT_MAX_CACHE_RATIO * get_available_ram();
     config->port = DEFAULT_LISTEN_PORT;
+
+    config->wait_for_flush = false;
+    config->flush_interval_ms = DEFAULT_WRITEBACK_INTERVAL_MS;
 }
+
+enum {
+    wait_for_flush = 256, // Start these values above the ASCII range.
+    flush_interval,
+};
 
 void parse_cmd_args(int argc, char *argv[], cmd_config_t *config)
 {
@@ -60,6 +67,8 @@ void parse_cmd_args(int argc, char *argv[], cmd_config_t *config)
         int do_help = 0;
         struct option long_options[] =
             {
+                {"wait-for-flush",   required_argument, 0, wait_for_flush},
+                {"flush-interval",   required_argument, 0, flush_interval},
                 {"max-cores",        required_argument, 0, 'c'},
                 {"max-cache-size",   required_argument, 0, 'm'},
                 {"port",             required_argument, 0, 'p'},
