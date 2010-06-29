@@ -415,7 +415,7 @@ event_queue_t::~event_queue_t()
     check("Could not join with epoll thread", res != 0);
     parent_pool->all_allocs.push_back(allocs_tl);
 
-    // Stop the hardcoded timer (TODO: we should use register timer API for it)
+    // Stop the timers
     queue_stop_timer(this);
 
     // Delete the registered timers
