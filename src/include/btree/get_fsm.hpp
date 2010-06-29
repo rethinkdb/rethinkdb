@@ -37,7 +37,7 @@ public:
 public:
     explicit btree_get_fsm(cache_t *cache)
         : btree_fsm_t(cache, btree_fsm_t::btree_get_fsm),
-          state(uninitialized), last_buf(NULL), buf(NULL), node_id(cache_t::null_block_id)
+          state(uninitialized), buf(NULL), node_id(cache_t::null_block_id)
         {}
 
     void init_lookup(int _key);
@@ -61,7 +61,7 @@ private:
 private:
     // Some relevant state information
     state_t state;
-    buf_t *last_buf, *buf;
+    buf_t *buf;
     block_id_t node_id;
 };
 

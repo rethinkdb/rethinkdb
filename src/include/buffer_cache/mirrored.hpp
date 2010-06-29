@@ -6,7 +6,6 @@
 #include "event_queue.hpp"
 #include "cpu_context.hpp"
 #include "concurrency/access.hpp"
-#include "concurrency/rwi_lock.hpp"
 #include "buffer_cache/callbacks.hpp"
 
 // This cache doesn't actually do any operations itself. Instead, it
@@ -18,8 +17,7 @@
 /* Buffer class. */
 // TODO: make sure we use small object allocator for buf_t
 template <class config_t>
-class buf : public iocallback_t,
-            public config_t::writeback_t::local_buf_t,
+class buf : public config_t::writeback_t::buf_t,
             public config_t::page_repl_t::buf_t,
             public config_t::concurrency_t::buf_t {
 public:
@@ -31,41 +29,40 @@ public:
     typedef typename config_t::node_t node_t;
     typedef block_available_callback<config_t> block_available_callback_t;
 
-    buf(cache_t *cache, block_id_t block_id);
+    buf(transaction_t *transaction, block_id_t block_id);
     ~buf();
 
-    void release();
+    void release(void *state); /* TODO(NNW): Callback should be removed. */
 
-    // TODO(NNW) We may want a const version of ptr() as well so the non-const
-    // version can verify that the buf is writable; requires pushing const
-    // through a bunch of other places (such as array_node also, however.
-    void *ptr() { return data; }
-
-    block_id_t get_block_id() const { return block_id; }
+    void *ptr() { return data; } /* TODO(NNW) We may want const version. */
+    node_t *node();
 
     void set_cached(bool _cached) { cached = _cached; }
     bool is_cached() const { return cached; }
 
-    void set_dirty() { config_t::writeback_t::local_buf_t::set_dirty(this); }
+    void set_dirty() { config_t::writeback_t::buf_t::set_dirty(this); }
+
+    transaction_t *get_transaction() { return transaction; }
 
     // Callback API
+    void add_lock_callback(block_available_callback_t *callback);
     void add_load_callback(block_available_callback_t *callback);
-
+    void notify_on_lock();
     void notify_on_load();
 
-    virtual void on_io_complete(event_t *event);
-
 private:
+    transaction_t *transaction; // TODO(NNW): We need to invalidate this.
     cache_t *cache;
     block_id_t block_id;
     bool cached; /* Is data valid, or are we waiting for a read? */
     void *data;
+    std::queue<block_available_callback_t*> lock_callbacks;
     std::queue<block_available_callback_t*> load_callbacks;
 };
 
 /* Transaction class. */
 template <class config_t>
-class transaction : public lock_available_callback<config_t> {
+class transaction {
 public:
     typedef typename config_t::serializer_t serializer_t;
     typedef typename config_t::concurrency_t concurrency_t;
@@ -73,32 +70,22 @@ public:
     typedef typename config_t::cache_t cache_t;
     typedef typename config_t::buf_t buf_t;
     typedef block_available_callback<config_t> block_available_callback_t;
-    typedef transaction_begin_callback<config_t> transaction_begin_callback_t;
-    typedef transaction_commit_callback<config_t> transaction_commit_callback_t;
 
-    explicit transaction(cache_t *cache, access_t access,
-        transaction_begin_callback_t *callback);
+    explicit transaction(cache_t *cache);
     ~transaction();
 
     cache_t *get_cache() const { return cache; }
-    access_t get_access() const { return access; }
 
-    bool commit(transaction_commit_callback_t *callback);
+    bool commit(void *state);
+    //void abort(void *state); // TODO: We need this someday, but not yet.
 
     buf_t *acquire(block_id_t block_id, access_t mode,
                    block_available_callback_t *callback);
     buf_t *allocate(block_id_t *new_block_id);
 
-    /* The below function should *only* be called from writeback. */
-    void committed(transaction_commit_callback_t *callback);
-
 private:
-    virtual void on_lock_available() { begin_callback->on_txn_begin(this); }
-
     cache_t *cache;
-    access_t access;
-    transaction_begin_callback_t *begin_callback;
-    enum { state_open, state_committing, state_committed } state;
+    bool open;
 
 public:
 #ifndef NDEBUG
@@ -132,35 +119,23 @@ public:
     // many dependencies. The second is more strict, but might not be
     // extensible when some policy implementation requires access to
     // components it wasn't originally given.
-    mirrored_cache_t(size_t _block_size, size_t _max_size, bool wait_for_flush,
-            unsigned int flush_interval_ms) : 
+    mirrored_cache_t(size_t _block_size, size_t _max_size) : 
         serializer_t(_block_size),
         page_repl_t(_block_size, _max_size, this, this),
-        writeback_t(this, wait_for_flush, flush_interval_ms)
-#ifndef NDEBUG
-        , n_trans_created(0), n_trans_freed(0),
-        n_blocks_acquired(0), n_blocks_released(0)
-#endif
-        {}
+        writeback_t(this) {}
     ~mirrored_cache_t();
 
-    void start() { writeback_t::start(); }
-    void shutdown(sync_callback<config_t> *cb) { writeback_t::shutdown(cb); }
+    void start() {
+        writeback_t::start();
+    }
 
     // Transaction API
-    transaction_t *begin_transaction(access_t access,
-        transaction_begin_callback<config_t> *callback);
+    transaction_t *begin_transaction();
 
-    void aio_complete(buf_t *buf, bool written);
+    void aio_complete(buf_t *buf, void *block, bool written);
 
 private:
     using page_map_t::ft_map;
-
-#ifndef NDEBUG
-public:
-    int n_trans_created, n_trans_freed;
-    int n_blocks_acquired, n_blocks_released;
-#endif
 };
 
 #include "buffer_cache/mirrored_impl.hpp"

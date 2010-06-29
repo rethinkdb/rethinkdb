@@ -5,21 +5,19 @@
 #include <pthread.h>
 #include <libaio.h>
 #include <queue>
+
 #include "arch/resource.hpp"
-#include "arch/io.hpp"
 #include "event.hpp"
 #include "corefwd.hpp"
 #include "message_hub.hpp"
 #include "config/cmd_args.hpp"
-#include "buffer_cache/callbacks.hpp"
 
 typedef void (*event_handler_t)(event_queue_t*, event_t*);
 
 // Inter-thread communication event (ITC)
 enum itc_event_type_t {
-    iet_shutdown = 1,
-    iet_new_socket,
-    iet_cache_synced,
+    iet_shutdown,
+    iet_new_socket
 };
 
 struct itc_event_t {
@@ -28,7 +26,7 @@ struct itc_event_t {
 };
 
 // Event queue structure
-struct event_queue_t : public sync_callback<code_config_t> {
+struct event_queue_t {
 public:
     typedef code_config_t::cache_t cache_t;
     typedef code_config_t::conn_fsm_t conn_fsm_t;
@@ -57,10 +55,7 @@ public:
 
     void pull_messages_for_cpu(message_hub_t::msg_list_t *target);
 
-    void timer_add(timespec *, void (*callback)(void *ctx), void *ctx);
-    void timer_once(timespec *, void (*callback)(void *ctx), void *ctx);
-
-    virtual void on_sync();
+    void set_timer(timespec *, void (*callback)(void *ctx), void *ctx);
 
 public:
     // TODO: be clear on what should and shouldn't be public here
@@ -87,8 +82,6 @@ public:
     // Caches responsible for serving a particular queue
     cache_t *cache;
 
-    io_calls_t iosys;
-
 private:
     struct timer {
         itimerspec it;
@@ -99,8 +92,6 @@ private:
     static void *epoll_handler(void *ctx);
     void process_timer_notify();
     static void garbage_collect(void *ctx);
-    void timer_add_internal(timespec *, void (*callback)(void *ctx), void *ctx,
-        bool once);
 
     struct timer_gt {
         bool operator()(const timer *t1, const timer *t2);

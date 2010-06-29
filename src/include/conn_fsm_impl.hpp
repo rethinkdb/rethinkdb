@@ -41,9 +41,9 @@ typename conn_fsm<config_t>::result_t conn_fsm<config_t>::do_socket_ready(event_
         // IO_BUFFER_SIZE. We'll need to implement streaming later.
 
         do {
-            sz = io_calls_t::read(state->source,
-                                  state->buf + state->nbuf,
-                                  iobuf_t::size - state->nbuf);
+            sz = iocalls_t::read(state->source,
+                                 state->buf + state->nbuf,
+                                 iobuf_t::size - state->nbuf);
             if(sz == -1) {
                 if(errno == EAGAIN || errno == EWOULDBLOCK) {
                     // The machine can't be in
@@ -204,7 +204,6 @@ conn_fsm<config_t>::conn_fsm(resource_t _source, event_queue_t *_event_queue)
 
 template<class config_t>
 conn_fsm<config_t>::~conn_fsm() {
-    close(source);
     delete req_handler;
     if(this->buf) {
         delete this->buf;
@@ -227,7 +226,7 @@ void conn_fsm<config_t>::send_msg_to_client() {
         this->snbuf += sz;
         len -= sz;
         
-        sz = io_calls_t::write(this->source, this->buf + this->snbuf, len);
+        sz = iocalls_t::write(this->source, this->buf + this->snbuf, len);
         if(sz < 0) {
             if(errno == EAGAIN || errno == EWOULDBLOCK) {
                 // If we can't send the message now, wait 'till we can

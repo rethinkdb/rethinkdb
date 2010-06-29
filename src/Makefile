@@ -24,7 +24,7 @@ endif
 
 # Define our objects
 OBJS =  main.o \
-	linux_io.o \
+	async_io.o \
 	event_queue.o \
 	utils.o \
 	worker_pool.o \

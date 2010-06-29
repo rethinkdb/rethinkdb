@@ -7,46 +7,23 @@
 #include "message_hub.hpp"
 #include "concurrency/access.hpp"
 
-// Forward declarations
-template<class config_t>
-struct rwi_lock;
-
-/**
- * Callback class used to notify lock clients that they now have the
- * lock.
- */
-template<class config_t>
-struct lock_available_callback {
-public:
-    typedef rwi_lock<config_t> rwi_lock_t;
-    
-public:
-    virtual ~lock_available_callback() {}
-    virtual void on_lock_available() = 0;
-};
-
-/**
- * Read/write/intent lock allows locking a resource for reading,
+/* Read/write/intent lock allows locking a resource for reading,
  * reading with the intent to potentially upgrade to write, and
  * writing. This is useful in a btree setting, where something might
- * be locked with.
- */
+ * be locked with */
 template<class config_t>
 struct rwi_lock {
-public:
-    typedef lock_available_callback<config_t> lock_available_callback_t;
-    
 public:
     struct lock_request_t : public cpu_message_t,
                             public alloc_mixin_t<tls_small_obj_alloc_accessor<typename config_t::alloc_t>,
                                                  lock_request_t>,
                             public intrusive_list_node_t<lock_request_t>
     {
-        lock_request_t(access_t _op, lock_available_callback_t *_callback)
-            : cpu_message_t(cpu_message_t::mt_lock), op(_op), callback(_callback)
+        lock_request_t(access_t _op, void *_state)
+            : cpu_message_t(cpu_message_t::mt_lock), op(_op), state(_state)
             {}
         access_t op;
-        lock_available_callback_t *callback;
+        void *state;
     };
 
     // Note, the receiver of lock_request_t completion notifications
@@ -58,7 +35,7 @@ public:
         {}
     
     // Call to lock for read, write, intent, or upgrade intent to write
-    bool lock(access_t access, lock_available_callback_t *callback);
+    bool lock(access_t access, void *state);
 
     // Call if you've locked for read or write, or upgraded to write,
     // and are now unlocking.
@@ -83,7 +60,7 @@ private:
     bool try_lock_write(bool from_queue);
     bool try_lock_intent(bool from_queue);
     bool try_lock_upgrade(bool from_queue);
-    void enqueue_request(access_t access, lock_available_callback_t *callback);
+    void enqueue_request(access_t access, void *state);
     void process_queue();
     void send_notify(lock_request_t *req);
 
