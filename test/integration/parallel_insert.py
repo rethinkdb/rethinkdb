@@ -2,7 +2,7 @@
 
 import sys
 import subprocess
-from multiprocessing import Pool
+from multiprocessing import Pool, Queue, Process
 import memcache
 from random import shuffle
 
@@ -14,12 +14,15 @@ PORT="11211"
 # TODO: when we add more integration tests, the act of starting a
 # RethinkDB process should be handled by a common external script.
 
-def rethinkdb_insert(ints):
+def rethinkdb_insert(queue, ints):
     mc = memcache.Client([HOST + ":" + PORT], debug=0)
     for i in ints:
-	print "Inserting %d" % i
-        mc.set(str(i), str(i))
+        print "Inserting %d" % i
+        if (0 == mc.set(str(i), str(i))):
+            queue.put(-1)
+            return
     mc.disconnect_all()
+    queue.put(0)
 
 def rethinkdb_verify():
     mc = memcache.Client([HOST + ":" + PORT], debug=0)
@@ -47,11 +50,26 @@ def main(argv):
     
     # Invoke processes to insert them into the server concurrently
     # (Pool automagically waits for the processes to end)
+    lists = split_list(ints, NUM_THREADS)
+
     print "Inserting numbers"
-    p = Pool(NUM_THREADS)
-    p.map(rethinkdb_insert, split_list(ints, NUM_THREADS))
-    p.close()
-    p.join()
+    queue = Queue()
+    procs = []
+    for i in xrange(0, NUM_THREADS):
+        p = Process(target=rethinkdb_insert, args=(queue, lists[i]))
+        procs.append(p)
+        p.start()
+
+    # Wait for all the checkers to complete
+    i = 0
+    while(i != NUM_THREADS):
+        res = queue.get()
+        if res == -1:
+            print "Insertion failed, most likely the db isn't running on port %s" % PORT
+            map(Process.terminate, procs)
+            sys.exit(-1)
+        i += 1
+
 
     # Verify that all integers have successfully been inserted
     print "Verifying"
