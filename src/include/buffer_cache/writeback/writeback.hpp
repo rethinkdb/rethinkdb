@@ -69,7 +69,7 @@ private:
 
     /* User-controlled settings. */
     bool wait_for_flush;
-    uint64_t interval_ms;
+    int interval_ms;
 
     /* Internal variables used at all times. */
     cache_t *cache;
