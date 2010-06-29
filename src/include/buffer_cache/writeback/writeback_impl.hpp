@@ -88,10 +88,12 @@ void writeback_tmpl_t<config_t>::local_buf_t::set_dirty(buf_t *super) {
 
 template <class config_t>
 void writeback_tmpl_t<config_t>::start_flush_timer() {
-	timespec ts;
-    ts.tv_sec = interval_ms / 1000;
-    ts.tv_nsec = (interval_ms % 1000) * 1000 * 1000;
-    get_cpu_context()->event_queue->timer_once(&ts, timer_callback, this);
+	if (interval_ms != NEVER_FLUSH && interval_ms != 0) {
+		timespec ts;
+		ts.tv_sec = interval_ms / 1000;
+		ts.tv_nsec = (interval_ms % 1000) * 1000 * 1000;
+		get_cpu_context()->event_queue->timer_once(&ts, timer_callback, this);
+	}
 }
 
 template <class config_t>

@@ -102,7 +102,14 @@ void parse_cmd_args(int argc, char *argv[], cmd_config_t *config)
         	else check("wait-for-flush expects 'y' or 'n'", 1);
             break;
         case flush_interval:
-            config->flush_interval_ms = atoi(optarg);
+        	if (strcmp(optarg, "never")==0) config->flush_interval_ms = NEVER_FLUSH;
+        	else {
+        		config->flush_interval_ms = atoi(optarg);
+        		check("flush interval should not be negative; use 'never' to not flush at all",
+        			config->flush_interval_ms < 0);
+        		check("flush interval of 0 is broken at the moment",
+        			config->flush_interval_ms == 0);
+        	}
             break;
             
         case 'h':
