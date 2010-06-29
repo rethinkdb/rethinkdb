@@ -24,7 +24,6 @@
 template<class config_t>
 struct in_place_serializer_t {
 public:
-    typedef off64_t block_id_t;
     typedef typename config_t::btree_admin_t btree_admin_t;
 
 public:
@@ -116,7 +115,7 @@ public:
 public:
     /* Returns true iff block_id is NULL. */
     static bool is_block_id_null(block_id_t block_id) {
-        return block_id == -1;
+        return block_id == null_block_id;
     }
 
     /* Generates a unique block id. */

@@ -11,6 +11,7 @@
 #include <errno.h>
 
 #include "utils.hpp"
+#include "btree/node.hpp"
 #include "worker_pool.hpp"
 #include "async_io.hpp"
 #include "server.hpp"
@@ -33,13 +34,12 @@
 #include "buffer_cache/writeback/writeback.hpp"
 #include "buffer_cache/concurrency/rwi_conc.hpp"
 
-#include "btree/btree_internal_node_impl.hpp"
-#include "btree/btree_leaf_node_impl.hpp"
+#include "btree/internal_node_impl.hpp"
+#include "btree/leaf_node_impl.hpp"
 
 #include "btree/get_fsm.hpp"
 #include "btree/set_fsm.hpp"
 //#include "btree/delete_fsm.hpp"
-#include "btree/array_node.hpp"
 
 
 #include "request.hpp"

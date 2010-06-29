@@ -1,10 +1,8 @@
 #ifndef __BTREE_LEAF_NODE_IMPL_HPP__
 #define __BTREE_LEAF_NODE_IMPL_HPP__
 
-#include "btree/btree_leaf_node.hpp"
+#include "btree/leaf_node.hpp"
 #include <algorithm>
-
-#define DEBUG_MAX_LEAF 4
 
 void btree_leaf::init(btree_leaf_node *node) {
     printf("leaf node %p: init\n", node);
@@ -25,19 +23,23 @@ void btree_leaf::init(btree_leaf_node *node, btree_leaf_node *lnode, uint16_t *o
 
 int btree_leaf::insert(btree_leaf_node *node, btree_key *key, int value) {
     printf("leaf node %p: insert\tkey:%*.*s\tvalue:%d\n", node, key->size, key->size, key->contents, value);
-    if (is_full(node)) return 0;
-    //TODO: handle duplicates
-    uint16_t offset = insert_blob(node, value, key);
+    if (is_full(node, key)) return 0;
     int index = get_offset_index(node, key);
-    insert_offset(node, offset, index);
-
-    return 1; // XXX
+    btree_leaf_blob *previous = get_blob(node, node->blob_offsets[index]);
+    //TODO: write a unit test for this
+    if (is_equal(&previous->key, key)) { // a duplicate key is being inserted
+        previous->value = value;
+    } else {
+        uint16_t offset = insert_blob(node, value, key);
+        insert_offset(node, offset, index);
+    }
+    return 1;
 }
 
 bool btree_leaf::lookup(btree_leaf_node *node, btree_key *key, int *value) {
     printf("leaf node %p: lookup\tkey:%*.*s\n", node, key->size, key->size, key->contents);
     int index = get_offset_index(node, key);
-    uint64_t offset = node->blob_offsets[index];
+    block_id_t offset = node->blob_offsets[index];
     btree_leaf_blob *blob = get_blob(node, offset);
     if (is_equal(&blob->key, key)) {
         *value = blob->value;
@@ -47,7 +49,7 @@ bool btree_leaf::lookup(btree_leaf_node *node, btree_key *key, int *value) {
     }
 }
 
-void btree_leaf::split(btree_leaf_node *node, btree_leaf_node *rnode, btree_key **median) {
+void btree_leaf::split(btree_leaf_node *node, btree_leaf_node *rnode, btree_key *median) {
     printf("leaf node %p: split\n", node);
     uint16_t total_blobs = BTREE_BLOCK_SIZE - node->frontmost_offset;
     uint16_t first_blobs = 0;
@@ -68,10 +70,9 @@ void btree_leaf::split(btree_leaf_node *node, btree_leaf_node *rnode, btree_key 
 
     node->nblobs = median_index;
 
-    // XXX For speed, we give a pointer to the key IN THE NODE.  This means
-    // that it should only be referenced before anything else can modify the node!
-    // Also, equality takes the left branch, so the median should be from this node.
-    *median = &get_blob(node, node->blob_offsets[median_index-1])->key;
+    // Equality takes the left branch, so the median should be from this node.
+    btree_key *median_key = &get_blob(node, node->blob_offsets[median_index-1])->key;
+    memcpy(median, median_key, sizeof(btree_key)+median_key->size);
 
 }
 
@@ -88,12 +89,12 @@ bool btree_leaf::remove(btree_leaf_node *node, btree_key *key) {
 }
 
 //TODO: Make a more specific full function
-bool btree_leaf::is_full(btree_leaf_node *node) {
+bool btree_leaf::is_full(btree_leaf_node *node, btree_key *key) {
 #ifdef DEBUG_MAX_LEAF
     if (node->nblobs >= DEBUG_MAX_LEAF)
         return true;
 #endif
-    return sizeof(btree_leaf_node) + node->nblobs*sizeof(*node->blob_offsets) + MAX_KEY_SIZE >= node->frontmost_offset;
+    return sizeof(btree_leaf_node) + node->nblobs*sizeof(*node->blob_offsets) + sizeof(btree_leaf_blob) + key->size >= node->frontmost_offset;
 }
 
 size_t btree_leaf::blob_size(btree_leaf_blob *blob) {
@@ -108,8 +109,6 @@ void btree_leaf::delete_blob(btree_leaf_node *node, uint16_t offset) {
     btree_leaf_blob *blob_to_delete = get_blob(node, offset);
     btree_leaf_blob *front_blob = get_blob(node, node->frontmost_offset);
     size_t shift = blob_size(blob_to_delete);
-
-    //printf("deleteing blob at offset %llu, shifting %u\n", (unsigned long long) offset, (unsigned int)shift);
 
     memmove( ((byte *)front_blob)+shift, front_blob, offset - node->frontmost_offset);
     node->frontmost_offset += shift;

@@ -1,10 +1,10 @@
 #ifndef __BTREE_INTERNAL_NODE_IMPL_HPP__
 #define __BTREE_INTERNAL_NODE_IMPL_HPP__
 
-#include "btree/btree_internal_node.hpp"
+#include "btree/internal_node.hpp"
 #include <algorithm>
 
-#define DEBUG_MAX_INTERNAL 4
+//#define DEBUG_MAX_INTERNAL 4
 
 //In this tree, less than or equal takes the left-hand branch and greater than takes the right hand branch
 
@@ -25,11 +25,11 @@ void btree_internal::init(btree_internal_node *node, btree_internal_node *lnode,
     std::sort(node->blob_offsets, node->blob_offsets+node->nblobs, btree_str_key_comp(node));
 }
 
-int btree_internal::insert(btree_internal_node *node, btree_key *key, off64_t lnode, off64_t rnode) {
+int btree_internal::insert(btree_internal_node *node, btree_key *key, block_id_t lnode, block_id_t rnode) {
     printf("internal node %p: insert\tkey:%*.*s\tlnode:%llu\trnode:%llu\n", node, key->size, key->size, key->contents, (unsigned long long)lnode, (unsigned long long)rnode);
-    //check("tried to insert into a full internal node", is_full(node));
-    if (is_full(node)) return 0;
+    //TODO: write a unit test for this
     check("key too large", key->size > MAX_KEY_SIZE);
+    if (is_full(node)) return 0;
     if (node->nblobs == 0) {
         btree_key special;
         special.size=0;
@@ -38,21 +38,22 @@ int btree_internal::insert(btree_internal_node *node, btree_key *key, off64_t ln
         insert_offset(node, special_offset, 0);
     }
 
-    uint16_t offset = insert_blob(node, lnode, key);
     int index = get_offset_index(node, key);
+    check("tried to insert duplicate key into internal node!", is_equal(&get_blob(node, node->blob_offsets[index])->key, key));
+    uint16_t offset = insert_blob(node, lnode, key);
     insert_offset(node, offset, index);
 
     get_blob(node, node->blob_offsets[index+1])->lnode = rnode;
     return 1; // XXX
 }
 
-off64_t btree_internal::lookup(btree_internal_node *node, btree_key *key) {
+block_id_t btree_internal::lookup(btree_internal_node *node, btree_key *key) {
     printf("internal node %p: lookup\tkey:%*.*s\n", node, key->size, key->size, key->contents);
     int index = get_offset_index(node, key);
     return get_blob(node, node->blob_offsets[index])->lnode;
 }
 
-void btree_internal::split(btree_internal_node *node, btree_internal_node *rnode, btree_key **median) {
+void btree_internal::split(btree_internal_node *node, btree_internal_node *rnode, btree_key *median) {
     printf("internal node %p: split\n", node);
     uint16_t total_blobs = BTREE_BLOCK_SIZE - node->frontmost_offset;
     uint16_t first_blobs = 0;
@@ -63,12 +64,9 @@ void btree_internal::split(btree_internal_node *node, btree_internal_node *rnode
     }
     int median_index = index;
 
-    // XXX Do not use malloc here
-    // Also, equality takes the left branch, so the median should be from this node.
+    // Equality takes the left branch, so the median should be from this node.
     btree_key *median_key = &get_blob(node, node->blob_offsets[median_index-1])->key;
-    int median_size = sizeof(btree_key) + median_key->size;
-    *median = (btree_key *)malloc(median_size);
-    memcpy(*median, median_key, median_size);
+    memcpy(median, median_key, sizeof(btree_key)+median_key->size);
 
     init(rnode, node, node->blob_offsets + median_index, node->nblobs - median_index);
 
@@ -99,7 +97,7 @@ bool btree_internal::is_full(btree_internal_node *node) {
     if (node->nblobs-1 >= DEBUG_MAX_INTERNAL)
         return true;
 #endif
-    return sizeof(btree_internal_node) + node->nblobs*sizeof(*node->blob_offsets) + MAX_KEY_SIZE >= node->frontmost_offset;
+    return sizeof(btree_internal_node) + node->nblobs*sizeof(*node->blob_offsets) + sizeof(btree_internal_blob) + MAX_KEY_SIZE >= node->frontmost_offset;
 }
 
 size_t btree_internal::blob_size(btree_internal_blob *blob) {
@@ -133,7 +131,7 @@ uint16_t btree_internal::insert_blob(btree_internal_node *node, btree_internal_b
     return node->frontmost_offset;
 }
 
-uint16_t btree_internal::insert_blob(btree_internal_node *node, off64_t lnode, btree_key *key) {
+uint16_t btree_internal::insert_blob(btree_internal_node *node, block_id_t lnode, btree_key *key) {
     node->frontmost_offset -= sizeof(btree_internal_blob) + key->size;;
     btree_internal_blob *new_blob = get_blob(node, node->frontmost_offset);
 

@@ -116,7 +116,7 @@ typename memcached_handler_t<config_t>::parse_result_t memcached_handler_t<confi
         return malformed_request(fsm);
 
     cmd = command;
-    key = strdup(key_tmp); //TODO: Consider not allocating with malloc
+    btree::str_to_key(key_tmp, key);
 
     char *invalid_char;
     flags = strtoul(flags_str, &invalid_char, 10);  //a 32 bit integer.  int alone does not guarantee 32 bit length
@@ -185,9 +185,6 @@ typename memcached_handler_t<config_t>::parse_result_t memcached_handler_t<confi
             break;
     }
 
-    //free stored state
-    free(key);
-
     return ret;
 }
 
@@ -201,7 +198,7 @@ typename memcached_handler_t<config_t>::parse_result_t memcached_handler_t<confi
         return unimplemented_request(fsm);
 
 
-    set_key(fsm, btree::str_to_key(key), value_int);
+    set_key(fsm, key, value_int);
 
     fsm->consume(bytes+2);
     return req_handler_t::op_req_complex;
@@ -290,7 +287,7 @@ typename memcached_handler_t<config_t>::parse_result_t memcached_handler_t<confi
             // somehow.
         }
 
-        btree_key *key = btree::str_to_key(key_str);
+        btree::str_to_key(key_str, key);
 
         // Ok, we've got a key, initialize the FSM and add it to
         // the request
@@ -435,6 +432,7 @@ void memcached_handler_t<config_t>::build_response(request_t *request) {
             fsm->nbuf = 0;
         }
         delete btree_set_fsm;
+
         break;
 
     default:

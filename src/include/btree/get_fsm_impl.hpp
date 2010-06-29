@@ -6,12 +6,12 @@
 #include "cpu_context.hpp"
 
 //TODO: remove
-#include "btree/btree_internal_node.hpp"
-#include "btree/btree_leaf_node.hpp"
+#include "btree/internal_node.hpp"
+#include "btree/leaf_node.hpp"
 
 template <class config_t>
 void btree_get_fsm<config_t>::init_lookup(btree_key *_key) {
-    key = _key;
+    memcpy(key, _key, sizeof(btree_key) + _key->size);
     state = acquire_superblock;
 }
 

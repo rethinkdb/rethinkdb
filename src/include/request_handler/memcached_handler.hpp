@@ -22,7 +22,7 @@ public:
     
 public:
     memcached_handler_t(cache_t *_cache, event_queue_t *eq)
-        : req_handler_t(eq), cache(_cache), loading_data(false)
+        : req_handler_t(eq), cache(_cache), key((btree_key*)key_memory), loading_data(false)
         {}
     
     virtual parse_result_t parse_request(event_t *event);
@@ -32,11 +32,13 @@ private:
     enum storage_command { SET, ADD, REPLACE, APPEND, PREPEND, CAS };
     cache_t *cache;
     storage_command cmd;
-    char *key;
-    unsigned long flags;
-    unsigned long exptime;
-    unsigned long bytes;
-    unsigned long long cas_unique; //must be at least 64 bits
+
+    char key_memory[MAX_KEY_SIZE+sizeof(btree_key)];
+    btree_key * const key;
+    uint32_t flags;
+    uint32_t exptime;
+    uint32_t bytes;
+    uint64_t cas_unique; //must be at least 64 bits
     bool noreply;
     bool loading_data;
 

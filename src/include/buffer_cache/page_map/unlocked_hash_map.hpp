@@ -9,7 +9,6 @@ struct unlocked_hash_map_t
 {
 public:
     typedef typename config_t::serializer_t serializer_t;
-    typedef typename serializer_t::block_id_t block_id_t;
     typedef typename config_t::buf_t buf_t;
     
 public:

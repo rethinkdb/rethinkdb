@@ -4,6 +4,10 @@
 #include <stdint.h>
 #include <string.h>
 
+#define MAX_KEY_SIZE 250
+
+// Note: Changing this struct changes the format of the data stored on disk.
+// If you change this struct, previous stored data will be misinterpreted.
 struct btree_key {
     uint8_t size;
     char contents[0];
@@ -23,13 +27,11 @@ class btree {
             return !node->leaf;
         }
 
-        static btree_key *str_to_key(char *str) {
-            //TODO: Use a different allocator
+        static void str_to_key(char *str, btree_key *buf) {
             int len = strlen(str);
-            btree_key *key = (btree_key *)malloc(sizeof(btree_key) + len);
-            memcpy(key->contents, str, len);
-            key->size = (unsigned char)len;
-            return key;
+            check("string too long", len > 250);
+            memcpy(buf->contents, str, len);
+            buf->size = (unsigned char)len;
         }
 };
 

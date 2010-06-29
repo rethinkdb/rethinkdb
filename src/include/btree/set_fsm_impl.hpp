@@ -26,7 +26,7 @@
 
 template <class config_t>
 void btree_set_fsm<config_t>::init_update(btree_key *_key, int _value) {
-    key = _key;
+    memcpy(key, _key, sizeof(btree_key) + _key->size);
     value = _value;
     state = acquire_superblock;
 }
@@ -196,17 +196,18 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
         node_t *node = buf->node();
         bool full;
         if (btree::is_leaf(node)) {
-            full = btree_leaf::is_full((leaf_node_t *)node); //TODO: pass more info here
+            full = btree_leaf::is_full((leaf_node_t *)node, key);
         } else {
             full = btree_internal::is_full((internal_node_t *)node);
         }
         if(full) {
-            btree_key *median;
+            char memory[sizeof(btree_key) + MAX_KEY_SIZE];
+            btree_key *median = (btree_key *)memory;
             buf_t *rbuf;
             internal_node_t *last_node;
             block_id_t rnode_id;
             bool new_root = false;
-            split_node(node, &rbuf, &rnode_id, &median);
+            split_node(node, &rbuf, &rnode_id, median);
             // Create a new root if we're splitting a root
             if(last_buf == NULL) {
                 new_root = true;
@@ -299,7 +300,7 @@ int btree_set_fsm<config_t>::set_root_id(block_id_t root_id, event_t *event) {
 
 template <class config_t>
 void btree_set_fsm<config_t>::split_node(node_t *node, buf_t **rbuf,
-                                         block_id_t *rnode_id, btree_key **median) {
+                                         block_id_t *rnode_id, btree_key *median) {
     buf_t *res = transaction->allocate(rnode_id);
     if(btree::is_leaf(node)) {
         leaf_node_t *rnode = (leaf_node_t *)res->ptr();

@@ -14,6 +14,7 @@
 #include "alloc/dynamic_pool.hpp"
 #include "alloc/stats.hpp"
 #include "alloc/alloc_mixin.hpp"
+#include "btree/node.hpp"
 
 // TODO: perhaps we can issue cache prefetching commands to the CPU to
 // speed up the process of sending messages across cores.

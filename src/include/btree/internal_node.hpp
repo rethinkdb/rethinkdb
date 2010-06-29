@@ -2,17 +2,18 @@
 #define __BTREE_INTERNAL_NODE_HPP__
 
 #include "utils.hpp"
-#include "btree/btree_node.hpp"
+#include "btree/node.hpp"
 
 #define byte char
-#define MAX_KEY_SIZE 250
 
+//Note: This struct is stored directly on disk.  Changing it invalidates old data.
 struct btree_internal_blob {
-    off64_t lnode;
+    block_id_t lnode;
     btree_key key;
 };
 
 
+//Note: This struct is stored directly on disk.  Changing it invalidates old data.
 struct btree_internal_node {
     bool leaf;
     uint16_t nblobs;
@@ -31,9 +32,9 @@ class btree_internal : public btree {
     static void init(btree_internal_node *node);
     static void init(btree_internal_node *node, btree_internal_node *lnode, uint16_t *offsets, int numblobs);
 
-    static int insert(btree_internal_node *node, btree_key *key, off64_t lnode, off64_t rnode);
-    static off64_t lookup(btree_internal_node *node, btree_key *key);
-    static void split(btree_internal_node *node, btree_internal_node *rnode, btree_key **median);
+    static int insert(btree_internal_node *node, btree_key *key, block_id_t lnode, block_id_t rnode);
+    static block_id_t lookup(btree_internal_node *node, btree_key *key);
+    static void split(btree_internal_node *node, btree_internal_node *rnode, btree_key *median);
     static bool remove(btree_internal_node *node, btree_key *key);
 
     static bool is_full(btree_internal_node *node);
@@ -43,7 +44,7 @@ class btree_internal : public btree {
     static btree_internal_blob *get_blob(btree_internal_node *node, uint16_t offset);
     static void delete_blob(btree_internal_node *node, uint16_t offset);
     static uint16_t insert_blob(btree_internal_node *node, btree_internal_blob *blob);
-    static uint16_t insert_blob(btree_internal_node *node, off64_t lnode, btree_key *key);
+    static uint16_t insert_blob(btree_internal_node *node, block_id_t lnode, btree_key *key);
     static int get_offset_index(btree_internal_node *node, btree_key *key);
     static void delete_offset(btree_internal_node *node, int index);
     static void insert_offset(btree_internal_node *node, uint16_t offset, int index);

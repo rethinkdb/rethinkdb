@@ -2,17 +2,18 @@
 #define __BTREE_LEAF_NODE_HPP__
 
 #include "utils.hpp"
-#include "btree/btree_node.hpp"
+#include "btree/node.hpp"
 
 #define byte char
-#define MAX_KEY_SIZE 250
 
+//Note: This struct is stored directly on disk.  Changing it invalidates old data.
 struct btree_leaf_blob {
     int value;
     btree_key key;
 };
 
 
+//Note: This struct is stored directly on disk.  Changing it invalidates old data.
 struct btree_leaf_node {
     bool leaf;
     uint16_t nblobs;
@@ -32,10 +33,10 @@ class btree_leaf : public btree {
 
     static int insert(btree_leaf_node *node, btree_key *key, int value);
     static bool lookup(btree_leaf_node *node, btree_key *key, int *value);
-    static void split(btree_leaf_node *node, btree_leaf_node *rnode, btree_key **median);
+    static void split(btree_leaf_node *node, btree_leaf_node *rnode, btree_key *median);
     static bool remove(btree_leaf_node *node, btree_key *key);
 
-    static bool is_full(btree_leaf_node *node);
+    static bool is_full(btree_leaf_node *node, btree_key *key);
 
     protected:
     static size_t blob_size(btree_leaf_blob *blob);
