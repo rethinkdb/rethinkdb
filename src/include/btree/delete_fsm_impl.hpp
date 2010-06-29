@@ -148,7 +148,7 @@ typename btree_delete_fsm<config_t>::transition_result_t btree_delete_fsm<config
     //event is NULL, so we need to start to sibling finding process
 
     assert(last_buf);
-    node_t *last_node = (node_t *)last_buf->node();
+    node_t *last_node = (node_t *)last_buf->ptr();
 
     int sib_key;
     ((internal_node_t*)last_node)->sibling(key, &sib_key);
@@ -213,7 +213,7 @@ typename btree_delete_fsm<config_t>::transition_result_t btree_delete_fsm<config
             }
         }
 
-        node_t* node = (node_t*)buf->node();
+        node_t* node = (node_t*)buf->ptr();
 
         //Deal with underfull nodes if we find them
         if (node->is_underfull()) {
@@ -223,18 +223,18 @@ typename btree_delete_fsm<config_t>::transition_result_t btree_delete_fsm<config
                 event = NULL;
             } else {
                 // we have our sibling so we're ready to go
-                node_t *sib_node = sib_buf->node();
+                node_t *sib_node = (node_t*)sib_buf->ptr();
                 if(sib_node->is_underfull()) {
                     if (node->is_leaf())
-                        ((leaf_node_t*)node)->merge((internal_node_t*) last_buf->node(), (leaf_node_t*) sib_node);
+                        ((leaf_node_t*)node)->merge((internal_node_t*) last_buf->ptr(), (leaf_node_t*) sib_node);
                     else
-                        ((internal_node_t*)node)->merge((internal_node_t*) last_buf->node(), (internal_node_t*) sib_node);
+                        ((internal_node_t*)node)->merge((internal_node_t*) last_buf->ptr(), (internal_node_t*) sib_node);
 
                 } else {
                     if (node->is_leaf())
-                        ((leaf_node_t*)node)->level((internal_node_t*) last_buf->node(), (leaf_node_t*) sib_node);
+                        ((leaf_node_t*)node)->level((internal_node_t*) last_buf->ptr(), (leaf_node_t*) sib_node);
                     else
-                        ((internal_node_t*)node)->level((internal_node_t*) last_buf->node(), (internal_node_t*) sib_node); 
+                        ((internal_node_t*)node)->level((internal_node_t*) last_buf->ptr(), (internal_node_t*) sib_node); 
                 }
             }
         }
@@ -243,7 +243,7 @@ typename btree_delete_fsm<config_t>::transition_result_t btree_delete_fsm<config
         if (node->is_leaf()) {
             ((leaf_node_t*)node)->remove(key);
             buf->set_dirty();
-            buf->release(this);
+            buf->release();
             state = delete_complete;
             res = btree_fsm_t::transition_ok;
             break;
