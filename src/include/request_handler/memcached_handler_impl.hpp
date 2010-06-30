@@ -116,7 +116,7 @@ typename memcached_handler_t<config_t>::parse_result_t memcached_handler_t<confi
         return malformed_request(fsm);
 
     cmd = command;
-    btree::str_to_key(key_tmp, key);
+    node_handler::str_to_key(key_tmp, key);
 
     char *invalid_char;
     flags = strtoul(flags_str, &invalid_char, 10);  //a 32 bit integer.  int alone does not guarantee 32 bit length
@@ -287,7 +287,7 @@ typename memcached_handler_t<config_t>::parse_result_t memcached_handler_t<confi
             // somehow.
         }
 
-        btree::str_to_key(key_str, key);
+        node_handler::str_to_key(key_str, key);
 
         // Ok, we've got a key, initialize the FSM and add it to
         // the request

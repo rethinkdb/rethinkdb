@@ -24,7 +24,7 @@ typedef btree_leaf_node leaf_node_t;
 
 class leaf_key_comp;
 
-class btree_leaf : public btree {
+class leaf_node_handler : public node_handler {
     friend class leaf_key_comp;
     public:
     static void init(btree_leaf_node *node);
@@ -57,8 +57,8 @@ class leaf_key_comp {
     leaf_key_comp(btree_leaf_node *_node) : node(_node), key(NULL)  { };
     leaf_key_comp(btree_leaf_node *_node, btree_key *_key) : node(_node), key(_key)  { };
     bool operator()(const uint16_t offset1, const uint16_t offset2) {
-        btree_key *key1 = offset1 == 0 ? key : &btree_leaf::get_pair(node, offset1)->key;
-        btree_key *key2 = offset2 == 0 ? key : &btree_leaf::get_pair(node, offset2)->key;
+        btree_key *key1 = offset1 == 0 ? key : &leaf_node_handler::get_pair(node, offset1)->key;
+        btree_key *key2 = offset2 == 0 ? key : &leaf_node_handler::get_pair(node, offset2)->key;
         int cmp = sized_strcmp(key1->contents, key1->size, key2->contents, key2->size);
 
         return cmp < 0;

@@ -24,7 +24,7 @@ typedef btree_internal_node internal_node_t;
 
 class internal_key_comp;
 
-class btree_internal : public btree {
+class internal_node_handler : public node_handler {
     friend class internal_key_comp;
     public:
     static void init(btree_internal_node *node);
@@ -57,8 +57,8 @@ class internal_key_comp {
     internal_key_comp(btree_internal_node *_node) : node(_node), key(NULL)  { };
     internal_key_comp(btree_internal_node *_node, btree_key *_key) : node(_node), key(_key)  { };
     bool operator()(const uint16_t offset1, const uint16_t offset2) {
-        btree_key *key1 = offset1 == 0 ? key : &btree_internal::get_pair(node, offset1)->key;
-        btree_key *key2 = offset2 == 0 ? key : &btree_internal::get_pair(node, offset2)->key;
+        btree_key *key1 = offset1 == 0 ? key : &internal_node_handler::get_pair(node, offset1)->key;
+        btree_key *key2 = offset2 == 0 ? key : &internal_node_handler::get_pair(node, offset2)->key;
         int cmp;
         if (key1->size == 0 && key2->size == 0) //check for the special end pair
             cmp = 0;

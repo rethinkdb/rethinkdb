@@ -101,8 +101,8 @@ typename btree_get_fsm<config_t>::transition_result_t btree_get_fsm<config_t>::d
     last_buf = NULL;
     
     node_t *node = buf->node();
-    if(btree::is_internal(node)) {
-        block_id_t next_node_id = btree_internal::lookup((internal_node_t*)node, key);
+    if(node_handler::is_internal(node)) {
+        block_id_t next_node_id = internal_node_handler::lookup((internal_node_t*)node, key);
         /* XXX XXX Cannot release until the next acquire succeeds for locks! */
         last_buf = buf;
         node_id = next_node_id;
@@ -113,7 +113,7 @@ typename btree_get_fsm<config_t>::transition_result_t btree_get_fsm<config_t>::d
             return btree_fsm_t::transition_incomplete;
         }
     } else {
-        int result = btree_leaf::lookup((leaf_node_t*)node, key, &value);
+        int result = leaf_node_handler::lookup((leaf_node_t*)node, key, &value);
         buf->release(this);
         state = lookup_complete;
         op_result = result == 1 ? btree_found : btree_not_found;

@@ -17,7 +17,7 @@ struct btree_node {
     bool leaf;
 };
 
-class btree {
+class node_handler {
     public:
         static bool is_leaf(btree_node *node) {
             return node->leaf;

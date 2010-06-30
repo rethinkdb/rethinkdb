@@ -4,14 +4,14 @@
 #include "btree/leaf_node.hpp"
 #include <algorithm>
 
-void btree_leaf::init(btree_leaf_node *node) {
+void leaf_node_handler::init(btree_leaf_node *node) {
     printf("leaf node %p: init\n", node);
     node->leaf = true;
     node->npairs = 0;
     node->frontmost_offset = BTREE_BLOCK_SIZE;
 }
 
-void btree_leaf::init(btree_leaf_node *node, btree_leaf_node *lnode, uint16_t *offsets, int numpairs) {
+void leaf_node_handler::init(btree_leaf_node *node, btree_leaf_node *lnode, uint16_t *offsets, int numpairs) {
     printf("leaf node %p: init from node %p\n", node, lnode);
     init(node);
     for (int i = 0; i < numpairs; i++) {
@@ -21,7 +21,7 @@ void btree_leaf::init(btree_leaf_node *node, btree_leaf_node *lnode, uint16_t *o
     std::sort(node->pair_offsets, node->pair_offsets+node->npairs, leaf_key_comp(node));
 }
 
-int btree_leaf::insert(btree_leaf_node *node, btree_key *key, int value) {
+int leaf_node_handler::insert(btree_leaf_node *node, btree_key *key, int value) {
     printf("leaf node %p: insert\tkey:%*.*s\tvalue:%d\n", node, key->size, key->size, key->contents, value);
     if (is_full(node, key)) return 0;
     int index = get_offset_index(node, key);
@@ -36,7 +36,7 @@ int btree_leaf::insert(btree_leaf_node *node, btree_key *key, int value) {
     return 1;
 }
 
-bool btree_leaf::lookup(btree_leaf_node *node, btree_key *key, int *value) {
+bool leaf_node_handler::lookup(btree_leaf_node *node, btree_key *key, int *value) {
     printf("leaf node %p: lookup\tkey:%*.*s\n", node, key->size, key->size, key->contents);
     int index = get_offset_index(node, key);
     block_id_t offset = node->pair_offsets[index];
@@ -49,7 +49,7 @@ bool btree_leaf::lookup(btree_leaf_node *node, btree_key *key, int *value) {
     }
 }
 
-void btree_leaf::split(btree_leaf_node *node, btree_leaf_node *rnode, btree_key *median) {
+void leaf_node_handler::split(btree_leaf_node *node, btree_leaf_node *rnode, btree_key *median) {
     printf("leaf node %p: split\n", node);
     uint16_t total_pairs = BTREE_BLOCK_SIZE - node->frontmost_offset;
     uint16_t first_pairs = 0;
@@ -76,7 +76,7 @@ void btree_leaf::split(btree_leaf_node *node, btree_leaf_node *rnode, btree_key 
 
 }
 
-bool btree_leaf::remove(btree_leaf_node *node, btree_key *key) {
+bool leaf_node_handler::remove(btree_leaf_node *node, btree_key *key) {
     int index = find_key(node, key);
 
     if (index != -1) {
@@ -88,7 +88,7 @@ bool btree_leaf::remove(btree_leaf_node *node, btree_key *key) {
     }
 }
 
-bool btree_leaf::is_full(btree_leaf_node *node, btree_key *key) {
+bool leaf_node_handler::is_full(btree_leaf_node *node, btree_key *key) {
 #ifdef DEBUG_MAX_LEAF
     if (node->npairs >= DEBUG_MAX_LEAF)
         return true;
@@ -96,15 +96,15 @@ bool btree_leaf::is_full(btree_leaf_node *node, btree_key *key) {
     return sizeof(btree_leaf_node) + node->npairs*sizeof(*node->pair_offsets) + sizeof(btree_leaf_pair) + key->size + 1 >= node->frontmost_offset;
 }
 
-size_t btree_leaf::pair_size(btree_leaf_pair *pair) {
+size_t leaf_node_handler::pair_size(btree_leaf_pair *pair) {
     return sizeof(btree_leaf_pair) + pair->key.size;
 }
 
-btree_leaf_pair *btree_leaf::get_pair(btree_leaf_node *node, uint16_t offset) {
+btree_leaf_pair *leaf_node_handler::get_pair(btree_leaf_node *node, uint16_t offset) {
     return (btree_leaf_pair *)( ((byte *)node) + offset);
 }
 
-void btree_leaf::delete_pair(btree_leaf_node *node, uint16_t offset) {
+void leaf_node_handler::delete_pair(btree_leaf_node *node, uint16_t offset) {
     btree_leaf_pair *pair_to_delete = get_pair(node, offset);
     btree_leaf_pair *front_pair = get_pair(node, node->frontmost_offset);
     size_t shift = pair_size(pair_to_delete);
@@ -117,7 +117,7 @@ void btree_leaf::delete_pair(btree_leaf_node *node, uint16_t offset) {
     }
 }
 
-uint16_t btree_leaf::insert_pair(btree_leaf_node *node, btree_leaf_pair *pair) {
+uint16_t leaf_node_handler::insert_pair(btree_leaf_node *node, btree_leaf_pair *pair) {
     node->frontmost_offset -= pair_size(pair);
     btree_leaf_pair *new_pair = get_pair(node, node->frontmost_offset);
 
@@ -127,7 +127,7 @@ uint16_t btree_leaf::insert_pair(btree_leaf_node *node, btree_leaf_pair *pair) {
     return node->frontmost_offset;
 }
 
-uint16_t btree_leaf::insert_pair(btree_leaf_node *node, int value, btree_key *key) {
+uint16_t leaf_node_handler::insert_pair(btree_leaf_node *node, int value, btree_key *key) {
     node->frontmost_offset -= sizeof(btree_leaf_pair) + key->size;;
     btree_leaf_pair *new_pair = get_pair(node, node->frontmost_offset);
 
@@ -138,11 +138,11 @@ uint16_t btree_leaf::insert_pair(btree_leaf_node *node, int value, btree_key *ke
     return node->frontmost_offset;
 }
 
-int btree_leaf::get_offset_index(btree_leaf_node *node, btree_key *key) {
+int leaf_node_handler::get_offset_index(btree_leaf_node *node, btree_key *key) {
     return std::lower_bound(node->pair_offsets, node->pair_offsets+node->npairs, NULL, leaf_key_comp(node, key)) - node->pair_offsets;
 }
 
-int btree_leaf::find_key(btree_leaf_node *node, btree_key *key) {
+int leaf_node_handler::find_key(btree_leaf_node *node, btree_key *key) {
     int index = get_offset_index(node, key);
     if (index < node->npairs && is_equal(key, &get_pair(node, node->pair_offsets[index])->key) ) {
         return index;
@@ -151,14 +151,14 @@ int btree_leaf::find_key(btree_leaf_node *node, btree_key *key) {
     }
 
 }
-void btree_leaf::delete_offset(btree_leaf_node *node, int index) {
+void leaf_node_handler::delete_offset(btree_leaf_node *node, int index) {
     uint16_t *pair_offsets = node->pair_offsets;
     if (node->npairs > 1)
         memmove(pair_offsets+index, pair_offsets+index+1, (node->npairs-index-1) * sizeof(uint16_t));
     node->npairs--;
 }
 
-void btree_leaf::insert_offset(btree_leaf_node *node, uint16_t offset, int index) {
+void leaf_node_handler::insert_offset(btree_leaf_node *node, uint16_t offset, int index) {
     uint16_t *pair_offsets = node->pair_offsets;
     memmove(pair_offsets+index+1, pair_offsets+index, (node->npairs-index) * sizeof(uint16_t));
     pair_offsets[index] = offset;
@@ -166,7 +166,7 @@ void btree_leaf::insert_offset(btree_leaf_node *node, uint16_t offset, int index
 }
 
 
-bool btree_leaf::is_equal(btree_key *key1, btree_key *key2) {
+bool leaf_node_handler::is_equal(btree_key *key1, btree_key *key2) {
     return sized_strcmp(key1->contents, key1->size, key2->contents, key2->size) == 0;
 }
 
