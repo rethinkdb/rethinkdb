@@ -8,8 +8,8 @@
 template <class config_t>
 buf<config_t>::buf(cache_t *cache, block_id_t block_id)
     : config_t::writeback_t::local_buf_t(cache),
-      config_t::page_repl_t::buf_t(cache),
-      config_t::concurrency_t::buf_t(this),
+      config_t::page_repl_t::local_buf_t(cache),
+      config_t::concurrency_t::local_buf_t(this),
     cache(cache),
     block_id(block_id),
     cached(false) {
@@ -187,11 +187,10 @@ transaction<config_t>::acquire(block_id_t block_id, access_t mode,
 template <class config_t>
 mirrored_cache_t<config_t>::~mirrored_cache_t() {
 	
-    for (typename page_map_t::ft_map_t::iterator it = ft_map.begin();
-         it != ft_map.end(); ++it) {
-        buf_t *buf = (*it).second;
-        do_unload_buf(buf);
-    }
+	while (!ft_map.empty()) {
+		buf_t *buf = ft_map.begin()->second;
+		do_unload_buf(buf);
+	}
     assert(n_blocks_released == n_blocks_acquired);
     assert(n_trans_created == n_trans_freed);
     assert(ft_map.empty());

@@ -20,8 +20,8 @@
 template <class config_t>
 class buf : public iocallback_t,
             public config_t::writeback_t::local_buf_t,
-            public config_t::page_repl_t::buf_t,
-            public config_t::concurrency_t::buf_t {
+            public config_t::page_repl_t::local_buf_t,
+            public config_t::concurrency_t::local_buf_t {
 public:
     typedef typename config_t::serializer_t serializer_t;
     typedef typename serializer_t::block_id_t block_id_t;
@@ -39,7 +39,13 @@ public:
     // TODO(NNW) We may want a const version of ptr() as well so the non-const
     // version can verify that the buf is writable; requires pushing const
     // through a bunch of other places (such as array_node also, however.
-    void *ptr() { return data; }
+    void *ptr() {
+    	// The buf should not be accessed unless it is pinned. In fact, pointers to the buf should
+    	// not exist, except in the page map, unless the block is pinned; any unpinned and non-dirty
+    	// block can be unloaded by the page replacement system.
+    	assert(config_t::page_repl_t::local_buf_t::is_pinned());
+    	return data;
+    }
 
     block_id_t get_block_id() const { return block_id; }
 
@@ -64,9 +70,9 @@ private:
     
     // Incidentally, buf_t holds redundant pointers to the cache object, because in addition to
     // the "cache_t *cache" declared in buf, writeback_t::local_buf_t declares its own
-    // "writeback_tmpl_t *writeback" and page_repl_t::buf_t declares "page_repl_none_t *page_repl".
-    // Each of these pointers will point to a different part of the same cache object, because
-    // mirrored_cache_t is sublcassed from page_repl_t and writeback_t.
+    // "writeback_tmpl_t *writeback" and page_repl_t::local_buf_t declares
+    // "page_repl_none_t *page_repl". Each of these pointers will point to a different part of the
+    // same cache object, because mirrored_cache_t is subclassed from page_repl_t and writeback_t.
 };
 
 /* Transaction class. */
@@ -141,7 +147,7 @@ public:
     mirrored_cache_t(size_t _block_size, size_t _max_size, bool wait_for_flush,
             unsigned int flush_interval_ms) : 
         serializer_t(_block_size),
-        page_repl_t(_block_size, _max_size, this, this),
+        page_repl_t(_block_size, _max_size, this, this, this),
         writeback_t(this, wait_for_flush, flush_interval_ms)
 #ifndef NDEBUG
         , n_trans_created(0), n_trans_freed(0),
@@ -150,8 +156,14 @@ public:
         {}
     ~mirrored_cache_t();
 
-    void start() { writeback_t::start(); }
-    void shutdown(sync_callback<config_t> *cb) { writeback_t::shutdown(cb); }
+    void start() {
+    	writeback_t::start();
+    	page_repl_t::start();
+    }
+    void shutdown(sync_callback<config_t> *cb) {
+    	writeback_t::shutdown(cb);
+    	page_repl_t::shutdown(cb);
+    }
 
     // Transaction API
     transaction_t *begin_transaction(access_t access,
@@ -159,15 +171,15 @@ public:
 
     void aio_complete(buf_t *buf, bool written);
 
+	/* do_unload_buf unloads a buf from memory, freeing the buf_t object. It should only be called
+    on a buf that is not in use and not dirty. It is called by the cache's destructor and by the
+    page replacement policy. */
+    void do_unload_buf(buf_t *buf);
+
 private:
 	// TODO: This is boundary-crossing abstraction-breaking treachery. mirrored_cache_t should not
 	// mess with the internals of the page map.
     using page_map_t::ft_map;
-    
-    /* do_unload_buf unloads a buf from memory, freeing the buf_t object. It should only be called
-    on a buf that is not in use and not dirty. It is called by the cache's destructor and by the
-    page replacement policy. */
-    void do_unload_buf(buf_t *buf);
 
 #ifndef NDEBUG
 public:

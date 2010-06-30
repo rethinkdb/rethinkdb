@@ -20,10 +20,10 @@ struct rwi_conc_t {
     typedef rwi_lock<config_t> rwi_lock_t;
     typedef lock_available_callback<config_t> lock_available_callback_t;
     typedef block_available_callback<config_t> block_available_callback_t;
-    typedef typename config_t::buf_t global_buf_t;
+    typedef typename config_t::buf_t buf_t;
     
-    struct buf_t : public lock_available_callback_t {
-        explicit buf_t(global_buf_t *_gbuf)
+    struct local_buf_t : public lock_available_callback_t {
+        explicit local_buf_t(buf_t *_gbuf)
             : lock(&get_cpu_context()->event_queue->message_hub,
                    get_cpu_context()->event_queue->queue_id),
               gbuf(_gbuf)
@@ -47,7 +47,7 @@ struct rwi_conc_t {
 
     private:
         std::queue<block_available_callback_t*> lock_callbacks;
-        global_buf_t *gbuf;
+        buf_t *gbuf;
     };
 
     /* Returns true if acquired successfully */
