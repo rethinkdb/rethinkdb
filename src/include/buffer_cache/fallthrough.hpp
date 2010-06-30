@@ -13,7 +13,6 @@ template <class config_t>
 struct fallthrough_cache_t : public config_t::serializer_t {
 public:
     typedef typename config_t::serializer_t serializer_t;
-    typedef typename serializer_t::block_id_t block_id_t;
     typedef void transaction_t;
 
 public:
@@ -37,7 +36,7 @@ public:
         typename ft_map_t::iterator block = ft_map.find(block_id);
         if(block == ft_map.end()) {
             void *buf = malloc_aligned(serializer_t::block_size, serializer_t::block_size);
-            do_read(block_id, buf, state);
+            serializer_t::do_read(block_id, buf, state);
             return NULL;
         } else {
             return (*block).second;
@@ -46,7 +45,7 @@ public:
 
     block_id_t release(transaction_t *tm, block_id_t block_id, void *block, bool dirty, void *state) {
         if(dirty) {
-            return do_write(block_id, (char*)block, state);
+            return serializer_t::do_write(block_id, (char*)block, state);
         } else {
             ft_map.erase(ft_map.find(block_id));
             free(block);

@@ -14,11 +14,12 @@
 #include "alloc/dynamic_pool.hpp"
 #include "alloc/stats.hpp"
 #include "alloc/alloc_mixin.hpp"
+#include "btree/node.hpp"
 
 // TODO: perhaps we can issue cache prefetching commands to the CPU to
 // speed up the process of sending messages across cores.
 
-int key_to_cpu(int key, unsigned int ncpus);
+int key_to_cpu(btree_key *key, unsigned int ncpus);
 
 struct cpu_message_t : public intrusive_list_node_t<cpu_message_t>
 {

@@ -13,7 +13,6 @@
 template <class parent_cache_t>
 struct cache_stats_t : public parent_cache_t {
 public:
-    typedef typename parent_cache_t::block_id_t block_id_t;
     typedef typename parent_cache_t::transaction_t transaction_t;
 
 public:

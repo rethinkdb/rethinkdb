@@ -25,8 +25,8 @@
 // relevant.
 
 template <class config_t>
-void btree_set_fsm<config_t>::init_update(int _key, int _value) {
-    key = _key;
+void btree_set_fsm<config_t>::init_update(btree_key *_key, int _value) {
+    memcpy(key, _key, sizeof(btree_key) + _key->size);
     value = _value;
     state = start_transaction;
 }
@@ -119,7 +119,7 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
     // allocated here, and we just need to set its id in the metadata)
     if(cache_t::is_block_id_null(node_id)) {
         buf = transaction->allocate(&node_id);
-        new (buf->ptr()) leaf_node_t();
+        leaf_node_handler::init((leaf_node_t *)buf->ptr());
     }
     if(set_root_id(node_id, event)) {
         state = acquire_node;
@@ -220,30 +220,39 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
 
         // Proactively split the node
         node_t *node = (node_t *)buf->ptr();
-        if(node->is_full()) {
-            int median;
+        bool full;
+        if (node_handler::is_leaf(node)) {
+            full = leaf_node_handler::is_full((leaf_node_t *)node, key);
+        } else {
+            full = internal_node_handler::is_full((internal_node_t *)node);
+        }
+        if(full) {
+            char memory[sizeof(btree_key) + MAX_KEY_SIZE];
+            btree_key *median = (btree_key *)memory;
             buf_t *rbuf;
             internal_node_t *last_node;
             block_id_t rnode_id;
             bool new_root = false;
-            split_node(node, &rbuf, &rnode_id, &median);
+            split_node(node, &rbuf, &rnode_id, median);
             // Create a new root if we're splitting a root
             if(last_buf == NULL) {
                 new_root = true;
                 last_buf = transaction->allocate(&last_node_id);
-                last_node = new (last_buf->ptr()) internal_node_t();
+                last_node = (internal_node_t *)last_buf->ptr();
+                internal_node_handler::init(last_node);
             } else {
                 last_node = (internal_node_t *)last_buf->ptr();
             }
-            last_node->insert(median, node_id, rnode_id);
+            bool success = internal_node_handler::insert(last_node, median, node_id, rnode_id);
+            check("could not insert internal btree node", !success);
             last_buf->set_dirty();
                 
             // Figure out where the key goes
-            if(key < median) {
+            if(sized_strcmp(key->contents, key->size, median->contents, median->size) <= 0) {
                 // Left node and node are the same thing
                 rbuf->set_dirty();
                 rbuf->release();
-            } else if(key >= median) {
+            } else {
                 buf->set_dirty();
                 buf->release();
                 buf = rbuf;
@@ -267,8 +276,9 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
         }
         
         // Insert the value, or move up the tree
-        if(node->is_leaf()) {
-            ((leaf_node_t*)node)->insert(key, value);
+        if(node_handler::is_leaf(node)) {
+            bool success = leaf_node_handler::insert(((leaf_node_t*)node), key, value);
+            check("could not insert leaf btree node", !success);
             buf->set_dirty();
             buf->release();
             state = update_complete;
@@ -283,7 +293,7 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
             last_node_id = node_id;
                 
             // Look up the next node
-            node_id = ((internal_node_t*)node)->lookup(key);
+            node_id = internal_node_handler::lookup((internal_node_t*)node, key);
             buf = NULL;
         }
     }
@@ -329,14 +339,14 @@ int btree_set_fsm<config_t>::set_root_id(block_id_t root_id, event_t *event) {
 
 template <class config_t>
 void btree_set_fsm<config_t>::split_node(node_t *node, buf_t **rbuf,
-                                         block_id_t *rnode_id, int *median) {
+                                         block_id_t *rnode_id, btree_key *median) {
     buf_t *res = transaction->allocate(rnode_id);
-    if(node->is_leaf()) {
-        leaf_node_t *rnode = new (res->ptr()) leaf_node_t();
-        ((leaf_node_t*)node)->split(rnode, median);
+    if(node_handler::is_leaf(node)) {
+        leaf_node_t *rnode = (leaf_node_t *)res->ptr();
+        leaf_node_handler::split((leaf_node_t*)node, (leaf_node_t*)rnode, median);
     } else {
-        internal_node_t *rnode = new (res->ptr()) internal_node_t();
-        ((internal_node_t*)node)->split(rnode, median);
+        internal_node_t *rnode = (internal_node_t *)res->ptr();
+        internal_node_handler::split((internal_node_t*)node, (internal_node_t*)rnode, median);
     }
     *rbuf = res;
 }

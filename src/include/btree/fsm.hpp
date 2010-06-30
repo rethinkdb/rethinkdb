@@ -15,7 +15,6 @@ class btree_fsm : public cpu_message_t,
 public:
     typedef typename config_t::cache_t cache_t;
     typedef typename config_t::request_t request_t;
-    typedef typename cache_t::block_id_t block_id_t;
     typedef typename config_t::btree_fsm_t btree_fsm_t;
     typedef typename cache_t::transaction_t transaction_t;
     typedef typename cache_t::buf_t buf_t;

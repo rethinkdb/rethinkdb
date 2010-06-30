@@ -24,7 +24,6 @@ class buf : public iocallback_t,
             public config_t::concurrency_t::buf_t {
 public:
     typedef typename config_t::serializer_t serializer_t;
-    typedef typename serializer_t::block_id_t block_id_t;
     typedef typename config_t::transaction_t transaction_t;
     typedef typename config_t::concurrency_t concurrency_t;
     typedef typename config_t::cache_t cache_t;
@@ -61,6 +60,12 @@ private:
     bool cached; /* Is data valid, or are we waiting for a read? */
     void *data;
     std::queue<block_available_callback_t*> load_callbacks;
+    
+    // Incidentally, buf_t holds redundant pointers to the cache object, because in addition to
+    // the "cache_t *cache" declared in buf, writeback_t::local_buf_t declares its own
+    // "writeback_tmpl_t *writeback" and page_repl_t::buf_t declares "page_repl_none_t *page_repl".
+    // Each of these pointers will point to a different part of the same cache object, because
+    // mirrored_cache_t is sublcassed from page_repl_t and writeback_t.
 };
 
 /* Transaction class. */
@@ -69,7 +74,6 @@ class transaction : public lock_available_callback<config_t> {
 public:
     typedef typename config_t::serializer_t serializer_t;
     typedef typename config_t::concurrency_t concurrency_t;
-    typedef typename serializer_t::block_id_t block_id_t;
     typedef typename config_t::cache_t cache_t;
     typedef typename config_t::buf_t buf_t;
     typedef block_available_callback<config_t> block_available_callback_t;
@@ -115,7 +119,6 @@ struct mirrored_cache_t : public config_t::serializer_t,
 {
 public:
     typedef typename config_t::serializer_t serializer_t;
-    typedef typename serializer_t::block_id_t block_id_t;
     typedef typename config_t::page_repl_t page_repl_t;
     typedef typename config_t::writeback_t writeback_t;
     typedef typename config_t::transaction_t transaction_t;

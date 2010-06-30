@@ -22,14 +22,8 @@ long get_total_ram();
 
 void *malloc_aligned(size_t size, size_t alignment = 64);
 
-// Tokenizing strings
-const char* tokenize(const char *str, unsigned int size,
-                     const char *delims, unsigned int *token_size);
-char* tokenize(char *str, unsigned int size,
-               const char *delims, unsigned int *token_size);
-bool token_eq(const char *str, char *token, int token_size);
-bool contains_tokens(char *start, char *end, const char *delims);
-
+//fast string compare
+int sized_strcmp(const char *str1, int len1, const char *str2, int len2);
 
 // Buffer
 template <int _size>

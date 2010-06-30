@@ -23,7 +23,6 @@
 template<class config_t>
 struct in_place_serializer_t {
 public:
-    typedef off64_t block_id_t;
     typedef typename config_t::btree_admin_t btree_admin_t;
 
 public:
@@ -76,6 +75,9 @@ public:
      * id). If the block is new, NULL can be passed in place of
      * block_id, in which case the return value will be the id of the
      * newly written block. */
+     
+    // The IO request must be asynchronous, and not just for performance reasons -- if the callback
+    // is called before do_write() returns, then writeback_t::writeback() will be confused.
     void do_write(event_queue_t *queue, block_id_t block_id, void *buf,
                         iocallback_t *callback) {
         io_calls_t::aio_write_t aio_writes[1];
@@ -114,7 +116,7 @@ public:
 public:
     /* Returns true iff block_id is NULL. */
     static bool is_block_id_null(block_id_t block_id) {
-        return block_id == -1;
+        return block_id == null_block_id;
     }
 
     /* Generates a unique block id. */

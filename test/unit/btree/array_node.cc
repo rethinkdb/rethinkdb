@@ -215,7 +215,7 @@ void test_internal_basic() {
     test_internal_node_t node;
 
     for(int i = 0; i < NODE_ORDER; i++) {
-        assert_cond(node.insert(i * 2, (block_id_t)(i * 2), (block_id_t)(i * 2 + 1)));
+        assert_cond(node.insert(key(i * 2), (block_id_t)(i * 2), (block_id_t)(i * 2 + 1)));
     }
     assert_cond(!node.insert(0, 0, 0));
     for(int i = -1; i < NODE_ORDER * 2; i++) {

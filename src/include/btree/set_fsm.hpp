@@ -9,10 +9,7 @@ class btree_set_fsm : public btree_fsm<config_t>,
 public:
     typedef typename config_t::btree_fsm_t btree_fsm_t;
     typedef typename config_t::node_t node_t;
-    typedef typename node_t::leaf_node_t leaf_node_t;
-    typedef typename node_t::internal_node_t internal_node_t;
     typedef typename config_t::cache_t cache_t;
-    typedef typename cache_t::block_id_t block_id_t;
     typedef typename btree_fsm_t::transition_result_t transition_result_t;
     typedef typename cache_t::buf_t buf_t;
 
@@ -32,11 +29,11 @@ public:
 public:
     explicit btree_set_fsm(cache_t *cache)
         : btree_fsm_t(cache, btree_fsm_t::btree_set_fsm),
-          state(uninitialized), sb_buf(NULL), buf(NULL), last_buf(NULL),
+          state(uninitialized), key((btree_key*)key_memory), sb_buf(NULL), buf(NULL), last_buf(NULL),
           node_id(cache_t::null_block_id), last_node_id(cache_t::null_block_id)
         {}
 
-    void init_update(int _key, int _value);
+    void init_update(btree_key *_key, int _value);
     virtual transition_result_t do_transition(event_t *event);
 
     virtual bool is_finished() {
@@ -56,12 +53,13 @@ private:
 
 private:
     int set_root_id(block_id_t root_id, event_t *event);
-    void split_node(node_t *node, buf_t **rnode, block_id_t *rnode_id, int *median);
+    void split_node(node_t *node, buf_t **rnode, block_id_t *rnode_id, btree_key *median);
     
 private:
+    char key_memory[MAX_KEY_SIZE+sizeof(btree_key)];
     // Some relevant state information
     state_t state;
-    int key;
+    btree_key * const key;
     int value;
 
     buf_t *sb_buf, *buf, *last_buf;
