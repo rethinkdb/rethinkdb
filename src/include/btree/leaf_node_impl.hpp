@@ -5,14 +5,12 @@
 #include <algorithm>
 
 void leaf_node_handler::init(btree_leaf_node *node) {
-    printf("leaf node %p: init\n", node);
     node->leaf = true;
     node->npairs = 0;
     node->frontmost_offset = BTREE_BLOCK_SIZE;
 }
 
 void leaf_node_handler::init(btree_leaf_node *node, btree_leaf_node *lnode, uint16_t *offsets, int numpairs) {
-    printf("leaf node %p: init from node %p\n", node, lnode);
     init(node);
     for (int i = 0; i < numpairs; i++) {
         node->pair_offsets[node->npairs+i] = insert_pair(node, get_pair(lnode, offsets[i]));
@@ -22,7 +20,6 @@ void leaf_node_handler::init(btree_leaf_node *node, btree_leaf_node *lnode, uint
 }
 
 int leaf_node_handler::insert(btree_leaf_node *node, btree_key *key, int value) {
-    printf("leaf node %p: insert\tkey:%*.*s\tvalue:%d\n", node, key->size, key->size, key->contents, value);
     if (is_full(node, key)) return 0;
     int index = get_offset_index(node, key);
     btree_leaf_pair *previous = get_pair(node, node->pair_offsets[index]);
@@ -37,7 +34,6 @@ int leaf_node_handler::insert(btree_leaf_node *node, btree_key *key, int value) 
 }
 
 bool leaf_node_handler::lookup(btree_leaf_node *node, btree_key *key, int *value) {
-    printf("leaf node %p: lookup\tkey:%*.*s\n", node, key->size, key->size, key->contents);
     int index = get_offset_index(node, key);
     block_id_t offset = node->pair_offsets[index];
     btree_leaf_pair *pair = get_pair(node, offset);
@@ -50,7 +46,6 @@ bool leaf_node_handler::lookup(btree_leaf_node *node, btree_key *key, int *value
 }
 
 void leaf_node_handler::split(btree_leaf_node *node, btree_leaf_node *rnode, btree_key *median) {
-    printf("leaf node %p: split\n", node);
     uint16_t total_pairs = BTREE_BLOCK_SIZE - node->frontmost_offset;
     uint16_t first_pairs = 0;
     int index = 0;

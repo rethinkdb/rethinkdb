@@ -9,14 +9,12 @@
 //In this tree, less than or equal takes the left-hand branch and greater than takes the right hand branch
 
 void internal_node_handler::init(btree_internal_node *node) {
-    printf("internal node %p: init\n", node);
     node->leaf = false;
     node->npairs = 0;
     node->frontmost_offset = BTREE_BLOCK_SIZE;
 }
 
 void internal_node_handler::init(btree_internal_node *node, btree_internal_node *lnode, uint16_t *offsets, int numpairs) {
-    printf("internal node %p: init from node %p\n", node, lnode);
     init(node);
     for (int i = 0; i < numpairs; i++) {
         node->pair_offsets[node->npairs+i] = insert_pair(node, get_pair(lnode, offsets[i]));
@@ -26,7 +24,6 @@ void internal_node_handler::init(btree_internal_node *node, btree_internal_node 
 }
 
 int internal_node_handler::insert(btree_internal_node *node, btree_key *key, block_id_t lnode, block_id_t rnode) {
-    printf("internal node %p: insert\tkey:%*.*s\tlnode:%llu\trnode:%llu\n", node, key->size, key->size, key->contents, (unsigned long long)lnode, (unsigned long long)rnode);
     //TODO: write a unit test for this
     check("key too large", key->size > MAX_KEY_SIZE);
     if (is_full(node)) return 0;
@@ -48,13 +45,11 @@ int internal_node_handler::insert(btree_internal_node *node, btree_key *key, blo
 }
 
 block_id_t internal_node_handler::lookup(btree_internal_node *node, btree_key *key) {
-    printf("internal node %p: lookup\tkey:%*.*s\n", node, key->size, key->size, key->contents);
     int index = get_offset_index(node, key);
     return get_pair(node, node->pair_offsets[index])->lnode;
 }
 
 void internal_node_handler::split(btree_internal_node *node, btree_internal_node *rnode, btree_key *median) {
-    printf("internal node %p: split\n", node);
     uint16_t total_pairs = BTREE_BLOCK_SIZE - node->frontmost_offset;
     uint16_t first_pairs = 0;
     int index = 0;
