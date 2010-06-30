@@ -2,6 +2,16 @@
 #ifndef __PAGE_REPL_RANDOM_HPP__
 #define __PAGE_REPL_RANDOM_HPP__
 
+// TODO: We should use mlock (or mlockall or related) to make sure the
+// OS doesn't swap out our pages, since we're doing swapping
+// ourselves.
+
+// TODO: we might want to decouple selection of pages to free from the
+// actual cleaning process (e.g. we might have random vs. lru
+// selection strategies, and immediate vs. proactive cleaing
+// strategy).
+
+
 template <class config_t>
 struct page_repl_random_t {
 	public:
@@ -23,28 +33,6 @@ public:
           cache(_cache)
         {}
 
-	/* local_buf_t is a mixin class for the global buf_t type; it adds page-replacement-specific
-	behavior. */
-    class local_buf_t {
-    public:
-        explicit local_buf_t(page_repl_random_t *_page_repl) : pinned(0) {}
-
-        void pin() {
-        	assert(pinned >= 0);
-        	pinned++;
-        }
-        void unpin() {
-        	assert(pinned > 0);
-        	pinned--;
-        }
-        unsigned int is_pinned() const {
-        	return pinned > 0;
-        }
-
-    private:
-    	int pinned;
-    };
-	
 	void start() {
 		int interval_ms = 3000; // TODO: This should be configurable?
 		timespec ts;
@@ -68,12 +56,9 @@ private:
     void consider_unloading() {
     	
     	int num_misses = 0, num_unloaded = 0;
+    	int threshold = max_size / block_size * 0.9;
     	
-    	// TODO: Threshold should be chosen by some reasonable method. This value is ridiculously
-    	// low, for testing purposes.
-    	int threshold = 100;
-    	
-    	printf("considering unloading blocks. %d in memory, threshold is %d.\n", page_map->num_blocks(), threshold);
+    	int initial_num_blocks = page_map->num_blocks();
     	
     	while (page_map->num_blocks() > threshold) {
     	    		
@@ -83,7 +68,7 @@ private:
     		buf_t *block_to_unload = NULL;
     		while (tries > 0 && !block_to_unload) {
     			block_to_unload = page_map->get_random_block();
-    			if (block_to_unload->is_pinned() || block_to_unload->is_dirty()) {
+    			if (block_to_unload->is_dirty() || block_to_unload->lock.locked()) {
     				block_to_unload = NULL;
     				num_misses ++;
     			}
@@ -98,7 +83,14 @@ private:
     		}
     	}
     	
-    	printf("unloaded %d block(s). random search missed %d time(s).\n", num_unloaded, num_misses);
+    	assert(num_unloaded == initial_num_blocks - page_map->num_blocks());
+    	printf("CPU: %d Prev: %-10d Lim: %-10d Unload: %-10d Miss:%-5d After: %-10d\n",
+    		get_cpu_context()->event_queue->queue_id,
+    		initial_num_blocks,
+    		threshold,
+    		num_unloaded,
+    		num_misses,
+    		page_map->num_blocks());
     }
 };
 

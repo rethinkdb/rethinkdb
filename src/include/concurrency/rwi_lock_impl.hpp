@@ -54,6 +54,11 @@ void rwi_lock<config_t>::unlock_intent() {
 }
 
 template<class config_t>
+bool rwi_lock<config_t>::locked() {
+	return (state != rwis_unlocked);
+}
+
+template<class config_t>
 bool rwi_lock<config_t>::try_lock(access_t access, bool from_queue) {
     bool res = false;
     switch(access) {

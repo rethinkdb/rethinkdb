@@ -80,9 +80,10 @@ void writeback_tmpl_t<config_t>::aio_complete(buf_t *buf, bool written) {
 
 template <class config_t>
 void writeback_tmpl_t<config_t>::local_buf_t::set_dirty(buf_t *super) {
-    if (!dirty)
-        super->pin();
+	// 'super' is actually 'this', but as a buf_t* instead of a local_buf_t*
     dirty = true;
+    // Maybe we should store a pointer to the block itself, instead of its ID; it shouldn't get
+    // swapped out because it's dirty.
     writeback->dirty_blocks.insert(super->get_block_id());
 }
 

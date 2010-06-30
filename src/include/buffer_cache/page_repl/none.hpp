@@ -26,31 +26,17 @@ public:
     page_repl_none_t(size_t _block_size, size_t _max_size,
                      page_map_t *_page_map,
                      buffer_alloc_t *_alloc, cache_t *_cache)
-        : num_pinned(0), block_size(_block_size),
+        : block_size(_block_size),
           max_size(_max_size),
           page_map(_page_map),
           alloc(_alloc),
           cache(_cache)
         {}
-
-	/* This is a mixin class for the global buf_t type. */
-    class local_buf_t {
-    public:
-        explicit local_buf_t(page_repl_none_t *_page_repl) : page_repl(_page_repl) {}
-
-        void pin() { page_repl->num_pinned++; }
-        void unpin() { page_repl->num_pinned--; }
-        unsigned int is_pinned() const { return page_repl->num_pinned; }
-
-    private:
-        page_repl_none_t *page_repl;
-    };
 	
 	void start() { }
 	void shutdown(sync_callback<config_t> *cb) { }
 	
 private:
-    unsigned int num_pinned;
     size_t block_size, max_size;
     page_map_t *page_map;
     buffer_alloc_t *alloc;

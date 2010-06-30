@@ -20,7 +20,6 @@
 template <class config_t>
 class buf : public iocallback_t,
             public config_t::writeback_t::local_buf_t,
-            public config_t::page_repl_t::local_buf_t,
             public config_t::concurrency_t::local_buf_t {
 public:
     typedef typename config_t::serializer_t serializer_t;
@@ -40,10 +39,10 @@ public:
     // version can verify that the buf is writable; requires pushing const
     // through a bunch of other places (such as array_node also, however.
     void *ptr() {
-    	// The buf should not be accessed unless it is pinned. In fact, pointers to the buf should
-    	// not exist, except in the page map, unless the block is pinned; any unpinned and non-dirty
-    	// block can be unloaded by the page replacement system.
-    	assert(config_t::page_repl_t::local_buf_t::is_pinned());
+    	// The buf should not be accessed unless it is locked. In fact, pointers to the buf should
+    	// not exist, except in the page map, unless the block is locked, because any unlocked and
+    	// non-dirty block is in danger of being swapped out by the page replacement system.
+    	assert(concurrency_t::local_buf_t::lock.locked());
     	return data;
     }
 
@@ -68,11 +67,13 @@ private:
     void *data;
     std::queue<block_available_callback_t*> load_callbacks;
     
-    // Incidentally, buf_t holds redundant pointers to the cache object, because in addition to
+    // Incidentally, buf_t holds a redundant pointer to the cache object, because in addition to
     // the "cache_t *cache" declared in buf, writeback_t::local_buf_t declares its own
-    // "writeback_tmpl_t *writeback" and page_repl_t::local_buf_t declares
-    // "page_repl_none_t *page_repl". Each of these pointers will point to a different part of the
-    // same cache object, because mirrored_cache_t is subclassed from page_repl_t and writeback_t.
+    // "writeback_tmpl_t *writeback". Each of these pointers will point to a different part of the
+    // same cache object, because mirrored_cache_t is subclassed from writeback_t.
+    
+    // It also has a redundant pointer to itself, because concurrency_t::local_buf_t has a field
+    // "buf_t *gbuf".
 };
 
 /* Transaction class. */

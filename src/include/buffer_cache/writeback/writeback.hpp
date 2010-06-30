@@ -35,6 +35,9 @@ public:
             : writeback(wb), dirty(false) {}
 
         bool is_dirty() const { return dirty; }
+        
+        // The argument to set_dirty() is actually 'this'; local_buf_t is a mixin for buf_t, but it
+        // doesn't know that, so we need to pass a pointer in buf_t form.
         void set_dirty(buf_t *buf);
 
         void set_clean() {
