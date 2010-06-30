@@ -160,7 +160,14 @@ public:
     void aio_complete(buf_t *buf, bool written);
 
 private:
+	// TODO: This is boundary-crossing abstraction-breaking treachery. mirrored_cache_t should not
+	// mess with the internals of the page map.
     using page_map_t::ft_map;
+    
+    /* do_unload_buf unloads a buf from memory, freeing the buf_t object. It should only be called
+    on a buf that is not in use and not dirty. It is called by the cache's destructor and by the
+    page replacement policy. */
+    void do_unload_buf(buf_t *buf);
 
 #ifndef NDEBUG
 public:

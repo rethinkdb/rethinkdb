@@ -18,6 +18,9 @@ template <class config_t>
 struct page_repl_none_t;
 
 template <class config_t>
+struct page_repl_random_t;
+
+template <class config_t>
 struct fallthrough_cache_t;
 
 template <class config_t>

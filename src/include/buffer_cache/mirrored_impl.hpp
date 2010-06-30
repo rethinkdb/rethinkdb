@@ -101,6 +101,9 @@ void transaction<config_t>::committed(transaction_commit_callback_t *callback) {
 template <class config_t>
 typename config_t::buf_t *
 transaction<config_t>::allocate(block_id_t *block_id) {
+
+	/* Make a completely new block, complete with a shiny new block_id. */
+	
     assert(event_queue == get_cpu_context()->event_queue);
 #ifndef NDEBUG
     cache->n_blocks_acquired++;
@@ -135,6 +138,13 @@ transaction<config_t>::acquire(block_id_t block_id, access_t mode,
 
     buf_t *buf = (buf_t *)cache->find(block_id);
     if (!buf) {
+    	
+    	/* Unlike in allocate(), we aren't creating a new block; the block already existed but we
+    	are creating a buf to represent it in memory, and then loading it from disk. */
+    	
+    	// TODO: It's a little bit odd that the logic for loading blocks is here, but the logic for
+    	// unloading blocks is in cache_t.
+    	
         buf_t *buf = new buf_t(cache, block_id);
         buf->pin();
         
@@ -176,18 +186,15 @@ transaction<config_t>::acquire(block_id_t block_id, access_t mode,
  */
 template <class config_t>
 mirrored_cache_t<config_t>::~mirrored_cache_t() {
+	
     for (typename page_map_t::ft_map_t::iterator it = ft_map.begin();
          it != ft_map.end(); ++it) {
         buf_t *buf = (*it).second;
-        bool acquired __attribute__((unused)) =
-            ((concurrency_t *)this)->acquire(buf, rwi_write, NULL);
-        assert(acquired);
-        assert(!buf->is_pinned()); // TODO(NNW): These should be RASSERT()s.
-        assert(!buf->is_dirty());
-        delete buf;
+        do_unload_buf(buf);
     }
     assert(n_blocks_released == n_blocks_acquired);
     assert(n_trans_created == n_trans_freed);
+    assert(ft_map.empty());
     serializer_t::close();
 }
 
@@ -217,6 +224,20 @@ void mirrored_cache_t<config_t>::aio_complete(buf_t *buf, bool written) {
         buf->set_cached(true);
         buf->notify_on_load();
     }
+}
+
+template <class config_t>
+void mirrored_cache_t<config_t>::do_unload_buf(buf_t *buf) {
+	bool acquired __attribute__((unused)) =
+		((concurrency_t *)this)->acquire(buf, rwi_write, NULL);
+	assert(acquired);
+	assert(!buf->is_dirty());
+	assert(!buf->is_pinned());
+	
+	// Inform the page map that the block in question no longer exists
+	erase(buf->get_block_id());
+	
+	delete buf;
 }
 
 #endif  // __BUFFER_CACHE_MIRRORED_IMPL_HPP__
