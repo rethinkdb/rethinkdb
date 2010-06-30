@@ -34,6 +34,7 @@ public:
         btree_mock_fsm,
         btree_get_fsm,
         btree_set_fsm,
+        btree_delete_fsm
     };
 
 public:

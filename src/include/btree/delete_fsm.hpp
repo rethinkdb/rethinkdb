@@ -39,7 +39,7 @@ public:
 
 public:
     explicit btree_delete_fsm(cache_t *cache)
-        : btree_fsm_t(cache, btree_fsm_t::btree_get_fsm),
+        : btree_fsm_t(cache, btree_fsm_t::btree_delete_fsm),
           state(uninitialized), buf(NULL), last_buf(NULL), node_id(cache_t::null_block_id)
         {}
 
