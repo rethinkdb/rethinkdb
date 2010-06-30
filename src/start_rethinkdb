@@ -1,29 +1,71 @@
 #!/usr/bin/env python
-import sys
-import subprocess
-import getopt
-import signal
+
+import optparse
 import pexpect
+import signal
+import subprocess
+import sys
+import threading
+
+def sigint(sig, frame, db):
+    db.terminate()
+    db.read()
+    sys.exit(0)
+
+def thread(db, started, eof):
+    '''Watch pexpect object 'db', signaling 'started' on "Server started"'''
+    while True:
+        res = db.expect([".*Server started", "^.*$", pexpect.EOF,
+                         pexpect.TIMEOUT])
+        if res == 2:
+            eof.set()
+            started.set()
+            return
+        if res == 0:
+            started.set()
 
 def main():
-    args = " ".join(sys.argv[1:])
-    rethinkdb = pexpect.spawn("./rethinkdb " + args)
-    rethinkdb.logfile_read = sys.stdout
-    try:
-        rethinkdb.expect("Server started")
-    except pexpect.EOF:
+    # Parse options that this script is expecting.
+    usage = "Usage: %prog [options] [-- <rethinkdb options>]"
+    parser = optparse.OptionParser(usage=usage)
+    parser.add_option("-p", "--port", default="8080",
+        help="socket port to listen on (default 8080)")
+    parser.add_option("-v", "--valgrind", action="store_true",
+        help="invoke rethinkdb under valgrind")
+    parser.add_option("--valgrind-opts", default="", metavar="OPTS",
+        help="options to pass when starting valgrind (implies -v)")
+    (options, args) = parser.parse_args()
+
+    # Set up command to start the server, including valgrind and its options.
+    command = './rethinkdb'
+    if options.valgrind_opts:
+        options.valgrind = True
+    if options.valgrind:
+        command = 'valgrind %s ' % options.valgrind_opts + command
+
+    db = pexpect.spawn("%s -p %s " % (command, options.port) + " ".join(args))
+    db.logfile_read = sys.stdout
+    signal.signal(signal.SIGINT, lambda sig, frame: sigint(sig, frame, db))
+
+    # Start a thread to watch the expect stream, allowing output to be streamed
+    started = threading.Event()
+    eof = threading.Event()
+    t = threading.Thread(target=thread, args=(db, started, eof))
+    t.daemon = True
+    t.start()
+
+    # Watch for "Server started" message to be emitted; if eof is signaled, it
+    # means that the server exited already.
+    while not started.is_set():
+        started.wait(1)
+    if eof.is_set():
         sys.exit(-1)
 
-    port = "8080"
-    opts, extra = getopt.getopt(sys.argv[1:], "p:", "port=")
-    if len(opts) > 0:
-        port = opts[0][1]
-
     print "Connecting with telnet: (server will be shut down if this session ends)\n"
-    telnet = subprocess.Popen("telnet localhost " + port, shell=True)
+    telnet = subprocess.Popen("telnet localhost " + options.port, shell=True)
     telnet.wait()
-    rethinkdb.terminate()
-    rethinkdb.read()
+    db.terminate()
+    db.read()
 
 if __name__ == "__main__":
     main()

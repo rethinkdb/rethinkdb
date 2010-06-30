@@ -28,7 +28,29 @@ template <class config_t>
 void btree_set_fsm<config_t>::init_update(btree_key *_key, int _value) {
     memcpy(key, _key, sizeof(btree_key) + _key->size);
     value = _value;
-    state = acquire_superblock;
+    state = start_transaction;
+}
+
+template <class config_t>
+typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::do_start_transaction(event_t *event) {
+    assert(state == start_transaction);
+
+    /* Either start a new transaction or retrieve the one we started. */
+    assert(transaction == NULL);
+    if (event == NULL) {
+        transaction = cache->begin_transaction(rwi_write, this);
+    } else {
+        assert(event->buf); // We shouldn't get a callback unless this is valid
+        transaction = (typename config_t::transaction_t *)event->buf;
+    }
+
+    /* Determine our forward progress based on our new state. */
+    if (transaction) {
+        state = acquire_superblock;
+        return btree_fsm_t::transition_ok;
+    } else {
+        return btree_fsm_t::transition_incomplete; // Flush lock is held.
+    }
 }
 
 template <class config_t>
@@ -37,10 +59,7 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
     assert(state == acquire_superblock);
 
     if(event == NULL) {
-        // First entry into the FSM. First, grab the transaction.
-        transaction = cache->begin_transaction();
-
-        // Now try to grab the superblock.
+        // First entry into the FSM; try to grab the superblock.
         block_id_t superblock_id = btree_fsm_t::get_cache()->get_superblock_id();
         sb_buf = transaction->acquire(superblock_id, rwi_write, this);
     } else {
@@ -104,7 +123,7 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
     }
     if(set_root_id(node_id, event)) {
         state = acquire_node;
-        sb_buf->release(this);
+        sb_buf->release();
         sb_buf = NULL;
         return btree_fsm_t::transition_ok;
     } else {
@@ -117,7 +136,7 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
 {
     if(set_root_id(last_node_id, event)) {
         state = acquire_node;
-        sb_buf->release(this);
+        sb_buf->release();
         sb_buf = NULL;
         return btree_fsm_t::transition_ok;
     } else {
@@ -151,7 +170,7 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
           event->event_type != et_cache && event->event_type != et_commit);
 
     // Update the cache with the event
-    if(event) {
+    if(event && event->event_type == et_cache) {
         check("Could not complete AIO operation",
               event->result == 0 ||
               event->result == -1);
@@ -159,8 +178,15 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
         check("btree_set_fsm::do_transition - invalid event type", event->op != eo_read);
     }
 
-    // First, acquire the superblock (to get root node ID)
+    // First, begin a transaction.
+    if(res == btree_fsm_t::transition_ok && state == start_transaction) {
+        res = do_start_transaction(event);
+        event = NULL;
+    }
+
+    // Next, acquire the superblock (to get root node ID)
     if(res == btree_fsm_t::transition_ok && state == acquire_superblock) {
+        assert(transaction); // We must have started our transaction by now.
         res = do_acquire_superblock(event);
         event = NULL;
     }
@@ -193,7 +219,7 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
         }
 
         // Proactively split the node
-        node_t *node = buf->node();
+        node_t *node = (node_t *)buf->ptr();
         bool full;
         if (node_handler::is_leaf(node)) {
             full = leaf_node_handler::is_full((leaf_node_t *)node, key);
@@ -215,7 +241,7 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
                 last_node = (internal_node_t *)last_buf->ptr();
                 internal_node_handler::init(last_node);
             } else {
-                last_node = (internal_node_t *)last_buf->node(); /* XXX */
+                last_node = (internal_node_t *)last_buf->ptr();
             }
             bool success = internal_node_handler::insert(last_node, median, node_id, rnode_id);
             check("could not insert internal btree node", !success);
@@ -225,12 +251,12 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
             if(sized_strcmp(key->contents, key->size, median->contents, median->size) <= 0) {
                 // Left node and node are the same thing
                 rbuf->set_dirty();
-                rbuf->release(this);
+                rbuf->release();
             } else {
                 buf->set_dirty();
-                buf->release(this);
+                buf->release();
                 buf = rbuf;
-                node = rbuf->node();
+                node = (node_t *)rbuf->ptr();
                 node_id = rnode_id;
             }
 
@@ -245,7 +271,7 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
 
         // Release the superblock, if we haven't already
         if(sb_buf) {
-            sb_buf->release(this);
+            sb_buf->release();
             sb_buf = NULL;
         }
         
@@ -254,14 +280,14 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
             bool success = leaf_node_handler::insert(((leaf_node_t*)node), key, value);
             check("could not insert leaf btree node", !success);
             buf->set_dirty();
-            buf->release(this);
+            buf->release();
             state = update_complete;
             res = btree_fsm_t::transition_ok;
             break;
         } else {
             // Release and update the last node
             if(!cache_t::is_block_id_null(last_node_id)) {
-                last_buf->release(this);
+                last_buf->release();
             }
             last_buf = buf;
             last_node_id = node_id;
@@ -276,18 +302,31 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
     if(res == btree_fsm_t::transition_ok && state == update_complete) {
         // Release the final node
         if(!cache_t::is_block_id_null(last_node_id)) {
-            last_buf->release(this);
+            last_buf->release();
             last_node_id = cache_t::null_block_id;
         }
 
         // End the transaction
-        /* XXX This will require asynchrony once we fix writes. */
-        bool commit __attribute__((unused)) = transaction->commit(NULL); /* XXX This should be here, with a callback. */
-        assert(commit);
-        delete transaction;
-        res = btree_fsm_t::transition_complete;
+        bool committed = transaction->commit(this);
+        state = committing;
+        if (committed) {
+            transaction = NULL;
+            res = btree_fsm_t::transition_complete;
+        }
+        event = NULL;
     }
 
+    // Finalize the transaction commit
+    if(res == btree_fsm_t::transition_ok && state == committing) {
+        if (event != NULL) {
+            assert(event->event_type == et_commit);
+            assert(event->buf == transaction);
+            transaction = NULL;
+            res = btree_fsm_t::transition_complete;
+        }
+    }
+
+    assert(res != btree_fsm_t::transition_complete || is_finished());
     return res;
 }
 

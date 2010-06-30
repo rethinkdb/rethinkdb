@@ -13,7 +13,6 @@
 #include "utils.hpp"
 #include "btree/node.hpp"
 #include "worker_pool.hpp"
-#include "async_io.hpp"
 #include "server.hpp"
 #include "config/cmd_args.hpp"
 #include "config/code.hpp"
@@ -55,11 +54,11 @@ void initiate_conn_fsm_transition(event_queue_t *event_queue, event_t *event) {
     if(res == event_queue_t::conn_fsm_t::fsm_transition_ok) {
         // Nothing todo
     } else if(res == event_queue_t::conn_fsm_t::fsm_shutdown_server) {
-        printf("Shutting down server...\n");
         int res = pthread_kill(event_queue->parent_pool->main_thread, SIGINT);
         check("Could not send kill signal to main thread", res != 0);
     } else if(res == event_queue_t::conn_fsm_t::fsm_quit_connection) {
         event_queue->deregister_fsm(fsm);
+        delete fsm;
     } else {
         check("Unhandled fsm transition result", 1);
     }
@@ -113,8 +112,8 @@ void event_handler(event_queue_t *event_queue, event_t *event) {
     if(event->event_type == et_timer) {
         // Nothing to do here, move along
     } else if(event->event_type == et_disk) {
-        // Let the cache know about the disk action
-        event_queue->cache->aio_complete((code_config_t::buf_t*)event->state, event->buf, event->op != eo_read);
+        // TODO: remove this from here.
+        check("Handled through the callback system now", 1);
     } else if(event->event_type == et_sock) {
         // Got some socket action, let the connection fsm know
         initiate_conn_fsm_transition(event_queue, event);
@@ -171,6 +170,11 @@ int main(int argc, char *argv[])
 
         // Start the server (in a separate thread)
         start_server(&worker_pool);
+
+        // If we got out of start_server, we're about to shut down.
+        printf("Shutting down server...\n");
     }
+    // TODO(NNW): When shutting down, we must halt all event_queues fully
+    // before we destroy any of them because of the core_notify_fd.
 }
 

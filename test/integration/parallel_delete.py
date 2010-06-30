@@ -24,12 +24,30 @@ def rethinkdb_insert(queue, ints):
     mc.disconnect_all()
     queue.put(0)
 
+def rethinkdb_delete(queue, ints):
+    mc = memcache.Client([HOST + ":" + PORT], debug=0)
+    for i in ints:
+        print "Deleting %d" % i
+        if (0 == mc.delete(str(i))):
+            queue.put(-1)
+            return
+    mc.disconnect_all()
+    queue.put(0)
+
 def rethinkdb_verify():
     mc = memcache.Client([HOST + ":" + PORT], debug=0)
     for i in xrange(0, NUM_INTS):
         val = mc.get(str(i))
         if str(i) != val:
             print "Error, incorrent value in the database! (%d=>%s)" % (i, val)
+            sys.exit(-1)
+    mc.disconnect_all()
+
+def rethinkdb_verify_empty():
+    mc = memcache.Client([HOST + ":" + PORT], debug=0)
+    for i in xrange(0, NUM_INTS):
+        if (mc.get(str(i))):
+            print "Error, value %d is in the database when it shouldn't be" % i
             sys.exit(-1)
     mc.disconnect_all()
 
@@ -47,12 +65,14 @@ def main(argv):
     print "Shuffling numbers"
     ints = range(0, NUM_INTS)
     shuffle(ints)
+    ints2 = range(0, NUM_INTS)
+    shuffle(ints2)
     
     # Invoke processes to insert them into the server concurrently
     # (Pool automagically waits for the processes to end)
-    lists = split_list(ints, NUM_THREADS)
 
     print "Inserting numbers"
+    lists = split_list(ints, NUM_THREADS)
     queue = Queue()
     procs = []
     for i in xrange(0, NUM_THREADS):
@@ -74,6 +94,28 @@ def main(argv):
     # Verify that all integers have successfully been inserted
     print "Verifying"
     rethinkdb_verify()
+
+    print "Deleting numbers"
+    lists = split_list(ints2, NUM_THREADS)
+    queue = Queue()
+    procs = []
+    for i in xrange(0, NUM_THREADS):
+        p = Process(target=rethinkdb_delete, args=(queue, lists[i]))
+        procs.append(p)
+        p.start()
+
+    # Wait for all the checkers to complete
+    i = 0
+    while(i != NUM_THREADS):
+        res = queue.get()
+        if res == -1:
+            print "Deletion failed" % PORT
+            map(Process.terminate, procs)
+            sys.exit(-1)
+        i += 1
+
+    print "Verifying"
+    rethinkdb_verify_empty()
     
     # Kill RethinkDB process
     # TODO: send the shutdown command

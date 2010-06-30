@@ -21,7 +21,8 @@ typename btree_get_fsm<config_t>::transition_result_t btree_get_fsm<config_t>::d
 
     if(event == NULL) {
         // First entry into the FSM. First, grab the transaction.
-        transaction = cache->begin_transaction();
+        transaction = cache->begin_transaction(rwi_read, NULL);
+        assert(transaction); // Read-only transaction always begin immediately.
 
         // Now try to grab the superblock.
         block_id_t superblock_id = cache->get_superblock_id();
@@ -53,7 +54,7 @@ typename btree_get_fsm<config_t>::transition_result_t btree_get_fsm<config_t>::d
     
     // Make sure root exists
     if(cache_t::is_block_id_null(node_id)) {
-        last_buf->release(this);
+        last_buf->release();
         last_buf = NULL;
         op_result = btree_not_found;
         state = lookup_complete;
@@ -97,13 +98,12 @@ typename btree_get_fsm<config_t>::transition_result_t btree_get_fsm<config_t>::d
     assert(buf);
 
     // Release the previous buffer
-    last_buf->release(this);
+    last_buf->release();
     last_buf = NULL;
     
-    node_t *node = buf->node();
+    node_t *node = (node_t *)buf->ptr();
     if(node_handler::is_internal(node)) {
         block_id_t next_node_id = internal_node_handler::lookup((internal_node_t*)node, key);
-        /* XXX XXX Cannot release until the next acquire succeeds for locks! */
         last_buf = buf;
         node_id = next_node_id;
         buf = transaction->acquire(node_id, rwi_read, this);
@@ -114,7 +114,7 @@ typename btree_get_fsm<config_t>::transition_result_t btree_get_fsm<config_t>::d
         }
     } else {
         int result = leaf_node_handler::lookup((leaf_node_t*)node, key, &value);
-        buf->release(this);
+        buf->release();
         state = lookup_complete;
         op_result = result == 1 ? btree_found : btree_not_found;
         return btree_fsm_t::transition_ok;
@@ -159,7 +159,6 @@ typename btree_get_fsm<config_t>::transition_result_t btree_get_fsm<config_t>::d
     if (res == btree_fsm_t::transition_ok && state == lookup_complete) {
         bool committed __attribute__((unused)) = transaction->commit(NULL);
         assert(committed); /* Read-only commits always finish immediately. */
-        delete transaction;
         res = btree_fsm_t::transition_complete;
     }
 

@@ -89,7 +89,8 @@ void process_aio_notify(event_queue_t *self) {
                     qevent.op = eo_read;
                 else
                     qevent.op = eo_write;
-                self->event_handler(self, &qevent);
+                
+                self->iosys.aio_notify(&qevent);
             }
             delete (iocb*)events[i].obj;
         }
@@ -129,15 +130,19 @@ void event_queue_t::process_timer_notify() {
 
         t->callback(t->context);
 
-        /* Adjust value for next iteration. */
-        t->it.it_value = now;
-        t->it.it_value.tv_sec += t->it.it_interval.tv_sec;
-        t->it.it_value.tv_nsec += t->it.it_interval.tv_nsec;
-        if (t->it.it_value.tv_nsec > NSEC_IN_SEC) {
-            t->it.it_value.tv_nsec -= NSEC_IN_SEC;
-            t->it.it_value.tv_sec += 1;
+        /* Adjust value for next iteration if the internal is non-zero. */
+        if (t->it.it_interval.tv_sec || t->it.it_interval.tv_nsec) {
+            t->it.it_value = now;
+            t->it.it_value.tv_sec += t->it.it_interval.tv_sec;
+            t->it.it_value.tv_nsec += t->it.it_interval.tv_nsec;
+            if (t->it.it_value.tv_nsec > NSEC_IN_SEC) {
+                t->it.it_value.tv_nsec -= NSEC_IN_SEC;
+                t->it.it_value.tv_sec += 1;
+            }
+            timers.push(t);
+        } else {
+            delete t;
         }
-        timers.push(t);
         
         t = timers.empty() ? NULL : timers.top();
     }
@@ -157,7 +162,8 @@ int process_itc_notify(event_queue_t *self) {
         // Process the event
         switch(event.event_type) {
         case iet_shutdown:
-            return 1;
+        case iet_cache_synced:
+            return event.event_type;
             break;
         case iet_new_socket:
             // The state will be freed within the fsm when the socket is
@@ -225,6 +231,8 @@ void *event_queue_t::epoll_handler(void *arg) {
     int res;
     event_queue_t *self = (event_queue_t*)arg;
     epoll_event events[MAX_IO_EVENT_PROCESSING_BATCH_SIZE];
+    bool shutting_down = false; // True btw. iet_shutdown and iet_cache_synced.
+    std::vector<event_queue_t::conn_fsm_t *> shutdown_fsms;
 
     // First, set the cpu context structure
     get_cpu_context()->event_queue = self;
@@ -259,8 +267,25 @@ void *event_queue_t::epoll_handler(void *arg) {
                 // Great, we needed to wake up to process batch jobs
                 // from other cores, no need to do anything here.
             } else if(source == self->itc_pipe[0]) {
-                if(process_itc_notify(self)) {
-                    // We're shutting down
+                switch (process_itc_notify(self)) {
+                case iet_shutdown: // We've been asked to shut down
+                    assert(!shutting_down);
+                    shutting_down = true;
+                    // Clean up some objects that should be deleted on the same
+                    // core as where they were allocated.
+
+                    // Clean up remaining fsms
+                    for (event_queue_t::conn_fsm_t *state =
+                         self->live_fsms.head(); state != NULL;
+                         state = self->live_fsms.head()) {
+                        self->deregister_fsm(state);
+                        shutdown_fsms.push_back(state);
+                    }
+
+                    self->cache->shutdown(self); // Initiate final cache flush
+                    break;
+                case iet_cache_synced:
+                    assert(shutting_down);
                     goto breakout;
                 }
             } else {
@@ -270,26 +295,20 @@ void *event_queue_t::epoll_handler(void *arg) {
 
         // We're done with the current batch of events, process cross
         // CPU requests
-        message_hub_t::msg_list_t cpu_requests;
-        self->pull_messages_for_cpu(&cpu_requests);
-        process_cpu_core_notify(self, &cpu_requests);
+        if (!shutting_down) {
+            message_hub_t::msg_list_t cpu_requests;
+            self->pull_messages_for_cpu(&cpu_requests);
+            process_cpu_core_notify(self, &cpu_requests);
 
-        // Push the messages we collected in this batch for other
-        // CPUs
-        self->message_hub.push_messages();
+            // Push the messages we collected in this batch for other CPUs
+            self->message_hub.push_messages();
+        }
     } while(1);
 
 breakout:
-    // Clean up some objects that should be deleted on the same core where they were allocated
-    // Cleanup remaining fsms
-    event_queue_t::conn_fsm_t *state = self->live_fsms.head();
-    while(state) {
-        self->deregister_fsm(state);
-        state = self->live_fsms.head();
-    }
-
-    // Free the cache
-    self->cache->close();
+    for (std::vector<event_queue_t::conn_fsm_t *>::iterator it =
+         shutdown_fsms.begin(); it != shutdown_fsms.end(); ++it)
+        delete *it;
     delete self->cache;
 
     return tls_small_obj_alloc_accessor<event_queue_t::alloc_t>::allocs_tl;
@@ -297,6 +316,7 @@ breakout:
 
 event_queue_t::event_queue_t(int queue_id, int _nqueues, event_handler_t event_handler,
                              worker_pool_t *parent_pool, cmd_config_t *cmd_config)
+    : iosys(this)
 {
     int res;
     this->queue_id = queue_id;
@@ -346,7 +366,8 @@ event_queue_t::event_queue_t(int queue_id, int _nqueues, event_handler_t event_h
     watch_resource(this->itc_pipe[0], eo_read, (void*)this->itc_pipe[0]);
     
     // Init the cache
-    cache = new cache_t(BTREE_BLOCK_SIZE, cmd_config->max_cache_size / nqueues);
+    cache = new cache_t(BTREE_BLOCK_SIZE, cmd_config->max_cache_size / nqueues,
+        cmd_config->wait_for_flush, cmd_config->flush_interval_ms);
     std::string str((char*)cmd_config->db_file_name);
     std::stringstream out;
     out << queue_id;
@@ -357,7 +378,7 @@ event_queue_t::event_queue_t(int queue_id, int _nqueues, event_handler_t event_h
     timespec ts;
     ts.tv_sec = 3;
     ts.tv_nsec = 0;
-    set_timer(&ts, this->garbage_collect, NULL);
+    timer_add(&ts, this->garbage_collect, NULL);
 }
 
 void event_queue_t::start_queue() {
@@ -393,7 +414,7 @@ event_queue_t::~event_queue_t()
     check("Could not join with epoll thread", res != 0);
     parent_pool->all_allocs.push_back(allocs_tl);
 
-    // Stop the hardcoded timer (TODO: we should use register timer API for it)
+    // Stop the timers
     queue_stop_timer(this);
 
     // Delete the registered timers
@@ -541,8 +562,6 @@ void event_queue_t::deregister_fsm(conn_fsm_t *fsm) {
     printf("Closing socket %d\n", fsm->get_source());
     forget_resource(fsm->get_source());
     live_fsms.remove(fsm);
-    close(fsm->get_source());
-    delete fsm;
     
     // TODO: there might be outstanding btrees that we're missing (if
     // we're quitting before the the operation completes). We need to
@@ -578,13 +597,18 @@ bool event_queue_t::timer_gt::operator()(const timer *t1, const timer *t2) {
     return t1->it.it_value.tv_nsec > t2->it.it_value.tv_nsec;
 }
 
-void
-event_queue_t::set_timer(timespec *ts, void (*callback)(void *), void *ctx) {
+void event_queue_t::timer_add_internal(timespec *ts, void (*callback)(void *),
+    void *ctx, bool once) {
     timespec now;
 
     clock_gettime(CLOCK_MONOTONIC, &now);
     timer *t = new timer;
-    t->it.it_interval = *ts;
+    if (once) {
+        t->it.it_interval.tv_sec = 0;
+        t->it.it_interval.tv_nsec = 0;
+    } else {
+        t->it.it_interval = *ts;
+    }
     t->it.it_value = now;
     t->it.it_value.tv_sec += ts->tv_sec;
     t->it.it_value.tv_nsec += ts->tv_nsec;
@@ -595,4 +619,19 @@ event_queue_t::set_timer(timespec *ts, void (*callback)(void *), void *ctx) {
     t->callback = callback;
     t->context = ctx;
     timers.push(t);
+}
+
+void event_queue_t::timer_add(timespec *ts, void (*cb)(void *), void *ctx) {
+    timer_add_internal(ts, cb, ctx, false);
+}
+
+void event_queue_t::timer_once(timespec *ts, void (*cb)(void *), void *ctx) {
+    timer_add_internal(ts, cb, ctx, true);
+}
+
+void event_queue_t::on_sync() {
+    itc_event_t event;
+    memset(&event, 0, sizeof event);
+    event.event_type = iet_cache_synced;
+    post_itc_message(&event);
 }
