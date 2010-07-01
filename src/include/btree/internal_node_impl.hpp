@@ -9,7 +9,7 @@
 //In this tree, less than or equal takes the left-hand branch and greater than takes the right hand branch
 
 void internal_node_handler::init(btree_internal_node *node) {
-    node->leaf = false;
+    node->kind = btree_node_kind_internal;
     node->npairs = 0;
     node->frontmost_offset = BTREE_BLOCK_SIZE;
 }

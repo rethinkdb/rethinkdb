@@ -5,7 +5,7 @@
 #include <algorithm>
 
 void leaf_node_handler::init(btree_leaf_node *node) {
-    node->leaf = true;
+    node->kind = btree_node_kind_leaf;
     node->npairs = 0;
     node->frontmost_offset = BTREE_BLOCK_SIZE;
 }

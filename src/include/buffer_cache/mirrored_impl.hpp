@@ -108,13 +108,17 @@ transaction<config_t>::allocate(block_id_t *block_id) {
     buf_t *buf = new buf_t(cache, *block_id);
     buf->set_cached(true);
     cache->set(*block_id, buf);
-
+		
     // This must pass since no one else holds references to this
     // block.
     bool acquired __attribute__((unused)) =
         ((concurrency_t*)cache)->acquire(buf, rwi_write, NULL);
     assert(acquired);
-        
+
+	// For debugging purposes. The memory allocator will have filled it with 0xBD, but we need more
+	// information than that.
+	memset(buf->ptr(), 0xCD, cache->serializer_t::block_size);
+
     return buf;
 }
 
