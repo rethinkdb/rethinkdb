@@ -37,6 +37,8 @@ class internal_node_handler : public node_handler {
 
     static bool is_full(btree_internal_node *node);
 
+    static void validate(btree_internal_node *node);
+
     protected:
     static size_t pair_size(btree_internal_pair *pair);
     static btree_internal_pair *get_pair(btree_internal_node *node, uint16_t offset);

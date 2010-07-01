@@ -15,8 +15,10 @@ struct btree_key {
 };
 
 enum btree_node_kind {
-	btree_node_kind_leaf,
-	btree_node_kind_internal
+    // Choose 1 and 2 instead of 0 and 1 to make it less likely that garbage will be interpreted as
+    // a valid node
+    btree_node_kind_leaf = 1,
+    btree_node_kind_internal = 2
 };
 
 struct btree_node {
@@ -26,23 +28,23 @@ struct btree_node {
 class node_handler {
     public:
         static bool is_leaf(btree_node *node) {
-        
-        	// Check to make sure the data is not corrupted
-        	assert(node->kind == btree_node_kind_leaf || node->kind == btree_node_kind_internal);
-        	
+            validate(node);
             return node->kind == btree_node_kind_leaf;
         }
 
         static bool is_internal(btree_node *node) {
-            return !is_leaf(node);
+            validate(node);
+            return node->kind == btree_node_kind_internal;
         }
 
         static void str_to_key(char *str, btree_key *buf) {
             int len = strlen(str);
-            check("string too long", len > 250);
+            check("string too long", len > MAX_KEY_SIZE);
             memcpy(buf->contents, str, len);
             buf->size = (unsigned char)len;
         }
+        
+        static void validate(btree_node *node);
 };
 
 #endif // __BTREE_NODE_HPP__

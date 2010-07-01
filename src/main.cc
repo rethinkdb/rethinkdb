@@ -32,6 +32,7 @@
 #include "buffer_cache/writeback/writeback.hpp"
 #include "buffer_cache/concurrency/rwi_conc.hpp"
 
+#include "btree/node_impl.hpp"
 #include "btree/internal_node_impl.hpp"
 #include "btree/leaf_node_impl.hpp"
 

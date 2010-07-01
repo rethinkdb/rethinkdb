@@ -95,6 +95,10 @@ bool internal_node_handler::is_full(btree_internal_node *node) {
     return sizeof(btree_internal_node) + node->npairs*sizeof(*node->pair_offsets) + sizeof(btree_internal_pair) + MAX_KEY_SIZE >= node->frontmost_offset;
 }
 
+void internal_node_handler::validate(btree_internal_node *node) {
+    assert((void*)&(node->pair_offsets[node->npairs]) <= (void*)get_pair(node, node->frontmost_offset));
+}
+
 size_t internal_node_handler::pair_size(btree_internal_pair *pair) {
     return sizeof(btree_internal_pair) + pair->key.size;
 }

@@ -91,6 +91,10 @@ bool leaf_node_handler::is_full(btree_leaf_node *node, btree_key *key) {
     return sizeof(btree_leaf_node) + node->npairs*sizeof(*node->pair_offsets) + sizeof(btree_leaf_pair) + key->size + 1 >= node->frontmost_offset;
 }
 
+void leaf_node_handler::validate(btree_leaf_node *node) {
+    assert((void*)&(node->pair_offsets[node->npairs]) <= (void*)get_pair(node, node->frontmost_offset));
+}
+
 size_t leaf_node_handler::pair_size(btree_leaf_pair *pair) {
     return sizeof(btree_leaf_pair) + pair->key.size;
 }
