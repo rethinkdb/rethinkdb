@@ -3,6 +3,7 @@
 #define __ALLOC_MIXIN_HPP__
 
 #include <vector>
+#include "utils.hpp"
 
 /**
  * Allocation system mixin class.  Classes that derive from this will
@@ -12,18 +13,6 @@ template <class accessor_t, class type_t>
 class alloc_mixin_t {
 public:
     static void *operator new(size_t);
-    static void operator delete(void *ptr);
-};
-
-/**
- * Allocator system mixin class requiring the user to specify an allocator to
- * the new() call; this is then saved automatically for the subsequent delete().
- */
-template <class alloc_t>
-class alloc_runtime_mixin_t {
-public:
-    static void *operator new(size_t, alloc_t *);
-    static void operator delete(void *, alloc_t *);
     static void operator delete(void *ptr);
 };
 
@@ -44,10 +33,10 @@ public:
 
         if(!alloc) {
 #ifdef NDEBUG
-            alloc = new alloc_t(sizeof(type_t));
+            alloc = gnew<alloc_t>(sizeof(type_t));
 #else
             // In debug mode, we need space for an extra pointer
-            alloc = new alloc_t(sizeof(void*) + sizeof(type_t));
+            alloc = gnew<alloc_t>(sizeof(void*) + sizeof(type_t));
 #endif
             allocs_tl->push_back(alloc);
         }

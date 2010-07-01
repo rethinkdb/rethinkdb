@@ -34,30 +34,18 @@ void worker_pool_t::create_worker_pool(event_handler_t event_handler, pthread_t 
     // Create the workers
     nworkers = _nworkers;
 
-    // TODO: there is a good chance here event queue structures may
-    // end up sharing a cache line if they're not packed to cache line
-    // size. We should just use an array of pointers here.
-    workers = (event_queue_t*)malloc(sizeof(event_queue_t) * nworkers);
     for(int i = 0; i < nworkers; i++) {
-        new ((void*)&workers[i]) event_queue_t(i, nworkers, event_handler, this, cmd_config);
+        workers[i] = gnew<event_queue_t>(i, nworkers, event_handler, this, cmd_config);
     }
     active_worker = 0;
 
-    // Now that we set up all event queues, go through them and pass
-    // information across hubs
-    typedef event_queue_t* event_queue_ptr_t;
-    event_queue_ptr_t *queues = new event_queue_ptr_t [nworkers];
     for(int i = 0; i < nworkers; i++) {
-        queues[i] = &workers[i];
+        workers[i]->message_hub.init(i, nworkers, workers);
     }
-    for(int i = 0; i < nworkers; i++) {
-        workers[i].message_hub.init(i, nworkers, queues);
-    }
-    delete[] queues;
 
     // Start the actual queue
     for(int i = 0; i < nworkers; i++) {
-        workers[i].start_queue();
+        workers[i]->start_queue();
     }
 
     // TODO: can we move the printing out of here?
@@ -95,9 +83,8 @@ worker_pool_t::worker_pool_t(event_handler_t event_handler, pthread_t main_threa
 worker_pool_t::~worker_pool_t() {
     // Free the event queues
     for(int i = 0; i < nworkers; i++) {
-        workers[i].~event_queue_t();
+        gdelete(workers[i]);
     }
-    free(workers);
     nworkers = 0;
 
     // Delete all the custom allocators in the system
@@ -105,7 +92,7 @@ worker_pool_t::~worker_pool_t() {
         std::vector<alloc_t*> *allocs = (std::vector<alloc_t*>*)(all_allocs[i]);
         if(allocs) {
             for(size_t j = 0; j < allocs->size(); j++) {
-                delete allocs->operator[](j);
+                gdelete(allocs->operator[](j));
             }
         }
         delete allocs;
@@ -117,7 +104,7 @@ event_queue_t* worker_pool_t::next_active_worker() {
     int worker = active_worker++;
     if(active_worker >= nworkers)
         active_worker = 0;
-    return &workers[worker];
+    return workers[worker];
     // TODO: consider introducing randomness to avoid potential
     // (intentional and unintentional) attacks on memory allocation
     // and CPU utilization.

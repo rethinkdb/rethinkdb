@@ -326,7 +326,7 @@ breakout:
     for (std::vector<event_queue_t::conn_fsm_t *>::iterator it =
          shutdown_fsms.begin(); it != shutdown_fsms.end(); ++it)
         delete *it;
-    delete self->cache;
+    gdelete(self->cache);
 
     return tls_small_obj_alloc_accessor<alloc_t>::allocs_tl;
 }
@@ -573,7 +573,7 @@ void event_queue_t::deregister_fsm(conn_fsm_t *fsm) {
 void event_queue_t::pull_messages_for_cpu(message_hub_t::msg_list_t *target) {
     for(int i = 0; i < parent_pool->nworkers; i++) {
         message_hub_t::msg_list_t tmp_list;
-        parent_pool->workers[i].message_hub.pull_messages(queue_id, &tmp_list);
+        parent_pool->workers[i]->message_hub.pull_messages(queue_id, &tmp_list);
         target->append_and_clear(&tmp_list);
     }
 }

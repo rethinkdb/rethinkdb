@@ -42,5 +42,11 @@ T* gnew(A1 a1, A2 a2, A3 a3, A4 a4) {
     return new (ptr) T(a1, a2, a3, a4);
 }
 
+template <typename T, typename A1, typename A2, typename A3, typename A4, typename A5>
+T* gnew(A1 a1, A2 a2, A3 a3, A4 a4, A5 a5) {
+    T *ptr = _gnew<T>();
+    return new (ptr) T(a1, a2, a3, a4, a5);
+}
+
 #endif // __UTILS_IMPL_HPP__
 

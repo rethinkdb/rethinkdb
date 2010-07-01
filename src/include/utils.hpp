@@ -34,6 +34,13 @@ template <typename T, typename A1, typename A2, typename A3>
 T* gnew(A1, A2, A3);
 template <typename T, typename A1, typename A2, typename A3, typename A4>
 T* gnew(A1, A2, A3, A4);
+template <typename T, typename A1, typename A2, typename A3, typename A4, typename A5>
+T* gnew(A1, A2, A3, A4, A5);
+
+template<typename T>
+void gdelete(T *p) {
+    delete p;
+}
 
 
 //fast string compare
