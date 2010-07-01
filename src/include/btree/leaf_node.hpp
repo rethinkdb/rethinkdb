@@ -4,12 +4,13 @@
 #include "utils.hpp"
 #include "btree/node.hpp"
 
-#define byte char
-
 //Note: This struct is stored directly on disk.  Changing it invalidates old data.
 struct btree_leaf_pair {
-    int value;
     btree_key key;
+    btree_value _value;
+    btree_value *value() {
+        return (btree_value *)( ((byte *)&key) + sizeof(btree_key) + key.size );
+    }
 };
 
 
@@ -30,21 +31,22 @@ class leaf_node_handler : public node_handler {
     static void init(btree_leaf_node *node);
     static void init(btree_leaf_node *node, btree_leaf_node *lnode, uint16_t *offsets, int numpairs);
 
-    static int insert(btree_leaf_node *node, btree_key *key, int value);
-    static bool lookup(btree_leaf_node *node, btree_key *key, int *value);
+    static int insert(btree_leaf_node *node, btree_key *key, btree_value *value);
+    static bool lookup(btree_leaf_node *node, btree_key *key, btree_value *value);
     static void split(btree_leaf_node *node, btree_leaf_node *rnode, btree_key *median);
     static bool remove(btree_leaf_node *node, btree_key *key); //Currently untested
 
-    static bool is_full(btree_leaf_node *node, btree_key *key);
+    static bool is_full(btree_leaf_node *node, btree_key *key, btree_value *value);
 
     protected:
     static size_t pair_size(btree_leaf_pair *pair);
     static btree_leaf_pair *get_pair(btree_leaf_node *node, uint16_t offset);
     static void delete_pair(btree_leaf_node *node, uint16_t offset);
     static uint16_t insert_pair(btree_leaf_node *node, btree_leaf_pair *pair);
-    static uint16_t insert_pair(btree_leaf_node *node, int value, btree_key *key);
+    static uint16_t insert_pair(btree_leaf_node *node, btree_value *value, btree_key *key);
     static int get_offset_index(btree_leaf_node *node, btree_key *key);
     static int find_key(btree_leaf_node *node, btree_key *key);
+    static void shift_pairs(btree_leaf_node *node, uint16_t offset, long shift);
     static void delete_offset(btree_leaf_node *node, int index);
     static void insert_offset(btree_leaf_node *node, uint16_t offset, int index);
     static bool is_equal(btree_key *key1, btree_key *key2);

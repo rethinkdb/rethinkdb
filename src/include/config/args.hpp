@@ -67,5 +67,9 @@
 // How many milliseconds between flushes.
 #define DEFAULT_WRITEBACK_INTERVAL_MS             5000
 
+//Any values of this size or less will be directly stored in btree leaf nodes.
+//Values greater than this size will be stored in overflow blocks.
+#define MAX_IN_NODE_VALUE_SIZE                    250
+
 #endif // __CONFIG_ARGS_H__
 

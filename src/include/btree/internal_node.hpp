@@ -4,8 +4,6 @@
 #include "utils.hpp"
 #include "btree/node.hpp"
 
-#define byte char
-
 //Note: This struct is stored directly on disk.  Changing it invalidates old data.
 struct btree_internal_pair {
     block_id_t lnode;

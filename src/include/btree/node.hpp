@@ -13,6 +13,11 @@ struct btree_key {
     char contents[0];
 };
 
+struct btree_value {
+    uint32_t size;
+    char contents[0];
+};
+
 struct btree_node {
     bool leaf;
 };
