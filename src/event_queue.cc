@@ -383,8 +383,8 @@ event_queue_t::event_queue_t(int queue_id, int _nqueues, event_handler_t event_h
     watch_resource(this->itc_pipe[0], eo_read, (void*)this->itc_pipe[0]);
     
     // Init the cache
-    cache = new cache_t(BTREE_BLOCK_SIZE, cmd_config->max_cache_size / nqueues,
-        cmd_config->wait_for_flush, cmd_config->flush_interval_ms);
+    cache = gnew<cache_t>(BTREE_BLOCK_SIZE, cmd_config->max_cache_size / nqueues,
+                          cmd_config->wait_for_flush, cmd_config->flush_interval_ms);
     std::string str((char*)cmd_config->db_file_name);
     std::stringstream out;
     out << queue_id;

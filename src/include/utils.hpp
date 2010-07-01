@@ -23,6 +23,19 @@ long get_total_ram();
 
 void *malloc_aligned(size_t size, size_t alignment = 64);
 
+// Replacements for new
+template <typename T>
+T* gnew();
+template <typename T, typename A1>
+T* gnew(A1);
+template <typename T, typename A1, typename A2>
+T* gnew(A1, A2);
+template <typename T, typename A1, typename A2, typename A3>
+T* gnew(A1, A2, A3);
+template <typename T, typename A1, typename A2, typename A3, typename A4>
+T* gnew(A1, A2, A3, A4);
+
+
 //fast string compare
 int sized_strcmp(const char *str1, int len1, const char *str2, int len2);
 
@@ -33,6 +46,8 @@ struct buffer_t : public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, bu
     char buf[_size];
     static const int size = _size;
 };
+
+#include "utils_impl.hpp"
 
 #endif // __UTILS_HPP__
 

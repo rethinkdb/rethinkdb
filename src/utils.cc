@@ -18,7 +18,8 @@ long get_available_ram() {
 }
 
 long get_total_ram() {
-    return (long)sysconf(_SC_PHYS_PAGES) * (long)sysconf(_SC_PAGESIZE); }
+    return (long)sysconf(_SC_PHYS_PAGES) * (long)sysconf(_SC_PAGESIZE);
+}
 
 // Redefine operator new to do cache-lines alignment
 void* operator new(size_t size) throw(std::bad_alloc) {
