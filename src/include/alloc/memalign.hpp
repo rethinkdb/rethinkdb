@@ -3,7 +3,7 @@
 #define __MEMALIGN_ALLOC_HPP__
 
 #include <stdlib.h>
-#include <strings.h>
+#include <string.h>
 
 template<int alignment = 1024 * 8>
 struct memalign_alloc_t {
@@ -16,9 +16,10 @@ struct memalign_alloc_t {
         if(res != 0) {
             return NULL;
         } else {
-#ifdef VALGRIND
-            // Zero out the buffer in debug mode so valgrind doesn't complain
-            bzero(ptr, size);
+#if defined(VALGRIND) || !defined(NDEBUG)
+            // Fill the buffer with garbage in debug mode so valgrind doesn't complain, and to help
+            // catch uninitialized memory errors.
+            memset(ptr, 0xBD, size);
 #endif
             return ptr;
         }

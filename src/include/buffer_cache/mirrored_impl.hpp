@@ -154,7 +154,7 @@ transaction<config_t>::acquire(block_id_t block_id, access_t mode,
         
         // The callback when this completes will be sent to cache_t::aio_complete(), and from there
         // to buf_t::notify_on_load(), and then to the client trying to acquire the block.
-        cache->do_read(get_cpu_context()->event_queue, block_id, buf->ptr(), buf);
+        cache->do_read(get_cpu_context()->event_queue, block_id, buf->ptr_possibly_uncached(), buf);
         
         return NULL;
         

@@ -24,7 +24,7 @@ int leaf_node_handler::insert(btree_leaf_node *node, btree_key *key, int value) 
     int index = get_offset_index(node, key);
     btree_leaf_pair *previous = get_pair(node, node->pair_offsets[index]);
     //TODO: write a unit test for this
-    if (is_equal(&previous->key, key)) { // a duplicate key is being inserted
+    if (index != node->npairs && is_equal(&previous->key, key)) { // a duplicate key is being inserted
         previous->value = value;
     } else {
         uint16_t offset = insert_pair(node, value, key);
