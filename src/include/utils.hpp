@@ -42,8 +42,11 @@ void gdelete(T *p) {
     delete p;
 }
 
+// STL gnew allocator
+template<typename T>
+class gnew_alloc;
 
-//fast string compare
+// Fast string compare
 int sized_strcmp(const char *str1, int len1, const char *str2, int len2);
 
 // Buffer

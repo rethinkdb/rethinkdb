@@ -580,7 +580,7 @@ void event_queue_t::pull_messages_for_cpu(message_hub_t::msg_list_t *target) {
 
 void event_queue_t::garbage_collect(void *ctx) {
     // Perform allocator gc
-    std::vector<alloc_t*> *allocs = tls_small_obj_alloc_accessor<alloc_t>::allocs_tl;
+    tls_small_obj_alloc_accessor<alloc_t>::alloc_vector_t *allocs = tls_small_obj_alloc_accessor<alloc_t>::allocs_tl;
     if(allocs) {
         for(size_t i = 0; i < allocs->size(); i++) {
             allocs->operator[](i)->gc();

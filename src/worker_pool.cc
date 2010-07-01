@@ -89,7 +89,8 @@ worker_pool_t::~worker_pool_t() {
 
     // Delete all the custom allocators in the system
     for(size_t i = 0; i < all_allocs.size(); i++) {
-        std::vector<alloc_t*> *allocs = (std::vector<alloc_t*>*)(all_allocs[i]);
+        tls_small_obj_alloc_accessor<alloc_t>::alloc_vector_t *allocs
+            = (tls_small_obj_alloc_accessor<alloc_t>::alloc_vector_t*)(all_allocs[i]);
         if(allocs) {
             for(size_t j = 0; j < allocs->size(); j++) {
                 gdelete(allocs->operator[](j));
