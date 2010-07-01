@@ -23,8 +23,8 @@ writeback_tmpl_t<config_t>::~writeback_tmpl_t() {
 template <class config_t>
 void writeback_tmpl_t<config_t>::start() {
     flush_lock =
-        new rwi_lock<config_t>(&get_cpu_context()->event_queue->message_hub,
-                               get_cpu_context()->event_queue->queue_id);
+        new rwi_lock_t(&get_cpu_context()->event_queue->message_hub,
+                       get_cpu_context()->event_queue->queue_id);
     start_flush_timer();
 }
 

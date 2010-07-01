@@ -3,8 +3,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <algorithm>
-#include "worker_pool.hpp"
+#include "config/cmd_args.hpp"
+#include "config/code.hpp"
 #include "utils.hpp"
+#include "worker_pool.hpp"
 
 int get_core_info(cmd_config_t *cmd_config) {
     int ncores = get_cpu_count(),
@@ -100,7 +102,7 @@ worker_pool_t::~worker_pool_t() {
 
     // Delete all the custom allocators in the system
     for(size_t i = 0; i < all_allocs.size(); i++) {
-        std::vector<event_queue_t::alloc_t*> *allocs = (std::vector<event_queue_t::alloc_t*>*)(all_allocs[i]);
+        std::vector<alloc_t*> *allocs = (std::vector<alloc_t*>*)(all_allocs[i]);
         if(allocs) {
             for(size_t j = 0; j < allocs->size(); j++) {
                 delete allocs->operator[](j);

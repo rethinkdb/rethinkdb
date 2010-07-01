@@ -4,7 +4,7 @@
 
 template <class config_t>
 class btree_set_fsm : public btree_fsm<config_t>,
-                      public alloc_mixin_t<tls_small_obj_alloc_accessor<typename config_t::alloc_t>, btree_set_fsm<config_t> >
+                      public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, btree_set_fsm<config_t> >
 {
 public:
     typedef typename config_t::btree_fsm_t btree_fsm_t;

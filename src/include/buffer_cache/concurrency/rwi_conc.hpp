@@ -17,8 +17,6 @@
  */
 template<class config_t>
 struct rwi_conc_t {
-    typedef rwi_lock<config_t> rwi_lock_t;
-    typedef lock_available_callback<config_t> lock_available_callback_t;
     typedef block_available_callback<config_t> block_available_callback_t;
     typedef typename config_t::buf_t global_buf_t;
     

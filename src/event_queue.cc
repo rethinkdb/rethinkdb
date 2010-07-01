@@ -12,12 +12,14 @@
 #include <algorithm>
 #include <string>
 #include <sstream>
+#include "config/args.hpp"
+#include "config/code.hpp"
+#include "utils.hpp"
 #include "alloc/memalign.hpp"
 #include "alloc/pool.hpp"
 #include "alloc/dynamic_pool.hpp"
 #include "alloc/stats.hpp"
 #include "alloc/alloc_mixin.hpp"
-#include "utils.hpp"
 #include "worker_pool.hpp"
 #include "arch/io.hpp"
 #include "conn_fsm.hpp"
@@ -37,7 +39,6 @@
 #include "event_queue.hpp"
 #include "buffer_cache/stats.hpp"
 #include "cpu_context.hpp"
-#include "config/code.hpp"
 
 static const int NSEC_IN_SEC = 1000 * 1000 * 1000;
 
@@ -123,7 +124,7 @@ void event_queue_t::process_timer_notify() {
     timespec now;
     clock_gettime(CLOCK_MONOTONIC, &now);
 
-    timer *t = timers.empty() ? NULL : timers.top();
+    timer_t *t = timers.empty() ? NULL : timers.top();
     while (t && (t->it.it_value.tv_sec < now.tv_sec ||
            (t->it.it_value.tv_sec == now.tv_sec &&
             t->it.it_value.tv_nsec <= now.tv_nsec))) {
@@ -238,6 +239,12 @@ void *event_queue_t::epoll_handler(void *arg) {
     // First, set the cpu context structure
     get_cpu_context()->event_queue = self;
     self->cache->start();
+
+    // Now, initialize the hardcoded (garbage collection)
+    timespec ts;
+    ts.tv_sec = 3;
+    ts.tv_nsec = 0;
+    self->timer_add(&ts, self->garbage_collect, NULL);
     
     // Now, start the loop
     do {
@@ -307,12 +314,22 @@ void *event_queue_t::epoll_handler(void *arg) {
     } while(1);
 
 breakout:
+    // Stop the timers
+    queue_stop_timer(self);
+
+    // Delete the registered timers
+    while(!self->timers.empty()) {
+        timer_t *t = self->timers.top();
+        delete t;
+        self->timers.pop();
+    }
+
     for (std::vector<event_queue_t::conn_fsm_t *>::iterator it =
          shutdown_fsms.begin(); it != shutdown_fsms.end(); ++it)
         delete *it;
     delete self->cache;
 
-    return tls_small_obj_alloc_accessor<event_queue_t::alloc_t>::allocs_tl;
+    return tls_small_obj_alloc_accessor<alloc_t>::allocs_tl;
 }
 
 event_queue_t::event_queue_t(int queue_id, int _nqueues, event_handler_t event_handler,
@@ -374,12 +391,6 @@ event_queue_t::event_queue_t(int queue_id, int _nqueues, event_handler_t event_h
     out << queue_id;
     str += out.str();
     cache->init((char*)str.c_str());
-
-    //Add garbage collection timer
-    timespec ts;
-    ts.tv_sec = 3;
-    ts.tv_nsec = 0;
-    timer_add(&ts, this->garbage_collect, NULL);
 }
 
 void event_queue_t::start_queue() {
@@ -414,16 +425,6 @@ event_queue_t::~event_queue_t()
     res = pthread_join(this->epoll_thread, &allocs_tl);
     check("Could not join with epoll thread", res != 0);
     parent_pool->all_allocs.push_back(allocs_tl);
-
-    // Stop the timers
-    queue_stop_timer(this);
-
-    // Delete the registered timers
-    while(!timers.empty()) {
-        timer *t = timers.top();
-        delete t;
-        timers.pop();
-    }
 
     // Cleanup resources
     res = close(this->epoll_fd);
@@ -580,8 +581,7 @@ void event_queue_t::pull_messages_for_cpu(message_hub_t::msg_list_t *target) {
 
 void event_queue_t::garbage_collect(void *ctx) {
     // Perform allocator gc
-    std::vector<event_queue_t::alloc_t*> *allocs =
-        tls_small_obj_alloc_accessor<event_queue_t::alloc_t>::allocs_tl;
+    std::vector<alloc_t*> *allocs = tls_small_obj_alloc_accessor<alloc_t>::allocs_tl;
     if(allocs) {
         for(size_t i = 0; i < allocs->size(); i++) {
             allocs->operator[](i)->gc();
@@ -592,7 +592,7 @@ void event_queue_t::garbage_collect(void *ctx) {
 /**
  * Timer API
  */
-bool event_queue_t::timer_gt::operator()(const timer *t1, const timer *t2) {
+bool event_queue_t::timer_gt::operator()(const timer_t *t1, const timer_t *t2) {
     if (t1->it.it_value.tv_sec != t2->it.it_value.tv_sec)
         return t1->it.it_value.tv_sec > t2->it.it_value.tv_sec;
     return t1->it.it_value.tv_nsec > t2->it.it_value.tv_nsec;
@@ -603,7 +603,7 @@ void event_queue_t::timer_add_internal(timespec *ts, void (*callback)(void *),
     timespec now;
 
     clock_gettime(CLOCK_MONOTONIC, &now);
-    timer *t = new timer;
+    timer_t *t = new timer_t();
     if (once) {
         t->it.it_interval.tv_sec = 0;
         t->it.it_interval.tv_nsec = 0;

@@ -3,8 +3,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "utils.hpp"
 #include "config/cmd_args.hpp"
+#include "config/code.hpp"
+#include "utils.hpp"
 
 static const char* default_db_file_name = "data.file";
 

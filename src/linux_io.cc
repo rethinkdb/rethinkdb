@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include "arch/io.hpp"
 #include "config/args.hpp"
+#include "config/code.hpp"
 #include "utils.hpp"
 #include "event_queue.hpp"
 #include "alloc/memalign.hpp"

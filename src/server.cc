@@ -6,6 +6,8 @@
 #include <strings.h>
 #include <fcntl.h>
 #include <signal.h>
+#include "config/args.hpp"
+#include "config/code.hpp"
 #include "utils.hpp"
 #include "worker_pool.hpp"
 #include "event_queue.hpp"

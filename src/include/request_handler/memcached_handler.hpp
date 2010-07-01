@@ -8,7 +8,7 @@
 
 template<class config_t>
 class memcached_handler_t : public request_handler_t<config_t>,
-    public alloc_mixin_t<tls_small_obj_alloc_accessor<typename config_t::alloc_t>, memcached_handler_t<config_t> > {
+    public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, memcached_handler_t<config_t> > {
 public:
     typedef typename config_t::cache_t cache_t;
     typedef typename config_t::conn_fsm_t conn_fsm_t;

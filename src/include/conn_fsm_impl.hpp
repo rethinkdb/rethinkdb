@@ -19,7 +19,8 @@ void conn_fsm<config_t>::init_state() {
 // This function returns the socket to clean connected state
 template<class config_t>
 void conn_fsm<config_t>::return_to_socket_connected() {
-    delete this->buf;
+    if(this->buf)
+        delete (this->buf);
     init_state();
 }
 

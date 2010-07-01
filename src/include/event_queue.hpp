@@ -32,7 +32,6 @@ struct event_queue_t : public sync_callback<code_config_t> {
 public:
     typedef code_config_t::cache_t cache_t;
     typedef code_config_t::conn_fsm_t conn_fsm_t;
-    typedef code_config_t::alloc_t alloc_t;
     typedef code_config_t::fsm_list_t fsm_list_t;
     
 public:
@@ -90,7 +89,7 @@ public:
     io_calls_t iosys;
 
 private:
-    struct timer {
+    struct timer_t : public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, timer_t> {
         itimerspec it;
         void (*callback)(void *ctx);
         void *context;
@@ -103,9 +102,9 @@ private:
         bool once);
 
     struct timer_gt {
-        bool operator()(const timer *t1, const timer *t2);
+        bool operator()(const timer_t *t1, const timer_t *t2);
     };
-    std::priority_queue<timer *, std::vector<timer *>, timer_gt> timers;
+    std::priority_queue<timer_t*, std::vector<timer_t*>, timer_gt> timers;
 };
 
 #endif // __EVENT_QUEUE_HPP__

@@ -10,7 +10,7 @@
 // TODO: What about interval=+inf (never flush)?
 
 template <class config_t>
-struct writeback_tmpl_t : public lock_available_callback<config_t> {
+struct writeback_tmpl_t : public lock_available_callback_t {
 public:
     typedef typename config_t::transaction_t transaction_t;
     typedef typename config_t::cache_t cache_t;
@@ -74,7 +74,7 @@ private:
     /* Internal variables used at all times. */
     cache_t *cache;
     unsigned int num_txns;
-    rwi_lock<config_t> *flush_lock;
+    rwi_lock_t *flush_lock;
     std::set<txn_state_t> txns;
     std::set<block_id_t> dirty_blocks;
     std::vector<sync_callback_t *> sync_callbacks;

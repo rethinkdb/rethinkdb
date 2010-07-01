@@ -71,7 +71,9 @@ private:
 
 /* Transaction class. */
 template <class config_t>
-class transaction : public lock_available_callback<config_t> {
+class transaction : public lock_available_callback_t,
+                    public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, transaction<config_t> >
+{
 public:
     typedef typename config_t::serializer_t serializer_t;
     typedef typename config_t::concurrency_t concurrency_t;
@@ -114,10 +116,10 @@ public:
 
 template <class config_t>
 struct mirrored_cache_t : public config_t::serializer_t,
-                          public config_t::buffer_alloc_t,
                           public config_t::page_map_t,
                           public config_t::page_repl_t,
-                          public config_t::writeback_t
+                          public config_t::writeback_t,
+                          public buffer_alloc_t
 {
 public:
     typedef typename config_t::serializer_t serializer_t;
@@ -125,7 +127,6 @@ public:
     typedef typename config_t::page_repl_t page_repl_t;
     typedef typename config_t::writeback_t writeback_t;
     typedef typename config_t::transaction_t transaction_t;
-    typedef typename config_t::buffer_alloc_t buffer_alloc_t;
     typedef typename config_t::concurrency_t concurrency_t;
     typedef typename config_t::page_map_t page_map_t;
     typedef typename config_t::buf_t buf_t;

@@ -3,6 +3,7 @@
 #define __MEMALIGN_ALLOC_HPP__
 
 #include <stdlib.h>
+#include <strings.h>
 
 template<int alignment = 1024 * 8>
 struct memalign_alloc_t {

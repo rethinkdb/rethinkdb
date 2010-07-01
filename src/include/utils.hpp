@@ -5,6 +5,7 @@
 #include <errno.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include "corefwd.hpp"
 
 static inline void check(const char *msg, bool err) {
     if (err) {
@@ -33,7 +34,8 @@ bool contains_tokens(char *start, char *end, const char *delims);
 
 // Buffer
 template <int _size>
-struct buffer_t {
+struct buffer_t //: public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, buffer_t<_size> >
+{
     char buf[_size];
     static const int size = _size;
 };

@@ -4,6 +4,8 @@
 #include <unistd.h>
 #include <new>
 #include <exception>
+#include "config/args.hpp"
+#include "config/code.hpp"
 #include "utils.hpp"
 
 int get_cpu_count() {
