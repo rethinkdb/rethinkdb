@@ -53,3 +53,16 @@ int sized_strcmp(const char *str1, int len1, const char *str2, int len2) {
     return res;
 }
 
+void *_gmalloc(size_t size) {
+    void *ptr = NULL;
+    int res = posix_memalign((void**)&ptr, 64, size);
+    if(res != 0)
+        return NULL;
+    else
+        return ptr;
+}
+
+void _gfree(void *ptr) {
+    free(ptr);
+}
+

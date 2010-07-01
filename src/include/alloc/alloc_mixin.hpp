@@ -23,13 +23,15 @@ public:
 template <class alloc_t>
 class tls_small_obj_alloc_accessor {
 public:
+    typedef std::vector<alloc_t*, gnew_alloc<alloc_t*> > alloc_vector_t;
+public:
     // get_alloc will create a thread local version of the allocator
     // for every type
     template <class type_t>
     static alloc_t* get_alloc() {
         static __thread alloc_t *alloc = NULL;
         if(!allocs_tl)
-            allocs_tl = new std::vector<alloc_t*>;
+            allocs_tl = gnew<alloc_vector_t>();
 
         if(!alloc) {
 #ifdef NDEBUG
@@ -43,7 +45,7 @@ public:
         return alloc;
     }
     
-    static __thread std::vector<alloc_t*> *allocs_tl;
+    static __thread alloc_vector_t *allocs_tl;
 };
 
 #include "alloc/alloc_mixin_impl.hpp"

@@ -8,7 +8,9 @@
  * The small object accessor creates small object allocators per
  * thread per type on the fly.
  */
-template <class alloc_t> __thread std::vector<alloc_t*>* tls_small_obj_alloc_accessor<alloc_t>::allocs_tl = NULL;
+template <class alloc_t>
+__thread std::vector<alloc_t*, gnew_alloc<alloc_t*> >*
+tls_small_obj_alloc_accessor<alloc_t>::allocs_tl = NULL;
 
 /**
  * Allocation mixin using a TLS accessor for all new() and delete() calls.
