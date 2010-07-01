@@ -20,7 +20,9 @@
 template <class config_t>
 class buf : public iocallback_t,
             public config_t::writeback_t::local_buf_t,
-            public config_t::concurrency_t::local_buf_t {
+            public config_t::concurrency_t::local_buf_t,
+            public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, buf<config_t> >
+{
 public:
     typedef typename config_t::serializer_t serializer_t;
     typedef typename config_t::transaction_t transaction_t;
