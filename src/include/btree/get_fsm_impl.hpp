@@ -100,6 +100,8 @@ typename btree_get_fsm<config_t>::transition_result_t btree_get_fsm<config_t>::d
     node_t *node = (node_t *)buf->ptr();
     if(node->is_internal()) {
         block_id_t next_node_id = ((internal_node_t*)node)->lookup(key);
+        assert(!cache_t::is_block_id_null(next_node_id));
+        assert(next_node_id != cache->get_superblock_id());
         last_buf = buf;
         node_id = next_node_id;
         buf = transaction->acquire(node_id, rwi_read, this);

@@ -284,6 +284,8 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
                 
             // Look up the next node
             node_id = ((internal_node_t*)node)->lookup(key);
+            assert(!cache_t::is_block_id_null(node_id));
+            assert(node_id != cache->get_superblock_id());
             buf = NULL;
         }
     }
