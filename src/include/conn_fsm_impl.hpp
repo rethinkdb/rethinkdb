@@ -20,7 +20,7 @@ void conn_fsm<config_t>::init_state() {
 template<class config_t>
 void conn_fsm<config_t>::return_to_socket_connected() {
     if(this->buf)
-        delete (this->buf);
+        delete (iobuf_t*)(this->buf);
     init_state();
 }
 
@@ -31,6 +31,7 @@ template<class config_t>
 typename conn_fsm<config_t>::result_t conn_fsm<config_t>::do_socket_ready(event_t *event) {
     ssize_t sz;
     conn_fsm *state = (conn_fsm*)event->state;
+    assert(state == this);
 
     if(event->event_type == et_sock) {
         if(state->buf == NULL) {
@@ -208,7 +209,7 @@ conn_fsm<config_t>::~conn_fsm() {
     close(source);
     delete req_handler;
     if(this->buf) {
-        delete this->buf;
+        delete (iobuf_t*)(this->buf);
     }
 }
 

@@ -23,6 +23,7 @@ long get_total_ram() {
 // Redefine operator new to do cache-lines alignment
 void* operator new(size_t size) throw(std::bad_alloc) {
     void *ptr = NULL;
+    printf("belissimo!\n");
     int res = posix_memalign(&ptr, 64, size);
     if(res != 0)
         throw std::bad_alloc();
