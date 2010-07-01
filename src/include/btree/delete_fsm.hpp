@@ -16,7 +16,6 @@ public:
     typedef typename node_t::leaf_node_t leaf_node_t;
     typedef typename node_t::internal_node_t internal_node_t;
     typedef typename config_t::cache_t cache_t;
-    typedef typename cache_t::block_id_t block_id_t;
     typedef typename btree_fsm_t::transition_result_t transition_result_t;
     typedef typename cache_t::buf_t buf_t;
 

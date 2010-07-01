@@ -9,7 +9,7 @@
 // TODO: consider redoing nodes with a visitor pattern to avoid ugly casts
 
 template <class config_t>
-typename btree_fsm<config_t>::block_id_t btree_fsm<config_t>::get_root_id(void *superblock_buf) {
+block_id_t btree_fsm<config_t>::get_root_id(void *superblock_buf) {
     return *((block_id_t*)superblock_buf);
 }
 

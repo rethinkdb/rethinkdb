@@ -13,10 +13,7 @@ class btree_get_fsm : public btree_fsm<config_t>,
 public:
     typedef typename config_t::btree_fsm_t btree_fsm_t;
     typedef typename config_t::node_t node_t;
-    typedef typename node_t::leaf_node_t leaf_node_t;
-    typedef typename node_t::internal_node_t internal_node_t;
     typedef typename config_t::cache_t cache_t;
-    typedef typename cache_t::block_id_t block_id_t;
     typedef typename btree_fsm_t::transition_result_t transition_result_t;
     typedef typename cache_t::buf_t buf_t;
 
@@ -37,10 +34,10 @@ public:
 public:
     explicit btree_get_fsm(cache_t *cache)
         : btree_fsm_t(cache, btree_fsm_t::btree_get_fsm),
-          state(uninitialized), last_buf(NULL), buf(NULL), node_id(cache_t::null_block_id)
+          key((btree_key*)key_memory), state(uninitialized), last_buf(NULL), buf(NULL), node_id(cache_t::null_block_id)
         {}
 
-    void init_lookup(int _key);
+    void init_lookup(btree_key *_key);
     virtual transition_result_t do_transition(event_t *event);
 
     virtual bool is_finished() { return state == lookup_complete; }
@@ -48,7 +45,7 @@ public:
 public:
     op_result_t op_result;
     int value;
-    int key;
+    btree_key * const key;
 
 private:
     using btree_fsm<config_t>::cache;
@@ -59,6 +56,7 @@ private:
     transition_result_t do_acquire_node(event_t *event);
 
 private:
+    char key_memory[MAX_KEY_SIZE+sizeof(btree_key)];
     // Some relevant state information
     state_t state;
     buf_t *last_buf, *buf;

@@ -18,6 +18,9 @@ template <class config_t>
 struct page_repl_none_t;
 
 template <class config_t>
+struct page_repl_random_t;
+
+template <class config_t>
 struct fallthrough_cache_t;
 
 template <class config_t>
@@ -42,20 +45,19 @@ template <class config_t>
 struct cache_stats_t;
 
 // Btree
-template <typename block_id_t>
-struct array_node_t;
+struct btree_node;
 
-template <typename block_id_t>
+template <typename config_t>
 class btree_fsm;
 
-template <typename block_id_t>
+template <typename config_t>
 class btree_get_fsm;
 
-template <typename block_id_t>
+template <typename config_t>
 class btree_set_fsm;
 
-template <typename block_id_t>
-class btree_delete_fsm;
+//template <typename config_t>
+//class btree_delete_fsm;
 
 template <class config_t>
 class btree_admin;

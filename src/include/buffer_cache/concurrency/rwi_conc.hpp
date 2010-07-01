@@ -18,10 +18,10 @@
 template<class config_t>
 struct rwi_conc_t {
     typedef block_available_callback<config_t> block_available_callback_t;
-    typedef typename config_t::buf_t global_buf_t;
+    typedef typename config_t::buf_t buf_t;
     
-    struct buf_t : public lock_available_callback_t {
-        explicit buf_t(global_buf_t *_gbuf)
+    struct local_buf_t : public lock_available_callback_t {
+        explicit local_buf_t(buf_t *_gbuf)
             : lock(&get_cpu_context()->event_queue->message_hub,
                    get_cpu_context()->event_queue->queue_id),
               gbuf(_gbuf)
@@ -30,6 +30,10 @@ struct rwi_conc_t {
         virtual void on_lock_available() {
             // We're calling back objects that were waiting on a lock. Because
             // of that, we can only call one.
+            // TODO: There's no reason why more than one reader can't go at the same time, but this
+            // logic won't allow that. Ideally we would use the existing lock-queue logic in
+            // rwi_lock, instead of the buf_t keeping track of its own queue separately from the
+            // queue in its lock.
             if(!lock_callbacks.empty()) {
                 lock_callbacks.front()->on_block_available(gbuf);
                 lock_callbacks.pop();
@@ -45,7 +49,7 @@ struct rwi_conc_t {
 
     private:
         std::queue<block_available_callback_t*> lock_callbacks;
-        global_buf_t *gbuf;
+        buf_t *gbuf;
     };
 
     /* Returns true if acquired successfully */

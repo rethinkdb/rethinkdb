@@ -54,6 +54,10 @@ void rwi_lock_t::unlock_intent() {
     process_queue();
 }
 
+bool rwi_lock_t::locked() {
+	return (state != rwis_unlocked);
+}
+
 bool rwi_lock_t::try_lock(access_t access, bool from_queue) {
     bool res = false;
     switch(access) {

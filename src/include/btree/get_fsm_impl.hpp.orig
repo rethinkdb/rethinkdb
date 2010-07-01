@@ -101,11 +101,16 @@ typename btree_get_fsm<config_t>::transition_result_t btree_get_fsm<config_t>::d
     last_buf->release();
     last_buf = NULL;
     
-    node_t *node = (node_t *)buf->ptr();
+<<<<<<< HEAD:src/include/btree/get_fsm_impl.hpp
+    node_t *node = buf->node();
     if(node_handler::is_internal(node)) {
         block_id_t next_node_id = internal_node_handler::lookup((internal_node_t*)node, key);
-		assert(!cache_t::is_block_id_null(next_node_id));
-        assert(next_node_id != cache->get_superblock_id());
+        /* XXX XXX Cannot release until the next acquire succeeds for locks! */
+=======
+    node_t *node = (node_t *)buf->ptr();
+    if(node->is_internal()) {
+        block_id_t next_node_id = ((internal_node_t*)node)->lookup(key);
+>>>>>>> 62002fc16056a94b696fd507231c5cf0fb29e962:src/include/btree/get_fsm_impl.hpp
         last_buf = buf;
         node_id = next_node_id;
         buf = transaction->acquire(node_id, rwi_read, this);
@@ -115,8 +120,13 @@ typename btree_get_fsm<config_t>::transition_result_t btree_get_fsm<config_t>::d
             return btree_fsm_t::transition_incomplete;
         }
     } else {
+<<<<<<< HEAD:src/include/btree/get_fsm_impl.hpp
         int result = leaf_node_handler::lookup((leaf_node_t*)node, key, &value);
+        buf->release(this);
+=======
+        int result = ((leaf_node_t*)node)->lookup(key, &value);
         buf->release();
+>>>>>>> 62002fc16056a94b696fd507231c5cf0fb29e962:src/include/btree/get_fsm_impl.hpp
         state = lookup_complete;
         op_result = result == 1 ? btree_found : btree_not_found;
         return btree_fsm_t::transition_ok;

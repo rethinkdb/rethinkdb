@@ -12,7 +12,6 @@ template <class config_t>
 class btree_admin {
 public:
     typedef typename config_t::serializer_t serializer_t;
-    typedef typename serializer_t::block_id_t block_id_t;
     
 public:
     static void create_db(resource_t fd) {

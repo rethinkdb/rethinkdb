@@ -35,6 +35,9 @@ public:
             : writeback(wb), dirty(false) {}
 
         bool is_dirty() const { return dirty; }
+        
+        // The argument to set_dirty() is actually 'this'; local_buf_t is a mixin for buf_t, but it
+        // doesn't know that, so we need to pass a pointer in buf_t form.
         void set_dirty(buf_t *buf);
 
         void set_clean() {
@@ -49,7 +52,6 @@ public:
 
 private:
     typedef typename config_t::serializer_t serializer_t;
-    typedef typename serializer_t::block_id_t block_id_t;
     typedef transaction_commit_callback<config_t> transaction_commit_callback_t;
     typedef sync_callback<config_t> sync_callback_t;
     typedef std::pair<transaction_t *, transaction_commit_callback_t *>
