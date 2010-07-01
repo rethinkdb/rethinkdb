@@ -63,7 +63,7 @@ public:
     typedef std::size_t size_type;
     typedef std::ptrdiff_t difference_type;
 
-public: 
+public:
     // convert an allocator<T> to allocator<U>
     template<typename U>
     struct rebind {
@@ -71,18 +71,21 @@ public:
     };
 
 public: 
-    inline explicit gnew_alloc() {}
-    inline ~gnew_alloc() {}
-    inline explicit gnew_alloc(gnew_alloc const&) {}
+    inline gnew_alloc() {}
+
+    inline gnew_alloc(const gnew_alloc&) {}
     template<typename U>
-    inline explicit gnew_alloc(gnew_alloc<U> const&) {}
+    
+    inline gnew_alloc(const gnew_alloc<U>&) {}
+    
+    inline ~gnew_alloc() {}
 
     // address
     inline pointer address(reference r) { return &r; }
-    inline const_pointer address(const_reference r) { return &r; }
+    inline const_pointer address(const_reference r) const { return &r; }
 
     // memory allocation
-    inline pointer allocate(size_type cnt, typename std::allocator<void>::const_pointer = 0)
+    inline pointer allocate(size_type cnt, const void* = 0)
     {
         return reinterpret_cast<pointer>(_gmalloc(sizeof(T) * cnt)); 
     }
@@ -98,10 +101,18 @@ public:
     // construction/destruction
     inline void construct(pointer p, const T& t) { new(p) T(t); }
     inline void destroy(pointer p) { p->~T(); }
-
-    inline bool operator==(gnew_alloc const&) { return true; }
-    inline bool operator!=(gnew_alloc const& a) { return !operator==(a); }
 };
+
+
+template<typename _Tp>
+inline bool operator==(const gnew_alloc<_Tp>&, const gnew_alloc<_Tp>&)
+{ return true; }
+  
+template<typename _Tp>
+inline bool operator!=(const gnew_alloc<_Tp>&, const gnew_alloc<_Tp>&)
+{ return false; }
+
+
 
 #endif // __UTILS_IMPL_HPP__
 

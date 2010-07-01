@@ -385,8 +385,10 @@ event_queue_t::event_queue_t(int queue_id, int _nqueues, event_handler_t event_h
     // Init the cache
     cache = gnew<cache_t>(BTREE_BLOCK_SIZE, cmd_config->max_cache_size / nqueues,
                           cmd_config->wait_for_flush, cmd_config->flush_interval_ms);
-    std::string str((char*)cmd_config->db_file_name);
-    std::stringstream out;
+    typedef std::basic_string<char, std::char_traits<char>, gnew_alloc<char> > rdbstring_t;
+    typedef std::basic_stringstream<char, std::char_traits<char>, gnew_alloc<char> > rdbstringstream_t;
+    rdbstringstream_t out;
+    rdbstring_t str((char*)cmd_config->db_file_name);
     out << queue_id;
     str += out.str();
     cache->init((char*)str.c_str());
