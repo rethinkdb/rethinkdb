@@ -52,7 +52,6 @@ public:
 
 private:
     typedef typename config_t::serializer_t serializer_t;
-    typedef typename serializer_t::block_id_t block_id_t;
     typedef transaction_commit_callback<config_t> transaction_commit_callback_t;
     typedef sync_callback<config_t> sync_callback_t;
     typedef std::pair<transaction_t *, transaction_commit_callback_t *>

@@ -23,7 +23,6 @@ class buf : public iocallback_t,
             public config_t::concurrency_t::local_buf_t {
 public:
     typedef typename config_t::serializer_t serializer_t;
-    typedef typename serializer_t::block_id_t block_id_t;
     typedef typename config_t::transaction_t transaction_t;
     typedef typename config_t::concurrency_t concurrency_t;
     typedef typename config_t::cache_t cache_t;
@@ -82,7 +81,6 @@ class transaction : public lock_available_callback<config_t> {
 public:
     typedef typename config_t::serializer_t serializer_t;
     typedef typename config_t::concurrency_t concurrency_t;
-    typedef typename serializer_t::block_id_t block_id_t;
     typedef typename config_t::cache_t cache_t;
     typedef typename config_t::buf_t buf_t;
     typedef block_available_callback<config_t> block_available_callback_t;
@@ -128,7 +126,6 @@ struct mirrored_cache_t : public config_t::serializer_t,
 {
 public:
     typedef typename config_t::serializer_t serializer_t;
-    typedef typename serializer_t::block_id_t block_id_t;
     typedef typename config_t::page_repl_t page_repl_t;
     typedef typename config_t::writeback_t writeback_t;
     typedef typename config_t::transaction_t transaction_t;

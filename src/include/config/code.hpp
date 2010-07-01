@@ -43,10 +43,11 @@ struct standard_config_t {
 
     // BTree
     typedef btree_admin<standard_config_t> btree_admin_t;
-    typedef array_node_t<off64_t> node_t;
+    typedef btree_node node_t;
     typedef btree_get_fsm<standard_config_t> btree_get_fsm_t;
     typedef btree_set_fsm<standard_config_t> btree_set_fsm_t;
-    typedef btree_delete_fsm<standard_config_t> btree_delete_fsm_t;
+    //typedef btree_delete_fsm<standard_config_t> btree_delete_fsm_t;
+
 
     // Request handler
     typedef request_handler_t<standard_config_t> req_handler_t;
@@ -61,6 +62,7 @@ struct standard_config_t {
 };
 
 typedef standard_config_t code_config_t;
+
 
 #endif // __CONFIG_CODE_H__
 

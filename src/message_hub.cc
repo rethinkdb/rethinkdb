@@ -3,11 +3,13 @@
 #include "message_hub.hpp"
 #include "event_queue.hpp"
 
-int key_to_cpu(int key, unsigned int ncpus)
+int key_to_cpu(btree_key *key, unsigned int ncpus)
 {
     // TODO: we better find a good hash function or the whole
     // concurrency model goes to crap.
-    return key % ncpus;
+
+    //FIXME: This temporary hash results in uneven distribution
+    return key->contents[key->size-1] % ncpus;
 }
 
 void message_hub_t::init(unsigned int cpu_id, unsigned int _ncpus, event_queue_t *eqs[])
