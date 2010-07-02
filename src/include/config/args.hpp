@@ -6,9 +6,6 @@
  * Basic configuration parameters.
  * TODO: Many of these should be runtime switches.
  */
-// Ticks (in milliseconds) the internal timed tasks are performed at
-#define TIMER_TICKS_IN_MS                         50
-
 // Max concurrent IO requests per event queue
 #define MAX_CONCURRENT_IO_REQUESTS                256
 
@@ -60,6 +57,9 @@
 
 // Default port to listen on
 #define DEFAULT_LISTEN_PORT                       8080
+
+// Ticks (in milliseconds) the internal timed tasks are performed at
+#define TIMER_TICKS_IN_MS                         50
 
 // How many milliseconds between flushes.
 #define DEFAULT_WRITEBACK_INTERVAL_MS             5000
