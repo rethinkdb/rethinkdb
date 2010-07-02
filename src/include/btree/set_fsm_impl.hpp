@@ -106,6 +106,7 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
     if(buf == NULL) {
         return btree_fsm_t::transition_incomplete;
     } else {
+        node_handler::validate((node_t *)buf->ptr());
         state = acquire_node;
         return btree_fsm_t::transition_ok;
     }
@@ -154,8 +155,10 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
         buf = (buf_t*)event->buf;
     }
 
-    if(buf)
+    if(buf) {
+        node_handler::validate((node_t *)buf->ptr());
         return btree_fsm_t::transition_ok;
+    }
     else
         return btree_fsm_t::transition_incomplete;
 }

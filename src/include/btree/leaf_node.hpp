@@ -36,7 +36,9 @@ class leaf_node_handler : public node_handler {
     static bool remove(btree_leaf_node *node, btree_key *key); //Currently untested
 
     static bool is_full(btree_leaf_node *node, btree_key *key);
-
+    
+    static void validate(btree_leaf_node *node);
+    
     protected:
     static size_t pair_size(btree_leaf_pair *pair);
     static btree_leaf_pair *get_pair(btree_leaf_node *node, uint16_t offset);

@@ -97,6 +97,8 @@ typename btree_get_fsm<config_t>::transition_result_t btree_get_fsm<config_t>::d
     }
     assert(buf);
 
+    node_handler::validate((node_t *)buf->ptr());
+
     // Release the previous buffer
     last_buf->release();
     last_buf = NULL;
@@ -104,7 +106,7 @@ typename btree_get_fsm<config_t>::transition_result_t btree_get_fsm<config_t>::d
     node_t *node = (node_t *)buf->ptr();
     if(node_handler::is_internal(node)) {
         block_id_t next_node_id = internal_node_handler::lookup((internal_node_t*)node, key);
-		assert(!cache_t::is_block_id_null(next_node_id));
+        assert(!cache_t::is_block_id_null(next_node_id));
         assert(next_node_id != cache->get_superblock_id());
         last_buf = buf;
         node_id = next_node_id;
