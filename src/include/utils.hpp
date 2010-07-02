@@ -6,6 +6,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+struct btree_key;
+
 static inline void check(const char *msg, bool err) {
     if (err) {
         if(errno == 0)
@@ -24,6 +26,8 @@ void *malloc_aligned(size_t size, size_t alignment = 64);
 
 //fast string compare
 int sized_strcmp(const char *str1, int len1, const char *str2, int len2);
+
+void keycpy(btree_key *dest, btree_key *src);
 
 // Buffer
 template <int _size>

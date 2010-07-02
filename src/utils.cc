@@ -6,6 +6,7 @@
 #include <exception>
 #include "utils.hpp"
 #include <algorithm>
+#include "btree/node.hpp"
 
 int get_cpu_count() {
     return sysconf(_SC_NPROCESSORS_ONLN);
@@ -50,3 +51,6 @@ int sized_strcmp(const char *str1, int len1, const char *str2, int len2) {
     return res;
 }
 
+inline void keycpy(btree_key *dest, btree_key *src) {
+    memcpy(dest, src, sizeof(btree_key) + src->size);
+}

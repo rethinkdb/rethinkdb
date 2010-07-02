@@ -23,6 +23,11 @@ void internal_node_handler::init(btree_internal_node *node, btree_internal_node 
     std::sort(node->pair_offsets, node->pair_offsets+node->npairs, internal_key_comp(node));
 }
 
+block_id_t internal_node_handler::lookup(btree_internal_node *node, btree_key *key) {
+    int index = get_offset_index(node, key);
+    return get_pair(node, node->pair_offsets[index])->lnode;
+}
+
 int internal_node_handler::insert(btree_internal_node *node, btree_key *key, block_id_t lnode, block_id_t rnode) {
     //TODO: write a unit test for this
     check("key too large", key->size > MAX_KEY_SIZE);
@@ -44,9 +49,15 @@ int internal_node_handler::insert(btree_internal_node *node, btree_key *key, blo
     return 1; // XXX
 }
 
-block_id_t internal_node_handler::lookup(btree_internal_node *node, btree_key *key) {
+bool internal_node_handler::remove(btree_internal_node *node, btree_key *key) {
     int index = get_offset_index(node, key);
-    return get_pair(node, node->pair_offsets[index])->lnode;
+    delete_pair(node, node->pair_offsets[index]);
+    delete_offset(node, index);
+
+    if (index == node->npairs)
+        make_last_pair_special(node);
+
+    return true; // XXX
 }
 
 void internal_node_handler::split(btree_internal_node *node, btree_internal_node *rnode, btree_key *median) {
@@ -76,15 +87,28 @@ void internal_node_handler::split(btree_internal_node *node, btree_internal_node
     make_last_pair_special(node);
 }
 
-bool internal_node_handler::remove(btree_internal_node *node, btree_key *key) {
+void internal_node_handler::merge(btree_internal_node *node, btree_internal_node *rnode, btree_key *key_to_remove, btree_internal_node *parent) {
+    //TODO: stub
+}
+
+void internal_node_handler::level(btree_internal_node *node, btree_internal_node *rnode, btree_key *key_to_replace, btree_key *replacement_key, btree_internal_node *parent) {
+    //TODO: stub
+}
+
+int internal_node_handler::sibling(btree_internal_node *node, btree_key *key, block_id_t *sib_id) {
     int index = get_offset_index(node, key);
+    btree_internal_pair *sib_pair;
+    int cmp;
+    if (index != 0) {
+        sib_pair = get_pair(node, node->pair_offsets[index-1]);
+        cmp = 1;
+    } else {
+        sib_pair = get_pair(node, node->pair_offsets[index+1]);
+        cmp = -1;
+    }
 
-    make_last_pair_special(node);
-
-    delete_pair(node, node->pair_offsets[index]);
-    delete_offset(node, index);
-
-    return true; // XXX
+    *sib_id = sib_pair->lnode;
+    return cmp; //equivalent to nodecmp(node, sibling)
 }
 
 bool internal_node_handler::is_full(btree_internal_node *node) {
