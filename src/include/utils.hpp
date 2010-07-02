@@ -7,8 +7,6 @@
 #include <stdio.h>
 #include "corefwd.hpp"
 
-struct btree_key;
-
 static inline void check(const char *msg, bool err) {
     if (err) {
         if(errno == 0)
@@ -50,8 +48,6 @@ class gnew_alloc;
 
 // Fast string compare
 int sized_strcmp(const char *str1, int len1, const char *str2, int len2);
-
-void keycpy(btree_key *dest, btree_key *src);
 
 // Buffer
 template <int _size>

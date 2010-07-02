@@ -52,4 +52,8 @@ class node_handler {
         static void validate(btree_node *node);
 };
 
+inline void keycpy(btree_key *dest, btree_key *src) {
+    memcpy(dest, src, sizeof(btree_key) + src->size);
+}
+
 #endif // __BTREE_NODE_HPP__
