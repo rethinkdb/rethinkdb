@@ -108,44 +108,18 @@ void event_queue_t::process_timer_notify() {
 
     total_expirations += nexpirations;
 
-    // Let queue user handle the event, if they wish
-    if(event_handler) {
-        event_t qevent;
-        bzero((char*)&qevent, sizeof(qevent));
-        qevent.event_type = et_timer;
-        qevent.state = (void*)timer_fd;
-        qevent.result = nexpirations;
-        qevent.op = eo_read;
-        event_handler(this, &qevent);
-    }
-
-    /* Check for and execute any expired timers. */
-    timespec now;
-    clock_gettime(CLOCK_MONOTONIC, &now);
-
-    timer_t *t = timers.empty() ? NULL : timers.top();
-    while (t && (t->it.it_value.tv_sec < now.tv_sec ||
-           (t->it.it_value.tv_sec == now.tv_sec &&
-            t->it.it_value.tv_nsec <= now.tv_nsec))) {
-        timers.pop();
-
-        t->callback(t->context);
-
-        /* Adjust value for next iteration if the internal is non-zero. */
-        if (t->it.it_interval.tv_sec || t->it.it_interval.tv_nsec) {
-            t->it.it_value = now;
-            t->it.it_value.tv_sec += t->it.it_interval.tv_sec;
-            t->it.it_value.tv_nsec += t->it.it_interval.tv_nsec;
-            if (t->it.it_value.tv_nsec > NSEC_IN_SEC) {
-                t->it.it_value.tv_nsec -= NSEC_IN_SEC;
-                t->it.it_value.tv_sec += 1;
+    /* Execute any expired timers. */
+    timer_t *timer = timers.head();
+    while(timer) {
+        timer_t *_t = timer->next;
+        if((total_expirations * TIMER_TICKS_IN_MS) % timer->interval_ms == 0) {
+            timer->callback(timer->context);
+            if(timer->once) {
+                timers.remove(timer);
+                delete timer;
             }
-            timers.push(t);
-        } else {
-            delete t;
         }
-        
-        t = timers.empty() ? NULL : timers.top();
+        timer = _t;
     }
 }
 
@@ -240,10 +214,7 @@ void *event_queue_t::epoll_handler(void *arg) {
     self->cache->start();
 
     // Now, initialize the hardcoded (garbage collection)
-    timespec ts;
-    ts.tv_sec = 3;
-    ts.tv_nsec = 0;
-    self->timer_add(&ts, self->garbage_collect, NULL);
+    self->add_timer(ALLOC_GC_INTERVAL_MS, self->garbage_collect, NULL);
     
     // Now, start the loop
     do {
@@ -318,9 +289,9 @@ breakout:
 
     // Delete the registered timers
     while(!self->timers.empty()) {
-        timer_t *t = self->timers.top();
+        timer_t *t = self->timers.head();
+        self->timers.remove(t);
         delete t;
-        self->timers.pop();
     }
 
     for (std::vector<event_queue_t::conn_fsm_t *>::iterator it =
@@ -593,42 +564,21 @@ void event_queue_t::garbage_collect(void *ctx) {
 /**
  * Timer API
  */
-bool event_queue_t::timer_gt::operator()(const timer_t *t1, const timer_t *t2) {
-    if (t1->it.it_value.tv_sec != t2->it.it_value.tv_sec)
-        return t1->it.it_value.tv_sec > t2->it.it_value.tv_sec;
-    return t1->it.it_value.tv_nsec > t2->it.it_value.tv_nsec;
-}
-
-void event_queue_t::timer_add_internal(timespec *ts, void (*callback)(void *),
-    void *ctx, bool once) {
-    timespec now;
-
-    clock_gettime(CLOCK_MONOTONIC, &now);
+void event_queue_t::add_timer_internal(long ms, void (*callback)(void *), void *ctx, bool once) {
     timer_t *t = new timer_t();
-    if (once) {
-        t->it.it_interval.tv_sec = 0;
-        t->it.it_interval.tv_nsec = 0;
-    } else {
-        t->it.it_interval = *ts;
-    }
-    t->it.it_value = now;
-    t->it.it_value.tv_sec += ts->tv_sec;
-    t->it.it_value.tv_nsec += ts->tv_nsec;
-    if (t->it.it_value.tv_nsec > NSEC_IN_SEC) {
-        t->it.it_value.tv_nsec -= NSEC_IN_SEC;
-        t->it.it_value.tv_sec += 1;
-    }
+    t->once = once;
     t->callback = callback;
     t->context = ctx;
-    timers.push(t);
+    t->interval_ms = ms;
+    timers.push_back(t);
 }
 
-void event_queue_t::timer_add(timespec *ts, void (*cb)(void *), void *ctx) {
-    timer_add_internal(ts, cb, ctx, false);
+void event_queue_t::add_timer(long ms, void (*cb)(void *), void *ctx) {
+    add_timer_internal(ms, cb, ctx, false);
 }
 
-void event_queue_t::timer_once(timespec *ts, void (*cb)(void *), void *ctx) {
-    timer_add_internal(ts, cb, ctx, true);
+void event_queue_t::fire_timer_once(long ms, void (*cb)(void *), void *ctx) {
+    add_timer_internal(ms, cb, ctx, true);
 }
 
 void event_queue_t::on_sync() {

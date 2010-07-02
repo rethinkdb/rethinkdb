@@ -9,7 +9,7 @@ struct event_queue_t;
 
 // Event
 enum event_type_t {
-    et_empty, et_disk, et_sock, et_timer, et_request_complete, et_cache,
+    et_empty, et_disk, et_sock, et_request_complete, et_cache,
     et_cpu_event, et_commit
 };
 enum event_op_t {

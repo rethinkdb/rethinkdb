@@ -56,8 +56,8 @@ public:
 
     void pull_messages_for_cpu(message_hub_t::msg_list_t *target);
 
-    void timer_add(timespec *, void (*callback)(void *ctx), void *ctx);
-    void timer_once(timespec *, void (*callback)(void *ctx), void *ctx);
+    void  add_timer(long ms, void (*callback)(void *ctx), void *ctx);
+    void fire_timer_once(long ms, void (*callback)(void *ctx), void *ctx);
 
     virtual void on_sync();
 
@@ -89,8 +89,10 @@ public:
     io_calls_t iosys;
 
 private:
-    struct timer_t : public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, timer_t> {
-        itimerspec it;
+    struct timer_t : public intrusive_list_node_t<timer_t>,
+                     public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, timer_t> {
+        bool once;
+        long interval_ms;
         void (*callback)(void *ctx);
         void *context;
     };
@@ -98,13 +100,9 @@ private:
     static void *epoll_handler(void *ctx);
     void process_timer_notify();
     static void garbage_collect(void *ctx);
-    void timer_add_internal(timespec *, void (*callback)(void *ctx), void *ctx,
-        bool once);
+    void add_timer_internal(long ms, void (*callback)(void *ctx), void *ctx, bool once);
 
-    struct timer_gt {
-        bool operator()(const timer_t *t1, const timer_t *t2);
-    };
-    std::priority_queue<timer_t*, std::vector<timer_t*>, timer_gt> timers;
+    intrusive_list_t<timer_t> timers;
 };
 
 #endif // __EVENT_QUEUE_HPP__

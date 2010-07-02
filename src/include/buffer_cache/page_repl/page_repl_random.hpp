@@ -2,6 +2,8 @@
 #ifndef __PAGE_REPL_RANDOM_HPP__
 #define __PAGE_REPL_RANDOM_HPP__
 
+#include "config/args.hpp"
+
 // TODO: We should use mlock (or mlockall or related) to make sure the
 // OS doesn't swap out our pages, since we're doing swapping
 // ourselves.
@@ -32,11 +34,7 @@ public:
         {}
 
 	void start() {
-		int interval_ms = 3000; // TODO: This should be configurable?
-		timespec ts;
-		ts.tv_sec = interval_ms / 1000;
-		ts.tv_nsec = (interval_ms % 1000) * 1000 * 1000;
-		get_cpu_context()->event_queue->timer_add(&ts, timer_callback, this);
+		get_cpu_context()->event_queue->add_timer(PAGE_REPL_INTERVAL_MS, timer_callback, this);
 	}
 	void shutdown(sync_callback<config_t> *cb) {
 	}

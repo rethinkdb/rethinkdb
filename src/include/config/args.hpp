@@ -29,9 +29,6 @@
 // Initial number of objects in the first dynamic pool allocator.
 #define DYNAMIC_POOL_INITIAL_NOBJECTS             100
 
-// Perform allocator GC every N milliseconds (the resolution is limited to TIMER_TICKS_IN_MS)
-#define ALLOC_GC_IN_MS                            3000
-
 // Size of the buffer used to perform IO operations (in bytes).
 #define IO_BUFFER_SIZE                            4096
 
@@ -66,6 +63,12 @@
 
 // How many milliseconds between flushes.
 #define DEFAULT_WRITEBACK_INTERVAL_MS             5000
+
+// How many milliseconds between page replacements
+#define PAGE_REPL_INTERVAL_MS                     3000
+
+// Perform allocator GC every N milliseconds (the resolution is limited to TIMER_TICKS_IN_MS)
+#define ALLOC_GC_INTERVAL_MS                      3000
 
 #endif // __CONFIG_ARGS_H__
 

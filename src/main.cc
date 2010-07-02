@@ -108,9 +108,7 @@ void process_lock_msg(event_queue_t *event_queue, event_t *event, rwi_lock_t::lo
 
 // Handle events coming from the event queue
 void event_handler(event_queue_t *event_queue, event_t *event) {
-    if(event->event_type == et_timer) {
-        // Nothing to do here, move along
-    } else if(event->event_type == et_disk) {
+    if(event->event_type == et_disk) {
         // TODO: remove this from here.
         check("Handled through the callback system now", 1);
     } else if(event->event_type == et_sock) {
