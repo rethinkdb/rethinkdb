@@ -8,20 +8,15 @@
 #include "concurrency/access.hpp"
 
 // Forward declarations
-template<class config_t>
-struct rwi_lock;
+struct rwi_lock_t;
 
 /**
  * Callback class used to notify lock clients that they now have the
  * lock.
  */
-template<class config_t>
-struct lock_available_callback {
+struct lock_available_callback_t {
 public:
-    typedef rwi_lock<config_t> rwi_lock_t;
-    
-public:
-    virtual ~lock_available_callback() {}
+    virtual ~lock_available_callback_t() {}
     virtual void on_lock_available() = 0;
 };
 
@@ -31,14 +26,10 @@ public:
  * writing. This is useful in a btree setting, where something might
  * be locked with.
  */
-template<class config_t>
-struct rwi_lock {
-public:
-    typedef lock_available_callback<config_t> lock_available_callback_t;
-    
+struct rwi_lock_t {
 public:
     struct lock_request_t : public cpu_message_t,
-                            public alloc_mixin_t<tls_small_obj_alloc_accessor<typename config_t::alloc_t>,
+                            public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>,
                                                  lock_request_t>,
                             public intrusive_list_node_t<lock_request_t>
     {
@@ -53,7 +44,7 @@ public:
     // is responsible for freeing associated memory by calling delete.
     // TODO(NNW): We may want to select our message hub implicitly, rather than
     // making the user pass it in.  Either way, CPU is implicit from the hub.
-    rwi_lock(message_hub_t *_hub, unsigned int _cpu)
+    rwi_lock_t(message_hub_t *_hub, unsigned int _cpu)
         : hub(_hub), cpu(_cpu), state(rwis_unlocked), nreaders(0)
         {}
     
@@ -67,6 +58,10 @@ public:
     // Call if you've locked for intent before, didn't upgrade to
     // write, and are now unlocking.
     void unlock_intent();
+
+	// Returns true if the lock is locked in any form, but doesn't acquire the lock. (In the buffer
+	// cache, this is used by the page replacement algorithm to see whether the buffer is in use.)
+	bool locked();
 
 private:
     enum rwi_state {
@@ -94,8 +89,6 @@ private:
     int nreaders; // not counting reader with intent
     request_list_t queue;
 };
-
-#include "rwi_lock_impl.hpp"
 
 #endif // __RWI_LOCK_HPP__
 

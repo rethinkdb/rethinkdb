@@ -9,13 +9,12 @@
 #include <sys/types.h>
 #include <signal.h>
 #include <errno.h>
-
+#include "config/cmd_args.hpp"
+#include "config/code.hpp"
 #include "utils.hpp"
 #include "btree/node.hpp"
 #include "worker_pool.hpp"
 #include "server.hpp"
-#include "config/cmd_args.hpp"
-#include "config/code.hpp"
 #include "alloc/memalign.hpp"
 #include "alloc/pool.hpp"
 #include "alloc/dynamic_pool.hpp"
@@ -29,10 +28,11 @@
 #include "buffer_cache/stats.hpp"
 #include "buffer_cache/mirrored.hpp"
 #include "buffer_cache/page_map/unlocked_hash_map.hpp"
-#include "buffer_cache/page_repl/none.hpp"
+#include "buffer_cache/page_repl/page_repl_random.hpp"
 #include "buffer_cache/writeback/writeback.hpp"
 #include "buffer_cache/concurrency/rwi_conc.hpp"
 
+#include "btree/node_impl.hpp"
 #include "btree/internal_node_impl.hpp"
 #include "btree/leaf_node_impl.hpp"
 
@@ -102,16 +102,14 @@ void process_btree_msg(code_config_t::btree_fsm_t *btree_fsm) {
 }
 
 // TODO: this should really be moved into the event queue.
-void process_lock_msg(event_queue_t *event_queue, event_t *event, rwi_lock<code_config_t>::lock_request_t *lr) {
+void process_lock_msg(event_queue_t *event_queue, event_t *event, rwi_lock_t::lock_request_t *lr) {
     lr->callback->on_lock_available();
     delete lr;
 }
 
 // Handle events coming from the event queue
 void event_handler(event_queue_t *event_queue, event_t *event) {
-    if(event->event_type == et_timer) {
-        // Nothing to do here, move along
-    } else if(event->event_type == et_disk) {
+    if(event->event_type == et_disk) {
         // TODO: remove this from here.
         check("Handled through the callback system now", 1);
     } else if(event->event_type == et_sock) {
@@ -124,7 +122,7 @@ void event_handler(event_queue_t *event_queue, event_t *event) {
             process_btree_msg((code_config_t::btree_fsm_t*)msg);
             break;
         case cpu_message_t::mt_lock:
-            process_lock_msg(event_queue, event, (rwi_lock<code_config_t>::lock_request_t*)msg);
+            process_lock_msg(event_queue, event, (rwi_lock_t::lock_request_t*)msg);
             break;
         }
     } else {

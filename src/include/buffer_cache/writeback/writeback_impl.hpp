@@ -17,14 +17,14 @@ writeback_tmpl_t<config_t>::writeback_tmpl_t(cache_t *cache,
 
 template <class config_t>
 writeback_tmpl_t<config_t>::~writeback_tmpl_t() {
-    delete flush_lock;
+    gdelete(flush_lock);
 }
 
 template <class config_t>
 void writeback_tmpl_t<config_t>::start() {
     flush_lock =
-        new rwi_lock<config_t>(&get_cpu_context()->event_queue->message_hub,
-                               get_cpu_context()->event_queue->queue_id);
+        gnew<rwi_lock_t>(&get_cpu_context()->event_queue->message_hub,
+                         get_cpu_context()->event_queue->queue_id);
     start_flush_timer();
 }
 
@@ -80,20 +80,18 @@ void writeback_tmpl_t<config_t>::aio_complete(buf_t *buf, bool written) {
 
 template <class config_t>
 void writeback_tmpl_t<config_t>::local_buf_t::set_dirty(buf_t *super) {
-    if (!dirty)
-        super->pin();
+	// 'super' is actually 'this', but as a buf_t* instead of a local_buf_t*
     dirty = true;
+    // Maybe we should store a pointer to the block itself, instead of its ID; it shouldn't get
+    // swapped out because it's dirty.
     writeback->dirty_blocks.insert(super->get_block_id());
 }
 
 template <class config_t>
 void writeback_tmpl_t<config_t>::start_flush_timer() {
-	if (interval_ms != NEVER_FLUSH && interval_ms != 0) {
-		timespec ts;
-		ts.tv_sec = interval_ms / 1000;
-		ts.tv_nsec = (interval_ms % 1000) * 1000 * 1000;
-		get_cpu_context()->event_queue->timer_once(&ts, timer_callback, this);
-	}
+    if (interval_ms != NEVER_FLUSH && interval_ms != 0) {
+        get_cpu_context()->event_queue->fire_timer_once(interval_ms, timer_callback, this);
+    }
 }
 
 template <class config_t>
@@ -144,7 +142,7 @@ void writeback_tmpl_t<config_t>::writeback(buf_t *buf) {
 
         /* Request read locks on all of the blocks we need to flush. */
         for (typename std::set<block_id_t>::iterator it = dirty_blocks.begin();
-            it != dirty_blocks.end(); ++it) {
+             it != dirty_blocks.end(); ++it) {
             buf_t *buf = transaction->acquire(*it, rwi_read, NULL);
             assert(buf); // Acquire must succeed since we hold the flush_lock.
             flush_bufs.insert(buf);
@@ -169,7 +167,7 @@ void writeback_tmpl_t<config_t>::writeback(buf_t *buf) {
         // bufs earlier in the process so more write FSMs can proceed sooner.
         if (flush_bufs.size())
             cache->do_write(get_cpu_context()->event_queue, writes,
-                flush_bufs.size());
+                            flush_bufs.size());
         free(writes);
         state = state_write_bufs;
     }
@@ -183,13 +181,13 @@ void writeback_tmpl_t<config_t>::writeback(buf_t *buf) {
         if (flush_bufs.empty()) {
             /* Notify all waiting transactions of completion. */
             for (typename std::set<txn_state_t>::iterator it =
-                flush_txns.begin(); it != flush_txns.end(); ++it) {
+                     flush_txns.begin(); it != flush_txns.end(); ++it) {
                 it->first->committed(it->second);
             }
             flush_txns.clear();
 
             for (typename std::vector<sync_callback_t *>::iterator it =
-                 sync_callbacks.begin(); it != sync_callbacks.end(); ++it)
+                     sync_callbacks.begin(); it != sync_callbacks.end(); ++it)
                 (*it)->on_sync();
             sync_callbacks.clear();
 

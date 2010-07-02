@@ -31,6 +31,24 @@ public:
         ft_map.erase(i);
         return block;
     }
+    
+    /* The page replacement algorithm uses num_blocks() to decide when to remove some pages from
+    memory. */
+    int num_blocks() {
+    	return ft_map.size();
+    }
+    
+    /* The random page replacement algorithm calls this function to decide which block to unload. Is
+    this an unreasonable abstraction break? */
+    buf_t *get_random_block() {
+    	/* This is a really bad way to do it. It only works if RAND_MAX is much greater than
+    	num_blocks(). */
+    	int n = rand() % num_blocks();
+    	/* Also, this is linear time, which might be significant. */
+    	typename ft_map_t::iterator i = ft_map.begin();
+    	while (n--) i++;
+    	return i->second;
+    }
 
 protected:
     typedef std::map<block_id_t, buf_t *> ft_map_t;

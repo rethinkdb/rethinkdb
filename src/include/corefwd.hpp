@@ -18,6 +18,9 @@ template <class config_t>
 struct page_repl_none_t;
 
 template <class config_t>
+struct page_repl_random_t;
+
+template <class config_t>
 struct fallthrough_cache_t;
 
 template <class config_t>
@@ -91,6 +94,23 @@ struct pool_alloc_t;
 
 template <class super_alloc_t>
 struct alloc_stats_t;
+
+template <class accessor_t, class type_t>
+class alloc_mixin_t;
+
+template <class alloc_t>
+class tls_small_obj_alloc_accessor;
+
+// Utils
+template <int _size>
+struct buffer_t;
+
+// Containers
+template <class derived_t>
+class intrusive_list_node_t;
+
+template <class node_t>
+class intrusive_list_t;
 
 #endif // __COREFWD_HPP__
 

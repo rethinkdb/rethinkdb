@@ -4,6 +4,8 @@
 #include <unistd.h>
 #include <new>
 #include <exception>
+#include "config/args.hpp"
+#include "config/code.hpp"
 #include "utils.hpp"
 #include <algorithm>
 
@@ -16,7 +18,8 @@ long get_available_ram() {
 }
 
 long get_total_ram() {
-    return (long)sysconf(_SC_PHYS_PAGES) * (long)sysconf(_SC_PAGESIZE); }
+    return (long)sysconf(_SC_PHYS_PAGES) * (long)sysconf(_SC_PAGESIZE);
+}
 
 // Redefine operator new to do cache-lines alignment
 void* operator new(size_t size) throw(std::bad_alloc) {
@@ -48,5 +51,18 @@ int sized_strcmp(const char *str1, int len1, const char *str2, int len2) {
     if (res == 0)
         res = len1-len2;
     return res;
+}
+
+void *_gmalloc(size_t size) {
+    void *ptr = NULL;
+    int res = posix_memalign((void**)&ptr, 64, size);
+    if(res != 0)
+        return NULL;
+    else
+        return ptr;
+}
+
+void _gfree(void *ptr) {
+    free(ptr);
 }
 

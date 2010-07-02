@@ -8,8 +8,7 @@
 template <class config_t>
 buf<config_t>::buf(cache_t *cache, block_id_t block_id)
     : config_t::writeback_t::local_buf_t(cache),
-      config_t::page_repl_t::buf_t(cache),
-      config_t::concurrency_t::buf_t(this),
+      config_t::concurrency_t::local_buf_t(this),
     cache(cache),
     block_id(block_id),
     cached(false) {
@@ -26,12 +25,7 @@ void buf<config_t>::release() {
 #ifndef NDEBUG
     cache->n_blocks_released++;
 #endif
-    this->unpin();
     ((concurrency_t *)cache)->release(this);
-
-    // TODO: pinning/unpinning a block should come implicitly from
-    // concurrency_t because it maintains all relevant reference
-    // counts.
 }
 
 template <class config_t>
@@ -101,6 +95,9 @@ void transaction<config_t>::committed(transaction_commit_callback_t *callback) {
 template <class config_t>
 typename config_t::buf_t *
 transaction<config_t>::allocate(block_id_t *block_id) {
+
+	/* Make a completely new block, complete with a shiny new block_id. */
+	
     assert(event_queue == get_cpu_context()->event_queue);
 #ifndef NDEBUG
     cache->n_blocks_acquired++;
@@ -111,14 +108,17 @@ transaction<config_t>::allocate(block_id_t *block_id) {
     buf_t *buf = new buf_t(cache, *block_id);
     buf->set_cached(true);
     cache->set(*block_id, buf);
-    buf->pin();
-
+		
     // This must pass since no one else holds references to this
     // block.
     bool acquired __attribute__((unused)) =
         ((concurrency_t*)cache)->acquire(buf, rwi_write, NULL);
     assert(acquired);
-        
+
+	// For debugging purposes. The memory allocator will have filled it with 0xBD, but we need more
+	// information than that.
+	memset(buf->ptr(), 0xCD, cache->serializer_t::block_size);
+
     return buf;
 }
 
@@ -135,21 +135,34 @@ transaction<config_t>::acquire(block_id_t block_id, access_t mode,
 
     buf_t *buf = (buf_t *)cache->find(block_id);
     if (!buf) {
-        buf_t *buf = new buf_t(cache, block_id);
-        buf->pin();
+    	
+    	/* Unlike in allocate(), we aren't creating a new block; the block already existed but we
+    	are creating a buf to represent it in memory, and then loading it from disk. */
+    	
+    	// TODO: It's a little bit odd that the logic for loading blocks is here, but the logic for
+    	// unloading blocks is in cache_t.
+    	
+        buf = new buf_t(cache, block_id);
         
         // This must pass since no one else holds references to this block.
         bool acquired __attribute__((unused)) =
             ((concurrency_t*)cache)->acquire(buf, mode, NULL);
         assert(acquired);
         
+        // Make an entry in the page map
         cache->set(block_id, buf);
-
+        
+		// Since the buf isn't in memory yet, we're going to start an asynchronous load request and
+		// then call the callback when the load finishes. 
         buf->add_load_callback(callback);
-
-        cache->do_read(get_cpu_context()->event_queue, block_id, buf->ptr(), buf);
+        
+        // The callback when this completes will be sent to cache_t::aio_complete(), and from there
+        // to buf_t::notify_on_load(), and then to the client trying to acquire the block.
+        cache->do_read(get_cpu_context()->event_queue, block_id, buf->ptr_possibly_uncached(), buf);
+        
+        return NULL;
+        
     } else {
-        buf->pin();
 
         bool acquired = ((concurrency_t*)cache)->acquire(buf, mode, buf);
 
@@ -157,18 +170,16 @@ transaction<config_t>::acquire(block_id_t block_id, access_t mode,
             // Could not acquire block because of locking, add
             // callback to lock_callbacks.
             ((typename config_t::concurrency_t::buf_t*)buf)->add_lock_callback(callback);
+            return NULL;
         } else if(!buf->is_cached()) {
             // Acquired the block, but it's not cached yet, add
             // callback to load_callbacks.
             buf->add_load_callback(callback);
-        }
-
-        if (!acquired || !buf->is_cached()) {
-            buf = NULL;
+            return NULL;
+        } else {
+        	return buf;
         }
     }
-
-    return buf;
 }
 
 /**
@@ -176,18 +187,14 @@ transaction<config_t>::acquire(block_id_t block_id, access_t mode,
  */
 template <class config_t>
 mirrored_cache_t<config_t>::~mirrored_cache_t() {
-    for (typename page_map_t::ft_map_t::iterator it = ft_map.begin();
-         it != ft_map.end(); ++it) {
-        buf_t *buf = (*it).second;
-        bool acquired __attribute__((unused)) =
-            ((concurrency_t *)this)->acquire(buf, rwi_write, NULL);
-        assert(acquired);
-        assert(!buf->is_pinned()); // TODO(NNW): These should be RASSERT()s.
-        assert(!buf->is_dirty());
-        delete buf;
-    }
+	
+	while (!ft_map.empty()) {
+		buf_t *buf = ft_map.begin()->second;
+		do_unload_buf(buf);
+	}
     assert(n_blocks_released == n_blocks_acquired);
     assert(n_trans_created == n_trans_freed);
+    assert(ft_map.empty());
     serializer_t::close();
 }
 
@@ -211,12 +218,25 @@ void mirrored_cache_t<config_t>::aio_complete(buf_t *buf, bool written) {
     // same event_queue as the one on which the buf_t was created.
 
     if(written) {
-        buf->unpin();
         writeback_t::aio_complete(buf, written);
     } else {
         buf->set_cached(true);
         buf->notify_on_load();
     }
+}
+
+template <class config_t>
+void mirrored_cache_t<config_t>::do_unload_buf(buf_t *buf) {
+	bool acquired __attribute__((unused)) =
+		((concurrency_t *)this)->acquire(buf, rwi_write, NULL);
+	assert(acquired);
+	assert(!buf->is_dirty());
+	
+	// Inform the page map that the block in question no longer exists, and will have to be reloaded
+	// from disk the next time it is used
+	erase(buf->get_block_id());
+	
+	delete buf;
 }
 
 #endif  // __BUFFER_CACHE_MIRRORED_IMPL_HPP__

@@ -19,12 +19,12 @@ struct dynamic_pool_alloc_t {
         : nallocs(1), smallest_free(0), object_size(_object_size)
         {
             check("Dynamic pool configuration error", DYNAMIC_POOL_MAX_ALLOCS < nallocs);
-            allocs[0] = new super_alloc_t(compute_alloc_nobjects(0), object_size);
+            allocs[0] = gnew<super_alloc_t>(compute_alloc_nobjects(0), object_size);
             check("Could not allocate memory in dynamic pool", allocs[0] == NULL);
         }
     ~dynamic_pool_alloc_t() {
         for(unsigned int i = 0; i < nallocs; i++) {
-            delete allocs[i];
+            gdelete(allocs[i]);
         }
     }
 
@@ -46,8 +46,8 @@ struct dynamic_pool_alloc_t {
                 nallocs++;
                 smallest_free = nallocs - 1;
                 allocs[smallest_free] =
-                    new super_alloc_t(compute_alloc_nobjects(smallest_free),
-                                      object_size);
+                    gnew<super_alloc_t>(compute_alloc_nobjects(smallest_free),
+                                        object_size);
                 ptr = allocs[smallest_free]->malloc(size);
             }
         }
@@ -91,7 +91,7 @@ struct dynamic_pool_alloc_t {
 
         for(int i = nallocs - 1; i > 0; i--) {
             if(allocs[i]->empty()) {
-                delete allocs[i];
+                gdelete(allocs[i]);
                 allocs[i] = NULL;
                 nallocs--;
                 blocks_reclaimed++;
