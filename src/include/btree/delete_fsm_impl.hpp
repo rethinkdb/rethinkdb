@@ -128,10 +128,9 @@ typename btree_delete_fsm<config_t>::transition_result_t btree_delete_fsm<config
         assert(last_buf);
         node_t *last_node = (node_t *)last_buf->ptr();
 
-        int sib_key;
-        ((internal_node_t*)last_node)->sibling(key, &sib_key);
-        block_id_t sib_node_id = ((internal_node_t*)last_node)->lookup(sib_key);
-        sib_buf = transaction->acquire(sib_node_id, rwi_read, this);
+        block_id_t sib_id;
+        ((internal_node_t*)last_node)->sibling(key, &sib_id);
+        sib_buf = transaction->acquire(sib_id, rwi_read, this);
     } else {
         assert(event->buf);
         sib_buf = (buf_t*) event->buf;

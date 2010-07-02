@@ -326,8 +326,7 @@ typename memcached_handler_t<config_t>::parse_result_t memcached_handler_t<confi
     }
 
     // parsed successfully, but functionality not yet implemented
-    return unimplemented_request(fsm);
-    /*
+    //return unimplemented_request(fsm);
     request_t *request = new request_t(fsm);
 
     do {
@@ -348,7 +347,6 @@ typename memcached_handler_t<config_t>::parse_result_t memcached_handler_t<confi
 
     fsm->current_request = request;
     return req_handler_t::op_req_complex;
-    */
 }
 
 template <class config_t>
