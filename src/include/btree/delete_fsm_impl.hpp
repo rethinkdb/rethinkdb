@@ -35,6 +35,7 @@ typename btree_delete_fsm<config_t>::transition_result_t btree_delete_fsm<config
 
 template <class config_t>
 typename btree_delete_fsm<config_t>::transition_result_t btree_delete_fsm<config_t>::do_acquire_superblock(event_t *event) {
+    printf("Acquire superblock\n");
     assert(state == acquire_superblock);
 
     buf_t *buf = NULL;
@@ -66,6 +67,7 @@ typename btree_delete_fsm<config_t>::transition_result_t btree_delete_fsm<config
 
 template <class config_t>
 typename btree_delete_fsm<config_t>::transition_result_t btree_delete_fsm<config_t>::do_acquire_root(event_t *event) {
+    printf("Acquire root\n");
     assert(state == acquire_root);
     
     // Make sure root exists
@@ -97,72 +99,57 @@ typename btree_delete_fsm<config_t>::transition_result_t btree_delete_fsm<config
 
 template <class config_t>
 typename btree_delete_fsm<config_t>::transition_result_t btree_delete_fsm<config_t>::do_acquire_node(event_t *event) {
+    printf("Acquire node\n");
     assert(state == acquire_node);
     // Either we already have the node (then event should be NULL), or
     // we don't have the node (in which case we asked for it before,
     // and it should be getting to us via an event)
-    assert((buf && !event) || (!buf && event));
+    //assert((buf && !event) || (!buf && event));
 
-    if(!buf) {
-        // We asked for a node before and couldn't get it right
-        // away. It must be in the event.
-        assert(event && event->buf);
-        buf = (buf_t*)event->buf;
-    }
-    assert(buf);
-    node_t *node = (node_t *)buf->ptr();
-    if(node->is_internal()) {
-        block_id_t next_node_id = ((internal_node_t*)node)->lookup(key);
-        /* TODO(NNW) Can't release until we lock the next level's buf. */
-        buf->release();
-        node_id = next_node_id;
+    if (!event) {
         buf = transaction->acquire(node_id, rwi_read, this);
-        if(node) {
-            return btree_fsm_t::transition_ok;
-        } else {
-            return btree_fsm_t::transition_incomplete;
-        }
     } else {
-        int result = ((leaf_node_t*)node)->lookup(key, &value);
-        ((leaf_node_t*)node)->remove(key);
-        buf->release();
-        state = delete_complete;
-        op_result = result == 1 ? btree_found : btree_not_found;
-        return btree_fsm_t::transition_ok;
-    }
-}
-
-template <class config_t>
-typename btree_delete_fsm<config_t>::transition_result_t btree_delete_fsm<config_t>::do_acquire_sibling(event_t *event) {
-    assert(state == acquire_sibling);
-
-    assert((sib_buf && !event) || (!sib_buf && event));
-
-    if (!sib_buf) {
-        assert(event && event->buf);
-        sib_buf = (buf_t*)event->buf;
-        state = acquire_node;
-        return btree_fsm_t::transition_ok;
+        assert(event->buf);
+        buf = (buf_t*) event->buf;
     }
 
-    //event is NULL, so we need to start to sibling finding process
-
-    assert(last_buf);
-    node_t *last_node = (node_t *)last_buf->ptr();
-
-    int sib_key;
-    ((internal_node_t*)last_node)->sibling(key, &sib_key);
-    block_id_t sib_node_id = ((internal_node_t*)last_node)->lookup(sib_key);
-    sib_buf = transaction->acquire(sib_node_id, rwi_write, this);
-
-    if (sib_buf)
+    if(buf)
         return btree_fsm_t::transition_ok;
     else
         return btree_fsm_t::transition_incomplete;
 }
 
 template <class config_t>
+typename btree_delete_fsm<config_t>::transition_result_t btree_delete_fsm<config_t>::do_acquire_sibling(event_t *event) {
+    printf("Acquire sibling\n");
+    assert(state == acquire_sibling);
+
+    if (!event) {
+        assert(last_buf);
+        node_t *last_node = (node_t *)last_buf->ptr();
+
+        int sib_key;
+        ((internal_node_t*)last_node)->sibling(key, &sib_key);
+        block_id_t sib_node_id = ((internal_node_t*)last_node)->lookup(sib_key);
+        sib_buf = transaction->acquire(sib_node_id, rwi_read, this);
+    } else {
+        assert(event->buf);
+        sib_buf = (buf_t*) event->buf;
+    }
+
+    if(sib_buf) {
+        printf("Done with acquire sibling\n");
+        state = acquire_node;
+        return btree_fsm_t::transition_ok;
+    } else {
+        printf("Acquire sibling incomplete\n");
+        return btree_fsm_t::transition_incomplete;
+    }
+}
+
+template <class config_t>
 typename btree_delete_fsm<config_t>::transition_result_t btree_delete_fsm<config_t>::do_transition(event_t *event) {
+    printf("Do_transition\n");
     transition_result_t res = btree_fsm_t::transition_ok;
 
     // Make sure we've got either an empty or a cache event
@@ -204,7 +191,9 @@ typename btree_delete_fsm<config_t>::transition_result_t btree_delete_fsm<config
 
     // Acquire nodes
     while(res == btree_fsm_t::transition_ok && state == acquire_node) {
+        printf("Start acquire node loop\n");
         if(!buf) {
+            printf("No buf\n");
             state = acquire_node;
             res = do_acquire_node(event);
             event = NULL;
@@ -215,39 +204,88 @@ typename btree_delete_fsm<config_t>::transition_result_t btree_delete_fsm<config
 
         node_t* node = (node_t*)buf->ptr();
 
-        //Deal with underfull nodes if we find them
+        //Deal with underful nodes if we find them
         if (node->is_underfull() && last_buf) {
+            printf("Underfull node\n");
             if(!sib_buf) {
                 state = acquire_sibling;
                 res = do_acquire_sibling(event);
+                printf("Sibling acquired: sib_buf = %li\n", (long int) sib_buf);
                 event = NULL;
+                continue;
             } else {
                 // we have our sibling so we're ready to go
                 node_t *sib_node = (node_t*)sib_buf->ptr();
-                if(sib_node->is_underfull()) {
-                    if (node->is_leaf())
-                        ((leaf_node_t*)node)->merge((internal_node_t*) last_buf->ptr(), (leaf_node_t*) sib_node);
-                    else
-                        ((internal_node_t*)node)->merge((internal_node_t*) last_buf->ptr(), (internal_node_t*) sib_node);
+                node_t *parent_node = (node_t*)last_buf->ptr();
+                if(sib_node->is_underfull_or_min()) {
+                    if (parent_node->is_singleton()) {
+                        printf("Collapse time\n");
+                        if (node->is_leaf())
+                            assert(((internal_node_t*)parent_node)->collapse((leaf_node_t*) node, (leaf_node_t*) sib_node));
+                        else
+                            assert(((internal_node_t*)parent_node)->collapse((internal_node_t*) node, (internal_node_t*) sib_node));
+                        //TODO these should be deleted when the api is ready
+                        buf->release();
+                        sib_buf->release();
 
+                        sib_buf = NULL;
+                        buf = last_buf;
+                        last_buf = NULL;
+                        buf->set_dirty();
+                        node_id = last_node_id;
+                    } else {
+                        printf("Merge time\n");
+                        if (node->is_leaf())
+                            assert(((leaf_node_t*)node)->merge((internal_node_t*) last_buf->ptr(), (leaf_node_t*) sib_node));
+                        else
+                            assert(((internal_node_t*)node)->merge((internal_node_t*) last_buf->ptr(), (internal_node_t*) sib_node));
+                        //TODO delete sib_buf, when delete is implemented
+                        sib_buf->release();
+                        sib_buf = NULL;
+                    }
                 } else {
+                    printf("Level time\n");
                     if (node->is_leaf())
-                        ((leaf_node_t*)node)->level((internal_node_t*) last_buf->ptr(), (leaf_node_t*) sib_node);
+                        assert(((leaf_node_t*)node)->level((internal_node_t*) last_buf->ptr(), (leaf_node_t*) sib_node));
                     else
-                        ((internal_node_t*)node)->level((internal_node_t*) last_buf->ptr(), (internal_node_t*) sib_node); 
+                        assert(((internal_node_t*)node)->level((internal_node_t*) last_buf->ptr(), (internal_node_t*) sib_node));
+                    sib_buf->set_dirty();
+                    sib_buf->release();
+                    sib_buf = NULL;
                 }
             }
         }
 
         //actually do some deleting 
         if (node->is_leaf()) {
-            ((leaf_node_t*)node)->remove(key);
-            buf->set_dirty();
-            buf->release();
+            if(((leaf_node_t*)node)->remove(key)) {
+                //key found, and value deleted
+                buf->set_dirty();
+                buf->release();
+                op_result = btree_found;
+            } else {
+                //key not found, nothing deleted
+                buf->release();
+                op_result = btree_not_found;
+            }
+            if (last_buf)
+                last_buf->release();
             state = delete_complete;
             res = btree_fsm_t::transition_ok;
             break;
-        }
+        } else {
+            if(!cache_t::is_block_id_null(last_node_id) && last_buf) {
+                last_buf->release();
+            }
+            last_buf = buf;
+            last_node_id = node_id;
+
+            node_id = ((internal_node_t*)node)->lookup(key);
+            buf = NULL;
+
+            res = do_acquire_node(event);
+            event = NULL;
+        } 
 
         res = do_acquire_node(event);
         event = NULL;
