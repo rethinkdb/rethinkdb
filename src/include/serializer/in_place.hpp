@@ -49,6 +49,9 @@ public:
         
         // Leave space for the metablock if necessary
         if(dbsize == 0) {
+            // This crosses a boundary that ideally shouldn't be crossed, because the rest of the
+            // buffer cache code doesn't know that the buffer cache is being used to store a btree.
+            // This is the only part of the buffer cache code that references the btree code.
             btree_admin_t::create_db(dbfd);
             dbsize = block_size;
         }
