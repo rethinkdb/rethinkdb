@@ -134,17 +134,22 @@ typename btree_delete_fsm<config_t>::transition_result_t btree_delete_fsm<config
         sib_buf = transaction->acquire(sib_node_id, rwi_read, this);
     } else {
         assert(event->buf);
-        buf = (buf_t*) event->buf;
+        sib_buf = (buf_t*) event->buf;
     }
 
-    if(sib_buf)
+    if(sib_buf) {
+        printf("Done with acquire sibling\n");
+        state = acquire_node;
         return btree_fsm_t::transition_ok;
-    else
+    } else {
+        printf("Acquire sibling incomplete\n");
         return btree_fsm_t::transition_incomplete;
+    }
 }
 
 template <class config_t>
 typename btree_delete_fsm<config_t>::transition_result_t btree_delete_fsm<config_t>::do_transition(event_t *event) {
+    printf("Do_transition\n");
     transition_result_t res = btree_fsm_t::transition_ok;
 
     // Make sure we've got either an empty or a cache event
@@ -186,7 +191,9 @@ typename btree_delete_fsm<config_t>::transition_result_t btree_delete_fsm<config
 
     // Acquire nodes
     while(res == btree_fsm_t::transition_ok && state == acquire_node) {
+        printf("Start acquire node loop\n");
         if(!buf) {
+            printf("No buf\n");
             state = acquire_node;
             res = do_acquire_node(event);
             event = NULL;
@@ -199,25 +206,53 @@ typename btree_delete_fsm<config_t>::transition_result_t btree_delete_fsm<config
 
         //Deal with underfull nodes if we find them
         if (node->is_underfull() && last_buf) {
+            printf("Underfull node\n");
             if(!sib_buf) {
                 state = acquire_sibling;
                 res = do_acquire_sibling(event);
+                printf("Sibling acquired: sib_buf = %li\n", (long int) sib_buf);
                 event = NULL;
+                continue;
             } else {
                 // we have our sibling so we're ready to go
                 printf("Merge time\n");
                 node_t *sib_node = (node_t*)sib_buf->ptr();
-                if(sib_node->is_underfull()) {
-                    if (node->is_leaf())
-                        ((leaf_node_t*)node)->merge((internal_node_t*) last_buf->ptr(), (leaf_node_t*) sib_node);
-                    else
-                        ((internal_node_t*)node)->merge((internal_node_t*) last_buf->ptr(), (internal_node_t*) sib_node);
+                node_t *parent_node = (node_t*)last_buf->ptr();
+                if(sib_node->is_underfull_or_min()) {
+                    if (parent_node->is_singleton()) {
+                        printf("Collapse time\n");
+                        if (node->is_leaf())
+                            assert(((internal_node_t*)parent_node)->collapse((leaf_node_t*) node, (leaf_node_t*) sib_node));
+                        else
+                            assert(((internal_node_t*)parent_node)->collapse((internal_node_t*) node, (internal_node_t*) sib_node));
+                        //TODO these should be deleted when the api is ready
+                        buf->release();
+                        sib_buf->release();
 
+                        sib_buf = NULL;
+                        buf = last_buf;
+                        last_buf = NULL;
+                        buf->set_dirty();
+                        node_id = last_node_id;
+                    } else {
+                        printf("Merge time\n");
+                        if (node->is_leaf())
+                            assert(((leaf_node_t*)node)->merge((internal_node_t*) last_buf->ptr(), (leaf_node_t*) sib_node));
+                        else
+                            assert(((internal_node_t*)node)->merge((internal_node_t*) last_buf->ptr(), (internal_node_t*) sib_node));
+                        //TODO delete sib_buf, when delete is implemented
+                        sib_buf->release();
+                        sib_buf = NULL;
+                    }
                 } else {
+                    printf("Level time\n");
                     if (node->is_leaf())
-                        ((leaf_node_t*)node)->level((internal_node_t*) last_buf->ptr(), (leaf_node_t*) sib_node);
+                        assert(((leaf_node_t*)node)->level((internal_node_t*) last_buf->ptr(), (leaf_node_t*) sib_node));
                     else
-                        ((internal_node_t*)node)->level((internal_node_t*) last_buf->ptr(), (internal_node_t*) sib_node); 
+                        assert(((internal_node_t*)node)->level((internal_node_t*) last_buf->ptr(), (internal_node_t*) sib_node));
+                    sib_buf->set_dirty();
+                    sib_buf->release();
+                    sib_buf = NULL;
                 }
             }
         }
