@@ -53,6 +53,7 @@ class leaf_node_handler : public node_handler {
     static void delete_offset(btree_leaf_node *node, int index);
     static void insert_offset(btree_leaf_node *node, uint16_t offset, int index);
     static bool is_equal(btree_key *key1, btree_key *key2);
+    static int nodecmp(btree_leaf_node *node1, btree_leaf_node *node2);
 };
 
 class leaf_key_comp {

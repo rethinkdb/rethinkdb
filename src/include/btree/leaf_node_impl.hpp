@@ -3,7 +3,6 @@
 
 #include "btree/leaf_node.hpp"
 #include <algorithm>
-#include "utils.hpp"
 
 void leaf_node_handler::init(btree_leaf_node *node) {
     node->leaf = true;
@@ -108,7 +107,7 @@ void leaf_node_handler::level(btree_leaf_node *node, btree_leaf_node *sibling, b
     //Note: size does not take into account offsets
     uint16_t node_size = BTREE_BLOCK_SIZE - node->frontmost_offset;
     uint16_t sibling_size = BTREE_BLOCK_SIZE - sibling->frontmost_offset;
-    uint16_t optimal_adjustment = (sibling_size - node size) / 2;
+    uint16_t optimal_adjustment = (sibling_size - node_size) / 2;
 
     if (nodecmp(node, sibling) < 0) {
         int index = -1;
@@ -138,7 +137,7 @@ void leaf_node_handler::level(btree_leaf_node *node, btree_leaf_node *sibling, b
         //copy from end of sibling to beginning of node
         int pairs_to_move = sibling->npairs - index - 1;
         check("could not level nodes", pairs_to_move <= 0);
-        memmove(node->pair_offsets + pairs_to_move, node->pair_offsets, pairs_to_move * sizeof(*rnode->pair_offsets));
+        memmove(node->pair_offsets + pairs_to_move, node->pair_offsets, pairs_to_move * sizeof(*node->pair_offsets));
         for (int i = index; i < sibling->npairs; i++) {
             node->pair_offsets[i-index] = insert_pair(node, get_pair(sibling, sibling->pair_offsets[i]));
         }

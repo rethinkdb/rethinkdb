@@ -34,7 +34,7 @@ class internal_node_handler : public node_handler {
     static void split(btree_internal_node *node, btree_internal_node *rnode, btree_key *median);
     static void merge(btree_internal_node *node, btree_internal_node *rnode, btree_key *key_to_remove, btree_internal_node *parent);
     static void level(btree_internal_node *node, btree_internal_node *rnode, btree_key *key_to_replace, btree_key *replacement_key, btree_internal_node *parent);
-    static int sibling(btree_internal_node *node, btree_key *key, btree_key *sib_id);
+    static int sibling(btree_internal_node *node, btree_key *key, block_id_t *sib_id);
 
     static bool is_full(btree_internal_node *node);
 
