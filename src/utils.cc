@@ -9,6 +9,7 @@
 #include "config/code.hpp"
 #include "utils.hpp"
 #include <algorithm>
+#include "btree/node.hpp"
 
 int get_cpu_count() {
     return sysconf(_SC_NPROCESSORS_ONLN);
@@ -72,3 +73,6 @@ void _gfree(void *ptr) {
     free(ptr);
 }
 
+inline void keycpy(btree_key *dest, btree_key *src) {
+    memcpy(dest, src, sizeof(btree_key) + src->size);
+}
