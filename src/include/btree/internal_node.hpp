@@ -18,9 +18,9 @@ struct btree_internal_node : public btree_node {
     uint16_t pair_offsets[0];
 };
 
-typedef btree_internal_node internal_node_t;
-
 class internal_key_comp;
+
+typedef btree_internal_node internal_node_t;
 
 class internal_node_handler : public node_handler {
     friend class internal_key_comp;
@@ -49,6 +49,7 @@ class internal_node_handler : public node_handler {
     static void insert_offset(btree_internal_node *node, uint16_t offset, int index);
     static void make_last_pair_special(btree_internal_node *node);
     static bool is_equal(btree_key *key1, btree_key *key2);
+    static int nodecmp(btree_internal_node *node1, btree_internal_node *node2);
 };
 
 class internal_key_comp {
