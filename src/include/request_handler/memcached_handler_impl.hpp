@@ -394,7 +394,7 @@ void memcached_handler_t<config_t>::build_response(request_t *request) {
     conn_fsm_t *fsm = request->netfsm;
     btree_get_fsm_t *btree_get_fsm = NULL;
     btree_set_fsm_t *btree_set_fsm = NULL;
-    btree_delete_fsm_t *btree_delete_fsm = NULL;
+    //btree_delete_fsm_t *btree_delete_fsm = NULL;
     char *buf = fsm->buf;
     fsm->nbuf = 0;
     int count;
@@ -438,11 +438,11 @@ void memcached_handler_t<config_t>::build_response(request_t *request) {
 
         break;
 
-    case btree_fsm_t::btree_delete_fsm:
+    /* case btree_fsm_t::btree_delete_fsm:
         // For now we only support one delete operation at a time
         assert(request->nstarted == 1);
 
-        btree_delete_fsm = (btree_delete_fsm_t*)request->fsms[0];
+        //btree_delete_fsm = (btree_delete_fsm_t*)request->fsms[0];
 
         if(btree_delete_fsm->op_result == btree_delete_fsm_t::btree_found) {
             count = sprintf(buf, "DELETED\r\n");
@@ -456,7 +456,7 @@ void memcached_handler_t<config_t>::build_response(request_t *request) {
             check("memchached_handler_t::build_response - Uknown value for btree_delete_fsm->op_result\n", 0);
         }
         delete btree_delete_fsm;
-        break;
+        break; */
 
     default:
         check("memcached_handler_t::build_response - Unknown btree op", 0);
