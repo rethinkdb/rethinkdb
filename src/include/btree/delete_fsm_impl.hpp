@@ -128,9 +128,9 @@ typename btree_delete_fsm<config_t>::transition_result_t btree_delete_fsm<config
         assert(last_buf);
         node_t *last_node = (node_t *)last_buf->ptr();
 
-        int sib_key;
-        ((internal_node_t*)last_node)->sibling(key, &sib_key);
-        block_id_t sib_node_id = ((internal_node_t*)last_node)->lookup(sib_key);
+        block_id_t sib_id;
+        internal_node_handler::sibling(((internal_node_t*)last_node), key, &sib_id);
+        block_id_t sib_node_id = internal_node_handler::lookup(((internal_node_t*)last_node), sib_id);
         sib_buf = transaction->acquire(sib_node_id, rwi_read, this);
     } else {
         assert(event->buf);
@@ -221,9 +221,9 @@ typename btree_delete_fsm<config_t>::transition_result_t btree_delete_fsm<config
                     if (parent_node->is_singleton()) {
                         printf("Collapse time\n");
                         if (node->is_leaf())
-                            assert(((internal_node_t*)parent_node)->collapse((leaf_node_t*) node, (leaf_node_t*) sib_node));
+                            assert(internal_node_handler::collapse(((internal_node_t*)parent_node), (leaf_node_t*) node, (leaf_node_t*) sib_node));
                         else
-                            assert(((internal_node_t*)parent_node)->collapse((internal_node_t*) node, (internal_node_t*) sib_node));
+                            assert(internal_node_handler::collapse(((internal_node_t*)parent_node), (internal_node_t*) node, (internal_node_t*) sib_node));
                         //TODO these should be deleted when the api is ready
                         buf->release();
                         sib_buf->release();
@@ -235,10 +235,14 @@ typename btree_delete_fsm<config_t>::transition_result_t btree_delete_fsm<config
                         node_id = last_node_id;
                     } else {
                         printf("Merge time\n");
-                        if (node->is_leaf())
-                            assert(((leaf_node_t*)node)->merge((internal_node_t*) last_buf->ptr(), (leaf_node_t*) sib_node));
-                        else
-                            assert(((internal_node_t*)node)->merge((internal_node_t*) last_buf->ptr(), (internal_node_t*) sib_node));
+                        btree_key *key = (btree_key *)alloca(sizeof(btree_key) + MAX_KEY_SIZE);
+                        if (node->is_leaf()) {
+                            bool success = leaf_node_handler::merge(((leaf_node_t*)node), (leaf_node_t*)sib_node):
+                            assert(success);
+                        } else {
+                            bool success = leaf_node_handler::merge(((internal_node_t*)node), (internal_node_t*) last_buf->ptr(), (internal_node_t*) sib_node);
+                            assert(success);
+                        }
                         //TODO delete sib_buf, when delete is implemented
                         sib_buf->release();
                         sib_buf = NULL;
@@ -246,9 +250,9 @@ typename btree_delete_fsm<config_t>::transition_result_t btree_delete_fsm<config
                 } else {
                     printf("Level time\n");
                     if (node->is_leaf())
-                        assert(((leaf_node_t*)node)->level((internal_node_t*) last_buf->ptr(), (leaf_node_t*) sib_node));
+                        assert(leaf_node_handler::level(((leaf_node_t*)node), (internal_node_t*) last_buf->ptr(), (leaf_node_t*) sib_node));
                     else
-                        assert(((internal_node_t*)node)->level((internal_node_t*) last_buf->ptr(), (internal_node_t*) sib_node));
+                        assert(internal_node_handler::level(((internal_node_t*)node), (internal_node_t*) last_buf->ptr(), (internal_node_t*) sib_node));
                     sib_buf->set_dirty();
                     sib_buf->release();
                     sib_buf = NULL;
@@ -258,7 +262,7 @@ typename btree_delete_fsm<config_t>::transition_result_t btree_delete_fsm<config
 
         //actually do some deleting 
         if (node->is_leaf()) {
-            if(((leaf_node_t*)node)->remove(key)) {
+            if(leaf_node_handler::remove(((leaf_node_t*)node), key)) {
                 //key found, and value deleted
                 buf->set_dirty();
                 buf->release();
@@ -280,7 +284,7 @@ typename btree_delete_fsm<config_t>::transition_result_t btree_delete_fsm<config
             last_buf = buf;
             last_node_id = node_id;
 
-            node_id = ((internal_node_t*)node)->lookup(key);
+            node_id = (internal_node_handler::lookup((internal_node_t*)node), key);
             buf = NULL;
 
             res = do_acquire_node(event);

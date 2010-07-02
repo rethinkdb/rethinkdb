@@ -88,11 +88,83 @@ void internal_node_handler::split(btree_internal_node *node, btree_internal_node
 }
 
 void internal_node_handler::merge(btree_internal_node *node, btree_internal_node *rnode, btree_key *key_to_remove, btree_internal_node *parent) {
-    //TODO: stub
+    //TODO: add asserts
+    memmove(rnode->pair_offsets + node->npairs, rnode->pair_offsets, rnode->npairs * sizeof(*rnode->pair_offsets));
+
+    for (int i = 0; i < node->npairs-1; i++) { // the last pair is special
+        rnode->pair_offsets[i] = insert_pair(rnode, get_pair(node, node->pair_offsets[i]));
+    }
+    // get the key in parent which points to node
+    btree_key *key_from_parent = &get_pair(parent, parent->pair_offsets[get_offset_index(parent, &get_pair(node, node->pair_offsets[0])->key)])->key;
+    rnode->pair_offsets[node->npairs-1] = insert_pair(rnode, get_pair(node, node->pair_offsets[node->npairs-1])->lnode, key_from_parent);
+    rnode->npairs += node->npairs;
+
+    keycpy(key_to_remove, &get_pair(rnode, rnode->pair_offsets[0])->key);
 }
 
-void internal_node_handler::level(btree_internal_node *node, btree_internal_node *rnode, btree_key *key_to_replace, btree_key *replacement_key, btree_internal_node *parent) {
-    //TODO: stub
+void internal_node_handler::level(btree_internal_node *node, btree_internal_node *sibling, btree_key *key_to_replace, btree_key *replacement_key, btree_internal_node *parent) {
+    //Note: size does not take into account offsets
+    uint16_t node_size = BTREE_BLOCK_SIZE - node->frontmost_offset;
+    uint16_t sibling_size = BTREE_BLOCK_SIZE - sibling->frontmost_offset;
+    uint16_t optimal_adjustment = (sibling_size - node_size) / 2;
+
+    if (nodecmp(node, sibling) < 0) {
+        btree_key *key_from_parent = &get_pair(parent, parent->pair_offsets[get_offset_index(parent, &get_pair(sibling, sibling->pair_offsets[0])->key)])->key;
+        block_id_t last_offset = get_pair(node, node->pair_offsets[node->npairs-1])->lnode;
+        delete_pair(node, node->pair_offsets[node->npairs-1]);
+        node->pair_offsets[node->npairs-1] = insert_pair(node, last_offset, key_from_parent);
+
+        int index = -1;
+        while (optimal_adjustment > 0) {
+            optimal_adjustment -= pair_size(get_pair(sibling, sibling->pair_offsets[++index]));
+        }
+        check("could not level nodes", index <= 0);
+        //copy from beginning of sibling to end of node
+        for (int i = 0; i < index; i++) {
+            node->pair_offsets[node->npairs+i] = insert_pair(node, get_pair(sibling, sibling->pair_offsets[i]));
+        }
+        node->npairs += index;
+
+        //TODO: Make this more efficient.  Currently this loop involves repeated memmoves.
+        for (int i = 0; i < index; i++) {
+            delete_pair(sibling, sibling->pair_offsets[0]);
+            delete_offset(sibling, 0);
+        }
+
+        keycpy(key_to_replace, &get_pair(node, node->pair_offsets[0])->key);
+        keycpy(replacement_key, &get_pair(node, node->pair_offsets[node->npairs-1])->key);
+        make_last_pair_special(node);
+    } else {
+        btree_key *key_from_parent = &get_pair(parent, parent->pair_offsets[get_offset_index(parent, &get_pair(sibling, sibling->pair_offsets[0])->key)])->key;
+
+        // bring key from parent down into the last sibling node
+        block_id_t last_offset = get_pair(sibling, sibling->pair_offsets[sibling->npairs-1])->lnode;
+        delete_pair(sibling, sibling->pair_offsets[sibling->npairs-1]);
+        sibling->pair_offsets[sibling->npairs-1] = insert_pair(sibling, last_offset, key_from_parent);
+        
+        int index = sibling->npairs;
+        while (optimal_adjustment > 0) {
+            optimal_adjustment -= pair_size(get_pair(sibling, sibling->pair_offsets[--index]));
+        }
+        //copy from end of sibling to beginning of node
+        int pairs_to_move = sibling->npairs - index - 1;
+        check("could not level nodes", pairs_to_move <= 0);
+        memmove(node->pair_offsets + pairs_to_move, node->pair_offsets, pairs_to_move * sizeof(*node->pair_offsets));
+        for (int i = index; i < sibling->npairs; i++) {
+            node->pair_offsets[i-index] = insert_pair(node, get_pair(sibling, sibling->pair_offsets[i]));
+        }
+        node->npairs += pairs_to_move;
+
+        //TODO: Make this more efficient.  Currently this loop involves repeated memmoves.
+        for (int i = index; i < sibling->npairs; i++) {
+            delete_pair(sibling, sibling->pair_offsets[index]);
+            delete_offset(sibling, index);
+        }
+
+        keycpy(key_to_replace, &get_pair(sibling, sibling->pair_offsets[0])->key);
+        keycpy(replacement_key, &get_pair(sibling, sibling->pair_offsets[sibling->npairs-1])->key);
+        make_last_pair_special(sibling);
+    }
 }
 
 int internal_node_handler::sibling(btree_internal_node *node, btree_key *key, block_id_t *sib_id) {
@@ -191,6 +263,13 @@ void internal_node_handler::make_last_pair_special(btree_internal_node *node) {
 
 bool internal_node_handler::is_equal(btree_key *key1, btree_key *key2) {
     return sized_strcmp(key1->contents, key1->size, key2->contents, key2->size) == 0;
+}
+
+int internal_node_handler::nodecmp(btree_internal_node *node1, btree_internal_node *node2) {
+    btree_key *key1 = &get_pair(node1, node1->pair_offsets[0])->key;
+    btree_key *key2 = &get_pair(node2, node2->pair_offsets[0])->key;
+
+    return sized_strcmp(key1->contents, key1->size, key2->contents, key2->size);
 }
 
 #endif // __BTREE_INTERNAL_NODE_IMPL_HPP__
