@@ -2,7 +2,6 @@
 #ifndef __MIRRORED_CACHE_HPP__
 #define __MIRRORED_CACHE_HPP__
 
-#include <queue>
 #include "event_queue.hpp"
 #include "cpu_context.hpp"
 #include "concurrency/access.hpp"
@@ -73,7 +72,9 @@ private:
     block_id_t block_id;
     bool cached; /* Is data valid, or are we waiting for a read? */
     void *data;
-    std::queue<block_available_callback_t*> load_callbacks;
+    
+    typedef intrusive_list_t<block_available_callback_t> callbacks_t;
+    callbacks_t load_callbacks;
     
     // Incidentally, buf_t holds a redundant pointer to the cache object, because in addition to
     // the "cache_t *cache" declared in buf, writeback_t::local_buf_t declares its own

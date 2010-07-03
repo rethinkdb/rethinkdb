@@ -2,8 +2,12 @@
 #ifndef __IO_CALLS_HPP__
 #define __IO_CALLS_HPP__
 
+#include <libaio.h>
 #include <vector>
 #include <assert.h>
+#include "config/args.hpp"
+#include "config/code.hpp"
+#include "utils.hpp"
 #include "arch/resource.hpp"
 #include "event.hpp"
 #include "corefwd.hpp"
@@ -16,6 +20,8 @@ struct io_calls_t {
 public:
     io_calls_t(event_queue_t *_queue)
         : queue(_queue),
+          r_requests(MAX_CONCURRENT_IO_REQUESTS),
+          w_requests(MAX_CONCURRENT_IO_REQUESTS),
           n_pending(0)
         {}
 
@@ -52,19 +58,29 @@ public:
      * AIO notification support (this is meant to be called by the
      * event queue).
      */
-    void aio_notify(event_t *event);
+    void aio_notify(iocb *event, int result);
 
 private:
+    typedef std::vector<iocb*, gnew_alloc<iocb*> > request_vector_t;
+
     void process_requests();
-    int process_request_batch(std::vector<iocb*> *requests);
+    int process_request_batch(request_vector_t *requests);
 
 private:
     event_queue_t *queue;
 
-    // TODO: watch the allocation
-    std::vector<iocb*> r_requests, w_requests;
+    request_vector_t r_requests, w_requests;
 
     int n_pending;
+
+#ifndef NDEBUG
+    // We need the extra pointer in debug mode because
+    // tls_small_obj_alloc_accessor creates the pools to expect it
+    static const size_t iocb_size = sizeof(iocb) + sizeof(void*);
+#else
+    static const size_t iocb_size = sizeof(iocb);
+#endif
+
 };
 
 #endif // __IO_CALLS_HPP__

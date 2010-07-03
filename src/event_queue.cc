@@ -77,23 +77,7 @@ void process_aio_notify(event_queue_t *self) {
         
         // Process the events
         for(int i = 0; i < nevents; i++) {
-            if(self->event_handler) {
-                event_t qevent;
-                bzero((char*)&qevent, sizeof(qevent));
-                qevent.event_type = et_disk;
-                iocb *op = (iocb*)events[i].obj;
-                qevent.result = events[i].res;
-                qevent.buf = op->u.c.buf;
-                qevent.offset = op->u.c.offset;
-                qevent.state = events[i].data;
-                if(op->aio_lio_opcode == IO_CMD_PREAD)
-                    qevent.op = eo_read;
-                else
-                    qevent.op = eo_write;
-                
-                self->iosys.aio_notify(&qevent);
-            }
-            delete (iocb*)events[i].obj;
+            self->iosys.aio_notify((iocb*)events[i].obj, events[i].res);
         }
         nevents_total -= nevents;
     } while(nevents_total > 0);
@@ -207,7 +191,8 @@ void *event_queue_t::epoll_handler(void *arg) {
     event_queue_t *self = (event_queue_t*)arg;
     epoll_event events[MAX_IO_EVENT_PROCESSING_BATCH_SIZE];
     bool shutting_down = false; // True btw. iet_shutdown and iet_cache_synced.
-    std::vector<event_queue_t::conn_fsm_t *> shutdown_fsms;
+    typedef std::vector<event_queue_t::conn_fsm_t*, gnew_alloc<conn_fsm_t*> > shutdown_fsms_t;
+    shutdown_fsms_t shutdown_fsms;
 
     // First, set the cpu context structure
     get_cpu_context()->event_queue = self;
@@ -294,8 +279,7 @@ breakout:
         delete t;
     }
 
-    for (std::vector<event_queue_t::conn_fsm_t *>::iterator it =
-         shutdown_fsms.begin(); it != shutdown_fsms.end(); ++it)
+    for (shutdown_fsms_t::iterator it = shutdown_fsms.begin(); it != shutdown_fsms.end(); ++it)
         delete *it;
     gdelete(self->cache);
 

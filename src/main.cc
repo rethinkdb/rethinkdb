@@ -109,10 +109,7 @@ void process_lock_msg(event_queue_t *event_queue, event_t *event, rwi_lock_t::lo
 
 // Handle events coming from the event queue
 void event_handler(event_queue_t *event_queue, event_t *event) {
-    if(event->event_type == et_disk) {
-        // TODO: remove this from here.
-        check("Handled through the callback system now", 1);
-    } else if(event->event_type == et_sock) {
+    if(event->event_type == et_sock) {
         // Got some socket action, let the connection fsm know
         initiate_conn_fsm_transition(event_queue, event);
     } else if(event->event_type == et_cpu_event) {

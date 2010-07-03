@@ -265,7 +265,6 @@ template<class config_t> void memcached_handler_t<config_t>::set_key(conn_fsm_t 
 
 template <class config_t>
 typename memcached_handler_t<config_t>::parse_result_t memcached_handler_t<config_t>::get(char *state, bool include_unique, conn_fsm_t *fsm) {
-    printf("Get time!!!\n");
     char *key_str = strtok_r(NULL, DELIMS, &state);
     if (key_str == NULL)
         return malformed_request(fsm);

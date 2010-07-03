@@ -29,7 +29,7 @@ void writeback_tmpl_t<config_t>::start() {
 }
 
 template <class config_t>
-void writeback_tmpl_t<config_t>::shutdown(sync_callback<config_t> *callback) {
+void writeback_tmpl_t<config_t>::shutdown(sync_callback_t *callback) {
     assert(shutdown_callback == NULL);
     shutdown_callback = callback;
     if (!num_txns && state == state_none) // If num_txns, commit() will do this
@@ -37,7 +37,7 @@ void writeback_tmpl_t<config_t>::shutdown(sync_callback<config_t> *callback) {
 }
 
 template <class config_t>
-void writeback_tmpl_t<config_t>::sync(sync_callback<config_t> *callback) {
+void writeback_tmpl_t<config_t>::sync(sync_callback_t *callback) {
     sync_callbacks.push_back(callback);
     // Start a new writeback process if one isn't in progress.
     if (state == state_none)
@@ -61,7 +61,8 @@ template <class config_t>
 bool writeback_tmpl_t<config_t>::commit(transaction_t *txn,
         transaction_commit_callback_t *callback) {
     if (!--num_txns && shutdown_callback != NULL) {
-        sync(shutdown_callback); // All txns shut down, start final sync.
+        // All txns shut down, start final sync.
+        sync(shutdown_callback);
     }
     if (txn->get_access() == rwi_read)
         return true;

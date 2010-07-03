@@ -25,8 +25,7 @@ public:
     void sync(sync_callback<config_t> *callback);
 
     bool begin_transaction(transaction_t *txn);
-    bool commit(transaction_t *transaction,
-        transaction_commit_callback<config_t> *callback);
+    bool commit(transaction_t *transaction, transaction_commit_callback<config_t> *callback);
     void aio_complete(buf_t *, bool written);
 
     class local_buf_t {
@@ -64,7 +63,7 @@ private:
         state_write_bufs,
     };
 
-	void start_flush_timer(void);
+    void start_flush_timer(void);
     static void timer_callback(void *ctx);
     virtual void on_lock_available();
     void writeback(buf_t *buf);
