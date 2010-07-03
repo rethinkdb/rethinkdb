@@ -13,6 +13,14 @@
 #include "alloc/stats.hpp"
 #include "alloc/alloc_mixin.hpp"
 
+io_calls_t::io_calls_t(event_queue_t *_queue)
+    : queue(_queue),
+      n_pending(0)
+{
+    r_requests.reserve(MAX_CONCURRENT_IO_REQUESTS);
+    w_requests.reserve(MAX_CONCURRENT_IO_REQUESTS);
+}
+
 ssize_t io_calls_t::read(resource_t fd, void *buf, size_t count) {
     return ::read(fd, buf, count);
 }

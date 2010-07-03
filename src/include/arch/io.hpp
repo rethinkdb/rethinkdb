@@ -18,13 +18,7 @@ struct iocallback_t {
 
 struct io_calls_t {
 public:
-    io_calls_t(event_queue_t *_queue)
-        : queue(_queue),
-          r_requests(MAX_CONCURRENT_IO_REQUESTS),
-          w_requests(MAX_CONCURRENT_IO_REQUESTS),
-          n_pending(0)
-        {}
-
+    io_calls_t(event_queue_t *_queue);
     virtual ~io_calls_t() {
         assert(n_pending == 0);
     }
