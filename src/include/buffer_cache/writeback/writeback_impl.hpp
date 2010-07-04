@@ -191,7 +191,7 @@ void writeback_tmpl_t<config_t>::writeback(buf_t *buf) {
             }
             assert(flush_txns.empty());
 
-            for (typename std::vector<sync_callback_t *>::iterator it =
+            for (typename std::vector<sync_callback_t*, gnew_alloc<sync_callback_t*> >::iterator it =
                      sync_callbacks.begin(); it != sync_callbacks.end(); ++it)
                 (*it)->on_sync();
             sync_callbacks.clear();

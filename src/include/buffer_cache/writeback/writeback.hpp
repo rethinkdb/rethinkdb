@@ -4,6 +4,7 @@
 
 #include <set>
 #include "concurrency/rwi_lock.hpp"
+#include "utils.hpp"
 
 // TODO: What about interval=0 (flush on every transaction)?
 
@@ -83,7 +84,7 @@ private:
     rwi_lock_t *flush_lock;
     intrusive_list_t<txn_state_t> txns;
     std::set<buf_t*> dirty_blocks;
-    std::vector<sync_callback_t *> sync_callbacks;
+    std::vector<sync_callback_t*, gnew_alloc<sync_callback_t*> > sync_callbacks;
     sync_callback_t *shutdown_callback;
     bool final_sync;
 
