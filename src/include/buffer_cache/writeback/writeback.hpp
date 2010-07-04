@@ -6,7 +6,6 @@
 #include "concurrency/rwi_lock.hpp"
 
 // TODO: What about interval=0 (flush on every transaction)?
-// TODO: What about interval=+inf (never flush)?
 
 template <class config_t>
 struct writeback_tmpl_t : public lock_available_callback_t {
@@ -52,8 +51,15 @@ private:
     typedef typename config_t::serializer_t serializer_t;
     typedef transaction_commit_callback<config_t> transaction_commit_callback_t;
     typedef sync_callback<config_t> sync_callback_t;
-    typedef std::pair<transaction_t *, transaction_commit_callback_t *>
-        txn_state_t;
+    struct txn_state_t : public intrusive_list_node_t<txn_state_t>,
+                         public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, txn_state_t>
+    {
+        txn_state_t(transaction_t *_txn, transaction_commit_callback_t *_callback)
+            : txn(_txn), callback(_callback)
+            {}
+        transaction_t *txn;
+        transaction_commit_callback_t *callback;
+    };
 
     enum state {
         state_none,
@@ -75,7 +81,7 @@ private:
     cache_t *cache;
     unsigned int num_txns;
     rwi_lock_t *flush_lock;
-    std::set<txn_state_t> txns;
+    intrusive_list_t<txn_state_t> txns;
     std::set<buf_t*> dirty_blocks;
     std::vector<sync_callback_t *> sync_callbacks;
     sync_callback_t *shutdown_callback;
@@ -84,7 +90,7 @@ private:
     /* Internal variables used only during a flush operation. */
     enum state state;
     transaction_t *transaction;
-    std::set<txn_state_t> flush_txns;
+    intrusive_list_t<txn_state_t> flush_txns;
     std::set<buf_t *> flush_bufs;
 };
 

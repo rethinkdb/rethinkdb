@@ -69,7 +69,7 @@ bool writeback_tmpl_t<config_t>::commit(transaction_t *txn,
     flush_lock->unlock();
     if (!wait_for_flush)
         return true;
-    txns.insert(txn_state_t(txn, callback));
+    txns.push_back(new txn_state_t(txn, callback));
     return false;
 }
 
@@ -136,8 +136,7 @@ void writeback_tmpl_t<config_t>::writeback(buf_t *buf) {
         assert(flush_bufs.empty());
         assert(flush_txns.empty());
 
-        flush_txns = txns;
-        txns.clear();
+        flush_txns.append_and_clear(&txns);
 
         /* Request read locks on all of the blocks we need to flush. */
         for (typename std::set<buf_t*>::iterator it = dirty_blocks.begin();
@@ -180,11 +179,17 @@ void writeback_tmpl_t<config_t>::writeback(buf_t *buf) {
         }
         if (flush_bufs.empty()) {
             /* Notify all waiting transactions of completion. */
-            for (typename std::set<txn_state_t>::iterator it =
-                     flush_txns.begin(); it != flush_txns.end(); ++it) {
-                it->first->committed(it->second);
+            txn_state_t *_txn_state = flush_txns.head();
+            while(_txn_state) {
+                txn_state_t *_next = _txn_state->next;
+
+                _txn_state->txn->committed(_txn_state->callback);
+                
+                flush_txns.remove(_txn_state);
+                delete _txn_state;
+                _txn_state = _next;
             }
-            flush_txns.clear();
+            assert(flush_txns.empty());
 
             for (typename std::vector<sync_callback_t *>::iterator it =
                      sync_callbacks.begin(); it != sync_callbacks.end(); ++it)
