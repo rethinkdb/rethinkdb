@@ -81,11 +81,9 @@ void writeback_tmpl_t<config_t>::aio_complete(buf_t *buf, bool written) {
 
 template <class config_t>
 void writeback_tmpl_t<config_t>::local_buf_t::set_dirty(buf_t *super) {
-	// 'super' is actually 'this', but as a buf_t* instead of a local_buf_t*
+    // 'super' is actually 'this', but as a buf_t* instead of a local_buf_t*
     dirty = true;
-    // Maybe we should store a pointer to the block itself, instead of its ID; it shouldn't get
-    // swapped out because it's dirty.
-    writeback->dirty_blocks.insert(super->get_block_id());
+    writeback->dirty_blocks.insert(super);
 }
 
 template <class config_t>
@@ -142,10 +140,11 @@ void writeback_tmpl_t<config_t>::writeback(buf_t *buf) {
         txns.clear();
 
         /* Request read locks on all of the blocks we need to flush. */
-        for (typename std::set<block_id_t>::iterator it = dirty_blocks.begin();
+        for (typename std::set<buf_t*>::iterator it = dirty_blocks.begin();
              it != dirty_blocks.end(); ++it) {
-            buf_t *buf = transaction->acquire(*it, rwi_read, NULL);
-            assert(buf); // Acquire must succeed since we hold the flush_lock.
+            buf_t *buf = transaction->acquire((*it)->get_block_id(), rwi_read, NULL);
+            assert(buf);        // Acquire must succeed since we hold the flush_lock.
+            assert(buf == *it); // Acquire should return the same buf we stored earlier.
             flush_bufs.insert(buf);
         }
 

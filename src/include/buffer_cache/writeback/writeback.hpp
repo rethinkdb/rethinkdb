@@ -3,7 +3,6 @@
 #define __BUFFER_CACHE_WRITEBACK_HPP__
 
 #include <set>
-
 #include "concurrency/rwi_lock.hpp"
 
 // TODO: What about interval=0 (flush on every transaction)?
@@ -77,7 +76,7 @@ private:
     unsigned int num_txns;
     rwi_lock_t *flush_lock;
     std::set<txn_state_t> txns;
-    std::set<block_id_t> dirty_blocks;
+    std::set<buf_t*> dirty_blocks;
     std::vector<sync_callback_t *> sync_callbacks;
     sync_callback_t *shutdown_callback;
     bool final_sync;
