@@ -23,6 +23,11 @@ long get_total_ram() {
 
 // Redefine operator new to do cache-lines alignment
 void* operator new(size_t size) throw(std::bad_alloc) {
+    // ERROR: You are using builtin operator new. Please use RethinkDB
+    // allocator system instead
+    assert(0);
+
+    // Provide an implementation in case we do this in release mode.
     void *ptr = NULL;
     int res = posix_memalign(&ptr, 64, size);
     if(res != 0)
