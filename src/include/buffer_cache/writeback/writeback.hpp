@@ -2,7 +2,6 @@
 #ifndef __BUFFER_CACHE_WRITEBACK_HPP__
 #define __BUFFER_CACHE_WRITEBACK_HPP__
 
-#include <set>
 #include "concurrency/rwi_lock.hpp"
 #include "utils.hpp"
 
@@ -27,7 +26,7 @@ public:
     bool commit(transaction_t *transaction, transaction_commit_callback<config_t> *callback);
     void aio_complete(buf_t *, bool written);
 
-    class local_buf_t {
+    class local_buf_t : public intrusive_list_node_t<buf_t> {
     public:
         explicit local_buf_t(writeback_tmpl_t *wb)
             : writeback(wb), dirty(false) {}
@@ -83,7 +82,7 @@ private:
     unsigned int num_txns;
     rwi_lock_t *flush_lock;
     intrusive_list_t<txn_state_t> txns;
-    std::set<buf_t*> dirty_blocks;
+    intrusive_list_t<buf_t> dirty_bufs;
     std::vector<sync_callback_t*, gnew_alloc<sync_callback_t*> > sync_callbacks;
     sync_callback_t *shutdown_callback;
     bool final_sync;
@@ -92,7 +91,7 @@ private:
     enum state state;
     transaction_t *transaction;
     intrusive_list_t<txn_state_t> flush_txns;
-    std::set<buf_t *> flush_bufs;
+    intrusive_list_t<buf_t> flush_bufs;
 };
 
 #include "buffer_cache/writeback/writeback_impl.hpp"

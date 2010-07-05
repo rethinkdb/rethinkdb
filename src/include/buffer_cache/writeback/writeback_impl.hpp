@@ -82,8 +82,11 @@ void writeback_tmpl_t<config_t>::aio_complete(buf_t *buf, bool written) {
 template <class config_t>
 void writeback_tmpl_t<config_t>::local_buf_t::set_dirty(buf_t *super) {
     // 'super' is actually 'this', but as a buf_t* instead of a local_buf_t*
-    dirty = true;
-    writeback->dirty_blocks.insert(super);
+    if(!dirty) {
+        // Mark block as dirty if it hasn't been already
+        dirty = true;
+        writeback->dirty_bufs.push_back(super);
+    }
 }
 
 template <class config_t>
@@ -139,28 +142,31 @@ void writeback_tmpl_t<config_t>::writeback(buf_t *buf) {
         flush_txns.append_and_clear(&txns);
 
         /* Request read locks on all of the blocks we need to flush. */
-        for (typename std::set<buf_t*>::iterator it = dirty_blocks.begin();
-             it != dirty_blocks.end(); ++it) {
-            buf_t *buf = transaction->acquire((*it)->get_block_id(), rwi_read, NULL);
-            assert(buf);        // Acquire must succeed since we hold the flush_lock.
-            assert(buf == *it); // Acquire should return the same buf we stored earlier.
-            flush_bufs.insert(buf);
-        }
+        // TODO: optimize away dynamic allocation
+        typename serializer_t::write *writes =
+            (typename serializer_t::write*)calloc(dirty_bufs.size(), sizeof *writes);
+        int i = 0;
+        buf_t *_buf = dirty_bufs.head();
+        while(_buf) {
+            buf_t *_next = _buf->next;
 
-        dirty_blocks.clear();
+            // Acquire the blocks
+            buf_t *buf = transaction->acquire(_buf->get_block_id(), rwi_read, NULL);
+            assert(buf);         // Acquire must succeed since we hold the flush_lock.
+            assert(buf == _buf); // Acquire should return the same buf we stored earlier.
+
+            // Fill the serializer structure
+            writes[i].block_id = buf->get_block_id();
+            writes[i].buf = buf->ptr();
+            writes[i].callback = buf;
+            
+            _buf = _next;
+            i++;
+        }
+        flush_bufs.append_and_clear(&dirty_bufs);
         flush_lock->unlock(); // Write transactions can now proceed again.
 
         /* Start writing all the dirty bufs down, as a transaction. */
-        typename serializer_t::write *writes =
-            (typename serializer_t::write *)calloc(flush_bufs.size(),
-                                                   sizeof *writes);
-        int i = 0;
-        for (typename std::set<buf_t *>::iterator it = flush_bufs.begin();
-             it != flush_bufs.end(); ++it, i++) {
-            writes[i].block_id = (*it)->get_block_id();
-            writes[i].buf = (*it)->ptr();
-            writes[i].callback = (*it);
-        }
         // TODO(NNW): Now that the serializer/aio-system breaks writes up into
         // chunks, we may want to worry about submitting more heavily contended
         // bufs earlier in the process so more write FSMs can proceed sooner.
@@ -172,8 +178,7 @@ void writeback_tmpl_t<config_t>::writeback(buf_t *buf) {
     }
     if (state == state_write_bufs) {
         if (buf) {
-            assert(flush_bufs.find(buf) != flush_bufs.end());
-            flush_bufs.erase(buf);
+            flush_bufs.remove(buf);
             buf->set_clean();
             buf->release();
         }
