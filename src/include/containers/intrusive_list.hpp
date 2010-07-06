@@ -12,7 +12,7 @@ public:
 template <class node_t>
 class intrusive_list_t {
 public:
-    intrusive_list_t() : _head(NULL), _tail(NULL) {}
+    intrusive_list_t() : _head(NULL), _tail(NULL), _size(0) {}
 
     bool empty() {
         return !head();
@@ -21,6 +21,7 @@ public:
     void clear() {
         _head = NULL;
         _tail = NULL;
+        _size = 0;
     }
     
     node_t* head() {
@@ -41,6 +42,7 @@ public:
         if(_tail == NULL) {
             _tail = _value;
         }
+        _size++;
     }
     
     void push_back(node_t *_value) {
@@ -54,6 +56,7 @@ public:
         if(_head == NULL) {
             _head = _value;
         }
+        _size++;
     }
     
     void remove(node_t *_value) {
@@ -68,6 +71,7 @@ public:
         } else {
             _head = value->next;
         }
+        _size--;
     }
 
     void append_and_clear(intrusive_list_t<node_t> *list) {
@@ -86,11 +90,15 @@ public:
         }
         // Note, we can't do appends without clear because we'd break
         // the previous pointer in the head of the appended list.
+        _size += list->size();
         list->clear();
     }
 
+    int size() { return _size; }
+
 protected:
     node_t *_head, *_tail;
+    int _size;
 };
 
 // TODO: It would be really nice to support iterators on this list

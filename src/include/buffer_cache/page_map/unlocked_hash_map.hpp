@@ -3,6 +3,7 @@
 #define __BUFFER_CACHE_UNLOCKED_HASH_MAP_HPP__
 
 #include <map>
+#include "utils.hpp"
 
 template <class config_t>
 struct unlocked_hash_map_t
@@ -51,7 +52,8 @@ public:
     }
 
 protected:
-    typedef std::map<block_id_t, buf_t *> ft_map_t;
+    typedef std::map<block_id_t, buf_t*, std::less<block_id_t>,
+                     gnew_alloc<std::pair<block_id_t, buf_t*> > > ft_map_t;
     ft_map_t ft_map;
 };
 

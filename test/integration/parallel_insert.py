@@ -10,6 +10,7 @@ NUM_INTS=32000
 NUM_THREADS=32
 HOST="localhost"
 PORT="11211"
+NUMSTR = "%d"
 
 # TODO: when we add more integration tests, the act of starting a
 # RethinkDB process should be handled by a common external script.
@@ -18,7 +19,7 @@ def rethinkdb_insert(queue, ints):
     mc = memcache.Client([HOST + ":" + PORT], debug=0)
     for i in ints:
         print "Inserting %d" % i
-        if (0 == mc.set(str(i), str(i))):
+        if (0 == mc.set(str(i), NUMSTR % i)):
             queue.put(-1)
             return
     mc.disconnect_all()
@@ -28,7 +29,7 @@ def rethinkdb_verify():
     mc = memcache.Client([HOST + ":" + PORT], debug=0)
     for i in xrange(0, NUM_INTS):
         val = mc.get(str(i))
-        if str(i) != val:
+        if NUMSTR % i != val:
             print "Error, incorrent value in the database! (%d=>%s)" % (i, val)
             sys.exit(-1)
     mc.disconnect_all()

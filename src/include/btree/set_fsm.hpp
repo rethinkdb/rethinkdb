@@ -29,11 +29,11 @@ public:
 public:
     explicit btree_set_fsm(cache_t *cache)
         : btree_fsm_t(cache, btree_fsm_t::btree_set_fsm),
-          state(uninitialized), key((btree_key*)key_memory), sb_buf(NULL), buf(NULL), last_buf(NULL),
+          state(uninitialized), key((btree_key*)key_memory), value((btree_value*)value_memory), sb_buf(NULL), buf(NULL), last_buf(NULL),
           node_id(cache_t::null_block_id), last_node_id(cache_t::null_block_id)
         {}
 
-    void init_update(btree_key *_key, int _value);
+    void init_update(btree_key *_key, byte *data, unsigned int length);
     virtual transition_result_t do_transition(event_t *event);
 
     virtual bool is_finished() {
@@ -57,10 +57,11 @@ private:
     
 private:
     char key_memory[MAX_KEY_SIZE+sizeof(btree_key)];
+    char value_memory[MAX_IN_NODE_VALUE_SIZE+sizeof(btree_value)];
     // Some relevant state information
     state_t state;
     btree_key * const key;
-    int value;
+    btree_value * const value;
 
     buf_t *sb_buf, *buf, *last_buf;
     block_id_t node_id, last_node_id; // TODO(NNW): Bufs may suffice for these.

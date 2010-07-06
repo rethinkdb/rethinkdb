@@ -2,12 +2,10 @@
 #ifndef __BUFFER_CACHE_WRITEBACK_HPP__
 #define __BUFFER_CACHE_WRITEBACK_HPP__
 
-#include <set>
-
 #include "concurrency/rwi_lock.hpp"
+#include "utils.hpp"
 
 // TODO: What about interval=0 (flush on every transaction)?
-// TODO: What about interval=+inf (never flush)?
 
 template <class config_t>
 struct writeback_tmpl_t : public lock_available_callback_t {
@@ -25,11 +23,10 @@ public:
     void sync(sync_callback<config_t> *callback);
 
     bool begin_transaction(transaction_t *txn);
-    bool commit(transaction_t *transaction,
-        transaction_commit_callback<config_t> *callback);
+    bool commit(transaction_t *transaction, transaction_commit_callback<config_t> *callback);
     void aio_complete(buf_t *, bool written);
 
-    class local_buf_t {
+    class local_buf_t : public intrusive_list_node_t<buf_t> {
     public:
         explicit local_buf_t(writeback_tmpl_t *wb)
             : writeback(wb), dirty(false) {}
@@ -54,8 +51,15 @@ private:
     typedef typename config_t::serializer_t serializer_t;
     typedef transaction_commit_callback<config_t> transaction_commit_callback_t;
     typedef sync_callback<config_t> sync_callback_t;
-    typedef std::pair<transaction_t *, transaction_commit_callback_t *>
-        txn_state_t;
+    struct txn_state_t : public intrusive_list_node_t<txn_state_t>,
+                         public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, txn_state_t>
+    {
+        txn_state_t(transaction_t *_txn, transaction_commit_callback_t *_callback)
+            : txn(_txn), callback(_callback)
+            {}
+        transaction_t *txn;
+        transaction_commit_callback_t *callback;
+    };
 
     enum state {
         state_none,
@@ -64,7 +68,7 @@ private:
         state_write_bufs,
     };
 
-	void start_flush_timer(void);
+    void start_flush_timer(void);
     static void timer_callback(void *ctx);
     virtual void on_lock_available();
     void writeback(buf_t *buf);
@@ -77,17 +81,17 @@ private:
     cache_t *cache;
     unsigned int num_txns;
     rwi_lock_t *flush_lock;
-    std::set<txn_state_t> txns;
-    std::set<block_id_t> dirty_blocks;
-    std::vector<sync_callback_t *> sync_callbacks;
+    intrusive_list_t<txn_state_t> txns;
+    intrusive_list_t<buf_t> dirty_bufs;
+    std::vector<sync_callback_t*, gnew_alloc<sync_callback_t*> > sync_callbacks;
     sync_callback_t *shutdown_callback;
     bool final_sync;
 
     /* Internal variables used only during a flush operation. */
     enum state state;
     transaction_t *transaction;
-    std::set<txn_state_t> flush_txns;
-    std::set<buf_t *> flush_bufs;
+    intrusive_list_t<txn_state_t> flush_txns;
+    intrusive_list_t<buf_t> flush_bufs;
 };
 
 #include "buffer_cache/writeback/writeback_impl.hpp"

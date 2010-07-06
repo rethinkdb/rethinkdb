@@ -6,6 +6,7 @@
 
 typedef int resource_t;
 typedef uint64_t block_id_t;
+typedef char byte;
 
 #endif // __ARCH_COMMON_HPP__
 

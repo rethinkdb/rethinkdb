@@ -117,7 +117,7 @@ typename btree_get_fsm<config_t>::transition_result_t btree_get_fsm<config_t>::d
             return btree_fsm_t::transition_incomplete;
         }
     } else {
-        int result = leaf_node_handler::lookup((leaf_node_t*)node, key, &value);
+        int result = leaf_node_handler::lookup((leaf_node_t*)node, key, value);
         buf->release();
         state = lookup_complete;
         op_result = result == 1 ? btree_found : btree_not_found;

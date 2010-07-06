@@ -3,7 +3,7 @@
 #define __BUFFER_CACHE_CALLBACKS_HPP__
 
 template <class config_t>
-struct block_available_callback {
+struct block_available_callback : public intrusive_list_node_t<block_available_callback<config_t> > {
 public:
     typedef typename config_t::buf_t buf_t;
 

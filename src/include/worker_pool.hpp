@@ -25,7 +25,7 @@ public:
     cmd_config_t *cmd_config;
 
     // Collects thread local allocators for delete after shutdown
-    std::vector<void*> all_allocs;
+    std::vector<void*, gnew_alloc<void*> > all_allocs;
     
 private:
     void create_worker_pool(event_handler_t event_handler, pthread_t main_thread,

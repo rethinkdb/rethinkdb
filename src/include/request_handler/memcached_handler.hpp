@@ -52,7 +52,6 @@ private:
     parse_result_t append(char *data, conn_fsm_t *fsm);
     parse_result_t prepend(char *data, conn_fsm_t *fsm);
     parse_result_t cas(char *data, conn_fsm_t *fsm);
-    void set_key(conn_fsm_t *fsm, btree_key *key, int value);
 
     parse_result_t get(char *state, bool include_unique, conn_fsm_t *fsm);
 

@@ -30,7 +30,7 @@
 #define IO_BUFFER_SIZE                            4096
 
 // Size of each btree node (in bytes)
-#define BTREE_BLOCK_SIZE                          1024
+#define BTREE_BLOCK_SIZE                          2048
 
 // Max size of database file name
 #define MAX_DB_FILE_NAME                          1024
@@ -64,6 +64,9 @@
 // How many milliseconds between flushes.
 #define DEFAULT_WRITEBACK_INTERVAL_MS             5000
 
+//Any values of this size or less will be directly stored in btree leaf nodes.
+//Values greater than this size will be stored in overflow blocks.
+#define MAX_IN_NODE_VALUE_SIZE                    250
 // How many milliseconds between page replacements
 #define PAGE_REPL_INTERVAL_MS                     3000
 

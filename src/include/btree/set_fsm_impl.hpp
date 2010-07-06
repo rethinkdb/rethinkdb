@@ -25,9 +25,10 @@
 // relevant.
 
 template <class config_t>
-void btree_set_fsm<config_t>::init_update(btree_key *_key, int _value) {
+void btree_set_fsm<config_t>::init_update(btree_key *_key, byte *data, unsigned int length) {
     memcpy(key, _key, sizeof(btree_key) + _key->size);
-    value = _value;
+    value->size = length;
+    memcpy(&value->contents, data, length);
     state = start_transaction;
 }
 
@@ -226,7 +227,7 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
         node_t *node = (node_t *)buf->ptr();
         bool full;
         if (node_handler::is_leaf(node)) {
-            full = leaf_node_handler::is_full((leaf_node_t *)node, key);
+            full = leaf_node_handler::is_full((leaf_node_t *)node, key, value);
         } else {
             full = internal_node_handler::is_full((internal_node_t *)node);
         }

@@ -31,7 +31,7 @@ void buf<config_t>::release() {
 template <class config_t>
 void buf<config_t>::add_load_callback(block_available_callback_t *callback) {
     if(callback)
-        load_callbacks.push(callback);
+        load_callbacks.push_back(callback);
 }
 
 template <class config_t>
@@ -40,8 +40,9 @@ void buf<config_t>::notify_on_load() {
     // but are waiting on a load. Because of this, we can notify all
     // of them.
     while(!load_callbacks.empty()) {
-        load_callbacks.front()->on_block_available(this);
-        load_callbacks.pop();
+        block_available_callback_t *_callback = load_callbacks.head();
+        _callback->on_block_available(this);
+        load_callbacks.remove(_callback);
     }
 }
 

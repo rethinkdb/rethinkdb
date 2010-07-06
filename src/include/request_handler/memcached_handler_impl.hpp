@@ -190,15 +190,17 @@ typename memcached_handler_t<config_t>::parse_result_t memcached_handler_t<confi
 
 template <class config_t>
 typename memcached_handler_t<config_t>::parse_result_t memcached_handler_t<config_t>::set(char *data, conn_fsm_t *fsm) {
-    //TODO: For now, we assume the data is an integer, because that is the only data type the database can handle
-    data[bytes] = '\0'; //null terminate string
-    char *invalid_char;
-    unsigned int value_int = (int)strtoul(data, &invalid_char, 10);
-    if (*invalid_char != '\0')  // ensure there were no improper characters in the token - i.e. parse was successful
-        return unimplemented_request(fsm);
+    btree_set_fsm_t *btree_fsm = new btree_set_fsm_t(get_cpu_context()->event_queue->cache);
+    btree_fsm->init_update(key, data, bytes);
+    req_handler_t::event_queue->message_hub.store_message(key_to_cpu(key, req_handler_t::event_queue->nqueues),
+            btree_fsm);
 
-
-    set_key(fsm, key, value_int);
+    // Create request
+    request_t *request = new request_t(fsm);
+    request->fsms[request->nstarted] = btree_fsm;
+    request->nstarted++;
+    fsm->current_request = request;
+    btree_fsm->request = request;
 
     fsm->consume(bytes+2);
     return req_handler_t::op_req_complex;
@@ -248,24 +250,8 @@ void memcached_handler_t<config_t>::write_msg(conn_fsm_t *fsm, const char *str) 
     fsm->nbuf = len+1;
 }
 
-template<class config_t> void memcached_handler_t<config_t>::set_key(conn_fsm_t *fsm, btree_key *key, int value){
-    btree_set_fsm_t *btree_fsm = new btree_set_fsm_t(get_cpu_context()->event_queue->cache);
-    btree_fsm->init_update(key, value);
-    req_handler_t::event_queue->message_hub.store_message(key_to_cpu(key, req_handler_t::event_queue->nqueues),
-            btree_fsm);
-
-    // Create request
-    request_t *request = new request_t(fsm);
-    request->fsms[request->nstarted] = btree_fsm;
-    request->nstarted++;
-    fsm->current_request = request;
-    btree_fsm->request = request;
-}
-
-
 template <class config_t>
 typename memcached_handler_t<config_t>::parse_result_t memcached_handler_t<config_t>::get(char *state, bool include_unique, conn_fsm_t *fsm) {
-    printf("Get time!!!\n");
     char *key_str = strtok_r(NULL, DELIMS, &state);
     if (key_str == NULL)
         return malformed_request(fsm);
@@ -398,7 +384,6 @@ void memcached_handler_t<config_t>::build_response(request_t *request) {
     char *buf = fsm->buf;
     fsm->nbuf = 0;
     int count;
-    char value_str[15];
     
     assert(request->nstarted > 0 && request->nstarted == request->ncompleted);
     switch(request->fsms[0]->fsm_type) {
@@ -407,11 +392,10 @@ void memcached_handler_t<config_t>::build_response(request_t *request) {
         for(unsigned int i = 0; i < request->nstarted; i++) {
             btree_get_fsm = (btree_get_fsm_t*)request->fsms[i];
             if(btree_get_fsm->op_result == btree_get_fsm_t::btree_found) {
-                int value_len = sprintf(value_str, "%d", btree_get_fsm->value);
-
                 //TODO: support flags
                 btree_key *key = btree_get_fsm->key;
-                count = sprintf(buf, "VALUE %*.*s %u %u\r\n%s\r\n", key->size, key->size, key->contents, 0, value_len, value_str);
+                btree_value *value = btree_get_fsm->value;
+                count = sprintf(buf, "VALUE %*.*s %u %u\r\n%*.*s\r\n", key->size, key->size, key->contents, 0, value->size, value->size, value->size, value->contents);
                 fsm->nbuf += count;
                 buf += count;
             } else if(btree_get_fsm->op_result == btree_get_fsm_t::btree_not_found) {

@@ -2,7 +2,6 @@
 #ifndef __RWI_CONC_HPP__
 #define __RWI_CONC_HPP__
 
-#include <queue>
 #include "concurrency/rwi_lock.hpp"
 #include "buffer_cache/callbacks.hpp"
 
@@ -35,20 +34,22 @@ struct rwi_conc_t {
             // rwi_lock, instead of the buf_t keeping track of its own queue separately from the
             // queue in its lock.
             if(!lock_callbacks.empty()) {
-                lock_callbacks.front()->on_block_available(gbuf);
-                lock_callbacks.pop();
+                block_available_callback_t *_callback = lock_callbacks.head();
+                _callback->on_block_available(gbuf);
+                lock_callbacks.remove(_callback);
             }
         }
         
         void add_lock_callback(block_available_callback_t *callback) {
             if(callback)
-                lock_callbacks.push(callback);
+                lock_callbacks.push_back(callback);
         }
 
         rwi_lock_t lock;
 
     private:
-        std::queue<block_available_callback_t*> lock_callbacks;
+        typedef intrusive_list_t<block_available_callback_t> callbacks_t;
+        callbacks_t lock_callbacks;
         buf_t *gbuf;
     };
 

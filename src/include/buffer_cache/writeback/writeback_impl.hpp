@@ -29,7 +29,7 @@ void writeback_tmpl_t<config_t>::start() {
 }
 
 template <class config_t>
-void writeback_tmpl_t<config_t>::shutdown(sync_callback<config_t> *callback) {
+void writeback_tmpl_t<config_t>::shutdown(sync_callback_t *callback) {
     assert(shutdown_callback == NULL);
     shutdown_callback = callback;
     if (!num_txns && state == state_none) // If num_txns, commit() will do this
@@ -37,7 +37,7 @@ void writeback_tmpl_t<config_t>::shutdown(sync_callback<config_t> *callback) {
 }
 
 template <class config_t>
-void writeback_tmpl_t<config_t>::sync(sync_callback<config_t> *callback) {
+void writeback_tmpl_t<config_t>::sync(sync_callback_t *callback) {
     sync_callbacks.push_back(callback);
     // Start a new writeback process if one isn't in progress.
     if (state == state_none)
@@ -61,14 +61,15 @@ template <class config_t>
 bool writeback_tmpl_t<config_t>::commit(transaction_t *txn,
         transaction_commit_callback_t *callback) {
     if (!--num_txns && shutdown_callback != NULL) {
-        sync(shutdown_callback); // All txns shut down, start final sync.
+        // All txns shut down, start final sync.
+        sync(shutdown_callback);
     }
     if (txn->get_access() == rwi_read)
         return true;
     flush_lock->unlock();
     if (!wait_for_flush)
         return true;
-    txns.insert(txn_state_t(txn, callback));
+    txns.push_back(new txn_state_t(txn, callback));
     return false;
 }
 
@@ -80,11 +81,12 @@ void writeback_tmpl_t<config_t>::aio_complete(buf_t *buf, bool written) {
 
 template <class config_t>
 void writeback_tmpl_t<config_t>::local_buf_t::set_dirty(buf_t *super) {
-	// 'super' is actually 'this', but as a buf_t* instead of a local_buf_t*
-    dirty = true;
-    // Maybe we should store a pointer to the block itself, instead of its ID; it shouldn't get
-    // swapped out because it's dirty.
-    writeback->dirty_blocks.insert(super->get_block_id());
+    // 'super' is actually 'this', but as a buf_t* instead of a local_buf_t*
+    if(!dirty) {
+        // Mark block as dirty if it hasn't been already
+        dirty = true;
+        writeback->dirty_bufs.push_back(super);
+    }
 }
 
 template <class config_t>
@@ -137,31 +139,34 @@ void writeback_tmpl_t<config_t>::writeback(buf_t *buf) {
         assert(flush_bufs.empty());
         assert(flush_txns.empty());
 
-        flush_txns = txns;
-        txns.clear();
+        flush_txns.append_and_clear(&txns);
 
         /* Request read locks on all of the blocks we need to flush. */
-        for (typename std::set<block_id_t>::iterator it = dirty_blocks.begin();
-             it != dirty_blocks.end(); ++it) {
-            buf_t *buf = transaction->acquire(*it, rwi_read, NULL);
-            assert(buf); // Acquire must succeed since we hold the flush_lock.
-            flush_bufs.insert(buf);
-        }
+        // TODO: optimize away dynamic allocation
+        typename serializer_t::write *writes =
+            (typename serializer_t::write*)calloc(dirty_bufs.size(), sizeof *writes);
+        int i = 0;
+        buf_t *_buf = dirty_bufs.head();
+        while(_buf) {
+            buf_t *_next = _buf->next;
 
-        dirty_blocks.clear();
+            // Acquire the blocks
+            buf_t *buf = transaction->acquire(_buf->get_block_id(), rwi_read, NULL);
+            assert(buf);         // Acquire must succeed since we hold the flush_lock.
+            assert(buf == _buf); // Acquire should return the same buf we stored earlier.
+
+            // Fill the serializer structure
+            writes[i].block_id = buf->get_block_id();
+            writes[i].buf = buf->ptr();
+            writes[i].callback = buf;
+            
+            _buf = _next;
+            i++;
+        }
+        flush_bufs.append_and_clear(&dirty_bufs);
         flush_lock->unlock(); // Write transactions can now proceed again.
 
         /* Start writing all the dirty bufs down, as a transaction. */
-        typename serializer_t::write *writes =
-            (typename serializer_t::write *)calloc(flush_bufs.size(),
-                                                   sizeof *writes);
-        int i = 0;
-        for (typename std::set<buf_t *>::iterator it = flush_bufs.begin();
-             it != flush_bufs.end(); ++it, i++) {
-            writes[i].block_id = (*it)->get_block_id();
-            writes[i].buf = (*it)->ptr();
-            writes[i].callback = (*it);
-        }
         // TODO(NNW): Now that the serializer/aio-system breaks writes up into
         // chunks, we may want to worry about submitting more heavily contended
         // bufs earlier in the process so more write FSMs can proceed sooner.
@@ -173,20 +178,25 @@ void writeback_tmpl_t<config_t>::writeback(buf_t *buf) {
     }
     if (state == state_write_bufs) {
         if (buf) {
-            assert(flush_bufs.find(buf) != flush_bufs.end());
-            flush_bufs.erase(buf);
+            flush_bufs.remove(buf);
             buf->set_clean();
             buf->release();
         }
         if (flush_bufs.empty()) {
             /* Notify all waiting transactions of completion. */
-            for (typename std::set<txn_state_t>::iterator it =
-                     flush_txns.begin(); it != flush_txns.end(); ++it) {
-                it->first->committed(it->second);
-            }
-            flush_txns.clear();
+            txn_state_t *_txn_state = flush_txns.head();
+            while(_txn_state) {
+                txn_state_t *_next = _txn_state->next;
 
-            for (typename std::vector<sync_callback_t *>::iterator it =
+                _txn_state->txn->committed(_txn_state->callback);
+                
+                flush_txns.remove(_txn_state);
+                delete _txn_state;
+                _txn_state = _next;
+            }
+            assert(flush_txns.empty());
+
+            for (typename std::vector<sync_callback_t*, gnew_alloc<sync_callback_t*> >::iterator it =
                      sync_callbacks.begin(); it != sync_callbacks.end(); ++it)
                 (*it)->on_sync();
             sync_callbacks.clear();

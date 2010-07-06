@@ -14,6 +14,11 @@ struct btree_key {
     char contents[0];
 };
 
+struct btree_value {
+    uint32_t size;
+    char contents[0];
+};
+
 enum btree_node_kind {
     // Choose 1 and 2 instead of 0 and 1 to make it less likely that garbage will be interpreted as
     // a valid node
