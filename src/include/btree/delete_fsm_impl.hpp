@@ -6,8 +6,8 @@
 #include "cpu_context.hpp"
 
 template <class config_t>
-void btree_delete_fsm<config_t>::init_delete(int _key) {
-    key = _key;
+void btree_delete_fsm<config_t>::init_delete(btree_key *_key) {
+    keycpy(key, _key);
     state = start_transaction;
 }
 
@@ -98,6 +98,21 @@ typename btree_delete_fsm<config_t>::transition_result_t btree_delete_fsm<config
 }
 
 template <class config_t>
+typename btree_delete_fsm<config_t>::transition_result_t btree_delete_fsm<config_t>::do_insert_root_on_collapse(event_t *event)
+{
+    if(set_root_id(node_id, event)) {
+        state = acquire_node;
+        sb_buf->release();
+        sb_buf = NULL;
+        return btree_fsm_t::transition_ok;
+    } else {
+        return btree_fsm_t::transition_incomplete;
+    }
+}
+
+
+
+template <class config_t>
 typename btree_delete_fsm<config_t>::transition_result_t btree_delete_fsm<config_t>::do_acquire_node(event_t *event) {
     printf("Acquire node\n");
     assert(state == acquire_node);
@@ -128,9 +143,7 @@ typename btree_delete_fsm<config_t>::transition_result_t btree_delete_fsm<config
         assert(last_buf);
         node_t *last_node = (node_t *)last_buf->ptr();
 
-        block_id_t sib_id;
-        internal_node_handler::sibling(((internal_node_t*)last_node), key, &sib_id);
-        block_id_t sib_node_id = internal_node_handler::lookup(((internal_node_t*)last_node), sib_id);
+        internal_node_handler::sibling(((internal_node_t*)last_node), key, &sib_node_id);
         sib_buf = transaction->acquire(sib_node_id, rwi_read, this);
     } else {
         assert(event->buf);
@@ -188,6 +201,12 @@ typename btree_delete_fsm<config_t>::transition_result_t btree_delete_fsm<config
         res = do_acquire_sibling(event);
         event = NULL;
     }
+    
+    //after we collapse the root, insert the new one
+    if(res == btree_fsm_t::transition_ok && state == insert_root_on_collapse) {
+        res = do_insert_root_on_collapse(event);
+        event = NULL;
+    }
 
     // Acquire nodes
     while(res == btree_fsm_t::transition_ok && state == acquire_node) {
@@ -205,7 +224,8 @@ typename btree_delete_fsm<config_t>::transition_result_t btree_delete_fsm<config
         node_t* node = (node_t*)buf->ptr();
 
         //Deal with underful nodes if we find them
-        if (node->is_underfull() && last_buf) {
+        if (((node_handler::is_leaf(node) && leaf_node_handler::is_underfull((leaf_node_t*)node)) ||
+                   (!node_handler::is_leaf(node) && internal_node_handler::is_underfull((internal_node_t*) node))) && last_buf) {
             printf("Underfull node\n");
             if(!sib_buf) {
                 state = acquire_sibling;
@@ -216,53 +236,67 @@ typename btree_delete_fsm<config_t>::transition_result_t btree_delete_fsm<config
             } else {
                 // we have our sibling so we're ready to go
                 node_t *sib_node = (node_t*)sib_buf->ptr();
-                node_t *parent_node = (node_t*)last_buf->ptr();
-                if(sib_node->is_underfull_or_min()) {
-                    if (parent_node->is_singleton()) {
-                        printf("Collapse time\n");
-                        if (node->is_leaf())
-                            assert(internal_node_handler::collapse(((internal_node_t*)parent_node), (leaf_node_t*) node, (leaf_node_t*) sib_node));
-                        else
-                            assert(internal_node_handler::collapse(((internal_node_t*)parent_node), (internal_node_t*) node, (internal_node_t*) sib_node));
-                        //TODO these should be deleted when the api is ready
-                        buf->release();
-                        sib_buf->release();
-
-                        sib_buf = NULL;
-                        buf = last_buf;
-                        last_buf = NULL;
-                        buf->set_dirty();
-                        node_id = last_node_id;
-                    } else {
-                        printf("Merge time\n");
-                        btree_key *key = (btree_key *)alloca(sizeof(btree_key) + MAX_KEY_SIZE);
-                        if (node->is_leaf()) {
-                            bool success = leaf_node_handler::merge(((leaf_node_t*)node), (leaf_node_t*)sib_node):
-                            assert(success);
+                if((node_handler::is_leaf(sib_node) && leaf_node_handler::is_underfull((leaf_node_t*) sib_node)) ||
+                           (!node_handler::is_leaf(sib_node) && internal_node_handler::is_underfull((internal_node_t*) sib_node))) {
+                    printf("Merge time\n");
+                    btree_key *key_to_remove = (btree_key *)alloca(sizeof(btree_key) + MAX_KEY_SIZE);
+                    if (node_handler::is_leaf(node)) {
+                        if (leaf_node_handler::nodecmp((leaf_node_t*)node, (leaf_node_t*)sib_node)) {
+                            leaf_node_handler::merge((leaf_node_t*)node, (leaf_node_t*)sib_node, key_to_remove);
+                            buf->release(); //TODO delete when api is ready
+                            buf = sib_buf;
+                            node_id = sib_node_id;
                         } else {
-                            bool success = leaf_node_handler::merge(((internal_node_t*)node), (internal_node_t*) last_buf->ptr(), (internal_node_t*) sib_node);
-                            assert(success);
+                            leaf_node_handler::merge((leaf_node_t*)sib_node, (leaf_node_t*)node, key_to_remove);
+                            sib_buf->release(); //TODO delete when api is ready
                         }
-                        //TODO delete sib_buf, when delete is implemented
-                        sib_buf->release();
-                        sib_buf = NULL;
+                    } else {
+                        if (internal_node_handler::nodecmp((internal_node_t*)node, (internal_node_t*)sib_node)) {
+                            internal_node_handler::merge((internal_node_t*)node, (internal_node_t*)sib_node, key_to_remove, (internal_node_t *) last_buf->ptr());
+                            buf->release(); //TODO delete when api is ready
+                            buf = sib_buf;
+                            node_id = sib_node_id;
+                        } else {
+                            internal_node_handler::merge((internal_node_t*)sib_node, (internal_node_t*)node, key_to_remove, (internal_node_t *) last_buf->ptr());
+                            sib_buf->release(); //TODO delete when api is ready
+                        }
+                    }
+                    sib_buf = NULL;
+
+                    if (/* !((internal_node_t*)(last_buf->ptr))->is_singleton()*/0) {
+                        //normal merge
+                        internal_node_handler::remove((internal_node_t*) last_buf->ptr(), key_to_remove);
+                    } else {
+                        //parent has only 1 key (which means it is also the root), replace it with the node
+                        // when we get here node_id should be the id of the new root
+                        state = insert_root_on_collapse;
+                        res = do_insert_root_on_collapse(NULL);
+                        event = NULL;
+                        continue;
                     }
                 } else {
                     printf("Level time\n");
-                    if (node->is_leaf())
-                        assert(leaf_node_handler::level(((leaf_node_t*)node), (internal_node_t*) last_buf->ptr(), (leaf_node_t*) sib_node));
+                    btree_key *key_to_replace = (btree_key *)alloca(sizeof(btree_key) + MAX_KEY_SIZE);
+                    btree_key *replacement_key = (btree_key *)alloca(sizeof(btree_key) + MAX_KEY_SIZE);
+                    if (node_handler::is_leaf(node))
+                        leaf_node_handler::level(((leaf_node_t*)node), (leaf_node_t*) sib_node, key_to_replace, replacement_key);
                     else
-                        assert(internal_node_handler::level(((internal_node_t*)node), (internal_node_t*) last_buf->ptr(), (internal_node_t*) sib_node));
+                        internal_node_handler::level((internal_node_t*)node, (internal_node_t*) sib_node, key_to_replace, replacement_key, (internal_node_t*) last_buf->ptr());
+                    internal_node_handler::update_key((internal_node_t*) node, key_to_replace, replacement_key);
                     sib_buf->set_dirty();
                     sib_buf->release();
                     sib_buf = NULL;
+
+                    last_buf->set_dirty();
+                    
+                    buf->set_dirty();
                 }
             }
         }
 
         //actually do some deleting 
-        if (node->is_leaf()) {
-            if(leaf_node_handler::remove(((leaf_node_t*)node), key)) {
+        if (node_handler::is_leaf(node)) {
+            if(leaf_node_handler::remove((leaf_node_t*)node, key)) {
                 //key found, and value deleted
                 buf->set_dirty();
                 buf->release();
@@ -284,7 +318,7 @@ typename btree_delete_fsm<config_t>::transition_result_t btree_delete_fsm<config
             last_buf = buf;
             last_node_id = node_id;
 
-            node_id = (internal_node_handler::lookup((internal_node_t*)node), key);
+            node_id = internal_node_handler::lookup((internal_node_t*)node, key);
             buf = NULL;
 
             res = do_acquire_node(event);
@@ -319,6 +353,13 @@ typename btree_delete_fsm<config_t>::transition_result_t btree_delete_fsm<config
     assert(res != btree_fsm_t::transition_complete || is_finished());
 
     return res;
+}
+
+template <class config_t>
+int btree_delete_fsm<config_t>::set_root_id(block_id_t root_id, event_t *event) {
+    sb_buf->set_dirty();
+    memcpy(sb_buf->ptr(), (void*)&root_id, sizeof(root_id));
+    return 1;
 }
 
 #endif // __BTREE_DELETE_FSM_IMPL_HPP__

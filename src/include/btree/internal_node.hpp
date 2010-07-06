@@ -35,8 +35,10 @@ class internal_node_handler : public node_handler {
     static void merge(btree_internal_node *node, btree_internal_node *rnode, btree_key *key_to_remove, btree_internal_node *parent);
     static void level(btree_internal_node *node, btree_internal_node *rnode, btree_key *key_to_replace, btree_key *replacement_key, btree_internal_node *parent);
     static int sibling(btree_internal_node *node, btree_key *key, block_id_t *sib_id);
-
+    static void update_key(btree_internal_node *node, btree_key *key_to_replace, btree_key *replacement_key);
+    static int nodecmp(btree_internal_node *node1, btree_internal_node *node2);
     static bool is_full(btree_internal_node *node);
+    static bool is_underfull(btree_internal_node *node);
 
     protected:
     static size_t pair_size(btree_internal_pair *pair);
@@ -49,7 +51,6 @@ class internal_node_handler : public node_handler {
     static void insert_offset(btree_internal_node *node, uint16_t offset, int index);
     static void make_last_pair_special(btree_internal_node *node);
     static bool is_equal(btree_key *key1, btree_key *key2);
-    static int nodecmp(btree_internal_node *node1, btree_internal_node *node2);
 };
 
 class internal_key_comp {

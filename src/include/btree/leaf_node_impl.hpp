@@ -165,6 +165,11 @@ bool leaf_node_handler::is_full(btree_leaf_node *node, btree_key *key, btree_val
         sizeof(btree_leaf_pair) + key->size + value->size + 1 >= node->frontmost_offset;
 }
 
+bool leaf_node_handler::is_underfull(btree_leaf_node *node) {
+    //TODO implement
+    return false;
+}
+
 size_t leaf_node_handler::pair_size(btree_leaf_pair *pair) {
     return sizeof(btree_leaf_pair) + pair->key.size + pair->value()->size;
 }
