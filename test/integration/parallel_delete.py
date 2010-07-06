@@ -109,7 +109,7 @@ def main(argv):
     while(i != NUM_THREADS):
         res = queue.get()
         if res == -1:
-            print "Deletion failed" % PORT
+            print "Deletion failed"
             map(Process.terminate, procs)
             sys.exit(-1)
         i += 1
