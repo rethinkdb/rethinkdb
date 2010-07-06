@@ -4,7 +4,7 @@
 
 template <class config_t>
 class btree_set_fsm : public btree_fsm<config_t>,
-                      public alloc_mixin_t<tls_small_obj_alloc_accessor<typename config_t::alloc_t>, btree_set_fsm<config_t> >
+                      public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, btree_set_fsm<config_t> >
 {
 public:
     typedef typename config_t::btree_fsm_t btree_fsm_t;
@@ -53,7 +53,7 @@ private:
 
 private:
     int set_root_id(block_id_t root_id, event_t *event);
-    void split_node(node_t *node, buf_t **rnode, block_id_t *rnode_id, btree_key *median);
+    void split_node(buf_t *node, buf_t **rnode, block_id_t *rnode_id, btree_key *median);
     
 private:
     char key_memory[MAX_KEY_SIZE+sizeof(btree_key)];

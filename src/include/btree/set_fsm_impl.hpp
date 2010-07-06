@@ -107,6 +107,7 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
     if(buf == NULL) {
         return btree_fsm_t::transition_incomplete;
     } else {
+        node_handler::validate((node_t *)buf->ptr());
         state = acquire_node;
         return btree_fsm_t::transition_ok;
     }
@@ -121,6 +122,7 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
     if(cache_t::is_block_id_null(node_id)) {
         buf = transaction->allocate(&node_id);
         leaf_node_handler::init((leaf_node_t *)buf->ptr());
+        buf->set_dirty();
     }
     if(set_root_id(node_id, event)) {
         state = acquire_node;
@@ -155,8 +157,10 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
         buf = (buf_t*)event->buf;
     }
 
-    if(buf)
+    if(buf) {
+        node_handler::validate((node_t *)buf->ptr());
         return btree_fsm_t::transition_ok;
+    }
     else
         return btree_fsm_t::transition_incomplete;
 }
@@ -234,13 +238,14 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
             internal_node_t *last_node;
             block_id_t rnode_id;
             bool new_root = false;
-            split_node(node, &rbuf, &rnode_id, median);
+            split_node(buf, &rbuf, &rnode_id, median);
             // Create a new root if we're splitting a root
             if(last_buf == NULL) {
                 new_root = true;
                 last_buf = transaction->allocate(&last_node_id);
                 last_node = (internal_node_t *)last_buf->ptr();
                 internal_node_handler::init(last_node);
+                last_buf->set_dirty();
             } else {
                 last_node = (internal_node_t *)last_buf->ptr();
             }
@@ -251,13 +256,12 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
             // Figure out where the key goes
             if(sized_strcmp(key->contents, key->size, median->contents, median->size) <= 0) {
                 // Left node and node are the same thing
-                rbuf->set_dirty();
                 rbuf->release();
             } else {
-                buf->set_dirty();
                 buf->release();
                 buf = rbuf;
-                node = (node_t *)rbuf->ptr();
+                rbuf = NULL;
+                node = (node_t *)buf->ptr();
                 node_id = rnode_id;
             }
 
@@ -295,6 +299,8 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
                 
             // Look up the next node
             node_id = internal_node_handler::lookup((internal_node_t*)node, key);
+            assert(!cache_t::is_block_id_null(node_id));
+            assert(node_id != cache->get_superblock_id());
             buf = NULL;
         }
     }
@@ -333,21 +339,27 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
 
 template <class config_t>
 int btree_set_fsm<config_t>::set_root_id(block_id_t root_id, event_t *event) {
-    sb_buf->set_dirty();
     memcpy(sb_buf->ptr(), (void*)&root_id, sizeof(root_id));
+    sb_buf->set_dirty();
     return 1;
 }
 
 template <class config_t>
-void btree_set_fsm<config_t>::split_node(node_t *node, buf_t **rbuf,
+void btree_set_fsm<config_t>::split_node(buf_t *buf, buf_t **rbuf,
                                          block_id_t *rnode_id, btree_key *median) {
     buf_t *res = transaction->allocate(rnode_id);
-    if(node_handler::is_leaf(node)) {
+    if(node_handler::is_leaf((node_t *)buf->ptr())) {
+    	leaf_node_t *node = (leaf_node_t *)buf->ptr();
         leaf_node_t *rnode = (leaf_node_t *)res->ptr();
-        leaf_node_handler::split((leaf_node_t*)node, (leaf_node_t*)rnode, median);
+        leaf_node_handler::split(node, rnode, median);
+        buf->set_dirty();
+        res->set_dirty();
     } else {
+    	internal_node_t *node = (internal_node_t *)buf->ptr();
         internal_node_t *rnode = (internal_node_t *)res->ptr();
-        internal_node_handler::split((internal_node_t*)node, (internal_node_t*)rnode, median);
+        internal_node_handler::split(node, rnode, median);
+        buf->set_dirty();
+        res->set_dirty();
     }
     *rbuf = res;
 }

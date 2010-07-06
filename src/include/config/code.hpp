@@ -9,6 +9,16 @@
 #endif
 
 /**
+ * The allocator system
+ */
+typedef memalign_alloc_t<BTREE_BLOCK_SIZE> buffer_alloc_t; // TODO: we need a better allocator
+#ifdef VALGRIND
+    typedef malloc_alloc_t alloc_t;
+#else
+    typedef dynamic_pool_alloc_t<alloc_stats_t<pool_alloc_t<memalign_alloc_t<> > > > alloc_t;
+#endif
+
+/**
  * Code configuration - instantiating various templated classes.
  */
 struct standard_config_t {
@@ -24,9 +34,8 @@ struct standard_config_t {
     typedef in_place_serializer_t<standard_config_t> serializer_t;
 
     // Caching
-    typedef memalign_alloc_t<BTREE_BLOCK_SIZE> buffer_alloc_t; // TODO: we need a better allocator
     typedef unlocked_hash_map_t<standard_config_t> page_map_t;
-    typedef page_repl_none_t<standard_config_t> page_repl_t;
+    typedef page_repl_random_t<standard_config_t> page_repl_t;
     typedef writeback_tmpl_t<standard_config_t> writeback_t;
     typedef rwi_conc_t<standard_config_t> concurrency_t;
     typedef mirrored_cache_t<standard_config_t> cache_impl_t;
@@ -52,13 +61,6 @@ struct standard_config_t {
     // Request handler
     typedef request_handler_t<standard_config_t> req_handler_t;
     typedef request<standard_config_t> request_t;
-
-    // Small object allocator
-#ifdef VALGRIND
-    typedef malloc_alloc_t alloc_t;
-#else
-    typedef dynamic_pool_alloc_t<alloc_stats_t<pool_alloc_t<memalign_alloc_t<> > > > alloc_t;
-#endif
 };
 
 typedef standard_config_t code_config_t;

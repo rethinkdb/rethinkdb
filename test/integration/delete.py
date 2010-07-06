@@ -2,40 +2,40 @@
 
 import sys
 import subprocess
-from multiprocessing import Pool, Queue, Process
+#from multiprocessing import Pool, Queue, Process
 import memcache
 from random import shuffle
+from time import sleep
 
 NUM_INTS=8
 NUM_THREADS=1
 HOST="localhost"
-PORT="11212"
+PORT="11213"
 
 # TODO: when we add more integration tests, the act of starting a
 # RethinkDB process should be handled by a common external script.
 
-def rethinkdb_insert(queue, ints):
+def rethinkdb_insert(ints):
     mc = memcache.Client([HOST + ":" + PORT], debug=0)
     for i in ints:
         print "Inserting %d" % i
         if (0 == mc.set(str(i), str(i))):
-            queue.put(-1)
-            return
+            print "Insert failed"
+            sys.exit(-1)
+    sleep(1)
     mc.disconnect_all()
-    queue.put(0)
 
-def rethinkdb_delete(queue, ints):
+def rethinkdb_delete(ints):
     mc = memcache.Client([HOST + ":" + PORT], debug=0)
     if(0 == mc.servers[0].connect()):
         print "Failed to connect"
     for i in ints:
         print "Deleting %d" % i
         if (0 == mc.delete(str(i))):
-            print "cunt"
-            queue.put(-1)
-            return
-    mc.disconnect_all()
-    queue.put(0)
+            print "Delete failed"
+            sys.exit(-1)
+    sleep(1)
+#mc.disconnect_all()
 
 def rethinkdb_verify():
     mc = memcache.Client([HOST + ":" + PORT], debug=0)
@@ -44,6 +44,7 @@ def rethinkdb_verify():
         if str(i) != val:
             print "Error, incorrent value in the database! (%d=>%s)" % (i, val)
             sys.exit(-1)
+    sleep(1)
     mc.disconnect_all()
 
 def rethinkdb_verify_empty(in_ints, out_ints):
@@ -60,13 +61,9 @@ def rethinkdb_verify_empty(in_ints, out_ints):
     for i in in_ints:
         print "Get(", i, ")"
         val = mc.get(str(i))
-        print "."
         print "%s => %s" % (str(i), val)
-#if str(i) != val:
-#            print "Error, incorrent value in the database! (%d=>%s)" % (i, val)
-#            sys.exit(-1)
- 
-    mc.disconnect_all()
+    sleep(1)
+#mc.disconnect_all()
 
 def split_list(alist, parts):
     length = len(alist)
@@ -89,24 +86,7 @@ def main(argv):
     # (Pool automagically waits for the processes to end)
 
     print "Inserting numbers"
-    lists = split_list(ints, NUM_THREADS)
-    queue = Queue()
-    procs = []
-    for i in xrange(0, NUM_THREADS):
-        p = Process(target=rethinkdb_insert, args=(queue, lists[i]))
-        procs.append(p)
-        p.start()
-
-    # Wait for all the checkers to complete
-    i = 0
-    while(i != NUM_THREADS):
-        res = queue.get()
-        if res == -1:
-            print "Insertion failed, most likely the db isn't running on port %s" % PORT
-            map(Process.terminate, procs)
-            sys.exit(-1)
-        i += 1
-
+    rethinkdb_insert(ints)
 
     # Verify that all integers have successfully been inserted
     print "Verifying"
@@ -115,26 +95,10 @@ def main(argv):
     print "Deleting numbers"
     firstints2 = ints2[0:NUM_INTS / 2]
     secondints2 = ints2[NUM_INTS / 2: NUM_INTS]
-    lists = split_list(firstints2, NUM_THREADS)
-    queue = Queue()
-    procs = []
-    for i in xrange(0, NUM_THREADS):
-        p = Process(target=rethinkdb_delete, args=(queue, lists[i]))
-        procs.append(p)
-        p.start()
-
-    # Wait for all the checkers to complete
-    i = 0
-    while(i != NUM_THREADS):
-        res = queue.get()
-        if res == -1:
-            print "Deletion failed"
-            map(Process.terminate, procs)
-            sys.exit(-1)
-        i += 1
+    rethinkdb_delete(firstints2)
 
     print "Verifying"
-#rethinkdb_verify_empty(secondints2, firstints2)
+    rethinkdb_verify_empty(secondints2, firstints2)
     
     # Kill RethinkDB process
     # TODO: send the shutdown command

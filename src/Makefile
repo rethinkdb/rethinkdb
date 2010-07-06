@@ -31,6 +31,7 @@ OBJS =  main.o \
 	server.o \
 	cmd_args.o \
 	message_hub.o \
+	rwi_lock.o \
 	cpu_context.o
 
 DEPS:=$(OBJS:%.o=$(DEP_DIR)/%.d)

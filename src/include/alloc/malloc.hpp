@@ -16,9 +16,10 @@ struct malloc_alloc_t {
     
     void* malloc(size_t size) {
         void *ptr = ::malloc(size);
-#ifdef VALGRIND
-            // Zero out the buffer in debug mode so valgrind doesn't complain
-            bzero(ptr, size);
+#if defined(VALGRIND) || !defined(NDEBUG)
+            // Fill the buffer with garbage in debug mode so valgrind doesn't complain, and to help
+            // catch uninitialized memory errors.
+            memset(ptr, 0xBD, size);
 #endif
         return ptr;
     }

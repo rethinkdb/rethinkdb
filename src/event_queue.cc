@@ -12,12 +12,14 @@
 #include <algorithm>
 #include <string>
 #include <sstream>
+#include "config/args.hpp"
+#include "config/code.hpp"
+#include "utils.hpp"
 #include "alloc/memalign.hpp"
 #include "alloc/pool.hpp"
 #include "alloc/dynamic_pool.hpp"
 #include "alloc/stats.hpp"
 #include "alloc/alloc_mixin.hpp"
-#include "utils.hpp"
 #include "worker_pool.hpp"
 #include "arch/io.hpp"
 #include "conn_fsm.hpp"
@@ -26,7 +28,7 @@
 #include "buffer_cache/stats.hpp"
 #include "buffer_cache/mirrored.hpp"
 #include "buffer_cache/page_map/unlocked_hash_map.hpp"
-#include "buffer_cache/page_repl/none.hpp"
+#include "buffer_cache/page_repl/page_repl_random.hpp"
 #include "buffer_cache/writeback/writeback.hpp"
 #include "buffer_cache/concurrency/rwi_conc.hpp"
 #include "btree/get_fsm.hpp"
@@ -36,7 +38,6 @@
 #include "event_queue.hpp"
 #include "buffer_cache/stats.hpp"
 #include "cpu_context.hpp"
-#include "config/code.hpp"
 
 static const int NSEC_IN_SEC = 1000 * 1000 * 1000;
 
@@ -76,23 +77,7 @@ void process_aio_notify(event_queue_t *self) {
         
         // Process the events
         for(int i = 0; i < nevents; i++) {
-            if(self->event_handler) {
-                event_t qevent;
-                bzero((char*)&qevent, sizeof(qevent));
-                qevent.event_type = et_disk;
-                iocb *op = (iocb*)events[i].obj;
-                qevent.result = events[i].res;
-                qevent.buf = op->u.c.buf;
-                qevent.offset = op->u.c.offset;
-                qevent.state = events[i].data;
-                if(op->aio_lio_opcode == IO_CMD_PREAD)
-                    qevent.op = eo_read;
-                else
-                    qevent.op = eo_write;
-                
-                self->iosys.aio_notify(&qevent);
-            }
-            delete (iocb*)events[i].obj;
+            self->iosys.aio_notify((iocb*)events[i].obj, events[i].res);
         }
         nevents_total -= nevents;
     } while(nevents_total > 0);
@@ -107,44 +92,18 @@ void event_queue_t::process_timer_notify() {
 
     total_expirations += nexpirations;
 
-    // Let queue user handle the event, if they wish
-    if(event_handler) {
-        event_t qevent;
-        bzero((char*)&qevent, sizeof(qevent));
-        qevent.event_type = et_timer;
-        qevent.state = (void*)timer_fd;
-        qevent.result = nexpirations;
-        qevent.op = eo_read;
-        event_handler(this, &qevent);
-    }
-
-    /* Check for and execute any expired timers. */
-    timespec now;
-    clock_gettime(CLOCK_MONOTONIC, &now);
-
-    timer *t = timers.empty() ? NULL : timers.top();
-    while (t && (t->it.it_value.tv_sec < now.tv_sec ||
-           (t->it.it_value.tv_sec == now.tv_sec &&
-            t->it.it_value.tv_nsec <= now.tv_nsec))) {
-        timers.pop();
-
-        t->callback(t->context);
-
-        /* Adjust value for next iteration if the internal is non-zero. */
-        if (t->it.it_interval.tv_sec || t->it.it_interval.tv_nsec) {
-            t->it.it_value = now;
-            t->it.it_value.tv_sec += t->it.it_interval.tv_sec;
-            t->it.it_value.tv_nsec += t->it.it_interval.tv_nsec;
-            if (t->it.it_value.tv_nsec > NSEC_IN_SEC) {
-                t->it.it_value.tv_nsec -= NSEC_IN_SEC;
-                t->it.it_value.tv_sec += 1;
+    /* Execute any expired timers. */
+    timer_t *timer = timers.head();
+    while(timer) {
+        timer_t *_t = timer->next;
+        if((total_expirations * TIMER_TICKS_IN_MS) % timer->interval_ms == 0) {
+            timer->callback(timer->context);
+            if(timer->once) {
+                timers.remove(timer);
+                delete timer;
             }
-            timers.push(t);
-        } else {
-            delete t;
         }
-        
-        t = timers.empty() ? NULL : timers.top();
+        timer = _t;
     }
 }
 
@@ -232,11 +191,15 @@ void *event_queue_t::epoll_handler(void *arg) {
     event_queue_t *self = (event_queue_t*)arg;
     epoll_event events[MAX_IO_EVENT_PROCESSING_BATCH_SIZE];
     bool shutting_down = false; // True btw. iet_shutdown and iet_cache_synced.
-    std::vector<event_queue_t::conn_fsm_t *> shutdown_fsms;
+    typedef std::vector<event_queue_t::conn_fsm_t*, gnew_alloc<conn_fsm_t*> > shutdown_fsms_t;
+    shutdown_fsms_t shutdown_fsms;
 
     // First, set the cpu context structure
     get_cpu_context()->event_queue = self;
     self->cache->start();
+
+    // Now, initialize the hardcoded (garbage collection)
+    self->add_timer(ALLOC_GC_INTERVAL_MS, self->garbage_collect, NULL);
     
     // Now, start the loop
     do {
@@ -306,12 +269,21 @@ void *event_queue_t::epoll_handler(void *arg) {
     } while(1);
 
 breakout:
-    for (std::vector<event_queue_t::conn_fsm_t *>::iterator it =
-         shutdown_fsms.begin(); it != shutdown_fsms.end(); ++it)
-        delete *it;
-    delete self->cache;
+    // Stop the timers
+    queue_stop_timer(self);
 
-    return tls_small_obj_alloc_accessor<event_queue_t::alloc_t>::allocs_tl;
+    // Delete the registered timers
+    while(!self->timers.empty()) {
+        timer_t *t = self->timers.head();
+        self->timers.remove(t);
+        delete t;
+    }
+
+    for (shutdown_fsms_t::iterator it = shutdown_fsms.begin(); it != shutdown_fsms.end(); ++it)
+        delete *it;
+    gdelete(self->cache);
+
+    return tls_small_obj_alloc_accessor<alloc_t>::allocs_tl;
 }
 
 event_queue_t::event_queue_t(int queue_id, int _nqueues, event_handler_t event_handler,
@@ -366,19 +338,15 @@ event_queue_t::event_queue_t(int queue_id, int _nqueues, event_handler_t event_h
     watch_resource(this->itc_pipe[0], eo_read, (void*)this->itc_pipe[0]);
     
     // Init the cache
-    cache = new cache_t(BTREE_BLOCK_SIZE, cmd_config->max_cache_size / nqueues,
-        cmd_config->wait_for_flush, cmd_config->flush_interval_ms);
-    std::string str((char*)cmd_config->db_file_name);
-    std::stringstream out;
+    cache = gnew<cache_t>(BTREE_BLOCK_SIZE, cmd_config->max_cache_size / nqueues,
+                          cmd_config->wait_for_flush, cmd_config->flush_interval_ms);
+    typedef std::basic_string<char, std::char_traits<char>, gnew_alloc<char> > rdbstring_t;
+    typedef std::basic_stringstream<char, std::char_traits<char>, gnew_alloc<char> > rdbstringstream_t;
+    rdbstringstream_t out;
+    rdbstring_t str((char*)cmd_config->db_file_name);
     out << queue_id;
     str += out.str();
     cache->init((char*)str.c_str());
-
-    //Add garbage collection timer
-    timespec ts;
-    ts.tv_sec = 3;
-    ts.tv_nsec = 0;
-    timer_add(&ts, this->garbage_collect, NULL);
 }
 
 void event_queue_t::start_queue() {
@@ -413,16 +381,6 @@ event_queue_t::~event_queue_t()
     res = pthread_join(this->epoll_thread, &allocs_tl);
     check("Could not join with epoll thread", res != 0);
     parent_pool->all_allocs.push_back(allocs_tl);
-
-    // Stop the timers
-    queue_stop_timer(this);
-
-    // Delete the registered timers
-    while(!timers.empty()) {
-        timer *t = timers.top();
-        delete t;
-        timers.pop();
-    }
 
     // Cleanup resources
     res = close(this->epoll_fd);
@@ -572,15 +530,14 @@ void event_queue_t::deregister_fsm(conn_fsm_t *fsm) {
 void event_queue_t::pull_messages_for_cpu(message_hub_t::msg_list_t *target) {
     for(int i = 0; i < parent_pool->nworkers; i++) {
         message_hub_t::msg_list_t tmp_list;
-        parent_pool->workers[i].message_hub.pull_messages(queue_id, &tmp_list);
+        parent_pool->workers[i]->message_hub.pull_messages(queue_id, &tmp_list);
         target->append_and_clear(&tmp_list);
     }
 }
 
 void event_queue_t::garbage_collect(void *ctx) {
     // Perform allocator gc
-    std::vector<event_queue_t::alloc_t*> *allocs =
-        tls_small_obj_alloc_accessor<event_queue_t::alloc_t>::allocs_tl;
+    tls_small_obj_alloc_accessor<alloc_t>::alloc_vector_t *allocs = tls_small_obj_alloc_accessor<alloc_t>::allocs_tl;
     if(allocs) {
         for(size_t i = 0; i < allocs->size(); i++) {
             allocs->operator[](i)->gc();
@@ -591,42 +548,21 @@ void event_queue_t::garbage_collect(void *ctx) {
 /**
  * Timer API
  */
-bool event_queue_t::timer_gt::operator()(const timer *t1, const timer *t2) {
-    if (t1->it.it_value.tv_sec != t2->it.it_value.tv_sec)
-        return t1->it.it_value.tv_sec > t2->it.it_value.tv_sec;
-    return t1->it.it_value.tv_nsec > t2->it.it_value.tv_nsec;
-}
-
-void event_queue_t::timer_add_internal(timespec *ts, void (*callback)(void *),
-    void *ctx, bool once) {
-    timespec now;
-
-    clock_gettime(CLOCK_MONOTONIC, &now);
-    timer *t = new timer;
-    if (once) {
-        t->it.it_interval.tv_sec = 0;
-        t->it.it_interval.tv_nsec = 0;
-    } else {
-        t->it.it_interval = *ts;
-    }
-    t->it.it_value = now;
-    t->it.it_value.tv_sec += ts->tv_sec;
-    t->it.it_value.tv_nsec += ts->tv_nsec;
-    if (t->it.it_value.tv_nsec > NSEC_IN_SEC) {
-        t->it.it_value.tv_nsec -= NSEC_IN_SEC;
-        t->it.it_value.tv_sec += 1;
-    }
+void event_queue_t::add_timer_internal(long ms, void (*callback)(void *), void *ctx, bool once) {
+    timer_t *t = new timer_t();
+    t->once = once;
     t->callback = callback;
     t->context = ctx;
-    timers.push(t);
+    t->interval_ms = ms;
+    timers.push_back(t);
 }
 
-void event_queue_t::timer_add(timespec *ts, void (*cb)(void *), void *ctx) {
-    timer_add_internal(ts, cb, ctx, false);
+void event_queue_t::add_timer(long ms, void (*cb)(void *), void *ctx) {
+    add_timer_internal(ms, cb, ctx, false);
 }
 
-void event_queue_t::timer_once(timespec *ts, void (*cb)(void *), void *ctx) {
-    timer_add_internal(ts, cb, ctx, true);
+void event_queue_t::fire_timer_once(long ms, void (*cb)(void *), void *ctx) {
+    add_timer_internal(ms, cb, ctx, true);
 }
 
 void event_queue_t::on_sync() {

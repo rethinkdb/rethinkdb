@@ -2,8 +2,11 @@
 #ifndef __RWI_LOCK_IMPL_HPP__
 #define __RWI_LOCK_IMPL_HPP__
 
-template<class config_t>
-bool rwi_lock<config_t>::lock(access_t access, lock_available_callback_t *callback) {
+#include "config/args.hpp"
+#include "config/code.hpp"
+#include "concurrency/rwi_lock.hpp"
+
+bool rwi_lock_t::lock(access_t access, lock_available_callback_t *callback) {
     if(try_lock(access, false)) {
         return true;
     } else {
@@ -14,8 +17,7 @@ bool rwi_lock<config_t>::lock(access_t access, lock_available_callback_t *callba
 
 // Call if you've locked for read or write, or upgraded to write,
 // and are now unlocking.
-template<class config_t>
-void rwi_lock<config_t>::unlock() {
+void rwi_lock_t::unlock() {
     switch(state) {
     case rwis_unlocked:
         assert(0);
@@ -41,9 +43,8 @@ void rwi_lock<config_t>::unlock() {
 
 // Call if you've locked for intent before, didn't upgrade to
 // write, and are now unlocking.
-template<class config_t>
-void rwi_lock<config_t>::unlock_intent() {
-    assert(state == rwi_intent);
+void rwi_lock_t::unlock_intent() {
+    assert(state == rwis_reading_with_intent);
     if(nreaders == 0)
         state = rwis_unlocked;
     else
@@ -53,8 +54,11 @@ void rwi_lock<config_t>::unlock_intent() {
     process_queue();
 }
 
-template<class config_t>
-bool rwi_lock<config_t>::try_lock(access_t access, bool from_queue) {
+bool rwi_lock_t::locked() {
+	return (state != rwis_unlocked);
+}
+
+bool rwi_lock_t::try_lock(access_t access, bool from_queue) {
     bool res = false;
     switch(access) {
     case rwi_read:
@@ -76,8 +80,7 @@ bool rwi_lock<config_t>::try_lock(access_t access, bool from_queue) {
     return res;
 }
 
-template<class config_t>
-bool rwi_lock<config_t>::try_lock_read(bool from_queue) {
+bool rwi_lock_t::try_lock_read(bool from_queue) {
     if(!from_queue && queue.head() && queue.head()->op == rwi_write)
         return false;
         
@@ -100,8 +103,7 @@ bool rwi_lock<config_t>::try_lock_read(bool from_queue) {
     assert(0);
 }
 
-template<class config_t>
-bool rwi_lock<config_t>::try_lock_write(bool from_queue) {
+bool rwi_lock_t::try_lock_write(bool from_queue) {
     if(!from_queue && queue.head() &&
        (queue.head()->op == rwi_write ||
         queue.head()->op == rwi_read ||
@@ -125,8 +127,7 @@ bool rwi_lock<config_t>::try_lock_write(bool from_queue) {
     assert(0);
 }
     
-template<class config_t>
-bool rwi_lock<config_t>::try_lock_intent(bool from_queue) {
+bool rwi_lock_t::try_lock_intent(bool from_queue) {
     if(!from_queue && queue.head() &&
        (queue.head()->op == rwi_write ||
         queue.head()->op == rwi_intent))
@@ -149,8 +150,7 @@ bool rwi_lock<config_t>::try_lock_intent(bool from_queue) {
     assert(0);
 }
 
-template<class config_t>
-bool rwi_lock<config_t>::try_lock_upgrade(bool from_queue) {
+bool rwi_lock_t::try_lock_upgrade(bool from_queue) {
     assert(state == rwis_reading_with_intent);
     if(nreaders == 0) {
         state = rwis_writing;
@@ -160,13 +160,11 @@ bool rwi_lock<config_t>::try_lock_upgrade(bool from_queue) {
     }
 }
     
-template<class config_t>
-void rwi_lock<config_t>::enqueue_request(access_t access, lock_available_callback_t *callback) {
+void rwi_lock_t::enqueue_request(access_t access, lock_available_callback_t *callback) {
     queue.push_back(new lock_request_t(access, callback));
 }
 
-template<class config_t>
-void rwi_lock<config_t>::process_queue() {
+void rwi_lock_t::process_queue() {
     lock_request_t *req = queue.head();
     while(req) {
         if(!try_lock(req->op, true)) {
@@ -187,8 +185,7 @@ void rwi_lock<config_t>::process_queue() {
     // could be executed in parallel.
 }
 
-template<class config_t>
-void rwi_lock<config_t>::send_notify(lock_request_t *req) {
+void rwi_lock_t::send_notify(lock_request_t *req) {
     // Hub might be NULL due to unit tests.
     if(hub)
         hub->store_message(cpu, req);

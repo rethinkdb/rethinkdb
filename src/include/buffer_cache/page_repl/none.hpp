@@ -16,37 +16,29 @@
 template <class config_t>
 struct page_repl_none_t {
 public:
+	typedef typename config_t::cache_t cache_t;
     typedef typename config_t::serializer_t serializer_t;
     typedef typename config_t::page_map_t page_map_t;
-    typedef typename config_t::buffer_alloc_t buffer_alloc_t;
     
 public:
     page_repl_none_t(size_t _block_size, size_t _max_size,
                      page_map_t *_page_map,
-                     buffer_alloc_t *_alloc)
-        : num_pinned(0), block_size(_block_size),
+                     buffer_alloc_t *_alloc, cache_t *_cache)
+        : block_size(_block_size),
           max_size(_max_size),
           page_map(_page_map),
-          alloc(_alloc)
+          alloc(_alloc),
+          cache(_cache)
         {}
-
-    class buf_t {
-    public:
-        explicit buf_t(page_repl_none_t *_page_repl) : page_repl(_page_repl) {}
-
-        void pin() { page_repl->num_pinned++; }
-        void unpin() { page_repl->num_pinned--; }
-        unsigned int is_pinned() const { return page_repl->num_pinned; }
-
-    private:
-        page_repl_none_t *page_repl;
-    };
-
+	
+	void start() { }
+	void shutdown(sync_callback<config_t> *cb) { }
+	
 private:
-    unsigned int num_pinned;
     size_t block_size, max_size;
     page_map_t *page_map;
     buffer_alloc_t *alloc;
+    cache_t *cache;
 };
 
 #endif // __PAGE_REPL_NONE_HPP__

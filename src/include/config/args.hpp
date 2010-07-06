@@ -6,9 +6,6 @@
  * Basic configuration parameters.
  * TODO: Many of these should be runtime switches.
  */
-// Ticks (in milliseconds) the internal timed tasks are performed at
-#define TIMER_TICKS_IN_MS                         50
-
 // Max concurrent IO requests per event queue
 #define MAX_CONCURRENT_IO_REQUESTS                256
 
@@ -28,9 +25,6 @@
 
 // Initial number of objects in the first dynamic pool allocator.
 #define DYNAMIC_POOL_INITIAL_NOBJECTS             100
-
-// Perform allocator GC every N milliseconds (the resolution is limited to TIMER_TICKS_IN_MS)
-#define ALLOC_GC_IN_MS                            3000
 
 // Size of the buffer used to perform IO operations (in bytes).
 #define IO_BUFFER_SIZE                            4096
@@ -64,12 +58,20 @@
 // Default port to listen on
 #define DEFAULT_LISTEN_PORT                       8080
 
+// Ticks (in milliseconds) the internal timed tasks are performed at
+#define TIMER_TICKS_IN_MS                         50
+
 // How many milliseconds between flushes.
 #define DEFAULT_WRITEBACK_INTERVAL_MS             5000
 
 //Any values of this size or less will be directly stored in btree leaf nodes.
 //Values greater than this size will be stored in overflow blocks.
 #define MAX_IN_NODE_VALUE_SIZE                    250
+// How many milliseconds between page replacements
+#define PAGE_REPL_INTERVAL_MS                     3000
+
+// Perform allocator GC every N milliseconds (the resolution is limited to TIMER_TICKS_IN_MS)
+#define ALLOC_GC_INTERVAL_MS                      3000
 
 #endif // __CONFIG_ARGS_H__
 

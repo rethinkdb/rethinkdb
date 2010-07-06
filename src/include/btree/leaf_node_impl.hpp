@@ -5,7 +5,7 @@
 #include <algorithm>
 
 void leaf_node_handler::init(btree_leaf_node *node) {
-    node->leaf = true;
+    node->kind = btree_node_kind_leaf;
     node->npairs = 0;
     node->frontmost_offset = BTREE_BLOCK_SIZE;
 }
@@ -98,6 +98,10 @@ bool leaf_node_handler::is_full(btree_leaf_node *node, btree_key *key, btree_val
     return sizeof(btree_leaf_node) +
         node->npairs*sizeof(*node->pair_offsets) +
         sizeof(btree_leaf_pair) + key->size + value->size + 1 >= node->frontmost_offset;
+}
+
+void leaf_node_handler::validate(btree_leaf_node *node) {
+    assert((void*)&(node->pair_offsets[node->npairs]) <= (void*)get_pair(node, node->frontmost_offset));
 }
 
 size_t leaf_node_handler::pair_size(btree_leaf_pair *pair) {
