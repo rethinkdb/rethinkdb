@@ -32,5 +32,9 @@ struct buffer_t {
     static const int size = _size;
 };
 
+template <class ForwardIterator, class StrictWeakOrdering>
+bool is_sorted(ForwardIterator first, ForwardIterator last,
+                       StrictWeakOrdering comp);
+
 #endif // __UTILS_HPP__
 

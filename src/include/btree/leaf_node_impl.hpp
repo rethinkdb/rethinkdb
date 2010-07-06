@@ -160,14 +160,20 @@ bool leaf_node_handler::is_full(btree_leaf_node *node, btree_key *key, btree_val
     if (node->npairs >= DEBUG_MAX_LEAF)
         return true;
 #endif
+    //will the data growing from front to right overlap data growing from back to left if we insert the new key value pair
     return sizeof(btree_leaf_node) +
-        node->npairs*sizeof(*node->pair_offsets) +
-        sizeof(btree_leaf_pair) + key->size + value->size + 1 >= node->frontmost_offset;
+        (node->npairs + 1)*sizeof(*node->pair_offsets) +
+        sizeof(btree_leaf_pair) + key->size + value->size >= node->frontmost_offset;
 }
 
 bool leaf_node_handler::is_underfull(btree_leaf_node *node) {
-    //TODO implement
-    return false;
+#ifdef DEBUG_MAX_LEAF
+    if (node->npairs < (DEBUG_MAX_LEAF + 1) / 2)
+        return true;
+#endif
+    return (sizeof(btree_leaf_node) + 1) / 2 + 
+        node->npairs*sizeof(*node->pair_offsets) +
+        (BTREE_BLOCK_SIZE - node->frontmost_offset) < BTREE_BLOCK_SIZE / 2;
 }
 
 size_t leaf_node_handler::pair_size(btree_leaf_pair *pair) {

@@ -51,3 +51,12 @@ int sized_strcmp(const char *str1, int len1, const char *str2, int len2) {
     return res;
 }
 
+template <class ForwardIterator, class StrictWeakOrdering>
+bool is_sorted(ForwardIterator first, ForwardIterator last,
+                       StrictWeakOrdering comp) {
+    for(ForwardIterator it = first; it + 1 < last; it++) {
+        if (comp(it, it + 1) > 0)
+            return false;
+    }
+    return true;
+}
