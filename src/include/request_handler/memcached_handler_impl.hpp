@@ -116,7 +116,7 @@ typename memcached_handler_t<config_t>::parse_result_t memcached_handler_t<confi
         return malformed_request(fsm);
 
     cmd = command;
-    node_handler::str_to_key(key_tmp, key);
+    key = strdup(key_tmp); //TODO: Consider not allocating with malloc
 
     char *invalid_char;
     flags = strtoul(flags_str, &invalid_char, 10);  //a 32 bit integer.  int alone does not guarantee 32 bit length
@@ -185,22 +185,27 @@ typename memcached_handler_t<config_t>::parse_result_t memcached_handler_t<confi
             break;
     }
 
+    //free stored state
+    free(key);
+
     return ret;
 }
 
 template <class config_t>
 typename memcached_handler_t<config_t>::parse_result_t memcached_handler_t<config_t>::set(char *data, conn_fsm_t *fsm) {
-    btree_set_fsm_t *btree_fsm = new btree_set_fsm_t(get_cpu_context()->event_queue->cache);
-    btree_fsm->init_update(key, data, bytes);
-    req_handler_t::event_queue->message_hub.store_message(key_to_cpu(key, req_handler_t::event_queue->nqueues),
-            btree_fsm);
+    //TODO: For now, we assume the data is an integer, because that is the only data type the database can handle
+    data[bytes] = '\0'; //null terminate string
+    char *invalid_char;
+    unsigned int value_int = (int)strtoul(data, &invalid_char, 10);
+    if (*invalid_char != '\0')  // ensure there were no improper characters in the token - i.e. parse was successful
+        return unimplemented_request(fsm);
 
-    // Create request
-    request_t *request = new request_t(fsm);
-    request->fsms[request->nstarted] = btree_fsm;
-    request->nstarted++;
-    fsm->current_request = request;
-    btree_fsm->request = request;
+
+    unsigned int key_int = (int)strtoul(key, &invalid_char, 10);
+    if (*invalid_char != '\0')  // ensure there were no improper characters in the token - i.e. parse was successful
+        return unimplemented_request(fsm);
+
+    set_key(fsm, key_int, value_int);
 
     fsm->consume(bytes+2);
     return req_handler_t::op_req_complex;
@@ -250,8 +255,24 @@ void memcached_handler_t<config_t>::write_msg(conn_fsm_t *fsm, const char *str) 
     fsm->nbuf = len+1;
 }
 
+template<class config_t> void memcached_handler_t<config_t>::set_key(conn_fsm_t *fsm, int key, int value){
+    btree_set_fsm_t *btree_fsm = new btree_set_fsm_t(get_cpu_context()->event_queue->cache);
+    btree_fsm->init_update(key, value);
+    req_handler_t::event_queue->message_hub.store_message(key_to_cpu(key, req_handler_t::event_queue->nqueues),
+            btree_fsm);
+
+    // Create request
+    request_t *request = new request_t(fsm);
+    request->fsms[request->nstarted] = btree_fsm;
+    request->nstarted++;
+    fsm->current_request = request;
+    btree_fsm->request = request;
+}
+
+
 template <class config_t>
 typename memcached_handler_t<config_t>::parse_result_t memcached_handler_t<config_t>::get(char *state, bool include_unique, conn_fsm_t *fsm) {
+    printf("Get time!!!\n");
     char *key_str = strtok_r(NULL, DELIMS, &state);
     if (key_str == NULL)
         return malformed_request(fsm);
@@ -267,6 +288,7 @@ typename memcached_handler_t<config_t>::parse_result_t memcached_handler_t<confi
             // We can't fit any more operations, let's just break
             // and complete the ones we already sent out to other
             // cores.
+            printf("Too many requests started\n");
             break;
 
             // TODO: to a user, it will look like some of his
@@ -274,18 +296,19 @@ typename memcached_handler_t<config_t>::parse_result_t memcached_handler_t<confi
             // somehow.
         }
 
-        node_handler::str_to_key(key_str, key);
+        //TODO: do not assume key is an integer
+        int key_int = atoi(key_str);
 
         // Ok, we've got a key, initialize the FSM and add it to
         // the request
         btree_get_fsm_t *btree_fsm = new btree_get_fsm_t(get_cpu_context()->event_queue->cache);
         btree_fsm->request = request;
-        btree_fsm->init_lookup(key);
+        btree_fsm->init_lookup(key_int);
         request->fsms[request->nstarted] = btree_fsm;
         request->nstarted++;
 
         // Add the fsm to appropriate queue
-        req_handler_t::event_queue->message_hub.store_message(key_to_cpu(key, req_handler_t::event_queue->nqueues), btree_fsm);
+        req_handler_t::event_queue->message_hub.store_message(key_to_cpu(key_int, req_handler_t::event_queue->nqueues), btree_fsm);
         key_str = strtok_r(NULL, DELIMS, &state);
     } while(key_str);
 
@@ -327,6 +350,7 @@ typename memcached_handler_t<config_t>::parse_result_t memcached_handler_t<confi
 
     // parsed successfully, but functionality not yet implemented
     //return unimplemented_request(fsm);
+
     request_t *request = new request_t(fsm);
 
     do {
@@ -334,13 +358,14 @@ typename memcached_handler_t<config_t>::parse_result_t memcached_handler_t<confi
             break;
         }
 
+        int key_int = atoi(key_str);
         btree_delete_fsm_t *btree_fsm = new btree_delete_fsm_t(get_cpu_context()->event_queue->cache);
         btree_fsm->request = request;
-        btree_fsm->init_delete(key);
+        btree_fsm->init_delete(key_int);
         request->fsms[request->nstarted] = btree_fsm;
         request->nstarted++;
 
-        req_handler_t::event_queue->message_hub.store_message(key_to_cpu(key, req_handler_t::event_queue->nqueues), btree_fsm);
+        req_handler_t::event_queue->message_hub.store_message(key_to_cpu(key_int, req_handler_t::event_queue->nqueues), btree_fsm);
         key_str = strtok_r(NULL, DELIMS, &state);
     } while(key_str);
 
@@ -376,9 +401,11 @@ void memcached_handler_t<config_t>::build_response(request_t *request) {
     conn_fsm_t *fsm = request->netfsm;
     btree_get_fsm_t *btree_get_fsm = NULL;
     btree_set_fsm_t *btree_set_fsm = NULL;
+    btree_delete_fsm_t *btree_delete_fsm = NULL;
     char *buf = fsm->buf;
     fsm->nbuf = 0;
     int count;
+    char value_str[15];
     
     assert(request->nstarted > 0 && request->nstarted == request->ncompleted);
     switch(request->fsms[0]->fsm_type) {
@@ -387,10 +414,10 @@ void memcached_handler_t<config_t>::build_response(request_t *request) {
         for(unsigned int i = 0; i < request->nstarted; i++) {
             btree_get_fsm = (btree_get_fsm_t*)request->fsms[i];
             if(btree_get_fsm->op_result == btree_get_fsm_t::btree_found) {
+                int value_len = sprintf(value_str, "%d", btree_get_fsm->value);
+
                 //TODO: support flags
-                btree_key *key = btree_get_fsm->key;
-                btree_value *value = btree_get_fsm->value;
-                count = sprintf(buf, "VALUE %*.*s %u %u\r\n%*.*s\r\n", key->size, key->size, key->contents, 0, value->size, value->size, value->size, value->contents);
+                count = sprintf(buf, "VALUE %u %u %u\r\n%s\r\n", btree_get_fsm->key, 0, value_len, value_str);
                 fsm->nbuf += count;
                 buf += count;
             } else if(btree_get_fsm->op_result == btree_get_fsm_t::btree_not_found) {
@@ -414,7 +441,26 @@ void memcached_handler_t<config_t>::build_response(request_t *request) {
             fsm->nbuf = 0;
         }
         delete btree_set_fsm;
+        break;
 
+    case btree_fsm_t::btree_delete_fsm:
+        // For now we only support one delete operation at a time
+        assert(request->nstarted == 1);
+
+        btree_delete_fsm = (btree_delete_fsm_t*)request->fsms[0];
+
+        if(btree_delete_fsm->op_result == btree_delete_fsm_t::btree_found) {
+            count = sprintf(buf, "DELETED\r\n");
+            fsm->nbuf += count;
+            buf += count; //for when we do support multiple deletes at a time
+        } else if (btree_delete_fsm->op_result == btree_delete_fsm_t::btree_not_found) {
+            count = sprintf(buf, "NOT_FOUND\r\n");
+            fsm->nbuf += count;
+            buf += count;
+        } else {
+            check("memchached_handler_t::build_response - Uknown value for btree_delete_fsm->op_result\n", 0);
+        }
+        delete btree_delete_fsm;
         break;
 
     default:
