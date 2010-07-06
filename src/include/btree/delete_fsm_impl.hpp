@@ -223,7 +223,7 @@ typename btree_delete_fsm<config_t>::transition_result_t btree_delete_fsm<config
 
         node_t* node = (node_t*)buf->ptr();
 
-        //Deal with underful nodes if we find them
+        //Deal with underfull nodes if we find them
         if (((node_handler::is_leaf(node) && leaf_node_handler::is_underfull((leaf_node_t*)node)) ||
                    (!node_handler::is_leaf(node) && internal_node_handler::is_underfull((internal_node_t*) node))) && last_buf) {
             printf("Underfull node\n");
@@ -240,7 +240,7 @@ typename btree_delete_fsm<config_t>::transition_result_t btree_delete_fsm<config
                 if((node_handler::is_leaf(sib_node) && leaf_node_handler::is_underfull((leaf_node_t*) sib_node)) ||
                            (!node_handler::is_leaf(sib_node) && internal_node_handler::is_underfull((internal_node_t*) sib_node))) {
                     printf("Merge time\n");
-                    btree_key *key_to_remove = (btree_key *)alloca(sizeof(btree_key) + MAX_KEY_SIZE);
+                    btree_key *key_to_remove = (btree_key *)alloca(sizeof(btree_key) + MAX_KEY_SIZE); //TODO get alloca outta here
                     if (node_handler::is_leaf(node)) {
                         if (leaf_node_handler::nodecmp((leaf_node_t*)node, (leaf_node_t*)sib_node)) {
                             leaf_node_handler::merge((leaf_node_t*)node, (leaf_node_t*)sib_node, key_to_remove);
@@ -264,7 +264,7 @@ typename btree_delete_fsm<config_t>::transition_result_t btree_delete_fsm<config
                     }
                     sib_buf = NULL;
 
-                    if (/* !((internal_node_t*)(last_buf->ptr))->is_singleton()*/0) {
+                    if (!internal_node_handler::is_singleton((internal_node_t*) last_buf->ptr())) {
                         //normal merge
                         internal_node_handler::remove((internal_node_t*) last_buf->ptr(), key_to_remove);
                     } else {
@@ -283,11 +283,13 @@ typename btree_delete_fsm<config_t>::transition_result_t btree_delete_fsm<config
                         leaf_node_handler::level(((leaf_node_t*)node), (leaf_node_t*) sib_node, key_to_replace, replacement_key);
                     else
                         internal_node_handler::level((internal_node_t*)node, (internal_node_t*) sib_node, key_to_replace, replacement_key, (internal_node_t*) last_buf->ptr());
-                    internal_node_handler::update_key((internal_node_t*) node, key_to_replace, replacement_key);
+
+                    //set everyone dirty
                     sib_buf->set_dirty();
                     sib_buf->release();
                     sib_buf = NULL;
 
+                    internal_node_handler::update_key((internal_node_t*) last_buf->ptr(), key_to_replace, replacement_key);
                     last_buf->set_dirty();
                     
                     buf->set_dirty();

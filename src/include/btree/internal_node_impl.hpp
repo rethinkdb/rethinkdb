@@ -3,6 +3,7 @@
 
 #include "btree/internal_node.hpp"
 #include <algorithm>
+#include "utils.hpp"
 
 //#define DEBUG_MAX_INTERNAL 4
 
@@ -184,25 +185,38 @@ int internal_node_handler::sibling(btree_internal_node *node, btree_key *key, bl
 }
 
 void internal_node_handler::update_key(btree_internal_node *node, btree_key *key_to_replace, btree_key *replacement_key) {
-    //TODO implement
-}
+    int index = get_offset_index(node, key_to_replace);
+    block_id_t tmp_lnode = get_pair(node, node->pair_offsets[index])->lnode;
+    delete_pair(node, node->pair_offsets[index]);
+    node->pair_offsets[index] = insert_pair(node, tmp_lnode, replacement_key);
 
+    check("Invalid key given to update_key: offsets no longer in sorted order", is_sorted(node->pair_offsets, node->pair_offsets+node->npairs, internal_key_comp(node)));
+}
 
 bool internal_node_handler::is_full(btree_internal_node *node) {
 #ifdef DEBUG_MAX_INTERNAL
     if (node->npairs-1 >= DEBUG_MAX_INTERNAL)
         return true;
 #endif
-    return sizeof(btree_internal_node) + node->npairs*sizeof(*node->pair_offsets) + sizeof(btree_internal_pair) + MAX_KEY_SIZE >= node->frontmost_offset;
+    return sizeof(btree_internal_node) + (node->npairs + 1) * sizeof(*node->pair_offsets) + sizeof(btree_internal_pair) + MAX_KEY_SIZE >= node->frontmost_offset;
 }
 
 void internal_node_handler::validate(btree_internal_node *node) {
     assert((void*)&(node->pair_offsets[node->npairs]) <= (void*)get_pair(node, node->frontmost_offset));
 }
 
-bool leaf_node_handler::is_underfull(btree_leaf_node *node) {
-    //TODO implement
-    return false;
+bool internal_node_handler::is_underfull(btree_internal_node *node) {
+#ifdef DEBUG_MAX_LEAF
+    if (node->npairs < (DEBUG_MAX_LEAF + 1) / 2)
+        return true;
+#endif
+    return (sizeof(btree_internal_node) + 1) / 2 + 
+        node->npairs*sizeof(*node->pair_offsets) +
+        (BTREE_BLOCK_SIZE - node->frontmost_offset) < BTREE_BLOCK_SIZE / 2;
+}
+
+bool internal_node_handler::is_singleton(btree_internal_node *node) {
+    return node->npairs == 1;
 }
 
 size_t internal_node_handler::pair_size(btree_internal_pair *pair) {

@@ -57,7 +57,10 @@ struct buffer_t : public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, bu
     static const int size = _size;
 };
 
-#include "utils_impl.hpp"
+template <class ForwardIterator, class StrictWeakOrdering>
+bool is_sorted(ForwardIterator first, ForwardIterator last,
+                       StrictWeakOrdering comp);
 
+#include "utils_impl.hpp"
 #endif // __UTILS_HPP__
 
