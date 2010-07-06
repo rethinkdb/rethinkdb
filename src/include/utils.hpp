@@ -59,7 +59,13 @@ struct buffer_t : public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, bu
 
 template <class ForwardIterator, class StrictWeakOrdering>
 bool is_sorted(ForwardIterator first, ForwardIterator last,
-                       StrictWeakOrdering comp);
+                       StrictWeakOrdering comp) {
+    for(ForwardIterator it = first; it + 1 < last; it++) {
+        if (comp(*it, *(it+1)) > 0)
+            return false;
+    }
+    return true;
+}
 
 #include "utils_impl.hpp"
 #endif // __UTILS_HPP__
