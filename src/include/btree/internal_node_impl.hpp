@@ -183,6 +183,11 @@ int internal_node_handler::sibling(btree_internal_node *node, btree_key *key, bl
     return cmp; //equivalent to nodecmp(node, sibling)
 }
 
+void internal_node_handler::update_key(btree_internal_node *node, btree_key *key_to_replace, btree_key *replacement_key) {
+    //TODO implement
+}
+
+
 bool internal_node_handler::is_full(btree_internal_node *node) {
 #ifdef DEBUG_MAX_INTERNAL
     if (node->npairs-1 >= DEBUG_MAX_INTERNAL)
@@ -193,6 +198,11 @@ bool internal_node_handler::is_full(btree_internal_node *node) {
 
 void internal_node_handler::validate(btree_internal_node *node) {
     assert((void*)&(node->pair_offsets[node->npairs]) <= (void*)get_pair(node, node->frontmost_offset));
+}
+
+bool leaf_node_handler::is_underfull(btree_leaf_node *node) {
+    //TODO implement
+    return false;
 }
 
 size_t internal_node_handler::pair_size(btree_internal_pair *pair) {

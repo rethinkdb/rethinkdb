@@ -169,6 +169,11 @@ void leaf_node_handler::validate(btree_leaf_node *node) {
     assert((void*)&(node->pair_offsets[node->npairs]) <= (void*)get_pair(node, node->frontmost_offset));
 }
 
+bool leaf_node_handler::is_underfull(btree_leaf_node *node) {
+    //TODO implement
+    return false;
+}
+
 size_t leaf_node_handler::pair_size(btree_leaf_pair *pair) {
     return sizeof(btree_leaf_pair) + pair->key.size + pair->value()->size;
 }

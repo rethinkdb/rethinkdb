@@ -335,14 +335,13 @@ typename memcached_handler_t<config_t>::parse_result_t memcached_handler_t<confi
             break;
         }
 
-        int key_int = atoi(key_str);
         btree_delete_fsm_t *btree_fsm = new btree_delete_fsm_t(get_cpu_context()->event_queue->cache);
         btree_fsm->request = request;
-        btree_fsm->init_delete(key_int);
+        btree_fsm->init_delete(key);
         request->fsms[request->nstarted] = btree_fsm;
         request->nstarted++;
 
-        req_handler_t::event_queue->message_hub.store_message(key_to_cpu(key_int, req_handler_t::event_queue->nqueues), btree_fsm);
+        req_handler_t::event_queue->message_hub.store_message(key_to_cpu(key, req_handler_t::event_queue->nqueues), btree_fsm);
         key_str = strtok_r(NULL, DELIMS, &state);
     } while(key_str);
 
