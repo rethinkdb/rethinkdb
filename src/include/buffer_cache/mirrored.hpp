@@ -15,7 +15,6 @@
 // various components of the cache to improve performance.
 
 /* Buffer class. */
-// TODO: make sure we use small object allocator for buf_t
 template <class config_t>
 class buf : public iocallback_t,
             public config_t::writeback_t::local_buf_t,
