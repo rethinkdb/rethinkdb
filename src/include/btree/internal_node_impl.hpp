@@ -190,7 +190,7 @@ void internal_node_handler::update_key(btree_internal_node *node, btree_key *key
     delete_pair(node, node->pair_offsets[index]);
     node->pair_offsets[index] = insert_pair(node, tmp_lnode, replacement_key);
 
-    check("Invalid key given to update_key: offsets no longer in sorted order", is_sorted(node->pair_offsets, node->pair_offsets+node->npairs, internal_key_comp(node)));
+    check("Invalid key given to update_key: offsets no longer in sorted order", !is_sorted(node->pair_offsets, node->pair_offsets+node->npairs, internal_key_comp(node)));
 }
 
 bool internal_node_handler::is_full(btree_internal_node *node) {

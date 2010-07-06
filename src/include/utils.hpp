@@ -34,7 +34,13 @@ struct buffer_t {
 
 template <class ForwardIterator, class StrictWeakOrdering>
 bool is_sorted(ForwardIterator first, ForwardIterator last,
-                       StrictWeakOrdering comp);
+                       StrictWeakOrdering comp) {
+    for(ForwardIterator it = first; it + 1 < last; it++) {
+        if (comp(*it, *(it+1)) > 0)
+            return false;
+    }
+    return true;
+}
 
 #endif // __UTILS_HPP__
 
