@@ -4,6 +4,8 @@
 #include "btree/leaf_node.hpp"
 #include <algorithm>
 
+#define DEBUG_MAX_LEAF 10
+
 void leaf_node_handler::init(btree_leaf_node *node) {
     node->kind = btree_node_kind_leaf;
     node->npairs = 0;
@@ -91,6 +93,7 @@ void leaf_node_handler::split(btree_leaf_node *node, btree_leaf_node *rnode, btr
 }
 
 void leaf_node_handler::merge(btree_leaf_node *node, btree_leaf_node *rnode, btree_key *key_to_remove) {
+    printf("merging\n");
     //TODO: write checks
     //check("leaf nodes too full on merge", 
     memmove(rnode->pair_offsets + node->npairs, rnode->pair_offsets, rnode->npairs * sizeof(*rnode->pair_offsets));
@@ -104,6 +107,7 @@ void leaf_node_handler::merge(btree_leaf_node *node, btree_leaf_node *rnode, btr
 }
 
 void leaf_node_handler::level(btree_leaf_node *node, btree_leaf_node *sibling, btree_key *key_to_replace, btree_key *replacement_key) {
+    printf("leveling\n");
     //Note: size does not take into account offsets
     uint16_t node_size = BTREE_BLOCK_SIZE - node->frontmost_offset;
     uint16_t sibling_size = BTREE_BLOCK_SIZE - sibling->frontmost_offset;

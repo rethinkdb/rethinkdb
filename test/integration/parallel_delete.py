@@ -6,10 +6,10 @@ from multiprocessing import Pool, Queue, Process
 import memcache
 from random import shuffle
 
-NUM_INTS=8
+NUM_INTS=8000
 NUM_THREADS=1
 HOST="localhost"
-PORT="11212"
+PORT="11211"
 
 # TODO: when we add more integration tests, the act of starting a
 # RethinkDB process should be handled by a common external script.
@@ -110,7 +110,7 @@ def main(argv):
 
     # Verify that all integers have successfully been inserted
     print "Verifying"
-    rethinkdb_verify()
+#rethinkdb_verify()
 
     print "Deleting numbers"
     firstints2 = ints2[0:NUM_INTS / 2]
@@ -134,7 +134,7 @@ def main(argv):
         i += 1
 
     print "Verifying"
-#rethinkdb_verify_empty(secondints2, firstints2)
+    rethinkdb_verify_empty(secondints2, firstints2)
     
     # Kill RethinkDB process
     # TODO: send the shutdown command

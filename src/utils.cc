@@ -72,17 +72,3 @@ void *_gmalloc(size_t size) {
 void _gfree(void *ptr) {
     free(ptr);
 }
-
-inline void keycpy(btree_key *dest, btree_key *src) {
-    memcpy(dest, src, sizeof(btree_key) + src->size);
-}
-
-template <class ForwardIterator, class StrictWeakOrdering>
-bool is_sorted(ForwardIterator first, ForwardIterator last,
-                       StrictWeakOrdering comp) {
-    for(ForwardIterator it = first; it + 1 < last; it++) {
-        if (comp(it, it + 1) > 0)
-            return false;
-    }
-    return true;
-}
