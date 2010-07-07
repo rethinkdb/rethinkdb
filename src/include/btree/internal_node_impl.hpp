@@ -89,6 +89,13 @@ void internal_node_handler::split(btree_internal_node *node, btree_internal_node
 }
 
 void internal_node_handler::merge(btree_internal_node *node, btree_internal_node *rnode, btree_key *key_to_remove, btree_internal_node *parent) {
+#ifndef NDEBUG
+    printf("mergine\n");
+    printf("node:\n");
+    internal_node_handler::print(node);
+    printf("rnode:\n");
+    internal_node_handler::print(rnode);
+#endif
     //TODO: add asserts
     memmove(rnode->pair_offsets + node->npairs, rnode->pair_offsets, rnode->npairs * sizeof(*rnode->pair_offsets));
 
@@ -101,10 +108,24 @@ void internal_node_handler::merge(btree_internal_node *node, btree_internal_node
     rnode->npairs += node->npairs;
 
     keycpy(key_to_remove, &get_pair(rnode, rnode->pair_offsets[0])->key);
+#ifndef NDEBUG
+    printf("\t|\n\t|\n\t|\n\tV\n");
+    printf("node:\n");
+    internal_node_handler::print(node);
+    printf("rnode:\n");
+    internal_node_handler::print(rnode);
+#endif
 }
 
 void internal_node_handler::level(btree_internal_node *node, btree_internal_node *sibling, btree_key *key_to_replace, btree_key *replacement_key, btree_internal_node *parent) {
     //Note: size does not take into account offsets
+#ifndef NDEBUG
+    printf("levelling\n");
+    printf("node:\n");
+    internal_node_handler::print(node);
+    printf("sibling:\n");
+    internal_node_handler::print(sibling);
+#endif
 #ifndef DEBUG_MAX_INTERNAL
     uint16_t node_size = BTREE_BLOCK_SIZE - node->frontmost_offset;
     uint16_t sibling_size = BTREE_BLOCK_SIZE - sibling->frontmost_offset;
@@ -176,6 +197,14 @@ void internal_node_handler::level(btree_internal_node *node, btree_internal_node
         keycpy(replacement_key, &get_pair(sibling, sibling->pair_offsets[sibling->npairs-1])->key);
         make_last_pair_special(sibling);
     }
+
+#ifndef NDEBUG
+    printf("\t|\n\t|\n\t|\n\tV\n");
+    printf("node:\n");
+    internal_node_handler::print(node);
+    printf("sibling:\n");
+    internal_node_handler::print(sibling);
+#endif
 }
 
 int internal_node_handler::sibling(btree_internal_node *node, btree_key *key, block_id_t *sib_id) {
@@ -316,6 +345,24 @@ int internal_node_handler::nodecmp(btree_internal_node *node1, btree_internal_no
     btree_key *key2 = &get_pair(node2, node2->pair_offsets[0])->key;
 
     return sized_strcmp(key1->contents, key1->size, key2->contents, key2->size);
+}
+
+void internal_node_handler::print(btree_internal_node *node) {
+#ifndef NDEBUG
+    for (int i = 0; i < node->npairs; i++) {
+        btree_internal_pair *pair = get_pair(node, node->pair_offsets[i]);
+        printf("|\t");
+        pair->key.print();
+        printf("\t");
+    }
+    printf("|\n");
+    for (int i = 0; i < node->npairs; i++) {
+        printf("|\t");
+        printf(".");
+        printf("\t");
+    }
+    printf("|\n");
+#endif
 }
 
 #endif // __BTREE_INTERNAL_NODE_IMPL_HPP__

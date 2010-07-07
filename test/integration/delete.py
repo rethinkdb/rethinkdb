@@ -7,7 +7,7 @@ import memcache
 from random import shuffle
 from time import sleep
 
-NUM_INTS=8000
+NUM_INTS=10
 NUM_THREADS=1
 HOST="localhost"
 PORT="11211"
@@ -95,10 +95,10 @@ def main(argv):
     print "Deleting numbers"
     firstints2 = ints2[0:NUM_INTS / 2]
     secondints2 = ints2[NUM_INTS / 2: NUM_INTS]
-    rethinkdb_delete(firstints2)
+#rethinkdb_delete(firstints2)
 
     print "Verifying"
-    rethinkdb_verify_empty(secondints2, firstints2)
+#rethinkdb_verify_empty(secondints2, firstints2)
     
     # Kill RethinkDB process
     # TODO: send the shutdown command
