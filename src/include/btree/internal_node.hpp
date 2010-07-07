@@ -39,7 +39,7 @@ class internal_node_handler : public node_handler {
     static int nodecmp(btree_internal_node *node1, btree_internal_node *node2);
     static bool is_full(btree_internal_node *node);
     static bool is_underfull(btree_internal_node *node);
-    static bool is_underfull_or_min(btree_internal_node *node);
+    static bool is_underfull_or_min(btree_internal_node *node); // TODO: rename
     static bool is_singleton(btree_internal_node *node);
 
     static void validate(btree_internal_node *node);

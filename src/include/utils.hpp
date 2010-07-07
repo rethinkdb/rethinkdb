@@ -61,7 +61,7 @@ template <class ForwardIterator, class StrictWeakOrdering>
 bool is_sorted(ForwardIterator first, ForwardIterator last,
                        StrictWeakOrdering comp) {
     for(ForwardIterator it = first; it + 1 < last; it++) {
-        if (comp(*it, *(it+1)) > 0)
+        if (!comp(*it, *(it+1)))
             return false;
     }
     return true;

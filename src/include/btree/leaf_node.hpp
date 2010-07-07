@@ -41,7 +41,7 @@ class leaf_node_handler : public node_handler {
 
     static bool is_full(btree_leaf_node *node, btree_key *key, btree_value *value);
     static bool is_underfull(btree_leaf_node *node);
-    static bool is_underfull_or_min(btree_leaf_node *node);
+    static bool is_underfull_or_min(btree_leaf_node *node); //TODO: rename
     static void validate(btree_leaf_node *node);
     static int nodecmp(btree_leaf_node *node1, btree_leaf_node *node2);
 
