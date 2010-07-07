@@ -17,6 +17,7 @@ buf<config_t>::buf(cache_t *cache, block_id_t block_id)
 
 template <class config_t>
 buf<config_t>::~buf() {
+    assert(load_callbacks.empty());
     cache->free(data);
 }
 
@@ -53,11 +54,17 @@ void buf<config_t>::on_io_complete(event_t *event) {
 }
 
 template<class config_t>
+bool buf<config_t>::is_pinned() {
+    return concurrency_t::local_buf_t::is_pinned() || !load_callbacks.empty();
+}
+
+template<class config_t>
 void buf<config_t>::deadlock_debug() {
-	printf("Buffer %p (id %d):\n", (void*)this, (int)block_id);
-	printf("dirty = %d\n", (int)config_t::writeback_t::local_buf_t::is_dirty());
-	printf("cached = %d\n", (int)is_cached());
+	printf("buffer %p (id %d) {\n", (void*)this, (int)block_id);
+	printf("\tdirty = %d\n", (int)config_t::writeback_t::local_buf_t::is_dirty());
+	printf("\tcached = %d\n", (int)is_cached());
 	concurrency_t::local_buf_t::deadlock_debug();
+	printf("}\n");
 }
 
 /**
@@ -242,6 +249,7 @@ void mirrored_cache_t<config_t>::aio_complete(buf_t *buf, bool written) {
 
 template <class config_t>
 void mirrored_cache_t<config_t>::do_unload_buf(buf_t *buf) {
+    assert(!buf->is_pinned());
 	bool acquired __attribute__((unused)) =
 		((concurrency_t *)this)->acquire(buf, rwi_write, NULL);
 	assert(acquired);

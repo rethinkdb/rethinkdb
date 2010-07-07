@@ -174,6 +174,7 @@ void btree_get_fsm<config_t>::deadlock_debug(void) {
     printf("get-fsm %p {\n", this);
     printf("    buf = %p\n", buf);
     printf("    last_buf = %p\n", last_buf);
+    printf("    node_id = %d\n", (int)node_id);
     const char *st_name;
     switch(state) {
         case uninitialized: st_name = "uninitialized"; break;

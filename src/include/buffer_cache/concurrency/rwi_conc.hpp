@@ -44,23 +44,29 @@ struct rwi_conc_t {
             if(callback)
                 lock_callbacks.push_back(callback);
         }
-
+        
+        bool is_pinned() {
+            return lock.locked() || !lock_callbacks.empty();
+        }
+        
         rwi_lock_t lock;
         
         // Prints debugging information designed to resolve deadlocks.
         void deadlock_debug() {
-			printf("locked = %d\n", (int)lock.locked());
-        	printf("waiting for lock(%d) = [\n", (int)lock_callbacks.size());
+			printf("\tlocked = %d\n", (int)lock.locked());
+        	printf("\twaiting for lock(%d) = [\n", (int)lock_callbacks.size());
         	
         	typename intrusive_list_t<block_available_callback_t>::iterator it;
         	for (it = lock_callbacks.begin(); it != lock_callbacks.end(); it++) {
         	    block_available_callback_t &cb = *it;
-        	    btree_fsm<config_t> *fsm = dynamic_cast<btree_fsm<config_t> *>(&cb);
-        	    if (fsm) {
-        	        fsm->deadlock_debug();
-        	    } else {
-        	        printf("%p (not an FSM)\n", &cb);
-        	    }
+        	    if (dynamic_cast<btree_set_fsm<config_t> *>(&cb))
+        	        printf("\t\tbtree-set-fsm %p\n", &cb);
+        	    else if (dynamic_cast<btree_get_fsm<config_t> *>(&cb))
+        	        printf("\t\tbtree-get-fsm %p\n", &cb);
+        	    else if (dynamic_cast<btree_fsm<config_t> *>(&cb))
+        	        printf("\t\tother btree-fsm %p\n", &cb);
+        	    else
+        	        printf("\t\tunidentifiable %p\n", &cb);
         	}
         	printf("]\n");
         }

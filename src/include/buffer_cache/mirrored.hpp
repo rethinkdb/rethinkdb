@@ -66,6 +66,8 @@ public:
 
     virtual void on_io_complete(event_t *event);
 	
+	bool is_pinned();
+	
 	// Prints debugging information designed to resolve deadlocks.
 	void deadlock_debug();
 	

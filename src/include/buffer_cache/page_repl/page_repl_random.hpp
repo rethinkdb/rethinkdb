@@ -40,9 +40,7 @@ public:
     	unsigned int target;
     	if (space_needed > max_size / block_size) target = max_size / block_size;
     	else target = max_size / block_size - space_needed;
-    	
-    	printf("there are %d blocks in memory, but ideally there would be %d\n", page_map->num_blocks(), target);
-    	
+    	    	
     	while (page_map->num_blocks() > target) {
     	    		
     		// Try to find a block we can unload. Blocks are ineligible to be unloaded if they are
@@ -52,7 +50,7 @@ public:
     		while (tries > 0 && !block_to_unload) {
     			block_to_unload = page_map->get_random_block();
     			assert(block_to_unload);
-    			if (block_to_unload->is_dirty() || block_to_unload->lock.locked()) {
+    			if (block_to_unload->is_dirty() || block_to_unload->is_pinned()) {
     				block_to_unload = NULL;
     			}
     			tries--;
@@ -60,7 +58,6 @@ public:
     		
     		if (block_to_unload) {
     			cache->do_unload_buf(block_to_unload);
-    		    printf("kicking out a block; now %d are left in memory\n", page_map->num_blocks());
     		} else {
     			break;
     		}

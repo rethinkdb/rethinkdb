@@ -370,6 +370,8 @@ void btree_set_fsm<config_t>::deadlock_debug(void) {
     printf("    buf = %p\n", buf);
     printf("    last_buf = %p\n", last_buf);
     printf("    sb_buf = %p\n", sb_buf);
+    printf("    node_id = %d\n", (int)node_id);
+    printf("    last_node_id = %d\n", (int)last_node_id);
     const char *st_name;
     switch(state) {
         case uninitialized: st_name = "uninitialized"; break;
