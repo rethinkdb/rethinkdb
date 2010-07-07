@@ -45,6 +45,8 @@ class leaf_node_handler : public node_handler {
     static void validate(btree_leaf_node *node);
     static int nodecmp(btree_leaf_node *node1, btree_leaf_node *node2);
 
+    static void print(btree_leaf_node *node);
+
     protected:
     static size_t pair_size(btree_leaf_pair *pair);
     static btree_leaf_pair *get_pair(btree_leaf_node *node, uint16_t offset);

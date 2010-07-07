@@ -95,7 +95,13 @@ void leaf_node_handler::split(btree_leaf_node *node, btree_leaf_node *rnode, btr
 }
 
 void leaf_node_handler::merge(btree_leaf_node *node, btree_leaf_node *rnode, btree_key *key_to_remove) {
+#ifndef NDEBUG
     printf("merging\n");
+    printf("node:\n");
+    leaf_node_handler::print(node);
+    printf("rnode:\n");
+    leaf_node_handler::print(rnode);
+#endif
     //TODO: write checks
     //check("leaf nodes too full on merge", 
     memmove(rnode->pair_offsets + node->npairs, rnode->pair_offsets, rnode->npairs * sizeof(*rnode->pair_offsets));
@@ -106,10 +112,23 @@ void leaf_node_handler::merge(btree_leaf_node *node, btree_leaf_node *rnode, btr
     rnode->npairs += node->npairs;
 
     keycpy(key_to_remove, &get_pair(rnode, rnode->pair_offsets[0])->key);
+#ifndef NDEBUG
+    printf("\t|\n\t|\n\t|\n\tV\n");
+    printf("node:\n");
+    leaf_node_handler::print(node);
+    printf("rnode:\n");
+    leaf_node_handler::print(rnode);
+#endif
 }
 
 void leaf_node_handler::level(btree_leaf_node *node, btree_leaf_node *sibling, btree_key *key_to_replace, btree_key *replacement_key) {
+#ifndef NDEBUG
     printf("leveling\n");
+    printf("node:\n");
+    leaf_node_handler::print(node);
+    printf("sibling:\n");
+    leaf_node_handler::print(sibling);
+#endif
     //Note: size does not take into account offsets
 #ifndef DEBUG_MAX_LEAF
     uint16_t node_size = BTREE_BLOCK_SIZE - node->frontmost_offset;
@@ -170,6 +189,14 @@ void leaf_node_handler::level(btree_leaf_node *node, btree_leaf_node *sibling, b
         keycpy(key_to_replace, &get_pair(sibling, sibling->pair_offsets[0])->key);
         keycpy(replacement_key, &get_pair(sibling, sibling->pair_offsets[sibling->npairs-1])->key);
     }
+
+#ifndef NDEBUG
+    printf("\t|\n\t|\n\t|\n\tV\n");
+    printf("node:\n");
+    leaf_node_handler::print(node);
+    printf("sibling:\n");
+    leaf_node_handler::print(sibling);
+#endif
 }
 
 
@@ -290,5 +317,20 @@ int leaf_node_handler::nodecmp(btree_leaf_node *node1, btree_leaf_node *node2) {
     return sized_strcmp(key1->contents, key1->size, key2->contents, key2->size);
 }
 
-
+void leaf_node_handler::print(btree_leaf_node *node) {
+#ifndef NDEBUG
+    for (int i = 0; i < node->npairs; i++) {
+        btree_leaf_pair *pair = get_pair(node, node->pair_offsets[i]);
+        printf("|\t");
+        pair->key.print();
+    }
+    printf("|\n");
+    for (int i = 0; i < node->npairs; i++) {
+        btree_leaf_pair *pair = get_pair(node, node->pair_offsets[i]);
+        printf("|\t");
+        pair->value()->print();
+    }
+    printf("|\n");
+#endif
+}
 #endif // __BTREE_LEAF_NODE_IMPL_HPP__

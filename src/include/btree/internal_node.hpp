@@ -43,6 +43,7 @@ class internal_node_handler : public node_handler {
     static bool is_singleton(btree_internal_node *node);
 
     static void validate(btree_internal_node *node);
+    static void print(btree_internal_node *node);
 
     protected:
     static size_t pair_size(btree_internal_pair *pair);
