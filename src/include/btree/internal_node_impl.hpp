@@ -5,7 +5,7 @@
 #include <algorithm>
 #include "utils.hpp"
 
-//#define DEBUG_MAX_INTERNAL 4
+#define DEBUG_MAX_INTERNAL 8
 
 //In this tree, less than or equal takes the left-hand branch and greater than takes the right hand branch
 
@@ -105,20 +105,26 @@ void internal_node_handler::merge(btree_internal_node *node, btree_internal_node
 
 void internal_node_handler::level(btree_internal_node *node, btree_internal_node *sibling, btree_key *key_to_replace, btree_key *replacement_key, btree_internal_node *parent) {
     //Note: size does not take into account offsets
+#ifndef DEBUG_MAX_INTERNAL
     uint16_t node_size = BTREE_BLOCK_SIZE - node->frontmost_offset;
     uint16_t sibling_size = BTREE_BLOCK_SIZE - sibling->frontmost_offset;
-    uint16_t optimal_adjustment = (sibling_size - node_size) / 2;
+    int optimal_adjustment = (int) (sibling_size - node_size) / 2;
+#endif
 
     if (nodecmp(node, sibling) < 0) {
         btree_key *key_from_parent = &get_pair(parent, parent->pair_offsets[get_offset_index(parent, &get_pair(sibling, sibling->pair_offsets[0])->key)])->key;
         block_id_t last_offset = get_pair(node, node->pair_offsets[node->npairs-1])->lnode;
         delete_pair(node, node->pair_offsets[node->npairs-1]);
         node->pair_offsets[node->npairs-1] = insert_pair(node, last_offset, key_from_parent);
-
+#ifndef DEBUG_MAX_INTERNAL
         int index = -1;
         while (optimal_adjustment > 0) {
             optimal_adjustment -= pair_size(get_pair(sibling, sibling->pair_offsets[++index]));
         }
+#else
+        int index = (sibling->npairs - node->npairs) / 2;
+#endif
+        assert(index > 0);
         check("could not level nodes", index <= 0);
         //copy from beginning of sibling to end of node
         for (int i = 0; i < index; i++) {
@@ -143,12 +149,16 @@ void internal_node_handler::level(btree_internal_node *node, btree_internal_node
         delete_pair(sibling, sibling->pair_offsets[sibling->npairs-1]);
         sibling->pair_offsets[sibling->npairs-1] = insert_pair(sibling, last_offset, key_from_parent);
         
+#ifndef DEBUG_MAX_INTERNAL
         int index = sibling->npairs;
         while (optimal_adjustment > 0) {
             optimal_adjustment -= pair_size(get_pair(sibling, sibling->pair_offsets[--index]));
         }
+#else
+        int index = sibling->npairs - (sibling->npairs - node->npairs) / 2;
+#endif
         //copy from end of sibling to beginning of node
-        int pairs_to_move = sibling->npairs - index - 1;
+        int pairs_to_move = sibling->npairs - index;
         check("could not level nodes", pairs_to_move <= 0);
         memmove(node->pair_offsets + pairs_to_move, node->pair_offsets, pairs_to_move * sizeof(*node->pair_offsets));
         for (int i = index; i < sibling->npairs; i++) {
@@ -212,6 +222,15 @@ bool internal_node_handler::is_underfull(btree_internal_node *node) {
     return (sizeof(btree_internal_node) + 1) / 2 + 
         node->npairs*sizeof(*node->pair_offsets) +
         (BTREE_BLOCK_SIZE - node->frontmost_offset) < BTREE_BLOCK_SIZE / 2;
+}
+
+bool internal_node_handler::is_underfull_or_min(btree_internal_node *node) {
+#ifdef DEBUG_MAX_INTERNAL
+   return node->npairs <= (DEBUG_MAX_INTERNAL + 1) / 2;
+#endif
+    return (sizeof(btree_internal_node) + 1) / 2 + 
+        node->npairs*sizeof(*node->pair_offsets) +
+        (BTREE_BLOCK_SIZE - node->frontmost_offset) <= BTREE_BLOCK_SIZE / 2;
 }
 
 bool internal_node_handler::is_singleton(btree_internal_node *node) {
