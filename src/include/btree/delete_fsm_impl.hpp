@@ -243,8 +243,8 @@ typename btree_delete_fsm<config_t>::transition_result_t btree_delete_fsm<config
                 // we have our sibling so we're ready to go
                 printf("combining time\n");
                 node_t *sib_node = (node_t*)sib_buf->ptr();
-                if((node_handler::is_leaf(sib_node) && leaf_node_handler::is_underfull((leaf_node_t*) sib_node)) ||
-                           (!node_handler::is_leaf(sib_node) && internal_node_handler::is_underfull((internal_node_t*) sib_node))) {
+                if((node_handler::is_leaf(sib_node) && leaf_node_handler::is_underfull_or_min((leaf_node_t*) sib_node)) ||
+                           (!node_handler::is_leaf(sib_node) && internal_node_handler::is_underfull_or_min((internal_node_t*) sib_node))) {
                     printf("Merge time\n");
                     btree_key *key_to_remove = (btree_key *)alloca(sizeof(btree_key) + MAX_KEY_SIZE); //TODO get alloca outta here
                     if (node_handler::is_leaf(node)) {

@@ -19,15 +19,15 @@ struct btree_value {
     char contents[0];
 };
 
-enum btree_node_kind {
+typedef enum {
     // Choose 1 and 2 instead of 0 and 1 to make it less likely that garbage will be interpreted as
     // a valid node
     btree_node_kind_leaf = 1,
     btree_node_kind_internal = 2
-};
+} btree_node_kind;
 
 struct btree_node {
-    uint8_t kind;
+    btree_node_kind kind;
 };
 
 class node_handler {

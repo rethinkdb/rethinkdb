@@ -4,7 +4,7 @@
 #include "btree/leaf_node.hpp"
 #include <algorithm>
 
-//#define DEBUG_MAX_LEAF 10
+#define DEBUG_MAX_LEAF 8
 
 void leaf_node_handler::init(btree_leaf_node *node) {
     node->kind = btree_node_kind_leaf;
@@ -111,15 +111,22 @@ void leaf_node_handler::merge(btree_leaf_node *node, btree_leaf_node *rnode, btr
 void leaf_node_handler::level(btree_leaf_node *node, btree_leaf_node *sibling, btree_key *key_to_replace, btree_key *replacement_key) {
     printf("leveling\n");
     //Note: size does not take into account offsets
+#ifndef DEBUG_MAX_LEAF
     uint16_t node_size = BTREE_BLOCK_SIZE - node->frontmost_offset;
     uint16_t sibling_size = BTREE_BLOCK_SIZE - sibling->frontmost_offset;
-    uint16_t optimal_adjustment = (sibling_size - node_size) / 2;
+    int optimal_adjustment = (int) (sibling_size - node_size) / 2;
+#endif
 
     if (nodecmp(node, sibling) < 0) {
+#ifndef DEBUG_MAX_LEAF
         int index = -1;
         while (optimal_adjustment > 0) {
             optimal_adjustment -= pair_size(get_pair(sibling, sibling->pair_offsets[++index]));
         }
+#else
+        int index = (sibling->npairs - node->npairs) / 2;
+#endif
+        assert(index > 0);
         check("could not level nodes", index <= 0);
         //copy from beginning of sibling to end of node
         for (int i = 0; i < index; i++) {
@@ -136,12 +143,17 @@ void leaf_node_handler::level(btree_leaf_node *node, btree_leaf_node *sibling, b
         keycpy(key_to_replace, &get_pair(node, node->pair_offsets[0])->key);
         keycpy(replacement_key, &get_pair(node, node->pair_offsets[node->npairs-1])->key);
     } else {
+        //first index in the sibling to copy
+#ifndef DEBUG_MAX_LEAF
         int index = sibling->npairs;
         while (optimal_adjustment > 0) {
             optimal_adjustment -= pair_size(get_pair(sibling, sibling->pair_offsets[--index]));
         }
+#else
+        int index = sibling->npairs - (sibling->npairs - node->npairs) / 2;
+#endif
         //copy from end of sibling to beginning of node
-        int pairs_to_move = sibling->npairs - index - 1;
+        int pairs_to_move = sibling->npairs - index;
         check("could not level nodes", pairs_to_move <= 0);
         memmove(node->pair_offsets + pairs_to_move, node->pair_offsets, pairs_to_move * sizeof(*node->pair_offsets));
         for (int i = index; i < sibling->npairs; i++) {
@@ -175,10 +187,18 @@ void leaf_node_handler::validate(btree_leaf_node *node) {
     assert((void*)&(node->pair_offsets[node->npairs]) <= (void*)get_pair(node, node->frontmost_offset));
 }
 
+bool leaf_node_handler::is_underfull_or_min(btree_leaf_node *node) {
+#ifdef DEBUG_MAX_LEAF
+    return node->npairs <= (DEBUG_MAX_LEAF + 1) / 2;
+#endif
+    return (sizeof(btree_leaf_node) + 1) / 2 + 
+        node->npairs*sizeof(*node->pair_offsets) +
+        (BTREE_BLOCK_SIZE - node->frontmost_offset) <= BTREE_BLOCK_SIZE / 2;
+}
+
 bool leaf_node_handler::is_underfull(btree_leaf_node *node) {
 #ifdef DEBUG_MAX_LEAF
-    if (node->npairs < (DEBUG_MAX_LEAF + 1) / 2)
-        return true;
+    return node->npairs < (DEBUG_MAX_LEAF + 1) / 2;
 #endif
     return (sizeof(btree_leaf_node) + 1) / 2 + 
         node->npairs*sizeof(*node->pair_offsets) +
