@@ -38,9 +38,9 @@ public:
 	// expect the block to already contain valid data, should call ptr().
 	void *ptr_possibly_uncached() {
 		// The buf should not be accessed unless it is locked. In fact, pointers to the buf should
-    	// not exist, except in the page map, unless the block is locked, because any unlocked and
+    	// not exist, except in the page map, unless the block is pinned, because any unpinned and
     	// non-dirty block is in danger of being swapped out by the page replacement system.
-    	assert(concurrency_t::local_buf_t::lock.locked());
+    	assert(is_pinned());
     	return data;
     }
 

@@ -116,11 +116,11 @@ public:
         validate();
     }
 
-    int size() { return _size; }
+    unsigned int size() { return _size; }
     
     void validate() {
         node_t *last_node = NULL;
-        int count = 0;
+        unsigned int count = 0;
         for (node_t *node = _head; node; node=((intrusive_list_node_t<node_t>*)node)->next) {
             count ++;
             assert(((intrusive_list_node_t<node_t>*)node)->prev == last_node);
@@ -192,7 +192,7 @@ public:
     
 protected:
     node_t *_head, *_tail;
-    int _size;
+    unsigned int _size;
 };
 
 #endif // __INTRUSIVE_LIST_HPP__

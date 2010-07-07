@@ -67,9 +67,16 @@ private:
         state_locked,
         state_write_bufs,
     };
-
-    void start_flush_timer(void);
-    static void timer_callback(void *ctx);
+    
+    // The writeback system has two repeating timers. The first timer's purpose is to keep data safe
+    // if the server crashes; it runs every interval_ms milliseconds, and whenever it runs it
+    // flushes every dirty buffer to disk. The second timer's purpose is to clear dirty buffers if
+    // there are too many of them; it runs very frequently, but it only starts writeback if more
+    // than some percentage of buffers are dirty.
+    
+    void start_safety_timer(void);
+    static void safety_timer_callback(void *ctx);
+    static void threshold_timer_callback(void *ctx);
     virtual void on_lock_available();
     void writeback(buf_t *buf);
 

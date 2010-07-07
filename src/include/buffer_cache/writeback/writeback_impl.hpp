@@ -25,7 +25,13 @@ void writeback_tmpl_t<config_t>::start() {
     flush_lock =
         gnew<rwi_lock_t>(&get_cpu_context()->event_queue->message_hub,
                          get_cpu_context()->event_queue->queue_id);
-    start_flush_timer();
+    
+    // If interval_ms is NEVER_FLUSH, then neither timer should be started
+    if (interval_ms != NEVER_FLUSH) {
+        // 50ms is an arbitrary interval for the threshold timer to run on
+        get_cpu_context()->event_queue->add_timer(50, threshold_timer_callback, this);
+    }
+    start_safety_timer();
 }
 
 template <class config_t>
@@ -90,18 +96,33 @@ void writeback_tmpl_t<config_t>::local_buf_t::set_dirty(buf_t *super) {
 }
 
 template <class config_t>
-void writeback_tmpl_t<config_t>::start_flush_timer() {
+void writeback_tmpl_t<config_t>::start_safety_timer() {
     if (interval_ms != NEVER_FLUSH && interval_ms != 0) {
-        get_cpu_context()->event_queue->fire_timer_once(interval_ms, timer_callback, this);
+        get_cpu_context()->event_queue->fire_timer_once(interval_ms, safety_timer_callback, this);
     }
 }
 
 template <class config_t>
-void writeback_tmpl_t<config_t>::timer_callback(void *ctx) {
+void writeback_tmpl_t<config_t>::safety_timer_callback(void *ctx) {
+    writeback_tmpl_t *self = static_cast<writeback_tmpl_t *>(ctx);
     // TODO(NNW): We can't start writeback when it's already started, but we
     // may want a more thorough way of dealing with this case.
-    if (static_cast<writeback_tmpl_t *>(ctx)->state == state_none)
-        static_cast<writeback_tmpl_t *>(ctx)->writeback(NULL);
+    if (self->state == state_none)
+        self->writeback(NULL);
+}
+
+template <class config_t>
+void writeback_tmpl_t<config_t>::threshold_timer_callback(void *ctx) {
+    writeback_tmpl_t *self = static_cast<writeback_tmpl_t *>(ctx);
+    if (self->state == state_none) {
+        // Arbitrary threshold: If more than 1/6 of the buffers in memory are dirty, then start
+        // writeback earlier than it normally would run
+        if (self->dirty_bufs.size() > self->cache->num_blocks() / 6 + 1) {
+            printf("thread: %d   starting writeback.   blocks: %d   dirty: %d \n",
+                get_cpu_context()->event_queue->queue_id, self->cache->num_blocks(), self->dirty_bufs.size());
+            self->writeback(NULL);
+        }
+    }
 }
 
 template <class config_t>
@@ -206,7 +227,7 @@ void writeback_tmpl_t<config_t>::writeback(buf_t *buf) {
             // is a bit dangerous because if anything causes the current flush to abort prematurely,
             // the flush timer will never get restarted. As of 2010-06-28 this should never happen,
             // but keep it in mind when changing the behavior of the writeback.
-            start_flush_timer();
+            start_safety_timer();
             
             //printf("Writeback complete\n");
         } else {

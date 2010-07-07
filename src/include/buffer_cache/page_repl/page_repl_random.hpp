@@ -40,7 +40,9 @@ public:
     	unsigned int target;
     	if (space_needed > max_size / block_size) target = max_size / block_size;
     	else target = max_size / block_size - space_needed;
-    	    	
+    	
+    	int n_unloaded = 0;
+    	
     	while (page_map->num_blocks() > target) {
     	    		
     		// Try to find a block we can unload. Blocks are ineligible to be unloaded if they are
@@ -58,10 +60,14 @@ public:
     		
     		if (block_to_unload) {
     			cache->do_unload_buf(block_to_unload);
+    			n_unloaded ++;
     		} else {
     			break;
     		}
     	}
+    	
+    	printf("thread: %d   target: %d   blocks in memory: %d   unloaded: %d\n",
+    	    get_cpu_context()->event_queue->queue_id, target, page_map->num_blocks()+n_unloaded, n_unloaded);
     }
     
 private:

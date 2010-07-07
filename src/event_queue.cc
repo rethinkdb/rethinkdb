@@ -90,6 +90,7 @@ void event_queue_t::process_timer_notify() {
     res = eventfd_read(timer_fd, &nexpirations);
     check("Could not read timer_fd value", res != 0);
 
+    // TODO: If nexpirations > 1, this may fail to trigger timers that should trigger.
     total_expirations += nexpirations;
 
     /* Execute any expired timers. */
@@ -97,7 +98,7 @@ void event_queue_t::process_timer_notify() {
     for (t = timers.begin(); t != timers.end(); ) {
         timer_t *timer = &*t;
         t++;
-        if((total_expirations * TIMER_TICKS_IN_MS) % timer->interval_ms == 0) {
+        if((total_expirations * TIMER_TICKS_IN_MS) % timer->interval_ms < TIMER_TICKS_IN_MS) {
             timer->callback(timer->context);
             if(timer->once) {
                 timers.remove(timer);
