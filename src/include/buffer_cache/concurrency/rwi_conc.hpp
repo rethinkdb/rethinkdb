@@ -35,8 +35,8 @@ struct rwi_conc_t {
             // queue in its lock.
             if(!lock_callbacks.empty()) {
                 block_available_callback_t *_callback = lock_callbacks.head();
-                _callback->on_block_available(gbuf);
                 lock_callbacks.remove(_callback);
+                _callback->on_block_available(gbuf);
             }
         }
         
