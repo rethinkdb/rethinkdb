@@ -4,7 +4,7 @@
 #include "btree/leaf_node.hpp"
 #include <algorithm>
 
-#define DEBUG_MAX_LEAF 10
+//#define DEBUG_MAX_LEAF 10
 
 void leaf_node_handler::init(btree_leaf_node *node) {
     node->kind = btree_node_kind_leaf;
@@ -163,8 +163,7 @@ void leaf_node_handler::level(btree_leaf_node *node, btree_leaf_node *sibling, b
 
 bool leaf_node_handler::is_full(btree_leaf_node *node, btree_key *key, btree_value *value) {
 #ifdef DEBUG_MAX_LEAF
-    if (node->npairs >= DEBUG_MAX_LEAF)
-        return true;
+    return node->npairs >= DEBUG_MAX_LEAF;
 #endif
     //will the data growing from front to right overlap data growing from back to left if we insert the new key value pair
     return sizeof(btree_leaf_node) +

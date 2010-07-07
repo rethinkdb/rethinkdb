@@ -34,29 +34,35 @@ typename btree_delete_fsm<config_t>::transition_result_t btree_delete_fsm<config
 }
 
 template <class config_t>
-typename btree_delete_fsm<config_t>::transition_result_t btree_delete_fsm<config_t>::do_acquire_superblock(event_t *event) {
+typename btree_delete_fsm<config_t>::transition_result_t btree_delete_fsm<config_t>::do_acquire_superblock(event_t *event)
+{
     printf("Acquire superblock\n");
     assert(state == acquire_superblock);
 
-    buf_t *buf = NULL;
     if(event == NULL) {
         // First entry into the FSM; try to grab the superblock.
-        block_id_t superblock_id = cache->get_superblock_id();
-        buf = transaction->acquire(superblock_id, rwi_read, this);
+        block_id_t superblock_id = btree_fsm_t::get_cache()->get_superblock_id();
+        sb_buf = transaction->acquire(superblock_id, rwi_write, this);
     } else {
         // We already tried to grab the superblock, and we're getting
         // a cache notification about it.
         assert(event->buf);
-        buf = (buf_t *)event->buf;
+        sb_buf = (buf_t *)event->buf;
     }
-    
-    if(buf) {
+
+    if(sb_buf) {
         // Got the superblock buffer (either right away or through
         // cache notification). Grab the root id, and move on to
         // acquiring the root.
-        node_id = btree_fsm_t::get_root_id(buf->ptr());
-        buf->release();
-        state = acquire_root;
+        node_id = btree_fsm_t::get_root_id(sb_buf->ptr());
+        if(cache_t::is_block_id_null(node_id)) {
+            op_result = btree_not_found;
+            state = delete_complete;
+            sb_buf->release();
+            sb_buf = NULL;
+        } else {
+            state = acquire_root;
+        }
         return btree_fsm_t::transition_ok;
     } else {
         // Can't get the superblock buffer right away. Let's wait for
@@ -196,13 +202,13 @@ typename btree_delete_fsm<config_t>::transition_result_t btree_delete_fsm<config
         event = NULL;
     }
 
-    //Acquire a sibling
+    // If the previously acquired node was underfull, we acquire a sibling to level or merge
     if(res == btree_fsm_t::transition_ok && state == acquire_sibling) {
         res = do_acquire_sibling(event);
         event = NULL;
     }
     
-    //after we collapse the root, insert the new one
+    // If we need to change the root due to merging it's last two children, do that
     if(res == btree_fsm_t::transition_ok && state == insert_root_on_collapse) {
         res = do_insert_root_on_collapse(event);
         event = NULL;
@@ -229,13 +235,13 @@ typename btree_delete_fsm<config_t>::transition_result_t btree_delete_fsm<config
             printf("Underfull node\n");
             if(!sib_buf) {
                 state = acquire_sibling;
-                res = do_acquire_sibling(event);
-                printf("Sibling acquired: sib_buf = %li\n", (long int) sib_buf);
+                res = do_acquire_sibling(NULL);
                 event = NULL;
+                printf("Sibling acquired: sib_buf = %li\n", (long int) sib_buf); //sibling NOT necessarily acquired
                 continue;
             } else {
                 // we have our sibling so we're ready to go
-                printf("Merge time\n");
+                printf("combining time\n");
                 node_t *sib_node = (node_t*)sib_buf->ptr();
                 if((node_handler::is_leaf(sib_node) && leaf_node_handler::is_underfull((leaf_node_t*) sib_node)) ||
                            (!node_handler::is_leaf(sib_node) && internal_node_handler::is_underfull((internal_node_t*) sib_node))) {
@@ -296,6 +302,11 @@ typename btree_delete_fsm<config_t>::transition_result_t btree_delete_fsm<config
                 }
             }
         }
+        // Release the superblock, if we haven't already
+        if(sb_buf && (last_buf || node_handler::is_leaf(node))) {
+            sb_buf->release();
+            sb_buf = NULL;
+        }
 
         //actually do some deleting 
         if (node_handler::is_leaf(node)) {
@@ -327,9 +338,6 @@ typename btree_delete_fsm<config_t>::transition_result_t btree_delete_fsm<config
             res = do_acquire_node(event);
             event = NULL;
         } 
-
-        res = do_acquire_node(event);
-        event = NULL;
     }
 
     // Finally, end our transaction.  This should always succeed immediately.
