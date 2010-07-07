@@ -42,8 +42,8 @@ void buf<config_t>::notify_on_load() {
     // of them.
     while(!load_callbacks.empty()) {
         block_available_callback_t *_callback = load_callbacks.head();
-        _callback->on_block_available(this);
         load_callbacks.remove(_callback);
+        _callback->on_block_available(this);
     }
 }
 
