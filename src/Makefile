@@ -18,6 +18,16 @@ else
 CXXFLAGS:=$(CXXFLAGS) -O3 -DNDEBUG
 endif
 
+# Build it in the correct directory
+BUILD_DIR:=build
+ifeq (${DEBUG},1)
+BUILD_DIR:=$(BUILD_DIR)/debug
+else
+BUILD_DIR:=$(BUILD_DIR)/release
+endif
+
+START_DB_NAME=start_rethinkdb
+
 ifdef VALGRIND
 CXXFLAGS += -DVALGRIND
 endif
@@ -40,7 +50,9 @@ OBJS:=$(OBJS:%.o=$(OBJ_DIR)/%.o)
 # High level build targets
 $(SERVER_EXEC_NAME): $(OBJS)
 	$(quiet_ld) $(CXX) $(LDFLAGS) $(OBJS) -o $(SERVER_EXEC_NAME)
-
+	-mkdir -p $(BUILD_DIR)
+	mv $(SERVER_EXEC_NAME) $(BUILD_DIR)/$(SERVER_EXEC_NAME)
+	cp ../scripts/$(START_DB_NAME) $(BUILD_DIR)/$(START_DB_NAME)
 tags:
 	@ctags -R -f $(TAGS)
 
@@ -49,7 +61,8 @@ style:
 
 clean:
 	$(call quiet_rm, *~) find -name '*~' -exec rm {} \;
-	$(call quiet_rm, $(SERVER_EXEC_NAME)) rm -f $(SERVER_EXEC_NAME)
+	$(call quiet_rm, $(BUILD_DIR)/$(SERVER_EXEC_NAME)) rm -f $(BUILD_DIR)/$(SERVER_EXEC_NAME)
+	$(call quiet_rm, $(BUILD_DIR)/$(START_DB_NAME)) rm -f $(BUILD_DIR)/$(START_DB_NAME)
 	$(call quiet_rm, DEPS) rm -f $(DEPS)
 	$(call quiet_rm, OBJS) rm -f $(OBJS)
 	$(call quiet_rm, $(TAGS)) rm -f $(TAGS)
@@ -75,4 +88,3 @@ else
 	quiet_ld = @echo "  LD " $@ ;
 	quiet_rm = @echo "  RM " $(1) ;
 endif
-
