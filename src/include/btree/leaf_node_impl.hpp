@@ -162,8 +162,8 @@ void leaf_node_handler::level(btree_leaf_node *node, btree_leaf_node *sibling, b
         node->npairs += pairs_to_move;
 
         //TODO: Make this more efficient.  Currently this loop involves repeated memmoves.
-        for (int i = index; i < sibling->npairs; i++) {
-            delete_pair(sibling, sibling->pair_offsets[index]);
+        while (index < sibling->npairs) {
+            delete_pair(sibling, sibling->pair_offsets[index]); //decrements sibling->npairs
             delete_offset(sibling, index);
         }
 
