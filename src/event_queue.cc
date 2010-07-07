@@ -93,9 +93,10 @@ void event_queue_t::process_timer_notify() {
     total_expirations += nexpirations;
 
     /* Execute any expired timers. */
-    timer_t *timer = timers.head();
-    while(timer) {
-        timer_t *_t = timer->next;
+    intrusive_list_t<timer_t>::iterator t;
+    for (t = timers.begin(); t != timers.end(); ) {
+        timer_t *timer = &*t;
+        t++;
         if((total_expirations * TIMER_TICKS_IN_MS) % timer->interval_ms == 0) {
             timer->callback(timer->context);
             if(timer->once) {
@@ -103,7 +104,6 @@ void event_queue_t::process_timer_notify() {
                 delete timer;
             }
         }
-        timer = _t;
     }
 }
 
@@ -163,23 +163,26 @@ void process_network_notify(event_queue_t *self, epoll_event *event) {
 }
 
 void process_cpu_core_notify(event_queue_t *self, message_hub_t::msg_list_t *messages) {
-    cpu_message_t *head = messages->head(), *tmp = NULL;
-    while(head) {
-        // Store the pointer to the next element. It is important to
-        // do this now, because head->next may not exist after the
-        // event handler is done, since the internal list pointers are
-        // reused.
-        tmp = head->next;
+    
+    message_hub_t::msg_list_t::iterator m;
+    for (m = messages->begin(); m != messages->end(); ) {
+        cpu_message_t &msg = *m;
+        m ++;
+        
+        /* Remove the message from our list so that the event handler can put it into another list
+        without violating intrusive_list_t's internal corruption checks. Otherwise this would be
+        unnecessary because our list is a temporary that will be discarded as soon as the function
+        returns. */
+        messages->remove(&msg);
         
         // Pass the event to the handler
         event_t cpu_event;
         cpu_event.event_type = et_cpu_event;
-        cpu_event.state = head;
+        cpu_event.state = &msg;
         self->event_handler(self, &cpu_event);
-
-        // Move on to next element
-        head = tmp;
     }
+    
+    assert(messages->empty());
 
     // Note, the event handler is responsible for the deallocation
     // of cpu messages. For btree_fsms, for example this currently

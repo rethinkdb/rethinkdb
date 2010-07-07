@@ -145,10 +145,10 @@ void writeback_tmpl_t<config_t>::writeback(buf_t *buf) {
         // TODO: optimize away dynamic allocation
         typename serializer_t::write *writes =
             (typename serializer_t::write*)calloc(dirty_bufs.size(), sizeof *writes);
-        int i = 0;
-        buf_t *_buf = dirty_bufs.head();
-        while(_buf) {
-            buf_t *_next = _buf->next;
+        int i;
+        typename intrusive_list_t<buf_t>::iterator it;
+        for (it = dirty_bufs.begin(), i = 0; it != dirty_bufs.end(); it++, i++) {
+            buf_t *_buf = &*it;
 
             // Acquire the blocks
             buf_t *buf = transaction->acquire(_buf->get_block_id(), rwi_read, NULL);
@@ -159,9 +159,6 @@ void writeback_tmpl_t<config_t>::writeback(buf_t *buf) {
             writes[i].block_id = buf->get_block_id();
             writes[i].buf = buf->ptr();
             writes[i].callback = buf;
-            
-            _buf = _next;
-            i++;
         }
         flush_bufs.append_and_clear(&dirty_bufs);
         flush_lock->unlock(); // Write transactions can now proceed again.
@@ -184,15 +181,13 @@ void writeback_tmpl_t<config_t>::writeback(buf_t *buf) {
         }
         if (flush_bufs.empty()) {
             /* Notify all waiting transactions of completion. */
-            txn_state_t *_txn_state = flush_txns.head();
-            while(_txn_state) {
-                txn_state_t *_next = _txn_state->next;
-
-                _txn_state->txn->committed(_txn_state->callback);
-                
-                flush_txns.remove(_txn_state);
-                delete _txn_state;
-                _txn_state = _next;
+            typename intrusive_list_t<txn_state_t>::iterator it;
+            for (it = flush_txns.begin(); it != flush_txns.end(); ) {
+                txn_state_t *txn_state = &*it;
+                it++;
+                txn_state->txn->committed(txn_state->callback);
+                flush_txns.remove(txn_state);
+                delete txn_state;
             }
             assert(flush_txns.empty());
 

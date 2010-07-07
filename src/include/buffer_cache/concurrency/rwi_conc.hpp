@@ -52,13 +52,14 @@ struct rwi_conc_t {
 			printf("locked = %d\n", (int)lock.locked());
         	printf("waiting for lock(%d) = [\n", (int)lock_callbacks.size());
         	
-        	block_available_callback_t *node;
-        	for (node = lock_callbacks.head(); node; node = node->next) {
-        	    btree_fsm<config_t> *fsm = dynamic_cast<btree_fsm<config_t> *>(node);
+        	typename intrusive_list_t<block_available_callback_t>::iterator it;
+        	for (it = lock_callbacks.begin(); it != lock_callbacks.end(); it++) {
+        	    block_available_callback_t &cb = *it;
+        	    btree_fsm<config_t> *fsm = dynamic_cast<btree_fsm<config_t> *>(&cb);
         	    if (fsm) {
         	        fsm->deadlock_debug();
         	    } else {
-        	        printf("%p (not an FSM)\n", node);
+        	        printf("%p (not an FSM)\n", &cb);
         	    }
         	}
         	printf("]\n");

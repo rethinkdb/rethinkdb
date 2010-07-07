@@ -6,6 +6,8 @@ template <class derived_t>
 class intrusive_list_node_t {
 public:
     intrusive_list_node_t() : prev(NULL), next(NULL) {}
+protected:
+    friend class intrusive_list_t<derived_t>;
     derived_t *prev, *next;
 };
 
@@ -32,7 +34,10 @@ public:
     }
     
     void push_front(node_t *_value) {
+        validate();
+    
         intrusive_list_node_t<node_t> *value = _value;
+        assert(value->next == NULL && value->prev == NULL);
         value->next = _head;
         value->prev = NULL;
         if(_head) {
@@ -43,10 +48,15 @@ public:
             _tail = _value;
         }
         _size++;
+        
+        validate();
     }
     
     void push_back(node_t *_value) {
+        validate();
+    
         intrusive_list_node_t<node_t> *value = _value;
+        assert(value->next == NULL && value->prev == NULL);
         value->prev = _tail;
         value->next = NULL;
         if(_tail) {
@@ -57,9 +67,13 @@ public:
             _head = _value;
         }
         _size++;
+        
+        validate();
     }
     
     void remove(node_t *_value) {
+        validate();
+    
         intrusive_list_node_t<node_t> *value = _value;
         if(value->next) {
             ((intrusive_list_node_t<node_t>*)(value->next))->prev = value->prev;
@@ -71,10 +85,16 @@ public:
         } else {
             _head = value->next;
         }
+        value->next = value->prev = NULL;
         _size--;
+        
+        validate();
     }
 
     void append_and_clear(intrusive_list_t<node_t> *list) {
+        validate();
+        list->validate();
+    
         if(list->empty())
             return;
         
@@ -92,17 +112,88 @@ public:
         // the previous pointer in the head of the appended list.
         _size += list->size();
         list->clear();
+        
+        validate();
     }
 
     int size() { return _size; }
-
+    
+    void validate() {
+        node_t *last_node = NULL;
+        int count = 0;
+        for (node_t *node = _head; node; node=((intrusive_list_node_t<node_t>*)node)->next) {
+            count ++;
+            assert(((intrusive_list_node_t<node_t>*)node)->prev == last_node);
+            last_node = node;
+        }
+        assert(_tail == last_node);
+        assert(_size == count);
+    }
+    
+    class iterator {
+    
+    protected:
+        iterator(node_t *node) : _node(node) { }
+        node_t *_node;
+        
+    public:
+        iterator() : _node(NULL) { }
+        
+        node_t &operator*() const {
+            assert(_node);
+            return *_node;
+        }
+        
+        iterator operator++() {   // Prefix version
+            assert(_node);
+            _node = ((intrusive_list_node_t<node_t>*)_node)->next;
+            return this;
+        }
+        iterator operator++(int) {   // Postfix version
+            assert(_node);
+            iterator last(_node);
+            _node = ((intrusive_list_node_t<node_t>*)_node)->next;
+            return last;
+        }
+        
+        // Currently it's impossible to start at list.end() and then decrement to get the last
+        // element in the list. Is it worth adding this?
+        
+        iterator operator--() {   // Prefix version
+            assert(_node);
+            _node = ((intrusive_list_node_t<node_t>*)_node)->prev;
+            return this;
+        }
+        iterator operator--(int) {   // Postfix version
+            assert(_node);
+            iterator last(_node);
+            _node = ((intrusive_list_node_t<node_t>*)_node)->prev;
+            return last;
+        }
+        
+        bool operator==(const iterator &other) const {
+            return other._node == _node;
+        }
+        
+        bool operator!=(const iterator &other) const {
+            return other._node != _node;
+        }
+        
+        friend class intrusive_list_t<node_t>;
+    };
+    
+    iterator begin() {
+        return iterator(_head);
+    }
+    
+    iterator end() {
+        return iterator(NULL);
+    }
+    
 protected:
     node_t *_head, *_tail;
     int _size;
 };
-
-// TODO: It would be really nice to support iterators on this list
-// some day.
 
 #endif // __INTRUSIVE_LIST_HPP__
 
