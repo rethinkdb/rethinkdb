@@ -31,7 +31,6 @@ def rethinkdb_delete(queue, ints):
     for i in ints:
         print "Deleting %d" % i
         if (0 == mc.delete(str(i))):
-            print "cunt"
             queue.put(-1)
             return
     mc.disconnect_all()

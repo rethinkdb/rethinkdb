@@ -5,7 +5,7 @@
 #include <algorithm>
 #include "utils.hpp"
 
-#define DEBUG_MAX_INTERNAL 4
+//#define DEBUG_MAX_INTERNAL 4
 
 //In this tree, less than or equal takes the left-hand branch and greater than takes the right hand branch
 
@@ -206,9 +206,8 @@ void internal_node_handler::validate(btree_internal_node *node) {
 }
 
 bool internal_node_handler::is_underfull(btree_internal_node *node) {
-#ifdef DEBUG_MAX_LEAF
-    if (node->npairs < (DEBUG_MAX_LEAF + 1) / 2)
-        return true;
+#ifdef DEBUG_MAX_INTERNAL
+   return node->npairs < (DEBUG_MAX_INTERNAL + 1) / 2;
 #endif
     return (sizeof(btree_internal_node) + 1) / 2 + 
         node->npairs*sizeof(*node->pair_offsets) +
@@ -216,7 +215,7 @@ bool internal_node_handler::is_underfull(btree_internal_node *node) {
 }
 
 bool internal_node_handler::is_singleton(btree_internal_node *node) {
-    return node->npairs == 1;
+    return node->npairs == 2;
 }
 
 size_t internal_node_handler::pair_size(btree_internal_pair *pair) {

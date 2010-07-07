@@ -38,7 +38,7 @@ public:
 public:
     explicit btree_delete_fsm(cache_t *cache)
         : btree_fsm_t(cache, btree_fsm_t::btree_delete_fsm),
-          state(uninitialized), key((btree_key*)key_memory), buf(NULL), last_buf(NULL), node_id(cache_t::null_block_id)
+          state(uninitialized), key((btree_key*)key_memory), buf(NULL), last_buf(NULL), sb_buf(NULL),  sib_buf(NULL), node_id(cache_t::null_block_id)
         {}
 
     void init_delete(btree_key *_key);
