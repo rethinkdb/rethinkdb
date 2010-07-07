@@ -169,11 +169,9 @@ public:
 
     void start() {
     	writeback_t::start();
-    	page_repl_t::start();
     }
     void shutdown(sync_callback<config_t> *cb) {
     	writeback_t::shutdown(cb);
-    	page_repl_t::shutdown(cb);
     }
 
     // Transaction API

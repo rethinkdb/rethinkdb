@@ -31,8 +31,9 @@ public:
           cache(_cache)
         {}
 	
-	void start() { }
-	void shutdown(sync_callback<config_t> *cb) { }
+	void make_space(unsigned int space_needed) {
+	    // Do nothing. The user-specified limit will likely be exceeded.
+	}
 	
 private:
     size_t block_size, max_size;

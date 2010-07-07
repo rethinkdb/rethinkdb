@@ -32,31 +32,18 @@ public:
           alloc(_alloc),
           cache(_cache)
         {}
-
-	void start() {
-		get_cpu_context()->event_queue->add_timer(PAGE_REPL_INTERVAL_MS, timer_callback, this);
-	}
-	void shutdown(sync_callback<config_t> *cb) {
-	}
-		
-private:
-    size_t block_size, max_size;
-    page_map_t *page_map;
-    buffer_alloc_t *alloc;
-    cache_t *cache;
     
-    static void timer_callback(void *cxt) {
-    	static_cast<page_repl_random_t*>(cxt)->consider_unloading();
-    }
-    
-    void consider_unloading() {
+    // make_space tries to make sure that the number of blocks currently in memory is at least
+    // 'space_needed' less than the user-specified memory limit.
+    void make_space(unsigned int space_needed) {
     	
-    	int num_misses = 0, num_unloaded = 0;
-    	int threshold = max_size / block_size * 0.9;
+    	unsigned int target;
+    	if (space_needed > max_size / block_size) target = max_size / block_size;
+    	else target = max_size / block_size - space_needed;
     	
-    	int initial_num_blocks = page_map->num_blocks();
+    	printf("there are %d blocks in memory, but ideally there would be %d\n", page_map->num_blocks(), target);
     	
-    	while (page_map->num_blocks() > threshold) {
+    	while (page_map->num_blocks() > target) {
     	    		
     		// Try to find a block we can unload. Blocks are ineligible to be unloaded if they are
     		// dirty or in use.
@@ -64,33 +51,27 @@ private:
     		buf_t *block_to_unload = NULL;
     		while (tries > 0 && !block_to_unload) {
     			block_to_unload = page_map->get_random_block();
+    			assert(block_to_unload);
     			if (block_to_unload->is_dirty() || block_to_unload->lock.locked()) {
     				block_to_unload = NULL;
-    				num_misses ++;
     			}
     			tries--;
     		}
     		
     		if (block_to_unload) {
-    			num_unloaded ++;
     			cache->do_unload_buf(block_to_unload);
+    		    printf("kicking out a block; now %d are left in memory\n", page_map->num_blocks());
     		} else {
     			break;
     		}
     	}
-    	
-    	assert(num_unloaded == initial_num_blocks - page_map->num_blocks());
-
-        /*
-    	printf("CPU: %d Prev: %-10d Lim: %-10d Unload: %-10d Miss:%-5d After: %-10d\n",
-    		get_cpu_context()->event_queue->queue_id,
-    		initial_num_blocks,
-    		threshold,
-    		num_unloaded,
-    		num_misses,
-    		page_map->num_blocks());
-        */
     }
+    
+private:
+    size_t block_size, max_size;
+    page_map_t *page_map;
+    buffer_alloc_t *alloc;
+    cache_t *cache;
 };
 
 #endif // __PAGE_REPL_RANDOM_HPP__

@@ -112,7 +112,10 @@ transaction<config_t>::allocate(block_id_t *block_id) {
     cache->n_blocks_acquired++;
 #endif
     assert(access == rwi_write);
-        
+    
+    // If we are getting low on memory, kick out old blocks
+    cache->make_space(1);
+    
     *block_id = cache->gen_block_id();
     buf_t *buf = new buf_t(cache, *block_id);
     buf->set_cached(true);
@@ -147,6 +150,9 @@ transaction<config_t>::acquire(block_id_t block_id, access_t mode,
     	
     	/* Unlike in allocate(), we aren't creating a new block; the block already existed but we
     	are creating a buf to represent it in memory, and then loading it from disk. */
+    	
+    	// If we are getting low on memory, kick out old blocks
+        cache->make_space(1);
     	
     	// TODO: It's a little bit odd that the logic for loading blocks is here, but the logic for
     	// unloading blocks is in cache_t.

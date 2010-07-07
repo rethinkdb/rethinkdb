@@ -35,13 +35,16 @@ public:
     
     /* The page replacement algorithm uses num_blocks() to decide when to remove some pages from
     memory. */
-    int num_blocks() {
+    unsigned int num_blocks() {
     	return ft_map.size();
     }
     
     /* The random page replacement algorithm calls this function to decide which block to unload. Is
     this an unreasonable abstraction break? */
     buf_t *get_random_block() {
+    
+        if (num_blocks() == 0) return NULL;
+    
     	/* This is a really bad way to do it. It only works if RAND_MAX is much greater than
     	num_blocks(). */
     	int n = rand() % num_blocks();
