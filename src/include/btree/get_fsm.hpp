@@ -54,7 +54,10 @@ private:
     transition_result_t do_acquire_superblock(event_t *event);
     transition_result_t do_acquire_root(event_t *event);
     transition_result_t do_acquire_node(event_t *event);
-
+    
+    // Print debugging information designed to resolve deadlocks
+    void deadlock_debug();
+    
 private:
     char key_memory[MAX_KEY_SIZE+sizeof(btree_key)];
     char value_memory[MAX_IN_NODE_VALUE_SIZE+sizeof(btree_value)];

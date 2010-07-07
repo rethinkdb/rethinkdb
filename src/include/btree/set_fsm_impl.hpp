@@ -364,6 +364,28 @@ void btree_set_fsm<config_t>::split_node(buf_t *buf, buf_t **rbuf,
     *rbuf = res;
 }
 
+template <class config_t>
+void btree_set_fsm<config_t>::deadlock_debug(void) {
+    printf("set-fsm %p {\n", this);
+    printf("    buf = %p\n", buf);
+    printf("    last_buf = %p\n", last_buf);
+    printf("    sb_buf = %p\n", sb_buf);
+    const char *st_name;
+    switch(state) {
+        case uninitialized: st_name = "uninitialized"; break;
+        case start_transaction: st_name = "start_transaction"; break;
+        case acquire_superblock: st_name = "acquire_superblock"; break;
+        case acquire_root: st_name = "acquire_root"; break;
+        case insert_root: st_name = "insert_root"; break;
+        case insert_root_on_split: st_name = "insert_root_on_split"; break;
+        case acquire_node: st_name = "acquire_node"; break;
+        case update_complete: st_name = "update_complete"; break;
+        case committing: st_name = "committing"; break;
+        default: st_name = "WTF"; break;
+    }
+    printf("    state = %s\n", st_name);
+    printf("}\n");
+}
 
 #endif // __BTREE_SET_FSM_IMPL_HPP__
 

@@ -571,3 +571,14 @@ void event_queue_t::on_sync() {
     event.event_type = iet_cache_synced;
     post_itc_message(&event);
 }
+
+
+
+// For debugging
+void deadlock_debug(void) {
+    if (get_cpu_context()->event_queue) {
+        get_cpu_context()->event_queue->cache->deadlock_debug();
+    } else {
+        printf("You're in the wrong thread. If you're in gdb, type 'thread X' where X >= 2, and then try again.\n");
+    }
+}

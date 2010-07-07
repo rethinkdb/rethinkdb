@@ -52,6 +52,14 @@ void buf<config_t>::on_io_complete(event_t *event) {
     cache->aio_complete(this, event->op != eo_read);
 }
 
+template<class config_t>
+void buf<config_t>::deadlock_debug() {
+	printf("Buffer %p (id %d):\n", (void*)this, (int)block_id);
+	printf("dirty = %d\n", (int)config_t::writeback_t::local_buf_t::is_dirty());
+	printf("cached = %d\n", (int)is_cached());
+	concurrency_t::local_buf_t::deadlock_debug();
+}
+
 /**
  * Transaction implementation.
  */
@@ -238,6 +246,17 @@ void mirrored_cache_t<config_t>::do_unload_buf(buf_t *buf) {
 	erase(buf->get_block_id());
 	
 	delete buf;
+}
+
+template<class config_t>
+void mirrored_cache_t<config_t>::deadlock_debug() {
+	
+	printf("Debugging cache: %p\n", (void*)this);
+	typename page_map_t::ft_map_t::iterator it;
+	for (it = ft_map.begin(); it != ft_map.end(); it++) {
+		buf_t *buf = it->second;
+		buf->deadlock_debug();
+	}
 }
 
 #endif  // __BUFFER_CACHE_MIRRORED_IMPL_HPP__

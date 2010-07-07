@@ -65,7 +65,10 @@ public:
     void notify_on_load();
 
     virtual void on_io_complete(event_t *event);
-
+	
+	// Prints debugging information designed to resolve deadlocks.
+	void deadlock_debug();
+	
 private:
     cache_t *cache;
     block_id_t block_id;
@@ -183,6 +186,9 @@ public:
     on a buf that is not in use and not dirty. It is called by the cache's destructor and by the
     page replacement policy. */
     void do_unload_buf(buf_t *buf);
+
+	// Prints debugging information designed to resolve deadlocks
+	void deadlock_debug();
 
 private:
 	// TODO: This is boundary-crossing abstraction-breaking treachery. mirrored_cache_t should not

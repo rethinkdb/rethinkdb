@@ -64,7 +64,11 @@ public:
     virtual void on_block_available(buf_t *buf);
     virtual void on_txn_begin(transaction_t *txn);
     virtual void on_txn_commit(transaction_t *txn);
-
+    
+    virtual void deadlock_debug() {
+        printf("unknown-fsm %p\n", this);
+    }
+    
 protected:
     block_id_t get_root_id(void *superblock_buf);
     cache_t* get_cache() {

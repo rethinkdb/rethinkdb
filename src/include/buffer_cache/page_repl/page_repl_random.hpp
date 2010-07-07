@@ -80,7 +80,8 @@ private:
     	}
     	
     	assert(num_unloaded == initial_num_blocks - page_map->num_blocks());
-    	/*
+
+        /*
     	printf("CPU: %d Prev: %-10d Lim: %-10d Unload: %-10d Miss:%-5d After: %-10d\n",
     		get_cpu_context()->event_queue->queue_id,
     		initial_num_blocks,
@@ -88,7 +89,7 @@ private:
     		num_unloaded,
     		num_misses,
     		page_map->num_blocks());
-    	*/
+        */
     }
 };
 
