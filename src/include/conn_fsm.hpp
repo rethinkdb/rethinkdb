@@ -57,6 +57,29 @@ public:
     int get_source() {
         return source;
     }
+    
+    // Print debugging information designed to resolve deadlocks
+    void deadlock_debug() {
+        printf("conn-fsm %p {\n", this);
+        const char *st_name;
+        switch(state) {
+            case fsm_socket_connected: st_name = "fsm_socket_connected";
+            case fsm_socket_recv_incomplete: st_name = "fsm_socket_recv_incomplete";
+            case fsm_socket_send_incomplete: st_name = "fsm_socket_send_incomplete";
+            case fsm_btree_incomplete: st_name = "fsm_btree_incomplete";
+        }
+        printf("\tstate = %s\n", st_name);
+        if (current_request) {
+            printf("\tcurrent_request.fsms = [\n");
+            unsigned int i;
+            for (i=0; i<current_request->nstarted; i++) {
+                current_request->fsms[i]->deadlock_debug();
+            }
+            printf("]\n");
+        } else {
+            printf("\tcurrent_request = NULL\n");
+        }
+    }
 
 public:
     int source;

@@ -87,7 +87,10 @@ public:
     cache_t *cache;
 
     io_calls_t iosys;
-
+    
+    // Print debugging information designed to resolve a deadlock
+    void deadlock_debug();
+    
 private:
     struct timer_t : public intrusive_list_node_t<timer_t>,
                      public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, timer_t> {
