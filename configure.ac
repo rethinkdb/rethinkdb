@@ -2,13 +2,10 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ([2.64])
-AC_INIT([rethinkdb], [0.1], [aditya@rethinkdb.com])
-AM_INIT_AUTOMAKE(rethinkdb, 0.1)
+AC_INIT([rethinkdb], [0.1], [aditya@rethinkdb.com], [rethinkdb], [http://www.rethinkdb.com])
+AM_INIT_AUTOMAKE([1.10 no-define foreign])
 
-AC_CONFIG_SRCDIR([rwi_lock.cc])
-AC_CONFIG_HEADERS([config.h])
-
-# Checks for programs.
+# Checks for C++ compiler.
 AC_PROG_CXX
 
 # Checks for libraries.
@@ -31,4 +28,5 @@ AC_CHECK_TYPES([ptrdiff_t])
 AC_FUNC_MALLOC
 AC_CHECK_FUNCS([bzero ftruncate memchr memmove memset pow socket strtoul strtoull])
 
-AC_OUTPUT(Makefile src/Makefile)
+AC_CONFIG_FILES(Makefile src/Makefile)
+AC_OUTPUT
