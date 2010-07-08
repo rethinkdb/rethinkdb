@@ -3,10 +3,15 @@
 #define __BUFFER_CACHE_WRITEBACK_IMPL_HPP__
 
 template <class config_t>
-writeback_tmpl_t<config_t>::writeback_tmpl_t(cache_t *cache,
-        bool wait_for_flush, unsigned int flush_interval_ms)
-    : wait_for_flush(wait_for_flush),
+writeback_tmpl_t<config_t>::writeback_tmpl_t(
+        cache_t *cache,
+        bool wait_for_flush,
+        unsigned int flush_interval_ms,
+        unsigned int force_flush_threshold)
+    : safety_timer(NULL),
+      wait_for_flush(wait_for_flush),
       interval_ms(flush_interval_ms),
+      force_flush_threshold(force_flush_threshold),
       cache(cache),
       num_txns(0),
       shutdown_callback(NULL),
@@ -86,6 +91,20 @@ void writeback_tmpl_t<config_t>::aio_complete(buf_t *buf, bool written) {
 }
 
 template <class config_t>
+void writeback_tmpl_t<config_t>::deadlock_debug() {
+    printf("\n----- Writeback -----\n");
+    const char *st_name;
+    switch(state) {
+        case state_none: st_name = "state_none"; break;
+        case state_locking: st_name = "state_locking"; break;
+        case state_locked: st_name = "state_locked"; break;
+        case state_write_bufs: st_name = "state_write_bufs"; break;
+        default: st_name = "<invalid state>"; break;
+    }
+    printf("state = %s\n", st_name);
+}
+
+template <class config_t>
 void writeback_tmpl_t<config_t>::local_buf_t::set_dirty(buf_t *super) {
     // 'super' is actually 'this', but as a buf_t* instead of a local_buf_t*
     if(!dirty) {
@@ -98,13 +117,19 @@ void writeback_tmpl_t<config_t>::local_buf_t::set_dirty(buf_t *super) {
 template <class config_t>
 void writeback_tmpl_t<config_t>::start_safety_timer() {
     if (interval_ms != NEVER_FLUSH && interval_ms != 0) {
-        get_cpu_context()->event_queue->fire_timer_once(interval_ms, safety_timer_callback, this);
+        event_queue_t *eq = get_cpu_context()->event_queue;
+        if (safety_timer) {
+            eq->cancel_timer(safety_timer);
+            safety_timer = NULL;
+        }
+        safety_timer = eq->fire_timer_once(interval_ms, safety_timer_callback, this);
     }
 }
 
 template <class config_t>
 void writeback_tmpl_t<config_t>::safety_timer_callback(void *ctx) {
     writeback_tmpl_t *self = static_cast<writeback_tmpl_t *>(ctx);
+    self->safety_timer = NULL;
     // TODO(NNW): We can't start writeback when it's already started, but we
     // may want a more thorough way of dealing with this case.
     if (self->state == state_none)
@@ -115,11 +140,7 @@ template <class config_t>
 void writeback_tmpl_t<config_t>::threshold_timer_callback(void *ctx) {
     writeback_tmpl_t *self = static_cast<writeback_tmpl_t *>(ctx);
     if (self->state == state_none) {
-        // Arbitrary threshold: If more than 1/6 of the buffers in memory are dirty, then start
-        // writeback earlier than it normally would run
-        if (self->dirty_bufs.size() > self->cache->num_blocks() / 6 + 1) {
-            printf("thread: %d   starting writeback.   blocks: %d   dirty: %d \n",
-                get_cpu_context()->event_queue->queue_id, self->cache->num_blocks(), self->dirty_bufs.size());
+        if (self->dirty_bufs.size() > self->force_flush_threshold) {
             self->writeback(NULL);
         }
     }
@@ -140,7 +161,13 @@ void writeback_tmpl_t<config_t>::writeback(buf_t *buf) {
 
     if (state == state_none) {
         assert(buf == NULL);
-
+        
+        if (dirty_bufs.size() == 0) {
+            /* Well, that was easy. There's nothing to do! */
+            start_safety_timer();
+            return;
+        }
+        
         /* Start a read transaction so we can request bufs. */
         assert(transaction == NULL);
         if (shutdown_callback) // Backdoor around "no new transactions" assert.
@@ -152,8 +179,9 @@ void writeback_tmpl_t<config_t>::writeback(buf_t *buf) {
         /* Request exclusive flush_lock, forcing all write txns to complete. */
         state = state_locking;
         bool locked = flush_lock->lock(rwi_write, this);
-        if (locked)
+        if (locked) {
             state = state_locked;
+        }
     }
     if (state == state_locked) {
         assert(buf == NULL);
@@ -182,6 +210,7 @@ void writeback_tmpl_t<config_t>::writeback(buf_t *buf) {
             writes[i].callback = buf;
         }
         flush_bufs.append_and_clear(&dirty_bufs);
+        
         flush_lock->unlock(); // Write transactions can now proceed again.
 
         /* Start writing all the dirty bufs down, as a transaction. */

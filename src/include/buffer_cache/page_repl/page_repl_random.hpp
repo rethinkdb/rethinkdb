@@ -23,13 +23,11 @@ struct page_repl_random_t {
     typedef typename config_t::buf_t buf_t;
     
 public:
-    page_repl_random_t(size_t _block_size, size_t _max_size,
+    page_repl_random_t(unsigned int _unload_threshold,
                      page_map_t *_page_map,
-                     buffer_alloc_t *_alloc,
                      cache_t *_cache)
-        : block_size(_block_size), max_size(_max_size),
+        : unload_threshold(_unload_threshold),
           page_map(_page_map),
-          alloc(_alloc),
           cache(_cache)
         {}
     
@@ -38,8 +36,8 @@ public:
     void make_space(unsigned int space_needed) {
     	
     	unsigned int target;
-    	if (space_needed > max_size / block_size) target = max_size / block_size;
-    	else target = max_size / block_size - space_needed;
+    	if (space_needed > unload_threshold) target = unload_threshold;
+    	else target = unload_threshold - space_needed;
     	
     	int n_unloaded = 0;
     	
@@ -65,15 +63,11 @@ public:
     			break;
     		}
     	}
-    	
-    	printf("thread: %d   target: %d   blocks in memory: %d   unloaded: %d\n",
-    	    get_cpu_context()->event_queue->queue_id, target, page_map->num_blocks()+n_unloaded, n_unloaded);
     }
     
 private:
-    size_t block_size, max_size;
+    unsigned int unload_threshold;
     page_map_t *page_map;
-    buffer_alloc_t *alloc;
     cache_t *cache;
 };
 

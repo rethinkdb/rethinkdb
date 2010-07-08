@@ -14,7 +14,11 @@ public:
     typedef typename config_t::cache_t cache_t;
     typedef typename config_t::buf_t buf_t;
     
-    writeback_tmpl_t(cache_t *cache, bool wait_for_flush, unsigned int interval_ms);
+    writeback_tmpl_t(
+        cache_t *cache,
+        bool wait_for_flush,
+        unsigned int interval_ms,
+        unsigned int force_flush_threshold);
     virtual ~writeback_tmpl_t();
 
     void start(); // Start the writeback process as part of database startup.
@@ -25,7 +29,10 @@ public:
     bool begin_transaction(transaction_t *txn);
     bool commit(transaction_t *transaction, transaction_commit_callback<config_t> *callback);
     void aio_complete(buf_t *, bool written);
-
+    
+    // Print debugging information designed to resolve a deadlock
+    void deadlock_debug();
+    
     class local_buf_t : public intrusive_list_node_t<buf_t> {
     public:
         explicit local_buf_t(writeback_tmpl_t *wb)
@@ -74,6 +81,7 @@ private:
     // there are too many of them; it runs very frequently, but it only starts writeback if more
     // than some percentage of buffers are dirty.
     
+    event_queue_t::timer_t *safety_timer;
     void start_safety_timer(void);
     static void safety_timer_callback(void *ctx);
     static void threshold_timer_callback(void *ctx);
@@ -83,6 +91,7 @@ private:
     /* User-controlled settings. */
     bool wait_for_flush;
     int interval_ms;
+    unsigned int force_flush_threshold;
 
     /* Internal variables used at all times. */
     cache_t *cache;

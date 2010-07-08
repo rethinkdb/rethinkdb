@@ -167,8 +167,17 @@ public:
     mirrored_cache_t(size_t _block_size, size_t _max_size, bool wait_for_flush,
             unsigned int flush_interval_ms) : 
         serializer_t(_block_size),
-        page_repl_t(_block_size, _max_size, this, this, this),
-        writeback_t(this, wait_for_flush, flush_interval_ms)
+        page_repl_t(
+            // Launch page replacement if the user-specified maximum number of block is reached
+            _max_size / _block_size,
+            this,
+            this),
+        writeback_t(
+            this,
+            wait_for_flush,
+            flush_interval_ms,
+            // Force writeback if more than 1/3 of the maximum number of blocks are dirty
+            _max_size / _block_size / 3)
 #ifndef NDEBUG
         , n_trans_created(0), n_trans_freed(0),
         n_blocks_acquired(0), n_blocks_released(0)
