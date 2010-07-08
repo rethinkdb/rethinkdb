@@ -162,12 +162,6 @@ void writeback_tmpl_t<config_t>::writeback(buf_t *buf) {
     if (state == state_none) {
         assert(buf == NULL);
         
-        if (dirty_bufs.size() == 0) {
-            /* Well, that was easy. There's nothing to do! */
-            start_safety_timer();
-            return;
-        }
-        
         /* Start a read transaction so we can request bufs. */
         assert(transaction == NULL);
         if (shutdown_callback) // Backdoor around "no new transactions" assert.
