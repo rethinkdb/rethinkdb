@@ -51,12 +51,20 @@ int internal_node_handler::insert(btree_internal_node *node, btree_key *key, blo
 }
 
 bool internal_node_handler::remove(btree_internal_node *node, btree_key *key) {
+#ifndef NDEBUG
+    printf("removing key\n");
+    internal_node_handler::print(node);
+#endif
     int index = get_offset_index(node, key);
     delete_pair(node, node->pair_offsets[index]);
     delete_offset(node, index);
 
     if (index == node->npairs)
         make_last_pair_special(node);
+#ifndef NDEBUG
+    printf("\t|\n\t|\n\t|\n\tV\n");
+    internal_node_handler::print(node);
+#endif
 
     return true; // XXX
 }
@@ -90,7 +98,7 @@ void internal_node_handler::split(btree_internal_node *node, btree_internal_node
 
 void internal_node_handler::merge(btree_internal_node *node, btree_internal_node *rnode, btree_key *key_to_remove, btree_internal_node *parent) {
 #ifndef NDEBUG
-    printf("mergine\n");
+    printf("merging\n");
     printf("node:\n");
     internal_node_handler::print(node);
     printf("rnode:\n");
@@ -181,7 +189,7 @@ void internal_node_handler::level(btree_internal_node *node, btree_internal_node
         //copy from end of sibling to beginning of node
         int pairs_to_move = sibling->npairs - index;
         check("could not level nodes", pairs_to_move <= 0);
-        memmove(node->pair_offsets + pairs_to_move, node->pair_offsets, pairs_to_move * sizeof(*node->pair_offsets));
+        memmove(node->pair_offsets + pairs_to_move, node->pair_offsets, node->npairs * sizeof(*node->pair_offsets));
         for (int i = index; i < sibling->npairs; i++) {
             node->pair_offsets[i-index] = insert_pair(node, get_pair(sibling, sibling->pair_offsets[i]));
         }
@@ -224,10 +232,18 @@ int internal_node_handler::sibling(btree_internal_node *node, btree_key *key, bl
 }
 
 void internal_node_handler::update_key(btree_internal_node *node, btree_key *key_to_replace, btree_key *replacement_key) {
+#ifndef NDEBUG
+    printf("updating key\n");
+    internal_node_handler::print(node);
+#endif
     int index = get_offset_index(node, key_to_replace);
     block_id_t tmp_lnode = get_pair(node, node->pair_offsets[index])->lnode;
     delete_pair(node, node->pair_offsets[index]);
     node->pair_offsets[index] = insert_pair(node, tmp_lnode, replacement_key);
+#ifndef NDEBUG
+    printf("\t|\n\t|\n\t|\n\tV\n");
+    internal_node_handler::print(node);
+#endif
 
     check("Invalid key given to update_key: offsets no longer in sorted order", !is_sorted(node->pair_offsets, node->pair_offsets+node->npairs, internal_key_comp(node)));
 }

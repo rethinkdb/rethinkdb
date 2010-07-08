@@ -106,6 +106,7 @@ typename btree_delete_fsm<config_t>::transition_result_t btree_delete_fsm<config
 template <class config_t>
 typename btree_delete_fsm<config_t>::transition_result_t btree_delete_fsm<config_t>::do_insert_root_on_collapse(event_t *event)
 {
+    printf("collapsing root!\n");
     if(set_root_id(node_id, event)) {
         state = acquire_node;
         sb_buf->release();
@@ -319,7 +320,7 @@ typename btree_delete_fsm<config_t>::transition_result_t btree_delete_fsm<config
                 op_result = btree_not_found;
             }
 
-            if (leaf_node_handler::is_underfull(node)) {
+            if (leaf_node_handler::is_underfull(node) && last_buf) { // the root node is never underfull
                 if(!sib_buf) {
                     // Acquire a sibling to merge or level with
                     state = acquire_sibling;
@@ -356,7 +357,6 @@ typename btree_delete_fsm<config_t>::transition_result_t btree_delete_fsm<config
                             state = insert_root_on_collapse;
                             res = do_insert_root_on_collapse(NULL);
                             event = NULL;
-                            continue;
                         }
                     } else {
                         // Level
@@ -402,6 +402,7 @@ typename btree_delete_fsm<config_t>::transition_result_t btree_delete_fsm<config
             res = btree_fsm_t::transition_complete;
         }
         event = NULL;
+        printf("----------------\n");
     }
 
     // Finalize the transaction commit

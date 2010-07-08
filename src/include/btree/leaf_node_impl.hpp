@@ -174,7 +174,7 @@ void leaf_node_handler::level(btree_leaf_node *node, btree_leaf_node *sibling, b
         //copy from end of sibling to beginning of node
         int pairs_to_move = sibling->npairs - index;
         check("could not level nodes", pairs_to_move <= 0);
-        memmove(node->pair_offsets + pairs_to_move, node->pair_offsets, pairs_to_move * sizeof(*node->pair_offsets));
+        memmove(node->pair_offsets + pairs_to_move, node->pair_offsets, node->npairs * sizeof(*node->pair_offsets));
         for (int i = index; i < sibling->npairs; i++) {
             node->pair_offsets[i-index] = insert_pair(node, get_pair(sibling, sibling->pair_offsets[i]));
         }
