@@ -48,11 +48,10 @@ DEPS:=$(OBJS:%.o=$(DEP_DIR)/%.d)
 OBJS:=$(OBJS:%.o=$(OBJ_DIR)/%.o)
 
 # High level build targets
-$(SERVER_EXEC_NAME): $(OBJS)
-	$(quiet_ld) $(CXX) $(LDFLAGS) $(OBJS) -o $(SERVER_EXEC_NAME)
-	-mkdir -p $(BUILD_DIR)
-	mv $(SERVER_EXEC_NAME) $(BUILD_DIR)/$(SERVER_EXEC_NAME)
-	cp ../scripts/$(START_DB_NAME) $(BUILD_DIR)/$(START_DB_NAME)
+$(BUILD_DIR)/$(SERVER_EXEC_NAME): $(OBJS)
+	@-mkdir -p $(BUILD_DIR)
+	@cp ../scripts/$(START_DB_NAME) $(BUILD_DIR)/$(START_DB_NAME)
+	$(quiet_ld) $(CXX) $(LDFLAGS) $(OBJS) -o $(BUILD_DIR)/$(SERVER_EXEC_NAME)
 tags:
 	@ctags -R -f $(TAGS)
 
