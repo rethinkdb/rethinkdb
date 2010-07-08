@@ -51,7 +51,7 @@ int internal_node_handler::insert(btree_internal_node *node, btree_key *key, blo
 }
 
 bool internal_node_handler::remove(btree_internal_node *node, btree_key *key) {
-#ifndef NDEBUG
+#ifdef DELETE_DEBUG
     printf("removing key\n");
     internal_node_handler::print(node);
 #endif
@@ -61,7 +61,7 @@ bool internal_node_handler::remove(btree_internal_node *node, btree_key *key) {
 
     if (index == node->npairs)
         make_last_pair_special(node);
-#ifndef NDEBUG
+#ifdef DELETE_DEBUG
     printf("\t|\n\t|\n\t|\n\tV\n");
     internal_node_handler::print(node);
 #endif
@@ -97,7 +97,7 @@ void internal_node_handler::split(btree_internal_node *node, btree_internal_node
 }
 
 void internal_node_handler::merge(btree_internal_node *node, btree_internal_node *rnode, btree_key *key_to_remove, btree_internal_node *parent) {
-#ifndef NDEBUG
+#ifdef DELETE_DEBUG
     printf("merging\n");
     printf("node:\n");
     internal_node_handler::print(node);
@@ -116,7 +116,7 @@ void internal_node_handler::merge(btree_internal_node *node, btree_internal_node
     rnode->npairs += node->npairs;
 
     keycpy(key_to_remove, &get_pair(rnode, rnode->pair_offsets[0])->key);
-#ifndef NDEBUG
+#ifdef DELETE_DEBUG
     printf("\t|\n\t|\n\t|\n\tV\n");
     printf("node:\n");
     internal_node_handler::print(node);
@@ -127,7 +127,7 @@ void internal_node_handler::merge(btree_internal_node *node, btree_internal_node
 
 bool internal_node_handler::level(btree_internal_node *node, btree_internal_node *sibling, btree_key *key_to_replace, btree_key *replacement_key, btree_internal_node *parent) {
     //Note: size does not take into account offsets
-#ifndef NDEBUG
+#ifdef DELETE_DEBUG
     printf("levelling\n");
     printf("node:\n");
     internal_node_handler::print(node);
@@ -212,7 +212,7 @@ bool internal_node_handler::level(btree_internal_node *node, btree_internal_node
         make_last_pair_special(sibling);
     }
 
-#ifndef NDEBUG
+#ifdef DELETE_DEBUG
     printf("\t|\n\t|\n\t|\n\tV\n");
     printf("node:\n");
     internal_node_handler::print(node);
@@ -239,7 +239,7 @@ int internal_node_handler::sibling(btree_internal_node *node, btree_key *key, bl
 }
 
 void internal_node_handler::update_key(btree_internal_node *node, btree_key *key_to_replace, btree_key *replacement_key) {
-#ifndef NDEBUG
+#ifdef DELETE_DEBUG
     printf("updating key\n");
     internal_node_handler::print(node);
 #endif
@@ -247,7 +247,7 @@ void internal_node_handler::update_key(btree_internal_node *node, btree_key *key
     block_id_t tmp_lnode = get_pair(node, node->pair_offsets[index])->lnode;
     delete_pair(node, node->pair_offsets[index]);
     node->pair_offsets[index] = insert_pair(node, tmp_lnode, replacement_key);
-#ifndef NDEBUG
+#ifdef DELETE_DEBUG
     printf("\t|\n\t|\n\t|\n\tV\n");
     internal_node_handler::print(node);
 #endif
@@ -378,7 +378,7 @@ int internal_node_handler::nodecmp(btree_internal_node *node1, btree_internal_no
 }
 
 void internal_node_handler::print(btree_internal_node *node) {
-#ifndef NDEBUG
+#ifdef DELETE_DEBUG
     for (int i = 0; i < node->npairs; i++) {
         btree_internal_pair *pair = get_pair(node, node->pair_offsets[i]);
         printf("|\t");

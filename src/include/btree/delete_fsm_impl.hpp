@@ -36,7 +36,6 @@ typename btree_delete_fsm<config_t>::transition_result_t btree_delete_fsm<config
 template <class config_t>
 typename btree_delete_fsm<config_t>::transition_result_t btree_delete_fsm<config_t>::do_acquire_superblock(event_t *event)
 {
-    printf("Acquire superblock\n");
     assert(state == acquire_superblock);
 
     if(event == NULL) {
@@ -73,7 +72,6 @@ typename btree_delete_fsm<config_t>::transition_result_t btree_delete_fsm<config
 
 template <class config_t>
 typename btree_delete_fsm<config_t>::transition_result_t btree_delete_fsm<config_t>::do_acquire_root(event_t *event) {
-    printf("Acquire root\n");
     assert(state == acquire_root);
     
     // Make sure root exists
@@ -106,7 +104,6 @@ typename btree_delete_fsm<config_t>::transition_result_t btree_delete_fsm<config
 template <class config_t>
 typename btree_delete_fsm<config_t>::transition_result_t btree_delete_fsm<config_t>::do_insert_root_on_collapse(event_t *event)
 {
-    printf("collapsing root!\n");
     if(set_root_id(node_id, event)) {
         state = acquire_node;
         sb_buf->release();
@@ -121,7 +118,6 @@ typename btree_delete_fsm<config_t>::transition_result_t btree_delete_fsm<config
 
 template <class config_t>
 typename btree_delete_fsm<config_t>::transition_result_t btree_delete_fsm<config_t>::do_acquire_node(event_t *event) {
-    printf("Acquire node\n");
     assert(state == acquire_node);
     // Either we already have the node (then event should be NULL), or
     // we don't have the node (in which case we asked for it before,
@@ -143,7 +139,6 @@ typename btree_delete_fsm<config_t>::transition_result_t btree_delete_fsm<config
 
 template <class config_t>
 typename btree_delete_fsm<config_t>::transition_result_t btree_delete_fsm<config_t>::do_acquire_sibling(event_t *event) {
-    printf("Acquire sibling\n");
     assert(state == acquire_sibling);
 
     if (!event) {
@@ -158,18 +153,15 @@ typename btree_delete_fsm<config_t>::transition_result_t btree_delete_fsm<config
     }
 
     if(sib_buf) {
-        printf("Done with acquire sibling\n");
         state = acquire_node;
         return btree_fsm_t::transition_ok;
     } else {
-        printf("Acquire sibling incomplete\n");
         return btree_fsm_t::transition_incomplete;
     }
 }
 
 template <class config_t>
 typename btree_delete_fsm<config_t>::transition_result_t btree_delete_fsm<config_t>::do_transition(event_t *event) {
-    printf("Do_transition\n");
     transition_result_t res = btree_fsm_t::transition_ok;
 
     // Make sure we've got either an empty or a cache event
@@ -217,9 +209,7 @@ typename btree_delete_fsm<config_t>::transition_result_t btree_delete_fsm<config
 
     // Acquire nodes
     while(res == btree_fsm_t::transition_ok && state == acquire_node) {
-        printf("Start acquire node loop\n");
         if(!buf) {
-            printf("No buf\n");
             state = acquire_node;
             res = do_acquire_node(event);
             event = NULL;
@@ -234,7 +224,6 @@ typename btree_delete_fsm<config_t>::transition_result_t btree_delete_fsm<config
             // Internal node
             internal_node_t* node = (internal_node_t*)buf->ptr();
             if (internal_node_handler::is_underfull((internal_node_t *)node) && last_buf) { // the root node is never considered underfull
-                printf("Underfull internal node\n");
                 if(!sib_buf) { // Acquire a sibling to merge or level with
                     state = acquire_sibling;
                     res = do_acquire_sibling(NULL);
@@ -242,12 +231,10 @@ typename btree_delete_fsm<config_t>::transition_result_t btree_delete_fsm<config
                     continue;
                 } else {
                     // Sibling acquired, now decide whether to merge or level
-                    printf("combining time\n");
                     internal_node_t *sib_node = (internal_node_t*)sib_buf->ptr();
                     internal_node_t *parent_node = (internal_node_t*)last_buf->ptr();
                     if ( internal_node_handler::is_mergable(node, sib_node, parent_node)) {
                         // Merge
-                        printf("Merge time\n");
                         btree_key *key_to_remove = (btree_key *)alloca(sizeof(btree_key) + MAX_KEY_SIZE); //TODO get alloca outta here
                         if (internal_node_handler::nodecmp(node, sib_node) < 0) { // Nodes must be passed to merge in ascending order
                             internal_node_handler::merge(node, sib_node, key_to_remove, parent_node);
@@ -272,7 +259,6 @@ typename btree_delete_fsm<config_t>::transition_result_t btree_delete_fsm<config
                         }
                     } else {
                         // Level
-                        printf("Level time\n");
                         btree_key *key_to_replace = (btree_key *)alloca(sizeof(btree_key) + MAX_KEY_SIZE);
                         btree_key *replacement_key = (btree_key *)alloca(sizeof(btree_key) + MAX_KEY_SIZE);
                         bool leveled = internal_node_handler::level(node,  sib_node, key_to_replace, replacement_key, parent_node);
@@ -331,13 +317,11 @@ typename btree_delete_fsm<config_t>::transition_result_t btree_delete_fsm<config
                     continue;
                 } else {
                     // Sibling acquired
-                    printf("combining time\n");
                     leaf_node_t *sib_node = (leaf_node_t*)sib_buf->ptr();
                     internal_node_t *parent_node = (internal_node_t*)last_buf->ptr();
                     // Now decide whether to merge or level
                     if(leaf_node_handler::is_mergable(node, sib_node)) {
                         // Merge
-                        printf("Merge time\n");
                         btree_key *key_to_remove = (btree_key *)alloca(sizeof(btree_key) + MAX_KEY_SIZE); //TODO get alloca outta here
                         if (leaf_node_handler::nodecmp(node, sib_node) < 0) { // Nodes must be passed to merge in ascending order
                             leaf_node_handler::merge(node, sib_node, key_to_remove);
@@ -362,7 +346,6 @@ typename btree_delete_fsm<config_t>::transition_result_t btree_delete_fsm<config
                         }
                     } else {
                         // Level
-                        printf("Level time\n");
                         btree_key *key_to_replace = (btree_key *)alloca(sizeof(btree_key) + MAX_KEY_SIZE);
                         btree_key *replacement_key = (btree_key *)alloca(sizeof(btree_key) + MAX_KEY_SIZE);
                         bool leveled = leaf_node_handler::level(node,  sib_node, key_to_replace, replacement_key);
@@ -406,7 +389,6 @@ typename btree_delete_fsm<config_t>::transition_result_t btree_delete_fsm<config
             res = btree_fsm_t::transition_complete;
         }
         event = NULL;
-        printf("----------------\n");
     }
 
     // Finalize the transaction commit

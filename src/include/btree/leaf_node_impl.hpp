@@ -95,7 +95,7 @@ void leaf_node_handler::split(btree_leaf_node *node, btree_leaf_node *rnode, btr
 }
 
 void leaf_node_handler::merge(btree_leaf_node *node, btree_leaf_node *rnode, btree_key *key_to_remove) {
-#ifndef NDEBUG
+#ifdef DELETE_DEBUG
     printf("merging\n");
     printf("node:\n");
     leaf_node_handler::print(node);
@@ -112,7 +112,7 @@ void leaf_node_handler::merge(btree_leaf_node *node, btree_leaf_node *rnode, btr
     rnode->npairs += node->npairs;
 
     keycpy(key_to_remove, &get_pair(rnode, rnode->pair_offsets[0])->key);
-#ifndef NDEBUG
+#ifdef DELETE_DEBUG
     printf("\t|\n\t|\n\t|\n\tV\n");
     printf("node:\n");
     leaf_node_handler::print(node);
@@ -122,7 +122,7 @@ void leaf_node_handler::merge(btree_leaf_node *node, btree_leaf_node *rnode, btr
 }
 
 bool leaf_node_handler::level(btree_leaf_node *node, btree_leaf_node *sibling, btree_key *key_to_replace, btree_key *replacement_key) {
-#ifndef NDEBUG
+#ifdef DELETE_DEBUG
     printf("leveling\n");
     printf("node:\n");
     leaf_node_handler::print(node);
@@ -191,7 +191,7 @@ bool leaf_node_handler::level(btree_leaf_node *node, btree_leaf_node *sibling, b
         keycpy(replacement_key, &get_pair(sibling, sibling->pair_offsets[sibling->npairs-1])->key);
     }
 
-#ifndef NDEBUG
+#ifdef DELETE_DEBUG
     printf("\t|\n\t|\n\t|\n\tV\n");
     printf("node:\n");
     leaf_node_handler::print(node);
@@ -321,7 +321,7 @@ int leaf_node_handler::nodecmp(btree_leaf_node *node1, btree_leaf_node *node2) {
 }
 
 void leaf_node_handler::print(btree_leaf_node *node) {
-#ifndef NDEBUG
+#ifdef DELETE_DEBUG
     for (int i = 0; i < node->npairs; i++) {
         btree_leaf_pair *pair = get_pair(node, node->pair_offsets[i]);
         printf("|\t");

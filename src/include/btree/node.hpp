@@ -13,7 +13,7 @@ struct btree_key {
     uint8_t size;
     char contents[0];
     void print() {
-#ifndef NDEBUG
+#ifdef DELETE_DEBUG
         printf("%.*s", size, contents);
 #endif
     }
@@ -23,7 +23,7 @@ struct btree_value {
     uint32_t size;
     char contents[0];
     void print() {
-#ifndef NDEBUG
+#ifdef DELETE_DEBUG
         printf("%.*s", size, contents);
 #endif
     }
