@@ -9,6 +9,7 @@ template <class config_t>
 buf<config_t>::buf(cache_t *cache, block_id_t block_id)
     : config_t::writeback_t::local_buf_t(cache),
       config_t::concurrency_t::local_buf_t(this),
+    temporary_pinned(0),
     cache(cache),
     block_id(block_id),
     cached(false) {
@@ -18,6 +19,7 @@ buf<config_t>::buf(cache_t *cache, block_id_t block_id)
 template <class config_t>
 buf<config_t>::~buf() {
     assert(load_callbacks.empty());
+    assert(temporary_pinned == 0);
     cache->free(data);
 }
 
@@ -37,6 +39,10 @@ void buf<config_t>::add_load_callback(block_available_callback_t *callback) {
 
 template <class config_t>
 void buf<config_t>::notify_on_load() {
+
+    /* We guarantee that the block will not be unloaded until all of the load callbacks return. */
+    temporary_pinned ++;
+
     // We're calling back objects that were all able to grab a lock,
     // but are waiting on a load. Because of this, we can notify all
     // of them.
@@ -45,6 +51,8 @@ void buf<config_t>::notify_on_load() {
         load_callbacks.remove(_callback);
         _callback->on_block_available(this);
     }
+    
+    temporary_pinned --;
 }
 
 template <class config_t>
@@ -55,7 +63,8 @@ void buf<config_t>::on_io_complete(event_t *event) {
 
 template<class config_t>
 bool buf<config_t>::is_pinned() {
-    return concurrency_t::local_buf_t::is_pinned() || !load_callbacks.empty();
+    // TODO: Include is_dirty() in is_pinned(). Rename is_pinned() something like can_be_unloaded().
+    return concurrency_t::local_buf_t::is_pinned() || !load_callbacks.empty() || temporary_pinned;
 }
 
 template<class config_t>
@@ -250,9 +259,6 @@ void mirrored_cache_t<config_t>::aio_complete(buf_t *buf, bool written) {
 template <class config_t>
 void mirrored_cache_t<config_t>::do_unload_buf(buf_t *buf) {
     assert(!buf->is_pinned());
-	bool acquired __attribute__((unused)) =
-		((concurrency_t *)this)->acquire(buf, rwi_write, NULL);
-	assert(acquired);
 	assert(!buf->is_dirty());
 	
 	// Inform the page map that the block in question no longer exists, and will have to be reloaded
@@ -265,7 +271,11 @@ void mirrored_cache_t<config_t>::do_unload_buf(buf_t *buf) {
 template<class config_t>
 void mirrored_cache_t<config_t>::deadlock_debug() {
 	
-	printf("Debugging cache: %p\n", (void*)this);
+	printf("\n----- Cache %p -----\n", (void*)this);
+	
+	writeback_t::deadlock_debug();
+	
+	printf("\n----- Buffers -----\n");
 	typename page_map_t::ft_map_t::iterator it;
 	for (it = ft_map.begin(); it != ft_map.end(); it++) {
 		buf_t *buf = it->second;

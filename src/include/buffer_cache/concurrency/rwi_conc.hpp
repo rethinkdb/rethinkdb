@@ -27,16 +27,23 @@ struct rwi_conc_t {
             {}
         
         virtual void on_lock_available() {
+        
             // We're calling back objects that were waiting on a lock. Because
             // of that, we can only call one.
+            
             // TODO: There's no reason why more than one reader can't go at the same time, but this
             // logic won't allow that. Ideally we would use the existing lock-queue logic in
             // rwi_lock, instead of the buf_t keeping track of its own queue separately from the
             // queue in its lock.
+            
             if(!lock_callbacks.empty()) {
                 block_available_callback_t *_callback = lock_callbacks.head();
                 lock_callbacks.remove(_callback);
+                
+                // Guarantee that the block will not be unloaded at least until the callback returns
+                gbuf->temporary_pinned ++;
                 _callback->on_block_available(gbuf);
+                gbuf->temporary_pinned --;
             }
         }
         

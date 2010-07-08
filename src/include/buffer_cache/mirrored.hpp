@@ -71,11 +71,18 @@ public:
 	// Prints debugging information designed to resolve deadlocks.
 	void deadlock_debug();
 	
+	/* After we call a load-callback or a lock-callback, we guarantee that the block won't be
+    unloaded until the callback returns. The variable 'temporary_pinned' is used to guarantee
+    this. It's public so rwi_conc::local_buf_t can access it. */
+    int temporary_pinned;
+	
 private:
     cache_t *cache;
     block_id_t block_id;
-    bool cached; /* Is data valid, or are we waiting for a read? */
     void *data;
+    
+    /* Is data valid, or are we waiting for a read? */
+    bool cached;
     
     typedef intrusive_list_t<block_available_callback_t> callbacks_t;
     callbacks_t load_callbacks;
