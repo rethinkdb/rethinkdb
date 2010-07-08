@@ -57,7 +57,8 @@ struct rwi_conc_t {
         }
         
         rwi_lock_t lock;
-        
+
+#ifndef NDEBUG
         // Prints debugging information designed to resolve deadlocks.
         void deadlock_debug() {
 			printf("\tlocked = %d\n", (int)lock.locked());
@@ -77,6 +78,7 @@ struct rwi_conc_t {
         	}
         	printf("]\n");
         }
+#endif
 
     private:
         typedef intrusive_list_t<block_available_callback_t> callbacks_t;

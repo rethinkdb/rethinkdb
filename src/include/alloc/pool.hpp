@@ -47,13 +47,17 @@ struct pool_alloc_t : public super_alloc_t {
         void *addr = (void*)free_list;
         if(addr) {
             free_list = free_list->next;
+#ifndef NDEBUG
             memset(addr, 0xBD, object_size);
+#endif
         }
         return addr;
     }
 
     void free(void *ptr) {
+#ifndef NDEBUG
         memset(ptr, 0xFD, object_size);   // Catch use-after-free errors
+#endif
         ((free_node_t*)ptr)->next = free_list;
         free_list = (free_node_t*)ptr;
     }

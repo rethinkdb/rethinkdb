@@ -67,9 +67,11 @@ public:
     virtual void on_io_complete(event_t *event);
 	
 	bool is_pinned();
-	
+
+#ifndef NDEBUG
 	// Prints debugging information designed to resolve deadlocks.
 	void deadlock_debug();
+#endif
 	
 	/* After we call a load-callback or a lock-callback, we guarantee that the block won't be
     unloaded until the callback returns. The variable 'temporary_pinned' is used to guarantee
@@ -203,8 +205,10 @@ public:
     page replacement policy. */
     void do_unload_buf(buf_t *buf);
 
+#ifndef NDEBUG
 	// Prints debugging information designed to resolve deadlocks
 	void deadlock_debug();
+#endif
 
 private:
 	// TODO: This is boundary-crossing abstraction-breaking treachery. mirrored_cache_t should not

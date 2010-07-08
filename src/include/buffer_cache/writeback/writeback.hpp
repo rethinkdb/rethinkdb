@@ -29,9 +29,11 @@ public:
     bool begin_transaction(transaction_t *txn);
     bool commit(transaction_t *transaction, transaction_commit_callback<config_t> *callback);
     void aio_complete(buf_t *, bool written);
-    
+
+#ifndef NDEBUG
     // Print debugging information designed to resolve a deadlock
     void deadlock_debug();
+#endif
     
     unsigned int num_dirty_blocks();
     

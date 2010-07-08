@@ -107,9 +107,11 @@ public:
     cache_t *cache;
 
     io_calls_t iosys;
-    
+
+#ifndef NDEBUG
     // Print debugging information designed to resolve a deadlock
     void deadlock_debug();
+#endif
     
 private:
     

@@ -364,6 +364,7 @@ void btree_set_fsm<config_t>::split_node(buf_t *buf, buf_t **rbuf,
     *rbuf = res;
 }
 
+#ifndef NDEBUG
 template <class config_t>
 void btree_set_fsm<config_t>::deadlock_debug(void) {
     printf("set-fsm %p {\n", this);
@@ -388,6 +389,7 @@ void btree_set_fsm<config_t>::deadlock_debug(void) {
     printf("    state = %s\n", st_name);
     printf("}\n");
 }
+#endif
 
 #endif // __BTREE_SET_FSM_IMPL_HPP__
 

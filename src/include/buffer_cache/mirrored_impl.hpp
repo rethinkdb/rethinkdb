@@ -67,6 +67,7 @@ bool buf<config_t>::is_pinned() {
     return concurrency_t::local_buf_t::is_pinned() || !load_callbacks.empty() || temporary_pinned;
 }
 
+#ifndef NDEBUG
 template<class config_t>
 void buf<config_t>::deadlock_debug() {
 	printf("buffer %p (id %d) {\n", (void*)this, (int)block_id);
@@ -75,6 +76,7 @@ void buf<config_t>::deadlock_debug() {
 	concurrency_t::local_buf_t::deadlock_debug();
 	printf("}\n");
 }
+#endif
 
 /**
  * Transaction implementation.
@@ -268,6 +270,7 @@ void mirrored_cache_t<config_t>::do_unload_buf(buf_t *buf) {
 	delete buf;
 }
 
+#ifndef NDEBUG
 template<class config_t>
 void mirrored_cache_t<config_t>::deadlock_debug() {
 	
@@ -282,5 +285,6 @@ void mirrored_cache_t<config_t>::deadlock_debug() {
 		buf->deadlock_debug();
 	}
 }
+#endif
 
 #endif  // __BUFFER_CACHE_MIRRORED_IMPL_HPP__

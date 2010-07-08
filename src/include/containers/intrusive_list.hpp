@@ -34,7 +34,9 @@ public:
     }
     
     void push_front(node_t *_value) {
+#ifndef NDEBUG
         validate();
+#endif
     
         intrusive_list_node_t<node_t> *value = _value;
         assert(value->next == NULL && value->prev == NULL);
@@ -48,12 +50,16 @@ public:
             _tail = _value;
         }
         _size++;
-        
+
+#ifndef NDEBUG
         validate();
+#endif
     }
     
     void push_back(node_t *_value) {
+#ifndef NDEBUG
         validate();
+#endif
     
         intrusive_list_node_t<node_t> *value = _value;
         assert(value->next == NULL && value->prev == NULL);
@@ -67,12 +73,16 @@ public:
             _head = _value;
         }
         _size++;
-        
+
+#ifndef NDEBUG
         validate();
+#endif
     }
     
     void remove(node_t *_value) {
+#ifndef NDEBUG
         validate();
+#endif
     
         intrusive_list_node_t<node_t> *value = _value;
         if(value->next) {
@@ -87,14 +97,18 @@ public:
         }
         value->next = value->prev = NULL;
         _size--;
-        
+
+#ifndef NDEBUG
         validate();
+#endif
     }
 
     void append_and_clear(intrusive_list_t<node_t> *list) {
+#ifndef NDEBUG
         validate();
         list->validate();
-    
+#endif
+
         if(list->empty())
             return;
         
@@ -112,12 +126,15 @@ public:
         // the previous pointer in the head of the appended list.
         _size += list->size();
         list->clear();
-        
+
+#ifndef NDEBUG
         validate();
+#endif
     }
 
     unsigned int size() { return _size; }
-    
+
+#ifndef NDEBUG
     void validate() {
         node_t *last_node = NULL;
         unsigned int count = 0;
@@ -129,6 +146,7 @@ public:
         assert(_tail == last_node);
         assert(_size == count);
     }
+#endif
     
     class iterator {
     

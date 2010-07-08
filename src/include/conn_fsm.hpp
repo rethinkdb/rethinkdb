@@ -58,6 +58,7 @@ public:
         return source;
     }
     
+#ifndef NDEBUG
     // Print debugging information designed to resolve deadlocks
     void deadlock_debug() {
         printf("conn-fsm %p {\n", this);
@@ -81,6 +82,7 @@ public:
             printf("\tcurrent_request = NULL\n");
         }
     }
+#endif
 
 public:
     int source;

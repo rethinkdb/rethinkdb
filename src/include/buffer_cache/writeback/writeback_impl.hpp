@@ -99,6 +99,7 @@ unsigned int writeback_tmpl_t<config_t>::num_dirty_blocks() {
     return dirty_bufs.size();
 }
 
+#ifndef NDEBUG
 template <class config_t>
 void writeback_tmpl_t<config_t>::deadlock_debug() {
     printf("\n----- Writeback -----\n");
@@ -112,6 +113,7 @@ void writeback_tmpl_t<config_t>::deadlock_debug() {
     }
     printf("state = %s\n", st_name);
 }
+#endif
 
 template <class config_t>
 void writeback_tmpl_t<config_t>::local_buf_t::set_dirty(buf_t *super) {
@@ -240,7 +242,7 @@ void writeback_tmpl_t<config_t>::writeback(buf_t *buf) {
             sync_callbacks.clear();
 
             /* Reset all of our state. */
-            bool committed = transaction->commit(NULL);
+            bool committed __attribute__((unused)) = transaction->commit(NULL);
             assert(committed); // Read-only transactions commit immediately.
             transaction = NULL;
             state = state_none;
