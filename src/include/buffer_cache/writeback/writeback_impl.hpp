@@ -36,7 +36,7 @@ template <class config_t>
 void writeback_tmpl_t<config_t>::shutdown(sync_callback_t *callback) {
     assert(shutdown_callback == NULL);
     shutdown_callback = callback;
-    if (!num_txns && state == state_none) // If num_txns, commit() will do this
+    if (!num_txns) // If num_txns, commit() will do this
         sync(callback);
 }
 
@@ -157,6 +157,7 @@ void writeback_tmpl_t<config_t>::writeback(buf_t *buf) {
     //printf("Writeback being called, state %d\n", state);
 
     if (state == state_none) {
+        
         assert(buf == NULL);
         
         // Cancel the safety timer because we're doing writeback now, so we don't need it to remind
@@ -228,6 +229,14 @@ void writeback_tmpl_t<config_t>::writeback(buf_t *buf) {
             buf->release();
         }
         if (flush_bufs.empty()) {
+                        
+            /* Commit our transaction. This must be called before we call the sync callbacks,
+            because during shutdown, sync callbacks may be installed in response to the transaction
+            committing. */
+            bool committed __attribute__((unused)) = transaction->commit(NULL);
+            assert(committed); // Read-only transactions commit immediately.
+            transaction = NULL;
+            
             /* Notify all waiting transactions of completion. */
             typename intrusive_list_t<txn_state_t>::iterator it;
             for (it = flush_txns.begin(); it != flush_txns.end(); ) {
@@ -240,16 +249,12 @@ void writeback_tmpl_t<config_t>::writeback(buf_t *buf) {
             assert(flush_txns.empty());
 
             for (typename std::vector<sync_callback_t*, gnew_alloc<sync_callback_t*> >::iterator it =
-                     sync_callbacks.begin(); it != sync_callbacks.end(); ++it)
+                     sync_callbacks.begin(); it != sync_callbacks.end(); ++it) {
                 (*it)->on_sync();
+            }
             sync_callbacks.clear();
-
-            /* Reset all of our state. */
-            bool committed __attribute__((unused)) = transaction->commit(NULL);
-            assert(committed); // Read-only transactions commit immediately.
-            transaction = NULL;
-            state = state_none;
             
+            state = state_none;
             //printf("Writeback complete\n");
         } else {
             //printf("Flush bufs, waiting for %ld more\n", flush_bufs.size());

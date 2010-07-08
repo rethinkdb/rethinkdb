@@ -21,7 +21,7 @@ public:
         unsigned int force_flush_threshold);
     virtual ~writeback_tmpl_t();
 
-    void start(); // Start the writeback process as part of database startup.
+    void start();
     void shutdown(sync_callback<config_t> *callback);
 
     void sync(sync_callback<config_t> *callback);
@@ -60,6 +60,8 @@ public:
 
 private:
     typedef typename config_t::serializer_t serializer_t;
+    
+    /* TODO: Unify transaction callbacks and sync callbacks */
     typedef transaction_commit_callback<config_t> transaction_commit_callback_t;
     typedef sync_callback<config_t> sync_callback_t;
     struct txn_state_t : public intrusive_list_node_t<txn_state_t>,
