@@ -104,7 +104,7 @@ void internal_node_handler::merge(btree_internal_node *node, btree_internal_node
     printf("rnode:\n");
     internal_node_handler::print(rnode);
 #endif
-    //TODO: add asserts
+    assert(internal_node_handler::is_underfull_or_min(node) && internal_node_handler::is_underfull_or_min(rnode));
     memmove(rnode->pair_offsets + node->npairs, rnode->pair_offsets, rnode->npairs * sizeof(*rnode->pair_offsets));
 
     for (int i = 0; i < node->npairs-1; i++) { // the last pair is special
