@@ -102,7 +102,8 @@ void leaf_node_handler::merge(btree_leaf_node *node, btree_leaf_node *rnode, btr
     printf("rnode:\n");
     leaf_node_handler::print(rnode);
 #endif
-    assert(leaf_node_handler::is_underfull_or_min(node) && leaf_node_handler::is_underfull_or_min(rnode));
+    //TODO: write checks
+    //check("leaf nodes too full on merge", 
     memmove(rnode->pair_offsets + node->npairs, rnode->pair_offsets, rnode->npairs * sizeof(*rnode->pair_offsets));
 
     for (int i = 0; i < node->npairs; i++) {
