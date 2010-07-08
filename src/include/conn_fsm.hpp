@@ -63,10 +63,11 @@ public:
         printf("conn-fsm %p {\n", this);
         const char *st_name;
         switch(state) {
-            case fsm_socket_connected: st_name = "fsm_socket_connected";
-            case fsm_socket_recv_incomplete: st_name = "fsm_socket_recv_incomplete";
-            case fsm_socket_send_incomplete: st_name = "fsm_socket_send_incomplete";
-            case fsm_btree_incomplete: st_name = "fsm_btree_incomplete";
+            case fsm_socket_connected: st_name = "fsm_socket_connected"; break;
+            case fsm_socket_recv_incomplete: st_name = "fsm_socket_recv_incomplete"; break;
+            case fsm_socket_send_incomplete: st_name = "fsm_socket_send_incomplete"; break;
+            case fsm_btree_incomplete: st_name = "fsm_btree_incomplete"; break;
+            default: st_name = "<invalid state>"; break;
         }
         printf("\tstate = %s\n", st_name);
         if (current_request) {
