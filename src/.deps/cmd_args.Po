@@ -15,12 +15,11 @@ cmd_args.o: config/cmd_args.cc /usr/include/getopt.h /usr/include/ctype.h \
  /usr/include/bits/sigset.h /usr/include/bits/time.h \
  /usr/include/sys/sysmacros.h /usr/include/bits/pthreadtypes.h \
  /usr/include/alloca.h /usr/include/string.h config/cmd_args.hpp \
- config/args.hpp config/code.hpp corefwd.hpp alloc/memalign.hpp \
- alloc/malloc.hpp utils.hpp /usr/include/errno.h \
- /usr/include/bits/errno.h /usr/include/linux/errno.h \
- /usr/include/asm/errno.h /usr/include/asm-generic/errno.h \
- /usr/include/asm-generic/errno-base.h corefwd.hpp utils_impl.hpp \
- /usr/include/c++/4.4/cstring \
+ config/args.hpp config/code.hpp corefwd.hpp alloc/memalign.hpp utils.hpp \
+ /usr/include/errno.h /usr/include/bits/errno.h \
+ /usr/include/linux/errno.h /usr/include/asm/errno.h \
+ /usr/include/asm-generic/errno.h /usr/include/asm-generic/errno-base.h \
+ corefwd.hpp utils_impl.hpp /usr/include/c++/4.4/cstring \
  /usr/include/c++/4.4/x86_64-linux-gnu/bits/c++config.h \
  /usr/include/c++/4.4/x86_64-linux-gnu/bits/os_defines.h \
  /usr/include/c++/4.4/x86_64-linux-gnu/bits/cpu_defines.h \
@@ -142,8 +141,6 @@ config/code.hpp:
 corefwd.hpp:
 
 alloc/memalign.hpp:
-
-alloc/malloc.hpp:
 
 utils.hpp:
 

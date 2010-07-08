@@ -12,9 +12,9 @@ cpu_context.o: cpu_context.cc config/args.hpp config/code.hpp corefwd.hpp \
  /usr/include/sys/select.h /usr/include/bits/select.h \
  /usr/include/bits/sigset.h /usr/include/bits/time.h \
  /usr/include/sys/sysmacros.h /usr/include/bits/pthreadtypes.h \
- /usr/include/alloca.h /usr/include/string.h alloc/malloc.hpp \
- cpu_context.hpp event_queue.hpp /usr/include/pthread.h \
- /usr/include/sched.h /usr/include/bits/sched.h /usr/include/signal.h \
+ /usr/include/alloca.h /usr/include/string.h cpu_context.hpp \
+ event_queue.hpp /usr/include/pthread.h /usr/include/sched.h \
+ /usr/include/bits/sched.h /usr/include/signal.h \
  /usr/include/bits/setjmp.h /usr/include/libaio.h \
  /usr/include/c++/4.4/queue /usr/include/c++/4.4/deque \
  /usr/include/c++/4.4/bits/stl_algobase.h \
@@ -144,8 +144,6 @@ alloc/memalign.hpp:
 /usr/include/alloca.h:
 
 /usr/include/string.h:
-
-alloc/malloc.hpp:
 
 cpu_context.hpp:
 

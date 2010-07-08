@@ -12,9 +12,9 @@ rwi_lock.o: concurrency/rwi_lock.cc config/args.hpp config/code.hpp \
  /usr/include/sys/select.h /usr/include/bits/select.h \
  /usr/include/bits/sigset.h /usr/include/bits/time.h \
  /usr/include/sys/sysmacros.h /usr/include/bits/pthreadtypes.h \
- /usr/include/alloca.h /usr/include/string.h alloc/malloc.hpp \
- concurrency/rwi_lock.hpp alloc/alloc_mixin.hpp \
- /usr/include/c++/4.4/vector /usr/include/c++/4.4/bits/stl_algobase.h \
+ /usr/include/alloca.h /usr/include/string.h concurrency/rwi_lock.hpp \
+ alloc/alloc_mixin.hpp /usr/include/c++/4.4/vector \
+ /usr/include/c++/4.4/bits/stl_algobase.h \
  /usr/include/c++/4.4/x86_64-linux-gnu/bits/c++config.h \
  /usr/include/c++/4.4/x86_64-linux-gnu/bits/os_defines.h \
  /usr/include/c++/4.4/x86_64-linux-gnu/bits/cpu_defines.h \
@@ -136,8 +136,6 @@ alloc/memalign.hpp:
 /usr/include/alloca.h:
 
 /usr/include/string.h:
-
-alloc/malloc.hpp:
 
 concurrency/rwi_lock.hpp:
 

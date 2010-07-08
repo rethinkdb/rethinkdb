@@ -27,7 +27,7 @@ server.o: server.cc /usr/include/pthread.h /usr/include/features.h \
  config/args.hpp config/code.hpp corefwd.hpp alloc/memalign.hpp \
  /usr/include/stdlib.h /usr/include/bits/waitflags.h \
  /usr/include/bits/waitstatus.h /usr/include/alloca.h \
- /usr/include/string.h alloc/malloc.hpp utils.hpp /usr/include/errno.h \
+ /usr/include/string.h utils.hpp /usr/include/errno.h \
  /usr/include/bits/errno.h /usr/include/linux/errno.h \
  /usr/include/asm/errno.h /usr/include/asm-generic/errno.h \
  /usr/include/asm-generic/errno-base.h /usr/include/stdio.h \
@@ -217,8 +217,6 @@ alloc/memalign.hpp:
 /usr/include/alloca.h:
 
 /usr/include/string.h:
-
-alloc/malloc.hpp:
 
 utils.hpp:
 

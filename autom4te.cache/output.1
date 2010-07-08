@@ -621,8 +621,8 @@ CXXFLAGS
 CXX
 CHK_VALGRIND_FALSE
 CHK_VALGRIND_TRUE
-CHK_DEBUG_FALSE
-CHK_DEBUG_TRUE
+CHK_NODEBUG_FALSE
+CHK_NODEBUG_TRUE
 am__untar
 am__tar
 AMTAR
@@ -2753,12 +2753,12 @@ am__tar='${AMTAR} chof - "$$tardir"'; am__untar='${AMTAR} xf -'
 
 
 
- if test "$DEBUG" = 1; then
-  CHK_DEBUG_TRUE=
-  CHK_DEBUG_FALSE='#'
+ if test "$DEBUG" = 0; then
+  CHK_NODEBUG_TRUE=
+  CHK_NODEBUG_FALSE='#'
 else
-  CHK_DEBUG_TRUE='#'
-  CHK_DEBUG_FALSE=
+  CHK_NODEBUG_TRUE='#'
+  CHK_NODEBUG_FALSE=
 fi
 
  if test "$VALGRIND" = 1; then
@@ -4993,8 +4993,8 @@ else
   am__EXEEXT_FALSE=
 fi
 
-if test -z "${CHK_DEBUG_TRUE}" && test -z "${CHK_DEBUG_FALSE}"; then
-  as_fn_error "conditional \"CHK_DEBUG\" was never defined.
+if test -z "${CHK_NODEBUG_TRUE}" && test -z "${CHK_NODEBUG_FALSE}"; then
+  as_fn_error "conditional \"CHK_NODEBUG\" was never defined.
 Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 if test -z "${CHK_VALGRIND_TRUE}" && test -z "${CHK_VALGRIND_FALSE}"; then

@@ -76,14 +76,14 @@ CFLAGS = @CFLAGS@
 CPP = @CPP@
 CPPFLAGS = @CPPFLAGS@
 
-# what flags you want to pass to the C compiler & linker
+# what flags do you want to pass to the C compiler and linker?
 CXX := g++
 CXXDEPMODE = @CXXDEPMODE@
-@CHK_DEBUG_FALSE@CXXFLAGS := $(CXXFLAGS) -O3 -DNDEBUG
+@CHK_NODEBUG_FALSE@CXXFLAGS := $(CXXFLAGS) -g
 
 # Configure debug vs. release
 # and build in the correct directory accordingly
-@CHK_DEBUG_TRUE@CXXFLAGS := $(CXXFLAGS) -g
+@CHK_NODEBUG_TRUE@CXXFLAGS := $(CXXFLAGS) -O3 -DNDEBUG
 @CHK_VALGRIND_TRUE@CXXFLAGS := $(CXXFLAGS) -DVALGRIND
 CXXFLAGS := $(CXXFLAGS) -I. -Wall -Wextra -Wformat=2 -Wno-unused-parameter -Werror
 CYGPATH_W = @CYGPATH_W@
@@ -162,11 +162,14 @@ target_alias = @target_alias@
 top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
-@CHK_DEBUG_FALSE@BUILD_DIR := $(BUILD_DIR)/release
-@CHK_DEBUG_TRUE@BUILD_DIR := $(BUILD_DIR)/debug
-BUILD_DIR := build
 START_DB_NAME = start_rethinkdb
+DEP_DIR = dep
+OBJ_DIR = obj
+@CHK_NODEBUG_FALSE@BUILD_DIR := build/debug
+@CHK_NODEBUG_TRUE@BUILD_DIR := build/release
 rethinkdb_SOURCES = main.cc arch/linux_io.cc event_queue.cc utils.cc worker_pool.cc server.cc config/cmd_args.cc message_hub.cc concurrency/rwi_lock.cc cpu_context.cc
+DEPS := $(rethinkdb_SOURCES:%.cc=$(DEP_DIR)/%.d)
+OBJS := $(rethinkdb_SOURCES:%.cc=$(OBJ_DIR)/%.o)
 all: all-am
 
 .SUFFIXES:
@@ -404,7 +407,6 @@ installdirs:
 	for dir in "$(DESTDIR)$(bindir)"; do \
 	  test -z "$$dir" || $(MKDIR_P) "$$dir"; \
 	done
-install: install-am
 install-exec: install-exec-am
 install-data: install-data-am
 uninstall: uninstall-am
@@ -429,8 +431,6 @@ distclean-generic:
 maintainer-clean-generic:
 	@echo "This command is intended for maintainers to use"
 	@echo "it deletes files that may require special tools to rebuild."
-clean: clean-am
-
 clean-am: clean-binPROGRAMS clean-generic mostlyclean-am
 
 distclean: distclean-am
@@ -513,6 +513,27 @@ uninstall-am: uninstall-binPROGRAMS
 	mostlyclean-generic pdf pdf-am ps ps-am tags uninstall \
 	uninstall-am uninstall-binPROGRAMS
 
+
+style:
+	@find . -name \*.cc -o -name \*.hpp | xargs ../scripts/cpplint --verbose 2 --filter=-whitespace/end_of_line,-whitespace/parens,-whitespace/line_length,-readability/casting,-whitespace/braces,-readability/todo,-legal/copyright,-whitespace/comments,-build/include,-whitespace/labels,-runtime/int,-runtime/printf 2>&1 | grep -v Done\ processing
+
+install: all-am
+	@$(MAKE)
+	mv *.o $(OBJ_DIR)
+	mkdir -p $(BUILD_DIR)
+	cp $(PACKAGE) $(BUILD_DIR)
+	cp ../scripts/$(START_DB_NAME) $(BUILD_DIR)
+
+clean:
+	rm -r $(BUILD_DIR)
+	rm -f $(OBJS)
+
+# Build and include header file dependencies
+#$(DEP_DIR)/%.d: %.cc
+#	@$(CXX) $(CXXFLAGS) -M $< > $@.$$$$;                   \
+#	sed 's,\($*\)\.o[ :]*,$(OBJ_DIR)/\1.o $@ : ,g' < $@.$$$$ > $@;    \
+#	rm -f $@.$$$$
+#-include $(DEPS)
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.
