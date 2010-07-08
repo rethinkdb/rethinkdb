@@ -50,15 +50,13 @@ int internal_node_handler::insert(btree_internal_node *node, btree_key *key, blo
     return 1; // XXX
 }
 
-bool internal_node_handler::remove(btree_internal_node *node, btree_key *key) {
+void internal_node_handler::remove(btree_internal_node *node, btree_key *key) {
     int index = get_offset_index(node, key);
     delete_pair(node, node->pair_offsets[index]);
     delete_offset(node, index);
 
     if (index == node->npairs)
         make_last_pair_special(node);
-
-    return true; // XXX
 }
 
 void internal_node_handler::split(btree_internal_node *node, btree_internal_node *rnode, btree_key *median) {
@@ -90,13 +88,13 @@ void internal_node_handler::split(btree_internal_node *node, btree_internal_node
 
 void internal_node_handler::merge(btree_internal_node *node, btree_internal_node *rnode, btree_key *key_to_remove, btree_internal_node *parent) {
 #ifndef NDEBUG
-    printf("mergine\n");
+    printf("merging\n");
     printf("node:\n");
     internal_node_handler::print(node);
     printf("rnode:\n");
     internal_node_handler::print(rnode);
 #endif
-    //TODO: add asserts
+    assert(internal_node_handler::is_underfull_or_min(node) && internal_node_handler::is_underfull_or_min(rnode));
     memmove(rnode->pair_offsets + node->npairs, rnode->pair_offsets, rnode->npairs * sizeof(*rnode->pair_offsets));
 
     for (int i = 0; i < node->npairs-1; i++) { // the last pair is special
