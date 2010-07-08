@@ -33,13 +33,13 @@ class internal_node_handler : public node_handler {
     static bool remove(btree_internal_node *node, btree_key *key);
     static void split(btree_internal_node *node, btree_internal_node *rnode, btree_key *median);
     static void merge(btree_internal_node *node, btree_internal_node *rnode, btree_key *key_to_remove, btree_internal_node *parent);
-    static void level(btree_internal_node *node, btree_internal_node *rnode, btree_key *key_to_replace, btree_key *replacement_key, btree_internal_node *parent);
+    static bool level(btree_internal_node *node, btree_internal_node *rnode, btree_key *key_to_replace, btree_key *replacement_key, btree_internal_node *parent);
     static int sibling(btree_internal_node *node, btree_key *key, block_id_t *sib_id);
     static void update_key(btree_internal_node *node, btree_key *key_to_replace, btree_key *replacement_key);
     static int nodecmp(btree_internal_node *node1, btree_internal_node *node2);
     static bool is_full(btree_internal_node *node);
     static bool is_underfull(btree_internal_node *node);
-    static bool is_underfull_or_min(btree_internal_node *node); // TODO: rename
+    static bool is_mergable(btree_internal_node *node, btree_internal_node *sibling, btree_internal_node *parent);
     static bool is_singleton(btree_internal_node *node);
 
     static void validate(btree_internal_node *node);

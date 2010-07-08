@@ -36,12 +36,12 @@ class leaf_node_handler : public node_handler {
     static bool remove(btree_leaf_node *node, btree_key *key); //Currently untested
     static void split(btree_leaf_node *node, btree_leaf_node *rnode, btree_key *median);
     static void merge(btree_leaf_node *node, btree_leaf_node *rnode, btree_key *key_to_remove);
-    static void level(btree_leaf_node *node, btree_leaf_node *sibling, btree_key *key_to_replace, btree_key *replacement_key);
+    static bool level(btree_leaf_node *node, btree_leaf_node *sibling, btree_key *key_to_replace, btree_key *replacement_key);
 
 
     static bool is_full(btree_leaf_node *node, btree_key *key, btree_value *value);
     static bool is_underfull(btree_leaf_node *node);
-    static bool is_underfull_or_min(btree_leaf_node *node); //TODO: rename
+    static bool is_mergable(btree_leaf_node *node, btree_leaf_node *sibling);
     static void validate(btree_leaf_node *node);
     static int nodecmp(btree_leaf_node *node1, btree_leaf_node *node2);
 
