@@ -33,6 +33,8 @@ public:
     // Print debugging information designed to resolve a deadlock
     void deadlock_debug();
     
+    unsigned int num_dirty_blocks();
+    
     class local_buf_t : public intrusive_list_node_t<buf_t> {
     public:
         explicit local_buf_t(writeback_tmpl_t *wb)
@@ -75,16 +77,12 @@ private:
         state_write_bufs,
     };
     
-    // The writeback system has two repeating timers. The first timer's purpose is to keep data safe
-    // if the server crashes; it runs every interval_ms milliseconds, and whenever it runs it
-    // flushes every dirty buffer to disk. The second timer's purpose is to clear dirty buffers if
-    // there are too many of them; it runs very frequently, but it only starts writeback if more
-    // than some percentage of buffers are dirty.
-    
+    // The writeback system has a repeating timer to keep data safe if the server crashes; it runs
+    // every interval_ms milliseconds, and whenever it runs it flushes every dirty buffer to disk.
     event_queue_t::timer_t *safety_timer;
     void start_safety_timer(void);
     static void safety_timer_callback(void *ctx);
-    static void threshold_timer_callback(void *ctx);
+
     virtual void on_lock_available();
     void writeback(buf_t *buf);
 
@@ -97,7 +95,9 @@ private:
     cache_t *cache;
     unsigned int num_txns;
     rwi_lock_t *flush_lock;
+    // List of transactions to notify the next time writeback completes
     intrusive_list_t<txn_state_t> txns;
+    // List of bufs that are currenty dirty
     intrusive_list_t<buf_t> dirty_bufs;
     std::vector<sync_callback_t*, gnew_alloc<sync_callback_t*> > sync_callbacks;
     sync_callback_t *shutdown_callback;

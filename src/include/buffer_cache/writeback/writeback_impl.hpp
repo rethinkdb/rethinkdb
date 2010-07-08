@@ -31,11 +31,6 @@ void writeback_tmpl_t<config_t>::start() {
         gnew<rwi_lock_t>(&get_cpu_context()->event_queue->message_hub,
                          get_cpu_context()->event_queue->queue_id);
     
-    // If interval_ms is NEVER_FLUSH, then neither timer should be started
-    if (interval_ms != NEVER_FLUSH) {
-        // 50ms is an arbitrary interval for the threshold timer to run on
-        get_cpu_context()->event_queue->add_timer(50, threshold_timer_callback, this);
-    }
     start_safety_timer();
 }
 
@@ -78,8 +73,17 @@ bool writeback_tmpl_t<config_t>::commit(transaction_t *txn,
     if (txn->get_access() == rwi_read)
         return true;
     flush_lock->unlock();
+    
+    /* At the end of every write transaction, check if the number of dirty blocks exceeds the
+    threshold to force writeback to start early. */
+    if (state == state_none && interval_ms != NEVER_FLUSH && 
+            num_dirty_blocks() > force_flush_threshold) {
+        writeback(NULL);
+    }
+    
     if (!wait_for_flush)
         return true;
+    
     txns.push_back(new txn_state_t(txn, callback));
     return false;
 }
@@ -88,6 +92,11 @@ template <class config_t>
 void writeback_tmpl_t<config_t>::aio_complete(buf_t *buf, bool written) {
     if (written)
         writeback(buf);
+}
+
+template <class config_t>
+unsigned int writeback_tmpl_t<config_t>::num_dirty_blocks() {
+    return dirty_bufs.size();
 }
 
 template <class config_t>
@@ -134,16 +143,6 @@ void writeback_tmpl_t<config_t>::safety_timer_callback(void *ctx) {
     // may want a more thorough way of dealing with this case.
     if (self->state == state_none)
         self->writeback(NULL);
-}
-
-template <class config_t>
-void writeback_tmpl_t<config_t>::threshold_timer_callback(void *ctx) {
-    writeback_tmpl_t *self = static_cast<writeback_tmpl_t *>(ctx);
-    if (self->state == state_none) {
-        if (self->dirty_bufs.size() > self->force_flush_threshold) {
-            self->writeback(NULL);
-        }
-    }
 }
 
 template <class config_t>
