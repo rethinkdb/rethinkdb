@@ -166,8 +166,11 @@ public:
     // many dependencies. The second is more strict, but might not be
     // extensible when some policy implementation requires access to
     // components it wasn't originally given.
-    mirrored_cache_t(size_t _block_size, size_t _max_size, bool wait_for_flush,
-            unsigned int flush_interval_ms) : 
+    mirrored_cache_t(
+            size_t _block_size,
+            size_t _max_size,
+            bool wait_for_flush,
+            unsigned int safety_timer_ms) : 
         serializer_t(_block_size),
         page_repl_t(
             // Launch page replacement if the user-specified maximum number of block is reached
@@ -177,8 +180,9 @@ public:
         writeback_t(
             this,
             wait_for_flush,
-            flush_interval_ms,
-            // Force writeback if more than 1/3 of the maximum number of blocks are dirty
+            safety_timer_ms,
+            // Force writeback if more than 1/3 of the maximum number of blocks are dirty.
+            // TODO: Make this configurable, and make it possible to disable it
             _max_size / _block_size / 3)
 #ifndef NDEBUG
         , n_trans_created(0), n_trans_freed(0),

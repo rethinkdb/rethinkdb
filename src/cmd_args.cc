@@ -31,10 +31,11 @@ void usage(const char *name) {
     printf("  -p, --port\t\tSocket port to listen on. Defaults to %d.\n", DEFAULT_LISTEN_PORT);
     printf("      --wait-for-flush\tDo not respond to commands until changes are durable. Expects "
     	"'y' or 'n'.\n");
-    printf("      --flush-interval\tInterval in milliseconds between flushes to disk. Pass\n"
-           "\t\t\t'never' to not flush changes to disk until server shuts down.\n");
-    if (DEFAULT_WRITEBACK_INTERVAL_MS == NEVER_FLUSH) printf("\t\t\tDefaults to 'never'.\n");
-    else printf("\t\t\tDefaults to %dms.\n", DEFAULT_WRITEBACK_INTERVAL_MS);
+    printf("      --safety-flush-timer\tTime in milliseconds that the server should allow\n"
+            "\t\t\tmodified data to sit in memory before flushing it to disk. Pass 'disable' to\n"
+            "\t\t\tallow modified data to sit in memory indefinitely.\n");
+    if (DEFAULT_SAFETY_TIMER_MS == NEVER_FLUSH) printf("\t\t\tDefaults to 'disable'.\n");
+    else printf("\t\t\tDefaults to %dms.\n", DEFAULT_SAFETY_TIMER_MS);
     
     exit(-1);
 }
@@ -50,12 +51,12 @@ void init_config(cmd_config_t *config) {
     config->port = DEFAULT_LISTEN_PORT;
 
     config->wait_for_flush = false;
-    config->flush_interval_ms = DEFAULT_WRITEBACK_INTERVAL_MS;
+    config->safety_timer_ms = DEFAULT_SAFETY_TIMER_MS;
 }
 
 enum {
     wait_for_flush = 256, // Start these values above the ASCII range.
-    flush_interval,
+    safety_flush_timer,
 };
 
 void parse_cmd_args(int argc, char *argv[], cmd_config_t *config)
@@ -68,12 +69,12 @@ void parse_cmd_args(int argc, char *argv[], cmd_config_t *config)
         int do_help = 0;
         struct option long_options[] =
             {
-                {"wait-for-flush",   required_argument, 0, wait_for_flush},
-                {"flush-interval",   required_argument, 0, flush_interval},
-                {"max-cores",        required_argument, 0, 'c'},
-                {"max-cache-size",   required_argument, 0, 'm'},
-                {"port",             required_argument, 0, 'p'},
-                {"help",             no_argument, &do_help, 1},
+                {"wait-for-flush",       required_argument, 0, wait_for_flush},
+                {"safety-flush-timer",   required_argument, 0, safety_flush_timer},
+                {"max-cores",            required_argument, 0, 'c'},
+                {"max-cache-size",       required_argument, 0, 'm'},
+                {"port",                 required_argument, 0, 'p'},
+                {"help",                 no_argument, &do_help, 1},
                 {0, 0, 0, 0}
             };
 
@@ -105,14 +106,15 @@ void parse_cmd_args(int argc, char *argv[], cmd_config_t *config)
         	else if (strcmp(optarg, "n")==0) config->wait_for_flush = false;
         	else check("wait-for-flush expects 'y' or 'n'", 1);
             break;
-        case flush_interval:
-        	if (strcmp(optarg, "never")==0) config->flush_interval_ms = NEVER_FLUSH;
+        case safety_flush_timer:
+        	if (strcmp(optarg, "disable")==0) config->safety_timer_ms = NEVER_FLUSH;
         	else {
-        		config->flush_interval_ms = atoi(optarg);
-        		check("flush interval should not be negative; use 'never' to not flush at all",
-        			config->flush_interval_ms < 0);
-        		check("flush interval of 0 is broken at the moment",
-        			config->flush_interval_ms == 0);
+        		config->safety_timer_ms = atoi(optarg);
+        		check("safety flush timer should not be negative; use 'disable' to allow changes"
+        		    "to sit in memory indefinitely",
+        			config->safety_timer_ms < 0);
+        		check("safety flush timer of 0 is broken at the moment",
+        			config->safety_timer_ms == 0);
         	}
             break;
             
@@ -132,10 +134,11 @@ void parse_cmd_args(int argc, char *argv[], cmd_config_t *config)
         config->db_file_name[MAX_DB_FILE_NAME - 1] = 0;
     }
     
-    if (config->wait_for_flush == true && config->flush_interval_ms == NEVER_FLUSH) {
+    if (config->wait_for_flush == true && config->safety_timer_ms == NEVER_FLUSH) {
     	printf("WARNING: Server is configured to wait for data to be flushed\n"
-               "to disk before returning, but also configured to never flush\n"
-               "data to disk. Setting wait-for-flush to 'no'.\n\n");
+               "to disk before returning, but also configured to wait\n"
+               "indefinitely before flushing data to disk. Setting wait-for-flush\n"
+               "to 'no'.\n\n");
     	config->wait_for_flush = false;
     }
 }

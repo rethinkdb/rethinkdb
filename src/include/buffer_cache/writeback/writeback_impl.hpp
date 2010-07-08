@@ -6,11 +6,11 @@ template <class config_t>
 writeback_tmpl_t<config_t>::writeback_tmpl_t(
         cache_t *cache,
         bool wait_for_flush,
-        unsigned int flush_interval_ms,
+        unsigned int safety_timer_ms,
         unsigned int force_flush_threshold)
     : safety_timer(NULL),
       wait_for_flush(wait_for_flush),
-      interval_ms(flush_interval_ms),
+      safety_timer_ms(safety_timer_ms),
       force_flush_threshold(force_flush_threshold),
       cache(cache),
       num_txns(0),
@@ -30,8 +30,6 @@ void writeback_tmpl_t<config_t>::start() {
     flush_lock =
         gnew<rwi_lock_t>(&get_cpu_context()->event_queue->message_hub,
                          get_cpu_context()->event_queue->queue_id);
-    
-    start_safety_timer();
 }
 
 template <class config_t>
@@ -74,12 +72,19 @@ bool writeback_tmpl_t<config_t>::commit(transaction_t *txn,
         return true;
     flush_lock->unlock();
     
-    /* At the end of every write transaction, check if the number of dirty blocks exceeds the
-    threshold to force writeback to start early. */
-    if (state == state_none && interval_ms != NEVER_FLUSH && 
-            num_dirty_blocks() > force_flush_threshold) {
-        writeback(NULL);
-    }
+    if (state == state_none) {
+        /* At the end of every write transaction, check if the number of dirty blocks exceeds the
+        threshold to force writeback to start. */
+        if (num_dirty_blocks() > force_flush_threshold) {
+            writeback(NULL);
+        }
+        /* Otherwise, start the safety timer so that the modified data doesn't sit in memory for too
+        long without being written to disk. */
+        else if (!safety_timer && safety_timer_ms != NEVER_FLUSH) {
+            safety_timer = get_cpu_context()->event_queue->
+                fire_timer_once(safety_timer_ms, safety_timer_callback, this);
+        }
+    }   
     
     if (!wait_for_flush)
         return true;
@@ -126,25 +131,11 @@ void writeback_tmpl_t<config_t>::local_buf_t::set_dirty(buf_t *super) {
 }
 
 template <class config_t>
-void writeback_tmpl_t<config_t>::start_safety_timer() {
-    if (interval_ms != NEVER_FLUSH && interval_ms != 0) {
-        event_queue_t *eq = get_cpu_context()->event_queue;
-        if (safety_timer) {
-            eq->cancel_timer(safety_timer);
-            safety_timer = NULL;
-        }
-        safety_timer = eq->fire_timer_once(interval_ms, safety_timer_callback, this);
-    }
-}
-
-template <class config_t>
 void writeback_tmpl_t<config_t>::safety_timer_callback(void *ctx) {
     writeback_tmpl_t *self = static_cast<writeback_tmpl_t *>(ctx);
     self->safety_timer = NULL;
-    // TODO(NNW): We can't start writeback when it's already started, but we
-    // may want a more thorough way of dealing with this case.
-    if (self->state == state_none)
-        self->writeback(NULL);
+    assert(self->state == state_none);
+    self->writeback(NULL);
 }
 
 template <class config_t>
@@ -162,6 +153,13 @@ void writeback_tmpl_t<config_t>::writeback(buf_t *buf) {
 
     if (state == state_none) {
         assert(buf == NULL);
+        
+        // Cancel the safety timer because we're doing writeback now, so we don't need it to remind
+        // us later
+        if (safety_timer) {
+            get_cpu_context()->event_queue->cancel_timer(safety_timer);
+            safety_timer = NULL;
+        }
         
         /* Start a read transaction so we can request bufs. */
         assert(transaction == NULL);
@@ -246,12 +244,6 @@ void writeback_tmpl_t<config_t>::writeback(buf_t *buf) {
             assert(committed); // Read-only transactions commit immediately.
             transaction = NULL;
             state = state_none;
-            
-            // The timer for the next flush is not started until the current flush is complete. This
-            // is a bit dangerous because if anything causes the current flush to abort prematurely,
-            // the flush timer will never get restarted. As of 2010-06-28 this should never happen,
-            // but keep it in mind when changing the behavior of the writeback.
-            start_safety_timer();
             
             //printf("Writeback complete\n");
         } else {
