@@ -26,7 +26,7 @@
 
 template <class config_t>
 void btree_set_fsm<config_t>::init_update(btree_key *_key, byte *data, unsigned int length) {
-    memcpy(key, _key, sizeof(btree_key) + _key->size);
+    keycpy(key, _key);
     value->size = length;
     memcpy(&value->contents, data, length);
     state = start_transaction;

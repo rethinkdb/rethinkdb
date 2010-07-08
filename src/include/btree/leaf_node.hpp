@@ -31,14 +31,22 @@ class leaf_node_handler : public node_handler {
     static void init(btree_leaf_node *node);
     static void init(btree_leaf_node *node, btree_leaf_node *lnode, uint16_t *offsets, int numpairs);
 
-    static int insert(btree_leaf_node *node, btree_key *key, btree_value *value);
     static bool lookup(btree_leaf_node *node, btree_key *key, btree_value *value);
-    static void split(btree_leaf_node *node, btree_leaf_node *rnode, btree_key *median);
+    static int insert(btree_leaf_node *node, btree_key *key, btree_value *value);
     static bool remove(btree_leaf_node *node, btree_key *key); //Currently untested
+    static void split(btree_leaf_node *node, btree_leaf_node *rnode, btree_key *median);
+    static void merge(btree_leaf_node *node, btree_leaf_node *rnode, btree_key *key_to_remove);
+    static bool level(btree_leaf_node *node, btree_leaf_node *sibling, btree_key *key_to_replace, btree_key *replacement_key);
+
 
     static bool is_full(btree_leaf_node *node, btree_key *key, btree_value *value);
+    static bool is_underfull(btree_leaf_node *node);
+    static bool is_mergable(btree_leaf_node *node, btree_leaf_node *sibling);
     static void validate(btree_leaf_node *node);
-    
+    static int nodecmp(btree_leaf_node *node1, btree_leaf_node *node2);
+
+    static void print(btree_leaf_node *node);
+
     protected:
     static size_t pair_size(btree_leaf_pair *pair);
     static btree_leaf_pair *get_pair(btree_leaf_node *node, uint16_t offset);
