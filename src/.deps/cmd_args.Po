@@ -1,4 +1,4 @@
-cmd_args.o: cmd_args.cc /usr/include/getopt.h /usr/include/ctype.h \
+cmd_args.o: config/cmd_args.cc /usr/include/getopt.h /usr/include/ctype.h \
  /usr/include/features.h /usr/include/bits/predefs.h \
  /usr/include/sys/cdefs.h /usr/include/bits/wordsize.h \
  /usr/include/gnu/stubs.h /usr/include/gnu/stubs-64.h \
@@ -14,13 +14,12 @@ cmd_args.o: cmd_args.cc /usr/include/getopt.h /usr/include/ctype.h \
  /usr/include/time.h /usr/include/sys/select.h /usr/include/bits/select.h \
  /usr/include/bits/sigset.h /usr/include/bits/time.h \
  /usr/include/sys/sysmacros.h /usr/include/bits/pthreadtypes.h \
- /usr/include/alloca.h /usr/include/string.h include/config/cmd_args.hpp \
- include/config/args.hpp include/config/code.hpp include/corefwd.hpp \
- include/alloc/memalign.hpp include/utils.hpp /usr/include/errno.h \
- /usr/include/bits/errno.h /usr/include/linux/errno.h \
- /usr/include/asm/errno.h /usr/include/asm-generic/errno.h \
- /usr/include/asm-generic/errno-base.h include/corefwd.hpp \
- include/utils_impl.hpp /usr/include/c++/4.4/cstring \
+ /usr/include/alloca.h /usr/include/string.h config/cmd_args.hpp \
+ config/args.hpp config/code.hpp corefwd.hpp alloc/memalign.hpp utils.hpp \
+ /usr/include/errno.h /usr/include/bits/errno.h \
+ /usr/include/linux/errno.h /usr/include/asm/errno.h \
+ /usr/include/asm-generic/errno.h /usr/include/asm-generic/errno-base.h \
+ corefwd.hpp utils_impl.hpp /usr/include/c++/4.4/cstring \
  /usr/include/c++/4.4/x86_64-linux-gnu/bits/c++config.h \
  /usr/include/c++/4.4/x86_64-linux-gnu/bits/os_defines.h \
  /usr/include/c++/4.4/x86_64-linux-gnu/bits/cpu_defines.h \
@@ -133,17 +132,17 @@ cmd_args.o: cmd_args.cc /usr/include/getopt.h /usr/include/ctype.h \
 
 /usr/include/string.h:
 
-include/config/cmd_args.hpp:
+config/cmd_args.hpp:
 
-include/config/args.hpp:
+config/args.hpp:
 
-include/config/code.hpp:
+config/code.hpp:
 
-include/corefwd.hpp:
+corefwd.hpp:
 
-include/alloc/memalign.hpp:
+alloc/memalign.hpp:
 
-include/utils.hpp:
+utils.hpp:
 
 /usr/include/errno.h:
 
@@ -157,9 +156,9 @@ include/utils.hpp:
 
 /usr/include/asm-generic/errno-base.h:
 
-include/corefwd.hpp:
+corefwd.hpp:
 
-include/utils_impl.hpp:
+utils_impl.hpp:
 
 /usr/include/c++/4.4/cstring:
 

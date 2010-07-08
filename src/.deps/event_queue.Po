@@ -86,58 +86,48 @@ event_queue.o: event_queue.cc /usr/include/sys/epoll.h \
  /usr/include/c++/4.4/bits/basic_ios.tcc /usr/include/c++/4.4/ostream \
  /usr/include/c++/4.4/bits/ostream.tcc \
  /usr/include/c++/4.4/bits/istream.tcc \
- /usr/include/c++/4.4/bits/sstream.tcc include/config/args.hpp \
- include/config/code.hpp include/corefwd.hpp include/alloc/memalign.hpp \
- /usr/include/string.h include/utils.hpp include/corefwd.hpp \
- include/utils_impl.hpp /usr/include/c++/4.4/cstring \
- /usr/include/c++/4.4/limits include/alloc/pool.hpp /usr/include/assert.h \
- include/alloc/dynamic_pool.hpp /usr/include/math.h \
- /usr/include/bits/huge_val.h /usr/include/bits/huge_valf.h \
- /usr/include/bits/huge_vall.h /usr/include/bits/inf.h \
- /usr/include/bits/nan.h /usr/include/bits/mathdef.h \
- /usr/include/bits/mathcalls.h include/alloc/stats.hpp \
- include/alloc/alloc_mixin.hpp /usr/include/c++/4.4/vector \
- /usr/include/c++/4.4/bits/stl_vector.h \
+ /usr/include/c++/4.4/bits/sstream.tcc config/args.hpp config/code.hpp \
+ corefwd.hpp alloc/memalign.hpp /usr/include/string.h utils.hpp \
+ corefwd.hpp utils_impl.hpp /usr/include/c++/4.4/cstring \
+ /usr/include/c++/4.4/limits alloc/memalign.hpp alloc/pool.hpp \
+ /usr/include/assert.h utils.hpp alloc/dynamic_pool.hpp \
+ /usr/include/math.h /usr/include/bits/huge_val.h \
+ /usr/include/bits/huge_valf.h /usr/include/bits/huge_vall.h \
+ /usr/include/bits/inf.h /usr/include/bits/nan.h \
+ /usr/include/bits/mathdef.h /usr/include/bits/mathcalls.h \
+ config/args.hpp alloc/stats.hpp alloc/alloc_mixin.hpp \
+ /usr/include/c++/4.4/vector /usr/include/c++/4.4/bits/stl_vector.h \
  /usr/include/c++/4.4/bits/stl_bvector.h \
- /usr/include/c++/4.4/bits/vector.tcc include/alloc/alloc_mixin_impl.hpp \
- include/worker_pool.hpp include/event_queue.hpp /usr/include/libaio.h \
+ /usr/include/c++/4.4/bits/vector.tcc alloc/alloc_mixin_impl.hpp \
+ worker_pool.hpp event_queue.hpp /usr/include/libaio.h \
  /usr/include/c++/4.4/queue /usr/include/c++/4.4/deque \
  /usr/include/c++/4.4/bits/stl_deque.h \
  /usr/include/c++/4.4/bits/deque.tcc \
- /usr/include/c++/4.4/bits/stl_queue.h include/arch/resource.hpp \
- include/arch/io.hpp include/arch/resource.hpp include/event.hpp \
- include/event.hpp include/message_hub.hpp \
- include/containers/intrusive_list.hpp include/utils.hpp \
- include/config/args.hpp include/config/code.hpp \
- include/alloc/memalign.hpp include/alloc/pool.hpp \
- include/alloc/dynamic_pool.hpp include/alloc/stats.hpp \
- include/alloc/alloc_mixin.hpp include/btree/node.hpp \
- include/config/cmd_args.hpp include/buffer_cache/callbacks.hpp \
- include/arch/io.hpp include/conn_fsm.hpp \
- include/request_handler/request_handler.hpp include/btree/fsm.hpp \
- include/message_hub.hpp include/buffer_cache/callbacks.hpp \
- include/btree/fsm_impl.hpp include/conn_fsm_impl.hpp \
- include/request_handler/memcached_handler.hpp \
- include/request_handler/request_handler.hpp \
- include/request_handler/memcached_handler_impl.hpp \
- include/cpu_context.hpp include/event_queue.hpp \
- include/request_handler/memcached_handler.hpp \
- include/serializer/in_place.hpp include/btree/admin.hpp \
- include/buffer_cache/fallthrough.hpp /usr/include/c++/4.4/map \
+ /usr/include/c++/4.4/bits/stl_queue.h arch/resource.hpp arch/io.hpp \
+ config/code.hpp arch/resource.hpp event.hpp arch/resource.hpp event.hpp \
+ message_hub.hpp containers/intrusive_list.hpp btree/node.hpp \
+ config/cmd_args.hpp buffer_cache/callbacks.hpp conn_fsm.hpp \
+ request_handler/request_handler.hpp btree/fsm.hpp message_hub.hpp \
+ buffer_cache/callbacks.hpp btree/fsm_impl.hpp conn_fsm_impl.hpp \
+ request_handler/memcached_handler.hpp \
+ request_handler/request_handler.hpp alloc/alloc_mixin.hpp \
+ request_handler/memcached_handler_impl.hpp cpu_context.hpp \
+ event_queue.hpp event_queue.hpp request_handler/memcached_handler.hpp \
+ conn_fsm.hpp serializer/in_place.hpp btree/admin.hpp \
+ buffer_cache/fallthrough.hpp /usr/include/c++/4.4/map \
  /usr/include/c++/4.4/bits/stl_tree.h /usr/include/c++/4.4/bits/stl_map.h \
- /usr/include/c++/4.4/bits/stl_multimap.h include/buffer_cache/stats.hpp \
- include/buffer_cache/mirrored.hpp include/concurrency/access.hpp \
- include/concurrency/rwi_lock.hpp include/containers/intrusive_list.hpp \
- include/buffer_cache/mirrored_impl.hpp \
- include/buffer_cache/page_map/unlocked_hash_map.hpp \
- include/buffer_cache/page_repl/page_repl_random.hpp \
- include/buffer_cache/writeback/writeback.hpp \
- include/buffer_cache/writeback/writeback_impl.hpp \
- include/buffer_cache/concurrency/rwi_conc.hpp include/btree/get_fsm.hpp \
- include/btree/fsm.hpp include/btree/get_fsm_impl.hpp \
- include/btree/internal_node.hpp include/btree/node.hpp \
- include/btree/leaf_node.hpp include/btree/set_fsm.hpp \
- include/btree/set_fsm_impl.hpp include/request.hpp
+ /usr/include/c++/4.4/bits/stl_multimap.h buffer_cache/stats.hpp \
+ buffer_cache/mirrored.hpp concurrency/access.hpp \
+ concurrency/rwi_lock.hpp containers/intrusive_list.hpp \
+ buffer_cache/mirrored_impl.hpp \
+ buffer_cache/page_map/unlocked_hash_map.hpp \
+ buffer_cache/page_repl/page_repl_random.hpp \
+ buffer_cache/writeback/writeback.hpp \
+ buffer_cache/writeback/writeback_impl.hpp \
+ buffer_cache/concurrency/rwi_conc.hpp btree/get_fsm.hpp btree/fsm.hpp \
+ btree/get_fsm_impl.hpp btree/internal_node.hpp btree/node.hpp \
+ btree/leaf_node.hpp btree/set_fsm.hpp btree/set_fsm_impl.hpp request.hpp \
+ cpu_context.hpp
 
 /usr/include/sys/epoll.h:
 
@@ -407,31 +397,35 @@ event_queue.o: event_queue.cc /usr/include/sys/epoll.h \
 
 /usr/include/c++/4.4/bits/sstream.tcc:
 
-include/config/args.hpp:
+config/args.hpp:
 
-include/config/code.hpp:
+config/code.hpp:
 
-include/corefwd.hpp:
+corefwd.hpp:
 
-include/alloc/memalign.hpp:
+alloc/memalign.hpp:
 
 /usr/include/string.h:
 
-include/utils.hpp:
+utils.hpp:
 
-include/corefwd.hpp:
+corefwd.hpp:
 
-include/utils_impl.hpp:
+utils_impl.hpp:
 
 /usr/include/c++/4.4/cstring:
 
 /usr/include/c++/4.4/limits:
 
-include/alloc/pool.hpp:
+alloc/memalign.hpp:
+
+alloc/pool.hpp:
 
 /usr/include/assert.h:
 
-include/alloc/dynamic_pool.hpp:
+utils.hpp:
+
+alloc/dynamic_pool.hpp:
 
 /usr/include/math.h:
 
@@ -449,9 +443,11 @@ include/alloc/dynamic_pool.hpp:
 
 /usr/include/bits/mathcalls.h:
 
-include/alloc/stats.hpp:
+config/args.hpp:
 
-include/alloc/alloc_mixin.hpp:
+alloc/stats.hpp:
+
+alloc/alloc_mixin.hpp:
 
 /usr/include/c++/4.4/vector:
 
@@ -461,11 +457,11 @@ include/alloc/alloc_mixin.hpp:
 
 /usr/include/c++/4.4/bits/vector.tcc:
 
-include/alloc/alloc_mixin_impl.hpp:
+alloc/alloc_mixin_impl.hpp:
 
-include/worker_pool.hpp:
+worker_pool.hpp:
 
-include/event_queue.hpp:
+event_queue.hpp:
 
 /usr/include/libaio.h:
 
@@ -479,75 +475,67 @@ include/event_queue.hpp:
 
 /usr/include/c++/4.4/bits/stl_queue.h:
 
-include/arch/resource.hpp:
+arch/resource.hpp:
 
-include/arch/io.hpp:
+arch/io.hpp:
 
-include/arch/resource.hpp:
+config/code.hpp:
 
-include/event.hpp:
+arch/resource.hpp:
 
-include/event.hpp:
+event.hpp:
 
-include/message_hub.hpp:
+arch/resource.hpp:
 
-include/containers/intrusive_list.hpp:
+event.hpp:
 
-include/utils.hpp:
+message_hub.hpp:
 
-include/config/args.hpp:
+containers/intrusive_list.hpp:
 
-include/config/code.hpp:
+btree/node.hpp:
 
-include/alloc/memalign.hpp:
+config/cmd_args.hpp:
 
-include/alloc/pool.hpp:
+buffer_cache/callbacks.hpp:
 
-include/alloc/dynamic_pool.hpp:
+conn_fsm.hpp:
 
-include/alloc/stats.hpp:
+request_handler/request_handler.hpp:
 
-include/alloc/alloc_mixin.hpp:
+btree/fsm.hpp:
 
-include/btree/node.hpp:
+message_hub.hpp:
 
-include/config/cmd_args.hpp:
+buffer_cache/callbacks.hpp:
 
-include/buffer_cache/callbacks.hpp:
+btree/fsm_impl.hpp:
 
-include/arch/io.hpp:
+conn_fsm_impl.hpp:
 
-include/conn_fsm.hpp:
+request_handler/memcached_handler.hpp:
 
-include/request_handler/request_handler.hpp:
+request_handler/request_handler.hpp:
 
-include/btree/fsm.hpp:
+alloc/alloc_mixin.hpp:
 
-include/message_hub.hpp:
+request_handler/memcached_handler_impl.hpp:
 
-include/buffer_cache/callbacks.hpp:
+cpu_context.hpp:
 
-include/btree/fsm_impl.hpp:
+event_queue.hpp:
 
-include/conn_fsm_impl.hpp:
+event_queue.hpp:
 
-include/request_handler/memcached_handler.hpp:
+request_handler/memcached_handler.hpp:
 
-include/request_handler/request_handler.hpp:
+conn_fsm.hpp:
 
-include/request_handler/memcached_handler_impl.hpp:
+serializer/in_place.hpp:
 
-include/cpu_context.hpp:
+btree/admin.hpp:
 
-include/event_queue.hpp:
-
-include/request_handler/memcached_handler.hpp:
-
-include/serializer/in_place.hpp:
-
-include/btree/admin.hpp:
-
-include/buffer_cache/fallthrough.hpp:
+buffer_cache/fallthrough.hpp:
 
 /usr/include/c++/4.4/map:
 
@@ -557,42 +545,44 @@ include/buffer_cache/fallthrough.hpp:
 
 /usr/include/c++/4.4/bits/stl_multimap.h:
 
-include/buffer_cache/stats.hpp:
+buffer_cache/stats.hpp:
 
-include/buffer_cache/mirrored.hpp:
+buffer_cache/mirrored.hpp:
 
-include/concurrency/access.hpp:
+concurrency/access.hpp:
 
-include/concurrency/rwi_lock.hpp:
+concurrency/rwi_lock.hpp:
 
-include/containers/intrusive_list.hpp:
+containers/intrusive_list.hpp:
 
-include/buffer_cache/mirrored_impl.hpp:
+buffer_cache/mirrored_impl.hpp:
 
-include/buffer_cache/page_map/unlocked_hash_map.hpp:
+buffer_cache/page_map/unlocked_hash_map.hpp:
 
-include/buffer_cache/page_repl/page_repl_random.hpp:
+buffer_cache/page_repl/page_repl_random.hpp:
 
-include/buffer_cache/writeback/writeback.hpp:
+buffer_cache/writeback/writeback.hpp:
 
-include/buffer_cache/writeback/writeback_impl.hpp:
+buffer_cache/writeback/writeback_impl.hpp:
 
-include/buffer_cache/concurrency/rwi_conc.hpp:
+buffer_cache/concurrency/rwi_conc.hpp:
 
-include/btree/get_fsm.hpp:
+btree/get_fsm.hpp:
 
-include/btree/fsm.hpp:
+btree/fsm.hpp:
 
-include/btree/get_fsm_impl.hpp:
+btree/get_fsm_impl.hpp:
 
-include/btree/internal_node.hpp:
+btree/internal_node.hpp:
 
-include/btree/node.hpp:
+btree/node.hpp:
 
-include/btree/leaf_node.hpp:
+btree/leaf_node.hpp:
 
-include/btree/set_fsm.hpp:
+btree/set_fsm.hpp:
 
-include/btree/set_fsm_impl.hpp:
+btree/set_fsm_impl.hpp:
 
-include/request.hpp:
+request.hpp:
+
+cpu_context.hpp:

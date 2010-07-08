@@ -38,15 +38,14 @@ worker_pool.o: worker_pool.cc /usr/include/unistd.h \
  /usr/include/c++/4.4/bits/stl_tempbuf.h \
  /usr/include/c++/4.4/bits/stl_construct.h /usr/include/c++/4.4/new \
  /usr/include/c++/4.4/exception \
- /usr/include/c++/4.4/bits/stl_uninitialized.h \
- include/config/cmd_args.hpp include/config/args.hpp \
- include/config/code.hpp include/corefwd.hpp include/alloc/memalign.hpp \
- /usr/include/string.h include/utils.hpp /usr/include/errno.h \
+ /usr/include/c++/4.4/bits/stl_uninitialized.h config/cmd_args.hpp \
+ config/args.hpp config/code.hpp corefwd.hpp alloc/memalign.hpp \
+ /usr/include/string.h utils.hpp /usr/include/errno.h \
  /usr/include/bits/errno.h /usr/include/linux/errno.h \
  /usr/include/asm/errno.h /usr/include/asm-generic/errno.h \
- /usr/include/asm-generic/errno-base.h include/corefwd.hpp \
- include/utils_impl.hpp /usr/include/c++/4.4/cstring \
- /usr/include/c++/4.4/string /usr/include/c++/4.4/bits/stringfwd.h \
+ /usr/include/asm-generic/errno-base.h corefwd.hpp utils_impl.hpp \
+ /usr/include/c++/4.4/cstring /usr/include/c++/4.4/string \
+ /usr/include/c++/4.4/bits/stringfwd.h \
  /usr/include/c++/4.4/bits/char_traits.h \
  /usr/include/c++/4.4/bits/postypes.h /usr/include/c++/4.4/cwchar \
  /usr/include/bits/wchar.h /usr/include/c++/4.4/bits/allocator.h \
@@ -69,28 +68,24 @@ worker_pool.o: worker_pool.cc /usr/include/unistd.h \
  /usr/include/signal.h /usr/include/bits/setjmp.h \
  /usr/include/c++/4.4/x86_64-linux-gnu/bits/atomic_word.h \
  /usr/include/c++/4.4/bits/basic_string.tcc /usr/include/c++/4.4/limits \
- include/worker_pool.hpp /usr/include/c++/4.4/vector \
+ worker_pool.hpp /usr/include/c++/4.4/vector \
  /usr/include/c++/4.4/bits/stl_vector.h \
  /usr/include/c++/4.4/bits/stl_bvector.h \
- /usr/include/c++/4.4/bits/vector.tcc include/event_queue.hpp \
+ /usr/include/c++/4.4/bits/vector.tcc event_queue.hpp \
  /usr/include/libaio.h /usr/include/c++/4.4/queue \
  /usr/include/c++/4.4/deque /usr/include/c++/4.4/bits/stl_deque.h \
  /usr/include/c++/4.4/bits/deque.tcc \
- /usr/include/c++/4.4/bits/stl_queue.h include/arch/resource.hpp \
- /usr/include/stdint.h include/arch/io.hpp /usr/include/assert.h \
- include/arch/resource.hpp include/event.hpp include/event.hpp \
- include/message_hub.hpp /usr/include/strings.h \
- include/containers/intrusive_list.hpp include/utils.hpp \
- include/config/args.hpp include/config/code.hpp \
- include/alloc/memalign.hpp include/alloc/pool.hpp \
- include/alloc/dynamic_pool.hpp /usr/include/math.h \
- /usr/include/bits/huge_val.h /usr/include/bits/huge_valf.h \
- /usr/include/bits/huge_vall.h /usr/include/bits/inf.h \
- /usr/include/bits/nan.h /usr/include/bits/mathdef.h \
- /usr/include/bits/mathcalls.h include/alloc/stats.hpp \
- include/alloc/alloc_mixin.hpp include/alloc/alloc_mixin_impl.hpp \
- include/btree/node.hpp include/config/cmd_args.hpp \
- include/buffer_cache/callbacks.hpp
+ /usr/include/c++/4.4/bits/stl_queue.h arch/resource.hpp \
+ /usr/include/stdint.h arch/io.hpp /usr/include/assert.h config/code.hpp \
+ utils.hpp arch/resource.hpp event.hpp arch/resource.hpp event.hpp \
+ message_hub.hpp /usr/include/strings.h containers/intrusive_list.hpp \
+ config/args.hpp alloc/memalign.hpp alloc/pool.hpp alloc/dynamic_pool.hpp \
+ /usr/include/math.h /usr/include/bits/huge_val.h \
+ /usr/include/bits/huge_valf.h /usr/include/bits/huge_vall.h \
+ /usr/include/bits/inf.h /usr/include/bits/nan.h \
+ /usr/include/bits/mathdef.h /usr/include/bits/mathcalls.h \
+ alloc/stats.hpp alloc/alloc_mixin.hpp alloc/alloc_mixin_impl.hpp \
+ btree/node.hpp buffer_cache/callbacks.hpp
 
 /usr/include/unistd.h:
 
@@ -222,19 +217,19 @@ worker_pool.o: worker_pool.cc /usr/include/unistd.h \
 
 /usr/include/c++/4.4/bits/stl_uninitialized.h:
 
-include/config/cmd_args.hpp:
+config/cmd_args.hpp:
 
-include/config/args.hpp:
+config/args.hpp:
 
-include/config/code.hpp:
+config/code.hpp:
 
-include/corefwd.hpp:
+corefwd.hpp:
 
-include/alloc/memalign.hpp:
+alloc/memalign.hpp:
 
 /usr/include/string.h:
 
-include/utils.hpp:
+utils.hpp:
 
 /usr/include/errno.h:
 
@@ -248,9 +243,9 @@ include/utils.hpp:
 
 /usr/include/asm-generic/errno-base.h:
 
-include/corefwd.hpp:
+corefwd.hpp:
 
-include/utils_impl.hpp:
+utils_impl.hpp:
 
 /usr/include/c++/4.4/cstring:
 
@@ -320,7 +315,7 @@ include/utils_impl.hpp:
 
 /usr/include/c++/4.4/limits:
 
-include/worker_pool.hpp:
+worker_pool.hpp:
 
 /usr/include/c++/4.4/vector:
 
@@ -330,7 +325,7 @@ include/worker_pool.hpp:
 
 /usr/include/c++/4.4/bits/vector.tcc:
 
-include/event_queue.hpp:
+event_queue.hpp:
 
 /usr/include/libaio.h:
 
@@ -344,37 +339,39 @@ include/event_queue.hpp:
 
 /usr/include/c++/4.4/bits/stl_queue.h:
 
-include/arch/resource.hpp:
+arch/resource.hpp:
 
 /usr/include/stdint.h:
 
-include/arch/io.hpp:
+arch/io.hpp:
 
 /usr/include/assert.h:
 
-include/arch/resource.hpp:
+config/code.hpp:
 
-include/event.hpp:
+utils.hpp:
 
-include/event.hpp:
+arch/resource.hpp:
 
-include/message_hub.hpp:
+event.hpp:
+
+arch/resource.hpp:
+
+event.hpp:
+
+message_hub.hpp:
 
 /usr/include/strings.h:
 
-include/containers/intrusive_list.hpp:
+containers/intrusive_list.hpp:
 
-include/utils.hpp:
+config/args.hpp:
 
-include/config/args.hpp:
+alloc/memalign.hpp:
 
-include/config/code.hpp:
+alloc/pool.hpp:
 
-include/alloc/memalign.hpp:
-
-include/alloc/pool.hpp:
-
-include/alloc/dynamic_pool.hpp:
+alloc/dynamic_pool.hpp:
 
 /usr/include/math.h:
 
@@ -392,14 +389,12 @@ include/alloc/dynamic_pool.hpp:
 
 /usr/include/bits/mathcalls.h:
 
-include/alloc/stats.hpp:
+alloc/stats.hpp:
 
-include/alloc/alloc_mixin.hpp:
+alloc/alloc_mixin.hpp:
 
-include/alloc/alloc_mixin_impl.hpp:
+alloc/alloc_mixin_impl.hpp:
 
-include/btree/node.hpp:
+btree/node.hpp:
 
-include/config/cmd_args.hpp:
-
-include/buffer_cache/callbacks.hpp:
+buffer_cache/callbacks.hpp:

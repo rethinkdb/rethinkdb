@@ -24,18 +24,17 @@ server.o: server.cc /usr/include/pthread.h /usr/include/features.h \
  /usr/include/bits/siginfo.h /usr/include/bits/sigaction.h \
  /usr/include/bits/sigcontext.h /usr/include/bits/sigstack.h \
  /usr/include/sys/ucontext.h /usr/include/bits/sigthread.h \
- include/config/args.hpp include/config/code.hpp include/corefwd.hpp \
- include/alloc/memalign.hpp /usr/include/stdlib.h \
- /usr/include/bits/waitflags.h /usr/include/bits/waitstatus.h \
- /usr/include/alloca.h /usr/include/string.h include/utils.hpp \
- /usr/include/errno.h /usr/include/bits/errno.h \
- /usr/include/linux/errno.h /usr/include/asm/errno.h \
- /usr/include/asm-generic/errno.h /usr/include/asm-generic/errno-base.h \
- /usr/include/stdio.h /usr/include/libio.h /usr/include/_G_config.h \
- /usr/include/wchar.h \
+ config/args.hpp config/code.hpp corefwd.hpp alloc/memalign.hpp \
+ /usr/include/stdlib.h /usr/include/bits/waitflags.h \
+ /usr/include/bits/waitstatus.h /usr/include/alloca.h \
+ /usr/include/string.h utils.hpp /usr/include/errno.h \
+ /usr/include/bits/errno.h /usr/include/linux/errno.h \
+ /usr/include/asm/errno.h /usr/include/asm-generic/errno.h \
+ /usr/include/asm-generic/errno-base.h /usr/include/stdio.h \
+ /usr/include/libio.h /usr/include/_G_config.h /usr/include/wchar.h \
  /usr/lib/gcc/x86_64-linux-gnu/4.4.1/include/stdarg.h \
  /usr/include/bits/stdio_lim.h /usr/include/bits/sys_errlist.h \
- include/corefwd.hpp include/utils_impl.hpp /usr/include/c++/4.4/cstring \
+ corefwd.hpp utils_impl.hpp /usr/include/c++/4.4/cstring \
  /usr/include/c++/4.4/x86_64-linux-gnu/bits/c++config.h \
  /usr/include/c++/4.4/x86_64-linux-gnu/bits/os_defines.h \
  /usr/include/c++/4.4/x86_64-linux-gnu/bits/cpu_defines.h \
@@ -73,30 +72,25 @@ server.o: server.cc /usr/include/pthread.h /usr/include/features.h \
  /usr/include/c++/4.4/x86_64-linux-gnu/bits/atomic_word.h \
  /usr/include/c++/4.4/initializer_list \
  /usr/include/c++/4.4/bits/basic_string.tcc /usr/include/c++/4.4/limits \
- include/worker_pool.hpp /usr/include/c++/4.4/vector \
+ worker_pool.hpp /usr/include/c++/4.4/vector \
  /usr/include/c++/4.4/bits/stl_construct.h \
  /usr/include/c++/4.4/bits/stl_uninitialized.h \
  /usr/include/c++/4.4/bits/stl_vector.h \
  /usr/include/c++/4.4/bits/stl_bvector.h \
- /usr/include/c++/4.4/bits/vector.tcc include/event_queue.hpp \
+ /usr/include/c++/4.4/bits/vector.tcc event_queue.hpp \
  /usr/include/libaio.h /usr/include/c++/4.4/queue \
  /usr/include/c++/4.4/deque /usr/include/c++/4.4/bits/stl_deque.h \
  /usr/include/c++/4.4/bits/deque.tcc /usr/include/c++/4.4/bits/stl_heap.h \
- /usr/include/c++/4.4/bits/stl_queue.h include/arch/resource.hpp \
- include/arch/io.hpp /usr/include/assert.h include/arch/resource.hpp \
- include/event.hpp include/event.hpp include/message_hub.hpp \
- include/containers/intrusive_list.hpp include/utils.hpp \
- include/config/args.hpp include/config/code.hpp \
- include/alloc/memalign.hpp include/alloc/pool.hpp \
- include/alloc/dynamic_pool.hpp /usr/include/math.h \
- /usr/include/bits/huge_val.h /usr/include/bits/huge_valf.h \
- /usr/include/bits/huge_vall.h /usr/include/bits/inf.h \
- /usr/include/bits/nan.h /usr/include/bits/mathdef.h \
- /usr/include/bits/mathcalls.h include/alloc/stats.hpp \
- include/alloc/alloc_mixin.hpp include/alloc/alloc_mixin_impl.hpp \
- include/btree/node.hpp include/config/cmd_args.hpp \
- include/buffer_cache/callbacks.hpp include/event_queue.hpp \
- include/server.hpp include/worker_pool.hpp
+ /usr/include/c++/4.4/bits/stl_queue.h arch/resource.hpp arch/io.hpp \
+ /usr/include/assert.h config/args.hpp config/code.hpp utils.hpp \
+ arch/resource.hpp event.hpp arch/resource.hpp event.hpp message_hub.hpp \
+ containers/intrusive_list.hpp alloc/memalign.hpp alloc/pool.hpp \
+ alloc/dynamic_pool.hpp /usr/include/math.h /usr/include/bits/huge_val.h \
+ /usr/include/bits/huge_valf.h /usr/include/bits/huge_vall.h \
+ /usr/include/bits/inf.h /usr/include/bits/nan.h \
+ /usr/include/bits/mathdef.h /usr/include/bits/mathcalls.h \
+ alloc/stats.hpp alloc/alloc_mixin.hpp alloc/alloc_mixin_impl.hpp \
+ btree/node.hpp config/cmd_args.hpp buffer_cache/callbacks.hpp server.hpp
 
 /usr/include/pthread.h:
 
@@ -206,13 +200,13 @@ server.o: server.cc /usr/include/pthread.h /usr/include/features.h \
 
 /usr/include/bits/sigthread.h:
 
-include/config/args.hpp:
+config/args.hpp:
 
-include/config/code.hpp:
+config/code.hpp:
 
-include/corefwd.hpp:
+corefwd.hpp:
 
-include/alloc/memalign.hpp:
+alloc/memalign.hpp:
 
 /usr/include/stdlib.h:
 
@@ -224,7 +218,7 @@ include/alloc/memalign.hpp:
 
 /usr/include/string.h:
 
-include/utils.hpp:
+utils.hpp:
 
 /usr/include/errno.h:
 
@@ -252,9 +246,9 @@ include/utils.hpp:
 
 /usr/include/bits/sys_errlist.h:
 
-include/corefwd.hpp:
+corefwd.hpp:
 
-include/utils_impl.hpp:
+utils_impl.hpp:
 
 /usr/include/c++/4.4/cstring:
 
@@ -352,7 +346,7 @@ include/utils_impl.hpp:
 
 /usr/include/c++/4.4/limits:
 
-include/worker_pool.hpp:
+worker_pool.hpp:
 
 /usr/include/c++/4.4/vector:
 
@@ -366,7 +360,7 @@ include/worker_pool.hpp:
 
 /usr/include/c++/4.4/bits/vector.tcc:
 
-include/event_queue.hpp:
+event_queue.hpp:
 
 /usr/include/libaio.h:
 
@@ -382,33 +376,35 @@ include/event_queue.hpp:
 
 /usr/include/c++/4.4/bits/stl_queue.h:
 
-include/arch/resource.hpp:
+arch/resource.hpp:
 
-include/arch/io.hpp:
+arch/io.hpp:
 
 /usr/include/assert.h:
 
-include/arch/resource.hpp:
+config/args.hpp:
 
-include/event.hpp:
+config/code.hpp:
 
-include/event.hpp:
+utils.hpp:
 
-include/message_hub.hpp:
+arch/resource.hpp:
 
-include/containers/intrusive_list.hpp:
+event.hpp:
 
-include/utils.hpp:
+arch/resource.hpp:
 
-include/config/args.hpp:
+event.hpp:
 
-include/config/code.hpp:
+message_hub.hpp:
 
-include/alloc/memalign.hpp:
+containers/intrusive_list.hpp:
 
-include/alloc/pool.hpp:
+alloc/memalign.hpp:
 
-include/alloc/dynamic_pool.hpp:
+alloc/pool.hpp:
+
+alloc/dynamic_pool.hpp:
 
 /usr/include/math.h:
 
@@ -426,20 +422,16 @@ include/alloc/dynamic_pool.hpp:
 
 /usr/include/bits/mathcalls.h:
 
-include/alloc/stats.hpp:
+alloc/stats.hpp:
 
-include/alloc/alloc_mixin.hpp:
+alloc/alloc_mixin.hpp:
 
-include/alloc/alloc_mixin_impl.hpp:
+alloc/alloc_mixin_impl.hpp:
 
-include/btree/node.hpp:
+btree/node.hpp:
 
-include/config/cmd_args.hpp:
+config/cmd_args.hpp:
 
-include/buffer_cache/callbacks.hpp:
+buffer_cache/callbacks.hpp:
 
-include/event_queue.hpp:
-
-include/server.hpp:
-
-include/worker_pool.hpp:
+server.hpp:

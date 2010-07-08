@@ -18,16 +18,15 @@ utils.o: utils.cc /usr/include/assert.h /usr/include/features.h \
  /usr/include/c++/4.4/x86_64-linux-gnu/bits/c++config.h \
  /usr/include/c++/4.4/x86_64-linux-gnu/bits/os_defines.h \
  /usr/include/c++/4.4/x86_64-linux-gnu/bits/cpu_defines.h \
- /usr/include/c++/4.4/exception include/config/args.hpp \
- include/config/code.hpp include/corefwd.hpp include/alloc/memalign.hpp \
- include/utils.hpp /usr/include/errno.h /usr/include/bits/errno.h \
- /usr/include/linux/errno.h /usr/include/asm/errno.h \
- /usr/include/asm-generic/errno.h /usr/include/asm-generic/errno-base.h \
- /usr/include/stdio.h /usr/include/libio.h /usr/include/_G_config.h \
- /usr/include/wchar.h \
+ /usr/include/c++/4.4/exception config/args.hpp config/code.hpp \
+ corefwd.hpp alloc/memalign.hpp utils.hpp /usr/include/errno.h \
+ /usr/include/bits/errno.h /usr/include/linux/errno.h \
+ /usr/include/asm/errno.h /usr/include/asm-generic/errno.h \
+ /usr/include/asm-generic/errno-base.h /usr/include/stdio.h \
+ /usr/include/libio.h /usr/include/_G_config.h /usr/include/wchar.h \
  /usr/lib/gcc/x86_64-linux-gnu/4.4.1/include/stdarg.h \
  /usr/include/bits/stdio_lim.h /usr/include/bits/sys_errlist.h \
- include/corefwd.hpp include/utils_impl.hpp /usr/include/c++/4.4/cstring \
+ corefwd.hpp utils_impl.hpp /usr/include/c++/4.4/cstring \
  /usr/include/c++/4.4/string /usr/include/c++/4.4/bits/stringfwd.h \
  /usr/include/c++/4.4/bits/char_traits.h \
  /usr/include/c++/4.4/bits/stl_algobase.h \
@@ -147,15 +146,15 @@ utils.o: utils.cc /usr/include/assert.h /usr/include/features.h \
 
 /usr/include/c++/4.4/exception:
 
-include/config/args.hpp:
+config/args.hpp:
 
-include/config/code.hpp:
+config/code.hpp:
 
-include/corefwd.hpp:
+corefwd.hpp:
 
-include/alloc/memalign.hpp:
+alloc/memalign.hpp:
 
-include/utils.hpp:
+utils.hpp:
 
 /usr/include/errno.h:
 
@@ -183,9 +182,9 @@ include/utils.hpp:
 
 /usr/include/bits/sys_errlist.h:
 
-include/corefwd.hpp:
+corefwd.hpp:
 
-include/utils_impl.hpp:
+utils_impl.hpp:
 
 /usr/include/c++/4.4/cstring:
 

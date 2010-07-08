@@ -15,7 +15,6 @@
 
 
 
-
 pkgdatadir = $(datadir)/rethinkdb
 pkgincludedir = $(includedir)/rethinkdb
 pkglibdir = $(libdir)/rethinkdb
@@ -64,6 +63,7 @@ DIST_SOURCES = $(rethinkdb_SOURCES)
 ETAGS = etags
 CTAGS = ctags
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
+VPATH = ./arch:./config:./concurrency
 ACLOCAL = ${SHELL} /home/aditya/rethinkdb/missing --run aclocal-1.11
 AMTAR = ${SHELL} /home/aditya/rethinkdb/missing --run tar
 AUTOCONF = ${SHELL} /home/aditya/rethinkdb/missing --run autoconf
@@ -79,7 +79,7 @@ CXX = g++
 CXXDEPMODE = depmode=gcc3
 
 # what flags you want to pass to the C compiler & linker
-CXXFLAGS = -Iinclude -Wall -Wextra -Wformat=2 -Wno-unused-parameter -Werror
+CXXFLAGS = -I. -Iarch -Iconcurrency -Iconfig -Wall -Wextra -Wformat=2 -Wno-unused-parameter -Werror
 CYGPATH_W = echo
 DEFS = -DPACKAGE_NAME=\"rethinkdb\" -DPACKAGE_TARNAME=\"rethinkdb\" -DPACKAGE_VERSION=\"0.1\" -DPACKAGE_STRING=\"rethinkdb\ 0.1\" -DPACKAGE_BUGREPORT=\"aditya@rethinkdb.com\" -DPACKAGE_URL=\"http://www.rethinkdb.com\" -DSTDC_HEADERS=1 -DHAVE_SYS_TYPES_H=1 -DHAVE_SYS_STAT_H=1 -DHAVE_STDLIB_H=1 -DHAVE_STRING_H=1 -DHAVE_MEMORY_H=1 -DHAVE_STRINGS_H=1 -DHAVE_INTTYPES_H=1 -DHAVE_STDINT_H=1 -DHAVE_UNISTD_H=1 -DHAVE_FCNTL_H=1 -DHAVE_NETINET_IN_H=1 -DHAVE_STDINT_H=1 -DHAVE_STDLIB_H=1 -DHAVE_STRING_H=1 -DHAVE_STRINGS_H=1 -DHAVE_SYS_SOCKET_H=1 -DHAVE_UNISTD_H=1 -DHAVE__BOOL=1 -DHAVE_STDBOOL_H=1 -DHAVE_PTRDIFF_T=1 -DHAVE_STDLIB_H=1 -DHAVE_MALLOC=1 -DHAVE_BZERO=1 -DHAVE_FTRUNCATE=1 -DHAVE_MEMCHR=1 -DHAVE_MEMMOVE=1 -DHAVE_MEMSET=1 -DHAVE_SOCKET=1 -DHAVE_STRTOUL=1 -DHAVE_STRTOULL=1
 DEPDIR = .deps
@@ -156,7 +156,7 @@ target_alias =
 top_build_prefix = ../
 top_builddir = ..
 top_srcdir = ..
-rethinkdb_SOURCES = main.cc linux_io.cc event_queue.cc utils.cc worker_pool.cc server.cc cmd_args.cc message_hub.cc rwi_lock.cc cpu_context.cc
+rethinkdb_SOURCES = main.cc arch/linux_io.cc event_queue.cc utils.cc worker_pool.cc server.cc config/cmd_args.cc message_hub.cc concurrency/rwi_lock.cc cpu_context.cc
 all: all-am
 
 .SUFFIXES:
@@ -262,6 +262,48 @@ include ./$(DEPDIR)/worker_pool.Po
 #	source='$<' object='$@' libtool=no \
 #	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) \
 #	$(CXXCOMPILE) -c -o $@ `$(CYGPATH_W) '$<'`
+
+linux_io.o: arch/linux_io.cc
+	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT linux_io.o -MD -MP -MF $(DEPDIR)/linux_io.Tpo -c -o linux_io.o `test -f 'arch/linux_io.cc' || echo '$(srcdir)/'`arch/linux_io.cc
+	$(am__mv) $(DEPDIR)/linux_io.Tpo $(DEPDIR)/linux_io.Po
+#	source='arch/linux_io.cc' object='linux_io.o' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) \
+#	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o linux_io.o `test -f 'arch/linux_io.cc' || echo '$(srcdir)/'`arch/linux_io.cc
+
+linux_io.obj: arch/linux_io.cc
+	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT linux_io.obj -MD -MP -MF $(DEPDIR)/linux_io.Tpo -c -o linux_io.obj `if test -f 'arch/linux_io.cc'; then $(CYGPATH_W) 'arch/linux_io.cc'; else $(CYGPATH_W) '$(srcdir)/arch/linux_io.cc'; fi`
+	$(am__mv) $(DEPDIR)/linux_io.Tpo $(DEPDIR)/linux_io.Po
+#	source='arch/linux_io.cc' object='linux_io.obj' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) \
+#	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o linux_io.obj `if test -f 'arch/linux_io.cc'; then $(CYGPATH_W) 'arch/linux_io.cc'; else $(CYGPATH_W) '$(srcdir)/arch/linux_io.cc'; fi`
+
+cmd_args.o: config/cmd_args.cc
+	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT cmd_args.o -MD -MP -MF $(DEPDIR)/cmd_args.Tpo -c -o cmd_args.o `test -f 'config/cmd_args.cc' || echo '$(srcdir)/'`config/cmd_args.cc
+	$(am__mv) $(DEPDIR)/cmd_args.Tpo $(DEPDIR)/cmd_args.Po
+#	source='config/cmd_args.cc' object='cmd_args.o' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) \
+#	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o cmd_args.o `test -f 'config/cmd_args.cc' || echo '$(srcdir)/'`config/cmd_args.cc
+
+cmd_args.obj: config/cmd_args.cc
+	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT cmd_args.obj -MD -MP -MF $(DEPDIR)/cmd_args.Tpo -c -o cmd_args.obj `if test -f 'config/cmd_args.cc'; then $(CYGPATH_W) 'config/cmd_args.cc'; else $(CYGPATH_W) '$(srcdir)/config/cmd_args.cc'; fi`
+	$(am__mv) $(DEPDIR)/cmd_args.Tpo $(DEPDIR)/cmd_args.Po
+#	source='config/cmd_args.cc' object='cmd_args.obj' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) \
+#	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o cmd_args.obj `if test -f 'config/cmd_args.cc'; then $(CYGPATH_W) 'config/cmd_args.cc'; else $(CYGPATH_W) '$(srcdir)/config/cmd_args.cc'; fi`
+
+rwi_lock.o: concurrency/rwi_lock.cc
+	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT rwi_lock.o -MD -MP -MF $(DEPDIR)/rwi_lock.Tpo -c -o rwi_lock.o `test -f 'concurrency/rwi_lock.cc' || echo '$(srcdir)/'`concurrency/rwi_lock.cc
+	$(am__mv) $(DEPDIR)/rwi_lock.Tpo $(DEPDIR)/rwi_lock.Po
+#	source='concurrency/rwi_lock.cc' object='rwi_lock.o' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) \
+#	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o rwi_lock.o `test -f 'concurrency/rwi_lock.cc' || echo '$(srcdir)/'`concurrency/rwi_lock.cc
+
+rwi_lock.obj: concurrency/rwi_lock.cc
+	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT rwi_lock.obj -MD -MP -MF $(DEPDIR)/rwi_lock.Tpo -c -o rwi_lock.obj `if test -f 'concurrency/rwi_lock.cc'; then $(CYGPATH_W) 'concurrency/rwi_lock.cc'; else $(CYGPATH_W) '$(srcdir)/concurrency/rwi_lock.cc'; fi`
+	$(am__mv) $(DEPDIR)/rwi_lock.Tpo $(DEPDIR)/rwi_lock.Po
+#	source='concurrency/rwi_lock.cc' object='rwi_lock.obj' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) \
+#	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o rwi_lock.obj `if test -f 'concurrency/rwi_lock.cc'; then $(CYGPATH_W) 'concurrency/rwi_lock.cc'; else $(CYGPATH_W) '$(srcdir)/concurrency/rwi_lock.cc'; fi`
 
 ID: $(HEADERS) $(SOURCES) $(LISP) $(TAGS_FILES)
 	list='$(SOURCES) $(HEADERS) $(LISP) $(TAGS_FILES)'; \
