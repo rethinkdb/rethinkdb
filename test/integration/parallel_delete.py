@@ -7,7 +7,7 @@ import memcache
 from random import shuffle
 
 NUM_INTS=8000
-NUM_THREADS=1
+NUM_THREADS=32
 HOST="localhost"
 PORT="11211"
 
@@ -50,20 +50,14 @@ def rethinkdb_verify_empty(in_ints, out_ints):
     if(0 == mc.servers[0].connect()):
         print "Failed to connect"
     for i in out_ints:
-        print "Get(", i, ")"
-        val = mc.get(str(i))
-        print i, "=>", val
         if (mc.get(str(i))):
             print "Error, value %d is in the database when it shouldn't be" % i
             sys.exit(-1)
     for i in in_ints:
-        print "Get(", i, ")"
         val = mc.get(str(i))
-        print "."
-        print "%s => %s" % (str(i), val)
-#if str(i) != val:
-#            print "Error, incorrent value in the database! (%d=>%s)" % (i, val)
-#            sys.exit(-1)
+        if str(i) != val:
+            print "Error, incorrent value in the database! (%d=>%s)" % (i, val)
+            sys.exit(-1)
  
     mc.disconnect_all()
 

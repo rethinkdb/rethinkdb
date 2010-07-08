@@ -83,7 +83,7 @@ typename btree_delete_fsm<config_t>::transition_result_t btree_delete_fsm<config
 
     if(event == NULL) {
         // Acquire the actual root node
-        buf = transaction->acquire(node_id, rwi_read, this);
+        buf = transaction->acquire(node_id, rwi_write, this);
     } else {
         // We already tried to grab the root, and we're getting a
         // cache notification about it.
@@ -125,7 +125,7 @@ typename btree_delete_fsm<config_t>::transition_result_t btree_delete_fsm<config
     //assert((buf && !event) || (!buf && event));
 
     if (!event) {
-        buf = transaction->acquire(node_id, rwi_read, this);
+        buf = transaction->acquire(node_id, rwi_write, this);
     } else {
         assert(event->buf);
         buf = (buf_t*) event->buf;
@@ -146,7 +146,7 @@ typename btree_delete_fsm<config_t>::transition_result_t btree_delete_fsm<config
         node_t *last_node = (node_t *)last_buf->ptr();
 
         internal_node_handler::sibling(((internal_node_t*)last_node), key, &sib_node_id);
-        sib_buf = transaction->acquire(sib_node_id, rwi_read, this);
+        sib_buf = transaction->acquire(sib_node_id, rwi_write, this);
     } else {
         assert(event->buf);
         sib_buf = (buf_t*) event->buf;

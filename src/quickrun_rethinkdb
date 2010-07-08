@@ -4,4 +4,4 @@ make -j8
 if [ $? -ne 0 ]; then
     exit
 fi
-./rethinkdb -c 1 -p 11212
+./build/debug/rethinkdb -c 1 -p 11211

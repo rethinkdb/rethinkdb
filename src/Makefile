@@ -13,7 +13,7 @@ TAGS=.tags
 
 # Configure debug vs. release
 ifeq (${DEBUG},1)
-CXXFLAGS:=$(CXXFLAGS) -g
+CXXFLAGS:=$(CXXFLAGS) -g -DDELETE_DEBUG
 else
 CXXFLAGS:=$(CXXFLAGS) -O3 -DNDEBUG
 endif
