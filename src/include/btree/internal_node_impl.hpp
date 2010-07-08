@@ -50,7 +50,7 @@ int internal_node_handler::insert(btree_internal_node *node, btree_key *key, blo
     return 1; // XXX
 }
 
-bool internal_node_handler::remove(btree_internal_node *node, btree_key *key) {
+void internal_node_handler::remove(btree_internal_node *node, btree_key *key) {
 #ifndef NDEBUG
     printf("removing key\n");
     internal_node_handler::print(node);
@@ -65,8 +65,6 @@ bool internal_node_handler::remove(btree_internal_node *node, btree_key *key) {
     printf("\t|\n\t|\n\t|\n\tV\n");
     internal_node_handler::print(node);
 #endif
-
-    return true; // XXX
 }
 
 void internal_node_handler::split(btree_internal_node *node, btree_internal_node *rnode, btree_key *median) {
