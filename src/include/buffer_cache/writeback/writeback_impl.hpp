@@ -64,15 +64,19 @@ bool writeback_tmpl_t<config_t>::begin_transaction(transaction_t *txn) {
 template <class config_t>
 bool writeback_tmpl_t<config_t>::commit(transaction_t *txn,
         transaction_commit_callback_t *callback) {
-    if (!--num_txns && shutdown_callback != NULL) {
+    
+    num_txns --;
+    
+    if (txn->get_access() == rwi_write) {
+        flush_lock -> unlock();
+    }
+    
+    if (num_txns == 0 && shutdown_callback != NULL) {
         // All txns shut down, start final sync.
         sync(shutdown_callback);
     }
-    if (txn->get_access() == rwi_read)
-        return true;
-    flush_lock->unlock();
     
-    if (state == state_none) {
+    if (txn->get_access() == rwi_write && state == state_none) {
         /* At the end of every write transaction, check if the number of dirty blocks exceeds the
         threshold to force writeback to start. */
         if (num_dirty_blocks() > force_flush_threshold) {
@@ -84,13 +88,14 @@ bool writeback_tmpl_t<config_t>::commit(transaction_t *txn,
             safety_timer = get_cpu_context()->event_queue->
                 fire_timer_once(safety_timer_ms, safety_timer_callback, this);
         }
-    }   
+    }
     
-    if (!wait_for_flush)
+    if (txn->get_access() == rwi_write && wait_for_flush) {
+        txns.push_back(new txn_state_t(txn, callback));
+        return false;
+    } else {
         return true;
-    
-    txns.push_back(new txn_state_t(txn, callback));
-    return false;
+    }
 }
 
 template <class config_t>
