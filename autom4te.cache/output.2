@@ -619,6 +619,10 @@ CPPFLAGS
 LDFLAGS
 CXXFLAGS
 CXX
+CHK_VALGRIND_FALSE
+CHK_VALGRIND_TRUE
+CHK_DEBUG_FALSE
+CHK_DEBUG_TRUE
 am__untar
 am__tar
 AMTAR
@@ -2748,6 +2752,22 @@ am__tar='${AMTAR} chof - "$$tardir"'; am__untar='${AMTAR} xf -'
 
 
 
+
+ if test "$DEBUG" = 1; then
+  CHK_DEBUG_TRUE=
+  CHK_DEBUG_FALSE='#'
+else
+  CHK_DEBUG_TRUE='#'
+  CHK_DEBUG_FALSE=
+fi
+
+ if test "$VALGRIND" = 1; then
+  CHK_VALGRIND_TRUE=
+  CHK_VALGRIND_FALSE='#'
+else
+  CHK_VALGRIND_TRUE='#'
+  CHK_VALGRIND_FALSE=
+fi
 
 # Checks for C++ compiler.
 ac_ext=cpp
@@ -4973,6 +4993,14 @@ else
   am__EXEEXT_FALSE=
 fi
 
+if test -z "${CHK_DEBUG_TRUE}" && test -z "${CHK_DEBUG_FALSE}"; then
+  as_fn_error "conditional \"CHK_DEBUG\" was never defined.
+Usually this means the macro was only invoked conditionally." "$LINENO" 5
+fi
+if test -z "${CHK_VALGRIND_TRUE}" && test -z "${CHK_VALGRIND_FALSE}"; then
+  as_fn_error "conditional \"CHK_VALGRIND\" was never defined.
+Usually this means the macro was only invoked conditionally." "$LINENO" 5
+fi
 if test -z "${AMDEP_TRUE}" && test -z "${AMDEP_FALSE}"; then
   as_fn_error "conditional \"AMDEP\" was never defined.
 Usually this means the macro was only invoked conditionally." "$LINENO" 5

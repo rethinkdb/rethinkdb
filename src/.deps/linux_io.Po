@@ -47,12 +47,13 @@ linux_io.o: arch/linux_io.cc /usr/include/c++/4.4/algorithm \
  /usr/include/c++/4.4/bits/stl_vector.h \
  /usr/include/c++/4.4/bits/stl_bvector.h \
  /usr/include/c++/4.4/bits/vector.tcc /usr/include/assert.h \
- config/args.hpp config/code.hpp corefwd.hpp alloc/memalign.hpp utils.hpp \
- /usr/include/errno.h /usr/include/bits/errno.h \
- /usr/include/linux/errno.h /usr/include/asm/errno.h \
- /usr/include/asm-generic/errno.h /usr/include/asm-generic/errno-base.h \
- corefwd.hpp utils_impl.hpp /usr/include/c++/4.4/cstring \
- /usr/include/c++/4.4/string /usr/include/c++/4.4/bits/stringfwd.h \
+ config/args.hpp config/code.hpp corefwd.hpp alloc/memalign.hpp \
+ alloc/malloc.hpp utils.hpp /usr/include/errno.h \
+ /usr/include/bits/errno.h /usr/include/linux/errno.h \
+ /usr/include/asm/errno.h /usr/include/asm-generic/errno.h \
+ /usr/include/asm-generic/errno-base.h corefwd.hpp utils_impl.hpp \
+ /usr/include/c++/4.4/cstring /usr/include/c++/4.4/string \
+ /usr/include/c++/4.4/bits/stringfwd.h \
  /usr/include/c++/4.4/bits/char_traits.h \
  /usr/include/c++/4.4/bits/postypes.h /usr/include/c++/4.4/cwchar \
  /usr/include/bits/wchar.h /usr/include/c++/4.4/bits/localefwd.h \
@@ -247,6 +248,8 @@ config/code.hpp:
 corefwd.hpp:
 
 alloc/memalign.hpp:
+
+alloc/malloc.hpp:
 
 utils.hpp:
 

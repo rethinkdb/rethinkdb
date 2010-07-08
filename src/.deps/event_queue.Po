@@ -87,8 +87,8 @@ event_queue.o: event_queue.cc /usr/include/sys/epoll.h \
  /usr/include/c++/4.4/bits/ostream.tcc \
  /usr/include/c++/4.4/bits/istream.tcc \
  /usr/include/c++/4.4/bits/sstream.tcc config/args.hpp config/code.hpp \
- corefwd.hpp alloc/memalign.hpp /usr/include/string.h utils.hpp \
- corefwd.hpp utils_impl.hpp /usr/include/c++/4.4/cstring \
+ corefwd.hpp alloc/memalign.hpp /usr/include/string.h alloc/malloc.hpp \
+ utils.hpp corefwd.hpp utils_impl.hpp /usr/include/c++/4.4/cstring \
  /usr/include/c++/4.4/limits alloc/memalign.hpp alloc/pool.hpp \
  /usr/include/assert.h utils.hpp alloc/dynamic_pool.hpp \
  /usr/include/math.h /usr/include/bits/huge_val.h \
@@ -406,6 +406,8 @@ corefwd.hpp:
 alloc/memalign.hpp:
 
 /usr/include/string.h:
+
+alloc/malloc.hpp:
 
 utils.hpp:
 

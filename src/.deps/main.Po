@@ -32,8 +32,8 @@ main.o: main.cc /usr/include/stdio.h /usr/include/features.h \
  /usr/include/asm/errno.h /usr/include/asm-generic/errno.h \
  /usr/include/asm-generic/errno-base.h config/cmd_args.hpp \
  config/args.hpp config/code.hpp corefwd.hpp alloc/memalign.hpp \
- /usr/include/string.h utils.hpp corefwd.hpp utils_impl.hpp \
- /usr/include/c++/4.4/cstring \
+ /usr/include/string.h alloc/malloc.hpp utils.hpp corefwd.hpp \
+ utils_impl.hpp /usr/include/c++/4.4/cstring \
  /usr/include/c++/4.4/x86_64-linux-gnu/bits/c++config.h \
  /usr/include/c++/4.4/x86_64-linux-gnu/bits/os_defines.h \
  /usr/include/c++/4.4/x86_64-linux-gnu/bits/cpu_defines.h \
@@ -263,6 +263,8 @@ corefwd.hpp:
 alloc/memalign.hpp:
 
 /usr/include/string.h:
+
+alloc/malloc.hpp:
 
 utils.hpp:
 

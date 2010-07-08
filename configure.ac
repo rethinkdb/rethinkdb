@@ -5,6 +5,8 @@ AC_PREREQ([2.64])
 AC_INIT([rethinkdb], [0.1], [aditya@rethinkdb.com], [rethinkdb], [http://www.rethinkdb.com])
 AM_INIT_AUTOMAKE([1.10 no-define foreign])
 
+AM_CONDITIONAL(CHK_DEBUG, [test "$DEBUG" = 1])
+AM_CONDITIONAL(CHK_VALGRIND, [test "$VALGRIND" = 1])
 # Checks for C++ compiler.
 AC_PROG_CXX
 

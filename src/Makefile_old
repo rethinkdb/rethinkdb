@@ -52,7 +52,7 @@ $(SERVER_EXEC_NAME): $(OBJS)
 	$(quiet_ld) $(CXX) $(LDFLAGS) $(OBJS) -o $(SERVER_EXEC_NAME)
 	-mkdir -p $(BUILD_DIR)
 	mv $(SERVER_EXEC_NAME) $(BUILD_DIR)/$(SERVER_EXEC_NAME)
-	cp ../scripts/$(START_DB_NAME) $(BUILD_DIR)/$(START_DB_NAME)
+	cp ../scripts/$(START_DB_NAME) $(BUILD_DIR)/$(START_DBNAME)
 tags:
 	@ctags -R -f $(TAGS)
 

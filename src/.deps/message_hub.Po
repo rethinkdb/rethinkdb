@@ -13,15 +13,15 @@ message_hub.o: message_hub.cc /usr/include/sys/eventfd.h \
  /usr/include/sys/select.h /usr/include/bits/select.h \
  /usr/include/bits/sigset.h /usr/include/bits/time.h \
  /usr/include/sys/sysmacros.h /usr/include/bits/pthreadtypes.h \
- /usr/include/alloca.h /usr/include/string.h message_hub.hpp \
- /usr/include/pthread.h /usr/include/sched.h /usr/include/bits/sched.h \
- /usr/include/signal.h /usr/include/bits/setjmp.h /usr/include/assert.h \
- /usr/include/strings.h containers/intrusive_list.hpp utils.hpp \
- /usr/include/errno.h /usr/include/bits/errno.h \
- /usr/include/linux/errno.h /usr/include/asm/errno.h \
- /usr/include/asm-generic/errno.h /usr/include/asm-generic/errno-base.h \
- /usr/include/stdio.h /usr/include/libio.h /usr/include/_G_config.h \
- /usr/include/wchar.h \
+ /usr/include/alloca.h /usr/include/string.h alloc/malloc.hpp \
+ message_hub.hpp /usr/include/pthread.h /usr/include/sched.h \
+ /usr/include/bits/sched.h /usr/include/signal.h \
+ /usr/include/bits/setjmp.h /usr/include/assert.h /usr/include/strings.h \
+ containers/intrusive_list.hpp utils.hpp /usr/include/errno.h \
+ /usr/include/bits/errno.h /usr/include/linux/errno.h \
+ /usr/include/asm/errno.h /usr/include/asm-generic/errno.h \
+ /usr/include/asm-generic/errno-base.h /usr/include/stdio.h \
+ /usr/include/libio.h /usr/include/_G_config.h /usr/include/wchar.h \
  /usr/lib/gcc/x86_64-linux-gnu/4.4.1/include/stdarg.h \
  /usr/include/bits/stdio_lim.h /usr/include/bits/sys_errlist.h \
  corefwd.hpp utils_impl.hpp /usr/include/c++/4.4/cstring \
@@ -149,6 +149,8 @@ alloc/memalign.hpp:
 /usr/include/alloca.h:
 
 /usr/include/string.h:
+
+alloc/malloc.hpp:
 
 message_hub.hpp:
 

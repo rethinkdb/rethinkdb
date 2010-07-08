@@ -19,11 +19,12 @@ utils.o: utils.cc /usr/include/assert.h /usr/include/features.h \
  /usr/include/c++/4.4/x86_64-linux-gnu/bits/os_defines.h \
  /usr/include/c++/4.4/x86_64-linux-gnu/bits/cpu_defines.h \
  /usr/include/c++/4.4/exception config/args.hpp config/code.hpp \
- corefwd.hpp alloc/memalign.hpp utils.hpp /usr/include/errno.h \
- /usr/include/bits/errno.h /usr/include/linux/errno.h \
- /usr/include/asm/errno.h /usr/include/asm-generic/errno.h \
- /usr/include/asm-generic/errno-base.h /usr/include/stdio.h \
- /usr/include/libio.h /usr/include/_G_config.h /usr/include/wchar.h \
+ corefwd.hpp alloc/memalign.hpp alloc/malloc.hpp utils.hpp \
+ /usr/include/errno.h /usr/include/bits/errno.h \
+ /usr/include/linux/errno.h /usr/include/asm/errno.h \
+ /usr/include/asm-generic/errno.h /usr/include/asm-generic/errno-base.h \
+ /usr/include/stdio.h /usr/include/libio.h /usr/include/_G_config.h \
+ /usr/include/wchar.h \
  /usr/lib/gcc/x86_64-linux-gnu/4.4.1/include/stdarg.h \
  /usr/include/bits/stdio_lim.h /usr/include/bits/sys_errlist.h \
  corefwd.hpp utils_impl.hpp /usr/include/c++/4.4/cstring \
@@ -153,6 +154,8 @@ config/code.hpp:
 corefwd.hpp:
 
 alloc/memalign.hpp:
+
+alloc/malloc.hpp:
 
 utils.hpp:
 

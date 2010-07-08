@@ -75,11 +75,17 @@ CCDEPMODE = depmode=gcc3
 CFLAGS = -g -O2
 CPP = gcc -E
 CPPFLAGS = 
-CXX = g++
-CXXDEPMODE = depmode=gcc3
 
 # what flags you want to pass to the C compiler & linker
-CXXFLAGS = -I. -Iarch -Iconcurrency -Iconfig -Wall -Wextra -Wformat=2 -Wno-unused-parameter -Werror
+CXX := g++
+CXXDEPMODE = depmode=gcc3
+#CXXFLAGS := $(CXXFLAGS) -O3 -DNDEBUG
+
+# Configure debug vs. release
+# and build in the correct directory accordingly
+CXXFLAGS := $(CXXFLAGS) -g
+CXXFLAGS := $(CXXFLAGS) -DVALGRIND
+CXXFLAGS := $(CXXFLAGS) -I. -Wall -Wextra -Wformat=2 -Wno-unused-parameter -Werror
 CYGPATH_W = echo
 DEFS = -DPACKAGE_NAME=\"rethinkdb\" -DPACKAGE_TARNAME=\"rethinkdb\" -DPACKAGE_VERSION=\"0.1\" -DPACKAGE_STRING=\"rethinkdb\ 0.1\" -DPACKAGE_BUGREPORT=\"aditya@rethinkdb.com\" -DPACKAGE_URL=\"http://www.rethinkdb.com\" -DSTDC_HEADERS=1 -DHAVE_SYS_TYPES_H=1 -DHAVE_SYS_STAT_H=1 -DHAVE_STDLIB_H=1 -DHAVE_STRING_H=1 -DHAVE_MEMORY_H=1 -DHAVE_STRINGS_H=1 -DHAVE_INTTYPES_H=1 -DHAVE_STDINT_H=1 -DHAVE_UNISTD_H=1 -DHAVE_FCNTL_H=1 -DHAVE_NETINET_IN_H=1 -DHAVE_STDINT_H=1 -DHAVE_STDLIB_H=1 -DHAVE_STRING_H=1 -DHAVE_STRINGS_H=1 -DHAVE_SYS_SOCKET_H=1 -DHAVE_UNISTD_H=1 -DHAVE__BOOL=1 -DHAVE_STDBOOL_H=1 -DHAVE_PTRDIFF_T=1 -DHAVE_STDLIB_H=1 -DHAVE_MALLOC=1 -DHAVE_BZERO=1 -DHAVE_FTRUNCATE=1 -DHAVE_MEMCHR=1 -DHAVE_MEMMOVE=1 -DHAVE_MEMSET=1 -DHAVE_SOCKET=1 -DHAVE_STRTOUL=1 -DHAVE_STRTOULL=1
 DEPDIR = .deps
@@ -94,7 +100,7 @@ INSTALL_DATA = ${INSTALL} -m 644
 INSTALL_PROGRAM = ${INSTALL}
 INSTALL_SCRIPT = ${INSTALL}
 INSTALL_STRIP_PROGRAM = $(install_sh) -c -s
-LDFLAGS = -lrt -laio
+LDFLAGS := -lrt -laio
 LIBOBJS = 
 LIBS = 
 LTLIBOBJS = 
@@ -156,6 +162,10 @@ target_alias =
 top_build_prefix = ../
 top_builddir = ..
 top_srcdir = ..
+#BUILD_DIR := $(BUILD_DIR)/release
+BUILD_DIR := $(BUILD_DIR)/debug
+BUILD_DIR := build
+START_DB_NAME = start_rethinkdb
 rethinkdb_SOURCES = main.cc arch/linux_io.cc event_queue.cc utils.cc worker_pool.cc server.cc config/cmd_args.cc message_hub.cc concurrency/rwi_lock.cc cpu_context.cc
 all: all-am
 

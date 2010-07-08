@@ -75,11 +75,17 @@ CCDEPMODE = @CCDEPMODE@
 CFLAGS = @CFLAGS@
 CPP = @CPP@
 CPPFLAGS = @CPPFLAGS@
-CXX = @CXX@
-CXXDEPMODE = @CXXDEPMODE@
 
 # what flags you want to pass to the C compiler & linker
-CXXFLAGS = -I. -Iarch -Iconcurrency -Iconfig -Wall -Wextra -Wformat=2 -Wno-unused-parameter -Werror
+CXX := g++
+CXXDEPMODE = @CXXDEPMODE@
+@CHK_DEBUG_FALSE@CXXFLAGS := $(CXXFLAGS) -O3 -DNDEBUG
+
+# Configure debug vs. release
+# and build in the correct directory accordingly
+@CHK_DEBUG_TRUE@CXXFLAGS := $(CXXFLAGS) -g
+@CHK_VALGRIND_TRUE@CXXFLAGS := $(CXXFLAGS) -DVALGRIND
+CXXFLAGS := $(CXXFLAGS) -I. -Wall -Wextra -Wformat=2 -Wno-unused-parameter -Werror
 CYGPATH_W = @CYGPATH_W@
 DEFS = @DEFS@
 DEPDIR = @DEPDIR@
@@ -94,7 +100,7 @@ INSTALL_DATA = @INSTALL_DATA@
 INSTALL_PROGRAM = @INSTALL_PROGRAM@
 INSTALL_SCRIPT = @INSTALL_SCRIPT@
 INSTALL_STRIP_PROGRAM = @INSTALL_STRIP_PROGRAM@
-LDFLAGS = -lrt -laio
+LDFLAGS := -lrt -laio
 LIBOBJS = @LIBOBJS@
 LIBS = @LIBS@
 LTLIBOBJS = @LTLIBOBJS@
@@ -156,6 +162,10 @@ target_alias = @target_alias@
 top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
+@CHK_DEBUG_FALSE@BUILD_DIR := $(BUILD_DIR)/release
+@CHK_DEBUG_TRUE@BUILD_DIR := $(BUILD_DIR)/debug
+BUILD_DIR := build
+START_DB_NAME = start_rethinkdb
 rethinkdb_SOURCES = main.cc arch/linux_io.cc event_queue.cc utils.cc worker_pool.cc server.cc config/cmd_args.cc message_hub.cc concurrency/rwi_lock.cc cpu_context.cc
 all: all-am
 
