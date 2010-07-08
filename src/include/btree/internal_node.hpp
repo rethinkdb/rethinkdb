@@ -18,9 +18,9 @@ struct btree_internal_node : public btree_node {
     uint16_t pair_offsets[0];
 };
 
-typedef btree_internal_node internal_node_t;
-
 class internal_key_comp;
+
+typedef btree_internal_node internal_node_t;
 
 class internal_node_handler : public node_handler {
     friend class internal_key_comp;
@@ -28,14 +28,22 @@ class internal_node_handler : public node_handler {
     static void init(btree_internal_node *node);
     static void init(btree_internal_node *node, btree_internal_node *lnode, uint16_t *offsets, int numpairs);
 
-    static int insert(btree_internal_node *node, btree_key *key, block_id_t lnode, block_id_t rnode);
     static block_id_t lookup(btree_internal_node *node, btree_key *key);
-    static void split(btree_internal_node *node, btree_internal_node *rnode, btree_key *median);
+    static int insert(btree_internal_node *node, btree_key *key, block_id_t lnode, block_id_t rnode);
     static bool remove(btree_internal_node *node, btree_key *key);
-
+    static void split(btree_internal_node *node, btree_internal_node *rnode, btree_key *median);
+    static void merge(btree_internal_node *node, btree_internal_node *rnode, btree_key *key_to_remove, btree_internal_node *parent);
+    static bool level(btree_internal_node *node, btree_internal_node *rnode, btree_key *key_to_replace, btree_key *replacement_key, btree_internal_node *parent);
+    static int sibling(btree_internal_node *node, btree_key *key, block_id_t *sib_id);
+    static void update_key(btree_internal_node *node, btree_key *key_to_replace, btree_key *replacement_key);
+    static int nodecmp(btree_internal_node *node1, btree_internal_node *node2);
     static bool is_full(btree_internal_node *node);
+    static bool is_underfull(btree_internal_node *node);
+    static bool is_mergable(btree_internal_node *node, btree_internal_node *sibling, btree_internal_node *parent);
+    static bool is_singleton(btree_internal_node *node);
 
     static void validate(btree_internal_node *node);
+    static void print(btree_internal_node *node);
 
     protected:
     static size_t pair_size(btree_internal_pair *pair);

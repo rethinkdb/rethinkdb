@@ -9,6 +9,7 @@
 #include "config/code.hpp"
 #include "utils.hpp"
 #include <algorithm>
+#include "btree/node.hpp"
 
 int get_cpu_count() {
     return sysconf(_SC_NPROCESSORS_ONLN);
@@ -71,4 +72,3 @@ void *_gmalloc(size_t size) {
 void _gfree(void *ptr) {
     free(ptr);
 }
-
