@@ -10,7 +10,7 @@ from time import sleep
 NUM_INTS=8000
 NUM_THREADS=1
 HOST="localhost"
-PORT="11212"
+PORT="11211"
 
 # TODO: when we add more integration tests, the act of starting a
 # RethinkDB process should be handled by a common external script.
