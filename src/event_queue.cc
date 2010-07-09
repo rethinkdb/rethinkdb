@@ -353,8 +353,12 @@ event_queue_t::event_queue_t(int queue_id, int _nqueues, event_handler_t event_h
     watch_resource(this->itc_pipe[0], eo_read, (void*)this->itc_pipe[0]);
     
     // Init the cache
-    cache = gnew<cache_t>(BTREE_BLOCK_SIZE, cmd_config->max_cache_size / nqueues,
-                          cmd_config->wait_for_flush, cmd_config->safety_timer_ms);
+    cache = gnew<cache_t>(
+        BTREE_BLOCK_SIZE,
+        cmd_config->max_cache_size / nqueues,
+        cmd_config->wait_for_flush,
+        cmd_config->flush_timer_ms,
+        cmd_config->flush_threshold_percent);
     typedef std::basic_string<char, std::char_traits<char>, gnew_alloc<char> > rdbstring_t;
     typedef std::basic_stringstream<char, std::char_traits<char>, gnew_alloc<char> > rdbstringstream_t;
     rdbstringstream_t out;

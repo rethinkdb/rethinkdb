@@ -62,15 +62,18 @@
 #define TIMER_TICKS_IN_MS                         50
 
 // How many milliseconds to allow changes to sit in memory before flushing to disk
-#define DEFAULT_SAFETY_TIMER_MS                   5000
+#define DEFAULT_FLUSH_TIMER_MS                    5000
+
+// If the number of dirty buffers is more than X% of the maximum number of buffers allowed, then
+// writeback will be started. DEFAULT_FLUSH_THRESHOLD_PERCENT is the default value of X.
+#define DEFAULT_FLUSH_THRESHOLD_PERCENT           30
+
+// How many times the page replacement algorithm tries to find an eligible page before giving up
+#define PAGE_REPL_NUM_TRIES                       3
 
 //Any values of this size or less will be directly stored in btree leaf nodes.
 //Values greater than this size will be stored in overflow blocks.
 #define MAX_IN_NODE_VALUE_SIZE                    250
-
-// TODO: This is no longer relevant
-// How many milliseconds between page replacements
-#define PAGE_REPL_INTERVAL_MS                     3000
 
 // Perform allocator GC every N milliseconds (the resolution is limited to TIMER_TICKS_IN_MS)
 #define ALLOC_GC_INTERVAL_MS                      3000

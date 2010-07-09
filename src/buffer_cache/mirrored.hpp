@@ -168,7 +168,8 @@ public:
             size_t _block_size,
             size_t _max_size,
             bool wait_for_flush,
-            unsigned int safety_timer_ms) : 
+            unsigned int flush_timer_ms,
+            unsigned int flush_threshold_percent) : 
         serializer_t(_block_size),
         page_repl_t(
             // Launch page replacement if the user-specified maximum number of block is reached
@@ -178,10 +179,8 @@ public:
         writeback_t(
             this,
             wait_for_flush,
-            safety_timer_ms,
-            // Force writeback if more than 1/3 of the maximum number of blocks are dirty.
-            // TODO: Make this configurable, and make it possible to disable it
-            _max_size / _block_size / 3)
+            flush_timer_ms,
+            _max_size / _block_size * flush_threshold_percent / 100)
 #ifndef NDEBUG
         , n_trans_created(0), n_trans_freed(0),
         n_blocks_acquired(0), n_blocks_released(0)

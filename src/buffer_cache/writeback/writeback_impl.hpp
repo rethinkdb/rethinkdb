@@ -6,12 +6,12 @@ template <class config_t>
 writeback_tmpl_t<config_t>::writeback_tmpl_t(
         cache_t *cache,
         bool wait_for_flush,
-        unsigned int safety_timer_ms,
-        unsigned int force_flush_threshold)
-    : safety_timer(NULL),
+        unsigned int flush_timer_ms,
+        unsigned int flush_threshold)
+    : flush_timer(NULL),
       wait_for_flush(wait_for_flush),
-      safety_timer_ms(safety_timer_ms),
-      force_flush_threshold(force_flush_threshold),
+      flush_timer_ms(flush_timer_ms),
+      flush_threshold(flush_threshold),
       cache(cache),
       num_txns(0),
       start_next_sync_immediately(false),
@@ -98,14 +98,14 @@ bool writeback_tmpl_t<config_t>::commit(transaction_t *txn) {
     if (txn->get_access() == rwi_write) {
         /* At the end of every write transaction, check if the number of dirty blocks exceeds the
         threshold to force writeback to start. */
-        if (num_dirty_blocks() > force_flush_threshold) {
+        if (num_dirty_blocks() > flush_threshold) {
             sync(NULL);
         }
-        /* Otherwise, start the safety timer so that the modified data doesn't sit in memory for too
+        /* Otherwise, start the flush timer so that the modified data doesn't sit in memory for too
         long without being written to disk. */
-        else if (!safety_timer && safety_timer_ms != NEVER_FLUSH) {
-            safety_timer = get_cpu_context()->event_queue->
-                fire_timer_once(safety_timer_ms, safety_timer_callback, this);
+        else if (!flush_timer && flush_timer_ms != NEVER_FLUSH) {
+            flush_timer = get_cpu_context()->event_queue->
+                fire_timer_once(flush_timer_ms, flush_timer_callback, this);
         }
     }
     
@@ -157,9 +157,9 @@ void writeback_tmpl_t<config_t>::local_buf_t::set_dirty(buf_t *super) {
 }
 
 template <class config_t>
-void writeback_tmpl_t<config_t>::safety_timer_callback(void *ctx) {
+void writeback_tmpl_t<config_t>::flush_timer_callback(void *ctx) {
     writeback_tmpl_t *self = static_cast<writeback_tmpl_t *>(ctx);
-    self->safety_timer = NULL;
+    self->flush_timer = NULL;
     
     self->sync(NULL);
 }
@@ -181,11 +181,11 @@ void writeback_tmpl_t<config_t>::writeback(buf_t *buf) {
         
         assert(buf == NULL);
         
-        // Cancel the safety timer because we're doing writeback now, so we don't need it to remind
+        // Cancel the flush timer because we're doing writeback now, so we don't need it to remind
         // us later
-        if (safety_timer) {
-            get_cpu_context()->event_queue->cancel_timer(safety_timer);
-            safety_timer = NULL;
+        if (flush_timer) {
+            get_cpu_context()->event_queue->cancel_timer(flush_timer);
+            flush_timer = NULL;
         }
         
         /* Start a read transaction so we can request bufs. */

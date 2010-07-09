@@ -34,35 +34,35 @@ public:
     // make_space tries to make sure that the number of blocks currently in memory is at least
     // 'space_needed' less than the user-specified memory limit.
     void make_space(unsigned int space_needed) {
-    	
-    	unsigned int target;
-    	if (space_needed > unload_threshold) target = unload_threshold;
-    	else target = unload_threshold - space_needed;
-    	    	
-    	while (page_map->num_blocks() > target) {
-    	    		
-    		// Try to find a block we can unload. Blocks are ineligible to be unloaded if they are
-    		// dirty or in use.
-    		buf_t *block_to_unload = NULL;
-    		for (int tries = 3; tries > 0; tries --) {
-    			buf_t *block = page_map->get_random_block();
-    			assert(block);
-    			if (block->safe_to_unload()) {
-    			    block_to_unload = block;
-    			    break;
-    			}
-    		}
-    		
-    		if (block_to_unload) {
-    			cache->do_unload_buf(block_to_unload);
-    		} else {
+        
+        unsigned int target;
+        if (space_needed > unload_threshold) target = unload_threshold;
+        else target = unload_threshold - space_needed;
+                
+        while (page_map->num_blocks() > target) {
+                    
+            // Try to find a block we can unload. Blocks are ineligible to be unloaded if they are
+            // dirty or in use.
+            buf_t *block_to_unload = NULL;
+            for (int tries = PAGE_REPL_NUM_TRIES; tries > 0; tries --) {
+                buf_t *block = page_map->get_random_block();
+                assert(block);
+                if (block->safe_to_unload()) {
+                    block_to_unload = block;
+                    break;
+                }
+            }
+            
+            if (block_to_unload) {
+                cache->do_unload_buf(block_to_unload);
+            } else {
 #ifndef NDEBUG
-    			printf("thread %d exceeding memory target. %d blocks in memory, %d dirty, target is %d.\n",
-    			    get_cpu_context()->event_queue->queue_id, page_map->num_blocks(), cache->num_dirty_blocks(), target);
+                printf("thread %d exceeding memory target. %d blocks in memory, %d dirty, target is %d.\n",
+                    get_cpu_context()->event_queue->queue_id, page_map->num_blocks(), cache->num_dirty_blocks(), target);
 #endif
-    			break;
-    		}
-    	}
+                break;
+            }
+        }
     }
     
 private:

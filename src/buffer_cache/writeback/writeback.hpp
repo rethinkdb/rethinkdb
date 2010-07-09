@@ -5,7 +5,7 @@
 #include "concurrency/rwi_lock.hpp"
 #include "utils.hpp"
 
-// TODO: What about safety_timer_ms=0 (flush on every transaction)?
+// TODO: What about flush_timer_ms=0 (flush on every transaction)?
 
 template <class config_t>
 struct writeback_tmpl_t : public lock_available_callback_t {
@@ -17,8 +17,8 @@ public:
     writeback_tmpl_t(
         cache_t *cache,
         bool wait_for_flush,
-        unsigned int safety_timer_ms,
-        unsigned int force_flush_threshold);
+        unsigned int flush_timer_ms,
+        unsigned int flush_threshold);
     virtual ~writeback_tmpl_t();
 
     void start();
@@ -72,11 +72,11 @@ private:
     };
     
     // The writeback system has a mechanism to keep data safe if the server crashes. If modified
-    // data sits in memory for longer than safety_timer_ms milliseconds, a writeback will be
-    // automatically started to store it on disk. safety_timer is the timer to keep track of how
+    // data sits in memory for longer than flush_timer_ms milliseconds, a writeback will be
+    // automatically started to store it on disk. flush_timer is the timer to keep track of how
     // much longer the data can sit in memory.
-    event_queue_t::timer_t *safety_timer;
-    static void safety_timer_callback(void *ctx);
+    event_queue_t::timer_t *flush_timer;
+    static void flush_timer_callback(void *ctx);
 
     virtual void on_lock_available();
     void writeback(buf_t *buf);
@@ -84,8 +84,8 @@ private:
     /* User-controlled settings. */
     
     bool wait_for_flush;
-    int safety_timer_ms;
-    unsigned int force_flush_threshold;
+    int flush_timer_ms;
+    unsigned int flush_threshold;   // Number of blocks, not percentage
 
     /* Internal variables used at all times. */
     
