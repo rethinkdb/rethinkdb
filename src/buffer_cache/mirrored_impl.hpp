@@ -84,7 +84,10 @@ void buf<config_t>::deadlock_debug() {
 template <class config_t>
 transaction<config_t>::transaction(cache_t *cache, access_t access,
         transaction_begin_callback_t *callback)
-    : cache(cache), access(access), state(state_open) {
+    : cache(cache),
+      access(access),
+      commit_callback(NULL),
+      state(state_open) {
 #ifndef NDEBUG
     event_queue = get_cpu_context()->event_queue;
 #endif
@@ -103,19 +106,20 @@ transaction<config_t>::~transaction() {
 template <class config_t>
 bool transaction<config_t>::commit(transaction_commit_callback_t *callback) {
     assert(state == state_open);
-    bool res = cache->commit(this, callback);
+    assert(!commit_callback);
+    commit_callback = callback;
+    bool res = cache->commit(this);
     state = res ? state_committed : state_committing;
-    if (res)
-        delete this;
+    if (res) delete this;
     return res;
 }
 
 template <class config_t>
-void transaction<config_t>::committed(transaction_commit_callback_t *callback) {
+void transaction<config_t>::on_sync() {
     assert(state == state_committing);
     state = state_committed;
     // TODO(NNW): We should push notifications through event queue.
-    callback->on_txn_commit(this);
+    commit_callback->on_txn_commit(this);
     delete this;
 }
 

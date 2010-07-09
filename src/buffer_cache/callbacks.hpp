@@ -25,7 +25,7 @@ struct transaction_commit_callback {
 };
 
 template <class config_t>
-struct sync_callback {
+struct sync_callback : public intrusive_list_node_t<sync_callback<config_t> > {
     virtual ~sync_callback() {}
     virtual void on_sync() = 0;
 };
