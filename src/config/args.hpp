@@ -61,12 +61,14 @@
 // Ticks (in milliseconds) the internal timed tasks are performed at
 #define TIMER_TICKS_IN_MS                         50
 
-// How many milliseconds between flushes.
-#define DEFAULT_WRITEBACK_INTERVAL_MS             5000
+// How many milliseconds to allow changes to sit in memory before flushing to disk
+#define DEFAULT_SAFETY_TIMER_MS                   5000
 
 //Any values of this size or less will be directly stored in btree leaf nodes.
 //Values greater than this size will be stored in overflow blocks.
 #define MAX_IN_NODE_VALUE_SIZE                    250
+
+// TODO: This is no longer relevant
 // How many milliseconds between page replacements
 #define PAGE_REPL_INTERVAL_MS                     3000
 

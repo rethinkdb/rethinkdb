@@ -56,10 +56,30 @@ public:
 
     void pull_messages_for_cpu(message_hub_t::msg_list_t *target);
 
-    void  add_timer(long ms, void (*callback)(void *ctx), void *ctx);
-    void fire_timer_once(long ms, void (*callback)(void *ctx), void *ctx);
-
     virtual void on_sync();
+
+public:
+    struct timer_t : public intrusive_list_node_t<timer_t>,
+                     public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, timer_t> {
+    protected:
+        // If 'false', the timer is repeating
+        bool once;
+        
+        // If a repeating timer, this is the time between 'rings'
+        long interval_ms;
+        
+        // This is the time (in ms since the server started) of the next 'ring'
+        long next_time_in_ms;
+        
+        void (*callback)(void *ctx);
+        void *context;
+        
+        friend class event_queue_t;
+    };
+    
+    timer_t *add_timer(long ms, void (*callback)(void *ctx), void *ctx);
+    timer_t *fire_timer_once(long ms, void (*callback)(void *ctx), void *ctx);
+    void cancel_timer(timer_t *timer);
 
 public:
     // TODO: be clear on what should and shouldn't be public here
@@ -68,7 +88,7 @@ public:
     io_context_t aio_context;
     resource_t aio_notify_fd, core_notify_fd;
     resource_t timer_fd;
-    long total_expirations;
+    long timer_ticks_since_server_startup;
     pthread_t epoll_thread;
     resource_t epoll_fd;
     resource_t itc_pipe[2];
@@ -87,23 +107,19 @@ public:
     cache_t *cache;
 
     io_calls_t iosys;
-    
+
+#ifndef NDEBUG
     // Print debugging information designed to resolve a deadlock
     void deadlock_debug();
+#endif
     
 private:
-    struct timer_t : public intrusive_list_node_t<timer_t>,
-                     public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, timer_t> {
-        bool once;
-        long interval_ms;
-        void (*callback)(void *ctx);
-        void *context;
-    };
+    
 
     static void *epoll_handler(void *ctx);
     void process_timer_notify();
     static void garbage_collect(void *ctx);
-    void add_timer_internal(long ms, void (*callback)(void *ctx), void *ctx, bool once);
+    timer_t *add_timer_internal(long ms, void (*callback)(void *ctx), void *ctx, bool once);
 
     intrusive_list_t<timer_t> timers;
 };

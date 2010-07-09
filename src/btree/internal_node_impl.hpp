@@ -3,8 +3,9 @@
 
 #include "btree/internal_node.hpp"
 #include <algorithm>
+#include "utils.hpp"
 
-//#define DEBUG_MAX_INTERNAL 4
+//#define DEBUG_MAX_INTERNAL 8
 
 //In this tree, less than or equal takes the left-hand branch and greater than takes the right hand branch
 
@@ -21,6 +22,11 @@ void internal_node_handler::init(btree_internal_node *node, btree_internal_node 
     }
     node->npairs += numpairs;
     std::sort(node->pair_offsets, node->pair_offsets+node->npairs, internal_key_comp(node));
+}
+
+block_id_t internal_node_handler::lookup(btree_internal_node *node, btree_key *key) {
+    int index = get_offset_index(node, key);
+    return get_pair(node, node->pair_offsets[index])->lnode;
 }
 
 int internal_node_handler::insert(btree_internal_node *node, btree_key *key, block_id_t lnode, block_id_t rnode) {
@@ -44,9 +50,23 @@ int internal_node_handler::insert(btree_internal_node *node, btree_key *key, blo
     return 1; // XXX
 }
 
-block_id_t internal_node_handler::lookup(btree_internal_node *node, btree_key *key) {
+bool internal_node_handler::remove(btree_internal_node *node, btree_key *key) {
+#ifdef DELETE_DEBUG
+    printf("removing key\n");
+    internal_node_handler::print(node);
+#endif
     int index = get_offset_index(node, key);
-    return get_pair(node, node->pair_offsets[index])->lnode;
+    delete_pair(node, node->pair_offsets[index]);
+    delete_offset(node, index);
+
+    if (index == node->npairs)
+        make_last_pair_special(node);
+#ifdef DELETE_DEBUG
+    printf("\t|\n\t|\n\t|\n\tV\n");
+    internal_node_handler::print(node);
+#endif
+
+    return true; // XXX
 }
 
 void internal_node_handler::split(btree_internal_node *node, btree_internal_node *rnode, btree_key *median) {
@@ -76,15 +96,163 @@ void internal_node_handler::split(btree_internal_node *node, btree_internal_node
     make_last_pair_special(node);
 }
 
-bool internal_node_handler::remove(btree_internal_node *node, btree_key *key) {
+void internal_node_handler::merge(btree_internal_node *node, btree_internal_node *rnode, btree_key *key_to_remove, btree_internal_node *parent) {
+#ifdef DELETE_DEBUG
+    printf("merging\n");
+    printf("node:\n");
+    internal_node_handler::print(node);
+    printf("rnode:\n");
+    internal_node_handler::print(rnode);
+#endif
+    //TODO: add asserts
+    memmove(rnode->pair_offsets + node->npairs, rnode->pair_offsets, rnode->npairs * sizeof(*rnode->pair_offsets));
+
+    for (int i = 0; i < node->npairs-1; i++) { // the last pair is special
+        rnode->pair_offsets[i] = insert_pair(rnode, get_pair(node, node->pair_offsets[i]));
+    }
+    // get the key in parent which points to node
+    btree_key *key_from_parent = &get_pair(parent, parent->pair_offsets[get_offset_index(parent, &get_pair(node, node->pair_offsets[0])->key)])->key;
+    rnode->pair_offsets[node->npairs-1] = insert_pair(rnode, get_pair(node, node->pair_offsets[node->npairs-1])->lnode, key_from_parent);
+    rnode->npairs += node->npairs;
+
+    keycpy(key_to_remove, &get_pair(rnode, rnode->pair_offsets[0])->key);
+#ifdef DELETE_DEBUG
+    printf("\t|\n\t|\n\t|\n\tV\n");
+    printf("node:\n");
+    internal_node_handler::print(node);
+    printf("rnode:\n");
+    internal_node_handler::print(rnode);
+#endif
+}
+
+bool internal_node_handler::level(btree_internal_node *node, btree_internal_node *sibling, btree_key *key_to_replace, btree_key *replacement_key, btree_internal_node *parent) {
+    //Note: size does not take into account offsets
+#ifdef DELETE_DEBUG
+    printf("levelling\n");
+    printf("node:\n");
+    internal_node_handler::print(node);
+    printf("sibling:\n");
+    internal_node_handler::print(sibling);
+#endif
+#ifndef DEBUG_MAX_INTERNAL
+    uint16_t node_size = BTREE_BLOCK_SIZE - node->frontmost_offset;
+    uint16_t sibling_size = BTREE_BLOCK_SIZE - sibling->frontmost_offset;
+    int optimal_adjustment = (int) (sibling_size - node_size) / 2;
+#endif
+
+    if (nodecmp(node, sibling) < 0) {
+#ifndef DEBUG_MAX_INTERNAL
+        int index = -1;
+        while (optimal_adjustment > 0) {
+            optimal_adjustment -= pair_size(get_pair(sibling, sibling->pair_offsets[++index]));
+        }
+#else
+        int index = (sibling->npairs - node->npairs) / 2;
+#endif
+        check("could not level nodes", index < 0);
+        if (index == 0) return false;
+        // Move key from parent to end of node
+        btree_key *key_from_parent = &get_pair(parent, parent->pair_offsets[get_offset_index(parent, &get_pair(node, node->pair_offsets[0])->key)])->key;
+        block_id_t last_offset = get_pair(node, node->pair_offsets[node->npairs-1])->lnode;
+        delete_pair(node, node->pair_offsets[node->npairs-1]);
+        node->pair_offsets[node->npairs-1] = insert_pair(node, last_offset, key_from_parent);
+        //copy from beginning of sibling to end of node
+        for (int i = 0; i < index; i++) {
+            node->pair_offsets[node->npairs+i] = insert_pair(node, get_pair(sibling, sibling->pair_offsets[i]));
+        }
+        node->npairs += index;
+
+        //TODO: Make this more efficient.  Currently this loop involves repeated memmoves.
+        for (int i = 0; i < index; i++) {
+            delete_pair(sibling, sibling->pair_offsets[0]);
+            delete_offset(sibling, 0);
+        }
+
+        keycpy(key_to_replace, &get_pair(node, node->pair_offsets[0])->key);
+        keycpy(replacement_key, &get_pair(node, node->pair_offsets[node->npairs-1])->key);
+        make_last_pair_special(node);
+    } else {
+        btree_key *key_from_parent = &get_pair(parent, parent->pair_offsets[get_offset_index(parent, &get_pair(sibling, sibling->pair_offsets[0])->key)])->key;
+
+        
+#ifndef DEBUG_MAX_INTERNAL
+        int index = sibling->npairs;
+        optimal_adjustment -= sizeof(btree_internal_pair) + key_from_parent->size;
+        index--;
+        while (optimal_adjustment > 0) {
+            optimal_adjustment -= pair_size(get_pair(sibling, sibling->pair_offsets[--index]));
+        }
+#else
+        int index = sibling->npairs - (sibling->npairs - node->npairs) / 2;
+#endif
+        int pairs_to_move = sibling->npairs - index;
+        check("could not level nodes", pairs_to_move < 0);
+        if (pairs_to_move == 0) return false;
+
+        // bring key from parent down into the last sibling pair
+        block_id_t last_offset = get_pair(sibling, sibling->pair_offsets[sibling->npairs-1])->lnode;
+        delete_pair(sibling, sibling->pair_offsets[sibling->npairs-1]);
+        sibling->pair_offsets[sibling->npairs-1] = insert_pair(sibling, last_offset, key_from_parent);
+
+        //copy from end of sibling to beginning of node
+        memmove(node->pair_offsets + pairs_to_move, node->pair_offsets, node->npairs * sizeof(*node->pair_offsets));
+        for (int i = index; i < sibling->npairs; i++) {
+            node->pair_offsets[i-index] = insert_pair(node, get_pair(sibling, sibling->pair_offsets[i]));
+        }
+        node->npairs += pairs_to_move;
+
+        //TODO: Make this more efficient.  Currently this loop involves repeated memmoves.
+        while (index < sibling->npairs) {
+            delete_pair(sibling, sibling->pair_offsets[index]); //decrements sibling->npairs
+            delete_offset(sibling, index);
+        }
+
+        keycpy(key_to_replace, &get_pair(sibling, sibling->pair_offsets[0])->key);
+        keycpy(replacement_key, &get_pair(sibling, sibling->pair_offsets[sibling->npairs-1])->key);
+        make_last_pair_special(sibling);
+    }
+
+#ifdef DELETE_DEBUG
+    printf("\t|\n\t|\n\t|\n\tV\n");
+    printf("node:\n");
+    internal_node_handler::print(node);
+    printf("sibling:\n");
+    internal_node_handler::print(sibling);
+#endif
+    return true;
+}
+
+int internal_node_handler::sibling(btree_internal_node *node, btree_key *key, block_id_t *sib_id) {
     int index = get_offset_index(node, key);
+    btree_internal_pair *sib_pair;
+    int cmp;
+    if (index > 0) {
+        sib_pair = get_pair(node, node->pair_offsets[index-1]);
+        cmp = 1;
+    } else {
+        sib_pair = get_pair(node, node->pair_offsets[index+1]);
+        cmp = -1;
+    }
 
-    make_last_pair_special(node);
+    *sib_id = sib_pair->lnode;
+    return cmp; //equivalent to nodecmp(node, sibling)
+}
 
+void internal_node_handler::update_key(btree_internal_node *node, btree_key *key_to_replace, btree_key *replacement_key) {
+#ifdef DELETE_DEBUG
+    printf("updating key\n");
+    internal_node_handler::print(node);
+#endif
+    int index = get_offset_index(node, key_to_replace);
+    block_id_t tmp_lnode = get_pair(node, node->pair_offsets[index])->lnode;
     delete_pair(node, node->pair_offsets[index]);
-    delete_offset(node, index);
+    node->pair_offsets[index] = insert_pair(node, tmp_lnode, replacement_key);
+#ifdef DELETE_DEBUG
+    printf("\t|\n\t|\n\t|\n\tV\n");
+    internal_node_handler::print(node);
+#endif
 
-    return true; // XXX
+    check("Invalid key given to update_key: offsets no longer in sorted order", !is_sorted(node->pair_offsets, node->pair_offsets+node->npairs, internal_key_comp(node)));
 }
 
 bool internal_node_handler::is_full(btree_internal_node *node) {
@@ -92,11 +260,40 @@ bool internal_node_handler::is_full(btree_internal_node *node) {
     if (node->npairs-1 >= DEBUG_MAX_INTERNAL)
         return true;
 #endif
-    return sizeof(btree_internal_node) + node->npairs*sizeof(*node->pair_offsets) + sizeof(btree_internal_pair) + MAX_KEY_SIZE >= node->frontmost_offset;
+    return sizeof(btree_internal_node) + (node->npairs + 1) * sizeof(*node->pair_offsets) + sizeof(btree_internal_pair) + MAX_KEY_SIZE >= node->frontmost_offset;
 }
 
 void internal_node_handler::validate(btree_internal_node *node) {
     assert((void*)&(node->pair_offsets[node->npairs]) <= (void*)get_pair(node, node->frontmost_offset));
+}
+
+bool internal_node_handler::is_underfull(btree_internal_node *node) {
+#ifdef DEBUG_MAX_INTERNAL
+   return node->npairs < (DEBUG_MAX_INTERNAL + 1) / 2;
+#endif
+    return (sizeof(btree_internal_node) + 1) / 2 + 
+        node->npairs*sizeof(*node->pair_offsets) +
+        (BTREE_BLOCK_SIZE - node->frontmost_offset) < BTREE_BLOCK_SIZE / 2;
+}
+
+bool internal_node_handler::is_mergable(btree_internal_node *node, btree_internal_node *sibling, btree_internal_node *parent) {
+#ifdef DEBUG_MAX_INTERNAL
+   return node->npairs + sibling->npairs < DEBUG_MAX_INTERNAL;
+#endif
+   btree_key *key_from_parent;
+   if (nodecmp(node, sibling) < 0) {
+       key_from_parent = &get_pair(parent, parent->pair_offsets[get_offset_index(parent, &get_pair(node, node->pair_offsets[0])->key)])->key;
+   } else {
+       key_from_parent = &get_pair(parent, parent->pair_offsets[get_offset_index(parent, &get_pair(sibling, sibling->pair_offsets[0])->key)])->key;
+   }
+    return sizeof(btree_internal_node) + 
+        (node->npairs + sibling->npairs)*sizeof(*node->pair_offsets) +
+        (BTREE_BLOCK_SIZE - node->frontmost_offset) +
+        (BTREE_BLOCK_SIZE - sibling->frontmost_offset) + key_from_parent->size < BTREE_BLOCK_SIZE;
+}
+
+bool internal_node_handler::is_singleton(btree_internal_node *node) {
+    return node->npairs == 2;
 }
 
 size_t internal_node_handler::pair_size(btree_internal_pair *pair) {
@@ -171,6 +368,31 @@ void internal_node_handler::make_last_pair_special(btree_internal_node *node) {
 
 bool internal_node_handler::is_equal(btree_key *key1, btree_key *key2) {
     return sized_strcmp(key1->contents, key1->size, key2->contents, key2->size) == 0;
+}
+
+int internal_node_handler::nodecmp(btree_internal_node *node1, btree_internal_node *node2) {
+    btree_key *key1 = &get_pair(node1, node1->pair_offsets[0])->key;
+    btree_key *key2 = &get_pair(node2, node2->pair_offsets[0])->key;
+
+    return sized_strcmp(key1->contents, key1->size, key2->contents, key2->size);
+}
+
+void internal_node_handler::print(btree_internal_node *node) {
+#ifdef DELETE_DEBUG
+    for (int i = 0; i < node->npairs; i++) {
+        btree_internal_pair *pair = get_pair(node, node->pair_offsets[i]);
+        printf("|\t");
+        pair->key.print();
+        printf("\t");
+    }
+    printf("|\n");
+    for (int i = 0; i < node->npairs; i++) {
+        printf("|\t");
+        printf(".");
+        printf("\t");
+    }
+    printf("|\n");
+#endif
 }
 
 #endif // __BTREE_INTERNAL_NODE_IMPL_HPP__

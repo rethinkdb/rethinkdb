@@ -13,8 +13,6 @@ class btree_delete_fsm : public btree_fsm<config_t>,
 public:
     typedef typename config_t::btree_fsm_t btree_fsm_t;
     typedef typename config_t::node_t node_t;
-    typedef typename node_t::leaf_node_t leaf_node_t;
-    typedef typename node_t::internal_node_t internal_node_t;
     typedef typename config_t::cache_t cache_t;
     typedef typename btree_fsm_t::transition_result_t transition_result_t;
     typedef typename cache_t::buf_t buf_t;
@@ -28,6 +26,7 @@ public:
         acquire_node,
         delete_complete,
         acquire_sibling,
+        insert_root_on_collapse,
         committing,
     };
 
@@ -39,10 +38,10 @@ public:
 public:
     explicit btree_delete_fsm(cache_t *cache)
         : btree_fsm_t(cache, btree_fsm_t::btree_delete_fsm),
-          state(uninitialized), buf(NULL), last_buf(NULL), node_id(cache_t::null_block_id)
+          state(uninitialized), key((btree_key*)key_memory), buf(NULL), last_buf(NULL), sb_buf(NULL),  sib_buf(NULL), node_id(cache_t::null_block_id)
         {}
 
-    void init_delete(int _key);
+    void init_delete(btree_key *_key);
     virtual transition_result_t do_transition(event_t *event);
 
     virtual bool is_finished() {
@@ -51,8 +50,6 @@ public:
 
 public:
     op_result_t op_result;
-    int value;
-    int key;
 
 private:
     using btree_fsm<config_t>::cache;
@@ -63,14 +60,18 @@ private:
     transition_result_t do_acquire_root(event_t *event);
     transition_result_t do_acquire_node(event_t *event);
     transition_result_t do_acquire_sibling(event_t *event);
+    transition_result_t do_insert_root_on_collapse(event_t *event);
+
+    int set_root_id(block_id_t root_id, event_t *event);
 
 private:
+    char key_memory[MAX_KEY_SIZE+sizeof(btree_key)];
     // Some relevant state information
     state_t state;
-    buf_t *buf;
-    buf_t *last_buf;
-    buf_t *sib_buf;
+    btree_key * const key;
+    buf_t *buf, *last_buf, *sb_buf, *sib_buf;
     block_id_t node_id, last_node_id, sib_node_id;
+
 };
 
 #include "btree/delete_fsm_impl.hpp"

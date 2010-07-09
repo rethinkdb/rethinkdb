@@ -33,7 +33,7 @@
 #include "buffer_cache/concurrency/rwi_conc.hpp"
 #include "btree/get_fsm.hpp"
 #include "btree/set_fsm.hpp"
-//#include "btree/delete_fsm.hpp"
+#include "btree/delete_fsm.hpp"
 #include "request.hpp"
 #include "event_queue.hpp"
 #include "buffer_cache/stats.hpp"
@@ -89,19 +89,31 @@ void event_queue_t::process_timer_notify() {
 
     res = eventfd_read(timer_fd, &nexpirations);
     check("Could not read timer_fd value", res != 0);
-
-    total_expirations += nexpirations;
+    
+    timer_ticks_since_server_startup += nexpirations;
+    long time_in_ms = timer_ticks_since_server_startup * TIMER_TICKS_IN_MS;
 
     /* Execute any expired timers. */
     intrusive_list_t<timer_t>::iterator t;
     for (t = timers.begin(); t != timers.end(); ) {
         timer_t *timer = &*t;
-        t++;
-        if((total_expirations * TIMER_TICKS_IN_MS) % timer->interval_ms == 0) {
+        t++; // Increment now because the list may be mutated
+        
+        if (time_in_ms > timer->next_time_in_ms) {
+            
+            // Note that a repeating timer may have "expired" multiple times since the last time
+            // process_timer_notify() was called. However, everything that uses the timer mechanism
+            // right now works better if the timer's callback only happens once. Perhaps there
+            // should be a flag on the timer that determines whether to call the timer's callback
+            // more than once or not.
+            
             timer->callback(timer->context);
-            if(timer->once) {
+            
+            if (timer->once) {
                 timers.remove(timer);
                 delete timer;
+            } else {
+                timer->next_time_in_ms = time_in_ms + timer->interval_ms;
             }
         }
     }
@@ -299,7 +311,7 @@ event_queue_t::event_queue_t(int queue_id, int _nqueues, event_handler_t event_h
     this->event_handler = event_handler;
     this->parent_pool = parent_pool;
     this->timer_fd = -1;
-    this->total_expirations = 0;
+    this->timer_ticks_since_server_startup = 0;
 
     // Create aio context
     this->aio_context = 0;
@@ -342,7 +354,7 @@ event_queue_t::event_queue_t(int queue_id, int _nqueues, event_handler_t event_h
     
     // Init the cache
     cache = gnew<cache_t>(BTREE_BLOCK_SIZE, cmd_config->max_cache_size / nqueues,
-                          cmd_config->wait_for_flush, cmd_config->flush_interval_ms);
+                          cmd_config->wait_for_flush, cmd_config->safety_timer_ms);
     typedef std::basic_string<char, std::char_traits<char>, gnew_alloc<char> > rdbstring_t;
     typedef std::basic_stringstream<char, std::char_traits<char>, gnew_alloc<char> > rdbstringstream_t;
     rdbstringstream_t out;
@@ -551,21 +563,41 @@ void event_queue_t::garbage_collect(void *ctx) {
 /**
  * Timer API
  */
-void event_queue_t::add_timer_internal(long ms, void (*callback)(void *), void *ctx, bool once) {
+event_queue_t::timer_t *event_queue_t::add_timer_internal(long ms, void (*callback)(void *), void *ctx, bool once) {
+    
+    assert(ms >= 0);
+    
     timer_t *t = new timer_t();
-    t->once = once;
+    if (once) {
+        t->once = true;
+        t->next_time_in_ms = timer_ticks_since_server_startup * TIMER_TICKS_IN_MS + ms;
+    } else {
+        t->once = false;
+        t->next_time_in_ms = timer_ticks_since_server_startup * TIMER_TICKS_IN_MS + ms;
+        t->interval_ms = ms;
+    }
     t->callback = callback;
     t->context = ctx;
-    t->interval_ms = ms;
-    timers.push_back(t);
+    
+    // This is push_front so that if new timers are scheduled from a timer callback, they will not
+    // be examined until the next time process_timer_notify() is called. This isn't strictly
+    // necessary because their next_time_in_ms will be in the future, so they wouldn't be triggered
+    // even if the loop did get to them.
+    timers.push_front(t);
+    
+    return t;
 }
 
-void event_queue_t::add_timer(long ms, void (*cb)(void *), void *ctx) {
-    add_timer_internal(ms, cb, ctx, false);
+event_queue_t::timer_t *event_queue_t::add_timer(long ms, void (*cb)(void *), void *ctx) {
+    return add_timer_internal(ms, cb, ctx, false);
 }
 
-void event_queue_t::fire_timer_once(long ms, void (*cb)(void *), void *ctx) {
-    add_timer_internal(ms, cb, ctx, true);
+event_queue_t::timer_t *event_queue_t::fire_timer_once(long ms, void (*cb)(void *), void *ctx) {
+    return add_timer_internal(ms, cb, ctx, true);
+}
+
+void event_queue_t::cancel_timer(timer_t *timer) {
+    timers.remove(timer);
 }
 
 void event_queue_t::on_sync() {
@@ -575,11 +607,11 @@ void event_queue_t::on_sync() {
     post_itc_message(&event);
 }
 
+#ifndef NDEBUG
 void event_queue_t::deadlock_debug() {
     
     printf("=== Debug information for event queue %d ===\n", queue_id);
     
-    printf("\n----- Cache -----\n");
     cache->deadlock_debug();
     
     printf("\n----- Connection FSMS -----\n");
@@ -588,8 +620,9 @@ void event_queue_t::deadlock_debug() {
         (*it).deadlock_debug();
     }
 }
+#endif
 
-// For debugging
+#ifndef NDEBUG
 void deadlock_debug(void) {
     if (get_cpu_context()->event_queue) {
         get_cpu_context()->event_queue->deadlock_debug();
@@ -597,3 +630,4 @@ void deadlock_debug(void) {
         printf("You're in the wrong thread. If you're in gdb, type 'thread X' where X >= 2, and then try again.\n");
     }
 }
+#endif

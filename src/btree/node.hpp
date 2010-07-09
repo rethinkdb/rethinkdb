@@ -12,22 +12,32 @@
 struct btree_key {
     uint8_t size;
     char contents[0];
+    void print() {
+#ifdef DELETE_DEBUG
+        printf("%.*s", size, contents);
+#endif
+    }
 };
 
 struct btree_value {
     uint32_t size;
     char contents[0];
+    void print() {
+#ifdef DELETE_DEBUG
+        printf("%.*s", size, contents);
+#endif
+    }
 };
 
-enum btree_node_kind {
+typedef enum {
     // Choose 1 and 2 instead of 0 and 1 to make it less likely that garbage will be interpreted as
     // a valid node
     btree_node_kind_leaf = 1,
     btree_node_kind_internal = 2
-};
+} btree_node_kind;
 
 struct btree_node {
-    uint8_t kind;
+    btree_node_kind kind;
 };
 
 class node_handler {
@@ -51,5 +61,9 @@ class node_handler {
         
         static void validate(btree_node *node);
 };
+
+inline void keycpy(btree_key *dest, btree_key *src) {
+    memcpy(dest, src, sizeof(btree_key) + src->size);
+}
 
 #endif // __BTREE_NODE_HPP__

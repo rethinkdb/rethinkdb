@@ -33,7 +33,7 @@ public:
         btree_mock_fsm,
         btree_get_fsm,
         btree_set_fsm,
-        btree_delete_fsm
+        btree_delete_fsm,
     };
 
 public:
@@ -64,10 +64,12 @@ public:
     virtual void on_block_available(buf_t *buf);
     virtual void on_txn_begin(transaction_t *txn);
     virtual void on_txn_commit(transaction_t *txn);
-    
+
+#ifndef NDEBUG
     virtual void deadlock_debug() {
         printf("unknown-fsm %p\n", this);
     }
+#endif
     
 protected:
     block_id_t get_root_id(void *superblock_buf);

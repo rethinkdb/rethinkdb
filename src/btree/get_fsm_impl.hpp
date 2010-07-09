@@ -169,6 +169,7 @@ typename btree_get_fsm<config_t>::transition_result_t btree_get_fsm<config_t>::d
     return res;
 }
 
+#ifndef NDEBUG
 template <class config_t>
 void btree_get_fsm<config_t>::deadlock_debug(void) {
     printf("get-fsm %p {\n", this);
@@ -187,6 +188,7 @@ void btree_get_fsm<config_t>::deadlock_debug(void) {
     printf("    state = %s\n", st_name);
     printf("}\n");
 }
+#endif
 
 #endif // __BTREE_GET_FSM_IMPL_HPP__
 

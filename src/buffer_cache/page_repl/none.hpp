@@ -21,13 +21,11 @@ public:
     typedef typename config_t::page_map_t page_map_t;
     
 public:
-    page_repl_none_t(size_t _block_size, size_t _max_size,
+    page_repl_none_t(int unload_threshold,
                      page_map_t *_page_map,
-                     buffer_alloc_t *_alloc, cache_t *_cache)
-        : block_size(_block_size),
-          max_size(_max_size),
+                     cache_t *_cache)
+        : unload_threshold(_unload_threshold)
           page_map(_page_map),
-          alloc(_alloc),
           cache(_cache)
         {}
 	
@@ -36,9 +34,8 @@ public:
 	}
 	
 private:
-    size_t block_size, max_size;
+    int unload_threshold;
     page_map_t *page_map;
-    buffer_alloc_t *alloc;
     cache_t *cache;
 };
 
