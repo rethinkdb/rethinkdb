@@ -35,7 +35,7 @@ style:
 	@find . -name \*.cc -o -name \*.hpp | xargs ../scripts/cpplint --verbose 2 --filter=-whitespace/end_of_line,-whitespace/parens,-whitespace/line_length,-readability/casting,-whitespace/braces,-readability/todo,-legal/copyright,-whitespace/comments,-build/include,-whitespace/labels,-runtime/int,-runtime/printf 2>&1 | grep -v Done\ processing
 
 
-install: all-am
+all: all-am
 	@$(MAKE)
 	mv *.o $(OBJ_DIR)
 	mkdir -p $(BUILD_DIR)
