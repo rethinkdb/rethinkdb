@@ -85,7 +85,7 @@ public:
     on_complete_t on_complete;
 };
 
-#include "btree/fsm_impl.hpp"
+#include "btree/fsm.tcc"
 
 #endif // __FSM_BTREE_HPP__
 

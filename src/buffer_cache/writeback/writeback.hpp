@@ -122,7 +122,7 @@ private:
     intrusive_list_t<sync_callback_t> current_sync_callbacks;
 };
 
-#include "buffer_cache/writeback/writeback_impl.hpp"
+#include "buffer_cache/writeback/writeback.tcc"
 
 #endif // __buffer_cache_writeback_hpp__
 

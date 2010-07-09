@@ -110,7 +110,7 @@ private:
 };
 
 // Include the implementation
-#include "conn_fsm_impl.hpp"
+#include "conn_fsm.tcc"
 
 #endif // __CONN_FSM_HPP__
 

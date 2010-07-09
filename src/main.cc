@@ -31,11 +31,9 @@
 #include "buffer_cache/page_repl/page_repl_random.hpp"
 #include "buffer_cache/writeback/writeback.hpp"
 #include "buffer_cache/concurrency/rwi_conc.hpp"
-
-#include "btree/node_impl.hpp"
-#include "btree/internal_node_impl.hpp"
-#include "btree/leaf_node_impl.hpp"
-
+#include "btree/node.tcc"
+#include "btree/internal_node.tcc"
+#include "btree/leaf_node.tcc"
 #include "btree/get_fsm.hpp"
 #include "btree/set_fsm.hpp"
 #include "btree/delete_fsm.hpp"

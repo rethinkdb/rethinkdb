@@ -72,7 +72,7 @@ private:
     block_id_t node_id, last_node_id; // TODO(NNW): Bufs may suffice for these.
 };
 
-#include "btree/set_fsm_impl.hpp"
+#include "btree/set_fsm.tcc"
 
 #endif // __BTREE_SET_FSM_HPP__
 

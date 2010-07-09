@@ -67,6 +67,6 @@ bool is_sorted(ForwardIterator first, ForwardIterator last,
     return true;
 }
 
-#include "utils_impl.hpp"
+#include "utils.tcc"
 #endif // __UTILS_HPP__
 

@@ -69,7 +69,7 @@ private:
     block_id_t node_id;
 };
 
-#include "btree/get_fsm_impl.hpp"
+#include "btree/get_fsm.tcc"
 
 #endif // __BTREE_GET_FSM_HPP__
 

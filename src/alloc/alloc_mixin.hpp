@@ -48,6 +48,6 @@ public:
     static __thread alloc_vector_t *allocs_tl;
 };
 
-#include "alloc/alloc_mixin_impl.hpp"
+#include "alloc/alloc_mixin.tcc"
 
 #endif /* __ALLOC_MIXIN_HPP__ */
