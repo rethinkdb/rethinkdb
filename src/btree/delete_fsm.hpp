@@ -74,7 +74,7 @@ private:
 
 };
 
-#include "btree/delete_fsm_impl.hpp"
+#include "btree/delete_fsm.tcc"
 
 #endif // __BTREE_DELETE_FSM_HPP__
 

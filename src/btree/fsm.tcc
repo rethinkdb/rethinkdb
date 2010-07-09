@@ -1,6 +1,6 @@
 
-#ifndef __BTREE_FSM_IMPL_HPP__
-#define __BTREE_FSM_IMPL_HPP__
+#ifndef __BTREE_FSM_TCC__
+#define __BTREE_FSM_TCC__
 
 // TODO: mapping only int->int, allow arbitrary key and value types
 // TODO: ignoring duplicates, allow duplicate elements
@@ -58,4 +58,4 @@ void btree_fsm<config_t>::on_txn_commit(transaction_t *txn) {
         on_complete(this);
 }
 
-#endif // __BTREE_FSM_IMPL_HPP__
+#endif // __BTREE_FSM_TCC__

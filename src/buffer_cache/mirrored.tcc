@@ -1,6 +1,6 @@
 
-#ifndef __BUFFER_CACHE_MIRRORED_IMPL_HPP__
-#define __BUFFER_CACHE_MIRRORED_IMPL_HPP__
+#ifndef __BUFFER_CACHE_MIRRORED_TCC__
+#define __BUFFER_CACHE_MIRRORED_TCC__
 
 /**
  * Buffer implementation.
@@ -292,4 +292,4 @@ void mirrored_cache_t<config_t>::deadlock_debug() {
 }
 #endif
 
-#endif  // __BUFFER_CACHE_MIRRORED_IMPL_HPP__
+#endif  // __BUFFER_CACHE_MIRRORED_TCC__

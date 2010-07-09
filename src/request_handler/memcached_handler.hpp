@@ -63,7 +63,7 @@ private:
     parse_result_t unimplemented_request(conn_fsm_t *fsm);
 };
 
-#include "request_handler/memcached_handler_impl.hpp"
+#include "request_handler/memcached_handler.tcc"
 
 #endif // __MEMCACHED_HANDLER_HPP__
 

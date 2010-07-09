@@ -223,7 +223,7 @@ public:
 #endif
 };
 
-#include "buffer_cache/mirrored_impl.hpp"
+#include "buffer_cache/mirrored.tcc"
 
 #endif // __MIRRORED_CACHE_HPP__
 

@@ -1,5 +1,5 @@
-#ifndef __BTREE_INTERNAL_NODE_IMPL_HPP__
-#define __BTREE_INTERNAL_NODE_IMPL_HPP__
+#ifndef __BTREE_INTERNAL_NODE_TCC__
+#define __BTREE_INTERNAL_NODE_TCC__
 
 #include "btree/internal_node.hpp"
 #include <algorithm>
@@ -395,4 +395,4 @@ void internal_node_handler::print(btree_internal_node *node) {
 #endif
 }
 
-#endif // __BTREE_INTERNAL_NODE_IMPL_HPP__
+#endif // __BTREE_INTERNAL_NODE_TCC__

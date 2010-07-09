@@ -1,6 +1,6 @@
 
-#ifndef __BTREE_GET_FSM_IMPL_HPP__
-#define __BTREE_GET_FSM_IMPL_HPP__
+#ifndef __BTREE_GET_FSM_TCC__
+#define __BTREE_GET_FSM_TCC__
 
 #include "utils.hpp"
 #include "cpu_context.hpp"
@@ -190,5 +190,5 @@ void btree_get_fsm<config_t>::deadlock_debug(void) {
 }
 #endif
 
-#endif // __BTREE_GET_FSM_IMPL_HPP__
+#endif // __BTREE_GET_FSM_TCC__
 

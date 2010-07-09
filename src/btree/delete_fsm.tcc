@@ -1,6 +1,6 @@
 
-#ifndef __BTREE_DELETE_FSM_IMPL_HPP__
-#define __BTREE_DELETE_FSM_IMPL_HPP__
+#ifndef __BTREE_DELETE_FSM_TCC__
+#define __BTREE_DELETE_FSM_TCC__
 
 #include "utils.hpp"
 #include "cpu_context.hpp"
@@ -413,5 +413,5 @@ int btree_delete_fsm<config_t>::set_root_id(block_id_t root_id, event_t *event) 
     return 1;
 }
 
-#endif // __BTREE_DELETE_FSM_IMPL_HPP__
+#endif // __BTREE_DELETE_FSM_TCC__
 

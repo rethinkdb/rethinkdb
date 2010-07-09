@@ -1,6 +1,6 @@
 
-#ifndef __FSM_IMPL_HPP__
-#define __FSM_IMPL_HPP__
+#ifndef __FSM_TCC__
+#define __FSM_TCC__
 
 #include <assert.h>
 #include <unistd.h>
@@ -12,7 +12,6 @@ template<class config_t>
 void conn_fsm<config_t>::init_state() {
     this->state = fsm_socket_connected;
     this->buf = NULL;
-    this->sbuf = NULL;
     this->nbuf = 0;
     this->snbuf = 0;
 }
@@ -38,10 +37,6 @@ typename conn_fsm<config_t>::result_t conn_fsm<config_t>::do_socket_ready(event_
         if(state->buf == NULL) {
             state->buf = (char *)new iobuf_t();
             state->nbuf = 0;
-        }
-        if(state->sbuf == NULL) {
-            state->sbuf = (char *)new iobuf_t();
-            state->snbuf = 0;
         }
             
         // TODO: we assume the command will fit comfortably into
@@ -216,9 +211,6 @@ conn_fsm<config_t>::~conn_fsm() {
     if(this->buf) {
         delete (iobuf_t*)(this->buf);
     }
-    if(this->sbuf) {
-        delete (iobuf_t*)(this->sbuf);
-    }
 }
 
 // Send a message to the client. The message should be contained
@@ -229,15 +221,15 @@ template<class config_t>
 void conn_fsm<config_t>::send_msg_to_client() {
     // Either number of bytes already sent should be zero, or we
     // should be in the middle of an incomplete send.
-    //assert(this->snbuf == 0 || this->state == conn_fsm::fsm_socket_send_incomplete); TODO equivalent thing for seperate buffers
+    assert(this->snbuf == 0 || this->state == conn_fsm::fsm_socket_send_incomplete);
 
-    int len = this->snbuf;
+    int len = this->nbuf - this->snbuf;
     int sz = 0;
     do {
-        //TODO Ask slava how long this loop could possibly ever take
+        this->snbuf += sz;
         len -= sz;
         
-        sz = io_calls_t::write(this->source, this->sbuf, len);
+        sz = io_calls_t::write(this->source, this->buf + this->snbuf, len);
         if(sz < 0) {
             if(errno == EAGAIN || errno == EWOULDBLOCK) {
                 // If we can't send the message now, wait 'till we can
@@ -252,7 +244,7 @@ void conn_fsm<config_t>::send_msg_to_client() {
 
     // We've successfully sent everything out
     this->snbuf = 0;
-    //this->nbuf = 0;
+    this->nbuf = 0;
     this->state = conn_fsm::fsm_socket_connected;
 }
 
@@ -270,5 +262,5 @@ void conn_fsm<config_t>::consume(unsigned int bytes) {
     this->nbuf -= bytes;
 }
 
-#endif // __FSM_IMPL_HPP__
+#endif // __FSM_TCC__
 
