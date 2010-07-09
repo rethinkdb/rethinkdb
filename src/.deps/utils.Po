@@ -68,7 +68,8 @@ utils.o: utils.cc /usr/include/assert.h /usr/include/features.h \
  /usr/include/c++/4.4/bits/stl_heap.h \
  /usr/include/c++/4.4/bits/stl_tempbuf.h \
  /usr/include/c++/4.4/bits/stl_construct.h \
- /usr/include/c++/4.4/bits/stl_uninitialized.h
+ /usr/include/c++/4.4/bits/stl_uninitialized.h btree/node.hpp \
+ /usr/include/stdint.h
 
 /usr/include/assert.h:
 
@@ -297,3 +298,7 @@ utils_impl.hpp:
 /usr/include/c++/4.4/bits/stl_construct.h:
 
 /usr/include/c++/4.4/bits/stl_uninitialized.h:
+
+btree/node.hpp:
+
+/usr/include/stdint.h:

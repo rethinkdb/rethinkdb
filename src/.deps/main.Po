@@ -116,7 +116,8 @@ main.o: main.cc /usr/include/stdio.h /usr/include/features.h \
  /usr/include/c++/4.4/bits/algorithmfwd.h \
  /usr/include/c++/4.4/bits/stl_tempbuf.h btree/leaf_node_impl.hpp \
  btree/get_fsm.hpp btree/fsm.hpp btree/get_fsm_impl.hpp btree/set_fsm.hpp \
- btree/set_fsm_impl.hpp request.hpp
+ btree/set_fsm_impl.hpp btree/delete_fsm.hpp btree/delete_fsm_impl.hpp \
+ request.hpp
 
 /usr/include/stdio.h:
 
@@ -561,5 +562,9 @@ btree/get_fsm_impl.hpp:
 btree/set_fsm.hpp:
 
 btree/set_fsm_impl.hpp:
+
+btree/delete_fsm.hpp:
+
+btree/delete_fsm_impl.hpp:
 
 request.hpp:

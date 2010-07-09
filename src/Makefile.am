@@ -43,7 +43,7 @@ install: all-am
 	cp ../scripts/$(START_DB_NAME) $(BUILD_DIR)
 
 clean:
-    rm *.o rethinkdb
+	rm *.o rethinkdb
 	rm -r $(BUILD_DIR)
 	rm -f $(OBJS)
 

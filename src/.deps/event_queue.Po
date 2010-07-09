@@ -126,7 +126,8 @@ event_queue.o: event_queue.cc /usr/include/sys/epoll.h \
  buffer_cache/writeback/writeback_impl.hpp \
  buffer_cache/concurrency/rwi_conc.hpp btree/get_fsm.hpp btree/fsm.hpp \
  btree/get_fsm_impl.hpp btree/internal_node.hpp btree/node.hpp \
- btree/leaf_node.hpp btree/set_fsm.hpp btree/set_fsm_impl.hpp request.hpp \
+ btree/leaf_node.hpp btree/set_fsm.hpp btree/set_fsm_impl.hpp \
+ btree/delete_fsm.hpp btree/delete_fsm_impl.hpp request.hpp \
  cpu_context.hpp
 
 /usr/include/sys/epoll.h:
@@ -582,6 +583,10 @@ btree/leaf_node.hpp:
 btree/set_fsm.hpp:
 
 btree/set_fsm_impl.hpp:
+
+btree/delete_fsm.hpp:
+
+btree/delete_fsm_impl.hpp:
 
 request.hpp:
 
