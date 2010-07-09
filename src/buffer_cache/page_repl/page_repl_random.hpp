@@ -43,15 +43,14 @@ public:
     	    		
     		// Try to find a block we can unload. Blocks are ineligible to be unloaded if they are
     		// dirty or in use.
-    		int tries = 3;
     		buf_t *block_to_unload = NULL;
-    		while (tries > 0 && !block_to_unload) {
-    			block_to_unload = page_map->get_random_block();
-    			assert(block_to_unload);
-    			if (block_to_unload->is_dirty() || block_to_unload->is_pinned()) {
-    				block_to_unload = NULL;
+    		for (int tries = 3; tries > 0; tries --) {
+    			buf_t *block = page_map->get_random_block();
+    			assert(block);
+    			if (block->safe_to_unload()) {
+    			    block_to_unload = block;
+    			    break;
     			}
-    			tries--;
     		}
     		
     		if (block_to_unload) {

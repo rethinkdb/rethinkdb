@@ -37,18 +37,16 @@ public:
 	// This function is called by the code that loads the data into the block. Other users, which
 	// expect the block to already contain valid data, should call ptr().
 	void *ptr_possibly_uncached() {
-		// The buf should not be accessed unless it is locked. In fact, pointers to the buf should
-    	// not exist, except in the page map, unless the block is pinned, because any unpinned and
-    	// non-dirty block is in danger of being swapped out by the page replacement system.
-    	assert(is_pinned());
+        assert(!safe_to_unload());
     	return data;
     }
 
     // TODO(NNW) We may want a const version of ptr() as well so the non-const
     // version can verify that the buf is writable; requires pushing const
-    // through a bunch of other places (such as array_node also, however.
+    // through a bunch of other places (such as array_node) also, however.
     void *ptr() {
     	assert(cached);
+        assert(concurrency_t::local_buf_t::lock.locked());
     	return ptr_possibly_uncached();
     }
 
@@ -66,7 +64,7 @@ public:
 
     virtual void on_io_complete(event_t *event);
 	
-	bool is_pinned();
+	bool safe_to_unload();
 
 #ifndef NDEBUG
 	// Prints debugging information designed to resolve deadlocks.

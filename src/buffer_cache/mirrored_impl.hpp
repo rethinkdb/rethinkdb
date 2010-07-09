@@ -62,9 +62,11 @@ void buf<config_t>::on_io_complete(event_t *event) {
 }
 
 template<class config_t>
-bool buf<config_t>::is_pinned() {
-    // TODO: Include is_dirty() in is_pinned(). Rename is_pinned() something like can_be_unloaded().
-    return concurrency_t::local_buf_t::is_pinned() || !load_callbacks.empty() || temporary_pinned;
+bool buf<config_t>::safe_to_unload() {
+    return concurrency_t::local_buf_t::safe_to_unload() &&
+        load_callbacks.empty() &&
+        temporary_pinned == 0 &&
+        !config_t::writeback_t::local_buf_t::is_dirty();
 }
 
 #ifndef NDEBUG
@@ -264,8 +266,7 @@ void mirrored_cache_t<config_t>::aio_complete(buf_t *buf, bool written) {
 
 template <class config_t>
 void mirrored_cache_t<config_t>::do_unload_buf(buf_t *buf) {
-    assert(!buf->is_pinned());
-	assert(!buf->is_dirty());
+    assert(buf->safe_to_unload());
 	
 	// Inform the page map that the block in question no longer exists, and will have to be reloaded
 	// from disk the next time it is used

@@ -52,8 +52,9 @@ struct rwi_conc_t {
                 lock_callbacks.push_back(callback);
         }
         
-        bool is_pinned() {
-            return lock.locked() || !lock_callbacks.empty();
+        bool safe_to_unload() {
+            return !lock.locked() &&
+                lock_callbacks.empty();
         }
         
         rwi_lock_t lock;
