@@ -1,6 +1,6 @@
 
-#ifndef __BTREE_NODE_IMPL_HPP__
-#define __BTREE_NODE_IMPL_HPP__
+#ifndef __BTREE_NODE_TCC__
+#define __BTREE_NODE_TCC__
 
 #include "btree/leaf_node.hpp"
 #include "btree/internal_node.hpp"

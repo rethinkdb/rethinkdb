@@ -1,6 +1,6 @@
 
-#ifndef __FSM_IMPL_HPP__
-#define __FSM_IMPL_HPP__
+#ifndef __FSM_TCC__
+#define __FSM_TCC__
 
 #include <assert.h>
 #include <unistd.h>
@@ -262,5 +262,5 @@ void conn_fsm<config_t>::consume(unsigned int bytes) {
     this->nbuf -= bytes;
 }
 
-#endif // __FSM_IMPL_HPP__
+#endif // __FSM_TCC__
 

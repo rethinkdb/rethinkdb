@@ -1,6 +1,6 @@
 
-#ifndef __BUFFER_CACHE_WRITEBACK_IMPL_HPP__
-#define __BUFFER_CACHE_WRITEBACK_IMPL_HPP__
+#ifndef __BUFFER_CACHE_WRITEBACK_TCC__
+#define __BUFFER_CACHE_WRITEBACK_TCC__
 
 template <class config_t>
 writeback_tmpl_t<config_t>::writeback_tmpl_t(
@@ -272,4 +272,4 @@ void writeback_tmpl_t<config_t>::writeback(buf_t *buf) {
     }
 }
 
-#endif  // __BUFFER_CACHE_WRITEBACK_IMPL_HPP__
+#endif  // __BUFFER_CACHE_WRITEBACK_TCC__

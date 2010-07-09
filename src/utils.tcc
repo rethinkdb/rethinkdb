@@ -1,6 +1,6 @@
 
-#ifndef __UTILS_IMPL_HPP__
-#define __UTILS_IMPL_HPP__
+#ifndef __UTILS_TCC__
+#define __UTILS_TCC__
 
 #include <cstring>
 #include <string>
@@ -114,5 +114,5 @@ inline bool operator!=(const gnew_alloc<_Tp>&, const gnew_alloc<_Tp>&)
 
 
 
-#endif // __UTILS_IMPL_HPP__
+#endif // __UTILS_TCC__
 

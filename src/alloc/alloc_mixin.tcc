@@ -1,6 +1,6 @@
 
-#ifndef __ALLOC_MIXIN_IMPL_HPP__
-#define __ALLOC_MIXIN_IMPL_HPP__
+#ifndef __ALLOC_MIXIN_TCC__
+#define __ALLOC_MIXIN_TCC__
 
 #include <assert.h>
 
@@ -42,4 +42,4 @@ void alloc_mixin_t<accessor_t, type_t>::operator delete(void *ptr) {
 #endif
 }
 
-#endif /* __ALLOC_MIXIN_IMPL_HPP__ */
+#endif /* __ALLOC_MIXIN_TCC__ */

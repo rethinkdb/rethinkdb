@@ -1,6 +1,6 @@
 
-#ifndef __MEMCACHED_HANDLER_IMPL_HPP__
-#define __MEMCACHED_HANDLER_IMPL_HPP__
+#ifndef __MEMCACHED_HANDLER_TCC__
+#define __MEMCACHED_HANDLER_TCC__
 
 #include <string.h>
 #include "cpu_context.hpp"
@@ -462,4 +462,4 @@ void memcached_handler_t<config_t>::build_response(request_t *request) {
     fsm->current_request = NULL;
 }
 
-#endif // __MEMCACHED_HANDLER_IMPL_HPP__
+#endif // __MEMCACHED_HANDLER_TCC__
