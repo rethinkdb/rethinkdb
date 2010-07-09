@@ -5,4 +5,4 @@ if [ $? -ne 0 ]; then
     exit
 fi
 #./rethinkdb -c 1 -p 11211
-gdb -x standard_commands ./build/debug/rethinkdb
+cgdb -x standard_commands ./build/debug/rethinkdb

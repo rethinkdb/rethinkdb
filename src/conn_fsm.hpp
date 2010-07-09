@@ -92,7 +92,7 @@ public:
     // variable indicates how many bytes are stored in the buffer. The
     // snbuf variable indicates how many bytes out of the buffer have
     // been sent (in case of a send workflow).
-    char *buf;
+    char *buf, *sbuf;
     unsigned int nbuf, snbuf;
     req_handler_t *req_handler;
     event_queue_t *event_queue;
