@@ -354,7 +354,7 @@ event_queue_t::event_queue_t(int queue_id, int _nqueues, event_handler_t event_h
     
     // Init the cache
     cache = gnew<cache_t>(BTREE_BLOCK_SIZE, cmd_config->max_cache_size / nqueues,
-                          cmd_config->wait_for_flush, cmd_config->flush_interval_ms);
+                          cmd_config->wait_for_flush, cmd_config->safety_timer_ms);
     typedef std::basic_string<char, std::char_traits<char>, gnew_alloc<char> > rdbstring_t;
     typedef std::basic_stringstream<char, std::char_traits<char>, gnew_alloc<char> > rdbstringstream_t;
     rdbstringstream_t out;
@@ -607,11 +607,11 @@ void event_queue_t::on_sync() {
     post_itc_message(&event);
 }
 
+#ifndef NDEBUG
 void event_queue_t::deadlock_debug() {
     
     printf("=== Debug information for event queue %d ===\n", queue_id);
     
-    printf("\n----- Cache -----\n");
     cache->deadlock_debug();
     
     printf("\n----- Connection FSMS -----\n");
@@ -620,8 +620,9 @@ void event_queue_t::deadlock_debug() {
         (*it).deadlock_debug();
     }
 }
+#endif
 
-// For debugging
+#ifndef NDEBUG
 void deadlock_debug(void) {
     if (get_cpu_context()->event_queue) {
         get_cpu_context()->event_queue->deadlock_debug();
@@ -629,3 +630,4 @@ void deadlock_debug(void) {
         printf("You're in the wrong thread. If you're in gdb, type 'thread X' where X >= 2, and then try again.\n");
     }
 }
+#endif
