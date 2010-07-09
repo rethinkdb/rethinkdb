@@ -19,7 +19,7 @@ NUM_INSERT_THREADS=8    # Number of concurrent threads inserting values that are
 
 # Server location
 HOST="localhost"
-PORT="11211"
+PORT="11213"
 
 def insert_initial(matrix):
     mc = memcache.Client([HOST + ":" + PORT], debug=0)
