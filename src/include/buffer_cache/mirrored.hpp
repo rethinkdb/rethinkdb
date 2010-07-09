@@ -101,7 +101,8 @@ private:
 /* Transaction class. */
 template <class config_t>
 class transaction : public lock_available_callback_t,
-                    public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, transaction<config_t> >
+                    public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, transaction<config_t> >,
+                    public sync_callback<config_t>
 {
 public:
     typedef typename config_t::serializer_t serializer_t;
@@ -125,15 +126,14 @@ public:
                    block_available_callback_t *callback);
     buf_t *allocate(block_id_t *new_block_id);
 
-    /* The below function should *only* be called from writeback. */
-    void committed(transaction_commit_callback_t *callback);
-
 private:
     virtual void on_lock_available() { begin_callback->on_txn_begin(this); }
+    virtual void on_sync();
 
     cache_t *cache;
     access_t access;
     transaction_begin_callback_t *begin_callback;
+    transaction_commit_callback_t *commit_callback;
     enum { state_open, state_committing, state_committed } state;
 
 public:

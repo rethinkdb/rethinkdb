@@ -99,7 +99,7 @@ public:
         _size--;
 
 #ifndef NDEBUG
-        validate();
+        validate();   // If this call fails, you probably removed from the wrong intrusive list
 #endif
     }
 
@@ -129,6 +129,7 @@ public:
 
 #ifndef NDEBUG
         validate();
+        list->validate();
 #endif
     }
 

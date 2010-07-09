@@ -23,11 +23,13 @@ public:
 
     void start();
     void shutdown(sync_callback<config_t> *callback);
-
+    
+    /* Forces a writeback to happen soon. Calls 'callback' back as soon as the next complete
+    writeback cycle is over. */
     void sync(sync_callback<config_t> *callback);
 
     bool begin_transaction(transaction_t *txn);
-    bool commit(transaction_t *transaction, transaction_commit_callback<config_t> *callback);
+    bool commit(transaction_t *transaction);
     void aio_complete(buf_t *, bool written);
 
 #ifndef NDEBUG
@@ -60,19 +62,7 @@ public:
 
 private:
     typedef typename config_t::serializer_t serializer_t;
-    
-    /* TODO: Unify transaction callbacks and sync callbacks */
-    typedef transaction_commit_callback<config_t> transaction_commit_callback_t;
     typedef sync_callback<config_t> sync_callback_t;
-    struct txn_state_t : public intrusive_list_node_t<txn_state_t>,
-                         public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, txn_state_t>
-    {
-        txn_state_t(transaction_t *_txn, transaction_commit_callback_t *_callback)
-            : txn(_txn), callback(_callback)
-            {}
-        transaction_t *txn;
-        transaction_commit_callback_t *callback;
-    };
 
     enum state {
         state_none,
@@ -92,27 +82,44 @@ private:
     void writeback(buf_t *buf);
 
     /* User-controlled settings. */
+    
     bool wait_for_flush;
     int safety_timer_ms;
     unsigned int force_flush_threshold;
 
     /* Internal variables used at all times. */
+    
     cache_t *cache;
     unsigned int num_txns;
     rwi_lock_t *flush_lock;
-    // List of transactions to notify the next time writeback completes
-    intrusive_list_t<txn_state_t> txns;
+    
+    // List of things waiting for their data to be written to disk. They will be called back after
+    // the next complete writeback cycle completes.
+    intrusive_list_t<sync_callback_t> sync_callbacks;
+    
+    // If something requests a sync but a sync is already in progress, then
+    // start_next_sync_immediately is set so that a new sync operation is started as soon as the
+    // old one finishes. Note that start_next_sync_immediately being true is not equivalent to
+    // sync_callbacks being nonempty, because when wait_for_flush is set, transactions will sit
+    // patiently in sync_callbacks without setting start_next_sync_immediately.
+    bool start_next_sync_immediately;
+    
     // List of bufs that are currenty dirty
     intrusive_list_t<buf_t> dirty_bufs;
-    std::vector<sync_callback_t*, gnew_alloc<sync_callback_t*> > sync_callbacks;
+    
     sync_callback_t *shutdown_callback;
-    bool final_sync;
+    bool in_shutdown_sync;
+    bool transaction_backdoor;
 
     /* Internal variables used only during a flush operation. */
+    
     enum state state;
+    // Transaction that the writeback is using to grab buffers
     transaction_t *transaction;
-    intrusive_list_t<txn_state_t> flush_txns;
+    // List of buffers being written during the current writeback
     intrusive_list_t<buf_t> flush_bufs;
+    // List of things to call back as soon as the writeback currently in progress is over.
+    intrusive_list_t<sync_callback_t> current_sync_callbacks;
 };
 
 #include "buffer_cache/writeback/writeback_impl.hpp"
