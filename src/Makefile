@@ -1,84 +1,103 @@
+##### Configuring stuff
+
+SERVER_EXEC_NAME:=rethinkdb
+START_DB_DIR:=../scripts
+START_DB_NAME:=start_rethinkdb
+TAGS:=.tags
+
 # Default DEBUG variable to "on".  This should be changed on a release branch.
-DEBUG ?= 1
+DEBUG?=1
+
+VERBOSE?=0
+
+# Choose our directories
+# This makefile is meant to be run from the 'src' directory.
+SOURCE_DIR:=.
+BUILD_ROOT_DIR:=../build
+ifeq (${DEBUG},1)
+BUILD_DIR:=$(BUILD_ROOT_DIR)/debug
+else
+BUILD_DIR:=$(BUILD_ROOT_DIR)/release
+endif
+DEP_DIR:=$(BUILD_DIR)/dep
+OBJ_DIR:=$(BUILD_DIR)/obj
 
 # Define configuration variables
-CXX=g++
-LDFLAGS=-lrt -laio
-CXXFLAGS=-I. -Wall -Wextra -Wformat=2 -Wno-unused-parameter -Werror
-
-DEP_DIR=dep
-OBJ_DIR=obj
-SERVER_EXEC_NAME=rethinkdb
-BUILD_DIR=../build
-TAGS=.tags
+CXX:=g++
+LDFLAGS:=-lrt -laio
+CXXFLAGS:=-I$(SOURCE_DIR) -Wall -Wextra -Wformat=2 -Wno-unused-parameter -Werror
 
 # Configure debug vs. release
-ifeq (${DEBUG},1)
-SERVER_EXEC_NAME:=$(BUILD_DIR)/debug/$(SERVER_EXEC_NAME)
-CXXFLAGS:=$(CXXFLAGS) -g
+ifeq ($(DEBUG),1)
+CXXFLAGS:=$(CXXFLAGS) -g -DDELETE_DEBUG
 else
-SERVER_EXEC_NAME:=$(BUILD_DIR)/release/$(SERVER_EXEC_NAME)
 CXXFLAGS:=$(CXXFLAGS) -O3 -DNDEBUG
 endif
-
 ifdef VALGRIND
-CXXFLAGS += -DVALGRIND
+CXXFLAGS+=-DVALGRIND
 endif
 
-# Define our objects
-OBJS =  arch/linux_io.o \
-	concurrency/rwi_lock.o \
-	config/cmd_args.o \
-	cpu_context.o \
-	event_queue.o \
-	main.o \
-	message_hub.o \
-	server.o \
-	utils.o \
-	worker_pool.o
+# Should makefile be noisy?
+ifeq ($(VERBOSE),1)
+QUIET:=
+else
+QUIET:=@
+endif
 
-DEPS:=$(OBJS:%.o=$(DEP_DIR)/%.d)
-OBJS:=$(OBJS:%.o=$(OBJ_DIR)/%.o)
+
+
+##### Finding what to build
+
+SOURCES:=$(shell find $(SOURCE_DIR) -name \*.cc)
+NAMES:=$(patsubst $(SOURCE_DIR)/%.cc,%,$(SOURCES))
+DEPS:=$(patsubst %,$(DEP_DIR)/%.d,$(NAMES))
+OBJS:=$(patsubst %,$(OBJ_DIR)/%.o,$(NAMES))
+
+
+
+##### Build targets
 
 # High level build targets
-$(SERVER_EXEC_NAME): $(OBJS)
-	@mkdir -p $(dir $(SERVER_EXEC_NAME))
-	$(quiet_ld) $(CXX) $(LDFLAGS) $(OBJS) -o $(SERVER_EXEC_NAME)
+$(BUILD_DIR)/$(SERVER_EXEC_NAME): $(OBJS) $(BUILD_DIR)
+ifeq ($(VERBOSE),0)
+	@echo "    LD $@"
+endif
+	$(QUIET) $(CXX) $(LDFLAGS) $(OBJS) -o $(BUILD_DIR)/$(SERVER_EXEC_NAME)
+	$(QUIET) cp $(START_DB_DIR)/$(START_DB_NAME) $(BUILD_DIR)/$(START_DB_NAME)
 
 tags:
-	@ctags -R -f $(TAGS)
+	$(QUIET) ctags -R -f $(TAGS)
 
 style:
-	@find . -name \*.cc -o -name \*.hpp | xargs ../scripts/cpplint --verbose 2 --filter=-whitespace/end_of_line,-whitespace/parens,-whitespace/line_length,-readability/casting,-whitespace/braces,-readability/todo,-legal/copyright,-whitespace/comments,-build/include,-whitespace/labels,-runtime/int,-runtime/printf 2>&1 | grep -v Done\ processing
+	$(QUIET) find . -name \*.cc -o -name \*.hpp | xargs ../scripts/cpplint --verbose 2 --filter=-whitespace/end_of_line,-whitespace/parens,-whitespace/line_length,-readability/casting,-whitespace/braces,-readability/todo,-legal/copyright,-whitespace/comments,-build/include,-whitespace/labels,-runtime/int,-runtime/printf 2>&1 | grep -v Done\ processing
 
 clean:
-	$(call quiet_rm, *~) find -name '*~' -exec rm {} \;
-	$(call quiet_rm, $(SERVER_EXEC_NAME)) rm -f $(SERVER_EXEC_NAME)
-	$(call quiet_rm, DEPS) rm -f $(DEPS)
-	$(call quiet_rm, OBJS) rm -f $(OBJS)
-	$(call quiet_rm, $(TAGS)) rm -f $(TAGS)
-
-# Compiling files
-$(OBJ_DIR)/%.o: %.cc Makefile
-	@mkdir -p $(dir $@)
-	$(quiet_cc) $(CXX) $(CXXFLAGS) -c -o $@ $<
-
-# Build and include header file dependencies
-$(DEP_DIR)/%.d: %.cc
-	@mkdir -p $(dir $@);                                              \
-	$(CXX) $(CXXFLAGS) -M $< > $@.$$$$;                               \
-	sed 's,\($*\)\.o[ :]*,$(OBJ_DIR)/\1.o $@ : ,g' < $@.$$$$ > $@;    \
-	rm -f $@.$$$$
-
--include $(DEPS)
-
-# Define pretty printing functions
-ifeq (${VERBOSE},1)
-	quiet_cc =
-	quiet_ld =
-	quiet_rm =
-else
-	quiet_cc = @echo "  CC " $< ;
-	quiet_ld = @echo "  LD " $@ ;
-	quiet_rm = @echo "  RM " $(1) ;
+ifeq ($(VERBOSE),0)
+	@echo "    RM *~"
+	@echo "    RM -r $(BUILD_ROOT_DIR)"
+	@echo "    RM $(TAGS)"
 endif
+	$(QUIET) find -name '*~' -exec rm {} \;
+	$(QUIET) rm -r $(BUILD_ROOT_DIR)
+	$(QUIET) rm -f $(TAGS)
+
+# Directories
+$(BUILD_DIR):
+	$(QUIET) mkdir -p $(BUILD_DIR)
+
+# Object files
+$(OBJ_DIR)/%.o: $(SOURCE_DIR)/%.cc Makefile
+	$(QUIET) mkdir -p $(dir $@)
+ifeq ($(VERBOSE),0)
+	@echo "    CC $< -o $@"
+endif
+	$(QUIET) $(CXX) $(CXXFLAGS) -c -o $@ $<
+
+# Dependencies
+$(DEP_DIR)/%.d: $(SOURCE_DIR)/%.cc
+	$(QUIET) mkdir -p $(dir $@)
+	$(QUIET) $(CXX) $(CXXFLAGS) -M $< > $@.$$$$;				   \
+	sed 's,\($*\)\.o[ :]*,$(OBJ_DIR)/\1.o $@ : ,g' < $@.$$$$ > $@;	  \
+	rm -f $@.$$$$
+# Include the dependencies into the makefile so that they take effect
+-include $(DEPS)
