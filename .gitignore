@@ -3,3 +3,5 @@
 .*.swp
 .tags
 build
+src/quickrun_rethinkdb
+src/debug_rethinkdb
