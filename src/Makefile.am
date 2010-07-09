@@ -35,7 +35,7 @@ style:
 	@find . -name \*.cc -o -name \*.hpp | xargs ../scripts/cpplint --verbose 2 --filter=-whitespace/end_of_line,-whitespace/parens,-whitespace/line_length,-readability/casting,-whitespace/braces,-readability/todo,-legal/copyright,-whitespace/comments,-build/include,-whitespace/labels,-runtime/int,-runtime/printf 2>&1 | grep -v Done\ processing
 
 
-all: all-am
+install: all-am
 	@$(MAKE)
 	mv *.o $(OBJ_DIR)
 	mkdir -p $(BUILD_DIR)
@@ -43,6 +43,7 @@ all: all-am
 	cp ../scripts/$(START_DB_NAME) $(BUILD_DIR)
 
 clean:
+    rm *.o rethinkdb
 	rm -r $(BUILD_DIR)
 	rm -f $(OBJS)
 

@@ -42,12 +42,724 @@ PATH: /usr/games
 ## Core tests. ##
 ## ----------- ##
 
-configure:2276: error: cannot find install-sh, install.sh, or shtool in "." "./.." "./../.."
+configure:2302: checking for a BSD-compatible install
+configure:2370: result: /usr/bin/install -c
+configure:2381: checking whether build environment is sane
+configure:2431: result: yes
+configure:2572: checking for a thread-safe mkdir -p
+configure:2611: result: /bin/mkdir -p
+configure:2624: checking for gawk
+configure:2640: found /usr/bin/gawk
+configure:2651: result: gawk
+configure:2662: checking whether make sets $(MAKE)
+configure:2684: result: yes
+configure:2831: checking for g++
+configure:2847: found /usr/bin/g++
+configure:2858: result: g++
+configure:2885: checking for C++ compiler version
+configure:2894: g++ --version >&5
+g++ (Ubuntu 4.4.1-4ubuntu9) 4.4.1
+Copyright (C) 2009 Free Software Foundation, Inc.
+This is free software; see the source for copying conditions.  There is NO
+warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+
+configure:2905: $? = 0
+configure:2894: g++ -v >&5
+Using built-in specs.
+Target: x86_64-linux-gnu
+Configured with: ../src/configure -v --with-pkgversion='Ubuntu 4.4.1-4ubuntu9' --with-bugurl=file:///usr/share/doc/gcc-4.4/README.Bugs --enable-languages=c,c++,fortran,objc,obj-c++ --prefix=/usr --enable-shared --enable-multiarch --enable-linker-build-id --with-system-zlib --libexecdir=/usr/lib --without-included-gettext --enable-threads=posix --with-gxx-include-dir=/usr/include/c++/4.4 --program-suffix=-4.4 --enable-nls --enable-clocale=gnu --enable-libstdcxx-debug --enable-objc-gc --disable-werror --with-arch-32=i486 --with-tune=generic --enable-checking=release --build=x86_64-linux-gnu --host=x86_64-linux-gnu --target=x86_64-linux-gnu
+Thread model: posix
+gcc version 4.4.1 (Ubuntu 4.4.1-4ubuntu9) 
+configure:2905: $? = 0
+configure:2894: g++ -V >&5
+g++: '-V' option must have argument
+configure:2905: $? = 1
+configure:2894: g++ -qversion >&5
+g++: unrecognized option '-qversion'
+g++: no input files
+configure:2905: $? = 1
+configure:2927: checking for C++ compiler default output file name
+configure:2949: g++    conftest.cpp  >&5
+configure:2953: $? = 0
+configure:2990: result: a.out
+configure:3006: checking whether the C++ compiler works
+configure:3015: ./a.out
+configure:3019: $? = 0
+configure:3034: result: yes
+configure:3041: checking whether we are cross compiling
+configure:3043: result: no
+configure:3046: checking for suffix of executables
+configure:3053: g++ -o conftest    conftest.cpp  >&5
+configure:3057: $? = 0
+configure:3079: result: 
+configure:3085: checking for suffix of object files
+configure:3107: g++ -c   conftest.cpp >&5
+configure:3111: $? = 0
+configure:3132: result: o
+configure:3136: checking whether we are using the GNU C++ compiler
+configure:3155: g++ -c   conftest.cpp >&5
+configure:3155: $? = 0
+configure:3164: result: yes
+configure:3173: checking whether g++ accepts -g
+configure:3193: g++ -c -g  conftest.cpp >&5
+configure:3193: $? = 0
+configure:3234: result: yes
+configure:3268: checking for style of include used by make
+configure:3296: result: GNU
+configure:3321: checking dependency style of g++
+configure:3431: result: gcc3
+configure:3498: checking for gcc
+configure:3514: found /usr/bin/gcc
+configure:3525: result: gcc
+configure:3754: checking for C compiler version
+configure:3763: gcc --version >&5
+gcc (Ubuntu 4.4.1-4ubuntu9) 4.4.1
+Copyright (C) 2009 Free Software Foundation, Inc.
+This is free software; see the source for copying conditions.  There is NO
+warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+
+configure:3774: $? = 0
+configure:3763: gcc -v >&5
+Using built-in specs.
+Target: x86_64-linux-gnu
+Configured with: ../src/configure -v --with-pkgversion='Ubuntu 4.4.1-4ubuntu9' --with-bugurl=file:///usr/share/doc/gcc-4.4/README.Bugs --enable-languages=c,c++,fortran,objc,obj-c++ --prefix=/usr --enable-shared --enable-multiarch --enable-linker-build-id --with-system-zlib --libexecdir=/usr/lib --without-included-gettext --enable-threads=posix --with-gxx-include-dir=/usr/include/c++/4.4 --program-suffix=-4.4 --enable-nls --enable-clocale=gnu --enable-libstdcxx-debug --enable-objc-gc --disable-werror --with-arch-32=i486 --with-tune=generic --enable-checking=release --build=x86_64-linux-gnu --host=x86_64-linux-gnu --target=x86_64-linux-gnu
+Thread model: posix
+gcc version 4.4.1 (Ubuntu 4.4.1-4ubuntu9) 
+configure:3774: $? = 0
+configure:3763: gcc -V >&5
+gcc: '-V' option must have argument
+configure:3774: $? = 1
+configure:3763: gcc -qversion >&5
+gcc: unrecognized option '-qversion'
+gcc: no input files
+configure:3774: $? = 1
+configure:3778: checking whether we are using the GNU C compiler
+configure:3797: gcc -c   conftest.c >&5
+configure:3797: $? = 0
+configure:3806: result: yes
+configure:3815: checking whether gcc accepts -g
+configure:3835: gcc -c -g  conftest.c >&5
+configure:3835: $? = 0
+configure:3876: result: yes
+configure:3893: checking for gcc option to accept ISO C89
+configure:3957: gcc  -c -g -O2  conftest.c >&5
+configure:3957: $? = 0
+configure:3970: result: none needed
+configure:3992: checking dependency style of gcc
+configure:4102: result: gcc3
+configure:4123: checking how to run the C preprocessor
+configure:4154: gcc -E  conftest.c
+configure:4154: $? = 0
+configure:4168: gcc -E  conftest.c
+conftest.c:9:28: error: ac_nonexistent.h: No such file or directory
+configure:4168: $? = 1
+configure: failed program was:
+| /* confdefs.h */
+| #define PACKAGE_NAME "rethinkdb"
+| #define PACKAGE_TARNAME "rethinkdb"
+| #define PACKAGE_VERSION "0.1"
+| #define PACKAGE_STRING "rethinkdb 0.1"
+| #define PACKAGE_BUGREPORT "aditya@rethinkdb.com"
+| #define PACKAGE_URL "http://www.rethinkdb.com"
+| /* end confdefs.h.  */
+| #include <ac_nonexistent.h>
+configure:4193: result: gcc -E
+configure:4213: gcc -E  conftest.c
+configure:4213: $? = 0
+configure:4227: gcc -E  conftest.c
+conftest.c:9:28: error: ac_nonexistent.h: No such file or directory
+configure:4227: $? = 1
+configure: failed program was:
+| /* confdefs.h */
+| #define PACKAGE_NAME "rethinkdb"
+| #define PACKAGE_TARNAME "rethinkdb"
+| #define PACKAGE_VERSION "0.1"
+| #define PACKAGE_STRING "rethinkdb 0.1"
+| #define PACKAGE_BUGREPORT "aditya@rethinkdb.com"
+| #define PACKAGE_URL "http://www.rethinkdb.com"
+| /* end confdefs.h.  */
+| #include <ac_nonexistent.h>
+configure:4256: checking for grep that handles long lines and -e
+configure:4314: result: /bin/grep
+configure:4319: checking for egrep
+configure:4381: result: /bin/grep -E
+configure:4386: checking for ANSI C header files
+configure:4406: gcc -c -g -O2  conftest.c >&5
+configure:4406: $? = 0
+configure:4479: gcc -o conftest -g -O2   conftest.c  >&5
+configure:4479: $? = 0
+configure:4479: ./conftest
+configure:4479: $? = 0
+configure:4490: result: yes
+configure:4503: checking for sys/types.h
+configure:4503: gcc -c -g -O2  conftest.c >&5
+configure:4503: $? = 0
+configure:4503: result: yes
+configure:4503: checking for sys/stat.h
+configure:4503: gcc -c -g -O2  conftest.c >&5
+configure:4503: $? = 0
+configure:4503: result: yes
+configure:4503: checking for stdlib.h
+configure:4503: gcc -c -g -O2  conftest.c >&5
+configure:4503: $? = 0
+configure:4503: result: yes
+configure:4503: checking for string.h
+configure:4503: gcc -c -g -O2  conftest.c >&5
+configure:4503: $? = 0
+configure:4503: result: yes
+configure:4503: checking for memory.h
+configure:4503: gcc -c -g -O2  conftest.c >&5
+configure:4503: $? = 0
+configure:4503: result: yes
+configure:4503: checking for strings.h
+configure:4503: gcc -c -g -O2  conftest.c >&5
+configure:4503: $? = 0
+configure:4503: result: yes
+configure:4503: checking for inttypes.h
+configure:4503: gcc -c -g -O2  conftest.c >&5
+configure:4503: $? = 0
+configure:4503: result: yes
+configure:4503: checking for stdint.h
+configure:4503: gcc -c -g -O2  conftest.c >&5
+configure:4503: $? = 0
+configure:4503: result: yes
+configure:4503: checking for unistd.h
+configure:4503: gcc -c -g -O2  conftest.c >&5
+configure:4503: $? = 0
+configure:4503: result: yes
+configure:4519: checking fcntl.h usability
+configure:4519: gcc -c -g -O2  conftest.c >&5
+configure:4519: $? = 0
+configure:4519: result: yes
+configure:4519: checking fcntl.h presence
+configure:4519: gcc -E  conftest.c
+configure:4519: $? = 0
+configure:4519: result: yes
+configure:4519: checking for fcntl.h
+configure:4519: result: yes
+configure:4519: checking netinet/in.h usability
+configure:4519: gcc -c -g -O2  conftest.c >&5
+configure:4519: $? = 0
+configure:4519: result: yes
+configure:4519: checking netinet/in.h presence
+configure:4519: gcc -E  conftest.c
+configure:4519: $? = 0
+configure:4519: result: yes
+configure:4519: checking for netinet/in.h
+configure:4519: result: yes
+configure:4519: checking for stdint.h
+configure:4519: result: yes
+configure:4519: checking for stdlib.h
+configure:4519: result: yes
+configure:4519: checking for string.h
+configure:4519: result: yes
+configure:4519: checking for strings.h
+configure:4519: result: yes
+configure:4519: checking sys/socket.h usability
+configure:4519: gcc -c -g -O2  conftest.c >&5
+configure:4519: $? = 0
+configure:4519: result: yes
+configure:4519: checking sys/socket.h presence
+configure:4519: gcc -E  conftest.c
+configure:4519: $? = 0
+configure:4519: result: yes
+configure:4519: checking for sys/socket.h
+configure:4519: result: yes
+configure:4519: checking for unistd.h
+configure:4519: result: yes
+configure:4532: checking for stdbool.h that conforms to C99
+configure:4617: gcc -c -g -O2  conftest.c >&5
+configure:4617: $? = 0
+configure:4624: result: yes
+configure:4626: checking for _Bool
+configure:4626: gcc -c -g -O2  conftest.c >&5
+configure:4626: $? = 0
+configure:4626: gcc -c -g -O2  conftest.c >&5
+conftest.c: In function 'main':
+conftest.c:63: error: expected expression before ')' token
+configure:4626: $? = 1
+configure: failed program was:
+| /* confdefs.h */
+| #define PACKAGE_NAME "rethinkdb"
+| #define PACKAGE_TARNAME "rethinkdb"
+| #define PACKAGE_VERSION "0.1"
+| #define PACKAGE_STRING "rethinkdb 0.1"
+| #define PACKAGE_BUGREPORT "aditya@rethinkdb.com"
+| #define PACKAGE_URL "http://www.rethinkdb.com"
+| #define STDC_HEADERS 1
+| #define HAVE_SYS_TYPES_H 1
+| #define HAVE_SYS_STAT_H 1
+| #define HAVE_STDLIB_H 1
+| #define HAVE_STRING_H 1
+| #define HAVE_MEMORY_H 1
+| #define HAVE_STRINGS_H 1
+| #define HAVE_INTTYPES_H 1
+| #define HAVE_STDINT_H 1
+| #define HAVE_UNISTD_H 1
+| #define HAVE_FCNTL_H 1
+| #define HAVE_NETINET_IN_H 1
+| #define HAVE_STDINT_H 1
+| #define HAVE_STDLIB_H 1
+| #define HAVE_STRING_H 1
+| #define HAVE_STRINGS_H 1
+| #define HAVE_SYS_SOCKET_H 1
+| #define HAVE_UNISTD_H 1
+| /* end confdefs.h.  */
+| #include <stdio.h>
+| #ifdef HAVE_SYS_TYPES_H
+| # include <sys/types.h>
+| #endif
+| #ifdef HAVE_SYS_STAT_H
+| # include <sys/stat.h>
+| #endif
+| #ifdef STDC_HEADERS
+| # include <stdlib.h>
+| # include <stddef.h>
+| #else
+| # ifdef HAVE_STDLIB_H
+| #  include <stdlib.h>
+| # endif
+| #endif
+| #ifdef HAVE_STRING_H
+| # if !defined STDC_HEADERS && defined HAVE_MEMORY_H
+| #  include <memory.h>
+| # endif
+| # include <string.h>
+| #endif
+| #ifdef HAVE_STRINGS_H
+| # include <strings.h>
+| #endif
+| #ifdef HAVE_INTTYPES_H
+| # include <inttypes.h>
+| #endif
+| #ifdef HAVE_STDINT_H
+| # include <stdint.h>
+| #endif
+| #ifdef HAVE_UNISTD_H
+| # include <unistd.h>
+| #endif
+| int
+| main ()
+| {
+| if (sizeof ((_Bool)))
+| 	    return 0;
+|   ;
+|   return 0;
+| }
+configure:4626: result: yes
+configure:4642: checking for inline
+configure:4658: gcc -c -g -O2  conftest.c >&5
+configure:4658: $? = 0
+configure:4666: result: inline
+configure:4684: checking for size_t
+configure:4684: gcc -c -g -O2  conftest.c >&5
+configure:4684: $? = 0
+configure:4684: gcc -c -g -O2  conftest.c >&5
+conftest.c: In function 'main':
+conftest.c:65: error: expected expression before ')' token
+configure:4684: $? = 1
+configure: failed program was:
+| /* confdefs.h */
+| #define PACKAGE_NAME "rethinkdb"
+| #define PACKAGE_TARNAME "rethinkdb"
+| #define PACKAGE_VERSION "0.1"
+| #define PACKAGE_STRING "rethinkdb 0.1"
+| #define PACKAGE_BUGREPORT "aditya@rethinkdb.com"
+| #define PACKAGE_URL "http://www.rethinkdb.com"
+| #define STDC_HEADERS 1
+| #define HAVE_SYS_TYPES_H 1
+| #define HAVE_SYS_STAT_H 1
+| #define HAVE_STDLIB_H 1
+| #define HAVE_STRING_H 1
+| #define HAVE_MEMORY_H 1
+| #define HAVE_STRINGS_H 1
+| #define HAVE_INTTYPES_H 1
+| #define HAVE_STDINT_H 1
+| #define HAVE_UNISTD_H 1
+| #define HAVE_FCNTL_H 1
+| #define HAVE_NETINET_IN_H 1
+| #define HAVE_STDINT_H 1
+| #define HAVE_STDLIB_H 1
+| #define HAVE_STRING_H 1
+| #define HAVE_STRINGS_H 1
+| #define HAVE_SYS_SOCKET_H 1
+| #define HAVE_UNISTD_H 1
+| #define HAVE__BOOL 1
+| #define HAVE_STDBOOL_H 1
+| /* end confdefs.h.  */
+| #include <stdio.h>
+| #ifdef HAVE_SYS_TYPES_H
+| # include <sys/types.h>
+| #endif
+| #ifdef HAVE_SYS_STAT_H
+| # include <sys/stat.h>
+| #endif
+| #ifdef STDC_HEADERS
+| # include <stdlib.h>
+| # include <stddef.h>
+| #else
+| # ifdef HAVE_STDLIB_H
+| #  include <stdlib.h>
+| # endif
+| #endif
+| #ifdef HAVE_STRING_H
+| # if !defined STDC_HEADERS && defined HAVE_MEMORY_H
+| #  include <memory.h>
+| # endif
+| # include <string.h>
+| #endif
+| #ifdef HAVE_STRINGS_H
+| # include <strings.h>
+| #endif
+| #ifdef HAVE_INTTYPES_H
+| # include <inttypes.h>
+| #endif
+| #ifdef HAVE_STDINT_H
+| # include <stdint.h>
+| #endif
+| #ifdef HAVE_UNISTD_H
+| # include <unistd.h>
+| #endif
+| int
+| main ()
+| {
+| if (sizeof ((size_t)))
+| 	    return 0;
+|   ;
+|   return 0;
+| }
+configure:4684: result: yes
+configure:4695: checking for ssize_t
+configure:4695: gcc -c -g -O2  conftest.c >&5
+configure:4695: $? = 0
+configure:4695: gcc -c -g -O2  conftest.c >&5
+conftest.c: In function 'main':
+conftest.c:65: error: expected expression before ')' token
+configure:4695: $? = 1
+configure: failed program was:
+| /* confdefs.h */
+| #define PACKAGE_NAME "rethinkdb"
+| #define PACKAGE_TARNAME "rethinkdb"
+| #define PACKAGE_VERSION "0.1"
+| #define PACKAGE_STRING "rethinkdb 0.1"
+| #define PACKAGE_BUGREPORT "aditya@rethinkdb.com"
+| #define PACKAGE_URL "http://www.rethinkdb.com"
+| #define STDC_HEADERS 1
+| #define HAVE_SYS_TYPES_H 1
+| #define HAVE_SYS_STAT_H 1
+| #define HAVE_STDLIB_H 1
+| #define HAVE_STRING_H 1
+| #define HAVE_MEMORY_H 1
+| #define HAVE_STRINGS_H 1
+| #define HAVE_INTTYPES_H 1
+| #define HAVE_STDINT_H 1
+| #define HAVE_UNISTD_H 1
+| #define HAVE_FCNTL_H 1
+| #define HAVE_NETINET_IN_H 1
+| #define HAVE_STDINT_H 1
+| #define HAVE_STDLIB_H 1
+| #define HAVE_STRING_H 1
+| #define HAVE_STRINGS_H 1
+| #define HAVE_SYS_SOCKET_H 1
+| #define HAVE_UNISTD_H 1
+| #define HAVE__BOOL 1
+| #define HAVE_STDBOOL_H 1
+| /* end confdefs.h.  */
+| #include <stdio.h>
+| #ifdef HAVE_SYS_TYPES_H
+| # include <sys/types.h>
+| #endif
+| #ifdef HAVE_SYS_STAT_H
+| # include <sys/stat.h>
+| #endif
+| #ifdef STDC_HEADERS
+| # include <stdlib.h>
+| # include <stddef.h>
+| #else
+| # ifdef HAVE_STDLIB_H
+| #  include <stdlib.h>
+| # endif
+| #endif
+| #ifdef HAVE_STRING_H
+| # if !defined STDC_HEADERS && defined HAVE_MEMORY_H
+| #  include <memory.h>
+| # endif
+| # include <string.h>
+| #endif
+| #ifdef HAVE_STRINGS_H
+| # include <strings.h>
+| #endif
+| #ifdef HAVE_INTTYPES_H
+| # include <inttypes.h>
+| #endif
+| #ifdef HAVE_STDINT_H
+| # include <stdint.h>
+| #endif
+| #ifdef HAVE_UNISTD_H
+| # include <unistd.h>
+| #endif
+| int
+| main ()
+| {
+| if (sizeof ((ssize_t)))
+| 	    return 0;
+|   ;
+|   return 0;
+| }
+configure:4695: result: yes
+configure:4706: checking for uint16_t
+configure:4706: gcc -c -g -O2  conftest.c >&5
+configure:4706: $? = 0
+configure:4706: result: yes
+configure:4718: checking for uint32_t
+configure:4718: gcc -c -g -O2  conftest.c >&5
+configure:4718: $? = 0
+configure:4718: result: yes
+configure:4732: checking for uint64_t
+configure:4732: gcc -c -g -O2  conftest.c >&5
+configure:4732: $? = 0
+configure:4732: result: yes
+configure:4746: checking for uint8_t
+configure:4746: gcc -c -g -O2  conftest.c >&5
+configure:4746: $? = 0
+configure:4746: result: yes
+configure:4760: checking for ptrdiff_t
+configure:4760: gcc -c -g -O2  conftest.c >&5
+configure:4760: $? = 0
+configure:4760: gcc -c -g -O2  conftest.c >&5
+conftest.c: In function 'main':
+conftest.c:65: error: expected expression before ')' token
+configure:4760: $? = 1
+configure: failed program was:
+| /* confdefs.h */
+| #define PACKAGE_NAME "rethinkdb"
+| #define PACKAGE_TARNAME "rethinkdb"
+| #define PACKAGE_VERSION "0.1"
+| #define PACKAGE_STRING "rethinkdb 0.1"
+| #define PACKAGE_BUGREPORT "aditya@rethinkdb.com"
+| #define PACKAGE_URL "http://www.rethinkdb.com"
+| #define STDC_HEADERS 1
+| #define HAVE_SYS_TYPES_H 1
+| #define HAVE_SYS_STAT_H 1
+| #define HAVE_STDLIB_H 1
+| #define HAVE_STRING_H 1
+| #define HAVE_MEMORY_H 1
+| #define HAVE_STRINGS_H 1
+| #define HAVE_INTTYPES_H 1
+| #define HAVE_STDINT_H 1
+| #define HAVE_UNISTD_H 1
+| #define HAVE_FCNTL_H 1
+| #define HAVE_NETINET_IN_H 1
+| #define HAVE_STDINT_H 1
+| #define HAVE_STDLIB_H 1
+| #define HAVE_STRING_H 1
+| #define HAVE_STRINGS_H 1
+| #define HAVE_SYS_SOCKET_H 1
+| #define HAVE_UNISTD_H 1
+| #define HAVE__BOOL 1
+| #define HAVE_STDBOOL_H 1
+| /* end confdefs.h.  */
+| #include <stdio.h>
+| #ifdef HAVE_SYS_TYPES_H
+| # include <sys/types.h>
+| #endif
+| #ifdef HAVE_SYS_STAT_H
+| # include <sys/stat.h>
+| #endif
+| #ifdef STDC_HEADERS
+| # include <stdlib.h>
+| # include <stddef.h>
+| #else
+| # ifdef HAVE_STDLIB_H
+| #  include <stdlib.h>
+| # endif
+| #endif
+| #ifdef HAVE_STRING_H
+| # if !defined STDC_HEADERS && defined HAVE_MEMORY_H
+| #  include <memory.h>
+| # endif
+| # include <string.h>
+| #endif
+| #ifdef HAVE_STRINGS_H
+| # include <strings.h>
+| #endif
+| #ifdef HAVE_INTTYPES_H
+| # include <inttypes.h>
+| #endif
+| #ifdef HAVE_STDINT_H
+| # include <stdint.h>
+| #endif
+| #ifdef HAVE_UNISTD_H
+| # include <unistd.h>
+| #endif
+| int
+| main ()
+| {
+| if (sizeof ((ptrdiff_t)))
+| 	    return 0;
+|   ;
+|   return 0;
+| }
+configure:4760: result: yes
+configure:4774: checking for stdlib.h
+configure:4774: result: yes
+configure:4784: checking for GNU libc compatible malloc
+configure:4808: gcc -o conftest -g -O2   conftest.c  >&5
+configure:4808: $? = 0
+configure:4808: ./conftest
+configure:4808: $? = 0
+configure:4818: result: yes
+configure:4842: checking for bzero
+configure:4842: gcc -o conftest -g -O2   conftest.c  >&5
+conftest.c:55: warning: conflicting types for built-in function 'bzero'
+configure:4842: $? = 0
+configure:4842: result: yes
+configure:4842: checking for ftruncate
+configure:4842: gcc -o conftest -g -O2   conftest.c  >&5
+configure:4842: $? = 0
+configure:4842: result: yes
+configure:4842: checking for memchr
+configure:4842: gcc -o conftest -g -O2   conftest.c  >&5
+conftest.c:57: warning: conflicting types for built-in function 'memchr'
+configure:4842: $? = 0
+configure:4842: result: yes
+configure:4842: checking for memmove
+configure:4842: gcc -o conftest -g -O2   conftest.c  >&5
+conftest.c:58: warning: conflicting types for built-in function 'memmove'
+configure:4842: $? = 0
+configure:4842: result: yes
+configure:4842: checking for memset
+configure:4842: gcc -o conftest -g -O2   conftest.c  >&5
+conftest.c:59: warning: conflicting types for built-in function 'memset'
+configure:4842: $? = 0
+configure:4842: result: yes
+configure:4842: checking for pow
+configure:4842: gcc -o conftest -g -O2   conftest.c  >&5
+conftest.c:60: warning: conflicting types for built-in function 'pow'
+/tmp/ccQWZUN2.o: In function `main':
+/home/aditya/rethinkdb/conftest.c:71: undefined reference to `pow'
+collect2: ld returned 1 exit status
+configure:4842: $? = 1
+configure: failed program was:
+| /* confdefs.h */
+| #define PACKAGE_NAME "rethinkdb"
+| #define PACKAGE_TARNAME "rethinkdb"
+| #define PACKAGE_VERSION "0.1"
+| #define PACKAGE_STRING "rethinkdb 0.1"
+| #define PACKAGE_BUGREPORT "aditya@rethinkdb.com"
+| #define PACKAGE_URL "http://www.rethinkdb.com"
+| #define STDC_HEADERS 1
+| #define HAVE_SYS_TYPES_H 1
+| #define HAVE_SYS_STAT_H 1
+| #define HAVE_STDLIB_H 1
+| #define HAVE_STRING_H 1
+| #define HAVE_MEMORY_H 1
+| #define HAVE_STRINGS_H 1
+| #define HAVE_INTTYPES_H 1
+| #define HAVE_STDINT_H 1
+| #define HAVE_UNISTD_H 1
+| #define HAVE_FCNTL_H 1
+| #define HAVE_NETINET_IN_H 1
+| #define HAVE_STDINT_H 1
+| #define HAVE_STDLIB_H 1
+| #define HAVE_STRING_H 1
+| #define HAVE_STRINGS_H 1
+| #define HAVE_SYS_SOCKET_H 1
+| #define HAVE_UNISTD_H 1
+| #define HAVE__BOOL 1
+| #define HAVE_STDBOOL_H 1
+| #define HAVE_PTRDIFF_T 1
+| #define HAVE_STDLIB_H 1
+| #define HAVE_MALLOC 1
+| #define HAVE_BZERO 1
+| #define HAVE_FTRUNCATE 1
+| #define HAVE_MEMCHR 1
+| #define HAVE_MEMMOVE 1
+| #define HAVE_MEMSET 1
+| /* end confdefs.h.  */
+| /* Define pow to an innocuous variant, in case <limits.h> declares pow.
+|    For example, HP-UX 11i <limits.h> declares gettimeofday.  */
+| #define pow innocuous_pow
+| 
+| /* System header to define __stub macros and hopefully few prototypes,
+|     which can conflict with char pow (); below.
+|     Prefer <limits.h> to <assert.h> if __STDC__ is defined, since
+|     <limits.h> exists even on freestanding compilers.  */
+| 
+| #ifdef __STDC__
+| # include <limits.h>
+| #else
+| # include <assert.h>
+| #endif
+| 
+| #undef pow
+| 
+| /* Override any GCC internal prototype to avoid an error.
+|    Use char because int might match the return type of a GCC
+|    builtin and then its argument prototype would still apply.  */
+| #ifdef __cplusplus
+| extern "C"
+| #endif
+| char pow ();
+| /* The GNU C library defines this for functions which it implements
+|     to always fail with ENOSYS.  Some functions are actually named
+|     something starting with __ and the normal name is an alias.  */
+| #if defined __stub_pow || defined __stub___pow
+| choke me
+| #endif
+| 
+| int
+| main ()
+| {
+| return pow ();
+|   ;
+|   return 0;
+| }
+configure:4842: result: no
+configure:4842: checking for socket
+configure:4842: gcc -o conftest -g -O2   conftest.c  >&5
+configure:4842: $? = 0
+configure:4842: result: yes
+configure:4842: checking for strtoul
+configure:4842: gcc -o conftest -g -O2   conftest.c  >&5
+configure:4842: $? = 0
+configure:4842: result: yes
+configure:4842: checking for strtoull
+configure:4842: gcc -o conftest -g -O2   conftest.c  >&5
+configure:4842: $? = 0
+configure:4842: result: yes
+configure:5021: creating ./config.status
+
+## ---------------------- ##
+## Running config.status. ##
+## ---------------------- ##
+
+This file was extended by rethinkdb config.status 0.1, which was
+generated by GNU Autoconf 2.64.  Invocation command line was
+
+  CONFIG_FILES    = 
+  CONFIG_HEADERS  = 
+  CONFIG_LINKS    = 
+  CONFIG_COMMANDS = 
+  $ ./config.status 
+
+on newton
+
+config.status:785: creating Makefile
+config.status:785: creating src/Makefile
+config.status:948: executing depfiles commands
 
 ## ---------------- ##
 ## Cache variables. ##
 ## ---------------- ##
 
+ac_cv_c_compiler_gnu=yes
+ac_cv_c_inline=inline
+ac_cv_c_uint16_t=yes
+ac_cv_c_uint32_t=yes
+ac_cv_c_uint64_t=yes
+ac_cv_c_uint8_t=yes
+ac_cv_cxx_compiler_gnu=yes
 ac_cv_env_CCC_set=
 ac_cv_env_CCC_value=
 ac_cv_env_CC_set=
@@ -72,53 +784,96 @@ ac_cv_env_host_alias_set=
 ac_cv_env_host_alias_value=
 ac_cv_env_target_alias_set=
 ac_cv_env_target_alias_value=
+ac_cv_func_bzero=yes
+ac_cv_func_ftruncate=yes
+ac_cv_func_malloc_0_nonnull=yes
+ac_cv_func_memchr=yes
+ac_cv_func_memmove=yes
+ac_cv_func_memset=yes
+ac_cv_func_pow=no
+ac_cv_func_socket=yes
+ac_cv_func_strtoul=yes
+ac_cv_func_strtoull=yes
+ac_cv_header_fcntl_h=yes
+ac_cv_header_inttypes_h=yes
+ac_cv_header_memory_h=yes
+ac_cv_header_netinet_in_h=yes
+ac_cv_header_stdbool_h=yes
+ac_cv_header_stdc=yes
+ac_cv_header_stdint_h=yes
+ac_cv_header_stdlib_h=yes
+ac_cv_header_string_h=yes
+ac_cv_header_strings_h=yes
+ac_cv_header_sys_socket_h=yes
+ac_cv_header_sys_stat_h=yes
+ac_cv_header_sys_types_h=yes
+ac_cv_header_unistd_h=yes
+ac_cv_objext=o
+ac_cv_path_EGREP='/bin/grep -E'
+ac_cv_path_GREP=/bin/grep
+ac_cv_path_install='/usr/bin/install -c'
+ac_cv_path_mkdir=/bin/mkdir
+ac_cv_prog_AWK=gawk
+ac_cv_prog_CPP='gcc -E'
+ac_cv_prog_ac_ct_CC=gcc
+ac_cv_prog_ac_ct_CXX=g++
+ac_cv_prog_cc_c89=
+ac_cv_prog_cc_g=yes
+ac_cv_prog_cxx_g=yes
+ac_cv_prog_make_make_set=yes
+ac_cv_type__Bool=yes
+ac_cv_type_ptrdiff_t=yes
+ac_cv_type_size_t=yes
+ac_cv_type_ssize_t=yes
+am_cv_CC_dependencies_compiler_type=gcc3
+am_cv_CXX_dependencies_compiler_type=gcc3
 
 ## ----------------- ##
 ## Output variables. ##
 ## ----------------- ##
 
-ACLOCAL=''
-AMDEPBACKSLASH=''
-AMDEP_FALSE=''
+ACLOCAL='${SHELL} /home/aditya/rethinkdb/missing --run aclocal-1.11'
+AMDEPBACKSLASH='\'
+AMDEP_FALSE='#'
 AMDEP_TRUE=''
-AMTAR=''
-AUTOCONF=''
-AUTOHEADER=''
-AUTOMAKE=''
-AWK=''
-CC=''
-CCDEPMODE=''
-CFLAGS=''
+AMTAR='${SHELL} /home/aditya/rethinkdb/missing --run tar'
+AUTOCONF='${SHELL} /home/aditya/rethinkdb/missing --run autoconf'
+AUTOHEADER='${SHELL} /home/aditya/rethinkdb/missing --run autoheader'
+AUTOMAKE='${SHELL} /home/aditya/rethinkdb/missing --run automake-1.11'
+AWK='gawk'
+CC='gcc'
+CCDEPMODE='depmode=gcc3'
+CFLAGS='-g -O2'
 CHK_NODEBUG_FALSE=''
-CHK_NODEBUG_TRUE=''
+CHK_NODEBUG_TRUE='#'
 CHK_VALGRIND_FALSE=''
-CHK_VALGRIND_TRUE=''
-CPP=''
+CHK_VALGRIND_TRUE='#'
+CPP='gcc -E'
 CPPFLAGS=''
-CXX=''
-CXXDEPMODE=''
-CXXFLAGS=''
-CYGPATH_W=''
-DEFS=''
-DEPDIR=''
+CXX='g++'
+CXXDEPMODE='depmode=gcc3'
+CXXFLAGS='-g -O2'
+CYGPATH_W='echo'
+DEFS='-DPACKAGE_NAME=\"rethinkdb\" -DPACKAGE_TARNAME=\"rethinkdb\" -DPACKAGE_VERSION=\"0.1\" -DPACKAGE_STRING=\"rethinkdb\ 0.1\" -DPACKAGE_BUGREPORT=\"aditya@rethinkdb.com\" -DPACKAGE_URL=\"http://www.rethinkdb.com\" -DSTDC_HEADERS=1 -DHAVE_SYS_TYPES_H=1 -DHAVE_SYS_STAT_H=1 -DHAVE_STDLIB_H=1 -DHAVE_STRING_H=1 -DHAVE_MEMORY_H=1 -DHAVE_STRINGS_H=1 -DHAVE_INTTYPES_H=1 -DHAVE_STDINT_H=1 -DHAVE_UNISTD_H=1 -DHAVE_FCNTL_H=1 -DHAVE_NETINET_IN_H=1 -DHAVE_STDINT_H=1 -DHAVE_STDLIB_H=1 -DHAVE_STRING_H=1 -DHAVE_STRINGS_H=1 -DHAVE_SYS_SOCKET_H=1 -DHAVE_UNISTD_H=1 -DHAVE__BOOL=1 -DHAVE_STDBOOL_H=1 -DHAVE_PTRDIFF_T=1 -DHAVE_STDLIB_H=1 -DHAVE_MALLOC=1 -DHAVE_BZERO=1 -DHAVE_FTRUNCATE=1 -DHAVE_MEMCHR=1 -DHAVE_MEMMOVE=1 -DHAVE_MEMSET=1 -DHAVE_SOCKET=1 -DHAVE_STRTOUL=1 -DHAVE_STRTOULL=1'
+DEPDIR='.deps'
 ECHO_C=''
 ECHO_N='-n'
 ECHO_T=''
-EGREP=''
+EGREP='/bin/grep -E'
 EXEEXT=''
-GREP=''
-INSTALL_DATA=''
-INSTALL_PROGRAM=''
-INSTALL_SCRIPT=''
-INSTALL_STRIP_PROGRAM=''
+GREP='/bin/grep'
+INSTALL_DATA='${INSTALL} -m 644'
+INSTALL_PROGRAM='${INSTALL}'
+INSTALL_SCRIPT='${INSTALL}'
+INSTALL_STRIP_PROGRAM='$(install_sh) -c -s'
 LDFLAGS=''
 LIBOBJS=''
 LIBS=''
 LTLIBOBJS=''
-MAKEINFO=''
-MKDIR_P=''
-OBJEXT=''
-PACKAGE=''
+MAKEINFO='${SHELL} /home/aditya/rethinkdb/missing --run makeinfo'
+MKDIR_P='/bin/mkdir -p'
+OBJEXT='o'
+PACKAGE='rethinkdb'
 PACKAGE_BUGREPORT='aditya@rethinkdb.com'
 PACKAGE_NAME='rethinkdb'
 PACKAGE_STRING='rethinkdb 0.1'
@@ -129,42 +884,42 @@ PATH_SEPARATOR=':'
 SET_MAKE=''
 SHELL='/bin/bash'
 STRIP=''
-VERSION=''
-ac_ct_CC=''
-ac_ct_CXX=''
+VERSION='0.1'
+ac_ct_CC='gcc'
+ac_ct_CXX='g++'
 am__EXEEXT_FALSE=''
-am__EXEEXT_TRUE=''
-am__fastdepCC_FALSE=''
+am__EXEEXT_TRUE='#'
+am__fastdepCC_FALSE='#'
 am__fastdepCC_TRUE=''
-am__fastdepCXX_FALSE=''
+am__fastdepCXX_FALSE='#'
 am__fastdepCXX_TRUE=''
-am__include=''
+am__include='include'
 am__isrc=''
-am__leading_dot=''
+am__leading_dot='.'
 am__quote=''
-am__tar=''
-am__untar=''
+am__tar='${AMTAR} chof - "$$tardir"'
+am__untar='${AMTAR} xf -'
 bindir='${exec_prefix}/bin'
 build_alias=''
 datadir='${datarootdir}'
 datarootdir='${prefix}/share'
 docdir='${datarootdir}/doc/${PACKAGE_TARNAME}'
 dvidir='${docdir}'
-exec_prefix='NONE'
+exec_prefix='${prefix}'
 host_alias=''
 htmldir='${docdir}'
 includedir='${prefix}/include'
 infodir='${datarootdir}/info'
-install_sh=''
+install_sh='${SHELL} /home/aditya/rethinkdb/install-sh'
 libdir='${exec_prefix}/lib'
 libexecdir='${exec_prefix}/libexec'
 localedir='${datarootdir}/locale'
 localstatedir='${prefix}/var'
 mandir='${datarootdir}/man'
-mkdir_p=''
+mkdir_p='/bin/mkdir -p'
 oldincludedir='/usr/include'
 pdfdir='${docdir}'
-prefix='NONE'
+prefix='/usr/local'
 program_transform_name='s,x,x,'
 psdir='${docdir}'
 sbindir='${exec_prefix}/sbin'
@@ -183,5 +938,54 @@ target_alias=''
 #define PACKAGE_STRING "rethinkdb 0.1"
 #define PACKAGE_BUGREPORT "aditya@rethinkdb.com"
 #define PACKAGE_URL "http://www.rethinkdb.com"
+#define STDC_HEADERS 1
+#define HAVE_SYS_TYPES_H 1
+#define HAVE_SYS_STAT_H 1
+#define HAVE_STDLIB_H 1
+#define HAVE_STRING_H 1
+#define HAVE_MEMORY_H 1
+#define HAVE_STRINGS_H 1
+#define HAVE_INTTYPES_H 1
+#define HAVE_STDINT_H 1
+#define HAVE_UNISTD_H 1
+#define HAVE_FCNTL_H 1
+#define HAVE_NETINET_IN_H 1
+#define HAVE_STDINT_H 1
+#define HAVE_STDLIB_H 1
+#define HAVE_STRING_H 1
+#define HAVE_STRINGS_H 1
+#define HAVE_SYS_SOCKET_H 1
+#define HAVE_UNISTD_H 1
+#define HAVE__BOOL 1
+#define HAVE_STDBOOL_H 1
+#define HAVE_PTRDIFF_T 1
+#define HAVE_STDLIB_H 1
+#define HAVE_MALLOC 1
+#define HAVE_BZERO 1
+#define HAVE_FTRUNCATE 1
+#define HAVE_MEMCHR 1
+#define HAVE_MEMMOVE 1
+#define HAVE_MEMSET 1
+#define HAVE_SOCKET 1
+#define HAVE_STRTOUL 1
+#define HAVE_STRTOULL 1
 
-configure: exit 1
+configure: exit 0
+
+## ---------------------- ##
+## Running config.status. ##
+## ---------------------- ##
+
+This file was extended by rethinkdb config.status 0.1, which was
+generated by GNU Autoconf 2.64.  Invocation command line was
+
+  CONFIG_FILES    = 
+  CONFIG_HEADERS  = 
+  CONFIG_LINKS    = 
+  CONFIG_COMMANDS = 
+  $ ./config.status src/Makefile depfiles
+
+on newton
+
+config.status:785: creating src/Makefile
+config.status:948: executing depfiles commands
