@@ -25,7 +25,7 @@ template<class config_t>
 typename memcached_handler_t<config_t>::parse_result_t memcached_handler_t<config_t>::parse_request(event_t *event)
 {
     conn_fsm_t *fsm = (conn_fsm_t*)event->state;
-    char *buf = fsm->buf; 
+    char *buf = fsm->buf;
     unsigned int size = fsm->nbuf;
 
     // TODO: we might end up getting a command, and a piece of the
@@ -246,8 +246,8 @@ typename memcached_handler_t<config_t>::parse_result_t memcached_handler_t<confi
 template <class config_t>
 void memcached_handler_t<config_t>::write_msg(conn_fsm_t *fsm, const char *str) {
     int len = strlen(str);
-    memcpy(fsm->sbuf, str, len+1);
-    fsm->snbuf = len+1;
+    memcpy(fsm->buf, str, len+1);
+    fsm->nbuf = len+1;
 }
 
 template <class config_t>
@@ -374,8 +374,8 @@ void memcached_handler_t<config_t>::build_response(request_t *request) {
     btree_get_fsm_t *btree_get_fsm = NULL;
     btree_set_fsm_t *btree_set_fsm = NULL;
     btree_delete_fsm_t *btree_delete_fsm = NULL;
-    char *buf = fsm->sbuf;
-    fsm->snbuf = 0;
+    char *buf = fsm->buf;
+    fsm->nbuf = 0;
     int count;
     
     assert(request->nstarted > 0 && request->nstarted == request->ncompleted);
@@ -389,7 +389,7 @@ void memcached_handler_t<config_t>::build_response(request_t *request) {
                 btree_key *key = btree_get_fsm->key;
                 btree_value *value = btree_get_fsm->value;
                 count = sprintf(buf, "VALUE %*.*s %u %u\r\n%*.*s\r\n", key->size, key->size, key->contents, 0, value->size, value->size, value->size, value->contents);
-                fsm->snbuf += count;
+                fsm->nbuf += count;
                 buf += count;
             } else if(btree_get_fsm->op_result == btree_get_fsm_t::btree_not_found) {
                 // do nothing
@@ -397,7 +397,7 @@ void memcached_handler_t<config_t>::build_response(request_t *request) {
             delete btree_get_fsm;
         }
         count = sprintf(buf, RETRIEVE_TERMINATOR);
-        fsm->snbuf += count;
+        fsm->nbuf += count;
         break;
 
     case btree_fsm_t::btree_set_fsm:
@@ -407,9 +407,9 @@ void memcached_handler_t<config_t>::build_response(request_t *request) {
         btree_set_fsm = (btree_set_fsm_t*)request->fsms[0];
         if (!noreply) {
             strcpy(buf, STORAGE_SUCCESS);
-            fsm->snbuf = strlen(STORAGE_SUCCESS);
+            fsm->nbuf = strlen(STORAGE_SUCCESS);
         } else {
-            fsm->snbuf = 0;
+            fsm->nbuf = 0;
         }
         delete btree_set_fsm;
         break;
@@ -422,11 +422,11 @@ void memcached_handler_t<config_t>::build_response(request_t *request) {
 
         if(btree_delete_fsm->op_result == btree_delete_fsm_t::btree_found) {
             count = sprintf(buf, "DELETED\r\n");
-            fsm->snbuf += count;
+            fsm->nbuf += count;
             buf += count; //for when we do support multiple deletes at a time
         } else if (btree_delete_fsm->op_result == btree_delete_fsm_t::btree_not_found) {
             count = sprintf(buf, "NOT_FOUND\r\n");
-            fsm->snbuf += count;
+            fsm->nbuf += count;
             buf += count;
         } else {
             check("memchached_handler_t::build_response - Uknown value for btree_delete_fsm->op_result\n", 0);
@@ -442,11 +442,11 @@ void memcached_handler_t<config_t>::build_response(request_t *request) {
 
         if(btree_delete_fsm->op_result == btree_delete_fsm_t::btree_found) {
             count = sprintf(buf, "DELETED\r\n");
-            fsm->snbuf += count;
+            fsm->nbuf += count;
             buf += count; //for when we do support multiple deletes at a time
         } else if (btree_delete_fsm->op_result == btree_delete_fsm_t::btree_not_found) {
             count = sprintf(buf, "NOT_FOUND\r\n");
-            fsm->snbuf += count;
+            fsm->nbuf += count;
             buf += count;
         } else {
             check("memchached_handler_t::build_response - Uknown value for btree_delete_fsm->op_result\n", 0);
