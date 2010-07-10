@@ -91,6 +91,14 @@ private:
     
     cache_t *cache;
     unsigned int num_txns;
+
+    /* The flush lock is necessary because if we acquire dirty blocks
+     * in random order during the flush, there might be a deadlock
+     * with set_fsm. When the flush is initiated, the flush_lock is
+     * grabbed, all transactions are drained, and no new transaction
+     * are allowed in the meantime. Once all transactions are drained,
+     * the writeback code locks all dirty blocks for reading and
+     * releases the flush lock. */
     rwi_lock_t *flush_lock;
     
     // List of things waiting for their data to be written to disk. They will be called back after
