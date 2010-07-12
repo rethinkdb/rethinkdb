@@ -9,7 +9,9 @@ template <class config_t>
 buf<config_t>::buf(cache_t *cache, block_id_t block_id)
     : config_t::writeback_t::local_buf_t(cache),
       config_t::concurrency_t::local_buf_t(this),
-    temporary_pinned(0),
+#ifndef NDEBUG
+    active_callback_count(0),
+#endif
     cache(cache),
     block_id(block_id),
     cached(false) {
@@ -19,7 +21,7 @@ buf<config_t>::buf(cache_t *cache, block_id_t block_id)
 template <class config_t>
 buf<config_t>::~buf() {
     assert(load_callbacks.empty());
-    assert(temporary_pinned == 0);
+    assert(active_callback_count == 0);
     cache->free(data);
 }
 
@@ -29,34 +31,49 @@ void buf<config_t>::release() {
     cache->n_blocks_released++;
 #endif
     ((concurrency_t *)cache)->release(this);
+    
+    /*
+    // If this code is not commented out, then it will cause bufs to be unloaded very aggressively.
+    // This is useful for catching bugs in which something expects a buf to remain valid even though
+    // it is eligible to be unloaded.
+    if (safe_to_unload()) {
+        cache->do_unload_buf(this);
+    }
+    */
 }
 
 template <class config_t>
 void buf<config_t>::add_load_callback(block_available_callback_t *callback) {
-    if(callback)
-        load_callbacks.push_back(callback);
+    assert(callback);
+    load_callbacks.push_back(callback);
 }
 
 template <class config_t>
 void buf<config_t>::notify_on_load() {
 
-    /* We guarantee that the block will not be unloaded until all of the load callbacks return. */
-    temporary_pinned ++;
-
     // We're calling back objects that were all able to grab a lock,
     // but are waiting on a load. Because of this, we can notify all
     // of them.
-    while(!load_callbacks.empty()) {
+    
+    int n_callbacks = load_callbacks.size();
+    while(n_callbacks-- > 0) {
         block_available_callback_t *_callback = load_callbacks.head();
         load_callbacks.remove(_callback);
         _callback->on_block_available(this);
+        // At this point, 'this' may be invalid because the callback might cause the block to be
+        // unloaded as a side effect. That's why we use 'n_callbacks' rather than checking for
+        // load_callbacks.empty().
     }
-    
-    temporary_pinned --;
 }
 
 template <class config_t>
 void buf<config_t>::on_io_complete(event_t *event) {
+
+#ifndef NDEBUG
+    active_callback_count --;
+    assert(active_callback_count >= 0);
+#endif
+
     // Let the cache know about the disk action
     cache->aio_complete(this, event->op != eo_read);
 }
@@ -65,7 +82,6 @@ template<class config_t>
 bool buf<config_t>::safe_to_unload() {
     return concurrency_t::local_buf_t::safe_to_unload() &&
         load_callbacks.empty() &&
-        temporary_pinned == 0 &&
         !config_t::writeback_t::local_buf_t::is_dirty();
 }
 
@@ -197,6 +213,9 @@ transaction<config_t>::acquire(block_id_t block_id, access_t mode,
         
         // The callback when this completes will be sent to cache_t::aio_complete(), and from there
         // to buf_t::notify_on_load(), and then to the client trying to acquire the block.
+#ifndef NDEBUG
+        buf->active_callback_count ++;
+#endif
         cache->do_read(get_cpu_context()->event_queue, block_id, buf->ptr_possibly_uncached(), buf);
         
         return NULL;
@@ -267,12 +286,13 @@ void mirrored_cache_t<config_t>::aio_complete(buf_t *buf, bool written) {
 template <class config_t>
 void mirrored_cache_t<config_t>::do_unload_buf(buf_t *buf) {
     assert(buf->safe_to_unload());
-	
-	// Inform the page map that the block in question no longer exists, and will have to be reloaded
-	// from disk the next time it is used
-	erase(buf->get_block_id());
-	
-	delete buf;
+    assert(buf->active_callback_count == 0);
+        
+    // Inform the page map that the block in question no longer exists, and will have to be reloaded
+    // from disk the next time it is used
+    erase(buf->get_block_id());
+    
+    delete buf;
 }
 
 #ifndef NDEBUG

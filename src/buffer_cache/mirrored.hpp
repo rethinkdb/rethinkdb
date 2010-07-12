@@ -70,12 +70,13 @@ public:
 	// Prints debugging information designed to resolve deadlocks.
 	void deadlock_debug();
 #endif
-	
-	/* After we call a load-callback or a lock-callback, we guarantee that the block won't be
-    unloaded until the callback returns. The variable 'temporary_pinned' is used to guarantee
-    this. It's public so rwi_conc::local_buf_t can access it. */
-    int temporary_pinned;
-	
+
+#ifndef NDEBUG
+    // This field helps catch bugs wherein a block is unloaded even though a callback still points
+    // to it.
+    int active_callback_count;
+#endif
+
 private:
     cache_t *cache;
     block_id_t block_id;
@@ -172,7 +173,7 @@ public:
             unsigned int flush_threshold_percent) : 
         serializer_t(_block_size),
         page_repl_t(
-            // Launch page replacement if the user-specified maximum number of block is reached
+            // Launch page replacement if the user-specified maximum number of blocks is reached
             _max_size / _block_size,
             this,
             this),

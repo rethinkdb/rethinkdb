@@ -228,6 +228,10 @@ void writeback_tmpl_t<config_t>::writeback(buf_t *buf) {
             writes[i].block_id = buf->get_block_id();
             writes[i].buf = buf->ptr();
             writes[i].callback = buf;
+            
+#ifndef NDEBUG
+            buf->active_callback_count ++;
+#endif
         }
         flush_bufs.append_and_clear(&dirty_bufs);
         

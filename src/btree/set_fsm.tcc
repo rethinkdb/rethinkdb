@@ -257,6 +257,7 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
             if(sized_strcmp(key->contents, key->size, median->contents, median->size) <= 0) {
                 // Left node and node are the same thing
                 rbuf->release();
+                rbuf = NULL;
             } else {
                 buf->release();
                 buf = rbuf;
@@ -286,6 +287,7 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
             check("could not insert leaf btree node", !success);
             buf->set_dirty();
             buf->release();
+            buf = NULL;
             state = update_complete;
             res = btree_fsm_t::transition_ok;
             break;
@@ -293,15 +295,17 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
             // Release and update the last node
             if(!cache_t::is_block_id_null(last_node_id)) {
                 last_buf->release();
+                last_buf = NULL;
             }
             last_buf = buf;
+            buf = NULL;
             last_node_id = node_id;
+            node_id = cache_t::null_block_id;
                 
             // Look up the next node
             node_id = internal_node_handler::lookup((internal_node_t*)node, key);
             assert(!cache_t::is_block_id_null(node_id));
             assert(node_id != cache->get_superblock_id());
-            buf = NULL;
         }
     }
 
@@ -310,6 +314,7 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
         // Release the final node
         if(!cache_t::is_block_id_null(last_node_id)) {
             last_buf->release();
+            last_buf = NULL;
             last_node_id = cache_t::null_block_id;
         }
 

@@ -58,8 +58,19 @@ struct pool_alloc_t : public super_alloc_t {
 #ifndef NDEBUG
         memset(ptr, 0xFD, object_size);   // Catch use-after-free errors
 #endif
+
+#ifndef NDEBUG
+        // Try to wait as long as possible before reusing this block of memory, to help catch
+        // use-after-free errors
+        free_node_t **last;
+        for (last = &free_list; *last; last = &((*last)->next));
+        *last = (free_node_t*)ptr;
+        ((free_node_t*)ptr)->next = NULL;
+#else
+        // In release mode, opt for a faster algorithm
         ((free_node_t*)ptr)->next = free_list;
         free_list = (free_node_t*)ptr;
+#endif
     }
 
     bool in_range(void *ptr) {
