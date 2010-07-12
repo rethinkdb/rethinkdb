@@ -5,7 +5,12 @@
 #include "request_handler/request_handler.hpp"
 #include "config/code.hpp"
 #include "alloc/alloc_mixin.hpp"
-#include "btree/states.hpp"
+
+enum btree_set_kind {
+    btree_set_kind_set,
+    btree_set_kind_add,
+    btree_set_kind_replace
+};
 
 template<class config_t>
 class memcached_handler_t : public request_handler_t<config_t>,

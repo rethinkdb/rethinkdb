@@ -2,8 +2,6 @@
 #ifndef __BTREE_SET_FSM_HPP__
 #define __BTREE_SET_FSM_HPP__
 
-#include "btree/states.hpp"
-
 template <class config_t>
 class btree_set_fsm : public btree_fsm<config_t>,
                       public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, btree_set_fsm<config_t> >
@@ -28,9 +26,6 @@ public:
         committing,
         // TODO: add a new state
     };
-
-    bool set_was_successful;
-
 
 public:
     explicit btree_set_fsm(cache_t *cache)
@@ -78,6 +73,8 @@ private:
     block_id_t node_id, last_node_id; // TODO(NNW): Bufs may suffice for these.
     
     btree_set_kind set_kind; // choice of set, add or replace with a different behaviour for each.
+public:
+    bool set_was_successful;
 };
 
 #include "btree/set_fsm.tcc"

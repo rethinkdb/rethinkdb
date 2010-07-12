@@ -3,7 +3,6 @@
 #define __BTREE_SET_FSM_IMPL_HPP__
 
 #include "cpu_context.hpp"
-#include "btree/states.hpp"
 
 // TODO: holy shit this state machine is a fucking mess. We should
 // make it NOT write only (i.e. human beings should be able to easily
@@ -288,6 +287,7 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
 
             // TODO: write a unit test for checking the add and replace.
             btree_value unused_value;
+            
             // If it's an add operation, check that the key doesn't exist.
             // If it's a replace operation, check that the key does exist.
             if (!(set_kind == btree_set_kind_add && 
