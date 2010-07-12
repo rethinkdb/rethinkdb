@@ -166,42 +166,42 @@ typename conn_fsm<config_t>::result_t conn_fsm<config_t>::do_socket_send_incompl
 
 //We've processed a request but there are still outstanding requests in our rbuf
 template<class config_t>
-        typename conn_fsm<config_t>::result_t conn_fsm<config_t>::do_fsm_outstanding_req(event_t *event) {
-            conn_fsm *state = (conn_fsm*)event->state;
-            assert(state == this);
-            assert(nrbuf > 0);
-                typename req_handler_t::parse_result_t handler_res =
-                    req_handler->parse_request(event);
-                switch(handler_res) {
-                    case req_handler_t::op_malformed:
-                        // Command wasn't processed correctly, send error
-                        // Error should already be placed in buffer by parser
-                        send_msg_to_client();
-                        break;
-                    case req_handler_t::op_partial_packet:
-                        // The data is incomplete, keep trying to read in
-                        // the current read loop
-                        state->state = conn_fsm::fsm_socket_recv_incomplete;
-                        break;
-                    case req_handler_t::op_req_shutdown:
-                        // Shutdown has been initiated
-                        return fsm_shutdown_server;
-                    case req_handler_t::op_req_quit:
-                        // The connection has been closed
-                        return fsm_quit_connection;
-                    case req_handler_t::op_req_complex:
-                        // Ain't nothing we can do now - the operations
-                        // have been distributed accross CPUs. We can just
-                        // sit back and wait until they come back.
-                        assert(current_request);
-                        state->state = fsm_btree_incomplete;
-                        return fsm_transition_ok;
-                        break;
-                    default:
-                        check("Unknown request parse result", 1);
-                }
-                return fsm_transition_ok;
-        }
+typename conn_fsm<config_t>::result_t conn_fsm<config_t>::do_fsm_outstanding_req(event_t *event) {
+    conn_fsm *state = (conn_fsm*)event->state;
+    assert(state == this);
+    assert(nrbuf > 0);
+    typename req_handler_t::parse_result_t handler_res =
+        req_handler->parse_request(event);
+    switch(handler_res) {
+        case req_handler_t::op_malformed:
+            // Command wasn't processed correctly, send error
+            // Error should already be placed in buffer by parser
+            send_msg_to_client();
+            break;
+        case req_handler_t::op_partial_packet:
+            // The data is incomplete, keep trying to read in
+            // the current read loop
+            state->state = conn_fsm::fsm_socket_recv_incomplete;
+            break;
+        case req_handler_t::op_req_shutdown:
+            // Shutdown has been initiated
+            return fsm_shutdown_server;
+        case req_handler_t::op_req_quit:
+            // The connection has been closed
+            return fsm_quit_connection;
+        case req_handler_t::op_req_complex:
+            // Ain't nothing we can do now - the operations
+            // have been distributed accross CPUs. We can just
+            // sit back and wait until they come back.
+            assert(current_request);
+            state->state = fsm_btree_incomplete;
+            return fsm_transition_ok;
+            break;
+        default:
+            check("Unknown request parse result", 1);
+    }
+    return fsm_transition_ok;
+}
 
         // Switch on the current state and call the appropriate transition
         // function.
