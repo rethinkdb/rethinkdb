@@ -2,7 +2,7 @@
 
 HOST = 'localhost'
 PORT = 11213
-nInts = 5
+nInts = 250
 
 import socket
 import random
@@ -19,11 +19,14 @@ for int in ints:
 print "Command string:\n", command_string
 s.send(command_string)
 
-import memcache
-mc = memcache.Client([(HOST, PORT)])
-for int in ints:
-    print "Checking %d" % int
-    if mc.get(str(int)) != str(int):
-        print "Incorrect value in the db: %s => %s" % (str(int), mc.get(str(int)))
-        import sys
-        sys.exit(-1)
+#from time import sleep
+#sleep(10);
+
+#import memcache
+#mc = memcache.Client([(HOST, PORT)])
+#for int in ints:
+#    print "Checking %d" % int
+#    if mc.get(str(int)) != str(int):
+#        print "Incorrect value in the db: %s => %s" % (str(int), mc.get(str(int)))
+#        import sys
+#        sys.exit(-1)

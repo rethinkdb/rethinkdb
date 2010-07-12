@@ -61,6 +61,7 @@ typename memcached_handler_t<config_t>::parse_result_t memcached_handler_t<confi
         if (strtok_r(NULL, DELIMS, &state))  //strtok will return NULL if there are no more tokens
             return malformed_request(fsm);
         // Quit the connection
+        fsm->consume(fsm->nrbuf);
         return req_handler_t::op_req_quit;
 
     } else if(!strcmp(cmd_str, "shutdown")) {
@@ -68,6 +69,8 @@ typename memcached_handler_t<config_t>::parse_result_t memcached_handler_t<confi
         if (strtok_r(NULL, DELIMS, &state))  //strtok will return NULL if there are no more tokens
             return malformed_request(fsm);
         // Shutdown the server
+        // clean out the rbuf
+        fsm->consume(fsm->nrbuf);
         return req_handler_t::op_req_shutdown;
 
     } else if(!strcmp(cmd_str, "set")) {     // check for storage commands
@@ -291,6 +294,9 @@ typename memcached_handler_t<config_t>::parse_result_t memcached_handler_t<confi
 
     // Set the current request in the connection fsm
     fsm->current_request = request;
+
+    //clean out the rbuf
+    fsm->consume(fsm->nrbuf);
     return req_handler_t::op_req_complex;
 }
 
@@ -341,6 +347,9 @@ typename memcached_handler_t<config_t>::parse_result_t memcached_handler_t<confi
     fsm->current_request = request;
 
     req_handler_t::event_queue->message_hub.store_message(key_to_cpu(key, req_handler_t::event_queue->nqueues), btree_fsm);
+
+    //clean out the rbuf
+    fsm->consume(fsm->nrbuf);
 
     return req_handler_t::op_req_complex;
 }

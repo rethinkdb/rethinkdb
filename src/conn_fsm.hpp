@@ -44,7 +44,9 @@ public:
         // We sent a msg over the socket but were only able to send a partial packet
         fsm_socket_send_incomplete,
         // Waiting for IO initiated by the BTree to complete
-        fsm_btree_incomplete
+        fsm_btree_incomplete,
+        // The system is complete
+        fsm_btree_complete
     };
     
 public:
@@ -102,6 +104,7 @@ private:
     result_t do_socket_ready(event_t *event);
     result_t do_socket_send_incomplete(event_t *event);
     result_t do_fsm_btree_incomplete(event_t *event);
+    result_t do_fsm_outstanding_req(event_t *event);
     
     void send_msg_to_client();
     void send_err_to_client();
