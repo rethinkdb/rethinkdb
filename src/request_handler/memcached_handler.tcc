@@ -9,13 +9,12 @@
 #include "conn_fsm.hpp"
 #include "corefwd.hpp"
 #include "btree/states.hpp"
-#include <iostream>
-using namespace std;
 
 #define DELIMS " \t\n\r"
 #define MALFORMED_RESPONSE "ERROR\r\n"
 #define UNIMPLEMENTED_RESPONSE "SERVER_ERROR functionality not supported\r\n"
 #define STORAGE_SUCCESS "STORED\r\n"
+#define STORAGE_FAILURE "NOT_STORED\r\n"
 #define RETRIEVE_TERMINATOR "END\r\n"
 
 // TODO: if we receive a small request from the user that can be
@@ -408,11 +407,14 @@ void memcached_handler_t<config_t>::build_response(request_t *request) {
         assert(request->nstarted == 1);
 
         btree_set_fsm = (btree_set_fsm_t*)request->fsms[0];
-        if (!noreply) {
+        
+        if (!btree_set_fsm->set_was_successful) {
+            strcpy(buf,STORAGE_FAILURE);
+            fsm->nbuf = strlen(STORAGE_FAILURE);
+        }else if (!noreply) {
             strcpy(buf, STORAGE_SUCCESS);
             fsm->nbuf = strlen(STORAGE_SUCCESS);
         } else {
-            cout << "storage unsuccess" << endl;
             fsm->nbuf = 0;
         }
         delete btree_set_fsm;

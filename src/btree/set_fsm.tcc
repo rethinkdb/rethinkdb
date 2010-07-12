@@ -4,8 +4,6 @@
 
 #include "cpu_context.hpp"
 #include "btree/states.hpp"
-#include <iostream>
-using namespace std;
 
 // TODO: holy shit this state machine is a fucking mess. We should
 // make it NOT write only (i.e. human beings should be able to easily
@@ -290,22 +288,22 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
 
             // TODO: write a unit test for checking the add and replace.
             btree_value unused_value;
-            if (set_kind == btree_set_kind_add && 
-                leaf_node_handler::lookup((btree_leaf_node*)node, key, &unused_value)) {
-                // error because we said "add" and this key already exists
-                res = btree_fsm_t::transition_set_error;
-            } else if (set_kind == btree_set_kind_replace && 
-                !leaf_node_handler::lookup((btree_leaf_node*)node, key, &unused_value)) {
-                // error because we said "replace" but this key doesn't exist.
-                res = btree_fsm_t::transition_set_error;            
-            }else {
+            // If it's an add operation, check that the key doesn't exist.
+            // If it's a replace operation, check that the key does exist.
+            if (!(set_kind == btree_set_kind_add && 
+                leaf_node_handler::lookup((btree_leaf_node*)node, key, &unused_value)) && 
+                !(set_kind == btree_set_kind_replace && 
+                !leaf_node_handler::lookup((btree_leaf_node*)node, key, &unused_value))) {
+
                 bool success = leaf_node_handler::insert(((leaf_node_t*)node), key, value);
                 check("could not insert leaf btree node", !success);
-                res = btree_fsm_t::transition_ok;
+            } else {
+                set_was_successful = false;
             }
             buf->set_dirty();
             buf->release();
             state = update_complete;
+            res = btree_fsm_t::transition_ok;
             break;
         } else {
             // Release and update the last node
@@ -324,7 +322,7 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
     }
 
     // Finalize the operation
-    if((res == btree_fsm_t::transition_ok || res == btree_fsm_t::transition_set_error) && state == update_complete) {
+    if(res == btree_fsm_t::transition_ok && state == update_complete) {
         // Release the final node
         if(!cache_t::is_block_id_null(last_node_id)) {
             last_buf->release();
@@ -342,7 +340,7 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
     }
 
     // Finalize the transaction commit
-    if((res == btree_fsm_t::transition_ok || res == btree_fsm_t::transition_set_error) && state == committing) {
+    if(res == btree_fsm_t::transition_ok && state == committing) {
         if (event != NULL) {
             assert(event->event_type == et_commit);
             assert(event->buf == transaction);

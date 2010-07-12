@@ -3,8 +3,6 @@
 
 #include "btree/leaf_node.hpp"
 #include <algorithm>
-#include <iostream>
-using namespace std;
 
 //#define DEBUG_MAX_LEAF 8
 

@@ -23,8 +23,7 @@ public:
     enum transition_result_t {
         transition_incomplete,
         transition_ok,
-        transition_complete,
-        transition_set_error
+        transition_complete
     };
 
     // It's annoying that we have to do this, and it would probably be

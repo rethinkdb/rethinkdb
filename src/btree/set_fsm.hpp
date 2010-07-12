@@ -29,11 +29,14 @@ public:
         // TODO: add a new state
     };
 
+    bool set_was_successful;
+
+
 public:
     explicit btree_set_fsm(cache_t *cache)
         : btree_fsm_t(cache, btree_fsm_t::btree_set_fsm),
           state(uninitialized), key((btree_key*)key_memory), value((btree_value*)value_memory), sb_buf(NULL), buf(NULL), last_buf(NULL),
-          node_id(cache_t::null_block_id), last_node_id(cache_t::null_block_id)
+          node_id(cache_t::null_block_id), last_node_id(cache_t::null_block_id), set_was_successful(true)
         {}
 
     void init_update(btree_key *_key, byte *data, unsigned int length, btree_set_kind set_kind);

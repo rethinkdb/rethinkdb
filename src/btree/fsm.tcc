@@ -2,9 +2,6 @@
 #ifndef __BTREE_FSM_TCC__
 #define __BTREE_FSM_TCC__
 
-#include <iostream>
-using namespace std;
-
 // TODO: mapping only int->int, allow arbitrary key and value types
 // TODO: ignoring duplicates, allow duplicate elements
 // TODO: not thread safe, implement concurrency control methods
