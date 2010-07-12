@@ -11,16 +11,19 @@
 template<class config_t>
 void conn_fsm<config_t>::init_state() {
     this->state = fsm_socket_connected;
-    this->buf = NULL;
-    this->nbuf = 0;
-    this->snbuf = 0;
+    this->rbuf = NULL;
+    this->sbuf = NULL;
+    this->nrbuf = 0;
+    this->nsbuf = 0;
 }
 
 // This function returns the socket to clean connected state
 template<class config_t>
 void conn_fsm<config_t>::return_to_socket_connected() {
-    if(this->buf)
-        delete (iobuf_t*)(this->buf);
+    if(this->rbuf)
+        delete (iobuf_t*)(this->rbuf);
+    if(this->sbuf)
+        delete (iobuf_t*)(this->sbuf);
     init_state();
 }
 
@@ -34,9 +37,13 @@ typename conn_fsm<config_t>::result_t conn_fsm<config_t>::do_socket_ready(event_
     assert(state == this);
 
     if(event->event_type == et_sock) {
-        if(state->buf == NULL) {
-            state->buf = (char *)new iobuf_t();
-            state->nbuf = 0;
+        if(state->rbuf == NULL) {
+            state->rbuf = (char *)new iobuf_t();
+            state->nrbuf = 0;
+        }
+        if(state->sbuf == NULL) {
+            state->sbuf = (char *)new iobuf_t();
+            state->nsbuf = 0;
         }
             
         // TODO: we assume the command will fit comfortably into
@@ -44,8 +51,8 @@ typename conn_fsm<config_t>::result_t conn_fsm<config_t>::do_socket_ready(event_
 
         do {
             sz = io_calls_t::read(state->source,
-                                  state->buf + state->nbuf,
-                                  iobuf_t::size - state->nbuf);
+                                  state->rbuf + state->nrbuf,
+                                  iobuf_t::size - state->nrbuf);
             if(sz == -1) {
                 if(errno == EAGAIN || errno == EWOULDBLOCK) {
                     // The machine can't be in
@@ -59,7 +66,7 @@ typename conn_fsm<config_t>::result_t conn_fsm<config_t>::do_socket_ready(event_
                     check("Could not read from socket", sz == -1);
                 }
             } else if(sz > 0) {
-                state->nbuf += sz;
+                state->nrbuf += sz;
                 typename req_handler_t::parse_result_t handler_res =
                     req_handler->parse_request(event);
                 switch(handler_res) {
@@ -208,8 +215,11 @@ template<class config_t>
 conn_fsm<config_t>::~conn_fsm() {
     close(source);
     delete req_handler;
-    if(this->buf) {
-        delete (iobuf_t*)(this->buf);
+    if(this->rbuf) {
+        delete (iobuf_t*)(this->rbuf);
+    }
+    if(this->sbuf) {
+        delete (iobuf_t*)(this->sbuf);
     }
 }
 
@@ -221,15 +231,12 @@ template<class config_t>
 void conn_fsm<config_t>::send_msg_to_client() {
     // Either number of bytes already sent should be zero, or we
     // should be in the middle of an incomplete send.
-    assert(this->snbuf == 0 || this->state == conn_fsm::fsm_socket_send_incomplete);
+    //assert(this->snbuf == 0 || this->state == conn_fsm::fsm_socket_send_incomplete); TODO equivalent thing for seperate buffers
 
-    int len = this->nbuf - this->snbuf;
+    int len = this->nsbuf;
     int sz = 0;
-    do {
-        this->snbuf += sz;
-        len -= sz;
-        
-        sz = io_calls_t::write(this->source, this->buf + this->snbuf, len);
+    while(len > 0) {
+        sz = io_calls_t::write(this->source, this->sbuf, len);
         if(sz < 0) {
             if(errno == EAGAIN || errno == EWOULDBLOCK) {
                 // If we can't send the message now, wait 'till we can
@@ -240,26 +247,26 @@ void conn_fsm<config_t>::send_msg_to_client() {
                 check("Couldn't send message to client", sz < 0);
             }
         }
-    } while(sz < len);
+        len -= sz;
+    }
 
     // We've successfully sent everything out
-    this->snbuf = 0;
-    this->nbuf = 0;
+    this->nsbuf = 0;
     this->state = conn_fsm::fsm_socket_connected;
 }
 
 template<class config_t>
 void conn_fsm<config_t>::send_err_to_client() {
     char err_msg[] = "(ERROR) Unknown command\n";
-    strcpy(this->buf, err_msg);
-    this->nbuf = strlen(err_msg) + 1;
+    strcpy(this->sbuf, err_msg);
+    this->snbuf = strlen(err_msg) + 1;
     send_msg_to_client();
 }
 
 template<class config_t>
 void conn_fsm<config_t>::consume(unsigned int bytes) {
-    memmove(this->buf, this->buf + bytes, this->nbuf - bytes);
-    this->nbuf -= bytes;
+    memmove(this->rbuf, this->rbuf + bytes, this->nrbuf - bytes);
+    this->nrbuf -= bytes;
 }
 
 #endif // __FSM_TCC__
