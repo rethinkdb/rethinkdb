@@ -1,8 +1,10 @@
-#ifndef __BTREE_LEAF_NODE_TCC__
-#define __BTREE_LEAF_NODE_TCC__
+#ifndef __BTREE_LEAF_NODE_IMPL_HPP__
+#define __BTREE_LEAF_NODE_IMPL_HPP__
 
 #include "btree/leaf_node.hpp"
 #include <algorithm>
+#include <iostream>
+using namespace std;
 
 //#define DEBUG_MAX_LEAF 8
 
@@ -336,4 +338,4 @@ void leaf_node_handler::print(btree_leaf_node *node) {
     printf("|\n");
 #endif
 }
-#endif // __BTREE_LEAF_NODE_TCC__
+#endif // __BTREE_LEAF_NODE_IMPL_HPP__

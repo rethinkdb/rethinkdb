@@ -1,8 +1,11 @@
 
-#ifndef __BTREE_SET_FSM_TCC__
-#define __BTREE_SET_FSM_TCC__
+#ifndef __BTREE_SET_FSM_IMPL_HPP__
+#define __BTREE_SET_FSM_IMPL_HPP__
 
 #include "cpu_context.hpp"
+#include "btree/states.hpp"
+#include <iostream>
+using namespace std;
 
 // TODO: holy shit this state machine is a fucking mess. We should
 // make it NOT write only (i.e. human beings should be able to easily
@@ -25,7 +28,8 @@
 // relevant.
 
 template <class config_t>
-void btree_set_fsm<config_t>::init_update(btree_key *_key, byte *data, unsigned int length) {
+void btree_set_fsm<config_t>::init_update(btree_key *_key, byte *data, unsigned int length, btree_set_kind _set_kind) {
+    set_kind = _set_kind;
     keycpy(key, _key);
     value->size = length;
     memcpy(&value->contents, data, length);
@@ -226,6 +230,7 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
         // Proactively split the node
         node_t *node = (node_t *)buf->ptr();
         bool full;
+                
         if (node_handler::is_leaf(node)) {
             full = leaf_node_handler::is_full((leaf_node_t *)node, key, value);
         } else {
@@ -282,6 +287,30 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
         
         // Insert the value, or move up the tree
         if(node_handler::is_leaf(node)) {
+            // TODO: write a unit test for this.
+            // If this was supposed to be an add,
+            // Check to make sure this key doesn't already exist
+            if (set_kind == btree_set_kind_add) {
+                // check("You tried to run 'add' for a key that already exists.", leaf_node_handler::lookup((btree_leaf_node*)node, key, &value));
+                btree_value value;
+                if(leaf_node_handler::lookup((btree_leaf_node*)node, key, &value)) {
+                    cout << "doing an add, didn't work.." << endl;
+/*
+                    state = update_complete;
+                    res = btree_fsm_t::transition_ok;
+                    break;
+*/
+                    // res = some "didn't work" state.
+                }
+            }else if (set_kind == btree_set_kind_replace) {
+                // check("You tried to run 'replace' for a key that doesn't exist.", !leaf_node_handler::lookup((btree_leaf_node*)node, key, &value));
+                btree_value value;
+                if(!leaf_node_handler::lookup((btree_leaf_node*)node, key, &value)) {
+                    cout << "doing a replace, didn't work.." << endl;
+                    // res = some "didn't work" state.
+                }
+            }
+            
             bool success = leaf_node_handler::insert(((leaf_node_t*)node), key, value);
             check("could not insert leaf btree node", !success);
             buf->set_dirty();
@@ -391,5 +420,5 @@ void btree_set_fsm<config_t>::deadlock_debug(void) {
 }
 #endif
 
-#endif // __BTREE_SET_FSM_TCC__
+#endif // __BTREE_SET_FSM_IMPL_HPP__
 

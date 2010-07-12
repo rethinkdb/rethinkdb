@@ -5,6 +5,7 @@
 #include "request_handler/request_handler.hpp"
 #include "config/code.hpp"
 #include "alloc/alloc_mixin.hpp"
+#include "btree/states.hpp"
 
 template<class config_t>
 class memcached_handler_t : public request_handler_t<config_t>,
@@ -46,7 +47,7 @@ private:
 
     parse_result_t read_data(char *data, unsigned int size, conn_fsm_t *fsm);
 
-    parse_result_t set(char *data, conn_fsm_t *fsm);
+    parse_result_t set(char *data, conn_fsm_t *fsm, btree_set_kind set_kind);
     parse_result_t add(char *data, conn_fsm_t *fsm);
     parse_result_t replace(char *data, conn_fsm_t *fsm);
     parse_result_t append(char *data, conn_fsm_t *fsm);
