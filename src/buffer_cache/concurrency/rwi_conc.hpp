@@ -27,29 +27,26 @@ struct rwi_conc_t {
             {}
         
         virtual void on_lock_available() {
-        
+            
+#ifndef NDEBUG
+            gbuf->active_callback_count --;
+#endif
+            
             // We're calling back objects that were waiting on a lock. Because
             // of that, we can only call one.
             
-            // TODO: There's no reason why more than one reader can't go at the same time, but this
-            // logic won't allow that. Ideally we would use the existing lock-queue logic in
-            // rwi_lock, instead of the buf_t keeping track of its own queue separately from the
-            // queue in its lock.
+            assert(!lock_callbacks.empty());
+            block_available_callback_t *_callback = lock_callbacks.head();
+            lock_callbacks.remove(_callback);
             
-            if(!lock_callbacks.empty()) {
-                block_available_callback_t *_callback = lock_callbacks.head();
-                lock_callbacks.remove(_callback);
-                
-                // Guarantee that the block will not be unloaded at least until the callback returns
-                gbuf->temporary_pinned ++;
-                _callback->on_block_available(gbuf);
-                gbuf->temporary_pinned --;
-            }
+            _callback->on_block_available(gbuf);
+            // Note that _callback may cause block to be unloaded, so we can't safely do anything
+            // after _callback returns.
         }
         
         void add_lock_callback(block_available_callback_t *callback) {
-            if(callback)
-                lock_callbacks.push_back(callback);
+            assert(callback);
+            lock_callbacks.push_back(callback);
         }
         
         bool safe_to_unload() {
@@ -83,6 +80,11 @@ struct rwi_conc_t {
 
     private:
         typedef intrusive_list_t<block_available_callback_t> callbacks_t;
+        
+        // lock_callbacks always has the same number of objects as the lock's internal callback
+        // queue, but every object on the lock's internal callback queue is the buf itself. When
+        // the lock calls back the buf to tell it that the lock is available, then the buf finds the
+        // corresponding callback on its lock_callbacks queue and calls that callback back.
         callbacks_t lock_callbacks;
         buf_t *gbuf;
     };
@@ -92,6 +94,9 @@ struct rwi_conc_t {
         if(buf->lock.lock(mode, buf)) {
             return true;
         } else {
+#ifndef NDEBUG
+            buf->active_callback_count ++;
+#endif
             return false;
         }
     }
