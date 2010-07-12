@@ -287,36 +287,25 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
         
         // Insert the value, or move up the tree
         if(node_handler::is_leaf(node)) {
-            // TODO: write a unit test for this.
-            // If this was supposed to be an add,
-            // Check to make sure this key doesn't already exist
-            if (set_kind == btree_set_kind_add) {
-                // check("You tried to run 'add' for a key that already exists.", leaf_node_handler::lookup((btree_leaf_node*)node, key, &value));
-                btree_value value;
-                if(leaf_node_handler::lookup((btree_leaf_node*)node, key, &value)) {
-                    cout << "doing an add, didn't work.." << endl;
-/*
-                    state = update_complete;
-                    res = btree_fsm_t::transition_ok;
-                    break;
-*/
-                    // res = some "didn't work" state.
-                }
-            }else if (set_kind == btree_set_kind_replace) {
-                // check("You tried to run 'replace' for a key that doesn't exist.", !leaf_node_handler::lookup((btree_leaf_node*)node, key, &value));
-                btree_value value;
-                if(!leaf_node_handler::lookup((btree_leaf_node*)node, key, &value)) {
-                    cout << "doing a replace, didn't work.." << endl;
-                    // res = some "didn't work" state.
-                }
+
+            // TODO: write a unit test for checking the add and replace.
+            btree_value unused_value;
+            if (set_kind == btree_set_kind_add && 
+                leaf_node_handler::lookup((btree_leaf_node*)node, key, &unused_value)) {
+                // error because we said "add" and this key already exists
+                res = btree_fsm_t::transition_set_error;
+            } else if (set_kind == btree_set_kind_replace && 
+                !leaf_node_handler::lookup((btree_leaf_node*)node, key, &unused_value)) {
+                // error because we said "replace" but this key doesn't exist.
+                res = btree_fsm_t::transition_set_error;            
+            }else {
+                bool success = leaf_node_handler::insert(((leaf_node_t*)node), key, value);
+                check("could not insert leaf btree node", !success);
+                res = btree_fsm_t::transition_ok;
             }
-            
-            bool success = leaf_node_handler::insert(((leaf_node_t*)node), key, value);
-            check("could not insert leaf btree node", !success);
             buf->set_dirty();
             buf->release();
             state = update_complete;
-            res = btree_fsm_t::transition_ok;
             break;
         } else {
             // Release and update the last node
@@ -335,7 +324,7 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
     }
 
     // Finalize the operation
-    if(res == btree_fsm_t::transition_ok && state == update_complete) {
+    if((res == btree_fsm_t::transition_ok || res == btree_fsm_t::transition_set_error) && state == update_complete) {
         // Release the final node
         if(!cache_t::is_block_id_null(last_node_id)) {
             last_buf->release();
@@ -353,7 +342,7 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
     }
 
     // Finalize the transaction commit
-    if(res == btree_fsm_t::transition_ok && state == committing) {
+    if((res == btree_fsm_t::transition_ok || res == btree_fsm_t::transition_set_error) && state == committing) {
         if (event != NULL) {
             assert(event->event_type == et_commit);
             assert(event->buf == transaction);
