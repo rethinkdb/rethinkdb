@@ -1,16 +1,16 @@
 #!/usr/bin/python
 HOST = 'localhost'
 PORT = 11213
-nInts = 250
+nInts = 10000
+nChunks = 3000
 
 from time import sleep
 import socket
 import random
 
-#split a list into a random number of lists of random size
+#split a list into nChunks of lists of random size
 #"I am a string" -> ["I a", "m a s", "strin", "g"]
-def rand_split(string, avg_sub_string_size):
-    nsub_strings = random.randint(1, (len(string) * 2) / avg_sub_string_size)
+def rand_split(string, nsub_strings):
     cutoffs = random.sample(range(len(string)), nsub_strings);
     cutoffs.sort();
     cutoffs.insert(0, 0)
@@ -29,13 +29,14 @@ command_string = ''
 for int in ints:
     command_string += ("set " + str(int) + " 0 0 " + str(len(str(int))) + " noreply\r\n" + str(int) + "\r\n")
 
-strings = rand_split(command_string, 40)
+strings = rand_split(command_string, nChunks)
 for string in strings:
-    print string
-    print "----"
+#    print string
+#    print "----"
     s.send(string)
-    sleep(.05)
+#sleep(.05)
 
+#s.send("quit\r\n")
 s.close()
 
 #from time import sleep

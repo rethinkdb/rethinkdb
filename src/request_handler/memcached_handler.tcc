@@ -35,8 +35,10 @@ typename memcached_handler_t<config_t>::parse_result_t memcached_handler_t<confi
     
     // Find the first line in the buffer
     char *line_end = (char *)memchr(rbuf, '\n', size);
-    if (line_end == NULL)   //make sure \n is in the buffer
+    if (line_end == NULL) {   //make sure \n is in the buffer
+        for (unsigned int i = 0; i < size; i++)
         return req_handler_t::op_partial_packet;    //if \n is at the beginning of the buffer, or if it is not preceeded by \r, the request is malformed
+    }
 
     if (loading_data)
         return read_data(rbuf, size, fsm);
