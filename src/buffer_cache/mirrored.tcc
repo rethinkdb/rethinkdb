@@ -7,7 +7,7 @@
  */
 template <class config_t>
 buf<config_t>::buf(cache_t *cache, block_id_t block_id)
-    : config_t::writeback_t::local_buf_t(cache),
+    : config_t::writeback_t::local_buf_t(this),
       config_t::concurrency_t::local_buf_t(this),
 #ifndef NDEBUG
     active_callback_count(0),
@@ -157,9 +157,8 @@ transaction<config_t>::allocate(block_id_t *block_id) {
     cache->make_space(1);
     
     *block_id = cache->gen_block_id();
-    buf_t *buf = new buf_t(cache, *block_id);
+    buf_t *buf = cache->create_buf(*block_id);
     buf->set_cached(true);
-    cache->set(*block_id, buf);
 		
     // This must pass since no one else holds references to this
     // block.
@@ -197,15 +196,12 @@ transaction<config_t>::acquire(block_id_t block_id, access_t mode,
     	// TODO: It's a little bit odd that the logic for loading blocks is here, but the logic for
     	// unloading blocks is in cache_t.
     	
-        buf = new buf_t(cache, block_id);
+    	buf = cache->create_buf(block_id);
         
         // This must pass since no one else holds references to this block.
         bool acquired __attribute__((unused)) =
             ((concurrency_t*)cache)->acquire(buf, mode, NULL);
         assert(acquired);
-        
-        // Make an entry in the page map
-        cache->set(block_id, buf);
         
 		// Since the buf isn't in memory yet, we're going to start an asynchronous load request and
 		// then call the callback when the load finishes. 
@@ -246,13 +242,11 @@ transaction<config_t>::acquire(block_id_t block_id, access_t mode,
 template <class config_t>
 mirrored_cache_t<config_t>::~mirrored_cache_t() {
 	
-	while (!ft_map.empty()) {
-		buf_t *buf = ft_map.begin()->second;
-		do_unload_buf(buf);
+	while (!buffers.empty()) {
+		do_unload_buf(buffers.head());
 	}
     assert(n_blocks_released == n_blocks_acquired);
     assert(n_trans_created == n_trans_freed);
-    assert(ft_map.empty());
     serializer_t::close();
 }
 
@@ -284,15 +278,36 @@ void mirrored_cache_t<config_t>::aio_complete(buf_t *buf, bool written) {
 }
 
 template <class config_t>
+typename config_t::buf_t *
+mirrored_cache_t<config_t>::create_buf(block_id_t block_id) {
+    buf_t *buf = new buf_t(this, block_id);
+    
+    // Store the buf in the page map
+    page_map_t::insert(buf);
+    
+    buffers.push_front(buf);
+    
+    return buf;
+}
+
+template <class config_t>
 void mirrored_cache_t<config_t>::do_unload_buf(buf_t *buf) {
     assert(buf->safe_to_unload());
     assert(buf->active_callback_count == 0);
         
     // Inform the page map that the block in question no longer exists, and will have to be reloaded
     // from disk the next time it is used
-    erase(buf->get_block_id());
+    page_map_t::erase(buf);
+    
+    buffers.remove(buf);
     
     delete buf;
+}
+
+template <class config_t>
+unsigned int
+mirrored_cache_t<config_t>::num_blocks() {
+    return buffers.size();
 }
 
 #ifndef NDEBUG
@@ -304,10 +319,9 @@ void mirrored_cache_t<config_t>::deadlock_debug() {
 	writeback_t::deadlock_debug();
 	
 	printf("\n----- Buffers -----\n");
-	typename page_map_t::ft_map_t::iterator it;
-	for (it = ft_map.begin(); it != ft_map.end(); it++) {
-		buf_t *buf = it->second;
-		buf->deadlock_debug();
+	typename intrusive_list_t<buf_t>::iterator it;
+	for (it = buffers.begin(); it != buffers.end(); it++) {
+		(*it).deadlock_debug();
 	}
 }
 #endif
