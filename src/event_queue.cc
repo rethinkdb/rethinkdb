@@ -406,8 +406,7 @@ void event_queue_t::finish_stopping_queue() {
 event_queue_t::~event_queue_t()
 {
     int res;
-
-    // Cleanup resources
+    
     res = close(this->epoll_fd);
     check("Could not close epoll_fd", res != 0);
     
