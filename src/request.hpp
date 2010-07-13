@@ -14,6 +14,12 @@ public:
 public:
     explicit request(conn_fsm_t *_netfsm) :
         nstarted(0), ncompleted(0), netfsm(_netfsm) {}
+    ~request() {
+        for (unsigned int i = 0; i < nstarted; i++) {
+            delete fsms[i];
+        }
+    }
+    
     unsigned int nstarted, ncompleted;
 
     // TODO: make this dynamic

@@ -167,7 +167,5 @@ int main(int argc, char *argv[])
         // If we got out of start_server, we're about to shut down.
         printf("Shutting down server...\n");
     }
-    // TODO(NNW): When shutting down, we must halt all event_queues fully
-    // before we destroy any of them because of the core_notify_fd.
 }
 

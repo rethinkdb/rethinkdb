@@ -264,6 +264,9 @@ conn_fsm<config_t>::~conn_fsm() {
     if(this->sbuf) {
         delete (iobuf_t*)(this->sbuf);
     }
+    if (current_request) {
+        delete current_request;
+    }
 }
 
 // Send a message to the client. The message should be contained

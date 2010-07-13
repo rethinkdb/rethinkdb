@@ -406,8 +406,7 @@ void event_queue_t::finish_stopping_queue() {
 event_queue_t::~event_queue_t()
 {
     int res;
-
-    // Cleanup resources
+    
     res = close(this->epoll_fd);
     check("Could not close epoll_fd", res != 0);
     
@@ -608,6 +607,7 @@ event_queue_t::timer_t *event_queue_t::fire_timer_once(long ms, void (*cb)(void 
 
 void event_queue_t::cancel_timer(timer_t *timer) {
     timers.remove(timer);
+    delete timer;
 }
 
 void event_queue_t::on_sync() {
