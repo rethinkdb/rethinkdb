@@ -181,6 +181,16 @@ void writeback_tmpl_t<config_t>::writeback(buf_t *buf) {
         
         assert(buf == NULL);
         
+        // Cancel the flush timer because we're doing writeback now, so we don't need it to remind
+        // us later. This happens only if the flush timer is running, and writeback starts for some
+        // other reason before the flush timer goes off; if this writeback had been started by the
+        // flush timer, then flush_timer would be NULL here, because flush_timer_callback sets it
+        // to NULL.
+        if (flush_timer) {
+            get_cpu_context()->event_queue->cancel_timer(flush_timer);
+            flush_timer = NULL;
+        }
+        
         /* Start a read transaction so we can request bufs. */
         assert(transaction == NULL);
         if (shutdown_callback) // Backdoor around "no new transactions" assert.
