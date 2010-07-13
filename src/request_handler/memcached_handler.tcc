@@ -1,4 +1,3 @@
-
 #ifndef __MEMCACHED_HANDLER_TCC__
 #define __MEMCACHED_HANDLER_TCC__
 
@@ -13,6 +12,7 @@
 #define MALFORMED_RESPONSE "ERROR\r\n"
 #define UNIMPLEMENTED_RESPONSE "SERVER_ERROR functionality not supported\r\n"
 #define STORAGE_SUCCESS "STORED\r\n"
+#define STORAGE_FAILURE "NOT_STORED\r\n"
 #define RETRIEVE_TERMINATOR "END\r\n"
 
 // TODO: if we receive a small request from the user that can be
@@ -168,13 +168,13 @@ typename memcached_handler_t<config_t>::parse_result_t memcached_handler_t<confi
     parse_result_t ret;
     switch(cmd) {
         case SET:
-            ret = set(data, fsm);
+            ret = set(data, fsm, btree_set_kind_set);
             break;
         case ADD:
-            ret = add(data, fsm);
+            ret = set(data, fsm, btree_set_kind_add);
             break;
         case REPLACE:
-            ret = replace(data, fsm);
+            ret = set(data, fsm, btree_set_kind_replace);
             break;
         case APPEND:
             ret = append(data, fsm);
@@ -194,9 +194,9 @@ typename memcached_handler_t<config_t>::parse_result_t memcached_handler_t<confi
 }
 
 template <class config_t>
-typename memcached_handler_t<config_t>::parse_result_t memcached_handler_t<config_t>::set(char *data, conn_fsm_t *fsm) {
+typename memcached_handler_t<config_t>::parse_result_t memcached_handler_t<config_t>::set(char *data, conn_fsm_t *fsm, btree_set_kind set_kind) {
     btree_set_fsm_t *btree_fsm = new btree_set_fsm_t(get_cpu_context()->event_queue->cache);
-    btree_fsm->init_update(key, data, bytes);
+    btree_fsm->init_update(key, data, bytes, set_kind);
     req_handler_t::event_queue->message_hub.store_message(key_to_cpu(key, req_handler_t::event_queue->nqueues),
             btree_fsm);
 
@@ -416,7 +416,11 @@ void memcached_handler_t<config_t>::build_response(request_t *request) {
         assert(request->nstarted == 1);
 
         btree_set_fsm = (btree_set_fsm_t*)request->fsms[0];
-        if (!noreply) {
+        
+        if (!btree_set_fsm->set_was_successful) {
+            strcpy(sbuf,STORAGE_FAILURE);
+            fsm->nsbuf = strlen(STORAGE_FAILURE);
+        }else if (!noreply) {
             strcpy(sbuf, STORAGE_SUCCESS);
             fsm->nsbuf = strlen(STORAGE_SUCCESS);
         } else {

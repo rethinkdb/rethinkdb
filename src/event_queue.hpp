@@ -37,8 +37,13 @@ public:
 public:
     event_queue_t(int queue_id, int _nqueues, event_handler_t event_handler,
                   worker_pool_t *parent_pool, cmd_config_t *cmd_config);
-    ~event_queue_t();
     void start_queue();
+    
+    // To safely shut down a group of event queues, call begin_stopping_queue() on each, then
+    // finish_stopping_queue() on each. Then it is safe to delete them.
+    void begin_stopping_queue();
+    void finish_stopping_queue();
+    ~event_queue_t();
     
     // Watching and forgetting resources (from the queue's POV)
     void watch_resource(resource_t resource, event_op_t event_op, void *state);

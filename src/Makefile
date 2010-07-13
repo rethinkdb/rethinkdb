@@ -77,9 +77,14 @@ run:
 	$(BUILD_DIR)/$(SERVER_EXEC_NAME) -p $(RUN_PORT) $(RUN_ARGS)
 
 gdb:
-	$(QUIET) make $(BUILD_DIR)/$(SERVER_EXEC_NAME)
+	$(QUIET) make $(BUILD_DIR)/$(SERVER_EXEC_NAME) DEBUG=1
 	$(QUIET) rm -f data.file*
 	gdb --args $(BUILD_DIR)/$(SERVER_EXEC_NAME) -p $(RUN_PORT) $(RUN_ARGS)
+
+valgrind:
+	$(QUIET) make $(BUILD_DIR)/$(SERVER_EXEC_NAME) DEBUG=1 VALGRIND=1
+	$(QUIET) rm -f data.file*
+	valgrind --leak-check=full $(BUILD_DIR)/$(SERVER_EXEC_NAME) -p $(RUN_PORT) $(RUN_ARGS)
 
 tags:
 	$(QUIET) ctags -R -f $(TAGS)

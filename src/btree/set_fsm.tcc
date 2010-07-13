@@ -25,7 +25,8 @@
 // relevant.
 
 template <class config_t>
-void btree_set_fsm<config_t>::init_update(btree_key *_key, byte *data, unsigned int length) {
+void btree_set_fsm<config_t>::init_update(btree_key *_key, byte *data, unsigned int length, btree_set_kind _set_kind) {
+    set_kind = _set_kind;
     keycpy(key, _key);
     value->size = length;
     memcpy(&value->contents, data, length);
@@ -226,6 +227,7 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
         // Proactively split the node
         node_t *node = (node_t *)buf->ptr();
         bool full;
+                
         if (node_handler::is_leaf(node)) {
             full = leaf_node_handler::is_full((leaf_node_t *)node, key, value);
         } else {
@@ -283,9 +285,23 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
         
         // Insert the value, or move up the tree
         if(node_handler::is_leaf(node)) {
-            bool success = leaf_node_handler::insert(((leaf_node_t*)node), key, value);
-            check("could not insert leaf btree node", !success);
-            buf->set_dirty();
+
+            // TODO: write a unit test for checking the add and replace.
+            btree_value unused_value;
+            // If it's an add operation, check that the key doesn't exist.
+            // If it's a replace operation, check that the key does exist.
+            bool key_found = false;
+            if(set_kind == btree_set_kind_add || set_kind == btree_set_kind_replace)
+                key_found = leaf_node_handler::lookup((leaf_node_t*)node, key, &unused_value);
+            if (set_kind == btree_set_kind_set ||
+                (set_kind == btree_set_kind_add && !key_found) ||
+                (set_kind == btree_set_kind_replace && key_found))
+            {
+                bool success = leaf_node_handler::insert(((leaf_node_t*)node), key, value);
+                check("could not insert leaf btree node", !success);
+                set_was_successful = true;
+                buf->set_dirty();
+            }
             buf->release();
             buf = NULL;
             state = update_complete;

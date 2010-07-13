@@ -22,7 +22,6 @@
 #include "alloc/alloc_mixin.hpp"
 #include "worker_pool.hpp"
 #include "arch/io.hpp"
-#include "conn_fsm.hpp"
 #include "serializer/in_place.hpp"
 #include "buffer_cache/fallthrough.hpp"
 #include "buffer_cache/stats.hpp"
@@ -34,6 +33,7 @@
 #include "btree/get_fsm.hpp"
 #include "btree/set_fsm.hpp"
 #include "btree/delete_fsm.hpp"
+#include "conn_fsm.hpp"
 #include "request.hpp"
 #include "event_queue.hpp"
 #include "buffer_cache/stats.hpp"
@@ -385,21 +385,27 @@ void event_queue_t::start_queue() {
     queue_init_timer(this, TIMER_TICKS_IN_MS);
 }
 
-event_queue_t::~event_queue_t()
-{
-    int res;
-
+void event_queue_t::begin_stopping_queue() {
     // Kill the poll thread
     itc_event_t event;
     bzero(&event, sizeof event);
     event.event_type = iet_shutdown;
     post_itc_message(&event);
+}
 
+void event_queue_t::finish_stopping_queue() {
+    int res;
+    
     // Wait for the poll thread to die
     void *allocs_tl = NULL;
     res = pthread_join(this->epoll_thread, &allocs_tl);
     check("Could not join with epoll thread", res != 0);
     parent_pool->all_allocs.push_back(allocs_tl);
+}
+
+event_queue_t::~event_queue_t()
+{
+    int res;
 
     // Cleanup resources
     res = close(this->epoll_fd);
@@ -602,6 +608,7 @@ event_queue_t::timer_t *event_queue_t::fire_timer_once(long ms, void (*cb)(void 
 
 void event_queue_t::cancel_timer(timer_t *timer) {
     timers.remove(timer);
+    delete timer;
 }
 
 void event_queue_t::on_sync() {
