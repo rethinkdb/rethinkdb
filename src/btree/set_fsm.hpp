@@ -2,6 +2,12 @@
 #ifndef __BTREE_SET_FSM_HPP__
 #define __BTREE_SET_FSM_HPP__
 
+enum btree_set_kind {
+    btree_set_kind_set,
+    btree_set_kind_add,
+    btree_set_kind_replace
+};
+
 template <class config_t>
 class btree_set_fsm : public btree_fsm<config_t>,
                       public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, btree_set_fsm<config_t> >
@@ -23,17 +29,17 @@ public:
         insert_root_on_split,
         acquire_node,
         update_complete,
-        committing,
+        committing
     };
 
 public:
     explicit btree_set_fsm(cache_t *cache)
         : btree_fsm_t(cache, btree_fsm_t::btree_set_fsm),
           state(uninitialized), key((btree_key*)key_memory), value((btree_value*)value_memory), sb_buf(NULL), buf(NULL), last_buf(NULL),
-          node_id(cache_t::null_block_id), last_node_id(cache_t::null_block_id)
+          node_id(cache_t::null_block_id), last_node_id(cache_t::null_block_id), set_was_successful(false)
         {}
 
-    void init_update(btree_key *_key, byte *data, unsigned int length);
+    void init_update(btree_key *_key, byte *data, unsigned int length, btree_set_kind set_kind);
     virtual transition_result_t do_transition(event_t *event);
 
     virtual bool is_finished() {
@@ -70,6 +76,10 @@ private:
 
     buf_t *sb_buf, *buf, *last_buf;
     block_id_t node_id, last_node_id; // TODO(NNW): Bufs may suffice for these.
+    
+    btree_set_kind set_kind; // choice of set, add or replace with a different behaviour for each.
+public:
+    bool set_was_successful;
 };
 
 #include "btree/set_fsm.tcc"

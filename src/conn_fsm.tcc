@@ -59,18 +59,21 @@ typename conn_fsm<config_t>::result_t conn_fsm<config_t>::do_socket_ready(event_
                     // fsm_socket_send_incomplete state here,
                     // since we break out in these cases. So it's
                     // safe to free the buffer.
-                    if(state->state != conn_fsm::fsm_socket_recv_incomplete)
+                    if(state->state != conn_fsm::fsm_socket_recv_incomplete && nrbuf == 0)
                         return_to_socket_connected();
                     break;
+                } else if (errno == ENETDOWN) {
+                    check("Enetdown wtf", sz == -1);
                 } else {
                     check("Could not read from socket", sz == -1);
                 }
-            } else if(sz > 0) {
+            } else if(sz > 0 || nrbuf > 0) {
                 state->nrbuf += sz;
                 typename req_handler_t::parse_result_t handler_res =
                     req_handler->parse_request(event);
                 switch(handler_res) {
                 case req_handler_t::op_malformed:
+                    assert(0);
                     // Command wasn't processed correctly, send error
                     // Error should already be placed in buffer by parser
                     send_msg_to_client();
@@ -232,8 +235,8 @@ typename conn_fsm<config_t>::result_t conn_fsm<config_t>::do_fsm_outstanding_req
                     res = fsm_invalid;
                     check("Invalid state", 1);
             }
-            if (state == fsm_btree_complete) {
-                if (nrbuf > 0) {
+            if (state == fsm_btree_complete && res != fsm_quit_connection && res != fsm_shutdown_server) {
+                if (nrbuf > iobuf_t::size / 2) {
                     //there's still data in our rbuf, deal with it
                     res = do_fsm_outstanding_req(event);
                 } else {

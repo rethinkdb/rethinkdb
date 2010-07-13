@@ -6,7 +6,7 @@ START_DB_NAME:=start_rethinkdb
 TAGS:=.tags
 RUN_PORT?=11211
 RUN_FLAGS?=
-VALGRIND_FLAGS?=
+VALGRIND_FLAGS?=--leak-check=full
 
 # Default DEBUG variable to "on".  This should be changed on a release branch.
 DEBUG?=1

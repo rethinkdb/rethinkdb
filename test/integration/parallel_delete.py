@@ -3,19 +3,20 @@
 import sys
 import subprocess
 from multiprocessing import Pool, Queue, Process
-import memcache
+import pylibmc as memcache
 from random import shuffle
 
 NUM_INTS=8000
 NUM_THREADS=32
 HOST="localhost"
-PORT="11211"
+PORT="11213"
+bin = False
 
 # TODO: when we add more integration tests, the act of starting a
 # RethinkDB process should be handled by a common external script.
 
 def rethinkdb_insert(queue, ints):
-    mc = memcache.Client([HOST + ":" + PORT], debug=0)
+    mc = memcache.Client([HOST + ":" + PORT], binary = bin)
     for i in ints:
         print "Inserting %d" % i
         if (0 == mc.set(str(i), str(i))):
@@ -25,7 +26,7 @@ def rethinkdb_insert(queue, ints):
     queue.put(0)
 
 def rethinkdb_delete(queue, ints):
-    mc = memcache.Client([HOST + ":" + PORT], debug=0)
+    mc = memcache.Client([HOST + ":" + PORT], binary = bin)
     if(0 == mc.servers[0].connect()):
         print "Failed to connect"
     for i in ints:
@@ -37,7 +38,7 @@ def rethinkdb_delete(queue, ints):
     queue.put(0)
 
 def rethinkdb_verify():
-    mc = memcache.Client([HOST + ":" + PORT], debug=0)
+    mc = memcache.Client([HOST + ":" + PORT], binary = bin)
     for i in xrange(0, NUM_INTS):
         val = mc.get(str(i))
         if str(i) != val:
@@ -46,7 +47,7 @@ def rethinkdb_verify():
     mc.disconnect_all()
 
 def rethinkdb_verify_empty(in_ints, out_ints):
-    mc = memcache.Client([HOST + ":" + PORT], debug=0)
+    mc = memcache.Client([HOST + ":" + PORT], binary = bin)
     if(0 == mc.servers[0].connect()):
         print "Failed to connect"
     for i in out_ints:
