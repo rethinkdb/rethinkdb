@@ -11,16 +11,19 @@
 template<class config_t>
 void conn_fsm<config_t>::init_state() {
     this->state = fsm_socket_connected;
-    this->buf = NULL;
-    this->nbuf = 0;
-    this->snbuf = 0;
+    this->rbuf = NULL;
+    this->sbuf = NULL;
+    this->nrbuf = 0;
+    this->nsbuf = 0;
 }
 
 // This function returns the socket to clean connected state
 template<class config_t>
 void conn_fsm<config_t>::return_to_socket_connected() {
-    if(this->buf)
-        delete (iobuf_t*)(this->buf);
+    if(this->rbuf)
+        delete (iobuf_t*)(this->rbuf);
+    if(this->sbuf)
+        delete (iobuf_t*)(this->sbuf);
     init_state();
 }
 
@@ -34,18 +37,22 @@ typename conn_fsm<config_t>::result_t conn_fsm<config_t>::do_socket_ready(event_
     assert(state == this);
 
     if(event->event_type == et_sock) {
-        if(state->buf == NULL) {
-            state->buf = (char *)new iobuf_t();
-            state->nbuf = 0;
+        if(state->rbuf == NULL) {
+            state->rbuf = (char *)new iobuf_t();
+            state->nrbuf = 0;
+        }
+        if(state->sbuf == NULL) {
+            state->sbuf = (char *)new iobuf_t();
+            state->nsbuf = 0;
         }
             
         // TODO: we assume the command will fit comfortably into
         // IO_BUFFER_SIZE. We'll need to implement streaming later.
 
-        do {
+        for (;;) {
             sz = io_calls_t::read(state->source,
-                                  state->buf + state->nbuf,
-                                  iobuf_t::size - state->nbuf);
+                                  state->rbuf + state->nrbuf,
+                                  iobuf_t::size - state->nrbuf);
             if(sz == -1) {
                 if(errno == EAGAIN || errno == EWOULDBLOCK) {
                     // The machine can't be in
@@ -59,7 +66,7 @@ typename conn_fsm<config_t>::result_t conn_fsm<config_t>::do_socket_ready(event_
                     check("Could not read from socket", sz == -1);
                 }
             } else if(sz > 0) {
-                state->nbuf += sz;
+                state->nrbuf += sz;
                 typename req_handler_t::parse_result_t handler_res =
                     req_handler->parse_request(event);
                 switch(handler_res) {
@@ -106,7 +113,7 @@ typename conn_fsm<config_t>::result_t conn_fsm<config_t>::do_socket_ready(event_
 
                 // TODO: what about application-level keepalive?
             }
-        } while(1);
+        } 
     } else {
         check("fsm_socket_ready: Invalid event", 1);
     }
@@ -128,12 +135,7 @@ typename conn_fsm<config_t>::result_t conn_fsm<config_t>::do_fsm_btree_incomplet
     } else if(event->event_type == et_request_complete) {
         send_msg_to_client();
         if(this->state != conn_fsm::fsm_socket_send_incomplete) {
-            // We've finished sending completely, now see if there is
-            // anything left to read from the old epoll notification,
-            // and let fsm_socket_ready do the cleanup
-            event->op = eo_read;
-            event->event_type = et_sock;
-            do_socket_ready(event);
+            state = fsm_btree_complete;
         }
     } else {
         check("fsm_btree_incomplete: Invalid event", 1);
@@ -154,11 +156,7 @@ typename conn_fsm<config_t>::result_t conn_fsm<config_t>::do_socket_send_incompl
             send_msg_to_client();
         }
         if(this->state != conn_fsm::fsm_socket_send_incomplete) {
-            // We've finished sending completely, now see if there is
-            // anything left to read from the old epoll notification,
-            // and let fsm_socket_ready do the cleanup
-            event->op = eo_read;
-            do_socket_ready(event);
+            state = fsm_btree_complete;
         }
     } else {
         check("fsm_socket_send_ready: Invalid event", 1);
@@ -166,33 +164,85 @@ typename conn_fsm<config_t>::result_t conn_fsm<config_t>::do_socket_send_incompl
     return fsm_transition_ok;
 }
 
-// Switch on the current state and call the appropriate transition
-// function.
+//We've processed a request but there are still outstanding requests in our rbuf
 template<class config_t>
-typename conn_fsm<config_t>::result_t conn_fsm<config_t>::do_transition(event_t *event) {
-    // TODO: Using parent_pool member variable within state
-    // transitions might cause cache line alignment issues. Can we
-    // eliminate it (perhaps by giving each thread its own private
-    // copy of the necessary data)?
-
-    result_t res;
-
-    switch(state) {
-    case fsm_socket_connected:
-    case fsm_socket_recv_incomplete:
-        res = do_socket_ready(event);
-        break;
-    case fsm_socket_send_incomplete:
-        res = do_socket_send_incomplete(event);
-        break;
-    case fsm_btree_incomplete:
-        res = do_fsm_btree_incomplete(event);
-        break;
-    default:
-        res = fsm_invalid;
-        check("Invalid state", 1);
+typename conn_fsm<config_t>::result_t conn_fsm<config_t>::do_fsm_outstanding_req(event_t *event) {
+    conn_fsm *state = (conn_fsm*)event->state;
+    assert(state == this);
+    assert(nrbuf > 0);
+    typename req_handler_t::parse_result_t handler_res =
+        req_handler->parse_request(event);
+    switch(handler_res) {
+        case req_handler_t::op_malformed:
+            // Command wasn't processed correctly, send error
+            // Error should already be placed in buffer by parser
+            send_msg_to_client();
+            break;
+        case req_handler_t::op_partial_packet:
+            // The data is incomplete, keep trying to read in
+            // the current read loop
+            state->state = conn_fsm::fsm_socket_recv_incomplete;
+            break;
+        case req_handler_t::op_req_shutdown:
+            // Shutdown has been initiated
+            return fsm_shutdown_server;
+        case req_handler_t::op_req_quit:
+            // The connection has been closed
+            return fsm_quit_connection;
+        case req_handler_t::op_req_complex:
+            // Ain't nothing we can do now - the operations
+            // have been distributed accross CPUs. We can just
+            // sit back and wait until they come back.
+            assert(current_request);
+            state->state = fsm_btree_incomplete;
+            return fsm_transition_ok;
+            break;
+        default:
+            check("Unknown request parse result", 1);
     }
+    return fsm_transition_ok;
+}
 
+        // Switch on the current state and call the appropriate transition
+        // function.
+        template<class config_t>
+        typename conn_fsm<config_t>::result_t conn_fsm<config_t>::do_transition(event_t *event) {
+            // TODO: Using parent_pool member variable within state
+            // transitions might cause cache line alignment issues. Can we
+            // eliminate it (perhaps by giving each thread its own private
+            // copy of the necessary data)?
+
+            result_t res;
+
+            //TODO: as things stand we get an event for when a socket is connected
+            //and then allocate and free the buffers, fix this
+            switch(state) {
+                case fsm_socket_connected:
+                case fsm_socket_recv_incomplete:
+                case fsm_btree_complete:
+                    res = do_socket_ready(event);
+                    break;
+                case fsm_socket_send_incomplete:
+                    res = do_socket_send_incomplete(event);
+                    break;
+                case fsm_btree_incomplete:
+                    res = do_fsm_btree_incomplete(event);
+                    break;
+                default:
+                    res = fsm_invalid;
+                    check("Invalid state", 1);
+            }
+            if (state == fsm_btree_complete) {
+                if (nrbuf > 0) {
+                    //there's still data in our rbuf, deal with it
+                    res = do_fsm_outstanding_req(event);
+                } else {
+                    event->op = eo_read;
+                    event->event_type = et_sock;
+                    do_socket_ready(event);
+                }
+            }
+            
     return res;
 }
 
@@ -208,8 +258,11 @@ template<class config_t>
 conn_fsm<config_t>::~conn_fsm() {
     close(source);
     delete req_handler;
-    if(this->buf) {
-        delete (iobuf_t*)(this->buf);
+    if(this->rbuf) {
+        delete (iobuf_t*)(this->rbuf);
+    }
+    if(this->sbuf) {
+        delete (iobuf_t*)(this->sbuf);
     }
 }
 
@@ -221,15 +274,12 @@ template<class config_t>
 void conn_fsm<config_t>::send_msg_to_client() {
     // Either number of bytes already sent should be zero, or we
     // should be in the middle of an incomplete send.
-    assert(this->snbuf == 0 || this->state == conn_fsm::fsm_socket_send_incomplete);
+    //assert(this->snbuf == 0 || this->state == conn_fsm::fsm_socket_send_incomplete); TODO equivalent thing for seperate buffers
 
-    int len = this->nbuf - this->snbuf;
+    int len = this->nsbuf;
     int sz = 0;
-    do {
-        this->snbuf += sz;
-        len -= sz;
-        
-        sz = io_calls_t::write(this->source, this->buf + this->snbuf, len);
+    while(len > 0) {
+        sz = io_calls_t::write(this->source, this->sbuf, len);
         if(sz < 0) {
             if(errno == EAGAIN || errno == EWOULDBLOCK) {
                 // If we can't send the message now, wait 'till we can
@@ -240,26 +290,26 @@ void conn_fsm<config_t>::send_msg_to_client() {
                 check("Couldn't send message to client", sz < 0);
             }
         }
-    } while(sz < len);
+        len -= sz;
+    }
 
     // We've successfully sent everything out
-    this->snbuf = 0;
-    this->nbuf = 0;
+    this->nsbuf = 0;
     this->state = conn_fsm::fsm_socket_connected;
 }
 
 template<class config_t>
 void conn_fsm<config_t>::send_err_to_client() {
     char err_msg[] = "(ERROR) Unknown command\n";
-    strcpy(this->buf, err_msg);
-    this->nbuf = strlen(err_msg) + 1;
+    strcpy(this->sbuf, err_msg);
+    this->snbuf = strlen(err_msg) + 1;
     send_msg_to_client();
 }
 
 template<class config_t>
 void conn_fsm<config_t>::consume(unsigned int bytes) {
-    memmove(this->buf, this->buf + bytes, this->nbuf - bytes);
-    this->nbuf -= bytes;
+    memmove(this->rbuf, this->rbuf + bytes, this->nrbuf - bytes);
+    this->nrbuf -= bytes;
 }
 
 #endif // __FSM_TCC__

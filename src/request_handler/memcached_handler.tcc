@@ -1,4 +1,3 @@
-
 #ifndef __MEMCACHED_HANDLER_TCC__
 #define __MEMCACHED_HANDLER_TCC__
 
@@ -26,8 +25,8 @@ template<class config_t>
 typename memcached_handler_t<config_t>::parse_result_t memcached_handler_t<config_t>::parse_request(event_t *event)
 {
     conn_fsm_t *fsm = (conn_fsm_t*)event->state;
-    char *buf = fsm->buf;
-    unsigned int size = fsm->nbuf;
+    char *rbuf = fsm->rbuf; 
+    unsigned int size = fsm->nrbuf;
 
     // TODO: we might end up getting a command, and a piece of the
     // next command. It also means that we can't use one buffer
@@ -35,23 +34,23 @@ typename memcached_handler_t<config_t>::parse_result_t memcached_handler_t<confi
     // (assuming we want to support out of band  commands).
     
     // Find the first line in the buffer
-    char *line_end = (char *)memchr(buf, '\n', size);
+    char *line_end = (char *)memchr(rbuf, '\n', size);
     if (line_end == NULL)   //make sure \n is in the buffer
         return req_handler_t::op_partial_packet;    //if \n is at the beginning of the buffer, or if it is not preceeded by \r, the request is malformed
 
     if (loading_data)
-        return read_data(buf, size, fsm);
+        return read_data(rbuf, size, fsm);
 
-    if (line_end == buf || line_end[-1] != '\r')
+    if (line_end == rbuf || line_end[-1] != '\r')
         return malformed_request(fsm);
 
     // if we're not reading a binary blob, then the line will be a string - let's null terminate it
     *line_end = '\0';
-    unsigned int line_len = line_end - buf + 1;
+    unsigned int line_len = line_end - rbuf + 1;
 
     // get the first token to determine the command
     char *state;
-    char *cmd_str = strtok_r(buf, DELIMS, &state);
+    char *cmd_str = strtok_r(rbuf, DELIMS, &state);
 
     if(cmd_str == NULL)
         return malformed_request(fsm);
@@ -62,6 +61,7 @@ typename memcached_handler_t<config_t>::parse_result_t memcached_handler_t<confi
         if (strtok_r(NULL, DELIMS, &state))  //strtok will return NULL if there are no more tokens
             return malformed_request(fsm);
         // Quit the connection
+        fsm->consume(fsm->nrbuf);
         return req_handler_t::op_req_quit;
 
     } else if(!strcmp(cmd_str, "shutdown")) {
@@ -69,6 +69,8 @@ typename memcached_handler_t<config_t>::parse_result_t memcached_handler_t<confi
         if (strtok_r(NULL, DELIMS, &state))  //strtok will return NULL if there are no more tokens
             return malformed_request(fsm);
         // Shutdown the server
+        // clean out the rbuf
+        fsm->consume(fsm->nrbuf);
         return req_handler_t::op_req_shutdown;
 
     } else if(!strcmp(cmd_str, "set")) {     // check for storage commands
@@ -150,7 +152,7 @@ typename memcached_handler_t<config_t>::parse_result_t memcached_handler_t<confi
     fsm->consume(line_len); //consume the line
     loading_data = true;
 
-    return read_data(fsm->buf, fsm->nbuf, fsm);
+    return read_data(fsm->rbuf, fsm->nrbuf, fsm);
 }
 	
 template <class config_t>
@@ -247,8 +249,8 @@ typename memcached_handler_t<config_t>::parse_result_t memcached_handler_t<confi
 template <class config_t>
 void memcached_handler_t<config_t>::write_msg(conn_fsm_t *fsm, const char *str) {
     int len = strlen(str);
-    memcpy(fsm->buf, str, len+1);
-    fsm->nbuf = len+1;
+    memcpy(fsm->sbuf, str, len+1);
+    fsm->nsbuf = len+1;
 }
 
 template <class config_t>
@@ -292,6 +294,9 @@ typename memcached_handler_t<config_t>::parse_result_t memcached_handler_t<confi
 
     // Set the current request in the connection fsm
     fsm->current_request = request;
+
+    //clean out the rbuf
+    fsm->consume(fsm->nrbuf);
     return req_handler_t::op_req_complex;
 }
 
@@ -343,6 +348,9 @@ typename memcached_handler_t<config_t>::parse_result_t memcached_handler_t<confi
 
     req_handler_t::event_queue->message_hub.store_message(key_to_cpu(key, req_handler_t::event_queue->nqueues), btree_fsm);
 
+    //clean out the rbuf
+    fsm->consume(fsm->nrbuf);
+
     return req_handler_t::op_req_complex;
 }
 
@@ -375,8 +383,8 @@ void memcached_handler_t<config_t>::build_response(request_t *request) {
     btree_get_fsm_t *btree_get_fsm = NULL;
     btree_set_fsm_t *btree_set_fsm = NULL;
     btree_delete_fsm_t *btree_delete_fsm = NULL;
-    char *buf = fsm->buf;
-    fsm->nbuf = 0;
+    char *sbuf = fsm->sbuf;
+    fsm->nsbuf = 0;
     int count;
     
     assert(request->nstarted > 0 && request->nstarted == request->ncompleted);
@@ -389,16 +397,16 @@ void memcached_handler_t<config_t>::build_response(request_t *request) {
                 //TODO: support flags
                 btree_key *key = btree_get_fsm->key;
                 btree_value *value = btree_get_fsm->value;
-                count = sprintf(buf, "VALUE %*.*s %u %u\r\n%*.*s\r\n", key->size, key->size, key->contents, 0, value->size, value->size, value->size, value->contents);
-                fsm->nbuf += count;
-                buf += count;
+                count = sprintf(sbuf, "VALUE %*.*s %u %u\r\n%*.*s\r\n", key->size, key->size, key->contents, 0, value->size, value->size, value->size, value->contents);
+                fsm->nsbuf += count;
+                sbuf += count;
             } else if(btree_get_fsm->op_result == btree_get_fsm_t::btree_not_found) {
                 // do nothing
             }
             delete btree_get_fsm;
         }
-        count = sprintf(buf, RETRIEVE_TERMINATOR);
-        fsm->nbuf += count;
+        count = sprintf(sbuf, RETRIEVE_TERMINATOR);
+        fsm->nsbuf += count;
         break;
 
     case btree_fsm_t::btree_set_fsm:
@@ -408,13 +416,13 @@ void memcached_handler_t<config_t>::build_response(request_t *request) {
         btree_set_fsm = (btree_set_fsm_t*)request->fsms[0];
         
         if (!btree_set_fsm->set_was_successful) {
-            strcpy(buf,STORAGE_FAILURE);
-            fsm->nbuf = strlen(STORAGE_FAILURE);
+            strcpy(sbuf,STORAGE_FAILURE);
+            fsm->nsbuf = strlen(STORAGE_FAILURE);
         }else if (!noreply) {
-            strcpy(buf, STORAGE_SUCCESS);
-            fsm->nbuf = strlen(STORAGE_SUCCESS);
+            strcpy(sbuf, STORAGE_SUCCESS);
+            fsm->nsbuf = strlen(STORAGE_SUCCESS);
         } else {
-            fsm->nbuf = 0;
+            fsm->nsbuf = 0;
         }
         delete btree_set_fsm;
         break;
@@ -426,38 +434,38 @@ void memcached_handler_t<config_t>::build_response(request_t *request) {
         btree_delete_fsm = (btree_delete_fsm_t*)request->fsms[0];
 
         if(btree_delete_fsm->op_result == btree_delete_fsm_t::btree_found) {
-            count = sprintf(buf, "DELETED\r\n");
-            fsm->nbuf += count;
-            buf += count; //for when we do support multiple deletes at a time
+            count = sprintf(sbuf, "DELETED\r\n");
+            fsm->nsbuf += count;
+            sbuf += count; //for when we do support multiple deletes at a time
         } else if (btree_delete_fsm->op_result == btree_delete_fsm_t::btree_not_found) {
-            count = sprintf(buf, "NOT_FOUND\r\n");
-            fsm->nbuf += count;
-            buf += count;
+            count = sprintf(sbuf, "NOT_FOUND\r\n");
+            fsm->nsbuf += count;
+            sbuf += count;
         } else {
             check("memchached_handler_t::build_response - Uknown value for btree_delete_fsm->op_result\n", 0);
         }
         delete btree_delete_fsm;
         break;
 
-    /* case btree_fsm_t::btree_delete_fsm:
+    case btree_fsm_t::btree_delete_fsm:
         // For now we only support one delete operation at a time
         assert(request->nstarted == 1);
 
-        //btree_delete_fsm = (btree_delete_fsm_t*)request->fsms[0];
+        btree_delete_fsm = (btree_delete_fsm_t*)request->fsms[0];
 
         if(btree_delete_fsm->op_result == btree_delete_fsm_t::btree_found) {
-            count = sprintf(buf, "DELETED\r\n");
-            fsm->nbuf += count;
-            buf += count; //for when we do support multiple deletes at a time
+            count = sprintf(sbuf, "DELETED\r\n");
+            fsm->nsbuf += count;
+            sbuf += count; //for when we do support multiple deletes at a time
         } else if (btree_delete_fsm->op_result == btree_delete_fsm_t::btree_not_found) {
-            count = sprintf(buf, "NOT_FOUND\r\n");
-            fsm->nbuf += count;
-            buf += count;
+            count = sprintf(sbuf, "NOT_FOUND\r\n");
+            fsm->nsbuf += count;
+            sbuf += count;
         } else {
             check("memchached_handler_t::build_response - Uknown value for btree_delete_fsm->op_result\n", 0);
         }
         delete btree_delete_fsm;
-        break; */
+        break;
 
     default:
         check("memcached_handler_t::build_response - Unknown btree op", 0);

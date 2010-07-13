@@ -4,6 +4,8 @@ SERVER_EXEC_NAME:=rethinkdb
 START_DB_DIR:=../scripts
 START_DB_NAME:=start_rethinkdb
 TAGS:=.tags
+RUN_PORT?=11211
+RUN_ARGS?=
 
 # Default DEBUG variable to "on".  This should be changed on a release branch.
 DEBUG?=1
@@ -58,12 +60,31 @@ OBJS:=$(patsubst %,$(OBJ_DIR)/%.o,$(NAMES))
 ##### Build targets
 
 # High level build targets
+
 $(BUILD_DIR)/$(SERVER_EXEC_NAME): $(OBJS) $(BUILD_DIR)
 ifeq ($(VERBOSE),0)
 	@echo "    LD $@"
 endif
 	$(QUIET) $(CXX) $(LDFLAGS) $(OBJS) -o $(BUILD_DIR)/$(SERVER_EXEC_NAME)
 	$(QUIET) cp $(START_DB_DIR)/$(START_DB_NAME) $(BUILD_DIR)/$(START_DB_NAME)
+
+# The 'run' and 'gdb' targets build the server, automatically remove old data files, and then start
+# it up. The difference is that the 'gdb' target starts it under a debugger.
+
+run:
+	$(QUIET) make $(BUILD_DIR)/$(SERVER_EXEC_NAME)
+	$(QUIET) rm -f data.file*
+	$(BUILD_DIR)/$(SERVER_EXEC_NAME) -p $(RUN_PORT) $(RUN_ARGS)
+
+gdb:
+	$(QUIET) make $(BUILD_DIR)/$(SERVER_EXEC_NAME) DEBUG=1
+	$(QUIET) rm -f data.file*
+	gdb --args $(BUILD_DIR)/$(SERVER_EXEC_NAME) -p $(RUN_PORT) $(RUN_ARGS)
+
+valgrind:
+	$(QUIET) make $(BUILD_DIR)/$(SERVER_EXEC_NAME) DEBUG=1 VALGRIND=1
+	$(QUIET) rm -f data.file*
+	valgrind $(BUILD_DIR)/$(SERVER_EXEC_NAME) -p $(RUN_PORT) $(RUN_ARGS)
 
 tags:
 	$(QUIET) ctags -R -f $(TAGS)

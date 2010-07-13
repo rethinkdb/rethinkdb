@@ -81,6 +81,17 @@ worker_pool_t::worker_pool_t(event_handler_t event_handler, pthread_t main_threa
 }
 
 worker_pool_t::~worker_pool_t() {
+
+    // Start stopping each event queue
+    for(int i = 0; i < nworkers; i++) {
+        workers[i]->begin_stopping_queue();
+    }
+    
+    // Wait for all of the event queues to finish stopping before destroying any of them
+    for (int i = 0; i < nworkers; i++) {
+        workers[i]->finish_stopping_queue();
+    }
+    
     // Free the event queues
     for(int i = 0; i < nworkers; i++) {
         gdelete(workers[i]);
