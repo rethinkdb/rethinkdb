@@ -298,8 +298,7 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
 
                 bool success = leaf_node_handler::insert(((leaf_node_t*)node), key, value);
                 check("could not insert leaf btree node", !success);
-            } else {
-                set_was_successful = false;
+                set_was_successful = true;
             }
             buf->set_dirty();
             buf->release();
