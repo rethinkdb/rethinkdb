@@ -21,7 +21,6 @@
 #include "alloc/alloc_mixin.hpp"
 #include "config/args.hpp"
 #include "arch/io.hpp"
-#include "conn_fsm.hpp"
 #include "serializer/in_place.hpp"
 #include "buffer_cache/fallthrough.hpp"
 #include "buffer_cache/stats.hpp"
@@ -36,8 +35,7 @@
 #include "btree/get_fsm.hpp"
 #include "btree/set_fsm.hpp"
 #include "btree/delete_fsm.hpp"
-
-
+#include "conn_fsm.hpp"
 #include "request.hpp"
 
 // TODO: we should redo the plumbing for the entire callback system so

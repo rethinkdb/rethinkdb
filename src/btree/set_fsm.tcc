@@ -288,19 +288,20 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
 
             // TODO: write a unit test for checking the add and replace.
             btree_value unused_value;
-            bzero(&unused_value, sizeof(btree_value));
             // If it's an add operation, check that the key doesn't exist.
             // If it's a replace operation, check that the key does exist.
-            if (!(set_kind == btree_set_kind_add && 
-                leaf_node_handler::lookup((btree_leaf_node*)node, key, &unused_value)) && 
-                !(set_kind == btree_set_kind_replace && 
-                !leaf_node_handler::lookup((btree_leaf_node*)node, key, &unused_value))) {
-
+            bool key_found = false;
+            if(set_kind == btree_set_kind_add || set_kind == btree_set_kind_replace)
+                key_found = leaf_node_handler::lookup((leaf_node_t*)node, key, &unused_value);
+            if (set_kind == btree_set_kind_set ||
+                (set_kind == btree_set_kind_add && !key_found) ||
+                (set_kind == btree_set_kind_replace && key_found))
+            {
                 bool success = leaf_node_handler::insert(((leaf_node_t*)node), key, value);
                 check("could not insert leaf btree node", !success);
                 set_was_successful = true;
+                buf->set_dirty();
             }
-            buf->set_dirty();
             buf->release();
             buf = NULL;
             state = update_complete;

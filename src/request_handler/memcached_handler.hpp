@@ -6,12 +6,6 @@
 #include "config/code.hpp"
 #include "alloc/alloc_mixin.hpp"
 
-enum btree_set_kind {
-    btree_set_kind_set,
-    btree_set_kind_add,
-    btree_set_kind_replace
-};
-
 template<class config_t>
 class memcached_handler_t : public request_handler_t<config_t>,
     public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, memcached_handler_t<config_t> > {

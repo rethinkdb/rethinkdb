@@ -2,6 +2,12 @@
 #ifndef __BTREE_SET_FSM_HPP__
 #define __BTREE_SET_FSM_HPP__
 
+enum btree_set_kind {
+    btree_set_kind_set,
+    btree_set_kind_add,
+    btree_set_kind_replace
+};
+
 template <class config_t>
 class btree_set_fsm : public btree_fsm<config_t>,
                       public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, btree_set_fsm<config_t> >
