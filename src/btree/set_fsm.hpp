@@ -23,8 +23,7 @@ public:
         insert_root_on_split,
         acquire_node,
         update_complete,
-        committing,
-        // TODO: add a new state
+        committing
     };
 
 public:

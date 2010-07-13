@@ -8,7 +8,6 @@
 #include "request_handler/memcached_handler.hpp"
 #include "conn_fsm.hpp"
 #include "corefwd.hpp"
-#include "btree/states.hpp"
 
 #define DELIMS " \t\n\r"
 #define MALFORMED_RESPONSE "ERROR\r\n"

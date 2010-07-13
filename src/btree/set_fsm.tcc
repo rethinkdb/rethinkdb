@@ -1,6 +1,6 @@
 
-#ifndef __BTREE_SET_FSM_IMPL_HPP__
-#define __BTREE_SET_FSM_IMPL_HPP__
+#ifndef __BTREE_SET_FSM_TCC__
+#define __BTREE_SET_FSM_TCC__
 
 #include "cpu_context.hpp"
 
@@ -287,7 +287,7 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
 
             // TODO: write a unit test for checking the add and replace.
             btree_value unused_value;
-            
+            bzero(&unused_value, sizeof(btree_value));
             // If it's an add operation, check that the key doesn't exist.
             // If it's a replace operation, check that the key does exist.
             if (!(set_kind == btree_set_kind_add && 
@@ -407,5 +407,5 @@ void btree_set_fsm<config_t>::deadlock_debug(void) {
 }
 #endif
 
-#endif // __BTREE_SET_FSM_IMPL_HPP__
+#endif // __BTREE_SET_FSM_TCC__
 
