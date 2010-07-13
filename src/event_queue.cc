@@ -608,6 +608,7 @@ event_queue_t::timer_t *event_queue_t::fire_timer_once(long ms, void (*cb)(void 
 
 void event_queue_t::cancel_timer(timer_t *timer) {
     timers.remove(timer);
+    delete timer;
 }
 
 void event_queue_t::on_sync() {
