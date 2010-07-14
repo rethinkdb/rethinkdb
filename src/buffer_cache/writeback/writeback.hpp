@@ -39,24 +39,25 @@ public:
     
     unsigned int num_dirty_blocks();
     
-    class local_buf_t : public intrusive_list_node_t<buf_t> {
+    class local_buf_t : public intrusive_list_node_t<local_buf_t> {
+        
+        friend class writeback_tmpl_t;
+        
     public:
-        explicit local_buf_t(writeback_tmpl_t *wb)
-            : writeback(wb), dirty(false) {}
+        explicit local_buf_t(buf_t *gbuf)
+            : gbuf(gbuf), dirty(false) {}
 
         bool is_dirty() const { return dirty; }
         
-        // The argument to set_dirty() is actually 'this'; local_buf_t is a mixin for buf_t, but it
-        // doesn't know that, so we need to pass a pointer in buf_t form.
-        void set_dirty(buf_t *buf);
+        void set_dirty();
 
         void set_clean() {
             assert(dirty);
             dirty = false;
         }
 
-    private:
-        writeback_tmpl_t *writeback;
+    protected:
+        buf_t *gbuf;
         bool dirty;
     };
 
@@ -113,7 +114,7 @@ private:
     bool start_next_sync_immediately;
     
     // List of bufs that are currenty dirty
-    intrusive_list_t<buf_t> dirty_bufs;
+    intrusive_list_t<local_buf_t> dirty_bufs;
     
     sync_callback_t *shutdown_callback;
     bool in_shutdown_sync;
@@ -125,7 +126,7 @@ private:
     // Transaction that the writeback is using to grab buffers
     transaction_t *transaction;
     // List of buffers being written during the current writeback
-    intrusive_list_t<buf_t> flush_bufs;
+    intrusive_list_t<local_buf_t> flush_bufs;
     // List of things to call back as soon as the writeback currently in progress is over.
     intrusive_list_t<sync_callback_t> current_sync_callbacks;
 };

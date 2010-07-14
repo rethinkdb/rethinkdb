@@ -15,6 +15,9 @@ template <class config_t>
 struct unlocked_hash_map_t;
 
 template <class config_t>
+struct array_map_t;
+
+template <class config_t>
 struct page_repl_none_t;
 
 template <class config_t>

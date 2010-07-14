@@ -89,12 +89,12 @@ typename memcached_handler_t<config_t>::parse_result_t memcached_handler_t<confi
             return parse_storage_command(CAS, state, line_len, fsm);
 
     } else if(!strcmp(cmd_str, "get")) {    // check for retrieval commands
-            return get(state, false, fsm);
+            return get(state, false, line_len, fsm);
     } else if(!strcmp(cmd_str, "gets")) {
-            return get(state, true, fsm);
+            return get(state, true, line_len, fsm);
 
     } else if(!strcmp(cmd_str, "delete")) {
-        return remove(state, fsm);
+        return remove(state, line_len, fsm);
 
     } else if(!strcmp(cmd_str, "incr")) {
         return parse_storage_command(INCR, state, line_len, fsm);
@@ -281,7 +281,7 @@ void memcached_handler_t<config_t>::write_msg(conn_fsm_t *fsm, const char *str) 
 }
 
 template <class config_t>
-typename memcached_handler_t<config_t>::parse_result_t memcached_handler_t<config_t>::get(char *state, bool include_unique, conn_fsm_t *fsm) {
+typename memcached_handler_t<config_t>::parse_result_t memcached_handler_t<config_t>::get(char *state, bool include_unique, unsigned int line_len, conn_fsm_t *fsm) {
     char *key_str = strtok_r(NULL, DELIMS, &state);
     if (key_str == NULL)
         return malformed_request(fsm);
@@ -322,13 +322,13 @@ typename memcached_handler_t<config_t>::parse_result_t memcached_handler_t<confi
     fsm->current_request = request;
 
     //clean out the rbuf
-    fsm->consume(fsm->nrbuf);
+    fsm->consume(line_len);
     return req_handler_t::op_req_complex;
 }
 
 
 template <class config_t>
-typename memcached_handler_t<config_t>::parse_result_t memcached_handler_t<config_t>::remove(char *state, conn_fsm_t *fsm) {
+typename memcached_handler_t<config_t>::parse_result_t memcached_handler_t<config_t>::remove(char *state, unsigned int line_len, conn_fsm_t *fsm) {
     char *key_str = strtok_r(NULL, DELIMS, &state);
     if (key_str == NULL)
         return malformed_request(fsm);
@@ -375,35 +375,11 @@ typename memcached_handler_t<config_t>::parse_result_t memcached_handler_t<confi
     req_handler_t::event_queue->message_hub.store_message(key_to_cpu(key, req_handler_t::event_queue->nqueues), btree_fsm);
 
     //clean out the rbuf
-    fsm->consume(fsm->nrbuf);
+    fsm->consume(line_len);
 
     return req_handler_t::op_req_complex;
 }
 
-template <class config_t>
-typename memcached_handler_t<config_t>::parse_result_t memcached_handler_t<config_t>::adjust(char *state, bool inc, int line_len, conn_fsm_t *fsm) {
-    char *key_str = strtok_r(NULL, DELIMS, &state);
-    char *value_str = strtok_r(NULL, DELIMS, &state);
-    if (key_str == NULL || value_str == NULL)
-        return malformed_request(fsm);
-
-    bool noreply = false;
-    char *noreply_str = strtok_r(NULL, DELIMS, &state);
-    if (noreply_str != NULL) {
-        if (!strcmp(noreply_str, "noreply")) {
-            noreply = true;
-        } else {
-            return malformed_request(fsm);
-        }
-    }
-    
-    cmd = inc? INCR : DECR;
-    // parsed successfully
-    fsm->consume(line_len);
-    loading_data = true;
-    return read_data(value_str, sizeof(value_str), fsm);
-}
-    
 template<class config_t>
 void memcached_handler_t<config_t>::build_response(request_t *request) {
     // Since we're in the middle of processing a command,
@@ -432,7 +408,6 @@ void memcached_handler_t<config_t>::build_response(request_t *request) {
             } else if(btree_get_fsm->op_result == btree_get_fsm_t::btree_not_found) {
                 // do nothing
             }
-            delete btree_get_fsm;
         }
         count = sprintf(sbuf, RETRIEVE_TERMINATOR);
         fsm->nsbuf += count;
@@ -465,7 +440,6 @@ void memcached_handler_t<config_t>::build_response(request_t *request) {
         } else {
             fsm->nsbuf = 0;
         }
-        delete btree_set_fsm;
         break;
 
     case btree_fsm_t::btree_delete_fsm:
@@ -485,7 +459,6 @@ void memcached_handler_t<config_t>::build_response(request_t *request) {
         } else {
             check("memchached_handler_t::build_response - Uknown value for btree_delete_fsm->op_result\n", 0);
         }
-        delete btree_delete_fsm;
         break;
 
     default:

@@ -11,21 +11,15 @@
 // selection strategies, and immediate vs. proactive cleaing
 // strategy).
 
-// If we run out of cache space, just remove the block we're currently
-// unpinning. Really really dumb, but hey, it's a placeholder
 template <class config_t>
 struct page_repl_none_t {
 public:
 	typedef typename config_t::cache_t cache_t;
-    typedef typename config_t::serializer_t serializer_t;
-    typedef typename config_t::page_map_t page_map_t;
     
 public:
     page_repl_none_t(int unload_threshold,
-                     page_map_t *_page_map,
                      cache_t *_cache)
         : unload_threshold(_unload_threshold)
-          page_map(_page_map),
           cache(_cache)
         {}
 	
@@ -35,7 +29,6 @@ public:
 	
 private:
     int unload_threshold;
-    page_map_t *page_map;
     cache_t *cache;
 };
 

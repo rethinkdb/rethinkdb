@@ -26,6 +26,7 @@
 #include "buffer_cache/stats.hpp"
 #include "buffer_cache/mirrored.hpp"
 #include "buffer_cache/page_map/unlocked_hash_map.hpp"
+#include "buffer_cache/page_map/array.hpp"
 #include "buffer_cache/page_repl/page_repl_random.hpp"
 #include "buffer_cache/writeback/writeback.hpp"
 #include "buffer_cache/concurrency/rwi_conc.hpp"
@@ -164,7 +165,5 @@ int main(int argc, char *argv[])
         // If we got out of start_server, we're about to shut down.
         printf("Shutting down server...\n");
     }
-    // TODO(NNW): When shutting down, we must halt all event_queues fully
-    // before we destroy any of them because of the core_notify_fd.
 }
 

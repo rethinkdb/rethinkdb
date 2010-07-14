@@ -18,16 +18,12 @@ template <class config_t>
 struct page_repl_random_t {
 	public:
 	typedef typename config_t::cache_t cache_t;
-    typedef typename config_t::serializer_t serializer_t;
-    typedef typename config_t::page_map_t page_map_t;
     typedef typename config_t::buf_t buf_t;
     
 public:
     page_repl_random_t(unsigned int _unload_threshold,
-                     page_map_t *_page_map,
-                     cache_t *_cache)
+                       cache_t *_cache)
         : unload_threshold(_unload_threshold),
-          page_map(_page_map),
           cache(_cache)
         {}
     
@@ -39,14 +35,19 @@ public:
         if (space_needed > unload_threshold) target = unload_threshold;
         else target = unload_threshold - space_needed;
                 
-        while (page_map->num_blocks() > target) {
+        while (cache->num_blocks() > target) {
                     
             // Try to find a block we can unload. Blocks are ineligible to be unloaded if they are
             // dirty or in use.
             buf_t *block_to_unload = NULL;
             for (int tries = PAGE_REPL_NUM_TRIES; tries > 0; tries --) {
-                buf_t *block = page_map->get_random_block();
-                assert(block);
+                
+                /* Choose a block in memory at random. This takes O(N) time. Can we do better? */
+                unsigned int n = random() % cache->num_blocks();
+                typename intrusive_list_t<buf_t>::iterator it = cache->buffers.begin();
+                while (n--) it++;
+                buf_t *block = &*it;
+                
                 if (block->safe_to_unload()) {
                     block_to_unload = block;
                     break;
@@ -58,7 +59,7 @@ public:
             } else {
 #ifndef NDEBUG
                 printf("thread %d exceeding memory target. %d blocks in memory, %d dirty, target is %d.\n",
-                    get_cpu_context()->event_queue->queue_id, page_map->num_blocks(), cache->num_dirty_blocks(), target);
+                    get_cpu_context()->event_queue->queue_id, cache->num_blocks(), cache->num_dirty_blocks(), target);
 #endif
                 break;
             }
@@ -67,7 +68,6 @@ public:
     
 private:
     unsigned int unload_threshold;
-    page_map_t *page_map;
     cache_t *cache;
 };
 

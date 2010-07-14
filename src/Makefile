@@ -5,11 +5,10 @@ START_DB_DIR:=../scripts
 START_DB_NAME:=start_rethinkdb
 TAGS:=.tags
 RUN_PORT?=11211
-RUN_ARGS?=
-
-# Default DEBUG variable to "on".  This should be changed on a release branch.
+RUN_FLAGS?=
+VALGRIND_FLAGS?=--leak-check=full
 DEBUG?=1
-
+VALGRIND?=0
 VERBOSE?=0
 
 # Choose our directories
@@ -21,6 +20,9 @@ BUILD_DIR:=$(BUILD_ROOT_DIR)/debug
 else
 BUILD_DIR:=$(BUILD_ROOT_DIR)/release
 endif
+ifeq ($(VALGRIND),1)
+BUILD_DIR:=$(BUILD_DIR)-valgrind
+endif
 DEP_DIR:=$(BUILD_DIR)/dep
 OBJ_DIR:=$(BUILD_DIR)/obj
 
@@ -31,7 +33,7 @@ CXXFLAGS:=-I$(SOURCE_DIR) -Wall -Wextra -Wformat=2 -Wno-unused-parameter -Werror
 
 # Configure debug vs. release
 ifeq ($(DEBUG),1)
-CXXFLAGS:=$(CXXFLAGS) -g -DDELETE_DEBUG
+CXXFLAGS:=$(CXXFLAGS) -g
 else
 CXXFLAGS:=$(CXXFLAGS) -O3 -DNDEBUG
 endif
@@ -71,20 +73,21 @@ endif
 # The 'run' and 'gdb' targets build the server, automatically remove old data files, and then start
 # it up. The difference is that the 'gdb' target starts it under a debugger.
 
-run:
-	$(QUIET) make $(BUILD_DIR)/$(SERVER_EXEC_NAME)
+run: $(BUILD_DIR)/$(SERVER_EXEC_NAME)
 	$(QUIET) rm -f data.file*
-	$(BUILD_DIR)/$(SERVER_EXEC_NAME) -p $(RUN_PORT) $(RUN_ARGS)
+	$(BUILD_DIR)/$(SERVER_EXEC_NAME) -p $(RUN_PORT) $(RUN_FLAGS)
 
-gdb:
-	$(QUIET) make $(BUILD_DIR)/$(SERVER_EXEC_NAME) DEBUG=1
+gdb: $(BUILD_DIR)/$(SERVER_EXEC_NAME)
 	$(QUIET) rm -f data.file*
-	gdb --args $(BUILD_DIR)/$(SERVER_EXEC_NAME) -p $(RUN_PORT) $(RUN_ARGS)
+	gdb --args $(BUILD_DIR)/$(SERVER_EXEC_NAME) -p $(RUN_PORT) $(RUN_FLAGS)
 
-valgrind:
-	$(QUIET) make $(BUILD_DIR)/$(SERVER_EXEC_NAME) DEBUG=1 VALGRIND=1
+valgrind: $(BUILD_DIR)/$(SERVER_EXEC_NAME)
+ifeq ($(VALGRIND),0)
+	$(error Using the 'valgrind' target doesn't automatically set VALGRIND to 1. Try again with \
+'make valgrind VALGRIND=1')
+endif
 	$(QUIET) rm -f data.file*
-	valgrind --leak-check=full $(BUILD_DIR)/$(SERVER_EXEC_NAME) -p $(RUN_PORT) $(RUN_ARGS)
+	valgrind $(VALGRIND_FLAGS) $(BUILD_DIR)/$(SERVER_EXEC_NAME) -p $(RUN_PORT) $(RUN_FLAGS)
 
 tags:
 	$(QUIET) ctags -R -f $(TAGS)

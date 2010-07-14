@@ -33,6 +33,10 @@ public:
         check("Database file was not properly closed", dbfd != -1);
     }
     
+    off64_t id_to_offset(block_id_t id) {
+        return id * block_size;
+    }
+    
     /* Initialize the serializer with the backing store. */
     void init(char *db_path) {
         // Open the DB file
@@ -68,7 +72,7 @@ public:
      * block_id into buf, associating callback with the request. */
     void do_read(event_queue_t *queue, block_id_t block_id, void *buf,
                  iocallback_t *callback) {
-        queue->iosys.schedule_aio_read(dbfd, block_id, block_size, buf, queue, callback);
+        queue->iosys.schedule_aio_read(dbfd, id_to_offset(block_id), block_size, buf, queue, callback);
     }
     
     /* Fires off an async request to write the block identified by
@@ -86,7 +90,7 @@ public:
         io_calls_t::aio_write_t aio_writes[1];
 
         aio_writes[0].resource = dbfd;
-        aio_writes[0].offset = block_id;
+        aio_writes[0].offset = id_to_offset(block_id);
         aio_writes[0].length = block_size;
         aio_writes[0].buf = buf;
         aio_writes[0].callback = callback;
@@ -107,7 +111,7 @@ public:
 
         for (i = 0; i < num_writes; i++) {
             aio_writes[i].resource = dbfd;
-            aio_writes[i].offset = writes[i].block_id;
+            aio_writes[i].offset = id_to_offset(writes[i].block_id);
             aio_writes[i].length = block_size;
             aio_writes[i].buf = writes[i].buf;
             aio_writes[i].callback = writes[i].callback;
@@ -124,7 +128,7 @@ public:
 
     /* Generates a unique block id. */
     block_id_t gen_block_id() {
-        off64_t new_block_id = dbsize;
+        off64_t new_block_id = dbsize / block_size;
         dbsize += block_size;
         return new_block_id;
     }
