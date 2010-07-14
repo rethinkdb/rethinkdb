@@ -11,20 +11,12 @@ template <class config_t>
 struct in_place_serializer_t;
 
 // Caches
-template <class config_t>
-struct unlocked_hash_map_t;
 
 template <class config_t>
 struct array_map_t;
 
 template <class config_t>
-struct page_repl_none_t;
-
-template <class config_t>
 struct page_repl_random_t;
-
-template <class config_t>
-struct fallthrough_cache_t;
 
 template <class config_t>
 struct mirrored_cache_t;
@@ -36,16 +28,10 @@ template <class config_t>
 struct transaction;
 
 template <class config_t>
-struct immediate_writeback_t;
-
-template <class config_t>
 struct writeback_tmpl_t;
 
 template<class config_t>
 struct rwi_conc_t;
-
-template <class config_t>
-struct cache_stats_t;
 
 // Btree
 struct btree_node;

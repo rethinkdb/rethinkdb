@@ -23,10 +23,7 @@
 #include "worker_pool.hpp"
 #include "arch/io.hpp"
 #include "serializer/in_place.hpp"
-#include "buffer_cache/fallthrough.hpp"
-#include "buffer_cache/stats.hpp"
 #include "buffer_cache/mirrored.hpp"
-#include "buffer_cache/page_map/unlocked_hash_map.hpp"
 #include "buffer_cache/page_map/array.hpp"
 #include "buffer_cache/page_repl/page_repl_random.hpp"
 #include "buffer_cache/writeback/writeback.hpp"
@@ -37,7 +34,6 @@
 #include "conn_fsm.hpp"
 #include "request.hpp"
 #include "event_queue.hpp"
-#include "buffer_cache/stats.hpp"
 #include "cpu_context.hpp"
 
 static const int NSEC_IN_SEC = 1000 * 1000 * 1000;
