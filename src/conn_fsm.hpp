@@ -45,8 +45,8 @@ public:
         fsm_socket_send_incomplete,
         // Waiting for IO initiated by the BTree to complete
         fsm_btree_incomplete,
-        // The system is complete
-        fsm_btree_complete
+        //There is outstanding data in rbuff
+        fsm_outstanding_data
     };
     
 public:
@@ -101,7 +101,7 @@ public:
     request_t *current_request;
     
 private:
-    result_t do_socket_ready(event_t *event);
+    result_t fill_rbuf(event_t *event);
     result_t do_socket_send_incomplete(event_t *event);
     result_t do_fsm_btree_incomplete(event_t *event);
     result_t do_fsm_outstanding_req(event_t *event);

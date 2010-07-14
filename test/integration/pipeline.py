@@ -1,8 +1,8 @@
 #!/usr/bin/python
 HOST = 'localhost'
 PORT = 11213
-nInts = 10000
-nChunks = 3000
+nInts = 1000
+nChunks = 200
 
 from time import sleep
 import socket
@@ -31,17 +31,43 @@ for int in ints:
 
 strings = rand_split(command_string, nChunks)
 for string in strings:
-#    print string
-#    print "----"
     s.send(string)
-#sleep(.05)
 
-#s.send("quit\r\n")
+sleep(5)
+
+#pipeline some gets
+command_string = ''
+expected_response = ''
+for int in ints:
+    command_string += ("get " + str(int) + "\r\n")
+    expected_response += ("VALUE "+ str(int) + " 0 " + str(len(str(int))) + "\r\n" + str(int) + "\r\nEND\r\n")
+
+strings = rand_split(command_string, nChunks)
+for string in strings:
+    s.send(string)
+
+sleep(1) #apparently we need to sleep before we poll (probably because I don't understand how to make these socket calls)
+response = s.recv(len(expected_response))
+if (response != expected_response):
+    print "Incorrect response:\n", response, "\nExpected:\n", expected_response
+
+command_string = ''
+expected_response = ''
+for int in ints:
+    command_string += ("delete " + str(int) + "\r\n")
+    expected_response += "DELETED\r\n"
+
+strings = rand_split(command_string, nChunks)
+for string in strings:
+    s.send(string)
+
+sleep(1) #apparently we need to sleep before we poll (probably because I don't understand how to make these socket calls)
+response = s.recv(len(expected_response))
+if (response != expected_response):
+    print "Incorrect response:\n", response, "\nExpected:\n", expected_response
+
+s.send("quit\r\n")
 s.close()
-
-#from time import sleep
-#sleep(10);
-
 #import memcache
 #mc = memcache.Client([(HOST, PORT)])
 #for int in ints:

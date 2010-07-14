@@ -31,7 +31,7 @@ CXXFLAGS:=-I$(SOURCE_DIR) -Wall -Wextra -Wformat=2 -Wno-unused-parameter -Werror
 
 # Configure debug vs. release
 ifeq ($(DEBUG),1)
-CXXFLAGS:=$(CXXFLAGS) -g -DDELETE_DEBUG
+CXXFLAGS:=$(CXXFLAGS) -g
 else
 CXXFLAGS:=$(CXXFLAGS) -O3 -DNDEBUG
 endif
