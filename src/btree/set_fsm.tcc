@@ -4,9 +4,6 @@
 
 #include "cpu_context.hpp"
 
-#include <iostream>
-using namespace std;
-
 // TODO: holy shit this state machine is a fucking mess. We should
 // make it NOT write only (i.e. human beings should be able to easily
 // understand what is happening here). Needs to be redesigned (with
@@ -289,27 +286,36 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
         // Insert the value, or move up the tree
         if(node_handler::is_leaf(node)) {
 
-            // TODO: write a unit test for checking the add and replace.
+            // TODO: write unit tests for checking add, replace, incr, decr
             btree_value current_value;
-            unsigned long long new_val;
-            unsigned long long cur_val;
+            long long new_val = 0;
+            unsigned long long cur_val = 0;
             // If it's an add operation, check that the key doesn't exist.
             // If it's a replace operation, check that the key does exist.
             bool key_found = false;
             if(set_kind == btree_set_kind_add || set_kind == btree_set_kind_replace || set_kind == btree_set_kind_incr || set_kind == btree_set_kind_decr) {
                 key_found = leaf_node_handler::lookup((leaf_node_t*)node, key, &current_value);
-                new_val = strtoull(value->contents, NULL, 0);
-                cur_val = strtoull(current_value.contents, NULL, 0);
+                new_val = atoi(value->contents);
+                cur_val = strtoull(current_value.contents, NULL, 10);
             }
-
+           /*  NOTE: memcached actually does a few things differently:
+            *   - If you say `decr 1 -50`, memcached will set 1 to 0 no matter
+            *      what it's value is. We on the other hand will add 50 to 1.
+            *
+            *   - Also, if you say 'incr 1 -50' in memcached and the value
+            *     goes below 0, memcached will wrap around. We just set the value to 0.
+            */
             if (key_found && set_kind == btree_set_kind_decr) {
                 // we underflowed and wrapped around while subtracting, set to zero.
-                if (cur_val - new_val > cur_val) 
-                    cur_val = 0;                
+                if ((signed long long)cur_val - new_val < 0) 
+                    cur_val = 0;
                 else
                     cur_val -= new_val;
             } else if(key_found && set_kind == btree_set_kind_incr) {
-                cur_val += new_val;
+                if ((signed long long)cur_val + new_val < 0)
+                    cur_val = 0;
+                else
+                    cur_val += new_val;
             }
             
             if (set_kind == btree_set_kind_set ||
@@ -319,9 +325,11 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
                 (set_kind == btree_set_kind_incr && key_found))
             {
                 if (set_kind == btree_set_kind_decr || set_kind == btree_set_kind_incr) {
+                    bzero(value->contents, value->size);
                     char cur_val_str[value->size];
                     sprintf(cur_val_str, "%llu", cur_val);
                     memcpy(value->contents,cur_val_str,strlen(cur_val_str));
+                    value->size = strlen(cur_val_str);
                 }
                 bool success = leaf_node_handler::insert(((leaf_node_t*)node), key, value);
                 check("could not insert leaf btree node", !success);

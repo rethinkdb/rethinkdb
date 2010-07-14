@@ -168,9 +168,6 @@ typename memcached_handler_t<config_t>::parse_result_t memcached_handler_t<confi
     fsm->consume(line_len); //consume the line
     loading_data = true;
     if (cmd == INCR || cmd == DECR) {
-        cout << "value_str: " << value_str << endl;
-        cout << "bytes: " << bytes << endl;
-        cout << "strlen(value_str): " << strlen(value_str) + 2 << endl;
         return read_data(value_str, strlen(value_str) + 2, fsm);
     } else {
         return read_data(fsm->rbuf, fsm->nrbuf, fsm);
