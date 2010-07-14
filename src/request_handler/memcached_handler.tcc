@@ -123,7 +123,14 @@ typename memcached_handler_t<config_t>::parse_result_t memcached_handler_t<confi
         cas_unique_str = strtok_r(NULL, DELIMS, &state);
     char *noreply_str = strtok_r(NULL, DELIMS, &state); //optional
 
-    if (key_tmp == NULL || flags_str == NULL || exptime_str == NULL || bytes_str == NULL || (command == CAS && cas_unique_str == NULL)) { //check for proper number of arguments
+    //check for proper number of arguments
+    if (command == INCR || command == DECR) {
+        if (key_tmp == NULL || value_str == NULL)
+        {
+            fsm->consume(line_len);
+            return malformed_request(fsm);
+        }
+    } else if ((key_tmp == NULL || flags_str == NULL || exptime_str == NULL || bytes_str == NULL || (command == CAS && cas_unique_str == NULL))) {
         fsm->consume(line_len);
         return malformed_request(fsm);
     }
@@ -131,31 +138,35 @@ typename memcached_handler_t<config_t>::parse_result_t memcached_handler_t<confi
     cmd = command;
     node_handler::str_to_key(key_tmp, key);
 
-    char *invalid_char;
-    flags = strtoul(flags_str, &invalid_char, 10);  //a 32 bit integer.  int alone does not guarantee 32 bit length
-    if (*invalid_char != '\0') {  // ensure there were no improper characters in the token - i.e. parse was successful
-        fsm->consume(line_len);
-        return malformed_request(fsm);
-    }
-
-    exptime = strtoul(exptime_str, &invalid_char, 10);
-    if (*invalid_char != '\0') {
-        fsm->consume(line_len);
-        return malformed_request(fsm);
-    }
-
-    bytes = strtoul(bytes_str, &invalid_char, 10);
-    if (*invalid_char != '\0') {
-        fsm->consume(line_len);
-        return malformed_request(fsm);
-    }
-
-    if (cmd == CAS) {
-        cas_unique = strtoull(cas_unique_str, &invalid_char, 10);
+    if (command != INCR && command != DECR) {
+        char *invalid_char;
+        flags = strtoul(flags_str, &invalid_char, 10);  //a 32 bit integer.  int alone does not guarantee 32 bit length
+        if (*invalid_char != '\0') {  // ensure there were no improper characters in the token - i.e. parse was successful
+            fsm->consume(line_len);
+            return malformed_request(fsm);
+        }
+    
+        exptime = strtoul(exptime_str, &invalid_char, 10);
         if (*invalid_char != '\0') {
             fsm->consume(line_len);
             return malformed_request(fsm);
         }
+    
+        bytes = strtoul(bytes_str, &invalid_char, 10);
+        if (*invalid_char != '\0') {
+            fsm->consume(line_len);
+            return malformed_request(fsm);
+        }
+    
+        if (cmd == CAS) {
+            cas_unique = strtoull(cas_unique_str, &invalid_char, 10);
+            if (*invalid_char != '\0') {
+                fsm->consume(line_len);
+                return malformed_request(fsm);
+            }
+        }
+    } else {
+        bytes = strlen(value_str);
     }
 
     this->noreply = false;
@@ -233,7 +244,10 @@ typename memcached_handler_t<config_t>::parse_result_t memcached_handler_t<confi
     request->nstarted++;
     fsm->current_request = request;
     btree_fsm->request = request;
-    fsm->consume(bytes+2);
+    
+    if (set_kind != btree_set_kind_incr && set_kind != btree_set_kind_decr) {
+        fsm->consume(bytes+2);
+    }
     if (this->noreply)
         return req_handler_t::op_req_parallelizable;
     else

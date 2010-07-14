@@ -291,10 +291,12 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
             // If it's an add operation, check that the key doesn't exist.
             // If it's a replace operation, check that the key does exist.
             bool key_found = false;
-            if(set_kind == btree_set_kind_add || set_kind == btree_set_kind_replace || set_kind == btree_set_kind_incr || set_kind == btree_set_kind_decr) {
+            if(set_kind == btree_set_kind_add || set_kind == btree_set_kind_replace) {
+                key_found = leaf_node_handler::lookup((leaf_node_t*)node, key, &current_value);
+            }else if(set_kind == btree_set_kind_incr || set_kind == btree_set_kind_decr) {
                 key_found = leaf_node_handler::lookup((leaf_node_t*)node, key, &current_value);
                 new_val = atoi(value->contents);
-                cur_val = strtoull(current_value.contents, NULL, 10);
+                cur_val = strtoull(current_value.contents, NULL, 10);            
             }
            /*  NOTE: memcached actually does a few things differently:
             *   - If you say `decr 1 -50`, memcached will set 1 to 0 no matter
@@ -324,7 +326,7 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
             {
                 if (set_kind == btree_set_kind_decr || set_kind == btree_set_kind_incr) {
                     bzero(value->contents, value->size);
-                    char cur_val_str[value->size];
+                    char cur_val_str[MAX_IN_NODE_VALUE_SIZE];
                     sprintf(cur_val_str, "%llu", cur_val);
                     memcpy(value->contents,cur_val_str,strlen(cur_val_str));
                     value->size = strlen(cur_val_str);
