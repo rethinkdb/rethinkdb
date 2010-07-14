@@ -22,39 +22,16 @@ public:
         }
     }
     
-    void set(block_id_t block_id, buf_t *block) {
-        ft_map[block_id] = block;
+    void insert(buf_t *block) {
+        ft_map[block->get_block_id()] = block;
     }
     
-    void* erase(block_id_t block_id) {
-        typename ft_map_t::iterator i = ft_map.find(block_id);
-        void *block = (*i).second;
+    void erase(buf_t *buf) {
+        typename ft_map_t::iterator i = ft_map.find(buf->get_block_id());
         ft_map.erase(i);
-        return block;
     }
     
-    /* The page replacement algorithm uses num_blocks() to decide when to remove some pages from
-    memory. */
-    unsigned int num_blocks() {
-    	return ft_map.size();
-    }
-    
-    /* The random page replacement algorithm calls this function to decide which block to unload. Is
-    this an unreasonable abstraction break? */
-    buf_t *get_random_block() {
-    
-        if (num_blocks() == 0) return NULL;
-    
-    	/* This is a really bad way to do it. It only works if RAND_MAX is much greater than
-    	num_blocks(). */
-    	int n = rand() % num_blocks();
-    	/* Also, this is linear time, which might be significant. */
-    	typename ft_map_t::iterator i = ft_map.begin();
-    	while (n--) i++;
-    	return i->second;
-    }
-
-protected:
+private:
     typedef std::map<block_id_t, buf_t*, std::less<block_id_t>,
                      gnew_alloc<std::pair<block_id_t, buf_t*> > > ft_map_t;
     ft_map_t ft_map;

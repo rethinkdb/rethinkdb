@@ -6,6 +6,10 @@ template <class derived_t>
 class intrusive_list_node_t {
 public:
     intrusive_list_node_t() : prev(NULL), next(NULL) {}
+    ~intrusive_list_node_t() {
+        assert(prev == NULL);
+        assert(next == NULL);
+    }
 protected:
     friend class intrusive_list_t<derived_t>;
     derived_t *prev, *next;

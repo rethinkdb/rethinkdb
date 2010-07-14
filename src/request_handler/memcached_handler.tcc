@@ -407,7 +407,6 @@ void memcached_handler_t<config_t>::build_response(request_t *request) {
             } else if(btree_get_fsm->op_result == btree_get_fsm_t::btree_not_found) {
                 // do nothing
             }
-            delete btree_get_fsm;
         }
         count = sprintf(sbuf, RETRIEVE_TERMINATOR);
         fsm->nsbuf += count;
@@ -428,7 +427,6 @@ void memcached_handler_t<config_t>::build_response(request_t *request) {
         } else {
             fsm->nsbuf = 0;
         }
-        delete btree_set_fsm;
         break;
 
     case btree_fsm_t::btree_delete_fsm:
@@ -448,14 +446,14 @@ void memcached_handler_t<config_t>::build_response(request_t *request) {
         } else {
             check("memchached_handler_t::build_response - Uknown value for btree_delete_fsm->op_result\n", 0);
         }
-        delete btree_delete_fsm;
         break;
 
     default:
         check("memcached_handler_t::build_response - Unknown btree op", 0);
         break;
     }
-    delete request;
+    
+    delete request;   // Will also free the FSMs
     fsm->current_request = NULL;
 }
 

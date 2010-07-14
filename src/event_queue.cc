@@ -27,6 +27,7 @@
 #include "buffer_cache/stats.hpp"
 #include "buffer_cache/mirrored.hpp"
 #include "buffer_cache/page_map/unlocked_hash_map.hpp"
+#include "buffer_cache/page_map/array.hpp"
 #include "buffer_cache/page_repl/page_repl_random.hpp"
 #include "buffer_cache/writeback/writeback.hpp"
 #include "buffer_cache/concurrency/rwi_conc.hpp"
@@ -406,8 +407,7 @@ void event_queue_t::finish_stopping_queue() {
 event_queue_t::~event_queue_t()
 {
     int res;
-
-    // Cleanup resources
+    
     res = close(this->epoll_fd);
     check("Could not close epoll_fd", res != 0);
     

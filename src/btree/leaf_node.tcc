@@ -56,10 +56,10 @@ bool leaf_node_handler::remove(btree_leaf_node *node, btree_key *key) {
 }
 
 bool leaf_node_handler::lookup(btree_leaf_node *node, btree_key *key, btree_value *value) {
-    int index = get_offset_index(node, key);
-    block_id_t offset = node->pair_offsets[index];
-    btree_leaf_pair *pair = get_pair(node, offset);
-    if (is_equal(&pair->key, key)) {
+    int index = find_key(node, key);
+    if (index != -1) {
+        block_id_t offset = node->pair_offsets[index];
+        btree_leaf_pair *pair = get_pair(node, offset);
         btree_value *stored_value = pair->value();
         memcpy(value, stored_value, sizeof(btree_value) + stored_value->size);
         return true;
@@ -282,9 +282,11 @@ uint16_t leaf_node_handler::insert_pair(btree_leaf_node *node, btree_value *valu
 }
 
 int leaf_node_handler::get_offset_index(btree_leaf_node *node, btree_key *key) {
+    // lower_bound returns the first place where the key could be inserted without violating the ordering
     return std::lower_bound(node->pair_offsets, node->pair_offsets+node->npairs, NULL, leaf_key_comp(node, key)) - node->pair_offsets;
 }
 
+// find_key returns the index of the offset for key if it's in the node or -1 if it is not
 int leaf_node_handler::find_key(btree_leaf_node *node, btree_key *key) {
     int index = get_offset_index(node, key);
     if (index < node->npairs && is_equal(key, &get_pair(node, node->pair_offsets[index])->key) ) {

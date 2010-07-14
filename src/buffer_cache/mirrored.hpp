@@ -19,14 +19,14 @@ template <class config_t>
 class buf : public iocallback_t,
             public config_t::writeback_t::local_buf_t,
             public config_t::concurrency_t::local_buf_t,
-            public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, buf<config_t> >
+            public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, buf<config_t> >,
+            public intrusive_list_node_t<buf<config_t> >
 {
 public:
     typedef typename config_t::serializer_t serializer_t;
     typedef typename config_t::transaction_t transaction_t;
     typedef typename config_t::concurrency_t concurrency_t;
     typedef typename config_t::cache_t cache_t;
-    typedef typename config_t::node_t node_t;
     typedef block_available_callback<config_t> block_available_callback_t;
 
     buf(cache_t *cache, block_id_t block_id);
@@ -55,8 +55,6 @@ public:
     void set_cached(bool _cached) { cached = _cached; }
     bool is_cached() const { return cached; }
 
-    void set_dirty() { config_t::writeback_t::local_buf_t::set_dirty(this); }
-
     // Callback API
     void add_load_callback(block_available_callback_t *callback);
 
@@ -77,8 +75,9 @@ public:
     int active_callback_count;
 #endif
 
-private:
     cache_t *cache;
+
+private:
     block_id_t block_id;
     void *data;
     
@@ -88,13 +87,9 @@ private:
     typedef intrusive_list_t<block_available_callback_t> callbacks_t;
     callbacks_t load_callbacks;
     
-    // Incidentally, buf_t holds a redundant pointer to the cache object, because in addition to
-    // the "cache_t *cache" declared in buf, writeback_t::local_buf_t declares its own
-    // "writeback_tmpl_t *writeback". Each of these pointers will point to a different part of the
-    // same cache object, because mirrored_cache_t is subclassed from writeback_t.
-    
-    // It also has a redundant pointer to itself, because concurrency_t::local_buf_t has a field
-    // "buf_t *gbuf".
+    // Incidentally, buf_t holds two redundant pointers to itself, because both
+    // concurrency_t::local_buf_t and writeback_t::local_buf_t have members called 'gbuf' which are
+    // pointers to the same object in buf_t form.
 };
 
 /* Transaction class. */
@@ -175,7 +170,6 @@ public:
         page_repl_t(
             // Launch page replacement if the user-specified maximum number of blocks is reached
             _max_size / _block_size,
-            this,
             this),
         writeback_t(
             this,
@@ -201,21 +195,23 @@ public:
         transaction_begin_callback<config_t> *callback);
 
     void aio_complete(buf_t *buf, bool written);
-
+    
+    buf_t *create_buf(block_id_t id);
+    
 	/* do_unload_buf unloads a buf from memory, freeing the buf_t object. It should only be called
     on a buf that is not in use and not dirty. It is called by the cache's destructor and by the
     page replacement policy. */
     void do_unload_buf(buf_t *buf);
-
+    
+    unsigned int num_blocks();
+    
+    // Public for the convenience of the page replacement system
+    intrusive_list_t<buf_t> buffers;
+    
 #ifndef NDEBUG
 	// Prints debugging information designed to resolve deadlocks
 	void deadlock_debug();
 #endif
-
-private:
-	// TODO: This is boundary-crossing abstraction-breaking treachery. mirrored_cache_t should not
-	// mess with the internals of the page map.
-    using page_map_t::ft_map;
 
 #ifndef NDEBUG
 public:

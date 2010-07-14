@@ -34,7 +34,7 @@ struct standard_config_t {
     typedef in_place_serializer_t<standard_config_t> serializer_t;
 
     // Caching
-    typedef unlocked_hash_map_t<standard_config_t> page_map_t;
+    typedef array_map_t<standard_config_t> page_map_t;
     typedef page_repl_random_t<standard_config_t> page_repl_t;
     typedef writeback_tmpl_t<standard_config_t> writeback_t;
     typedef rwi_conc_t<standard_config_t> concurrency_t;
