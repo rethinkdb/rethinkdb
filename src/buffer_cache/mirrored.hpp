@@ -17,17 +17,39 @@
 /* Buffer class. */
 template <class config_t>
 class buf : public iocallback_t,
-            public config_t::writeback_t::local_buf_t,
-            public config_t::concurrency_t::local_buf_t,
             public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, buf<config_t> >,
             public intrusive_list_node_t<buf<config_t> >
 {
 public:
     typedef typename config_t::serializer_t serializer_t;
     typedef typename config_t::transaction_t transaction_t;
-    typedef typename config_t::concurrency_t concurrency_t;
     typedef typename config_t::cache_t cache_t;
     typedef block_available_callback<config_t> block_available_callback_t;
+
+    cache_t *cache;
+
+#ifndef NDEBUG
+    // This field helps catch bugs wherein a block is unloaded even though a callback still points
+    // to it.
+    int active_callback_count;
+#endif
+  
+private:
+    block_id_t block_id;
+    void *data;
+    
+    /* Is data valid, or are we waiting for a read? */
+    bool cached;
+    
+    typedef intrusive_list_t<block_available_callback_t> callbacks_t;
+    callbacks_t load_callbacks;
+    
+public:
+    // Each of these local buf types holds a redundant pointer to the buf that they are a part of
+    typename config_t::writeback_t::local_buf_t writeback_buf;
+    typename config_t::page_repl_t::local_buf_t page_repl_buf;
+    typename config_t::concurrency_t::local_buf_t concurrency_buf;
+    typename config_t::page_map_t::local_buf_t page_map_buf;
 
     buf(cache_t *cache, block_id_t block_id);
     ~buf();
@@ -46,7 +68,7 @@ public:
     // through a bunch of other places (such as array_node) also, however.
     void *ptr() {
     	assert(cached);
-        assert(concurrency_t::local_buf_t::lock.locked());
+        assert(concurrency_buf.lock.locked());
     	return ptr_possibly_uncached();
     }
 
@@ -54,6 +76,8 @@ public:
 
     void set_cached(bool _cached) { cached = _cached; }
     bool is_cached() const { return cached; }
+    
+    void set_dirty() { writeback_buf.set_dirty(); }
 
     // Callback API
     void add_load_callback(block_available_callback_t *callback);
@@ -68,28 +92,6 @@ public:
 	// Prints debugging information designed to resolve deadlocks.
 	void deadlock_debug();
 #endif
-
-#ifndef NDEBUG
-    // This field helps catch bugs wherein a block is unloaded even though a callback still points
-    // to it.
-    int active_callback_count;
-#endif
-
-    cache_t *cache;
-
-private:
-    block_id_t block_id;
-    void *data;
-    
-    /* Is data valid, or are we waiting for a read? */
-    bool cached;
-    
-    typedef intrusive_list_t<block_available_callback_t> callbacks_t;
-    callbacks_t load_callbacks;
-    
-    // Incidentally, buf_t holds two redundant pointers to itself, because both
-    // concurrency_t::local_buf_t and writeback_t::local_buf_t have members called 'gbuf' which are
-    // pointers to the same object in buf_t form.
 };
 
 /* Transaction class. */
@@ -202,11 +204,6 @@ public:
     on a buf that is not in use and not dirty. It is called by the cache's destructor and by the
     page replacement policy. */
     void do_unload_buf(buf_t *buf);
-    
-    unsigned int num_blocks();
-    
-    // Public for the convenience of the page replacement system
-    intrusive_list_t<buf_t> buffers;
     
 #ifndef NDEBUG
 	// Prints debugging information designed to resolve deadlocks

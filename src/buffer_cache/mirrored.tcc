@@ -7,14 +7,16 @@
  */
 template <class config_t>
 buf<config_t>::buf(cache_t *cache, block_id_t block_id)
-    : config_t::writeback_t::local_buf_t(this),
-      config_t::concurrency_t::local_buf_t(this),
+    : cache(cache),
 #ifndef NDEBUG
-    active_callback_count(0),
+      active_callback_count(0),
 #endif
-    cache(cache),
-    block_id(block_id),
-    cached(false) {
+      block_id(block_id),
+      cached(false),
+      writeback_buf(this),
+      page_repl_buf(this),
+      concurrency_buf(this),
+      page_map_buf(this) {
     data = cache->malloc(((serializer_t *)cache)->block_size);
 }
 
@@ -28,9 +30,10 @@ buf<config_t>::~buf() {
 template <class config_t>
 void buf<config_t>::release() {
 #ifndef NDEBUG
+    // TODO: Put this on concurrency_t ?
     cache->n_blocks_released++;
 #endif
-    ((concurrency_t *)cache)->release(this);
+    ((typename config_t::concurrency_t *)cache)->release(this);
     
     /*
     // If this code is not commented out, then it will cause bufs to be unloaded very aggressively.
@@ -80,18 +83,18 @@ void buf<config_t>::on_io_complete(event_t *event) {
 
 template<class config_t>
 bool buf<config_t>::safe_to_unload() {
-    return concurrency_t::local_buf_t::safe_to_unload() &&
+    return concurrency_buf.safe_to_unload() &&
         load_callbacks.empty() &&
-        !config_t::writeback_t::local_buf_t::is_dirty();
+        writeback_buf.safe_to_unload();
 }
 
 #ifndef NDEBUG
 template<class config_t>
 void buf<config_t>::deadlock_debug() {
 	printf("buffer %p (id %d) {\n", (void*)this, (int)block_id);
-	printf("\tdirty = %d\n", (int)config_t::writeback_t::local_buf_t::is_dirty());
+	printf("\tdirty = %d\n", (int)writeback_buf.is_dirty());
 	printf("\tcached = %d\n", (int)is_cached());
-	concurrency_t::local_buf_t::deadlock_debug();
+	concurrency_buf.deadlock_debug();
 	printf("}\n");
 }
 #endif
@@ -223,7 +226,7 @@ transaction<config_t>::acquire(block_id_t block_id, access_t mode,
         if (!acquired) {
             // Could not acquire block because of locking, add
             // callback to lock_callbacks.
-            ((typename config_t::concurrency_t::buf_t*)buf)->add_lock_callback(callback);
+            buf->concurrency_buf.add_lock_callback(callback);
             return NULL;
         } else if(!buf->is_cached()) {
             // Acquired the block, but it's not cached yet, add
@@ -242,8 +245,8 @@ transaction<config_t>::acquire(block_id_t block_id, access_t mode,
 template <class config_t>
 mirrored_cache_t<config_t>::~mirrored_cache_t() {
 	
-	while (!buffers.empty()) {
-		do_unload_buf(buffers.head());
+	while (buf_t *buf = page_repl_t::get_first_buf()) {
+		do_unload_buf(buf);
 	}
     assert(n_blocks_released == n_blocks_acquired);
     assert(n_trans_created == n_trans_freed);
@@ -281,12 +284,7 @@ template <class config_t>
 typename config_t::buf_t *
 mirrored_cache_t<config_t>::create_buf(block_id_t block_id) {
     buf_t *buf = new buf_t(this, block_id);
-    
-    // Store the buf in the page map
-    page_map_t::insert(buf);
-    
-    buffers.push_front(buf);
-    
+        
     return buf;
 }
 
@@ -295,34 +293,21 @@ void mirrored_cache_t<config_t>::do_unload_buf(buf_t *buf) {
     assert(buf->safe_to_unload());
     assert(buf->active_callback_count == 0);
         
-    // Inform the page map that the block in question no longer exists, and will have to be reloaded
-    // from disk the next time it is used
-    page_map_t::erase(buf);
-    
-    buffers.remove(buf);
-    
     delete buf;
-}
-
-template <class config_t>
-unsigned int
-mirrored_cache_t<config_t>::num_blocks() {
-    return buffers.size();
 }
 
 #ifndef NDEBUG
 template<class config_t>
 void mirrored_cache_t<config_t>::deadlock_debug() {
-	
-	printf("\n----- Cache %p -----\n", (void*)this);
-	
-	writeback_t::deadlock_debug();
-	
-	printf("\n----- Buffers -----\n");
-	typename intrusive_list_t<buf_t>::iterator it;
-	for (it = buffers.begin(); it != buffers.end(); it++) {
-		(*it).deadlock_debug();
-	}
+    
+    printf("\n----- Cache %p -----\n", (void*)this);
+    
+    writeback_t::deadlock_debug();
+    
+    printf("\n----- Buffers -----\n");
+    for (buf_t *buf = page_repl_t::get_first_buf(); buf; buf = page_repl_t::get_next_buf(buf)) {
+        buf->deadlock_debug();
+    }
 }
 #endif
 

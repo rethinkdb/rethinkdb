@@ -91,7 +91,7 @@ struct rwi_conc_t {
 
     /* Returns true if acquired successfully */
     bool acquire(typename config_t::buf_t *buf, access_t mode, void *state) {
-        if(buf->lock.lock(mode, buf)) {
+        if(buf->concurrency_buf.lock.lock(mode, &buf->concurrency_buf)) {
             return true;
         } else {
 #ifndef NDEBUG
@@ -102,7 +102,7 @@ struct rwi_conc_t {
     }
 
     void release(typename config_t::buf_t *buf) {
-        buf->lock.unlock();
+        buf->concurrency_buf.lock.unlock();
     }
 };
 

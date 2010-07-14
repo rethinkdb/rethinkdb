@@ -12,9 +12,19 @@
 template <class config_t>
 struct array_map_t {
 
-public:
-    typedef typename config_t::serializer_t serializer_t;
     typedef typename config_t::buf_t buf_t;
+
+public:
+    struct local_buf_t {
+        explicit local_buf_t(buf_t *gbuf) : gbuf(gbuf) {
+            gbuf->cache->insert(gbuf);
+        }
+        ~local_buf_t() {
+            gbuf->cache->erase(gbuf);
+        }
+    private:
+        buf_t *gbuf;
+    };
     
 public:
     array_map_t() { }

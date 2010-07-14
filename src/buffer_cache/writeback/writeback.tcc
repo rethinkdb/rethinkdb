@@ -257,8 +257,8 @@ void writeback_tmpl_t<config_t>::writeback(buf_t *buf) {
     }
     if (state == state_write_bufs) {
         if (buf) {
-            flush_bufs.remove(buf);
-            buf->set_clean();
+            flush_bufs.remove(&buf->writeback_buf);
+            buf->writeback_buf.set_clean();
             buf->release();
         }
         if (flush_bufs.empty()) {

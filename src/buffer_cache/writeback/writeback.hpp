@@ -55,7 +55,9 @@ public:
             assert(dirty);
             dirty = false;
         }
-
+        
+        bool safe_to_unload() const { return !dirty; }
+        
     protected:
         buf_t *gbuf;
         bool dirty;
