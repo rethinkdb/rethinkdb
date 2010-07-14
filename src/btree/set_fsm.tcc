@@ -331,7 +331,7 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
                     memcpy(value->contents,cur_val_str,strlen(cur_val_str));
                     value->size = strlen(cur_val_str);
                 }
-                bool success = leaf_node_handler::insert(((leaf_node_t*)node), key, value);
+                bool success = leaf_node_handler::insert((leaf_node_t*)node, key, value);
                 check("could not insert leaf btree node", !success);
                 set_was_successful = true;
                 buf->set_dirty();
