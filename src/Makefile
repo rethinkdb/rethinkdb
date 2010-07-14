@@ -7,10 +7,8 @@ TAGS:=.tags
 RUN_PORT?=11211
 RUN_FLAGS?=
 VALGRIND_FLAGS?=--leak-check=full
-
-# Default DEBUG variable to "on".  This should be changed on a release branch.
 DEBUG?=1
-
+VALGRIND?=0
 VERBOSE?=0
 
 # Choose our directories
@@ -35,7 +33,7 @@ CXXFLAGS:=-I$(SOURCE_DIR) -Wall -Wextra -Wformat=2 -Wno-unused-parameter -Werror
 
 # Configure debug vs. release
 ifeq ($(DEBUG),1)
-CXXFLAGS:=$(CXXFLAGS) -g -DDELETE_DEBUG
+CXXFLAGS:=$(CXXFLAGS) -g
 else
 CXXFLAGS:=$(CXXFLAGS) -O3 -DNDEBUG
 endif
@@ -83,10 +81,11 @@ gdb: $(BUILD_DIR)/$(SERVER_EXEC_NAME)
 	$(QUIET) rm -f data.file*
 	gdb --args $(BUILD_DIR)/$(SERVER_EXEC_NAME) -p $(RUN_PORT) $(RUN_FLAGS)
 
-# You must turn on the valgrind flag explicitly with "make valgrind VALGRIND=1" when building this
-# target
-
 valgrind: $(BUILD_DIR)/$(SERVER_EXEC_NAME)
+ifeq ($(VALGRIND),0)
+	$(error Using the 'valgrind' target doesn't automatically set VALGRIND to 1. Try again with \
+'make valgrind VALGRIND=1')
+endif
 	$(QUIET) rm -f data.file*
 	valgrind $(VALGRIND_FLAGS) $(BUILD_DIR)/$(SERVER_EXEC_NAME) -p $(RUN_PORT) $(RUN_FLAGS)
 

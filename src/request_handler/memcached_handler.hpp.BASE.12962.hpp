@@ -29,7 +29,7 @@ public:
     virtual void build_response(request_t *request);
 
 private:
-    enum storage_command { SET, ADD, REPLACE, APPEND, PREPEND, CAS, INCR, DECR };
+    enum storage_command { SET, ADD, REPLACE, APPEND, PREPEND, CAS };
     cache_t *cache;
     storage_command cmd;
 
@@ -53,9 +53,10 @@ private:
     parse_result_t prepend(char *data, conn_fsm_t *fsm);
     parse_result_t cas(char *data, conn_fsm_t *fsm);
 
-    parse_result_t get(char *state, bool include_unique, unsigned int line_len, conn_fsm_t *fsm);
+    parse_result_t get(char *state, bool include_unique, conn_fsm_t *fsm);
 
-    parse_result_t remove(char *state, unsigned int line_len, conn_fsm_t *fsm);
+    parse_result_t remove(char *state, conn_fsm_t *fsm);
+    parse_result_t adjust(char *state, bool inc, conn_fsm_t *fsm);
 
     void write_msg(conn_fsm_t *fsm, const char *str);
     parse_result_t malformed_request(conn_fsm_t *fsm);

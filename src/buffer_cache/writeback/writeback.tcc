@@ -143,16 +143,21 @@ void writeback_tmpl_t<config_t>::deadlock_debug() {
         default: st_name = "<invalid state>"; break;
     }
     printf("state = %s\n", st_name);
+    printf("flush_timer = %p\n", flush_timer);
+    printf("sync_callbacks = (%d items)\n", sync_callbacks.size());
+    printf("start_next_sync_immediately = %d\n", (int)start_next_sync_immediately);
+    printf("current_sync_callbacks = (%d items)\n", current_sync_callbacks.size());
+    printf("shutdown_callback = %p\n", shutdown_callback);
+    printf("in_shutdown_sync = %d\n", (int)in_shutdown_sync);
 }
 #endif
 
 template <class config_t>
-void writeback_tmpl_t<config_t>::local_buf_t::set_dirty(buf_t *super) {
-    // 'super' is actually 'this', but as a buf_t* instead of a local_buf_t*
+void writeback_tmpl_t<config_t>::local_buf_t::set_dirty() {
     if(!dirty) {
         // Mark block as dirty if it hasn't been already
         dirty = true;
-        writeback->dirty_bufs.push_back(super);
+        gbuf->cache->dirty_bufs.push_back(this);
     }
 }
 
@@ -218,9 +223,9 @@ void writeback_tmpl_t<config_t>::writeback(buf_t *buf) {
         typename serializer_t::write *writes =
             (typename serializer_t::write*)calloc(dirty_bufs.size(), sizeof *writes);
         int i;
-        typename intrusive_list_t<buf_t>::iterator it;
+        typename intrusive_list_t<local_buf_t>::iterator it;
         for (it = dirty_bufs.begin(), i = 0; it != dirty_bufs.end(); it++, i++) {
-            buf_t *_buf = &*it;
+            buf_t *_buf = (*it).gbuf;
 
             // Acquire the blocks
             buf_t *buf = transaction->acquire(_buf->get_block_id(), rwi_read, NULL);

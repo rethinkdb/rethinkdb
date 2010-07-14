@@ -5,7 +5,9 @@
 enum btree_set_kind {
     btree_set_kind_set,
     btree_set_kind_add,
-    btree_set_kind_replace
+    btree_set_kind_replace,
+    btree_set_kind_incr,
+    btree_set_kind_decr
 };
 
 template <class config_t>
@@ -45,7 +47,11 @@ public:
     virtual bool is_finished() {
         return state == committing && transaction == NULL;
     }
-
+    
+    btree_key* get_key();
+    btree_value* get_value();
+    btree_set_kind get_set_kind();
+    
 private:
     using btree_fsm<config_t>::transaction;
     using btree_fsm<config_t>::cache;
