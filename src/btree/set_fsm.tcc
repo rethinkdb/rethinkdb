@@ -297,7 +297,7 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
                 (set_kind == btree_set_kind_add && !key_found) ||
                 (set_kind == btree_set_kind_replace && key_found))
             {
-                bool success = leaf_node_handler::insert(((leaf_node_t*)node), key, value);
+                bool success = leaf_node_handler::insert((leaf_node_t*)node, key, value);
                 check("could not insert leaf btree node", !success);
                 set_was_successful = true;
                 buf->set_dirty();
