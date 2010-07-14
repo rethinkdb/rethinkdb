@@ -4,6 +4,9 @@
 
 #include "cpu_context.hpp"
 
+#include <iostream>
+using namespace std;
+
 // TODO: holy shit this state machine is a fucking mess. We should
 // make it NOT write only (i.e. human beings should be able to easily
 // understand what is happening here). Needs to be redesigned (with
@@ -23,7 +26,7 @@
 
 // TODO: change rwi_write to rwi_intent followed by rwi_upgrade where
 // relevant.
-
+const uint64_t UNINT64_MAX_VALUE = -1;
 template <class config_t>
 void btree_set_fsm<config_t>::init_update(btree_key *_key, byte *data, unsigned int length, btree_set_kind _set_kind) {
     set_kind = _set_kind;
@@ -287,16 +290,39 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
         if(node_handler::is_leaf(node)) {
 
             // TODO: write a unit test for checking the add and replace.
-            btree_value unused_value;
+            btree_value current_value;
+            unsigned long long new_val;
+            unsigned long long cur_val;
             // If it's an add operation, check that the key doesn't exist.
             // If it's a replace operation, check that the key does exist.
             bool key_found = false;
-            if(set_kind == btree_set_kind_add || set_kind == btree_set_kind_replace)
-                key_found = leaf_node_handler::lookup((leaf_node_t*)node, key, &unused_value);
+            if(set_kind == btree_set_kind_add || set_kind == btree_set_kind_replace || set_kind == btree_set_kind_incr || set_kind == btree_set_kind_decr) {
+                key_found = leaf_node_handler::lookup((leaf_node_t*)node, key, &current_value);
+                new_val = strtoull(value->contents, NULL, 0);
+                cur_val = strtoull(current_value.contents, NULL, 0);
+            }
+
+            if (key_found && set_kind == btree_set_kind_decr) {
+                // we underflowed and wrapped around while subtracting, set to zero.
+                if (cur_val - new_val > cur_val) 
+                    cur_val = 0;                
+                else
+                    cur_val -= new_val;
+            } else if(key_found && set_kind == btree_set_kind_incr) {
+                cur_val += new_val;
+            }
+            
             if (set_kind == btree_set_kind_set ||
                 (set_kind == btree_set_kind_add && !key_found) ||
-                (set_kind == btree_set_kind_replace && key_found))
+                (set_kind == btree_set_kind_replace && key_found) ||
+                (set_kind == btree_set_kind_decr && key_found) ||
+                (set_kind == btree_set_kind_incr && key_found))
             {
+                if (set_kind == btree_set_kind_decr || set_kind == btree_set_kind_incr) {
+                    char cur_val_str[value->size];
+                    sprintf(cur_val_str, "%llu", cur_val);
+                    memcpy(value->contents,cur_val_str,strlen(cur_val_str));
+                }
                 bool success = leaf_node_handler::insert(((leaf_node_t*)node), key, value);
                 check("could not insert leaf btree node", !success);
                 set_was_successful = true;
@@ -383,6 +409,20 @@ void btree_set_fsm<config_t>::split_node(buf_t *buf, buf_t **rbuf,
         res->set_dirty();
     }
     *rbuf = res;
+}
+
+template<class config_t>
+btree_key* btree_set_fsm<config_t>::get_key() {
+    return key;
+}
+
+template<class config_t>
+btree_value* btree_set_fsm<config_t>::get_value() {
+    return value;
+}
+template<class config_t>
+btree_set_kind btree_set_fsm<config_t>::get_set_kind() {
+    return set_kind;
 }
 
 #ifndef NDEBUG

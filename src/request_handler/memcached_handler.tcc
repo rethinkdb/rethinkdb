@@ -97,9 +97,9 @@ typename memcached_handler_t<config_t>::parse_result_t memcached_handler_t<confi
         return remove(state, fsm);
 
     } else if(!strcmp(cmd_str, "incr")) {
-        return adjust(state, true, fsm);
+        return parse_storage_command(INCR, state, line_len, fsm);
     } else if(!strcmp(cmd_str, "decr")) {
-        return adjust(state, false, fsm);
+        return parse_storage_command(DECR, state, line_len, fsm);
     } else {
         // Invalid command
         return malformed_request(fsm);
@@ -109,39 +109,53 @@ typename memcached_handler_t<config_t>::parse_result_t memcached_handler_t<confi
 template <class config_t>
 typename memcached_handler_t<config_t>::parse_result_t memcached_handler_t<config_t>::parse_storage_command(storage_command command, char *state, unsigned int line_len, conn_fsm_t *fsm) {
     char *key_tmp = strtok_r(NULL, DELIMS, &state);
-    char *flags_str = strtok_r(NULL, DELIMS, &state);
-    char *exptime_str = strtok_r(NULL, DELIMS, &state);
-    char *bytes_str = strtok_r(NULL, DELIMS, &state);
-    char *cas_unique_str = NULL;
+    char *value_str, *flags_str, *exptime_str, *bytes_str, *cas_unique_str;
+    if (command == INCR || command == DECR) {
+        value_str = strtok_r(NULL, DELIMS, &state);
+    } else {
+        flags_str = strtok_r(NULL, DELIMS, &state);
+        exptime_str = strtok_r(NULL, DELIMS, &state);
+        bytes_str = strtok_r(NULL, DELIMS, &state);
+        cas_unique_str = NULL;
+    }
     if (command == CAS)
         cas_unique_str = strtok_r(NULL, DELIMS, &state);
     char *noreply_str = strtok_r(NULL, DELIMS, &state); //optional
 
-    if (key_tmp == NULL || flags_str == NULL || exptime_str == NULL || bytes_str == NULL || (command == CAS && cas_unique_str == NULL)) //check for proper number of arguments
+    //check for proper number of arguments
+    if (command == INCR || command == DECR) {
+        if (key_tmp == NULL || value_str == NULL)
+            return malformed_request(fsm);
+    }
+    else if ((key_tmp == NULL || flags_str == NULL || exptime_str == NULL || bytes_str == NULL || (command == CAS && cas_unique_str == NULL))) {
         return malformed_request(fsm);
-
+    }
+        
     cmd = command;
     node_handler::str_to_key(key_tmp, key);
 
-    char *invalid_char;
-    flags = strtoul(flags_str, &invalid_char, 10);  //a 32 bit integer.  int alone does not guarantee 32 bit length
-    if (*invalid_char != '\0')  // ensure there were no improper characters in the token - i.e. parse was successful
-        return malformed_request(fsm);
-
-    exptime = strtoul(exptime_str, &invalid_char, 10);
-    if (*invalid_char != '\0')
-        return malformed_request(fsm);
-
-    bytes = strtoul(bytes_str, &invalid_char, 10);
-    if (*invalid_char != '\0')
-        return malformed_request(fsm);
-
-    if (cmd == CAS) {
-        cas_unique = strtoull(cas_unique_str, &invalid_char, 10);
+    if (command != INCR && command != DECR) {
+        char *invalid_char;
+        flags = strtoul(flags_str, &invalid_char, 10);  //a 32 bit integer.  int alone does not guarantee 32 bit length
+        if (*invalid_char != '\0')  // ensure there were no improper characters in the token - i.e. parse was successful
+            return malformed_request(fsm);
+    
+        exptime = strtoul(exptime_str, &invalid_char, 10);
         if (*invalid_char != '\0')
             return malformed_request(fsm);
+    
+        bytes = strtoul(bytes_str, &invalid_char, 10);
+        if (*invalid_char != '\0')
+            return malformed_request(fsm);
+    
+        if (cmd == CAS) {
+            cas_unique = strtoull(cas_unique_str, &invalid_char, 10);
+            if (*invalid_char != '\0')
+                return malformed_request(fsm);
+        }
+    } else {
+        bytes = strlen(value_str);
     }
-
     noreply = false;
     if (noreply_str != NULL) {
         if (!strcmp(noreply_str, "noreply")) {
@@ -153,8 +167,14 @@ typename memcached_handler_t<config_t>::parse_result_t memcached_handler_t<confi
 
     fsm->consume(line_len); //consume the line
     loading_data = true;
-
-    return read_data(fsm->rbuf, fsm->nrbuf, fsm);
+    if (cmd == INCR || cmd == DECR) {
+        cout << "value_str: " << value_str << endl;
+        cout << "bytes: " << bytes << endl;
+        cout << "strlen(value_str): " << strlen(value_str) + 2 << endl;
+        return read_data(value_str, strlen(value_str) + 2, fsm);
+    } else {
+        return read_data(fsm->rbuf, fsm->nrbuf, fsm);
+    }
 }
 	
 template <class config_t>
@@ -185,6 +205,12 @@ typename memcached_handler_t<config_t>::parse_result_t memcached_handler_t<confi
         case CAS:
             ret = prepend(data, fsm);
             break;
+        case INCR:
+            ret = set(data, fsm, btree_set_kind_incr);
+            break;
+        case DECR:
+            ret = set(data, fsm, btree_set_kind_decr);
+            break;
         default:
             ret = malformed_request(fsm);
             break;
@@ -206,8 +232,10 @@ typename memcached_handler_t<config_t>::parse_result_t memcached_handler_t<confi
     request->nstarted++;
     fsm->current_request = request;
     btree_fsm->request = request;
-
-    fsm->consume(bytes+2);
+    
+    if (set_kind != btree_set_kind_incr && set_kind != btree_set_kind_decr)
+        fsm->consume(bytes+2);
+        
     return req_handler_t::op_req_complex;
 }
 
@@ -263,7 +291,6 @@ typename memcached_handler_t<config_t>::parse_result_t memcached_handler_t<confi
 
     if (include_unique)
         return unimplemented_request(fsm);
-
     // Create request
     request_t *request = new request_t(fsm);
     do {
@@ -357,7 +384,7 @@ typename memcached_handler_t<config_t>::parse_result_t memcached_handler_t<confi
 }
 
 template <class config_t>
-typename memcached_handler_t<config_t>::parse_result_t memcached_handler_t<config_t>::adjust(char *state, bool inc, conn_fsm_t *fsm) {
+typename memcached_handler_t<config_t>::parse_result_t memcached_handler_t<config_t>::adjust(char *state, bool inc, int line_len, conn_fsm_t *fsm) {
     char *key_str = strtok_r(NULL, DELIMS, &state);
     char *value_str = strtok_r(NULL, DELIMS, &state);
     if (key_str == NULL || value_str == NULL)
@@ -372,9 +399,12 @@ typename memcached_handler_t<config_t>::parse_result_t memcached_handler_t<confi
             return malformed_request(fsm);
         }
     }
-
-    // parsed successfully, but functionality not yet implemented
-    return unimplemented_request(fsm);
+    
+    cmd = inc? INCR : DECR;
+    // parsed successfully
+    fsm->consume(line_len);
+    loading_data = true;
+    return read_data(value_str, sizeof(value_str), fsm);
 }
     
 template<class config_t>
@@ -418,10 +448,22 @@ void memcached_handler_t<config_t>::build_response(request_t *request) {
         btree_set_fsm = (btree_set_fsm_t*)request->fsms[0];
         
         if (!btree_set_fsm->set_was_successful) {
-            strcpy(sbuf,STORAGE_FAILURE);
+            if (btree_set_fsm->get_set_kind() == btree_set_kind_incr ||
+            btree_set_fsm->get_set_kind() == btree_set_kind_decr) {
+                strcpy(sbuf, "NOT_FOUND\r\n");
+            } else {
+                strcpy(sbuf,STORAGE_FAILURE);
+            }
             fsm->nsbuf = strlen(STORAGE_FAILURE);
         }else if (!noreply) {
-            strcpy(sbuf, STORAGE_SUCCESS);
+            if (btree_set_fsm->get_set_kind() == btree_set_kind_incr ||
+            btree_set_fsm->get_set_kind() == btree_set_kind_decr) {
+                char str[btree_set_fsm->get_value()->size];
+                sprintf(str, "%u\r\n",atoi(btree_set_fsm->get_value()->contents));
+                strcpy(sbuf, str);
+            } else {
+                strcpy(sbuf, STORAGE_SUCCESS);
+            }
             fsm->nsbuf = strlen(STORAGE_SUCCESS);
         } else {
             fsm->nsbuf = 0;
