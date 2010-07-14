@@ -83,6 +83,7 @@ public:
         } else {
             printf("\tcurrent_request = NULL\n");
         }
+        printf("}\n");
     }
 #endif
 

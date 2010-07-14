@@ -143,6 +143,12 @@ void writeback_tmpl_t<config_t>::deadlock_debug() {
         default: st_name = "<invalid state>"; break;
     }
     printf("state = %s\n", st_name);
+    printf("flush_timer = %p\n", flush_timer);
+    printf("sync_callbacks = (%d items)\n", sync_callbacks.size());
+    printf("start_next_sync_immediately = %d\n", (int)start_next_sync_immediately);
+    printf("current_sync_callbacks = (%d items)\n", current_sync_callbacks.size());
+    printf("shutdown_callback = %p\n", shutdown_callback);
+    printf("in_shutdown_sync = %d\n", (int)in_shutdown_sync);
 }
 #endif
 
