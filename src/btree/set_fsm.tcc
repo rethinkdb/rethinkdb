@@ -1,4 +1,3 @@
-
 #ifndef __BTREE_SET_FSM_TCC__
 #define __BTREE_SET_FSM_TCC__
 
@@ -23,7 +22,6 @@
 
 // TODO: change rwi_write to rwi_intent followed by rwi_upgrade where
 // relevant.
-const uint64_t UNINT64_MAX_VALUE = -1;
 template <class config_t>
 void btree_set_fsm<config_t>::init_update(btree_key *_key, byte *data, unsigned int length, btree_set_kind _set_kind) {
     set_kind = _set_kind;
