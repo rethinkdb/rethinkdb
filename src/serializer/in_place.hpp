@@ -26,19 +26,8 @@ public:
     typedef typename config_t::btree_admin_t btree_admin_t;
 
 public:
-    explicit in_place_serializer_t(size_t _block_size)
-        : dbfd(-1), dbsize(-1), block_size(_block_size)
-        {}
-    ~in_place_serializer_t() {
-        check("Database file was not properly closed", dbfd != -1);
-    }
-    
-    off64_t id_to_offset(block_id_t id) {
-        return id * block_size;
-    }
-    
-    /* Initialize the serializer with the backing store. */
-    void init(char *db_path) {
+    in_place_serializer_t(char *db_path, size_t _block_size)
+        : dbfd(-1), dbsize(-1), block_size(_block_size) {
         // Open the DB file
         dbfd = open(db_path,
                     O_RDWR | O_CREAT | O_DIRECT | O_LARGEFILE | O_NOATIME,
@@ -60,10 +49,12 @@ public:
             dbsize = block_size;
         }
     }
-
-    void close() {
+    ~in_place_serializer_t() {
         ::close(dbfd);
-        dbfd = -1;
+    }
+    
+    off64_t id_to_offset(block_id_t id) {
+        return id * block_size;
     }
 
 public:

@@ -37,19 +37,19 @@ public:
     public:
         /* When bufs are created or destroyed, this constructor and destructor are called; this is
         how the page replacement system keeps track of the buffers in memory. */
-        local_buf_t(buf_t *gbuf) : gbuf(gbuf) {
-            index = gbuf->cache->page_repl_array.size();
-            gbuf->cache->page_repl_array.set(index, gbuf);
+        explicit local_buf_t(buf_t *gbuf) : gbuf(gbuf) {
+            index = gbuf->cache->page_repl.array.size();
+            gbuf->cache->page_repl.array.set(index, gbuf);
         }
         ~local_buf_t() {
-            unsigned int last_index = gbuf->cache->page_repl_array.size() - 1;
+            unsigned int last_index = gbuf->cache->page_repl.array.size() - 1;
             if (index == last_index) {
-                gbuf->cache->page_repl_array.set(index, NULL);
+                gbuf->cache->page_repl.array.set(index, NULL);
             } else {
-                buf_t *replacement = gbuf->cache->page_repl_array.get(last_index);
+                buf_t *replacement = gbuf->cache->page_repl.array.get(last_index);
                 replacement->page_repl_buf.index = index;
-                gbuf->cache->page_repl_array.set(index, replacement);
-                gbuf->cache->page_repl_array.set(last_index, NULL);
+                gbuf->cache->page_repl.array.set(index, replacement);
+                gbuf->cache->page_repl.array.set(last_index, NULL);
                 index = -1;
             }
         }
@@ -70,7 +70,7 @@ public:
         if (space_needed > unload_threshold) target = unload_threshold;
         else target = unload_threshold - space_needed;
                 
-        while (page_repl_array.size() > target) {
+        while (array.size() > target) {
                     
             // Try to find a block we can unload. Blocks are ineligible to be unloaded if they are
             // dirty or in use.
@@ -78,8 +78,8 @@ public:
             for (int tries = PAGE_REPL_NUM_TRIES; tries > 0; tries --) {
                 
                 /* Choose a block in memory at random. */
-                unsigned int n = random() % page_repl_array.size();
-                buf_t *block = page_repl_array.get(n);
+                unsigned int n = random() % array.size();
+                buf_t *block = array.get(n);
                 
                 if (block->safe_to_unload()) {
                     block_to_unload = block;
@@ -88,11 +88,13 @@ public:
             }
             
             if (block_to_unload) {
-                cache->do_unload_buf(block_to_unload);
+                /* buf_t's destructor, and the destructors of the local_buf_ts, take care of the
+                details */
+                delete block_to_unload;
             } else {
 #ifndef NDEBUG
                 printf("thread %d exceeding memory target. %d blocks in memory, %d dirty, target is %d.\n",
-                    get_cpu_context()->event_queue->queue_id, page_repl_array.size(), cache->num_dirty_blocks(), target);
+                    get_cpu_context()->event_queue->queue_id, array.size(), cache->writeback.num_dirty_blocks(), target);
 #endif
                 break;
             }
@@ -108,13 +110,13 @@ public:
     rather than keeping a buffer list of its own. */
     
     buf_t *get_first_buf() {
-        if (page_repl_array.size() == 0) return NULL;
-        return page_repl_array.get(0);
+        if (array.size() == 0) return NULL;
+        return array.get(0);
     }
     
     buf_t *get_next_buf(buf_t *buf) {
-        if (buf->page_repl_buf.index == page_repl_array.size() - 1) return NULL;
-        else return page_repl_array.get(buf->page_repl_buf.index + 1);
+        if (buf->page_repl_buf.index == array.size() - 1) return NULL;
+        else return array.get(buf->page_repl_buf.index + 1);
     }
     
 private:
@@ -122,7 +124,7 @@ private:
     cache_t *cache;
 
 protected:
-    two_level_array_t<buf_t, PAGE_REPL_MAX_SANE_MEMORY_SIZE / BTREE_BLOCK_SIZE, PAGE_REPL_BUFFERS_PER_CHUNK> page_repl_array;
+    two_level_array_t<buf_t, PAGE_REPL_MAX_SANE_MEMORY_SIZE / BTREE_BLOCK_SIZE, PAGE_REPL_BUFFERS_PER_CHUNK> array;
 };
 
 #endif // __PAGE_REPL_RANDOM_HPP__

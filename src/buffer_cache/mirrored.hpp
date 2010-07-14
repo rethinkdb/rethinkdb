@@ -139,22 +139,18 @@ public:
 };
 
 template <class config_t>
-struct mirrored_cache_t : public config_t::serializer_t,
-                          public config_t::page_map_t,
-                          public config_t::page_repl_t,
-                          public config_t::writeback_t,
-                          public buffer_alloc_t
+struct mirrored_cache_t
 {
 public:
-    typedef typename config_t::serializer_t serializer_t;
-    typedef typename config_t::page_repl_t page_repl_t;
-    typedef typename config_t::writeback_t writeback_t;
     typedef typename config_t::transaction_t transaction_t;
-    typedef typename config_t::concurrency_t concurrency_t;
-    typedef typename config_t::page_map_t page_map_t;
     typedef typename config_t::buf_t buf_t;
 
+#ifndef NDEBUG
 public:
+    int n_trans_created, n_trans_freed;
+    int n_blocks_acquired, n_blocks_released;
+#endif
+    
     // TODO: how do we design communication between cache policies?
     // Should they all have access to the cache, or should they only
     // be given access to each other as necessary? The first is more
@@ -162,34 +158,44 @@ public:
     // many dependencies. The second is more strict, but might not be
     // extensible when some policy implementation requires access to
     // components it wasn't originally given.
+    buffer_alloc_t alloc;
+    typename config_t::serializer_t serializer;
+    typename config_t::page_map_t page_map;
+    typename config_t::page_repl_t page_repl;
+    typename config_t::writeback_t writeback;
+    typename config_t::concurrency_t concurrency;
+    
     mirrored_cache_t(
+            char *filename,
             size_t _block_size,
             size_t _max_size,
             bool wait_for_flush,
             unsigned int flush_timer_ms,
-            unsigned int flush_threshold_percent) : 
-        serializer_t(_block_size),
-        page_repl_t(
+            unsigned int flush_threshold_percent) :
+#ifndef NDEBUG
+        n_trans_created(0), n_trans_freed(0),
+        n_blocks_acquired(0), n_blocks_released(0),
+#endif
+        serializer(
+            filename,
+            _block_size),
+        page_repl(
             // Launch page replacement if the user-specified maximum number of blocks is reached
             _max_size / _block_size,
             this),
-        writeback_t(
+        writeback(
             this,
             wait_for_flush,
             flush_timer_ms,
             _max_size / _block_size * flush_threshold_percent / 100)
-#ifndef NDEBUG
-        , n_trans_created(0), n_trans_freed(0),
-        n_blocks_acquired(0), n_blocks_released(0)
-#endif
-        {}
+        { }
     ~mirrored_cache_t();
 
     void start() {
-    	writeback_t::start();
+    	writeback.start();
     }
     void shutdown(sync_callback<config_t> *cb) {
-    	writeback_t::shutdown(cb);
+    	writeback.shutdown(cb);
     }
 
     // Transaction API
@@ -198,22 +204,22 @@ public:
 
     void aio_complete(buf_t *buf, bool written);
     
-    buf_t *create_buf(block_id_t id);
+    /* TODO: These two should probably actually be global, because block_id_t is global... */
+    static const block_id_t null_block_id = config_t::serializer_t::null_block_id;
+    static bool is_block_id_null(block_id_t id) {
+        return config_t::serializer_t::is_block_id_null(id);
+    }
     
-	/* do_unload_buf unloads a buf from memory, freeing the buf_t object. It should only be called
-    on a buf that is not in use and not dirty. It is called by the cache's destructor and by the
-    page replacement policy. */
-    void do_unload_buf(buf_t *buf);
+    /* TODO: ... and we can't decide where this one belongs until we decide who is responsible for
+    creating new block IDs, and figure out the relationship between the serializer and the cache
+    better. */
+    block_id_t get_superblock_id() {
+        return serializer.get_superblock_id();
+    }
     
 #ifndef NDEBUG
 	// Prints debugging information designed to resolve deadlocks
 	void deadlock_debug();
-#endif
-
-#ifndef NDEBUG
-public:
-    int n_trans_created, n_trans_freed;
-    int n_blocks_acquired, n_blocks_released;
 #endif
 };
 

@@ -157,7 +157,7 @@ void writeback_tmpl_t<config_t>::local_buf_t::set_dirty() {
     if(!dirty) {
         // Mark block as dirty if it hasn't been already
         dirty = true;
-        gbuf->cache->dirty_bufs.push_back(this);
+        gbuf->cache->writeback.dirty_bufs.push_back(this);
     }
 }
 
@@ -250,7 +250,7 @@ void writeback_tmpl_t<config_t>::writeback(buf_t *buf) {
         // chunks, we may want to worry about submitting more heavily contended
         // bufs earlier in the process so more write FSMs can proceed sooner.
         if (flush_bufs.size())
-            cache->do_write(get_cpu_context()->event_queue, writes,
+            cache->serializer.do_write(get_cpu_context()->event_queue, writes,
                             flush_bufs.size());
         free(writes);
         state = state_write_bufs;

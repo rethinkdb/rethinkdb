@@ -17,10 +17,10 @@ struct array_map_t {
 public:
     struct local_buf_t {
         explicit local_buf_t(buf_t *gbuf) : gbuf(gbuf) {
-            gbuf->cache->insert(gbuf);
+            gbuf->cache->page_map.insert(gbuf);
         }
         ~local_buf_t() {
-            gbuf->cache->erase(gbuf);
+            gbuf->cache->page_map.erase(gbuf);
         }
     private:
         buf_t *gbuf;
