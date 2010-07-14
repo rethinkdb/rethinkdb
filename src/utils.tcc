@@ -50,6 +50,12 @@ T* gnew(A1 a1, A2 a2, A3 a3, A4 a4, A5 a5) {
     return new (ptr) T(a1, a2, a3, a4, a5);
 }
 
+template <typename T, typename A1, typename A2, typename A3, typename A4, typename A5, typename A6>
+T* gnew(A1 a1, A2 a2, A3 a3, A4 a4, A5 a5, A6 a6) {
+    T *ptr = _gnew<T>();
+    return new (ptr) T(a1, a2, a3, a4, a5, a6);
+}
+
 // A custom STL allocator for calling gnew
 template<typename T>
 class gnew_alloc {
