@@ -20,33 +20,29 @@ struct rwi_conc_t {
     typedef typename config_t::buf_t buf_t;
     
     struct local_buf_t : public lock_available_callback_t {
+    
+    public:
         explicit local_buf_t(buf_t *_gbuf)
             : lock(&get_cpu_context()->event_queue->message_hub,
                    get_cpu_context()->event_queue->queue_id),
               gbuf(_gbuf)
             {}
         
-        virtual void on_lock_available() {
-            
+        bool acquire(access_t mode, block_available_callback_t *callback) {
+            if (lock.lock(mode, this)) {
+                return true;
+            } else {
 #ifndef NDEBUG
-            gbuf->active_callback_count --;
+                gbuf->active_callback_count ++;
 #endif
-            
-            // We're calling back objects that were waiting on a lock. Because
-            // of that, we can only call one.
-            
-            assert(!lock_callbacks.empty());
-            block_available_callback_t *_callback = lock_callbacks.head();
-            lock_callbacks.remove(_callback);
-            
-            _callback->on_block_available(gbuf);
-            // Note that _callback may cause block to be unloaded, so we can't safely do anything
-            // after _callback returns.
+                assert(callback);
+                lock_callbacks.push_back(callback);
+                return false;
+            }
         }
         
-        void add_lock_callback(block_available_callback_t *callback) {
-            assert(callback);
-            lock_callbacks.push_back(callback);
+        void release() {
+            lock.unlock();
         }
         
         bool safe_to_unload() {
@@ -54,8 +50,6 @@ struct rwi_conc_t {
                 lock_callbacks.empty();
         }
         
-        rwi_lock_t lock;
-
 #ifndef NDEBUG
         // Prints debugging information designed to resolve deadlocks.
         void deadlock_debug() {
@@ -79,6 +73,27 @@ struct rwi_conc_t {
 #endif
 
     private:
+        
+        rwi_lock_t lock;
+        
+        virtual void on_lock_available() {
+            
+#ifndef NDEBUG
+            gbuf->active_callback_count --;
+#endif
+            
+            // We're calling back objects that were waiting on a lock. Because
+            // of that, we can only call one.
+            
+            assert(!lock_callbacks.empty());
+            block_available_callback_t *callback = lock_callbacks.head();
+            lock_callbacks.remove(callback);
+            
+            callback->on_block_available(gbuf);
+            // Note that callback may cause block to be unloaded, so we can't safely do anything
+            // after callback returns.
+        }
+        
         typedef intrusive_list_t<block_available_callback_t> callbacks_t;
         
         // lock_callbacks always has the same number of objects as the lock's internal callback
@@ -88,22 +103,6 @@ struct rwi_conc_t {
         callbacks_t lock_callbacks;
         buf_t *gbuf;
     };
-
-    /* Returns true if acquired successfully */
-    bool acquire(typename config_t::buf_t *buf, access_t mode, void *state) {
-        if(buf->lock.lock(mode, buf)) {
-            return true;
-        } else {
-#ifndef NDEBUG
-            buf->active_callback_count ++;
-#endif
-            return false;
-        }
-    }
-
-    void release(typename config_t::buf_t *buf) {
-        buf->lock.unlock();
-    }
 };
 
 #endif // __RWI_CONC_HPP__

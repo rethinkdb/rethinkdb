@@ -23,10 +23,7 @@
 #include "worker_pool.hpp"
 #include "arch/io.hpp"
 #include "serializer/in_place.hpp"
-#include "buffer_cache/fallthrough.hpp"
-#include "buffer_cache/stats.hpp"
 #include "buffer_cache/mirrored.hpp"
-#include "buffer_cache/page_map/unlocked_hash_map.hpp"
 #include "buffer_cache/page_map/array.hpp"
 #include "buffer_cache/page_repl/page_repl_random.hpp"
 #include "buffer_cache/writeback/writeback.hpp"
@@ -37,7 +34,6 @@
 #include "conn_fsm.hpp"
 #include "request.hpp"
 #include "event_queue.hpp"
-#include "buffer_cache/stats.hpp"
 #include "cpu_context.hpp"
 
 static const int NSEC_IN_SEC = 1000 * 1000 * 1000;
@@ -212,6 +208,8 @@ void *event_queue_t::epoll_handler(void *arg) {
 
     // First, set the cpu context structure
     get_cpu_context()->event_queue = self;
+    
+    // Cannot call this until we are in the correct thread and have an event queue
     self->cache->start();
 
     // Now, initialize the hardcoded (garbage collection)
@@ -354,19 +352,19 @@ event_queue_t::event_queue_t(int queue_id, int _nqueues, event_handler_t event_h
     watch_resource(this->itc_pipe[0], eo_read, (void*)this->itc_pipe[0]);
     
     // Init the cache
-    cache = gnew<cache_t>(
-        BTREE_BLOCK_SIZE,
-        cmd_config->max_cache_size / nqueues,
-        cmd_config->wait_for_flush,
-        cmd_config->flush_timer_ms,
-        cmd_config->flush_threshold_percent);
     typedef std::basic_string<char, std::char_traits<char>, gnew_alloc<char> > rdbstring_t;
     typedef std::basic_stringstream<char, std::char_traits<char>, gnew_alloc<char> > rdbstringstream_t;
     rdbstringstream_t out;
     rdbstring_t str((char*)cmd_config->db_file_name);
     out << queue_id;
     str += out.str();
-    cache->init((char*)str.c_str());
+    cache = gnew<cache_t>(
+        (char*)str.c_str(),
+        BTREE_BLOCK_SIZE,
+        cmd_config->max_cache_size / nqueues,
+        cmd_config->wait_for_flush,
+        cmd_config->flush_timer_ms,
+        cmd_config->flush_threshold_percent);
 }
 
 void event_queue_t::start_queue() {

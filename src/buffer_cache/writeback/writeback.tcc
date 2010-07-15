@@ -120,12 +120,6 @@ bool writeback_tmpl_t<config_t>::commit(transaction_t *txn) {
 }
 
 template <class config_t>
-void writeback_tmpl_t<config_t>::aio_complete(buf_t *buf, bool written) {
-    if (written)
-        writeback(buf);
-}
-
-template <class config_t>
 unsigned int writeback_tmpl_t<config_t>::num_dirty_blocks() {
     return dirty_bufs.size();
 }
@@ -157,7 +151,7 @@ void writeback_tmpl_t<config_t>::local_buf_t::set_dirty() {
     if(!dirty) {
         // Mark block as dirty if it hasn't been already
         dirty = true;
-        gbuf->cache->dirty_bufs.push_back(this);
+        gbuf->cache->writeback.dirty_bufs.push_back(this);
     }
 }
 
@@ -167,6 +161,12 @@ void writeback_tmpl_t<config_t>::flush_timer_callback(void *ctx) {
     self->flush_timer = NULL;
     
     self->sync(NULL);
+}
+
+template <class config_t>
+void writeback_tmpl_t<config_t>::buf_was_written(buf_t *buf) {
+    assert(buf);
+    writeback(buf);
 }
 
 template <class config_t>
@@ -250,15 +250,15 @@ void writeback_tmpl_t<config_t>::writeback(buf_t *buf) {
         // chunks, we may want to worry about submitting more heavily contended
         // bufs earlier in the process so more write FSMs can proceed sooner.
         if (flush_bufs.size())
-            cache->do_write(get_cpu_context()->event_queue, writes,
+            cache->serializer.do_write(get_cpu_context()->event_queue, writes,
                             flush_bufs.size());
         free(writes);
         state = state_write_bufs;
     }
     if (state == state_write_bufs) {
         if (buf) {
-            flush_bufs.remove(buf);
-            buf->set_clean();
+            flush_bufs.remove(&buf->writeback_buf);
+            buf->writeback_buf.dirty = false;
             buf->release();
         }
         if (flush_bufs.empty()) {
