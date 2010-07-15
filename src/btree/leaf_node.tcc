@@ -30,12 +30,12 @@ int leaf_node_handler::insert(btree_leaf_node *node, btree_key *key, btree_value
         previous = get_pair(node, prev_offset);
     //TODO: write a unit test for this
     if (previous != NULL && is_equal(&previous->key, key)) { // a duplicate key is being inserted
-        long shift = (long)previous->value()->size - (long)value->size; //XXX
+        long shift = (long)previous->value()->mem_size() - (long)value->mem_size(); //XXX
         if (shift != 0) { //the value is a different size, we need to shift
-            shift_pairs(node, prev_offset+pair_size(previous)-previous->value()->size, shift);
+            shift_pairs(node, prev_offset+pair_size(previous)-previous->value()->mem_size(), shift);
         }
         previous = get_pair(node, node->pair_offsets[index]); //node position changed by shift
-        memcpy(previous->value(), value, sizeof(btree_value) + value->size);
+        memcpy(previous->value(), value, sizeof(btree_value) + value->mem_size());
     } else {
         uint16_t offset = insert_pair(node, value, key);
         insert_offset(node, offset, index);
@@ -61,7 +61,7 @@ bool leaf_node_handler::lookup(btree_leaf_node *node, btree_key *key, btree_valu
         block_id_t offset = node->pair_offsets[index];
         btree_leaf_pair *pair = get_pair(node, offset);
         btree_value *stored_value = pair->value();
-        memcpy(value, stored_value, sizeof(btree_value) + stored_value->size);
+        memcpy(value, stored_value, sizeof(btree_value) + stored_value->mem_size());
         return true;
     } else {
         return false;
@@ -209,7 +209,7 @@ bool leaf_node_handler::is_full(btree_leaf_node *node, btree_key *key, btree_val
     //will the data growing from front to right overlap data growing from back to left if we insert the new key value pair
     return sizeof(btree_leaf_node) +
         (node->npairs + 1)*sizeof(*node->pair_offsets) +
-        sizeof(btree_leaf_pair) + key->size + value->size >= node->frontmost_offset;
+        sizeof(btree_leaf_pair) + key->size + value->mem_size() >= node->frontmost_offset;
 }
 
 void leaf_node_handler::validate(btree_leaf_node *node) {
@@ -236,7 +236,7 @@ bool leaf_node_handler::is_underfull(btree_leaf_node *node) {
 }
 
 size_t leaf_node_handler::pair_size(btree_leaf_pair *pair) {
-    return sizeof(btree_leaf_pair) + pair->key.size + pair->value()->size;
+    return sizeof(btree_leaf_pair) + pair->key.size + pair->value()->mem_size();
 }
 
 btree_leaf_pair *leaf_node_handler::get_pair(btree_leaf_node *node, uint16_t offset) {
@@ -271,12 +271,12 @@ uint16_t leaf_node_handler::insert_pair(btree_leaf_node *node, btree_leaf_pair *
 }
 
 uint16_t leaf_node_handler::insert_pair(btree_leaf_node *node, btree_value *value, btree_key *key) {
-    node->frontmost_offset -= sizeof(btree_leaf_pair) + key->size + value->size;
+    node->frontmost_offset -= sizeof(btree_leaf_pair) + key->size + value->mem_size();
     btree_leaf_pair *new_pair = get_pair(node, node->frontmost_offset);
 
     // insert contents
     keycpy(&new_pair->key, key);
-    memcpy(new_pair->value(), value, sizeof(*value) + value->size);
+    memcpy(new_pair->value(), value, sizeof(*value) + value->mem_size());
 
     return node->frontmost_offset;
 }
