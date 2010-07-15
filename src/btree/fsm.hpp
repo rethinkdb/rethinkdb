@@ -40,7 +40,7 @@ public:
     btree_fsm(cache_t *_cache, fsm_type_t _fsm_type)
         : cpu_message_t(cpu_message_t::mt_btree),
           fsm_type(_fsm_type), transaction(NULL), request(NULL), cache(_cache),
-          on_complete(NULL)
+          on_complete(NULL), noreply(false)
         {}
     virtual ~btree_fsm() {}
 
@@ -83,6 +83,7 @@ public:
     request_t *request;
     cache_t *cache;
     on_complete_t on_complete;
+    bool noreply;
 };
 
 #include "btree/fsm.tcc"

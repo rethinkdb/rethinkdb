@@ -1,4 +1,3 @@
-
 #ifndef __BTREE_SET_FSM_TCC__
 #define __BTREE_SET_FSM_TCC__
 
@@ -23,7 +22,6 @@
 
 // TODO: change rwi_write to rwi_intent followed by rwi_upgrade where
 // relevant.
-
 template <class config_t>
 void btree_set_fsm<config_t>::init_update(btree_key *_key, byte *data, unsigned int length, btree_set_kind _set_kind) {
     set_kind = _set_kind;
@@ -286,18 +284,54 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
         // Insert the value, or move up the tree
         if(node_handler::is_leaf(node)) {
 
-            // TODO: write a unit test for checking the add and replace.
-            btree_value unused_value;
+            // TODO: write unit tests for checking add, replace, incr, decr
+            btree_value current_value;
+            long long new_val = 0;
+            unsigned long long cur_val = 0;
             // If it's an add operation, check that the key doesn't exist.
             // If it's a replace operation, check that the key does exist.
             bool key_found = false;
-            if(set_kind == btree_set_kind_add || set_kind == btree_set_kind_replace)
-                key_found = leaf_node_handler::lookup((leaf_node_t*)node, key, &unused_value);
+            if(set_kind == btree_set_kind_add || set_kind == btree_set_kind_replace) {
+                key_found = leaf_node_handler::lookup((leaf_node_t*)node, key, &current_value);
+            }else if(set_kind == btree_set_kind_incr || set_kind == btree_set_kind_decr) {
+                key_found = leaf_node_handler::lookup((leaf_node_t*)node, key, &current_value);
+                new_val = atoi(value->contents);
+                cur_val = strtoull(current_value.contents, NULL, 10);            
+            }
+           /*  NOTE: memcached actually does a few things differently:
+            *   - If you say `decr 1 -50`, memcached will set 1 to 0 no matter
+            *      what it's value is. We on the other hand will add 50 to 1.
+            *
+            *   - Also, if you say 'incr 1 -50' in memcached and the value
+            *     goes below 0, memcached will wrap around. We just set the value to 0.
+            */
+            if (key_found && set_kind == btree_set_kind_decr) {
+                // we underflowed and wrapped around while subtracting, set to zero.
+                if ((signed long long)cur_val - new_val < 0) 
+                    cur_val = 0;
+                else
+                    cur_val -= new_val;
+            } else if(key_found && set_kind == btree_set_kind_incr) {
+                if ((signed long long)cur_val + new_val < 0)
+                    cur_val = 0;
+                else
+                    cur_val += new_val;
+            }
+            
             if (set_kind == btree_set_kind_set ||
                 (set_kind == btree_set_kind_add && !key_found) ||
-                (set_kind == btree_set_kind_replace && key_found))
+                (set_kind == btree_set_kind_replace && key_found) ||
+                (set_kind == btree_set_kind_decr && key_found) ||
+                (set_kind == btree_set_kind_incr && key_found))
             {
-                bool success = leaf_node_handler::insert(((leaf_node_t*)node), key, value);
+                if (set_kind == btree_set_kind_decr || set_kind == btree_set_kind_incr) {
+                    bzero(value->contents, value->size);
+                    char cur_val_str[MAX_IN_NODE_VALUE_SIZE];
+                    sprintf(cur_val_str, "%llu", cur_val);
+                    memcpy(value->contents,cur_val_str,strlen(cur_val_str));
+                    value->size = strlen(cur_val_str);
+                }
+                bool success = leaf_node_handler::insert((leaf_node_t*)node, key, value);
                 check("could not insert leaf btree node", !success);
                 set_was_successful = true;
                 buf->set_dirty();
@@ -383,6 +417,20 @@ void btree_set_fsm<config_t>::split_node(buf_t *buf, buf_t **rbuf,
         res->set_dirty();
     }
     *rbuf = res;
+}
+
+template<class config_t>
+btree_key* btree_set_fsm<config_t>::get_key() {
+    return key;
+}
+
+template<class config_t>
+btree_value* btree_set_fsm<config_t>::get_value() {
+    return value;
+}
+template<class config_t>
+btree_set_kind btree_set_fsm<config_t>::get_set_kind() {
+    return set_kind;
 }
 
 #ifndef NDEBUG
