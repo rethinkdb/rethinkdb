@@ -4,19 +4,23 @@
 
 template <class derived_t>
 class intrusive_list_node_t {
+
+    friend class intrusive_list_t<derived_t>;
+
 public:
     intrusive_list_node_t() : prev(NULL), next(NULL) {}
     ~intrusive_list_node_t() {
         assert(prev == NULL);
         assert(next == NULL);
     }
-protected:
-    friend class intrusive_list_t<derived_t>;
+    
+private:
     derived_t *prev, *next;
 };
 
 template <class node_t>
 class intrusive_list_t {
+
 public:
     intrusive_list_t() : _head(NULL), _tail(NULL), _size(0) {}
 
@@ -154,8 +158,10 @@ public:
 #endif
     
     class iterator {
-    
-    protected:
+        
+        friend class intrusive_list_t<node_t>;
+        
+    private:
         iterator(node_t *node) : _node(node) { }
         node_t *_node;
         
@@ -201,8 +207,6 @@ public:
         bool operator!=(const iterator &other) const {
             return other._node != _node;
         }
-        
-        friend class intrusive_list_t<node_t>;
     };
     
     iterator begin() {
@@ -213,7 +217,7 @@ public:
         return iterator(NULL);
     }
     
-protected:
+private:
     node_t *_head, *_tail;
     unsigned int _size;
 };

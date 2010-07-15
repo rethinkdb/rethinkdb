@@ -66,7 +66,10 @@ public:
 public:
     struct timer_t : public intrusive_list_node_t<timer_t>,
                      public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, timer_t> {
-    protected:
+        
+        friend class event_queue_t;
+        
+    private:
         // If 'false', the timer is repeating
         bool once;
         
@@ -78,8 +81,6 @@ public:
         
         void (*callback)(void *ctx);
         void *context;
-        
-        friend class event_queue_t;
     };
     
     timer_t *add_timer(long ms, void (*callback)(void *ctx), void *ctx);
