@@ -288,7 +288,7 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
             char value_memory[MAX_IN_NODE_VALUE_SIZE+sizeof(btree_value)];
             btree_value *current_value = (btree_value*)value_memory;
             long long new_val = 0;
-            unsigned long long cur_val = 0;
+            uint64_t cur_val = 0;
             // If it's an add operation, check that the key doesn't exist.
             // If it's a replace operation, check that the key does exist.
             bool key_found = false;
@@ -308,12 +308,12 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
             */
             if (key_found && set_kind == btree_set_kind_decr) {
                 // we underflowed and wrapped around while subtracting, set to zero.
-                if ((signed long long)cur_val - new_val < 0) 
+                if (new_val > 0 && cur_val - new_val > cur_val) 
                     cur_val = 0;
                 else
                     cur_val -= new_val;
             } else if(key_found && set_kind == btree_set_kind_incr) {
-                if ((signed long long)cur_val + new_val < 0)
+                if (new_val < 0 && cur_val + new_val > cur_val)
                     cur_val = 0;
                 else
                     cur_val += new_val;
