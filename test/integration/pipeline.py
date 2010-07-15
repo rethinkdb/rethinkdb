@@ -1,7 +1,7 @@
 #!/usr/bin/python
 HOST = 'localhost'
 PORT = 11213
-nInts = 500
+nInts = 10000
 nChunks = 1
 
 from time import sleep

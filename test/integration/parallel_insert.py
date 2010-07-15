@@ -3,7 +3,7 @@
 import sys
 import subprocess
 from multiprocessing import Pool, Queue, Process
-import pylibmc as memcache
+import memcache
 from random import shuffle
 
 NUM_INTS=32000
@@ -11,13 +11,12 @@ NUM_THREADS=32
 HOST="localhost"
 PORT="11213"
 NUMSTR = "%d"
-bin = False
 
 # TODO: when we add more integration tests, the act of starting a
 # RethinkDB process should be handled by a common external script.
 
 def rethinkdb_insert(queue, ints):
-    mc = memcache.Client([HOST + ":" + PORT], binary = bin)
+    mc = memcache.Client([HOST + ":" + PORT])
     for i in ints:
         print "Inserting %d" % i
         if (0 == mc.set(str(i), NUMSTR % i)):
@@ -27,7 +26,7 @@ def rethinkdb_insert(queue, ints):
     queue.put(0)
 
 def rethinkdb_verify():
-    mc = memcache.Client([HOST + ":" + PORT], binary = bin)
+    mc = memcache.Client([HOST + ":" + PORT])
     for i in xrange(0, NUM_INTS):
         val = mc.get(str(i))
         if NUMSTR % i != val:
