@@ -20,6 +20,7 @@ void conn_fsm<config_t>::init_state() {
 // This function returns the socket to clean connected state
 template<class config_t>
 void conn_fsm<config_t>::return_to_socket_connected() {
+    printf("return to socket connected\n");
     if(this->rbuf)
         delete (iobuf_t*)(this->rbuf);
     if(this->sbuf)
@@ -36,48 +37,44 @@ typename conn_fsm<config_t>::result_t conn_fsm<config_t>::fill_rbuf(event_t *eve
     conn_fsm *state = (conn_fsm*)event->state;
     assert(state == this);
 
-    if(event->event_type == et_sock) {
-        if(state->rbuf == NULL) {
-            state->rbuf = (char *)new iobuf_t();
-            state->nrbuf = 0;
-        }
-        if(state->sbuf == NULL) {
-            state->sbuf = (char *)new iobuf_t();
-            state->nsbuf = 0;
-        }
-            
-        // TODO: we assume the command will fit comfortably into
-        // IO_BUFFER_SIZE. We'll need to implement streaming later.
+    if(state->rbuf == NULL) {
+        state->rbuf = (char *)new iobuf_t();
+        state->nrbuf = 0;
+    }
+    if(state->sbuf == NULL) {
+        state->sbuf = (char *)new iobuf_t();
+        state->nsbuf = 0;
+    }
 
-            sz = io_calls_t::read(state->source,
-                                  state->rbuf + state->nrbuf,
-                                  iobuf_t::size - state->nrbuf);
-            if(sz == -1) {
-                if(errno == EAGAIN || errno == EWOULDBLOCK) {
-                    // The machine can't be in
-                    // fsm_socket_send_incomplete state here,
-                    // since we break out in these cases. So it's
-                    // safe to free the buffer.
-                    if(state->state != conn_fsm::fsm_socket_recv_incomplete && nrbuf == 0)
-                        return_to_socket_connected();
-                    else
-                        state->state = fsm_socket_connected; //we're wating for a socket event
-                    //break;
-                } else if (errno == ENETDOWN) {
-                    check("Enetdown wtf", sz == -1);
-                } else {
-                    check("Could not read from socket", sz == -1);
-                }
-            } else if(sz > 0 || nrbuf > 0) {
-                state->nrbuf += sz;
-                if (state->state != fsm_socket_recv_incomplete)
-                    state->state = fsm_outstanding_data;
-            } else {
-                state->state = fsm_socket_connected;
-                // TODO: what about application-level keepalive?
-            }
+    // TODO: we assume the command will fit comfortably into
+    // IO_BUFFER_SIZE. We'll need to implement streaming later.
+
+    sz = io_calls_t::read(state->source,
+            state->rbuf + state->nrbuf,
+            iobuf_t::size - state->nrbuf);
+    if(sz == -1) {
+        if(errno == EAGAIN || errno == EWOULDBLOCK) {
+            // The machine can't be in
+            // fsm_socket_send_incomplete state here,
+            // since we break out in these cases. So it's
+            // safe to free the buffer.
+            if(state->state != conn_fsm::fsm_socket_recv_incomplete && nrbuf == 0)
+                return_to_socket_connected();
+            else
+                state->state = fsm_socket_connected; //we're wating for a socket event
+            //break;
+        } else if (errno == ENETDOWN) {
+            check("Enetdown wtf", sz == -1);
+        } else {
+            check("Could not read from socket", sz == -1);
+        }
+    } else if(sz > 0 || nrbuf > 0) {
+        state->nrbuf += sz;
+        if (state->state != fsm_socket_recv_incomplete)
+            state->state = fsm_outstanding_data;
     } else {
-        check("fsm_socket_ready: Invalid event", 1);
+        state->state = fsm_socket_connected;
+        // TODO: what about application-level keepalive?
     }
 
     return fsm_transition_ok;
@@ -126,7 +123,11 @@ typename conn_fsm<config_t>::result_t conn_fsm<config_t>::do_fsm_outstanding_req
     //We've processed a request but there are still outstanding requests in our rbuf
     conn_fsm *state = (conn_fsm*)event->state;
     assert(state == this);
-    assert(nrbuf > 0);
+    if (nrbuf == 0) {
+        state->state = fsm_socket_recv_incomplete;
+        return fsm_transition_ok;
+    }
+
     typename req_handler_t::parse_result_t handler_res =
         req_handler->parse_request(event);
     switch(handler_res) {
@@ -154,6 +155,10 @@ typename conn_fsm<config_t>::result_t conn_fsm<config_t>::do_fsm_outstanding_req
             state->state = fsm_btree_incomplete;
             return fsm_transition_ok;
             break;
+        case req_handler_t::op_req_parallelizable:
+            state->state = fsm_outstanding_data;
+            return fsm_transition_ok;
+            break;
         default:
             check("Unknown request parse result", 1);
     }
@@ -164,6 +169,8 @@ typename conn_fsm<config_t>::result_t conn_fsm<config_t>::do_fsm_outstanding_req
 // function.
 template<class config_t>
 typename conn_fsm<config_t>::result_t conn_fsm<config_t>::do_transition(event_t *event) {
+    printf("Do transition: ");
+    printf("Event: %d State:", event->event_type);
     // TODO: Using parent_pool member variable within state
     // transitions might cause cache line alignment issues. Can we
     // eliminate it (perhaps by giving each thread its own private
@@ -174,15 +181,19 @@ typename conn_fsm<config_t>::result_t conn_fsm<config_t>::do_transition(event_t 
     switch(state) {
         case fsm_socket_connected:
         case fsm_socket_recv_incomplete:
+            printf("socket_connected or socket_recv_incomplete\n");
             res = fill_rbuf(event);
             break;
         case fsm_socket_send_incomplete:
+            printf("socket_send_incomplete\n");
             res = do_socket_send_incomplete(event);
             break;
         case fsm_btree_incomplete:
+            printf("btree_incomplete\n");
             res = do_fsm_btree_incomplete(event);
             break;
         case fsm_outstanding_data:
+            printf("outstanding_data\n");
             break;
         default:
             res = fsm_invalid;
@@ -201,11 +212,16 @@ typename conn_fsm<config_t>::result_t conn_fsm<config_t>::do_transition(event_t 
         //actually create a btree request
         do {
             res = do_fsm_outstanding_req(event);
+            if (res == fsm_shutdown_server || res == fsm_quit_connection) {
+                return_to_socket_connected();
+                return res;
+            }
+
             if (state == fsm_socket_recv_incomplete) {
                 event->event_type = et_sock;
                 fill_rbuf(event);
             }
-        } while (state == fsm_socket_recv_incomplete);
+        } while (state == fsm_socket_recv_incomplete || state == fsm_outstanding_data);
     }
 
     return res;
@@ -228,9 +244,6 @@ conn_fsm<config_t>::~conn_fsm() {
     }
     if(this->sbuf) {
         delete (iobuf_t*)(this->sbuf);
-    }
-    if (current_request) {
-        delete current_request;
     }
 }
 

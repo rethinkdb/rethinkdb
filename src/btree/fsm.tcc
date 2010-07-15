@@ -30,8 +30,13 @@ void btree_fsm<config_t>::on_block_available(buf_t *buf) {
     if(res == transition_complete) {
         // Booooyahh, the operation completed. Notify whoever is
         // interested.
-        if(on_complete) {
-            on_complete(this);
+        if (noreply) {
+            assert(request->nstarted <= 1);
+            delete request;
+        } else {
+            if(on_complete) {
+                on_complete(this);
+            }
         }
     }
 }

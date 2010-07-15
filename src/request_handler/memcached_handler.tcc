@@ -27,6 +27,7 @@ typename memcached_handler_t<config_t>::parse_result_t memcached_handler_t<confi
     conn_fsm_t *fsm = (conn_fsm_t*)event->state;
     char *rbuf = fsm->rbuf; 
     unsigned int size = fsm->nrbuf;
+    parse_result_t res;
 
     // TODO: we might end up getting a command, and a piece of the
     // next command. It also means that we can't use one buffer
@@ -38,12 +39,13 @@ typename memcached_handler_t<config_t>::parse_result_t memcached_handler_t<confi
     if (line_end == NULL) {   //make sure \n is in the buffer
         return req_handler_t::op_partial_packet;    //if \n is at the beginning of the buffer, or if it is not preceeded by \r, the request is malformed
     }
+    unsigned int line_len = line_end - rbuf + 1;
 
     if (loading_data) {
-        parse_result_t res = read_data(rbuf, size, fsm);
+        parse_result_t res = read_data(rbuf, line_len, fsm);
         if (res == req_handler_t::op_malformed) {
             loading_data = false;
-            fsm->consume((line_end - rbuf) + 1);
+            fsm->consume(line_len);
             return malformed_request(fsm);
         } else {
             return res;
@@ -51,13 +53,12 @@ typename memcached_handler_t<config_t>::parse_result_t memcached_handler_t<confi
     }
 
     if (line_end == rbuf || line_end[-1] != '\r') {
-        fsm->consume((line_end - rbuf) + 1);
+        fsm->consume(line_len);
         return malformed_request(fsm);
     }
 
     // if we're not reading a binary blob, then the line will be a string - let's null terminate it
     *line_end = '\0';
-    unsigned int line_len = line_end - rbuf + 1;
 
     // get the first token to determine the command
     char *state;
@@ -91,7 +92,7 @@ typename memcached_handler_t<config_t>::parse_result_t memcached_handler_t<confi
         return req_handler_t::op_req_shutdown;
 
     } else if(!strcmp(cmd_str, "set")) {     // check for storage commands
-            return parse_storage_command(SET, state, line_len, fsm);
+            res = parse_storage_command(SET, state, line_len, fsm);
     } else if(!strcmp(cmd_str, "add")) {
             return parse_storage_command(ADD, state, line_len, fsm);
     } else if(!strcmp(cmd_str, "replace")) {
@@ -119,6 +120,13 @@ typename memcached_handler_t<config_t>::parse_result_t memcached_handler_t<confi
         // Invalid command
         fsm->consume(line_len);
         return malformed_request(fsm);
+    }
+
+    if (loading_data && fsm->nrbuf > 0) {
+        assert(res == req_handler_t::op_partial_packet);
+        return parse_request(event);
+    } else {
+        return res;
     }
 }
 
@@ -199,7 +207,8 @@ typename memcached_handler_t<config_t>::parse_result_t memcached_handler_t<confi
     if (cmd == INCR || cmd == DECR) {
         return read_data(value_str, strlen(value_str) + 2, fsm);
     } else {
-        return read_data(fsm->rbuf, fsm->nrbuf, fsm);
+        return req_handler_t::op_partial_packet;
+        //return read_data(fsm->rbuf, fsm->nrbuf, fsm);
     }
 }
 	
@@ -209,6 +218,7 @@ typename memcached_handler_t<config_t>::parse_result_t memcached_handler_t<confi
     if (size < bytes + 2){//check that the buffer contains enough data.  must also include \r\n
         return req_handler_t::op_partial_packet;
     } else if (size > bytes + 2) {
+        loading_data = false;
         return req_handler_t::op_malformed;
     }
 
