@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <assert.h>
+#include "arch/resource.hpp"
 
 #define MAX_KEY_SIZE 250
 
@@ -22,6 +23,9 @@ struct btree_key {
 struct btree_value {
     uint32_t size;
     char contents[0];
+    uint16_t mem_size() {
+        return (size <= MAX_IN_NODE_VALUE_SIZE) ? size : sizeof(block_id_t);
+    }
     void print() {
 #ifdef DELETE_DEBUG
         printf("%.*s\n", size, contents);

@@ -34,6 +34,10 @@ typename memcached_handler_t<config_t>::parse_result_t memcached_handler_t<confi
     //for both recv and send, we need to add a send buffer
     // (assuming we want to support out of band  commands).
     
+    // check if we're supposed to be reading a binary blob
+    if (loading_data)
+        return read_data(rbuf, size, fsm);
+
     // Find the first line in the buffer
     char *line_end = (char *)memchr(rbuf, '\n', size);
     if (line_end == NULL) {   //make sure \n is in the buffer
