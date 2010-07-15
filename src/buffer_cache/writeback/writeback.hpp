@@ -5,8 +5,6 @@
 #include "concurrency/rwi_lock.hpp"
 #include "utils.hpp"
 
-// TODO: What about flush_timer_ms=0 (flush on every transaction)?
-
 template <class config_t>
 struct writeback_tmpl_t : public lock_available_callback_t {
 public:
@@ -30,8 +28,10 @@ public:
 
     bool begin_transaction(transaction_t *txn);
     bool commit(transaction_t *transaction);
-    void aio_complete(buf_t *, bool written);
-
+    
+    // This is called by buf_t when the OS informs the buf that a write operation completed
+    void buf_was_written(buf_t *buf);
+    
 #ifndef NDEBUG
     // Print debugging information designed to resolve a deadlock
     void deadlock_debug();
@@ -46,19 +46,18 @@ public:
     public:
         explicit local_buf_t(buf_t *gbuf)
             : gbuf(gbuf), dirty(false) {}
-
-        bool is_dirty() const { return dirty; }
         
         void set_dirty();
-
-        void set_clean() {
-            assert(dirty);
-            dirty = false;
-        }
         
         bool safe_to_unload() const { return !dirty; }
-        
-    protected:
+
+#ifndef NDEBUG
+        void deadlock_debug() {
+            printf("\tdirty = %d\n", (int)dirty);
+        }
+#endif
+
+    private:
         buf_t *gbuf;
         bool dirty;
     };

@@ -24,7 +24,6 @@ public:
 	typedef typename config_t::cache_t cache_t;
     typedef typename config_t::buf_t buf_t;
     
-public:
     page_repl_random_t(unsigned int _unload_threshold,
                        cache_t *_cache)
         : unload_threshold(_unload_threshold),
@@ -56,8 +55,6 @@ public:
     
     private:
         buf_t *gbuf;
-    
-    protected:
         unsigned int index;
     };
     friend class local_buf_t;
@@ -122,8 +119,6 @@ public:
 private:
     unsigned int unload_threshold;
     cache_t *cache;
-
-protected:
     two_level_array_t<buf_t, PAGE_REPL_MAX_SANE_MEMORY_SIZE / BTREE_BLOCK_SIZE, PAGE_REPL_BUFFERS_PER_CHUNK> array;
 };
 

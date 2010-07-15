@@ -120,12 +120,6 @@ bool writeback_tmpl_t<config_t>::commit(transaction_t *txn) {
 }
 
 template <class config_t>
-void writeback_tmpl_t<config_t>::aio_complete(buf_t *buf, bool written) {
-    if (written)
-        writeback(buf);
-}
-
-template <class config_t>
 unsigned int writeback_tmpl_t<config_t>::num_dirty_blocks() {
     return dirty_bufs.size();
 }
@@ -167,6 +161,12 @@ void writeback_tmpl_t<config_t>::flush_timer_callback(void *ctx) {
     self->flush_timer = NULL;
     
     self->sync(NULL);
+}
+
+template <class config_t>
+void writeback_tmpl_t<config_t>::buf_was_written(buf_t *buf) {
+    assert(buf);
+    writeback(buf);
 }
 
 template <class config_t>
@@ -258,7 +258,7 @@ void writeback_tmpl_t<config_t>::writeback(buf_t *buf) {
     if (state == state_write_bufs) {
         if (buf) {
             flush_bufs.remove(&buf->writeback_buf);
-            buf->writeback_buf.set_clean();
+            buf->writeback_buf.dirty = false;
             buf->release();
         }
         if (flush_bufs.empty()) {

@@ -17,33 +17,26 @@ struct array_map_t {
 public:
     struct local_buf_t {
         explicit local_buf_t(buf_t *gbuf) : gbuf(gbuf) {
-            gbuf->cache->page_map.insert(gbuf);
+            assert(!gbuf->cache->page_map.array.get(gbuf->get_block_id()));
+            gbuf->cache->page_map.array.set(gbuf->get_block_id(), gbuf);
         }
         ~local_buf_t() {
-            gbuf->cache->page_map.erase(gbuf);
+            assert(gbuf->cache->page_map.array.get(gbuf->get_block_id()));
+            gbuf->cache->page_map.array.set(gbuf->get_block_id(), NULL);
         }
     private:
         buf_t *gbuf;
     };
+    friend class local_buf_t;
     
-public:
     array_map_t() { }
+    
     ~array_map_t() {
         assert(array.size() == 0);
     }
 
     buf_t* find(block_id_t block_id) {
         return array.get(block_id);
-    }
-    
-    void insert(buf_t *block) {
-        assert(!array.get(block->get_block_id()));
-        array.set(block->get_block_id(), block);
-    }
-    
-    void erase(buf_t *block) {
-        assert(array.get(block->get_block_id()));
-        array.set(block->get_block_id(), NULL);
     }
 
 private:

@@ -5,8 +5,10 @@
 /**
  * Buffer implementation.
  */
+ 
+// This form of the buf constructor is used when the block exists on disk and needs to be loaded
 template <class config_t>
-buf<config_t>::buf(cache_t *cache, block_id_t block_id)
+buf<config_t>::buf(cache_t *cache, block_id_t block_id, block_available_callback_t *callback)
     : cache(cache),
 #ifndef NDEBUG
       active_callback_count(0),
@@ -17,7 +19,38 @@ buf<config_t>::buf(cache_t *cache, block_id_t block_id)
       page_repl_buf(this),
       concurrency_buf(this),
       page_map_buf(this) {
+      
     data = cache->alloc.malloc(cache->serializer.block_size);
+    
+#ifndef NDEBUG
+    active_callback_count ++;
+#endif
+    cache->serializer.do_read(get_cpu_context()->event_queue, block_id, data, this);
+    
+    add_load_callback(callback);
+}
+
+// This form of the buf constructor is used when a completely new block is being created
+template <class config_t>
+buf<config_t>::buf(cache_t *cache)
+    : cache(cache),
+#ifndef NDEBUG
+      active_callback_count(0),
+#endif
+      block_id(cache->serializer.gen_block_id()),
+      cached(true),
+      writeback_buf(this),
+      page_repl_buf(this),
+      concurrency_buf(this),
+      page_map_buf(this) {
+      
+    data = cache->alloc.malloc(cache->serializer.block_size);
+
+#ifndef NDEBUG
+    // The memory allocator already filled this with 0xBD, but it's nice to be able to distinguish
+    // between problems with uninitialized memory and problems with uninitialized blocks
+    memset(data, 0xCD, cache->serializer.block_size);
+#endif
 }
 
 template <class config_t>
@@ -29,10 +62,9 @@ buf<config_t>::~buf() {
 template <class config_t>
 void buf<config_t>::release() {
 #ifndef NDEBUG
-    // TODO: Put this on concurrency_t ?
     cache->n_blocks_released++;
 #endif
-    cache->concurrency.release(this);
+    concurrency_buf.release();
     
     /*
     // If this code is not commented out, then it will cause bufs to be unloaded very aggressively.
@@ -45,39 +77,43 @@ void buf<config_t>::release() {
 }
 
 template <class config_t>
-void buf<config_t>::add_load_callback(block_available_callback_t *callback) {
-    assert(callback);
-    load_callbacks.push_back(callback);
-}
-
-template <class config_t>
-void buf<config_t>::notify_on_load() {
-
-    // We're calling back objects that were all able to grab a lock,
-    // but are waiting on a load. Because of this, we can notify all
-    // of them.
-    
-    int n_callbacks = load_callbacks.size();
-    while(n_callbacks-- > 0) {
-        block_available_callback_t *_callback = load_callbacks.head();
-        load_callbacks.remove(_callback);
-        _callback->on_block_available(this);
-        // At this point, 'this' may be invalid because the callback might cause the block to be
-        // unloaded as a side effect. That's why we use 'n_callbacks' rather than checking for
-        // load_callbacks.empty().
-    }
-}
-
-template <class config_t>
 void buf<config_t>::on_io_complete(event_t *event) {
-
+    
+    // TODO: add an assert to make sure on_io_complete is called by the
+    // same event_queue as the one on which the buf_t was created.
+    
 #ifndef NDEBUG
     active_callback_count --;
     assert(active_callback_count >= 0);
 #endif
+    
+    if (event->op == eo_read) {
+        cached = true;
+        
+        // We're calling back objects that were all able to grab a lock,
+        // but are waiting on a load. Because of this, we can notify all
+        // of them.
+        
+        int n_callbacks = load_callbacks.size();
+        while(n_callbacks-- > 0) {
+            block_available_callback_t *callback = load_callbacks.head();
+            load_callbacks.remove(callback);
+            callback->on_block_available(this);
+            // At this point, 'this' may be invalid because the callback might cause the block to be
+            // unloaded as a side effect. That's why we use 'n_callbacks' rather than checking for
+            // load_callbacks.empty().
+        }
+        
+    } else {
+        cache->writeback.buf_was_written(this);
+    }
+}
 
-    // Let the cache know about the disk action
-    cache->aio_complete(this, event->op != eo_read);
+template<class config_t>
+void buf<config_t>::add_load_callback(block_available_callback_t *cb) {
+    assert(!cached);
+    assert(cb);
+    load_callbacks.push_back(cb);
 }
 
 template<class config_t>
@@ -90,11 +126,11 @@ bool buf<config_t>::safe_to_unload() {
 #ifndef NDEBUG
 template<class config_t>
 void buf<config_t>::deadlock_debug() {
-	printf("buffer %p (id %d) {\n", (void*)this, (int)block_id);
-	printf("\tdirty = %d\n", (int)writeback_buf.is_dirty());
-	printf("\tcached = %d\n", (int)is_cached());
-	concurrency_buf.deadlock_debug();
-	printf("}\n");
+    printf("buffer %p (id %d) {\n", (void*)this, (int)block_id);
+    printf("\tcached = %d\n", cached);
+    writeback_buf.deadlock_debug();
+    concurrency_buf.deadlock_debug();
+    printf("}\n");
 }
 #endif
 
@@ -158,19 +194,13 @@ transaction<config_t>::allocate(block_id_t *block_id) {
     // If we are getting low on memory, kick out old blocks
     cache->page_repl.make_space(1);
     
-    *block_id = cache->serializer.gen_block_id();
-    buf_t *buf = new buf_t(cache, *block_id);
-    buf->set_cached(true);
-		
-    // This must pass since no one else holds references to this
-    // block.
-    bool acquired __attribute__((unused)) =
-        ((concurrency_t*)cache)->acquire(buf, rwi_write, NULL);
+    // This form of the buf_t constructor generates a new block with a new block ID.
+    buf_t *buf = new buf_t(cache);
+    *block_id = buf->get_block_id();   // Find out what block ID the buf was assigned
+    
+    // This must pass since no one else holds references to this block.
+    bool acquired __attribute__((unused)) = buf->concurrency_buf.acquire(rwi_write, NULL);
     assert(acquired);
-
-	// For debugging purposes. The memory allocator will have filled it with 0xBD, but we need more
-	// information than that.
-	memset(buf->ptr(), 0xCD, cache->serializer.block_size);
 
     return buf;
 }
@@ -188,52 +218,38 @@ transaction<config_t>::acquire(block_id_t block_id, access_t mode,
 
     buf_t *buf = cache->page_map.find(block_id);
     if (!buf) {
-    	
-    	/* Unlike in allocate(), we aren't creating a new block; the block already existed but we
-    	are creating a buf to represent it in memory, and then loading it from disk. */
-    	
-    	// If we are getting low on memory, kick out old blocks
+        
+        /* Unlike in allocate(), we aren't creating a new block; the block already existed but we
+        are creating a buf to represent it in memory, and then loading it from disk. */
+        
+        // If we are getting low on memory, kick out old blocks
         cache->page_repl.make_space(1);
-    	
-    	// TODO: It's a little bit odd that the logic for loading blocks is here, but the logic for
-    	// unloading blocks is in cache_t.
-    	
-    	buf = new buf_t(cache, block_id);
+        
+        // This form of the buf_t constructor will instruct it to load itself from the file and
+        // call us back when it finishes.
+        buf = new buf_t(cache, block_id, callback);
         
         // This must pass since no one else holds references to this block.
-        bool acquired __attribute__((unused)) =
-            ((concurrency_t*)cache)->acquire(buf, mode, NULL);
+        bool acquired __attribute__((unused)) = buf->concurrency_buf.acquire(mode, NULL);
         assert(acquired);
-        
-		// Since the buf isn't in memory yet, we're going to start an asynchronous load request and
-		// then call the callback when the load finishes. 
-        buf->add_load_callback(callback);
-        
-        // The callback when this completes will be sent to cache_t::aio_complete(), and from there
-        // to buf_t::notify_on_load(), and then to the client trying to acquire the block.
-#ifndef NDEBUG
-        buf->active_callback_count ++;
-#endif
-        cache->serializer.do_read(get_cpu_context()->event_queue, block_id, buf->ptr_possibly_uncached(), buf);
         
         return NULL;
         
     } else {
 
-        bool acquired = cache->concurrency.acquire(buf, mode, buf);
+        bool acquired = buf->concurrency_buf.acquire(mode, callback);
 
         if (!acquired) {
-            // Could not acquire block because of locking, add
-            // callback to lock_callbacks.
-            buf->concurrency_buf.add_lock_callback(callback);
             return NULL;
+            
         } else if(!buf->is_cached()) {
             // Acquired the block, but it's not cached yet, add
             // callback to load_callbacks.
             buf->add_load_callback(callback);
             return NULL;
+            
         } else {
-        	return buf;
+            return buf;
         }
     }
 }
@@ -241,6 +257,33 @@ transaction<config_t>::acquire(block_id_t block_id, access_t mode,
 /**
  * Cache implementation.
  */
+
+template <class config_t>
+mirrored_cache_t<config_t>::mirrored_cache_t(
+            char *filename,
+            size_t _block_size,
+            size_t _max_size,
+            bool wait_for_flush,
+            unsigned int flush_timer_ms,
+            unsigned int flush_threshold_percent) :
+#ifndef NDEBUG
+    n_trans_created(0), n_trans_freed(0),
+    n_blocks_acquired(0), n_blocks_released(0),
+#endif
+    serializer(
+        filename,
+        _block_size),
+    page_repl(
+        // Launch page replacement if the user-specified maximum number of blocks is reached
+        _max_size / _block_size,
+        this),
+    writeback(
+        this,
+        wait_for_flush,
+        flush_timer_ms,
+        _max_size / _block_size * flush_threshold_percent / 100)
+    { }
+
 template <class config_t>
 mirrored_cache_t<config_t>::~mirrored_cache_t() {
     
@@ -263,19 +306,6 @@ mirrored_cache_t<config_t>::begin_transaction(access_t access,
     if (writeback.begin_transaction(txn))
         return txn;
     return NULL;
-}
-
-template <class config_t>
-void mirrored_cache_t<config_t>::aio_complete(buf_t *buf, bool written) {
-    // TODO: add an assert to make sure aio_complete is called by the
-    // same event_queue as the one on which the buf_t was created.
-
-    if(written) {
-        writeback.aio_complete(buf, written);
-    } else {
-        buf->set_cached(true);
-        buf->notify_on_load();
-    }
 }
 
 #ifndef NDEBUG
