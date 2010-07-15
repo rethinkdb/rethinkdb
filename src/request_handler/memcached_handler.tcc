@@ -471,14 +471,16 @@ void memcached_handler_t<config_t>::build_response(request_t *request) {
             fsm->nsbuf = strlen(STORAGE_FAILURE);
         }else if (!noreply) {
             if (btree_set_fsm->get_set_kind() == btree_set_kind_incr ||
-            btree_set_fsm->get_set_kind() == btree_set_kind_decr) {
-                char str[btree_set_fsm->get_value()->size];
-                sprintf(str, "%u\r\n",atoi(btree_set_fsm->get_value()->contents));
-                strcpy(sbuf, str);
+                btree_set_fsm->get_set_kind() == btree_set_kind_decr)
+            {
+                strncpy(sbuf, btree_set_fsm->get_value()->contents, btree_set_fsm->get_value()->size);
+                sbuf[btree_set_fsm->get_value()->size + 0] = '\r';
+                sbuf[btree_set_fsm->get_value()->size + 1] = '\n';
+                fsm->nsbuf = btree_set_fsm->get_value()->size + 2;
             } else {
                 strcpy(sbuf, STORAGE_SUCCESS);
+                fsm->nsbuf = strlen(STORAGE_SUCCESS);
             }
-            fsm->nsbuf = strlen(STORAGE_SUCCESS);
         } else {
             fsm->nsbuf = 0;
         }

@@ -24,7 +24,7 @@ struct btree_value {
     char contents[0];
     void print() {
 #ifdef DELETE_DEBUG
-        printf("%.*s", size, contents);
+        printf("%.*s\n", size, contents);
 #endif
     }
 };
