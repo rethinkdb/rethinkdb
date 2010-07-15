@@ -1,8 +1,8 @@
 #!/usr/bin/python
 HOST = 'localhost'
 PORT = 11213
-nInts = 1000
-nChunks = 200
+nInts = 500
+nChunks = 1
 
 from time import sleep
 import socket
@@ -25,6 +25,9 @@ ints = range(nInts)
 
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 s.connect((HOST, PORT))
+
+print "Set time"
+
 command_string = ''
 for int in ints:
     command_string += ("set " + str(int) + " 0 0 " + str(len(str(int))) + " noreply\r\n" + str(int) + "\r\n")
@@ -33,7 +36,7 @@ strings = rand_split(command_string, nChunks)
 for string in strings:
     s.send(string)
 
-sleep(5)
+print "Get time"
 
 #pipeline some gets
 command_string = ''
@@ -46,11 +49,15 @@ strings = rand_split(command_string, nChunks)
 for string in strings:
     s.send(string)
 
-sleep(1) #apparently we need to sleep before we poll (probably because I don't understand how to make these socket calls)
-response = s.recv(len(expected_response))
+response = ''
+while (len(response) < len(expected_response) and response == expected_response[0:len(response)]):
+    response += s.recv(len(expected_response) - len(response))
+
 if (response != expected_response):
     print "Incorrect response:\n", response, "\nExpected:\n", expected_response
 
+print "Delete time"
+'''
 command_string = ''
 expected_response = ''
 for int in ints:
@@ -61,11 +68,13 @@ strings = rand_split(command_string, nChunks)
 for string in strings:
     s.send(string)
 
-sleep(1) #apparently we need to sleep before we poll (probably because I don't understand how to make these socket calls)
-response = s.recv(len(expected_response))
+response = ''
+while (len(response) < len(expected_response) and response == expected_response[0:len(response)]):
+    response += s.recv(len(expected_response) - len(response))
+
 if (response != expected_response):
     print "Incorrect response:\n", response, "\nExpected:\n", expected_response
-
+'''
 s.send("quit\r\n")
 s.close()
 #import memcache
