@@ -5,3 +5,6 @@
 build
 src/quickrun_rethinkdb
 src/debug_rethinkdb
+src/.gdb_history
+src/.gdbinit
+src/standard_commands

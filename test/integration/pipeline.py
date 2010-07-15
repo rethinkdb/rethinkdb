@@ -1,12 +1,13 @@
 #!/usr/bin/python
-HOST = 'localhost'
-PORT = 11213
-nInts = 10000
-nChunks = 1
-
+import os
 from time import sleep
 import socket
 import random
+
+HOST = 'localhost'
+PORT=int(os.getenv("RUN_PORT", "11211"))
+nInts = 500
+nChunks = 1
 
 #split a list into nChunks of lists of random size
 #"I am a string" -> ["I a", "m a s", "strin", "g"]

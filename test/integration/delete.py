@@ -1,5 +1,6 @@
 #!/usr/bin/python
 
+import os
 import sys
 import subprocess
 #from multiprocessing import Pool, Queue, Process
@@ -10,7 +11,7 @@ from time import sleep
 NUM_INTS=8000
 NUM_THREADS=1
 HOST="localhost"
-PORT="11213"
+PORT=os.getenv("RUN_PORT", "11211")
 
 # TODO: when we add more integration tests, the act of starting a
 # RethinkDB process should be handled by a common external script.

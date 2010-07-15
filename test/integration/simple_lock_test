@@ -18,7 +18,7 @@ def test_concurrency(db):
 
 def main():
     os.chdir("../src") #assumes this script is in the rethinkdb/test directory
-    port = "9999"
+    port=os.getenv("RUN_PORT", "9999")
     rethinkdb_proc = start_rethinkdb(port)
 
     rethinkdb = memcache.Client(["localhost:"+port])

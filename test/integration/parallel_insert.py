@@ -1,5 +1,6 @@
 #!/usr/bin/python
 
+import os
 import sys
 import subprocess
 from multiprocessing import Pool, Queue, Process
@@ -9,7 +10,7 @@ from random import shuffle
 NUM_INTS=32000
 NUM_THREADS=32
 HOST="localhost"
-PORT="11213"
+PORT=os.getenv("RUN_PORT", "11211")
 NUMSTR = "%d"
 
 # TODO: when we add more integration tests, the act of starting a

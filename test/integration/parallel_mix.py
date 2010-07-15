@@ -1,5 +1,6 @@
 #!/usr/bin/python
 
+import os
 import sys
 import subprocess
 from multiprocessing import Pool
@@ -19,7 +20,7 @@ NUM_INSERT_THREADS=8    # Number of concurrent threads inserting values that are
 
 # Server location
 HOST="localhost"
-PORT="11213"
+PORT=os.getenv("RUN_PORT", "11211")
 
 def insert_initial(matrix):
     mc = memcache.Client([HOST + ":" + PORT])
