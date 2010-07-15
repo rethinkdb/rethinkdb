@@ -285,18 +285,19 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
         if(node_handler::is_leaf(node)) {
 
             // TODO: write unit tests for checking add, replace, incr, decr
-            btree_value current_value;
+            char value_memory[MAX_IN_NODE_VALUE_SIZE+sizeof(btree_value)];
+            btree_value *current_value = (btree_value*)value_memory;
             long long new_val = 0;
             unsigned long long cur_val = 0;
             // If it's an add operation, check that the key doesn't exist.
             // If it's a replace operation, check that the key does exist.
             bool key_found = false;
             if(set_kind == btree_set_kind_add || set_kind == btree_set_kind_replace) {
-                key_found = leaf_node_handler::lookup((leaf_node_t*)node, key, &current_value);
+                key_found = leaf_node_handler::lookup((leaf_node_t*)node, key, current_value);
             }else if(set_kind == btree_set_kind_incr || set_kind == btree_set_kind_decr) {
-                key_found = leaf_node_handler::lookup((leaf_node_t*)node, key, &current_value);
-                new_val = atoi(value->contents);
-                cur_val = strtoull(current_value.contents, NULL, 10);            
+                key_found = leaf_node_handler::lookup((leaf_node_t*)node, key, current_value);
+                new_val = atoll(value->contents);
+                cur_val = strtoull(current_value->contents, NULL, 10);
             }
            /*  NOTE: memcached actually does a few things differently:
             *   - If you say `decr 1 -50`, memcached will set 1 to 0 no matter
@@ -325,11 +326,8 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
                 (set_kind == btree_set_kind_incr && key_found))
             {
                 if (set_kind == btree_set_kind_decr || set_kind == btree_set_kind_incr) {
-                    bzero(value->contents, value->size);
-                    char cur_val_str[MAX_IN_NODE_VALUE_SIZE];
-                    sprintf(cur_val_str, "%llu", cur_val);
-                    memcpy(value->contents,cur_val_str,strlen(cur_val_str));
-                    value->size = strlen(cur_val_str);
+                    int chars_written = sprintf(value->contents, "%llu", cur_val);
+                    value->size = chars_written;
                 }
                 bool success = leaf_node_handler::insert((leaf_node_t*)node, key, value);
                 check("could not insert leaf btree node", !success);
