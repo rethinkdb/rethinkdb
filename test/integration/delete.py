@@ -4,7 +4,7 @@ import os
 import sys
 import subprocess
 #from multiprocessing import Pool, Queue, Process
-import pylibmc as memcache
+import memcache
 from random import shuffle, randint
 from time import sleep
 
@@ -12,7 +12,6 @@ NUM_INTS=8000
 NUM_THREADS=1
 HOST="localhost"
 PORT=os.getenv("RUN_PORT", "11211")
-bin = False
 
 # TODO: when we add more integration tests, the act of starting a
 # RethinkDB process should be handled by a common external script.
@@ -52,7 +51,7 @@ def split_list(alist, parts):
             for i in range(parts)]
 
 def main(argv):
-    mc = memcache.Client([HOST + ":" + PORT], binary = bin)
+    mc = memcache.Client([HOST + ":" + PORT])
     clone = {}
     # Create a list of integers we'll be inserting
     print "Shuffling numbers"

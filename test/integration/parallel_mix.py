@@ -6,7 +6,7 @@ import subprocess
 from multiprocessing import Pool
 from multiprocessing import Process
 from multiprocessing import Queue
-import pylibmc as memcache
+import memcache
 from random import randint
 from time import time
 
@@ -21,10 +21,9 @@ NUM_INSERT_THREADS=8    # Number of concurrent threads inserting values that are
 # Server location
 HOST="localhost"
 PORT=os.getenv("RUN_PORT", "11211")
-bin = False
 
 def insert_initial(matrix):
-    mc = memcache.Client([HOST + ":" + PORT], binary = bin)
+    mc = memcache.Client([HOST + ":" + PORT])
     j = 0
     for row in matrix:
         mc.set(str(j), str(row[0]))
@@ -32,7 +31,7 @@ def insert_initial(matrix):
     mc.disconnect_all()
 
 def cycle_values(matrix):
-    mc = memcache.Client([HOST + ":" + PORT], binary = bin)
+    mc = memcache.Client([HOST + ":" + PORT])
     time_start = time()
     while True:
         # Set a random key to one of its permitted values
@@ -44,7 +43,7 @@ def cycle_values(matrix):
             return
 
 def check_values(queue, matrix):
-    mc = memcache.Client([HOST + ":" + PORT], binary = bin)
+    mc = memcache.Client([HOST + ":" + PORT])
     time_start = time()
     while True:
         # Get a random key and make sure its value is in the permitted range
@@ -65,7 +64,7 @@ def check_values(queue, matrix):
             return
 
 def insert_values(_):
-    mc = memcache.Client([HOST + ":" + PORT], binary = bin)
+    mc = memcache.Client([HOST + ":" + PORT])
     time_start = time()
     j = NUM_KEYS
     while True:
