@@ -12,12 +12,14 @@ HOST="localhost"
 PORT="11213"
 NUMSTR = "%d"
 bin = False
+behaviors = { "receive_timeout": 1000000, "send_timeout": 1000000 }
 
 # TODO: when we add more integration tests, the act of starting a
 # RethinkDB process should be handled by a common external script.
 
 def rethinkdb_insert(queue, ints):
     mc = memcache.Client([HOST + ":" + PORT], binary = bin)
+    mc.behaviors = behaviors
     for i in ints:
         print "Inserting %d" % i
         if (0 == mc.set(str(i), NUMSTR % i)):
@@ -28,6 +30,7 @@ def rethinkdb_insert(queue, ints):
 
 def rethinkdb_verify():
     mc = memcache.Client([HOST + ":" + PORT], binary = bin)
+    mc.behaviors = behaviors
     for i in xrange(0, NUM_INTS):
         val = mc.get(str(i))
         if NUMSTR % i != val:
