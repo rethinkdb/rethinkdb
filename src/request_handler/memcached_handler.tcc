@@ -36,15 +36,24 @@ typename memcached_handler_t<config_t>::parse_result_t memcached_handler_t<confi
     // Find the first line in the buffer
     char *line_end = (char *)memchr(rbuf, '\n', size);
     if (line_end == NULL) {   //make sure \n is in the buffer
-        for (unsigned int i = 0; i < size; i++)
         return req_handler_t::op_partial_packet;    //if \n is at the beginning of the buffer, or if it is not preceeded by \r, the request is malformed
     }
 
-    if (loading_data)
-        return read_data(rbuf, size, fsm);
+    if (loading_data) {
+        parse_result_t res = read_data(rbuf, size, fsm);
+        if (res == req_handler_t::op_malformed) {
+            loading_data = false;
+            fsm->consume((line_end - rbuf) + 1);
+            return malformed_request(fsm);
+        } else {
+            return res;
+        }
+    }
 
-    if (line_end == rbuf || line_end[-1] != '\r')
+    if (line_end == rbuf || line_end[-1] != '\r') {
+        fsm->consume((line_end - rbuf) + 1);
         return malformed_request(fsm);
+    }
 
     // if we're not reading a binary blob, then the line will be a string - let's null terminate it
     *line_end = '\0';
@@ -54,22 +63,28 @@ typename memcached_handler_t<config_t>::parse_result_t memcached_handler_t<confi
     char *state;
     char *cmd_str = strtok_r(rbuf, DELIMS, &state);
 
-    if(cmd_str == NULL)
+    if(cmd_str == NULL) {
+        fsm->consume(line_len);
         return malformed_request(fsm);
+    }
     
     // Execute command
     if(!strcmp(cmd_str, "quit")) {
         // Make sure there's no more tokens
-        if (strtok_r(NULL, DELIMS, &state))  //strtok will return NULL if there are no more tokens
+        if (strtok_r(NULL, DELIMS, &state)) {  //strtok will return NULL if there are no more tokens
+            fsm->consume(line_len);
             return malformed_request(fsm);
+        }
         // Quit the connection
         fsm->consume(fsm->nrbuf);
         return req_handler_t::op_req_quit;
 
     } else if(!strcmp(cmd_str, "shutdown")) {
         // Make sure there's no more tokens
-        if (strtok_r(NULL, DELIMS, &state))  //strtok will return NULL if there are no more tokens
+        if (strtok_r(NULL, DELIMS, &state)) {  //strtok will return NULL if there are no more tokens
+            fsm->consume(line_len);
             return malformed_request(fsm);
+        }
         // Shutdown the server
         // clean out the rbuf
         fsm->consume(fsm->nrbuf);
@@ -193,6 +208,8 @@ typename memcached_handler_t<config_t>::parse_result_t memcached_handler_t<confi
     check("memcached handler should be in loading data state", !loading_data);
     if (size < bytes + 2){//check that the buffer contains enough data.  must also include \r\n
         return req_handler_t::op_partial_packet;
+    } else if (size > bytes + 2) {
+        return req_handler_t::op_malformed;
     }
 
     loading_data = false;
