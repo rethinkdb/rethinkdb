@@ -42,35 +42,45 @@ def process(g, data, node_offset, verbose):
     
     #assume root is leaf for now
     node_type, npairs, frontmost_offset = struct.unpack_from('IHH', node)
-    assert node_type == LEAF_TYPE or node_type == INTERNAL_TYPE
-    is_leaf = node_type == LEAF_TYPE
-    
-    offsets = struct.unpack_from('%iH' % npairs, node, 8)
-
-    pairs = map(lambda offset: parse_pair(node, offset, is_leaf), offsets)
-    if verbose:
-        print "Node %i:" % node_offset
-        print pairs
-        print "------------------"
-
-
     node_cluster = g.subgraph("cluster %i" % node_offset)
 
-    num = len(pairs)
-    if is_leaf:
-        for i, pair in enumerate(pairs):
-            graph_node = node_cluster.add_node(label = "%s | %s" % pair)
-            if (i == num//2):
-                anchor = graph_node
-    else:
-        for i, pair in enumerate(pairs):
-            graph_node = node_cluster.add_node(label = pair.key)
-            target = process(g, data, pair.value, verbose)
-            edge = g.add_edge(graph_node, target)
-            edge.lhead = "cluster %i" % pair.value
-            if (i == num//2):
-                anchor = graph_node
+    corrupted = not ( node_type == LEAF_TYPE or node_type == INTERNAL_TYPE)
+    if corrupted:
+        if verbose:
+            print "Node %i:" % node_offset
+            print "CORRUPTED"
+            print "------------------"
 
+        anchor = node_cluster.add_node(label = "CORRUPTED NODE")
+        anchor.color = "darkred"
+        anchor.fontcolor = "red"
+    else:
+        is_leaf = node_type == LEAF_TYPE
+    
+        offsets = struct.unpack_from('%iH' % npairs, node, 8)
+
+        pairs = map(lambda offset: parse_pair(node, offset, is_leaf), offsets)
+        if verbose:
+            print "Node %i:" % node_offset
+            print pairs
+            print "------------------"
+
+
+        num = len(pairs)
+        if is_leaf:
+            for i, pair in enumerate(pairs):
+                graph_node = node_cluster.add_node(label = "%s | %s" % pair)
+                if (i == num//2):
+                    anchor = graph_node
+        else:
+            for i, pair in enumerate(pairs):
+                graph_node = node_cluster.add_node(label = pair.key)
+                target = process(g, data, pair.value, verbose)
+                edge = g.add_edge(graph_node, target)
+                edge.lhead = "cluster %i" % pair.value
+                if (i == num//2):
+                    anchor = graph_node
+    
     return anchor
         
 
