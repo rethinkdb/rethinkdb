@@ -40,7 +40,7 @@ public:
     }
 
 private:
-    two_level_array_t<buf_t, MAX_SANE_MEMORY_SIZE / BTREE_BLOCK_SIZE, BUFFERS_PER_CHUNK > array;
+    two_level_array_t<buf_t*, MAX_SANE_MEMORY_SIZE / BTREE_BLOCK_SIZE, BUFFERS_PER_CHUNK > array;
 };
 
 #endif // __BUFFER_CACHE_PAGE_MAP_ARRAY_HPP__

@@ -6,8 +6,19 @@
 similar to that of an array, but it neither allocates all of its memory at once nor needs to
 realloc() as it grows.
 
-It is parameterized on a value_t; note that it actually stores "value_t*". It is also parameterized
-at compile-time on the total number of elements in the array and on the size of the chunks to use.
+It is parameterized on a value type, 'value_t'. It makes the following assumptions about value_t:
+1. value_t has a default constructor value_t() that has no side effects, and its destructor has no
+    side effects.
+2. value_t supports conversion to bool
+3. bool(value_t()) == false
+4. bool(any other instance of value_t) == true
+Pointer types work well for value_t.
+
+If a get() is called on an index in the array that set() has never been called for, the result will
+be value_t().
+
+It is also parameterized at compile-time on the maximum number of elements in the array and on the
+size of the chunks to use.
 */
 
 template <class value_t, int max_size, int chunk_size>
@@ -21,11 +32,11 @@ private:
     unsigned int count;
     
     struct chunk_t : public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, chunk_t > {
-        chunk_t() : count(0) {
-            bzero(values, sizeof(value_t*)*chunk_size);
-        }
+        chunk_t()
+            : count(0), values()   // default-initialize each value in values
+            { }
         unsigned int count;
-        value_t *values[chunk_size];
+        value_t values[chunk_size];
     };
     chunk_t *chunks[num_chunks];
 
@@ -39,36 +50,40 @@ private:
     }
     
 public:
-    two_level_array_t() : count(0) {
-        bzero(chunks, sizeof(chunk_t *)*num_chunks);
-    }
+    two_level_array_t() : count(0), chunks() { }
     ~two_level_array_t() {
         for (unsigned int i=0; i<num_chunks; i++) {
             if (chunks[i]) delete chunks[i];
         }
     }
     
-    value_t *get(key_t key) const {
+    value_t get(key_t key) const {
         unsigned int chunk_id = chunk_for_key(key);
         if (chunks[chunk_id]) {
             return chunks[chunk_id]->values[index_for_key(key)];
         } else {
-            return NULL;
+            return value_t();
         }
     }
         
-    void set(key_t key, value_t *value) {
+    void set(key_t key, value_t value) {
         unsigned int chunk_id = chunk_for_key(key);
         chunk_t *chunk = chunks[chunk_id];
         
+        if (!bool(value) && !chunk) {
+            /* If the user is inserting a zero value into an already-empty chunk, exit early so we
+            don't create a new empty chunk */
+            return;
+        }
+        
         if (!chunk) chunk = chunks[chunk_id] = new chunk_t;
         
-        if (chunk->values[index_for_key(key)] != NULL) {
+        if (bool(chunk->values[index_for_key(key)])) {
             chunk->count--;
             count--;
         }
         chunk->values[index_for_key(key)] = value;
-        if (value != NULL) {
+        if (bool(value)) {
             chunk->count++;
             count++;
         }
