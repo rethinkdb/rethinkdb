@@ -14,6 +14,12 @@
 #define STORAGE_SUCCESS "STORED\r\n"
 #define STORAGE_FAILURE "NOT_STORED\r\n"
 #define RETRIEVE_TERMINATOR "END\r\n"
+#define BAD_BLOB "CLIENT_ERROR bad data chunk\r\n"
+
+
+// Please read and understand the memcached protocol before modifying this
+// file. If you only do a cursory readthrough, please check with someone who
+// has read it in depth before comitting.
 
 // TODO: if we receive a small request from the user that can be
 // satisfied on the same CPU, we should probably special case it and
@@ -35,26 +41,18 @@ typename memcached_handler_t<config_t>::parse_result_t memcached_handler_t<confi
     // (assuming we want to support out of band  commands).
     
     // check if we're supposed to be reading a binary blob
-    if (loading_data)
+    if (loading_data) {
         return read_data(rbuf, size, fsm);
+    }
 
     // Find the first line in the buffer
+    // This is only valid if we are not reading binary data
     char *line_end = (char *)memchr(rbuf, '\n', size);
     if (line_end == NULL) {   //make sure \n is in the buffer
         return req_handler_t::op_partial_packet;    //if \n is at the beginning of the buffer, or if it is not preceeded by \r, the request is malformed
     }
     unsigned int line_len = line_end - rbuf + 1;
 
-    if (loading_data) {
-        parse_result_t res = read_data(rbuf, line_len, fsm);
-        if (res == req_handler_t::op_malformed) {
-            loading_data = false;
-            fsm->consume(line_len);
-            return malformed_request(fsm);
-        } else {
-            return res;
-        }
-    }
 
     if (line_end == rbuf || line_end[-1] != '\r') {
         fsm->consume(line_len);
@@ -221,12 +219,14 @@ typename memcached_handler_t<config_t>::parse_result_t memcached_handler_t<confi
     check("memcached handler should be in loading data state", !loading_data);
     if (size < bytes + 2){//check that the buffer contains enough data.  must also include \r\n
         return req_handler_t::op_partial_packet;
-    } else if (size > bytes + 2) {
-        loading_data = false;
+    }
+    loading_data = false;
+    if (data[bytes] != '\r' || data[bytes+1] != '\n') {
+        fsm->consume(bytes+2);
+        write_msg(fsm, BAD_BLOB);
         return req_handler_t::op_malformed;
     }
 
-    loading_data = false;
     parse_result_t ret;
     switch(cmd) {
         case SET:
