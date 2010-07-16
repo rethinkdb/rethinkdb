@@ -9,6 +9,7 @@ LEAF_TYPE = 1
 INTERNAL_TYPE = 2
 BLOCK_SIZE = 2048
 Pair = namedtuple('Pair', 'key, value')
+warn_corrupted = False
 
 def parse_pair(block, offset, is_leaf):
     assert offset < BLOCK_SIZE
@@ -37,15 +38,16 @@ def get_lnode(block, offset):
 
     
 def process(g, data, node_offset, verbose):
-    data.seek(node_offset)
+    data.seek(node_offset*BLOCK_SIZE)
     node = data.read(BLOCK_SIZE)
     
     #assume root is leaf for now
     node_type, npairs, frontmost_offset = struct.unpack_from('IHH', node)
     node_cluster = g.subgraph("cluster %i" % node_offset)
 
-    corrupted = not ( node_type == LEAF_TYPE or node_type == INTERNAL_TYPE)
+    corrupted = not (node_type == LEAF_TYPE or node_type == INTERNAL_TYPE)
     if corrupted:
+        warn_corrupted = True
         if verbose:
             print "Node %i:" % node_offset
             print "CORRUPTED"
@@ -105,6 +107,9 @@ def main(argv):
 
     g.layout("dot")
     g.render(options.output_file)
+
+    if warn_corrupted:
+        print "Warning! Corrupted nodes detected."
         
 if __name__ == '__main__':
     sys.exit(main(sys.argv))
