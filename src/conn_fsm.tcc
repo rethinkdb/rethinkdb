@@ -134,6 +134,7 @@ typename conn_fsm<config_t>::result_t conn_fsm<config_t>::do_fsm_outstanding_req
             // Command wasn't processed correctly, send error
             // Error should already be placed in buffer by parser
             send_msg_to_client();
+            state->state = fsm_outstanding_data;
             break;
         case req_handler_t::op_partial_packet:
             // The data is incomplete, keep trying to read in
