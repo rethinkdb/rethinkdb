@@ -74,15 +74,20 @@ void process_btree_msg(code_config_t::btree_fsm_t *btree_fsm) {
         // We received a completed btree that belongs to us
         btree_fsm->request->ncompleted++;
         if(btree_fsm->request->ncompleted == btree_fsm->request->nstarted) {
-            // This should be before build_response, as the
-            // request handler will destroy the btree
-            code_config_t::conn_fsm_t *netfsm = btree_fsm->request->netfsm;
-            event_t event;
-            bzero((void*)&event, sizeof(event));
-            event.state = netfsm;
-            event.event_type = et_request_complete;
-            netfsm->req_handler->build_response(btree_fsm->request);
-            initiate_conn_fsm_transition(event_queue, &event);
+            if(btree_fsm->noreply) {
+                assert(btree_fsm->request->nstarted <= 1);
+                delete btree_fsm->request;
+            } else {
+                // This should be before build_response, as the
+                // request handler will destroy the btree
+                code_config_t::conn_fsm_t *netfsm = btree_fsm->request->netfsm;
+                event_t event;
+                bzero((void*)&event, sizeof(event));
+                event.state = netfsm;
+                event.event_type = et_request_complete;
+                netfsm->req_handler->build_response(btree_fsm->request);
+                initiate_conn_fsm_transition(event_queue, &event);
+            }
         }
     } else {
         // We received a new btree that we need to process
