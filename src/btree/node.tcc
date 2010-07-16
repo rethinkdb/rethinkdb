@@ -6,11 +6,11 @@
 #include "btree/internal_node.hpp"
 
 void node_handler::validate(btree_node *node) {
-    switch(node->kind) {
-        case btree_node_kind_leaf:
+    switch(node->type) {
+        case btree_node_type_leaf:
             leaf_node_handler::validate((btree_leaf_node *)node);
             break;
-        case btree_node_kind_internal:
+        case btree_node_type_internal:
             internal_node_handler::validate((btree_internal_node *)node);
             break;
         default:
