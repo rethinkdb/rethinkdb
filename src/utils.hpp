@@ -1,4 +1,3 @@
-
 #ifndef __UTILS_HPP__
 #define __UTILS_HPP__
 
@@ -71,4 +70,3 @@ bool is_sorted(ForwardIterator first, ForwardIterator last,
 
 #include "utils.tcc"
 #endif // __UTILS_HPP__
-
