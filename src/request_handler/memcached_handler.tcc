@@ -259,6 +259,8 @@ typename memcached_handler_t<config_t>::parse_result_t memcached_handler_t<confi
             break;
     }
 
+    fsm->consume(this->bytes+2);
+
     return ret;
 }
 
