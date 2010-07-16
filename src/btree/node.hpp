@@ -36,24 +36,24 @@ struct btree_value {
 typedef enum {
     // Choose 1 and 2 instead of 0 and 1 to make it less likely that garbage will be interpreted as
     // a valid node
-    btree_node_kind_leaf = 1,
-    btree_node_kind_internal = 2
-} btree_node_kind;
+    btree_node_type_leaf = 1,
+    btree_node_type_internal = 2
+} btree_node_type;
 
 struct btree_node {
-    btree_node_kind kind;
+    btree_node_type type;
 };
 
 class node_handler {
     public:
         static bool is_leaf(btree_node *node) {
             validate(node);
-            return node->kind == btree_node_kind_leaf;
+            return node->type == btree_node_type_leaf;
         }
 
         static bool is_internal(btree_node *node) {
             validate(node);
-            return node->kind == btree_node_kind_internal;
+            return node->type == btree_node_type_internal;
         }
 
         static void str_to_key(char *str, btree_key *buf) {
