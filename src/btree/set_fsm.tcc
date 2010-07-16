@@ -23,8 +23,8 @@
 // TODO: change rwi_write to rwi_intent followed by rwi_upgrade where
 // relevant.
 template <class config_t>
-void btree_set_fsm<config_t>::init_update(btree_key *_key, byte *data, unsigned int length, btree_set_kind _set_kind) {
-    set_kind = _set_kind;
+void btree_set_fsm<config_t>::init_update(btree_key *_key, byte *data, unsigned int length, btree_set_type _set_type) {
+    set_type = _set_type;
     keycpy(key, _key);
     value->size = length;
     memcpy(&value->contents, data, length);
@@ -292,9 +292,9 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
             // If it's an add operation, check that the key doesn't exist.
             // If it's a replace operation, check that the key does exist.
             bool key_found = false;
-            if(set_kind == btree_set_kind_add || set_kind == btree_set_kind_replace) {
+            if(set_type == btree_set_type_add || set_type == btree_set_type_replace) {
                 key_found = leaf_node_handler::lookup((leaf_node_t*)node, key, current_value);
-            }else if(set_kind == btree_set_kind_incr || set_kind == btree_set_kind_decr) {
+            }else if(set_type == btree_set_type_incr || set_type == btree_set_type_decr) {
                 key_found = leaf_node_handler::lookup((leaf_node_t*)node, key, current_value);
                 new_val = atoll(value->contents);
                 cur_val = strtoull(current_value->contents, NULL, 10);
@@ -306,26 +306,26 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
             *   - Also, if you say 'incr 1 -50' in memcached and the value
             *     goes below 0, memcached will wrap around. We just set the value to 0.
             */
-            if (key_found && set_kind == btree_set_kind_decr) {
+            if (key_found && set_type == btree_set_type_decr) {
                 // we underflowed and wrapped around while subtracting, set to zero.
                 if (new_val > 0 && cur_val - new_val > cur_val) 
                     cur_val = 0;
                 else
                     cur_val -= new_val;
-            } else if(key_found && set_kind == btree_set_kind_incr) {
+            } else if(key_found && set_type == btree_set_type_incr) {
                 if (new_val < 0 && cur_val + new_val > cur_val)
                     cur_val = 0;
                 else
                     cur_val += new_val;
             }
             
-            if (set_kind == btree_set_kind_set ||
-                (set_kind == btree_set_kind_add && !key_found) ||
-                (set_kind == btree_set_kind_replace && key_found) ||
-                (set_kind == btree_set_kind_decr && key_found) ||
-                (set_kind == btree_set_kind_incr && key_found))
+            if (set_type == btree_set_type_set ||
+                (set_type == btree_set_type_add && !key_found) ||
+                (set_type == btree_set_type_replace && key_found) ||
+                (set_type == btree_set_type_decr && key_found) ||
+                (set_type == btree_set_type_incr && key_found))
             {
-                if (set_kind == btree_set_kind_decr || set_kind == btree_set_kind_incr) {
+                if (set_type == btree_set_type_decr || set_type == btree_set_type_incr) {
                     int chars_written = sprintf(value->contents, "%llu", (unsigned long long)cur_val);
                     value->size = chars_written;
                 }
@@ -427,8 +427,8 @@ btree_value* btree_set_fsm<config_t>::get_value() {
     return value;
 }
 template<class config_t>
-btree_set_kind btree_set_fsm<config_t>::get_set_kind() {
-    return set_kind;
+btree_set_type btree_set_fsm<config_t>::get_set_type() {
+    return set_type;
 }
 
 #ifndef NDEBUG

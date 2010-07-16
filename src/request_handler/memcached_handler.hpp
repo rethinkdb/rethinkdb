@@ -29,7 +29,7 @@ public:
     virtual void build_response(request_t *request);
 
 private:
-    enum storage_command { SET, ADD, REPLACE, APPEND, PREPEND, CAS, INCR, DECR };
+    enum storage_command { SET, ADD, REPLACE, APPEND, PREPEND, CAS };
     cache_t *cache;
     storage_command cmd;
 
@@ -43,12 +43,11 @@ private:
     bool loading_data;
 
     parse_result_t parse_storage_command(storage_command command, char *state, unsigned int line_len, conn_fsm_t *fsm);
+    parse_result_t parse_adjustment(bool increment, char *state, unsigned int line_len, conn_fsm_t *fsm);
 
     parse_result_t read_data(char *data, unsigned int size, conn_fsm_t *fsm);
 
-    parse_result_t set(char *data, conn_fsm_t *fsm, btree_set_kind set_kind);
-    parse_result_t add(char *data, conn_fsm_t *fsm);
-    parse_result_t replace(char *data, conn_fsm_t *fsm);
+    parse_result_t fire_set_fsm(btree_set_type type, btree_key *key, char *value_data, uint32_t value_len, bool noreply, conn_fsm_t *conn_fsm);
     parse_result_t append(char *data, conn_fsm_t *fsm);
     parse_result_t prepend(char *data, conn_fsm_t *fsm);
     parse_result_t cas(char *data, conn_fsm_t *fsm);

@@ -2,12 +2,12 @@
 #ifndef __BTREE_SET_FSM_HPP__
 #define __BTREE_SET_FSM_HPP__
 
-enum btree_set_kind {
-    btree_set_kind_set,
-    btree_set_kind_add,
-    btree_set_kind_replace,
-    btree_set_kind_incr,
-    btree_set_kind_decr
+enum btree_set_type {
+    btree_set_type_set,
+    btree_set_type_add,
+    btree_set_type_replace,
+    btree_set_type_incr,
+    btree_set_type_decr
 };
 
 template <class config_t>
@@ -41,7 +41,7 @@ public:
           node_id(cache_t::null_block_id), last_node_id(cache_t::null_block_id), set_was_successful(false)
         {}
 
-    void init_update(btree_key *_key, byte *data, unsigned int length, btree_set_kind set_kind);
+    void init_update(btree_key *_key, byte *data, unsigned int length, btree_set_type set_type);
     virtual transition_result_t do_transition(event_t *event);
 
     virtual bool is_finished() {
@@ -50,7 +50,7 @@ public:
     
     btree_key* get_key();
     btree_value* get_value();
-    btree_set_kind get_set_kind();
+    btree_set_type get_set_type();
     
 private:
     using btree_fsm<config_t>::transaction;
@@ -83,7 +83,7 @@ private:
     buf_t *sb_buf, *buf, *last_buf;
     block_id_t node_id, last_node_id; // TODO(NNW): Bufs may suffice for these.
     
-    btree_set_kind set_kind; // choice of set, add or replace with a different behaviour for each.
+    btree_set_type set_type; // choice of set, add or replace with a different behaviour for each.
 public:
     bool set_was_successful;
 };
