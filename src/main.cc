@@ -36,6 +36,8 @@
 #include "conn_fsm.hpp"
 #include "request.hpp"
 
+#include "stats/stats.tcc"
+
 // TODO: we should redo the plumbing for the entire callback system so
 // that nothing is hardcoded here. Messages should flow dynamically to
 // their destinations without having a central place with all the
@@ -163,7 +165,6 @@ int main(int argc, char *argv[])
 
         // Start the server (in a separate thread)
         start_server(&worker_pool);
-
         // If we got out of start_server, we're about to shut down.
         printf("Shutting down server...\n");
     }
