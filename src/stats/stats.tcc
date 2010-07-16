@@ -39,7 +39,7 @@ custom_string Stats::get()
     custom_string ret = "";
     for (unsigned int i=0;i<registry.size();i++)
     {
-        ret = "STAT " + registry[i]->getValue() + "\n";
+        ret = "STAT " + registry[i]->getValue() + "\r\n";
     }
     return ret;
 }
@@ -47,22 +47,21 @@ custom_string Stats::get()
 void Stats::add(int* val, const char* desc)
 {    
     IntType* new_var = new IntType(val);
-    custom_string a(desc);
-    new_var->description = a;//custom_string(desc);
+    new_var->description = custom_string(desc);
     registry.push_back(new_var);
 }
 
 void Stats::add(double* val, const char* desc)
 {
     DoubleType* new_var = new DoubleType(val);
-    new_var->description = desc;
+    new_var->description = custom_string(desc);
     registry.push_back(new_var);
 }
 
 void Stats::add(float* val, const char* desc)
 {
     FloatType* new_var = new FloatType(val);
-    new_var->description = desc;
+    new_var->description = custom_string(desc);
     registry.push_back(new_var);
 }
 
