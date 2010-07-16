@@ -298,14 +298,16 @@ typename btree_delete_fsm<config_t>::transition_result_t btree_delete_fsm<config
         } else {
             // Leaf node
             leaf_node_t* node = (leaf_node_t*)buf->ptr();
-            // Do some deleting 
-            if(leaf_node_handler::remove(node, key)) {
-                //key found, and value deleted
-                buf->set_dirty();
-                op_result = btree_found;
-            } else {
-                //key not found, nothing deleted
-                op_result = btree_not_found;
+            // If we haven't already, do some deleting 
+            if (op_result == btree_incomplete) {
+                if(leaf_node_handler::remove(node, key)) {
+                    //key found, and value deleted
+                    buf->set_dirty();
+                    op_result = btree_found;
+                } else {
+                    //key not found, nothing deleted
+                    op_result = btree_not_found;
+                }
             }
 
             if (leaf_node_handler::is_underfull(node) && last_buf) { // the root node is never underfull
