@@ -11,34 +11,34 @@ NUM_INTS=8000
 NUM_THREADS=32
 HOST="localhost"
 PORT=os.getenv("RUN_PORT", "11211")
+bin = False
+behaviors = { "receive_timeout": 1000000, "send_timeout": 1000000 }
+def open_mc():
+    mc = memcache.Client([HOST + ":" + PORT])
+    mc.behaviors = behaviors
+    return mc
 
 # TODO: when we add more integration tests, the act of starting a
 # RethinkDB process should be handled by a common external script.
 
 def rethinkdb_insert(queue, ints):
-    mc = memcache.Client([HOST + ":" + PORT])
+    mc = open_mc()
     for i in ints:
         print "Inserting %d" % i
-        if (0 == mc.set(str(i), str(i))):
-            queue.put(-1)
-            return
+        mc.set(str(i), str(i))
     mc.disconnect_all()
     queue.put(0)
 
 def rethinkdb_delete(queue, ints):
-    mc = memcache.Client([HOST + ":" + PORT])
-    if(0 == mc.servers[0].connect()):
-        print "Failed to connect"
+    mc = open_mc()
     for i in ints:
         print "Deleting %d" % i
-        if (0 == mc.delete(str(i))):
-            queue.put(-1)
-            return
+        mc.delete(str(i))
     mc.disconnect_all()
     queue.put(0)
 
 def rethinkdb_verify():
-    mc = memcache.Client([HOST + ":" + PORT])
+    mc = open_mc()
     for i in xrange(0, NUM_INTS):
         val = mc.get(str(i))
         if str(i) != val:
@@ -47,9 +47,7 @@ def rethinkdb_verify():
     mc.disconnect_all()
 
 def rethinkdb_verify_empty(in_ints, out_ints):
-    mc = memcache.Client([HOST + ":" + PORT])
-    if(0 == mc.servers[0].connect()):
-        print "Failed to connect"
+    mc = open_mc()
     for i in out_ints:
         if (mc.get(str(i))):
             print "Error, value %d is in the database when it shouldn't be" % i

@@ -21,9 +21,15 @@ NUM_INSERT_THREADS=8    # Number of concurrent threads inserting values that are
 # Server location
 HOST="localhost"
 PORT=os.getenv("RUN_PORT", "11211")
+bin = False
+behaviors = { "receive_timeout": 1000000, "send_timeout": 1000000 }
+def open_mc():
+    mc = memcache.Client([HOST + ":" + PORT])
+    mc.behaviors = behaviors
+    return mc
 
 def insert_initial(matrix):
-    mc = memcache.Client([HOST + ":" + PORT])
+    mc = open_mc()
     j = 0
     for row in matrix:
         mc.set(str(j), str(row[0]))
@@ -31,7 +37,7 @@ def insert_initial(matrix):
     mc.disconnect_all()
 
 def cycle_values(matrix):
-    mc = memcache.Client([HOST + ":" + PORT])
+    mc = open_mc()
     time_start = time()
     while True:
         # Set a random key to one of its permitted values
@@ -43,7 +49,7 @@ def cycle_values(matrix):
             return
 
 def check_values(queue, matrix):
-    mc = memcache.Client([HOST + ":" + PORT])
+    mc = open_mc()
     time_start = time()
     while True:
         # Get a random key and make sure its value is in the permitted range
@@ -64,7 +70,7 @@ def check_values(queue, matrix):
             return
 
 def insert_values(_):
-    mc = memcache.Client([HOST + ":" + PORT])
+    mc = open_mc()
     time_start = time()
     j = NUM_KEYS
     while True:

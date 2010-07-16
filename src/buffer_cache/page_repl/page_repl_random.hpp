@@ -119,7 +119,7 @@ public:
 private:
     unsigned int unload_threshold;
     cache_t *cache;
-    two_level_array_t<buf_t, PAGE_REPL_MAX_SANE_MEMORY_SIZE / BTREE_BLOCK_SIZE, PAGE_REPL_BUFFERS_PER_CHUNK> array;
+    two_level_array_t<buf_t*, PAGE_REPL_MAX_SANE_MEMORY_SIZE / BTREE_BLOCK_SIZE, PAGE_REPL_BUFFERS_PER_CHUNK> array;
 };
 
 #endif // __PAGE_REPL_RANDOM_HPP__

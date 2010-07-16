@@ -29,7 +29,7 @@ OBJ_DIR:=$(BUILD_DIR)/obj
 # Define configuration variables
 CXX:=g++
 LDFLAGS:=-lrt -laio
-CXXFLAGS:=-I$(SOURCE_DIR) -Wall -Wextra -Wformat=2 -Wno-unused-parameter -Werror -Wno-format
+CXXFLAGS:=-I$(SOURCE_DIR) -Wall -Wextra -Wformat=2 -Wno-unused-parameter -Werror
 
 # Configure debug vs. release
 ifeq ($(DEBUG),1)

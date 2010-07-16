@@ -20,7 +20,6 @@ void conn_fsm<config_t>::init_state() {
 // This function returns the socket to clean connected state
 template<class config_t>
 void conn_fsm<config_t>::return_to_socket_connected() {
-    printf("return to socket connected\n");
     if(this->rbuf)
         delete (iobuf_t*)(this->rbuf);
     if(this->sbuf)
@@ -169,8 +168,6 @@ typename conn_fsm<config_t>::result_t conn_fsm<config_t>::do_fsm_outstanding_req
 // function.
 template<class config_t>
 typename conn_fsm<config_t>::result_t conn_fsm<config_t>::do_transition(event_t *event) {
-    printf("Do transition: ");
-    printf("Event: %d State:", event->event_type);
     // TODO: Using parent_pool member variable within state
     // transitions might cause cache line alignment issues. Can we
     // eliminate it (perhaps by giving each thread its own private
@@ -181,19 +178,15 @@ typename conn_fsm<config_t>::result_t conn_fsm<config_t>::do_transition(event_t 
     switch(state) {
         case fsm_socket_connected:
         case fsm_socket_recv_incomplete:
-            printf("socket_connected or socket_recv_incomplete\n");
             res = fill_rbuf(event);
             break;
         case fsm_socket_send_incomplete:
-            printf("socket_send_incomplete\n");
             res = do_socket_send_incomplete(event);
             break;
         case fsm_btree_incomplete:
-            printf("btree_incomplete\n");
             res = do_fsm_btree_incomplete(event);
             break;
         case fsm_outstanding_data:
-            printf("outstanding_data\n");
             break;
         default:
             res = fsm_invalid;

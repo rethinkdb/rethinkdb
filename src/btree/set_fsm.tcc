@@ -326,7 +326,7 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
                 (set_kind == btree_set_kind_incr && key_found))
             {
                 if (set_kind == btree_set_kind_decr || set_kind == btree_set_kind_incr) {
-                    int chars_written = sprintf(value->contents, "%llu", cur_val);
+                    int chars_written = sprintf(value->contents, "%llu", (unsigned long long)cur_val);
                     value->size = chars_written;
                 }
                 bool success = leaf_node_handler::insert((leaf_node_t*)node, key, value);
