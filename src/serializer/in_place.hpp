@@ -64,29 +64,12 @@ public:
         queue->iosys.schedule_aio_read(dbfd, id_to_offset(block_id), block_size, buf, queue, callback);
     }
     
-    /* Fires off an async request to write the block identified by
-     * block_id into buf, associating callback with the
-     * request. Returns the new block id (in the case of the
-     * in_place_serializer, it is always the same as the original
-     * id). If the block is new, NULL can be passed in place of
-     * block_id, in which case the return value will be the id of the
-     * newly written block. */
-     
-    // The IO request must be asynchronous, and not just for performance reasons -- if the callback
-    // is called before do_write() returns, then writeback_t::writeback() will be confused.
-    void do_write(event_queue_t *queue, block_id_t block_id, void *buf,
-                        iocallback_t *callback) {
-        io_calls_t::aio_write_t aio_writes[1];
-
-        aio_writes[0].resource = dbfd;
-        aio_writes[0].offset = id_to_offset(block_id);
-        aio_writes[0].length = block_size;
-        aio_writes[0].buf = buf;
-        aio_writes[0].callback = callback;
-
-        queue->iosys.schedule_aio_write(aio_writes, 1, queue);
-    }
-
+    /* Fires off async requests to write the blocks identified by
+     * block_ids into bufs, associating callbacks with the request.
+     * The IO request must be asynchronous, and not just for
+     * performance reasons -- if the callback is called before
+     * do_write() returns, then writeback_t::writeback() will be
+     * confused. */
     struct write {
         block_id_t    block_id;
         void          *buf;
