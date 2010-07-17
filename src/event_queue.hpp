@@ -12,9 +12,9 @@
 #include "message_hub.hpp"
 #include "config/cmd_args.hpp"
 #include "buffer_cache/callbacks.hpp"
-
 typedef void (*event_handler_t)(event_queue_t*, event_t*);
 
+#include "stats.hpp"
 // Inter-thread communication event (ITC)
 enum itc_event_type_t {
     iet_shutdown = 1,
@@ -114,6 +114,9 @@ public:
 
     io_calls_t iosys;
 
+    // for getting statistics:
+    stats stat;
+    
 #ifndef NDEBUG
     // Print debugging information designed to resolve a deadlock
     void deadlock_debug();

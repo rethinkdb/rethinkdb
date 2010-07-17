@@ -17,7 +17,8 @@
 #define RETRIEVE_TERMINATOR "END\r\n"
 #define BAD_BLOB "CLIENT_ERROR bad data chunk\r\n"
 
-
+#include <iostream>
+using namespace std;
 // Please read and understand the memcached protocol before modifying this
 // file. If you only do a cursory readthrough, please check with someone who
 // has read it in depth before comitting.
@@ -93,7 +94,8 @@ typename memcached_handler_t<config_t>::parse_result_t memcached_handler_t<confi
         // clean out the rbuf
         fsm->consume(fsm->nrbuf);
         return req_handler_t::op_req_shutdown;
-
+    } else if(!strcmp(cmd_str, "stats")) {
+            res = print_stats(fsm);
     } else if(!strcmp(cmd_str, "set")) {     // check for storage commands
             res = parse_storage_command(SET, state, line_len, fsm);
     } else if(!strcmp(cmd_str, "add")) {
@@ -526,6 +528,23 @@ void memcached_handler_t<config_t>::build_response(request_t *request) {
     }
     delete request;
     fsm->current_request = NULL;
+}
+
+template <class config_t>
+typename memcached_handler_t<config_t>::parse_result_t memcached_handler_t<config_t>::print_stats(conn_fsm_t *fsm) {
+
+    // put text in sbuf and length in nsbuf
+    // find cpus with key_to_cpu?
+    int id = get_cpu_context()->event_queue->queue_id;
+    char str[100];
+    sprintf(str,"%d\n",id);
+    strcpy(fsm->sbuf, str);
+    fsm->nsbuf = strlen(str);
+    
+    if (noreply)
+        return req_handler_t::op_req_parallelizable;
+    else
+        return req_handler_t::op_req_complex;    
 }
 
 #endif // __MEMCACHED_HANDLER_TCC__

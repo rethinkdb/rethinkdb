@@ -59,6 +59,7 @@ private:
     void write_msg(conn_fsm_t *fsm, const char *str);
     parse_result_t malformed_request(conn_fsm_t *fsm);
     parse_result_t unimplemented_request(conn_fsm_t *fsm);
+    parse_result_t print_stats(conn_fsm_t *fsm);
 };
 
 #include "request_handler/memcached_handler.tcc"
