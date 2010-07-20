@@ -1,8 +1,9 @@
 #ifndef __STATS_HPP__
 #define __STATS_HPP__
 
-#include <vector>
+#include <map>
 #include <string>
+#include <functional>
 #include "config/args.hpp"
 #include "config/code.hpp"
 
@@ -12,10 +13,8 @@
 struct base_type {
     typedef std::basic_string<char, std::char_traits<char>, gnew_alloc<char> > custom_string;
     typedef std::basic_stringstream<char, std::char_traits<char>, gnew_alloc<char> > custom_stringstream;
-
-    custom_string description;    
-    virtual custom_string getValue();
-
+    virtual void add(base_type* val) {}
+    virtual custom_string get_value();
 };
 
 struct int_type : public base_type, public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, int_type > {
@@ -23,10 +22,11 @@ struct int_type : public base_type, public alloc_mixin_t<tls_small_obj_alloc_acc
     typedef std::basic_stringstream<char, std::char_traits<char>, gnew_alloc<char> > custom_stringstream;
 
     int_type(int* a) : value(a) {}
+    void add(base_type* val);
+    custom_string get_value();
     int* value;
     int min;
     int max;
-    custom_string getValue();
 };
 
 struct double_type : public base_type, public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, double_type > {
@@ -34,10 +34,11 @@ struct double_type : public base_type, public alloc_mixin_t<tls_small_obj_alloc_
     typedef std::basic_stringstream<char, std::char_traits<char>, gnew_alloc<char> > custom_stringstream;
 
     double_type(double* a) : value(a) {}
+    void add(base_type* val);
+    custom_string get_value();
     double* value;
     double min;
     double max;
-    custom_string getValue();
 };
 
 struct float_type : public base_type, public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, float_type > {
@@ -45,10 +46,11 @@ struct float_type : public base_type, public alloc_mixin_t<tls_small_obj_alloc_a
     typedef std::basic_stringstream<char, std::char_traits<char>, gnew_alloc<char> > custom_stringstream;
 
     float_type(float* a) : value(a) {}
+    void add(base_type* val);
+    custom_string get_value();
     float* value;
     float min;
     float max;
-    custom_string getValue();
 };
 
 /* The actual stats Module */
@@ -57,11 +59,11 @@ struct stats {
     typedef std::basic_stringstream<char, std::char_traits<char>, gnew_alloc<char> > custom_stringstream;
     stats() {}
     ~stats();
-    custom_string get();
+    std::map<custom_string, base_type *, std::less<custom_string>, gnew_alloc<base_type*> >* get();
     void add(int *val, const char* desc);
     void add(double *val, const char* desc);
     void add(float *val, const char* desc);
-    std::vector<base_type *, gnew_alloc<base_type*> > registry;
+    std::map<custom_string, base_type *, std::less<custom_string>, gnew_alloc<base_type*> > registry;
 };
 
 /* Example:

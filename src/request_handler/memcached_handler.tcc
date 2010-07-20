@@ -2,6 +2,7 @@
 #define __MEMCACHED_HANDLER_TCC__
 
 #include <string.h>
+#include <string>
 #include "cpu_context.hpp"
 #include "event_queue.hpp"
 #include "request_handler/memcached_handler.hpp"
@@ -95,7 +96,7 @@ typename memcached_handler_t<config_t>::parse_result_t memcached_handler_t<confi
         fsm->consume(fsm->nrbuf);
         return req_handler_t::op_req_shutdown;
     } else if(!strcmp(cmd_str, "stats")) {
-            res = print_stats(fsm);
+            return print_stats(fsm, line_len);
     } else if(!strcmp(cmd_str, "set")) {     // check for storage commands
             res = parse_storage_command(SET, state, line_len, fsm);
     } else if(!strcmp(cmd_str, "add")) {
@@ -531,20 +532,34 @@ void memcached_handler_t<config_t>::build_response(request_t *request) {
 }
 
 template <class config_t>
-typename memcached_handler_t<config_t>::parse_result_t memcached_handler_t<config_t>::print_stats(conn_fsm_t *fsm) {
+typename memcached_handler_t<config_t>::parse_result_t memcached_handler_t<config_t>::print_stats(conn_fsm_t *fsm, unsigned int line_len) {
 
     // put text in sbuf and length in nsbuf
-    // find cpus with key_to_cpu?
-    int id = get_cpu_context()->event_queue->queue_id;
-    char str[100];
-    sprintf(str,"%d\n",id);
-    strcpy(fsm->sbuf, str);
-    fsm->nsbuf = strlen(str);
+    worker_pool_t *worker_pool = get_cpu_context()->event_queue->parent_pool;
+    int nworkers = worker_pool->nworkers;
+    typedef basic_string<char, char_traits<char>, gnew_alloc<char> > custom_string;
+    map<custom_string, base_type *, std::less<custom_string>, gnew_alloc<base_type*> > *registry = get_cpu_context()->event_queue->stat.get();
+
+    /* first, add the variables from each event_queue stat. */
+    for (int i=0;i<nworkers;i++)
+    {
+        map<custom_string, base_type *, std::less<custom_string>, gnew_alloc<base_type*> > *cur_registry = worker_pool->workers[i]->stat.get();
+        if (registry == cur_registry) continue;
+        map<custom_string, base_type *, less<custom_string>, gnew_alloc<base_type*> >::const_iterator cur_iter;        
+        for (cur_iter=cur_registry->begin();cur_iter != cur_registry->end();cur_iter++)
+        {
+            (*registry)[cur_iter->first]->add(cur_iter->second);
+        }
+    }
     
-    if (noreply)
-        return req_handler_t::op_req_parallelizable;
-    else
-        return req_handler_t::op_req_complex;    
+    /* now, print out those variables: */
+    map<custom_string, base_type *, less<custom_string>, gnew_alloc<base_type*> >::const_iterator iter;
+    for (iter=registry->begin();iter != registry->end();iter++)
+    {
+        cout << "STAT " << iter->first << " " << iter->second->get_value() << endl;
+    }
+    fsm->consume(line_len);
+    return req_handler_t::op_req_complex;    
 }
 
 #endif // __MEMCACHED_HANDLER_TCC__

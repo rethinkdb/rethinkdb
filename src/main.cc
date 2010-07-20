@@ -157,7 +157,8 @@ int main(int argc, char *argv[])
     {
         // Create a pool of workers
         worker_pool_t worker_pool(event_handler, pthread_self(), &config);
-
+        
+        
         // Start the server (in a separate thread)
         start_server(&worker_pool);
         // If we got out of start_server, we're about to shut down.
