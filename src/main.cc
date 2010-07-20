@@ -38,7 +38,7 @@
 #include "conn_fsm.hpp"
 #include "request.hpp"
 
-
+typedef basic_string<char, char_traits<char>, gnew_alloc<char> > custom_string;
 
 // TODO: we should redo the plumbing for the entire callback system so
 // that nothing is hardcoded here. Messages should flow dynamically to
@@ -98,9 +98,18 @@ void process_btree_msg(code_config_t::btree_fsm_t *btree_fsm) {
     }
 }
 
-void process_stats_msg(stats *stat)
+void process_stats_request(stats_request *stat_req)
 {
-    
+    int req_id = stat_req->requester_id;
+    /* this assignment automatically creates a deep copy thanks to our overloading the copy constructor */
+    stats *stat = new stats(get_cpu_context()->event_queue->stat);
+    stat->conn_fsm = stat_req->conn_fsm;
+    get_cpu_context()->event_queue->message_hub.store_message(req_id, stat);
+}
+
+void process_stats_response(stats *stat)
+{
+    stat->conn_fsm->req_handler->accumulate_stats(stat);
 }
 
 // TODO: this should really be moved into the event queue.
@@ -123,8 +132,11 @@ void event_handler(event_queue_t *event_queue, event_t *event) {
         case cpu_message_t::mt_lock:
             process_lock_msg(event_queue, event, (rwi_lock_t::lock_request_t*)msg);
             break;
-        case cpu_message_t::mt_stats:
-            process_stats_msg((stats*)msg);
+        case cpu_message_t::mt_stats_request:
+            process_stats_request((stats_request*)msg);
+            break;
+        case cpu_message_t::mt_stats_response:
+            process_stats_response((stats*)msg);            
             break;
         }
     } else {

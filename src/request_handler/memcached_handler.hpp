@@ -22,7 +22,7 @@ public:
     
 public:
     memcached_handler_t(cache_t *_cache, event_queue_t *eq)
-        : req_handler_t(eq), cache(_cache), key((btree_key*)key_memory), loading_data(false)
+        : req_handler_t(eq), cache(_cache), key((btree_key*)key_memory), loading_data(false), stats_counter(0)
         {}
     
     virtual parse_result_t parse_request(event_t *event);
@@ -59,7 +59,11 @@ private:
     void write_msg(conn_fsm_t *fsm, const char *str);
     parse_result_t malformed_request(conn_fsm_t *fsm);
     parse_result_t unimplemented_request(conn_fsm_t *fsm);
+    
+    /* stats stuff */
     parse_result_t print_stats(conn_fsm_t *fsm, unsigned int line_len);
+    void accumulate_stats(stats *stat);
+    int stats_counter; // keeps track of how many cores have sent us their stats
 };
 
 #include "request_handler/memcached_handler.tcc"

@@ -30,6 +30,8 @@ using namespace std;
 // then send it back to itself.
 
 // Process commands received from the user
+typedef basic_string<char, char_traits<char>, gnew_alloc<char> > custom_string;
+
 template<class config_t>
 typename memcached_handler_t<config_t>::parse_result_t memcached_handler_t<config_t>::parse_request(event_t *event)
 {
@@ -536,20 +538,30 @@ typename memcached_handler_t<config_t>::parse_result_t memcached_handler_t<confi
 
     // put text in sbuf and length in nsbuf
     worker_pool_t *worker_pool = get_cpu_context()->event_queue->parent_pool;
-    unsigned int nworkers = worker_pool->nworkers;
-    typedef basic_string<char, char_traits<char>, gnew_alloc<char> > custom_string;
+    int nworkers = (int)worker_pool->nworkers;
 
     // this creates a deep copy thanks to stat's operator= overload
+/*
     stats stat = get_cpu_context()->event_queue->stat;
     map<custom_string, base_type *, std::less<custom_string>, gnew_alloc<base_type*> > *registry = stat.get();
+*/
+    int id = get_cpu_context()->event_queue->queue_id;
+    stats_request *req = new stats_request(id);
     
-    for (unsigned int i=0;i<nworkers;i++)
+    req->conn_fsm = fsm;
+
+    
+    // tell every single CPU core to pass their stats module *by copy* to this CPU
+    for (int i=0;i<nworkers;i++)
     {
-        req_handler_t::event_queue->message_hub.store_message(i, &stat);
+        if (i != id) {
+            req_handler_t::event_queue->message_hub.store_message(i, req);
+        }
     }
     
 
     /* first, add the variables from each event_queue stat. */
+/*
     for (unsigned int i=0;i<nworkers;i++)
     {
         map<custom_string, base_type *, std::less<custom_string>, gnew_alloc<base_type*> > *cur_registry = worker_pool->workers[i]->stat.get();
@@ -561,14 +573,43 @@ typename memcached_handler_t<config_t>::parse_result_t memcached_handler_t<confi
         }
     }
     
-    /* now, print out those variables: */
+    // now, print out those variables:
     map<custom_string, base_type *, less<custom_string>, gnew_alloc<base_type*> >::const_iterator iter;
     for (iter=registry->begin();iter != registry->end();iter++)
     {
         cout << "STAT " << iter->first << " " << iter->second->get_value() << endl;
     }
+*/
     fsm->consume(line_len);
     return req_handler_t::op_req_complex;    
+}
+
+template <class config_t>
+void memcached_handler_t<config_t>::accumulate_stats(stats *stat)
+{
+    /* accumulate */
+    map<custom_string, base_type *, std::less<custom_string>, gnew_alloc<base_type*> > *registry = get_cpu_context()->event_queue->stat.get();
+    map<custom_string, base_type *, std::less<custom_string>, gnew_alloc<base_type*> > *cur_registry = stat->get();
+
+    map<custom_string, base_type *, less<custom_string>, gnew_alloc<base_type*> >::const_iterator cur_iter;        
+    for (cur_iter=cur_registry->begin();cur_iter != cur_registry->end();cur_iter++)
+    {
+        (*registry)[cur_iter->first]->add(cur_iter->second);
+    }
+    stats_counter++;
+    
+    /* print out stats if we have received the stats module from all the cores */
+    if (stats_counter == get_cpu_context()->event_queue->nqueues - 1)
+    {
+        map<custom_string, base_type *, less<custom_string>, gnew_alloc<base_type*> >::const_iterator iter;
+        for (iter=registry->begin();iter != registry->end();iter++)
+        {
+            cout << "STAT " << iter->first << " " << iter->second->get_value() << endl;
+        }
+        stats_counter = 0;
+        
+        /* TODO: we need to clean out the stat values for all cores now. */
+    }
 }
 
 #endif // __MEMCACHED_HANDLER_TCC__

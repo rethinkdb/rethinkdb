@@ -63,11 +63,14 @@ struct float_type : public base_type, public alloc_mixin_t<tls_small_obj_alloc_a
 };
 
 /* The actual stats Module */
-struct stats : public cpu_message_t {
+struct stats : public cpu_message_t, public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, stats > {
     typedef std::basic_string<char, std::char_traits<char>, gnew_alloc<char> > custom_string;
     typedef std::basic_stringstream<char, std::char_traits<char>, gnew_alloc<char> > custom_stringstream;
-
-    stats() : cpu_message_t(cpu_message_t::mt_stats) {}
+//    typedef standard_config_t::request_t request_t;
+    typedef standard_config_t::conn_fsm_t conn_fsm_t;
+        
+    stats() : cpu_message_t(cpu_message_t::mt_stats_response) {}
+    stats(const stats &rhs);
     ~stats();
     stats& operator=(const stats &rhs);
 
@@ -76,8 +79,22 @@ struct stats : public cpu_message_t {
     void add(double *val, const char* desc);
     void add(float *val, const char* desc);
 
+    void uncreate();
+    
     /* vars */
     std::map<custom_string, base_type *, std::less<custom_string>, gnew_alloc<base_type*> > registry;
+    conn_fsm_t *conn_fsm;
+};
+
+/* This is what gets sent to a core when another core requests it's stats module. */
+struct stats_request : public cpu_message_t, public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, stats_request > {
+//    typedef standard_config_t::request_t request_t;
+    typedef standard_config_t::conn_fsm_t conn_fsm_t;
+    explicit stats_request(int id) : cpu_message_t(cpu_message_t::mt_stats_request), requester_id(id) {}
+    
+    /* vars */
+    int requester_id;
+    conn_fsm_t *conn_fsm;
 };
 
 /* Example:

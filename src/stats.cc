@@ -75,8 +75,12 @@ void stats::add(float* val, const char* desc)
     registry[custom_string(desc)] = new_var;
 }
 
-
 stats::~stats()
+{
+    uncreate();
+}
+
+void stats::uncreate()
 {
     map<custom_string, base_type *, less<custom_string>, gnew_alloc<base_type*> >::const_iterator iter;
     for (iter=registry.begin();iter != registry.end();iter++)
@@ -85,10 +89,20 @@ stats::~stats()
     }
 }
 
+stats::stats(const stats &rhs) : cpu_message_t(cpu_message_t::mt_stats_response)
+{
+    map<custom_string, base_type *, less<custom_string>, gnew_alloc<base_type*> >::const_iterator iter;
+    for (iter=rhs.registry.begin();iter!=rhs.registry.end();iter++)
+    {
+        this->registry[iter->first] = iter->second;
+    }       
+}
+
 stats& stats::operator=(const stats &rhs)
 {
     if (&rhs != this)
     {
+        uncreate();
         map<custom_string, base_type *, less<custom_string>, gnew_alloc<base_type*> >::const_iterator iter;
         for (iter=rhs.registry.begin();iter!=rhs.registry.end();iter++)
         {

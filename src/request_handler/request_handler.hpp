@@ -30,7 +30,7 @@ public:
     
     virtual parse_result_t parse_request(event_t *event) = 0;
     virtual void build_response(request_t *request) = 0;
-
+    virtual void accumulate_stats(stats* stat) {};
 protected:
     event_queue_t *event_queue;
 };
