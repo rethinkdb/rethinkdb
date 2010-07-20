@@ -84,3 +84,52 @@ stats::~stats()
         delete &iter;
     }
 }
+
+stats& stats::operator=(const stats &rhs)
+{
+    if (&rhs != this)
+    {
+        map<custom_string, base_type *, less<custom_string>, gnew_alloc<base_type*> >::const_iterator iter;
+        for (iter=rhs.registry.begin();iter!=rhs.registry.end();iter++)
+        {
+            this->registry[iter->first] = iter->second;
+        }       
+    }
+    return *this;
+}
+
+int_type& int_type::operator=(const int_type &rhs)
+{
+    if (&rhs != this)
+    {
+        int* val = new int(*(rhs.value));
+        this->value = val;
+        this->min = rhs.min;
+        this->max = rhs.max;
+    }
+    return *this;
+}
+
+double_type& double_type::operator=(const double_type &rhs)
+{
+    if (&rhs != this)
+    {
+        double* val = new double(*(rhs.value));
+        this->value = val;
+        this->min = rhs.min;
+        this->max = rhs.max;
+    }
+    return *this;
+}
+
+float_type& float_type::operator=(const float_type &rhs)
+{
+    if (&rhs != this)
+    {
+        float* val = new float(*(rhs.value));
+        this->value = val;
+        this->min = rhs.min;
+        this->max = rhs.max;
+    }
+    return *this;
+}

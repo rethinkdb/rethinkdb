@@ -536,12 +536,21 @@ typename memcached_handler_t<config_t>::parse_result_t memcached_handler_t<confi
 
     // put text in sbuf and length in nsbuf
     worker_pool_t *worker_pool = get_cpu_context()->event_queue->parent_pool;
-    int nworkers = worker_pool->nworkers;
+    unsigned int nworkers = worker_pool->nworkers;
     typedef basic_string<char, char_traits<char>, gnew_alloc<char> > custom_string;
-    map<custom_string, base_type *, std::less<custom_string>, gnew_alloc<base_type*> > *registry = get_cpu_context()->event_queue->stat.get();
+
+    // this creates a deep copy thanks to stat's operator= overload
+    stats stat = get_cpu_context()->event_queue->stat;
+    map<custom_string, base_type *, std::less<custom_string>, gnew_alloc<base_type*> > *registry = stat.get();
+    
+    for (unsigned int i=0;i<nworkers;i++)
+    {
+        req_handler_t::event_queue->message_hub.store_message(i, &stat);
+    }
+    
 
     /* first, add the variables from each event_queue stat. */
-    for (int i=0;i<nworkers;i++)
+    for (unsigned int i=0;i<nworkers;i++)
     {
         map<custom_string, base_type *, std::less<custom_string>, gnew_alloc<base_type*> > *cur_registry = worker_pool->workers[i]->stat.get();
         if (registry == cur_registry) continue;

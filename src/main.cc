@@ -1,3 +1,5 @@
+#include <iostream>
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <strings.h>
@@ -96,6 +98,11 @@ void process_btree_msg(code_config_t::btree_fsm_t *btree_fsm) {
     }
 }
 
+void process_stats_msg(stats *stat)
+{
+    
+}
+
 // TODO: this should really be moved into the event queue.
 void process_lock_msg(event_queue_t *event_queue, event_t *event, rwi_lock_t::lock_request_t *lr) {
     lr->callback->on_lock_available();
@@ -115,6 +122,9 @@ void event_handler(event_queue_t *event_queue, event_t *event) {
             break;
         case cpu_message_t::mt_lock:
             process_lock_msg(event_queue, event, (rwi_lock_t::lock_request_t*)msg);
+            break;
+        case cpu_message_t::mt_stats:
+            process_stats_msg((stats*)msg);
             break;
         }
     } else {

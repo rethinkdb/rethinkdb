@@ -1,4 +1,3 @@
-
 #ifndef __MESSAGE_HUB_HPP__
 #define __MESSAGE_HUB_HPP__
 
@@ -25,7 +24,8 @@ struct cpu_message_t : public intrusive_list_node_t<cpu_message_t>
 {
     enum msg_type_t {
         mt_btree,
-        mt_lock
+        mt_lock,
+        mt_stats
     };
     explicit cpu_message_t(msg_type_t _type)
         : type(_type)
@@ -77,4 +77,3 @@ public:
 };
 
 #endif // __MESSAGE_HUB_HPP__
-
