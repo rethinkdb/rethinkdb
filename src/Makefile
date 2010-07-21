@@ -6,7 +6,7 @@ START_DB_NAME:=start_rethinkdb
 TAGS:=.tags
 RUN_PORT?=11211
 RUN_FLAGS?=
-VALGRIND_FLAGS?=--leak-check=full
+VALGRIND_FLAGS?=--leak-check=full --db-attach=yes
 DEBUG?=1
 VALGRIND?=0
 VERBOSE?=0
@@ -39,6 +39,10 @@ CXXFLAGS:=$(CXXFLAGS) -O3 -DNDEBUG
 endif
 ifdef VALGRIND
 CXXFLAGS+=-DVALGRIND
+endif
+
+ifeq ($(DELETE_DEBUG),1)
+CXXFLAGS:=$(CXXFLAGS) -DDELETE_DEBUG
 endif
 
 # Should makefile be noisy?

@@ -14,9 +14,7 @@ struct btree_key {
     uint8_t size;
     char contents[0];
     void print() {
-#ifdef DELETE_DEBUG
         printf("%.*s", size, contents);
-#endif
     }
 };
 
@@ -27,9 +25,7 @@ struct btree_value {
         return (size <= MAX_IN_NODE_VALUE_SIZE) ? size : sizeof(block_id_t);
     }
     void print() {
-#ifdef DELETE_DEBUG
         printf("%.*s\n", size, contents);
-#endif
     }
 };
 

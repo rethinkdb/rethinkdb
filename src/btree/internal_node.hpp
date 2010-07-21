@@ -39,6 +39,7 @@ class internal_node_handler : public node_handler {
     static int nodecmp(btree_internal_node *node1, btree_internal_node *node2);
     static bool is_full(btree_internal_node *node);
     static bool is_underfull(btree_internal_node *node);
+    static bool change_unsafe(btree_internal_node *node);
     static bool is_mergable(btree_internal_node *node, btree_internal_node *sibling, btree_internal_node *parent);
     static bool is_singleton(btree_internal_node *node);
 

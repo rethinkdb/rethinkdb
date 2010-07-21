@@ -27,6 +27,7 @@ public:
         delete_complete,
         acquire_sibling,
         insert_root_on_collapse,
+        insert_root_on_split,
         committing,
     };
 
@@ -56,6 +57,9 @@ public:
 private:
     using btree_fsm<config_t>::cache;
     using btree_fsm<config_t>::transaction;
+
+    void split_internal_node(buf_t *buf, buf_t **rbuf, block_id_t *rnode_id, btree_key *median);
+    transition_result_t do_insert_root_on_split(event_t *event);
 
     transition_result_t do_start_transaction(event_t *event);
     transition_result_t do_acquire_superblock(event_t *event);

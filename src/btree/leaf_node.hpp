@@ -39,6 +39,7 @@ class leaf_node_handler : public node_handler {
     static bool level(btree_leaf_node *node, btree_leaf_node *sibling, btree_key *key_to_replace, btree_key *replacement_key);
 
 
+    static bool is_empty(btree_leaf_node *node);
     static bool is_full(btree_leaf_node *node, btree_key *key, btree_value *value);
     static bool is_underfull(btree_leaf_node *node);
     static bool is_mergable(btree_leaf_node *node, btree_leaf_node *sibling);

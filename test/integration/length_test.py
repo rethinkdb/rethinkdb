@@ -9,15 +9,17 @@ from random import shuffle, randint
 import random
 import string
 
-NUM_INSERTS=320
-NUM_THREADS=32
+LOG_FILE="log.txt"
+NUM_INSERTS=320000
+NUM_THREADS=1
 HOST="localhost"
 PORT=os.getenv("RUN_PORT", "11211")
+#log = open(LOG_FILE, 'w')
 
 # TODO: when we add more integration tests, the act of starting a
 # RethinkDB process should be handled by a common external script.
 
-def rethinkdb_insert(queue, pairs):
+def rethinkdb_insert(pairs):
     mc = memcache.Client([HOST + ":" + PORT], debug=0)
     for pair in pairs:
         print "Inserting %s : %s" % pair
@@ -25,16 +27,18 @@ def rethinkdb_insert(queue, pairs):
             queue.put(-1)
             return
     mc.disconnect_all()
-    queue.put(0)
 
 def rethinkdb_verify(pairs):
+    error = False
     mc = memcache.Client([HOST + ":" + PORT], debug=0)
     for pair in pairs:
         val = mc.get(pair[0])
         if pair[1] != val:
             print "Error, incorrent value in the database! (%s=>%s)" % (pair[0], val)
-            sys.exit(-1)
+            error = True
     mc.disconnect_all()
+    if error:
+        sys.exit(-1)
 
 def split_list(alist, parts):
     length = len(alist)
@@ -48,17 +52,20 @@ def rethinkdb_delete(mc, keys, clone):
             print "Delete failed"
             sys.exit(-1)
         del clone[key]
-        if (randint(1,1)==1):
+        if (randint(1,1)==1000):
             print "Verifying"
             rethinkdb_cloned_verify(mc, keys, clone)
 
 def rethinkdb_cloned_verify(mc, keys, clone):
+    error = False
     for key in keys:
         stored_value = mc.get(key)
         clone_value = clone.get(key)
         if clone_value != stored_value:
             print "Error, incorrent value in the database! (%s=>%s, should be %s)" % (key, stored_value, clone_value)
-            sys.exit(-1)
+            error = True
+    if error:
+        sys.exit(-1)
 
 def main(argv):
     # Start rethinkdb process
@@ -71,31 +78,13 @@ def main(argv):
     for i in xrange(NUM_INSERTS):
         key_num = random.randint(1, 250)
         key_char = random.choice(string.letters + string.digits)
+
         keys.add(key_num*key_char)
 
     pairs = map(lambda key: (key,random.choice(string.letters + string.digits)*random.randint(1, 250)), keys)
     
-    # Invoke processes to insert them into the server concurrently
-    # (Pool automagically waits for the processes to end)
-    lists = split_list(pairs, NUM_THREADS)
-
     print "Inserting numbers"
-    queue = Queue()
-    procs = []
-    for i in xrange(0, NUM_THREADS):
-        p = Process(target=rethinkdb_insert, args=(queue, lists[i]))
-        procs.append(p)
-        p.start()
-
-    # Wait for all the checkers to complete
-    i = 0
-    while(i != NUM_THREADS):
-        res = queue.get()
-        if res == -1:
-            print "Insertion failed, most likely the db isn't running on port %s" % PORT
-            map(Process.terminate, procs)
-            sys.exit(-1)
-        i += 1
+    rethinkdb_insert(pairs)
 
 
     # Verify that all integers have successfully been inserted

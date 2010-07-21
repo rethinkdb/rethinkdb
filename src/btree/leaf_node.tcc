@@ -53,6 +53,9 @@ bool leaf_node_handler::remove(btree_leaf_node *node, btree_key *key) {
     } else {
         return false;
     }
+
+    validate(node);
+    check("leaf became zero size!", node->npairs == 0); // XXX will error incorrectly on root
 }
 
 bool leaf_node_handler::lookup(btree_leaf_node *node, btree_key *key, btree_value *value) {
@@ -102,8 +105,12 @@ void leaf_node_handler::merge(btree_leaf_node *node, btree_leaf_node *rnode, btr
     printf("rnode:\n");
     leaf_node_handler::print(rnode);
 #endif
-    //TODO: write checks
-    //check("leaf nodes too full on merge", 
+    check("leaf nodes too full to merge",
+            sizeof(btree_leaf_node) + (node->npairs + rnode->npairs)*sizeof(*node->pair_offsets) +
+            BTREE_BLOCK_SIZE - node->frontmost_offset + BTREE_BLOCK_SIZE - rnode->frontmost_offset >= BTREE_BLOCK_SIZE);
+    //check("leaf has no pairs!", node->npairs == 0);
+    //check("leaf has no pairs!", rnode->npairs == 0);
+
     memmove(rnode->pair_offsets + node->npairs, rnode->pair_offsets, rnode->npairs * sizeof(*rnode->pair_offsets));
 
     for (int i = 0; i < node->npairs; i++) {
@@ -119,6 +126,7 @@ void leaf_node_handler::merge(btree_leaf_node *node, btree_leaf_node *rnode, btr
     printf("rnode:\n");
     leaf_node_handler::print(rnode);
 #endif
+    validate(node);
 }
 
 bool leaf_node_handler::level(btree_leaf_node *node, btree_leaf_node *sibling, btree_key *key_to_replace, btree_key *replacement_key) {
@@ -145,8 +153,7 @@ bool leaf_node_handler::level(btree_leaf_node *node, btree_leaf_node *sibling, b
 #else
         int index = (sibling->npairs - node->npairs) / 2;
 #endif
-        check("could not level nodes", index < 0);
-        if (index == 0) return false;
+        if (index <= 0) return false;
         //copy from beginning of sibling to end of node
         for (int i = 0; i < index; i++) {
             node->pair_offsets[node->npairs+i] = insert_pair(node, get_pair(sibling, sibling->pair_offsets[i]));
@@ -198,9 +205,14 @@ bool leaf_node_handler::level(btree_leaf_node *node, btree_leaf_node *sibling, b
     printf("sibling:\n");
     leaf_node_handler::print(sibling);
 #endif
+    validate(node);
+    validate(sibling);
     return true;
 }
 
+bool leaf_node_handler::is_empty(btree_leaf_node *node) {
+    return node->npairs == 0;
+}
 
 bool leaf_node_handler::is_full(btree_leaf_node *node, btree_key *key, btree_value *value) {
 #ifdef DEBUG_MAX_LEAF
@@ -214,6 +226,12 @@ bool leaf_node_handler::is_full(btree_leaf_node *node, btree_key *key, btree_val
 
 void leaf_node_handler::validate(btree_leaf_node *node) {
     assert((void*)&(node->pair_offsets[node->npairs]) <= (void*)get_pair(node, node->frontmost_offset));
+    assert(node->frontmost_offset > 0);
+    assert(node->frontmost_offset <= BTREE_BLOCK_SIZE);
+    for (int i = 0; i < node->npairs; i++) {
+        assert(node->pair_offsets[i] < BTREE_BLOCK_SIZE);
+        assert(node->pair_offsets[i] >= node->frontmost_offset);
+    }
 }
 
 bool leaf_node_handler::is_mergable(btree_leaf_node *node, btree_leaf_node *sibling) {
@@ -323,7 +341,6 @@ int leaf_node_handler::nodecmp(btree_leaf_node *node1, btree_leaf_node *node2) {
 }
 
 void leaf_node_handler::print(btree_leaf_node *node) {
-#ifdef DELETE_DEBUG
     for (int i = 0; i < node->npairs; i++) {
         btree_leaf_pair *pair = get_pair(node, node->pair_offsets[i]);
         printf("|\t");
@@ -336,6 +353,5 @@ void leaf_node_handler::print(btree_leaf_node *node) {
         pair->value()->print();
     }
     printf("|\n");
-#endif
 }
 #endif // __BTREE_LEAF_NODE_TCC__
