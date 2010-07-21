@@ -36,4 +36,3 @@ protected:
 };
 
 #endif // __REQUEST_HANDLER_HPP__
-

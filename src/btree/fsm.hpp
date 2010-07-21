@@ -1,4 +1,3 @@
-
 #ifndef __FSM_BTREE_HPP__
 #define __FSM_BTREE_HPP__
 
@@ -89,4 +88,3 @@ public:
 #include "btree/fsm.tcc"
 
 #endif // __FSM_BTREE_HPP__
-

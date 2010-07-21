@@ -69,7 +69,7 @@ struct stats : public cpu_message_t, public alloc_mixin_t<tls_small_obj_alloc_ac
 //    typedef standard_config_t::request_t request_t;
     typedef standard_config_t::conn_fsm_t conn_fsm_t;
         
-    stats() : cpu_message_t(cpu_message_t::mt_stats_response) {}
+    stats() : cpu_message_t(cpu_message_t::mt_stats_response), stats_added(0) {}
     stats(const stats &rhs);
     ~stats();
     stats& operator=(const stats &rhs);
@@ -80,10 +80,13 @@ struct stats : public cpu_message_t, public alloc_mixin_t<tls_small_obj_alloc_ac
     void add(float *val, const char* desc);
 
     void uncreate();
+    void clear();
+    void add(stats& s);
     
     /* vars */
     std::map<custom_string, base_type *, std::less<custom_string>, gnew_alloc<base_type*> > registry;
     conn_fsm_t *conn_fsm;
+    int stats_added;
 };
 
 /* This is what gets sent to a core when another core requests it's stats module. */

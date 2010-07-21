@@ -1,3 +1,4 @@
+#include <iostream>
 #include "stats.hpp"
 #include <sstream>
 #include <string>
@@ -75,6 +76,18 @@ void stats::add(float* val, const char* desc)
     registry[custom_string(desc)] = new_var;
 }
 
+void stats::add(stats& s)
+{
+    map<custom_string, base_type *, less<custom_string>, gnew_alloc<base_type*> >::const_iterator iter;
+    map<custom_string, base_type *, std::less<custom_string>, gnew_alloc<base_type*> > *s_registry = s.get();
+    for (iter=s_registry->begin();iter != s_registry->end();iter++)
+    {
+        if (registry.count(iter->first) == 0) continue;
+        registry[iter->first]->add(iter->second);
+    }
+
+}
+
 stats::~stats()
 {
     uncreate();
@@ -82,11 +95,7 @@ stats::~stats()
 
 void stats::uncreate()
 {
-    map<custom_string, base_type *, less<custom_string>, gnew_alloc<base_type*> >::const_iterator iter;
-    for (iter=registry.begin();iter != registry.end();iter++)
-    {
-        delete &iter;
-    }
+    registry.clear();
 }
 
 stats::stats(const stats &rhs) : cpu_message_t(cpu_message_t::mt_stats_response)
@@ -96,6 +105,8 @@ stats::stats(const stats &rhs) : cpu_message_t(cpu_message_t::mt_stats_response)
     {
         this->registry[iter->first] = iter->second;
     }       
+    this->stats_added = rhs.stats_added;
+    this->conn_fsm = rhs.conn_fsm;
 }
 
 stats& stats::operator=(const stats &rhs)
@@ -107,7 +118,9 @@ stats& stats::operator=(const stats &rhs)
         for (iter=rhs.registry.begin();iter!=rhs.registry.end();iter++)
         {
             this->registry[iter->first] = iter->second;
-        }       
+        }
+        this->stats_added = rhs.stats_added;
+        this->conn_fsm = rhs.conn_fsm;
     }
     return *this;
 }
@@ -146,4 +159,13 @@ float_type& float_type::operator=(const float_type &rhs)
         this->max = rhs.max;
     }
     return *this;
+}
+
+void stats::clear()
+{
+    map<custom_string, base_type *, less<custom_string>, gnew_alloc<base_type*> >::iterator iter;
+    for (iter=registry.begin();iter!=registry.end();iter++)
+    {
+        iter->second = 0;
+    }       
 }

@@ -39,6 +39,7 @@
 #include "request.hpp"
 
 typedef basic_string<char, char_traits<char>, gnew_alloc<char> > custom_string;
+typedef standard_config_t::request_t request_t;
 
 // TODO: we should redo the plumbing for the entire callback system so
 // that nothing is hardcoded here. Messages should flow dynamically to
@@ -103,13 +104,28 @@ void process_stats_request(stats_request *stat_req)
     int req_id = stat_req->requester_id;
     /* this assignment automatically creates a deep copy thanks to our overloading the copy constructor */
     stats *stat = new stats(get_cpu_context()->event_queue->stat);
+    /* we clear the stats every time they get printed: */
+    get_cpu_context()->event_queue->stat.clear();
     stat->conn_fsm = stat_req->conn_fsm;
     get_cpu_context()->event_queue->message_hub.store_message(req_id, stat);
 }
 
 void process_stats_response(stats *stat)
 {
-    stat->conn_fsm->req_handler->accumulate_stats(stat);
+    stats *my_stat = &(get_cpu_context()->event_queue->stat);
+    my_stat->add(*stat);
+    my_stat->stats_added++;
+    if (my_stat->stats_added == get_cpu_context()->event_queue->nqueues - 1)
+    {
+        stats *request_stat = new stats(*my_stat);
+        request_t *request = new request_t(request_stat->conn_fsm);
+        request->fsms[0] = request_stat;
+        request->nstarted = 1;
+        request->ncompleted = 1;
+        request_stat->conn_fsm->current_request = request;
+        request_stat->conn_fsm->req_handler->build_response(request);
+        my_stat->stats_added = 0;
+    }
 }
 
 // TODO: this should really be moved into the event queue.
@@ -187,4 +203,3 @@ int main(int argc, char *argv[])
         printf("Shutting down server...\n");
     }
 }
-

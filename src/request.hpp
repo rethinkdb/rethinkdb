@@ -23,10 +23,9 @@ public:
     unsigned int nstarted, ncompleted;
 
     // TODO: make this dynamic
-    btree_fsm_t *fsms[MAX_OPS_IN_REQUEST];
+    cpu_message_t *fsms[MAX_OPS_IN_REQUEST];
 
     conn_fsm_t *netfsm;
 };
 
 #endif // __REQUEST_HPP__
-

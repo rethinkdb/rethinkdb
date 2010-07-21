@@ -445,89 +445,107 @@ void memcached_handler_t<config_t>::build_response(request_t *request) {
     int count;
     
     assert(request->nstarted > 0 && request->nstarted == request->ncompleted);
-    switch(request->fsms[0]->fsm_type) {
-    case btree_fsm_t::btree_get_fsm:
-        // TODO: make sure we don't overflow the buffer with sprintf
-        for(unsigned int i = 0; i < request->nstarted; i++) {
-            btree_get_fsm = (btree_get_fsm_t*)request->fsms[i];
-            if(btree_get_fsm->op_result == btree_get_fsm_t::btree_found) {
-                //TODO: support flags
-                btree_key *key = btree_get_fsm->key;
-                btree_value *value = btree_get_fsm->value;
-                count = sprintf(sbuf, "VALUE %*.*s %u %u\r\n%*.*s\r\n", key->size, key->size, key->contents, 0, value->size, value->size, value->size, value->contents);
+    
+    if (request->fsms[0]->type == cpu_message_t::mt_btree)
+    {
+        btree_fsm_t *btree = dynamic_cast<btree_fsm_t*>(request->fsms[0]);
+        switch(btree->fsm_type) {
+        case btree_fsm_t::btree_get_fsm:
+            // TODO: make sure we don't overflow the buffer with sprintf
+            for(unsigned int i = 0; i < request->nstarted; i++) {
+                btree_get_fsm = (btree_get_fsm_t*)request->fsms[i];
+                if(btree_get_fsm->op_result == btree_get_fsm_t::btree_found) {
+                    //TODO: support flags
+                    btree_key *key = btree_get_fsm->key;
+                    btree_value *value = btree_get_fsm->value;
+                    count = sprintf(sbuf, "VALUE %*.*s %u %u\r\n%*.*s\r\n", key->size, key->size, key->contents, 0, value->size, value->size, value->size, value->contents);
+                    fsm->nsbuf += count;
+                    sbuf += count;
+                } else if(btree_get_fsm->op_result == btree_get_fsm_t::btree_not_found) {
+                    // do nothing
+                }
+            }
+            count = sprintf(sbuf, RETRIEVE_TERMINATOR);
+            fsm->nsbuf += count;
+            break;
+    
+        case btree_fsm_t::btree_set_fsm:
+            // For now we only support one set operation at a time
+            assert(request->nstarted == 1);
+    
+            btree_set_fsm = (btree_set_fsm_t*)request->fsms[0];
+    
+            if (btree_set_fsm->noreply) {
+                // if noreply is set do not reply regardless of success or failure
+                fsm->nsbuf=0;
+            } else {
+                // noreply not set, send reply depending on type of request
+    
+                switch(btree_set_fsm->get_set_type()) {
+                case btree_set_type_incr:
+                case btree_set_type_decr:
+                    if (btree_set_fsm->set_was_successful) {
+                        strncpy(sbuf, btree_set_fsm->get_value()->contents, btree_set_fsm->get_value()->size);
+                        sbuf[btree_set_fsm->get_value()->size + 0] = '\r';
+                        sbuf[btree_set_fsm->get_value()->size + 1] = '\n';
+                        fsm->nsbuf = btree_set_fsm->get_value()->size + 2;
+                    } else {
+                        strcpy(sbuf, NOT_FOUND);
+                        fsm->nsbuf = strlen(NOT_FOUND);
+                    }
+                    break;
+    
+                case btree_set_type_set:
+                case btree_set_type_add:
+                case btree_set_type_replace:
+                    if (btree_set_fsm->set_was_successful) {
+                        strcpy(sbuf, STORAGE_SUCCESS);
+                        fsm->nsbuf = strlen(STORAGE_SUCCESS);
+                    } else {
+                        strcpy(sbuf,STORAGE_FAILURE);
+                        fsm->nsbuf = strlen(STORAGE_FAILURE);
+                    }
+                    break;
+                }
+            }
+            break;
+    
+        case btree_fsm_t::btree_delete_fsm:
+            // For now we only support one delete operation at a time
+            assert(request->nstarted == 1);
+    
+            btree_delete_fsm = (btree_delete_fsm_t*)request->fsms[0];
+    
+            if(btree_delete_fsm->op_result == btree_delete_fsm_t::btree_found) {
+                count = sprintf(sbuf, "DELETED\r\n");
+                fsm->nsbuf += count;
+                sbuf += count; //for when we do support multiple deletes at a time
+            } else if (btree_delete_fsm->op_result == btree_delete_fsm_t::btree_not_found) {
+                count = sprintf(sbuf, NOT_FOUND);
                 fsm->nsbuf += count;
                 sbuf += count;
-            } else if(btree_get_fsm->op_result == btree_get_fsm_t::btree_not_found) {
-                // do nothing
+            } else {
+                check("memchached_handler_t::build_response - Uknown value for btree_delete_fsm->op_result\n", 0);
             }
+            break;
+    
+        default:
+            check("memcached_handler_t::build_response - Unknown btree op", 0);
+            break;
         }
-        count = sprintf(sbuf, RETRIEVE_TERMINATOR);
-        fsm->nsbuf += count;
-        break;
-
-    case btree_fsm_t::btree_set_fsm:
-        // For now we only support one set operation at a time
-        assert(request->nstarted == 1);
-
-        btree_set_fsm = (btree_set_fsm_t*)request->fsms[0];
-
-        if (btree_set_fsm->noreply) {
-            // if noreply is set do not reply regardless of success or failure
-            fsm->nsbuf=0;
-        } else {
-            // noreply not set, send reply depending on type of request
-
-            switch(btree_set_fsm->get_set_type()) {
-            case btree_set_type_incr:
-            case btree_set_type_decr:
-                if (btree_set_fsm->set_was_successful) {
-                    strncpy(sbuf, btree_set_fsm->get_value()->contents, btree_set_fsm->get_value()->size);
-                    sbuf[btree_set_fsm->get_value()->size + 0] = '\r';
-                    sbuf[btree_set_fsm->get_value()->size + 1] = '\n';
-                    fsm->nsbuf = btree_set_fsm->get_value()->size + 2;
-                } else {
-                    strcpy(sbuf, NOT_FOUND);
-                    fsm->nsbuf = strlen(NOT_FOUND);
-                }
-                break;
-
-            case btree_set_type_set:
-            case btree_set_type_add:
-            case btree_set_type_replace:
-                if (btree_set_fsm->set_was_successful) {
-                    strcpy(sbuf, STORAGE_SUCCESS);
-                    fsm->nsbuf = strlen(STORAGE_SUCCESS);
-                } else {
-                    strcpy(sbuf,STORAGE_FAILURE);
-                    fsm->nsbuf = strlen(STORAGE_FAILURE);
-                }
-                break;
-            }
+    }else if (request->fsms[0]->type == cpu_message_t::mt_stats_response)
+    {
+        stats *request_stat = dynamic_cast<stats *>(request->fsms[0]);
+        map<custom_string, base_type *, std::less<custom_string>, gnew_alloc<base_type*> > *registry = request_stat->get();
+        custom_string response = "";
+        map<custom_string, base_type *, less<custom_string>, gnew_alloc<base_type*> >::iterator iter;
+        for (iter=registry->begin();iter != registry->end();iter++)
+        {
+            response += "STAT " + iter->first + " " + iter->second->get_value() + "\r\n";
+//                sprintf("STAT %s %s\r\n",iter->first.c_str(), iter->second->get_value().c_str());
         }
-        break;
-
-    case btree_fsm_t::btree_delete_fsm:
-        // For now we only support one delete operation at a time
-        assert(request->nstarted == 1);
-
-        btree_delete_fsm = (btree_delete_fsm_t*)request->fsms[0];
-
-        if(btree_delete_fsm->op_result == btree_delete_fsm_t::btree_found) {
-            count = sprintf(sbuf, "DELETED\r\n");
-            fsm->nsbuf += count;
-            sbuf += count; //for when we do support multiple deletes at a time
-        } else if (btree_delete_fsm->op_result == btree_delete_fsm_t::btree_not_found) {
-            count = sprintf(sbuf, NOT_FOUND);
-            fsm->nsbuf += count;
-            sbuf += count;
-        } else {
-            check("memchached_handler_t::build_response - Uknown value for btree_delete_fsm->op_result\n", 0);
-        }
-        break;
-
-    default:
-        check("memcached_handler_t::build_response - Unknown btree op", 0);
-        break;
+            strcpy(sbuf, response.c_str());
+            fsm->nsbuf = strlen(response.c_str());
     }
     delete request;
     fsm->current_request = NULL;
@@ -549,7 +567,7 @@ typename memcached_handler_t<config_t>::parse_result_t memcached_handler_t<confi
     stats_request *req = new stats_request(id);
     
     req->conn_fsm = fsm;
-
+    get_cpu_context()->event_queue->stat.conn_fsm = fsm;
     
     // tell every single CPU core to pass their stats module *by copy* to this CPU
     for (int i=0;i<nworkers;i++)

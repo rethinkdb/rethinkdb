@@ -35,6 +35,9 @@ struct cpu_message_t : public intrusive_list_node_t<cpu_message_t>
     
     msg_type_t type;
     unsigned int return_cpu;
+    
+    // TODO: Fina a better solution. This is only here so that deadlock_debug works in fsm.tcc. 
+    virtual void deadlock_debug() {}
 };
 
 struct event_queue_t;
