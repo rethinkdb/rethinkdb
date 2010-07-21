@@ -62,7 +62,6 @@ private:
     
     /* stats stuff */
     parse_result_t print_stats(conn_fsm_t *fsm, unsigned int line_len);
-    void accumulate_stats(stats *stat);
     int stats_counter; // keeps track of how many cores have sent us their stats
 };
 

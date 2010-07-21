@@ -17,6 +17,8 @@ struct base_type {
     typedef std::basic_stringstream<char, std::char_traits<char>, gnew_alloc<char> > custom_stringstream;
     virtual void add(base_type* val) {}
     virtual custom_string get_value();
+    virtual void clear() {}
+    virtual ~base_type() {}
 };
 
 struct int_type : public base_type, public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, int_type > {
@@ -24,11 +26,13 @@ struct int_type : public base_type, public alloc_mixin_t<tls_small_obj_alloc_acc
     typedef std::basic_stringstream<char, std::char_traits<char>, gnew_alloc<char> > custom_stringstream;
 
     int_type(int* a) : value(a) {}
+    int_type(const int_type &rhs);
     int_type& operator=(const int_type &rhs);
     
     void add(base_type* val);
     custom_string get_value();
-
+    void clear();
+    
     int* value;
     int min;
     int max;
@@ -39,10 +43,13 @@ struct double_type : public base_type, public alloc_mixin_t<tls_small_obj_alloc_
     typedef std::basic_stringstream<char, std::char_traits<char>, gnew_alloc<char> > custom_stringstream;
 
     double_type(double* a) : value(a) {}
+    double_type(const double_type &rhs);
     double_type& operator=(const double_type &rhs);
 
     void add(base_type* val);
     custom_string get_value();
+    void clear();
+    
     double* value;
     double min;
     double max;
@@ -53,10 +60,13 @@ struct float_type : public base_type, public alloc_mixin_t<tls_small_obj_alloc_a
     typedef std::basic_stringstream<char, std::char_traits<char>, gnew_alloc<char> > custom_stringstream;
 
     float_type(float* a) : value(a) {}
+    float_type(const float_type &rhs);
     float_type& operator=(const float_type &rhs);
 
     void add(base_type* val);
     custom_string get_value();
+    void clear();
+
     float* value;
     float min;
     float max;
@@ -78,10 +88,11 @@ struct stats : public cpu_message_t, public alloc_mixin_t<tls_small_obj_alloc_ac
     void add(int *val, const char* desc);
     void add(double *val, const char* desc);
     void add(float *val, const char* desc);
-
+    void add(stats& s);
+    
     void uncreate();
     void clear();
-    void add(stats& s);
+    void copy(const stats &rhs);
     
     /* vars */
     std::map<custom_string, base_type *, std::less<custom_string>, gnew_alloc<base_type*> > registry;
@@ -99,14 +110,5 @@ struct stats_request : public cpu_message_t, public alloc_mixin_t<tls_small_obj_
     int requester_id;
     conn_fsm_t *conn_fsm;
 };
-
-/* Example:
-
-        stats g;
-        int a = 100;
-        g.add(&a, "my variable");
-        a = 200;
-        cout << g.get() << endl;
-*/
 
 #endif

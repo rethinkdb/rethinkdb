@@ -117,14 +117,22 @@ void process_stats_response(stats *stat)
     my_stat->stats_added++;
     if (my_stat->stats_added == get_cpu_context()->event_queue->nqueues - 1)
     {
-        stats *request_stat = new stats(*my_stat);
-        request_t *request = new request_t(request_stat->conn_fsm);
-        request->fsms[0] = request_stat;
+        request_t *request = my_stat->conn_fsm->current_request;
+        stats *stat_for_request = new stats(*my_stat);
+        request->fsms[0] = stat_for_request;
         request->nstarted = 1;
         request->ncompleted = 1;
-        request_stat->conn_fsm->current_request = request;
-        request_stat->conn_fsm->req_handler->build_response(request);
+
+        event_queue_t *event_queue = get_cpu_context()->event_queue;
+        event_t event;
+        bzero((void*)&event, sizeof(event));
+        event.state = my_stat->conn_fsm;
+        event.event_type = et_request_complete;
+        my_stat->conn_fsm->req_handler->build_response(request);
+        initiate_conn_fsm_transition(event_queue, &event);
+
         my_stat->stats_added = 0;
+        my_stat->clear();
     }
 }
 
