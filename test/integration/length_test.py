@@ -10,11 +10,10 @@ import random
 import string
 
 LOG_FILE="log.txt"
-NUM_INSERTS=320000
-NUM_THREADS=1
+NUM_INSERTS=32000
 HOST="localhost"
 PORT=os.getenv("RUN_PORT", "11211")
-#log = open(LOG_FILE, 'w')
+log = open(LOG_FILE, 'w')
 
 # TODO: when we add more integration tests, the act of starting a
 # RethinkDB process should be handled by a common external script.
@@ -23,12 +22,14 @@ def rethinkdb_insert(pairs):
     mc = memcache.Client([HOST + ":" + PORT], debug=0)
     for pair in pairs:
         print "Inserting %s : %s" % pair
+        log.write("set %s %s\n" % pair)
         if (0 == mc.set(pair[0], pair[1])):
-            queue.put(-1)
-            return
+            print "Insertion failed"
+            sys.exit(-1)
     mc.disconnect_all()
 
 def rethinkdb_verify(pairs):
+    log.write("verify\n")
     error = False
     mc = memcache.Client([HOST + ":" + PORT], debug=0)
     for pair in pairs:
@@ -48,6 +49,7 @@ def split_list(alist, parts):
 def rethinkdb_delete(mc, keys, clone):
     for key in keys:
         print "Deleting %s" % key
+        log.write("delete %s\n" % key)
         if (0 == mc.delete(key)):
             print "Delete failed"
             sys.exit(-1)
@@ -57,6 +59,7 @@ def rethinkdb_delete(mc, keys, clone):
             rethinkdb_cloned_verify(mc, keys, clone)
 
 def rethinkdb_cloned_verify(mc, keys, clone):
+    log.write("verify\n")
     error = False
     for key in keys:
         stored_value = mc.get(key)
@@ -95,6 +98,7 @@ def main(argv):
 
     rethinkdb_delete(mc, list(keys), dict(pairs))
     
+    log.close()
     
     # Kill RethinkDB process
     # TODO: send the shutdown command
