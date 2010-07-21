@@ -37,7 +37,8 @@ void alloc_mixin_t<accessor_t, type_t>::operator delete(void *ptr) {
     // In debug mode, check that we use the same allocator to free as
     // we used to create.
     void **tmp = (void**)ptr;
-    assert(tmp[-1] == accessor_t::template get_alloc<type_t>());
+    bool multithreaded_allocator_misused = (tmp[-1] != accessor_t::template get_alloc<type_t>());
+    assert(!multithreaded_allocator_misused);
     accessor_t::template get_alloc<type_t>()->free((void*)&tmp[-1]);
 #endif
 }
