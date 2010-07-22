@@ -18,7 +18,6 @@
 #define RETRIEVE_TERMINATOR "END\r\n"
 #define BAD_BLOB "CLIENT_ERROR bad data chunk\r\n"
 
-#include <iostream>
 using namespace std;
 // Please read and understand the memcached protocol before modifying this
 // file. If you only do a cursory readthrough, please check with someone who
@@ -534,16 +533,17 @@ void memcached_handler_t<config_t>::build_response(request_t *request) {
         }
     }else if (request->fsms[0]->type == cpu_message_t::mt_stats_response)
     {
-        stats *request_stat = dynamic_cast<stats *>(request->fsms[0]);
+        stats_response *response = dynamic_cast<stats_response *>(request->fsms[0]);
+        stats *request_stat = response->stat;
         map<custom_string, base_type *, std::less<custom_string>, gnew_alloc<base_type*> > *registry = request_stat->get();
-        custom_string response = "";
+        custom_string str_response = "";
         map<custom_string, base_type *, less<custom_string>, gnew_alloc<base_type*> >::iterator iter;
         for (iter=registry->begin();iter != registry->end();iter++)
         {
-            response += "STAT " + iter->first + " " + iter->second->get_value() + "\r\n";
+            str_response += "STAT " + iter->first + " " + iter->second->get_value() + "\r\n";
         }
-            strcpy(sbuf, response.c_str());
-            fsm->nsbuf = strlen(response.c_str());
+            strcpy(sbuf, str_response.c_str());
+            fsm->nsbuf = strlen(str_response.c_str());
     }
     delete request;
     fsm->current_request = NULL;
@@ -552,21 +552,20 @@ void memcached_handler_t<config_t>::build_response(request_t *request) {
 template <class config_t>
 typename memcached_handler_t<config_t>::parse_result_t memcached_handler_t<config_t>::print_stats(conn_fsm_t *fsm, unsigned int line_len) {
 
-    worker_pool_t *worker_pool = get_cpu_context()->event_queue->parent_pool;
-    int nworkers = (int)worker_pool->nworkers;
-
+    int nworkers = (int)get_cpu_context()->event_queue->parent_pool->nworkers;
     int id = get_cpu_context()->event_queue->queue_id;
-    stats_request *req_to_cores = new stats_request(id);
-    req_to_cores->conn_fsm = fsm;
     
-    request_t *request = new request_t(req_to_cores->conn_fsm);
-    get_cpu_context()->event_queue->stat.conn_fsm = fsm;
-    get_cpu_context()->event_queue->stat.conn_fsm->current_request = request;
+//    get_cpu_context()->event_queue->stat.conn_fsm = fsm;
+//    get_cpu_context()->event_queue->stat.conn_fsm->current_request = request;
     
+    request_t *request = new request_t(fsm);
     // tell every single CPU core to pass their stats module *by copy* to this CPU
     for (int i=0;i<nworkers;i++)
     {
         if (i != id) {
+            stats_request *req_to_cores = new stats_request(id);
+            req_to_cores->conn_fsm = fsm;
+            req_to_cores->conn_fsm->current_request = request;
             req_handler_t::event_queue->message_hub.store_message(i, req_to_cores);
         }
     }

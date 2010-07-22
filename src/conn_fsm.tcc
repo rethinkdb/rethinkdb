@@ -1,4 +1,3 @@
-#include <iostream>
 #ifndef __FSM_TCC__
 #define __FSM_TCC__
 
@@ -282,7 +281,7 @@ void conn_fsm<config_t>::send_err_to_client() {
 }
 
 template<class config_t>
-    void conn_fsm<config_t>::consume(unsigned int bytes) {
+void conn_fsm<config_t>::consume(unsigned int bytes) {
     memmove(this->rbuf, this->rbuf + bytes, this->nrbuf - bytes);
     this->nrbuf -= bytes;
 }

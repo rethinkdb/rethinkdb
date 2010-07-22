@@ -77,15 +77,20 @@ void process_btree_msg(code_config_t::btree_fsm_t *btree_fsm) {
         // We received a completed btree that belongs to us
         btree_fsm->request->ncompleted++;
         if(btree_fsm->request->ncompleted == btree_fsm->request->nstarted) {
-            // This should be before build_response, as the
-            // request handler will destroy the btree
-            code_config_t::conn_fsm_t *netfsm = btree_fsm->request->netfsm;
-            event_t event;
-            bzero((void*)&event, sizeof(event));
-            event.state = netfsm;
-            event.event_type = et_request_complete;
-            netfsm->req_handler->build_response(btree_fsm->request);
-            initiate_conn_fsm_transition(event_queue, &event);
+            if(btree_fsm->noreply) {
+                assert(btree_fsm->request->nstarted <= 1);
+                delete btree_fsm->request;
+            } else {
+                // This should be before build_response, as the
+                // request handler will destroy the btree
+                code_config_t::conn_fsm_t *netfsm = btree_fsm->request->netfsm;
+                event_t event;
+                bzero((void*)&event, sizeof(event));
+                event.state = netfsm;
+                event.event_type = et_request_complete;
+                netfsm->req_handler->build_response(btree_fsm->request);
+                initiate_conn_fsm_transition(event_queue, &event);
+            }
         }
     } else {
         // We received a new btree that we need to process
@@ -100,38 +105,57 @@ void process_btree_msg(code_config_t::btree_fsm_t *btree_fsm) {
 void process_stats_request(stats_request *stat_req)
 {
     int req_id = stat_req->requester_id;
-    /* this assignment automatically creates a deep copy thanks to our overloading the copy constructor */
+    
+    // copy constructor automatically creates a deep copy.
     stats *stat = new stats(get_cpu_context()->event_queue->stat);
-    /* we clear the stats every time they get printed: */
+    stats_response *response = new stats_response(get_cpu_context()->event_queue->queue_id);
+    response->request = stat_req;
+    response->conn_fsm = stat_req->conn_fsm;
+    response->stat = stat;
     get_cpu_context()->event_queue->stat.clear();
-    stat->conn_fsm = stat_req->conn_fsm;
-    get_cpu_context()->event_queue->message_hub.store_message(req_id, stat);
+    get_cpu_context()->event_queue->message_hub.store_message(req_id, response);
 }
 
-void process_stats_response(stats *stat)
+void process_stats_response(stats_response *response)
 {
+    // if the to_delete flag is set, this is the final message
+    // from the main core asking each core to please delete their
+    // response and stats since we are dine using them.
+    if (response->to_delete)
+    {
+        delete response->stat;
+        delete response;
+        return;
+    }
+    
+    // otherwise this is a message from a minor core sending the
+    // main core a copy of their stats module.
     stats *my_stat = &(get_cpu_context()->event_queue->stat);
-    my_stat->add(*stat);
+    my_stat->add(*(response->stat));
     my_stat->stats_added++;
     if (my_stat->stats_added == get_cpu_context()->event_queue->nqueues - 1)
     {
-        request_t *request = my_stat->conn_fsm->current_request;
-        stats *stat_for_request = new stats(*my_stat);
-        request->fsms[0] = stat_for_request;
+        request_t *request = response->conn_fsm->current_request;
+        stats_response *final_response = new stats_response(*response);
+        final_response->stat = my_stat;
+        request->fsms[0] = final_response;
         request->nstarted = 1;
         request->ncompleted = 1;
 
         event_queue_t *event_queue = get_cpu_context()->event_queue;
         event_t event;
         bzero((void*)&event, sizeof(event));
-        event.state = my_stat->conn_fsm;
+        event.state = response->conn_fsm;
         event.event_type = et_request_complete;
-        my_stat->conn_fsm->req_handler->build_response(request);
+        response->conn_fsm->req_handler->build_response(request);
         initiate_conn_fsm_transition(event_queue, &event);
 
         my_stat->stats_added = 0;
         my_stat->clear();
     }
+    delete response->request;
+    response->to_delete = true;
+    get_cpu_context()->event_queue->message_hub.store_message(response->responsee_id, response);
 }
 
 // TODO: this should really be moved into the event queue.
@@ -158,7 +182,7 @@ void event_handler(event_queue_t *event_queue, event_t *event) {
             process_stats_request((stats_request*)msg);
             break;
         case cpu_message_t::mt_stats_response:
-            process_stats_response((stats*)msg);            
+            process_stats_response((stats_response*)msg);
             break;
         }
     } else {
@@ -201,10 +225,10 @@ int main(int argc, char *argv[])
     {
         // Create a pool of workers
         worker_pool_t worker_pool(event_handler, pthread_self(), &config);
-        
-        
+
         // Start the server (in a separate thread)
         start_server(&worker_pool);
+
         // If we got out of start_server, we're about to shut down.
         printf("Shutting down server...\n");
     }

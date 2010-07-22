@@ -1,4 +1,3 @@
-#include <iostream>
 #include "stats.hpp"
 #include <sstream>
 #include <string>
@@ -9,6 +8,7 @@
 using namespace std;
 typedef basic_string<char, char_traits<char>, gnew_alloc<char> > custom_string;
 
+/* type classes */
 custom_string base_type::get_value()
 {
     return "you should never see this.";
@@ -52,7 +52,13 @@ void float_type::add(base_type* val)
     custom_string stored_value = val->get_value();
     *value += strtof(stored_value.c_str(), NULL);
 }
-/* stats module */
+
+void inline int_type::clear()    { *value = 0; }
+void inline double_type::clear() { *value = 0; }
+void inline float_type::clear()  { *value = 0; }
+
+
+/* stats module. */
 map<custom_string, base_type *, std::less<custom_string>, gnew_alloc<base_type*> >* stats::get()
 {
     return &registry;
@@ -119,7 +125,7 @@ void stats::copy(const stats &rhs)
     this->conn_fsm = rhs.conn_fsm;
 }
 
-stats::stats(const stats &rhs) : cpu_message_t(cpu_message_t::mt_stats_response)
+stats::stats(const stats &rhs)
 {
     copy(rhs);
 }
@@ -134,66 +140,6 @@ stats& stats::operator=(const stats &rhs)
     return *this;
 }
 
-int_type& int_type::operator=(const int_type &rhs)
-{
-    if (&rhs != this)
-    {
-        int* val = new int(*(rhs.value));
-        this->value = val;
-        this->min = rhs.min;
-        this->max = rhs.max;
-    }
-    return *this;
-}
-
-double_type& double_type::operator=(const double_type &rhs)
-{
-    if (&rhs != this)
-    {
-        double* val = new double(*(rhs.value));
-        this->value = val;
-        this->min = rhs.min;
-        this->max = rhs.max;
-    }
-    return *this;
-}
-
-float_type& float_type::operator=(const float_type &rhs)
-{
-    if (&rhs != this)
-    {
-        float* val = new float(*(rhs.value));
-        this->value = val;
-        this->min = rhs.min;
-        this->max = rhs.max;
-    }
-    return *this;
-}
-
-int_type::int_type(const int_type &rhs)
-{
-    int* val = new int(*(rhs.value));
-    this->value = val;
-    this->min = rhs.min;
-    this->max = rhs.max;
-}
-
-double_type::double_type(const double_type &rhs)
-{
-    double* val = new double(*(rhs.value));
-    this->value = val;
-    this->min = rhs.min;
-    this->max = rhs.max;
-}
-
-float_type::float_type(const float_type &rhs)
-{
-    float* val = new float(*(rhs.value));
-    this->value = val;
-    this->min = rhs.min;
-    this->max = rhs.max;
-}
-
 void stats::clear()
 {
     map<custom_string, base_type *, less<custom_string>, gnew_alloc<base_type*> >::iterator iter;
@@ -201,19 +147,4 @@ void stats::clear()
     {
         iter->second->clear();
     }       
-}
-
-void int_type::clear()
-{
-    *value = 0;
-}
-
-void double_type::clear()
-{
-    *value = 0;
-}
-
-void float_type::clear()
-{
-    *value = 0;
 }
