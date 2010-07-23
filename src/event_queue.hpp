@@ -106,6 +106,7 @@ public:
     worker_pool_t *parent_pool;
     message_hub_t message_hub;
 
+    int *do_trans_count;
     // TODO: right now we only have one slice per event queue. We
     // should support multiple slices per queue.
     // TODO: implement slice writeback scheduling and admin tools.

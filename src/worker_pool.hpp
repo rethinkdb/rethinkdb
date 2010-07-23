@@ -9,10 +9,7 @@
 
 // Worker pool
 struct worker_pool_t {
-public:
-    int* nums[8];
-    int* nums2[8];
-    
+public:    
     worker_pool_t(event_handler_t event_handler, pthread_t main_thread,
                   cmd_config_t *_cmd_config);
     worker_pool_t(event_handler_t event_handler, pthread_t main_thread, int _nworkers,

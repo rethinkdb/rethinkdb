@@ -42,14 +42,12 @@ void worker_pool_t::create_worker_pool(event_handler_t event_handler, pthread_t 
     for(int i = 0; i < nworkers; i++) {
         workers[i]->message_hub.init(i, nworkers, workers);
     }
-
+    
     // Start the actual queue
     for(int i = 0; i < nworkers; i++) {
-        workers[i]->start_queue();
-        nums[i] = gnew<int>(i);
-        nums2[i] = gnew<int>(i);
-        workers[i]->stat.add(nums[i], "my number");
-        workers[i]->stat.add(nums2[i], "my number2");
+        workers[i]->start_queue();        
+        workers[i]->do_trans_count = gnew<int>(0);
+        workers[i]->stat.add(workers[i]->do_trans_count, "do_transition count");
     }
 
     // TODO: can we move the printing out of here?
