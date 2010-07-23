@@ -6,6 +6,8 @@
 #include <unistd.h>
 #include <errno.h>
 #include "utils.hpp"
+#include "request_handler/txt_memcached_handler.hpp"
+#include "request_handler/bin_memcached_handler.hpp"
 #include "request_handler/memcached_handler.hpp"
 
 template<class config_t>
@@ -15,6 +17,7 @@ void conn_fsm<config_t>::init_state() {
     this->sbuf = NULL;
     this->nrbuf = 0;
     this->nsbuf = 0;
+    sbuf_corked = false;
 }
 
 // This function returns the socket to clean connected state
@@ -57,6 +60,9 @@ typename conn_fsm<config_t>::result_t conn_fsm<config_t>::fill_rbuf(event_t *eve
             // fsm_socket_send_incomplete state here,
             // since we break out in these cases. So it's
             // safe to free the buffer.
+            //
+            //TODO Modify this so that we go into send_incomplete and try to empty our send buffer
+            //this is a pretty good first TODO
             if(state->state != conn_fsm::fsm_socket_recv_incomplete && nrbuf == 0)
                 return_to_socket_connected();
             else

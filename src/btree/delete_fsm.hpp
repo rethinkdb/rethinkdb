@@ -74,7 +74,9 @@ private:
     char key_memory[MAX_KEY_SIZE+sizeof(btree_key)];
     // Some relevant state information
     state_t state;
+public:
     btree_key * const key;
+private:
     buf_t *buf, *last_buf, *sb_buf, *sib_buf;
     block_id_t node_id, last_node_id, sib_node_id;
 

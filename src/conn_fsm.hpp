@@ -100,6 +100,7 @@ public:
     req_handler_t *req_handler;
     event_queue_t *event_queue;
     request_t *current_request;
+    bool sbuf_corked; //whether response should be sent out or accumulated
     
 private:
     result_t fill_rbuf(event_t *event);

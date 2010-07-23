@@ -6,6 +6,10 @@
 #include "config/code.hpp"
 #include "alloc/alloc_mixin.hpp"
 
+/*! memcached_handler_t
+ *  \brief Implements a wrapper for bin_memcached_handler_t and txt_memcached_handler_t
+ *         which parses incoming packets to determine which type they are
+ */
 template<class config_t>
 class memcached_handler_t : public request_handler_t<config_t>,
     public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, memcached_handler_t<config_t> > {
@@ -19,49 +23,37 @@ public:
     typedef typename config_t::btree_delete_fsm_t btree_delete_fsm_t;
     typedef typename config_t::req_handler_t req_handler_t;
     typedef typename req_handler_t::parse_result_t parse_result_t;
+    typedef typename config_t::t_memcached_handler_t txt_memcached_handler_t;
+    typedef typename config_t::b_memcached_handler_t bin_memcached_handler_t;
+    typedef typename config_t::b_memcached_handler_t::bin_magic_t bin_magic_t;
     
 public:
     memcached_handler_t(cache_t *_cache, event_queue_t *eq)
-        : req_handler_t(eq), cache(_cache), key((btree_key*)key_memory), loading_data(false)
+        : req_handler_t(eq), cache(_cache), memcached_protocol(memcached_unknown_protocol), req_handler(NULL)
         {}
     
     virtual parse_result_t parse_request(event_t *event);
     virtual void build_response(request_t *request);
 
 private:
-    enum storage_command { SET, ADD, REPLACE, APPEND, PREPEND, CAS };
     cache_t *cache;
-    storage_command cmd;
+    typedef enum {
+        memcached_unknown_protocol = -1,
+        memcached_txt_protocol,
+        memcached_bin_protocol,
+        num_memcached_protocol
+    } memcached_protocol_t;
 
-    char key_memory[MAX_KEY_SIZE+sizeof(btree_key)];
-    btree_key * const key;
-    uint32_t flags;
-    uint32_t exptime;
-    uint32_t bytes;
-    uint64_t cas_unique; //must be at least 64 bits
-    bool noreply;
-    bool loading_data;
+    //! memcached_protocol: which protocol we've decided we're using (if we've decided)
+    memcached_protocol_t memcached_protocol;
 
-    parse_result_t parse_storage_command(storage_command command, char *state, unsigned int line_len, conn_fsm_t *fsm);
-    parse_result_t parse_adjustment(bool increment, char *state, unsigned int line_len, conn_fsm_t *fsm);
+    //! the correct handler for the packet (or NULL if we haven't decided)
+    req_handler_t *req_handler;
 
-    parse_result_t read_data(char *data, unsigned int size, conn_fsm_t *fsm);
-
-    parse_result_t fire_set_fsm(btree_set_type type, btree_key *key, char *value_data, uint32_t value_len, bool noreply, conn_fsm_t *conn_fsm);
-    parse_result_t append(char *data, conn_fsm_t *fsm);
-    parse_result_t prepend(char *data, conn_fsm_t *fsm);
-    parse_result_t cas(char *data, conn_fsm_t *fsm);
-
-    parse_result_t get(char *state, bool include_unique, unsigned int line_len, conn_fsm_t *fsm);
-
-    parse_result_t remove(char *state, unsigned int line_len, conn_fsm_t *fsm);
-
-    void write_msg(conn_fsm_t *fsm, const char *str);
-    parse_result_t malformed_request(conn_fsm_t *fsm);
-    parse_result_t unimplemented_request(conn_fsm_t *fsm);
+    //! determine which protocol the packet is using
+    void determine_protocol(const event_t *event);
 };
 
 #include "request_handler/memcached_handler.tcc"
 
 #endif // __MEMCACHED_HANDLER_HPP__
-

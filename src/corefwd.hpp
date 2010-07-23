@@ -63,6 +63,12 @@ template <class config_t>
 class request_handler_t;
 
 template <class config_t>
+class txt_memcached_handler_t;
+
+template <class config_t>
+class bin_memcached_handler_t;
+
+template <class config_t>
 class memcached_handler_t;
 
 // Context

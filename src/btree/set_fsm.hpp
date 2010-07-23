@@ -2,13 +2,13 @@
 #ifndef __BTREE_SET_FSM_HPP__
 #define __BTREE_SET_FSM_HPP__
 
-enum btree_set_type {
+typedef enum {
     btree_set_type_set,
     btree_set_type_add,
     btree_set_type_replace,
     btree_set_type_incr,
     btree_set_type_decr
-};
+}btree_set_type;
 
 template <class config_t>
 class btree_set_fsm : public btree_fsm<config_t>,
@@ -77,9 +77,11 @@ private:
     char value_memory[MAX_IN_NODE_VALUE_SIZE+sizeof(btree_value)];
     // Some relevant state information
     state_t state;
+public:
     btree_key * const key;
     btree_value * const value;
 
+private:
     buf_t *sb_buf, *buf, *last_buf;
     block_id_t node_id, last_node_id; // TODO(NNW): Bufs may suffice for these.
     
