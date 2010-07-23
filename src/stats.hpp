@@ -12,11 +12,10 @@
 
 /* Variable Types */
 struct base_type {
-
     typedef std::basic_string<char, std::char_traits<char>, gnew_alloc<char> > custom_string;
     typedef std::basic_stringstream<char, std::char_traits<char>, gnew_alloc<char> > custom_stringstream;
     virtual void add(base_type* val) {}
-    virtual custom_string get_value();
+    virtual custom_string get_value() = 0;
     virtual void clear() {}
     virtual ~base_type() {}
 };
@@ -29,7 +28,11 @@ struct int_type : public base_type, public alloc_mixin_t<tls_small_obj_alloc_acc
     void add(base_type* val);
     custom_string get_value();
     void inline clear();
-    
+    ~int_type();
+    int_type(const int_type& rhs);
+    int_type& operator=(const int_type& rhs);
+    void copy(const int_type& rhs);
+
     int* value;
     int min;
     int max;
@@ -43,7 +46,11 @@ struct double_type : public base_type, public alloc_mixin_t<tls_small_obj_alloc_
     void add(base_type* val);
     custom_string get_value();
     void inline clear();
-    
+    ~double_type();
+    double_type(const double_type& rhs);
+    double_type& operator=(const double_type& rhs);
+    void copy(const double_type& rhs);
+
     double* value;
     double min;
     double max;
@@ -57,6 +64,10 @@ struct float_type : public base_type, public alloc_mixin_t<tls_small_obj_alloc_a
     void add(base_type* val);
     custom_string get_value();
     void inline clear();
+    ~float_type();
+    float_type(const float_type& rhs);
+    float_type& operator=(const float_type& rhs);
+    void copy(const float_type& rhs);
 
     float* value;
     float min;
@@ -75,9 +86,9 @@ struct stats : public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, stats
     stats& operator=(const stats &rhs);
 
     std::map<custom_string, base_type *, std::less<custom_string>, gnew_alloc<base_type*> >* get();
-    void add(int *val, const char* desc);
-    void add(double *val, const char* desc);
-    void add(float *val, const char* desc);
+    void add(int *val, custom_string desc);
+    void add(double *val, custom_string desc);
+    void add(float *val, custom_string desc);
     void add(stats& s);
     
     void uncreate();

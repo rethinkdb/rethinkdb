@@ -39,15 +39,6 @@ void worker_pool_t::create_worker_pool(event_handler_t event_handler, pthread_t 
     }
     active_worker = 0;
     
-    nums[0] = 0;
-    nums[1] = 1;
-    nums[2] = 2;
-    nums[3] = 3;
-    nums[4] = 4;
-    nums[5] = 5;
-    nums[6] = 6;
-    nums[7] = 7;
-    
     for(int i = 0; i < nworkers; i++) {
         workers[i]->message_hub.init(i, nworkers, workers);
     }
@@ -55,7 +46,10 @@ void worker_pool_t::create_worker_pool(event_handler_t event_handler, pthread_t 
     // Start the actual queue
     for(int i = 0; i < nworkers; i++) {
         workers[i]->start_queue();
-        workers[i]->stat.add(&nums[i], "my number");
+        nums[i] = gnew<int>(i);
+        nums2[i] = gnew<int>(i);
+        workers[i]->stat.add(nums[i], "my number");
+        workers[i]->stat.add(nums2[i], "my number2");
     }
 
     // TODO: can we move the printing out of here?
