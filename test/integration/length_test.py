@@ -1,39 +1,28 @@
 #!/usr/bin/python
 
-import os
-import sys
-import subprocess
 from multiprocessing import Pool, Queue, Process
 import memcache
 from random import shuffle, randint
-import random
-import string
+import random, string, os
 
 NUM_INSERTS=320
-NUM_THREADS=32
-HOST="localhost"
-PORT=os.getenv("RUN_PORT", "11211")
+NUM_THREADS=16
 
-# TODO: when we add more integration tests, the act of starting a
-# RethinkDB process should be handled by a common external script.
-
-def rethinkdb_insert(queue, pairs):
-    mc = memcache.Client([HOST + ":" + PORT], debug=0)
+def rethinkdb_insert((port, pairs)):
+    mc = memcache.Client(["localhost:%d" % port])
     for pair in pairs:
         print "Inserting %s : %s" % pair
         if (0 == mc.set(pair[0], pair[1])):
-            queue.put(-1)
-            return
+            raise ValueError("Inserting %s : %s failed" % pair)
     mc.disconnect_all()
-    queue.put(0)
 
-def rethinkdb_verify(pairs):
-    mc = memcache.Client([HOST + ":" + PORT], debug=0)
+def rethinkdb_verify((port, pairs)):
+    mc = memcache.Client(["localhost:%d" % port])
     for pair in pairs:
+        print "Verifying %s : %s" % pair
         val = mc.get(pair[0])
         if pair[1] != val:
-            print "Error, incorrent value in the database! (%s=>%s)" % (pair[0], val)
-            sys.exit(-1)
+            raise ValueError("Error, incorrent value in the database! (%s=>%s)" % (pair[0], val))
     mc.disconnect_all()
 
 def split_list(alist, parts):
@@ -45,27 +34,23 @@ def rethinkdb_delete(mc, keys, clone):
     for key in keys:
         print "Deleting %s" % key
         if (0 == mc.delete(key)):
-            print "Delete failed"
-            sys.exit(-1)
+            raise ValueError("Delete failed")
         del clone[key]
-        if (randint(1,1)==1):
+        if (randint(1,100)==1):
             print "Verifying"
             rethinkdb_cloned_verify(mc, keys, clone)
 
 def rethinkdb_cloned_verify(mc, keys, clone):
     for key in keys:
+        print "Verifying %s" % key
         stored_value = mc.get(key)
         clone_value = clone.get(key)
         if clone_value != stored_value:
-            print "Error, incorrent value in the database! (%s=>%s, should be %s)" % (key, stored_value, clone_value)
-            sys.exit(-1)
+            raise ValueError("Error, incorrent value in the database! (%s=>%s, should be %s)" % \
+                (key, stored_value, clone_value))
 
-def main(argv):
-    # Start rethinkdb process
-    #rdb = subprocess.Popen(["../../src/rethinkdb"],
-    #                       stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+def test_against_server_at(port):
     
-    # Create a list of integers we'll be inserting
     print "Creating Pairs"
     keys = set()
     for i in xrange(NUM_INSERTS):
@@ -75,43 +60,26 @@ def main(argv):
 
     pairs = map(lambda key: (key,random.choice(string.letters + string.digits)*random.randint(1, 250)), keys)
     
-    # Invoke processes to insert them into the server concurrently
-    # (Pool automagically waits for the processes to end)
     lists = split_list(pairs, NUM_THREADS)
 
     print "Inserting numbers"
-    queue = Queue()
-    procs = []
-    for i in xrange(0, NUM_THREADS):
-        p = Process(target=rethinkdb_insert, args=(queue, lists[i]))
-        procs.append(p)
-        p.start()
+    p_inserters = Pool(NUM_THREADS)
+    inserter_results = p_inserters.map_async(rethinkdb_insert, [(port, l) for l in lists])
+    p_inserters.close()
+    inserter_results.get()
 
-    # Wait for all the checkers to complete
-    i = 0
-    while(i != NUM_THREADS):
-        res = queue.get()
-        if res == -1:
-            print "Insertion failed, most likely the db isn't running on port %s" % PORT
-            map(Process.terminate, procs)
-            sys.exit(-1)
-        i += 1
-
-
-    # Verify that all integers have successfully been inserted
     print "Verifying"
-    rethinkdb_verify(pairs)
+    rethinkdb_verify((port,pairs))
 
-    mc = memcache.Client([HOST + ":" + PORT], debug=0)
+    mc = memcache.Client(["localhost:%d" % port])
 
     rethinkdb_delete(mc, list(keys), dict(pairs))
     
-    
-    # Kill RethinkDB process
-    # TODO: send the shutdown command
-    print "Shutting down server"
-    #rdb.stdin.writeLine("shutdown")
-    #rdb.wait()
+    print "Done"
+
+from test_common import RethinkDBTester
+retest_release = RethinkDBTester(test_against_server_at, "release")
+retest_valgrind = RethinkDBTester(test_against_server_at, "debug", valgrind=True)
 
 if __name__ == '__main__':
-    sys.exit(main(sys.argv))
+    test_against_server_at(int(os.environ.get("RUN_PORT", "11211")))
