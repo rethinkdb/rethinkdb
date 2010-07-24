@@ -293,8 +293,10 @@ public:
                     res = true;
                 else if (magic() == bin_magic_response)
                     res = false;
-                else
+                else {
+                    res = -1;//some bullshit to get the compiler to be quite
                     check("Packet has corrupted magic number", 1);
+                }
                 return res; //stfu gcc
             }
 

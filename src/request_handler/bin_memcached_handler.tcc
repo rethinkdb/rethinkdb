@@ -158,6 +158,7 @@ typename bin_memcached_handler_t<config_t>::parse_result_t bin_memcached_handler
             set_type = btree_set_type_decr;
             break;
         default:
+            set_type = (btree_set_type) -1; //some bullshit to make it compile
             check("Invalid opcode in bin_memcached_handler_t::set", 0);
             break;
     }
@@ -253,6 +254,7 @@ typename bin_memcached_handler_t<config_t>::parse_result_t bin_memcached_handler
             res = req_handler_t::op_req_parallelizable;
             break;
         default:
+            res = (parse_result_t) -1; //some bullshit to make it compile
             check("Invalid opcode in bin_memcached_handler_t::set", 0);
             break;
     }
