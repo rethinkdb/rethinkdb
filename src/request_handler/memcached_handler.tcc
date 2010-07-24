@@ -26,7 +26,9 @@ typename memcached_handler_t<config_t>::parse_result_t memcached_handler_t<confi
             res = ((txt_memcached_handler_t *) req_handler)->parse_request(event);
             break;
         default:
+            res = (parse_result_t) -1; //some bullshit to make it compile
             check("Unset memcached_protocol in memcached_handler_t::parse_request", 0);
+            break;
     }
 
     return res;//stfu GCC

@@ -194,6 +194,7 @@ typename conn_fsm<config_t>::result_t conn_fsm<config_t>::do_transition(event_t 
             res = do_fsm_btree_incomplete(event);
             break;
         case fsm_outstanding_data:
+            res = fsm_transition_ok;
             break;
         default:
             res = fsm_invalid;
