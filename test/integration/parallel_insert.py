@@ -1,93 +1,56 @@
 #!/usr/bin/python
 
-import os
-import sys
-import subprocess
 from multiprocessing import Pool, Queue, Process
 import memcache
 from random import shuffle
 
 NUM_INTS=32000
 NUM_THREADS=32
-HOST="localhost"
-PORT=os.getenv("RUN_PORT", "11211")
 NUMSTR = "%d"
-bin = False
-behaviors = { "receive_timeout": 1000000, "send_timeout": 1000000 }
-def open_mc():
-    mc = memcache.Client([HOST + ":" + PORT])
-    mc.behaviors = behaviors
-    return mc
 
-# TODO: when we add more integration tests, the act of starting a
-# RethinkDB process should be handled by a common external script.
-
-def rethinkdb_insert(queue, ints):
-    mc = open_mc()
+def rethinkdb_insert((port, ints)):
+    mc = memcache.Client(["localhost:%d" % port])
     for i in ints:
         print "Inserting %d" % i
         if (0 == mc.set(str(i), NUMSTR % i)):
-            queue.put(-1)
-            return
+            raise ValueError("Cannot insert %d" % i)
     mc.disconnect_all()
-    queue.put(0)
 
-def rethinkdb_verify():
-    mc = open_mc()
+def rethinkdb_verify(port):
+    mc = memcache.Client(["localhost:%d" % port])
     for i in xrange(0, NUM_INTS):
+        print "Checking %d" % i
         val = mc.get(str(i))
         if NUMSTR % i != val:
-            print "Error, incorrent value in the database! (%d=>%s)" % (i, val)
-            sys.exit(-1)
+            raise ValueError("Error, incorrent value in the database! (%d=>%s)" % (i, val))
     mc.disconnect_all()
 
-def split_list(alist, parts):
-    length = len(alist)
-    return [alist[i * length // parts: (i + 1) * length // parts]
-            for i in range(parts)]
-
-def main(argv):
-    # Start rethinkdb process
-    #rdb = subprocess.Popen(["../../src/rethinkdb"],
-    #                       stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+def test_against_server_at(port):
     
     # Create a list of integers we'll be inserting
-    print "Shuffling numbers"
     ints = range(0, NUM_INTS)
     shuffle(ints)
     
-    # Invoke processes to insert them into the server concurrently
-    # (Pool automagically waits for the processes to end)
+    def split_list(alist, parts):
+        length = len(alist)
+        return [alist[i * length // parts: (i + 1) * length // parts]
+                for i in range(parts)]
     lists = split_list(ints, NUM_THREADS)
 
-    print "Inserting numbers"
-    queue = Queue()
-    procs = []
-    for i in xrange(0, NUM_THREADS):
-        p = Process(target=rethinkdb_insert, args=(queue, lists[i]))
-        procs.append(p)
-        p.start()
+    print "Starting inserters"
+    p_inserters = Pool(NUM_THREADS)
+    inserter_results = p_inserters.map_async(rethinkdb_insert, [(port, list) for list in lists])
+    p_inserters.close()
+    inserter_results.get()
 
-    # Wait for all the checkers to complete
-    i = 0
-    while(i != NUM_THREADS):
-        res = queue.get()
-        if res == -1:
-            print "Insertion failed, most likely the db isn't running on port %s" % PORT
-            map(Process.terminate, procs)
-            sys.exit(-1)
-        i += 1
-
-
-    # Verify that all integers have successfully been inserted
     print "Verifying"
-    rethinkdb_verify()
+    rethinkdb_verify(port)
     
-    # Kill RethinkDB process
-    # TODO: send the shutdown command
-    print "Shutting down server"
-    #rdb.stdin.writeLine("shutdown")
-    #rdb.wait()
+    print "Done"
+
+from test_common import RethinkDBTester
+retest_release = RethinkDBTester(test_against_server_at, "release")
+retest_valgrind = RethinkDBTester(test_against_server_at, "debug", valgrind=True)
 
 if __name__ == '__main__':
-    sys.exit(main(sys.argv))
+    test_against_server_at(int(os.environ.get("RUN_PORT", "11211")))
