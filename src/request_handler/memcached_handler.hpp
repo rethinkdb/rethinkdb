@@ -31,6 +31,10 @@ public:
     memcached_handler_t(cache_t *_cache, event_queue_t *eq)
         : req_handler_t(eq), cache(_cache), memcached_protocol(memcached_unknown_protocol), req_handler(NULL)
         {}
+    ~memcached_handler_t() {
+        if (req_handler)
+            delete req_handler;
+    }
     
     virtual parse_result_t parse_request(event_t *event);
     virtual void build_response(request_t *request);

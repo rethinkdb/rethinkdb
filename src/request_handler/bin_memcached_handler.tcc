@@ -277,6 +277,7 @@ void bin_memcached_handler_t<config_t>::build_response(request_t *request) {
 
     //reload the handler specific data
     packet_t res_packet(sbuf, (bin_handler_data_t *) request->handler_data);
+    delete (bin_handler_data_t *) request->handler_data;
     packet_t *res_pkt = &res_packet;
     res_pkt->magic(bin_magic_response);
 
