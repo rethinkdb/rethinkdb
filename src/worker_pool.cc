@@ -38,14 +38,14 @@ void worker_pool_t::create_worker_pool(event_handler_t event_handler, pthread_t 
         workers[i] = gnew<event_queue_t>(i, nworkers, event_handler, this, cmd_config);
     }
     active_worker = 0;
-
+    
     for(int i = 0; i < nworkers; i++) {
         workers[i]->message_hub.init(i, nworkers, workers);
     }
-
+    
     // Start the actual queue
     for(int i = 0; i < nworkers; i++) {
-        workers[i]->start_queue();
+        workers[i]->start_queue();        
     }
 
     // TODO: can we move the printing out of here?

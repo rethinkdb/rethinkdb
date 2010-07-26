@@ -71,4 +71,3 @@ bool is_sorted(ForwardIterator first, ForwardIterator last,
 
 #include "utils.tcc"
 #endif // __UTILS_HPP__
-

@@ -77,7 +77,7 @@ public:
             printf("\tcurrent_request.fsms = [\n");
             unsigned int i;
             for (i=0; i<current_request->nstarted; i++) {
-                current_request->fsms[i]->deadlock_debug();
+                current_request->msgs[i]->deadlock_debug();
             }
             printf("]\n");
         } else {

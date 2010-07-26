@@ -30,10 +30,8 @@ public:
     
     virtual parse_result_t parse_request(event_t *event) = 0;
     virtual void build_response(request_t *request) = 0;
-
 protected:
     event_queue_t *event_queue;
 };
 
 #endif // __REQUEST_HANDLER_HPP__
-

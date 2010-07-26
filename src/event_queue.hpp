@@ -12,6 +12,7 @@
 #include "message_hub.hpp"
 #include "config/cmd_args.hpp"
 #include "buffer_cache/callbacks.hpp"
+#include "perfmon.hpp"
 
 typedef void (*event_handler_t)(event_queue_t*, event_t*);
 
@@ -113,6 +114,10 @@ public:
     cache_t *cache;
 
     io_calls_t iosys;
+
+    // For performance monitoring
+    perfmon_t perfmon;
+    int total_connections, curr_connections;
 
 #ifndef NDEBUG
     // Print debugging information designed to resolve a deadlock

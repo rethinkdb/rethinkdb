@@ -25,7 +25,8 @@ struct cpu_message_t : public intrusive_list_node_t<cpu_message_t>
 {
     enum msg_type_t {
         mt_btree,
-        mt_lock
+        mt_lock,
+        mt_perfmon,
     };
     explicit cpu_message_t(msg_type_t _type)
         : type(_type)
@@ -34,6 +35,12 @@ struct cpu_message_t : public intrusive_list_node_t<cpu_message_t>
     
     msg_type_t type;
     unsigned int return_cpu;
+    
+#ifndef NDEBUG
+    virtual void deadlock_debug() {
+        printf("deadlock_debug N/A\n");
+    }
+#endif
 };
 
 struct event_queue_t;
@@ -77,4 +84,3 @@ public:
 };
 
 #endif // __MESSAGE_HUB_HPP__
-

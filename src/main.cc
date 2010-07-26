@@ -36,6 +36,9 @@
 #include "conn_fsm.hpp"
 #include "request.hpp"
 
+typedef basic_string<char, char_traits<char>, gnew_alloc<char> > custom_string;
+typedef standard_config_t::request_t request_t;
+
 // TODO: we should redo the plumbing for the entire callback system so
 // that nothing is hardcoded here. Messages should flow dynamically to
 // their destinations without having a central place with all the
@@ -99,6 +102,73 @@ void process_btree_msg(code_config_t::btree_fsm_t *btree_fsm) {
     }
 }
 
+void process_perfmon_msg(perfmon_msg<code_config_t> *msg)
+{
+    typedef perfmon_msg<code_config_t> perfmon_msg_t;
+    
+    code_config_t::conn_fsm_t *netfsm = NULL;
+    event_queue_t *queue = get_cpu_context()->event_queue;
+    request_t *request = msg->request;
+    int this_cpu = queue->queue_id;
+    int return_cpu = msg->return_cpu;
+    int i, j;
+        
+    switch(msg->state) {
+    case perfmon_msg_t::sm_request:
+        // Copy our statistics into the perfmon message and send a response
+        msg->perfmon = new perfmon_t();
+        msg->perfmon->copy_from(queue->perfmon);
+        msg->state = perfmon_msg_t::sm_response;
+        break;
+    case perfmon_msg_t::sm_response:
+        // Received a response, see if we got enough to respond to the client
+        request->ncompleted++;
+        if(request->ncompleted == request->nstarted) {
+            // Build the response
+            netfsm = request->netfsm;
+            netfsm->req_handler->build_response(request);
+            event_t event;
+            bzero((void*)&event, sizeof(event));
+            event.state = netfsm;
+            event.event_type = et_request_complete;
+            initiate_conn_fsm_transition(queue, &event);
+            // Request cleanup
+            for(i = 0; i < (int)request->ncompleted; i++) {
+                perfmon_msg_t *_msg = (perfmon_msg_t*)request->msgs[i];
+                _msg->state = perfmon_msg_t::sm_copy_cleanup;
+                j = _msg->return_cpu;
+                _msg->return_cpu = this_cpu;
+                _msg->request = NULL;
+                queue->message_hub.store_message(j, _msg);
+
+                // We clean the request because its destructor normally
+                // deletes the messages, but in case of perfmon it's done
+                // manually.
+                request->msgs[i] = NULL;
+            }
+            request->nstarted = 0;
+            request->ncompleted = 0;
+            delete request;
+        }
+        return;
+        break;
+    case perfmon_msg_t::sm_copy_cleanup:
+        // Response has been sent to the client, time to delete the
+        // copy
+        delete msg->perfmon;
+        msg->state = perfmon_msg_t::sm_msg_cleanup;
+        break;
+    case perfmon_msg_t::sm_msg_cleanup:
+        // Copy has been deleted, delete the final message and return
+        delete msg;
+        return;
+        break;
+    }
+
+    msg->return_cpu = this_cpu;
+    queue->message_hub.store_message(return_cpu, msg);
+}
+
 // TODO: this should really be moved into the event queue.
 void process_lock_msg(event_queue_t *event_queue, event_t *event, rwi_lock_t::lock_request_t *lr) {
     lr->callback->on_lock_available();
@@ -118,6 +188,9 @@ void event_handler(event_queue_t *event_queue, event_t *event) {
             break;
         case cpu_message_t::mt_lock:
             process_lock_msg(event_queue, event, (rwi_lock_t::lock_request_t*)msg);
+            break;
+        case cpu_message_t::mt_perfmon:
+            process_perfmon_msg((perfmon_msg<code_config_t>*)msg);
             break;
         }
     } else {
@@ -168,4 +241,3 @@ int main(int argc, char *argv[])
         printf("Shutting down server...\n");
     }
 }
-

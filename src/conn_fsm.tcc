@@ -1,4 +1,3 @@
-
 #ifndef __FSM_TCC__
 #define __FSM_TCC__
 
@@ -78,7 +77,7 @@ typename conn_fsm<config_t>::result_t conn_fsm<config_t>::fill_rbuf(event_t *eve
         if (state->state != fsm_socket_recv_incomplete)
             state->state = fsm_outstanding_data;
     } else {
-        state->state = fsm_socket_connected;
+        return fsm_quit_connection;
         // TODO: what about application-level keepalive?
     }
 
@@ -179,7 +178,6 @@ typename conn_fsm<config_t>::result_t conn_fsm<config_t>::do_transition(event_t 
     // transitions might cause cache line alignment issues. Can we
     // eliminate it (perhaps by giving each thread its own private
     // copy of the necessary data)?
-
     result_t res;
 
     switch(state) {
