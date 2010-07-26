@@ -26,7 +26,7 @@ struct cpu_message_t : public intrusive_list_node_t<cpu_message_t>
     enum msg_type_t {
         mt_btree,
         mt_lock,
-        mt_stats,
+        mt_perfmon,
     };
     explicit cpu_message_t(msg_type_t _type)
         : type(_type)

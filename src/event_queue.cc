@@ -315,8 +315,8 @@ event_queue_t::event_queue_t(int queue_id, int _nqueues, event_handler_t event_h
     this->timer_ticks_since_server_startup = 0;
 
     // Register some perfmon variables
-    stat.monitor(var_monitor_t(var_monitor_t::vt_int, "total_connections", (void*)&total_connections));
-    stat.monitor(var_monitor_t(var_monitor_t::vt_int, "curr_connections", (void*)&curr_connections));
+    perfmon.monitor(var_monitor_t(var_monitor_t::vt_int, "total_connections", (void*)&total_connections));
+    perfmon.monitor(var_monitor_t(var_monitor_t::vt_int, "curr_connections", (void*)&curr_connections));
 
     // Create aio context
     this->aio_context = 0;

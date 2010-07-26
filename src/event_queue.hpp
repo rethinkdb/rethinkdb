@@ -12,7 +12,7 @@
 #include "message_hub.hpp"
 #include "config/cmd_args.hpp"
 #include "buffer_cache/callbacks.hpp"
-#include "stats.hpp"
+#include "perfmon.hpp"
 
 typedef void (*event_handler_t)(event_queue_t*, event_t*);
 
@@ -115,10 +115,8 @@ public:
 
     io_calls_t iosys;
 
-    // for getting statistics:
-    stats stat;
-
-    // Some statistics to collect
+    // For performance monitoring
+    perfmon_t perfmon;
     int total_connections, curr_connections;
 
 #ifndef NDEBUG

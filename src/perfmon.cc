@@ -1,4 +1,4 @@
-#include "stats.hpp"
+#include "perfmon.hpp"
 #include "config/code.hpp"
 
 /* Variable monitors */
@@ -48,19 +48,19 @@ void var_monitor_t::freeze_state() {
     value = value_copy;
 }
 
-/* Stats module */
-void stats::monitor(var_monitor_t monitor)
+/* Perfmon module */
+void perfmon_t::monitor(var_monitor_t monitor)
 {    
     assert(registry.count(monitor.name) == 0);
     registry[monitor.name] = monitor;
 }
 
-void stats::accumulate(stats *s)
+void perfmon_t::accumulate(perfmon_t *s)
 {
-    stats_map_t *s_registry = &s->registry;
-    for (stats_map_t::const_iterator iter = s_registry->begin(); iter != s_registry->end(); iter++)
+    perfmon_map_t *s_registry = &s->registry;
+    for (perfmon_map_t::const_iterator iter = s_registry->begin(); iter != s_registry->end(); iter++)
     {
-        stats_map_t::iterator var_iter = registry.find(iter->first);
+        perfmon_map_t::iterator var_iter = registry.find(iter->first);
         if(var_iter != registry.end())
             var_iter->second.combine(&iter->second);
         else
@@ -69,9 +69,9 @@ void stats::accumulate(stats *s)
 
 }
 
-void stats::copy_from(const stats &rhs)
+void perfmon_t::copy_from(const perfmon_t &rhs)
 {
-    for (stats_map_t::const_iterator iter = rhs.registry.begin(); iter != rhs.registry.end(); iter++)
+    for (perfmon_map_t::const_iterator iter = rhs.registry.begin(); iter != rhs.registry.end(); iter++)
     {
         registry[iter->first] = iter->second;
         registry[iter->first].freeze_state();

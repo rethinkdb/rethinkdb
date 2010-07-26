@@ -1,5 +1,5 @@
-#ifndef __STATS_HPP__
-#define __STATS_HPP__
+#ifndef __PERFMON_HPP__
+#define __PERFMON_HPP__
 
 #include <map>
 #include "config/args.hpp"
@@ -36,33 +36,33 @@ public:
     char value_copy[8];
 };
 
-/* The actual stats Module */
-struct stats : public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, stats > {
+/* The actual perfmon Module */
+struct perfmon_t : public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, perfmon_t> {
 public:
-    typedef std::map<const char*, var_monitor_t, std::less<const char*>, gnew_alloc<var_monitor_t> > stats_map_t;
+    typedef std::map<const char*, var_monitor_t, std::less<const char*>, gnew_alloc<var_monitor_t> > perfmon_map_t;
     
 public:
     void monitor(var_monitor_t monitor);
-    void accumulate(stats *s);
-    void copy_from(const stats &rhs);
+    void accumulate(perfmon_t *s);
+    void copy_from(const perfmon_t &rhs);
     
     // TODO: Watch the allocation.
-    stats_map_t registry;
+    perfmon_map_t registry;
 };
 
-/* This is what gets sent to a core when another core requests it's stats module. */
+/* This is what gets sent to a core when another core requests it's perfmon module. */
 template <class config_t>
-struct stats_msg : public cpu_message_t,
-                   public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, stats_msg<config_t> >
+struct perfmon_msg : public cpu_message_t,
+                     public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, perfmon_msg<config_t> >
 {
 public:
     typedef typename config_t::request_t request_t;
     
 public:
-    enum stats_msg_state {
-        // Initial request for stats info
+    enum perfmon_msg_state {
+        // Initial request for perfmon info
         sm_request,
-        // Response with the copy of stats info
+        // Response with the copy of perfmon info
         sm_response,
         // Request to cleanup the copy
         sm_copy_cleanup,
@@ -71,14 +71,14 @@ public:
         sm_msg_cleanup
     };
         
-    stats_msg(request_t *_request)
-        : cpu_message_t(cpu_message_t::mt_stats), request(_request), stat(NULL), state(sm_request)
+    perfmon_msg(request_t *_request)
+        : cpu_message_t(cpu_message_t::mt_perfmon), request(_request), perfmon(NULL), state(sm_request)
         {}
     
     request_t *request;
-    stats *stat;
-    stats_msg_state state;
+    perfmon_t *perfmon;
+    perfmon_msg_state state;
 };
 
-#endif
+#endif // __PERFMON_HPP__
 

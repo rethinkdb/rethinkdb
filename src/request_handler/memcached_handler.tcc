@@ -534,19 +534,19 @@ void memcached_handler_t<config_t>::build_response(request_t *request) {
         
         // Delete the request
         delete request;
-    } else if (request->msgs[0]->type == cpu_message_t::mt_stats)
+    } else if (request->msgs[0]->type == cpu_message_t::mt_perfmon)
     {
         // Combine all responses into one
-        stats combined_stats;
+        perfmon_t combined_perfmon;
         for(int i = 0; i < (int)request->ncompleted; i++) {
-            stats_msg_t *_msg = (stats_msg_t*)request->msgs[i];
-            combined_stats.accumulate(_msg->stat);
+            perfmon_msg_t *_msg = (perfmon_msg_t*)request->msgs[i];
+            combined_perfmon.accumulate(_msg->perfmon);
         }
         
-        // Print the resultings stats
+        // Print the resultings perfmon
         char *dest = sbuf;
-        stats::stats_map_t *registry = &combined_stats.registry;
-        for(stats::stats_map_t::iterator iter = registry->begin(); iter != registry->end(); iter++)
+        perfmon_t::perfmon_map_t *registry = &combined_perfmon.registry;
+        for(perfmon_t::perfmon_map_t::iterator iter = registry->begin(); iter != registry->end(); iter++)
         {
             // TODO: make sure we don't overflow the sbuf
             strncpy(dest, "STAT ", 5);
@@ -579,15 +579,15 @@ typename memcached_handler_t<config_t>::parse_result_t memcached_handler_t<confi
     int nworkers = (int)get_cpu_context()->event_queue->parent_pool->nworkers;
     int id = get_cpu_context()->event_queue->queue_id;
 
-    // Tell every single CPU core to pass their stats module *by copy*
+    // Tell every single CPU core to pass their perfmon module *by copy*
     // to this CPU
     request_t *request = new request_t(fsm);
     for (int i = 0; i < nworkers; i++)
     {
-        stats_msg_t *stats_req_msg = new stats_msg_t(request);
-        stats_req_msg->return_cpu = id;
-        request->msgs[i] = stats_req_msg;
-        req_handler_t::event_queue->message_hub.store_message(i, stats_req_msg);
+        perfmon_msg_t *perfmon_req_msg = new perfmon_msg_t(request);
+        perfmon_req_msg->return_cpu = id;
+        request->msgs[i] = perfmon_req_msg;
+        req_handler_t::event_queue->message_hub.store_message(i, perfmon_req_msg);
     }    
     request->nstarted = nworkers;
     fsm->current_request = request;
