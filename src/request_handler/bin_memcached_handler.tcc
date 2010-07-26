@@ -272,11 +272,10 @@ void bin_memcached_handler_t<config_t>::build_response(request_t *request) {
     btree_get_fsm_t *btree_get_fsm = NULL;
     btree_set_fsm_t *btree_set_fsm = NULL;
     btree_delete_fsm_t *btree_delete_fsm = NULL;
-    char *sbuf = fsm->sbuf;
-    fsm->nsbuf = 0;
 
     //reload the handler specific data
-    packet_t res_packet(sbuf, (bin_handler_data_t *) request->handler_data);
+    byte tmpbuf[MAX_PACKET_SIZE];
+    packet_t res_packet(tmpbuf, (bin_handler_data_t *) request->handler_data);
     delete (bin_handler_data_t *) request->handler_data;
     packet_t *res_pkt = &res_packet;
     res_pkt->magic(bin_magic_response);
@@ -314,12 +313,11 @@ void bin_memcached_handler_t<config_t>::build_response(request_t *request) {
                 if (res_pkt->status() != bin_status_no_error) {
                     ;//mum on error with quiet code
                 } else {
-                    fsm->nsbuf += res_pkt->size();
-                    fsm->sbuf_corked = true; //cork the conn_fsm
+                    fsm->sbuf->append(tmpbuf, res_pkt->size());
+                    //fsm->state = conn_fsm::fsm_corked;
                 }
             } else {
-                fsm->nsbuf += res_pkt->size();
-                fsm->sbuf_corked = false;
+                fsm->sbuf->append(tmpbuf, res_pkt->size());
             }
             
             break;
@@ -331,8 +329,7 @@ void bin_memcached_handler_t<config_t>::build_response(request_t *request) {
 
             //Set responses require don't require anything to be set
 
-            fsm->nsbuf += res_pkt->size();
-            sbuf += res_pkt->size();
+            fsm->sbuf->append(tmpbuf, res_pkt->size());
             break;
         case btree_fsm_t::btree_delete_fsm:
             btree_delete_fsm = (btree_delete_fsm_t*) btree;
@@ -340,8 +337,7 @@ void bin_memcached_handler_t<config_t>::build_response(request_t *request) {
 
             res_pkt->status(bin_status_no_error);
 
-            fsm->nsbuf += res_pkt->size();
-            sbuf += res_pkt->size();
+            fsm->sbuf->append(tmpbuf, res_pkt->size());
             break;
         default:
             check("bin_memcached_handler_t::build_response - Unknown btree op", 0);

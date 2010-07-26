@@ -35,17 +35,28 @@ public:
         if (req_handler)
             delete req_handler;
     }
-    
+    /*! parse_request
+     *  \brief send the request down to the correct handler
+     *  \param event the event to be parsed
+     *  \return the results of the parsing
+     */
     virtual parse_result_t parse_request(event_t *event);
+
+    /*! build_response
+     *  \brief build a response a completed request
+     *  \param request the request to be responded to
+     */
     virtual void build_response(request_t *request);
 
 private:
     cache_t *cache;
 
-    //! the correct handler for the packet (or NULL if we haven't decided)
-    req_handler_t *req_handler;
+    req_handler_t *req_handler; // !< the correct memchaced request handler
 
-    //! determine which protocol the packet is using
+    /*! determine_protocol
+     *  \brief determine which protocol is being used based on the first byte
+     *  \param event an event containing a message using one of the protocols
+     */
     void determine_protocol(const event_t *event);
 };
 

@@ -7,7 +7,7 @@
 #include "alloc/alloc_mixin.hpp"
 #include <arpa/inet.h>
 
-//static const char *error_messages[] = {"No error", "Not found", "Key exists", "Value too large", "Invalid arguments", "Item not stored", "Non increment or decrement numeric value", "Unknown command", "Out of memory"};
+#define MAX_PACKET_SIZE 200
 
 //Memcached spec section 4.2 and 4.3 state that flags need to be present in get and set responses
 //it they don't make much indication of what they need to be but they use 0xdeadbeef so that's what we'll use

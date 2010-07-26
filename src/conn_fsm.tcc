@@ -15,8 +15,6 @@ void conn_fsm<config_t>::init_state() {
     this->rbuf = NULL;
     this->sbuf = NULL;
     this->nrbuf = 0;
-    this->nsbuf = 0;
-    sbuf_corked = false;
 }
 
 // This function returns the socket to clean connected state
@@ -43,8 +41,7 @@ typename conn_fsm<config_t>::result_t conn_fsm<config_t>::fill_rbuf(event_t *eve
         state->nrbuf = 0;
     }
     if(state->sbuf == NULL) {
-        state->sbuf = (char *)new iobuf_t();
-        state->nsbuf = 0;
+        state->sbuf = new linked_buf_t();
     }
 
     // TODO: we assume the command will fit comfortably into
@@ -183,6 +180,7 @@ typename conn_fsm<config_t>::result_t conn_fsm<config_t>::do_transition(event_t 
     switch(state) {
         case fsm_socket_connected:
         case fsm_socket_recv_incomplete:
+        case fsm_corked:
             res = fill_rbuf(event);
             break;
         case fsm_socket_send_incomplete:
@@ -242,12 +240,12 @@ conn_fsm<config_t>::~conn_fsm() {
         delete (iobuf_t*)(this->rbuf);
     }
     if(this->sbuf) {
-        delete (iobuf_t*)(this->sbuf);
+        delete (this->sbuf);
     }
 }
 
 // Send a message to the client. The message should be contained
-// within buf (nbuf should be the full size). If state has been
+// within sbuf (nbuf should be the full size). If state has been
 // switched to fsm_socket_send_incomplete, then buf must not be freed
 // after the return of this function.
 template<class config_t>
@@ -256,26 +254,23 @@ void conn_fsm<config_t>::send_msg_to_client() {
     // should be in the middle of an incomplete send.
     //assert(this->snbuf == 0 || this->state == conn_fsm::fsm_socket_send_incomplete); TODO equivalent thing for seperate buffers
 
-    int len = this->nsbuf;
-    int sz = 0;
-    while(len > 0) {
-        sz = io_calls_t::write(this->source, this->sbuf, len);
-        if(sz < 0) {
-            if(errno == EAGAIN || errno == EWOULDBLOCK) {
-                // If we can't send the message now, wait 'till we can
-                this->state = conn_fsm::fsm_socket_send_incomplete;
-                return;
-            } else {
-                // There was some other error
-                check("Couldn't send message to client", sz < 0);
-            }
-        }
-        len -= sz;
-    }
+    if (this->state == conn_fsm::fsm_corked) {
+        //don't send anything if we're corked
+        return;
+    } else {
+        int res = sbuf->send(this->source);
+        if (sbuf->gc_me)
+            sbuf = sbuf->garbage_collect();
 
-    // We've successfully sent everything out
-    this->nsbuf = 0;
-    this->state = conn_fsm::fsm_socket_connected;
+        switch (res) {
+            case linked_buf_t::linked_buf_outstanding:
+                this->state = conn_fsm::fsm_socket_send_incomplete;
+                break;
+            case linked_buf_t::linked_buf_empty:
+                this->state = conn_fsm::fsm_socket_connected;
+                break;
+        }
+    }
 }
 
 template<class config_t>

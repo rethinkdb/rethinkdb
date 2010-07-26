@@ -37,16 +37,23 @@ public:
     };
 
     enum state_t {
-        // Socket is connected, is in a clean state (no outstanding ops) and ready to go
+        //! Socket is connected, is in a clean state (no outstanding ops) and ready to go
         fsm_socket_connected,
-        // Socket has received an incomplete packet and waiting for the rest of the command
+
+        //! Socket has received an incomplete packet and waiting for the rest of the command
         fsm_socket_recv_incomplete,
-        // We sent a msg over the socket but were only able to send a partial packet
+
+        //! We sent a msg over the socket but were only able to send a partial packet
         fsm_socket_send_incomplete,
-        // Waiting for IO initiated by the BTree to complete
+        
+        //! Waiting for IO initiated by the BTree to complete
         fsm_btree_incomplete,
-        //There is outstanding data in rbuff
-        fsm_outstanding_data
+
+        //! There is outstanding data in rbuff
+        fsm_outstanding_data,
+
+        //! We have data in the sbuf, but we're corked
+        fsm_corked
     };
     
 public:
@@ -88,6 +95,130 @@ public:
 #endif
 
 public:
+    /*! \class linked_buf_t
+     *  \brief linked version of iobuf_t
+     *  \param _size the maximum bytes that can be stored in one link 
+     */
+    struct linked_buf_t : public iobuf_t {
+        private:
+            linked_buf_t    *next;
+            int             nbuf; // !< the total number of bytes in the buffer
+            int             nsent; // !< how much of the buffer has been sent so far
+        public:
+            bool            gc_me; // !< whether the buffer could benefit from garbage collection
+        public:
+            typedef enum {
+                linked_buf_outstanding = 0,
+                linked_buf_empty,
+                linked_buf_num_states,
+            } linked_buf_state_t;
+
+
+        public:
+            linked_buf_t()
+                : iobuf_t(), next(NULL), nbuf(0), nsent(0) {}
+            ~linked_buf_t() {
+                if (next != NULL)
+                    delete next;
+            }
+
+            /*! \brief grow the chain of linked_buf_ts by one
+             */
+            void grow() {
+                if (next == NULL)
+                    next = new linked_buf_t();
+                else
+                    next->grow();
+            }
+
+            /*! \brief add data the the end of chain of linked lists
+             */
+            void append(const char *input, int ninput) {
+                if (nbuf + ninput <= iobuf_t::size) {
+                    memcpy(iobuf_t::buf + nbuf, input, ninput);
+                    nbuf += ninput;
+                } else if (nbuf < iobuf_t::size) {
+                    //we need to split the input across 2 links
+                    int free_space = iobuf_t::size - nbuf;
+                    append(input, free_space);
+                    grow();
+                    next->append(input + free_space, ninput - free_space);
+                } else {
+                    next->append(input, ninput);
+                }
+            }
+
+            /*! \brief check if a buffer has outstanding data
+             *  \return true if there is outstanding data
+             */
+            linked_buf_state_t outstanding() {
+                if ((nsent < nbuf) || ((next != NULL) && next->outstanding()))
+                    return linked_buf_outstanding;
+                else
+                    return linked_buf_empty;
+            }
+
+            /*! \brief try to send as much of the buffer as possible
+             *  \return true if there is still outstanding data
+             */
+            linked_buf_state_t send(int source) {
+                linked_buf_state_t res;
+                if (nsent < nbuf) {
+                    int sz = io_calls_t::write(source, iobuf_t::buf + nsent, nbuf - nsent);
+                    if(sz < 0) {
+                        if(errno == EAGAIN || errno == EWOULDBLOCK)
+                            res = linked_buf_outstanding;
+                        else
+                            check("Error sending to socket", 1);
+                    } else {
+                        nsent += sz;
+                        if (next == NULL) {
+                            //if this is the last link in the chain we slide the buffer
+                            memmove(iobuf_t::buf, iobuf_t::buf + nsent, nbuf - nsent);
+                            nbuf -= nsent;
+                            nsent = 0;
+                        }
+
+                        if (nsent == nbuf) {
+                            if (next == NULL) {
+                                res = linked_buf_empty;
+                            } else {
+                                //the network handled this buffer without a problem
+                                //so maybe we can send more
+                                gc_me = true; //ask for garbage collection
+                                res = next->send(source);
+                            }
+                        } else {
+                            res = linked_buf_outstanding;
+                        }
+                    }
+                } else if (next != NULL) {
+                    res = next->send(source);
+                } else {
+                    res = linked_buf_empty;
+                }
+                return res;
+            }
+
+            /*! \brief delete buffers that have already been fully sent out
+             *  \return a pointer to the new head
+             */
+            linked_buf_t *garbage_collect() {
+                if (nbuf == iobuf_t::size && nbuf == nsent) {
+                    if (next == NULL)
+                        grow();
+
+                    linked_buf_t *tmp = next;
+                    next = NULL;
+                    delete this;
+                    return tmp->garbage_collect();
+                } else {
+                    return this;
+                }
+            }
+    };
+
+public:
     int source;
     state_t state;
 
@@ -95,12 +226,12 @@ public:
     // variable indicates how many bytes are stored in the buffer. The
     // snbuf variable indicates how many bytes out of the buffer have
     // been sent (in case of a send workflow).
-    char *rbuf, *sbuf;
-    unsigned int nrbuf, nsbuf;
+    char *rbuf;
+    linked_buf_t *sbuf;
+    unsigned int nrbuf;
     req_handler_t *req_handler;
     event_queue_t *event_queue;
     request_t *current_request;
-    bool sbuf_corked; //whether response should be sent out or accumulated
     
 private:
     result_t fill_rbuf(event_t *event);
