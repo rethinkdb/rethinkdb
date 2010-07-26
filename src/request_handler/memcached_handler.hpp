@@ -29,7 +29,7 @@ public:
     
 public:
     memcached_handler_t(cache_t *_cache, event_queue_t *eq)
-        : req_handler_t(eq), cache(_cache), memcached_protocol(memcached_unknown_protocol), req_handler(NULL)
+        : req_handler_t(eq), cache(_cache), req_handler(NULL)
         {}
     ~memcached_handler_t() {
         if (req_handler)
@@ -41,15 +41,6 @@ public:
 
 private:
     cache_t *cache;
-    typedef enum {
-        memcached_unknown_protocol = -1,
-        memcached_txt_protocol,
-        memcached_bin_protocol,
-        num_memcached_protocol
-    } memcached_protocol_t;
-
-    //! memcached_protocol: which protocol we've decided we're using (if we've decided)
-    memcached_protocol_t memcached_protocol;
 
     //! the correct handler for the packet (or NULL if we haven't decided)
     req_handler_t *req_handler;
