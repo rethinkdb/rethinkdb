@@ -19,10 +19,11 @@ public:
     typedef typename config_t::btree_delete_fsm_t btree_delete_fsm_t;
     typedef typename config_t::req_handler_t req_handler_t;
     typedef typename req_handler_t::parse_result_t parse_result_t;
+    typedef stats_msg<config_t> stats_msg_t;
     
 public:
     memcached_handler_t(cache_t *_cache, event_queue_t *eq)
-        : req_handler_t(eq), cache(_cache), key((btree_key*)key_memory), loading_data(false), stats_counter(0)
+        : req_handler_t(eq), cache(_cache), key((btree_key*)key_memory), loading_data(false)
         {}
     
     virtual parse_result_t parse_request(event_t *event);
@@ -61,8 +62,7 @@ private:
     parse_result_t unimplemented_request(conn_fsm_t *fsm);
     
     /* stats stuff */
-    parse_result_t print_stats(conn_fsm_t *fsm, unsigned int line_len);
-    int stats_counter; // keeps track of how many cores have sent us their stats
+    parse_result_t issue_stats_request(conn_fsm_t *fsm, unsigned int line_len);
 };
 
 #include "request_handler/memcached_handler.tcc"

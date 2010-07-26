@@ -127,10 +127,11 @@ void stats::add(stats& s)
     map<custom_string, base_type *, std::less<custom_string>, gnew_alloc<base_type*> > *s_registry = s.get();
     for (iter=s_registry->begin();iter != s_registry->end();iter++)
     {
-        // when you add one stats module to the other,
-        // both must have the same set of keys.
-        assert(registry.count(iter->first) != 0);
-        registry[iter->first]->add(iter->second);
+        base_type *var = registry[iter->first];
+        if(var)
+            var->add(iter->second);
+        else
+            registry[iter->first] = iter->second;
     }
 
 }
@@ -145,7 +146,8 @@ void stats::uncreate()
     map<custom_string, base_type *, less<custom_string>, gnew_alloc<base_type*> >::iterator iter;
     for (iter=registry.begin();iter!=registry.end();iter++)
     {
-        delete iter->second;
+        // XXX: what to do about this?
+        //delete iter->second;
     }
     registry.clear();
 }

@@ -140,6 +140,7 @@ int process_itc_notify(event_queue_t *self) {
                 new event_queue_t::conn_fsm_t(event.data, self);
             self->register_fsm(state);
             self->total_connections++;
+            self->curr_connections++;
             break;
         }
     }
@@ -303,7 +304,7 @@ breakout:
 
 event_queue_t::event_queue_t(int queue_id, int _nqueues, event_handler_t event_handler,
                              worker_pool_t *parent_pool, cmd_config_t *cmd_config)
-    : iosys(this), total_connections(0)
+    : iosys(this), total_connections(0), curr_connections(0)
 {
     int res;
     this->queue_id = queue_id;
@@ -315,6 +316,7 @@ event_queue_t::event_queue_t(int queue_id, int _nqueues, event_handler_t event_h
 
     // Register some perfmon variables
     stat.add(&total_connections, "total_connections");
+    stat.add(&curr_connections, "curr_connections");
 
     // Create aio context
     this->aio_context = 0;
@@ -547,6 +549,7 @@ void event_queue_t::deregister_fsm(conn_fsm_t *fsm) {
     printf("Closing socket %d\n", fsm->get_source());
     forget_resource(fsm->get_source());
     live_fsms.remove(fsm);
+    curr_connections--;
     
     // TODO: there might be outstanding btrees that we're missing (if
     // we're quitting before the the operation completes). We need to

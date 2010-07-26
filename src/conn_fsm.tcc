@@ -71,7 +71,7 @@ typename conn_fsm<config_t>::result_t conn_fsm<config_t>::fill_rbuf(event_t *eve
         if (state->state != fsm_socket_recv_incomplete)
             state->state = fsm_outstanding_data;
     } else {
-        state->state = fsm_socket_connected;
+        return fsm_quit_connection;
         // TODO: what about application-level keepalive?
     }
 

@@ -7,7 +7,6 @@
 #include "config/args.hpp"
 #include "config/code.hpp"
 #include "message_hub.hpp"
-
 #include "alloc/alloc_mixin.hpp"
 
 /* Variable Types */
@@ -103,25 +102,34 @@ struct stats : public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, stats
 };
 
 /* This is what gets sent to a core when another core requests it's stats module. */
-struct stats_request : public cpu_message_t, public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, stats_request > {
-    typedef standard_config_t::conn_fsm_t conn_fsm_t;
-    explicit stats_request(int id) : cpu_message_t(cpu_message_t::mt_stats_request), requester_id(id) {}
+template <class config_t>
+struct stats_msg : public cpu_message_t,
+                   public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, stats_msg<config_t> >
+{
+public:
+    typedef typename config_t::request_t request_t;
     
-    /* vars */
-    int requester_id;
-    conn_fsm_t *conn_fsm;
-};
-
-struct stats_response : public cpu_message_t, public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, stats_response > {
-    typedef standard_config_t::conn_fsm_t conn_fsm_t;
-    explicit stats_response(int id) : cpu_message_t(cpu_message_t::mt_stats_response), responsee_id(id), to_delete(false) {}
+public:
+    enum stats_msg_state {
+        // Initial request for stats info
+        sm_request,
+        // Response with the copy of stats info
+        sm_response,
+        // Request to cleanup the copy
+        sm_copy_cleanup,
+        // Response suggesting copy has been cleaned up and it's time
+        // to cleanup the msg structure itself
+        sm_msg_cleanup
+    };
+        
+    stats_msg(request_t *_request)
+        : cpu_message_t(cpu_message_t::mt_stats), request(_request), stat(NULL), state(sm_request)
+        {}
     
-    /* vars */
-    int responsee_id;
-    conn_fsm_t *conn_fsm;
-    stats_request *request;
+    request_t *request;
     stats *stat;
-    bool to_delete;
+    stats_msg_state state;
 };
 
 #endif
+

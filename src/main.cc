@@ -102,60 +102,71 @@ void process_btree_msg(code_config_t::btree_fsm_t *btree_fsm) {
     }
 }
 
-void process_stats_request(stats_request *stat_req)
+void process_stats_msg(stats_msg<code_config_t> *msg)
 {
-    int req_id = stat_req->requester_id;
+    typedef stats_msg<code_config_t> stats_msg_t;
     
-    // copy constructor automatically creates a deep copy.
-    stats *stat = new stats(get_cpu_context()->event_queue->stat);
-    stats_response *response = new stats_response(get_cpu_context()->event_queue->queue_id);
-    response->request = stat_req;
-    response->conn_fsm = stat_req->conn_fsm;
-    response->stat = stat;
-    get_cpu_context()->event_queue->stat.clear();
-    get_cpu_context()->event_queue->message_hub.store_message(req_id, response);
-}
+    code_config_t::conn_fsm_t *netfsm = NULL;
+    event_queue_t *queue = get_cpu_context()->event_queue;
+    request_t *request = msg->request;
+    int this_cpu = queue->queue_id;
+    int return_cpu = msg->return_cpu;
+    int i, j;
+        
+    switch(msg->state) {
+    case stats_msg_t::sm_request:
+        // Copy our statistics into the stats message and send a response
+        msg->stat = new stats(queue->stat);
+        //queue->stat.clear();
+        msg->state = stats_msg_t::sm_response;
+        break;
+    case stats_msg_t::sm_response:
+        // Received a response, see if we got enough to respond to the client
+        request->ncompleted++;
+        if(request->ncompleted == request->nstarted) {
+            // Build the response
+            netfsm = request->netfsm;
+            netfsm->req_handler->build_response(request);
+            event_t event;
+            bzero((void*)&event, sizeof(event));
+            event.state = netfsm;
+            event.event_type = et_request_complete;
+            initiate_conn_fsm_transition(queue, &event);
+            // Request cleanup
+            for(i = 0; i < (int)request->ncompleted; i++) {
+                stats_msg_t *_msg = (stats_msg_t*)request->fsms[i];
+                _msg->state = stats_msg_t::sm_copy_cleanup;
+                j = _msg->return_cpu;
+                _msg->return_cpu = this_cpu;
+                _msg->request = NULL;
+                queue->message_hub.store_message(j, _msg);
 
-void process_stats_response(stats_response *response)
-{
-    // if the to_delete flag is set, this is the final message
-    // from the main core asking each core to please delete their
-    // response and stats since we are dine using them.
-    if (response->to_delete)
-    {
-        delete response->stat;
-        delete response;
+                // We clean the request because its destructor normally
+                // deletes the messages, but in case of stats it's done
+                // manually.
+                request->fsms[i] = NULL;
+            }
+            request->nstarted = 0;
+            request->ncompleted = 0;
+            delete request;
+        }
         return;
+        break;
+    case stats_msg_t::sm_copy_cleanup:
+        // Response has been sent to the client, time to delete the
+        // copy
+        delete msg->stat;
+        msg->state = stats_msg_t::sm_msg_cleanup;
+        break;
+    case stats_msg_t::sm_msg_cleanup:
+        // Copy has been deleted, delete the final message and return
+        delete msg;
+        return;
+        break;
     }
-    
-    // otherwise this is a message from a minor core sending the
-    // main core a copy of their stats module.
-    stats *my_stat = &(get_cpu_context()->event_queue->stat);
-    my_stat->add(*(response->stat));
-    my_stat->stats_added++;
-    if (my_stat->stats_added == get_cpu_context()->event_queue->nqueues - 1)
-    {
-        request_t *request = response->conn_fsm->current_request;
-        stats_response *final_response = new stats_response(*response);
-        final_response->stat = my_stat;
-        request->fsms[0] = final_response;
-        request->nstarted = 1;
-        request->ncompleted = 1;
 
-        event_queue_t *event_queue = get_cpu_context()->event_queue;
-        event_t event;
-        bzero((void*)&event, sizeof(event));
-        event.state = response->conn_fsm;
-        event.event_type = et_request_complete;
-        response->conn_fsm->req_handler->build_response(request);
-        initiate_conn_fsm_transition(event_queue, &event);
-
-        my_stat->stats_added = 0;
-        my_stat->clear();
-    }
-    delete response->request;
-    response->to_delete = true;
-    get_cpu_context()->event_queue->message_hub.store_message(response->responsee_id, response);
+    msg->return_cpu = this_cpu;
+    queue->message_hub.store_message(return_cpu, msg);
 }
 
 // TODO: this should really be moved into the event queue.
@@ -178,11 +189,8 @@ void event_handler(event_queue_t *event_queue, event_t *event) {
         case cpu_message_t::mt_lock:
             process_lock_msg(event_queue, event, (rwi_lock_t::lock_request_t*)msg);
             break;
-        case cpu_message_t::mt_stats_request:
-            process_stats_request((stats_request*)msg);
-            break;
-        case cpu_message_t::mt_stats_response:
-            process_stats_response((stats_response*)msg);
+        case cpu_message_t::mt_stats:
+            process_stats_msg((stats_msg<code_config_t>*)msg);
             break;
         }
     } else {

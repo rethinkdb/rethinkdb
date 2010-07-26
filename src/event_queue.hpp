@@ -119,8 +119,8 @@ public:
     stats stat;
 
     // Some statistics to collect
-    int total_connections;
-    
+    int total_connections, curr_connections;
+
 #ifndef NDEBUG
     // Print debugging information designed to resolve a deadlock
     void deadlock_debug();

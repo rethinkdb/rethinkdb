@@ -97,7 +97,7 @@ typename memcached_handler_t<config_t>::parse_result_t memcached_handler_t<confi
         fsm->consume(fsm->nrbuf);
         return req_handler_t::op_req_shutdown;
     } else if(!strcmp(cmd_str, "stats")) {
-            return print_stats(fsm, line_len);
+            return issue_stats_request(fsm, line_len);
     } else if(!strcmp(cmd_str, "set")) {     // check for storage commands
             res = parse_storage_command(SET, state, line_len, fsm);
     } else if(!strcmp(cmd_str, "add")) {
@@ -446,7 +446,7 @@ void memcached_handler_t<config_t>::build_response(request_t *request) {
     
     if (request->fsms[0]->type == cpu_message_t::mt_btree)
     {
-        btree_fsm_t *btree = dynamic_cast<btree_fsm_t*>(request->fsms[0]);
+        btree_fsm_t *btree = (btree_fsm_t*)(request->fsms[0]);
         switch(btree->fsm_type) {
         case btree_fsm_t::btree_get_fsm:
             // TODO: make sure we don't overflow the buffer with sprintf
@@ -531,14 +531,20 @@ void memcached_handler_t<config_t>::build_response(request_t *request) {
             check("memcached_handler_t::build_response - Unknown btree op", 0);
             break;
         }
-    }else if (request->fsms[0]->type == cpu_message_t::mt_stats_response)
+        
+        // Delete the request
+        delete request;
+    } else if (request->fsms[0]->type == cpu_message_t::mt_stats)
     {
-        // get the stat to be printed from within the response:
-        stats_response *response = dynamic_cast<stats_response *>(request->fsms[0]);
-        stats *request_stat = response->stat;
-        map<custom_string, base_type *, std::less<custom_string>, gnew_alloc<base_type*> > *registry = request_stat->get();
-
-        // now build the response
+        // Combine all responses into one
+        stats combined_stats;
+        for(int i = 0; i < (int)request->ncompleted; i++) {
+            stats_msg_t *_msg = (stats_msg_t*)request->fsms[i];
+            combined_stats.add(*(_msg->stat));
+        }
+        
+        // Print the resultings stats
+        map<custom_string, base_type *, std::less<custom_string>, gnew_alloc<base_type*> > *registry = combined_stats.get();
         custom_string str_response = "";
         map<custom_string, base_type *, less<custom_string>, gnew_alloc<base_type*> >::iterator iter;
         for (iter=registry->begin();iter != registry->end();iter++)
@@ -548,27 +554,29 @@ void memcached_handler_t<config_t>::build_response(request_t *request) {
         strcpy(sbuf, str_response.c_str());
         fsm->nsbuf = strlen(str_response.c_str());
     }
-    delete request;
+
+    // Connection fsm is no longer processing a request
     fsm->current_request = NULL;
 }
 
 template <class config_t>
-typename memcached_handler_t<config_t>::parse_result_t memcached_handler_t<config_t>::print_stats(conn_fsm_t *fsm, unsigned int line_len) {
+typename memcached_handler_t<config_t>::parse_result_t memcached_handler_t<config_t>::issue_stats_request(conn_fsm_t *fsm, unsigned int line_len) {
 
     int nworkers = (int)get_cpu_context()->event_queue->parent_pool->nworkers;
     int id = get_cpu_context()->event_queue->queue_id;
-        
+
+    // Tell every single CPU core to pass their stats module *by copy*
+    // to this CPU
     request_t *request = new request_t(fsm);
-    // tell every single CPU core to pass their stats module *by copy* to this CPU
-    for (int i=0;i<nworkers;i++)
+    for (int i = 0; i < nworkers; i++)
     {
-        if (i != id) {
-            stats_request *req_to_cores = new stats_request(id);
-            req_to_cores->conn_fsm = fsm;
-            req_to_cores->conn_fsm->current_request = request;
-            req_handler_t::event_queue->message_hub.store_message(i, req_to_cores);
-        }
+        stats_msg_t *stats_req_msg = new stats_msg_t(request);
+        stats_req_msg->return_cpu = id;
+        request->fsms[i] = stats_req_msg;
+        req_handler_t::event_queue->message_hub.store_message(i, stats_req_msg);
     }    
+    request->nstarted = nworkers;
+    fsm->current_request = request;
     fsm->consume(line_len);
     return req_handler_t::op_req_complex;    
 }
