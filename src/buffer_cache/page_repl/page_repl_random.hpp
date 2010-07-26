@@ -17,6 +17,16 @@
 #define PAGE_REPL_BUFFERS_PER_CHUNK (1 << 16)
 #define PAGE_REPL_MAX_SANE_MEMORY_SIZE (500L * (1 << 30))
 
+/*
+The random page replacement algorithm needs to be able to quickly choose a random buf among all the
+bufs in memory. This is accomplished using a dense array of buf_t* in a completely arbitrary order.
+Because the array is dense, choosing a random buf is as simple as choosing a random number less
+than the number of bufs in memory. When a buf is removed from memory, the last buf in the array is
+moved to the slot it last occupied, keeping the array dense. Each buf carries an index which is its
+position in the dense random array; this allows all insertion, deletion, and random selection to be
+done in constant time.
+*/
+
 template <class config_t>
 struct page_repl_random_t {
 
