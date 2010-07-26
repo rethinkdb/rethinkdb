@@ -172,7 +172,6 @@ typename conn_fsm<config_t>::result_t conn_fsm<config_t>::do_transition(event_t 
     // transitions might cause cache line alignment issues. Can we
     // eliminate it (perhaps by giving each thread its own private
     // copy of the necessary data)?
-    (*get_cpu_context()->event_queue->do_trans_count)++;
     result_t res;
 
     switch(state) {

@@ -46,8 +46,6 @@ void worker_pool_t::create_worker_pool(event_handler_t event_handler, pthread_t 
     // Start the actual queue
     for(int i = 0; i < nworkers; i++) {
         workers[i]->start_queue();        
-        workers[i]->do_trans_count = gnew<int>(0);
-        workers[i]->stat.add(workers[i]->do_trans_count, "do_transition count");
     }
 
     // TODO: can we move the printing out of here?

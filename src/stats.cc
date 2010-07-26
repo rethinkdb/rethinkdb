@@ -52,12 +52,11 @@ void inline int_type::clear()    { *value = 0; }
 void inline double_type::clear() { *value = 0; }
 void inline float_type::clear()  { *value = 0; }
 
-int_type::~int_type() { delete value; }
-double_type::~double_type() { delete value; }
-float_type::~float_type() { delete value; }
+int_type::~int_type() {}
+double_type::~double_type() {}
+float_type::~float_type() {}
 
 void int_type::copy(const int_type& rhs) {
-    delete value;
     value = rhs.value;
     min = rhs.min;
     max = rhs.max;
@@ -66,14 +65,12 @@ int_type::int_type(const int_type& rhs) { copy(rhs); }
 int_type& int_type::operator=(const int_type& rhs) {
     if (&rhs != this)
     {
-        delete value;
         copy(rhs);
     }
     return *this;
 }
 
 void double_type::copy(const double_type& rhs) {
-    delete value;
     value = rhs.value;
     min = rhs.min;
     max = rhs.max;
@@ -82,7 +79,6 @@ double_type::double_type(const double_type& rhs) { copy(rhs); }
 double_type& double_type::operator=(const double_type& rhs) {
     if (&rhs != this)
     {
-        delete value;
         copy(rhs);
     }
     return *this;
@@ -97,7 +93,6 @@ float_type::float_type(const float_type& rhs) { copy(rhs); }
 float_type& float_type::operator=(const float_type& rhs) {
     if (&rhs != this)
     {
-        delete value;
         copy(rhs);
     }
     return *this;
