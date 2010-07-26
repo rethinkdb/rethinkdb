@@ -1,3 +1,4 @@
+
 #ifndef __MESSAGE_HUB_HPP__
 #define __MESSAGE_HUB_HPP__
 
@@ -36,8 +37,11 @@ struct cpu_message_t : public intrusive_list_node_t<cpu_message_t>
     msg_type_t type;
     unsigned int return_cpu;
     
-    // TODO: Fina a better solution. This is only here so that deadlock_debug works in fsm.tcc. 
-    virtual void deadlock_debug() {}
+#ifndef NDEBUG
+    virtual void deadlock_debug() {
+        printf("deadlock_debug N/A\n");
+    }
+#endif
 };
 
 struct event_queue_t;

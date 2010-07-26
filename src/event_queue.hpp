@@ -12,9 +12,10 @@
 #include "message_hub.hpp"
 #include "config/cmd_args.hpp"
 #include "buffer_cache/callbacks.hpp"
+#include "stats.hpp"
+
 typedef void (*event_handler_t)(event_queue_t*, event_t*);
 
-#include "stats.hpp"
 // Inter-thread communication event (ITC)
 enum itc_event_type_t {
     iet_shutdown = 1,

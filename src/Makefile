@@ -4,7 +4,7 @@ SERVER_EXEC_NAME:=rethinkdb
 START_DB_DIR:=../scripts
 START_DB_NAME:=start_rethinkdb
 TAGS:=.tags
-RUN_PORT?=11215
+RUN_PORT?=11211
 RUN_FLAGS?=
 VALGRIND_FLAGS?=--leak-check=full --db-attach=yes
 DEBUG?=1
