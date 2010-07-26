@@ -2,75 +2,44 @@
 #define __STATS_HPP__
 
 #include <map>
-#include <string>
-#include <functional>
 #include "config/args.hpp"
 #include "config/code.hpp"
 #include "message_hub.hpp"
 #include "alloc/alloc_mixin.hpp"
 
-/* Variable Types */
-struct base_type {
-    typedef std::basic_string<char, std::char_traits<char>, gnew_alloc<char> > custom_string;
-    typedef std::basic_stringstream<char, std::char_traits<char>, gnew_alloc<char> > custom_stringstream;
-    virtual void add(base_type* val) {}
-    virtual custom_string get_value() = 0;
-    virtual void clear() {}
-    virtual ~base_type() {}
+/* Variable monitor types */
+struct var_monitor_t {
+    virtual ~var_monitor_t() {}
+
+    virtual void reset() = 0;
+    virtual void combine(var_monitor_t *val) = 0;
+    virtual int print(char *buf, int max_size) = 0;
 };
 
-struct int_type : public base_type, public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, int_type > {
-    typedef std::basic_string<char, std::char_traits<char>, gnew_alloc<char> > custom_string;
-    typedef std::basic_stringstream<char, std::char_traits<char>, gnew_alloc<char> > custom_stringstream;
-
-    int_type(int* a) : value(a) {}    
-    void add(base_type* val);
-    custom_string get_value();
-    void inline clear();
-    ~int_type();
-    int_type(const int_type& rhs);
-    int_type& operator=(const int_type& rhs);
-    void copy(const int_type& rhs);
-
-    int* value;
-    int min;
-    int max;
+struct int_monitor_t : public var_monitor_t
+{
+    int_monitor_t(int* a)
+        : value(a)
+        {}
+    
+    virtual void reset();
+    virtual void combine(var_monitor_t* val);
+    virtual int print(char *buf, int max_size);
+    
+    int *value;
 };
 
-struct double_type : public base_type, public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, double_type > {
-    typedef std::basic_string<char, std::char_traits<char>, gnew_alloc<char> > custom_string;
-    typedef std::basic_stringstream<char, std::char_traits<char>, gnew_alloc<char> > custom_stringstream;
-
-    double_type(double* a) : value(a) {}
-    void add(base_type* val);
-    custom_string get_value();
-    void inline clear();
-    ~double_type();
-    double_type(const double_type& rhs);
-    double_type& operator=(const double_type& rhs);
-    void copy(const double_type& rhs);
-
-    double* value;
-    double min;
-    double max;
-};
-
-struct float_type : public base_type, public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, float_type > {
-    typedef std::basic_string<char, std::char_traits<char>, gnew_alloc<char> > custom_string;
-    typedef std::basic_stringstream<char, std::char_traits<char>, gnew_alloc<char> > custom_stringstream;
-
-    float_type(float* a) : value(a) {}
-    void add(base_type* val);
-    custom_string get_value();
-    void inline clear();
-    ~float_type();
-    float_type(const float_type& rhs);
-    float_type& operator=(const float_type& rhs);
-    void copy(const float_type& rhs);
-
-    float* value;
-    float min;
-    float max;
+struct float_monitor_t : public var_monitor_t
+{
+    float_monitor_t(float* a)
+        : value(a)
+        {}
+    
+    virtual void reset();
+    virtual void combine(var_monitor_t* val);
+    virtual int print(char *buf, int max_size);
+    
+    float *value;
 };
 
 /* The actual stats Module */
@@ -79,26 +48,24 @@ struct stats : public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, stats
     typedef std::basic_stringstream<char, std::char_traits<char>, gnew_alloc<char> > custom_stringstream;
     typedef standard_config_t::conn_fsm_t conn_fsm_t;
         
-    stats() : stats_added(0) {}
+    stats() {}
     stats(const stats &rhs);
     ~stats();
     stats& operator=(const stats &rhs);
 
-    std::map<custom_string, base_type *, std::less<custom_string>, gnew_alloc<base_type*> >* get();
+    std::map<custom_string, var_monitor_t*, std::less<custom_string>, gnew_alloc<var_monitor_t*> >* get();
     void add(int *val, custom_string desc);
-    void add(double *val, custom_string desc);
     void add(float *val, custom_string desc);
-    void add(stats& s);
     
-    void uncreate();
+    void accumulate(stats *s);
+    
     void clear();
     void copy(const stats &rhs);
     
     /* vars */
     // TODO: Watch the allocation. This is slow.
-    std::map<custom_string, base_type *, std::less<custom_string>, gnew_alloc<base_type*> > registry;
+    std::map<custom_string, var_monitor_t *, std::less<custom_string>, gnew_alloc<var_monitor_t*> > registry;
     conn_fsm_t *conn_fsm;
-    int stats_added;
 };
 
 /* This is what gets sent to a core when another core requests it's stats module. */

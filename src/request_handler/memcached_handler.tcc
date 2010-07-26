@@ -540,19 +540,34 @@ void memcached_handler_t<config_t>::build_response(request_t *request) {
         stats combined_stats;
         for(int i = 0; i < (int)request->ncompleted; i++) {
             stats_msg_t *_msg = (stats_msg_t*)request->msgs[i];
-            combined_stats.add(*(_msg->stat));
+            combined_stats.accumulate(_msg->stat);
         }
         
         // Print the resultings stats
-        map<custom_string, base_type *, std::less<custom_string>, gnew_alloc<base_type*> > *registry = combined_stats.get();
-        custom_string str_response = "";
-        map<custom_string, base_type *, less<custom_string>, gnew_alloc<base_type*> >::iterator iter;
+        map<custom_string, var_monitor_t*, std::less<custom_string>, gnew_alloc<var_monitor_t*> > *registry = combined_stats.get();
+        map<custom_string, var_monitor_t*, less<custom_string>, gnew_alloc<var_monitor_t*> >::iterator iter;
+        char *dest = sbuf;
         for (iter=registry->begin();iter != registry->end();iter++)
         {
-            str_response += "STAT " + iter->first + " " + iter->second->get_value() + "\r\n";
+            // TODO: make sure we don't overflow the sbuf
+            strncpy(dest, "STAT ", 5);
+            fsm->nsbuf += 5;
+            dest += 5;
+            
+            int name_len = strlen(iter->first.c_str());
+            strncpy(dest, iter->first.c_str(), name_len);
+            dest[name_len] = ' ';
+            fsm->nsbuf += name_len + 1;
+            dest += name_len + 1;
+
+            int val_len = iter->second->print(dest, 10);
+            fsm->nsbuf += val_len;
+            dest += val_len;
+
+            strncpy(dest, "\r\n", 2);
+            fsm->nsbuf += 2;
+            dest += 2;
         }
-        strcpy(sbuf, str_response.c_str());
-        fsm->nsbuf = strlen(str_response.c_str());
     }
 
     // Connection fsm is no longer processing a request
