@@ -134,7 +134,7 @@ void process_stats_msg(stats_msg<code_config_t> *msg)
             initiate_conn_fsm_transition(queue, &event);
             // Request cleanup
             for(i = 0; i < (int)request->ncompleted; i++) {
-                stats_msg_t *_msg = (stats_msg_t*)request->fsms[i];
+                stats_msg_t *_msg = (stats_msg_t*)request->msgs[i];
                 _msg->state = stats_msg_t::sm_copy_cleanup;
                 j = _msg->return_cpu;
                 _msg->return_cpu = this_cpu;
@@ -144,7 +144,7 @@ void process_stats_msg(stats_msg<code_config_t> *msg)
                 // We clean the request because its destructor normally
                 // deletes the messages, but in case of stats it's done
                 // manually.
-                request->fsms[i] = NULL;
+                request->msgs[i] = NULL;
             }
             request->nstarted = 0;
             request->ncompleted = 0;

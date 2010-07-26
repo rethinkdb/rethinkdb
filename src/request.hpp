@@ -16,15 +16,14 @@ public:
         nstarted(0), ncompleted(0), netfsm(_netfsm) {}
     ~request() {
         for (unsigned int i = 0; i < nstarted; i++) {
-            delete fsms[i];
+            delete msgs[i];
         }
     }
     
     unsigned int nstarted, ncompleted;
 
     // TODO: make this dynamic
-    cpu_message_t *fsms[MAX_OPS_IN_REQUEST];
-
+    cpu_message_t *msgs[MAX_OPS_IN_REQUEST];
     conn_fsm_t *netfsm;
 };
 

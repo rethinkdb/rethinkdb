@@ -278,7 +278,7 @@ typename memcached_handler_t<config_t>::parse_result_t memcached_handler_t<confi
 
     // Create request
     request_t *request = new request_t(conn_fsm);
-    request->fsms[0] = set_fsm;
+    request->msgs[0] = set_fsm;
     request->nstarted = 1;
     conn_fsm->current_request = request;
     set_fsm->request = request;
@@ -354,7 +354,7 @@ typename memcached_handler_t<config_t>::parse_result_t memcached_handler_t<confi
         btree_get_fsm_t *btree_fsm = new btree_get_fsm_t(get_cpu_context()->event_queue->cache);
         btree_fsm->request = request;
         btree_fsm->init_lookup(key);
-        request->fsms[request->nstarted] = btree_fsm;
+        request->msgs[request->nstarted] = btree_fsm;
         request->nstarted++;
 
         // Add the fsm to appropriate queue
@@ -414,7 +414,7 @@ typename memcached_handler_t<config_t>::parse_result_t memcached_handler_t<confi
     btree_fsm->init_delete(key);
 
     request_t *request = new request_t(fsm);
-    request->fsms[request->nstarted] = btree_fsm;
+    request->msgs[request->nstarted] = btree_fsm;
     request->nstarted++;
     fsm->current_request = request;
     btree_fsm->request = request;
@@ -444,14 +444,14 @@ void memcached_handler_t<config_t>::build_response(request_t *request) {
     int count;
     assert(request->nstarted > 0 && request->nstarted == request->ncompleted);
     
-    if (request->fsms[0]->type == cpu_message_t::mt_btree)
+    if (request->msgs[0]->type == cpu_message_t::mt_btree)
     {
-        btree_fsm_t *btree = (btree_fsm_t*)(request->fsms[0]);
+        btree_fsm_t *btree = (btree_fsm_t*)(request->msgs[0]);
         switch(btree->fsm_type) {
         case btree_fsm_t::btree_get_fsm:
             // TODO: make sure we don't overflow the buffer with sprintf
             for(unsigned int i = 0; i < request->nstarted; i++) {
-                btree_get_fsm = (btree_get_fsm_t*)request->fsms[i];
+                btree_get_fsm = (btree_get_fsm_t*)request->msgs[i];
                 if(btree_get_fsm->op_result == btree_get_fsm_t::btree_found) {
                     //TODO: support flags
                     btree_key *key = btree_get_fsm->key;
@@ -471,7 +471,7 @@ void memcached_handler_t<config_t>::build_response(request_t *request) {
             // For now we only support one set operation at a time
             assert(request->nstarted == 1);
     
-            btree_set_fsm = (btree_set_fsm_t*)request->fsms[0];
+            btree_set_fsm = (btree_set_fsm_t*)request->msgs[0];
     
             if (btree_set_fsm->noreply) {
                 // if noreply is set do not reply regardless of success or failure
@@ -512,7 +512,7 @@ void memcached_handler_t<config_t>::build_response(request_t *request) {
             // For now we only support one delete operation at a time
             assert(request->nstarted == 1);
     
-            btree_delete_fsm = (btree_delete_fsm_t*)request->fsms[0];
+            btree_delete_fsm = (btree_delete_fsm_t*)request->msgs[0];
     
             if(btree_delete_fsm->op_result == btree_delete_fsm_t::btree_found) {
                 count = sprintf(sbuf, "DELETED\r\n");
@@ -534,12 +534,12 @@ void memcached_handler_t<config_t>::build_response(request_t *request) {
         
         // Delete the request
         delete request;
-    } else if (request->fsms[0]->type == cpu_message_t::mt_stats)
+    } else if (request->msgs[0]->type == cpu_message_t::mt_stats)
     {
         // Combine all responses into one
         stats combined_stats;
         for(int i = 0; i < (int)request->ncompleted; i++) {
-            stats_msg_t *_msg = (stats_msg_t*)request->fsms[i];
+            stats_msg_t *_msg = (stats_msg_t*)request->msgs[i];
             combined_stats.add(*(_msg->stat));
         }
         
@@ -572,7 +572,7 @@ typename memcached_handler_t<config_t>::parse_result_t memcached_handler_t<confi
     {
         stats_msg_t *stats_req_msg = new stats_msg_t(request);
         stats_req_msg->return_cpu = id;
-        request->fsms[i] = stats_req_msg;
+        request->msgs[i] = stats_req_msg;
         req_handler_t::event_queue->message_hub.store_message(i, stats_req_msg);
     }    
     request->nstarted = nworkers;
