@@ -116,8 +116,8 @@ void process_stats_msg(stats_msg<code_config_t> *msg)
     switch(msg->state) {
     case stats_msg_t::sm_request:
         // Copy our statistics into the stats message and send a response
-        msg->stat = new stats(queue->stat);
-        //queue->stat.clear();
+        msg->stat = new stats();
+        msg->stat->copy_from(queue->stat);
         msg->state = stats_msg_t::sm_response;
         break;
     case stats_msg_t::sm_response:

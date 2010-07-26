@@ -9,63 +9,45 @@
 
 /* Variable monitor types */
 struct var_monitor_t {
+public:
+    enum var_type_t {
+        vt_undefined,
+        vt_int,
+        vt_float
+    };
+        
+public:
+    var_monitor_t()
+        : type(vt_undefined), name(NULL), value(NULL)
+        {}
+    var_monitor_t(var_type_t _type, const char *_name, void *_value)
+        : type(_type), name(_name), value(_value)
+        {}
     virtual ~var_monitor_t() {}
 
-    virtual void reset() = 0;
-    virtual void combine(var_monitor_t *val) = 0;
-    virtual int print(char *buf, int max_size) = 0;
-};
+    void combine(const var_monitor_t *val);
+    int print(char *buf, int max_size);
+    void freeze_state();
 
-struct int_monitor_t : public var_monitor_t
-{
-    int_monitor_t(int* a)
-        : value(a)
-        {}
-    
-    virtual void reset();
-    virtual void combine(var_monitor_t* val);
-    virtual int print(char *buf, int max_size);
-    
-    int *value;
-};
-
-struct float_monitor_t : public var_monitor_t
-{
-    float_monitor_t(float* a)
-        : value(a)
-        {}
-    
-    virtual void reset();
-    virtual void combine(var_monitor_t* val);
-    virtual int print(char *buf, int max_size);
-    
-    float *value;
+public:
+    var_type_t type;
+    const char *name;
+    void *value;
+    char value_copy[8];
 };
 
 /* The actual stats Module */
 struct stats : public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, stats > {
-    typedef std::basic_string<char, std::char_traits<char>, gnew_alloc<char> > custom_string;
-    typedef std::basic_stringstream<char, std::char_traits<char>, gnew_alloc<char> > custom_stringstream;
-    typedef standard_config_t::conn_fsm_t conn_fsm_t;
-        
-    stats() {}
-    stats(const stats &rhs);
-    ~stats();
-    stats& operator=(const stats &rhs);
-
-    std::map<custom_string, var_monitor_t*, std::less<custom_string>, gnew_alloc<var_monitor_t*> >* get();
-    void add(int *val, custom_string desc);
-    void add(float *val, custom_string desc);
+public:
+    typedef std::map<const char*, var_monitor_t, std::less<const char*>, gnew_alloc<var_monitor_t> > stats_map_t;
     
+public:
+    void monitor(var_monitor_t monitor);
     void accumulate(stats *s);
+    void copy_from(const stats &rhs);
     
-    void clear();
-    void copy(const stats &rhs);
-    
-    /* vars */
-    // TODO: Watch the allocation. This is slow.
-    std::map<custom_string, var_monitor_t *, std::less<custom_string>, gnew_alloc<var_monitor_t*> > registry;
-    conn_fsm_t *conn_fsm;
+    // TODO: Watch the allocation.
+    stats_map_t registry;
 };
 
 /* This is what gets sent to a core when another core requests it's stats module. */

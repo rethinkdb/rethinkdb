@@ -544,23 +544,22 @@ void memcached_handler_t<config_t>::build_response(request_t *request) {
         }
         
         // Print the resultings stats
-        map<custom_string, var_monitor_t*, std::less<custom_string>, gnew_alloc<var_monitor_t*> > *registry = combined_stats.get();
-        map<custom_string, var_monitor_t*, less<custom_string>, gnew_alloc<var_monitor_t*> >::iterator iter;
         char *dest = sbuf;
-        for (iter=registry->begin();iter != registry->end();iter++)
+        stats::stats_map_t *registry = &combined_stats.registry;
+        for(stats::stats_map_t::iterator iter = registry->begin(); iter != registry->end(); iter++)
         {
             // TODO: make sure we don't overflow the sbuf
             strncpy(dest, "STAT ", 5);
             fsm->nsbuf += 5;
             dest += 5;
             
-            int name_len = strlen(iter->first.c_str());
-            strncpy(dest, iter->first.c_str(), name_len);
+            int name_len = strlen(iter->first);
+            strncpy(dest, iter->first, name_len);
             dest[name_len] = ' ';
             fsm->nsbuf += name_len + 1;
             dest += name_len + 1;
 
-            int val_len = iter->second->print(dest, 10);
+            int val_len = iter->second.print(dest, 10);
             fsm->nsbuf += val_len;
             dest += val_len;
 
