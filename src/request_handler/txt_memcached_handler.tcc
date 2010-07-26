@@ -275,7 +275,7 @@ typename txt_memcached_handler_t<config_t>::parse_result_t txt_memcached_handler
 
     // Create request
     request_t *request = new request_t(conn_fsm);
-    request->fsms[0] = set_fsm;
+    request->msgs[0] = set_fsm;
     request->nstarted = 1;
     conn_fsm->current_request = request;
     set_fsm->request = request;
@@ -351,7 +351,7 @@ typename txt_memcached_handler_t<config_t>::parse_result_t txt_memcached_handler
         btree_get_fsm_t *btree_fsm = new btree_get_fsm_t(get_cpu_context()->event_queue->cache);
         btree_fsm->request = request;
         btree_fsm->init_lookup(key);
-        request->fsms[request->nstarted] = btree_fsm;
+        request->msgs[request->nstarted] = btree_fsm;
         request->nstarted++;
 
         // Add the fsm to appropriate queue
@@ -411,7 +411,7 @@ typename txt_memcached_handler_t<config_t>::parse_result_t txt_memcached_handler
     btree_fsm->init_delete(key);
 
     request_t *request = new request_t(fsm);
-    request->fsms[request->nstarted] = btree_fsm;
+    request->msgs[request->nstarted] = btree_fsm;
     request->nstarted++;
     fsm->current_request = request;
     btree_fsm->request = request;
@@ -444,12 +444,12 @@ void txt_memcached_handler_t<config_t>::build_response(request_t *request) {
 
     if (request->msgs[0]->type == cpu_message_t::mt_btree)
     {
-        btree_fsm_t *btree = (btree_fsm_t*)(request->msgs[0]);
-        switch(request->fsms[0]->fsm_type) {
+//        btree_fsm_t *btree = (btree_fsm_t*)(request->msgs[0]);
+        switch(request->msgs[0]->type) {
         case btree_fsm_t::btree_get_fsm:
             // TODO: make sure we don't overflow the buffer with sprintf
             for(unsigned int i = 0; i < request->nstarted; i++) {
-                btree_get_fsm = (btree_get_fsm_t*)request->fsms[i];
+                btree_get_fsm = (btree_get_fsm_t*)request->msgs[i];
                 if(btree_get_fsm->op_result == btree_get_fsm_t::btree_found) {
                     //TODO: support flags
                     btree_key *key = btree_get_fsm->key;
@@ -469,7 +469,7 @@ void txt_memcached_handler_t<config_t>::build_response(request_t *request) {
             // For now we only support one set operation at a time
             assert(request->nstarted == 1);
     
-            btree_set_fsm = (btree_set_fsm_t*)request->fsms[0];
+            btree_set_fsm = (btree_set_fsm_t*)request->msgs[0];
     
             if (btree_set_fsm->noreply) {
                 // if noreply is set do not reply regardless of success or failure
@@ -510,7 +510,7 @@ void txt_memcached_handler_t<config_t>::build_response(request_t *request) {
             // For now we only support one delete operation at a time
             assert(request->nstarted == 1);
     
-            btree_delete_fsm = (btree_delete_fsm_t*)request->fsms[0];
+            btree_delete_fsm = (btree_delete_fsm_t*)request->msgs[0];
     
             if(btree_delete_fsm->op_result == btree_delete_fsm_t::btree_found) {
                 count = sprintf(sbuf, "DELETED\r\n");
@@ -569,7 +569,7 @@ void txt_memcached_handler_t<config_t>::build_response(request_t *request) {
 }
 
 template <class config_t>
-typename memcached_handler_t<config_t>::parse_result_t memcached_handler_t<config_t>::issue_stats_request(conn_fsm_t *fsm, unsigned int line_len) {
+typename txt_memcached_handler_t<config_t>::parse_result_t txt_memcached_handler_t<config_t>::issue_stats_request(conn_fsm_t *fsm, unsigned int line_len) {
 
     int nworkers = (int)get_cpu_context()->event_queue->parent_pool->nworkers;
     int id = get_cpu_context()->event_queue->queue_id;

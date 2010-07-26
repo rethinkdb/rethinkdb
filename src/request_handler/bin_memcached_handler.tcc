@@ -111,7 +111,7 @@ typename bin_memcached_handler_t<config_t>::parse_result_t bin_memcached_handler
     btree_get_fsm_t *btree_fsm = new btree_get_fsm_t(get_cpu_context()->event_queue->cache);
     btree_fsm->request = request;
     btree_fsm->init_lookup(key);
-    request->fsms[request->nstarted] = btree_fsm;
+    request->msgs[request->nstarted] = btree_fsm;
     request->handler_data = (void *) new bin_handler_data_t(pkt);
     request->nstarted++;
 
@@ -166,7 +166,7 @@ typename bin_memcached_handler_t<config_t>::parse_result_t bin_memcached_handler
     btree_set_fsm_t *btree_fsm = new btree_set_fsm_t(get_cpu_context()->event_queue->cache);
     btree_fsm->request = request;
     btree_fsm->init_update(key, pkt->value(), pkt->value_length(), set_type);
-    request->fsms[request->nstarted] = btree_fsm;
+    request->msgs[request->nstarted] = btree_fsm;
     request->handler_data = (void *) new bin_handler_data_t(pkt);
     request->nstarted++;
     fsm->current_request = request;
@@ -234,7 +234,7 @@ typename bin_memcached_handler_t<config_t>::parse_result_t bin_memcached_handler
     btree_delete_fsm_t *btree_fsm = new btree_delete_fsm_t(get_cpu_context()->event_queue->cache);
     btree_fsm->request = request;
     btree_fsm->init_delete(key);
-    request->fsms[request->nstarted] = btree_fsm;
+    request->msgs[request->nstarted] = btree_fsm;
     request->handler_data = (void *) new bin_handler_data_t(pkt);
     request->nstarted++;
 
@@ -286,12 +286,12 @@ void bin_memcached_handler_t<config_t>::build_response(request_t *request) {
 
     assert(request->nstarted > 0 && request->nstarted == request->ncompleted);
 
-    btree_fsm_t *btfsm = request->fsms[0];
+    cpu_message_t *msg = request->msgs[0];
 
-    switch(btfsm->fsm_type) {
+    switch(msg->type) {
         case btree_fsm_t::btree_get_fsm:
             // TODO: make sure we don't overflow the buffer with sprintf
-            btree_get_fsm = (btree_get_fsm_t*) btfsm;
+            btree_get_fsm = (btree_get_fsm_t*) msg;
 
             if(btree_get_fsm->op_result == btree_get_fsm_t::btree_found) {
                 res_pkt->status(bin_status_no_error);
@@ -323,7 +323,7 @@ void bin_memcached_handler_t<config_t>::build_response(request_t *request) {
             
             break;
         case btree_fsm_t::btree_set_fsm:
-            btree_set_fsm = (btree_set_fsm_t*) btfsm;
+            btree_set_fsm = (btree_set_fsm_t*) msg;
             key = btree_set_fsm->key;
 
             res_pkt->status(bin_status_no_error);
@@ -334,7 +334,7 @@ void bin_memcached_handler_t<config_t>::build_response(request_t *request) {
             sbuf += res_pkt->size();
             break;
         case btree_fsm_t::btree_delete_fsm:
-            btree_delete_fsm = (btree_delete_fsm_t*) btfsm;
+            btree_delete_fsm = (btree_delete_fsm_t*) msg;
             key = btree_delete_fsm->key;
 
             res_pkt->status(bin_status_no_error);

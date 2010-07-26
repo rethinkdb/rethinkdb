@@ -74,7 +74,7 @@ public:
         }
         printf("\tstate = %s\n", st_name);
         if (current_request) {
-            printf("\tcurrent_request.fsms = [\n");
+            printf("\tcurrent_request.msgs = [\n");
             unsigned int i;
             for (i=0; i<current_request->nstarted; i++) {
                 current_request->msgs[i]->deadlock_debug();

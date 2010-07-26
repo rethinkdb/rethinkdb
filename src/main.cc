@@ -36,7 +36,6 @@
 #include "conn_fsm.hpp"
 #include "request.hpp"
 
-typedef basic_string<char, char_traits<char>, gnew_alloc<char> > custom_string;
 typedef standard_config_t::request_t request_t;
 
 // TODO: we should redo the plumbing for the entire callback system so
@@ -241,3 +240,4 @@ int main(int argc, char *argv[])
         printf("Shutting down server...\n");
     }
 }
+

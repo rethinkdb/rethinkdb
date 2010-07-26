@@ -19,7 +19,8 @@ public:
     typedef typename config_t::btree_delete_fsm_t btree_delete_fsm_t;
     typedef typename config_t::req_handler_t req_handler_t;
     typedef typename req_handler_t::parse_result_t parse_result_t;
-    
+    typedef perfmon_msg<config_t> perfmon_msg_t;
+        
 public:
     txt_memcached_handler_t(cache_t *_cache, event_queue_t *eq)
         : req_handler_t(eq), cache(_cache), key((btree_key*)key_memory), loading_data(false)
@@ -59,6 +60,9 @@ private:
     void write_msg(conn_fsm_t *fsm, const char *str);
     parse_result_t malformed_request(conn_fsm_t *fsm);
     parse_result_t unimplemented_request(conn_fsm_t *fsm);
+
+    /* stats stuff */
+    parse_result_t issue_stats_request(conn_fsm_t *fsm, unsigned int line_len);
 };
 
 #include "request_handler/txt_memcached_handler.tcc"

@@ -22,13 +22,8 @@ public:
     unsigned int nstarted, ncompleted;
 
     // TODO: make this dynamic
-<<<<<<< HEAD:src/request.hpp
-    btree_fsm_t *fsms[MAX_OPS_IN_REQUEST];
     void *handler_data;
-
-=======
     cpu_message_t *msgs[MAX_OPS_IN_REQUEST];
->>>>>>> 1eff101b16b1aad489977c7cad948e3d1f31ca86:src/request.hpp
     conn_fsm_t *netfsm;
 };
 

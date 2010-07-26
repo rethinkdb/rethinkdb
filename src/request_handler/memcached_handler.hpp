@@ -26,7 +26,6 @@ public:
     typedef typename config_t::t_memcached_handler_t txt_memcached_handler_t;
     typedef typename config_t::b_memcached_handler_t bin_memcached_handler_t;
     typedef typename config_t::b_memcached_handler_t::bin_magic_t bin_magic_t;
-    typedef perfmon_msg<config_t> perfmon_msg_t;
     
 public:
     memcached_handler_t(cache_t *_cache, event_queue_t *eq)
