@@ -60,8 +60,8 @@ def rethinkdb_verify(mc, ints, clone):
 
 def rethinkdb_multi_verify(mc, ints, clone):
     get_response = mc.get_multi(map(str, ints))
-    for key, stored_value in zip(ints, get_response):
-        if stored_value != clone.get(key):
+    for i in ints:
+        if get_response.get(str(i)) != clone.get(str(i)):
             raise ValueError("Error, incorrent value in the database! (%s=>%s, should be %s)" % (key, stored_value, clone_value))
 
 def split_list(alist, parts):
@@ -70,24 +70,23 @@ def split_list(alist, parts):
             for i in range(parts)]
 
 def test_against_server_at(port):
-
     mc = memcache.Client(["localhost:%d" % port], binary = bin)
+#clone = {}
+#print "====Testing singular operations===="
+
+#ints = range(0, NUM_INTS)
+#shuffle(ints)
+
+#print "Inserting numbers"
+#rethinkdb_insert(mc, ints, clone)
+
+#print "Verifying"
+#rethinkdb_verify(mc, ints, clone)
+
+#print "Deleting numbers"
+#rethinkdb_delete(mc, ints, clone)
+
     clone = {}
-
-    print "====Testing singular operations===="
-
-    ints = range(0, NUM_INTS)
-    shuffle(ints)
-
-    print "Inserting numbers"
-    rethinkdb_insert(mc, ints, clone)
-
-    print "Verifying"
-    rethinkdb_verify(mc, ints, clone)
-
-    print "Deleting numbers"
-    rethinkdb_delete(mc, ints, clone)
-
     print "====Testing multi operations===="
 
     ints = range(0, NUM_INTS)
