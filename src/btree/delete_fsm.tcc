@@ -6,12 +6,6 @@
 #include "cpu_context.hpp"
 
 template <class config_t>
-void btree_delete_fsm<config_t>::init_delete(btree_key *_key) {
-    keycpy(key, _key);
-    state = start_transaction;
-}
-
-template <class config_t>
 typename btree_delete_fsm<config_t>::transition_result_t btree_delete_fsm<config_t>::do_start_transaction(event_t *event) {
     assert(state == start_transaction);
 
@@ -169,7 +163,7 @@ typename btree_delete_fsm<config_t>::transition_result_t btree_delete_fsm<config
         assert(last_buf);
         node_t *last_node = (node_t *)last_buf->ptr();
 
-        internal_node_handler::sibling(((internal_node_t*)last_node), key, &sib_node_id);
+        internal_node_handler::sibling(((internal_node_t*)last_node), &key, &sib_node_id);
         sib_buf = transaction->acquire(sib_node_id, rwi_write, this);
     } else {
         assert(event->buf);
@@ -332,7 +326,7 @@ typename btree_delete_fsm<config_t>::transition_result_t btree_delete_fsm<config
                 last_buf->set_dirty();
 
                 // Figure out where the key goes
-                if(sized_strcmp(key->contents, key->size, median->contents, median->size) <= 0) {
+                if(sized_strcmp(key.contents, key.size, median->contents, median->size) <= 0) {
                     // Left node and node are the same thing
                     rbuf->release();
                     rbuf = NULL;
@@ -366,7 +360,7 @@ typename btree_delete_fsm<config_t>::transition_result_t btree_delete_fsm<config
             last_buf = buf;
             last_node_id = node_id;
 
-            node_id = internal_node_handler::lookup(node, key);
+            node_id = internal_node_handler::lookup(node, &key);
             buf = NULL;
 
             res = do_acquire_node(event);
@@ -377,7 +371,7 @@ typename btree_delete_fsm<config_t>::transition_result_t btree_delete_fsm<config
             //printf("leaf start\n");
             // If we haven't already, do some deleting 
             if (op_result == btree_incomplete) {
-                if(leaf_node_handler::remove(node, key)) {
+                if(leaf_node_handler::remove(node, &key)) {
                     //key found, and value deleted
                     buf->set_dirty();
                     op_result = btree_found;
@@ -393,7 +387,7 @@ typename btree_delete_fsm<config_t>::transition_result_t btree_delete_fsm<config
                     //printf("leaf empty\n");
                     internal_node_t *parent_node = (internal_node_t*)last_buf->ptr();
                     if (!internal_node_handler::is_singleton(parent_node)) {
-                        internal_node_handler::remove(parent_node, key);
+                        internal_node_handler::remove(parent_node, &key);
                         //TODO: delete buf when api is ready
                     } else {
                         // the root contains only two nodes, one of which is empty.  delete the empty one, and make the other one the root

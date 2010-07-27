@@ -17,6 +17,7 @@ public:
     typedef typename config_t::btree_set_fsm_t btree_set_fsm_t;
     typedef typename config_t::btree_get_fsm_t btree_get_fsm_t;
     typedef typename config_t::btree_delete_fsm_t btree_delete_fsm_t;
+    typedef typename config_t::btree_incr_decr_fsm_t btree_incr_decr_fsm_t;
     typedef typename config_t::req_handler_t req_handler_t;
     typedef typename req_handler_t::parse_result_t parse_result_t;
     typedef perfmon_msg<config_t> perfmon_msg_t;
@@ -47,11 +48,6 @@ private:
     parse_result_t parse_adjustment(bool increment, char *state, unsigned int line_len, conn_fsm_t *fsm);
 
     parse_result_t read_data(char *data, unsigned int size, conn_fsm_t *fsm);
-
-    parse_result_t fire_set_fsm(btree_set_type type, btree_key *key, char *value_data, uint32_t value_len, bool noreply, conn_fsm_t *conn_fsm);
-    parse_result_t append(char *data, conn_fsm_t *fsm);
-    parse_result_t prepend(char *data, conn_fsm_t *fsm);
-    parse_result_t cas(char *data, conn_fsm_t *fsm);
 
     parse_result_t get(char *state, bool include_unique, unsigned int line_len, conn_fsm_t *fsm);
 

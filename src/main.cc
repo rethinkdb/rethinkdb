@@ -33,6 +33,7 @@
 #include "btree/leaf_node.tcc"
 #include "btree/get_fsm.hpp"
 #include "btree/set_fsm.hpp"
+#include "btree/incr_decr_fsm.hpp"
 #include "btree/delete_fsm.hpp"
 #include "conn_fsm.hpp"
 #include "request.hpp"
@@ -67,12 +68,9 @@ void on_btree_completed(code_config_t::btree_fsm_t *btree_fsm) {
 }
 
 void process_btree_msg(code_config_t::btree_fsm_t *btree_fsm) {
+    
     event_queue_t *event_queue = get_cpu_context()->event_queue;
-    // The FSM should work on the local cache, not on the cache of
-    // the sender.
-    // TODO: btree_fsm should not be constructed with a cache, as
-    // it acts both as the cross-cpu message and the fsm.
-    btree_fsm->cache = event_queue->cache;
+    
     if(btree_fsm->is_finished()) {
         // We received a completed btree that belongs to us
         btree_fsm->request->ncompleted++;
@@ -92,8 +90,14 @@ void process_btree_msg(code_config_t::btree_fsm_t *btree_fsm) {
                 initiate_conn_fsm_transition(event_queue, &event);
             }
         }
+    
     } else {
         // We received a new btree that we need to process
+        
+        // The btree is constructed with no cache; here we must assign it its proper cache
+        assert(!btree_fsm->cache);
+        btree_fsm->cache = event_queue->cache;
+        
         btree_fsm->on_complete = on_btree_completed;
         code_config_t::btree_fsm_t::transition_result_t btree_res = btree_fsm->do_transition(NULL);
         if(btree_res == code_config_t::btree_fsm_t::transition_complete) {

@@ -36,11 +36,15 @@ public:
     };
 
 public:
-    btree_fsm(cache_t *_cache, fsm_type_t _fsm_type)
+    btree_fsm(fsm_type_t _fsm_type, btree_key *_key)
         : cpu_message_t(cpu_message_t::mt_btree),
-          fsm_type(_fsm_type), transaction(NULL), request(NULL), cache(_cache),
+          fsm_type(_fsm_type),
+          transaction(NULL), request(NULL),
+          cache(NULL),   // Will be set when we arrive at the core we are operating on
           on_complete(NULL), noreply(false)
-        {}
+        {
+        keycpy(&key, _key);
+    }
     virtual ~btree_fsm() {}
 
     /* TODO: This function will be called many times per each
@@ -69,15 +73,16 @@ public:
         printf("unknown-fsm %p\n", this);
     }
 #endif
-    
+
 protected:
     block_id_t get_root_id(void *superblock_buf);
-    cache_t* get_cache() {
-        return cache;
-    }
 
 public:
     fsm_type_t fsm_type;
+    union {
+        char key_memory[MAX_KEY_SIZE+sizeof(btree_key)];
+        btree_key key;
+    };
     transaction_t *transaction;
     request_t *request;
     cache_t *cache;

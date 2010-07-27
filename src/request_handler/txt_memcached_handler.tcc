@@ -150,7 +150,7 @@ typename txt_memcached_handler_t<config_t>::parse_result_t txt_memcached_handler
     bool noreply = false;
     if (noreply_str != NULL) {
         if (!strcmp(noreply_str, "noreply")) {
-            this->noreply = true;
+            noreply = true;
         } else {
             fsm->consume(line_len);
             return malformed_request(fsm);
@@ -160,7 +160,21 @@ typename txt_memcached_handler_t<config_t>::parse_result_t txt_memcached_handler
     node_handler::str_to_key(key_tmp, key);
 
     fsm->consume(line_len);
-    return fire_set_fsm(increment ? btree_set_type_incr : btree_set_type_decr, key, value_str, strlen(value_str), noreply, fsm);
+    
+    long long delta = atoll(value_str);
+    
+    btree_incr_decr_fsm_t *btree_fsm = new btree_incr_decr_fsm_t(key, increment, delta);
+    btree_fsm->noreply = noreply;
+    
+    fsm->current_request = new request_t(fsm);
+    dispatch_btree_fsm(fsm, btree_fsm);
+
+    fsm->consume(this->bytes+2);
+
+    if (noreply)
+        return req_handler_t::op_req_parallelizable;
+    else
+        return req_handler_t::op_req_complex;
 }
 
 template <class config_t>
@@ -232,77 +246,43 @@ typename txt_memcached_handler_t<config_t>::parse_result_t txt_memcached_handler
         return req_handler_t::op_partial_packet;
     }
     loading_data = false;
+    fsm->consume(bytes+2);
     if (data[bytes] != '\r' || data[bytes+1] != '\n') {
-        fsm->consume(bytes+2);
         write_msg(fsm, BAD_BLOB);
         return req_handler_t::op_malformed;
     }
 
-    parse_result_t ret;
+    btree_fsm_t *btree_fsm;
     switch(cmd) {
         case SET:
-            ret = fire_set_fsm(btree_set_type_set, this->key, data, this->bytes, this->noreply, fsm);
+            btree_fsm = new btree_set_fsm_t(key, data, bytes, true, true);
             break;
         case ADD:
-            ret = fire_set_fsm(btree_set_type_add, this->key, data, this->bytes, this->noreply, fsm);
+            btree_fsm = new btree_set_fsm_t(key, data, bytes, true, false);
             break;
         case REPLACE:
-            ret = fire_set_fsm(btree_set_type_replace, this->key, data, this->bytes, this->noreply, fsm);
+            btree_fsm = new btree_set_fsm_t(key, data, bytes, false, true);
             break;
         case APPEND:
-            ret = append(data, fsm);
-            break;
         case PREPEND:
-            ret = prepend(data, fsm);
-            break;
         case CAS:
-            ret = prepend(data, fsm);
-            break;
+            return unimplemented_request(fsm);
         default:
-            ret = malformed_request(fsm);
-            break;
+            return malformed_request(fsm);
     }
-
-    fsm->consume(this->bytes+2);
-
-    return ret;
-}
-
-template <class config_t>
-typename txt_memcached_handler_t<config_t>::parse_result_t txt_memcached_handler_t<config_t>::fire_set_fsm(btree_set_type type, btree_key *key, char *value_data, uint32_t value_len, bool noreply, conn_fsm_t *conn_fsm) {
-    btree_set_fsm_t *set_fsm = new btree_set_fsm_t(get_cpu_context()->event_queue->cache);
-    set_fsm->noreply = noreply;
-    set_fsm->init_update(key, value_data, value_len, type);
-    req_handler_t::event_queue->message_hub.store_message(key_to_cpu(key, req_handler_t::event_queue->nqueues),
-            set_fsm);
-
-    // Create request
-    request_t *request = new request_t(conn_fsm);
-    request->msgs[0] = set_fsm;
-    request->nstarted = 1;
-    conn_fsm->current_request = request;
-    set_fsm->request = request;
     
+    btree_fsm->noreply = noreply;
+    
+    fsm->current_request = new request_t(fsm);
+    // Keep track of cmd so we can reply appropriately
+    fsm->current_request->handler_data = (void*)new int(cmd);
+
+    dispatch_btree_fsm(fsm, btree_fsm);
+
     if (noreply)
         return req_handler_t::op_req_parallelizable;
     else
         return req_handler_t::op_req_complex;
-}
-
-
-template <class config_t>
-typename txt_memcached_handler_t<config_t>::parse_result_t txt_memcached_handler_t<config_t>::append(char *data, conn_fsm_t *fsm) {
-    return unimplemented_request(fsm);
-}
-
-template <class config_t>
-typename txt_memcached_handler_t<config_t>::parse_result_t txt_memcached_handler_t<config_t>::prepend(char *data, conn_fsm_t *fsm) {
-    return unimplemented_request(fsm);
-}
-
-template <class config_t>
-typename txt_memcached_handler_t<config_t>::parse_result_t txt_memcached_handler_t<config_t>::cas(char *data, conn_fsm_t *fsm) {
-    return unimplemented_request(fsm);
 }
 
 template <class config_t>
@@ -324,17 +304,19 @@ void txt_memcached_handler_t<config_t>::write_msg(conn_fsm_t *fsm, const char *s
 
 template <class config_t>
 typename txt_memcached_handler_t<config_t>::parse_result_t txt_memcached_handler_t<config_t>::get(char *state, bool include_unique, unsigned int line_len, conn_fsm_t *fsm) {
-    char *key_str = strtok_r(NULL, DELIMS, &state);
-    if (key_str == NULL)
-        return malformed_request(fsm);
-
+    
     if (include_unique)
         return unimplemented_request(fsm);
+        
     // Create request
-    request_t *request = new request_t(fsm);
+    fsm->current_request = new request_t(fsm);
+    
+    char *key_str = strtok_r(NULL, DELIMS, &state);
+    if (key_str == NULL) return malformed_request(fsm);
+    
     do {
         // See if we can fit one more request
-        if(request->nstarted == MAX_OPS_IN_REQUEST) {
+        if(fsm->current_request->nstarted == MAX_OPS_IN_REQUEST) {
             // We can't fit any more operations, let's just break
             // and complete the ones we already sent out to other
             // cores.
@@ -349,19 +331,12 @@ typename txt_memcached_handler_t<config_t>::parse_result_t txt_memcached_handler
 
         // Ok, we've got a key, initialize the FSM and add it to
         // the request
-        btree_get_fsm_t *btree_fsm = new btree_get_fsm_t(get_cpu_context()->event_queue->cache);
-        btree_fsm->request = request;
-        btree_fsm->init_lookup(key);
-        request->msgs[request->nstarted] = btree_fsm;
-        request->nstarted++;
-
-        // Add the fsm to appropriate queue
-        req_handler_t::event_queue->message_hub.store_message(key_to_cpu(key, req_handler_t::event_queue->nqueues), btree_fsm);
+        btree_get_fsm_t *btree_fsm = new btree_get_fsm_t(key);
+        dispatch_btree_fsm(fsm, btree_fsm);
+        
         key_str = strtok_r(NULL, DELIMS, &state);
+        
     } while(key_str);
-
-    // Set the current request in the connection fsm
-    fsm->current_request = request;
 
     //clean out the rbuf
     fsm->consume(line_len);
@@ -404,21 +379,12 @@ typename txt_memcached_handler_t<config_t>::parse_result_t txt_memcached_handler
 
     node_handler::str_to_key(key_str, key);
 
-    // parsed successfully, but functionality not yet implemented
-    //return unimplemented_request(fsm);
     // Create request
-    btree_delete_fsm_t *btree_fsm = new btree_delete_fsm_t(get_cpu_context()->event_queue->cache);
+    btree_delete_fsm_t *btree_fsm = new btree_delete_fsm_t(key);
     btree_fsm->noreply = this->noreply;
-    btree_fsm->init_delete(key);
 
-    request_t *request = new request_t(fsm);
-    request->msgs[request->nstarted] = btree_fsm;
-    request->nstarted++;
-    fsm->current_request = request;
-    btree_fsm->request = request;
-    fsm->current_request = request;
-
-    req_handler_t::event_queue->message_hub.store_message(key_to_cpu(key, req_handler_t::event_queue->nqueues), btree_fsm);
+    fsm->current_request = new request_t(fsm);
+    dispatch_btree_fsm(fsm, btree_fsm);
 
     //clean out the rbuf
     fsm->consume(line_len);
@@ -477,7 +443,7 @@ void txt_memcached_handler_t<config_t>::build_response(request_t *request) {
                 } else {
                     // noreply not set, send reply depending on type of request
 
-                    switch(btree_set_fsm->get_set_type()) {
+                    switch(cmd) {
                         case btree_set_type_incr:
                         case btree_set_type_decr:
                             if (btree_set_fsm->set_was_successful) {

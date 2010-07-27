@@ -48,6 +48,9 @@ class btree_set_fsm;
 template <typename config_t>
 class btree_delete_fsm;
 
+template <typename config_t>
+class btree_incr_decr_fsm;
+
 template <class config_t>
 class btree_admin;
 

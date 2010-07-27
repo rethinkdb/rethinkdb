@@ -16,10 +16,11 @@ public:
     typedef typename config_t::cache_t cache_t;
     typedef typename btree_fsm_t::transition_result_t transition_result_t;
     typedef typename cache_t::buf_t buf_t;
+    
+    using btree_fsm_t::key;
 
 public:
     enum state_t {
-        uninitialized,
         acquire_superblock,
         acquire_root,
         acquire_node,
@@ -32,20 +33,18 @@ public:
     };
 
 public:
-    explicit btree_get_fsm(cache_t *cache)
-        : btree_fsm_t(cache, btree_fsm_t::btree_get_fsm),
-          key((btree_key*)key_memory), value((btree_value*)value_memory), state(uninitialized), last_buf(NULL), buf(NULL), node_id(cache_t::null_block_id)
+    explicit btree_get_fsm(btree_key *_key)
+        : btree_fsm_t(btree_fsm_t::btree_get_fsm, _key),
+          state(acquire_superblock), last_buf(NULL), buf(NULL), node_id(cache_t::null_block_id)
         {}
 
-    void init_lookup(btree_key *_key);
     virtual transition_result_t do_transition(event_t *event);
 
     virtual bool is_finished() { return state == lookup_complete; }
 
 public:
     op_result_t op_result;
-    btree_key * const key;
-    btree_value * const value;
+    
 private:
     using btree_fsm<config_t>::cache;
     using btree_fsm<config_t>::transaction;
@@ -60,8 +59,10 @@ private:
 #endif
     
 private:
-    char key_memory[MAX_KEY_SIZE+sizeof(btree_key)];
-    char value_memory[MAX_IN_NODE_VALUE_SIZE+sizeof(btree_value)];
+    union {
+        char value_memory[MAX_IN_NODE_VALUE_SIZE+sizeof(btree_value)];
+        btree_value value;
+    };
     // Some relevant state information
     state_t state;
     buf_t *last_buf, *buf;
