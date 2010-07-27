@@ -14,10 +14,6 @@ template<class config_t>
 class memcached_handler_t : public request_handler_t<config_t>,
     public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, memcached_handler_t<config_t> > {
 public:
-    typedef typename config_t::cache_t cache_t;
-    typedef typename config_t::conn_fsm_t conn_fsm_t;
-    typedef typename config_t::request_t request_t;
-    typedef typename config_t::btree_fsm_t btree_fsm_t;
     typedef typename config_t::btree_set_fsm_t btree_set_fsm_t;
     typedef typename config_t::btree_get_fsm_t btree_get_fsm_t;
     typedef typename config_t::btree_delete_fsm_t btree_delete_fsm_t;

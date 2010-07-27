@@ -637,19 +637,8 @@ private:
     btree_key * const key;
 
     parse_result_t read_data(char *data, unsigned int size, conn_fsm_t *fsm);
-
-    parse_result_t set(packet_t *pkt, conn_fsm_t *fsm);
+    parse_result_t dispatch_appropriate_fsm(packet_t *pkt, conn_fsm_t *fsm);
     parse_result_t no_op(packet_t *pkt, conn_fsm_t *fsm);
-    parse_result_t add(packet_t *pkt, conn_fsm_t *fsm);
-    parse_result_t replace(packet_t *pkt, conn_fsm_t *fsm);
-    parse_result_t append(packet_t *pkt, conn_fsm_t *fsm);
-    parse_result_t prepend(packet_t *pkt, conn_fsm_t *fsm);
-    parse_result_t cas(packet_t *pkt, conn_fsm_t *fsm);
-    parse_result_t get(packet_t *pkt, conn_fsm_t *fsm);
-    parse_result_t remove(packet_t *pkt, conn_fsm_t *fsm);
-    parse_result_t increment(packet_t *pkt, conn_fsm_t *fsm);
-    parse_result_t decrement(packet_t *pkt, conn_fsm_t *fsm);
-
     parse_result_t malformed_request(conn_fsm_t *fsm);
     parse_result_t unimplemented_request(conn_fsm_t *fsm);
 };
