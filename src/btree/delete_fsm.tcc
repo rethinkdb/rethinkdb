@@ -34,7 +34,7 @@ typename btree_delete_fsm<config_t>::transition_result_t btree_delete_fsm<config
 
     if(event == NULL) {
         // First entry into the FSM; try to grab the superblock.
-        block_id_t superblock_id = btree_fsm_t::get_cache()->get_superblock_id();
+        block_id_t superblock_id = cache->get_superblock_id();
         sb_buf = transaction->acquire(superblock_id, rwi_write, this);
     } else {
         // We already tried to grab the superblock, and we're getting

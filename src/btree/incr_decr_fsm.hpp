@@ -20,7 +20,7 @@ public:
         // If the key didn't exist before, we fail
         if (!old_value) return false;
         
-        uint64_t number = strtoull(old_value->contents, NULL, 10);
+        new_number = strtoull(old_value->contents, NULL, 10);
         
        /*  NOTE: memcached actually does a few things differently:
         *   - If you say `decr 1 -50`, memcached will set 1 to 0 no matter
@@ -31,17 +31,18 @@ public:
         */
         
         if (increment) {
-            if (delta < 0 && number + delta > number) number = 0;
-            else number += delta;
+            if (delta < 0 && new_number + delta > new_number) new_number = 0;
+            else new_number += delta;
         } else {
-            if (delta > 0 && number - delta > number) number = 0;
-            else number -= delta;
+            if (delta > 0 && new_number - delta > new_number) new_number = 0;
+            else new_number -= delta;
         }
         
-        // We write into our member variable 'temp_value' because the buffer we return must remain valid
-        // until the btree FSM is destroyed. That's why we can't allocate a buffer on the stack.
+        // We write into our member variable 'temp_value' because the buffer we return must remain
+        // valid until the btree FSM is destroyed. That's why we can't allocate a buffer on the
+        // stack.
         
-        int chars_written = sprintf(temp_value.contents, "%llu", (unsigned long long)number);
+        int chars_written = sprintf(temp_value.contents, "%llu", (unsigned long long)new_number);
         temp_value.size = chars_written;
         
         *new_value = &temp_value;
@@ -59,6 +60,11 @@ private:
         char temp_value_memory[MAX_IN_NODE_VALUE_SIZE+sizeof(btree_value)];
         btree_value temp_value;
     };
+
+public:
+    /* When the FSM is finished, then 'set_was_successful' will be true if the key was found and
+    new_value will hold the value that it was set to. */
+    uint64_t new_number;
 };
 
 #endif // __BTREE_SET_FSM_HPP__

@@ -57,7 +57,6 @@ struct standard_config_t {
     typedef request_handler_t<standard_config_t> req_handler_t;
     typedef bin_memcached_handler_t<standard_config_t> b_memcached_handler_t;
     typedef txt_memcached_handler_t<standard_config_t> t_memcached_handler_t;
-    typedef request<standard_config_t> request_t;
 };
 
 typedef standard_config_t code_config_t;
