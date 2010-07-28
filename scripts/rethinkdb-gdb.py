@@ -30,7 +30,7 @@ def lookup_function (val):
     # if a printer is registered for that type.  Return an
     # instantiation of the printer if found.
     for function in pretty_printers_dict:
-       if function.search (typename):
+       if function.match (typename):
            return pretty_printers_dict[function] (val)
            
     # Cannot find a pretty printer.  Return None.
@@ -269,7 +269,10 @@ class Btree_Set_TypePrinter:
 
 pretty_printers_dict = {}
 pretty_printers_dict[re.compile ('.*state.*')]                           = StatePrinter
-pretty_printers_dict[re.compile ('.*fsm.*')]                       = Btree_FsmPrinter
+pretty_printers_dict[re.compile ('^btree_fsm.*')]                       = Btree_FsmPrinter
+pretty_printers_dict[re.compile ('^btree_set_fsm.*')]                   = Btree_FsmPrinter
+pretty_printers_dict[re.compile ('^btree_get_fsm.*')]                   = Btree_FsmPrinter
+pretty_printers_dict[re.compile ('^btree_delete_fsm.*')]                = Btree_FsmPrinter
 pretty_printers_dict[re.compile ('.*cpu_message.*')]                     = Cpu_MessagePrinter
 pretty_printers_dict[re.compile ('.*fsm_type.*')]                        = Fsm_TypePrinter
 pretty_printers_dict[re.compile ('.*request.*')]                         = RequestPrinter
