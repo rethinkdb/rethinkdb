@@ -95,7 +95,7 @@ endif
 	valgrind $(VALGRIND_FLAGS) $(BUILD_DIR)/$(SERVER_EXEC_NAME) -p $(RUN_PORT) $(RUN_FLAGS)
 
 tags:
-	$(QUIET) ctags -R -f $(TAGS)
+	$(QUIET) ctags -R -f $(TAGS) --langmap="c++:.cc.tcc.hpp"
 
 style:
 	$(QUIET) find . -name \*.cc -o -name \*.hpp | xargs ../scripts/cpplint --verbose 2 --filter=-whitespace/end_of_line,-whitespace/parens,-whitespace/line_length,-readability/casting,-whitespace/braces,-readability/todo,-legal/copyright,-whitespace/comments,-build/include,-whitespace/labels,-runtime/int,-runtime/printf 2>&1 | grep -v Done\ processing
