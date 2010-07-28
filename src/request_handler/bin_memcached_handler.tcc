@@ -286,12 +286,13 @@ void bin_memcached_handler_t<config_t>::build_response(request_t *request) {
 
     assert(request->nstarted > 0 && request->nstarted == request->ncompleted);
 
-    cpu_message_t *msg = request->msgs[0];
+    //cpu_message_t *msg = request->msgs[0];
 
-    switch(msg->type) {
+    btree_fsm_t *btree = (btree_fsm_t*) request->msgs[0];
+    switch(btree->fsm_type) {
         case btree_fsm_t::btree_get_fsm:
             // TODO: make sure we don't overflow the buffer with sprintf
-            btree_get_fsm = (btree_get_fsm_t*) msg;
+            btree_get_fsm = (btree_get_fsm_t*) btree;
 
             if(btree_get_fsm->op_result == btree_get_fsm_t::btree_found) {
                 res_pkt->status(bin_status_no_error);
@@ -323,7 +324,7 @@ void bin_memcached_handler_t<config_t>::build_response(request_t *request) {
             
             break;
         case btree_fsm_t::btree_set_fsm:
-            btree_set_fsm = (btree_set_fsm_t*) msg;
+            btree_set_fsm = (btree_set_fsm_t*) btree;
             key = btree_set_fsm->key;
 
             res_pkt->status(bin_status_no_error);
@@ -334,7 +335,7 @@ void bin_memcached_handler_t<config_t>::build_response(request_t *request) {
             sbuf += res_pkt->size();
             break;
         case btree_fsm_t::btree_delete_fsm:
-            btree_delete_fsm = (btree_delete_fsm_t*) msg;
+            btree_delete_fsm = (btree_delete_fsm_t*) btree;
             key = btree_delete_fsm->key;
 
             res_pkt->status(bin_status_no_error);

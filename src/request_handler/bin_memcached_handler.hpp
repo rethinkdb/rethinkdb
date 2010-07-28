@@ -167,12 +167,8 @@ private:
     } bin_opcode_code;
 
     bool is_valid_opcode(bin_opcode_t opcode) {
-        //of course this depends on the codes being sequential and starting at 0
-        for (unsigned int i = 0; i < num_opcode_code; i++) {
-            if (opcode == i)
-                return true;
-        }
-        return false;
+        //of course this depends on the codes being sequential
+        return (opcode < num_opcode_code);
     }
 
     typedef enum {
@@ -479,9 +475,9 @@ public:
             bool is_valid_request() {
                 bool valid = true;
                 bin_memcached_handler_t validator;
-                valid |= (magic() == (bin_magic_t) bin_magic_request);
-                valid |= validator.is_valid_opcode(opcode());
-                valid |= validator.is_valid_data_type(data_type());
+                valid = valid && (magic() == (bin_magic_t) bin_magic_request);
+                valid = valid && validator.is_valid_opcode(opcode());
+                valid = valid && validator.is_valid_data_type(data_type());
 
                 //do opcode specific tests
                 switch (opcode()) {
@@ -492,8 +488,8 @@ public:
                         //must have key
                         //must not have value
                         //may have extras
-                        valid |= (key_length() > 0);
-                        valid |= (value_length() == 0);
+                        valid = valid && (key_length() > 0);
+                        valid = valid && (value_length() == 0);
                         break;
                     case bin_opcode_set:
                     case bin_opcode_setq:
@@ -504,18 +500,18 @@ public:
                         //must have a key
                         //must have a value
                         //must have extras
-                        valid |= (key_length() > 0);
-                        valid |= (value_length() > 0);
-                        valid |= (extra_length() > 0);
+                        valid = valid && (key_length() > 0);
+                        valid = valid && (value_length() > 0);
+                        valid = valid && (extra_length() > 0);
                         break;
                     case bin_opcode_delete:
                     case bin_opcode_deleteq:
                         //must have a key
                         //must not have a value
                         //must not have extras
-                        valid |= (key_length() > 0);
-                        valid |= (value_length() == 0);
-                        valid |= (extra_length() == 0);
+                        valid = valid && (key_length() > 0);
+                        valid = valid && (value_length() == 0);
+                        valid = valid && (extra_length() == 0);
                         break;
                     case bin_opcode_increment:
                     case bin_opcode_decrement:
@@ -524,9 +520,9 @@ public:
                         //must have a key
                         //must not have a value
                         //must have extras
-                        valid |= (key_length() > 0);
-                        valid |= (value_length() == 0);
-                        valid |= (extra_length() > 0);
+                        valid = valid && (key_length() > 0);
+                        valid = valid && (value_length() == 0);
+                        valid = valid && (extra_length() > 0);
                         break;
                     case bin_opcode_append:
                     case bin_opcode_appendq:
@@ -535,52 +531,52 @@ public:
                         //must have a key
                         //must have a value
                         //must not have extras
-                        valid |= (key_length() > 0);
-                        valid |= (value_length() > 0);
-                        valid |= (extra_length() == 0);
+                        valid = valid && (key_length() > 0);
+                        valid = valid && (value_length() > 0);
+                        valid = valid && (extra_length() == 0);
                         break;
                     case bin_opcode_quit:
                     case bin_opcode_quitq:
                         //must not have a key
                         //must not have a value
                         //must not have extras
-                        valid |= (key_length() == 0);
-                        valid |= (value_length() == 0);
-                        valid |= (extra_length() == 0);
+                        valid = valid && (key_length() == 0);
+                        valid = valid && (value_length() == 0);
+                        valid = valid && (extra_length() == 0);
                         break;
                     case bin_opcode_flush:
                     case bin_opcode_flushq:
                         //must not have a key
                         //must not have a value
                         //may have extras
-                        valid |= (key_length() == 0);
-                        valid |= (value_length() == 0);
+                        valid = valid && (key_length() == 0);
+                        valid = valid && (value_length() == 0);
                         break;
                     case bin_opcode_no_op:
                         //must not have a key
                         //must not have a value
                         //must not have extras
-                        valid |= (key_length() == 0);
-                        valid |= (value_length() == 0);
-                        valid |= (extra_length() == 0);
+                        valid = valid && (key_length() == 0);
+                        valid = valid && (value_length() == 0);
+                        valid = valid && (extra_length() == 0);
                         break;
                     case bin_opcode_version:
                         //must not have a key
                         //must not have a value
                         //must not have extras
-                        valid |= (key_length() == 0);
-                        valid |= (value_length() == 0);
-                        valid |= (extra_length() == 0);
+                        valid = valid && (key_length() == 0);
+                        valid = valid && (value_length() == 0);
+                        valid = valid && (extra_length() == 0);
                         break;
                     case bin_opcode_stat:
                         //may have a key
                         //must not have a value
                         //must not have extras
-                        valid |= (value_length() == 0);
-                        valid |= (extra_length() == 0);
+                        valid = valid && (value_length() == 0);
+                        valid = valid && (extra_length() == 0);
                         break;
                     default:
-                        valid |= false;
+                        valid = valid && false;
                         break;
                 }
                 return valid;

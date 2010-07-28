@@ -1,8 +1,9 @@
 ##### Configuring stuff
 
 SERVER_EXEC_NAME:=rethinkdb
-START_DB_DIR:=../scripts
+SCRIPTS_DIR:=../scripts
 START_DB_NAME:=start_rethinkdb
+GDB_FUNCTIONS_NAME:=rethinkdb-gdb.py
 TAGS:=.tags
 RUN_PORT?=11211
 RUN_FLAGS?=
@@ -72,8 +73,8 @@ ifeq ($(VERBOSE),0)
 	@echo "    LD $@"
 endif
 	$(QUIET) $(CXX) $(LDFLAGS) $(OBJS) -o $(BUILD_DIR)/$(SERVER_EXEC_NAME)
-	$(QUIET) cp $(START_DB_DIR)/$(START_DB_NAME) $(BUILD_DIR)/$(START_DB_NAME)
-
+	$(QUIET) cp $(SCRIPTS_DIR)/$(START_DB_NAME) $(BUILD_DIR)/$(START_DB_NAME)
+	$(QUIET) cp $(SCRIPTS_DIR)/$(GDB_FUNCTIONS_NAME) $(BUILD_DIR)/$(GDB_FUNCTIONS_NAME)
 # The 'run' and 'gdb' targets build the server, automatically remove old data files, and then start
 # it up. The difference is that the 'gdb' target starts it under a debugger.
 
