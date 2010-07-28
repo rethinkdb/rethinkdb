@@ -52,7 +52,7 @@ typename btree_modify_fsm<config_t>::transition_result_t btree_modify_fsm<config
 
     if(event == NULL) {
         // First entry into the FSM; try to grab the superblock.
-        block_id_t superblock_id = btree_fsm_t::get_cache()->get_superblock_id();
+        block_id_t superblock_id = cache->get_superblock_id();
         sb_buf = transaction->acquire(superblock_id, rwi_write, this);
     } else {
         // We already tried to grab the superblock, and we're getting
@@ -222,14 +222,14 @@ typename btree_modify_fsm<config_t>::transition_result_t btree_modify_fsm<config
             union {
                 char value_memory[MAX_IN_NODE_VALUE_SIZE+sizeof(btree_value)];
                 btree_value old_value;
-            };
-            bool key_found = leaf_node_handler::lookup(node, &key, &old_value);
+            } u;
+            bool key_found = leaf_node_handler::lookup((btree_leaf_node*)node, &key, &u.old_value);
             
             // We've found the old value, or determined that it is not present; now compute the new
             // value.
             
             if (key_found) {
-                set_was_successful = operate(&old_value, &new_value);
+                set_was_successful = operate(&u.old_value, &new_value);
             } else {
                 set_was_successful = operate(NULL, &new_value);
             }

@@ -8,28 +8,214 @@
 #include "conn_fsm.hpp"
 #include "corefwd.hpp"
 
+template<class config_t>
+class bin_memcached_request : public request_callback_t {
+
+public:
+    typedef typename bin_memcached_handler_t<config_t>::packet_t packet_t;
+    typedef typename config_t::conn_fsm_t conn_fsm_t;
+    typedef typename bin_memcached_handler_t<config_t>::bin_opcode_t bin_opcode_t;
+    typedef typename bin_memcached_handler_t<config_t>::bin_data_type_t bin_data_type_t;
+    typedef typename bin_memcached_handler_t<config_t>::bin_opaque_t bin_opaque_t;
+
+public:
+    bin_memcached_request(bin_memcached_handler_t<config_t> *rh, packet_t *pkt)
+        : rh(rh), opcode(pkt->opcode()), data_type(pkt->data_type()), opaque(pkt->opaque()),
+          request(new request_t(this))
+        {}
+    
+    virtual void build_response(packet_t *pkt) = 0;
+    
+    void on_request_completed() {
+    
+        conn_fsm_t *c = rh->conn_fsm;
+        
+        byte tmpbuf[MAX_PACKET_SIZE];
+        packet_t packet(tmpbuf);
+        packet.opcode(opcode);
+        packet.data_type(data_type);
+        packet.opaque(opaque);
+        packet.extra_length(0);
+        packet.key_length(0);
+        packet.value_length(0);
+        packet.magic(bin_memcached_handler_t<config_t>::bin_magic_response);
+        
+        build_response(&packet);
+        c->sbuf->append(packet.data, packet.size());
+        
+        // TODO: Handle uncorking if we are non-quiet
+        
+        rh->request_complete();
+        delete this;
+    }
+    
+    bin_memcached_handler_t<config_t> *rh;
+    bin_opcode_t opcode;
+    bin_data_type_t data_type;
+    bin_opaque_t opaque;
+    request_t *request;
+};
+
+template<class config_t>
+class bin_memcached_get_request : public bin_memcached_request<config_t>,
+    public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, bin_memcached_get_request<config_t> > {
+
+public:
+    typedef typename bin_memcached_handler_t<config_t>::packet_t packet_t;
+    typedef typename config_t::conn_fsm_t conn_fsm_t;
+    typedef typename config_t::btree_get_fsm_t btree_get_fsm_t;
+    using bin_memcached_request<config_t>::request;
+    using bin_memcached_request<config_t>::opcode;
+
+public:
+    bin_memcached_get_request(bin_memcached_handler_t<config_t> *rh, packet_t *pkt, btree_key *key)
+        : bin_memcached_request<config_t>(rh, pkt), fsm(new btree_get_fsm_t(key))
+        {
+        request->add(fsm, key_to_cpu(key, rh->event_queue->nqueues));
+        request->dispatch();
+    }
+    
+    ~bin_memcached_get_request() {
+        delete fsm;
+    }
+    
+    void build_response(packet_t *res_pkt) {
+        // TODO: make sure we don't overflow the buffer with sprintf
+
+        if(fsm->op_result == btree_get_fsm_t::btree_found) {
+            res_pkt->status(bin_memcached_handler_t<config_t>::bin_status_no_error);
+            res_pkt->set_value(&fsm->value);
+            res_pkt->set_extras(extra_flags, extra_flags_length);
+        } else {
+            res_pkt->status(bin_memcached_handler_t<config_t>::bin_status_key_not_found);
+        }
+
+        //check if the packet requires that a key be sent back
+        if (bin_memcached_handler_t<config_t>::is_key_code(opcode)) {
+            res_pkt->set_key(&fsm->key);
+        }
+    }
+private:
+    btree_get_fsm_t *fsm;
+};
+
+template<class config_t>
+class bin_memcached_set_request : public bin_memcached_request<config_t>,
+    public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, bin_memcached_set_request<config_t> > {
+
+public:
+    typedef typename bin_memcached_handler_t<config_t>::packet_t packet_t;
+    typedef typename config_t::conn_fsm_t conn_fsm_t;
+    typedef typename config_t::btree_set_fsm_t btree_set_fsm_t;
+    using bin_memcached_request<config_t>::request;
+
+public:
+    bin_memcached_set_request(bin_memcached_handler_t<config_t> *rh, packet_t *pkt, btree_key *key, byte *data, int size, bool add_ok, bool replace_ok)
+        : bin_memcached_request<config_t>(rh, pkt), fsm(new btree_set_fsm_t(key, data, size, add_ok, replace_ok))
+        {
+        assert(add_ok && replace_ok);   // We haven't hooked up ADD and REPLACE yet.
+        request->add(fsm, key_to_cpu(key, rh->event_queue->nqueues));
+        request->dispatch();
+    }
+    
+    ~bin_memcached_set_request() {
+        delete fsm;
+    }
+    
+    void build_response(packet_t *res_pkt) {
+        res_pkt->status(bin_memcached_handler_t<config_t>::bin_status_no_error);
+        // Set responses require don't require anything to be set. When we hook up ADD and REPLACE
+        // then we will need to check for errors.
+        assert(fsm->set_was_successful);
+    }
+private:
+    btree_set_fsm_t *fsm;
+};
+
+template<class config_t>
+class bin_memcached_incr_decr_request : public bin_memcached_request<config_t>,
+    public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, bin_memcached_incr_decr_request<config_t> > {
+
+public:
+    typedef typename bin_memcached_handler_t<config_t>::packet_t packet_t;
+    typedef typename config_t::conn_fsm_t conn_fsm_t;
+    typedef typename config_t::btree_incr_decr_fsm_t btree_incr_decr_fsm_t;
+    using bin_memcached_request<config_t>::request;
+
+public:
+    bin_memcached_incr_decr_request(bin_memcached_handler_t<config_t> *rh, packet_t *pkt, btree_key *key, bool increment, long long delta)
+        : bin_memcached_request<config_t>(rh, pkt), fsm(new btree_incr_decr_fsm_t(key, increment, delta))
+        {
+        request->add(fsm, key_to_cpu(key, rh->event_queue->nqueues));
+        request->dispatch();
+    }
+    
+    ~bin_memcached_incr_decr_request() {
+        delete fsm;
+    }
+    
+    void build_response(packet_t *res_pkt) {
+        // TODO this is probably wrong
+        res_pkt->status(bin_memcached_handler_t<config_t>::bin_status_no_error);
+    }
+private:
+    btree_incr_decr_fsm_t *fsm;
+};
+
+template<class config_t>
+class bin_memcached_delete_request : public bin_memcached_request<config_t>,
+    public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, bin_memcached_delete_request<config_t> > {
+
+public:
+    typedef typename bin_memcached_handler_t<config_t>::packet_t packet_t;
+    typedef typename config_t::conn_fsm_t conn_fsm_t;
+    typedef typename config_t::btree_delete_fsm_t btree_delete_fsm_t;
+    using bin_memcached_request<config_t>::request;
+
+public:
+    bin_memcached_delete_request(bin_memcached_handler_t<config_t> *rh, packet_t *pkt, btree_key *key)
+        : bin_memcached_request<config_t>(rh, pkt), fsm(new btree_delete_fsm_t(key))
+        {
+        request->add(fsm, key_to_cpu(key, rh->event_queue->nqueues));
+        request->dispatch();
+    }
+    
+    ~bin_memcached_delete_request() {
+        delete fsm;
+    }
+    
+    void build_response(packet_t *res_pkt) {
+        if(fsm->op_result == btree_delete_fsm_t::btree_found) {
+            res_pkt->status(bin_memcached_handler_t<config_t>::bin_status_no_error);
+        } else {
+            res_pkt->status(bin_memcached_handler_t<config_t>::bin_status_key_not_found);
+        }
+    }
+private:
+    btree_delete_fsm_t *fsm;
+};
+
 //! Parse a binary command received from the user
 template<class config_t>
 typename bin_memcached_handler_t<config_t>::parse_result_t bin_memcached_handler_t<config_t>::parse_request(event_t *event)
 {
-    conn_fsm_t *fsm = (conn_fsm_t*)event->state;
-    char *rbuf = fsm->rbuf; 
-    unsigned int size = fsm->nrbuf;
-    parse_result_t res;
+    assert(event->state == conn_fsm);
 
-    if (size < sizeof(request_header_t))
+    if (conn_fsm->nrbuf < sizeof(request_header_t))
         return req_handler_t::op_partial_packet;
 
-    packet_t packet(rbuf);
+    packet_t packet(conn_fsm->rbuf);
     packet_t *pkt = &packet;
     
-    if (size < pkt->size())
+    if (conn_fsm->nrbuf < pkt->size())
         return req_handler_t::op_partial_packet;
 
     if (!pkt->is_valid_request()) {
-        fsm->consume(pkt->size());
+        conn_fsm->consume(pkt->size());
         return req_handler_t::op_malformed;
     }
+
+    parse_result_t res;
 
     //Showtime!!
     switch (pkt->opcode()) {
@@ -37,9 +223,6 @@ typename bin_memcached_handler_t<config_t>::parse_result_t bin_memcached_handler
         case bin_opcode_getq:
         case bin_opcode_getk:
         case bin_opcode_getkq:
-            dispatch_appropriate_fsm(pkt, fsm);
-            res = req_handler_t::op_req_complex; //TODO even a quiet get eventually requires a response, so pipelining is broken
-            break;
         case bin_opcode_set:
         case bin_opcode_setq:
         case bin_opcode_add:
@@ -56,7 +239,7 @@ typename bin_memcached_handler_t<config_t>::parse_result_t bin_memcached_handler
         case bin_opcode_appendq:
         case bin_opcode_prepend:
         case bin_opcode_prependq:
-            res = dispatch_appropriate_fsm(pkt, fsm);
+            res = dispatch_appropriate_fsm(pkt);
             break;
         case bin_opcode_quit:
         case bin_opcode_quitq:
@@ -65,195 +248,102 @@ typename bin_memcached_handler_t<config_t>::parse_result_t bin_memcached_handler
         case bin_opcode_flush:
         case bin_opcode_flushq:
         case bin_opcode_no_op:
-<<<<<<< HEAD:src/request_handler/bin_memcached_handler.tcc
-            res = no_op(pkt, fsm);
+            res = no_op(pkt);
             break;
-=======
->>>>>>> Restructured btree_fsms. Now starting to restructure request handlers.:src/request_handler/bin_memcached_handler.tcc
         case bin_opcode_version:
         case bin_opcode_stat:
-            res = unimplemented_request(fsm);
+            res = unimplemented_request();
             break;
         default:
-            res = malformed_request(fsm);
+            res = malformed_request();
             break;
     }
+    
 #ifdef MEMCACHED_STRICT
-    fsm->corked = is_quiet_code(pkt->opcode()); //cork if the code is quiet
+    conn_fsm->corked = is_quiet_code(pkt->opcode()); //cork if the code is quiet
 #endif
 
-    fsm->consume(pkt->size());
+    conn_fsm->consume(pkt->size());
     return res;
 }
 
 
 template <class config_t>
-typename bin_memcached_handler_t<config_t>::parse_result_t
-bin_memcached_handler_t<config_t>::dispatch_appropriate_fsm(packet_t *pkt, conn_fsm_t *fsm) {
+typename bin_memcached_handler_t<config_t>::parse_result_t bin_memcached_handler_t<config_t>::dispatch_appropriate_fsm(packet_t *pkt) {
     
     pkt->key(key);
     
-    btree_fsm_t *btree_fsm;
     switch (pkt->opcode()) {
         case bin_opcode_get:
         case bin_opcode_getq:
         case bin_opcode_getk:
         case bin_opcode_getkq:
-            btree_fsm = new btree_get_fsm_t(key);
-            break;
+            new bin_memcached_get_request<config_t>(this, pkt, key);
+            //TODO even a quiet get eventually requires a response, so pipelining is broken
+            return req_handler_t::op_req_complex;
         case bin_opcode_set:
         case bin_opcode_setq:
-            btree_fsm = new btree_set_fsm_t(key, pkt->value(), pkt->value_length(), true, true);
+            new bin_memcached_set_request<config_t>(this, pkt, key, pkt->value(), pkt->value_length(), true, true);
             break;
         case bin_opcode_add:
         case bin_opcode_addq:
-            btree_fsm = new btree_set_fsm_t(key, pkt->value(), pkt->value_length(), true, false);
+            new bin_memcached_set_request<config_t>(this, pkt, key, pkt->value(), pkt->value_length(), true, false);
             break;
         case bin_opcode_replace:
         case bin_opcode_replaceq:
-            btree_fsm = new btree_set_fsm_t(key, pkt->value(), pkt->value_length(), false, true);
+            new bin_memcached_set_request<config_t>(this, pkt, key, pkt->value(), pkt->value_length(), false, true);
             break;
         case bin_opcode_increment:
         case bin_opcode_incrementq:
+        {
             long long delta = atoll(pkt->value());
-            btree_fsm = new btree_incr_decr_fsm_t(key, true, delta);
+            new bin_memcached_incr_decr_request<config_t>(this, pkt, key, true, delta);
             break;
+        }
         case bin_opcode_decrement:
         case bin_opcode_decrementq:
+        {
             long long delta = atoll(pkt->value());
-            btree_fsm = new btree_incr_decr_fsm_t(key, false, delta);
+            new bin_memcached_incr_decr_request<config_t>(this, pkt, key, false, delta);
             break;
+        }
         case bin_opcode_delete:
         case bin_opcode_deleteq:
-            btree_fsm = new btree_delete_fsm_t(key);
+            new bin_memcached_delete_request<config_t>(this, pkt, key);
             break;
         case bin_opcode_append:
         case bin_opcode_appendq:
         case bin_opcode_prepend:
         case bin_opcode_prependq:
-            return unimplemented_request(fsm);
+            return unimplemented_request();
         default:
             check("Invalid opcode in bin_memcached_handler_t::dispatch_appropriate_fsm", 0);
-            return;   // Placate GCC
+            return malformed_request();   // Placate GCC
     }
     
-    fsm->current_request = new request_t(fsm);
-    fsm->current_request->handler_data = new bin_handler_data_t(pkt);
-    dispatch_btree_fsm(fsm, btree_fsm);
-    
-    if (is_quiet_code(pkt->opcode()))
-        return req_handler_t::op_req_parallelizable;
-    else
-        return req_handler_t::op_req_complex;
+    if (is_quiet_code(pkt->opcode())) return req_handler_t::op_req_parallelizable;
+    else return req_handler_t::op_req_complex;
 }
 
 template <class config_t>
-typename bin_memcached_handler_t<config_t>::parse_result_t bin_memcached_handler_t<config_t>::no_op(packet_t *pkt, conn_fsm_t *fsm) {
+typename bin_memcached_handler_t<config_t>::parse_result_t bin_memcached_handler_t<config_t>::no_op(packet_t *pkt) {
     //XXX this changes the passed packet good provided we don't need it anymore since it saves an allocation
     pkt->magic(bin_magic_response);
 
-    fsm->sbuf->append(pkt->data, pkt->size());
+    conn_fsm->sbuf->append(pkt->data, pkt->size());
     return req_handler_t::op_req_send_now;
 }
 
-template<class config_t>
-void bin_memcached_handler_t<config_t>::build_response(request_t *request) {
-
-
-    // Since we're in the middle of processing a command,
-    // fsm->sbuf must exist at this point.
-    conn_fsm_t *fsm = request->netfsm;
-    btree_get_fsm_t *btree_get_fsm = NULL;
-    btree_set_fsm_t *btree_set_fsm = NULL;
-    btree_delete_fsm_t *btree_delete_fsm = NULL;
-
-    //reload the handler specific data
-    byte tmpbuf[MAX_PACKET_SIZE];
-    memset(tmpbuf, 0, MAX_PACKET_SIZE); //calm yo bitch ass valgrind
-    packet_t res_packet(tmpbuf, (bin_handler_data_t *) request->handler_data);
-    delete (bin_handler_data_t *) request->handler_data;
-    packet_t *res_pkt = &res_packet;
-    res_pkt->magic(bin_magic_response);
-
-    btree_key *key = NULL; //there must be a key
-    btree_value *value = NULL; //there may not be a value
-
-    assert(request->nstarted > 0 && request->nstarted == request->ncompleted);
-
-    btree_fsm_t *btree = (btree_fsm_t*) request->msgs[0];
-    switch(btree->fsm_type) {
-        case btree_fsm_t::btree_get_fsm:
-            // TODO: make sure we don't overflow the buffer with sprintf
-            btree_get_fsm = (btree_get_fsm_t*) btree;
-
-            if(btree_get_fsm->op_result == btree_get_fsm_t::btree_found) {
-                res_pkt->status(bin_status_no_error);
-                value = btree_get_fsm->value;
-                res_pkt->set_value(value);
-                res_pkt->set_extras(extra_flags, extra_flags_length);
-            } else {
-                res_pkt->status(bin_status_key_not_found);
-            }
-
-            //check if the packet requires that a key be sent back
-            if (is_key_code(res_pkt->opcode())) {
-                key = btree_get_fsm->key;
-                res_pkt->set_key(key);
-            }
-
-
-            if (is_quiet_code(res_pkt->opcode())) {
-                if (res_pkt->status() != bin_status_no_error) {
-                    ;//mum on error with quiet code
-                } else {
-                    fsm->sbuf->append(tmpbuf, res_pkt->size());
-                }
-            } else {
-                fsm->sbuf->append(tmpbuf, res_pkt->size());
-            }
-            
-            break;
-        case btree_fsm_t::btree_set_fsm:
-            btree_set_fsm = (btree_set_fsm_t*) btree;
-            key = btree_set_fsm->key;
-
-            switch(res_pkt->opcode()) {
-                case bin_opcode_increment:
-                case bin_opcode_incrementq:
-                case bin_opcode_decrement:
-                case bin_opcode_decrementq:
-                    break;
-                case bin_opcode_set:
-                case bin_opcode_setq:
-                case bin_opcode_add:
-                case bin_opcode_addq:
-                case bin_opcode_replace:
-                case bin_opcode_replaceq:
-                    break;
-                default:
-                    break;
-            }
-
-            res_pkt->status(bin_status_no_error);
-
-            //Set responses require don't require anything to be set
-
-            fsm->sbuf->append(tmpbuf, res_pkt->size());
-            break;
-        case btree_fsm_t::btree_delete_fsm:
-            btree_delete_fsm = (btree_delete_fsm_t*) btree;
-            key = btree_delete_fsm->key;
-
-            res_pkt->status(bin_status_no_error);
-
-            fsm->sbuf->append(tmpbuf, res_pkt->size());
-            break;
-        default:
-            check("bin_memcached_handler_t::build_response - Unknown btree op", 0);
-            break;
-    }
-
-    delete request;
-    fsm->current_request = NULL;
+template <class config_t>
+typename bin_memcached_handler_t<config_t>::parse_result_t bin_memcached_handler_t<config_t>::malformed_request() {
+    // TODO: Send a packet back to the client
+    return req_handler_t::op_malformed;
 }
+
+template <class config_t>
+typename bin_memcached_handler_t<config_t>::parse_result_t bin_memcached_handler_t<config_t>::unimplemented_request() {
+    // TODO: Send a packet back to the client
+    return req_handler_t::op_malformed;
+}
+
 #endif // __BIN_MEMCACHED_HANDLER_TCC__

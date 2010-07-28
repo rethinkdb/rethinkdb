@@ -29,11 +29,12 @@ struct cpu_message_t : public intrusive_list_node_t<cpu_message_t>
         mt_perfmon,
     };
     explicit cpu_message_t(msg_type_t _type)
-        : type(_type)
+        : type(_type), request(NULL)
         {}
     virtual ~cpu_message_t() {}
     
     msg_type_t type;
+    request_t *request;
     unsigned int return_cpu;
     
 #ifndef NDEBUG

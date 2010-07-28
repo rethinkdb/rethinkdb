@@ -5,8 +5,7 @@
 #include "btree/fsm.hpp"
 
 template <class config_t>
-class btree_modify_fsm : public btree_fsm<config_t>,
-                         public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, btree_modify_fsm<config_t> >
+class btree_modify_fsm : public btree_fsm<config_t>
 {
 public:
     typedef typename config_t::btree_fsm_t btree_fsm_t;
@@ -31,7 +30,7 @@ public:
 
 public:
     explicit btree_modify_fsm(btree_key *_key)
-        : btree_fsm_t(btree_fsm_t::btree_set_fsm, _key),
+        : btree_fsm_t(_key),
           state(start_transaction),
           sb_buf(NULL), buf(NULL), last_buf(NULL),
           node_id(cache_t::null_block_id), last_node_id(cache_t::null_block_id),

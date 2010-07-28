@@ -34,7 +34,7 @@ public:
 
 public:
     explicit btree_get_fsm(btree_key *_key)
-        : btree_fsm_t(btree_fsm_t::btree_get_fsm, _key),
+        : btree_fsm_t(_key),
           state(acquire_superblock), last_buf(NULL), buf(NULL), node_id(cache_t::null_block_id)
         {}
 
@@ -43,7 +43,13 @@ public:
     virtual bool is_finished() { return state == lookup_complete; }
 
 public:
+    /* When the FSM is finished, op_result will indicate whether the key was found and value will
+    contain the result. */
     op_result_t op_result;
+    union {
+        char value_memory[MAX_IN_NODE_VALUE_SIZE+sizeof(btree_value)];
+        btree_value value;
+    };
     
 private:
     using btree_fsm<config_t>::cache;
@@ -59,10 +65,6 @@ private:
 #endif
     
 private:
-    union {
-        char value_memory[MAX_IN_NODE_VALUE_SIZE+sizeof(btree_value)];
-        btree_value value;
-    };
     // Some relevant state information
     state_t state;
     buf_t *last_buf, *buf;

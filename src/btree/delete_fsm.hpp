@@ -40,7 +40,7 @@ public:
 
 public:
     explicit btree_delete_fsm(btree_key *_key)
-        : btree_fsm_t(btree_fsm_t::btree_delete_fsm, _key),
+        : btree_fsm_t(_key),
           op_result(btree_incomplete), state(start_transaction),
           buf(NULL), last_buf(NULL), sb_buf(NULL),  sib_buf(NULL), node_id(cache_t::null_block_id)
         {}

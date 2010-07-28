@@ -8,16 +8,25 @@
 struct event_t;
 struct event_queue_t;
 
+/*
+initiate_conn_fsm_transition() is in main.cc. There should be a better way for the request handler
+to notify the connection FSM that there is a response in the send buffer waiting to be sent, but
+that's something for another day.
+TODO: Come up with a better way for request handler to notify conn_fsm as part of redoing the
+callback system.
+*/
+void initiate_conn_fsm_transition(event_queue_t *event_queue, event_t *event);
+
 template<class config_t>
 class request_handler_t {
 public:
     typedef typename config_t::cache_t cache_t;
     typedef typename config_t::conn_fsm_t conn_fsm_t;
-    typedef typename config_t::request_t request_t;
     typedef typename config_t::btree_fsm_t btree_fsm_t;
     
 public:
-    explicit request_handler_t(event_queue_t *eq) : event_queue(eq) {}
+    explicit request_handler_t(event_queue_t *eq, conn_fsm_t *conn_fsm)
+        : event_queue(eq), conn_fsm(conn_fsm) {}
     virtual ~request_handler_t() {}
 
     enum parse_result_t {
@@ -31,34 +40,18 @@ public:
     };
     
     virtual parse_result_t parse_request(event_t *event) = 0;
-    virtual void build_response(request_t *request) = 0;
     
-    // TODO: if we receive a small request from the user that can be
-    // satisfied on the same CPU, we should probably special case it and
-    // do it right away, no need to send it to itself, process it, and
-    // then send it back to itself.
-    
-    void dispatch_btree_fsm(
-        conn_fsm_t *conn_fsm,
-        btree_fsm_t *btree_fsm)
-    {
-        request_t *request = conn_fsm->current_request;
-        assert(request);
-        
-        assert (!btree_fsm->request);
-        btree_fsm->request = request;
-        
-        assert(request->nstarted < MAX_OPS_IN_REQUEST);
-        request->fsms[request->nstarted] = btree_fsm;
-        request->nstarted++;
-        
-        // Add the fsm to the appropriate queue
-        int shard_id = key_to_cpu(btree_fsm->key, event_queue->nqueues);
-        event_queue->message_hub.store_message(shard_id, btree_fsm);
+    void request_complete() {
+        // Notify the conn_fsm
+        event_t e;
+        bzero(&e, sizeof(e));
+        e.state = conn_fsm;
+        e.event_type = et_request_complete;
+        initiate_conn_fsm_transition(event_queue, &e);
     }
     
-protected:
     event_queue_t *event_queue;
+    conn_fsm_t *conn_fsm;
 };
 
 #endif // __REQUEST_HANDLER_HPP__
