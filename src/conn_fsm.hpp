@@ -90,7 +90,11 @@ public:
         printf("}\n");
     }
 #endif
-
+//TODO
+/*! \todo{ migrate this struct out of the conn_fsm since others might need it,
+ *          also sizeof(linked_buf_t) should be divisable by 512 so for allocation purposes }
+ */ 
+   
 public:
     /*! \class linked_buf_t
      *  \brief linked version of iobuf_t

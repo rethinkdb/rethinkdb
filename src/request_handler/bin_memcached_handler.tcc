@@ -100,7 +100,9 @@ typename bin_memcached_handler_t<config_t>::parse_result_t bin_memcached_handler
             res = malformed_request(fsm);
             break;
     }
-    //fsm->corked = is_quiet_code(pkt->opcode()); //cork if the code is quiet
+#ifdef MEMCACHED_STRICT
+    fsm->corked = is_quiet_code(pkt->opcode()); //cork if the code is quiet
+#endif
 
     fsm->consume(pkt->size());
     return res;
@@ -296,8 +298,6 @@ void bin_memcached_handler_t<config_t>::build_response(request_t *request) {
     btree_value *value = NULL; //there may not be a value
 
     assert(request->nstarted > 0 && request->nstarted == request->ncompleted);
-
-    //cpu_message_t *msg = request->msgs[0];
 
     btree_fsm_t *btree = (btree_fsm_t*) request->msgs[0];
     switch(btree->fsm_type) {
