@@ -7,7 +7,7 @@
 #include "alloc/alloc_mixin.hpp"
 #include <arpa/inet.h>
 
-//static const char *error_messages[] = {"No error", "Not found", "Key exists", "Value too large", "Invalid arguments", "Item not stored", "Non increment or decrement numeric value", "Unknown command", "Out of memory"};
+#define MAX_PACKET_SIZE 200
 
 //Memcached spec section 4.2 and 4.3 state that flags need to be present in get and set responses
 //it they don't make much indication of what they need to be but they use 0xdeadbeef so that's what we'll use
@@ -277,7 +277,8 @@ public:
                     value_length(0);
                 }
             packet_t(byte *data) :data(data) {};
-            packet_t(packet_t *pkt) {};
+            packet_t(packet_t *pkt)
+                :data(pkt->data) {};
             packet_t(bin_key_length_t key_length, byte* key, bin_extra_length_t extra_length, byte *extra);
             packet_t(bin_extra_length_t extra_length, byte *extra, bin_value_length_t value_length, byte *value);
             ~packet_t() {};
@@ -638,6 +639,7 @@ private:
     parse_result_t read_data(char *data, unsigned int size, conn_fsm_t *fsm);
 
     parse_result_t set(packet_t *pkt, conn_fsm_t *fsm);
+    parse_result_t no_op(packet_t *pkt, conn_fsm_t *fsm);
     parse_result_t add(packet_t *pkt, conn_fsm_t *fsm);
     parse_result_t replace(packet_t *pkt, conn_fsm_t *fsm);
     parse_result_t append(packet_t *pkt, conn_fsm_t *fsm);

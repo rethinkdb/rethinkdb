@@ -12,11 +12,10 @@
 template<class config_t>
 void conn_fsm<config_t>::init_state() {
     this->state = fsm_socket_connected;
+    this->corked = false;
     this->rbuf = NULL;
     this->sbuf = NULL;
     this->nrbuf = 0;
-    this->nsbuf = 0;
-    sbuf_corked = false;
 }
 
 // This function returns the socket to clean connected state
@@ -43,8 +42,7 @@ typename conn_fsm<config_t>::result_t conn_fsm<config_t>::fill_rbuf(event_t *eve
         state->nrbuf = 0;
     }
     if(state->sbuf == NULL) {
-        state->sbuf = (char *)new iobuf_t();
-        state->nsbuf = 0;
+        state->sbuf = new linked_buf_t();
     }
 
     // TODO: we assume the command will fit comfortably into
@@ -164,6 +162,10 @@ typename conn_fsm<config_t>::result_t conn_fsm<config_t>::do_fsm_outstanding_req
             state->state = fsm_outstanding_data;
             return fsm_transition_ok;
             break;
+        case req_handler_t::op_req_send_now:
+            send_msg_to_client();
+            state->state = fsm_outstanding_data;
+            return fsm_transition_ok;
         default:
             check("Unknown request parse result", 1);
     }
@@ -210,6 +212,7 @@ typename conn_fsm<config_t>::result_t conn_fsm<config_t>::do_transition(event_t 
         //this is awkward, but we need to make sure that we loop here until we
         //actually create a btree request
         do {
+            //bool was_corked = corked;
             res = do_fsm_outstanding_req(event);
             if (res == fsm_shutdown_server || res == fsm_quit_connection) {
                 return_to_socket_connected();
@@ -220,6 +223,9 @@ typename conn_fsm<config_t>::result_t conn_fsm<config_t>::do_transition(event_t 
                 event->event_type = et_sock;
                 fill_rbuf(event);
             }
+
+            /* if (was_corked && !corked)
+                send_msg_to_client(); */
         } while (state == fsm_socket_recv_incomplete || state == fsm_outstanding_data);
     }
 
@@ -242,12 +248,12 @@ conn_fsm<config_t>::~conn_fsm() {
         delete (iobuf_t*)(this->rbuf);
     }
     if(this->sbuf) {
-        delete (iobuf_t*)(this->sbuf);
+        delete (this->sbuf);
     }
 }
 
 // Send a message to the client. The message should be contained
-// within buf (nbuf should be the full size). If state has been
+// within sbuf (nbuf should be the full size). If state has been
 // switched to fsm_socket_send_incomplete, then buf must not be freed
 // after the return of this function.
 template<class config_t>
@@ -256,26 +262,20 @@ void conn_fsm<config_t>::send_msg_to_client() {
     // should be in the middle of an incomplete send.
     //assert(this->snbuf == 0 || this->state == conn_fsm::fsm_socket_send_incomplete); TODO equivalent thing for seperate buffers
 
-    int len = this->nsbuf;
-    int sz = 0;
-    while(len > 0) {
-        sz = io_calls_t::write(this->source, this->sbuf, len);
-        if(sz < 0) {
-            if(errno == EAGAIN || errno == EWOULDBLOCK) {
-                // If we can't send the message now, wait 'till we can
-                this->state = conn_fsm::fsm_socket_send_incomplete;
-                return;
-            } else {
-                // There was some other error
-                check("Couldn't send message to client", sz < 0);
-            }
-        }
-        len -= sz;
-    }
+    if (!this->corked) {
+        int res = sbuf->send(this->source);
+        if (sbuf->gc_me)
+            sbuf = sbuf->garbage_collect();
 
-    // We've successfully sent everything out
-    this->nsbuf = 0;
-    this->state = conn_fsm::fsm_socket_connected;
+        switch (res) {
+            case linked_buf_t::linked_buf_outstanding:
+                this->state = conn_fsm::fsm_socket_send_incomplete;
+                break;
+            case linked_buf_t::linked_buf_empty:
+                this->state = conn_fsm::fsm_outstanding_data;
+                break;
+        }
+    }
 }
 
 template<class config_t>
