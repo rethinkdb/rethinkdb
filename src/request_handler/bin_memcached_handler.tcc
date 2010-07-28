@@ -35,6 +35,9 @@ typename bin_memcached_handler_t<config_t>::parse_result_t bin_memcached_handler
         fsm->consume(pkt->size());
         return req_handler_t::op_malformed;
     }
+    
+    //printf("Request packet: \n");
+    //pkt->print();
 
     //Showtime!!
     switch (pkt->opcode()) {
@@ -77,7 +80,7 @@ typename bin_memcached_handler_t<config_t>::parse_result_t bin_memcached_handler
             res = unimplemented_request(fsm);
             break;
         case bin_opcode_no_op:
-            res = unimplemented_request(fsm);
+            res = no_op(pkt, fsm);
             break;
         case bin_opcode_version:
             res = unimplemented_request(fsm);
@@ -97,6 +100,7 @@ typename bin_memcached_handler_t<config_t>::parse_result_t bin_memcached_handler
             res = malformed_request(fsm);
             break;
     }
+    //fsm->corked = is_quiet_code(pkt->opcode()); //cork if the code is quiet
 
     fsm->consume(pkt->size());
     return res;
@@ -180,6 +184,14 @@ typename bin_memcached_handler_t<config_t>::parse_result_t bin_memcached_handler
             return req_handler_t::op_req_complex;
 }
 
+template <class config_t>
+typename bin_memcached_handler_t<config_t>::parse_result_t bin_memcached_handler_t<config_t>::no_op(packet_t *pkt, conn_fsm_t *fsm) {
+    //XXX this changes the passed packet good provided we don't need it anymore since it saves an allocation
+    pkt->magic(bin_magic_response);
+
+    fsm->sbuf->append(pkt->data, pkt->size());
+    return req_handler_t::op_req_send_now;
+}
 
 template <class config_t>
 typename bin_memcached_handler_t<config_t>::parse_result_t bin_memcached_handler_t<config_t>::increment(packet_t *pkt, conn_fsm_t *fsm) {
@@ -272,11 +284,10 @@ void bin_memcached_handler_t<config_t>::build_response(request_t *request) {
     btree_get_fsm_t *btree_get_fsm = NULL;
     btree_set_fsm_t *btree_set_fsm = NULL;
     btree_delete_fsm_t *btree_delete_fsm = NULL;
-    char *sbuf = fsm->sbuf;
-    fsm->nsbuf = 0;
 
     //reload the handler specific data
-    packet_t res_packet(sbuf, (bin_handler_data_t *) request->handler_data);
+    byte tmpbuf[MAX_PACKET_SIZE];
+    packet_t res_packet(tmpbuf, (bin_handler_data_t *) request->handler_data);
     delete (bin_handler_data_t *) request->handler_data;
     packet_t *res_pkt = &res_packet;
     res_pkt->magic(bin_magic_response);
@@ -314,12 +325,10 @@ void bin_memcached_handler_t<config_t>::build_response(request_t *request) {
                 if (res_pkt->status() != bin_status_no_error) {
                     ;//mum on error with quiet code
                 } else {
-                    fsm->nsbuf += res_pkt->size();
-                    fsm->sbuf_corked = true; //cork the conn_fsm
+                    fsm->sbuf->append(tmpbuf, res_pkt->size());
                 }
             } else {
-                fsm->nsbuf += res_pkt->size();
-                fsm->sbuf_corked = false;
+                fsm->sbuf->append(tmpbuf, res_pkt->size());
             }
             
             break;
@@ -331,8 +340,7 @@ void bin_memcached_handler_t<config_t>::build_response(request_t *request) {
 
             //Set responses require don't require anything to be set
 
-            fsm->nsbuf += res_pkt->size();
-            sbuf += res_pkt->size();
+            fsm->sbuf->append(tmpbuf, res_pkt->size());
             break;
         case btree_fsm_t::btree_delete_fsm:
             btree_delete_fsm = (btree_delete_fsm_t*) btree;
@@ -340,8 +348,7 @@ void bin_memcached_handler_t<config_t>::build_response(request_t *request) {
 
             res_pkt->status(bin_status_no_error);
 
-            fsm->nsbuf += res_pkt->size();
-            sbuf += res_pkt->size();
+            fsm->sbuf->append(tmpbuf, res_pkt->size());
             break;
         default:
             check("bin_memcached_handler_t::build_response - Unknown btree op", 0);
