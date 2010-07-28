@@ -51,9 +51,6 @@ public:
 
         //! There is outstanding data in rbuff
         fsm_outstanding_data,
-
-        //! We have data in the sbuf, but we're corked
-        fsm_corked
     };
     
 public:
@@ -116,7 +113,7 @@ public:
 
         public:
             linked_buf_t()
-                : iobuf_t(), next(NULL), nbuf(0), nsent(0) {}
+                : iobuf_t(), next(NULL), nbuf(0), nsent(0), gc_me(false) {}
             ~linked_buf_t() {
                 if (next != NULL)
                     delete next;
@@ -221,6 +218,7 @@ public:
 public:
     int source;
     state_t state;
+    bool corked; //whether or not we should buffer our responses
 
     // A buffer with IO communication (possibly incomplete). The nbuf
     // variable indicates how many bytes are stored in the buffer. The

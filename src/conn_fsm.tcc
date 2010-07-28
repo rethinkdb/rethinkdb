@@ -12,6 +12,7 @@
 template<class config_t>
 void conn_fsm<config_t>::init_state() {
     this->state = fsm_socket_connected;
+    this->corked = false;
     this->rbuf = NULL;
     this->sbuf = NULL;
     this->nrbuf = 0;
@@ -161,6 +162,10 @@ typename conn_fsm<config_t>::result_t conn_fsm<config_t>::do_fsm_outstanding_req
             state->state = fsm_outstanding_data;
             return fsm_transition_ok;
             break;
+        case req_handler_t::op_req_send_now:
+            send_msg_to_client();
+            state->state = fsm_outstanding_data;
+            return fsm_transition_ok;
         default:
             check("Unknown request parse result", 1);
     }
@@ -180,7 +185,6 @@ typename conn_fsm<config_t>::result_t conn_fsm<config_t>::do_transition(event_t 
     switch(state) {
         case fsm_socket_connected:
         case fsm_socket_recv_incomplete:
-        case fsm_corked:
             res = fill_rbuf(event);
             break;
         case fsm_socket_send_incomplete:
@@ -208,6 +212,7 @@ typename conn_fsm<config_t>::result_t conn_fsm<config_t>::do_transition(event_t 
         //this is awkward, but we need to make sure that we loop here until we
         //actually create a btree request
         do {
+            //bool was_corked = corked;
             res = do_fsm_outstanding_req(event);
             if (res == fsm_shutdown_server || res == fsm_quit_connection) {
                 return_to_socket_connected();
@@ -218,6 +223,9 @@ typename conn_fsm<config_t>::result_t conn_fsm<config_t>::do_transition(event_t 
                 event->event_type = et_sock;
                 fill_rbuf(event);
             }
+
+            /* if (was_corked && !corked)
+                send_msg_to_client(); */
         } while (state == fsm_socket_recv_incomplete || state == fsm_outstanding_data);
     }
 
@@ -254,10 +262,7 @@ void conn_fsm<config_t>::send_msg_to_client() {
     // should be in the middle of an incomplete send.
     //assert(this->snbuf == 0 || this->state == conn_fsm::fsm_socket_send_incomplete); TODO equivalent thing for seperate buffers
 
-    if (this->state == conn_fsm::fsm_corked) {
-        //don't send anything if we're corked
-        return;
-    } else {
+    if (!this->corked) {
         int res = sbuf->send(this->source);
         if (sbuf->gc_me)
             sbuf = sbuf->garbage_collect();
@@ -267,7 +272,7 @@ void conn_fsm<config_t>::send_msg_to_client() {
                 this->state = conn_fsm::fsm_socket_send_incomplete;
                 break;
             case linked_buf_t::linked_buf_empty:
-                this->state = conn_fsm::fsm_socket_connected;
+                this->state = conn_fsm::fsm_outstanding_data;
                 break;
         }
     }
