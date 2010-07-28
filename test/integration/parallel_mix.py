@@ -5,7 +5,7 @@ from multiprocessing import Process
 from multiprocessing import Queue
 from random import randint
 from time import time
-import memcache
+import memcache, os
 
 NUM_KEYS=1000           # Total number of key to insert
 NUM_VALUES=20           # Number of values a given key can assume

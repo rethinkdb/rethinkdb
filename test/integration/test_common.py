@@ -59,7 +59,7 @@ class test_server(object):
                 if self.server.poll() != None:
                     break
             else:
-                self.server.terminate()
+                self.server.send_signal(signal.SIGKILL)
                 self.report("Server did not shut down %d seconds after getting SIGINT." % \
                     server_quit_time)
             
@@ -80,7 +80,7 @@ class test_server(object):
     
     def __del__(self):
         if hasattr(self, "server") and self.server.poll() == None:
-            self.server.terminate()
+            self.server.send_signal(signal.SIGKILL)
         
         if self.data_file_root is not None:
             num = 0

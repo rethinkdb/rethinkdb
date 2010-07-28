@@ -3,6 +3,7 @@
 from multiprocessing import Pool, Queue, Process
 import memcache
 from random import shuffle
+import os
 
 NUM_INTS=32000
 NUM_THREADS=32
