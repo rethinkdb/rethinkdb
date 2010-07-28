@@ -46,6 +46,10 @@ ifeq ($(DELETE_DEBUG),1)
 CXXFLAGS:=$(CXXFLAGS) -DDELETE_DEBUG
 endif
 
+ifeq ($(MEMCACHED_STRICT), 1)
+CXXFLAGS:=$(CXXFLAGS) -DMEMCACHED_STRICT
+endif
+
 # Should makefile be noisy?
 ifeq ($(VERBOSE),1)
 QUIET:=

@@ -12,10 +12,10 @@
 template<class config_t>
 void conn_fsm<config_t>::init_state() {
     this->state = fsm_socket_connected;
-    this->corked = false;
     this->rbuf = NULL;
     this->sbuf = NULL;
     this->nrbuf = 0;
+    this->corked = false;
 }
 
 // This function returns the socket to clean connected state
@@ -212,7 +212,9 @@ typename conn_fsm<config_t>::result_t conn_fsm<config_t>::do_transition(event_t 
         //this is awkward, but we need to make sure that we loop here until we
         //actually create a btree request
         do {
-            //bool was_corked = corked;
+#ifdef MEMCACHED_STRICT
+            bool was_corked = corked;
+#endif
             res = do_fsm_outstanding_req(event);
             if (res == fsm_shutdown_server || res == fsm_quit_connection) {
                 return_to_socket_connected();
@@ -224,8 +226,10 @@ typename conn_fsm<config_t>::result_t conn_fsm<config_t>::do_transition(event_t 
                 fill_rbuf(event);
             }
 
-            /* if (was_corked && !corked)
-                send_msg_to_client(); */
+#ifdef MEMCACHED_STRICT
+            if (was_corked && !corked)
+                send_msg_to_client();
+#endif
         } while (state == fsm_socket_recv_incomplete || state == fsm_outstanding_data);
     }
 
