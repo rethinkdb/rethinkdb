@@ -59,8 +59,8 @@ void worker_pool_t::create_worker_pool(event_handler_t event_handler, pthread_t 
     // TODO: this whole queue creation business is a mess, refactor
     // the way it works.
 
-    // TODO: consider creating lower priority threads to standby in
-    // case main threads block.
+    // TODO: decouple number of threads from number of cores and
+    // slices.
 }
 
 worker_pool_t::worker_pool_t(event_handler_t event_handler, pthread_t main_thread,
