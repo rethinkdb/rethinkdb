@@ -25,7 +25,8 @@ public:
         op_req_shutdown,
         op_req_quit,
         op_req_complex,
-        op_req_parallelizable
+        op_req_parallelizable,
+        op_req_send_now
     };
     
     virtual parse_result_t parse_request(event_t *event) = 0;

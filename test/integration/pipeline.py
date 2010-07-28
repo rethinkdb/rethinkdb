@@ -4,7 +4,7 @@ from time import sleep
 import socket
 import random
 
-nInts = 2
+nInts = 2000
 nChunks = 1
 
 #split a list into nChunks of lists of random size
