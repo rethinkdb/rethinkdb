@@ -79,6 +79,8 @@ private:
 	bool safe_to_unload();
 
 public:
+    static const char* name;
+    
     void release();
 
     // TODO(NNW) We may want a const version of ptr() as well so the non-const
@@ -93,12 +95,14 @@ public:
     block_id_t get_block_id() const { return block_id; }
     
     void set_dirty() { writeback_buf.set_dirty(); }
-
+    
 #ifndef NDEBUG
     // Prints debugging information designed to resolve deadlocks.
     void deadlock_debug();
 #endif
 };
+
+
 
 /* Transaction class. */
 template <class config_t>
@@ -109,6 +113,7 @@ class transaction : public lock_available_callback_t,
     friend class config_t::cache_t;
     
 public:
+    static const char* name;
     typedef typename config_t::serializer_t serializer_t;
     typedef typename config_t::concurrency_t concurrency_t;
     typedef typename config_t::cache_t cache_t;
@@ -143,6 +148,7 @@ private:
     transaction_commit_callback_t *commit_callback;
     enum { state_open, state_committing, state_committed } state;
 };
+
 
 template <class config_t>
 struct mirrored_cache_t

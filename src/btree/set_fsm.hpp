@@ -88,7 +88,10 @@ private:
     btree_set_type set_type; // choice of set, add or replace with a different behaviour for each.
 public:
     bool set_was_successful;
+    static const char* name;
 };
+
+
 
 #include "btree/set_fsm.tcc"
 

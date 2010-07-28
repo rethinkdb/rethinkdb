@@ -118,7 +118,7 @@ template<typename _Tp>
 inline bool operator!=(const gnew_alloc<_Tp>&, const gnew_alloc<_Tp>&)
 { return false; }
 
-
+template <int _size> const char* buffer_t<_size>::name = "buffer_t";
 
 #endif // __UTILS_TCC__
 

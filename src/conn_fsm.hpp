@@ -28,6 +28,7 @@ public:
     typedef typename config_t::req_handler_t req_handler_t;
     
 public:
+    static const char* name;
     // Possible transition results
     enum result_t {
         fsm_invalid,
@@ -242,6 +243,8 @@ private:
     void init_state();
     void return_to_socket_connected();
 };
+
+
 
 // Include the implementation
 #include "conn_fsm.tcc"

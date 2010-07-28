@@ -308,6 +308,9 @@ mirrored_cache_t<config_t>::begin_transaction(access_t access,
     return NULL;
 }
 
+template <class config_t> const char* transaction<config_t>::name = "transaction";
+template <class config_t> const char* buf<config_t>::name = "buf";
+
 #ifndef NDEBUG
 template<class config_t>
 void mirrored_cache_t<config_t>::deadlock_debug() {

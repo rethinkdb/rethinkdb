@@ -38,6 +38,7 @@ public:
             {}
         access_t op;
         lock_available_callback_t *callback;
+        static const char* name;
     };
 
     // Note, the receiver of lock_request_t completion notifications
@@ -89,6 +90,8 @@ private:
     int nreaders; // not counting reader with intent
     request_list_t queue;
 };
+
+
 
 #endif // __RWI_LOCK_HPP__
 

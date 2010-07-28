@@ -46,7 +46,7 @@ public:
     op_result_t op_result;
     btree_key * const key;
     btree_value * const value;
-
+    static const char* name;
 private:
     using btree_fsm<config_t>::cache;
     using btree_fsm<config_t>::transaction;
@@ -68,6 +68,7 @@ private:
     buf_t *last_buf, *buf;
     block_id_t node_id;
 };
+
 
 #include "btree/get_fsm.tcc"
 

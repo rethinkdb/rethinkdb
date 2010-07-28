@@ -431,6 +431,8 @@ btree_set_type btree_set_fsm<config_t>::get_set_type() {
     return set_type;
 }
 
+template <class config_t> const char* btree_set_fsm<config_t>::name = "btree_set_fsm";
+
 #ifndef NDEBUG
 template <class config_t>
 void btree_set_fsm<config_t>::deadlock_debug(void) {

@@ -28,6 +28,7 @@ public:
     typedef typename config_t::b_memcached_handler_t::bin_magic_t bin_magic_t;
     
 public:
+    static const char* name;
     memcached_handler_t(cache_t *_cache, event_queue_t *eq)
         : req_handler_t(eq), cache(_cache), req_handler(NULL)
         {}
@@ -59,6 +60,7 @@ private:
      */
     void determine_protocol(const event_t *event);
 };
+
 
 #include "request_handler/memcached_handler.tcc"
 

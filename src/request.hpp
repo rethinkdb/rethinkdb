@@ -9,7 +9,8 @@ struct request : public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, req
 {
 public:
     typedef typename config_t::btree_fsm_t btree_fsm_t;
-    typedef typename config_t::conn_fsm_t conn_fsm_t; 
+    typedef typename config_t::conn_fsm_t conn_fsm_t;
+    static const char* name;
 public:
     explicit request(conn_fsm_t *_netfsm) :
         nstarted(0), ncompleted(0), netfsm(_netfsm) {}
@@ -26,5 +27,5 @@ public:
     cpu_message_t *msgs[MAX_OPS_IN_REQUEST];
     conn_fsm_t *netfsm;
 };
-
+template <class config_t> const char* request<config_t>::name = "request";
 #endif // __REQUEST_HPP__

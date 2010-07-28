@@ -358,4 +358,5 @@ void bin_memcached_handler_t<config_t>::build_response(request_t *request) {
     delete request;
     fsm->current_request = NULL;
 }
+template <class config_t> const char* bin_memcached_handler_t<config_t>::name = "bin_memcached_handler_t";
 #endif // __BIN_MEMCACHED_HANDLER_TCC__

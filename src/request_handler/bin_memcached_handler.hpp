@@ -29,6 +29,7 @@ public:
     typedef typename req_handler_t::parse_result_t parse_result_t;
     
 public:
+    static const char* name;
     bin_memcached_handler_t() 
         : req_handler_t(NULL), cache(NULL), key((btree_key*)key_memory)
         {}
@@ -653,6 +654,7 @@ private:
     parse_result_t malformed_request(conn_fsm_t *fsm);
     parse_result_t unimplemented_request(conn_fsm_t *fsm);
 };
+
 
 #include "request_handler/bin_memcached_handler.tcc"
 

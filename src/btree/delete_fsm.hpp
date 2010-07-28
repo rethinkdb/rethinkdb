@@ -76,6 +76,7 @@ private:
     state_t state;
 public:
     btree_key * const key;
+    static const char* name;
 private:
     buf_t *buf, *last_buf, *sb_buf, *sib_buf;
     block_id_t node_id, last_node_id, sib_node_id;

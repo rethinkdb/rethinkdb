@@ -69,7 +69,7 @@ public:
                      public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, timer_t> {
         
         friend class event_queue_t;
-        
+        static const char* name;
     private:
         // If 'false', the timer is repeating
         bool once;
@@ -134,5 +134,6 @@ private:
 
     intrusive_list_t<timer_t> timers;
 };
+
 
 #endif // __EVENT_QUEUE_HPP__

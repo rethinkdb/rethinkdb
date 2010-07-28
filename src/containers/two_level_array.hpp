@@ -37,6 +37,7 @@ private:
             { }
         unsigned int count;
         value_t values[chunk_size];
+        static const char* name;
     };
     chunk_t *chunks[num_chunks];
 
@@ -99,4 +100,5 @@ public:
     }
 };
 
+template <class value_t, int max_size, int chunk_size> const char* two_level_array_t<value_t, max_size, chunk_size>::chunk_t::name = "two_level_array_t::chunk_t";
 #endif // __TWO_LEVEL_ARRAY_HPP__
