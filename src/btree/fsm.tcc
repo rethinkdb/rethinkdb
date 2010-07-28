@@ -1,11 +1,8 @@
 #ifndef __BTREE_FSM_TCC__
 #define __BTREE_FSM_TCC__
 
-// TODO: mapping only int->int, allow arbitrary key and value types
-// TODO: ignoring duplicates, allow duplicate elements
-// TODO: not thread safe, implement concurrency control methods
-// TODO: multiple values require cursor/iterator mechanism
-// TODO: consider redoing nodes with a visitor pattern to avoid ugly casts
+// TODO: allow multiple values per key
+// TODO: add cursor/iterator mechanism
 
 template <class config_t>
 block_id_t btree_fsm<config_t>::get_root_id(void *superblock_buf) {
