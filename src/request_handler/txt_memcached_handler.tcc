@@ -444,8 +444,8 @@ void txt_memcached_handler_t<config_t>::build_response(request_t *request) {
 
     if (request->msgs[0]->type == cpu_message_t::mt_btree)
     {
-//        btree_fsm_t *btree = (btree_fsm_t*)(request->msgs[0]);
-        switch(request->msgs[0]->type) {
+        btree_fsm_t *btree = (btree_fsm_t*)(request->msgs[0]);
+        switch(btree->fsm_type) {
         case btree_fsm_t::btree_get_fsm:
             // TODO: make sure we don't overflow the buffer with sprintf
             for(unsigned int i = 0; i < request->nstarted; i++) {
