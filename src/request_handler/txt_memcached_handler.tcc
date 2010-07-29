@@ -39,8 +39,8 @@ public:
     void on_request_completed() {
         if (!noreply) {
             build_response(rh->conn_fsm->sbuf);
+            rh->request_complete();
         }
-        rh->request_complete();
         delete this;
     }
     

@@ -237,6 +237,9 @@ public:
     char *rbuf;
     linked_buf_t *sbuf;
     unsigned int nrbuf;
+    /*! \warning {If req_handler::parse_request returns op_req_parallelizable then it MUST NOT send an et_request_complete,
+     *              if it returns op_req_complex then it MUST send an et_request_complete event}
+     */
     req_handler_t *req_handler;
     event_queue_t *event_queue;
     
