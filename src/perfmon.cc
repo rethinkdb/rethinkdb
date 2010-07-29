@@ -77,4 +77,3 @@ void perfmon_t::copy_from(const perfmon_t &rhs)
         registry[iter->first].freeze_state();
     }
 }
-const char* perfmon_t::name = "perfmon_t";

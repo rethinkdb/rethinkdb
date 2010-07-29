@@ -575,5 +575,4 @@ typename txt_memcached_handler_t<config_t>::parse_result_t txt_memcached_handler
     return req_handler_t::op_req_complex;    
 }
 
-template<class config_t> const char* txt_memcached_handler_t<config_t>::name = "txt_memcached_handler_t";
 #endif // __MEMCACHED_HANDLER_TCC__

@@ -22,7 +22,6 @@ public:
     typedef perfmon_msg<config_t> perfmon_msg_t;
         
 public:
-    static const char* name;
     txt_memcached_handler_t(cache_t *_cache, event_queue_t *eq)
         : req_handler_t(eq), cache(_cache), key((btree_key*)key_memory), loading_data(false)
         {}

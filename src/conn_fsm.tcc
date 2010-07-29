@@ -291,6 +291,6 @@ void conn_fsm<config_t>::consume(unsigned int bytes) {
     memmove(this->rbuf, this->rbuf + bytes, this->nrbuf - bytes);
     this->nrbuf -= bytes;
 }
-template <class config_t> const char* conn_fsm<config_t>::name = "conn_fsm";
+
 #endif // __FSM_TCC__
 

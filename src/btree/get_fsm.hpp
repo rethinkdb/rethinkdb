@@ -46,7 +46,6 @@ public:
     op_result_t op_result;
     btree_key * const key;
     btree_value * const value;
-    static const char* name;
 private:
     using btree_fsm<config_t>::cache;
     using btree_fsm<config_t>::transaction;

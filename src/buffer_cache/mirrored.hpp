@@ -79,8 +79,6 @@ private:
 	bool safe_to_unload();
 
 public:
-    static const char* name;
-    
     void release();
 
     // TODO(NNW) We may want a const version of ptr() as well so the non-const
@@ -113,7 +111,6 @@ class transaction : public lock_available_callback_t,
     friend class config_t::cache_t;
     
 public:
-    static const char* name;
     typedef typename config_t::serializer_t serializer_t;
     typedef typename config_t::concurrency_t concurrency_t;
     typedef typename config_t::cache_t cache_t;

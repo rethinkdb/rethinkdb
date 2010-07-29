@@ -169,8 +169,6 @@ typename btree_get_fsm<config_t>::transition_result_t btree_get_fsm<config_t>::d
     return res;
 }
 
-template <class config_t> const char* btree_get_fsm<config_t>::name = "btree_get_fsm";
-
 #ifndef NDEBUG
 template <class config_t>
 void btree_get_fsm<config_t>::deadlock_debug(void) {

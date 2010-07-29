@@ -524,7 +524,5 @@ int btree_delete_fsm<config_t>::set_root_id(block_id_t root_id, event_t *event) 
     return 1;
 }
 
-template <class config_t> const char* btree_delete_fsm<config_t>::name = "btree_delete_fsm";
-
 #endif // __BTREE_DELETE_FSM_TCC__
 

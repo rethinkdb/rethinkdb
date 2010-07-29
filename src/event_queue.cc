@@ -623,8 +623,6 @@ void event_queue_t::on_sync() {
     post_itc_message(&event);
 }
 
-const char* event_queue_t::timer_t::name = "event_queue_t::timer_t";
-
 #ifndef NDEBUG
 void event_queue_t::deadlock_debug() {
     

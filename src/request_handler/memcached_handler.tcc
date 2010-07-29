@@ -41,5 +41,4 @@ void memcached_handler_t<config_t>::determine_protocol(const event_t *event)
     }
 }
 
-template<class config_t> const char* memcached_handler_t<config_t>::name = "memcached_handler_t";
 #endif // __MEMCACHED_HANDLER_TCC__

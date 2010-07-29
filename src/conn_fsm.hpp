@@ -28,7 +28,6 @@ public:
     typedef typename config_t::req_handler_t req_handler_t;
     
 public:
-    static const char* name;
     // Possible transition results
     enum result_t {
         fsm_invalid,

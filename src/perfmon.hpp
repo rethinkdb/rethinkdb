@@ -40,7 +40,6 @@ public:
 struct perfmon_t : public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, perfmon_t> {
 public:
     typedef std::map<const char*, var_monitor_t, std::less<const char*>, gnew_alloc<var_monitor_t> > perfmon_map_t;
-    static const char* name;    
 public:
     void monitor(var_monitor_t monitor);
     void accumulate(perfmon_t *s);
@@ -59,7 +58,6 @@ struct perfmon_msg : public cpu_message_t,
 {
 public:
     typedef typename config_t::request_t request_t;
-    static const char* name;
 public:
     enum perfmon_msg_state {
         // Initial request for perfmon info
@@ -81,6 +79,5 @@ public:
     perfmon_t *perfmon;
     perfmon_msg_state state;
 };
-template<class config_t> const char* perfmon_msg<config_t>::name = "perfmon_msg";
 #endif // __PERFMON_HPP__
 
