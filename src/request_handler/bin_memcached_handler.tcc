@@ -30,7 +30,7 @@ public:
     
         conn_fsm_t *c = rh->conn_fsm;
         
-        byte tmpbuf[MAX_PACKET_SIZE];
+        byte tmpbuf[MAX_PACKET_SIZE] = {0xBD};   // Make valgrind happy
         packet_t packet(tmpbuf);
         packet.opcode(opcode);
         packet.data_type(data_type);
