@@ -6,10 +6,8 @@ def strip_end_spaces(s):
     count = s.count(r"\275")
     return s[:end] + r" (...plus \275 * %d)" % count
 
-
 def lookup_function (val):
     "Look-up and return a pretty-printer that can print val."
-
     # Get the type.
     type = val.type
 
@@ -37,92 +35,159 @@ def lookup_function (val):
     return None
     
 
+def printer(key, val):
+    if val.type.code == gdb.TYPE_CODE_PTR:
+        if not val: yield key, "NULL"
+        else: yield key, val.dereference()
+    elif val.type.code == gdb.TYPE_CODE_INT:
+        yield key, int(val)
+    elif val.type.code == gdb.TYPE_CODE_FLT or val.type.code == gdb.TYPE_CODE_DECFLOAT:
+        yield key, float(val)
+    elif val.type.code == gdb.TYPE_CODE_STRING:
+        yield key, str(val)
+    elif val.type.code == gdb.TYPE_CODE_ARRAY:
+        yield key, strip_end_spaces(unicode(val))
+    else: yield key, val
+
+
+def helper(state, PF):
+    for field in PF.type.fields():
+        if field.artificial or field.type == gdb.TYPE_CODE_FUNC or field.type == gdb.TYPE_CODE_VOID or field.type == gdb.TYPE_CODE_METHOD or field.type == gdb.TYPE_CODE_METHODPTR or field.type == None: continue
+        key = field.name
+        if key is None: continue
+        if len(field.type.fields()) == 0:
+            yield key, state[key]
+        elif field.is_base_class:
+            for k, v in helper(state, field):
+                yield key + ":: " + k, v
+        else:
+            for k, v in helper(state[key], field):
+                yield key + ":: " + k, v
+
+def process_kids(val):
+    for field in val.type.fields():
+        if field.artificial or field.type == gdb.TYPE_CODE_FUNC or field.type == gdb.TYPE_CODE_VOID or field.type == gdb.TYPE_CODE_METHOD or field.type == gdb.TYPE_CODE_METHODPTR or field.type == None: continue
+        try:
+            key = field.name
+            if key is None: continue
+            if len(field.type.fields()) == 0:
+                if field.is_base_class: continue
+                for k2, v2 in printer(key, val[key]): yield k2, v2
+            elif field.is_base_class:
+                for k, v in helper(val, field):
+                    for k2, v2 in printer(k, v): yield k2, v2
+            else:
+                for k, v in helper(val[key], field):
+                    for k2, v2 in printer(k, v): yield k2, v2
+#             key = str(field.name)
+#             if key.find("<") != -1:
+#                 for k, v in process_kids(field):
+#                     yield k, v
+#             yield key, str(field.type.fields())
+#             elif val[key].type.code == gdb.TYPE_CODE_PTR:
+#                 yield key, val[key].dereference() or "cannot access memory at address " + str(val[key].address)
+#             elif val[key].type.code == gdb.TYPE_CODE_INT:
+#                 yield key, int(val[key])
+#             elif val[key].type.code == gdb.TYPE_CODE_FLT or val[key].type.code == gdb.TYPE_CODE_DECFLOAT:
+#                 yield key, float(val[key])
+#             elif val[key].type.code == gdb.TYPE_CODE_STRING:
+#                 yield key, str(val[key])
+#             elif val[key].type.code == gdb.TYPE_CODE_ARRAY:
+#                 yield key, strip_end_spaces(unicode(val[key]))
+#             else: yield key, val[key]
+        except GeneratorExit:
+            raise
+        except Exception, e:
+            yield "error", e
+        continue
+
+
 class Btree_FsmPrinter:
     def __init__(self, val):
         self.val = val
 
     def to_string(self):
         return "=" * 40 + "\nbtree_fsm object with the following members:"
-
     def children(self):
-        yield 'fsm_type', Fsm_TypePrinter(int(self.val['fsm_type'])).to_string()
-        yield 'noreply', "false" if self.val['noreply']==False else "true"
-
-        try: yield 'request', "a pointer to a " + str(self.val['request'].dereference())
-        except: yield "request", "no request object"
-
-        try: yield 'cache', "a pointer to a " + str(self.val['cache'].dereference())
-        except RuntimeError: yield "cache", "no cache object"
-
-        try: yield 'on_complete', "a pointer to a " + str(self.val['on_complete'].dereference()) 
-        except RuntimeError: yield "on_complete", "no on_complete object"
+        return process_kids(self.val)
+#         yield 'fsm_type', Fsm_TypePrinter(int(self.val['fsm_type'])).to_string()
+#         yield 'noreply', "false" if self.val['noreply']==False else "true"
+# 
+#         try: yield 'request', "a pointer to a " + str(self.val['request'].dereference())
+#         except: yield "request", "no request object"
+# 
+#         try: yield 'cache', "a pointer to a " + str(self.val['cache'].dereference())
+#         except RuntimeError: yield "cache", "no cache object"
+# 
+#         try: yield 'on_complete', "a pointer to a " + str(self.val['on_complete'].dereference()) 
+#         except RuntimeError: yield "on_complete", "no on_complete object"
+#         
+#         try: yield "transaction", "a pointer to a " + str(self.val['transaction'].dereference())
+#         except RuntimeError: yield "transaction", "no transaction object"
+# 
+#         try: yield 'prev', "a pointer to a " + str(self.val['prev'].dereference())
+#         except: yield "prev", "no prev object"
+# 
+#         try: yield 'next', "a pointer to a " + str(self.val['next'].dereference())
+#         except: yield "next", "no next object"
+# 
+#         yield 'type', self.val['type']
+#         yield 'return_cpu', self.val['return_cpu']
+#         yield 'key_memory', strip_end_spaces(unicode(self.val['key_memory']))
+#         yield 'value_memory', strip_end_spaces(unicode(self.val['value_memory']))
         
-        try: yield "transaction", "a pointer to a " + str(self.val['transaction'].dereference())
-        except RuntimeError: yield "transaction", "no transaction object"
-
-        try: yield 'prev', "a pointer to a " + str(self.val['prev'].dereference())
-        except: yield "prev", "no prev object"
-
-        try: yield 'next', "a pointer to a " + str(self.val['next'].dereference())
-        except: yield "next", "no next object"
-
-        yield 'type', self.val['type']
-        yield 'return_cpu', self.val['return_cpu']
-        yield 'key_memory', strip_end_spaces(unicode(self.val['key_memory']))
-        yield 'value_memory', strip_end_spaces(unicode(self.val['value_memory']))
-        
-        fsm_type = Fsm_TypePrinter(int(self.val['fsm_type'])).to_string()
-        if fsm_type == "btree_set_fsm":
-            yield "state", self.val['state']
-            try: yield "key", "a pointer to a " + str(self.val['key'].dereference())
-            except RuntimeError: yield "key", "no key object"
-
-            try: yield "value", "a pointer to a " + str(self.val['value'].dereference())
-            except RuntimeError: yield "value", "no value object"
-
-            try: yield "sb_buf", "a pointer to a " + str(self.val['sb_buf'].dereference())
-            except RuntimeError: yield "sb_buf", "no sb_buf object"
-
-            try: yield "buf", "a pointer to a " + str(self.val['buf'].dereference())
-            except RuntimeError: yield "buf", "no buf object"
-
-            try: yield "last_buf", "a pointer to a " + str(self.val['last_buf'].dereference())
-            except RuntimeError: yield "last_buf", "no last_buf object"
-
-            yield "node_id", self.val['node_id']
-            yield "last_node_id", self.val['last_node_id']
-            yield "set_type", self.val['set_type']
-            yield "set_was_successful", self.val['set_was_successful']
-        elif fsm_type == "btree_get_fsm":
-            yield "state", self.val['state']
-            yield "key_memory", strip_end_spaces(unicode(self.val['key_memory']))
-            yield "value_memory", strip_end_spaces(unicode(self.val['value_memory']))
-
-            try: yield "buf", "a pointer to a " + str(self.val['buf'].dereference())
-            except RuntimeError: yield "buf", "no buf object"
-
-            try: yield "last_buf", "a pointer to a " + str(self.val['last_buf'].dereference())
-            except RuntimeError: yield "last_buf", "no last_buf object"
-
-            yield "node_id", self.val['node_id']
-        elif fsm_type == "btree_delete_fsm":
-            yield "state", self.val['state']
-            yield "key_memory", strip_end_spaces(unicode(self.val['key_memory']))
-            yield "node_id", self.val['node_id']
-            yield "last_node_id", self.val['last_node_id']
-            yield "sib_node_id", self.val['sib_node_id']
-
-            try: yield "key", "a pointer to a " + str(self.val['key'].dereference())
-            except RuntimeError: yield "key", "no key object"
-
-            try: yield "sb_buf", "a pointer to a " + str(self.val['sb_buf'].dereference())
-            except RuntimeError: yield "sb_buf", "no sb_buf object"
-
-            try: yield "sib_buf", "a pointer to a " + str(self.val['sib_buf'].dereference())
-            except RuntimeError: yield "sib_buf", "no sib_buf object"
-
-            try: yield "last_buf", "a pointer to a " + str(self.val['last_buf'].dereference())
-            except RuntimeError: yield "last_buf", "no last_buf object"
+#         fsm_type = Fsm_TypePrinter(int(self.val['fsm_type'])).to_string()
+#         if fsm_type == "btree_set_fsm":
+#             yield "state", self.val['state']
+#             try: yield "key", "a pointer to a " + str(self.val['key'].dereference())
+#             except RuntimeError: yield "key", "no key object"
+# 
+#             try: yield "value", "a pointer to a " + str(self.val['value'].dereference())
+#             except RuntimeError: yield "value", "no value object"
+# 
+#             try: yield "sb_buf", "a pointer to a " + str(self.val['sb_buf'].dereference())
+#             except RuntimeError: yield "sb_buf", "no sb_buf object"
+# 
+#             try: yield "buf", "a pointer to a " + str(self.val['buf'].dereference())
+#             except RuntimeError: yield "buf", "no buf object"
+# 
+#             try: yield "last_buf", "a pointer to a " + str(self.val['last_buf'].dereference())
+#             except RuntimeError: yield "last_buf", "no last_buf object"
+# 
+#             yield "node_id", self.val['node_id']
+#             yield "last_node_id", self.val['last_node_id']
+#             yield "set_type", self.val['set_type']
+#             yield "set_was_successful", self.val['set_was_successful']
+#         elif fsm_type == "btree_get_fsm":
+#             yield "state", self.val['state']
+#             yield "key_memory", strip_end_spaces(unicode(self.val['key_memory']))
+#             yield "value_memory", strip_end_spaces(unicode(self.val['value_memory']))
+# 
+#             try: yield "buf", "a pointer to a " + str(self.val['buf'].dereference())
+#             except RuntimeError: yield "buf", "no buf object"
+# 
+#             try: yield "last_buf", "a pointer to a " + str(self.val['last_buf'].dereference())
+#             except RuntimeError: yield "last_buf", "no last_buf object"
+# 
+#             yield "node_id", self.val['node_id']
+#         elif fsm_type == "btree_delete_fsm":
+#             yield "state", self.val['state']
+#             yield "key_memory", strip_end_spaces(unicode(self.val['key_memory']))
+#             yield "node_id", self.val['node_id']
+#             yield "last_node_id", self.val['last_node_id']
+#             yield "sib_node_id", self.val['sib_node_id']
+# 
+#             try: yield "key", "a pointer to a " + str(self.val['key'].dereference())
+#             except RuntimeError: yield "key", "no key object"
+# 
+#             try: yield "sb_buf", "a pointer to a " + str(self.val['sb_buf'].dereference())
+#             except RuntimeError: yield "sb_buf", "no sb_buf object"
+# 
+#             try: yield "sib_buf", "a pointer to a " + str(self.val['sib_buf'].dereference())
+#             except RuntimeError: yield "sib_buf", "no sib_buf object"
+# 
+#             try: yield "last_buf", "a pointer to a " + str(self.val['last_buf'].dereference())
+#             except RuntimeError: yield "last_buf", "no last_buf object"
 
 
 class Fsm_TypePrinter:
