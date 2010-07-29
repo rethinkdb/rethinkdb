@@ -5,6 +5,9 @@
 build
 src/quickrun_rethinkdb
 src/debug_rethinkdb
+src/eavesdrop_rethinkdb
+src/eavesdrop_memcache
+src/valgrind_rethinkdb
 src/.gdb_history
 src/.gdbinit
 src/standard_commands
