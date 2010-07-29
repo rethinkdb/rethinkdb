@@ -289,6 +289,7 @@ void bin_memcached_handler_t<config_t>::build_response(request_t *request) {
 
     //reload the handler specific data
     byte tmpbuf[MAX_PACKET_SIZE];
+    memset(tmpbuf, 0xAD, MAX_PACKET_SIZE); //calm yo bitch ass valgrind
     packet_t res_packet(tmpbuf, (bin_handler_data_t *) request->handler_data);
     delete (bin_handler_data_t *) request->handler_data;
     packet_t *res_pkt = &res_packet;
@@ -335,6 +336,23 @@ void bin_memcached_handler_t<config_t>::build_response(request_t *request) {
         case btree_fsm_t::btree_set_fsm:
             btree_set_fsm = (btree_set_fsm_t*) btree;
             key = btree_set_fsm->key;
+
+            switch(res_pkt->opcode()) {
+                case bin_opcode_increment:
+                case bin_opcode_incrementq:
+                case bin_opcode_decrement:
+                case bin_opcode_decrementq:
+                    break;
+                case bin_opcode_set:
+                case bin_opcode_setq:
+                case bin_opcode_add:
+                case bin_opcode_addq:
+                case bin_opcode_replace:
+                case bin_opcode_replaceq:
+                    break;
+                default:
+                    break;
+            }
 
             res_pkt->status(bin_status_no_error);
 

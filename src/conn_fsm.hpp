@@ -117,7 +117,9 @@ public:
 
         public:
             linked_buf_t()
-                : iobuf_t(), next(NULL), nbuf(0), nsent(0), gc_me(false) {}
+                : iobuf_t(), next(NULL), nbuf(0), nsent(0), gc_me(false) {
+                    memset(iobuf_t::buf, 0xAD, iobuf_t::size); //calm yo' bitch ass valgrind
+                }
             ~linked_buf_t() {
                 if (next != NULL)
                     delete next;
