@@ -61,8 +61,10 @@ def rethinkdb_verify(mc, ints, clone):
 def rethinkdb_multi_verify(mc, ints, clone):
     get_response = mc.get_multi(map(str, ints))
     for i in ints:
-        if get_response.get(str(i)) != clone.get(str(i)):
-            raise ValueError("Error, incorrent value in the database! (%s=>%s, should be %s)" % (key, stored_value, clone_value))
+        stored_value = get_response.get(str(i)) 
+        clone_value = clone.get(str(i))
+        if stored_value != clone_value:
+            raise ValueError("Error, incorrent value in the database! (%s=>%s, should be %s)" % (i, stored_value, clone_value))
 
 def split_list(alist, parts):
     length = len(alist)

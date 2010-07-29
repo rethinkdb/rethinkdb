@@ -289,7 +289,7 @@ void bin_memcached_handler_t<config_t>::build_response(request_t *request) {
 
     //reload the handler specific data
     byte tmpbuf[MAX_PACKET_SIZE];
-    memset(tmpbuf, 0xAD, MAX_PACKET_SIZE); //calm yo bitch ass valgrind
+    memset(tmpbuf, 0, MAX_PACKET_SIZE); //calm yo bitch ass valgrind
     packet_t res_packet(tmpbuf, (bin_handler_data_t *) request->handler_data);
     delete (bin_handler_data_t *) request->handler_data;
     packet_t *res_pkt = &res_packet;
