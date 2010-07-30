@@ -9,6 +9,7 @@
 #include "arch/io.hpp"
 #include "event.hpp"
 #include "corefwd.hpp"
+#include "logger.hpp"
 #include "message_hub.hpp"
 #include "config/cmd_args.hpp"
 #include "buffer_cache/callbacks.hpp"
@@ -118,6 +119,11 @@ public:
     // For performance monitoring
     perfmon_t perfmon;
     int total_connections, curr_connections;
+
+    // For logging
+    logger_t logger;
+    // Only LOG_WORKER will use this
+    log_writer_t log_writer;
 
 #ifndef NDEBUG
     // Print debugging information designed to resolve a deadlock

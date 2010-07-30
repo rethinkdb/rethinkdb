@@ -25,6 +25,10 @@ struct cmd_config_t {
     // buffer cache is more than (flush_threshold_percent / 100) of the maximum number of blocks
     // allowed in memory, then dirty blocks will be flushed to disk.
     int flush_threshold_percent;
+
+    char log_file_name[MAX_LOG_FILE_NAME];
+    // Log messages below this level aren't printed
+    //log_level min_log_level;
 };
 
 void parse_cmd_args(int argc, char *argv[], cmd_config_t *config);

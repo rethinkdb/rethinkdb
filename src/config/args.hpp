@@ -35,6 +35,15 @@
 // Max size of database file name
 #define MAX_DB_FILE_NAME                          1024
 
+// Max size of log file name
+#define MAX_LOG_FILE_NAME                         1024
+
+// Max length of log message
+#define MAX_LOG_MSGLEN                            1024
+
+// Queue ID of logging worker
+#define LOG_WORKER 0
+
 // Ratio of free ram to use for the cache by default
 #define DEFAULT_MAX_CACHE_RATIO                   0.8f
 
