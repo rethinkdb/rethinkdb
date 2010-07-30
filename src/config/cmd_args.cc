@@ -110,7 +110,7 @@ void parse_cmd_args(int argc, char *argv[], cmd_config_t *config)
             strncpy(config->log_file_name, optarg, MAX_LOG_FILE_NAME);
             break;
         case 'c':
-            config->max_cores = atoi(optarg);
+            config->n_workers = atoi(optarg);
             break;
         case 'm':
             config->max_cache_size = atoi(optarg) * 1024 * 1024;

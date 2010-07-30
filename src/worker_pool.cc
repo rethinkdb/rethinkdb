@@ -8,7 +8,7 @@
 #include "utils.hpp"
 #include "worker_pool.hpp"
 
-int get_core_info(cmd_config_t *cmd_config) {
+/* int get_core_info(cmd_config_t *cmd_config) {
     int ncores = get_cpu_count(),
         nmaxcores = cmd_config->max_cores <= 0  ? ncores : cmd_config->max_cores,
         nusecores = std::min(ncores, nmaxcores);
@@ -24,7 +24,7 @@ int get_core_info(cmd_config_t *cmd_config) {
     printf("Using cores: %d\n", nusecores);
 
     return nusecores;
-}
+} */
 
 void worker_pool_t::create_worker_pool(event_handler_t event_handler, pthread_t main_thread,
                                        int _nworkers)
@@ -49,6 +49,8 @@ void worker_pool_t::create_worker_pool(event_handler_t event_handler, pthread_t 
     }
 
     // TODO: can we move the printing out of here?
+    printf("Physical cores: %d\n", get_cpu_count());
+    printf("Using cores: %d\n", nworkers);
     printf("Total RAM: %ldMB\n", get_total_ram() / 1024 / 1024);
     printf("Free RAM: %ldMB (%.2f%%)\n",
            get_available_ram() / 1024 / 1024,
@@ -67,7 +69,7 @@ worker_pool_t::worker_pool_t(event_handler_t event_handler, pthread_t main_threa
                              cmd_config_t *_cmd_config)
     : cmd_config(_cmd_config)
 {
-    create_worker_pool(event_handler, main_thread, get_core_info(cmd_config));
+    create_worker_pool(event_handler, main_thread, cmd_config->n_workers);
 }
 
 worker_pool_t::worker_pool_t(event_handler_t event_handler, pthread_t main_thread,
@@ -76,7 +78,6 @@ worker_pool_t::worker_pool_t(event_handler_t event_handler, pthread_t main_threa
 {
     // Currently, get_core_info is called only for printing here. We
     // can get rid of it once we move printing elsewhere.
-    get_core_info(cmd_config);
     create_worker_pool(event_handler, main_thread, _nworkers);
 }
 
