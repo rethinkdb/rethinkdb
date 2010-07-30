@@ -12,31 +12,31 @@ class txt_memcached_handler_t : public request_handler_t<config_t>,
 public:
     typedef typename config_t::cache_t cache_t;
     typedef typename config_t::conn_fsm_t conn_fsm_t;
-    typedef typename config_t::request_t request_t;
     typedef typename config_t::btree_fsm_t btree_fsm_t;
     typedef typename config_t::btree_set_fsm_t btree_set_fsm_t;
     typedef typename config_t::btree_get_fsm_t btree_get_fsm_t;
     typedef typename config_t::btree_delete_fsm_t btree_delete_fsm_t;
+    typedef typename config_t::btree_incr_decr_fsm_t btree_incr_decr_fsm_t;
     typedef typename config_t::req_handler_t req_handler_t;
     typedef typename req_handler_t::parse_result_t parse_result_t;
-    typedef perfmon_msg<config_t> perfmon_msg_t;
-        
+    using request_handler_t<config_t>::conn_fsm;
+    
 public:
-    static const char* name;
-    txt_memcached_handler_t(cache_t *_cache, event_queue_t *eq)
-        : req_handler_t(eq), cache(_cache), key((btree_key*)key_memory), loading_data(false)
+    txt_memcached_handler_t(event_queue_t *eq, conn_fsm_t *conn_fsm)
+        : req_handler_t(eq, conn_fsm), loading_data(false)
         {}
     
     virtual parse_result_t parse_request(event_t *event);
-    virtual void build_response(request_t *request);
 
 private:
     enum storage_command { SET, ADD, REPLACE, APPEND, PREPEND, CAS };
-    cache_t *cache;
     storage_command cmd;
 
-    char key_memory[MAX_KEY_SIZE+sizeof(btree_key)];
-    btree_key * const key;
+    union {
+        char key_memory[MAX_KEY_SIZE+sizeof(btree_key)];
+        btree_key key;
+    };
+    
     uint32_t flags;
     uint32_t exptime;
     uint32_t bytes;
@@ -44,26 +44,13 @@ private:
     bool noreply;
     bool loading_data;
 
-    parse_result_t parse_storage_command(storage_command command, char *state, unsigned int line_len, conn_fsm_t *fsm);
-    parse_result_t parse_adjustment(bool increment, char *state, unsigned int line_len, conn_fsm_t *fsm);
-
-    parse_result_t read_data(char *data, unsigned int size, conn_fsm_t *fsm);
-
-    parse_result_t fire_set_fsm(btree_set_type type, btree_key *key, char *value_data, uint32_t value_len, bool noreply, conn_fsm_t *conn_fsm);
-    parse_result_t append(char *data, conn_fsm_t *fsm);
-    parse_result_t prepend(char *data, conn_fsm_t *fsm);
-    parse_result_t cas(char *data, conn_fsm_t *fsm);
-
-    parse_result_t get(char *state, bool include_unique, unsigned int line_len, conn_fsm_t *fsm);
-
-    parse_result_t remove(char *state, unsigned int line_len, conn_fsm_t *fsm);
-
-    void write_msg(conn_fsm_t *fsm, const char *str);
-    parse_result_t malformed_request(conn_fsm_t *fsm);
-    parse_result_t unimplemented_request(conn_fsm_t *fsm);
-
-    /* stats stuff */
-    parse_result_t issue_stats_request(conn_fsm_t *fsm, unsigned int line_len);
+    parse_result_t parse_storage_command(storage_command command, char *state, unsigned int line_len);
+    parse_result_t parse_adjustment(bool increment, char *state, unsigned int line_len);
+    parse_result_t read_data();
+    parse_result_t get(char *state, bool include_unique, unsigned int line_len);
+    parse_result_t remove(char *state, unsigned int line_len);
+    parse_result_t malformed_request();
+    parse_result_t unimplemented_request();
 };
 
 

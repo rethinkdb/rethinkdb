@@ -16,10 +16,11 @@ public:
     typedef typename config_t::cache_t cache_t;
     typedef typename btree_fsm_t::transition_result_t transition_result_t;
     typedef typename cache_t::buf_t buf_t;
+    
+    using btree_fsm_t::key;
 
 public:
     enum state_t {
-        uninitialized,
         start_transaction,
         acquire_superblock,
         acquire_root,
@@ -38,13 +39,12 @@ public:
     };
 
 public:
-    explicit btree_delete_fsm(cache_t *cache)
-        : btree_fsm_t(cache, btree_fsm_t::btree_delete_fsm),
-          op_result(btree_incomplete), state(uninitialized), key((btree_key*)key_memory),
+    explicit btree_delete_fsm(btree_key *_key)
+        : btree_fsm_t(_key),
+          op_result(btree_incomplete), state(start_transaction),
           buf(NULL), last_buf(NULL), sb_buf(NULL),  sib_buf(NULL), node_id(cache_t::null_block_id)
         {}
 
-    void init_delete(btree_key *_key);
     virtual transition_result_t do_transition(event_t *event);
 
     virtual bool is_finished() {
@@ -71,13 +71,9 @@ private:
     int set_root_id(block_id_t root_id, event_t *event);
 
 private:
-    char key_memory[MAX_KEY_SIZE+sizeof(btree_key)];
     // Some relevant state information
     state_t state;
-public:
-    btree_key * const key;
-    static const char* name;
-private:
+    
     buf_t *buf, *last_buf, *sb_buf, *sib_buf;
     block_id_t node_id, last_node_id, sib_node_id;
 

@@ -9,12 +9,16 @@
 #include "btree/fsm.hpp"
 #include "corefwd.hpp"
 
+#include <stdarg.h>
+
 // TODO: the lifetime of conn_fsm isn't well defined - some objects
 // may persist for far longer than others. The small object dynamic
 // pool allocator (currently defined as alloc_t in config_t) is
 // designed for objects that have roughly the same lifetime. We should
 // use a different allocator for objects like conn_fsm (and btree
 // buffers).
+
+#define MAX_MESSAGE_SIZE 500
 
 // The actual state structure
 template<class config_t>
@@ -24,15 +28,14 @@ struct conn_fsm : public intrusive_list_node_t<conn_fsm<config_t> >,
 public:
     typedef typename config_t::iobuf_t iobuf_t;
     typedef typename config_t::btree_fsm_t btree_fsm_t;
-    typedef typename config_t::request_t request_t;
     typedef typename config_t::req_handler_t req_handler_t;
     
 public:
-    static const char* name;
     // Possible transition results
     enum result_t {
         fsm_invalid,
         fsm_shutdown_server,
+        fsm_no_data_in_socket,
         fsm_quit_connection,
         fsm_transition_ok,
     };
@@ -78,20 +81,14 @@ public:
             default: st_name = "<invalid state>"; break;
         }
         printf("\tstate = %s\n", st_name);
-        if (current_request) {
-            printf("\tcurrent_request.msgs = [\n");
-            unsigned int i;
-            for (i=0; i<current_request->nstarted; i++) {
-                current_request->msgs[i]->deadlock_debug();
-            }
-            printf("]\n");
-        } else {
-            printf("\tcurrent_request = NULL\n");
-        }
         printf("}\n");
     }
 #endif
-
+//TODO
+/*! \todo{ migrate this struct out of the conn_fsm since others might need it,
+ *          also sizeof(linked_buf_t) should be divisable by 512 so for allocation purposes }
+ */ 
+   
 public:
     /*! \class linked_buf_t
      *  \brief linked version of iobuf_t
@@ -114,7 +111,9 @@ public:
 
         public:
             linked_buf_t()
-                : iobuf_t(), next(NULL), nbuf(0), nsent(0), gc_me(false) {}
+                : iobuf_t(), next(NULL), nbuf(0), nsent(0), gc_me(false) {
+                    memset(iobuf_t::buf, 0, iobuf_t::size); //calm yo' bitch ass valgrind
+                }
             ~linked_buf_t() {
                 if (next != NULL)
                     delete next;
@@ -145,7 +144,17 @@ public:
                     next->append(input, ninput);
                 }
             }
-
+            
+            void printf(const char *format_str, ...) {
+                char buffer[MAX_MESSAGE_SIZE];
+                va_list args;
+                va_start(args, format_str);
+                int count = vsnprintf(buffer, MAX_MESSAGE_SIZE, format_str, args);
+                check("Message too big (increase MAX_MESSAGE_SIZE)", count == MAX_MESSAGE_SIZE);
+                va_end(args);
+                append(buffer, count);
+            }
+            
             /*! \brief check if a buffer has outstanding data
              *  \return true if there is outstanding data
              */
@@ -228,9 +237,11 @@ public:
     char *rbuf;
     linked_buf_t *sbuf;
     unsigned int nrbuf;
+    /*! \warning {If req_handler::parse_request returns op_req_parallelizable then it MUST NOT send an et_request_complete,
+     *              if it returns op_req_complex then it MUST send an et_request_complete event}
+     */
     req_handler_t *req_handler;
     event_queue_t *event_queue;
-    request_t *current_request;
     
 private:
     result_t fill_rbuf(event_t *event);

@@ -57,7 +57,6 @@ struct buffer_t : public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, bu
 {
     char buf[_size];
     static const int size = _size;
-    static const char* name;
 };
 
 

@@ -40,7 +40,6 @@ public:
 struct perfmon_t : public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, perfmon_t> {
 public:
     typedef std::map<const char*, var_monitor_t, std::less<const char*>, gnew_alloc<var_monitor_t> > perfmon_map_t;
-    static const char* name;    
 public:
     void monitor(var_monitor_t monitor);
     void accumulate(perfmon_t *s);
@@ -53,13 +52,9 @@ public:
 
 
 /* This is what gets sent to a core when another core requests it's perfmon module. */
-template <class config_t>
-struct perfmon_msg : public cpu_message_t,
-                     public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, perfmon_msg<config_t> >
-{
-public:
-    typedef typename config_t::request_t request_t;
-    static const char* name;
+struct perfmon_msg_t : public cpu_message_t,
+                       public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, perfmon_msg_t >
+{   
 public:
     enum perfmon_msg_state {
         // Initial request for perfmon info
@@ -73,14 +68,14 @@ public:
         sm_msg_cleanup
     };
         
-    perfmon_msg(request_t *_request)
-        : cpu_message_t(cpu_message_t::mt_perfmon), request(_request), perfmon(NULL), state(sm_request)
+    perfmon_msg_t()
+        : cpu_message_t(cpu_message_t::mt_perfmon), perfmon(NULL), state(sm_request)
         {}
     
-    request_t *request;
+    void send_back_to_free_perfmon();
+    
     perfmon_t *perfmon;
     perfmon_msg_state state;
 };
-template<class config_t> const char* perfmon_msg<config_t>::name = "perfmon_msg";
 #endif // __PERFMON_HPP__
 

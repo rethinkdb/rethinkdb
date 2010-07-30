@@ -69,7 +69,6 @@ public:
                      public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, timer_t> {
         
         friend class event_queue_t;
-        static const char* name;
     private:
         // If 'false', the timer is repeating
         bool once;

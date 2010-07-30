@@ -22,17 +22,9 @@
 
 // TODO: change rwi_write to rwi_intent followed by rwi_upgrade where
 // relevant.
-template <class config_t>
-void btree_set_fsm<config_t>::init_update(btree_key *_key, byte *data, unsigned int length, btree_set_type _set_type) {
-    set_type = _set_type;
-    keycpy(key, _key);
-    value->size = length;
-    memcpy(&value->contents, data, length);
-    state = start_transaction;
-}
 
 template <class config_t>
-typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::do_start_transaction(event_t *event) {
+typename btree_modify_fsm<config_t>::transition_result_t btree_modify_fsm<config_t>::do_start_transaction(event_t *event) {
     assert(state == start_transaction);
 
     /* Either start a new transaction or retrieve the one we started. */
@@ -54,13 +46,13 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
 }
 
 template <class config_t>
-typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::do_acquire_superblock(event_t *event)
+typename btree_modify_fsm<config_t>::transition_result_t btree_modify_fsm<config_t>::do_acquire_superblock(event_t *event)
 {
     assert(state == acquire_superblock);
 
     if(event == NULL) {
         // First entry into the FSM; try to grab the superblock.
-        block_id_t superblock_id = btree_fsm_t::get_cache()->get_superblock_id();
+        block_id_t superblock_id = cache->get_superblock_id();
         sb_buf = transaction->acquire(superblock_id, rwi_write, this);
     } else {
         // We already tried to grab the superblock, and we're getting
@@ -87,7 +79,7 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
 }
 
 template <class config_t>
-typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::do_acquire_root(event_t *event)
+typename btree_modify_fsm<config_t>::transition_result_t btree_modify_fsm<config_t>::do_acquire_root(event_t *event)
 {
     // If root didn't exist, we should have ended up in
     // do_insert_root()
@@ -113,7 +105,7 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
 }
 
 template <class config_t>
-typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::do_insert_root(event_t *event)
+typename btree_modify_fsm<config_t>::transition_result_t btree_modify_fsm<config_t>::do_insert_root(event_t *event)
 {
     // If this is the first time we're entering this function,
     // allocate the root (otherwise, the root has already been
@@ -134,7 +126,7 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
 }
 
 template <class config_t>
-typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::do_insert_root_on_split(event_t *event)
+typename btree_modify_fsm<config_t>::transition_result_t btree_modify_fsm<config_t>::do_insert_root_on_split(event_t *event)
 {
     if(set_root_id(last_node_id, event)) {
         state = acquire_node;
@@ -147,7 +139,7 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
 }
 
 template <class config_t>
-typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::do_acquire_node(event_t *event)
+typename btree_modify_fsm<config_t>::transition_result_t btree_modify_fsm<config_t>::do_acquire_node(event_t *event)
 {
     if(event == NULL) {
         buf = transaction->acquire(node_id, rwi_write, this);
@@ -165,7 +157,7 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
 }
 
 template <class config_t>
-typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::do_transition(event_t *event)
+typename btree_modify_fsm<config_t>::transition_result_t btree_modify_fsm<config_t>::do_transition(event_t *event)
 {
     transition_result_t res = btree_fsm_t::transition_ok;
 
@@ -179,7 +171,7 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
               event->result == 0 ||
               event->result == -1);
 
-        check("btree_set_fsm::do_transition - invalid event type", event->op != eo_read);
+        check("btree_modify_fsm::do_transition - invalid event type", event->op != eo_read);
     }
 
     // First, begin a transaction.
@@ -213,6 +205,7 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
     // If we were acquiring a node, do that
     // Go up the tree...
     while(res == btree_fsm_t::transition_ok && state == acquire_node) {
+    
         if(!buf) {
             state = acquire_node;
             res = do_acquire_node(event);
@@ -222,16 +215,37 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
             }
         }
 
-        // Proactively split the node
         node_t *node = (node_t *)buf->ptr();
+        
+        if (node_handler::is_leaf(node) && !have_computed_new_value) {
+            
+            union {
+                char value_memory[MAX_IN_NODE_VALUE_SIZE+sizeof(btree_value)];
+                btree_value old_value;
+            } u;
+            bool key_found = leaf_node_handler::lookup((btree_leaf_node*)node, &key, &u.old_value);
+            
+            // We've found the old value, or determined that it is not present; now compute the new
+            // value.
+            
+            if (key_found) {
+                set_was_successful = operate(&u.old_value, &new_value);
+            } else {
+                set_was_successful = operate(NULL, &new_value);
+            }
+            assert(new_value || !set_was_successful);
+            
+            have_computed_new_value = true;
+        }
+        
+        // Split the node if necessary
         bool full;
-                
         if (node_handler::is_leaf(node)) {
-            full = leaf_node_handler::is_full((leaf_node_t *)node, key, value);
+            full = leaf_node_handler::is_full((leaf_node_t *)node, &key, new_value);
         } else {
             full = internal_node_handler::is_full((internal_node_t *)node);
         }
-        if(full) {
+        if (full) {
             char memory[sizeof(btree_key) + MAX_KEY_SIZE];
             btree_key *median = (btree_key *)memory;
             buf_t *rbuf;
@@ -254,7 +268,7 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
             last_buf->set_dirty();
                 
             // Figure out where the key goes
-            if(sized_strcmp(key->contents, key->size, median->contents, median->size) <= 0) {
+            if(sized_strcmp(key.contents, key.size, median->contents, median->size) <= 0) {
                 // Left node and node are the same thing
                 rbuf->release();
                 rbuf = NULL;
@@ -274,71 +288,36 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
                 }
             }
         }
-
+        
         // Release the superblock, if we haven't already
         if(sb_buf) {
             sb_buf->release();
             sb_buf = NULL;
         }
         
-        // Insert the value, or move up the tree
+        // Perform the operation if we reached a leaf, or move up the tree if not
         if(node_handler::is_leaf(node)) {
-
-            // TODO: write unit tests for checking add, replace, incr, decr
-            char value_memory[MAX_IN_NODE_VALUE_SIZE+sizeof(btree_value)];
-            btree_value *current_value = (btree_value*)value_memory;
-            long long new_val = 0;
-            uint64_t cur_val = 0;
-            // If it's an add operation, check that the key doesn't exist.
-            // If it's a replace operation, check that the key does exist.
-            bool key_found = false;
-            if(set_type == btree_set_type_add || set_type == btree_set_type_replace) {
-                key_found = leaf_node_handler::lookup((leaf_node_t*)node, key, current_value);
-            }else if(set_type == btree_set_type_incr || set_type == btree_set_type_decr) {
-                key_found = leaf_node_handler::lookup((leaf_node_t*)node, key, current_value);
-                new_val = atoll(value->contents);
-                cur_val = strtoull(current_value->contents, NULL, 10);
-            }
-           /*  NOTE: memcached actually does a few things differently:
-            *   - If you say `decr 1 -50`, memcached will set 1 to 0 no matter
-            *      what it's value is. We on the other hand will add 50 to 1.
-            *
-            *   - Also, if you say 'incr 1 -50' in memcached and the value
-            *     goes below 0, memcached will wrap around. We just set the value to 0.
-            */
-            if (key_found && set_type == btree_set_type_decr) {
-                // we underflowed and wrapped around while subtracting, set to zero.
-                if (new_val > 0 && cur_val - new_val > cur_val) 
-                    cur_val = 0;
-                else
-                    cur_val -= new_val;
-            } else if(key_found && set_type == btree_set_type_incr) {
-                if (new_val < 0 && cur_val + new_val > cur_val)
-                    cur_val = 0;
-                else
-                    cur_val += new_val;
+            
+            assert(have_computed_new_value);
+            
+            if (set_was_successful) {
+                // We have a new value to insert
+                bool success = leaf_node_handler::insert((leaf_node_t*)node, &key, new_value);
+                check("could not insert leaf btree node", !success);
+                buf->set_dirty();
+                
+                // TODO: If we have inserted a value that is smaller than the old value, the node
+                // might now be underfull, but modify_fsm doesn't handle that case; only delete_fsm
+                // does. Ideally we would combine modify_fsm with delete_fsm.
             }
             
-            if (set_type == btree_set_type_set ||
-                (set_type == btree_set_type_add && !key_found) ||
-                (set_type == btree_set_type_replace && key_found) ||
-                (set_type == btree_set_type_decr && key_found) ||
-                (set_type == btree_set_type_incr && key_found))
-            {
-                if (set_type == btree_set_type_decr || set_type == btree_set_type_incr) {
-                    int chars_written = sprintf(value->contents, "%llu", (unsigned long long)cur_val);
-                    value->size = chars_written;
-                }
-                bool success = leaf_node_handler::insert((leaf_node_t*)node, key, value);
-                check("could not insert leaf btree node", !success);
-                set_was_successful = true;
-                buf->set_dirty();
-            }
             buf->release();
             buf = NULL;
+            
             state = update_complete;
             res = btree_fsm_t::transition_ok;
             break;
+            
         } else {
             // Release and update the last node
             if(!cache_t::is_block_id_null(last_node_id)) {
@@ -351,7 +330,7 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
             node_id = cache_t::null_block_id;
                 
             // Look up the next node
-            node_id = internal_node_handler::lookup((internal_node_t*)node, key);
+            node_id = internal_node_handler::lookup((internal_node_t*)node, &key);
             assert(!cache_t::is_block_id_null(node_id));
             assert(node_id != cache->get_superblock_id());
         }
@@ -391,14 +370,14 @@ typename btree_set_fsm<config_t>::transition_result_t btree_set_fsm<config_t>::d
 }
 
 template <class config_t>
-int btree_set_fsm<config_t>::set_root_id(block_id_t root_id, event_t *event) {
+int btree_modify_fsm<config_t>::set_root_id(block_id_t root_id, event_t *event) {
     memcpy(sb_buf->ptr(), (void*)&root_id, sizeof(root_id));
     sb_buf->set_dirty();
     return 1;
 }
 
 template <class config_t>
-void btree_set_fsm<config_t>::split_node(buf_t *buf, buf_t **rbuf,
+void btree_modify_fsm<config_t>::split_node(buf_t *buf, buf_t **rbuf,
                                          block_id_t *rnode_id, btree_key *median) {
     buf_t *res = transaction->allocate(rnode_id);
     if(node_handler::is_leaf((node_t *)buf->ptr())) {
@@ -417,25 +396,9 @@ void btree_set_fsm<config_t>::split_node(buf_t *buf, buf_t **rbuf,
     *rbuf = res;
 }
 
-template<class config_t>
-btree_key* btree_set_fsm<config_t>::get_key() {
-    return key;
-}
-
-template<class config_t>
-btree_value* btree_set_fsm<config_t>::get_value() {
-    return value;
-}
-template<class config_t>
-btree_set_type btree_set_fsm<config_t>::get_set_type() {
-    return set_type;
-}
-
-template <class config_t> const char* btree_set_fsm<config_t>::name = "btree_set_fsm";
-
 #ifndef NDEBUG
 template <class config_t>
-void btree_set_fsm<config_t>::deadlock_debug(void) {
+void btree_modify_fsm<config_t>::deadlock_debug(void) {
     printf("set-fsm %p {\n", this);
     printf("    buf = %p\n", buf);
     printf("    last_buf = %p\n", last_buf);
@@ -444,7 +407,6 @@ void btree_set_fsm<config_t>::deadlock_debug(void) {
     printf("    last_node_id = %d\n", (int)last_node_id);
     const char *st_name;
     switch(state) {
-        case uninitialized: st_name = "uninitialized"; break;
         case start_transaction: st_name = "start_transaction"; break;
         case acquire_superblock: st_name = "acquire_superblock"; break;
         case acquire_root: st_name = "acquire_root"; break;

@@ -6,6 +6,11 @@
 template<class config_t>
 struct conn_fsm;
 
+// Request
+struct request_callback_t;
+
+struct request_t;
+
 // Serializers
 template <class config_t>
 struct in_place_serializer_t;
@@ -48,6 +53,9 @@ class btree_set_fsm;
 template <typename config_t>
 class btree_delete_fsm;
 
+template <typename config_t>
+class btree_incr_decr_fsm;
+
 template <class config_t>
 class btree_admin;
 
@@ -73,9 +81,6 @@ class memcached_handler_t;
 
 // Context
 struct iocb;
-
-template <class config_t>
-class request;
 
 // IO Calls
 struct posix_io_calls_t;

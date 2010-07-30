@@ -13,7 +13,6 @@ class btree_fsm : public cpu_message_t,
 {
 public:
     typedef typename config_t::cache_t cache_t;
-    typedef typename config_t::request_t request_t;
     typedef typename config_t::btree_fsm_t btree_fsm_t;
     typedef typename cache_t::transaction_t transaction_t;
     typedef typename cache_t::buf_t buf_t;
@@ -25,22 +24,15 @@ public:
         transition_complete
     };
 
-    // It's annoying that we have to do this, and it would probably be
-    // nicer to do it with a visitor pattern (oh C++, give me
-    // multimethods), but meh.
-    enum fsm_type_t {
-        btree_mock_fsm,
-        btree_get_fsm,
-        btree_set_fsm,
-        btree_delete_fsm,
-    };
-
 public:
-    btree_fsm(cache_t *_cache, fsm_type_t _fsm_type)
+    btree_fsm(btree_key *_key)
         : cpu_message_t(cpu_message_t::mt_btree),
-          fsm_type(_fsm_type), transaction(NULL), request(NULL), cache(_cache),
+          transaction(NULL),
+          cache(NULL),   // Will be set when we arrive at the core we are operating on
           on_complete(NULL), noreply(false)
-        {}
+        {
+        keycpy(&key, _key);
+    }
     virtual ~btree_fsm() {}
 
     /* TODO: This function will be called many times per each
@@ -69,17 +61,16 @@ public:
         printf("unknown-fsm %p\n", this);
     }
 #endif
-    
+
 protected:
     block_id_t get_root_id(void *superblock_buf);
-    cache_t* get_cache() {
-        return cache;
-    }
 
 public:
-    fsm_type_t fsm_type;
+    union {
+        char key_memory[MAX_KEY_SIZE+sizeof(btree_key)];
+        btree_key key;
+    };
     transaction_t *transaction;
-    request_t *request;
     cache_t *cache;
     on_complete_t on_complete;
     bool noreply;

@@ -5,7 +5,7 @@ from random import shuffle, randint
 import random, string, os, sys
 
 LOG_FILE="log.txt"
-NUM_INSERTS=32000
+NUM_INSERTS=8000
 log = sys.stdout
 
 def rethinkdb_insert(port, pairs):
@@ -70,8 +70,8 @@ def test_against_server_at(port):
     mc.disconnect_all()
 
 from test_common import RethinkDBTester
-retest_release = RethinkDBTester(test_against_server_at, "release")
-retest_valgrind = RethinkDBTester(test_against_server_at, "debug", valgrind=True)
+retest_release = RethinkDBTester(test_against_server_at, "release", timeout = 20)
+retest_valgrind = RethinkDBTester(test_against_server_at, "debug", valgrind=True, timeout = 60)
 
 if __name__ == '__main__':
     log = open(LOG_FILE, 'w')

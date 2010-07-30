@@ -1,5 +1,6 @@
 #include "perfmon.hpp"
 #include "config/code.hpp"
+#include "cpu_context.hpp"
 
 /* Variable monitors */
 void var_monitor_t::combine(const var_monitor_t* val) {
@@ -77,4 +78,11 @@ void perfmon_t::copy_from(const perfmon_t &rhs)
         registry[iter->first].freeze_state();
     }
 }
-const char* perfmon_t::name = "perfmon_t";
+
+void perfmon_msg_t::send_back_to_free_perfmon() {
+    state = sm_copy_cleanup;
+    int cpu_owning_perfmon = return_cpu;
+    return_cpu = get_cpu_context()->event_queue->queue_id;
+    request = NULL;
+    get_cpu_context()->event_queue->message_hub.store_message(cpu_owning_perfmon, this);
+}

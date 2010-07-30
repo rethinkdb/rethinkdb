@@ -30,6 +30,7 @@
 #include "buffer_cache/concurrency/rwi_conc.hpp"
 #include "btree/get_fsm.hpp"
 #include "btree/set_fsm.hpp"
+#include "btree/incr_decr_fsm.hpp"
 #include "btree/delete_fsm.hpp"
 #include "conn_fsm.hpp"
 #include "request.hpp"
@@ -622,8 +623,6 @@ void event_queue_t::on_sync() {
     event.event_type = iet_cache_synced;
     post_itc_message(&event);
 }
-
-const char* event_queue_t::timer_t::name = "event_queue_t::timer_t";
 
 #ifndef NDEBUG
 void event_queue_t::deadlock_debug() {

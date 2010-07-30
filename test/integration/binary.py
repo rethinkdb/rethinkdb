@@ -5,7 +5,7 @@ from random import shuffle, randint
 from time import sleep
 import os
 
-NUM_INTS = 8000
+NUM_INTS = 3
 NUM_THREADS = 1
 bin = True
 
@@ -61,8 +61,10 @@ def rethinkdb_verify(mc, ints, clone):
 def rethinkdb_multi_verify(mc, ints, clone):
     get_response = mc.get_multi(map(str, ints))
     for i in ints:
-        if get_response.get(str(i)) != clone.get(str(i)):
-            raise ValueError("Error, incorrent value in the database! (%s=>%s, should be %s)" % (key, stored_value, clone_value))
+        stored_value = get_response.get(str(i)) 
+        clone_value = clone.get(str(i))
+        if stored_value != clone_value:
+            raise ValueError("Error, incorrent value in the database! (%s=>%s, should be %s)" % (i, stored_value, clone_value))
 
 def split_list(alist, parts):
     length = len(alist)
@@ -104,8 +106,8 @@ def test_against_server_at(port):
     print "Done"
 
 from test_common import RethinkDBTester
-retest_release = RethinkDBTester(test_against_server_at, "release")
-retest_valgrind = RethinkDBTester(test_against_server_at, "debug", valgrind=True)
+retest_release = RethinkDBTester(test_against_server_at, "release", timeout = 10)
+retest_valgrind = RethinkDBTester(test_against_server_at, "debug", valgrind=True, timeout = 10)
 
 if __name__ == '__main__':
     test_against_server_at(int(os.environ.get("RUN_PORT", "11211")))

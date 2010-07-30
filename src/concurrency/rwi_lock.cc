@@ -191,6 +191,5 @@ void rwi_lock_t::send_notify(lock_request_t *req) {
         hub->store_message(cpu, req);
 }
 
-const char* rwi_lock_t::lock_request_t::name = "rwi_lock_t::lock_request_t";
 #endif // __RWI_LOCK_IMPL_HPP__
 

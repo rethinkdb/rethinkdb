@@ -5,7 +5,7 @@ from random import shuffle, randint
 from time import sleep
 import os
 
-NUM_INTS=8000
+NUM_INTS=1600
 NUM_THREADS=1
 
 def rethinkdb_insert(mc, ints, clone):
@@ -60,8 +60,8 @@ def test_against_server_at(port):
     print "Done"
 
 from test_common import RethinkDBTester
-retest_release = RethinkDBTester(test_against_server_at, "release")
-retest_valgrind = RethinkDBTester(test_against_server_at, "debug", valgrind=True)
+retest_release = RethinkDBTester(test_against_server_at, "release", timeout = 20)
+retest_valgrind = RethinkDBTester(test_against_server_at, "debug", valgrind=True, timeout = 60)
 
 if __name__ == '__main__':
     test_against_server_at(int(os.environ.get("RUN_PORT", "11211")))

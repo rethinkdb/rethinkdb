@@ -10,12 +10,6 @@
 #include "btree/leaf_node.hpp"
 
 template <class config_t>
-void btree_get_fsm<config_t>::init_lookup(btree_key *_key) {
-    memcpy(key, _key, sizeof(btree_key) + _key->size);
-    state = acquire_superblock;
-}
-
-template <class config_t>
 typename btree_get_fsm<config_t>::transition_result_t btree_get_fsm<config_t>::do_acquire_superblock(event_t *event) {
     assert(state == acquire_superblock);
 
@@ -105,7 +99,7 @@ typename btree_get_fsm<config_t>::transition_result_t btree_get_fsm<config_t>::d
     
     node_t *node = (node_t *)buf->ptr();
     if(node_handler::is_internal(node)) {
-        block_id_t next_node_id = internal_node_handler::lookup((internal_node_t*)node, key);
+        block_id_t next_node_id = internal_node_handler::lookup((internal_node_t*)node, &key);
         assert(!cache_t::is_block_id_null(next_node_id));
         assert(next_node_id != cache->get_superblock_id());
         last_buf = buf;
@@ -117,7 +111,7 @@ typename btree_get_fsm<config_t>::transition_result_t btree_get_fsm<config_t>::d
             return btree_fsm_t::transition_incomplete;
         }
     } else {
-        int result = leaf_node_handler::lookup((leaf_node_t*)node, key, value);
+        int result = leaf_node_handler::lookup((leaf_node_t*)node, &key, &value);
         buf->release();
         state = lookup_complete;
         op_result = result == 1 ? btree_found : btree_not_found;
@@ -169,8 +163,6 @@ typename btree_get_fsm<config_t>::transition_result_t btree_get_fsm<config_t>::d
     return res;
 }
 
-template <class config_t> const char* btree_get_fsm<config_t>::name = "btree_get_fsm";
-
 #ifndef NDEBUG
 template <class config_t>
 void btree_get_fsm<config_t>::deadlock_debug(void) {
@@ -180,7 +172,6 @@ void btree_get_fsm<config_t>::deadlock_debug(void) {
     printf("    node_id = %d\n", (int)node_id);
     const char *st_name;
     switch(state) {
-        case uninitialized: st_name = "uninitialized"; break;
         case acquire_superblock: st_name = "acquire_superblock"; break;
         case acquire_root: st_name = "acquire_root"; break;
         case acquire_node: st_name = "acquire_node"; break;

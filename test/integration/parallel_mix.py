@@ -5,7 +5,7 @@ from multiprocessing import Process
 from multiprocessing import Queue
 from random import randint
 from time import time
-import memcache
+import memcache, os
 
 NUM_KEYS=1000           # Total number of key to insert
 NUM_VALUES=20           # Number of values a given key can assume
@@ -102,8 +102,8 @@ def test_against_server_at(port):
     print "Done"
 
 from test_common import RethinkDBTester
-retest_release = RethinkDBTester(test_against_server_at, "release")
-retest_valgrind = RethinkDBTester(test_against_server_at, "debug", valgrind=True)
+retest_release = RethinkDBTester(test_against_server_at, "release", timeout = 20)
+retest_valgrind = RethinkDBTester(test_against_server_at, "debug", valgrind=True, timeout = 60)
 
 if __name__ == '__main__':
     test_against_server_at(int(os.environ.get("RUN_PORT", "11211")))

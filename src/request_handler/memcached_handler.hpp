@@ -14,10 +14,6 @@ template<class config_t>
 class memcached_handler_t : public request_handler_t<config_t>,
     public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, memcached_handler_t<config_t> > {
 public:
-    typedef typename config_t::cache_t cache_t;
-    typedef typename config_t::conn_fsm_t conn_fsm_t;
-    typedef typename config_t::request_t request_t;
-    typedef typename config_t::btree_fsm_t btree_fsm_t;
     typedef typename config_t::btree_set_fsm_t btree_set_fsm_t;
     typedef typename config_t::btree_get_fsm_t btree_get_fsm_t;
     typedef typename config_t::btree_delete_fsm_t btree_delete_fsm_t;
@@ -26,11 +22,13 @@ public:
     typedef typename config_t::t_memcached_handler_t txt_memcached_handler_t;
     typedef typename config_t::b_memcached_handler_t bin_memcached_handler_t;
     typedef typename config_t::b_memcached_handler_t::bin_magic_t bin_magic_t;
+    typedef typename config_t::conn_fsm_t conn_fsm_t;
+    using request_handler_t<config_t>::event_queue;
+    using request_handler_t<config_t>::conn_fsm;
     
 public:
-    static const char* name;
-    memcached_handler_t(cache_t *_cache, event_queue_t *eq)
-        : req_handler_t(eq), cache(_cache), req_handler(NULL)
+    memcached_handler_t(event_queue_t *eq, conn_fsm_t *fsm)
+        : req_handler_t(eq, fsm), req_handler(NULL)
         {}
     ~memcached_handler_t() {
         if (req_handler)
@@ -43,14 +41,7 @@ public:
      */
     virtual parse_result_t parse_request(event_t *event);
 
-    /*! build_response
-     *  \brief build a response a completed request
-     *  \param request the request to be responded to
-     */
-    virtual void build_response(request_t *request);
-
 private:
-    cache_t *cache;
 
     req_handler_t *req_handler; // !< the correct memchaced request handler
 

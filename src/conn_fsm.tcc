@@ -12,10 +12,10 @@
 template<class config_t>
 void conn_fsm<config_t>::init_state() {
     this->state = fsm_socket_connected;
-    this->corked = false;
     this->rbuf = NULL;
     this->sbuf = NULL;
     this->nrbuf = 0;
+    this->corked = false;
 }
 
 // This function returns the socket to clean connected state
@@ -75,6 +75,9 @@ typename conn_fsm<config_t>::result_t conn_fsm<config_t>::fill_rbuf(event_t *eve
         if (state->state != fsm_socket_recv_incomplete)
             state->state = fsm_outstanding_data;
     } else {
+        if (state->state == fsm_socket_recv_incomplete)
+            return fsm_no_data_in_socket;
+        else
         return fsm_quit_connection;
         // TODO: what about application-level keepalive?
     }
@@ -154,7 +157,6 @@ typename conn_fsm<config_t>::result_t conn_fsm<config_t>::do_fsm_outstanding_req
             // Ain't nothing we can do now - the operations
             // have been distributed accross CPUs. We can just
             // sit back and wait until they come back.
-            assert(current_request);
             state->state = fsm_btree_incomplete;
             return fsm_transition_ok;
             break;
@@ -212,7 +214,9 @@ typename conn_fsm<config_t>::result_t conn_fsm<config_t>::do_transition(event_t 
         //this is awkward, but we need to make sure that we loop here until we
         //actually create a btree request
         do {
-            //bool was_corked = corked;
+#ifdef MEMCACHED_STRICT
+            bool was_corked = corked;
+#endif
             res = do_fsm_outstanding_req(event);
             if (res == fsm_shutdown_server || res == fsm_quit_connection) {
                 return_to_socket_connected();
@@ -221,11 +225,16 @@ typename conn_fsm<config_t>::result_t conn_fsm<config_t>::do_transition(event_t 
 
             if (state == fsm_socket_recv_incomplete) {
                 event->event_type = et_sock;
-                fill_rbuf(event);
+                res = fill_rbuf(event);
+                
+                if (res == fsm_no_data_in_socket)
+                    return fsm_transition_ok;
             }
 
-            /* if (was_corked && !corked)
-                send_msg_to_client(); */
+#ifdef MEMCACHED_STRICT
+            if (was_corked && !corked)
+                send_msg_to_client();
+#endif
         } while (state == fsm_socket_recv_incomplete || state == fsm_outstanding_data);
     }
 
@@ -236,7 +245,7 @@ template<class config_t>
 conn_fsm<config_t>::conn_fsm(resource_t _source, event_queue_t *_event_queue)
     : source(_source), req_handler(NULL), event_queue(_event_queue)
 {
-    req_handler = new memcached_handler_t<config_t>(event_queue->cache, event_queue);
+    req_handler = new memcached_handler_t<config_t>(event_queue, this);
     init_state();
 }
 
@@ -291,6 +300,6 @@ void conn_fsm<config_t>::consume(unsigned int bytes) {
     memmove(this->rbuf, this->rbuf + bytes, this->nrbuf - bytes);
     this->nrbuf -= bytes;
 }
-template <class config_t> const char* conn_fsm<config_t>::name = "conn_fsm";
+
 #endif // __FSM_TCC__
 

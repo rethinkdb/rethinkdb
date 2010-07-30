@@ -3,6 +3,7 @@
 from multiprocessing import Pool, Queue, Process
 import memcache
 from random import shuffle
+import os
 
 
 NUM_INTS=8000
@@ -79,8 +80,8 @@ def test_against_server_at(port):
     print "Done"
 
 from test_common import RethinkDBTester
-retest_release = RethinkDBTester(test_against_server_at, "release")
-retest_valgrind = RethinkDBTester(test_against_server_at, "debug", valgrind=True)
+retest_release = RethinkDBTester(test_against_server_at, "release", timeout = 20)
+retest_valgrind = RethinkDBTester(test_against_server_at, "debug", valgrind=True, timeout = 60)
 
 if __name__ == '__main__':
     test_against_server_at(int(os.environ.get("RUN_PORT", "11211")))

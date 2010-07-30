@@ -50,14 +50,13 @@ struct standard_config_t {
     typedef btree_get_fsm<standard_config_t> btree_get_fsm_t;
     typedef btree_set_fsm<standard_config_t> btree_set_fsm_t;
     typedef btree_delete_fsm<standard_config_t> btree_delete_fsm_t;
-
+    typedef btree_incr_decr_fsm<standard_config_t> btree_incr_decr_fsm_t;
 
     // Request handler
     //TODO we should refactor to not use weird derivations of the names
     typedef request_handler_t<standard_config_t> req_handler_t;
     typedef bin_memcached_handler_t<standard_config_t> b_memcached_handler_t;
     typedef txt_memcached_handler_t<standard_config_t> t_memcached_handler_t;
-    typedef request<standard_config_t> request_t;
 };
 
 typedef standard_config_t code_config_t;

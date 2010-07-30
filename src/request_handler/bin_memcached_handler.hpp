@@ -20,31 +20,24 @@ class bin_memcached_handler_t : public request_handler_t<config_t>,
 public:
     typedef typename config_t::cache_t cache_t;
     typedef typename config_t::conn_fsm_t conn_fsm_t;
-    typedef typename config_t::request_t request_t;
     typedef typename config_t::btree_fsm_t btree_fsm_t;
     typedef typename config_t::btree_set_fsm_t btree_set_fsm_t;
     typedef typename config_t::btree_get_fsm_t btree_get_fsm_t;
     typedef typename config_t::btree_delete_fsm_t btree_delete_fsm_t;
     typedef typename config_t::req_handler_t req_handler_t;
     typedef typename req_handler_t::parse_result_t parse_result_t;
+    using request_handler_t<config_t>::conn_fsm;
     
 public:
-    static const char* name;
-    bin_memcached_handler_t() 
-        : req_handler_t(NULL), cache(NULL), key((btree_key*)key_memory)
-        {}
-    bin_memcached_handler_t(cache_t *_cache, event_queue_t *eq)
-        : req_handler_t(eq), cache(_cache), key((btree_key*)key_memory)
+    bin_memcached_handler_t(event_queue_t *eq, conn_fsm_t *fsm)
+        : req_handler_t(eq, fsm), key((btree_key*)key_memory)
         {}
     
     virtual parse_result_t parse_request(event_t *event);
-    virtual void build_response(request_t *request);
 
     //the fields in a memcached packet
 public:
-    typedef uint8_t bin_magic_t;
-
-private:
+    typedef uint8_t     bin_magic_t;
     typedef uint8_t     bin_opcode_t;
     typedef uint16_t    bin_key_length_t;
     typedef uint8_t     bin_extra_length_t;
@@ -62,9 +55,7 @@ private:
         num_magic_code = 2, //this has to be maintained by hand (sucks)
     } bin_magic_code;
 
-public: //this is needed to decide if we have a binary packet or not so it needs to be public
-    //TODO make this so we don't need to instantiate the class to call it
-    bool is_valid_magic(bin_magic_t magic) {
+    static bool is_valid_magic(bin_magic_t magic) {
         bin_magic_code magics[num_magic_code] = {bin_magic_request, bin_magic_response}; //this must also be maintained by hand, I was hoping for a bit more magic
         for (int i = 0; i < num_magic_code; i++) {
             if (magic == magics[i])
@@ -73,7 +64,6 @@ public: //this is needed to decide if we have a binary packet or not so it needs
         return false;
     }
 
-private:
     //response status
     typedef enum {
         bin_status_no_error = 0x0000,
@@ -167,7 +157,7 @@ private:
         num_opcode_code,
     } bin_opcode_code;
 
-    bool is_valid_opcode(bin_opcode_t opcode) {
+    static bool is_valid_opcode(bin_opcode_t opcode) {
         //of course this depends on the codes being sequential
         return (opcode < num_opcode_code);
     }
@@ -177,7 +167,7 @@ private:
         num_data_type_code,
     } bin_data_type_code;
 
-    bool is_valid_data_type(bin_data_type_t data_type) {
+    static bool is_valid_data_type(bin_data_type_t data_type) {
         //of course this depends on the codes being sequential
         for (unsigned int i = 0; i < num_data_type_code; i++) {
             if (data_type == i)
@@ -187,7 +177,7 @@ private:
     }
 
     //check if a packet requires no response
-    bool is_quiet_code(bin_opcode_t opcode) {
+    static bool is_quiet_code(bin_opcode_t opcode) {
         //TODO what's the standard c++ pardigm for this? it sucks
         switch (opcode) {
             case bin_opcode_getq:
@@ -211,7 +201,7 @@ private:
     }
 
     //check if a packet wants the key back
-    bool is_key_code(bin_opcode_t opcode) {
+    static bool is_key_code(bin_opcode_t opcode) {
         switch (opcode) {
             case bin_opcode_getk:
             case bin_opcode_getkq:
@@ -247,42 +237,14 @@ private:
         bin_cas_t               cas;
     } __attribute__((__packed__));
 
-public:
     struct packet_t;
 
-public:
-    struct bin_handler_data_t : public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, request<config_t> >
-    {
-        public:
-            bin_opcode_t            opcode;
-            bin_data_type_t         data_type;
-            bin_opaque_t            opaque;
-            //extract the data from the pkt
-            explicit bin_handler_data_t(packet_t *pkt)
-                : opcode(pkt->opcode()), data_type(pkt->data_type()), opaque(pkt->opaque()) {}
-    };
-
-public:
-    struct packet_t : public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, request<config_t> >
+    struct packet_t : public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, packet_t >
         {
         public:
-            packet_t() :data(NULL) {};
-            packet_t(byte *data, bin_handler_data_t *handler_data) 
-                :data(data) {
-                    opcode(handler_data->opcode);
-                    data_type(handler_data->data_type);
-                    opaque(handler_data->opaque);
-
-                    extra_length(0);
-                    key_length(0);
-                    value_length(0);
-                }
-            packet_t(byte *data) :data(data) {};
-            packet_t(packet_t *pkt)
-                :data(pkt->data) {};
-            packet_t(bin_key_length_t key_length, byte* key, bin_extra_length_t extra_length, byte *extra);
-            packet_t(bin_extra_length_t extra_length, byte *extra, bin_value_length_t value_length, byte *value);
-            ~packet_t() {};
+            packet_t() :data(NULL) {}
+            packet_t(byte *data) :data(data) {}
+            ~packet_t() {}
             byte *data;
 
             bool is_request() {
@@ -476,10 +438,9 @@ public:
 
             bool is_valid_request() {
                 bool valid = true;
-                bin_memcached_handler_t validator;
                 valid = valid && (magic() == (bin_magic_t) bin_magic_request);
-                valid = valid && validator.is_valid_opcode(opcode());
-                valid = valid && validator.is_valid_data_type(data_type());
+                valid = valid && bin_memcached_handler_t::is_valid_opcode(opcode());
+                valid = valid && bin_memcached_handler_t::is_valid_data_type(data_type());
 
                 //do opcode specific tests
                 switch (opcode()) {
@@ -632,27 +593,17 @@ public:
 
 
 private:
-    cache_t *cache;
     //storage_command cmd;
     char key_memory[MAX_KEY_SIZE+sizeof(btree_key)];
     btree_key * const key;
 
-    parse_result_t read_data(char *data, unsigned int size, conn_fsm_t *fsm);
-
-    parse_result_t set(packet_t *pkt, conn_fsm_t *fsm);
-    parse_result_t no_op(packet_t *pkt, conn_fsm_t *fsm);
-    parse_result_t add(packet_t *pkt, conn_fsm_t *fsm);
-    parse_result_t replace(packet_t *pkt, conn_fsm_t *fsm);
-    parse_result_t append(packet_t *pkt, conn_fsm_t *fsm);
-    parse_result_t prepend(packet_t *pkt, conn_fsm_t *fsm);
-    parse_result_t cas(packet_t *pkt, conn_fsm_t *fsm);
-    parse_result_t get(packet_t *pkt, conn_fsm_t *fsm);
-    parse_result_t remove(packet_t *pkt, conn_fsm_t *fsm);
-    parse_result_t increment(packet_t *pkt, conn_fsm_t *fsm);
-    parse_result_t decrement(packet_t *pkt, conn_fsm_t *fsm);
-
-    parse_result_t malformed_request(conn_fsm_t *fsm);
-    parse_result_t unimplemented_request(conn_fsm_t *fsm);
+    parse_result_t read_data();
+    
+    parse_result_t malformed_request();
+    parse_result_t unimplemented_request();
+    
+    parse_result_t dispatch_appropriate_fsm(packet_t *pkt);
+    parse_result_t no_op(packet_t *pkt);
 };
 
 
