@@ -1,5 +1,7 @@
 import re
 
+MAX_LEVEL = 3
+level = 0
 
 def strip_end_spaces(s):
     end = s.find(r"\275")
@@ -35,72 +37,65 @@ def lookup_function (val):
     return None
     
 
+def check_filters(key, val):
+    """ If a given value's type matches one of our filters,
+        then we don't want to print out the whole thing.
+        We'll just print the key and address.
+        
+        If it passes all our filters, then we do want to 
+        print the whole thing.
+    """
+    filters = []
+    filters.append("intrusive_list")
+    for f in filters:
+        if str(val.type).find(f) is not -1:
+            return key, val.address
+    return None, None
+
 def printer(key, val):
-    if val.type.code == gdb.TYPE_CODE_PTR:
-        if not val: yield key, "NULL"
-        else: yield key, val.dereference()
-    elif val.type.code == gdb.TYPE_CODE_INT:
-        yield key, int(val)
-    elif val.type.code == gdb.TYPE_CODE_FLT or val.type.code == gdb.TYPE_CODE_DECFLOAT:
-        yield key, float(val)
-    elif val.type.code == gdb.TYPE_CODE_STRING:
-        yield key, str(val)
-    elif val.type.code == gdb.TYPE_CODE_ARRAY:
-        yield key, strip_end_spaces(unicode(val))
-    else: yield key, val
+    global level
+    k, v = check_filters(key, val)
+    if k and v:
+        yield k, v
+    else:
+        if val.type.code == gdb.TYPE_CODE_PTR or val.type.code == gdb.TYPE_CODE_MEMBERPTR:
+            if not val: yield key, "NULL"
+            elif level > MAX_LEVEL: yield key, val.address
+            else:
+                try:
+                    yield key, val.dereference()
+                except RuntimeError: 
+                    yield key, "Cannot access memory at address " + str(val.address)
+        elif val.type.code == gdb.TYPE_CODE_INT:
+            yield key, int(val)
+        elif val.type.code == gdb.TYPE_CODE_FLT or val.type.code == gdb.TYPE_CODE_DECFLOAT:
+            yield key, float(val)
+        elif val.type.code == gdb.TYPE_CODE_STRING:
+            yield key, str(val)
+        elif val.type.code == gdb.TYPE_CODE_ARRAY:
+            yield key, strip_end_spaces(unicode(val))
+        else: yield key, val
 
 
-def helper(state, PF):
+def process_kids(state, PF):
+    global level
+    level += 1
     for field in PF.type.fields():
         if field.artificial or field.type == gdb.TYPE_CODE_FUNC or field.type == gdb.TYPE_CODE_VOID or field.type == gdb.TYPE_CODE_METHOD or field.type == gdb.TYPE_CODE_METHODPTR or field.type == None: continue
         key = field.name
         if key is None: continue
+        try: state[key]
+        except RuntimeError: continue
         if len(field.type.fields()) == 0:
+            if field.is_base_class: continue
             yield key, state[key]
         elif field.is_base_class:
-            for k, v in helper(state, field):
-                yield key + ":: " + k, v
+            for k, v in process_kids(state, field):
+                yield key + " :: " + k, v
         else:
-            for k, v in helper(state[key], field):
-                yield key + ":: " + k, v
-
-def process_kids(val):
-    for field in val.type.fields():
-        if field.artificial or field.type == gdb.TYPE_CODE_FUNC or field.type == gdb.TYPE_CODE_VOID or field.type == gdb.TYPE_CODE_METHOD or field.type == gdb.TYPE_CODE_METHODPTR or field.type == None: continue
-        try:
-            key = field.name
-            if key is None: continue
-            if len(field.type.fields()) == 0:
-                if field.is_base_class: continue
-                for k2, v2 in printer(key, val[key]): yield k2, v2
-            elif field.is_base_class:
-                for k, v in helper(val, field):
-                    for k2, v2 in printer(k, v): yield k2, v2
-            else:
-                for k, v in helper(val[key], field):
-                    for k2, v2 in printer(k, v): yield k2, v2
-#             key = str(field.name)
-#             if key.find("<") != -1:
-#                 for k, v in process_kids(field):
-#                     yield k, v
-#             yield key, str(field.type.fields())
-#             elif val[key].type.code == gdb.TYPE_CODE_PTR:
-#                 yield key, val[key].dereference() or "cannot access memory at address " + str(val[key].address)
-#             elif val[key].type.code == gdb.TYPE_CODE_INT:
-#                 yield key, int(val[key])
-#             elif val[key].type.code == gdb.TYPE_CODE_FLT or val[key].type.code == gdb.TYPE_CODE_DECFLOAT:
-#                 yield key, float(val[key])
-#             elif val[key].type.code == gdb.TYPE_CODE_STRING:
-#                 yield key, str(val[key])
-#             elif val[key].type.code == gdb.TYPE_CODE_ARRAY:
-#                 yield key, strip_end_spaces(unicode(val[key]))
-#             else: yield key, val[key]
-        except GeneratorExit:
-            raise
-        except Exception, e:
-            yield "error", e
-        continue
-
+            for k, v in process_kids(state[key], field):
+                yield key + " :: " + k, v
+    level -= 1
 
 class Btree_FsmPrinter:
     def __init__(self, val):
@@ -109,85 +104,8 @@ class Btree_FsmPrinter:
     def to_string(self):
         return "=" * 40 + "\nbtree_fsm object with the following members:"
     def children(self):
-        return process_kids(self.val)
-#         yield 'fsm_type', Fsm_TypePrinter(int(self.val['fsm_type'])).to_string()
-#         yield 'noreply', "false" if self.val['noreply']==False else "true"
-# 
-#         try: yield 'request', "a pointer to a " + str(self.val['request'].dereference())
-#         except: yield "request", "no request object"
-# 
-#         try: yield 'cache', "a pointer to a " + str(self.val['cache'].dereference())
-#         except RuntimeError: yield "cache", "no cache object"
-# 
-#         try: yield 'on_complete', "a pointer to a " + str(self.val['on_complete'].dereference()) 
-#         except RuntimeError: yield "on_complete", "no on_complete object"
-#         
-#         try: yield "transaction", "a pointer to a " + str(self.val['transaction'].dereference())
-#         except RuntimeError: yield "transaction", "no transaction object"
-# 
-#         try: yield 'prev', "a pointer to a " + str(self.val['prev'].dereference())
-#         except: yield "prev", "no prev object"
-# 
-#         try: yield 'next', "a pointer to a " + str(self.val['next'].dereference())
-#         except: yield "next", "no next object"
-# 
-#         yield 'type', self.val['type']
-#         yield 'return_cpu', self.val['return_cpu']
-#         yield 'key_memory', strip_end_spaces(unicode(self.val['key_memory']))
-#         yield 'value_memory', strip_end_spaces(unicode(self.val['value_memory']))
-        
-#         fsm_type = Fsm_TypePrinter(int(self.val['fsm_type'])).to_string()
-#         if fsm_type == "btree_set_fsm":
-#             yield "state", self.val['state']
-#             try: yield "key", "a pointer to a " + str(self.val['key'].dereference())
-#             except RuntimeError: yield "key", "no key object"
-# 
-#             try: yield "value", "a pointer to a " + str(self.val['value'].dereference())
-#             except RuntimeError: yield "value", "no value object"
-# 
-#             try: yield "sb_buf", "a pointer to a " + str(self.val['sb_buf'].dereference())
-#             except RuntimeError: yield "sb_buf", "no sb_buf object"
-# 
-#             try: yield "buf", "a pointer to a " + str(self.val['buf'].dereference())
-#             except RuntimeError: yield "buf", "no buf object"
-# 
-#             try: yield "last_buf", "a pointer to a " + str(self.val['last_buf'].dereference())
-#             except RuntimeError: yield "last_buf", "no last_buf object"
-# 
-#             yield "node_id", self.val['node_id']
-#             yield "last_node_id", self.val['last_node_id']
-#             yield "set_type", self.val['set_type']
-#             yield "set_was_successful", self.val['set_was_successful']
-#         elif fsm_type == "btree_get_fsm":
-#             yield "state", self.val['state']
-#             yield "key_memory", strip_end_spaces(unicode(self.val['key_memory']))
-#             yield "value_memory", strip_end_spaces(unicode(self.val['value_memory']))
-# 
-#             try: yield "buf", "a pointer to a " + str(self.val['buf'].dereference())
-#             except RuntimeError: yield "buf", "no buf object"
-# 
-#             try: yield "last_buf", "a pointer to a " + str(self.val['last_buf'].dereference())
-#             except RuntimeError: yield "last_buf", "no last_buf object"
-# 
-#             yield "node_id", self.val['node_id']
-#         elif fsm_type == "btree_delete_fsm":
-#             yield "state", self.val['state']
-#             yield "key_memory", strip_end_spaces(unicode(self.val['key_memory']))
-#             yield "node_id", self.val['node_id']
-#             yield "last_node_id", self.val['last_node_id']
-#             yield "sib_node_id", self.val['sib_node_id']
-# 
-#             try: yield "key", "a pointer to a " + str(self.val['key'].dereference())
-#             except RuntimeError: yield "key", "no key object"
-# 
-#             try: yield "sb_buf", "a pointer to a " + str(self.val['sb_buf'].dereference())
-#             except RuntimeError: yield "sb_buf", "no sb_buf object"
-# 
-#             try: yield "sib_buf", "a pointer to a " + str(self.val['sib_buf'].dereference())
-#             except RuntimeError: yield "sib_buf", "no sib_buf object"
-# 
-#             try: yield "last_buf", "a pointer to a " + str(self.val['last_buf'].dereference())
-#             except RuntimeError: yield "last_buf", "no last_buf object"
+        for k, v in process_kids(self.val, self.val):
+            for k2, v2 in printer(k, v): yield k2, v2
 
 
 class Fsm_TypePrinter:
@@ -208,8 +126,8 @@ class RequestPrinter:
         return "request object with the following members:"
     
     def children(self):
-        yield 'nstarted', int(self.val['nstarted'])
-        yield 'ncompleted', int(self.val['ncompleted'])
+        for k, v in process_kids(self.val, self.val):
+            for k2, v2 in printer(k, v): yield k2, v2
     
     
 class CachePrinter:
@@ -220,10 +138,8 @@ class CachePrinter:
         return "cache object with the following members:"
     
     def children(self):
-        yield 'n_trans_created', int(self.val['n_trans_created'])
-        yield 'n_trans_freed', int(self.val['n_trans_freed'])
-        yield 'n_blocks_acquired', int(self.val['n_blocks_acquired'])
-        yield 'n_blocks_released', int(self.val['n_blocks_released'])
+        for k, v in process_kids(self.val, self.val):
+            for k2, v2 in printer(k, v): yield k2, v2
 
 
 class TransactionPrinter:
@@ -234,17 +150,8 @@ class TransactionPrinter:
         return "transaction object with the following members:"
     
     def children(self):
-        try: yield 'cache', "a pointer to a " + str(self.val['cache'].dereference())
-        except RuntimeError: yield "cache", "no cache object"
-
-        try: yield 'access', "a pointer to a " + str(self.val['access'].dereference())
-        except RuntimeError: yield "access", "no access object"
-        
-        try: yield "begin_callback", "a pointer to a" + str(self.val['begin_callback'].dereference())
-        except RuntimeError: yield "begin_callback", "no transaction_begin_callback object"
-
-        try: yield "commit_callback", "a pointer to a" + str(self.val['commit_callback'].dereference())
-        except RuntimeError: yield "commit_callback", "no transaction_commit_callback object"
+        for k, v in process_kids(self.val, self.val):
+            for k2, v2 in printer(k, v): yield k2, v2
 
 
 class AccessPrinter:
@@ -255,7 +162,9 @@ class AccessPrinter:
         return "access object with the following members:"
     
     def children(self):
-        pass
+        for k, v in process_kids(self.val, self.val):
+            for k2, v2 in printer(k, v): yield k2, v2
+
 
 
 class Transaction_Begin_CallbackPrinter:
@@ -285,8 +194,8 @@ class Btree_KeyPrinter:
     def to_string(self):
         return "btree_key object with the following members:"
     def children(self):
-        yield "size", self.val['size']
-        yield "contents", strip_end_spaces(unicode(self.val['contents']))
+        for k, v in process_kids(self.val, self.val):
+            for k2, v2 in printer(k, v): yield k2, v2
 
 
 class Btree_ValuePrinter:
@@ -295,8 +204,8 @@ class Btree_ValuePrinter:
     def to_string(self):
         return "btree_value object with the following members:"
     def children(self):
-        yield "size", self.val['size']
-        yield "contents", strip_end_spaces(unicode(self.val['contents']))
+        for k, v in process_kids(self.val, self.val):
+            for k2, v2 in printer(k, v): yield k2, v2
 
 
 class BufPrinter:
@@ -343,15 +252,8 @@ class Conn_FsmPrinter:
         return "=" * 40 + "\nconn_fsm object with the following members:"
 
     def children(self):
-        yield "source", self.val["source"]
-        yield "state", self.val["state"]
-        yield "corked", self.val["corked"]
-        yield "rbuf", self.val["rbuf"].dereference()
-        yield "sbuf", self.val["sbuf"].dereference()
-        yield "nrbuf", self.val["nrbuf"]
-        yield "req_handler", self.val["req_handler"].dereference()
-        yield "event_queue", self.val["event_queue"].dereference()
-        yield "current_request", self.val["current_request"].dereference()
+        for k, v in process_kids(self.val, self.val):
+            for k2, v2 in printer(k, v): yield k2, v2
 
 
 class Conn_FsmStatePrinter:
@@ -372,10 +274,8 @@ class Linked_BufPrinter:
         return "linked_buf object with the following members:"
 
     def children(self):
-        yield "next", self.val["next"]
-        yield "nbuf", self.val["nbuf"]
-        yield "nsent", self.val["nsent"]
-        yield "gc_me", self.val["gc_me"]
+        for k, v in process_kids(self.val, self.val):
+            for k2, v2 in printer(k, v): yield k2, v2
 
 
 class RequestHandlerPrinter:
@@ -386,7 +286,8 @@ class RequestHandlerPrinter:
         return "request_handler object with the following members:"
 
     def children(self):
-        yield "event_queue", self.val['event_queue'].dereference()
+        for k, v in process_kids(self.val, self.val):
+            for k2, v2 in printer(k, v): yield k2, v2
 
 
 class Event_QueuePrinter:
@@ -397,24 +298,8 @@ class Event_QueuePrinter:
         return "event_queue object with the following members:"
 
     def children(self):
-        yield "queue_id", self.val["queue_id"]
-        yield "nqueues", self.val["nqueues"]
-        yield "aio_notify_fd", self.val["aio_notify_fd"]
-        yield "core_notify_fd", self.val["core_notify_fd"]
-        yield "timer_fd", self.val["timer_fd"]
-        yield "timer_ticks_since_server_startup", self.val["timer_ticks_since_server_startup"]
-        yield "epoll_thread", self.val["epoll_thread"]
-        yield "epoll_fd", self.val["epoll_fd"]
-        yield "itc_pipe", self.val["itc_pipe"]
-        yield "event_handler", self.val["event_handler"]
-        yield "live_fsms", self.val["live_fsms"]
-        yield "parent_pool", self.val["parent_pool"].dereference()
-        yield "message_hub", self.val["message_hub"]
-        yield "cache", self.val["cache"].dereference()
-        yield "iosys", self.val["iosys"]
-        yield "perfmon", self.val["perfmon"]
-        yield "total_connections", self.val["total_connections"]
-        yield "curr_connections", self.val["curr_connections"]
+        for k, v in process_kids(self.val, self.val):
+            for k2, v2 in printer(k, v): yield k2, v2
 
 
 class Fsm_ListPrinter:
@@ -433,11 +318,8 @@ class Worker_PoolPrinter:
         return "worker_pool object with the following members:"
 
     def children(self):
-        yield "workers", self.val["workers"]
-        yield "nworkers", self.val["nworkers"]
-        yield "active_worker", self.val["active_worker"]
-        yield "main_thread", self.val["main_thread"]
-        yield "cmd_config", self.val["cmd_config"]
+        for k, v in process_kids(self.val, self.val):
+            for k2, v2 in printer(k, v): yield k2, v2
 
 
 class Message_HubPrinter:
@@ -448,8 +330,8 @@ class Message_HubPrinter:
         return "message_hub object with the following members:"
 
     def children(self):
-        yield "ncpus", self.val["ncpus"]
-        yield "current_cpu", self.val["current_cpu"]
+        for k, v in process_kids(self.val, self.val):
+            for k2, v2 in printer(k, v): yield k2, v2
 
 
 class IO_CallsPrinter:
@@ -460,10 +342,8 @@ class IO_CallsPrinter:
         return "io_calls_t object with the following members:"
 
     def children(self):
-        yield "queue", self.val["queue"]
-        yield "r_requests", self.val["r_requests"]
-        yield "w_requests", self.val["w_requests"]
-        yield "n_pending", self.val["n_pending"]
+        for k, v in process_kids(self.val, self.val):
+            for k2, v2 in printer(k, v): yield k2, v2
 
 
 class PerfmonPrinter:
@@ -474,7 +354,9 @@ class PerfmonPrinter:
         return "perfmon object with the following members:"
 
     def children(self):
-        yield "registry",self.val["registry"]
+        for k, v in process_kids(self.val, self.val):
+            for k2, v2 in printer(k, v): yield k2, v2
+
 
 pretty_printers_dict = {}
 pretty_printers_dict[re.compile ('.*state.*')]                           = StatePrinter
