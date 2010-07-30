@@ -1,6 +1,11 @@
 
 #ifndef __CONFIG_ARGS_H__
 #define __CONFIG_ARGS_H__
+/*!
+ * Version strings
+ */
+
+#define MEMCACHED_VERSION_STRING "0.0.0"
 
 /**
  * Basic configuration parameters.

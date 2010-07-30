@@ -30,7 +30,7 @@ public:
     
         conn_fsm_t *c = rh->conn_fsm;
         
-        byte tmpbuf[MAX_PACKET_SIZE] = {0xBD};   // Make valgrind happy
+        byte tmpbuf[MAX_PACKET_SIZE] = {0x00};   // Make valgrind happy
         packet_t packet(tmpbuf);
         packet.opcode(opcode);
         packet.data_type(data_type);
@@ -80,8 +80,6 @@ public:
     }
     
     void build_response(packet_t *res_pkt) {
-        // TODO: make sure we don't overflow the buffer with sprintf
-
         if(fsm->op_result == btree_get_fsm_t::btree_found) {
             res_pkt->status(bin_memcached_handler_t<config_t>::bin_status_no_error);
             res_pkt->set_value(&fsm->value);
@@ -290,6 +288,8 @@ typename bin_memcached_handler_t<config_t>::parse_result_t bin_memcached_handler
             res = no_op(pkt);
             break;
         case bin_opcode_version:
+            res = version(pkt);
+            break;
         case bin_opcode_stat:
             res = unimplemented_request();
             break;
@@ -374,6 +374,19 @@ typename bin_memcached_handler_t<config_t>::parse_result_t bin_memcached_handler
     pkt->magic(bin_magic_response);
 
     conn_fsm->sbuf->append(pkt->data, pkt->size());
+    return req_handler_t::op_req_send_now;
+}
+
+template <class config_t>
+typename bin_memcached_handler_t<config_t>::parse_result_t bin_memcached_handler_t<config_t>::version(packet_t *pkt) {
+    byte tmpbuf[MAX_PACKET_SIZE] = {0x00};
+    packet_t res_pkt(tmpbuf);
+
+    res_pkt.magic(bin_magic_response);
+    res_pkt.opcode(pkt->opcode());
+    res_pkt.set_value((byte *) MEMCACHED_VERSION_STRING, strlen(MEMCACHED_VERSION_STRING) - 1);
+
+    conn_fsm->sbuf->append(res_pkt.data, res_pkt.size());
     return req_handler_t::op_req_send_now;
 }
 

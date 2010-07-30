@@ -875,6 +875,7 @@ private:
     
     parse_result_t dispatch_appropriate_fsm(packet_t *pkt);
     parse_result_t no_op(packet_t *pkt);
+    parse_result_t version(packet_t *pkt);
 };
 
 
