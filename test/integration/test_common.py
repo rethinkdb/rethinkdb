@@ -92,19 +92,25 @@ import retest2
 
 class RethinkDBTester(object):
         
-    def __init__(self, test_function, mode, valgrind = False):
+    def __init__(self, test_function, mode, valgrind = False, timeout = 60):
     
         self.test_function = test_function
         self.mode = mode
         self.valgrind = valgrind
         
-        # The 'timeout' property is read by retest2 to decide when to abort the test
-        if self.valgrind:
-            # Valgrind needs extra time
-            self.timeout = 180
+        # We will abort ourselves when 'self.own_timeout' is hit. retest2 will abort us when
+        # 'self.timeout' is hit. 
+        self.own_timeout = timeout
+        self.timeout = timeout + 15
+    
+    def run_the_test_function(self, port):
+        try:
+            self.test_function(port)
+        except Exception, f:
+            self.test_failure = traceback.format_exc()
         else:
-            self.timeout = 60
-        
+            self.test_failure = None
+    
     def test(self):
                 
         print "Finding port..."
@@ -119,12 +125,14 @@ class RethinkDBTester(object):
         print "Started server."
         
         print "Running test..."
-        try:
-            self.test_function(port)
-        except Exception, f:
-            test_failure = traceback.format_exc()
+        test_thread = threading.Thread(target = self.test, args = (port,))
+        test_thread.start()
+        test_thread.join(self.own_timeout)
+        if test_thread.is_alive():
+            test_failure = "The integration test didn't finish in time, probably because the " \
+                "server wasn't responding to its queries fast enough."
         else:
-            test_failure = None
+            test_failure = self.test_failure
         print "Finished test."
         
         print "Shutting down server..."
@@ -139,9 +147,10 @@ class RethinkDBTester(object):
         if test_failure or server_failure:
             
             msg = ""
-            if test_failure is not None: msg += "Test script failed:\n%s" % test_failure
+            if test_failure is not None: msg += "Test script failed:\n    %s" % test_failure
             else: msg += "Test script succeeded."
-            if server_failure is not None: msg += "Server failed:\n%s" % server_failure
+            msg += "\n"
+            if server_failure is not None: msg += "Server failed:\n    %s" % server_failure
             else: msg += "Server succeeded."
             
             temp_files = [

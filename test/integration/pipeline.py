@@ -83,8 +83,8 @@ def test_against_server_at(port):
     s.close()
 
 from test_common import RethinkDBTester
-retest_release = RethinkDBTester(test_against_server_at, "release")
-retest_valgrind = RethinkDBTester(test_against_server_at, "debug", valgrind=True)
+retest_release = RethinkDBTester(test_against_server_at, "release", timeout = 10)
+retest_valgrind = RethinkDBTester(test_against_server_at, "debug", valgrind=True, timeout = 30)
 
 if __name__ == '__main__':
     test_against_server_at(int(os.environ.get("RUN_PORT", "11211")))
