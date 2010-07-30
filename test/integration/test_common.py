@@ -1,4 +1,4 @@
-import tempfile, shlex, subprocess, shutil, signal, time, os, socket, sys, traceback
+import tempfile, shlex, subprocess, shutil, signal, time, os, socket, sys, traceback, threading
 
 def find_unused_port():
     port = 11220
@@ -125,7 +125,7 @@ class RethinkDBTester(object):
         print "Started server."
         
         print "Running test..."
-        test_thread = threading.Thread(target = self.test, args = (port,))
+        test_thread = threading.Thread(target = self.run_the_test_function, args = (port,))
         test_thread.start()
         test_thread.join(self.own_timeout)
         if test_thread.is_alive():
