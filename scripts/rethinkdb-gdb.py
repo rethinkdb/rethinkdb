@@ -52,6 +52,7 @@ def check_filters(key, val):
             return key, val.address
     return None, None
 
+
 def printer(key, val):
     global level
     k, v = check_filters(key, val)
@@ -63,6 +64,7 @@ def printer(key, val):
             elif level > MAX_LEVEL: yield key, val.address
             else:
                 try:
+                    str(val.dereference())
                     yield key, val.dereference()
                 except RuntimeError: 
                     yield key, "Cannot access memory at address " + str(val.address)
@@ -77,11 +79,25 @@ def printer(key, val):
         else: yield key, val
 
 
+class GeneratorWrapper:
+    def __init__(self, generator):
+            self.generator = generator
+            global level
+            level += 1
+    def __del__(self):
+            global level
+            level -= 1
+    def __iter__(self):
+            return self
+    def next(self):
+            return self.generator.next()
+
+
 def process_kids(state, PF):
-    global level
-    level += 1
     for field in PF.type.fields():
-        if field.artificial or field.type == gdb.TYPE_CODE_FUNC or field.type == gdb.TYPE_CODE_VOID or field.type == gdb.TYPE_CODE_METHOD or field.type == gdb.TYPE_CODE_METHODPTR or field.type == None: continue
+        if field.artificial or field.type == gdb.TYPE_CODE_FUNC or \
+        field.type == gdb.TYPE_CODE_VOID or field.type == gdb.TYPE_CODE_METHOD or \
+        field.type == gdb.TYPE_CODE_METHODPTR or field.type == None: continue
         key = field.name
         if key is None: continue
         try: state[key]
@@ -95,8 +111,8 @@ def process_kids(state, PF):
         else:
             for k, v in process_kids(state[key], field):
                 yield key + " :: " + k, v
-    level -= 1
 
+    
 class Btree_FsmPrinter:
     def __init__(self, val):
         self.val = val
@@ -104,7 +120,8 @@ class Btree_FsmPrinter:
     def to_string(self):
         return "=" * 40 + "\nbtree_fsm object with the following members:"
     def children(self):
-        for k, v in process_kids(self.val, self.val):
+        g = GeneratorWrapper(process_kids(self.val, self.val))
+        for k, v in g:
             for k2, v2 in printer(k, v): yield k2, v2
 
 
@@ -126,7 +143,8 @@ class RequestPrinter:
         return "request object with the following members:"
     
     def children(self):
-        for k, v in process_kids(self.val, self.val):
+        g = GeneratorWrapper(process_kids(self.val, self.val))
+        for k, v in g:
             for k2, v2 in printer(k, v): yield k2, v2
     
     
@@ -138,7 +156,8 @@ class CachePrinter:
         return "cache object with the following members:"
     
     def children(self):
-        for k, v in process_kids(self.val, self.val):
+        g = GeneratorWrapper(process_kids(self.val, self.val))
+        for k, v in g:
             for k2, v2 in printer(k, v): yield k2, v2
 
 
@@ -150,7 +169,8 @@ class TransactionPrinter:
         return "transaction object with the following members:"
     
     def children(self):
-        for k, v in process_kids(self.val, self.val):
+        g = GeneratorWrapper(process_kids(self.val, self.val))
+        for k, v in g:
             for k2, v2 in printer(k, v): yield k2, v2
 
 
@@ -162,7 +182,8 @@ class AccessPrinter:
         return "access object with the following members:"
     
     def children(self):
-        for k, v in process_kids(self.val, self.val):
+        g = GeneratorWrapper(process_kids(self.val, self.val))
+        for k, v in g:
             for k2, v2 in printer(k, v): yield k2, v2
 
 
@@ -194,7 +215,8 @@ class Btree_KeyPrinter:
     def to_string(self):
         return "btree_key object with the following members:"
     def children(self):
-        for k, v in process_kids(self.val, self.val):
+        g = GeneratorWrapper(process_kids(self.val, self.val))
+        for k, v in g:
             for k2, v2 in printer(k, v): yield k2, v2
 
 
@@ -204,7 +226,8 @@ class Btree_ValuePrinter:
     def to_string(self):
         return "btree_value object with the following members:"
     def children(self):
-        for k, v in process_kids(self.val, self.val):
+        g = GeneratorWrapper(process_kids(self.val, self.val))
+        for k, v in g:
             for k2, v2 in printer(k, v): yield k2, v2
 
 
@@ -252,7 +275,8 @@ class Conn_FsmPrinter:
         return "=" * 40 + "\nconn_fsm object with the following members:"
 
     def children(self):
-        for k, v in process_kids(self.val, self.val):
+        g = GeneratorWrapper(process_kids(self.val, self.val))
+        for k, v in g:
             for k2, v2 in printer(k, v): yield k2, v2
 
 
@@ -274,7 +298,8 @@ class Linked_BufPrinter:
         return "linked_buf object with the following members:"
 
     def children(self):
-        for k, v in process_kids(self.val, self.val):
+        g = GeneratorWrapper(process_kids(self.val, self.val))
+        for k, v in g:
             for k2, v2 in printer(k, v): yield k2, v2
 
 
@@ -286,7 +311,8 @@ class RequestHandlerPrinter:
         return "request_handler object with the following members:"
 
     def children(self):
-        for k, v in process_kids(self.val, self.val):
+        g = GeneratorWrapper(process_kids(self.val, self.val))
+        for k, v in g:
             for k2, v2 in printer(k, v): yield k2, v2
 
 
@@ -298,7 +324,8 @@ class Event_QueuePrinter:
         return "event_queue object with the following members:"
 
     def children(self):
-        for k, v in process_kids(self.val, self.val):
+        g = GeneratorWrapper(process_kids(self.val, self.val))
+        for k, v in g:
             for k2, v2 in printer(k, v): yield k2, v2
 
 
@@ -318,7 +345,8 @@ class Worker_PoolPrinter:
         return "worker_pool object with the following members:"
 
     def children(self):
-        for k, v in process_kids(self.val, self.val):
+        g = GeneratorWrapper(process_kids(self.val, self.val))
+        for k, v in g:
             for k2, v2 in printer(k, v): yield k2, v2
 
 
@@ -330,7 +358,8 @@ class Message_HubPrinter:
         return "message_hub object with the following members:"
 
     def children(self):
-        for k, v in process_kids(self.val, self.val):
+        g = GeneratorWrapper(process_kids(self.val, self.val))
+        for k, v in g:
             for k2, v2 in printer(k, v): yield k2, v2
 
 
@@ -342,7 +371,8 @@ class IO_CallsPrinter:
         return "io_calls_t object with the following members:"
 
     def children(self):
-        for k, v in process_kids(self.val, self.val):
+        g = GeneratorWrapper(process_kids(self.val, self.val))
+        for k, v in g:
             for k2, v2 in printer(k, v): yield k2, v2
 
 
@@ -354,7 +384,8 @@ class PerfmonPrinter:
         return "perfmon object with the following members:"
 
     def children(self):
-        for k, v in process_kids(self.val, self.val):
+        g = GeneratorWrapper(process_kids(self.val, self.val))
+        for k, v in g:
             for k2, v2 in printer(k, v): yield k2, v2
 
 
