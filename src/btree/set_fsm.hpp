@@ -25,7 +25,6 @@ public:
         return true;
     }
 
-    
 private:
     bool add_ok, replace_ok;
     union {

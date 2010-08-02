@@ -27,6 +27,7 @@ struct cpu_message_t : public intrusive_list_node_t<cpu_message_t>
         mt_btree,
         mt_lock,
         mt_perfmon,
+        mt_log,
     };
     explicit cpu_message_t(msg_type_t _type)
         : type(_type), request(NULL)
@@ -36,12 +37,6 @@ struct cpu_message_t : public intrusive_list_node_t<cpu_message_t>
     msg_type_t type;
     request_t *request;
     unsigned int return_cpu;
-    
-#ifndef NDEBUG
-    virtual void deadlock_debug() {
-        printf("deadlock_debug N/A\n");
-    }
-#endif
 };
 
 struct event_queue_t;

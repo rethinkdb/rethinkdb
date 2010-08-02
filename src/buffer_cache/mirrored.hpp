@@ -93,11 +93,6 @@ public:
     block_id_t get_block_id() const { return block_id; }
     
     void set_dirty() { writeback_buf.set_dirty(); }
-    
-#ifndef NDEBUG
-    // Prints debugging information designed to resolve deadlocks.
-    void deadlock_debug();
-#endif
 };
 
 
@@ -217,11 +212,6 @@ public:
     block_id_t get_superblock_id() {
         return serializer.get_superblock_id();
     }
-    
-#ifndef NDEBUG
-	// Prints debugging information designed to resolve deadlocks
-	void deadlock_debug();
-#endif
 };
 
 #include "buffer_cache/mirrored.tcc"

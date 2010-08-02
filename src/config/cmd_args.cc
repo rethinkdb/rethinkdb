@@ -28,6 +28,7 @@ void usage(const char *name) {
     printf("  -m, --max-cache-size\tMaximum amount of RAM to use for caching disk\n");
     printf("\t\t\tblocks, in megabytes.\n");
     
+    printf("  -l, --log-file\tFile to log to. If not provided, messages will be printed to stderr.\n");
     printf("  -p, --port\t\tSocket port to listen on. Defaults to %d.\n", DEFAULT_LISTEN_PORT);
     printf("      --wait-for-flush\tDo not respond to commands until changes are durable. Expects\n"
             "\t\t\t'y' or 'n'.\n");
@@ -38,7 +39,7 @@ void usage(const char *name) {
     else printf("\t\t\tDefaults to %dms.\n", DEFAULT_FLUSH_TIMER_MS);
     printf("      --flush-threshold\tIf more than X%% of the server's maximum cache size is\n"
             "\t\t\tmodified data, the server will flush it all to disk. Pass 0 to flush\n"
-            "\t\t\timmediately when changes are made.");
+            "\t\t\timmediately when changes are made.\n");
     
     exit(-1);
 }
@@ -49,6 +50,9 @@ void init_config(cmd_config_t *config) {
     // Initialize default database name
     strncpy(config->db_file_name, default_db_file_name, MAX_DB_FILE_NAME);
     config->db_file_name[MAX_DB_FILE_NAME - 1] = 0;
+
+    config->log_file_name[0] = 0;
+    config->log_file_name[MAX_LOG_FILE_NAME - 1] = 0;
 
     config->max_cache_size = DEFAULT_MAX_CACHE_RATIO * get_available_ram();
     config->port = DEFAULT_LISTEN_PORT;
@@ -79,13 +83,14 @@ void parse_cmd_args(int argc, char *argv[], cmd_config_t *config)
                 {"flush-threshold",      required_argument, 0, flush_threshold},
                 {"max-cores",            required_argument, 0, 'c'},
                 {"max-cache-size",       required_argument, 0, 'm'},
+                {"log-file",             required_argument, 0, 'l'},
                 {"port",                 required_argument, 0, 'p'},
                 {"help",                 no_argument, &do_help, 1},
                 {0, 0, 0, 0}
             };
 
         int option_index = 0;
-        int c = getopt_long(argc, argv, "c:m:p:h", long_options, &option_index);
+        int c = getopt_long(argc, argv, "c:m:l:p:h", long_options, &option_index);
 
         if(do_help)
             c = 'h';
@@ -100,6 +105,9 @@ void parse_cmd_args(int argc, char *argv[], cmd_config_t *config)
             break;
         case 'p':
             config->port = atoi(optarg);
+            break;
+        case 'l':
+            strncpy(config->log_file_name, optarg, MAX_LOG_FILE_NAME);
             break;
         case 'c':
             config->max_cores = atoi(optarg);

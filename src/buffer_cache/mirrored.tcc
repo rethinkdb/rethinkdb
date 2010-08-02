@@ -123,17 +123,6 @@ bool buf<config_t>::safe_to_unload() {
         writeback_buf.safe_to_unload();
 }
 
-#ifndef NDEBUG
-template<class config_t>
-void buf<config_t>::deadlock_debug() {
-    printf("buffer %p (id %d) {\n", (void*)this, (int)block_id);
-    printf("\tcached = %d\n", cached);
-    writeback_buf.deadlock_debug();
-    concurrency_buf.deadlock_debug();
-    printf("}\n");
-}
-#endif
-
 /**
  * Transaction implementation.
  */
@@ -307,20 +296,5 @@ mirrored_cache_t<config_t>::begin_transaction(access_t access,
         return txn;
     return NULL;
 }
-
-#ifndef NDEBUG
-template<class config_t>
-void mirrored_cache_t<config_t>::deadlock_debug() {
-    
-    printf("\n----- Cache %p -----\n", (void*)this);
-    
-    writeback.deadlock_debug();
-    
-    printf("\n----- Buffers -----\n");
-    for (buf_t *buf = page_repl.get_first_buf(); buf; buf = page_repl.get_next_buf(buf)) {
-        buf->deadlock_debug();
-    }
-}
-#endif
 
 #endif  // __BUFFER_CACHE_MIRRORED_TCC__

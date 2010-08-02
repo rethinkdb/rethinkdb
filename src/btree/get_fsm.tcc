@@ -163,25 +163,5 @@ typename btree_get_fsm<config_t>::transition_result_t btree_get_fsm<config_t>::d
     return res;
 }
 
-#ifndef NDEBUG
-template <class config_t>
-void btree_get_fsm<config_t>::deadlock_debug(void) {
-    printf("get-fsm %p {\n", this);
-    printf("    buf = %p\n", buf);
-    printf("    last_buf = %p\n", last_buf);
-    printf("    node_id = %d\n", (int)node_id);
-    const char *st_name;
-    switch(state) {
-        case acquire_superblock: st_name = "acquire_superblock"; break;
-        case acquire_root: st_name = "acquire_root"; break;
-        case acquire_node: st_name = "acquire_node"; break;
-        case lookup_complete: st_name = "lookup_complete"; break;
-        default: st_name = "WTF"; break;
-    }
-    printf("    state = %s\n", st_name);
-    printf("}\n");
-}
-#endif
-
 #endif // __BTREE_GET_FSM_TCC__
 

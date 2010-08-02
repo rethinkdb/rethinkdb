@@ -56,12 +56,6 @@ public:
     virtual void on_txn_begin(transaction_t *txn);
     virtual void on_txn_commit(transaction_t *txn);
 
-#ifndef NDEBUG
-    virtual void deadlock_debug() {
-        printf("unknown-fsm %p\n", this);
-    }
-#endif
-
 protected:
     block_id_t get_root_id(void *superblock_buf);
 

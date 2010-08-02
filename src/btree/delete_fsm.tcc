@@ -225,7 +225,7 @@ typename btree_delete_fsm<config_t>::transition_result_t btree_delete_fsm<config
         event = NULL;
     }
 
-    //printf("-----\n");
+    //logf(DBG, "-----\n");
     // Acquire nodes
     while(res == btree_fsm_t::transition_ok && state == acquire_node) {
         if(!buf) {
@@ -243,10 +243,10 @@ typename btree_delete_fsm<config_t>::transition_result_t btree_delete_fsm<config
         if (node_handler::is_internal((node_t*)buf->ptr())) {
             // Internal node
             internal_node_t* node = (internal_node_t*)buf->ptr();
-            //printf("internal start\n");
+            //logf(DBG, "internal start\n");
             if (internal_node_handler::is_underfull((internal_node_t *)node) && last_buf) { // the root node is never considered underfull
                 if(!sib_buf) { // Acquire a sibling to merge or level with
-                    //printf("internal acquire sibling\n");
+                    //logf(DBG, "internal acquire sibling\n");
                     state = acquire_sibling;
                     res = do_acquire_sibling(NULL);
                     event = NULL;
@@ -258,7 +258,7 @@ typename btree_delete_fsm<config_t>::transition_result_t btree_delete_fsm<config
                     internal_node_t *parent_node = (internal_node_t*)last_buf->ptr();
                     if ( internal_node_handler::is_mergable(node, sib_node, parent_node)) {
                         // Merge
-                        //printf("internal merge\n");
+                        //logf(DBG, "internal merge\n");
                         btree_key *key_to_remove = (btree_key *)alloca(sizeof(btree_key) + MAX_KEY_SIZE); //TODO get alloca outta here
                         if (internal_node_handler::nodecmp(node, sib_node) < 0) { // Nodes must be passed to merge in ascending order
                             internal_node_handler::merge(node, sib_node, key_to_remove, parent_node);
@@ -274,7 +274,7 @@ typename btree_delete_fsm<config_t>::transition_result_t btree_delete_fsm<config
                         if (!internal_node_handler::is_singleton(parent_node)) {
                             internal_node_handler::remove(parent_node, key_to_remove);
                         } else {
-                            //printf("internal collapse root\n");
+                            //logf(DBG, "internal collapse root\n");
                             // parent has only 1 key (which means it is also the root), replace it with the node
                             // when we get here node_id should be the id of the new root
                             state = insert_root_on_collapse;
@@ -284,7 +284,7 @@ typename btree_delete_fsm<config_t>::transition_result_t btree_delete_fsm<config
                         }
                     } else {
                         // Level
-                        //printf("internal level\n");
+                        //logf(DBG, "internal level\n");
                         btree_key *key_to_replace = (btree_key *)alloca(sizeof(btree_key) + MAX_KEY_SIZE);
                         btree_key *replacement_key = (btree_key *)alloca(sizeof(btree_key) + MAX_KEY_SIZE);
                         bool leveled = internal_node_handler::level(node,  sib_node, key_to_replace, replacement_key, parent_node);
@@ -304,7 +304,7 @@ typename btree_delete_fsm<config_t>::transition_result_t btree_delete_fsm<config
                 }
             } else if (internal_node_handler::is_full(node)) {
                 //internal node is full - must be proactively split (because merges/levels can change stored key sizes)
-                //printf("internal split\n");
+                //logf(DBG, "internal split\n");
                 btree_key *median = (btree_key *)alloca(sizeof(btree_key) + MAX_KEY_SIZE);
                 buf_t *rbuf;
                 internal_node_t *last_node;
@@ -368,7 +368,7 @@ typename btree_delete_fsm<config_t>::transition_result_t btree_delete_fsm<config
         } else {
             // Leaf node
             leaf_node_t* node = (leaf_node_t*)buf->ptr();
-            //printf("leaf start\n");
+            //logf(DBG, "leaf start\n");
             // If we haven't already, do some deleting 
             if (op_result == btree_incomplete) {
                 if(leaf_node_handler::remove(node, &key)) {
@@ -384,7 +384,7 @@ typename btree_delete_fsm<config_t>::transition_result_t btree_delete_fsm<config
             if (leaf_node_handler::is_underfull(node) && last_buf) { // the root node is never underfull
 
                 if (leaf_node_handler::is_empty(node)) {
-                    //printf("leaf empty\n");
+                    //logf(DBG, "leaf empty\n");
                     internal_node_t *parent_node = (internal_node_t*)last_buf->ptr();
                     if (!internal_node_handler::is_singleton(parent_node)) {
                         internal_node_handler::remove(parent_node, &key);
@@ -409,7 +409,7 @@ typename btree_delete_fsm<config_t>::transition_result_t btree_delete_fsm<config
                     }
                 } else {
                     if(!sib_buf) {
-                        //printf("leaf acquire sibling\n");
+                        //logf(DBG, "leaf acquire sibling\n");
                         // Acquire a sibling to merge or level with
                         state = acquire_sibling;
                         res = do_acquire_sibling(NULL);
@@ -422,7 +422,7 @@ typename btree_delete_fsm<config_t>::transition_result_t btree_delete_fsm<config
                         internal_node_t *parent_node = (internal_node_t*)last_buf->ptr();
                         // Now decide whether to merge or level
                         if(leaf_node_handler::is_mergable(node, sib_node)) {
-                            //printf("leaf merge\n");
+                            //logf(DBG, "leaf merge\n");
                             // Merge
                             btree_key *key_to_remove = (btree_key *)alloca(sizeof(btree_key) + MAX_KEY_SIZE); //TODO get alloca outta here
                             if (leaf_node_handler::nodecmp(node, sib_node) < 0) { // Nodes must be passed to merge in ascending order
@@ -442,13 +442,13 @@ typename btree_delete_fsm<config_t>::transition_result_t btree_delete_fsm<config
                             } else {
                                 //parent has only 1 key (which means it is also the root), replace it with the node
                                 // when we get here node_id should be the id of the new root
-                                //printf("leaf collapse root\n");
+                                //logf(DBG, "leaf collapse root\n");
                                 state = insert_root_on_collapse;
                                 res = do_insert_root_on_collapse(NULL);
                                 event = NULL;
                             }
                         } else {
-                            //printf("leaf level\n");
+                            //logf(DBG, "leaf level\n");
                             // Level
                             btree_key *key_to_replace = (btree_key *)alloca(sizeof(btree_key) + MAX_KEY_SIZE);
                             btree_key *replacement_key = (btree_key *)alloca(sizeof(btree_key) + MAX_KEY_SIZE);

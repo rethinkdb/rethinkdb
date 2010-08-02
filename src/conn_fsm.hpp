@@ -67,28 +67,11 @@ public:
     int get_source() {
         return source;
     }
-    
-#ifndef NDEBUG
-    // Print debugging information designed to resolve deadlocks
-    void deadlock_debug() {
-        printf("conn-fsm %p {\n", this);
-        const char *st_name;
-        switch(state) {
-            case fsm_socket_connected: st_name = "fsm_socket_connected"; break;
-            case fsm_socket_recv_incomplete: st_name = "fsm_socket_recv_incomplete"; break;
-            case fsm_socket_send_incomplete: st_name = "fsm_socket_send_incomplete"; break;
-            case fsm_btree_incomplete: st_name = "fsm_btree_incomplete"; break;
-            default: st_name = "<invalid state>"; break;
-        }
-        printf("\tstate = %s\n", st_name);
-        printf("}\n");
-    }
-#endif
 //TODO
 /*! \todo{ migrate this struct out of the conn_fsm since others might need it,
  *          also sizeof(linked_buf_t) should be divisable by 512 so for allocation purposes }
  */ 
-   
+
 public:
     /*! \class linked_buf_t
      *  \brief linked version of iobuf_t
