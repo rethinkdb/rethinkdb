@@ -7,6 +7,13 @@
 #include "arch/resource.hpp"
 #include "config/cmd_args.hpp"
 
+class worker_t {
+    public:
+        worker_t(int queue_id, int _nqueues, event_handler_t event_handler,
+                  worker_pool_t *parent_pool, cmd_config_t *cmd_config);
+        event_queue_t *event_queue;
+};
+
 // Worker pool
 struct worker_pool_t {
 public:    
@@ -16,9 +23,9 @@ public:
                   cmd_config_t *_cmd_config);
     ~worker_pool_t();
     
-    event_queue_t* next_active_worker();
+    worker_t* next_active_worker();
     
-    event_queue_t *workers[MAX_CPUS];
+    worker_t *workers[MAX_CPUS];
     int nworkers;
     int active_worker;
     pthread_t main_thread;

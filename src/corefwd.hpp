@@ -65,6 +65,7 @@ struct event_queue_t;
 
 // Worker pool
 struct worker_pool_t;
+struct worker_t;
 
 // Request handler
 template <class config_t>

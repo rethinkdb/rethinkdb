@@ -46,7 +46,7 @@ public:
     typedef intrusive_list_t<cpu_message_t> msg_list_t;
     
 public:
-    void init(unsigned int cpu_id, unsigned int _ncpus, event_queue_t *eqs[]);
+    void init(unsigned int cpu_id, unsigned int _ncpus, worker_t *eqs[]);
     ~message_hub_t();
     
     // Collects a message for a given CPU onto a local list.

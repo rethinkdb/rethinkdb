@@ -4,6 +4,7 @@
 #include "config/code.hpp"
 #include "message_hub.hpp"
 #include "event_queue.hpp"
+#include "worker_pool.hpp"
 
 int key_to_cpu(btree_key *key, unsigned int ncpus)
 {
@@ -14,7 +15,7 @@ int key_to_cpu(btree_key *key, unsigned int ncpus)
     return key->contents[key->size-1] % ncpus;
 }
 
-void message_hub_t::init(unsigned int cpu_id, unsigned int _ncpus, event_queue_t *eqs[])
+void message_hub_t::init(unsigned int cpu_id, unsigned int _ncpus, worker_t *workers[])
 {
     current_cpu = cpu_id;
     ncpus = _ncpus;
@@ -23,8 +24,8 @@ void message_hub_t::init(unsigned int cpu_id, unsigned int _ncpus, event_queue_t
         pthread_spin_init(&queues[i].lock, PTHREAD_PROCESS_PRIVATE);
         // TODO: unit tests currently don't mock the event queue, but
         // pass NULL instead. Make event_queue mockable.
-        if(eqs) {
-            queues[i].eq = eqs[i];
+        if(workers) {
+            queues[i].eq = workers[i]->event_queue;
         } else {
             queues[i].eq = NULL;
         }

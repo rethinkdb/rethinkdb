@@ -26,6 +26,12 @@
     return nusecores;
 } */
 
+
+worker_t::worker_t(int queue_id, int _nqueues, event_handler_t event_handler,
+        worker_pool_t *parent_pool, cmd_config_t *cmd_config) {
+    event_queue = gnew<event_queue_t>(queue_id, _nqueues, event_handler, parent_pool, cmd_config);
+}
+
 void worker_pool_t::create_worker_pool(event_handler_t event_handler, pthread_t main_thread,
                                        int _nworkers)
 {
@@ -35,17 +41,17 @@ void worker_pool_t::create_worker_pool(event_handler_t event_handler, pthread_t 
     nworkers = _nworkers;
 
     for(int i = 0; i < nworkers; i++) {
-        workers[i] = gnew<event_queue_t>(i, nworkers, event_handler, this, cmd_config);
+        workers[i] = gnew<worker_t>(i, nworkers, event_handler, this, cmd_config);
     }
     active_worker = 0;
     
     for(int i = 0; i < nworkers; i++) {
-        workers[i]->message_hub.init(i, nworkers, workers);
+        workers[i]->event_queue->message_hub.init(i, nworkers, workers);
     }
     
     // Start the actual queue
     for(int i = 0; i < nworkers; i++) {
-        workers[i]->start_queue();        
+        workers[i]->event_queue->start_queue();        
     }
 
     // TODO: can we move the printing out of here?
@@ -85,12 +91,12 @@ worker_pool_t::~worker_pool_t() {
 
     // Start stopping each event queue
     for(int i = 0; i < nworkers; i++) {
-        workers[i]->begin_stopping_queue();
+        workers[i]->event_queue->begin_stopping_queue();
     }
     
     // Wait for all of the event queues to finish stopping before destroying any of them
     for (int i = 0; i < nworkers; i++) {
-        workers[i]->finish_stopping_queue();
+        workers[i]->event_queue->finish_stopping_queue();
     }
     
     // Free the event queues
@@ -113,7 +119,7 @@ worker_pool_t::~worker_pool_t() {
 }
 
 
-event_queue_t* worker_pool_t::next_active_worker() {
+worker_t* worker_pool_t::next_active_worker() {
     int worker = active_worker++;
     if(active_worker >= nworkers)
         active_worker = 0;
