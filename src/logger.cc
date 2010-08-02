@@ -43,7 +43,6 @@ void log_writer_t::write(const char *str) {
 log_msg_t::log_msg_t() : cpu_message_t(cpu_message_t::mt_log) {
     *str = '\0';
     del = false;
-    //pos = 0;
 }
 
 const char *log_msg_t::level_str() {
@@ -75,7 +74,7 @@ void logger_t::_logf(const char *src_file, int src_line, log_level_t level, cons
 
     va_list arg;
     va_start(arg, format);
-    _mlogf(format, arg);
+    _vmlogf(format, arg);
     va_end(arg);
 
     _mlog_end();
@@ -88,12 +87,15 @@ void logger_t::_mlog_start(const char *src_file, int src_line, log_level_t level
     msg->src_line = src_line;
 }
 
+void logger_t::_vmlogf(const char *format, va_list arg) {
+    int pos = strlen(msg->str);
+    vsnprintf((char *) msg->str + pos, (size_t) MAX_LOG_MSGLEN - pos, format, arg);
+}
+
 void logger_t::_mlogf(const char *format, ...) {
-    int len = strlen(msg->str);
     va_list arg;
     va_start(arg, format);
-    vsnprintf((char *) msg->str + len, (size_t) MAX_LOG_MSGLEN - len, format, arg);
-    //msg->pos += vsnprintf((char *) msg->str + msg->pos, (size_t) MAX_LOG_MSGLEN - msg->pos, format, arg);
+    _vmlogf(format, arg);
     va_end(arg);
 }
 

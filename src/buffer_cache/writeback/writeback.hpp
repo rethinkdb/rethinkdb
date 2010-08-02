@@ -32,11 +32,6 @@ public:
     // This is called by buf_t when the OS informs the buf that a write operation completed
     void buf_was_written(buf_t *buf);
     
-#ifndef NDEBUG
-    // Print debugging information designed to resolve a deadlock
-    void deadlock_debug();
-#endif
-    
     unsigned int num_dirty_blocks();
     
     class local_buf_t : public intrusive_list_node_t<local_buf_t> {
@@ -50,12 +45,6 @@ public:
         void set_dirty();
         
         bool safe_to_unload() const { return !dirty; }
-
-#ifndef NDEBUG
-        void deadlock_debug() {
-            printf("\tdirty = %d\n", (int)dirty);
-        }
-#endif
 
     private:
         buf_t *gbuf;

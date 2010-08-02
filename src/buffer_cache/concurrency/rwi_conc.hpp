@@ -49,28 +49,6 @@ struct rwi_conc_t {
             return !lock.locked() &&
                 lock_callbacks.empty();
         }
-        
-#ifndef NDEBUG
-        // Prints debugging information designed to resolve deadlocks.
-        void deadlock_debug() {
-			printf("\tlocked = %d\n", (int)lock.locked());
-        	printf("\twaiting for lock(%d) = [\n", (int)lock_callbacks.size());
-        	
-        	typename intrusive_list_t<block_available_callback_t>::iterator it;
-        	for (it = lock_callbacks.begin(); it != lock_callbacks.end(); it++) {
-        	    block_available_callback_t &cb = *it;
-        	    if (dynamic_cast<btree_set_fsm<config_t> *>(&cb))
-        	        printf("\t\tbtree-set-fsm %p\n", &cb);
-        	    else if (dynamic_cast<btree_get_fsm<config_t> *>(&cb))
-        	        printf("\t\tbtree-get-fsm %p\n", &cb);
-        	    else if (dynamic_cast<btree_fsm<config_t> *>(&cb))
-        	        printf("\t\tother btree-fsm %p\n", &cb);
-        	    else
-        	        printf("\t\tunidentifiable %p\n", &cb);
-        	}
-        	printf("]\n");
-        }
-#endif
 
     private:
         

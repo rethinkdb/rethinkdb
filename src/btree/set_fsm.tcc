@@ -431,32 +431,5 @@ btree_set_type btree_set_fsm<config_t>::get_set_type() {
     return set_type;
 }
 
-#ifndef NDEBUG
-template <class config_t>
-void btree_set_fsm<config_t>::deadlock_debug(void) {
-    printf("set-fsm %p {\n", this);
-    printf("    buf = %p\n", buf);
-    printf("    last_buf = %p\n", last_buf);
-    printf("    sb_buf = %p\n", sb_buf);
-    printf("    node_id = %d\n", (int)node_id);
-    printf("    last_node_id = %d\n", (int)last_node_id);
-    const char *st_name;
-    switch(state) {
-        case uninitialized: st_name = "uninitialized"; break;
-        case start_transaction: st_name = "start_transaction"; break;
-        case acquire_superblock: st_name = "acquire_superblock"; break;
-        case acquire_root: st_name = "acquire_root"; break;
-        case insert_root: st_name = "insert_root"; break;
-        case insert_root_on_split: st_name = "insert_root_on_split"; break;
-        case acquire_node: st_name = "acquire_node"; break;
-        case update_complete: st_name = "update_complete"; break;
-        case committing: st_name = "committing"; break;
-        default: st_name = "WTF"; break;
-    }
-    printf("    state = %s\n", st_name);
-    printf("}\n");
-}
-#endif
-
 #endif // __BTREE_SET_FSM_TCC__
 

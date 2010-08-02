@@ -125,11 +125,6 @@ public:
     // Only LOG_WORKER will use this
     log_writer_t log_writer;
 
-#ifndef NDEBUG
-    // Print debugging information designed to resolve a deadlock
-    void deadlock_debug();
-#endif
-    
 private:
     
 

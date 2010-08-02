@@ -63,11 +63,6 @@ private:
     transition_result_t do_insert_root_on_split(event_t *event);
     transition_result_t do_acquire_node(event_t *event);
 
-#ifndef NDEBUG
-    // Print debugging information designed to resolve deadlocks
-    void deadlock_debug();
-#endif
-    
 private:
     int set_root_id(block_id_t root_id, event_t *event);
     void split_node(buf_t *node, buf_t **rnode, block_id_t *rnode_id, btree_key *median);

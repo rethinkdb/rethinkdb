@@ -100,6 +100,7 @@ public:
                 delete block_to_unload;
             } else {
 #ifndef NDEBUG
+                //ECS
                 printf("thread %d exceeding memory target. %d blocks in memory, %d dirty, target is %d.\n",
                     get_cpu_context()->event_queue->queue_id, array.size(), cache->writeback.num_dirty_blocks(), target);
 #endif

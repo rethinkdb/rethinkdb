@@ -36,12 +36,6 @@ struct cpu_message_t : public intrusive_list_node_t<cpu_message_t>
     
     msg_type_t type;
     unsigned int return_cpu;
-    
-#ifndef NDEBUG
-    virtual void deadlock_debug() {
-        printf("deadlock_debug N/A\n");
-    }
-#endif
 };
 
 struct event_queue_t;

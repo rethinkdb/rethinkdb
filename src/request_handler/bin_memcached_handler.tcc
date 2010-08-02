@@ -36,7 +36,9 @@ typename bin_memcached_handler_t<config_t>::parse_result_t bin_memcached_handler
         return req_handler_t::op_malformed;
     }
     
-    //printf("Request packet: \n");
+#ifndef NDEBUG
+    //logf(DBG, "Request packet: \n");
+#endif
     //pkt->print();
 
     //Showtime!!

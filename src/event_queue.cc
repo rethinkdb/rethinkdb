@@ -542,11 +542,11 @@ void event_queue_t::post_itc_message(itc_event_t *event) {
 void event_queue_t::register_fsm(conn_fsm_t *fsm) {
     live_fsms.push_back(fsm);
     watch_resource(fsm->get_source(), eo_rdwr, fsm);
-    printf("Opened socket %d\n", fsm->get_source());
+    logf(INF, "Opened socket %d\n", fsm->get_source());
 }
 
 void event_queue_t::deregister_fsm(conn_fsm_t *fsm) {
-    printf("Closing socket %d\n", fsm->get_source());
+    logf(INF, "Closing socket %d\n", fsm->get_source());
     forget_resource(fsm->get_source());
     live_fsms.remove(fsm);
     curr_connections--;
@@ -622,28 +622,3 @@ void event_queue_t::on_sync() {
     event.event_type = iet_cache_synced;
     post_itc_message(&event);
 }
-
-#ifndef NDEBUG
-void event_queue_t::deadlock_debug() {
-    
-    printf("=== Debug information for event queue %d ===\n", queue_id);
-    
-    cache->deadlock_debug();
-    
-    printf("\n----- Connection FSMS -----\n");
-    fsm_list_t::iterator it;
-    for (it = live_fsms.begin(); it != live_fsms.end(); it ++) {
-        (*it).deadlock_debug();
-    }
-}
-#endif
-
-#ifndef NDEBUG
-void deadlock_debug(void) {
-    if (get_cpu_context()->event_queue) {
-        get_cpu_context()->event_queue->deadlock_debug();
-    } else {
-        printf("You're in the wrong thread. If you're in gdb, type 'thread X' where X >= 2, and then try again.\n");
-    }
-}
-#endif

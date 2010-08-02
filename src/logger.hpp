@@ -44,7 +44,6 @@ public:
     log_level_t level;
     const char *src_file;
     int src_line;
-    //int pos;
     bool del;
 };
 
@@ -57,6 +56,7 @@ public:
     void _mlogf(const char *format, ...);
     void _mlog_end();
 private:
+    void _vmlogf(const char *format, va_list arg);
     const char *level_to_str(log_level_t level);
     log_msg_t *msg;
 };

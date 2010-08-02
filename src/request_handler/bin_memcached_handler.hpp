@@ -585,46 +585,49 @@ public:
 
             void print() {
 #ifndef NDEBUG
+                mlog_start(DBG);
+                mlogf("\n");
                 //header
-                printf("+---------------+---------------+---------------+---------------+ <--- HEADER\n");
-                printf("|Magic: 0x%x\t|Opcode: 0x%x\t|Key Length: %u\t\t\t|\n", magic(), opcode(), key_length());
-                printf("+---------------+---------------+---------------+---------------+\n");
+                mlogf("+---------------+---------------+---------------+---------------+ <--- HEADER\n");
+                mlogf("|Magic: 0x%x\t|Opcode: 0x%x\t|Key Length: %u\t\t\t|\n", magic(), opcode(), key_length());
+                mlogf("+---------------+---------------+---------------+---------------+\n");
                 if (is_request())
-                    printf("|Ex. L: %u\t|Data type: 0x%x\t|Reserved: %u\t\t\t|\n", extra_length(), data_type(), reserved());
+                    mlogf("|Ex. L: %u\t|Data type: 0x%x\t|Reserved: %u\t\t\t|\n", extra_length(), data_type(), reserved());
                 else
-                    printf("|Ex. L: %u\t|Data type: 0x%x\t|Status: 0x%x\t\t\t|\n", extra_length(), data_type(), status());
-                printf("+---------------+---------------+---------------+---------------+\n");
-                printf("|Total body length: %u\t\t\t\t\t\t|\n", total_body_length());
-                printf("+---------------+---------------+---------------+---------------+\n");
-                printf("|Opaque: %u\t\t\t\t\t\t\t|\n", opaque());
-                printf("+---------------+---------------+---------------+---------------+\n");
-                printf("|CAS: %lu\t\t\t\t\t\t\t\t|\n", cas());
-                printf("|                                                               |\n");
+                    mlogf("|Ex. L: %u\t|Data type: 0x%x\t|Status: 0x%x\t\t\t|\n", extra_length(), data_type(), status());
+                mlogf("+---------------+---------------+---------------+---------------+\n");
+                mlogf("|Total body length: %u\t\t\t\t\t\t|\n", total_body_length());
+                mlogf("+---------------+---------------+---------------+---------------+\n");
+                mlogf("|Opaque: %u\t\t\t\t\t\t\t|\n", opaque());
+                mlogf("+---------------+---------------+---------------+---------------+\n");
+                mlogf("|CAS: %lu\t\t\t\t\t\t\t\t|\n", cas());
+                mlogf("|                                                               |\n");
 
                 //extras
-                printf("+---------------+---------------+---------------+---------------+ <-- EXTRAS\n");
+                mlogf("+---------------+---------------+---------------+---------------+ <-- EXTRAS\n");
                 for (unsigned int i = 0; i < extra_length(); i++) {
                     if (i % 4 == 0 && i != 0)
-                        printf("|\n+---------------+---------------+---------------+---------------+\n");
-                    printf("|0x%x\t\t", (uint8_t) extras()[i]);
+                        mlogf("|\n+---------------+---------------+---------------+---------------+\n");
+                    mlogf("|0x%x\t\t", (uint8_t) extras()[i]);
                 }
 
                 //key
-                printf("|\n+---------------+---------------+---------------+---------------+ <-- KEY\n");
+                mlogf("|\n+---------------+---------------+---------------+---------------+ <-- KEY\n");
                 for (unsigned int i = 0; i < key_length(); i++) {
                     if (i % 4 == 0 && i != 0)
-                        printf("|\n+---------------+---------------+---------------+---------------+\n");
-                    printf("|%c\t\t", key()[i]);
+                        mlogf("|\n+---------------+---------------+---------------+---------------+\n");
+                    mlogf("|%c\t\t", key()[i]);
                 }
 
                 //value
-                printf("|\n+---------------+---------------+---------------+---------------+ <-- VALUE\n");
+                mlogf("|\n+---------------+---------------+---------------+---------------+ <-- VALUE\n");
                 for (unsigned int i = 0; i < value_length(); i++) {
                     if (i % 4 == 0 && i != 0)
-                        printf("|\n+---------------+---------------+---------------+---------------+\n");
-                    printf("|%c\t\t", value()[i]);
+                        mlogf("|\n+---------------+---------------+---------------+---------------+\n");
+                    mlogf("|%c\t\t", value()[i]);
                 }
-                printf("|\n+---------------+---------------+---------------+---------------+\n");
+                mlogf("|\n+---------------+---------------+---------------+---------------+\n");
+                mlog_end();
 #endif
             }
     };
