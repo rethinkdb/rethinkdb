@@ -51,6 +51,7 @@ public:
 
 struct logger_t : public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, logger_t> {
 public:
+    logger_t();
     void _logf(const char *src_file, int src_line, log_level_t level, const char *format, ...);
     void _mlog_start(const char *src_file, int src_line, log_level_t level);
     void _mlogf(const char *format, ...);

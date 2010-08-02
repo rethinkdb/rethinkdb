@@ -69,6 +69,10 @@ const char *log_msg_t::level_str() {
 
 // logger_t
 
+logger_t::logger_t() {
+    msg = NULL;
+}
+
 void logger_t::_logf(const char *src_file, int src_line, log_level_t level, const char *format, ...) {
     _mlog_start(src_file, src_line, level);
 
@@ -81,6 +85,7 @@ void logger_t::_logf(const char *src_file, int src_line, log_level_t level, cons
 }
 
 void logger_t::_mlog_start(const char *src_file, int src_line, log_level_t level) {
+    assert(!msg);
     msg = new log_msg_t();
     msg->level = level;
     msg->src_file = src_file;
@@ -105,4 +110,5 @@ void logger_t::_mlog_end() {
     event_queue_t *queue = get_cpu_context()->event_queue;
     msg->return_cpu = queue->queue_id;
     queue->message_hub.store_message(LOG_WORKER, msg);
+    msg = NULL;
 }
