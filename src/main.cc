@@ -182,10 +182,11 @@ void process_log_msg(log_msg_t *msg) {
         delete msg;
     } else {
         assert(queue->queue_id == LOG_WORKER);
-        queue->log_writer.write_str(msg->str);
+        queue->log_writer.writef("(%s)Q%d:%s:%d:", msg->level_str(), msg->return_cpu, msg->src_file, msg->src_line);
+        queue->log_writer.write(msg->str);
 
         msg->del = true;
-        // No need to change return_cpu because this message will be deleted immediately.
+        // No need to change return_cpu because the message will be deleted immediately.
         queue->message_hub.store_message(msg->return_cpu, msg);
     }
 }

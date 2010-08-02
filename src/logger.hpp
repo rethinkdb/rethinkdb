@@ -1,5 +1,5 @@
-#ifndef __LOG_HPP__
-#define __LOG_HPP__
+#ifndef __LOGGER_HPP__
+#define __LOGGER_HPP__
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -10,14 +10,11 @@
 #include "alloc/alloc_mixin.hpp"
 
 
-
 enum log_level_t { // For now these are just used directly as characters. This isn't a good idea.
 #ifndef NDEBUG
-    DBG = 'D',
+    DBG = 0,
 #endif
-    INF = 'I',
-    WRN = 'W',
-    ERR = 'E'
+    INF = 1, WRN, ERR
 };
 
 
@@ -27,7 +24,8 @@ public:
     log_writer_t();
     ~log_writer_t();
     void start(cmd_config_t *cmd_config);
-    void write_str(const char *str);
+    void writef(const char *format, ...);
+    void write(const char *str);
 private:
     FILE *log_file;
 };
@@ -39,32 +37,43 @@ struct log_msg_t : public cpu_message_t,
                    public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, log_msg_t> {
 public:
     log_msg_t();
+    const char *level_str();
 
 public:
     char str[MAX_LOG_MSGLEN];
-    int pos;
+    log_level_t level;
+    const char *src_file;
+    int src_line;
+    //int pos;
     bool del;
 };
 
+// Per-worker logger
+
 struct logger_t : public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, logger_t> {
 public:
-    logger_t();
-public:
-    void _log1(const char *src_file, int src_line, log_level_t level, const char *format, ...);
-    void _logn_header(const char *src_file, int src_line, log_level_t level);
-    void _logn(const char *format, ...);
-    void _logn_end();
+    void _logf(const char *src_file, int src_line, log_level_t level, const char *format, ...);
+    void _mlog_start(const char *src_file, int src_line, log_level_t level);
+    void _mlogf(const char *format, ...);
+    void _mlog_end();
 private:
-    void _vlogn(const char *format, va_list arg);
+    const char *level_to_str(log_level_t level);
     log_msg_t *msg;
 };
 
+// XXX We include this down here because event_queue.hpp refers to logger_t
+// (and we need get_cpu_context() for our macro -- though I guess it could be
+// replaced with a function). Is there a better way of doing it?
+#include "cpu_context.hpp"
+
 #define CURRENT_LOGGER (get_cpu_context()->event_queue->logger)
 
-// Log a line. You still have to provide '\n'.
-#define log1(lvl, fmt, args...) (CURRENT_LOGGER._log1(__FILE__, __LINE__, (lvl), (fmt) , ##args))
-#define logn_header(lvl) (CURRENT_LOGGER._logn_header(__FILE__, __LINE__, (lvl)))
-#define logn(fmt, args...) (CURRENT_LOGGER._logn((fmt) , ##args))
-#define logn_end() (CURRENT_LOGGER._logn_end())
+// Log a message in pieces.
+#define mlog_start(lvl) (CURRENT_LOGGER._mlog_start(__FILE__, __LINE__, (lvl)))
+#define mlogf(fmt, args...) (CURRENT_LOGGER._mlogf((fmt) , ##args))
+#define mlog_end() (CURRENT_LOGGER._mlog_end())
 
-#endif
+// Log a message in one chunk. You still have to provide '\n'.
+#define logf(lvl, fmt, args...) (CURRENT_LOGGER._logf(__FILE__, __LINE__, (lvl), (fmt) , ##args))
+
+#endif // __LOGGER_HPP__
