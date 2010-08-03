@@ -22,7 +22,9 @@ class worker_t : public sync_callback<code_config_t> {
         void start_worker();
         void start_slices();
         void shutdown_slices();
-        int slice(btree_key *key);
+        cache_t *slice(btree_key *key) {
+            return slices[key_to_slice(key, nworkers, nslices)];
+        }
     public:
         event_queue_t *event_queue;
 

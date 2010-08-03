@@ -49,10 +49,6 @@ worker_t::~worker_t() {
         //delete slices[i];
 }
 
-int worker_t::slice(btree_key *key) {
-    return key_to_slice(key, nworkers, nslices);
-}
-
 void worker_t::start_worker() {
     event_queue->start_queue(this);
 }

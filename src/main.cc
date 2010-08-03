@@ -78,7 +78,7 @@ void process_btree_msg(code_config_t::btree_fsm_t *btree_fsm) {
         
         // The btree is constructed with no cache; here we must assign it its proper cache
         assert(!btree_fsm->cache);
-        btree_fsm->cache = worker->slices[worker->slice(&btree_fsm->key)];
+        btree_fsm->cache = worker->slice(&btree_fsm->key);
         
         btree_fsm->on_complete = on_btree_completed;
         code_config_t::btree_fsm_t::transition_result_t btree_res = btree_fsm->do_transition(NULL);
