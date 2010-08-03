@@ -122,7 +122,7 @@ public:
     // For logging
     logger_t logger;
     // Only LOG_WORKER will use this
-    log_writer_t log_writer;
+    //log_writer_t log_writer;
 
 private:
     

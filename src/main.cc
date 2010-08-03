@@ -127,17 +127,17 @@ void process_lock_msg(event_queue_t *event_queue, event_t *event, rwi_lock_t::lo
 }
 
 void process_log_msg(log_msg_t *msg) {
-    event_queue_t *queue = get_cpu_context()->worker->event_queue;
+    worker_t *worker = get_cpu_context()->worker;
     if (msg->del) {
         delete msg;
     } else {
-        assert(queue->queue_id == LOG_WORKER);
-        queue->log_writer.writef("(%s)Q%d:%s:%d:", msg->level_str(), msg->return_cpu, msg->src_file, msg->src_line);
-        queue->log_writer.write(msg->str);
+        assert(worker->event_queue->queue_id == LOG_WORKER);
+        worker->log_writer.writef("(%s)Q%d:%s:%d:", msg->level_str(), msg->return_cpu, msg->src_file, msg->src_line);
+        worker->log_writer.write(msg->str);
 
         msg->del = true;
         // No need to change return_cpu because the message will be deleted immediately.
-        queue->message_hub.store_message(msg->return_cpu, msg);
+        worker->event_queue->message_hub.store_message(msg->return_cpu, msg);
     }
 }
 
@@ -204,7 +204,7 @@ int main(int argc, char *argv[])
         worker_pool_t worker_pool(event_handler, pthread_self(), &config);
 
         // Start the logger
-        worker_pool.workers[LOG_WORKER]->event_queue->log_writer.start(&config);
+        worker_pool.workers[LOG_WORKER]->log_writer.start(&config);
 
         // Start the server (in a separate thread)
         start_server(&worker_pool);
