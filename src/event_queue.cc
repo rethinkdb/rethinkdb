@@ -543,11 +543,11 @@ void event_queue_t::post_itc_message(itc_event_t *event) {
 void event_queue_t::register_fsm(conn_fsm_t *fsm) {
     live_fsms.push_back(fsm);
     watch_resource(fsm->get_source(), eo_rdwr, fsm);
-    logf(INF, "Opened socket %d\n", fsm->get_source());
+    printf("Opened socket %d\n", fsm->get_source());
 }
 
 void event_queue_t::deregister_fsm(conn_fsm_t *fsm) {
-    logf(INF, "Closing socket %d\n", fsm->get_source());
+    printf("Closing socket %d\n", fsm->get_source());
     forget_resource(fsm->get_source());
     live_fsms.remove(fsm);
     curr_connections--;
