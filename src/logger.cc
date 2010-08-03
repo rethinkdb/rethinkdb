@@ -107,8 +107,8 @@ void logger_t::_mlogf(const char *format, ...) {
 // Sends the message to worker LOG_WORKER.
 void logger_t::_mlog_end() {
     assert(msg);
-    event_queue_t *queue = get_cpu_context()->worker->event_queue;
-    msg->return_cpu = queue->queue_id;
-    queue->message_hub.store_message(LOG_WORKER, msg);
+    worker_t *worker = get_cpu_context()->worker;
+    msg->return_cpu = worker->workerid;
+    worker->event_queue->message_hub.store_message(LOG_WORKER, msg);
     msg = NULL;
 }

@@ -90,7 +90,7 @@ public:
 
 public:
     // TODO: be clear on what should and shouldn't be public here
-    int queue_id;
+    int queueid;
     int nqueues;
     io_context_t aio_context;
     resource_t aio_notify_fd, core_notify_fd;
@@ -121,8 +121,6 @@ public:
 
     // For logging
     logger_t logger;
-    // Only LOG_WORKER will use this
-    //log_writer_t log_writer;
 
 private:
     

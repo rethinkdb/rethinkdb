@@ -307,12 +307,12 @@ breakout:
     return tls_small_obj_alloc_accessor<alloc_t>::allocs_tl;
 }
 
-event_queue_t::event_queue_t(int queue_id, int _nqueues, event_handler_t event_handler,
+event_queue_t::event_queue_t(int workerid, int _nqueues, event_handler_t event_handler,
                              worker_pool_t *parent_pool, cmd_config_t *cmd_config)
     : iosys(this), total_connections(0), curr_connections(0)
 {
     int res;
-    this->queue_id = queue_id;
+    this->queueid = workerid;
     this->nqueues = _nqueues;
     this->event_handler = event_handler;
     this->parent_pool = parent_pool;
@@ -372,7 +372,7 @@ void event_queue_t::start_queue(worker_t *parent) {
     int ncpus = get_cpu_count();
     cpu_set_t mask;
     CPU_ZERO(&mask);
-    CPU_SET(queue_id % ncpus, &mask);
+    CPU_SET(parent->workerid % ncpus, &mask);
     res = pthread_setaffinity_np(this->epoll_thread, sizeof(cpu_set_t), &mask);
     check("Could not set thread affinity", res != 0);
 
@@ -550,7 +550,7 @@ void event_queue_t::deregister_fsm(conn_fsm_t *fsm) {
 void event_queue_t::pull_messages_for_cpu(message_hub_t::msg_list_t *target) {
     for(int i = 0; i < parent_pool->nworkers; i++) {
         message_hub_t::msg_list_t tmp_list;
-        parent_pool->workers[i]->event_queue->message_hub.pull_messages(queue_id, &tmp_list);
+        parent_pool->workers[i]->event_queue->message_hub.pull_messages(queueid, &tmp_list);
         target->append_and_clear(&tmp_list);
     }
 }

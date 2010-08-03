@@ -24,7 +24,7 @@ struct rwi_conc_t {
     public:
         explicit local_buf_t(buf_t *_gbuf)
             : lock(&get_cpu_context()->worker->event_queue->message_hub,
-                   get_cpu_context()->worker->event_queue->queue_id),
+                   get_cpu_context()->worker->workerid),
               gbuf(_gbuf)
             {}
         

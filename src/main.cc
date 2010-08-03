@@ -91,7 +91,7 @@ void process_btree_msg(code_config_t::btree_fsm_t *btree_fsm) {
 void process_perfmon_msg(perfmon_msg_t *msg)
 {    
     event_queue_t *queue = get_cpu_context()->worker->event_queue;
-    int this_cpu = queue->queue_id;
+    int this_cpu = get_cpu_context()->worker->workerid;
     int return_cpu = msg->return_cpu;
         
     switch(msg->state) {
@@ -131,7 +131,7 @@ void process_log_msg(log_msg_t *msg) {
     if (msg->del) {
         delete msg;
     } else {
-        assert(worker->event_queue->queue_id == LOG_WORKER);
+        assert(worker->workerid == LOG_WORKER);
         worker->log_writer.writef("(%s)Q%d:%s:%d:", msg->level_str(), msg->return_cpu, msg->src_file, msg->src_line);
         worker->log_writer.write(msg->str);
 

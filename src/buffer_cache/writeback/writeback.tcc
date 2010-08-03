@@ -31,7 +31,7 @@ template <class config_t>
 void writeback_tmpl_t<config_t>::start() {
     flush_lock =
         gnew<rwi_lock_t>(&get_cpu_context()->worker->event_queue->message_hub,
-                         get_cpu_context()->worker->event_queue->queue_id);
+                         get_cpu_context()->worker->workerid);
 }
 
 template <class config_t>

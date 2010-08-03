@@ -27,11 +27,13 @@ class worker_t : public sync_callback<code_config_t> {
         }
     public:
         event_queue_t *event_queue;
+        cache_t *slices[MAX_SLICES];
 
         int nworkers;
-
         int nslices;
-        cache_t *slices[MAX_SLICES];
+
+        int workerid;
+
         log_writer_t log_writer;
     public:
         virtual void on_sync();

@@ -31,7 +31,7 @@ worker_t::worker_t(int queue_id, int _nqueues, event_handler_t event_handler,
         typedef std::basic_stringstream<char, std::char_traits<char>, gnew_alloc<char> > rdbstringstream_t;
         rdbstringstream_t out;
         rdbstring_t str((char*)cmd_config->db_file_name);
-        out << event_queue->queue_id << "_" << i;
+        out << workerid << "_" << i;
         str += out.str();
         slices[i] = gnew<cache_t>(
                 (char*)str.c_str(),
