@@ -1,5 +1,8 @@
 #!/usr/bin/python
-""" We want to make sure that the data doesn't get corrupted if the server is abruptly killed. """
+""" 
+    We want to make sure that the data doesn't get corrupted if the server is abruptly killed.
+
+"""
 
 
 import pylibmc as memcache
@@ -28,8 +31,8 @@ def rethinkdb_verify(mc, ints, clone):
         actual_value = key
         print "(%s=>%s, should be %s)" % (key, stored_value, actual_value)
         if actual_value != stored_value:
-            raise ValueError("Error, incorrect value in the database! (%s=>%s, should be %s)" % \
-                (key, stored_value, actual_value))
+            raise ValueError("Error, incorrect value in the database! (%s=>%s, should be %s). %d keys correctly stored." % \
+                (key, stored_value, actual_value, i-1))
 
 def test_insert(port):
     mc = memcache.Client(["localhost:%d" % port], binary = bin)
