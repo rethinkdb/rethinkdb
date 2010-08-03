@@ -6,13 +6,24 @@
 #include "event_queue.hpp"
 #include "worker_pool.hpp"
 
-int key_to_cpu(btree_key *key, unsigned int ncpus)
+int hash(btree_key *key)
 {
     // TODO: we better find a good hash function or the whole
     // concurrency model goes to crap.
 
     //FIXME: This temporary hash results in uneven distribution
-    return key->contents[key->size-1] % ncpus;
+    return key->contents[key->size-1];
+}
+
+int key_to_cpu(btree_key *key, unsigned int ncpus)
+{
+    return hash(key) % ncpus;
+}
+
+int key_to_chache(btree_key *key, unsigned int ncpus, unsigned int ncache) {
+    // this avoids hash correlation that would occur if ncpus and ncache weren't coprime
+    // (which is likely since they'll most likely be powers of 2)
+    return (hash(key) / ncpus) % ncache;
 }
 
 void message_hub_t::init(unsigned int cpu_id, unsigned int _ncpus, worker_t *workers[])
