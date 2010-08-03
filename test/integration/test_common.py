@@ -174,10 +174,11 @@ class RethinkDBTester(object):
         self.own_timeout = timeout
         self.timeout = timeout + 15
     
-    def run_test_function(self, test_function, port):
+    def run_test_function(self, test_function, port, mutual_list=None):
     
         try:
-            test_function(port)
+            if mutual_list is not None: test_function(port, mutual_list)
+            else: test_function(port)
         except Exception, f:
             self.test_failure = traceback.format_exc()
         else:
@@ -221,7 +222,8 @@ class RethinkDBCorruptionTester(RethinkDBTester):
         o = output_file()
         server = start_server(d, o, self.mode, self.valgrind)
         print "Running first test..."
-        test_thread = threading.Thread(target = self.run_test_function, args = (self.test_function1, server.port,))
+        mutual_list = []
+        test_thread = threading.Thread(target = self.run_test_function, args = (self.test_function1, server.port, mutual_list))
         test_thread.start()
         time.sleep(.001)
         
@@ -230,18 +232,25 @@ class RethinkDBCorruptionTester(RethinkDBTester):
         else:
             server.server.send_signal(signal.SIGINT)                
             test_thread.join(self.own_timeout)
-            
+        
+        last_written_key = mutual_list[-1]
+
         print "Server killed."
         print "Starting another server..."        
         server = start_server(d, o, self.mode, self.valgrind)
         print "Running second test..."
-
-        test_thread = threading.Thread(target = self.run_test_function, args = (self.test_function2, server.port,))
+        mutual_list2 = []
+        test_thread = threading.Thread(target = self.run_test_function, args = (self.test_function2, server.port, mutual_list2))
         test_thread.start()
         test_thread.join(self.own_timeout)
+        
+        last_read_key = mutual_list2[-1]
 
         if test_thread.is_alive():
             self.test_failure = "The integration test didn't finish in time, probably because the " \
                 "server wasn't responding to its queries fast enough."
-        
+        elif last_read_key < last_written_key - 1:
+            self.test_failure = "The last written key was %d, but the last read key was %d" % (last_written_key, last_read_key)
+        else:
+            self.test_failure = None
         return shutdown_server(server, self.test_failure)
