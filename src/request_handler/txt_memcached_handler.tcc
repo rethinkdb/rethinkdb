@@ -220,7 +220,7 @@ public:
     txt_memcached_perfmon_request(txt_memcached_handler_t<config_t> *rh)
         : txt_memcached_request<config_t>(rh, false) {
         
-        int nworkers = (int)get_cpu_context()->event_queue->parent_pool->nworkers;
+        int nworkers = (int)get_cpu_context()->worker->event_queue->parent_pool->nworkers;
     
         // Tell every single CPU core to pass their perfmon module *by copy*
         // to this CPU
@@ -237,7 +237,7 @@ public:
     ~txt_memcached_perfmon_request() {
         // Do NOT delete the perfmon messages. They are sent back to the cores that provided
         // the stats so that the perfmon objects can be freed.
-        int nworkers = (int)get_cpu_context()->event_queue->parent_pool->nworkers;
+        int nworkers = (int)get_cpu_context()->worker->event_queue->parent_pool->nworkers;
         for (int i = 0; i < nworkers; i ++) {
             msgs[i]->send_back_to_free_perfmon();
         }
@@ -246,7 +246,7 @@ public:
     void build_response(typename conn_fsm_t::linked_buf_t *sbuf) {
     
         // Combine all responses into one
-        int nworkers = (int)get_cpu_context()->event_queue->parent_pool->nworkers;
+        int nworkers = (int)get_cpu_context()->worker->event_queue->parent_pool->nworkers;
         perfmon_t combined_perfmon;
         for(int i = 0; i < nworkers; i++) {
             combined_perfmon.accumulate(msgs[i]->perfmon);

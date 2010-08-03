@@ -39,7 +39,7 @@ public:
 public:
     event_queue_t(int queue_id, int _nqueues, event_handler_t event_handler,
                   worker_pool_t *parent_pool, cmd_config_t *cmd_config);
-    void start_queue();
+    void start_queue(worker_t *parent);
     
     // To safely shut down a group of event queues, call begin_stopping_queue() on each, then
     // finish_stopping_queue() on each. Then it is safe to delete them.

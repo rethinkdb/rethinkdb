@@ -12,6 +12,7 @@ class worker_t {
         worker_t(int queue_id, int _nqueues, event_handler_t event_handler,
                   worker_pool_t *parent_pool, cmd_config_t *cmd_config);
         event_queue_t *event_queue;
+        void start_worker();
 };
 
 // Worker pool

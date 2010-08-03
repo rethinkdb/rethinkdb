@@ -25,7 +25,7 @@ buf<config_t>::buf(cache_t *cache, block_id_t block_id, block_available_callback
 #ifndef NDEBUG
     active_callback_count ++;
 #endif
-    cache->serializer.do_read(get_cpu_context()->event_queue, block_id, data, this);
+    cache->serializer.do_read(get_cpu_context()->worker->event_queue, block_id, data, this);
     
     add_load_callback(callback);
 }
@@ -134,7 +134,7 @@ transaction<config_t>::transaction(cache_t *cache, access_t access,
       commit_callback(NULL),
       state(state_open) {
 #ifndef NDEBUG
-    event_queue = get_cpu_context()->event_queue;
+    event_queue = get_cpu_context()->worker->event_queue;
 #endif
     assert(access == rwi_read || access == rwi_write);
     begin_callback = callback;
@@ -174,7 +174,7 @@ transaction<config_t>::allocate(block_id_t *block_id) {
 
 	/* Make a completely new block, complete with a shiny new block_id. */
 	
-    assert(event_queue == get_cpu_context()->event_queue);
+    assert(event_queue == get_cpu_context()->worker->event_queue);
 #ifndef NDEBUG
     cache->n_blocks_acquired++;
 #endif
@@ -198,7 +198,7 @@ template <class config_t>
 typename config_t::buf_t *
 transaction<config_t>::acquire(block_id_t block_id, access_t mode,
                                block_available_callback_t *callback) {
-    assert(event_queue == get_cpu_context()->event_queue);
+    assert(event_queue == get_cpu_context()->worker->event_queue);
     assert(mode == rwi_read || access != rwi_read);
        
 #ifndef NDEBUG

@@ -30,8 +30,8 @@ writeback_tmpl_t<config_t>::~writeback_tmpl_t() {
 template <class config_t>
 void writeback_tmpl_t<config_t>::start() {
     flush_lock =
-        gnew<rwi_lock_t>(&get_cpu_context()->event_queue->message_hub,
-                         get_cpu_context()->event_queue->queue_id);
+        gnew<rwi_lock_t>(&get_cpu_context()->worker->event_queue->message_hub,
+                         get_cpu_context()->worker->event_queue->queue_id);
 }
 
 template <class config_t>
@@ -104,7 +104,7 @@ bool writeback_tmpl_t<config_t>::commit(transaction_t *txn) {
         /* Otherwise, start the flush timer so that the modified data doesn't sit in memory for too
         long without being written to disk. */
         else if (!flush_timer && flush_timer_ms != NEVER_FLUSH) {
-            flush_timer = get_cpu_context()->event_queue->
+            flush_timer = get_cpu_context()->worker->event_queue->
                 fire_timer_once(flush_timer_ms, flush_timer_callback, this);
         }
     }
@@ -170,7 +170,7 @@ void writeback_tmpl_t<config_t>::writeback(buf_t *buf) {
         // flush timer, then flush_timer would be NULL here, because flush_timer_callback sets it
         // to NULL.
         if (flush_timer) {
-            get_cpu_context()->event_queue->cancel_timer(flush_timer);
+            get_cpu_context()->worker->event_queue->cancel_timer(flush_timer);
             flush_timer = NULL;
         }
         
@@ -228,7 +228,7 @@ void writeback_tmpl_t<config_t>::writeback(buf_t *buf) {
         // chunks, we may want to worry about submitting more heavily contended
         // bufs earlier in the process so more write FSMs can proceed sooner.
         if (flush_bufs.size())
-            cache->serializer.do_write(get_cpu_context()->event_queue, writes,
+            cache->serializer.do_write(get_cpu_context()->worker->event_queue, writes,
                             flush_bufs.size());
         free(writes);
         state = state_write_bufs;

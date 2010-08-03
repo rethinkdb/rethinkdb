@@ -32,6 +32,10 @@ worker_t::worker_t(int queue_id, int _nqueues, event_handler_t event_handler,
     event_queue = gnew<event_queue_t>(queue_id, _nqueues, event_handler, parent_pool, cmd_config);
 }
 
+void worker_t::start_worker() {
+    event_queue->start_queue(this);
+}
+
 void worker_pool_t::create_worker_pool(event_handler_t event_handler, pthread_t main_thread,
                                        int _nworkers)
 {
@@ -51,7 +55,7 @@ void worker_pool_t::create_worker_pool(event_handler_t event_handler, pthread_t 
     
     // Start the actual queue
     for(int i = 0; i < nworkers; i++) {
-        workers[i]->event_queue->start_queue();        
+        workers[i]->start_worker();        
     }
 
     // TODO: can we move the printing out of here?

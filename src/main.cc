@@ -63,12 +63,12 @@ void initiate_conn_fsm_transition(event_queue_t *event_queue, event_t *event) {
 void on_btree_completed(code_config_t::btree_fsm_t *btree_fsm) {
     // We received a completed btree that belongs to another
     // core. Send it off and be merry!
-    get_cpu_context()->event_queue->message_hub.store_message(btree_fsm->return_cpu, btree_fsm);
+    get_cpu_context()->worker->event_queue->message_hub.store_message(btree_fsm->return_cpu, btree_fsm);
 }
 
 void process_btree_msg(code_config_t::btree_fsm_t *btree_fsm) {
     
-    event_queue_t *event_queue = get_cpu_context()->event_queue;
+    event_queue_t *event_queue = get_cpu_context()->worker->event_queue;
     
     if(btree_fsm->is_finished()) {
         
@@ -92,7 +92,7 @@ void process_btree_msg(code_config_t::btree_fsm_t *btree_fsm) {
 
 void process_perfmon_msg(perfmon_msg_t *msg)
 {    
-    event_queue_t *queue = get_cpu_context()->event_queue;
+    event_queue_t *queue = get_cpu_context()->worker->event_queue;
     int this_cpu = queue->queue_id;
     int return_cpu = msg->return_cpu;
         

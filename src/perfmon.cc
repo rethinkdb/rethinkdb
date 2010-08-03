@@ -82,7 +82,7 @@ void perfmon_t::copy_from(const perfmon_t &rhs)
 void perfmon_msg_t::send_back_to_free_perfmon() {
     state = sm_copy_cleanup;
     int cpu_owning_perfmon = return_cpu;
-    return_cpu = get_cpu_context()->event_queue->queue_id;
+    return_cpu = get_cpu_context()->worker->event_queue->queue_id;
     request = NULL;
-    get_cpu_context()->event_queue->message_hub.store_message(cpu_owning_perfmon, this);
+    get_cpu_context()->worker->event_queue->message_hub.store_message(cpu_owning_perfmon, this);
 }

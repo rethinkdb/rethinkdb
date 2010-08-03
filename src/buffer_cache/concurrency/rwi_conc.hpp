@@ -23,8 +23,8 @@ struct rwi_conc_t {
     
     public:
         explicit local_buf_t(buf_t *_gbuf)
-            : lock(&get_cpu_context()->event_queue->message_hub,
-                   get_cpu_context()->event_queue->queue_id),
+            : lock(&get_cpu_context()->worker->event_queue->message_hub,
+                   get_cpu_context()->worker->event_queue->queue_id),
               gbuf(_gbuf)
             {}
         

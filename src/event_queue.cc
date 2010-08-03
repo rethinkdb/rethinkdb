@@ -203,14 +203,15 @@ void process_cpu_core_notify(event_queue_t *self, message_hub_t::msg_list_t *mes
 
 void *event_queue_t::epoll_handler(void *arg) {
     int res;
-    event_queue_t *self = (event_queue_t*)arg;
+    worker_t *parent = (worker_t *) arg;
+    event_queue_t *self = parent->event_queue;
     epoll_event events[MAX_IO_EVENT_PROCESSING_BATCH_SIZE];
     bool shutting_down = false; // True btw. iet_shutdown and iet_cache_synced.
     typedef std::vector<event_queue_t::conn_fsm_t*, gnew_alloc<conn_fsm_t*> > shutdown_fsms_t;
     shutdown_fsms_t shutdown_fsms;
 
     // First, set the cpu context structure
-    get_cpu_context()->event_queue = self;
+    get_cpu_context()->worker = parent;
     
     // Cannot call this until we are in the correct thread and have an event queue
     self->cache->start();
@@ -374,9 +375,9 @@ event_queue_t::event_queue_t(int queue_id, int _nqueues, event_handler_t event_h
         cmd_config->flush_threshold_percent);
 }
 
-void event_queue_t::start_queue() {
+void event_queue_t::start_queue(worker_t *parent) {
     // Start the epoll thread
-    int res = pthread_create(&this->epoll_thread, NULL, epoll_handler, (void*)this);
+    int res = pthread_create(&this->epoll_thread, NULL, epoll_handler, (void*)parent);
     check("Could not create epoll thread", res != 0);
 
     // Set thread affinity
