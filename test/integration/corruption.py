@@ -48,4 +48,4 @@ retest_release = RethinkDBCorruptionTester(test_insert, test_verify, "release", 
 retest_valgrind = RethinkDBCorruptionTester(test_insert, test_verify, "debug", timeout = 10)
 
 if __name__ == '__main__':
-    test_against_server_at(int(os.environ.get("RUN_PORT", "11211")))
+    print "The corruption test involves shutting down and restarting a server, so it can't be run this way."
