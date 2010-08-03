@@ -57,15 +57,15 @@ void worker_t::start_worker() {
     event_queue->start_queue(this);
 }
 
-/* void worker_t::start_caches() {
+void worker_t::start_slices() {
     for (int i = 0; i < nslices; i++)
         slices[i]->start();
-} */
+}
 
-/* void worker_t::shutdown_caches() {
+void worker_t::shutdown_slices() {
     for (int i = 0; i < nslices; i++)
-        slices[i]->shutdown();
-} */
+        slices[i]->shutdown(event_queue);
+}
 
 void worker_t::on_sync() {
     event_queue->on_sync();

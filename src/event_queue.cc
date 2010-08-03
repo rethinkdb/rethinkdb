@@ -214,8 +214,7 @@ void *event_queue_t::epoll_handler(void *arg) {
     get_cpu_context()->worker = parent;
     
     // Cannot call this until we are in the correct thread and have an event queue
-    for (int i = 0; i < parent->nslices; i++)
-        parent->slices[i]->start();
+    parent->start_slices();
 
     // Now, initialize the hardcoded (garbage collection)
     self->add_timer(ALLOC_GC_INTERVAL_MS, self->garbage_collect, NULL);
@@ -264,8 +263,8 @@ void *event_queue_t::epoll_handler(void *arg) {
                         shutdown_fsms.push_back(state);
                     }
 
-                    for (int i = 0; i < parent->nslices; i++)
-                        parent->slices[i]->shutdown(self); // Initiate final cache flush
+                    parent->shutdown_slices();
+
                     break;
                 case iet_cache_synced:
                     assert(shutting_down);

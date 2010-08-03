@@ -20,8 +20,8 @@ class worker_t : public sync_callback<code_config_t> {
                   worker_pool_t *parent_pool, cmd_config_t *cmd_config);
         ~worker_t();
         void start_worker();
-        void start_caches();
-        void shutdown_caches();
+        void start_slices();
+        void shutdown_slices();
         int slice(btree_key *key);
     public:
         event_queue_t *event_queue;
