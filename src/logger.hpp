@@ -67,7 +67,7 @@ private:
 // replaced with a function). Is there a better way of doing it?
 #include "cpu_context.hpp"
 
-#define CURRENT_LOGGER (get_cpu_context()->event_queue->logger)
+#define CURRENT_LOGGER (get_cpu_context()->worker->event_queue->logger)
 
 // Log a message in pieces.
 #define mlog_start(lvl) (CURRENT_LOGGER._mlog_start(__FILE__, __LINE__, (lvl)))

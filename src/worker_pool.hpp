@@ -7,6 +7,8 @@
 #include "arch/resource.hpp"
 #include "config/cmd_args.hpp"
 
+typedef void (*event_handler_t)(event_queue_t*, event_t*);
+
 class worker_t {
     public:
         worker_t(int queue_id, int _nqueues, event_handler_t event_handler,

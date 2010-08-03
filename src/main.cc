@@ -129,7 +129,7 @@ void process_lock_msg(event_queue_t *event_queue, event_t *event, rwi_lock_t::lo
 }
 
 void process_log_msg(log_msg_t *msg) {
-    event_queue_t *queue = get_cpu_context()->event_queue;
+    event_queue_t *queue = get_cpu_context()->worker->event_queue;
     if (msg->del) {
         delete msg;
     } else {
@@ -206,7 +206,7 @@ int main(int argc, char *argv[])
         worker_pool_t worker_pool(event_handler, pthread_self(), &config);
 
         // Start the logger
-        worker_pool.workers[LOG_WORKER]->log_writer.start(&config);
+        worker_pool.workers[LOG_WORKER]->event_queue->log_writer.start(&config);
 
         // Start the server (in a separate thread)
         start_server(&worker_pool);
