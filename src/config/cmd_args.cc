@@ -24,6 +24,8 @@ void usage(const char *name) {
     printf("  -h, --help\t\tPrint these usage options.\n");
     printf("  -c, --max-cores\tDo not use more than this number of cores for\n");
     printf("\t\t\thandling user requests.\n");
+
+    printf("  -s, --slices\tShards per thread\n");
     
     printf("  -m, --max-cache-size\tMaximum amount of RAM to use for caching disk\n");
     printf("\t\t\tblocks, in megabytes.\n");
@@ -82,6 +84,7 @@ void parse_cmd_args(int argc, char *argv[], cmd_config_t *config)
                 {"flush-timer",          required_argument, 0, flush_timer},
                 {"flush-threshold",      required_argument, 0, flush_threshold},
                 {"max-cores",            required_argument, 0, 'c'},
+                {"slices",               required_argument, 0, 's'},
                 {"max-cache-size",       required_argument, 0, 'm'},
                 {"log-file",             required_argument, 0, 'l'},
                 {"port",                 required_argument, 0, 'p'},
@@ -90,7 +93,7 @@ void parse_cmd_args(int argc, char *argv[], cmd_config_t *config)
             };
 
         int option_index = 0;
-        int c = getopt_long(argc, argv, "c:m:l:p:h", long_options, &option_index);
+        int c = getopt_long(argc, argv, "c:s:m:l:p:h", long_options, &option_index);
 
         if(do_help)
             c = 'h';
@@ -112,6 +115,8 @@ void parse_cmd_args(int argc, char *argv[], cmd_config_t *config)
         case 'c':
             config->n_workers = atoi(optarg);
             break;
+        case 's':
+            config->n_slices = atoi(optarg);
         case 'm':
             config->max_cache_size = atoi(optarg) * 1024 * 1024;
             break;

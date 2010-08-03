@@ -55,6 +55,11 @@
 // TODO: make this dynamic where possible
 #define MAX_CPUS                                  16
 
+// Maximum slices per thread
+#define MAX_SLICES                                16
+
+#define DEFAULT_SLICES                            4
+
 // The number of ways we split a BTree (the most optimal is the number
 // of cores, but we use a higher split factor to allow upgrading to
 // more cores without migrating the database file).

@@ -67,9 +67,7 @@ void on_btree_completed(code_config_t::btree_fsm_t *btree_fsm) {
 }
 
 void process_btree_msg(code_config_t::btree_fsm_t *btree_fsm) {
-    
-    event_queue_t *event_queue = get_cpu_context()->worker->event_queue;
-    
+    worker_t *worker = get_cpu_context()->worker;
     if(btree_fsm->is_finished()) {
         
         // We received a completed btree that belongs to us
@@ -80,7 +78,7 @@ void process_btree_msg(code_config_t::btree_fsm_t *btree_fsm) {
         
         // The btree is constructed with no cache; here we must assign it its proper cache
         assert(!btree_fsm->cache);
-        btree_fsm->cache = event_queue->cache;
+        btree_fsm->cache = worker->slices[worker->slice(&btree_fsm->key)];
         
         btree_fsm->on_complete = on_btree_completed;
         code_config_t::btree_fsm_t::transition_result_t btree_res = btree_fsm->do_transition(NULL);

@@ -3,46 +3,92 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <algorithm>
+#include <strings.h>
+#include <string>
+#include <sstream>
 #include "config/cmd_args.hpp"
 #include "config/code.hpp"
 #include "utils.hpp"
 #include "worker_pool.hpp"
-
-/* int get_core_info(cmd_config_t *cmd_config) {
-    int ncores = get_cpu_count(),
-        nmaxcores = cmd_config->max_cores <= 0  ? ncores : cmd_config->max_cores,
-        nusecores = std::min(ncores, nmaxcores);
-
-    // TODO: can we move the printing out of here?
-    printf("Physical cores: %d\n", ncores);
-    printf("Max cores: ");
-    if(cmd_config->max_cores <= 0)
-        printf("N/A");
-    else
-        printf("%d", nmaxcores);
-    printf("\n");
-    printf("Using cores: %d\n", nusecores);
-
-    return nusecores;
-} */
-
+#include "buffer_cache/mirrored.hpp"
+#include "buffer_cache/page_map/array.hpp"
+#include "buffer_cache/page_repl/page_repl_random.hpp"
+#include "buffer_cache/writeback/writeback.hpp"
+#include "buffer_cache/concurrency/rwi_conc.hpp"
+#include "serializer/in_place.hpp"
 
 worker_t::worker_t(int queue_id, int _nqueues, event_handler_t event_handler,
         worker_pool_t *parent_pool, cmd_config_t *cmd_config) {
     event_queue = gnew<event_queue_t>(queue_id, _nqueues, event_handler, parent_pool, cmd_config);
+
+
+    // Init the cache
+    nworkers = _nqueues;
+    nslices = cmd_config->n_slices;
+
+    for (int i = 0; i < nslices; i++) {
+        typedef std::basic_string<char, std::char_traits<char>, gnew_alloc<char> > rdbstring_t;
+        typedef std::basic_stringstream<char, std::char_traits<char>, gnew_alloc<char> > rdbstringstream_t;
+        rdbstringstream_t out;
+        rdbstring_t str((char*)cmd_config->db_file_name);
+        out << event_queue->queue_id << "_" << i;
+        str += out.str();
+        slices[i] = gnew<cache_t>(
+                (char*)str.c_str(),
+                BTREE_BLOCK_SIZE,
+                cmd_config->max_cache_size / event_queue->nqueues,
+                cmd_config->wait_for_flush,
+                cmd_config->flush_timer_ms,
+                cmd_config->flush_threshold_percent);
+    }
+}
+
+worker_t::~worker_t() {
+    delete event_queue;
+    //for (int i = 0; i < nslices; i++)
+        //delete slices[i];
+}
+
+int worker_t::slice(btree_key *key) {
+    return key_to_slice(key, nworkers, nslices);
 }
 
 void worker_t::start_worker() {
     event_queue->start_queue(this);
 }
 
+/* void worker_t::start_caches() {
+    for (int i = 0; i < nslices; i++)
+        slices[i]->start();
+} */
+
+/* void worker_t::shutdown_caches() {
+    for (int i = 0; i < nslices; i++)
+        slices[i]->shutdown();
+} */
+
+void worker_t::on_sync() {
+    event_queue->on_sync();
+}
+
 void worker_pool_t::create_worker_pool(event_handler_t event_handler, pthread_t main_thread,
-                                       int _nworkers)
+                                       int _nworkers, int _nslices)
 {
     this->main_thread = main_thread;
 
     // Create the workers
-    nworkers = _nworkers;
+    if (_nworkers != 0)
+        nworkers =  std::min(_nworkers, MAX_CPUS);
+    else
+        nworkers = get_cpu_count();
+
+    if (_nslices != 0)
+        nslices = std::min(_nslices, MAX_SLICES);
+    else
+        nslices = DEFAULT_SLICES;
+
+    cmd_config->n_workers = nworkers;
+    cmd_config->n_slices = nslices;
 
     for(int i = 0; i < nworkers; i++) {
         workers[i] = gnew<worker_t>(i, nworkers, event_handler, this, cmd_config);
@@ -61,6 +107,7 @@ void worker_pool_t::create_worker_pool(event_handler_t event_handler, pthread_t 
     // TODO: can we move the printing out of here?
     printf("Physical cores: %d\n", get_cpu_count());
     printf("Using cores: %d\n", nworkers);
+    printf("Slices per core: %d\n", nslices);
     printf("Total RAM: %ldMB\n", get_total_ram() / 1024 / 1024);
     printf("Free RAM: %ldMB (%.2f%%)\n",
            get_available_ram() / 1024 / 1024,
@@ -79,16 +126,16 @@ worker_pool_t::worker_pool_t(event_handler_t event_handler, pthread_t main_threa
                              cmd_config_t *_cmd_config)
     : cmd_config(_cmd_config)
 {
-    create_worker_pool(event_handler, main_thread, cmd_config->n_workers);
+    create_worker_pool(event_handler, main_thread, cmd_config->n_workers, cmd_config->n_slices);
 }
 
 worker_pool_t::worker_pool_t(event_handler_t event_handler, pthread_t main_thread,
-                             int _nworkers, cmd_config_t *_cmd_config)
+                             int _nworkers, int _nslices, cmd_config_t *_cmd_config)
     : cmd_config(_cmd_config)
 {
     // Currently, get_core_info is called only for printing here. We
     // can get rid of it once we move printing elsewhere.
-    create_worker_pool(event_handler, main_thread, _nworkers);
+    create_worker_pool(event_handler, main_thread, _nworkers, _nslices);
 }
 
 worker_pool_t::~worker_pool_t() {

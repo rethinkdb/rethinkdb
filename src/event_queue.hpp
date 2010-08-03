@@ -111,7 +111,7 @@ public:
     // should support multiple slices per queue.
     // TODO: implement slice writeback scheduling and admin tools.
     // Caches responsible for serving a particular queue
-    cache_t *cache;
+    //cache_t *cache;
 
     io_calls_t iosys;
 

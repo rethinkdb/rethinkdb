@@ -214,7 +214,8 @@ void *event_queue_t::epoll_handler(void *arg) {
     get_cpu_context()->worker = parent;
     
     // Cannot call this until we are in the correct thread and have an event queue
-    self->cache->start();
+    for (int i = 0; i < parent->nslices; i++)
+        parent->slices[i]->start();
 
     // Now, initialize the hardcoded (garbage collection)
     self->add_timer(ALLOC_GC_INTERVAL_MS, self->garbage_collect, NULL);
@@ -263,7 +264,8 @@ void *event_queue_t::epoll_handler(void *arg) {
                         shutdown_fsms.push_back(state);
                     }
 
-                    self->cache->shutdown(self); // Initiate final cache flush
+                    for (int i = 0; i < parent->nslices; i++)
+                        parent->slices[i]->shutdown(self); // Initiate final cache flush
                     break;
                 case iet_cache_synced:
                     assert(shutting_down);
@@ -299,7 +301,9 @@ breakout:
 
     for (shutdown_fsms_t::iterator it = shutdown_fsms.begin(); it != shutdown_fsms.end(); ++it)
         delete *it;
-    gdelete(self->cache);
+
+    for (int i = 0; i < parent->nslices; i++)
+        gdelete(parent->slices[i]);
 
     return tls_small_obj_alloc_accessor<alloc_t>::allocs_tl;
 }
@@ -358,21 +362,6 @@ event_queue_t::event_queue_t(int queue_id, int _nqueues, event_handler_t event_h
     check("Could not make itc pipe non-blocking (write end)", res != 0);
 
     watch_resource(this->itc_pipe[0], eo_read, (void*)this->itc_pipe[0]);
-    
-    // Init the cache
-    typedef std::basic_string<char, std::char_traits<char>, gnew_alloc<char> > rdbstring_t;
-    typedef std::basic_stringstream<char, std::char_traits<char>, gnew_alloc<char> > rdbstringstream_t;
-    rdbstringstream_t out;
-    rdbstring_t str((char*)cmd_config->db_file_name);
-    out << queue_id;
-    str += out.str();
-    cache = gnew<cache_t>(
-        (char*)str.c_str(),
-        BTREE_BLOCK_SIZE,
-        cmd_config->max_cache_size / nqueues,
-        cmd_config->wait_for_flush,
-        cmd_config->flush_timer_ms,
-        cmd_config->flush_threshold_percent);
 }
 
 void event_queue_t::start_queue(worker_t *parent) {

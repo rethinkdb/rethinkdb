@@ -9,6 +9,7 @@
 struct cmd_config_t {
     int port;
     int n_workers;
+    int n_slices;
     char db_file_name[MAX_DB_FILE_NAME];
     size_t max_cache_size;
     

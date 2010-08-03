@@ -20,10 +20,10 @@ int key_to_cpu(btree_key *key, unsigned int ncpus)
     return hash(key) % ncpus;
 }
 
-int key_to_chache(btree_key *key, unsigned int ncpus, unsigned int ncache) {
-    // this avoids hash correlation that would occur if ncpus and ncache weren't coprime
+int key_to_slice(btree_key *key, unsigned int ncpus, unsigned int nslice) {
+    // this avoids hash correlation that would occur if ncpus and nslice weren't coprime
     // (which is likely since they'll most likely be powers of 2)
-    return (hash(key) / ncpus) % ncache;
+    return (hash(key) / ncpus) % nslice;
 }
 
 void message_hub_t::init(unsigned int cpu_id, unsigned int _ncpus, worker_t *workers[])
