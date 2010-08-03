@@ -1,4 +1,4 @@
-import tempfile, shlex, subprocess, shutil, signal, time, os, socket, sys, traceback, threading
+import tempfile, shlex, subprocess, shutil, signal, time, os, socket, sys, traceback, threading, random
 
 def find_unused_port():
     port = 11220
@@ -16,15 +16,19 @@ from retest2.utils import SmartTemporaryFile
 valgrind_error_code = 100
 server_quit_time = 10   # Server should shut down within 10 seconds of SIGINT
 
+class data_file(object):
+    def __init__(self):
+        tf = tempfile.NamedTemporaryFile(prefix = "rdb_")
+        self.file_name = tf.name
+        tf.close()
+
+
 class test_server(object):
 
-    def __init__(self, rethinkdb_path, flags = "-p 11211", valgrind = False):
+    def __init__(self, rethinkdb_path, data_file_path, flags = "-p 11211", valgrind = False):
     
-        self.output = SmartTemporaryFile()
-        
-        tf = tempfile.NamedTemporaryFile(prefix = "rdb_")
-        self.data_file_root = tf.name
-        tf.close()
+        self.output = SmartTemporaryFile()        
+        self.data_file_root = data_file_path.file_name
         
         self.valgrind = valgrind
         
@@ -103,16 +107,17 @@ class RethinkDBTester(object):
         self.own_timeout = timeout
         self.timeout = timeout + 15
     
-    def run_the_test_function(self, port):
+    def run_test_function(self, test_function, port):
+    
         try:
-            self.test_function(port)
+            test_function(port)
         except Exception, f:
             self.test_failure = traceback.format_exc()
         else:
             self.test_failure = None
     
-    def test(self):
-                
+    def start_server(self, data_file_path):
+    
         print "Finding port..."
         port = find_unused_port()
         print "Chose port %d." % port
@@ -121,51 +126,43 @@ class RethinkDBTester(object):
         server_executable = "../../build/%s%s/rethinkdb" % (
             self.mode,
             "" if not self.valgrind else "-valgrind")
-        server = test_server(server_executable, "-p %d" % port, valgrind = self.valgrind)
+        server = test_server(server_executable, data_file_path, "-p %d" % port, valgrind = self.valgrind)
+        self.port = port
+        self.server = server
         print "Started server."
-        
-        print "Running test..."
-        test_thread = threading.Thread(target = self.run_the_test_function, args = (port,))
-        test_thread.start()
-        test_thread.join(self.own_timeout)
-        if test_thread.is_alive():
-            test_failure = "The integration test didn't finish in time, probably because the " \
-                "server wasn't responding to its queries fast enough."
-        else:
-            test_failure = self.test_failure
-        print "Finished test."
-        
+
+    def shutdown_server(self):
         print "Shutting down server..."
         try:
-            server.end()
+            self.server.end()
         except Exception, f:
-            server_failure = str(f) or repr(f)
+            self.server_failure = str(f) or repr(f)
         else:
-            server_failure = None
+            self.server_failure = None
         print "Shut down server."
         
-        if test_failure or server_failure:
+        if self.test_failure or self.server_failure:
             
             msg = ""
-            if test_failure is not None: msg += "Test script failed:\n    %s" % test_failure
+            if self.test_failure is not None: msg += "Test script failed:\n    %s" % self.test_failure
             else: msg += "Test script succeeded."
             msg += "\n"
-            if server_failure is not None: msg += "Server failed:\n    %s" % server_failure
+            if self.server_failure is not None: msg += "Server failed:\n    %s" % self.server_failure
             else: msg += "Server succeeded."
             
             temp_files = [
                 retest2.ResultTempFile(
-                    server.output.take_file(),
+                    self.server.output.take_file(),
                     "Output from server",
                     friendly_name = "server_output.txt",
                     important = False)
                 ]
             
-            server.dont_delete_data_files()
+            self.server.dont_delete_data_files()
             num = 0
-            while os.path.exists("%s%d" % (server.data_file_root, num)):
+            while os.path.exists("%s%d" % (self.server.data_file_root, num)):
                 temp_files.append(retest2.ResultTempFile(
-                    "%s%d" % (server.data_file_root, num),
+                    "%s%d" % (self.server.data_file_root, num),
                     "Server data file %d" % num,
                     friendly_name = "data.file%d" % num,
                     important = False))
@@ -179,3 +176,68 @@ class RethinkDBTester(object):
             # Server's destructor will remove leftover data files
             
             return retest2.Result("pass")
+
+
+    def test(self):
+        
+        d = data_file()
+        self.start_server(d)
+        port = self.port
+        server = self.server
+        print "Running test..."
+        test_thread = threading.Thread(target = self.run_test_function, args = (self.test_function, port,))
+        test_thread.start()
+        test_thread.join(self.own_timeout)
+        if test_thread.is_alive():
+            self.test_failure = "The integration test didn't finish in time, probably because the " \
+                "server wasn't responding to its queries fast enough."
+
+        print "Finished test."
+        
+        return self.shutdown_server()
+
+class RethinkDBCorruptionTester(RethinkDBTester):
+        
+    def __init__(self, test_function1, test_function2, mode, valgrind = False, timeout = 60):
+    
+        self.test_function1 = test_function1
+        self.test_function2 = test_function2
+        self.mode = mode
+        self.valgrind = valgrind
+        
+        # We will abort ourselves when 'self.own_timeout' is hit. retest2 will abort us when
+        # 'self.timeout' is hit. 
+        self.own_timeout = timeout
+        self.timeout = timeout + 15
+    
+    def test(self):
+        
+        d = data_file()
+        self.start_server(d)
+        port = self.port
+        server = self.server
+        print "Running first test..."
+        test_thread = threading.Thread(target = self.run_test_function, args = (self.test_function1, port,))
+        test_thread.start()
+        test_thread.join(random.random()/100)
+        if not test_thread.is_alive():
+            raise RuntimeError, "first test finished before we could kill the server."
+        else:
+            server.server.send_signal(signal.SIGINT)
+
+        print "Server killed."
+        print "Starting another server..."        
+        self.start_server(d)
+        port = self.port
+        server = self.server
+        print "Running second test..."
+
+        test_thread = threading.Thread(target = self.run_test_function, args = (self.test_function2, port,))
+        test_thread.start()
+        test_thread.join(self.own_timeout)
+
+        if test_thread.is_alive():
+            self.test_failure = "The integration test didn't finish in time, probably because the " \
+                "server wasn't responding to its queries fast enough."
+        
+        return self.shutdown_server()
