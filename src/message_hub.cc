@@ -8,11 +8,12 @@
 
 int hash(btree_key *key)
 {
-    // TODO: we better find a good hash function or the whole
-    // concurrency model goes to crap.
+    int res = 0;
+    int bits_in_res = (sizeof(res) * 8);
+    for (int i = 0; i < key->size; i++)
+        res = (bits_in_res - 1) * res + key->contents[i];
 
-    //FIXME: This temporary hash results in uneven distribution
-    return key->contents[key->size-1];
+    return res;
 }
 
 int key_to_cpu(btree_key *key, unsigned int ncpus)
