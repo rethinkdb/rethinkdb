@@ -251,10 +251,17 @@ class StatePrinter:
     def __init__(self, val):
         self.val = val
 
+#     def to_string(self):
+#         a = ["uninitialized", "start_transaction", "acquire_superblock", "acquire_root", "insert_root", "insert_root_on_split", "acquire_node", "update_complete", "committing"]
+#         try: return a[int(self.val)]
+#         except: return "type could not be determined, value is " + str(self.val)
+
     def to_string(self):
-        a = ["uninitialized", "start_transaction", "acquire_superblock", "acquire_root", "insert_root", "insert_root_on_split", "acquire_node", "update_complete", "committing"]
-        try: return a[int(self.val)]
-        except: return "type could not be determined, value is " + str(self.val)
+        return int(self.val)
+    def children(self):
+        g = GeneratorWrapper(process_kids(self.val, self.val))
+        for k, v in g:
+            for k2, v2 in printer(k, v): yield k2, v2
 
 
 class Btree_Set_TypePrinter:
@@ -390,13 +397,13 @@ class PerfmonPrinter:
 
 
 pretty_printers_dict = {}
-pretty_printers_dict[re.compile ('.*state.*')]                           = StatePrinter
+#pretty_printers_dict[re.compile ('.*state.*')]                           = StatePrinter
 pretty_printers_dict[re.compile ('^btree_fsm[^:].*')]                    = Btree_FsmPrinter
 pretty_printers_dict[re.compile ('^btree_set_fsm[^:].*')]                = Btree_FsmPrinter
 pretty_printers_dict[re.compile ('^btree_get_fsm[^:].*')]                = Btree_FsmPrinter
 pretty_printers_dict[re.compile ('^btree_delete_fsm[^:].*')]             = Btree_FsmPrinter
-pretty_printers_dict[re.compile ('^conn_fsm[^:].*')]                     = Conn_FsmPrinter
-pretty_printers_dict[re.compile ('.*conn_fsm.*state.*')]                 = Conn_FsmStatePrinter
+pretty_printers_dict[re.compile ('^conn_fsm<.*?>[^:].*')]                     = Conn_FsmPrinter
+#pretty_printers_dict[re.compile ('.*conn_fsm.*state.*')]                 = Conn_FsmStatePrinter
 pretty_printers_dict[re.compile ('.*cpu_message.*')]                     = Cpu_MessagePrinter
 pretty_printers_dict[re.compile ('.*fsm_type.*')]                        = Fsm_TypePrinter
 pretty_printers_dict[re.compile ('.*request_handler.*')]                 = RequestHandlerPrinter
