@@ -5,6 +5,7 @@ import pexpect
 import signal
 import subprocess
 import sys
+import os
 import threading
 
 def sigint(sig, frame, db):
@@ -28,8 +29,8 @@ def main():
     # Parse options that this script is expecting.
     usage = "Usage: %prog [options] [-- <rethinkdb options>]"
     parser = optparse.OptionParser(usage=usage)
-    parser.add_option("-p", "--port", default="8080",
-        help="socket port to listen on (default 8080)")
+    parser.add_option("-p", "--port", default=os.environ.get("RUN_PORT", "8080"),
+        help="socket port to listen on (default $RUN_PORT or 8080)")
     parser.add_option("-v", "--valgrind", action="store_true",
         help="invoke rethinkdb under valgrind")
     parser.add_option("--valgrind-opts", default="", metavar="OPTS",
