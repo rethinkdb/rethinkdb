@@ -22,7 +22,7 @@ worker_t::worker_t(int _workerid, int _nqueues, event_handler_t event_handler,
     event_queue = gnew<event_queue_t>(_workerid, _nqueues, event_handler, parent_pool, cmd_config);
 
 
-    // Init the cache
+    // Init the slices
     nworkers = _nqueues;
     workerid = _workerid;
     nslices = cmd_config->n_slices;
@@ -44,12 +44,12 @@ worker_t::worker_t(int _workerid, int _nqueues, event_handler_t event_handler,
                 cmd_config->flush_timer_ms,
                 cmd_config->flush_threshold_percent);
     }
+    active_slices  = true;
 }
 
 worker_t::~worker_t() {
+    check("Error in ~worker_t, cannot delete a worker_t without first deleting its slices", active_slices == true);
     delete event_queue;
-    //for (int i = 0; i < nslices; i++)
-        //delete slices[i];
 }
 
 void worker_t::start_worker() {
@@ -65,6 +65,13 @@ void worker_t::shutdown_slices() {
     for (int i = 0; i < nslices; i++)
         slices[i]->shutdown(event_queue);
 }
+
+void worker_t::delete_slices() {
+    for (int i = 0; i < nslices; i++)
+        gdelete(slices[i]);
+    active_slices = false;
+}
+
 
 void worker_t::on_sync() {
     event_queue->on_sync();

@@ -301,8 +301,7 @@ breakout:
     for (shutdown_fsms_t::iterator it = shutdown_fsms.begin(); it != shutdown_fsms.end(); ++it)
         delete *it;
 
-    for (int i = 0; i < parent->nslices; i++)
-        gdelete(parent->slices[i]);
+    parent->delete_slices();
 
     return tls_small_obj_alloc_accessor<alloc_t>::allocs_tl;
 }
