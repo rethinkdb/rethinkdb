@@ -7,7 +7,7 @@
 #include "config/code.hpp"
 #include "utils.hpp"
 
-static const char* default_db_file_name = "data.file";
+static const char* default_db_file_name = "db_data/data.file";
 
 void usage(const char *name) {
     printf("Usage:\n");

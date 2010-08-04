@@ -92,5 +92,10 @@
 // Perform allocator GC every N milliseconds (the resolution is limited to TIMER_TICKS_IN_MS)
 #define ALLOC_GC_INTERVAL_MS                      3000
 
+//filenames for the database
+#define DATA_DIRECTORY                            "db_data"
+
+#define DATA_FNAME_BASE                           "data.file"
+
 #endif // __CONFIG_ARGS_H__
 

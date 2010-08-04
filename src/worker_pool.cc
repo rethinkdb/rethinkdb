@@ -17,14 +17,17 @@
 #include "buffer_cache/concurrency/rwi_conc.hpp"
 #include "serializer/in_place.hpp"
 
-worker_t::worker_t(int queue_id, int _nqueues, event_handler_t event_handler,
+worker_t::worker_t(int _workerid, int _nqueues, event_handler_t event_handler,
         worker_pool_t *parent_pool, cmd_config_t *cmd_config) {
-    event_queue = gnew<event_queue_t>(queue_id, _nqueues, event_handler, parent_pool, cmd_config);
+    event_queue = gnew<event_queue_t>(_workerid, _nqueues, event_handler, parent_pool, cmd_config);
 
 
     // Init the cache
     nworkers = _nqueues;
+    workerid = _workerid;
     nslices = cmd_config->n_slices;
+
+    mkdir(DATA_DIRECTORY, 0777);
 
     for (int i = 0; i < nslices; i++) {
         typedef std::basic_string<char, std::char_traits<char>, gnew_alloc<char> > rdbstring_t;
