@@ -23,7 +23,8 @@ class output_file(object):
         self.src_file = SmartTemporaryFile()
     def __del__(self):
         self.src_file.close()
-    
+
+
 class data_file(object):
     def __init__(self):
         tf = tempfile.NamedTemporaryFile(prefix = "rdb_")
@@ -125,8 +126,7 @@ def shutdown_server(server, test_failure):
         server_failure = None
     print "Shut down server."
     
-    if test_failure or server_failure:
-        
+    if test_failure or server_failure:        
         msg = ""
         if test_failure is not None: msg += "Test script failed:\n    %s" % test_failure
         else: msg += "Test script succeeded."
@@ -155,7 +155,7 @@ def shutdown_server(server, test_failure):
         return retest2.Result("fail",
             description = msg,
             temp_files = temp_files)
-    
+                
     else:
         # Server's destructor will remove leftover data files            
         return retest2.Result("pass")
@@ -197,24 +197,15 @@ class RethinkDBTester(object):
             self.test_failure = "The integration test didn't finish in time, probably because the " \
                 "server wasn't responding to its queries fast enough."
 
-        print "Finished test."
-        
+        print "Finished test."        
         return shutdown_server(server, self.test_failure)
 
 
 class RethinkDBCorruptionTester(RethinkDBTester):
         
-    def __init__(self, test_function1, test_function2, mode, valgrind = False, timeout = 60):
-    
-        self.test_function1 = test_function1
+    def __init__(self, test_function, test_function2, mode, valgrind = False, timeout = 60):
+        RethinkDBTester.__init__(self, test_function, mode, valgrind, timeout)
         self.test_function2 = test_function2
-        self.mode = mode
-        self.valgrind = valgrind
-        
-        # We will abort ourselves when 'self.own_timeout' is hit. retest2 will abort us when
-        # 'self.timeout' is hit. 
-        self.own_timeout = timeout
-        self.timeout = timeout + 15
     
     def test(self):
         
@@ -223,17 +214,20 @@ class RethinkDBCorruptionTester(RethinkDBTester):
         server = start_server(d, o, self.mode, self.valgrind)
         print "Running first test..."
         mutual_list = []
-        test_thread = threading.Thread(target = self.run_test_function, args = (self.test_function1, server.port, mutual_list))
+        test_thread = threading.Thread(target = self.run_test_function, args = (self.test_function, server.port, mutual_list))
         test_thread.start()
-        time.sleep(.001)
+        time.sleep(.001) # give our server a chance to store some values before we kill it.
         
         if not test_thread.is_alive():
             raise RuntimeError, "first test finished before we could kill the server."
         else:
-            server.server.send_signal(signal.SIGINT)                
+            server.server.send_signal(signal.SIGINT)
             test_thread.join(self.own_timeout)
         
-        last_written_key = mutual_list[-1]
+        if len(mutual_list) == 0:
+            raise RuntimeError, "server was killed before any values were inserted."
+        else:
+            last_written_key = mutual_list[-1]
 
         print "Server killed."
         print "Starting another server..."        
@@ -243,8 +237,11 @@ class RethinkDBCorruptionTester(RethinkDBTester):
         test_thread = threading.Thread(target = self.run_test_function, args = (self.test_function2, server.port, mutual_list2))
         test_thread.start()
         test_thread.join(self.own_timeout)
-        
-        last_read_key = mutual_list2[-1]
+
+        if len(mutual_list2) == 0:
+            last_read_key = -1
+        else:
+            last_read_key = mutual_list2[-1] or 0
 
         if test_thread.is_alive():
             self.test_failure = "The integration test didn't finish in time, probably because the " \
