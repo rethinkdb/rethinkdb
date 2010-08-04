@@ -15,6 +15,9 @@ bin = False
 ints = range(0, NUM_INTS)
 clone = {}
 
+# TODO: Once the serializer is built, we need to have a test
+# that validates a btree.
+
 class RethinkDBCorruptionTester(GenericTester):
         
     def __init__(self, test_function, test_function2, mode, valgrind = False, timeout = 60):
@@ -69,29 +72,32 @@ class RethinkDBCorruptionTester(GenericTester):
             last_read_key = -1
         else:
             last_read_key = mutual_list2[-1]
-
+        print "last_read_key",last_read_key
+        print "last_written_key",last_written_key
         if test_thread.is_alive():
             self.test_failure = "The integration test didn't finish in time, probably because the " \
                 "server wasn't responding to its queries fast enough."
-        elif last_read_key < last_written_key - 1:
+        elif last_read_key < last_written_key:
             self.test_failure = "The last written key was %d, but the last read key was %d" % (last_written_key, last_read_key)
-        else:
-            self.test_failure = None
+        else: self.test_failure = None
         return server.shutdown(self.test_failure)
         
         
 def rethinkdb_insert(mc, ints, clone, mutual_list):
     for i in ints:
         print "Inserting %d" % i
-        mutual_list.append(i)
         if (0 == mc.set(str(i), str(i))):
             raise ValueError("Insert of %d failed" % i)
         clone[str(i)] = str(i)
+        mutual_list.append(i)
         
 def rethinkdb_verify(mc, ints, clone, mutual_list):
+    """
+        Checks to see that all values we inserted into the database
+        were stored correctly.
+    """
     for i in ints:
         print "Verifying existence of %d" % i
-        mutual_list.append(i)
         key = str(i)
         stored_value = mc.get(key)
         actual_value = key
@@ -99,6 +105,8 @@ def rethinkdb_verify(mc, ints, clone, mutual_list):
         if actual_value != stored_value:
             raise ValueError("Error, incorrect value in the database! (%s=>%s, should be %s). %d keys correctly stored." % \
                 (key, stored_value, actual_value, i-1))
+        mutual_list.append(i)
+
 
 def test_insert(port, mutual_list):
     mc = memcache.Client(["localhost:%d" % port], binary = bin)
@@ -112,8 +120,8 @@ def test_verify(port, mutual_list):
     rethinkdb_verify(mc, ints, clone, mutual_list)    
     print "Done"
 
-retest_release = RethinkDBCorruptionTester(test_insert, test_verify, "release", timeout = 10)
-retest_valgrind = RethinkDBCorruptionTester(test_insert, test_verify, "debug", timeout = 10)
+retest_release = RethinkDBCorruptionTester(test_insert, test_verify, "release", True, timeout = 10)
+retest_valgrind = RethinkDBCorruptionTester(test_insert, test_verify, "debug", True, timeout = 10)
 
 if __name__ == '__main__':
     print "The corruption test involves shutting down and restarting a server, so it can't be run this way."
