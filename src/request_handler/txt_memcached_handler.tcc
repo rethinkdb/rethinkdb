@@ -345,7 +345,7 @@ public:
             sbuf->printf(DELETE_SUCCESS);
         } else if (fsm->op_result == btree_delete_fsm_t::btree_not_found) {
             sbuf->printf(NOT_FOUND);
-        } else assert(0);
+        } else fail("Bad btree result.");
     }
 
 private:

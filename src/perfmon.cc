@@ -25,13 +25,9 @@ int var_monitor_t::print(char *buf, int max_size) {
     case vt_float_function:
         return snprintf(buf, max_size, "%f", (*((float_function) value))());
         break;
-    case vt_undefined:
-        check("Trying to print var_monitor_T of type vt_undefined", 1);
-        break;
     default:
-        check("Trying to print var_monitor_T of unrecognized type", 1);
-        break;
-    };
+        fail("Trying to print var_monitor_T of bad type");
+    }
     return 0;
 }
 
@@ -55,13 +51,9 @@ void var_monitor_t::freeze_state() {
     case vt_float_function:
         //keep it thawed
         break;
-    case vt_undefined:
-        check("Trying to freeze var_monitor_T of type vt_undefined", 1);
-        break;
     default:
-        check("Trying to freeze var_monitor_T of unrecognized type", 1);
-        break;
-    };
+        fail("Trying to freeze var_monitor_T of bad type");
+    }
 }
 
 /* Perfmon module */

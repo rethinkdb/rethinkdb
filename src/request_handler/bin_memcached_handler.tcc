@@ -473,8 +473,7 @@ typename bin_memcached_handler_t<config_t>::parse_result_t bin_memcached_handler
             new bin_memcached_append_prepend_request<config_t>(this, pkt, key, pkt->value(), pkt->value_length(), false);
             break;
         default:
-            check("Invalid opcode in bin_memcached_handler_t::dispatch_appropriate_fsm", 0);
-            return malformed_request();   // Placate GCC
+            fail("Invalid opcode in bin_memcached_handler_t::dispatch_appropriate_fsm");
     }
     
     if (is_quiet_code(pkt->opcode())) return req_handler_t::op_req_parallelizable;

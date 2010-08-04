@@ -52,7 +52,7 @@ bool writeback_tmpl_t<config_t>::sync(sync_callback_t *callback) {
                         // We can't be in state_ready, because we just started writeback and it
                         // didn't complete. We can't be in state_locked or state_cleanup, because
                         // those states aren't really "states"; they're more like transitions.
-                        assert(0);
+                        fail("Writeback is in unexpected state");
                 }
             }
             return false;
@@ -100,8 +100,7 @@ bool writeback_tmpl_t<config_t>::begin_transaction(transaction_t *txn,
                 return false;
             }
         default:
-            assert(0);
-            return false;   // Placate GCC
+            fail("Transaction access invalid.");
     }
 }
 
@@ -256,7 +255,7 @@ bool writeback_tmpl_t<config_t>::next_writeback_step() {
         return true;
     }
     
-    assert(0);
+    fail("Invalid state.");
 }
 
 template <class config_t>

@@ -65,9 +65,8 @@ public:
             case vt_float_function:
                 //just leave the value as is
                 break;
-            case vt_undefined:
             default:
-                check("Bad var mon type", 1);
+                fail("Bad var mon type");
         }
     }
 

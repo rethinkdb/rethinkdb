@@ -98,7 +98,7 @@ typename conn_fsm<config_t>::result_t conn_fsm<config_t>::do_fsm_btree_incomplet
             state = fsm_outstanding_data;
         }
     } else {
-        check("fsm_btree_incomplete: Invalid event", 1);
+        fail("fsm_btree_incomplete: Invalid event");
     }
     
     return fsm_transition_ok;
@@ -119,7 +119,7 @@ typename conn_fsm<config_t>::result_t conn_fsm<config_t>::do_socket_send_incompl
             state = fsm_outstanding_data;
         }
     } else {
-        check("fsm_socket_send_ready: Invalid event", 1);
+        fail("fsm_socket_send_ready: Invalid event");
     }
     return fsm_transition_ok;
 }
@@ -170,7 +170,7 @@ typename conn_fsm<config_t>::result_t conn_fsm<config_t>::do_fsm_outstanding_req
             state->state = fsm_outstanding_data;
             return fsm_transition_ok;
         default:
-            check("Unknown request parse result", 1);
+            fail("Unknown request parse result");
     }
     return fsm_transition_ok;
 }
@@ -201,7 +201,7 @@ typename conn_fsm<config_t>::result_t conn_fsm<config_t>::do_transition(event_t 
             break;
         default:
             res = fsm_invalid;
-            check("Invalid state", 1);
+            fail("Invalid state");
     }
     if (state == fsm_outstanding_data && res != fsm_quit_connection && res != fsm_shutdown_server) {
         if (nrbuf == 0) {

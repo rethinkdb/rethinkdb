@@ -167,7 +167,7 @@ void process_network_notify(event_queue_t *self, epoll_event *event) {
               event->events == EPOLLHUP) {
         self->deregister_fsm(event->data.ptr);
     } else {
-        check("epoll_wait came back with an unhandled event", 1);
+        fail("epoll_wait came back with an unhandled event");
     }
 }
 
@@ -414,7 +414,7 @@ void event_queue_t::watch_resource(resource_t resource, event_op_t watch_mode,
         event.events |= EPOLLIN;
         event.events |= EPOLLOUT;
     } else {
-        check("Invalid watch mode", 1);
+        fail("Invalid watch mode");
     }
 
     event.data.ptr = state;

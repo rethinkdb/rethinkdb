@@ -159,7 +159,7 @@ public:
                         if(errno == EAGAIN || errno == EWOULDBLOCK)
                             res = linked_buf_outstanding;
                         else
-                            check("Error sending to socket", 1);
+                            fail("Error sending to socket");
                     } else {
                         nsent += sz;
                         get_cpu_context()->worker->bytes_written += sz;

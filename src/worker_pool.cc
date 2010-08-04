@@ -199,7 +199,7 @@ void worker_t::initiate_conn_fsm_transition(event_t *event) {
         event_queue->forget_resource(source);
         clean_fsms();
     } else {
-        check("Unhandled fsm transition result", 1);
+        fail("Unhandled fsm transition result");
     }
 }
 
@@ -302,7 +302,7 @@ void worker_t::event_handler(event_t *event) {
             break;
         }
     } else {
-        check("Unknown event in event_handler", 1);
+        fail("Unknown event in event_handler");
     }
 }
 

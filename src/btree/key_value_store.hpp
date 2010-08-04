@@ -105,7 +105,7 @@ private:
             return true;
         }
         
-        assert(0);
+        fail("Unexpected state");
     }
     
     void on_txn_commit(transaction_t *t) {
@@ -195,7 +195,7 @@ private:
             return true;
         }
         
-        assert(0);
+        fail("Unexpected state");
     }
     void on_cache_ready() {
         assert(state == state_starting_up_waiting_for_cache);

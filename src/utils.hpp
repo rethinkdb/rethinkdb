@@ -18,6 +18,13 @@ static inline void check(const char *msg, bool err) {
     }
 }
 
+#define fail(msg) _fail(msg, __FILE__, __LINE__)
+static inline void _fail(const char*, const char*, int) __attribute__ ((noreturn));
+static inline void _fail(const char *msg, const char *file, int line) {
+    fprintf(stderr, "%s:%d: %s\n", file, line, msg);
+    exit(-1);
+}
+
 int get_cpu_count();
 long get_available_ram();
 long get_total_ram();

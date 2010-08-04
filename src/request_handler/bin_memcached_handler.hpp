@@ -130,7 +130,7 @@ public:
                 return error_messages[8];
                 break;
             default:
-                check("Invalid status message", 0);
+                fail("Invalid status message");
         }
     }
 
@@ -276,16 +276,13 @@ public:
             byte *data;
 
             bool is_request() {
-                bool res;
                 if (magic() == bin_magic_request)
-                    res = true;
+                    return true;
                 else if (magic() == bin_magic_response)
-                    res = false;
+                    return false;
                 else {
-                    res = -1;//some bullshit to get the compiler to be quite
-                    check("Packet has corrupted magic number", 1);
+                    fail("Packet has corrupted magic number");
                 }
-                return res; //stfu gcc
             }
 
             //sick of looking up which one i defined
@@ -375,7 +372,7 @@ public:
                         break;
                 }
 error_breakout:
-                check("Trying to get flags from something that doesn't have flags", 1);
+                fail("Trying to get flags from something that doesn't have flags");
             }
 
             bin_expr_time_t expr_time() {
@@ -416,7 +413,7 @@ error_breakout:
                         break;
                 }
 error_breakout:
-                check("Trying to get expr from something that doesn't have expr", 1);
+                fail("Trying to get expr from something that doesn't have expr");
             }
             
             bin_delta_t delta() {
@@ -437,7 +434,7 @@ error_breakout:
                         break;
                 }
 error_breakout:
-                check("Trying to get delta from something that doesn't have delta", 1);
+                fail("Trying to get delta from something that doesn't have delta");
             }
 
             bin_init_val_t init_val() {
@@ -458,7 +455,7 @@ error_breakout:
                         break;
                 }
 error_breakout:
-                check("Trying to get init_val from something that doesn't have init_val", 1);
+                fail("Trying to get init_val from something that doesn't have init_val");
             }
 
             //setters
@@ -624,7 +621,7 @@ error_breakout:
                 }
                 return;
 error_breakout:
-                check("Trying to set flags in a packet that doesn't have flags", 1);
+                fail("Trying to set flags in a packet that doesn't have flags");
             }
 
             void expr_time(bin_expr_time_t expr_time) {
@@ -667,7 +664,7 @@ error_breakout:
                 }
                 return;
 error_breakout:
-                check("Trying to set expr_time in something that doesn't have expr", 1);
+                fail("Trying to set expr_time in something that doesn't have expr");
             }
             
             void delta(bin_delta_t delta) {
@@ -689,7 +686,7 @@ error_breakout:
                 }
                 return;
 error_breakout:
-                check("Trying to set delta from something that doesn't have delta", 1);
+                fail("Trying to set delta from something that doesn't have delta");
             }
 
             void init_val(bin_init_val_t init_val) {
@@ -710,7 +707,7 @@ error_breakout:
                         break;
                 }
 error_breakout:
-                check("Trying to get expr from something that doesn't have expr", 1);
+                fail("Trying to get expr from something that doesn't have expr");
             }
 
             bool is_valid_request() {

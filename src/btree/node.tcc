@@ -68,7 +68,7 @@ void node_handler::validate(btree_node *node) {
             internal_node_handler::validate((btree_internal_node *)node);
             break;
         default:
-            assert(0);
+            fail("Invalid leaf node type.");
     }
 }
 #endif

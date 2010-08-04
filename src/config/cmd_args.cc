@@ -123,7 +123,7 @@ void parse_cmd_args(int argc, char *argv[], cmd_config_t *config)
         case wait_for_flush:
         	if (strcmp(optarg, "y")==0) config->wait_for_flush = true;
         	else if (strcmp(optarg, "n")==0) config->wait_for_flush = false;
-        	else check("wait-for-flush expects 'y' or 'n'", 1);
+        	else fail("wait-for-flush expects 'y' or 'n'");
             break;
         case flush_timer:
             if (strcmp(optarg, "disable")==0) config->flush_timer_ms = NEVER_FLUSH;

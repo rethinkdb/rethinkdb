@@ -343,7 +343,7 @@ bool mirrored_cache_t<config_t>::next_starting_up_step() {
         return true;
     }
     
-    assert(0);
+    fail("Invalid state.");
 }
 
 template <class config_t>
@@ -461,7 +461,7 @@ bool mirrored_cache_t<config_t>::next_shutting_down_step() {
         return true;
     }
     
-    assert(0);
+    fail("Invalid state.");
 }
 
 template<class config_t>
