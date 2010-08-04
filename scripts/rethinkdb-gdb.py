@@ -1,6 +1,6 @@
 import re
 
-MAX_LEVEL = 3
+MAX_LEVEL = 2
 level = 0
 
 def strip_end_spaces(s):
