@@ -148,7 +148,6 @@ public:
     bin_memcached_incr_decr_request(bin_memcached_handler_t<config_t> *rh, packet_t *pkt, btree_key *key, bool increment, long long delta)
         : bin_memcached_request<config_t>(rh, pkt), fsm(new btree_incr_decr_fsm_t(key, increment, delta))
         {
-        logf(DBG, "r%d\n", delta);
         request->add(fsm, key_to_cpu(key, rh->event_queue->nqueues));
         request->dispatch();
     }
@@ -360,7 +359,6 @@ typename bin_memcached_handler_t<config_t>::parse_result_t bin_memcached_handler
         case bin_opcode_prependq:
             new bin_memcached_append_prepend_request<config_t>(this, pkt, key, pkt->value(), pkt->value_length(), false);
             break;
-            //return unimplemented_request();
         default:
             check("Invalid opcode in bin_memcached_handler_t::dispatch_appropriate_fsm", 0);
             return malformed_request();   // Placate GCC
