@@ -170,11 +170,40 @@ public:
         } else {
             sbuf->printf(NOT_FOUND);
         }
-        delete fsm;
     }
 
 private:
     btree_incr_decr_fsm_t *fsm;
+};
+
+template<class config_t>
+class txt_memcached_append_prepend_request : public txt_memcached_request<config_t>,
+    public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, txt_memcached_append_prepend_request<config_t> > {
+public:
+    typedef typename config_t::conn_fsm_t conn_fsm_t;
+    typedef typename config_t::btree_append_prepend_fsm_t btree_append_prepend_fsm_t;
+
+    txt_memcached_append_prepend_request(txt_memcached_handler_t<config_t> *rh, btree_key *key, byte *data, int length, bool append, bool noreply)
+        : txt_memcached_request<config_t>(rh, noreply),
+          fsm(new btree_append_prepend_fsm_t(key, data, length, append)) {
+        this->request->add(fsm, key_to_cpu(key, rh->event_queue->nqueues));
+        this->request->dispatch();
+    }
+
+    ~txt_memcached_append_prepend_request() {
+        delete fsm;
+    }
+
+    void build_response(typename conn_fsm_t::linked_buf_t *sbuf) {
+        if (fsm->set_was_successful) {
+            sbuf->printf(STORAGE_SUCCESS);
+        } else {
+            sbuf->printf(STORAGE_FAILURE);
+        }
+    }
+
+private:
+    btree_append_prepend_fsm_t *fsm;
 };
 
 template<class config_t>
@@ -488,7 +517,11 @@ typename txt_memcached_handler_t<config_t>::parse_result_t txt_memcached_handler
             new txt_memcached_set_request<config_t>(this, &key, conn_fsm->rbuf, bytes, false, true, noreply);
             break;
         case APPEND:
+            new txt_memcached_append_prepend_request<config_t>(this, &key, conn_fsm->rbuf, bytes, true, noreply);
+            break;
         case PREPEND:
+            new txt_memcached_append_prepend_request<config_t>(this, &key, conn_fsm->rbuf, bytes, false, noreply);
+            break;
         case CAS:
             conn_fsm->consume(bytes+2);
             return unimplemented_request();

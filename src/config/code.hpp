@@ -51,6 +51,7 @@ struct standard_config_t {
     typedef btree_set_fsm<standard_config_t> btree_set_fsm_t;
     typedef btree_delete_fsm<standard_config_t> btree_delete_fsm_t;
     typedef btree_incr_decr_fsm<standard_config_t> btree_incr_decr_fsm_t;
+    typedef btree_append_prepend_fsm<standard_config_t> btree_append_prepend_fsm_t;
 
     // Request handler
     //TODO we should refactor to not use weird derivations of the names

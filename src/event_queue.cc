@@ -31,6 +31,7 @@
 #include "btree/get_fsm.hpp"
 #include "btree/set_fsm.hpp"
 #include "btree/incr_decr_fsm.hpp"
+#include "btree/append_prepend_fsm.hpp"
 #include "btree/delete_fsm.hpp"
 #include "conn_fsm.hpp"
 #include "request.hpp"

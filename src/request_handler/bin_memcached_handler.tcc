@@ -85,6 +85,8 @@ public:
         if(fsm->op_result == btree_get_fsm_t::btree_found) {
             res_pkt->status(bin_memcached_handler_t<config_t>::bin_status_no_error);
             res_pkt->set_value(&fsm->value);
+            // TODO: memcached sets a flag if the value returned is a number.
+            // (Specifically, extras is 00 00 00 02.)
             res_pkt->set_extras(extra_flags, extra_flags_length);
         } else {
             res_pkt->status(bin_memcached_handler_t<config_t>::bin_status_key_not_found);
@@ -146,6 +148,7 @@ public:
     bin_memcached_incr_decr_request(bin_memcached_handler_t<config_t> *rh, packet_t *pkt, btree_key *key, bool increment, long long delta)
         : bin_memcached_request<config_t>(rh, pkt), fsm(new btree_incr_decr_fsm_t(key, increment, delta))
         {
+        logf(DBG, "r%d\n", delta);
         request->add(fsm, key_to_cpu(key, rh->event_queue->nqueues));
         request->dispatch();
     }
@@ -156,10 +159,47 @@ public:
     
     void build_response(packet_t *res_pkt) {
         // TODO this is probably wrong
-        res_pkt->status(bin_memcached_handler_t<config_t>::bin_status_no_error);
+        if (fsm->set_was_successful) {
+            // TODO This should return the value (and a flag to show that it's a number).
+            res_pkt->status(bin_memcached_handler_t<config_t>::bin_status_no_error);
+        } else {
+            res_pkt->status(bin_memcached_handler_t<config_t>::bin_status_key_not_found);
+        }
     }
 private:
     btree_incr_decr_fsm_t *fsm;
+};
+
+template<class config_t>
+class bin_memcached_append_prepend_request : public bin_memcached_request<config_t>,
+    public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, bin_memcached_append_prepend_request<config_t> > {
+
+public:
+    typedef typename bin_memcached_handler_t<config_t>::packet_t packet_t;
+    typedef typename config_t::conn_fsm_t conn_fsm_t;
+    typedef typename config_t::btree_append_prepend_fsm_t btree_append_prepend_fsm_t;
+    using bin_memcached_request<config_t>::request;
+
+public:
+    bin_memcached_append_prepend_request(bin_memcached_handler_t<config_t> *rh, packet_t *pkt, btree_key *key, byte *data, int size, bool append) : bin_memcached_request<config_t>(rh, pkt), fsm(new btree_append_prepend_fsm_t(key, data, size, append)) {
+        request->add(fsm, key_to_cpu(key, rh->event_queue->nqueues));
+        request->dispatch();
+    }
+
+    ~bin_memcached_append_prepend_request() {
+        delete fsm;
+    }
+
+    void build_response(packet_t *res_pkt) {
+        if (fsm->set_was_successful) {
+            res_pkt->status(bin_memcached_handler_t<config_t>::bin_status_no_error);
+        } else {
+            res_pkt->status(bin_memcached_handler_t<config_t>::bin_status_item_not_stored);
+        }
+    }
+
+private:
+    btree_append_prepend_fsm_t *fsm;
 };
 
 template<class config_t>
@@ -296,6 +336,7 @@ typename bin_memcached_handler_t<config_t>::parse_result_t bin_memcached_handler
         case bin_opcode_increment:
         case bin_opcode_incrementq:
         {
+            // FIXME delta is in extras, not the value.
             long long delta = atoll(pkt->value());
             new bin_memcached_incr_decr_request<config_t>(this, pkt, key, true, delta);
             break;
@@ -313,9 +354,13 @@ typename bin_memcached_handler_t<config_t>::parse_result_t bin_memcached_handler
             break;
         case bin_opcode_append:
         case bin_opcode_appendq:
+            new bin_memcached_append_prepend_request<config_t>(this, pkt, key, pkt->value(), pkt->value_length(), true);
+            break;
         case bin_opcode_prepend:
         case bin_opcode_prependq:
-            return unimplemented_request();
+            new bin_memcached_append_prepend_request<config_t>(this, pkt, key, pkt->value(), pkt->value_length(), false);
+            break;
+            //return unimplemented_request();
         default:
             check("Invalid opcode in bin_memcached_handler_t::dispatch_appropriate_fsm", 0);
             return malformed_request();   // Placate GCC

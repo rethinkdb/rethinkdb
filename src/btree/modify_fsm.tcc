@@ -241,7 +241,7 @@ typename btree_modify_fsm<config_t>::transition_result_t btree_modify_fsm<config
         // Split the node if necessary
         bool full;
         if (node_handler::is_leaf(node)) {
-            full = leaf_node_handler::is_full((leaf_node_t *)node, &key, new_value);
+            full = set_was_successful && leaf_node_handler::is_full((leaf_node_t *)node, &key, new_value);
         } else {
             full = internal_node_handler::is_full((internal_node_t *)node);
         }

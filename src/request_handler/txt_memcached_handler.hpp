@@ -17,6 +17,7 @@ public:
     typedef typename config_t::btree_get_fsm_t btree_get_fsm_t;
     typedef typename config_t::btree_delete_fsm_t btree_delete_fsm_t;
     typedef typename config_t::btree_incr_decr_fsm_t btree_incr_decr_fsm_t;
+    typedef typename config_t::btree_append_prepend_fsm_t btree_append_prepend_fsm_t;
     typedef typename config_t::req_handler_t req_handler_t;
     typedef typename req_handler_t::parse_result_t parse_result_t;
     using request_handler_t<config_t>::conn_fsm;

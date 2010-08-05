@@ -7,6 +7,7 @@
 #include "alloc/alloc_mixin.hpp"
 #include <arpa/inet.h>
 
+// TODO This shouldn't be necessary.
 #define MAX_PACKET_SIZE 200
 
 //Memcached spec section 4.2 and 4.3 state that flags need to be present in get and set responses
@@ -82,7 +83,7 @@ public:
         //of course this depends on the codes being sequential
         bin_status_code statuses[num_status_code] = {bin_status_no_error, bin_status_key_not_found, bin_status_key_exists, bin_status_value_too_large, bin_status_invalid_arguments, bin_status_item_not_stored, bin_status_incr_decr_on_non_numeric_value, bin_status_unknown_command, bin_status_out_of_memory};
         for (bin_status_code i = 0; i < num_status_code; i++) {
-            if (status = i)
+            if (status == i)
                 return true;
         }
         return false;
