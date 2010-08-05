@@ -64,7 +64,7 @@ struct worker_t : public sync_callback<code_config_t> {
         static void on_btree_completed(code_config_t::btree_fsm_t *btree_fsm);
         void process_btree_msg(code_config_t::btree_fsm_t *btree_fsm);
         void process_perfmon_msg(perfmon_msg_t *msg);
-        //void process_lock_msg(event_t *event, rwi_lock_t::lock_request_t *lr);
+        void process_lock_msg(event_t *event, rwi_lock_t::lock_request_t *lr);
         void process_log_msg(log_msg_t *msg);
         void event_handler(event_t *event);
     public:

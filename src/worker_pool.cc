@@ -134,6 +134,44 @@ void worker_t::initiate_conn_fsm_transition(event_t *event) {
     code_config_t::conn_fsm_t *fsm = (code_config_t::conn_fsm_t*)event->state;
     int res = fsm->do_transition(event);
 
+void worker_t::process_perfmon_msg(perfmon_msg_t *msg)
+{    
+    worker_t *worker = get_cpu_context()->worker;
+    event_queue_t *queue = worker->event_queue;
+    int this_cpu = get_cpu_context()->worker->workerid;
+    int return_cpu = msg->return_cpu;
+        
+    switch(msg->state) {
+    case perfmon_msg_t::sm_request:
+        // Copy our statistics into the perfmon message and send a response
+        msg->perfmon = new perfmon_t();
+        msg->perfmon->copy_from(worker->perfmon);
+        msg->state = perfmon_msg_t::sm_response;
+        break;
+    case perfmon_msg_t::sm_response:
+        msg->request->on_request_part_completed();
+        return;
+    case perfmon_msg_t::sm_copy_cleanup:
+        // Response has been sent to the client, time to delete the
+        // copy
+        delete msg->perfmon;
+        msg->state = perfmon_msg_t::sm_msg_cleanup;
+        break;
+    case perfmon_msg_t::sm_msg_cleanup:
+        // Copy has been deleted, delete the final message and return
+        delete msg;
+        return;
+    }
+
+    msg->return_cpu = this_cpu;
+    queue->message_hub.store_message(return_cpu, msg);
+}
+
+void worker_t::process_lock_msg(event_t *event, rwi_lock_t::lock_request_t *lr) {
+    lr->callback->on_lock_available();
+    delete lr;
+}
+
 void worker_t::on_sync() {
     decr_ref_count();
 }
