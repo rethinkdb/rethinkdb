@@ -110,5 +110,6 @@ void logger_t::_mlog_end() {
     worker_t *worker = get_cpu_context()->worker;
     msg->return_cpu = worker->workerid;
     worker->event_queue->message_hub.store_message(LOG_WORKER, msg);
+    worker->incr_ref_count();
     msg = NULL;
 }

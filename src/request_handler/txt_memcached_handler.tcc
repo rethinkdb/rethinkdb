@@ -69,7 +69,7 @@ public:
     bool add_get(btree_key *key) {
         if (this->request->can_add()) {
             btree_get_fsm_t *fsm = new btree_get_fsm_t(key);
-            this->request->add(fsm, key_to_cpu(key, rh->event_queue->nqueues));
+            this->request->add(fsm, key_to_cpu(key, rh->event_queue->parent->nworkers));
             fsms[num_fsms ++] = fsm;
             return true;
         } else {
@@ -123,7 +123,7 @@ public:
         : txt_memcached_request<config_t>(rh, noreply),
           fsm(new btree_set_fsm_t(key, data, length, add_ok, replace_ok))
         {
-        this->request->add(fsm, key_to_cpu(key, rh->event_queue->nqueues));
+        this->request->add(fsm, key_to_cpu(key, rh->event_queue->parent->nworkers));
         this->request->dispatch();
     }
     
@@ -156,7 +156,7 @@ public:
         : txt_memcached_request<config_t>(rh, noreply),
           fsm(new btree_incr_decr_fsm_t(key, increment, delta))
         {
-        this->request->add(fsm, key_to_cpu(key, rh->event_queue->nqueues));
+        this->request->add(fsm, key_to_cpu(key, rh->event_queue->parent->nworkers));
         this->request->dispatch();
     }
     
@@ -186,7 +186,7 @@ public:
     txt_memcached_append_prepend_request(txt_memcached_handler_t<config_t> *rh, btree_key *key, byte *data, int length, bool append, bool noreply)
         : txt_memcached_request<config_t>(rh, noreply),
           fsm(new btree_append_prepend_fsm_t(key, data, length, append)) {
-        this->request->add(fsm, key_to_cpu(key, rh->event_queue->nqueues));
+        this->request->add(fsm, key_to_cpu(key, rh->event_queue->parent->nworkers));
         this->request->dispatch();
     }
 
@@ -218,7 +218,7 @@ public:
     txt_memcached_delete_request(txt_memcached_handler_t<config_t> *rh, btree_key *key, bool noreply)
         : txt_memcached_request<config_t>(rh, noreply),
           fsm(new btree_delete_fsm_t(key)) {
-        this->request->add(fsm, key_to_cpu(key, rh->event_queue->nqueues));
+        this->request->add(fsm, key_to_cpu(key, rh->event_queue->parent->nworkers));
         this->request->dispatch();
     }
     

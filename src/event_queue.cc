@@ -136,13 +136,10 @@ int process_itc_notify(event_queue_t *self) {
             return event.event_type;
             break;
         case iet_new_socket:
-            // The state will be freed within the fsm when the socket is
-            // closed (or killed for a variety of possible reasons)
-            event_queue_t::conn_fsm_t *state =
-                new event_queue_t::conn_fsm_t(event.data, self);
-            self->register_fsm(state);
-            self->total_connections++;
-            self->curr_connections++;
+            int resource;
+            void *source;
+            self->parent->new_fsm(event.data, resource, &source);
+            self->watch_resource(resource, eo_rdwr, source);
             break;
         }
     }
@@ -152,24 +149,22 @@ int process_itc_notify(event_queue_t *self) {
 
 void process_network_notify(event_queue_t *self, epoll_event *event) {
     if(event->events & EPOLLIN || event->events & EPOLLOUT) {
-        if(self->event_handler) {
-            event_t qevent;
-            bzero((char*)&qevent, sizeof(qevent));
-            qevent.event_type = et_sock;
-            qevent.state = event->data.ptr;
-            if((event->events & EPOLLIN) && !(event->events & EPOLLOUT)) {
-                qevent.op = eo_read;
-            } else if(!(event->events & EPOLLIN) && (event->events & EPOLLOUT)) {
-                qevent.op = eo_write;
-            } else {
-                qevent.op = eo_rdwr;
-            }
-            self->event_handler(self, &qevent);
+        event_t qevent;
+        bzero((char*)&qevent, sizeof(qevent));
+        qevent.event_type = et_sock;
+        qevent.state = event->data.ptr;
+        if((event->events & EPOLLIN) && !(event->events & EPOLLOUT)) {
+            qevent.op = eo_read;
+        } else if(!(event->events & EPOLLIN) && (event->events & EPOLLOUT)) {
+            qevent.op = eo_write;
+        } else {
+            qevent.op = eo_rdwr;
         }
+        self->parent->event_handler(&qevent);
     } else if(event->events == EPOLLRDHUP ||
               event->events == EPOLLERR ||
               event->events == EPOLLHUP) {
-        self->deregister_fsm((event_queue_t::conn_fsm_t*)(event->data.ptr));
+        self->deregister_fsm(event->data.ptr);
     } else {
         check("epoll_wait came back with an unhandled event", 1);
     }
@@ -192,7 +187,7 @@ void process_cpu_core_notify(event_queue_t *self, message_hub_t::msg_list_t *mes
         event_t cpu_event;
         cpu_event.event_type = et_cpu_event;
         cpu_event.state = &msg;
-        self->event_handler(self, &cpu_event);
+        self->parent->event_handler(&cpu_event);
     }
     
     assert(messages->empty());
@@ -208,8 +203,6 @@ void *event_queue_t::epoll_handler(void *arg) {
     event_queue_t *self = parent->event_queue;
     epoll_event events[MAX_IO_EVENT_PROCESSING_BATCH_SIZE];
     bool shutting_down = false; // True btw. iet_shutdown and iet_cache_synced.
-    typedef std::vector<event_queue_t::conn_fsm_t*, gnew_alloc<conn_fsm_t*> > shutdown_fsms_t;
-    shutdown_fsms_t shutdown_fsms;
 
     // First, set the cpu context structure
     get_cpu_context()->worker = parent;
@@ -257,14 +250,8 @@ void *event_queue_t::epoll_handler(void *arg) {
                     // core as where they were allocated.
 
                     // Clean up remaining fsms
-                    for (event_queue_t::conn_fsm_t *state =
-                         self->live_fsms.head(); state != NULL;
-                         state = self->live_fsms.head()) {
-                        self->deregister_fsm(state);
-                        shutdown_fsms.push_back(state);
-                    }
-
-                    parent->shutdown_slices();
+                    self->deregister_all_fsms();
+                    parent->shutdown();
 
                     break;
                 case iet_cache_synced:
@@ -299,29 +286,22 @@ breakout:
         delete t;
     }
 
-    for (shutdown_fsms_t::iterator it = shutdown_fsms.begin(); it != shutdown_fsms.end(); ++it)
-        delete *it;
-
     parent->delete_slices();
 
     return tls_small_obj_alloc_accessor<alloc_t>::allocs_tl;
 }
 
-event_queue_t::event_queue_t(int workerid, int _nqueues, event_handler_t event_handler,
-                             worker_pool_t *parent_pool, cmd_config_t *cmd_config)
-    : iosys(this), total_connections(0), curr_connections(0)
+event_queue_t::event_queue_t(int workerid, int _nqueues,
+                             worker_pool_t *parent_pool, worker_t *worker, cmd_config_t *cmd_config)
+    : iosys(this)
 {
     int res;
-    this->queueid = workerid;
-    this->nqueues = _nqueues;
-    this->event_handler = event_handler;
+    this->parent = worker;
     this->parent_pool = parent_pool;
     this->timer_fd = -1;
     this->timer_ticks_since_server_startup = 0;
 
     // Register some perfmon variables
-    perfmon.monitor(var_monitor_t(var_monitor_t::vt_int, "total_connections", (void*)&total_connections));
-    perfmon.monitor(var_monitor_t(var_monitor_t::vt_int, "curr_connections", (void*)&curr_connections));
 
     // Create aio context
     this->aio_context = 0;
@@ -529,28 +509,10 @@ void event_queue_t::post_itc_message(itc_event_t *event) {
     // around, we should get rid of this ITC system all together.
 }
 
-void event_queue_t::register_fsm(conn_fsm_t *fsm) {
-    live_fsms.push_back(fsm);
-    watch_resource(fsm->get_source(), eo_rdwr, fsm);
-    printf("Opened socket %d\n", fsm->get_source());
-}
-
-void event_queue_t::deregister_fsm(conn_fsm_t *fsm) {
-    printf("Closing socket %d\n", fsm->get_source());
-    forget_resource(fsm->get_source());
-    live_fsms.remove(fsm);
-    curr_connections--;
-    
-    // TODO: there might be outstanding btrees that we're missing (if
-    // we're quitting before the the operation completes). We need to
-    // free the btree structure in this case (more likely the request
-    // and all the btrees associated with it).
-}
-
 void event_queue_t::pull_messages_for_cpu(message_hub_t::msg_list_t *target) {
     for(int i = 0; i < parent_pool->nworkers; i++) {
         message_hub_t::msg_list_t tmp_list;
-        parent_pool->workers[i]->event_queue->message_hub.pull_messages(queueid, &tmp_list);
+        parent_pool->workers[i]->event_queue->message_hub.pull_messages(parent->workerid, &tmp_list);
         target->append_and_clear(&tmp_list);
     }
 }
@@ -606,7 +568,22 @@ void event_queue_t::cancel_timer(timer_t *timer) {
     delete timer;
 }
 
-void event_queue_t::on_sync() {
+void event_queue_t::deregister_fsm(void *fsm) {
+    int source;
+    parent->deregister_fsm(fsm, source);
+    forget_resource(source);
+    parent->clean_fsms();
+}
+
+void event_queue_t::deregister_all_fsms() {
+    int resource;
+    while(parent->deregister_fsm(resource)) {
+        forget_resource(resource);
+    }
+    parent->clean_fsms();
+}
+
+void event_queue_t::send_shutdown() {
     itc_event_t event;
     memset(&event, 0, sizeof event);
     event.event_type = iet_cache_synced;

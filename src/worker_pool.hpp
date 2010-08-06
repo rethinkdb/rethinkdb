@@ -9,23 +9,55 @@
 #include "config/code.hpp"
 #include "corefwd.hpp"
 #include "buffer_cache/callbacks.hpp"
+#include "buffer_cache/page_map/array.hpp"
+#include "message_hub.hpp"
+#include "perfmon.hpp"
+#include "logger.hpp"
+#include "concurrency/rwi_lock.hpp"
 
-typedef void (*event_handler_t)(event_queue_t*, event_t*);
-
-class worker_t : public sync_callback<code_config_t> {
+struct worker_t : public sync_callback<code_config_t> {
     public:
         typedef code_config_t::cache_t cache_t;
+        typedef code_config_t::conn_fsm_t conn_fsm_t;
+        typedef code_config_t::fsm_list_t fsm_list_t;
+        typedef std::vector<conn_fsm_t*, gnew_alloc<conn_fsm_t*> > shutdown_fsms_t;
     public:
-        worker_t(int queue_id, int _nqueues, event_handler_t event_handler,
+        worker_t(int queue_id, int _nqueues,
                   worker_pool_t *parent_pool, cmd_config_t *cmd_config);
         ~worker_t();
+    public:
+        //functions for the event_queue to call
         void start_worker();
         void start_slices();
+        void shutdown();
         void shutdown_slices();
         void delete_slices();
         cache_t *slice(btree_key *key) {
             return slices[key_to_slice(key, nworkers, nslices)];
         }
+
+        void new_fsm(int data, int &resource, void **source);
+
+        /*! \brief degister a specific fsm, used for when an fsm closes a connection
+         */
+        void deregister_fsm(void *fsm, int &resource);
+        /*! \brief degister an active fsm (order not significant), used
+         *  for shutdown, returns true if there is an fsm to be shutdown
+         */
+        bool deregister_fsm(int &resource);
+        /*! \brief delete the conn_fsms which have been deregistered
+         *  the fsms sources should have been forgotten by the event_queue
+         */
+        void clean_fsms();
+    public:
+        //functions for the outside world to call
+        void initiate_conn_fsm_transition(event_t *event);
+        static void on_btree_completed(code_config_t::btree_fsm_t *btree_fsm);
+        void process_btree_msg(code_config_t::btree_fsm_t *btree_fsm);
+        void process_perfmon_msg(perfmon_msg_t *msg);
+        void process_lock_msg(event_t *event, rwi_lock_t::lock_request_t *lr);
+        void process_log_msg(log_msg_t *msg);
+        void event_handler(event_t *event);
     public:
         event_queue_t *event_queue;
         cache_t *slices[MAX_SLICES];
@@ -38,16 +70,37 @@ class worker_t : public sync_callback<code_config_t> {
         log_writer_t log_writer;
     public:
         virtual void on_sync();
+    public:
+        perfmon_t perfmon;
+        int total_connections, curr_connections;
+        logger_t logger;
     private:
         bool active_slices;
+
+        fsm_list_t live_fsms;
+        shutdown_fsms_t shutdown_fsms;
+
+    private:
+        /*! \brief are we trying to shutdown?
+         */
+        bool shutting_down;
+
+        /*! \brief reference_count is the number of things we need to get back
+         *  before we can shut down
+         *  this includes sync_callbacks and log_messages
+         */
+        int ref_count;
+    public:
+        void incr_ref_count();
+        void decr_ref_count();
 };
 
 // Worker pool
 struct worker_pool_t {
 public:    
-    worker_pool_t(event_handler_t event_handler, pthread_t main_thread,
+    worker_pool_t(pthread_t main_thread,
                   cmd_config_t *_cmd_config);
-    worker_pool_t(event_handler_t event_handler, pthread_t main_thread, int _nworkers, int _nslices,
+    worker_pool_t(pthread_t main_thread, int _nworkers, int _nslices,
                   cmd_config_t *_cmd_config);
     ~worker_pool_t();
     
@@ -64,7 +117,7 @@ public:
     std::vector<void*, gnew_alloc<void*> > all_allocs;
     
 private:
-    void create_worker_pool(event_handler_t event_handler, pthread_t main_thread,
+    void create_worker_pool(pthread_t main_thread,
                             int _nworkers, int _nslices);
 };
 

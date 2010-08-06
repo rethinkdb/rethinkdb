@@ -71,7 +71,7 @@ public:
     bin_memcached_get_request(bin_memcached_handler_t<config_t> *rh, packet_t *pkt, btree_key *key)
         : bin_memcached_request<config_t>(rh, pkt), fsm(new btree_get_fsm_t(key))
         {
-        request->add(fsm, key_to_cpu(key, rh->event_queue->nqueues));
+        request->add(fsm, key_to_cpu(key, rh->event_queue->parent->nworkers));
         request->dispatch();
     }
     
@@ -116,7 +116,7 @@ public:
         : bin_memcached_request<config_t>(rh, pkt), fsm(new btree_set_fsm_t(key, data, size, add_ok, replace_ok))
         {
         assert(add_ok && replace_ok);   // We haven't hooked up ADD and REPLACE yet.
-        request->add(fsm, key_to_cpu(key, rh->event_queue->nqueues));
+        request->add(fsm, key_to_cpu(key, rh->event_queue->parent->nworkers));
         request->dispatch();
     }
     
@@ -148,7 +148,7 @@ public:
     bin_memcached_incr_decr_request(bin_memcached_handler_t<config_t> *rh, packet_t *pkt, btree_key *key, bool increment, long long delta)
         : bin_memcached_request<config_t>(rh, pkt), fsm(new btree_incr_decr_fsm_t(key, increment, delta))
         {
-        request->add(fsm, key_to_cpu(key, rh->event_queue->nqueues));
+        request->add(fsm, key_to_cpu(key, rh->event_queue->parent->nworkers));
         request->dispatch();
     }
     
@@ -181,7 +181,7 @@ public:
 
 public:
     bin_memcached_append_prepend_request(bin_memcached_handler_t<config_t> *rh, packet_t *pkt, btree_key *key, byte *data, int size, bool append) : bin_memcached_request<config_t>(rh, pkt), fsm(new btree_append_prepend_fsm_t(key, data, size, append)) {
-        request->add(fsm, key_to_cpu(key, rh->event_queue->nqueues));
+        request->add(fsm, key_to_cpu(key, rh->event_queue->parent->nworkers));
         request->dispatch();
     }
 
@@ -215,7 +215,7 @@ public:
     bin_memcached_delete_request(bin_memcached_handler_t<config_t> *rh, packet_t *pkt, btree_key *key)
         : bin_memcached_request<config_t>(rh, pkt), fsm(new btree_delete_fsm_t(key))
         {
-        request->add(fsm, key_to_cpu(key, rh->event_queue->nqueues));
+        request->add(fsm, key_to_cpu(key, rh->event_queue->parent->nworkers));
         request->dispatch();
     }
     

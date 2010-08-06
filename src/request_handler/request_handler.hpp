@@ -15,7 +15,6 @@ that's something for another day.
 TODO: Come up with a better way for request handler to notify conn_fsm as part of redoing the
 callback system.
 */
-void initiate_conn_fsm_transition(event_queue_t *event_queue, event_t *event);
 
 template<class config_t>
 class request_handler_t {
@@ -47,7 +46,7 @@ public:
         bzero(&e, sizeof(e));
         e.state = conn_fsm;
         e.event_type = et_request_complete;
-        initiate_conn_fsm_transition(event_queue, &e);
+        event_queue->parent->initiate_conn_fsm_transition(&e);
     }
     
     event_queue_t *event_queue;

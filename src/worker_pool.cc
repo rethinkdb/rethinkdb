@@ -6,6 +6,7 @@
 #include <strings.h>
 #include <string>
 #include <sstream>
+#include <signal.h>
 #include "config/cmd_args.hpp"
 #include "config/code.hpp"
 #include "utils.hpp"
@@ -16,11 +17,24 @@
 #include "buffer_cache/writeback/writeback.hpp"
 #include "buffer_cache/concurrency/rwi_conc.hpp"
 #include "serializer/in_place.hpp"
+#include "conn_fsm.hpp"
+#include "buffer_cache/concurrency/rwi_conc.hpp"
 
-worker_t::worker_t(int _workerid, int _nqueues, event_handler_t event_handler,
+#include "btree/get_fsm.hpp"
+#include "btree/set_fsm.hpp"
+#include "btree/incr_decr_fsm.hpp"
+#include "btree/append_prepend_fsm.hpp"
+#include "btree/delete_fsm.hpp"
+
+worker_t::worker_t(int _workerid, int _nqueues,
         worker_pool_t *parent_pool, cmd_config_t *cmd_config) {
-    event_queue = gnew<event_queue_t>(_workerid, _nqueues, event_handler, parent_pool, cmd_config);
+    ref_count = 0;
+    event_queue = gnew<event_queue_t>(_workerid, _nqueues, parent_pool, this, cmd_config);
 
+    total_connections = 0;
+    curr_connections = 0;
+    perfmon.monitor(var_monitor_t(var_monitor_t::vt_int, "total_connections", (void*)&total_connections));
+    perfmon.monitor(var_monitor_t(var_monitor_t::vt_int, "curr_connections", (void*)&curr_connections));
 
     // Init the slices
     nworkers = _nqueues;
@@ -39,7 +53,7 @@ worker_t::worker_t(int _workerid, int _nqueues, event_handler_t event_handler,
         slices[i] = gnew<cache_t>(
                 (char*)str.c_str(),
                 BTREE_BLOCK_SIZE,
-                cmd_config->max_cache_size / event_queue->nqueues,
+                cmd_config->max_cache_size / nworkers,
                 cmd_config->wait_for_flush,
                 cmd_config->flush_timer_ms,
                 cmd_config->flush_threshold_percent);
@@ -61,9 +75,13 @@ void worker_t::start_slices() {
         slices[i]->start();
 }
 
-void worker_t::shutdown_slices() {
-    for (int i = 0; i < nslices; i++)
-        slices[i]->shutdown(event_queue);
+void worker_t::shutdown() {
+    shutting_down = true;
+
+    for (int i = 0; i < nslices; i++) {
+        ref_count++;
+        slices[i]->shutdown(this);
+    }
 }
 
 void worker_t::delete_slices() {
@@ -72,12 +90,185 @@ void worker_t::delete_slices() {
     active_slices = false;
 }
 
-
-void worker_t::on_sync() {
-    event_queue->on_sync();
+void worker_t::new_fsm(int data, int &resource, void **source) {
+    worker_t::conn_fsm_t *fsm =
+        new worker_t::conn_fsm_t(data, event_queue);
+    live_fsms.push_back(fsm);
+    resource = fsm->get_source();
+    *source = fsm;
+    printf("Opened socket %d\n", resource);
+    curr_connections++;
+    total_connections++;
 }
 
-void worker_pool_t::create_worker_pool(event_handler_t event_handler, pthread_t main_thread,
+void worker_t::deregister_fsm(void *fsm, int &resource) {
+    worker_t::conn_fsm_t *cfsm = (worker_t::conn_fsm_t *) fsm;
+    printf("Closing socket %d\n", cfsm->get_source());
+    resource = cfsm->get_source();
+    live_fsms.remove(cfsm);
+    shutdown_fsms.push_back(cfsm);
+    curr_connections--;
+    // TODO: there might be outstanding btrees that we're missing (if
+    // we're quitting before the the operation completes). We need to
+    // free the btree structure in this case (more likely the request
+    // and all the btrees associated with it).
+}
+
+bool worker_t::deregister_fsm(int &resource) {
+    if (live_fsms.empty()) {
+        return false;
+    } else {
+        worker_t::conn_fsm_t *cfsm = live_fsms.head();
+        deregister_fsm(cfsm, resource);
+        return true;
+    }
+}
+
+void worker_t::clean_fsms() {
+    shutdown_fsms.clear();
+}
+
+void worker_t::initiate_conn_fsm_transition(event_t *event) {
+    code_config_t::conn_fsm_t *fsm = (code_config_t::conn_fsm_t*)event->state;
+    int res = fsm->do_transition(event);
+    if(res == worker_t::conn_fsm_t::fsm_transition_ok || res == worker_t::conn_fsm_t::fsm_no_data_in_socket) {
+        // Nothing todo
+    } else if(res == worker_t::conn_fsm_t::fsm_shutdown_server) {
+        int res = pthread_kill(event_queue->parent_pool->main_thread, SIGINT);
+        check("Could not send kill signal to main thread", res != 0);
+    } else if(res == worker_t::conn_fsm_t::fsm_quit_connection) {
+        int source;
+        deregister_fsm(fsm, source);
+        event_queue->forget_resource(source);
+        delete fsm;
+    } else {
+        check("Unhandled fsm transition result", 1);
+    }
+}
+
+void worker_t::on_btree_completed(code_config_t::btree_fsm_t *btree_fsm) {
+    // We received a completed btree that belongs to another
+    // core. Send it off and be merry!
+    get_cpu_context()->worker->event_queue->message_hub.store_message(btree_fsm->return_cpu, btree_fsm);
+}
+
+void worker_t::process_btree_msg(code_config_t::btree_fsm_t *btree_fsm) {
+    worker_t *worker = get_cpu_context()->worker;
+    if(btree_fsm->is_finished()) {
+        
+        // We received a completed btree that belongs to us
+        btree_fsm->request->on_request_part_completed();
+    
+    } else {
+        // We received a new btree that we need to process
+        
+        // The btree is constructed with no cache; here we must assign it its proper cache
+        assert(!btree_fsm->cache);
+        btree_fsm->cache = worker->slice(&btree_fsm->key);
+        
+        btree_fsm->on_complete = worker_t::on_btree_completed;
+        code_config_t::btree_fsm_t::transition_result_t btree_res = btree_fsm->do_transition(NULL);
+        if(btree_res == code_config_t::btree_fsm_t::transition_complete) {
+            worker_t::on_btree_completed(btree_fsm);
+        }
+    }
+}
+
+void worker_t::process_perfmon_msg(perfmon_msg_t *msg)
+{    
+    worker_t *worker = get_cpu_context()->worker;
+    event_queue_t *queue = worker->event_queue;
+    int this_cpu = get_cpu_context()->worker->workerid;
+    int return_cpu = msg->return_cpu;
+        
+    switch(msg->state) {
+    case perfmon_msg_t::sm_request:
+        // Copy our statistics into the perfmon message and send a response
+        msg->perfmon = new perfmon_t();
+        msg->perfmon->copy_from(worker->perfmon);
+        msg->state = perfmon_msg_t::sm_response;
+        break;
+    case perfmon_msg_t::sm_response:
+        msg->request->on_request_part_completed();
+        return;
+    case perfmon_msg_t::sm_copy_cleanup:
+        // Response has been sent to the client, time to delete the
+        // copy
+        delete msg->perfmon;
+        msg->state = perfmon_msg_t::sm_msg_cleanup;
+        break;
+    case perfmon_msg_t::sm_msg_cleanup:
+        // Copy has been deleted, delete the final message and return
+        delete msg;
+        return;
+    }
+
+    msg->return_cpu = this_cpu;
+    queue->message_hub.store_message(return_cpu, msg);
+}
+
+void worker_t::process_lock_msg(event_t *event, rwi_lock_t::lock_request_t *lr) {
+    lr->callback->on_lock_available();
+    delete lr;
+}
+
+void worker_t::process_log_msg(log_msg_t *msg) {
+    if (msg->del) {
+        ref_count--;
+        delete msg;
+    } else {
+        assert(workerid == LOG_WORKER);
+        log_writer.writef("(%s)Q%d:%s:%d:", msg->level_str(), msg->return_cpu, msg->src_file, msg->src_line);
+        log_writer.write(msg->str);
+
+        msg->del = true;
+        // No need to change return_cpu because the message will be deleted immediately.
+        event_queue->message_hub.store_message(msg->return_cpu, msg);
+    }
+}
+
+// Handle events coming from the event queue
+void worker_t::event_handler(event_t *event) {
+    if(event->event_type == et_sock) {
+        // Got some socket action, let the connection fsm know
+        initiate_conn_fsm_transition(event);
+    } else if(event->event_type == et_cpu_event) {
+        cpu_message_t *msg = (cpu_message_t*)event->state;
+        switch(msg->type) {
+        case cpu_message_t::mt_btree:
+            process_btree_msg((code_config_t::btree_fsm_t*)msg);
+            break;
+        case cpu_message_t::mt_lock:
+            process_lock_msg(event, (rwi_lock_t::lock_request_t*)msg);
+            break;
+        case cpu_message_t::mt_perfmon:
+            process_perfmon_msg((perfmon_msg_t*)msg);
+            break;
+        case cpu_message_t::mt_log:
+            process_log_msg((log_msg_t *) msg);
+            break;
+        }
+    } else {
+        check("Unknown event in event_handler", 1);
+    }
+}
+
+void worker_t::incr_ref_count() {
+    ref_count++;
+}
+
+void worker_t::decr_ref_count() {
+    ref_count--;
+    if (ref_count == 0 && shutting_down) {
+        event_queue->send_shutdown();
+    }
+}
+
+void worker_t::on_sync() {
+    decr_ref_count();
+}
+
+void worker_pool_t::create_worker_pool(pthread_t main_thread,
                                        int _nworkers, int _nslices)
 {
     this->main_thread = main_thread;
@@ -97,7 +288,7 @@ void worker_pool_t::create_worker_pool(event_handler_t event_handler, pthread_t 
     cmd_config->n_slices = nslices;
 
     for(int i = 0; i < nworkers; i++) {
-        workers[i] = gnew<worker_t>(i, nworkers, event_handler, this, cmd_config);
+        workers[i] = gnew<worker_t>(i, nworkers, this, cmd_config);
     }
     active_worker = 0;
     
@@ -123,25 +314,20 @@ void worker_pool_t::create_worker_pool(event_handler_t event_handler, pthread_t 
 
     // TODO: this whole queue creation business is a mess, refactor
     // the way it works.
-
-    // TODO: decouple number of threads from number of cores and
-    // slices.
 }
 
-worker_pool_t::worker_pool_t(event_handler_t event_handler, pthread_t main_thread,
+worker_pool_t::worker_pool_t(pthread_t main_thread,
                              cmd_config_t *_cmd_config)
     : cmd_config(_cmd_config)
 {
-    create_worker_pool(event_handler, main_thread, cmd_config->n_workers, cmd_config->n_slices);
+    create_worker_pool(main_thread, cmd_config->n_workers, cmd_config->n_slices);
 }
 
-worker_pool_t::worker_pool_t(event_handler_t event_handler, pthread_t main_thread,
+worker_pool_t::worker_pool_t(pthread_t main_thread,
                              int _nworkers, int _nslices, cmd_config_t *_cmd_config)
     : cmd_config(_cmd_config)
 {
-    // Currently, get_core_info is called only for printing here. We
-    // can get rid of it once we move printing elsewhere.
-    create_worker_pool(event_handler, main_thread, _nworkers, _nslices);
+    create_worker_pool(main_thread, _nworkers, _nslices);
 }
 
 worker_pool_t::~worker_pool_t() {
