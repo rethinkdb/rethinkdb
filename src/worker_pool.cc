@@ -103,7 +103,7 @@ void worker_t::new_fsm(int data, int &resource, void **source) {
 
 void worker_t::deregister_fsm(void *fsm, int &resource) {
     worker_t::conn_fsm_t *cfsm = (worker_t::conn_fsm_t *) fsm;
-    logf(INF, "Closing socket %d\n", cfsm->get_source());
+    printf("Closing socket %d\n", cfsm->get_source());
     resource = cfsm->get_source();
     live_fsms.remove(cfsm);
     shutdown_fsms.push_back(cfsm);
