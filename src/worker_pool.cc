@@ -63,8 +63,6 @@ worker_t::worker_t(int _workerid, int _nqueues,
 
 worker_t::~worker_t() {
     check("Error in ~worker_t, cannot delete a worker_t without first deleting its slices", active_slices == true);
-    for (shutdown_fsms_t::iterator it = shutdown_fsms.begin(); it != shutdown_fsms.end(); ++it)
-        delete *it;
     delete event_queue;
 }
 
