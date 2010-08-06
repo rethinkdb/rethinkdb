@@ -395,14 +395,15 @@ class PerfmonPrinter:
         for k, v in g:
             for k2, v2 in printer(k, v): yield k2, v2
 
+# <btree_fsm<standard_config_t>>
 
 pretty_printers_dict = {}
 #pretty_printers_dict[re.compile ('.*state.*')]                           = StatePrinter
-pretty_printers_dict[re.compile ('^btree_fsm[^:].*')]                    = Btree_FsmPrinter
-pretty_printers_dict[re.compile ('^btree_set_fsm[^:].*')]                = Btree_FsmPrinter
-pretty_printers_dict[re.compile ('^btree_get_fsm[^:].*')]                = Btree_FsmPrinter
-pretty_printers_dict[re.compile ('^btree_delete_fsm[^:].*')]             = Btree_FsmPrinter
-pretty_printers_dict[re.compile ('^conn_fsm<.*?>[^:].*')]                     = Conn_FsmPrinter
+pretty_printers_dict[re.compile ('^btree_fsm<.*?>(?!::).*')]               = Btree_FsmPrinter
+pretty_printers_dict[re.compile ('^btree_set_fsm<.*?>(?!::).*')]           = Btree_FsmPrinter
+pretty_printers_dict[re.compile ('^btree_get_fsm<.*?>(?!::).*')]           = Btree_FsmPrinter
+pretty_printers_dict[re.compile ('^btree_delete_fsm<.*?>(?!::).*')]        = Btree_FsmPrinter
+pretty_printers_dict[re.compile ('^conn_fsm<.*?>(?!::).*')]                = Conn_FsmPrinter
 #pretty_printers_dict[re.compile ('.*conn_fsm.*state.*')]                 = Conn_FsmStatePrinter
 pretty_printers_dict[re.compile ('.*cpu_message.*')]                     = Cpu_MessagePrinter
 pretty_printers_dict[re.compile ('.*fsm_type.*')]                        = Fsm_TypePrinter
