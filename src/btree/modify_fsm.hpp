@@ -17,13 +17,17 @@ public:
     using btree_fsm_t::key;
     
 public:
+
     enum state_t {
         start_transaction,
         acquire_superblock,
         acquire_root,
-        insert_root,
-        insert_root_on_split,
         acquire_node,
+        insert_root,
+        delete_complete,
+        acquire_sibling,
+        insert_root_on_collapse,
+        insert_root_on_split,
         update_complete,
         committing
     };
@@ -51,23 +55,26 @@ public:
     */
     virtual bool operate(btree_value *old_value, btree_value **new_value) = 0;
         
-private:
+public:
     using btree_fsm<config_t>::transaction;
     using btree_fsm<config_t>::cache;
 
-    transition_result_t do_start_transaction(event_t *event);
-    transition_result_t do_acquire_superblock(event_t *event);
-    transition_result_t do_acquire_root(event_t *event);
-    transition_result_t do_insert_root(event_t *event);
-    transition_result_t do_insert_root_on_split(event_t *event);
-    transition_result_t do_acquire_node(event_t *event);
-
+    virtual transition_result_t do_start_transaction(event_t *event);
+    virtual transition_result_t do_acquire_superblock(event_t *event);
+    virtual transition_result_t do_acquire_root(event_t *event);
+    virtual transition_result_t do_insert_root(event_t *event);
+    virtual transition_result_t do_insert_root_on_split(event_t *event);
+    virtual transition_result_t do_insert_root_on_collapse(event_t *event);
+    virtual transition_result_t do_acquire_node(event_t *event);
+    virtual transition_result_t do_check_for_split(node_t *node);
+    virtual transition_result_t do_acquire_sibling(event_t *event);
+    
 #ifndef NDEBUG
     // Print debugging information designed to resolve deadlocks
     void deadlock_debug();
 #endif
     
-private:
+public:
     int set_root_id(block_id_t root_id, event_t *event);
     void split_node(buf_t *node, buf_t **rnode, block_id_t *rnode_id, btree_key *median);
     
@@ -84,6 +91,11 @@ private:
     
 public:
     bool set_was_successful;
+
+public: // from delete_fsm:
+    buf_t *sib_buf;
+    block_id_t sib_node_id;
+
 };
 
 #include "btree/modify_fsm.tcc"

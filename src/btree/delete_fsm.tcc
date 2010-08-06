@@ -6,108 +6,21 @@
 #include "cpu_context.hpp"
 
 template <class config_t>
-typename btree_delete_fsm<config_t>::transition_result_t btree_delete_fsm<config_t>::do_start_transaction(event_t *event) {
-    assert(state == start_transaction);
-
-    /* Either start a new transaction or retrieve the one we started. */
-    assert(transaction == NULL);
-    if (event == NULL) {
-        transaction = cache->begin_transaction(rwi_write, this);
-    } else {
-        assert(event->buf); // We shouldn't get a callback unless this is valid
-        transaction = (typename config_t::transaction_t *)event->buf;
-    }
-
-    /* Determine our forward progress based on our new state. */
-    if (transaction) {
-        state = acquire_superblock;
-        return btree_fsm_t::transition_ok;
-    } else {
-        return btree_fsm_t::transition_incomplete; // Flush lock is held.
-    }
-}
-
-template <class config_t>
-typename btree_delete_fsm<config_t>::transition_result_t btree_delete_fsm<config_t>::do_acquire_superblock(event_t *event)
+typename btree_delete_fsm<config_t>::transition_result_t btree_delete_fsm<config_t>::do_insert_root(event_t *event)
 {
-    assert(state == acquire_superblock);
-
-    if(event == NULL) {
-        // First entry into the FSM; try to grab the superblock.
-        block_id_t superblock_id = cache->get_superblock_id();
-        sb_buf = transaction->acquire(superblock_id, rwi_write, this);
-    } else {
-        // We already tried to grab the superblock, and we're getting
-        // a cache notification about it.
-        assert(event->buf);
-        sb_buf = (buf_t *)event->buf;
-    }
-
-    if(sb_buf) {
-        // Got the superblock buffer (either right away or through
-        // cache notification). Grab the root id, and move on to
-        // acquiring the root.
-        node_id = btree_fsm_t::get_root_id(sb_buf->ptr());
-        if(cache_t::is_block_id_null(node_id)) {
-            op_result = btree_not_found;
-            state = delete_complete;
-            sb_buf->release();
-            sb_buf = NULL;
-        } else {
-            state = acquire_root;
-        }
-        return btree_fsm_t::transition_ok;
-    } else {
-        // Can't get the superblock buffer right away. Let's wait for
-        // the cache notification.
-        return btree_fsm_t::transition_incomplete;
-    }
-}
-
-template <class config_t>
-typename btree_delete_fsm<config_t>::transition_result_t btree_delete_fsm<config_t>::do_acquire_root(event_t *event) {
-    assert(state == acquire_root);
+    assert(state == insert_root);    
+    /*  
+        Since this is a delete, we never just want to insert a root, unless it's on a split or a collapse.
+        And there are different methods for that. So if we are at this point, it's because there was no root
+        to the tree and so this delete doesn't make sense...there's nothing to delete.
+    */
     
-    // Make sure root exists
-    if(cache_t::is_block_id_null(node_id)) {
-        op_result = btree_not_found;
-        state = delete_complete;
-        return btree_fsm_t::transition_ok;
-    }
-
-    if(event == NULL) {
-        // Acquire the actual root node
-        buf = transaction->acquire(node_id, rwi_write, this);
-    } else {
-        // We already tried to grab the root, and we're getting a
-        // cache notification about it.
-        assert(event->buf);
-        buf = (buf_t*)event->buf;
-    }
-    
-    if(buf == NULL) {
-        // Can't grab the root right away. Wait for a cache event.
-        return btree_fsm_t::transition_incomplete;
-    } else {
-        // Got the root, move on to grabbing the node
-        state = acquire_node;
-        return btree_fsm_t::transition_ok;
-    }
+    op_result = btree_not_found;
+    state = delete_complete;
+    sb_buf->release();
+    sb_buf = NULL;
+    return btree_fsm_t::transition_ok;
 }
-
-template <class config_t>
-typename btree_delete_fsm<config_t>::transition_result_t btree_delete_fsm<config_t>::do_insert_root_on_collapse(event_t *event)
-{
-    if(set_root_id(node_id, event)) {
-        state = acquire_node;
-        sb_buf->release();
-        sb_buf = NULL;
-        return btree_fsm_t::transition_ok;
-    } else {
-        return btree_fsm_t::transition_incomplete;
-    }
-}
-
 
 template <class config_t>
 void btree_delete_fsm<config_t>::split_internal_node(buf_t *buf, buf_t **rbuf,
@@ -128,50 +41,6 @@ typename btree_delete_fsm<config_t>::transition_result_t btree_delete_fsm<config
         state = acquire_node;
         sb_buf->release();
         sb_buf = NULL;
-        return btree_fsm_t::transition_ok;
-    } else {
-        return btree_fsm_t::transition_incomplete;
-    }
-}
-
-template <class config_t>
-typename btree_delete_fsm<config_t>::transition_result_t btree_delete_fsm<config_t>::do_acquire_node(event_t *event) {
-    assert(state == acquire_node);
-    // Either we already have the node (then event should be NULL), or
-    // we don't have the node (in which case we asked for it before,
-    // and it should be getting to us via an event)
-    //assert((buf && !event) || (!buf && event));
-
-    if (!event) {
-        buf = transaction->acquire(node_id, rwi_write, this);
-    } else {
-        assert(event->buf);
-        buf = (buf_t*) event->buf;
-    }
-
-    if(buf)
-        return btree_fsm_t::transition_ok;
-    else
-        return btree_fsm_t::transition_incomplete;
-}
-
-template <class config_t>
-typename btree_delete_fsm<config_t>::transition_result_t btree_delete_fsm<config_t>::do_acquire_sibling(event_t *event) {
-    assert(state == acquire_sibling);
-
-    if (!event) {
-        assert(last_buf);
-        node_t *last_node = (node_t *)last_buf->ptr();
-
-        internal_node_handler::sibling(((internal_node_t*)last_node), &key, &sib_node_id);
-        sib_buf = transaction->acquire(sib_node_id, rwi_write, this);
-    } else {
-        assert(event->buf);
-        sib_buf = (buf_t*) event->buf;
-    }
-
-    if(sib_buf) {
-        state = acquire_node;
         return btree_fsm_t::transition_ok;
     } else {
         return btree_fsm_t::transition_incomplete;
@@ -238,7 +107,7 @@ typename btree_delete_fsm<config_t>::transition_result_t btree_delete_fsm<config
         }
 
 
-
+        // merge code: 
         node_handler::validate((node_t*)buf->ptr());
         if (node_handler::is_internal((node_t*)buf->ptr())) {
             // Internal node
@@ -346,7 +215,6 @@ typename btree_delete_fsm<config_t>::transition_result_t btree_delete_fsm<config
                     }
                 }
             }
-
             // Release the superblock if we're past the root node
             if(sb_buf && last_buf) {
                 sb_buf->release();
@@ -469,6 +337,8 @@ typename btree_delete_fsm<config_t>::transition_result_t btree_delete_fsm<config
                     }
                 }
             }
+// end of merge code
+
             // Release the superblock, if we haven't already
             if(sb_buf) {
                 sb_buf->release();
@@ -509,13 +379,6 @@ typename btree_delete_fsm<config_t>::transition_result_t btree_delete_fsm<config
     assert(res != btree_fsm_t::transition_complete || is_finished());
 
     return res;
-}
-
-template <class config_t>
-int btree_delete_fsm<config_t>::set_root_id(block_id_t root_id, event_t *event) {
-    sb_buf->set_dirty();
-    memcpy(sb_buf->ptr(), (void*)&root_id, sizeof(root_id));
-    return 1;
 }
 
 #endif // __BTREE_DELETE_FSM_TCC__
