@@ -103,7 +103,7 @@ void worker_t::new_fsm(int data, int &resource, void **source) {
 
 void worker_t::deregister_fsm(void *fsm, int &resource) {
     worker_t::conn_fsm_t *cfsm = (worker_t::conn_fsm_t *) fsm;
-    printf("Closing socket %d\n", cfsm->get_source());
+    logf(INF, "Closing socket %d\n", cfsm->get_source());
     resource = cfsm->get_source();
     live_fsms.remove(cfsm);
     shutdown_fsms.push_back(cfsm);
@@ -171,17 +171,17 @@ void worker_t::process_lock_msg(event_t *event, rwi_lock_t::lock_request_t *lr) 
 }
 
 void worker_t::process_log_msg(log_msg_t *msg) {
-    worker_t *worker = get_cpu_context()->worker;
     if (msg->del) {
+        ref_count--;
         delete msg;
     } else {
-        assert(worker->workerid == LOG_WORKER);
-        worker->log_writer.writef("(%s)Q%d:%s:%d:", msg->level_str(), msg->return_cpu, msg->src_file, msg->src_line);
-        worker->log_writer.write(msg->str);
+        assert(workerid == LOG_WORKER);
+        log_writer.writef("(%s)Q%d:%s:%d:", msg->level_str(), msg->return_cpu, msg->src_file, msg->src_line);
+        log_writer.write(msg->str);
 
         msg->del = true;
         // No need to change return_cpu because the message will be deleted immediately.
-        worker->event_queue->message_hub.store_message(msg->return_cpu, msg);
+        event_queue->message_hub.store_message(msg->return_cpu, msg);
     }
 }
 
@@ -208,6 +208,17 @@ void worker_t::event_handler(event_t *event) {
         }
     } else {
         check("Unknown event in event_handler", 1);
+    }
+}
+
+void worker_t::incr_ref_count() {
+    ref_count++;
+}
+
+void worker_t::decr_ref_count() {
+    ref_count--;
+    if (ref_count == 0 && shutting_down) {
+        event_queue->send_shutdown();
     }
 }
 
