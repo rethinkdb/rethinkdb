@@ -172,6 +172,47 @@ void worker_t::process_lock_msg(event_t *event, rwi_lock_t::lock_request_t *lr) 
     delete lr;
 }
 
+void worker_t::process_log_msg(log_msg_t *msg) {
+    worker_t *worker = get_cpu_context()->worker;
+    if (msg->del) {
+        delete msg;
+    } else {
+        assert(worker->workerid == LOG_WORKER);
+        worker->log_writer.writef("(%s)Q%d:%s:%d:", msg->level_str(), msg->return_cpu, msg->src_file, msg->src_line);
+        worker->log_writer.write(msg->str);
+
+        msg->del = true;
+        // No need to change return_cpu because the message will be deleted immediately.
+        worker->event_queue->message_hub.store_message(msg->return_cpu, msg);
+    }
+}
+
+// Handle events coming from the event queue
+void worker_t::event_handler(event_t *event) {
+    if(event->event_type == et_sock) {
+        // Got some socket action, let the connection fsm know
+        initiate_conn_fsm_transition(event);
+    } else if(event->event_type == et_cpu_event) {
+        cpu_message_t *msg = (cpu_message_t*)event->state;
+        switch(msg->type) {
+        case cpu_message_t::mt_btree:
+            process_btree_msg((code_config_t::btree_fsm_t*)msg);
+            break;
+        case cpu_message_t::mt_lock:
+            process_lock_msg(event, (rwi_lock_t::lock_request_t*)msg);
+            break;
+        case cpu_message_t::mt_perfmon:
+            process_perfmon_msg((perfmon_msg_t*)msg);
+            break;
+        case cpu_message_t::mt_log:
+            process_log_msg((log_msg_t *) msg);
+            break;
+        }
+    } else {
+        check("Unknown event in event_handler", 1);
+    }
+}
+
 void worker_t::on_sync() {
     decr_ref_count();
 }
