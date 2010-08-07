@@ -130,7 +130,7 @@ endif
 $(DEP_DIR)/%.d: $(SOURCE_DIR)/%.cc
 	$(QUIET) mkdir -p $(dir $@)
 	$(QUIET) $(CXX) $(CXXFLAGS) -M $< > $@.$$$$;				   \
-	sed 's,\($*\)\.o[ :]*,$(OBJ_DIR)/\1.o $@ : ,g' < $@.$$$$ > $@;	  \
+	sed 's,$(notdir $*)\.o[ :]*,$(OBJ_DIR)/$*.o $@ : ,g' < $@.$$$$ > $@;	  \
 	rm -f $@.$$$$
 # Include the dependencies into the makefile so that they take effect
 -include $(DEPS)
