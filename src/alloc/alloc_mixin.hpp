@@ -5,6 +5,8 @@
 #include <vector>
 #include "utils.hpp"
 
+// TODO: add support for object lifetime histogram
+
 /**
  * Allocation system mixin class.  Classes that derive from this will
  * use a stackable allocator returned by the accessor.
