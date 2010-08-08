@@ -15,6 +15,30 @@
 #include "logger.hpp"
 #include "concurrency/rwi_lock.hpp"
 
+struct base_worker_t : public sync_callback<code_config_t> {
+    public:
+        base_worker_t(int workerid, int _nworkers,
+                  worker_pool_t *parent_pool, cmd_config_t *cmd_config);
+
+        ~base_worker_t();
+    public:
+        //functions for the event_queue
+        virtual void start_worker() = 0;
+        virtual void shutdown() = 0;
+
+    public:
+        //functions for the outside world
+        virtual void event_handler(event_t *event) = 0;
+
+    public:
+        event_queue_t *event_queue;
+        int nworkers;
+        int workerid;
+
+    public:
+        virtual void on_sync() = 0;
+};
+
 struct worker_t : public sync_callback<code_config_t> {
     public:
         typedef code_config_t::cache_t cache_t;
@@ -22,7 +46,7 @@ struct worker_t : public sync_callback<code_config_t> {
         typedef code_config_t::fsm_list_t fsm_list_t;
         typedef std::vector<conn_fsm_t*, gnew_alloc<conn_fsm_t*> > shutdown_fsms_t;
     public:
-        worker_t(int queue_id, int _nqueues,
+        worker_t(int workerid, int _nworkers,
                   worker_pool_t *parent_pool, cmd_config_t *cmd_config);
         ~worker_t();
     public:
