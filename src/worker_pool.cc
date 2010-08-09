@@ -79,7 +79,9 @@ void worker_t::shutdown() {
     shutting_down = true;
 
     for (int i = 0; i < nslices; i++) {
-        ref_count++;
+        //TODO this is because we are getting back 2 syncs per slice. Did this change somehow?
+        incr_ref_count();
+        incr_ref_count();
         slices[i]->shutdown(this);
     }
 }
