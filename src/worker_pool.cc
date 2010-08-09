@@ -7,6 +7,7 @@
 #include <string>
 #include <sstream>
 #include <signal.h>
+#include <time.h>
 #include "config/cmd_args.hpp"
 #include "config/code.hpp"
 #include "utils.hpp"
@@ -35,6 +36,10 @@ worker_t::worker_t(int _workerid, int _nqueues,
     curr_connections = 0;
     perfmon.monitor(var_monitor_t(var_monitor_t::vt_int, "total_connections", (void*)&total_connections));
     perfmon.monitor(var_monitor_t(var_monitor_t::vt_int, "curr_connections", (void*)&curr_connections));
+    perfmon.monitor(var_monitor_t(var_monitor_t::vt_int, "pid", (void*)&(parent_pool->pid)));
+    perfmon.monitor(var_monitor_t(var_monitor_t::vt_float, "start_time", (void*)&(parent_pool->starttime)));
+    perfmon.monitor(var_monitor_t(var_monitor_t::vt_int, "threads", (void*)&(parent_pool->nworkers)));
+    /* perfmon.monitor(var_monitor_t(var_monitor_t::vt_int, "slices", (void*)&(parent_pool->nslices))); //not part of memcached protocol, uncomment upon risk of death */
 
     // Init the slices
     nworkers = _nqueues;
@@ -275,6 +280,8 @@ void worker_pool_t::create_worker_pool(pthread_t main_thread,
                                        int _nworkers, int _nslices)
 {
     this->main_thread = main_thread;
+    this->pid = getpid();
+    this->starttime = (float) time(NULL);
 
     // Create the workers
     if (_nworkers != 0)

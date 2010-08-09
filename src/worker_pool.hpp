@@ -97,6 +97,10 @@ struct worker_t : public sync_callback<code_config_t> {
     public:
         perfmon_t perfmon;
         int total_connections, curr_connections;
+        int curr_items, total_items;
+        int cmd_get, cmd_set;
+        int get_hits, git_misses;
+        int bytes_read, bytes_written;
         logger_t logger;
     private:
         bool active_slices;
@@ -121,7 +125,7 @@ struct worker_t : public sync_callback<code_config_t> {
 
 // Worker pool
 struct worker_pool_t {
-public:    
+public:
     worker_pool_t(pthread_t main_thread,
                   cmd_config_t *_cmd_config);
     worker_pool_t(pthread_t main_thread, int _nworkers, int _nslices,
@@ -139,6 +143,16 @@ public:
 
     // Collects thread local allocators for delete after shutdown
     std::vector<void*, gnew_alloc<void*> > all_allocs;
+
+public:
+    /*! global values needed for stats, should these go here?
+     */
+
+    //! pid: the pid of the server
+    int pid;
+
+    //! startime: the time the server started
+    float starttime;
     
 private:
     void create_worker_pool(pthread_t main_thread,
