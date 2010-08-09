@@ -6,6 +6,7 @@
 #include "config/code.hpp"
 #include "alloc/alloc_mixin.hpp"
 #include <arpa/inet.h>
+#include <endian.h>
 
 // TODO This shouldn't be necessary.
 #define MAX_PACKET_SIZE 200
@@ -48,6 +49,13 @@ public:
     typedef uint32_t    bin_total_body_length_t;
     typedef uint32_t    bin_opaque_t;
     typedef uint64_t    bin_cas_t;
+
+    //subfields present in the extras
+    typedef uint32_t    bin_flags_t;
+    typedef uint32_t    bin_expr_time_t;
+    typedef uint64_t    bin_delta_t;    
+    typedef uint64_t    bin_init_val_t;
+    
 
     //Magic Byte value
     typedef enum {
@@ -238,6 +246,25 @@ public:
         bin_cas_t               cas;
     } __attribute__((__packed__));
 
+    struct get_response_extras_t {
+        bin_flags_t             flags;
+    } __attribute__((__packed__));
+
+    struct set_request_extras_t {
+        bin_flags_t             flags;
+        bin_expr_time_t         expr_time;
+    } __attribute__((__packed__));
+
+    struct incr_decr_request_extras_t {
+        bin_delta_t             delta;
+        bin_init_val_t          init_val;
+        bin_expr_time_t         expr_time;
+    } __attribute__((__packed__));
+
+    struct flush_request_extras_t {
+        bin_expr_time_t         expr_time;
+    };
+
     struct packet_t;
 
     struct packet_t : public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, packet_t >
@@ -264,6 +291,14 @@ public:
             //sick of looking up which one i defined
             bool is_response() {return !is_request();}
 
+            //network conversion
+            uint16_t ntoh(uint16_t val) { return be16toh(val); }
+            uint32_t ntoh(uint32_t val) { return be32toh(val); }
+            uint64_t ntoh(uint64_t val) { return be64toh(val); }
+            uint16_t hton(uint16_t val) { return htobe16(val); }
+            uint32_t hton(uint32_t val) { return htobe32(val); }
+            uint64_t hton(uint64_t val) { return htobe64(val); }
+
             //TODO these require the response and request headers to have indentical structures we should fix this up
             //accessors
             bin_magic_t magic() {
@@ -275,7 +310,7 @@ public:
             }
 
             bin_key_length_t key_length() {
-                return ntohs(((request_header_t *)(data))->key_length);
+                return ntoh(((request_header_t *)(data))->key_length);
             }
 
             bin_extra_length_t extra_length() {
@@ -287,7 +322,7 @@ public:
             }
 
             bin_total_body_length_t total_body_length() {
-                return ntohl(((request_header_t *)(data))->total_body_length);
+                return ntoh(((request_header_t *)(data))->total_body_length);
             }
 
             bin_value_length_t value_length() {
@@ -301,15 +336,129 @@ public:
 
             bin_status_t status() {
                 assert(is_response());
-                return ntohs(((response_header_t *)(data))->status);
+                return ntoh(((response_header_t *)(data))->status);
             }
 
-            bin_opaque_t opaque(){
+            bin_opaque_t opaque() {
                 return ((request_header_t *)(data))->opaque;
             }
 
-            bin_cas_t cas(){
+            bin_cas_t cas() {
                 return ((request_header_t *)(data))->cas;
+            }
+
+            //accessors for values in the extras
+            bin_flags_t flags() {
+                switch (opcode()) {
+                    case bin_opcode_get:
+                    case bin_opcode_getq:
+                    case bin_opcode_getk:
+                    case bin_opcode_getkq:
+                        if (is_response() && extra_length() == sizeof(get_response_extras_t)) {
+                            get_response_extras_t *extras = (get_response_extras_t *) extras();
+                            return extras->flags;
+                        } else {
+                            goto error_breakout;
+                        }
+                        break;
+                    case bin_opcode_set:
+                    case bin_opcode_setq:
+                        if (is_request() && extra_length() == sizeof(set_request_extras_t)) {
+                            set_request_extras_t *extras = (set_request_extras_t *) extras();
+                            return extras->flags;
+                        } else {
+                            goto error_breakout;
+                        }
+                        break;
+                    default:
+                        goto error_breakout;
+                        break;
+                }
+error_breakout:
+                check("Trying to get flags from something that doesn't have flags", 1);
+            }
+
+            bin_expr_time_t expr_time() {
+                switch (opcode()) {
+                    case bin_opcode_set:
+                    case bin_opcode_setq:
+                        if (is_request() && extra_length() == sizeof(set_request_extras_t)) {
+                            set_request_extras_t *extras = (set_request_extras_t *) extras();
+                            return ntoh(extras->expr_time);
+                        } else {
+                            goto error_breakout;
+                        }
+                        break;
+                    case bin_opcode_increment:
+                    case bin_opcode_decrement:
+                    case bin_opcode_incrementq:
+                    case bin_opcode_decrementq:
+                        if (is_request() && extra_length() == sizeof(incr_decr_request_extras_t)) {
+                            incr_decr_request_extras_t *extras = (incr_decr_request_extras_t *) extras();
+                            return ntoh(extras->expr_time);
+                        } else {
+                            goto error_breakout;
+                        }
+                        break;
+                    case bin_opcode_flush:
+                    case bin_opcode_flushq:
+                        if (is_request() && extra_length() == sizeof(flush_request_extras_t)) {
+                            flush_request_extras_t *extras = (flush_request_extras_t *) extras();
+                            return ntoh(extras->expr_time);
+                        } else {
+                            //note this means that you need to to check if the flush actually has flags first
+                            //on the flush flags are optional
+                            goto error_breakout;
+                        }
+                        break;
+                    default:
+                        goto error_breakout;
+                        break;
+                }
+error_breakout:
+                check("Trying to get expr from something that doesn't have expr", 1);
+            }
+            
+            bin_delta_t delta() {
+                switch (opcode()) {
+                    case bin_opcode_increment:
+                    case bin_opcode_decrement:
+                    case bin_opcode_incrementq:
+                    case bin_opcode_decrementq:
+                        if (is_request() && extra_length() == sizeof(incr_decr_request_extras_t)) {
+                            incr_decr_request_extras_t *extras = (incr_decr_request_extras_t *) extras();
+                            return ntoh(extras->delta);
+                        } else {
+                            goto error_breakout;
+                        }
+                        break;
+                    default:
+                        goto error_breakout;
+                        break;
+                }
+error_breakout:
+                check("Trying to get delta from something that doesn't have delta", 1);
+            }
+
+            bin_init_val_t init_val() {
+                switch (opcode()) {
+                    case bin_opcode_increment:
+                    case bin_opcode_decrement:
+                    case bin_opcode_incrementq:
+                    case bin_opcode_decrementq:
+                        if (is_request() && extra_length() == sizeof(incr_decr_request_extras_t)) {
+                            incr_decr_request_extras_t *extras = (incr_decr_request_extras_t *) extras();
+                            return ntoh(extras->init_val);
+                        } else {
+                            goto error_breakout;
+                        }
+                        break;
+                    default:
+                        goto error_breakout;
+                        break;
+                }
+error_breakout:
+                check("Trying to get init_val from something that doesn't have init_val", 1);
             }
 
             //setters
@@ -435,6 +584,124 @@ public:
             void set_value(btree_value *val) {
                 memcpy(value(), val->contents, val->size);
                 value_length((bin_value_length_t) val->size);
+            }
+
+            //setters for values in the extras
+            void flags(bin_flags_t flags) {
+                switch (opcode()) {
+                    case bin_opcode_get:
+                    case bin_opcode_getq:
+                    case bin_opcode_getk:
+                    case bin_opcode_getkq:
+                        if (is_response() && extra_length() == sizeof(get_response_extras_t)) {
+                            get_response_extras_t *extras = (get_response_extras_t *) extras();
+                            extras->flags = flags;
+                        } else {
+                            goto error_breakout;
+                        }
+                        break;
+                    case bin_opcode_set:
+                    case bin_opcode_setq:
+                        if (is_request() && extra_length() == sizeof(set_request_extras_t)) {
+                            set_request_extras_t *extras = (set_request_extras_t *) extras();
+                            extras->flags = flags;
+                        } else {
+                            goto error_breakout;
+                        }
+                        break;
+                    default:
+                        goto error_breakout;
+                        break;
+                }
+                return;
+error_breakout:
+                check("Trying to set flags in a packet that doesn't have flags", 1);
+            }
+
+            void expr_time(bin_expr_time_t expr_time) {
+                switch (opcode()) {
+                    case bin_opcode_set:
+                    case bin_opcode_setq:
+                        if (is_request() && extra_length() == sizeof(set_request_extras_t)) {
+                            set_request_extras_t *extras = (set_request_extras_t *) extras();
+
+                            extras->expr_time = hton(expr_time);
+                        } else {
+                            goto error_breakout;
+                        }
+                        break;
+                    case bin_opcode_increment:
+                    case bin_opcode_decrement:
+                    case bin_opcode_incrementq:
+                    case bin_opcode_decrementq:
+                        if (is_request() && extra_length() == sizeof(incr_decr_request_extras_t)) {
+                            incr_decr_request_extras_t *extras = (incr_decr_request_extras_t *) extras();
+                            extras->expr_time = hton(expr_time);
+                        } else {
+                            goto error_breakout;
+                        }
+                        break;
+                    case bin_opcode_flush:
+                    case bin_opcode_flushq:
+                        if (is_request() && extra_length() == sizeof(flush_request_extras_t)) {
+                            flush_request_extras_t *extras = (flush_request_extras_t *) extras();
+                            extras->expr_time = hton(expr_time);
+                        } else {
+                            //note this means that you need to to check if the flush actually has flags first
+                            //on the flush flags are optional
+                            goto error_breakout;
+                        }
+                        break;
+                    default:
+                        goto error_breakout;
+                        break;
+                }
+                return;
+error_breakout:
+                check("Trying to set expr_time in something that doesn't have expr", 1);
+            }
+            
+            void delta(bin_delta_t delta) {
+                switch (opcode()) {
+                    case bin_opcode_increment:
+                    case bin_opcode_decrement:
+                    case bin_opcode_incrementq:
+                    case bin_opcode_decrementq:
+                        if (is_request() && extra_length() == sizeof(incr_decr_request_extras_t)) {
+                            incr_decr_request_extras_t *extras = (incr_decr_request_extras_t *) extras();
+                            extras->delta = hton(delta);
+                        } else {
+                            goto error_breakout;
+                        }
+                        break;
+                    default:
+                        goto error_breakout;
+                        break;
+                }
+                return;
+error_breakout:
+                check("Trying to set delta from something that doesn't have delta", 1);
+            }
+
+            void init_val(bin_init_val_t init_val) {
+                switch (opcode()) {
+                    case bin_opcode_increment:
+                    case bin_opcode_decrement:
+                    case bin_opcode_incrementq:
+                    case bin_opcode_decrementq:
+                        if (is_request() && extra_length() == sizeof(incr_decr_request_extras_t)) {
+                            incr_decr_request_extras_t *extras = (incr_decr_request_extras_t *) extras();
+                            extras->init_val = hton(extras->init_val);
+                        } else {
+                            goto error_breakout;
+                        }
+                        break;
+                    default:
+                        goto error_breakout;
+                        break;
+                }
+error_breakout:
+                check("Trying to get expr from something that doesn't have expr", 1);
             }
 
             bool is_valid_request() {

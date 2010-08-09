@@ -5,7 +5,7 @@ from random import shuffle, randint
 from time import sleep
 import os
 
-NUM_INTS = 3
+NUM_INTS = 2000
 NUM_THREADS = 1
 bin = True
 
@@ -73,20 +73,20 @@ def split_list(alist, parts):
 
 def test_against_server_at(port):
     mc = memcache.Client(["localhost:%d" % port], binary = bin)
-#clone = {}
-#print "====Testing singular operations===="
+    clone = {}
+    print "====Testing singular operations===="
 
-#ints = range(0, NUM_INTS)
-#shuffle(ints)
+    ints = range(0, NUM_INTS)
+    shuffle(ints)
 
-#print "Inserting numbers"
-#rethinkdb_insert(mc, ints, clone)
+    print "Inserting numbers"
+    rethinkdb_insert(mc, ints, clone)
 
-#print "Verifying"
-#rethinkdb_verify(mc, ints, clone)
+    print "Verifying"
+    rethinkdb_verify(mc, ints, clone)
 
-#print "Deleting numbers"
-#rethinkdb_delete(mc, ints, clone)
+    print "Deleting numbers"
+    rethinkdb_delete(mc, ints, clone)
 
     clone = {}
     print "====Testing multi operations===="
