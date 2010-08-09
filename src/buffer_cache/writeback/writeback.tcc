@@ -38,8 +38,10 @@ template <class config_t>
 void writeback_tmpl_t<config_t>::shutdown(sync_callback_t *callback) {
     assert(shutdown_callback == NULL);
     shutdown_callback = callback;
-    if (!num_txns) // If num_txns, commit() will do this
+    if (!num_txns) { // If num_txns, commit() will do this
+        in_shutdown_sync = true;
         sync(callback);
+    }
 }
 
 template <class config_t>

@@ -79,8 +79,6 @@ void worker_t::shutdown() {
     shutting_down = true;
 
     for (int i = 0; i < nslices; i++) {
-        //TODO this is because we are getting back 2 syncs per slice. Did this change somehow?
-        incr_ref_count();
         incr_ref_count();
         slices[i]->shutdown(this);
     }
@@ -98,14 +96,14 @@ void worker_t::new_fsm(int data, int &resource, void **source) {
     live_fsms.push_back(fsm);
     resource = fsm->get_source();
     *source = fsm;
-    printf("Opened socket %d\n", resource);
+    logf(INF, "Opened socket %d\n", resource);
     curr_connections++;
     total_connections++;
 }
 
 void worker_t::deregister_fsm(void *fsm, int &resource) {
     worker_t::conn_fsm_t *cfsm = (worker_t::conn_fsm_t *) fsm;
-    printf("Closing socket %d\n", cfsm->get_source());
+    logf(INF, "Closing socket %d\n", cfsm->get_source());
     resource = cfsm->get_source();
     live_fsms.remove(cfsm);
     shutdown_fsms.push_back(cfsm);
@@ -174,7 +172,7 @@ void worker_t::process_lock_msg(event_t *event, rwi_lock_t::lock_request_t *lr) 
 
 void worker_t::process_log_msg(log_msg_t *msg) {
     if (msg->del) {
-        ref_count--;
+        decr_ref_count();
         delete msg;
     } else {
         assert(workerid == LOG_WORKER);
@@ -219,6 +217,7 @@ void worker_t::incr_ref_count() {
 
 void worker_t::decr_ref_count() {
     ref_count--;
+    printf("decr_ref_count() -- ref_count:%d\n", ref_count);
     if (ref_count == 0 && shutting_down) {
         event_queue->send_shutdown();
     }
