@@ -11,12 +11,6 @@ class btree_delete_fsm : public btree_modify_fsm<config_t>,
                          public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, btree_delete_fsm<config_t> >
 {
 public:
-    enum op_result_t {
-        btree_incomplete,
-        btree_found,
-        btree_not_found
-    };
-
     typedef typename btree_modify_fsm<config_t>::cache_t cache_t;
     typedef typename btree_modify_fsm<config_t>::transition_result_t transition_result_t;
     typedef typename btree_modify_fsm<config_t>::buf_t buf_t;
@@ -34,6 +28,12 @@ public:
     using btree_modify_fsm<config_t>::set_was_successful;
     using btree_modify_fsm<config_t>::sib_buf;
     using btree_modify_fsm<config_t>::sib_node_id;
+    using btree_modify_fsm<config_t>::op_result;
+
+    // the enum for deletes in modify_fsm
+    using btree_modify_fsm<config_t>::btree_incomplete;
+    using btree_modify_fsm<config_t>::btree_found;
+    using btree_modify_fsm<config_t>::btree_not_found;
 
     // the enum
     using btree_modify_fsm<config_t>::insert_root;
@@ -65,19 +65,15 @@ public:
     using btree_modify_fsm<config_t>::do_acquire_sibling;
 public:
     explicit btree_delete_fsm(btree_key *_key)
-        : btree_modify_fsm<config_t>(_key),
-          op_result(btree_incomplete)
+        : btree_modify_fsm<config_t>(_key)          
         {}
-    virtual transition_result_t do_transition(event_t *event);
+//    virtual transition_result_t do_transition(event_t *event);
     bool operate(btree_value *old_value, btree_value **new_value) {
         // If the key didn't exist before, we fail
         if (!old_value) return false;
         return true;
     }
     
-public:
-    op_result_t op_result;
-
 public:
     // methods that delete_fsm has but modify_fsm doesn't.
     // These should be empty virtual functions in modify_fsm.

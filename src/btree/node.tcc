@@ -17,5 +17,4 @@ void node_handler::validate(btree_node *node) {
             assert(0);
     }
 }
-
 #endif

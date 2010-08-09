@@ -32,6 +32,12 @@ public:
         committing
     };
 
+    enum op_result_t {
+        btree_incomplete,
+        btree_found,
+        btree_not_found
+    };
+
 public:
     explicit btree_modify_fsm(btree_key *_key)
         : btree_fsm_t(_key),
@@ -39,7 +45,8 @@ public:
           sb_buf(NULL), buf(NULL), last_buf(NULL),
           node_id(cache_t::null_block_id), last_node_id(cache_t::null_block_id),
           have_computed_new_value(false), new_value(NULL),
-          set_was_successful(false)
+          set_was_successful(false),
+          op_result(btree_incomplete)
         {}
 
     virtual transition_result_t do_transition(event_t *event);
@@ -91,6 +98,7 @@ public:
     
 public:
     bool set_was_successful;
+    op_result_t op_result;
 
 public: // from delete_fsm:
     buf_t *sib_buf;
