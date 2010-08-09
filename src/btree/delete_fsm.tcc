@@ -47,8 +47,11 @@ typename btree_delete_fsm<config_t>::transition_result_t btree_delete_fsm<config
     }
 }
 
+/*
 template <class config_t>
 typename btree_delete_fsm<config_t>::transition_result_t btree_delete_fsm<config_t>::do_transition(event_t *event) {
+*/
+/*
     transition_result_t res = btree_fsm_t::transition_ok;
 
     // Make sure we've got either an empty or a cache event
@@ -379,7 +382,9 @@ typename btree_delete_fsm<config_t>::transition_result_t btree_delete_fsm<config
     assert(res != btree_fsm_t::transition_complete || is_finished());
 
     return res;
-}
+    
+*/
+//}
 
 #endif // __BTREE_DELETE_FSM_TCC__
 
