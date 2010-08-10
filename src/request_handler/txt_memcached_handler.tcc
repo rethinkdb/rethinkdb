@@ -83,6 +83,7 @@ public:
     
     ~txt_memcached_get_request() {
         for (int i = 0; i < num_fsms; i ++) {
+            get_cpu_context()->worker->cmd_get++;
             delete fsms[i];
         }
     }
@@ -91,6 +92,7 @@ public:
         for(int i = 0; i < num_fsms; i++) {
             btree_get_fsm_t *fsm = fsms[i];
             if(fsm->op_result == btree_get_fsm_t::btree_found) {
+                get_cpu_context()->worker->get_hits++;
                 //TODO: support flags
                 sbuf->printf("VALUE %*.*s %u %u\r\n",
                     fsm->key.size, fsm->key.size, fsm->key.contents,
@@ -99,6 +101,7 @@ public:
                 sbuf->append(fsm->value.contents, fsm->value.size);
                 sbuf->printf("\r\n");
             } else if(fsms[i]->op_result == btree_get_fsm_t::btree_not_found) {
+                get_cpu_context()->worker->get_misses++;
                 // do nothing
             }
         }
@@ -128,6 +131,7 @@ public:
     }
     
     ~txt_memcached_set_request() {
+        get_cpu_context()->worker->cmd_set++;
         delete fsm;
     }
     
@@ -161,6 +165,7 @@ public:
     }
     
     ~txt_memcached_incr_decr_request() {
+        get_cpu_context()->worker->cmd_set++;
         delete fsm;
     }
     
@@ -191,6 +196,7 @@ public:
     }
 
     ~txt_memcached_append_prepend_request() {
+        get_cpu_context()->worker->cmd_set++;
         delete fsm;
     }
 
@@ -240,7 +246,7 @@ private:
 
 template<class config_t>
 class txt_memcached_perfmon_request : public txt_memcached_request<config_t>,
-    public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, txt_memcached_delete_request<config_t> > {
+    public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, txt_memcached_perfmon_request<config_t> > {
 
 public:
     typedef typename config_t::conn_fsm_t conn_fsm_t;

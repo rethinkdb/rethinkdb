@@ -8,6 +8,7 @@
 #include <sstream>
 #include <signal.h>
 #include <time.h>
+#include <sys/vtimes.h>
 #include "config/cmd_args.hpp"
 #include "config/code.hpp"
 #include "utils.hpp"
@@ -27,9 +28,25 @@
 #include "btree/append_prepend_fsm.hpp"
 #include "btree/delete_fsm.hpp"
 
-//perfmon functions
-float uptime(void) {
-    return (double) difftime(time(NULL), get_cpu_context()->worker->parent_pool->starttime);
+//perfmon functions TODO figure out where these should live
+int uptime(void) {
+    return (int) difftime(time(NULL), get_cpu_context()->worker->parent_pool->starttime);
+}
+
+int pointer_size(void) {
+    return sizeof (void *);
+}
+
+int rusage_user(void) {
+    struct vtimes times;
+    vtimes(&times, NULL);
+    return times.vm_utime;
+}
+
+int rusage_system(void) {
+    struct vtimes times;
+    vtimes(&times, NULL);
+    return times.vm_stime;
 }
 
 worker_t::worker_t(int _workerid, int _nqueues,
@@ -39,6 +56,13 @@ worker_t::worker_t(int _workerid, int _nqueues,
 
     total_connections = 0;
     curr_connections = 0;
+    cmd_get = 0;
+    cmd_set = 0;
+    get_misses = 0;
+    get_hits = 0;
+    bytes_read = 0;
+    bytes_written = 0;
+
     this->parent_pool = parent_pool;
     perfmon.monitor(var_monitor_t(var_monitor_t::vt_int, "total_connections", (void*)&total_connections));
     perfmon.monitor(var_monitor_t(var_monitor_t::vt_int, "curr_connections", (void*)&curr_connections));
@@ -46,7 +70,16 @@ worker_t::worker_t(int _workerid, int _nqueues,
     perfmon.monitor(var_monitor_t(var_monitor_t::vt_float, "start_time", (void*)&(parent_pool->starttime)));
     perfmon.monitor(var_monitor_t(var_monitor_t::vt_int, "threads", (void*)&(parent_pool->nworkers)));
     /* perfmon.monitor(var_monitor_t(var_monitor_t::vt_int, "slices", (void*)&(parent_pool->nslices))); //not part of memcached protocol, uncomment upon risk of death */
-    perfmon.monitor(var_monitor_t(var_monitor_t::vt_float_function, "uptime", (void*) uptime));
+    perfmon.monitor(var_monitor_t(var_monitor_t::vt_int_function, "uptime", (void*) uptime));
+    perfmon.monitor(var_monitor_t(var_monitor_t::vt_int_function, "pointer_size", (void*) pointer_size));
+    perfmon.monitor(var_monitor_t(var_monitor_t::vt_int_function, "rusage_user", (void*) rusage_user));
+    perfmon.monitor(var_monitor_t(var_monitor_t::vt_int_function, "rusage_system", (void*) rusage_system));
+    perfmon.monitor(var_monitor_t(var_monitor_t::vt_int, "cmd_get", (void*) &cmd_get));
+    perfmon.monitor(var_monitor_t(var_monitor_t::vt_int, "cmd_set", (void*) &cmd_set));
+    perfmon.monitor(var_monitor_t(var_monitor_t::vt_int, "get_misses", (void*) &get_misses));
+    perfmon.monitor(var_monitor_t(var_monitor_t::vt_int, "get_hits", (void*) &get_hits));
+    perfmon.monitor(var_monitor_t(var_monitor_t::vt_int, "bytes_read", (void*) &bytes_read));
+    perfmon.monitor(var_monitor_t(var_monitor_t::vt_int, "bytes_written", (void*) &bytes_written));
 
     // Init the slices
     nworkers = _nqueues;

@@ -76,17 +76,20 @@ public:
     }
     
     ~bin_memcached_get_request() {
+        get_cpu_context()->worker->cmd_get++;
         delete fsm;
     }
     
     void build_response(packet_t *res_pkt) {
         if(fsm->op_result == btree_get_fsm_t::btree_found) {
+            get_cpu_context()->worker->get_hits++;
             res_pkt->status(bin_memcached_handler_t<config_t>::bin_status_no_error);
             res_pkt->set_value(&fsm->value);
             // TODO: memcached sets a flag if the value returned is a number.
             // (Specifically, extras is 00 00 00 02.)
             res_pkt->set_extras(extra_flags, extra_flags_length);
         } else {
+            get_cpu_context()->worker->get_misses++;
             res_pkt->status(bin_memcached_handler_t<config_t>::bin_status_key_not_found);
         }
 
@@ -119,6 +122,7 @@ public:
     }
     
     ~bin_memcached_set_request() {
+        get_cpu_context()->worker->cmd_set++;
         delete fsm;
     }
     
@@ -151,6 +155,7 @@ public:
     }
     
     ~bin_memcached_incr_decr_request() {
+        get_cpu_context()->worker->cmd_set++;
         delete fsm;
     }
     
@@ -184,6 +189,7 @@ public:
     }
 
     ~bin_memcached_append_prepend_request() {
+        get_cpu_context()->worker->cmd_set++;
         delete fsm;
     }
 

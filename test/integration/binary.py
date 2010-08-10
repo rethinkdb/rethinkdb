@@ -5,7 +5,7 @@ from random import shuffle, randint
 from time import sleep
 import os
 
-NUM_INTS = 2000
+NUM_INTS = 20000
 NUM_THREADS = 1
 bin = True
 

@@ -21,6 +21,10 @@ public:
     
     bool operate(btree_value *old_value, btree_value **new_value) {
         if ((!old_value && !add_ok) || (old_value && !replace_ok)) return false;
+        if (!old_value) {
+            get_cpu_context()->worker->curr_items++;
+            get_cpu_context()->worker->total_items++;
+        }
         *new_value = &value;
         return true;
     }

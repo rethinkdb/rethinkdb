@@ -100,7 +100,7 @@ struct worker_t : public sync_callback<code_config_t> {
         int total_connections, curr_connections;
         int curr_items, total_items;
         int cmd_get, cmd_set;
-        int get_hits, git_misses;
+        int get_hits, get_misses;
         int bytes_read, bytes_written;
         logger_t logger;
         //static float uptime();

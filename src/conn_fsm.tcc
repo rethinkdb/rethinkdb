@@ -24,7 +24,7 @@ void conn_fsm<config_t>::return_to_socket_connected() {
     if(this->rbuf)
         delete (iobuf_t*)(this->rbuf);
     if(this->sbuf)
-        delete (iobuf_t*)(this->sbuf);
+        delete (linked_buf_t*)(this->sbuf);
     init_state();
 }
 
@@ -72,6 +72,7 @@ typename conn_fsm<config_t>::result_t conn_fsm<config_t>::fill_rbuf(event_t *eve
         }
     } else if(sz > 0 || nrbuf > 0) {
         state->nrbuf += sz;
+        get_cpu_context()->worker->bytes_read += sz;
         if (state->state != fsm_socket_recv_incomplete)
             state->state = fsm_outstanding_data;
     } else {

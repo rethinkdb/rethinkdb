@@ -162,6 +162,7 @@ public:
                             check("Error sending to socket", 1);
                     } else {
                         nsent += sz;
+                        get_cpu_context()->worker->bytes_written += sz;
                         if (next == NULL) {
                             //if this is the last link in the chain we slide the buffer
                             memmove(iobuf_t::buf, iobuf_t::buf + nsent, nbuf - nsent);
