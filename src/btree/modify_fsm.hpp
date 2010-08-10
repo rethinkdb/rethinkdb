@@ -73,8 +73,8 @@ public:
     transition_result_t do_insert_root_on_split(event_t *event);
     transition_result_t do_insert_root_on_collapse(event_t *event);
     transition_result_t do_acquire_node(event_t *event);
-    transition_result_t do_check_for_split(node_t *node);
     transition_result_t do_acquire_sibling(event_t *event);
+    bool do_check_for_split(node_t *node);
     
 #ifndef NDEBUG
     // Print debugging information designed to resolve deadlocks

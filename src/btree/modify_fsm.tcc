@@ -112,19 +112,6 @@ typename btree_modify_fsm<config_t>::transition_result_t btree_modify_fsm<config
     // allocate the root (otherwise, the root has already been
     // allocated here, and we just need to set its id in the metadata)
     
-    // Check what we're doing. If we're deleting, we don't want to insert a root.
-    btree_value *temp_new_value;    
-    bool operate_was_successful = operate(NULL, &temp_new_value);
-    
-    if (operate_was_successful && temp_new_value == NULL) {
-        // it's a delete.
-        op_result = btree_not_found;
-        state = delete_complete;
-        sb_buf->release();
-        sb_buf = NULL;
-        return btree_fsm_t::transition_ok;
-    }
-
     if(cache_t::is_block_id_null(node_id)) {
         buf = transaction->allocate(&node_id);
         leaf_node_handler::init((leaf_node_t *)buf->ptr());
@@ -210,10 +197,10 @@ typename btree_modify_fsm<config_t>::transition_result_t btree_modify_fsm<config
 }
 
 template <class config_t>
-typename btree_modify_fsm<config_t>::transition_result_t
-btree_modify_fsm<config_t>::do_check_for_split(node_t *node) {
+bool btree_modify_fsm<config_t>::do_check_for_split(node_t *node) {
     
     // Split the node if necessary
+    bool new_root = false;
     bool full;
     if (node_handler::is_leaf(node)) {
         if (new_value == NULL) return btree_fsm_t::transition_ok; // if it's a delete and a leaf node, there's no need to split
@@ -227,7 +214,6 @@ btree_modify_fsm<config_t>::do_check_for_split(node_t *node) {
         buf_t *rbuf;
         internal_node_t *last_node;
         block_id_t rnode_id;
-        bool new_root = false;
         split_node(buf, &rbuf, &rnode_id, median);
         // Create a new root if we're splitting a root
         if(last_buf == NULL) {
@@ -256,14 +242,8 @@ btree_modify_fsm<config_t>::do_check_for_split(node_t *node) {
             node = (node_t *)buf->ptr();
             node_id = rnode_id;
         }
-
-        if(new_root) {
-            state = insert_root_on_split;
-            return do_insert_root_on_split(NULL);
-        }
     }
-    // end of code for splitting the node
-    return btree_fsm_t::transition_ok;
+    return new_root;
 }
 
 template <class config_t>
@@ -346,8 +326,9 @@ typename btree_modify_fsm<config_t>::transition_result_t btree_modify_fsm<config
                 char value_memory[MAX_IN_NODE_VALUE_SIZE+sizeof(btree_value)];
                 btree_value old_value;
             } u;
+            
             bool key_found = leaf_node_handler::lookup((btree_leaf_node*)node, &key, &u.old_value);
-
+            new_value = NULL;
             // We've found the old value, or determined that it is not present; now compute the new
             // value.        
             if (key_found) {
@@ -363,11 +344,16 @@ typename btree_modify_fsm<config_t>::transition_result_t btree_modify_fsm<config
         
         // STEP 2: Check if it's overfull. If so we would need to do a split.
         
-        res = do_check_for_split(node);
-        if(res != btree_fsm_t::transition_ok || state != acquire_node) {
-            break;
+        if (set_was_successful) {
+            bool new_root = do_check_for_split(node);
+            if(new_root) {
+                state = insert_root_on_split;
+                res = do_insert_root_on_split(NULL);
+            }
+            if(res != btree_fsm_t::transition_ok || state != acquire_node) {
+                break;
+            }
         }
-
         //  STEP 3: Check to see if it's underfull
         /*  TODO: Add some code to calculate if it will become underfull
             during a replace, incr, decr etc.
@@ -376,10 +362,10 @@ typename btree_modify_fsm<config_t>::transition_result_t btree_modify_fsm<config
         /*  But before we check if it's underfull, we need to do
          *  some deleting if we're a leaf node and we are a delete_fsm.
          */
-         if (set_was_successful && node_handler::is_leaf(node))
+         if (node_handler::is_leaf(node))
          {
             assert(have_computed_new_value);        
-            if (new_value != NULL) {
+            if (new_value != NULL && set_was_successful) {
                 // We have a new value to insert
                 bool success = leaf_node_handler::insert((leaf_node_t*)node, &key, new_value);
                 check("could not insert leaf btree node", !success);
@@ -500,22 +486,22 @@ typename btree_modify_fsm<config_t>::transition_result_t btree_modify_fsm<config
             sb_buf->release();
             sb_buf = NULL;
         }                    
-
+    
         if(node_handler::is_leaf(node)) {
-            //  STEP 5.a: If we're at a leaf.
-            buf->release();
-            buf = NULL;            
-            state = update_complete;
-            res = btree_fsm_t::transition_ok;
-            break;
-
-        } else if(new_value == NULL && set_was_successful) {
-            // STEP 5.b: We're a delete operation.
-            buf->release();
-            state = delete_complete;
-            res = btree_fsm_t::transition_ok;
-
-            continue;
+            if(new_value == NULL) {
+                // STEP 5.a: We're a delete operation.
+                buf->release();
+                state = delete_complete;
+                res = btree_fsm_t::transition_ok;
+                continue;
+            } else {
+                //  STEP 5.b: If we're at a leaf.
+                buf->release();
+                buf = NULL;            
+                state = update_complete;
+                res = btree_fsm_t::transition_ok;
+                break;
+            }
         } else {
             // STEP 5.c: Move up the tree.
             // Release and update the last node
