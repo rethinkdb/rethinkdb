@@ -1,7 +1,6 @@
 #!/usr/bin/python
 """ 
     We want to make sure that the data doesn't get corrupted if the server is abruptly killed.
-    
     We want to test for:
       - insert keys into the database, and then randomly kill. All the keys we tried
         to insert should have been serialized.
