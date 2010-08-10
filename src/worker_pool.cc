@@ -64,22 +64,22 @@ worker_t::worker_t(int _workerid, int _nqueues,
     bytes_written = 0;
 
     this->parent_pool = parent_pool;
-    perfmon.monitor(var_monitor_t(var_monitor_t::vt_int, "total_connections", (void*)&total_connections));
-    perfmon.monitor(var_monitor_t(var_monitor_t::vt_int, "curr_connections", (void*)&curr_connections));
-    perfmon.monitor(var_monitor_t(var_monitor_t::vt_int, "pid", (void*)&(parent_pool->pid)));
-    perfmon.monitor(var_monitor_t(var_monitor_t::vt_float, "start_time", (void*)&(parent_pool->starttime)));
-    perfmon.monitor(var_monitor_t(var_monitor_t::vt_int, "threads", (void*)&(parent_pool->nworkers)));
+    perfmon.monitor(var_monitor_t(var_monitor_t::vt_int, "total_connections", (void*)&total_connections, var_monitor_t::var_monitor_t::var_monitor_combine_sum));
+    perfmon.monitor(var_monitor_t(var_monitor_t::vt_int, "curr_connections", (void*)&curr_connections, var_monitor_t::var_monitor_combine_sum));
+    perfmon.monitor(var_monitor_t(var_monitor_t::vt_int, "pid", (void*)&(parent_pool->pid), var_monitor_t::var_monitor_combine_sum));
+    perfmon.monitor(var_monitor_t(var_monitor_t::vt_float, "start_time", (void*)&(parent_pool->starttime), var_monitor_t::var_monitor_combine_sum));
+    perfmon.monitor(var_monitor_t(var_monitor_t::vt_int, "threads", (void*)&(parent_pool->nworkers), var_monitor_t::var_monitor_combine_pass));
     /* perfmon.monitor(var_monitor_t(var_monitor_t::vt_int, "slices", (void*)&(parent_pool->nslices))); //not part of memcached protocol, uncomment upon risk of death */
-    perfmon.monitor(var_monitor_t(var_monitor_t::vt_int_function, "uptime", (void*) uptime));
-    perfmon.monitor(var_monitor_t(var_monitor_t::vt_int_function, "pointer_size", (void*) pointer_size));
-    perfmon.monitor(var_monitor_t(var_monitor_t::vt_int_function, "rusage_user", (void*) rusage_user));
-    perfmon.monitor(var_monitor_t(var_monitor_t::vt_int_function, "rusage_system", (void*) rusage_system));
-    perfmon.monitor(var_monitor_t(var_monitor_t::vt_int, "cmd_get", (void*) &cmd_get));
-    perfmon.monitor(var_monitor_t(var_monitor_t::vt_int, "cmd_set", (void*) &cmd_set));
-    perfmon.monitor(var_monitor_t(var_monitor_t::vt_int, "get_misses", (void*) &get_misses));
-    perfmon.monitor(var_monitor_t(var_monitor_t::vt_int, "get_hits", (void*) &get_hits));
-    perfmon.monitor(var_monitor_t(var_monitor_t::vt_int, "bytes_read", (void*) &bytes_read));
-    perfmon.monitor(var_monitor_t(var_monitor_t::vt_int, "bytes_written", (void*) &bytes_written));
+    perfmon.monitor(var_monitor_t(var_monitor_t::vt_int_function, "uptime", (void*) uptime, var_monitor_t::var_monitor_combine_sum));
+    perfmon.monitor(var_monitor_t(var_monitor_t::vt_int_function, "pointer_size", (void*) pointer_size, var_monitor_t::var_monitor_combine_sum));
+    perfmon.monitor(var_monitor_t(var_monitor_t::vt_int_function, "rusage_user", (void*) rusage_user, var_monitor_t::var_monitor_combine_sum));
+    perfmon.monitor(var_monitor_t(var_monitor_t::vt_int_function, "rusage_system", (void*) rusage_system, var_monitor_t::var_monitor_combine_sum));
+    perfmon.monitor(var_monitor_t(var_monitor_t::vt_int, "cmd_get", (void*) &cmd_get, var_monitor_t::var_monitor_combine_sum));
+    perfmon.monitor(var_monitor_t(var_monitor_t::vt_int, "cmd_set", (void*) &cmd_set, var_monitor_t::var_monitor_combine_sum));
+    perfmon.monitor(var_monitor_t(var_monitor_t::vt_int, "get_misses", (void*) &get_misses, var_monitor_t::var_monitor_combine_sum));
+    perfmon.monitor(var_monitor_t(var_monitor_t::vt_int, "get_hits", (void*) &get_hits, var_monitor_t::var_monitor_combine_sum));
+    perfmon.monitor(var_monitor_t(var_monitor_t::vt_int, "bytes_read", (void*) &bytes_read, var_monitor_t::var_monitor_combine_sum));
+    perfmon.monitor(var_monitor_t(var_monitor_t::vt_int, "bytes_written", (void*) &bytes_written, var_monitor_t::var_monitor_combine_sum));
 
     // Init the slices
     nworkers = _nqueues;

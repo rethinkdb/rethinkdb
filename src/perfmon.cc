@@ -4,26 +4,7 @@
 
 /* Variable monitors */
 void var_monitor_t::combine(const var_monitor_t* val) {
-    switch(type) {
-    case vt_int:
-        *((int*)value) += *((int*)val->value);
-        break;
-    case vt_float:
-        *((float*)value) += *((float*)val->value);
-        break;
-    case vt_int_function:
-        //just leave the value as is
-        break;
-    case vt_float_function:
-        //just leave the value as is
-        break;
-    case vt_undefined:
-        check("Trying to combine var_monitor_T of type vt_undefined", 1);
-        break;
-    default:
-        check("Trying to combine var_monitor_T of unrecognized type", 1);
-        break;
-    };
+    (*combiner)(this, val);
 }
 
 int var_monitor_t::print(char *buf, int max_size) {
@@ -77,7 +58,7 @@ void var_monitor_t::freeze_state() {
 
 /* Perfmon module */
 void perfmon_t::monitor(var_monitor_t monitor)
-{    
+{
     assert(registry.count(monitor.name) == 0);
     registry[monitor.name] = monitor;
 }

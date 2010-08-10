@@ -7,6 +7,7 @@
 #include "message_hub.hpp"
 #include "alloc/alloc_mixin.hpp"
 
+
 /* Variable monitor types */
 struct var_monitor_t {
 public:
@@ -17,16 +18,18 @@ public:
         vt_int_function,
         vt_float_function,
     };
+
 public:
     typedef float   (*float_function)();
     typedef int     (*int_function)();
+    typedef void    (*combinerf)(var_monitor_t *, const var_monitor_t *);
         
 public:
     var_monitor_t()
         : type(vt_undefined), name(NULL), value(NULL)
         {}
-    var_monitor_t(var_type_t _type, const char *_name, void *_value)
-        : type(_type), name(_name), value(_value)
+    var_monitor_t(var_type_t _type, const char *_name, void *_value, combinerf _combiner)
+        : type(_type), name(_name), value(_value), combiner(_combiner)
         {}
     virtual ~var_monitor_t() {}
 
@@ -38,8 +41,34 @@ public:
     var_type_t type;
     const char *name;
     void *value;
+    combinerf combiner;
     /* var_monitor_t (*combiner)(var_monitor_t &vm1, var_monitor_t &v2); */
     char value_copy[8];
+
+    /* combiners */
+public:
+    static void var_monitor_combine_sum(var_monitor_t *v1, const var_monitor_t *v2) {
+        switch(v1->type) {
+            case vt_int:
+                *((int*)v1->value) += *((int*)v2->value);
+                break;
+            case vt_float:
+                *((float*)v1->value) += *((float*)v2->value);
+                break;
+            case vt_int_function:
+                //just leave the value as is
+                break;
+            case vt_float_function:
+                //just leave the value as is
+                break;
+            case vt_undefined:
+            default:
+                check("Bad var mon type", 1);
+        }
+    }
+
+    static void var_monitor_combine_pass(var_monitor_t *v1, const var_monitor_t *v2) {}
+
 };
 
 /* The actual perfmon Module */
@@ -54,8 +83,6 @@ public:
     // TODO: Watch the allocation.
     perfmon_map_t registry;
 };
-
-
 
 /* This is what gets sent to a core when another core requests it's perfmon module. */
 struct perfmon_msg_t : public cpu_message_t,
