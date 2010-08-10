@@ -66,15 +66,15 @@ public:
     using btree_fsm<config_t>::transaction;
     using btree_fsm<config_t>::cache;
 
-    virtual transition_result_t do_start_transaction(event_t *event);
-    virtual transition_result_t do_acquire_superblock(event_t *event);
-    virtual transition_result_t do_acquire_root(event_t *event);
-    virtual transition_result_t do_insert_root(event_t *event);
-    virtual transition_result_t do_insert_root_on_split(event_t *event);
-    virtual transition_result_t do_insert_root_on_collapse(event_t *event);
-    virtual transition_result_t do_acquire_node(event_t *event);
-    virtual transition_result_t do_check_for_split(node_t *node);
-    virtual transition_result_t do_acquire_sibling(event_t *event);
+    transition_result_t do_start_transaction(event_t *event);
+    transition_result_t do_acquire_superblock(event_t *event);
+    transition_result_t do_acquire_root(event_t *event);
+    transition_result_t do_insert_root(event_t *event);
+    transition_result_t do_insert_root_on_split(event_t *event);
+    transition_result_t do_insert_root_on_collapse(event_t *event);
+    transition_result_t do_acquire_node(event_t *event);
+    transition_result_t do_check_for_split(node_t *node);
+    transition_result_t do_acquire_sibling(event_t *event);
     
 #ifndef NDEBUG
     // Print debugging information designed to resolve deadlocks
