@@ -80,6 +80,9 @@ void worker_t::shutdown() {
 
     for (int i = 0; i < nslices; i++) {
         incr_ref_count();
+    }
+
+    for (int i = 0; i < nslices; i++) {
         slices[i]->shutdown(this);
     }
 }
@@ -96,14 +99,14 @@ void worker_t::new_fsm(int data, int &resource, void **source) {
     live_fsms.push_back(fsm);
     resource = fsm->get_source();
     *source = fsm;
-    logf(INF, "Opened socket %d\n", resource);
+    printf("Opened socket %d\n", resource);
     curr_connections++;
     total_connections++;
 }
 
 void worker_t::deregister_fsm(void *fsm, int &resource) {
     worker_t::conn_fsm_t *cfsm = (worker_t::conn_fsm_t *) fsm;
-    logf(INF, "Closing socket %d\n", cfsm->get_source());
+    printf("Closing socket %d\n", cfsm->get_source());
     resource = cfsm->get_source();
     live_fsms.remove(cfsm);
     shutdown_fsms.push_back(cfsm);
@@ -217,7 +220,6 @@ void worker_t::incr_ref_count() {
 
 void worker_t::decr_ref_count() {
     ref_count--;
-    printf("decr_ref_count() -- ref_count:%d\n", ref_count);
     if (ref_count == 0 && shutting_down) {
         event_queue->send_shutdown();
     }
