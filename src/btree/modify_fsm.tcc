@@ -111,6 +111,20 @@ typename btree_modify_fsm<config_t>::transition_result_t btree_modify_fsm<config
     // If this is the first time we're entering this function,
     // allocate the root (otherwise, the root has already been
     // allocated here, and we just need to set its id in the metadata)
+    
+    // Check what we're doing. If we're deleting, we don't want to insert a root.
+    btree_value *temp_new_value;    
+    bool operate_was_successful = operate(NULL, &temp_new_value);
+    
+    if (operate_was_successful && temp_new_value == NULL) {
+        // it's a delete.
+        op_result = btree_not_found;
+        state = delete_complete;
+        sb_buf->release();
+        sb_buf = NULL;
+        return btree_fsm_t::transition_ok;
+    }
+
     if(cache_t::is_block_id_null(node_id)) {
         buf = transaction->allocate(&node_id);
         leaf_node_handler::init((leaf_node_t *)buf->ptr());
@@ -311,6 +325,7 @@ typename btree_modify_fsm<config_t>::transition_result_t btree_modify_fsm<config
 
     // If we were acquiring a node, do that
     // Go up the tree...
+
     while(res == btree_fsm_t::transition_ok && state == acquire_node) {
     
         if(!buf) {
@@ -361,17 +376,25 @@ typename btree_modify_fsm<config_t>::transition_result_t btree_modify_fsm<config
         /*  But before we check if it's underfull, we need to do
          *  some deleting if we're a leaf node and we are a delete_fsm.
          */
-         if (set_was_successful && node_handler::is_leaf(node) && new_value == NULL)
+         if (set_was_successful && node_handler::is_leaf(node))
          {
-             // If we haven't already, do some deleting 
-            if (op_result == btree_incomplete) {
-                if(leaf_node_handler::remove((leaf_node_t*)node, &key)) {
-                    //key found, and value deleted
-                    buf->set_dirty();
-                    op_result = btree_found;
-                } else {
-                    //key not found, nothing deleted
-                    op_result = btree_not_found;
+            assert(have_computed_new_value);        
+            if (new_value != NULL) {
+                // We have a new value to insert
+                bool success = leaf_node_handler::insert((leaf_node_t*)node, &key, new_value);
+                check("could not insert leaf btree node", !success);
+                buf->set_dirty();                
+            }else {
+                 // If we haven't already, do some deleting 
+                if (op_result == btree_incomplete) {
+                    if(leaf_node_handler::remove((leaf_node_t*)node, &key)) {
+                        //key found, and value deleted
+                        buf->set_dirty();
+                        op_result = btree_found;
+                    } else {
+                        //key not found, nothing deleted
+                        op_result = btree_not_found;
+                    }
                 }
             }
          }
@@ -389,30 +412,28 @@ typename btree_modify_fsm<config_t>::transition_result_t btree_modify_fsm<config
 
                 //logf(DBG, "leaf empty\n");
                 internal_node_t *parent_node = (internal_node_t*)last_buf->ptr();
-                if (!internal_node_handler::is_singleton(parent_node)) {
-                    internal_node_handler::remove(parent_node, &key);
-                    //TODO: delete buf when api is ready
+                assert(internal_node_handler::is_singleton(parent_node)); // if it's a leaf, it should be the root.
+                
+                // the root contains only two nodes, one of which is empty.  delete the empty one, and make the other one the root
+                //TODO: delete buf when api is ready
+                if(!sib_buf) {
+                    // Acquire the only sibling to make into the root
+                    state = acquire_sibling;
+                    res = do_acquire_sibling(NULL);
+                    event = NULL;
+                    continue;
                 } else {
-                    // the root contains only two nodes, one of which is empty.  delete the empty one, and make the other one the root
-                    //TODO: delete buf when api is ready
-                    if(!sib_buf) {
-                        // Acquire the only sibling to make into the root
-                        state = acquire_sibling;
-                        res = do_acquire_sibling(NULL);
-                        event = NULL;
-                        continue;
-                    } else {
-                        node_id = sib_node_id;
-                        state = insert_root_on_collapse;
-                        res = do_insert_root_on_collapse(NULL);
-                        event = NULL;
-                        sib_buf->release();
-                        sib_buf = NULL;
-                    }
+                    node_id = sib_node_id;
+                    state = insert_root_on_collapse;
+                    res = do_insert_root_on_collapse(NULL);
+                    event = NULL;
+                    sib_buf->release();
+                    sib_buf = NULL;
                 }
+
             } else {
             
-                /*  STEP 4.b: Otherwise not a leaf node, merge or level. */
+                //  STEP 4.b: Otherwise not a leaf node, merge or level.
                 if(!sib_buf) { // Acquire a sibling to merge or level with
                     //logf(DBG, "generic acquire sibling\n");
                     state = acquire_sibling;
@@ -432,10 +453,12 @@ typename btree_modify_fsm<config_t>::transition_result_t btree_modify_fsm<config
                             internal_node_handler::merge(internal_node, sib_node, key_to_remove, parent_node);
                             buf->release(); //TODO delete when api is ready
                             buf = sib_buf;
+                            buf->set_dirty();
                             node_id = sib_node_id;
                         } else {
                             internal_node_handler::merge(sib_node, internal_node, key_to_remove, parent_node);
                             sib_buf->release(); //TODO delete when api is ready
+                            sib_buf->set_dirty();
                         }
                         sib_buf = NULL;
 
@@ -463,7 +486,6 @@ typename btree_modify_fsm<config_t>::transition_result_t btree_modify_fsm<config
 
                             internal_node_handler::update_key(parent_node, key_to_replace, replacement_key);
                             last_buf->set_dirty();
-
                             buf->set_dirty();
                         }
                         sib_buf->release();
@@ -480,20 +502,9 @@ typename btree_modify_fsm<config_t>::transition_result_t btree_modify_fsm<config
         }                    
 
         if(node_handler::is_leaf(node)) {
-            //  STEP 5.a: If we're at a leaf, perform the operation we came to perform.
-            assert(have_computed_new_value);
-            
-            if (new_value != NULL && set_was_successful) {
-                // We have a new value to insert
-                bool success = leaf_node_handler::insert((leaf_node_t*)node, &key, new_value);
-                check("could not insert leaf btree node", !success);
-                buf->set_dirty();                
-            }
-                        
-            
+            //  STEP 5.a: If we're at a leaf.
             buf->release();
-            buf = NULL;
-            
+            buf = NULL;            
             state = update_complete;
             res = btree_fsm_t::transition_ok;
             break;
@@ -528,8 +539,31 @@ typename btree_modify_fsm<config_t>::transition_result_t btree_modify_fsm<config
             last_buf->release();
     }
 
+
+/*
+    if (res == btree_fsm_t::transition_ok && state == delete_complete) {
+        bool committed __attribute__((unused)) = transaction->commit(this);
+        state = committing;
+        if (committed) {
+            transaction = NULL;
+            res = btree_fsm_t::transition_complete;
+        }
+        event = NULL;
+    }
+
+    // Finalize the transaction commit
+    if(res == btree_fsm_t::transition_ok && state == committing) {
+        if (event != NULL) {
+            assert(event->event_type == et_commit);
+            assert(event->buf == transaction);
+            transaction = NULL;
+            res = btree_fsm_t::transition_complete;
+        }
+    }
+*/
+
     // Finalize the operation
-    if(res == btree_fsm_t::transition_ok && state == update_complete) {
+    if(res == btree_fsm_t::transition_ok && (state == update_complete || state == delete_complete) ) {
         // Release the final node
         if(!cache_t::is_block_id_null(last_node_id)) {
             last_buf->release();
