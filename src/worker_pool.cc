@@ -134,6 +134,48 @@ void worker_t::clean_fsms() {
 void worker_t::initiate_conn_fsm_transition(event_t *event) {
     code_config_t::conn_fsm_t *fsm = (code_config_t::conn_fsm_t*)event->state;
     int res = fsm->do_transition(event);
+    if(res == worker_t::conn_fsm_t::fsm_transition_ok || res == worker_t::conn_fsm_t::fsm_no_data_in_socket) {
+        // Nothing todo
+    } else if(res == worker_t::conn_fsm_t::fsm_shutdown_server) {
+        int res = pthread_kill(event_queue->parent_pool->main_thread, SIGINT);
+        check("Could not send kill signal to main thread", res != 0);
+    } else if(res == worker_t::conn_fsm_t::fsm_quit_connection) {
+        int source;
+        deregister_fsm(fsm, source);
+        event_queue->forget_resource(source);
+        delete fsm;
+    } else {
+        check("Unhandled fsm transition result", 1);
+    }
+}
+
+void worker_t::on_btree_completed(code_config_t::btree_fsm_t *btree_fsm) {
+    // We received a completed btree that belongs to another
+    // core. Send it off and be merry!
+    get_cpu_context()->worker->event_queue->message_hub.store_message(btree_fsm->return_cpu, btree_fsm);
+}
+
+void worker_t::process_btree_msg(code_config_t::btree_fsm_t *btree_fsm) {
+    worker_t *worker = get_cpu_context()->worker;
+    if(btree_fsm->is_finished()) {
+
+        // We received a completed btree that belongs to us
+        btree_fsm->request->on_request_part_completed();
+
+    } else {
+        // We received a new btree that we need to process
+
+        // The btree is constructed with no cache; here we must assign it its proper cache
+        assert(!btree_fsm->cache);
+        btree_fsm->cache = worker->slice(&btree_fsm->key);
+
+        btree_fsm->on_complete = worker_t::on_btree_completed;
+        code_config_t::btree_fsm_t::transition_result_t btree_res = btree_fsm->do_transition(NULL);
+        if(btree_res == code_config_t::btree_fsm_t::transition_complete) {
+            worker_t::on_btree_completed(btree_fsm);
+        }
+    }
+}
 
 void worker_t::process_perfmon_msg(perfmon_msg_t *msg)
 {    
