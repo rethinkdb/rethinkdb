@@ -27,6 +27,11 @@
 #include "btree/append_prepend_fsm.hpp"
 #include "btree/delete_fsm.hpp"
 
+//perfmon functions
+float uptime(void) {
+    return (double) difftime(time(NULL), get_cpu_context()->worker->parent_pool->starttime);
+}
+
 worker_t::worker_t(int _workerid, int _nqueues,
         worker_pool_t *parent_pool, cmd_config_t *cmd_config) {
     ref_count = 0;
@@ -34,12 +39,14 @@ worker_t::worker_t(int _workerid, int _nqueues,
 
     total_connections = 0;
     curr_connections = 0;
+    this->parent_pool = parent_pool;
     perfmon.monitor(var_monitor_t(var_monitor_t::vt_int, "total_connections", (void*)&total_connections));
     perfmon.monitor(var_monitor_t(var_monitor_t::vt_int, "curr_connections", (void*)&curr_connections));
     perfmon.monitor(var_monitor_t(var_monitor_t::vt_int, "pid", (void*)&(parent_pool->pid)));
     perfmon.monitor(var_monitor_t(var_monitor_t::vt_float, "start_time", (void*)&(parent_pool->starttime)));
     perfmon.monitor(var_monitor_t(var_monitor_t::vt_int, "threads", (void*)&(parent_pool->nworkers)));
     /* perfmon.monitor(var_monitor_t(var_monitor_t::vt_int, "slices", (void*)&(parent_pool->nslices))); //not part of memcached protocol, uncomment upon risk of death */
+    perfmon.monitor(var_monitor_t(var_monitor_t::vt_float_function, "uptime", (void*) uptime));
 
     // Init the slices
     nworkers = _nqueues;
@@ -281,7 +288,7 @@ void worker_pool_t::create_worker_pool(pthread_t main_thread,
 {
     this->main_thread = main_thread;
     this->pid = getpid();
-    this->starttime = (float) time(NULL);
+    this->starttime = time(NULL);
 
     // Create the workers
     if (_nworkers != 0)

@@ -13,8 +13,13 @@ public:
     enum var_type_t {
         vt_undefined,
         vt_int,
-        vt_float
+        vt_float,
+        vt_int_function,
+        vt_float_function,
     };
+public:
+    typedef float   (*float_function)();
+    typedef int     (*int_function)();
         
 public:
     var_monitor_t()
@@ -33,6 +38,7 @@ public:
     var_type_t type;
     const char *name;
     void *value;
+    /* var_monitor_t (*combiner)(var_monitor_t &vm1, var_monitor_t &v2); */
     char value_copy[8];
 };
 

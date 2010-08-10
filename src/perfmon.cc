@@ -11,8 +11,17 @@ void var_monitor_t::combine(const var_monitor_t* val) {
     case vt_float:
         *((float*)value) += *((float*)val->value);
         break;
+    case vt_int_function:
+        //just leave the value as is
+        break;
+    case vt_float_function:
+        //just leave the value as is
+        break;
     case vt_undefined:
-        assert(0);
+        check("Trying to combine var_monitor_T of type vt_undefined", 1);
+        break;
+    default:
+        check("Trying to combine var_monitor_T of unrecognized type", 1);
         break;
     };
 }
@@ -25,28 +34,45 @@ int var_monitor_t::print(char *buf, int max_size) {
     case vt_float:
         return snprintf(buf, max_size, "%f", *(float*)value);
         break;
+    case vt_int_function:
+        return snprintf(buf, max_size, "%d", (*((int_function) value))());
+        break;
+    case vt_float_function:
+        return snprintf(buf, max_size, "%f", (*((float_function) value))());
+        break;
     case vt_undefined:
-        assert(0);
+        check("Trying to print var_monitor_T of type vt_undefined", 1);
+        break;
+    default:
+        check("Trying to print var_monitor_T of unrecognized type", 1);
         break;
     };
     return 0;
 }
 
 void var_monitor_t::freeze_state() {
-    int size = 0;
     switch(type) {
     case vt_int:
-        size = sizeof(int);
+        memcpy(value_copy, value, sizeof(int));
+        value = value_copy;
         break;
     case vt_float:
-        size = sizeof(float);
+        memcpy(value_copy, value, sizeof(int));
+        value = value_copy;
+        break;
+    case vt_int_function:
+        //keep it thawed
+        break;
+    case vt_float_function:
+        //keep it thawed
         break;
     case vt_undefined:
-        assert(0);
+        check("Trying to freeze var_monitor_T of type vt_undefined", 1);
+        break;
+    default:
+        check("Trying to freeze var_monitor_T of unrecognized type", 1);
         break;
     };
-    memcpy(value_copy, value, size);
-    value = value_copy;
 }
 
 /* Perfmon module */

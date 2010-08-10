@@ -83,6 +83,7 @@ struct worker_t : public sync_callback<code_config_t> {
         void process_log_msg(log_msg_t *msg);
         void event_handler(event_t *event);
     public:
+        worker_pool_t *parent_pool;
         event_queue_t *event_queue;
         cache_t *slices[MAX_SLICES];
 
@@ -102,6 +103,7 @@ struct worker_t : public sync_callback<code_config_t> {
         int get_hits, git_misses;
         int bytes_read, bytes_written;
         logger_t logger;
+        //static float uptime();
     private:
         bool active_slices;
 
@@ -152,7 +154,7 @@ public:
     int pid;
 
     //! startime: the time the server started
-    float starttime;
+    time_t starttime;
     
 private:
     void create_worker_pool(pthread_t main_thread,

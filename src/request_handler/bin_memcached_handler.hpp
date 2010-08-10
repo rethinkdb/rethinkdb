@@ -586,6 +586,11 @@ error_breakout:
                 value_length((bin_value_length_t) val->size);
             }
 
+            void set_value(byte* data, unsigned long size) {
+                memcpy(value(), data, size);
+                value_length((bin_value_length_t) size);
+            }
+
             //setters for values in the extras
             void flags(bin_flags_t flags) {
                 switch (opcode()) {
