@@ -10,13 +10,16 @@ public:
     explicit btree_get_cas_fsm(btree_key *_key) : btree_modify_fsm<config_t>(_key) {}
     
     bool operate(btree_value *old_value, btree_value **new_value) {
-        value = old_value;
-        if (value) {
+        if (old_value) {
             found = true;
-            *new_value = value;
-            if (!value->has_cas()) { // We have always been at war with Eurasia.
-                assert(value->size + sizeof(uint64_t) <= MAX_TOTAL_NODE_CONTENTS_SIZE);
-                value->add_cas(); // Will be set in modify_fsm.
+
+            value.size = old_value->size;
+            value.metadata_flags = old_value->metadata_flags;
+            memcpy(value.contents, old_value->contents, value.size);
+            *new_value = &value;
+            if (!value.has_cas()) { // We have always been at war with Eurasia.
+                assert(value.size + sizeof(btree_value::cas_t) <= MAX_TOTAL_NODE_CONTENTS_SIZE);
+                value.add_cas(); // Will be set in modify_fsm.
                 return true;
             }
             return false;
@@ -28,7 +31,10 @@ public:
 
     bool found;
 
-    btree_value *value;
+    union {
+        byte value_memory[MAX_TOTAL_NODE_CONTENTS_SIZE+sizeof(btree_value)];
+        btree_value value;
+    };
 };
 
 #endif // __BTREE_GET_CAS_FSM_HPP__

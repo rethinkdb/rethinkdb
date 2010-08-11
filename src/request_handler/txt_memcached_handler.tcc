@@ -159,10 +159,10 @@ public:
             if(fsm->found) {
                 sbuf->printf("VALUE %*.*s %u %u %llu\r\n",
                     fsm->key.size, fsm->key.size, fsm->key.contents,
-                    fsm->value->mcflags(),
-                    fsm->value->value_size(),
-                    fsm->value->cas());
-                sbuf->append(fsm->value->value(), fsm->value->value_size());
+                    fsm->value.mcflags(),
+                    fsm->value.value_size(),
+                    fsm->value.cas());
+                sbuf->append(fsm->value.value(), fsm->value.value_size());
                 sbuf->printf("\r\n");
             }
         }
