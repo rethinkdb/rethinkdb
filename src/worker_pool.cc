@@ -56,6 +56,8 @@ worker_t::worker_t(int _workerid, int _nqueues,
 
     total_connections = 0;
     curr_connections = 0;
+    curr_items = 0;
+    total_items = 0;
     cmd_get = 0;
     cmd_set = 0;
     get_misses = 0;
@@ -66,6 +68,8 @@ worker_t::worker_t(int _workerid, int _nqueues,
     this->parent_pool = parent_pool;
     perfmon.monitor(var_monitor_t(var_monitor_t::vt_int, "total_connections", (void*)&total_connections, var_monitor_t::var_monitor_t::var_monitor_combine_sum));
     perfmon.monitor(var_monitor_t(var_monitor_t::vt_int, "curr_connections", (void*)&curr_connections, var_monitor_t::var_monitor_combine_sum));
+    perfmon.monitor(var_monitor_t(var_monitor_t::vt_int, "total_items", (void*)&total_items, var_monitor_t::var_monitor_t::var_monitor_combine_sum));
+    perfmon.monitor(var_monitor_t(var_monitor_t::vt_int, "curr_items", (void*)&curr_items, var_monitor_t::var_monitor_combine_sum));
     perfmon.monitor(var_monitor_t(var_monitor_t::vt_int, "pid", (void*)&(parent_pool->pid), var_monitor_t::var_monitor_combine_sum));
     perfmon.monitor(var_monitor_t(var_monitor_t::vt_float, "start_time", (void*)&(parent_pool->starttime), var_monitor_t::var_monitor_combine_sum));
     perfmon.monitor(var_monitor_t(var_monitor_t::vt_int, "threads", (void*)&(parent_pool->nworkers), var_monitor_t::var_monitor_combine_pass));
