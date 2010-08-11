@@ -15,6 +15,7 @@ public:
     typedef typename config_t::btree_fsm_t btree_fsm_t;
     typedef typename config_t::btree_set_fsm_t btree_set_fsm_t;
     typedef typename config_t::btree_get_fsm_t btree_get_fsm_t;
+    typedef typename config_t::btree_get_cas_fsm_t btree_get_cas_fsm_t;
     typedef typename config_t::btree_delete_fsm_t btree_delete_fsm_t;
     typedef typename config_t::btree_incr_decr_fsm_t btree_incr_decr_fsm_t;
     typedef typename config_t::btree_append_prepend_fsm_t btree_append_prepend_fsm_t;
@@ -38,10 +39,10 @@ private:
         btree_key key;
     };
     
-    uint32_t flags;
+    btree_value::mcflags_t mcflags;
     uint32_t exptime;
     uint32_t bytes;
-    uint64_t cas_unique; //must be at least 64 bits
+    btree_value::cas_t cas;
     bool noreply;
     bool loading_data;
 
@@ -49,7 +50,8 @@ private:
     parse_result_t parse_stat_command(char *state, unsigned int line_len);
     parse_result_t parse_adjustment(bool increment, char *state, unsigned int line_len);
     parse_result_t read_data();
-    parse_result_t get(char *state, bool include_unique, unsigned int line_len);
+    parse_result_t get(char *state, unsigned int line_len);
+    parse_result_t get_cas(char *state, unsigned int line_len);
     parse_result_t remove(char *state, unsigned int line_len);
     parse_result_t malformed_request();
     parse_result_t unimplemented_request();

@@ -104,6 +104,8 @@ struct worker_t : public sync_callback<code_config_t> {
         int bytes_read, bytes_written;
         logger_t logger;
         //static float uptime();
+
+        btree_value::cas_t gen_cas();
     private:
         bool active_slices;
 
@@ -120,6 +122,8 @@ struct worker_t : public sync_callback<code_config_t> {
          *  this includes sync_callbacks and log_messages
          */
         int ref_count;
+
+        uint32_t cas_counter;
     public:
         void incr_ref_count();
         void decr_ref_count();

@@ -42,8 +42,8 @@ public:
         // valid until the btree FSM is destroyed. That's why we can't allocate a buffer on the
         // stack.
         
-        int chars_written = sprintf(temp_value.contents, "%llu", (unsigned long long)new_number);
-        temp_value.size = chars_written;
+        int chars_written = sprintf(temp_value.value(), "%llu", (unsigned long long)new_number);
+        temp_value.value_size(chars_written);
         
         *new_value = &temp_value;
         
@@ -57,7 +57,7 @@ private:
     /* Used as temporary storage, so that the value we return from operate() doesn't become invalid
     before modify_fsm is done with it. */
     union {
-        char temp_value_memory[MAX_IN_NODE_VALUE_SIZE+sizeof(btree_value)];
+        char temp_value_memory[MAX_TOTAL_NODE_CONTENTS_SIZE+sizeof(btree_value)];
         btree_value temp_value;
     };
 

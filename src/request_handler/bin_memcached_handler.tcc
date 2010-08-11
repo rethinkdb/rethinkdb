@@ -125,8 +125,8 @@ public:
     using bin_memcached_request<config_t>::request;
 
 public:
-    bin_memcached_set_request(bin_memcached_handler_t<config_t> *rh, packet_t *pkt, btree_key *key, byte *data, int size, bool add_ok, bool replace_ok)
-        : bin_memcached_request<config_t>(rh, pkt), fsm(new btree_set_fsm_t(key, data, size, add_ok, replace_ok))
+    bin_memcached_set_request(bin_memcached_handler_t<config_t> *rh, packet_t *pkt, btree_key *key, byte *data, int size, btree_value::mcflags_t mcflags, bool add_ok, bool replace_ok, uint64_t req_cas, bool check_cas)
+        : bin_memcached_request<config_t>(rh, pkt), fsm(new btree_set_fsm_t(key, data, size, mcflags, add_ok, replace_ok, req_cas, check_cas))
         {
         assert(add_ok && replace_ok);   // We haven't hooked up ADD and REPLACE yet.
         request->add(fsm, key_to_cpu(key, rh->event_queue->parent->nworkers));
@@ -418,15 +418,16 @@ typename bin_memcached_handler_t<config_t>::parse_result_t bin_memcached_handler
             return req_handler_t::op_req_complex;
         case bin_opcode_set:
         case bin_opcode_setq:
-            new bin_memcached_set_request<config_t>(this, pkt, key, pkt->value(), pkt->value_length(), true, true);
+            // TODO: Set the actual flags after the new packet-parsing code is written.
+            new bin_memcached_set_request<config_t>(this, pkt, key, pkt->value(), pkt->value_length(), 0, true, true, 0, false);
             break;
         case bin_opcode_add:
         case bin_opcode_addq:
-            new bin_memcached_set_request<config_t>(this, pkt, key, pkt->value(), pkt->value_length(), true, false);
+            new bin_memcached_set_request<config_t>(this, pkt, key, pkt->value(), pkt->value_length(), 0, true, false, 0, false);
             break;
         case bin_opcode_replace:
         case bin_opcode_replaceq:
-            new bin_memcached_set_request<config_t>(this, pkt, key, pkt->value(), pkt->value_length(), false, true);
+            new bin_memcached_set_request<config_t>(this, pkt, key, pkt->value(), pkt->value_length(), 0, false, true, 0, false);
             break;
         case bin_opcode_increment:
         case bin_opcode_incrementq:

@@ -571,7 +571,7 @@ error_breakout:
 
             //load the value into an allocated value
             void value(btree_value *val) {
-                val->size = value_length();
+                val->value_size(value_length());
                 if (is_request())
                     memcpy(val->contents, data + sizeof(request_header_t) + extra_length() + key_length(), value_length());
                 else
@@ -586,8 +586,8 @@ error_breakout:
             }
 
             void set_value(btree_value *val) {
-                memcpy(value(), val->contents, val->size);
-                value_length((bin_value_length_t) val->size);
+                memcpy(value(), val->value(), val->value_size());
+                value_length((bin_value_length_t) val->value_size());
             }
 
             void set_value(const byte* data, unsigned long size) {

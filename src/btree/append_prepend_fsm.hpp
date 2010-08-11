@@ -11,7 +11,7 @@ public:
     explicit btree_append_prepend_fsm(btree_key *_key, byte *data, unsigned int size, bool append)
         : btree_modify_fsm<config_t>(_key),
           append(append) {
-        // This isn't actually used as a value -- just for the size and conte.
+        // This isn't actually used as a btree value -- just for the size and contents.
         temp_value.size = size;
         memcpy(temp_value.contents, data, size);
     }
@@ -19,13 +19,13 @@ public:
     bool operate(btree_value *old_value, btree_value **new_value) {
         if (!old_value) return false;
 
-        assert(old_value->size + temp_value.size <= MAX_IN_NODE_VALUE_SIZE);
+        assert(old_value->size + temp_value.size <= MAX_TOTAL_NODE_CONTENTS_SIZE);
 
         if (append) {
-            memcpy(old_value->contents + old_value->size, temp_value.contents, temp_value.size);
+            memcpy(old_value->value() + old_value->value_size(), temp_value.value(), temp_value.value_size());
         } else { // prepend
-            memmove(old_value->contents + temp_value.size, old_value->contents, old_value->size);
-            memcpy(old_value->contents, temp_value.contents, temp_value.size);
+            memmove(old_value->value() + temp_value.value_size(), old_value->value(), old_value->value_size());
+            memcpy(old_value->value(), temp_value.value(), temp_value.value_size());
         }
         old_value->size += temp_value.size;
         *new_value = old_value;
@@ -36,7 +36,7 @@ public:
 private:
         bool append; // If false, then prepend
         union {
-            char temp_value_memory[MAX_IN_NODE_VALUE_SIZE+sizeof(btree_value)];
+            char temp_value_memory[MAX_TOTAL_NODE_CONTENTS_SIZE+sizeof(btree_value)];
             btree_value temp_value;
         };
 };

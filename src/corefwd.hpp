@@ -48,6 +48,9 @@ template <typename config_t>
 class btree_get_fsm;
 
 template <typename config_t>
+class btree_get_cas_fsm;
+
+template <typename config_t>
 class btree_set_fsm;
 
 template <typename config_t>

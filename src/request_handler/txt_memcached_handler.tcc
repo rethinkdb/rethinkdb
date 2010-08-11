@@ -95,12 +95,11 @@ public:
             btree_get_fsm_t *fsm = fsms[i];
             if(fsm->op_result == btree_get_fsm_t::btree_found) {
                 get_cpu_context()->worker->get_hits++;
-                //TODO: support flags
                 sbuf->printf("VALUE %*.*s %u %u\r\n",
                     fsm->key.size, fsm->key.size, fsm->key.contents,
-                    0,
-                    fsm->value.size);
-                sbuf->append(fsm->value.contents, fsm->value.size);
+                    fsm->value.mcflags(),
+                    fsm->value.value_size());
+                sbuf->append(fsm->value.value(), fsm->value.value_size());
                 sbuf->printf("\r\n");
             } else if(fsms[i]->op_result == btree_get_fsm_t::btree_not_found) {
                 get_cpu_context()->worker->get_misses++;
@@ -115,6 +114,66 @@ private:
     btree_get_fsm_t *fsms[MAX_OPS_IN_REQUEST];
 };
 
+// FIXME horrible redundancy
+template<class config_t>
+class txt_memcached_get_cas_request : public txt_memcached_request<config_t>,
+    public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, txt_memcached_get_cas_request<config_t> > {
+
+public:
+    typedef typename config_t::conn_fsm_t conn_fsm_t;
+    typedef typename config_t::btree_get_cas_fsm_t btree_get_cas_fsm_t;
+    using txt_memcached_request<config_t>::rh;
+
+public:
+    // A txt_memcached_get_request supports more than one get at one time, so it takes several steps
+    // to build it. First the constructor is called; then add_get() is called one or more times;
+    // then dispatch() is called.
+    
+    txt_memcached_get_cas_request(txt_memcached_handler_t<config_t> *rh)
+        : txt_memcached_request<config_t>(rh, false), num_fsms(0) {}
+    
+    bool add_get(btree_key *key) {
+        if (this->request->can_add()) {
+            btree_get_cas_fsm_t *fsm = new btree_get_cas_fsm_t(key);
+            this->request->add(fsm, key_to_cpu(key, rh->event_queue->parent->nworkers));
+            fsms[num_fsms ++] = fsm;
+            return true;
+        } else {
+            return false;
+        }
+    }
+    
+    void dispatch() {
+        this->request->dispatch();
+    }
+    
+    ~txt_memcached_get_cas_request() {
+        for (int i = 0; i < num_fsms; i ++) {
+            delete fsms[i];
+        }
+    }
+    
+    void build_response(typename conn_fsm_t::linked_buf_t *sbuf) {
+        for(int i = 0; i < num_fsms; i++) {
+            btree_get_cas_fsm_t *fsm = fsms[i];
+            if(fsm->found) {
+                sbuf->printf("VALUE %*.*s %u %u %llu\r\n",
+                    fsm->key.size, fsm->key.size, fsm->key.contents,
+                    fsm->value->mcflags(),
+                    fsm->value->value_size(),
+                    fsm->value->cas());
+                sbuf->append(fsm->value->value(), fsm->value->value_size());
+                sbuf->printf("\r\n");
+            }
+        }
+        sbuf->printf(RETRIEVE_TERMINATOR);
+    }
+
+private:
+    int num_fsms;
+    btree_get_cas_fsm_t *fsms[MAX_OPS_IN_REQUEST];
+};
+
 template<class config_t>
 class txt_memcached_set_request : public txt_memcached_request<config_t>,
     public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, txt_memcached_set_request<config_t> > {
@@ -124,9 +183,9 @@ public:
     typedef typename config_t::btree_set_fsm_t btree_set_fsm_t;
 
 public:
-    txt_memcached_set_request(txt_memcached_handler_t<config_t> *rh, btree_key *key, byte *data, int length, bool add_ok, bool replace_ok, bool noreply)
+    txt_memcached_set_request(txt_memcached_handler_t<config_t> *rh, btree_key *key, byte *data, int length, btree_value::mcflags_t mcflags, bool add_ok, bool replace_ok, btree_value::cas_t req_cas, bool check_cas, bool noreply)
         : txt_memcached_request<config_t>(rh, noreply),
-          fsm(new btree_set_fsm_t(key, data, length, add_ok, replace_ok))
+          fsm(new btree_set_fsm_t(key, data, length, mcflags, add_ok, replace_ok, req_cas, check_cas))
         {
         this->request->add(fsm, key_to_cpu(key, rh->event_queue->parent->nworkers));
         this->request->dispatch();
@@ -418,9 +477,9 @@ typename txt_memcached_handler_t<config_t>::parse_result_t txt_memcached_handler
         return parse_storage_command(CAS, state, line_len);
 
     } else if(!strcmp(cmd_str, "get")) {    // check for retrieval commands
-        return get(state, false, line_len);
+        return get(state, line_len);
     } else if(!strcmp(cmd_str, "gets")) {
-        return get(state, true, line_len);
+        return get_cas(state, line_len);
 
     } else if(!strcmp(cmd_str, "delete")) {
         return remove(state, line_len);
@@ -470,16 +529,16 @@ typename txt_memcached_handler_t<config_t>::parse_result_t txt_memcached_handler
 template <class config_t>
 typename txt_memcached_handler_t<config_t>::parse_result_t txt_memcached_handler_t<config_t>::parse_storage_command(storage_command command, char *state, unsigned int line_len) {
     char *key_tmp = strtok_r(NULL, DELIMS, &state);
-    char *flags_str = strtok_r(NULL, DELIMS, &state);
+    char *mcflags_str = strtok_r(NULL, DELIMS, &state);
     char *exptime_str = strtok_r(NULL, DELIMS, &state);
     char *bytes_str = strtok_r(NULL, DELIMS, &state);
-    char *cas_unique_str = NULL;
+    char *cas_str = NULL;
     if (command == CAS)
-        cas_unique_str = strtok_r(NULL, DELIMS, &state);
+        cas_str = strtok_r(NULL, DELIMS, &state);
     char *noreply_str = strtok_r(NULL, DELIMS, &state); //optional
 
     //check for proper number of arguments
-    if ((key_tmp == NULL || flags_str == NULL || exptime_str == NULL || bytes_str == NULL || (command == CAS && cas_unique_str == NULL))) {
+    if ((key_tmp == NULL || mcflags_str == NULL || exptime_str == NULL || bytes_str == NULL || (command == CAS && cas_str == NULL))) {
         conn_fsm->consume(line_len);
         return malformed_request();
     }
@@ -488,7 +547,7 @@ typename txt_memcached_handler_t<config_t>::parse_result_t txt_memcached_handler
     node_handler::str_to_key(key_tmp, &key);
 
     char *invalid_char;
-    flags = strtoul(flags_str, &invalid_char, 10);  //a 32 bit integer.  int alone does not guarantee 32 bit length
+    mcflags = strtoul(mcflags_str, &invalid_char, 10);  //a 32 bit integer.  int alone does not guarantee 32 bit length
     if (*invalid_char != '\0') {  // ensure there were no improper characters in the token - i.e. parse was successful
         conn_fsm->consume(line_len);
         return malformed_request();
@@ -507,7 +566,7 @@ typename txt_memcached_handler_t<config_t>::parse_result_t txt_memcached_handler
     }
 
     if (cmd == CAS) {
-        cas_unique = strtoull(cas_unique_str, &invalid_char, 10);
+        cas = strtoull(cas_str, &invalid_char, 10);
         if (*invalid_char != '\0') {
             conn_fsm->consume(line_len);
             return malformed_request();
@@ -553,23 +612,25 @@ typename txt_memcached_handler_t<config_t>::parse_result_t txt_memcached_handler
 
     switch(cmd) {
         case SET:
-            new txt_memcached_set_request<config_t>(this, &key, conn_fsm->rbuf, bytes, true, true, noreply);
+            new txt_memcached_set_request<config_t>(this, &key, conn_fsm->rbuf, bytes, mcflags, true, true, 0, false, noreply);
             break;
         case ADD:
-            new txt_memcached_set_request<config_t>(this, &key, conn_fsm->rbuf, bytes, true, false, noreply);
+            new txt_memcached_set_request<config_t>(this, &key, conn_fsm->rbuf, bytes, mcflags, true, false, 0, false, noreply);
             break;
         case REPLACE:
-            new txt_memcached_set_request<config_t>(this, &key, conn_fsm->rbuf, bytes, false, true, noreply);
+            new txt_memcached_set_request<config_t>(this, &key, conn_fsm->rbuf, bytes, mcflags, false, true, 0, false, noreply);
             break;
+        case CAS:
+            // TODO: CAS returns a different error code from REPLACE when a value isn't found.
+            new txt_memcached_set_request<config_t>(this, &key, conn_fsm->rbuf, bytes, mcflags, false, true, cas, true, noreply);
+            break;
+        // APPEND and PREPEND always ignore flags and exptime.
         case APPEND:
             new txt_memcached_append_prepend_request<config_t>(this, &key, conn_fsm->rbuf, bytes, true, noreply);
             break;
         case PREPEND:
             new txt_memcached_append_prepend_request<config_t>(this, &key, conn_fsm->rbuf, bytes, false, noreply);
             break;
-        case CAS:
-            conn_fsm->consume(bytes+2);
-            return unimplemented_request();
         default:
             conn_fsm->consume(bytes+2);
             return malformed_request();
@@ -596,15 +657,46 @@ typename txt_memcached_handler_t<config_t>::parse_result_t txt_memcached_handler
 }
 
 template <class config_t>
-typename txt_memcached_handler_t<config_t>::parse_result_t txt_memcached_handler_t<config_t>::get(char *state, bool include_unique, unsigned int line_len) {
-    
-    if (include_unique)
-        return unimplemented_request();
+typename txt_memcached_handler_t<config_t>::parse_result_t txt_memcached_handler_t<config_t>::get(char *state, unsigned int line_len) {
     
     char *key_str = strtok_r(NULL, DELIMS, &state);
     if (key_str == NULL) return malformed_request();
     
     txt_memcached_get_request<config_t> *rq = new txt_memcached_get_request<config_t>(this);
+    
+    do {
+        node_handler::str_to_key(key_str, &key);
+        
+        if (!rq->add_get(&key)) {
+            // We can't fit any more operations, let's just break
+            // and complete the ones we already sent out to other
+            // cores.
+            break;
+
+            // TODO: to a user, it will look like some of his
+            // requests aren't satisfied. We need to notify them
+            // somehow.
+        }
+        
+        key_str = strtok_r(NULL, DELIMS, &state);
+        
+    } while(key_str);
+    
+    rq->dispatch();
+    
+    //clean out the rbuf
+    conn_fsm->consume(line_len);
+    return req_handler_t::op_req_complex;
+}
+
+// FIXME horrible redundancy
+template <class config_t>
+typename txt_memcached_handler_t<config_t>::parse_result_t txt_memcached_handler_t<config_t>::get_cas(char *state, unsigned int line_len) {
+    
+    char *key_str = strtok_r(NULL, DELIMS, &state);
+    if (key_str == NULL) return malformed_request();
+    
+    txt_memcached_get_cas_request<config_t> *rq = new txt_memcached_get_cas_request<config_t>(this);
     
     do {
         node_handler::str_to_key(key_str, &key);

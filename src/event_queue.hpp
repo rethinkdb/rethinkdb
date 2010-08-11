@@ -93,7 +93,6 @@ public:
 
 private:
     
-
     static void *epoll_handler(void *ctx);
     void process_timer_notify();
     static void garbage_collect(void *ctx);

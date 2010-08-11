@@ -29,6 +29,7 @@
 #include "buffer_cache/writeback/writeback.hpp"
 #include "buffer_cache/concurrency/rwi_conc.hpp"
 #include "btree/get_fsm.hpp"
+#include "btree/get_cas_fsm.hpp"
 #include "btree/set_fsm.hpp"
 #include "btree/incr_decr_fsm.hpp"
 #include "btree/append_prepend_fsm.hpp"

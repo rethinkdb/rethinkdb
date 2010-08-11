@@ -345,7 +345,7 @@ typename btree_modify_fsm<config_t>::transition_result_t btree_modify_fsm<config
         if (node_handler::is_leaf(node) && !have_computed_new_value) {
             
             union {
-                char value_memory[MAX_IN_NODE_VALUE_SIZE+sizeof(btree_value)];
+                char value_memory[MAX_TOTAL_NODE_CONTENTS_SIZE+sizeof(btree_value)];
                 btree_value old_value;
             } u;
             
@@ -390,6 +390,9 @@ typename btree_modify_fsm<config_t>::transition_result_t btree_modify_fsm<config
             assert(node_handler::is_leaf(node));
             if (new_value) {
                 // We have a new value to insert
+                if (new_value->has_cas()) {
+                    new_value->set_cas(get_cpu_context()->worker->gen_cas());
+                }
                 bool success = leaf_node_handler::insert((leaf_node_t*)node, &key, new_value);
                 check("could not insert leaf btree node", !success);
             } else {

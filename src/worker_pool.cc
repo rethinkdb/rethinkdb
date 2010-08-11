@@ -23,6 +23,7 @@
 #include "buffer_cache/concurrency/rwi_conc.hpp"
 
 #include "btree/get_fsm.hpp"
+#include "btree/get_cas_fsm.hpp"
 #include "btree/set_fsm.hpp"
 #include "btree/incr_decr_fsm.hpp"
 #include "btree/append_prepend_fsm.hpp"
@@ -84,6 +85,8 @@ worker_t::worker_t(int _workerid, int _nqueues,
     perfmon.monitor(var_monitor_t(var_monitor_t::vt_int, "get_hits", (void*) &get_hits, var_monitor_t::var_monitor_combine_sum));
     perfmon.monitor(var_monitor_t(var_monitor_t::vt_int, "bytes_read", (void*) &bytes_read, var_monitor_t::var_monitor_combine_sum));
     perfmon.monitor(var_monitor_t(var_monitor_t::vt_int, "bytes_written", (void*) &bytes_written, var_monitor_t::var_monitor_combine_sum));
+
+    cas_counter = 0;
 
     // Init the slices
     nworkers = _nqueues;
@@ -320,6 +323,12 @@ void worker_t::decr_ref_count() {
 
 void worker_t::on_sync() {
     decr_ref_count();
+}
+
+btree_value::cas_t worker_t::gen_cas() {
+    // A CAS value is made up of both a timestamp and a per-worker counter,
+    // which should be enough to guarantee that it'll be unique.
+    return (time(NULL) << 32) | (++cas_counter);
 }
 
 void worker_pool_t::create_worker_pool(pthread_t main_thread,

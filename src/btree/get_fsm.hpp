@@ -47,7 +47,7 @@ public:
     contain the result. */
     op_result_t op_result;
     union {
-        char value_memory[MAX_IN_NODE_VALUE_SIZE+sizeof(btree_value)];
+        char value_memory[MAX_TOTAL_NODE_CONTENTS_SIZE+sizeof(btree_value)];
         btree_value value;
     };
     

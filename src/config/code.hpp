@@ -48,6 +48,7 @@ struct standard_config_t {
     typedef btree_admin<standard_config_t> btree_admin_t;
     typedef btree_node node_t;
     typedef btree_get_fsm<standard_config_t> btree_get_fsm_t;
+    typedef btree_get_cas_fsm<standard_config_t> btree_get_cas_fsm_t;
     typedef btree_set_fsm<standard_config_t> btree_set_fsm_t;
     typedef btree_delete_fsm<standard_config_t> btree_delete_fsm_t;
     typedef btree_incr_decr_fsm<standard_config_t> btree_incr_decr_fsm_t;

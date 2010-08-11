@@ -10,13 +10,17 @@ class btree_set_fsm : public btree_modify_fsm<config_t>,
 {
 
 public:
-    explicit btree_set_fsm(btree_key *_key, byte *data, unsigned int length, bool add_ok, bool replace_ok)
+    explicit btree_set_fsm(btree_key *_key, byte *data, unsigned int length, btree_value::mcflags_t mcflags, bool add_ok, bool replace_ok, btree_value::cas_t _req_cas, bool check_cas)
         : btree_modify_fsm<config_t>(_key),
           add_ok(add_ok),
-          replace_ok(replace_ok)
+          replace_ok(replace_ok),
+          check_cas(check_cas)
         {
-        value.size = length;
-        memcpy(&value.contents, data, length);
+        req_cas = _req_cas;
+        value.metadata_flags = 0;
+        value.value_size(length);
+        value.set_mcflags(mcflags);
+        memcpy(value.value(), data, length);
     }
     
     bool operate(btree_value *old_value, btree_value **new_value) {
@@ -25,14 +29,24 @@ public:
             get_cpu_context()->worker->curr_items++;
             get_cpu_context()->worker->total_items++;
         }
+        if (check_cas) {
+            if (old_value && old_value->has_cas() && old_value->cas() != req_cas) {
+                // TODO return the appropriate error code.
+                return false;
+            }
+        }
+        if (old_value && old_value->has_cas()) {
+            value.add_cas(); // Turns the flag on and makes room. modify_fsm will set an actual CAS.
+        }
         *new_value = &value;
         return true;
     }
 
 private:
-    bool add_ok, replace_ok;
+    bool add_ok, replace_ok, check_cas;
+    btree_value::cas_t req_cas;
     union {
-        char value_memory[MAX_IN_NODE_VALUE_SIZE+sizeof(btree_value)];
+        char value_memory[MAX_TOTAL_NODE_CONTENTS_SIZE+sizeof(btree_value)];
         btree_value value;
     };
 };
