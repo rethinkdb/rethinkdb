@@ -576,6 +576,7 @@ void event_queue_t::deregister_fsm(void *fsm) {
 }
 
 void event_queue_t::deregister_all_fsms() {
+    printf("Deregister all fsms\n");
     int resource;
     while(parent->deregister_fsm(resource)) {
         forget_resource(resource);
