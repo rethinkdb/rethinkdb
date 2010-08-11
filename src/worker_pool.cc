@@ -173,7 +173,6 @@ bool worker_t::deregister_fsm(int &resource) {
 }
 
 void worker_t::clean_fsms() {
-    printf("Clean fsms\n");
     for (shutdown_fsms_t::iterator it = shutdown_fsms.begin(); it != shutdown_fsms.end(); it++)
         delete *it;
     shutdown_fsms.clear();
