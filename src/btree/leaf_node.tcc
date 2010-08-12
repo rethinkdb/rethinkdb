@@ -43,19 +43,16 @@ int leaf_node_handler::insert(btree_leaf_node *node, btree_key *key, btree_value
     return 1;
 }
 
-bool leaf_node_handler::remove(btree_leaf_node *node, btree_key *key) {
+void leaf_node_handler::remove(btree_leaf_node *node, btree_key *key) {
     int index = find_key(node, key);
 
-    if (index != -1) {
-        delete_pair(node, node->pair_offsets[index]);
-        delete_offset(node, index);
-        return true;
-    } else {
-        return false;
-    }
+    assert(index != -1);
+    delete_pair(node, node->pair_offsets[index]);
+    delete_offset(node, index);
 
     validate(node);
-    check("leaf became zero size!", node->npairs == 0); // XXX will error incorrectly on root
+    // TODO: Currently this will error incorrectly on root
+//    check("leaf became zero size!", node->npairs == 0);
 }
 
 bool leaf_node_handler::lookup(btree_leaf_node *node, btree_key *key, btree_value *value) {

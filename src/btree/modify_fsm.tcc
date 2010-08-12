@@ -331,8 +331,10 @@ typename btree_modify_fsm<config_t>::transition_result_t btree_modify_fsm<config
             // We've found the old value, or determined that it is not present; now compute the new
             // value.        
             if (key_found) {
+                op_result = btree_found;
                 set_was_successful = operate(&u.old_value, &new_value);
             } else {
+                op_result = btree_not_found;
                 set_was_successful = operate(NULL, &new_value);
             }
             // by convention, new_value will be NULL if we're doing a delete.
@@ -361,27 +363,19 @@ typename btree_modify_fsm<config_t>::transition_result_t btree_modify_fsm<config
         /*  But before we check if it's underfull, we need to do
          *  some deleting if we're a leaf node and we are a delete_fsm.
          */
-         if (node_handler::is_leaf(node))
-         {
-            assert(have_computed_new_value);        
-            if (new_value != NULL && set_was_successful) {
+         if (set_was_successful) {
+            assert(have_computed_new_value);
+            assert(node_handler::is_leaf(node));
+            if (new_value) {
                 // We have a new value to insert
                 bool success = leaf_node_handler::insert((leaf_node_t*)node, &key, new_value);
                 check("could not insert leaf btree node", !success);
-                buf->set_dirty();                
-            }else {
+            } else {
                  // If we haven't already, do some deleting 
-                if (op_result == btree_incomplete) {
-                    if(leaf_node_handler::remove((leaf_node_t*)node, &key)) {
-                        //key found, and value deleted
-                        buf->set_dirty();
-                        op_result = btree_found;
-                    } else {
-                        //key not found, nothing deleted
-                        op_result = btree_not_found;
-                    }
-                }
+                //key found, and value deleted
+                leaf_node_handler::remove((leaf_node_t*)node, &key);
             }
+            buf->set_dirty();
          }
         
         if (((node_handler::is_leaf(node) && leaf_node_handler::is_underfull((leaf_node_t *)node)) ||
