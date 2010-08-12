@@ -174,6 +174,7 @@ public:
         delete fsm;
     }
     
+<<<<<<< HEAD:src/request_handler/bin_memcached_handler.tcc
     br_result_t build_response(packet_t *res_pkt) {
         // TODO this is probably wrong
         if (fsm->set_was_successful) {
@@ -181,6 +182,24 @@ public:
             res_pkt->status(bin_memcached_handler_t<config_t>::bin_status_no_error);
         } else {
             res_pkt->status(bin_memcached_handler_t<config_t>::bin_status_key_not_found);
+=======
+    void build_response(packet_t *res_pkt) {
+        // TODO: This should return the value.
+        switch (fsm->status_code) {
+            case btree_incr_decr_fsm_t::S_SUCCESS:
+                res_pkt->status(bin_memcached_handler_t<config_t>::bin_status_no_error);
+                break;
+            case btree_incr_decr_fsm_t::S_NOT_NUMERIC:
+                res_pkt->status(bin_memcached_handler_t<config_t>::bin_status_incr_decr_on_non_numeric_value);
+                break;
+            case btree_incr_decr_fsm_t::S_NOT_FOUND:
+                res_pkt->status(bin_memcached_handler_t<config_t>::bin_status_key_not_found);
+                break;
+            default:
+                // XXX
+                assert(0);
+                break;
+>>>>>>> Added initial status codes implementation and fixed exptimes to work:src/request_handler/bin_memcached_handler.tcc
         }
         return br_done;
     }
@@ -211,11 +230,25 @@ public:
         delete fsm;
     }
 
+<<<<<<< HEAD:src/request_handler/bin_memcached_handler.tcc
     br_result_t build_response(packet_t *res_pkt) {
         if (fsm->set_was_successful) {
             res_pkt->status(bin_memcached_handler_t<config_t>::bin_status_no_error);
         } else {
             res_pkt->status(bin_memcached_handler_t<config_t>::bin_status_item_not_stored);
+=======
+    void build_response(packet_t *res_pkt) {
+        switch (fsm->status_code) {
+            case btree_append_prepend_fsm_t::S_SUCCESS:
+                res_pkt->status(bin_memcached_handler_t<config_t>::bin_status_no_error);
+                break;
+            case btree_append_prepend_fsm_t::S_NOT_STORED:
+                res_pkt->status(bin_memcached_handler_t<config_t>::bin_status_item_not_stored);
+                break;
+            default:
+                assert(0);
+                break;
+>>>>>>> Added initial status codes implementation and fixed exptimes to work:src/request_handler/bin_memcached_handler.tcc
         }
         return br_done;
     }
@@ -238,7 +271,7 @@ public:
 
 public:
     bin_memcached_delete_request(bin_memcached_handler_t<config_t> *rh, packet_t *pkt, btree_key *key)
-        : bin_memcached_request<config_t>(rh, pkt), fsm(new btree_delete_fsm_t(key, false))
+        : bin_memcached_request<config_t>(rh, pkt), fsm(new btree_delete_fsm_t(key))
         {
         request->add(fsm, key_to_cpu(key, rh->event_queue->parent->nworkers));
         request->dispatch();

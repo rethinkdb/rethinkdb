@@ -198,10 +198,16 @@ public:
     }
     
     void build_response(typename conn_fsm_t::linked_buf_t *sbuf) {
-        if (fsm->set_was_successful) {
-            sbuf->printf(STORAGE_SUCCESS);
-        } else {
-            sbuf->printf(STORAGE_FAILURE);
+        switch (fsm->status_code) {
+            case btree_set_fsm_t::S_SUCCESS:
+                sbuf->printf(STORAGE_SUCCESS);
+                break;
+            case btree_set_fsm_t::S_NOT_STORED:
+                sbuf->printf(STORAGE_FAILURE);
+                break;
+            default:
+                assert(0);
+                break;
         }
     }
 
@@ -221,6 +227,7 @@ public:
         if (exptime <= 60*60*24*30 && exptime > 0) {
             exptime += time(NULL);
         }
+        // TODO: Do we need to handle exptimes in the past?
         return exptime;
     }
 
@@ -251,10 +258,15 @@ public:
     }
     
     void build_response(typename conn_fsm_t::linked_buf_t *sbuf) {
-        if (fsm->set_was_successful) {
-            sbuf->printf("%llu\r\n", (unsigned long long)fsm->new_number);
-        } else {
+        switch (fsm->status_code) {
+            case btree_incr_decr_fsm_t::S_SUCCESS:
+                sbuf->printf("%llu\r\n", (unsigned long long)fsm->new_number);
+            case btree_incr_decr_fsm_t::S_NOT_FOUND:
             sbuf->printf(NOT_FOUND);
+                break;
+            default:
+                assert(0);
+                break;
         }
     }
 
@@ -282,10 +294,16 @@ public:
     }
 
     void build_response(typename conn_fsm_t::linked_buf_t *sbuf) {
-        if (fsm->set_was_successful) {
-            sbuf->printf(STORAGE_SUCCESS);
-        } else {
-            sbuf->printf(STORAGE_FAILURE);
+        switch (fsm->status_code) {
+            case btree_append_prepend_fsm_t::S_SUCCESS:
+                sbuf->printf(STORAGE_SUCCESS);
+                break;
+            case btree_append_prepend_fsm_t::S_NOT_STORED:
+                sbuf->printf(STORAGE_FAILURE);
+                break;
+            default:
+                assert(0);
+                break;
         }
     }
 
@@ -304,7 +322,7 @@ public:
 public:
     txt_memcached_delete_request(txt_memcached_handler_t<config_t> *rh, btree_key *key, bool noreply)
         : txt_memcached_request<config_t>(rh, noreply),
-          fsm(new btree_delete_fsm_t(key, false)) {
+          fsm(new btree_delete_fsm_t(key)) {
         this->request->add(fsm, key_to_cpu(key, rh->event_queue->parent->nworkers));
         this->request->dispatch();
     }

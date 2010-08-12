@@ -97,9 +97,10 @@ public:
 
     bool expired;
 
+private:
+    bool set_was_successful;
 
 public:
-    bool set_was_successful;
     op_result_t op_result;
 
 public: // from delete_fsm:

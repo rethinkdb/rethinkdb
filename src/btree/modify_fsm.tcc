@@ -362,8 +362,8 @@ typename btree_modify_fsm<config_t>::transition_result_t btree_modify_fsm<config
                 key_found = false;
             }
 
-            // We've found the old value, or determined that it is not present or expired; now compute the new
-            // value.
+            // We've found the old value, or determined that it is not present
+            // or expired; now compute the new value.
             
             if (key_found) {
                 op_result = btree_found;
@@ -372,16 +372,15 @@ typename btree_modify_fsm<config_t>::transition_result_t btree_modify_fsm<config
                 op_result = btree_not_found;
                 set_was_successful = operate(NULL, &new_value);
             }
+
+            if (!set_was_successful && expired) { // Silently delete the key.
+                set_was_successful = true;
+                new_value = NULL;
+            }
+
             // by convention, new_value will be NULL if we're doing a delete.
             
-//            assert(new_value || !set_was_successful);
             have_computed_new_value = true;
-        }
-
-        if (!set_was_successful && expired) {
-            // TODO: Return error codes instead of set_was_successfull, and
-            // then delete the value internally instead of using a new FSM.
-            delete_expired<config_t>(&key);
         }
         
         // STEP 2: Check if it's overfull. If so we would need to do a split.

@@ -5,11 +5,12 @@
 #include "utils.hpp"
 #include "cpu_context.hpp"
 
-#include "btree/delete_fsm.hpp"
 
 //TODO: remove
 #include "btree/internal_node.hpp"
 #include "btree/leaf_node.hpp"
+
+#include "btree/delete_expired_fsm.hpp"
 
 template <class config_t>
 typename btree_get_fsm<config_t>::transition_result_t btree_get_fsm<config_t>::do_acquire_superblock(event_t *event) {

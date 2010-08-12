@@ -27,12 +27,25 @@ public:
         transition_complete
     };
 
+    // TODO: Use status codes everywhere.
+    enum status_code_t {
+        S_UNKNOWN = 0,
+        S_SUCCESS,
+        S_KEY_NOT_FOUND,
+        S_NOT_STORED,
+        S_EXISTS,
+        S_NOT_FOUND,
+        S_DELETED,
+        S_NOT_NUMERIC
+    };
+
+
 public:
     btree_fsm(btree_key *_key)
         : cpu_message_t(cpu_message_t::mt_btree),
           transaction(NULL),
           cache(NULL),   // Will be set when we arrive at the core we are operating on
-          on_complete(NULL), noreply(false)
+          on_complete(NULL), noreply(false), status_code(S_UNKNOWN)
         {
         keycpy(&key, _key);
     }
@@ -71,6 +84,8 @@ public:
     cache_t *cache;
     on_complete_t on_complete;
     bool noreply;
+
+    status_code_t status_code;
 };
 
 #include "btree/fsm.tcc"

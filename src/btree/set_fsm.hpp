@@ -25,14 +25,17 @@ public:
     }
     
     bool operate(btree_value *old_value, btree_value **new_value) {
-        if ((!old_value && !add_ok) || (old_value && !replace_ok)) return false;
+        if ((!old_value && !add_ok) || (old_value && !replace_ok)) {
+            this->status_code = btree_fsm<config_t>::S_NOT_STORED;
+            return false;
+        }
         if (!old_value) {
             get_cpu_context()->worker->curr_items++;
             get_cpu_context()->worker->total_items++;
         }
         if (check_cas) {
             if (old_value && old_value->has_cas() && old_value->cas() != req_cas) {
-                // TODO: Return the appropriate error code.
+                this->status_code = btree_fsm<config_t>::S_EXISTS;
                 return false;
             }
         }
@@ -40,6 +43,7 @@ public:
             value.set_cas(1); // Turns the flag on and makes room. modify_fsm will set an actual CAS later.
         }
         *new_value = &value;
+        this->status_code = btree_fsm<config_t>::S_SUCCESS;
         return true;
     }
 
