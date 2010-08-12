@@ -506,7 +506,6 @@ typename btree_modify_fsm<config_t>::transition_result_t btree_modify_fsm<config
             res = btree_fsm_t::transition_complete;
         }
     }
-*/
 
     // Finalize the operation
     if(res == btree_fsm_t::transition_ok && (state == update_complete || state == delete_complete) ) {
