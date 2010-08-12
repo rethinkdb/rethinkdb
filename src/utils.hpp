@@ -53,10 +53,16 @@ int sized_strcmp(const char *str1, int len1, const char *str2, int len2);
 
 // Buffer
 template <int _size>
-struct buffer_t : public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, buffer_t<_size> >
+struct buffer_base_t
 {
     char buf[_size];
     static const int size = _size;
+};
+
+template <int _size>
+struct buffer_t : public buffer_base_t<_size>,
+                  public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, buffer_t<_size> >
+{
 };
 
 
