@@ -95,7 +95,7 @@ public:
         public:
             linked_buf_t()
                 : iobuf_t(), next(NULL), nbuf(0), nsent(0), gc_me(false) {
-                    memset(iobuf_t::buf, 0, iobuf_t::size); //calm yo' bitch ass valgrind
+                    //TODO get valgrind to chill, we derived from iobuf_t but it doesn't work with mixins
                 }
             ~linked_buf_t() {
                 if (next != NULL)
