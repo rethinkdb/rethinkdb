@@ -55,6 +55,8 @@ buf<config_t>::buf(cache_t *cache)
 
 template <class config_t>
 buf<config_t>::~buf() {
+    // TODO: if we shutdown the server befire 5 seconds, the buffer hasn't had a chance to flush yet,
+    // and this assert fails. Please fix.
     assert(safe_to_unload());
     cache->alloc.free(data);
 }
