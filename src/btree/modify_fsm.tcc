@@ -388,37 +388,10 @@ typename btree_modify_fsm<config_t>::transition_result_t btree_modify_fsm<config
             (node_handler::is_internal(node) && internal_node_handler::is_underfull((internal_node_t *)node)))
             && last_buf) { // the root node is never underfull
 
-            if (node_handler::is_leaf(node) && leaf_node_handler::is_empty((leaf_node_t *)node)) {
+            // as long as we aren't an empty root.
+            if (!(node_handler::is_leaf(node) && leaf_node_handler::is_empty((leaf_node_t *)node))) {
 
-                /*  STEP 4.a: If it's a leaf node and it's empty,
-                 *  remove it, unless it's the root, in which case
-                 *  create a new root.
-                 */
-
-                //logf(DBG, "leaf empty\n");
-                internal_node_t *parent_node = (internal_node_t*)last_buf->ptr();
-                assert(internal_node_handler::is_singleton(parent_node)); // if it's a leaf, it should be the root.
-                
-                // the root contains only two nodes, one of which is empty.  delete the empty one, and make the other one the root
-                //TODO: delete buf when api is ready
-                if(!sib_buf) {
-                    // Acquire the only sibling to make into the root
-                    state = acquire_sibling;
-                    res = do_acquire_sibling(NULL);
-                    event = NULL;
-                    continue;
-                } else {
-                    node_id = sib_node_id;
-                    state = insert_root_on_collapse;
-                    res = do_insert_root_on_collapse(NULL);
-                    event = NULL;
-                    sib_buf->release();
-                    sib_buf = NULL;
-                }
-
-            } else {
-            
-                //  STEP 4.b: Otherwise not a leaf node, merge or level.
+                // merge or level.
                 if(!sib_buf) { // Acquire a sibling to merge or level with
                     //logf(DBG, "generic acquire sibling\n");
                     state = acquire_sibling;
