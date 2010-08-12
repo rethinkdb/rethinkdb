@@ -49,7 +49,7 @@ public:
           op_result(btree_incomplete)
         {}
 
-    virtual transition_result_t do_transition(event_t *event);
+    transition_result_t do_transition(event_t *event);
 
     virtual bool is_finished() {
         return state == committing && transaction == NULL;

@@ -221,11 +221,11 @@ public:
         this->request->add(fsm, key_to_cpu(key, rh->event_queue->nqueues));
         this->request->dispatch();
     }
-    
+        
     ~txt_memcached_delete_request() {
         delete fsm;
     }
-    
+        
     void build_response(typename conn_fsm_t::linked_buf_t *sbuf) {
         if(fsm->op_result == btree_delete_fsm_t::btree_found) {
             sbuf->printf(DELETE_SUCCESS);
