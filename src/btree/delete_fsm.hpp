@@ -14,8 +14,8 @@ public:
     explicit btree_delete_fsm(btree_key *_key)
         : btree_modify_fsm<config_t>(_key)          
         {}
-//    virtual transition_result_t do_transition(event_t *event);
     bool operate(btree_value *old_value, btree_value **new_value) {
+    	// TODO: Joe, add stats here
         // If the key didn't exist before, we fail
         if (!old_value) return false;
         return true;
