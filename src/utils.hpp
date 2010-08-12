@@ -5,6 +5,7 @@
 #include <errno.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <functional>
 #include "corefwd.hpp"
 
 static inline void check(const char *msg, bool err) {
@@ -75,6 +76,25 @@ bool is_sorted(ForwardIterator first, ForwardIterator last,
     }
     return true;
 }
+
+// Extend STL less a bit
+namespace std {
+    //Scamped from:
+    //https://sdm.lbl.gov/fastbit/doc/html/util_8h_source.html
+    // specialization of less<> to work with char*
+    template <> struct less< char* > {
+        bool operator()(const char*x, const char*y) const {
+            return strcmp(x, y) < 0;
+        }
+    };
+
+    // specialization of less<> on const char* (case sensitive comparison)
+    template <> struct less< const char* > {
+        bool operator()(const char* x, const char* y) const {
+            return strcmp(x, y) < 0;
+        }
+    };
+};
 
 #include "utils.tcc"
 #endif // __UTILS_HPP__

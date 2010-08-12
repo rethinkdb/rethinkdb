@@ -19,6 +19,8 @@
 #define RETRIEVE_TERMINATOR "END\r\n"
 #define BAD_BLOB "CLIENT_ERROR bad data chunk\r\n"
 
+#define MAX_STATS_REQ_LEN 100
+
 // Please read and understand the memcached protocol before modifying this
 // file. If you only do a cursory readthrough, please check with someone who
 // has read it in depth before comitting.
@@ -249,7 +251,7 @@ class txt_memcached_perfmon_request : public txt_memcached_request<config_t>,
     public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, txt_memcached_perfmon_request<config_t> > {
 
 public:
-    typedef typename config_t::conn_fsm_t conn_fsm_t;
+    typedef typename config_t::conn_fsm_t       conn_fsm_t;
 
 public:
     txt_memcached_perfmon_request(txt_memcached_handler_t<config_t> *rh)
@@ -265,7 +267,9 @@ public:
             msgs[i] = new perfmon_msg_t();
             this->request->add(msgs[i], i);
         }
-        
+    }
+
+    void dispatch() {
         this->request->dispatch();
     }
     
@@ -289,18 +293,41 @@ public:
         
         // Print the resultings perfmon
         perfmon_t::perfmon_map_t *registry = &combined_perfmon.registry;
-        for(perfmon_t::perfmon_map_t::iterator iter = registry->begin(); iter != registry->end(); iter++)
-        {
-            sbuf->printf("STAT %s ", iter->first);
-            char tmpbuf[10];
-            int val_len = iter->second.print(tmpbuf, 10);
-            sbuf->append(tmpbuf, val_len);
-            sbuf->printf("\r\n");
+        if (strlen(fields) == 0){
+            for(perfmon_t::perfmon_map_t::iterator iter = registry->begin(); iter != registry->end(); iter++)
+            {
+                sbuf->printf("STAT %s ", iter->first);
+                char tmpbuf[10];
+                int val_len = iter->second.print(tmpbuf, 10);
+                sbuf->append(tmpbuf, val_len);
+                sbuf->printf("\r\n");
+            }
+        }
+        else {
+            char *fields_ptr = fields;
+            char *stat;
+            while ((stat = strtok_r(NULL, DELIMS, &fields_ptr))) {
+                sbuf->printf("STAT %s ", stat);
+                perfmon_t::perfmon_map_t::iterator stat_entry = registry->find(stat);
+                if (stat_entry == registry->end()) {
+                    sbuf->printf("NOT FOUND\r\n");
+                } else {
+                    char tmpbuf[10];
+                    int val_len = stat_entry->second.print(tmpbuf, 10);
+                    sbuf->append(tmpbuf, val_len);
+                    sbuf->printf("\r\n");
+                }
+            }
         }
     }
     
 public:
     perfmon_msg_t *msgs[MAX_OPS_IN_REQUEST];
+
+public:
+    /*! \brief which fields user is requesting, empty indicates all fields
+     */
+    char fields[MAX_STATS_REQ_LEN];
 };
 
 // Process commands received from the user
@@ -369,9 +396,9 @@ typename txt_memcached_handler_t<config_t>::parse_result_t txt_memcached_handler
         // circuitous and indirect way of signalling via the return value.
         return req_handler_t::op_req_shutdown;
         
-    } else if(!strcmp(cmd_str, "stats")) {
+    } else if(!strcmp(cmd_str, "stats") || !strcmp(cmd_str, "stat")) {
         conn_fsm->consume(line_len);
-        new txt_memcached_perfmon_request<config_t>(this);
+        parse_stat_command(state, line_len);
         return req_handler_t::op_req_complex;
     
     } else if(!strcmp(cmd_str, "set")) {     // check for storage commands
@@ -497,6 +524,15 @@ typename txt_memcached_handler_t<config_t>::parse_result_t txt_memcached_handler
     conn_fsm->consume(line_len); //consume the line
     loading_data = true;
     return read_data();
+}
+
+template <class config_t>
+typename txt_memcached_handler_t<config_t>::parse_result_t txt_memcached_handler_t<config_t>::parse_stat_command(char *state, unsigned int line_len) {
+    txt_memcached_perfmon_request<config_t> *rq = new txt_memcached_perfmon_request<config_t>(this);
+    check("Too big of a stat request", line_len > MAX_STATS_REQ_LEN);
+    memcpy(rq->fields, state, line_len);
+    rq->dispatch();
+    return req_handler_t::op_req_complex;
 }
 	
 template <class config_t>

@@ -46,6 +46,7 @@ private:
     bool loading_data;
 
     parse_result_t parse_storage_command(storage_command command, char *state, unsigned int line_len);
+    parse_result_t parse_stat_command(char *state, unsigned int line_len);
     parse_result_t parse_adjustment(bool increment, char *state, unsigned int line_len);
     parse_result_t read_data();
     parse_result_t get(char *state, bool include_unique, unsigned int line_len);
