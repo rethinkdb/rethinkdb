@@ -328,7 +328,6 @@ typename btree_modify_fsm<config_t>::transition_result_t btree_modify_fsm<config
             } u;
             
             bool key_found = leaf_node_handler::lookup((btree_leaf_node*)node, &key, &u.old_value);
-            new_value = NULL;
             // We've found the old value, or determined that it is not present; now compute the new
             // value.        
             if (key_found) {
