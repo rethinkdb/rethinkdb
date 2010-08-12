@@ -35,6 +35,7 @@ struct btree_value {
 
     typedef uint32_t mcflags_t;
     typedef uint64_t cas_t;
+    typedef uint32_t   exptime_t;
 
     uint32_t value_size() {
         return size - value_offset();
@@ -43,72 +44,83 @@ struct btree_value {
         size = new_size + value_offset();
     }
 
-    uint8_t value_offset() {
-        return sizeof(mcflags_t) * has_mcflags() + sizeof(cas_t) * has_cas();
-    }
-
-    byte *value() {
-        return contents + value_offset();
-    }
-
     // Every value has mcflags, but they're very often 0, in which case we just
     // store a bit instead of 4 bytes.
-    bool has_mcflags() {
-        return metadata_flags & MEMCACHED_FLAGS;
+    bool has_mcflags() { return metadata_flags & MEMCACHED_FLAGS;   }
+    bool has_cas()     { return metadata_flags & MEMCACHED_CAS;     }
+    bool has_exptime() { return metadata_flags & MEMCACHED_EXPTIME; }
+
+    uint8_t mcflags_offset() { return 0;                                                    }
+    uint8_t exptime_offset() { return mcflags_offset() + sizeof(mcflags_t) * has_mcflags(); }
+    uint8_t cas_offset()     { return exptime_offset() + sizeof(exptime_t) * has_exptime(); }
+    uint8_t value_offset()   { return     cas_offset() + sizeof(cas_t)     * has_cas();     }
+
+    mcflags_t *mcflags_addr() { return (mcflags_t *) (contents + mcflags_offset()); }
+    exptime_t *exptime_addr() { return (exptime_t *) (contents + exptime_offset()); }
+    cas_t         *cas_addr() { return (cas_t     *) (contents +     cas_offset()); }
+    byte             *value() { return (byte      *) (contents +   value_offset());  }
+
+    mcflags_t mcflags() { return has_mcflags() ? *mcflags_addr() : 0; }
+    exptime_t exptime() { return has_exptime() ? *exptime_addr() : 0; }
+    cas_t         cas() { // We shouldn't be asking for a value's CAS unless we know it has one.
+        assert(has_cas());
+        return *cas_addr();
     }
-    uint8_t mcflags_offset() {
-        assert(has_mcflags());
-        return 0;
+
+    void clear_space(byte *faddr, uint8_t fsize, uint8_t offset) {
+        memmove(faddr, faddr + fsize, size - offset - fsize);
+        size -= fsize;
     }
-    mcflags_t mcflags() {
-        if (has_mcflags()) {
-            mcflags_t flags;
-            memcpy(&flags, contents + mcflags_offset(), sizeof(mcflags_t));
-            return flags;
-        } else {
-            return 0;
-        }
+
+    void make_space(byte *faddr, uint8_t fsize, uint8_t offset) { // XXX This assumes there's enough space allocated to move the value into.
+        assert(size + fsize <= MAX_TOTAL_NODE_CONTENTS_SIZE);
+        size += fsize;
+        memmove(faddr + fsize, faddr, size - offset);
     }
+
     void set_mcflags(mcflags_t new_mcflags) {
         if (has_mcflags() && new_mcflags == 0) { // Flags is being set to 0, so we clear the 4 bytes we kept for it.
-            memmove(contents + mcflags_offset(), contents + mcflags_offset() + sizeof(mcflags_t), size - mcflags_offset() - sizeof(mcflags_t));
-            size -= sizeof(mcflags_t);
+            clear_space((byte *) mcflags_addr(), sizeof(mcflags_t), mcflags_offset());
             metadata_flags &= ~MEMCACHED_FLAGS;
-        } else if (!has_mcflags() && new_mcflags) { // Make space for non-zero mcflags. XXX This assumes there's enough space allocated to move the value into.
-            assert(size + sizeof(mcflags_t) <= MAX_TOTAL_NODE_CONTENTS_SIZE);
+        } else if (!has_mcflags() && new_mcflags) { // Make space for non-zero mcflags.
             metadata_flags |= MEMCACHED_FLAGS;
-            size += sizeof(mcflags_t);
-            memmove(contents + mcflags_offset() + sizeof(mcflags_t), contents + mcflags_offset(), size - mcflags_offset());
+            make_space((byte *) mcflags_addr(), sizeof(mcflags_t), mcflags_offset());
         }
         if (new_mcflags) { // We've made space, so copy the mcflags over.
-            memcpy(contents + mcflags_offset(), &new_mcflags, sizeof(mcflags_t));
+            *mcflags_addr() = new_mcflags;
         }
     }
 
-    // Values initially don't have a CAS. Once it's added, though, we assume it's there for good.
-    bool has_cas() {
-        return metadata_flags & MEMCACHED_CAS;
+    void set_exptime(exptime_t new_exptime) {
+        if (has_exptime() && new_exptime == 0) { // Exptime is being set to 0, so we clear the 4 bytes we kept for it.
+            clear_space((byte *) exptime_addr(), sizeof(exptime_t), exptime_offset());
+            metadata_flags &= ~MEMCACHED_EXPTIME;
+        } else if (!has_exptime() && new_exptime) { // Make space for non-zero exptime.
+            metadata_flags |= MEMCACHED_EXPTIME;
+            make_space((byte *) exptime_addr(), sizeof(exptime_t), exptime_offset());
+        }
+        if (new_exptime) {
+            *exptime_addr() = new_exptime;
+        }
     }
-    uint8_t cas_offset() {
-        assert(has_cas());
-        return sizeof(mcflags_t) * has_mcflags();
+
+    bool expired() {
+        return exptime() ? time(NULL) >= exptime() : false;
     }
+
+    // CAS is treated differently from the other fields. Values initially don't
+    // have a CAS; once it's added, though, we assume it's there for good. An
+    // existing CAS should never be set to 0.
     void set_cas(cas_t new_cas) {
-        assert(has_cas());
-        memcpy(contents + cas_offset(), &new_cas, sizeof(new_cas));
-    }
-    void add_cas() { // XXX This assumes that there's enough space allocated to move the value into.
-        assert(size + sizeof(cas_t) <= MAX_TOTAL_NODE_CONTENTS_SIZE);
-        metadata_flags |= MEMCACHED_CAS;
-        memmove(contents + cas_offset() + sizeof(cas_t), contents + cas_offset(), size - cas_offset());
-        size += sizeof(cas_t);
-        // XXX This doesn't actually set a CAS value, only makes the space for one.
-    }
-    cas_t cas() {
-        assert(has_cas());
-        cas_t cas;
-        memcpy(&cas, contents + cas_offset(), sizeof(cas_t));
-        return cas;
+        if (!new_cas) {
+            assert(!has_cas());
+            return;
+        }
+        if (!has_cas()) { // Make space for CAS.
+            metadata_flags |= MEMCACHED_CAS;
+            make_space((byte *) cas_addr(), sizeof(cas_t), cas_offset());
+        }
+        *cas_addr() = new_cas;
     }
 
     void print() {

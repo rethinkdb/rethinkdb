@@ -94,7 +94,10 @@ public:
     // 'new_value' until we are ready to insert it.
     bool have_computed_new_value;
     btree_value *new_value;
-    
+
+    bool expired;
+
+
 public:
     bool set_was_successful;
     op_result_t op_result;

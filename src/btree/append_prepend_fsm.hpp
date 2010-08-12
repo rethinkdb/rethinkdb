@@ -22,10 +22,10 @@ public:
         assert(old_value->size + temp_value.size <= MAX_TOTAL_NODE_CONTENTS_SIZE);
 
         if (append) {
-            memcpy(old_value->value() + old_value->value_size(), temp_value.value(), temp_value.value_size());
+            memcpy(old_value->value() + old_value->value_size(), temp_value.contents, temp_value.size);
         } else { // prepend
-            memmove(old_value->value() + temp_value.value_size(), old_value->value(), old_value->value_size());
-            memcpy(old_value->value(), temp_value.value(), temp_value.value_size());
+            memmove(old_value->value() + temp_value.size, old_value->value(), old_value->value_size());
+            memcpy(old_value->value(), temp_value.contents, temp_value.size);
         }
         old_value->size += temp_value.size;
         *new_value = old_value;

@@ -10,7 +10,7 @@ class btree_set_fsm : public btree_modify_fsm<config_t>,
 {
 
 public:
-    explicit btree_set_fsm(btree_key *_key, byte *data, unsigned int length, btree_value::mcflags_t mcflags, bool add_ok, bool replace_ok, btree_value::cas_t _req_cas, bool check_cas)
+    explicit btree_set_fsm(btree_key *_key, byte *data, unsigned int length, btree_value::mcflags_t mcflags, btree_value::exptime_t exptime, bool add_ok, bool replace_ok, btree_value::cas_t _req_cas, bool check_cas)
         : btree_modify_fsm<config_t>(_key),
           add_ok(add_ok),
           replace_ok(replace_ok),
@@ -20,6 +20,7 @@ public:
         value.metadata_flags = 0;
         value.value_size(length);
         value.set_mcflags(mcflags);
+        value.set_exptime(exptime);
         memcpy(value.value(), data, length);
     }
     
@@ -31,12 +32,12 @@ public:
         }
         if (check_cas) {
             if (old_value && old_value->has_cas() && old_value->cas() != req_cas) {
-                // TODO return the appropriate error code.
+                // TODO: Return the appropriate error code.
                 return false;
             }
         }
         if (old_value && old_value->has_cas()) {
-            value.add_cas(); // Turns the flag on and makes room. modify_fsm will set an actual CAS.
+            value.set_cas(1); // Turns the flag on and makes room. modify_fsm will set an actual CAS later.
         }
         *new_value = &value;
         return true;

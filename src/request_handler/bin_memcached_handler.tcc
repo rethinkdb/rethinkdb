@@ -126,7 +126,7 @@ public:
 
 public:
     bin_memcached_set_request(bin_memcached_handler_t<config_t> *rh, packet_t *pkt, btree_key *key, byte *data, int size, btree_value::mcflags_t mcflags, bool add_ok, bool replace_ok, uint64_t req_cas, bool check_cas)
-        : bin_memcached_request<config_t>(rh, pkt), fsm(new btree_set_fsm_t(key, data, size, mcflags, add_ok, replace_ok, req_cas, check_cas))
+        : bin_memcached_request<config_t>(rh, pkt), fsm(new btree_set_fsm_t(key, data, size, mcflags, 0, add_ok, replace_ok, req_cas, check_cas))
         {
         assert(add_ok && replace_ok);   // We haven't hooked up ADD and REPLACE yet.
         request->add(fsm, key_to_cpu(key, rh->event_queue->parent->nworkers));
@@ -238,7 +238,7 @@ public:
 
 public:
     bin_memcached_delete_request(bin_memcached_handler_t<config_t> *rh, packet_t *pkt, btree_key *key)
-        : bin_memcached_request<config_t>(rh, pkt), fsm(new btree_delete_fsm_t(key))
+        : bin_memcached_request<config_t>(rh, pkt), fsm(new btree_delete_fsm_t(key, false))
         {
         request->add(fsm, key_to_cpu(key, rh->event_queue->parent->nworkers));
         request->dispatch();

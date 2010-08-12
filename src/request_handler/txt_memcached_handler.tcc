@@ -157,6 +157,7 @@ public:
         for(int i = 0; i < num_fsms; i++) {
             btree_get_cas_fsm_t *fsm = fsms[i];
             if(fsm->found) {
+                get_cpu_context()->worker->get_hits++;
                 sbuf->printf("VALUE %*.*s %u %u %llu\r\n",
                     fsm->key.size, fsm->key.size, fsm->key.contents,
                     fsm->value.mcflags(),
@@ -183,9 +184,9 @@ public:
     typedef typename config_t::btree_set_fsm_t btree_set_fsm_t;
 
 public:
-    txt_memcached_set_request(txt_memcached_handler_t<config_t> *rh, btree_key *key, byte *data, int length, btree_value::mcflags_t mcflags, bool add_ok, bool replace_ok, btree_value::cas_t req_cas, bool check_cas, bool noreply)
+    txt_memcached_set_request(txt_memcached_handler_t<config_t> *rh, btree_key *key, byte *data, int length, btree_value::mcflags_t mcflags, btree_value::exptime_t exptime, bool add_ok, bool replace_ok, btree_value::cas_t req_cas, bool check_cas, bool noreply)
         : txt_memcached_request<config_t>(rh, noreply),
-          fsm(new btree_set_fsm_t(key, data, length, mcflags, add_ok, replace_ok, req_cas, check_cas))
+          fsm(new btree_set_fsm_t(key, data, length, mcflags, convert_exptime(exptime), add_ok, replace_ok, req_cas, check_cas))
         {
         this->request->add(fsm, key_to_cpu(key, rh->event_queue->parent->nworkers));
         this->request->dispatch();
@@ -202,6 +203,25 @@ public:
         } else {
             sbuf->printf(STORAGE_FAILURE);
         }
+    }
+
+    // This is protocol.txt, verbatim:
+    // Some commands involve a client sending some kind of expiration time
+    // (relative to an item or to an operation requested by the client) to
+    // the server. In all such cases, the actual value sent may either be
+    // Unix time (number of seconds since January 1, 1970, as a 32-bit
+    // value), or a number of seconds starting from current time. In the
+    // latter case, this number of seconds may not exceed 60*60*24*30 (number
+    // of seconds in 30 days); if the number sent by a client is larger than
+    // that, the server will consider it to be real Unix time value rather
+    // than an offset from current time.
+
+    // TODO: Move this elsewhere (binary protocol and some other request handlers need it).
+    btree_value::exptime_t convert_exptime(btree_value::exptime_t exptime) {
+        if (exptime <= 60*60*24*30 && exptime > 0) {
+            exptime += time(NULL);
+        }
+        return exptime;
     }
 
 private:
@@ -284,7 +304,7 @@ public:
 public:
     txt_memcached_delete_request(txt_memcached_handler_t<config_t> *rh, btree_key *key, bool noreply)
         : txt_memcached_request<config_t>(rh, noreply),
-          fsm(new btree_delete_fsm_t(key)) {
+          fsm(new btree_delete_fsm_t(key, false)) {
         this->request->add(fsm, key_to_cpu(key, rh->event_queue->parent->nworkers));
         this->request->dispatch();
     }
@@ -612,17 +632,17 @@ typename txt_memcached_handler_t<config_t>::parse_result_t txt_memcached_handler
 
     switch(cmd) {
         case SET:
-            new txt_memcached_set_request<config_t>(this, &key, conn_fsm->rbuf, bytes, mcflags, true, true, 0, false, noreply);
+            new txt_memcached_set_request<config_t>(this, &key, conn_fsm->rbuf, bytes, mcflags, exptime, true, true, 0, false, noreply);
             break;
         case ADD:
-            new txt_memcached_set_request<config_t>(this, &key, conn_fsm->rbuf, bytes, mcflags, true, false, 0, false, noreply);
+            new txt_memcached_set_request<config_t>(this, &key, conn_fsm->rbuf, bytes, mcflags, exptime, true, false, 0, false, noreply);
             break;
         case REPLACE:
-            new txt_memcached_set_request<config_t>(this, &key, conn_fsm->rbuf, bytes, mcflags, false, true, 0, false, noreply);
+            new txt_memcached_set_request<config_t>(this, &key, conn_fsm->rbuf, bytes, mcflags, exptime, false, true, 0, false, noreply);
             break;
         case CAS:
             // TODO: CAS returns a different error code from REPLACE when a value isn't found.
-            new txt_memcached_set_request<config_t>(this, &key, conn_fsm->rbuf, bytes, mcflags, false, true, cas, true, noreply);
+            new txt_memcached_set_request<config_t>(this, &key, conn_fsm->rbuf, bytes, mcflags, exptime, false, true, cas, true, noreply);
             break;
         // APPEND and PREPEND always ignore flags and exptime.
         case APPEND:

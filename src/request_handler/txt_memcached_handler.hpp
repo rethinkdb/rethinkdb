@@ -40,7 +40,7 @@ private:
     };
     
     btree_value::mcflags_t mcflags;
-    uint32_t exptime;
+    btree_value::exptime_t exptime;
     uint32_t bytes;
     btree_value::cas_t cas;
     bool noreply;

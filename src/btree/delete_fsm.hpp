@@ -4,6 +4,9 @@
 
 #include "corefwd.hpp"
 #include "event.hpp"
+#include "btree/node.hpp"
+#include "btree/internal_node.hpp"
+#include "btree/leaf_node.hpp"
 #include "btree/fsm.hpp"
 
 template <class config_t>

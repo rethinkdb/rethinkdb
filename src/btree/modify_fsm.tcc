@@ -350,8 +350,21 @@ typename btree_modify_fsm<config_t>::transition_result_t btree_modify_fsm<config
             } u;
             
             bool key_found = leaf_node_handler::lookup((btree_leaf_node*)node, &key, &u.old_value);
-            // We've found the old value, or determined that it is not present; now compute the new
-            // value.        
+
+            expired = key_found && u.old_value.expired();
+            if (expired) {
+                // We can't call delete_expired() here because it would delete
+                // the value after we finish modifying it. However, if
+                // operate() gives us a new value, we're fine; if it doesn't,
+                // we can go delete the value at that point.
+
+                // XXX Is there any point in doing this check inside operate()?
+                key_found = false;
+            }
+
+            // We've found the old value, or determined that it is not present or expired; now compute the new
+            // value.
+            
             if (key_found) {
                 op_result = btree_found;
                 set_was_successful = operate(&u.old_value, &new_value);
@@ -363,6 +376,12 @@ typename btree_modify_fsm<config_t>::transition_result_t btree_modify_fsm<config
             
 //            assert(new_value || !set_was_successful);
             have_computed_new_value = true;
+        }
+
+        if (!set_was_successful && expired) {
+            // TODO: Return error codes instead of set_was_successfull, and
+            // then delete the value internally instead of using a new FSM.
+            delete_expired<config_t>(&key);
         }
         
         // STEP 2: Check if it's overfull. If so we would need to do a split.
@@ -381,7 +400,7 @@ typename btree_modify_fsm<config_t>::transition_result_t btree_modify_fsm<config
         /*  TODO: Add some code to calculate if it will become underfull
             during a replace, incr, decr etc.
         */
-        
+
         /*  But before we check if it's underfull, we need to do
          *  some deleting if we're a leaf node and we are a delete_fsm.
          */

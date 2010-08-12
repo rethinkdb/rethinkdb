@@ -213,8 +213,12 @@ void worker_t::process_btree_msg(code_config_t::btree_fsm_t *btree_fsm) {
     worker_t *worker = get_cpu_context()->worker;
     if(btree_fsm->is_finished()) {
 
-        // We received a completed btree that belongs to us
-        btree_fsm->request->on_request_part_completed();
+        if (btree_fsm->request) {
+            // We received a completed btree that belongs to us
+            btree_fsm->request->on_request_part_completed();
+        } else { // A btree not associated with any request.
+            delete btree_fsm;
+        }
 
     } else {
         // We received a new btree that we need to process
