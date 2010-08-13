@@ -292,12 +292,17 @@ public:
         }
         
         // Print the resultings perfmon
+        char tmpbuf[255];
+#if defined(VALGRIND) || !defined(NDEBUG)
+        // Fill the buffer with garbage in debug mode so valgrind doesn't complain, and to help
+        // catch uninitialized memory errors.
+        memset(tmpbuf, 0xBD, sizeof(tmpbuf));
+#endif
         perfmon_t::perfmon_map_t *registry = &combined_perfmon.registry;
         if (strlen(fields) == 0){
             for(perfmon_t::perfmon_map_t::iterator iter = registry->begin(); iter != registry->end(); iter++)
             {
                 sbuf->printf("STAT %s ", iter->first);
-                char tmpbuf[10];
                 int val_len = iter->second.print(tmpbuf, 10);
                 sbuf->append(tmpbuf, val_len);
                 sbuf->printf("\r\n");
@@ -312,7 +317,6 @@ public:
                 if (stat_entry == registry->end()) {
                     sbuf->printf("NOT FOUND\r\n");
                 } else {
-                    char tmpbuf[10];
                     int val_len = stat_entry->second.print(tmpbuf, 10);
                     sbuf->append(tmpbuf, val_len);
                     sbuf->printf("\r\n");
