@@ -194,7 +194,7 @@ void worker_t::initiate_conn_fsm_transition(event_t *event) {
         int source;
         deregister_fsm(fsm, source);
         event_queue->forget_resource(source);
-        delete fsm;
+        clean_fsms();
     } else {
         check("Unhandled fsm transition result", 1);
     }

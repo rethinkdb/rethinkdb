@@ -370,7 +370,6 @@ void event_queue_t::begin_stopping_queue() {
 
 void event_queue_t::finish_stopping_queue() {
     int res;
-    
     // Wait for the poll thread to die
     void *allocs_tl = NULL;
     res = pthread_join(this->epoll_thread, &allocs_tl);
