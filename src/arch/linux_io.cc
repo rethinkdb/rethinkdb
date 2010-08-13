@@ -33,6 +33,11 @@ void io_calls_t::schedule_aio_read(resource_t resource,
                                    size_t offset, size_t length, void *buf,
                                    event_queue_t *notify_target, iocallback_t *callback)
 {
+    
+    assert((intptr_t)buf % DEVICE_BLOCK_SIZE == 0);
+    assert(offset % DEVICE_BLOCK_SIZE == 0);
+    assert(length % DEVICE_BLOCK_SIZE == 0);
+    
     // Prepare the request
     iocb *request = (iocb*)tls_small_obj_alloc_accessor<alloc_t>::get_alloc<iocb>()->malloc(iocb_size);
     io_prep_pread(request, resource, buf, length, offset);
@@ -52,20 +57,23 @@ void io_calls_t::schedule_aio_read(resource_t resource,
 // synchroniously, and also stop reading from sockets so their socket
 // buffers fill up during sends in case they're using our API
 // asynchronously.
-void io_calls_t::schedule_aio_write(aio_write_t *writes, int num_writes, event_queue_t *notify_target) {
-    // TODO: watch how we're allocating
-    int i;
-    for (i = 0; i < num_writes; i++) {
-        // Prepare the request
-        iocb *request = (iocb*)tls_small_obj_alloc_accessor<alloc_t>::get_alloc<iocb>()->malloc(iocb_size);
-        io_prep_pwrite(request, writes[i].resource, writes[i].buf, writes[i].length, writes[i].offset);
-        io_set_eventfd(request, notify_target->aio_notify_fd);
-        request->data = writes[i].callback;
+void io_calls_t::schedule_aio_write(resource_t resource,
+                                    size_t offset, size_t length, void *buf,
+                                    event_queue_t *notify_target, iocallback_t *callback) {
+    
+    assert((intptr_t)buf % DEVICE_BLOCK_SIZE == 0);
+    assert(offset % DEVICE_BLOCK_SIZE == 0);
+    assert(length % DEVICE_BLOCK_SIZE == 0);
+    
+    // Prepare the request
+    iocb *request = (iocb*)tls_small_obj_alloc_accessor<alloc_t>::get_alloc<iocb>()->malloc(iocb_size);
+    io_prep_pwrite(request, resource, buf, length, offset);
+    io_set_eventfd(request, notify_target->aio_notify_fd);
+    request->data = callback;
 
-        // Add it to a list of outstanding write requests
-        w_requests.push_back(request);
-    }
-
+    // Add it to a list of outstanding write requests
+    w_requests.push_back(request);
+    
     // Process whatever is left
     process_requests();
 }
@@ -75,9 +83,15 @@ void io_calls_t::aio_notify(iocb *event, int result) {
     n_pending--;
     process_requests();
     
+    // Check for failure (because the higher-level code usually doesn't)
+    if (result != (int)event->u.c.nbytes) {
+        errno = -result;
+        check("Read or write failed", 1);
+    }
+    
     // Notify the interested party about the event
     iocallback_t *callback = (iocallback_t*)event->data;
-
+    
     // Prepare event_t for the callback
     event_t qevent;
     bzero((void*)&qevent, sizeof(qevent));

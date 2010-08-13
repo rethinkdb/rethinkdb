@@ -44,8 +44,7 @@ typename btree_modify_fsm<config_t>::transition_result_t btree_modify_fsm<config
 
     if(event == NULL) {
         // First entry into the FSM; try to grab the superblock.
-        block_id_t superblock_id = cache->get_superblock_id();
-        sb_buf = transaction->acquire(superblock_id, rwi_write, this);
+        sb_buf = transaction->acquire(SUPERBLOCK_ID, rwi_write, this);
     } else {
         // We already tried to grab the superblock, and we're getting
         // a cache notification about it.
@@ -453,7 +452,7 @@ typename btree_modify_fsm<config_t>::transition_result_t btree_modify_fsm<config
         // Look up the next node
         node_id = internal_node_handler::lookup((internal_node_t*)node, &key);
         assert(node_id != NULL_BLOCK_ID);
-        assert(node_id != cache->get_superblock_id());
+        assert(node_id != SUPERBLOCK_ID);
 
         assert(state == acquire_node);
         buf = NULL;

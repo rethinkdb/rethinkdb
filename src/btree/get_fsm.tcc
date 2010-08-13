@@ -22,8 +22,7 @@ typename btree_get_fsm<config_t>::transition_result_t btree_get_fsm<config_t>::d
         assert(transaction); // Read-only transaction always begin immediately.
 
         // Now try to grab the superblock.
-        block_id_t superblock_id = cache->get_superblock_id();
-        last_buf = transaction->acquire(superblock_id, rwi_read, this);
+        last_buf = transaction->acquire(SUPERBLOCK_ID, rwi_read, this);
     } else {
         // We already tried to grab the superblock, and we're getting
         // a cache notification about it.
@@ -104,7 +103,7 @@ typename btree_get_fsm<config_t>::transition_result_t btree_get_fsm<config_t>::d
     if(node_handler::is_internal(node)) {
         block_id_t next_node_id = internal_node_handler::lookup((internal_node_t*)node, &key);
         assert(next_node_id != NULL_BLOCK_ID);
-        assert(next_node_id != cache->get_superblock_id());
+        assert(next_node_id != SUPERBLOCK_ID);
         last_buf = buf;
         node_id = next_node_id;
         buf = transaction->acquire(node_id, rwi_read, this);

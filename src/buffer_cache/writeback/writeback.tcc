@@ -65,7 +65,7 @@ bool writeback_tmpl_t<config_t>::sync(sync_callback_t *callback) {
         // TODO: If state == state_locking, we could probably still join the current writeback 
         // rather than waiting for the next one.
         start_next_sync_immediately = true;
-        sync_callbacks.push_back(callback);
+        if (callback) sync_callbacks.push_back(callback);
         return false;
     }
 }
@@ -165,7 +165,8 @@ bool writeback_tmpl_t<config_t>::next_writeback_step() {
         
         /* Start a read transaction so we can request bufs. */
         assert(transaction == NULL);
-        if (cache->state == cache_t::state_shutting_down_start_flush) {
+        if (cache->state == cache_t::state_shutting_down_start_flush ||
+            cache->state == cache_t::state_shutting_down_waiting_for_flush) {
             // Backdoor around "no new transactions" assert.
             cache->shutdown_transaction_backdoor = true;
         }

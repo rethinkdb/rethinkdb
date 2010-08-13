@@ -13,10 +13,6 @@
 // selection strategies, and immediate vs. proactive cleaing
 // strategy).
 
-// These two parameters may or may not be the same as the ones in page_map/array.hpp.
-#define PAGE_REPL_BUFFERS_PER_CHUNK (1 << 16)
-#define PAGE_REPL_MAX_SANE_MEMORY_SIZE (500L * (1 << 30))
-
 /*
 The random page replacement algorithm needs to be able to quickly choose a random buf among all the
 bufs in memory. This is accomplished using a dense array of buf_t* in a completely arbitrary order.
@@ -132,7 +128,7 @@ public:
 private:
     unsigned int unload_threshold;
     cache_t *cache;
-    two_level_array_t<buf_t*, PAGE_REPL_MAX_SANE_MEMORY_SIZE / BTREE_BLOCK_SIZE, PAGE_REPL_BUFFERS_PER_CHUNK> array;
+    two_level_array_t<buf_t*, MAX_BLOCKS_IN_MEMORY> array;
 };
 
 #endif // __PAGE_REPL_RANDOM_HPP__

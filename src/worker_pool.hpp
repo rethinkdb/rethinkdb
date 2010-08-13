@@ -20,6 +20,7 @@
 #include "buffer_cache/writeback/writeback.hpp"
 #include "buffer_cache/concurrency/rwi_conc.hpp"
 #include "serializer/in_place.hpp"
+#include "serializer/log/log_serializer.hpp"
 #include "btree/key_value_store.hpp"
 
 struct worker_t :

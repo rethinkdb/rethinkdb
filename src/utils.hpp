@@ -14,7 +14,7 @@ static inline void check(const char *msg, bool err) {
         if(errno == 0)
             errno = EINVAL;
         perror(msg);
-        exit(-1);
+        abort();
     }
 }
 
@@ -22,7 +22,7 @@ static inline void check(const char *msg, bool err) {
 static inline void _fail(const char*, const char*, int) __attribute__ ((noreturn));
 static inline void _fail(const char *msg, const char *file, int line) {
     fprintf(stderr, "%s:%d: %s\n", file, line, msg);
-    exit(-1);
+    abort();
 }
 
 int get_cpu_count();

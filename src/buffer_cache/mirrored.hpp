@@ -213,10 +213,6 @@ public:
     transaction_t *begin_transaction(access_t access,
         transaction_begin_callback<config_t> *callback);
     
-    block_id_t get_superblock_id() {
-        return serializer.get_superblock_id();
-    }
-    
     /* You should call shutdown() before destroying the cache. It is safe to call shutdown() before
     the cache has finished starting up. If it shuts down immediately, it will return 'true';
     otherwise, it will return 'false' and call 'cb' when it is done starting up.

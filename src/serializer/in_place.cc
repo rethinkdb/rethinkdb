@@ -10,7 +10,7 @@
 #include "event_queue.hpp"
 
 in_place_serializer_t::in_place_serializer_t(char *_db_path, size_t _block_size)
-    : block_size(_block_size), state(state_unstarted), dbfd(-1), dbsize(-1) {
+    : block_size(_block_size), state(state_unstarted), dbfd(INVALID_FD), dbsize(-1) {
     assert(strlen(_db_path) <= MAX_DB_FILE_NAME - 1);   // "- 1" for the null-terminator
     strncpy(db_path, _db_path, MAX_DB_FILE_NAME);
 }
@@ -70,11 +70,7 @@ bool in_place_serializer_t::do_write(write_t *writes, int num_writes, write_txn_
     
     assert(state == state_ready);
     
-    assert(callback->blocks_outstanding == 0);   // Illegal to reuse a callback
-    callback->blocks_outstanding = num_writes;
-    
     // TODO: watch how we're allocating
-    io_calls_t::aio_write_t aio_writes[num_writes];
     int num_actual_writes = 0;   // How many writes there are if you don't count deletions
     for (int i = 0; i < num_writes; i++) {
         
@@ -83,12 +79,14 @@ bool in_place_serializer_t::do_write(write_t *writes, int num_writes, write_txn_
             assert(writes[i].callback->associated_txn == NULL);   // Illegal to reuse a callback
             writes[i].callback->associated_txn = callback;
             
-            io_calls_t::aio_write_t *w = &aio_writes[num_actual_writes ++];
-            w->resource = dbfd;
-            w->offset = id_to_offset(writes[i].block_id);
-            w->length = block_size;
-            w->buf = writes[i].buf;
-            w->callback = writes[i].callback;
+            event_queue_t *queue = get_cpu_context()->event_queue;
+            queue->iosys.schedule_aio_write(
+                dbfd,
+                id_to_offset(writes[i].block_id),
+                block_size,
+                writes[i].buf,
+                queue,
+                writes[i].callback);
         
         } else {
             
@@ -97,20 +95,10 @@ bool in_place_serializer_t::do_write(write_t *writes, int num_writes, write_txn_
         }
     }
     
-    if (num_actual_writes != 0) {
+    assert(callback->blocks_outstanding == 0);   // Illegal to reuse a callback
+    callback->blocks_outstanding = num_actual_writes;
     
-        event_queue_t *queue = get_cpu_context()->event_queue;
-        queue->iosys.schedule_aio_write(
-            aio_writes,
-            num_actual_writes,
-            queue);
-        
-        return false;
-    
-    } else {
-        
-        return true;
-    }
+    return (num_actual_writes == 0);
 }
 
 block_id_t in_place_serializer_t::gen_block_id() {

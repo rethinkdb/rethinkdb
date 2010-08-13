@@ -16,6 +16,8 @@ struct iocallback_t {
     virtual void on_io_complete(event_t *event) = 0;
 };
 
+/* TODO: Batch requests internally so that we can send multiple requests per syscall */
+
 struct io_calls_t {
 public:
     io_calls_t(event_queue_t *_queue);
@@ -37,16 +39,10 @@ public:
                            size_t offset, size_t length, void *buf,
                            event_queue_t *notify_target, iocallback_t *callback);
 
-    // Submit asynchronous write requests to the OS
-    struct aio_write_t {
-    public:
-        resource_t      resource;
-        size_t          offset;
-        size_t          length;
-        void            *buf;
-        iocallback_t    *callback;
-    };
-    void schedule_aio_write(aio_write_t *writes, int num_writes, event_queue_t *notify_target);
+    // Submit an asynchronous write request to the OS
+    void schedule_aio_write(resource_t resource,
+                            size_t offset, size_t length, void *buf,
+                            event_queue_t *notify_target, iocallback_t *callback);
 
     /**
      * AIO notification support (this is meant to be called by the

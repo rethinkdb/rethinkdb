@@ -1,6 +1,12 @@
 
 #ifndef __CONFIG_ARGS_H__
 #define __CONFIG_ARGS_H__
+
+#define KILOBYTE 1024L
+#define MEGABYTE (KILOBYTE*1024L)
+#define GIGABYTE (MEGABYTE*1024L)
+#define TERABYTE (GIGABYTE*1024L)
+
 /*!
  * Version strings
  */
@@ -32,10 +38,17 @@
 #define DYNAMIC_POOL_INITIAL_NOBJECTS             100
 
 // Size of the buffer used to perform IO operations (in bytes).
-#define IO_BUFFER_SIZE                            4096
+#define IO_BUFFER_SIZE                            (4 * KILOBYTE)
+
+// Size of the device block size (in bytes)
+#define DEVICE_BLOCK_SIZE                         (4 * KILOBYTE)
 
 // Size of each btree node (in bytes)
-#define BTREE_BLOCK_SIZE                          2048
+#define BTREE_BLOCK_SIZE                          (4 * KILOBYTE)
+
+// Size of each extent (in bytes)
+// Value is very low for testing purposes.
+#define EXTENT_SIZE                               (16 * KILOBYTE)
 
 // Max size of database file name
 #define MAX_DB_FILE_NAME                          1024
@@ -105,6 +118,18 @@
 #define DATA_DIRECTORY                            "db_data"
 
 #define DATA_FNAME_BASE                           "data.file"
+
+// We assume there will never be more than this many blocks. The value is computed by dividing
+// 1 TB by the size of a block.
+#define MAX_BLOCK_ID                              (TERABYTE / BTREE_BLOCK_SIZE)
+
+// We assume that there will never be more than this many blocks held in memory by the cache at
+// any one time. The value is computed by dividing 50 GB by the size of a block.
+#define MAX_BLOCKS_IN_MEMORY                      (50 * GIGABYTE / BTREE_BLOCK_SIZE)
+
+// This special block ID indicates the superblock. It doesn't really belong here because it's more
+// of a magic constant than a tunable parameter.
+#define SUPERBLOCK_ID                             0
 
 #endif // __CONFIG_ARGS_H__
 

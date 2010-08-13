@@ -23,6 +23,7 @@
 #include "worker_pool.hpp"
 #include "arch/io.hpp"
 #include "serializer/in_place.hpp"
+#include "serializer/log/log_serializer.hpp"
 #include "buffer_cache/mirrored.hpp"
 #include "buffer_cache/page_map/array.hpp"
 #include "buffer_cache/page_repl/page_repl_random.hpp"

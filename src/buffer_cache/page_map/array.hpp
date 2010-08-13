@@ -4,11 +4,6 @@
 
 #include "containers/two_level_array.hpp"
 
-#define BUFFERS_PER_CHUNK (1 << 16)
-
-// Nobody will have more than 500 GB of memory. (Famous last words...)
-#define MAX_SANE_MEMORY_SIZE (500L * (1 << 30))
-
 template <class config_t>
 struct array_map_t {
 
@@ -40,7 +35,7 @@ public:
     }
 
 private:
-    two_level_array_t<buf_t*, MAX_SANE_MEMORY_SIZE / BTREE_BLOCK_SIZE, BUFFERS_PER_CHUNK > array;
+    two_level_array_t<buf_t*, MAX_BLOCK_ID> array;
 };
 
 #endif // __BUFFER_CACHE_PAGE_MAP_ARRAY_HPP__

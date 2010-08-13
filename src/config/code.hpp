@@ -4,6 +4,7 @@
 
 #include "config/args.hpp"
 #include "corefwd.hpp"
+#include "config/args.hpp"
 #include "alloc/memalign.hpp"
 #ifdef VALGRIND
 #include "alloc/malloc.hpp"
@@ -32,7 +33,7 @@ struct standard_config_t {
     typedef btree_fsm<standard_config_t> btree_fsm_t;
 
     // Serializer
-    typedef in_place_serializer_t serializer_t;
+    typedef log_serializer_t serializer_t;
 
     // Caching
     typedef array_map_t<standard_config_t> page_map_t;

@@ -69,7 +69,7 @@ private:
         if (state == state_acquire_superblock) {
             txn = cache->begin_transaction(rwi_write, NULL);
             assert(txn);   // We should be the only cache user
-            buf_t *sb_buf = txn->acquire(cache->get_superblock_id(), rwi_write, this);
+            buf_t *sb_buf = txn->acquire(SUPERBLOCK_ID, rwi_write, this);
             if (sb_buf) {
                 state = state_make_change;
             } else {
@@ -183,6 +183,9 @@ private:
         }
         
         if (state == state_starting_up_finish) {
+            
+            delete sb_fsm;
+            
             state = state_ready;
             if (ready_callback) ready_callback->on_store_ready();
             

@@ -2,6 +2,9 @@
 #ifndef __TWO_LEVEL_ARRAY_HPP__
 #define __TWO_LEVEL_ARRAY_HPP__
 
+#include <assert.h>
+#include "config/code.hpp"
+
 /* two_level_array_t is a tree that always has exactly two levels. Its computational complexity is
 similar to that of an array, but it neither allocates all of its memory at once nor needs to
 realloc() as it grows.
@@ -21,7 +24,9 @@ It is also parameterized at compile-time on the maximum number of elements in th
 size of the chunks to use.
 */
 
-template <class value_t, int max_size, int chunk_size>
+#define DEFAULT_TWO_LEVEL_ARRAY_CHUNK_SIZE (1 << 16)
+
+template <class value_t, int max_size, int chunk_size = DEFAULT_TWO_LEVEL_ARRAY_CHUNK_SIZE>
 class two_level_array_t {
 
 public:

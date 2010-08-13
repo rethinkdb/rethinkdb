@@ -13,6 +13,7 @@ struct request_t;
 
 // Serializers
 struct in_place_serializer_t;
+struct log_serializer_t;
 
 // Caches
 
