@@ -17,7 +17,7 @@
 enum itc_event_type_t {
     iet_shutdown = 1,
     iet_new_socket,
-    iet_cache_synced,
+    iet_finish_shutdown,
 };
 
 struct itc_event_t {

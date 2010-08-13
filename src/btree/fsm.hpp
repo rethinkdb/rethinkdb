@@ -4,7 +4,7 @@
 #include <assert.h>
 #include "message_hub.hpp"
 #include "buffer_cache/callbacks.hpp"
-#include "worker_pool.hpp"
+#include "event.hpp"
 
 template <class config_t>
 class btree_fsm : public cpu_message_t,
@@ -15,10 +15,8 @@ class btree_fsm : public cpu_message_t,
 public:
     typedef typename config_t::cache_t cache_t;
     typedef typename config_t::btree_fsm_t btree_fsm_t;
-    //typedef typename config_t::worker_t worker_t;
     typedef typename cache_t::transaction_t transaction_t;
     typedef typename cache_t::buf_t buf_t;
-    //typedef void (worker_t::*on_complete_t)(btree_fsm_t *btree_fsm);
     typedef void (*on_complete_t)(btree_fsm_t* btree_fsm);
 public:
     enum transition_result_t {
@@ -71,9 +69,6 @@ public:
     virtual void on_block_available(buf_t *buf);
     virtual void on_txn_begin(transaction_t *txn);
     virtual void on_txn_commit(transaction_t *txn);
-
-protected:
-    block_id_t get_root_id(void *superblock_buf);
 
 public:
     union {

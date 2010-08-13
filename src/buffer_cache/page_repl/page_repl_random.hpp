@@ -100,9 +100,11 @@ public:
                 delete block_to_unload;
             } else {
 #ifndef NDEBUG
-                //ECS
-                printf("thread %d exceeding memory target. %d blocks in memory, %d dirty, target is %d.\n",
-                    get_cpu_context()->worker->workerid, array.size(), cache->writeback.num_dirty_blocks(), target);
+                // TODO: Use logging
+                // TODO: Each cache needs its own identifier so that we can make this message
+                // say which cache the problem came from
+                printf("exceeding memory target. %d blocks in memory, %d dirty, target is %d.\n",
+                    array.size(), cache->writeback.num_dirty_blocks(), target);
 #endif
                 break;
             }

@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include <functional>
 #include "corefwd.hpp"
+#include "config/code.hpp"   // For alloc_t
 
 static inline void check(const char *msg, bool err) {
     if (err) {

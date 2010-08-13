@@ -2,9 +2,16 @@
 #define __BTREE_NODE_HPP__
 
 #include <stdint.h>
+#include <stdio.h>
 #include <string.h>
 #include <assert.h>
+#include "utils.hpp"
 #include "arch/resource.hpp"
+
+struct btree_superblock_t {
+    int database_exists;
+    block_id_t root_block;
+};
 
 #define MAX_KEY_SIZE 250
 

@@ -2,6 +2,8 @@
 #ifndef __BUFFER_CACHE_MIRRORED_TCC__
 #define __BUFFER_CACHE_MIRRORED_TCC__
 
+#include "worker_pool.hpp"
+
 /**
  * Buffer implementation.
  */
@@ -25,7 +27,7 @@ buf<config_t>::buf(cache_t *cache, block_id_t block_id, block_available_callback
 #ifndef NDEBUG
     active_callback_count ++;
 #endif
-    cache->serializer.do_read(get_cpu_context()->worker->event_queue, block_id, data, this);
+    cache->serializer.do_read(block_id, data, this);
     
     add_load_callback(callback);
 }
@@ -79,9 +81,9 @@ void buf<config_t>::release() {
 }
 
 template <class config_t>
-void buf<config_t>::on_io_complete(event_t *event) {
+void buf<config_t>::on_serializer_read() {
     
-    // TODO: add an assert to make sure on_io_complete is called by the
+    // TODO: add an assert to make sure on_serializer_read is called by the
     // same event_queue as the one on which the buf_t was created.
     
 #ifndef NDEBUG
@@ -89,26 +91,33 @@ void buf<config_t>::on_io_complete(event_t *event) {
     assert(active_callback_count >= 0);
 #endif
     
-    if (event->op == eo_read) {
-        cached = true;
-        
-        // We're calling back objects that were all able to grab a lock,
-        // but are waiting on a load. Because of this, we can notify all
-        // of them.
-        
-        int n_callbacks = load_callbacks.size();
-        while(n_callbacks-- > 0) {
-            block_available_callback_t *callback = load_callbacks.head();
-            load_callbacks.remove(callback);
-            callback->on_block_available(this);
-            // At this point, 'this' may be invalid because the callback might cause the block to be
-            // unloaded as a side effect. That's why we use 'n_callbacks' rather than checking for
-            // load_callbacks.empty().
-        }
-        
-    } else {
-        cache->writeback.buf_was_written(this);
+    assert(!cached);
+    cached = true;
+    
+    // We're calling back objects that were all able to grab a lock,
+    // but are waiting on a load. Because of this, we can notify all
+    // of them.
+    
+    int n_callbacks = load_callbacks.size();
+    while(n_callbacks-- > 0) {
+        block_available_callback_t *callback = load_callbacks.head();
+        load_callbacks.remove(callback);
+        callback->on_block_available(this);
+        // At this point, 'this' may be invalid because the callback might cause the block to be
+        // unloaded as a side effect. That's why we use 'n_callbacks' rather than checking for
+        // load_callbacks.empty().
     }
+}
+
+template <class config_t>
+void buf<config_t>::on_serializer_write_block() {
+
+#ifndef NDEBUG
+    active_callback_count --;
+    assert(active_callback_count >= 0);
+#endif
+
+    cache->writeback.buf_was_written(this);
 }
 
 template<class config_t>
@@ -129,36 +138,46 @@ bool buf<config_t>::safe_to_unload() {
  * Transaction implementation.
  */
 template <class config_t>
-transaction<config_t>::transaction(cache_t *cache, access_t access,
-        transaction_begin_callback_t *callback)
+transaction<config_t>::transaction(cache_t *cache, access_t access)
     : cache(cache),
       access(access),
+      begin_callback(NULL),
       commit_callback(NULL),
       state(state_open) {
 #ifndef NDEBUG
-    event_queue = get_cpu_context()->worker->event_queue;
+    event_queue = get_cpu_context()->event_queue;
 #endif
     assert(access == rwi_read || access == rwi_write);
-    begin_callback = callback;
 }
 
 template <class config_t>
 transaction<config_t>::~transaction() {
-#ifndef NDEBUG
-    cache->n_trans_freed++;
-#endif
     assert(state == state_committed);
 }
 
 template <class config_t>
 bool transaction<config_t>::commit(transaction_commit_callback_t *callback) {
     assert(state == state_open);
-    assert(!commit_callback);
-    commit_callback = callback;
-    bool res = cache->writeback.commit(this);
-    state = res ? state_committed : state_committing;
-    if (res) delete this;
-    return res;
+    
+    cache->on_transaction_commit(this);
+    
+    if (access == rwi_write && cache->writeback.wait_for_flush) {
+        if (cache->writeback.sync_patiently(this)) {
+            state = state_committed;
+            delete this;
+            return true;
+        
+        } else {
+            state = state_committing;
+            commit_callback = callback;
+            return false;
+        }
+        
+    } else {
+        state = state_committed;
+        delete this;
+        return true;
+    }
 }
 
 template <class config_t>
@@ -176,7 +195,7 @@ transaction<config_t>::allocate(block_id_t *block_id) {
 
 	/* Make a completely new block, complete with a shiny new block_id. */
 	
-    assert(event_queue == get_cpu_context()->worker->event_queue);
+    assert(event_queue == get_cpu_context()->event_queue);
 #ifndef NDEBUG
     cache->n_blocks_acquired++;
 #endif
@@ -200,7 +219,7 @@ template <class config_t>
 typename config_t::buf_t *
 transaction<config_t>::acquire(block_id_t block_id, access_t mode,
                                block_available_callback_t *callback) {
-    assert(event_queue == get_cpu_context()->worker->event_queue);
+    assert(event_queue == get_cpu_context()->event_queue);
     assert(mode == rwi_read || access != rwi_read);
        
 #ifndef NDEBUG
@@ -258,7 +277,6 @@ mirrored_cache_t<config_t>::mirrored_cache_t(
             unsigned int flush_timer_ms,
             unsigned int flush_threshold_percent) :
 #ifndef NDEBUG
-    n_trans_created(0), n_trans_freed(0),
     n_blocks_acquired(0), n_blocks_released(0),
 #endif
     serializer(
@@ -272,31 +290,192 @@ mirrored_cache_t<config_t>::mirrored_cache_t(
         this,
         wait_for_flush,
         flush_timer_ms,
-        _max_size / _block_size * flush_threshold_percent / 100)
+        _max_size / _block_size * flush_threshold_percent / 100),
+    shutdown_transaction_backdoor(false),
+    state(state_unstarted),
+    num_live_transactions(0)
     { }
 
 template <class config_t>
 mirrored_cache_t<config_t>::~mirrored_cache_t() {
     
+    assert(state == state_unstarted || state == state_shut_down);
+    
     while (buf_t *buf = page_repl.get_first_buf()) {
        delete buf;
     }
     assert(n_blocks_released == n_blocks_acquired);
-    assert(n_trans_created == n_trans_freed);
+    assert(num_live_transactions == 0);
+}
+
+template <class config_t>
+bool mirrored_cache_t<config_t>::start(ready_callback_t *cb) {
+    assert(state == state_unstarted);
+    state = state_starting_up_start_serializer;
+    ready_callback = NULL;
+    if (next_starting_up_step()) {
+        return true;
+    } else {
+        ready_callback = cb;
+        return false;
+    }
+}
+
+template<class config_t>
+bool mirrored_cache_t<config_t>::next_starting_up_step() {
+    
+    if (state == state_starting_up_start_serializer) {
+        if (serializer.start(this)) {
+            state = state_starting_up_finish;
+        } else {
+            state = state_starting_up_waiting_for_serializer;
+            return false;
+        }
+    }
+    
+    if (state == state_starting_up_finish) {
+        writeback.start();
+        state = state_ready;
+        
+        if (ready_callback) ready_callback->on_cache_ready();
+        ready_callback = NULL;
+        
+        return true;
+    }
+    
+    assert(0);
+}
+
+template <class config_t>
+void mirrored_cache_t<config_t>::on_serializer_ready() {
+    // If we received a shutdown() before we finished starting up, then the serializer should
+    // not have produced this callback. Therefore we must be in the starting-up state.
+    assert(state == state_starting_up_waiting_for_serializer);
+    state = state_starting_up_finish;
+    next_starting_up_step();
 }
 
 template <class config_t>
 typename config_t::transaction_t *
 mirrored_cache_t<config_t>::begin_transaction(access_t access,
-        transaction_begin_callback<config_t> *callback) {
-    transaction_t *txn = new transaction_t(this, access, callback);
-#ifndef NDEBUG
-    n_trans_created++;
-#endif
+        transaction_begin_callback<config_t> *callback) {\
+    
+    // shutdown_transaction_backdoor allows the writeback to request a transaction for the shutdown
+    // sync.
+    assert(state == state_ready ||
+        (shutdown_transaction_backdoor &&
+            (state == state_shutting_down_start_flush ||
+                state == state_shutting_down_waiting_for_flush)));
+    
+    transaction_t *txn = new transaction_t(this, access);
+    num_live_transactions ++;
+    if (writeback.begin_transaction(txn, callback)) return txn;
+    else return NULL;
+}
 
-    if (writeback.begin_transaction(txn))
-        return txn;
-    return NULL;
+template <class config_t>
+void mirrored_cache_t<config_t>::on_transaction_commit(transaction_t *txn) {
+    
+    assert(state == state_ready ||
+        state == state_shutting_down_waiting_for_transactions ||
+        state == state_shutting_down_start_flush ||
+        state == state_shutting_down_waiting_for_flush);
+    
+    writeback.on_transaction_commit(txn);
+    
+    num_live_transactions--;
+    if (state == state_shutting_down_waiting_for_transactions && num_live_transactions == 0) {
+        // We started a shutdown earlier, but we had to wait for the transactions to all finish.
+        // Now that all transactions are done, continue shutting down.
+        state = state_shutting_down_start_flush;
+        next_shutting_down_step();
+    }
+}
+
+template <class config_t>
+bool mirrored_cache_t<config_t>::shutdown(shutdown_callback_t *cb) {
+
+    assert(state == state_starting_up_waiting_for_serializer || state == state_ready);
+    
+    if (state == state_starting_up_waiting_for_serializer) {
+        // We were shut down before we could even finish starting up. We were waiting for the
+        // serializer to call us back to say it was done starting up. There is no need to flush
+        // the writeback because the cache was never initialized and there cannot be any
+        // dirty blocks.
+        state = state_shutting_down_shutdown_serializer;
+        shutdown_callback = NULL;
+        if (next_shutting_down_step()) {
+            return true;
+        } else {
+            shutdown_callback = cb;
+            return false;
+        }
+    
+    } else {
+        if (num_live_transactions == 0) {
+            state = state_shutting_down_start_flush;
+            shutdown_callback = NULL;
+            if (next_shutting_down_step()) {
+                return true;
+            } else {
+                shutdown_callback = cb;
+                return false;
+            }
+        } else {
+            // The shutdown will be resumed by on_transaction_commit() when the last transaction
+            // completes.
+            state = state_shutting_down_waiting_for_transactions;
+            shutdown_callback = cb;
+            return false;
+        }
+    }
+}
+
+template<class config_t>
+bool mirrored_cache_t<config_t>::next_shutting_down_step() {
+
+    if (state == state_shutting_down_start_flush) {
+        if (writeback.sync(this)) {
+            state = state_shutting_down_shutdown_serializer;
+        } else {
+            state = state_shutting_down_waiting_for_flush;
+            return false;
+        }
+    }
+    
+    if (state == state_shutting_down_shutdown_serializer) {
+        if (serializer.shutdown(this)) {
+            state = state_shutting_down_finish;
+        } else {
+            state = state_shutting_down_waiting_for_serializer;
+            return false;
+        }
+    }
+    
+    if (state == state_shutting_down_finish) {
+        state = state_shut_down;
+        
+        if (shutdown_callback) shutdown_callback->on_cache_shutdown();
+        shutdown_callback = NULL;
+        
+        return true;
+    }
+    
+    assert(0);
+}
+
+template<class config_t>
+void mirrored_cache_t<config_t>::on_sync() {
+    assert(state == state_shutting_down_waiting_for_flush);
+    state = state_shutting_down_shutdown_serializer;
+    next_shutting_down_step();
+}
+
+template<class config_t>
+void mirrored_cache_t<config_t>::on_serializer_shutdown() {
+    assert(state == state_shutting_down_waiting_for_serializer);
+    state = state_shutting_down_finish;
+    next_shutting_down_step();
 }
 
 #endif  // __BUFFER_CACHE_MIRRORED_TCC__

@@ -96,14 +96,11 @@ worker_t::worker_t(int _workerid, int _nqueues,
     mkdir(DATA_DIRECTORY, 0777);
 
     for (int i = 0; i < nslices; i++) {
-        typedef std::basic_string<char, std::char_traits<char>, gnew_alloc<char> > rdbstring_t;
-        typedef std::basic_stringstream<char, std::char_traits<char>, gnew_alloc<char> > rdbstringstream_t;
-        rdbstringstream_t out;
-        rdbstring_t str((char*)cmd_config->db_file_name);
-        out << workerid << "_" << i;
-        str += out.str();
-        slices[i] = gnew<cache_t>(
-                (char*)str.c_str(),
+        char name[MAX_DB_FILE_NAME];
+        int len = snprintf(name, MAX_DB_FILE_NAME, "%s_%d_%d", cmd_config->db_file_name, workerid, i);
+        check("Name too long", len == MAX_DB_FILE_NAME);
+        slices[i] = gnew<store_t>(
+                name,
                 BTREE_BLOCK_SIZE,
                 cmd_config->max_cache_size / nworkers,
                 cmd_config->wait_for_flush,
@@ -123,8 +120,11 @@ void worker_t::start_worker() {
 }
 
 void worker_t::start_slices() {
-    for (int i = 0; i < nslices; i++)
-        slices[i]->start();
+    for (int i = 0; i < nslices; i++) {
+        // The key-value store may not start up immediately, but that's okay; it will queue up
+        // requests and then run them when it is done starting up.
+        slices[i]->start(NULL);
+    }
 }
 
 void worker_t::shutdown() {
@@ -135,7 +135,7 @@ void worker_t::shutdown() {
     }
 
     for (int i = 0; i < nslices; i++) {
-        slices[i]->shutdown(this);
+        if (slices[i]->shutdown(this)) on_store_shutdown();
     }
 }
 
@@ -210,9 +210,8 @@ void worker_t::on_btree_completed(code_config_t::btree_fsm_t *btree_fsm) {
 }
 
 void worker_t::process_btree_msg(code_config_t::btree_fsm_t *btree_fsm) {
-    worker_t *worker = get_cpu_context()->worker;
+    
     if(btree_fsm->is_finished()) {
-
         if (btree_fsm->request) {
             // We received a completed btree that belongs to us
             btree_fsm->request->on_request_part_completed();
@@ -222,16 +221,9 @@ void worker_t::process_btree_msg(code_config_t::btree_fsm_t *btree_fsm) {
 
     } else {
         // We received a new btree that we need to process
-
-        // The btree is constructed with no cache; here we must assign it its proper cache
-        assert(!btree_fsm->cache);
-        btree_fsm->cache = worker->slice(&btree_fsm->key);
-
-        btree_fsm->on_complete = worker_t::on_btree_completed;
-        code_config_t::btree_fsm_t::transition_result_t btree_res = btree_fsm->do_transition(NULL);
-        if(btree_res == code_config_t::btree_fsm_t::transition_complete) {
+        code_config_t::store_t *store = slice(&btree_fsm->key);
+        if (store->run_fsm(btree_fsm, worker_t::on_btree_completed))
             worker_t::on_btree_completed(btree_fsm);
-        }
     }
 }
 
@@ -325,7 +317,7 @@ void worker_t::decr_ref_count() {
     }
 }
 
-void worker_t::on_sync() {
+void worker_t::on_store_shutdown() {
     decr_ref_count();
 }
 

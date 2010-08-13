@@ -8,17 +8,13 @@ writeback_tmpl_t<config_t>::writeback_tmpl_t(
         bool wait_for_flush,
         unsigned int flush_timer_ms,
         unsigned int flush_threshold)
-    : flush_timer(NULL),
-      wait_for_flush(wait_for_flush),
+    : wait_for_flush(wait_for_flush),
       flush_timer_ms(flush_timer_ms),
       flush_threshold(flush_threshold),
+      flush_timer(NULL),
+      state(state_unstarted),
       cache(cache),
-      num_txns(0),
       start_next_sync_immediately(false),
-      shutdown_callback(NULL),
-      in_shutdown_sync(false),
-      transaction_backdoor(false),
-      state(state_none),
       transaction(NULL) {
 }
 
@@ -29,72 +25,91 @@ writeback_tmpl_t<config_t>::~writeback_tmpl_t() {
 
 template <class config_t>
 void writeback_tmpl_t<config_t>::start() {
-    flush_lock =
-        gnew<rwi_lock_t>(&get_cpu_context()->worker->event_queue->message_hub,
-                         get_cpu_context()->worker->workerid);
+    assert(state == state_unstarted);
+    flush_lock = gnew<rwi_lock_t>();
+    state = state_ready;
 }
 
 template <class config_t>
-void writeback_tmpl_t<config_t>::shutdown(sync_callback_t *callback) {
-    assert(shutdown_callback == NULL);
-    shutdown_callback = callback;
-    if (!num_txns) { // If num_txns, commit() will do this
-        in_shutdown_sync = true;
-        sync(callback);
-    }
-}
+bool writeback_tmpl_t<config_t>::sync(sync_callback_t *callback) {
 
-template <class config_t>
-void writeback_tmpl_t<config_t>::sync(sync_callback_t *callback) {
-
-    if (callback) sync_callbacks.push_back(callback);
-    
-    // TODO: If state == state_locking, we could probably still join the current writeback rather
-    // than waiting for the next one.
-    
-    if (state == state_none) {
+    if (state == state_ready) {
         /* Start the writeback process immediately */
-        writeback(NULL);
+        if (next_writeback_step()) {
+            return true;
+        } else {
+            /* Wait until here before putting the callback into the callbacks list, because we
+            don't want to call the callback if the writeback completes immediately. */
+            if (callback) {
+                switch(state) {
+                    case state_locking:
+                        sync_callbacks.push_back(callback);
+                        break;
+                    case state_write_bufs:
+                        current_sync_callbacks.push_back(callback);
+                        break;
+                    default:
+                        // We can't be in state_ready, because we just started writeback and it
+                        // didn't complete. We can't be in state_locked or state_cleanup, because
+                        // those states aren't really "states"; they're more like transitions.
+                        assert(0);
+                }
+            }
+            return false;
+        }
+    
     } else {
-        /* There is a writeback currently in progress, but sync() has been called, so there is more
-        data that needs to be flushed that didn't become part of the current sync. So we start
-        another sync right after this one. */
+        /* There is a writeback currently in progress, but sync() has been called, so there is
+        more data that needs to be flushed that didn't become part of the current sync. So we
+        start another sync right after this one. */
+        // TODO: If state == state_locking, we could probably still join the current writeback 
+        // rather than waiting for the next one.
         start_next_sync_immediately = true;
+        sync_callbacks.push_back(callback);
+        return false;
     }
 }
 
 template <class config_t>
-bool writeback_tmpl_t<config_t>::begin_transaction(transaction_t *txn) {
-   
-    assert(txn->get_access() == rwi_read || txn->get_access() == rwi_write);
-    
-    // TODO(NNW): If there's ever any asynchrony between socket reads and
-    // begin_transaction, we'll need a better check here.
-    assert(shutdown_callback == NULL || transaction_backdoor);
-    
-    num_txns++;
-    
-    if (txn->get_access() == rwi_read) return true;
-    bool locked = flush_lock->lock(rwi_read, txn);
-    return locked;
+bool writeback_tmpl_t<config_t>::sync_patiently(sync_callback_t *callback) {
+
+    if (num_dirty_blocks() > 0) {
+        if (callback) sync_callbacks.push_back(callback);
+        return false;
+        
+    } else {
+        // There's nothing to flush, so the sync is "done"
+        return true;
+    }
 }
 
 template <class config_t>
-bool writeback_tmpl_t<config_t>::commit(transaction_t *txn) {
+bool writeback_tmpl_t<config_t>::begin_transaction(transaction_t *txn,
+        transaction_begin_callback<config_t> *callback) {
     
-    num_txns --;
+    switch(txn->get_access()) {
+        case rwi_read:
+            return true;
+        case rwi_write:
+            // Lock the flush lock "for reading", but what we really mean is to lock it non-
+            // exclusively because more than one write transaction can proceed at once.
+            if (flush_lock->lock(rwi_read, txn)) {
+                return true;
+            } else {
+                txn->begin_callback = callback;
+                return false;
+            }
+        default:
+            assert(0);
+            return false;   // Placate GCC
+    }
+}
+
+template <class config_t>
+void writeback_tmpl_t<config_t>::on_transaction_commit(transaction_t *txn) {
     
     if (txn->get_access() == rwi_write) {
-        flush_lock -> unlock();
-    }
-    
-    if (num_txns == 0 && shutdown_callback != NULL && !in_shutdown_sync) {
-        // All txns shut down, start final sync.
-        
-        // So we don't do this again when the final sync's transaction commits
-        in_shutdown_sync = true;
-        
-        sync(shutdown_callback);
+        flush_lock->unlock();
     }
     
     if (txn->get_access() == rwi_write) {
@@ -106,18 +121,9 @@ bool writeback_tmpl_t<config_t>::commit(transaction_t *txn) {
         /* Otherwise, start the flush timer so that the modified data doesn't sit in memory for too
         long without being written to disk. */
         else if (!flush_timer && flush_timer_ms != NEVER_FLUSH) {
-            flush_timer = get_cpu_context()->worker->event_queue->
+            flush_timer = get_cpu_context()->event_queue->
                 fire_timer_once(flush_timer_ms, flush_timer_callback, this);
         }
-    }
-    
-    if (txn->get_access() == rwi_write && wait_for_flush) {
-        /* Push the callback in manually rather than calling sync(); we will patiently wait for the
-        next sync to come naturally. */
-        sync_callbacks.push_back(txn);
-        return false;
-    } else {
-        return true;
     }
 }
 
@@ -144,27 +150,9 @@ void writeback_tmpl_t<config_t>::flush_timer_callback(void *ctx) {
 }
 
 template <class config_t>
-void writeback_tmpl_t<config_t>::buf_was_written(buf_t *buf) {
-    assert(buf);
-    writeback(buf);
-}
+bool writeback_tmpl_t<config_t>::next_writeback_step() {
 
-template <class config_t>
-void writeback_tmpl_t<config_t>::on_lock_available() {
-    assert(state == state_locking);
-    if (state == state_locking) {
-        state = state_locked;
-        writeback(NULL);
-    }
-}
-
-template <class config_t>
-void writeback_tmpl_t<config_t>::writeback(buf_t *buf) {
-    //printf("Writeback being called, state %d\n", state);
-
-    if (state == state_none) {
-        
-        assert(buf == NULL);
+    if (state == state_ready) {
         
         // Cancel the flush timer because we're doing writeback now, so we don't need it to remind
         // us later. This happens only if the flush timer is running, and writeback starts for some
@@ -172,36 +160,39 @@ void writeback_tmpl_t<config_t>::writeback(buf_t *buf) {
         // flush timer, then flush_timer would be NULL here, because flush_timer_callback sets it
         // to NULL.
         if (flush_timer) {
-            get_cpu_context()->worker->event_queue->cancel_timer(flush_timer);
+            get_cpu_context()->event_queue->cancel_timer(flush_timer);
             flush_timer = NULL;
         }
         
         /* Start a read transaction so we can request bufs. */
         assert(transaction == NULL);
-        if (shutdown_callback) // Backdoor around "no new transactions" assert.
-            transaction_backdoor = true;
+        if (cache->state == cache_t::state_shutting_down_start_flush) {
+            // Backdoor around "no new transactions" assert.
+            cache->shutdown_transaction_backdoor = true;
+        }
         transaction = cache->begin_transaction(rwi_read, NULL);
-        transaction_backdoor = false;
+        cache->shutdown_transaction_backdoor = false;
         assert(transaction != NULL); // Read txns always start immediately.
 
         /* Request exclusive flush_lock, forcing all write txns to complete. */
-        state = state_locking;
-        bool locked = flush_lock->lock(rwi_write, this);
-        if (locked) {
+        if (flush_lock->lock(rwi_write, this)) {
             state = state_locked;
+        } else {
+            state = state_locking;
+            return false;
         }
     }
+    
     if (state == state_locked) {
-        assert(buf == NULL);
-        assert(flush_bufs.empty());
+    
         assert(current_sync_callbacks.empty());
 
         current_sync_callbacks.append_and_clear(&sync_callbacks);
 
         /* Request read locks on all of the blocks we need to flush. */
+        int num_writes = dirty_bufs.size();
         // TODO: optimize away dynamic allocation
-        typename serializer_t::write *writes =
-            (typename serializer_t::write*)calloc(dirty_bufs.size(), sizeof *writes);
+        typename serializer_t::write_t writes[num_writes];
         int i;
         typename intrusive_list_t<local_buf_t>::iterator it;
         for (it = dirty_bufs.begin(), i = 0; it != dirty_bufs.end(); it++, i++) {
@@ -221,47 +212,72 @@ void writeback_tmpl_t<config_t>::writeback(buf_t *buf) {
             buf->active_callback_count ++;
 #endif
         }
-        flush_bufs.append_and_clear(&dirty_bufs);
+        dirty_bufs.clear();
         
         flush_lock->unlock(); // Write transactions can now proceed again.
-
+        
         /* Start writing all the dirty bufs down, as a transaction. */
+        
         // TODO(NNW): Now that the serializer/aio-system breaks writes up into
         // chunks, we may want to worry about submitting more heavily contended
         // bufs earlier in the process so more write FSMs can proceed sooner.
-        if (flush_bufs.size())
-            cache->serializer.do_write(get_cpu_context()->worker->event_queue, writes,
-                            flush_bufs.size());
-        free(writes);
-        state = state_write_bufs;
-    }
-    if (state == state_write_bufs) {
-        if (buf) {
-            flush_bufs.remove(&buf->writeback_buf);
-            buf->writeback_buf.dirty = false;
-            buf->release();
-        }
-        if (flush_bufs.empty()) {
-            /* We are done writing all of the buffers */
-            
-            bool committed __attribute__((unused)) = transaction->commit(NULL);
-            assert(committed); // Read-only transactions commit immediately.
-            transaction = NULL;
-                        
-            while (!current_sync_callbacks.empty()) {
-                sync_callback_t *cb = current_sync_callbacks.head();
-                current_sync_callbacks.remove(cb);
-                cb->on_sync();
-            }
-
-            state = state_none;
-
-            if (start_next_sync_immediately) {
-                start_next_sync_immediately = false;
-                writeback(NULL);
-            }
+        
+        if (num_writes == 0 || cache->serializer.do_write(writes, num_writes, this)) {
+            state = state_cleanup;
+        } else {
+            state = state_write_bufs;
+            return false;
         }
     }
+    
+    if (state == state_cleanup) {
+    
+        /* We are done writing all of the buffers */
+        
+        bool committed __attribute__((unused)) = transaction->commit(NULL);
+        assert(committed); // Read-only transactions commit immediately.
+        transaction = NULL;
+                    
+        while (!current_sync_callbacks.empty()) {
+            sync_callback_t *cb = current_sync_callbacks.head();
+            current_sync_callbacks.remove(cb);
+            cb->on_sync();
+        }
+        
+        // Don't set state to state_ready until after we call all the sync callbacks, because
+        // otherwise it would crash if a sync callback called sync().
+        state = state_ready;
+
+        if (start_next_sync_immediately) {
+            start_next_sync_immediately = false;
+            sync(NULL);
+        }
+        
+        return true;
+    }
+    
+    assert(0);
+}
+
+template <class config_t>
+void writeback_tmpl_t<config_t>::buf_was_written(buf_t *buf) {
+    assert(buf);
+    buf->writeback_buf.dirty = false;
+    buf->release();
+}
+
+template <class config_t>
+void writeback_tmpl_t<config_t>::on_lock_available() {
+    assert(state == state_locking);
+    state = state_locked;
+    next_writeback_step();
+}
+
+template <class config_t>
+void writeback_tmpl_t<config_t>::on_serializer_write_txn() {
+    assert(state == state_write_bufs);
+    state = state_cleanup;
+    next_writeback_step();
 }
 
 #endif  // __BUFFER_CACHE_WRITEBACK_TCC__

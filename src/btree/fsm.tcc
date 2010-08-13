@@ -5,11 +5,6 @@
 // TODO: add cursor/iterator mechanism
 
 template <class config_t>
-block_id_t btree_fsm<config_t>::get_root_id(void *superblock_buf) {
-    return *((block_id_t*)superblock_buf);
-}
-
-template <class config_t>
 void btree_fsm<config_t>::on_block_available(buf_t *buf) {
     // TODO: Since we're changing the event system to untangle the
     // central processing at main.cc, we should have do_transition

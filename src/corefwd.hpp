@@ -12,7 +12,6 @@ struct request_callback_t;
 struct request_t;
 
 // Serializers
-template <class config_t>
 struct in_place_serializer_t;
 
 // Caches
@@ -39,6 +38,10 @@ template<class config_t>
 struct rwi_conc_t;
 
 // Btree
+
+template <typename config_t>
+class btree_key_value_store;
+
 struct btree_node;
 
 template <typename config_t>
@@ -61,9 +64,6 @@ class btree_incr_decr_fsm;
 
 template <typename config_t>
 class btree_append_prepend_fsm;
-
-template <class config_t>
-class btree_admin;
 
 // Event queue
 struct event_t;

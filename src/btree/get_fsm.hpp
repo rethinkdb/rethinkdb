@@ -35,7 +35,7 @@ public:
 public:
     explicit btree_get_fsm(btree_key *_key)
         : btree_fsm_t(_key),
-          state(acquire_superblock), last_buf(NULL), buf(NULL), node_id(cache_t::null_block_id)
+          state(acquire_superblock), last_buf(NULL), buf(NULL), node_id(NULL_BLOCK_ID)
         {}
 
     virtual transition_result_t do_transition(event_t *event);

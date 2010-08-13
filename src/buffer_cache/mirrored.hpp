@@ -16,7 +16,8 @@
 
 /* Buffer class. */
 template <class config_t>
-class buf : public iocallback_t,
+class buf : public config_t::serializer_t::read_callback_t,
+            public config_t::serializer_t::write_block_callback_t,
             public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, buf<config_t> >,
             public intrusive_list_node_t<buf<config_t> >
 {
@@ -73,10 +74,11 @@ private:
 
     // Callback API
     void add_load_callback(block_available_callback_t *callback);
-
-    virtual void on_io_complete(event_t *event);
-	
-	bool safe_to_unload();
+    
+    void on_serializer_read();
+    void on_serializer_write_block();
+    
+    bool safe_to_unload();
 
 public:
     void release();
@@ -101,9 +103,10 @@ public:
 template <class config_t>
 class transaction : public lock_available_callback_t,
                     public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, transaction<config_t> >,
-                    public sync_callback<config_t>
+                    public config_t::writeback_t::sync_callback_t
 {
     friend class config_t::cache_t;
+    friend class config_t::writeback_t;
     
 public:
     typedef typename config_t::serializer_t serializer_t;
@@ -128,7 +131,7 @@ public:
 #endif
 
 private:
-    explicit transaction(cache_t *cache, access_t access, transaction_begin_callback_t *callback);
+    explicit transaction(cache_t *cache, access_t access);
     ~transaction();
 
     virtual void on_lock_available() { begin_callback->on_txn_begin(this); }
@@ -141,9 +144,11 @@ private:
     enum { state_open, state_committing, state_committed } state;
 };
 
-
 template <class config_t>
-struct mirrored_cache_t
+struct mirrored_cache_t :
+    private config_t::serializer_t::ready_callback_t,
+    private config_t::writeback_t::sync_callback_t,
+    private config_t::serializer_t::shutdown_callback_t
 {
     friend class config_t::buf_t;
     friend class config_t::transaction_t;
@@ -158,7 +163,6 @@ struct mirrored_cache_t
 
 private:
 #ifndef NDEBUG
-    int n_trans_created, n_trans_freed;
     int n_blocks_acquired, n_blocks_released;
 #endif
     
@@ -189,29 +193,83 @@ public:
             unsigned int flush_threshold_percent);
     ~mirrored_cache_t();
     
-    void start() {
-    	writeback.start();
-    }
-    void shutdown(sync_callback<config_t> *cb) {
-    	writeback.shutdown(cb);
-    }
+    /* You must call start() before using the cache. If it starts up immediately, it will return
+    'true'; otherwise, it will return 'false' and call 'cb' when it is done starting up.
+    */
 
+public:
+    struct ready_callback_t {
+        virtual void on_cache_ready() = 0;
+    };
+    bool start(ready_callback_t *cb);
+private:
+    bool next_starting_up_step();
+    ready_callback_t *ready_callback;
+    void on_serializer_ready();
+    
+public:
+    
     // Transaction API
     transaction_t *begin_transaction(access_t access,
         transaction_begin_callback<config_t> *callback);
     
-    /* TODO: These two should probably actually be global, because block_id_t is global... */
-    static const block_id_t null_block_id = config_t::serializer_t::null_block_id;
-    static bool is_block_id_null(block_id_t id) {
-        return config_t::serializer_t::is_block_id_null(id);
-    }
-    
-    /* TODO: ... and we can't decide where this one belongs until we decide who is responsible for
-    creating new block IDs, and figure out the relationship between the serializer and the cache
-    better. */
     block_id_t get_superblock_id() {
         return serializer.get_superblock_id();
     }
+    
+    /* You should call shutdown() before destroying the cache. It is safe to call shutdown() before
+    the cache has finished starting up. If it shuts down immediately, it will return 'true';
+    otherwise, it will return 'false' and call 'cb' when it is done starting up.
+    */
+    
+public:
+    struct shutdown_callback_t {
+        virtual void on_cache_shutdown() = 0;
+    };
+    bool shutdown(shutdown_callback_t *cb);
+private:
+    bool next_shutting_down_step();
+    shutdown_callback_t *shutdown_callback;
+    void on_sync();
+    void on_serializer_shutdown();
+    
+    /* It is illegal to start new transactions during shutdown, but the writeback needs to start a
+    transaction so that it can request bufs. The way this is done is that the writeback sets
+    shutdown_transaction_backdoor to true before it starts the transaction and to false immediately
+    afterwards. */
+    bool shutdown_transaction_backdoor;
+    
+#ifndef NDEBUG
+	// Prints debugging information designed to resolve deadlocks
+	void deadlock_debug();
+#endif
+
+private:
+    
+    void on_transaction_commit(transaction_t *txn);
+    
+    enum state_t {
+        state_unstarted,
+        
+        state_starting_up_start_serializer,
+        state_starting_up_waiting_for_serializer,
+        state_starting_up_finish,
+        
+        state_ready,
+        
+        state_shutting_down_waiting_for_transactions,
+        state_shutting_down_start_flush,
+        state_shutting_down_waiting_for_flush,
+        state_shutting_down_shutdown_serializer,
+        state_shutting_down_waiting_for_serializer,
+        state_shutting_down_finish,
+        
+        state_shut_down
+    } state;
+    
+    // Used to keep track of how many transactions there are so that we can wait for transactions to
+    // complete before shutting down.
+    int num_live_transactions;
 };
 
 #include "buffer_cache/mirrored.tcc"

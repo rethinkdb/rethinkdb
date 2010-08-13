@@ -6,7 +6,9 @@
 #include "utils.hpp"
 
 template <class config_t>
-struct writeback_tmpl_t : public lock_available_callback_t {
+struct writeback_tmpl_t :
+    public lock_available_callback_t,
+    public config_t::serializer_t::write_txn_callback_t {
 public:
     typedef typename config_t::transaction_t transaction_t;
     typedef typename config_t::cache_t cache_t;
@@ -18,16 +20,23 @@ public:
         unsigned int flush_timer_ms,
         unsigned int flush_threshold);
     virtual ~writeback_tmpl_t();
-
-    void start();
-    void shutdown(sync_callback<config_t> *callback);
     
-    /* Forces a writeback to happen soon. Calls 'callback' back as soon as the next complete
-    writeback cycle is over. */
-    void sync(sync_callback<config_t> *callback);
+    struct sync_callback_t : public intrusive_list_node_t<sync_callback_t> {
+        virtual ~sync_callback_t() {}
+        virtual void on_sync() = 0;
+    };
+    
+    void start();
+    
+    /* Forces a writeback to happen soon. If there is nothing to write, return 'true'; otherwise,
+    returns 'false' and calls 'callback' as soon as the next writeback cycle is over. */
+    bool sync(sync_callback_t *callback);
+    
+    /* Same as sync(), but doesn't hurry up the writeback in any way. */
+    bool sync_patiently(sync_callback_t *callback);
 
-    bool begin_transaction(transaction_t *txn);
-    bool commit(transaction_t *transaction);
+    bool begin_transaction(transaction_t *txn, transaction_begin_callback<config_t> *cb);
+    void on_transaction_commit(transaction_t *txn);
     
     // This is called by buf_t when the OS informs the buf that a write operation completed
     void buf_was_written(buf_t *buf);
@@ -50,17 +59,15 @@ public:
         buf_t *gbuf;
         bool dirty;
     };
-
+    
+    /* User-controlled settings. */
+    
+    bool wait_for_flush;
+    int flush_timer_ms;
+    unsigned int flush_threshold;   // Number of blocks, not percentage
+    
 private:
     typedef typename config_t::serializer_t serializer_t;
-    typedef sync_callback<config_t> sync_callback_t;
-
-    enum state {
-        state_none,
-        state_locking,
-        state_locked,
-        state_write_bufs,
-    };
     
     // The writeback system has a mechanism to keep data safe if the server crashes. If modified
     // data sits in memory for longer than flush_timer_ms milliseconds, a writeback will be
@@ -70,26 +77,40 @@ private:
     static void flush_timer_callback(void *ctx);
 
     virtual void on_lock_available();
-    void writeback(buf_t *buf);
-
-    /* User-controlled settings. */
+    void on_serializer_write_txn();
     
-    bool wait_for_flush;
-    int flush_timer_ms;
-    unsigned int flush_threshold;   // Number of blocks, not percentage
-
+    // Start or continue a writeback. Should only be called by the writeback itself. Returns 'true'
+    // if the writeback completes, or 'false' if it is waiting for something and will complete
+    // later.
+    bool next_writeback_step();
+    
     /* Internal variables used at all times. */
     
+    enum state_t {
+        state_unstarted,
+        state_ready,
+        state_locking,
+        state_locked,
+        state_write_bufs,
+        state_cleanup
+    } state;
+    
     cache_t *cache;
-    unsigned int num_txns;
 
     /* The flush lock is necessary because if we acquire dirty blocks
      * in random order during the flush, there might be a deadlock
      * with set_fsm. When the flush is initiated, the flush_lock is
-     * grabbed, all transactions are drained, and no new transaction
+     * grabbed, all write transactions are drained, and no new write transactions
      * are allowed in the meantime. Once all transactions are drained,
      * the writeback code locks all dirty blocks for reading and
      * releases the flush lock. */
+    
+    /* Note that the write transactions lock the flush lock for reading, because there can be more
+    than one write transaction proceeding at the same time (not on the same bufs, but the bufs'
+    locks will take care of that) while the writeback locks the flush lock for writing, because it
+    must exclude all of the transactions.
+    */
+    
     rwi_lock_t *flush_lock;
     
     // List of things waiting for their data to be written to disk. They will be called back after
@@ -105,18 +126,12 @@ private:
     
     // List of bufs that are currenty dirty
     intrusive_list_t<local_buf_t> dirty_bufs;
-    
-    sync_callback_t *shutdown_callback;
-    bool in_shutdown_sync;
-    bool transaction_backdoor;
 
     /* Internal variables used only during a flush operation. */
     
-    enum state state;
     // Transaction that the writeback is using to grab buffers
     transaction_t *transaction;
-    // List of buffers being written during the current writeback
-    intrusive_list_t<local_buf_t> flush_bufs;
+    
     // List of things to call back as soon as the writeback currently in progress is over.
     intrusive_list_t<sync_callback_t> current_sync_callbacks;
 };

@@ -57,7 +57,7 @@ typename btree_modify_fsm<config_t>::transition_result_t btree_modify_fsm<config
         // Got the superblock buffer (either right away or through
         // cache notification). Grab the root id, and move on to
         // acquiring the root.
-        node_id = btree_fsm_t::get_root_id(sb_buf->ptr());
+        node_id = ((btree_superblock_t*)sb_buf->ptr())->root_block;
         state = acquire_root;
         return btree_fsm_t::transition_ok;
     } else {
@@ -71,7 +71,7 @@ template <class config_t>
 typename btree_modify_fsm<config_t>::transition_result_t btree_modify_fsm<config_t>::do_acquire_root(event_t *event)
 {
     // If there is no root, insert one.
-    if(cache_t::is_block_id_null(node_id)) {
+    if(node_id == NULL_BLOCK_ID) {
         buf = transaction->allocate(&node_id);
         leaf_node_handler::init((leaf_node_t *)buf->ptr());
         buf->set_dirty();
@@ -100,12 +100,10 @@ typename btree_modify_fsm<config_t>::transition_result_t btree_modify_fsm<config
 
 template <class config_t>
 void btree_modify_fsm<config_t>::insert_root(block_id_t root_id) {
-    memcpy(sb_buf->ptr(), (void*)&root_id, sizeof(root_id));
-
+    ((btree_superblock_t*)sb_buf->ptr())->root_block = root_id;
     sb_buf->set_dirty();
     sb_buf->release();
     sb_buf = NULL;
-
     state = acquire_node;
 }
 
@@ -446,7 +444,7 @@ typename btree_modify_fsm<config_t>::transition_result_t btree_modify_fsm<config
         // STEP 5.: Semi-finalize and move up the tree.
         // Release and update the last node
         if(last_buf) {
-            assert(!cache_t::is_block_id_null(last_node_id));
+            assert(last_node_id != NULL_BLOCK_ID);
             last_buf->release();
         }
         last_buf = buf;
@@ -454,7 +452,7 @@ typename btree_modify_fsm<config_t>::transition_result_t btree_modify_fsm<config
 
         // Look up the next node
         node_id = internal_node_handler::lookup((internal_node_t*)node, &key);
-        assert(!cache_t::is_block_id_null(node_id));
+        assert(node_id != NULL_BLOCK_ID);
         assert(node_id != cache->get_superblock_id());
 
         assert(state == acquire_node);
@@ -474,10 +472,10 @@ typename btree_modify_fsm<config_t>::transition_result_t btree_modify_fsm<config
     // Finalize the operation
     if(res == btree_fsm_t::transition_ok && state == update_complete) {
         // Release the final node
-        if(!cache_t::is_block_id_null(last_node_id)) {
+        if(last_node_id != NULL_BLOCK_ID) {
             last_buf->release();
             last_buf = NULL;
-            last_node_id = cache_t::null_block_id;
+            last_node_id = NULL_BLOCK_ID;
         }
 
         // End the transaction

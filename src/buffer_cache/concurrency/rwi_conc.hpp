@@ -24,9 +24,7 @@ struct rwi_conc_t {
     
     public:
         explicit local_buf_t(buf_t *_gbuf)
-            : lock(&get_cpu_context()->worker->event_queue->message_hub,
-                   get_cpu_context()->worker->workerid),
-              gbuf(_gbuf)
+            : gbuf(_gbuf)
             {}
         
         bool acquire(access_t mode, block_available_callback_t *callback) {

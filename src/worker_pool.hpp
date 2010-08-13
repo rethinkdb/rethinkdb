@@ -14,34 +14,19 @@
 #include "perfmon.hpp"
 #include "logger.hpp"
 #include "concurrency/rwi_lock.hpp"
+#include "buffer_cache/mirrored.hpp"
+#include "buffer_cache/page_map/array.hpp"
+#include "buffer_cache/page_repl/page_repl_random.hpp"
+#include "buffer_cache/writeback/writeback.hpp"
+#include "buffer_cache/concurrency/rwi_conc.hpp"
+#include "serializer/in_place.hpp"
+#include "btree/key_value_store.hpp"
 
-struct base_worker_t : public sync_callback<code_config_t> {
+struct worker_t :
+    public code_config_t::store_t::shutdown_callback_t
+{
     public:
-        base_worker_t(int workerid, int _nworkers,
-                  worker_pool_t *parent_pool, cmd_config_t *cmd_config);
-
-        ~base_worker_t();
-    public:
-        //functions for the event_queue
-        virtual void start_worker() = 0;
-        virtual void shutdown() = 0;
-
-    public:
-        //functions for the outside world
-        virtual void event_handler(event_t *event) = 0;
-
-    public:
-        event_queue_t *event_queue;
-        int nworkers;
-        int workerid;
-
-    public:
-        virtual void on_sync() = 0;
-};
-
-struct worker_t : public sync_callback<code_config_t> {
-    public:
-        typedef code_config_t::cache_t cache_t;
+        typedef code_config_t::store_t store_t;
         typedef code_config_t::conn_fsm_t conn_fsm_t;
         typedef code_config_t::fsm_list_t fsm_list_t;
         typedef std::vector<conn_fsm_t*, gnew_alloc<conn_fsm_t*> > shutdown_fsms_t;
@@ -56,7 +41,7 @@ struct worker_t : public sync_callback<code_config_t> {
         void shutdown();
         void shutdown_slices();
         void delete_slices();
-        cache_t *slice(btree_key *key) {
+        store_t *slice(btree_key *key) {
             return slices[key_to_slice(key, nworkers, nslices)];
         }
 
@@ -85,7 +70,7 @@ struct worker_t : public sync_callback<code_config_t> {
     public:
         worker_pool_t *parent_pool;
         event_queue_t *event_queue;
-        cache_t *slices[MAX_SLICES];
+        store_t *slices[MAX_SLICES];
 
         int nworkers;
         int nslices;
@@ -94,7 +79,7 @@ struct worker_t : public sync_callback<code_config_t> {
 
         log_writer_t log_writer;
     public:
-        virtual void on_sync();
+        virtual void on_store_shutdown();
     public:
         perfmon_t perfmon;
         int total_connections, curr_connections;

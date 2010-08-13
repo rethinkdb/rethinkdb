@@ -133,7 +133,7 @@ int process_itc_notify(event_queue_t *self) {
         // Process the event
         switch(event.event_type) {
         case iet_shutdown:
-        case iet_cache_synced:
+        case iet_finish_shutdown:
             return event.event_type;
             break;
         case iet_new_socket:
@@ -192,10 +192,6 @@ void process_cpu_core_notify(event_queue_t *self, message_hub_t::msg_list_t *mes
     }
     
     assert(messages->empty());
-
-    // Note, the event handler is responsible for the deallocation
-    // of cpu messages. For btree_fsms, for example this currently
-    // occurs in build_response.
 }
 
 void *event_queue_t::epoll_handler(void *arg) {
@@ -203,10 +199,11 @@ void *event_queue_t::epoll_handler(void *arg) {
     worker_t *parent = (worker_t *) arg;
     event_queue_t *self = parent->event_queue;
     epoll_event events[MAX_IO_EVENT_PROCESSING_BATCH_SIZE];
-    bool shutting_down = false; // True btw. iet_shutdown and iet_cache_synced.
+    bool shutting_down = false; // True between iet_shutdown and iet_finish_shutdown.
 
     // First, set the cpu context structure
     get_cpu_context()->worker = parent;
+    get_cpu_context()->event_queue = self;
     
     // Cannot call this until we are in the correct thread and have an event queue
     parent->start_slices();
@@ -255,7 +252,7 @@ void *event_queue_t::epoll_handler(void *arg) {
                     parent->shutdown();
 
                     break;
-                case iet_cache_synced:
+                case iet_finish_shutdown:
                     assert(shutting_down);
                     goto breakout;
                 }
@@ -357,6 +354,7 @@ void event_queue_t::start_queue(worker_t *parent) {
     res = pthread_setaffinity_np(this->epoll_thread, sizeof(cpu_set_t), &mask);
     check("Could not set thread affinity", res != 0);
 
+    // TODO: Should this go in epoll_handler() because that's where queue_stop_timer() is called?
     // Start the timer
     queue_init_timer(this, TIMER_TICKS_IN_MS);
 }
@@ -511,9 +509,7 @@ void event_queue_t::post_itc_message(itc_event_t *event) {
 
 void event_queue_t::pull_messages_for_cpu(message_hub_t::msg_list_t *target) {
     for(int i = 0; i < parent_pool->nworkers; i++) {
-        message_hub_t::msg_list_t tmp_list;
-        parent_pool->workers[i]->event_queue->message_hub.pull_messages(parent->workerid, &tmp_list);
-        target->append_and_clear(&tmp_list);
+        parent_pool->workers[i]->event_queue->message_hub.pull_messages(parent->workerid, target);
     }
 }
 
@@ -586,6 +582,6 @@ void event_queue_t::deregister_all_fsms() {
 void event_queue_t::send_shutdown() {
     itc_event_t event;
     memset(&event, 0, sizeof event);
-    event.event_type = iet_cache_synced;
+    event.event_type = iet_finish_shutdown;
     post_itc_message(&event);
 }

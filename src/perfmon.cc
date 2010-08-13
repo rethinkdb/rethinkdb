@@ -1,6 +1,7 @@
 #include "perfmon.hpp"
 #include "config/code.hpp"
 #include "cpu_context.hpp"
+#include "worker_pool.hpp"
 
 /* Variable monitors */
 void var_monitor_t::combine(const var_monitor_t* val) {

@@ -24,11 +24,5 @@ struct transaction_commit_callback {
     virtual void on_txn_commit(typename config_t::transaction_t *txn) = 0;
 };
 
-template <class config_t>
-struct sync_callback : public intrusive_list_node_t<sync_callback<config_t> > {
-    virtual ~sync_callback() {}
-    virtual void on_sync() = 0;
-};
-
 #endif // __BUFFER_CACHE_CALLBACKS_HPP__
 

@@ -2,6 +2,7 @@
 #ifndef __CONFIG_CODE_H__
 #define __CONFIG_CODE_H__
 
+#include "config/args.hpp"
 #include "corefwd.hpp"
 #include "alloc/memalign.hpp"
 #ifdef VALGRIND
@@ -31,7 +32,7 @@ struct standard_config_t {
     typedef btree_fsm<standard_config_t> btree_fsm_t;
 
     // Serializer
-    typedef in_place_serializer_t<standard_config_t> serializer_t;
+    typedef in_place_serializer_t serializer_t;
 
     // Caching
     typedef array_map_t<standard_config_t> page_map_t;
@@ -45,7 +46,7 @@ struct standard_config_t {
     typedef transaction<standard_config_t> transaction_t;
 
     // BTree
-    typedef btree_admin<standard_config_t> btree_admin_t;
+    typedef btree_key_value_store<standard_config_t> store_t;
     typedef btree_node node_t;
     typedef btree_get_fsm<standard_config_t> btree_get_fsm_t;
     typedef btree_get_cas_fsm<standard_config_t> btree_get_cas_fsm_t;

@@ -1,10 +1,9 @@
-
-#ifndef __RWI_LOCK_IMPL_HPP__
-#define __RWI_LOCK_IMPL_HPP__
+#include "concurrency/rwi_lock.hpp"
 
 #include "config/args.hpp"
 #include "config/code.hpp"
-#include "concurrency/rwi_lock.hpp"
+#include "cpu_context.hpp"
+#include "event_queue.hpp"
 
 bool rwi_lock_t::lock(access_t access, lock_available_callback_t *callback) {
     if(try_lock(access, false)) {
@@ -186,10 +185,7 @@ void rwi_lock_t::process_queue() {
 }
 
 void rwi_lock_t::send_notify(lock_request_t *req) {
-    // Hub might be NULL due to unit tests.
-    if(hub)
-        hub->store_message(cpu, req);
+    event_queue_t *q = get_cpu_context()->event_queue;
+    q->message_hub.store_message(q->message_hub.current_cpu, req);
 }
-
-#endif // __RWI_LOCK_IMPL_HPP__
 

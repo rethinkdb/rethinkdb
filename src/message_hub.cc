@@ -100,12 +100,7 @@ void message_hub_t::pull_messages(unsigned int ncpu, msg_list_t *msg_list) {
     // and clear the list while the whole shebang is locked.
     cpu_queue_t *queue = &queues[ncpu];
     pthread_spin_lock(&queue->lock);
-    if(!queue->msg_global_list.empty()) {
-        *msg_list = queue->msg_global_list;
-        queue->msg_global_list.clear();
-    } else {
-        msg_list->clear();
-    }
+    msg_list->append_and_clear(&queue->msg_global_list);
     pthread_spin_unlock(&queue->lock);
 
     // TODO: we should use regular mutexes on single core CPU

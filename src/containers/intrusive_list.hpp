@@ -29,9 +29,9 @@ public:
     }
 
     void clear() {
-        _head = NULL;
-        _tail = NULL;
-        _size = 0;
+        while (node_t *n = _head) {
+            remove(n);
+        }
     }
     
     node_t* head() {
@@ -133,7 +133,9 @@ public:
         // Note, we can't do appends without clear because we'd break
         // the previous pointer in the head of the appended list.
         _size += list->size();
-        list->clear();
+        list->_head = NULL;
+        list->_tail = NULL;
+        list->_size = 0;
 
 #ifndef NDEBUG
         validate();

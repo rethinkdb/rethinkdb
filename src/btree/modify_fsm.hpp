@@ -39,7 +39,7 @@ public:
         : btree_fsm_t(_key),
           state(start_transaction),
           sb_buf(NULL), buf(NULL), last_buf(NULL), sib_buf(NULL),
-          node_id(cache_t::null_block_id), last_node_id(cache_t::null_block_id), sib_node_id(cache_t::null_block_id),
+          node_id(NULL_BLOCK_ID), last_node_id(NULL_BLOCK_ID), sib_node_id(NULL_BLOCK_ID),
           have_computed_new_value(false), new_value(NULL),
           update_needed(false),
           op_result(btree_incomplete)
@@ -72,9 +72,6 @@ public:
     transition_result_t do_acquire_node(event_t *event);
     transition_result_t do_acquire_sibling(event_t *event);
     bool do_check_for_split(node_t **node);
-    
-public:
-    void set_root_id(block_id_t root_id);
     void split_node(buf_t *node, buf_t **rnode, block_id_t *rnode_id, btree_key *median);
     
     // Some relevant state information
