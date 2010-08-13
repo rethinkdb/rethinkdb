@@ -77,7 +77,8 @@ public:
      *  \brief linked version of iobuf_t
      *  \param _size the maximum bytes that can be stored in one link 
      */
-    struct linked_buf_t : public iobuf_t {
+    struct linked_buf_t : public buffer_base_t<IO_BUFFER_SIZE>,
+                          public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, linked_buf_t> {
         private:
             linked_buf_t    *next;
             int             nbuf; // !< the total number of bytes in the buffer
@@ -94,8 +95,7 @@ public:
 
         public:
             linked_buf_t()
-                : iobuf_t(), next(NULL), nbuf(0), nsent(0), gc_me(false) {
-                    //TODO get valgrind to chill, we derived from iobuf_t but it doesn't work with mixins
+                : next(NULL), nbuf(0), nsent(0), gc_me(false) {
                 }
             ~linked_buf_t() {
                 if (next != NULL)
@@ -114,12 +114,12 @@ public:
             /*! \brief add data the the end of chain of linked lists
              */
             void append(const char *input, int ninput) {
-                if (nbuf + ninput <= iobuf_t::size) {
-                    memcpy(iobuf_t::buf + nbuf, input, ninput);
+                if (nbuf + ninput <= IO_BUFFER_SIZE) {
+                    memcpy(this->buf + nbuf, input, ninput);
                     nbuf += ninput;
-                } else if (nbuf < iobuf_t::size) {
+                } else if (nbuf < IO_BUFFER_SIZE) {
                     //we need to split the input across 2 links
-                    int free_space = iobuf_t::size - nbuf;
+                    int free_space = IO_BUFFER_SIZE - nbuf;
                     append(input, free_space);
                     grow();
                     next->append(input + free_space, ninput - free_space);
@@ -154,7 +154,7 @@ public:
             linked_buf_state_t send(int source) {
                 linked_buf_state_t res;
                 if (nsent < nbuf) {
-                    int sz = io_calls_t::write(source, iobuf_t::buf + nsent, nbuf - nsent);
+                    int sz = io_calls_t::write(source, this->buf + nsent, nbuf - nsent);
                     if(sz < 0) {
                         if(errno == EAGAIN || errno == EWOULDBLOCK)
                             res = linked_buf_outstanding;
@@ -165,7 +165,7 @@ public:
                         get_cpu_context()->worker->bytes_written += sz;
                         if (next == NULL) {
                             //if this is the last link in the chain we slide the buffer
-                            memmove(iobuf_t::buf, iobuf_t::buf + nsent, nbuf - nsent);
+                            memmove(this->buf, this->buf + nsent, nbuf - nsent);
                             nbuf -= nsent;
                             nsent = 0;
                         }
@@ -195,7 +195,7 @@ public:
              *  \return a pointer to the new head
              */
             linked_buf_t *garbage_collect() {
-                if (nbuf == iobuf_t::size && nbuf == nsent) {
+                if (nbuf == IO_BUFFER_SIZE && nbuf == nsent) {
                     if (next == NULL)
                         grow();
 
@@ -234,7 +234,6 @@ private:
     result_t do_fsm_outstanding_req(event_t *event);
     
     void send_msg_to_client();
-    void send_err_to_client();
     void init_state();
     void return_to_socket_connected();
 };

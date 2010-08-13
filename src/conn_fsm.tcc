@@ -289,14 +289,6 @@ void conn_fsm<config_t>::send_msg_to_client() {
 }
 
 template<class config_t>
-void conn_fsm<config_t>::send_err_to_client() {
-    char err_msg[] = "(ERROR) Unknown command\n";
-    strcpy(this->sbuf, err_msg);
-    this->snbuf = strlen(err_msg) + 1;
-    send_msg_to_client();
-}
-
-template<class config_t>
 void conn_fsm<config_t>::consume(unsigned int bytes) {
     memmove(this->rbuf, this->rbuf + bytes, this->nrbuf - bytes);
     this->nrbuf -= bytes;
