@@ -5,7 +5,7 @@
 #include <algorithm>
 #include "utils.hpp"
 
-//#define DEBUG_MAX_INTERNAL 8
+#define DEBUG_MAX_INTERNAL 8
 
 //In this tree, less than or equal takes the left-hand branch and greater than takes the right hand branch
 
@@ -51,7 +51,7 @@ int internal_node_handler::insert(btree_internal_node *node, btree_key *key, blo
 }
 
 bool internal_node_handler::remove(btree_internal_node *node, btree_key *key) {
-#ifdef DELETE_DEBUG
+#ifdef BTREE_DEBUG
     printf("removing key\n");
     internal_node_handler::print(node);
 #endif
@@ -61,7 +61,7 @@ bool internal_node_handler::remove(btree_internal_node *node, btree_key *key) {
 
     if (index == node->npairs)
         make_last_pair_special(node);
-#ifdef DELETE_DEBUG
+#ifdef BTREE_DEBUG
     printf("\t|\n\t|\n\t|\n\tV\n");
     internal_node_handler::print(node);
 #endif
@@ -100,7 +100,7 @@ void internal_node_handler::split(btree_internal_node *node, btree_internal_node
 }
 
 void internal_node_handler::merge(btree_internal_node *node, btree_internal_node *rnode, btree_key *key_to_remove, btree_internal_node *parent) {
-#ifdef DELETE_DEBUG
+#ifdef BTREE_DEBUG
     printf("merging\n");
     printf("node:\n");
     internal_node_handler::print(node);
@@ -123,7 +123,7 @@ void internal_node_handler::merge(btree_internal_node *node, btree_internal_node
     rnode->npairs += node->npairs;
 
     keycpy(key_to_remove, &get_pair(rnode, rnode->pair_offsets[0])->key);
-#ifdef DELETE_DEBUG
+#ifdef BTREE_DEBUG
     printf("\t|\n\t|\n\t|\n\tV\n");
     printf("node:\n");
     internal_node_handler::print(node);
@@ -136,7 +136,7 @@ void internal_node_handler::merge(btree_internal_node *node, btree_internal_node
 bool internal_node_handler::level(btree_internal_node *node, btree_internal_node *sibling, btree_key *key_to_replace, btree_key *replacement_key, btree_internal_node *parent) {
     validate(node);
     validate(sibling);
-#ifdef DELETE_DEBUG
+#ifdef BTREE_DEBUG
     printf("levelling\n");
     printf("node:\n");
     internal_node_handler::print(node);
@@ -202,7 +202,7 @@ bool internal_node_handler::level(btree_internal_node *node, btree_internal_node
         make_last_pair_special(sibling);
     }
 
-#ifdef DELETE_DEBUG
+#ifdef BTREE_DEBUG
     printf("\t|\n\t|\n\t|\n\tV\n");
     printf("node:\n");
     internal_node_handler::print(node);
@@ -232,7 +232,7 @@ int internal_node_handler::sibling(btree_internal_node *node, btree_key *key, bl
 }
 
 void internal_node_handler::update_key(btree_internal_node *node, btree_key *key_to_replace, btree_key *replacement_key) {
-#ifdef DELETE_DEBUG
+#ifdef BTREE_DEBUG
     printf("updating key\n");
     internal_node_handler::print(node);
 #endif
@@ -241,7 +241,7 @@ void internal_node_handler::update_key(btree_internal_node *node, btree_key *key
     delete_pair(node, node->pair_offsets[index]);
     check("cannot fit updated key in internal node",  sizeof(btree_internal_node) + (node->npairs) * sizeof(*node->pair_offsets) + sizeof(btree_internal_pair) + replacement_key->size >= node->frontmost_offset);
     node->pair_offsets[index] = insert_pair(node, tmp_lnode, replacement_key);
-#ifdef DELETE_DEBUG
+#ifdef BTREE_DEBUG
     printf("\t|\n\t|\n\t|\n\tV\n");
     internal_node_handler::print(node);
 #endif

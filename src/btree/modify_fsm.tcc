@@ -200,6 +200,20 @@ bool btree_modify_fsm<config_t>::do_check_for_split(node_t *node) {
         full = internal_node_handler::is_full((internal_node_t *)node);
     }
     if (full) {
+#ifdef BTREE_DEBUG
+        printf("===SPLITTING===\n");
+        printf("Parent:\n");
+        if (last_buf != NULL)
+            internal_node_handler::print((internal_node_t *)last_buf->ptr());
+        else
+            printf("NULL parent\n");
+
+        printf("node:\n");
+        if (node_handler::is_leaf(node))
+            leaf_node_handler::print((leaf_node_t *) node);
+        else
+            internal_node_handler::print((internal_node_t *) node);
+#endif
         char memory[sizeof(btree_key) + MAX_KEY_SIZE];
         btree_key *median = (btree_key *)memory;
         buf_t *rbuf;
@@ -220,6 +234,23 @@ bool btree_modify_fsm<config_t>::do_check_for_split(node_t *node) {
         bool success = internal_node_handler::insert(last_node, median, node_id, rnode_id);
         check("could not insert internal btree node", !success);
         last_buf->set_dirty();
+     
+#ifdef BTREE_DEBUG
+        printf("Parent:\n");
+        internal_node_handler::print(last_node);
+
+        printf("lnode:\n");
+        if (node_handler::is_leaf(node))
+            leaf_node_handler::print((leaf_node_t *) node);
+        else
+            internal_node_handler::print((internal_node_t *) node);
+
+        printf("rnode:\n");
+        if (node_handler::is_leaf((node_t *) rbuf->ptr()))
+            leaf_node_handler::print((leaf_node_t *) rbuf->ptr());
+        else
+            internal_node_handler::print((internal_node_t *) rbuf->ptr());
+#endif
             
         // Figure out where the key goes
         if(sized_strcmp(key.contents, key.size, median->contents, median->size) <= 0) {

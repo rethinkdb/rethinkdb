@@ -25,7 +25,7 @@ struct btree_value {
         return (size <= MAX_IN_NODE_VALUE_SIZE) ? size : sizeof(block_id_t);
     }
     void print() {
-        printf("%.*s\n", size, contents);
+        printf("%.*s", size, contents);
     }
 };
 
