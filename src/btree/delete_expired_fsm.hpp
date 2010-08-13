@@ -19,7 +19,6 @@ public:
 template <class config_t>
 void delete_expired(btree_key *key) {
     worker_t *worker = get_cpu_context()->worker;
-    logf(DBG, "Deleting %*.*s\n", key->size, key->size, key->contents);
     btree_delete_expired_fsm<config_t> *fsm = new btree_delete_expired_fsm<config_t>(key);
     fsm->request = NULL;
     fsm->return_cpu = worker->workerid;

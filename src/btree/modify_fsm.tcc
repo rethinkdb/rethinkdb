@@ -194,8 +194,8 @@ bool btree_modify_fsm<config_t>::do_check_for_split(node_t *node) {
     bool new_root = false;
     bool full;
     if (node_handler::is_leaf(node)) {
-        if (new_value == NULL) return btree_fsm_t::transition_ok; // if it's a delete and a leaf node, there's no need to split
-        full = set_was_successful && leaf_node_handler::is_full((leaf_node_t *)node, &key, new_value);
+        if (update_needed && new_value == NULL) return false; // if we're deleting and it's a leaf node, there's no need to split
+        full = update_needed && leaf_node_handler::is_full((leaf_node_t *)node, &key, new_value);
     } else {
         full = internal_node_handler::is_full((internal_node_t *)node);
     }
@@ -353,12 +353,9 @@ typename btree_modify_fsm<config_t>::transition_result_t btree_modify_fsm<config
 
             expired = key_found && u.old_value.expired();
             if (expired) {
-                // We can't call delete_expired() here because it would delete
-                // the value after we finish modifying it. However, if
-                // operate() gives us a new value, we're fine; if it doesn't,
-                // we can go delete the value at that point.
-
-                // XXX Is there any point in doing this check inside operate()?
+                // We tell operate that the key wasn't found. If it returns
+                // true, we'll replace/delete the value as usual; if it returns
+                // false, we'll silently delete the key.
                 key_found = false;
             }
 
@@ -367,15 +364,15 @@ typename btree_modify_fsm<config_t>::transition_result_t btree_modify_fsm<config
             
             if (key_found) {
                 op_result = btree_found;
-                set_was_successful = operate(&u.old_value, &new_value);
+                update_needed = operate(&u.old_value, &new_value);
             } else {
                 op_result = btree_not_found;
-                set_was_successful = operate(NULL, &new_value);
+                update_needed = operate(NULL, &new_value);
             }
 
-            if (!set_was_successful && expired) { // Silently delete the key.
-                set_was_successful = true;
+            if (!update_needed && expired) { // Silently delete the key.
                 new_value = NULL;
+                update_needed = true;
             }
 
             // by convention, new_value will be NULL if we're doing a delete.
@@ -385,7 +382,7 @@ typename btree_modify_fsm<config_t>::transition_result_t btree_modify_fsm<config
         
         // STEP 2: Check if it's overfull. If so we would need to do a split.
         
-        if (set_was_successful) {
+        if (update_needed || node_handler::is_internal(node)) { // Split internal nodes proactively.
             bool new_root = do_check_for_split(node);
             if(new_root) {
                 state = insert_root_on_split;
@@ -396,100 +393,89 @@ typename btree_modify_fsm<config_t>::transition_result_t btree_modify_fsm<config
             }
         }
         //  STEP 3: Check to see if it's underfull
-        /*  TODO: Add some code to calculate if it will become underfull
-            during a replace, incr, decr etc.
-        */
 
-        /*  But before we check if it's underfull, we need to do
-         *  some deleting if we're a leaf node and we are a delete_fsm.
+        /*  But before we check if it's underfull, we need to do some deleting
+         *  if we're at a leaf node and operate() told us to.
          */
-         if (set_was_successful) {
-            assert(have_computed_new_value);
-            assert(node_handler::is_leaf(node));
-            if (new_value) {
-                // We have a new value to insert
-                if (new_value->has_cas()) {
-                    new_value->set_cas(get_cpu_context()->worker->gen_cas());
-                }
-                bool success = leaf_node_handler::insert((leaf_node_t*)node, &key, new_value);
-                check("could not insert leaf btree node", !success);
-            } else {
-                 // If we haven't already, do some deleting 
-                //key found, and value deleted
-                leaf_node_handler::remove((leaf_node_t*)node, &key);
-            }
-            buf->set_dirty();
-         }
-        
-        if (((node_handler::is_leaf(node) && leaf_node_handler::is_underfull((leaf_node_t *)node)) ||
-            (node_handler::is_internal(node) && internal_node_handler::is_underfull((internal_node_t *)node)))
-            && last_buf) { // the root node is never underfull
-
-            // as long as we aren't an empty root.
-            if (!(node_handler::is_leaf(node) && leaf_node_handler::is_empty((leaf_node_t *)node))) {
-
-                // merge or level.
-                if(!sib_buf) { // Acquire a sibling to merge or level with
-                    //logf(DBG, "generic acquire sibling\n");
-                    state = acquire_sibling;
-                    res = do_acquire_sibling(NULL);
-                    event = NULL;
-                    continue;
-                } else {
-                    // Sibling acquired, now decide whether to merge or level
-                    internal_node_t *sib_node = (internal_node_t*)sib_buf->ptr();
-                    node_handler::validate(sib_node);
-                    internal_node_t *parent_node = (internal_node_t*)last_buf->ptr();
-                    internal_node_t *internal_node = (internal_node_t*)node;
-                    if ( internal_node_handler::is_mergable(internal_node, sib_node, parent_node)) { // Merge
-                        //logf(DBG, "internal merge\n");
-                        btree_key *key_to_remove = (btree_key *)alloca(sizeof(btree_key) + MAX_KEY_SIZE); //TODO get alloca outta here
-                        if (internal_node_handler::nodecmp(internal_node, sib_node) < 0) { // Nodes must be passed to merge in ascending order
-                            internal_node_handler::merge(internal_node, sib_node, key_to_remove, parent_node);
-                            buf->release(); //TODO delete when api is ready
-                            buf = sib_buf;
-                            buf->set_dirty();
-                            node_id = sib_node_id;
-                        } else {
-                            internal_node_handler::merge(sib_node, internal_node, key_to_remove, parent_node);
-                            sib_buf->release(); //TODO delete when api is ready
-                            sib_buf->set_dirty();
-                        }
-                        sib_buf = NULL;
-
-                        if (!internal_node_handler::is_singleton(parent_node)) {
-                            internal_node_handler::remove(parent_node, key_to_remove);
-                        } else {
-                            //logf(DBG, "generic collapse root\n");
-                            // parent has only 1 key (which means it is also the root), replace it with the node
-                            // when we get here node_id should be the id of the new root
-                            state = insert_root_on_collapse;
-                            res = do_insert_root_on_collapse(NULL);
-                            event = NULL;
-                            continue;
-                        }
-                    } else {
-                        // Level
-                        //logf(DBG, "generic level\n");
-                        btree_key *key_to_replace = (btree_key *)alloca(sizeof(btree_key) + MAX_KEY_SIZE);
-                        btree_key *replacement_key = (btree_key *)alloca(sizeof(btree_key) + MAX_KEY_SIZE);
-                        bool leveled = internal_node_handler::level(internal_node,  sib_node, key_to_replace, replacement_key, parent_node);
-
-                        if (leveled) {
-                            //set everyone dirty
-                            sib_buf->set_dirty();
-
-                            internal_node_handler::update_key(parent_node, key_to_replace, replacement_key);
-                            last_buf->set_dirty();
-                            buf->set_dirty();
-                        }
-                        sib_buf->release();
-                        sib_buf = NULL;
-                    }
-                }                   
-            }        
+        if (update_needed) {
+           assert(have_computed_new_value);
+           assert(node_handler::is_leaf(node));
+           if (new_value) { // We have a new value to insert
+               if (new_value->has_cas()) {
+                   new_value->set_cas(get_cpu_context()->worker->gen_cas());
+               }
+               bool success = leaf_node_handler::insert((leaf_node_t*)node, &key, new_value);
+               check("could not insert leaf btree node", !success);
+           } else {
+                // If we haven't already, do some deleting 
+               //key found, and value deleted
+               leaf_node_handler::remove((leaf_node_t*)node, &key);
+           }
+           buf->set_dirty();
         }
         
+        if (last_buf && node_handler::is_underfull(node)) { // the root node is never underfull
+            // merge or level.
+            if(!sib_buf) { // Acquire a sibling to merge or level with
+                //logf(DBG, "generic acquire sibling\n");
+                state = acquire_sibling;
+                res = do_acquire_sibling(NULL);
+                event = NULL;
+                continue;
+            } else {
+                // Sibling acquired, now decide whether to merge or level
+                internal_node_t *sib_node = (internal_node_t*)sib_buf->ptr();
+                node_handler::validate(sib_node);
+                internal_node_t *parent_node = (internal_node_t*)last_buf->ptr();
+                internal_node_t *internal_node = (internal_node_t*)node;
+                if ( internal_node_handler::is_mergable(internal_node, sib_node, parent_node)) { // Merge
+                    //logf(DBG, "internal merge\n");
+                    btree_key *key_to_remove = (btree_key *)alloca(sizeof(btree_key) + MAX_KEY_SIZE); //TODO get alloca outta here
+                    if (internal_node_handler::nodecmp(internal_node, sib_node) < 0) { // Nodes must be passed to merge in ascending order
+                        internal_node_handler::merge(internal_node, sib_node, key_to_remove, parent_node);
+                        buf->release(); //TODO delete when api is ready
+                        buf = sib_buf;
+                        buf->set_dirty();
+                        node_id = sib_node_id;
+                    } else {
+                        internal_node_handler::merge(sib_node, internal_node, key_to_remove, parent_node);
+                        sib_buf->release(); //TODO delete when api is ready
+                        sib_buf->set_dirty();
+                    }
+                    sib_buf = NULL;
+
+                    if (!internal_node_handler::is_singleton(parent_node)) {
+                        internal_node_handler::remove(parent_node, key_to_remove);
+                    } else {
+                        //logf(DBG, "generic collapse root\n");
+                        // parent has only 1 key (which means it is also the root), replace it with the node
+                        // when we get here node_id should be the id of the new root
+                        state = insert_root_on_collapse;
+                        res = do_insert_root_on_collapse(NULL);
+                        event = NULL;
+                        continue;
+                    }
+                } else {
+                    // Level
+                    //logf(DBG, "generic level\n");
+                    btree_key *key_to_replace = (btree_key *)alloca(sizeof(btree_key) + MAX_KEY_SIZE);
+                    btree_key *replacement_key = (btree_key *)alloca(sizeof(btree_key) + MAX_KEY_SIZE);
+                    bool leveled = internal_node_handler::level(internal_node,  sib_node, key_to_replace, replacement_key, parent_node);
+
+                    if (leveled) {
+                        //set everyone dirty
+                        sib_buf->set_dirty();
+
+                        internal_node_handler::update_key(parent_node, key_to_replace, replacement_key);
+                        last_buf->set_dirty();
+                        buf->set_dirty();
+                    }
+                    sib_buf->release();
+                    sib_buf = NULL;
+                }
+            }                   
+        }
+
         // Release the superblock, if we haven't already
         if(sb_buf) {
             sb_buf->release();
@@ -519,7 +505,7 @@ typename btree_modify_fsm<config_t>::transition_result_t btree_modify_fsm<config
         assert(node_id != cache->get_superblock_id());
 
         assert(state == acquire_node);
-        last_buf = buf;
+        buf = NULL;
     }
 
     // Finalize the transaction commit

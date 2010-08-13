@@ -157,6 +157,8 @@ class node_handler {
             memcpy(buf->contents, str, len);
             buf->size = (unsigned char)len;
         }
+
+        static bool is_underfull(btree_node *node);
         
         static void validate(btree_node *node);
 };

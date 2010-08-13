@@ -29,7 +29,7 @@ class internal_node_handler : public node_handler {
     static void init(btree_internal_node *node, btree_internal_node *lnode, uint16_t *offsets, int numpairs);
 
     static block_id_t lookup(btree_internal_node *node, btree_key *key);
-    static int insert(btree_internal_node *node, btree_key *key, block_id_t lnode, block_id_t rnode);
+    static bool insert(btree_internal_node *node, btree_key *key, block_id_t lnode, block_id_t rnode);
     static bool remove(btree_internal_node *node, btree_key *key);
     static void split(btree_internal_node *node, btree_internal_node *rnode, btree_key *median);
     static void merge(btree_internal_node *node, btree_internal_node *rnode, btree_key *key_to_remove, btree_internal_node *parent);

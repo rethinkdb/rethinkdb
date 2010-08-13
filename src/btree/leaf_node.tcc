@@ -4,7 +4,7 @@
 #include "btree/leaf_node.hpp"
 #include <algorithm>
 
-#define DEBUG_MAX_LEAF 8
+#define DEBUG_MAX_LEAF 6
 
 void leaf_node_handler::init(btree_leaf_node *node) {
     node->type = btree_node_type_leaf;
@@ -21,8 +21,8 @@ void leaf_node_handler::init(btree_leaf_node *node, btree_leaf_node *lnode, uint
     std::sort(node->pair_offsets, node->pair_offsets+node->npairs, leaf_key_comp(node));
 }
 
-int leaf_node_handler::insert(btree_leaf_node *node, btree_key *key, btree_value* value) {
-    if (is_full(node, key, value)) return 0;
+bool leaf_node_handler::insert(btree_leaf_node *node, btree_key *key, btree_value* value) {
+    if (is_full(node, key, value)) return false;
     int index = get_offset_index(node, key);
     uint16_t prev_offset = node->pair_offsets[index];
     btree_leaf_pair *previous = NULL;
@@ -40,7 +40,7 @@ int leaf_node_handler::insert(btree_leaf_node *node, btree_key *key, btree_value
         uint16_t offset = insert_pair(node, value, key);
         insert_offset(node, offset, index);
     }
-    return 1;
+    return true;
 }
 
 void leaf_node_handler::remove(btree_leaf_node *node, btree_key *key) {

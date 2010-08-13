@@ -5,7 +5,7 @@
 #include <algorithm>
 #include "utils.hpp"
 
-#define DEBUG_MAX_INTERNAL 8
+#define DEBUG_MAX_INTERNAL 6
 
 //In this tree, less than or equal takes the left-hand branch and greater than takes the right hand branch
 
@@ -29,10 +29,10 @@ block_id_t internal_node_handler::lookup(btree_internal_node *node, btree_key *k
     return get_pair(node, node->pair_offsets[index])->lnode;
 }
 
-int internal_node_handler::insert(btree_internal_node *node, btree_key *key, block_id_t lnode, block_id_t rnode) {
+bool internal_node_handler::insert(btree_internal_node *node, btree_key *key, block_id_t lnode, block_id_t rnode) {
     //TODO: write a unit test for this
     check("key too large", key->size > MAX_KEY_SIZE);
-    if (is_full(node)) return 0;
+    if (is_full(node)) return false;
     if (node->npairs == 0) {
         btree_key special;
         special.size=0;
@@ -47,7 +47,7 @@ int internal_node_handler::insert(btree_internal_node *node, btree_key *key, blo
     insert_offset(node, offset, index);
 
     get_pair(node, node->pair_offsets[index+1])->lnode = rnode;
-    return 1; // XXX
+    return true; // XXX
 }
 
 bool internal_node_handler::remove(btree_internal_node *node, btree_key *key) {
@@ -71,6 +71,10 @@ bool internal_node_handler::remove(btree_internal_node *node, btree_key *key) {
 }
 
 void internal_node_handler::split(btree_internal_node *node, btree_internal_node *rnode, btree_key *median) {
+#ifdef DELETE_DEBUG
+    printf("splitting key\n");
+    internal_node_handler::print(node);
+#endif
     uint16_t total_pairs = BTREE_BLOCK_SIZE - node->frontmost_offset;
     uint16_t first_pairs = 0;
     int index = 0;
@@ -95,6 +99,10 @@ void internal_node_handler::split(btree_internal_node *node, btree_internal_node
     node->npairs = median_index;
     //make last pair special
     make_last_pair_special(node);
+#ifdef DELETE_DEBUG
+    printf("\t|\n\t|\n\t|\n\tV\n");
+    internal_node_handler::print(node);
+#endif
     validate(node);
     validate(rnode);
 }

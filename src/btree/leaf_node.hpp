@@ -32,7 +32,7 @@ class leaf_node_handler : public node_handler {
     static void init(btree_leaf_node *node, btree_leaf_node *lnode, uint16_t *offsets, int numpairs);
 
     static bool lookup(btree_leaf_node *node, btree_key *key, btree_value *value);
-    static int insert(btree_leaf_node *node, btree_key *key, btree_value *value);
+    static bool insert(btree_leaf_node *node, btree_key *key, btree_value *value);
     static void remove(btree_leaf_node *node, btree_key *key); //Currently untested
     static void split(btree_leaf_node *node, btree_leaf_node *rnode, btree_key *median);
     static void merge(btree_leaf_node *node, btree_leaf_node *rnode, btree_key *key_to_remove);

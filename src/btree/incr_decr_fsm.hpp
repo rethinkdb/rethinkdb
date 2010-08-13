@@ -66,8 +66,8 @@ private:
     };
 
 public:
-    /* When the FSM is finished, then 'set_was_successful' will be true if the key was found and
-    new_value will hold the value that it was set to. */
+    /* When the FSM is finished, 'status_code' will be S_SUCCESS if the key was
+     * found and new_number will hold the value that it was set to. */
     uint64_t new_number;
 };
 

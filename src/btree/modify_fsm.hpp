@@ -44,7 +44,7 @@ public:
           sb_buf(NULL), buf(NULL), last_buf(NULL),
           node_id(cache_t::null_block_id), last_node_id(cache_t::null_block_id),
           have_computed_new_value(false), new_value(NULL),
-          set_was_successful(false),
+          update_needed(false),
           op_result(btree_incomplete)
         {}
 
@@ -54,11 +54,12 @@ public:
         return state == committing && transaction == NULL;
     }
     
-    /*
-    btree_modify_fsm calls operate() when it finds the leaf node. 'old_value' is the previous value
-    or NULL if the key was not present before. 'new_value' should be filled with a pointer to the
-    new value; *new_value should remain valid as long as the FSM is alive.
-    */
+    /* btree_modify_fsm calls operate() when it finds the leaf node.
+     * 'old_value' is the previous value or NULL if the key was not present
+     * before. If operate() succeeds (returns true), 'new_value' should be
+     * filled with a pointer to the new value or NULL if the key should be
+     * deleted; *new_value should remain valid as long as the FSM is alive.
+     */
     virtual bool operate(btree_value *old_value, btree_value **new_value) = 0;
         
 public:
@@ -93,7 +94,7 @@ public:
     bool expired;
 
 private:
-    bool set_was_successful;
+    bool update_needed;
 
 public:
     op_result_t op_result;
