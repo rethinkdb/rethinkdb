@@ -14,6 +14,7 @@ public:
     enum var_type_t {
         vt_undefined,
         vt_int,
+        vt_long_int,
         vt_float,
         vt_int_function,
         vt_float_function,
@@ -51,6 +52,9 @@ public:
         switch(v1->type) {
             case vt_int:
                 *((int*)v1->value) += *((int*)v2->value);
+                break;
+            case vt_long_int:
+                *((long int*)v1->value) += *((long int*)v2->value);
                 break;
             case vt_float:
                 *((float*)v1->value) += *((float*)v2->value);

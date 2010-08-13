@@ -12,6 +12,9 @@ int var_monitor_t::print(char *buf, int max_size) {
     case vt_int:
         return snprintf(buf, max_size, "%d", *(int*)value);
         break;
+    case vt_long_int:
+        return snprintf(buf, max_size, "%ld", *(long int*)value);
+        break;
     case vt_float:
         return snprintf(buf, max_size, "%f", *(float*)value);
         break;
@@ -35,6 +38,10 @@ void var_monitor_t::freeze_state() {
     switch(type) {
     case vt_int:
         memcpy(value_copy, value, sizeof(int));
+        value = value_copy;
+        break;
+    case vt_long_int:
+        memcpy(value_copy, value, sizeof(long int));
         value = value_copy;
         break;
     case vt_float:
