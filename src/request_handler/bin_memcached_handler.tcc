@@ -23,25 +23,34 @@ public:
         : rh(rh), opcode(pkt->opcode()), data_type(pkt->data_type()), opaque(pkt->opaque()),
           request(new request_t(this))
         {}
+
+    /* build_response, necessary so that one request can send multiple packets */
+    typedef enum {
+        br_call_again,
+        br_done,
+    } br_result_t;
     
-    virtual void build_response(packet_t *pkt) = 0;
+    virtual br_result_t build_response(packet_t *pkt) = 0;
     
     void on_request_completed() {
     
         conn_fsm_t *c = rh->conn_fsm;
         
-        byte tmpbuf[MAX_PACKET_SIZE] = {0x00};   // Make valgrind happy
-        packet_t packet(tmpbuf);
-        packet.opcode(opcode);
-        packet.data_type(data_type);
-        packet.opaque(opaque);
-        packet.extra_length(0);
-        packet.key_length(0);
-        packet.value_length(0);
-        packet.magic(bin_memcached_handler_t<config_t>::bin_magic_response);
-        
-        build_response(&packet);
-        c->sbuf->append(packet.data, packet.size());
+        br_result_t res;
+        do {
+            byte tmpbuf[MAX_PACKET_SIZE] = {0x00};   // Make valgrind happy
+            packet_t packet(tmpbuf);
+            packet.opcode(opcode);
+            packet.data_type(data_type);
+            packet.opaque(opaque);
+            packet.extra_length(0);
+            packet.key_length(0);
+            packet.value_length(0);
+            packet.magic(bin_memcached_handler_t<config_t>::bin_magic_response);
+
+            res = build_response(&packet);
+            c->sbuf->append(packet.data, packet.size());
+        } while (res == br_call_again);
         
         // TODO: Handle uncorking if we are non-quiet
         
@@ -64,6 +73,8 @@ public:
     typedef typename bin_memcached_handler_t<config_t>::packet_t packet_t;
     typedef typename config_t::conn_fsm_t conn_fsm_t;
     typedef typename config_t::btree_get_fsm_t btree_get_fsm_t;
+    typedef typename bin_memcached_request<config_t>::br_result_t br_result_t;
+    using bin_memcached_request<config_t>::br_done;
     using bin_memcached_request<config_t>::request;
     using bin_memcached_request<config_t>::opcode;
 
@@ -80,13 +91,11 @@ public:
         delete fsm;
     }
     
-    void build_response(packet_t *res_pkt) {
+    br_result_t build_response(packet_t *res_pkt) {
         if(fsm->op_result == btree_get_fsm_t::btree_found) {
             get_cpu_context()->worker->get_hits++;
             res_pkt->status(bin_memcached_handler_t<config_t>::bin_status_no_error);
             res_pkt->set_value(&fsm->value);
-            // TODO: memcached sets a flag if the value returned is a number.
-            // (Specifically, extras is 00 00 00 02.)
             res_pkt->set_extras(extra_flags, extra_flags_length);
         } else {
             get_cpu_context()->worker->get_misses++;
@@ -97,6 +106,7 @@ public:
         if (bin_memcached_handler_t<config_t>::is_key_code(opcode)) {
             res_pkt->set_key(&fsm->key);
         }
+        return br_done;
     }
 private:
     btree_get_fsm_t *fsm;
@@ -110,6 +120,8 @@ public:
     typedef typename bin_memcached_handler_t<config_t>::packet_t packet_t;
     typedef typename config_t::conn_fsm_t conn_fsm_t;
     typedef typename config_t::btree_set_fsm_t btree_set_fsm_t;
+    typedef typename bin_memcached_request<config_t>::br_result_t br_result_t;
+    using bin_memcached_request<config_t>::br_done;
     using bin_memcached_request<config_t>::request;
 
 public:
@@ -126,11 +138,12 @@ public:
         delete fsm;
     }
     
-    void build_response(packet_t *res_pkt) {
+    br_result_t build_response(packet_t *res_pkt) {
         res_pkt->status(bin_memcached_handler_t<config_t>::bin_status_no_error);
         // Set responses require don't require anything to be set. When we hook up ADD and REPLACE
         // then we will need to check for errors.
         assert(fsm->set_was_successful);
+        return br_done;
     }
 private:
     btree_set_fsm_t *fsm;
@@ -144,6 +157,8 @@ public:
     typedef typename bin_memcached_handler_t<config_t>::packet_t packet_t;
     typedef typename config_t::conn_fsm_t conn_fsm_t;
     typedef typename config_t::btree_incr_decr_fsm_t btree_incr_decr_fsm_t;
+    typedef typename bin_memcached_request<config_t>::br_result_t br_result_t;
+    using bin_memcached_request<config_t>::br_done;
     using bin_memcached_request<config_t>::request;
 
 public:
@@ -159,7 +174,7 @@ public:
         delete fsm;
     }
     
-    void build_response(packet_t *res_pkt) {
+    br_result_t build_response(packet_t *res_pkt) {
         // TODO this is probably wrong
         if (fsm->set_was_successful) {
             // TODO This should return the value (and a flag to show that it's a number).
@@ -167,6 +182,7 @@ public:
         } else {
             res_pkt->status(bin_memcached_handler_t<config_t>::bin_status_key_not_found);
         }
+        return br_done;
     }
 private:
     btree_incr_decr_fsm_t *fsm;
@@ -180,6 +196,8 @@ public:
     typedef typename bin_memcached_handler_t<config_t>::packet_t packet_t;
     typedef typename config_t::conn_fsm_t conn_fsm_t;
     typedef typename config_t::btree_append_prepend_fsm_t btree_append_prepend_fsm_t;
+    typedef typename bin_memcached_request<config_t>::br_result_t br_result_t;
+    using bin_memcached_request<config_t>::br_done;
     using bin_memcached_request<config_t>::request;
 
 public:
@@ -193,12 +211,13 @@ public:
         delete fsm;
     }
 
-    void build_response(packet_t *res_pkt) {
+    br_result_t build_response(packet_t *res_pkt) {
         if (fsm->set_was_successful) {
             res_pkt->status(bin_memcached_handler_t<config_t>::bin_status_no_error);
         } else {
             res_pkt->status(bin_memcached_handler_t<config_t>::bin_status_item_not_stored);
         }
+        return br_done;
     }
 
 private:
@@ -213,6 +232,8 @@ public:
     typedef typename bin_memcached_handler_t<config_t>::packet_t packet_t;
     typedef typename config_t::conn_fsm_t conn_fsm_t;
     typedef typename config_t::btree_delete_fsm_t btree_delete_fsm_t;
+    typedef typename bin_memcached_request<config_t>::br_result_t br_result_t;
+    using bin_memcached_request<config_t>::br_done;
     using bin_memcached_request<config_t>::request;
 
 public:
@@ -227,12 +248,13 @@ public:
         delete fsm;
     }
     
-    void build_response(packet_t *res_pkt) {
+    br_result_t build_response(packet_t *res_pkt) {
         if(fsm->op_result == btree_delete_fsm_t::btree_found) {
             res_pkt->status(bin_memcached_handler_t<config_t>::bin_status_no_error);
         } else {
             res_pkt->status(bin_memcached_handler_t<config_t>::bin_status_key_not_found);
         }
+        return br_done;
     }
 private:
     btree_delete_fsm_t *fsm;
