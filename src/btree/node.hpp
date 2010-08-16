@@ -124,7 +124,7 @@ struct btree_value {
     }
 
     void print() {
-        printf("%.*s\n", value_size(), value());
+        printf("%.*s", value_size(), value());
     }
 };
 
