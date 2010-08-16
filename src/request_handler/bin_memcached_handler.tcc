@@ -142,7 +142,8 @@ public:
         res_pkt->status(bin_memcached_handler_t<config_t>::bin_status_no_error);
         // Set responses require don't require anything to be set. When we hook up ADD and REPLACE
         // then we will need to check for errors.
-        assert(fsm->set_was_successful);
+        // XXX Hook up ADD and REPLACE and add all the appropriate error codes.
+        assert(fsm->status_code == btree_set_fsm<config_t>::S_SUCCESS);
         return br_done;
     }
 private:
@@ -174,7 +175,7 @@ public:
         delete fsm;
     }
     
-    void build_response(packet_t *res_pkt) {
+    br_result_t build_response(packet_t *res_pkt) {
         // TODO: This should return the value.
         switch (fsm->status_code) {
             case btree_incr_decr_fsm_t::S_SUCCESS:
@@ -220,7 +221,7 @@ public:
         delete fsm;
     }
 
-    void build_response(packet_t *res_pkt) {
+    br_result_t build_response(packet_t *res_pkt) {
         switch (fsm->status_code) {
             case btree_append_prepend_fsm_t::S_SUCCESS:
                 res_pkt->status(bin_memcached_handler_t<config_t>::bin_status_no_error);
