@@ -174,15 +174,6 @@ public:
         delete fsm;
     }
     
-<<<<<<< HEAD:src/request_handler/bin_memcached_handler.tcc
-    br_result_t build_response(packet_t *res_pkt) {
-        // TODO this is probably wrong
-        if (fsm->set_was_successful) {
-            // TODO This should return the value (and a flag to show that it's a number).
-            res_pkt->status(bin_memcached_handler_t<config_t>::bin_status_no_error);
-        } else {
-            res_pkt->status(bin_memcached_handler_t<config_t>::bin_status_key_not_found);
-=======
     void build_response(packet_t *res_pkt) {
         // TODO: This should return the value.
         switch (fsm->status_code) {
@@ -199,7 +190,6 @@ public:
                 // XXX
                 assert(0);
                 break;
->>>>>>> Added initial status codes implementation and fixed exptimes to work:src/request_handler/bin_memcached_handler.tcc
         }
         return br_done;
     }
@@ -230,13 +220,6 @@ public:
         delete fsm;
     }
 
-<<<<<<< HEAD:src/request_handler/bin_memcached_handler.tcc
-    br_result_t build_response(packet_t *res_pkt) {
-        if (fsm->set_was_successful) {
-            res_pkt->status(bin_memcached_handler_t<config_t>::bin_status_no_error);
-        } else {
-            res_pkt->status(bin_memcached_handler_t<config_t>::bin_status_item_not_stored);
-=======
     void build_response(packet_t *res_pkt) {
         switch (fsm->status_code) {
             case btree_append_prepend_fsm_t::S_SUCCESS:
@@ -248,7 +231,6 @@ public:
             default:
                 assert(0);
                 break;
->>>>>>> Added initial status codes implementation and fixed exptimes to work:src/request_handler/bin_memcached_handler.tcc
         }
         return br_done;
     }
