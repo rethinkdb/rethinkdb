@@ -124,7 +124,7 @@ struct btree_value {
     }
 
     void print() {
-        printf("%.*s", value_size(), value());
+        printf("%.*s\n", value_size(), value());
     }
 };
 
@@ -159,6 +159,11 @@ class node_handler {
         }
 
         static bool is_underfull(btree_node *node);
+        static bool is_mergable(btree_node *node, btree_node *sibling, btree_node *parent);
+        static bool nodecmp(btree_node *node1, btree_node *node2);
+        static void merge(btree_node *node, btree_node *rnode, btree_key *key_to_remove, btree_node *parent);
+        static void remove(btree_node *node, btree_key *key);
+        static bool level(btree_node *node, btree_node *rnode, btree_key *key_to_replace, btree_key *replacement_key, btree_node *parent);
         
         static void validate(btree_node *node);
 };

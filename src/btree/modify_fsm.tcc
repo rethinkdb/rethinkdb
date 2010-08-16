@@ -375,6 +375,7 @@ typename btree_modify_fsm<config_t>::transition_result_t btree_modify_fsm<config
                 update_needed = true;
             }
 
+
             // by convention, new_value will be NULL if we're doing a delete.
             
             have_computed_new_value = true;
@@ -416,6 +417,7 @@ typename btree_modify_fsm<config_t>::transition_result_t btree_modify_fsm<config
         
         if (last_buf && node_handler::is_underfull(node)) { // the root node is never underfull
             // merge or level.
+            logf(DBG,"is_underfull called\n");
             if(!sib_buf) { // Acquire a sibling to merge or level with
                 //logf(DBG, "generic acquire sibling\n");
                 state = acquire_sibling;
@@ -424,28 +426,30 @@ typename btree_modify_fsm<config_t>::transition_result_t btree_modify_fsm<config
                 continue;
             } else {
                 // Sibling acquired, now decide whether to merge or level
-                internal_node_t *sib_node = (internal_node_t*)sib_buf->ptr();
+                node_t *sib_node = (node_t *)sib_buf->ptr();
                 node_handler::validate(sib_node);
-                internal_node_t *parent_node = (internal_node_t*)last_buf->ptr();
-                internal_node_t *internal_node = (internal_node_t*)node;
-                if ( internal_node_handler::is_mergable(internal_node, sib_node, parent_node)) { // Merge
+                node_t *parent_node = (node_t *)last_buf->ptr();
+
+//internal_node = node
+
+                if (node_handler::is_mergable(node, sib_node, parent_node)) { // Merge
                     //logf(DBG, "internal merge\n");
                     btree_key *key_to_remove = (btree_key *)alloca(sizeof(btree_key) + MAX_KEY_SIZE); //TODO get alloca outta here
-                    if (internal_node_handler::nodecmp(internal_node, sib_node) < 0) { // Nodes must be passed to merge in ascending order
-                        internal_node_handler::merge(internal_node, sib_node, key_to_remove, parent_node);
+                    if (node_handler::nodecmp(node, sib_node) < 0) { // Nodes must be passed to merge in ascending order
+                        node_handler::merge(node, sib_node, key_to_remove, parent_node);
                         buf->release(); //TODO delete when api is ready
                         buf = sib_buf;
                         buf->set_dirty();
                         node_id = sib_node_id;
                     } else {
-                        internal_node_handler::merge(sib_node, internal_node, key_to_remove, parent_node);
+                        node_handler::merge(sib_node, node, key_to_remove, parent_node);
                         sib_buf->release(); //TODO delete when api is ready
                         sib_buf->set_dirty();
                     }
                     sib_buf = NULL;
 
-                    if (!internal_node_handler::is_singleton(parent_node)) {
-                        internal_node_handler::remove(parent_node, key_to_remove);
+                    if (!internal_node_handler::is_singleton((internal_node_t*)parent_node)) {
+                        internal_node_handler::remove((internal_node_t*)parent_node, key_to_remove);
                     } else {
                         //logf(DBG, "generic collapse root\n");
                         // parent has only 1 key (which means it is also the root), replace it with the node
@@ -460,13 +464,13 @@ typename btree_modify_fsm<config_t>::transition_result_t btree_modify_fsm<config
                     //logf(DBG, "generic level\n");
                     btree_key *key_to_replace = (btree_key *)alloca(sizeof(btree_key) + MAX_KEY_SIZE);
                     btree_key *replacement_key = (btree_key *)alloca(sizeof(btree_key) + MAX_KEY_SIZE);
-                    bool leveled = internal_node_handler::level(internal_node,  sib_node, key_to_replace, replacement_key, parent_node);
+                    bool leveled = node_handler::level(node, sib_node, key_to_replace, replacement_key, parent_node);
 
                     if (leveled) {
                         //set everyone dirty
                         sib_buf->set_dirty();
 
-                        internal_node_handler::update_key(parent_node, key_to_replace, replacement_key);
+                        internal_node_handler::update_key((btree_internal_node *)parent_node, key_to_replace, replacement_key);
                         last_buf->set_dirty();
                         buf->set_dirty();
                     }
@@ -492,7 +496,7 @@ typename btree_modify_fsm<config_t>::transition_result_t btree_modify_fsm<config
 
         // STEP 5.: Semi-finalize and move up the tree.
         // Release and update the last node
-        if (last_buf) {
+        if(last_buf) {
             assert(!cache_t::is_block_id_null(last_node_id));
             last_buf->release();
         }
