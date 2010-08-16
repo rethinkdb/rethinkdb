@@ -71,7 +71,7 @@ bool internal_node_handler::remove(btree_internal_node *node, btree_key *key) {
 }
 
 void internal_node_handler::split(btree_internal_node *node, btree_internal_node *rnode, btree_key *median) {
-#ifdef DELETE_DEBUG
+#ifdef BTREE_DEBUG
     printf("splitting key\n");
     internal_node_handler::print(node);
 #endif
@@ -99,7 +99,7 @@ void internal_node_handler::split(btree_internal_node *node, btree_internal_node
     node->npairs = median_index;
     //make last pair special
     make_last_pair_special(node);
-#ifdef DELETE_DEBUG
+#ifdef BTREE_DEBUG
     printf("\t|\n\t|\n\t|\n\tV\n");
     internal_node_handler::print(node);
 #endif
