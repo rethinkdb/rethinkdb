@@ -236,6 +236,7 @@ bool btree_modify_fsm<config_t>::do_check_for_split(node_t **node) {
         last_buf->set_dirty();
      
 #ifdef BTREE_DEBUG
+        printf("\t|\n\t| Median = "); median->print(); printf("\n\t|\n\tV\n");
         printf("Parent:\n");
         internal_node_handler::print(last_node);
 
