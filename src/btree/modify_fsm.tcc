@@ -209,10 +209,10 @@ bool btree_modify_fsm<config_t>::do_check_for_split(node_t **node) {
             printf("NULL parent\n");
 
         printf("node:\n");
-        if (node_handler::is_leaf(node))
-            leaf_node_handler::print((leaf_node_t *) node);
+        if (node_handler::is_leaf(*node))
+            leaf_node_handler::print((leaf_node_t *) *node);
         else
-            internal_node_handler::print((internal_node_t *) node);
+            internal_node_handler::print((internal_node_t *) *node);
 #endif
         char memory[sizeof(btree_key) + MAX_KEY_SIZE];
         btree_key *median = (btree_key *)memory;
@@ -240,10 +240,10 @@ bool btree_modify_fsm<config_t>::do_check_for_split(node_t **node) {
         internal_node_handler::print(last_node);
 
         printf("lnode:\n");
-        if (node_handler::is_leaf(node))
-            leaf_node_handler::print((leaf_node_t *) node);
+        if (node_handler::is_leaf(*node))
+            leaf_node_handler::print((leaf_node_t *) *node);
         else
-            internal_node_handler::print((internal_node_t *) node);
+            internal_node_handler::print((internal_node_t *) *node);
 
         printf("rnode:\n");
         if (node_handler::is_leaf((node_t *) rbuf->ptr()))
