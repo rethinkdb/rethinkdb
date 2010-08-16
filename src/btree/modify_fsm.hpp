@@ -41,8 +41,8 @@ public:
     explicit btree_modify_fsm(btree_key *_key)
         : btree_fsm_t(_key),
           state(start_transaction),
-          sb_buf(NULL), buf(NULL), last_buf(NULL),
-          node_id(cache_t::null_block_id), last_node_id(cache_t::null_block_id),
+          sb_buf(NULL), buf(NULL), last_buf(NULL), sib_buf(NULL),
+          node_id(cache_t::null_block_id), last_node_id(cache_t::null_block_id), sib_node_id(cache_t::null_block_id),
           have_computed_new_value(false), new_value(NULL),
           update_needed(false),
           op_result(btree_incomplete)
@@ -83,8 +83,8 @@ public:
     // Some relevant state information
     state_t state;
     
-    buf_t *sb_buf, *buf, *last_buf;
-    block_id_t node_id, last_node_id; // TODO(NNW): Bufs may suffice for these.
+    buf_t *sb_buf, *buf, *last_buf, *sib_buf;
+    block_id_t node_id, last_node_id, sib_node_id; // TODO(NNW): Bufs may suffice for these.
     
     // When we reach the leaf node and it's time to call operate(), we store the result in
     // 'new_value' until we are ready to insert it.
@@ -100,8 +100,8 @@ public:
     op_result_t op_result;
 
 public: // from delete_fsm:
-    buf_t *sib_buf;
-    block_id_t sib_node_id;
+    //buf_t *sib_buf;
+    //block_id_t sib_node_id;
 
 };
 
