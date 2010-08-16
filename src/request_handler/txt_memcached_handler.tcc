@@ -283,7 +283,6 @@ public:
     }
     
     void build_response(typename conn_fsm_t::linked_buf_t *sbuf) {
-    
         // Combine all responses into one
         int nworkers = (int)get_cpu_context()->worker->event_queue->parent_pool->nworkers;
         perfmon_t combined_perfmon;

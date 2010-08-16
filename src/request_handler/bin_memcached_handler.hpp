@@ -554,15 +554,19 @@ error_breakout:
                     return data + sizeof(response_header_t) + extra_length();
             }
 
-            void set_key(btree_key *key) {
+            void set_key(byte *data, unsigned long size) {
                 //make space
-                memmove(value() + (key->size - key_length()), value(), value_length());
+                memmove(value() + (size - key_length()), value(), value_length());
                 
                 //copy in the new data
-                memcpy(this->key(), key->contents, key->size);
+                memcpy(this->key(), data, size);
 
                 //update the total and key length
-                key_length(key->size);
+                key_length(size);
+            }
+
+            void set_key(btree_key *key) {
+                set_key(key->contents, key->size);
             }
 
             //load the value into an allocated value

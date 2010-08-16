@@ -260,6 +260,73 @@ private:
     btree_delete_fsm_t *fsm;
 };
 
+template<class config_t>
+class bin_memcached_perfmon_request : public bin_memcached_request<config_t>,
+    public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, bin_memcached_perfmon_request<config_t> > {
+
+public:
+    typedef typename bin_memcached_handler_t<config_t>::packet_t packet_t;
+    typedef typename config_t::conn_fsm_t conn_fsm_t;
+    typedef typename bin_memcached_request<config_t>::br_result_t br_result_t;
+    using bin_memcached_request<config_t>::br_done;
+    using bin_memcached_request<config_t>::br_call_again;
+    using bin_memcached_request<config_t>::request;
+
+public:
+    bin_memcached_perfmon_request(bin_memcached_handler_t<config_t> *rh, packet_t *pkt)
+        : bin_memcached_request<config_t>(rh, pkt), stats_collected(false) {
+
+        int nworkers = (int)get_cpu_context()->worker->event_queue->parent_pool->nworkers;
+
+        // Tell every single CPU core to pass their perfmon module *by copy*
+        // to this CPU
+        for (int i = 0; i < nworkers; i++)
+        {
+            assert(i < MAX_OPS_IN_REQUEST);
+            msgs[i] = new perfmon_msg_t();
+            this->request->add(msgs[i], i);
+        }
+        request->dispatch();
+    }
+    
+    ~bin_memcached_perfmon_request() {}
+    
+    br_result_t build_response(packet_t *res_pkt) {
+        // Combine all responses into one
+        char tmpbuf[255];
+#if defined(VALGRIND) || !defined(NDEBUG)
+        // Fill the buffer with garbage in debug mode so valgrind doesn't complain, and to help
+        // catch uninitialized memory errors.
+        memset(tmpbuf, 0xBD, sizeof(tmpbuf));
+#endif
+        if (!stats_collected) {
+            int nworkers = (int)get_cpu_context()->worker->event_queue->parent_pool->nworkers;
+            for(int i = 0; i < nworkers; i++) {
+                combined_perfmon.accumulate(msgs[i]->perfmon);
+            }
+            iter = combined_perfmon.registry.begin();
+            stats_collected = true;
+        }
+        if (iter != combined_perfmon.registry.end()) {
+            res_pkt->set_key(iter->first, strlen(iter->first));
+            int val_len = iter->second.print(tmpbuf, 255);
+            res_pkt->set_value(tmpbuf, val_len);
+            return br_call_again;
+        } else {
+            /* we're also sending an empty packet here, but that doesn't require any code */
+            return br_done;
+        }
+    }
+
+public:
+    perfmon_msg_t *msgs[MAX_OPS_IN_REQUEST];
+
+private:
+    bool stats_collected;
+    perfmon_t combined_perfmon;
+    perfmon_t::perfmon_map_t::iterator iter;
+};
+
 //! Parse a binary command received from the user
 template<class config_t>
 typename bin_memcached_handler_t<config_t>::parse_result_t bin_memcached_handler_t<config_t>::parse_request(event_t *event)
