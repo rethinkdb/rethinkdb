@@ -311,6 +311,8 @@ public:
             res_pkt->set_key(iter->first, strlen(iter->first));
             int val_len = iter->second.print(tmpbuf, 255);
             res_pkt->set_value(tmpbuf, val_len);
+            res_pkt->print();
+            iter++;
             return br_call_again;
         } else {
             /* we're also sending an empty packet here, but that doesn't require any code */
@@ -386,7 +388,7 @@ typename bin_memcached_handler_t<config_t>::parse_result_t bin_memcached_handler
             res = version(pkt);
             break;
         case bin_opcode_stat:
-            res = unimplemented_request();
+            res = stat(pkt);
             break;
         default:
             res = malformed_request();
@@ -470,6 +472,12 @@ typename bin_memcached_handler_t<config_t>::parse_result_t bin_memcached_handler
 
     conn_fsm->sbuf->append(pkt->data, pkt->size());
     return req_handler_t::op_req_send_now;
+}
+
+template <class config_t>
+typename bin_memcached_handler_t<config_t>::parse_result_t bin_memcached_handler_t<config_t>::stat(packet_t *pkt) {
+    new bin_memcached_perfmon_request<config_t>(this, pkt);
+    return req_handler_t::op_req_complex;
 }
 
 template <class config_t>

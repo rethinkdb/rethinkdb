@@ -554,7 +554,7 @@ error_breakout:
                     return data + sizeof(response_header_t) + extra_length();
             }
 
-            void set_key(byte *data, unsigned long size) {
+            void set_key(const byte *data, unsigned long size) {
                 //make space
                 memmove(value() + (size - key_length()), value(), value_length());
                 
@@ -590,7 +590,7 @@ error_breakout:
                 value_length((bin_value_length_t) val->size);
             }
 
-            void set_value(byte* data, unsigned long size) {
+            void set_value(const byte* data, unsigned long size) {
                 memcpy(value(), data, size);
                 value_length((bin_value_length_t) size);
             }
@@ -884,6 +884,7 @@ private:
     
     parse_result_t dispatch_appropriate_fsm(packet_t *pkt);
     parse_result_t no_op(packet_t *pkt);
+    parse_result_t stat(packet_t *pkt);
     parse_result_t version(packet_t *pkt);
 };
 
