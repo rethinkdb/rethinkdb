@@ -311,7 +311,6 @@ public:
             res_pkt->set_key(iter->first, strlen(iter->first));
             int val_len = iter->second.print(tmpbuf, 255);
             res_pkt->set_value(tmpbuf, val_len);
-            res_pkt->print();
             iter++;
             return br_call_again;
         } else {
