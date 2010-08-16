@@ -445,41 +445,29 @@ typename btree_modify_fsm<config_t>::transition_result_t btree_modify_fsm<config
         }                    
     
         if(node_handler::is_leaf(node)) {
-            if(new_value == NULL) {
-                // STEP 5.a: We're a delete operation.
-                buf->release();
-                state = delete_complete;
-                res = btree_fsm_t::transition_ok;
-                continue;
-            } else {
-                //  STEP 5.b: If we're at a leaf.
-                buf->release();
-                buf = NULL;            
-                state = update_complete;
-                res = btree_fsm_t::transition_ok;
-                break;
-            }
-        } else {
-            // STEP 5.c: Move up the tree.
-            // Release and update the last node
-            if(!cache_t::is_block_id_null(last_node_id)) {
-                last_buf->release();
-                last_buf = NULL;
-            }
-            last_buf = buf;
+            buf->release();
             buf = NULL;
-            last_node_id = node_id;
-            node_id = cache_t::null_block_id;
-                
-            // Look up the next node
-            node_id = internal_node_handler::lookup((internal_node_t*)node, &key);
-            assert(!cache_t::is_block_id_null(node_id));
-            assert(node_id != cache->get_superblock_id());
+            state = update_complete;
+            res = btree_fsm_t::transition_ok;
+            break;
         }
-                
-        //  STEP 6: Semi-finalize.
-        if (last_buf)
+
+        // STEP 5.: Semi-finalize and move up the tree.
+        // Release and update the last node
+        if (last_buf) {
+            assert(!cache_t::is_block_id_null(last_node_id));
             last_buf->release();
+        }
+        last_buf = buf;
+        last_node_id = node_id;
+
+        // Look up the next node
+        node_id = internal_node_handler::lookup((internal_node_t*)node, &key);
+        assert(!cache_t::is_block_id_null(node_id));
+        assert(node_id != cache->get_superblock_id());
+
+        assert(state == acquire_node);
+        last_buf = buf;
     }
 
     // Finalize the transaction commit
@@ -493,7 +481,7 @@ typename btree_modify_fsm<config_t>::transition_result_t btree_modify_fsm<config
     }
 
     // Finalize the operation
-    if(res == btree_fsm_t::transition_ok && (state == update_complete || state == delete_complete) ) {
+    if(res == btree_fsm_t::transition_ok && state == update_complete) {
         // Release the final node
         if(!cache_t::is_block_id_null(last_node_id)) {
             last_buf->release();

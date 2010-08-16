@@ -24,7 +24,6 @@ public:
         acquire_root,
         acquire_node,
         insert_root,
-        delete_complete,
         acquire_sibling,
         insert_root_on_collapse,
         insert_root_on_split,
