@@ -446,6 +446,7 @@ typename btree_modify_fsm<config_t>::transition_result_t btree_modify_fsm<config
                         node_handler::merge(sib_node, node, key_to_remove, parent_node);
                         sib_buf->release(); //TODO delete when api is ready
                         sib_buf->set_dirty();
+                        buf->set_dirty();
                     }
                     sib_buf = NULL;
 

@@ -4,7 +4,7 @@
 #include "btree/leaf_node.hpp"
 #include <algorithm>
 
-//#define DEBUG_MAX_LEAF 6
+//#define DEBUG_MAX_LEAF 100
 
 void leaf_node_handler::init(btree_leaf_node *node) {
     node->type = btree_node_type_leaf;
