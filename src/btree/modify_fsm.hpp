@@ -74,7 +74,7 @@ public:
     transition_result_t do_insert_root_on_collapse(event_t *event);
     transition_result_t do_acquire_node(event_t *event);
     transition_result_t do_acquire_sibling(event_t *event);
-    bool do_check_for_split(node_t *node);
+    bool do_check_for_split(node_t **node);
     
 public:
     int set_root_id(block_id_t root_id, event_t *event);

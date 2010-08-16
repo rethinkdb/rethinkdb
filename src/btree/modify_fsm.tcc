@@ -188,16 +188,16 @@ typename btree_modify_fsm<config_t>::transition_result_t btree_modify_fsm<config
 }
 
 template <class config_t>
-bool btree_modify_fsm<config_t>::do_check_for_split(node_t *node) {
+bool btree_modify_fsm<config_t>::do_check_for_split(node_t **node) {
     
     // Split the node if necessary
     bool new_root = false;
     bool full;
-    if (node_handler::is_leaf(node)) {
+    if (node_handler::is_leaf(*node)) {
         if (update_needed && new_value == NULL) return false; // if we're deleting and it's a leaf node, there's no need to split
-        full = update_needed && leaf_node_handler::is_full((leaf_node_t *)node, &key, new_value);
+        full = update_needed && leaf_node_handler::is_full((leaf_node_t *)*node, &key, new_value);
     } else {
-        full = internal_node_handler::is_full((internal_node_t *)node);
+        full = internal_node_handler::is_full((internal_node_t *)*node);
     }
     if (full) {
 #ifdef BTREE_DEBUG
@@ -261,7 +261,7 @@ bool btree_modify_fsm<config_t>::do_check_for_split(node_t *node) {
             buf->release();
             buf = rbuf;
             rbuf = NULL;
-            node = (node_t *)buf->ptr();
+            *node = (node_t *)buf->ptr();
             node_id = rnode_id;
         }
     }
@@ -353,7 +353,7 @@ typename btree_modify_fsm<config_t>::transition_result_t btree_modify_fsm<config
 
             expired = key_found && u.old_value.expired();
             if (expired) {
-                // We tell operate that the key wasn't found. If it returns
+                // We tell operate() that the key wasn't found. If it returns
                 // true, we'll replace/delete the value as usual; if it returns
                 // false, we'll silently delete the key.
                 key_found = false;
@@ -383,7 +383,7 @@ typename btree_modify_fsm<config_t>::transition_result_t btree_modify_fsm<config
         // STEP 2: Check if it's overfull. If so we would need to do a split.
         
         if (update_needed || node_handler::is_internal(node)) { // Split internal nodes proactively.
-            bool new_root = do_check_for_split(node);
+            bool new_root = do_check_for_split(&node);
             if(new_root) {
                 state = insert_root_on_split;
                 res = do_insert_root_on_split(NULL);
