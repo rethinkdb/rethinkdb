@@ -356,10 +356,6 @@ typename btree_modify_fsm<config_t>::transition_result_t btree_modify_fsm<config
                 update_needed = operate(NULL, &new_value);
             }
 
-            if (key.size == 1 && *key.contents == '9' && new_value == NULL) {
-                fprintf(stderr, "!!!\n");
-            }
-
             if (!update_needed && expired) { // Silently delete the key.
                 new_value = NULL;
                 update_needed = true;
@@ -446,10 +442,12 @@ typename btree_modify_fsm<config_t>::transition_result_t btree_modify_fsm<config
                         // parent has only 1 key (which means it is also the root), replace it with the node
                         // when we get here node_id should be the id of the new root
                         state = insert_root_on_collapse;
+#ifdef BTREE_DEBUG
                         printf("buf:\n");
                         node_handler::print((btree_node *) buf->ptr());
                         printf("last_buf:\n");
                         node_handler::print((btree_node *) last_buf->ptr());
+#endif
                         do_insert_root_on_collapse(NULL);
                         event = NULL;
                         continue;
