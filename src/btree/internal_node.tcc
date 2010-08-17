@@ -115,6 +115,8 @@ void internal_node_handler::merge(btree_internal_node *node, btree_internal_node
     printf("rnode:\n");
     internal_node_handler::print(rnode);
 #endif
+    validate(node);
+    validate(rnode);
     // get the key in parent which points to node
     btree_key *key_from_parent = &get_pair(parent, parent->pair_offsets[get_offset_index(parent, &get_pair(node, node->pair_offsets[0])->key)])->key;
 
@@ -138,7 +140,7 @@ void internal_node_handler::merge(btree_internal_node *node, btree_internal_node
     printf("rnode:\n");
     internal_node_handler::print(rnode);
 #endif
-    validate(node);
+    validate(rnode);
 }
 
 bool internal_node_handler::level(btree_internal_node *node, btree_internal_node *sibling, btree_key *key_to_replace, btree_key *replacement_key, btree_internal_node *parent) {
@@ -281,6 +283,7 @@ void internal_node_handler::validate(btree_internal_node *node) {
         assert(node->pair_offsets[i] < BTREE_BLOCK_SIZE);
         assert(node->pair_offsets[i] >= node->frontmost_offset);
     }
+    check("Offsets no longer in sorted order", !is_sorted(node->pair_offsets, node->pair_offsets+node->npairs, internal_key_comp(node)));
 }
 
 bool internal_node_handler::is_underfull(btree_internal_node *node) {
