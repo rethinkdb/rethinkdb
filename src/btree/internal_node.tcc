@@ -5,7 +5,7 @@
 #include <algorithm>
 #include "utils.hpp"
 
-//#define DEBUG_MAX_INTERNAL 10
+#define DEBUG_MAX_INTERNAL 10
 
 //In this tree, less than or equal takes the left-hand branch and greater than takes the right hand branch
 
