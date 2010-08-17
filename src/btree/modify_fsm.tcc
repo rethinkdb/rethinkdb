@@ -58,7 +58,10 @@ typename btree_modify_fsm<config_t>::transition_result_t btree_modify_fsm<config
         // cache notification). Grab the root id, and move on to
         // acquiring the root.
         node_id = btree_fsm_t::get_root_id(sb_buf->ptr());
-        state = acquire_root;
+        if(cache_t::is_block_id_null(node_id))
+            state = insert_root;
+        else
+            state = acquire_root;
         return btree_fsm_t::transition_ok;
     } else {
         // Can't get the superblock buffer right away. Let's wait for
@@ -70,14 +73,9 @@ typename btree_modify_fsm<config_t>::transition_result_t btree_modify_fsm<config
 template <class config_t>
 typename btree_modify_fsm<config_t>::transition_result_t btree_modify_fsm<config_t>::do_acquire_root(event_t *event)
 {
-    // If there is no root, insert one.
-    if(cache_t::is_block_id_null(node_id)) {
-        buf = transaction->allocate(&node_id);
-        leaf_node_handler::init((leaf_node_t *)buf->ptr());
-        buf->set_dirty();
-        insert_root(node_id);
-        return btree_fsm_t::transition_ok;
-    }
+    // If root didn't exist, we should have ended up in
+    // do_insert_root()
+    assert(!cache_t::is_block_id_null(node_id));
 
     if(event == NULL) {
         // Acquire the actual root node
@@ -99,18 +97,42 @@ typename btree_modify_fsm<config_t>::transition_result_t btree_modify_fsm<config
 }
 
 template <class config_t>
-void btree_modify_fsm<config_t>::insert_root(block_id_t root_id) {
-    memcpy(sb_buf->ptr(), (void*)&root_id, sizeof(root_id));
-
-    sb_buf->set_dirty();
+void btree_modify_fsm<config_t>::do_insert_root(event_t *event) {
+    // If this is the first time we're entering this function,
+    // allocate the root (otherwise, the root has already been
+    // allocated here, and we just need to set its id in the metadata)
+    
+    if(cache_t::is_block_id_null(node_id)) {
+        buf = transaction->allocate(&node_id);
+        leaf_node_handler::init((leaf_node_t *)buf->ptr());
+        buf->set_dirty();
+    }
+    set_root_id(node_id, event);
+    state = acquire_node;
     sb_buf->release();
     sb_buf = NULL;
-
-    state = acquire_node;
 }
 
 template <class config_t>
-typename btree_modify_fsm<config_t>::transition_result_t btree_modify_fsm<config_t>::do_acquire_node(event_t *event) {
+void btree_modify_fsm<config_t>::do_insert_root_on_split(event_t *event) {
+    set_root_id(last_node_id, event);
+    state = acquire_node;
+    sb_buf->release();
+    sb_buf = NULL;
+}
+
+template <class config_t>
+void btree_modify_fsm<config_t>::do_insert_root_on_collapse(event_t *event) {
+    /* similar to do_insert_root(() in modify_fsm. */
+    set_root_id(node_id, event);
+    state = acquire_node;
+    sb_buf->release();
+    sb_buf = NULL;
+}
+
+template <class config_t>
+typename btree_modify_fsm<config_t>::transition_result_t btree_modify_fsm<config_t>::do_acquire_node(event_t *event)
+{
     assert(state == acquire_node);
     if(event == NULL) {
         buf = transaction->acquire(node_id, rwi_write, this);
@@ -263,14 +285,29 @@ typename btree_modify_fsm<config_t>::transition_result_t btree_modify_fsm<config
     }
 
     // Then, acquire the root block (or create it if it's missing)
-    if(res == btree_fsm_t::transition_ok && state == acquire_root) {
-        res = do_acquire_root(event);
+    if(res == btree_fsm_t::transition_ok && (state == acquire_root || state == insert_root)) {
+        if(state == acquire_root)
+            res = do_acquire_root(event);
+        else if(state == insert_root)
+            do_insert_root(event);
         event = NULL;
     }
 
     // If the previously acquired node was underfull, we acquire a sibling to level or merge
     if(res == btree_fsm_t::transition_ok && state == acquire_sibling) {
         res = do_acquire_sibling(event);
+        event = NULL;
+    }
+
+    // If we were inserting root on split, do that
+    if(res == btree_fsm_t::transition_ok && state == insert_root_on_split) {
+        do_insert_root_on_split(event);
+        event = NULL;
+    }
+
+    // If we need to change the root due to merging it's last two children, do that
+    if(res == btree_fsm_t::transition_ok && state == insert_root_on_collapse) {
+        do_insert_root_on_collapse(event);
         event = NULL;
     }
 
@@ -335,7 +372,8 @@ typename btree_modify_fsm<config_t>::transition_result_t btree_modify_fsm<config
         if (update_needed || node_handler::is_internal(node)) { // Split internal nodes proactively.
             bool new_root = do_check_for_split(&node);
             if(new_root) {
-                insert_root(last_node_id);
+                state = insert_root_on_split;
+                do_insert_root_on_split(NULL);
             }
             if(res != btree_fsm_t::transition_ok || state != acquire_node) {
                 break;
@@ -403,7 +441,14 @@ typename btree_modify_fsm<config_t>::transition_result_t btree_modify_fsm<config
                         //logf(DBG, "generic collapse root\n");
                         // parent has only 1 key (which means it is also the root), replace it with the node
                         // when we get here node_id should be the id of the new root
-                        insert_root(node_id);
+                        state = insert_root_on_collapse;
+#ifdef BTREE_DEBUG
+                        printf("buf:\n");
+                        node_handler::print((btree_node *) buf->ptr());
+                        printf("last_buf:\n");
+                        node_handler::print((btree_node *) last_buf->ptr());
+#endif
+                        do_insert_root_on_collapse(NULL);
                         event = NULL;
                         continue;
                     }
@@ -502,6 +547,12 @@ typename btree_modify_fsm<config_t>::transition_result_t btree_modify_fsm<config
 
     assert(res != btree_fsm_t::transition_complete || is_finished());
     return res;
+}
+
+template <class config_t>
+void btree_modify_fsm<config_t>::set_root_id(block_id_t root_id, event_t *event) {
+    memcpy(sb_buf->ptr(), (void*)&root_id, sizeof(root_id));
+    sb_buf->set_dirty();
 }
 
 template <class config_t>
