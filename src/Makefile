@@ -83,11 +83,11 @@ endif
 # it up. The difference is that the 'gdb' target starts it under a debugger.
 
 run: $(BUILD_DIR)/$(SERVER_EXEC_NAME)
-	$(QUIET) rm -f data.file*
+	$(QUIET) rm -rf db_data
 	$(BUILD_DIR)/$(SERVER_EXEC_NAME) -p $(RUN_PORT) $(RUN_FLAGS)
 
 gdb: $(BUILD_DIR)/$(SERVER_EXEC_NAME)
-	$(QUIET) rm -f data.file*
+	$(QUIET) rm -rf db_data
 	gdb --args $(BUILD_DIR)/$(SERVER_EXEC_NAME) -p $(RUN_PORT) $(RUN_FLAGS)
 
 valgrind: $(BUILD_DIR)/$(SERVER_EXEC_NAME)
@@ -95,7 +95,7 @@ ifeq ($(VALGRIND),0)
 	$(error Using the 'valgrind' target doesn't automatically set VALGRIND to 1. Try again with \
 'make valgrind VALGRIND=1')
 endif
-	$(QUIET) rm -f data.file*
+	$(QUIET) rm -rf db_data
 	valgrind $(VALGRIND_FLAGS) $(BUILD_DIR)/$(SERVER_EXEC_NAME) -p $(RUN_PORT) $(RUN_FLAGS)
 
 tags:
