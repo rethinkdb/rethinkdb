@@ -51,6 +51,14 @@ bool node_handler::level(btree_node *node, btree_node *rnode, btree_key *key_to_
     }
 }
 
+void node_handler::print(btree_node *node) {
+    if (node_handler::is_leaf(node)) {
+        leaf_node_handler::print((leaf_node_t *) node);
+    } else {
+        internal_node_handler::print((internal_node_t *) node);
+    }
+}
+
 void node_handler::validate(btree_node *node) {
     switch(node->type) {
         case btree_node_type_leaf:

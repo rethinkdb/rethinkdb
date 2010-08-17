@@ -20,7 +20,7 @@ struct btree_key {
     uint8_t size;
     char contents[0];
     void print() {
-        printf("%.*s", size, contents);
+        printf("%*.*s", size, size, contents);
     }
 };
 
@@ -124,7 +124,7 @@ struct btree_value {
     }
 
     void print() {
-        printf("%.*s", value_size(), value());
+        printf("%*.*s", value_size(), value_size(), value());
     }
 };
 
@@ -164,6 +164,8 @@ class node_handler {
         static void merge(btree_node *node, btree_node *rnode, btree_key *key_to_remove, btree_node *parent);
         static void remove(btree_node *node, btree_key *key);
         static bool level(btree_node *node, btree_node *rnode, btree_key *key_to_replace, btree_key *replacement_key, btree_node *parent);
+
+        static void print(btree_node *node);
         
         static void validate(btree_node *node);
 };

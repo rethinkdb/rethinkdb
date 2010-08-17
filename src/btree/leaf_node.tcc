@@ -51,6 +51,14 @@ void leaf_node_handler::remove(btree_leaf_node *node, btree_key *key) {
     leaf_node_handler::print(node);
 #endif
     int index = find_key(node, key);
+    printf("<<<\n");
+    printf("NODE:\n");
+    leaf_node_handler::print(node);
+    printf("\nENDNODE\n");
+    printf("KEY:\n");
+    key->print();
+    printf("\nENDKEY\n");
+    printf(">>>\n");
 
     assert(index != -1);
     delete_pair(node, node->pair_offsets[index]);

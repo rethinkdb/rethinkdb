@@ -69,15 +69,15 @@ public:
     transition_result_t do_start_transaction(event_t *event);
     transition_result_t do_acquire_superblock(event_t *event);
     transition_result_t do_acquire_root(event_t *event);
-    transition_result_t do_insert_root(event_t *event);
-    transition_result_t do_insert_root_on_split(event_t *event);
-    transition_result_t do_insert_root_on_collapse(event_t *event);
+    void do_insert_root(event_t *event);
+    void do_insert_root_on_split(event_t *event);
+    void do_insert_root_on_collapse(event_t *event);
     transition_result_t do_acquire_node(event_t *event);
     transition_result_t do_acquire_sibling(event_t *event);
     bool do_check_for_split(node_t **node);
     
 public:
-    int set_root_id(block_id_t root_id, event_t *event);
+    void set_root_id(block_id_t root_id, event_t *event);
     void split_node(buf_t *node, buf_t **rnode, block_id_t *rnode_id, btree_key *median);
     
     // Some relevant state information

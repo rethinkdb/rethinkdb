@@ -97,8 +97,7 @@ typename btree_modify_fsm<config_t>::transition_result_t btree_modify_fsm<config
 }
 
 template <class config_t>
-typename btree_modify_fsm<config_t>::transition_result_t btree_modify_fsm<config_t>::do_insert_root(event_t *event)
-{
+void btree_modify_fsm<config_t>::do_insert_root(event_t *event) {
     // If this is the first time we're entering this function,
     // allocate the root (otherwise, the root has already been
     // allocated here, and we just need to set its id in the metadata)
@@ -108,27 +107,27 @@ typename btree_modify_fsm<config_t>::transition_result_t btree_modify_fsm<config
         leaf_node_handler::init((leaf_node_t *)buf->ptr());
         buf->set_dirty();
     }
-    if(set_root_id(node_id, event)) {
-        state = acquire_node;
-        sb_buf->release();
-        sb_buf = NULL;
-        return btree_fsm_t::transition_ok;
-    } else {
-        return btree_fsm_t::transition_incomplete;
-    }
+    set_root_id(node_id, event);
+    state = acquire_node;
+    sb_buf->release();
+    sb_buf = NULL;
 }
 
 template <class config_t>
-typename btree_modify_fsm<config_t>::transition_result_t btree_modify_fsm<config_t>::do_insert_root_on_split(event_t *event)
-{
-    if(set_root_id(last_node_id, event)) {
-        state = acquire_node;
-        sb_buf->release();
-        sb_buf = NULL;
-        return btree_fsm_t::transition_ok;
-    } else {
-        return btree_fsm_t::transition_incomplete;
-    }
+void btree_modify_fsm<config_t>::do_insert_root_on_split(event_t *event) {
+    set_root_id(last_node_id, event);
+    state = acquire_node;
+    sb_buf->release();
+    sb_buf = NULL;
+}
+
+template <class config_t>
+void btree_modify_fsm<config_t>::do_insert_root_on_collapse(event_t *event) {
+    /* similar to do_insert_root(() in modify_fsm. */
+    set_root_id(node_id, event);
+    state = acquire_node;
+    sb_buf->release();
+    sb_buf = NULL;
 }
 
 template <class config_t>
@@ -167,20 +166,6 @@ typename btree_modify_fsm<config_t>::transition_result_t btree_modify_fsm<config
 
     if(sib_buf) {
         state = acquire_node;
-        return btree_fsm_t::transition_ok;
-    } else {
-        return btree_fsm_t::transition_incomplete;
-    }
-}
-
-template <class config_t>
-typename btree_modify_fsm<config_t>::transition_result_t btree_modify_fsm<config_t>::do_insert_root_on_collapse(event_t *event)
-{
-    /* similar to do_insert_root(() in modify_fsm. */
-    if(set_root_id(node_id, event)) {
-        state = acquire_node;
-        sb_buf->release();
-        sb_buf = NULL;
         return btree_fsm_t::transition_ok;
     } else {
         return btree_fsm_t::transition_incomplete;
@@ -304,7 +289,7 @@ typename btree_modify_fsm<config_t>::transition_result_t btree_modify_fsm<config
         if(state == acquire_root)
             res = do_acquire_root(event);
         else if(state == insert_root)
-            res = do_insert_root(event);
+            do_insert_root(event);
         event = NULL;
     }
 
@@ -316,13 +301,13 @@ typename btree_modify_fsm<config_t>::transition_result_t btree_modify_fsm<config
 
     // If we were inserting root on split, do that
     if(res == btree_fsm_t::transition_ok && state == insert_root_on_split) {
-        res = do_insert_root_on_split(event);
+        do_insert_root_on_split(event);
         event = NULL;
     }
 
     // If we need to change the root due to merging it's last two children, do that
     if(res == btree_fsm_t::transition_ok && state == insert_root_on_collapse) {
-        res = do_insert_root_on_collapse(event);
+        do_insert_root_on_collapse(event);
         event = NULL;
     }
 
@@ -371,6 +356,10 @@ typename btree_modify_fsm<config_t>::transition_result_t btree_modify_fsm<config
                 update_needed = operate(NULL, &new_value);
             }
 
+            if (key.size == 1 && *key.contents == '9' && new_value == NULL) {
+                fprintf(stderr, "!!!\n");
+            }
+
             if (!update_needed && expired) { // Silently delete the key.
                 new_value = NULL;
                 update_needed = true;
@@ -388,7 +377,7 @@ typename btree_modify_fsm<config_t>::transition_result_t btree_modify_fsm<config
             bool new_root = do_check_for_split(&node);
             if(new_root) {
                 state = insert_root_on_split;
-                res = do_insert_root_on_split(NULL);
+                do_insert_root_on_split(NULL);
             }
             if(res != btree_fsm_t::transition_ok || state != acquire_node) {
                 break;
@@ -413,12 +402,12 @@ typename btree_modify_fsm<config_t>::transition_result_t btree_modify_fsm<config
                //key found, and value deleted
                leaf_node_handler::remove((leaf_node_t*)node, &key);
            }
+           update_needed = false; // TODO: update_needed should probably stay true; this can be a different state instead.
            buf->set_dirty();
         }
-        
+
         if (last_buf && node_handler::is_underfull(node)) { // the root node is never underfull
             // merge or level.
-            logf(DBG,"is_underfull called\n");
             if(!sib_buf) { // Acquire a sibling to merge or level with
                 //logf(DBG, "generic acquire sibling\n");
                 state = acquire_sibling;
@@ -457,7 +446,11 @@ typename btree_modify_fsm<config_t>::transition_result_t btree_modify_fsm<config
                         // parent has only 1 key (which means it is also the root), replace it with the node
                         // when we get here node_id should be the id of the new root
                         state = insert_root_on_collapse;
-                        res = do_insert_root_on_collapse(NULL);
+                        printf("buf:\n");
+                        node_handler::print((btree_node *) buf->ptr());
+                        printf("last_buf:\n");
+                        node_handler::print((btree_node *) last_buf->ptr());
+                        do_insert_root_on_collapse(NULL);
                         event = NULL;
                         continue;
                     }
@@ -483,11 +476,12 @@ typename btree_modify_fsm<config_t>::transition_result_t btree_modify_fsm<config
         }
 
         // Release the superblock, if we haven't already
-        if(sb_buf) {
-            sb_buf->release();
-            sb_buf = NULL;
+        // For internal nodes, we only release the superblock if we're past the root node.
+        if(sb_buf && (last_buf || node_handler::is_leaf(node))) {
+                sb_buf->release();
+                sb_buf = NULL;
         }                    
-    
+
         if(node_handler::is_leaf(node)) {
             buf->release();
             buf = NULL;
@@ -558,10 +552,9 @@ typename btree_modify_fsm<config_t>::transition_result_t btree_modify_fsm<config
 }
 
 template <class config_t>
-int btree_modify_fsm<config_t>::set_root_id(block_id_t root_id, event_t *event) {
+void btree_modify_fsm<config_t>::set_root_id(block_id_t root_id, event_t *event) {
     memcpy(sb_buf->ptr(), (void*)&root_id, sizeof(root_id));
     sb_buf->set_dirty();
-    return 1;
 }
 
 template <class config_t>
