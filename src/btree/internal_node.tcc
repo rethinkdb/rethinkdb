@@ -5,7 +5,7 @@
 #include <algorithm>
 #include "utils.hpp"
 
-//#define DEBUG_MAX_INTERNAL 100
+#define DEBUG_MAX_INTERNAL 10
 
 //In this tree, less than or equal takes the left-hand branch and greater than takes the right hand branch
 
@@ -26,6 +26,20 @@ void internal_node_handler::init(btree_internal_node *node, btree_internal_node 
 
 block_id_t internal_node_handler::lookup(btree_internal_node *node, btree_key *key) {
     int index = get_offset_index(node, key);
+#ifdef BTREE_DEBUG
+    printf("Look up:");
+    key->print();
+    printf("\n");
+    internal_node_handler::print(node);
+    printf("\t");
+    for (int i = 0; i < index; i++)
+        printf("\t\t");
+    printf("|\n");
+    printf("\t");
+    for (int i = 0; i < index; i++)
+        printf("\t\t");
+    printf("V\n");
+#endif
     return get_pair(node, node->pair_offsets[index])->lnode;
 }
 

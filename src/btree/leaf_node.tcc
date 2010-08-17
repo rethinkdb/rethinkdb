@@ -4,7 +4,7 @@
 #include "btree/leaf_node.hpp"
 #include <algorithm>
 
-//#define DEBUG_MAX_LEAF 100
+#define DEBUG_MAX_LEAF 10
 
 void leaf_node_handler::init(btree_leaf_node *node) {
     node->type = btree_node_type_leaf;
@@ -44,11 +44,22 @@ bool leaf_node_handler::insert(btree_leaf_node *node, btree_key *key, btree_valu
 }
 
 void leaf_node_handler::remove(btree_leaf_node *node, btree_key *key) {
+#ifdef BTREE_DEBUG
+    printf("removing key: ");
+    key->print();
+    printf("\n");
+    leaf_node_handler::print(node);
+#endif
     int index = find_key(node, key);
 
     assert(index != -1);
     delete_pair(node, node->pair_offsets[index]);
     delete_offset(node, index);
+
+#ifdef BTREE_DEBUG
+    printf("\t|\n\t|\n\t|\n\tV\n");
+    leaf_node_handler::print(node);
+#endif
 
     validate(node);
     // TODO: Currently this will error incorrectly on root
