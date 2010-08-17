@@ -19,8 +19,11 @@ bool node_handler::is_mergable(btree_node *node, btree_node *sibling, btree_node
 
 int node_handler::nodecmp(btree_node *node1, btree_node *node2) {
     assert(node_handler::is_leaf(node1) == node_handler::is_leaf(node2));
-    return (node_handler::is_leaf(node1)     &&     leaf_node_handler::nodecmp((leaf_node_t *) node1, (leaf_node_t *) node2))
-        || (node_handler::is_internal(node1) && internal_node_handler::nodecmp((internal_node_t *) node1, (internal_node_t *) node2));
+    if (node_handler::is_leaf(node1)) {
+        return leaf_node_handler::nodecmp((leaf_node_t *) node1, (leaf_node_t *) node2);
+    } else {
+        return internal_node_handler::nodecmp((internal_node_t *) node1, (internal_node_t *) node2);
+    }
 }
 
 
