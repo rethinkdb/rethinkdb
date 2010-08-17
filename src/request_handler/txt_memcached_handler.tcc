@@ -15,6 +15,7 @@
 #define STORAGE_SUCCESS "STORED\r\n"
 #define STORAGE_FAILURE "NOT_STORED\r\n"
 #define NOT_FOUND "NOT_FOUND\r\n"
+#define INCR_DECR_ON_NON_NUMERIC_VALUE "CLIENT_ERROR cannot increment or decrement non-numeric value\r\n"
 #define KEY_EXISTS "EXISTS\r\n"
 #define DELETE_SUCCESS "DELETED\r\n"
 #define RETRIEVE_TERMINATOR "END\r\n"
@@ -269,7 +270,9 @@ public:
             case btree_incr_decr_fsm_t::S_NOT_FOUND:
                 sbuf->printf(NOT_FOUND);
                 break;
-            // TODO: Add non-numeric.
+            case btree_incr_decr_fsm_t::S_NOT_NUMERIC:
+                sbuf->printf(INCR_DECR_ON_NON_NUMERIC_VALUE);
+                break;
             default:
                 assert(0);
                 break;

@@ -24,8 +24,12 @@ public:
         }
         valuecpy(&temp_value, old_value);
 
-        new_number = strtoull(old_value->contents, NULL, 10);
-        // TODO: Handle non-numeric values.
+        char *endptr;
+        new_number = strtoull(old_value->contents, &endptr, 10);
+        if (endptr == old_value->contents) {
+            this->status_code = btree_fsm<config_t>::S_NOT_NUMERIC;
+            return false;
+        }
 
        /*  NOTE: memcached actually does a few things differently:
         *   - If you say `decr 1 -50`, memcached will set 1 to 0 no matter
