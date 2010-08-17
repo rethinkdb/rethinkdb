@@ -1,23 +1,31 @@
-import tempfile, subprocess, shutil, signal, time, os, sys, traceback, threading, random, retest2
+import tempfile, subprocess, shutil, signal, time, os, sys, traceback, threading, random, retest2, glob
 from retest2.utils import SmartTemporaryFile
 from test_server import test_server
 
 class data_file(object):
     def __init__(self):
-        tf = tempfile.NamedTemporaryFile(prefix = "rdb_")
-        self.file_name = tf.name
+        
+        # Call tempfile.mkstemp() to make a temporary file, but then delete the file it gives us
+        # and just use the name
+        (fd, file_name) = tempfile.mkstemp(prefix = "rdb_")
+        os.close(fd)
+        os.remove(file_name)
+        
+        self.file_name = file_name
         self.delete = True
-        tf.close()
-
+    
+    def list_all_files(self):
+        files = glob.glob("%s*" % self.file_name)
+        assert files
+        return files
+    
     def dont_delete_data_files(self):
         self.delete = False
             
     def __del__(self):     
         if self.delete:
-            num = 0
-            while os.path.exists("%s%d" % (self.file_name, num)):
-                os.remove("%s%d" % (self.file_name, num))
-                num += 1
+            for file in self.list_all_files():
+                os.remove(file)
                     
 class GenericTester(object):
 

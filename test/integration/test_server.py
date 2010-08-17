@@ -1,7 +1,7 @@
 import tempfile, subprocess, shutil, signal, time, os, sys, traceback, threading, random, retest2, socket, shlex
 
 valgrind_error_code = 100
-server_quit_time = 10   # Server should shut down within 10 seconds of SIGINT
+server_quit_time = 3   # Server should shut down within %(server_quit_time)d seconds of SIGINT
 
 def find_unused_port():
     used_port = 11220
@@ -37,12 +37,12 @@ class test_server(object):
             self.command_line = \
                 ["valgrind", "--leak-check=full", "--error-exitcode=%d" % valgrind_error_code] + \
                 self.command_line
-
         self.server = subprocess.Popen(self.command_line,
             stdout=self.output, stderr=subprocess.STDOUT)
         
+        time.sleep(0.1)   # Give server time to start up
         if valgrind: time.sleep(1)   # Valgrind needs extra time to start up
-        time.sleep(0.1)
+        
         print "Started server."
 
     def report(self, what):
@@ -57,6 +57,12 @@ class test_server(object):
         
         # Shut down the server
         self.server.send_signal(signal.SIGINT)
+        if self.valgrind:
+            # Sometimes valgrind loses track of the first SIGINT, especially if it receives it right
+            # as it is starting up. Send a second SIGINT to make sure the server gets it. This is 
+            # stupid and we shouldn't have to do this.
+            time.sleep(0.5)
+            self.server.send_signal(signal.SIGINT)
         
         # Wait for the server to quit
         for i in xrange(server_quit_time * 4):
@@ -105,15 +111,15 @@ class test_server(object):
                     important = False)
                 ]
             
-            self.data_file_root.dont_delete_data_files()
-            num = 0
-            while os.path.exists("%s%d" % (self.data_file_root.file_name, num)):
-                temp_files.append(retest2.ResultTempFile(
-                    "%s%d" % (self.data_file_root.file_name, num),
-                    "Server data file %d" % num,
-                    friendly_name = "data.file%d" % num,
-                    important = False))
-                num += 1
+            # Uncomment these lines if you want the server data files included in the report
+            #
+            # self.data_file_root.dont_delete_data_files()
+            # for path in self.data_file_root.list_all_files():
+            #     temp_files.append(retest2.ResultTempFile(
+            #         path,
+            #         "Server data file %s" % os.path.basename(path),
+            #         friendly_name = os.path.basename(path),
+            #         important = False))
     
             return retest2.Result("fail",
                 description = msg,
