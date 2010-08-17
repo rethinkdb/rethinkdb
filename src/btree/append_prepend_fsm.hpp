@@ -17,7 +17,10 @@ public:
     }
 
     bool operate(btree_value *old_value, btree_value **new_value) {
-        if (!old_value) return false;
+        if (!old_value) {
+            this->status_code = btree_fsm<config_t>::S_NOT_FOUND;
+            return false;
+        }
 
         assert(old_value->size + temp_value.size <= MAX_TOTAL_NODE_CONTENTS_SIZE);
 
@@ -29,6 +32,7 @@ public:
         }
         old_value->size += temp_value.size;
         *new_value = old_value;
+        this->status_code = btree_fsm<config_t>::S_SUCCESS;
         return true;
     }
 

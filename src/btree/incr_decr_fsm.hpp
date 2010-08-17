@@ -19,12 +19,14 @@ public:
     bool operate(btree_value *old_value, btree_value **new_value) {
         // If the key didn't exist before, we fail
         if (!old_value) {
+            this->status_code = btree_fsm<config_t>::S_NOT_FOUND;
             return false;
         }
-        
+        valuecpy(&temp_value, old_value);
+
         new_number = strtoull(old_value->contents, NULL, 10);
         // TODO: Handle non-numeric values.
-        
+
        /*  NOTE: memcached actually does a few things differently:
         *   - If you say `decr 1 -50`, memcached will set 1 to 0 no matter
         *      what it's value is. We on the other hand will add 50 to 1.
@@ -50,7 +52,7 @@ public:
         
         *new_value = &temp_value;
         
-        this->status_code = btree_fsm<config_t>::S_NOT_FOUND;
+        this->status_code = btree_fsm<config_t>::S_SUCCESS;
         return true;
     }
     

@@ -15,6 +15,7 @@
 #define STORAGE_SUCCESS "STORED\r\n"
 #define STORAGE_FAILURE "NOT_STORED\r\n"
 #define NOT_FOUND "NOT_FOUND\r\n"
+#define KEY_EXISTS "EXISTS\r\n"
 #define DELETE_SUCCESS "DELETED\r\n"
 #define RETRIEVE_TERMINATOR "END\r\n"
 #define BAD_BLOB "CLIENT_ERROR bad data chunk\r\n"
@@ -205,6 +206,9 @@ public:
             case btree_set_fsm_t::S_NOT_STORED:
                 sbuf->printf(STORAGE_FAILURE);
                 break;
+            case btree_set_fsm_t::S_EXISTS:
+                sbuf->printf(KEY_EXISTS);
+                break;
             default:
                 assert(0);
                 break;
@@ -261,9 +265,11 @@ public:
         switch (fsm->status_code) {
             case btree_incr_decr_fsm_t::S_SUCCESS:
                 sbuf->printf("%llu\r\n", (unsigned long long)fsm->new_number);
-            case btree_incr_decr_fsm_t::S_NOT_FOUND:
-            sbuf->printf(NOT_FOUND);
                 break;
+            case btree_incr_decr_fsm_t::S_NOT_FOUND:
+                sbuf->printf(NOT_FOUND);
+                break;
+            // TODO: Add non-numeric.
             default:
                 assert(0);
                 break;
