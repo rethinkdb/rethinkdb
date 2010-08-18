@@ -95,17 +95,22 @@ public:
     void build_response(typename conn_fsm_t::linked_buf_t *sbuf) {
         for(int i = 0; i < num_fsms; i++) {
             btree_get_fsm_t *fsm = fsms[i];
-            if(fsm->op_result == btree_get_fsm_t::btree_found) {
-                get_cpu_context()->worker->get_hits++;
-                sbuf->printf("VALUE %*.*s %u %u\r\n",
-                    fsm->key.size, fsm->key.size, fsm->key.contents,
-                    fsm->value.mcflags(),
-                    fsm->value.value_size());
-                sbuf->append(fsm->value.value(), fsm->value.value_size());
-                sbuf->printf("\r\n");
-            } else if(fsms[i]->op_result == btree_get_fsm_t::btree_not_found) {
-                get_cpu_context()->worker->get_misses++;
-                // do nothing
+            switch (fsm->status_code) {
+                case btree_get_fsm_t::S_SUCCESS:
+                    get_cpu_context()->worker->get_hits++;
+                    sbuf->printf("VALUE %*.*s %u %u\r\n",
+                        fsm->key.size, fsm->key.size, fsm->key.contents,
+                        fsm->value.mcflags(),
+                        fsm->value.value_size());
+                    sbuf->append(fsm->value.value(), fsm->value.value_size());
+                    sbuf->printf("\r\n");
+                    break;
+                case btree_get_fsm_t::S_NOT_FOUND:
+                    get_cpu_context()->worker->get_misses++;
+                    break;
+                default:
+                    assert(0);
+                    break;
             }
         }
         sbuf->printf(RETRIEVE_TERMINATOR);
@@ -158,15 +163,23 @@ public:
     void build_response(typename conn_fsm_t::linked_buf_t *sbuf) {
         for(int i = 0; i < num_fsms; i++) {
             btree_get_cas_fsm_t *fsm = fsms[i];
-            if(fsm->found) {
-                get_cpu_context()->worker->get_hits++;
-                sbuf->printf("VALUE %*.*s %u %u %llu\r\n",
-                    fsm->key.size, fsm->key.size, fsm->key.contents,
-                    fsm->value.mcflags(),
-                    fsm->value.value_size(),
-                    fsm->value.cas());
-                sbuf->append(fsm->value.value(), fsm->value.value_size());
-                sbuf->printf("\r\n");
+            switch (fsm->status_code) {
+                case btree_get_cas_fsm_t::S_SUCCESS:
+                    get_cpu_context()->worker->get_hits++;
+                    sbuf->printf("VALUE %*.*s %u %u %llu\r\n",
+                        fsm->key.size, fsm->key.size, fsm->key.contents,
+                        fsm->value.mcflags(),
+                        fsm->value.value_size(),
+                        fsm->value.cas());
+                    sbuf->append(fsm->value.value(), fsm->value.value_size());
+                    sbuf->printf("\r\n");
+                    break;
+                case btree_get_cas_fsm_t::S_NOT_FOUND:
+                    get_cpu_context()->worker->get_misses++;
+                    break;
+                default:
+                    assert(0);
+                    break;
             }
         }
         sbuf->printf(RETRIEVE_TERMINATOR);
@@ -341,11 +354,17 @@ public:
     }
         
     void build_response(typename conn_fsm_t::linked_buf_t *sbuf) {
-        if(fsm->op_result == btree_delete_fsm_t::btree_found) {
-            sbuf->printf(DELETE_SUCCESS);
-        } else if (fsm->op_result == btree_delete_fsm_t::btree_not_found) {
-            sbuf->printf(NOT_FOUND);
-        } else fail("Bad btree result.");
+        switch (fsm->status_code) {
+            case btree_delete_fsm_t::S_DELETED:
+                sbuf->printf(DELETE_SUCCESS);
+                break;
+            case btree_delete_fsm_t::S_NOT_FOUND:
+                sbuf->printf(NOT_FOUND);
+                break;
+            default:
+                assert(0);
+                break;
+        }
     }
 
 private:

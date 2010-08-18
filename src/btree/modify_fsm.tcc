@@ -302,10 +302,8 @@ typename btree_modify_fsm<config_t>::transition_result_t btree_modify_fsm<config
                     // We've found the old value, or determined that it is not
                     // present or expired; now compute the new value.
                     if (key_found) {
-                        op_result = btree_found;
                         update_needed = operate(&u.old_value, &new_value);
                     } else {
-                        op_result = btree_not_found;
                         update_needed = operate(NULL, &new_value);
                     }
 

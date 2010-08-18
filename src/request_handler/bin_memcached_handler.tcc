@@ -92,14 +92,20 @@ public:
     }
     
     br_result_t build_response(packet_t *res_pkt) {
-        if(fsm->op_result == btree_get_fsm_t::btree_found) {
-            get_cpu_context()->worker->get_hits++;
-            res_pkt->status(bin_memcached_handler_t<config_t>::bin_status_no_error);
-            res_pkt->set_value(&fsm->value);
-            res_pkt->set_extras(extra_flags, extra_flags_length);
-        } else {
-            get_cpu_context()->worker->get_misses++;
-            res_pkt->status(bin_memcached_handler_t<config_t>::bin_status_key_not_found);
+        switch (fsm->status_code) {
+            case btree_get_fsm_t::S_SUCCESS:
+                get_cpu_context()->worker->get_hits++;
+                res_pkt->status(bin_memcached_handler_t<config_t>::bin_status_no_error);
+                res_pkt->set_value(&fsm->value);
+                res_pkt->set_extras(extra_flags, extra_flags_length);
+                break;
+            case btree_get_fsm_t::S_NOT_FOUND:
+                get_cpu_context()->worker->get_misses++;
+                res_pkt->status(bin_memcached_handler_t<config_t>::bin_status_key_not_found);
+                break;
+            default:
+                assert(0);
+                break;
         }
 
         //check if the packet requires that a key be sent back
@@ -265,10 +271,16 @@ public:
     }
     
     br_result_t build_response(packet_t *res_pkt) {
-        if(fsm->op_result == btree_delete_fsm_t::btree_found) {
-            res_pkt->status(bin_memcached_handler_t<config_t>::bin_status_no_error);
-        } else {
-            res_pkt->status(bin_memcached_handler_t<config_t>::bin_status_key_not_found);
+        switch (fsm->status_code) {
+            case btree_delete_fsm_t::S_DELETED:
+                res_pkt->status(bin_memcached_handler_t<config_t>::bin_status_no_error);
+                break;
+            case btree_delete_fsm_t::S_NOT_FOUND:
+                res_pkt->status(bin_memcached_handler_t<config_t>::bin_status_key_not_found);
+                break;
+            default:
+                assert(0);
+                break;
         }
         return br_done;
     }

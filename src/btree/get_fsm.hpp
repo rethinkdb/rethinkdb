@@ -27,11 +27,6 @@ public:
         lookup_complete
     };
 
-    enum op_result_t {
-        btree_found,
-        btree_not_found
-    };
-
 public:
     explicit btree_get_fsm(btree_key *_key)
         : btree_fsm_t(_key),
@@ -43,9 +38,6 @@ public:
     virtual bool is_finished() { return state == lookup_complete; }
 
 public:
-    /* When the FSM is finished, op_result will indicate whether the key was found and value will
-    contain the result. */
-    op_result_t op_result;
     union {
         char value_memory[MAX_TOTAL_NODE_CONTENTS_SIZE+sizeof(btree_value)];
         btree_value value;

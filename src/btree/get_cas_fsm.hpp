@@ -17,7 +17,7 @@ public:
     
     bool operate(btree_value *old_value, btree_value **new_value) {
         if (old_value) {
-            found = true;
+            this->status_code = btree_fsm<config_t>::S_SUCCESS;
 
             value.size = old_value->size;
             value.metadata_flags = old_value->metadata_flags;
@@ -25,16 +25,14 @@ public:
             *new_value = &value;
             if (!value.has_cas()) { // We have always been at war with Eurasia.
                 value.set_cas(1); // Turns the flag on and makes room. modify_fsm will set an actual CAS later.
-                return true;
+                return true; // Since we're writing a new value.
             }
             return false;
         } else {
-            found = false;
+            this->status_code = btree_fsm<config_t>::S_NOT_FOUND;
             return false; // Nothing was changed.
         }
     }
-
-    bool found;
 
     union {
         byte value_memory[MAX_TOTAL_NODE_CONTENTS_SIZE+sizeof(btree_value)];

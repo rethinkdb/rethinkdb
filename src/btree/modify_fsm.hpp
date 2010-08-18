@@ -28,12 +28,6 @@ public:
         committing
     };
 
-    enum op_result_t {
-        btree_incomplete,
-        btree_found,
-        btree_not_found
-    };
-
 public:
     explicit btree_modify_fsm(btree_key *_key)
         : btree_fsm_t(_key),
@@ -41,8 +35,7 @@ public:
           sb_buf(NULL), buf(NULL), last_buf(NULL), sib_buf(NULL),
           node_id(NULL_BLOCK_ID), last_node_id(NULL_BLOCK_ID), sib_node_id(NULL_BLOCK_ID),
           have_computed_new_value(false), new_value(NULL),
-          update_needed(false),
-          op_result(btree_incomplete)
+          update_needed(false)
         {}
 
     transition_result_t do_transition(event_t *event);
@@ -89,9 +82,6 @@ public:
 
 private:
     bool update_needed;
-
-public:
-    op_result_t op_result;
 
 public: // from delete_fsm:
     //buf_t *sib_buf;

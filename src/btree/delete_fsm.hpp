@@ -20,8 +20,12 @@ public:
     bool operate(btree_value *old_value, btree_value **new_value) {
     	// TODO: Joe, add stats here
         // If the key didn't exist before, we fail
+        if (!old_value) {
+            this->status_code = btree_fsm<config_t>::S_NOT_FOUND;
+            return false;
+        }
         *new_value = NULL;
-        if (!old_value) return false;
+        this->status_code = btree_fsm<config_t>::S_DELETED; // XXX Should this just be S_SUCCESS?
         return true;
     }
 };

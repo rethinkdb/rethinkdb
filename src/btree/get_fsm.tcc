@@ -52,7 +52,7 @@ typename btree_get_fsm<config_t>::transition_result_t btree_get_fsm<config_t>::d
     if(node_id == NULL_BLOCK_ID) {
         last_buf->release();
         last_buf = NULL;
-        op_result = btree_not_found;
+        this->status_code = btree_fsm<config_t>::S_NOT_FOUND;
         state = lookup_complete;
         return btree_fsm_t::transition_ok;
     }
@@ -120,7 +120,7 @@ typename btree_get_fsm<config_t>::transition_result_t btree_get_fsm<config_t>::d
             delete_expired<config_t>(&key);
             found = false;
         }
-        op_result = found ? btree_found : btree_not_found;
+        this->status_code = found ? btree_fsm<config_t>::S_SUCCESS : btree_fsm<config_t>::S_NOT_FOUND;
         return btree_fsm_t::transition_ok;
     }
 }
