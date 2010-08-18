@@ -306,7 +306,9 @@ bool internal_node_handler::is_underfull(btree_internal_node *node) {
 #endif
     return (sizeof(btree_internal_node) + 1) / 2 + 
         node->npairs*sizeof(*node->pair_offsets) +
-        (BTREE_BLOCK_SIZE - node->frontmost_offset) + MAX_KEY_SIZE/2 < BTREE_BLOCK_SIZE / 2;
+        (BTREE_BLOCK_SIZE - node->frontmost_offset) +
+        /* EPSILON */
+        (sizeof(btree_key) + MAX_KEY_SIZE + sizeof(block_id_t)) / 2 < BTREE_BLOCK_SIZE / 2;
 }
 
 bool internal_node_handler::is_mergable(btree_internal_node *node, btree_internal_node *sibling, btree_internal_node *parent) {
