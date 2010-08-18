@@ -71,10 +71,10 @@
 
 // Maximum number of CPUs we support
 // TODO: make this dynamic where possible
-#define MAX_CPUS                                  16
+#define MAX_CPUS                                  32
 
 // Maximum slices per thread
-#define MAX_SLICES                                16
+#define MAX_SLICES                                32
 
 #define DEFAULT_SLICES                            4
 

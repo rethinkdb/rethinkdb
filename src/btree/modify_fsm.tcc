@@ -340,7 +340,7 @@ typename btree_modify_fsm<config_t>::transition_result_t btree_modify_fsm<config
         }
         //  STEP 3: Check to see if it's underfull
 
-        /*  But before we check if it's underfull, we need to do some deleting
+        /*  But before we check if it's underfull, we need to do some updating
          *  if we're at a leaf node and operate() told us to.
          */
         if (update_needed) {

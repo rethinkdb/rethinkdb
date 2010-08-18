@@ -261,7 +261,9 @@ bool leaf_node_handler::is_underfull(btree_leaf_node *node) {
 #endif
     return (sizeof(btree_leaf_node) + 1) / 2 + 
         node->npairs*sizeof(*node->pair_offsets) +
-        (BTREE_BLOCK_SIZE - node->frontmost_offset) < BTREE_BLOCK_SIZE / 2;
+        (BTREE_BLOCK_SIZE - node->frontmost_offset) + 
+        /* EPSILON: this guaruntees that a node is not underfull directly following a split */
+        (sizeof(btree_key) + MAX_KEY_SIZE + sizeof(btree_value) + MAX_TOTAL_NODE_CONTENTS_SIZE) / 2 < BTREE_BLOCK_SIZE / 2;
 }
 
 size_t leaf_node_handler::pair_size(btree_leaf_pair *pair) {
@@ -352,17 +354,20 @@ int leaf_node_handler::nodecmp(btree_leaf_node *node1, btree_leaf_node *node2) {
 }
 
 void leaf_node_handler::print(btree_leaf_node *node) {
+    printf("\n\n\n");
     for (int i = 0; i < node->npairs; i++) {
         btree_leaf_pair *pair = get_pair(node, node->pair_offsets[i]);
         printf("|\t");
         pair->key.print();
     }
     printf("|\n");
+    printf("\n\n\n");
     for (int i = 0; i < node->npairs; i++) {
         btree_leaf_pair *pair = get_pair(node, node->pair_offsets[i]);
         printf("|\t");
         pair->value()->print();
     }
     printf("|\n");
+    printf("\n\n\n");
 }
 #endif // __BTREE_LEAF_NODE_TCC__
