@@ -141,29 +141,32 @@ typename btree_get_fsm<config_t>::transition_result_t btree_get_fsm<config_t>::d
               event->result == -1);
     }
     
-    // First, acquire the superblock (to get root node ID)
-    if(res == btree_fsm_t::transition_ok && state == acquire_superblock) {
-        res = do_acquire_superblock(event);
-        event = NULL;
-    }
-        
-    // Then, acquire the root block
-    if(res == btree_fsm_t::transition_ok && state == acquire_root) {
-        res = do_acquire_root(event);
-        event = NULL;
-    }
-        
-    // Then, acquire the nodes, until we hit the leaf
-    while(res == btree_fsm_t::transition_ok && state == acquire_node) {
-        res = do_acquire_node(event);
-        event = NULL;
-    }
+    while (res == btree_fsm_t::transition_ok) {
+        switch (state) {
+            // First, acquire the superblock (to get root node ID)
+            case acquire_superblock:
+                res = do_acquire_superblock(event);
+                break;
 
-    // Finally, end our transaction.  This should always succeed immediately.
-    if (res == btree_fsm_t::transition_ok && state == lookup_complete) {
-        bool committed __attribute__((unused)) = transaction->commit(NULL);
-        assert(committed); /* Read-only commits always finish immediately. */
-        res = btree_fsm_t::transition_complete;
+            // Then, acquire the root block
+            case acquire_root:
+                res = do_acquire_root(event);
+                break;
+
+            // Then, acquire the nodes, until we hit the leaf
+            case acquire_node:
+                res = do_acquire_node(event);
+                break;
+
+            // Finally, end our transaction.  This should always succeed immediately.
+            case lookup_complete: {
+                bool committed __attribute__((unused)) = transaction->commit(NULL);
+                assert(committed); /* Read-only commits always finish immediately. */
+                res = btree_fsm_t::transition_complete;
+                break;
+           }
+        }
+        event = NULL;
     }
 
     return res;
