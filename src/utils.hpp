@@ -60,6 +60,12 @@ class gnew_alloc;
 // Fast string compare
 int sized_strcmp(const char *str1, int len1, const char *str2, int len2);
 
+static inline void swap(void **x, void **y) {
+    void *tmp = *x;
+    *x = *y;
+    *y = tmp;
+}
+
 // Buffer
 template <int _size>
 struct buffer_base_t

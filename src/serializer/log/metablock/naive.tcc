@@ -10,6 +10,7 @@ naive_metablock_manager_t<metablock_t>::naive_metablock_manager_t(extent_manager
     
     assert(sizeof(crc_metablock_t) <= DEVICE_BLOCK_SIZE);
     mb_buffer = (crc_metablock_t *)malloc_aligned(DEVICE_BLOCK_SIZE, DEVICE_BLOCK_SIZE);
+    mb_buffer_last = (crc_metablock_t *)malloc_aligned(DEVICE_BLOCK_SIZE, DEVICE_BLOCK_SIZE);
     assert(mb_buffer);
 #ifndef NDEBUG
     memset(mb_buffer, 0xBD, DEVICE_BLOCK_SIZE);   // Happify Valgrind
@@ -60,7 +61,9 @@ bool naive_metablock_manager_t<metablock_t>::start(fd_t fd, bool *mb_found, meta
         
         assert(!mb_buffer_in_use);
         mb_buffer_in_use = true;
-        
+
+        version = -1;
+
         event_queue_t *queue = get_cpu_context()->event_queue;
         queue->iosys.schedule_aio_read(dbfd, 0, DEVICE_BLOCK_SIZE, mb_buffer, queue, this);
         
@@ -89,7 +92,7 @@ bool naive_metablock_manager_t<metablock_t>::write_metablock(metablock_t *mb, me
         queue,
         this);
 
-    //mb_written++;
+    mb_written++;
     mb_buffer->version++;
 
     state = state_writing;
@@ -110,12 +113,37 @@ void naive_metablock_manager_t<metablock_t>::on_io_complete(event_t *e) {
     switch(state) {
     
     case state_reading:
-        state = state_ready;
-        memcpy(mb_out, &(mb_buffer->metablock), sizeof(metablock_t));
-        mb_buffer_in_use = false;
-        if (read_callback) read_callback->on_metablock_read();
-        read_callback = NULL;
-        break;
+        //if (mb_buffer->check_crc()) {
+            if (mb_buffer->version > version && mb_buffer->check_crc()) {
+                /* this metablock is good, maybe there are more? */
+                version = mb_buffer->version;
+                mb_written++;
+                /* mb_buffer_last = mb_buffer and give mb_buffer mb_buffer_last's space so no realloc */
+                swap((void **) &mb_buffer_last, (void **) &mb_buffer);
+                event_queue_t *queue = get_cpu_context()->event_queue;
+                queue->iosys.schedule_aio_read(dbfd, DEVICE_BLOCK_SIZE * mb_written, DEVICE_BLOCK_SIZE, mb_buffer, queue, this);
+                break;
+            } else {
+                /* version smaller than the one we just had, yahtzee */
+                swap((void **) &mb_buffer_last, (void **) &mb_buffer);
+                free(mb_buffer_last); 
+                mb_buffer_last = NULL;
+
+                /* set everything up */
+                version = -1; /* version is now useless */
+                state = state_ready;
+                memcpy(mb_out, &(mb_buffer->metablock), sizeof(metablock_t));
+                mb_buffer_in_use = false;
+                if (read_callback) read_callback->on_metablock_read();
+                read_callback = NULL;
+                break;
+            }
+        //} else {
+        //    mb_written++;
+        //    event_queue_t *queue = get_cpu_context()->event_queue;
+        //    queue->iosys.schedule_aio_read(dbfd, DEVICE_BLOCK_SIZE * mb_written, DEVICE_BLOCK_SIZE, mb_buffer, queue, this);
+        //    break;
+        //}
         
     case state_writing:
         state = state_ready;

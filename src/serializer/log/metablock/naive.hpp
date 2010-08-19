@@ -11,6 +11,8 @@
 #define mb_marker_crc       "crc:"
 #define mb_marker_version   "version:"
 
+#define nextents 4 /* !< number of extents must be HARD coded */
+
 /* TODO support multiple concurrent writes */
 
 template<class metablock_t>
@@ -29,10 +31,11 @@ private:
 #ifdef SERIALIZER_MARKERS
         char version_marker[sizeof(mb_marker_crc)];
 #endif
-        uint64_t            version;
-        metablock_t         metablock;
+        int             version;
+        metablock_t     metablock;
     public:
         uint32_t crc() {
+            //TODO this doesn't do the version
             //assert(sizeof(poly) == sizeof(_crc)); /* !< is this really necessary, if it is we should have 2 potential polynomials */
             boost::crc_optimal<32, 0x04C11DB7, 0xFFFFFFFF, 0xFFFFFFFF, true, true> crc_computer;
             crc_computer.process_bytes(&metablock, sizeof(metablock));
@@ -77,7 +80,10 @@ private:
     void on_io_complete(event_t *e);
     
     crc_metablock_t *mb_buffer;
-    bool mb_buffer_in_use;
+    bool            mb_buffer_in_use;   /* !< true: we're using the buffer, no one else can */
+private:
+    crc_metablock_t *mb_buffer_last;    /* the last metablock we read */
+    int             version;            /* !< only used during boot up */
     
     extent_manager_t *extent_manager;
     
