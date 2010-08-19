@@ -320,7 +320,8 @@ public:
             case btree_append_prepend_fsm_t::S_SUCCESS:
                 sbuf->printf(STORAGE_SUCCESS);
                 break;
-            case btree_append_prepend_fsm_t::S_NOT_STORED:
+            case btree_append_prepend_fsm_t::S_NOT_FOUND:
+                // memcached pronounces this "NOT_STORED"
                 sbuf->printf(STORAGE_FAILURE);
                 break;
             default:
