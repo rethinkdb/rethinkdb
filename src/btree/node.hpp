@@ -4,7 +4,6 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
-#include <assert.h>
 #include "utils.hpp"
 #include "arch/resource.hpp"
 

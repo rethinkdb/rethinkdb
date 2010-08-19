@@ -93,8 +93,10 @@ worker_t::worker_t(int _workerid, int _nqueues,
     nworkers = _nqueues;
     workerid = _workerid;
     nslices = cmd_config->n_slices;
-
-    mkdir(DATA_DIRECTORY, 0777);
+    
+    if (strncmp(cmd_config->db_file_name, DATA_DIRECTORY, strlen(DATA_DIRECTORY)) == 0) {
+        mkdir(DATA_DIRECTORY, 0777);
+    }
 
     for (int i = 0; i < nslices; i++) {
         char name[MAX_DB_FILE_NAME];

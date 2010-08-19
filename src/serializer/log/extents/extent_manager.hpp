@@ -2,7 +2,7 @@
 #ifndef __SERIALIZER_LOG_EXTENT_MANAGER_HPP__
 #define __SERIALIZER_LOG_EXTENT_MANAGER_HPP__
 
-#include <assert.h>
+#include "utils.hpp"
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>

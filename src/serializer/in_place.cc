@@ -1,7 +1,7 @@
 #include "serializer/in_place.hpp"
 
 #include <sys/types.h>
-#include <assert.h>
+#include "utils.hpp"
 #include "config/cmd_args.hpp"
 #include "config/code.hpp"
 #include "arch/io.hpp"

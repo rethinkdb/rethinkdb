@@ -4,7 +4,7 @@
 
 #include <libaio.h>
 #include <vector>
-#include <assert.h>
+#include "utils.hpp"
 #include "config/args.hpp"
 #include "config/code.hpp"
 #include "utils.hpp"

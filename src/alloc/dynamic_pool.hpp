@@ -3,7 +3,6 @@
 #define __DYNAMIC_POOL_ALLOC_HPP__
 
 #include <math.h>
-#include <assert.h>
 #include "config/args.hpp"
 #include "utils.hpp"
 

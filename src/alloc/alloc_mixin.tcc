@@ -2,10 +2,9 @@
 #ifndef __ALLOC_MIXIN_TCC__
 #define __ALLOC_MIXIN_TCC__
 
-#include <assert.h>
+#include "utils.hpp"
 #ifndef NDEBUG
 #include <typeinfo>
-#include <cxxabi.h>
 #endif
 
 /**
@@ -44,10 +43,11 @@ void alloc_mixin_t<accessor_t, type_t>::operator delete(void *ptr) {
     bool multithreaded_allocator_misused = (tmp[-1] != accessor_t::template get_alloc<type_t>());
     if (multithreaded_allocator_misused)
     {
-        int res;
-        printf("You tried to delete an object of type [ %s ] from the wrong core.\n",
-               abi::__cxa_demangle(typeid((type_t*)&tmp[-1]).name(), 0, 0, &res));
-        exit(1);
+        const char *mangled_name = typeid((type_t*)&tmp[-1]).name();
+        char *demangled_name = demangle_cpp_name(mangled_name);
+        const char *name = demangled_name ? demangled_name : mangled_name;
+        fail("You tried to delete an object of type [ %s ] from the wrong core.\n", name);
+        // Here we would free demangled_name, except that fail() never returns so we never get here
     }
     
     accessor_t::template get_alloc<type_t>()->free((void*)&tmp[-1]);
