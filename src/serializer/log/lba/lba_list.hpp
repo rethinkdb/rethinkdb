@@ -110,15 +110,39 @@ private:
     fd_t dbfd;
     
     enum block_state_t {
-        block_unused,
-        block_in_limbo,
-        block_used
+        // block_state_t is limited to two bits in block_info_t
+        block_unused   = 0,
+        block_in_limbo = 1,
+        block_used     = 2
     };
     
     struct block_info_t {
-        bool found;   // During startup, this is false on the blocks that we still need entries for
-        block_state_t state;
-        off64_t offset;   // If state == block_used, the location of the block in the file
+    public:
+        bool is_found() {
+            return found;
+        }
+        void set_found(bool _found) {
+            found = _found;
+        }
+        
+        block_state_t get_state() {
+            return state;
+        }
+        void set_state(block_state_t _state) {
+            state = _state;
+        }
+
+        off64_t get_offset() {
+            return offset;
+        }
+        void set_offset(off64_t _offset) {
+            offset = _offset;
+        }
+
+    private:
+        int found            : 1;   // During startup, this is false on the blocks that we still need entries for
+        block_state_t state  : 2;
+        off64_t offset       : 61;  // If state == block_used, the location of the block in the file
     };
     segmented_vector_t<block_info_t, MAX_BLOCK_ID> blocks;
     

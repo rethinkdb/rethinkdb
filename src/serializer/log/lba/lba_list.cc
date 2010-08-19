@@ -42,8 +42,8 @@ void lba_list_t::start(fd_t fd) {
     // correct ID for the superblock)
     assert(SUPERBLOCK_ID == 0);
     blocks.set_size(1);
-    blocks[SUPERBLOCK_ID].found = true;
-    blocks[SUPERBLOCK_ID].state = block_in_limbo;
+    blocks[SUPERBLOCK_ID].set_found(true);
+    blocks[SUPERBLOCK_ID].set_state(block_in_limbo);
     
     state = state_ready;
 }
@@ -86,7 +86,7 @@ struct lba_start_fsm_t :
         
         owner->blocks.set_size(last_metablock->highest_block_id_plus_one);
         for (block_id_t i = 0; i < owner->blocks.get_size(); i ++) {
-            owner->blocks[i].found = false;
+            owner->blocks[i].set_found(false);
         }
         num_blocks_yet_to_be_found = owner->blocks.get_size();
         
@@ -152,13 +152,13 @@ struct lba_start_fsm_t :
                 
                 // If it's an entry for a block we haven't seen before, then record its information
                 block_info_t *binfo = &owner->blocks[entry->block_id];
-                if (!binfo->found) {
-                    binfo->found = true;
+                if (!binfo->is_found()) {
+                    binfo->set_found(true);
                     if (entry->offset == DELETE_BLOCK) {
-                        binfo->state = lba_list_t::block_unused;
+                        binfo->set_state(lba_list_t::block_unused);
                     } else {
-                        binfo->state = lba_list_t::block_used;
-                        binfo->offset = entry->offset;
+                        binfo->set_state(lba_list_t::block_used);
+                        binfo->set_offset(entry->offset);
                     }
                     num_blocks_yet_to_be_found --;
                     assert(num_blocks_yet_to_be_found >= 0);
@@ -229,10 +229,10 @@ block_id_t lba_list_t::gen_block_id() {
     // Naive linear search through array looking for deleted block IDs we can recycle
     // TODO: Implement a free-list. Initialize it when the LBA is loaded (don't write it to disk)
     for (block_id_t id = 0; id < blocks.get_size(); id ++) {
-        if (blocks[id].state == block_unused) {
+        if (blocks[id].get_state() == block_unused) {
             // Prevent subsequent searches through array from returning the same block ID again,
             // until it is freed or the server restarts
-            blocks[id].state = block_in_limbo;
+            blocks[id].set_state(block_in_limbo);
             return id;
         }
     }
@@ -240,8 +240,8 @@ block_id_t lba_list_t::gen_block_id() {
     // We didn't find a recyclable block id
     block_id_t id = blocks.get_size();
     blocks.set_size(blocks.get_size() + 1);
-    blocks[id].found = true;
-    blocks[id].state = block_in_limbo;
+    blocks[id].set_found(true);
+    blocks[id].set_state(block_in_limbo);
     return id;
 }
 
@@ -249,8 +249,8 @@ off64_t lba_list_t::get_block_offset(block_id_t block) {
     
     assert(state == state_ready);
     
-    assert(blocks[block].state == block_used);
-    return blocks[block].offset;
+    assert(blocks[block].get_state() == block_used);
+    return blocks[block].get_offset();
 }
 
 /* We allocate temporary storage for the LBA blocks we are writing in the form of lba_extent_buf_t.
@@ -440,26 +440,26 @@ void lba_list_t::set_block_offset(block_id_t block, off64_t offset) {
     assert(offset != DELETE_BLOCK);   // Watch out for collisions with the magic value
     
     // Blocks must be returned by gen_block_id() before they are legal to use
-    assert(blocks[block].state != block_unused);
+    assert(blocks[block].get_state() != block_unused);
     
-    blocks[block].state = block_used;
-    blocks[block].offset = offset;
+    blocks[block].set_state(block_used);
+    blocks[block].set_offset(offset);
     
     make_entry_in_extent(block, offset);
 }
 
 void lba_list_t::delete_block(block_id_t block) {
     
-    assert(blocks[block].state != block_unused);
+    assert(blocks[block].get_state() != block_unused);
     
-    if (blocks[block].state == block_in_limbo) {
+    if (blocks[block].get_state() == block_in_limbo) {
         
         // Block ID allocated, but deleted before first write. We don't need to go to disk.
-        blocks[block].state = block_unused;
+        blocks[block].set_state(block_unused);
     
     } else {
     
-        blocks[block].state = block_unused;
+        blocks[block].set_state(block_unused);
         make_entry_in_extent(block, DELETE_BLOCK);
     }
 }

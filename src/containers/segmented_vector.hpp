@@ -37,6 +37,9 @@ public:
         return size;
     }
     
+    // Note: sometimes elements will be initialized before you ask the
+    // array to grow to that size (e.g. one hundred elements might be
+    // initialized eventhough the array might be of size 1).
     void set_size(size_t new_size) {
         
         assert(new_size <= max_size);
