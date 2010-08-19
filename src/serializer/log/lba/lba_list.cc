@@ -17,7 +17,7 @@
 static const char lba_magic[LBA_MAGIC_SIZE] = {'l', 'b', 'a', 'm', 'a', 'g', 'i', 'c'};
 
 lba_list_t::lba_list_t(extent_manager_t *em)
-    : extent_manager(em), state(state_unstarted), last_write(NULL)
+    : extent_manager(em), state(state_unstarted), last_write(NULL), next_free_id(NULL_BLOCK_ID)
     {}
 
 lba_list_t::~lba_list_t() {
@@ -173,9 +173,25 @@ struct lba_start_fsm_t :
         
         if (state == state_finish) {
             state = state_done;
-            
+
             assert(owner->state == lba_list_t::state_starting_up);
             owner->state = lba_list_t::state_ready;
+
+            // Now that we're finished loading the lba blocks, go
+            // through the ids and create a freelist of unused ids so
+            // that we can recycle and reuse them (this is necessary
+            // because the system depends on the id space being
+            // dense). We're doing another pass here, and it sucks,
+            // but will do for first release. TODO: fix the lba system
+            // to avoid O(n) algorithms on startup.
+            for (block_id_t id = 0; id < owner->blocks.get_size(); id ++) {
+                if (owner->blocks[id].get_state() == lba_list_t::block_unused) {
+                    // Add the unused block to the freelist
+                    owner->blocks[id].set_next_free_id(owner->next_free_id);
+                    owner->next_free_id = id;
+                }
+            }
+            
             
             if (callback) callback->on_lba_ready();
             
@@ -226,23 +242,21 @@ block_id_t lba_list_t::gen_block_id() {
     
     assert(state == state_ready);
     
-    // Naive linear search through array looking for deleted block IDs we can recycle
-    // TODO: Implement a free-list. Initialize it when the LBA is loaded (don't write it to disk)
-    for (block_id_t id = 0; id < blocks.get_size(); id ++) {
-        if (blocks[id].get_state() == block_unused) {
-            // Prevent subsequent searches through array from returning the same block ID again,
-            // until it is freed or the server restarts
-            blocks[id].set_state(block_in_limbo);
-            return id;
-        }
+    if(next_free_id == NULL_BLOCK_ID) {
+        // There is no recyclable block id
+        block_id_t id = blocks.get_size();
+        blocks.set_size(blocks.get_size() + 1);
+        blocks[id].set_found(true);
+        blocks[id].set_state(block_in_limbo);
+        return id;
+    } else {
+        // Grab a recyclable id from the freelist
+        block_id_t id = next_free_id;
+        assert(blocks[id].get_state() == block_unused);
+        next_free_id = blocks[id].get_next_free_id();
+        blocks[id].set_state(block_in_limbo);
+        return id;
     }
-    
-    // We didn't find a recyclable block id
-    block_id_t id = blocks.get_size();
-    blocks.set_size(blocks.get_size() + 1);
-    blocks[id].set_found(true);
-    blocks[id].set_state(block_in_limbo);
-    return id;
 }
 
 off64_t lba_list_t::get_block_offset(block_id_t block) {
@@ -453,15 +467,16 @@ void lba_list_t::delete_block(block_id_t block) {
     assert(blocks[block].get_state() != block_unused);
     
     if (blocks[block].get_state() == block_in_limbo) {
-        
         // Block ID allocated, but deleted before first write. We don't need to go to disk.
         blocks[block].set_state(block_unused);
-    
     } else {
-    
         blocks[block].set_state(block_unused);
         make_entry_in_extent(block, DELETE_BLOCK);
     }
+
+    // Add the unused block to the freelist
+    blocks[block].set_next_free_id(next_free_id);
+    next_free_id = block;
 }
 
 bool lba_list_t::sync(sync_callback_t *cb) {

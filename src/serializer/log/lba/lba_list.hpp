@@ -133,16 +133,30 @@ private:
         }
 
         off64_t get_offset() {
+            assert(get_state() == block_used);
             return offset;
         }
         void set_offset(off64_t _offset) {
+            assert(get_state() == block_used);
             offset = _offset;
         }
 
+        block_id_t get_next_free_id() {
+            assert(get_state() == block_unused);
+            return next_free_id;
+        }
+        void set_next_free_id(block_id_t _id) {
+            assert(get_state() == block_unused);
+            next_free_id = _id;
+        }
+
     private:
-        int found            : 1;   // During startup, this is false on the blocks that we still need entries for
-        block_state_t state  : 2;
-        off64_t offset       : 61;  // If state == block_used, the location of the block in the file
+        int found                    : 1;   // During startup, this is false on the blocks that we still need entries for
+        block_state_t state          : 2;
+        union {
+            off64_t offset           : 61;  // If state == block_used, the location of the block in the file
+            block_id_t next_free_id  : 61;  // If state == block_unused, contains the id of the next free block
+        };
     };
     segmented_vector_t<block_info_t, MAX_BLOCK_ID> blocks;
     
@@ -153,6 +167,7 @@ private:
     int entries_in_last_extent;
     
     lba_write_t *last_write;
+    block_id_t next_free_id;
 };
 
 #endif /* __SERIALIZER_LOG_LBA_LIST_HPP__ */
