@@ -30,7 +30,6 @@ typename btree_modify_fsm<config_t>::transition_result_t btree_modify_fsm<config
 
     /* Determine our forward progress based on our new state. */
     if (transaction) {
-        state = acquire_superblock;
         return btree_fsm_t::transition_ok;
     } else {
         return btree_fsm_t::transition_incomplete; // Flush lock is held.
@@ -57,7 +56,6 @@ typename btree_modify_fsm<config_t>::transition_result_t btree_modify_fsm<config
         // cache notification). Grab the root id, and move on to
         // acquiring the root.
         node_id = ((btree_superblock_t*)sb_buf->ptr())->root_block;
-        state = acquire_root;
         return btree_fsm_t::transition_ok;
     } else {
         // Can't get the superblock buffer right away. Let's wait for
@@ -67,9 +65,10 @@ typename btree_modify_fsm<config_t>::transition_result_t btree_modify_fsm<config
 }
 
 template <class config_t>
-typename btree_modify_fsm<config_t>::transition_result_t btree_modify_fsm<config_t>::do_acquire_root(event_t *event)
-{
-    // If there is no root, insert one.
+typename btree_modify_fsm<config_t>::transition_result_t btree_modify_fsm<config_t>::do_acquire_root(event_t *event) {
+    assert(state == acquire_root);
+
+    // If there is no root, we make one.
     if(node_id == NULL_BLOCK_ID) {
         buf = transaction->allocate(&node_id);
         leaf_node_handler::init((leaf_node_t *)buf->ptr());
@@ -92,7 +91,6 @@ typename btree_modify_fsm<config_t>::transition_result_t btree_modify_fsm<config
         return btree_fsm_t::transition_incomplete;
     } else {
 //        node_handler::validate((node_t *)buf->ptr());
-        state = acquire_node;
         return btree_fsm_t::transition_ok;
     }
 }
@@ -103,7 +101,6 @@ void btree_modify_fsm<config_t>::insert_root(block_id_t root_id) {
     sb_buf->set_dirty();
     sb_buf->release();
     sb_buf = NULL;
-    state = acquire_node;
 }
 
 template <class config_t>
@@ -119,9 +116,9 @@ typename btree_modify_fsm<config_t>::transition_result_t btree_modify_fsm<config
     if(buf) {
 //        node_handler::validate((node_t *)buf->ptr());
         return btree_fsm_t::transition_ok;
-    }
-    else
+    } else {
         return btree_fsm_t::transition_incomplete;
+    }
 }
 
 template <class config_t>
@@ -130,17 +127,16 @@ typename btree_modify_fsm<config_t>::transition_result_t btree_modify_fsm<config
 
     if (!event) {
         assert(last_buf);
-        node_t *last_node = (node_t *)last_buf->ptr();
+        internal_node_t *last_node = (internal_node_t *)last_buf->ptr();
 
-        internal_node_handler::sibling(((internal_node_t*)last_node), &key, &sib_node_id);
+        internal_node_handler::sibling(last_node, &key, &sib_node_id);
         sib_buf = transaction->acquire(sib_node_id, rwi_write, this);
     } else {
         assert(event->buf);
         sib_buf = (buf_t*) event->buf;
     }
 
-    if(sib_buf) {
-        state = acquire_node;
+    if (sib_buf) {
         return btree_fsm_t::transition_ok;
     } else {
         return btree_fsm_t::transition_incomplete;
@@ -240,7 +236,7 @@ typename btree_modify_fsm<config_t>::transition_result_t btree_modify_fsm<config
 
     // Update the cache with the event
     if(event && event->event_type == et_cache) {
-        check("btree_delete _fsm::do_transition - invalid event", event->op != eo_read);
+        check("btree_modify_fsm::do_transition - invalid event", event->op != eo_read);
         check("Could not complete AIO operation",
               event->result == 0 ||
               event->result == -1);
@@ -249,46 +245,49 @@ typename btree_modify_fsm<config_t>::transition_result_t btree_modify_fsm<config
     while (res == btree_fsm_t::transition_ok) {
         switch (state) {
             // First, begin a transaction.
-            case start_transaction:
+            case start_transaction: {
                 res = do_start_transaction(event);
+                if (res == btree_fsm_t::transition_ok) state = acquire_superblock;
                 break;
-
+            }
             // Next, acquire the superblock (to get root node ID)
-            case acquire_superblock:
+            case acquire_superblock: {
                 assert(transaction); // We must have started our transaction by now.
                 res = do_acquire_superblock(event);
+                if (res == btree_fsm_t::transition_ok) state = acquire_root;
                 break;
-
+            }
             // Then, acquire the root block (or create it if it's missing)
-            case acquire_root:
+            case acquire_root: {
                 res = do_acquire_root(event);
+                if (res == btree_fsm_t::transition_ok) state = acquire_node;
                 break;
-
+            }
             // If the previously acquired node was underfull, we acquire a sibling to level or merge
-            case acquire_sibling:
+            case acquire_sibling: {
                 res = do_acquire_sibling(event);
+                if (res == btree_fsm_t::transition_ok) state = acquire_node;
                 break;
-
+            }
             // If we were acquiring a node, do that
             // Go up the tree...
-
             case acquire_node: {
                 if(!buf) {
                     res = do_acquire_node(event);
-                    if(res != btree_fsm_t::transition_ok || state != acquire_node) {
+                    if (res != btree_fsm_t::transition_ok) {
                         break;
                     }
                 }
 
                 node_t *node = (node_t *)buf->ptr();
-                
+
                 // STEP 1: Compute a new value.
                 if (node_handler::is_leaf(node) && !have_computed_new_value) {
                     union {
                         char value_memory[MAX_TOTAL_NODE_CONTENTS_SIZE+sizeof(btree_value)];
                         btree_value old_value;
                     } u;
-                    
+
                     bool key_found = leaf_node_handler::lookup((btree_leaf_node*)node, &key, &u.old_value);
 
                     expired = key_found && u.old_value.expired();
@@ -315,21 +314,16 @@ typename btree_modify_fsm<config_t>::transition_result_t btree_modify_fsm<config
                     // by convention, new_value will be NULL if we're doing a delete.
                     have_computed_new_value = true;
                 }
-                
+
                 // STEP 2: Check if it's overfull. If so we would need to do a split.
-                
                 if (update_needed || node_handler::is_internal(node)) { // Split internal nodes proactively.
                     bool new_root = do_check_for_split(&node);
                     if(new_root) {
                         insert_root(last_node_id);
                     }
-                    if(res != btree_fsm_t::transition_ok || state != acquire_node) {
-                        break;
-                    }
                 }
 
                 // STEP 3: Update if we're at a leaf node and operate() told us to.
-
                 if (update_needed) {
                    assert(have_computed_new_value);
                    assert(node_handler::is_leaf(node));
@@ -348,14 +342,12 @@ typename btree_modify_fsm<config_t>::transition_result_t btree_modify_fsm<config
                    buf->set_dirty();
                 }
 
-                //  STEP 4: Check to see if it's underfull, and merge/level if it is.
-
+                // STEP 4: Check to see if it's underfull, and merge/level if it is.
                 if (last_buf && node_handler::is_underfull(node)) { // the root node is never underfull
                     // merge or level.
                     if(!sib_buf) { // Acquire a sibling to merge or level with
                         //logf(DBG, "generic acquire sibling\n");
                         state = acquire_sibling;
-                        res = do_acquire_sibling(NULL);
                         break;
                     } else {
                         // Sibling acquired, now decide whether to merge or level
@@ -369,8 +361,8 @@ typename btree_modify_fsm<config_t>::transition_result_t btree_modify_fsm<config
                                 node_handler::merge(node, sib_node, key_to_remove, parent_node);
                                 buf->release(); //TODO delete when api is ready
                                 buf = sib_buf;
-                                buf->set_dirty();
                                 node_id = sib_node_id;
+                                buf->set_dirty();
                             } else {
                                 node_handler::merge(sib_node, node, key_to_remove, parent_node);
                                 sib_buf->release(); //TODO delete when api is ready
@@ -386,6 +378,7 @@ typename btree_modify_fsm<config_t>::transition_result_t btree_modify_fsm<config
                                 // parent has only 1 key (which means it is also the root), replace it with the node
                                 // when we get here node_id should be the id of the new root
                                 insert_root(node_id);
+                                assert(state == acquire_node);
                                 break;
                             }
                         } else {
@@ -406,7 +399,7 @@ typename btree_modify_fsm<config_t>::transition_result_t btree_modify_fsm<config
                             sib_buf->release();
                             sib_buf = NULL;
                         }
-                    }                   
+                    }
                 }
 
                 // Release the superblock, if we haven't already.
@@ -438,7 +431,7 @@ typename btree_modify_fsm<config_t>::transition_result_t btree_modify_fsm<config
                 assert(node_id != NULL_BLOCK_ID);
                 assert(node_id != SUPERBLOCK_ID);
 
-                assert(state == acquire_node);
+                assert(state == acquire_node && res == btree_fsm_t::transition_ok);
                 buf = NULL;
                 break;
             }
@@ -464,7 +457,7 @@ typename btree_modify_fsm<config_t>::transition_result_t btree_modify_fsm<config
 
             // Finalize the transaction commit
             case committing:
-                if (event != NULL) {
+                if (event) {
                     assert(event->event_type == et_commit);
                     assert(event->buf == transaction);
                     transaction = NULL;
@@ -472,6 +465,8 @@ typename btree_modify_fsm<config_t>::transition_result_t btree_modify_fsm<config
                 }
                 break;
         }
+        // We're done with one step, but we may be able to go to the next one
+        // without getting a new event.
         event = NULL;
     }
 

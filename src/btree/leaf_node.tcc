@@ -230,6 +230,7 @@ bool leaf_node_handler::is_full(btree_leaf_node *node, btree_key *key, btree_val
     // the new key value pair
     // TODO: Account for the possibility that the key is already present, in which case we can
     // reuse that space.
+    assert(value);
     return sizeof(btree_leaf_node) + (node->npairs + 1)*sizeof(*node->pair_offsets) +
         sizeof(btree_leaf_pair) + key->size + value->mem_size() >=
         node->frontmost_offset;
