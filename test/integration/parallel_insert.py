@@ -5,7 +5,7 @@ import memcache
 from random import shuffle
 import os
 
-NUM_INTS=8000
+NUM_INTS=80000
 NUM_THREADS=32
 NUMSTR = "%d"
 

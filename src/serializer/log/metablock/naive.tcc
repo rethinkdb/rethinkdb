@@ -3,17 +3,23 @@
 
 template<class metablock_t>
 naive_metablock_manager_t<metablock_t>::naive_metablock_manager_t(extent_manager_t *em)
-    : extent_manager(em), state(state_unstarted), dbfd(INVALID_FD) {
+    : mb_written(0), extent(0), extent_manager(em), state(state_unstarted), dbfd(INVALID_FD) {
     
     // Reserve the beginning of the file for the metablock
     extent_manager->reserve_extent(0);
     
-    assert(sizeof(metablock_t) <= DEVICE_BLOCK_SIZE);
-    mb_buffer = (metablock_t *)malloc_aligned(DEVICE_BLOCK_SIZE, DEVICE_BLOCK_SIZE);
+    assert(sizeof(crc_metablock_t) <= DEVICE_BLOCK_SIZE);
+    mb_buffer = (crc_metablock_t *)malloc_aligned(DEVICE_BLOCK_SIZE, DEVICE_BLOCK_SIZE);
     assert(mb_buffer);
 #ifndef NDEBUG
     memset(mb_buffer, 0xBD, DEVICE_BLOCK_SIZE);   // Happify Valgrind
 #endif
+#ifdef SERIALIZER_MARKERS
+    memcpy(mb_buffer->magic_marker, mb_marker_magic, strlen(mb_marker_magic));
+    memcpy(mb_buffer->crc_marker, mb_marker_crc, strlen(mb_marker_crc));
+    memcpy(mb_buffer->version_marker, mb_marker_version, strlen(mb_marker_version));
+#endif
+    mb_buffer->set_crc();
     mb_buffer_in_use = false;
 }
 
@@ -43,6 +49,7 @@ bool naive_metablock_manager_t<metablock_t>::start(fd_t fd, bool *mb_found, meta
     if (is_new_database) {
         
         *mb_found = false;
+        mb_buffer->version = 0;
         state = state_ready;
         return true;
     
@@ -69,18 +76,22 @@ bool naive_metablock_manager_t<metablock_t>::write_metablock(metablock_t *mb, me
     assert(state == state_ready);
     
     assert(!mb_buffer_in_use);
-    memcpy(mb_buffer, mb, sizeof(metablock_t));
+    memcpy(&(mb_buffer->metablock), mb, sizeof(metablock_t));
+    mb_buffer->set_crc();
     mb_buffer_in_use = true;
     
     event_queue_t *queue = get_cpu_context()->event_queue;
     queue->iosys.schedule_aio_write(
         dbfd,
-        0,                  // Offset of beginning of write
-        DEVICE_BLOCK_SIZE,  // Length of write
+        DEVICE_BLOCK_SIZE * mb_written,                  // Offset of beginning of write
+        DEVICE_BLOCK_SIZE,                              // Length of write
         mb_buffer,
         queue,
         this);
-    
+
+    //mb_written++;
+    mb_buffer->version++;
+
     state = state_writing;
     write_callback = cb;
     return false;
@@ -100,7 +111,7 @@ void naive_metablock_manager_t<metablock_t>::on_io_complete(event_t *e) {
     
     case state_reading:
         state = state_ready;
-        memcpy(mb_out, mb_buffer, sizeof(metablock_t));
+        memcpy(mb_out, &(mb_buffer->metablock), sizeof(metablock_t));
         mb_buffer_in_use = false;
         if (read_callback) read_callback->on_metablock_read();
         read_callback = NULL;
