@@ -281,7 +281,7 @@ void leaf_node_handler::shift_pairs(btree_leaf_node *node, uint16_t offset, long
     memmove( ((byte *)front_pair)+shift, front_pair, offset - node->frontmost_offset);
     node->frontmost_offset += shift;
     for (int i = 0; i < node->npairs; i++) {
-        if (node->pair_offsets[i] <= offset)
+        if (node->pair_offsets[i] < offset)
             node->pair_offsets[i] += shift;
     }
 }
