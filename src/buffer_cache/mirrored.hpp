@@ -51,6 +51,9 @@ private:
     
     /* Is data valid, or are we waiting for a read? */
     bool cached;
+
+    /* Is the block meant to be deleted upon release? */
+    bool do_delete;
     
     typedef intrusive_list_t<block_available_callback_t> callbacks_t;
     callbacks_t load_callbacks;
@@ -94,7 +97,16 @@ public:
 
     block_id_t get_block_id() const { return block_id; }
     
-    void set_dirty() { writeback_buf.set_dirty(); }
+    void set_dirty() {
+        assert(!do_delete);
+        assert(!safe_to_unload());
+        writeback_buf.set_dirty();
+    }
+    void mark_deleted() {
+        writeback_buf.set_dirty(false);
+        assert(!safe_to_unload());
+        do_delete = true;
+    }
 };
 
 
@@ -239,6 +251,11 @@ private:
 	// Prints debugging information designed to resolve deadlocks
 	void deadlock_debug();
 #endif
+
+private:
+    void delete_block(block_id_t block) {
+        serializer.delete_block(block);
+    }
 
 private:
     

@@ -51,7 +51,7 @@ public:
         explicit local_buf_t(buf_t *gbuf)
             : gbuf(gbuf), dirty(false) {}
         
-        void set_dirty();
+        void set_dirty(bool _dirty = true);
         
         bool safe_to_unload() const { return !dirty; }
 

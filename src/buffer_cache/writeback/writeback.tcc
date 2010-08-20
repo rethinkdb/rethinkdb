@@ -132,11 +132,16 @@ unsigned int writeback_tmpl_t<config_t>::num_dirty_blocks() {
 }
 
 template <class config_t>
-void writeback_tmpl_t<config_t>::local_buf_t::set_dirty() {
-    if(!dirty) {
+void writeback_tmpl_t<config_t>::local_buf_t::set_dirty(bool _dirty) {
+    if(!dirty && _dirty) {
         // Mark block as dirty if it hasn't been already
         dirty = true;
         gbuf->cache->writeback.dirty_bufs.push_back(this);
+    }
+    if(dirty && !_dirty) {
+        // We need to "unmark" the buf
+        dirty = false;
+        gbuf->cache->writeback.dirty_bufs.remove(this);
     }
 }
 

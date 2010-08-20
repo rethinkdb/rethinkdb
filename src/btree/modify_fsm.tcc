@@ -359,14 +359,15 @@ typename btree_modify_fsm<config_t>::transition_result_t btree_modify_fsm<config
                             btree_key *key_to_remove = (btree_key *)alloca(sizeof(btree_key) + MAX_KEY_SIZE); //TODO get alloca outta here
                             if (node_handler::nodecmp(node, sib_node) < 0) { // Nodes must be passed to merge in ascending order
                                 node_handler::merge(node, sib_node, key_to_remove, parent_node);
-                                buf->release(); //TODO delete when api is ready
+                                buf->mark_deleted();
+                                buf->release();
                                 buf = sib_buf;
                                 node_id = sib_node_id;
                                 buf->set_dirty();
                             } else {
                                 node_handler::merge(sib_node, node, key_to_remove, parent_node);
-                                sib_buf->release(); //TODO delete when api is ready
-                                sib_buf->set_dirty();
+                                sib_buf->mark_deleted();
+                                sib_buf->release();
                                 buf->set_dirty();
                             }
                             sib_buf = NULL;
@@ -377,6 +378,7 @@ typename btree_modify_fsm<config_t>::transition_result_t btree_modify_fsm<config
                                 //logf(DBG, "generic collapse root\n");
                                 // parent has only 1 key (which means it is also the root), replace it with the node
                                 // when we get here node_id should be the id of the new root
+                                last_buf->mark_deleted();
                                 insert_root(node_id);
                                 assert(state == acquire_node);
                                 break;

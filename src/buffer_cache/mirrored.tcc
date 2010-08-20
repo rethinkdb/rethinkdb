@@ -17,6 +17,7 @@ buf<config_t>::buf(cache_t *cache, block_id_t block_id, block_available_callback
 #endif
       block_id(block_id),
       cached(false),
+      do_delete(false),
       writeback_buf(this),
       page_repl_buf(this),
       concurrency_buf(this),
@@ -41,6 +42,7 @@ buf<config_t>::buf(cache_t *cache)
 #endif
       block_id(cache->serializer.gen_block_id()),
       cached(true),
+      do_delete(false),
       writeback_buf(this),
       page_repl_buf(this),
       concurrency_buf(this),
@@ -69,6 +71,17 @@ void buf<config_t>::release() {
     cache->n_blocks_released++;
 #endif
     concurrency_buf.release();
+
+    // If the block has been marked for deletion, pass that on to the
+    // serializer and unload
+    if(do_delete) {
+        // The FSMs should acquire and release blocks in a way that
+        // makes sure a block is always safe to unload on delete.
+        assert(safe_to_unload());
+        cache->delete_block(block_id);
+        delete this;
+        return;
+    }
     
     /*
     // If this code is not commented out, then it will cause bufs to be unloaded very aggressively.

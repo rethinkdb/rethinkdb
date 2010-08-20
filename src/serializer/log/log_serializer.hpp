@@ -88,6 +88,11 @@ public:
         write_block_callback_t *callback;
     };
     bool do_write(write_t *writes, int num_writes, write_txn_callback_t *callback);
+
+public:
+    void delete_block(block_id_t block) {
+        lba_index.delete_block(block);
+    }
     
 public:
     /* Generates a unique block id. */
