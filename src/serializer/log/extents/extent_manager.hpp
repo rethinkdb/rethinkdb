@@ -87,12 +87,14 @@ public:
 public:
     void prepare_metablock(metablock_mixin_t *metablock) {
         metablock->last_extent = last_extent;
+        metablock->last_truncated_extent = last_truncated_extent;
     }
 
 public:
     void shutdown() {
         assert(last_extent != -1);
         last_extent = -1;
+        last_truncated_extent = -1;
     }
 
 public:
