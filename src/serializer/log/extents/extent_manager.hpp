@@ -4,6 +4,7 @@
 
 #include <assert.h>
 #include <sys/types.h>
+#include "config/args.hpp"
 
 /* This is a stub extent manager. It never recycles extents. */
 
@@ -11,7 +12,7 @@ class extent_manager_t {
 
 public:
     extent_manager_t(size_t extent_size)
-        : extent_size(extent_size), last_extent(-1), reserved_extent(-1)
+        : extent_size(extent_size), last_extent(-1), last_truncated_extent(-1), reserved_extent(-1)
         {
         assert(extent_size % DEVICE_BLOCK_SIZE == 0);
     }
@@ -34,18 +35,21 @@ public:
 public:
     struct metablock_mixin_t {
         off64_t last_extent;
+        off64_t last_truncated_extent;
     };
     
 public:
     void start(fd_t fd) {
         assert(last_extent == -1);
         last_extent = 0;
+        last_truncated_extent = 0;
         dbfd = fd;
     }
     
     void start(fd_t fd, metablock_mixin_t *last_metablock) {
         assert(last_extent == -1);
         last_extent = last_metablock->last_extent;
+        last_truncated_extent = last_metablock->last_truncated_extent;
         dbfd = fd;
     }
 
@@ -60,8 +64,11 @@ public:
         off64_t extent = last_extent;
         last_extent += extent_size;
         
-        int res = ftruncate(dbfd, last_extent);
-        check("Could not expand file", res == -1);
+        if(last_truncated_extent < last_extent) {
+            last_truncated_extent += extent_size * FILE_GROWTH_RATE_IN_EXTENTS;
+            int res = ftruncate(dbfd, last_truncated_extent);
+            check("Could not expand file", res == -1);
+        }
         
         /* TODO: What if we give out an extent and the client writes something to it, but the DB
         crashes before we record a metablock saying that the extent was given out? When we start
@@ -94,6 +101,7 @@ public:
 private:
     fd_t dbfd;
     off64_t last_extent;
+    off64_t last_truncated_extent;
     off64_t reserved_extent;
 };
 

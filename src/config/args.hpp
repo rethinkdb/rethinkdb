@@ -131,5 +131,8 @@
 // of a magic constant than a tunable parameter.
 #define SUPERBLOCK_ID                             0
 
+// Every time the data file gets full, grow it by this many extents
+#define FILE_GROWTH_RATE_IN_EXTENTS               5
+
 #endif // __CONFIG_ARGS_H__
 
