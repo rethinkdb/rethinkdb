@@ -64,12 +64,8 @@ public:
         off64_t extent = last_extent;
         last_extent += extent_size;
         
-        if(last_truncated_extent < last_extent) {
-            last_truncated_extent += extent_size * FILE_GROWTH_RATE_IN_EXTENTS;
-            int res = ftruncate(dbfd, last_truncated_extent);
-            check("Could not expand file", res == -1);
-        }
-        
+        extend_if_necessary();
+
         /* TODO: What if we give out an extent and the client writes something to it, but the DB
         crashes before we record a metablock saying that the extent was given out? When we start
         back up, we might try to write over the extent again, forcing the SSD controller to copy
@@ -95,6 +91,17 @@ public:
         assert(last_extent != -1);
         last_extent = -1;
         last_truncated_extent = -1;
+    }
+
+private:
+    // Extends the db file by calling underlysing FS's truncate iff
+    // we're getting past the last truncated extent.
+    void extend_if_necessary() {
+        if(last_truncated_extent < last_extent) {
+            last_truncated_extent += extent_size * FILE_GROWTH_RATE_IN_EXTENTS;
+            int res = ftruncate(dbfd, last_truncated_extent);
+            check("Could not expand file", res == -1);
+        }
     }
 
 public:
