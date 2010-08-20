@@ -11,7 +11,7 @@
 #define mb_marker_crc       "crc:"
 #define mb_marker_version   "version:"
 
-#define nextents 4 /* !< number of extents must be HARD coded */
+#define NEXTENTS 1 /* !< number of extents must be HARD coded */
 
 /* TODO support multiple concurrent writes */
 
@@ -75,15 +75,32 @@ public:
     void shutdown();
 
 private:
-    int mb_written; /* !< how many metablocks have been written in this extent */
-    int extent; /* !< which of our extents we're on */
+    uint32_t  mb_written; /* !< how many metablocks have been written in this extent */
+    uint32_t  extent; /* !< which of our extents we're on */
+    /* \brief incr_mb_location returns true if we wrap around from the last extent to the first
+     */
+    bool incr_mb_location() {
+        mb_written++;
+        if (mb_written >= extent_manager->extent_size / DEVICE_BLOCK_SIZE) {
+            mb_written = 0;
+            extent++;
+            if (extent >= NEXTENTS) {
+                extent = 0;
+                return true;
+            }
+        }
+        return false;
+    }
     void on_io_complete(event_t *e);
     
     crc_metablock_t *mb_buffer;
     bool            mb_buffer_in_use;   /* !< true: we're using the buffer, no one else can */
 private:
+    /* these are only used in the beginning when we want to find the metablock */
     crc_metablock_t *mb_buffer_last;    /* the last metablock we read */
     int             version;            /* !< only used during boot up */
+    int             last_mb_written;    /* !< where the last mb was found */
+    int             last_mb_extent;     /* !< where the last was found */ 
     
     extent_manager_t *extent_manager;
     
