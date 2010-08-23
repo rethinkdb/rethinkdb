@@ -97,7 +97,6 @@ bool naive_metablock_manager_t<metablock_t>::write_metablock(metablock_t *mb, me
     mb_buffer_in_use = true;
     
     event_queue_t *queue = get_cpu_context()->event_queue;
-    printf("Writing mb_written = %d, extent = %d, offset = %ld version = %d\n", mb_written, extent, DEVICE_BLOCK_SIZE * mb_written + extent * extent_manager->extent_size, mb_buffer->version);
     queue->iosys.schedule_aio_write(
         dbfd,
         DEVICE_BLOCK_SIZE * mb_written + extent * extent_manager->extent_size,// Offset of beginning of write
@@ -163,7 +162,6 @@ void naive_metablock_manager_t<metablock_t>::on_io_complete(event_t *e) {
                 version = -1; /* version is now useless */
                 mb_written = last_mb_written;
                 extent = last_mb_extent;
-                printf("Found metablock with mb_written = %d, extent = %d, version = %d\n", mb_written, extent, mb_buffer->version);
                 state = state_ready;
                 memcpy(mb_out, &(mb_buffer->metablock), sizeof(metablock_t));
                 mb_buffer_in_use = false;

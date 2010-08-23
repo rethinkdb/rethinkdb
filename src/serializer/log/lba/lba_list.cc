@@ -112,7 +112,6 @@ struct lba_start_fsm_t :
                 state = state_finish;
                 
             } else {
-                printf("Reading lba node from offset = %ld\n", lba_chain_next);
                 // Don't expect to reach end of LBA chain before all blocks are found
                 assert(lba_chain_next != END_OF_LBA_CHAIN);
                 
@@ -408,7 +407,6 @@ struct lba_write_t :
 
 // Declared here due to circular dependency with lba_write_t
 void lba_extent_buf_t::sync() {
-    printf("Syncing lba with offset = %ld\n", offset);
     
     if (amount_synced < amount_filled()) {
     

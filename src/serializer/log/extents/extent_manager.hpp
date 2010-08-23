@@ -105,7 +105,6 @@ private:
     /* \brief truncate the file to have room for extents many extents
      */
     void truncate(off64_t last_truncated_extent) {
-        printf("Truncate to %ld\n", last_truncated_extent);
         last_truncated_extent = last_truncated_extent;
         int res = ftruncate(dbfd, last_truncated_extent);
         check("Could not expand file", res == -1);
