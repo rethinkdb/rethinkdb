@@ -514,7 +514,7 @@ typename bin_memcached_handler_t<config_t>::parse_result_t bin_memcached_handler
 
     res_pkt.magic(bin_magic_response);
     res_pkt.opcode(pkt->opcode());
-    res_pkt.set_value((byte *) MEMCACHED_VERSION_STRING, strlen(MEMCACHED_VERSION_STRING) - 1);
+    res_pkt.set_value((byte *) VERSION_STRING, strlen(VERSION_STRING) - 1);
 
     conn_fsm->sbuf->append(res_pkt.data, res_pkt.size());
     return req_handler_t::op_req_send_now;
