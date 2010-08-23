@@ -112,6 +112,7 @@ struct lba_start_fsm_t :
                 state = state_finish;
                 
             } else {
+                printf("Reading lba node from offset = %ld\n", lba_chain_next);
                 // Don't expect to reach end of LBA chain before all blocks are found
                 assert(lba_chain_next != END_OF_LBA_CHAIN);
                 
@@ -407,6 +408,7 @@ struct lba_write_t :
 
 // Declared here due to circular dependency with lba_write_t
 void lba_extent_buf_t::sync() {
+    printf("Syncing lba with offset = %ld\n", offset);
     
     if (amount_synced < amount_filled()) {
     
@@ -515,7 +517,11 @@ bool lba_list_t::sync(sync_callback_t *cb) {
 }
 
 void lba_list_t::prepare_metablock(metablock_mixin_t *metablock) {
-    
+#ifdef SERIALIZER_MARKERS
+    memcpy(metablock->chain_head_marker, CHAIN_HEAD_MARKER, strlen(CHAIN_HEAD_MARKER));
+    memcpy(metablock->entries_in_marker, NENTRIES_MARKER, strlen(NENTRIES_MARKER));
+    memcpy(metablock->highest_bid_marker, HIGHEST_ID_PLUS_ONE, strlen(HIGHEST_ID_PLUS_ONE));
+#endif
     if (current_extent) {
         metablock->lba_chain_head = current_extent->offset;
         metablock->entries_in_lba_chain_head = current_extent->num_entries;

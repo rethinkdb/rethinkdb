@@ -11,7 +11,8 @@
 #define mb_marker_crc       "crc:"
 #define mb_marker_version   "version:"
 
-#define NEXTENTS 1 /* !< number of extents must be HARD coded */
+#define MB_NEXTENTS 2 /* !< number of extents must be HARD coded */
+#define MB_EXTENT_SEPERATION 4 /* !< every MB_EXTENT_SEPERATIONth extent is for MB, up to MB_EXTENT many */
 
 /* TODO support multiple concurrent writes */
 
@@ -36,9 +37,9 @@ private:
     public:
         uint32_t crc() {
             //TODO this doesn't do the version
-            //assert(sizeof(poly) == sizeof(_crc)); /* !< is this really necessary, if it is we should have 2 potential polynomials */
             boost::crc_optimal<32, 0x04C11DB7, 0xFFFFFFFF, 0xFFFFFFFF, true, true> crc_computer;
             crc_computer.process_bytes(&metablock, sizeof(metablock));
+            //crc_computer.process_bytes(&version, sizeof(version)); for some reason this causes crc to be wrong
             return crc_computer.checksum();
         }
         void set_crc() {
@@ -83,8 +84,8 @@ private:
         mb_written++;
         if (mb_written >= extent_manager->extent_size / DEVICE_BLOCK_SIZE) {
             mb_written = 0;
-            extent++;
-            if (extent >= NEXTENTS) {
+            extent += MB_EXTENT_SEPERATION;
+            if (extent >= MB_NEXTENTS * MB_EXTENT_SEPERATION) {
                 extent = 0;
                 return true;
             }

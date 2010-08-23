@@ -3,10 +3,8 @@
 
 template<class metablock_t>
 naive_metablock_manager_t<metablock_t>::naive_metablock_manager_t(extent_manager_t *em)
-    : mb_written(0), extent(0), extent_manager(em), state(state_unstarted), dbfd(INVALID_FD) {
-    
-    // Reserve the beginning of the file for the metablock
-    extent_manager->reserve_extent(0);
+    : mb_written(0), extent(0), extent_manager(em), state(state_unstarted), dbfd(INVALID_FD)
+{
     
     assert(sizeof(crc_metablock_t) <= DEVICE_BLOCK_SIZE);
     mb_buffer = (crc_metablock_t *)malloc_aligned(DEVICE_BLOCK_SIZE, DEVICE_BLOCK_SIZE);
@@ -51,6 +49,10 @@ bool naive_metablock_manager_t<metablock_t>::start(fd_t fd, bool *mb_found, meta
         
         *mb_found = false;
         mb_buffer->version = 0;
+        for (int i = 0; i < MB_NEXTENTS; i++) {
+            /* reserve the ith extent */
+            extent_manager->reserve_extent(i * MB_EXTENT_SEPERATION * extent_manager->extent_size, true);
+        }
         state = state_ready;
         return true;
     
@@ -63,9 +65,19 @@ bool naive_metablock_manager_t<metablock_t>::start(fd_t fd, bool *mb_found, meta
         mb_buffer_in_use = true;
 
         version = -1;
+        for (int i = 0; i < MB_NEXTENTS; i++) {
+            /* reserve the ith extent */
+            extent_manager->reserve_extent(i * MB_EXTENT_SEPERATION * extent_manager->extent_size, false);
+        }
 
         event_queue_t *queue = get_cpu_context()->event_queue;
-        queue->iosys.schedule_aio_read(dbfd, 0, DEVICE_BLOCK_SIZE, mb_buffer, queue, this);
+        queue->iosys.schedule_aio_read(
+                dbfd,
+                DEVICE_BLOCK_SIZE * mb_written + extent * extent_manager->extent_size, 
+                DEVICE_BLOCK_SIZE, 
+                mb_buffer, 
+                queue, 
+                this);
         
         read_callback = cb;
         state = state_reading;
@@ -81,13 +93,15 @@ bool naive_metablock_manager_t<metablock_t>::write_metablock(metablock_t *mb, me
     assert(!mb_buffer_in_use);
     memcpy(&(mb_buffer->metablock), mb, sizeof(metablock_t));
     mb_buffer->set_crc();
+    assert(mb_buffer->check_crc());
     mb_buffer_in_use = true;
     
     event_queue_t *queue = get_cpu_context()->event_queue;
+    printf("Writing mb_written = %d, extent = %d, offset = %ld version = %d\n", mb_written, extent, DEVICE_BLOCK_SIZE * mb_written + extent * extent_manager->extent_size, mb_buffer->version);
     queue->iosys.schedule_aio_write(
         dbfd,
-        DEVICE_BLOCK_SIZE * mb_written,                  // Offset of beginning of write
-        DEVICE_BLOCK_SIZE,                              // Length of write
+        DEVICE_BLOCK_SIZE * mb_written + extent * extent_manager->extent_size,// Offset of beginning of write
+        DEVICE_BLOCK_SIZE,                                                    // Length of write
         mb_buffer,
         queue,
         this);
@@ -109,13 +123,12 @@ void naive_metablock_manager_t<metablock_t>::shutdown() {
 
 template<class metablock_t>
 void naive_metablock_manager_t<metablock_t>::on_io_complete(event_t *e) {
-
     bool found = false; /* whether or not the value in mb_buffer_last is the real metablock */
     switch(state) {
  
     case state_reading:
         if (mb_buffer->check_crc()) {
-            if (mb_buffer->version > version && mb_buffer->check_crc()) {
+            if (mb_buffer->version > version) {
                 /* this metablock is good, maybe there are more? */
                 version = mb_buffer->version;
                 last_mb_written = mb_written;
@@ -131,7 +144,6 @@ void naive_metablock_manager_t<metablock_t>::on_io_complete(event_t *e) {
             } else {
                 /* version smaller than the one we just had, yahtzee */
                 found = true;
-                break;
             }
         } else {
             bool extent_wraparound = incr_mb_location();
@@ -151,6 +163,7 @@ void naive_metablock_manager_t<metablock_t>::on_io_complete(event_t *e) {
                 version = -1; /* version is now useless */
                 mb_written = last_mb_written;
                 extent = last_mb_extent;
+                printf("Found metablock with mb_written = %d, extent = %d, version = %d\n", mb_written, extent, mb_buffer->version);
                 state = state_ready;
                 memcpy(mb_out, &(mb_buffer->metablock), sizeof(metablock_t));
                 mb_buffer_in_use = false;
@@ -158,7 +171,13 @@ void naive_metablock_manager_t<metablock_t>::on_io_complete(event_t *e) {
                 read_callback = NULL;
         } else {
             event_queue_t *queue = get_cpu_context()->event_queue;
-            queue->iosys.schedule_aio_read(dbfd, DEVICE_BLOCK_SIZE * mb_written, DEVICE_BLOCK_SIZE, mb_buffer, queue, this);
+            queue->iosys.schedule_aio_read(
+                    dbfd,
+                    DEVICE_BLOCK_SIZE * mb_written + extent * extent_manager->extent_size, 
+                    DEVICE_BLOCK_SIZE, 
+                    mb_buffer, 
+                    queue, 
+                    this);
         }
         break;
         

@@ -7,10 +7,10 @@ from random import randint
 from time import time
 import memcache, os
 
-NUM_KEYS=100000           # Total number of key to insert
+NUM_KEYS=2000           # Total number of key to insert
 NUM_VALUES=20           # Number of values a given key can assume
 
-TEST_DURATION=5*60        # Duration of the test in seconds
+TEST_DURATION=75        # Duration of the test in seconds
 NUM_READ_THREADS=16     # Number of concurrent reader threads
 NUM_UPDATE_THREADS=8   # Number of concurrent threads updating existing values
 NUM_INSERT_THREADS=4    # Number of concurrent threads inserting values that aren't yet in the db

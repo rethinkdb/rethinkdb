@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <functional>
+#include <vector>
 #include "corefwd.hpp"
 #include "config/code.hpp"   // For alloc_t
 

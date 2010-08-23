@@ -189,7 +189,7 @@ private:
             state = state_ready;
             if (ready_callback) ready_callback->on_store_ready();
             
-            typename std::vector<btree_fsm_t*>::iterator it;
+            typename std::vector<btree_fsm_t*, gnew_alloc<btree_fsm_t *> >::iterator it;
             for (it = fsms_waiting_for_ready.begin(); it != fsms_waiting_for_ready.end(); it ++) {
                 (*it)->do_transition(NULL);
             }
@@ -214,7 +214,7 @@ private:
     
     // TODO It's kind of hacky to queue requests here. Should we queue them on the worker instead or
     // perhaps refuse to accept connections until all the key-value stores are ready?
-    std::vector<btree_fsm_t*> fsms_waiting_for_ready;
+    std::vector<btree_fsm_t*, gnew_alloc<btree_fsm_t *> > fsms_waiting_for_ready;
 
 public:
     bool run_fsm(btree_fsm_t *fsm, typename btree_fsm_t::on_complete_t cb) {

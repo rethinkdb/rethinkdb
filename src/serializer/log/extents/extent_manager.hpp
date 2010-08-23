@@ -5,15 +5,18 @@
 #include <assert.h>
 #include <sys/types.h>
 #include "config/args.hpp"
+#include <set>
+#include <functional>
 
 /* This is a stub extent manager. It never recycles extents. */
 
 class extent_manager_t {
-
+private:
+    typedef std::set<off64_t, std::less<off64_t>, gnew_alloc<off64_t> > reserved_extent_set_t;
 public:
     extent_manager_t(size_t extent_size)
-        : extent_size(extent_size), last_extent(-1), last_truncated_extent(-1), reserved_extent(-1)
-        {
+        :extent_size(extent_size), last_extent(-1), last_truncated_extent(-1)
+    {
         assert(extent_size % DEVICE_BLOCK_SIZE == 0);
     }
     ~extent_manager_t() {
@@ -23,13 +26,13 @@ public:
     
     // Reserving of extents is used by the metablock manager so that it can make sure that
     // predetermined locations in the file are available for the metablock.
-    void reserve_extent(off64_t extent) {
+    void reserve_extent(off64_t extent, bool truncate) {
         // Reserving extents only permitted before DB is initialized.
         assert(last_extent == -1);
         assert(extent % extent_size == 0);
-        // Stub extent manager only allows one reservation
-        assert(reserved_extent == -1);
-        reserved_extent = extent;
+
+        reserved_extent.insert(extent);
+        truncate_reservations = truncate;
     }
     
 public:
@@ -51,6 +54,10 @@ public:
         last_extent = last_metablock->last_extent;
         last_truncated_extent = last_metablock->last_truncated_extent;
         dbfd = fd;
+        if (truncate_reservations && !reserved_extent.empty()) {
+            /* sets are sorted so the last element is the maximal one, (thats what rbegin points to) */
+            truncate(*reserved_extent.rbegin() + extent_size);
+        }
     }
 
 public:
@@ -59,7 +66,8 @@ public:
         assert(last_extent != -1);
         
         // Don't give out reserved extent
-        if (last_extent == reserved_extent) last_extent += extent_size;
+        while(reserved_extent.find(last_extent) != reserved_extent.end())
+            last_extent += extent_size;
         
         off64_t extent = last_extent;
         last_extent += extent_size;
@@ -94,10 +102,20 @@ public:
     }
 
 private:
+    /* \brief truncate the file to have room for extents many extents
+     */
+    void truncate(off64_t last_truncated_extent) {
+        printf("Truncate to %ld\n", last_truncated_extent);
+        last_truncated_extent = last_truncated_extent;
+        int res = ftruncate(dbfd, last_truncated_extent);
+        check("Could not expand file", res == -1);
+    }
+
     // Extends the db file by calling underlysing FS's truncate iff
     // we're getting past the last truncated extent.
     void extend_if_necessary() {
         if(last_truncated_extent < last_extent) {
+            truncate(last_truncated_extent + extent_size * FILE_GROWTH_RATE_IN_EXTENTS);
             last_truncated_extent += extent_size * FILE_GROWTH_RATE_IN_EXTENTS;
             int res = ftruncate(dbfd, last_truncated_extent);
             check("Could not expand file", res == -1);
@@ -108,10 +126,11 @@ public:
     size_t extent_size;
 
 private:
+    bool truncate_reservations;
     fd_t dbfd;
     off64_t last_extent;
     off64_t last_truncated_extent;
-    off64_t reserved_extent;
+    reserved_extent_set_t reserved_extent;
 };
 
 #endif /* __SERIALIZER_LOG_EXTENT_MANAGER_HPP__ */
