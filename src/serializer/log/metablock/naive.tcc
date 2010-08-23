@@ -1,6 +1,10 @@
 #include "cpu_context.hpp"
 #include "event_queue.hpp"
 
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
+
 template<class metablock_t>
 naive_metablock_manager_t<metablock_t>::naive_metablock_manager_t(extent_manager_t *em)
     : mb_written(0), extent(0), extent_manager(em), state(state_unstarted), dbfd(INVALID_FD)
@@ -37,21 +41,34 @@ bool naive_metablock_manager_t<metablock_t>::start(fd_t fd, bool *mb_found, meta
     assert(state == state_unstarted);
     dbfd = fd;
     assert(dbfd != INVALID_FD);
+
+    /* check if we have a block device or a normal file */
+    struct stat file_stats;
+    int res = fstat(fd, &file_stats);
+    check("State request on file failed", res != 0);
     
-    // Determine if we are creating a new database
-    off64_t dbsize = lseek64(dbfd, 0, SEEK_END);
-    check("Could not determine database file size", dbsize == -1);
-    off64_t res = lseek64(dbfd, 0, SEEK_SET);
-    check("Could not reset database file position", res == -1);
-    bool is_new_database = (dbsize == 0);
+    // Determine if we need to create a new database
+    bool create_new_database;
+    if (S_ISBLK(file_stats.st_mode)) {
+        /* with a block device we don't need to do creation */
+        create_new_database = false;
+    } else if (S_ISREG(file_stats.st_mode)) {
+        off64_t dbsize = lseek64(dbfd, 0, SEEK_END);
+        check("Could not determine database file size", dbsize == -1);
+        off64_t res = lseek64(dbfd, 0, SEEK_SET);
+        check("Could not reset database file position", res == -1);
+        create_new_database = (dbsize == 0);
+    } else {
+        fail("Unsupported file descriptor type");
+    }
     
-    if (is_new_database) {
+    if (create_new_database) {
         
         *mb_found = false;
         mb_buffer->version = 0;
         for (int i = 0; i < MB_NEXTENTS; i++) {
             /* reserve the ith extent */
-            extent_manager->reserve_extent(i * MB_EXTENT_SEPERATION * extent_manager->extent_size, true);
+            extent_manager->reserve_extent(i * MB_EXTENT_SEPERATION * extent_manager->extent_size, false);
         }
         state = state_ready;
         return true;
