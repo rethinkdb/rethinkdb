@@ -453,6 +453,8 @@ typename btree_modify_fsm<config_t>::transition_result_t btree_modify_fsm<config
                 if (committed) {
                     transaction = NULL;
                     res = btree_fsm_t::transition_complete;
+                } else {
+                    res = btree_fsm_t::transition_incomplete;
                 }
                 break;
             }

@@ -131,8 +131,6 @@ void parse_cmd_args(int argc, char *argv[], cmd_config_t *config)
                 check("flush timer should not be negative; use 'disable' to allow changes"
                     "to sit in memory indefinitely",
                     config->flush_timer_ms < 0);
-                check("flush timer of 0 is broken at the moment",
-                    config->flush_timer_ms == 0);
             }
             break;
         case flush_threshold:

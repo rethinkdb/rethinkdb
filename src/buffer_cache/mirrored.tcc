@@ -180,22 +180,25 @@ template <class config_t>
 bool transaction<config_t>::commit(transaction_commit_callback_t *callback) {
     assert(state == state_open);
     
-    cache->on_transaction_commit(this);
-    
+    /* We have to call sync_patiently() before on_transaction_commit() so that if
+    on_transaction_commit() starts a sync, we will get included in it */
     if (access == rwi_write && cache->writeback.wait_for_flush) {
         if (cache->writeback.sync_patiently(this)) {
             state = state_committed;
-            delete this;
-            return true;
-        
         } else {
-            state = state_committing;
-            commit_callback = callback;
-            return false;
+            state = state_in_commit_call;
         }
-        
     } else {
         state = state_committed;
+    }
+    
+    cache->on_transaction_commit(this);
+    
+    if (state == state_in_commit_call) {
+        state = state_committing;
+        commit_callback = callback;
+        return false;
+    } else {
         delete this;
         return true;
     }
@@ -203,11 +206,23 @@ bool transaction<config_t>::commit(transaction_commit_callback_t *callback) {
 
 template <class config_t>
 void transaction<config_t>::on_sync() {
-    assert(state == state_committing);
-    state = state_committed;
-    // TODO(NNW): We should push notifications through event queue.
-    commit_callback->on_txn_commit(this);
-    delete this;
+    /* cache->on_transaction_commit() could cause on_sync() to be called even after sync_patiently()
+    failed. To detect when this happens, we use the state state_in_commit_call. If we get an
+    on_sync() while in state_in_commit_call, we know that we are still inside of commit(), so we
+    don't delete ourselves yet and just set state to state_committed instead, thereby signalling
+    commit() to delete us. I think there must be a better way to do this, but I can't think of it
+    right now. */
+    
+    if (state == state_in_commit_call) {
+        state = state_committed;
+    } else if (state == state_committing) {
+        state = state_committed;
+        // TODO(NNW): We should push notifications through event queue.
+        commit_callback->on_txn_commit(this);
+        delete this;
+    } else {
+        fail("Unexpected state.");
+    }
 }
 
 template <class config_t>
