@@ -99,6 +99,9 @@ worker_t::worker_t(int _workerid, int _nqueues,
     for (int i = 0; i < nslices; i++) {
         char name[MAX_DB_FILE_NAME];
         int len = snprintf(name, MAX_DB_FILE_NAME, "%s_%d_%d", cmd_config->db_file_name, workerid, i);
+        //TODO the below line is currently the only way to write to a block device,
+        //we need a command line way to do it, this also requires consoladating to one file
+        //int len = snprintf(name, MAX_DB_FILE_NAME, "/dev/sdb");
         check("Name too long", len == MAX_DB_FILE_NAME);
         slices[i] = gnew<store_t>(
                 name,

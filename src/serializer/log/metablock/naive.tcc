@@ -42,17 +42,16 @@ bool naive_metablock_manager_t<metablock_t>::start(fd_t fd, bool *mb_found, meta
     dbfd = fd;
     assert(dbfd != INVALID_FD);
 
-    /* check if we have a block device or a normal file */
-    struct stat file_stats;
-    int res = fstat(fd, &file_stats);
-    check("State request on file failed", res != 0);
-    
+    struct stat file_stat;
+    int res = fstat(fd, &file_stat);
+    check("Stat request on file failed", res != 0);
+
     // Determine if we need to create a new database
     bool create_new_database;
-    if (S_ISBLK(file_stats.st_mode)) {
+    if (S_ISBLK(file_stat.st_mode)) {
         /* with a block device we don't need to do creation */
         create_new_database = false;
-    } else if (S_ISREG(file_stats.st_mode)) {
+    } else if (S_ISREG(file_stat.st_mode)) {
         off64_t dbsize = lseek64(dbfd, 0, SEEK_END);
         check("Could not determine database file size", dbsize == -1);
         off64_t res = lseek64(dbfd, 0, SEEK_SET);
@@ -75,7 +74,7 @@ bool naive_metablock_manager_t<metablock_t>::start(fd_t fd, bool *mb_found, meta
     
     } else {
         
-        *mb_found = true;
+        this->mb_found = mb_found;
         this->mb_out = mb_out;
         
         assert(!mb_buffer_in_use);
@@ -139,7 +138,7 @@ void naive_metablock_manager_t<metablock_t>::shutdown() {
 
 template<class metablock_t>
 void naive_metablock_manager_t<metablock_t>::on_io_complete(event_t *e) {
-    bool found = false; /* whether or not the value in mb_buffer_last is the real metablock */
+    bool done_looking = false; /* whether or not the value in mb_buffer_last is the real metablock */
     switch(state) {
  
     case state_reading:
@@ -153,24 +152,30 @@ void naive_metablock_manager_t<metablock_t>::on_io_complete(event_t *e) {
                 /* mb_buffer_last = mb_buffer and give mb_buffer mb_buffer_last's space so no realloc */
                 swap((void **) &mb_buffer_last, (void **) &mb_buffer);
                 if (extent_wraparound) {
-                    found = true;
+                    done_looking = true;
                 } else {
-                    found = false;
+                    done_looking = false;
                 }
             } else {
                 /* version smaller than the one we just had, yahtzee */
-                found = true;
+                done_looking = true;
             }
         } else {
             bool extent_wraparound = incr_mb_location();
             if (extent_wraparound) {
-                found = true;
+                done_looking = true;
             } else {
-                found = false;
+                done_looking = false;
             }
         }
 
-        if (found) {
+        if (done_looking) {
+            if (version == -1) {
+                /* no metablock found anywhere (either the db is toast, or we're on a block device) */
+                *mb_found = false;
+            } else {
+                /* we found a metablock */
+                *mb_found = true;
                 swap((void **) &mb_buffer_last, (void **) &mb_buffer);
                 free(mb_buffer_last); 
                 mb_buffer_last = NULL;
@@ -179,11 +184,12 @@ void naive_metablock_manager_t<metablock_t>::on_io_complete(event_t *e) {
                 version = -1; /* version is now useless */
                 mb_written = last_mb_written;
                 extent = last_mb_extent;
-                state = state_ready;
                 memcpy(mb_out, &(mb_buffer->metablock), sizeof(metablock_t));
-                mb_buffer_in_use = false;
-                if (read_callback) read_callback->on_metablock_read();
-                read_callback = NULL;
+            }
+            state = state_ready;
+            mb_buffer_in_use = false;
+            if (read_callback) read_callback->on_metablock_read();
+            read_callback = NULL;
         } else {
             event_queue_t *queue = get_cpu_context()->event_queue;
             queue->iosys.schedule_aio_read(

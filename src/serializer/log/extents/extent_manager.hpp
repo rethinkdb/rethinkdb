@@ -4,6 +4,8 @@
 
 #include <assert.h>
 #include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
 #include "config/args.hpp"
 #include <set>
 #include <functional>
@@ -40,16 +42,22 @@ public:
         off64_t last_extent;
         off64_t last_truncated_extent;
     };
-    
+
 public:
     void start(fd_t fd) {
+        /* grab stats about the file */
+        int res = fstat(fd, &file_stat);
+        check("Stat request on file failed", res != 0);
         assert(last_extent == -1);
         last_extent = 0;
         last_truncated_extent = 0;
         dbfd = fd;
     }
-    
+
     void start(fd_t fd, metablock_mixin_t *last_metablock) {
+        /* grab stats about the file */
+        int res = fstat(fd, &file_stat);
+        check("Stat request on file failed", res != 0);
         assert(last_extent == -1);
         last_extent = last_metablock->last_extent;
         last_truncated_extent = last_metablock->last_truncated_extent;
@@ -105,9 +113,15 @@ private:
     /* \brief truncate the file to have room for extents many extents
      */
     void truncate(off64_t last_truncated_extent) {
-        last_truncated_extent = last_truncated_extent;
-        int res = ftruncate(dbfd, last_truncated_extent);
-        check("Could not expand file", res == -1);
+        if (S_ISBLK(file_stat.st_mode)) {
+            ; //we're on a block device so do nothing
+        } else if (S_ISREG(file_stat.st_mode)) {
+            this->last_truncated_extent = last_truncated_extent;
+            int res = ftruncate(dbfd, last_truncated_extent);
+            check("Could not expand file", res == -1);
+        } else {
+            fail("Unknown file type");
+        }
     }
 
     // Extends the db file by calling underlysing FS's truncate iff
@@ -115,14 +129,12 @@ private:
     void extend_if_necessary() {
         if(last_truncated_extent < last_extent) {
             truncate(last_truncated_extent + extent_size * FILE_GROWTH_RATE_IN_EXTENTS);
-            last_truncated_extent += extent_size * FILE_GROWTH_RATE_IN_EXTENTS;
-            int res = ftruncate(dbfd, last_truncated_extent);
-            check("Could not expand file", res == -1);
         }
     }
 
 public:
     size_t extent_size;
+    struct stat file_stat; /* stats about the file, we could make this only what we need to save memory (is it worth it?) */
 
 private:
     bool truncate_reservations;

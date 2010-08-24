@@ -1,4 +1,7 @@
 #include "log_serializer.hpp"
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
 
 log_serializer_t::log_serializer_t(char *_db_path, size_t block_size)
     : block_size(block_size),
@@ -49,11 +52,22 @@ struct ls_start_fsm_t :
         assert(state == state_start);
         assert(ser->state == log_serializer_t::state_unstarted);
         ser->state = log_serializer_t::state_starting_up;
+
+        struct stat file_stat;
+        stat(ser->db_path, &file_stat);
         
         // Open the DB file
-        ser->dbfd = open(ser->db_path,
+        if (S_ISBLK(file_stat.st_mode)) {
+            ser->dbfd = open(ser->db_path,
+                    O_RDWR | O_CREAT | O_DIRECT | O_LARGEFILE,
+                    S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP);
+        } else if (S_ISREG(file_stat.st_mode)) {
+            ser->dbfd = open(ser->db_path,
                     O_RDWR | O_CREAT | O_DIRECT | O_LARGEFILE | O_NOATIME,
                     S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP);
+        } else {
+            fail("Unknown file type");
+        }
         check("Could not open database file", ser->dbfd == -1);
         
         state = state_find_metablock;

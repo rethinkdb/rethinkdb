@@ -63,6 +63,7 @@ public:
 private:
     metablock_read_callback_t *read_callback;
     metablock_t *mb_out; /* !< where to put the metablock once we find it */
+    bool *mb_found; /* where to put whether or not we found the metablock */
 
 public:
     struct metablock_write_callback_t {
