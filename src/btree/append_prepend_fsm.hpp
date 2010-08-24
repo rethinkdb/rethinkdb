@@ -24,14 +24,16 @@ public:
 
         assert(old_value->size + temp_value.size <= MAX_TOTAL_NODE_CONTENTS_SIZE);
 
+        valuecpy(&value, old_value);
+
         if (append) {
-            memcpy(old_value->value() + old_value->value_size(), temp_value.contents, temp_value.size);
+            memcpy(value.value() + value.value_size(), temp_value.contents, temp_value.size);
         } else { // prepend
-            memmove(old_value->value() + temp_value.size, old_value->value(), old_value->value_size());
-            memcpy(old_value->value(), temp_value.contents, temp_value.size);
+            memmove(value.value() + temp_value.size, value.value(), value.value_size());
+            memcpy(value.value(), temp_value.contents, temp_value.size);
         }
-        old_value->size += temp_value.size;
-        *new_value = old_value;
+        value.size += temp_value.size;
+        *new_value = &value;
         this->status_code = btree_fsm<config_t>::S_SUCCESS;
         return true;
     }
@@ -40,8 +42,12 @@ public:
 private:
         bool append; // If false, then prepend
         union {
-            char temp_value_memory[MAX_TOTAL_NODE_CONTENTS_SIZE+sizeof(btree_value)];
+            byte temp_value_memory[MAX_TOTAL_NODE_CONTENTS_SIZE+sizeof(btree_value)];
             btree_value temp_value;
+        };
+        union {
+            byte value_memory[MAX_TOTAL_NODE_CONTENTS_SIZE+sizeof(btree_value)];
+            btree_value value;
         };
 };
 
