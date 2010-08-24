@@ -57,6 +57,7 @@ struct ls_start_fsm_t :
         stat(ser->db_path, &file_stat);
         
         // Open the DB file
+	// TODO: O_NOATIME requires root or owner priviledges, so for now we hack it.
         if (S_ISBLK(file_stat.st_mode)) {
             ser->dbfd = open(ser->db_path,
                     O_RDWR | O_CREAT | O_DIRECT | O_LARGEFILE,
