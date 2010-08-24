@@ -6,6 +6,7 @@
 #include "arch/io.hpp"
 #include <boost/crc.hpp>
 #include <cstddef>
+#include "serializer/log/static_header.hpp"
 
 #define mb_marker_magic     "metablock"
 #define mb_marker_crc       "crc:"
@@ -76,23 +77,15 @@ private:
 public:
     void shutdown();
 
+public:
+    void write_headers();
+
 private:
     uint32_t  mb_written; /* !< how many metablocks have been written in this extent */
     uint32_t  extent; /* !< which of our extents we're on */
     /* \brief incr_mb_location returns true if we wrap around from the last extent to the first
      */
-    bool incr_mb_location() {
-        mb_written++;
-        if (mb_written >= extent_manager->extent_size / DEVICE_BLOCK_SIZE) {
-            mb_written = 0;
-            extent += MB_EXTENT_SEPERATION;
-            if (extent >= MB_NEXTENTS * MB_EXTENT_SEPERATION) {
-                extent = 0;
-                return true;
-            }
-        }
-        return false;
-    }
+    bool incr_mb_location();
     void on_io_complete(event_t *e);
     
     crc_metablock_t *mb_buffer;
@@ -109,12 +102,17 @@ private:
     enum state_t {
         state_unstarted,
         state_reading,
+        state_reading_header,
+        state_writing_header,
         state_ready,
         state_writing,
-        state_shut_down
+        state_shut_down,
     } state;
     
     fd_t dbfd;
+private:
+    static_header *hdr;
+    int hdr_ref_count;
 };
 
 #include "naive.tcc"

@@ -62,12 +62,11 @@ struct ls_start_fsm_t :
             ser->dbfd = open(ser->db_path,
                     O_RDWR | O_CREAT | O_DIRECT | O_LARGEFILE,
                     S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP);
-        } else if (S_ISREG(file_stat.st_mode)) {
+        } else {
+            /* the file only exists at this point if it's a block device */
             ser->dbfd = open(ser->db_path,
                     O_RDWR | O_CREAT | O_DIRECT | O_LARGEFILE | O_NOATIME,
                     S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP);
-        } else {
-            fail("Unknown file type");
         }
         check("Could not open database file", ser->dbfd == -1);
         

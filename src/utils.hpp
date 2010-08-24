@@ -7,6 +7,8 @@
 #include <stdio.h>
 #include <functional>
 #include <vector>
+#include <endian.h>
+#include <arpa/inet.h>
 #include "corefwd.hpp"
 #include "config/code.hpp"   // For alloc_t
 
@@ -110,6 +112,14 @@ namespace std {
         }
     };
 };
+
+//endianness converter for host to rethinkdb endianness
+/* uint16_t rtoh(uint16_t val) { return be16toh(val); }
+uint32_t rtoh(uint32_t val) { return be32toh(val); }
+uint64_t rtoh(uint64_t val) { return be64toh(val); }
+uint16_t htor(uint16_t val) { return htobe16(val); }
+uint32_t htor(uint32_t val) { return htobe32(val); }
+uint64_t htor(uint64_t val) { return htobe64(val); } */
 
 #include "utils.tcc"
 #endif // __UTILS_HPP__

@@ -9,13 +9,19 @@ template<class metablock_t>
 naive_metablock_manager_t<metablock_t>::naive_metablock_manager_t(extent_manager_t *em)
     : mb_written(0), extent(0), extent_manager(em), state(state_unstarted), dbfd(INVALID_FD)
 {
-    
+    assert(sizeof(static_header) <= DEVICE_BLOCK_SIZE);
+    hdr = (static_header *)malloc_aligned(DEVICE_BLOCK_SIZE, DEVICE_BLOCK_SIZE);
+#ifndef NDEBUG
+    memset(hdr, 0xBD, DEVICE_BLOCK_SIZE);
+#endif
+
     assert(sizeof(crc_metablock_t) <= DEVICE_BLOCK_SIZE);
     mb_buffer = (crc_metablock_t *)malloc_aligned(DEVICE_BLOCK_SIZE, DEVICE_BLOCK_SIZE);
     mb_buffer_last = (crc_metablock_t *)malloc_aligned(DEVICE_BLOCK_SIZE, DEVICE_BLOCK_SIZE);
     assert(mb_buffer);
 #ifndef NDEBUG
     memset(mb_buffer, 0xBD, DEVICE_BLOCK_SIZE);   // Happify Valgrind
+    memset(mb_buffer_last, 0xBD, DEVICE_BLOCK_SIZE);   // Happify Valgrind
 #endif
 #ifdef SERIALIZER_MARKERS
     memcpy(mb_buffer->magic_marker, mb_marker_magic, strlen(mb_marker_magic));
@@ -69,7 +75,8 @@ bool naive_metablock_manager_t<metablock_t>::start(fd_t fd, bool *mb_found, meta
             /* reserve the ith extent */
             extent_manager->reserve_extent(i * MB_EXTENT_SEPERATION * extent_manager->extent_size, false);
         }
-        state = state_ready;
+        state = state_writing_header;
+        write_headers();
         return true;
     
     } else {
@@ -89,7 +96,7 @@ bool naive_metablock_manager_t<metablock_t>::start(fd_t fd, bool *mb_found, meta
         event_queue_t *queue = get_cpu_context()->event_queue;
         queue->iosys.schedule_aio_read(
                 dbfd,
-                DEVICE_BLOCK_SIZE * mb_written + extent * extent_manager->extent_size, 
+                DEVICE_BLOCK_SIZE * mb_written + extent * extent_manager->extent_size + DEVICE_BLOCK_SIZE, 
                 DEVICE_BLOCK_SIZE, 
                 mb_buffer, 
                 queue, 
@@ -99,6 +106,20 @@ bool naive_metablock_manager_t<metablock_t>::start(fd_t fd, bool *mb_found, meta
         state = state_reading;
         return false;
     }
+}
+
+template<class metablock_t>
+bool naive_metablock_manager_t<metablock_t>::incr_mb_location() {
+    mb_written++;
+    if (mb_written >= (extent_manager->extent_size - DEVICE_BLOCK_SIZE) / DEVICE_BLOCK_SIZE  ) {
+        mb_written = 0;
+        extent += MB_EXTENT_SEPERATION;
+        if (extent >= MB_NEXTENTS * MB_EXTENT_SEPERATION) {
+            extent = 0;
+            return true;
+        }
+    }
+    return false;
 }
 
 template<class metablock_t>
@@ -115,7 +136,7 @@ bool naive_metablock_manager_t<metablock_t>::write_metablock(metablock_t *mb, me
     event_queue_t *queue = get_cpu_context()->event_queue;
     queue->iosys.schedule_aio_write(
         dbfd,
-        DEVICE_BLOCK_SIZE * mb_written + extent * extent_manager->extent_size,// Offset of beginning of write
+        DEVICE_BLOCK_SIZE * mb_written + extent * extent_manager->extent_size + DEVICE_BLOCK_SIZE,// Offset of beginning of write
         DEVICE_BLOCK_SIZE,                                                    // Length of write
         mb_buffer,
         queue,
@@ -172,6 +193,8 @@ void naive_metablock_manager_t<metablock_t>::on_io_complete(event_t *e) {
         if (done_looking) {
             if (version == -1) {
                 /* no metablock found anywhere (either the db is toast, or we're on a block device) */
+                state = state_writing_header;
+                write_headers();
                 *mb_found = false;
             } else {
                 /* we found a metablock */
@@ -185,8 +208,8 @@ void naive_metablock_manager_t<metablock_t>::on_io_complete(event_t *e) {
                 mb_written = last_mb_written;
                 extent = last_mb_extent;
                 memcpy(mb_out, &(mb_buffer->metablock), sizeof(metablock_t));
+                state = state_ready;
             }
-            state = state_ready;
             mb_buffer_in_use = false;
             if (read_callback) read_callback->on_metablock_read();
             read_callback = NULL;
@@ -194,12 +217,23 @@ void naive_metablock_manager_t<metablock_t>::on_io_complete(event_t *e) {
             event_queue_t *queue = get_cpu_context()->event_queue;
             queue->iosys.schedule_aio_read(
                     dbfd,
-                    DEVICE_BLOCK_SIZE * mb_written + extent * extent_manager->extent_size, 
+                    DEVICE_BLOCK_SIZE * mb_written + extent * extent_manager->extent_size + DEVICE_BLOCK_SIZE, 
                     DEVICE_BLOCK_SIZE, 
                     mb_buffer, 
                     queue, 
                     this);
         }
+        break;
+
+    case state_reading_header:
+        //I'm betting at some point there will be more to do here
+        state = state_ready;
+        break;
+
+    case state_writing_header:
+        hdr_ref_count--;
+        if (hdr_ref_count == 0)
+            state = state_ready;
         break;
         
     case state_writing:
@@ -211,5 +245,24 @@ void naive_metablock_manager_t<metablock_t>::on_io_complete(event_t *e) {
         
     default:
         fail("Unexpected state.");
+    }
+}
+
+template<class metablock_t>
+void naive_metablock_manager_t<metablock_t>::write_headers() {
+    assert(state == state_writing_header);
+    static_header hdr(BTREE_BLOCK_SIZE, EXTENT_SIZE);
+    memcpy(this->hdr, &hdr, sizeof(static_header));
+
+    event_queue_t *queue = get_cpu_context()->event_queue;
+    for (int i = 0; i < MB_NEXTENTS; i++) {
+        hdr_ref_count++;
+        queue->iosys.schedule_aio_write(
+                dbfd,
+                i * MB_EXTENT_SEPERATION * extent_manager->extent_size,
+                DEVICE_BLOCK_SIZE,
+                this->hdr,
+                queue,
+                this);
     }
 }
