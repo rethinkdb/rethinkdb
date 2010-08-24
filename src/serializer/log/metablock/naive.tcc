@@ -36,6 +36,8 @@ template<class metablock_t>
 naive_metablock_manager_t<metablock_t>::~naive_metablock_manager_t() {
 
     assert(state == state_unstarted || state == state_shut_down);
+
+    free(hdr);
     
     assert(!mb_buffer_in_use);
     free(mb_buffer);
@@ -208,7 +210,8 @@ void naive_metablock_manager_t<metablock_t>::on_io_complete(event_t *e) {
                 mb_written = last_mb_written;
                 extent = last_mb_extent;
                 memcpy(mb_out, &(mb_buffer->metablock), sizeof(metablock_t));
-                state = state_ready;
+                state = state_reading_header;
+                read_headers();
             }
             mb_buffer_in_use = false;
             if (read_callback) read_callback->on_metablock_read();
@@ -226,7 +229,7 @@ void naive_metablock_manager_t<metablock_t>::on_io_complete(event_t *e) {
         break;
 
     case state_reading_header:
-        //I'm betting at some point there will be more to do here
+        //TODO, we should actually do something with the header once we have it
         state = state_ready;
         break;
 
@@ -265,4 +268,18 @@ void naive_metablock_manager_t<metablock_t>::write_headers() {
                 queue,
                 this);
     }
+}
+
+template<class metablock_t>
+void naive_metablock_manager_t<metablock_t>::read_headers() {
+    assert(state == state_reading_header);
+
+    event_queue_t *queue = get_cpu_context()->event_queue;
+    queue->iosys.schedule_aio_read(
+            dbfd,
+            0, 
+            DEVICE_BLOCK_SIZE, 
+            hdr, 
+            queue, 
+            this);
 }

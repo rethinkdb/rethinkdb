@@ -79,6 +79,7 @@ public:
 
 public:
     void write_headers();
+    void read_headers();
 
 private:
     uint32_t  mb_written; /* !< how many metablocks have been written in this extent */
