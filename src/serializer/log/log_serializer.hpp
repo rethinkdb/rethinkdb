@@ -11,7 +11,7 @@
 #include "config/code.hpp"
 #include "utils.hpp"
 
-#include "metablock/naive.hpp"
+#include "metablock/metablock_manager.hpp"
 #include "extents/extent_manager.hpp"
 #include "lba/lba_list.hpp"
 #include "data_block_manager.hpp"

@@ -1,6 +1,6 @@
 
-#ifndef __SERIALIZER_LOG_METABLOCK_NAIVE_HPP__
-#define __SERIALIZER_LOG_METABLOCK_NAIVE_HPP__
+#ifndef __SERIALIZER_LOG_METABLOCK_METABLOCK_MANAGER_HPP__
+#define __SERIALIZER_LOG_METABLOCK_METABLOCK_MANAGER_HPP__
 
 #include "../extents/extent_manager.hpp"
 #include "arch/io.hpp"
@@ -139,6 +139,6 @@ private:
     int hdr_ref_count;
 };
 
-#include "naive.tcc"
+#include "metablock_manager.tcc"
 
-#endif /* __SERIALIZER_LOG_METABLOCK_NAIVE_HPP__ */
+#endif /* __SERIALIZER_LOG_METABLOCK_METABLOCK_MANAGER_HPP__ */
