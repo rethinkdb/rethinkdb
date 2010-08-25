@@ -5,10 +5,55 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
+/* head functions */
+
+template<class metablock_t>
+naive_metablock_manager_t<metablock_t>::naive_metablock_manager_t::head_t::head_t()
+    : mb_slot(0), extent(0), saved_mb_slot(-1), saved_extent(-1), extent_size(-1), wraparound(false)
+{}
+
+template<class metablock_t>
+void naive_metablock_manager_t<metablock_t>::naive_metablock_manager_t::head_t::operator++(int a) {
+    check("Head ++ called with setting extent_size", extent_size == 0);
+    mb_slot++;
+    if (mb_slot >= (extent_size - DEVICE_BLOCK_SIZE) / DEVICE_BLOCK_SIZE  ) {
+        mb_slot = 0;
+        extent += MB_EXTENT_SEPERATION;
+        if (extent >= MB_NEXTENTS * MB_EXTENT_SEPERATION) {
+            extent = 0;
+            wraparound = true;
+        }
+    }
+    wraparound = false;
+}
+
+template<class metablock_t>
+off64_t naive_metablock_manager_t<metablock_t>::naive_metablock_manager_t::head_t::offset() {
+    check("Head offset called with setting extent_size", extent_size == 0);
+    return DEVICE_BLOCK_SIZE * mb_slot + extent * extent_size + DEVICE_BLOCK_SIZE;
+}
+
+template<class metablock_t>
+void naive_metablock_manager_t<metablock_t>::naive_metablock_manager_t::head_t::push() {
+    saved_mb_slot = mb_slot;
+    saved_extent = extent;
+}
+
+template<class metablock_t>
+void naive_metablock_manager_t<metablock_t>::naive_metablock_manager_t::head_t::pop() {
+    check("Popping without a saved state", saved_mb_slot == (uint32_t) -1 || saved_extent == (uint32_t) -1);
+    mb_slot = saved_mb_slot;
+    extent = saved_extent;
+    
+    saved_mb_slot = -1;
+    saved_mb_slot = -1;
+}
+
 template<class metablock_t>
 naive_metablock_manager_t<metablock_t>::naive_metablock_manager_t(extent_manager_t *em)
-    : mb_written(0), extent(0), extent_manager(em), state(state_unstarted), dbfd(INVALID_FD)
+    : extent_manager(em), state(state_unstarted), dbfd(INVALID_FD)
 {
+    head.extent_size = extent_manager->extent_size;
     assert(sizeof(static_header) <= DEVICE_BLOCK_SIZE);
     hdr = (static_header *)malloc_aligned(DEVICE_BLOCK_SIZE, DEVICE_BLOCK_SIZE);
 #ifndef NDEBUG
@@ -98,7 +143,7 @@ bool naive_metablock_manager_t<metablock_t>::start(fd_t fd, bool *mb_found, meta
         event_queue_t *queue = get_cpu_context()->event_queue;
         queue->iosys.schedule_aio_read(
                 dbfd,
-                DEVICE_BLOCK_SIZE * mb_written + extent * extent_manager->extent_size + DEVICE_BLOCK_SIZE, 
+                head.offset(),
                 DEVICE_BLOCK_SIZE, 
                 mb_buffer, 
                 queue, 
@@ -110,19 +155,6 @@ bool naive_metablock_manager_t<metablock_t>::start(fd_t fd, bool *mb_found, meta
     }
 }
 
-template<class metablock_t>
-bool naive_metablock_manager_t<metablock_t>::incr_mb_location() {
-    mb_written++;
-    if (mb_written >= (extent_manager->extent_size - DEVICE_BLOCK_SIZE) / DEVICE_BLOCK_SIZE  ) {
-        mb_written = 0;
-        extent += MB_EXTENT_SEPERATION;
-        if (extent >= MB_NEXTENTS * MB_EXTENT_SEPERATION) {
-            extent = 0;
-            return true;
-        }
-    }
-    return false;
-}
 
 template<class metablock_t>
 bool naive_metablock_manager_t<metablock_t>::write_metablock(metablock_t *mb, metablock_write_callback_t *cb) {
@@ -138,14 +170,14 @@ bool naive_metablock_manager_t<metablock_t>::write_metablock(metablock_t *mb, me
     event_queue_t *queue = get_cpu_context()->event_queue;
     queue->iosys.schedule_aio_write(
         dbfd,
-        DEVICE_BLOCK_SIZE * mb_written + extent * extent_manager->extent_size + DEVICE_BLOCK_SIZE,// Offset of beginning of write
+        head.offset(),
         DEVICE_BLOCK_SIZE,                                                    // Length of write
         mb_buffer,
         queue,
         this);
 
     mb_buffer->version++;
-    incr_mb_location();
+    head++;
 
     state = state_writing;
     write_callback = cb;
@@ -169,12 +201,11 @@ void naive_metablock_manager_t<metablock_t>::on_io_complete(event_t *e) {
             if (mb_buffer->version > version) {
                 /* this metablock is good, maybe there are more? */
                 version = mb_buffer->version;
-                last_mb_written = mb_written;
-                last_mb_extent = extent;
-                bool extent_wraparound = incr_mb_location();
+                head.push();
+                head++;
                 /* mb_buffer_last = mb_buffer and give mb_buffer mb_buffer_last's space so no realloc */
                 swap((void **) &mb_buffer_last, (void **) &mb_buffer);
-                if (extent_wraparound) {
+                if (head.wraparound) {
                     done_looking = true;
                 } else {
                     done_looking = false;
@@ -184,8 +215,8 @@ void naive_metablock_manager_t<metablock_t>::on_io_complete(event_t *e) {
                 done_looking = true;
             }
         } else {
-            bool extent_wraparound = incr_mb_location();
-            if (extent_wraparound) {
+            head++;
+            if (head.wraparound) {
                 done_looking = true;
             } else {
                 done_looking = false;
@@ -207,8 +238,7 @@ void naive_metablock_manager_t<metablock_t>::on_io_complete(event_t *e) {
 
                 /* set everything up */
                 version = -1; /* version is now useless */
-                mb_written = last_mb_written;
-                extent = last_mb_extent;
+                head.pop();
                 memcpy(mb_out, &(mb_buffer->metablock), sizeof(metablock_t));
                 state = state_reading_header;
                 read_headers();
@@ -220,7 +250,7 @@ void naive_metablock_manager_t<metablock_t>::on_io_complete(event_t *e) {
             event_queue_t *queue = get_cpu_context()->event_queue;
             queue->iosys.schedule_aio_read(
                     dbfd,
-                    DEVICE_BLOCK_SIZE * mb_written + extent * extent_manager->extent_size + DEVICE_BLOCK_SIZE, 
+                    head.offset(),
                     DEVICE_BLOCK_SIZE, 
                     mb_buffer, 
                     queue, 

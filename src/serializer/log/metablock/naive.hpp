@@ -51,6 +51,35 @@ private:
             return (_crc == crc());
         }
     };
+/* \brief struct head_t is used to keep track of where we are writing or reading the metablock from
+ */
+private:
+    struct head_t {
+        private:
+            uint32_t mb_slot; /* !< how many metablocks have been written in this extent */
+            uint32_t extent; /* !< which of our extents we're on */
+            uint32_t saved_mb_slot;
+            uint32_t saved_extent;
+        public:
+            size_t extent_size;
+        public:
+            bool wraparound; /* !< whether or not we've wrapped around the edge (used during startup) */
+        public:
+            head_t();
+
+            /* \brief handles moving along successive mb slots
+             */
+            void operator++(int);
+            /* \brief return the offset we should be writing to
+             */
+            off64_t offset();
+            /* \brief save the state to be loaded later (used to save the last known uncorrupted metablock)
+             */
+            void push();
+            /* \brief load a previously saved state (stack has max depth one)
+             */
+            void pop();
+    };
 
 public:
     naive_metablock_manager_t(extent_manager_t *em);
@@ -82,11 +111,7 @@ public:
     void read_headers();
 
 private:
-    uint32_t  mb_written; /* !< how many metablocks have been written in this extent */
-    uint32_t  extent; /* !< which of our extents we're on */
-    /* \brief incr_mb_location returns true if we wrap around from the last extent to the first
-     */
-    bool incr_mb_location();
+    head_t head; /* !< keeps track of where we are in the extents */
     void on_io_complete(event_t *e);
     
     crc_metablock_t *mb_buffer;
@@ -95,8 +120,6 @@ private:
     /* these are only used in the beginning when we want to find the metablock */
     crc_metablock_t *mb_buffer_last;    /* the last metablock we read */
     int             version;            /* !< only used during boot up */
-    int             last_mb_written;    /* !< where the last mb was found */
-    int             last_mb_extent;     /* !< where the last was found */ 
     
     extent_manager_t *extent_manager;
     
