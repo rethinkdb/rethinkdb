@@ -5,8 +5,8 @@ import memcache
 from random import shuffle
 import os
 
-NUM_INTS=80000
-NUM_THREADS=32
+NUM_INTS=800000
+NUM_THREADS=1
 NUMSTR = "%d"
 
 def rethinkdb_insert((port, ints)):
@@ -30,7 +30,7 @@ def test_against_server_at(port):
     
     # Create a list of integers we'll be inserting
     ints = range(0, NUM_INTS)
-    shuffle(ints)
+#shuffle(ints)
     
     def split_list(alist, parts):
         length = len(alist)

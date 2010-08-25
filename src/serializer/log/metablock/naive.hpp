@@ -18,7 +18,7 @@
 /* TODO support multiple concurrent writes */
 
 template<class metablock_t>
-class naive_metablock_manager_t : private iocallback_t {
+class metablock_manager_t : private iocallback_t {
     const static uint32_t poly = 0x1337BEEF;
 
 private:
@@ -82,8 +82,8 @@ private:
     };
 
 public:
-    naive_metablock_manager_t(extent_manager_t *em);
-    ~naive_metablock_manager_t();
+    metablock_manager_t(extent_manager_t *em);
+    ~metablock_manager_t();
 
 public:
     struct metablock_read_callback_t {
