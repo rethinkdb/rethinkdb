@@ -84,15 +84,8 @@ struct lba_start_fsm_t :
         owner->offset_of_last_extent = last_metablock->lba_chain_head;
         owner->entries_in_last_extent = last_metablock->entries_in_lba_chain_head;
         
-        owner->blocks.set_size(last_metablock->highest_block_id_plus_one);
-        for (block_id_t i = 0; i < owner->blocks.get_size(); i ++) {
-            owner->blocks[i].set_found(false);
-        }
-        num_blocks_yet_to_be_found = owner->blocks.get_size();
-        
         lba_chain_next = last_metablock->lba_chain_head;
         entries_in_lba_chain_next = last_metablock->entries_in_lba_chain_head;
-        num_blocks_yet_to_be_found = last_metablock->highest_block_id_plus_one;
         
         state = state_load_link;
         callback = NULL;
@@ -108,13 +101,9 @@ struct lba_start_fsm_t :
         
         if (state == state_load_link) {
         
-            if (num_blocks_yet_to_be_found == 0) {
+            if (lba_chain_next == END_OF_LBA_CHAIN) {
                 state = state_finish;
-                
             } else {
-                // Don't expect to reach end of LBA chain before all blocks are found
-                assert(lba_chain_next != END_OF_LBA_CHAIN);
-                
                 event_queue_t *queue = get_cpu_context()->event_queue;
                 queue->iosys.schedule_aio_read(
                     owner->dbfd,
@@ -151,6 +140,9 @@ struct lba_start_fsm_t :
                 assert(entry->offset == DELETE_BLOCK || entry->offset % DEVICE_BLOCK_SIZE == 0);
                 
                 // If it's an entry for a block we haven't seen before, then record its information
+                if(entry->block_id >= owner->blocks.get_size())
+                    owner->blocks.set_size(entry->block_id + 1);
+                
                 block_info_t *binfo = &owner->blocks[entry->block_id];
                 if (!binfo->is_found()) {
                     binfo->set_found(true);
@@ -160,8 +152,6 @@ struct lba_start_fsm_t :
                         binfo->set_state(lba_list_t::block_used);
                         binfo->set_offset(entry->offset);
                     }
-                    num_blocks_yet_to_be_found --;
-                    assert(num_blocks_yet_to_be_found >= 0);
                 }
             }
             
@@ -222,7 +212,6 @@ struct lba_start_fsm_t :
     lba_list_t::ready_callback_t *callback;
     
     lba_extent_t *buffer;
-    int num_blocks_yet_to_be_found;
     off64_t lba_chain_next;
     int entries_in_lba_chain_next;
 };
@@ -527,7 +516,6 @@ void lba_list_t::prepare_metablock(metablock_mixin_t *metablock) {
         metablock->lba_chain_head = offset_of_last_extent;
         metablock->entries_in_lba_chain_head = entries_in_last_extent;
     }
-    metablock->highest_block_id_plus_one = blocks.get_size();
 }
 
 void lba_list_t::shutdown() {

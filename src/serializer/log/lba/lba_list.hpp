@@ -17,7 +17,6 @@ struct lba_start_fsm_t;
 #define LBA_MAGIC_SIZE 8
 #define CHAIN_HEAD_MARKER "chain_head"
 #define NENTRIES_MARKER "nentries"
-#define HIGHEST_ID_PLUS_ONE "highest_id+1"
 
 class lba_list_t
 {
@@ -75,14 +74,11 @@ public:
         char chain_head_marker[sizeof(CHAIN_HEAD_MARKER)];
 #endif
         off64_t lba_chain_head;
+
 #ifdef SERIALIZER_MARKERS 
         char entries_in_marker[sizeof(NENTRIES_MARKER)];
 #endif
         int entries_in_lba_chain_head;
-#ifdef SERIALIZER_MARKERS 
-        char highest_bid_marker[sizeof(HIGHEST_ID_PLUS_ONE)];
-#endif
-        block_id_t highest_block_id_plus_one;
     };
 
 private:
@@ -111,6 +107,10 @@ private:
     
     struct block_info_t {
     public:
+        block_info_t()
+            : found(0)
+            {}
+        
         bool is_found() {
             return found;
         }
