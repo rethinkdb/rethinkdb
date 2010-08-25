@@ -1,18 +1,13 @@
 # This script is meant to be run as a post-commit hook. There should be a reference of some sort
 # from .git/hooks/post-commit to this script. It starts the tests running in a detached process.
-# It will send an email to the committer when they are done.
+# It will send an email to the user when they are done.
 
-echo "Starting automated tests; you will receive an email in a few minutes."
+# It must be run in the root of the git repository, the directory with ".git" in it.
 
-dir=`pwd`
-sender=buildbot@rethinkdb.com
-sender_password=allspark
-troubleshooter=tim@rethinkdb.com
-cmd="--all test"
-auto_test_cmd="retest2_git_repo $dir $sender $sender_password $troubleshooter $cmd"
+echo "Starting automated smoke tests; you will receive email in a minute."
 
-# 'cd' so that nohup.out is put in home directory.
-cd ~
-# Clear any output from previous runs
-date > nohup.out
-nohup $auto_test_cmd 2> ~/nohup.err &
+# Configure environment variables that retester uses
+export RETESTER_EMAIL_SENDER=buildbot@rethinkdb.com:allspark
+
+# -b means run in the background and produce no output.
+git retester -b --revision HEAD --args test/smoke_test &

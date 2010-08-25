@@ -1,2 +1,0 @@
-cd ../../../src
-make DEBUG=1 VALGRIND=1

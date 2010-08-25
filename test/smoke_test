@@ -1,0 +1,24 @@
+# Clean in case we are running on a working copy
+test: cd ../src/; make clean
+
+# Compile the server. Make sure it builds in debug and release mode. Also, build in valgrind mode
+# so we can test with valgrind.
+test: cd ../src/; make -j8
+test: cd ../src/; make -j8 DEBUG=0
+test: cd ../src/; make -j8 VALGRIND=1
+
+# Test various features
+test: integration/cas.py --auto
+test: integration/flags.py --auto
+test: integration/incr_decr.py --auto
+test(repeat = 12, timeout = 20): integration/serial_mix.py --auto
+
+# Test the serializer
+test(repeat = 12, timeout = 20): integration/serial_mix.py --auto --restart-server-prob 0.0005
+
+# Test the server's ability to handle multiple connections
+test(repeat = 6): integration/multi_serial_mix.py --auto
+
+# Make sure that the btree works even with many keys
+test: integration/many_keys.py --auto
+
