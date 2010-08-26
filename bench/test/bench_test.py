@@ -54,7 +54,7 @@ class Result(object):
 
 
 def analyze_data(filename):
-    print "analyzing data."
+    print "Analyzing data."
     datafile = open(filename,"r").readlines()
     results = []
     cmd = ""
@@ -75,26 +75,30 @@ def analyze_data(filename):
 
 
 def sort_data(results):
-    print "sorting data."
+    print "Sorting data."
     return sorted(results, key=lambda res: res.ops_per_sec, reverse=True)
 
 
 def run_rebench(filename):
-    print "running rebench."
+    print "Running rebench."
     parallelism = [1]#,4,8]
     block_size  = [512]#, 1024, 2048]
     stride      = [512]#, 1024, 2048]
     workload    = ["rnd"]#, "seq"]
     operation   = ["read"]#, "write"]
-    datafile = open(filename,"w+")
+    duration    = 20 # seconds
+    
+    datafile    = open(filename,"w+")
     (_, temp_file_name) =  tempfile.mkstemp()
+    
     for num_threads in parallelism:
         for b_size in block_size:
             for stride_size in stride:
                 for work_type in workload:
                     for op in operation:
-                        cmd = "rebench -d600 -g50 -n -t stateless -c %d -b %d -s %d -w %s -o %s --output %s /dev/sdb" % (num_threads, b_size, stride_size, work_type, op, temp_file_name)
-                        print "running %s" % cmd
+                        
+                        cmd = "rebench -d%d -g50 -n -t stateless -c %d -b %d -s %d -w %s -o %s --output %s /dev/sdb" % (duration, num_threads, b_size, stride_size, work_type, op, temp_file_name)
+                        print "Running %s" % cmd
                         # write and force write to disk
                         datafile.write(cmd+"\n")
                         datafile.flush()
@@ -105,11 +109,10 @@ def run_rebench(filename):
                         detailed = open(temp_file_name,"r").readlines()
                         detailed = [d.rstrip() for d in detailed]
                         datafile.write(" ".join(detailed) + "\n")
-                        # delete temporary file
-                        os.remove(temp_file_name)
-
-                        print "done."
-                           
+                        print "Done."
+    
+    # delete temporary file
+    os.remove(temp_file_name)
     print "Finished running rebench."
     datafile.close()
 
@@ -117,16 +120,16 @@ def run_rebench(filename):
 def main(filename):
     run_rebench(filename)
     results = analyze_data(filename)
-    sorted_data = sort_data(results)
+    # sorted_data = sort_data(results)
     
-    with open("sorted_"+filename,"w+") as sorted_file:
-        for result in sorted_data:
-            sorted_file.write(repr(result))
+    # with open("sorted_"+filename,"w+") as sorted_file:
+    #     for result in sorted_data:
+    #         sorted_file.write(repr(result))
 
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        raise SystemExit, "usage: %s [filename to store data in]" % sys.argv[0]
+        raise SystemExit, "usage: %s [output file]" % sys.argv[0]
     main(sys.argv[1])
 
 # We also want to do this to see how the rate of data transfer fluctuates:
