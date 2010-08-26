@@ -1,10 +1,43 @@
 #include "garbage_collector.hpp"
 
+
+template<class Priority_Queue>
+base_value_t<Priority_Queue>::base_value_t() {
+    priority_queue = NULL;
+    index = -1;
+}
+
+template<class Priority_Queue, int N>
+void gcarray_t<Priority_Queue, N>::set(size_t pos, bool value) {
+#ifndef NDEBUG
+    check("Index out of bounds", pos > N);
+#endif
+    std::bitset<N>::set(pos, value);
+    if (base_value_t<Priority_Queue>::priority_queue)
+        base_value_t<Priority_Queue>::priority_queue->update(index);
+}
+
+template<class Priority_Queue, int N>
+bool gcarray_t<Priority_Queue, N>::get(size_t pos) {
+#ifndef NDEBUG
+    check("Index out of bounds", pos > N);
+#endif
+    return std::bitset<N>::get(pos);
+}
+
+template<class Priority_Queue, int N>
+bool gcarray_t<Priority_Queue, N>::operator< (const gcarray_t &b) {
+    return data.count() < b.data.count();
+}
+
+
 template<class Key, class Value, class Less>
 void priority_queue_t<Key, Value, Less>::swap(int i, int j) {
     entry_t tmp = heap[i];
     heap[i] = heap[j];
     heap[j] = tmp;
+    heap[i].value.index = i;
+    heap[j].value.index = j;
 }
 
 template<class Key, class Value, class Less>
@@ -21,7 +54,6 @@ template<class Key, class Value, class Less>
 int priority_queue_t<Key, Value, Less>::right(int i) {
     return 2 * (i + 1);
 }
-
 
 template<class Key, class Value, class Less>
 void priority_queue_t<Key, Value, Less>::bubble_up(int &i) {
@@ -76,4 +108,11 @@ Key priority_queue_t<Key, Value, Less>::pop() {
     heap.push_front(heap.pop_back());
     heap.front().index = 0;
     bubble_down(0);
+}
+
+template<class Key, class Value, class Less>
+void priority_queue_t<Key, Value, Less>::update(int index) {
+    bubble_up(index);
+    bubble_down(index);
+    heap[index].value.index = index;
 }

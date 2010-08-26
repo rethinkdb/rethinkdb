@@ -6,13 +6,6 @@
 #include <deque>
 #include "alloc/alloc_mixin.hpp"
 
-class datablock_bitarray_t : public std::bitset<EXTENT_SIZE / BTREE_BLOCK_SIZE>, 
-                         public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, datablock_bitarray_t> {
-public:
-    bool operator[] (size_t pos) const;
-    reference operator[] (size_t pos);
-};
-
 /* \brief priority_queue_t
  * Priority queues are by defined to be max priority queues, that is
  * pop() gives you an element a such that for all b in the heap Less(b, a) == True
@@ -23,7 +16,7 @@ private:
     struct entry_t {
         public:
             Key key;
-            Value value;
+            Value &value;
     };
 private:
     std::deque<entry_t> heap;
@@ -42,6 +35,33 @@ public:
     Key peak();
     void push(Key, Value&);
     Key pop();
+    void update(int);
+};
+
+template<class Priority_Queue>
+class base_value_t {
+    public:
+        /* these get set by our priority queue */
+        Priority_Queue *priority_queue;
+        int index;
+    public:
+        base_value_t();
+        ~base_value_t();
+};
+
+/* \brief a bitarray_t records in a bitset which of N blocks are garbage
+ *  by convention true or 1 = garbage,
+ *  can false or 0 = live
+ */
+template<class Priority_Queue, int N>
+class gcarray_t : public base_value_t<Priority_Queue>,
+                  public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, gcarray_t<Priority_Queue, N> > {
+private:
+    std::bitset<N> data;
+public:
+    void set(size_t pos, bool value);
+    bool get(size_t pos);
+    bool operator< (const gcarray_t &b);
 };
 
 #include "serializer/log/garbage_collector.tcc"
