@@ -108,42 +108,38 @@ def sort_data_by_ops_per_sec(results):
     return sorted(results, key=lambda res: res.ops_per_sec, reverse=True)
 
 
-def run_rebench(filename):
+def run_rebench(filename, threads=1, block_size=512, stride=512, workload="rnd", operation="write",duration=2):
     """
         Runs Rebench for the all the specified parameters.
-        Saves each result in the file specified by filename.
     """
     print "Running rebench."
-    parallelism = [1]#,4,8]
-    block_size  = [512]#, 1024, 2048]
-    stride      = [512]#, 1024, 2048]
-    workload    = ["rnd"]#, "seq"]
-    operation   = ["read"]#, "write"]
-    duration    = 20 # seconds
-    
+    #parallelism = [1]#,4,8]
+    #block_size  = [512]#, 1024, 2048]
+    #stride      = [512]#, 1024, 2048]
+    #workload    = ["rnd"]#, "seq"]
+    #operation   = ["write"]#, "write"]
+    #duration    = 300 # seconds
     datafile    = open(filename,"w+")
     (_, temp_file_name) =  tempfile.mkstemp()
     
-    for num_threads in parallelism:
-        for b_size in block_size:
-            for stride_size in stride:
-                for work_type in workload:
-                    for op in operation:
                         
-                        cmd = "rebench -d%d -g50 -n -t stateless -c %d -b %d -s %d -w %s -o %s --output %s /dev/sdb" % (duration, num_threads, b_size, stride_size, work_type, op, temp_file_name)
-                        print "Running %s" % cmd
-                        # write and force write to disk
-                        datafile.write(cmd+"\n")
-                        datafile.flush()
-                        os.fsync(datafile.fileno())
-                        proc = subprocess.Popen(cmd.split(" "), stdout=datafile, close_fds=True)
-                        proc.wait()                    
-                        # we really want that detailed output to be in our datafile
-                        detailed = open(temp_file_name,"r").readlines()
-                        detailed = [d.rstrip() for d in detailed]
-                        datafile.write(" ".join(detailed) + "\n")
-                        print "Done."
+    cmd = "rebench -d%d -g50 -n -t stateless -c %d -b %d -s %d -w %s -o %s --output %s /dev/sdb" % (duration, threads, block_size, stride, workload, operation, temp_file_name)
+    print "Running %s" % cmd
     
+    # write and force write to disk
+    datafile.write(cmd+"\n")
+    datafile.flush()
+    os.fsync(datafile.fileno())
+    
+    proc = subprocess.Popen(cmd.split(" "), stdout=datafile, close_fds=True)
+    proc.wait()                    
+    
+    # we really want that detailed output to be in our datafile
+    detailed = open(temp_file_name,"r").readlines()
+    detailed = [d.rstrip() for d in detailed]
+    datafile.write(" ".join(detailed) + "\n")
+    print "Done."
+
     # delete temporary file
     os.remove(temp_file_name)
     print "Finished running rebench."
@@ -178,9 +174,10 @@ def generate_histogram_data(filename, data_file):
     assert(len(results)==1) # we can only make the histogram for one test.
     count = defaultdict(lambda: 0)
     
+    bucket_size = 50
     for r in results:
         for i in range(len(r.samples)):
-            key = (int(r.samples[i])//10) * 10 # bin size, round to nearest tenth
+            key = (int(r.samples[i]) // bucket_size) * bucket_size # bin size, round to nearest tenth
             count[key] += 1
 
     with open(data_file,"w+") as f:
@@ -192,8 +189,11 @@ def generate_histogram_data(filename, data_file):
 
 def generate_graph(data_file):
     print "creating plot"
-    title = open(data_file,"r").readline().rstrip()
-    cmd = "gnuplot -e \"set title '%s'; set terminal gif; set output '%s.gif'; plot '%s'\"" % (title, os.path.splitext(data_file)[0], data_file)
+    title = open(data_file,"r").readline().rstrip().replace("#","")
+     # make the title fit on the page
+    for i in range(0,len(title),50):
+        title = title[:i] + "\n" + title[i:]
+    cmd = "gnuplot -e \"set title '%s'; set xlabel 'sample number'; set ylabel 'Ops/sec'; set terminal gif; set output '%s.gif'; plot '%s'\"" % (title, os.path.splitext(data_file)[0], data_file)
     p = subprocess.Popen(shlex.split(cmd), stdout=sys.stdout, close_fds=True)
     p.wait()
     print "done."
@@ -213,15 +213,18 @@ def generate_histogram(data_file):
         x.append(int(tokens[0]))
         y.append(int(tokens[1].rstrip()))
     
-    title = data[0].rstrip()
+    title = data[0].rstrip().replace("#","")
+    # make the title fit on the page
+    for i in range(0,len(title),50):
+        title = title[:i] + "\n" + title[i:]
     cmd = "gnuplot -e \"set title '%s'; set terminal gif; set ylabel 'Frequency'; set xlabel 'Ops/sec'; set xrange [%d:%d]; set yrange [%d:%d]; set output '%s.gif'; plot '%s' with boxes\"" % (title, min(x) - 10, max(x) + 10, min(y) - 10, max(y) + 10, os.path.splitext(data_file)[0], data_file)
     p = subprocess.Popen(shlex.split(cmd), stdout=sys.stdout, close_fds=True)
     p.wait()
     print "done."
 
 
-def main(results_file, graph_data_file):
-    run_rebench(results_file)
+def main(results_file, graph_data_file, flags):
+    run_rebench(results_file, **flags)
     results = analyze_data(results_file)
     
     (base, ext) = os.path.splitext(graph_data_file)
@@ -236,5 +239,17 @@ def main(results_file, graph_data_file):
 if __name__ == "__main__":
     if len(sys.argv) < 3:
         raise SystemExit, "usage: %s [output file (test data)] [output file (graph data)]" % sys.argv[0]
-    main(sys.argv[1], sys.argv[2])
+    parser = OptionParser()
+ 
+    parser.add_option("-d","--duration",dest="duration",action="store", type="int")
+    parser.add_option("-c","--threads",dest="threads",action="store", type="int")
+    parser.add_option("-b","--block_size",dest="block_size",action="store", type="int")
+    parser.add_option("-w","--workload",dest="workload",action="store")
+    parser.add_option("-u","--operation",dest="operation",action="store")
+    (flags, _) = parser.parse_args()
+    flags = vars(flags)
+    for k in flags.keys():
+        if flags[k] is None: del flags[k]
+
+    main(sys.argv[1], sys.argv[2], flags)
 
