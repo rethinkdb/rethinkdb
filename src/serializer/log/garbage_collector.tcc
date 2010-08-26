@@ -1,6 +1,5 @@
 #include "garbage_collector.hpp"
 
-
 template<class Priority_Queue>
 base_value_t<Priority_Queue>::base_value_t() {
     priority_queue = NULL;

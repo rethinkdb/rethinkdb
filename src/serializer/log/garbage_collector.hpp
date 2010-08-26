@@ -4,6 +4,7 @@
 
 #include <bitset>
 #include <deque>
+#include <functional>
 #include "alloc/alloc_mixin.hpp"
 
 /* \brief priority_queue_t
@@ -62,6 +63,21 @@ public:
     void set(size_t pos, bool value);
     bool get(size_t pos);
     bool operator< (const gcarray_t &b);
+};
+
+/* extend standard less to work with gcarray_t
+ */
+namespace std {
+    template <class Priority_Queue, int N> struct less<const gcarray_t<Priority_Queue, N> > {
+        bool operator()(const gcarray_t<Priority_Queue, N> x, const gcarray_t<Priority_Queue, N> y) const {
+            return x.data.count() < y.data.count();
+        }
+    };
+    template <class Priority_Queue, int N> struct less<gcarray_t<Priority_Queue, N> > {
+        bool operator()(const gcarray_t<Priority_Queue, N> x, const gcarray_t<Priority_Queue, N> y) const {
+            return x.data.count() < y.data.count();
+        }
+    };
 };
 
 #include "serializer/log/garbage_collector.tcc"
