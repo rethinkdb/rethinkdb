@@ -8,6 +8,7 @@
 #include "containers/segmented_vector.hpp"
 #include "containers/intrusive_list.hpp"
 #include "../extents/extent_manager.hpp"
+#include "../garbage_collector.hpp"
 
 // Used internally by lba_list_t
 struct lba_extent_buf_t;
