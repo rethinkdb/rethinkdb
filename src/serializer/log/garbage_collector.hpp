@@ -11,14 +11,27 @@
  * Priority queues are by defined to be max priority queues, that is
  * pop() gives you an element a such that for all b in the heap Less(b, a) == True
  */
-template<class Key, class Value, class Less>
-class priority_queue_t : public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, priority_queue_t<Key, Value, Less> > {
-private:
-    struct entry_t {
+template<class T, class Less>
+class priority_queue_t : public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, priority_queue_t<T, Less> > {
+public:
+    struct entry_t : public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, entry_t> {
         public:
-            Key key;
-            Value &value;
+            T data;
+
+        /* these 2 fields are accessed the our friend the priority_queue_t */
+        friend class priority_queue_t<T, Less>;
+        private:
+            priority_queue_t<T, Less> *pq; /* !< the priority queue the data is registered in */
+            int index;                         /* the index withing the priority queue */
+
+        public:
+            /* \brief update() should be called after an change is made to the data
+             * to preserve the order in the queue
+             */
+            void update();
+            bool operator< (const entry_t &b) {return Less(data, b.data);}
     };
+    //typedef entry_t entry;
 private:
     std::deque<entry_t> heap;
 private:
@@ -33,49 +46,23 @@ public:
     ~priority_queue_t();
     bool empty();
     size_t size();
-    Key peak();
-    void push(Key, Value&);
-    Key pop();
+    T peak();
+    entry_t *push(T);
+    T pop();
     void update(int);
 };
 
-template<class Priority_Queue>
-class base_value_t {
-    public:
-        /* these get set by our priority queue */
-        Priority_Queue *priority_queue;
-        int index;
-    public:
-        base_value_t();
-        ~base_value_t();
-};
-
-/* \brief a bitarray_t records in a bitset which of N blocks are garbage
- *  by convention true or 1 = garbage,
- *  can false or 0 = live
- */
-template<class Priority_Queue, int N>
-class gcarray_t : public base_value_t<Priority_Queue>,
-                  public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, gcarray_t<Priority_Queue, N> > {
-private:
-    std::bitset<N> data;
-public:
-    void set(size_t pos, bool value);
-    bool get(size_t pos);
-    bool operator< (const gcarray_t &b);
-};
-
-/* extend standard less to work with gcarray_t
+/* extend standard less to work with bitsets the way we want
  */
 namespace std {
-    template <class Priority_Queue, int N> struct less<const gcarray_t<Priority_Queue, N> > {
-        bool operator()(const gcarray_t<Priority_Queue, N> x, const gcarray_t<Priority_Queue, N> y) const {
-            return x.data.count() < y.data.count();
+    template <int N> struct less<const std::bitset<N> > {
+        bool operator()(const std::bitset<N> x, const std::bitset<N> y) const {
+            return x.count() < y.count();
         }
     };
-    template <class Priority_Queue, int N> struct less<gcarray_t<Priority_Queue, N> > {
-        bool operator()(const gcarray_t<Priority_Queue, N> x, const gcarray_t<Priority_Queue, N> y) const {
-            return x.data.count() < y.data.count();
+    template <int N> struct less<std::bitset<N> > {
+        bool operator()(const std::bitset<N> x, const std::bitset<N> y) const {
+            return x.count() < y.count();
         }
     };
 };
