@@ -5,9 +5,10 @@
 #include "cpu_context.hpp"
 #include "event_queue.hpp"
 
-// OFFSET_UNINITIALIZED indicates the end of a linked list of LBA extents.
+/*****************************
+ * Some serializer constants *
+ *****************************/
 #define OFFSET_UNINITIALIZED off64_t(-1)
-
 // PADDING_BLOCK_ID and PADDING_OFFSET indicate that an entry in the LBA list only exists to fill
 // out a DEVICE_BLOCK_SIZE-sized chunk of the extent.
 #define PADDING_BLOCK_ID block_id_t(-1)
@@ -19,38 +20,12 @@
 static const char lba_magic[LBA_MAGIC_SIZE] = {'l', 'b', 'a', 'm', 'a', 'g', 'i', 'c'};
 static const char lba_super_magic[LBA_MAGIC_SIZE] = {'l', 'b', 'a', 's', 'u', 'p', 'e', 'r'};
 
+/******************
+ * INITIALIZATION *
+ ******************/
 lba_list_t::lba_list_t(extent_manager_t *em)
     : extent_manager(em), state(state_unstarted), last_write(NULL), next_free_id(NULL_BLOCK_ID)
     {}
-
-lba_list_t::~lba_list_t() {
-    assert(state == state_unstarted || state == state_shut_down);
-    assert(last_write == NULL);
-    assert(current_extent == NULL);
-}
-
-/* This form of start() is called when we are creating a new database */
-void lba_list_t::start(fd_t fd) {
-    
-    assert(state == state_unstarted);
-    
-    dbfd = fd;
-    
-    current_extent = NULL;
-    last_extent_offset = OFFSET_UNINITIALIZED;
-    last_extent_entry_count = 0;
-    lba_superblock_offset = OFFSET_UNINITIALIZED;
-    lba_superblock_entry_count = 0;
-
-    // Create an initial superblock (because set_block_offset() only accepts block IDs created by
-    // gen_block_id(), so we have to manually help the serializer bypass gen_block_id() to get the
-    // correct ID for the superblock)
-    assert(SUPERBLOCK_ID == 0);
-    blocks.set_size(1);
-    blocks[SUPERBLOCK_ID].set_state(block_in_limbo);
-    
-    state = state_ready;
-}
 
 struct lba_start_fsm_t :
     public iocallback_t,
@@ -294,6 +269,29 @@ private:
     int nextentsloaded, nextentsrequested;    
 };
 
+/* This form of start() is called when we are creating a new database */
+void lba_list_t::start(fd_t fd) {
+    
+    assert(state == state_unstarted);
+    
+    dbfd = fd;
+    
+    current_extent = NULL;
+    last_extent_offset = OFFSET_UNINITIALIZED;
+    last_extent_entry_count = 0;
+    lba_superblock_offset = OFFSET_UNINITIALIZED;
+    lba_superblock_entry_count = 0;
+
+    // Create an initial superblock (because set_block_offset() only accepts block IDs created by
+    // gen_block_id(), so we have to manually help the serializer bypass gen_block_id() to get the
+    // correct ID for the superblock)
+    assert(SUPERBLOCK_ID == 0);
+    blocks.set_size(1);
+    blocks[SUPERBLOCK_ID].set_state(block_in_limbo);
+    
+    state = state_ready;
+}
+
 /* This form of start() is called when we are loading an existing database */
 bool lba_list_t::start(fd_t fd, metablock_mixin_t *last_metablock, ready_callback_t *cb) {
     
@@ -305,6 +303,9 @@ bool lba_list_t::start(fd_t fd, metablock_mixin_t *last_metablock, ready_callbac
     return starter->run(last_metablock, cb);
 }
 
+/************************
+ * LBA MANIPULATION OPS *
+ ************************/
 block_id_t lba_list_t::gen_block_id() {
     
     assert(state == state_ready);
@@ -332,6 +333,37 @@ off64_t lba_list_t::get_block_offset(block_id_t block) {
     assert(blocks[block].get_state() == block_used);
     return blocks[block].get_offset();
 }
+
+void lba_list_t::set_block_offset(block_id_t block, off64_t offset) {
+        
+    assert(offset != DELETE_BLOCK);   // Watch out for collisions with the magic value
+    
+    // Blocks must be returned by gen_block_id() before they are legal to use
+    assert(blocks[block].get_state() != block_unused);
+    
+    blocks[block].set_state(block_used);
+    blocks[block].set_offset(offset);
+    
+    make_entry_in_extent(block, offset);
+}
+
+void lba_list_t::delete_block(block_id_t block) {
+    
+    assert(blocks[block].get_state() != block_unused);
+    
+    if (blocks[block].get_state() == block_in_limbo) {
+        // Block ID allocated, but deleted before first write. We don't need to go to disk.
+        blocks[block].set_state(block_unused);
+    } else {
+        blocks[block].set_state(block_unused);
+        make_entry_in_extent(block, DELETE_BLOCK);
+    }
+
+    // Add the unused block to the freelist
+    blocks[block].set_next_free_id(next_free_id);
+    next_free_id = block;
+}
+
 
 /* We allocate temporary storage for the LBA blocks we are writing in the form of lba_extent_buf_t.
 Each lba_extent_buf_t represents an LBA extent on disk, and holds a buffer for the extent in
@@ -408,11 +440,14 @@ public:
     int writes_out;   // How many lba_write_ts exist that point to this buf
 };
 
+/**********************
+ * SERIALIZATION CODE *
+ **********************/
+
 /* When writing offsets to a file, we do not want to confirm to the user that the sync is complete
 until not only the write that they initiated is complete, but all prior writes are complete. This is
 handled by lba_write_t, which is in effect a linked list of writes. The lba_write_t's done() method
 will only run when the write and all prior writes are complete. */
-
 struct lba_write_t :
     public iocallback_t,
     public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, lba_write_t >
@@ -509,36 +544,6 @@ void lba_list_t::make_entry_in_extent(block_id_t block, off64_t offset) {
     }
 }
 
-void lba_list_t::set_block_offset(block_id_t block, off64_t offset) {
-        
-    assert(offset != DELETE_BLOCK);   // Watch out for collisions with the magic value
-    
-    // Blocks must be returned by gen_block_id() before they are legal to use
-    assert(blocks[block].get_state() != block_unused);
-    
-    blocks[block].set_state(block_used);
-    blocks[block].set_offset(offset);
-    
-    make_entry_in_extent(block, offset);
-}
-
-void lba_list_t::delete_block(block_id_t block) {
-    
-    assert(blocks[block].get_state() != block_unused);
-    
-    if (blocks[block].get_state() == block_in_limbo) {
-        // Block ID allocated, but deleted before first write. We don't need to go to disk.
-        blocks[block].set_state(block_unused);
-    } else {
-        blocks[block].set_state(block_unused);
-        make_entry_in_extent(block, DELETE_BLOCK);
-    }
-
-    // Add the unused block to the freelist
-    blocks[block].set_next_free_id(next_free_id);
-    next_free_id = block;
-}
-
 bool lba_list_t::sync(sync_callback_t *cb) {
     
     assert(state == state_ready);
@@ -588,6 +593,9 @@ void lba_list_t::prepare_metablock(metablock_mixin_t *metablock) {
     }
 }
 
+/***************
+ * DESTRUCTION *
+ ***************/
 void lba_list_t::shutdown() {
     assert(state == state_ready);    
     state = state_shut_down;
@@ -598,3 +606,10 @@ void lba_list_t::shutdown() {
         current_extent = NULL;
     }
 }
+
+lba_list_t::~lba_list_t() {
+    assert(state == state_unstarted || state == state_shut_down);
+    assert(last_write == NULL);
+    assert(current_extent == NULL);
+}
+
