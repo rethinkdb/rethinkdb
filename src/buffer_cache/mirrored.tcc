@@ -61,6 +61,14 @@ template <class config_t>
 buf<config_t>::~buf() {
     // TODO: if we shutdown the server befire 5 seconds, the buffer hasn't had a chance to flush yet,
     // and this assert fails. Please fix.
+
+#ifndef NDEBUG
+    // We're about to free the data, let's set it to a recognizable
+    // value to make sure we don't depend on accessing things that may
+    // be flushed out of the cache.
+    memset(data, 0xDD, cache->serializer.block_size);
+#endif
+    
     assert(safe_to_unload());
     cache->alloc.free(data);
 }
