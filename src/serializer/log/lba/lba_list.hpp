@@ -185,7 +185,11 @@ private:
 
 private:
     void make_entry_in_extent(block_id_t block, off64_t offset);
-
+private:
+    class gc_array;
+    class gc_pq;
+    typedef gcarray_t<gc_pq, (EXTENT_SIZE - sizeof(lba_header_t)) / sizeof(lba_entry_t)> gc_array;
+    typedef priority_queue_t<off64_t, gc_array, std::less<gc_array> > gc_pq;
 };
 
 #endif /* __SERIALIZER_LOG_LBA_LIST_HPP__ */

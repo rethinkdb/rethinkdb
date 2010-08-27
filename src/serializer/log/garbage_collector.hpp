@@ -12,7 +12,7 @@
  * pop() gives you an element a such that for all b in the heap Less(b, a) == True
  */
 template<class Key, class Value, class Less>
-struct priority_queue_t : public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, priority_queue_t<Key, Value, Less> > {
+class priority_queue_t : public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, priority_queue_t<Key, Value, Less> > {
 private:
     struct entry_t {
         public:
