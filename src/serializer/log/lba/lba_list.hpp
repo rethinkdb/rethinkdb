@@ -18,8 +18,7 @@ struct lba_write_t;
 struct lba_start_fsm_t;
 
 #define LBA_MAGIC_SIZE 8
-#define CHAIN_HEAD_MARKER "chain_head"
-#define NENTRIES_MARKER "nentries"
+#define LBA_SUPER_MAGIC_SIZE 8
 
 class lba_list_t
 {
@@ -73,15 +72,16 @@ public:
 
 public:
     struct metablock_mixin_t {
-#ifdef SERIALIZER_MARKERS
-        char chain_head_marker[sizeof(CHAIN_HEAD_MARKER)];
-#endif
-        off64_t lba_chain_head;
+        /* Reference to the last lba extent (that's currently being
+         * written to). Once the extent is filled, the reference is
+         * moved to the lba superblock, and the next block gets a
+         * reference to the clean extent. */
+        off64_t last_lba_extent_offset;
+        int last_lba_extent_entries_count;
 
-#ifdef SERIALIZER_MARKERS 
-        char entries_in_marker[sizeof(NENTRIES_MARKER)];
-#endif
-        int entries_in_lba_chain_head;
+        /* Reference to the LBA superblock and its size */
+        off64_t lba_superblock_offset;
+        int lba_superblock_entries_count;
     };
 
 private:
@@ -103,23 +103,17 @@ private:
     
     enum block_state_t {
         // block_state_t is limited to two bits in block_info_t
-        block_unused   = 0,
-        block_in_limbo = 1,
-        block_used     = 2
+        block_not_found = 0,  // we initialize the state as not found
+        block_unused    = 1,  // we mark a block as unused if we see it's deleted or don't find it at all
+        block_in_limbo  = 2,  // block is in limbo if someone asked for it but didn't set its data block yet
+        block_used      = 3   // block is used when it is used :)
     };
     
     struct block_info_t {
     public:
         block_info_t()
-            : found(0)
+            : state(block_not_found)
             {}
-        
-        bool is_found() {
-            return found;
-        }
-        void set_found(bool _found) {
-            found = _found;
-        }
         
         block_state_t get_state() {
             return state;
@@ -147,42 +141,61 @@ private:
         }
 
     private:
-        int found                    : 1;   // During startup, this is false on the blocks that we still need entries for
         block_state_t state          : 2;
         union {
-            off64_t offset           : 61;  // If state == block_used, the location of the block in the file
-            block_id_t next_free_id  : 61;  // If state == block_unused, contains the id of the next free block
+            off64_t offset           : 62;  // If state == block_used, the location of the block in the file
+            block_id_t next_free_id  : 62;  // If state == block_unused, contains the id of the next free block
         };
     };
     segmented_vector_t<block_info_t, MAX_BLOCK_ID> blocks;
     
     lba_extent_buf_t *current_extent;
     
+    off64_t lba_superblock_offset;
+    int lba_superblock_entry_count;
+
     // These are only meaningful if current_extent is NULL
-    off64_t offset_of_last_extent;
-    int entries_in_last_extent;
+    off64_t last_extent_offset;
+    int last_extent_entry_count;
     
     lba_write_t *last_write;
     block_id_t next_free_id;
 
 private:
-    // This is the on-disk format of an LBA extent
+    /* This is the on-disk format of an LBA extent */
     struct lba_entry_t {
         block_id_t block_id;
         off64_t offset;   // Is either an offset into the file or DELETE_BLOCK
     };
     struct lba_header_t {
         char magic[LBA_MAGIC_SIZE];
-        off64_t next_extent_in_chain;
-        int entries_in_next_extent_in_chain;
     };
     struct lba_extent_t {
-        
         // Header needs to be padded to a multiple of sizeof(lba_entry_t)
         lba_header_t header;
         char padding[sizeof(lba_entry_t) - sizeof(lba_header_t) % sizeof(lba_entry_t)];
-        
         lba_entry_t entries[0];
+    };
+
+    /* This is the on disk format of the LBA superblock */
+    struct lba_superblock_entry_t {
+        off64_t offset;
+        int lba_entries_count;
+    };
+    
+    struct lba_superblock_t {
+        char magic[LBA_SUPER_MAGIC_SIZE];
+
+        /* The superblock contains references to all the extents
+         * except the last. The reference to the last extent is
+         * maintained in the metablock. This is done in order to be
+         * able to store the number of entries in the last extent as
+         * it's being filled up without rewriting the superblock. */
+        lba_superblock_entry_t entries[0];
+
+        static int entry_count_to_file_size(int nentries) {
+            return sizeof(lba_superblock_entry_t) * nentries + sizeof(magic);
+        }
     };
 
 private:
