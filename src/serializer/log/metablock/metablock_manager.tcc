@@ -51,7 +51,7 @@ void metablock_manager_t<metablock_t>::metablock_manager_t::head_t::pop() {
 
 template<class metablock_t>
 metablock_manager_t<metablock_t>::metablock_manager_t(extent_manager_t *em)
-    : extent_manager(em), state(state_unstarted), dbfd(INVALID_FD)
+    : extent_manager(em), state(state_unstarted), dbfd(INVALID_FD), hdr(NULL), hdr_ref_count(0)
 {
     head.extent_size = extent_manager->extent_size;
     assert(sizeof(static_header) <= DEVICE_BLOCK_SIZE);

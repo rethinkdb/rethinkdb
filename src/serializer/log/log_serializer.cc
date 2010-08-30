@@ -54,6 +54,7 @@ struct ls_start_fsm_t :
         ser->state = log_serializer_t::state_starting_up;
 
         struct stat file_stat;
+        bzero((void*)&file_stat, sizeof(file_stat)); // make valgrind happy
         stat(ser->db_path, &file_stat);
         
         // Open the DB file
