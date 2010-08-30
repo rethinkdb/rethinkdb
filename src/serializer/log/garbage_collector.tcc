@@ -8,11 +8,11 @@ void priority_queue_t<T, Less>::entry_t::update() {
 
 template<class T, class Less>
 void priority_queue_t<T, Less>::swap(int i, int j) {
-    entry_t tmp = heap[i];
+    entry_t *tmp = heap[i];
     heap[i] = heap[j];
     heap[j] = tmp;
-    heap[i].value.index = i;
-    heap[j].value.index = j;
+    heap[i]->index = i;
+    heap[j]->index = j;
 }
 
 template<class T, class Less>
@@ -32,16 +32,27 @@ int priority_queue_t<T, Less>::right(int i) {
 
 template<class T, class Less>
 void priority_queue_t<T, Less>::bubble_up(int &i) {
-    while (heap[parent(i)] < heap[i]) {
+    while (i > 0 && Less(heap[parent(i)]->data, heap[i]->data)) {
         swap(i, parent(i));
         i = parent(i);
     }
 }
 
 template<class T, class Less>
+void priority_queue_t<T, Less>::bubble_up(int i) {
+    while (i > 0 && Less()(heap[parent(i)]->data, heap[i]->data)) {
+        printf("Swapping %d and %d\n", heap[i]->data, heap[parent(i)]->data);
+        swap(i, parent(i));
+        i = parent(i);
+    }
+    printf("Not swapping %d and %d\n", heap[i]->data, heap[parent(i)]->data);
+}
+
+template<class T, class Less>
 void priority_queue_t<T, Less>::bubble_down(int &i) {
-    while (heap[i] < heap[left(i)] || heap[i] < heap[right(i)]) {
-        if (Less(heap[left(i)], heap[right(i)])) {
+    while ((left(i) < heap.size() && Less()(heap[i]->data, heap[left(i)]->data)) || 
+           (right(i) < heap.size() &&  Less()(heap[i]->data, heap[right(i)]->data))) {
+        if ((right(i) < heap.size()) && Less()(heap[left(i)]->data, heap[right(i)]->data)) {
             swap(i, right(i));
             i = right(i);
         } else {
@@ -50,6 +61,25 @@ void priority_queue_t<T, Less>::bubble_down(int &i) {
         }
     }
 }
+
+template<class T, class Less>
+void priority_queue_t<T, Less>::bubble_down(int i) {
+    while ((left(i) < heap.size() && Less()(heap[i]->data, heap[left(i)]->data)) || 
+            (right(i) < heap.size() &&  Less()(heap[i]->data, heap[right(i)]->data))) {
+        if ((right(i) < heap.size()) && Less()(heap[left(i)]->data, heap[right(i)]->data)) {
+            swap(i, right(i));
+        } else {
+            swap(i, left(i));
+        }
+    }
+}
+
+template<class T, class Less>
+priority_queue_t<T, Less>::priority_queue_t() {}
+
+
+template<class T, class Less>
+priority_queue_t<T, Less>::~priority_queue_t() {}
 
 template<class T, class Less>
 bool priority_queue_t<T, Less>::empty() {
@@ -69,24 +99,27 @@ T priority_queue_t<T, Less>::peak() {
 
 template<class T, class Less>
 typename priority_queue_t<T, Less>::entry_t *priority_queue_t<T, Less>::push(T data) {
-    priority_queue_t<T, Less>::entry_t *result = new entry_t();
+    typename priority_queue_t<T, Less>::entry_t *result = new entry_t();
     result->data = data;
     result->pq = this;
-    result->index = heap.size() + 1;
+    result->index = heap.size();
 
     heap.push_back(result);
-    bubble_up(heap.size());
-
+    bubble_up(heap.size() - 1);
     return result;
 }
 
 template<class T, class Less>
 T priority_queue_t<T, Less>::pop() {
-    T t = heap.pop_front().data;
-    heap.push_front(heap.pop_back());
-    heap.front().index = 0;
+    T result = heap.front()->data;
+    heap.pop_front();
+
+    heap.push_front(heap.back());
+    heap.pop_back();
+
     bubble_down(0);
-    return t;
+
+    return result;
 }
 
 template<class T, class Less>

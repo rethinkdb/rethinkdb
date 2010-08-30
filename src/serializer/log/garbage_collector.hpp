@@ -11,10 +11,10 @@
  * Priority queues are by defined to be max priority queues, that is
  * pop() gives you an element a such that for all b in the heap Less(b, a) == True
  */
-template<class T, class Less>
+template<class T, class Less = std::less<T> >
 class priority_queue_t : public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, priority_queue_t<T, Less> > {
 public:
-    struct entry_t : public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, entry_t> {
+    struct entry_t /* : public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, priority_queue_t<T, Less>::entry_t>  */ { //TODO make this allocator work
         public:
             T data;
 
@@ -29,18 +29,20 @@ public:
              * to preserve the order in the queue
              */
             void update();
-            bool operator< (const entry_t &b) {return Less(data, b.data);}
+            bool operator< (const entry_t &b) {return Less(b.data, data);}
     };
     //typedef entry_t entry;
 private:
-    std::deque<entry_t> heap;
+    std::deque<entry_t *> heap;
 private:
     inline int parent(int);
     inline int left(int);
     inline int right(int);
     inline void swap(int, int);
     inline void bubble_up(int &);
+    inline void bubble_up(int);
     inline void bubble_down(int &);
+    inline void bubble_down(int);
 public:
     priority_queue_t();
     ~priority_queue_t();

@@ -7,6 +7,7 @@
 #include "serializer/log/garbage_collector.hpp"
 #include <functional>
 #include <bitset>
+#include <queue>
 
 // TODO: When we start up, start a new extent rather than continuing on the old extent. The
 // remainder of the old extent is taboo because if we shut down badly, we might have written data
@@ -71,5 +72,6 @@ private:
     typedef std::bitset<EXTENT_SIZE / BTREE_BLOCK_SIZE> gc_array;
     typedef priority_queue_t<gc_array, std::less<gc_array> > gc_pq;
 };
+
 
 #endif /* __SERIALIZER_LOG_DATA_BLOCK_MANAGER_HPP__ */

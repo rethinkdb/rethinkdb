@@ -10,7 +10,6 @@
 #include "btree/internal_node.tcc"
 #include "btree/leaf_node.tcc"
 
-
 void term_handler(int signum) {
     // We'll naturally break out of the main loop because the accept
     // syscall will get interrupted.
