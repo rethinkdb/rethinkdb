@@ -14,6 +14,7 @@
 
 // Used internally by lba_list_t
 struct lba_extent_buf_t;
+struct lba_superblock_buf_t;
 struct lba_write_t;
 struct lba_start_fsm_t;
 
@@ -85,7 +86,9 @@ public:
     };
 
 private:
+    friend class lba_buf_t;
     friend class lba_extent_buf_t;
+    friend class lba_superblock_buf_t;
     friend class lba_write_t;
     friend class lba_start_fsm_t;
     
@@ -150,6 +153,7 @@ private:
     segmented_vector_t<block_info_t, MAX_BLOCK_ID> blocks;
     
     lba_extent_buf_t *current_extent;
+    lba_superblock_buf_t *superblock_extent;
     
     off64_t lba_superblock_offset;
     int lba_superblock_entry_count;
@@ -167,13 +171,10 @@ private:
         block_id_t block_id;
         off64_t offset;   // Is either an offset into the file or DELETE_BLOCK
     };
-    struct lba_header_t {
-        char magic[LBA_MAGIC_SIZE];
-    };
     struct lba_extent_t {
         // Header needs to be padded to a multiple of sizeof(lba_entry_t)
-        lba_header_t header;
-        char padding[sizeof(lba_entry_t) - sizeof(lba_header_t) % sizeof(lba_entry_t)];
+        char magic[LBA_MAGIC_SIZE];
+        char padding[sizeof(lba_entry_t) - sizeof(magic) % sizeof(lba_entry_t)];
         lba_entry_t entries[0];
     };
 
@@ -184,7 +185,9 @@ private:
     };
     
     struct lba_superblock_t {
+        // Header needs to be padded to a multiple of sizeof(lba_superblock_entry_t)
         char magic[LBA_SUPER_MAGIC_SIZE];
+        char padding[sizeof(lba_superblock_entry_t) - sizeof(magic) % sizeof(lba_superblock_entry_t)];
 
         /* The superblock contains references to all the extents
          * except the last. The reference to the last extent is
@@ -194,17 +197,19 @@ private:
         lba_superblock_entry_t entries[0];
 
         static int entry_count_to_file_size(int nentries) {
-            return sizeof(lba_superblock_entry_t) * nentries + sizeof(magic);
+            return sizeof(lba_superblock_entry_t) * nentries + offsetof(lba_superblock_t, entries[0]);
         }
     };
 
 private:
     void make_entry_in_extent(block_id_t block, off64_t offset);
+    void finalize_current_extent();
+
 private:
     //class gc_array;
     //class gc_pq;
-    typedef std::bitset<(EXTENT_SIZE - sizeof(lba_header_t)) / sizeof(lba_entry_t)> gc_array;
-    typedef priority_queue_t<gc_array, std::less<gc_array> > gc_pq;
+    //typedef std::bitset<(EXTENT_SIZE - sizeof(lba_header_t)) / sizeof(lba_entry_t)> gc_array;
+    //typedef priority_queue_t<gc_array, std::less<gc_array> > gc_pq;
 };
 
 #endif /* __SERIALIZER_LOG_LBA_LIST_HPP__ */

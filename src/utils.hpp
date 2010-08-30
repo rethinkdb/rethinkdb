@@ -121,5 +121,14 @@ uint16_t htor(uint16_t val) { return htobe16(val); }
 uint32_t htor(uint32_t val) { return htobe32(val); }
 uint64_t htor(uint64_t val) { return htobe64(val); } */
 
+template<typename T1, typename T2>
+T1 ceil_aligned(T1 value, T2 alignment) {
+    if(value % alignment != 0) {
+        return value + alignment - (value % alignment);
+    } else {
+        return value;
+    }
+}
+
 #include "utils.tcc"
 #endif // __UTILS_HPP__
