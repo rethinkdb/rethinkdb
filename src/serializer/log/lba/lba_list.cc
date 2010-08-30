@@ -130,7 +130,7 @@ public:
     typedef lba_list_t::lba_superblock_entry_t entry_t;
     
 public:
-    lba_superblock_buf_t(lba_list_t *owner) : lba_buf_t(owner), f_initialized(false)
+    lba_superblock_buf_t(lba_list_t *owner) : lba_buf_t(owner), f_initialized(false), superblock_extent_offset(-1)
         {
             // Make sure that the size of the header is a multiple of the size of one entry, so that the
             // header doesn't prevent the entries from aligning with DEVICE_BLOCK_SIZE.
@@ -165,6 +165,7 @@ public:
 
 private:
     bool f_initialized;
+    off64_t superblock_extent_offset;
 };
     
 /* When writing offsets to a file, we do not want to confirm to the user that the sync is complete
@@ -263,18 +264,21 @@ void lba_superblock_buf_t::sync() {
     
     if(!f_initialized || write_count > owner->extent_manager->extent_size - amount_synced) {
         // We need to generate a new extent
-        owner->lba_superblock_offset = owner->extent_manager->gen_extent();
+        superblock_extent_offset = owner->extent_manager->gen_extent();
         amount_synced = 0;
+        printf("Getting new extent\n");
     }
     
+    printf("Syncing superblock (%ld) @ %ld\n", write_count, owner->lba_superblock_offset / DEVICE_BLOCK_SIZE);
     queue->iosys.schedule_aio_write(
         owner->dbfd,
-        owner->lba_superblock_offset + amount_synced,            // Offset write begins at
+        superblock_extent_offset + amount_synced,                // Offset write begins at
         write_count,                                             // Length of write
         (byte*)data,
         queue,
         w);
     
+    owner->lba_superblock_offset = superblock_extent_offset + amount_synced;
     amount_synced += write_count;
     writes_out++;
     f_initialized = true;
@@ -414,11 +418,13 @@ struct lba_start_fsm_t :
             } else {
                 // Load the LBA superblock
                 event_queue_t *queue = get_cpu_context()->event_queue;
+                size_t size_to_read = ceil_aligned(lba_list_t::lba_superblock_t::entry_count_to_file_size(
+                                                       owner->lba_superblock_entry_count),
+                                                   DEVICE_BLOCK_SIZE);
                 queue->iosys.schedule_aio_read(
                     owner->dbfd,
                     owner->lba_superblock_offset,
-                    ceil_aligned(lba_list_t::lba_superblock_t::entry_count_to_file_size(owner->lba_superblock_entry_count),
-                                 DEVICE_BLOCK_SIZE),
+                    size_to_read,
                     superblock_buffer,
                     queue,
                     this);
