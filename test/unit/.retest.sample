@@ -1,0 +1,9 @@
+# Shell to use for running the compiler
+SHELL = "/bin/bash"
+# A shell command to make the main project
+MAKE_CMD = "make -C /home/{USERNAME}/rethinkdb/src"
+# Arguments to pass to the compiler
+CXXFLAGS = "-I/home/{USERNAME}/retest/ -I/home/{USERNAME}/rethinkdb/src/"
+# Arguments to pass to the linker
+LDFLAGS = "/home/{USERNAME}/rethinkdb/build/debug/obj/* -lrt"
+
