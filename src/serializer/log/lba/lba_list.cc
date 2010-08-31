@@ -122,10 +122,7 @@ public:
 };
 
 /* This is the in-memory structure that keeps track of the lba superblock. */
-// TODO: derive from allocation mixin and figure out why we allocate
-// and free the superblock from different cores
-struct lba_superblock_buf_t : public lba_buf_t,
-                              public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, lba_superblock_buf_t>
+struct lba_superblock_buf_t : public lba_buf_t
 {
 public:
     typedef lba_list_t::lba_superblock_t extent_t;
@@ -631,7 +628,7 @@ void lba_list_t::start(fd_t fd) {
     
     state = state_ready;
 
-    superblock_extent = new lba_superblock_buf_t(this);
+    superblock_extent = gnew<lba_superblock_buf_t>(this);
 }
 
 /* This form of start() is called when we are loading an existing database */
@@ -641,7 +638,7 @@ bool lba_list_t::start(fd_t fd, metablock_mixin_t *last_metablock, ready_callbac
     
     dbfd = fd;
     
-    superblock_extent = new lba_superblock_buf_t(this);
+    superblock_extent = gnew<lba_superblock_buf_t>(this);
     lba_start_fsm_t *starter = new lba_start_fsm_t(this);
     return starter->run(last_metablock, cb);
 }
@@ -731,7 +728,7 @@ void lba_list_t::shutdown() {
         current_extent = NULL;
     }
     if(superblock_extent) {
-        delete superblock_extent;
+        gdelete(superblock_extent);
         superblock_extent = NULL;
     }
 }
