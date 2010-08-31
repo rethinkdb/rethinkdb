@@ -97,6 +97,7 @@ typename btree_modify_fsm<config_t>::transition_result_t btree_modify_fsm<config
 
 template <class config_t>
 void btree_modify_fsm<config_t>::insert_root(block_id_t root_id) {
+    assert(sb_buf);
     ((btree_superblock_t*)sb_buf->ptr())->root_block = root_id;
     sb_buf->set_dirty();
     sb_buf->release();
