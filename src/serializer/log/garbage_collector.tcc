@@ -36,16 +36,12 @@ void priority_queue_t<T, Less>::bubble_up(int *i) {
         swap(*i, parent(*i));
         *i = parent(*i);
     }
-    if (*i > 0)
 }
 
 template<class T, class Less>
-void priority_queue_t<T, Less>::bubble_up(int i) {
-    while (i > 0 && Less()(heap[parent(i)]->data, heap[i]->data)) {
-        swap(i, parent(i));
-        i = parent(i);
-    }
-    if (i > 0)
+void priority_queue_t<T, Less>::bubble_up(int j) {
+    int i = j;
+    bubble_up(&i);
 }
 
 template<class T, class Less>
@@ -63,17 +59,9 @@ void priority_queue_t<T, Less>::bubble_down(int *i) {
 }
 
 template<class T, class Less>
-void priority_queue_t<T, Less>::bubble_down(int i) {
-    while ((left(i) < heap.size() && Less()(heap[i]->data, heap[left(i)]->data)) || 
-            (right(i) < heap.size() &&  Less()(heap[i]->data, heap[right(i)]->data))) {
-        if ((right(i) < heap.size()) && Less()(heap[left(i)]->data, heap[right(i)]->data)) {
-            swap(i, right(i));
-            i = right(i);
-        } else {
-            swap(i, left(i));
-            i = left(i);
-        }
-    }
+void priority_queue_t<T, Less>::bubble_down(int j) {
+    int i = j;
+    bubble_down(&i);
 }
 
 template<class T, class Less>
