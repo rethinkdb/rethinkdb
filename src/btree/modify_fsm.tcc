@@ -97,7 +97,9 @@ typename btree_modify_fsm<config_t>::transition_result_t btree_modify_fsm<config
 
 template <class config_t>
 void btree_modify_fsm<config_t>::insert_root(block_id_t root_id) {
-    assert(sb_buf);
+    if(!sb_buf)
+        printf("failure\n");
+    //assert(sb_buf);
     ((btree_superblock_t*)sb_buf->ptr())->root_block = root_id;
     sb_buf->set_dirty();
     sb_buf->release();
@@ -344,6 +346,8 @@ typename btree_modify_fsm<config_t>::transition_result_t btree_modify_fsm<config
                 }
 
                 // STEP 4: Check to see if it's underfull, and merge/level if it is.
+                if(!sb_buf && last_buf && node_handler::is_underfull(node))
+                    printf("hala\n");
                 if (last_buf && node_handler::is_underfull(node)) { // the root node is never underfull
                     // merge or level.
                     if(!sib_buf) { // Acquire a sibling to merge or level with
