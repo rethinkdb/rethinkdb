@@ -4,6 +4,7 @@
 #include <unistd.h>
 #include <new>
 #include <exception>
+#include <bfd.h>
 #include "config/args.hpp"
 #include "config/code.hpp"
 #include "utils.hpp"
@@ -83,7 +84,7 @@ void print_backtrace() {
                 
             } else if (function) {
                 if (char *demangled = demangle_cpp_name(function)) {
-                    fprintf(stderr, "%s\n", demangled);
+                    fprintf(stderr, "%s in %s at %s\n", address, demangled, filename);
                     free(demangled);
                 } else {
                     fprintf(stderr, "[ %s(%s+%s) [%s] ]\n", filename, function, offset, address);
