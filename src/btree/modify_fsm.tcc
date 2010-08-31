@@ -364,6 +364,7 @@ typename btree_modify_fsm<config_t>::transition_result_t btree_modify_fsm<config
                                 buf->release();
                                 buf = sib_buf;
                                 node_id = sib_node_id;
+                                node = sib_node;
                                 buf->set_dirty();
                             } else {
                                 node_handler::merge(sib_node, node, key_to_remove, parent_node);
