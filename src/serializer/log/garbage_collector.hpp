@@ -39,9 +39,9 @@ private:
     inline int left(int);
     inline int right(int);
     inline void swap(int, int);
-    inline void bubble_up(int &);
+    inline void bubble_up(int *);
     inline void bubble_up(int);
-    inline void bubble_down(int &);
+    inline void bubble_down(int *);
     inline void bubble_down(int);
 public:
     priority_queue_t();
