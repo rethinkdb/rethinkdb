@@ -85,6 +85,10 @@ void print_backtrace() {
             } else if (function) {
                 if (char *demangled = demangle_cpp_name(function)) {
                     char cmd_buf[255], line[255], exec_name[255];
+                    // Make valgrind happy
+                    bzero((void*)cmd_buf, sizeof(cmd_buf));
+                    bzero((void*)line, sizeof(line));
+                    bzero((void*)exec_name, sizeof(exec_name));
                     // Get current executable path
                     size_t exec_name_size = readlink( "/proc/self/exe", exec_name, 255);
                     exec_name[exec_name_size] = '\0';
