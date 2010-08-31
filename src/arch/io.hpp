@@ -13,6 +13,7 @@
 #include "corefwd.hpp"
 
 struct iocallback_t {
+    virtual ~iocallback_t() {}
     virtual void on_io_complete(event_t *event) = 0;
 };
 

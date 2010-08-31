@@ -86,6 +86,9 @@ metablock_manager_t<metablock_t>::~metablock_manager_t() {
     
     assert(!mb_buffer_in_use);
     free(mb_buffer);
+
+    free(mb_buffer_last); 
+    mb_buffer_last = NULL;
 }
 
 template<class metablock_t>
@@ -233,8 +236,6 @@ void metablock_manager_t<metablock_t>::on_io_complete(event_t *e) {
                 /* we found a metablock */
                 *mb_found = true;
                 swap((void **) &mb_buffer_last, (void **) &mb_buffer);
-                free(mb_buffer_last); 
-                mb_buffer_last = NULL;
 
                 /* set everything up */
                 version = -1; /* version is now useless */

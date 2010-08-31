@@ -6,8 +6,9 @@
 
 echo "Starting automated smoke tests; you will receive email in a minute."
 
-# Configure environment variables that retester uses
+# Tell 'retester' how to send email. The part before the colon is the email address to send
+# from; the part after the colon is the password.
 export RETESTER_EMAIL_SENDER=buildbot@rethinkdb.com:allspark
 
 # -b means run in the background and produce no output.
-git retester -b --revision HEAD --args test/smoke_test &
+git retester -b --revision HEAD test/smoke_test &

@@ -136,11 +136,31 @@ private:
 
         block_id_t get_next_free_id() {
             assert(get_state() == block_unused);
-            return next_free_id;
+            // We need to do this because NULL_BLOCK_ID is -1,
+            // block_id_t is uint, and _id and next_free_id have
+            // different number of bits
+            struct temp_t {
+                block_id_t id : 62;
+            };
+            temp_t temp;
+            temp.id = 0;
+            temp.id--;
+            if(next_free_id == temp.id)
+                return NULL_BLOCK_ID;
+            else
+                return next_free_id;
         }
         void set_next_free_id(block_id_t _id) {
             assert(get_state() == block_unused);
-            next_free_id = _id;
+            // We need to do this because NULL_BLOCK_ID is -1,
+            // block_id_t is uint, and _id and next_free_id have
+            // different number of bits
+            if(_id == NULL_BLOCK_ID) {
+                next_free_id = 0;
+                next_free_id--;
+            }
+            else
+                next_free_id = _id;
         }
 
     private:

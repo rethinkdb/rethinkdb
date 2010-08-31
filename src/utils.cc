@@ -4,11 +4,12 @@
 #include <unistd.h>
 #include <new>
 #include <exception>
+#include <bfd.h>
+#include <algorithm>
+#include <stdarg.h>
 #include "config/args.hpp"
 #include "config/code.hpp"
 #include "utils.hpp"
-#include <algorithm>
-#include <stdarg.h>
 
 #ifndef NDEBUG
 
@@ -83,7 +84,22 @@ void print_backtrace() {
                 
             } else if (function) {
                 if (char *demangled = demangle_cpp_name(function)) {
-                    fprintf(stderr, "%s\n", demangled);
+                    char cmd_buf[255], line[255], exec_name[255];
+                    // Make valgrind happy
+                    bzero((void*)cmd_buf, sizeof(cmd_buf));
+                    bzero((void*)line, sizeof(line));
+                    bzero((void*)exec_name, sizeof(exec_name));
+                    // Get current executable path
+                    size_t exec_name_size = readlink( "/proc/self/exe", exec_name, 255);
+                    exec_name[exec_name_size] = '\0';
+                    // Generate and run addr2line command
+                    snprintf(cmd_buf, sizeof(cmd_buf), "addr2line -s -e %s %s",
+                             exec_name, address);
+                    FILE *fline = popen(cmd_buf, "r");
+                    fread(line, sizeof(char), sizeof(line), fline);
+                    pclose(fline);
+                    // Output the result
+                    fprintf(stderr, "%s at %s", demangled, line);
                     free(demangled);
                 } else {
                     fprintf(stderr, "[ %s(%s+%s) [%s] ]\n", filename, function, offset, address);
