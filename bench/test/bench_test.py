@@ -6,6 +6,31 @@ from optparse import OptionParser
 from copy import deepcopy
 from collections import defaultdict
 
+parser = OptionParser()
+parser.add_option("-d","--duration",dest="duration",action="store")
+parser.add_option("-c","--threads",dest="threads",action="store", type="int")
+parser.add_option("-b","--block_size",dest="block_size",action="store", type="int")
+parser.add_option("-s","--stride",dest="stride",action="store", type="int")
+parser.add_option("-w","--workload",dest="workload",action="store")
+parser.add_option("-t","--type",dest="type",action="store")
+parser.add_option("-q","--queue-depth",dest="queue-depth",action="store", type="int")
+parser.add_option("--eventfd",dest="eventfd",action="store")
+parser.add_option("-r","--direction",dest="direction",action="store")
+parser.add_option("-o","--operation",dest="operation",action="store")
+parser.add_option("-p","--paged",dest="paged",action="store")
+parser.add_option("-f","--buffered",dest="buffered",action="store")
+parser.add_option("-m","--do-atime",dest="do-atime",action="store")
+parser.add_option("-a","--append",dest="append",action="store")
+parser.add_option("-u","--dist",dest="dist",action="store")
+parser.add_option("-i","--sigma",dest="sigma",action="store", type="int")
+parser.add_option("-l","--local-fd",dest="local-fd",action="store")
+parser.add_option("-j","--offset",dest="offset",action="store", type="int")
+parser.add_option("-e","--length",dest="length",action="store")
+parser.add_option("-n","--silent",dest="silent",action="store")
+parser.add_option("-g","--sample-step",dest="sample-step",action="store", type="int")
+parser.add_option("--drop-caches",dest="drop-caches",action="store")
+parser.add_option("--output",dest="output",action="store")
+
 
 class Result(object):
     """
@@ -33,30 +58,6 @@ class Result(object):
 
     def parse_args(self):
         assert(self.command)
-        parser = OptionParser()
-        parser.add_option("-d","--duration",dest="duration",action="store")
-        parser.add_option("-c","--threads",dest="threads",action="store")
-        parser.add_option("-b","--block_size",dest="block_size",action="store")
-        parser.add_option("-s","--stride",dest="stride",action="store")
-        parser.add_option("-w","--workload",dest="workload",action="store")
-        parser.add_option("-t","--type",dest="type",action="store")
-        parser.add_option("-q","--queue-depth",dest="queue-depth",action="store")
-        parser.add_option("--eventfd",dest="eventfd",action="store")
-        parser.add_option("-r","--direction",dest="direction",action="store")
-        parser.add_option("-o","--operation",dest="operation",action="store")
-        parser.add_option("-p","--paged",dest="paged",action="store")
-        parser.add_option("-f","--buffered",dest="buffered",action="store")
-        parser.add_option("-m","--do-atime",dest="do-atime",action="store")
-        parser.add_option("-a","--append",dest="append",action="store")
-        parser.add_option("-u","--dist",dest="dist",action="store")
-        parser.add_option("-i","--sigma",dest="sigma",action="store")
-        parser.add_option("-l","--local-fd",dest="local-fd",action="store")
-        parser.add_option("-n","--silent",dest="silent",action="store")
-        parser.add_option("-j","--offset",dest="offset",action="store")
-        parser.add_option("-e","--length",dest="length",action="store")
-        parser.add_option("-g","--sample-step",dest="sample-step",action="store")
-        parser.add_option("--drop-caches",dest="drop-caches",action="store")
-        parser.add_option("--output",dest="output",action="store")
         (flags, args) = parser.parse_args(self.command.split(" "))
         self.flags = flags # now self.flags is a dictionary that contains all the f((lags we specified and the values we specified
 
@@ -108,34 +109,34 @@ def sort_data_by_ops_per_sec(results):
     return sorted(results, key=lambda res: res.ops_per_sec, reverse=True)
 
 
-def run_rebench(filename, threads=1, block_size=512, stride=512, workload="rnd", operation="write",duration=2):
+def run_rebench(filename, **flags):
     """
         Runs Rebench for the all the specified parameters.
     """
     print "Running rebench."
-    #parallelism = [1]#,4,8]
-    #block_size  = [512]#, 1024, 2048]
-    #stride      = [512]#, 1024, 2048]
-    #workload    = ["rnd"]#, "seq"]
-    #operation   = ["write"]#, "write"]
-    #duration    = 300 # seconds
+
     datafile    = open(filename,"w+")
     (_, temp_file_name) =  tempfile.mkstemp()
     
-                        
-    cmd = "rebench -d%d -g50 -n -t stateless -c %d -b %d -s %d -w %s -o %s --output %s /dev/sdb" % (duration, threads, block_size, stride, workload, operation, temp_file_name)
-    print "Running %s" % cmd
+    flags.setdefault("output",temp_file_name)
     
+    flags_string = ""
+    for key in flags:
+        flags_string += " --%s %s" % (key, str(flags[key]))
+
+    cmd = "rebench %s --silent /dev/sdb" % flags_string
+    print "Running %s" % cmd
+
     # write and force write to disk
     datafile.write(cmd+"\n")
     datafile.flush()
     os.fsync(datafile.fileno())
     
-    proc = subprocess.Popen(cmd.split(" "), stdout=datafile, close_fds=True)
+    proc = subprocess.Popen(shlex.split(cmd, " "), stdout=datafile, close_fds=True)
     proc.wait()                    
     
     # we really want that detailed output to be in our datafile
-    detailed = open(temp_file_name,"r").readlines()
+    detailed = open(flags["output"],"r").readlines()
     detailed = [d.rstrip() for d in detailed]
     datafile.write(" ".join(detailed) + "\n")
     print "Done."
@@ -177,7 +178,7 @@ def generate_histogram_data(filename, data_file):
     bucket_size = 50
     for r in results:
         for i in range(len(r.samples)):
-            key = (int(r.samples[i]) // bucket_size) * bucket_size # bin size, round to nearest tenth
+            key = (int(r.samples[i]) // bucket_size) * bucket_size # bin size, round to nearest bucket_size
             count[key] += 1
 
     with open(data_file,"w+") as f:
@@ -239,17 +240,20 @@ def main(results_file, graph_data_file, flags):
 if __name__ == "__main__":
     if len(sys.argv) < 3:
         raise SystemExit, "usage: %s [output file (test data)] [output file (graph data)]" % sys.argv[0]
-    parser = OptionParser()
- 
-    parser.add_option("-d","--duration",dest="duration",action="store", type="int")
-    parser.add_option("-c","--threads",dest="threads",action="store", type="int")
-    parser.add_option("-b","--block_size",dest="block_size",action="store", type="int")
-    parser.add_option("-w","--workload",dest="workload",action="store")
-    parser.add_option("-u","--operation",dest="operation",action="store")
+
     (flags, _) = parser.parse_args()
     flags = vars(flags)
     for k in flags.keys():
         if flags[k] is None: del flags[k]
+
+    flags.setdefault("threads",1)
+    flags.setdefault("block_size",512)
+    flags.setdefault("stride",512)
+    flags.setdefault("workload","rnd")
+    flags.setdefault("operation","write")
+    flags.setdefault("duration","2")
+    flags.setdefault("type","stateless")
+    flags.setdefault("sample-step",50)
 
     main(sys.argv[1], sys.argv[2], flags)
 
