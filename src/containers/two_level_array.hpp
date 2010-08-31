@@ -2,7 +2,7 @@
 #ifndef __TWO_LEVEL_ARRAY_HPP__
 #define __TWO_LEVEL_ARRAY_HPP__
 
-#include <assert.h>
+#include "utils.hpp"
 #include "config/code.hpp"
 
 /* two_level_array_t is a tree that always has exactly two levels. Its computational complexity is

@@ -1,9 +1,0 @@
-# Shell to use for running the compiler
-SHELL = "/bin/bash"
-# A shell command to make the main project
-MAKE_CMD = "make -C /home/david/dev/rethinkdb/src"
-# Arguments to pass to the compiler
-CXXFLAGS = "-I/home/david/dev/retest/ -I/home/david/dev/rethinkdb/src/include/"
-# Arguments to pass to the linker
-LDFLAGS = "/home/david/dev/rethinkdb/src/obj/utils.o /home/david/dev/rethinkdb/src/obj/message_hub.o -lrt"
-

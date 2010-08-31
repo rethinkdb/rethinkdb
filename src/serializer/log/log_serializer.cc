@@ -28,7 +28,7 @@ handle its own startup process. It is done this way to make it clear which parts
 are involved in startup and which parts are not. */
 
 struct ls_start_fsm_t :
-    public metablock_manager_t::metablock_read_callback_t,
+    public mb_manager_t::metablock_read_callback_t,
     public lba_index_t::ready_callback_t,
     public log_serializer_t::write_txn_callback_t,
     public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, ls_start_fsm_t >
@@ -54,6 +54,7 @@ struct ls_start_fsm_t :
         ser->state = log_serializer_t::state_starting_up;
 
         struct stat file_stat;
+        bzero((void*)&file_stat, sizeof(file_stat)); // make valgrind happy
         stat(ser->db_path, &file_stat);
         
         // Open the DB file
@@ -205,7 +206,7 @@ one cache should be able to start a flush before the previous cache's flush is d
 
 struct ls_write_fsm_t :
     private lba_index_t::sync_callback_t,
-    private metablock_manager_t::metablock_write_callback_t,
+    private mb_manager_t::metablock_write_callback_t,
     public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, ls_write_fsm_t >
 {
     struct block_writer_t :

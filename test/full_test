@@ -1,0 +1,35 @@
+# Clean in case we are running on a working copy
+test: cd ../src/; make clean
+
+# Compile the server. Make sure it builds in debug and release mode. Also, build in valgrind mode
+# so we can test with valgrind.
+test: cd ../src/; make -j8
+test: cd ../src/; make -j8 DEBUG=0
+test: cd ../src/; make -j8 VALGRIND=1
+
+# Test various features
+test(repeat = 3): integration/cas.py --auto
+test(repeat = 3): integration/flags.py --auto
+test(repeat = 3): integration/incr_decr.py --auto
+test(repeat = 20, timeout = 20): integration/serial_mix.py --auto
+
+# Test the server's ability to handle multiple connections
+test(repeat = 20): integration/multi_serial_mix.py --auto
+
+# Test the server's ability to handle a choppy connection
+test(repeat = 3): integration/pipeline.py --auto
+
+# Make sure that the btree works even with many keys
+test(repeat = 3, timeout = 300): integration/many_keys.py --auto --num-keys 50000
+
+# Make sure that serializer works properly
+test(repeat = 20, timeout = 20): integration/serial_mix.py --auto --restart-server-prob 0.0005
+test(repeat = 12): integration/corruption.py --auto
+
+# In 'valgrind' mode, custom memory allocators are not used; in 'release' mode, asserts are not
+# used. This test tests custom memory allocators with asserts enabled.
+test(repeat = 3): integration/serial_mix.py --auto --no-valgrind
+
+# Test in release mode
+test(repeat = 3): integration/serial_mix.py --auto --no-valgrind --mode release
+

@@ -22,10 +22,9 @@ void usage(const char *name) {
     printf("\nOptions:\n");
     
     printf("  -h, --help\t\tPrint these usage options.\n");
-    printf("  -c, --max-cores\tDo not use more than this number of cores for\n");
-    printf("\t\t\thandling user requests.\n");
+    printf("  -c, --cores\t\tNumber of cores to use for handling requests.\n");
 
-    printf("  -s, --slices\tShards per thread\n");
+    printf("  -s, --slices\t\tShards per thread.\n");
     
     printf("  -m, --max-cache-size\tMaximum amount of RAM to use for caching disk\n");
     printf("\t\t\tblocks, in megabytes.\n");
@@ -83,7 +82,7 @@ void parse_cmd_args(int argc, char *argv[], cmd_config_t *config)
                 {"wait-for-flush",       required_argument, 0, wait_for_flush},
                 {"flush-timer",          required_argument, 0, flush_timer},
                 {"flush-threshold",      required_argument, 0, flush_threshold},
-                {"max-cores",            required_argument, 0, 'c'},
+                {"cores",                required_argument, 0, 'c'},
                 {"slices",               required_argument, 0, 's'},
                 {"max-cache-size",       required_argument, 0, 'm'},
                 {"log-file",             required_argument, 0, 'l'},
@@ -132,8 +131,6 @@ void parse_cmd_args(int argc, char *argv[], cmd_config_t *config)
                 check("flush timer should not be negative; use 'disable' to allow changes"
                     "to sit in memory indefinitely",
                     config->flush_timer_ms < 0);
-                check("flush timer of 0 is broken at the moment",
-                    config->flush_timer_ms == 0);
             }
             break;
         case flush_threshold:

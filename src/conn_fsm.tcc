@@ -1,7 +1,6 @@
 #ifndef __FSM_TCC__
 #define __FSM_TCC__
 
-#include <assert.h>
 #include <unistd.h>
 #include <errno.h>
 #include "utils.hpp"

@@ -34,16 +34,18 @@ CXXFLAGS:=-I$(SOURCE_DIR) -Wall -Wextra -Wformat=2 -Wno-unused-parameter -Werror
 
 # Configure debug vs. release
 ifeq ($(DEBUG),1)
-CXXFLAGS:=$(CXXFLAGS) -g
+CXXFLAGS+=-g
+# -rdynamic is necessary so that backtrace_symbols() works properly
+LDFLAGS+=-rdynamic
 else
-CXXFLAGS:=$(CXXFLAGS) -O3 -DNDEBUG
+CXXFLAGS+=-O3 -DNDEBUG
 endif
 ifdef VALGRIND
 CXXFLAGS+=-DVALGRIND
 endif
 
 ifeq ($(BTREE_DEBUG),1)
-CXXFLAGS:=$(CXXFLAGS) -DBTREE_DEBUG
+CXXFLAGS+=-DBTREE_DEBUG
 endif
 
 ifeq ($(SERIALIZER_DEBUG),1)
@@ -51,7 +53,7 @@ CXXFLAGS:=$(CXXFLAGS) -DSERIALIZER_MARKERS
 endif
 
 ifeq ($(MEMCACHED_STRICT), 1)
-CXXFLAGS:=$(CXXFLAGS) -DMEMCACHED_STRICT
+CXXFLAGS+=-DMEMCACHED_STRICT
 endif
 
 # Should makefile be noisy?

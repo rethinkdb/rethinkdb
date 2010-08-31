@@ -4,6 +4,10 @@
 
 #include "arch/io.hpp"
 #include "extents/extent_manager.hpp"
+#include "serializer/log/garbage_collector.hpp"
+#include <functional>
+#include <bitset>
+#include <queue>
 
 // TODO: When we start up, start a new extent rather than continuing on the old extent. The
 // remainder of the old extent is taboo because if we shut down badly, we might have written data
@@ -61,6 +65,13 @@ private:
     unsigned int blocks_in_last_data_extent;
     
     off64_t gimme_a_new_offset();
+private:
+    //class gc_array;
+    //class gc_pq;
+    //typedef gcarray_t<gc_pq, EXTENT_SIZE / BTREE_BLOCK_SIZE> gc_array;
+    typedef std::bitset<EXTENT_SIZE / BTREE_BLOCK_SIZE> gc_array;
+    typedef priority_queue_t<gc_array, std::less<gc_array> > gc_pq;
 };
+
 
 #endif /* __SERIALIZER_LOG_DATA_BLOCK_MANAGER_HPP__ */

@@ -12,26 +12,44 @@
 #include "corefwd.hpp"
 #include "config/code.hpp"   // For alloc_t
 
-static inline void check(const char *msg, bool err) {
-    if (err) {
-        if(errno == 0)
-            errno = EINVAL;
-        perror(msg);
-        abort();
-    }
-}
+/* Error handling
 
-#define fail(msg) _fail(msg, __FILE__, __LINE__)
-static inline void _fail(const char*, const char*, int) __attribute__ ((noreturn));
-static inline void _fail(const char *msg, const char *file, int line) {
-    fprintf(stderr, "%s:%d: %s\n", file, line, msg);
-    abort();
-}
+There are several ways to report errors in RethinkDB:
+   *   fail(msg, ...) always fails and reports line number and such
+   *   assert(cond) makes sure cond is true and is a no-op in release mode
+   *   check(msg, cond, ...) makes sure cond is true. Its first two arguments should be switched but
+       it's a legacy thing.
+*/
+
+#define fail(...) _fail(__FILE__, __LINE__, __VA_ARGS__)
+void _fail(const char*, int, const char*, ...) __attribute__ ((noreturn));
+
+#define check(msg, err) \
+    ((err) ? \
+        (errno ? \
+            fail((msg)) : \
+            fail(msg " (errno = %s)", strerror(errno)) \
+            ) : \
+        (void)(0) \
+        )
+
+#define stringify(x) #x
+#define assert(cond) assertf(cond, "Assertion failed: " stringify(cond))
+
+#ifdef NDEBUG
+#define assertf(cond, ...) ((void)(0))
+#else
+#define assertf(cond, ...) ((cond) ? (void)(0) : fail(__VA_ARGS__))
+#endif
+
+#ifndef NDEBUG
+void print_backtrace();
+char *demangle_cpp_name(const char *mangled_name);
+#endif
 
 int get_cpu_count();
 long get_available_ram();
 long get_total_ram();
-
 
 void *malloc_aligned(size_t size, size_t alignment = 64);
 
@@ -120,6 +138,15 @@ uint64_t rtoh(uint64_t val) { return be64toh(val); }
 uint16_t htor(uint16_t val) { return htobe16(val); }
 uint32_t htor(uint32_t val) { return htobe32(val); }
 uint64_t htor(uint64_t val) { return htobe64(val); } */
+
+template<typename T1, typename T2>
+T1 ceil_aligned(T1 value, T2 alignment) {
+    if(value % alignment != 0) {
+        return value + alignment - (value % alignment);
+    } else {
+        return value;
+    }
+}
 
 #include "utils.tcc"
 #endif // __UTILS_HPP__

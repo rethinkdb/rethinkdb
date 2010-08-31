@@ -8,12 +8,12 @@
 /* head functions */
 
 template<class metablock_t>
-naive_metablock_manager_t<metablock_t>::naive_metablock_manager_t::head_t::head_t()
+metablock_manager_t<metablock_t>::metablock_manager_t::head_t::head_t()
     : mb_slot(0), extent(0), saved_mb_slot(-1), saved_extent(-1), extent_size(-1), wraparound(false)
 {}
 
 template<class metablock_t>
-void naive_metablock_manager_t<metablock_t>::naive_metablock_manager_t::head_t::operator++(int a) {
+void metablock_manager_t<metablock_t>::metablock_manager_t::head_t::operator++(int a) {
     check("Head ++ called with setting extent_size", extent_size == 0);
     mb_slot++;
     if (mb_slot >= (extent_size - DEVICE_BLOCK_SIZE) / DEVICE_BLOCK_SIZE  ) {
@@ -28,19 +28,19 @@ void naive_metablock_manager_t<metablock_t>::naive_metablock_manager_t::head_t::
 }
 
 template<class metablock_t>
-off64_t naive_metablock_manager_t<metablock_t>::naive_metablock_manager_t::head_t::offset() {
+off64_t metablock_manager_t<metablock_t>::metablock_manager_t::head_t::offset() {
     check("Head offset called with setting extent_size", extent_size == 0);
     return DEVICE_BLOCK_SIZE * mb_slot + extent * extent_size + DEVICE_BLOCK_SIZE;
 }
 
 template<class metablock_t>
-void naive_metablock_manager_t<metablock_t>::naive_metablock_manager_t::head_t::push() {
+void metablock_manager_t<metablock_t>::metablock_manager_t::head_t::push() {
     saved_mb_slot = mb_slot;
     saved_extent = extent;
 }
 
 template<class metablock_t>
-void naive_metablock_manager_t<metablock_t>::naive_metablock_manager_t::head_t::pop() {
+void metablock_manager_t<metablock_t>::metablock_manager_t::head_t::pop() {
     check("Popping without a saved state", saved_mb_slot == (uint32_t) -1 || saved_extent == (uint32_t) -1);
     mb_slot = saved_mb_slot;
     extent = saved_extent;
@@ -50,8 +50,8 @@ void naive_metablock_manager_t<metablock_t>::naive_metablock_manager_t::head_t::
 }
 
 template<class metablock_t>
-naive_metablock_manager_t<metablock_t>::naive_metablock_manager_t(extent_manager_t *em)
-    : extent_manager(em), state(state_unstarted), dbfd(INVALID_FD)
+metablock_manager_t<metablock_t>::metablock_manager_t(extent_manager_t *em)
+    : extent_manager(em), state(state_unstarted), dbfd(INVALID_FD), hdr(NULL), hdr_ref_count(0)
 {
     head.extent_size = extent_manager->extent_size;
     assert(sizeof(static_header) <= DEVICE_BLOCK_SIZE);
@@ -78,7 +78,7 @@ naive_metablock_manager_t<metablock_t>::naive_metablock_manager_t(extent_manager
 }
 
 template<class metablock_t>
-naive_metablock_manager_t<metablock_t>::~naive_metablock_manager_t() {
+metablock_manager_t<metablock_t>::~metablock_manager_t() {
 
     assert(state == state_unstarted || state == state_shut_down);
 
@@ -89,7 +89,7 @@ naive_metablock_manager_t<metablock_t>::~naive_metablock_manager_t() {
 }
 
 template<class metablock_t>
-bool naive_metablock_manager_t<metablock_t>::start(fd_t fd, bool *mb_found, metablock_t *mb_out, metablock_read_callback_t *cb) {
+bool metablock_manager_t<metablock_t>::start(fd_t fd, bool *mb_found, metablock_t *mb_out, metablock_read_callback_t *cb) {
     
     assert(state == state_unstarted);
     dbfd = fd;
@@ -157,7 +157,7 @@ bool naive_metablock_manager_t<metablock_t>::start(fd_t fd, bool *mb_found, meta
 
 
 template<class metablock_t>
-bool naive_metablock_manager_t<metablock_t>::write_metablock(metablock_t *mb, metablock_write_callback_t *cb) {
+bool metablock_manager_t<metablock_t>::write_metablock(metablock_t *mb, metablock_write_callback_t *cb) {
     
     assert(state == state_ready);
     
@@ -185,14 +185,14 @@ bool naive_metablock_manager_t<metablock_t>::write_metablock(metablock_t *mb, me
 }
 
 template<class metablock_t>
-void naive_metablock_manager_t<metablock_t>::shutdown() {
+void metablock_manager_t<metablock_t>::shutdown() {
     
     assert(state == state_ready);
     state = state_shut_down;
 }
 
 template<class metablock_t>
-void naive_metablock_manager_t<metablock_t>::on_io_complete(event_t *e) {
+void metablock_manager_t<metablock_t>::on_io_complete(event_t *e) {
     bool done_looking = false; /* whether or not the value in mb_buffer_last is the real metablock */
     switch(state) {
  
@@ -282,7 +282,7 @@ void naive_metablock_manager_t<metablock_t>::on_io_complete(event_t *e) {
 }
 
 template<class metablock_t>
-void naive_metablock_manager_t<metablock_t>::write_headers() {
+void metablock_manager_t<metablock_t>::write_headers() {
     assert(state == state_writing_header);
     static_header hdr(BTREE_BLOCK_SIZE, EXTENT_SIZE);
     memcpy(this->hdr, &hdr, sizeof(static_header));
@@ -301,7 +301,7 @@ void naive_metablock_manager_t<metablock_t>::write_headers() {
 }
 
 template<class metablock_t>
-void naive_metablock_manager_t<metablock_t>::read_headers() {
+void metablock_manager_t<metablock_t>::read_headers() {
     assert(state == state_reading_header);
 
     event_queue_t *queue = get_cpu_context()->event_queue;

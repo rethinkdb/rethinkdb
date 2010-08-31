@@ -1,6 +1,6 @@
 
-#ifndef __SERIALIZER_LOG_METABLOCK_NAIVE_HPP__
-#define __SERIALIZER_LOG_METABLOCK_NAIVE_HPP__
+#ifndef __SERIALIZER_LOG_METABLOCK_METABLOCK_MANAGER_HPP__
+#define __SERIALIZER_LOG_METABLOCK_METABLOCK_MANAGER_HPP__
 
 #include "../extents/extent_manager.hpp"
 #include "arch/io.hpp"
@@ -18,7 +18,7 @@
 /* TODO support multiple concurrent writes */
 
 template<class metablock_t>
-class naive_metablock_manager_t : private iocallback_t {
+class metablock_manager_t : private iocallback_t {
     const static uint32_t poly = 0x1337BEEF;
 
 private:
@@ -82,8 +82,8 @@ private:
     };
 
 public:
-    naive_metablock_manager_t(extent_manager_t *em);
-    ~naive_metablock_manager_t();
+    metablock_manager_t(extent_manager_t *em);
+    ~metablock_manager_t();
 
 public:
     struct metablock_read_callback_t {
@@ -139,6 +139,6 @@ private:
     int hdr_ref_count;
 };
 
-#include "naive.tcc"
+#include "metablock_manager.tcc"
 
-#endif /* __SERIALIZER_LOG_METABLOCK_NAIVE_HPP__ */
+#endif /* __SERIALIZER_LOG_METABLOCK_METABLOCK_MANAGER_HPP__ */

@@ -1,7 +1,7 @@
 #ifndef __FSM_BTREE_HPP__
 #define __FSM_BTREE_HPP__
 
-#include <assert.h>
+#include "utils.hpp"
 #include "message_hub.hpp"
 #include "buffer_cache/callbacks.hpp"
 #include "event.hpp"

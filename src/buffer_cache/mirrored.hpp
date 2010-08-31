@@ -153,7 +153,7 @@ private:
     access_t access;
     transaction_begin_callback_t *begin_callback;
     transaction_commit_callback_t *commit_callback;
-    enum { state_open, state_committing, state_committed } state;
+    enum { state_open, state_in_commit_call, state_committing, state_committed } state;
 };
 
 template <class config_t>

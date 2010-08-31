@@ -109,17 +109,16 @@ void writeback_tmpl_t<config_t>::on_transaction_commit(transaction_t *txn) {
     
     if (txn->get_access() == rwi_write) {
         flush_lock->unlock();
-    }
-    
-    if (txn->get_access() == rwi_write) {
+        
         /* At the end of every write transaction, check if the number of dirty blocks exceeds the
         threshold to force writeback to start. */
         if (num_dirty_blocks() > flush_threshold) {
             sync(NULL);
-        }
-        /* Otherwise, start the flush timer so that the modified data doesn't sit in memory for too
-        long without being written to disk. */
-        else if (!flush_timer && flush_timer_ms != NEVER_FLUSH) {
+        } else if (num_dirty_blocks() > 0 && flush_timer_ms == 0) {
+            sync(NULL);
+        } else if (!flush_timer && flush_timer_ms != NEVER_FLUSH && num_dirty_blocks() > 0) {
+            /* Start the flush timer so that the modified data doesn't sit in memory for too long
+            without being written to disk. */
             flush_timer = get_cpu_context()->event_queue->
                 fire_timer_once(flush_timer_ms, flush_timer_callback, this);
         }

@@ -1,11 +1,9 @@
 #!/usr/bin/python
+from test_common import *
 
-import memcache
-from random import shuffle, randint
-from time import sleep
-import os
-
-def rethinkdb_incr(mc):
+def test_function(opts, mc):
+    
+    print "Testing increment"
     if mc.set(str(1),str(1)) == 0:
         raise ValueError, "Set failed"
     mc.incr(str(1),10)
@@ -15,8 +13,7 @@ def rethinkdb_incr(mc):
     # TODO: Figure out a way to test negative increments and incrementing by a very large value.
     # memcache doesn't allow either.
 
-
-def rethinkdb_decr(mc):
+    print "Testing decrement"
     if mc.set(str(1),str(50)) == 0:
         raise ValueError, "Set failed"
     mc.decr(str(1),10)
@@ -26,18 +23,5 @@ def rethinkdb_decr(mc):
     # TODO: Figure out a way to test negative decrements and decrementing by a very large value.
     # memcache doesn't allow either.
 
-def test_against_server_at(port):
-
-    mc = memcache.Client(["localhost:%d" % port])
-    print "Testing increment"
-    rethinkdb_incr(mc)
-
-    
-    print "Done"
-
-from test_common import RethinkDBTester
-retest_release = RethinkDBTester(test_against_server_at, "release", timeout = 20)
-retest_valgrind = RethinkDBTester(test_against_server_at, "debug", timeout = 60)
-
-if __name__ == '__main__':
-    test_against_server_at(int(os.environ.get("RUN_PORT", "11211")))
+if __name__ == "__main__":
+    simple_test_main(test_function, make_option_parser().parse(sys.argv), timeout = 2)

@@ -11,7 +11,6 @@
 // should test this out and see if the performance changes in the
 // grand scheme of things.
 
-#include <assert.h>
 #include "utils.hpp"
 
 template <class super_alloc_t>

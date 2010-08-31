@@ -11,7 +11,7 @@
 #include "config/code.hpp"
 #include "utils.hpp"
 
-#include "metablock/naive.hpp"
+#include "metablock/metablock_manager.hpp"
 #include "extents/extent_manager.hpp"
 #include "lba/lba_list.hpp"
 #include "data_block_manager.hpp"
@@ -30,7 +30,7 @@ struct log_serializer_metablock_t {
     data_block_manager_t::metablock_mixin_t data_block_manager_part;
 };
 
-typedef naive_metablock_manager_t<log_serializer_metablock_t> metablock_manager_t;
+typedef metablock_manager_t<log_serializer_metablock_t> mb_manager_t;
 
 // Used internally
 struct ls_write_fsm_t;
@@ -127,7 +127,7 @@ private:
     typedef log_serializer_metablock_t metablock_t;
     
     extent_manager_t extent_manager;
-    metablock_manager_t metablock_manager;
+    mb_manager_t metablock_manager;
     lba_index_t lba_index;
     data_block_manager_t data_block_manager;
     

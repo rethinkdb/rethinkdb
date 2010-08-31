@@ -3,7 +3,7 @@
 #define __MESSAGE_HUB_HPP__
 
 #include <pthread.h>
-#include <assert.h>
+#include "utils.hpp"
 #include <strings.h>
 #include "containers/intrusive_list.hpp"
 #include "utils.hpp"
