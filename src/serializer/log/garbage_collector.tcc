@@ -8,7 +8,6 @@ void priority_queue_t<T, Less>::entry_t::update() {
 
 template<class T, class Less>
 void priority_queue_t<T, Less>::swap(int i, int j) {
-    printf("Swapping %d and %d\n", heap[i]->data, heap[j]->data);
     entry_t *tmp = heap[i];
     heap[i] = heap[j];
     heap[j] = tmp;
@@ -38,7 +37,6 @@ void priority_queue_t<T, Less>::bubble_up(int *i) {
         *i = parent(*i);
     }
     if (*i > 0)
-        printf("Not swapping %d and %d\n", heap[*i]->data, heap[parent(*i)]->data);
 }
 
 template<class T, class Less>
@@ -48,7 +46,6 @@ void priority_queue_t<T, Less>::bubble_up(int i) {
         i = parent(i);
     }
     if (i > 0)
-        printf("Not swapping %d and %d\n", heap[i]->data, heap[parent(i)]->data);
 }
 
 template<class T, class Less>
