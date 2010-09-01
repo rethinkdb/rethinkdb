@@ -265,10 +265,10 @@ void lba_superblock_buf_t::sync() {
         // We need to generate a new extent
         superblock_extent_offset = owner->extent_manager->gen_extent();
         amount_synced = 0;
-        printf("Getting new extent\n");
+        //printf("Getting new extent\n");
     }
     
-    printf("Syncing superblock (%ld) @ %ld\n", write_count, owner->lba_superblock_offset / DEVICE_BLOCK_SIZE);
+    //printf("Syncing superblock (%ld) @ %ld\n", write_count, owner->lba_superblock_offset / DEVICE_BLOCK_SIZE);
     queue->iosys.schedule_aio_write(
         owner->dbfd,
         superblock_extent_offset + amount_synced,                // Offset write begins at
@@ -502,7 +502,6 @@ struct lba_start_fsm_t :
                     if (entry->block_id == PADDING_BLOCK_ID && entry->offset == PADDING_OFFSET)
                         continue;
                     assert(entry->block_id != PADDING_BLOCK_ID);
-                    assert(entry->offset != PADDING_OFFSET);
                 
                     // Sanity check. If this assertion fails, it probably means that the file was
                     // corrupted, or was created with a different btree block size.

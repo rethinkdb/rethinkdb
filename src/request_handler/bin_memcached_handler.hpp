@@ -568,7 +568,7 @@ error_breakout:
 
             //load the value into an allocated value
             void value(btree_value *val) {
-                val->value_size(value_length());
+                val->size = value_length();
                 if (is_request())
                     memcpy(val->contents, data + sizeof(request_header_t) + extra_length() + key_length(), value_length());
                 else

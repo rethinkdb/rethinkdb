@@ -28,6 +28,7 @@ class StdoutAsLog(object):
 def make_option_parser():
     o = OptParser()
     o["auto"] = BoolFlag("--auto")
+    o["interactive"] = BoolFlag("--interactive")
     o["database"] = ChoiceFlag("--database", ["rethinkdb", "memcached"], "rethinkdb")
     o["mclib"] = ChoiceFlag("--mclib", ["memcache", "pylibmc"], "pylibmc")
     o["protocol"] = ChoiceFlag("--protocol", ["text", "binary"], "text")
@@ -94,7 +95,7 @@ def run_and_report(obj, args = (), kwargs = {}, timeout = None, name = "the test
     thr = threading.Thread(target=run)
     thr.start()
     thr.join(timeout)
-    
+
     if result_holder[0] is None:
         print "ERROR: %s timed out, probably because the timeout was set too short or the server " \
             "wasn't replying to queries fast enough." % name.capitalize()
@@ -172,16 +173,20 @@ class Server(object):
         
         # Are we using valgrind?
         if self.opts["valgrind"]:
-        
-            command_line = \
-                ["valgrind",
-                    "--leak-check=full",
-                    "--error-exitcode=%d" % self.valgrind_error_code] + \
-                    command_line
+            cmd_line = ["valgrind"]
+            if self.opts["interactive"]:
+                cmd_line += ["--db-attach=yes"]
+            cmd_line += \
+                ["--leak-check=full",
+                 "--error-exitcode=%d" % self.valgrind_error_code]
+            command_line = cmd_line + command_line
         
         # Start the server
-        self.server = subprocess.Popen(command_line,
-            stdout = server_output, stderr = subprocess.STDOUT)
+        if self.opts["interactive"]:
+            self.server = subprocess.Popen(command_line)
+        else:
+            self.server = subprocess.Popen(command_line,
+                                           stdout = server_output, stderr = subprocess.STDOUT)
         self.running = True
         
         # Wait for server to start up
@@ -277,6 +282,9 @@ class Server(object):
             dead = wait_with_timeout(self.server, self.server_sigterm_time) is not None
             
             if not dead:
+                if self.opts["interactive"]:
+                    # We're in interactive mode, probably in GDB. Don't kill it.
+                    return
                 self.server.send_signal(signal.SIGKILL)
                 print "ERROR: %s did not shut down %d seconds after getting SIGINT, and " \
                     "did not respond within %d seconds of SIGQUIT either." % \
@@ -372,6 +380,12 @@ def connect_to_server(opts, server):
     
     return mc
 
+def adjust_timeout(opts, timeout):
+    if opts["interactive"]:
+        return None
+    else:
+        return timeout
+
 def auto_server_test_main(test_function, opts, timeout = 30, extra_flags = []):
     """Drop-in main() for tests that test against one server that they do not start up or shut
     down, but that they may open multiple connections against."""
@@ -385,7 +399,7 @@ def auto_server_test_main(test_function, opts, timeout = 30, extra_flags = []):
         
         server = Server(opts, extra_flags = extra_flags)
         if not server.start(): sys.exit(1)
-        test_ok = run_and_report(test_function, (opts, server.port), timeout = timeout)
+        test_ok = run_and_report(test_function, (opts, server.port), timeout = adjust_timeout(opts, timeout))
         server_ok = server.shutdown()
         if not (test_ok and server_ok): sys.exit(1)
     
@@ -408,7 +422,7 @@ def simple_test_main(test_function, opts, timeout = 30, extra_flags = []):
         server = Server(opts, extra_flags = extra_flags)
         if not server.start(): sys.exit(1)
         mc = connect_to_server(opts, server)
-        test_ok = run_and_report(test_function, (opts, mc), timeout = timeout)
+        test_ok = run_and_report(test_function, (opts, mc), timeout = adjust_timeout(opts, timeout))
         mc.disconnect_all()
         server_ok = server.shutdown()
         if not (test_ok and server_ok): sys.exit(1)

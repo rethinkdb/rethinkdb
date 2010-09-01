@@ -58,9 +58,9 @@ public:
     // write, and are now unlocking.
     void unlock_intent();
 
-	// Returns true if the lock is locked in any form, but doesn't acquire the lock. (In the buffer
-	// cache, this is used by the page replacement algorithm to see whether the buffer is in use.)
-	bool locked();
+    // Returns true if the lock is locked in any form, but doesn't acquire the lock. (In the buffer
+    // cache, this is used by the page replacement algorithm to see whether the buffer is in use.)
+    bool locked();
 
 private:
     enum rwi_state {

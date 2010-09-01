@@ -1,4 +1,3 @@
-
 #ifndef __BTREE_GET_FSM_TCC__
 #define __BTREE_GET_FSM_TCC__
 
@@ -29,7 +28,7 @@ typename btree_get_fsm<config_t>::transition_result_t btree_get_fsm<config_t>::d
         assert(event->buf);
         last_buf = (buf_t *)event->buf;
     }
-    
+
     if(last_buf) {
         // Got the superblock buffer (either right away or through
         // cache notification). Grab the root id, and move on to
@@ -47,7 +46,7 @@ typename btree_get_fsm<config_t>::transition_result_t btree_get_fsm<config_t>::d
 template <class config_t>
 typename btree_get_fsm<config_t>::transition_result_t btree_get_fsm<config_t>::do_acquire_root(event_t *event) {
     assert(state == acquire_root);
-    
+
     // Make sure root exists
     if(node_id == NULL_BLOCK_ID) {
         last_buf->release();
@@ -66,7 +65,7 @@ typename btree_get_fsm<config_t>::transition_result_t btree_get_fsm<config_t>::d
         assert(event->buf);
         buf = (buf_t*)event->buf;
     }
-    
+
     if(buf == NULL) {
         // Can't grab the root right away. Wait for a cache event.
         return btree_fsm_t::transition_incomplete;
@@ -98,7 +97,7 @@ typename btree_get_fsm<config_t>::transition_result_t btree_get_fsm<config_t>::d
     // Release the previous buffer
     last_buf->release();
     last_buf = NULL;
-    
+
     node_t *node = (node_t *)buf->ptr();
     if(node_handler::is_internal(node)) {
         block_id_t next_node_id = internal_node_handler::lookup((internal_node_t*)node, &key);
@@ -115,14 +114,56 @@ typename btree_get_fsm<config_t>::transition_result_t btree_get_fsm<config_t>::d
     } else {
         bool found = leaf_node_handler::lookup((leaf_node_t*)node, &key, &value);
         buf->release();
-        state = lookup_complete;
         if (found && value.expired()) {
             delete_expired<config_t>(&key);
             found = false;
         }
+        if (found && value.large_value()) {
+            state = acquire_large_value;
+        } else {
+            state = lookup_complete;
+        }
         this->status_code = found ? btree_fsm<config_t>::S_SUCCESS : btree_fsm<config_t>::S_NOT_FOUND;
         return btree_fsm_t::transition_ok;
     }
+}
+
+// TODO: Fix this when large_value's API supports it.
+template <class config_t>
+typename btree_get_fsm<config_t>::transition_result_t btree_get_fsm<config_t>::do_acquire_large_value(event_t *event) {
+    assert(state == acquire_large_value);
+
+    assert(value.large_value());
+
+    if (!event) {
+        large_value = new large_buf_t(transaction);
+        // TODO: Put the cast in node.hpp
+        large_value->acquire(* (block_id_t *) value.value(), value.value_size(), rwi_read, this);
+        return btree_fsm_t::transition_incomplete;
+    } else {
+        assert(event->buf);
+        assert(event->event_type == et_large_buf);
+        assert(large_value == (large_buf_t *) event->buf);
+        assert(large_value->state == large_buf_t::loaded);
+
+        state = large_value_acquired;
+        return btree_fsm_t::transition_ok;
+    }
+}
+
+template <class config_t>
+typename btree_get_fsm<config_t>::transition_result_t btree_get_fsm<config_t>::do_large_value_acquired(event_t *event) {
+    assert(state == large_value_acquired);
+
+    assert(large_value);
+    assert(!event);
+    assert(large_value->get_index_block_id() == value.lv_index_block_id());
+
+    write_lv_msg = new write_large_value_msg<config_t>(large_value, req, this, this);
+    write_lv_msg->return_cpu = get_cpu_context()->worker->workerid;
+    write_lv_msg->send(this->return_cpu);
+    // And now, we wait... For the socket to be ready for our value.
+    return btree_fsm_t::transition_incomplete;
 }
 
 template <class config_t>
@@ -131,7 +172,9 @@ typename btree_get_fsm<config_t>::transition_result_t btree_get_fsm<config_t>::d
 
     // Make sure we've got either an empty or a cache event
     check("btree_fsm::do_transition - invalid event",
-          !(!event || event->event_type == et_cache));
+          !(!event || event->event_type == et_cache || event->event_type == et_large_buf));
+
+    if (event && event->event_type == et_large_buf) assert(state == acquire_large_value);
 
     // Update the cache with the event
     if(event) {
@@ -140,7 +183,7 @@ typename btree_get_fsm<config_t>::transition_result_t btree_get_fsm<config_t>::d
               event->result == 0 ||
               event->result == -1);
     }
-    
+
     while (res == btree_fsm_t::transition_ok) {
         switch (state) {
             // First, acquire the superblock (to get root node ID)
@@ -158,7 +201,24 @@ typename btree_get_fsm<config_t>::transition_result_t btree_get_fsm<config_t>::d
                 res = do_acquire_node(event);
                 break;
 
-            // Finally, end our transaction.  This should always succeed immediately.
+            // If the key is associated with a large value, acquire it.
+            case acquire_large_value:
+                res = do_acquire_large_value(event);
+                break;
+
+            // The large value is acquired; now we need to output it to the socket.
+            case large_value_acquired:
+                res = do_large_value_acquired(event);
+                break;
+
+            // XXX
+            case large_value_writing:
+                assert(!event);
+                large_value->release();
+                state = lookup_complete;
+                break;
+
+            // Finally, end our transaction. This should always succeed immediately.
             case lookup_complete: {
                 bool committed __attribute__((unused)) = transaction->commit(NULL);
                 assert(committed); /* Read-only commits always finish immediately. */
@@ -172,5 +232,16 @@ typename btree_get_fsm<config_t>::transition_result_t btree_get_fsm<config_t>::d
     return res;
 }
 
-#endif // __BTREE_GET_FSM_TCC__
+template <class config_t>
+void btree_get_fsm<config_t>::on_large_value_read() {
+    this->step();
+}
 
+template <class config_t>
+void btree_get_fsm<config_t>::on_large_value_completed(bool _success) {
+    assert(_success);
+    write_lv_msg = NULL;
+    this->step();
+}
+
+#endif // __BTREE_GET_FSM_TCC__

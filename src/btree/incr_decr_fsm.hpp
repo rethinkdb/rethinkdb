@@ -1,4 +1,3 @@
-
 #ifndef __BTREE_INCR_DECR_FSM_HPP__
 #define __BTREE_INCR_DECR_FSM_HPP__
 
@@ -6,9 +5,10 @@
 
 template <class config_t>
 class btree_incr_decr_fsm : public btree_modify_fsm<config_t>,
-                            public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, btree_incr_decr_fsm<config_t> >
-{
-
+                            public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, btree_incr_decr_fsm<config_t> > {
+    typedef typename config_t::large_buf_t large_buf_t;
+    typedef typename config_t::btree_fsm_t btree_fsm_t;
+    typedef typename btree_fsm_t::transition_result_t transition_result_t;
 public:
     explicit btree_incr_decr_fsm(btree_key *_key, bool increment, long long delta)
         : btree_modify_fsm<config_t>(_key),
@@ -16,19 +16,21 @@ public:
           delta(delta)
         {}
     
-    bool operate(btree_value *old_value, btree_value **new_value) {
+    transition_result_t operate(btree_value *old_value, large_buf_t *old_large_buf, btree_value **new_value) {
         // If the key didn't exist before, we fail
         if (!old_value) {
-            this->status_code = btree_fsm<config_t>::S_NOT_FOUND;
-            return false;
+            this->status_code = btree_fsm_t::S_NOT_FOUND;
+            this->update_needed = false;
+            return btree_fsm_t::transition_ok;
         }
         valuecpy(&temp_value, old_value);
 
         char *endptr;
-        new_number = strtoull(old_value->contents, &endptr, 10);
-        if (endptr == old_value->contents) {
-            this->status_code = btree_fsm<config_t>::S_NOT_NUMERIC;
-            return false;
+        new_number = strtoull(old_value->value(), &endptr, 10);
+        if (endptr == old_value->value()) {
+            this->status_code = btree_fsm_t::S_NOT_NUMERIC;
+            this->update_needed = false;
+            return btree_fsm_t::transition_ok;
         }
 
        /*  NOTE: memcached actually does a few things differently:
@@ -52,14 +54,16 @@ public:
         // stack.
         
         int chars_written = sprintf(temp_value.value(), "%llu", (unsigned long long)new_number);
+        assert(chars_written <= MAX_IN_NODE_VALUE_SIZE); // Not really necessary.
         temp_value.value_size(chars_written);
         
         *new_value = &temp_value;
         
-        this->status_code = btree_fsm<config_t>::S_SUCCESS;
-        return true;
+        this->status_code = btree_fsm_t::S_SUCCESS;
+        this->update_needed = true;
+        return btree_fsm_t::transition_ok;
     }
-    
+
 private:
     bool increment;   // If false, then decrement
     long long delta;   // Amount to increment or decrement by

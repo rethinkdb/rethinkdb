@@ -91,7 +91,7 @@ public:
     // through a bunch of other places (such as array_node) also, however.
     void *ptr() {
         assert(cached);
-        assert(!safe_to_unload());
+        assert(!safe_to_unload()); // If this assertion fails, it probably means that you're trying to access a buf you don't own.
         return data;
     }
 

@@ -12,25 +12,30 @@
 template <class config_t>
 class btree_get_cas_fsm : public btree_modify_fsm<config_t>,
                           public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, btree_get_cas_fsm<config_t> > {
+    typedef typename config_t::large_buf_t large_buf_t;
+    typedef typename config_t::btree_fsm_t btree_fsm_t;
+    typedef typename btree_fsm_t::transition_result_t transition_result_t;
 public:
     explicit btree_get_cas_fsm(btree_key *_key) : btree_modify_fsm<config_t>(_key) {}
     
-    bool operate(btree_value *old_value, btree_value **new_value) {
+    transition_result_t operate(btree_value *old_value, large_buf_t *old_large_buf, btree_value **new_value) {
         if (old_value) {
-            this->status_code = btree_fsm<config_t>::S_SUCCESS;
+            assert(!old_value->large_value());
+            this->status_code = btree_fsm_t::S_SUCCESS;
 
-            value.size = old_value->size;
-            value.metadata_flags = old_value->metadata_flags;
-            memcpy(value.contents, old_value->contents, value.size);
+            valuecpy(&value, old_value);
             *new_value = &value;
             if (!value.has_cas()) { // We have always been at war with Eurasia.
                 value.set_cas(1); // Turns the flag on and makes room. modify_fsm will set an actual CAS later.
-                return true; // Since we're writing a new value.
+                this->update_needed = true;
+                return btree_fsm_t::transition_ok;
             }
-            return false;
+            this->update_needed = false;
+            return btree_fsm_t::transition_ok;
         } else {
-            this->status_code = btree_fsm<config_t>::S_NOT_FOUND;
-            return false; // Nothing was changed.
+            this->status_code = btree_fsm_t::S_NOT_FOUND;
+            this->update_needed = false;
+            return btree_fsm_t::transition_ok; // Nothing was changed.
         }
     }
 

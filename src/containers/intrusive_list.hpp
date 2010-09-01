@@ -47,7 +47,7 @@ public:
 #endif
     
         intrusive_list_node_t<node_t> *value = _value;
-        assert(value->next == NULL && value->prev == NULL);
+        assert(value->next == NULL && value->prev == NULL && _head != _value); // Make sure that the object is not already in a list.
         value->next = _head;
         value->prev = NULL;
         if(_head) {
@@ -70,7 +70,7 @@ public:
 #endif
     
         intrusive_list_node_t<node_t> *value = _value;
-        assert(value->next == NULL && value->prev == NULL);
+        assert(value->next == NULL && value->prev == NULL && _head != _value); // Make sure that the object is not already in a list.
         value->prev = _tail;
         value->next = NULL;
         if(_tail) {

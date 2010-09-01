@@ -31,8 +31,7 @@ void install_handlers() {
     check("Could not install INT handler", res < 0);
 };
 
-int main(int argc, char *argv[])
-{
+int main(int argc, char *argv[]) {
     // Parse command line arguments
     cmd_config_t config;
     parse_cmd_args(argc, argv, &config);
