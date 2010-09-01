@@ -36,6 +36,8 @@ def make_option_parser():
     o["mode"] = ChoiceFlag("--mode", ["debug", "release"], "debug")
     o["netrecord"] = BoolFlag("--no-netrecord", invert = True)
     o["restart_server_prob"] = FloatFlag("--restart-server-prob", 0)
+    o["cores"] = IntFlag("--cores", 2)
+    o["slices"] = IntFlag("--slices", 2)
     return o
 
 # Choose a random port at which to start searching to reduce the probability of collisions
@@ -162,8 +164,8 @@ class Server(object):
             
             command_line = [executable_path,
                 "-p", str(server_port),
-                "-c", str(self.opts.get("cores", 2)),
-                "-s", str(self.opts.get("slices", 2)),
+                "-c", str(self.opts["cores"]),
+                "-s", str(self.opts["slices"]),
                 os.path.join(db_data_dir, "data_file")] + \
                 self.extra_flags
         
