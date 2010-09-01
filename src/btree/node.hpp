@@ -26,7 +26,8 @@ struct btree_key {
     uint8_t size;
     char contents[0];
     void print() {
-        printf("%*.*s", size, size, contents);
+        //printf("%*.*s", size, size, contents);
+        printf("%d", size);
     }
 };
 
@@ -130,7 +131,8 @@ struct btree_value {
     }
 
     void print() {
-        printf("%*.*s", value_size(), value_size(), value());
+        //printf("%*.*s", value_size(), value_size(), value());
+        printf("%d", value_size());
     }
 };
 

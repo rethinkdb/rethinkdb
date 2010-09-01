@@ -278,7 +278,10 @@ bool internal_node_handler::is_full(btree_internal_node *node) {
     if (node->npairs-1 >= DEBUG_MAX_INTERNAL)
         return true;
 #endif
-    return sizeof(btree_internal_node) + (node->npairs + 1) * sizeof(*node->pair_offsets) + sizeof(btree_internal_pair) + MAX_KEY_SIZE >= node->frontmost_offset;
+#ifdef BTREE_DEBUG
+    printf("sizeof(btree_internal_node): %ld, (node->npairs + 1): %d, sizeof(*node->pair_offsets): %ld, sizeof(btree_internal_node): %ld, MAX_KEY_SIZE: %d, node->frontmost_offset: %d\n", sizeof(btree_internal_node), (node->npairs + 1), sizeof(*node->pair_offsets), sizeof(btree_internal_pair), MAX_KEY_SIZE, node->frontmost_offset);
+#endif
+    return sizeof(btree_internal_node) + (node->npairs + 1) * sizeof(*node->pair_offsets) + sizeof(btree_internal_pair) + MAX_KEY_SIZE >=  node->frontmost_offset;
 }
 
 bool internal_node_handler::change_unsafe(btree_internal_node *node) {
@@ -308,7 +311,7 @@ bool internal_node_handler::is_underfull(btree_internal_node *node) {
         node->npairs*sizeof(*node->pair_offsets) +
         (BTREE_BLOCK_SIZE - node->frontmost_offset) +
         /* EPSILON */
-        (sizeof(btree_key) + MAX_KEY_SIZE + sizeof(block_id_t)) / 2 < BTREE_BLOCK_SIZE / 2;
+        (sizeof(btree_key) + MAX_KEY_SIZE + sizeof(block_id_t))  / 2  < BTREE_BLOCK_SIZE / 2;
 }
 
 bool internal_node_handler::is_mergable(btree_internal_node *node, btree_internal_node *sibling, btree_internal_node *parent) {
@@ -418,6 +421,9 @@ int internal_node_handler::nodecmp(btree_internal_node *node1, btree_internal_no
 }
 
 void internal_node_handler::print(btree_internal_node *node) {
+    int freespace = node->frontmost_offset - (sizeof(btree_internal_node) + (node->npairs + 1) * sizeof(*node->pair_offsets) + sizeof(btree_internal_pair) + MAX_KEY_SIZE);
+    printf("Free space in node: %d\n",freespace);
+    printf("Used space: %ld)\n", BTREE_BLOCK_SIZE - freespace);
     for (int i = 0; i < node->npairs; i++) {
         btree_internal_pair *pair = get_pair(node, node->pair_offsets[i]);
         printf("|\t");

@@ -231,6 +231,9 @@ bool leaf_node_handler::is_full(btree_leaf_node *node, btree_key *key, btree_val
     // TODO: Account for the possibility that the key is already present, in which case we can
     // reuse that space.
     assert(value);
+#ifdef BTREE_DEBUG
+    printf("sizeof(btree_leaf_node): %ld, (node->npairs + 1): %d, sizeof(*node->pair_offsets):%ld, sizeof(btree_leaf_pair): %ld, key->size: %d, value->mem_size(): %d, node->frontmost_offset: %d\n", sizeof(btree_leaf_node), (node->npairs + 1), sizeof(*node->pair_offsets), sizeof(btree_leaf_pair), key->size, value->mem_size(), node->frontmost_offset);
+#endif
     return sizeof(btree_leaf_node) + (node->npairs + 1)*sizeof(*node->pair_offsets) +
         sizeof(btree_leaf_pair) + key->size + value->mem_size() >=
         node->frontmost_offset;
@@ -355,6 +358,9 @@ int leaf_node_handler::nodecmp(btree_leaf_node *node1, btree_leaf_node *node2) {
 }
 
 void leaf_node_handler::print(btree_leaf_node *node) {
+    int freespace = node->frontmost_offset - (sizeof(btree_leaf_node) + node->npairs*sizeof(*node->pair_offsets));
+    printf("Free space in node: %d\n",freespace);
+    printf("Used space: %ld)\n", BTREE_BLOCK_SIZE - freespace);
     printf("\n\n\n");
     for (int i = 0; i < node->npairs; i++) {
         btree_leaf_pair *pair = get_pair(node, node->pair_offsets[i]);
