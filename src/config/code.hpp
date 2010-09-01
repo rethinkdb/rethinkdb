@@ -1,4 +1,3 @@
-
 #ifndef __CONFIG_CODE_H__
 #define __CONFIG_CODE_H__
 
@@ -26,6 +25,7 @@ typedef memalign_alloc_t<BTREE_BLOCK_SIZE> buffer_alloc_t; // TODO: we need a be
 struct standard_config_t {
     // IO buffer
     typedef buffer_t<IO_BUFFER_SIZE> iobuf_t;
+    typedef linked_buf linked_buf_t;
     
     // FSMs
     typedef conn_fsm<standard_config_t> conn_fsm_t;
@@ -46,9 +46,14 @@ struct standard_config_t {
     typedef buf<standard_config_t> buf_t;
     typedef transaction<standard_config_t> transaction_t;
 
+    typedef large_buf<standard_config_t> large_buf_t;
+
     // BTree
     typedef btree_key_value_store<standard_config_t> store_t;
     typedef btree_node node_t;
+    typedef btree_modify_fsm<standard_config_t> btree_modify_fsm_t;
+    typedef read_large_value_msg<standard_config_t> read_large_value_msg_t; // TODO: This probably isn't the right way to do it.
+    typedef write_large_value_msg<standard_config_t> write_large_value_msg_t; // TODO: This probably isn't the right way to do it.
     typedef btree_get_fsm<standard_config_t> btree_get_fsm_t;
     typedef btree_get_cas_fsm<standard_config_t> btree_get_cas_fsm_t;
     typedef btree_set_fsm<standard_config_t> btree_set_fsm_t;
@@ -67,4 +72,3 @@ typedef standard_config_t code_config_t;
 
 
 #endif // __CONFIG_CODE_H__
-

@@ -1,13 +1,18 @@
-
 #ifndef __REQUEST_HPP__
 #define __REQUEST_HPP__
 
 #include "config/args.hpp"
+#include "config/code.hpp"
 
-struct request_callback_t
-{
+struct request_callback_t {
     virtual ~request_callback_t() {}
     virtual void on_request_completed() = 0;
+
+    request_callback_t(code_config_t::req_handler_t *rh) : rh(rh) {}
+
+    virtual void on_fsm_ready() {} // XXX Rename this
+
+    code_config_t::req_handler_t *rh;
 };
 
 // TODO: if we receive a small request from the user that can be
@@ -25,20 +30,18 @@ that the request will free itself.
 // TODO: Is there any real point in keeping track of the messages associated with the request?
 // 'msgs' is written to, but never read from.
 
-struct request_t : public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, request_t >
-{
+struct request_t : public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, request_t > {
 public:
     explicit request_t(request_callback_t *cb) :
         nstarted(0), ncompleted(0), dispatched(false), callback(cb) {
         assert(callback);
     }
-    ~request_t() {
-    }
-    
+    ~request_t() {}
+
     bool can_add() {
         return nstarted < MAX_OPS_IN_REQUEST;
     }
-    
+
     void add(cpu_message_t *msg, int cpu) {
         assert(!msg->request);
         assert(!dispatched);
@@ -47,31 +50,32 @@ public:
         msg->return_cpu = get_cpu_context()->worker->workerid;
         msgs[nstarted] = msg;
         get_cpu_context()->worker->event_queue->message_hub.store_message(cpu, msg);
-        nstarted ++;
+        nstarted++;
     }
-    
+
     void dispatch(void) {
         assert(!dispatched);
         assert(nstarted > 0);
         assert(ncompleted == 0);
         dispatched = true;
     }
-    
+
     void on_request_part_completed() {
         assert(dispatched);
         ncompleted ++;
         assert(ncompleted <= nstarted);
+        callback->on_fsm_ready(); // XXX Should this go here?
         if (ncompleted == nstarted) {
             callback->on_request_completed();
             delete this;
         }
     }
-    
+
 private:
     unsigned int nstarted, ncompleted;
     bool dispatched;
     cpu_message_t *msgs[MAX_OPS_IN_REQUEST];
-    
+
     request_callback_t *callback;
 };
 

@@ -1,4 +1,3 @@
-
 #ifndef __ALLOC_MIXIN_TCC__
 #define __ALLOC_MIXIN_TCC__
 
@@ -41,8 +40,7 @@ void alloc_mixin_t<accessor_t, type_t>::operator delete(void *ptr) {
     // we used to create.
     void **tmp = (void**)ptr;
     bool multithreaded_allocator_misused = (tmp[-1] != accessor_t::template get_alloc<type_t>());
-    if (multithreaded_allocator_misused)
-    {
+    if (multithreaded_allocator_misused) {
         const char *mangled_name = typeid((type_t*)&tmp[-1]).name();
         char *demangled_name = demangle_cpp_name(mangled_name);
         const char *name = demangled_name ? demangled_name : mangled_name;

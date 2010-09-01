@@ -1,4 +1,3 @@
-
 #ifndef __MESSAGE_HUB_HPP__
 #define __MESSAGE_HUB_HPP__
 
@@ -30,6 +29,8 @@ struct cpu_message_t : public intrusive_list_node_t<cpu_message_t>
         mt_lock,
         mt_perfmon,
         mt_log,
+        mt_read_large_value,
+        mt_write_large_value
     };
     explicit cpu_message_t(msg_type_t _type)
         : type(_type), request(NULL)
@@ -39,6 +40,8 @@ struct cpu_message_t : public intrusive_list_node_t<cpu_message_t>
     msg_type_t type;
     request_t *request;
     unsigned int return_cpu;
+
+    void send(int cpu);
 };
 
 struct event_queue_t;

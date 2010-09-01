@@ -1,4 +1,3 @@
-
 #ifndef __BUFFER_CACHE_CALLBACKS_HPP__
 #define __BUFFER_CACHE_CALLBACKS_HPP__
 
@@ -10,6 +9,26 @@ public:
 public:
     virtual ~block_available_callback() {}
     virtual void on_block_available(buf_t *buf) = 0;
+};
+
+template <class config_t>
+struct large_buf_available_callback : public intrusive_list_node_t<large_buf_available_callback<config_t> > {
+public:
+    typedef typename config_t::large_buf_t large_buf_t;
+
+public:
+    virtual ~large_buf_available_callback() {}
+    virtual void on_large_buf_available(large_buf_t *large_buf) = 0;
+};
+
+struct large_value_read_callback {
+    virtual void on_large_value_read() = 0;
+    virtual ~large_value_read_callback() {}
+};
+
+struct large_value_completed_callback {
+    virtual void on_large_value_completed(bool success) = 0;
+    virtual ~large_value_completed_callback() {}
 };
 
 template <class config_t>
@@ -25,4 +44,3 @@ struct transaction_commit_callback {
 };
 
 #endif // __BUFFER_CACHE_CALLBACKS_HPP__
-

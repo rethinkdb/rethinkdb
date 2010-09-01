@@ -20,6 +20,7 @@
 #define DELETE_SUCCESS "DELETED\r\n"
 #define RETRIEVE_TERMINATOR "END\r\n"
 #define BAD_BLOB "CLIENT_ERROR bad data chunk\r\n"
+#define TOO_LARGE "SERVER_ERROR object too large for cache\r\n"
 
 #define MAX_STATS_REQ_LEN 100
 
@@ -29,17 +30,17 @@
 
 template<class config_t>
 class txt_memcached_request : public request_callback_t {
-
 public:
     typedef typename config_t::conn_fsm_t conn_fsm_t;
+    typedef typename config_t::linked_buf_t linked_buf_t;
 
 public:
     txt_memcached_request(txt_memcached_handler_t<config_t> *rh, bool noreply)
-        : rh(rh), noreply(noreply), request(new request_t(this))
+        : request_callback_t(rh), noreply(noreply), request(new request_t(this))
         {}
-    
-    virtual void build_response(typename conn_fsm_t::linked_buf_t *) = 0;
-    
+
+    virtual bool build_response(linked_buf_t *) = 0;
+
     void on_request_completed() {
         if (!noreply) {
             build_response(rh->conn_fsm->sbuf);
@@ -47,8 +48,7 @@ public:
         }
         delete this;
     }
-    
-    txt_memcached_handler_t<config_t> *rh;
+
     bool noreply;
     request_t *request;
 };
@@ -59,20 +59,22 @@ class txt_memcached_get_request : public txt_memcached_request<config_t>,
 
 public:
     typedef typename config_t::conn_fsm_t conn_fsm_t;
+    typedef typename config_t::linked_buf_t linked_buf_t;
     typedef typename config_t::btree_get_fsm_t btree_get_fsm_t;
+    typedef typename config_t::write_large_value_msg_t write_large_value_msg_t;
     using txt_memcached_request<config_t>::rh;
 
 public:
     // A txt_memcached_get_request supports more than one get at one time, so it takes several steps
     // to build it. First the constructor is called; then add_get() is called one or more times;
     // then dispatch() is called.
-    
+
     txt_memcached_get_request(txt_memcached_handler_t<config_t> *rh)
-        : txt_memcached_request<config_t>(rh, false), num_fsms(0) {}
-    
+        : txt_memcached_request<config_t>(rh, false), num_fsms(0), curr_fsm(0) {}
+
     bool add_get(btree_key *key) {
         if (this->request->can_add()) {
-            btree_get_fsm_t *fsm = new btree_get_fsm_t(key);
+            btree_get_fsm_t *fsm = new btree_get_fsm_t(key, this);
             this->request->add(fsm, key_to_cpu(key, rh->event_queue->parent->nworkers));
             fsms[num_fsms ++] = fsm;
             return true;
@@ -80,30 +82,48 @@ public:
             return false;
         }
     }
-    
+
     void dispatch() {
         this->request->dispatch();
     }
-    
+
     ~txt_memcached_get_request() {
         for (int i = 0; i < num_fsms; i ++) {
             get_cpu_context()->worker->cmd_get++;
             delete fsms[i];
         }
     }
-    
-    void build_response(typename conn_fsm_t::linked_buf_t *sbuf) {
-        for(int i = 0; i < num_fsms; i++) {
-            btree_get_fsm_t *fsm = fsms[i];
+
+    void value_header(linked_buf_t *sbuf, btree_get_fsm_t *fsm) {
+        get_cpu_context()->worker->get_hits++;
+        sbuf->printf("VALUE %*.*s %u %u\r\n",
+                fsm->key.size, fsm->key.size, fsm->key.contents,
+                fsm->value.mcflags(),
+                fsm->value.value_size());
+    }
+
+    void on_fsm_ready() {
+        linked_buf_t *sbuf = rh->conn_fsm->sbuf; // XXX
+        while (curr_fsm < num_fsms) {
+            btree_get_fsm_t *fsm = fsms[curr_fsm];
             switch (fsm->status_code) {
                 case btree_get_fsm_t::S_SUCCESS:
-                    get_cpu_context()->worker->get_hits++;
-                    sbuf->printf("VALUE %*.*s %u %u\r\n",
-                        fsm->key.size, fsm->key.size, fsm->key.contents,
-                        fsm->value.mcflags(),
-                        fsm->value.value_size());
-                    sbuf->append(fsm->value.value(), fsm->value.value_size());
-                    sbuf->printf("\r\n");
+                    if (fsm->value.large_value()) {
+                        if (fsm->state == btree_get_fsm_t::large_value_acquired) {
+                            value_header(sbuf, fsm);
+                            fsm->state = btree_get_fsm_t::large_value_writing; // XXX
+                            fsm->write_lv_msg->begin_write(); // Double XXX
+                            return;
+                        } else if (fsm->state == btree_get_fsm_t::lookup_complete) {
+                            sbuf->printf("\r\n");
+                        } else {
+                            return;
+                        }
+                    } else {
+                        value_header(sbuf, fsm);
+                        sbuf->append(fsm->value.value(), fsm->value.value_size());
+                        sbuf->printf("\r\n");
+                    }
                     break;
                 case btree_get_fsm_t::S_NOT_FOUND:
                     get_cpu_context()->worker->get_misses++;
@@ -112,22 +132,30 @@ public:
                     assert(0);
                     break;
             }
+            curr_fsm++;
         }
+    }
+
+    bool build_response(linked_buf_t *sbuf) {
+        on_fsm_ready();
+        assert(curr_fsm == num_fsms);
         sbuf->printf(RETRIEVE_TERMINATOR);
+        return true;
     }
 
 private:
     int num_fsms;
+    int curr_fsm;
     btree_get_fsm_t *fsms[MAX_OPS_IN_REQUEST];
 };
 
 // FIXME horrible redundancy
 template<class config_t>
 class txt_memcached_get_cas_request : public txt_memcached_request<config_t>,
-    public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, txt_memcached_get_cas_request<config_t> > {
-
+                                      public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, txt_memcached_get_cas_request<config_t> > {
 public:
     typedef typename config_t::conn_fsm_t conn_fsm_t;
+    typedef typename config_t::linked_buf_t linked_buf_t;
     typedef typename config_t::btree_get_cas_fsm_t btree_get_cas_fsm_t;
     using txt_memcached_request<config_t>::rh;
 
@@ -135,10 +163,10 @@ public:
     // A txt_memcached_get_request supports more than one get at one time, so it takes several steps
     // to build it. First the constructor is called; then add_get() is called one or more times;
     // then dispatch() is called.
-    
+
     txt_memcached_get_cas_request(txt_memcached_handler_t<config_t> *rh)
         : txt_memcached_request<config_t>(rh, false), num_fsms(0) {}
-    
+
     bool add_get(btree_key *key) {
         if (this->request->can_add()) {
             btree_get_cas_fsm_t *fsm = new btree_get_cas_fsm_t(key);
@@ -149,18 +177,18 @@ public:
             return false;
         }
     }
-    
+
     void dispatch() {
         this->request->dispatch();
     }
-    
+
     ~txt_memcached_get_cas_request() {
         for (int i = 0; i < num_fsms; i ++) {
             delete fsms[i];
         }
     }
-    
-    void build_response(typename conn_fsm_t::linked_buf_t *sbuf) {
+
+    bool build_response(linked_buf_t *sbuf) {
         for(int i = 0; i < num_fsms; i++) {
             btree_get_cas_fsm_t *fsm = fsms[i];
             switch (fsm->status_code) {
@@ -183,6 +211,7 @@ public:
             }
         }
         sbuf->printf(RETRIEVE_TERMINATOR);
+        return true;
     }
 
 private:
@@ -196,23 +225,23 @@ class txt_memcached_set_request : public txt_memcached_request<config_t>,
 
 public:
     typedef typename config_t::conn_fsm_t conn_fsm_t;
+    typedef typename config_t::linked_buf_t linked_buf_t;
     typedef typename config_t::btree_set_fsm_t btree_set_fsm_t;
 
 public:
-    txt_memcached_set_request(txt_memcached_handler_t<config_t> *rh, btree_key *key, byte *data, int length, btree_value::mcflags_t mcflags, btree_value::exptime_t exptime, bool add_ok, bool replace_ok, btree_value::cas_t req_cas, bool check_cas, bool noreply)
+    txt_memcached_set_request(txt_memcached_handler_t<config_t> *rh, btree_key *key, byte *data, uint32_t length, typename btree_set_fsm_t::set_type_t type, btree_value::mcflags_t mcflags, btree_value::exptime_t exptime, btree_value::cas_t req_cas, bool noreply)
         : txt_memcached_request<config_t>(rh, noreply),
-          fsm(new btree_set_fsm_t(key, data, length, mcflags, convert_exptime(exptime), add_ok, replace_ok, req_cas, check_cas))
-        {
+          fsm(new btree_set_fsm_t(key, this, data, length, type, mcflags, convert_exptime(exptime), req_cas)) {
         this->request->add(fsm, key_to_cpu(key, rh->event_queue->parent->nworkers));
         this->request->dispatch();
     }
-    
+
     ~txt_memcached_set_request() {
         get_cpu_context()->worker->cmd_set++;
         delete fsm;
     }
-    
-    void build_response(typename conn_fsm_t::linked_buf_t *sbuf) {
+
+    bool build_response(linked_buf_t *sbuf) {
         switch (fsm->status_code) {
             case btree_set_fsm_t::S_SUCCESS:
                 sbuf->printf(STORAGE_SUCCESS);
@@ -223,10 +252,14 @@ public:
             case btree_set_fsm_t::S_EXISTS:
                 sbuf->printf(KEY_EXISTS);
                 break;
+            case btree_set_fsm_t::S_NOT_FOUND:
+                sbuf->printf(NOT_FOUND);
+                break;
             default:
                 assert(0);
                 break;
         }
+        return true;
     }
 
     // This is protocol.txt, verbatim:
@@ -259,6 +292,7 @@ class txt_memcached_incr_decr_request : public txt_memcached_request<config_t>,
 
 public:
     typedef typename config_t::conn_fsm_t conn_fsm_t;
+    typedef typename config_t::linked_buf_t linked_buf_t;
     typedef typename config_t::btree_incr_decr_fsm_t btree_incr_decr_fsm_t;
 
 public:
@@ -269,13 +303,13 @@ public:
         this->request->add(fsm, key_to_cpu(key, rh->event_queue->parent->nworkers));
         this->request->dispatch();
     }
-    
+
     ~txt_memcached_incr_decr_request() {
         get_cpu_context()->worker->cmd_set++;
         delete fsm;
     }
-    
-    void build_response(typename conn_fsm_t::linked_buf_t *sbuf) {
+
+    bool build_response(linked_buf_t *sbuf) {
         switch (fsm->status_code) {
             case btree_incr_decr_fsm_t::S_SUCCESS:
                 sbuf->printf("%llu\r\n", (unsigned long long)fsm->new_number);
@@ -290,6 +324,7 @@ public:
                 assert(0);
                 break;
         }
+        return true;
     }
 
 private:
@@ -301,6 +336,7 @@ class txt_memcached_append_prepend_request : public txt_memcached_request<config
     public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, txt_memcached_append_prepend_request<config_t> > {
 public:
     typedef typename config_t::conn_fsm_t conn_fsm_t;
+    typedef typename config_t::linked_buf_t linked_buf_t;
     typedef typename config_t::btree_append_prepend_fsm_t btree_append_prepend_fsm_t;
 
     txt_memcached_append_prepend_request(txt_memcached_handler_t<config_t> *rh, btree_key *key, byte *data, int length, bool append, bool noreply)
@@ -315,7 +351,7 @@ public:
         delete fsm;
     }
 
-    void build_response(typename conn_fsm_t::linked_buf_t *sbuf) {
+    bool build_response(linked_buf_t *sbuf) {
         switch (fsm->status_code) {
             case btree_append_prepend_fsm_t::S_SUCCESS:
                 sbuf->printf(STORAGE_SUCCESS);
@@ -328,6 +364,7 @@ public:
                 assert(0);
                 break;
         }
+        return true;
     }
 
 private:
@@ -340,6 +377,7 @@ class txt_memcached_delete_request : public txt_memcached_request<config_t>,
 
 public:
     typedef typename config_t::conn_fsm_t conn_fsm_t;
+    typedef typename config_t::linked_buf_t linked_buf_t;
     typedef typename config_t::btree_delete_fsm_t btree_delete_fsm_t;
 
 public:
@@ -349,12 +387,12 @@ public:
         this->request->add(fsm, key_to_cpu(key, rh->event_queue->parent->nworkers));
         this->request->dispatch();
     }
-        
+
     ~txt_memcached_delete_request() {
         delete fsm;
     }
-        
-    void build_response(typename conn_fsm_t::linked_buf_t *sbuf) {
+
+    bool build_response(linked_buf_t *sbuf) {
         switch (fsm->status_code) {
             case btree_delete_fsm_t::S_DELETED:
                 sbuf->printf(DELETE_SUCCESS);
@@ -366,6 +404,7 @@ public:
                 assert(0);
                 break;
         }
+        return true;
     }
 
 private:
@@ -377,14 +416,15 @@ class txt_memcached_perfmon_request : public txt_memcached_request<config_t>,
     public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, txt_memcached_perfmon_request<config_t> > {
 
 public:
-    typedef typename config_t::conn_fsm_t       conn_fsm_t;
+    typedef typename config_t::conn_fsm_t conn_fsm_t;
+    typedef typename config_t::linked_buf_t linked_buf_t;
 
 public:
     txt_memcached_perfmon_request(txt_memcached_handler_t<config_t> *rh)
         : txt_memcached_request<config_t>(rh, false) {
-        
+
         int nworkers = (int)get_cpu_context()->worker->event_queue->parent_pool->nworkers;
-    
+
         // Tell every single CPU core to pass their perfmon module *by copy*
         // to this CPU
         for (int i = 0; i < nworkers; i++)
@@ -398,7 +438,7 @@ public:
     void dispatch() {
         this->request->dispatch();
     }
-    
+
     ~txt_memcached_perfmon_request() {
         // Do NOT delete the perfmon messages. They are sent back to the cores that provided
         // the stats so that the perfmon objects can be freed.
@@ -407,15 +447,15 @@ public:
             msgs[i]->send_back_to_free_perfmon();
         }
     }
-    
-    void build_response(typename conn_fsm_t::linked_buf_t *sbuf) {
+
+    bool build_response(linked_buf_t *sbuf) {
         // Combine all responses into one
         int nworkers = (int)get_cpu_context()->worker->event_queue->parent_pool->nworkers;
         perfmon_t combined_perfmon;
         for(int i = 0; i < nworkers; i++) {
             combined_perfmon.accumulate(msgs[i]->perfmon);
         }
-        
+
         // Print the resultings perfmon
         char tmpbuf[255];
 #if defined(VALGRIND) || !defined(NDEBUG)
@@ -448,8 +488,9 @@ public:
                 }
             }
         }
+        return true;
     }
-    
+
 public:
     perfmon_msg_t *msgs[MAX_OPS_IN_REQUEST];
 
@@ -461,15 +502,14 @@ public:
 
 // Process commands received from the user
 template<class config_t>
-typename txt_memcached_handler_t<config_t>::parse_result_t txt_memcached_handler_t<config_t>::parse_request(event_t *event)
-{
+typename txt_memcached_handler_t<config_t>::parse_result_t txt_memcached_handler_t<config_t>::parse_request(event_t *event) {
     assert(event->state == conn_fsm);
 
     // TODO: we might end up getting a command, and a piece of the
     // next command. It also means that we can't use one buffer
     //for both recv and send, we need to add a send buffer
     // (assuming we want to support out of band  commands).
-    
+
     // check if we're supposed to be reading a binary blob
     if (loading_data) {
         return read_data();
@@ -500,7 +540,7 @@ typename txt_memcached_handler_t<config_t>::parse_result_t txt_memcached_handler
         conn_fsm->consume(line_len);
         return malformed_request();
     }
-    
+
     // Execute command
     if(!strcmp(cmd_str, "quit")) {
         // Make sure there's no more tokens
@@ -524,12 +564,12 @@ typename txt_memcached_handler_t<config_t>::parse_result_t txt_memcached_handler
         // TODO: We sould send SIGINT to the main thread directly from here instead of by this
         // circuitous and indirect way of signalling via the return value.
         return req_handler_t::op_req_shutdown;
-        
+
     } else if(!strcmp(cmd_str, "stats") || !strcmp(cmd_str, "stat")) {
         conn_fsm->consume(line_len);
         parse_stat_command(state, line_len);
         return req_handler_t::op_req_complex;
-    
+
     } else if(!strcmp(cmd_str, "set")) {     // check for storage commands
         return parse_storage_command(SET, state, line_len);
     } else if(!strcmp(cmd_str, "add")) {
@@ -567,7 +607,7 @@ typename txt_memcached_handler_t<config_t>::parse_result_t txt_memcached_handler
     char *key_tmp = strtok_r(NULL, DELIMS, &state);
     char *value_str = strtok_r(NULL, DELIMS, &state);
     char *noreply_str = strtok_r(NULL, DELIMS, &state); //optional
-    
+
     if (key_tmp == NULL || value_str == NULL) {
         return malformed_request();
     }
@@ -580,13 +620,13 @@ typename txt_memcached_handler_t<config_t>::parse_result_t txt_memcached_handler
             return malformed_request();
         }
     }
-    
+
     node_handler::str_to_key(key_tmp, &key);
     long long delta = atoll(value_str);
     new txt_memcached_incr_decr_request<config_t>(this, &key, increment, delta, noreply);
-    
+
     conn_fsm->consume(line_len);
-    
+
     if (noreply)
         return req_handler_t::op_req_parallelizable;
     else
@@ -663,33 +703,50 @@ typename txt_memcached_handler_t<config_t>::parse_result_t txt_memcached_handler
     rq->dispatch();
     return req_handler_t::op_req_complex;
 }
-	
+
 template <class config_t>
 typename txt_memcached_handler_t<config_t>::parse_result_t txt_memcached_handler_t<config_t>::read_data() {
     check("memcached handler should be in loading data state", !loading_data);
-    if (conn_fsm->nrbuf < bytes + 2){//check that the buffer contains enough data.  must also include \r\n
-        return req_handler_t::op_partial_packet;
-    }
-    loading_data = false;
-    if (conn_fsm->rbuf[bytes] != '\r' || conn_fsm->rbuf[bytes+1] != '\n') {
-        conn_fsm->sbuf->printf(BAD_BLOB);
-        conn_fsm->consume(bytes+2);
-        return req_handler_t::op_malformed;
+    if (bytes <= MAX_IN_NODE_VALUE_SIZE) {
+        if (conn_fsm->nrbuf < bytes + 2){//check that the buffer contains enough data.  must also include \r\n
+            return req_handler_t::op_partial_packet;
+        }
+        loading_data = false;
+        if (conn_fsm->rbuf[bytes] != '\r' || conn_fsm->rbuf[bytes+1] != '\n') {
+            conn_fsm->sbuf->printf(BAD_BLOB);
+            conn_fsm->consume(bytes+2);
+            return req_handler_t::op_malformed;
+        }
+    } else {
+        if (this->read_lv_msg) {
+            if (conn_fsm->nrbuf < 2) {
+                return req_handler_t::op_partial_packet;
+            }
+            // XXX What if data comes in at
+            conn_fsm->consume(2); // \r\n. TODO: Check.
+            this->read_lv_msg->success = true;
+            this->read_lv_msg->completed = true; // TODO: Move this into a method in read_lv_msg.
+            this->read_lv_msg->send(this->read_lv_msg->return_cpu);
+            this->read_lv_msg = NULL;
+            loading_data = false;
+            return req_handler_t::op_req_complex;
+        } else {
+            // Will be handled in the FSM.
+        }
     }
 
     switch(cmd) {
         case SET:
-            new txt_memcached_set_request<config_t>(this, &key, conn_fsm->rbuf, bytes, mcflags, exptime, true, true, 0, false, noreply);
+            new txt_memcached_set_request<config_t>(this, &key, conn_fsm->rbuf, bytes, btree_set_fsm_t::set_type_set, mcflags, exptime, 0, noreply);
             break;
         case ADD:
-            new txt_memcached_set_request<config_t>(this, &key, conn_fsm->rbuf, bytes, mcflags, exptime, true, false, 0, false, noreply);
+            new txt_memcached_set_request<config_t>(this, &key, conn_fsm->rbuf, bytes, btree_set_fsm_t::set_type_add, mcflags, exptime, 0, noreply);
             break;
         case REPLACE:
-            new txt_memcached_set_request<config_t>(this, &key, conn_fsm->rbuf, bytes, mcflags, exptime, false, true, 0, false, noreply);
+            new txt_memcached_set_request<config_t>(this, &key, conn_fsm->rbuf, bytes, btree_set_fsm_t::set_type_replace, mcflags, exptime, 0, noreply);
             break;
         case CAS:
-            // TODO: CAS returns a different error code from REPLACE when a value isn't found.
-            new txt_memcached_set_request<config_t>(this, &key, conn_fsm->rbuf, bytes, mcflags, exptime, false, true, cas, true, noreply);
+            new txt_memcached_set_request<config_t>(this, &key, conn_fsm->rbuf, bytes, btree_set_fsm_t::set_type_cas, mcflags, exptime, cas, noreply);
             break;
         // APPEND and PREPEND always ignore flags and exptime.
         case APPEND:
@@ -702,13 +759,17 @@ typename txt_memcached_handler_t<config_t>::parse_result_t txt_memcached_handler
             conn_fsm->consume(bytes+2);
             return malformed_request();
     }
-    
-    conn_fsm->consume(bytes+2);
-    
-    if (noreply)
-        return req_handler_t::op_req_parallelizable;
-    else
+
+    if (bytes <= MAX_IN_NODE_VALUE_SIZE) {
+        conn_fsm->consume(bytes+2);
+
+        if (noreply)
+            return req_handler_t::op_req_parallelizable;
+        else
+            return req_handler_t::op_req_complex;
+    } else {
         return req_handler_t::op_req_complex;
+    }
 }
 
 template <class config_t>
@@ -725,15 +786,15 @@ typename txt_memcached_handler_t<config_t>::parse_result_t txt_memcached_handler
 
 template <class config_t>
 typename txt_memcached_handler_t<config_t>::parse_result_t txt_memcached_handler_t<config_t>::get(char *state, unsigned int line_len) {
-    
+
     char *key_str = strtok_r(NULL, DELIMS, &state);
     if (key_str == NULL) return malformed_request();
-    
+
     txt_memcached_get_request<config_t> *rq = new txt_memcached_get_request<config_t>(this);
-    
+
     do {
         node_handler::str_to_key(key_str, &key);
-        
+
         if (!rq->add_get(&key)) {
             // We can't fit any more operations, let's just break
             // and complete the ones we already sent out to other
@@ -744,13 +805,13 @@ typename txt_memcached_handler_t<config_t>::parse_result_t txt_memcached_handler
             // requests aren't satisfied. We need to notify them
             // somehow.
         }
-        
+
         key_str = strtok_r(NULL, DELIMS, &state);
-        
+
     } while(key_str);
-    
+
     rq->dispatch();
-    
+
     //clean out the rbuf
     conn_fsm->consume(line_len);
     return req_handler_t::op_req_complex;
@@ -759,15 +820,15 @@ typename txt_memcached_handler_t<config_t>::parse_result_t txt_memcached_handler
 // FIXME horrible redundancy
 template <class config_t>
 typename txt_memcached_handler_t<config_t>::parse_result_t txt_memcached_handler_t<config_t>::get_cas(char *state, unsigned int line_len) {
-    
+
     char *key_str = strtok_r(NULL, DELIMS, &state);
     if (key_str == NULL) return malformed_request();
-    
+
     txt_memcached_get_cas_request<config_t> *rq = new txt_memcached_get_cas_request<config_t>(this);
-    
+
     do {
         node_handler::str_to_key(key_str, &key);
-        
+
         if (!rq->add_get(&key)) {
             // We can't fit any more operations, let's just break
             // and complete the ones we already sent out to other
@@ -778,13 +839,13 @@ typename txt_memcached_handler_t<config_t>::parse_result_t txt_memcached_handler
             // requests aren't satisfied. We need to notify them
             // somehow.
         }
-        
+
         key_str = strtok_r(NULL, DELIMS, &state);
-        
+
     } while(key_str);
-    
+
     rq->dispatch();
-    
+
     //clean out the rbuf
     conn_fsm->consume(line_len);
     return req_handler_t::op_req_complex;
@@ -838,4 +899,4 @@ typename txt_memcached_handler_t<config_t>::parse_result_t txt_memcached_handler
         return req_handler_t::op_req_complex;
 }
 
-#endif // __MEMCACHED_HANDLER_TCC__
+#endif // __TXT_MEMCACHED_HANDLER_TCC__

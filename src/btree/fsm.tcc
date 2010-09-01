@@ -28,6 +28,18 @@ void btree_fsm<config_t>::on_block_available(buf_t *buf) {
 }
 
 template <class config_t>
+void btree_fsm<config_t>::on_large_buf_available(large_buf_t *large_buf) {
+    event_t event;
+    bzero((void*)&event, sizeof(event));
+    event.event_type = et_large_buf;
+    event.op = eo_read;
+    event.buf = large_buf;
+    event.result = 1;
+    transition_result_t res = do_transition(&event);
+    assert(res != transition_complete); // We should only be acquiring a large buf in mid-operation.
+}
+
+template <class config_t>
 void btree_fsm<config_t>::on_txn_begin(transaction_t *txn) {
     assert(transaction == NULL);
     event_t event;
@@ -47,6 +59,13 @@ void btree_fsm<config_t>::on_txn_commit(transaction_t *txn) {
     event.buf = txn;
     if (do_transition(&event) == transition_complete && on_complete)
         on_complete(this);
+}
+
+template <class config_t>
+void btree_fsm<config_t>::step() { // XXX Rename and abstract.
+    if (do_transition(NULL) == transition_complete && on_complete) {
+        on_complete(this);
+    }
 }
 
 #endif // __BTREE_FSM_TCC__

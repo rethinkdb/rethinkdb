@@ -1,4 +1,3 @@
-
 #include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -216,7 +215,6 @@ void worker_t::on_btree_completed(code_config_t::btree_fsm_t *btree_fsm) {
 }
 
 void worker_t::process_btree_msg(code_config_t::btree_fsm_t *btree_fsm) {
-    
     if(btree_fsm->is_finished()) {
         if (btree_fsm->request) {
             // We received a completed btree that belongs to us
@@ -224,17 +222,15 @@ void worker_t::process_btree_msg(code_config_t::btree_fsm_t *btree_fsm) {
         } else { // A btree not associated with any request.
             delete btree_fsm;
         }
-
     } else {
-        // We received a new btree that we need to process
+        // We received an unfinished btree that we need to process
         code_config_t::store_t *store = slice(&btree_fsm->key);
         if (store->run_fsm(btree_fsm, worker_t::on_btree_completed))
             worker_t::on_btree_completed(btree_fsm);
     }
 }
 
-void worker_t::process_perfmon_msg(perfmon_msg_t *msg)
-{    
+void worker_t::process_perfmon_msg(perfmon_msg_t *msg) {    
     worker_t *worker = get_cpu_context()->worker;
     event_queue_t *queue = worker->event_queue;
     int this_cpu = get_cpu_context()->worker->workerid;
@@ -286,13 +282,22 @@ void worker_t::process_log_msg(log_msg_t *msg) {
     }
 }
 
+void worker_t::process_read_large_value_msg(code_config_t::read_large_value_msg_t *msg) {
+    msg->on_arrival();
+}
+
+void worker_t::process_write_large_value_msg(code_config_t::write_large_value_msg_t *msg) {
+    msg->on_arrival();
+}
+
 // Handle events coming from the event queue
 void worker_t::event_handler(event_t *event) {
-    if(event->event_type == et_sock) {
+    if (event->event_type == et_sock) {
         // Got some socket action, let the connection fsm know
         initiate_conn_fsm_transition(event);
     } else if(event->event_type == et_cpu_event) {
         cpu_message_t *msg = (cpu_message_t*)event->state;
+        // TODO: Possibly use a virtual function here.
         switch(msg->type) {
         case cpu_message_t::mt_btree:
             process_btree_msg((code_config_t::btree_fsm_t*)msg);
@@ -305,6 +310,12 @@ void worker_t::event_handler(event_t *event) {
             break;
         case cpu_message_t::mt_log:
             process_log_msg((log_msg_t *) msg);
+            break;
+        case cpu_message_t::mt_read_large_value:
+            process_read_large_value_msg((code_config_t::read_large_value_msg_t *) msg);
+            break;
+        case cpu_message_t::mt_write_large_value:
+            process_write_large_value_msg((code_config_t::write_large_value_msg_t *) msg);
             break;
         }
     } else {
@@ -438,4 +449,3 @@ worker_t* worker_pool_t::next_active_worker() {
     // (intentional and unintentional) attacks on memory allocation
     // and CPU utilization.
 }
-

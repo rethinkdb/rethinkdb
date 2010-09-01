@@ -1,14 +1,19 @@
-#ifndef __FSM_BTREE_HPP__
-#define __FSM_BTREE_HPP__
+#ifndef __BTREE_FSM_HPP__
+#define __BTREE_FSM_HPP__
 
 #include "utils.hpp"
 #include "message_hub.hpp"
 #include "buffer_cache/callbacks.hpp"
 #include "event.hpp"
 
+//#include "buffer_cache/large_buf.hpp"
+
 template <class config_t>
 class btree_fsm : public cpu_message_t,
+                  //public large_value_filled_callback, // XXX This should be a separate callback.
+                  //public large_value_completed_callback, // XXX Rename.
                   public block_available_callback<config_t>,
+                  public large_buf_available_callback<config_t>,
                   public transaction_begin_callback<config_t>,
                   public transaction_commit_callback<config_t>
 {
@@ -17,7 +22,9 @@ public:
     typedef typename config_t::btree_fsm_t btree_fsm_t;
     typedef typename cache_t::transaction_t transaction_t;
     typedef typename cache_t::buf_t buf_t;
-    typedef void (*on_complete_t)(btree_fsm_t* btree_fsm);
+    typedef typename config_t::large_buf_t large_buf_t;
+    typedef typename config_t::store_t store_t;
+    typedef void (*on_complete_t)(btree_fsm_t *btree_fsm);
 public:
     enum transition_result_t {
         transition_incomplete,
@@ -67,14 +74,17 @@ public:
     virtual bool is_finished() = 0;
 
     virtual void on_block_available(buf_t *buf);
+    virtual void on_large_buf_available(large_buf_t *large_buf);
     virtual void on_txn_begin(transaction_t *txn);
     virtual void on_txn_commit(transaction_t *txn);
+    virtual void step(); // XXX Rename this.
 
 public:
     union {
         char key_memory[MAX_KEY_SIZE+sizeof(btree_key)];
         btree_key key;
     };
+
     transaction_t *transaction;
     cache_t *cache;
     on_complete_t on_complete;
@@ -85,4 +95,4 @@ public:
 
 #include "btree/fsm.tcc"
 
-#endif // __FSM_BTREE_HPP__
+#endif // __BTREE_FSM_HPP__

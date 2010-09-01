@@ -67,6 +67,8 @@ struct worker_t :
         void process_perfmon_msg(perfmon_msg_t *msg);
         void process_lock_msg(event_t *event, rwi_lock_t::lock_request_t *lr);
         void process_log_msg(log_msg_t *msg);
+        void process_read_large_value_msg(code_config_t::read_large_value_msg_t *msg);
+        void process_write_large_value_msg(code_config_t::write_large_value_msg_t *msg);
         void event_handler(event_t *event);
     public:
         worker_pool_t *parent_pool;

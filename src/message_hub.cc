@@ -1,13 +1,12 @@
-
 #include <sys/eventfd.h>
 #include "config/args.hpp"
 #include "config/code.hpp"
 #include "message_hub.hpp"
 #include "event_queue.hpp"
 #include "worker_pool.hpp"
+#include "cpu_context.hpp"
 
-int hash(btree_key *key)
-{
+int hash(btree_key *key) {
     int res = 0;
     int bits_in_res = (sizeof(res) * 8);
     for (int i = 0; i < key->size; i++)
@@ -16,8 +15,7 @@ int hash(btree_key *key)
     return res;
 }
 
-int key_to_cpu(btree_key *key, unsigned int ncpus)
-{
+int key_to_cpu(btree_key *key, unsigned int ncpus) {
     return hash(key) % ncpus;
 }
 
@@ -27,8 +25,7 @@ int key_to_slice(btree_key *key, unsigned int ncpus, unsigned int nslice) {
     return (hash(key) / ncpus) % nslice;
 }
 
-void message_hub_t::init(unsigned int cpu_id, unsigned int _ncpus, worker_t *workers[])
-{
+void message_hub_t::init(unsigned int cpu_id, unsigned int _ncpus, worker_t *workers[]) {
     current_cpu = cpu_id;
     ncpus = _ncpus;
     check("Can't support so many CPUs", ncpus > MAX_CPUS);
@@ -105,4 +102,8 @@ void message_hub_t::pull_messages(unsigned int ncpu, msg_list_t *msg_list) {
 
     // TODO: we should use regular mutexes on single core CPU
     // instead of spinlocks
+}
+
+void cpu_message_t::send(int cpu) { // TODO: Maybe this can auto-set return_cpu?
+        get_cpu_context()->worker->event_queue->message_hub.store_message(cpu, this);
 }

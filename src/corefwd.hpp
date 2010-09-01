@@ -2,9 +2,11 @@
 #ifndef __COREFWD_HPP__
 #define __COREFWD_HPP__
 
-// FSM
+// Connection FSM
 template<class config_t>
 struct conn_fsm;
+
+struct data_transferred_callback;
 
 // Request
 struct request_callback_t;
@@ -30,6 +32,9 @@ template <class config_t>
 struct buf;
 
 template <class config_t>
+struct large_buf;
+
+template <class config_t>
 struct transaction;
 
 template <class config_t>
@@ -44,6 +49,15 @@ template <typename config_t>
 class btree_key_value_store;
 
 struct btree_node;
+
+template <typename config_t>
+class btree_modify_fsm;
+
+template <typename config_t>
+class read_large_value_msg;
+
+template <typename config_t>
+class write_large_value_msg;
 
 template <typename config_t>
 class btree_fsm;
@@ -112,6 +126,8 @@ class tls_small_obj_alloc_accessor;
 // Utils
 template <int _size>
 struct buffer_t;
+
+struct linked_buf;
 
 // Containers
 template <class derived_t>

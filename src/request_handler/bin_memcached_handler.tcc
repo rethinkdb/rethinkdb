@@ -20,7 +20,7 @@ public:
 
 public:
     bin_memcached_request(bin_memcached_handler_t<config_t> *rh, packet_t *pkt)
-        : rh(rh), opcode(pkt->opcode()), data_type(pkt->data_type()), opaque(pkt->opaque()),
+        : request_callback_t(rh), opcode(pkt->opcode()), data_type(pkt->data_type()), opaque(pkt->opaque()),
           request(new request_t(this))
         {}
 
@@ -58,7 +58,6 @@ public:
         delete this;
     }
     
-    bin_memcached_handler_t<config_t> *rh;
     bin_opcode_t opcode;
     bin_data_type_t data_type;
     bin_opaque_t opaque;
@@ -80,7 +79,7 @@ public:
 
 public:
     bin_memcached_get_request(bin_memcached_handler_t<config_t> *rh, packet_t *pkt, btree_key *key)
-        : bin_memcached_request<config_t>(rh, pkt), fsm(new btree_get_fsm_t(key))
+        : bin_memcached_request<config_t>(rh, pkt), fsm(new btree_get_fsm_t(key, this))
         {
         request->add(fsm, key_to_cpu(key, rh->event_queue->parent->nworkers));
         request->dispatch();
@@ -131,10 +130,10 @@ public:
     using bin_memcached_request<config_t>::request;
 
 public:
-    bin_memcached_set_request(bin_memcached_handler_t<config_t> *rh, packet_t *pkt, btree_key *key, byte *data, int size, btree_value::mcflags_t mcflags, bool add_ok, bool replace_ok, uint64_t req_cas, bool check_cas)
-        : bin_memcached_request<config_t>(rh, pkt), fsm(new btree_set_fsm_t(key, data, size, mcflags, 0, add_ok, replace_ok, req_cas, check_cas))
+    bin_memcached_set_request(bin_memcached_handler_t<config_t> *rh, packet_t *pkt, btree_key *key, byte *data, uint32_t size, typename btree_set_fsm_t::set_type_t type, btree_value::mcflags_t mcflags, btree_value::exptime_t exptime, uint64_t req_cas)
+        : bin_memcached_request<config_t>(rh, pkt), fsm(new btree_set_fsm_t(key, this, data, size, type, mcflags, exptime, req_cas))
         {
-        assert(add_ok && replace_ok);   // We haven't hooked up ADD and REPLACE yet.
+        assert(type == btree_set_fsm_t::set_type_set);   // We haven't hooked up ADD and REPLACE yet, and we're going to handle CAS differently.
         request->add(fsm, key_to_cpu(key, rh->event_queue->parent->nworkers));
         request->dispatch();
     }
@@ -447,15 +446,15 @@ typename bin_memcached_handler_t<config_t>::parse_result_t bin_memcached_handler
         case bin_opcode_set:
         case bin_opcode_setq:
             // TODO: Set the actual flags after the new packet-parsing code is written.
-            new bin_memcached_set_request<config_t>(this, pkt, key, pkt->value(), pkt->value_length(), 0, true, true, 0, false);
+            new bin_memcached_set_request<config_t>(this, pkt, key, pkt->value(), pkt->value_length(), btree_set_fsm_t::set_type_set, 0, 0, false);
             break;
         case bin_opcode_add:
         case bin_opcode_addq:
-            new bin_memcached_set_request<config_t>(this, pkt, key, pkt->value(), pkt->value_length(), 0, true, false, 0, false);
+            new bin_memcached_set_request<config_t>(this, pkt, key, pkt->value(), pkt->value_length(), btree_set_fsm_t::set_type_add, 0, 0, false);
             break;
         case bin_opcode_replace:
         case bin_opcode_replaceq:
-            new bin_memcached_set_request<config_t>(this, pkt, key, pkt->value(), pkt->value_length(), 0, false, true, 0, false);
+            new bin_memcached_set_request<config_t>(this, pkt, key, pkt->value(), pkt->value_length(), btree_set_fsm_t::set_type_replace, 0, 0, false);
             break;
         case bin_opcode_increment:
         case bin_opcode_incrementq:

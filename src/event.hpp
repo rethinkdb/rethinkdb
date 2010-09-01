@@ -1,4 +1,3 @@
-
 #ifndef __EVENT_HPP__
 #define __EVENT_HPP__
 
@@ -9,7 +8,7 @@ struct event_queue_t;
 
 // Event
 enum event_type_t {
-    et_empty, et_sock, et_request_complete, et_cache,
+    et_empty, et_sock, et_request_complete, et_cache, et_large_buf,
     et_cpu_event, et_commit
 };
 enum event_op_t {
@@ -34,4 +33,3 @@ struct event_t {
 };
 
 #endif // __EVENT_HPP__
-

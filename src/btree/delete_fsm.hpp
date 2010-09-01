@@ -1,4 +1,3 @@
-
 #ifndef __BTREE_DELETE_FSM_HPP__
 #define __BTREE_DELETE_FSM_HPP__
 
@@ -11,22 +10,26 @@
 
 template <class config_t>
 class btree_delete_fsm : public btree_modify_fsm<config_t>,
-                         public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, btree_delete_fsm<config_t> >
-{
+                         public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, btree_delete_fsm<config_t> > {
+    typedef typename config_t::large_buf_t large_buf_t;
+    typedef typename config_t::btree_fsm_t btree_fsm_t;
+    typedef typename btree_fsm_t::transition_result_t transition_result_t;
 public:
     explicit btree_delete_fsm(btree_key *_key)
         : btree_modify_fsm<config_t>(_key)          
         {}
-    bool operate(btree_value *old_value, btree_value **new_value) {
+    transition_result_t operate(btree_value *old_value, large_buf_t *old_large_buf, btree_value **new_value) {
     	// TODO: Joe, add stats here
         // If the key didn't exist before, we fail
         if (!old_value) {
             this->status_code = btree_fsm<config_t>::S_NOT_FOUND;
-            return false;
+            this->update_needed = false;
+            return btree_fsm_t::transition_ok;
         }
         *new_value = NULL;
         this->status_code = btree_fsm<config_t>::S_DELETED; // XXX Should this just be S_SUCCESS?
-        return true;
+        this->update_needed = true;
+        return btree_fsm_t::transition_ok;
     }
 };
 

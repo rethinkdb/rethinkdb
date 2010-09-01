@@ -1,4 +1,3 @@
-
 #ifndef __CONN_FSM_HPP__
 #define __CONN_FSM_HPP__
 
@@ -7,6 +6,7 @@
 #include "request_handler/request_handler.hpp"
 #include "event.hpp"
 #include "btree/fsm.hpp"
+#include "var_buf.hpp"
 #include "corefwd.hpp"
 
 #include <stdarg.h>
@@ -18,15 +18,18 @@
 // use a different allocator for objects like conn_fsm (and btree
 // buffers).
 
-#define MAX_MESSAGE_SIZE 500
+struct data_transferred_callback {
+    virtual void on_data_transferred() = 0;
+    virtual ~data_transferred_callback() {}
+};
 
 // The actual state structure
 template<class config_t>
 struct conn_fsm : public intrusive_list_node_t<conn_fsm<config_t> >,
-                  public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, conn_fsm<config_t> >
-{
+                  public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, conn_fsm<config_t> > {
 public:
     typedef typename config_t::iobuf_t iobuf_t;
+    typedef typename config_t::linked_buf_t linked_buf_t;
     typedef typename config_t::btree_fsm_t btree_fsm_t;
     typedef typename config_t::req_handler_t req_handler_t;
     
@@ -67,147 +70,6 @@ public:
     int get_source() {
         return source;
     }
-//TODO
-/*! \todo{ migrate this struct out of the conn_fsm since others might need it,
- *          also sizeof(linked_buf_t) should be divisable by 512 so for allocation purposes }
- */ 
-
-public:
-    /*! \class linked_buf_t
-     *  \brief linked version of iobuf_t
-     *  \param _size the maximum bytes that can be stored in one link 
-     */
-    struct linked_buf_t : public buffer_base_t<IO_BUFFER_SIZE>,
-                          public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, linked_buf_t> {
-        private:
-            linked_buf_t    *next;
-            int             nbuf; // !< the total number of bytes in the buffer
-            int             nsent; // !< how much of the buffer has been sent so far
-        public:
-            bool            gc_me; // !< whether the buffer could benefit from garbage collection
-        public:
-            typedef enum {
-                linked_buf_outstanding = 0,
-                linked_buf_empty,
-                linked_buf_num_states,
-            } linked_buf_state_t;
-
-
-        public:
-            linked_buf_t()
-                : next(NULL), nbuf(0), nsent(0), gc_me(false) {
-                }
-            ~linked_buf_t() {
-                if (next != NULL)
-                    delete next;
-            }
-
-            /*! \brief grow the chain of linked_buf_ts by one
-             */
-            void grow() {
-                if (next == NULL)
-                    next = new linked_buf_t();
-                else
-                    next->grow();
-            }
-
-            /*! \brief add data the the end of chain of linked lists
-             */
-            void append(const char *input, int ninput) {
-                if (nbuf + ninput <= IO_BUFFER_SIZE) {
-                    memcpy(this->buf + nbuf, input, ninput);
-                    nbuf += ninput;
-                } else if (nbuf < IO_BUFFER_SIZE) {
-                    //we need to split the input across 2 links
-                    int free_space = IO_BUFFER_SIZE - nbuf;
-                    append(input, free_space);
-                    grow();
-                    next->append(input + free_space, ninput - free_space);
-                } else {
-                    next->append(input, ninput);
-                }
-            }
-            
-            void printf(const char *format_str, ...) {
-                char buffer[MAX_MESSAGE_SIZE];
-                va_list args;
-                va_start(args, format_str);
-                int count = vsnprintf(buffer, MAX_MESSAGE_SIZE, format_str, args);
-                check("Message too big (increase MAX_MESSAGE_SIZE)", count == MAX_MESSAGE_SIZE);
-                va_end(args);
-                append(buffer, count);
-            }
-            
-            /*! \brief check if a buffer has outstanding data
-             *  \return true if there is outstanding data
-             */
-            linked_buf_state_t outstanding() {
-                if ((nsent < nbuf) || ((next != NULL) && next->outstanding()))
-                    return linked_buf_outstanding;
-                else
-                    return linked_buf_empty;
-            }
-
-            /*! \brief try to send as much of the buffer as possible
-             *  \return true if there is still outstanding data
-             */
-            linked_buf_state_t send(int source) {
-                linked_buf_state_t res;
-                if (nsent < nbuf) {
-                    int sz = io_calls_t::write(source, this->buf + nsent, nbuf - nsent);
-                    if(sz < 0) {
-                        if(errno == EAGAIN || errno == EWOULDBLOCK)
-                            res = linked_buf_outstanding;
-                        else
-                            fail("Error sending to socket");
-                    } else {
-                        nsent += sz;
-                        get_cpu_context()->worker->bytes_written += sz;
-                        if (next == NULL) {
-                            //if this is the last link in the chain we slide the buffer
-                            memmove(this->buf, this->buf + nsent, nbuf - nsent);
-                            nbuf -= nsent;
-                            nsent = 0;
-                        }
-
-                        if (nsent == nbuf) {
-                            if (next == NULL) {
-                                res = linked_buf_empty;
-                            } else {
-                                //the network handled this buffer without a problem
-                                //so maybe we can send more
-                                gc_me = true; //ask for garbage collection
-                                res = next->send(source);
-                            }
-                        } else {
-                            res = linked_buf_outstanding;
-                        }
-                    }
-                } else if (next != NULL) {
-                    res = next->send(source);
-                } else {
-                    res = linked_buf_empty;
-                }
-                return res;
-            }
-
-            /*! \brief delete buffers that have already been fully sent out
-             *  \return a pointer to the new head
-             */
-            linked_buf_t *garbage_collect() {
-                if (nbuf == IO_BUFFER_SIZE && nbuf == nsent) {
-                    if (next == NULL)
-                        grow();
-
-                    linked_buf_t *tmp = next;
-                    next = NULL;
-                    delete this;
-                    return tmp->garbage_collect();
-                } else {
-                    return this;
-                }
-            }
-    };
 
 public:
     int source;
@@ -221,17 +83,34 @@ public:
     char *rbuf;
     linked_buf_t *sbuf;
     unsigned int nrbuf;
+    char *ext_rbuf;
+    unsigned int ext_nrbuf;
+    unsigned int ext_size;
+    //state_t previous_state;
+    data_transferred_callback *cb;
     /*! \warning {If req_handler::parse_request returns op_req_parallelizable then it MUST NOT send an et_request_complete,
      *              if it returns op_req_complex then it MUST send an et_request_complete event}
      */
     req_handler_t *req_handler;
     event_queue_t *event_queue;
     
+    void fill_external_buf(byte *external_buf, unsigned int size, data_transferred_callback *callback);
+    void send_external_buf(byte *external_buf, unsigned int size, data_transferred_callback *callback);
+    void dummy_sock_event();
 private:
-    result_t fill_rbuf(event_t *event);
+    void check_external_buf();
+
+    result_t fill_buf(void *buf, unsigned int *bytes_filled, unsigned int total_length);
+
+    result_t fill_rbuf();
+    result_t fill_ext_rbuf();
+
+    result_t read_data(event_t *event);
+
     result_t do_socket_send_incomplete(event_t *event);
     result_t do_fsm_btree_incomplete(event_t *event);
     result_t do_fsm_outstanding_req(event_t *event);
+
     
     void send_msg_to_client();
     void init_state();

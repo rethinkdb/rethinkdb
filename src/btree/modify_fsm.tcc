@@ -4,6 +4,8 @@
 #include "utils.hpp"
 #include "cpu_context.hpp"
 
+#include "buffer_cache/large_buf.hpp"
+
 // TODO: consider B#/B* trees to improve space efficiency
 
 // TODO: perhaps allow memory reclamation due to oversplitting? We can
@@ -37,8 +39,7 @@ typename btree_modify_fsm<config_t>::transition_result_t btree_modify_fsm<config
 }
 
 template <class config_t>
-typename btree_modify_fsm<config_t>::transition_result_t btree_modify_fsm<config_t>::do_acquire_superblock(event_t *event)
-{
+typename btree_modify_fsm<config_t>::transition_result_t btree_modify_fsm<config_t>::do_acquire_superblock(event_t *event) {
     assert(state == acquire_superblock);
 
     if(event == NULL) {
@@ -119,6 +120,27 @@ typename btree_modify_fsm<config_t>::transition_result_t btree_modify_fsm<config
         return btree_fsm_t::transition_ok;
     } else {
         return btree_fsm_t::transition_incomplete;
+    }
+}
+
+// TODO: Fix this when large_buf's API supports it.
+template <class config_t>
+typename btree_modify_fsm<config_t>::transition_result_t btree_modify_fsm<config_t>::do_acquire_large_value(event_t *event) {
+    assert(state == acquire_large_value);
+
+    assert(old_value.large_value());
+
+    if (!event) {
+        old_large_buf = new large_buf_t(transaction);
+        // TODO: Put the cast in node.hpp
+        old_large_buf->acquire(* (block_id_t *) old_value.value(), old_value.value_size(), rwi_write, this);
+        return btree_fsm_t::transition_incomplete;
+    } else {
+        assert(event->buf);
+        assert(event->event_type == et_large_buf);
+        assert(old_large_buf == (large_buf_t *) event->buf);
+        assert(old_large_buf->state == large_buf_t::loaded);
+        return btree_fsm_t::transition_ok;
     }
 }
 
@@ -227,16 +249,15 @@ bool btree_modify_fsm<config_t>::do_check_for_split(node_t **node) {
 }
 
 template <class config_t>
-typename btree_modify_fsm<config_t>::transition_result_t btree_modify_fsm<config_t>::do_transition(event_t *event)
-{
+typename btree_modify_fsm<config_t>::transition_result_t btree_modify_fsm<config_t>::do_transition(event_t *event) {
     transition_result_t res = btree_fsm_t::transition_ok;
 
     // Make sure we've got either an empty or a cache event
     check("btree_fsm::do_transition - invalid event", event != NULL &&
-          event->event_type != et_cache && event->event_type != et_commit);
+          event->event_type != et_cache && event->event_type != et_large_buf && event->event_type != et_commit);
 
     // Update the cache with the event
-    if(event && event->event_type == et_cache) {
+    if(event && (event->event_type == et_cache || event->event_type == et_large_buf)) {
         check("btree_modify_fsm::do_transition - invalid event", event->op != eo_read);
         check("Could not complete AIO operation",
               event->result == 0 ||
@@ -270,9 +291,22 @@ typename btree_modify_fsm<config_t>::transition_result_t btree_modify_fsm<config
                 if (res == btree_fsm_t::transition_ok) state = acquire_node;
                 break;
             }
+            // If we found our value and it was large, acquire the value's large_buf.
+            case acquire_large_value: {
+                res = do_acquire_large_value(event);
+                if (res == btree_fsm_t::transition_ok) state = acquire_node;
+                break;
+            }
+            case operating: {
+                on_operate_completed();
+                state = acquire_node;
+                res = btree_fsm_t::transition_ok;
+                break;
+            }
             // If we were acquiring a node, do that
             // Go up the tree...
             case acquire_node: {
+                // STEP 1: Acquire the node.
                 if(!buf) {
                     res = do_acquire_node(event);
                     if (res != btree_fsm_t::transition_ok) {
@@ -282,16 +316,20 @@ typename btree_modify_fsm<config_t>::transition_result_t btree_modify_fsm<config
 
                 node_t *node = (node_t *)buf->ptr();
 
-                // STEP 1: Compute a new value.
+                // STEP 2: If we're at the destination leaf, potentially acquire a large value, then compute a new value.
                 if (node_handler::is_leaf(node) && !have_computed_new_value) {
-                    union {
-                        char value_memory[MAX_TOTAL_NODE_CONTENTS_SIZE+sizeof(btree_value)];
-                        btree_value old_value;
-                    } u;
+                    // TODO: Clean up this mess.
+                    if (!dest_reached) {
+                        key_found = leaf_node_handler::lookup((btree_leaf_node*)node, &key, &old_value);
+                        dest_reached = true;
+                    }
 
-                    bool key_found = leaf_node_handler::lookup((btree_leaf_node*)node, &key, &u.old_value);
+                    if (key_found && old_value.large_value() && !old_large_buf) {
+                        state = acquire_large_value;
+                        break;
+                    }
 
-                    expired = key_found && u.old_value.expired();
+                    expired = key_found && old_value.expired();
                     if (expired) {
                         // We tell operate() that the key wasn't found. If it returns
                         // true, we'll replace/delete the value as usual; if it returns
@@ -301,10 +339,16 @@ typename btree_modify_fsm<config_t>::transition_result_t btree_modify_fsm<config
 
                     // We've found the old value, or determined that it is not
                     // present or expired; now compute the new value.
-                    if (key_found) {
-                        update_needed = operate(&u.old_value, &new_value);
-                    } else {
-                        update_needed = operate(NULL, &new_value);
+                    if (!operated) {
+                        // TODO: Maybe leaf_node_handler::lookup should put NULL into old_value so we can be more consistent here?
+                        res = operate(key_found ? &old_value : NULL, old_large_buf, &new_value);
+                        operated = true;
+                        if (res == btree_fsm_t::transition_ok) {
+                            on_operate_completed();
+                        } else {
+                            state = operating;
+                            break;
+                        }
                     }
 
                     if (!update_needed && expired) { // Silently delete the key.
@@ -443,10 +487,13 @@ typename btree_modify_fsm<config_t>::transition_result_t btree_modify_fsm<config
             // Finalize the operation
             case update_complete: {
                 // Release the final node
-                if(last_node_id != NULL_BLOCK_ID) {
+                if (last_node_id != NULL_BLOCK_ID) {
                     last_buf->release();
                     last_buf = NULL;
                     last_node_id = NULL_BLOCK_ID;
+                }
+                if (old_large_buf) {
+                    old_large_buf->release(); // TODO: Delete if necessary.
                 }
 
                 // End the transaction
@@ -485,18 +532,16 @@ void btree_modify_fsm<config_t>::split_node(buf_t *buf, buf_t **rbuf,
                                          block_id_t *rnode_id, btree_key *median) {
     buf_t *res = transaction->allocate(rnode_id);
     if(node_handler::is_leaf((node_t *)buf->ptr())) {
-    	leaf_node_t *node = (leaf_node_t *)buf->ptr();
+        leaf_node_t *node = (leaf_node_t *)buf->ptr();
         leaf_node_t *rnode = (leaf_node_t *)res->ptr();
         leaf_node_handler::split(node, rnode, median);
-        buf->set_dirty();
-        res->set_dirty();
     } else {
-    	internal_node_t *node = (internal_node_t *)buf->ptr();
+        internal_node_t *node = (internal_node_t *)buf->ptr();
         internal_node_t *rnode = (internal_node_t *)res->ptr();
         internal_node_handler::split(node, rnode, median);
-        buf->set_dirty();
-        res->set_dirty();
     }
+    buf->set_dirty();
+    res->set_dirty();
     *rbuf = res;
 }
 

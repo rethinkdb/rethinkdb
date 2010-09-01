@@ -17,7 +17,9 @@ struct btree_superblock_t {
 enum metadata_flags {
     MEMCACHED_FLAGS   = 0x01,
     MEMCACHED_CAS     = 0x02,
-    MEMCACHED_EXPTIME = 0x04
+    MEMCACHED_EXPTIME = 0x04,
+    // DELETE_QUEUE   = 0x08, // If we implement this.
+    LARGE_VALUE       = 0x80
 };
 
 // Note: Changing this struct changes the format of the data stored on disk.
@@ -31,40 +33,73 @@ struct btree_key {
 };
 
 struct btree_value {
-    uint32_t size;
+    uint8_t size;
     byte metadata_flags;
-    char contents[0];
+    byte contents[0];
 
     uint16_t mem_size() {
-        return (size <= MAX_TOTAL_NODE_CONTENTS_SIZE) ? size : sizeof(block_id_t);
+        //assert(!large_value());
+        return value_offset() + size;
+                //(large_value() ? sizeof(block_id_t) + (assert(0),0) : value_size());
+    }
+
+    uint32_t value_size() {
+        if (large_value()) {
+            // Size is stored in contents along with the block ID.
+            // TODO: Should the size go here or in the index block? Should other metadata go here?
+            // TODO: Is it a good idea to store other metadata in here?
+            // TODO: If we really wanted to, we could save a byte by using the size field and only three bytes of contents.
+            return *lv_size_addr();
+        } else {
+            return size;
+        }
+    }
+
+    void value_size(uint32_t new_size) {
+        if (new_size <= MAX_IN_NODE_VALUE_SIZE) {
+            if (large_value()) {
+                clear_space((byte *) lv_size_addr(), sizeof(uint32_t), lv_size_offset());
+                metadata_flags &= ~LARGE_VALUE;
+            }
+            size = new_size;
+        } else {
+            if (!large_value()) {
+                metadata_flags |= LARGE_VALUE;
+                make_space((byte *) lv_size_addr(), sizeof(uint32_t), lv_size_offset());
+            }
+            size = sizeof(block_id_t);
+            *lv_size_addr() = new_size;
+        }
     }
 
     typedef uint32_t mcflags_t;
     typedef uint64_t cas_t;
-    typedef uint32_t   exptime_t;
-
-    uint32_t value_size() {
-        return size - value_offset();
-    }
-    void value_size(uint32_t new_size) {
-        size = new_size + value_offset();
-    }
+    typedef uint32_t exptime_t;
 
     // Every value has mcflags, but they're very often 0, in which case we just
     // store a bit instead of 4 bytes.
     bool has_mcflags() { return metadata_flags & MEMCACHED_FLAGS;   }
     bool has_cas()     { return metadata_flags & MEMCACHED_CAS;     }
     bool has_exptime() { return metadata_flags & MEMCACHED_EXPTIME; }
+    bool large_value() { return metadata_flags & LARGE_VALUE;       }
 
     uint8_t mcflags_offset() { return 0;                                                    }
     uint8_t exptime_offset() { return mcflags_offset() + sizeof(mcflags_t) * has_mcflags(); }
     uint8_t cas_offset()     { return exptime_offset() + sizeof(exptime_t) * has_exptime(); }
-    uint8_t value_offset()   { return     cas_offset() + sizeof(cas_t)     * has_cas();     }
+    uint8_t lv_size_offset() { return     cas_offset() + sizeof(cas_t)     * has_cas();     }
+    uint8_t value_offset()   { return lv_size_offset() + sizeof(uint32_t)  * large_value(); }
 
     mcflags_t *mcflags_addr() { return (mcflags_t *) (contents + mcflags_offset()); }
     exptime_t *exptime_addr() { return (exptime_t *) (contents + exptime_offset()); }
     cas_t         *cas_addr() { return (cas_t     *) (contents +     cas_offset()); }
-    byte             *value() { return (byte      *) (contents +   value_offset());  }
+    uint32_t  *lv_size_addr() { return (uint32_t  *) (contents + lv_size_offset()); }
+    byte             *value() { return (byte      *) (contents +   value_offset()); }
+
+    block_id_t lv_index_block_id() { return * (block_id_t *) value(); }
+    void set_lv_index_block_id(block_id_t block_id) {
+        assert(large_value());
+        *(block_id_t *) value() = block_id;
+    }
 
     mcflags_t mcflags() { return has_mcflags() ? *mcflags_addr() : 0; }
     exptime_t exptime() { return has_exptime() ? *exptime_addr() : 0; }
@@ -74,14 +109,14 @@ struct btree_value {
     }
 
     void clear_space(byte *faddr, uint8_t fsize, uint8_t offset) {
-        memmove(faddr, faddr + fsize, size - offset - fsize);
-        size -= fsize;
+        memmove(faddr, faddr + fsize, mem_size() - offset - fsize);
+        //size -= fsize;
     }
 
     void make_space(byte *faddr, uint8_t fsize, uint8_t offset) { // XXX This assumes there's enough space allocated to move the value into.
-        assert(size + fsize <= MAX_TOTAL_NODE_CONTENTS_SIZE);
-        size += fsize;
-        memmove(faddr + fsize, faddr, size - offset);
+        assert(mem_size() + fsize <= MAX_TOTAL_NODE_CONTENTS_SIZE);
+        //size += fsize;
+        memmove(faddr + fsize, faddr, mem_size() - offset);
     }
 
     void set_mcflags(mcflags_t new_mcflags) {
@@ -130,7 +165,7 @@ struct btree_value {
     }
 
     void print() {
-        printf("%*.*s", value_size(), value_size(), value());
+        printf("%*.*s", size, size, value());
     }
 };
 
@@ -181,6 +216,6 @@ inline void keycpy(btree_key *dest, btree_key *src) {
 }
 
 inline void valuecpy(btree_value *dest, btree_value *src) {
-    memcpy(dest, src, sizeof(btree_value) + src->size);
+    memcpy(dest, src, sizeof(btree_value) + src->mem_size());
 }
 #endif // __BTREE_NODE_HPP__
