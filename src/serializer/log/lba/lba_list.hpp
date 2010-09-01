@@ -226,6 +226,11 @@ private:
     void finalize_current_extent();
 
 private:
+#ifndef NDEBUG
+    void print_debug();
+#endif
+
+private:
     //class gc_array;
     //class gc_pq;
     //typedef std::bitset<(EXTENT_SIZE - sizeof(lba_header_t)) / sizeof(lba_entry_t)> gc_array;

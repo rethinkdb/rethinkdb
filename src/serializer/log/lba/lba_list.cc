@@ -549,7 +549,10 @@ struct lba_start_fsm_t :
                     owner->next_free_id = id;
                 }
             }
-            
+
+            printf("-- STARTUP [begin] --\n");
+            owner->print_debug();
+            printf("-- STARTUP [end] --\n");
             
             if (callback) callback->on_lba_ready();
             
@@ -718,6 +721,9 @@ void lba_list_t::delete_block(block_id_t block) {
  * DESTRUCTION *
  ***************/
 void lba_list_t::shutdown() {
+    printf("-- SHUTDOWN [begin] --\n");
+    print_debug();
+    printf("-- SHUTDOWN [end] --\n");
     assert(state == state_ready);    
     state = state_shut_down;
     
@@ -738,3 +744,34 @@ lba_list_t::~lba_list_t() {
     assert(current_extent == NULL);
 }
 
+/***************
+ **** DEBUG ****
+ ***************/
+#ifndef NDEBUG
+void lba_list_t::print_debug() {
+    for (block_id_t id = 0; id < blocks.get_size(); id ++) {
+        char buf_state[255], buf_offset[255];
+        snprintf(buf_offset, sizeof(buf_state), "N/A");
+        switch (blocks[id].get_state())
+        {
+        case block_not_found:
+            snprintf(buf_state, sizeof(buf_state), "not_found");
+            break;
+        case block_unused:
+            snprintf(buf_state, sizeof(buf_state), "unused");
+            break;
+        case block_in_limbo:
+            snprintf(buf_state, sizeof(buf_state), "in_limbo");
+            break;
+        case block_used:
+            snprintf(buf_state, sizeof(buf_state), "used");
+            snprintf(buf_offset, sizeof(buf_state), "%ld", blocks[id].get_offset());
+            break;
+        default:
+            snprintf(buf_state, sizeof(buf_state), "error");
+            break;
+        };
+        printf("%ld: {%s, %s}\n", id, buf_state, buf_offset);
+    }
+}
+#endif
