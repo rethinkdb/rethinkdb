@@ -35,7 +35,7 @@ void btree_fsm<config_t>::on_large_buf_available(large_buf_t *large_buf) {
     event.op = eo_read;
     event.buf = large_buf;
     event.result = 1;
-    transition_result_t res = do_transition(&event);
+    transition_result_t res __attribute__((unused)) = do_transition(&event);
     assert(res != transition_complete); // We should only be acquiring a large buf in mid-operation.
 }
 

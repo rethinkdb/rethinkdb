@@ -38,8 +38,7 @@ public:
             memmove(value.value() + temp_value.size, value.value(), value.value_size());
             memcpy(value.value(), temp_value.contents, temp_value.size);
         }
-        value.value_size(old_value->value_size() + temp_value.value_size());
-        value.size += temp_value.size;
+        value.value_size(value.value_size() + temp_value.value_size());
         *new_value = &value;
         this->status_code = btree_fsm_t::S_SUCCESS;
         this->update_needed = true;
