@@ -311,7 +311,7 @@ bool internal_node_handler::is_underfull(btree_internal_node *node) {
         node->npairs*sizeof(*node->pair_offsets) +
         (BTREE_BLOCK_SIZE - node->frontmost_offset) +
         /* EPSILON */
-        (sizeof(btree_key) + MAX_KEY_SIZE + sizeof(block_id_t))  / 2  < BTREE_BLOCK_SIZE / 2;
+        INTERNAL_EPSILON / 2  < BTREE_BLOCK_SIZE / 2;
 }
 
 bool internal_node_handler::is_mergable(btree_internal_node *node, btree_internal_node *sibling, btree_internal_node *parent) {
@@ -328,7 +328,8 @@ bool internal_node_handler::is_mergable(btree_internal_node *node, btree_interna
         (node->npairs + sibling->npairs + 1)*sizeof(*node->pair_offsets) +
         (BTREE_BLOCK_SIZE - node->frontmost_offset) +
         (BTREE_BLOCK_SIZE - sibling->frontmost_offset) + key_from_parent->size +
-        sizeof(btree_internal_pair) + MAX_KEY_SIZE < BTREE_BLOCK_SIZE; // must still have enough room for an arbitrary key
+        sizeof(btree_internal_pair) + MAX_KEY_SIZE +
+        INTERNAL_EPSILON < BTREE_BLOCK_SIZE; // must still have enough room for an arbitrary key
 }
 
 bool internal_node_handler::is_singleton(btree_internal_node *node) {

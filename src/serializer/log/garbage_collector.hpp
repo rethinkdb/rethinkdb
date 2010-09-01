@@ -6,6 +6,7 @@
 #include <deque>
 #include <functional>
 #include "alloc/alloc_mixin.hpp"
+#include "utils.hpp"
 
 /* \brief priority_queue_t
  * Priority queues are by defined to be max priority queues, that is
@@ -33,7 +34,7 @@ public:
     };
     //typedef entry_t entry;
 private:
-    std::deque<entry_t *> heap;
+    std::deque<entry_t *, gnew_alloc<entry_t *> > heap;
 private:
     inline int parent(int);
     inline int left(int);

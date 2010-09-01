@@ -256,7 +256,8 @@ bool leaf_node_handler::is_mergable(btree_leaf_node *node, btree_leaf_node *sibl
     return sizeof(btree_leaf_node) + 
         (node->npairs + sibling->npairs)*sizeof(*node->pair_offsets) +
         (BTREE_BLOCK_SIZE - node->frontmost_offset) +
-        (BTREE_BLOCK_SIZE - sibling->frontmost_offset) < BTREE_BLOCK_SIZE;
+        (BTREE_BLOCK_SIZE - sibling->frontmost_offset) +
+        LEAF_EPSILON < BTREE_BLOCK_SIZE;
 }
 
 bool leaf_node_handler::is_underfull(btree_leaf_node *node) {
@@ -270,7 +271,7 @@ bool leaf_node_handler::is_underfull(btree_leaf_node *node) {
         // TODO: Right now the epsilon we use to make is_underfull not
         // return true after a split is too large. We should come back
         // here and make this more precise.
-        (sizeof(btree_key) + MAX_KEY_SIZE + sizeof(btree_value) + MAX_TOTAL_NODE_CONTENTS_SIZE) /*/ 2*/ < BTREE_BLOCK_SIZE / 2;
+        LEAF_EPSILON / 2 < BTREE_BLOCK_SIZE / 2;
 }
 
 size_t leaf_node_handler::pair_size(btree_leaf_pair *pair) {

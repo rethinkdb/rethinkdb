@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <time.h>
 #include "serializer/log/garbage_collector.hpp"
+#include "utils.hpp"
 #include <functional>
 #include <vector>
 
@@ -11,7 +12,7 @@
 void test_pq_basic() {
     /* test against std priority queue */
     priority_queue_t<int, std::less<int> > myPQ;
-    std::priority_queue<int> refPQ;
+    std::priority_queue<int, std::vector<int, gnew_alloc<int> > > refPQ;
     srand(time(NULL));
 
     for (int i = 0; i < NINTS; i++) {
@@ -28,8 +29,8 @@ void test_pq_basic() {
 
 void test_pq_update() {
     priority_queue_t<int, std::less<int> > myPQ;
-    std::priority_queue<int> refPQ;
-    std::vector<priority_queue_t<int, std::less<int> >::entry_t *> entries;
+    std::priority_queue<int, std::vector<int, gnew_alloc<int> > > refPQ;
+    std::vector<priority_queue_t<int, std::less<int> >::entry_t *, gnew_alloc<priority_queue_t<int, std::less<int> >::entry_t *> > entries;
 
     srand(time(NULL));
 
