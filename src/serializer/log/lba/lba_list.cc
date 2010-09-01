@@ -265,10 +265,10 @@ void lba_superblock_buf_t::sync() {
         // We need to generate a new extent
         superblock_extent_offset = owner->extent_manager->gen_extent();
         amount_synced = 0;
-        printf("Getting new extent\n");
+        //printf("Getting new extent\n");
     }
     
-    printf("Syncing superblock (%ld) @ %ld\n", write_count, owner->lba_superblock_offset / DEVICE_BLOCK_SIZE);
+    //printf("Syncing superblock (%ld) @ %ld\n", write_count, owner->lba_superblock_offset / DEVICE_BLOCK_SIZE);
     queue->iosys.schedule_aio_write(
         owner->dbfd,
         superblock_extent_offset + amount_synced,                // Offset write begins at
