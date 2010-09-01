@@ -502,7 +502,6 @@ struct lba_start_fsm_t :
                     if (entry->block_id == PADDING_BLOCK_ID && entry->offset == PADDING_OFFSET)
                         continue;
                     assert(entry->block_id != PADDING_BLOCK_ID);
-                    assert(entry->offset != PADDING_OFFSET);
                 
                     // Sanity check. If this assertion fails, it probably means that the file was
                     // corrupted, or was created with a different btree block size.
