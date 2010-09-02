@@ -19,6 +19,7 @@ test(repeat = 20): integration/multi_serial_mix.py --auto
 
 # Test the server's ability to handle a choppy connection
 test(repeat = 3): integration/pipeline.py --auto
+test(repeat = 3): integration/bin_pipeline.py --auto
 
 # Make sure that the btree works even with many keys
 test(repeat = 3, timeout = 300): integration/many_keys.py --auto --num-keys 50000
