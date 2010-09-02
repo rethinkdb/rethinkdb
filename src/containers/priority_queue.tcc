@@ -1,4 +1,4 @@
-#include "garbage_collector.hpp"
+#include "priority_queue.hpp"
 
 template<class T, class Less>
 void priority_queue_t<T, Less>::entry_t::update() {
@@ -89,7 +89,7 @@ T priority_queue_t<T, Less>::peak() {
 
 template<class T, class Less>
 typename priority_queue_t<T, Less>::entry_t *priority_queue_t<T, Less>::push(T data) {
-    typename priority_queue_t<T, Less>::entry_t *result = new entry_t();
+    typename priority_queue_t<T, Less>::entry_t *result = gnew<entry_t>();
     result->data = data;
     result->pq = this;
     result->index = heap.size();

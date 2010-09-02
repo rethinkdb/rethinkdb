@@ -4,6 +4,9 @@
 #include "utils.hpp"
 #include "btree/node.hpp"
 
+/* EPSILON used to prevent split then merge */
+#define INTERNAL_EPSILON (sizeof(btree_key) + MAX_KEY_SIZE + sizeof(block_id_t))
+
 //Note: This struct is stored directly on disk.  Changing it invalidates old data.
 struct btree_internal_pair {
     block_id_t lnode;
