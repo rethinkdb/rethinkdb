@@ -8,7 +8,7 @@
 #include "containers/segmented_vector.hpp"
 #include "containers/intrusive_list.hpp"
 #include "../extents/extent_manager.hpp"
-#include "../garbage_collector.hpp"
+#include "containers/priority_queue.hpp"
 #include <functional>
 #include <bitset>
 

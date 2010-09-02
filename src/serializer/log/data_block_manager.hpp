@@ -4,7 +4,7 @@
 
 #include "arch/io.hpp"
 #include "extents/extent_manager.hpp"
-#include "serializer/log/garbage_collector.hpp"
+#include "containers/priority_queue.hpp"
 #include <functional>
 #include <bitset>
 #include <queue>

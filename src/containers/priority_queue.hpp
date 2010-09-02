@@ -1,6 +1,6 @@
 
-#ifndef __SERIALIZER_GARBAGE_COLLECTOR_HPP__
-#define __SERIALIZER_GARBAGE_COLLECTOR_HPP__
+#ifndef __PRIORITY_QUEUE_HPP__
+#define __PRIORITY_QUEUE_HPP__
 
 #include <bitset>
 #include <deque>
@@ -70,5 +70,5 @@ namespace std {
     };
 };
 
-#include "serializer/log/garbage_collector.tcc"
+#include "priority_queue.tcc"
 #endif
