@@ -11,3 +11,4 @@ src/valgrind_rethinkdb
 src/.gdb_history
 src/.gdbinit
 src/standard_commands
+test/unit/.retest
