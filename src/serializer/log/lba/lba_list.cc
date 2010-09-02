@@ -494,6 +494,7 @@ struct lba_start_fsm_t :
             
                 // Record each entry, as long as we haven't already found a newer entry. We start from the
                 // end of the extent and work backwards so that we always read the newest entries first.
+                printf("START Processing extent: %d\n", j);
                 for (int i = entries_in_lba_extent - 1; i >= 0; i --) {
                 
                     lba_entry_t *entry = &buffer->entries[i];
@@ -506,6 +507,8 @@ struct lba_start_fsm_t :
                     // Sanity check. If this assertion fails, it probably means that the file was
                     // corrupted, or was created with a different btree block size.
                     assert(entry->offset == DELETE_BLOCK || entry->offset % DEVICE_BLOCK_SIZE == 0);
+
+                    printf("Processing block: %ld\n", entry->block_id);
                 
                     // If it's an entry for a block we haven't seen before, then record its information
                     if(entry->block_id >= owner->blocks.get_size())
@@ -521,6 +524,7 @@ struct lba_start_fsm_t :
                         }
                     }
                 }
+                printf("DONE Processing extent: %d\n", j);
             
                 // We're done with this extent buffer
                 free(buffer);
@@ -543,6 +547,8 @@ struct lba_start_fsm_t :
             // but will do for first release. TODO: fix the lba system
             // to avoid O(n) algorithms on startup.
             for (block_id_t id = 0; id < owner->blocks.get_size(); id ++) {
+                assert(owner->blocks[id].get_state() == lba_list_t::block_used ||
+                       owner->blocks[id].get_state() == lba_list_t::block_unused);
                 if (owner->blocks[id].get_state() == lba_list_t::block_unused) {
                     // Add the unused block to the freelist
                     owner->blocks[id].set_next_free_id(owner->next_free_id);
