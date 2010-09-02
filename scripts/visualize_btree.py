@@ -105,7 +105,12 @@ class BtreeKey(object):
         self.name = name
     
     def print_html(self):
-        print """<code>%s</code>""" % escape(self.name.encode("string-escape"))
+        if len(self.name) < 15:
+            print """<code>%s</code>""" % escape(self.name.encode("string-escape"))
+        else:
+            print """<code>%s</code>...<code>%s</code>""" % \
+                (escape(self.name[:8].encode("string-escape")),
+                 escape(self.name[-8:].encode("string-escape")))
 
 class BtreeValue(object):
     
@@ -152,7 +157,12 @@ class BtreeSmallValue(BtreeValue):
     
     def print_html(self):
         # TODO: CAS, flags, and exptime.
-        print """<code>%s</code>""" % escape(self.contents.encode("string-escape"))
+        if len(self.contents) < 15:
+            print """<code>%s</code>""" % escape(self.contents.encode("string-escape"))
+        else:
+            print """<code>%s</code>...<code>%s</code>""" % \
+                (escape(self.contents[:8].encode("string-escape")),
+                 escape(self.contents[-8:].encode("string-escape")))
 
 class BtreeLargeValue(BtreeValue):
     

@@ -548,7 +548,7 @@ class LBAExtent(object):
                 pairs.append(LBAPaddingPair())
             
             else:
-                if block_offset == 0xFFFFFFFFFFFFFFFF:
+                if block_offset == -1:
                     block_offset = "delete"
                 pairs.append(LBAPair(block_id, block_offset))
         
