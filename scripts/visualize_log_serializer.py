@@ -703,8 +703,9 @@ def database_to_blocks(db):
     else:
         blocks = {}
         for (block_id, data_block) in db.metablock.chunk_obj.data_blocks.iteritems():
-            if data_block.chunk_ok:
-                blocks[block_id] = data_block.chunk_obj.contents
+            if data_block is not None:
+                if data_block.chunk_ok:
+                    blocks[block_id] = data_block.chunk_obj.contents
         return blocks
 
 if __name__ == "__main__":
