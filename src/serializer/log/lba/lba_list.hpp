@@ -181,6 +181,7 @@ private:
     // These are only meaningful if current_extent is NULL
     off64_t last_extent_offset;
     int last_extent_entry_count;
+    bool migrate_metablock;
     
     lba_write_t *last_write;
     block_id_t next_free_id;

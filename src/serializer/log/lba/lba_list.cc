@@ -248,6 +248,17 @@ void lba_extent_buf_t::sync() {
         
         amount_synced = amount_filled();
         writes_out++;
+
+        if(owner->migrate_metablock) {
+            // We started up with an LBA extent stored in the
+            // metablock. Since we're now syncing a new extent for the
+            // first time, we should move dat ho into the superblock
+            // so we don't lose it.
+            owner->superblock_extent->add_entry(owner->last_extent_offset, owner->last_extent_entry_count);
+            owner->superblock_extent->sync();
+            
+            owner->migrate_metablock = false;
+        }
     }
 }
 
@@ -353,7 +364,7 @@ void lba_list_t::prepare_metablock(metablock_mixin_t *metablock) {
  * INITIALIZATION *
  ******************/
 lba_list_t::lba_list_t(extent_manager_t *em)
-    : extent_manager(em), state(state_unstarted), last_write(NULL), next_free_id(NULL_BLOCK_ID)
+    : extent_manager(em), state(state_unstarted), migrate_metablock(false), last_write(NULL), next_free_id(NULL_BLOCK_ID)
     {}
 
 struct lba_start_fsm_t :
@@ -468,6 +479,7 @@ struct lba_start_fsm_t :
                     queue,
                     this);
                 nextentsrequested++;
+                owner->migrate_metablock = true;
             }
 
             if(nextentsrequested > 0) {
@@ -494,7 +506,6 @@ struct lba_start_fsm_t :
             
                 // Record each entry, as long as we haven't already found a newer entry. We start from the
                 // end of the extent and work backwards so that we always read the newest entries first.
-                printf("START Processing extent: %d\n", j);
                 for (int i = entries_in_lba_extent - 1; i >= 0; i --) {
                 
                     lba_entry_t *entry = &buffer->entries[i];
@@ -508,8 +519,6 @@ struct lba_start_fsm_t :
                     // corrupted, or was created with a different btree block size.
                     assert(entry->offset == DELETE_BLOCK || entry->offset % DEVICE_BLOCK_SIZE == 0);
 
-                    printf("Processing block: %ld\n", entry->block_id);
-                
                     // If it's an entry for a block we haven't seen before, then record its information
                     if(entry->block_id >= owner->blocks.get_size())
                         owner->blocks.set_size(entry->block_id + 1);
@@ -524,7 +533,6 @@ struct lba_start_fsm_t :
                         }
                     }
                 }
-                printf("DONE Processing extent: %d\n", j);
             
                 // We're done with this extent buffer
                 free(buffer);
@@ -547,8 +555,10 @@ struct lba_start_fsm_t :
             // but will do for first release. TODO: fix the lba system
             // to avoid O(n) algorithms on startup.
             for (block_id_t id = 0; id < owner->blocks.get_size(); id ++) {
-                assert(owner->blocks[id].get_state() == lba_list_t::block_used ||
-                       owner->blocks[id].get_state() == lba_list_t::block_unused);
+                // Remap blocks that weren't found to unused
+                if (owner->blocks[id].get_state() == lba_list_t::block_not_found)
+                    owner->blocks[id].set_state(lba_list_t::block_unused);
+                // Add unused blocks to free list
                 if (owner->blocks[id].get_state() == lba_list_t::block_unused) {
                     // Add the unused block to the freelist
                     owner->blocks[id].set_next_free_id(owner->next_free_id);
@@ -556,9 +566,11 @@ struct lba_start_fsm_t :
                 }
             }
 
+            /*
             printf("-- STARTUP [begin] --\n");
             owner->print_debug();
             printf("-- STARTUP [end] --\n");
+            */
             
             if (callback) callback->on_lba_ready();
             
@@ -727,9 +739,11 @@ void lba_list_t::delete_block(block_id_t block) {
  * DESTRUCTION *
  ***************/
 void lba_list_t::shutdown() {
+    /*
     printf("-- SHUTDOWN [begin] --\n");
     print_debug();
     printf("-- SHUTDOWN [end] --\n");
+    */
     assert(state == state_ready);    
     state = state_shut_down;
     
