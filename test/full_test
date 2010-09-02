@@ -5,7 +5,7 @@ test: cd ../src/; make clean
 # so we can test with valgrind.
 test: cd ../src/; make -j8
 test: cd ../src/; make -j8 DEBUG=0
-test: cd ../src/; make -j8 VALGRIND=1
+test: cd ../src/; make -j8 VALGRIND=1 MEMCACHED_STRICT=1
 
 # Test various features
 test(repeat = 3): integration/append_prepend.py --auto
@@ -13,6 +13,7 @@ test(repeat = 3): integration/cas.py --auto
 test(repeat = 3): integration/flags.py --auto
 test(repeat = 3): integration/incr_decr.py --auto
 test(repeat = 20, timeout = 20): integration/serial_mix.py --auto
+test(repeat = 3): integration/multi_serial_mix.py --no-valgrind --auto --cores 1 --slices 1 --num-testers 16 --duration 30
 
 # Test the server's ability to handle multiple connections
 test(repeat = 20): integration/multi_serial_mix.py --auto
