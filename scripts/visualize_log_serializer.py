@@ -440,7 +440,7 @@ class Metablock(object):
             self.mb.metablock.extent_manager_part.last_extent_truncated
         
         print """<tr><td>Last LBA extent offset</td>"""
-        if self.chosen:
+        if self.chosen and self.first_lba_extent:
             print """<td>%s</td>""" % self.first_lba_extent.ref_as_html()
         else:
             print """<td>0x%x</td>""" % self.mb.metablock.lba_index_part.last_lba_extent_offset
