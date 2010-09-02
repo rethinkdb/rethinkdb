@@ -1,10 +1,8 @@
 #!/usr/bin/python
 from test_common import *
 
-def test_function(port, opts):
+def test_function(opts, mc):
 
-    mc = connect_to_server(port, opts)
-    
     print "Testing append"
     if mc.set("a", "aaa") == 0:
         raise ValueError, "Set failed"

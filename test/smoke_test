@@ -8,6 +8,7 @@ test: cd ../src/; make -j8 DEBUG=0
 test: cd ../src/; make -j8 VALGRIND=1
 
 # Test various features
+test: integration/append_prepend.py --auto
 test: integration/cas.py --auto
 test: integration/flags.py --auto
 test: integration/incr_decr.py --auto
