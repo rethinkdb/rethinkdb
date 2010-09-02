@@ -402,5 +402,10 @@ td, th {
             sys.stdout = sys.__stdout__
 
 if __name__ == "__main__":
-    from visualize_log_serializer import file_to_database, database_to_blocks
-    btree_to_html(blocks_to_btree(database_to_blocks(file_to_database(sys.argv[1]))), sys.argv[2])
+    
+    if len(sys.argv) == 3:
+        from visualize_log_serializer import file_to_database, database_to_blocks
+        btree_to_html(blocks_to_btree(database_to_blocks(file_to_database(sys.argv[1]))), sys.argv[2])
+    
+    else:
+        print "Usage: %s data_file output.html" % sys.argv[0]

@@ -236,7 +236,8 @@ class Database(object):
         lba_extents = []
         if lba_superblock and lba_superblock.chunk_ok:
             lba_extents.extend(lba_superblock.chunk_obj.lba_extents)
-        lba_extents.append(first_lba_extent)
+        if first_lba_extent:
+            lba_extents.append(first_lba_extent)
         
         lba = {}
         data_blocks = {}
@@ -708,4 +709,7 @@ def database_to_blocks(db):
 
 if __name__ == "__main__":
     
-    database_to_html(file_to_database(sys.argv[1]), sys.argv[2])
+    if len(sys.argv) == 3:
+        database_to_html(file_to_database(sys.argv[1]), sys.argv[2])
+    else:
+        print "Usage: %s data_file output.html" % sys.argv[0]
