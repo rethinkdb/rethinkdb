@@ -169,6 +169,7 @@ bool metablock_manager_t<metablock_t>::write_metablock(metablock_t *mb, metabloc
     mb_buffer->set_crc();
     assert(mb_buffer->check_crc());
     mb_buffer_in_use = true;
+    mb_buffer->version++;
     
     event_queue_t *queue = get_cpu_context()->event_queue;
     queue->iosys.schedule_aio_write(
@@ -179,7 +180,6 @@ bool metablock_manager_t<metablock_t>::write_metablock(metablock_t *mb, metabloc
         queue,
         this);
 
-    mb_buffer->version++;
     head++;
 
     state = state_writing;
