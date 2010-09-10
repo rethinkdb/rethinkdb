@@ -82,6 +82,7 @@ private:
     void on_serializer_write_block();
     
     bool safe_to_unload();
+    bool safe_to_delete();
 
 public:
     void release();
@@ -105,6 +106,7 @@ public:
     }
     void mark_deleted() {
         assert(!safe_to_unload());
+        assert(safe_to_delete());
         do_delete = true;
     }
 };

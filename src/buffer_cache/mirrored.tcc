@@ -144,6 +144,11 @@ bool buf<config_t>::safe_to_unload() {
         writeback_buf.safe_to_unload();
 }
 
+template<class config_t>
+bool buf<config_t>::safe_to_delete() {
+    return load_callbacks.empty();
+}
+
 /**
  * Transaction implementation.
  */
