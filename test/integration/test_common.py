@@ -191,25 +191,9 @@ class Server(object):
                                            stdout = server_output, stderr = subprocess.STDOUT)
         self.running = True
         
-        # Wait for server to start up
-        waited = 0
-        while True:
-            s = socket.socket()
-            try: s.connect(("localhost", server_port))
-            except Exception, e:
-                if "Connection refused" in str(e):
-                    time.sleep(0.01)
-                    waited += 0.01
-                    continue
-                else: raise
-            else: break
-            finally: s.close()
-        print "%s took %.2f seconds to start." % (self.name.capitalize(), waited)
-        time.sleep(0.2)
+        # Start netrecord if necessary
         
         if self.opts["netrecord"]:
-            
-            # Start netrecord
             
             nrc_log_dir = os.path.join(test_dir, "network_logs")
             if not os.path.isdir(nrc_log_dir): os.mkdir(nrc_log_dir)
@@ -226,7 +210,29 @@ class Server(object):
         else:
             self.port = server_port
         
+        # Wait for server to start up
+        
+        waited = 0
+        limit = 5
+        while waited < limit:
+            s = socket.socket()
+            try: s.connect(("localhost", server_port))
+            except Exception, e:
+                if "Connection refused" in str(e):
+                    time.sleep(0.01)
+                    waited += 0.01
+                    continue
+                else: raise
+            else: break
+            finally: s.close()
+        else:
+            print "%s took longer than %.2f seconds to start." % (self.name.capitalize(), limit)
+            return False
+        print "%s took %.2f seconds to start." % (self.name.capitalize(), waited)
+        time.sleep(0.2)
+        
         # Make sure nothing went wrong during startup
+        
         return self.verify()
         
     def verify(self):
