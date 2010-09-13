@@ -1,0 +1,91 @@
+#!/usr/bin/env python
+
+"""
+This script is meant to be invoked in the background by a git post-commit hook.
+
+It will duplicate the working tree as it was after the commit, and then invoke retester with the
+specified arguments. It will email the results to the email address of the person who 'git log'
+identifies as the committer.
+"""
+
+import os, sys, signal, tempfile, shutil, subprocess, traceback
+
+def run_command(cmd, expected_rcs = [0]):
+    """Run the command and return the result as a string. Substitute for subprocess.check_output()
+    for those of us on Python 2.6."""
+    process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    output = process.communicate()[0]
+    if process.returncode not in expected_rcs:
+        raise IOError("%s exited with return code %d and message %r" % \
+            (repr(" ".join(cmd)), process.returncode, output))
+    return output
+
+# Parse the arguments
+
+from vcoptparse import *
+op = OptParser()
+op["background"] = BoolFlag("-b")
+op["revision"] = StringFlag("--revision", default = None)
+op["tests"] = ManyPositionalArgs()
+op["tests2"] = AllArgsAfterFlag("--args", default = [])   # Backwards compatibility
+opts = op.parse(sys.argv)
+extra_args = []
+
+# If we are backgrounded, then we do not print anything to stdout or stderr and we ignore SIGHUP.
+if opts["background"]:
+    # If we are running in the background, automatically email the user
+    recipient = run_command(["git", "config", "--get", "user.email"]).strip()
+    extra_args.extend(["--email", recipient])
+    
+    sys.stdout = sys.__stdout__ = sys.stderr = sys.__stderr__ = \
+        file(os.path.expanduser("~/git-test.out"), "w", 0)
+    signal.signal(signal.SIGHUP, signal.SIG_IGN)
+    signal.siginterrupt(signal.SIGHUP, False)
+
+# Find the git repository root
+root_to_current_dir = "."
+root = os.getcwd()
+while not os.path.isdir(os.path.join(root, ".git")):
+    if root == "/":
+        print "We don't seem to be in a git repository."
+        sys.exit(1)
+    root, component = os.path.split(root)
+    root_to_current_dir = os.path.join(component, root_to_current_dir)
+
+# Run the tests in a temporary directory
+temp_dir = tempfile.mkdtemp(prefix = "retest2_git_repo_").rstrip("/")
+try:
+    print "Testing git repository rooted at %r." % root
+    
+    # Create a copy of the repository in a temporary directory
+    if opts["revision"] is not None:
+        print "Creating a copy of the repository at %r..." % opts["revision"]
+        header = run_command(["git", "log", "-1", "--format=full", opts["revision"]]).strip()
+        subprocess.check_call("git archive --format=tar %r | (cd %s && tar xf -)" % \
+            (opts["revision"], temp_dir), cwd = root, shell = True,
+            stdout = sys.stdout, stderr = sys.stderr)
+        
+    else:
+        print "Duplicating the working tree..."
+        header = run_command(["git", "status"], expected_rcs = [0, 1]).strip()
+        os.rmdir(temp_dir)
+        shutil.copytree(root, temp_dir, ignore = shutil.ignore_patterns(".git"))
+    
+    # Run the tests in that temporary directory
+    command_line = []
+    command_line.extend(opts["tests"] + opts["tests2"])
+    command_line.extend(["--header", header])
+    command_line.extend(extra_args)
+    
+    print "Running tests..."
+    print command_line
+    rc = subprocess.call(command_line,
+        cwd = os.path.join(temp_dir, root_to_current_dir),
+        stdout = sys.stdout,
+        stderr = sys.stderr)
+    
+    sys.exit(rc)
+    
+finally:
+    if os.path.exists(temp_dir):
+        shutil.rmtree(temp_dir)

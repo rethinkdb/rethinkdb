@@ -1,0 +1,84 @@
+#!/usr/bin/env ruby
+
+require 'socket'
+require 'optparse'
+require 'ostruct'
+
+class Replayer
+    def initialize(filenames, opts)
+        @filenames = filenames
+        @opts = opts
+    end
+
+    def run
+        @replay_start_time = Time.now
+
+        @threads = []
+        @filenames.each do |fn|
+            @threads << Thread.new do
+                replay_file(fn)
+            end
+        end
+        @threads.each {|t| t.join }
+    end
+
+    def sleep_if_needed(log_delta)
+        return if !@opts.timing
+        delta = Time.now - @replay_start_time
+        if delta < log_delta
+            sleep(log_delta - delta)
+        end
+    end
+
+    def replay_file(filename)
+        File.open(filename, 'r') do |file|
+            line = file.readline
+            match = line.match(/^c (\d+).(\d+) con\n$/)
+            raise "Invalid first line: #{line}" if !match
+            sleep_if_needed("#{match[1]}.#{match[2]}".to_f)
+
+            if @opts.port
+                TCPSocket.open(@opts.host, @opts.port) do |sock|
+                    do_replay(file, sock)
+                    sock.shutdown
+                end
+            else
+                do_replay(file, $stdout)
+            end
+        end
+    end
+
+    def do_replay(file, out)
+        loop do
+            line = file.readline
+            match = line.match(/^([cs]) (\d+).(\d+) ((\d+)|hup)\n$/);
+            raise "Invalid input: #{line}" if !match
+            src, sec, usec, act = match[1..4]
+            log_delta = "#{sec}.#{usec}".to_f
+            if act == 'hup'
+                sleep_if_needed(log_delta)
+                sleep(1) if src == 's' && @opts.timing # Give the server time to hang up.
+                return
+            end
+            data = file.read(act.to_i) # Length
+            next if src == 's'
+            sleep_if_needed(log_delta)
+            out.print(data)
+        end
+    end
+end
+
+
+opts = OpenStruct.new
+opts.host = 'localhost'
+opts.timing = true
+
+OptionParser.new do |op|
+    op.on('-H', '--host=HOST', 'Host to connect to (if only a port is given, defaults to localhost)') {|h| opts.host = h }
+    op.on('-p', '--port=PORT', 'Port to connect to') {|p| opts.port = p.to_i }
+    op.on('-T', '--no-timing', 'Ignore log timing data') { opts.timing = false }
+    op.on_tail('-h', '--help', 'Show this message') { puts op; exit }
+    # TODO: Require at least one file argument.
+end.parse!
+
+Replayer.new(ARGV, opts).run

@@ -13,6 +13,7 @@ test: integration/cas.py --auto
 test: integration/flags.py --auto
 test: integration/incr_decr.py --auto
 test(repeat = 12, timeout = 20): integration/serial_mix.py --auto
+test(repeat = 5, timeout = 7): integration/expiration.py --auto
 
 # Test the serializer
 test(repeat = 12, timeout = 20): integration/serial_mix.py --auto --restart-server-prob 0.0005
@@ -22,4 +23,3 @@ test(repeat = 6): integration/multi_serial_mix.py --auto
 
 # Make sure that the btree works even with many keys
 test: integration/many_keys.py --auto
-
