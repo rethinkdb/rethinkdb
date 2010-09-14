@@ -50,8 +50,8 @@ class SmartTemporaryDirectory(object):
     def take_dir(self):
         """By calling take_dir(), the caller takes responsibility for destroying the temporary
         directory."""
-        #if not self.need_to_delete:
-        #    raise ValueError("take_dir() called twice.")
+        if not self.need_to_delete:
+            raise ValueError("take_dir() called twice.")
         self.need_to_delete = False
         return self.path
     
@@ -599,7 +599,7 @@ def send_email(opts, message, recipient):
     
     print "Email message sent."
 
-def send_results_by_email(opts, tests, recipient):
+def send_results_by_email(opts, tests, recipient, message):
     
     import email.mime.text, cStringIO
     
@@ -613,33 +613,37 @@ def send_results_by_email(opts, tests, recipient):
     else:
         raise ValueError("RETESTER_EMAIL_FORMAT should be 'html' or 'plaintext'")
     
-    sys.stdout = stringio = cStringIO.StringIO()
-    try: printer(opts, tests)
-    finally: sys.stdout = sys.__stdout__
-    message = email.mime.text.MIMEText(stringio.getvalue(), mime_type)
-    stringio.close()
+    if not message:
+        sys.stdout = stringio = cStringIO.StringIO()
+        try: printer(opts, tests)
+        finally: sys.stdout = sys.__stdout__
+        output = stringio.getvalue()
+        stringio.close()
     
+    message = email.mime.text.MIMEText(output, mime_type)
     subject = "Test results: %d pass, %d fail" % \
         (len(tests) - count_failures(tests), count_failures(tests))
     message.add_header("Subject", subject)
     
     send_email(opts, message, recipient)
+    return output
 
-def write_results_to_file(opts, tests, file):
+def write_results_to_file(opts, tests, file, output):
+    if not output:
+        import email.mime.text, cStringIO
     
-    import email.mime.text, cStringIO
-    
-    sys.stdout = stringio = cStringIO.StringIO()
-    try: print_results_as_html(opts, tests)
-    finally: sys.stdout = sys.__stdout__
-    output = stringio.getvalue()
-    stringio.close()
+        sys.stdout = stringio = cStringIO.StringIO()
+        try: print_results_as_html(opts, tests)
+        finally: sys.stdout = sys.__stdout__
+        output = stringio.getvalue()
+        stringio.close()
     
     f = open(file, 'w')
     f.write(output)
     f.close()
 
     print "File results written"
+    return output
 
 def report():
     # Parse arguments
@@ -681,13 +685,16 @@ def report():
         sys.exit(1)
     
     # Report the results
+    output = None
     for target in opts["targets"]:
         if target[0] == "print":
             print_results_as_plaintext(opts, reports)
         elif target[0] == "email":
-            send_results_by_email(opts, reports, target[1])
+            # This is a massive hack to support output by email and by
+            # file, but whateva
+            output = send_results_by_email(opts, reports, target[1], output)
         elif target[0] == "file":
-            write_results_to_file(opts, reports, target[1])
+            output = write_results_to_file(opts, reports, target[1], output)
         else:
             assert False
     
