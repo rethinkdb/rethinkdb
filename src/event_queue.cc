@@ -258,7 +258,11 @@ void *event_queue_t::epoll_handler(void *arg) {
                     goto breakout;
                 }
             } else {
-                process_network_notify(self, &events[i]);
+                // Don't process network traffic if we're shutting
+                // down - we've already deleted the conn_fsms.
+                if(!shutting_down) {
+                    process_network_notify(self, &events[i]);
+                }
             }
         }
 
