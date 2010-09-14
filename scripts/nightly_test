@@ -11,4 +11,5 @@ git pull
 
 # Run the tests
 export RETESTER_EMAIL_SENDER=buildbot@rethinkdb.com:allspark
-git test -b --revision HEAD --email all@rethinkdb.com --file /var/www/code.rethinkdb.com/htdocs/tests.html test/full_test.py
+#git test -b --revision HEAD --email all@rethinkdb.com --file /var/www/code.rethinkdb.com/htdocs/tests.html test/full_test.py
+git test -b --email slava@rethinkdb.com --file /var/www/code.rethinkdb.com/htdocs/tests.html test/smoke_test2.py
