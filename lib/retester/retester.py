@@ -671,3 +671,5 @@ def report():
     if count_failures(reports) > 0:
         sys.exit(1)
 
+# Set current directory to the directory of the test
+os.chdir(os.path.dirname(os.path.join(os.getcwd(), sys.argv[0])))
