@@ -41,6 +41,14 @@ public:
         return _tail;
     }
     
+    node_t *next(node_t *elem) {
+        return ((intrusive_list_node_t<node_t>*)elem)->next;
+    }
+    
+    node_t *prev(node_t *elem) {
+        return ((intrusive_list_node_t<node_t>*)elem)->prev;
+    }
+    
     void push_front(node_t *_value) {
 #ifndef NDEBUG
         validate();

@@ -58,7 +58,7 @@ struct ls_start_fsm_t :
         stat(ser->db_path, &file_stat);
         
         // Open the DB file
-	// TODO: O_NOATIME requires root or owner priviledges, so for now we hack it.
+        // TODO: O_NOATIME requires root or owner priviledges, so for now we hack it.
         if (S_ISBLK(file_stat.st_mode)) {
             ser->dbfd = open(ser->db_path,
                     O_RDWR | O_CREAT | O_DIRECT | O_LARGEFILE,
@@ -241,10 +241,15 @@ struct ls_write_fsm_t :
         
         num_writes_waited_for = 0;
         
-        for (int i = 0; i < num_writes; i ++) {
+        /* TODO: Allocation */
+        lba_entries = (lba_index_t::entry_t*)malloc(sizeof(lba_index_t::entry_t) * num_writes);
         
+        for (int i = 0; i < num_writes; i ++) {
+            
+            off64_t new_offset;
+            
             if (writes[i].buf) {
-                off64_t new_offset;
+            
                 block_writer_t *writer = new block_writer_t(this, writes[i].callback);
                 writer->block_id = writes[i].block_id;   // For debugging
                 if (ser->data_block_manager.write(writes[i].buf, &new_offset, writer)) {
@@ -252,14 +257,23 @@ struct ls_write_fsm_t :
                 } else {
                     num_writes_waited_for ++;
                 }
-                ser->lba_index.set_block_offset(writes[i].block_id, new_offset);
                 
             } else {
-                ser->lba_index.delete_block(writes[i].block_id);
+            
+                /* Deletion */
+                new_offset = DELETE_BLOCK;
+                
+                // Deletion happens instantaneously, so there is no callback. We assert the callback
+                // is NULL in case the caller was expecting a callback because they didn't
+                // understand the API.
+                assert(writes[i].callback == NULL);
             }
+            
+            lba_entries[i].block_id = writes[i].block_id;
+            lba_entries[i].offset = new_offset;
         }
         
-        offsets_were_written = ser->lba_index.sync(this);
+        offsets_were_written = ser->lba_index.write(lba_entries, num_writes, &mb_buffer.lba_index_part, this);
         
         /* Prepare metablock now instead of in next_write_step() so that we will have the correct
         metablock information for this write even if another write starts before we finish writing
@@ -267,7 +281,6 @@ struct ls_write_fsm_t :
         
         ser->extent_manager.prepare_metablock(&mb_buffer.extent_manager_part);
         ser->data_block_manager.prepare_metablock(&mb_buffer.data_block_manager_part);
-        ser->lba_index.prepare_metablock(&mb_buffer.lba_index_part);
 
         if (offsets_were_written && num_writes_waited_for == 0) {
             callback = NULL;
@@ -325,6 +338,7 @@ struct ls_write_fsm_t :
         assert(state == state_waiting_for_data_and_lba);
         assert(!offsets_were_written);
         offsets_were_written = true;
+        free(lba_entries);
         if (offsets_were_written && num_writes_waited_for == 0) {
             state = state_write_metablock;
             next_write_step();
@@ -349,6 +363,8 @@ private:
     
     log_serializer_t *ser;
     
+    lba_index_t::entry_t *lba_entries;
+    
     bool offsets_were_written;
     int num_writes_waited_for;
     log_serializer_t::write_txn_callback_t *callback;
@@ -370,6 +386,8 @@ block_id_t log_serializer_t::gen_block_id() {
 }
 
 bool log_serializer_t::shutdown(shutdown_callback_t *cb) {
+    
+    /* TODO: Instead of asserting we are done starting up, block until we are done starting up. */
     
     assert(state == state_ready);
     assert(active_write_count == 0);

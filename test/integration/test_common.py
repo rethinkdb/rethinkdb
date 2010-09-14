@@ -350,10 +350,24 @@ class MemcachedWrapperThatRestartsServer(object):
             self.do_restart()
         return getattr(self.internal_mc, name)
     def do_restart(self):
+        
         self.internal_mc.disconnect_all()
         print "Interrupting test to restart server..."
-        self.server.shutdown()
-        self.server.start()
+        
+        shutdown_ok = self.server.shutdown()
+        
+        snapshot_dir = os.path.join(test_dir, "db_data", self.server.name.replace(" ", "_"))
+        print "Storing a snapshot of server data files in %r." % snapshot_dir
+        os.mkdir(snapshot_dir)
+        for fn in os.listdir(os.path.join(test_dir, "db_data")):
+            path = os.path.join(test_dir, "db_data", fn)
+            if os.path.isfile(path):
+                shutil.copyfile(path, os.path.join(snapshot_dir, fn))
+        
+        assert shutdown_ok
+        
+        assert self.server.start()
+        
         print "Done restarting server; now resuming test."
         self.internal_mc = self.internal_mc_maker()
 

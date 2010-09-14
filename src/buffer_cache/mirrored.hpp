@@ -92,6 +92,7 @@ public:
     void *ptr() {
         assert(cached);
         assert(!safe_to_unload()); // If this assertion fails, it probably means that you're trying to access a buf you don't own.
+        assert(!do_delete);
         return data;
     }
 
@@ -103,7 +104,6 @@ public:
         writeback_buf.set_dirty();
     }
     void mark_deleted() {
-        writeback_buf.set_dirty(false);
         assert(!safe_to_unload());
         do_delete = true;
     }
@@ -251,11 +251,6 @@ private:
 	// Prints debugging information designed to resolve deadlocks
 	void deadlock_debug();
 #endif
-
-private:
-    void delete_block(block_id_t block) {
-        serializer.delete_block(block);
-    }
 
 private:
     
