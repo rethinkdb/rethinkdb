@@ -625,12 +625,26 @@ def send_results_by_email(opts, tests, recipient):
     
     send_email(opts, message, recipient)
 
+def write_results_to_file(opts, tests, file):
+    
+    import email.mime.text, cStringIO
+    
+    sys.stdout = stringio = cStringIO.StringIO()
+    try: print_results_as_html(opts, tests)
+    finally: sys.stdout = sys.__stdout__
+    output = stringio.getvalue()
+    stringio.close()
+    
+    f = open(file, 'w')
+    f.write(output)
+    f.close()
+
 def report():
     # Parse arguments
     op = OptParser()
     class TargetArg(Arg):
         def __init__(self):
-            self.flags = ["--email", "--print"]
+            self.flags = ["--email", "--print", "--file"]
             self.default = [("print", )]
             self.name = "method of reporting results"
             self.combiner = append_combiner
@@ -642,6 +656,12 @@ def report():
                 except IndexError, AssertionError:
                     raise OptError("'--email' should be followed by recipient's email address.")
                 return ("email", recipient)
+            elif flag == "--file":
+                try:
+                    file = args.pop(0)
+                except IndexError:
+                    raise OptError("'--file' should be followed by an output file name.")
+                return ("file", file)
             else:
                 return ("print", )
     op["targets"] = TargetArg()
@@ -664,6 +684,8 @@ def report():
             print_results_as_plaintext(opts, reports)
         elif target[0] == "email":
             send_results_by_email(opts, reports, target[1])
+        elif target[0] == "file":
+            write_results_to_file(opts, reports, target[1])
         else:
             assert False
     
