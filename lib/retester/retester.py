@@ -50,8 +50,8 @@ class SmartTemporaryDirectory(object):
     def take_dir(self):
         """By calling take_dir(), the caller takes responsibility for destroying the temporary
         directory."""
-        if not self.need_to_delete:
-            raise ValueError("take_dir() called twice.")
+        #if not self.need_to_delete:
+        #    raise ValueError("take_dir() called twice.")
         self.need_to_delete = False
         return self.path
     
@@ -638,6 +638,8 @@ def write_results_to_file(opts, tests, file):
     f = open(file, 'w')
     f.write(output)
     f.close()
+
+    print "File results written"
 
 def report():
     # Parse arguments
