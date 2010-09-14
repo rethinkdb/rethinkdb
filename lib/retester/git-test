@@ -26,6 +26,7 @@ from vcoptparse import *
 op = OptParser()
 op["background"] = BoolFlag("-b")
 op["revision"] = StringFlag("--revision", default = None)
+op["email"] = StringFlag("--email", default = None)
 op["tests"] = ManyPositionalArgs()
 op["tests2"] = AllArgsAfterFlag("--args", default = [])   # Backwards compatibility
 opts = op.parse(sys.argv)
@@ -34,8 +35,11 @@ extra_args = []
 # If we are backgrounded, then we do not print anything to stdout or stderr and we ignore SIGHUP.
 if opts["background"]:
     # If we are running in the background, automatically email the user
-    recipient = run_command(["git", "config", "--get", "user.email"]).strip()
-    extra_args.extend(["--email", recipient])
+    if opts["email"]:
+        extra_args.extend(["--email", opts["email"]])
+    else:
+        recipient = run_command(["git", "config", "--get", "user.email"]).strip()
+        extra_args.extend(["--email", recipient])
     
     sys.stdout = sys.__stdout__ = sys.stderr = sys.__stderr__ = \
         file(os.path.expanduser("~/git-test.out"), "w", 0)
@@ -78,7 +82,6 @@ try:
     command_line.extend(extra_args)
     
     print "Running tests..."
-    print command_line
     rc = subprocess.call(command_line,
         cwd = os.path.join(temp_dir, root_to_current_dir),
         stdout = sys.stdout,

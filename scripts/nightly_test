@@ -1,0 +1,11 @@
+#!/bin/bash
+
+# Go into var rethinkdb directory
+cd /var/git/rethinkdb/
+
+# Pull latest from master
+git pull
+
+# Run the tests
+export RETESTER_EMAIL_SENDER=buildbot@rethinkdb.com:allspark
+git test -b --revision HEAD --email all@rethinkdb.com test/full_test.py

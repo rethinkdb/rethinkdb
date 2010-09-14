@@ -223,7 +223,7 @@ def run_test(command, timeout = None):
         
     return result
 
-def do_test(cmd, cmd_args, cmd_format="gnu", repeat=1, timeout=60):
+def do_test(cmd, cmd_args={}, cmd_format="gnu", repeat=1, timeout=60):
     global reports
     
     # Build up the command line

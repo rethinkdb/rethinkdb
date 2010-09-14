@@ -11,4 +11,4 @@ echo "Starting automated smoke tests; you will receive email in a minute."
 export RETESTER_EMAIL_SENDER=buildbot@rethinkdb.com:allspark
 
 # -b means run in the background and produce no output.
-git retester -b --revision HEAD test/smoke_test &
+git test -b --revision HEAD test/smoke_test.py &
