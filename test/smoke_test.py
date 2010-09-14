@@ -2,7 +2,7 @@
 from retester import do_test, report
 
 # Clean the repo
-do_test("cd ../src/; make clean")
+do_test("pwd; cd ../src/; make clean")
 
 # Build everything
 for mode in ["debug", "release"]:
