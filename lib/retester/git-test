@@ -8,21 +8,9 @@ specified arguments. It will email the results to the email address of the perso
 identifies as the committer.
 """
 
-
-import os, sys, signal, tempfile, shutil, subprocess, traceback
-
-def run_command(cmd, expected_rcs = [0]):
-    """Run the command and return the result as a string. Substitute for subprocess.check_output()
-    for those of us on Python 2.6."""
-    process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-    output = process.communicate()[0]
-    if process.returncode not in expected_rcs:
-        raise IOError("%s exited with return code %d and message %r" % \
-            (repr(" ".join(cmd)), process.returncode, output))
-    return output
+import os, sys, signal, tempfile, shutil, subprocess, traceback, gitroot
 
 # Parse the arguments
-
 from vcoptparse import *
 op = OptParser()
 op["background"] = BoolFlag("-b")
@@ -39,7 +27,7 @@ if opts["background"]:
     if opts["email"]:
         extra_args.extend(["--email", opts["email"]])
     else:
-        recipient = run_command(["git", "config", "--get", "user.email"]).strip()
+        recipient = gitroot.run_command(["git", "config", "--get", "user.email"]).strip()
         extra_args.extend(["--email", recipient])
     
     sys.stdout = sys.__stdout__ = sys.stderr = sys.__stderr__ = \
@@ -65,14 +53,14 @@ try:
     # Create a copy of the repository in a temporary directory
     if opts["revision"] is not None:
         print "Creating a copy of the repository at %r..." % opts["revision"]
-        header = run_command(["git", "log", "-1", "--format=full", opts["revision"]]).strip()
+        header = gitroot.run_command(["git", "log", "-1", "--format=full", opts["revision"]]).strip()
         subprocess.check_call("git archive --format=tar %r | (cd %s && tar xf -)" % \
             (opts["revision"], temp_dir), cwd = root, shell = True,
             stdout = sys.stdout, stderr = sys.stderr)
         
     else:
         print "Duplicating the working tree..."
-        header = run_command(["git", "status"], expected_rcs = [0, 1]).strip()
+        header = gitroot.run_command(["git", "status"], expected_rcs = [0, 1]).strip()
         os.rmdir(temp_dir)
         shutil.copytree(root, temp_dir, ignore = shutil.ignore_patterns(".git"))
     

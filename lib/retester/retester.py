@@ -1,4 +1,4 @@
-import subprocess, shlex, signal, os, time, shutil, tempfile, sys, traceback, types
+import subprocess, shlex, signal, os, time, shutil, tempfile, sys, traceback, types, gitroot
 from vcoptparse import *
 
 reports = []
