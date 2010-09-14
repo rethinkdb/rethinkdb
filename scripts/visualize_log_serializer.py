@@ -440,7 +440,7 @@ class Metablock(object):
             self.mb.metablock.extent_manager_part.last_extent_truncated
         
         print """<tr><td>Last LBA extent offset</td>"""
-        if self.chosen:
+        if self.chosen and self.first_lba_extent:
             print """<td>%s</td>""" % self.first_lba_extent.ref_as_html()
         else:
             print """<td>0x%x</td>""" % self.mb.metablock.lba_index_part.last_lba_extent_offset
@@ -548,7 +548,7 @@ class LBAExtent(object):
                 pairs.append(LBAPaddingPair())
             
             else:
-                if block_offset == 0xFFFFFFFFFFFFFFFF:
+                if block_offset == -1:
                     block_offset = "delete"
                 pairs.append(LBAPair(block_id, block_offset))
         
@@ -703,8 +703,9 @@ def database_to_blocks(db):
     else:
         blocks = {}
         for (block_id, data_block) in db.metablock.chunk_obj.data_blocks.iteritems():
-            if data_block.chunk_ok:
-                blocks[block_id] = data_block.chunk_obj.contents
+            if data_block is not None:
+                if data_block.chunk_ok:
+                    blocks[block_id] = data_block.chunk_obj.contents
         return blocks
 
 if __name__ == "__main__":
