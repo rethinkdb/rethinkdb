@@ -113,12 +113,12 @@ struct lba_changer_t :
     int nentries;
     lba_list_t::sync_callback_t *callback;
     
-    bool run(lba_entry_t *_entries, int _nentries, lba_list_t::metablock_mixin_t *mb_out, lba_list_t::sync_callback_t *cb) {
+    bool run(lba_entry_t *_entries, int _nentries, lba_list_t::sync_callback_t *cb) {
         
         entries = _entries;
         nentries = _nentries;
         
-        bool done = owner->disk_structure->write(entries, nentries, mb_out, this);
+        bool done = owner->disk_structure->write(entries, nentries, this);
         
         if (done) {
             callback = NULL;
@@ -154,11 +154,15 @@ struct lba_changer_t :
     }
 };
 
-bool lba_list_t::write(entry_t *entries, int nentries, metablock_mixin_t *mb_out, sync_callback_t *cb) {
+bool lba_list_t::write(entry_t *entries, int nentries, sync_callback_t *cb) {
     assert(state == state_ready);
     
     lba_changer_t *changer = new lba_changer_t(this);
-    return changer->run(entries, nentries, mb_out, cb);
+    return changer->run(entries, nentries, cb);
+}
+
+void lba_list_t::prepare_metablock(metablock_mixin_t *mb_out) {
+    disk_structure->prepare_metablock(mb_out);
 }
 
 void lba_list_t::shutdown() {
@@ -179,4 +183,3 @@ lba_list_t::~lba_list_t() {
     assert(in_memory_index == NULL);
     assert(disk_structure == NULL);
 }
-

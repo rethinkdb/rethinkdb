@@ -52,11 +52,12 @@ public:
         virtual void on_lba_sync() = 0;
     };
     
-    bool write(entry_t *entries, int nentries, metablock_mixin_t *mb_out, sync_callback_t *cb);
-
+    bool write(entry_t *entries, int nentries, sync_callback_t *cb);
+    void prepare_metablock(metablock_mixin_t *mb_out);
+    
 public:
     void shutdown();
-    
+
 private:
     extent_manager_t *extent_manager;
     

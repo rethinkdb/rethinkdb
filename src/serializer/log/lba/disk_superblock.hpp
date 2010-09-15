@@ -9,6 +9,9 @@
 #include "disk_format.hpp"
 #include "disk_extent.hpp"
 
+/* TODO: Make sure that we call back sync() callbacks in the same order as sync()
+was called */
+
 class lba_disk_superblock_t :
     public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, lba_disk_superblock_t>
 {

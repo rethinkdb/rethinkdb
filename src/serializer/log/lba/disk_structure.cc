@@ -119,9 +119,9 @@ struct lba_writer_t :
     }
 };
 
-bool lba_disk_structure_t::write(lba_entry_t *entries, int nentries, lba_metablock_mixin_t *mb_out, sync_callback_t *cb) {
+bool lba_disk_structure_t::write(lba_entry_t *entries, int nentries, sync_callback_t *cb) {
     
-    /* Record and sync the changes */
+    /* Record the changes to the in-memory LBA */
     
     lba_writer_t *writer = new lba_writer_t(cb);
     
@@ -136,8 +136,6 @@ bool lba_disk_structure_t::write(lba_entry_t *entries, int nentries, lba_metablo
             superblock->extents.push_back(last_extent);
             superblock->modified = true;
             
-            if (!last_extent->sync(writer)) writer->outstanding_cbs++;
-            
             last_extent = NULL;
         }
         
@@ -149,15 +147,37 @@ bool lba_disk_structure_t::write(lba_entry_t *entries, int nentries, lba_metablo
         last_extent->add_entry(entries[i].block_id, entries[i].offset);
     }
     
+    /* Sync the changes to disk */
+    
     if (last_extent) {
         if (!last_extent->sync(writer)) writer->outstanding_cbs++;
     }
     
     if (superblock) {
+        
+        /* Sync each extent hanging off the superblock. */
+        /* TODO: It might make more sense for superblock->sync() to also sync all the extents
+        attached to the superblock, since superblock->load() loads all the extents attached to the
+        superblock. */
+        for (lba_disk_extent_t *e = superblock->extents.head(); e; e = superblock->extents.next(e)) {
+            if (!e->sync(writer)) writer->outstanding_cbs++;
+        }
+        
+        /* Sync the superblock itself */
         if (!superblock->sync(writer)) writer->outstanding_cbs++;
     }
     
-    /* Update the metablock */
+    /* Figure out if we need to block or not */
+    
+    if (writer->outstanding_cbs == 0) {
+        delete writer;
+        return true;
+    } else {
+        return false;
+    }
+}
+
+void lba_disk_structure_t::prepare_metablock(lba_metablock_mixin_t *mb_out) {
     
     if (last_extent) {
         mb_out->last_lba_extent_offset = last_extent->offset;
@@ -173,15 +193,6 @@ bool lba_disk_structure_t::write(lba_entry_t *entries, int nentries, lba_metablo
     } else {
         mb_out->lba_superblock_offset = NULL_OFFSET;
         mb_out->lba_superblock_entries_count = 0;
-    }
-    
-    /* Figure out if we need to block or not */
-    
-    if (writer->outstanding_cbs == 0) {
-        delete writer;
-        return true;
-    } else {
-        return false;
     }
 }
 

@@ -273,7 +273,7 @@ struct ls_write_fsm_t :
             lba_entries[i].offset = new_offset;
         }
         
-        offsets_were_written = ser->lba_index.write(lba_entries, num_writes, &mb_buffer.lba_index_part, this);
+        offsets_were_written = ser->lba_index.write(lba_entries, num_writes, this);
         
         /* Prepare metablock now instead of in next_write_step() so that we will have the correct
         metablock information for this write even if another write starts before we finish writing
@@ -281,6 +281,7 @@ struct ls_write_fsm_t :
         
         ser->extent_manager.prepare_metablock(&mb_buffer.extent_manager_part);
         ser->data_block_manager.prepare_metablock(&mb_buffer.data_block_manager_part);
+        ser->lba_index.prepare_metablock(&mb_buffer.lba_index_part);
 
         if (offsets_were_written && num_writes_waited_for == 0) {
             callback = NULL;

@@ -6,7 +6,7 @@
 #include "disk_structure.hpp"
 #include "config/code.hpp"
 
-class in_memory_index_t :
+struct in_memory_index_t :
     public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, in_memory_index_t>
 {
     
