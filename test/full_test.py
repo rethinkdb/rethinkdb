@@ -14,7 +14,7 @@ for mode in ["debug", "release"]:
                 cmd_format="make")
 
         # Run protocol tests
-        for protocol in ["text", "binary"]:
+        for protocol in ["text"]: # ["text", "binary"]:
             do_test("integration/append_prepend.py",
                     { "auto"        : True,
                       "mode"        : mode,
