@@ -75,7 +75,7 @@ private:
         _data = (data_t*)malloc_aligned(em->extent_size, DEVICE_BLOCK_SIZE);
         assert(_data);
 
-#ifndef NDEBUG
+#ifdef VALGRIND
         memset(_data, 0xBD, em->extent_size);   // Make Valgrind happy
 #endif
     }

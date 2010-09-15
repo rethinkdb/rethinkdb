@@ -56,16 +56,16 @@ metablock_manager_t<metablock_t>::metablock_manager_t(extent_manager_t *em)
     head.extent_size = extent_manager->extent_size;
     assert(sizeof(static_header) <= DEVICE_BLOCK_SIZE);
     hdr = (static_header *)malloc_aligned(DEVICE_BLOCK_SIZE, DEVICE_BLOCK_SIZE);
-#ifndef NDEBUG
-    memset(hdr, 0xBD, DEVICE_BLOCK_SIZE);
+#ifdef VALGRIND
+    memset(hdr, 0xBD, DEVICE_BLOCK_SIZE);              // Happify Valgrind
 #endif
 
     assert(sizeof(crc_metablock_t) <= DEVICE_BLOCK_SIZE);
     mb_buffer = (crc_metablock_t *)malloc_aligned(DEVICE_BLOCK_SIZE, DEVICE_BLOCK_SIZE);
     mb_buffer_last = (crc_metablock_t *)malloc_aligned(DEVICE_BLOCK_SIZE, DEVICE_BLOCK_SIZE);
     assert(mb_buffer);
-#ifndef NDEBUG
-    memset(mb_buffer, 0xBD, DEVICE_BLOCK_SIZE);   // Happify Valgrind
+#ifdef VALGRIND
+    memset(mb_buffer, 0xBD, DEVICE_BLOCK_SIZE);        // Happify Valgrind
     memset(mb_buffer_last, 0xBD, DEVICE_BLOCK_SIZE);   // Happify Valgrind
 #endif
 #ifdef SERIALIZER_MARKERS
