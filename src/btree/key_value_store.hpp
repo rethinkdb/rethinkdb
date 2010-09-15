@@ -191,7 +191,11 @@ private:
             
             typename std::vector<btree_fsm_t*, gnew_alloc<btree_fsm_t *> >::iterator it;
             for (it = fsms_waiting_for_ready.begin(); it != fsms_waiting_for_ready.end(); it ++) {
-                (*it)->do_transition(NULL);
+                btree_fsm_t *fsm = *it;
+                bool done = (fsm->do_transition(NULL) == btree_fsm_t::transition_complete);
+                if (done && fsm->on_complete) {
+                    fsm->on_complete(fsm);
+                }
             }
             fsms_waiting_for_ready.clear();
             

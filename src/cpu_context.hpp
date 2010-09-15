@@ -13,6 +13,7 @@ struct cpu_context_t {
 };
 
 cpu_context_t* get_cpu_context();
+int get_cpu_id();   // Mostly for debugging
 
 #endif // __CPU_CONTEXT_HPP__
 

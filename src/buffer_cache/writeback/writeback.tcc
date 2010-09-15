@@ -199,22 +199,40 @@ bool writeback_tmpl_t<config_t>::next_writeback_step() {
         typename serializer_t::write_t writes[num_writes];
         int i;
         typename intrusive_list_t<local_buf_t>::iterator it;
-        for (it = dirty_bufs.begin(), i = 0; it != dirty_bufs.end(); it++, i++) {
+        for (it = dirty_bufs.begin(), i = 0; it != dirty_bufs.end(); i++) {
             buf_t *_buf = (*it).gbuf;
-
+            it++;   // Increment the iterator so we can safely delete the thing it points to later
+            
+            bool do_delete = _buf->do_delete;
+            
             // Acquire the blocks
+            _buf->do_delete = false; /* Backdoor around acquire()'s assertion */
             buf_t *buf = transaction->acquire(_buf->get_block_id(), rwi_read, NULL);
             assert(buf);         // Acquire must succeed since we hold the flush_lock.
             assert(buf == _buf); // Acquire should return the same buf we stored earlier.
-
-            // Fill the serializer structure
-            writes[i].block_id = buf->get_block_id();
-            writes[i].buf = buf->ptr();
-            writes[i].callback = buf;
             
+            // Fill the serializer structure
+            if (!do_delete) {
+                writes[i].block_id = buf->get_block_id();
+                writes[i].buf = buf->ptr();
+                writes[i].callback = buf;
 #ifndef NDEBUG
-            buf->active_callback_count ++;
+                buf->active_callback_count ++;
 #endif
+
+            } else {
+            
+                writes[i].block_id = buf->get_block_id();
+                writes[i].buf = NULL;   // NULL indicates a deletion
+                writes[i].callback = NULL;
+                
+                // Dodge assertions so we can delete the buf
+                buf->writeback_buf.dirty = false;
+                buf->release();
+                dirty_bufs.remove(&buf->writeback_buf);
+                
+                delete buf;
+            }
         }
         dirty_bufs.clear();
         
