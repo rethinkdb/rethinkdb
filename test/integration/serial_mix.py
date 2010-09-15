@@ -13,8 +13,10 @@ def random_key(opts):
 def random_value(opts):
     return random.randint(0, opts["valuesize"]) * random.choice("ABCDEFGHIJKLMNOPQRSTUVWXYZ")
 
+def fail(k,v,v2):
+    raise ValueError("Key %r should have value %r, but had value %r." % (k, v, v2))
+
 def verify_all(opts, mc, clone, deleted):
-    
     for key in clone:
         value = mc.get(key)
         if value != clone[key]:
@@ -25,9 +27,6 @@ def verify_all(opts, mc, clone, deleted):
             fail(key, None, value)
 
 def verify(opts, mc, clone, deleted, key):
-
-    def fail(k,v,v2):
-        raise ValueError("Key %r should have value %r, but had value %r." % (k, v, v2))
     if not opts["thorough"]:
         # Check the specified key
         value = mc.get(key)
