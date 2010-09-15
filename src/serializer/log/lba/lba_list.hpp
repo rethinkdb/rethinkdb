@@ -8,14 +8,17 @@
 #include "disk_format.hpp"
 #include "in_memory_index.hpp"
 #include "disk_structure.hpp"
+#include "concurrency/rwi_lock.hpp"
 
 class lba_start_fsm_t;
 class lba_changer_t;
+class gc_fsm_t;
 
 class lba_list_t
 {
     friend class lba_start_fsm_t;
     friend class lba_changer_t;
+    friend class gc_fsm_t;
     
 public:
     typedef lba_metablock_mixin_t metablock_mixin_t;
@@ -54,7 +57,10 @@ public:
     
     bool write(entry_t *entries, int nentries, sync_callback_t *cb);
     void prepare_metablock(metablock_mixin_t *mb_out);
-    
+
+public:
+    void gc();
+
 public:
     void shutdown();
 
@@ -71,6 +77,10 @@ private:
     fd_t dbfd;
     
     in_memory_index_t *in_memory_index;
+    
+    /* rwi_read permission on this lock grants permission to call disk_structure->write().
+    rwi_write permission on this lock grants permission to GC the disk structure. */
+    rwi_lock_t disk_structure_lock;
     lba_disk_structure_t *disk_structure;
 };
 

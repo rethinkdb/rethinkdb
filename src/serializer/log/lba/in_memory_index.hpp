@@ -174,8 +174,11 @@ public:
     }
     
     off64_t get_block_offset(block_id_t id) {
-        assert(blocks[id].get_state() == block_used);
-        return blocks[id].get_offset();
+        if (blocks[id].get_state() == block_used) {
+            return blocks[id].get_offset();
+        } else {
+            return DELETE_BLOCK;
+        }
     }
     
     void set_block_offset(block_id_t id, off64_t offset) {

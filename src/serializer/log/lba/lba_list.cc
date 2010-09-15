@@ -102,27 +102,23 @@ off64_t lba_list_t::get_block_offset(block_id_t block) {
 }
 
 struct lba_changer_t :
+    public lock_available_callback_t,
     public lba_disk_structure_t::sync_callback_t,
     public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, lba_changer_t>
 {
     
     lba_list_t *owner;
-    lba_changer_t(lba_list_t *owner) : owner(owner) {}
+    lba_changer_t(lba_list_t *owner, lba_entry_t *_entries, int _nentries) :
+        owner(owner), entries(_entries), nentries(_nentries) {}
     
     lba_entry_t *entries;
     int nentries;
     lba_list_t::sync_callback_t *callback;
     
-    bool run(lba_entry_t *_entries, int _nentries, lba_list_t::sync_callback_t *cb) {
+    bool run(lba_list_t::sync_callback_t *cb) {
         
-        entries = _entries;
-        nentries = _nentries;
-        
-        bool done = owner->disk_structure->write(entries, nentries, this);
-        
-        if (done) {
-            callback = NULL;
-            finish();
+        callback = NULL;
+        if (do_acquire_lock()) {
             return true;
         } else {
             callback = cb;
@@ -130,11 +126,33 @@ struct lba_changer_t :
         }
     }
     
+    bool do_acquire_lock() {
+        
+        bool have_lock = owner->disk_structure_lock.lock(rwi_read, this);
+        
+        if (have_lock) return do_write();
+        else return false;
+    }
+    
+    void on_lock_available() {
+        do_write();
+    }
+    
+    bool do_write() {
+        
+        bool done = owner->disk_structure->write(entries, nentries, this);
+        
+        if (done) return finish();
+        else return false;
+    }
+    
     void on_sync_lba() {
         finish();
     }
     
-    void finish() {
+    bool finish() {
+        
+        owner->disk_structure_lock.unlock();
         
         /* TODO: We should update the in-memory index after the metablock finishes writing,
         immediately before the serializer calls back the client to say that the transaction is
@@ -151,18 +169,92 @@ struct lba_changer_t :
         if (callback) callback->on_lba_sync();
         
         delete this;
+        
+        return true;
     }
 };
 
 bool lba_list_t::write(entry_t *entries, int nentries, sync_callback_t *cb) {
     assert(state == state_ready);
     
-    lba_changer_t *changer = new lba_changer_t(this);
-    return changer->run(entries, nentries, cb);
+    // Just to make sure that the LBA GC gets exercised
+    if (rand() % 5 == 1) gc();
+    
+    lba_changer_t *changer = new lba_changer_t(this, entries, nentries);
+    return changer->run(cb);
 }
 
 void lba_list_t::prepare_metablock(metablock_mixin_t *mb_out) {
     disk_structure->prepare_metablock(mb_out);
+}
+
+struct gc_fsm_t :
+    public lock_available_callback_t,
+    public lba_disk_structure_t::sync_callback_t,
+    public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, gc_fsm_t>
+{
+    lba_list_t *owner;
+    gc_fsm_t(lba_list_t *owner)
+        : owner(owner) {
+        if (owner->disk_structure_lock.lock(rwi_write, this)) {
+            do_replace_disk_structure();
+        }
+    }
+    
+    lba_list_t::entry_t *entries;
+    
+    void on_lock_available() {
+        do_replace_disk_structure();
+    }
+    
+    void do_replace_disk_structure() {
+        
+        /* Replace the LBA with a new empty LBA */
+        
+        owner->disk_structure->destroy();
+        lba_disk_structure_t::create(owner->extent_manager, owner->dbfd, &owner->disk_structure);
+        
+        /* Put entries in the new empty LBA */
+        
+        // TODO: Allocation
+        unsigned nentries = owner->in_memory_index->blocks.get_size();
+        entries = (lba_list_t::entry_t *)malloc(sizeof(lba_list_t::entry_t) * nentries);
+        for (block_id_t i = 0; i < nentries; i ++) {
+            entries[i].block_id = i;
+            entries[i].offset = owner->in_memory_index->get_block_offset(i);
+        }
+        
+        bool write_done = owner->disk_structure->write(entries, nentries, this);
+        
+        /* Downgrade the lock from a write lock to a read lock; we are done with the
+        replacement operation, but we still need to hold the lock for reading so that
+        another GC doesn't replace it out from under *us*. */
+        
+        owner->disk_structure_lock.unlock();
+        bool ok __attribute__((unused));
+        ok = owner->disk_structure_lock.lock(rwi_read, NULL);
+        // If this fails, there was another GC waiting for the lock when we released it
+        assert(ok);
+        
+        if (write_done) {
+            do_cleanup();
+        }
+    }
+    
+    void on_sync_lba() {
+        do_cleanup();
+    }
+    
+    void do_cleanup() {
+        
+        free(entries);
+        owner->disk_structure_lock.unlock();
+        delete this;
+    }
+};
+
+void lba_list_t::gc() {
+    new gc_fsm_t(this);
 }
 
 void lba_list_t::shutdown() {
