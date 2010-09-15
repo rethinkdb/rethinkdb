@@ -4,7 +4,7 @@ from retester import do_test, report
 # Clean the repo
 do_test("cd ../src/; make clean")
 
-# Go through all our environments
+# Make every target first, as some tests depend on multiple targets
 for mode in ["debug", "release"]:
     for checker in ["valgrind", None]:
         # Build our targets
@@ -13,7 +13,10 @@ for mode in ["debug", "release"]:
                   "VALGRIND" : 1 if checker == "valgrind" else 0 },
                 cmd_format="make")
 
-        # Run protocol tests
+# Go through all our environments
+for mode in ["debug", "release"]:
+    for checker in ["valgrind", None]:
+        # Run tests
         for protocol in ["text"]: # ["text", "binary"]:
             do_test("integration/append_prepend.py",
                     { "auto"        : True,
