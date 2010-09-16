@@ -31,15 +31,17 @@ public:
              */
             void update();
             bool operator< (const entry_t &b) {return Less(b.data, data);}
+            entry_t()
+                : pq(0), index(0)
+                {}
     };
-    //typedef entry_t entry;
 private:
     std::deque<entry_t *, gnew_alloc<entry_t *> > heap;
 private:
-    inline int parent(int);
-    inline int left(int);
-    inline int right(int);
-    inline void swap(int, int);
+    inline unsigned int parent(unsigned int);
+    inline unsigned int left(unsigned int);
+    inline unsigned int right(unsigned int);
+    inline void swap(unsigned int, unsigned int);
     inline void bubble_up(int *);
     inline void bubble_up(int);
     inline void bubble_down(int *);
@@ -53,6 +55,8 @@ public:
     entry_t *push(T);
     T pop();
     void update(int);
+public:
+    void validate();
 };
 
 /* extend standard less to work with bitsets the way we want

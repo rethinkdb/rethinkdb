@@ -60,9 +60,9 @@ static bool parse_backtrace_line(char *line, char **filename, char **function, c
     return true;
 }
 
-void print_backtrace() {
+void print_backtrace(FILE *out) {
     
-    fprintf(stderr, "\nBacktrace:\n");
+    fprintf(out, "\nBacktrace:\n");
     
     // Get a backtrace
     static const int max_frames = 100;
@@ -77,10 +77,10 @@ void print_backtrace() {
             char *line = strdup(symbols[i]);
             char *filename, *function, *offset, *address;
             
-            fprintf(stderr, "%d: ", i+1);
+            fprintf(out, "%d: ", i+1);
             
             if (!parse_backtrace_line(line, &filename, &function, &offset, &address)) {
-                fprintf(stderr, "%s\n", symbols[i]);
+                fprintf(out, "%s\n", symbols[i]);
                 
             } else if (function) {
                 if (char *demangled = demangle_cpp_name(function)) {
@@ -99,14 +99,14 @@ void print_backtrace() {
                     fread(line, sizeof(char), sizeof(line), fline);
                     pclose(fline);
                     // Output the result
-                    fprintf(stderr, "%s at %s", demangled, line);
+                    fprintf(out, "%s at %s", demangled, line);
                     free(demangled);
                 } else {
-                    fprintf(stderr, "[ %s(%s+%s) [%s] ]\n", filename, function, offset, address);
+                    fprintf(out, "[ %s(%s+%s) [%s] ]\n", filename, function, offset, address);
                 }
             
             } else {
-                fprintf(stderr, "[ %s [%s] ]\n", filename, address);
+                fprintf(out, "[ %s [%s] ]\n", filename, address);
                 
             }
             
@@ -114,7 +114,7 @@ void print_backtrace() {
         }
     
     } else {
-        fprintf(stderr, "(too little memory for backtrace)\n");
+        fprintf(out, "(too little memory for backtrace)\n");
     }
     free(symbols);
 }

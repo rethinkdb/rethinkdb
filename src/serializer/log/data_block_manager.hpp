@@ -4,10 +4,13 @@
 
 #include "arch/io.hpp"
 #include "extents/extent_manager.hpp"
+#include "log_serializer_callbacks.hpp"
 #include "containers/priority_queue.hpp"
+#include "containers/two_level_array.hpp"
 #include <functional>
 #include <bitset>
-#include <queue>
+#include <utility>
+#include <time.h>
 
 // TODO: When we start up, start a new extent rather than continuing on the old extent. The
 // remainder of the old extent is taboo because if we shut down badly, we might have written data
@@ -17,8 +20,8 @@
 class data_block_manager_t {
     
 public:
-    data_block_manager_t(extent_manager_t *em, size_t block_size)
-        : state(state_unstarted), extent_manager(em), block_size(block_size) {}
+    data_block_manager_t(log_serializer_t *ser, extent_manager_t *em, size_t block_size)
+        : state(state_unstarted), serializer(ser), extent_manager(em), block_size(block_size) {}
     ~data_block_manager_t() {
         assert(state == state_unstarted || state == state_shut_down);
     }
@@ -31,6 +34,13 @@ public:
 
     /* When initializing the database from scratch, call start() with just the database FD. When
     restarting an existing database, call start() with the last metablock. */
+
+public:
+    /* data to be serialized to disk with each block */
+    struct buf_data_t {
+        block_id_t block_id;
+    };
+
 public:
     void start(fd_t dbfd);
     void start(fd_t dbfd, metablock_mixin_t *last_metablock);
@@ -45,6 +55,17 @@ public:
     bool write(void *buf_in, off64_t *off_out, iocallback_t *cb);
 
 public:
+    /* exposed gc api */
+    /* mark a buffer as garbage */
+    void mark_garbage(off64_t offset);
+
+    /* garbage collect the extents which meet the gc_criterion */
+    void start_gc();
+
+    /* take step in gcing */
+    void run_gc();
+
+public:
     void prepare_metablock(metablock_mixin_t *metablock);
 
 public:
@@ -56,6 +77,8 @@ private:
         state_ready,
         state_shut_down
     } state;
+
+    log_serializer_t *serializer;
     
     extent_manager_t *extent_manager;
     
@@ -65,13 +88,89 @@ private:
     unsigned int blocks_in_last_data_extent;
     
     off64_t gimme_a_new_offset();
-private:
-    //class gc_array;
-    //class gc_pq;
-    //typedef gcarray_t<gc_pq, EXTENT_SIZE / BTREE_BLOCK_SIZE> gc_array;
-    typedef std::bitset<EXTENT_SIZE / BTREE_BLOCK_SIZE> gc_array;
-    typedef priority_queue_t<gc_array, std::less<gc_array> > gc_pq;
-};
 
+private:
+    void add_gc_entry();
+    struct gc_entry : public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, gc_entry> {
+    public:
+        off64_t offset; /* !< the offset that this extent starts at */
+        std::bitset<EXTENT_SIZE / BTREE_BLOCK_SIZE> g_array; /* !< bit array for whether or not each block is garbage */
+        time_t timestamp; /* !< when we started writing to the extent */
+        bool active; /* !< this the extent we're currently writing to? */
+    public:
+        gc_entry() {
+            timestamp = time(NULL);
+        }
+    };
+
+    struct Less {
+        bool operator() (const gc_entry x, const gc_entry y);
+    };
+    priority_queue_t<gc_entry, Less> gc_pq;
+    two_level_array_t<priority_queue_t<gc_entry, Less>::entry_t *, MAX_DATA_EXTENTS> entries;
+
+    struct gc_criterion {
+        bool operator() (const gc_entry);
+    };
+private:
+    /* internal garbage collection structures */
+    struct gc_read_callback_t : public iocallback_t {
+        data_block_manager_t *parent;
+        void on_io_complete(event_t *) {
+            parent->run_gc();
+        }
+    };
+
+    struct gc_write_callback_t : public _write_txn_callback_t{
+        public:
+            data_block_manager_t *parent;
+            void on_serializer_write_txn() {
+                parent->run_gc();
+            }
+    };
+
+    enum gc_step {
+        gc_ready, /* ready to start */
+        gc_read,  /* waiting for reads, sending out writes */
+        gc_write, /* waiting for writes */
+    } gc_step_t;
+
+    struct gc_state_t {
+        gc_step step;               /* !< which step we're on */
+        int refcount;               /* !< outstanding io reqs */
+        char *gc_blocks;            /* !< buffer for blocks we're transferring */
+        gc_entry current_entry;     /* !< entry we're currently gcing */
+        int blocks_copying;         /* !< how many blocks we're copying */
+        data_block_manager_t::gc_read_callback_t gc_read_callback;
+        data_block_manager_t::gc_write_callback_t gc_write_callback;
+        gc_state_t() : step(gc_ready), refcount(0), blocks_copying(0)
+        {
+            memalign_alloc_t<DEVICE_BLOCK_SIZE> blocks_buffer_allocator;
+            /* TODO this is excessive as soon as we have a bound on how much space we need we should allocate less */
+            gc_blocks = (char *) blocks_buffer_allocator.malloc(EXTENT_SIZE);
+        }
+        ~gc_state_t() {
+            free(gc_blocks);
+        }
+    };
+
+    gc_state_t gc_state;
+private:
+    /* \brief structure to keep track of global stats about the data blocks
+     */
+    struct gc_stats_t {
+        int total_blocks;
+        int garbage_blocks;
+        gc_stats_t()
+            : total_blocks(0), garbage_blocks(0)
+        {}
+    };
+
+    gc_stats_t gc_stats;
+public:
+    /* \brief ratio of garbage to blocks in the system
+     */
+    float garbage_ratio();
+};
 
 #endif /* __SERIALIZER_LOG_DATA_BLOCK_MANAGER_HPP__ */

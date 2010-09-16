@@ -12,7 +12,7 @@
 void internal_node_handler::init(btree_internal_node *node) {
     node->type = btree_node_type_internal;
     node->npairs = 0;
-    node->frontmost_offset = BTREE_BLOCK_SIZE;
+    node->frontmost_offset = BTREE_USABLE_BLOCK_SIZE;
 }
 
 void internal_node_handler::init(btree_internal_node *node, btree_internal_node *lnode, uint16_t *offsets, int numpairs) {

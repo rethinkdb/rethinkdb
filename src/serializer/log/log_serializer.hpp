@@ -6,11 +6,13 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <queue>
 #include "arch/resource.hpp"
 #include "config/cmd_args.hpp"
 #include "config/code.hpp"
 #include "utils.hpp"
 
+#include "log_serializer_callbacks.hpp"
 #include "metablock/metablock_manager.hpp"
 #include "extents/extent_manager.hpp"
 #include "lba/lba_list.hpp"
@@ -68,6 +70,10 @@ public:
     log_serializer_t(char *db_path, size_t _block_size);
     ~log_serializer_t();
 
+public:
+    /* data to be serialized with each data block */
+    typedef data_block_manager_t::buf_data_t buf_data_t;
+
     /* start() must be called before the serializer can be used. It will return 'true' if it is
     ready immediately; otherwise, it will return 'false' and then call the given callback later. */
 public:
@@ -99,18 +105,30 @@ public:
     
     'writes' can be freed as soon as do_write() returns. */
 public:
-    struct write_txn_callback_t {
-        virtual void on_serializer_write_txn() = 0;
-    };
-    struct write_block_callback_t {
-        virtual void on_serializer_write_block() = 0;
-    };
+    typedef _write_txn_callback_t write_txn_callback_t;
+
+    typedef _write_block_callback_t write_block_callback_t;
+    
     struct write_t {
         block_id_t block_id;
         void *buf;   /* If NULL, a deletion */
         write_block_callback_t *callback;
     };
     bool do_write(write_t *writes, int num_writes, write_txn_callback_t *callback);
+    void do_outstanding_writes();
+
+private:
+    struct write_record_t /* : public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, write_record_t> */ {
+        write_t *writes;
+        int num_writes;
+        write_txn_callback_t *callback;
+        write_record_t(write_t *writes, int num_writes, write_txn_callback_t *callback)
+            : writes(writes), num_writes(num_writes), callback(callback)
+        {}
+        ~write_record_t()
+        {}
+    };
+    std::queue<write_record_t , std::deque<write_record_t , gnew_alloc<write_record_t> > > outstanding_writes;
     
 public:
     /* Generates a unique block id. */
@@ -136,8 +154,11 @@ private:
         state_unstarted,
         state_starting_up,
         state_ready,
-        state_shut_down
+        state_write, /* !< doing a write */
+        state_shut_down,
     } state;
+
+    int gc_counter; /* ticks off when it's time to do gc */
     
     char db_path[MAX_DB_FILE_NAME];
     fd_t dbfd;

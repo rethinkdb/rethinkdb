@@ -44,8 +44,17 @@
 // Size of the device block size (in bytes)
 #define DEVICE_BLOCK_SIZE                         (4 * KILOBYTE)
 
-// Size of each btree node (in bytes)
+//Size of the field on each block used to record block_id
+#define BLOCK_META_DATA_SIZE                      8
+
+// Size of each btree node (in bytes) on disk
 #define BTREE_BLOCK_SIZE                          (4 * KILOBYTE)
+
+//actual btree block size we have to work with
+#define BTREE_USABLE_BLOCK_SIZE                   BTREE_BLOCK_SIZE - BLOCK_META_DATA_SIZE
+
+// Maximum number of data blocks
+#define MAX_DATA_EXTENTS                          (1 << 64 / EXTENT_SIZE)
 
 // Size of each extent (in bytes)
 // Value is very low for testing purposes.

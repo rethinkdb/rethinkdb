@@ -6,11 +6,12 @@
 log_serializer_t::log_serializer_t(char *_db_path, size_t block_size)
     : block_size(block_size),
       state(state_unstarted),
+      gc_counter(0),
       dbfd(INVALID_FD),
       extent_manager(EXTENT_SIZE),
       metablock_manager(&extent_manager),
       lba_index(&extent_manager),
-      data_block_manager(&extent_manager, block_size),
+      data_block_manager(this, &extent_manager, block_size),
       active_write_count(0) {
     
     assert(strlen(_db_path) <= MAX_DB_FILE_NAME - 1);   // "- 1" for the null-terminator
@@ -193,7 +194,7 @@ bool log_serializer_t::start(ready_callback_t *ready_cb) {
 
 bool log_serializer_t::do_read(block_id_t block_id, void *buf, read_callback_t *callback) {
     
-    assert(state == state_ready);
+    assert(state == state_ready || state == state_write);
     
     off64_t offset = lba_index.get_block_offset(block_id);
     
@@ -252,6 +253,7 @@ struct ls_write_fsm_t :
             
                 block_writer_t *writer = new block_writer_t(this, writes[i].callback);
                 writer->block_id = writes[i].block_id;   // For debugging
+                *(block_id_t *) writes[i].buf = writes[i].block_id; //copy the block_id to be serialized
                 if (ser->data_block_manager.write(writes[i].buf, &new_offset, writer)) {
                     delete writer;   // CB not necessary after all
                 } else {
@@ -271,6 +273,13 @@ struct ls_write_fsm_t :
             
             lba_entries[i].block_id = writes[i].block_id;
             lba_entries[i].offset = new_offset;
+        }
+
+        /* mark the garbage */
+        for (int i = 0; i < num_writes; i++) {
+            off64_t gc_offset = ser->lba_index.get_block_offset(lba_entries[i].block_id);
+            if (gc_offset != -1)
+                ser->data_block_manager.mark_garbage(gc_offset);
         }
         
         offsets_were_written = ser->lba_index.write(lba_entries, num_writes, this);
@@ -315,10 +324,21 @@ struct ls_write_fsm_t :
             
             // Must call the callback after deleting ourselves so that we decrement
             // active_write_count.
+
+
+            log_serializer_t *_ser = ser;
             log_serializer_t::write_txn_callback_t *cb = callback;
             delete this;
             if (cb) cb->on_serializer_write_txn();
-            
+
+            //TODO I'm kind of unhappy that we're calling this from in here we should figure out better where to trigger gc
+            _ser->gc_counter = (_ser->gc_counter + 1) % 5;
+            if (_ser->gc_counter == 0)
+                _ser->data_block_manager.start_gc();
+
+            //HACKY, this should be done with a callback
+            _ser->do_outstanding_writes();
+
             return true;
         }
         
@@ -374,15 +394,41 @@ private:
 };
 
 bool log_serializer_t::do_write(write_t *writes, int num_writes, write_txn_callback_t *callback) {
+    assert(state == state_ready || state == state_write);
     
-    assert(state == state_ready);
-    
-    ls_write_fsm_t *w = new ls_write_fsm_t(this);
-    return w->run(writes, num_writes, callback);
+    bool res;
+
+    if (state == state_ready) {
+        state = state_write;
+        ls_write_fsm_t *w = new ls_write_fsm_t(this);
+        res = w->run(writes, num_writes, callback);
+    } else {
+        write_t *_writes = (write_t *) _gmalloc(sizeof(write_t) * num_writes);
+        for (int i = 0; i < num_writes; i++) {
+            _writes[i] = writes[i];
+        }
+        outstanding_writes.push(write_record_t(_writes, num_writes, callback));
+        res = false;
+    }
+    return res;
+}
+
+void log_serializer_t::do_outstanding_writes() {
+    if (!outstanding_writes.empty()) {
+        write_record_t rec = outstanding_writes.front();
+
+        outstanding_writes.pop();
+        assert(state_write);
+        ls_write_fsm_t *w = new ls_write_fsm_t(this);
+        w->run(rec.writes, rec.num_writes, rec.callback);
+        delete rec.writes;
+    } else {
+        state = state_ready;
+    }
 }
 
 block_id_t log_serializer_t::gen_block_id() {
-    assert(state == state_ready);
+    assert(state == state_ready || state == state_write);
     return lba_index.gen_block_id();
 }
 
