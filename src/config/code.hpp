@@ -33,7 +33,11 @@ struct standard_config_t {
     typedef btree_fsm<standard_config_t> btree_fsm_t;
 
     // Serializer
-    typedef log_serializer_t serializer_t;
+#ifndef NDEBUG
+    typedef semantic_checking_serializer_t<log_serializer_t> serializer_t;
+#else
+    typedef log_serializer_t serializer_t
+#endif
 
     // Caching
     typedef array_map_t<standard_config_t> page_map_t;
