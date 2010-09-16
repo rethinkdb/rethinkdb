@@ -72,7 +72,7 @@ for mode in ["debug", "release"]:
                           "protocol"    : protocol,
                           "cores"       : cores,
                           "slices"      : slices,
-                          "duration"    : 240
+                          "duration"    : 240,
                           "restart-server-prob" : "0.0005"},
                         repeat=5, timeout=250)
             

@@ -83,7 +83,7 @@ for (mode, checker, protocol) in [("debug", "valgrind", "text"),
                   "protocol"    : protocol,
                   "cores"       : cores,
                   "slices"      : slices,
-                  "duration"    : 30
+                  "duration"    : 30,
                   "restart-server-prob" : "0.0005" },
                 repeat=5,
                 timeout=35)
