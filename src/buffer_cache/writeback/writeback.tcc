@@ -219,6 +219,7 @@ bool writeback_tmpl_t<config_t>::next_writeback_step() {
 #ifndef NDEBUG
                 buf->active_callback_count ++;
 #endif
+                pending_bufs.push_back(buf);
 
             } else {
             
@@ -282,13 +283,6 @@ bool writeback_tmpl_t<config_t>::next_writeback_step() {
 }
 
 template <class config_t>
-void writeback_tmpl_t<config_t>::buf_was_written(buf_t *buf) {
-    assert(buf);
-    buf->writeback_buf.dirty = false;
-    buf->release();
-}
-
-template <class config_t>
 void writeback_tmpl_t<config_t>::on_lock_available() {
     assert(state == state_locking);
     state = state_locked;
@@ -298,6 +292,18 @@ void writeback_tmpl_t<config_t>::on_lock_available() {
 template <class config_t>
 void writeback_tmpl_t<config_t>::on_serializer_write_txn() {
     assert(state == state_write_bufs);
+
+    // Go through the bufs we're waiting on and release them. NOTE: we
+    // cannot currently free the bufs as they return because the LBA
+    // update is happens atomically when *all* the blocks have been
+    // written.
+    for(unsigned int i = 0; i < pending_bufs.size(); i++) {
+        pending_bufs[i]->writeback_buf.dirty = false;
+        pending_bufs[i]->release();
+    }
+    pending_bufs.clear();
+    
+    // Next steps...
     state = state_cleanup;
     next_writeback_step();
 }

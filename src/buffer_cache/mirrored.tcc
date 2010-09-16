@@ -126,8 +126,6 @@ void buf<config_t>::on_serializer_write_block() {
     active_callback_count --;
     assert(active_callback_count >= 0);
 #endif
-
-    cache->writeback.buf_was_written(this);
 }
 
 template<class config_t>
