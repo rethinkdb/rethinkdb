@@ -407,6 +407,7 @@ typename btree_modify_fsm<config_t>::transition_result_t btree_modify_fsm<config
                                 buf->mark_deleted();
                                 buf->release();
                                 buf = sib_buf;
+                                sib_buf = NULL;
                                 node_id = sib_node_id;
                                 node = sib_node;
                                 buf->set_dirty();
@@ -414,6 +415,7 @@ typename btree_modify_fsm<config_t>::transition_result_t btree_modify_fsm<config
                                 node_handler::merge(sib_node, node, key_to_remove, parent_node);
                                 sib_buf->mark_deleted();
                                 sib_buf->release();
+                                sib_buf = NULL;
                                 buf->set_dirty();
                             }
                             sib_buf = NULL;
@@ -470,6 +472,7 @@ typename btree_modify_fsm<config_t>::transition_result_t btree_modify_fsm<config
                 if(last_buf) {
                     assert(last_node_id != NULL_BLOCK_ID);
                     last_buf->release();
+                    last_buf = NULL;
                 }
                 last_buf = buf;
                 last_node_id = node_id;

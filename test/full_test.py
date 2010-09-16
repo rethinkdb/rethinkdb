@@ -51,7 +51,7 @@ for mode in ["debug", "release"]:
                       "mode"        : mode,
                       "no-valgrind" : not checker,
                       "protocol"    : protocol },
-                    repeat=20, timeout=20)
+                    repeat=20)
             
             do_test("integration/multi_serial_mix.py",
                     { "auto"        : True,
@@ -60,8 +60,7 @@ for mode in ["debug", "release"]:
                       "protocol"    : protocol,
                       "cores"       : 1,
                       "slices"      : 1,
-                      "num-testers" : 16,
-                      "duration"    : 30 },
+                      "num-testers" : 16 },
                     repeat=3)
             
             do_test("integration/expiration.py",
@@ -69,7 +68,7 @@ for mode in ["debug", "release"]:
                       "mode"        : mode,
                       "no-valgrind" : not checker,
                       "protocol"    : protocol },
-                    repeat=5, timeout=7)
+                    repeat=5)
             
             do_test("integration/multi_serial_mix.py",
                     { "auto"        : True,
@@ -106,7 +105,7 @@ for mode in ["debug", "release"]:
                       "no-valgrind" : not checker,
                       "protocol"    : protocol,
                       "restart-server-prob" : "0.0005"},
-                    repeat=20, timeout=20)
+                    repeat=20)
             
             do_test("integration/corruption.py",
                     { "auto"        : True,

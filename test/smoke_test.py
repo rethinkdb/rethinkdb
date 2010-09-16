@@ -44,8 +44,7 @@ for (mode, checker, protocol) in [("debug", "valgrind", "text"),
             { "auto"        : True,
               "mode"        : mode,
               "no-valgrind" : not checker,
-              "protocol"    : protocol },
-            timeout=7)
+              "protocol"    : protocol })
     
     do_test("integration/many_keys.py",
             { "auto"        : True,
@@ -58,7 +57,7 @@ for (mode, checker, protocol) in [("debug", "valgrind", "text"),
               "mode"        : mode,
               "no-valgrind" : not checker,
               "protocol"    : protocol },
-            repeat=10, timeout=20)
+            repeat=10)
     
     do_test("integration/serial_mix.py",
             { "auto"        : True,
@@ -66,14 +65,14 @@ for (mode, checker, protocol) in [("debug", "valgrind", "text"),
               "no-valgrind" : not checker,
               "protocol"    : protocol,
               "restart-server-prob" : "0.0005"},
-            repeat=10, timeout=20)
+            repeat=10)
     
     do_test("integration/multi_serial_mix.py",
             { "auto"        : True,
               "mode"        : mode,
               "no-valgrind" : not checker,
               "protocol"    : protocol },
-            repeat=10, timeout=20)
+            repeat=10)
     
 # Report the results
 report()

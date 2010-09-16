@@ -38,6 +38,7 @@ def make_option_parser():
     o["restart_server_prob"] = FloatFlag("--restart-server-prob", 0)
     o["cores"] = IntFlag("--cores", 2)
     o["slices"] = IntFlag("--slices", 2)
+    o["duration"] = IntFlag("--duration", 10)
     return o
 
 # Choose a random port at which to start searching to reduce the probability of collisions

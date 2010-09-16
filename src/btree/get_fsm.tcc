@@ -114,6 +114,7 @@ typename btree_get_fsm<config_t>::transition_result_t btree_get_fsm<config_t>::d
     } else {
         bool found = leaf_node_handler::lookup((leaf_node_t*)node, &key, &value);
         buf->release();
+        buf = NULL;
         if (found && value.expired()) {
             delete_expired<config_t>(&key);
             found = false;

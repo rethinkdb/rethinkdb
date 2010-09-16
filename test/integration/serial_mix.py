@@ -128,7 +128,6 @@ def test(opts, mc):
 
 if __name__ == "__main__":
     op = make_option_parser()
-    op["duration"] = IntFlag("--duration", 3)
     op["keysize"] = IntFlag("--keysize", 250)
     op["valuesize"] = IntFlag("--valuesize", 200)
     op["thorough"] = BoolFlag("--thorough")
