@@ -108,6 +108,7 @@ public:
         assert(!safe_to_unload());
         assert(safe_to_delete());
         do_delete = true;
+        writeback_buf.set_dirty();
     }
 };
 
