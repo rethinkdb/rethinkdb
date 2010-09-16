@@ -14,49 +14,40 @@ for mode in ["debug", "release"]:
                 cmd_format="make")
 
 # Do quick smoke tests in some environments
-for (mode, checker, protocol) in [("debug", "valgrind", "text"),
-                                  ("release", None, "text")]:
+for (mode, checker, protocol) in [("debug", "valgrind", "text")]:
+    # VERY basic tests
+    do_test("integration/append_prepend.py",
+            { "auto"        : True,
+              "mode"        : mode,
+              "no-valgrind" : not checker,
+              "protocol"    : protocol })
+    
+    do_test("integration/cas.py",
+            { "auto"        : True,
+              "mode"        : mode,
+              "no-valgrind" : not checker,
+              "protocol"    : protocol })
+    
+    do_test("integration/flags.py",
+            { "auto"        : True,
+              "mode"        : mode,
+              "no-valgrind" : not checker,
+              "protocol"    : protocol })
+    
+    do_test("integration/incr_decr.py",
+            { "auto"        : True,
+              "mode"        : mode,
+              "no-valgrind" : not checker,
+              "protocol"    : protocol })
+    
+    do_test("integration/expiration.py",
+            { "auto"        : True,
+              "mode"        : mode,
+              "no-valgrind" : not checker,
+              "protocol"    : protocol })
+    
+    # More advanced tests in various cores/slices configuration
     for (cores, slices) in [(1, 1), (2, 2)]:
-        do_test("integration/append_prepend.py",
-                { "auto"        : True,
-                  "mode"        : mode,
-                  "no-valgrind" : not checker,
-                  "protocol"    : protocol,
-                  "cores"       : cores,
-                  "slices"      : slices })
-    
-        do_test("integration/cas.py",
-                { "auto"        : True,
-                  "mode"        : mode,
-                  "no-valgrind" : not checker,
-                  "protocol"    : protocol,
-                  "cores"       : cores,
-                  "slices"      : slices })
-    
-        do_test("integration/flags.py",
-                { "auto"        : True,
-                  "mode"        : mode,
-                  "no-valgrind" : not checker,
-                  "protocol"    : protocol,
-                  "cores"       : cores,
-                  "slices"      : slices })
-    
-        do_test("integration/incr_decr.py",
-                { "auto"        : True,
-                  "mode"        : mode,
-                  "no-valgrind" : not checker,
-                  "protocol"    : protocol,
-                  "cores"       : cores,
-                  "slices"      : slices })
-    
-        do_test("integration/expiration.py",
-                { "auto"        : True,
-                  "mode"        : mode,
-                  "no-valgrind" : not checker,
-                  "protocol"    : protocol,
-                  "cores"       : cores,
-                  "slices"      : slices })
-    
         do_test("integration/many_keys.py",
                 { "auto"        : True,
                   "mode"        : mode,
@@ -73,8 +64,7 @@ for (mode, checker, protocol) in [("debug", "valgrind", "text"),
                   "cores"       : cores,
                   "slices"      : slices,
                   "duration"    : 30 },
-                repeat=5,
-                timeout=35)
+                repeat=3, timeout=35)
     
         do_test("integration/serial_mix.py",
                 { "auto"        : True,
@@ -85,8 +75,7 @@ for (mode, checker, protocol) in [("debug", "valgrind", "text"),
                   "slices"      : slices,
                   "duration"    : 30,
                   "restart-server-prob" : "0.0005" },
-                repeat=5,
-                timeout=35)
+                repeat=3, timeout=35)
     
         do_test("integration/multi_serial_mix.py",
                 { "auto"        : True,
@@ -94,8 +83,9 @@ for (mode, checker, protocol) in [("debug", "valgrind", "text"),
                   "no-valgrind" : not checker,
                   "protocol"    : protocol,
                   "cores"       : cores,
-                  "slices"      : slices },
-                repeat=5)
+                  "slices"      : slices,
+                  "duration"    : 30 },
+                repeat=3, timeout=35)
     
 # Report the results
 report()
