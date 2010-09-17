@@ -5,8 +5,8 @@
 #include "cpu_context.hpp"
 #include "event_queue.hpp"
 
-lba_list_t::lba_list_t(extent_manager_t *em)
-    : extent_manager(em), state(state_unstarted), in_memory_index(NULL), disk_structure(NULL)
+lba_list_t::lba_list_t(data_block_manager_t *dbm, extent_manager_t *em)
+    : data_block_manager(dbm), extent_manager(em), state(state_unstarted), in_memory_index(NULL), disk_structure(NULL)
     {}
 
 /* This form of start() is called when we are creating a new database */
@@ -70,7 +70,7 @@ struct lba_start_fsm_t :
     }
     
     void finish() {
-        owner->in_memory_index = new in_memory_index_t(owner->disk_structure);
+        owner->in_memory_index = new in_memory_index_t(owner->disk_structure, owner->data_block_manager);
         owner->state = lba_list_t::state_ready;
         
         if (callback) callback->on_lba_ready();

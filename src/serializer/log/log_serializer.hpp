@@ -167,8 +167,8 @@ private:
     
     extent_manager_t extent_manager;
     mb_manager_t metablock_manager;
-    lba_index_t lba_index;
     data_block_manager_t data_block_manager;
+    lba_index_t lba_index;
     
     int active_write_count;
 };

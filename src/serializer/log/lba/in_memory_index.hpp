@@ -5,6 +5,7 @@
 #include "containers/segmented_vector.hpp"
 #include "disk_structure.hpp"
 #include "config/code.hpp"
+#include "serializer/log/data_block_manager.hpp"
 
 struct in_memory_index_t :
     public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, in_memory_index_t>
@@ -90,7 +91,7 @@ public:
         next_free_id = NULL_BLOCK_ID;
     }
     
-    in_memory_index_t(lba_disk_structure_t *s) {
+    in_memory_index_t(lba_disk_structure_t *s, data_block_manager_t *dbm) {
         
         /* Call each lba_extent_t in reverse order */
         
@@ -111,6 +112,7 @@ public:
         // dense). We're doing another pass here, and it sucks,
         // but will do for first release. TODO: fix the lba system
         // to avoid O(n) algorithms on startup.
+        dbm->start_reconstruct();
         next_free_id = NULL_BLOCK_ID;
         for (block_id_t id = 0; id < blocks.get_size(); id ++) {
             // Remap blocks that weren't found to unused
@@ -122,7 +124,11 @@ public:
                 blocks[id].set_next_free_id(next_free_id);
                 next_free_id = id;
             }
+            if (blocks[id].get_state() == block_used) {
+                dbm->mark_live(blocks[id].get_offset());
+            }
         }
+        dbm->end_reconstruct();
     }
     
     void fill_from_extent(lba_disk_extent_t *x) {

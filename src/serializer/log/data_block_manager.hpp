@@ -57,7 +57,12 @@ public:
 public:
     /* exposed gc api */
     /* mark a buffer as garbage */
-    void mark_garbage(off64_t offset);
+    void mark_garbage(off64_t);
+
+    /* r{start,stop}_reconstruct functions for safety */
+    void start_reconstruct();
+    void mark_live(off64_t);
+    void end_reconstruct();
 
     /* garbage collect the extents which meet the gc_criterion */
     void start_gc();
@@ -101,6 +106,17 @@ private:
         gc_entry() {
             timestamp = time(NULL);
         }
+        void print() {
+#ifndef NDEBUG
+            printf("gc_entry:\n");
+            printf("offset: %ld\n", offset);
+            printf("g_array:");
+            for (unsigned int i = 0; i < g_array.size(); i++)
+                printf("%d", g_array.test(i));
+            printf("\n");
+            printf("\n");
+#endif
+        }
     };
 
     struct Less {
@@ -108,6 +124,14 @@ private:
     };
     priority_queue_t<gc_entry, Less> gc_pq;
     two_level_array_t<priority_queue_t<gc_entry, Less>::entry_t *, MAX_DATA_EXTENTS> entries;
+
+    void print_entries() {
+#ifndef NDEBUG
+        for (unsigned int i = 0; i * extent_manager->extent_size < (unsigned int) extent_manager->max_extent(); i++)
+            if (entries.get(i) != NULL)
+                entries.get(i)->data.print();
+#endif
+    }
 
     struct gc_criterion {
         bool operator() (const gc_entry);
@@ -130,6 +154,7 @@ private:
     };
 
     enum gc_step {
+        gc_reconstruct, /* reconstructing on startup */
         gc_ready, /* ready to start */
         gc_read,  /* waiting for reads, sending out writes */
         gc_write, /* waiting for writes */

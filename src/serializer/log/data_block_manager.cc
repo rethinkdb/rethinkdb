@@ -60,7 +60,41 @@ void data_block_manager_t::mark_garbage(off64_t offset) {
         entries.get(extent_id)->update();
     }
 
+    printf("=======\n");
+    print_entries();
+
     gc_stats.garbage_blocks++;
+}
+
+void data_block_manager_t::start_reconstruct() {
+    gc_state.step = gc_reconstruct;
+}
+
+void data_block_manager_t::mark_live(off64_t offset) {
+    assert(gc_state.step == gc_reconstruct);
+    unsigned int extent_id = (offset / extent_manager->extent_size);
+    unsigned int block_id = (offset % extent_manager->extent_size) / block_size;
+
+    if (entries.get(extent_id) == NULL) {
+        gc_entry entry;
+        entry.offset = extent_id * BTREE_BLOCK_SIZE;
+        entry.active = false;
+        entry.g_array.set(); //set everything to garbage
+
+        entries.set(extent_id, gc_pq.push(entry));
+    }
+
+    /* mark the block as alive */
+    entries.get(extent_id)->data.g_array.set(block_id, 0);
+}
+
+void data_block_manager_t::end_reconstruct() {
+    for (unsigned int extent_id = 0; (extent_id * extent_manager->extent_size) < (unsigned int) extent_manager->max_extent(); extent_id++) {
+        if (entries.get(extent_id) == NULL)
+            extent_manager->release_extent(extent_id * extent_manager->extent_size);
+    }
+    gc_state.step = gc_ready;
+    print_entries();
 }
 
 void data_block_manager_t::start_gc() {

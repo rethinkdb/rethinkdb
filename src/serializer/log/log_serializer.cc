@@ -10,8 +10,8 @@ log_serializer_t::log_serializer_t(char *_db_path, size_t block_size)
       dbfd(INVALID_FD),
       extent_manager(EXTENT_SIZE),
       metablock_manager(&extent_manager),
-      lba_index(&extent_manager),
       data_block_manager(this, &extent_manager, block_size),
+      lba_index(&data_block_manager, &extent_manager),
       active_write_count(0) {
     
     assert(strlen(_db_path) <= MAX_DB_FILE_NAME - 1);   // "- 1" for the null-terminator

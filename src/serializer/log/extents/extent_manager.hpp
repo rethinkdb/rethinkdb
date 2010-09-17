@@ -102,11 +102,20 @@ public:
         
         return extent;
     }
+
+    /* return an offset greater than anything we've yet given out */
+    off64_t max_extent() {
+        return last_extent;
+    }
+
     void release_extent(off64_t extent) {
-        //printf("got an extent\n");
-        assert(reserved_extent.find(extent) == reserved_extent.end()); //no releasing the reserved extents
-        assert(extent < last_extent);
-        free_queue.push_back(extent);
+        /* TODO Once upon a time this was an assert because no one would release reserved extents
+         * now they get release on reconstruction, it would be nice to get this back to be an assert
+         */
+        if(reserved_extent.find(extent) != reserved_extent.end()) {  //no releasing the reserved extents
+            assert(extent < last_extent);
+            free_queue.push_back(extent);
+        }
     }
 
 public:
