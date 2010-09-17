@@ -12,13 +12,13 @@
 #include "serializer/log/data_block_manager.hpp"
 
 class lba_start_fsm_t;
-class lba_changer_t;
+class lba_syncer_t;
 class gc_fsm_t;
 
 class lba_list_t
 {
     friend class lba_start_fsm_t;
-    friend class lba_changer_t;
+    friend class lba_syncer_t;
     friend class gc_fsm_t;
     
 public:
@@ -44,23 +44,23 @@ public:
     /* gen_block_id() will return a block ID which is "in limbo". It is not considered to be
     "in use" until it is actually written to disk, but gen_block_id() will not return the same
     ID again until either it is written to disk and then deleted or the database is restarted. */
-    
     block_id_t gen_block_id();
-
+    
+    /* Returns DELETE_BLOCK if the block does not exist */
     off64_t get_block_offset(block_id_t block);
     
+    block_id_t max_block_id();
+    
 public:
-    typedef lba_entry_t entry_t;
+    void set_block_offset(block_id_t block, off64_t offset);
+    void delete_block(block_id_t block);
     
     struct sync_callback_t {
         virtual void on_lba_sync() = 0;
     };
+    bool sync(sync_callback_t *cb);
     
-    bool write(entry_t *entries, int nentries, sync_callback_t *cb);
     void prepare_metablock(metablock_mixin_t *mb_out);
-
-public:
-    void gc();
 
 public:
     void shutdown();
@@ -80,10 +80,12 @@ private:
     
     in_memory_index_t *in_memory_index;
     
-    /* rwi_read permission on this lock grants permission to call disk_structure->write().
+    /* rwi_read permission on this lock grants permission to call disk_structure->sync().
     rwi_write permission on this lock grants permission to GC the disk structure. */
     rwi_lock_t disk_structure_lock;
     lba_disk_structure_t *disk_structure;
+    
+    void gc();
 };
 
 #endif /* __SERIALIZER_LOG_LBA_LIST_HPP__ */
