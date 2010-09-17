@@ -4,14 +4,34 @@ import random
 
 def test_function(opts, mc):
     
+    print "Inserting"
     keys = [str(x) for x in xrange(opts["num_keys"])]
     if not opts["sequential"]:
         random.shuffle(keys)
     
+    i = 0
     for key in keys:
+        if(i % 100000 == 0):
+            #print i
+            pass
         ok = mc.set(key, key)
         if ok == 0:
             raise ValueError("Could not set %r" % key)
+        i += 1
+
+    # Verify everything
+    print "Verifying"
+    i = 0
+    for key in keys:
+        if(i % 100000 == 0):
+            #print i
+            pass
+        value = mc.get(key)
+        if value != key:
+            raise ValueError("Key %r is set to %r, expected %r" % (key, value, key))
+        i += 1
+    
+    print "Success"
 
 if __name__ == "__main__":
     op = make_option_parser()
