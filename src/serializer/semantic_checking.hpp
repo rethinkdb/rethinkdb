@@ -9,6 +9,8 @@
 serializer has the correct semantics. It must have exactly the same API as
 the log serializer. */
 
+// #define SERIALIZER_DEBUG_PRINT 1
+
 template<class inner_serializer_t>
 class semantic_checking_serializer_t
 {
@@ -94,6 +96,9 @@ public:
                 }
                 
                 case block_info_t::state_have_crc: {
+#ifdef SERIALIZER_DEBUG_PRINT
+                    printf("Read %ld: %u\n", block_id, actual_crc);
+#endif
                     if (expected_block_state.crc != actual_crc) {
                         fail("Serializer returned bad value for block ID %d", (int)block_id);
                     }
@@ -158,8 +163,14 @@ public:
             if (writes[i].buf) {
                 b.state = block_info_t::state_have_crc;
                 b.crc = compute_crc(writes[i].buf);
+#ifdef SERIALIZER_DEBUG_PRINT
+                printf("Writing %ld: %u\n", writes[i].block_id, b.crc);
+#endif
             } else {
                 b.state = block_info_t::state_deleted;
+#ifdef SERIALIZER_DEBUG_PRINT
+                printf("Deleting %ld\n", writes[i].block_id);
+#endif
             }
             blocks.set(writes[i].block_id, b);
         }

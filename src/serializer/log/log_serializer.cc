@@ -196,6 +196,7 @@ bool log_serializer_t::do_read(block_id_t block_id, void *buf, read_callback_t *
     assert(state == state_ready);
     
     off64_t offset = lba_index.get_block_offset(block_id);
+    assert(offset != DELETE_BLOCK); // Make sure we're not trying to read a deleted block
     
     return data_block_manager.read(offset, buf, callback);
 }
