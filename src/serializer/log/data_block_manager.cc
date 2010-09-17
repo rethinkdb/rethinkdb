@@ -60,8 +60,6 @@ void data_block_manager_t::mark_garbage(off64_t offset) {
         entries.get(extent_id)->update();
     }
 
-    printf("=======\n");
-    print_entries();
 
     gc_stats.garbage_blocks++;
 }
@@ -77,7 +75,7 @@ void data_block_manager_t::mark_live(off64_t offset) {
 
     if (entries.get(extent_id) == NULL) {
         gc_entry entry;
-        entry.offset = extent_id * BTREE_BLOCK_SIZE;
+        entry.offset = extent_id * extent_manager->extent_size;
         entry.active = false;
         entry.g_array.set(); //set everything to garbage
 
@@ -94,7 +92,6 @@ void data_block_manager_t::end_reconstruct() {
             extent_manager->release_extent(extent_id * extent_manager->extent_size);
     }
     gc_state.step = gc_ready;
-    print_entries();
 }
 
 void data_block_manager_t::start_gc() {

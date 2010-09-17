@@ -14,6 +14,9 @@ the log serializer. */
 template<class inner_serializer_t>
 class semantic_checking_serializer_t
 {
+public:
+    typedef data_block_manager_t::buf_data_t buf_data_t;
+private:
     inner_serializer_t inner_serializer;
     
     typedef uint32_t crc_t;

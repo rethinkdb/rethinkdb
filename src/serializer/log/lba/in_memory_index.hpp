@@ -205,6 +205,17 @@ public:
         blocks[id].set_next_free_id(next_free_id);
         next_free_id = id;
     }
+
+    void print() {
+#ifndef NDEBUG
+        printf("LBA:\n");
+        for (unsigned int i = 0; i <blocks.get_size(); i++) {
+            if (blocks[i].get_state() == block_used) {
+                printf("%d --> %ld\n", i, blocks[i].get_offset());
+            }
+        }
+#endif
+    }
 };
 
 #endif /* __SERIALIZER_LOG_LBA_IN_MEMORY_INDEX__ */
