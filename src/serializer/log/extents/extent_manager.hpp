@@ -112,9 +112,22 @@ public:
         /* TODO Once upon a time this was an assert because no one would release reserved extents
          * now they get release on reconstruction, it would be nice to get this back to be an assert
          */
-        if(reserved_extent.find(extent) != reserved_extent.end()) {  //no releasing the reserved extents
+        if(reserved_extent.find(extent) == reserved_extent.end()) {  //no releasing the reserved extents
             assert(extent < last_extent);
+#ifndef NDEBUG//avoid overhead in release mode
+            for (unsigned int i = 0; i < free_queue.size(); i++)
+                assert(free_queue[i] != extent);
+#endif
+
             free_queue.push_back(extent);
+        }
+    }
+
+    void using_extent(off64_t extent) {
+        /* mark an extent as being used */
+        for (free_queue_t::iterator it = free_queue.begin(); it != free_queue.end(); it++) {
+            while(*it == extent)
+                it = free_queue.erase(it);
         }
     }
 

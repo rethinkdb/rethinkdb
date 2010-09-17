@@ -172,12 +172,14 @@ void data_block_manager_t::run_gc() {
                 if (!fallthrough)
                     break;
             case gc_write:
+                //not valid when writes are asynchronous (it would be nice if we could have this)
+                assert(gc_state.current_entry.g_array.count() == gc_state.current_entry.g_array.size());
+                assert(entries.get(gc_state.current_entry.offset / extent_manager->extent_size) == NULL);
+
                 extent_manager->release_extent(gc_state.current_entry.offset);
                 assert(gc_state.refcount == 0);
                 gc_state.blocks_copying = 0;
 
-                //not valid when writes are asynchronous (it would be nice if we could have this)
-                assert(gc_state.current_entry.g_array.count() == gc_state.current_entry.g_array.size());
 
                 gc_state.step = gc_ready;
 

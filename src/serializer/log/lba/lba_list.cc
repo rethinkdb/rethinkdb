@@ -70,7 +70,7 @@ struct lba_start_fsm_t :
     }
     
     void finish() {
-        owner->in_memory_index = new in_memory_index_t(owner->disk_structure, owner->data_block_manager);
+        owner->in_memory_index = new in_memory_index_t(owner->disk_structure, owner->data_block_manager, owner->extent_manager);
         owner->state = lba_list_t::state_ready;
         
         if (callback) callback->on_lba_ready();
