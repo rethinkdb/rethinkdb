@@ -79,7 +79,7 @@ private:
         }
         
         if (state == state_make_change) {
-            btree_superblock_t *sb = (btree_superblock_t*)(sb_buf->ptr());
+            btree_superblock_t *sb = (btree_superblock_t*)(sb_buf->get_data());
             // The serializer will init the superblock to zeroes if the database is newly created.
             if (!sb->database_exists) {
                 sb->database_exists = 1;

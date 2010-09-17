@@ -8,6 +8,7 @@
 #include <unistd.h>
 #include "config/args.hpp"
 #include <set>
+#include <deque>
 #include <functional>
 
 /* This is a stub extent manager. It never recycles extents. */
@@ -15,6 +16,7 @@
 class extent_manager_t {
 private:
     typedef std::set<off64_t, std::less<off64_t>, gnew_alloc<off64_t> > reserved_extent_set_t;
+    typedef std::deque<off64_t, gnew_alloc<off64_t> > free_queue_t;
 public:
     extent_manager_t(size_t extent_size)
         :extent_size(extent_size), last_extent(-1), last_truncated_extent(-1)
@@ -72,28 +74,48 @@ public:
     off64_t gen_extent() {
         
         assert(last_extent != -1);
-        
-        // Don't give out reserved extent
-        while(reserved_extent.find(last_extent) != reserved_extent.end())
-            last_extent += extent_size;
-        
-        off64_t extent = last_extent;
-        last_extent += extent_size;
-        
-        extend_if_necessary();
 
-        /* TODO: What if we give out an extent and the client writes something to it, but the DB
-        crashes before we record a metablock saying that the extent was given out? When we start
-        back up, we might try to write over the extent again, forcing the SSD controller to copy
-        it, which might lead to fragmentation. A possible solution is to make gen_extent()
-        asynchronous and wait until a record of the extent being given out is safely on disk before
-        we actually let anything write to the extent. Another possible solution is to wipe every
-        extent that we don't know think contains valid data when we start up. */
+        off64_t extent;
+
+        if (!free_queue.empty()) {
+            extent = free_queue.front();
+            free_queue.pop_front();
+        } else {
+
+            // Don't give out reserved extent
+            while(reserved_extent.find(last_extent) != reserved_extent.end())
+                last_extent += extent_size;
+
+            extent = last_extent;
+            last_extent += extent_size;
+
+            extend_if_necessary();
+
+            /* TODO: What if we give out an extent and the client writes something to it, but the DB
+               crashes before we record a metablock saying that the extent was given out? When we start
+               back up, we might try to write over the extent again, forcing the SSD controller to copy
+               it, which might lead to fragmentation. A possible solution is to make gen_extent()
+               asynchronous and wait until a record of the extent being given out is safely on disk before
+               we actually let anything write to the extent. Another possible solution is to wipe every
+               extent that we don't know think contains valid data when we start up. */
+        }
         
         return extent;
     }
+
+    /* return an offset greater than anything we've yet given out */
+    off64_t max_extent() {
+        return last_extent;
+    }
+
     void release_extent(off64_t extent) {
-        // No-op at the moment because we don't recycle extents
+        /* TODO Once upon a time this was an assert because no one would release reserved extents
+         * now they get release on reconstruction, it would be nice to get this back to be an assert
+         */
+        if(reserved_extent.find(extent) != reserved_extent.end()) {  //no releasing the reserved extents
+            assert(extent < last_extent);
+            free_queue.push_back(extent);
+        }
     }
 
 public:
@@ -142,6 +164,7 @@ private:
     off64_t last_extent;
     off64_t last_truncated_extent;
     reserved_extent_set_t reserved_extent;
+    free_queue_t free_queue;
 };
 
 #endif /* __SERIALIZER_LOG_EXTENT_MANAGER_HPP__ */

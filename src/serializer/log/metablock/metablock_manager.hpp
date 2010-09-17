@@ -6,6 +6,7 @@
 #include "arch/io.hpp"
 #include <boost/crc.hpp>
 #include <cstddef>
+#include <deque>
 #include "serializer/log/static_header.hpp"
 
 #define mb_marker_magic     "metablock"
@@ -101,7 +102,15 @@ public:
     };
     bool write_metablock(metablock_t *mb, metablock_write_callback_t *cb);
 private:
+    struct metablock_write_req_t {
+        metablock_write_req_t(metablock_t *, metablock_write_callback_t *);
+        metablock_t *mb;
+        metablock_write_callback_t *cb;
+    };
+
     metablock_write_callback_t *write_callback;
+
+    std::deque<metablock_write_req_t, gnew_alloc<metablock_write_req_t> > outstanding_writes;
 
 public:
     void shutdown();

@@ -161,31 +161,43 @@ bool metablock_manager_t<metablock_t>::start(fd_t fd, bool *mb_found, metablock_
 
 template<class metablock_t>
 bool metablock_manager_t<metablock_t>::write_metablock(metablock_t *mb, metablock_write_callback_t *cb) {
-    
-    assert(state == state_ready);
-    
-    assert(!mb_buffer_in_use);
-    memcpy(&(mb_buffer->metablock), mb, sizeof(metablock_t));
-    mb_buffer->set_crc();
-    assert(mb_buffer->check_crc());
-    mb_buffer_in_use = true;
-    mb_buffer->version++;
-    
-    event_queue_t *queue = get_cpu_context()->event_queue;
-    queue->iosys.schedule_aio_write(
-        dbfd,
-        head.offset(),
-        DEVICE_BLOCK_SIZE,                                                    // Length of write
-        mb_buffer,
-        queue,
-        this);
+    if (state != state_ready) {
+        /* TODO right now we only queue writes when we're presently writing
+           this is basically the only use case... but we could easily queue
+           in other places by modifying on_io_complete
+         */
+        //printf("Enqueuing write\n");
+        assert(state == state_writing);
+        outstanding_writes.push_back(metablock_write_req_t(mb, cb));
+    } else {
+        assert(!mb_buffer_in_use);
+        memcpy(&(mb_buffer->metablock), mb, sizeof(metablock_t));
+        mb_buffer->set_crc();
+        assert(mb_buffer->check_crc());
+        mb_buffer_in_use = true;
 
-    head++;
+        event_queue_t *queue = get_cpu_context()->event_queue;
+        queue->iosys.schedule_aio_write(
+                dbfd,
+                head.offset(),
+                DEVICE_BLOCK_SIZE,                                                    // Length of write
+                mb_buffer,
+                queue,
+                this);
 
-    state = state_writing;
-    write_callback = cb;
+        mb_buffer->version++;
+        head++;
+
+        state = state_writing;
+        write_callback = cb;
+    }
     return false;
 }
+
+template <class metablock_t>
+metablock_manager_t<metablock_t>::metablock_write_req_t::metablock_write_req_t(metablock_t *mb, metablock_write_callback_t *cb)
+    :mb(mb), cb(cb)
+{}
 
 template<class metablock_t>
 void metablock_manager_t<metablock_t>::shutdown() {
@@ -275,6 +287,11 @@ void metablock_manager_t<metablock_t>::on_io_complete(event_t *e) {
         mb_buffer_in_use = false;
         if (write_callback) write_callback->on_metablock_write();
         write_callback = NULL;
+        if (!outstanding_writes.empty()) {
+            metablock_write_req_t req = outstanding_writes.front();
+            outstanding_writes.pop_front();
+            write_metablock(req.mb, req.cb);
+        }
         break;
         
     default:

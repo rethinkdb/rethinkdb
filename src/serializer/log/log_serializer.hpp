@@ -6,11 +6,14 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <map>
+
 #include "arch/resource.hpp"
 #include "config/cmd_args.hpp"
 #include "config/code.hpp"
 #include "utils.hpp"
 
+#include "log_serializer_callbacks.hpp"
 #include "metablock/metablock_manager.hpp"
 #include "extents/extent_manager.hpp"
 #include "lba/lba_list.hpp"
@@ -56,17 +59,23 @@ struct log_serializer_metablock_t {
 typedef metablock_manager_t<log_serializer_metablock_t> mb_manager_t;
 
 // Used internally
+struct ls_block_writer_t;
 struct ls_write_fsm_t;
 struct ls_start_fsm_t;
 
 struct log_serializer_t
 {
+    friend class ls_block_writer_t;
     friend class ls_write_fsm_t;
     friend class ls_start_fsm_t;
     
 public:
     log_serializer_t(char *db_path, size_t _block_size);
     ~log_serializer_t();
+
+public:
+    /* data to be serialized with each data block */
+    typedef data_block_manager_t::buf_data_t buf_data_t;
 
     /* start() must be called before the serializer can be used. It will return 'true' if it is
     ready immediately; otherwise, it will return 'false' and then call the given callback later. */
@@ -99,12 +108,10 @@ public:
     
     'writes' can be freed as soon as do_write() returns. */
 public:
-    struct write_txn_callback_t {
-        virtual void on_serializer_write_txn() = 0;
-    };
-    struct write_block_callback_t {
-        virtual void on_serializer_write_block() = 0;
-    };
+    typedef _write_txn_callback_t write_txn_callback_t;
+
+    typedef _write_block_callback_t write_block_callback_t;
+    
     struct write_t {
         block_id_t block_id;
         void *buf;   /* If NULL, a deletion */
@@ -136,8 +143,10 @@ private:
         state_unstarted,
         state_starting_up,
         state_ready,
-        state_shut_down
+        state_shut_down,
     } state;
+
+    int gc_counter; /* ticks off when it's time to do gc */
     
     char db_path[MAX_DB_FILE_NAME];
     fd_t dbfd;
@@ -146,10 +155,26 @@ private:
     
     extent_manager_t extent_manager;
     mb_manager_t metablock_manager;
-    lba_index_t lba_index;
     data_block_manager_t data_block_manager;
+    lba_index_t lba_index;
+    
+    /* The ls_write_fsm_ts organize themselves into a list so that they can be sure to
+    write their metablocks in the correct order. last_write points to the most recent
+    transaction that started but did not finish; new ls_write_fsm_ts use it to find the
+    end of the list so they can append themselves to it. */
+    ls_write_fsm_t *last_write;
     
     int active_write_count;
+    
+    /* Keeps track of buffers that are currently being written, so that if we get a read
+    for a block ID that we are currently writing but is not on disk yet, we can return
+    the most current version. */
+    typedef std::map<
+        block_id_t, ls_block_writer_t*,
+        std::less<block_id_t>,
+        gnew_alloc<std::pair<block_id_t, ls_block_writer_t*> >
+        > block_writer_map_t;
+    block_writer_map_t block_writer_map;
 };
 
 #endif /* __LOG_SERIALIZER_HPP__ */

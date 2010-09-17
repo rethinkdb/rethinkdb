@@ -56,7 +56,7 @@ typename btree_modify_fsm<config_t>::transition_result_t btree_modify_fsm<config
         // Got the superblock buffer (either right away or through
         // cache notification). Grab the root id, and move on to
         // acquiring the root.
-        node_id = ((btree_superblock_t*)sb_buf->ptr())->root_block;
+        node_id = ((btree_superblock_t*)sb_buf->get_data())->root_block;
         return btree_fsm_t::transition_ok;
     } else {
         // Can't get the superblock buffer right away. Let's wait for
@@ -72,7 +72,7 @@ typename btree_modify_fsm<config_t>::transition_result_t btree_modify_fsm<config
     // If there is no root, we make one.
     if(node_id == NULL_BLOCK_ID) {
         buf = transaction->allocate(&node_id);
-        leaf_node_handler::init((leaf_node_t *)buf->ptr());
+        leaf_node_handler::init((leaf_node_t *)buf->get_data());
         buf->set_dirty();
         insert_root(node_id);
         return btree_fsm_t::transition_ok;
@@ -91,7 +91,7 @@ typename btree_modify_fsm<config_t>::transition_result_t btree_modify_fsm<config
     if(buf == NULL) {
         return btree_fsm_t::transition_incomplete;
     } else {
-//        node_handler::validate((node_t *)buf->ptr());
+//        node_handler::validate((node_t *)buf->get_data());
         return btree_fsm_t::transition_ok;
     }
 }
@@ -99,7 +99,7 @@ typename btree_modify_fsm<config_t>::transition_result_t btree_modify_fsm<config
 template <class config_t>
 void btree_modify_fsm<config_t>::insert_root(block_id_t root_id) {
     assert(sb_buf);
-    ((btree_superblock_t*)sb_buf->ptr())->root_block = root_id;
+    ((btree_superblock_t*)sb_buf->get_data())->root_block = root_id;
     sb_buf->set_dirty();
     sb_buf->release();
     sb_buf = NULL;
@@ -116,7 +116,7 @@ typename btree_modify_fsm<config_t>::transition_result_t btree_modify_fsm<config
     }
 
     if(buf) {
-//        node_handler::validate((node_t *)buf->ptr());
+//        node_handler::validate((node_t *)buf->get_data());
         return btree_fsm_t::transition_ok;
     } else {
         return btree_fsm_t::transition_incomplete;
@@ -150,7 +150,7 @@ typename btree_modify_fsm<config_t>::transition_result_t btree_modify_fsm<config
 
     if (!event) {
         assert(last_buf);
-        internal_node_t *last_node = (internal_node_t *)last_buf->ptr();
+        internal_node_t *last_node = (internal_node_t *)last_buf->get_data();
 
         internal_node_handler::sibling(last_node, &key, &sib_node_id);
         sib_buf = transaction->acquire(sib_node_id, rwi_write, this);
@@ -183,7 +183,7 @@ bool btree_modify_fsm<config_t>::do_check_for_split(node_t **node) {
         printf("===SPLITTING===\n");
         printf("Parent:\n");
         if (last_buf != NULL)
-            internal_node_handler::print((internal_node_t *)last_buf->ptr());
+            internal_node_handler::print((internal_node_t *)last_buf->get_data());
         else
             printf("NULL parent\n");
 
@@ -203,11 +203,11 @@ bool btree_modify_fsm<config_t>::do_check_for_split(node_t **node) {
         if(last_buf == NULL) {
             new_root = true;
             last_buf = transaction->allocate(&last_node_id);
-            last_node = (internal_node_t *)last_buf->ptr();
+            last_node = (internal_node_t *)last_buf->get_data();
             internal_node_handler::init(last_node);
             last_buf->set_dirty();
         } else {
-            last_node = (internal_node_t *)last_buf->ptr();
+            last_node = (internal_node_t *)last_buf->get_data();
         }
         
         bool success = internal_node_handler::insert(last_node, median, node_id, rnode_id);
@@ -226,10 +226,10 @@ bool btree_modify_fsm<config_t>::do_check_for_split(node_t **node) {
             internal_node_handler::print((internal_node_t *) *node);
 
         printf("rnode:\n");
-        if (node_handler::is_leaf((node_t *) rbuf->ptr()))
-            leaf_node_handler::print((leaf_node_t *) rbuf->ptr());
+        if (node_handler::is_leaf((node_t *) rbuf->get_data()))
+            leaf_node_handler::print((leaf_node_t *) rbuf->get_data());
         else
-            internal_node_handler::print((internal_node_t *) rbuf->ptr());
+            internal_node_handler::print((internal_node_t *) rbuf->get_data());
 #endif
             
         // Figure out where the key goes
@@ -241,7 +241,7 @@ bool btree_modify_fsm<config_t>::do_check_for_split(node_t **node) {
             buf->release();
             buf = rbuf;
             rbuf = NULL;
-            *node = (node_t *)buf->ptr();
+            *node = (node_t *)buf->get_data();
             node_id = rnode_id;
         }
     }
@@ -314,7 +314,7 @@ typename btree_modify_fsm<config_t>::transition_result_t btree_modify_fsm<config
                     }
                 }
 
-                node_t *node = (node_t *)buf->ptr();
+                node_t *node = (node_t *)buf->get_data();
 
                 // STEP 2: If we're at the destination leaf, potentially acquire a large value, then compute a new value.
                 if (node_handler::is_leaf(node) && !have_computed_new_value) {
@@ -396,9 +396,9 @@ typename btree_modify_fsm<config_t>::transition_result_t btree_modify_fsm<config
                         break;
                     } else {
                         // Sibling acquired, now decide whether to merge or level
-                        node_t *sib_node = (node_t *)sib_buf->ptr();
+                        node_t *sib_node = (node_t *)sib_buf->get_data();
                         node_handler::validate(sib_node);
-                        node_t *parent_node = (node_t *)last_buf->ptr();
+                        node_t *parent_node = (node_t *)last_buf->get_data();
                         if (node_handler::is_mergable(node, sib_node, parent_node)) { // Merge
                             //logf(DBG, "internal merge\n");
                             btree_key *key_to_remove = (btree_key *)alloca(sizeof(btree_key) + MAX_KEY_SIZE); //TODO get alloca outta here
@@ -534,13 +534,13 @@ template <class config_t>
 void btree_modify_fsm<config_t>::split_node(buf_t *buf, buf_t **rbuf,
                                          block_id_t *rnode_id, btree_key *median) {
     buf_t *res = transaction->allocate(rnode_id);
-    if(node_handler::is_leaf((node_t *)buf->ptr())) {
-        leaf_node_t *node = (leaf_node_t *)buf->ptr();
-        leaf_node_t *rnode = (leaf_node_t *)res->ptr();
+    if(node_handler::is_leaf((node_t *)buf->get_data())) {
+        leaf_node_t *node = (leaf_node_t *)buf->get_data();
+        leaf_node_t *rnode = (leaf_node_t *)res->get_data();
         leaf_node_handler::split(node, rnode, median);
     } else {
-        internal_node_t *node = (internal_node_t *)buf->ptr();
-        internal_node_t *rnode = (internal_node_t *)res->ptr();
+        internal_node_t *node = (internal_node_t *)buf->get_data();
+        internal_node_t *rnode = (internal_node_t *)res->get_data();
         internal_node_handler::split(node, rnode, median);
     }
     buf->set_dirty();

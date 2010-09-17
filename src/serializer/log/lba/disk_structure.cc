@@ -119,35 +119,31 @@ struct lba_writer_t :
     }
 };
 
-bool lba_disk_structure_t::write(lba_entry_t *entries, int nentries, sync_callback_t *cb) {
+void lba_disk_structure_t::add_entry(block_id_t block_id, off64_t offset) {
     
-    /* Record the changes to the in-memory LBA */
-    
-    lba_writer_t *writer = new lba_writer_t(cb);
-    
-    for (int i = 0; i < nentries; i ++) {
+    if (last_extent && last_extent->full()) {
         
-        if (last_extent && last_extent->full()) {
-            
-            if (!superblock) {
-                lba_disk_superblock_t::create(em, fd, &superblock);
-            }
-            
-            superblock->extents.push_back(last_extent);
-            superblock->modified = true;
-            
-            last_extent = NULL;
+        if (!superblock) {
+            lba_disk_superblock_t::create(em, fd, &superblock);
         }
         
-        if (!last_extent) {
-            lba_disk_extent_t::create(em, fd, &last_extent);
-        }
+        superblock->extents.push_back(last_extent);
+        superblock->modified = true;
         
-        assert(!last_extent->full());
-        last_extent->add_entry(entries[i].block_id, entries[i].offset);
+        last_extent = NULL;
     }
     
-    /* Sync the changes to disk */
+    if (!last_extent) {
+        lba_disk_extent_t::create(em, fd, &last_extent);
+    }
+    
+    assert(!last_extent->full());
+    last_extent->add_entry(block_id, offset);
+}
+
+bool lba_disk_structure_t::sync(sync_callback_t *cb) {
+    
+    lba_writer_t *writer = new lba_writer_t(cb);
     
     if (last_extent) {
         if (!last_extent->sync(writer)) writer->outstanding_cbs++;

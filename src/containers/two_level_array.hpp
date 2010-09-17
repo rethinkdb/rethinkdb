@@ -57,7 +57,7 @@ private:
 public:
     two_level_array_t() : count(0), chunks() { }
     ~two_level_array_t() {
-        for (unsigned int i=0; i<num_chunks; i++) {
+        for (unsigned int i = 0; i < num_chunks; i++) {
             if (chunks[i]) delete chunks[i];
         }
     }

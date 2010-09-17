@@ -70,7 +70,7 @@ private:
     
     // This constructor creates a new buf with a new block id
     explicit buf(cache_t *cache);
-    
+
     ~buf();
     
     bool is_cached() { return cached; }
@@ -95,6 +95,13 @@ public:
         assert(!safe_to_unload()); // If this assertion fails, it probably means that you're trying to access a buf you don't own.
         assert(!do_delete);
         return data;
+    }
+
+    void *get_data() {
+        assert(cached);
+        assert(!safe_to_unload()); // If this assertion fails, it probably means that you're trying to access a buf you don't own.
+        assert(sizeof(typename serializer_t::buf_data_t) == BLOCK_META_DATA_SIZE);
+        return ((char *) data) + BLOCK_META_DATA_SIZE;
     }
 
     block_id_t get_block_id() const { return block_id; }

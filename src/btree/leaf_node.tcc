@@ -9,7 +9,7 @@
 void leaf_node_handler::init(btree_leaf_node *node) {
     node->type = btree_node_type_leaf;
     node->npairs = 0;
-    node->frontmost_offset = BTREE_BLOCK_SIZE;
+    node->frontmost_offset = BTREE_USABLE_BLOCK_SIZE;
 }
 
 void leaf_node_handler::init(btree_leaf_node *node, btree_leaf_node *lnode, uint16_t *offsets, int numpairs) {

@@ -33,7 +33,7 @@ typename btree_get_fsm<config_t>::transition_result_t btree_get_fsm<config_t>::d
         // Got the superblock buffer (either right away or through
         // cache notification). Grab the root id, and move on to
         // acquiring the root.
-        node_id = ((btree_superblock_t*)last_buf->ptr())->root_block;
+        node_id = ((btree_superblock_t*)last_buf->get_data())->root_block;
         state = acquire_root;
         return btree_fsm_t::transition_ok;
     } else {
@@ -92,13 +92,13 @@ typename btree_get_fsm<config_t>::transition_result_t btree_get_fsm<config_t>::d
     }
     assert(buf);
 
-    node_handler::validate((node_t *)buf->ptr());
+    node_handler::validate((node_t *)buf->get_data());
 
     // Release the previous buffer
     last_buf->release();
     last_buf = NULL;
 
-    node_t *node = (node_t *)buf->ptr();
+    node_t *node = (node_t *)buf->get_data();
     if(node_handler::is_internal(node)) {
         block_id_t next_node_id = internal_node_handler::lookup((internal_node_t*)node, &key);
         assert(next_node_id != NULL_BLOCK_ID);

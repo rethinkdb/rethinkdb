@@ -7,7 +7,7 @@ void priority_queue_t<T, Less>::entry_t::update() {
 }
 
 template<class T, class Less>
-void priority_queue_t<T, Less>::swap(int i, int j) {
+void priority_queue_t<T, Less>::swap(unsigned int i, unsigned int j) {
     entry_t *tmp = heap[i];
     heap[i] = heap[j];
     heap[j] = tmp;
@@ -16,17 +16,17 @@ void priority_queue_t<T, Less>::swap(int i, int j) {
 }
 
 template<class T, class Less>
-int priority_queue_t<T, Less>::parent(int i) {
+unsigned int priority_queue_t<T, Less>::parent(unsigned int i) {
     return ((i + 1) / 2) - 1;
 }
 
 template<class T, class Less>
-int priority_queue_t<T, Less>::left(int i) {
+unsigned int priority_queue_t<T, Less>::left(unsigned int i) {
     return (2 * (i + 1)) - 1;
 }
 
 template<class T, class Less>
-int priority_queue_t<T, Less>::right(int i) {
+unsigned int priority_queue_t<T, Less>::right(unsigned int i) {
     return 2 * (i + 1);
 }
 
@@ -69,7 +69,10 @@ priority_queue_t<T, Less>::priority_queue_t() {}
 
 
 template<class T, class Less>
-priority_queue_t<T, Less>::~priority_queue_t() {}
+priority_queue_t<T, Less>::~priority_queue_t() {
+    for (unsigned int i = 0; i < heap.size(); i++)
+        delete heap[i];
+}
 
 template<class T, class Less>
 bool priority_queue_t<T, Less>::empty() {
@@ -102,9 +105,12 @@ typename priority_queue_t<T, Less>::entry_t *priority_queue_t<T, Less>::push(T d
 template<class T, class Less>
 T priority_queue_t<T, Less>::pop() {
     T result = heap.front()->data;
+    heap.front()->pq = NULL;
+    heap.front()->index = -1;
     heap.pop_front();
 
     heap.push_front(heap.back());
+    heap.front()->index = 0;
     heap.pop_back();
 
     bubble_down(0);
@@ -117,4 +123,15 @@ void priority_queue_t<T, Less>::update(int index) {
     int i = index;
     bubble_up(&i);
     bubble_down(&i);
+}
+
+template<class T, class Less>
+void priority_queue_t<T, Less>::validate() {
+    for (unsigned int i = 0; i < heap.size(); i++) {
+        if(i != 0)
+            assert(!Less()(heap[parent(i)]->data, heap[i]->data));
+        
+        assert(heap[i]->index == (int) i);
+        assert(heap[i]->pq == this);
+    }
 }
