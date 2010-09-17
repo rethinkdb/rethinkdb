@@ -36,7 +36,7 @@ struct standard_config_t {
 #ifndef NDEBUG
     typedef semantic_checking_serializer_t<log_serializer_t> serializer_t;
 #else
-    typedef log_serializer_t serializer_t
+    typedef log_serializer_t serializer_t;
 #endif
 
     // Caching
