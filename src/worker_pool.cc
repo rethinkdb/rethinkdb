@@ -19,6 +19,7 @@
 #include "buffer_cache/concurrency/rwi_conc.hpp"
 #include "serializer/in_place.hpp"
 #include "serializer/log/log_serializer.hpp"
+#include "serializer/semantic_checking.hpp"
 #include "conn_fsm.hpp"
 #include "buffer_cache/concurrency/rwi_conc.hpp"
 

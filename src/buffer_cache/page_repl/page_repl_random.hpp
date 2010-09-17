@@ -91,6 +91,8 @@ public:
             }
             
             if (block_to_unload) {
+                //printf("Unloading: %ld\n", block_to_unload->block_id);
+                
                 /* buf_t's destructor, and the destructors of the local_buf_ts, take care of the
                 details */
                 delete block_to_unload;

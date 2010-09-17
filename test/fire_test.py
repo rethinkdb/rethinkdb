@@ -47,7 +47,7 @@ for (mode, checker, protocol) in [("debug", "valgrind", "text")]:
               "protocol"    : protocol })
     
     # More advanced tests in various cores/slices configuration
-    for (cores, slices) in [(1, 1)]:
+    for (cores, slices) in [(1, 1), (2, 2)]:
         do_test("integration/many_keys.py",
                 { "auto"        : True,
                   "mode"        : mode,
@@ -63,8 +63,8 @@ for (mode, checker, protocol) in [("debug", "valgrind", "text")]:
                   "protocol"    : protocol,
                   "cores"       : cores,
                   "slices"      : slices,
-                  "duration"    : 10 },
-                repeat=2, timeout=15)
+                  "duration"    : 30 },
+                repeat=3, timeout=35)
     
         do_test("integration/serial_mix.py",
                 { "auto"        : True,
@@ -73,9 +73,9 @@ for (mode, checker, protocol) in [("debug", "valgrind", "text")]:
                   "protocol"    : protocol,
                   "cores"       : cores,
                   "slices"      : slices,
-                  "duration"    : 10,
+                  "duration"    : 30,
                   "restart-server-prob" : "0.0005" },
-                repeat=2, timeout=15)
+                repeat=3, timeout=35)
     
         do_test("integration/multi_serial_mix.py",
                 { "auto"        : True,
@@ -84,8 +84,8 @@ for (mode, checker, protocol) in [("debug", "valgrind", "text")]:
                   "protocol"    : protocol,
                   "cores"       : cores,
                   "slices"      : slices,
-                  "duration"    : 10 },
-                repeat=2, timeout=15)
+                  "duration"    : 30 },
+                repeat=3, timeout=35)
     
 # Report the results
 report()
