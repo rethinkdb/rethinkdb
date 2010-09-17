@@ -2,7 +2,6 @@
 #ifndef __BUFFER_CACHE_WRITEBACK_HPP__
 #define __BUFFER_CACHE_WRITEBACK_HPP__
 
-#include <vector>
 #include "concurrency/rwi_lock.hpp"
 #include "utils.hpp"
 
@@ -38,6 +37,9 @@ public:
 
     bool begin_transaction(transaction_t *txn, transaction_begin_callback<config_t> *cb);
     void on_transaction_commit(transaction_t *txn);
+    
+    // This is called by buf_t when the OS informs the buf that a write operation completed
+    void buf_was_written(buf_t *buf);
     
     unsigned int num_dirty_blocks();
     
@@ -125,9 +127,7 @@ private:
     // List of bufs that are currenty dirty
     intrusive_list_t<local_buf_t> dirty_bufs;
 
-    // Bufs that have been sent to the serializer but weren't
-    // confirmed yet
-    std::vector<buf_t*, gnew_alloc<buf_t*> > pending_bufs;
+    /* Internal variables used only during a flush operation. */
     
     // Transaction that the writeback is using to grab buffers
     transaction_t *transaction;
