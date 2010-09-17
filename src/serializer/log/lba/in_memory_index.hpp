@@ -173,6 +173,10 @@ public:
         }
     }
     
+    block_id_t max_block_id() {
+        return blocks.get_size();
+    }
+    
     off64_t get_block_offset(block_id_t id) {
         if (blocks[id].get_state() == block_used) {
             return blocks[id].get_offset();

@@ -30,7 +30,8 @@ public:
     static bool load(extent_manager_t *em, fd_t fd, lba_metablock_mixin_t *metablock,
         lba_disk_structure_t **out, load_callback_t *cb);
     
-    bool write(lba_entry_t *entries, int nentries, sync_callback_t *cb);
+    void add_entry(block_id_t block_id, off64_t offset);
+    bool sync(sync_callback_t *cb);
     void prepare_metablock(lba_metablock_mixin_t *mb_out);
     
     void destroy();   // Delete both in memory and on disk

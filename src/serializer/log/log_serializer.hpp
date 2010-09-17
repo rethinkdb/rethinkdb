@@ -6,6 +6,8 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <map>
+
 #include "arch/resource.hpp"
 #include "config/cmd_args.hpp"
 #include "config/code.hpp"
@@ -56,11 +58,13 @@ struct log_serializer_metablock_t {
 typedef metablock_manager_t<log_serializer_metablock_t> mb_manager_t;
 
 // Used internally
+struct ls_block_writer_t;
 struct ls_write_fsm_t;
 struct ls_start_fsm_t;
 
 struct log_serializer_t
 {
+    friend class ls_block_writer_t;
     friend class ls_write_fsm_t;
     friend class ls_start_fsm_t;
     
@@ -149,7 +153,17 @@ private:
     lba_index_t lba_index;
     data_block_manager_t data_block_manager;
     
-    int active_write_count;
+    int active_write_count;   // For debugging
+    
+    /* Keeps track of buffers that are currently being written, so that if we get a read
+    for a block ID that we are currently writing but is not on disk yet, we can return
+    the most current version. */
+    typedef std::map<
+        block_id_t, ls_block_writer_t*,
+        std::less<block_id_t>,
+        gnew_alloc<std::pair<block_id_t, ls_block_writer_t*> >
+        > block_writer_map_t;
+    block_writer_map_t block_writer_map;
 };
 
 #endif /* __LOG_SERIALIZER_HPP__ */
