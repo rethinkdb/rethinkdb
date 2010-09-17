@@ -6,7 +6,6 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <fcntl.h>
-#include <queue>
 #include <map>
 
 #include "arch/resource.hpp"
@@ -119,20 +118,6 @@ public:
         write_block_callback_t *callback;
     };
     bool do_write(write_t *writes, int num_writes, write_txn_callback_t *callback);
-    void do_outstanding_writes();
-
-private:
-    struct write_record_t /* : public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, write_record_t> */ {
-        write_t *writes;
-        int num_writes;
-        write_txn_callback_t *callback;
-        write_record_t(write_t *writes, int num_writes, write_txn_callback_t *callback)
-            : writes(writes), num_writes(num_writes), callback(callback)
-        {}
-        ~write_record_t()
-        {}
-    };
-    std::queue<write_record_t , std::deque<write_record_t , gnew_alloc<write_record_t> > > outstanding_writes;
     
 public:
     /* Generates a unique block id. */
@@ -158,7 +143,6 @@ private:
         state_unstarted,
         state_starting_up,
         state_ready,
-        state_write, /* !< doing a write */
         state_shut_down,
     } state;
 
@@ -174,7 +158,13 @@ private:
     data_block_manager_t data_block_manager;
     lba_index_t lba_index;
     
-    int active_write_count;   // For debugging
+    /* The ls_write_fsm_ts organize themselves into a list so that they can be sure to
+    write their metablocks in the correct order. last_write points to the most recent
+    transaction that started but did not finish; new ls_write_fsm_ts use it to find the
+    end of the list so they can append themselves to it. */
+    ls_write_fsm_t *last_write;
+    
+    int active_write_count;
     
     /* Keeps track of buffers that are currently being written, so that if we get a read
     for a block ID that we are currently writing but is not on disk yet, we can return

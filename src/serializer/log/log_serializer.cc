@@ -12,6 +12,7 @@ log_serializer_t::log_serializer_t(char *_db_path, size_t block_size)
       metablock_manager(&extent_manager),
       data_block_manager(this, &extent_manager, block_size),
       lba_index(&data_block_manager, &extent_manager),
+      last_write(NULL),
       active_write_count(0) {
     
     assert(strlen(_db_path) <= MAX_DB_FILE_NAME - 1);   // "- 1" for the null-terminator
@@ -20,6 +21,7 @@ log_serializer_t::log_serializer_t(char *_db_path, size_t block_size)
 
 log_serializer_t::~log_serializer_t() {
     assert(state == state_unstarted || state == state_shut_down);
+    assert(last_write == NULL);
     assert(active_write_count == 0);
 }
 
@@ -300,14 +302,17 @@ struct ls_write_fsm_t :
     log_serializer_t::write_t *writes;
     int num_writes;
     
+    /* We notify this after we have submitted our metablock to the metablock manager; it
+    waits for our notification before submitting its metablock to the metablock
+    manager. This way we guarantee that the metablocks are ordered correctly. */
+    ls_write_fsm_t *next_write;
+    
     ls_write_fsm_t(log_serializer_t *ser, log_serializer_t::write_t *writes, int num_writes)
-        : state(state_start), ser(ser), writes(writes), num_writes(num_writes) {
-        ser->active_write_count ++;
+        : state(state_start), ser(ser), writes(writes), num_writes(num_writes), next_write(NULL) {
     }
     
     ~ls_write_fsm_t() {
-        assert(state == state_done);
-        ser->active_write_count --;
+        assert(state == state_start || state == state_done);
     }
     
     bool run(log_serializer_t::write_txn_callback_t *cb) {
@@ -325,6 +330,8 @@ struct ls_write_fsm_t :
     
     bool do_start_writes_and_lba() {
         
+        ser->active_write_count++;
+        
         state = state_waiting_for_data_and_lba;
         
         /* Launch each individual block writer */
@@ -334,7 +341,6 @@ struct ls_write_fsm_t :
             ls_block_writer_t *writer = new ls_block_writer_t(ser, writes[i]);
             if (!writer->run(this)) num_writes_waited_for++;
         }
-
         
         /* Sync the LBA */
         
@@ -348,31 +354,66 @@ struct ls_write_fsm_t :
         ser->data_block_manager.prepare_metablock(&mb_buffer.data_block_manager_part);
         ser->lba_index.prepare_metablock(&mb_buffer.lba_index_part);
         
+        /* Get in line for the metablock manager */
+        
+        if (ser->last_write) {
+            ser->last_write->next_write = this;
+            waiting_for_prev_write = true;
+        } else {
+            waiting_for_prev_write = false;
+        }
+        ser->last_write = this;
+        
         /* If we're already done, go on to the next step */
         
-        if (offsets_were_written && num_writes_waited_for == 0) return do_write_metablock();
-        else return false;
+        return maybe_write_metablock();
     }
     
     void on_io_complete(event_t *unused) {
         assert(state == state_waiting_for_data_and_lba);
         assert(num_writes_waited_for > 0);
         num_writes_waited_for --;
-        if (offsets_were_written && num_writes_waited_for == 0) do_write_metablock();
+        maybe_write_metablock();
     }
     
     void on_lba_sync() {
         assert(state == state_waiting_for_data_and_lba);
         assert(!offsets_were_written);
         offsets_were_written = true;
-        if (offsets_were_written && num_writes_waited_for == 0) do_write_metablock();
+        maybe_write_metablock();
+    }
+    
+    void on_prev_write_submitted_metablock() {
+        assert(state == state_waiting_for_data_and_lba);
+        assert(waiting_for_prev_write);
+        waiting_for_prev_write = false;
+        maybe_write_metablock();
+    }
+    
+    bool maybe_write_metablock() {
+        if (offsets_were_written && num_writes_waited_for == 0 && !waiting_for_prev_write) {
+            return do_write_metablock();
+        } else {
+            return false;
+        }
     }
     
     bool do_write_metablock() {
         
         state = state_waiting_for_metablock;
         
-        if (ser->metablock_manager.write_metablock(&mb_buffer, this)) return do_finish();
+        bool done = ser->metablock_manager.write_metablock(&mb_buffer, this);
+        
+        /* If there was another transaction waiting for us to write our metablock so it could
+        write its metablock, notify it now so it can write its metablock. */
+        if (next_write) {
+            next_write->on_prev_write_submitted_metablock();
+        } else {
+            assert(this == ser->last_write);
+            ser->last_write = NULL;
+        }
+        
+        if (done) return do_finish();
         else return false;
     }
     
@@ -382,71 +423,38 @@ struct ls_write_fsm_t :
     }
     
     bool do_finish() {
-
+        
+        ser->active_write_count--;
+        
         state = state_done;
-
-        // Must move 'callback' from the instance variable to the stack so we can delete this. The
-        // reason we need to delete this before calling the callback is so that we decrement
-        // active_write_count before calling the callback.
-
-        log_serializer_t *_ser = ser;
-        log_serializer_t::write_txn_callback_t *cb = callback;
-        delete this;
-
+        
         //TODO I'm kind of unhappy that we're calling this from in here we should figure out better where to trigger gc
-        _ser->gc_counter = (_ser->gc_counter + 1) % 5;
-        if (_ser->gc_counter == 0)
-            _ser->data_block_manager.start_gc();
-
-        //HACKY, this should be done with a callback
-        if (_ser->state != log_serializer_t::state_starting_up)
-            _ser->do_outstanding_writes();
-
-        if (cb) cb->on_serializer_write_txn();
-
+        ser->gc_counter = (ser->gc_counter + 1) % 5;
+        if (ser->gc_counter == 0)
+            ser->data_block_manager.start_gc();
+        
+        if (callback) callback->on_serializer_write_txn();
+        
+        delete this;
+        
         return true;
     }
     
 private:
     bool offsets_were_written;
     int num_writes_waited_for;
+    bool waiting_for_prev_write;
     log_serializer_t::write_txn_callback_t *callback;
     
     log_serializer_t::metablock_t mb_buffer;
 };
 
 bool log_serializer_t::do_write(write_t *writes, int num_writes, write_txn_callback_t *callback) {
-    assert(state == state_ready || state == state_write);
     
-    bool res;
-
-    if (state == state_ready) {
-        state = state_write;
-        ls_write_fsm_t *w = new ls_write_fsm_t(this, writes, num_writes);
-        res = w->run(callback);
-    } else {
-        write_t *_writes = (write_t *) _gmalloc(sizeof(write_t) * num_writes);
-        for (int i = 0; i < num_writes; i++) {
-            _writes[i] = writes[i];
-        }
-        outstanding_writes.push(write_record_t(_writes, num_writes, callback));
-        res = false;
-    }
-    return res;
-}
-
-void log_serializer_t::do_outstanding_writes() {
-    assert(state == state_write);
-    if (!outstanding_writes.empty()) {
-        write_record_t rec = outstanding_writes.front();
-
-        outstanding_writes.pop();
-        ls_write_fsm_t *w = new ls_write_fsm_t(this, rec.writes, rec.num_writes);
-        w->run(rec.callback);
-        delete rec.writes;
-    } else {
-        state = state_ready;
-    }
+    assert(state == state_ready);
+    
+    ls_write_fsm_t *w = new ls_write_fsm_t(this, writes, num_writes);
+    return w->run(callback);
 }
 
 bool log_serializer_t::do_read(block_id_t block_id, void *buf, read_callback_t *callback) {
@@ -474,15 +482,17 @@ bool log_serializer_t::do_read(block_id_t block_id, void *buf, read_callback_t *
 }
 
 block_id_t log_serializer_t::gen_block_id() {
-    assert(state == state_ready || state == state_write);
+    assert(state == state_ready);
     return lba_index.gen_block_id();
 }
 
 bool log_serializer_t::shutdown(shutdown_callback_t *cb) {
     
-    /* TODO: Instead of asserting we are done starting up, block until we are done starting up. */
+    /* TODO: Instead of asserting we are done starting up, block until we are done starting up.
+    Same with draining out transactions. */
     
     assert(state == state_ready);
+    assert(last_write == NULL);
     assert(active_write_count == 0);
     
     lba_index.shutdown();
