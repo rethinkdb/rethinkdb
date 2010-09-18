@@ -3,6 +3,7 @@
 #define __SERIALIZER_LOG_LBA_IN_MEMORY_INDEX__
 
 #include "containers/segmented_vector.hpp"
+#include "containers/intrusive_list.hpp"
 #include "disk_structure.hpp"
 #include "config/code.hpp"
 #include "serializer/log/data_block_manager.hpp"
@@ -91,7 +92,7 @@ public:
         next_free_id = NULL_BLOCK_ID;
     }
     
-    in_memory_index_t(lba_disk_structure_t *s, data_block_manager_t *dbm) {
+    in_memory_index_t(lba_disk_structure_t *s, data_block_manager_t *dbm, extent_manager_t *em) {
         
         /* Call each lba_extent_t in reverse order */
         
@@ -129,6 +130,16 @@ public:
             }
         }
         dbm->end_reconstruct();
+
+        /* mark our extents as being used */
+        if (s->superblock != NULL) {
+            for (intrusive_list_t<lba_disk_extent_t>::iterator it = s->superblock->extents.begin(); it != s->superblock->extents.end(); it++) {
+                em->using_extent((*it).offset);
+            }
+            em->using_extent(s->superblock->offset);
+        }
+        if (s->last_extent) 
+            em->using_extent(s->last_extent->offset);
     }
     
     void fill_from_extent(lba_disk_extent_t *x) {
