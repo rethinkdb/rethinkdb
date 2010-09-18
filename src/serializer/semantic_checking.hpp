@@ -39,7 +39,9 @@ private:
     
     crc_t compute_crc(void *buf) {
         boost::crc_optimal<32, 0x04C11DB7, 0xFFFFFFFF, 0xFFFFFFFF, true, true> crc_computer;
-        crc_computer.process_bytes(buf, block_size);
+        // We need to not crc BLOCK_META_DATA_SIZE because it's
+        // internal to the serializer.
+        crc_computer.process_bytes((void*)((char*)buf + BLOCK_META_DATA_SIZE), block_size - BLOCK_META_DATA_SIZE);
         return crc_computer.checksum();
     }
     
