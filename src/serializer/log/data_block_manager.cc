@@ -87,10 +87,6 @@ void data_block_manager_t::mark_live(off64_t offset) {
 }
 
 void data_block_manager_t::end_reconstruct() {
-    for (unsigned int extent_id = 0; (extent_id * extent_manager->extent_size) < (unsigned int) extent_manager->max_extent(); extent_id++) {
-        if (entries.get(extent_id) == NULL)
-            extent_manager->release_extent(extent_id * extent_manager->extent_size);
-    }
     gc_state.step = gc_ready;
 }
 

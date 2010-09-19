@@ -48,7 +48,6 @@ public:
 public:
     bool read(off64_t off_in, void *buf_out, iocallback_t *cb);
 
-public:
     /* The offset that the data block manager chose will be left in off_out as soon as write()
     returns. The callback will be called when the data is actually on disk and it is safe to reuse
     the buffer. */
@@ -58,6 +57,10 @@ public:
     /* exposed gc api */
     /* mark a buffer as garbage */
     void mark_garbage(off64_t);
+
+    bool is_extent_in_use(unsigned int extent_id) {
+        return entries.get(extent_id) != NULL;
+    }
 
     /* r{start,stop}_reconstruct functions for safety */
     void start_reconstruct();

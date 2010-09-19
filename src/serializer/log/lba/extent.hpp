@@ -67,10 +67,11 @@ public:
 
 private:
     // Use create() or load() instead
-    extent_t(extent_manager_t *em, fd_t fd, off64_t offset)
-        : em(em), fd(fd), offset(offset), last_sync(NULL)
+    extent_t(extent_manager_t *_em, fd_t _fd, off64_t _offset)
+        : em(_em), fd(_fd), offset(_offset), last_sync(NULL)
     {
-        assert(offset % em->extent_size == 0);
+        assert(em);
+        assert(offset % (em->extent_size) == 0);
         
         _data = (data_t*)malloc_aligned(em->extent_size, DEVICE_BLOCK_SIZE);
         assert(_data);

@@ -83,7 +83,7 @@ public:
         } else {
 
             // Don't give out reserved extent
-            while(reserved_extent.find(last_extent) != reserved_extent.end())
+            while(is_reserved(last_extent))
                 last_extent += extent_size;
 
             extent = last_extent;
@@ -109,26 +109,21 @@ public:
     }
 
     void release_extent(off64_t extent) {
-        /* TODO Once upon a time this was an assert because no one would release reserved extents
-         * now they get release on reconstruction, it would be nice to get this back to be an assert
-         */
-        if(reserved_extent.find(extent) == reserved_extent.end()) {  //no releasing the reserved extents
-            assert(extent < last_extent);
-#ifndef NDEBUG//avoid overhead in release mode
-            for (unsigned int i = 0; i < free_queue.size(); i++)
-                assert(free_queue[i] != extent);
+        // no releasing the reserved extents
+        assert(!is_reserved(extent));
+        assert(extent < last_extent);
+
+#ifndef NDEBUG
+        // In debug mode, make sure we ain't trying to release
+        // something that was released already (that would be very
+        // bad because we could pull the same extent of the free
+        // queue twice).
+        for (unsigned int i = 0; i < free_queue.size(); i++) {
+            assert(free_queue[i] != extent);
+        }
 #endif
 
-            free_queue.push_back(extent);
-        }
-    }
-
-    void using_extent(off64_t extent) {
-        /* mark an extent as being used */
-        for (free_queue_t::iterator it = free_queue.begin(); it != free_queue.end(); it++) {
-            while(*it == extent)
-                it = free_queue.erase(it);
-        }
+        free_queue.push_back(extent);
     }
 
 public:
@@ -137,11 +132,14 @@ public:
         metablock->last_truncated_extent = last_truncated_extent;
     }
 
-public:
     void shutdown() {
         assert(last_extent != -1);
         last_extent = -1;
         last_truncated_extent = -1;
+    }
+
+    bool is_reserved(off64_t extent) {
+        return reserved_extent.find(extent) != reserved_extent.end();
     }
 
 private:

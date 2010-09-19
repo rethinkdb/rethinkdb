@@ -129,19 +129,57 @@ public:
                 dbm->mark_live(blocks[id].get_offset());
             }
         }
-        dbm->end_reconstruct();
-
-        /* mark our extents as being used */
-        if (s->superblock != NULL) {
-            for (intrusive_list_t<lba_disk_extent_t>::iterator it = s->superblock->extents.begin(); it != s->superblock->extents.end(); it++) {
-                em->using_extent((*it).offset);
-            }
-            em->using_extent(s->superblock->offset);
-        }
-        if (s->last_extent) 
-            em->using_extent(s->last_extent->offset);
+        end_reconstruct(dbm, em, s);
     }
-    
+
+private:
+    void end_reconstruct(data_block_manager_t *dbm, extent_manager_t *em, lba_disk_structure_t *s) {
+        // Go through all extents and release each one if it isn't in
+        // use.
+        for (unsigned int extent_id = 0;
+             (extent_id * em->extent_size) < (unsigned int) em->max_extent();
+             extent_id++)
+        {
+            if (!is_extent_in_use(dbm, em, s, extent_id))
+                em->release_extent(extent_id * em->extent_size);
+        }
+        dbm->end_reconstruct();
+    }
+
+    bool is_extent_in_use(data_block_manager_t *dbm, extent_manager_t *em, lba_disk_structure_t *s, unsigned int extent_id) {
+        off64_t extent_offset = extent_id * em->extent_size;
+        return
+            em->is_reserved(extent_offset) ||
+            dbm->is_extent_in_use(extent_id) ||
+            is_extent_in_use_by_lba(em, s, extent_id);
+    }
+
+    bool is_extent_in_use_by_lba(extent_manager_t *em, lba_disk_structure_t *s, unsigned int extent_id) {
+        off64_t extent_offset = extent_id * em->extent_size;
+        // First check if it's the last extent
+        if (s->last_extent && s->last_extent->offset == extent_offset)
+            return true;
+        // If we have a superblock, gotta check if extent is
+        // superblock or one of the other extents stored in the
+        // superblock
+        if (s->superblock != NULL) {
+            if(s->superblock->offset == extent_offset)
+                return true;
+
+            // TODO: This is O(N^2) because we check if every extent
+            // is one of LBA extents - no good, fix it!
+            for (intrusive_list_t<lba_disk_extent_t>::iterator it = s->superblock->extents.begin();
+                 it != s->superblock->extents.end();
+                 it++)
+            {
+                if((*it).offset == extent_offset)
+                    return true;
+            }
+        }
+        return false;
+    }
+
+public:
     void fill_from_extent(lba_disk_extent_t *x) {
     
         for (int i = x->count - 1; i >= 0; i --) {
@@ -195,6 +233,9 @@ public:
     }
     
     off64_t get_block_offset(block_id_t id) {
+        if(id >= blocks.get_size()) {
+            fail("Tried to get offset of a block that doesn't exist (id %lu too high)", id);
+        }
         if (blocks[id].get_state() == block_used) {
             return blocks[id].get_offset();
         } else {
