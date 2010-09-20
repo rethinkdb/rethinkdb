@@ -254,8 +254,10 @@ struct gc_fsm_t :
 };
 
 void lba_list_t::gc() {
-    assert(!gc_fsm);
-    gc_fsm = new gc_fsm_t(this);
+    if(!gc_fsm) {
+        // Only gc if we're not gc'ing already
+        gc_fsm = new gc_fsm_t(this);
+    }
 }
 
 bool lba_list_t::shutdown(shutdown_callback_t *cb) {
