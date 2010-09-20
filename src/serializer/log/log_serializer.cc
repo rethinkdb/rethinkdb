@@ -4,7 +4,8 @@
 #include <unistd.h>
 
 log_serializer_t::log_serializer_t(char *_db_path, size_t block_size)
-    : block_size(block_size),
+    : shutdown_callback(NULL),
+      block_size(block_size),
       state(state_unstarted),
       gc_counter(0),
       dbfd(INVALID_FD),
@@ -114,9 +115,11 @@ struct ls_start_fsm_t :
             w.buf = initial_superblock;
             w.callback = NULL;
             
-            ser->state = log_serializer_t::state_ready;   // Backdoor around do_write()'s assertion
+            // Backdoor around do_write()'s assertion
+            log_serializer_t::state_t _state = ser->state;
+            ser->state = log_serializer_t::state_ready;
             bool write_done = ser->do_write(&w, 1, this);
-            ser->state = log_serializer_t::state_starting_up;
+            ser->state = _state;
             
             if (write_done) {
                 state = state_finish;
@@ -128,13 +131,20 @@ struct ls_start_fsm_t :
         
         if (state == state_finish) {
             state = state_done;
-            assert(ser->state == log_serializer_t::state_starting_up);
-            ser->state = log_serializer_t::state_ready;
+            assert(ser->state == log_serializer_t::state_starting_up
+                   || ser->state == log_serializer_t::state_shutting_down);
             
-            if (ready_callback) ready_callback->on_serializer_ready();
+            if(ser->state == log_serializer_t::state_shutting_down) {
+                // We got a shutdown call while we were starting
+                // up. No need to call ready callback, just shutdown.
+                ser->next_shutdown_step();
+            } else {
+                ser->state = log_serializer_t::state_ready;
+                if(ready_callback)
+                    ready_callback->on_serializer_ready();
+            }
             
             delete this;
-            
             return true;
         }
         
@@ -430,13 +440,25 @@ struct ls_write_fsm_t :
         
         //TODO I'm kind of unhappy that we're calling this from in here we should figure out better where to trigger gc
         ser->gc_counter = (ser->gc_counter + 1) % 5;
-        if (ser->gc_counter == 0)
+        if (ser->gc_counter == 0 && ser->state == log_serializer_t::state_ready) {
+            // We do not do GC if we're not in the ready state
+            // (i.e. shutting down)
             ser->data_block_manager.start_gc();
+        }
         
         if (callback) callback->on_serializer_write_txn();
         
+        // If we were in the process of shutting down and this is the
+        // last transaction, shut ourselves down for good.
+        if(ser->state == log_serializer_t::state_shutting_down
+           && ser->shutdown_state == log_serializer_t::shutdown_waiting_on_serializer
+           && !ser->last_write
+           && ser->active_write_count == 0)
+        {
+            ser->next_shutdown_step();
+        }
+
         delete this;
-        
         return true;
     }
     
@@ -450,8 +472,11 @@ private:
 };
 
 bool log_serializer_t::do_write(write_t *writes, int num_writes, write_txn_callback_t *callback) {
-    
-    assert(state == state_ready);
+
+    // Even if state != state_ready we might get a do_write from the
+    // datablock manager on gc (because it's writing the final gc as
+    // we're shutting down). That is ok, which is why we don't assert
+    // on state here.
     
     ls_write_fsm_t *w = new ls_write_fsm_t(this, writes, num_writes);
     return w->run(callback);
@@ -487,20 +512,69 @@ block_id_t log_serializer_t::gen_block_id() {
 }
 
 bool log_serializer_t::shutdown(shutdown_callback_t *cb) {
+    assert(cb);
     
-    /* TODO: Instead of asserting we are done starting up, block until we are done starting up.
-    Same with draining out transactions. */
-    
-    assert(state == state_ready);
-    assert(last_write == NULL);
-    assert(active_write_count == 0);
-    
-    lba_index.shutdown();
-    data_block_manager.shutdown();
-    metablock_manager.shutdown();
-    extent_manager.shutdown();
+    shutdown_callback = cb;
 
-    state = state_shut_down;
-
-    return true;
+    shutdown_state = shutdown_begin;
+    shutdown_in_one_shot = true;
+    
+    return next_shutdown_step();
 }
+
+bool log_serializer_t::next_shutdown_step() {
+
+    if(shutdown_state == shutdown_begin) {
+        // First shutdown step
+        shutdown_state = shutdown_waiting_on_serializer;
+        if(state != state_ready || last_write || active_write_count > 0) {
+            state = state_shutting_down;
+            shutdown_in_one_shot = false;
+            return false;
+        }
+        state = state_shutting_down;
+    }
+
+    if(shutdown_state == shutdown_waiting_on_serializer) {
+        shutdown_state = shutdown_waiting_on_datablock_manager;
+        if(!data_block_manager.shutdown(this)) {
+            shutdown_in_one_shot = false;
+            return false;
+        }
+    }
+
+    if(shutdown_state == shutdown_waiting_on_datablock_manager) {
+        shutdown_state = shutdown_waiting_on_lba;
+        if(!lba_index.shutdown(this)) {
+            shutdown_in_one_shot = false;
+            return false;
+        }
+    }
+
+    if(shutdown_state == shutdown_waiting_on_lba) {
+        metablock_manager.shutdown();
+        extent_manager.shutdown();
+
+        state = state_shut_down;
+
+        // Don't call the callback if we went through the entire
+        // shutdown process in one synchronous shot.
+        if(!shutdown_in_one_shot && shutdown_callback) {
+            shutdown_callback->on_serializer_shutdown();
+        }
+
+        return true;
+    }
+
+    fail("Invalid state.");
+    return true; // make compiler happy
+}
+
+void log_serializer_t::on_datablock_manager_shutdown() {
+    next_shutdown_step();
+}
+
+void log_serializer_t::on_lba_shutdown() {
+    next_shutdown_step();
+}
+

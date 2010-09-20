@@ -63,7 +63,15 @@ public:
     void prepare_metablock(metablock_mixin_t *mb_out);
 
 public:
-    void shutdown();
+    struct shutdown_callback_t {
+        virtual void on_lba_shutdown() = 0;
+    };
+    bool shutdown(shutdown_callback_t *cb);
+
+private:
+    shutdown_callback_t *shutdown_callback;
+    gc_fsm_t *gc_fsm;
+    bool __shutdown();
 
 private:
     data_block_manager_t *data_block_manager;
@@ -73,6 +81,7 @@ private:
         state_unstarted,
         state_starting_up,
         state_ready,
+        state_shutting_down,
         state_shut_down
     } state;
     

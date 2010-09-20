@@ -6,7 +6,8 @@
 #include "event_queue.hpp"
 
 lba_list_t::lba_list_t(data_block_manager_t *dbm, extent_manager_t *em)
-    : data_block_manager(dbm), extent_manager(em), state(state_unstarted), in_memory_index(NULL), disk_structure(NULL)
+    : shutdown_callback(NULL), gc_fsm(NULL), data_block_manager(dbm), extent_manager(em),
+      state(state_unstarted), in_memory_index(NULL), disk_structure(NULL)
     {}
 
 /* This form of start() is called when we are creating a new database */
@@ -243,19 +244,36 @@ struct gc_fsm_t :
     
     void do_cleanup() {
         owner->disk_structure_lock.unlock();
+        owner->gc_fsm = NULL;
+
+        if(owner->state == lba_list_t::state_shutting_down)
+            owner->__shutdown();
+        
         delete this;
     }
 };
 
 void lba_list_t::gc() {
-    new gc_fsm_t(this);
+    assert(!gc_fsm);
+    gc_fsm = new gc_fsm_t(this);
 }
 
-void lba_list_t::shutdown() {
+bool lba_list_t::shutdown(shutdown_callback_t *cb) {
     assert(state == state_ready);
+    assert(cb);
     
-    /* TODO: It would be bad if shutdown happened during a GC. */
-    
+    if(gc_fsm) {
+        // We're gc'ing, can't shut down just yet...
+        state = state_shutting_down;
+        shutdown_callback = cb;
+        return false;
+    } else {
+        shutdown_callback = NULL;
+        return __shutdown();
+    }
+}
+
+bool lba_list_t::__shutdown() {
     delete in_memory_index;
     in_memory_index = NULL;
     
@@ -263,6 +281,11 @@ void lba_list_t::shutdown() {
     disk_structure = NULL;
     
     state = state_shut_down;
+
+    if(shutdown_callback)
+        shutdown_callback->on_lba_shutdown();
+
+    return true;
 }
 
 lba_list_t::~lba_list_t() {

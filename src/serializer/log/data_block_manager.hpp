@@ -20,8 +20,9 @@
 class data_block_manager_t {
     
 public:
-    data_block_manager_t(log_serializer_t *ser, extent_manager_t *em, size_t block_size)
-        : state(state_unstarted), serializer(ser), extent_manager(em), block_size(block_size) {}
+    data_block_manager_t(log_serializer_t *ser, extent_manager_t *em, size_t _block_size)
+        : shutdown_callback(NULL), state(state_unstarted), serializer(ser),
+          extent_manager(em), block_size(_block_size) {}
     ~data_block_manager_t() {
         assert(state == state_unstarted || state == state_shut_down);
     }
@@ -77,12 +78,19 @@ public:
     void prepare_metablock(metablock_mixin_t *metablock);
 
 public:
-    void shutdown();
+    struct shutdown_callback_t {
+        virtual void on_datablock_manager_shutdown() = 0;
+    };
+    bool shutdown(shutdown_callback_t *cb);
+
+private:
+    shutdown_callback_t *shutdown_callback;
 
 private:
     enum state_t {
         state_unstarted,
         state_ready,
+        state_shutting_down,
         state_shut_down
     } state;
 

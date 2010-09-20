@@ -63,7 +63,8 @@ struct ls_block_writer_t;
 struct ls_write_fsm_t;
 struct ls_start_fsm_t;
 
-struct log_serializer_t
+struct log_serializer_t : private data_block_manager_t::shutdown_callback_t,
+                          private lba_list_t::shutdown_callback_t
 {
     friend class ls_block_writer_t;
     friend class ls_write_fsm_t;
@@ -123,9 +124,7 @@ public:
     /* Generates a unique block id. */
     block_id_t gen_block_id();
     
-    /* shutdown() should be called when you are done with the serializer. You should only call
-    shutdown() when the serializer has finished starting up and there are no active write
-    operations.
+    /* shutdown() should be called when you are done with the serializer.
     
     If the shutdown is done immediately, shutdown() will return 'true'. Otherwise, it will return
     'false' and then call the given callback when the shutdown is done. */
@@ -135,6 +134,21 @@ public:
     };
     bool shutdown(shutdown_callback_t *cb);
 
+private:
+    bool next_shutdown_step();
+    shutdown_callback_t *shutdown_callback;
+    
+    enum shutdown_state_t {
+        shutdown_begin,
+        shutdown_waiting_on_serializer,
+        shutdown_waiting_on_datablock_manager,
+        shutdown_waiting_on_lba
+    } shutdown_state;
+    bool shutdown_in_one_shot;
+
+    virtual void on_datablock_manager_shutdown();
+    virtual void on_lba_shutdown();
+
 public:
     size_t block_size;
 
@@ -143,6 +157,7 @@ private:
         state_unstarted,
         state_starting_up,
         state_ready,
+        state_shutting_down,
         state_shut_down,
     } state;
 

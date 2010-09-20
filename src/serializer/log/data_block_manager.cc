@@ -38,7 +38,10 @@ bool data_block_manager_t::read(off64_t off_in, void *buf_out, iocallback_t *cb)
 }
 
 bool data_block_manager_t::write(void *buf_in, off64_t *off_out, iocallback_t *cb) {
-    assert(state == state_ready);
+    // Either we're ready to write, or we're shutting down and just
+    // finished reading blocks for gc and called do_write.
+    assert(state == state_ready
+           || (state == state_shutting_down && gc_state.step == gc_read));
     
     off64_t offset = *off_out = gimme_a_new_offset();
     
@@ -182,6 +185,13 @@ void data_block_manager_t::run_gc() {
                 /* update stats */
                 gc_stats.total_blocks -= EXTENT_SIZE / BTREE_BLOCK_SIZE;
                 gc_stats.garbage_blocks -= EXTENT_SIZE / BTREE_BLOCK_SIZE;
+
+                if(state == state_shutting_down) {
+                    if(shutdown_callback)
+                        shutdown_callback->on_datablock_manager_shutdown();
+                    state = state_shut_down;
+                }
+                
                 break;
             default:
                 fail("Unknown gc_step");
@@ -198,9 +208,18 @@ void data_block_manager_t::prepare_metablock(metablock_mixin_t *metablock) {
     metablock->blocks_in_last_data_extent = blocks_in_last_data_extent;
 }
 
-void data_block_manager_t::shutdown() {
+bool data_block_manager_t::shutdown(shutdown_callback_t *cb) {
+    assert(cb);
     assert(state == state_ready);
+
+    if(gc_state.step != gc_ready) {
+        state = state_shutting_down;
+        shutdown_callback = cb;
+        return false;
+    }
+    
     state = state_shut_down;
+    return true;
 }
 
 off64_t data_block_manager_t::gimme_a_new_offset() {
