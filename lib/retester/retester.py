@@ -31,7 +31,13 @@ class SmartTemporaryFile(object):
     
     def __del__(self):
         if hasattr(self, "need_to_delete") and self.need_to_delete:
-            os.remove(self.name)
+            try:
+                os.remove(self.name)
+            except AttributeError:
+                # This is probably because os has been unloaded by
+                # now. Unfortunate that we won't get to delete the
+                # temp file, but alas
+                pass
     
     # Forward everything to our internal NamedTemporaryFile object
     def __getattr__(self, name):
@@ -57,7 +63,13 @@ class SmartTemporaryDirectory(object):
     
     def __del__(self):
         if hasattr(self, "need_to_delete") and self.need_to_delete:
-            shutil.rmtree(self.path)
+            try:
+                shutil.rmtree(self.path)
+            except AttributeError:
+                # This is probably because shutil has been unloaded by
+                # now. Unfortunate that we won't get to delete the
+                # temp directory, but alas
+                pass
 
 class Result(object):
     """The Result class represents the result of a test. It is either a pass or a fail; if it is a
