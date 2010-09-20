@@ -2,6 +2,7 @@
 #ifndef __SERIALIZER_SEMANTIC_CHECKING_HPP__
 #define __SERIALIZER_SEMANTIC_CHECKING_HPP__
 
+#include <string>
 #include <boost/crc.hpp>
 #include "config/args.hpp"
 
@@ -46,6 +47,17 @@ private:
     }
     
     int last_write_started, last_write_callbacked;
+
+private:
+    struct persisted_block_info_t {
+        persisted_block_info_t() {}
+        persisted_block_info_t(block_id_t _block_id, const block_info_t &_block_info)
+            : block_id(_block_id), block_info(_block_info)
+            {}
+        block_id_t block_id;
+        block_info_t block_info;
+    };
+    int semantic_fd;
     
 public:
     size_t block_size;
@@ -53,11 +65,32 @@ public:
     semantic_checking_serializer_t(char *db_path, size_t block_size)
         : inner_serializer(db_path, block_size),
           last_write_started(0), last_write_callbacked(0),
-          block_size(block_size) {}
+          semantic_fd(-1), block_size(block_size)
+        {
+            std::basic_string<char, std::char_traits<char>, gnew_alloc<char> > semantic_path(db_path);
+            semantic_path += ".semantic";
+            semantic_fd = open(semantic_path.c_str(), O_RDWR | O_CREAT, S_IRWXU | S_IRWXG | S_IRWXO);
+            check("Could not open a semantic checking data file", semantic_fd == -1);
+        }
+
+    virtual ~semantic_checking_serializer_t() {
+        close(semantic_fd);
+    }
 
 public:
     typedef typename inner_serializer_t::ready_callback_t ready_callback_t;
     bool start(ready_callback_t *ready_cb) {
+        // fill up the blocks from the semantic checking file
+        int res = -1;
+        do {
+            persisted_block_info_t buf;
+            res = read(semantic_fd, &buf, sizeof(buf));
+            check("Could not read from the semantic checker file", res == -1);
+            if(res == sizeof(persisted_block_info_t)) {
+                blocks.set(buf.block_id, buf.block_info);
+            }
+        } while(res == sizeof(persisted_block_info_t));
+
         return inner_serializer.start(ready_cb);
     }
     
@@ -181,6 +214,11 @@ public:
 #endif
             }
             blocks.set(writes[i].block_id, b);
+            
+            // Add the block to the semantic checker file
+            persisted_block_info_t buf(writes[i].block_id, b);
+            int res = write(semantic_fd, &buf, sizeof(buf));
+            check("Could not write data to semantic checker file", res != sizeof(buf));
         }
         
         writer_t *writer = new writer_t(this, ++last_write_started);
