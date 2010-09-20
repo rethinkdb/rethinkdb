@@ -197,6 +197,9 @@ public:
     
         for (int i = 0; i < num_writes; i++) {
             block_info_t b;
+#ifdef VALGRIND
+            bzero((void*)&b, sizeof(b));  // make valgrind happy
+#endif
             if (writes[i].buf) {
                 b.state = block_info_t::state_have_crc;
                 b.crc = compute_crc(writes[i].buf);
