@@ -202,7 +202,8 @@ void data_block_manager_t::run_gc() {
 
 void data_block_manager_t::prepare_metablock(metablock_mixin_t *metablock) {
     
-    assert(state == state_ready);
+    assert(state == state_ready
+           || (state == state_shutting_down && gc_state.step == gc_read));
     
     metablock->last_data_extent = last_data_extent;
     metablock->blocks_in_last_data_extent = blocks_in_last_data_extent;
