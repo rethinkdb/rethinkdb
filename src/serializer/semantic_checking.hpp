@@ -50,10 +50,6 @@ private:
 
 private:
     struct persisted_block_info_t {
-        persisted_block_info_t() {}
-        persisted_block_info_t(block_id_t _block_id, const block_info_t &_block_info)
-            : block_id(_block_id), block_info(_block_info)
-            {}
         block_id_t block_id;
         block_info_t block_info;
     };
@@ -216,7 +212,12 @@ public:
             blocks.set(writes[i].block_id, b);
             
             // Add the block to the semantic checker file
-            persisted_block_info_t buf(writes[i].block_id, b);
+            persisted_block_info_t buf;
+#ifdef VALGRIND
+            bzero((void*)&buf, sizeof(buf));  // make valgrind happy
+#endif
+            buf.block_id = writes[i].block_id;
+            buf.block_info = b;
             int res = write(semantic_fd, &buf, sizeof(buf));
             check("Could not write data to semantic checker file", res != sizeof(buf));
         }
