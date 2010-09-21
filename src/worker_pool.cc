@@ -141,7 +141,9 @@ void worker_t::shutdown() {
     }
 
     for (int i = 0; i < nslices; i++) {
-        if (slices[i]->shutdown(this)) on_store_shutdown();
+        if (slices[i]->shutdown(this)) {
+            on_store_shutdown();
+        }
     }
 }
 
