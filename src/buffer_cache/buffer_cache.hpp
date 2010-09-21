@@ -2,9 +2,7 @@
 #ifndef __BUFFER_CACHE_HPP__
 #define __BUFFER_CACHE_HPP__
 
-#ifndef MOCK_BUFFER_CACHE
-
-/* Use the mirrored cache */
+/* Choose our cache */
 
 #include "serializer/serializer.hpp"
 #include "buffer_cache/mirrored/mirrored.hpp"
@@ -23,13 +21,9 @@ struct standard_mc_config_t {
     typedef writeback_tmpl_t<standard_mc_config_t> writeback_t;
 };
 
-typedef mc_cache_t<standard_mc_config_t> cache_t;
+#include "buffer_cache/semantic_checking.hpp"
 
-#else
-
-TODO: when we have a mock buffer cache, it goes here
-
-#endif
+typedef scc_cache_t<mc_cache_t<standard_mc_config_t> > cache_t;
 
 /* Move elements of chosen cache into global namespace */
 
