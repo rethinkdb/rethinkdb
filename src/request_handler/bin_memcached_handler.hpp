@@ -3,8 +3,8 @@
 #define __BIN_MEMCACHED_HANDLER_HPP__
 
 #include "request_handler/request_handler.hpp"
-#include "config/code.hpp"
-#include "alloc/alloc_mixin.hpp"
+#include "logger.hpp"
+#include "config/alloc.hpp"
 #include <arpa/inet.h>
 #include <endian.h>
 
@@ -16,23 +16,17 @@
 static const size_t extra_flags_length = 4;
 static const byte extra_flags[extra_flags_length] = {0x00, 0x00, 0x00, 0x00};
 
-template<class config_t>
-class bin_memcached_handler_t : public request_handler_t<config_t>,
-    public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, bin_memcached_handler_t<config_t> > {
+class bin_memcached_handler_t :
+    public request_handler_t,
+    public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, bin_memcached_handler_t> {
+
 public:
-    typedef typename config_t::cache_t cache_t;
-    typedef typename config_t::conn_fsm_t conn_fsm_t;
-    typedef typename config_t::btree_fsm_t btree_fsm_t;
-    typedef typename config_t::btree_set_fsm_t btree_set_fsm_t;
-    typedef typename config_t::btree_get_fsm_t btree_get_fsm_t;
-    typedef typename config_t::btree_delete_fsm_t btree_delete_fsm_t;
-    typedef typename config_t::req_handler_t req_handler_t;
-    typedef typename req_handler_t::parse_result_t parse_result_t;
-    using request_handler_t<config_t>::conn_fsm;
+    typedef request_handler_t::parse_result_t parse_result_t;
+    using request_handler_t::conn_fsm;
     
 public:
     bin_memcached_handler_t(event_queue_t *eq, conn_fsm_t *fsm)
-        : req_handler_t(eq, fsm), key((btree_key*)key_memory)
+        : request_handler_t(eq, fsm), key((btree_key*)key_memory)
         {}
     
     virtual parse_result_t parse_request(event_t *event);
@@ -58,23 +52,18 @@ public:
     
 
     //Magic Byte value
-    typedef enum {
+    enum bin_magic_code {
         bin_magic_request = 0x80,
         bin_magic_response = 0x81,
-        num_magic_code = 2, //this has to be maintained by hand (sucks)
-    } bin_magic_code;
+    };
 
     static bool is_valid_magic(bin_magic_t magic) {
-        bin_magic_code magics[num_magic_code] = {bin_magic_request, bin_magic_response}; //this must also be maintained by hand, I was hoping for a bit more magic
-        for (int i = 0; i < num_magic_code; i++) {
-            if (magic == magics[i])
-                return true;
-        }
-        return false;
+        // This has to be maintained by hand
+        return (magic == bin_magic_request || magic == bin_magic_response);
     }
 
     //response status
-    typedef enum {
+    enum bin_status_code {
         bin_status_no_error = 0x0000,
         bin_status_key_not_found = 0x0001,
         bin_status_key_exists = 0x0002,
@@ -84,54 +73,20 @@ public:
         bin_status_incr_decr_on_non_numeric_value = 0x0006,
         bin_status_unknown_command = 0x0081,
         bin_status_out_of_memory = 0x0082,
-        num_status_code = 9, //has to be maintained by hand
-    } bin_status_code;
+    };
 
-    bool is_valid_status(bin_status_t status) {
-        //of course this depends on the codes being sequential
-        bin_status_code statuses[num_status_code] = {bin_status_no_error, bin_status_key_not_found, bin_status_key_exists, bin_status_value_too_large, bin_status_invalid_arguments, bin_status_item_not_stored, bin_status_incr_decr_on_non_numeric_value, bin_status_unknown_command, bin_status_out_of_memory};
-        for (bin_status_code i = 0; i < num_status_code; i++) {
-            if (status == i)
-                return true;
-        }
-        return false;
-    }
-
-    static const char *error_messages[num_status_code]; ;
-
-    char *error_message(bin_status_code status) {
-        //okay this sucks, all because they wouldn't use continous values for these status codes
-        switch (status) {
-            case bin_status_no_error:
-                return error_messages[0];
-                break;
-            case bin_status_key_not_found:
-                return error_messages[1];
-                break;
-            case bin_status_key_exists:
-                return error_messages[2];
-                break;
-            case bin_status_value_too_large:
-                return error_messages[3];
-                break;
-            case bin_status_invalid_arguments:
-                return error_messages[4];
-                break;
-            case bin_status_item_not_stored:
-                return error_messages[5];
-                break;
-            case bin_status_incr_decr_on_non_numeric_value:
-                return error_messages[6];
-                break;
-            case bin_status_unknown_command:
-                return error_messages[7];
-                break;
-            case bin_status_out_of_memory:
-                return error_messages[8];
-                break;
-            default:
-                fail("Invalid status message");
-        }
+    bool is_valid_status(bin_status_t s) {
+        // This has to be maintained by hand
+        return (
+            s == bin_status_no_error ||
+            s == bin_status_key_not_found ||
+            s == bin_status_key_exists ||
+            s == bin_status_value_too_large ||
+            s == bin_status_invalid_arguments ||
+            s == bin_status_item_not_stored ||
+            s == bin_status_incr_decr_on_non_numeric_value ||
+            s == bin_status_unknown_command ||
+            s == bin_status_out_of_memory);
     }
 
     //opcodes
@@ -288,14 +243,6 @@ public:
             //sick of looking up which one i defined
             bool is_response() {return !is_request();}
 
-            //network conversion
-            uint16_t ntoh(uint16_t val) { return be16toh(val); }
-            uint32_t ntoh(uint32_t val) { return be32toh(val); }
-            uint64_t ntoh(uint64_t val) { return be64toh(val); }
-            uint16_t hton(uint16_t val) { return htobe16(val); }
-            uint32_t hton(uint32_t val) { return htobe32(val); }
-            uint64_t hton(uint64_t val) { return htobe64(val); }
-
             //TODO these require the response and request headers to have indentical structures we should fix this up
             //accessors
             bin_magic_t magic() {
@@ -343,7 +290,26 @@ public:
             bin_cas_t cas() {
                 return ((request_header_t *)(data))->cas;
             }
+            
+            byte* extras() {
+                if (is_request())
+                    return data + sizeof(request_header_t);
+                else
+                    return data + sizeof(response_header_t);
+            }
 
+            void set_extras(const byte *data,const bin_extra_length_t length) {
+                //make space
+                memmove(value() + (length - extra_length()), value(), value_length());
+                memmove(key() + (length - extra_length()), key(), key_length());
+
+                //copy in the new data
+                memcpy(extras(), data, length);
+
+                //update extra length
+                extra_length(length);
+            }    
+            
             //accessors for values in the extras
             bin_flags_t flags() {
                 switch (opcode()) {
@@ -352,8 +318,8 @@ public:
                     case bin_opcode_getk:
                     case bin_opcode_getkq:
                         if (is_response() && extra_length() == sizeof(get_response_extras_t)) {
-                            get_response_extras_t *extras = (get_response_extras_t *) extras();
-                            return extras->flags;
+                            get_response_extras_t *e = (get_response_extras_t *) extras();
+                            return e->flags;
                         } else {
                             goto error_breakout;
                         }
@@ -361,8 +327,8 @@ public:
                     case bin_opcode_set:
                     case bin_opcode_setq:
                         if (is_request() && extra_length() == sizeof(set_request_extras_t)) {
-                            set_request_extras_t *extras = (set_request_extras_t *) extras();
-                            return extras->flags;
+                            set_request_extras_t *e = (set_request_extras_t *) extras();
+                            return e->flags;
                         } else {
                             goto error_breakout;
                         }
@@ -380,8 +346,8 @@ error_breakout:
                     case bin_opcode_set:
                     case bin_opcode_setq:
                         if (is_request() && extra_length() == sizeof(set_request_extras_t)) {
-                            set_request_extras_t *extras = (set_request_extras_t *) extras();
-                            return ntoh(extras->expr_time);
+                            set_request_extras_t *e = (set_request_extras_t *) extras();
+                            return ntoh(e->expr_time);
                         } else {
                             goto error_breakout;
                         }
@@ -391,8 +357,8 @@ error_breakout:
                     case bin_opcode_incrementq:
                     case bin_opcode_decrementq:
                         if (is_request() && extra_length() == sizeof(incr_decr_request_extras_t)) {
-                            incr_decr_request_extras_t *extras = (incr_decr_request_extras_t *) extras();
-                            return ntoh(extras->expr_time);
+                            incr_decr_request_extras_t *e = (incr_decr_request_extras_t *) extras();
+                            return ntoh(e->expr_time);
                         } else {
                             goto error_breakout;
                         }
@@ -400,8 +366,8 @@ error_breakout:
                     case bin_opcode_flush:
                     case bin_opcode_flushq:
                         if (is_request() && extra_length() == sizeof(flush_request_extras_t)) {
-                            flush_request_extras_t *extras = (flush_request_extras_t *) extras();
-                            return ntoh(extras->expr_time);
+                            flush_request_extras_t *e = (flush_request_extras_t *) extras();
+                            return ntoh(e->expr_time);
                         } else {
                             //note this means that you need to to check if the flush actually has flags first
                             //on the flush flags are optional
@@ -423,8 +389,8 @@ error_breakout:
                     case bin_opcode_incrementq:
                     case bin_opcode_decrementq:
                         if (is_request() && extra_length() == sizeof(incr_decr_request_extras_t)) {
-                            incr_decr_request_extras_t *extras = (incr_decr_request_extras_t *) extras();
-                            return ntoh(extras->delta);
+                            incr_decr_request_extras_t *e = (incr_decr_request_extras_t *) extras();
+                            return ntoh(e->delta);
                         } else {
                             goto error_breakout;
                         }
@@ -444,8 +410,8 @@ error_breakout:
                     case bin_opcode_incrementq:
                     case bin_opcode_decrementq:
                         if (is_request() && extra_length() == sizeof(incr_decr_request_extras_t)) {
-                            incr_decr_request_extras_t *extras = (incr_decr_request_extras_t *) extras();
-                            return ntoh(extras->init_val);
+                            incr_decr_request_extras_t *e = (incr_decr_request_extras_t *) extras();
+                            return ntoh(e->init_val);
                         } else {
                             goto error_breakout;
                         }
@@ -514,26 +480,7 @@ error_breakout:
                 else 
                     return sizeof(response_header_t) + total_body_length();
             }
-
-            byte* extras() {
-                if (is_request())
-                    return data + sizeof(request_header_t);
-                else
-                    return data + sizeof(response_header_t);
-            }
-
-            void set_extras(const byte *data,const bin_extra_length_t length) {
-                //make space
-                memmove(value() + (length - extra_length()), value(), value_length());
-                memmove(key() + (length - extra_length()), key(), key_length());
-
-                //copy in the new data
-                memcpy(extras(), data, length);
-
-                //update extra length
-                extra_length(length);
-            }                
-
+            
             //load the key into an allocated key
             void key(btree_key *key) {
                 key->size = key_length();
@@ -600,8 +547,8 @@ error_breakout:
                     case bin_opcode_getk:
                     case bin_opcode_getkq:
                         if (is_response() && extra_length() == sizeof(get_response_extras_t)) {
-                            get_response_extras_t *extras = (get_response_extras_t *) extras();
-                            extras->flags = flags;
+                            get_response_extras_t *e = (get_response_extras_t *) extras();
+                            e->flags = flags;
                         } else {
                             goto error_breakout;
                         }
@@ -609,8 +556,8 @@ error_breakout:
                     case bin_opcode_set:
                     case bin_opcode_setq:
                         if (is_request() && extra_length() == sizeof(set_request_extras_t)) {
-                            set_request_extras_t *extras = (set_request_extras_t *) extras();
-                            extras->flags = flags;
+                            set_request_extras_t *e = (set_request_extras_t *) extras();
+                            e->flags = flags;
                         } else {
                             goto error_breakout;
                         }
@@ -629,9 +576,9 @@ error_breakout:
                     case bin_opcode_set:
                     case bin_opcode_setq:
                         if (is_request() && extra_length() == sizeof(set_request_extras_t)) {
-                            set_request_extras_t *extras = (set_request_extras_t *) extras();
+                            set_request_extras_t *e = (set_request_extras_t *) extras();
 
-                            extras->expr_time = hton(expr_time);
+                            e->expr_time = hton(expr_time);
                         } else {
                             goto error_breakout;
                         }
@@ -641,8 +588,8 @@ error_breakout:
                     case bin_opcode_incrementq:
                     case bin_opcode_decrementq:
                         if (is_request() && extra_length() == sizeof(incr_decr_request_extras_t)) {
-                            incr_decr_request_extras_t *extras = (incr_decr_request_extras_t *) extras();
-                            extras->expr_time = hton(expr_time);
+                            incr_decr_request_extras_t *e = (incr_decr_request_extras_t *) extras();
+                            e->expr_time = hton(expr_time);
                         } else {
                             goto error_breakout;
                         }
@@ -650,8 +597,8 @@ error_breakout:
                     case bin_opcode_flush:
                     case bin_opcode_flushq:
                         if (is_request() && extra_length() == sizeof(flush_request_extras_t)) {
-                            flush_request_extras_t *extras = (flush_request_extras_t *) extras();
-                            extras->expr_time = hton(expr_time);
+                            flush_request_extras_t *e = (flush_request_extras_t *) extras();
+                            e->expr_time = hton(expr_time);
                         } else {
                             //note this means that you need to to check if the flush actually has flags first
                             //on the flush flags are optional
@@ -674,8 +621,8 @@ error_breakout:
                     case bin_opcode_incrementq:
                     case bin_opcode_decrementq:
                         if (is_request() && extra_length() == sizeof(incr_decr_request_extras_t)) {
-                            incr_decr_request_extras_t *extras = (incr_decr_request_extras_t *) extras();
-                            extras->delta = hton(delta);
+                            incr_decr_request_extras_t *e = (incr_decr_request_extras_t *) extras();
+                            e->delta = hton(delta);
                         } else {
                             goto error_breakout;
                         }
@@ -696,8 +643,8 @@ error_breakout:
                     case bin_opcode_incrementq:
                     case bin_opcode_decrementq:
                         if (is_request() && extra_length() == sizeof(incr_decr_request_extras_t)) {
-                            incr_decr_request_extras_t *extras = (incr_decr_request_extras_t *) extras();
-                            extras->init_val = hton(extras->init_val);
+                            incr_decr_request_extras_t *e = (incr_decr_request_extras_t *) extras();
+                            e->init_val = hton(e->init_val);
                         } else {
                             goto error_breakout;
                         }
@@ -884,8 +831,5 @@ private:
     parse_result_t stat(packet_t *pkt);
     parse_result_t version(packet_t *pkt);
 };
-
-
-#include "request_handler/bin_memcached_handler.tcc"
 
 #endif // __BIN_MEMCACHED_HANDLER_HPP__

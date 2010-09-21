@@ -3,7 +3,7 @@
 #define __ALLOC_STATS_HPP__
 
 #include <stdio.h>
-#include "utils.hpp"
+#include "errors.hpp"
 
 template <class super_alloc_t>
 struct alloc_stats_t : public super_alloc_t {

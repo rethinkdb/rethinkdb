@@ -9,14 +9,11 @@
 // hasn't been set, for instance), but depending on how CAS is used, that may be
 // unnecessary.
 
-template <class config_t>
-class btree_get_cas_fsm : public btree_modify_fsm<config_t>,
-                          public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, btree_get_cas_fsm<config_t> > {
-    typedef typename config_t::large_buf_t large_buf_t;
-    typedef typename config_t::btree_fsm_t btree_fsm_t;
-    typedef typename btree_fsm_t::transition_result_t transition_result_t;
+class btree_get_cas_fsm_t : public btree_modify_fsm_t,
+                            public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, btree_get_cas_fsm_t> {
+    typedef btree_fsm_t::transition_result_t transition_result_t;
 public:
-    explicit btree_get_cas_fsm(btree_key *_key) : btree_modify_fsm<config_t>(_key) {}
+    explicit btree_get_cas_fsm_t(btree_key *_key) : btree_modify_fsm_t(_key) {}
     
     transition_result_t operate(btree_value *old_value, large_buf_t *old_large_buf, btree_value **new_value) {
         if (old_value) {

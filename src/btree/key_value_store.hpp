@@ -2,8 +2,8 @@
 #ifndef __BTREE_KEY_VALUE_STORE_HPP__
 #define __BTREE_KEY_VALUE_STORE_HPP__
 
-#include "config/code.hpp"
-#include "buffer_cache/callbacks.hpp"
+#include "config/alloc.hpp"
+#include "buffer_cache/buffer_cache.hpp"
 #include "btree/node.hpp"   // For btree_superblock_t
 #include "btree/fsm.hpp"
 #include "utils.hpp"
@@ -14,21 +14,16 @@
 This isn't quite the behavior we want. The job of initialize_superblock_fsm is to initialize the
 superblock to contain NULL_BLOCK_ID rather than zero as the root node. */
 
-template <class config_t>
-class initialize_superblock_fsm :
-    private block_available_callback<config_t>,
-    private transaction_commit_callback<config_t>,
-    public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, initialize_superblock_fsm<config_t> >{
-public:
-    typedef typename config_t::cache_t cache_t;
-    typedef typename config_t::transaction_t transaction_t;
-    typedef typename config_t::buf_t buf_t;
+class initialize_superblock_fsm_t :
+    private block_available_callback_t,
+    private transaction_commit_callback_t,
+    public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, initialize_superblock_fsm_t>{
 
 public:
-    initialize_superblock_fsm(cache_t *cache)
+    initialize_superblock_fsm_t(cache_t *cache)
         : state(state_unstarted), cache(cache), sb_buf(NULL), txn(NULL)
         {}
-    ~initialize_superblock_fsm() {
+    ~initialize_superblock_fsm_t() {
         assert(state == state_unstarted || state == state_done);
     }
     
@@ -122,19 +117,17 @@ private:
     }
 };
 
-/* btree_key_value_store is a thin wrapper around buffer_cache_t that handles initializing the buffer
+/* btree_key_value_store_t is a thin wrapper around cache_t that handles initializing the buffer
 cache for the purpose of storing a btree. */
 
-template<class config_t>
-class btree_key_value_store :
-    private config_t::cache_t::ready_callback_t,
-    private initialize_superblock_fsm<config_t>::callback_t,
-    private config_t::cache_t::shutdown_callback_t
+class btree_key_value_store_t :
+    private cache_t::ready_callback_t,
+    private initialize_superblock_fsm_t::callback_t,
+    private cache_t::shutdown_callback_t
 {
-    typedef typename config_t::btree_fsm_t btree_fsm_t;
     
 public:
-    btree_key_value_store(
+    btree_key_value_store_t(
         char *filename,
         size_t block_size,
         size_t max_size,
@@ -173,7 +166,7 @@ private:
         }
         
         if (state == state_starting_up_initialize_superblock) {
-            sb_fsm = new initialize_superblock_fsm<config_t>(&cache);
+            sb_fsm = new initialize_superblock_fsm_t(&cache);
             if (sb_fsm->initialize_superblock_if_necessary(this)) {
                 state = state_starting_up_finish;
             } else {
@@ -189,7 +182,7 @@ private:
             state = state_ready;
             if (ready_callback) ready_callback->on_store_ready();
             
-            typename std::vector<btree_fsm_t*, gnew_alloc<btree_fsm_t *> >::iterator it;
+            std::vector<btree_fsm_t*, gnew_alloc<btree_fsm_t *> >::iterator it;
             for (it = fsms_waiting_for_ready.begin(); it != fsms_waiting_for_ready.end(); it ++) {
                 btree_fsm_t *fsm = *it;
                 bool done = (fsm->do_transition(NULL) == btree_fsm_t::transition_complete);
@@ -221,7 +214,7 @@ private:
     std::vector<btree_fsm_t*, gnew_alloc<btree_fsm_t *> > fsms_waiting_for_ready;
 
 public:
-    bool run_fsm(btree_fsm_t *fsm, typename btree_fsm_t::on_complete_t cb) {
+    bool run_fsm(btree_fsm_t *fsm, btree_fsm_t::on_complete_t cb) {
         
         // The btree is constructed with no cache; here we must assign it its proper cache
         assert(!fsm->cache);
@@ -275,10 +268,11 @@ private:
         state_shut_down
     } state;
     
-    initialize_superblock_fsm<config_t> *sb_fsm;
+    initialize_superblock_fsm_t *sb_fsm;
     
-    typename config_t::cache_t cache;
-    
+    cache_t cache;
 };
+
+typedef btree_key_value_store_t store_t;
 
 #endif /* __BTREE_KEY_VALUE_STORE_HPP__ */

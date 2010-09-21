@@ -1,5 +1,3 @@
-#ifndef __BTREE_LEAF_NODE_TCC__
-#define __BTREE_LEAF_NODE_TCC__
 
 #include "btree/leaf_node.hpp"
 #include <algorithm>
@@ -381,4 +379,3 @@ void leaf_node_handler::print(btree_leaf_node *node) {
     printf("|\n");
     printf("\n\n\n");
 }
-#endif // __BTREE_LEAF_NODE_TCC__

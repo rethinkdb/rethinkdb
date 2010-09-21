@@ -1,6 +1,3 @@
-#ifndef __TXT_MEMCACHED_HANDLER_TCC__
-#define __TXT_MEMCACHED_HANDLER_TCC__
-
 #include <string.h>
 #include "cpu_context.hpp"
 #include "event_queue.hpp"
@@ -8,6 +5,13 @@
 #include "conn_fsm.hpp"
 #include "corefwd.hpp"
 #include "request.hpp"
+#include "btree/append_prepend_fsm.hpp"
+#include "btree/delete_fsm.hpp"
+#include "btree/get_fsm.hpp"
+#include "btree/get_cas_fsm.hpp"
+#include "btree/incr_decr_fsm.hpp"
+#include "btree/set_fsm.hpp"
+#include "worker_pool.hpp"
 
 #define DELIMS " \t\n\r"
 #define MALFORMED_RESPONSE "ERROR\r\n"
@@ -28,14 +32,11 @@
 // file. If you only do a cursory readthrough, please check with someone who
 // has read it in depth before comitting.
 
-template<class config_t>
-class txt_memcached_request : public request_callback_t {
+class txt_memcached_request_t :
+    public request_callback_t
+{
 public:
-    typedef typename config_t::conn_fsm_t conn_fsm_t;
-    typedef typename config_t::linked_buf_t linked_buf_t;
-
-public:
-    txt_memcached_request(txt_memcached_handler_t<config_t> *rh, bool noreply)
+    txt_memcached_request_t(txt_memcached_handler_t *rh, bool noreply)
         : request_callback_t(rh), noreply(noreply), request(new request_t(this))
         {}
 
@@ -53,24 +54,21 @@ public:
     request_t *request;
 };
 
-template<class config_t>
-class txt_memcached_get_request : public txt_memcached_request<config_t>,
-    public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, txt_memcached_get_request<config_t> > {
+class txt_memcached_get_request_t :
+    public txt_memcached_request_t,
+    public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, txt_memcached_get_request_t>
+{
 
 public:
-    typedef typename config_t::conn_fsm_t conn_fsm_t;
-    typedef typename config_t::linked_buf_t linked_buf_t;
-    typedef typename config_t::btree_get_fsm_t btree_get_fsm_t;
-    typedef typename config_t::write_large_value_msg_t write_large_value_msg_t;
-    using txt_memcached_request<config_t>::rh;
+    using txt_memcached_request_t::rh;
 
 public:
-    // A txt_memcached_get_request supports more than one get at one time, so it takes several steps
+    // A txt_memcached_get_request+t supports more than one get at one time, so it takes several steps
     // to build it. First the constructor is called; then add_get() is called one or more times;
     // then dispatch() is called.
 
-    txt_memcached_get_request(txt_memcached_handler_t<config_t> *rh)
-        : txt_memcached_request<config_t>(rh, false), num_fsms(0), curr_fsm(0) {}
+    txt_memcached_get_request_t(txt_memcached_handler_t *rh)
+        : txt_memcached_request_t(rh, false), num_fsms(0), curr_fsm(0) {}
 
     bool add_get(btree_key *key) {
         if (this->request->can_add()) {
@@ -87,7 +85,7 @@ public:
         this->request->dispatch();
     }
 
-    ~txt_memcached_get_request() {
+    ~txt_memcached_get_request_t() {
         for (int i = 0; i < num_fsms; i ++) {
             get_cpu_context()->worker->cmd_get++;
             delete fsms[i];
@@ -150,22 +148,20 @@ private:
 };
 
 // FIXME horrible redundancy
-template<class config_t>
-class txt_memcached_get_cas_request : public txt_memcached_request<config_t>,
-                                      public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, txt_memcached_get_cas_request<config_t> > {
+class txt_memcached_get_cas_request_t :
+    public txt_memcached_request_t,
+    public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, txt_memcached_get_cas_request_t>
+{
 public:
-    typedef typename config_t::conn_fsm_t conn_fsm_t;
-    typedef typename config_t::linked_buf_t linked_buf_t;
-    typedef typename config_t::btree_get_cas_fsm_t btree_get_cas_fsm_t;
-    using txt_memcached_request<config_t>::rh;
+    using txt_memcached_request_t::rh;
 
 public:
     // A txt_memcached_get_request supports more than one get at one time, so it takes several steps
     // to build it. First the constructor is called; then add_get() is called one or more times;
     // then dispatch() is called.
 
-    txt_memcached_get_cas_request(txt_memcached_handler_t<config_t> *rh)
-        : txt_memcached_request<config_t>(rh, false), num_fsms(0) {}
+    txt_memcached_get_cas_request_t(txt_memcached_handler_t *rh)
+        : txt_memcached_request_t(rh, false), num_fsms(0) {}
 
     bool add_get(btree_key *key) {
         if (this->request->can_add()) {
@@ -182,7 +178,7 @@ public:
         this->request->dispatch();
     }
 
-    ~txt_memcached_get_cas_request() {
+    ~txt_memcached_get_cas_request_t() {
         for (int i = 0; i < num_fsms; i ++) {
             delete fsms[i];
         }
@@ -219,24 +215,20 @@ private:
     btree_get_cas_fsm_t *fsms[MAX_OPS_IN_REQUEST];
 };
 
-template<class config_t>
-class txt_memcached_set_request : public txt_memcached_request<config_t>,
-    public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, txt_memcached_set_request<config_t> > {
+class txt_memcached_set_request_t :
+    public txt_memcached_request_t,
+    public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, txt_memcached_set_request_t>
+{
 
 public:
-    typedef typename config_t::conn_fsm_t conn_fsm_t;
-    typedef typename config_t::linked_buf_t linked_buf_t;
-    typedef typename config_t::btree_set_fsm_t btree_set_fsm_t;
-
-public:
-    txt_memcached_set_request(txt_memcached_handler_t<config_t> *rh, btree_key *key, byte *data, uint32_t length, typename btree_set_fsm_t::set_type_t type, btree_value::mcflags_t mcflags, btree_value::exptime_t exptime, btree_value::cas_t req_cas, bool noreply)
-        : txt_memcached_request<config_t>(rh, noreply),
+    txt_memcached_set_request_t(txt_memcached_handler_t *rh, btree_key *key, byte *data, uint32_t length, btree_set_fsm_t::set_type_t type, btree_value::mcflags_t mcflags, btree_value::exptime_t exptime, btree_value::cas_t req_cas, bool noreply)
+        : txt_memcached_request_t(rh, noreply),
           fsm(new btree_set_fsm_t(key, this, data, length, type, mcflags, convert_exptime(exptime), req_cas)) {
         this->request->add(fsm, key_to_cpu(key, rh->event_queue->parent->nworkers));
         this->request->dispatch();
     }
 
-    ~txt_memcached_set_request() {
+    ~txt_memcached_set_request_t() {
         get_cpu_context()->worker->cmd_set++;
         delete fsm;
     }
@@ -286,25 +278,20 @@ private:
     btree_set_fsm_t *fsm;
 };
 
-template<class config_t>
-class txt_memcached_incr_decr_request : public txt_memcached_request<config_t>,
-    public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, txt_memcached_incr_decr_request<config_t> > {
+class txt_memcached_incr_decr_request_t :
+    public txt_memcached_request_t,
+    public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, txt_memcached_incr_decr_request_t> {
 
 public:
-    typedef typename config_t::conn_fsm_t conn_fsm_t;
-    typedef typename config_t::linked_buf_t linked_buf_t;
-    typedef typename config_t::btree_incr_decr_fsm_t btree_incr_decr_fsm_t;
-
-public:
-    txt_memcached_incr_decr_request(txt_memcached_handler_t<config_t> *rh, btree_key *key, bool increment, long long delta, bool noreply)
-        : txt_memcached_request<config_t>(rh, noreply),
+    txt_memcached_incr_decr_request_t(txt_memcached_handler_t *rh, btree_key *key, bool increment, long long delta, bool noreply)
+        : txt_memcached_request_t(rh, noreply),
           fsm(new btree_incr_decr_fsm_t(key, increment, delta))
         {
         this->request->add(fsm, key_to_cpu(key, rh->event_queue->parent->nworkers));
         this->request->dispatch();
     }
 
-    ~txt_memcached_incr_decr_request() {
+    ~txt_memcached_incr_decr_request_t() {
         get_cpu_context()->worker->cmd_set++;
         delete fsm;
     }
@@ -331,22 +318,19 @@ private:
     btree_incr_decr_fsm_t *fsm;
 };
 
-template<class config_t>
-class txt_memcached_append_prepend_request : public txt_memcached_request<config_t>,
-    public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, txt_memcached_append_prepend_request<config_t> > {
+class txt_memcached_append_prepend_request_t :
+    public txt_memcached_request_t,
+    public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, txt_memcached_append_prepend_request_t>
+{
 public:
-    typedef typename config_t::conn_fsm_t conn_fsm_t;
-    typedef typename config_t::linked_buf_t linked_buf_t;
-    typedef typename config_t::btree_append_prepend_fsm_t btree_append_prepend_fsm_t;
-
-    txt_memcached_append_prepend_request(txt_memcached_handler_t<config_t> *rh, btree_key *key, byte *data, int length, bool append, bool noreply)
-        : txt_memcached_request<config_t>(rh, noreply),
+    txt_memcached_append_prepend_request_t(txt_memcached_handler_t *rh, btree_key *key, byte *data, int length, bool append, bool noreply)
+        : txt_memcached_request_t(rh, noreply),
           fsm(new btree_append_prepend_fsm_t(key, data, length, append)) {
         this->request->add(fsm, key_to_cpu(key, rh->event_queue->parent->nworkers));
         this->request->dispatch();
     }
 
-    ~txt_memcached_append_prepend_request() {
+    ~txt_memcached_append_prepend_request_t() {
         get_cpu_context()->worker->cmd_set++;
         delete fsm;
     }
@@ -371,24 +355,19 @@ private:
     btree_append_prepend_fsm_t *fsm;
 };
 
-template<class config_t>
-class txt_memcached_delete_request : public txt_memcached_request<config_t>,
-    public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, txt_memcached_delete_request<config_t> > {
+class txt_memcached_delete_request_t :
+    public txt_memcached_request_t,
+    public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, txt_memcached_delete_request_t> {
 
 public:
-    typedef typename config_t::conn_fsm_t conn_fsm_t;
-    typedef typename config_t::linked_buf_t linked_buf_t;
-    typedef typename config_t::btree_delete_fsm_t btree_delete_fsm_t;
-
-public:
-    txt_memcached_delete_request(txt_memcached_handler_t<config_t> *rh, btree_key *key, bool noreply)
-        : txt_memcached_request<config_t>(rh, noreply),
+    txt_memcached_delete_request_t(txt_memcached_handler_t *rh, btree_key *key, bool noreply)
+        : txt_memcached_request_t(rh, noreply),
           fsm(new btree_delete_fsm_t(key)) {
         this->request->add(fsm, key_to_cpu(key, rh->event_queue->parent->nworkers));
         this->request->dispatch();
     }
 
-    ~txt_memcached_delete_request() {
+    ~txt_memcached_delete_request_t() {
         delete fsm;
     }
 
@@ -411,17 +390,13 @@ private:
     btree_delete_fsm_t *fsm;
 };
 
-template<class config_t>
-class txt_memcached_perfmon_request : public txt_memcached_request<config_t>,
-    public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, txt_memcached_perfmon_request<config_t> > {
+class txt_memcached_perfmon_request_t :
+    public txt_memcached_request_t,
+    public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, txt_memcached_perfmon_request_t> {
 
 public:
-    typedef typename config_t::conn_fsm_t conn_fsm_t;
-    typedef typename config_t::linked_buf_t linked_buf_t;
-
-public:
-    txt_memcached_perfmon_request(txt_memcached_handler_t<config_t> *rh)
-        : txt_memcached_request<config_t>(rh, false) {
+    txt_memcached_perfmon_request_t(txt_memcached_handler_t *rh)
+        : txt_memcached_request_t(rh, false) {
 
         int nworkers = (int)get_cpu_context()->worker->event_queue->parent_pool->nworkers;
 
@@ -439,7 +414,7 @@ public:
         this->request->dispatch();
     }
 
-    ~txt_memcached_perfmon_request() {
+    ~txt_memcached_perfmon_request_t() {
         // Do NOT delete the perfmon messages. They are sent back to the cores that provided
         // the stats so that the perfmon objects can be freed.
         int nworkers = (int)get_cpu_context()->worker->event_queue->parent_pool->nworkers;
@@ -501,8 +476,7 @@ public:
 };
 
 // Process commands received from the user
-template<class config_t>
-typename txt_memcached_handler_t<config_t>::parse_result_t txt_memcached_handler_t<config_t>::parse_request(event_t *event) {
+txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::parse_request(event_t *event) {
     assert(event->state == conn_fsm);
 
     // TODO: we might end up getting a command, and a piece of the
@@ -519,7 +493,7 @@ typename txt_memcached_handler_t<config_t>::parse_result_t txt_memcached_handler
     // This is only valid if we are not reading binary data
     char *line_end = (char *)memchr(conn_fsm->rbuf, '\n', conn_fsm->nrbuf);
     if (line_end == NULL) {   //make sure \n is in the buffer
-        return req_handler_t::op_partial_packet;
+        return request_handler_t::op_partial_packet;
     }
     unsigned int line_len = line_end - conn_fsm->rbuf + 1;
 
@@ -550,7 +524,7 @@ typename txt_memcached_handler_t<config_t>::parse_result_t txt_memcached_handler
         }
         // Quit the connection
         conn_fsm->consume(conn_fsm->nrbuf);
-        return req_handler_t::op_req_quit;
+        return request_handler_t::op_req_quit;
 
     } else if(!strcmp(cmd_str, "shutdown")) {
         // Make sure there's no more tokens
@@ -563,12 +537,12 @@ typename txt_memcached_handler_t<config_t>::parse_result_t txt_memcached_handler
         conn_fsm->consume(conn_fsm->nrbuf);
         // TODO: We sould send SIGINT to the main thread directly from here instead of by this
         // circuitous and indirect way of signalling via the return value.
-        return req_handler_t::op_req_shutdown;
+        return request_handler_t::op_req_shutdown;
 
     } else if(!strcmp(cmd_str, "stats") || !strcmp(cmd_str, "stat")) {
         conn_fsm->consume(line_len);
         parse_stat_command(state, line_len);
-        return req_handler_t::op_req_complex;
+        return request_handler_t::op_req_complex;
 
     } else if(!strcmp(cmd_str, "set")) {     // check for storage commands
         return parse_storage_command(SET, state, line_len);
@@ -602,8 +576,7 @@ typename txt_memcached_handler_t<config_t>::parse_result_t txt_memcached_handler
     }
 }
 
-template <class config_t>
-typename txt_memcached_handler_t<config_t>::parse_result_t txt_memcached_handler_t<config_t>::parse_adjustment(bool increment, char *state, unsigned int line_len) {
+txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::parse_adjustment(bool increment, char *state, unsigned int line_len) {
     char *key_tmp = strtok_r(NULL, DELIMS, &state);
     char *value_str = strtok_r(NULL, DELIMS, &state);
     char *noreply_str = strtok_r(NULL, DELIMS, &state); //optional
@@ -623,18 +596,17 @@ typename txt_memcached_handler_t<config_t>::parse_result_t txt_memcached_handler
 
     node_handler::str_to_key(key_tmp, &key);
     long long delta = atoll(value_str);
-    new txt_memcached_incr_decr_request<config_t>(this, &key, increment, delta, noreply);
+    new txt_memcached_incr_decr_request_t(this, &key, increment, delta, noreply);
 
     conn_fsm->consume(line_len);
 
     if (noreply)
-        return req_handler_t::op_req_parallelizable;
+        return request_handler_t::op_req_parallelizable;
     else
-        return req_handler_t::op_req_complex;
+        return request_handler_t::op_req_complex;
 }
 
-template <class config_t>
-typename txt_memcached_handler_t<config_t>::parse_result_t txt_memcached_handler_t<config_t>::parse_storage_command(storage_command command, char *state, unsigned int line_len) {
+txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::parse_storage_command(storage_command command, char *state, unsigned int line_len) {
     char *key_tmp = strtok_r(NULL, DELIMS, &state);
     char *mcflags_str = strtok_r(NULL, DELIMS, &state);
     char *exptime_str = strtok_r(NULL, DELIMS, &state);
@@ -695,32 +667,30 @@ typename txt_memcached_handler_t<config_t>::parse_result_t txt_memcached_handler
     return read_data();
 }
 
-template <class config_t>
-typename txt_memcached_handler_t<config_t>::parse_result_t txt_memcached_handler_t<config_t>::parse_stat_command(char *state, unsigned int line_len) {
-    txt_memcached_perfmon_request<config_t> *rq = new txt_memcached_perfmon_request<config_t>(this);
+txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::parse_stat_command(char *state, unsigned int line_len) {
+    txt_memcached_perfmon_request_t *rq = new txt_memcached_perfmon_request_t(this);
     check("Too big of a stat request", line_len > MAX_STATS_REQ_LEN);
     memcpy(rq->fields, state, line_len);
     rq->dispatch();
-    return req_handler_t::op_req_complex;
+    return request_handler_t::op_req_complex;
 }
 
-template <class config_t>
-typename txt_memcached_handler_t<config_t>::parse_result_t txt_memcached_handler_t<config_t>::read_data() {
+txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::read_data() {
     check("memcached handler should be in loading data state", !loading_data);
     if (bytes <= MAX_IN_NODE_VALUE_SIZE) {
         if (conn_fsm->nrbuf < bytes + 2){//check that the buffer contains enough data.  must also include \r\n
-            return req_handler_t::op_partial_packet;
+            return request_handler_t::op_partial_packet;
         }
         loading_data = false;
         if (conn_fsm->rbuf[bytes] != '\r' || conn_fsm->rbuf[bytes+1] != '\n') {
             conn_fsm->sbuf->printf(BAD_BLOB);
             conn_fsm->consume(bytes+2);
-            return req_handler_t::op_malformed;
+            return request_handler_t::op_malformed;
         }
     } else {
         if (this->read_lv_msg) {
             if (conn_fsm->nrbuf < 2) {
-                return req_handler_t::op_partial_packet;
+                return request_handler_t::op_partial_packet;
             }
             // XXX What if data comes in at
             conn_fsm->consume(2); // \r\n. TODO: Check.
@@ -729,7 +699,7 @@ typename txt_memcached_handler_t<config_t>::parse_result_t txt_memcached_handler
             this->read_lv_msg->send(this->read_lv_msg->return_cpu);
             this->read_lv_msg = NULL;
             loading_data = false;
-            return req_handler_t::op_req_complex;
+            return request_handler_t::op_req_complex;
         } else {
             // Will be handled in the FSM.
         }
@@ -737,23 +707,23 @@ typename txt_memcached_handler_t<config_t>::parse_result_t txt_memcached_handler
 
     switch(cmd) {
         case SET:
-            new txt_memcached_set_request<config_t>(this, &key, conn_fsm->rbuf, bytes, btree_set_fsm_t::set_type_set, mcflags, exptime, 0, noreply);
+            new txt_memcached_set_request_t(this, &key, conn_fsm->rbuf, bytes, btree_set_fsm_t::set_type_set, mcflags, exptime, 0, noreply);
             break;
         case ADD:
-            new txt_memcached_set_request<config_t>(this, &key, conn_fsm->rbuf, bytes, btree_set_fsm_t::set_type_add, mcflags, exptime, 0, noreply);
+            new txt_memcached_set_request_t(this, &key, conn_fsm->rbuf, bytes, btree_set_fsm_t::set_type_add, mcflags, exptime, 0, noreply);
             break;
         case REPLACE:
-            new txt_memcached_set_request<config_t>(this, &key, conn_fsm->rbuf, bytes, btree_set_fsm_t::set_type_replace, mcflags, exptime, 0, noreply);
+            new txt_memcached_set_request_t(this, &key, conn_fsm->rbuf, bytes, btree_set_fsm_t::set_type_replace, mcflags, exptime, 0, noreply);
             break;
         case CAS:
-            new txt_memcached_set_request<config_t>(this, &key, conn_fsm->rbuf, bytes, btree_set_fsm_t::set_type_cas, mcflags, exptime, cas, noreply);
+            new txt_memcached_set_request_t(this, &key, conn_fsm->rbuf, bytes, btree_set_fsm_t::set_type_cas, mcflags, exptime, cas, noreply);
             break;
         // APPEND and PREPEND always ignore flags and exptime.
         case APPEND:
-            new txt_memcached_append_prepend_request<config_t>(this, &key, conn_fsm->rbuf, bytes, true, noreply);
+            new txt_memcached_append_prepend_request_t(this, &key, conn_fsm->rbuf, bytes, true, noreply);
             break;
         case PREPEND:
-            new txt_memcached_append_prepend_request<config_t>(this, &key, conn_fsm->rbuf, bytes, false, noreply);
+            new txt_memcached_append_prepend_request_t(this, &key, conn_fsm->rbuf, bytes, false, noreply);
             break;
         default:
             conn_fsm->consume(bytes+2);
@@ -764,33 +734,30 @@ typename txt_memcached_handler_t<config_t>::parse_result_t txt_memcached_handler
         conn_fsm->consume(bytes+2);
 
         if (noreply)
-            return req_handler_t::op_req_parallelizable;
+            return request_handler_t::op_req_parallelizable;
         else
-            return req_handler_t::op_req_complex;
+            return request_handler_t::op_req_complex;
     } else {
-        return req_handler_t::op_req_complex;
+        return request_handler_t::op_req_complex;
     }
 }
 
-template <class config_t>
-typename txt_memcached_handler_t<config_t>::parse_result_t txt_memcached_handler_t<config_t>::malformed_request() {
+txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::malformed_request() {
     conn_fsm->sbuf->printf(MALFORMED_RESPONSE);
-    return req_handler_t::op_malformed;
+    return request_handler_t::op_malformed;
 }
 
-template <class config_t>
-typename txt_memcached_handler_t<config_t>::parse_result_t txt_memcached_handler_t<config_t>::unimplemented_request() {
+txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::unimplemented_request() {
     conn_fsm->sbuf->printf(UNIMPLEMENTED_RESPONSE);
-    return req_handler_t::op_malformed;
+    return request_handler_t::op_malformed;
 }
 
-template <class config_t>
-typename txt_memcached_handler_t<config_t>::parse_result_t txt_memcached_handler_t<config_t>::get(char *state, unsigned int line_len) {
+txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::get(char *state, unsigned int line_len) {
 
     char *key_str = strtok_r(NULL, DELIMS, &state);
     if (key_str == NULL) return malformed_request();
 
-    txt_memcached_get_request<config_t> *rq = new txt_memcached_get_request<config_t>(this);
+    txt_memcached_get_request_t *rq = new txt_memcached_get_request_t(this);
 
     do {
         node_handler::str_to_key(key_str, &key);
@@ -814,17 +781,16 @@ typename txt_memcached_handler_t<config_t>::parse_result_t txt_memcached_handler
 
     //clean out the rbuf
     conn_fsm->consume(line_len);
-    return req_handler_t::op_req_complex;
+    return request_handler_t::op_req_complex;
 }
 
 // FIXME horrible redundancy
-template <class config_t>
-typename txt_memcached_handler_t<config_t>::parse_result_t txt_memcached_handler_t<config_t>::get_cas(char *state, unsigned int line_len) {
+txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::get_cas(char *state, unsigned int line_len) {
 
     char *key_str = strtok_r(NULL, DELIMS, &state);
     if (key_str == NULL) return malformed_request();
 
-    txt_memcached_get_cas_request<config_t> *rq = new txt_memcached_get_cas_request<config_t>(this);
+    txt_memcached_get_cas_request_t *rq = new txt_memcached_get_cas_request_t(this);
 
     do {
         node_handler::str_to_key(key_str, &key);
@@ -848,12 +814,11 @@ typename txt_memcached_handler_t<config_t>::parse_result_t txt_memcached_handler
 
     //clean out the rbuf
     conn_fsm->consume(line_len);
-    return req_handler_t::op_req_complex;
+    return request_handler_t::op_req_complex;
 }
 
 
-template <class config_t>
-typename txt_memcached_handler_t<config_t>::parse_result_t txt_memcached_handler_t<config_t>::remove(char *state, unsigned int line_len) {
+txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::remove(char *state, unsigned int line_len) {
     char *key_str = strtok_r(NULL, DELIMS, &state);
     if (key_str == NULL) {
         conn_fsm->consume(line_len);
@@ -888,15 +853,13 @@ typename txt_memcached_handler_t<config_t>::parse_result_t txt_memcached_handler
     node_handler::str_to_key(key_str, &key);
 
     // Create request
-    new txt_memcached_delete_request<config_t>(this, &key, this->noreply);
+    new txt_memcached_delete_request_t(this, &key, this->noreply);
 
     //clean out the rbuf
     conn_fsm->consume(line_len);
 
     if (this->noreply)
-        return req_handler_t::op_req_parallelizable;
+        return request_handler_t::op_req_parallelizable;
     else
-        return req_handler_t::op_req_complex;
+        return request_handler_t::op_req_complex;
 }
-
-#endif // __TXT_MEMCACHED_HANDLER_TCC__

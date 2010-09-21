@@ -1,9 +1,6 @@
-#ifndef __BTREE_GET_FSM_TCC__
-#define __BTREE_GET_FSM_TCC__
-
+#include "get_fsm.hpp"
 #include "utils.hpp"
 #include "cpu_context.hpp"
-
 
 //TODO: remove
 #include "btree/internal_node.hpp"
@@ -11,8 +8,7 @@
 
 #include "btree/delete_expired_fsm.hpp"
 
-template <class config_t>
-typename btree_get_fsm<config_t>::transition_result_t btree_get_fsm<config_t>::do_acquire_superblock(event_t *event) {
+btree_get_fsm_t::transition_result_t btree_get_fsm_t::do_acquire_superblock(event_t *event) {
     assert(state == acquire_superblock);
 
     if(event == NULL) {
@@ -43,15 +39,14 @@ typename btree_get_fsm<config_t>::transition_result_t btree_get_fsm<config_t>::d
     }
 }
 
-template <class config_t>
-typename btree_get_fsm<config_t>::transition_result_t btree_get_fsm<config_t>::do_acquire_root(event_t *event) {
+btree_get_fsm_t::transition_result_t btree_get_fsm_t::do_acquire_root(event_t *event) {
     assert(state == acquire_root);
 
     // Make sure root exists
     if(node_id == NULL_BLOCK_ID) {
         last_buf->release();
         last_buf = NULL;
-        this->status_code = btree_fsm<config_t>::S_NOT_FOUND;
+        this->status_code = btree_fsm_t::S_NOT_FOUND;
         state = lookup_complete;
         return btree_fsm_t::transition_ok;
     }
@@ -76,8 +71,7 @@ typename btree_get_fsm<config_t>::transition_result_t btree_get_fsm<config_t>::d
     }
 }
 
-template <class config_t>
-typename btree_get_fsm<config_t>::transition_result_t btree_get_fsm<config_t>::do_acquire_node(event_t *event) {
+btree_get_fsm_t::transition_result_t btree_get_fsm_t::do_acquire_node(event_t *event) {
     assert(state == acquire_node);
     // Either we already have the node (then event should be NULL), or
     // we don't have the node (in which case we asked for it before,
@@ -116,7 +110,7 @@ typename btree_get_fsm<config_t>::transition_result_t btree_get_fsm<config_t>::d
         buf->release();
         buf = NULL;
         if (found && value.expired()) {
-            delete_expired<config_t>(&key);
+            delete_expired(&key);
             found = false;
         }
         if (found && value.large_value()) {
@@ -124,14 +118,13 @@ typename btree_get_fsm<config_t>::transition_result_t btree_get_fsm<config_t>::d
         } else {
             state = lookup_complete;
         }
-        this->status_code = found ? btree_fsm<config_t>::S_SUCCESS : btree_fsm<config_t>::S_NOT_FOUND;
+        this->status_code = found ? btree_fsm_t::S_SUCCESS : btree_fsm_t::S_NOT_FOUND;
         return btree_fsm_t::transition_ok;
     }
 }
 
 // TODO: Fix this when large_value's API supports it.
-template <class config_t>
-typename btree_get_fsm<config_t>::transition_result_t btree_get_fsm<config_t>::do_acquire_large_value(event_t *event) {
+btree_get_fsm_t::transition_result_t btree_get_fsm_t::do_acquire_large_value(event_t *event) {
     assert(state == acquire_large_value);
 
     assert(value.large_value());
@@ -152,23 +145,21 @@ typename btree_get_fsm<config_t>::transition_result_t btree_get_fsm<config_t>::d
     }
 }
 
-template <class config_t>
-typename btree_get_fsm<config_t>::transition_result_t btree_get_fsm<config_t>::do_large_value_acquired(event_t *event) {
+btree_get_fsm_t::transition_result_t btree_get_fsm_t::do_large_value_acquired(event_t *event) {
     assert(state == large_value_acquired);
 
     assert(large_value);
     assert(!event);
     assert(large_value->get_index_block_id() == value.lv_index_block_id());
 
-    write_lv_msg = new write_large_value_msg<config_t>(large_value, req, this, this);
-    write_lv_msg->return_cpu = get_cpu_context()->worker->workerid;
+    write_lv_msg = new write_large_value_msg_t(large_value, req, this, this);
+    write_lv_msg->return_cpu = get_cpu_context()->event_queue->message_hub.current_cpu;
     write_lv_msg->send(this->return_cpu);
     // And now, we wait... For the socket to be ready for our value.
     return btree_fsm_t::transition_incomplete;
 }
 
-template <class config_t>
-typename btree_get_fsm<config_t>::transition_result_t btree_get_fsm<config_t>::do_transition(event_t *event) {
+btree_get_fsm_t::transition_result_t btree_get_fsm_t::do_transition(event_t *event) {
     transition_result_t res = btree_fsm_t::transition_ok;
 
     // Make sure we've got either an empty or a cache event
@@ -233,16 +224,12 @@ typename btree_get_fsm<config_t>::transition_result_t btree_get_fsm<config_t>::d
     return res;
 }
 
-template <class config_t>
-void btree_get_fsm<config_t>::on_large_value_read() {
+void btree_get_fsm_t::on_large_value_read() {
     this->step();
 }
 
-template <class config_t>
-void btree_get_fsm<config_t>::on_large_value_completed(bool _success) {
+void btree_get_fsm_t::on_large_value_completed(bool _success) {
     assert(_success);
     write_lv_msg = NULL;
     this->step();
 }
-
-#endif // __BTREE_GET_FSM_TCC__

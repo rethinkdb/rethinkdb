@@ -1,14 +1,10 @@
 
 #include <signal.h>
 #include "config/cmd_args.hpp"
-#include "config/code.hpp"
+#include "config/alloc.hpp"
 #include "utils.hpp"
-#include "btree/node.hpp"
 #include "worker_pool.hpp"
 #include "server.hpp"
-#include "btree/node.tcc"
-#include "btree/internal_node.tcc"
-#include "btree/leaf_node.tcc"
 
 void term_handler(int signum) {
     // We'll naturally break out of the main loop because the accept

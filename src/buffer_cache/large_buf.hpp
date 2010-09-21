@@ -1,38 +1,35 @@
 #ifndef __LARGE_BUF_HPP__
 #define __LARGE_BUF_HPP__
 
+#include "buffer_cache/buffer_cache.hpp"
 #include "arch/resource.hpp"
 #include "config/args.hpp"
 #include "btree/node.hpp"
+#include "conn_fsm.hpp"
+#include "request.hpp"
 
 #define NUM_SEGMENTS(total_size, segment_size) ( ( ((total_size)-1) / (segment_size) ) + 1 )
 
 //#define MAX_LARGE_BUF_SEGMENTS ((((MAX_VALUE_SIZE) - 1) / (BTREE_BLOCK_SIZE)) + 1)
 #define MAX_LARGE_BUF_SEGMENTS (NUM_SEGMENTS((MAX_VALUE_SIZE), (BTREE_BLOCK_SIZE)))
 
-// TODO: Rename this.
-template <class config_t>
-struct segment_block_available_callback : public block_available_callback<config_t>,
-                                          public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, large_buf<config_t> > {
-    typedef large_buf<config_t> large_buf_t;
-    large_buf_t *owner;
+class large_buf_t;
 
-    bool is_index_block;
-    uint16_t ix;
+struct large_buf_available_callback_t :
+    public intrusive_list_node_t<large_buf_available_callback_t>
+{
+    virtual ~large_buf_available_callback_t() {}
+    virtual void on_large_buf_available(large_buf_t *large_buf) = 0;
+};
 
-    segment_block_available_callback(large_buf_t *owner)
-        : owner(owner), is_index_block(true) {}
-    
-    segment_block_available_callback(large_buf_t *owner, uint16_t ix)
-        : owner(owner), is_index_block(false), ix(ix) {}
+struct large_value_read_callback {
+    virtual void on_large_value_read() = 0;
+    virtual ~large_value_read_callback() {}
+};
 
-    void on_block_available(typename config_t::buf_t *buf) {
-        if (is_index_block) {
-            owner->index_acquired(buf);
-        } else {
-            owner->segment_acquired(buf, ix);
-        }
-    }
+struct large_value_completed_callback {
+    virtual void on_large_value_completed(bool success) = 0;
+    virtual ~large_value_completed_callback() {}
 };
 
 // Must be smaller than a buf.
@@ -44,27 +41,21 @@ struct large_buf_index {
     block_id_t blocks[MAX_LARGE_BUF_SEGMENTS];
 };
 
-template <class config_t>
-class large_buf : public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, large_buf<config_t> > { // : public block_available_callback<config_t> {
-    typedef typename config_t::cache_t cache_t;
-
-    typedef typename cache_t::buf_t buf_t;
-    typedef typename cache_t::transaction_t transaction_t;
-
-    typedef large_buf_available_callback<config_t> large_buf_available_callback_t;
-    typedef segment_block_available_callback<config_t> segment_block_available_callback_t;
+class large_buf_t :
+    public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, large_buf_t>
+{
 private:
     block_id_t index_block; // TODO: Rename index_block_id.
-    typename config_t::buf_t *index_buf;
+    buf_t *index_buf;
     //const uint32_t size; // XXX possibly unnecessary?
     uint32_t size; // XXX possibly unnecessary?
     access_t access;
-    large_buf_available_callback<config_t> *callback;
+    large_buf_available_callback_t *callback;
 
     transaction_t *transaction;
 
     uint16_t num_acquired;
-    typename config_t::buf_t *bufs[MAX_LARGE_BUF_SEGMENTS];
+    buf_t *bufs[MAX_LARGE_BUF_SEGMENTS];
 
     // TODO: get_index()
 
@@ -79,8 +70,8 @@ public: // XXX Should this be private?
 
 // TODO: Take care of private methods and friend classes and all that.
 public:
-    large_buf(transaction_t *txn);
-    ~large_buf();
+    large_buf_t(transaction_t *txn);
+    ~large_buf_t();
 
     void allocate(uint32_t _size);
     void acquire(block_id_t _index_block, uint32_t _size, access_t _access, large_buf_available_callback_t *_callback);
@@ -103,17 +94,37 @@ public:
     void segment_acquired(buf_t *buf, uint16_t ix);
 };
 
+// TODO: Rename this.
+struct segment_block_available_callback_t : public block_available_callback_t,
+                                            public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, segment_block_available_callback_t> {
+    large_buf_t *owner;
 
-//#include "conn_fsm.hpp"
+    bool is_index_block;
+    uint16_t ix;
 
+    segment_block_available_callback_t(large_buf_t *owner)
+        : owner(owner), is_index_block(true) {}
+    
+    segment_block_available_callback_t(large_buf_t *owner, uint16_t ix)
+        : owner(owner), is_index_block(false), ix(ix) {}
+
+    void on_block_available(buf_t *buf) {
+        if (is_index_block) {
+            owner->index_acquired(buf);
+        } else {
+            owner->segment_acquired(buf, ix);
+        }
+    }
+};
 
 // TODO: These two are sickeningly similar now. Merge them.
 
-// TODO: Some of the code in here belongs in large_buf.
-template <class config_t>
-class read_large_value_msg : public cpu_message_t, public data_transferred_callback,
-                             public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, read_large_value_msg<config_t> > {
-    typedef typename config_t::large_buf_t large_buf_t;
+// TODO: Some of the code in here belongs in large_buf_t.
+
+class read_large_value_msg_t : public cpu_message_t,
+                               public data_transferred_callback,
+                               public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, read_large_value_msg_t>
+{
 public:
     bool completed;
     bool success;
@@ -123,8 +134,9 @@ private:
     request_callback_t *req;
     large_value_completed_callback *cb;
     unsigned int next_segment;
+
 public:
-    read_large_value_msg(large_buf_t *large_value, request_callback_t *req, large_value_completed_callback *cb)
+    read_large_value_msg_t(large_buf_t *large_value, request_callback_t *req, large_value_completed_callback *cb)
         : cpu_message_t(cpu_message_t::mt_read_large_value), completed(false), success(false), large_value(large_value), req(req), cb(cb), next_segment(0) {}
 
     void on_arrival() {
@@ -165,11 +177,11 @@ private:
 };
 
 
-// TODO: Some of the code in here belongs in large_buf.
-template <class config_t>
-class write_large_value_msg : public cpu_message_t, public data_transferred_callback,
-                              public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, write_large_value_msg<config_t> > {
-    typedef typename config_t::large_buf_t large_buf_t;
+// TODO: Some of the code in here belongs in large_buf_t.
+class write_large_value_msg_t : public cpu_message_t,
+                                public data_transferred_callback,
+                                public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, write_large_value_msg_t>
+{
 private:
     large_buf_t *large_value;
     request_callback_t *req;
@@ -184,7 +196,7 @@ public:
     } state;
 
 public:
-    write_large_value_msg(large_buf_t *large_value, request_callback_t *req, large_value_read_callback *read_cb, large_value_completed_callback *completed_cb)
+    write_large_value_msg_t(large_buf_t *large_value, request_callback_t *req, large_value_read_callback *read_cb, large_value_completed_callback *completed_cb)
         : cpu_message_t(cpu_message_t::mt_write_large_value), large_value(large_value), req(req), next_segment(0), read_cb(read_cb), completed_cb(completed_cb), state(ready) {}
 
     void on_arrival() {
@@ -227,14 +239,12 @@ private:
             req->on_fsm_ready();
             state = completed;
             int return_cpu = this->return_cpu;
-            this->return_cpu = get_cpu_context()->worker->workerid;
+            this->return_cpu = get_cpu_context()->event_queue->message_hub.current_cpu;
             send(return_cpu);
             //req->rh->write_lv_msg = this;
             //req->rh->conn_fsm->dummy_sock_event();
         }
     }
 };
-
-#include "buffer_cache/large_buf.tcc"
 
 #endif // __LARGE_BUF_HPP__

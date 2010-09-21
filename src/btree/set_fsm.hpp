@@ -3,14 +3,12 @@
 
 #include "btree/modify_fsm.hpp"
 
-template <class config_t>
-class btree_set_fsm : public btree_modify_fsm<config_t>, public large_value_completed_callback,
-                      public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, btree_set_fsm<config_t> > {
+class btree_set_fsm_t : public btree_modify_fsm_t,
+                        public large_value_completed_callback,
+                        public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, btree_set_fsm_t> {
 private:
-    //using btree_modify_fsm<config_t>::request_handler;
-    typedef typename config_t::large_buf_t large_buf_t;
-    typedef typename config_t::btree_fsm_t btree_fsm_t;
-    typedef typename btree_fsm_t::transition_result_t transition_result_t;
+    typedef btree_fsm_t::transition_result_t transition_result_t;
+
 public:
     enum set_type_t {
         set_type_set,
@@ -19,8 +17,8 @@ public:
         set_type_cas
     };
 
-    explicit btree_set_fsm(btree_key *key, request_callback_t *req, byte *data, uint32_t length, set_type_t type, btree_value::mcflags_t mcflags, btree_value::exptime_t exptime, btree_value::cas_t req_cas)
-        : btree_modify_fsm<config_t>(key), length(length), req(req), type(type), req_cas(req_cas), success(false), new_large_value(NULL) {
+    explicit btree_set_fsm_t(btree_key *key, request_callback_t *req, byte *data, uint32_t length, set_type_t type, btree_value::mcflags_t mcflags, btree_value::exptime_t exptime, btree_value::cas_t req_cas)
+        : btree_modify_fsm_t(key), length(length), req(req), type(type), req_cas(req_cas), success(false), new_large_value(NULL) {
         // XXX This does unnecessary setting and copying.
         value.metadata_flags = 0;
         value.value_size(0);
@@ -62,19 +60,14 @@ public:
             }
             value.set_cas(0xCA5ADDED); // Turns the flag on and makes room. modify_fsm will set an actual CAS later. TODO: We should probably have a separate function for this.
         }
-
-        if (!old_value) {
-            get_cpu_context()->worker->curr_items++;
-            get_cpu_context()->worker->total_items++;
-        }
-
+        
         if (length > MAX_IN_NODE_VALUE_SIZE) { // XXX Maybe this should be a bool from the request handler.
             new_large_value = new large_buf_t(this->transaction);
             new_large_value->allocate(length);
             value.set_lv_index_block_id(new_large_value->get_index_block_id());
             //*new_value = &value; // XXX Only do this if we filled the value successfully.
-            read_large_value_msg<config_t> *msg = new read_large_value_msg<config_t>(new_large_value, req, this);
-            msg->return_cpu = get_cpu_context()->worker->workerid;
+            read_large_value_msg_t *msg = new read_large_value_msg_t(new_large_value, req, this);
+            msg->return_cpu = get_cpu_context()->event_queue->message_hub.current_cpu;
             msg->send(this->return_cpu);
             // XXX Figure out where things are deleted.
             return btree_fsm_t::transition_incomplete;

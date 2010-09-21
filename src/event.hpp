@@ -2,6 +2,7 @@
 #define __EVENT_HPP__
 
 #include "arch/resource.hpp"
+#include <sys/types.h>
 
 // Foward declarations
 struct event_queue_t;

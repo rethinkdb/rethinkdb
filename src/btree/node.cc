@@ -1,7 +1,4 @@
-
-#ifndef __BTREE_NODE_TCC__
-#define __BTREE_NODE_TCC__
-
+#include "btree/node.hpp"
 #include "btree/leaf_node.hpp"
 #include "btree/internal_node.hpp"
 
@@ -71,4 +68,3 @@ void node_handler::validate(btree_node *node) {
             fail("Invalid leaf node type.");
     }
 }
-#endif

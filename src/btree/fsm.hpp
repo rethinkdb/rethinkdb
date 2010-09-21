@@ -3,27 +3,19 @@
 
 #include "utils.hpp"
 #include "message_hub.hpp"
-#include "buffer_cache/callbacks.hpp"
+#include "buffer_cache/buffer_cache.hpp"
+#include "buffer_cache/large_buf.hpp"
 #include "event.hpp"
 
-//#include "buffer_cache/large_buf.hpp"
-
-template <class config_t>
-class btree_fsm : public cpu_message_t,
-                  //public large_value_filled_callback, // XXX This should be a separate callback.
-                  //public large_value_completed_callback, // XXX Rename.
-                  public block_available_callback<config_t>,
-                  public large_buf_available_callback<config_t>,
-                  public transaction_begin_callback<config_t>,
-                  public transaction_commit_callback<config_t>
+class btree_fsm_t : public cpu_message_t,
+                    //public large_value_filled_callback, // XXX This should be a separate callback.
+                    //public large_value_completed_callback, // XXX Rename.
+                    public block_available_callback_t,
+                    public large_buf_available_callback_t,
+                    public transaction_begin_callback_t,
+                    public transaction_commit_callback_t
 {
 public:
-    typedef typename config_t::cache_t cache_t;
-    typedef typename config_t::btree_fsm_t btree_fsm_t;
-    typedef typename cache_t::transaction_t transaction_t;
-    typedef typename cache_t::buf_t buf_t;
-    typedef typename config_t::large_buf_t large_buf_t;
-    typedef typename config_t::store_t store_t;
     typedef void (*on_complete_t)(btree_fsm_t *btree_fsm);
 public:
     enum transition_result_t {
@@ -46,7 +38,7 @@ public:
 
 
 public:
-    btree_fsm(btree_key *_key)
+    btree_fsm_t(btree_key *_key)
         : cpu_message_t(cpu_message_t::mt_btree),
           transaction(NULL),
           cache(NULL),   // Will be set when we arrive at the core we are operating on
@@ -54,7 +46,7 @@ public:
         {
         keycpy(&key, _key);
     }
-    virtual ~btree_fsm() {}
+    virtual ~btree_fsm_t() {}
 
     /* TODO: This function will be called many times per each
      * operation (once for blocks that are kept in memory, and once
@@ -92,7 +84,5 @@ public:
 
     status_code_t status_code;
 };
-
-#include "btree/fsm.tcc"
 
 #endif // __BTREE_FSM_HPP__

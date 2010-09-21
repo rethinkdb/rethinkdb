@@ -2,8 +2,7 @@
 #define __REQUEST_HANDLER_HPP__
 
 #include "event.hpp"
-#include "config/code.hpp"
-#include "conn_fsm.hpp"
+#include "config/alloc.hpp"
 
 struct event_t;
 struct event_queue_t;
@@ -16,14 +15,11 @@ TODO: Come up with a better way for request handler to notify conn_fsm as part o
 callback system.
 */
 
-template<class config_t>
+class conn_fsm_t;
+class data_transferred_callback;
+class read_large_value_msg_t;
+
 class request_handler_t {
-public:
-    typedef typename config_t::cache_t cache_t;
-    typedef typename config_t::conn_fsm_t conn_fsm_t;
-    typedef typename config_t::btree_fsm_t btree_fsm_t;
-    typedef typename config_t::read_large_value_msg_t read_large_value_msg_t;
-    typedef typename config_t::write_large_value_msg_t write_large_value_msg_t;
 
 public:
     explicit request_handler_t(event_queue_t *eq, conn_fsm_t *conn_fsm)
@@ -42,24 +38,11 @@ public:
 
     virtual parse_result_t parse_request(event_t *event) = 0;
 
-    void read_value(byte *buf, unsigned int size, data_transferred_callback *cb) {
-        // TODO: Put this where it belongs.
-        conn_fsm->fill_external_buf(buf, size, cb);
-    }
+    void read_value(byte *buf, unsigned int size, data_transferred_callback *cb);
+    void write_value(byte *buf, unsigned int size, data_transferred_callback *cb);
 
-    void write_value(byte *buf, unsigned int size, data_transferred_callback *cb) {
-        conn_fsm->send_external_buf(buf, size, cb);
-    }
-
-    void request_complete() {
-        // Notify the conn_fsm
-        event_t e;
-        bzero(&e, sizeof(e));
-        e.state = conn_fsm;
-        e.event_type = et_request_complete;
-        event_queue->parent->initiate_conn_fsm_transition(&e);
-    }
-
+    void request_complete();
+    
     event_queue_t *event_queue;
     conn_fsm_t *conn_fsm;
 

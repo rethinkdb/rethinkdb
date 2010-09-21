@@ -10,7 +10,7 @@
 
 #include "arch/resource.hpp"
 #include "config/cmd_args.hpp"
-#include "config/code.hpp"
+#include "config/alloc.hpp"
 #include "utils.hpp"
 
 #include "log_serializer_callbacks.hpp"

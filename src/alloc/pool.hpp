@@ -2,6 +2,8 @@
 #ifndef __POOL_ALLOC_HPP__
 #define __POOL_ALLOC_HPP__
 
+#include "errors.hpp"
+
 // TODO: this allocator shares the freelist with the pooled
 // memory. This saves space but might negatively affect caching
 // behavior (compared to a freelist stored in a separate
@@ -10,8 +12,6 @@
 // TODO: we might want to consider internal alignment of objects. We
 // should test this out and see if the performance changes in the
 // grand scheme of things.
-
-#include "utils.hpp"
 
 template <class super_alloc_t>
 struct pool_alloc_t : public super_alloc_t {

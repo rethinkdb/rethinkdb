@@ -1,22 +1,25 @@
 #ifndef __VAR_BUF_HPP__
 #define __VAR_BUF_HPP__
 
-#include "config/code.hpp"
+#include "config/alloc.hpp"
 #include "config/args.hpp"
 #include "conn_fsm.hpp"
+#include <stdarg.h>
+#include "cpu_context.hpp"
+#include "event_queue.hpp"
 
 #define MAX_MESSAGE_SIZE 500
 
-// TODO: sizeof(linked_buf) should be divisable by 512 so for allocation purposes }
+// TODO: sizeof(linked_buf_t) should be divisable by 512 so for allocation purposes }
 
-/*! \class linked_buf
+/*! \class linked_buf_t
  *  \brief linked version of iobuf_t
  *  \param _size the maximum bytes that can be stored in one link 
  */
-struct linked_buf : public buffer_base_t<IO_BUFFER_SIZE>,
-                    public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, linked_buf> {
+struct linked_buf_t : public buffer_base_t<IO_BUFFER_SIZE>,
+                      public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, linked_buf_t> {
     private:
-        linked_buf    *next;
+        linked_buf_t    *next;
         int           nbuf; // !< the total number of bytes in the buffer
         int           nsent; // !< how much of the buffer has been sent so far
     public:
@@ -30,8 +33,8 @@ struct linked_buf : public buffer_base_t<IO_BUFFER_SIZE>,
 
 
     public:
-        linked_buf() : next(NULL), nbuf(0), nsent(0), gc_me(false) {}
-        ~linked_buf() {
+        linked_buf_t() : next(NULL), nbuf(0), nsent(0), gc_me(false) {}
+        ~linked_buf_t() {
             if (next != NULL)
                 delete next;
         }
@@ -40,7 +43,7 @@ struct linked_buf : public buffer_base_t<IO_BUFFER_SIZE>,
          */
         void grow() {
             if (next == NULL)
-                next = new linked_buf();
+                next = new linked_buf_t();
             else
                 next->grow();
         }
@@ -89,7 +92,7 @@ struct linked_buf : public buffer_base_t<IO_BUFFER_SIZE>,
         linked_buf_state_t send(int source) {
             linked_buf_state_t res;
             if (nsent < nbuf) {
-                int sz = io_calls_t::write(source, this->buf + nsent, nbuf - nsent);
+                int sz = get_cpu_context()->event_queue->iosys.write(source, this->buf + nsent, nbuf - nsent);
                 if(sz < 0) {
                     if(errno == EAGAIN || errno == EWOULDBLOCK)
                         res = linked_buf_outstanding;
@@ -97,7 +100,6 @@ struct linked_buf : public buffer_base_t<IO_BUFFER_SIZE>,
                         fail("Error sending to socket");
                 } else {
                     nsent += sz;
-                    get_cpu_context()->worker->bytes_written += sz;
                     if (next == NULL) {
                         //if this is the last link in the chain we slide the buffer
                         memmove(this->buf, this->buf + nsent, nbuf - nsent);
@@ -129,12 +131,12 @@ struct linked_buf : public buffer_base_t<IO_BUFFER_SIZE>,
         /*! \brief delete buffers that have already been fully sent out
          *  \return a pointer to the new head
          */
-        linked_buf *garbage_collect() {
+        linked_buf_t *garbage_collect() {
             if (nbuf == IO_BUFFER_SIZE && nbuf == nsent) {
                 if (next == NULL)
                     grow();
 
-                linked_buf *tmp = next;
+                linked_buf_t *tmp = next;
                 next = NULL;
                 delete this;
                 return tmp->garbage_collect();

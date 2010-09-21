@@ -1,6 +1,5 @@
 
 #include "config/args.hpp"
-#include "config/code.hpp"
 #include "cpu_context.hpp"
 #include "event_queue.hpp"
 

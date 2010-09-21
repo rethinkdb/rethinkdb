@@ -2,21 +2,19 @@
 #define __CONN_FSM_HPP__
 
 #include "containers/intrusive_list.hpp"
+#include "containers/var_buf.hpp"
 #include "arch/resource.hpp"
 #include "request_handler/request_handler.hpp"
 #include "event.hpp"
-#include "btree/fsm.hpp"
-#include "var_buf.hpp"
 #include "corefwd.hpp"
 
 #include <stdarg.h>
 
 // TODO: the lifetime of conn_fsm isn't well defined - some objects
 // may persist for far longer than others. The small object dynamic
-// pool allocator (currently defined as alloc_t in config_t) is
-// designed for objects that have roughly the same lifetime. We should
-// use a different allocator for objects like conn_fsm (and btree
-// buffers).
+// pool allocator is designed for objects that have roughly the same
+// lifetime. We should use a different allocator for objects like
+// conn_fsm (and btree buffers).
 
 struct data_transferred_callback {
     virtual void on_data_transferred() = 0;
@@ -24,14 +22,10 @@ struct data_transferred_callback {
 };
 
 // The actual state structure
-template<class config_t>
-struct conn_fsm : public intrusive_list_node_t<conn_fsm<config_t> >,
-                  public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, conn_fsm<config_t> > {
+struct conn_fsm_t : public intrusive_list_node_t<conn_fsm_t>,
+                    public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, conn_fsm_t> {
 public:
-    typedef typename config_t::iobuf_t iobuf_t;
-    typedef typename config_t::linked_buf_t linked_buf_t;
-    typedef typename config_t::btree_fsm_t btree_fsm_t;
-    typedef typename config_t::req_handler_t req_handler_t;
+    typedef buffer_t<IO_BUFFER_SIZE> iobuf_t;
     
 public:
     // Possible transition results
@@ -61,8 +55,8 @@ public:
     };
     
 public:
-    conn_fsm(resource_t _source, event_queue_t *_event_queue);
-    ~conn_fsm();
+    conn_fsm_t(resource_t _source, event_queue_t *_event_queue);
+    ~conn_fsm_t();
     
     result_t do_transition(event_t *event);
     void consume(unsigned int bytes);
@@ -91,7 +85,7 @@ public:
     /*! \warning {If req_handler::parse_request returns op_req_parallelizable then it MUST NOT send an et_request_complete,
      *              if it returns op_req_complex then it MUST send an et_request_complete event}
      */
-    req_handler_t *req_handler;
+    request_handler_t *req_handler;
     event_queue_t *event_queue;
     
     void fill_external_buf(byte *external_buf, unsigned int size, data_transferred_callback *callback);
@@ -116,11 +110,6 @@ private:
     void init_state();
     void return_to_socket_connected();
 };
-
-
-
-// Include the implementation
-#include "conn_fsm.tcc"
 
 #endif // __CONN_FSM_HPP__
 
