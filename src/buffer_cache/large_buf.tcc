@@ -136,7 +136,7 @@ byte *large_buf<config_t>::get_segment(int ix, uint16_t *segment_size) {
         *segment_size = BTREE_BLOCK_SIZE;
     }
 
-    return (byte *) bufs[ix]->ptr();
+    return (byte *) bufs[ix]->get_data_write(); //TODO @sachaf figure out if this can be get_data_read
 }
 
 template <class config_t>
@@ -148,7 +148,7 @@ block_id_t large_buf<config_t>::get_index_block_id() {
 template <class config_t>
 large_buf_index *large_buf<config_t>::get_index() {
     assert(index_buf->get_block_id() == index_block);
-    return (large_buf_index *) index_buf->ptr();
+    return (large_buf_index *) index_buf->get_data_write(); //TODO @sachaf figure out if this can be get_data_read
 }
 
 template <class config_t>

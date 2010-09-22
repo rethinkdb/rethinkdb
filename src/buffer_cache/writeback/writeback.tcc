@@ -214,7 +214,7 @@ bool writeback_tmpl_t<config_t>::next_writeback_step() {
             // Fill the serializer structure
             if (!do_delete) {
                 writes[i].block_id = buf->get_block_id();
-                writes[i].buf = buf->ptr();
+                writes[i].buf = buf->data;
                 writes[i].callback = buf;
 #ifndef NDEBUG
                 buf->active_callback_count ++;

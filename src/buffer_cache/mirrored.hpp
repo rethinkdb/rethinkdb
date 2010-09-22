@@ -7,12 +7,16 @@
 #include "concurrency/access.hpp"
 #include "concurrency/rwi_lock.hpp"
 #include "buffer_cache/callbacks.hpp"
+#include "containers/two_level_array.hpp"
+#include <boost/crc.hpp>
 
 // This cache doesn't actually do any operations itself. Instead, it
 // provides a framework that collects all components of the cache
 // (memory allocation, page lookup, page replacement, writeback, etc.)
 // into a coherent whole. This allows easily experimenting with
 // various components of the cache to improve performance.
+
+typedef uint32_t crc_t;
 
 /* Buffer class. */
 template <class config_t>
@@ -87,17 +91,16 @@ private:
 public:
     void release();
 
-    // TODO(NNW) We may want a const version of ptr() as well so the non-const
-    // version can verify that the buf is writable; requires pushing const
-    // through a bunch of other places (such as array_node) also, however.
-    void *ptr() {
+
+    void *get_data_write() {
         assert(cached);
         assert(!safe_to_unload()); // If this assertion fails, it probably means that you're trying to access a buf you don't own.
-        assert(!do_delete);
-        return data;
+        assert(sizeof(typename serializer_t::buf_data_t) == BLOCK_META_DATA_SIZE);
+        set_dirty();
+        return ((char *) data) + BLOCK_META_DATA_SIZE;
     }
 
-    void *get_data() {
+    const void *get_data_read() {
         assert(cached);
         assert(!safe_to_unload()); // If this assertion fails, it probably means that you're trying to access a buf you don't own.
         assert(sizeof(typename serializer_t::buf_data_t) == BLOCK_META_DATA_SIZE);
@@ -116,6 +119,12 @@ public:
         assert(safe_to_delete());
         do_delete = true;
         writeback_buf.set_dirty();
+    }
+private:
+    crc_t compute_crc() {
+        boost::crc_optimal<32, 0x04C11DB7, 0xFFFFFFFF, 0xFFFFFFFF, true, true> crc_computer;
+        crc_computer.process_bytes((void *) (((char *) data) + BLOCK_META_DATA_SIZE), BTREE_USABLE_BLOCK_SIZE);
+        return crc_computer.checksum();
     }
 };
 
@@ -288,6 +297,9 @@ private:
     // Used to keep track of how many transactions there are so that we can wait for transactions to
     // complete before shutting down.
     int num_live_transactions;
+private:
+    /* CRC checking stuff */
+    two_level_array_t<crc_t, MAX_BLOCK_ID> crc_map;
 };
 
 #include "buffer_cache/mirrored.tcc"

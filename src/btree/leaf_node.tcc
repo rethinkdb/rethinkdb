@@ -66,7 +66,7 @@ void leaf_node_handler::remove(btree_leaf_node *node, btree_key *key) {
 //    check("leaf became zero size!", node->npairs == 0);
 }
 
-bool leaf_node_handler::lookup(btree_leaf_node *node, btree_key *key, btree_value *value) {
+bool leaf_node_handler::lookup(const btree_leaf_node *node, btree_key *key, btree_value *value) {
     int index = find_key(node, key);
     if (index != -1) {
         block_id_t offset = node->pair_offsets[index];
@@ -218,11 +218,11 @@ bool leaf_node_handler::level(btree_leaf_node *node, btree_leaf_node *sibling, b
     return true;
 }
 
-bool leaf_node_handler::is_empty(btree_leaf_node *node) {
+bool leaf_node_handler::is_empty(const btree_leaf_node *node) {
     return node->npairs == 0;
 }
 
-bool leaf_node_handler::is_full(btree_leaf_node *node, btree_key *key, btree_value *value) {
+bool leaf_node_handler::is_full(const btree_leaf_node *node, btree_key *key, btree_value *value) {
 #ifdef DEBUG_MAX_LEAF
     return node->npairs >= DEBUG_MAX_LEAF;
 #endif
@@ -239,7 +239,7 @@ bool leaf_node_handler::is_full(btree_leaf_node *node, btree_key *key, btree_val
         node->frontmost_offset;
 }
 
-void leaf_node_handler::validate(btree_leaf_node *node) {
+void leaf_node_handler::validate(const btree_leaf_node *node) {
     assert((void*)&(node->pair_offsets[node->npairs]) <= (void*)get_pair(node, node->frontmost_offset));
     assert(node->frontmost_offset > 0);
     assert(node->frontmost_offset <= BTREE_BLOCK_SIZE);
@@ -249,7 +249,7 @@ void leaf_node_handler::validate(btree_leaf_node *node) {
     }
 }
 
-bool leaf_node_handler::is_mergable(btree_leaf_node *node, btree_leaf_node *sibling) {
+bool leaf_node_handler::is_mergable(const btree_leaf_node *node, const btree_leaf_node *sibling) {
 #ifdef DEBUG_MAX_INTERNAL
    return node->npairs + sibling->npairs < DEBUG_MAX_LEAF;
 #endif
@@ -260,7 +260,7 @@ bool leaf_node_handler::is_mergable(btree_leaf_node *node, btree_leaf_node *sibl
         LEAF_EPSILON < BTREE_BLOCK_SIZE;
 }
 
-bool leaf_node_handler::is_underfull(btree_leaf_node *node) {
+bool leaf_node_handler::is_underfull(const btree_leaf_node *node) {
 #ifdef DEBUG_MAX_LEAF
     return node->npairs < (DEBUG_MAX_LEAF + 1) / 2;
 #endif
@@ -278,7 +278,7 @@ size_t leaf_node_handler::pair_size(btree_leaf_pair *pair) {
     return sizeof(btree_leaf_pair) + pair->key.size + pair->value()->mem_size();
 }
 
-btree_leaf_pair *leaf_node_handler::get_pair(btree_leaf_node *node, uint16_t offset) {
+btree_leaf_pair *leaf_node_handler::get_pair(const btree_leaf_node *node, uint16_t offset) {
     return (btree_leaf_pair *)( ((byte *)node) + offset);
 }
 
@@ -320,20 +320,19 @@ uint16_t leaf_node_handler::insert_pair(btree_leaf_node *node, btree_value *valu
     return node->frontmost_offset;
 }
 
-int leaf_node_handler::get_offset_index(btree_leaf_node *node, btree_key *key) {
+int leaf_node_handler::get_offset_index(const btree_leaf_node *node, btree_key *key) {
     // lower_bound returns the first place where the key could be inserted without violating the ordering
     return std::lower_bound(node->pair_offsets, node->pair_offsets+node->npairs, NULL, leaf_key_comp(node, key)) - node->pair_offsets;
 }
 
 // find_key returns the index of the offset for key if it's in the node or -1 if it is not
-int leaf_node_handler::find_key(btree_leaf_node *node, btree_key *key) {
+int leaf_node_handler::find_key(const btree_leaf_node *node, btree_key *key) {
     int index = get_offset_index(node, key);
     if (index < node->npairs && is_equal(key, &get_pair(node, node->pair_offsets[index])->key) ) {
         return index;
     } else {
         return -1;
     }
-
 }
 void leaf_node_handler::delete_offset(btree_leaf_node *node, int index) {
     uint16_t *pair_offsets = node->pair_offsets;
@@ -354,14 +353,14 @@ bool leaf_node_handler::is_equal(btree_key *key1, btree_key *key2) {
     return sized_strcmp(key1->contents, key1->size, key2->contents, key2->size) == 0;
 }
 
-int leaf_node_handler::nodecmp(btree_leaf_node *node1, btree_leaf_node *node2) {
+int leaf_node_handler::nodecmp(const btree_leaf_node *node1, const btree_leaf_node *node2) {
     btree_key *key1 = &get_pair(node1, node1->pair_offsets[0])->key;
     btree_key *key2 = &get_pair(node2, node2->pair_offsets[0])->key;
 
     return sized_strcmp(key1->contents, key1->size, key2->contents, key2->size);
 }
 
-void leaf_node_handler::print(btree_leaf_node *node) {
+void leaf_node_handler::print(const btree_leaf_node *node) {
     int freespace = node->frontmost_offset - (sizeof(btree_leaf_node) + node->npairs*sizeof(*node->pair_offsets));
     printf("Free space in node: %d\n",freespace);
     printf("Used space: %ld)\n", BTREE_BLOCK_SIZE - freespace);
@@ -378,7 +377,7 @@ void leaf_node_handler::print(btree_leaf_node *node) {
         printf("|\t");
         pair->value()->print();
     }
-    printf("|\n");
+        printf("|\n");
     printf("\n\n\n");
 }
 #endif // __BTREE_LEAF_NODE_TCC__

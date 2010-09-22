@@ -57,6 +57,9 @@ public:
 
     private:
         buf_t *gbuf;
+#ifndef NDEBUG
+    public:
+#endif
         bool dirty;
     };
     

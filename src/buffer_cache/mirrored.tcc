@@ -88,6 +88,12 @@ void buf<config_t>::release() {
         delete this;
     }
     */
+
+    if (!writeback_buf.dirty && cache->crc_map.get(block_id)) {
+        assert(compute_crc() == cache->crc_map.get(block_id));
+    } else {
+        cache->crc_map.set(block_id, compute_crc());
+    }
 }
 
 template <class config_t>
@@ -272,7 +278,7 @@ transaction<config_t>::acquire(block_id_t block_id, access_t mode,
         // This must pass since no one else holds references to this block.
         bool acquired __attribute__((unused)) = buf->concurrency_buf.acquire(mode, NULL);
         assert(acquired);
-        
+
         return NULL;
         
     } else {
@@ -291,6 +297,7 @@ transaction<config_t>::acquire(block_id_t block_id, access_t mode,
             return NULL;
             
         } else {
+            assert(buf->compute_crc() == cache->crc_map.get(buf->block_id));
             return buf;
         }
     }

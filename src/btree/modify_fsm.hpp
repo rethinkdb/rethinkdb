@@ -66,7 +66,7 @@ public:
     transition_result_t do_acquire_node(event_t *event);
     transition_result_t do_acquire_large_value(event_t *event);
     transition_result_t do_acquire_sibling(event_t *event);
-    bool do_check_for_split(node_t **node);
+    bool do_check_for_split(const node_t **node);
     void split_node(buf_t *node, buf_t **rnode, block_id_t *rnode_id, btree_key *median);
 
     // Some relevant state information
