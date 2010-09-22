@@ -6,8 +6,7 @@
 #include <vector>
 #include "utils.hpp"
 #include "config/args.hpp"
-#include "config/code.hpp"
-#include "utils.hpp"
+#include "config/alloc.hpp"
 #include "arch/resource.hpp"
 #include "event.hpp"
 #include "corefwd.hpp"
@@ -27,8 +26,8 @@ public:
     /**
      * Synchronous (but possibly non-blocking, depending on fd) API
      */
-    static ssize_t read(resource_t fd, void *buf, size_t count);
-    static ssize_t write(resource_t fd, const void *buf, size_t count);
+    ssize_t read(resource_t fd, void *buf, size_t count);
+    ssize_t write(resource_t fd, const void *buf, size_t count);
 
     /**
      * Asynchronous API

@@ -4,7 +4,7 @@
 #include <stdio.h>
 #include "arch/io.hpp"
 #include "config/args.hpp"
-#include "config/code.hpp"
+#include "config/alloc.hpp"
 #include "utils.hpp"
 #include "event_queue.hpp"
 #include "alloc/memalign.hpp"
@@ -12,6 +12,8 @@
 #include "alloc/dynamic_pool.hpp"
 #include "alloc/stats.hpp"
 #include "alloc/alloc_mixin.hpp"
+#include "worker_pool.hpp"
+#include "cpu_context.hpp"
 
 io_calls_t::io_calls_t(event_queue_t *_queue)
     : queue(_queue),
@@ -29,10 +31,12 @@ io_calls_t::~io_calls_t()
 }
 
 ssize_t io_calls_t::read(resource_t fd, void *buf, size_t count) {
+    get_cpu_context()->worker->bytes_read += count;
     return ::read(fd, buf, count);
 }
 
 ssize_t io_calls_t::write(resource_t fd, const void *buf, size_t count) {
+    get_cpu_context()->worker->bytes_written += count;
     return ::write(fd, buf, count);
 }
 

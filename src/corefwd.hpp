@@ -3,8 +3,7 @@
 #define __COREFWD_HPP__
 
 // Connection FSM
-template<class config_t>
-struct conn_fsm;
+struct conn_fsm_t;
 
 struct data_transferred_callback;
 
@@ -18,68 +17,20 @@ struct in_place_serializer_t;
 struct log_serializer_t;
 template<class inner_serializer_t> struct semantic_checking_serializer_t;
 
-// Caches
-
-template <class config_t>
-struct array_map_t;
-
-template <class config_t>
-struct page_repl_random_t;
-
-template <class config_t>
-struct mirrored_cache_t;
-
-template <class config_t>
-struct buf;
-
-template <class config_t>
-struct large_buf;
-
-template <class config_t>
-struct transaction;
-
-template <class config_t>
-struct writeback_tmpl_t;
-
-template<class config_t>
-struct rwi_conc_t;
-
 // Btree
 
-template <typename config_t>
-class btree_key_value_store;
-
+class btree_key_value_store_t;
 struct btree_node;
-
-template <typename config_t>
-class btree_modify_fsm;
-
-template <typename config_t>
-class read_large_value_msg;
-
-template <typename config_t>
-class write_large_value_msg;
-
-template <typename config_t>
-class btree_fsm;
-
-template <typename config_t>
-class btree_get_fsm;
-
-template <typename config_t>
-class btree_get_cas_fsm;
-
-template <typename config_t>
-class btree_set_fsm;
-
-template <typename config_t>
-class btree_delete_fsm;
-
-template <typename config_t>
-class btree_incr_decr_fsm;
-
-template <typename config_t>
-class btree_append_prepend_fsm;
+class btree_modify_fsm_t;
+class read_large_value_msg_t;
+class write_large_value_msg_t;
+class btree_fsm_t;
+class btree_get_fsm_t;
+class btree_get_cas_fsm_t;
+class btree_set_fsm_t;
+class btree_delete_fsm_t;
+class btree_incr_decr_fsm_t;
+class btree_append_prepend_fsm_t;
 
 // Event queue
 struct event_t;
@@ -90,16 +41,9 @@ struct worker_pool_t;
 struct worker_t;
 
 // Request handler
-template <class config_t>
 class request_handler_t;
-
-template <class config_t>
 class txt_memcached_handler_t;
-
-template <class config_t>
 class bin_memcached_handler_t;
-
-template <class config_t>
 class memcached_handler_t;
 
 // Context
@@ -123,19 +67,6 @@ class alloc_mixin_t;
 
 template <class alloc_t>
 class tls_small_obj_alloc_accessor;
-
-// Utils
-template <int _size>
-struct buffer_t;
-
-struct linked_buf;
-
-// Containers
-template <class derived_t>
-class intrusive_list_node_t;
-
-template <class node_t>
-class intrusive_list_t;
 
 #endif // __COREFWD_HPP__
 

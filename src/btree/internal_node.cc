@@ -1,6 +1,3 @@
-#ifndef __BTREE_INTERNAL_NODE_TCC__
-#define __BTREE_INTERNAL_NODE_TCC__
-
 #include "btree/internal_node.hpp"
 #include <algorithm>
 #include "utils.hpp"
@@ -24,7 +21,7 @@ void internal_node_handler::init(btree_internal_node *node, btree_internal_node 
     std::sort(node->pair_offsets, node->pair_offsets+node->npairs, internal_key_comp(node));
 }
 
-block_id_t internal_node_handler::lookup(btree_internal_node *node, btree_key *key) {
+block_id_t internal_node_handler::lookup(const btree_internal_node *node, btree_key *key) {
     int index = get_offset_index(node, key);
 #ifdef BTREE_DEBUG
     printf("Look up:");
@@ -239,7 +236,7 @@ bool internal_node_handler::level(btree_internal_node *node, btree_internal_node
     return true;
 }
 
-int internal_node_handler::sibling(btree_internal_node *node, btree_key *key, block_id_t *sib_id) {
+int internal_node_handler::sibling(const btree_internal_node *node, btree_key *key, block_id_t *sib_id) {
     int index = get_offset_index(node, key);
     btree_internal_pair *sib_pair;
     int cmp;
@@ -273,7 +270,7 @@ void internal_node_handler::update_key(btree_internal_node *node, btree_key *key
     check("Invalid key given to update_key: offsets no longer in sorted order", !is_sorted(node->pair_offsets, node->pair_offsets+node->npairs, internal_key_comp(node)));
 }
 
-bool internal_node_handler::is_full(btree_internal_node *node) {
+bool internal_node_handler::is_full(const btree_internal_node *node) {
 #ifdef DEBUG_MAX_INTERNAL
     if (node->npairs-1 >= DEBUG_MAX_INTERNAL)
         return true;
@@ -284,7 +281,7 @@ bool internal_node_handler::is_full(btree_internal_node *node) {
     return sizeof(btree_internal_node) + (node->npairs + 1) * sizeof(*node->pair_offsets) + sizeof(btree_internal_pair) + MAX_KEY_SIZE >=  node->frontmost_offset;
 }
 
-bool internal_node_handler::change_unsafe(btree_internal_node *node) {
+bool internal_node_handler::change_unsafe(const btree_internal_node *node) {
 #ifdef DEBUG_MAX_INTERNAL
     if (node->npairs-1 >= DEBUG_MAX_INTERNAL)
         return true;
@@ -292,7 +289,7 @@ bool internal_node_handler::change_unsafe(btree_internal_node *node) {
     return sizeof(btree_internal_node) + node->npairs * sizeof(*node->pair_offsets) + MAX_KEY_SIZE >= node->frontmost_offset;
 }
 
-void internal_node_handler::validate(btree_internal_node *node) {
+void internal_node_handler::validate(const btree_internal_node *node) {
     assert((void*)&(node->pair_offsets[node->npairs]) <= (void*)get_pair(node, node->frontmost_offset));
     assert(node->frontmost_offset > 0);
     assert(node->frontmost_offset <= BTREE_BLOCK_SIZE);
@@ -303,7 +300,7 @@ void internal_node_handler::validate(btree_internal_node *node) {
     check("Offsets no longer in sorted order", !is_sorted(node->pair_offsets, node->pair_offsets+node->npairs, internal_key_comp(node)));
 }
 
-bool internal_node_handler::is_underfull(btree_internal_node *node) {
+bool internal_node_handler::is_underfull(const btree_internal_node *node) {
 #ifdef DEBUG_MAX_INTERNAL
    return node->npairs < (DEBUG_MAX_INTERNAL + 1) / 2;
 #endif
@@ -314,7 +311,7 @@ bool internal_node_handler::is_underfull(btree_internal_node *node) {
         INTERNAL_EPSILON / 2  < BTREE_BLOCK_SIZE / 2;
 }
 
-bool internal_node_handler::is_mergable(btree_internal_node *node, btree_internal_node *sibling, btree_internal_node *parent) {
+bool internal_node_handler::is_mergable(const btree_internal_node *node, const btree_internal_node *sibling, const btree_internal_node *parent) {
 #ifdef DEBUG_MAX_INTERNAL
    return node->npairs + sibling->npairs < DEBUG_MAX_INTERNAL;
 #endif
@@ -332,7 +329,7 @@ bool internal_node_handler::is_mergable(btree_internal_node *node, btree_interna
         INTERNAL_EPSILON < BTREE_BLOCK_SIZE; // must still have enough room for an arbitrary key
 }
 
-bool internal_node_handler::is_singleton(btree_internal_node *node) {
+bool internal_node_handler::is_singleton(const btree_internal_node *node) {
     return node->npairs == 2;
 }
 
@@ -340,7 +337,7 @@ size_t internal_node_handler::pair_size(btree_internal_pair *pair) {
     return sizeof(btree_internal_pair) + pair->key.size;
 }
 
-btree_internal_pair *internal_node_handler::get_pair(btree_internal_node *node, uint16_t offset) {
+btree_internal_pair *internal_node_handler::get_pair(const btree_internal_node *node, uint16_t offset) {
     return (btree_internal_pair *)( ((byte *)node) + offset);
 }
 
@@ -382,7 +379,7 @@ uint16_t internal_node_handler::insert_pair(btree_internal_node *node, block_id_
     return node->frontmost_offset;
 }
 
-int internal_node_handler::get_offset_index(btree_internal_node *node, btree_key *key) {
+int internal_node_handler::get_offset_index(const btree_internal_node *node, btree_key *key) {
     return std::lower_bound(node->pair_offsets, node->pair_offsets+node->npairs, NULL, internal_key_comp(node, key)) - node->pair_offsets;
 }
 
@@ -414,14 +411,14 @@ bool internal_node_handler::is_equal(btree_key *key1, btree_key *key2) {
     return sized_strcmp(key1->contents, key1->size, key2->contents, key2->size) == 0;
 }
 
-int internal_node_handler::nodecmp(btree_internal_node *node1, btree_internal_node *node2) {
+int internal_node_handler::nodecmp(const btree_internal_node *node1, const btree_internal_node *node2) {
     btree_key *key1 = &get_pair(node1, node1->pair_offsets[0])->key;
     btree_key *key2 = &get_pair(node2, node2->pair_offsets[0])->key;
 
     return sized_strcmp(key1->contents, key1->size, key2->contents, key2->size);
 }
 
-void internal_node_handler::print(btree_internal_node *node) {
+void internal_node_handler::print(const btree_internal_node *node) {
     int freespace = node->frontmost_offset - (sizeof(btree_internal_node) + (node->npairs + 1) * sizeof(*node->pair_offsets) + sizeof(btree_internal_pair) + MAX_KEY_SIZE);
     printf("Free space in node: %d\n",freespace);
     printf("Used space: %ld)\n", BTREE_BLOCK_SIZE - freespace);
@@ -439,5 +436,3 @@ void internal_node_handler::print(btree_internal_node *node) {
     }
     printf("|\n");
 }
-
-#endif // __BTREE_INTERNAL_NODE_TCC__

@@ -3,7 +3,7 @@
 #define __RWI_CONC_HPP__
 
 #include "concurrency/rwi_lock.hpp"
-#include "buffer_cache/callbacks.hpp"
+#include "buffer_cache/mirrored/callbacks.hpp"
 #include "cpu_context.hpp"
 
 /**
@@ -15,10 +15,12 @@
  * slice can be interleaved by operations from a different transaction
  * on that slice.
  */
-template<class config_t>
+
+template<class mc_config_t>
 struct rwi_conc_t {
-    typedef block_available_callback<config_t> block_available_callback_t;
-    typedef typename config_t::buf_t buf_t;
+    
+    typedef mc_buf_t<mc_config_t> buf_t;
+    typedef mc_block_available_callback_t<mc_config_t> block_available_callback_t;
     
     struct local_buf_t : public lock_available_callback_t {
     
@@ -31,9 +33,6 @@ struct rwi_conc_t {
             if (lock.lock(mode, this)) {
                 return true;
             } else {
-#ifndef NDEBUG
-                gbuf->active_callback_count ++;
-#endif
                 assert(callback);
                 lock_callbacks.push_back(callback);
                 return false;
@@ -54,10 +53,6 @@ struct rwi_conc_t {
         rwi_lock_t lock;
         
         virtual void on_lock_available() {
-            
-#ifndef NDEBUG
-            gbuf->active_callback_count --;
-#endif
             
             // We're calling back objects that were waiting on a lock. Because
             // of that, we can only call one.

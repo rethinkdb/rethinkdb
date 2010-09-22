@@ -1,9 +1,7 @@
+#include "writeback.hpp"
 
-#ifndef __BUFFER_CACHE_WRITEBACK_TCC__
-#define __BUFFER_CACHE_WRITEBACK_TCC__
-
-template <class config_t>
-writeback_tmpl_t<config_t>::writeback_tmpl_t(
+template<class mc_config_t>
+writeback_tmpl_t<mc_config_t>::writeback_tmpl_t(
         cache_t *cache,
         bool wait_for_flush,
         unsigned int flush_timer_ms,
@@ -18,20 +16,20 @@ writeback_tmpl_t<config_t>::writeback_tmpl_t(
       transaction(NULL) {
 }
 
-template <class config_t>
-writeback_tmpl_t<config_t>::~writeback_tmpl_t() {
+template<class mc_config_t>
+writeback_tmpl_t<mc_config_t>::~writeback_tmpl_t() {
     gdelete(flush_lock);
 }
 
-template <class config_t>
-void writeback_tmpl_t<config_t>::start() {
+template<class mc_config_t>
+void writeback_tmpl_t<mc_config_t>::start() {
     assert(state == state_unstarted);
     flush_lock = gnew<rwi_lock_t>();
     state = state_ready;
 }
 
-template <class config_t>
-bool writeback_tmpl_t<config_t>::sync(sync_callback_t *callback) {
+template<class mc_config_t>
+bool writeback_tmpl_t<mc_config_t>::sync(sync_callback_t *callback) {
 
     if (state == state_ready) {
         /* Start the writeback process immediately */
@@ -70,8 +68,8 @@ bool writeback_tmpl_t<config_t>::sync(sync_callback_t *callback) {
     }
 }
 
-template <class config_t>
-bool writeback_tmpl_t<config_t>::sync_patiently(sync_callback_t *callback) {
+template<class mc_config_t>
+bool writeback_tmpl_t<mc_config_t>::sync_patiently(sync_callback_t *callback) {
 
     if (num_dirty_blocks() > 0) {
         if (callback) sync_callbacks.push_back(callback);
@@ -83,9 +81,9 @@ bool writeback_tmpl_t<config_t>::sync_patiently(sync_callback_t *callback) {
     }
 }
 
-template <class config_t>
-bool writeback_tmpl_t<config_t>::begin_transaction(transaction_t *txn,
-        transaction_begin_callback<config_t> *callback) {
+template<class mc_config_t>
+bool writeback_tmpl_t<mc_config_t>::begin_transaction(transaction_t *txn,
+        transaction_begin_callback_t *callback) {
     
     switch(txn->get_access()) {
         case rwi_read:
@@ -104,8 +102,8 @@ bool writeback_tmpl_t<config_t>::begin_transaction(transaction_t *txn,
     }
 }
 
-template <class config_t>
-void writeback_tmpl_t<config_t>::on_transaction_commit(transaction_t *txn) {
+template<class mc_config_t>
+void writeback_tmpl_t<mc_config_t>::on_transaction_commit(transaction_t *txn) {
     
     if (txn->get_access() == rwi_write) {
         flush_lock->unlock();
@@ -125,13 +123,13 @@ void writeback_tmpl_t<config_t>::on_transaction_commit(transaction_t *txn) {
     }
 }
 
-template <class config_t>
-unsigned int writeback_tmpl_t<config_t>::num_dirty_blocks() {
+template<class mc_config_t>
+unsigned int writeback_tmpl_t<mc_config_t>::num_dirty_blocks() {
     return dirty_bufs.size();
 }
 
-template <class config_t>
-void writeback_tmpl_t<config_t>::local_buf_t::set_dirty(bool _dirty) {
+template<class mc_config_t>
+void writeback_tmpl_t<mc_config_t>::local_buf_t::set_dirty(bool _dirty) {
     if(!dirty && _dirty) {
         // Mark block as dirty if it hasn't been already
         dirty = true;
@@ -144,16 +142,16 @@ void writeback_tmpl_t<config_t>::local_buf_t::set_dirty(bool _dirty) {
     }
 }
 
-template <class config_t>
-void writeback_tmpl_t<config_t>::flush_timer_callback(void *ctx) {
+template<class mc_config_t>
+void writeback_tmpl_t<mc_config_t>::flush_timer_callback(void *ctx) {
     writeback_tmpl_t *self = static_cast<writeback_tmpl_t *>(ctx);
     self->flush_timer = NULL;
     
     self->sync(NULL);
 }
 
-template <class config_t>
-bool writeback_tmpl_t<config_t>::next_writeback_step() {
+template<class mc_config_t>
+bool writeback_tmpl_t<mc_config_t>::next_writeback_step() {
 
     if (state == state_ready) {
         
@@ -196,7 +194,7 @@ bool writeback_tmpl_t<config_t>::next_writeback_step() {
         /* Request read locks on all of the blocks we need to flush. */
         int num_writes = dirty_bufs.size();
         // TODO: optimize away dynamic allocation
-        typename serializer_t::write_t writes[num_writes];
+        typename mc_config_t::serializer_t::write_t writes[num_writes];
         int i;
         typename intrusive_list_t<local_buf_t>::iterator it;
         for (it = dirty_bufs.begin(), i = 0; it != dirty_bufs.end(); i++) {
@@ -214,7 +212,7 @@ bool writeback_tmpl_t<config_t>::next_writeback_step() {
             // Fill the serializer structure
             if (!do_delete) {
                 writes[i].block_id = buf->get_block_id();
-                writes[i].buf = buf->ptr();
+                writes[i].buf = buf->data;
                 writes[i].callback = buf;
 #ifndef NDEBUG
                 buf->active_callback_count ++;
@@ -281,25 +279,23 @@ bool writeback_tmpl_t<config_t>::next_writeback_step() {
     fail("Invalid state.");
 }
 
-template <class config_t>
-void writeback_tmpl_t<config_t>::buf_was_written(buf_t *buf) {
+template<class mc_config_t>
+void writeback_tmpl_t<mc_config_t>::buf_was_written(buf_t *buf) {
     assert(buf);
     buf->writeback_buf.dirty = false;
     buf->release();
 }
 
-template <class config_t>
-void writeback_tmpl_t<config_t>::on_lock_available() {
+template<class mc_config_t>
+void writeback_tmpl_t<mc_config_t>::on_lock_available() {
     assert(state == state_locking);
     state = state_locked;
     next_writeback_step();
 }
 
-template <class config_t>
-void writeback_tmpl_t<config_t>::on_serializer_write_txn() {
+template<class mc_config_t>
+void writeback_tmpl_t<mc_config_t>::on_serializer_write_txn() {
     assert(state == state_write_bufs);
     state = state_cleanup;
     next_writeback_step();
 }
-
-#endif  // __BUFFER_CACHE_WRITEBACK_TCC__

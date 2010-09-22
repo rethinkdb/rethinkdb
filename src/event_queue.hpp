@@ -11,7 +11,6 @@
 #include "corefwd.hpp"
 #include "message_hub.hpp"
 #include "config/cmd_args.hpp"
-#include "buffer_cache/callbacks.hpp"
 
 // Inter-thread communication event (ITC)
 enum itc_event_type_t {

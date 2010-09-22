@@ -1,7 +1,7 @@
 #ifndef __ALLOC_MIXIN_TCC__
 #define __ALLOC_MIXIN_TCC__
 
-#include "utils.hpp"
+#include "errors.hpp"
 #ifndef NDEBUG
 #include <typeinfo>
 #endif

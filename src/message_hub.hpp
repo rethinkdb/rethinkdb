@@ -7,7 +7,7 @@
 #include "containers/intrusive_list.hpp"
 #include "utils.hpp"
 #include "config/args.hpp"
-#include "config/code.hpp"
+#include "config/alloc.hpp"
 #include "alloc/memalign.hpp"
 #include "alloc/pool.hpp"
 #include "alloc/dynamic_pool.hpp"

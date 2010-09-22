@@ -4,7 +4,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include "config/cmd_args.hpp"
-#include "config/code.hpp"
 #include "utils.hpp"
 
 static const char* default_db_file_name = "db_data/data.file";

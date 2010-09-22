@@ -4,15 +4,12 @@
 #include "btree/fsm.hpp"
 #include "btree/modify_fsm.hpp"
 
-template <class config_t>
-class btree_append_prepend_fsm : public btree_modify_fsm<config_t>,
-                                 public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, btree_append_prepend_fsm<config_t> > {
-    typedef typename config_t::large_buf_t large_buf_t;
-    typedef typename config_t::btree_fsm_t btree_fsm_t;
-    typedef typename btree_fsm_t::transition_result_t transition_result_t;
+class btree_append_prepend_fsm_t : public btree_modify_fsm_t,
+                                 public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, btree_append_prepend_fsm_t > {
+    typedef btree_fsm_t::transition_result_t transition_result_t;
 public:
-    explicit btree_append_prepend_fsm(btree_key *_key, byte *data, unsigned int size, bool append)
-        : btree_modify_fsm<config_t>(_key),
+    explicit btree_append_prepend_fsm_t(btree_key *_key, byte *data, unsigned int size, bool append)
+        : btree_modify_fsm_t(_key),
           append(append) {
         // This isn't actually used as a btree value -- just for the size and contents.
         temp_value.metadata_flags = 0;

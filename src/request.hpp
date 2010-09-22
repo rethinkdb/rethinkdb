@@ -2,17 +2,17 @@
 #define __REQUEST_HPP__
 
 #include "config/args.hpp"
-#include "config/code.hpp"
+#include "config/alloc.hpp"
 
 struct request_callback_t {
     virtual ~request_callback_t() {}
     virtual void on_request_completed() = 0;
 
-    request_callback_t(code_config_t::req_handler_t *rh) : rh(rh) {}
+    request_callback_t(request_handler_t *rh) : rh(rh) {}
 
     virtual void on_fsm_ready() {} // XXX Rename this
 
-    code_config_t::req_handler_t *rh;
+    request_handler_t *rh;
 };
 
 // TODO: if we receive a small request from the user that can be
@@ -30,7 +30,9 @@ that the request will free itself.
 // TODO: Is there any real point in keeping track of the messages associated with the request?
 // 'msgs' is written to, but never read from.
 
-struct request_t : public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, request_t > {
+struct request_t :
+    public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, request_t >
+{
 public:
     explicit request_t(request_callback_t *cb) :
         nstarted(0), ncompleted(0), dispatched(false), callback(cb) {
@@ -47,9 +49,9 @@ public:
         assert(!dispatched);
         assert(can_add());
         msg->request = this;
-        msg->return_cpu = get_cpu_context()->worker->workerid;
+        msg->return_cpu = get_cpu_context()->event_queue->message_hub.current_cpu;
         msgs[nstarted] = msg;
-        get_cpu_context()->worker->event_queue->message_hub.store_message(cpu, msg);
+        get_cpu_context()->event_queue->message_hub.store_message(cpu, msg);
         nstarted++;
     }
 

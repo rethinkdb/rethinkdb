@@ -2,17 +2,11 @@
 #define __BTREE_MODIFY_FSM_HPP__
 
 #include "btree/fsm.hpp"
+#include "btree/node.hpp"
 
-template <class config_t>
-class btree_modify_fsm : public btree_fsm<config_t> {
+class btree_modify_fsm_t : public btree_fsm_t {
 public:
-    typedef typename config_t::btree_fsm_t btree_fsm_t;
-    typedef typename config_t::node_t node_t;
-    typedef typename config_t::cache_t cache_t;
-    typedef typename btree_fsm_t::transition_result_t transition_result_t;
-    typedef typename cache_t::buf_t buf_t;
-    typedef typename config_t::large_buf_t large_buf_t;
-    
+    typedef btree_fsm_t::transition_result_t transition_result_t;
     using btree_fsm_t::key;
     
 public:
@@ -30,7 +24,7 @@ public:
     };
 
 public:
-    explicit btree_modify_fsm(btree_key *_key)
+    explicit btree_modify_fsm_t(btree_key *_key)
         : btree_fsm_t(_key),
           state(start_transaction),
           sb_buf(NULL), buf(NULL), last_buf(NULL), sib_buf(NULL),
@@ -56,8 +50,8 @@ public:
 //    void large_value_filled(); // XXX
 
 public:
-    using btree_fsm<config_t>::transaction;
-    using btree_fsm<config_t>::cache;
+    using btree_fsm_t::transaction;
+    using btree_fsm_t::cache;
 
     transition_result_t do_start_transaction(event_t *event);
     transition_result_t do_acquire_superblock(event_t *event);
@@ -66,7 +60,7 @@ public:
     transition_result_t do_acquire_node(event_t *event);
     transition_result_t do_acquire_large_value(event_t *event);
     transition_result_t do_acquire_sibling(event_t *event);
-    bool do_check_for_split(node_t **node);
+    bool do_check_for_split(const node_t **node);
     void split_node(buf_t *node, buf_t **rnode, block_id_t *rnode_id, btree_key *median);
 
     // Some relevant state information
@@ -102,7 +96,5 @@ private:
 
 // TODO: Figure out includes.
 #include "conn_fsm.hpp"
-
-#include "btree/modify_fsm.tcc"
 
 #endif // __BTREE_MODIFY_FSM_HPP__

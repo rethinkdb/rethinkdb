@@ -3,8 +3,13 @@
 #define __SERIALIZER_SEMANTIC_CHECKING_HPP__
 
 #include <string>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 #include <boost/crc.hpp>
+#include "arch/resource.hpp"
 #include "config/args.hpp"
+#include "containers/two_level_array.hpp"
 
 /* This is a thin wrapper around the log serializer that makes sure that the
 serializer has the correct semantics. It must have exactly the same API as
@@ -16,7 +21,8 @@ template<class inner_serializer_t>
 class semantic_checking_serializer_t
 {
 public:
-    typedef data_block_manager_t::buf_data_t buf_data_t;
+    typedef typename inner_serializer_t::buf_data_t buf_data_t;
+
 private:
     inner_serializer_t inner_serializer;
     

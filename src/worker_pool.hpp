@@ -6,31 +6,18 @@
 #include "event_queue.hpp"
 #include "arch/resource.hpp"
 #include "config/cmd_args.hpp"
-#include "config/code.hpp"
+#include "config/alloc.hpp"
 #include "corefwd.hpp"
-#include "buffer_cache/callbacks.hpp"
-#include "buffer_cache/page_map/array.hpp"
 #include "message_hub.hpp"
 #include "perfmon.hpp"
 #include "logger.hpp"
-#include "concurrency/rwi_lock.hpp"
-#include "buffer_cache/mirrored.hpp"
-#include "buffer_cache/page_map/array.hpp"
-#include "buffer_cache/page_repl/page_repl_random.hpp"
-#include "buffer_cache/writeback/writeback.hpp"
-#include "buffer_cache/concurrency/rwi_conc.hpp"
-#include "serializer/in_place.hpp"
-#include "serializer/log/log_serializer.hpp"
-#include "serializer/semantic_checking.hpp"
 #include "btree/key_value_store.hpp"
 
 struct worker_t :
-    public code_config_t::store_t::shutdown_callback_t
+    public store_t::shutdown_callback_t
 {
     public:
-        typedef code_config_t::store_t store_t;
-        typedef code_config_t::conn_fsm_t conn_fsm_t;
-        typedef code_config_t::fsm_list_t fsm_list_t;
+        typedef intrusive_list_t<conn_fsm_t> fsm_list_t;
         typedef std::vector<conn_fsm_t*, gnew_alloc<conn_fsm_t*> > shutdown_fsms_t;
     public:
         worker_t(int workerid, int _nworkers,
@@ -63,13 +50,13 @@ struct worker_t :
     public:
         //functions for the outside world to call
         void initiate_conn_fsm_transition(event_t *event);
-        static void on_btree_completed(code_config_t::btree_fsm_t *btree_fsm);
-        void process_btree_msg(code_config_t::btree_fsm_t *btree_fsm);
+        static void on_btree_completed(btree_fsm_t *btree_fsm);
+        void process_btree_msg(btree_fsm_t *btree_fsm);
         void process_perfmon_msg(perfmon_msg_t *msg);
         void process_lock_msg(event_t *event, rwi_lock_t::lock_request_t *lr);
         void process_log_msg(log_msg_t *msg);
-        void process_read_large_value_msg(code_config_t::read_large_value_msg_t *msg);
-        void process_write_large_value_msg(code_config_t::write_large_value_msg_t *msg);
+        void process_read_large_value_msg(read_large_value_msg_t *msg);
+        void process_write_large_value_msg(write_large_value_msg_t *msg);
         void event_handler(event_t *event);
     public:
         worker_pool_t *parent_pool;
