@@ -83,12 +83,6 @@ void mc_buf_t<mc_config_t>::release() {
         delete this;
     }
     */
-
-    if (!writeback_buf.dirty && cache->crc_map.get(block_id)) {
-        assert(compute_crc() == cache->crc_map.get(block_id));
-    } else {
-        cache->crc_map.set(block_id, compute_crc());
-    }
 }
 
 template<class mc_config_t>
@@ -290,7 +284,6 @@ mc_buf_t<mc_config_t> *mc_transaction_t<mc_config_t>::acquire(block_id_t block_i
             return NULL;
             
         } else {
-            assert(buf->compute_crc() == cache->crc_map.get(buf->block_id));
             return buf;
         }
     }

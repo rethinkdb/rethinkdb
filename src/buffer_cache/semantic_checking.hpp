@@ -12,6 +12,8 @@ template<class inner_cache_t> class scc_buf_t;
 template<class inner_cache_t> class scc_transaction_t;
 template<class inner_cache_t> class scc_cache_t;
 
+typedef uint32_t crc_t;
+
 /* Callbacks */
 
 template<class inner_cache_t>
@@ -40,9 +42,9 @@ class scc_buf_t :
 
 public:
     block_id_t get_block_id();
+    bool is_dirty();
     const void *get_data_read();
     void *get_data_write();
-    //void set_dirty();
     void mark_deleted();
     void release();
 
@@ -51,7 +53,14 @@ private:
     typename inner_cache_t::buf_t *inner_buf;
     void on_block_available(typename inner_cache_t::buf_t *buf);
     block_available_callback_t *available_cb;
-    scc_buf_t();
+    scc_buf_t(scc_cache_t<inner_cache_t> *);
+    scc_cache_t<inner_cache_t> *cache;
+private:
+    crc_t compute_crc() {
+        boost::crc_optimal<32, 0x04C11DB7, 0xFFFFFFFF, 0xFFFFFFFF, true, true> crc_computer;
+        crc_computer.process_bytes((void *) (((char *) inner_buf->get_data_read()) + BLOCK_META_DATA_SIZE), BTREE_USABLE_BLOCK_SIZE);
+        return crc_computer.checksum();
+    }
 };
 
 /* Transaction */
@@ -76,13 +85,14 @@ public:
 
 private:
     friend class scc_cache_t<inner_cache_t>;
-    scc_transaction_t(access_t);
+    scc_transaction_t(access_t, scc_cache_t<inner_cache_t> *);
     access_t access;
     void on_txn_begin(typename inner_cache_t::transaction_t *txn);
     transaction_begin_callback_t *begin_cb;
     void on_txn_commit(typename inner_cache_t::transaction_t *txn);
     transaction_commit_callback_t *commit_cb;
     typename inner_cache_t::transaction_t *inner_transaction;
+    scc_cache_t<inner_cache_t> *cache;
 };
 
 /* Cache */
@@ -115,6 +125,13 @@ public:
 
 private:
     inner_cache_t inner_cache;
+
+private:
+    friend class scc_transaction_t<inner_cache_t>;
+    friend class scc_buf_t<inner_cache_t>;
+
+    /* CRC checking stuff */
+    two_level_array_t<crc_t, MAX_BLOCK_ID> crc_map;
 };
 
 #include "buffer_cache/semantic_checking.tcc"

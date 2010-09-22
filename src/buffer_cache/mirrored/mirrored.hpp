@@ -16,8 +16,6 @@
 // into a coherent whole. This allows easily experimenting with
 // various components of the cache to improve performance.
 
-typedef uint32_t crc_t;
-
 /* Buffer class. */
 template<class mc_config_t>
 class mc_buf_t :
@@ -111,22 +109,15 @@ public:
 
     block_id_t get_block_id() const { return block_id; }
     
-    /* void set_dirty() {
-        assert(!do_delete);
-        assert(!safe_to_unload());
-        writeback_buf.set_dirty();
-    } */
     void mark_deleted() {
         assert(!safe_to_unload());
         assert(safe_to_delete());
         do_delete = true;
         writeback_buf.set_dirty();
     }
-private:
-    crc_t compute_crc() {
-        boost::crc_optimal<32, 0x04C11DB7, 0xFFFFFFFF, 0xFFFFFFFF, true, true> crc_computer;
-        crc_computer.process_bytes((void *) (((char *) data) + BLOCK_META_DATA_SIZE), BTREE_USABLE_BLOCK_SIZE);
-        return crc_computer.checksum();
+
+    bool is_dirty() {
+        return writeback_buf.dirty;
     }
 };
 
@@ -302,8 +293,6 @@ private:
     // complete before shutting down.
     int num_live_transactions;
 private:
-    /* CRC checking stuff */
-    two_level_array_t<crc_t, MAX_BLOCK_ID> crc_map;
 };
 
 #include "mirrored.tcc"

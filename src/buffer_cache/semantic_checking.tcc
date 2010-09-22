@@ -8,6 +8,11 @@ block_id_t scc_buf_t<inner_cache_t>::get_block_id() {
 }
 
 template<class inner_cache_t>
+bool scc_buf_t<inner_cache_t>::is_dirty() {
+    return inner_buf->writeback_buf.dirty;
+}
+
+template<class inner_cache_t>
 const void *scc_buf_t<inner_cache_t>::get_data_read() {
     return inner_buf->get_data_read();
 }
@@ -24,6 +29,12 @@ void scc_buf_t<inner_cache_t>::mark_deleted() {
 
 template<class inner_cache_t>
 void scc_buf_t<inner_cache_t>::release() {
+    if (!inner_buf->is_dirty() && cache->crc_map.get(inner_buf->get_block_id())) {
+        assert(compute_crc() == cache->crc_map.get(inner_buf->get_block_id()));
+    } else {
+        cache->crc_map.set(inner_buf->get_block_id(), compute_crc());
+    }
+
     inner_buf->release();
     delete this;
 }
@@ -36,8 +47,8 @@ void scc_buf_t<inner_cache_t>::on_block_available(typename inner_cache_t::buf_t 
 }
 
 template<class inner_cache_t>
-scc_buf_t<inner_cache_t>::scc_buf_t()
-    : inner_buf(NULL), available_cb(NULL) { }
+scc_buf_t<inner_cache_t>::scc_buf_t(scc_cache_t<inner_cache_t> *_cache)
+    : inner_buf(NULL), available_cb(NULL), cache(_cache) { }
 
 /* Transaction */
 
@@ -55,9 +66,12 @@ bool scc_transaction_t<inner_cache_t>::commit(transaction_commit_callback_t *cal
 template<class inner_cache_t>
 scc_buf_t<inner_cache_t> *scc_transaction_t<inner_cache_t>::acquire(block_id_t block_id, access_t mode,
                    block_available_callback_t *callback) {
-    scc_buf_t<inner_cache_t> *buf = new scc_buf_t<inner_cache_t>();
+    scc_buf_t<inner_cache_t> *buf = new scc_buf_t<inner_cache_t>(this->cache);
+    buf->cache = this->cache;
     if (typename inner_cache_t::buf_t *inner_buf = inner_transaction->acquire(block_id, mode, buf)) {
         buf->inner_buf = inner_buf;
+        assert(block_id == buf->get_block_id());
+        assert(buf->compute_crc() == cache->crc_map.get(block_id));
         return buf;
     } else {
         buf->available_cb = callback;
@@ -67,14 +81,14 @@ scc_buf_t<inner_cache_t> *scc_transaction_t<inner_cache_t>::acquire(block_id_t b
 
 template<class inner_cache_t>
 scc_buf_t<inner_cache_t> *scc_transaction_t<inner_cache_t>::allocate(block_id_t *new_block_id) {
-    scc_buf_t<inner_cache_t> *buf = new scc_buf_t<inner_cache_t>();
+    scc_buf_t<inner_cache_t> *buf = new scc_buf_t<inner_cache_t>(this->cache);
     buf->inner_buf = inner_transaction->allocate(new_block_id);
     return buf;
 }
 
 template<class inner_cache_t>
-scc_transaction_t<inner_cache_t>::scc_transaction_t(access_t access)
-    : access(access), begin_cb(NULL), inner_transaction(NULL) { }
+scc_transaction_t<inner_cache_t>::scc_transaction_t(access_t _access, scc_cache_t<inner_cache_t> *_cache)
+    : access(_access), begin_cb(NULL), inner_transaction(NULL), cache(_cache) { }
 
 template<class inner_cache_t>
 void scc_transaction_t<inner_cache_t>::on_txn_begin(typename inner_cache_t::transaction_t *txn) {
@@ -109,7 +123,7 @@ bool scc_cache_t<inner_cache_t>::start(ready_callback_t *cb) {
 
 template<class inner_cache_t>
 scc_transaction_t<inner_cache_t> *scc_cache_t<inner_cache_t>::begin_transaction(access_t access, transaction_begin_callback_t *callback) {
-    scc_transaction_t<inner_cache_t> *txn = new scc_transaction_t<inner_cache_t>(access);
+    scc_transaction_t<inner_cache_t> *txn = new scc_transaction_t<inner_cache_t>(access, this);
     if (typename inner_cache_t::transaction_t *inner_txn = inner_cache.begin_transaction(access, txn)) {
         txn->inner_transaction = inner_txn;
         return txn;
