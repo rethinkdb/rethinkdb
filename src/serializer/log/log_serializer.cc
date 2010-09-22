@@ -452,7 +452,7 @@ struct ls_write_fsm_t :
         // last transaction, shut ourselves down for good.
         if(ser->state == log_serializer_t::state_shutting_down
            && ser->shutdown_state == log_serializer_t::shutdown_waiting_on_serializer
-           && !ser->last_write
+           && ser->last_write == NULL
            && ser->active_write_count == 0)
         {
             ser->next_shutdown_step();

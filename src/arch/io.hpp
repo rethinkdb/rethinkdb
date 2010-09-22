@@ -21,9 +21,7 @@ struct iocallback_t {
 struct io_calls_t {
 public:
     io_calls_t(event_queue_t *_queue);
-    virtual ~io_calls_t() {
-        assert(n_pending == 0);
-    }
+    virtual ~io_calls_t();
     
     /**
      * Synchronous (but possibly non-blocking, depending on fd) API

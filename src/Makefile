@@ -34,7 +34,7 @@ CXXFLAGS:=-I$(SOURCE_DIR) -Wall -Wextra -Wformat=2 -Wno-unused-parameter -Werror
 
 # Configure debug vs. release
 ifeq ($(DEBUG),1)
-CXXFLAGS+=-g
+CXXFLAGS+=-g -O0
 # -rdynamic is necessary so that backtrace_symbols() works properly
 LDFLAGS+=-rdynamic
 else
