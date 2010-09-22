@@ -54,7 +54,8 @@ for (mode, checker, protocol) in [("debug", "valgrind", "text")]:
                   "no-valgrind" : not checker,
                   "protocol"    : protocol,
                   "cores"       : cores,
-                  "slices"      : slices })
+                  "slices"      : slices,
+                  "num-keys"    : 500 })
 
         do_test("integration/serial_mix.py",
                 { "auto"        : True,
