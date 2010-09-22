@@ -4,7 +4,7 @@
 
 #include <math.h>
 #include "config/args.hpp"
-#include "utils.hpp"
+#include "errors.hpp"
 
 // TODO: We double the size of the allocator every time, which means
 // we can use half the RAM or so until the super_alloc allocator

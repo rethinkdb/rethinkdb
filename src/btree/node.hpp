@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
+#include <time.h>
 #include "utils.hpp"
 #include "arch/resource.hpp"
 
@@ -181,6 +182,8 @@ struct btree_node {
     btree_node_type type;
 };
 
+typedef btree_node node_t;
+
 class node_handler {
     public:
         static bool is_leaf(const btree_node *node) {
@@ -226,4 +229,5 @@ inline void keycpy(btree_key *dest, btree_key *src) {
 inline void valuecpy(btree_value *dest, btree_value *src) {
     memcpy(dest, src, sizeof(btree_value) + src->mem_size());
 }
+
 #endif // __BTREE_NODE_HPP__

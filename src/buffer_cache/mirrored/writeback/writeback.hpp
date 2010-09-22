@@ -5,15 +5,18 @@
 #include "concurrency/rwi_lock.hpp"
 #include "utils.hpp"
 
-template <class config_t>
+template<class mc_config_t>
 struct writeback_tmpl_t :
     public lock_available_callback_t,
-    public config_t::serializer_t::write_txn_callback_t {
-public:
-    typedef typename config_t::transaction_t transaction_t;
-    typedef typename config_t::cache_t cache_t;
-    typedef typename config_t::buf_t buf_t;
+    public mc_config_t::serializer_t::write_txn_callback_t
+{
+    typedef mc_cache_t<mc_config_t> cache_t;
+    typedef mc_buf_t<mc_config_t> buf_t;
+    typedef mc_transaction_t<mc_config_t> transaction_t;
+    typedef mc_transaction_begin_callback_t<mc_config_t> transaction_begin_callback_t;
+    typedef mc_transaction_commit_callback_t<mc_config_t> transaction_commit_callback_t;
     
+public:
     writeback_tmpl_t(
         cache_t *cache,
         bool wait_for_flush,
@@ -35,7 +38,7 @@ public:
     /* Same as sync(), but doesn't hurry up the writeback in any way. */
     bool sync_patiently(sync_callback_t *callback);
 
-    bool begin_transaction(transaction_t *txn, transaction_begin_callback<config_t> *cb);
+    bool begin_transaction(transaction_t *txn, transaction_begin_callback_t *cb);
     void on_transaction_commit(transaction_t *txn);
     
     // This is called by buf_t when the OS informs the buf that a write operation completed
@@ -69,9 +72,7 @@ public:
     int flush_timer_ms;
     unsigned int flush_threshold;   // Number of blocks, not percentage
     
-private:
-    typedef typename config_t::serializer_t serializer_t;
-    
+private:    
     // The writeback system has a mechanism to keep data safe if the server crashes. If modified
     // data sits in memory for longer than flush_timer_ms milliseconds, a writeback will be
     // automatically started to store it on disk. flush_timer is the timer to keep track of how
@@ -139,7 +140,7 @@ private:
     intrusive_list_t<sync_callback_t> current_sync_callbacks;
 };
 
-#include "buffer_cache/writeback/writeback.tcc"
+#include "writeback.tcc"
 
-#endif // __buffer_cache_writeback_hpp__
+#endif // __BUFFER_CACHE_WRITEBACK_HPP__
 

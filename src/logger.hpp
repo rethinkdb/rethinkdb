@@ -62,19 +62,14 @@ private:
     log_msg_t *msg;
 };
 
-// XXX We include this down here because event_queue.hpp refers to logger_t
-// (and we need get_cpu_context() for our macro -- though I guess it could be
-// replaced with a function). Is there a better way of doing it?
-#include "cpu_context.hpp"
-
-#define CURRENT_LOGGER (get_cpu_context()->worker->logger)
+logger_t *get_logger();
 
 // Log a message in pieces.
-#define mlog_start(lvl) (CURRENT_LOGGER._mlog_start(__FILE__, __LINE__, (lvl)))
-#define mlogf(fmt, args...) (CURRENT_LOGGER._mlogf((fmt) , ##args))
-#define mlog_end() (CURRENT_LOGGER._mlog_end())
+#define mlog_start(lvl) (get_logger()->_mlog_start(__FILE__, __LINE__, (lvl)))
+#define mlogf(fmt, args...) (get_logger()->_mlogf((fmt) , ##args))
+#define mlog_end() (get_logger()->_mlog_end())
 
 // Log a message in one chunk. You still have to provide '\n'.
-#define logf(lvl, fmt, args...) (CURRENT_LOGGER._logf(__FILE__, __LINE__, (lvl), (fmt) , ##args))
+#define logf(lvl, fmt, args...) (get_logger()->_logf(__FILE__, __LINE__, (lvl), (fmt) , ##args))
 
 #endif // __LOGGER_HPP__

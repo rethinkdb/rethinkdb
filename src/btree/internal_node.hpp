@@ -92,6 +92,4 @@ class internal_key_comp {
     }
 };
 
-
-
 #endif // __BTREE_INTERNAL_NODE_HPP__

@@ -1,5 +1,5 @@
 #include "perfmon.hpp"
-#include "config/code.hpp"
+#include "config/alloc.hpp"
 #include "cpu_context.hpp"
 #include "worker_pool.hpp"
 

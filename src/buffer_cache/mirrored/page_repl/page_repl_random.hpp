@@ -23,33 +23,38 @@ position in the dense random array; this allows all insertion, deletion, and ran
 done in constant time.
 */
 
-template <class config_t>
+template<class mc_config_t>
 struct page_repl_random_t {
-
-public:
-	typedef typename config_t::cache_t cache_t;
-    typedef typename config_t::buf_t buf_t;
     
-    page_repl_random_t(unsigned int _unload_threshold,
-                       cache_t *_cache)
+    typedef mc_cache_t<mc_config_t> cache_t;
+    typedef mc_buf_t<mc_config_t> buf_t;
+    
+public:
+    
+    page_repl_random_t(unsigned int _unload_threshold, cache_t *_cache)
         : unload_threshold(_unload_threshold),
           cache(_cache)
         {}
     
     class local_buf_t {
         friend class page_repl_random_t;
-        
+    
     public:
         /* When bufs are created or destroyed, this constructor and destructor are called; this is
         how the page replacement system keeps track of the buffers in memory. */
+        
         explicit local_buf_t(buf_t *gbuf) : gbuf(gbuf) {
             index = gbuf->cache->page_repl.array.size();
             gbuf->cache->page_repl.array.set(index, gbuf);
         }
+        
         ~local_buf_t() {
+        
             unsigned int last_index = gbuf->cache->page_repl.array.size() - 1;
+        
             if (index == last_index) {
                 gbuf->cache->page_repl.array.set(index, NULL);
+        
             } else {
                 buf_t *replacement = gbuf->cache->page_repl.array.get(last_index);
                 replacement->page_repl_buf.index = index;
@@ -121,7 +126,7 @@ public:
         if (array.size() == 0) return NULL;
         return array.get(0);
     }
-    
+
     buf_t *get_next_buf(buf_t *buf) {
         if (buf->page_repl_buf.index == array.size() - 1) return NULL;
         else return array.get(buf->page_repl_buf.index + 1);

@@ -113,3 +113,7 @@ void logger_t::_mlog_end() {
     worker->incr_ref_count();
     msg = NULL;
 }
+
+logger_t *get_logger() {
+    return &get_cpu_context()->worker->logger;
+}

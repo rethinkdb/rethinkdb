@@ -5,7 +5,7 @@
 #include "containers/segmented_vector.hpp"
 #include "containers/intrusive_list.hpp"
 #include "disk_structure.hpp"
-#include "config/code.hpp"
+#include "config/alloc.hpp"
 #include "serializer/log/data_block_manager.hpp"
 
 struct in_memory_index_t :

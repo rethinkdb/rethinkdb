@@ -1,10 +1,11 @@
-#ifndef __BTREE_MODIFY_FSM_TCC__
-#define __BTREE_MODIFY_FSM_TCC__
+#include "btree/modify_fsm.hpp"
 
 #include "utils.hpp"
 #include "cpu_context.hpp"
-
+#include "worker_pool.hpp"
 #include "buffer_cache/large_buf.hpp"
+#include "btree/leaf_node.hpp"
+#include "btree/internal_node.hpp"
 
 // TODO: consider B#/B* trees to improve space efficiency
 
@@ -17,8 +18,7 @@
 // TODO: change rwi_write to rwi_intent followed by rwi_upgrade where
 // relevant.
 
-template <class config_t>
-typename btree_modify_fsm<config_t>::transition_result_t btree_modify_fsm<config_t>::do_start_transaction(event_t *event) {
+btree_modify_fsm_t::transition_result_t btree_modify_fsm_t::do_start_transaction(event_t *event) {
     assert(state == start_transaction);
 
     /* Either start a new transaction or retrieve the one we started. */
@@ -27,7 +27,7 @@ typename btree_modify_fsm<config_t>::transition_result_t btree_modify_fsm<config
         transaction = cache->begin_transaction(rwi_write, this);
     } else {
         assert(event->buf); // We shouldn't get a callback unless this is valid
-        transaction = (typename config_t::transaction_t *)event->buf;
+        transaction = (transaction_t *)event->buf;
     }
 
     /* Determine our forward progress based on our new state. */
@@ -38,8 +38,7 @@ typename btree_modify_fsm<config_t>::transition_result_t btree_modify_fsm<config
     }
 }
 
-template <class config_t>
-typename btree_modify_fsm<config_t>::transition_result_t btree_modify_fsm<config_t>::do_acquire_superblock(event_t *event) {
+btree_modify_fsm_t::transition_result_t btree_modify_fsm_t::do_acquire_superblock(event_t *event) {
     assert(state == acquire_superblock);
 
     if(event == NULL) {
@@ -65,8 +64,7 @@ typename btree_modify_fsm<config_t>::transition_result_t btree_modify_fsm<config
     }
 }
 
-template <class config_t>
-typename btree_modify_fsm<config_t>::transition_result_t btree_modify_fsm<config_t>::do_acquire_root(event_t *event) {
+btree_modify_fsm_t::transition_result_t btree_modify_fsm_t::do_acquire_root(event_t *event) {
     assert(state == acquire_root);
 
     // If there is no root, we make one.
@@ -94,16 +92,14 @@ typename btree_modify_fsm<config_t>::transition_result_t btree_modify_fsm<config
     }
 }
 
-template <class config_t>
-void btree_modify_fsm<config_t>::insert_root(block_id_t root_id) {
+void btree_modify_fsm_t::insert_root(block_id_t root_id) {
     assert(sb_buf);
     ((btree_superblock_t*)sb_buf->get_data_write())->root_block = root_id;
     sb_buf->release();
     sb_buf = NULL;
 }
 
-template <class config_t>
-typename btree_modify_fsm<config_t>::transition_result_t btree_modify_fsm<config_t>::do_acquire_node(event_t *event) {
+btree_modify_fsm_t::transition_result_t btree_modify_fsm_t::do_acquire_node(event_t *event) {
     assert(state == acquire_node);
     if(event == NULL) {
         buf = transaction->acquire(node_id, rwi_write, this);
@@ -120,8 +116,7 @@ typename btree_modify_fsm<config_t>::transition_result_t btree_modify_fsm<config
 }
 
 // TODO: Fix this when large_buf's API supports it.
-template <class config_t>
-typename btree_modify_fsm<config_t>::transition_result_t btree_modify_fsm<config_t>::do_acquire_large_value(event_t *event) {
+btree_modify_fsm_t::transition_result_t btree_modify_fsm_t::do_acquire_large_value(event_t *event) {
     assert(state == acquire_large_value);
 
     assert(old_value.large_value());
@@ -140,8 +135,7 @@ typename btree_modify_fsm<config_t>::transition_result_t btree_modify_fsm<config
     }
 }
 
-template <class config_t>
-typename btree_modify_fsm<config_t>::transition_result_t btree_modify_fsm<config_t>::do_acquire_sibling(event_t *event) {
+btree_modify_fsm_t::transition_result_t btree_modify_fsm_t::do_acquire_sibling(event_t *event) {
     assert(state == acquire_sibling);
 
     if (!event) {
@@ -162,9 +156,7 @@ typename btree_modify_fsm<config_t>::transition_result_t btree_modify_fsm<config
     }
 }
 
-template <class config_t>
-bool btree_modify_fsm<config_t>::do_check_for_split(const node_t **node) {
-    
+bool btree_modify_fsm_t::do_check_for_split(const node_t **node) {
     // Split the node if necessary
     bool new_root = false;
     bool full;
@@ -242,8 +234,7 @@ bool btree_modify_fsm<config_t>::do_check_for_split(const node_t **node) {
     return new_root;
 }
 
-template <class config_t>
-typename btree_modify_fsm<config_t>::transition_result_t btree_modify_fsm<config_t>::do_transition(event_t *event) {
+btree_modify_fsm_t::transition_result_t btree_modify_fsm_t::do_transition(event_t *event) {
     transition_result_t res = btree_fsm_t::transition_ok;
 
     // Make sure we've got either an empty or a cache event
@@ -364,6 +355,14 @@ typename btree_modify_fsm<config_t>::transition_result_t btree_modify_fsm<config
 
                 // STEP 3: Update if we're at a leaf node and operate() told us to.
                 if (update_needed) {
+                    // Update stats
+                    if (new_value && !key_found) {
+                        get_cpu_context()->worker->total_items++;
+                        get_cpu_context()->worker->curr_items++;
+                    } else if (key_found && !new_value) {
+                        get_cpu_context()->worker->curr_items--;
+                    }
+                    
                    assert(have_computed_new_value);
                    assert(node_handler::is_leaf(node));
                    if (new_value) { // We have a new value to insert
@@ -517,9 +516,8 @@ typename btree_modify_fsm<config_t>::transition_result_t btree_modify_fsm<config
     return res;
 }
 
-template <class config_t>
-void btree_modify_fsm<config_t>::split_node(buf_t *buf, buf_t **rbuf,
-                                         block_id_t *rnode_id, btree_key *median) {
+void btree_modify_fsm_t::split_node(buf_t *buf, buf_t **rbuf,
+                                    block_id_t *rnode_id, btree_key *median) {
     buf_t *res = transaction->allocate(rnode_id);
     if(node_handler::is_leaf(node_handler::node(buf->get_data_read()))) {
         leaf_node_t *node = leaf_node_handler::leaf_node(buf->get_data_write());
@@ -533,5 +531,3 @@ void btree_modify_fsm<config_t>::split_node(buf_t *buf, buf_t **rbuf,
     *rbuf = res;
 }
 
-
-#endif // __BTREE_MODIFY_FSM_TCC__

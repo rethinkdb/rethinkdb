@@ -1,11 +1,9 @@
-#ifndef __BTREE_FSM_TCC__
-#define __BTREE_FSM_TCC__
+#include "fsm.hpp"
 
 // TODO: allow multiple values per key
 // TODO: add cursor/iterator mechanism
 
-template <class config_t>
-void btree_fsm<config_t>::on_block_available(buf_t *buf) {
+void btree_fsm_t::on_block_available(buf_t *buf) {
     // TODO: Since we're changing the event system to untangle the
     // central processing at main.cc, we should have do_transition
     // accept a buf_t instead of event_t.
@@ -27,8 +25,7 @@ void btree_fsm<config_t>::on_block_available(buf_t *buf) {
     }
 }
 
-template <class config_t>
-void btree_fsm<config_t>::on_large_buf_available(large_buf_t *large_buf) {
+void btree_fsm_t::on_large_buf_available(large_buf_t *large_buf) {
     event_t event;
     bzero((void*)&event, sizeof(event));
     event.event_type = et_large_buf;
@@ -39,8 +36,7 @@ void btree_fsm<config_t>::on_large_buf_available(large_buf_t *large_buf) {
     assert(res != transition_complete); // We should only be acquiring a large buf in mid-operation.
 }
 
-template <class config_t>
-void btree_fsm<config_t>::on_txn_begin(transaction_t *txn) {
+void btree_fsm_t::on_txn_begin(transaction_t *txn) {
     assert(transaction == NULL);
     event_t event;
     memset(&event, 0, sizeof(event));
@@ -51,8 +47,7 @@ void btree_fsm<config_t>::on_txn_begin(transaction_t *txn) {
         on_complete(this);
 }
 
-template <class config_t>
-void btree_fsm<config_t>::on_txn_commit(transaction_t *txn) {
+void btree_fsm_t::on_txn_commit(transaction_t *txn) {
     event_t event;
     memset(&event, 0, sizeof(event));
     event.event_type = et_commit;
@@ -61,11 +56,8 @@ void btree_fsm<config_t>::on_txn_commit(transaction_t *txn) {
         on_complete(this);
 }
 
-template <class config_t>
-void btree_fsm<config_t>::step() { // XXX Rename and abstract.
+void btree_fsm_t::step() { // XXX Rename and abstract.
     if (do_transition(NULL) == transition_complete && on_complete) {
         on_complete(this);
     }
 }
-
-#endif // __BTREE_FSM_TCC__

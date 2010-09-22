@@ -9,26 +9,10 @@
 #include <time.h>
 #include <sys/vtimes.h>
 #include "config/cmd_args.hpp"
-#include "config/code.hpp"
+#include "config/alloc.hpp"
 #include "utils.hpp"
 #include "worker_pool.hpp"
-#include "buffer_cache/mirrored.hpp"
-#include "buffer_cache/page_map/array.hpp"
-#include "buffer_cache/page_repl/page_repl_random.hpp"
-#include "buffer_cache/writeback/writeback.hpp"
-#include "buffer_cache/concurrency/rwi_conc.hpp"
-#include "serializer/in_place.hpp"
-#include "serializer/log/log_serializer.hpp"
-#include "serializer/semantic_checking.hpp"
 #include "conn_fsm.hpp"
-#include "buffer_cache/concurrency/rwi_conc.hpp"
-
-#include "btree/get_fsm.hpp"
-#include "btree/get_cas_fsm.hpp"
-#include "btree/set_fsm.hpp"
-#include "btree/incr_decr_fsm.hpp"
-#include "btree/append_prepend_fsm.hpp"
-#include "btree/delete_fsm.hpp"
 
 //perfmon functions TODO figure out where these should live
 int uptime(void) {
@@ -141,7 +125,9 @@ void worker_t::shutdown() {
     }
 
     for (int i = 0; i < nslices; i++) {
-        if (slices[i]->shutdown(this)) on_store_shutdown();
+        if (slices[i]->shutdown(this)) {
+            on_store_shutdown();
+        }
     }
 }
 
@@ -152,8 +138,7 @@ void worker_t::delete_slices() {
 }
 
 void worker_t::new_fsm(int data, int &resource, void **source) {
-    worker_t::conn_fsm_t *fsm =
-        new worker_t::conn_fsm_t(data, event_queue);
+    conn_fsm_t *fsm = new conn_fsm_t(data, event_queue);
     live_fsms.push_back(fsm);
     resource = fsm->get_source();
     *source = fsm;
@@ -163,7 +148,7 @@ void worker_t::new_fsm(int data, int &resource, void **source) {
 }
 
 void worker_t::deregister_fsm(void *fsm, int &resource) {
-    worker_t::conn_fsm_t *cfsm = (worker_t::conn_fsm_t *) fsm;
+    conn_fsm_t *cfsm = (conn_fsm_t *) fsm;
     printf("Closing socket %d\n", cfsm->get_source());
     resource = cfsm->get_source();
     live_fsms.remove(cfsm);
@@ -179,7 +164,7 @@ bool worker_t::deregister_fsm(int &resource) {
     if (live_fsms.empty()) {
         return false;
     } else {
-        worker_t::conn_fsm_t *cfsm = live_fsms.head();
+        conn_fsm_t *cfsm = live_fsms.head();
         deregister_fsm(cfsm, resource);
         return true;
     }
@@ -192,14 +177,14 @@ void worker_t::clean_fsms() {
 }
 
 void worker_t::initiate_conn_fsm_transition(event_t *event) {
-    code_config_t::conn_fsm_t *fsm = (code_config_t::conn_fsm_t*)event->state;
+    conn_fsm_t *fsm = (conn_fsm_t*)event->state;
     int res = fsm->do_transition(event);
-    if(res == worker_t::conn_fsm_t::fsm_transition_ok || res == worker_t::conn_fsm_t::fsm_no_data_in_socket) {
+    if(res == conn_fsm_t::fsm_transition_ok || res == conn_fsm_t::fsm_no_data_in_socket) {
         // Nothing todo
-    } else if(res == worker_t::conn_fsm_t::fsm_shutdown_server) {
+    } else if(res == conn_fsm_t::fsm_shutdown_server) {
         int res = pthread_kill(event_queue->parent_pool->main_thread, SIGINT);
         check("Could not send kill signal to main thread", res != 0);
-    } else if(res == worker_t::conn_fsm_t::fsm_quit_connection) {
+    } else if(res == conn_fsm_t::fsm_quit_connection) {
         int source;
         deregister_fsm(fsm, source);
         event_queue->forget_resource(source);
@@ -209,13 +194,13 @@ void worker_t::initiate_conn_fsm_transition(event_t *event) {
     }
 }
 
-void worker_t::on_btree_completed(code_config_t::btree_fsm_t *btree_fsm) {
+void worker_t::on_btree_completed(btree_fsm_t *btree_fsm) {
     // We received a completed btree that belongs to another
     // core. Send it off and be merry!
     get_cpu_context()->worker->event_queue->message_hub.store_message(btree_fsm->return_cpu, btree_fsm);
 }
 
-void worker_t::process_btree_msg(code_config_t::btree_fsm_t *btree_fsm) {
+void worker_t::process_btree_msg(btree_fsm_t *btree_fsm) {
     if(btree_fsm->is_finished()) {
         if (btree_fsm->request) {
             // We received a completed btree that belongs to us
@@ -225,7 +210,7 @@ void worker_t::process_btree_msg(code_config_t::btree_fsm_t *btree_fsm) {
         }
     } else {
         // We received an unfinished btree that we need to process
-        code_config_t::store_t *store = slice(&btree_fsm->key);
+        store_t *store = slice(&btree_fsm->key);
         if (store->run_fsm(btree_fsm, worker_t::on_btree_completed))
             worker_t::on_btree_completed(btree_fsm);
     }
@@ -283,11 +268,11 @@ void worker_t::process_log_msg(log_msg_t *msg) {
     }
 }
 
-void worker_t::process_read_large_value_msg(code_config_t::read_large_value_msg_t *msg) {
+void worker_t::process_read_large_value_msg(read_large_value_msg_t *msg) {
     msg->on_arrival();
 }
 
-void worker_t::process_write_large_value_msg(code_config_t::write_large_value_msg_t *msg) {
+void worker_t::process_write_large_value_msg(write_large_value_msg_t *msg) {
     msg->on_arrival();
 }
 
@@ -301,7 +286,7 @@ void worker_t::event_handler(event_t *event) {
         // TODO: Possibly use a virtual function here.
         switch(msg->type) {
         case cpu_message_t::mt_btree:
-            process_btree_msg((code_config_t::btree_fsm_t*)msg);
+            process_btree_msg((btree_fsm_t*)msg);
             break;
         case cpu_message_t::mt_lock:
             process_lock_msg(event, (rwi_lock_t::lock_request_t*)msg);
@@ -313,10 +298,10 @@ void worker_t::event_handler(event_t *event) {
             process_log_msg((log_msg_t *) msg);
             break;
         case cpu_message_t::mt_read_large_value:
-            process_read_large_value_msg((code_config_t::read_large_value_msg_t *) msg);
+            process_read_large_value_msg((read_large_value_msg_t *) msg);
             break;
         case cpu_message_t::mt_write_large_value:
-            process_write_large_value_msg((code_config_t::write_large_value_msg_t *) msg);
+            process_write_large_value_msg((write_large_value_msg_t *) msg);
             break;
         }
     } else {

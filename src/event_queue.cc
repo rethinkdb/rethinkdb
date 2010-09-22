@@ -13,7 +13,7 @@
 #include <string>
 #include <sstream>
 #include "config/args.hpp"
-#include "config/code.hpp"
+#include "config/alloc.hpp"
 #include "utils.hpp"
 #include "alloc/memalign.hpp"
 #include "alloc/pool.hpp"
@@ -22,20 +22,6 @@
 #include "alloc/alloc_mixin.hpp"
 #include "worker_pool.hpp"
 #include "arch/io.hpp"
-#include "serializer/in_place.hpp"
-#include "serializer/log/log_serializer.hpp"
-#include "serializer/semantic_checking.hpp"
-#include "buffer_cache/mirrored.hpp"
-#include "buffer_cache/page_map/array.hpp"
-#include "buffer_cache/page_repl/page_repl_random.hpp"
-#include "buffer_cache/writeback/writeback.hpp"
-#include "buffer_cache/concurrency/rwi_conc.hpp"
-#include "btree/get_fsm.hpp"
-#include "btree/get_cas_fsm.hpp"
-#include "btree/set_fsm.hpp"
-#include "btree/incr_decr_fsm.hpp"
-#include "btree/append_prepend_fsm.hpp"
-#include "btree/delete_fsm.hpp"
 #include "conn_fsm.hpp"
 #include "request.hpp"
 #include "event_queue.hpp"
@@ -173,7 +159,8 @@ void process_network_notify(event_queue_t *self, epoll_event *event) {
     }
 }
 
-void process_cpu_core_notify(event_queue_t *self, message_hub_t::msg_list_t *messages) {
+void process_cpu_core_notify(event_queue_t *self, message_hub_t::msg_list_t *messages,
+                             bool shutting_down) {
     
     message_hub_t::msg_list_t::iterator m;
     for (m = messages->begin(); m != messages->end(); ) {
@@ -186,11 +173,16 @@ void process_cpu_core_notify(event_queue_t *self, message_hub_t::msg_list_t *mes
         returns. */
         messages->remove(&msg);
         
-        // Pass the event to the handler
-        event_t cpu_event;
-        cpu_event.event_type = et_cpu_event;
-        cpu_event.state = &msg;
-        self->parent->event_handler(&cpu_event);
+        // Do not process new btree events during shut down because we
+        // will have already killed all the sockets - we're just
+        // finishing up here.
+        if(!shutting_down || msg.type != cpu_message_t::mt_btree) {
+            // Pass the event to the handler
+            event_t cpu_event;
+            cpu_event.event_type = et_cpu_event;
+            cpu_event.state = &msg;
+            self->parent->event_handler(&cpu_event);
+        }
     }
     
     assert(messages->empty());
@@ -269,14 +261,12 @@ void *event_queue_t::epoll_handler(void *arg) {
 
         // We're done with the current batch of events, process cross
         // CPU requests
-        if (!shutting_down) {
-            message_hub_t::msg_list_t cpu_requests;
-            self->pull_messages_for_cpu(&cpu_requests);
-            process_cpu_core_notify(self, &cpu_requests);
+        message_hub_t::msg_list_t cpu_requests;
+        self->pull_messages_for_cpu(&cpu_requests);
+        process_cpu_core_notify(self, &cpu_requests, shutting_down);
 
-            // Push the messages we collected in this batch for other CPUs
-            self->message_hub.push_messages();
-        }
+        // Push the messages we collected in this batch for other CPUs
+        self->message_hub.push_messages();
     } while(1);
 
 breakout:

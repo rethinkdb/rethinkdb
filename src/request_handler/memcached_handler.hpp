@@ -3,33 +3,24 @@
 #define __MEMCACHED_HANDLER_HPP__
 
 #include "request_handler/request_handler.hpp"
-#include "config/code.hpp"
-#include "alloc/alloc_mixin.hpp"
+#include "config/alloc.hpp"
 #include "ctype.h"
 
 /*! memcached_handler_t
  *  \brief Implements a wrapper for bin_memcached_handler_t and txt_memcached_handler_t
  *         which parses incoming packets to determine which type they are
  */
-template<class config_t>
-class memcached_handler_t : public request_handler_t<config_t>,
-    public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, memcached_handler_t<config_t> > {
+class memcached_handler_t :
+    public request_handler_t,
+    public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, memcached_handler_t> {
 public:
-    typedef typename config_t::btree_set_fsm_t btree_set_fsm_t;
-    typedef typename config_t::btree_get_fsm_t btree_get_fsm_t;
-    typedef typename config_t::btree_delete_fsm_t btree_delete_fsm_t;
-    typedef typename config_t::req_handler_t req_handler_t;
-    typedef typename req_handler_t::parse_result_t parse_result_t;
-    typedef typename config_t::t_memcached_handler_t txt_memcached_handler_t;
-    typedef typename config_t::b_memcached_handler_t bin_memcached_handler_t;
-    typedef typename config_t::b_memcached_handler_t::bin_magic_t bin_magic_t;
-    typedef typename config_t::conn_fsm_t conn_fsm_t;
-    using request_handler_t<config_t>::event_queue;
-    using request_handler_t<config_t>::conn_fsm;
+    typedef request_handler_t::parse_result_t parse_result_t;
+    using request_handler_t::event_queue;
+    using request_handler_t::conn_fsm;
 
 public:
     memcached_handler_t(event_queue_t *eq, conn_fsm_t *fsm)
-        : req_handler_t(eq, fsm), req_handler(NULL)
+        : request_handler_t(eq, fsm), req_handler(NULL)
         {}
     ~memcached_handler_t() {
         if (req_handler)
@@ -44,7 +35,7 @@ public:
 
 private:
 
-    req_handler_t *req_handler; // !< the correct memchaced request handler
+    request_handler_t *req_handler; // !< the correct memcached request handler
 
     /*! determine_protocol
      *  \brief determine which protocol is being used based on the first byte
@@ -54,9 +45,15 @@ private:
 
 private:
     bool memcached_stats(char *stat_key, char *result) {
+        
         char *c = stat_key;
+        
         //make things case insensitive
-        while(isalpha(*c = tolower(*c++)));
+        while (isalpha(*c)) {
+            *c = tolower(*c);
+            c++;
+        }
+        
         if (*(c - 1) != 0)
             return false; /* !< we didn't reach a null terminator */
 
@@ -110,8 +107,5 @@ private:
         return false;
     }
 };
-
-
-#include "request_handler/memcached_handler.tcc"
 
 #endif // __MEMCACHED_HANDLER_HPP__

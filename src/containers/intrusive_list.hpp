@@ -2,6 +2,10 @@
 #ifndef __INTRUSIVE_LIST_HPP__
 #define __INTRUSIVE_LIST_HPP__
 
+#include "utils.hpp"
+
+template <class node_t> class intrusive_list_t;
+
 template <class derived_t>
 class intrusive_list_node_t {
 

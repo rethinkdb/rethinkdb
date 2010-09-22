@@ -1,15 +1,10 @@
-#ifndef __CONN_FSM_TCC__
-#define __CONN_FSM_TCC__
-
+#include "conn_fsm.hpp"
 #include <unistd.h>
 #include <errno.h>
 #include "utils.hpp"
-#include "request_handler/txt_memcached_handler.hpp"
-#include "request_handler/bin_memcached_handler.hpp"
 #include "request_handler/memcached_handler.hpp"
 
-template<class config_t>
-void conn_fsm<config_t>::init_state() {
+void conn_fsm_t::init_state() {
     state = fsm_socket_connected;
     rbuf = NULL;
     sbuf = NULL;
@@ -23,8 +18,7 @@ void conn_fsm<config_t>::init_state() {
 }
 
 // This function returns the socket to clean connected state
-template<class config_t>
-void conn_fsm<config_t>::return_to_socket_connected() {
+void conn_fsm_t::return_to_socket_connected() {
     if(rbuf)
         delete (iobuf_t*)(rbuf);
     if(sbuf)
@@ -32,11 +26,10 @@ void conn_fsm<config_t>::return_to_socket_connected() {
     init_state();
 }
 
-template <class config_t>
-typename conn_fsm<config_t>::result_t conn_fsm<config_t>::fill_buf(void *buf, unsigned int *bytes_filled, unsigned int total_length) {
+conn_fsm_t::result_t conn_fsm_t::fill_buf(void *buf, unsigned int *bytes_filled, unsigned int total_length) {
     // TODO: we assume the command will fit comfortably into
     // IO_BUFFER_SIZE. We'll need to implement streaming later.
-    ssize_t sz = io_calls_t::read(source,
+    ssize_t sz = get_cpu_context()->event_queue->iosys.read(source,
             (byte *) buf + *bytes_filled,
             total_length - *bytes_filled);
     if(sz == -1) {
@@ -60,7 +53,6 @@ typename conn_fsm<config_t>::result_t conn_fsm<config_t>::fill_buf(void *buf, un
         }
     } else if(sz > 0 || *bytes_filled > 0) {
         *bytes_filled += sz;
-        get_cpu_context()->worker->bytes_read += sz;
         if (state != fsm_socket_recv_incomplete)
             state = fsm_outstanding_data;
     } else {
@@ -77,8 +69,7 @@ typename conn_fsm<config_t>::result_t conn_fsm<config_t>::fill_buf(void *buf, un
 // This state represents a connected socket with no outstanding
 // operations. Incoming events should be user commands received by the
 // socket.
-template<class config_t>
-typename conn_fsm<config_t>::result_t conn_fsm<config_t>::fill_rbuf() {
+conn_fsm_t::result_t conn_fsm_t::fill_rbuf() {
     if(rbuf == NULL) {
         rbuf = (char *) new iobuf_t();
         nrbuf = 0;
@@ -89,17 +80,15 @@ typename conn_fsm<config_t>::result_t conn_fsm<config_t>::fill_rbuf() {
     return fill_buf(rbuf, &nrbuf, iobuf_t::size);
 }
 
-template <class config_t>
-typename conn_fsm<config_t>::result_t conn_fsm<config_t>::fill_ext_rbuf() {
+conn_fsm_t::result_t conn_fsm_t::fill_ext_rbuf() {
     assert(ext_rbuf);
     assert(nrbuf == 0);
     return fill_buf(ext_rbuf, &ext_nrbuf, ext_size);
 }
 
-template <class config_t>
-typename conn_fsm<config_t>::result_t conn_fsm<config_t>::read_data(event_t *event) {
+conn_fsm_t::result_t conn_fsm_t::read_data(event_t *event) {
     // TODO: this is really silly; this notification should be done differently
-    assert((conn_fsm *) event->state == this);
+    assert((conn_fsm_t *) event->state == this);
 
     if (ext_rbuf) {
         result_t res = fill_ext_rbuf();
@@ -110,8 +99,7 @@ typename conn_fsm<config_t>::result_t conn_fsm<config_t>::read_data(event_t *eve
     }
 }
 
-template <class config_t>
-void conn_fsm<config_t>::fill_external_buf(byte *external_buf, unsigned int size, data_transferred_callback *callback) {
+void conn_fsm_t::fill_external_buf(byte *external_buf, unsigned int size, data_transferred_callback *callback) {
     assert(!ext_rbuf && ext_nrbuf == 0 && ext_size == 0 && !cb);
     //assert(!ext_rbuf && ext_nrbuf == 0 && ext_size == 0);// && !cb);
 
@@ -130,15 +118,13 @@ void conn_fsm<config_t>::fill_external_buf(byte *external_buf, unsigned int size
     dummy_sock_event();
 }
 
-template <class config_t>
-void conn_fsm<config_t>::send_external_buf(byte *external_buf, unsigned int size, data_transferred_callback *callback) {
+void conn_fsm_t::send_external_buf(byte *external_buf, unsigned int size, data_transferred_callback *callback) {
     // TODO: Write the data directly to the socket instead of to the sbuf when the request handler has better support for it.
     sbuf->append(external_buf, size);
     callback->on_data_transferred();
 }
 
-template <class config_t>
-void conn_fsm<config_t>::dummy_sock_event() {
+void conn_fsm_t::dummy_sock_event() {
     event_t event;
     bzero((void*)&event, sizeof(event));
     event.event_type = et_sock;
@@ -146,8 +132,7 @@ void conn_fsm<config_t>::dummy_sock_event() {
     do_transition(&event);
 }
 
-template <class config_t>
-void conn_fsm<config_t>::check_external_buf() {
+void conn_fsm_t::check_external_buf() {
     assert(ext_rbuf && ext_nrbuf <= ext_size);
     if (ext_nrbuf < ext_size) {
         state = fsm_socket_recv_incomplete; // XXX Only do this in do_fsm_outstanding_req?
@@ -164,14 +149,13 @@ void conn_fsm<config_t>::check_external_buf() {
     }
 }
 
-template<class config_t>
-typename conn_fsm<config_t>::result_t conn_fsm<config_t>::do_fsm_btree_incomplete(event_t *event) {
+conn_fsm_t::result_t conn_fsm_t::do_fsm_btree_incomplete(event_t *event) {
     if(event->event_type == et_sock) {
         // We're not going to process anything else from the socket
         // until we complete the currently executing command.
     } else if(event->event_type == et_request_complete) {
         send_msg_to_client();
-        if(state != conn_fsm::fsm_socket_send_incomplete) {
+        if(state != fsm_socket_send_incomplete) {
             state = fsm_outstanding_data;
         }
     } else {
@@ -183,8 +167,7 @@ typename conn_fsm<config_t>::result_t conn_fsm<config_t>::do_fsm_btree_incomplet
 
 // The socket is ready for sending more information and we were in the
 // middle of an incomplete send request.
-template<class config_t>
-typename conn_fsm<config_t>::result_t conn_fsm<config_t>::do_socket_send_incomplete(event_t *event) {
+conn_fsm_t::result_t conn_fsm_t::do_socket_send_incomplete(event_t *event) {
     // TODO: incomplete send needs to be tested therally. It's not
     // clear how to get the kernel to artifically limit the send
     // buffer.
@@ -192,7 +175,7 @@ typename conn_fsm<config_t>::result_t conn_fsm<config_t>::do_socket_send_incompl
         if(event->op == eo_rdwr || event->op == eo_write) {
             send_msg_to_client();
         }
-        if(state != conn_fsm::fsm_socket_send_incomplete) {
+        if(state != fsm_socket_send_incomplete) {
             state = fsm_outstanding_data;
         }
     } else {
@@ -201,10 +184,9 @@ typename conn_fsm<config_t>::result_t conn_fsm<config_t>::do_socket_send_incompl
     return fsm_transition_ok;
 }
 
-template<class config_t>
-typename conn_fsm<config_t>::result_t conn_fsm<config_t>::do_fsm_outstanding_req(event_t *event) {
+conn_fsm_t::result_t conn_fsm_t::do_fsm_outstanding_req(event_t *event) {
     //We've processed a request but there are still outstanding requests in our rbuf
-    assert((conn_fsm *) event->state == this);
+    assert((conn_fsm_t*) event->state == this);
     if (ext_rbuf) {
         check_external_buf();
         return fsm_transition_ok;
@@ -215,38 +197,37 @@ typename conn_fsm<config_t>::result_t conn_fsm<config_t>::do_fsm_outstanding_req
         return fsm_transition_ok;
     }
 
-    typename req_handler_t::parse_result_t handler_res =
-        req_handler->parse_request(event);
+    request_handler_t::parse_result_t handler_res = req_handler->parse_request(event);
     switch(handler_res) {
-        case req_handler_t::op_malformed:
+        case request_handler_t::op_malformed:
             // Command wasn't processed correctly, send error
             // Error should already be placed in buffer by parser
             send_msg_to_client();
             state = fsm_outstanding_data;
             break;
-        case req_handler_t::op_partial_packet:
+        case request_handler_t::op_partial_packet:
             // The data is incomplete, keep trying to read in
             // the current read loop
-            state = conn_fsm::fsm_socket_recv_incomplete;
+            state = fsm_socket_recv_incomplete;
             break;
-        case req_handler_t::op_req_shutdown:
+        case request_handler_t::op_req_shutdown:
             // Shutdown has been initiated
             return fsm_shutdown_server;
-        case req_handler_t::op_req_quit:
+        case request_handler_t::op_req_quit:
             // The connection has been closed
             return fsm_quit_connection;
-        case req_handler_t::op_req_complex:
+        case request_handler_t::op_req_complex:
             // Ain't nothing we can do now - the operations
             // have been distributed accross CPUs. We can just
             // sit back and wait until they come back.
             state = fsm_btree_incomplete;
             return fsm_transition_ok;
             break;
-        case req_handler_t::op_req_parallelizable:
+        case request_handler_t::op_req_parallelizable:
             state = fsm_outstanding_data;
             return fsm_transition_ok;
             break;
-        case req_handler_t::op_req_send_now:
+        case request_handler_t::op_req_send_now:
             send_msg_to_client();
             state = fsm_outstanding_data;
             return fsm_transition_ok;
@@ -258,8 +239,7 @@ typename conn_fsm<config_t>::result_t conn_fsm<config_t>::do_fsm_outstanding_req
 
 // Switch on the current state and call the appropriate transition
 // function.
-template<class config_t>
-typename conn_fsm<config_t>::result_t conn_fsm<config_t>::do_transition(event_t *event) {
+conn_fsm_t::result_t conn_fsm_t::do_transition(event_t *event) {
     // TODO: Using parent_pool member variable within state
     // transitions might cause cache line alignment issues. Can we
     // eliminate it (perhaps by giving each thread its own private
@@ -323,16 +303,14 @@ typename conn_fsm<config_t>::result_t conn_fsm<config_t>::do_transition(event_t 
     return res;
 }
 
-template<class config_t>
-conn_fsm<config_t>::conn_fsm(resource_t _source, event_queue_t *_event_queue)
+conn_fsm_t::conn_fsm_t(resource_t _source, event_queue_t *_event_queue)
     : source(_source), req_handler(NULL), event_queue(_event_queue)
 {
-    req_handler = new memcached_handler_t<config_t>(event_queue, this);
+    req_handler = new memcached_handler_t(event_queue, this);
     init_state();
 }
 
-template<class config_t>
-conn_fsm<config_t>::~conn_fsm() {
+conn_fsm_t::~conn_fsm_t() {
     close(source);
     delete req_handler;
     if (rbuf) {
@@ -347,8 +325,7 @@ conn_fsm<config_t>::~conn_fsm() {
 // within sbuf (nbuf should be the full size). If state has been
 // switched to fsm_socket_send_incomplete, then buf must not be freed
 // after the return of this function.
-template<class config_t>
-void conn_fsm<config_t>::send_msg_to_client() {
+void conn_fsm_t::send_msg_to_client() {
     // Either number of bytes already sent should be zero, or we
     // should be in the middle of an incomplete send.
     //assert(snbuf == 0 || state == conn_fsm::fsm_socket_send_incomplete); TODO equivalent thing for seperate buffers
@@ -360,20 +337,17 @@ void conn_fsm<config_t>::send_msg_to_client() {
 
         switch (res) {
             case linked_buf_t::linked_buf_outstanding:
-                state = conn_fsm::fsm_socket_send_incomplete;
+                state = fsm_socket_send_incomplete;
                 break;
             case linked_buf_t::linked_buf_empty:
-                state = conn_fsm::fsm_outstanding_data;
+                state = fsm_outstanding_data;
                 break;
         }
     }
 }
 
-template<class config_t>
-void conn_fsm<config_t>::consume(unsigned int bytes) {
+void conn_fsm_t::consume(unsigned int bytes) {
     assert (bytes <= nrbuf);
     memmove(rbuf, rbuf + bytes, nrbuf - bytes);
     nrbuf -= bytes;
 }
-
-#endif // __CONN_FSM_TCC__

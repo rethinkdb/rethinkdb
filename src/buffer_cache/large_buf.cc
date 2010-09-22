@@ -1,15 +1,12 @@
-#ifndef __LARGE_BUF_TCC__
-#define __LARGE_BUF_TCC__
+#include "large_buf.hpp"
 
-template <class config_t>
-large_buf<config_t>::large_buf(transaction_t *txn) : transaction(txn), num_acquired(0), state(not_loaded) {
+large_buf_t::large_buf_t(transaction_t *txn) : transaction(txn), num_acquired(0), state(not_loaded) {
     assert(sizeof(large_buf_index) <= IO_BUFFER_SIZE); // Where should this go?
     assert(transaction);
     // XXX Can we know the size in here already?
 }
 
-template <class config_t>
-void large_buf<config_t>::allocate(uint32_t _size) {
+void large_buf_t::allocate(uint32_t _size) {
     size = _size;
     access = rwi_write;
 
@@ -27,9 +24,7 @@ void large_buf<config_t>::allocate(uint32_t _size) {
     state = loaded;
 }
 
-
-template <class config_t>
-void large_buf<config_t>::acquire(block_id_t _index_block, uint32_t _size, access_t _access, large_buf_available_callback_t *_callback) {
+void large_buf_t::acquire(block_id_t _index_block, uint32_t _size, access_t _access, large_buf_available_callback_t *_callback) {
     index_block = _index_block; size = _size; access = _access; callback = _callback;
 
     assert(state == not_loaded);
@@ -43,8 +38,7 @@ void large_buf<config_t>::acquire(block_id_t _index_block, uint32_t _size, acces
     // TODO: If we acquire the index and all the segments directly, we can return directly as well.
 }
 
-template <class config_t>
-void large_buf<config_t>::index_acquired(buf_t *buf) {
+void large_buf_t::index_acquired(buf_t *buf) {
     assert(state == loading);
     assert(buf);
     index_buf = buf;
@@ -55,8 +49,7 @@ void large_buf<config_t>::index_acquired(buf_t *buf) {
     }
 }
 
-template <class config_t>
-void large_buf<config_t>::segment_acquired(buf_t *buf, uint16_t ix) {
+void large_buf_t::segment_acquired(buf_t *buf, uint16_t ix) {
     assert(state == loading);
     assert(index_buf && index_buf->get_block_id() == index_block);
     assert(buf);
@@ -74,19 +67,16 @@ void large_buf<config_t>::segment_acquired(buf_t *buf, uint16_t ix) {
 }
 
 
-template <class config_t>
-void large_buf<config_t>::append(uint32_t length) {
+void large_buf_t::append(uint32_t length) {
     fail("Append for large bufs not implemented yet.");
 }
 
-template <class config_t>
-void large_buf<config_t>::prepend(uint32_t length) {
+void large_buf_t::prepend(uint32_t length) {
     fail("Prepend for large bufs not implemented yet.");
 }
 
 
-template <class config_t>
-void large_buf<config_t>::mark_deleted() {
+void large_buf_t::mark_deleted() {
     assert(state == loaded);
     // TODO: When the API is ready.
     //index_buf->mark_deleted();
@@ -96,8 +86,7 @@ void large_buf<config_t>::mark_deleted() {
     // TODO: We should probably set state to deleted here or something.
 }
 
-template <class config_t>
-void large_buf<config_t>::release() {
+void large_buf_t::release() {
     assert(state == loaded);
     index_buf->release();
     for (int i = 0; i < get_num_segments(); i++) {
@@ -106,23 +95,20 @@ void large_buf<config_t>::release() {
     state = released;
 }
 
-template <class config_t>
-void large_buf<config_t>::set_dirty() {
+void large_buf_t::set_dirty() {
     assert(state == loaded);
-    index_buf->set_dirty();
+    //index_buf->set_dirty(); TODO @shachaf we don't set dirty anymore
     for (int i = 0; i < get_num_segments(); i++) {
-        bufs[i]->set_dirty();
+        //bufs[i]->set_dirty();
     }
 }
 
-template <class config_t>
-uint16_t large_buf<config_t>::get_num_segments() {
+uint16_t large_buf_t::get_num_segments() {
     //assert(get_index()->first_block_offset == 0); // XXX
     return NUM_SEGMENTS(size, BTREE_BLOCK_SIZE);
 }
 
-template <class config_t>
-byte *large_buf<config_t>::get_segment(int ix, uint16_t *segment_size) {
+byte *large_buf_t::get_segment(int ix, uint16_t *segment_size) {
     assert(state == loaded);
     assert(ix >= 0 && ix < get_num_segments());
 
@@ -139,22 +125,17 @@ byte *large_buf<config_t>::get_segment(int ix, uint16_t *segment_size) {
     return (byte *) bufs[ix]->get_data_write(); //TODO @sachaf figure out if this can be get_data_read
 }
 
-template <class config_t>
-block_id_t large_buf<config_t>::get_index_block_id() {
+block_id_t large_buf_t::get_index_block_id() {
     assert(state == loaded);
     return index_block;
 }
 
-template <class config_t>
-large_buf_index *large_buf<config_t>::get_index() {
+large_buf_index *large_buf_t::get_index() {
     assert(index_buf->get_block_id() == index_block);
     return (large_buf_index *) index_buf->get_data_write(); //TODO @sachaf figure out if this can be get_data_read
 }
 
-template <class config_t>
-large_buf<config_t>::~large_buf() {
+large_buf_t::~large_buf_t() {
     assert(state != loading);
     if (state == loaded) release();
 }
-
-#endif //__LARGE_BUF_TCC__

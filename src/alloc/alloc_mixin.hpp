@@ -3,7 +3,8 @@
 #define __ALLOC_MIXIN_HPP__
 
 #include <vector>
-#include "utils.hpp"
+#include "errors.hpp"
+#include "alloc/gnew.hpp"
 
 // TODO: add support for object lifetime histogram
 
