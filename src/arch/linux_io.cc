@@ -21,6 +21,13 @@ io_calls_t::io_calls_t(event_queue_t *_queue)
     w_requests.reserve(MAX_CONCURRENT_IO_REQUESTS);
 }
 
+io_calls_t::~io_calls_t()
+{
+    assert(r_requests.empty());
+    assert(w_requests.empty());
+    assert(n_pending == 0);
+}
+
 ssize_t io_calls_t::read(resource_t fd, void *buf, size_t count) {
     return ::read(fd, buf, count);
 }
@@ -100,7 +107,7 @@ void io_calls_t::aio_notify(iocb *event, int result) {
     qevent.buf = event->u.c.buf;
     qevent.offset = event->u.c.offset;
     qevent.op = event->aio_lio_opcode == IO_CMD_PREAD ? eo_read : eo_write;
-    
+
     callback->on_io_complete(&qevent);
 
     // Free the iocb structure
@@ -140,3 +147,4 @@ int io_calls_t::process_request_batch(request_vector_t *requests) {
     }
     return res;
 }
+

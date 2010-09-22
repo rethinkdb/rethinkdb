@@ -55,7 +55,9 @@ void data_block_manager_t::mark_garbage(off64_t offset) {
     unsigned int extent_id = (offset / extent_manager->extent_size);
     unsigned int block_id = (offset % extent_manager->extent_size) / block_size;
 
-    if ((gc_state.step == gc_read || gc_state.step == gc_write) && gc_state.current_entry.offset / extent_manager->extent_size == extent_id) {
+    if ((gc_state.step == gc_read || gc_state.step == gc_write)
+        && gc_state.current_entry.offset / extent_manager->extent_size == extent_id)
+    {
         gc_state.current_entry.g_array.set(block_id, 1);
     } else {
         assert(entries.get(extent_id));
@@ -190,6 +192,7 @@ void data_block_manager_t::run_gc() {
                     if(shutdown_callback)
                         shutdown_callback->on_datablock_manager_shutdown();
                     state = state_shut_down;
+                    return;
                 }
                 
                 break;
