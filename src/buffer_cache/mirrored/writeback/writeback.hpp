@@ -60,9 +60,7 @@ public:
 
     private:
         buf_t *gbuf;
-#ifndef NDEBUG
-    public:
-#endif
+    public: //TODO make this private again @jdoliner
         bool dirty;
     };
     
