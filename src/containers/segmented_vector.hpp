@@ -2,6 +2,8 @@
 #ifndef __SEGMENTED_VECTOR_HPP__
 #define __SEGMENTED_VECTOR_HPP__
 
+#include "config/alloc.hpp"
+
 #define ELEMENTS_PER_SEGMENT (1 << 14)
 
 template<class element_t, int max_size>

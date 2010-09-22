@@ -4,6 +4,8 @@
 
 /* Choose our cache */
 
+#ifndef MOCK_CACHE
+
 #include "serializer/serializer.hpp"
 #include "buffer_cache/mirrored/mirrored.hpp"
 #include "buffer_cache/mirrored/concurrency/rwi_conc.hpp"
@@ -24,6 +26,13 @@ struct standard_mc_config_t {
 #include "buffer_cache/semantic_checking.hpp"
 
 typedef scc_cache_t<mc_cache_t<standard_mc_config_t> > cache_t;
+
+#else
+
+#include "buffer_cache/mock.hpp"
+typedef mock_cache_t cache_t;
+
+#endif /* MOCK_CACHE */
 
 /* Move elements of chosen cache into global namespace */
 

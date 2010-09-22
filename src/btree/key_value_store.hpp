@@ -16,6 +16,7 @@ superblock to contain NULL_BLOCK_ID rather than zero as the root node. */
 
 class initialize_superblock_fsm_t :
     private block_available_callback_t,
+    private transaction_begin_callback_t,
     private transaction_commit_callback_t,
     public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, initialize_superblock_fsm_t>{
 
@@ -33,7 +34,8 @@ public:
     
     bool initialize_superblock_if_necessary(callback_t *cb) {
         assert(state == state_unstarted);
-        state = state_acquire_superblock;
+        state = state_begin_transaction;
+        callback = NULL;
         if (next_initialize_superblock_step()) {
             return true;
         } else {
@@ -45,6 +47,8 @@ public:
 private:
     enum state_t {
         state_unstarted,
+        state_begin_transaction,
+        state_beginning_transaction,
         state_acquire_superblock,
         state_acquiring_superblock,
         state_make_change,
@@ -61,10 +65,18 @@ private:
     
     bool next_initialize_superblock_step() {
         
+        if (state == state_begin_transaction) {
+            txn = cache->begin_transaction(rwi_write, this);
+            if (txn) {
+                state = state_acquire_superblock;
+            } else {
+                state = state_beginning_transaction;
+                return false;
+            }
+        }
+        
         if (state == state_acquire_superblock) {
-            txn = cache->begin_transaction(rwi_write, NULL);
-            assert(txn);   // We should be the only cache user
-            buf_t *sb_buf = txn->acquire(SUPERBLOCK_ID, rwi_write, this);
+            sb_buf = txn->acquire(SUPERBLOCK_ID, rwi_write, this);
             if (sb_buf) {
                 state = state_make_change;
             } else {
@@ -100,6 +112,13 @@ private:
         }
         
         fail("Unexpected state");
+    }
+    
+    void on_txn_begin(transaction_t *t) {
+        assert(state == state_beginning_transaction);
+        txn = t;
+        state = state_acquire_superblock;
+        next_initialize_superblock_step();
     }
     
     void on_txn_commit(transaction_t *t) {

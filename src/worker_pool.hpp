@@ -12,6 +12,7 @@
 #include "perfmon.hpp"
 #include "logger.hpp"
 #include "btree/key_value_store.hpp"
+#include "concurrency/rwi_lock.hpp"
 
 struct worker_t :
     public store_t::shutdown_callback_t

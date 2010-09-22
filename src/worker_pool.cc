@@ -7,6 +7,7 @@
 #include <sstream>
 #include <signal.h>
 #include <time.h>
+#include <sys/stat.h>   // For mkdir()
 #include <sys/vtimes.h>
 #include "config/cmd_args.hpp"
 #include "config/alloc.hpp"
