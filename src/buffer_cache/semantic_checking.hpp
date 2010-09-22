@@ -58,7 +58,7 @@ private:
 private:
     crc_t compute_crc() {
         boost::crc_optimal<32, 0x04C11DB7, 0xFFFFFFFF, 0xFFFFFFFF, true, true> crc_computer;
-        crc_computer.process_bytes((void *) (((char *) inner_buf->get_data_read()) + BLOCK_META_DATA_SIZE), BTREE_USABLE_BLOCK_SIZE);
+        crc_computer.process_bytes((void *) inner_buf->get_data_read(), BTREE_USABLE_BLOCK_SIZE);
         return crc_computer.checksum();
     }
 };
