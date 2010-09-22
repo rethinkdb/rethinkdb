@@ -3,6 +3,7 @@ from vcoptparse import *
 
 test_dir = "output_from_test"
 made_test_dir = False
+duration_threshold = 5
 
 def make_test_dir():
     global made_test_dir
@@ -97,7 +98,7 @@ def run_and_report(obj, args = (), kwargs = {}, timeout = None, name = "the test
             result_holder[0] = "ok"
     thr = threading.Thread(target=run)
     thr.start()
-    thr.join(timeout)
+    thr.join(timeout + duration_threshold)
 
     if result_holder[0] is None:
         print "ERROR: %s timed out, probably because the timeout was set too short or the server " \
