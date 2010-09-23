@@ -64,7 +64,7 @@ for (mode, checker, protocol) in [("debug", "valgrind", "text")]:
                   "cores"       : cores,
                   "slices"      : slices,
                   "duration"    : 30 },
-                repeat=3, timeout=35)
+                repeat=3, timeout=45)
     
         do_test("integration/serial_mix.py",
                 { "auto"        : True,
@@ -75,7 +75,7 @@ for (mode, checker, protocol) in [("debug", "valgrind", "text")]:
                   "slices"      : slices,
                   "duration"    : 30,
                   "restart-server-prob" : "0.0005" },
-                repeat=3, timeout=35)
+                repeat=3, timeout=45)
     
         do_test("integration/multi_serial_mix.py",
                 { "auto"        : True,
@@ -85,7 +85,7 @@ for (mode, checker, protocol) in [("debug", "valgrind", "text")]:
                   "cores"       : cores,
                   "slices"      : slices,
                   "duration"    : 30 },
-                repeat=3, timeout=35)
+                repeat=3, timeout=45)
     
 # Report the results
 report()
