@@ -15,6 +15,8 @@
 #include "worker_pool.hpp"
 #include "cpu_context.hpp"
 
+//#define DEBUG_DUMP_WRITES 1
+
 io_calls_t::io_calls_t(event_queue_t *_queue)
     : queue(_queue),
       n_pending(0)
@@ -44,7 +46,6 @@ void io_calls_t::schedule_aio_read(resource_t resource,
                                    size_t offset, size_t length, void *buf,
                                    event_queue_t *notify_target, iocallback_t *callback)
 {
-    
     assert((intptr_t)buf % DEVICE_BLOCK_SIZE == 0);
     assert(offset % DEVICE_BLOCK_SIZE == 0);
     assert(length % DEVICE_BLOCK_SIZE == 0);
@@ -70,7 +71,15 @@ void io_calls_t::schedule_aio_read(resource_t resource,
 // asynchronously.
 void io_calls_t::schedule_aio_write(resource_t resource,
                                     size_t offset, size_t length, void *buf,
-                                    event_queue_t *notify_target, iocallback_t *callback) {
+                                    event_queue_t *notify_target, iocallback_t *callback)
+{
+#ifdef DEBUG_DUMP_WRITES
+    printf("--- WRITE BEGIN ---\n");
+    print_backtrace(stdout);
+    printf("\n");
+    print_hd(buf, offset, length);
+    printf("---- WRITE END ----\n\n");
+#endif
     
     assert((intptr_t)buf % DEVICE_BLOCK_SIZE == 0);
     assert(offset % DEVICE_BLOCK_SIZE == 0);

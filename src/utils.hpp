@@ -2,6 +2,8 @@
 #ifndef __UTILS_HPP__
 #define __UTILS_HPP__
 
+#include <stdio.h>
+#include <ctype.h>
 #include <errno.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -12,6 +14,8 @@
 #include "corefwd.hpp"
 #include "errors.hpp"
 #include "config/alloc.hpp"
+
+void print_hd(void *buf, size_t offset, size_t length);
 
 int get_cpu_count();
 long get_available_ram();
