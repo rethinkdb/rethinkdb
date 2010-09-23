@@ -100,8 +100,8 @@ def run_and_report(obj, args = (), kwargs = {}, timeout = None, name = "the test
     thr.join(timeout)
 
     if result_holder[0] is None:
-        print "ERROR: %s timed out, probably because the timeout was set too short or the server " \
-            "wasn't replying to queries fast enough." % name.capitalize()
+        print "ERROR: %s timed out, probably because the timeout (%s) was set too short or the server " \
+            "wasn't replying to queries fast enough." % (name.capitalize(), timeout)
         return False
     elif result_holder[0] == "exception":
         print "ERROR: There was an error in %s:" % name
