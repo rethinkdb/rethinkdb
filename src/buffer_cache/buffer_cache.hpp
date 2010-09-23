@@ -25,7 +25,11 @@ struct standard_mc_config_t {
 
 #include "buffer_cache/semantic_checking.hpp"
 
+#ifndef VALGRIND
 typedef scc_cache_t<mc_cache_t<standard_mc_config_t> > cache_t;
+#else
+typedef mc_cache_t<standard_mc_config_t> cache_t;
+#endif
 
 #else
 
