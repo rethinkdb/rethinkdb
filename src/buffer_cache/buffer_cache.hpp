@@ -25,7 +25,9 @@ struct standard_mc_config_t {
 
 #include "buffer_cache/semantic_checking.hpp"
 
-#ifndef VALGRIND
+#if defined(VALGRIND) && !defined(NDEBUG)
+// scc_cache_t is way too slow under valgrind and makes automated
+// tests run forever.
 typedef scc_cache_t<mc_cache_t<standard_mc_config_t> > cache_t;
 #else
 typedef mc_cache_t<standard_mc_config_t> cache_t;
