@@ -163,7 +163,14 @@ private:
         // superblock or one of the other extents stored in the
         // superblock
         if (s->superblock != NULL) {
-            if(s->superblock->offset == extent_offset)
+            // TODO: this is shit. Superblock offset may be in the
+            // middle of the extent, and we round it up here to the
+            // extent boundary. When we load superblocks in
+            // disk_superblock.hpp we do the same thing. We should do
+            // it one place (i.e. superblock_t::get_extent_id()).
+            off64_t sb_offset = s->superblock->offset;
+            sb_offset = sb_offset - sb_offset % em->extent_size;
+            if(sb_offset == extent_offset)
                 return true;
 
             // TODO: This is O(N^2) because we check if every extent
@@ -172,6 +179,7 @@ private:
                  it != s->superblock->extents.end();
                  it++)
             {
+                assert((*it).offset % em->extent_size == 0);
                 if((*it).offset == extent_offset)
                     return true;
             }
