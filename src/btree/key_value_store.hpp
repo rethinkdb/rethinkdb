@@ -86,9 +86,10 @@ private:
         }
         
         if (state == state_make_change) {
-            btree_superblock_t *sb = (btree_superblock_t*)(sb_buf->get_data_write());
+            const btree_superblock_t *sb = (const btree_superblock_t*)(sb_buf->get_data_read());
             // The serializer will init the superblock to zeroes if the database is newly created.
             if (!sb->database_exists) {
+                btree_superblock_t *sb = (btree_superblock_t*)(sb_buf->get_data_write());
                 sb->database_exists = 1;
                 sb->root_block = NULL_BLOCK_ID;
             }
