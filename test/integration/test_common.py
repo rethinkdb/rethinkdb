@@ -3,7 +3,6 @@ from vcoptparse import *
 
 test_dir = "output_from_test"
 made_test_dir = False
-duration_threshold = 5
 
 def make_test_dir():
     global made_test_dir
@@ -98,11 +97,11 @@ def run_and_report(obj, args = (), kwargs = {}, timeout = None, name = "the test
             result_holder[0] = "ok"
     thr = threading.Thread(target=run)
     thr.start()
-    thr.join(timeout + duration_threshold)
+    thr.join(timeout)
 
     if result_holder[0] is None:
-        print "ERROR: %s timed out, probably because the timeout was set too short or the server " \
-            "wasn't replying to queries fast enough." % name.capitalize()
+        print "ERROR: %s timed out, probably because the timeout (%s) was set too short or the server " \
+            "wasn't replying to queries fast enough." % (name.capitalize(), timeout)
         return False
     elif result_holder[0] == "exception":
         print "ERROR: There was an error in %s:" % name
@@ -438,7 +437,6 @@ def auto_server_test_main(test_function, opts, timeout = 30, extra_flags = []):
 def simple_test_main(test_function, opts, timeout = 30, extra_flags = []):
     """Drop-in main() for tests that open a single connection against a single server that they
     do not shut down or start up again."""
-    
     if opts["auto"]:
         
         make_test_dir()

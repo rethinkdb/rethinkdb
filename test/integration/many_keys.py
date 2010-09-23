@@ -42,7 +42,7 @@ if __name__ == "__main__":
     # Adjust the time and memory allocated to the server based on the size of the test. This test is to
     # test the btree, not the serializer, so we try to give the server enough memory to hold the entire
     # tree.
-    timeout = opts["num_keys"] * 0.005
+    timeout = opts["num_keys"] * 0.05
     extra_flags = ["-m", str(opts["num_keys"] // 400 + 1)]
     opts["cores"] = opts["slices"] = 1
     
