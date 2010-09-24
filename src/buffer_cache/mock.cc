@@ -1,7 +1,7 @@
 #include "buffer_cache/mock.hpp"
 
 #include "cpu_context.hpp"
-#include "event_queue.hpp"
+#include "arch/arch.hpp"
 
 /* Functions to create random delays */
 

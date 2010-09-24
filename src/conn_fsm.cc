@@ -3,6 +3,22 @@
 #include <errno.h>
 #include "utils.hpp"
 #include "request_handler/memcached_handler.hpp"
+#include <signal.h>
+#include "worker_pool.hpp"
+
+/*
+~~~ A Brief History of the conn_fsm_t ~~~
+
+Initially, the event queue would call conn_fsm_t::do_transition() and
+then examine the result to figure out what to do.
+
+When Tim abstracted the IO layer, then the events would come through
+conn_fsm_t::on_net_conn_* instead; however, he kept do_transition()
+because he didn't want to rewrite the whole conn_fsm_t.
+
+So event_t and conn_fsm_t::result_t are actually more or less obsolete.
+TODO: Rewrite this shit.
+*/
 
 void conn_fsm_t::init_state() {
     state = fsm_socket_connected;
@@ -29,9 +45,7 @@ void conn_fsm_t::return_to_socket_connected() {
 conn_fsm_t::result_t conn_fsm_t::fill_buf(void *buf, unsigned int *bytes_filled, unsigned int total_length) {
     // TODO: we assume the command will fit comfortably into
     // IO_BUFFER_SIZE. We'll need to implement streaming later.
-    ssize_t sz = get_cpu_context()->event_queue->iosys.read(source,
-            (byte *) buf + *bytes_filled,
-            total_length - *bytes_filled);
+    ssize_t sz = conn->read_nonblocking((byte *) buf + *bytes_filled, total_length - *bytes_filled);
     if(sz == -1) {
         if(errno == EAGAIN || errno == EWOULDBLOCK) {
             // The machine can't be in
@@ -40,7 +54,6 @@ conn_fsm_t::result_t conn_fsm_t::fill_buf(void *buf, unsigned int *bytes_filled,
             // safe to free the buffer.
             assert(state != fsm_socket_send_incomplete);
             //TODO Modify this so that we go into send_incomplete and try to empty our send buffer
-            //this is a pretty good first TODO
             if(state != fsm_socket_recv_incomplete && *bytes_filled == 0)
                 return_to_socket_connected();
             else
@@ -237,6 +250,51 @@ conn_fsm_t::result_t conn_fsm_t::do_fsm_outstanding_req(event_t *event) {
     return fsm_transition_ok;
 }
 
+void conn_fsm_t::on_net_conn_readable() {
+    event_t e;
+    bzero(&e, sizeof(event_t));
+    e.event_type = et_sock;
+    e.state = this;
+    e.op = eo_read;
+    do_transition_and_handle_result(&e);
+}
+
+void conn_fsm_t::on_net_conn_writable() {
+    event_t e;
+    bzero(&e, sizeof(event_t));
+    e.event_type = et_sock;
+    e.state = this;
+    e.op = eo_write;
+    do_transition_and_handle_result(&e);
+}
+
+void conn_fsm_t::on_net_conn_close() {
+    delete this;
+}
+
+void conn_fsm_t::do_transition_and_handle_result(event_t *event) {
+    
+    switch (do_transition(event)) {
+        
+        case fsm_transition_ok:
+        case fsm_no_data_in_socket:
+            // Nothing todo
+            break;
+        
+        case fsm_shutdown_server: {
+            int res = pthread_kill(get_cpu_context()->event_queue->parent_pool->main_thread, SIGINT);
+            check("Could not send kill signal to main thread", res != 0);
+            break;
+        }
+            
+        case fsm_quit_connection:
+            delete this;
+            break;
+        
+        default: fail("Unhandled fsm transition result");
+    }
+}
+
 // Switch on the current state and call the appropriate transition
 // function.
 conn_fsm_t::result_t conn_fsm_t::do_transition(event_t *event) {
@@ -303,19 +361,36 @@ conn_fsm_t::result_t conn_fsm_t::do_transition(event_t *event) {
     return res;
 }
 
-conn_fsm_t::conn_fsm_t(resource_t _source, event_queue_t *_event_queue)
-    : source(_source), req_handler(NULL), event_queue(_event_queue)
+conn_fsm_t::conn_fsm_t(net_conn_t *conn)
+    : conn(conn), req_handler(NULL)
 {
-    req_handler = new memcached_handler_t(event_queue, this);
+    printf("Opened socket %p\n", this);
+    
+    conn->set_callback(this);   // I can haz notifications when there is data on the network?
+    
+    req_handler = new memcached_handler_t(get_cpu_context()->event_queue, this);
     init_state();
+    
+    get_cpu_context()->worker->curr_connections++;
+    get_cpu_context()->worker->total_connections++;
+    get_cpu_context()->worker->live_fsms.push_back(this);
 }
 
 conn_fsm_t::~conn_fsm_t() {
-    close(source);
+    
+    printf("Closed socket %p\n", this);
+    
+    get_cpu_context()->worker->curr_connections--;
+    get_cpu_context()->worker->live_fsms.remove(this);
+    
+    delete conn;
+    
     delete req_handler;
+    
     if (rbuf) {
         delete (iobuf_t*)(rbuf);
     }
+    
     if (sbuf) {
         delete (sbuf);
     }
@@ -331,7 +406,7 @@ void conn_fsm_t::send_msg_to_client() {
     //assert(snbuf == 0 || state == conn_fsm::fsm_socket_send_incomplete); TODO equivalent thing for seperate buffers
 
     if (!corked) {
-        int res = sbuf->send(source);
+        int res = sbuf->send(conn);
         if (sbuf->gc_me)
             sbuf = sbuf->garbage_collect();
 

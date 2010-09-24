@@ -51,6 +51,19 @@ public:
     static __thread alloc_vector_t *allocs_tl;
 };
 
+/* A helper object that just gives access to a single global allocator.
+Warning: Only use this if the underlying allocator is thread-safe! */
+template<class alloc_t>
+struct cross_thread_alloc_accessor_t {
+    
+    template<class type_t>
+    static alloc_t *get_alloc() {
+        static alloc_t *alloc = NULL;
+        if (!alloc) alloc = gnew<alloc_t>(sizeof(type_t));
+        return alloc;
+    }
+};
+
 #include "alloc/alloc_mixin.tcc"
 
 #endif /* __ALLOC_MIXIN_HPP__ */

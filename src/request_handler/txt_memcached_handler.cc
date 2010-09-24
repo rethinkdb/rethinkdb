@@ -1,6 +1,6 @@
 #include <string.h>
 #include "cpu_context.hpp"
-#include "event_queue.hpp"
+#include "arch/arch.hpp"
 #include "request_handler/txt_memcached_handler.hpp"
 #include "conn_fsm.hpp"
 #include "corefwd.hpp"

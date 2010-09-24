@@ -3,7 +3,7 @@
 #define __SERIALIZER_LOG_LBA_DISK_SUPERBLOCK__
 
 #include "containers/intrusive_list.hpp"
-#include "arch/io.hpp"
+#include "arch/arch.hpp"
 #include "extent.hpp"
 #include "../extents/extent_manager.hpp"
 #include "disk_format.hpp"
@@ -26,13 +26,13 @@ public:
     };
 
 public:
-    static void create(extent_manager_t *em, fd_t fd, lba_disk_superblock_t **out) {
+    static void create(extent_manager_t *em, direct_file_t *file, lba_disk_superblock_t **out) {
         lba_disk_superblock_t *s = new lba_disk_superblock_t();
         s->em = em;
-        s->fd = fd;
+        s->file = file;
         s->modified = false;
         
-        extent_t<void>::create(em, fd, &s->current_extent);
+        extent_t<void>::create(em, file, &s->current_extent);
         s->amount_in_current_extent = 0;
         s->offset = NULL_OFFSET;
         
@@ -48,7 +48,7 @@ private:
         public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, loader_t>
     {
         lba_disk_superblock_t *owner;
-        loader_t(lba_disk_superblock_t *owner, extent_manager_t *em, fd_t fd, off64_t offset, int count)
+        loader_t(lba_disk_superblock_t *owner, off64_t offset, int count)
             : owner(owner), offset(offset), count(count) {}
         
         off64_t offset;
@@ -66,7 +66,7 @@ private:
                 DEVICE_BLOCK_SIZE); 
             
             callback = NULL;
-            if (extent_t<void>::load(owner->em, owner->fd, extent_offset, owner->amount_in_current_extent,
+            if (extent_t<void>::load(owner->em, owner->file, extent_offset, owner->amount_in_current_extent,
                     &owner->current_extent, this)) {
                 return loaded_superblock();
             } else {
@@ -88,7 +88,7 @@ private:
             outstanding_cbs = 0;
             for (int i = 0; i < count; i ++) {
                 lba_disk_extent_t *x;
-                if (!lba_disk_extent_t::load(owner->em, owner->fd, sb->entries[i].offset, sb->entries[i].lba_entries_count, &x, this))
+                if (!lba_disk_extent_t::load(owner->em, owner->file, sb->entries[i].offset, sb->entries[i].lba_entries_count, &x, this))
                     outstanding_cbs ++;
                 owner->extents.push_back(x);
             }
@@ -113,13 +113,13 @@ private:
     };
 
 public:
-    static bool load(extent_manager_t *em, fd_t fd, off64_t offset, int count, lba_disk_superblock_t **out, load_callback_t *cb) {
+    static bool load(extent_manager_t *em, direct_file_t *file, off64_t offset, int count, lba_disk_superblock_t **out, load_callback_t *cb) {
         lba_disk_superblock_t *s = new lba_disk_superblock_t();
         s->em = em;
-        s->fd = fd;
+        s->file = file;
         s->modified = false;
         
-        loader_t *loader = new loader_t(s, em, fd, offset, count);
+        loader_t *loader = new loader_t(s, offset, count);
         bool done = loader->load_superblock(cb);
         
         *out = s;
@@ -128,7 +128,7 @@ public:
 
 private:
     extent_manager_t *em;
-    fd_t fd;
+    direct_file_t *file;
     
     extent_t<void> *current_extent;
     size_t amount_in_current_extent;
@@ -150,7 +150,7 @@ public:
             
             current_extent->destroy();
             
-            extent_t<void>::create(em, fd, &current_extent);
+            extent_t<void>::create(em, file, &current_extent);
             amount_in_current_extent = 0;
         }
         

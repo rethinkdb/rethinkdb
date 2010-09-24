@@ -3,7 +3,7 @@
 #define __SERIALIZER_LOG_LBA_DISK_EXTENT_H__
 
 #include "containers/intrusive_list.hpp"
-#include "arch/io.hpp"
+#include "arch/arch.hpp"
 #include "extent.hpp"
 #include "../extents/extent_manager.hpp"
 #include "disk_format.hpp"
@@ -30,11 +30,11 @@ public:
     int count;
 
 public:
-    static void create(extent_manager_t *em, fd_t fd, lba_disk_extent_t **out) {
+    static void create(extent_manager_t *em, direct_file_t *file, lba_disk_extent_t **out) {
         lba_disk_extent_t *x = new lba_disk_extent_t();
         x->em = em;
         
-        extent_t<lba_extent_t>::create(em, fd, &x->data);
+        extent_t<lba_extent_t>::create(em, file, &x->data);
         x->offset = x->data->offset;
         
         // Make sure that the size of the header is a multiple of the size of one entry, so that the
@@ -59,14 +59,14 @@ public:
         }
     };
     
-    static bool load(extent_manager_t *em, fd_t fd, off64_t offset, int count, lba_disk_extent_t **out, load_callback_t *cb) {
+    static bool load(extent_manager_t *em, direct_file_t *file, off64_t offset, int count, lba_disk_extent_t **out, load_callback_t *cb) {
         lba_disk_extent_t *x = new lba_disk_extent_t();
         x->em = em;
         x->count = count;
         x->offset = offset;
         
         loader_t *l = new loader_t(cb);
-        bool done = extent_t<lba_extent_t>::load(em, fd, x->offset, x->amount_filled(), &x->data, l);
+        bool done = extent_t<lba_extent_t>::load(em, file, x->offset, x->amount_filled(), &x->data, l);
         if (done) delete l;
         
         *out = x;

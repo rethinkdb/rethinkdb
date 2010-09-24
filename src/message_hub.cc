@@ -2,7 +2,7 @@
 #include "config/args.hpp"
 #include "config/alloc.hpp"
 #include "message_hub.hpp"
-#include "event_queue.hpp"
+#include "arch/arch.hpp"
 #include "worker_pool.hpp"
 #include "cpu_context.hpp"
 
@@ -62,28 +62,14 @@ void message_hub_t::push_messages() {
         // message list.
         cpu_queue_t *queue = &queues[i];
         if(!queue->msg_local_list.empty()) {
+            
+            // Transfer messages to the other core
             pthread_spin_lock(&queue->lock);
             queue->msg_global_list.append_and_clear(&queue->msg_local_list);
             pthread_spin_unlock(&queue->lock);
             
-            // TODO: event queue isn't mockable right now, so unit
-            // tests pass NULL instead. When we refactor
-            // event_queue_t, we should refactor other places so that
-            // we can pass a mock version instead.
-            if(queue->eq) {
-                // Wakey wakey eggs and bakey
-                int res = eventfd_write(queue->eq->core_notify_fd, 1);
-                if(res != 0) {
-                    // Perhaps the fd is overflown, let's clear it and try writing again
-                    eventfd_t temp;
-                    res = eventfd_read(queue->eq->core_notify_fd, &temp);
-                    check("Could not clear an overflown core_notify_fd", res != 0);
-
-                    // If it doesn't work this time, we're fucked beyond recovery
-                    res = eventfd_write(queue->eq->core_notify_fd, 1);
-                    check("Could not send a core notification via core_notify_fd", res != 0);
-                }
-            }
+            // Wakey wakey eggs and bakey
+            ((event_queue_t*)queue->eq)->you_have_messages();
         }
 
         // TODO: we should use regular mutexes on single core CPU
@@ -93,8 +79,7 @@ void message_hub_t::push_messages() {
     
 // Pulls the messages stored in global lists for a given CPU.
 void message_hub_t::pull_messages(unsigned int ncpu, msg_list_t *msg_list) {
-    // Store the pointers to the elements in a temporary variable,
-    // and clear the list while the whole shebang is locked.
+    
     cpu_queue_t *queue = &queues[ncpu];
     pthread_spin_lock(&queue->lock);
     msg_list->append_and_clear(&queue->msg_global_list);

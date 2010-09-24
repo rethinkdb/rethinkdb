@@ -120,7 +120,12 @@ void worker_t::start_slices() {
 
 void worker_t::shutdown() {
     shutting_down = true;
-
+    
+    /* TODO: This will crash if there are outstanding requests that point at the conn_fsm_t */
+    while (conn_fsm_t *conn = live_fsms.head()) {
+        delete conn;   // Destructor takes care of everything
+    }
+    
     for (int i = 0; i < nslices; i++) {
         incr_ref_count();
     }
@@ -138,62 +143,13 @@ void worker_t::delete_slices() {
     active_slices = false;
 }
 
-void worker_t::new_fsm(int data, int &resource, void **source) {
-    conn_fsm_t *fsm = new conn_fsm_t(data, event_queue);
-    live_fsms.push_back(fsm);
-    resource = fsm->get_source();
-    *source = fsm;
-    printf("Opened socket %d\n", resource);
-    curr_connections++;
-    total_connections++;
+void worker_t::new_fsm(itc_event_t event) {
+    
+    net_conn_t *conn = (net_conn_t*)event.data;   // TODO: This is a horrible hack
+    
+    new conn_fsm_t(conn);
 }
 
-void worker_t::deregister_fsm(void *fsm, int &resource) {
-    conn_fsm_t *cfsm = (conn_fsm_t *) fsm;
-    printf("Closing socket %d\n", cfsm->get_source());
-    resource = cfsm->get_source();
-    live_fsms.remove(cfsm);
-    shutdown_fsms.push_back(cfsm);
-    curr_connections--;
-    // TODO: there might be outstanding btrees that we're missing (if
-    // we're quitting before the the operation completes). We need to
-    // free the btree structure in this case (more likely the request
-    // and all the btrees associated with it).
-}
-
-bool worker_t::deregister_fsm(int &resource) {
-    if (live_fsms.empty()) {
-        return false;
-    } else {
-        conn_fsm_t *cfsm = live_fsms.head();
-        deregister_fsm(cfsm, resource);
-        return true;
-    }
-}
-
-void worker_t::clean_fsms() {
-    for (shutdown_fsms_t::iterator it = shutdown_fsms.begin(); it != shutdown_fsms.end(); it++)
-        delete *it;
-    shutdown_fsms.clear();
-}
-
-void worker_t::initiate_conn_fsm_transition(event_t *event) {
-    conn_fsm_t *fsm = (conn_fsm_t*)event->state;
-    int res = fsm->do_transition(event);
-    if(res == conn_fsm_t::fsm_transition_ok || res == conn_fsm_t::fsm_no_data_in_socket) {
-        // Nothing todo
-    } else if(res == conn_fsm_t::fsm_shutdown_server) {
-        int res = pthread_kill(event_queue->parent_pool->main_thread, SIGINT);
-        check("Could not send kill signal to main thread", res != 0);
-    } else if(res == conn_fsm_t::fsm_quit_connection) {
-        int source;
-        deregister_fsm(fsm, source);
-        event_queue->forget_resource(source);
-        clean_fsms();
-    } else {
-        fail("Unhandled fsm transition result");
-    }
-}
 
 void worker_t::on_btree_completed(btree_fsm_t *btree_fsm) {
     // We received a completed btree that belongs to another
@@ -279,10 +235,7 @@ void worker_t::process_write_large_value_msg(write_large_value_msg_t *msg) {
 
 // Handle events coming from the event queue
 void worker_t::event_handler(event_t *event) {
-    if (event->event_type == et_sock) {
-        // Got some socket action, let the connection fsm know
-        initiate_conn_fsm_transition(event);
-    } else if(event->event_type == et_cpu_event) {
+    if (event->event_type == et_cpu_event) {
         cpu_message_t *msg = (cpu_message_t*)event->state;
         // TODO: Possibly use a virtual function here.
         switch(msg->type) {

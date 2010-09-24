@@ -44,8 +44,6 @@ struct cpu_message_t : public intrusive_list_node_t<cpu_message_t>
     void send(int cpu);
 };
 
-struct event_queue_t;
-
 struct message_hub_t {
 public:
     typedef intrusive_list_t<cpu_message_t> msg_list_t;
@@ -76,8 +74,8 @@ public:
         // Spinlock for the global list 
         pthread_spinlock_t lock;
 
-        // An event queue for the given core
-        event_queue_t *eq;
+        // An event queue for the given core. It's a void* for bad reasons.
+        void *eq;
     };
     cpu_queue_t queues[MAX_CPUS];
     unsigned int ncpus;

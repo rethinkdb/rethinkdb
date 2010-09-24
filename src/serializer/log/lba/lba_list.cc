@@ -3,7 +3,7 @@
 #include "utils.hpp"
 #include "lba_list.hpp"
 #include "cpu_context.hpp"
-#include "event_queue.hpp"
+#include "arch/arch.hpp"
 
 lba_list_t::lba_list_t(data_block_manager_t *dbm, extent_manager_t *em)
     : shutdown_callback(NULL), gc_fsm(NULL), data_block_manager(dbm), extent_manager(em),
@@ -11,15 +11,15 @@ lba_list_t::lba_list_t(data_block_manager_t *dbm, extent_manager_t *em)
     {}
 
 /* This form of start() is called when we are creating a new database */
-void lba_list_t::start(fd_t fd) {
+void lba_list_t::start(direct_file_t *file) {
     
     assert(state == state_unstarted);
     
-    dbfd = fd;
+    dbfile = file;
     
     in_memory_index = new in_memory_index_t();
     
-    lba_disk_structure_t::create(extent_manager, dbfd, &disk_structure);
+    lba_disk_structure_t::create(extent_manager, dbfile, &disk_structure);
     
     state = state_ready;
 }
@@ -53,7 +53,7 @@ struct lba_start_fsm_t :
         assert(owner->state == lba_list_t::state_unstarted);
         owner->state = lba_list_t::state_starting_up;
         
-        bool done = lba_disk_structure_t::load(owner->extent_manager, owner->dbfd, last_metablock,
+        bool done = lba_disk_structure_t::load(owner->extent_manager, owner->dbfile, last_metablock,
             &owner->disk_structure, this);
         
         if (done) {
@@ -80,11 +80,11 @@ struct lba_start_fsm_t :
 };
 
 /* This form of start() is called when we are loading an existing database */
-bool lba_list_t::start(fd_t fd, metablock_mixin_t *last_metablock, ready_callback_t *cb) {
+bool lba_list_t::start(direct_file_t *file, metablock_mixin_t *last_metablock, ready_callback_t *cb) {
     
     assert(state == state_unstarted);
     
-    dbfd = fd;
+    dbfile = file;
     
     lba_start_fsm_t *starter = new lba_start_fsm_t(this);
     return starter->run(last_metablock, cb);
@@ -213,7 +213,7 @@ struct gc_fsm_t :
         /* Replace the LBA with a new empty LBA */
         
         owner->disk_structure->destroy();
-        lba_disk_structure_t::create(owner->extent_manager, owner->dbfd, &owner->disk_structure);
+        lba_disk_structure_t::create(owner->extent_manager, owner->dbfile, &owner->disk_structure);
         
         /* Put entries in the new empty LBA */
         

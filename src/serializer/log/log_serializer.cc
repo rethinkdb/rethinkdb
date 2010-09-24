@@ -8,7 +8,7 @@ log_serializer_t::log_serializer_t(char *_db_path, size_t block_size)
       block_size(block_size),
       state(state_unstarted),
       gc_counter(0),
-      dbfd(INVALID_FD),
+      dbfile(NULL),
       extent_manager(EXTENT_SIZE),
       metablock_manager(&extent_manager),
       data_block_manager(this, &extent_manager, block_size),
@@ -56,18 +56,8 @@ struct ls_start_fsm_t :
         assert(state == state_start);
         assert(ser->state == log_serializer_t::state_unstarted);
         ser->state = log_serializer_t::state_starting_up;
-
-        struct stat file_stat;
-        bzero((void*)&file_stat, sizeof(file_stat)); // make valgrind happy
-        stat(ser->db_path, &file_stat);
         
-        // Open the DB file
-        // TODO: O_NOATIME requires root or owner priviledges, so for now we hack it.
-        int flags = O_RDWR | O_CREAT | O_DIRECT | O_LARGEFILE;
-        if (!S_ISBLK(file_stat.st_mode)) flags |= O_NOATIME;
-        
-        ser->dbfd = open(ser->db_path, flags, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP);
-        check("Could not open database file", ser->dbfd == -1);
+        ser->dbfile = new direct_file_t(ser->db_path, direct_file_t::mode_read|direct_file_t::mode_write);
         
         state = state_find_metablock;
         ready_callback = NULL;
@@ -82,7 +72,7 @@ struct ls_start_fsm_t :
     bool next_starting_up_step() {
     
         if (state == state_find_metablock) {
-            if (ser->metablock_manager.start(ser->dbfd, &metablock_found, &metablock_buffer, this)) {
+            if (ser->metablock_manager.start(ser->dbfile, &metablock_found, &metablock_buffer, this)) {
                 state = state_start_lba;
             } else {
                 state = state_waiting_for_metablock;
@@ -92,18 +82,18 @@ struct ls_start_fsm_t :
         
         if (state == state_start_lba) {
             if (metablock_found) {
-                ser->extent_manager.start(ser->dbfd, &metablock_buffer.extent_manager_part);
-                ser->data_block_manager.start(ser->dbfd, &metablock_buffer.data_block_manager_part);
-                if (ser->lba_index.start(ser->dbfd, &metablock_buffer.lba_index_part, this)) {
+                ser->extent_manager.start(ser->dbfile, &metablock_buffer.extent_manager_part);
+                ser->data_block_manager.start(ser->dbfile, &metablock_buffer.data_block_manager_part);
+                if (ser->lba_index.start(ser->dbfile, &metablock_buffer.lba_index_part, this)) {
                     state = state_finish;
                 } else {
                     state = state_waiting_for_lba;
                     return false;
                 }
             } else {
-                ser->extent_manager.start(ser->dbfd);
-                ser->data_block_manager.start(ser->dbfd);
-                ser->lba_index.start(ser->dbfd);
+                ser->extent_manager.start(ser->dbfile);
+                ser->data_block_manager.start(ser->dbfile);
+                ser->lba_index.start(ser->dbfile);
                 state = state_write_initial_superblock;
             }
         }
@@ -554,7 +544,10 @@ bool log_serializer_t::next_shutdown_step() {
     if(shutdown_state == shutdown_waiting_on_lba) {
         metablock_manager.shutdown();
         extent_manager.shutdown();
-
+        
+        delete dbfile;
+        dbfile = NULL;
+        
         state = state_shut_down;
 
         // Don't call the callback if we went through the entire

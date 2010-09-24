@@ -3,7 +3,7 @@
 #define __SERIALIZER_LOG_METABLOCK_METABLOCK_MANAGER_HPP__
 
 #include "../extents/extent_manager.hpp"
-#include "arch/io.hpp"
+#include "arch/arch.hpp"
 #include <boost/crc.hpp>
 #include <cstddef>
 #include <deque>
@@ -90,7 +90,7 @@ public:
     struct metablock_read_callback_t {
         virtual void on_metablock_read() = 0;
     };
-    bool start(fd_t dbfd, bool *mb_found, metablock_t *mb_out, metablock_read_callback_t *cb);
+    bool start(direct_file_t *dbfile, bool *mb_found, metablock_t *mb_out, metablock_read_callback_t *cb);
 private:
     metablock_read_callback_t *read_callback;
     metablock_t *mb_out; /* !< where to put the metablock once we find it */
@@ -116,6 +116,7 @@ public:
     void shutdown();
 
 public:
+    void read_next_metablock();
     void write_headers();
     void read_headers();
 
@@ -142,7 +143,7 @@ private:
         state_shut_down,
     } state;
     
-    fd_t dbfd;
+    direct_file_t *dbfile;
 private:
     static_header *hdr;
     int hdr_ref_count;

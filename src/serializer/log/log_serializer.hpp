@@ -164,7 +164,7 @@ private:
     int gc_counter; /* ticks off when it's time to do gc */
     
     char db_path[MAX_DB_FILE_NAME];
-    fd_t dbfd;
+    direct_file_t *dbfile;
     
     typedef log_serializer_metablock_t metablock_t;
     
