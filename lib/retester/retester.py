@@ -315,29 +315,35 @@ def process_output_file(path):
             return ("ok", text)
         
         else:
-            # Read the beginning of the file
-            f.seek(0, os.SEEK_SET)
-            beginning = f.read(max_size / 2)
-            if beginning.count("\n") < max_newlines / 2:
-                # Try to end on a newline
-                last_newline = beginning.rfind("\n")
-                if last_newline != -1 and last_newline > max_size / 2 - 200:
-                    beginning = beginning[:last_newline]
-            else:
-                beginning = "\n".join(beginning.split("\n")[: max_newlines / 2])
+            beginning = ""
+            ending = ""
+            bytes_omitted = 0
+            try:
+                # Read the beginning of the file
+                f.seek(0, os.SEEK_SET)
+                beginning = f.read(max_size / 2)
+                if beginning.count("\n") < max_newlines / 2:
+                    # Try to end on a newline
+                    last_newline = beginning.rfind("\n")
+                    if last_newline != -1 and last_newline > max_size / 2 - 200:
+                        beginning = beginning[:last_newline]
+                else:
+                    beginning = "\n".join(beginning.split("\n")[: max_newlines / 2])
             
-            # Read the ending of the file
-            f.seek(- max_size / 2, os.SEEK_END)
-            ending = f.read(max_size / 2)
-            if ending.count("\n") < max_newlines / 2:
-                # Try to begin on a newline
-                first_newline = ending.find("\n")
-                if first_newline != -1 and first_newline < 200:
-                    ending = ending[first_newline+1:]
-            else:
-                ending = "\n".join(ending.split("\n")[- max_newlines / 2 :])
+                # Read the ending of the file
+                f.seek(- max_size / 2, os.SEEK_END)
+                ending = f.read(max_size / 2)
+                if ending.count("\n") < max_newlines / 2:
+                    # Try to begin on a newline
+                    first_newline = ending.find("\n")
+                    if first_newline != -1 and first_newline < 200:
+                        ending = ending[first_newline+1:]
+                else:
+                    ending = "\n".join(ending.split("\n")[- max_newlines / 2 :])
             
-            bytes_omitted = length - len(beginning) - len(ending)
+                bytes_omitted = length - len(beginning) - len(ending)
+            except Exception:
+                pass
             
             return ("big", beginning, "%d bytes" % bytes_omitted, ending)
 
