@@ -753,68 +753,76 @@ txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::unimplemented_r
 }
 
 txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::get(char *state, unsigned int line_len) {
+    txt_memcached_handler_t::parse_result_t res;
 
     char *key_str = strtok_r(NULL, DELIMS, &state);
-    if (key_str == NULL) return malformed_request();
+    if (key_str == NULL) { 
+        res = malformed_request();
+    } else {
+        txt_memcached_get_request_t *rq = new txt_memcached_get_request_t(this);
 
-    txt_memcached_get_request_t *rq = new txt_memcached_get_request_t(this);
+        do {
+            node_handler::str_to_key(key_str, &key);
 
-    do {
-        node_handler::str_to_key(key_str, &key);
+            if (!rq->add_get(&key)) {
+                // We can't fit any more operations, let's just break
+                // and complete the ones we already sent out to other
+                // cores.
+                break;
 
-        if (!rq->add_get(&key)) {
-            // We can't fit any more operations, let's just break
-            // and complete the ones we already sent out to other
-            // cores.
-            break;
+                // TODO: to a user, it will look like some of his
+                // requests aren't satisfied. We need to notify them
+                // somehow.
+            }
 
-            // TODO: to a user, it will look like some of his
-            // requests aren't satisfied. We need to notify them
-            // somehow.
-        }
+            key_str = strtok_r(NULL, DELIMS, &state);
 
-        key_str = strtok_r(NULL, DELIMS, &state);
+        } while(key_str);
 
-    } while(key_str);
+        rq->dispatch();
 
-    rq->dispatch();
-
+        res = request_handler_t::op_req_complex;
+    }
     //clean out the rbuf
-    conn_fsm->consume(line_len);
-    return request_handler_t::op_req_complex;
+    conn_fsm->consume(line_len); //XXX this line must always be called (no returning from anywhere else)
+    return res;
 }
 
 // FIXME horrible redundancy
 txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::get_cas(char *state, unsigned int line_len) {
+    txt_memcached_handler_t::parse_result_t res;
 
     char *key_str = strtok_r(NULL, DELIMS, &state);
-    if (key_str == NULL) return malformed_request();
+    if (key_str == NULL) {
+        res = malformed_request();
+    } else {
+        txt_memcached_get_cas_request_t *rq = new txt_memcached_get_cas_request_t(this);
 
-    txt_memcached_get_cas_request_t *rq = new txt_memcached_get_cas_request_t(this);
+        do {
+            node_handler::str_to_key(key_str, &key);
 
-    do {
-        node_handler::str_to_key(key_str, &key);
+            if (!rq->add_get(&key)) {
+                // We can't fit any more operations, let's just break
+                // and complete the ones we already sent out to other
+                // cores.
+                break;
 
-        if (!rq->add_get(&key)) {
-            // We can't fit any more operations, let's just break
-            // and complete the ones we already sent out to other
-            // cores.
-            break;
+                // TODO: to a user, it will look like some of his
+                // requests aren't satisfied. We need to notify them
+                // somehow.
+            }
 
-            // TODO: to a user, it will look like some of his
-            // requests aren't satisfied. We need to notify them
-            // somehow.
-        }
+            key_str = strtok_r(NULL, DELIMS, &state);
 
-        key_str = strtok_r(NULL, DELIMS, &state);
+        } while(key_str);
 
-    } while(key_str);
-
-    rq->dispatch();
+        rq->dispatch();
+        res = request_handler_t::op_req_complex;
+    }
 
     //clean out the rbuf
-    conn_fsm->consume(line_len);
-    return request_handler_t::op_req_complex;
+    conn_fsm->consume(line_len); //XXX this line must always be called (no returning from anywhere else)
+    return res;
 }
 
 
