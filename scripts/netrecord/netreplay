@@ -64,6 +64,7 @@ class Replayer
             next if src == 's'
             sleep_if_needed(log_delta)
             out.print(data)
+            print(data) if @opts.print
         end
     end
 end
@@ -72,11 +73,13 @@ end
 opts = OpenStruct.new
 opts.host = 'localhost'
 opts.timing = true
+opts.print = false
 
 OptionParser.new do |op|
     op.on('-H', '--host=HOST', 'Host to connect to (if only a port is given, defaults to localhost)') {|h| opts.host = h }
     op.on('-p', '--port=PORT', 'Port to connect to') {|p| opts.port = p.to_i }
     op.on('-T', '--no-timing', 'Ignore log timing data') { opts.timing = false }
+    op.on('-o', '--output', 'Output commands to standard output as they are replayed') { opts.print = true }
     op.on_tail('-h', '--help', 'Show this message') { puts op; exit }
     # TODO: Require at least one file argument.
 end.parse!
