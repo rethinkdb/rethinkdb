@@ -6,7 +6,7 @@
 #include "conn_fsm.hpp"
 #include <stdarg.h>
 #include "cpu_context.hpp"
-#include "event_queue.hpp"
+#include "arch/arch.hpp"
 
 #define MAX_MESSAGE_SIZE 500
 
@@ -89,10 +89,10 @@ struct linked_buf_t : public buffer_base_t<IO_BUFFER_SIZE>,
         /*! \brief try to send as much of the buffer as possible
          *  \return true if there is still outstanding data
          */
-        linked_buf_state_t send(int source) {
+        linked_buf_state_t send(net_conn_t *conn) {
             linked_buf_state_t res;
             if (nsent < nbuf) {
-                int sz = get_cpu_context()->event_queue->iosys.write(source, this->buf + nsent, nbuf - nsent);
+                int sz = conn->write_nonblocking(this->buf + nsent, nbuf - nsent);
                 if(sz < 0) {
                     if(errno == EAGAIN || errno == EWOULDBLOCK)
                         res = linked_buf_outstanding;
@@ -114,14 +114,14 @@ struct linked_buf_t : public buffer_base_t<IO_BUFFER_SIZE>,
                             //the network handled this buffer without a problem
                             //so maybe we can send more
                             gc_me = true; //ask for garbage collection
-                            res = next->send(source);
+                            res = next->send(conn);
                         }
                     } else {
                         res = linked_buf_outstanding;
                     }
                 }
             } else if (next != NULL) {
-                res = next->send(source);
+                res = next->send(conn);
             } else {
                 res = linked_buf_empty;
             }

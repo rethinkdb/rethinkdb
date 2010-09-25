@@ -1,7 +1,7 @@
 
 #include "config/args.hpp"
 #include "cpu_context.hpp"
-#include "event_queue.hpp"
+#include "arch/arch.hpp"
 
 static __thread cpu_context_t cpu_context;
 

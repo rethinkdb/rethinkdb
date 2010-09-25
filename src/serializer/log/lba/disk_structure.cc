@@ -1,10 +1,10 @@
 #include "disk_structure.hpp"
 
-void lba_disk_structure_t::create(extent_manager_t *em, fd_t fd, lba_disk_structure_t **out) {
+void lba_disk_structure_t::create(extent_manager_t *em, direct_file_t *file, lba_disk_structure_t **out) {
 
     lba_disk_structure_t *s = new lba_disk_structure_t();
     s->em = em;
-    s->fd = fd;
+    s->file = file;
     s->superblock = NULL;
     s->last_extent = NULL;
     
@@ -28,7 +28,7 @@ struct lba_load_fsm_t :
         
         if (metablock->last_lba_extent_offset != NULL_OFFSET) {
             waiting_for_last_extent = !lba_disk_extent_t::load(
-                owner->em, owner->fd,
+                owner->em, owner->file,
                 metablock->last_lba_extent_offset,
                 metablock->last_lba_extent_entries_count,
                 &owner->last_extent, this);
@@ -39,7 +39,7 @@ struct lba_load_fsm_t :
         
         if (metablock->lba_superblock_offset != NULL_OFFSET) {
             waiting_for_superblock = !lba_disk_superblock_t::load(
-                owner->em, owner->fd,
+                owner->em, owner->file,
                 metablock->lba_superblock_offset,
                 metablock->lba_superblock_entries_count,
                 &owner->superblock, this);
@@ -76,12 +76,12 @@ struct lba_load_fsm_t :
     }
 };
 
-bool lba_disk_structure_t::load(extent_manager_t *em, fd_t fd, lba_metablock_mixin_t *metablock,
+bool lba_disk_structure_t::load(extent_manager_t *em, direct_file_t *file, lba_metablock_mixin_t *metablock,
     lba_disk_structure_t **out, lba_disk_structure_t::load_callback_t *cb) {
     
     lba_disk_structure_t *s = new lba_disk_structure_t();
     s->em = em;
-    s->fd = fd;
+    s->file = file;
     
     *out = s;
     
@@ -124,7 +124,7 @@ void lba_disk_structure_t::add_entry(block_id_t block_id, off64_t offset) {
     if (last_extent && last_extent->full()) {
         
         if (!superblock) {
-            lba_disk_superblock_t::create(em, fd, &superblock);
+            lba_disk_superblock_t::create(em, file, &superblock);
         }
         
         superblock->extents.push_back(last_extent);
@@ -134,7 +134,7 @@ void lba_disk_structure_t::add_entry(block_id_t block_id, off64_t offset) {
     }
     
     if (!last_extent) {
-        lba_disk_extent_t::create(em, fd, &last_extent);
+        lba_disk_extent_t::create(em, file, &last_extent);
     }
     
     assert(!last_extent->full());

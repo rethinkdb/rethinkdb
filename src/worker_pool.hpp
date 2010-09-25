@@ -3,8 +3,7 @@
 #define __WORKER_POOL_HPP__
 
 #include <vector>
-#include "event_queue.hpp"
-#include "arch/resource.hpp"
+#include "arch/arch.hpp"
 #include "config/cmd_args.hpp"
 #include "config/alloc.hpp"
 #include "corefwd.hpp"
@@ -17,6 +16,8 @@
 struct worker_t :
     public store_t::shutdown_callback_t
 {
+    friend class conn_fsm_t;
+    
     public:
         typedef intrusive_list_t<conn_fsm_t> fsm_list_t;
         typedef std::vector<conn_fsm_t*, gnew_alloc<conn_fsm_t*> > shutdown_fsms_t;
@@ -35,19 +36,8 @@ struct worker_t :
             return slices[key_to_slice(key, nworkers, nslices)];
         }
 
-        void new_fsm(int data, int &resource, void **source);
-
-        /*! \brief degister a specific fsm, used for when an fsm closes a connection
-         */
-        void deregister_fsm(void *fsm, int &resource);
-        /*! \brief degister an active fsm (order not significant), used
-         *  for shutdown, returns true if there is an fsm to be shutdown
-         */
-        bool deregister_fsm(int &resource);
-        /*! \brief delete the conn_fsms which have been deregistered
-         *  the fsms sources should have been forgotten by the event_queue
-         */
-        void clean_fsms();
+        void new_fsm(itc_event_t event);
+        
     public:
         //functions for the outside world to call
         void initiate_conn_fsm_transition(event_t *event);

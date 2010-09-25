@@ -7,7 +7,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include "arch/resource.hpp"
-#include "arch/io.hpp"
+#include "arch/arch.hpp"
 #include "utils.hpp"
 
 /* This is a serializer that writes blocks in place. It should be
@@ -123,7 +123,7 @@ private:
     } state;
     
     char db_path[MAX_DB_FILE_NAME];
-    resource_t dbfd;
+    direct_file_t *dbfile;
     off64_t dbsize;
 };
 

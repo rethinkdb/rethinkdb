@@ -3,7 +3,7 @@
 
 #include "containers/intrusive_list.hpp"
 #include "containers/var_buf.hpp"
-#include "arch/resource.hpp"
+#include "arch/arch.hpp"
 #include "request_handler/request_handler.hpp"
 #include "event.hpp"
 #include "corefwd.hpp"
@@ -22,8 +22,11 @@ struct data_transferred_callback {
 };
 
 // The actual state structure
-struct conn_fsm_t : public intrusive_list_node_t<conn_fsm_t>,
-                    public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, conn_fsm_t> {
+struct conn_fsm_t :
+    public intrusive_list_node_t<conn_fsm_t>,
+    public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, conn_fsm_t>,
+    public net_conn_callback_t
+{
 public:
     typedef buffer_t<IO_BUFFER_SIZE> iobuf_t;
     
@@ -55,18 +58,17 @@ public:
     };
     
 public:
-    conn_fsm_t(resource_t _source, event_queue_t *_event_queue);
+    conn_fsm_t(net_conn_t *conn);
     ~conn_fsm_t();
     
-    result_t do_transition(event_t *event);
     void consume(unsigned int bytes);
-
-    int get_source() {
-        return source;
-    }
-
+    
+    void on_net_conn_readable();
+    void on_net_conn_writable();
+    void on_net_conn_close();
+    
 public:
-    int source;
+    net_conn_t *conn;
     state_t state;
     bool corked; //whether or not we should buffer our responses
 
@@ -86,14 +88,18 @@ public:
      *              if it returns op_req_complex then it MUST send an et_request_complete event}
      */
     request_handler_t *req_handler;
-    event_queue_t *event_queue;
     
     void fill_external_buf(byte *external_buf, unsigned int size, data_transferred_callback *callback);
     void send_external_buf(byte *external_buf, unsigned int size, data_transferred_callback *callback);
     void dummy_sock_event();
+
+    void do_transition_and_handle_result(event_t *event);
+
 private:
     void check_external_buf();
-
+    
+    result_t do_transition(event_t *event);
+    
     result_t fill_buf(void *buf, unsigned int *bytes_filled, unsigned int total_length);
 
     result_t fill_rbuf();

@@ -3,9 +3,9 @@
 
 #include "event.hpp"
 #include "config/alloc.hpp"
+#include "arch/arch.hpp"
 
 struct event_t;
-struct event_queue_t;
 
 /*
 initiate_conn_fsm_transition() is in main.cc. There should be a better way for the request handler

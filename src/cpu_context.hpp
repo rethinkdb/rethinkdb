@@ -2,7 +2,8 @@
 #ifndef __CPU_CONTEXT_HPP__
 #define __CPU_CONTEXT_HPP__
 
-#include "corefwd.hpp"
+#include "arch/arch.hpp"
+struct worker_t;
 
 // A context structure that stores information relevant to each CPU
 // core. Each thread can access the structure for its core through

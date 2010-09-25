@@ -4,13 +4,12 @@
 #include "utils.hpp"
 #include "config/cmd_args.hpp"
 #include "config/alloc.hpp"
-#include "arch/io.hpp"
 #include "corefwd.hpp"
 #include "cpu_context.hpp"
-#include "event_queue.hpp"
+#include "arch/arch.hpp"
 
 in_place_serializer_t::in_place_serializer_t(char *_db_path, size_t _block_size)
-    : block_size(_block_size), state(state_unstarted), dbfd(INVALID_FD), dbsize(-1) {
+    : block_size(_block_size), state(state_unstarted), dbfile(NULL), dbsize(-1) {
     assert(strlen(_db_path) <= MAX_DB_FILE_NAME - 1);   // "- 1" for the null-terminator
     strncpy(db_path, _db_path, MAX_DB_FILE_NAME);
 }
@@ -24,25 +23,22 @@ bool in_place_serializer_t::start(ready_callback_t *cb) {
     assert(state == state_unstarted);
     
     // Open the DB file
-    dbfd = open(db_path,
-                O_RDWR | O_CREAT | O_DIRECT | O_LARGEFILE | O_NOATIME,
-                S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP);
-    check("Could not open database file", dbfd == -1);
+    
+    dbfile = new direct_file_t(db_path, direct_file_t::mode_read|direct_file_t::mode_write);
     
     // Determine last block id
-    dbsize = lseek64(dbfd, 0, SEEK_END);
-    check("Could not determine database file size", dbsize == -1);
-    off64_t res = lseek64(dbfd, 0, SEEK_SET);
-    check("Could not reset database file position", res == -1);
+    dbsize = dbfile->get_size();
     
     // Create an initial superblock if necessary
     if (dbsize == 0) {
         
         dbsize += block_size;
+        dbfile->set_size(dbsize);
         
-        // ftruncate() will initialize the superblock to 0
-        int res = ftruncate(dbfd, block_size);
-        check("Could not initialize superblock via ftruncate()", res != 0);
+        void *zeroes = malloc(block_size);
+        bzero(zeroes, block_size);
+        dbfile->write_blocking(0, block_size, zeroes);
+        free(zeroes);
     }
     
     state = state_ready;
@@ -53,17 +49,7 @@ bool in_place_serializer_t::do_read(block_id_t block_id, void *buf, read_callbac
     
     assert(state == state_ready);
     
-    event_queue_t *queue = get_cpu_context()->event_queue;
-    queue->iosys.schedule_aio_read(
-        dbfd,
-        id_to_offset(block_id),
-        block_size,
-        buf,
-        queue,
-        callback);
-    
-    // Reads never complete immediately
-    return false;
+    return dbfile->read_async(id_to_offset(block_id), block_size, buf, callback);
 }
 
 bool in_place_serializer_t::do_write(write_t *writes, int num_writes, write_txn_callback_t *callback) {
@@ -79,14 +65,11 @@ bool in_place_serializer_t::do_write(write_t *writes, int num_writes, write_txn_
             assert(writes[i].callback->associated_txn == NULL);   // Illegal to reuse a callback
             writes[i].callback->associated_txn = callback;
             
-            event_queue_t *queue = get_cpu_context()->event_queue;
-            queue->iosys.schedule_aio_write(
-                dbfd,
-                id_to_offset(writes[i].block_id),
-                block_size,
+            bool done __attribute__((unused)) = dbfile->write_async(
+                id_to_offset(writes[i].block_id), block_size,
                 writes[i].buf,
-                queue,
                 writes[i].callback);
+            assert(!done);   // We assume writes never complete immediately
         
         } else {
             
@@ -105,13 +88,14 @@ block_id_t in_place_serializer_t::gen_block_id() {
     assert(dbsize != 0);   // Superblock ID is reserved
     off64_t new_block_id = dbsize / block_size;
     dbsize += block_size;
+    dbfile->set_size(dbsize);
     return new_block_id;
 }
 
 bool in_place_serializer_t::shutdown(shutdown_callback_t *cb) {
     assert(state == state_starting_up || state == state_ready);
     
-    ::close(dbfd);
+    delete dbfile;
     
     state = state_shut_down;
     return true;

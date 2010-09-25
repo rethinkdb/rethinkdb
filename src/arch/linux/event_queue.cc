@@ -21,10 +21,8 @@
 #include "alloc/stats.hpp"
 #include "alloc/alloc_mixin.hpp"
 #include "worker_pool.hpp"
-#include "arch/io.hpp"
-#include "conn_fsm.hpp"
-#include "request.hpp"
-#include "event_queue.hpp"
+#include "arch/linux/io.hpp"
+#include "arch/linux/event_queue.hpp"
 #include "cpu_context.hpp"
 
 static const int NSEC_IN_SEC = 1000 * 1000 * 1000;
@@ -37,10 +35,10 @@ static const int NSEC_IN_SEC = 1000 * 1000 * 1000;
 // abstract all the pieces that really should be somewhere else.
 
 // Some forward declarations
-void queue_init_timer(event_queue_t *event_queue, uint64_t ms);
-void queue_stop_timer(event_queue_t *event_queue);
+void queue_init_timer(linux_event_queue_t *event_queue, uint64_t ms);
+void queue_stop_timer(linux_event_queue_t *event_queue);
 
-void process_aio_notify(event_queue_t *self) {
+void process_aio_notify(linux_event_queue_t *self) {
     int res, nevents;
     eventfd_t nevents_total;
     res = eventfd_read(self->aio_notify_fd, &nevents_total);
@@ -71,7 +69,7 @@ void process_aio_notify(event_queue_t *self) {
     } while(nevents_total > 0);
 }
 
-void event_queue_t::process_timer_notify() {
+void linux_event_queue_t::process_timer_notify() {
     int res;
     eventfd_t nexpirations;
 
@@ -107,7 +105,7 @@ void event_queue_t::process_timer_notify() {
     }
 }
 
-int process_itc_notify(event_queue_t *self) {
+int process_itc_notify(linux_event_queue_t *self) {
     int res;
     itc_event_t event;
 
@@ -125,10 +123,7 @@ int process_itc_notify(event_queue_t *self) {
             return event.event_type;
             break;
         case iet_new_socket:
-            int resource;
-            void *source;
-            self->parent->new_fsm(event.data, resource, &source);
-            self->watch_resource(resource, eo_rdwr, source);
+            self->parent->new_fsm(event);
             break;
         }
     }
@@ -136,30 +131,7 @@ int process_itc_notify(event_queue_t *self) {
     return 0;
 }
 
-void process_network_notify(event_queue_t *self, epoll_event *event) {
-    if(event->events & EPOLLIN || event->events & EPOLLOUT) {
-        event_t qevent;
-        bzero((char*)&qevent, sizeof(qevent));
-        qevent.event_type = et_sock;
-        qevent.state = event->data.ptr;
-        if((event->events & EPOLLIN) && !(event->events & EPOLLOUT)) {
-            qevent.op = eo_read;
-        } else if(!(event->events & EPOLLIN) && (event->events & EPOLLOUT)) {
-            qevent.op = eo_write;
-        } else {
-            qevent.op = eo_rdwr;
-        }
-        self->parent->event_handler(&qevent);
-    } else if(event->events == EPOLLRDHUP ||
-              event->events == EPOLLERR ||
-              event->events == EPOLLHUP) {
-        self->deregister_fsm(event->data.ptr);
-    } else {
-        fail("epoll_wait came back with an unhandled event");
-    }
-}
-
-void process_cpu_core_notify(event_queue_t *self, message_hub_t::msg_list_t *messages,
+void process_cpu_core_notify(linux_event_queue_t *self, message_hub_t::msg_list_t *messages,
                              bool shutting_down) {
     
     message_hub_t::msg_list_t::iterator m;
@@ -188,10 +160,10 @@ void process_cpu_core_notify(event_queue_t *self, message_hub_t::msg_list_t *mes
     assert(messages->empty());
 }
 
-void *event_queue_t::epoll_handler(void *arg) {
+void *linux_event_queue_t::epoll_handler(void *arg) {
     int res;
     worker_t *parent = (worker_t *) arg;
-    event_queue_t *self = parent->event_queue;
+    linux_event_queue_t *self = parent->event_queue;
     epoll_event events[MAX_IO_EVENT_PROCESSING_BATCH_SIZE];
     bool shutting_down = false; // True between iet_shutdown and iet_finish_shutdown.
 
@@ -238,11 +210,6 @@ void *event_queue_t::epoll_handler(void *arg) {
                 case iet_shutdown: // We've been asked to shut down
                     assert(!shutting_down);
                     shutting_down = true;
-                    // Clean up some objects that should be deleted on the same
-                    // core as where they were allocated.
-
-                    // Clean up remaining fsms
-                    self->deregister_all_fsms();
                     parent->shutdown();
 
                     break;
@@ -251,11 +218,8 @@ void *event_queue_t::epoll_handler(void *arg) {
                     goto breakout;
                 }
             } else {
-                // Don't process network traffic if we're shutting
-                // down - we've already deleted the conn_fsms.
-                if(!shutting_down) {
-                    process_network_notify(self, &events[i]);
-                }
+                linux_net_conn_t *conn = (linux_net_conn_t*)events[i].data.ptr;
+                conn->process_network_notify(events[i].events);
             }
         }
 
@@ -285,7 +249,7 @@ breakout:
     return tls_small_obj_alloc_accessor<alloc_t>::allocs_tl;
 }
 
-event_queue_t::event_queue_t(int workerid, int _nqueues,
+linux_event_queue_t::linux_event_queue_t(int workerid, int _nqueues,
                              worker_pool_t *parent_pool, worker_t *worker, cmd_config_t *cmd_config)
     : iosys(this)
 {
@@ -337,7 +301,7 @@ event_queue_t::event_queue_t(int workerid, int _nqueues,
     watch_resource(this->itc_pipe[0], eo_read, (void*)this->itc_pipe[0]);
 }
 
-void event_queue_t::start_queue(worker_t *parent) {
+void linux_event_queue_t::start_queue(worker_t *parent) {
     // Start the epoll thread
     int res = pthread_create(&this->epoll_thread, NULL, epoll_handler, (void*)parent);
     check("Could not create epoll thread", res != 0);
@@ -355,7 +319,7 @@ void event_queue_t::start_queue(worker_t *parent) {
     queue_init_timer(this, TIMER_TICKS_IN_MS);
 }
 
-void event_queue_t::begin_stopping_queue() {
+void linux_event_queue_t::begin_stopping_queue() {
     // Kill the poll thread
     itc_event_t event;
     bzero(&event, sizeof event);
@@ -363,7 +327,7 @@ void event_queue_t::begin_stopping_queue() {
     post_itc_message(&event);
 }
 
-void event_queue_t::finish_stopping_queue() {
+void linux_event_queue_t::finish_stopping_queue() {
     int res;
     // Wait for the poll thread to die
     void *allocs_tl = NULL;
@@ -372,7 +336,7 @@ void event_queue_t::finish_stopping_queue() {
     parent_pool->all_allocs.push_back(allocs_tl);
 }
 
-event_queue_t::~event_queue_t()
+linux_event_queue_t::~linux_event_queue_t()
 {
     int res;
     
@@ -395,7 +359,7 @@ event_queue_t::~event_queue_t()
     check("Could not destroy aio_context", res != 0);
 }
 
-void event_queue_t::watch_resource(resource_t resource, event_op_t watch_mode,
+void linux_event_queue_t::watch_resource(resource_t resource, event_op_t watch_mode,
                                    void *state) {
     assert(state);
     epoll_event event;
@@ -419,7 +383,7 @@ void event_queue_t::watch_resource(resource_t resource, event_op_t watch_mode,
     check("Could not pass socket to worker", res != 0);
 }
 
-void event_queue_t::forget_resource(resource_t resource) {
+void linux_event_queue_t::forget_resource(resource_t resource) {
     epoll_event event;
     event.events = EPOLLIN;
     event.data.ptr = NULL;
@@ -427,7 +391,7 @@ void event_queue_t::forget_resource(resource_t resource) {
     check("Couldn't remove socket from watching", res != 0);
 }
 
-void queue_init_timer(event_queue_t *event_queue, uint64_t ms) {
+void queue_init_timer(linux_event_queue_t *event_queue, uint64_t ms) {
     int res = -1;
 
     // Kill the old timer first (if necessary)
@@ -466,7 +430,7 @@ void queue_init_timer(event_queue_t *event_queue, uint64_t ms) {
     event_queue->watch_resource(event_queue->timer_fd, eo_read, (void*)event_queue->timer_fd);
 }
 
-void queue_stop_timer(event_queue_t *event_queue) {
+void queue_stop_timer(linux_event_queue_t *event_queue) {
     if(event_queue->timer_fd == -1)
         return;
     
@@ -486,7 +450,7 @@ void queue_stop_timer(event_queue_t *event_queue) {
     event_queue->timer_fd = -1;
 }
 
-void event_queue_t::post_itc_message(itc_event_t *event) {
+void linux_event_queue_t::post_itc_message(itc_event_t *event) {
     int res;
     // Note: This will be atomic as long as sizeof(itc_event_t) <
     // PIPE_BUF
@@ -503,13 +467,13 @@ void event_queue_t::post_itc_message(itc_event_t *event) {
     // around, we should get rid of this ITC system all together.
 }
 
-void event_queue_t::pull_messages_for_cpu(message_hub_t::msg_list_t *target) {
+void linux_event_queue_t::pull_messages_for_cpu(message_hub_t::msg_list_t *target) {
     for(int i = 0; i < parent_pool->nworkers; i++) {
         parent_pool->workers[i]->event_queue->message_hub.pull_messages(parent->workerid, target);
     }
 }
 
-void event_queue_t::garbage_collect(void *ctx) {
+void linux_event_queue_t::garbage_collect(void *ctx) {
     // Perform allocator gc
     tls_small_obj_alloc_accessor<alloc_t>::alloc_vector_t *allocs = tls_small_obj_alloc_accessor<alloc_t>::allocs_tl;
     if(allocs) {
@@ -522,7 +486,7 @@ void event_queue_t::garbage_collect(void *ctx) {
 /**
  * Timer API
  */
-event_queue_t::timer_t *event_queue_t::add_timer_internal(long ms, void (*callback)(void *), void *ctx, bool once) {
+linux_event_queue_t::timer_t *linux_event_queue_t::add_timer_internal(long ms, void (*callback)(void *), void *ctx, bool once) {
     
     assert(ms >= 0);
     
@@ -547,37 +511,39 @@ event_queue_t::timer_t *event_queue_t::add_timer_internal(long ms, void (*callba
     return t;
 }
 
-event_queue_t::timer_t *event_queue_t::add_timer(long ms, void (*cb)(void *), void *ctx) {
+linux_event_queue_t::timer_t *linux_event_queue_t::add_timer(long ms, void (*cb)(void *), void *ctx) {
     return add_timer_internal(ms, cb, ctx, false);
 }
 
-event_queue_t::timer_t *event_queue_t::fire_timer_once(long ms, void (*cb)(void *), void *ctx) {
+linux_event_queue_t::timer_t *linux_event_queue_t::fire_timer_once(long ms, void (*cb)(void *), void *ctx) {
     return add_timer_internal(ms, cb, ctx, true);
 }
 
-void event_queue_t::cancel_timer(timer_t *timer) {
+void linux_event_queue_t::cancel_timer(timer_t *timer) {
     timers.remove(timer);
     delete timer;
 }
 
-void event_queue_t::deregister_fsm(void *fsm) {
-    int source;
-    parent->deregister_fsm(fsm, source);
-    forget_resource(source);
-    parent->clean_fsms();
-}
-
-void event_queue_t::deregister_all_fsms() {
-    int resource;
-    while(parent->deregister_fsm(resource)) {
-        forget_resource(resource);
-    }
-    parent->clean_fsms();
-}
-
-void event_queue_t::send_shutdown() {
+void linux_event_queue_t::send_shutdown() {
     itc_event_t event;
     memset(&event, 0, sizeof event);
     event.event_type = iet_finish_shutdown;
     post_itc_message(&event);
+}
+
+void linux_event_queue_t::you_have_messages() {
+    
+    int res = eventfd_write(core_notify_fd, 1);
+
+    if (res != 0) {
+    
+        // Perhaps the fd is overflown, let's clear it and try writing again
+        eventfd_t temp;
+        res = eventfd_read(core_notify_fd, &temp);
+        check("Could not clear an overflown core_notify_fd", res != 0);
+
+        // If it doesn't work this time, we're fucked beyond recovery
+        res = eventfd_write(core_notify_fd, 1);
+        check("Could not send a core notification via core_notify_fd", res != 0);
+    }
 }

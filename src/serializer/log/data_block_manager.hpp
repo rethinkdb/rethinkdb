@@ -2,7 +2,7 @@
 #ifndef __SERIALIZER_LOG_DATA_BLOCK_MANAGER_HPP__
 #define __SERIALIZER_LOG_DATA_BLOCK_MANAGER_HPP__
 
-#include "arch/io.hpp"
+#include "arch/arch.hpp"
 #include "extents/extent_manager.hpp"
 #include "log_serializer_callbacks.hpp"
 #include "containers/priority_queue.hpp"
@@ -43,8 +43,8 @@ public:
     };
 
 public:
-    void start(fd_t dbfd);
-    void start(fd_t dbfd, metablock_mixin_t *last_metablock);
+    void start(direct_file_t *dbfile);
+    void start(direct_file_t *dbfile, metablock_mixin_t *last_metablock);
 
 public:
     bool read(off64_t off_in, void *buf_out, iocallback_t *cb);
@@ -98,7 +98,7 @@ private:
     
     extent_manager_t *extent_manager;
     
-    fd_t dbfd;
+    direct_file_t *dbfile;
     size_t block_size;
     off64_t last_data_extent;
     unsigned int blocks_in_last_data_extent;
