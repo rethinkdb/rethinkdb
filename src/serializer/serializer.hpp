@@ -2,10 +2,11 @@
 #ifndef __SERIALIZER_HPP__
 #define __SERIALIZER_HPP__
 
-#ifndef NDEBUG
+#include "serializer/log/log_serializer.hpp"
+
+#ifdef SEMANTIC_SERIALIZER_CHECK
 
 #include "serializer/semantic_checking.hpp"
-#include "serializer/log/log_serializer.hpp"
 typedef semantic_checking_serializer_t<log_serializer_t> serializer_t;
 
 #else

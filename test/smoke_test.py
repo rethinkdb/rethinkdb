@@ -9,8 +9,9 @@ for mode in ["debug", "release"]:
     for checker in ["valgrind", None]:
         # Build our targets
         do_test("cd ../src/; make -j8",
-                { "DEBUG"    : 1 if mode    == "debug"    else 0,
-                  "VALGRIND" : 1 if checker == "valgrind" else 0 },
+                { "DEBUG"                     : 1 if mode    == "debug"    else 0,
+                  "VALGRIND"                  : 1 if checker == "valgrind" else 0,
+                  "SEMANTIC_SERIALIZER_CHECK" : 1 },
                 cmd_format="make")
 
 # Do quick smoke tests in some environments
