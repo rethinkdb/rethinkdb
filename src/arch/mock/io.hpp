@@ -111,13 +111,8 @@ private:
             data = (char*)malloc_aligned(DEVICE_BLOCK_SIZE, DEVICE_BLOCK_SIZE);
             
             // Initialize to either random data or zeroes, choosing at random
-            if (rand() & 1) {
-                for (int i = 0; i < DEVICE_BLOCK_SIZE; i++) {
-                    data[i] = rand() & 0xFF;
-                }
-            } else {
-                bzero(data, DEVICE_BLOCK_SIZE);
-            }
+            char d = (rand() & 1) ? 0 : (rand() & 0xFF);
+            memset(data, d, DEVICE_BLOCK_SIZE);
         }
         
         ~block_t() {
