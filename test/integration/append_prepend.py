@@ -21,4 +21,4 @@ def test_function(opts, mc):
     mc.disconnect_all()
 
 if __name__ == "__main__":
-    simple_test_main(test_function, make_option_parser().parse(sys.argv), timeout = 2)
+    simple_test_main(test_function, make_option_parser().parse(sys.argv), timeout = 5)

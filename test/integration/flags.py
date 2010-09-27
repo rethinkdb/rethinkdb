@@ -41,4 +41,4 @@ if __name__ == "__main__":
     op["num_ints"] = IntFlag("--num-ints", 10)
     opts = op.parse(sys.argv)
     opts["mclib"] = "memcache"
-    simple_test_main(test, opts, timeout = 2)
+    simple_test_main(test, opts, timeout = 5)
