@@ -30,7 +30,7 @@ typedef win32_io_config_t platform_io_config_t
 
 /* Optionally mock the IO layer */
 
-#define MOCK_IO_LAYER
+// #define MOCK_IO_LAYER
 
 #ifndef MOCK_IO_LAYER
 
