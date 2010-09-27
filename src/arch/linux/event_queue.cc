@@ -72,20 +72,23 @@ void process_aio_notify(linux_event_queue_t *self) {
 void linux_event_queue_t::process_timer_notify() {
     int res;
     eventfd_t nexpirations;
-
+    
     res = eventfd_read(timer_fd, &nexpirations);
     check("Could not read timer_fd value", res != 0);
     
     timer_ticks_since_server_startup += nexpirations;
     long time_in_ms = timer_ticks_since_server_startup * TIMER_TICKS_IN_MS;
 
-    /* Execute any expired timers. */
     intrusive_list_t<timer_t>::iterator t;
     for (t = timers.begin(); t != timers.end(); ) {
-        timer_t *timer = &*t;
-        t++; // Increment now because the list may be mutated
         
-        if (time_in_ms > timer->next_time_in_ms) {
+        timer_t *timer = &*t;
+        
+        // Increment now instead of in the header of the 'for' loop because we may
+        // delete the timer we are on
+        t++;
+        
+        if (!timer->deleted && time_in_ms > timer->next_time_in_ms) {
             
             // Note that a repeating timer may have "expired" multiple times since the last time
             // process_timer_notify() was called. However, everything that uses the timer mechanism
@@ -96,11 +99,15 @@ void linux_event_queue_t::process_timer_notify() {
             timer->callback(timer->context);
             
             if (timer->once) {
-                timers.remove(timer);
-                delete timer;
+                cancel_timer(timer);
             } else {
                 timer->next_time_in_ms = time_in_ms + timer->interval_ms;
             }
+        }
+        
+        if (timer->deleted) {
+            timers.remove(timer);
+            delete timer;
         }
     }
 }
@@ -499,6 +506,7 @@ linux_event_queue_t::timer_t *linux_event_queue_t::add_timer_internal(long ms, v
         t->next_time_in_ms = timer_ticks_since_server_startup * TIMER_TICKS_IN_MS + ms;
         t->interval_ms = ms;
     }
+    t->deleted = false;
     t->callback = callback;
     t->context = ctx;
     
@@ -520,8 +528,7 @@ linux_event_queue_t::timer_t *linux_event_queue_t::fire_timer_once(long ms, void
 }
 
 void linux_event_queue_t::cancel_timer(timer_t *timer) {
-    timers.remove(timer);
-    delete timer;
+    timer->deleted = true;
 }
 
 void linux_event_queue_t::send_shutdown() {

@@ -64,6 +64,11 @@ public:
         // This is the time (in ms since the server started) of the next 'ring'
         long next_time_in_ms;
         
+        // It's unsafe to remove arbitrary timers from the list as we iterate over
+        // it, so instead we set the 'deleted' flag and then remove them in a
+        // controlled fashion.
+        bool deleted;
+        
         void (*callback)(void *ctx);
         void *context;
     };
