@@ -101,7 +101,7 @@
 #define DEFAULT_LISTEN_PORT                       8080
 
 // Ticks (in milliseconds) the internal timed tasks are performed at
-#define TIMER_TICKS_IN_MS                         50
+#define TIMER_TICKS_IN_MS                         5
 
 // How many milliseconds to allow changes to sit in memory before flushing to disk
 #define DEFAULT_FLUSH_TIMER_MS                    5000

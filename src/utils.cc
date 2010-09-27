@@ -3,6 +3,7 @@
 #include <string.h>
 #include <unistd.h>
 #include "utils.hpp"
+#include "cpu_context.hpp"
 
 int get_cpu_count() {
     return sysconf(_SC_NPROCESSORS_ONLN);
@@ -99,3 +100,9 @@ void print_hd(void *buf, size_t offset, size_t length) {
     }
 }
 
+void random_delay(void (*fun)(void*), void *arg) {
+
+    int ms = rand() % 30;
+    
+    get_cpu_context()->event_queue->fire_timer_once(ms, fun, arg);
+}
