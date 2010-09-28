@@ -50,6 +50,11 @@ public:
     off64_t get_block_offset(block_id_t block);
     
     block_id_t max_block_id();
+#ifndef NDEBUG
+    bool is_extent_referenced(off64_t offset);
+    bool is_offset_referenced(off64_t offset);
+    int extent_refcount(off64_t offset);
+#endif
     
 public:
     void set_block_offset(block_id_t block, off64_t offset);

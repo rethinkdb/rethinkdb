@@ -121,9 +121,8 @@ private:
 #ifndef NDEBUG
             printf("gc_entry:\n");
             printf("offset: %ld\n", offset);
-            printf("g_array:");
             for (unsigned int i = 0; i < g_array.size(); i++)
-                printf("%d", g_array.test(i));
+                printf("%.8x:\t%d\n", (unsigned int) (offset + (i * DEVICE_BLOCK_SIZE)), g_array.test(i));
             printf("\n");
             printf("\n");
 #endif

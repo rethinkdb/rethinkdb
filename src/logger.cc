@@ -40,7 +40,7 @@ void log_writer_t::write(const char *str) {
 
 // log_msg_t
 
-log_msg_t::log_msg_t() : cpu_message_t(cpu_message_t::mt_log) {
+log_msg_t::log_msg_t() {
     *str = '\0';
     del = false;
 }
@@ -64,6 +64,24 @@ const char *log_msg_t::level_str() {
         default:
             return "??";
             break;
+    }
+}
+
+void log_msg_t::on_cpu_switch() {
+    
+    worker_t *worker = get_cpu_context()->worker;
+    
+    if (del) {
+        worker->decr_ref_count();
+        delete this;
+        
+    } else {
+        assert(worker->workerid == LOG_WORKER);
+        worker->log_writer.writef("(%s)Q%d:%s:%d:", level_str(), return_cpu, src_file, src_line);
+        worker->log_writer.write(str);
+
+        del = true;
+        if (continue_on_cpu(return_cpu, this)) on_cpu_switch();
     }
 }
 
@@ -107,10 +125,8 @@ void logger_t::_mlogf(const char *format, ...) {
 // Sends the message to worker LOG_WORKER.
 void logger_t::_mlog_end() {
     assert(msg);
-    worker_t *worker = get_cpu_context()->worker;
-    msg->return_cpu = worker->workerid;
-    worker->event_queue->message_hub.store_message(LOG_WORKER, msg);
-    worker->incr_ref_count();
+    get_cpu_context()->worker->incr_ref_count();
+    if (continue_on_cpu(LOG_WORKER, msg)) msg->on_cpu_switch();
     msg = NULL;
 }
 

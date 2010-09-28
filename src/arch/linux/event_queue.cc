@@ -72,20 +72,23 @@ void process_aio_notify(linux_event_queue_t *self) {
 void linux_event_queue_t::process_timer_notify() {
     int res;
     eventfd_t nexpirations;
-
+    
     res = eventfd_read(timer_fd, &nexpirations);
     check("Could not read timer_fd value", res != 0);
     
     timer_ticks_since_server_startup += nexpirations;
     long time_in_ms = timer_ticks_since_server_startup * TIMER_TICKS_IN_MS;
 
-    /* Execute any expired timers. */
     intrusive_list_t<timer_t>::iterator t;
     for (t = timers.begin(); t != timers.end(); ) {
-        timer_t *timer = &*t;
-        t++; // Increment now because the list may be mutated
         
-        if (time_in_ms > timer->next_time_in_ms) {
+        timer_t *timer = &*t;
+        
+        // Increment now instead of in the header of the 'for' loop because we may
+        // delete the timer we are on
+        t++;
+        
+        if (!timer->deleted && time_in_ms > timer->next_time_in_ms) {
             
             // Note that a repeating timer may have "expired" multiple times since the last time
             // process_timer_notify() was called. However, everything that uses the timer mechanism
@@ -96,11 +99,15 @@ void linux_event_queue_t::process_timer_notify() {
             timer->callback(timer->context);
             
             if (timer->once) {
-                timers.remove(timer);
-                delete timer;
+                cancel_timer(timer);
             } else {
                 timer->next_time_in_ms = time_in_ms + timer->interval_ms;
             }
+        }
+        
+        if (timer->deleted) {
+            timers.remove(timer);
+            delete timer;
         }
     }
 }
@@ -131,32 +138,13 @@ int process_itc_notify(linux_event_queue_t *self) {
     return 0;
 }
 
-void process_cpu_core_notify(linux_event_queue_t *self, message_hub_t::msg_list_t *messages,
-                             bool shutting_down) {
+void process_cpu_core_notify(linux_event_queue_t *self, message_hub_t::msg_list_t *messages) {
     
-    message_hub_t::msg_list_t::iterator m;
-    for (m = messages->begin(); m != messages->end(); ) {
-        cpu_message_t &msg = *m;
-        m ++;
+    while (cpu_message_t *m = messages->head()) {
         
-        /* Remove the message from our list so that the event handler can put it into another list
-        without violating intrusive_list_t's internal corruption checks. Otherwise this would be
-        unnecessary because our list is a temporary that will be discarded as soon as the function
-        returns. */
-        messages->remove(&msg);
-        
-        // Do not process new btree events during shut down because we
-        // will have already killed all the sockets - we're just
-        // finishing up here.
-        if(!shutting_down || msg.type != cpu_message_t::mt_btree) {
-            // Pass the event to the handler
-            event_t cpu_event;
-            cpu_event.event_type = et_cpu_event;
-            cpu_event.state = &msg;
-            self->parent->event_handler(&cpu_event);
-        }
+        messages->remove(m);
+        m->on_cpu_switch();
     }
-    
     assert(messages->empty());
 }
 
@@ -227,7 +215,7 @@ void *linux_event_queue_t::epoll_handler(void *arg) {
         // CPU requests
         message_hub_t::msg_list_t cpu_requests;
         self->pull_messages_for_cpu(&cpu_requests);
-        process_cpu_core_notify(self, &cpu_requests, shutting_down);
+        process_cpu_core_notify(self, &cpu_requests);
 
         // Push the messages we collected in this batch for other CPUs
         self->message_hub.push_messages();
@@ -499,6 +487,7 @@ linux_event_queue_t::timer_t *linux_event_queue_t::add_timer_internal(long ms, v
         t->next_time_in_ms = timer_ticks_since_server_startup * TIMER_TICKS_IN_MS + ms;
         t->interval_ms = ms;
     }
+    t->deleted = false;
     t->callback = callback;
     t->context = ctx;
     
@@ -520,8 +509,7 @@ linux_event_queue_t::timer_t *linux_event_queue_t::fire_timer_once(long ms, void
 }
 
 void linux_event_queue_t::cancel_timer(timer_t *timer) {
-    timers.remove(timer);
-    delete timer;
+    timer->deleted = true;
 }
 
 void linux_event_queue_t::send_shutdown() {

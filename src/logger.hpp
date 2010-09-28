@@ -38,13 +38,14 @@ struct log_msg_t : public cpu_message_t,
 public:
     log_msg_t();
     const char *level_str();
-
+    
 public:
     char str[MAX_LOG_MSGLEN];
     log_level_t level;
     const char *src_file;
     int src_line;
     bool del;
+    void on_cpu_switch();
 };
 
 // Per-worker logger

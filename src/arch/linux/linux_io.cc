@@ -285,14 +285,14 @@ void linux_direct_file_t::read_blocking(size_t offset, size_t length, void *buf)
     
     verify(offset, length, buf);
     size_t res = pread(fd, buf, length, offset);
-    check("Blocking read failed", res == length);
+    check("Blocking read failed", res != length);
 }
 
 void linux_direct_file_t::write_blocking(size_t offset, size_t length, void *buf) {
     
     verify(offset, length, buf);
     size_t res = pwrite(fd, buf, length, offset);
-    check("Blocking write failed", res == length);
+    check("Blocking write failed", res != length);
 }
 
 linux_direct_file_t::~linux_direct_file_t() {

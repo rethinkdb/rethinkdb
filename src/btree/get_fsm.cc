@@ -153,8 +153,11 @@ btree_get_fsm_t::transition_result_t btree_get_fsm_t::do_large_value_acquired(ev
     assert(large_value->get_index_block_id() == value.lv_index_block_id());
 
     write_lv_msg = new write_large_value_msg_t(large_value, req, this, this);
-    write_lv_msg->return_cpu = get_cpu_context()->event_queue->message_hub.current_cpu;
-    write_lv_msg->send(this->return_cpu);
+    
+    if (continue_on_cpu(return_cpu, write_lv_msg))  {
+        call_later_on_this_cpu(write_lv_msg);
+    }
+    
     // And now, we wait... For the socket to be ready for our value.
     return btree_fsm_t::transition_incomplete;
 }

@@ -190,6 +190,16 @@ private:
         gnew_alloc<std::pair<block_id_t, ls_block_writer_t*> >
         > block_writer_map_t;
     block_writer_map_t block_writer_map;
+#ifndef NDEBUG
+public:
+    bool is_extent_referenced(off64_t offset) {
+        return lba_index.is_extent_referenced(offset);
+    }
+
+    int extent_refcount(off64_t offset) {
+        return lba_index.extent_refcount(offset);
+    }
+#endif
 };
 
 #endif /* __LOG_SERIALIZER_HPP__ */

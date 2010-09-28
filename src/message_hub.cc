@@ -89,6 +89,21 @@ void message_hub_t::pull_messages(unsigned int ncpu, msg_list_t *msg_list) {
     // instead of spinlocks
 }
 
-void cpu_message_t::send(int cpu) { // TODO: Maybe this can auto-set return_cpu?
-        get_cpu_context()->worker->event_queue->message_hub.store_message(cpu, this);
+bool continue_on_cpu(int cpu, cpu_message_t *msg) {
+    
+    message_hub_t *hub = &get_cpu_context()->worker->event_queue->message_hub;
+    
+    if (cpu == (signed)hub->current_cpu) {
+        // The CPU to continue on is the CPU we are already on
+        return true;
+    } else {
+        hub->store_message(cpu, msg);
+        return false;
+    }
+}
+
+void call_later_on_this_cpu(cpu_message_t *msg) {
+    
+    message_hub_t *hub = &get_cpu_context()->worker->event_queue->message_hub;
+    hub->store_message(hub->current_cpu, msg);
 }

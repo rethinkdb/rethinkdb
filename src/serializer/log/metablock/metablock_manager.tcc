@@ -194,10 +194,16 @@ void metablock_manager_t<metablock_t>::on_io_complete(event_t *e) {
 
         if (done_looking) {
             if (version == -1) {
+                
                 /* no metablock found anywhere (either the db is toast, or we're on a block device) */
+                
+                // Start versions from 0, not from whatever garbage was in the last thing we read
+                mb_buffer->version = 0;
+                
                 state = state_writing_header;
                 write_headers();
                 *mb_found = false;
+                
             } else {
                 /* we found a metablock */
                 *mb_found = true;

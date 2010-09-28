@@ -357,7 +357,6 @@ class Metablock(object):
             
             extent_manager_mb, parse_extent_manager_mb = make_struct("extent_manager_mb", [
                 ("last_extent", parse_off64_t),
-                ("last_extent_truncated", parse_off64_t),
                 ])
             
             lba_index_mb, parse_lba_index_mb = make_struct("lba_index_mb", [
@@ -436,8 +435,6 @@ class Metablock(object):
         
         print """<tr><td>Last extent</td><td>0x%x</td></tr>""" % \
             self.mb.metablock.extent_manager_part.last_extent
-        print """<tr><td>Last extent truncated</td><td>0x%x</td></tr>""" % \
-            self.mb.metablock.extent_manager_part.last_extent_truncated
         
         print """<tr><td>Last LBA extent offset</td>"""
         if self.chosen and self.first_lba_extent:

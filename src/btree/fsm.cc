@@ -1,4 +1,6 @@
 #include "fsm.hpp"
+#include "btree/key_value_store.hpp"
+#include "worker_pool.hpp"
 
 // TODO: allow multiple values per key
 // TODO: add cursor/iterator mechanism
@@ -59,5 +61,24 @@ void btree_fsm_t::on_txn_commit(transaction_t *txn) {
 void btree_fsm_t::step() { // XXX Rename and abstract.
     if (do_transition(NULL) == transition_complete && on_complete) {
         on_complete(this);
+    }
+}
+
+void btree_fsm_t::on_cpu_switch() {
+    
+    if (is_finished()) {
+        // We have just been sent back to the core that created us
+        if (request) {
+            request->on_request_part_completed();
+        } else {
+            // A btree not associated with any request.
+            delete this;
+        }
+        
+    } else {
+        // We have just been sent to the core on which to work
+        store_t *store = get_cpu_context()->worker->slice(&key);
+        if (store->run_fsm(this, worker_t::on_btree_completed))
+            worker_t::on_btree_completed(this);
     }
 }
