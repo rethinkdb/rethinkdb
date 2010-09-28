@@ -6,6 +6,7 @@
 #include "worker_pool.hpp"
 #include "cpu_context.hpp"
 
+<<<<<<< HEAD:src/message_hub.cc
 #define get16bits(d) ((((uint32_t)(((const uint8_t *)(d))[1])) << 8)\
                        +(uint32_t)(((const uint8_t *)(d))[0]) )
 
@@ -63,6 +64,8 @@ int key_to_slice(btree_key *key, unsigned int ncpus, unsigned int nslice) {
     return (hash(key) / ncpus) % nslice;
 }
 
+=======
+>>>>>>> de9c79d... Moves key_to_cpu() and key_to_slice() to btree/ directory.:src/message_hub.cc
 void message_hub_t::init(unsigned int cpu_id, unsigned int _ncpus, worker_t *workers[]) {
     current_cpu = cpu_id;
     ncpus = _ncpus;

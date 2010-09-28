@@ -18,10 +18,6 @@
 // TODO: perhaps we can issue cache prefetching commands to the CPU to
 // speed up the process of sending messages across cores.
 
-int key_to_cpu(btree_key *key, unsigned int ncpus);
-
-int key_to_slice(btree_key *key, unsigned int ncpus, unsigned int nslice);
-
 struct cpu_message_t : public intrusive_list_node_t<cpu_message_t>
 {
     explicit cpu_message_t()
