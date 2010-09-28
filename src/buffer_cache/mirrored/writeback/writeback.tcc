@@ -18,6 +18,7 @@ writeback_tmpl_t<mc_config_t>::writeback_tmpl_t(
 
 template<class mc_config_t>
 writeback_tmpl_t<mc_config_t>::~writeback_tmpl_t() {
+    assert(!flush_timer);
     gdelete(flush_lock);
 }
 
