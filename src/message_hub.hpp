@@ -24,36 +24,36 @@ int key_to_slice(btree_key *key, unsigned int ncpus, unsigned int nslice);
 
 struct cpu_message_t : public intrusive_list_node_t<cpu_message_t>
 {
-    enum msg_type_t {
-        mt_btree,
-        mt_lock,
-        mt_perfmon,
-        mt_log,
-        mt_read_large_value,
-        mt_write_large_value
-    };
-    explicit cpu_message_t(msg_type_t _type)
-        : type(_type), request(NULL)
+    explicit cpu_message_t()
+        : request(NULL)
         {}
     virtual ~cpu_message_t() {}
-    
-    msg_type_t type;
+
     request_t *request;
     unsigned int return_cpu;
-
-    void send(int cpu);
+    
+    virtual void on_cpu_switch() = 0;
 };
 
+// continue_on_cpu() is used to send a message to another thread. If the 'cpu' parameter is the
+// thread that we are already on, then it returns 'true'; otherwise, it will cause the other
+// thread's event loop to call msg->on_cpu_switch().
+bool continue_on_cpu(int cpu, cpu_message_t *msg);
+
+// call_later_on_this_cpu() will cause msg->on_cpu_switch() to be called from the main event loop
+// of the CPU we are currently on. It's a bit of a hack.
+void call_later_on_this_cpu(cpu_message_t *msg);
+
 struct message_hub_t {
+    friend bool continue_on_cpu(int, cpu_message_t*);
+    friend void call_later_on_this_cpu(cpu_message_t*);
+    
 public:
     typedef intrusive_list_t<cpu_message_t> msg_list_t;
     
 public:
     void init(unsigned int cpu_id, unsigned int _ncpus, worker_t *eqs[]);
     ~message_hub_t();
-    
-    // Collects a message for a given CPU onto a local list.
-    void store_message(unsigned int ncpu, cpu_message_t *msg);
 
     // Pushes messages collected locally global lists available to all
     // CPUs.
@@ -80,6 +80,10 @@ public:
     cpu_queue_t queues[MAX_CPUS];
     unsigned int ncpus;
     unsigned int current_cpu;
+
+private:
+    // Collects a message for a given CPU onto a local list.
+    void store_message(unsigned int ncpu, cpu_message_t *msg);
 };
 
 #endif // __MESSAGE_HUB_HPP__

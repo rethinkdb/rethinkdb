@@ -39,16 +39,8 @@ struct worker_t :
         void new_fsm(itc_event_t event);
         
     public:
-        //functions for the outside world to call
-        void initiate_conn_fsm_transition(event_t *event);
         static void on_btree_completed(btree_fsm_t *btree_fsm);
-        void process_btree_msg(btree_fsm_t *btree_fsm);
-        void process_perfmon_msg(perfmon_msg_t *msg);
-        void process_lock_msg(event_t *event, rwi_lock_t::lock_request_t *lr);
-        void process_log_msg(log_msg_t *msg);
-        void process_read_large_value_msg(read_large_value_msg_t *msg);
-        void process_write_large_value_msg(write_large_value_msg_t *msg);
-        void event_handler(event_t *event);
+        
     public:
         worker_pool_t *parent_pool;
         event_queue_t *event_queue;

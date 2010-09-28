@@ -34,10 +34,11 @@ public:
                             public intrusive_list_node_t<lock_request_t>
     {
         lock_request_t(access_t _op, lock_available_callback_t *_callback)
-            : cpu_message_t(cpu_message_t::mt_lock), op(_op), callback(_callback)
+            : op(_op), callback(_callback)
             {}
         access_t op;
         lock_available_callback_t *callback;
+        void on_cpu_switch();   // Actually, this is called later on the same CPU...
     };
 
     // Note, the receiver of lock_request_t completion notifications
@@ -79,7 +80,6 @@ private:
     bool try_lock_upgrade(bool from_queue);
     void enqueue_request(access_t access, lock_available_callback_t *callback);
     void process_queue();
-    void send_notify(lock_request_t *req);
 
 private:
     rwi_state state;

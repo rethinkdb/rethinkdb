@@ -105,13 +105,16 @@ public:
     };
         
     perfmon_msg_t()
-        : cpu_message_t(cpu_message_t::mt_perfmon), perfmon(NULL), state(sm_request)
+        : perfmon(NULL), state(sm_request)
         {}
     
     void send_back_to_free_perfmon();
     
     perfmon_t *perfmon;
     perfmon_msg_state state;
+    
+    void on_cpu_switch();
 };
+
 #endif // __PERFMON_HPP__
 

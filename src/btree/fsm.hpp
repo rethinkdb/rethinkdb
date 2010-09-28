@@ -39,8 +39,7 @@ public:
 
 public:
     btree_fsm_t(btree_key *_key)
-        : cpu_message_t(cpu_message_t::mt_btree),
-          transaction(NULL),
+        : transaction(NULL),
           cache(NULL),   // Will be set when we arrive at the core we are operating on
           on_complete(NULL), noreply(false), status_code(S_UNKNOWN)
         {
@@ -70,6 +69,8 @@ public:
     virtual void on_txn_begin(transaction_t *txn);
     virtual void on_txn_commit(transaction_t *txn);
     virtual void step(); // XXX Rename this.
+    
+    void on_cpu_switch();
 
 public:
     union {
