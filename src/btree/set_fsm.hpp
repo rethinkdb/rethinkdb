@@ -17,19 +17,16 @@ public:
         set_type_cas
     };
 
-    explicit btree_set_fsm_t(btree_key *key, btree_key_value_store_t *store, request_callback_t *req, byte *data, uint32_t length, set_type_t type, btree_value::mcflags_t mcflags, btree_value::exptime_t exptime, btree_value::cas_t req_cas)
-        : btree_modify_fsm_t(key, store), length(length), req(req), type(type), req_cas(req_cas), success(false), new_large_value(NULL) {
-        
+    explicit btree_set_fsm_t(btree_key *key, btree_key_value_store_t *store, request_callback_t *req, bool got_large, uint32_t length, byte *data, set_type_t type, btree_value::mcflags_t mcflags, btree_value::exptime_t exptime, btree_value::cas_t req_cas)
+        : btree_modify_fsm_t(key, store), length(length), req(req), got_large(got_large), type(type), req_cas(req_cas), success(false), new_large_value(NULL) {
         slice->total_set_operations++;
-        
         // XXX This does unnecessary setting and copying.
         value.metadata_flags = 0;
         value.value_size(0);
         value.set_mcflags(mcflags);
         value.set_exptime(exptime);
         value.value_size(length);
-        if (length <= MAX_IN_NODE_VALUE_SIZE) {
-            assert(!value.large_value());
+        if (!got_large) {
             memcpy(value.value(), data, length);
         }
     }
@@ -37,7 +34,7 @@ public:
     transition_result_t operate(btree_value *old_value, large_buf_t *old_large_value, btree_value **_new_value) { //, large_buf_t **new_large_value) {//, large_buf_t **large_value) {
         new_value = _new_value;
         // TODO: If we return false, we still need to consume the value from the socket.
-        if (length > MAX_IN_NODE_VALUE_SIZE) {
+        if (got_large) {
         }
 
         if ((old_value && type == set_type_add) || (!old_value && type == set_type_replace)) {
@@ -64,20 +61,20 @@ public:
             value.set_cas(0xCA5ADDED); // Turns the flag on and makes room. modify_fsm will set an actual CAS later. TODO: We should probably have a separate function for this.
         }
         
-        if (length > MAX_IN_NODE_VALUE_SIZE) { // XXX Maybe this should be a bool from the request handler.
+        if (got_large) {
             new_large_value = new large_buf_t(this->transaction);
             new_large_value->allocate(length);
             value.set_lv_index_block_id(new_large_value->get_index_block_id());
             //*new_value = &value; // XXX Only do this if we filled the value successfully.
             
             read_large_value_msg_t *msg = new read_large_value_msg_t(new_large_value, req, this);
+            fill_large_value_msg_t *msg = new fill_large_value_msg_t(new_large_value, req, this, 0, length);
             
             // continue_on_cpu() returns true if we are already on that cpu, but we don't want to
             // call the callback immediately in that case anyway.
             if (continue_on_cpu(return_cpu, msg))  {
                 call_later_on_this_cpu(msg);
             }
-            
             // XXX Figure out where things are deleted.
             return btree_fsm_t::transition_incomplete;
         }
@@ -92,7 +89,6 @@ public:
         if (new_large_value) {
             if (success) {
                 *new_value = &value;
-                new_large_value->set_dirty();
                 new_large_value->release();
                 delete new_large_value;
                 new_large_value = NULL;
@@ -101,7 +97,6 @@ public:
             } else {
                 // TODO: Make sure that allocate and delete in the same transaction is a no-op.
                 new_large_value->mark_deleted();
-                new_large_value->set_dirty();
                 new_large_value->release();
                 delete new_large_value;
                 new_large_value = NULL;
@@ -120,6 +115,8 @@ private:
     uint32_t length;
 
     request_callback_t *req;
+
+    bool got_large;
 
     set_type_t type;
     btree_value::cas_t req_cas;

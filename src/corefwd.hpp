@@ -22,7 +22,7 @@ template<class inner_serializer_t> struct semantic_checking_serializer_t;
 class btree_key_value_store_t;
 struct btree_node;
 class btree_modify_fsm_t;
-class read_large_value_msg_t;
+class fill_large_value_msg_t;
 class write_large_value_msg_t;
 class btree_fsm_t;
 class btree_get_fsm_t;

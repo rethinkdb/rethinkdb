@@ -27,8 +27,9 @@ void btree_fsm_t::on_large_buf_available(large_buf_t *large_buf) {
     event.op = eo_read;
     event.buf = large_buf;
     event.result = 1;
-    transition_result_t res __attribute__((unused)) = do_transition(&event);
-    assert(res != transition_complete); // We should only be acquiring a large buf in mid-operation.
+    if (do_transition(&event) == transition_complete && on_complete) {
+        on_complete(this);
+    }
 }
 
 void btree_fsm_t::on_txn_begin(transaction_t *txn) {

@@ -17,7 +17,7 @@ public:
     
     transition_result_t operate(btree_value *old_value, large_buf_t *old_large_buf, btree_value **new_value) {
         if (old_value) {
-            assert(!old_value->large_value());
+            assert(!old_value->is_large());
             this->status_code = btree_fsm_t::S_SUCCESS;
 
             valuecpy(&value, old_value);

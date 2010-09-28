@@ -63,8 +63,7 @@ public:
 
 class txt_memcached_get_request_t :
     public txt_memcached_request_t,
-    public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, txt_memcached_get_request_t>
-{
+    public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, txt_memcached_get_request_t> {
 
 public:
     using txt_memcached_request_t::rh;
@@ -114,7 +113,7 @@ public:
             btree_get_fsm_t *fsm = fsms[curr_fsm];
             switch (fsm->status_code) {
                 case btree_get_fsm_t::S_SUCCESS:
-                    if (fsm->value.large_value()) {
+                    if (fsm->value.is_large()) {
                         if (fsm->state == btree_get_fsm_t::large_value_acquired) {
                             value_header(sbuf, fsm);
                             fsm->state = btree_get_fsm_t::large_value_writing; // XXX
@@ -158,8 +157,7 @@ private:
 // FIXME horrible redundancy
 class txt_memcached_get_cas_request_t :
     public txt_memcached_request_t,
-    public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, txt_memcached_get_cas_request_t>
-{
+    public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, txt_memcached_get_cas_request_t> {
 public:
     using txt_memcached_request_t::rh;
 
@@ -200,6 +198,8 @@ public:
             switch (fsm->status_code) {
                 case btree_get_cas_fsm_t::S_SUCCESS:
                     // TODO PERFMON get_cpu_context()->worker->get_hits++;
+                    assert(!fsm->value.is_large());
+                    get_cpu_context()->worker->get_hits++;
                     sbuf->printf("VALUE %*.*s %u %u %llu\r\n",
                         fsm->key.size, fsm->key.size, fsm->key.contents,
                         fsm->value.mcflags(),
@@ -227,15 +227,19 @@ private:
 
 class txt_memcached_set_request_t :
     public txt_memcached_request_t,
-    public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, txt_memcached_set_request_t>
-{
-
+    public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, txt_memcached_set_request_t> {
 public:
-    txt_memcached_set_request_t(txt_memcached_handler_t *rh, btree_key *key, byte *data, uint32_t length, btree_set_fsm_t::set_type_t type, btree_value::mcflags_t mcflags, btree_value::exptime_t exptime, btree_value::cas_t req_cas, bool noreply)
+    txt_memcached_set_request_t(txt_memcached_handler_t *rh, btree_key *key, bool is_large, uint32_t length, byte *data, btree_set_fsm_t::set_type_t type, btree_value::mcflags_t mcflags, btree_value::exptime_t exptime, btree_value::cas_t req_cas, bool noreply)
         : txt_memcached_request_t(rh, noreply),
+<<<<<<< HEAD
           fsm(new btree_set_fsm_t(key, &rh->server->store, this, data, length, type, mcflags, convert_exptime(exptime), req_cas)) {
         fsm->run(this);
         nfsms = 1;
+=======
+          fsm(new btree_set_fsm_t(key, this, is_large, length, data, type, mcflags, convert_exptime(exptime), req_cas)) {
+        this->request->add(fsm, key_to_cpu(key, rh->event_queue->parent->nworkers));
+        this->request->dispatch();
+>>>>>>> Append/prepend on large values (mostly working).
     }
 
     ~txt_memcached_set_request_t() {
@@ -280,7 +284,7 @@ public:
         if (exptime <= 60*60*24*30 && exptime > 0) {
             exptime += time(NULL);
         }
-        // TODO: Do we need to handle exptimes in the past?
+        // TODO: Do we need to handle exptimes in the past here?
         return exptime;
     }
 
@@ -330,14 +334,19 @@ private:
 
 class txt_memcached_append_prepend_request_t :
     public txt_memcached_request_t,
-    public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, txt_memcached_append_prepend_request_t>
-{
+    public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, txt_memcached_append_prepend_request_t> {
 public:
-    txt_memcached_append_prepend_request_t(txt_memcached_handler_t *rh, btree_key *key, byte *data, int length, bool append, bool noreply)
+    txt_memcached_append_prepend_request_t(txt_memcached_handler_t *rh, btree_key *key, bool got_large, int length, byte *data, bool append, bool noreply)
         : txt_memcached_request_t(rh, noreply),
+<<<<<<< HEAD
           fsm(new btree_append_prepend_fsm_t(key, &rh->server->store, data, length, append)) {
         fsm->run(this);
         nfsms = 1;
+=======
+          fsm(new btree_append_prepend_fsm_t(key, this, got_large, length, data, append)) {
+        this->request->add(fsm, key_to_cpu(key, rh->event_queue->parent->nworkers));
+        this->request->dispatch();
+>>>>>>> Append/prepend on large values (mostly working).
     }
 
     ~txt_memcached_append_prepend_request_t() {
@@ -667,8 +676,9 @@ txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::parse_stat_comm
 
 txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::read_data() {
     check("memcached handler should be in loading data state", !loading_data);
-    if (bytes <= MAX_IN_NODE_VALUE_SIZE) {
-        if (conn_fsm->nrbuf < bytes + 2){//check that the buffer contains enough data.  must also include \r\n
+    bool is_large = bytes > MAX_IN_NODE_VALUE_SIZE;
+    if (!is_large) {
+        if (conn_fsm->nrbuf < bytes + 2){ // check that the buffer contains enough data.  must also include \r\n
             return request_handler_t::op_partial_packet;
         }
         loading_data = false;
@@ -678,18 +688,18 @@ txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::read_data() {
             return request_handler_t::op_malformed;
         }
     } else {
-        if (this->read_lv_msg) {
+        if (this->fill_lv_msg) {
             if (conn_fsm->nrbuf < 2) {
                 return request_handler_t::op_partial_packet;
             }
             // XXX What if data comes in at
             conn_fsm->consume(2); // \r\n. TODO: Check.
-            this->read_lv_msg->success = true;
-            this->read_lv_msg->completed = true; // TODO: Move this into a method in read_lv_msg.
-            if (continue_on_cpu(this->read_lv_msg->return_cpu, this->read_lv_msg))  {
-                call_later_on_this_cpu(this->read_lv_msg);
+            this->fill_lv_msg->success = true;
+            this->fill_lv_msg->completed = true; // TODO: Move this into a method in fill_lv_msg.
+            if (continue_on_cpu(this->fill_lv_msg->return_cpu, this->fill_lv_msg))  {
+                call_later_on_this_cpu(this->fill_lv_msg);
             }
-            this->read_lv_msg = NULL;
+            this->fill_lv_msg = NULL;
             loading_data = false;
             return request_handler_t::op_req_complex;
         } else {
@@ -699,23 +709,23 @@ txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::read_data() {
 
     switch(cmd) {
         case SET:
-            new txt_memcached_set_request_t(this, &key, conn_fsm->rbuf, bytes, btree_set_fsm_t::set_type_set, mcflags, exptime, 0, noreply);
+            new txt_memcached_set_request_t(this, &key, is_large, bytes, conn_fsm->rbuf, btree_set_fsm_t::set_type_set, mcflags, exptime, 0, noreply);
             break;
         case ADD:
-            new txt_memcached_set_request_t(this, &key, conn_fsm->rbuf, bytes, btree_set_fsm_t::set_type_add, mcflags, exptime, 0, noreply);
+            new txt_memcached_set_request_t(this, &key, is_large, bytes, conn_fsm->rbuf, btree_set_fsm_t::set_type_add, mcflags, exptime, 0, noreply);
             break;
         case REPLACE:
-            new txt_memcached_set_request_t(this, &key, conn_fsm->rbuf, bytes, btree_set_fsm_t::set_type_replace, mcflags, exptime, 0, noreply);
+            new txt_memcached_set_request_t(this, &key, is_large, bytes, conn_fsm->rbuf, btree_set_fsm_t::set_type_replace, mcflags, exptime, 0, noreply);
             break;
         case CAS:
-            new txt_memcached_set_request_t(this, &key, conn_fsm->rbuf, bytes, btree_set_fsm_t::set_type_cas, mcflags, exptime, cas, noreply);
+            new txt_memcached_set_request_t(this, &key, is_large, bytes, conn_fsm->rbuf, btree_set_fsm_t::set_type_cas, mcflags, exptime, cas, noreply);
             break;
         // APPEND and PREPEND always ignore flags and exptime.
         case APPEND:
-            new txt_memcached_append_prepend_request_t(this, &key, conn_fsm->rbuf, bytes, true, noreply);
+            new txt_memcached_append_prepend_request_t(this, &key, is_large, bytes, conn_fsm->rbuf, true, noreply);
             break;
         case PREPEND:
-            new txt_memcached_append_prepend_request_t(this, &key, conn_fsm->rbuf, bytes, false, noreply);
+            new txt_memcached_append_prepend_request_t(this, &key, is_large, bytes, conn_fsm->rbuf, false, noreply);
             break;
         default:
             conn_fsm->consume(bytes+2);

@@ -7,16 +7,15 @@
 #include "conn_fsm.hpp"
 #include "request.hpp"
 
-#define NUM_SEGMENTS(total_size, segment_size) ( ( ((total_size)-1) / (segment_size) ) + 1 )
+#define NUM_SEGMENTS(total_size, seg_size) ( ( ((total_size)-1) / (seg_size) ) + 1 )
 
 //#define MAX_LARGE_BUF_SEGMENTS ((((MAX_VALUE_SIZE) - 1) / (BTREE_BLOCK_SIZE)) + 1)
-#define MAX_LARGE_BUF_SEGMENTS (NUM_SEGMENTS((MAX_VALUE_SIZE), (BTREE_BLOCK_SIZE)))
+#define MAX_LARGE_BUF_SEGMENTS (NUM_SEGMENTS((MAX_VALUE_SIZE), (BTREE_USABLE_BLOCK_SIZE)))
 
 class large_buf_t;
 
 struct large_buf_available_callback_t :
-    public intrusive_list_node_t<large_buf_available_callback_t>
-{
+    public intrusive_list_node_t<large_buf_available_callback_t> {
     virtual ~large_buf_available_callback_t() {}
     virtual void on_large_buf_available(large_buf_t *large_buf) = 0;
 };
@@ -41,8 +40,7 @@ struct large_buf_index {
 };
 
 class large_buf_t :
-    public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, large_buf_t>
-{
+    public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, large_buf_t> {
 private:
     block_id_t index_block; // TODO: Rename index_block_id.
     buf_t *index_buf;
@@ -75,17 +73,22 @@ public:
     void allocate(uint32_t _size);
     void acquire(block_id_t _index_block, uint32_t _size, access_t _access, large_buf_available_callback_t *_callback);
 
-    void append(uint32_t length);
-    void prepend(uint32_t length);
+    void append(uint32_t extra_size);
+    void prepend(uint32_t extra_size);
+    void fill_at(uint32_t pos, const byte *data, uint32_t fill_size);
+
+    void pos_to_seg_pos(uint32_t pos, uint16_t *ix, uint16_t *seg_pos);
 
     void mark_deleted();
     void release();
-    void set_dirty();
 
     block_id_t get_index_block_id();
     large_buf_index *get_index();
     uint16_t get_num_segments();
-    byte *get_segment(int num, uint16_t *segment_size);
+
+    uint16_t segment_size(int ix);
+
+    byte *get_segment(int num, uint16_t *seg_size);
 
     void on_block_available(buf_t *buf);
 
@@ -113,6 +116,7 @@ struct segment_block_available_callback_t : public block_available_callback_t,
         } else {
             owner->segment_acquired(buf, ix);
         }
+        delete this;
     }
 };
 
@@ -120,10 +124,9 @@ struct segment_block_available_callback_t : public block_available_callback_t,
 
 // TODO: Some of the code in here belongs in large_buf_t.
 
-class read_large_value_msg_t : public cpu_message_t,
+class fill_large_value_msg_t : public cpu_message_t,
                                public data_transferred_callback,
-                               public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, read_large_value_msg_t>
-{
+                               public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, fill_large_value_msg_t> {
 public:
     bool completed;
     bool success;
@@ -132,11 +135,13 @@ private:
     large_buf_t *large_value;
     request_callback_t *req;
     large_value_completed_callback *cb;
-    unsigned int next_segment;
+    uint32_t pos;
+    uint32_t length;
 
-public:
-    read_large_value_msg_t(large_buf_t *large_value, request_callback_t *req, large_value_completed_callback *cb)
-        : completed(false), success(false), large_value(large_value), req(req), cb(cb), next_segment(0) {}
+    fill_large_value_msg_t(large_buf_t *large_value, request_callback_t *req, large_value_completed_callback *cb, uint32_t pos, uint32_t length)
+        : completed(false), success(false), large_value(large_value), req(req), cb(cb), pos(pos), length(length) {
+        //assert(pos + length < large_value->size); // XXX
+    }
 
     void on_cpu_switch() {
         if (completed) {
@@ -148,28 +153,36 @@ public:
     }
 
     void on_data_transferred() {
-        next_segment++;
+        //next_segment++;
         fill_segments();
     }
 private:
     void fill_segments() {
         assert(!completed);
-        uint16_t segment_length;
+        uint16_t seg_len;
         byte *buf;
-        //bool read_success;
-        while (next_segment < large_value->get_num_segments()) {
-            buf = large_value->get_segment(next_segment, &segment_length);
-            req->rh->read_value(buf, segment_length, this);
+        uint16_t ix;
+        uint16_t seg_pos;
+        //bool fill_success;
+        //while (next_segment < large_value->get_num_segments()) {
+        while (length > 0) {
+            large_value->pos_to_seg_pos(pos, &ix, &seg_pos);
+            buf = large_value->get_segment(ix, &seg_len);
+            uint16_t bytes_to_transfer = std::min((uint32_t) seg_len - seg_pos, length);
+            pos += bytes_to_transfer;
+            length -= bytes_to_transfer;
+            req->rh->fill_value(buf + seg_pos, bytes_to_transfer, this);
             //break;
             return;
-            //read_success = rh->read_value(buf, segment_length, this);
-            //if (!read_success) break;
+            //fill_success = req->rh->fill_value(buf, seg_len, this);
+            //if (!fill_success) break;
             //next_segment++;
         }
 
-        assert(next_segment <= large_value->get_num_segments());
-        if (next_segment == large_value->get_num_segments()) {
-            req->rh->read_lv_msg = this;
+        //assert(next_segment <= large_value->get_num_segments());
+        //if (next_segment == large_value->get_num_segments()) {
+        if (length == 0) {
+            req->rh->fill_lv_msg = this;
             req->rh->conn_fsm->dummy_sock_event();
         }
     }
@@ -179,14 +192,12 @@ private:
 // TODO: Some of the code in here belongs in large_buf_t.
 class write_large_value_msg_t : public cpu_message_t,
                                 public data_transferred_callback,
-                                public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, write_large_value_msg_t>
-{
+                                public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, write_large_value_msg_t> {
 private:
     large_buf_t *large_value;
     request_callback_t *req;
     unsigned int next_segment;
-    large_value_read_callback *read_cb;
-    large_value_completed_callback *completed_cb;
+    large_value_completed_callback *cb;
 public:
     enum {
         ready,
@@ -195,8 +206,8 @@ public:
     } state;
 
 public:
-    write_large_value_msg_t(large_buf_t *large_value, request_callback_t *req, large_value_read_callback *read_cb, large_value_completed_callback *completed_cb)
-        : large_value(large_value), req(req), next_segment(0), read_cb(read_cb), completed_cb(completed_cb), state(ready) {}
+    write_large_value_msg_t(large_buf_t *large_value, request_callback_t *req, large_value_completed_callback *cb)
+        : large_value(large_value), req(req), next_segment(0), cb(cb), state(ready) {}
 
     void on_cpu_switch() {
         switch (state) {
@@ -207,7 +218,7 @@ public:
                 read_segments();
                 break;
             case completed:
-                completed_cb->on_large_value_completed(true); // XXX
+                cb->on_large_value_completed(true); // XXX
                 delete this;
                 break;
         }
@@ -225,11 +236,11 @@ public:
 private:
     void read_segments() {
         assert(state == reading);
-        uint16_t segment_length;
+        uint16_t seg_len;
         byte *buf;
         if (next_segment < large_value->get_num_segments()) {
-            buf = large_value->get_segment(next_segment, &segment_length);
-            req->rh->write_value(buf, segment_length, this);
+            buf = large_value->get_segment(next_segment, &seg_len);
+            req->rh->write_value(buf, seg_len, this);
             return;
         }
 

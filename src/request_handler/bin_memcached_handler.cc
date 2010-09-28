@@ -127,7 +127,7 @@ public:
 
 public:
     bin_memcached_set_request_t(bin_memcached_handler_t *rh, packet_t *pkt, btree_key *key, byte *data, uint32_t size, btree_set_fsm_t::set_type_t type, btree_value::mcflags_t mcflags, btree_value::exptime_t exptime, uint64_t req_cas)
-        : bin_memcached_request_t(rh, pkt), fsm(new btree_set_fsm_t(key, &rh->server->store, this, data, size, type, mcflags, exptime, req_cas))
+        : bin_memcached_request_t(rh, pkt), fsm(new btree_set_fsm_t(key, &rh->server->store, this, false, size, data, type, mcflags, exptime, req_cas))
         {
         assert(type == btree_set_fsm_t::set_type_set);   // We haven't hooked up ADD and REPLACE yet, and we're going to handle CAS differently.
         fsm->run(this);
@@ -205,7 +205,7 @@ public:
 
 public:
     bin_memcached_append_prepend_request_t(bin_memcached_handler_t *rh, packet_t *pkt, btree_key *key, byte *data, int size, bool append) :
-        bin_memcached_request_t(rh, pkt), fsm(new btree_append_prepend_fsm_t(key, &rh->server->store, data, size, append)) {
+        bin_memcached_request_t(rh, pkt), fsm(new btree_append_prepend_fsm_t(key, &rh->server->store, this, false, size, data, append)) {
         fsm->run(this);
     }
 
