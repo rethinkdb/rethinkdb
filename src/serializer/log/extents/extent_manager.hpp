@@ -177,5 +177,4 @@ private:
     reserved_extent_set_t reserved_extent;
     free_queue_t free_queue;
 };
-
 #endif /* __SERIALIZER_LOG_EXTENT_MANAGER_HPP__ */

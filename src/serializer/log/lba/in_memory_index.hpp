@@ -117,16 +117,23 @@ public:
         next_free_id = NULL_BLOCK_ID;
         for (block_id_t id = 0; id < blocks.get_size(); id ++) {
             // Remap blocks that weren't found to unused
-            if (blocks[id].get_state() == block_not_found)
-                blocks[id].set_state(block_unused);
-            // Add unused blocks to free list
-            if (blocks[id].get_state() == block_unused) {
-                // Add the unused block to the freelist
-                blocks[id].set_next_free_id(next_free_id);
-                next_free_id = id;
-            }
-            if (blocks[id].get_state() == block_used) {
-                dbm->mark_live(blocks[id].get_offset());
+            switch (blocks[id].get_state()) {
+                case block_not_found:
+                    blocks[id].set_state(block_unused);
+                    //fall through intentional
+                case block_unused:
+                    blocks[id].set_next_free_id(next_free_id);
+                    next_free_id = id;
+                    break;
+                case block_in_limbo:
+                    fail("Block in limbo during reconstruct");
+                    break;
+                case block_used:
+                    dbm->mark_live(blocks[id].get_offset());
+                    break;
+                default:
+                    fail("Block in unknown state during reconstruct");
+                    break;
             }
         }
         end_reconstruct(dbm, em, s);
@@ -153,6 +160,65 @@ private:
             dbm->is_extent_in_use(extent_id) ||
             is_extent_in_use_by_lba(em, s, extent_id);
     }
+
+#ifndef NDEBUG
+public:
+    bool is_extent_referenced(unsigned int extent_id) {
+        for (unsigned int i = 0; i < blocks.get_size(); i++) {
+            block_info_t block = blocks[i];
+            if (block.get_state() == block_used && block.get_offset() / EXTENT_SIZE == extent_id) {
+                printf("Referenced with block_id: %d\n", i);
+                return true;
+            }
+        }
+        return false;
+    }
+
+    int extent_refcount(unsigned int extent_id) {
+        int refcount = 0;
+        for (unsigned int i = 0; i < blocks.get_size(); i++) {
+            block_info_t block = blocks[i];
+            if (block.get_state() == block_used && block.get_offset() / EXTENT_SIZE == extent_id) {
+                printf("refed by block id: %d\n", i);
+                refcount++;
+            }
+        }
+        return refcount;
+    }
+
+    bool is_offset_referenced(off64_t offset) {
+        for (unsigned int i = 0; i < blocks.get_size(); i++) {
+            block_info_t block = blocks[i];
+            if (block.get_state() == block_used && block.get_offset() == offset)
+                return true;
+        }
+        return false;
+    }
+
+    bool is_offset_referenced(block_id_t block_id, off64_t offset) {
+        for (unsigned int i = 0; i < blocks.get_size(); i++) {
+            block_info_t block = blocks[i];
+            if (block.get_state() == block_used && block.get_offset() == offset && i != block_id)
+                return true;
+        }
+        return false;
+    }
+
+    bool have_duplicates() {
+        for (unsigned int i = 0; i < blocks.get_size(); i++) {
+            off64_t offset;
+            if (blocks[i].get_state() == block_used)
+                offset = blocks[i].get_offset();
+            else 
+                continue;
+            for (unsigned int j = i + 1; j < blocks.get_size(); j++) {
+                if (blocks[j].get_state() == block_used && blocks[j].get_offset() == offset)
+                    return true;
+            }
+        }
+        return false;
+    }
+#endif
 
     bool is_extent_in_use_by_lba(extent_manager_t *em, lba_disk_structure_t *s, unsigned int extent_id) {
         off64_t extent_offset = extent_id * em->extent_size;
@@ -274,8 +340,23 @@ public:
 #ifndef NDEBUG
         printf("LBA:\n");
         for (unsigned int i = 0; i <blocks.get_size(); i++) {
-            if (blocks[i].get_state() == block_used) {
-                printf("%d --> %ld\n", i, blocks[i].get_offset());
+            printf("%d ", i);
+            switch (blocks[i].get_state()) {
+                case block_not_found:
+                    printf("block_not_found");
+                    break;
+                case block_unused:
+                    printf("block_unused");
+                    break;
+                case block_in_limbo:
+                    printf("block_in_limbo");
+                    break;
+                case block_used:
+                    printf("block_used --> %.8x\n", (unsigned int) blocks[i].get_offset());
+                    break;
+                default:
+                    fail("Block in unknown state during print");
+                    break;
             }
         }
 #endif

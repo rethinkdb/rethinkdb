@@ -92,6 +92,9 @@ void data_block_manager_t::mark_live(off64_t offset) {
 }
 
 void data_block_manager_t::end_reconstruct() {
+    for (unsigned int i = blocks_in_last_data_extent; i < extent_manager->extent_size / BTREE_BLOCK_SIZE; i++)
+        mark_live(last_data_extent + (BTREE_BLOCK_SIZE * i));
+
     gc_state.step = gc_ready;
 }
 
@@ -163,7 +166,7 @@ void data_block_manager_t::run_gc() {
                         /* make sure the callback knows who we are */
                         gc_state.gc_write_callback.parent = this;
                         /* schedule the write */
-                        serializer->do_write(writes, gc_state.current_entry.g_array.size() - gc_state.current_entry.g_array.count() , (log_serializer_t::write_txn_callback_t *) &gc_state.gc_write_callback);
+                        fallthrough = serializer->do_write(writes, gc_state.current_entry.g_array.size() - gc_state.current_entry.g_array.count() , (log_serializer_t::write_txn_callback_t *) &gc_state.gc_write_callback);
                     } else {
                         fallthrough = true;
                     }
@@ -180,7 +183,6 @@ void data_block_manager_t::run_gc() {
                 extent_manager->release_extent(gc_state.current_entry.offset);
                 assert(gc_state.refcount == 0);
                 gc_state.blocks_copying = 0;
-
 
                 gc_state.step = gc_ready;
 

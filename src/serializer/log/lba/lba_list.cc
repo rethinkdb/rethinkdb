@@ -108,6 +108,20 @@ off64_t lba_list_t::get_block_offset(block_id_t block) {
     return in_memory_index->get_block_offset(block);
 }
 
+#ifndef NDEBUG
+bool lba_list_t::is_extent_referenced(off64_t offset) {
+    return in_memory_index->is_extent_referenced(offset / EXTENT_SIZE);
+}
+
+bool lba_list_t::is_offset_referenced(off64_t offset) {
+    return in_memory_index->is_offset_referenced(offset);
+}
+
+int lba_list_t::extent_refcount(off64_t offset) {
+    return in_memory_index->extent_refcount(offset / EXTENT_SIZE);
+}
+#endif
+
 void lba_list_t::set_block_offset(block_id_t block, off64_t offset) {
     assert(state == state_ready);
     
