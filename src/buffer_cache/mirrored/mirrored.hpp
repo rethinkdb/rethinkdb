@@ -2,7 +2,7 @@
 #ifndef __MIRRORED_CACHE_HPP__
 #define __MIRRORED_CACHE_HPP__
 
-#include "event_queue.hpp"
+#include "arch/arch.hpp"
 #include "cpu_context.hpp"
 #include "concurrency/access.hpp"
 #include "concurrency/rwi_lock.hpp"

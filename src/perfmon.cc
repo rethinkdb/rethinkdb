@@ -88,8 +88,39 @@ void perfmon_t::copy_from(const perfmon_t &rhs)
 
 void perfmon_msg_t::send_back_to_free_perfmon() {
     state = sm_copy_cleanup;
-    int cpu_owning_perfmon = return_cpu;
-    return_cpu = get_cpu_context()->worker->workerid;
     request = NULL;
-    get_cpu_context()->worker->event_queue->message_hub.store_message(cpu_owning_perfmon, this);
+    if (continue_on_cpu(return_cpu, this)) on_cpu_switch();
+}
+
+void perfmon_msg_t::on_cpu_switch() {
+
+    worker_t *worker = get_cpu_context()->worker;
+    
+    switch(state) {
+    case sm_request:
+        // Copy our statistics into the perfmon message and send a response
+        perfmon = new perfmon_t();
+        perfmon->copy_from(worker->perfmon);
+        state = sm_response;
+        break;
+    case sm_response:
+        request->on_request_part_completed();
+        return;
+    case sm_copy_cleanup:
+        // Response has been sent to the client, time to delete the
+        // copy
+        delete perfmon;
+        state = sm_msg_cleanup;
+        break;
+    case sm_msg_cleanup:
+        // Copy has been deleted, delete the final message and return
+        delete this;
+        return;
+    }
+    
+    // continue_on_cpu() returns true if we are trying to go to the core we are
+    // already on. Because it doesn't call on_cpu_switch() in that case, we call it
+    // ourselves.
+    if (continue_on_cpu(return_cpu, this))
+        on_cpu_switch();
 }

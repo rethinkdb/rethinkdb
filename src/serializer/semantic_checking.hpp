@@ -7,7 +7,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <boost/crc.hpp>
-#include "arch/resource.hpp"
+#include "arch/arch.hpp"
 #include "config/args.hpp"
 #include "containers/two_level_array.hpp"
 

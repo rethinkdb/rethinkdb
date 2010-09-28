@@ -32,10 +32,6 @@ class btree_delete_fsm_t;
 class btree_incr_decr_fsm_t;
 class btree_append_prepend_fsm_t;
 
-// Event queue
-struct event_t;
-struct event_queue_t;
-
 // Worker pool
 struct worker_pool_t;
 struct worker_t;

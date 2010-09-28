@@ -3,7 +3,7 @@
 #include "config/args.hpp"
 #include "config/alloc.hpp"
 #include "cpu_context.hpp"
-#include "event_queue.hpp"
+#include "arch/arch.hpp"
 
 bool rwi_lock_t::lock(access_t access, lock_available_callback_t *callback) {
     if(try_lock(access, false)) {
@@ -173,7 +173,7 @@ void rwi_lock_t::process_queue() {
             break;
         } else {
             queue.remove(req);
-            send_notify(req);
+            call_later_on_this_cpu(req);
         }
         req = queue.head();
     }
@@ -187,8 +187,8 @@ void rwi_lock_t::process_queue() {
     // could be executed in parallel.
 }
 
-void rwi_lock_t::send_notify(lock_request_t *req) {
-    event_queue_t *q = get_cpu_context()->event_queue;
-    q->message_hub.store_message(q->message_hub.current_cpu, req);
+void rwi_lock_t::lock_request_t::on_cpu_switch() {
+    callback->on_lock_available();
+    delete this;
 }
 

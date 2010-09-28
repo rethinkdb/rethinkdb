@@ -3,12 +3,11 @@
 #define __SERIALIZER_LOG_LBA_EXTENT__
 
 #include "containers/intrusive_list.hpp"
-#include "arch/io.hpp"
+#include "arch/arch.hpp"
 #include "extent.hpp"
 #include "../extents/extent_manager.hpp"
 #include "disk_format.hpp"
 #include "cpu_context.hpp"
-#include "event_queue.hpp"
 
 /*
 The extent_t type represents a LBA extent or LBA superblock extent on the disk.
@@ -50,7 +49,7 @@ public:
 private:
     extent_manager_t *em;
     data_t *_data;
-    fd_t fd;
+    direct_file_t *file;
     size_t amount_synced;
     
     enum {
@@ -67,8 +66,8 @@ public:
 
 private:
     // Use create() or load() instead
-    extent_t(extent_manager_t *_em, fd_t _fd, off64_t _offset)
-        : em(_em), fd(_fd), offset(_offset), last_sync(NULL)
+    extent_t(extent_manager_t *_em, direct_file_t *file, off64_t _offset)
+        : em(_em), file(file), offset(_offset), last_sync(NULL)
     {
         assert(em);
         assert(offset % (em->extent_size) == 0);
@@ -89,22 +88,19 @@ private:
 
 public:
     /* Make a extent_t reflecting data already on disk */
-    static bool load(extent_manager_t *em, fd_t fd, off64_t offset, size_t amount_used, extent_t **out, load_callback_t *cb)
+    static bool load(extent_manager_t *em, direct_file_t *file, off64_t offset, size_t amount_used, extent_t **out, load_callback_t *cb)
     {
-        extent_t *buf = new extent_t(em, fd, offset);
+        extent_t *buf = new extent_t(em, file, offset);
         buf->mode = mode_loaded;
         buf->amount_synced = amount_used;
         
         buf->done_loading = false;
         buf->load_callback = cb;
         
-        event_queue_t *queue = get_cpu_context()->event_queue;
-        queue->iosys.schedule_aio_read(
-            buf->fd,
+        buf->file->read_async(
             buf->offset,
             buf->amount_synced,
             (void*)buf->_data,
-            queue,
             buf);
         
         *out = buf;
@@ -121,10 +117,10 @@ private:
 
 public:
     /* Allocate a new extent */
-    static void create(extent_manager_t *em, fd_t fd, extent_t **out)
+    static void create(extent_manager_t *em, direct_file_t *file, extent_t **out)
     {
         off64_t offset = em->gen_extent();
-        extent_t *buf = new extent_t(em, fd, offset);
+        extent_t *buf = new extent_t(em, file, offset);
         buf->mode = mode_created;
         buf->amount_synced = 0;
         
@@ -194,13 +190,10 @@ public:
             sync_handler_t *handler = new sync_handler_t(this);
             if (cb) handler->callbacks.push_back(cb);
             
-            event_queue_t *queue = get_cpu_context()->event_queue;
-            queue->iosys.schedule_aio_write(
-                fd,
+            file->write_async(
                 offset + amount_synced,
                 amount - amount_synced,
                 (char*)_data + amount_synced,
-                queue,
                 handler);
             
             amount_synced = amount;

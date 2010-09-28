@@ -33,12 +33,12 @@ public:
     restarting an existing database, call start() with the last metablock. The first form returns
     immediately; the second form might not. */
     
-    void start(fd_t dbfd);
+    void start(direct_file_t *dbfile);
     
     struct ready_callback_t {
         virtual void on_lba_ready() = 0;
     };
-    bool start(fd_t dbfd, metablock_mixin_t *last_metablock, ready_callback_t *cb);
+    bool start(direct_file_t *dbfile, metablock_mixin_t *last_metablock, ready_callback_t *cb);
     
 public:
     /* gen_block_id() will return a block ID which is "in limbo". It is not considered to be
@@ -90,7 +90,7 @@ private:
         state_shut_down
     } state;
     
-    fd_t dbfd;
+    direct_file_t *dbfile;
     
     in_memory_index_t *in_memory_index;
     

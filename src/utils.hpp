@@ -93,4 +93,22 @@ T1 ceil_aligned(T1 value, T2 alignment) {
     }
 }
 
+/* Functions to create random delays */
+
+void random_delay(void (*)(void*), void*);
+
+template<class cb_t>
+void random_delay(cb_t *cb, void (cb_t::*method)());
+
+template<class cb_t, class arg1_t>
+void random_delay(cb_t *cb, void (cb_t::*method)(arg1_t), arg1_t arg);
+
+template<class cb_t>
+bool maybe_random_delay(cb_t *cb, void (cb_t::*method)());
+
+template<class cb_t, class arg1_t>
+bool maybe_random_delay(cb_t *cb, void (cb_t::*method)(arg1_t), arg1_t arg);
+
+#include "utils.tcc"
+
 #endif // __UTILS_HPP__

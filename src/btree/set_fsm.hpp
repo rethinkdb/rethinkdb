@@ -66,9 +66,15 @@ public:
             new_large_value->allocate(length);
             value.set_lv_index_block_id(new_large_value->get_index_block_id());
             //*new_value = &value; // XXX Only do this if we filled the value successfully.
+            
             read_large_value_msg_t *msg = new read_large_value_msg_t(new_large_value, req, this);
-            msg->return_cpu = get_cpu_context()->event_queue->message_hub.current_cpu;
-            msg->send(this->return_cpu);
+            
+            // continue_on_cpu() returns true if we are already on that cpu, but we don't want to
+            // call the callback immediately in that case anyway.
+            if (continue_on_cpu(return_cpu, msg))  {
+                call_later_on_this_cpu(msg);
+            }
+            
             // XXX Figure out where things are deleted.
             return btree_fsm_t::transition_incomplete;
         }

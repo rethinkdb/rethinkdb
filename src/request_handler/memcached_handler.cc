@@ -1,7 +1,7 @@
 #include <string.h>
 #include <string>
 #include "cpu_context.hpp"
-#include "event_queue.hpp"
+#include "arch/arch.hpp"
 #include "request_handler/memcached_handler.hpp"
 #include "request_handler/bin_memcached_handler.hpp"
 #include "request_handler/txt_memcached_handler.hpp"

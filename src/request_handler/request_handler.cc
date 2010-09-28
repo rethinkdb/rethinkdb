@@ -17,5 +17,5 @@ void request_handler_t::request_complete() {
     bzero(&e, sizeof(e));
     e.state = conn_fsm;
     e.event_type = et_request_complete;
-    event_queue->parent->initiate_conn_fsm_transition(&e);
+    conn_fsm->do_transition_and_handle_result(&e);
 }

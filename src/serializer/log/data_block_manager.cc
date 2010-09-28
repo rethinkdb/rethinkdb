@@ -3,13 +3,12 @@
 #include "utils.hpp"
 
 #include "cpu_context.hpp"
-#include "event_queue.hpp"
-#include "arch/io.hpp"
+#include "arch/arch.hpp"
 
-void data_block_manager_t::start(fd_t fd) {
+void data_block_manager_t::start(direct_file_t *file) {
     
     assert(state == state_unstarted);
-    dbfd = fd;
+    dbfile = file;
     last_data_extent = extent_manager->gen_extent();
     blocks_in_last_data_extent = 0;
 
@@ -18,10 +17,10 @@ void data_block_manager_t::start(fd_t fd) {
     state = state_ready;
 }
 
-void data_block_manager_t::start(fd_t fd, metablock_mixin_t *last_metablock) {
+void data_block_manager_t::start(direct_file_t *file, metablock_mixin_t *last_metablock) {
 
     assert(state == state_unstarted);
-    dbfd = fd;
+    dbfile = file;
     last_data_extent = last_metablock->last_data_extent;
     blocks_in_last_data_extent = last_metablock->blocks_in_last_data_extent;
     state = state_ready;
@@ -31,8 +30,7 @@ bool data_block_manager_t::read(off64_t off_in, void *buf_out, iocallback_t *cb)
 
     assert(state == state_ready);
     
-    event_queue_t *queue = get_cpu_context()->event_queue;
-    queue->iosys.schedule_aio_read(dbfd, off_in, block_size, buf_out, queue, cb);
+    dbfile->read_async(off_in, block_size, buf_out, cb);
     
     return false;
 }
@@ -45,8 +43,7 @@ bool data_block_manager_t::write(void *buf_in, off64_t *off_out, iocallback_t *c
     
     off64_t offset = *off_out = gimme_a_new_offset();
     
-    event_queue_t *queue = get_cpu_context()->event_queue;
-    queue->iosys.schedule_aio_write(dbfd, offset, block_size, buf_in, queue, cb);
+    dbfile->write_async(offset, block_size, buf_in, cb);
     
     return false;
 }
@@ -120,14 +117,17 @@ void data_block_manager_t::run_gc() {
                     entries.set(gc_state.current_entry.offset / EXTENT_SIZE, NULL);
 
                     /* read all the live data into buffers */
-                    event_queue_t *queue = get_cpu_context()->event_queue;
 
                     /* make sure the read callback knows who we are */
                     gc_state.gc_read_callback.parent = this;
 
                     for (unsigned int i = 0; i < extent_manager->extent_size / BTREE_BLOCK_SIZE; i++) {
                         if (!gc_state.current_entry.g_array[i]) {
-                            queue->iosys.schedule_aio_read(dbfd, gc_state.current_entry.offset + (i * block_size), block_size, gc_state.gc_blocks + (i * block_size), queue, &(gc_state.gc_read_callback));
+                            dbfile->read_async(
+                                gc_state.current_entry.offset + (i * block_size),
+                                block_size,
+                                gc_state.gc_blocks + (i * block_size),
+                                &(gc_state.gc_read_callback));
                             gc_state.refcount++;
                             gc_state.blocks_copying++;
                         }

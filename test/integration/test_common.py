@@ -99,7 +99,7 @@ def run_and_report(obj, args = (), kwargs = {}, timeout = None, name = "the test
     thr.start()
     thr.join(timeout)
 
-    if result_holder[0] is None:
+    if thr.isAlive():
         print "ERROR: %s timed out, probably because the timeout (%s) was set too short or the server " \
             "wasn't replying to queries fast enough." % (name.capitalize(), timeout)
         return False

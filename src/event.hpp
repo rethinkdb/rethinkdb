@@ -4,9 +4,6 @@
 #include "arch/resource.hpp"
 #include <sys/types.h>
 
-// Foward declarations
-struct event_queue_t;
-
 // Event
 enum event_type_t {
     et_empty, et_sock, et_request_complete, et_cache, et_large_buf,

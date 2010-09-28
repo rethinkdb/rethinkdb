@@ -137,9 +137,9 @@ private:
 
 public:
     read_large_value_msg_t(large_buf_t *large_value, request_callback_t *req, large_value_completed_callback *cb)
-        : cpu_message_t(cpu_message_t::mt_read_large_value), completed(false), success(false), large_value(large_value), req(req), cb(cb), next_segment(0) {}
+        : completed(false), success(false), large_value(large_value), req(req), cb(cb), next_segment(0) {}
 
-    void on_arrival() {
+    void on_cpu_switch() {
         if (completed) {
             cb->on_large_value_completed(success);
             delete this;
@@ -197,9 +197,9 @@ public:
 
 public:
     write_large_value_msg_t(large_buf_t *large_value, request_callback_t *req, large_value_read_callback *read_cb, large_value_completed_callback *completed_cb)
-        : cpu_message_t(cpu_message_t::mt_write_large_value), large_value(large_value), req(req), next_segment(0), read_cb(read_cb), completed_cb(completed_cb), state(ready) {}
+        : large_value(large_value), req(req), next_segment(0), read_cb(read_cb), completed_cb(completed_cb), state(ready) {}
 
-    void on_arrival() {
+    void on_cpu_switch() {
         switch (state) {
             case ready:
                 req->on_fsm_ready();
@@ -216,7 +216,7 @@ public:
 
     void begin_write() {
         state = reading;
-        on_arrival();
+        on_cpu_switch();
     }
 
     void on_data_transferred() {
@@ -238,11 +238,9 @@ private:
         if (next_segment == large_value->get_num_segments()) {
             req->on_fsm_ready();
             state = completed;
-            int return_cpu = this->return_cpu;
-            this->return_cpu = get_cpu_context()->event_queue->message_hub.current_cpu;
-            send(return_cpu);
-            //req->rh->write_lv_msg = this;
-            //req->rh->conn_fsm->dummy_sock_event();
+            
+            // continue_on_cpu() returns true if we are already on that cpu
+            if (continue_on_cpu(return_cpu, this)) on_cpu_switch();
         }
     }
 };

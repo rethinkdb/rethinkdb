@@ -1,5 +1,5 @@
 #include "cpu_context.hpp"
-#include "event_queue.hpp"
+#include "arch/arch.hpp"
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -16,6 +16,7 @@ template<class metablock_t>
 void metablock_manager_t<metablock_t>::metablock_manager_t::head_t::operator++(int a) {
     check("Head ++ called with setting extent_size", extent_size == 0);
     mb_slot++;
+    wraparound = false;
     if (mb_slot >= (extent_size - DEVICE_BLOCK_SIZE) / DEVICE_BLOCK_SIZE  ) {
         mb_slot = 0;
         extent += MB_EXTENT_SEPERATION;
@@ -24,7 +25,6 @@ void metablock_manager_t<metablock_t>::metablock_manager_t::head_t::operator++(i
             wraparound = true;
         }
     }
-    wraparound = false;
 }
 
 template<class metablock_t>
@@ -46,12 +46,12 @@ void metablock_manager_t<metablock_t>::metablock_manager_t::head_t::pop() {
     extent = saved_extent;
     
     saved_mb_slot = -1;
-    saved_mb_slot = -1;
+    saved_extent = -1;
 }
 
 template<class metablock_t>
 metablock_manager_t<metablock_t>::metablock_manager_t(extent_manager_t *em)
-    : extent_manager(em), state(state_unstarted), dbfd(INVALID_FD), hdr(NULL), hdr_ref_count(0)
+    : extent_manager(em), state(state_unstarted), dbfile(NULL), hdr(NULL), hdr_ref_count(0)
 {
     head.extent_size = extent_manager->extent_size;
     assert(sizeof(static_header) <= DEVICE_BLOCK_SIZE);
@@ -92,70 +92,31 @@ metablock_manager_t<metablock_t>::~metablock_manager_t() {
 }
 
 template<class metablock_t>
-bool metablock_manager_t<metablock_t>::start(fd_t fd, bool *mb_found, metablock_t *mb_out, metablock_read_callback_t *cb) {
+bool metablock_manager_t<metablock_t>::start(direct_file_t *file, bool *mb_found, metablock_t *mb_out, metablock_read_callback_t *cb) {
     
     assert(state == state_unstarted);
-    dbfd = fd;
-    assert(dbfd != INVALID_FD);
+    dbfile = file;
+    assert(dbfile != NULL);
+    
+    this->mb_found = mb_found;
+    this->mb_out = mb_out;
+    
+    assert(!mb_buffer_in_use);
+    mb_buffer_in_use = true;
 
-    struct stat file_stat;
-    int res = fstat(fd, &file_stat);
-    check("Stat request on file failed", res != 0);
-
-    // Determine if we need to create a new database
-    bool create_new_database;
-    if (S_ISBLK(file_stat.st_mode)) {
-        /* with a block device we don't need to do creation */
-        create_new_database = false;
-    } else if (S_ISREG(file_stat.st_mode)) {
-        off64_t dbsize = lseek64(dbfd, 0, SEEK_END);
-        check("Could not determine database file size", dbsize == -1);
-        off64_t res = lseek64(dbfd, 0, SEEK_SET);
-        check("Could not reset database file position", res == -1);
-        create_new_database = (dbsize == 0);
-    } else {
-        fail("Unsupported file descriptor type");
+    version = -1;
+    
+    dbfile->set_size_at_least(((MB_NEXTENTS - 1) * MB_EXTENT_SEPERATION + 1) * extent_manager->extent_size);
+    for (int i = 0; i < MB_NEXTENTS; i++) {
+        /* reserve the ith extent */
+        extent_manager->reserve_extent(i * MB_EXTENT_SEPERATION * extent_manager->extent_size);
     }
     
-    if (create_new_database) {
-        
-        *mb_found = false;
-        mb_buffer->version = 0;
-        for (int i = 0; i < MB_NEXTENTS; i++) {
-            /* reserve the ith extent */
-            extent_manager->reserve_extent(i * MB_EXTENT_SEPERATION * extent_manager->extent_size, false);
-        }
-        state = state_writing_header;
-        write_headers();
-        return true;
+    dbfile->read_async(head.offset(), DEVICE_BLOCK_SIZE, mb_buffer, this);
     
-    } else {
-        
-        this->mb_found = mb_found;
-        this->mb_out = mb_out;
-        
-        assert(!mb_buffer_in_use);
-        mb_buffer_in_use = true;
-
-        version = -1;
-        for (int i = 0; i < MB_NEXTENTS; i++) {
-            /* reserve the ith extent */
-            extent_manager->reserve_extent(i * MB_EXTENT_SEPERATION * extent_manager->extent_size, false);
-        }
-
-        event_queue_t *queue = get_cpu_context()->event_queue;
-        queue->iosys.schedule_aio_read(
-                dbfd,
-                head.offset(),
-                DEVICE_BLOCK_SIZE, 
-                mb_buffer, 
-                queue, 
-                this);
-        
-        read_callback = cb;
-        state = state_reading;
-        return false;
-    }
+    read_callback = cb;
+    state = state_reading;
+    return false;
 }
 
 
@@ -175,15 +136,8 @@ bool metablock_manager_t<metablock_t>::write_metablock(metablock_t *mb, metabloc
         mb_buffer->set_crc();
         assert(mb_buffer->check_crc());
         mb_buffer_in_use = true;
-
-        event_queue_t *queue = get_cpu_context()->event_queue;
-        queue->iosys.schedule_aio_write(
-                dbfd,
-                head.offset(),
-                DEVICE_BLOCK_SIZE,                                                    // Length of write
-                mb_buffer,
-                queue,
-                this);
+        
+        dbfile->write_async(head.offset(), DEVICE_BLOCK_SIZE, mb_buffer, this);
 
         mb_buffer->version++;
         head++;
@@ -240,10 +194,16 @@ void metablock_manager_t<metablock_t>::on_io_complete(event_t *e) {
 
         if (done_looking) {
             if (version == -1) {
+                
                 /* no metablock found anywhere (either the db is toast, or we're on a block device) */
+                
+                // Start versions from 0, not from whatever garbage was in the last thing we read
+                mb_buffer->version = 0;
+                
                 state = state_writing_header;
                 write_headers();
                 *mb_found = false;
+                
             } else {
                 /* we found a metablock */
                 *mb_found = true;
@@ -257,29 +217,31 @@ void metablock_manager_t<metablock_t>::on_io_complete(event_t *e) {
                 read_headers();
             }
             mb_buffer_in_use = false;
-            if (read_callback) read_callback->on_metablock_read();
-            read_callback = NULL;
         } else {
-            event_queue_t *queue = get_cpu_context()->event_queue;
-            queue->iosys.schedule_aio_read(
-                    dbfd,
-                    head.offset(),
-                    DEVICE_BLOCK_SIZE, 
-                    mb_buffer, 
-                    queue, 
-                    this);
+            dbfile->read_async(
+                head.offset(),
+                DEVICE_BLOCK_SIZE,
+                mb_buffer,
+                this);
         }
         break;
 
     case state_reading_header:
         //TODO, we should actually do something with the header once we have it
         state = state_ready;
+        if (read_callback) read_callback->on_metablock_read();
+            read_callback = NULL;
         break;
 
     case state_writing_header:
         hdr_ref_count--;
-        if (hdr_ref_count == 0)
+        if (hdr_ref_count == 0) {
             state = state_ready;
+            if (read_callback) {
+                read_callback->on_metablock_read();
+            }
+            read_callback = NULL;
+        }
         break;
         
     case state_writing:
@@ -305,29 +267,19 @@ void metablock_manager_t<metablock_t>::write_headers() {
     static_header hdr(BTREE_BLOCK_SIZE, EXTENT_SIZE);
     memcpy(this->hdr, &hdr, sizeof(static_header));
 
-    event_queue_t *queue = get_cpu_context()->event_queue;
     for (int i = 0; i < MB_NEXTENTS; i++) {
         hdr_ref_count++;
-        queue->iosys.schedule_aio_write(
-                dbfd,
-                i * MB_EXTENT_SEPERATION * extent_manager->extent_size,
-                DEVICE_BLOCK_SIZE,
-                this->hdr,
-                queue,
-                this);
+        dbfile->write_async(
+            i * MB_EXTENT_SEPERATION * extent_manager->extent_size,
+            DEVICE_BLOCK_SIZE,
+            this->hdr,
+            this);
     }
 }
 
 template<class metablock_t>
 void metablock_manager_t<metablock_t>::read_headers() {
     assert(state == state_reading_header);
-
-    event_queue_t *queue = get_cpu_context()->event_queue;
-    queue->iosys.schedule_aio_read(
-            dbfd,
-            0, 
-            DEVICE_BLOCK_SIZE, 
-            hdr, 
-            queue, 
-            this);
+    
+    dbfile->read_async(0, DEVICE_BLOCK_SIZE, hdr, this);
 }

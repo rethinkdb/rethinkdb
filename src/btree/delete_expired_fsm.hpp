@@ -18,11 +18,10 @@ public:
 };
 
 void delete_expired(btree_key *key) {
-    int cpuid = get_cpu_context()->event_queue->message_hub.current_cpu;
     btree_delete_expired_fsm_t *fsm = new btree_delete_expired_fsm_t(key);
+    fsm->return_cpu = get_cpu_context()->event_queue->message_hub.current_cpu;
     fsm->request = NULL;
-    fsm->return_cpu = cpuid;
-    get_cpu_context()->event_queue->message_hub.store_message(cpuid, fsm);
+    call_later_on_this_cpu(fsm);
 }
 
 #endif // __BTREE_DELETE_EXPIRED_FSM_HPP__

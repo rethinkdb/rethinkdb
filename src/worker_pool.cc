@@ -120,7 +120,12 @@ void worker_t::start_slices() {
 
 void worker_t::shutdown() {
     shutting_down = true;
-
+    
+    /* TODO: This will crash if there are outstanding requests that point at the conn_fsm_t */
+    while (conn_fsm_t *conn = live_fsms.head()) {
+        delete conn;   // Destructor takes care of everything
+    }
+    
     for (int i = 0; i < nslices; i++) {
         incr_ref_count();
     }
@@ -138,175 +143,20 @@ void worker_t::delete_slices() {
     active_slices = false;
 }
 
-void worker_t::new_fsm(int data, int &resource, void **source) {
-    conn_fsm_t *fsm = new conn_fsm_t(data, event_queue);
-    live_fsms.push_back(fsm);
-    resource = fsm->get_source();
-    *source = fsm;
-    printf("Opened socket %d\n", resource);
-    curr_connections++;
-    total_connections++;
+void worker_t::new_fsm(itc_event_t event) {
+    
+    net_conn_t *conn = (net_conn_t*)event.data;   // TODO: This is a horrible hack
+    
+    new conn_fsm_t(conn);
 }
 
-void worker_t::deregister_fsm(void *fsm, int &resource) {
-    conn_fsm_t *cfsm = (conn_fsm_t *) fsm;
-    printf("Closing socket %d\n", cfsm->get_source());
-    resource = cfsm->get_source();
-    live_fsms.remove(cfsm);
-    shutdown_fsms.push_back(cfsm);
-    curr_connections--;
-    // TODO: there might be outstanding btrees that we're missing (if
-    // we're quitting before the the operation completes). We need to
-    // free the btree structure in this case (more likely the request
-    // and all the btrees associated with it).
-}
-
-bool worker_t::deregister_fsm(int &resource) {
-    if (live_fsms.empty()) {
-        return false;
-    } else {
-        conn_fsm_t *cfsm = live_fsms.head();
-        deregister_fsm(cfsm, resource);
-        return true;
-    }
-}
-
-void worker_t::clean_fsms() {
-    for (shutdown_fsms_t::iterator it = shutdown_fsms.begin(); it != shutdown_fsms.end(); it++)
-        delete *it;
-    shutdown_fsms.clear();
-}
-
-void worker_t::initiate_conn_fsm_transition(event_t *event) {
-    conn_fsm_t *fsm = (conn_fsm_t*)event->state;
-    int res = fsm->do_transition(event);
-    if(res == conn_fsm_t::fsm_transition_ok || res == conn_fsm_t::fsm_no_data_in_socket) {
-        // Nothing todo
-    } else if(res == conn_fsm_t::fsm_shutdown_server) {
-        int res = pthread_kill(event_queue->parent_pool->main_thread, SIGINT);
-        check("Could not send kill signal to main thread", res != 0);
-    } else if(res == conn_fsm_t::fsm_quit_connection) {
-        int source;
-        deregister_fsm(fsm, source);
-        event_queue->forget_resource(source);
-        clean_fsms();
-    } else {
-        fail("Unhandled fsm transition result");
-    }
-}
 
 void worker_t::on_btree_completed(btree_fsm_t *btree_fsm) {
     // We received a completed btree that belongs to another
     // core. Send it off and be merry!
-    get_cpu_context()->worker->event_queue->message_hub.store_message(btree_fsm->return_cpu, btree_fsm);
-}
-
-void worker_t::process_btree_msg(btree_fsm_t *btree_fsm) {
-    if(btree_fsm->is_finished()) {
-        if (btree_fsm->request) {
-            // We received a completed btree that belongs to us
-            btree_fsm->request->on_request_part_completed();
-        } else { // A btree not associated with any request.
-            delete btree_fsm;
-        }
-    } else {
-        // We received an unfinished btree that we need to process
-        store_t *store = slice(&btree_fsm->key);
-        if (store->run_fsm(btree_fsm, worker_t::on_btree_completed))
-            worker_t::on_btree_completed(btree_fsm);
-    }
-}
-
-void worker_t::process_perfmon_msg(perfmon_msg_t *msg) {    
-    worker_t *worker = get_cpu_context()->worker;
-    event_queue_t *queue = worker->event_queue;
-    int this_cpu = get_cpu_context()->worker->workerid;
-    int return_cpu = msg->return_cpu;
-        
-    switch(msg->state) {
-    case perfmon_msg_t::sm_request:
-        // Copy our statistics into the perfmon message and send a response
-        msg->perfmon = new perfmon_t();
-        msg->perfmon->copy_from(worker->perfmon);
-        msg->state = perfmon_msg_t::sm_response;
-        break;
-    case perfmon_msg_t::sm_response:
-        msg->request->on_request_part_completed();
-        return;
-    case perfmon_msg_t::sm_copy_cleanup:
-        // Response has been sent to the client, time to delete the
-        // copy
-        delete msg->perfmon;
-        msg->state = perfmon_msg_t::sm_msg_cleanup;
-        break;
-    case perfmon_msg_t::sm_msg_cleanup:
-        // Copy has been deleted, delete the final message and return
-        delete msg;
-        return;
-    }
-
-    msg->return_cpu = this_cpu;
-    queue->message_hub.store_message(return_cpu, msg);
-}
-
-void worker_t::process_lock_msg(event_t *event, rwi_lock_t::lock_request_t *lr) {
-    lr->callback->on_lock_available();
-    delete lr;
-}
-
-void worker_t::process_log_msg(log_msg_t *msg) {
-    if (msg->del) {
-        decr_ref_count();
-        delete msg;
-    } else {
-        assert(workerid == LOG_WORKER);
-        log_writer.writef("(%s)Q%d:%s:%d:", msg->level_str(), msg->return_cpu, msg->src_file, msg->src_line);
-        log_writer.write(msg->str);
-
-        msg->del = true;
-        // No need to change return_cpu because the message will be deleted immediately.
-        event_queue->message_hub.store_message(msg->return_cpu, msg);
-    }
-}
-
-void worker_t::process_read_large_value_msg(read_large_value_msg_t *msg) {
-    msg->on_arrival();
-}
-
-void worker_t::process_write_large_value_msg(write_large_value_msg_t *msg) {
-    msg->on_arrival();
-}
-
-// Handle events coming from the event queue
-void worker_t::event_handler(event_t *event) {
-    if (event->event_type == et_sock) {
-        // Got some socket action, let the connection fsm know
-        initiate_conn_fsm_transition(event);
-    } else if(event->event_type == et_cpu_event) {
-        cpu_message_t *msg = (cpu_message_t*)event->state;
-        // TODO: Possibly use a virtual function here.
-        switch(msg->type) {
-        case cpu_message_t::mt_btree:
-            process_btree_msg((btree_fsm_t*)msg);
-            break;
-        case cpu_message_t::mt_lock:
-            process_lock_msg(event, (rwi_lock_t::lock_request_t*)msg);
-            break;
-        case cpu_message_t::mt_perfmon:
-            process_perfmon_msg((perfmon_msg_t*)msg);
-            break;
-        case cpu_message_t::mt_log:
-            process_log_msg((log_msg_t *) msg);
-            break;
-        case cpu_message_t::mt_read_large_value:
-            process_read_large_value_msg((read_large_value_msg_t *) msg);
-            break;
-        case cpu_message_t::mt_write_large_value:
-            process_write_large_value_msg((write_large_value_msg_t *) msg);
-            break;
-        }
-    } else {
-        fail("Unknown event in event_handler");
+    // TODO: Move this to the btree_fsm itself.
+    if (continue_on_cpu(btree_fsm->return_cpu, btree_fsm)) {
+        call_later_on_this_cpu(btree_fsm);
     }
 }
 

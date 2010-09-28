@@ -9,7 +9,7 @@
 There are several ways to report errors in RethinkDB:
    *   fail(msg, ...) always fails and reports line number and such
    *   assert(cond) makes sure cond is true and is a no-op in release mode
-   *   check(msg, cond, ...) makes sure cond is true. Its first two arguments should be switched but
+   *   check(msg, cond) makes sure cond is true. Its first two arguments should be switched but
        it's a legacy thing.
 */
 
@@ -18,7 +18,7 @@ void _fail(const char*, int, const char*, ...) __attribute__ ((noreturn));
 
 #define check(msg, err) \
     ((err) ? \
-        (errno ? \
+        (errno == 0 ? \
             fail((msg)) : \
             fail(msg " (errno = %s)", strerror(errno)) \
             ) : \

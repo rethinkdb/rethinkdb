@@ -1,6 +1,6 @@
 #include <string.h>
 #include "cpu_context.hpp"
-#include "event_queue.hpp"
+#include "arch/arch.hpp"
 #include "request_handler/txt_memcached_handler.hpp"
 #include "conn_fsm.hpp"
 #include "corefwd.hpp"
@@ -696,7 +696,9 @@ txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::read_data() {
             conn_fsm->consume(2); // \r\n. TODO: Check.
             this->read_lv_msg->success = true;
             this->read_lv_msg->completed = true; // TODO: Move this into a method in read_lv_msg.
-            this->read_lv_msg->send(this->read_lv_msg->return_cpu);
+            if (continue_on_cpu(this->read_lv_msg->return_cpu, this->read_lv_msg))  {
+                call_later_on_this_cpu(this->read_lv_msg);
+            }
             this->read_lv_msg = NULL;
             loading_data = false;
             return request_handler_t::op_req_complex;

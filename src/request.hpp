@@ -49,9 +49,8 @@ public:
         assert(!dispatched);
         assert(can_add());
         msg->request = this;
-        msg->return_cpu = get_cpu_context()->event_queue->message_hub.current_cpu;
         msgs[nstarted] = msg;
-        get_cpu_context()->event_queue->message_hub.store_message(cpu, msg);
+        if (continue_on_cpu(cpu, msg)) call_later_on_this_cpu(msg);
         nstarted++;
     }
 

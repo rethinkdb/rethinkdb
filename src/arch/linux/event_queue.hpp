@@ -5,8 +5,7 @@
 #include <pthread.h>
 #include <libaio.h>
 #include <queue>
-#include "arch/resource.hpp"
-#include "arch/io.hpp"
+#include "arch/linux/io.hpp"
 #include "event.hpp"
 #include "corefwd.hpp"
 #include "message_hub.hpp"
@@ -21,13 +20,13 @@ enum itc_event_type_t {
 
 struct itc_event_t {
     itc_event_type_t event_type;
-    int data;
+    void *data;
 };
 
 // Event queue structure
-struct event_queue_t {
+struct linux_event_queue_t {
 public:
-    event_queue_t(int queue_id, int _nqueues,
+    linux_event_queue_t(int queue_id, int _nqueues,
                   worker_pool_t *parent_pool, worker_t *worker, cmd_config_t *cmd_config);
     void start_queue(worker_t *parent);
     
@@ -35,11 +34,7 @@ public:
     // finish_stopping_queue() on each. Then it is safe to delete them.
     void begin_stopping_queue();
     void finish_stopping_queue();
-    ~event_queue_t();
-    
-    // Watching and forgetting resources (from the queue's POV)
-    void watch_resource(resource_t resource, event_op_t event_op, void *state);
-    void forget_resource(resource_t resource);
+    ~linux_event_queue_t();
 
     // Posting an ITC message on the queue. The instance of
     // itc_event_t is serialized and need not be kept after the
@@ -49,12 +44,16 @@ public:
     void pull_messages_for_cpu(message_hub_t::msg_list_t *target);
 
     void send_shutdown();
-
+    
+    // Can be called by any thread. Used by message_hub_t to inform the event_queue that it has
+    // sent a message.
+    void you_have_messages();
+    
 public:
     struct timer_t : public intrusive_list_node_t<timer_t>,
                      public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, timer_t> {
         
-        friend class event_queue_t;
+        friend class linux_event_queue_t;
     private:
         // If 'false', the timer is repeating
         bool once;
@@ -64,6 +63,11 @@ public:
         
         // This is the time (in ms since the server started) of the next 'ring'
         long next_time_in_ms;
+        
+        // It's unsafe to remove arbitrary timers from the list as we iterate over
+        // it, so instead we set the 'deleted' flag and then remove them in a
+        // controlled fashion.
+        bool deleted;
         
         void (*callback)(void *ctx);
         void *context;
@@ -80,18 +84,17 @@ public:
     resource_t timer_fd;
     long timer_ticks_since_server_startup;
     pthread_t epoll_thread;
-    resource_t epoll_fd;
-    resource_t itc_pipe[2];
+    fd_t epoll_fd;
+    fd_t itc_pipe[2];
     worker_pool_t *parent_pool;
     worker_t *parent;
     message_hub_t message_hub;
 
 
-    io_calls_t iosys;
+    linux_io_calls_t iosys;
 
 
 private:
-    
     static void *epoll_handler(void *ctx);
     void process_timer_notify();
     static void garbage_collect(void *ctx);
@@ -100,12 +103,9 @@ private:
     intrusive_list_t<timer_t> timers;
 
 public:
-    /*! \brief unfortunately due to our abstraction concerns calling our worker's
-     *  deregister fsm function is a bit of a pain, these will make it nicer
-     *  notice event_queues still don't know what fsms are
-     */
-    void deregister_fsm(void *fsm);
-    void deregister_all_fsms();
+    // These should only be called by the event queue itself or by the linux_* classes
+    void watch_resource(resource_t resource, event_op_t event_op, void *state);
+    void forget_resource(resource_t resource);
 };
 
 

@@ -2,7 +2,7 @@
 #ifndef __SERIALIZER_LOG_LBA_DISK_STRUCTURE__
 #define __SERIALIZER_LOG_LBA_DISK_STRUCTURE__
 
-#include "arch/io.hpp"
+#include "arch/arch.hpp"
 #include "../extents/extent_manager.hpp"
 #include "disk_format.hpp"
 #include "disk_extent.hpp"
@@ -26,8 +26,8 @@ public:
     };
 
 public:
-    static void create(extent_manager_t *em, fd_t fd, lba_disk_structure_t **out);
-    static bool load(extent_manager_t *em, fd_t fd, lba_metablock_mixin_t *metablock,
+    static void create(extent_manager_t *em, direct_file_t *file, lba_disk_structure_t **out);
+    static bool load(extent_manager_t *em, direct_file_t *file, lba_metablock_mixin_t *metablock,
         lba_disk_structure_t **out, load_callback_t *cb);
     
     void add_entry(block_id_t block_id, off64_t offset);
@@ -39,7 +39,7 @@ public:
 
 private:
     extent_manager_t *em;
-    fd_t fd;
+    direct_file_t *file;
 
 public:
     lba_disk_superblock_t *superblock;
