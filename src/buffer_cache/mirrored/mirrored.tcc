@@ -24,9 +24,19 @@ mc_buf_t<mc_config_t>::mc_buf_t(cache_t *cache, block_id_t block_id, block_avail
 #ifndef NDEBUG
     active_callback_count ++;
 #endif
-    cache->serializer.do_read(block_id, data, this);
+    bool res = cache->serializer.do_read(block_id, data, this);
     
-    add_load_callback(callback);
+    if(res) {
+        // We got the buf from the serializer right away, the callback
+        // ain't coming. We artifically call on_serializer_read and
+        // return without adding a load callback - acquire will check
+        // if the block is loaded and handle it appropriately itself.
+        on_serializer_read();
+    } else {
+        // Can't get the buf right away, gotta go through the
+        // callback...
+        add_load_callback(callback);
+    }
 }
 
 // This form of the buf constructor is used when a completely new block is being created
@@ -266,7 +276,14 @@ mc_buf_t<mc_config_t> *mc_transaction_t<mc_config_t>::acquire(block_id_t block_i
         bool acquired __attribute__((unused)) = buf->concurrency_buf.acquire(mode, NULL);
         assert(acquired);
 
-        return NULL;
+        // It's possible that we got the block from the serializer
+        // right way because of its internal caching. If that's the
+        // case, just return it right away.
+        if(buf->is_cached()) {
+            return buf;
+        } else {
+            return NULL;
+        }
         
     } else {
         
