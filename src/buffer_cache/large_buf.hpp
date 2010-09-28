@@ -138,6 +138,7 @@ private:
     uint32_t pos;
     uint32_t length;
 
+public:
     fill_large_value_msg_t(large_buf_t *large_value, request_callback_t *req, large_value_completed_callback *cb, uint32_t pos, uint32_t length)
         : completed(false), success(false), large_value(large_value), req(req), cb(cb), pos(pos), length(length) {
         //assert(pos + length < large_value->size); // XXX

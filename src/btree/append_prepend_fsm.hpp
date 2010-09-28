@@ -73,8 +73,12 @@ public:
             fill_large_value_msg_t *msg;
             if (append) msg = new fill_large_value_msg_t(large_value, req, this, old_value->value_size(), extra_size);
             else        msg = new fill_large_value_msg_t(large_value, req, this, 0, extra_size);
-            msg->return_cpu = get_cpu_context()->event_queue->message_hub.current_cpu;
-            msg->send(this->return_cpu);
+            // continue_on_cpu() returns true if we are already on that cpu,
+            // but we don't want to call the callback immediately in that case
+            // anyway.
+            if (continue_on_cpu(return_cpu, msg))  {
+                call_later_on_this_cpu(msg);
+            }
             return btree_fsm_t::transition_incomplete;
         }
     }

@@ -67,7 +67,6 @@ public:
             value.set_lv_index_block_id(new_large_value->get_index_block_id());
             //*new_value = &value; // XXX Only do this if we filled the value successfully.
             
-            read_large_value_msg_t *msg = new read_large_value_msg_t(new_large_value, req, this);
             fill_large_value_msg_t *msg = new fill_large_value_msg_t(new_large_value, req, this, 0, length);
             
             // continue_on_cpu() returns true if we are already on that cpu, but we don't want to
