@@ -11,6 +11,12 @@ void term_handler(int signum) {
     // syscall will get interrupted.
 }
 
+void crash_handler(int signum) {
+    // We call fail here instead of letting the OS handle it because
+    // fail prints a backtrace.
+    fail("Internal crash detected.");
+}
+
 void install_handlers() {
     int res;
     
@@ -25,6 +31,11 @@ void install_handlers() {
     action.sa_handler = term_handler;
     res = sigaction(SIGINT, &action, NULL);
     check("Could not install INT handler", res < 0);
+
+    bzero((char*)&action, sizeof(action));
+    action.sa_handler = crash_handler;
+    res = sigaction(SIGSEGV, &action, NULL);
+    check("Could not install SEGV handler", res < 0);
 };
 
 int main(int argc, char *argv[]) {
