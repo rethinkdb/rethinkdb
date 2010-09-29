@@ -1,5 +1,4 @@
 
-#include <sys/epoll.h>
 #include <sys/eventfd.h>
 #include <sys/timerfd.h>
 #include <fcntl.h>
@@ -152,7 +151,6 @@ void *linux_event_queue_t::epoll_handler(void *arg) {
     int res;
     worker_t *parent = (worker_t *) arg;
     linux_event_queue_t *self = parent->event_queue;
-    epoll_event events[MAX_IO_EVENT_PROCESSING_BATCH_SIZE];
     bool shutting_down = false; // True between iet_shutdown and iet_finish_shutdown.
 
     // First, set the cpu context structure
@@ -168,7 +166,7 @@ void *linux_event_queue_t::epoll_handler(void *arg) {
     // Now, start the loop
     do {
         // Grab the events from the kernel!
-        res = epoll_wait(self->epoll_fd, events, MAX_IO_EVENT_PROCESSING_BATCH_SIZE, -1);
+        res = epoll_wait(self->epoll_fd, self->events, MAX_IO_EVENT_PROCESSING_BATCH_SIZE, -1);
         
         // epoll_wait might return with EINTR in some cases (in
         // particular under GDB), we just need to retry.
@@ -177,6 +175,9 @@ void *linux_event_queue_t::epoll_handler(void *arg) {
         }
         check("Waiting for epoll events failed", res == -1);
 
+        // nevents might be used by forget_resource during the loop
+        self->nevents = res;
+
         // TODO: instead of processing the events immediately, we
         // might want to queue them up and then process the queue in
         // bursts. This might reduce response time but increase
@@ -184,9 +185,14 @@ void *linux_event_queue_t::epoll_handler(void *arg) {
         // associated with instructions as well as data structures
         // (see section 7 [CPU scheduling] in B-tree Indexes and CPU
         // Caches by Goetz Graege and Pre-Ake Larson).
-        for(int i = 0; i < res; i++) {
-            resource_t source = reinterpret_cast<intptr_t>(events[i].data.ptr);
-            if(source == self->aio_notify_fd) {
+        for(int i = 0; i < self->nevents; i++) {
+            resource_t source = self->events[i].data.fd;
+            if(source == -1) {
+                // The event was probably queued for a resource that's
+                // been destroyed, so forget_resource is kindly
+                // notifying us to skip it.
+                continue;
+            } else if(source == self->aio_notify_fd) {
                 process_aio_notify(self);
             } else if(source == self->timer_fd) {
                 self->process_timer_notify();
@@ -206,10 +212,13 @@ void *linux_event_queue_t::epoll_handler(void *arg) {
                     goto breakout;
                 }
             } else {
-                linux_net_conn_t *conn = (linux_net_conn_t*)events[i].data.ptr;
-                conn->process_network_notify(events[i].events);
+                linux_net_conn_t *conn = (linux_net_conn_t*)self->events[i].data.ptr;
+                conn->process_network_notify(self->events[i].events);
             }
         }
+
+        // All done with OS event processing
+        self->nevents = 0;
 
         // We're done with the current batch of events, process cross
         // CPU requests
@@ -377,6 +386,16 @@ void linux_event_queue_t::forget_resource(resource_t resource) {
     event.data.ptr = NULL;
     int res = epoll_ctl(this->epoll_fd, EPOLL_CTL_DEL, resource, &event);
     check("Couldn't remove socket from watching", res != 0);
+
+    // Go through the queue of messages in the current poll cycle and
+    // clean out the ones that are referencing the resource we're
+    // being asked to forget.
+    for(int i = 0; i < nevents; i++) {
+        resource_t _s = events[i].data.fd;
+        if(_s == resource) {
+            events[i].data.fd = -1;
+        }
+    }
 }
 
 void queue_init_timer(linux_event_queue_t *event_queue, uint64_t ms) {

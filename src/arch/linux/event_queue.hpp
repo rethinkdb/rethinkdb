@@ -5,6 +5,7 @@
 #include <pthread.h>
 #include <libaio.h>
 #include <queue>
+#include <sys/epoll.h>
 #include "arch/linux/io.hpp"
 #include "event.hpp"
 #include "corefwd.hpp"
@@ -89,10 +90,12 @@ public:
     worker_pool_t *parent_pool;
     worker_t *parent;
     message_hub_t message_hub;
-
-
     linux_io_calls_t iosys;
-
+    // We store this as a class member because forget_resource needs
+    // to go through the events and remove queued messages for
+    // resources that are being destroyed.
+    epoll_event events[MAX_IO_EVENT_PROCESSING_BATCH_SIZE];
+    int nevents;
 
 private:
     static void *epoll_handler(void *ctx);
