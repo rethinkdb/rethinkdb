@@ -143,6 +143,7 @@ public:
                 // overwrite extents stored in its holding area
                 free_queue.insert(free_queue.end(), i->second->begin(), i->second->end());
                 gdelete(i->second);
+                holding_area.erase(i);
                 return;
             }
         }
