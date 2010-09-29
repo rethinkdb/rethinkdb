@@ -156,7 +156,7 @@ void conn_fsm_t::fill_external_buf(byte *external_buf, unsigned int size, data_t
     dummy_sock_event();
 }
 
-void conn_fsm_t::send_external_buf(byte *external_buf, unsigned int size, data_transferred_callback *callback) {
+void conn_fsm_t::send_external_buf(const byte *external_buf, unsigned int size, data_transferred_callback *callback) {
     // TODO: Write the data directly to the socket instead of to the sbuf when the request handler has better support for it.
     sbuf->append(external_buf, size);
     callback->on_data_transferred();

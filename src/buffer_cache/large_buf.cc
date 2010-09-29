@@ -16,12 +16,12 @@ void large_buf_t::allocate(uint32_t _size) {
     state = loading;
 
     index_buf = transaction->allocate(&index_block);
-    get_index()->first_block_offset = 0;
+    get_index_write()->first_block_offset = 0;
     //get_index()->num_segments = get_num_segments();
-    get_index()->num_segments = NUM_SEGMENTS(size, BTREE_USABLE_BLOCK_SIZE);
+    get_index_write()->num_segments = NUM_SEGMENTS(size, BTREE_USABLE_BLOCK_SIZE);
 
     for (int i = 0; i < get_num_segments(); i++) {
-        bufs[i] = transaction->allocate(&get_index()->blocks[i]);
+        bufs[i] = transaction->allocate(&get_index_write()->blocks[i]);
     }
 
     state = loaded;
@@ -35,11 +35,10 @@ void large_buf_t::acquire(block_id_t _index_block, uint32_t _size, access_t _acc
 
     state = loading;
 
-    // TODO: Figure out where this callback gets deleted.
     segment_block_available_callback_t *cb = new segment_block_available_callback_t(this);
     buf_t *buf = transaction->acquire(index_block, access, cb);
     if (buf) {
-        delete cb; // TODO (here and below): Preferable do all the deleting in one blace.
+        delete cb; // TODO (here and below): Preferably do all the deleting in one blace.
         index_acquired(buf);
     }
     // TODO: If we acquire the index and all the segments directly, we can return directly as well.
@@ -85,7 +84,8 @@ void large_buf_t::append(uint32_t extra_size) {
 
     uint16_t ix, seg_pos;
     pos_to_seg_pos(size, &ix, &seg_pos);
-    assert(ix == get_index()->num_segments - 1);
+
+    // TODO: Make this work like prepend.
 
     while (extra_size > 0) {
         uint16_t bytes_added = std::min((uint32_t) BTREE_USABLE_BLOCK_SIZE - seg_pos, extra_size);
@@ -95,8 +95,8 @@ void large_buf_t::append(uint32_t extra_size) {
             seg_pos = 0;
             continue;
         }
-        bufs[get_index()->num_segments] = transaction->allocate(&get_index()->blocks[get_index()->num_segments]);
-        get_index()->num_segments++;
+        bufs[get_index()->num_segments] = transaction->allocate(&get_index_write()->blocks[get_index()->num_segments]);
+        get_index_write()->num_segments++;
         extra_size -= bytes_added;
         size += bytes_added;
     }
@@ -110,15 +110,17 @@ void large_buf_t::prepend(uint32_t extra_size) {
     uint16_t new_segs = (extra_size + BTREE_USABLE_BLOCK_SIZE - get_index()->first_block_offset - 1) / BTREE_USABLE_BLOCK_SIZE;
     assert(get_num_segments() + new_segs <= MAX_LARGE_BUF_SEGMENTS);
 
-    memmove(get_index()->blocks + new_segs, get_index()->blocks, get_num_segments() * sizeof(*get_index()->blocks));
+    large_buf_index *index = get_index_write();
+
+    memmove(index->blocks + new_segs, index->blocks, get_num_segments() * sizeof(*index->blocks));
     memmove(bufs + new_segs, bufs, get_num_segments() * sizeof(*bufs));
 
     for (int i = 0; i < new_segs; i++) {
-        bufs[i] = transaction->allocate(&get_index()->blocks[i]);
+        bufs[i] = transaction->allocate(&index->blocks[i]);
     }
 
-    get_index()->first_block_offset = get_index()->first_block_offset + new_segs * BTREE_USABLE_BLOCK_SIZE - extra_size; // XXX
-    get_index()->num_segments += new_segs;
+    index->first_block_offset = index->first_block_offset + new_segs * BTREE_USABLE_BLOCK_SIZE - extra_size; // XXX
+    index->num_segments += new_segs;
     size += extra_size;
 }
 
@@ -137,7 +139,7 @@ void large_buf_t::fill_at(uint32_t pos, const byte *data, uint32_t fill_size) {
     uint16_t seg_len;
 
     while (fill_size > 0) {
-        byte *seg = get_segment(ix, &seg_len);
+        byte *seg = get_segment_write(ix, &seg_len);
         assert(seg_len >= seg_pos);
         uint16_t seg_bytes_to_fill = std::min((uint32_t) (seg_len - seg_pos), fill_size);
         memcpy(seg + seg_pos, data, seg_bytes_to_fill);
@@ -215,7 +217,20 @@ uint16_t large_buf_t::segment_size(int ix) {
     return BTREE_USABLE_BLOCK_SIZE;
 }
 
-byte *large_buf_t::get_segment(int ix, uint16_t *seg_size) {
+const byte *large_buf_t::get_segment(int ix, uint16_t *seg_size) {
+    assert(state == loaded);
+    assert(ix >= 0 && ix < get_num_segments());
+
+    *seg_size = segment_size(ix);
+
+    byte *seg = (byte *) bufs[ix]->get_data_read();
+
+    if (ix == 0) seg += get_index()->first_block_offset;
+ 
+    return seg;
+}
+
+byte *large_buf_t::get_segment_write(int ix, uint16_t *seg_size) {
     assert(state == loaded);
     assert(ix >= 0 && ix < get_num_segments());
 
@@ -226,7 +241,6 @@ byte *large_buf_t::get_segment(int ix, uint16_t *seg_size) {
     if (ix == 0) seg += get_index()->first_block_offset;
  
     return seg;
-    //return (byte *) bufs[ix]->get_data_write(); //TODO @sachaf figure out if this can be get_data_read
 }
 
 block_id_t large_buf_t::get_index_block_id() {
@@ -234,7 +248,12 @@ block_id_t large_buf_t::get_index_block_id() {
     return index_block;
 }
 
-large_buf_index *large_buf_t::get_index() {
+const large_buf_index *large_buf_t::get_index() {
+    assert(index_buf->get_block_id() == get_index_block_id());
+    return (large_buf_index *) index_buf->get_data_read();
+}
+
+large_buf_index *large_buf_t::get_index_write() {
     assert(index_buf->get_block_id() == get_index_block_id());
     return (large_buf_index *) index_buf->get_data_write(); //TODO @shachaf figure out if this can be get_data_read
 }

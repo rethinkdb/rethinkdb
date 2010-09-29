@@ -38,7 +38,7 @@ public:
     virtual parse_result_t parse_request(event_t *event) = 0;
 
     void fill_value(byte *buf, unsigned int size, data_transferred_callback *cb);
-    void write_value(byte *buf, unsigned int size, data_transferred_callback *cb);
+    void write_value(const byte *buf, unsigned int size, data_transferred_callback *cb);
 
     void request_complete();
     

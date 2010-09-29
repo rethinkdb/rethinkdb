@@ -6,7 +6,7 @@ void request_handler_t::fill_value(byte *buf, unsigned int size, data_transferre
     conn_fsm->fill_external_buf(buf, size, cb);
 }
 
-void request_handler_t::write_value(byte *buf, unsigned int size, data_transferred_callback *cb) {
+void request_handler_t::write_value(const byte *buf, unsigned int size, data_transferred_callback *cb) {
     conn_fsm->send_external_buf(buf, size, cb);
 }
 

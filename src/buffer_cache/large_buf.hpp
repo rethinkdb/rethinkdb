@@ -32,8 +32,7 @@ struct large_value_completed_callback {
 
 // Must be smaller than a buf.
 struct large_buf_index {
-    // TODO: Put the size here instead of in the btree value.
-    uint32_t size;
+    //uint32_t size; // TODO: Put the size here instead of in the btree value.
     uint16_t num_segments;
     uint16_t first_block_offset; // For prepend.
     block_id_t blocks[MAX_LARGE_BUF_SEGMENTS];
@@ -44,7 +43,6 @@ class large_buf_t :
 private:
     block_id_t index_block; // TODO: Rename index_block_id.
     buf_t *index_buf;
-    //const uint32_t size; // XXX possibly unnecessary?
     uint32_t size; // XXX possibly unnecessary?
     access_t access;
     large_buf_available_callback_t *callback;
@@ -53,8 +51,6 @@ private:
 
     uint16_t num_acquired;
     buf_t *bufs[MAX_LARGE_BUF_SEGMENTS];
-
-    // TODO: get_index()
 
 public: // XXX Should this be private?
     enum state_t {
@@ -83,12 +79,14 @@ public:
     void release();
 
     block_id_t get_index_block_id();
-    large_buf_index *get_index();
+    const large_buf_index *get_index();
+    large_buf_index *get_index_write();
     uint16_t get_num_segments();
 
     uint16_t segment_size(int ix);
 
-    byte *get_segment(int num, uint16_t *seg_size);
+    const byte *get_segment(int num, uint16_t *seg_size);
+    byte *get_segment_write(int num, uint16_t *seg_size);
 
     void on_block_available(buf_t *buf);
 
@@ -168,7 +166,7 @@ private:
         //while (next_segment < large_value->get_num_segments()) {
         while (length > 0) {
             large_value->pos_to_seg_pos(pos, &ix, &seg_pos);
-            buf = large_value->get_segment(ix, &seg_len);
+            buf = large_value->get_segment_write(ix, &seg_len);
             uint16_t bytes_to_transfer = std::min((uint32_t) seg_len - seg_pos, length);
             pos += bytes_to_transfer;
             length -= bytes_to_transfer;
@@ -239,7 +237,7 @@ private:
     void read_segments() {
         assert(state == reading);
         uint16_t seg_len;
-        byte *buf;
+        const byte *buf;
         if (next_segment < large_value->get_num_segments()) {
             buf = large_value->get_segment(next_segment, &seg_len);
             req->rh->write_value(buf, seg_len, this);
