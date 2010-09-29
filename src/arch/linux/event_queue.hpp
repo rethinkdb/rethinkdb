@@ -108,7 +108,7 @@ private:
 public:
     // These should only be called by the event queue itself or by the linux_* classes
     void watch_resource(resource_t resource, event_op_t event_op, void *state);
-    void forget_resource(resource_t resource);
+    void forget_resource(resource_t resource, void *state);
 };
 
 

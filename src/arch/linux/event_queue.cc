@@ -380,7 +380,7 @@ void linux_event_queue_t::watch_resource(resource_t resource, event_op_t watch_m
     check("Could not pass socket to worker", res != 0);
 }
 
-void linux_event_queue_t::forget_resource(resource_t resource) {
+void linux_event_queue_t::forget_resource(resource_t resource, void *state) {
     epoll_event event;
     event.events = EPOLLIN;
     event.data.ptr = NULL;
@@ -390,10 +390,12 @@ void linux_event_queue_t::forget_resource(resource_t resource) {
     // Go through the queue of messages in the current poll cycle and
     // clean out the ones that are referencing the resource we're
     // being asked to forget.
-    for(int i = 0; i < nevents; i++) {
-        resource_t _s = events[i].data.fd;
-        if(_s == resource) {
-            events[i].data.fd = -1;
+    if(state) {
+        for(int i = 0; i < nevents; i++) {
+            void *ptr = events[i].data.ptr;
+            if(ptr == state) {
+                events[i].data.fd = -1;
+            }
         }
     }
 }
@@ -442,7 +444,7 @@ void queue_stop_timer(linux_event_queue_t *event_queue) {
         return;
     
     // Stop watching the timer
-    event_queue->forget_resource(event_queue->timer_fd);
+    event_queue->forget_resource(event_queue->timer_fd, NULL);
     
     int res = -1;
     // Disarm the timer (should happen automatically on close, but what the hell)

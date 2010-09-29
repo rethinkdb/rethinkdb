@@ -57,7 +57,7 @@ linux_net_conn_t::~linux_net_conn_t() {
         *set_me_true_on_delete = true;
     
     if (sock != INVALID_FD) {
-        if (callback) get_cpu_context()->event_queue->forget_resource(sock);
+        if (callback) get_cpu_context()->event_queue->forget_resource(sock, this);
         ::close(sock);
         sock = INVALID_FD;
     }
