@@ -425,6 +425,8 @@ struct ls_write_fsm_t :
     bool do_finish() {
         
         ser->active_write_count--;
+
+        ser->extent_manager.on_metablock_comitted(&mb_buffer.extent_manager_part);
         
         state = state_done;
         
