@@ -82,10 +82,10 @@ void large_buf_t::segment_acquired(buf_t *buf, uint16_t ix) {
 
 void large_buf_t::append(uint32_t extra_size) {
     assert(state == loaded);
-    //assert(get_index()->first_block_offset == 0);
 
-    //uint16_t seg_pos = size % BTREE_USABLE_BLOCK_SIZE;
-    uint16_t seg_pos = (size + BTREE_USABLE_BLOCK_SIZE - get_index()->first_block_offset) % BTREE_USABLE_BLOCK_SIZE;
+    uint16_t ix, seg_pos;
+    pos_to_seg_pos(size, &ix, &seg_pos);
+    assert(ix == get_index()->num_segments - 1);
 
     while (extra_size > 0) {
         uint16_t bytes_added = std::min((uint32_t) BTREE_USABLE_BLOCK_SIZE - seg_pos, extra_size);
@@ -228,23 +228,6 @@ byte *large_buf_t::get_segment(int ix, uint16_t *seg_size) {
     return seg;
     //return (byte *) bufs[ix]->get_data_write(); //TODO @sachaf figure out if this can be get_data_read
 }
-
-
-/*
-byte *large_buf_t::get_segment(int ix, uint16_t *seg_size) {
-    assert(state == loaded);
-    assert(ix >= 0 && ix < get_num_segments());
-
-    assert(get_index()->first_block_offset == 0); // XXX
-
-    *seg_size = segment_size(ix);
-
-    byte *seg = (byte *) bufs[ix]->get_data_write(); //TODO @shachaf figure out if this can be get_data_read
-    if (ix == 0) seg += get_index()->first_block_offset;
-
-    return seg;
-}
-*/
 
 block_id_t large_buf_t::get_index_block_id() {
     assert(state == loaded || state == loading);

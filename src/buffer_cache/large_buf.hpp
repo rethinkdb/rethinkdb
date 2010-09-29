@@ -172,6 +172,7 @@ private:
             uint16_t bytes_to_transfer = std::min((uint32_t) seg_len - seg_pos, length);
             pos += bytes_to_transfer;
             length -= bytes_to_transfer;
+            assert(seg_pos + bytes_to_transfer <= BTREE_USABLE_BLOCK_SIZE);
             req->rh->fill_value(buf + seg_pos, bytes_to_transfer, this);
             //break;
             return;
