@@ -2,9 +2,15 @@
 #define __CONFIG_ALLOC_HPP__
 
 #include "config/args.hpp"
+#include "alloc/malloc.hpp"
 #include "alloc/memalign.hpp"
 #ifdef VALGRIND
 #include "alloc/malloc.hpp"
+#else
+#include "alloc/gnew.hpp"
+#include "alloc/stats.hpp"
+#include "alloc/pool.hpp"
+#include "alloc/dynamic_pool.hpp"
 #endif
 
 /**

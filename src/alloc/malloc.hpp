@@ -2,6 +2,7 @@
 #ifndef __MALLOC_ALLOC_HPP__
 #define __MALLOC_ALLOC_HPP__
 
+#include <string.h>
 #include <stdlib.h>
 
 struct malloc_alloc_t {

@@ -41,7 +41,7 @@ LDFLAGS+=-rdynamic
 else
 CXXFLAGS+=-O3 -DNDEBUG
 endif
-ifdef VALGRIND
+ifeq ($(VALGRIND),1)
 CXXFLAGS+=-DVALGRIND
 endif
 
