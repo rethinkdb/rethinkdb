@@ -39,7 +39,8 @@ CXXFLAGS+=-g -O0
 # -rdynamic is necessary so that backtrace_symbols() works properly
 LDFLAGS+=-rdynamic
 else
-CXXFLAGS+=-O3 -DNDEBUG
+# gcse breaks the serializer
+CXXFLAGS+=-O3 -fno-gcse -DNDEBUG
 endif
 ifeq ($(VALGRIND),1)
 CXXFLAGS+=-DVALGRIND
