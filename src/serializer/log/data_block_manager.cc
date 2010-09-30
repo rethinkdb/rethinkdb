@@ -165,6 +165,13 @@ void data_block_manager_t::run_gc() {
                         }
                         /* make sure the callback knows who we are */
                         gc_state.gc_write_callback.parent = this;
+
+                        /* release the gc'ed extent (it's safe because
+                         * the extent manager will ensure it won't be
+                         * given away until the metablock is
+                         * written) */
+                        extent_manager->release_extent(gc_state.current_entry.offset);
+                        
                         /* schedule the write */
                         fallthrough = serializer->do_write(writes, gc_state.current_entry.g_array.size() - gc_state.current_entry.g_array.count() , (log_serializer_t::write_txn_callback_t *) &gc_state.gc_write_callback);
                     } else {
@@ -180,7 +187,6 @@ void data_block_manager_t::run_gc() {
                 assert(gc_state.current_entry.g_array.count() == gc_state.current_entry.g_array.size());
                 assert(entries.get(gc_state.current_entry.offset / extent_manager->extent_size) == NULL);
 
-                extent_manager->release_extent(gc_state.current_entry.offset);
                 assert(gc_state.refcount == 0);
                 gc_state.blocks_copying = 0;
 
