@@ -39,6 +39,7 @@ public:
         for(holding_area_t::iterator i = holding_area.begin(); i != holding_area.end(); i++) {
             gdelete(i->second);
         }
+        gdelete(freed_before_mb_write);
     }
     
     // Reserving of extents is used by the metablock manager so that it can make sure that
