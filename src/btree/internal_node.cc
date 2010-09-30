@@ -308,7 +308,7 @@ bool internal_node_handler::is_underfull(const btree_internal_node *node) {
         node->npairs*sizeof(*node->pair_offsets) +
         (BTREE_BLOCK_SIZE - node->frontmost_offset) +
         /* EPSILON */
-        INTERNAL_EPSILON / 2  < BTREE_BLOCK_SIZE / 2;
+        INTERNAL_EPSILON * 2  < BTREE_BLOCK_SIZE / 2;
 }
 
 bool internal_node_handler::is_mergable(const btree_internal_node *node, const btree_internal_node *sibling, const btree_internal_node *parent) {
