@@ -117,7 +117,7 @@ void parse_cmd_args(int argc, char *argv[], cmd_config_t *config)
             config->n_slices = atoi(optarg);
             break;
         case 'm':
-            config->max_cache_size = atoi(optarg) * 1024 * 1024;
+            config->max_cache_size = atoll(optarg) * 1024 * 1024;
             break;
         case wait_for_flush:
         	if (strcmp(optarg, "y")==0) config->wait_for_flush = true;

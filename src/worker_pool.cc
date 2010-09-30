@@ -224,7 +224,7 @@ void worker_pool_t::create_worker_pool(pthread_t main_thread,
     printf("Free RAM: %ldMB (%.2f%%)\n",
            get_available_ram() / 1024 / 1024,
            (double)get_available_ram() / (double)get_total_ram() * 100.0f);
-    printf("Max cache size: %ldMB\n",
+    printf("Max cache size: %lldMB\n",
            cmd_config->max_cache_size / 1024 / 1024);
 
     // TODO: this whole queue creation business is a mess, refactor

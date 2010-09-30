@@ -11,7 +11,7 @@ struct cmd_config_t {
     int n_workers;
     int n_slices;
     char db_file_name[MAX_DB_FILE_NAME];
-    size_t max_cache_size;
+    long long max_cache_size;
     
     // If wait_for_flush is true, then write operations will not return until after the data is
     // safely sitting on the disk.
