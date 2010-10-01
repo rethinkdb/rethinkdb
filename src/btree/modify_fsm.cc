@@ -1,5 +1,4 @@
 #include "btree/modify_fsm.hpp"
-
 #include "utils.hpp"
 #include "cpu_context.hpp"
 #include "worker_pool.hpp"
@@ -167,6 +166,7 @@ bool btree_modify_fsm_t::do_check_for_split(const node_t **node) {
         full = internal_node_handler::is_full(internal_node_handler::internal_node(*node));
     }
     if (full) {
+        did_split = true;
 #ifdef BTREE_DEBUG
         printf("===SPLITTING===\n");
         printf("Parent:\n");
@@ -381,6 +381,10 @@ btree_modify_fsm_t::transition_result_t btree_modify_fsm_t::do_transition(event_
 
                 // STEP 4: Check to see if it's underfull, and merge/level if it is.
                 if (last_buf && node_handler::is_underfull(node)) { // the root node is never underfull
+                    assert(!did_split); /* this failing means a split then
+                                           merge or split then underfull bug
+                                           chec epsilon usage in
+                                           internal_node.cc and leaf_node.cc */
                     // merge or level.
                     if(!sib_buf) { // Acquire a sibling to merge or level with
                         //logf(DBG, "generic acquire sibling\n");
@@ -429,13 +433,14 @@ btree_modify_fsm_t::transition_result_t btree_modify_fsm_t::do_transition(event_
                             bool leveled = node_handler::level(node_handler::node(buf->get_data_write()), sib_node, key_to_replace, replacement_key, parent_node);
 
                             if (leveled) {
-
                                 internal_node_handler::update_key((btree_internal_node *)parent_node, key_to_replace, replacement_key);
                             }
                             sib_buf->release();
                             sib_buf = NULL;
                         }
                     }
+                } else {
+                    did_split = false;
                 }
 
                 // Release the superblock, if we haven't already.
