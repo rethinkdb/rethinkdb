@@ -28,9 +28,11 @@ public:
         : btree_fsm_t(_key),
           state(start_transaction),
           sb_buf(NULL), buf(NULL), last_buf(NULL), sib_buf(NULL),
-          node_id(NULL_BLOCK_ID), last_node_id(NULL_BLOCK_ID), sib_node_id(NULL_BLOCK_ID),
-          operated(false), have_computed_new_value(false), new_value(NULL),
-          update_needed(false), dest_reached(false), key_found(false), old_large_buf(NULL)
+          node_id(NULL_BLOCK_ID), last_node_id(NULL_BLOCK_ID),
+          sib_node_id(NULL_BLOCK_ID), operated(false),
+          have_computed_new_value(false), new_value(NULL),
+          update_needed(false), did_split(false), dest_reached(false),
+          key_found(false), old_large_buf(NULL)
         {}
 
     transition_result_t do_transition(event_t *event);
@@ -80,6 +82,7 @@ public:
 
 protected:
     bool update_needed;
+    bool did_split; /* XXX when an assert on this fails it means EPSILON is wrong */
 
 private:
     bool dest_reached;

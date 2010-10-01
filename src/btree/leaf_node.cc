@@ -269,7 +269,7 @@ bool leaf_node_handler::is_underfull(const btree_leaf_node *node) {
         // TODO: Right now the epsilon we use to make is_underfull not
         // return true after a split is too large. We should come back
         // here and make this more precise.
-        LEAF_EPSILON / 2 < BTREE_BLOCK_SIZE / 2;
+        LEAF_EPSILON * 2 < BTREE_BLOCK_SIZE / 2;
 }
 
 size_t leaf_node_handler::pair_size(btree_leaf_pair *pair) {
