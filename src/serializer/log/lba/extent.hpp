@@ -60,6 +60,7 @@ private:
     // Used only if mode == mode_loaded
     bool done_loading;
     load_callback_t *load_callback;
+    bool _destroy, _shutdown;
 
 public:
     off64_t offset;
@@ -67,7 +68,7 @@ public:
 private:
     // Use create() or load() instead
     extent_t(extent_manager_t *_em, direct_file_t *file, off64_t _offset)
-        : em(_em), file(file), offset(_offset), last_sync(NULL)
+        : em(_em), file(file), _destroy(false), _shutdown(false), offset(_offset), last_sync(NULL)
     {
         assert(em);
         assert(offset % (em->extent_size) == 0);
@@ -169,6 +170,7 @@ private:
         void done() {
             if (this == owner->last_sync) {
                 owner->last_sync = NULL;
+                owner->maybe_finalize();
             }
             while (sync_callback_t *cb = callbacks.head()) {
                 callbacks.remove(cb);
@@ -208,13 +210,31 @@ public:
 
 public:
     void destroy() {
-        assert(!last_sync);
-        em->release_extent(offset);
-        delete this;
+        _shutdown = true;
+        _destroy = true;
+        if(last_sync == NULL) {
+            maybe_finalize();
+        }
     }
     
     void shutdown() {
-        assert(!last_sync);
+        _shutdown = true;
+        if(last_sync == NULL) {
+            maybe_finalize();
+        }
+    }
+
+    void maybe_finalize() {
+        if(!_shutdown) {
+            assert(!_destroy);
+            return;
+        }
+
+        assert(last_sync == NULL);
+        
+        if(_destroy) {
+            em->release_extent(offset);
+        }
         delete this;
     }
 };
