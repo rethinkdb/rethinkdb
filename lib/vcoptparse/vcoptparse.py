@@ -182,6 +182,7 @@ class ValueFlag(Arg):
         self.combiner = combiner
         self.default = default
     def flag(self, flag, args):
+        args_gotten = 0
         try: value = args.pop(0)
         except IndexError:
             raise OptError("Flag %r expects %d argument(s), but only got %d." % \
@@ -189,6 +190,7 @@ class ValueFlag(Arg):
         try: value2 = self.converter(value)
         except OptError, e:
             raise OptError("Problem in argument %d to flag %r: %s" % (args_gotten + 1, flag, e))
+        args_gotten += 1
         return value2
 
 class StringFlag(ValueFlag):
