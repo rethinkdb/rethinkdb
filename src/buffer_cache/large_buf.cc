@@ -15,7 +15,7 @@ void large_buf_t::allocate(uint32_t _size) {
 
     state = loading;
 
-    index_buf = transaction->allocate(&index_block);
+    index_buf = transaction->allocate(&index_block_id);
     get_index_write()->first_block_offset = 0;
     //get_index()->num_segments = get_num_segments();
     get_index_write()->num_segments = NUM_SEGMENTS(size, BTREE_USABLE_BLOCK_SIZE);
@@ -28,7 +28,7 @@ void large_buf_t::allocate(uint32_t _size) {
 }
 
 void large_buf_t::acquire(block_id_t _index_block, uint32_t _size, access_t _access, large_buf_available_callback_t *_callback) {
-    index_block = _index_block; size = _size; access = _access; callback = _callback;
+    index_block_id = _index_block; size = _size; access = _access; callback = _callback;
 
     assert(state == not_loaded);
     assert(size > MAX_IN_NODE_VALUE_SIZE);
@@ -36,7 +36,7 @@ void large_buf_t::acquire(block_id_t _index_block, uint32_t _size, access_t _acc
     state = loading;
 
     segment_block_available_callback_t *cb = new segment_block_available_callback_t(this);
-    buf_t *buf = transaction->acquire(index_block, access, cb);
+    buf_t *buf = transaction->acquire(index_block_id, access, cb);
     if (buf) {
         delete cb; // TODO (here and below): Preferably do all the deleting in one blace.
         index_acquired(buf);
@@ -64,7 +64,7 @@ void large_buf_t::index_acquired(buf_t *buf) {
 
 void large_buf_t::segment_acquired(buf_t *buf, uint16_t ix) {
     assert(state == loading);
-    assert(index_buf && index_buf->get_block_id() == index_block);
+    assert(index_buf && index_buf->get_block_id() == index_block_id);
     assert(buf);
     assert(ix < get_num_segments());
     assert(buf->get_block_id() == get_index()->blocks[ix]);
@@ -82,8 +82,7 @@ void large_buf_t::segment_acquired(buf_t *buf, uint16_t ix) {
 void large_buf_t::append(uint32_t extra_size) {
     assert(state == loaded);
 
-    uint16_t ix, seg_pos;
-    pos_to_seg_pos(size, &ix, &seg_pos);
+    uint16_t seg_pos = pos_to_seg_pos(size);
 
     // TODO: Make this work like prepend.
 
@@ -132,9 +131,8 @@ void large_buf_t::fill_at(uint32_t pos, const byte *data, uint32_t fill_size) {
     assert(get_index()->first_block_offset < BTREE_USABLE_BLOCK_SIZE);
 
     // Blach.
-    uint16_t ix;
-    uint16_t seg_pos;
-    pos_to_seg_pos(pos, &ix, &seg_pos);
+    uint16_t ix = pos_to_ix(pos);
+    uint16_t seg_pos = pos_to_seg_pos(pos);
 
     uint16_t seg_len;
 
@@ -151,23 +149,32 @@ void large_buf_t::fill_at(uint32_t pos, const byte *data, uint32_t fill_size) {
     assert(fill_size == 0);
 }
 
-void large_buf_t::pos_to_seg_pos(uint32_t pos, uint16_t *ix, uint16_t *seg_pos) {
-    // Blach.
-    *ix = pos < BTREE_USABLE_BLOCK_SIZE - get_index()->first_block_offset
-        ? 0
-        : (pos + get_index()->first_block_offset) / BTREE_USABLE_BLOCK_SIZE;
-    *seg_pos = pos < BTREE_USABLE_BLOCK_SIZE - get_index()->first_block_offset
-             ? pos
-             : (pos + get_index()->first_block_offset) % BTREE_USABLE_BLOCK_SIZE;
+void large_buf_t::unappend(uint32_t extra_size) {
+    assert(state == loaded);
+}
+
+void large_buf_t::unprepend(uint32_t extra_size) {
+}
+
+// Blach.
+uint16_t large_buf_t::pos_to_ix(uint32_t pos) {
+    return pos < BTREE_USABLE_BLOCK_SIZE - get_index()->first_block_offset
+         ? 0
+         : (pos + get_index()->first_block_offset) / BTREE_USABLE_BLOCK_SIZE;
+}
+uint16_t large_buf_t::pos_to_seg_pos(uint32_t pos) {
+    return pos < BTREE_USABLE_BLOCK_SIZE - get_index()->first_block_offset
+         ? pos
+         : (pos + get_index()->first_block_offset) % BTREE_USABLE_BLOCK_SIZE;
 }
 
 
 void large_buf_t::mark_deleted() {
     assert(state == loaded);
-    // TODO: When the API is ready.
-    //index_buf->mark_deleted();
-    for (int i = 0; i < get_num_segments(); i++) {
-        //bufs[i]->mark_deleted();
+    uint16_t num_segs = get_num_segments();
+    index_buf->mark_deleted();
+    for (int i = 0; i < num_segs; i++) {
+        bufs[i]->mark_deleted();
     }
     // TODO: We should probably set state to deleted here or something.
 }
@@ -198,23 +205,29 @@ uint16_t large_buf_t::segment_size(int ix) {
     assert(state == loaded || state == loading);
 
     assert(get_index()->first_block_offset < BTREE_USABLE_BLOCK_SIZE);
+    assert(get_index()->first_block_offset == 0 || BTREE_USABLE_BLOCK_SIZE - get_index()->first_block_offset < size);
 
     // XXX: This is ugly.
 
+    uint16_t seg_size;
+
     if (ix == get_num_segments() - 1) {
         if (get_index()->first_block_offset != 0) {
-            return (size - (BTREE_USABLE_BLOCK_SIZE - get_index()->first_block_offset) - 1) % BTREE_USABLE_BLOCK_SIZE + 1;
+            seg_size = (size - (BTREE_USABLE_BLOCK_SIZE - get_index()->first_block_offset) - 1) % BTREE_USABLE_BLOCK_SIZE + 1;
+        } else {
+            seg_size = (size - 1) % BTREE_USABLE_BLOCK_SIZE + 1;
+            //seg_size = (size - get_index()->first_block_offset - 1) % BTREE_USABLE_BLOCK_SIZE + 1;
         }
-        return (size - 1) % BTREE_USABLE_BLOCK_SIZE + 1;
-        //return (size - get_index()->first_block_offset - 1) % BTREE_USABLE_BLOCK_SIZE + 1;
-    }
-
-    if (ix == 0) {
+    } else if (ix == 0) {
         // If first_block_offset != 0, the first block will be filled to the end, because it was made by prepending.
-        return BTREE_USABLE_BLOCK_SIZE - get_index()->first_block_offset;
+        seg_size = BTREE_USABLE_BLOCK_SIZE - get_index()->first_block_offset;
+    } else { 
+        seg_size = BTREE_USABLE_BLOCK_SIZE;
     }
+    
+    assert(seg_size <= size);
 
-    return BTREE_USABLE_BLOCK_SIZE;
+    return seg_size;
 }
 
 const byte *large_buf_t::get_segment(int ix, uint16_t *seg_size) {
@@ -245,7 +258,7 @@ byte *large_buf_t::get_segment_write(int ix, uint16_t *seg_size) {
 
 block_id_t large_buf_t::get_index_block_id() {
     assert(state == loaded || state == loading);
-    return index_block;
+    return index_block_id;
 }
 
 const large_buf_index *large_buf_t::get_index() {

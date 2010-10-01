@@ -47,7 +47,7 @@ public:
      * filled with a pointer to the new value or NULL if the key should be
      * deleted; *new_value should remain valid as long as the FSM is alive.
      */
-    virtual transition_result_t operate(btree_value *old_value, large_buf_t *old_large_buf, btree_value **new_value) = 0; //, large_buf_t **large_buf) = 0;
+    virtual transition_result_t operate(btree_value *old_value, large_buf_t *old_large_buf, btree_value **new_value) = 0;
     virtual void on_operate_completed() {} // TODO: Rename this.
 //    void large_value_filled(); // XXX
 

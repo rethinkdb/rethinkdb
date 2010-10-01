@@ -20,11 +20,6 @@ struct large_buf_available_callback_t :
     virtual void on_large_buf_available(large_buf_t *large_buf) = 0;
 };
 
-struct large_value_read_callback {
-    virtual void on_large_value_read() = 0;
-    virtual ~large_value_read_callback() {}
-};
-
 struct large_value_completed_callback {
     virtual void on_large_value_completed(bool success) = 0;
     virtual ~large_value_completed_callback() {}
@@ -41,7 +36,7 @@ struct large_buf_index {
 class large_buf_t :
     public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, large_buf_t> {
 private:
-    block_id_t index_block; // TODO: Rename index_block_id.
+    block_id_t index_block_id;
     buf_t *index_buf;
     uint32_t size; // XXX possibly unnecessary?
     access_t access;
@@ -73,7 +68,11 @@ public:
     void prepend(uint32_t extra_size);
     void fill_at(uint32_t pos, const byte *data, uint32_t fill_size);
 
-    void pos_to_seg_pos(uint32_t pos, uint16_t *ix, uint16_t *seg_pos);
+    void unappend(uint32_t extra_size);
+    void unprepend(uint32_t extra_size);
+
+    uint16_t pos_to_ix(uint32_t pos);
+    uint16_t pos_to_seg_pos(uint32_t pos);
 
     void mark_deleted();
     void release();
@@ -125,11 +124,19 @@ struct segment_block_available_callback_t : public block_available_callback_t,
 class fill_large_value_msg_t : public cpu_message_t,
                                public data_transferred_callback,
                                public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, fill_large_value_msg_t> {
-public:
+private:
+    typedef buffer_t<IO_BUFFER_SIZE> iobuf_t;
+
+    enum {
+        fill, // Fill a large value
+        consume // Consume from the socket.
+    } mode;
+
+    iobuf_t *buf;
+
     bool completed;
     bool success;
 
-private:
     large_buf_t *large_value;
     request_callback_t *req;
     large_value_completed_callback *cb;
@@ -138,41 +145,81 @@ private:
 
 public:
     fill_large_value_msg_t(large_buf_t *large_value, request_callback_t *req, large_value_completed_callback *cb, uint32_t pos, uint32_t length)
-        : completed(false), success(false), large_value(large_value), req(req), cb(cb), pos(pos), length(length) {
+        : mode(fill), buf(NULL), completed(false), success(false), large_value(large_value), req(req), cb(cb), pos(pos), length(length) {
         //assert(pos + length < large_value->size); // XXX
     }
 
+    fill_large_value_msg_t(request_callback_t *req, large_value_completed_callback *cb, uint32_t length)
+        : mode(consume), buf(new iobuf_t()), completed(false), req(req), cb(cb), length(length) {}
+
+    ~fill_large_value_msg_t() {
+        if (buf) {
+            assert(mode == consume);
+            delete buf;
+        }
+    }
+
     void on_cpu_switch() {
-        if (completed) {
+        if (!completed) {
+            step();
+        } else {
             cb->on_large_value_completed(success);
             delete this;
-        } else {
-            fill_segments();
         }
     }
 
     void on_data_transferred() {
-        //next_segment++;
-        fill_segments();
+        step();
+    }
+
+    void fill_complete(bool _success) {
+        success = _success;
+        completed = true;
+        if (continue_on_cpu(return_cpu, this)) {
+            call_later_on_this_cpu(this);
+        }
     }
 private:
-    void fill_segments() {
+    void step() {
         assert(!completed);
-        uint16_t seg_len;
-        byte *buf;
-        uint16_t ix;
-        uint16_t seg_pos;
+        switch (mode) {
+            case fill:
+                do_fill();
+                break;
+            case consume:
+                do_consume();
+                break;
+        }
+    }
+
+    void do_consume() {
+        if (length > 0) {
+            uint32_t bytes_to_transfer = std::min((uint32_t) iobuf_t::size, length);
+            length -= bytes_to_transfer;
+            req->rh->fill_value((byte *) buf, bytes_to_transfer, this);
+            return;
+        }
+
+        if (length == 0) {
+            req->rh->fill_lv_msg = this;
+            req->rh->conn_fsm->dummy_sock_event();
+            //if (continue_on_cpu(return_cpu, this)) on_cpu_switch();
+        }
+    }
+
+    void do_fill() {
         //bool fill_success;
         //while (next_segment < large_value->get_num_segments()) {
         while (length > 0) {
-            large_value->pos_to_seg_pos(pos, &ix, &seg_pos);
-            buf = large_value->get_segment_write(ix, &seg_len);
+            uint16_t ix = large_value->pos_to_ix(pos);
+            uint16_t seg_pos = large_value->pos_to_seg_pos(pos);
+            uint16_t seg_len;
+            byte *buf = large_value->get_segment_write(ix, &seg_len);
             uint16_t bytes_to_transfer = std::min((uint32_t) seg_len - seg_pos, length);
+            assert(seg_pos + bytes_to_transfer <= BTREE_USABLE_BLOCK_SIZE);
             pos += bytes_to_transfer;
             length -= bytes_to_transfer;
-            assert(seg_pos + bytes_to_transfer <= BTREE_USABLE_BLOCK_SIZE);
             req->rh->fill_value(buf + seg_pos, bytes_to_transfer, this);
-            //break;
             return;
             //fill_success = req->rh->fill_value(buf, seg_len, this);
             //if (!fill_success) break;

@@ -17,7 +17,7 @@ class btree_append_prepend_fsm_t : public btree_modify_fsm_t,
     typedef btree_fsm_t::transition_result_t transition_result_t;
 public:
     explicit btree_append_prepend_fsm_t(btree_key *key, btree_key_value_store_t *store, request_callback_t *req, bool got_large, unsigned int size, byte *data, bool append)
-        : btree_modify_fsm_t(key, store), req(req), got_large(got_large), extra_size(size), append(append), success(false) {
+        : btree_modify_fsm_t(key, store), req(req), got_large(got_large), extra_size(size), append(append), read_success(false) {
         if (!got_large) {
             assert(size <= MAX_IN_NODE_VALUE_SIZE);
             memcpy(extra_data, data, size);
@@ -30,9 +30,13 @@ public:
 
         if (!old_value) {
             this->status_code = btree_fsm_t::S_NOT_FOUND;
-            this->update_needed = false;
+            //this->update_needed = false;
+            if (got_large) {
+                fill_large_value_msg_t *msg = new fill_large_value_msg_t(req, this, extra_size);
+                if (continue_on_cpu(return_cpu, msg)) call_later_on_this_cpu(msg);
+                return btree_fsm_t::transition_incomplete;
+            }
             return btree_fsm_t::transition_ok;
-            // XXX: If this was a large value, we have to consume it and discard it. Figure out a nice way to do this...
         }
 
         valuecpy(&value, old_value);
@@ -84,30 +88,39 @@ public:
     }
 
     void on_operate_completed() {
-        if (!old_value) return; // XXX
-        if (!got_large || success) {
-            do_append_successful(); // No possibility of a read error.
+        if (!old_value) { // XXX
+            this->update_needed = false;
+            if (!read_success) this->status_code = btree_fsm_t::S_READ_FAILURE;
             return;
         }
-        if (!got_large || success) {
-            do_append_successful();
+        if (!got_large || read_success) {
+            do_append_read_successful(); // No possibility of a read error.
         } else { // We read data from the socket and failed (e.g. we didn't get \r\n after the input in text mode). Undo it.
-            if (!old_value->is_large()) { // The old value was small, so we just restore it.
-                //this->status_code
-                this->update_needed = false;
+            this->status_code = btree_fsm_t::S_READ_FAILURE;
+            this->update_needed = false;
+            if (!old_value->is_large()) { // The old value was small, so we just keep it and delete the large value.
+                large_value->mark_deleted();
+                large_value->release();
+                delete large_value;
             } else {
+                // Some bufs in the large value will have been set dirty (and
+                // so new copies will be rewritten unmodified to disk), but
+                // that's not really a problem because it only happens on
+                // erroneous input
+                if (append) large_value->unappend(extra_size);
+                else        large_value->unprepend(extra_size);
             }
-            assert(0);
+            //assert(0);
         }
     }
 
-    void on_large_value_completed(bool _success) {
-        success = _success;
+    void on_large_value_completed(bool _read_success) {
+        read_success = _read_success;
         this->step();
     }
 
 private:
-    void do_append_successful() {
+    void do_append_read_successful() {
         value.value_size(new_size);
         if (value.is_large()) {
             value.set_lv_index_block_id(large_value->get_index_block_id());
@@ -126,6 +139,7 @@ private:
     request_callback_t *req;
 
     bool got_large;
+    //bool append_prepend_failed; // XXX: Rename this.
 
     uint32_t new_size;
     uint32_t extra_size;
@@ -138,7 +152,7 @@ private:
         btree_value value;
     };
 
-    bool success;
+    bool read_success; // XXX: Rename this.
 
     btree_value *old_value;
     btree_value **new_value;

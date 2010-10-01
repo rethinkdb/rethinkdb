@@ -485,7 +485,12 @@ btree_modify_fsm_t::transition_result_t btree_modify_fsm_t::do_transition(event_
                     last_node_id = NULL_BLOCK_ID;
                 }
                 if (old_large_buf) {
-                    old_large_buf->release(); // TODO: Mark deleted if necessary.
+                    assert(old_value.is_large());
+                    assert(old_value.lv_index_block_id() == old_large_buf->get_index_block_id());
+                    if (update_needed && (!new_value || new_value->lv_index_block_id() != old_large_buf->get_index_block_id())) {
+                        old_large_buf->mark_deleted();
+                    }
+                    old_large_buf->release();
                     delete old_large_buf;
                 }
 

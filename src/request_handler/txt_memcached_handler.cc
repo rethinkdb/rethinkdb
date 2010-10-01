@@ -261,6 +261,9 @@ public:
             case btree_set_fsm_t::S_NOT_FOUND:
                 sbuf->printf(NOT_FOUND);
                 break;
+            case btree_set_fsm_t::S_READ_FAILURE:
+                // read_data() handles printing the error.
+                break;
             default:
                 assert(0);
                 break;
@@ -362,6 +365,9 @@ public:
             case btree_append_prepend_fsm_t::S_NOT_FOUND:
                 // memcached pronounces this "NOT_STORED"
                 sbuf->printf(STORAGE_FAILURE);
+                break;
+            case btree_append_prepend_fsm_t::S_READ_FAILURE:
+                // read_data() handles printing the error.
                 break;
             default:
                 assert(0);
@@ -693,15 +699,17 @@ txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::read_data() {
                 return request_handler_t::op_partial_packet;
             }
             // XXX What if data comes in at
-            conn_fsm->consume(2); // \r\n. TODO: Check.
-            this->fill_lv_msg->success = true;
-            this->fill_lv_msg->completed = true; // TODO: Move this into a method in fill_lv_msg.
-            if (continue_on_cpu(this->fill_lv_msg->return_cpu, this->fill_lv_msg))  {
-                call_later_on_this_cpu(this->fill_lv_msg);
-            }
+            bool well_formed = conn_fsm->rbuf[0] == '\r' && conn_fsm->rbuf[1] == '\n';
+            conn_fsm->consume(2);
+            this->fill_lv_msg->fill_complete(well_formed);
             this->fill_lv_msg = NULL;
             loading_data = false;
-            return request_handler_t::op_req_complex;
+            if (well_formed) {
+                return request_handler_t::op_req_complex;
+            } else {
+                conn_fsm->sbuf->printf(BAD_BLOB);
+                return request_handler_t::op_malformed;
+            }
         } else {
             // Will be handled in the FSM.
         }

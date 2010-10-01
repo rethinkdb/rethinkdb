@@ -37,7 +37,9 @@ public:
         S_EXISTS,
         S_NOT_FOUND,
         S_DELETED,
-        S_NOT_NUMERIC
+        S_NOT_NUMERIC,
+        // These aren't memcached status codes:
+        S_READ_FAILURE
     };
 
 
