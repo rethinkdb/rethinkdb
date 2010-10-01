@@ -307,7 +307,7 @@ bool internal_node_handler::is_underfull(const btree_internal_node *node) {
     return (sizeof(btree_internal_node) + 1) / 2 + 
         node->npairs*sizeof(*node->pair_offsets) +
         (BTREE_BLOCK_SIZE - node->frontmost_offset) +
-        /* EPSILON */
+        /* EPSILON TODO this epsilon is too high lower it*/
         INTERNAL_EPSILON * 2  < BTREE_BLOCK_SIZE / 2;
 }
 
