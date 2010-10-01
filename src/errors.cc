@@ -89,7 +89,7 @@ void print_backtrace(FILE *out) {
                     snprintf(cmd_buf, sizeof(cmd_buf), "addr2line -s -e %s %s",
                              exec_name, address);
                     FILE *fline = popen(cmd_buf, "r");
-                    fread(line, sizeof(char), sizeof(line), fline);
+                    int __attribute__((__unused__)) res = fread(line, sizeof(char), sizeof(line), fline);
                     pclose(fline);
                     // Output the result
                     fprintf(out, "%s at %s", demangled, line);
