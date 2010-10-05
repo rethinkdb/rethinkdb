@@ -8,6 +8,7 @@ TAGS:=.tags
 RUN_PORT?=11211
 RUN_FLAGS?=
 VALGRIND_FLAGS?=--leak-check=full --db-attach=yes
+CALLGRIND_FLAGS?=--simulate-cache=yes --simulate-wb=yes --simulate-hwpref=yes --cacheuse=yes --collect-jumps=yes
 DEBUG?=1
 VALGRIND?=0
 SEMANTIC_SERIALIZER_CHECK?=0
@@ -44,6 +45,10 @@ CXXFLAGS+=-O3 -fno-gcse -DNDEBUG
 endif
 ifeq ($(VALGRIND),1)
 CXXFLAGS+=-DVALGRIND
+endif
+
+ifeq ($(CALLGRIND),1)
+CXXFLAGS+=-g
 endif
 
 ifeq ($(SEMANTIC_SERIALIZER_CHECK),1)
@@ -109,6 +114,14 @@ ifeq ($(VALGRIND),0)
 endif
 	$(QUIET) rm -rf db_data
 	valgrind $(VALGRIND_FLAGS) $(BUILD_DIR)/$(SERVER_EXEC_NAME) -p $(RUN_PORT) $(RUN_FLAGS)
+
+callgrind: $(BUILD_DIR)/$(SERVER_EXEC_NAME)
+ifeq ($(CALLGRIND),0)
+	$(error Using the 'callgrind' target doesn't automatically set CALLGRIND to 1. Try again with \
+'make calgrind CALLGRIND=1')
+endif
+	$(QUIET) rm -rf db_data
+	valgrind --tool=callgrind $(CALLGRIND_FLAGS) $(BUILD_DIR)/$(SERVER_EXEC_NAME) -p $(RUN_PORT) $(RUN_FLAGS)
 
 tags:
 	$(QUIET) ctags -R -f $(TAGS) --langmap="c++:.cc.tcc.hpp"
