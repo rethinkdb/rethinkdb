@@ -238,6 +238,7 @@ bool leaf_node_handler::is_full(const btree_leaf_node *node, btree_key *key, btr
 }
 
 void leaf_node_handler::validate(const btree_leaf_node *node) {
+#ifndef NDEBUG
     assert((void*)&(node->pair_offsets[node->npairs]) <= (void*)get_pair(node, node->frontmost_offset));
     assert(node->frontmost_offset > 0);
     assert(node->frontmost_offset <= BTREE_BLOCK_SIZE);
@@ -245,6 +246,7 @@ void leaf_node_handler::validate(const btree_leaf_node *node) {
         assert(node->pair_offsets[i] < BTREE_BLOCK_SIZE);
         assert(node->pair_offsets[i] >= node->frontmost_offset);
     }
+#endif
 }
 
 bool leaf_node_handler::is_mergable(const btree_leaf_node *node, const btree_leaf_node *sibling) {

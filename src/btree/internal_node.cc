@@ -290,6 +290,7 @@ bool internal_node_handler::change_unsafe(const btree_internal_node *node) {
 }
 
 void internal_node_handler::validate(const btree_internal_node *node) {
+#ifndef NDEBUG
     assert((void*)&(node->pair_offsets[node->npairs]) <= (void*)get_pair(node, node->frontmost_offset));
     assert(node->frontmost_offset > 0);
     assert(node->frontmost_offset <= BTREE_BLOCK_SIZE);
@@ -298,6 +299,7 @@ void internal_node_handler::validate(const btree_internal_node *node) {
         assert(node->pair_offsets[i] >= node->frontmost_offset);
     }
     check("Offsets no longer in sorted order", !is_sorted(node->pair_offsets, node->pair_offsets+node->npairs, internal_key_comp(node)));
+#endif
 }
 
 bool internal_node_handler::is_underfull(const btree_internal_node *node) {
