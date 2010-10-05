@@ -88,7 +88,7 @@ conn_fsm_t::result_t conn_fsm_t::fill_rbuf() {
         nrbuf = 0;
     }
     if(sbuf == NULL) {
-        sbuf = new linked_buf_t();
+        sbuf = new linked_buf_t(); //TODO This line is a source of inefficiency, we should only delete the sbuf if the connection sits idle for a while
     }
     return fill_buf(rbuf, &nrbuf, iobuf_t::size);
 }
