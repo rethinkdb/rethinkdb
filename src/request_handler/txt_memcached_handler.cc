@@ -25,6 +25,7 @@
 #define RETRIEVE_TERMINATOR "END\r\n"
 #define BAD_BLOB "CLIENT_ERROR bad data chunk\r\n"
 #define TOO_LARGE "SERVER_ERROR object too large for cache\r\n"
+#define MAX_COMMAND_SIZE 100
 
 #define MAX_STATS_REQ_LEN 100
 
@@ -490,10 +491,15 @@ txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::parse_request(e
     }
 
     // Find the first line in the buffer
-    // This is only valid if we are not reading binary data
+    // This is only valid if we are not reading binary data (we're reading for a command)
     char *line_end = (char *)memchr(conn_fsm->rbuf, '\n', conn_fsm->nrbuf);
     if (line_end == NULL) {   //make sure \n is in the buffer
-        return request_handler_t::op_partial_packet;
+        if (conn_fsm->nrbuf > MAX_COMMAND_SIZE) {
+            conn_fsm->consume(MAX_COMMAND_SIZE);
+            return malformed_request();
+        } else {
+            return request_handler_t::op_partial_packet;
+        }
     }
     unsigned int line_len = line_end - conn_fsm->rbuf + 1;
 
