@@ -41,7 +41,7 @@ CXXFLAGS+=-g -O0
 LDFLAGS+=-rdynamic
 else
 # gcse breaks the serializer
-CXXFLAGS+=-O3 -fno-gcse -DNDEBUG -march=opteron
+CXXFLAGS+=-O3 -fno-gcse -DNDEBUG -march=native
 endif
 ifeq ($(VALGRIND),1)
 CXXFLAGS+=-DVALGRIND
