@@ -322,6 +322,9 @@ void linux_direct_file_t::verify(size_t offset, size_t length, void *buf) {
 
 /* Async IO scheduler */
 
+/* TODO: Batch requests internally so that we can send multiple requests per
+call to io_submit(). */
+
 linux_io_calls_t::linux_io_calls_t(linux_event_queue_t *_queue)
     : queue(_queue),
       n_pending(0)

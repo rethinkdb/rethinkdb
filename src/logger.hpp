@@ -8,6 +8,8 @@
 #include "config/cmd_args.hpp"
 #include "utils.hpp"
 
+
+
 enum log_level_t {
 #ifndef NDEBUG
     DBG = 0,
@@ -16,6 +18,21 @@ enum log_level_t {
     WRN,
     ERR
 };
+
+// Log a message in one chunk. You still have to provide '\n'.
+
+void _logf(const char *src_file, int src_line, log_level_t level, const char *format, ...);
+#define logf(lvl, fmt, args...) (_logf(__FILE__, __LINE__, (lvl), (fmt) , ##args))
+
+// Log a message in pieces.
+
+void _mlog_start(const char *src_file, int src_line, log_level_t level);
+#define mlog_start(lvl) (_mlog_start(__FILE__, __LINE__, (lvl)))
+
+void mlogf(const char *format, ...);
+
+void mlog_end();
+
 
 
 /* server_t creates one log_controller_t for the entire thread pool. The
@@ -68,19 +85,5 @@ private:
     NOT the number of log_msg_ts in existence */
     int messages_out;
 };
-
-// Log a message in one chunk. You still have to provide '\n'.
-
-void _logf(const char *src_file, int src_line, log_level_t level, const char *format, ...);
-#define logf(lvl, fmt, args...) (_logf(__FILE__, __LINE__, (lvl), (fmt) , ##args))
-
-// Log a message in pieces.
-
-void _mlog_start(const char *src_file, int src_line, log_level_t level);
-#define mlog_start(lvl) (_mlog_start(__FILE__, __LINE__, (lvl)))
-
-void mlogf(const char *format, ...);
-
-void mlog_end();
 
 #endif // __LOGGER_HPP__

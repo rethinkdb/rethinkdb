@@ -60,7 +60,15 @@ struct shutdown_conns_message_t :
             case state_go_to_cpu: {
                 
                 while (conn_fsm_handler_t *h = acceptor->conn_handlers[get_cpu_id()].head()) {
-                    h->conn_fsm->start_quit();   // Removes it from the list
+                
+                    assert(h->state == conn_fsm_handler_t::state_waiting_for_conn_fsm_quit);
+                    
+                    h->conn_fsm->start_quit();
+                    
+                    /* start_quit() should have caused the conn_fsm_handler_t to be removed
+                    from the list because it should have caused the conn_fsm_t to send an
+                    on_conn_fsm_quit() to the conn_fsm_handler_t. */
+                    assert(h != acceptor->conn_handlers[get_cpu_id()].head());
                 }
                 
                 state = state_return_from_cpu;
@@ -146,11 +154,19 @@ void conn_fsm_handler_t::on_cpu_switch() {
     }
 }
 
+/* Shutting down a connection might not be an atomic process because there might be
+outstanding btree_fsm_ts that the conn_fsm_t is still waiting for. We get an
+on_conn_fsm_quit() when the conn_fsm begins the process of shutting down, and an
+on_conn_fsm_shutdown() when it finishes shutting down. */
+
 void conn_fsm_handler_t::on_conn_fsm_quit() {
     
     assert(state == state_waiting_for_conn_fsm_quit);
     state = state_waiting_for_conn_fsm_shutdown;
     
+    /* Remove ourselves from the conn_handlers list immediately so that if the server
+    gets a SIGINT before we get an on_conn_fsm_shutdown(), the conn_fsm_t won't be
+    told to quit when it already is quitting. */
     parent->conn_handlers[get_cpu_id()].remove(this);
 }
 

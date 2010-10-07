@@ -27,17 +27,20 @@ linux_thread_pool_t::linux_thread_pool_t(int n_threads)
     check("Could not create interrupt spin lock", res != 0);
 }
 
-void linux_thread_pool_t::set_interrupt_message(linux_cpu_message_t *m) {
+linux_cpu_message_t *linux_thread_pool_t::set_interrupt_message(linux_cpu_message_t *m) {
     
     int res;
     
     res = pthread_spin_lock(&interrupt_message_lock);
     check("Could not acquire interrutp message lock", res != 0);
     
+    linux_cpu_message_t *o = interrupt_message;
     interrupt_message = m;
     
     res = pthread_spin_unlock(&interrupt_message_lock);
     check("Could not release interrupt message lock", res != 0);
+    
+    return o;
 }
 
 struct thread_data_t {
@@ -205,20 +208,17 @@ void linux_thread_pool_t::run(linux_cpu_message_t *initial_message) {
 
 void linux_thread_pool_t::interrupt_handler(int) {
     
-    int res;
+    /* The interrupt handler should run on the main thread, the same thread that
+    run() was called on. */
     
     linux_thread_pool_t *self = linux_thread_pool_t::thread_pool;
     
-    linux_cpu_message_t *interrupt_msg;
-    
-    res = pthread_spin_lock(&self->interrupt_message_lock);
-    check("Could not acquire interrupt message lock", res != 0);
-    
-    interrupt_msg = self->interrupt_message;
-    self->interrupt_message = NULL;
-    
-    res = pthread_spin_unlock(&self->interrupt_message_lock);
-    check("Could not release interrupt message lock", res != 0);
+    /* Set the interrupt message to NULL at the same time as we get it so that
+    we don't send the same message twice. This is necessary because it's illegal
+    to send the same CPU message twice until it has been received the first time
+    (because of the intrusive list), and we could hypothetically get two SIGINTs
+    in quick succession. */
+    linux_cpu_message_t *interrupt_msg = self->set_interrupt_message(NULL);
     
     if (interrupt_msg) {
         self->queues[0]->message_hub.insert_external_message(interrupt_msg);

@@ -53,7 +53,8 @@ public:
 };
 
 /* btree_slice_t is a thin wrapper around cache_t that handles initializing the buffer
-cache for the purpose of storing a btree. */
+cache for the purpose of storing a btree. There are many btree_slice_ts per
+btree_key_value_store_t. */
 
 class btree_slice_t :
     private cache_t::ready_callback_t,
@@ -124,6 +125,9 @@ public:
     cache_t cache;
 };
 
+// Other parts of the code refer to store_t instead of btree_key_value_store_t to
+// facilitate the process of adding another type of store (such as a hashmap)
+// later on.
 typedef btree_key_value_store_t store_t;
 
 #endif /* __BTREE_KEY_VALUE_STORE_HPP__ */

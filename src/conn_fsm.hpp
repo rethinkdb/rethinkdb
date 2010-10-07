@@ -65,6 +65,7 @@ public:
     ~conn_fsm_t();
 
 public:
+    /* Called by conn_acceptor_t when the server is being shut down. */
     void start_quit();
 private:
     bool quitting; /* !< if true don't issue anymore requests just let them finish and then quit */
@@ -72,6 +73,7 @@ private:
 public:
     void consume(unsigned int bytes);
     
+    /* Called by net_conn_t */
     void on_net_conn_readable();
     void on_net_conn_writable();
     void on_net_conn_close();

@@ -7,16 +7,24 @@
 struct linux_cpu_message_t;
 struct linux_event_queue_t;
 
+/* A thread pool represents a group of threads, each of which is associated with an
+event queue. There is one thread pool per server. It is responsible for starting up
+and shutting down the threads and event queues. */
+
 class linux_thread_pool_t {
 
 public:
     linux_thread_pool_t(int n_threads);
     
     // When the process receives a SIGINT or SIGTERM, interrupt_message will be delivered to the
-    // same thread that initial_message was delivered to.
-    void set_interrupt_message(linux_cpu_message_t *interrupt_message);
+    // same thread that initial_message was delivered to, and interrupt_message will be set to
+    // NULL. If you want to receive notification of further SIGINTs or SIGTERMs, you must call
+    // set_interrupt_message() again. Returns the previous value of interrupt_message.
+    linux_cpu_message_t *set_interrupt_message(linux_cpu_message_t *interrupt_message);
     
-    // Blocks while threads are working. Only returns after shutdown() is called.
+    // Blocks while threads are working. Only returns after shutdown() is called. initial_message
+    // is a CPU message that will be delivered to one of the threads after all of the event queues
+    // have been started; it is used to start the server's activity.
     void run(linux_cpu_message_t *initial_message);
     
     // Shut down all the threads. Can be called from any thread.

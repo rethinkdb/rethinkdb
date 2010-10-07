@@ -54,9 +54,16 @@ void server_t::do_start_conn_acceptor() {
 }
 
 void server_t::shutdown() {
-    thread_pool->set_interrupt_message(NULL);
-    if (continue_on_cpu(home_cpu, &interrupt_message))
-        call_later_on_this_cpu(&interrupt_message);
+    
+    cpu_message_t *old_interrupt_msg = thread_pool->set_interrupt_message(NULL);
+    
+    /* If the interrupt message already was NULL, that means that either shutdown() was for
+    some reason called before we finished starting up or shutdown() was called twice and this
+    is the second time. */
+    if (!old_interrupt_msg) return;
+    
+    if (continue_on_cpu(home_cpu, old_interrupt_msg))
+        call_later_on_this_cpu(old_interrupt_msg);
 }
 
 void server_t::do_shutdown() {

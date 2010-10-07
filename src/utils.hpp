@@ -46,11 +46,18 @@ struct buffer_t : public buffer_base_t<_size>,
 {
 };
 
+/* The home CPU mixin is a simple mixin for objects that are primarily associated with
+a single thread. It just keeps track of the thread that the object was created on and
+makes sure that it is destroyed from the same thread. It exposes the ID of that thread
+as the "home_cpu" variable. */
+
 struct home_cpu_mixin_t {
 
     int home_cpu;
     home_cpu_mixin_t();
-
+    
+    /* In debug mode, assert_cpu() makes sure that the CPU it is called from is the
+    same as the object's home CPU. */
 #ifndef NDEBUG
     void assert_cpu();
 #else

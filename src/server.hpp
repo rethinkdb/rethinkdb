@@ -7,6 +7,11 @@
 #include "conn_acceptor.hpp"
 #include "utils.hpp"
 
+/* There is one server_t per server (obviously). It acts as a "master FSM" that is
+responsible for the entire lifetime of the server. It creates and destroys the
+loggers, caches, and connection acceptor. It does NOT create the thread pool -- instead,
+main() creates the thread pool and then creates the server within the thread pool. */
+
 struct server_t :
     public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, server_t>,
     public home_cpu_mixin_t,

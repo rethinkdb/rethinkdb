@@ -9,6 +9,11 @@ class conn_fsm_handler_t;
 class server_t;
 class shutdown_conns_message_t;
 
+/* The conn_acceptor_t is responsible for accepting incoming network connections, creating
+conn_fsms to deal with them, and shutting down the network connections when the server
+shuts down. It uses net_listener_t to actually accept the connections. The server_t
+creates one conn_acceptor_t for the entire lifetime of the server. */
+
 class conn_acceptor_t :
     public net_listener_callback_t,
     public home_cpu_mixin_t
@@ -48,12 +53,19 @@ private:
     shutdown_callback_t *shutdown_callback;
 };
 
+/* conn_fsm_handler_t takes care of a particular connection. There is a one-to-one
+relationship between conn_fsm_handler_t and conn_fsm_t. The reason why
+conn_fsm_handler_t is a separate type from conn_fsm_t is to make it so that
+conn_fsm_t isn't too closely tied to conn_acceptor_t. */
+
 class conn_fsm_handler_t :
     public cpu_message_t,
     public conn_fsm_shutdown_callback_t,
     public intrusive_list_node_t<conn_fsm_handler_t>,
     public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, conn_fsm_handler_t>
 {
+    friend class conn_acceptor_t;
+    friend class shutdown_conns_message_t;
 
 public:
     conn_fsm_handler_t(conn_acceptor_t *parent, net_conn_t *conn);

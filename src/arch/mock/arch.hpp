@@ -3,6 +3,10 @@
 
 #include "arch/mock/io.hpp"
 
+/* The "mock" architecture is a replacement IO layer that sits on top of the actual
+IO layer. It introduces arbitrary delays in the IO calls in order to expose bugs
+in the code that uses the IO layer. */
+
 template<class inner_io_config_t>
 struct mock_io_config_t {
     

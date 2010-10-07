@@ -72,6 +72,10 @@ private:
     void on_epoll(int events);
 };
 
+/* The "direct" in linux_direct_file_t refers to the fact that the file is opened in
+O_DIRECT mode, and there are restrictions on the alignment of the chunks being written
+and read to and from the file. */
+
 class linux_direct_file_t :
     public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, linux_direct_file_t>
 {
@@ -105,8 +109,6 @@ private:
     uint64_t file_size;
     void verify(size_t offset, size_t length, void* buf);
 };
-
-/* TODO: Batch requests internally so that we can send multiple requests per syscall */
 
 #endif // __IO_CALLS_HPP__
 
