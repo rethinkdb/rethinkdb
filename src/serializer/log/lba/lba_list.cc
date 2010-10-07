@@ -195,7 +195,6 @@ void lba_list_t::prepare_metablock(metablock_mixin_t *mb_out) {
 }
 
 struct gc_fsm_t :
-    public lock_available_callback_t,
     public lba_disk_structure_t::sync_callback_t,
     public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, gc_fsm_t>
 {
