@@ -185,11 +185,16 @@ class Server(object):
             command_line = cmd_line + command_line
         
         # Start the server
-        if self.opts["interactive"]:
-            self.server = subprocess.Popen(command_line)
-        else:
-            self.server = subprocess.Popen(command_line,
-                                           stdout = server_output, stderr = subprocess.STDOUT)
+        try:
+            if self.opts["interactive"]:
+                self.server = subprocess.Popen(command_line)
+            else:
+                self.server = subprocess.Popen(command_line,
+                                               stdout = server_output, stderr = subprocess.STDOUT)
+        except Exception as e:
+            print command_line
+            raise e
+            
         self.running = True
         
         # Start netrecord if necessary
@@ -265,6 +270,10 @@ class Server(object):
         assert self.running
         self.running = False
         
+        if self.opts["interactive"]:
+            # We're in interactive mode, probably in GDB. Don't kill it.
+            return True
+        
         # Shut down the server
         self.server.send_signal(signal.SIGINT)
         
@@ -320,6 +329,10 @@ class Server(object):
         return True
         
     def kill(self):
+        
+        if self.opts["interactive"]:
+            # We're in interactive mode, probably in GDB. Don't kill it.
+            return True
         
         # Make sure the server didn't shut down without being asked to
         if not self.verify():

@@ -75,6 +75,9 @@ public:
     virtual ~log_serializer_t();
 
 public:
+    typedef log_serializer_metablock_t metablock_t;
+    
+public:
     /* data to be serialized with each data block */
     typedef data_block_manager_t::buf_data_t buf_data_t;
 
@@ -153,6 +156,9 @@ public:
     size_t block_size;
 
 private:
+    void prepare_metablock(metablock_t *mb_buffer);
+
+private:
     enum state_t {
         state_unstarted,
         state_starting_up,
@@ -165,8 +171,6 @@ private:
     
     char db_path[MAX_DB_FILE_NAME];
     direct_file_t *dbfile;
-    
-    typedef log_serializer_metablock_t metablock_t;
     
     extent_manager_t extent_manager;
     mb_manager_t metablock_manager;
@@ -199,6 +203,10 @@ public:
     int extent_refcount(off64_t offset) {
         return lba_index.extent_refcount(offset);
     }
+#endif
+
+#ifndef NDEBUG
+    metablock_t debug_mb_buffer;
 #endif
 };
 

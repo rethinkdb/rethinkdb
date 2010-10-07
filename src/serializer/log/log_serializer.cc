@@ -82,6 +82,9 @@ struct ls_start_fsm_t :
         
         if (state == state_start_lba) {
             if (metablock_found) {
+#ifndef NDEBUG
+                memcpy(&ser->debug_mb_buffer, &metablock_buffer, sizeof(metablock_buffer));
+#endif
                 ser->extent_manager.start(ser->dbfile, &metablock_buffer.extent_manager_part);
                 ser->data_block_manager.start(ser->dbfile, &metablock_buffer.data_block_manager_part);
                 if (ser->lba_index.start(ser->dbfile, &metablock_buffer.lba_index_part, this)) {
@@ -95,6 +98,9 @@ struct ls_start_fsm_t :
                 ser->data_block_manager.start(ser->dbfile);
                 ser->lba_index.start(ser->dbfile);
                 state = state_write_initial_superblock;
+#ifndef NDEBUG
+                ser->prepare_metablock(&ser->debug_mb_buffer);
+#endif
             }
         }
         
@@ -133,6 +139,16 @@ struct ls_start_fsm_t :
                 if(ready_callback)
                     ready_callback->on_serializer_ready();
             }
+
+#ifndef NDEBUG
+            if(metablock_found) {
+                log_serializer_t::metablock_t debug_mb_buffer;
+                ser->prepare_metablock(&debug_mb_buffer);
+                // Make sure that the metablock has not changed since the last
+                // time we recorded it
+                assert(memcmp(&debug_mb_buffer, &ser->debug_mb_buffer, sizeof(debug_mb_buffer)) == 0);
+            }
+#endif
             
             delete this;
             return true;
@@ -349,10 +365,8 @@ struct ls_write_fsm_t :
         /* Prepare metablock now instead of in when we write it so that we will have the correct
         metablock information for this write even if another write starts before we finish writing
         our data and LBA. */
-        
-        ser->extent_manager.prepare_metablock(&mb_buffer.extent_manager_part);
-        ser->data_block_manager.prepare_metablock(&mb_buffer.data_block_manager_part);
-        ser->lba_index.prepare_metablock(&mb_buffer.lba_index_part);
+
+        ser->prepare_metablock(&mb_buffer);
         
         /* Get in line for the metablock manager */
         
@@ -469,9 +483,23 @@ bool log_serializer_t::do_write(write_t *writes, int num_writes, write_txn_callb
     // datablock manager on gc (because it's writing the final gc as
     // we're shutting down). That is ok, which is why we don't assert
     // on state here.
-    
+
+#ifndef NDEBUG
+    metablock_t _debug_mb_buffer;
+    prepare_metablock(&_debug_mb_buffer);
+    // Make sure that the metablock has not changed since the last
+    // time we recorded it
+    assert(memcmp(&_debug_mb_buffer, &debug_mb_buffer, sizeof(debug_mb_buffer)) == 0);
+#endif
+                
     ls_write_fsm_t *w = new ls_write_fsm_t(this, writes, num_writes);
-    return w->run(callback);
+    bool res = w->run(callback);
+
+#ifndef NDEBUG
+    prepare_metablock(&debug_mb_buffer);
+#endif
+
+    return res;
 }
 
 bool log_serializer_t::do_read(block_id_t block_id, void *buf, read_callback_t *callback) {
@@ -573,3 +601,9 @@ void log_serializer_t::on_lba_shutdown() {
     next_shutdown_step();
 }
 
+void log_serializer_t::prepare_metablock(metablock_t *mb_buffer) {
+    bzero(mb_buffer, sizeof(*mb_buffer));
+    extent_manager.prepare_metablock(&mb_buffer->extent_manager_part);
+    data_block_manager.prepare_metablock(&mb_buffer->data_block_manager_part);
+    lba_index.prepare_metablock(&mb_buffer->lba_index_part);
+}

@@ -8,7 +8,6 @@
 #include "disk_format.hpp"
 #include "in_memory_index.hpp"
 #include "disk_structure.hpp"
-#include "concurrency/rwi_lock.hpp"
 #include "serializer/log/data_block_manager.hpp"
 
 class lba_start_fsm_t;
@@ -94,9 +93,6 @@ private:
     
     in_memory_index_t *in_memory_index;
     
-    /* rwi_read permission on this lock grants permission to call disk_structure->sync().
-    rwi_write permission on this lock grants permission to GC the disk structure. */
-    rwi_lock_t disk_structure_lock;
     lba_disk_structure_t *disk_structure;
     
     void gc();

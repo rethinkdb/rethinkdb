@@ -145,7 +145,6 @@ void lba_list_t::delete_block(block_id_t block) {
 }
 
 struct lba_syncer_t :
-    public lock_available_callback_t,
     public lba_disk_structure_t::sync_callback_t,
     public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, lba_syncer_t>
 {
@@ -157,21 +156,12 @@ struct lba_syncer_t :
     
     bool run(lba_list_t::sync_callback_t *cb) {
         callback = NULL;
-        if (do_acquire_lock()) {
+        if (do_write()) {
             return true;
         } else {
             callback = cb;
             return false;
         }
-    }
-    
-    bool do_acquire_lock() {
-        if (owner->disk_structure_lock.lock(rwi_read, this)) return do_write();
-        else return false;
-    }
-    
-    void on_lock_available() {
-        do_write();
     }
     
     bool do_write() {
@@ -184,7 +174,6 @@ struct lba_syncer_t :
     }
     
     bool finish() {
-        owner->disk_structure_lock.unlock();
         if (callback) callback->on_lba_sync();
         delete this;
         return true;
@@ -212,11 +201,10 @@ struct gc_fsm_t :
 {
     lba_list_t *owner;
     gc_fsm_t(lba_list_t *owner)
-        : owner(owner) {
-        if (owner->disk_structure_lock.lock(rwi_write, this)) {
+        : owner(owner)
+        {
             do_replace_disk_structure();
         }
-    }
     
     void on_lock_available() {
         do_replace_disk_structure();
@@ -235,16 +223,6 @@ struct gc_fsm_t :
             owner->disk_structure->add_entry(id, owner->get_block_offset(id));
         }
         
-        /* Downgrade the lock from a write lock to a read lock; we are done with the
-        replacement operation, but we still need to hold the lock for reading so that
-        another GC doesn't replace it out from under *us*. */
-        
-        owner->disk_structure_lock.unlock();
-        bool ok __attribute__((unused));
-        ok = owner->disk_structure_lock.lock(rwi_read, NULL);
-        // If this fails, there was another GC waiting for the lock when we released it
-        assert(ok);
-        
         /* Sync the new LBA */
         
         if (owner->disk_structure->sync(this)) {
@@ -257,7 +235,6 @@ struct gc_fsm_t :
     }
     
     void do_cleanup() {
-        owner->disk_structure_lock.unlock();
         owner->gc_fsm = NULL;
 
         if(owner->state == lba_list_t::state_shutting_down)

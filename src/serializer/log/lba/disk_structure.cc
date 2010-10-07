@@ -146,7 +146,10 @@ bool lba_disk_structure_t::sync(sync_callback_t *cb) {
     lba_writer_t *writer = new lba_writer_t(cb);
     
     if (last_extent) {
+        printf("sync::last_extent exists\n");
         if (!last_extent->sync(writer)) writer->outstanding_cbs++;
+    } else {
+        printf("sync::last_extent does not exist\n");
     }
     
     if (superblock) {
@@ -178,6 +181,9 @@ void lba_disk_structure_t::prepare_metablock(lba_metablock_mixin_t *mb_out) {
     if (last_extent) {
         mb_out->last_lba_extent_offset = last_extent->offset;
         mb_out->last_lba_extent_entries_count = last_extent->count;
+
+        assert((offsetof(lba_extent_t, entries[0]) + sizeof(lba_entry_t) * mb_out->last_lba_extent_entries_count)
+               % DEVICE_BLOCK_SIZE == 0);
     } else {
         mb_out->last_lba_extent_offset = NULL_OFFSET;
         mb_out->last_lba_extent_entries_count = 0;
