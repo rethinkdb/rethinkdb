@@ -42,6 +42,12 @@ public:
         S_READ_FAILURE
     };
 
+    //enum large_value_state {
+    //    lv_state_unknown,
+    //    lv_state_ready,
+    //    lv_state_copying
+    //};
+
 
 public:
     btree_fsm_t(btree_key *_key, btree_key_value_store_t *store)

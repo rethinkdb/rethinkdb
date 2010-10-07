@@ -202,7 +202,7 @@ private:
 
         if (length == 0) {
             req->rh->fill_lv_msg = this;
-            req->rh->conn_fsm->dummy_sock_event();
+            //req->rh->conn_fsm->dummy_sock_event();
             //if (continue_on_cpu(return_cpu, this)) on_cpu_switch();
         }
     }
@@ -230,7 +230,7 @@ private:
         //if (next_segment == large_value->get_num_segments()) {
         if (length == 0) {
             req->rh->fill_lv_msg = this;
-            req->rh->conn_fsm->dummy_sock_event();
+            //req->rh->conn_fsm->dummy_sock_event();
         }
     }
 };
@@ -254,7 +254,9 @@ public:
 
 public:
     write_large_value_msg_t(large_buf_t *large_value, request_callback_t *req, large_value_completed_callback *cb)
-        : large_value(large_value), req(req), next_segment(0), cb(cb), state(ready) {}
+        : large_value(large_value), req(req), next_segment(0), cb(cb), state(ready) {
+fprintf(stderr, "write_lv_msg constructed on cpu %d\n", get_cpu_id());
+    }
 
     void on_cpu_switch() {
         switch (state) {
@@ -297,7 +299,9 @@ private:
             state = completed;
             
             // continue_on_cpu() returns true if we are already on that cpu
-            if (continue_on_cpu(return_cpu, this)) on_cpu_switch();
+fprintf(stderr, "read_segments done; continuing on cpu %d (this cpu: %u)\n", return_cpu, get_cpu_id());
+            //if (continue_on_cpu(return_cpu, this)) on_cpu_switch();
+            if (continue_on_cpu(return_cpu, this)) call_later_on_this_cpu(this);
         }
     }
 };

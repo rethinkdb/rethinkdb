@@ -78,6 +78,7 @@ public:
     bool add_get(btree_key *key) {
         if (num_fsms < MAX_OPS_IN_REQUEST) {
             btree_get_fsm_t *fsm = new btree_get_fsm_t(key, &rh->server->store, this);
+fprintf(stderr, "getting key %*.*s, rh on cpu %d, sending (fsm %p) to %d\n", key->size, key->size, key->contents, get_cpu_id(), fsm, key_to_cpu(key, rh->event_queue->parent->nworkers));
             fsms[num_fsms ++] = fsm;
             nfsms++;
             return true;
@@ -108,20 +109,31 @@ public:
     }
 
     void on_fsm_ready() {
+fprintf(stderr, "on_fsm_ready(); curr_fsm %d\n", curr_fsm);
         linked_buf_t *sbuf = rh->conn_fsm->sbuf; // XXX
         while (curr_fsm < num_fsms) {
             btree_get_fsm_t *fsm = fsms[curr_fsm];
+            if (fsm->state < btree_get_fsm_t::large_value_acquired) { // XXX
+fprintf(stderr, "o_f_r state < lv_acquired; returning\n");
+                return;
+            }
+fprintf(stderr, "o_f_r switching\n");
             switch (fsm->status_code) {
                 case btree_get_fsm_t::S_SUCCESS:
+fprintf(stderr, "o_f_r S_SUCCESS\n");
                     if (fsm->value.is_large()) {
+fprintf(stderr, "o_f_r is_large\n");
                         if (fsm->state == btree_get_fsm_t::large_value_acquired) {
+fprintf(stderr, "o_f_r state == lv_acquired\n");
                             value_header(sbuf, fsm);
                             fsm->state = btree_get_fsm_t::large_value_writing; // XXX
                             fsm->write_lv_msg->begin_write(); // Double XXX
                             return;
                         } else if (fsm->state == btree_get_fsm_t::lookup_complete) {
+fprintf(stderr, "o_f_r state == complete\n");
                             sbuf->printf("\r\n");
                         } else {
+fprintf(stderr, "o_f_r state == other (%d)\n", fsm->state);
                             return;
                         }
                     } else {
@@ -145,6 +157,7 @@ public:
         on_fsm_ready();
         assert(curr_fsm == num_fsms);
         sbuf->printf(RETRIEVE_TERMINATOR);
+fprintf(stderr, "GET COMPLETED SUCCESSFULLY!\n\n\n\n\n\n\n\n");
         return true;
     }
 
@@ -167,11 +180,11 @@ public:
     // then dispatch() is called.
 
     txt_memcached_get_cas_request_t(txt_memcached_handler_t *rh)
-        : txt_memcached_request_t(rh, false), num_fsms(0) {}
+        : txt_memcached_request_t(rh, false), num_fsms(0), curr_fsm(0) {}
 
     bool add_get(btree_key *key) {
         if (num_fsms < MAX_OPS_IN_REQUEST) {
-            btree_get_cas_fsm_t *fsm = new btree_get_cas_fsm_t(key, &rh->server->store);
+            btree_get_cas_fsm_t *fsm = new btree_get_cas_fsm_t(key, &rh->server->store, this);
             fsms[num_fsms ++] = fsm;
             nfsms++;
             return true;
@@ -192,36 +205,73 @@ public:
         }
     }
 
-    bool build_response(linked_buf_t *sbuf) {
-        for(int i = 0; i < num_fsms; i++) {
-            btree_get_cas_fsm_t *fsm = fsms[i];
+    void value_header(linked_buf_t *sbuf, btree_get_cas_fsm_t *fsm) {
+        // TODO: Figure out stats.
+        get_cpu_context()->worker->get_hits++;
+        sbuf->printf("VALUE %*.*s %u %u %llu\r\n",
+            fsm->key.size, fsm->key.size, fsm->key.contents,
+            fsm->value.value_size(),
+            fsm->value.mcflags(),
+            fsm->value.cas());
+    }
+
+    void on_fsm_ready() {
+        linked_buf_t *sbuf = rh->conn_fsm->sbuf; // XXX
+        while (curr_fsm < num_fsms) {
+            btree_get_cas_fsm_t *fsm = fsms[curr_fsm];
             switch (fsm->status_code) {
-                case btree_get_cas_fsm_t::S_SUCCESS:
-                    // TODO PERFMON get_cpu_context()->worker->get_hits++;
-                    assert(!fsm->value.is_large());
-                    get_cpu_context()->worker->get_hits++;
-                    sbuf->printf("VALUE %*.*s %u %u %llu\r\n",
-                        fsm->key.size, fsm->key.size, fsm->key.contents,
-                        fsm->value.mcflags(),
-                        fsm->value.value_size(),
-                        fsm->value.cas());
-                    sbuf->append(fsm->value.value(), fsm->value.value_size());
-                    sbuf->printf("\r\n");
+                case btree_get_fsm_t::S_SUCCESS:
+                    //value_header(sbuf, fsm);
+                    //sbuf->append(fsm->value.value(), fsm->value.value_size());
+                    //sbuf->printf("\r\n");
+                    if (fsm->value.is_large()) {
+                        if (fsm->state == btree_get_cas_fsm_t::operating) {
+                            value_header(sbuf, fsm);
+                            //fsm->state = btree_get_cas_fsm_t::
+                            fsm->write_lv_msg->begin_write();
+                            return;
+                        } else if (fsm->state > btree_get_cas_fsm_t::operating) { // XXX!
+                            sbuf->printf("\r\n");
+                        } else {
+                            return;
+                        }
+                        //if (fsm->state == btree_get_cas_fsm_t::large_value_acquired) {
+                        //    value_header(sbuf, fsm);
+                        //    fsm->state = btree_get_cas_fsm_t::large_value_writing; // XXX
+                        //    fsm->write_lv_msg->begin_write(); // Double XXX
+                        //    return;
+                        //} else if (fsm->state == btree_get_cas_fsm_t::lookup_complete) {
+                        //    sbuf->printf("\r\n");
+                        //} else {
+                        //    return;
+                        //}
+                    } else {
+                        value_header(sbuf, fsm);
+                        sbuf->append(fsm->value.value(), fsm->value.value_size());
+                        sbuf->printf("\r\n");
+                    }
                     break;
-                case btree_get_cas_fsm_t::S_NOT_FOUND:
-                    // TODO PERFMON get_cpu_context()->worker->get_misses++;
+                case btree_get_fsm_t::S_NOT_FOUND:
+                    get_cpu_context()->worker->get_misses++;
                     break;
                 default:
                     assert(0);
                     break;
             }
+            curr_fsm++;
         }
+    }
+
+    bool build_response(linked_buf_t *sbuf) {
+        on_fsm_ready();
+        assert(curr_fsm == num_fsms);
         sbuf->printf(RETRIEVE_TERMINATOR);
         return true;
     }
 
 private:
     int num_fsms;
+    int curr_fsm;
     btree_get_cas_fsm_t *fsms[MAX_OPS_IN_REQUEST];
 };
 
@@ -231,15 +281,10 @@ class txt_memcached_set_request_t :
 public:
     txt_memcached_set_request_t(txt_memcached_handler_t *rh, btree_key *key, bool is_large, uint32_t length, byte *data, btree_set_fsm_t::set_type_t type, btree_value::mcflags_t mcflags, btree_value::exptime_t exptime, btree_value::cas_t req_cas, bool noreply)
         : txt_memcached_request_t(rh, noreply),
-<<<<<<< HEAD
           fsm(new btree_set_fsm_t(key, &rh->server->store, this, data, length, type, mcflags, convert_exptime(exptime), req_cas)) {
+          fsm(new btree_set_fsm_t(key, &rh->server->store, this, is_large, length, data, type, mcflags, convert_exptime(exptime), req_cas)) {
         fsm->run(this);
         nfsms = 1;
-=======
-          fsm(new btree_set_fsm_t(key, this, is_large, length, data, type, mcflags, convert_exptime(exptime), req_cas)) {
-        this->request->add(fsm, key_to_cpu(key, rh->event_queue->parent->nworkers));
-        this->request->dispatch();
->>>>>>> Append/prepend on large values (mostly working).
     }
 
     ~txt_memcached_set_request_t() {
@@ -268,6 +313,7 @@ public:
                 assert(0);
                 break;
         }
+fprintf(stderr, "SET COMPLETED SUCCESSFULLY!\n\n\n\n\n\n\n\n");
         return true;
     }
 
@@ -341,15 +387,10 @@ class txt_memcached_append_prepend_request_t :
 public:
     txt_memcached_append_prepend_request_t(txt_memcached_handler_t *rh, btree_key *key, bool got_large, int length, byte *data, bool append, bool noreply)
         : txt_memcached_request_t(rh, noreply),
-<<<<<<< HEAD
           fsm(new btree_append_prepend_fsm_t(key, &rh->server->store, data, length, append)) {
+          fsm(new btree_append_prepend_fsm_t(key, &rh->server->store, this, got_large, length, data, append)) {
         fsm->run(this);
         nfsms = 1;
-=======
-          fsm(new btree_append_prepend_fsm_t(key, this, got_large, length, data, append)) {
-        this->request->add(fsm, key_to_cpu(key, rh->event_queue->parent->nworkers));
-        this->request->dispatch();
->>>>>>> Append/prepend on large values (mostly working).
     }
 
     ~txt_memcached_append_prepend_request_t() {

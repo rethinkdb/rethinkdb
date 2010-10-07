@@ -4,6 +4,7 @@ large_buf_t::large_buf_t(transaction_t *txn) : transaction(txn), num_acquired(0)
     assert(sizeof(large_buf_index) <= IO_BUFFER_SIZE); // Where should this go?
     assert(transaction);
     // XXX Can we know the size in here already?
+fprintf(stderr, "large value constructed (%p)\n", this);
 }
 
 void large_buf_t::allocate(uint32_t _size) {
@@ -151,21 +152,60 @@ void large_buf_t::fill_at(uint32_t pos, const byte *data, uint32_t fill_size) {
 
 void large_buf_t::unappend(uint32_t extra_size) {
     assert(state == loaded);
+    assert(extra_size < size);
+
+    uint16_t old_last_ix = pos_to_ix(size - extra_size);
+    uint16_t old_last_seg_pos = pos_to_seg_pos(size - extra_size);
+    if (old_last_seg_pos == 0) old_last_ix--; // If a segment was completely full, pos_to_ix gave us the index of the next segment.
+    for (int i = old_last_ix + 1; i < get_num_segments(); i++) {
+        bufs[i]->mark_deleted();
+        bufs[i]->release();
+    }
+    uint16_t old_num_segs = get_num_segments() - old_last_ix;
+    get_index_write()->num_segments = old_num_segs;
+    size -= extra_size;
 }
 
 void large_buf_t::unprepend(uint32_t extra_size) {
+    assert(state == loaded);
+    assert(extra_size < size);
+
+    large_buf_index *index = get_index_write();
+
+    uint16_t last_seg_pos = pos_to_seg_pos(size);
+    uint16_t num_segs = get_num_segments();
+    uint16_t old_fbo = (BTREE_USABLE_BLOCK_SIZE - ((size - last_seg_pos - extra_size) % BTREE_USABLE_BLOCK_SIZE)) % BTREE_USABLE_BLOCK_SIZE;
+    uint16_t new_segs = (extra_size + BTREE_USABLE_BLOCK_SIZE - old_fbo - 1) / BTREE_USABLE_BLOCK_SIZE;
+    uint16_t old_num_segs = num_segs - new_segs;
+
+    for (int i = 0; i < new_segs; i++) {
+        bufs[i]->mark_deleted();
+        bufs[i]->release();
+    }
+
+    memmove(index->blocks, index->blocks + new_segs, old_num_segs * sizeof(*index->blocks));
+    memmove(bufs, bufs + new_segs, old_num_segs * sizeof(*bufs));
+
+    index->first_block_offset = old_fbo;
+    index->num_segments = old_num_segs;
+    size -= extra_size;
+    assert(last_seg_pos == pos_to_seg_pos(size));
 }
 
 // Blach.
 uint16_t large_buf_t::pos_to_ix(uint32_t pos) {
-    return pos < BTREE_USABLE_BLOCK_SIZE - get_index()->first_block_offset
-         ? 0
-         : (pos + get_index()->first_block_offset) / BTREE_USABLE_BLOCK_SIZE;
+    uint16_t ix = pos < BTREE_USABLE_BLOCK_SIZE - get_index()->first_block_offset
+                ? 0
+                : (pos + get_index()->first_block_offset) / BTREE_USABLE_BLOCK_SIZE;
+    assert(ix <= get_num_segments());
+    return ix;
 }
 uint16_t large_buf_t::pos_to_seg_pos(uint32_t pos) {
-    return pos < BTREE_USABLE_BLOCK_SIZE - get_index()->first_block_offset
-         ? pos
-         : (pos + get_index()->first_block_offset) % BTREE_USABLE_BLOCK_SIZE;
+    uint16_t seg_pos = pos < BTREE_USABLE_BLOCK_SIZE - get_index()->first_block_offset
+                     ? pos
+                     : (pos + get_index()->first_block_offset) % BTREE_USABLE_BLOCK_SIZE;
+    assert(seg_pos < BTREE_USABLE_BLOCK_SIZE);
+    return seg_pos;
 }
 
 
@@ -180,6 +220,12 @@ void large_buf_t::mark_deleted() {
 }
 
 void large_buf_t::release() {
+flockfile(stderr);
+fprintf(stderr, "release() called (%p) (cpu %u):\n", this, get_cpu_id());
+//fprintf(stderr, "------------------------------\n");
+//print_backtrace();
+//fprintf(stderr, "------------------------------\n");
+funlockfile(stderr);
     assert(state == loaded);
     uint16_t num_segments = get_num_segments(); // Since we'll be releasing the index.
     index_buf->release();
@@ -275,4 +321,5 @@ large_buf_t::~large_buf_t() {
     //assert(state != loading);
     //if (state == loaded) release();
     assert(state == released);
+fprintf(stderr, "large value destructed (%p)\n", this);
 }
