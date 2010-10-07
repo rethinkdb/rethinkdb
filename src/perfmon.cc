@@ -1,3 +1,5 @@
+#if 0
+
 #include "perfmon.hpp"
 #include "config/alloc.hpp"
 #include "cpu_context.hpp"
@@ -124,3 +126,5 @@ void perfmon_msg_t::on_cpu_switch() {
     if (continue_on_cpu(return_cpu, this))
         on_cpu_switch();
 }
+
+#endif

@@ -25,8 +25,8 @@ public:
     };
 
 public:
-    explicit btree_get_fsm_t(btree_key *_key, request_callback_t *req)
-        : btree_fsm_t(_key),
+    explicit btree_get_fsm_t(btree_key *_key, store_t *store, request_callback_t *req)
+        : btree_fsm_t(_key, store),
           large_value(NULL), req(req), state(acquire_superblock), last_buf(NULL), buf(NULL), node_id(NULL_BLOCK_ID)
         {}
 

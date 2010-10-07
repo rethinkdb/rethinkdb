@@ -7,7 +7,6 @@
 #include "extent.hpp"
 #include "../extents/extent_manager.hpp"
 #include "disk_format.hpp"
-#include "cpu_context.hpp"
 
 /*
 The extent_t type represents a LBA extent or LBA superblock extent on the disk.

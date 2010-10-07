@@ -24,8 +24,8 @@ public:
     };
 
 public:
-    explicit btree_modify_fsm_t(btree_key *_key)
-        : btree_fsm_t(_key),
+    explicit btree_modify_fsm_t(btree_key *_key, btree_key_value_store_t *store)
+        : btree_fsm_t(_key, store),
           state(start_transaction),
           sb_buf(NULL), buf(NULL), last_buf(NULL), sib_buf(NULL),
           node_id(NULL_BLOCK_ID), last_node_id(NULL_BLOCK_ID),

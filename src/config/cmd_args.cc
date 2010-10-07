@@ -60,6 +60,9 @@ void init_config(cmd_config_t *config) {
     config->wait_for_flush = false;
     config->flush_timer_ms = DEFAULT_FLUSH_TIMER_MS;
     config->flush_threshold_percent = DEFAULT_FLUSH_THRESHOLD_PERCENT;
+    
+    config->n_slices = BTREE_SHARD_FACTOR;
+    config->n_workers = get_cpu_count();
 }
 
 enum {

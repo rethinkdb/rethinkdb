@@ -5,7 +5,6 @@
 #include "config/args.hpp"
 #include "conn_fsm.hpp"
 #include <stdarg.h>
-#include "cpu_context.hpp"
 #include "arch/arch.hpp"
 
 #define MAX_MESSAGE_SIZE 500

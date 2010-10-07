@@ -2,11 +2,10 @@
 #define __BUFFER_CACHE_SEMANTIC_CHECKING_HPP__
 
 #include "arch/resource.hpp"
+#include "utils.hpp"
 
 /* The semantic-checking cache (scc_cache_t) is a wrapper around another cache that will
-make sure that the inner cache obeys the proper semantics. At least, that's what it's
-supposed to do; as of 9-21 it doesn't actually test anything, but is just a dummy
-wrapper. */
+make sure that the inner cache obeys the proper semantics. */
 
 template<class inner_cache_t> class scc_buf_t;
 template<class inner_cache_t> class scc_transaction_t;
@@ -98,7 +97,9 @@ private:
 /* Cache */
 
 template<class inner_cache_t>
-class scc_cache_t {
+class scc_cache_t :
+    public home_cpu_mixin_t
+{
 
 public:
     typedef scc_buf_t<inner_cache_t> buf_t;

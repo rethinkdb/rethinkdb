@@ -5,7 +5,6 @@
 #include "config/cmd_args.hpp"
 #include "config/alloc.hpp"
 #include "corefwd.hpp"
-#include "cpu_context.hpp"
 #include "arch/arch.hpp"
 
 in_place_serializer_t::in_place_serializer_t(char *_db_path, size_t _block_size)

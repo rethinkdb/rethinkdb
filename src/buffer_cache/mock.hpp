@@ -4,6 +4,7 @@
 #include "arch/resource.hpp"
 #include "concurrency/access.hpp"
 #include "containers/segmented_vector.hpp"
+#include "utils.hpp"
 
 /* The mock cache, mock_cache_t, is a drop-in replacement for mc_cache_t that keeps all of
 its contents in memory and artificially generates delays in responding to requests. It
@@ -37,8 +38,8 @@ class mock_buf_t :
 
 public:
     block_id_t get_block_id();
-    void *get_data();
-    void set_dirty();
+    void *get_data_write();
+    const void *get_data_read();
     void mark_deleted();
     void release();
 
@@ -72,12 +73,17 @@ private:
     friend class mock_cache_t;
     mock_cache_t *cache;
     access_t access;
+    int n_bufs;
+    void finish_committing(mock_transaction_commit_callback_t *cb);
     mock_transaction_t(mock_cache_t *cache, access_t access);
+    ~mock_transaction_t();
 };
 
 /* Cache */
 
-class mock_cache_t {
+class mock_cache_t :
+    public home_cpu_mixin_t
+{
     
 public:
     typedef mock_buf_t buf_t;
@@ -111,10 +117,16 @@ private:
     friend class mock_transaction_t;
     friend class mock_buf_t;
     friend class internal_buf_t;
+    
     buffer_alloc_t alloc;
     bool running;
+    int n_transactions;
     size_t block_size;
     segmented_vector_t<internal_buf_t *, MAX_BLOCK_ID> bufs;
+    
+    shutdown_callback_t *shutdown_callback;
+    bool shutdown_destroy_bufs();
+    void shutdown_finish();
 };
 
 #endif /* __BUFFER_CACHE_MOCK_HPP__ */

@@ -6,71 +6,81 @@
 #include <stdarg.h>
 #include "config/args.hpp"
 #include "config/cmd_args.hpp"
-#include "message_hub.hpp"
-#include "alloc/alloc_mixin.hpp"
+#include "utils.hpp"
 
-
-enum log_level_t { // For now these are just used directly as characters. This isn't a good idea.
+enum log_level_t {
 #ifndef NDEBUG
     DBG = 0,
 #endif
-    INF = 1, WRN, ERR
+    INF = 1,
+    WRN,
+    ERR
 };
 
 
-// The class that actually writes the logs
-class log_writer_t {
+/* server_t creates one log_controller_t for the entire thread pool. The
+log_controller_t takes care of starting and shutting down the per-thread
+logger_t objects. */
+
+class start_logger_message_t;
+class shutdown_logger_message_t;
+
+class log_controller_t :
+    public home_cpu_mixin_t
+{
+    friend class start_logger_message_t;
+    friend class shutdown_logger_message_t;
+
 public:
-    log_writer_t();
-    ~log_writer_t();
-    void start(cmd_config_t *cmd_config);
+    log_controller_t(cmd_config_t *cmd_config);
+    
+    struct ready_callback_t {
+        virtual void on_logger_ready() = 0;
+    };
+    bool start(ready_callback_t *cb);
+    
+    struct shutdown_callback_t {
+        virtual void on_logger_shutdown() = 0;
+    };
+    bool shutdown(shutdown_callback_t *cb);
+    
+    ~log_controller_t();
+    
     void writef(const char *format, ...);
     void write(const char *str);
+
 private:
-    FILE *log_file;
-};
-
-
-// Log messages
-
-struct log_msg_t : public cpu_message_t,
-                   public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, log_msg_t> {
-public:
-    log_msg_t();
-    const char *level_str();
+    void finish_shutting_down();
     
-public:
-    char str[MAX_LOG_MSGLEN];
-    log_level_t level;
-    const char *src_file;
-    int src_line;
-    bool del;
-    void on_cpu_switch();
+    enum state_t {
+        state_off,
+        state_starting_loggers,
+        state_ready,
+        state_shutting_down_loggers
+    } state;
+    cmd_config_t *cmd_config;
+    FILE *log_file;
+    
+    ready_callback_t *ready_callback;
+    shutdown_callback_t *shutdown_callback;
+    
+    /* The number of start_logger_message_ts or shutdown_logger_message_ts in existence,
+    NOT the number of log_msg_ts in existence */
+    int messages_out;
 };
-
-// Per-worker logger
-
-struct logger_t : public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, logger_t> {
-public:
-    logger_t();
-    void _logf(const char *src_file, int src_line, log_level_t level, const char *format, ...);
-    void _mlog_start(const char *src_file, int src_line, log_level_t level);
-    void _mlogf(const char *format, ...);
-    void _mlog_end();
-private:
-    void _vmlogf(const char *format, va_list arg);
-    const char *level_to_str(log_level_t level);
-    log_msg_t *msg;
-};
-
-logger_t *get_logger();
-
-// Log a message in pieces.
-#define mlog_start(lvl) (get_logger()->_mlog_start(__FILE__, __LINE__, (lvl)))
-#define mlogf(fmt, args...) (get_logger()->_mlogf((fmt) , ##args))
-#define mlog_end() (get_logger()->_mlog_end())
 
 // Log a message in one chunk. You still have to provide '\n'.
-#define logf(lvl, fmt, args...) (get_logger()->_logf(__FILE__, __LINE__, (lvl), (fmt) , ##args))
+
+void _logf(const char *src_file, int src_line, log_level_t level, const char *format, ...);
+#define logf(lvl, fmt, args...) (_logf(__FILE__, __LINE__, (lvl), (fmt) , ##args))
+
+// Log a message in pieces.
+
+void _mlog_start(const char *src_file, int src_line, log_level_t level);
+#define mlog_start(lvl) (_mlog_start(__FILE__, __LINE__, (lvl)))
+
+void mlogf(const char *format, ...);
+
+void mlog_end();
 
 #endif // __LOGGER_HPP__

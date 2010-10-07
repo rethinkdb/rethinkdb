@@ -3,7 +3,10 @@
 #define __TXT_MEMCACHED_HANDLER_HPP__
 
 #include "request_handler/request_handler.hpp"
+#include "btree/key_value_store.hpp"
 #include "config/alloc.hpp"
+
+class server_t;
 
 class txt_memcached_handler_t :
     public request_handler_t,
@@ -13,8 +16,8 @@ public:
     using request_handler_t::conn_fsm;
     
 public:
-    txt_memcached_handler_t(event_queue_t *eq, conn_fsm_t *conn_fsm)
-        : request_handler_t(eq, conn_fsm), loading_data(false)
+    txt_memcached_handler_t(server_t *server)
+        : request_handler_t(), loading_data(false), server(server)
         {}
     
     virtual parse_result_t parse_request(event_t *event);
@@ -34,7 +37,7 @@ private:
     btree_value::cas_t cas;
     bool noreply;
     bool loading_data;
-
+    
     parse_result_t parse_storage_command(storage_command command, char *state, unsigned int line_len);
     parse_result_t parse_stat_command(char *state, unsigned int line_len);
     parse_result_t parse_adjustment(bool increment, char *state, unsigned int line_len);
@@ -44,6 +47,9 @@ private:
     parse_result_t remove(char *state, unsigned int line_len);
     parse_result_t malformed_request();
     parse_result_t unimplemented_request();
+
+public:
+    server_t *server;
 };
 
 #endif // __TXT_MEMCACHED_HANDLER_HPP__

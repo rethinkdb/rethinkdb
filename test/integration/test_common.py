@@ -37,7 +37,7 @@ def make_option_parser():
     o["netrecord"] = BoolFlag("--no-netrecord", invert = True)
     o["restart_server_prob"] = FloatFlag("--restart-server-prob", 0)
     o["cores"] = IntFlag("--cores", 2)
-    o["slices"] = IntFlag("--slices", 2)
+    o["slices"] = IntFlag("--slices", 3)
     o["duration"] = IntFlag("--duration", 10)
     return o
 

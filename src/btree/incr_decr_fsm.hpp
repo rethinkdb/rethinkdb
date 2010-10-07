@@ -7,8 +7,8 @@ class btree_incr_decr_fsm_t : public btree_modify_fsm_t,
                               public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, btree_incr_decr_fsm_t> {
     typedef btree_fsm_t::transition_result_t transition_result_t;
 public:
-    explicit btree_incr_decr_fsm_t(btree_key *_key, bool increment, long long delta)
-        : btree_modify_fsm_t(_key),
+    explicit btree_incr_decr_fsm_t(btree_key *_key, btree_key_value_store_t *store, bool increment, long long delta)
+        : btree_modify_fsm_t(_key, store),
           increment(increment),
           delta(delta)
         {}

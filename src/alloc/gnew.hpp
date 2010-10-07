@@ -22,7 +22,8 @@ T* gnew(A1, A2, A3, A4, A5, A6);
 
 template<typename T>
 void gdelete(T *p) {
-    delete p;
+    p->~T();
+    _gfree(p);
 }
 
 // STL gnew allocator

@@ -4,7 +4,6 @@
 
 #include "concurrency/rwi_lock.hpp"
 #include "buffer_cache/mirrored/callbacks.hpp"
-#include "cpu_context.hpp"
 
 /**
  * Since concurrency is handled by slices (one and only one core can

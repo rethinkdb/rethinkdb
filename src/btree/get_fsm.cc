@@ -1,6 +1,5 @@
 #include "get_fsm.hpp"
 #include "utils.hpp"
-#include "cpu_context.hpp"
 
 //TODO: remove
 #include "btree/internal_node.hpp"
@@ -110,7 +109,7 @@ btree_get_fsm_t::transition_result_t btree_get_fsm_t::do_acquire_node(event_t *e
         buf->release();
         buf = NULL;
         if (found && value.expired()) {
-            delete_expired(&key);
+            delete_expired(&key, store);
             found = false;
         }
         if (found && value.large_value()) {

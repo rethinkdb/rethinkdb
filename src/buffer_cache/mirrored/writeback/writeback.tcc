@@ -118,8 +118,7 @@ void writeback_tmpl_t<mc_config_t>::on_transaction_commit(transaction_t *txn) {
         } else if (!flush_timer && flush_timer_ms != NEVER_FLUSH && num_dirty_blocks() > 0) {
             /* Start the flush timer so that the modified data doesn't sit in memory for too long
             without being written to disk. */
-            flush_timer = get_cpu_context()->event_queue->
-                fire_timer_once(flush_timer_ms, flush_timer_callback, this);
+            flush_timer = fire_timer_once(flush_timer_ms, flush_timer_callback, this);
         }
     }
 }
@@ -162,7 +161,7 @@ bool writeback_tmpl_t<mc_config_t>::next_writeback_step() {
         // flush timer, then flush_timer would be NULL here, because flush_timer_callback sets it
         // to NULL.
         if (flush_timer) {
-            get_cpu_context()->event_queue->cancel_timer(flush_timer);
+            cancel_timer(flush_timer);
             flush_timer = NULL;
         }
         

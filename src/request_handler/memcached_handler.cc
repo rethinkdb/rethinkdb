@@ -1,6 +1,5 @@
 #include <string.h>
 #include <string>
-#include "cpu_context.hpp"
 #include "arch/arch.hpp"
 #include "request_handler/memcached_handler.hpp"
 #include "request_handler/bin_memcached_handler.hpp"
@@ -27,10 +26,12 @@ void memcached_handler_t::determine_protocol(const event_t *event)
         
         if (bin_memcached_handler_t::is_valid_magic(*(bin_memcached_handler_t::bin_magic_t*)conn_fsm->rbuf)) {
             //Binary protocol
-            req_handler = new bin_memcached_handler_t(event_queue, conn_fsm);
+            req_handler = new bin_memcached_handler_t(server);
         } else {
             //Textual protocol
-            req_handler = new txt_memcached_handler_t(event_queue, conn_fsm);
-        } 
+            req_handler = new txt_memcached_handler_t(server);
+        }
+        
+        req_handler->conn_fsm = conn_fsm;
     }
 }

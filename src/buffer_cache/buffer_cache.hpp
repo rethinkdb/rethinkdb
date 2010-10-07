@@ -4,7 +4,7 @@
 
 /* Choose our cache */
 
-#ifndef MOCK_CACHE
+#ifndef MOCK_CACHE_CHECK
 
 #include "serializer/serializer.hpp"
 #include "buffer_cache/mirrored/mirrored.hpp"

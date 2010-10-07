@@ -17,7 +17,7 @@ for mode in ["debug", "release"]:
 for mode in ["debug", "release"]:
     for checker in ["valgrind", None]:
         for protocol in ["text"]: # ["text", "binary"]:
-            for (cores, slices) in [(1, 1), (2, 2)]:
+            for (cores, slices) in [(1, 1), (2, 3)]:
                 # Run tests
                 do_test("integration/append_prepend.py",
                         { "auto"        : True,

@@ -2,21 +2,26 @@
 #include <unistd.h>
 #include <errno.h>
 #include "utils.hpp"
-#include "request_handler/memcached_handler.hpp"
 #include <signal.h>
-#include "worker_pool.hpp"
 
 /*
 ~~~ A Brief History of the conn_fsm_t ~~~
 
 Initially, the event queue would call conn_fsm_t::do_transition() and
-then examine the result to figure out what to do.
+then examine the result to figure out what to do. Also, the conn_fsm
+was responsible for creating the request handler.
 
 When Tim abstracted the IO layer, then the events would come through
 conn_fsm_t::on_net_conn_* instead; however, he kept do_transition()
 because he didn't want to rewrite the whole conn_fsm_t.
 
 So event_t and conn_fsm_t::result_t are actually more or less obsolete.
+
+When Tim added server_t and split up the worker_t, he made the
+conn_acceptor_t create the request handler and pass it to the conn_fsm.
+He also created a conn_fsm-like type called a conn_fsm_handler_t.
+Perhaps they should be merged.
+
 TODO: Rewrite this shit.
 */
 
@@ -35,6 +40,8 @@ void conn_fsm_t::init_state() {
 
 // This function returns the socket to clean connected state
 void conn_fsm_t::return_to_socket_connected() {
+    assert(nrbuf == 0);
+    assert(!sbuf || sbuf->outstanding() == linked_buf_t::linked_buf_empty);
     if(rbuf)
         delete (iobuf_t*)(rbuf);
     if(sbuf)
@@ -43,10 +50,12 @@ void conn_fsm_t::return_to_socket_connected() {
 }
 
 conn_fsm_t::result_t conn_fsm_t::fill_buf(void *buf, unsigned int *bytes_filled, unsigned int total_length) {
+    
     // TODO: we assume the command will fit comfortably into
     // IO_BUFFER_SIZE. We'll need to implement streaming later.
     ssize_t sz = conn->read_nonblocking((byte *) buf + *bytes_filled, total_length - *bytes_filled);
-    if(sz == -1) {
+    
+    if (sz == -1) {
         if(errno == EAGAIN || errno == EWOULDBLOCK) {
             // The machine can't be in
             // fsm_socket_send_incomplete state here,
@@ -64,15 +73,24 @@ conn_fsm_t::result_t conn_fsm_t::fill_buf(void *buf, unsigned int *bytes_filled,
         } else {
             check("Could not read from socket", sz == -1);
         }
-    } else if(sz > 0 || *bytes_filled > 0) {
+        
+    } else if (sz > 0 || *bytes_filled > 0) {
         *bytes_filled += sz;
         if (state != fsm_socket_recv_incomplete)
             state = fsm_outstanding_data;
+        
     } else {
-        if (state == fsm_socket_recv_incomplete)
+        if (state == fsm_socket_recv_incomplete) {
             return fsm_no_data_in_socket;
-        else
+            
+        } else {
+            // If the client closes the socket, then we will get an on_net_conn_readable() but there
+            // will be no data on the socket.
+            if (shutdown_callback && !quitting)
+                shutdown_callback->on_conn_fsm_quit();
+            assert(state == fsm_outstanding_data || state == fsm_socket_connected);
             return fsm_quit_connection;
+        }
         // TODO: what about application-level keepalive?
     }
 
@@ -223,12 +241,16 @@ conn_fsm_t::result_t conn_fsm_t::do_fsm_outstanding_req(event_t *event) {
             // the current read loop
             state = fsm_socket_recv_incomplete;
             break;
-        case request_handler_t::op_req_shutdown:
-            // Shutdown has been initiated
-            return fsm_shutdown_server;
         case request_handler_t::op_req_quit:
             // The connection has been closed
-            return fsm_quit_connection;
+            if (shutdown_callback && !quitting)
+                shutdown_callback->on_conn_fsm_quit();
+            if (state == fsm_socket_send_incomplete || state == fsm_btree_incomplete) {
+                quitting = true;
+                return fsm_transition_ok;
+            } else {
+                return fsm_quit_connection;
+            }
         case request_handler_t::op_req_complex:
             // Ain't nothing we can do now - the operations
             // have been distributed accross CPUs. We can just
@@ -269,7 +291,8 @@ void conn_fsm_t::on_net_conn_writable() {
 }
 
 void conn_fsm_t::on_net_conn_close() {
-    delete this;
+    conn = NULL;
+    start_quit();
 }
 
 void conn_fsm_t::do_transition_and_handle_result(event_t *event) {
@@ -280,12 +303,6 @@ void conn_fsm_t::do_transition_and_handle_result(event_t *event) {
         case fsm_no_data_in_socket:
             // Nothing todo
             break;
-        
-        case fsm_shutdown_server: {
-            int res = pthread_kill(get_cpu_context()->event_queue->parent_pool->main_thread, SIGINT);
-            check("Could not send kill signal to main thread", res != 0);
-            break;
-        }
             
         case fsm_quit_connection:
             delete this;
@@ -298,10 +315,7 @@ void conn_fsm_t::do_transition_and_handle_result(event_t *event) {
 // Switch on the current state and call the appropriate transition
 // function.
 conn_fsm_t::result_t conn_fsm_t::do_transition(event_t *event) {
-    // TODO: Using parent_pool member variable within state
-    // transitions might cause cache line alignment issues. Can we
-    // eliminate it (perhaps by giving each thread its own private
-    // copy of the necessary data)?
+    
     result_t res;
 
     switch (state) {
@@ -322,11 +336,12 @@ conn_fsm_t::result_t conn_fsm_t::do_transition(event_t *event) {
             res = fsm_invalid;
             fail("Invalid state");
     }
-    if (state == fsm_outstanding_data && res != fsm_quit_connection && res != fsm_shutdown_server) {
+    if (state == fsm_outstanding_data && res != fsm_quit_connection) {
         if (nrbuf == 0) {
             //fill up the buffer
             event->event_type = et_sock;
             res = read_data(event);
+            if (res == fsm_quit_connection) return res;
         }
         if (state != fsm_outstanding_data)
             return res;
@@ -337,8 +352,12 @@ conn_fsm_t::result_t conn_fsm_t::do_transition(event_t *event) {
 #ifdef MEMCACHED_STRICT
             bool was_corked = corked;
 #endif
-            res = do_fsm_outstanding_req(event);
-            if (res == fsm_shutdown_server || res == fsm_quit_connection) {
+            if (!quitting)
+                res = do_fsm_outstanding_req(event);
+            else
+                res = fsm_quit_connection;
+
+            if (res == fsm_quit_connection) {
                 return_to_socket_connected();
                 return res;
             }
@@ -361,29 +380,26 @@ conn_fsm_t::result_t conn_fsm_t::do_transition(event_t *event) {
     return res;
 }
 
-conn_fsm_t::conn_fsm_t(net_conn_t *conn)
-    : conn(conn), req_handler(NULL)
+conn_fsm_t::conn_fsm_t(net_conn_t *conn, conn_fsm_shutdown_callback_t *c, request_handler_t *rh)
+    : quitting(false), conn(conn), req_handler(rh), shutdown_callback(c)
 {
-    printf("Opened socket %p\n", this);
+    fprintf(stderr, "Opened socket %p\n", this);
     
-    conn->set_callback(this);   // I can haz notifications when there is data on the network?
+    conn->set_callback(this);   // I can haz chezborger when there is data on the network?
     
-    req_handler = new memcached_handler_t(get_cpu_context()->event_queue, this);
     init_state();
     
-    get_cpu_context()->worker->curr_connections++;
-    get_cpu_context()->worker->total_connections++;
-    get_cpu_context()->worker->live_fsms.push_back(this);
+    // TODO PERFMON get_cpu_context()->worker->curr_connections++;
+    // TODO PERFMON get_cpu_context()->worker->total_connections++;
 }
 
 conn_fsm_t::~conn_fsm_t() {
     
-    printf("Closed socket %p\n", this);
+    fprintf(stderr, "Closed socket %p\n", this);
     
-    get_cpu_context()->worker->curr_connections--;
-    get_cpu_context()->worker->live_fsms.remove(this);
+    // TODO PERFMON get_cpu_context()->worker->curr_connections--;
     
-    delete conn;
+    if (conn) delete conn;
     
     delete req_handler;
     
@@ -393,6 +409,35 @@ conn_fsm_t::~conn_fsm_t() {
     
     if (sbuf) {
         delete (sbuf);
+    }
+    
+    if (shutdown_callback)
+        shutdown_callback->on_conn_fsm_shutdown();
+}
+
+void conn_fsm_t::start_quit() {
+    
+    if (quitting) return;
+    
+    if (shutdown_callback)
+        shutdown_callback->on_conn_fsm_quit();
+    
+    quitting = true;
+
+    switch (state) {
+        //Fallthrough intentional
+        case fsm_socket_connected:
+        case fsm_socket_recv_incomplete:
+        case fsm_outstanding_data:
+            consume(nrbuf);
+            return_to_socket_connected();
+            delete this;
+            break;
+        case fsm_socket_send_incomplete:
+        case fsm_btree_incomplete:
+            break;
+        default:
+            fail("Bad state");
     }
 }
 

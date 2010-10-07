@@ -127,18 +127,10 @@ struct ls_start_fsm_t :
         
         if (state == state_finish) {
             state = state_done;
-            assert(ser->state == log_serializer_t::state_starting_up
-                   || ser->state == log_serializer_t::state_shutting_down);
-            
-            if(ser->state == log_serializer_t::state_shutting_down) {
-                // We got a shutdown call while we were starting
-                // up. No need to call ready callback, just shutdown.
-                ser->next_shutdown_step();
-            } else {
-                ser->state = log_serializer_t::state_ready;
-                if(ready_callback)
-                    ready_callback->on_serializer_ready();
-            }
+            assert(ser->state == log_serializer_t::state_starting_up);
+            ser->state = log_serializer_t::state_ready;
+            if(ready_callback)
+                ready_callback->on_serializer_ready();
 
 #ifndef NDEBUG
             if(metablock_found) {
@@ -149,7 +141,7 @@ struct ls_start_fsm_t :
                 assert(memcmp(&debug_mb_buffer, &ser->debug_mb_buffer, sizeof(debug_mb_buffer)) == 0);
             }
 #endif
-            
+   
             delete this;
             return true;
         }
@@ -533,7 +525,7 @@ block_id_t log_serializer_t::gen_block_id() {
 
 bool log_serializer_t::shutdown(shutdown_callback_t *cb) {
     assert(cb);
-    
+    assert(state == state_ready);
     shutdown_callback = cb;
 
     shutdown_state = shutdown_begin;
@@ -547,7 +539,7 @@ bool log_serializer_t::next_shutdown_step() {
     if(shutdown_state == shutdown_begin) {
         // First shutdown step
         shutdown_state = shutdown_waiting_on_serializer;
-        if(state != state_ready || last_write || active_write_count > 0) {
+        if (last_write || active_write_count > 0) {
             state = state_shutting_down;
             shutdown_in_one_shot = false;
             return false;

@@ -7,11 +7,12 @@ GDB_FUNCTIONS_NAME:=rethinkdb-gdb.py
 TAGS:=.tags
 RUN_PORT?=11211
 RUN_FLAGS?=
-VALGRIND_FLAGS?=--leak-check=full --db-attach=yes
+VALGRIND_FLAGS?=--leak-check=full --db-attach=yes --show-reachable=yes
 CALLGRIND_FLAGS?=--simulate-cache=yes --simulate-wb=yes --simulate-hwpref=yes --cacheuse=yes --collect-jumps=yes
 DEBUG?=1
 VALGRIND?=0
 SEMANTIC_SERIALIZER_CHECK?=0
+MOCK_CACHE_CHECK?=0
 VERBOSE?=0
 
 # Choose our directories
@@ -54,6 +55,10 @@ endif
 
 ifeq ($(SEMANTIC_SERIALIZER_CHECK),1)
 CXXFLAGS+=-DSEMANTIC_SERIALIZER_CHECK
+endif
+
+ifeq ($(MOCK_CACHE_CHECK),1)
+CXXFLAGS+=-DMOCK_CACHE_CHECK
 endif
 
 ifeq ($(BTREE_DEBUG),1)

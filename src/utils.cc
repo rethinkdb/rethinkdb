@@ -3,7 +3,7 @@
 #include <string.h>
 #include <unistd.h>
 #include "utils.hpp"
-#include "cpu_context.hpp"
+#include "arch/arch.hpp"
 
 int get_cpu_count() {
     return sysconf(_SC_NPROCESSORS_ONLN);
@@ -102,7 +102,16 @@ void print_hd(void *buf, size_t offset, size_t length) {
 
 void random_delay(void (*fun)(void*), void *arg) {
 
-    int ms = rand() % 30;
+    int ms = rand() % 50;
     
-    get_cpu_context()->event_queue->fire_timer_once(ms, fun, arg);
+    fire_timer_once(ms, fun, arg);
 }
+
+home_cpu_mixin_t::home_cpu_mixin_t()
+    : home_cpu(get_cpu_id()) { }
+
+#ifndef NDEBUG
+void home_cpu_mixin_t::assert_cpu() {
+    assert(home_cpu == get_cpu_id());
+}
+#endif

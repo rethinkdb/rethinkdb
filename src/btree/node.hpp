@@ -34,10 +34,6 @@ struct btree_key {
     }
 };
 
-int key_to_cpu(btree_key *key, unsigned int ncpus);
-
-int key_to_slice(btree_key *key, unsigned int ncpus, unsigned int nslice);
-
 struct btree_value {
     uint8_t size;
     byte metadata_flags;

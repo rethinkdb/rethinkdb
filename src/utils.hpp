@@ -46,6 +46,17 @@ struct buffer_t : public buffer_base_t<_size>,
 {
 };
 
+struct home_cpu_mixin_t {
+
+    int home_cpu;
+    home_cpu_mixin_t();
+
+#ifndef NDEBUG
+    void assert_cpu();
+#else
+    void assert_cpu() { };
+#endif
+};
 
 template <class ForwardIterator, class StrictWeakOrdering>
 bool is_sorted(ForwardIterator first, ForwardIterator last,

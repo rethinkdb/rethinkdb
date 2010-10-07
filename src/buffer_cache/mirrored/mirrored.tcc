@@ -164,9 +164,6 @@ mc_transaction_t<mc_config_t>::mc_transaction_t(cache_t *cache, access_t access)
       begin_callback(NULL),
       commit_callback(NULL),
       state(state_open) {
-#ifndef NDEBUG
-    event_queue = get_cpu_context()->event_queue;
-#endif
     assert(access == rwi_read || access == rwi_write);
 }
 
@@ -229,7 +226,6 @@ mc_buf_t<mc_config_t> *mc_transaction_t<mc_config_t>::allocate(block_id_t *block
 
     /* Make a completely new block, complete with a shiny new block_id. */
     
-    assert(event_queue == get_cpu_context()->event_queue);
 #ifndef NDEBUG
     cache->n_blocks_acquired++;
 #endif
@@ -252,7 +248,6 @@ mc_buf_t<mc_config_t> *mc_transaction_t<mc_config_t>::allocate(block_id_t *block
 template<class mc_config_t>
 mc_buf_t<mc_config_t> *mc_transaction_t<mc_config_t>::acquire(block_id_t block_id, access_t mode,
                                block_available_callback_t *callback) {
-    assert(event_queue == get_cpu_context()->event_queue);
     assert(mode == rwi_read || access != rwi_read);
        
 #ifndef NDEBUG
@@ -436,14 +431,10 @@ void mc_cache_t<mc_config_t>::on_transaction_commit(transaction_t *txn) {
 template<class mc_config_t>
 bool mc_cache_t<mc_config_t>::shutdown(shutdown_callback_t *cb) {
 
-    assert(state == state_starting_up_waiting_for_serializer || state == state_ready);
-    
-    if (state == state_starting_up_waiting_for_serializer) {
-        // We were shut down before we could even finish starting up. We were waiting for the
-        // serializer to call us back to say it was done starting up. There is no need to flush
-        // the writeback because the cache was never initialized and there cannot be any
-        // dirty blocks.
-        state = state_shutting_down_shutdown_serializer;
+    assert(state == state_ready);
+
+    if (num_live_transactions == 0) {
+        state = state_shutting_down_start_flush;
         shutdown_callback = NULL;
         if (next_shutting_down_step()) {
             return true;
@@ -451,24 +442,12 @@ bool mc_cache_t<mc_config_t>::shutdown(shutdown_callback_t *cb) {
             shutdown_callback = cb;
             return false;
         }
-    
     } else {
-        if (num_live_transactions == 0) {
-            state = state_shutting_down_start_flush;
-            shutdown_callback = NULL;
-            if (next_shutting_down_step()) {
-                return true;
-            } else {
-                shutdown_callback = cb;
-                return false;
-            }
-        } else {
-            // The shutdown will be resumed by on_transaction_commit() when the last transaction
-            // completes.
-            state = state_shutting_down_waiting_for_transactions;
-            shutdown_callback = cb;
-            return false;
-        }
+        // The shutdown will be resumed by on_transaction_commit() when the last transaction
+        // completes.
+        state = state_shutting_down_waiting_for_transactions;
+        shutdown_callback = cb;
+        return false;
     }
 }
 
@@ -494,10 +473,10 @@ bool mc_cache_t<mc_config_t>::next_shutting_down_step() {
     }
     
     if (state == state_shutting_down_finish) {
-        state = state_shut_down;
         
         if (shutdown_callback) shutdown_callback->on_cache_shutdown();
         shutdown_callback = NULL;
+        state = state_shut_down;
         
         return true;
     }

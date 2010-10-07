@@ -2,63 +2,6 @@
 #include "btree/leaf_node.hpp"
 #include "btree/internal_node.hpp"
 
-#define get16bits(d) ((((uint32_t)(((const uint8_t *)(d))[1])) << 8)\
-                       +(uint32_t)(((const uint8_t *)(d))[0]) )
-
-uint32_t hash(btree_key *key) {
-    const char *data = key->contents;
-    int len = key->size;
-    uint32_t hash = len, tmp;
-    int rem;
-    if (len <= 0 || data == NULL) return 0;
-
-    rem = len & 3;
-    len >>= 2;
-
-    for (;len > 0; len--) {
-        hash  += get16bits (data);
-        tmp    = (get16bits (data+2) << 11) ^ hash;
-        hash   = (hash << 16) ^ tmp;
-        data  += 2*sizeof (uint16_t);
-        hash  += hash >> 11;
-    }
-
-    switch (rem) {
-        case 3: hash += get16bits (data);
-                hash ^= hash << 16;
-                hash ^= data[sizeof (uint16_t)] << 18;
-                hash += hash >> 11;
-                break;
-        case 2: hash += get16bits (data);
-                hash ^= hash << 11;
-                hash += hash >> 17;
-                break;
-        case 1: hash += *data;
-                hash ^= hash << 10;
-                hash += hash >> 1;
-    }
-
-    /* Force "avalanching" of final 127 bits */
-    hash ^= hash << 3;
-    hash += hash >> 5;
-    hash ^= hash << 4;
-    hash += hash >> 17;
-    hash ^= hash << 25;
-    hash += hash >> 6;
-
-    return hash;
-}
-
-int key_to_cpu(btree_key *key, unsigned int ncpus) {
-    return hash(key) % ncpus;
-}
-
-int key_to_slice(btree_key *key, unsigned int ncpus, unsigned int nslice) {
-    // this avoids hash correlation that would occur if ncpus and nslice weren't coprime
-    // (which is likely since they'll most likely be powers of 2)
-    return (hash(key) / ncpus) % nslice;
-}
-
 bool node_handler::is_underfull(const btree_node *node) {
     return (node_handler::is_leaf(node)     &&     leaf_node_handler::is_underfull(    leaf_node_handler::leaf_node(node)))
         || (node_handler::is_internal(node) && internal_node_handler::is_underfull(internal_node_handler::internal_node(node)));

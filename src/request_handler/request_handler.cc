@@ -1,6 +1,5 @@
 #include "request_handler/request_handler.hpp"
 #include "conn_fsm.hpp"
-#include "worker_pool.hpp"
 
 void request_handler_t::read_value(byte *buf, unsigned int size, data_transferred_callback *cb) {
     // TODO: Put this where it belongs.

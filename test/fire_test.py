@@ -48,7 +48,7 @@ for (mode, checker, protocol) in [("debug", "valgrind", "text")]:
               "protocol"    : protocol })
     
     # More advanced tests in various cores/slices configuration
-    for (cores, slices) in [(1, 1), (2, 2)]:
+    for (cores, slices) in [(1, 1), (2, 3)]:
         do_test("integration/many_keys.py",
                 { "auto"        : True,
                   "mode"        : mode,

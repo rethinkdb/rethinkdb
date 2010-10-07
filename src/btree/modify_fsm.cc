@@ -1,7 +1,5 @@
 #include "btree/modify_fsm.hpp"
 #include "utils.hpp"
-#include "cpu_context.hpp"
-#include "worker_pool.hpp"
 #include "buffer_cache/large_buf.hpp"
 #include "btree/leaf_node.hpp"
 #include "btree/internal_node.hpp"
@@ -357,17 +355,17 @@ btree_modify_fsm_t::transition_result_t btree_modify_fsm_t::do_transition(event_
                 if (update_needed) {
                     // Update stats
                     if (new_value && !key_found) {
-                        get_cpu_context()->worker->total_items++;
-                        get_cpu_context()->worker->curr_items++;
+                        // TODO PERFMON get_cpu_context()->worker->total_items++;
+                        // TODO PERFMON get_cpu_context()->worker->curr_items++;
                     } else if (key_found && !new_value) {
-                        get_cpu_context()->worker->curr_items--;
+                        // TODO PERFMON get_cpu_context()->worker->curr_items--;
                     }
                     
                    assert(have_computed_new_value);
                    assert(node_handler::is_leaf(node));
                    if (new_value) { // We have a new value to insert
                        if (new_value->has_cas()) {
-                           new_value->set_cas(get_cpu_context()->worker->gen_cas());
+                           new_value->set_cas(slice->gen_cas());
                        }
                        bool success = leaf_node_handler::insert(leaf_node_handler::leaf_node(buf->get_data_write()), &key, new_value);
                        check("could not insert leaf btree node", !success);

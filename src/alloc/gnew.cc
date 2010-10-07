@@ -18,7 +18,13 @@ void* operator new(size_t size) throw(std::bad_alloc) {
 }
 
 void operator delete(void *p) {
+#ifndef NDEBUG
+    fail("You are using builtin operator delete, but you somehow failed to trip the warning about "
+        "builtin operator new. Maybe you need to add a virtual destructor somewhere, or maybe "
+        "you are using the delete operator on something that was allocated with gnew().");
+#else
     free(p);
+#endif
 }
 
 void *_gmalloc(size_t size) {

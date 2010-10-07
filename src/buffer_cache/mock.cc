@@ -1,6 +1,4 @@
 #include "buffer_cache/mock.hpp"
-
-#include "cpu_context.hpp"
 #include "arch/arch.hpp"
 
 /* Internal buf object */
@@ -61,22 +59,25 @@ struct internal_buf_t :
             default: fail("Bad access.");
         }
         
-        /* If both writers and readers are waiting, then randomly either let all the
-        readers go or one of the writers go */
+        if (!writing && n_reading == 0) {
         
-        if (waiting_writers.size() > 0 && (waiting_readers.size() == 0 || (random() & 1) == 0)) {
-        
-            mock_buf_t *buf = new mock_buf_t(this, rwi_write);
-            random_delay(waiting_writers[0], &mock_block_available_callback_t::on_block_available, buf);
-            waiting_writers.erase(waiting_writers.begin());
-        
-        } else if (waiting_readers.size() > 0) {
-        
-            for (unsigned i = 0; i < waiting_readers.size(); i++) {
-                mock_buf_t *buf = new mock_buf_t(this, rwi_read);
-                random_delay(waiting_readers[i], &mock_block_available_callback_t::on_block_available, buf);
+            /* If both writers and readers are waiting, then randomly either let all the
+            readers go or one of the writers go */
+            
+            if (waiting_writers.size() > 0 && (waiting_readers.size() == 0 || (random() & 1) == 0)) {
+            
+                mock_buf_t *buf = new mock_buf_t(this, rwi_write);
+                random_delay(waiting_writers[0], &mock_block_available_callback_t::on_block_available, buf);
+                waiting_writers.erase(waiting_writers.begin());
+            
+            } else if (waiting_readers.size() > 0) {
+            
+                for (unsigned i = 0; i < waiting_readers.size(); i++) {
+                    mock_buf_t *buf = new mock_buf_t(this, rwi_read);
+                    random_delay(waiting_readers[i], &mock_block_available_callback_t::on_block_available, buf);
+                }
+                waiting_readers.clear();
             }
-            waiting_readers.clear();
         }
     }
     
@@ -112,13 +113,14 @@ block_id_t mock_buf_t::get_block_id() {
     return internal_buf->block_id;
 }
 
-void *mock_buf_t::get_data() {
+const void *mock_buf_t::get_data_read() {
     return internal_buf->data;
 }
 
-void mock_buf_t::set_dirty() {
+void *mock_buf_t::get_data_write() {
     assert(access == rwi_write);
     dirty = true;
+    return internal_buf->data;
 }
 
 void mock_buf_t::mark_deleted() {
@@ -143,18 +145,25 @@ mock_buf_t::mock_buf_t(internal_buf_t *internal_buf, access_t access)
 /* Transaction */
 
 bool mock_transaction_t::commit(mock_transaction_commit_callback_t *callback) {
-    bool done;
     switch(access) {
         case rwi_read:
-            done = true;
-            break;
+            delete this;
+            return true;
         case rwi_write:
-            done = maybe_random_delay(callback, &mock_transaction_commit_callback_t::on_txn_commit, this);
-            break;
+            if (maybe_random_delay(this, &mock_transaction_t::finish_committing, callback)) {
+                finish_committing(NULL);
+                return true;
+            } else {
+                return false;
+            }
         default: fail("Bad access");
     }
+}
+
+void mock_transaction_t::finish_committing(mock_transaction_commit_callback_t *cb) {
+    
+    if (cb) cb->on_txn_commit(this);
     delete this;
-    return done;
 }
 
 mock_buf_t *mock_transaction_t::acquire(block_id_t block_id, access_t mode, mock_block_available_callback_t *callback) {
@@ -191,7 +200,19 @@ mock_buf_t *mock_transaction_t::allocate(block_id_t *new_block_id) {
 }
 
 mock_transaction_t::mock_transaction_t(mock_cache_t *cache, access_t access)
-    : cache(cache), access(access) { }
+    : cache(cache), access(access) {
+    
+    assert(cache->running);
+    cache->n_transactions++;
+}
+
+mock_transaction_t::~mock_transaction_t() {
+    
+    cache->n_transactions--;
+    if (cache->n_transactions == 0 && !cache->running) {
+        cache->shutdown_destroy_bufs();
+    }
+}
 
 /* Cache */
 
@@ -202,10 +223,11 @@ mock_cache_t::mock_cache_t(
     bool wait_for_flush,
     unsigned int flush_timer_ms,
     unsigned int flush_threshold_percent)
-    : running(false), block_size(block_size) { }
+    : running(false), n_transactions(0), block_size(block_size) { }
 
 mock_cache_t::~mock_cache_t() {
     assert(!running);
+    assert(n_transactions == 0);
 }
 
 bool mock_cache_t::start(ready_callback_t *cb) {
@@ -222,6 +244,8 @@ bool mock_cache_t::start(ready_callback_t *cb) {
 }
 
 mock_transaction_t *mock_cache_t::begin_transaction(access_t access, mock_transaction_begin_callback_t *callback) {
+    
+    assert(running);
     
     mock_transaction_t *txn = new mock_transaction_t(this, access);
     
@@ -242,9 +266,35 @@ bool mock_cache_t::shutdown(shutdown_callback_t *cb) {
     
     running = false;
     
+    shutdown_callback = NULL;
+    if (n_transactions == 0) {
+        if (shutdown_destroy_bufs()) {
+            return true;
+        } else {
+            shutdown_callback = cb;
+            return false;
+        }
+    } else {
+        shutdown_callback = cb;
+        return false;
+    }
+}
+
+bool mock_cache_t::shutdown_destroy_bufs() {
+    
     for (block_id_t i = 0; i < bufs.get_size(); i++) {
         if (bufs[i]) delete bufs[i];
     }
     
-    return maybe_random_delay(cb, &shutdown_callback_t::on_cache_shutdown);
+    if (maybe_random_delay(this, &mock_cache_t::shutdown_finish)) {
+        shutdown_finish();
+        return true;
+    } else {
+        return false;
+    }
+}
+
+void mock_cache_t::shutdown_finish() {
+    
+    if (shutdown_callback) shutdown_callback->on_cache_shutdown();
 }

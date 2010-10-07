@@ -1,8 +1,6 @@
 #include "data_block_manager.hpp"
 #include "log_serializer.hpp"
 #include "utils.hpp"
-
-#include "cpu_context.hpp"
 #include "arch/arch.hpp"
 
 void data_block_manager_t::start(direct_file_t *file) {
@@ -113,7 +111,9 @@ void data_block_manager_t::run_gc() {
                     /* grab the entry */
                     gc_state.current_entry = gc_pq.pop();
 
-                    delete entries.get(gc_state.current_entry.offset / EXTENT_SIZE);
+                    // The reason why the GC deletes the entries instead of the PQ deleting them
+                    // is in case we get a write to the block we are GCing.
+                    gdelete(entries.get(gc_state.current_entry.offset / EXTENT_SIZE));
                     entries.set(gc_state.current_entry.offset / EXTENT_SIZE, NULL);
 
                     /* read all the live data into buffers */

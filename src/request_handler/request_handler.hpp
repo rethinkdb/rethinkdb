@@ -22,14 +22,13 @@ class read_large_value_msg_t;
 class request_handler_t {
 
 public:
-    explicit request_handler_t(event_queue_t *eq, conn_fsm_t *conn_fsm)
-        : event_queue(eq), conn_fsm(conn_fsm), read_lv_msg(NULL) {}
+    explicit request_handler_t()
+        : read_lv_msg(NULL) {}
     virtual ~request_handler_t() {}
 
     enum parse_result_t {
         op_malformed,
         op_partial_packet,
-        op_req_shutdown,
         op_req_quit,
         op_req_complex,
         op_req_parallelizable,
@@ -43,7 +42,6 @@ public:
 
     void request_complete();
     
-    event_queue_t *event_queue;
     conn_fsm_t *conn_fsm;
 
     read_large_value_msg_t *read_lv_msg;

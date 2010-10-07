@@ -1,5 +1,4 @@
 #include <string.h>
-#include "cpu_context.hpp"
 #include "arch/arch.hpp"
 #include "request.hpp"
 #include "request_handler/bin_memcached_handler.hpp"
@@ -11,10 +10,11 @@
 #include "btree/set_fsm.hpp"
 #include "conn_fsm.hpp"
 #include "corefwd.hpp"
-#include "worker_pool.hpp"
+#include "server.hpp"
 
 class bin_memcached_request_t :
-    public request_callback_t
+    public request_callback_t,
+    public btree_fsm_callback_t
 {
 public:
     typedef bin_memcached_handler_t::packet_t packet_t;
@@ -24,8 +24,7 @@ public:
 
 public:
     bin_memcached_request_t(bin_memcached_handler_t *rh, packet_t *pkt)
-        : request_callback_t(rh), opcode(pkt->opcode()), data_type(pkt->data_type()), opaque(pkt->opaque()),
-          request(new request_t(this))
+        : request_callback_t(rh), opcode(pkt->opcode()), data_type(pkt->data_type()), opaque(pkt->opaque())
         {}
 
     /* build_response, necessary so that one request can send multiple packets */
@@ -36,8 +35,8 @@ public:
     
     virtual br_result_t build_response(packet_t *pkt) = 0;
     
-    void on_request_completed() {
-    
+    void on_btree_fsm_complete() {
+        
         conn_fsm_t *c = rh->conn_fsm;
         
         br_result_t res;
@@ -65,7 +64,6 @@ public:
     bin_opcode_t opcode;
     bin_data_type_t data_type;
     bin_opaque_t opaque;
-    request_t *request;
 };
 
 class bin_memcached_get_request_t :
@@ -76,32 +74,30 @@ public:
     typedef bin_memcached_handler_t::packet_t packet_t;
     typedef bin_memcached_request_t::br_result_t br_result_t;
     using bin_memcached_request_t::br_done;
-    using bin_memcached_request_t::request;
     using bin_memcached_request_t::opcode;
 
 public:
     bin_memcached_get_request_t(bin_memcached_handler_t *rh, packet_t *pkt, btree_key *key)
-        : bin_memcached_request_t(rh, pkt), fsm(new btree_get_fsm_t(key, this))
+        : bin_memcached_request_t(rh, pkt), fsm(new btree_get_fsm_t(key, &rh->server->store, this))
         {
-        request->add(fsm, key_to_cpu(key, rh->event_queue->parent->nworkers));
-        request->dispatch();
+        fsm->run(this);
     }
     
     ~bin_memcached_get_request_t() {
-        get_cpu_context()->worker->cmd_get++;
+        // TODO PERFMON get_cpu_context()->worker->cmd_get++;
         delete fsm;
     }
     
     br_result_t build_response(packet_t *res_pkt) {
         switch (fsm->status_code) {
             case btree_get_fsm_t::S_SUCCESS:
-                get_cpu_context()->worker->get_hits++;
+                // TODO PERFMON get_cpu_context()->worker->get_hits++;
                 res_pkt->status(bin_memcached_handler_t::bin_status_no_error);
                 res_pkt->set_value(&fsm->value);
                 res_pkt->set_extras(extra_flags, extra_flags_length);
                 break;
             case btree_get_fsm_t::S_NOT_FOUND:
-                get_cpu_context()->worker->get_misses++;
+                // TODO PERFMON get_cpu_context()->worker->get_misses++;
                 res_pkt->status(bin_memcached_handler_t::bin_status_key_not_found);
                 break;
             default:
@@ -127,19 +123,17 @@ public:
     typedef bin_memcached_handler_t::packet_t packet_t;
     typedef bin_memcached_request_t::br_result_t br_result_t;
     using bin_memcached_request_t::br_done;
-    using bin_memcached_request_t::request;
 
 public:
     bin_memcached_set_request_t(bin_memcached_handler_t *rh, packet_t *pkt, btree_key *key, byte *data, uint32_t size, btree_set_fsm_t::set_type_t type, btree_value::mcflags_t mcflags, btree_value::exptime_t exptime, uint64_t req_cas)
-        : bin_memcached_request_t(rh, pkt), fsm(new btree_set_fsm_t(key, this, data, size, type, mcflags, exptime, req_cas))
+        : bin_memcached_request_t(rh, pkt), fsm(new btree_set_fsm_t(key, &rh->server->store, this, data, size, type, mcflags, exptime, req_cas))
         {
         assert(type == btree_set_fsm_t::set_type_set);   // We haven't hooked up ADD and REPLACE yet, and we're going to handle CAS differently.
-        request->add(fsm, key_to_cpu(key, rh->event_queue->parent->nworkers));
-        request->dispatch();
+        fsm->run(this);
     }
     
     ~bin_memcached_set_request_t() {
-        get_cpu_context()->worker->cmd_set++;
+        // TODO PERFMON get_cpu_context()->worker->cmd_set++;
         delete fsm;
     }
     
@@ -163,18 +157,16 @@ public:
     typedef bin_memcached_handler_t::packet_t packet_t;
     typedef bin_memcached_request_t::br_result_t br_result_t;
     using bin_memcached_request_t::br_done;
-    using bin_memcached_request_t::request;
 
 public:
     bin_memcached_incr_decr_request_t(bin_memcached_handler_t *rh, packet_t *pkt, btree_key *key, bool increment, long long delta)
-        : bin_memcached_request_t(rh, pkt), fsm(new btree_incr_decr_fsm_t(key, increment, delta))
+        : bin_memcached_request_t(rh, pkt), fsm(new btree_incr_decr_fsm_t(key, &rh->server->store, increment, delta))
         {
-        request->add(fsm, key_to_cpu(key, rh->event_queue->parent->nworkers));
-        request->dispatch();
+        fsm->run(this);
     }
     
     ~bin_memcached_incr_decr_request_t() {
-        get_cpu_context()->worker->cmd_set++;
+        // TODO PERFMON get_cpu_context()->worker->cmd_set++;
         delete fsm;
     }
     
@@ -209,17 +201,15 @@ public:
     typedef bin_memcached_handler_t::packet_t packet_t;
     typedef bin_memcached_request_t::br_result_t br_result_t;
     using bin_memcached_request_t::br_done;
-    using bin_memcached_request_t::request;
 
 public:
     bin_memcached_append_prepend_request_t(bin_memcached_handler_t *rh, packet_t *pkt, btree_key *key, byte *data, int size, bool append) :
-        bin_memcached_request_t(rh, pkt), fsm(new btree_append_prepend_fsm_t(key, data, size, append)) {
-        request->add(fsm, key_to_cpu(key, rh->event_queue->parent->nworkers));
-        request->dispatch();
+        bin_memcached_request_t(rh, pkt), fsm(new btree_append_prepend_fsm_t(key, &rh->server->store, data, size, append)) {
+        fsm->run(this);
     }
 
     ~bin_memcached_append_prepend_request_t() {
-        get_cpu_context()->worker->cmd_set++;
+        // TODO PERFMON get_cpu_context()->worker->cmd_set++;
         delete fsm;
     }
 
@@ -250,14 +240,12 @@ public:
     typedef bin_memcached_handler_t::packet_t packet_t;
     typedef bin_memcached_request_t::br_result_t br_result_t;
     using bin_memcached_request_t::br_done;
-    using bin_memcached_request_t::request;
 
 public:
     bin_memcached_delete_request_t(bin_memcached_handler_t *rh, packet_t *pkt, btree_key *key)
-        : bin_memcached_request_t(rh, pkt), fsm(new btree_delete_fsm_t(key))
+        : bin_memcached_request_t(rh, pkt), fsm(new btree_delete_fsm_t(key, &rh->server->store))
         {
-        request->add(fsm, key_to_cpu(key, rh->event_queue->parent->nworkers));
-        request->dispatch();
+        fsm->run(this);
     }
     
     ~bin_memcached_delete_request_t() {
@@ -282,6 +270,8 @@ private:
     btree_delete_fsm_t *fsm;
 };
 
+/*
+TODO PERFMON 
 class bin_memcached_perfmon_request_t :
     public bin_memcached_request_t,
     public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, bin_memcached_perfmon_request_t> {
@@ -335,7 +325,7 @@ public:
             iter++;
             return br_call_again;
         } else {
-            /* we're also sending an empty packet here, but that doesn't require any code */
+            // we're also sending an empty packet here, but that doesn't require any code
             return br_done;
         }
     }
@@ -348,6 +338,8 @@ private:
     perfmon_t combined_perfmon;
     perfmon_t::perfmon_map_t::iterator iter;
 };
+
+*/
 
 //! Parse a binary command received from the user
 bin_memcached_handler_t::parse_result_t bin_memcached_handler_t::parse_request(event_t *event)
@@ -491,7 +483,8 @@ bin_memcached_handler_t::parse_result_t bin_memcached_handler_t::no_op(packet_t 
 }
 
 bin_memcached_handler_t::parse_result_t bin_memcached_handler_t::stat(packet_t *pkt) {
-    new bin_memcached_perfmon_request_t(this, pkt);
+    fail("Perfmon is broken.");
+    // new bin_memcached_perfmon_request_t(this, pkt);
     return request_handler_t::op_req_complex;
 }
 

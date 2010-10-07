@@ -2,7 +2,6 @@
 
 #include "config/args.hpp"
 #include "config/alloc.hpp"
-#include "cpu_context.hpp"
 #include "arch/arch.hpp"
 
 bool rwi_lock_t::lock(access_t access, lock_available_callback_t *callback) {

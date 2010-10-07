@@ -1,3 +1,6 @@
+// TODO PERFMON
+#if 0
+
 #ifndef __PERFMON_HPP__
 #define __PERFMON_HPP__
 
@@ -118,3 +121,4 @@ public:
 
 #endif // __PERFMON_HPP__
 
+#endif

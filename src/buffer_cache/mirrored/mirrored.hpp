@@ -3,7 +3,6 @@
 #define __MIRRORED_CACHE_HPP__
 
 #include "arch/arch.hpp"
-#include "cpu_context.hpp"
 #include "concurrency/access.hpp"
 #include "concurrency/rwi_lock.hpp"
 #include "buffer_cache/mirrored/callbacks.hpp"
@@ -149,10 +148,6 @@ public:
                    block_available_callback_t *callback);
     buf_t *allocate(block_id_t *new_block_id);
 
-#ifndef NDEBUG
-    event_queue_t *event_queue; // For asserts that we haven't changed CPU.
-#endif
-
 private:
     explicit mc_transaction_t(cache_t *cache, access_t access);
     ~mc_transaction_t();
@@ -171,7 +166,8 @@ template<class mc_config_t>
 struct mc_cache_t :
     private mc_config_t::serializer_t::ready_callback_t,
     private mc_config_t::writeback_t::sync_callback_t,
-    private mc_config_t::serializer_t::shutdown_callback_t
+    private mc_config_t::serializer_t::shutdown_callback_t,
+    public home_cpu_mixin_t
 {
     friend class mc_buf_t<mc_config_t>;
     friend class mc_transaction_t<mc_config_t>;
@@ -242,7 +238,8 @@ public:
     /* You should call shutdown() before destroying the cache. It is safe to call shutdown() before
     the cache has finished starting up. If it shuts down immediately, it will return 'true';
     otherwise, it will return 'false' and call 'cb' when it is done starting up.
-    */
+    
+    It is not safe to call the cache's destructor from within on_cache_shutdown(). */
     
 public:
     struct shutdown_callback_t {

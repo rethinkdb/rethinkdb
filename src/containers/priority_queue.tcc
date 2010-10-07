@@ -71,7 +71,7 @@ priority_queue_t<T, Less>::priority_queue_t() {}
 template<class T, class Less>
 priority_queue_t<T, Less>::~priority_queue_t() {
     for (unsigned int i = 0; i < heap.size(); i++)
-        delete heap[i];
+        gdelete(heap[i]);
 }
 
 template<class T, class Less>

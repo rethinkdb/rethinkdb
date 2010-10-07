@@ -4,7 +4,10 @@
 
 #include "request_handler/request_handler.hpp"
 #include "config/alloc.hpp"
+#include "btree/key_value_store.hpp"
 #include "ctype.h"
+
+class server_t;
 
 /*! memcached_handler_t
  *  \brief Implements a wrapper for bin_memcached_handler_t and txt_memcached_handler_t
@@ -15,12 +18,11 @@ class memcached_handler_t :
     public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, memcached_handler_t> {
 public:
     typedef request_handler_t::parse_result_t parse_result_t;
-    using request_handler_t::event_queue;
     using request_handler_t::conn_fsm;
 
 public:
-    memcached_handler_t(event_queue_t *eq, conn_fsm_t *fsm)
-        : request_handler_t(eq, fsm), req_handler(NULL)
+    memcached_handler_t(server_t *server)
+        : request_handler_t(), req_handler(NULL), server(server)
         {}
     ~memcached_handler_t() {
         if (req_handler)
@@ -36,7 +38,8 @@ public:
 private:
 
     request_handler_t *req_handler; // !< the correct memcached request handler
-
+    server_t *server;
+    
     /*! determine_protocol
      *  \brief determine which protocol is being used based on the first byte
      *  \param event an event containing a message using one of the protocols

@@ -9,9 +9,11 @@ enum event_type_t {
     et_empty, et_sock, et_request_complete, et_cache, et_large_buf,
     et_cpu_event, et_commit
 };
+
 enum event_op_t {
     eo_read, eo_write, eo_rdwr
 };
+
 struct event_t {
     /* TODO(NNW): We should make a constructor for this type. */
     event_type_t event_type;

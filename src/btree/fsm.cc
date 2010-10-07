@@ -1,6 +1,5 @@
 #include "fsm.hpp"
 #include "btree/key_value_store.hpp"
-#include "worker_pool.hpp"
 
 // TODO: allow multiple values per key
 // TODO: add cursor/iterator mechanism
@@ -18,13 +17,7 @@ void btree_fsm_t::on_block_available(buf_t *buf) {
     event.buf = buf;
     event.result = 1;
     transition_result_t res = do_transition(&event);
-    if(res == transition_complete) {
-        // Booooyahh, the operation completed. Notify whoever is
-        // interested.
-        if(on_complete) {
-            on_complete(this);
-        }
-    }
+    if(res == transition_complete) done();
 }
 
 void btree_fsm_t::on_large_buf_available(large_buf_t *large_buf) {
@@ -45,8 +38,7 @@ void btree_fsm_t::on_txn_begin(transaction_t *txn) {
     event.event_type = et_cache; // TODO(NNW): This is pretty hacky
     event.buf = txn;
     event.result = 1;
-    if (do_transition(&event) == transition_complete && on_complete)
-        on_complete(this);
+    if (do_transition(&event) == transition_complete) done();
 }
 
 void btree_fsm_t::on_txn_commit(transaction_t *txn) {
@@ -54,22 +46,23 @@ void btree_fsm_t::on_txn_commit(transaction_t *txn) {
     memset(&event, 0, sizeof(event));
     event.event_type = et_commit;
     event.buf = txn;
-    if (do_transition(&event) == transition_complete && on_complete)
-        on_complete(this);
+    if (do_transition(&event) == transition_complete) done();
 }
 
 void btree_fsm_t::step() { // XXX Rename and abstract.
-    if (do_transition(NULL) == transition_complete && on_complete) {
-        on_complete(this);
-    }
+    if (do_transition(NULL) == transition_complete) done();
+}
+
+void btree_fsm_t::done() {
+    if (continue_on_cpu(home_cpu, this)) on_cpu_switch();
 }
 
 void btree_fsm_t::on_cpu_switch() {
     
     if (is_finished()) {
         // We have just been sent back to the core that created us
-        if (request) {
-            request->on_request_part_completed();
+        if (callback) {
+            callback->on_btree_fsm_complete();
         } else {
             // A btree not associated with any request.
             delete this;
@@ -77,8 +70,6 @@ void btree_fsm_t::on_cpu_switch() {
         
     } else {
         // We have just been sent to the core on which to work
-        store_t *store = get_cpu_context()->worker->slice(&key);
-        if (store->run_fsm(this, worker_t::on_btree_completed))
-            worker_t::on_btree_completed(this);
+        step();
     }
 }

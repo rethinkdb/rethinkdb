@@ -3,10 +3,13 @@
 #define __BIN_MEMCACHED_HANDLER_HPP__
 
 #include "request_handler/request_handler.hpp"
+#include "btree/key_value_store.hpp"
 #include "logger.hpp"
 #include "config/alloc.hpp"
 #include <arpa/inet.h>
 #include <endian.h>
+
+class server_t;
 
 // TODO This shouldn't be necessary.
 #define MAX_PACKET_SIZE 200
@@ -25,8 +28,8 @@ public:
     using request_handler_t::conn_fsm;
     
 public:
-    bin_memcached_handler_t(event_queue_t *eq, conn_fsm_t *fsm)
-        : request_handler_t(eq, fsm), key((btree_key*)key_memory)
+    bin_memcached_handler_t(server_t *server)
+        : request_handler_t(), key((btree_key*)key_memory), server(server)
         {}
     
     virtual parse_result_t parse_request(event_t *event);
@@ -820,7 +823,7 @@ private:
     //storage_command cmd;
     char key_memory[MAX_KEY_SIZE+sizeof(btree_key)];
     btree_key * const key;
-
+    
     parse_result_t read_data();
     
     parse_result_t malformed_request();
@@ -830,6 +833,9 @@ private:
     parse_result_t no_op(packet_t *pkt);
     parse_result_t stat(packet_t *pkt);
     parse_result_t version(packet_t *pkt);
+
+public:
+    server_t *server;
 };
 
 #endif // __BIN_MEMCACHED_HANDLER_HPP__

@@ -3,13 +3,8 @@
 #include "config/cmd_args.hpp"
 #include "config/alloc.hpp"
 #include "utils.hpp"
-#include "worker_pool.hpp"
+#include "arch/arch.hpp"
 #include "server.hpp"
-
-void term_handler(int signum) {
-    // We'll naturally break out of the main loop because the accept
-    // syscall will get interrupted.
-}
 
 void crash_handler(int signum) {
     // We call fail here instead of letting the OS handle it because
@@ -17,48 +12,39 @@ void crash_handler(int signum) {
     fail("Internal crash detected.");
 }
 
-void install_handlers() {
+int main(int argc, char *argv[]) {
+    
     int res;
     
-    // Setup termination handlers
     struct sigaction action;
-    bzero((char*)&action, sizeof(action));
-    action.sa_handler = term_handler;
-    res = sigaction(SIGTERM, &action, NULL);
-    check("Could not install TERM handler", res < 0);
-
-    bzero((char*)&action, sizeof(action));
-    action.sa_handler = term_handler;
-    res = sigaction(SIGINT, &action, NULL);
-    check("Could not install INT handler", res < 0);
-
     bzero((char*)&action, sizeof(action));
     action.sa_handler = crash_handler;
     res = sigaction(SIGSEGV, &action, NULL);
     check("Could not install SEGV handler", res < 0);
-};
-
-int main(int argc, char *argv[]) {
+    
     // Parse command line arguments
     cmd_config_t config;
     parse_cmd_args(argc, argv, &config);
-
-    // Setup signal handlers
-    install_handlers();
-
-    // We're using the scope here to make sure worker_pool is
-    // auto-destroyed before the rest of the operations.
+    
+    // Initial CPU message to start server
+    struct server_starter_t :
+        public cpu_message_t
     {
-        // Create a pool of workers
-        worker_pool_t worker_pool(pthread_self(), &config);
-
-        // Start the logger
-        worker_pool.workers[LOG_WORKER]->log_writer.start(&config);
-
-        // Start the server (in a separate thread)
-        start_server(&worker_pool);
-
-        // If we got out of start_server, we're about to shut down.
-        printf("Shutting down server...\n");
-    }
+        cmd_config_t *cmd_config;
+        thread_pool_t *thread_pool;
+        void on_cpu_switch() {
+            server_t *s = new server_t(cmd_config, thread_pool);
+            s->do_start();
+        }
+    } starter;
+    starter.cmd_config = &config;
+    
+    // Run the server
+    thread_pool_t thread_pool(config.n_workers);
+    starter.thread_pool = &thread_pool;
+    thread_pool.run(&starter);
+    
+    fprintf(stderr, "Server is shut down.\n");
+    
+    return 0;
 }

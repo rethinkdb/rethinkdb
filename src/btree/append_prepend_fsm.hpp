@@ -8,8 +8,8 @@ class btree_append_prepend_fsm_t : public btree_modify_fsm_t,
                                  public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, btree_append_prepend_fsm_t > {
     typedef btree_fsm_t::transition_result_t transition_result_t;
 public:
-    explicit btree_append_prepend_fsm_t(btree_key *_key, byte *data, unsigned int size, bool append)
-        : btree_modify_fsm_t(_key),
+    explicit btree_append_prepend_fsm_t(btree_key *_key, btree_key_value_store_t *store, byte *data, unsigned int size, bool append)
+        : btree_modify_fsm_t(_key, store),
           append(append) {
         // This isn't actually used as a btree value -- just for the size and contents.
         temp_value.metadata_flags = 0;

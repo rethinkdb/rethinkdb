@@ -4,8 +4,8 @@
 
 #include "alloc/alloc_mixin.hpp"
 #include "containers/intrusive_list.hpp"
-#include "message_hub.hpp"
 #include "concurrency/access.hpp"
+#include "arch/arch.hpp"
 
 // Forward declarations
 struct rwi_lock_t;

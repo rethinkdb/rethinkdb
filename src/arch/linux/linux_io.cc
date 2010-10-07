@@ -1,4 +1,4 @@
-
+#include <fcntl.h>
 #include <algorithm>
 #include <unistd.h>
 #include <stdio.h>
@@ -9,13 +9,6 @@
 #include "config/args.hpp"
 #include "config/alloc.hpp"
 #include "utils.hpp"
-#include "alloc/memalign.hpp"
-#include "alloc/pool.hpp"
-#include "alloc/dynamic_pool.hpp"
-#include "alloc/stats.hpp"
-#include "alloc/alloc_mixin.hpp"
-#include "worker_pool.hpp"
-#include "cpu_context.hpp"
 
 // #define DEBUG_DUMP_WRITES 1
 
@@ -36,34 +29,22 @@ void linux_net_conn_t::set_callback(linux_net_conn_callback_t *cb) {
     assert(cb);
     callback = cb;
     
-    get_cpu_context()->event_queue->watch_resource(sock, eo_rdwr, this);
+    linux_thread_pool_t::event_queue->watch_resource(sock, EPOLLET|EPOLLIN|EPOLLOUT, this);
 }
 
 ssize_t linux_net_conn_t::read_nonblocking(void *buf, size_t count) {
     
-    get_cpu_context()->worker->bytes_read += count;
+    // TODO PERFMON get_cpu_context()->worker->bytes_read += count;
     return ::read(sock, buf, count);
 }
 
 ssize_t linux_net_conn_t::write_nonblocking(const void *buf, size_t count) {
 
-    get_cpu_context()->worker->bytes_written += count;
+    // TODO PERFMON get_cpu_context()->worker->bytes_written += count;
     return ::write(sock, buf, count);
 }
 
-linux_net_conn_t::~linux_net_conn_t() {
-    
-    if (set_me_true_on_delete)
-        *set_me_true_on_delete = true;
-    
-    if (sock != INVALID_FD) {
-        if (callback) get_cpu_context()->event_queue->forget_resource(sock, this);
-        ::close(sock);
-        sock = INVALID_FD;
-    }
-}
-
-void linux_net_conn_t::process_network_notify(int events) {
+void linux_net_conn_t::on_epoll(int events) {
     
     assert(callback);
     
@@ -94,9 +75,23 @@ void linux_net_conn_t::process_network_notify(int events) {
     set_me_true_on_delete = NULL;
 }
 
+linux_net_conn_t::~linux_net_conn_t() {
+    
+    if (set_me_true_on_delete)
+        *set_me_true_on_delete = true;
+    
+    if (sock != INVALID_FD) {
+        if (callback) linux_thread_pool_t::event_queue->forget_resource(sock, this);
+        ::close(sock);
+        sock = INVALID_FD;
+    }
+}
+
 /* Network listener object */
 
-linux_net_listener_t::linux_net_listener_t(int port) {
+linux_net_listener_t::linux_net_listener_t(int port)
+    : callback(NULL)
+{
     
     int res;
     
@@ -119,26 +114,42 @@ linux_net_listener_t::linux_net_listener_t(int port) {
     // Start listening to connections
     res = listen(sock, 5);
     check("Couldn't listen to the socket", res != 0);
+    
+    res = fcntl(sock, F_SETFL, O_NONBLOCK);
+    check("Could not make socket non-blocking", res != 0);
 }
 
-linux_net_conn_t *linux_net_listener_t::accept_blocking() {
+void linux_net_listener_t::set_callback(linux_net_listener_callback_t *cb) {
     
-    sockaddr_in client_addr;
-    socklen_t client_addr_len = sizeof(client_addr);
-    int new_sock = accept(sock, (sockaddr*)&client_addr, &client_addr_len);
+    assert(!callback);
+    assert(cb);
+    callback = cb;
     
-    if (new_sock == INVALID_FD) {
-        if (errno == EINTR) return NULL;
-        else fail("Cannot accept new connection");
+    linux_thread_pool_t::event_queue->watch_resource(sock, EPOLLET|EPOLLIN, this);
+}
+
+void linux_net_listener_t::on_epoll(int events) {
     
-    } else {
-        return new linux_net_conn_t(new_sock);
+    while (true) {
+        sockaddr_in client_addr;
+        socklen_t client_addr_len = sizeof(client_addr);
+        int new_sock = accept(sock, (sockaddr*)&client_addr, &client_addr_len);
+        
+        if (new_sock == INVALID_FD) {
+            if (errno == EAGAIN) break;
+            else fail("Cannot accept new connection: errno=%s", strerror(errno));
+        
+        } else {
+            callback->on_net_listener_accept(new linux_net_conn_t(new_sock));
+        }
     }
 }
 
 linux_net_listener_t::~linux_net_listener_t() {
     
     int res;
+    
+    if (callback) linux_thread_pool_t::event_queue->forget_resource(sock, this);
     
     res = shutdown(sock, SHUT_RDWR);
     check("Could not shutdown main socket", res == -1);
@@ -233,7 +244,7 @@ bool linux_direct_file_t::read_async(size_t offset, size_t length, void *buf, li
     
     verify(offset, length, buf);
     
-    event_queue_t *queue = get_cpu_context()->event_queue;
+    linux_event_queue_t *queue = linux_thread_pool_t::event_queue;
     linux_io_calls_t *iosys = &queue->iosys;
     
     // Prepare the request
@@ -263,7 +274,7 @@ bool linux_direct_file_t::write_async(size_t offset, size_t length, void *buf, l
     
     verify(offset, length, buf);
     
-    event_queue_t *queue = get_cpu_context()->event_queue;
+    linux_event_queue_t *queue = linux_thread_pool_t::event_queue;
     linux_io_calls_t *iosys = &queue->iosys;
     
     // Prepare the request
@@ -311,7 +322,7 @@ void linux_direct_file_t::verify(size_t offset, size_t length, void *buf) {
 
 /* Async IO scheduler */
 
-linux_io_calls_t::linux_io_calls_t(event_queue_t *_queue)
+linux_io_calls_t::linux_io_calls_t(linux_event_queue_t *_queue)
     : queue(_queue),
       n_pending(0)
 {
@@ -338,7 +349,7 @@ void linux_io_calls_t::aio_notify(iocb *event, int result) {
     }
     
     // Notify the interested party about the event
-    iocallback_t *callback = (iocallback_t*)event->data;
+    linux_iocallback_t *callback = (linux_iocallback_t*)event->data;
     
     // Prepare event_t for the callback
     event_t qevent;

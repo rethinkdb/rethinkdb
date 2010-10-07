@@ -7,7 +7,6 @@
 #include "request_handler/request_handler.hpp"
 #include "event.hpp"
 #include "corefwd.hpp"
-
 #include <stdarg.h>
 
 // TODO: the lifetime of conn_fsm isn't well defined - some objects
@@ -19,6 +18,11 @@
 struct data_transferred_callback {
     virtual void on_data_transferred() = 0;
     virtual ~data_transferred_callback() {}
+};
+
+struct conn_fsm_shutdown_callback_t {
+    virtual void on_conn_fsm_quit() = 0;
+    virtual void on_conn_fsm_shutdown() = 0;
 };
 
 // The actual state structure
@@ -34,7 +38,6 @@ public:
     // Possible transition results
     enum result_t {
         fsm_invalid,
-        fsm_shutdown_server,
         fsm_no_data_in_socket,
         fsm_quit_connection,
         fsm_transition_ok,
@@ -58,9 +61,15 @@ public:
     };
     
 public:
-    conn_fsm_t(net_conn_t *conn);
+    conn_fsm_t(net_conn_t *conn, conn_fsm_shutdown_callback_t *cb, request_handler_t *rh);
     ~conn_fsm_t();
-    
+
+public:
+    void start_quit();
+private:
+    bool quitting; /* !< if true don't issue anymore requests just let them finish and then quit */
+
+public:
     void consume(unsigned int bytes);
     
     void on_net_conn_readable();
@@ -72,10 +81,8 @@ public:
     state_t state;
     bool corked; //whether or not we should buffer our responses
 
-    // A buffer with IO communication (possibly incomplete). The nbuf
-    // variable indicates how many bytes are stored in the buffer. The
-    // snbuf variable indicates how many bytes out of the buffer have
-    // been sent (in case of a send workflow).
+    // A buffer with IO communication (possibly incomplete). The nrbuf
+    // variable indicates how many bytes are stored in the buffer.
     char *rbuf;
     linked_buf_t *sbuf;
     unsigned int nrbuf;
@@ -88,7 +95,9 @@ public:
      *              if it returns op_req_complex then it MUST send an et_request_complete event}
      */
     request_handler_t *req_handler;
-    
+
+    conn_fsm_shutdown_callback_t *shutdown_callback;
+
     void fill_external_buf(byte *external_buf, unsigned int size, data_transferred_callback *callback);
     void send_external_buf(byte *external_buf, unsigned int size, data_transferred_callback *callback);
     void dummy_sock_event();

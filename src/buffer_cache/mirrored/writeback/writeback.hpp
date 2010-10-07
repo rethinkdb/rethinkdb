@@ -75,7 +75,7 @@ private:
     // data sits in memory for longer than flush_timer_ms milliseconds, a writeback will be
     // automatically started to store it on disk. flush_timer is the timer to keep track of how
     // much longer the data can sit in memory.
-    event_queue_t::timer_t *flush_timer;
+    timer_token_t *flush_timer;
     static void flush_timer_callback(void *ctx);
 
     virtual void on_lock_available();

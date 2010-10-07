@@ -2,7 +2,6 @@
 #include <vector>
 #include "utils.hpp"
 #include "lba_list.hpp"
-#include "cpu_context.hpp"
 #include "arch/arch.hpp"
 
 lba_list_t::lba_list_t(data_block_manager_t *dbm, extent_manager_t *em)
