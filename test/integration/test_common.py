@@ -163,6 +163,10 @@ class Server(object):
             if self.opts["valgrind"]: executable_path += "-valgrind"
             executable_path = os.path.join(executable_path, "rethinkdb")
             
+            if not os.path.exists(executable_path):
+                raise ValueError("rethinkdb has not been built; it should be at %r." %
+                    executable_path);
+            
             command_line = [executable_path,
                 "-p", str(server_port),
                 "-c", str(self.opts["cores"]),
@@ -207,9 +211,15 @@ class Server(object):
             print "Logging network traffic to %s_*." % nrc_log_root
             
             nrc_port = find_unused_port()
-            self.nrc = subprocess.Popen(
-                ["netrecord", "localhost", str(server_port), str(nrc_port), nrc_log_root],
-                stdout = file("/dev/null", "w"), stderr = subprocess.STDOUT)
+            try:
+                self.nrc = subprocess.Popen(
+                    ["netrecord", "localhost", str(server_port), str(nrc_port), nrc_log_root],
+                    stdout = file("/dev/null", "w"), stderr = subprocess.STDOUT)
+            except OSError, e:
+                if "No such file or directory" in str(e):
+                    raise ValueError("We don't have netrecord.")
+                else:
+                    raise
             
             self.port = nrc_port
             
