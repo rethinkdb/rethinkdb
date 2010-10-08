@@ -91,11 +91,51 @@ void server_t::on_store_shutdown() {
 
 void server_t::do_shutdown_loggers() {
     printf("Shutting down loggers...\n");
-    if (log_controller.shutdown(this)) do_stop_threads();
+    if (log_controller.shutdown(this)) do_message_flush();
 }
 
 void server_t::on_logger_shutdown() {
-    do_stop_threads();
+    do_message_flush();
+}
+
+/* The penultimate step of shutting down is to make sure that all messages
+have reached their destinations so that they can be freed. The way we do this
+is to send one final message to each core; when those messages all get back
+we know that all messages have been processed properly. Otherwise, logger
+shutdown messages would get "stuck" in the message hub when it shut down,
+leading to memory leaks. */
+
+struct flush_message_t :
+    public cpu_message_t
+{
+    bool returning;
+    server_t *server;
+    void on_cpu_switch() {
+        if (returning) {
+            server->on_message_flush();
+            gdelete(this);
+        } else {
+            returning = true;
+            if (continue_on_cpu(server->home_cpu, this)) on_cpu_switch();
+        }
+    }
+};
+
+void server_t::do_message_flush() {
+    messages_out = get_num_cpus();
+    for (int i = 0; i < get_num_cpus(); i++) {
+        flush_message_t *m = gnew<flush_message_t>();
+        m->returning = false;
+        m->server = this;
+        if (continue_on_cpu(i, m)) m->on_cpu_switch();
+    }
+}
+
+void server_t::on_message_flush() {
+    messages_out--;
+    if (messages_out == 0) {
+        do_stop_threads();
+    }
 }
 
 void server_t::do_stop_threads() {

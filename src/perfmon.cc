@@ -73,7 +73,7 @@ struct perfmon_fsm_t :
     
     bool run(perfmon_callback_t *cb) {
         callback = NULL;
-        messages_out = 0;
+        messages_out = get_num_cpus();
         for (int i = 0; i < get_num_cpus(); i++) {
             do_on_cpu(i, this, &perfmon_fsm_t::gather_data);
         }
@@ -98,7 +98,6 @@ struct perfmon_fsm_t :
     }
     
     bool deliver_data(int cpu, perfmon_stats_t *local_stats) {
-        
         for (perfmon_stats_t::iterator it = local_stats->begin();
              it != local_stats->end();
              it++) {
@@ -107,6 +106,7 @@ struct perfmon_fsm_t :
         
         gdelete_on_cpu(cpu, local_stats);
         messages_out--;
+        assert(messages_out >= 0);
         if (messages_out == 0) {
             if (callback) callback->on_perfmon_stats();
             delete this;

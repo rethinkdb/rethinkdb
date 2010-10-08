@@ -13,7 +13,9 @@ responsible for the entire lifetime of the server. It creates and destroys the
 loggers, caches, and connection acceptor. It does NOT create the thread pool -- instead,
 main() creates the thread pool and then creates the server within the thread pool. */
 
-struct server_t :
+class flush_message_t;
+
+class server_t :
     public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, server_t>,
     public home_cpu_mixin_t,
     public log_controller_t::ready_callback_t,
@@ -22,7 +24,9 @@ struct server_t :
     public store_t::shutdown_callback_t,
     public log_controller_t::shutdown_callback_t
 {
-    
+    friend class flush_message_t;
+
+public:
     server_t(cmd_config_t *config, thread_pool_t *tp);
     void do_start();
     void shutdown();   // Can be called from any thread
@@ -34,8 +38,6 @@ struct server_t :
     log_controller_t log_controller;
     store_t store;
     conn_acceptor_t conn_acceptor;
-    
-    int messages_out;
     
 private:
     void do_start_loggers();
@@ -60,6 +62,9 @@ private:
     void on_store_shutdown();
     void do_shutdown_loggers();
     void on_logger_shutdown();
+    int messages_out;
+    void do_message_flush();
+    void on_message_flush();
     void do_stop_threads();
 };
 

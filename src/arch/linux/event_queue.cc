@@ -219,11 +219,6 @@ void linux_event_queue_t::run() {
         message_hub.push_messages();
     }
     
-    // Let any final messages pass
-    for(int i = 0; i < message_hub.thread_pool->n_threads; i++) {
-        message_hub.thread_pool->queues[i]->message_hub.pull_messages();
-    }
-    
     // Delete the registered timers
     // TODO: We should instead assert there are no timers.
     while(timer_t *t = timers.head()) {

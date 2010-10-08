@@ -451,6 +451,7 @@ public:
                 }
             }
         }
+        sbuf->printf("END\r\n");
         return true;
     }
 
