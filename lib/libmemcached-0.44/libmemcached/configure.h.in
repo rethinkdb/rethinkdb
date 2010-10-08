@@ -1,0 +1,29 @@
+/* LibMemcached
+ * Copyright (C) 2006-2009 Brian Aker, Trond Norbye
+ * All rights reserved.
+ *
+ * Use and distribution licensed under the BSD license.  See
+ * the COPYING file in the parent directory for full text.
+ *
+ * Summary: Change the behavior of the memcached connection.
+ *
+ */
+
+#ifndef __LIBMEMCACHED_CONFIGURE_H
+#define __LIBMEMCACHED_CONFIGURE_H
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+@DEPRECATED@
+@LIBMEMCACHED_WITH_SASL_SUPPORT@
+
+#define LIBMEMCACHED_VERSION_STRING "@VERSION@"
+#define LIBMEMCACHED_VERSION_HEX @PANDORA_HEX_VERSION@
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* __LIBMEMCACHED_CONFIGURE_H */

@@ -1,0 +1,8 @@
+# vim:ft=automake
+# included from Top Level Makefile.am
+# All paths should be given relative to the root
+noinst_HEADERS+= poll/poll.h
+
+if BUILD_POLL
+libmemcached_libmemcached_la_SOURCES += poll/poll.c
+endif

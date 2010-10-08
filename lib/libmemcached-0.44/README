@@ -1,0 +1,33 @@
+Hi!
+
+So what is this? It is a library in C for connecting to memcached servers
+(http://danga.com/memcached/). It is also a collection of utilities designed
+to work with memcached.
+
+memcat - Copy the value of a key to standard output
+memflush - Flush the contents of your servers.
+memrm - Remove a key(s) from the server.
+memstat - Dump the stats of your servers to standard output
+memslap - Load generation utility (benchmark!)
+
+The utilities are beta quality at this point. The library is in production
+in many locations (upwards to 1000+ nodes).
+
+Want to contribute? If you write more then three good patches, then I will
+just ask you to commit directly to the tree. I am happy to have additional
+people work on this project. Please checkout README.FIRST. 
+
+You will need a C99 compiler in order to compile this library. Currently we
+actively support Linux, MacOSX, FreeBSD, and Solaris. A Windows port is
+currently not supported, but one is listed on the homepage that is supported
+by someone in the community.
+
+If you are looking for answers to your questions please check out the
+mailing list at:
+http://lists.tangent.org/  
+
+Subscription information for the libmemcached mailing list can be found there.
+
+Cheers,
+  -Brian Aker
+   Seattle, WA.

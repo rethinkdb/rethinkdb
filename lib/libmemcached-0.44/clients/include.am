@@ -1,0 +1,108 @@
+# vim:ft=automake
+# included from Top Level Makefile.am
+# All paths should be given relative to the root
+
+CLIENTS_LDADDS = \
+	$(LIBM) \
+	clients/libutilities.la \
+	libmemcached/libmemcached.la
+
+if HAVE_SASL
+CLIENTS_LDADDS+= $(LIBSASL)
+endif
+
+bin_PROGRAMS+= \
+	clients/memcapable \
+	clients/memcat \
+	clients/memcp \
+	clients/memdump \
+	clients/memerror \
+	clients/memflush \
+	clients/memrm \
+	clients/memstat
+
+if HAVE_LIBEVENT
+if !BUILD_WIN32_WRAPPERS
+  bin_PROGRAMS+= clients/memslap
+endif
+endif
+
+noinst_HEADERS+= \
+		clients/client_options.h \
+		clients/execute.h \
+		clients/generator.h \
+		clients/ms_atomic.h \
+		clients/ms_conn.h \
+		clients/ms_memslap.h \
+		clients/ms_setting.h \
+		clients/ms_sigsegv.h \
+		clients/ms_stats.h \
+		clients/ms_task.h \
+		clients/ms_thread.h \
+		clients/utilities.h
+
+noinst_LTLIBRARIES+= clients/libutilities.la
+clients_libutilities_la_SOURCES= clients/utilities.c
+
+noinst_LTLIBRARIES+= clients/libgenexec.la
+clients_libgenexec_la_SOURCES= clients/generator.c clients/execute.c
+
+clients_memcat_SOURCES= clients/memcat.c
+clients_memcat_LDADD= $(CLIENTS_LDADDS)
+
+clients_memcp_SOURCES= clients/memcp.c
+clients_memcp_LDADD= $(CLIENTS_LDADDS)
+
+clients_memdump_SOURCES= clients/memdump.c
+clients_memdump_LDADD= $(CLIENTS_LDADDS)
+
+clients_memstat_SOURCES= clients/memstat.c
+clients_memstat_LDADD= $(CLIENTS_LDADDS)
+
+clients_memrm_SOURCES= clients/memrm.c
+clients_memrm_LDADD= $(CLIENTS_LDADDS)
+
+clients_memflush_SOURCES= clients/memflush.c
+clients_memflush_LDADD= $(CLIENTS_LDADDS)
+
+clients_memerror_SOURCES= clients/memerror.c
+clients_memerror_LDADD= $(CLIENTS_LDADDS)
+
+clients_memslap_SOURCES= \
+		clients/memslap.c \
+		clients/ms_conn.c \
+		clients/ms_setting.c \
+		clients/ms_sigsegv.c \
+		clients/ms_stats.c \
+		clients/ms_task.c \
+		clients/ms_thread.c
+clients_memslap_LDADD= $(LTLIBEVENT) clients/libgenexec.la $(CLIENTS_LDADDS)
+
+clients_memcapable_SOURCES= clients/memcapable.c
+clients_memcapable_LDADD= $(CLIENTS_LDADDS)
+if BUILD_BYTEORDER
+clients_memcapable_LDADD+= libmemcached/libbyteorder.la
+endif
+
+test-start-server:
+	clients/memflush --servers=localhost
+	clients/memcp --servers=localhost /etc/services
+	clients/memcat --servers=localhost /etc/services
+	clients/memrm --servers=localhost /etc/services
+	clients/memstat --servers=localhost
+	clients/memslap --servers=localhost
+	clients/memslap --servers=localhost --concurrency=10
+	clients/memslap --servers=localhost --concurrency=10 --initial-load=1000
+	clients/memslap --servers=localhost --concurrency=10 --initial-load=1000 --execute-number=10
+	clients/memslap --servers=localhost --concurrency=10 --initial-load=1000 --execute-number=10 --test=get
+	clients/memslap --servers=localhost --concurrency=10 --initial-load=1000 --execute-number=10 --test=set
+	clients/memslap --servers=localhost --concurrency=10 --initial-load=1000 --execute-number=10 --test=set --non-blocking
+
+client-valgrind:
+	libtool --mode=execute valgrind --leak-check=yes --show-reachable=yes  clients/memslap --servers=localhost
+	libtool --mode=execute valgrind --leak-check=yes --show-reachable=yes  clients/memslap --servers=localhost --concurrency=10
+	libtool --mode=execute valgrind --leak-check=yes --show-reachable=yes  clients/memslap --servers=localhost --concurrency=10 --initial-load=1000
+	libtool --mode=execute valgrind --leak-check=yes --show-reachable=yes  clients/memslap --servers=localhost --concurrency=10 --initial-load=1000 --execute-number=10
+	libtool --mode=execute valgrind --leak-check=yes --show-reachable=yes  clients/memslap --servers=localhost --concurrency=10 --initial-load=1000 --execute-number=10 --test=get
+	libtool --mode=execute valgrind --leak-check=yes --show-reachable=yes  clients/memslap --servers=localhost --concurrency=10 --initial-load=1000 --execute-number=10 --test=set
+	libtool --mode=execute valgrind --leak-check=yes --show-reachable=yes  clients/memslap --servers=localhost --concurrency=10 --initial-load=1000 --execute-number=10 --test=set --non-blocking

@@ -1,0 +1,54 @@
+=head1 NAME
+
+hashkit_default, hashkit_fnv1_64, hashkit_fnv1a_64, hashkit_fnv1_32,
+hashkit_fnv1a_32, hashkit_crc32, hashkit_hsieh, hashkit_murmur,
+hashkit_jenkins, hashkit_md5 - Various hash functions to use for
+calculating values for keys
+
+=head1 LIBRARY
+
+C Library for hashing algorithms (libhashkit, -lhashkit)
+
+=head1 SYNOPSIS
+
+  #include <libhashkit/hashkit.h>
+
+  uint32_t hashkit_default(const char *key, size_t key_length);
+  uint32_t hashkit_fnv1_64(const char *key, size_t key_length);
+  uint32_t hashkit_fnv1a_64(const char *key, size_t key_length);
+  uint32_t hashkit_fnv1_32(const char *key, size_t key_length);
+  uint32_t hashkit_fnv1a_32(const char *key, size_t key_length);
+  uint32_t hashkit_crc32(const char *key, size_t key_length);
+  uint32_t hashkit_hsieh(const char *key, size_t key_length);
+  uint32_t hashkit_murmur(const char *key, size_t key_length);
+  uint32_t hashkit_jenkins(const char *key, size_t key_length);
+  uint32_t hashkit_md5(const char *key, size_t key_length);
+
+=head1 DESCRIPTION
+
+These functions generate hash values from a key using a variety of
+algorithms. These functions can be used standalone, or as arguments
+to hashkit_set_hash_fn(3) or hashkit_set_continuum_hash_fn(3).
+
+The hashkit_hsieh() is only available if the library is built with
+the appropriate flag enabled.
+
+=head1 RETURN VALUE
+
+A 32-bit hash value.
+
+=head1 HOME
+
+To find out more information please check:
+L<https://launchpad.net/libmemcached>
+
+=head1 AUTHOR
+
+Brian Aker, E<lt>brian@tangent.orgE<gt>
+
+=head1 SEE ALSO
+
+hashkit_create(3) hashkit_value(3) hashkit_set_hash_fn(3)
+hashkit_set_continuum_hash_fn(3)
+
+=cut

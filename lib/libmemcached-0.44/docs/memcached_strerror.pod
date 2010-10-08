@@ -1,0 +1,47 @@
+=head1 NAME
+
+memcached_strerror - Get error string
+
+=head1 LIBRARY
+
+C Client Library for memcached (libmemcached, -lmemcached)
+
+=head1 SYNOPSIS
+
+  #include <memcached.h>
+
+  const char *
+    memcached_strerror (memcached_st *ptr,
+                        memcached_return_t rc);
+
+=head1 DESCRIPTION
+
+memcached_strerror() takes a C<memcached_return_t> value and returns a string
+describing the error.
+
+This string must not be modified by the application.
+
+C<memcached_return_t> values are returned from nearly all libmemcached(3) functions.
+
+C<memcached_return_t> values are of an enum type so that you can set up responses
+with switch/case and know that you are capturing all possible return values.
+
+=head1 RETURN
+
+memcached_strerror() returns a string describing a C<memcached_return_t> value.
+
+=head1 HOME
+
+To find out more information please check:
+L<https://launchpad.net/libmemcached>
+
+=head1 AUTHOR
+
+Brian Aker, E<lt>brian@tangent.orgE<gt>
+
+=head1 SEE ALSO
+
+memcached(1) libmemcached(3)
+
+=cut
+

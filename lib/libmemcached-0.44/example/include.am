@@ -1,0 +1,27 @@
+# vim:ft=automake
+# included from Top Level Makefile.am
+# All paths should be given relative to the root
+
+if HAVE_LIBEVENT
+noinst_PROGRAMS += example/memcached_light
+endif
+
+example_memcached_light_SOURCES= \
+				 example/interface_v0.c \
+				 example/interface_v1.c \
+				 example/memcached_light.c \
+				 example/memcached_light.h \
+				 example/storage.h
+
+example_memcached_light_LDADD= libmemcached/libmemcachedprotocol.la \
+                               $(LIBINNODB) $(LTLIBEVENT)
+
+if BUILD_BYTEORDER
+example_memcached_light_LDADD+= libmemcached/libbyteorder.la
+endif
+
+if HAVE_LIBINNODB
+example_memcached_light_SOURCES+= example/storage_innodb.c
+else
+example_memcached_light_SOURCES+= example/storage.c
+endif

@@ -1,0 +1,37 @@
+=head1 NAME
+
+memstat - Display the operating status of a single or group of memcached servers
+
+=head1 SYNOPSIS
+
+  memstat [options]
+
+=head1 DESCRIPTION
+
+B<memstat> dumps the state of memcached(1) servers.
+It displays all data to stdout.
+
+You can specify servers via the B<--servers> option or via the
+environment variable C<MEMCACHED_SERVERS>. B<--args> can be used
+to specify the "argument" sent to the stats command (ie slab, size, items,
+etc..).
+
+For a full list of operations run the tool with the B<--help> option.
+
+=head1 HOME
+
+To find out more information please check:
+L<http://launchpad.org/libmemcached>
+
+=head1 AUTHOR
+
+Brian Aker, E<lt>brian@tangent.orgE<gt>
+
+Mark Atwood, E<lt>mark@fallenpegasus.comE<gt>
+
+=head1 SEE ALSO
+
+memcached(1) libmemcached(3)
+
+=cut
+

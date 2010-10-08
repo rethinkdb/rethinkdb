@@ -1,0 +1,53 @@
+=head1 NAME
+
+memcached_dump - get a list of keys found on memcached servers
+
+=head1 LIBRARY
+
+C Client Library for memcached (libmemcached, -lmemcached)
+
+=head1 SYNOPSIS
+
+  #include <memcached.h>
+
+  memcached_return_t
+    memcached_dump (memcached_st *ptr, 
+                    memcached_dump_fn *function, 
+                    void *context, 
+                    uint32_t number_of_callbacks);
+
+  typedef memcached_return_t (*memcached_dump_fn)(memcached_st *ptr,  
+                                                  const char *key, 
+                                                  size_t key_length, 
+                                                  void *context);
+
+=head1 DESCRIPTION
+
+memcached_dump() is used to get a list of keys found  memcached(1) servers.
+Because memcached(1) does not guarentee to dump all keys you can not assume
+you have fetched all keys from the server. The function takes an array
+of callbacks that it will use to execute on keys as they are found.
+
+Currently the binar protocol is not supported.
+
+=head1 RETURN
+
+A value of type C<memcached_return_t> is returned
+On success that value will be C<MEMCACHED_SUCCESS>.
+Use memcached_strerror() to translate this value to a printable string.
+
+=head1 HOME
+
+To find out more information please check:
+L<https://launchpad.net/libmemcached>
+
+=head1 AUTHOR
+
+Brian Aker, E<lt>brian@tangent.orgE<gt>
+
+=head1 SEE ALSO
+
+memcached(1) libmemcached(3) memcached_strerror(3)
+
+=cut
+

@@ -1,0 +1,11 @@
+# vim:ft=automake
+# included from Top Level Makefile.am
+# All paths should be given relative to the root
+noinst_HEADERS+= win32/wrappers.h
+
+if BUILD_WIN32_WRAPPERS
+libmemcached_libmemcached_la_LDFLAGS+=-no-undefined
+libmemcached_libmemcachedprotocol_la_LDFLAGS+=-no-undefined
+libmemcached_libmemcachedutil_la_LDFLAGS+=-no-undefined
+libhashkit_libhashkit_la_LDFLAGS+=-no-undefined
+endif

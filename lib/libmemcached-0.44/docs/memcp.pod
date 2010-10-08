@@ -1,0 +1,40 @@
+=head1 NAME
+
+memcp - Copies files to a collection of memcached servers
+
+=head1 SYNOPSIS
+
+  memcp [options] file file <servers>
+
+=head1 DESCRIPTION
+
+B<memcp> copies one or more files into memcached(1) servers.
+It is similar to the standard UNIX cp(1) command.
+
+The key names will be the names of the files,
+without any directory path part.
+
+You can specify servers via the B<--servers> option or via the
+environment variable C<MEMCACHED_SERVERS>. If you specify neither of
+these, the final value in the command line list is the name of a
+server(s).
+
+For a full list of operations run the tool with the B<--help> option.
+
+=head1 HOME
+
+To find out more information please check:
+L<https://launchpad.net/libmemcached>
+
+=head1 AUTHOR
+
+Brian Aker, E<lt>brian@tangent.orgE<gt>
+
+Mark Atwood, E<lt>mark@fallenpegasus.comE<gt>
+
+=head1 SEE ALSO
+
+memcached(1) libmemcached(3)
+
+=cut
+
