@@ -1,0 +1,105 @@
+Name:      libmemcached
+Summary:   memcached C library and command line tools
+Version: @VERSION@
+Release:   1%{?dist}
+License:   BSD
+Group:     System Environment/Libraries
+URL:       http://libmemcached.org/
+Source0:   http://download.tangent.org/libmemcached-%{version}.tar.gz
+
+# For test suite
+BuildRequires: memcached
+
+BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
+
+
+%description
+libmemcached is a C client library to the memcached server
+(http://danga.com/memcached). It has been designed to be light on memory
+usage, and provide full access to server side methods.
+
+It also implements several command line tools:
+
+memcat - Copy the value of a key to standard output.
+memflush - Flush the contents of your servers.
+memrm - Remove a key(s) from the serrver.
+memstat - Dump the stats of your servers to standard output.
+memslap - Generate testing loads on a memcached cluster.
+memcp - Copy files to memcached servers.
+memerror - Creates human readable messages from libmemecached error codes.
+
+
+%package devel
+Summary: Header files and development libraries for %{name}
+Group: Development/Libraries
+Requires: %{name} = %{version}-%{release}
+
+%description devel
+This package contains the header files and development libraries
+for %{name}. If you like to develop programs using %{name}, 
+you will need to install %{name}-devel.
+
+
+%prep
+%setup -q
+
+%{__mkdir} examples
+%{__cp} tests/*.{c,cpp,h} examples/
+
+
+%build
+%configure
+%{__make} %{_smp_mflags}
+
+
+%install
+%{__rm} -rf %{buildroot}
+%{__make} install  DESTDIR="%{buildroot}" AM_INSTALL_PROGRAM_FLAGS=""
+
+
+%check
+# test suite cannot run in mock (same port use for memcache server on all arch)
+# 1 test seems to fail.. 
+#%{__make} test
+
+
+%clean
+%{__rm} -rf %{buildroot}
+
+
+%post -p /sbin/ldconfig
+
+
+%postun -p /sbin/ldconfig
+ 
+
+%files
+%defattr (-,root,root,-) 
+%doc AUTHORS COPYING NEWS README THANKS TODO
+%{_bindir}/mem*
+%exclude %{_libdir}/libmemcached.a
+%exclude %{_libdir}/libmemcached.la
+%exclude %{_libdir}/libmemcachedutil.a
+%exclude %{_libdir}/libmemcachedutil.la
+%{_libdir}/libmemcached.so.*
+%{_libdir}/libmemcachedutil.so.*
+%{_mandir}/man1/mem*
+
+
+%files devel
+%defattr (-,root,root,-) 
+%doc examples
+%{_includedir}/libmemcached
+%{_libdir}/libmemcached.so
+%{_libdir}/libmemcachedutil.so
+%{_libdir}/pkgconfig/libmemcached.pc
+%{_mandir}/man3/libmemcached*.3.gz
+%{_mandir}/man3/memcached_*.3.gz
+
+
+%changelog
+* Sat Apr 25 2009 Remi Collet <rpms@famillecollet.com> - 0.28-1
+- Initial RPM from Brian Aker spec
+- create -devel subpackage
+- add %%post %%postun %%check section
+

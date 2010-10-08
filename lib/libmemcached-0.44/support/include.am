@@ -1,0 +1,11 @@
+# vim:ft=automake
+# included from Top Level Makefile.am
+# All paths should be given relative to the root
+
+EXTRA_DIST+= \
+	     support/libmemcached.spec \
+	     support/libmemcached-fc.spec.in \
+	     support/set_benchmark.sh 
+
+pkgconfigdir = $(libdir)/pkgconfig
+pkgconfig_DATA = support/libmemcached.pc

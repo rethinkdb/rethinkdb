@@ -1,0 +1,127 @@
+=head1 NAME
+
+libmemcached - Client library for memcached
+
+=head1 LIBRARY
+
+C Client Library for memcached (libmemcached, -lmemcached)
+
+=head1 SYNOPSIS
+
+  #include <memcached.h>
+
+=head1 DESCRIPTION
+
+"Memcached is a high-performance, distributed memory object caching
+system, generic in nature, but intended for use in speeding up dynamic web
+applications by alleviating database load." L<http://danga.com/memcached/>
+
+B<libmemcached> is a small, thread-safe client library for the
+memcached protocol. The code has all been written with an eye to allow
+for both web and embedded usage. It handles the work behind routing
+particular keys to specific servers that you specify (and values are
+matched based on server order as supplied by you). It implements both
+a modula and consistent method of object distribution.
+
+There are multiple implemented routing and hashing methods. See the
+memcached_behavior_set() manpage.
+
+All operations are performed against a C<memcached_st> structure.
+These structures can either be dynamically allocated or statically
+allocated and then initialized by memcached_create(). Functions have been
+written in order to encapsulate the C<memcached_st>. It is not
+recommended that you operate directly against the structure.
+
+Nearly all functions return a C<memcached_return_t> value.
+This value can be translated to a printable string with memcached_strerror(3).
+
+Partitioning based on keys is supported in the library. Using the key partioning 
+functions it is possible to group sets of object onto servers.
+
+C<memcached_st> structures are thread-safe, but each thread must
+contain its own structure (that is, if you want to share these among
+threads you must provide your own locking). No global variables are
+used in this library.
+
+If you are working with GNU autotools you will want to add the following to
+your configure.ac to properly include libmemcached in your application. 
+
+PKG_CHECK_MODULES(DEPS, libmemcached >= 0.8.0)
+AC_SUBST(DEPS_CFLAGS)
+AC_SUBST(DEPS_LIBS)
+
+Some features of the library must be enabled through memcached_behavior_set(). 
+
+Hope you enjoy it!
+
+=head1 CONSTANTS
+
+A number of constants have been provided for in the library.
+
+=over 4
+
+=item MEMCACHED_DEFAULT_PORT
+
+The default port used by memcached(3).
+
+=item MEMCACHED_MAX_KEY
+
+Default maximum size of a key (which includes the null pointer). Master keys
+have no limit, this only applies to keys used for storage.
+
+=item MEMCACHED_MAX_KEY
+
+Default size of key (which includes the null pointer).
+
+=item MEMCACHED_STRIDE
+
+This is the "stride" used in the consistent hash used between replicas.
+
+=item MEMCACHED_MAX_HOST_LENGTH
+
+Maximum allowed size of the hostname.
+
+=item MEMCACHED_VERSION_STRING
+
+String value of libmemcached version such as "1.23.4"
+
+=item MEMCACHED_MAJOR_VERSION
+
+Major version value. Such as 1.23.4, would be 1 
+
+=item MEMCACHED_MINOR_VERSION
+
+Major version value. Such as 1.23.4, would be 23 
+
+=item MEMCACHED_MICRO_VERSION
+
+Major version value. Such as 1.23.4, would be 4 
+
+
+=back
+
+
+
+=head1 THREADS AND PROCESSES
+
+When using threads or forked processes it is important to keep an instance
+of C<memcached_st> per process or thread. Without creating your own locking
+structures you can not share a single C<memcached_st>. You can though call
+memcached_quit(3) on a C<memcached_st> and then use the resulting cloned
+structure.
+
+=head1 HOME
+
+To find out more information please check:
+L<https://launchpad.net/libmemcached>
+
+=head1 AUTHOR
+
+Brian Aker, E<lt>brian@tangent.orgE<gt>
+
+=head1 SEE ALSO
+
+memcached(1) libmemcached_examples(3) libmemcached(1) memcat(1) memcp(1) memflush(1) memrm(1) memslap(1) memstat(1) memcached_fetch(3) memcached_replace(3) memcached_server_list_free(3) libmemcached_examples(3) memcached_clone(3) memcached_free(3) memcached_server_add(3) memcached_server_push(3) memcached_add(3) memcached_get(3) memcached_server_count(3) memcached_servers_parse(3) memcached_create(3) memcached_increment(3) memcached_server_list(3) memcached_set(3) memcached_decrement(3) memcached_mget(3) memcached_server_list_append(3) memcached_strerror(3) memcached_delete(3) memcached_quit(3) memcached_server_list_count(3) memcached_verbosity(3) memcached_server_add_unix_socket(3) memcached_result_create(3)  memcached_result_free(3)  memcached_result_key_value(3)  memcached_result_key_length(3)  memcached_result_value(3)  memcached_result_length(3)  memcached_result_flags(3)  memcached_result_cas(3) memcached_result_st(3) memcached_append(3) memcached_prepend(3) memcached_fetch_result(3) memerror(1) memcached_get_by_key(3) memcached_mget_by_key(3) memcached_delete_by_key(3) memcached_fetch_execute(3) memcached_callback_get(3) memcached_callback_set(3) memcached_version(3) memcached_lib_version(3) memcached_result_set_value(3) memcached_dump(3) memdump(1) memcached_set_memory_allocators(3) memcached_get_memory_allocators(3) memcached_get_user_data(3) memcached_set_user_data(3)
+
+=cut
+

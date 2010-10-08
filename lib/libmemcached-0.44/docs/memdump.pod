@@ -1,0 +1,31 @@
+=head1 NAME
+
+memdump - Dump a list of keys from a server.
+
+=head1 SYNOPSIS
+
+  memdump [options]
+
+=head1 DESCRIPTION
+
+B<memdump> currently dumps a list of "keys" from all servers that 
+it is told to fetch from. Because memcached does not guarentee to
+provide all keys it is not possible to get a complete "dump".
+
+For a full list of operations run the tool with the B<--help> option.
+
+=head1 HOME
+
+To find out more information please check:
+L<https://launchpad.net/libmemcached>
+
+=head1 AUTHOR
+
+Brian Aker, E<lt>brian@tangent.orgE<gt>
+
+=head1 SEE ALSO
+
+memcached(1) libmemcached(3)
+
+=cut
+

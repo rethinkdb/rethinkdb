@@ -1,0 +1,42 @@
+=head1 NAME
+
+memcached_flush_buffers - Flush buffers and send buffered commands
+
+=head1 LIBRARY
+
+C Client Library for memcached (libmemcached, -lmemcached)
+
+=head1 SYNOPSIS
+
+  #include <memcached.h>
+
+  memcached_return_t
+    memcached_flush_buffers (memcached_st *ptr);
+
+=head1 DESCRIPTION
+
+memcached_flush_buffers() is used in conjunction with 
+MEMCACHED_BEHAVIOR_BUFFER_REQUESTS (see memcached_behavior(3)) to flush
+all buffers by sending the buffered commands to the server for processing.
+
+=head1 RETURN
+
+A value of type C<memcached_return_t> is returned
+On success that value will be C<MEMCACHED_SUCCESS>.
+Use memcached_strerror() to translate this value to a printable string.
+
+=head1 HOME
+
+To find out more information please check:
+L<https://launchpad.net/libmemcached>
+
+=head1 AUTHOR
+
+Trond Norbye, E<lt>trond.norbye@gmail.comE<gt>
+
+=head1 SEE ALSO
+
+memcached(1) libmemcached(3) memcached_strerror(3) memcached_behavior(3)
+
+=cut
+

@@ -1,0 +1,11 @@
+Brian Aker, brian@tangent.org -- Client Library, Tools
+Mark Atwood, -- Tools, Docs
+Patrick Galbraith, -- C++ Interface
+Padraig O'Sullivan, -- C++ Interface (current one)
+Tim Bunce, -- Docs
+Trond Norbye, trond.norbye@gmail.com -- Binary protocol, Misc
+Yin Chen, -- Ketama Work
+Toru Maesaka, dev@torum.net -- Stats analysis
+Eric Lambert, -- UDP work
+Monty Taylor, -- Build Releated (Pandora)
+Mingqiang Zhuang, Schooner Information Technology, Inc. -- Rewrite of memslap

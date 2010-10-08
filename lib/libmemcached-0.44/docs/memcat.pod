@@ -1,0 +1,37 @@
+=head1 NAME
+
+memcat - Copy a set of keys to stdout
+
+=head1 SYNOPSIS
+
+  memcat [options] key key ...
+
+=head1 DESCRIPTION
+
+B<memcat> outputs to stdout the value a single or multiple set of keys
+stored in a memcached(1) server. If any key is not found an error is returned.
+
+It is similar to the standard UNIX cat(1) utility. 
+
+You can specify servers via the B<--servers> option or via the
+environment variable C<MEMCACHED_SERVERS>.
+
+For a full list of operations run the tool with the B<--help> option.
+
+=head1 HOME
+
+To find out more information please check:
+L<https://launchpad.net/libmemcached>
+
+=head1 AUTHOR
+
+Brian Aker, E<lt>brian@tangent.orgE<gt>
+
+Mark Atwood E<lt>mark@fallenpegasus.comE<gt>
+
+=head1 SEE ALSO
+
+memcached(1) libmemcached(3)
+
+=cut
+

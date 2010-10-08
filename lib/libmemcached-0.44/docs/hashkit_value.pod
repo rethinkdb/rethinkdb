@@ -1,0 +1,41 @@
+=head1 NAME
+
+hashkit_value - Generate a value for the given key
+
+=head1 LIBRARY
+
+C Library for hashing algorithms (libhashkit, -lhashkit)
+
+=head1 SYNOPSIS
+
+  #include <libhashkit/hashkit.h>
+
+  uint32_t hashkit_value(hashkit_st *hash,
+                         const char *key,
+                         size_t key_length);
+
+=head1 DESCRIPTION
+
+The hashkit_value() function generates a 32-bit hash value from the
+given key and key_length. The hash argument is an initialized hashkit
+object, and distribution type and hash function is used from this
+object while generating the value.
+
+=head1 RETURN VALUE
+
+A 32-bit hash value.
+
+=head1 HOME
+
+To find out more information please check:
+L<https://launchpad.net/libmemcached>
+
+=head1 AUTHOR
+
+Brian Aker, E<lt>brian@tangent.orgE<gt>
+
+=head1 SEE ALSO
+
+hashkit_create(3) hashkit_set_distribution(3) hashkit_set_hash_fn(3)
+
+=cut

@@ -1,0 +1,61 @@
+=head1 NAME
+
+memcapable - Check memcached server capabilities
+
+=head1 SYNOPSIS
+
+  memcat [-h hostname] [-p port] [-c] [-v] [-t n]
+
+=head1 DESCRIPTION
+
+B<memcapable> connects to the specified memcached server and tries to
+determine its capabilities by running the various commands and verifying
+the response.
+
+=head1 OPTIONS
+
+The following options are supported:
+
+=over 3
+
+=item -h hostname
+
+Specify the hostname to connect to. The default is I<localhost>
+
+=item -p port
+
+Specify the port number to connect to. The default is I<11211>
+
+=item -c
+
+Generate a coredump when it detects an error from the server.
+
+=item -v
+
+Print out the comparison when it detects an error from the server.
+
+=item -t n
+
+Set the timeout from an IO operation to/from the server to I<n> seconds.
+
+=back
+
+=head1 LIMITATIONS
+
+The current version of memcapable will only verify the binary protocol.
+
+=head1 HOME
+
+To find out more information please check:
+L<https://launchpad.net/libmemcached>
+
+=head1 AUTHOR
+
+Trond Norbye, E<lt>trond.norbye@gmail.comE<gt>
+
+=head1 SEE ALSO
+
+memcached(1) libmemcached(3)
+
+=cut
+

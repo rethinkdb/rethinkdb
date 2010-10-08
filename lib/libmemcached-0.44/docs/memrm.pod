@@ -1,0 +1,34 @@
+=head1 NAME
+
+memrm - Remove a key(s) from a collection of memcached servers
+
+=head1 SYNOPSIS
+
+  memrm [options] key key ...
+
+=head1 DESCRIPTION
+
+B<memrm> removes items, specified by key, from memcached(1) servers. 
+
+You can specify servers via the B<--servers> option or via the
+environment variable C<MEMCACHED_SERVERS>.
+
+For a full list of operations run the tool with the B<--help> option.
+
+=head1 HOME
+
+To find out more information please check:
+L<https://launchpad.net/libmemcached>
+
+=head1 AUTHOR
+
+Brian Aker, E<lt>brian@tangent.orgE<gt>
+
+Mark Atwood, E<lt>mark@fallenpegasus.comE<gt>
+
+=head1 SEE ALSO
+
+memcached(1) libmemcached(3)
+
+=cut
+

@@ -1,0 +1,20 @@
+# vim:ft=automake
+# included from Top Level Makefile.am
+# All paths should be given relative to the root
+
+if HAVE_LIBGTEST
+check_PROGRAMS += unittests/unittests
+endif
+
+unittests_unittests_SOURCES= \
+			     unittests/main.cc \
+			     unittests/strings.cc
+
+unittests_unittest_CXXFLAGS= ${AM_CXXFLAGS} ${NO_WERROR}
+unittests_unittests_LDADD= \
+			   tests/libserver.la \
+			   libmemcached/libmemcachedinternal.la \
+			   ${TESTS_LDADDS} ${LTLIBGTEST}
+# Shorthand
+unit: check-TESTS
+

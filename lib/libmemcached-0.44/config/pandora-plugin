@@ -1,0 +1,667 @@
+#!/usr/bin/python
+
+#  Copyright (C) 2009 Sun Microsystems
+#
+#  This program is free software; you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation; version 2 of the License.
+#
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#
+#  You should have received a copy of the GNU General Public License
+#  along with this program; if not, write to the Free Software
+#  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+
+pandora_plugin_file = 'config/pandora-plugin.ini'
+
+# Find plugins in the tree and add them to the build system
+
+import ConfigParser, os, sys
+import datetime, time
+import subprocess
+
+plugin_am_file=None
+plugin_ac_file=None
+
+class ChangeProtectedFile(object):
+
+  def __init__(self, fname):
+    self.bogus_file= False
+    self.real_fname= fname
+    self.new_fname= "%s.new" % fname
+    try:
+      self.new_file= open(self.new_fname,'w+')
+    except IOError:
+      self.bogus_file= True
+
+  def write(self, text):
+    if not self.bogus_file:
+      self.new_file.write(text)
+
+  # We've written all of this out into .new files, now we only copy them
+  # over the old ones if they are different, so that we don't cause
+  # unnecessary recompiles
+  def close(self):
+    """Return True if the file had changed."""
+    if self.bogus_file:
+      return
+    self.new_file.seek(0)
+    new_content = self.new_file.read()
+    self.new_file.close()
+    try:
+        old_file = file(self.real_fname, 'r')
+        old_content = old_file.read()
+        old_file.close()
+    except IOError:
+        old_content = None
+    if new_content != old_content:
+      if old_content != None:
+        os.unlink(self.real_fname)
+      os.rename(self.new_fname, self.real_fname)
+      return True
+    else:
+        try:
+          os.unlink(self.new_fname)
+        except:
+          pass
+
+
+def write_external_configure(plugin, plugin_file):
+  """Write the initial bits of the configure.ac file"""
+  if not os.path.exists('m4'):
+    os.mkdir('m4')
+  plugin_file.write("""
+AC_PREREQ(2.59)dnl		Minimum Autoconf version required.
+AC_INIT([%(name)s],[%(version)s],[%(url)s])
+AC_CONFIG_SRCDIR([%(main_source)s])
+AC_CONFIG_AUX_DIR(config)
+
+PANDORA_CANONICAL_TARGET(less-warnings, warnings-always-on, require-cxx, force-gcc42,skip-visibility)
+
+PANDORA_REQUIRE_LIBPROTOBUF
+PANDORA_PROTOBUF_REQUIRE_VERSION([2.1.0])
+PANDORA_REQUIRE_PROTOC
+
+AC_LANG_PUSH(C++)
+PANDORA_REQUIRE_PTHREAD
+PANDORA_REQUIRE_LIBDL
+AC_LANG_POP
+
+PANDORA_USE_BETTER_MALLOC
+
+PANDORA_DRIZZLE_BUILD
+""" % plugin)
+
+  write_plugin_ac(plugin, plugin_file)
+
+  plugin_file.write("""
+AC_CONFIG_FILES(Makefile)
+
+AC_OUTPUT
+
+echo "---"
+echo "Configuration summary for $PACKAGE_NAME version $VERSION $PANDORA_RELEASE_COMMENT"
+echo ""
+echo "   * Installation prefix:       $prefix"
+echo "   * System type:               $host_vendor-$host_os"
+echo "   * Host CPU:                  $host_cpu"
+echo "   * C Compiler:                $CC_VERSION"
+echo "   * C++ Compiler:              $CXX_VERSION"
+echo "   * Debug enabled:             $with_debug"
+echo "   * Warnings as failure:       $ac_cv_warnings_as_errors"
+echo "   * C++ cstdint location:      $ac_cv_cxx_cstdint"
+echo "   * C++ hash_map location:     $ac_cv_cxx_hash_map"
+echo "   * C++ hash namespace:        $ac_cv_cxx_hash_namespace"
+echo "   * C++ shared_ptr namespace:  $ac_cv_shared_ptr_namespace"
+echo ""
+echo "---"
+
+  """ % plugin)
+
+def write_external_makefile(plugin, plugin_file):
+
+  plugin_file.write("""
+ACLOCAL_AMFLAGS = -I m4 --force
+VERSION=$(PANDORA_RELEASE_VERSION)
+
+pkgplugindir=%(pkgplugindir)s
+EXTRA_DIST = plugin.ini
+
+""" % plugin)
+  if plugin['headers'] != "":
+    plugin_file.write("noinst_HEADERS = %(headers)s\n" % plugin)
+  if plugin['install_headers'] != "":
+    plugin_file.write("nobase_include_HEADERS += %(install_headers)s\n" % plugin)
+  if plugin['testsuite']:
+    if plugin.has_key('testsuitedir') and plugin['testsuitedir'] != "":
+      plugin_file.write("EXTRA_DIST += %(testsuitedir)s\n" % plugin)
+  plugin_file.write("""
+pkgplugin_LTLIBRARIES=%(libname)s.la
+%(libname)s_la_LDFLAGS=-avoid-version -rpath $(pkgplugindir) $(AM_LDFLAGS) %(ldflags)s $(GCOV_LIBS)
+%(libname)s_la_LIBADD=%(libs)s
+%(libname)s_la_DEPENDENCIES=%(libs)s
+%(libname)s_la_CPPFLAGS=$(AM_CPPFLAGS) -DPANDORA_DYNAMIC_PLUGIN -DPANDORA_MODULE_NAME=%(module_name)s -DPANDORA_MODULE_AUTHOR='"%(author)s"' -DPANDORA_MODULE_TITLE='"%(title)s"' -DPANDORA_MODULE_VERSION='"%(version)s"' -DPANDORA_MODULE_LICENSE=%(license)s %(cppflags)s
+%(libname)s_la_CXXFLAGS=$(AM_CXXFLAGS) %(cxxflags)s
+%(libname)s_la_CFLAGS=$(AM_CFLAGS) %(cflags)s
+%(libname)s_la_SOURCES=%(sources)s
+check_PROGRAMS += %(tests)s
+""" % plugin)
+  plugin_am_file=os.path.join(plugin['rel_path'],'plugin.am')
+  if os.path.exists(plugin_am_file):
+    plugin_file.write('include %s\n' % plugin_am_file)
+
+def write_external_plugin():
+  """Return True if the plugin had changed."""
+  plugin = read_plugin_ini('.')
+  expand_plugin_ini(plugin)
+  plugin_file = ChangeProtectedFile('configure.ac')
+  write_external_configure(plugin, plugin_file)
+  result = plugin_file.close()
+  plugin_file = ChangeProtectedFile('Makefile.am')
+  write_external_makefile(plugin, plugin_file)
+  # Write some stub configure.ac and Makefile.am files that include the above
+  result = plugin_file.close() or result
+  return result
+
+def write_plugin(plugin, plugin_ini_list):
+  # Since this function is recursive, make sure we're not already in it.
+  if plugin.has_key('writing_status'):
+    if plugin['writing_status'] == 'done':
+      return
+    else:
+      print "Dependency loop detected with %s" % plugin['name']
+      exit(1)
+
+  plugin['writing_status'] = 'dependencies'
+
+  # Write all dependencies first to get around annoying automake bug
+  for dependency in plugin['dependency_list']:
+    found = False
+    for find_plugin in plugin_ini_list:
+      if find_plugin['module_name'] == dependency:
+        found = True
+        write_plugin(find_plugin, plugin_ini_list)
+        break
+    if found is False:
+      print "Could not find dependency %s: %s" % (plugin['name'], dependency)
+      exit(1)
+
+  write_plugin_ac(plugin, plugin_ac_file)
+  write_plugin_am(plugin, plugin_am_file)
+  plugin['writing_status'] = 'done'
+
+def write_plugin_ac(plugin, plugin_ac):
+  #
+  # Write plugin config instructions into plugin.ac file.
+  #
+  plugin_ac_file=os.path.join(plugin['rel_path'],'plugin.ac')
+  plugin_m4_dir=os.path.join(plugin['rel_path'],'m4')
+  plugin_m4_files=[]
+  if os.path.exists(plugin_m4_dir) and os.path.isdir(plugin_m4_dir):
+    for m4_file in os.listdir(plugin_m4_dir):
+      if os.path.splitext(m4_file)[-1] == '.m4':
+        plugin_m4_files.append(os.path.join(plugin['rel_path'], m4_file))
+  plugin_ac.write("""
+dnl Config for %(title)s
+""" % plugin)
+  for m4_file in plugin_m4_files:
+    plugin_ac.write('m4_sinclude([%s])\n' % m4_file)
+  plugin['plugin_dep_libs']=" ".join(["\${top_builddir}/%s" % f for f in plugin['libs'].split()])
+
+  plugin_ac.write("""
+AC_ARG_WITH([%(name_with_dashes)s-plugin],[
+dnl indented wierd to make the help output correct
+AS_HELP_STRING([--with-%(name_with_dashes)s-plugin],[Build %(title)s. @<:@default=%(enabled)s@:>@])
+AS_HELP_STRING([--without-%(name_with_dashes)s-plugin],[Disable building %(title)s])
+  ],[
+    with_%(name)s_plugin="$withval"
+    AS_IF([test "x$with_%(name)s_plugin" = "xyes"],[
+      requested_%(name)s_plugin="yes"
+    ],[
+      requested_%(name)s_plugin="no"
+    ])
+  ],[
+    with_%(name)s_plugin="%(enabled)s"
+    requested_%(name)s_plugin="no"
+  ])
+AC_ARG_ENABLE([%(name_with_dashes)s-plugin],[
+dnl indented wierd to make the help output correct
+AS_HELP_STRING([--enable-%(name_with_dashes)s-plugin],[Build %(title)s. @<:@default=%(default_yesno)s@:>@])
+AS_HELP_STRING([--disable-%(name_with_dashes)s-plugin],[Disable building %(title)s])
+  ],
+  [enable_%(name)s_plugin="$enableval"],
+  [enable_%(name)s_plugin=%(default_yesno)s])
+
+""" % plugin)
+  if os.path.exists(plugin_ac_file):
+    plugin_ac.write('m4_sinclude([%s])\n' % plugin_ac_file)
+  # The plugin author has specified some check to make to determine
+  # if the plugin can be built. If the plugin is turned on and this
+  # check fails, then configure should error out. If the plugin is not
+  # turned on, then the normal conditional build stuff should just let
+  # it silently not build
+  if plugin['has_build_conditional']:
+    plugin_ac.write("""
+AS_IF([test %(build_conditional)s],
+      [], dnl build_conditional can only negate
+      [
+        AS_IF([test "x${requested_%(name)s_plugin}" = "xyes"],
+              [AC_MSG_ERROR([Plugin %(name)s was explicitly requested, yet failed build dependency checks. Aborting!])])
+        with_%(name)s_plugin=no
+      ])
+
+""" % plugin)
+  if not plugin['unconditional']:
+    plugin_ac.write("""
+AM_CONDITIONAL([%(build_conditional_tag)s],
+               [test %(build_conditional)s])
+    """ % plugin)
+
+  plugin_ac.write("""
+AS_IF([test "x$with_%(name)s_plugin" = "xyes"],
+    [
+""" % plugin)
+  if plugin['testsuite']:
+    plugin_ac.write("""
+      pandora_plugin_test_list="%(name)s,${pandora_plugin_test_list}"
+    """ % plugin)
+  if plugin['static']:
+    plugin_ac.write("""
+        AS_IF([test "x$enable_%(name)s_plugin" = "xyes"],[
+          pandora_builtin_list="%(module_name)s,${pandora_builtin_list}"
+          pandora_builtin_symbols_list="_drizzled_%(module_name)s_plugin_,${pandora_builtin_symbols_list}"
+          pandora_plugin_libs="${pandora_plugin_libs} \${top_builddir}/%(root_plugin_dir)s/%(libname)s.la"
+          PANDORA_PLUGIN_DEP_LIBS="${PANDORA_PLUGIN_DEP_LIBS} %(plugin_dep_libs)s"
+        ])
+    """ % plugin)
+
+  else:
+    plugin_ac.write("""
+        AS_IF([test "x$enable_%(name)s_plugin" = "xyes"],[
+          pandora_default_plugin_list="%(name)s,${pandora_default_plugin_list}"
+        ])
+    """ % plugin)
+  plugin_ac.write("      ])\n")
+
+def fix_file_paths(plugin, files):
+  # TODO: determine path to plugin dir relative to top_srcdir... append it to
+  # source files if they don't already have it
+  new_files=""
+  if plugin['plugin_dir'] != ".":
+    for file in files.split():
+      if not file.startswith(plugin['rel_path']):
+        file= os.path.join(plugin['rel_path'], file)
+        new_files= "%s %s" % (new_files, file)
+  else:
+    new_files= " ".join(plugin['sources'].split())
+  if new_files != "":
+    return new_files
+  return files
+
+def expand_plugin_ini(plugin):
+    if plugin['name'] == "**OUT-OF-TREE**":
+      print "Out of tree plugins require the name field to be specified in plugin.ini"
+      sys.exit(1)
+
+    if plugin['plugin_dir'] == ".":
+      plugin['rel_path']= plugin['plugin_dir']
+      plugin['unconditional']=True
+    else:
+      plugin['rel_path']= plugin['plugin_dir'][len(config['top_srcdir'])+len(os.path.sep):]
+      plugin['unconditional']=False
+
+    plugin['sources']= fix_file_paths(plugin, plugin['sources'])
+    plugin['main_source']= plugin['sources'].split()[0]
+    plugin['headers']= fix_file_paths(plugin, plugin['headers'])
+    plugin['install_headers']= fix_file_paths(plugin, plugin['install_headers'])
+    plugin['tests']= fix_file_paths(plugin, plugin['tests'])
+
+    # Make a yes/no version for autoconf help messages
+    if plugin['load_by_default'] or plugin['static']:
+      plugin['default_yesno']="yes"
+    else:
+      plugin['default_yesno']="no"
+
+
+    plugin['build_conditional_tag']= "BUILD_%s_PLUGIN" % plugin['name'].upper()
+    plugin['name_with_dashes']= plugin['name'].replace('_','-')
+    if plugin.has_key('build_conditional'):
+      plugin['has_build_conditional']=True
+      plugin['build_conditional']='"x${with_%(name)s_plugin}" = "xyes" -a %(build_conditional)s' % plugin
+    else:
+      plugin['has_build_conditional']=False
+      plugin['build_conditional']='"x${with_%(name)s_plugin}" = "xyes"' %plugin
+
+    if plugin['install']:
+      plugin['library_type']= 'pkgplugin'
+    else:
+      plugin['library_type']= 'noinst'
+
+def find_testsuite(plugin_dir):
+  for testdir in ['drizzle-tests','tests']:
+    if os.path.isdir(os.path.join(plugin_dir,testdir)):
+      return testdir
+  if os.path.isdir(os.path.join('tests','suite',os.path.basename(plugin_dir))):
+    return ""
+  return None
+
+def read_plugin_ini(plugin_dir):
+    if plugin_dir == ".":
+      plugin_name="**OUT-OF-TREE**"
+    else:
+      short_name=os.path.basename(plugin_dir)
+      plugin_name = plugin_dir[plugin_dir.index(config['root_plugin_dir']) + len(config['root_plugin_dir']) + 1:]
+      module_name = plugin_name.replace("/", config['module_name_separator']).replace("\\", config['module_name_separator'])
+      plugin_name = plugin_name.replace("/", config['plugin_name_separator']).replace("\\", config['plugin_name_separator'])
+
+
+    plugin_file= os.path.join(plugin_dir,config['plugin_ini_fname'])
+    plugin_defaults= dict(sources="%s.cc" % short_name,
+                          headers="",
+                          install_headers="",
+                          cflags="",
+                          cppflags="",
+                          cxxflags="",
+                          libs="",
+                          ldflags="",
+                          author="",
+                          title="",
+                          description="",
+                          license="PLUGIN_LICENSE_GPL",
+                          name=plugin_name,
+                          module_name=module_name,
+                          load_by_default=config['default_load_by_default'],
+                          disabled="False",
+                          static="False",
+                          dependencies="",
+                          dependency_aliases="",
+                          tests="",
+                          install=config['default_install'])
+    parser=ConfigParser.ConfigParser(defaults= plugin_defaults)
+    parser.read(plugin_file)
+    plugin=dict(parser.items('plugin'))
+    plugin['plugin_dir'] = plugin_dir
+    if plugin_dir == '.':
+      if not plugin.has_key('url'):
+        print "External Plugins are required to specifiy a url"
+        plugin['url']= 'http://launchpad.net/%(name)s' % plugin
+        sys.exit(1)
+      if plugin_dir == '.' and not plugin.has_key('version'):
+        print "External Plugins are required to specifiy a version"
+        sys.exit(1)
+    if not plugin.has_key('version'):
+      plugin['version'] = config['default_plugin_version']
+
+    if plugin.has_key('load_by_default'):
+      plugin['load_by_default']=parser.getboolean('plugin','load_by_default')
+    if plugin.has_key('disabled'):
+      plugin['disabled']=parser.getboolean('plugin','disabled')
+    if plugin['disabled']:
+      plugin['enabled']="no"
+    else:
+      plugin['enabled']="yes"
+    if plugin.has_key('static'):
+      plugin['static']= parser.getboolean('plugin','static')
+    if plugin.has_key('install'):
+      plugin['install']= parser.getboolean('plugin','install')
+    if plugin.has_key('testsuite'):
+      if plugin['testsuite'] == 'disable':
+        plugin['testsuite']= False
+    else:
+      plugin_testsuite= find_testsuite(plugin_dir)
+      plugin['testsuitedir']=plugin_testsuite
+      if plugin_testsuite is not None:
+        plugin['testsuite']=True
+      else:
+        plugin['testsuite']=False
+
+    plugin['cflags']+= ' ' + config['extra_cflags']
+    plugin['cppflags']+= ' ' + config['extra_cppflags']
+    plugin['cxxflags']+= ' ' + config['extra_cxxflags']
+
+    plugin['libname']= "lib%s%s%s" % (config['plugin_prefix'],
+                                      plugin['name'],
+                                      config['plugin_suffix'])
+    if config['force_lowercase_libname']:
+      plugin['libname']= plugin['libname'].lower()
+
+    plugin['root_plugin_dir']= config['root_plugin_dir']
+    plugin['plugin_prefix']= config['plugin_prefix']
+    plugin['plugin_suffix']= config['plugin_suffix']
+    plugin['pkgplugindir']= config['pkgplugindir']
+
+    # Dependencies must have a module but dependency aliases are simply added
+    # to the variable passed during compile.
+    plugin['dependency_list'] = plugin['dependencies'].split()
+    dependency_aliases = plugin['dependency_aliases'].split()
+    plugin['dependencies'] = ','.join(plugin['dependency_list'] +
+                                      plugin['dependency_aliases'].split())
+    dependency_libs = ["%s/lib%s%s.la" % (config['root_plugin_dir'],
+                                          dependency.lower().replace('::', '_'),
+                                          config['plugin_suffix'])
+                       for dependency in plugin['dependency_list']]
+    plugin['libs'] = " ".join(plugin['libs'].split() + dependency_libs);
+
+# Libtool is going to expand:
+#      -DPANDORA_MODULE_AUTHOR='"Padraig O'"'"'Sullivan"'
+# to:
+# "-DPANDORA_MODULE_AUTHOR=\"Padraig O'Sullivan\""
+# So we have to replace internal ''s to '"'"'
+    for key in ('author','title','description','version'):
+      plugin[key]=plugin[key].replace('"','\\"')
+      plugin[key]=plugin[key].replace("'","'\"'\"'")
+    return plugin
+
+
+def write_plugin_am(plugin, plugin_am):
+  """Write an automake fragment for this plugin.
+
+  :param plugin: The plugin dict.
+  :param plugin_am: The file to write to.
+  """
+  # The .plugin.ini.stamp avoids changing the datestamp on plugin.ini which can
+  # confuse VCS systems.
+  plugin_am.write("""
+EXTRA_DIST += %(rel_path)s/plugin.ini
+
+# Prevent errors when a plugin dir is removed
+%(rel_path)s/plugin.ini:
+
+""" % plugin)
+  if plugin['headers'] != "":
+    plugin_am.write("noinst_HEADERS += %(headers)s\n" % plugin)
+  if plugin['install_headers'] != "":
+    plugin_am.write("nobase_include_HEADERS += %(install_headers)s\n" % plugin)
+  if plugin['testsuite']:
+    if plugin.has_key('testsuitedir') and plugin['testsuitedir'] != "":
+      plugin_am.write("EXTRA_DIST += %(rel_path)s/%(testsuitedir)s\n" % plugin)
+  if plugin['static']:
+    plugin_am.write("""
+%(root_plugin_dir)s_%(plugin_prefix)s%(name)s_dir=${top_srcdir}/%(rel_path)s
+EXTRA_DIST += %(rel_path)s/plugin.ini
+if %(build_conditional_tag)s
+  noinst_LTLIBRARIES+=%(root_plugin_dir)s/%(libname)s.la
+  %(root_plugin_dir)s_%(libname)s_la_LIBADD=%(libs)s
+  %(root_plugin_dir)s_%(libname)s_la_DEPENDENCIES=%(libs)s
+  %(root_plugin_dir)s_%(libname)s_la_LDFLAGS=$(AM_LDFLAGS) %(ldflags)s $(GCOV_LIBS)
+  %(root_plugin_dir)s_%(libname)s_la_CPPFLAGS=$(AM_CPPFLAGS) -DPANDORA_MODULE_NAME=%(module_name)s -DPANDORA_MODULE_AUTHOR='"%(author)s"' -DPANDORA_MODULE_TITLE='"%(title)s"' -DPANDORA_MODULE_VERSION='"%(version)s"' -DPANDORA_MODULE_LICENSE=%(license)s -DPANDORA_MODULE_DEPENDENCIES='"%(dependencies)s"' %(cppflags)s
+  %(root_plugin_dir)s_%(libname)s_la_CXXFLAGS=$(AM_CXXFLAGS) %(cxxflags)s
+  %(root_plugin_dir)s_%(libname)s_la_CFLAGS=$(AM_CFLAGS) %(cflags)s
+  %(root_plugin_dir)s_%(libname)s_la_SOURCES=%(sources)s
+  check_PROGRAMS += %(tests)s
+  PANDORA_DYNAMIC_LDADDS+=${top_builddir}/%(root_plugin_dir)s/%(libname)s.la
+endif
+""" % plugin)
+  else:
+    plugin_am.write("""
+%(root_plugin_dir)s_%(plugin_prefix)s%(name)s_dir=${top_srcdir}/%(rel_path)s
+EXTRA_DIST += %(rel_path)s/plugin.ini
+if %(build_conditional_tag)s
+  %(library_type)s_LTLIBRARIES+=%(root_plugin_dir)s/%(libname)s.la
+  %(root_plugin_dir)s_%(libname)s_la_LDFLAGS=-avoid-version -rpath $(pkgplugindir) $(AM_LDFLAGS) %(ldflags)s $(GCOV_LIBS)
+  %(root_plugin_dir)s_%(libname)s_la_LIBADD=%(libs)s
+  %(root_plugin_dir)s_%(libname)s_la_DEPENDENCIES=%(libs)s
+  %(root_plugin_dir)s_%(libname)s_la_CPPFLAGS=$(AM_CPPFLAGS) -DPANDORA_DYNAMIC_PLUGIN -DPANDORA_MODULE_NAME=%(module_name)s -DPANDORA_MODULE_AUTHOR='"%(author)s"' -DPANDORA_MODULE_TITLE='"%(title)s"' -DPANDORA_MODULE_VERSION='"%(version)s"' -DPANDORA_MODULE_LICENSE=%(license)s -DPANDORA_MODULE_DEPENDENCIES='"%(dependencies)s"' %(cppflags)s
+  %(root_plugin_dir)s_%(libname)s_la_CXXFLAGS=$(AM_CXXFLAGS) %(cxxflags)s
+  %(root_plugin_dir)s_%(libname)s_la_CFLAGS=$(AM_CFLAGS) %(cflags)s
+  %(root_plugin_dir)s_%(libname)s_la_SOURCES=%(sources)s
+  check_PROGRAMS += %(tests)s
+endif
+""" % plugin)
+  plugin_am_file=os.path.join(plugin['rel_path'],'plugin.am')
+  if os.path.exists(plugin_am_file):
+    plugin_am.write('include %s\n' % plugin_am_file)
+
+#
+# MAIN STARTS HERE:
+#
+
+# Parse the pandora-plugin config file
+
+config_defaults= dict(
+  top_srcdir='.',
+  top_builddir='.',
+  plugin_ini_fname='plugin.ini',
+  plugin_prefix='',
+  plugin_suffix='',
+  extra_cflags='',
+  extra_cppflags='',
+  extra_cxxflags='',
+  root_plugin_dir='',
+  pkgplugindir='',
+  default_install='True',
+  default_plugin_version='',
+  default_load_by_default='False',
+  force_lowercase_libname='True',
+  plugin_name_separator='_',
+  module_name_separator='::'
+)
+
+config_parser = ConfigParser.ConfigParser(defaults=config_defaults)
+config_parser.read(pandora_plugin_file)
+config = dict(config_parser.items('pandora-plugin'))
+config['force_lowercase_libname']=config_parser.getboolean('pandora-plugin','force_lowercase_libname')
+
+# I'm 3 seconds away from writing a comprehensive build solution
+if not os.path.exists('config/pandora_vc_revinfo'):
+  if os.path.exists('.bzr'):
+    bzr_revno= subprocess.Popen(["bzr", "revno"], stdout=subprocess.PIPE).communicate()[0].strip()
+    rev_date= datetime.date.fromtimestamp(time.time())
+    config['default_plugin_version'] = "%d.%02d.%s" % (rev_date.year, rev_date.month, bzr_revno)
+  else:
+    config['default_plugin_version']=datetime.date.fromtimestamp(time.time()).isoformat()
+else:
+  # need to read config/pandora_vc_revno
+  pandora_vc_revno=open('config/pandora_vc_revinfo','r').read().split()
+  rev_date=""
+  bzr_revno=""
+  for revno_line in pandora_vc_revno:
+    (revno_key,revno_val)= revno_line.split("=")
+    if revno_key == 'PANDORA_VC_REVNO':
+      bzr_revno=revno_val.strip()
+    elif revno_key == 'PANDORA_RELEASE_DATE':
+      rev_date=revno_val.strip()
+
+  config['default_plugin_version'] = "%s.%s" % (rev_date, bzr_revno)
+
+actions=[]
+for arg in sys.argv:
+  if arg.startswith('--top_srcdir='):
+    config['top_srcdir']=arg[12:]
+  elif arg.startswith('--top_builddir='):
+    config['top_builddir']=arg[14:]
+  elif arg == "--force-all":
+    actions=['plugin-list','pandora-plugin.am','write']
+    break
+  else:
+    actions.append(arg)
+if len(actions) == 0:
+  actions.append('write')
+
+plugin_list=[]
+
+def accumulate_plugins(arg, dirname, fnames):
+  # plugin_ini_fname is a name in dirname indicating dirname is a plugin.
+  if config['plugin_ini_fname'] in fnames:
+    arg.append(dirname)
+
+os.path.walk(os.path.join(config['top_srcdir'],
+                          config['root_plugin_dir']),
+             accumulate_plugins,
+             plugin_list)
+
+
+if not os.path.exists("config/pandora-plugin.am") or "write" in actions:
+  plugin_am_file = ChangeProtectedFile(os.path.join('config', 'pandora-plugin.am'))
+  plugin_am_file.write("""
+# always the current list, generated every build so keep this lean.
+# pandora-plugin.list: datestamp preserved list
+${srcdir}/config/pandora-plugin.list: .plugin.scan
+.plugin.scan:
+	@cd ${top_srcdir} && python config/pandora-plugin plugin-list
+
+# Plugins affect configure; so to prevent configure running twice in a tarball
+# build (once up front, once with the right list of plugins, we ship the
+# generated list of plugins and the housekeeping material for that list so it
+# is likewise not updated.
+EXTRA_DIST += \
+	config/pandora-plugin.am \
+	config/pandora-plugin.ac \
+	config/pandora-plugin \
+	config/pandora-plugin.ini
+
+
+# Seed the list of plugin LDADDS which plugins may extend.
+PANDORA_DYNAMIC_LDADDS=
+
+# plugin.stamp: graph dominator for creating all per pandora-plugin.ac/am
+# files. This is invoked when the code to generate such files has altered.""")
+
+if not os.path.exists("config/pandora-plugin.ac") or "write" in actions:
+  plugin_ac_file = ChangeProtectedFile(os.path.join('config', 'pandora-plugin.ac'))
+  plugin_ac_file.write("dnl Generated file, run make to rebuild\n")
+
+
+if os.path.exists('plugin.ini'):
+  # Are we in a plugin dir which wants to have a self-sufficient build system?
+  plugin_list=['.']
+
+  write_external_plugin()
+else:
+  plugin_list_file = ChangeProtectedFile(os.path.join('config', 'pandora-plugin.list'))
+  for p in plugin_list:
+    plugin_list_file.write(p)
+    plugin_list_file.write("\n")
+  plugin_list.sort()
+  plugin_list_file.close()
+
+if not os.path.exists("config/pandora-plugin.am") or 'write' in actions:
+  plugin_am_file.write("\n${top_srcdir}/config/pandora-plugin.am: ${top_srcdir}/config/pandora-plugin.list ${top_srcdir}/config/pandora-plugin ")
+  for plugin_dir in plugin_list:
+    plugin_am_file.write("\\\n\t%s/plugin.ini " % plugin_dir)
+  plugin_am_file.write("\n\tcd ${top_srcdir} && python config/pandora-plugin write\n")
+  plugin_ini_list=[]
+
+  # Load all plugin.ini files first so we can do dependency tracking.
+  for plugin_dir in plugin_list:
+    plugin = read_plugin_ini(plugin_dir)
+    expand_plugin_ini(plugin)
+    plugin_ini_list.append(plugin)
+
+  # Check for duplicates
+  plugin_name_list = [plugin['libname'] for plugin in plugin_ini_list]
+  for plugin in plugin_ini_list:
+    if plugin_name_list.count(plugin['libname']) != 1:
+      print "Duplicate module name %s" % plugin['libname']
+      exit(1)
+
+  for plugin in plugin_ini_list:
+    write_plugin(plugin, plugin_ini_list)
+
+if plugin_am_file is not None:
+  plugin_am_file.close()
+if plugin_ac_file is not None:
+  plugin_ac_file.close()

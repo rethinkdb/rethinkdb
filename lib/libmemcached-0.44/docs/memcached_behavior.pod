@@ -1,0 +1,292 @@
+=head1 NAME
+
+memcached_behavior_get, memcached_behavior_set - Manipulate behavior
+
+=head1 LIBRARY
+
+C Client Library for memcached (libmemcached, -lmemcached)
+
+=head1 SYNOPSIS
+
+  #include <memcached.h>
+
+  uint64_t
+    memcached_behavior_get (memcached_st *ptr,
+                            memcached_behavior flag);
+
+  memcached_return_t
+    memcached_behavior_set (memcached_st *ptr,
+                            memcached_behavior flag,
+                            uint64_t data);
+
+=head1 DESCRIPTION
+
+libmemcached(3) behavior can be modified by use memcached_behavior_set().
+Default behavior is the library strives to be quick and accurate. Some
+behavior, while being faster, can also result in not entirely accurate
+behavior (for instance, memcached_set() will always respond with
+C<MEMCACHED_SUCCESS>).
+
+memcached_behavior_get() takes a behavior flag and returns whether or not
+that behavior is currently enabled in the client.
+
+memcached_behavior_set() changes the value of a particular option of the
+client. It takes both a flag (listed below) and a value. For simple on or
+off options you just need to pass in a value of 1. Calls to
+memcached_behavior_set() will flush and reset all connections.
+
+=over 4
+
+=item MEMCACHED_BEHAVIOR_USE_UDP
+
+Causes libmemcached(3) to use the UDP transport when communicating
+with a memcached server. Not all I/O operations are supported
+when this behavior is enababled. The following operations will return
+C<MEMCACHED_NOT_SUPPORTED> when executed with the MEMCACHED_BEHAVIOR_USE_UDP
+enabled: memcached_version(), memcached_stat(), memcached_get(),
+memcached_get_by_key(), memcached_mget(), memcached_mget_by_key(),
+memcached_fetch(), memcached_fetch_result(), memcached_value_fetch().
+
+All other operations are supported but are executed in a 'fire-and-forget'
+mode, in which once the client has executed the operation, no attempt
+will be made to ensure the operation has been received and acted on by the
+server.
+
+libmemcached(3) does not allow TCP and UDP servers to be shared within
+the same libmemached(3) client 'instance'. An attempt to add a TCP server
+when this behavior is enabled will result in a C<MEMCACHED_INVALID_HOST_PROTOCOL>,
+as will attempting to add a UDP server when this behavior has not been enabled.
+
+=item MEMCACHED_BEHAVIOR_NO_BLOCK
+
+Causes libmemcached(3) to use asychronous IO. This is the fastest transport
+available for storage functions.
+
+=item MEMCACHED_BEHAVIOR_SND_TIMEOUT
+
+This sets the microsecond behavior of the socket against the SO_SNDTIMEO flag.
+In cases where you cannot use non-blocking IO this will allow you to still have
+timeouts on the sending of data.
+
+=item MEMCACHED_BEHAVIOR_RCV_TIMEOUT
+
+This sets the microsecond behavior of the socket against the SO_RCVTIMEO flag.
+In cases where you cannot use non-blocking IO this will allow you to still have
+timeouts on the reading of data.
+
+=item MEMCACHED_BEHAVIOR_TCP_NODELAY
+
+Turns on the no-delay feature for connecting sockets (may be faster in some
+environments).
+
+=item MEMCACHED_BEHAVIOR_HASH
+
+Makes the default hashing algorithm for keys use MD5. The value can be set
+to either MEMCACHED_HASH_DEFAULT, MEMCACHED_HASH_MD5, MEMCACHED_HASH_CRC, MEMCACHED_HASH_FNV1_64, MEMCACHED_HASH_FNV1A_64, MEMCACHED_HASH_FNV1_32, MEMCACHED_HASH_FNV1A_32, MEMCACHED_HASH_JENKINS, MEMCACHED_HASH_HSIEH, and MEMCACHED_HASH_MURMUR.
+Each hash has it's advantages and it's weaknesses. If you don't know or don't care, just go with the default.
+Support for MEMCACHED_HASH_HSIEH is a compile time option that is disabled by default. To enable support for this hashing algorithm, configure and build libmemcached with the --enable-hash_hsieh.
+
+=item MEMCACHED_BEHAVIOR_DISTRIBUTION
+
+Using this you can enable different means of distributing values to servers.
+The default method is MEMCACHED_DISTRIBUTION_MODULA. You can enable
+consistent hashing by setting MEMCACHED_DISTRIBUTION_CONSISTENT.
+Consistent hashing delivers better distribution and allows servers to be
+added to the cluster with minimal cache losses. Currently
+MEMCACHED_DISTRIBUTION_CONSISTENT is an alias for the value
+MEMCACHED_DISTRIBUTION_CONSISTENT_KETAMA.
+
+=item MEMCACHED_BEHAVIOR_CACHE_LOOKUPS
+
+Memcached can cache named lookups so that DNS lookups are made only once.
+
+=item MEMCACHED_BEHAVIOR_SUPPORT_CAS
+
+Support CAS operations (this is not enabled by default at this point in the server since it imposes a slight performance penalty).
+
+=item MEMCACHED_BEHAVIOR_KETAMA
+
+Sets the default distribution to MEMCACHED_DISTRIBUTION_CONSISTENT_KETAMA
+and the hash to MEMCACHED_HASH_MD5.
+
+=item MEMCACHED_BEHAVIOR_KETAMA_WEIGHTED
+
+Sets the default distribution to MEMCACHED_DISTRIBUTION_CONSISTENT_KETAMA with the weighted support.
+and the hash to MEMCACHED_HASH_MD5.
+
+=item MEMCACHED_BEHAVIOR_KETAMA_HASH
+
+Sets the hashing algorithm for host mapping on continuum. The value can be set
+to either MEMCACHED_HASH_DEFAULT, MEMCACHED_HASH_MD5, MEMCACHED_HASH_CRC, MEMCACHED_HASH_FNV1_64, MEMCACHED_HASH_FNV1A_64, MEMCACHED_HASH_FNV1_32, and MEMCACHED_HASH_FNV1A_32.
+
+=item MEMCACHED_BEHAVIOR_KETAMA_COMPAT
+
+Sets the compatibility mode. The value can be set to either
+MEMCACHED_KETAMA_COMPAT_LIBMEMCACHED (this is the default) or
+MEMCACHED_KETAMA_COMPAT_SPY to be compatible with the SPY Memcached client
+for Java.
+
+=item MEMCACHED_BEHAVIOR_POLL_TIMEOUT
+
+Modify the timeout value that is used by poll(). The default value is -1. An signed int pointer must be passed to memcached_behavior_set() to change this value. For memcached_behavior_get() a signed int value will be cast and returned as the unsigned long long.
+
+=item MEMCACHED_BEHAVIOR_USER_DATA
+
+This allows you to store a pointer to a specifc piece of data. This can be
+retrieved from inside of memcached_fetch_execute(). Cloning a memcached_st
+
+will copy the pointer to the clone. This was deprecated in 0.14 in favor
+of memcached_callback_set(3). This will be removed in 0.15.
+
+=item MEMCACHED_BEHAVIOR_BUFFER_REQUESTS
+
+Enabling buffered IO causes commands to "buffer" instead of being sent. Any
+action that gets data causes this buffer to be be sent to the remote
+connection. Quiting the connection or closing down the connection will also
+cause the buffered data to be pushed to the remote connection.
+
+=item MEMCACHED_BEHAVIOR_VERIFY_KEY
+
+Enabling this will cause libmemcached(3) to test all keys to verify that they
+are valid keys.
+
+=item MEMCACHED_BEHAVIOR_SORT_HOSTS
+
+Enabling this will cause hosts that are added to be placed in the host list in
+sorted order. This will defeat consisten hashing.
+
+=item MEMCACHED_BEHAVIOR_CONNECT_TIMEOUT
+
+In non-blocking mode this changes the value of the timeout during socket
+connection.
+
+=item MEMCACHED_BEHAVIOR_BINARY_PROTOCOL
+
+Enable the use of the binary protocol. Please note that you cannot toggle
+this flag on an open connection.
+
+=item MEMCACHED_BEHAVIOR_SERVER_FAILURE_LIMIT
+
+Set this value to enable the server be removed after continuous MEMCACHED_BEHAVIOR_SERVER_FAILURE_LIMIT
+times connection failure.
+
+=item MEMCACHED_BEHAVIOR_IO_MSG_WATERMARK
+
+Set this value to tune the number of messages that may be sent before
+libmemcached should start to automatically drain the input queue. Setting
+this value to high, may cause libmemcached to deadlock (trying to send data,
+but the send will block because the input buffer in the kernel is full).
+
+=item MEMCACHED_BEHAVIOR_IO_BYTES_WATERMARK
+
+Set this value to tune the number of bytes that may be sent before
+libmemcached should start to automatically drain the input queue (need
+at least 10 IO requests sent without reading the input buffer). Setting
+this value to high, may cause libmemcached to deadlock (trying to send
+data, but the send will block because the input buffer in the kernel is full).
+
+=item MEMCACHED_BEHAVIOR_IO_KEY_PREFETCH
+
+The binary protocol works a bit different than the textual protocol in
+that a multiget is implemented as a pipe of single get-operations which
+are sent to the server in a chunk. If you are using large multigets from
+your application, you may improve the latency of the gets by setting
+this value so you send out the first chunk of requests when you hit the
+specified limit.  It allows the servers to start processing the requests
+to send the data back while the rest of the requests are created and
+sent to the server.
+
+=item MEMCACHED_BEHAVIOR_NOREPLY
+
+Set this value to specify that you really don't care about the result
+from your storage commands (set, add, replace, append, prepend).
+
+=item MEMCACHED_BEHAVIOR_NUMBER_OF_REPLICAS
+
+If you just want "a poor mans HA", you may specify the numbers of
+replicas libmemcached should store of each item (on different servers).
+This replication does not dedicate certain memcached servers to store the
+replicas in, but instead it will store the replicas together with all of the
+other objects (on the 'n' next servers specified in your server list).
+
+=item MEMCACHED_BEHAVIOR_RANDOMIZE_REPLICA_READ
+
+Allows randomizing the replica reads starting point. Normally the read is
+done from primary server and in case of miss the read is done from primary
++ 1, then primary + 2 all the way to 'n' replicas. If this option is set
+on the starting point of the replica reads is randomized between the servers.
+This allows distributing read load to multiple servers with the expense of
+more write traffic.
+
+=item MEMCACHED_BEHAVIOR_CORK
+
+Enable TCP_CORK behavior. This is only available as an option Linux.
+MEMCACHED_NO_SERVERS is returned if no servers are available to test with.
+MEMCACHED_NOT_SUPPORTED is returned if we were not able to determine
+if support was available. All other responses then MEMCACHED_SUCCESS
+report an error of some sort. This behavior also enables
+MEMCACHED_BEHAVIOR_TCP_NODELAY when set.
+
+=item MEMCACHED_BEHAVIOR_KEEPALIVE
+
+Enable TCP_KEEPALIVE behavior.
+
+=item MEMCACHED_BEHAVIOR_KEEPALIVE_IDLE
+
+Specify time, in seconds, to mark a connection as idle. This is only available as an option Linux.
+
+=item MEMCACHED_BEHAVIOR_SOCKET_SEND_SIZE
+
+Find the current size of SO_SNDBUF. A value of 0 means either an error
+occured or no hosts were available. It is safe to assume system default
+if this occurs.
+
+=item MEMCACHED_BEHAVIOR_SOCKET_RECV_SIZE
+
+Find the current size of SO_RCVBUF. A value of 0 means either an error
+occured or no hosts were available. It is safe to assume system default
+if this occurs.
+
+=item MEMCACHED_BEHAVIOR_SERVER_FAILURE_LIMIT
+
+This number of times a host can have an error before it is disabled.
+
+=item MEMCACHED_BEHAVIOR_AUTO_EJECT_HOSTS
+
+If enabled any hosts which have been flagged as disabled will be removed
+from the list of servers in the memcached_st structure. This must be used
+in combination with MEMCACHED_BEHAVIOR_SERVER_FAILURE_LIMIT.
+
+=item MEMCACHED_BEHAVIOR_RETRY_TIMEOUT
+
+When enabled a host which is problematic will only be checked for usage
+based on the amount of time set by this behavior.
+
+=back
+
+=head1 RETURN
+
+memcached_behavior_get() returns either the current value of the get, or 0
+or 1 on simple flag behaviors (1 being enabled). memcached_behavior_set()
+returns failure or success.
+
+=head1 NOTES
+
+memcached_behavior_set() in version .17 was changed from taking a pointer
+to data value, to taking a uin64_t.
+
+=head1 HOME
+
+To find out more information please check:
+L<https://launchpad.net/libmemcached>
+
+=head1 AUTHOR
+
+Brian Aker, E<lt>brian@tangent.orgE<gt>
+
+=head1 SEE ALSO
+
+memcached(1) libmemcached(3) memcached_strerror(3)
+
+=cut
+

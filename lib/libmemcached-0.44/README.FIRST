@@ -1,0 +1,31 @@
+Hi!
+
+If you are getting this code from http://launchpad.net/libmemcached then
+continue reading. Otherwise these directions are not for you (well maybe...).
+
+To obtain code from http://bazaar.launchpad.net/libmemcached you will need to
+issue the following command:
+
+bzr branch lp:libmemcached
+
+Once the tree is cloned you will need to build the "configure" script. You
+can do this by running the script:
+
+./config/autorun.sh
+
+It will set up all of the files you need to build libmemcached. At that
+point it is just the typical "./configure; make; make test; make install"
+
+For a tarball release do a "make dist" and for an RPM type "make rpm".
+
+For patches, we prefer you push a branch to launchpad and then submit that 
+branch to be merged. For more information, see:
+
+https://help.launchpad.net/Code/UploadingABranch
+https://help.launchpad.net/Code/Review
+
+Thanks and keep hacking!
+
+Cheers,
+  -Brian
+  Seattle, WA.

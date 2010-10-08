@@ -1,0 +1,263 @@
+Name:      libmemcached
+Summary:   memcached C library and command line tools
+Version: @VERSION@
+Release:   1
+License:   BSD
+Group:     System Environment/Libraries
+URL:       http://launchpad.net/libmemcached
+Source0:   http://download.tangent.org/libmemcached-%{version}.tar.gz
+
+# For test suite
+BuildRequires: memcached
+
+BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
+
+
+%description
+libmemcached is a C client library to the memcached server
+(http://danga.com/memcached). It has been designed to be light on memory
+usage, and provide full access to server side methods.
+
+It also implements several command line tools:
+
+memcat - Copy the value of a key to standard output.
+memflush - Flush the contents of your servers.
+memrm - Remove a key(s) from the serrver.
+memstat - Dump the stats of your servers to standard output.
+memslap - Generate testing loads on a memcached cluster.
+memcp - Copy files to memcached servers.
+memerror - Creates human readable messages from libmemecached error codes.
+memcapable - Verify a memcached server for protocol behavior.
+
+
+%package devel
+Summary: Header files and development libraries for %{name}
+Group: Development/Libraries
+Requires: %{name} = %{version}-%{release}
+
+%description devel
+This package contains the header files and development libraries
+for %{name}. If you like to develop programs using %{name}, 
+you will need to install %{name}-devel.
+
+
+%prep
+%setup -q
+
+%{__mkdir} examples
+%{__cp} tests/*.{c,cpp,h} examples/
+
+
+%build
+%configure
+%{__make} %{_smp_mflags}
+
+
+%install
+%{__rm} -rf %{buildroot}
+%{__make} install  DESTDIR="%{buildroot}" AM_INSTALL_PROGRAM_FLAGS=""
+
+
+%check
+# test suite cannot run in mock (same port use for memcache server on all arch)
+# 1 test seems to fail.. 
+#%{__make} test
+
+
+%clean
+%{__rm} -rf %{buildroot}
+
+
+%post -p /sbin/ldconfig
+
+
+%postun -p /sbin/ldconfig
+ 
+
+%files
+%defattr (-,root,root,-) 
+%doc AUTHORS COPYING NEWS README THANKS TODO
+%{_bindir}/mem*
+%exclude %{_libdir}/libmemcached.la
+%exclude %{_libdir}/libhashkit.la
+%exclude %{_libdir}/libmemcachedutil.la
+%exclude %{_libdir}/libmemcachedprotocol.la
+%{_libdir}/libhashkit.so.0.0.0
+%{_libdir}/libmemcached.so.6.0.0
+%{_libdir}/libmemcachedutil.so.1.0.0
+%{_libdir}/libmemcachedprotocol.so.0.0.0
+%{_libdir}/libhashkit.so.0
+%{_libdir}/libmemcached.so.6
+%{_libdir}/libmemcachedprotocol.so.0
+%{_libdir}/libmemcachedutil.so.1
+%{_mandir}/man1/memcapable.1.gz
+%{_mandir}/man1/memcat.1.gz
+%{_mandir}/man1/memcp.1.gz
+%{_mandir}/man1/memdump.1.gz
+%{_mandir}/man1/memerror.1.gz
+%{_mandir}/man1/memflush.1.gz
+%{_mandir}/man1/memrm.1.gz
+%{_mandir}/man1/memslap.1.gz
+%{_mandir}/man1/memstat.1.gz
+
+
+%files devel
+%defattr (-,root,root,-) 
+%doc examples
+%{_includedir}/libmemcached/allocators.h
+%{_includedir}/libmemcached/delete.h
+%{_includedir}/libmemcached/fetch.h
+%{_includedir}/libmemcached/flush.h
+%{_includedir}/libhashkit/algorithm.h
+%{_includedir}/libhashkit/behavior.h
+%{_includedir}/libhashkit/configure.h
+%{_includedir}/libhashkit/digest.h
+%{_includedir}/libhashkit/function.h
+%{_includedir}/libhashkit/hashkit.h
+%{_includedir}/libhashkit/strerror.h
+%{_includedir}/libhashkit/types.h
+%{_includedir}/libhashkit/visibility.h
+%{_includedir}/libmemcached/analyze.h
+%{_includedir}/libmemcached/auto.h
+%{_includedir}/libmemcached/behavior.h
+%{_includedir}/libmemcached/callback.h
+%{_includedir}/libmemcached/configure.h
+%{_includedir}/libmemcached/constants.h
+%{_includedir}/libmemcached/dump.h
+%{_includedir}/libmemcached/exception.hpp
+%{_includedir}/libmemcached/flush_buffers.h
+%{_includedir}/libmemcached/get.h
+%{_includedir}/libmemcached/hash.h
+%{_includedir}/libmemcached/memcached.h
+%{_includedir}/libmemcached/memcached.hpp
+%{_includedir}/libmemcached/memcached_util.h
+%{_includedir}/libmemcached/parse.h
+%{_includedir}/libmemcached/platform.h
+%{_includedir}/libmemcached/protocol/cache.h
+%{_includedir}/libmemcached/protocol/callback.h
+%{_includedir}/libmemcached/protocol_handler.h
+%{_includedir}/libmemcached/quit.h
+%{_includedir}/libmemcached/result.h
+%{_includedir}/libmemcached/sasl.h
+%{_includedir}/libmemcached/server.h
+%{_includedir}/libmemcached/server_list.h
+%{_includedir}/libmemcached/stats.h
+%{_includedir}/libmemcached/storage.h
+%{_includedir}/libmemcached/strerror.h
+%{_includedir}/libmemcached/string.h
+%{_includedir}/libmemcached/types.h
+%{_includedir}/libmemcached/util.h
+%{_includedir}/libmemcached/util/ping.h
+%{_includedir}/libmemcached/util/pool.h
+%{_includedir}/libmemcached/util/version.h
+%{_includedir}/libmemcached/verbosity.h
+%{_includedir}/libmemcached/version.h
+%{_includedir}/libmemcached/visibility.h
+%{_includedir}/libmemcached/watchpoint.h
+%{_includedir}/libmemcached/memcached/protocol_binary.h
+%{_libdir}/libhashkit.so
+%{_libdir}/libmemcached.so
+%{_libdir}/libmemcachedprotocol.so
+%{_libdir}/libmemcachedutil.so
+%{_libdir}/pkgconfig/libmemcached.pc
+%{_mandir}/man3/hashkit_clone.3.gz
+%{_mandir}/man3/hashkit_crc32.3.gz
+%{_mandir}/man3/hashkit_create.3.gz
+%{_mandir}/man3/hashkit_fnv1_32.3.gz
+%{_mandir}/man3/hashkit_fnv1_64.3.gz
+%{_mandir}/man3/hashkit_fnv1a_32.3.gz
+%{_mandir}/man3/hashkit_fnv1a_64.3.gz
+%{_mandir}/man3/hashkit_free.3.gz
+%{_mandir}/man3/hashkit_functions.3.gz
+%{_mandir}/man3/hashkit_hsieh.3.gz
+%{_mandir}/man3/hashkit_is_allocated.3.gz
+%{_mandir}/man3/hashkit_jenkins.3.gz
+%{_mandir}/man3/hashkit_md5.3.gz
+%{_mandir}/man3/hashkit_murmur.3.gz
+%{_mandir}/man3/hashkit_value.3.gz
+%{_mandir}/man3/libmemcached.3.gz
+%{_mandir}/man3/libmemcached_examples.3.gz
+%{_mandir}/man3/libmemcachedutil.3.gz
+%{_mandir}/man3/memcached_add.3.gz
+%{_mandir}/man3/memcached_add_by_key.3.gz
+%{_mandir}/man3/memcached_analyze.3.gz
+%{_mandir}/man3/memcached_append.3.gz
+%{_mandir}/man3/memcached_append_by_key.3.gz
+%{_mandir}/man3/memcached_behavior_get.3.gz
+%{_mandir}/man3/memcached_behavior_set.3.gz
+%{_mandir}/man3/memcached_callback_get.3.gz
+%{_mandir}/man3/memcached_callback_set.3.gz
+%{_mandir}/man3/memcached_cas.3.gz
+%{_mandir}/man3/memcached_cas_by_key.3.gz
+%{_mandir}/man3/memcached_clone.3.gz
+%{_mandir}/man3/memcached_create.3.gz
+%{_mandir}/man3/memcached_decrement.3.gz
+%{_mandir}/man3/memcached_decrement_with_initial.3.gz
+%{_mandir}/man3/memcached_delete.3.gz
+%{_mandir}/man3/memcached_delete_by_key.3.gz
+%{_mandir}/man3/memcached_destroy_sasl_auth_data.3.gz
+%{_mandir}/man3/memcached_dump.3.gz
+%{_mandir}/man3/memcached_fetch.3.gz
+%{_mandir}/man3/memcached_fetch_execute.3.gz
+%{_mandir}/man3/memcached_fetch_result.3.gz
+%{_mandir}/man3/memcached_flush_buffers.3.gz
+%{_mandir}/man3/memcached_free.3.gz
+%{_mandir}/man3/memcached_generate_hash_value.3.gz
+%{_mandir}/man3/memcached_get.3.gz
+%{_mandir}/man3/memcached_get_by_key.3.gz
+%{_mandir}/man3/memcached_get_memory_allocators.3.gz
+%{_mandir}/man3/memcached_get_sasl_callbacks.3.gz
+%{_mandir}/man3/memcached_get_user_data.3.gz
+%{_mandir}/man3/memcached_increment.3.gz
+%{_mandir}/man3/memcached_increment_with_initial.3.gz
+%{_mandir}/man3/memcached_lib_version.3.gz
+%{_mandir}/man3/memcached_mget.3.gz
+%{_mandir}/man3/memcached_mget_by_key.3.gz
+%{_mandir}/man3/memcached_mget_execute.3.gz
+%{_mandir}/man3/memcached_mget_execute_by_key.3.gz
+%{_mandir}/man3/memcached_pool_behavior_get.3.gz
+%{_mandir}/man3/memcached_pool_behavior_set.3.gz
+%{_mandir}/man3/memcached_pool_create.3.gz
+%{_mandir}/man3/memcached_pool_destroy.3.gz
+%{_mandir}/man3/memcached_pool_pop.3.gz
+%{_mandir}/man3/memcached_pool_push.3.gz
+%{_mandir}/man3/memcached_prepend.3.gz
+%{_mandir}/man3/memcached_prepend_by_key.3.gz
+%{_mandir}/man3/memcached_quit.3.gz
+%{_mandir}/man3/memcached_replace.3.gz
+%{_mandir}/man3/memcached_replace_by_key.3.gz
+%{_mandir}/man3/memcached_sasl_set_auth_data.3.gz
+%{_mandir}/man3/memcached_server_add.3.gz
+%{_mandir}/man3/memcached_server_count.3.gz
+%{_mandir}/man3/memcached_server_cursor.3.gz
+%{_mandir}/man3/memcached_server_list.3.gz
+%{_mandir}/man3/memcached_server_list_append.3.gz
+%{_mandir}/man3/memcached_server_list_count.3.gz
+%{_mandir}/man3/memcached_server_list_free.3.gz
+%{_mandir}/man3/memcached_server_push.3.gz
+%{_mandir}/man3/memcached_servers_parse.3.gz
+%{_mandir}/man3/memcached_set.3.gz
+%{_mandir}/man3/memcached_set_by_key.3.gz
+%{_mandir}/man3/memcached_set_memory_allocators.3.gz
+%{_mandir}/man3/memcached_set_sasl_callbacks.3.gz
+%{_mandir}/man3/memcached_set_user_data.3.gz
+%{_mandir}/man3/memcached_stat.3.gz
+%{_mandir}/man3/memcached_stat_execute.3.gz
+%{_mandir}/man3/memcached_stat_get_keys.3.gz
+%{_mandir}/man3/memcached_stat_get_value.3.gz
+%{_mandir}/man3/memcached_stat_servername.3.gz
+%{_mandir}/man3/memcached_strerror.3.gz
+%{_mandir}/man3/memcached_verbosity.3.gz
+%{_mandir}/man3/memcached_version.3.gz
+
+
+
+%changelog
+* Fri Jan  8 2010 Brian Aker <brian@tangent.org> - 0.37-1
+- Modified to be explicit in install include files. 
+
+* Sat Apr 25 2009 Remi Collet <rpms@famillecollet.com> - 0.28-1
+- Initial RPM from Brian Aker spec
+- create -devel subpackage
+- add %%post %%postun %%check section
+
