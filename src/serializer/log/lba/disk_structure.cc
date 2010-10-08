@@ -146,10 +146,7 @@ bool lba_disk_structure_t::sync(sync_callback_t *cb) {
     lba_writer_t *writer = new lba_writer_t(cb);
     
     if (last_extent) {
-        printf("sync::last_extent exists\n");
         if (!last_extent->sync(writer)) writer->outstanding_cbs++;
-    } else {
-        printf("sync::last_extent does not exist\n");
     }
     
     if (superblock) {

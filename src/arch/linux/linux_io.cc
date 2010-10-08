@@ -8,7 +8,9 @@
 #include "arch/linux/arch.hpp"
 #include "config/args.hpp"
 #include "config/alloc.hpp"
-#include "utils.hpp"
+#include "utils2.hpp"
+#include <sys/socket.h>
+#include <arpa/inet.h>
 
 // #define DEBUG_DUMP_WRITES 1
 

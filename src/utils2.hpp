@@ -1,0 +1,45 @@
+#ifndef __UTILS2_HPP__
+#define __UTILS2_HPP__
+
+/* utils2.hpp is a collection of utility functions and types that sits below the IO layer.
+The reason it is separate from utils.hpp is that the IO layer needs some of the things in
+utils2.hpp, but utils.hpp needs some things in the IO layer. */
+
+#include "errors.hpp"
+#include "config/alloc.hpp"
+
+int get_cpu_count();
+long get_available_ram();
+long get_total_ram();
+
+template<typename T1, typename T2>
+T1 ceil_aligned(T1 value, T2 alignment) {
+    if(value % alignment != 0) {
+        return value + alignment - (value % alignment);
+    } else {
+        return value;
+    }
+}
+
+/* Functions to create random delays. These must be in utils2.hpp instead of in
+utils.hpp because the mock IO layer uses random delays. Internally, they
+secretly use the IO layer, but it is safe to include utils2.hpp from within the
+IO layer. */
+
+void random_delay(void (*)(void*), void*);
+
+template<class cb_t>
+void random_delay(cb_t *cb, void (cb_t::*method)());
+
+template<class cb_t, class arg1_t>
+void random_delay(cb_t *cb, void (cb_t::*method)(arg1_t), arg1_t arg);
+
+template<class cb_t>
+bool maybe_random_delay(cb_t *cb, void (cb_t::*method)());
+
+template<class cb_t, class arg1_t>
+bool maybe_random_delay(cb_t *cb, void (cb_t::*method)(arg1_t), arg1_t arg);
+
+#include "utils2.tcc"
+
+#endif /* __UTILS2_HPP__ */

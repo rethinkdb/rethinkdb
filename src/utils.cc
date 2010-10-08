@@ -2,20 +2,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <stdarg.h>
 #include "utils.hpp"
 #include "arch/arch.hpp"
-
-int get_cpu_count() {
-    return sysconf(_SC_NPROCESSORS_ONLN);
-}
-
-long get_available_ram() {
-    return (long)sysconf(_SC_AVPHYS_PAGES) * (long)sysconf(_SC_PAGESIZE);
-}
-
-long get_total_ram() {
-    return (long)sysconf(_SC_PHYS_PAGES) * (long)sysconf(_SC_PAGESIZE);
-}
 
 void *malloc_aligned(size_t size, size_t alignment) {
     void *ptr = NULL;
@@ -100,18 +89,13 @@ void print_hd(void *buf, size_t offset, size_t length) {
     }
 }
 
-void random_delay(void (*fun)(void*), void *arg) {
-
-    int ms = rand() % 50;
+void debugf(const char *msg, ...) {
     
-    fire_timer_once(ms, fun, arg);
+    flockfile(stderr);
+    va_list args;
+    va_start(args, msg);
+    fprintf(stderr, "CPU %d: ", get_cpu_id());
+    vfprintf(stderr, msg, args);
+    va_end(args);
+    funlockfile(stderr);
 }
-
-home_cpu_mixin_t::home_cpu_mixin_t()
-    : home_cpu(get_cpu_id()) { }
-
-#ifndef NDEBUG
-void home_cpu_mixin_t::assert_cpu() {
-    assert(home_cpu == get_cpu_id());
-}
-#endif

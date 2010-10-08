@@ -3,7 +3,7 @@
 #define __ARCH_MOCK_IO_HPP__
 
 #include "containers/segmented_vector.hpp"
-#include "utils.hpp"
+#include "utils2.hpp"
 
 struct mock_iocallback_t {
     virtual void on_io_complete(event_t *event) = 0;

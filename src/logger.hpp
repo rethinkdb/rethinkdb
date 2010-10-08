@@ -39,14 +39,12 @@ void mlog_end();
 log_controller_t takes care of starting and shutting down the per-thread
 logger_t objects. */
 
-class start_logger_message_t;
-class shutdown_logger_message_t;
+class logger_t;
 
 class log_controller_t :
     public home_cpu_mixin_t
 {
-    friend class start_logger_message_t;
-    friend class shutdown_logger_message_t;
+    friend class logger_t;
 
 public:
     log_controller_t(cmd_config_t *cmd_config);
@@ -67,7 +65,11 @@ public:
     void write(const char *str);
 
 private:
-    void finish_shutting_down();
+    bool start_a_logger();   // Called on each thread
+    bool have_started_a_logger();   // Called on main thread
+    bool shutdown_a_logger();   // Called on each thread
+    bool a_logger_has_shutdown();   // Called on each thread
+    bool have_shutdown_a_logger();   // Called on main thread
     
     enum state_t {
         state_off,

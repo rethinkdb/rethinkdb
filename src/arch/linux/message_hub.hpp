@@ -4,7 +4,7 @@
 #include <pthread.h>
 #include <strings.h>
 #include "containers/intrusive_list.hpp"
-#include "utils.hpp"
+#include "utils2.hpp"
 #include "config/args.hpp"
 #include "config/alloc.hpp"
 
@@ -16,14 +16,10 @@ struct linux_event_queue_t;
 
 struct linux_cpu_message_t : public intrusive_list_node_t<linux_cpu_message_t>
 {
-    // TODO: 'request' doesn't belong on cpu_message_t.
 
-    explicit linux_cpu_message_t()
-        : request(NULL)
-        {}
+    explicit linux_cpu_message_t() {}
     virtual ~linux_cpu_message_t() {}
 
-    request_t *request;
     unsigned int return_cpu;
     
     virtual void on_cpu_switch() = 0;

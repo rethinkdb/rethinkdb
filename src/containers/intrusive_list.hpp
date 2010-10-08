@@ -2,7 +2,7 @@
 #ifndef __INTRUSIVE_LIST_HPP__
 #define __INTRUSIVE_LIST_HPP__
 
-#include "utils.hpp"
+#include "utils2.hpp"
 
 template <class node_t> class intrusive_list_t;
 

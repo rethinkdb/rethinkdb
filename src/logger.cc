@@ -30,22 +30,17 @@ struct logger_t :
     /* Shutting down a logger_t consists of waiting for any outstanding messages
     to come back. */
     
-    struct shutdown_callback_t {
-        virtual void on_logger_shutdown() = 0;
-    };
-    bool shutdown(shutdown_callback_t *cb) {
+    bool shutdown() {
         shutting_down = true;
-        if (active_msg_count == 0) {
-            return true;
-        } else {
-            shutdown_callback = cb;
-            return false;
-        }
+        return (active_msg_count == 0);
+    }
+    
+    void finish_shutdown() {
+        controller->a_logger_has_shutdown();
     }
     
     int active_msg_count;   // How many outstanding log_msg_ts there are on this core
     bool shutting_down;
-    shutdown_callback_t *shutdown_callback;
     
     static __thread logger_t *logger;   // The logger instance for this thread
 };
@@ -112,7 +107,7 @@ public:
     ~log_msg_t() {
         logger->active_msg_count--;
         if (logger->shutting_down && logger->active_msg_count == 0) {
-            logger->shutdown_callback->on_logger_shutdown();
+            logger->finish_shutdown();
         }
     }
     
@@ -178,41 +173,7 @@ log_controller_t::~log_controller_t() {
     assert(log_file == NULL);
 }
 
-struct start_logger_message_t :
-    public cpu_message_t,
-    public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, start_logger_message_t>
-{
-    enum state_t {
-        state_go_to_cpu,
-        state_return_from_cpu
-    } state;
-    log_controller_t *controller;
-    
-    void on_cpu_switch() {
-        switch (state) {
-        
-            case state_go_to_cpu:
-                logger_t::logger = new logger_t(controller);
-                state = state_return_from_cpu;
-                if (continue_on_cpu(controller->home_cpu, this)) on_cpu_switch();
-                break;
-            
-            case state_return_from_cpu:
-            
-                controller->messages_out--;
-                if (controller->messages_out == 0) {
-                    assert(controller->state == log_controller_t::state_starting_loggers);
-                    controller->state = log_controller_t::state_ready;
-                    if (controller->ready_callback) controller->ready_callback->on_logger_ready();
-                }
-                    
-                delete this;
-                break;
-            
-            default: fail("Bad state");
-        }
-    }
-};
+/* Log controller startup process */
 
 bool log_controller_t::start(ready_callback_t *ready_cb) {
     
@@ -229,17 +190,13 @@ bool log_controller_t::start(ready_callback_t *ready_cb) {
     
     // Start the per-thread logger objects
     
-    ready_callback = NULL;   // In case all of the start_logger_message_ts finish immediately
-    
+    ready_callback = NULL;   // In case the startup finishes immediately
     messages_out = get_num_cpus();
+    bool done = true;
     for (int i = 0; i < get_num_cpus(); i++) {
-        start_logger_message_t *m = new start_logger_message_t();
-        m->state = start_logger_message_t::state_go_to_cpu;
-        m->controller = this;
-        if (continue_on_cpu(i, m)) m->on_cpu_switch();
+        done = do_on_cpu(i, this, &log_controller_t::start_a_logger) && done;
     }
-    
-    if (messages_out == 0) {
+    if (done) {
         // This happens when there is only one thread: the one we are on
         return true;
     } else {
@@ -247,6 +204,23 @@ bool log_controller_t::start(ready_callback_t *ready_cb) {
         return false;
     }
 }
+
+bool log_controller_t::start_a_logger() {
+    logger_t::logger = new logger_t(this);
+    return do_on_cpu(home_cpu, this, &log_controller_t::have_started_a_logger);
+}
+
+bool log_controller_t::have_started_a_logger() {
+    messages_out--;
+    if (messages_out == 0) {
+        assert(state == state_starting_loggers);
+        state = state_ready;
+        if (ready_callback) ready_callback->on_logger_ready();
+    }
+    return true;
+}
+
+/* Writing log messages */
 
 void log_controller_t::writef(const char *format, ...) {
     va_list arg;
@@ -259,65 +233,20 @@ void log_controller_t::write(const char *str) {
     writef("%s", str);
 }
 
-struct shutdown_logger_message_t :
-    public cpu_message_t,
-    public logger_t::shutdown_callback_t,
-    public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, shutdown_logger_message_t>
-{
-    enum state_t {
-        state_go_to_cpu,
-        state_wait_for_logger,
-        state_return_from_cpu
-    } state;
-    log_controller_t *controller;
-    
-    void on_cpu_switch() {
-        switch (state) {
-        
-            case state_go_to_cpu:
-                state = state_wait_for_logger;
-                if (logger_t::logger->shutdown(this)) on_logger_shutdown();
-                break;
-            
-            case state_return_from_cpu:
-            
-                controller->messages_out--;
-                if (controller->messages_out == 0) controller->finish_shutting_down();
-                    
-                delete this;
-                break;
-            
-            default: fail("Bad state");
-        }
-    }
-    
-    void on_logger_shutdown() {
-        assert(state == state_wait_for_logger);
-        
-        delete logger_t::logger;
-        logger_t::logger = NULL;
-        
-        state = state_return_from_cpu;
-        if (continue_on_cpu(controller->home_cpu, this)) on_cpu_switch();
-    }
-};
+/* Log controller shutdown process */
 
 bool log_controller_t::shutdown(shutdown_callback_t *cb) {
     
     assert(state == state_ready);
     state = state_shutting_down_loggers;
     
-    shutdown_callback = NULL;   // In case all of the shutdown_logger_message_ts finish immediately
-    
+    shutdown_callback = NULL;   // In case the shutdown finishes immediately
     messages_out = get_num_cpus();
+    bool done = true;
     for (int i = 0; i < get_num_cpus(); i++) {
-        shutdown_logger_message_t *m = new shutdown_logger_message_t();
-        m->state = shutdown_logger_message_t::state_go_to_cpu;
-        m->controller = this;
-        if (continue_on_cpu(i, m)) m->on_cpu_switch();
+        done = do_on_cpu(i, this, &log_controller_t::shutdown_a_logger) && done;
     }
-    
-    if (messages_out == 0) {
+    if (done) {
         return true;
     } else {
         shutdown_callback = cb;
@@ -325,15 +254,29 @@ bool log_controller_t::shutdown(shutdown_callback_t *cb) {
     }
 }
 
-void log_controller_t::finish_shutting_down() {
-    
-    assert(state == state_shutting_down_loggers);
-    state = state_off;
-    
-    if (log_file && log_file != stderr) {
-        fclose(log_file);
+bool log_controller_t::shutdown_a_logger() {
+    if (logger_t::logger->shutdown()) return a_logger_has_shutdown();
+    else return false;
+}
+
+bool log_controller_t::a_logger_has_shutdown() {
+    delete logger_t::logger;
+    logger_t::logger = NULL;
+    return do_on_cpu(home_cpu, this, &log_controller_t::have_shutdown_a_logger);
+}
+
+bool log_controller_t::have_shutdown_a_logger() {
+    messages_out--;
+    if (messages_out == 0) {
+        assert(state == state_shutting_down_loggers);
+        state = state_off;
+        
+        if (log_file && log_file != stderr) {
+            fclose(log_file);
+        }
+        log_file = NULL;
+        
+        if (shutdown_callback) shutdown_callback->on_logger_shutdown();
     }
-    log_file = NULL;
-    
-    if (shutdown_callback) shutdown_callback->on_logger_shutdown();
+    return true;
 }

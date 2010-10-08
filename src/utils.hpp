@@ -10,16 +10,13 @@
 #include <functional>
 #include <vector>
 #include <endian.h>
-#include <arpa/inet.h>
 #include "corefwd.hpp"
 #include "errors.hpp"
 #include "config/alloc.hpp"
+#include "arch/arch.hpp"
+#include "utils2.hpp"
 
 void print_hd(void *buf, size_t offset, size_t length);
-
-int get_cpu_count();
-long get_available_ram();
-long get_total_ram();
 
 void *malloc_aligned(size_t size, size_t alignment = 64);
 
@@ -54,14 +51,13 @@ as the "home_cpu" variable. */
 struct home_cpu_mixin_t {
 
     int home_cpu;
-    home_cpu_mixin_t();
+    home_cpu_mixin_t()
+        : home_cpu(get_cpu_id()) { }
     
-    /* In debug mode, assert_cpu() makes sure that the CPU it is called from is the
-    same as the object's home CPU. */
 #ifndef NDEBUG
-    void assert_cpu();
+    void assert_cpu() { assert(home_cpu == get_cpu_id()); }
 #else
-    void assert_cpu() { };
+    void assert_cpu() { }
 #endif
 };
 
@@ -102,30 +98,20 @@ inline uint16_t hton(uint16_t val) { return htobe16(val); }
 inline uint32_t hton(uint32_t val) { return htobe32(val); }
 inline uint64_t hton(uint64_t val) { return htobe64(val); }
 
-template<typename T1, typename T2>
-T1 ceil_aligned(T1 value, T2 alignment) {
-    if(value % alignment != 0) {
-        return value + alignment - (value % alignment);
-    } else {
-        return value;
-    }
-}
+/* Debugging printing API (prints CPU core in addition to message) */
 
-/* Functions to create random delays */
+void debugf(const char *msg, ...);
 
-void random_delay(void (*)(void*), void*);
+/* API to allow a nicer way of performing jobs on other cores than subclassing
+from cpu_message_t. Call do_on_cpu() with an object and a method for that object.
+The method will be called on the other CPU. If the cpu to call the method on is
+the current cpu, returns the method's return value. Otherwise, returns false. */
 
-template<class cb_t>
-void random_delay(cb_t *cb, void (cb_t::*method)());
+template<class obj_t>
+bool do_on_cpu(int cpu, obj_t *obj, bool (obj_t::*on_other_core)());
 
-template<class cb_t, class arg1_t>
-void random_delay(cb_t *cb, void (cb_t::*method)(arg1_t), arg1_t arg);
-
-template<class cb_t>
-bool maybe_random_delay(cb_t *cb, void (cb_t::*method)());
-
-template<class cb_t, class arg1_t>
-bool maybe_random_delay(cb_t *cb, void (cb_t::*method)(arg1_t), arg1_t arg);
+template<class obj_t, class arg1_t>
+bool do_on_cpu(int cpu, obj_t *obj, bool (obj_t::*on_other_core)(arg1_t), arg1_t arg);
 
 #include "utils.tcc"
 
