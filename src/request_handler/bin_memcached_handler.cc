@@ -34,6 +34,7 @@ public:
     } br_result_t;
     
     virtual br_result_t build_response(packet_t *pkt) = 0;
+    virtual ~bin_memcached_request_t() { }
     
     void on_btree_fsm_complete() {
         
