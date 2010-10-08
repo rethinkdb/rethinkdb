@@ -65,7 +65,7 @@ template<class obj_t, class arg1_t>
 struct one_arg_cpu_doer_t :
     public cpu_message_t,
     public home_cpu_mixin_t,
-    public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, no_arg_cpu_doer_t<obj_t> >
+    public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, one_arg_cpu_doer_t<obj_t, arg1_t> >
 {
     obj_t *obj;
     arg1_t arg1;

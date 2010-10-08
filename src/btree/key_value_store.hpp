@@ -11,46 +11,7 @@
 #include "config/cmd_args.hpp"
 #include "arch/arch.hpp"
 
-class btree_slice_t;
 class initialize_superblock_fsm_t;
-
-/* btree_key_value_store_t represents a collection of slices, possibly distributed
-across several cores, each of which holds a btree. Together with the btree_fsms, it
-provides the abstraction of a key-value store. */
-
-class btree_key_value_store_t :
-    public home_cpu_mixin_t
-{
-
-public:
-    btree_key_value_store_t(cmd_config_t *cmd_config);
-    ~btree_key_value_store_t();
-    
-    struct ready_callback_t {
-        virtual void on_store_ready() = 0;
-    };
-    bool start(ready_callback_t *cb);
-    
-    btree_slice_t *slice_for_key(btree_key *key);
-    
-    struct shutdown_callback_t {
-        virtual void on_store_shutdown() = 0;
-    };
-    bool shutdown(shutdown_callback_t *cb);
-
-public:
-    cmd_config_t *cmd_config;
-    btree_slice_t *slices[MAX_SLICES];
-    enum state_t {
-        state_off,
-        state_starting_up,
-        state_ready,
-        state_shutting_down
-    } state;
-    int messages_out;
-    ready_callback_t *ready_callback;
-    shutdown_callback_t *shutdown_callback;
-};
 
 /* btree_slice_t is a thin wrapper around cache_t that handles initializing the buffer
 cache for the purpose of storing a btree. There are many btree_slice_ts per
@@ -94,7 +55,7 @@ private:
 
 public:
     struct shutdown_callback_t {
-        virtual void on_slice_shutdown() = 0;
+        virtual void on_slice_shutdown(btree_slice_t *) = 0;
     };
     bool shutdown(shutdown_callback_t *cb);
 private:
@@ -123,6 +84,56 @@ private:
 
 public:
     cache_t cache;
+};
+
+/* btree_key_value_store_t represents a collection of slices, possibly distributed
+across several cores, each of which holds a btree. Together with the btree_fsms, it
+provides the abstraction of a key-value store. */
+
+class btree_key_value_store_t :
+    public home_cpu_mixin_t,
+    public btree_slice_t::ready_callback_t,
+    public btree_slice_t::shutdown_callback_t
+{
+
+public:
+    btree_key_value_store_t(cmd_config_t *cmd_config);
+    ~btree_key_value_store_t();
+    
+    struct ready_callback_t {
+        virtual void on_store_ready() = 0;
+    };
+    bool start(ready_callback_t *cb);
+    
+    btree_slice_t *slice_for_key(btree_key *key);
+    
+    struct shutdown_callback_t {
+        virtual void on_store_shutdown() = 0;
+    };
+    bool shutdown(shutdown_callback_t *cb);
+
+public:
+    cmd_config_t *cmd_config;
+    btree_slice_t *slices[MAX_SLICES];
+    enum state_t {
+        state_off,
+        state_starting_up,
+        state_ready,
+        state_shutting_down
+    } state;
+    int messages_out;
+    
+    bool create_a_slice_on_this_core(int);   // Called for each slice on its thread
+    void on_slice_ready();
+    bool a_slice_is_ready();   // Called on each thread
+    bool have_created_a_slice();   // Called on home thread
+    ready_callback_t *ready_callback;
+    
+    bool shutdown_a_slice(int id);   // Called for each slice on its thread
+    void on_slice_shutdown(btree_slice_t *slice);
+    bool a_slice_has_shutdown(btree_slice_t *slice);   // Called for each slice on its thread
+    bool have_shutdown_a_slice();   // Called on home thread
+    shutdown_callback_t *shutdown_callback;
 };
 
 // Other parts of the code refer to store_t instead of btree_key_value_store_t to

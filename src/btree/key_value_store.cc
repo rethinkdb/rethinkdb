@@ -9,77 +9,7 @@ btree_key_value_store_t::btree_key_value_store_t(cmd_config_t *cmd_config)
     }
 }
 
-btree_key_value_store_t::~btree_key_value_store_t() {
-    
-    assert(state == state_off);
-    for (int i = 0; i < cmd_config->n_slices; i++) {
-        assert(slices[i] == NULL);
-    }
-}
-
-struct start_slice_message_t :
-    public cpu_message_t,
-    public btree_slice_t::ready_callback_t,
-    public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, start_slice_message_t>
-{
-    enum state_t {
-        state_go_to_cpu,
-        state_wait_for_slice,
-        state_return_from_cpu
-    } state;
-    btree_key_value_store_t *store;
-    int id;
-    
-    void on_cpu_switch() {
-        switch (state) {
-        
-            case state_go_to_cpu: {
-                
-                char name[MAX_DB_FILE_NAME];
-                int len = snprintf(name, MAX_DB_FILE_NAME, "%s_%d", store->cmd_config->db_file_name, id);
-                // TODO: the below line is currently the only way to write to a block device,
-                // we need a command line way to do it, this also requires consolidating to one
-                // file
-                //     int len = snprintf(name, MAX_DB_FILE_NAME, "/dev/sdb");
-                check("Name too long", len == MAX_DB_FILE_NAME);
-                
-                store->slices[id] = new btree_slice_t(
-                    name,
-                    BTREE_BLOCK_SIZE,
-                    store->cmd_config->max_cache_size / store->cmd_config->n_slices,
-                    store->cmd_config->wait_for_flush,
-                    store->cmd_config->flush_timer_ms,
-                    store->cmd_config->flush_threshold_percent);
-                
-                state = state_wait_for_slice;
-                if (store->slices[id]->start(this)) on_slice_ready();
-                break;
-            }
-                
-            case state_return_from_cpu:
-                store->messages_out--;
-                if (store->messages_out == 0) {
-                
-                    assert(store->state == btree_key_value_store_t::state_starting_up);
-                    store->state = btree_key_value_store_t::state_ready;
-                    
-                    if (store->ready_callback) {
-                        store->ready_callback->on_store_ready();
-                    }
-                }
-                delete this;
-                break;
-                
-            default: fail("Bad state");
-        }
-    }
-    
-    void on_slice_ready() {
-        assert(state == state_wait_for_slice);
-        state = state_return_from_cpu;
-        if (continue_on_cpu(store->home_cpu, this)) on_cpu_switch();
-    }
-};
+/* Process of starting individual slices on different cores */
 
 bool btree_key_value_store_t::start(ready_callback_t *cb) {
     
@@ -87,16 +17,10 @@ bool btree_key_value_store_t::start(ready_callback_t *cb) {
     state = state_starting_up;
     
     ready_callback = NULL;
-    
     messages_out = cmd_config->n_slices;
     for (int id = 0; id < cmd_config->n_slices; id++) {
-        start_slice_message_t *msg = new start_slice_message_t();
-        msg->store = this;
-        msg->id = id;
-        msg->state = start_slice_message_t::state_go_to_cpu;
-        if (continue_on_cpu(id % get_num_cpus(), msg)) msg->on_cpu_switch();
+        do_on_cpu(id % get_num_cpus(), this, &btree_key_value_store_t::create_a_slice_on_this_core, id);
     }
-    
     if (messages_out == 0) {
         return true;
     } else {
@@ -104,6 +28,56 @@ bool btree_key_value_store_t::start(ready_callback_t *cb) {
         return false;
     }
 }
+
+bool btree_key_value_store_t::create_a_slice_on_this_core(int id) {
+    
+    char name[MAX_DB_FILE_NAME];
+    int len = snprintf(name, MAX_DB_FILE_NAME, "%s_%d", cmd_config->db_file_name, id);
+    // TODO: the below line is currently the only way to write to a block device,
+    // we need a command line way to do it, this also requires consolidating to one
+    // file
+    //     int len = snprintf(name, MAX_DB_FILE_NAME, "/dev/sdb");
+    check("Name too long", len == MAX_DB_FILE_NAME);
+    
+    slices[id] = new btree_slice_t(
+        name,
+        BTREE_BLOCK_SIZE,
+        cmd_config->max_cache_size / cmd_config->n_slices,
+        cmd_config->wait_for_flush,
+        cmd_config->flush_timer_ms,
+        cmd_config->flush_threshold_percent);
+    
+    if (slices[id]->start(this)) return a_slice_is_ready();
+    else return false;
+}
+
+void btree_key_value_store_t::on_slice_ready() {
+
+    a_slice_is_ready();
+}
+
+bool btree_key_value_store_t::a_slice_is_ready() {
+
+    return do_on_cpu(home_cpu, this, &btree_key_value_store_t::have_created_a_slice);
+}
+
+bool btree_key_value_store_t::have_created_a_slice() {
+
+    messages_out--;
+    if (messages_out == 0) {
+    
+        assert(state == state_starting_up);
+        state = state_ready;
+        
+        if (ready_callback) {
+            ready_callback->on_store_ready();
+        }
+    }
+    
+    return true;
+}
+
+/* Hashing keys and choosing a slice for each key */
 
 #define get16bits(d) ((((uint32_t)(((const uint8_t *)(d))[1])) << 8)\
                        +(uint32_t)(((const uint8_t *)(d))[0]) )
@@ -156,54 +130,7 @@ btree_slice_t *btree_key_value_store_t::slice_for_key(btree_key *key) {
     return slices[hash(key) % cmd_config->n_slices];
 }
 
-struct shutdown_slice_message_t :
-    public cpu_message_t,
-    public btree_slice_t::shutdown_callback_t,
-    public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, start_slice_message_t>
-{
-    enum state_t {
-        state_go_to_cpu,
-        state_wait_for_slice,
-        state_return_from_cpu
-    } state;
-    btree_key_value_store_t *store;
-    int id;
-    
-    void on_cpu_switch() {
-        switch (state) {
-        
-            case state_go_to_cpu:
-                
-                state = state_wait_for_slice;
-                if (store->slices[id]->shutdown(this)) on_slice_shutdown();
-                break;
-                
-            case state_return_from_cpu:
-                store->messages_out--;
-                if (store->messages_out == 0) {
-                    
-                    assert(store->state == btree_key_value_store_t::state_shutting_down);
-                    store->state = btree_key_value_store_t::state_off;
-                    
-                    if (store->shutdown_callback) store->shutdown_callback->on_store_shutdown();
-                }
-                delete this;
-                break;
-                
-            default: fail("Bad state");
-        }
-    }
-    
-    void on_slice_shutdown() {
-        assert(state == state_wait_for_slice);
-        
-        delete store->slices[id];
-        store->slices[id] = NULL;
-        
-        state = state_return_from_cpu;
-        if (continue_on_cpu(store->home_cpu, this)) on_cpu_switch();
-    }
-};
+/* Process of shutting down */
 
 bool btree_key_value_store_t::shutdown(shutdown_callback_t *cb) {
     
@@ -211,16 +138,10 @@ bool btree_key_value_store_t::shutdown(shutdown_callback_t *cb) {
     state = state_shutting_down;
     
     shutdown_callback = NULL;
-    
     messages_out = cmd_config->n_slices;
     for (int id = 0; id < cmd_config->n_slices; id++) {
-        shutdown_slice_message_t *msg = new shutdown_slice_message_t();
-        msg->store = this;
-        msg->id = id;
-        msg->state = shutdown_slice_message_t::state_go_to_cpu;
-        if (continue_on_cpu(slices[id]->home_cpu, msg)) msg->on_cpu_switch();
+        do_on_cpu(slices[id]->home_cpu, this, &btree_key_value_store_t::shutdown_a_slice, id);
     }
-    
     if (messages_out == 0) {
         return true;
     } else {
@@ -228,6 +149,43 @@ bool btree_key_value_store_t::shutdown(shutdown_callback_t *cb) {
         return false;
     }
 }
+
+bool btree_key_value_store_t::shutdown_a_slice(int id) {
+    
+    if (slices[id]->shutdown(this)) return a_slice_has_shutdown(slices[id]);
+    else return false;
+}
+
+void btree_key_value_store_t::on_slice_shutdown(btree_slice_t *slice) {
+
+    a_slice_has_shutdown(slice);
+}
+
+bool btree_key_value_store_t::a_slice_has_shutdown(btree_slice_t *slice) {
+    
+    delete slice;
+    return do_on_cpu(home_cpu, this, &btree_key_value_store_t::have_shutdown_a_slice);
+}
+
+bool btree_key_value_store_t::have_shutdown_a_slice() {
+    
+    messages_out--;
+    if (messages_out == 0) {
+        
+        assert(state == state_shutting_down);
+        state = state_off;
+        
+        if (shutdown_callback) shutdown_callback->on_store_shutdown();
+    }
+    
+    return true;
+}
+
+btree_key_value_store_t::~btree_key_value_store_t() {
+    
+    assert(state == state_off);
+}
+
 
 /* When the serializer starts up, it will create an initial superblock and initialize it to zero.
 This isn't quite the behavior we want. The job of initialize_superblock_fsm is to initialize the
@@ -450,5 +408,5 @@ void btree_slice_t::on_cache_shutdown() {
 }
 
 void btree_slice_t::on_cpu_switch() {
-    if (shutdown_callback) shutdown_callback->on_slice_shutdown();
+    if (shutdown_callback) shutdown_callback->on_slice_shutdown(this);
 }

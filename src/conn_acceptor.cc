@@ -28,7 +28,7 @@ void conn_acceptor_t::on_net_listener_accept(net_conn_t *conn) {
     n_active_conns++;
     
     int cpu = next_cpu++ % get_num_cpus();
-    if (continue_on_cpu(cpu, c)) c->on_cpu_switch();
+    do_on_cpu(cpu, c, &conn_fsm_handler_t::create_conn_fsm);
 }
 
 void conn_acceptor_t::on_conn_fsm_close() {
@@ -44,47 +44,6 @@ void conn_acceptor_t::on_conn_fsm_close() {
     }
 }
 
-struct shutdown_conns_message_t :
-    public cpu_message_t,
-    public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, shutdown_conns_message_t>
-{
-    enum state_t {
-        state_go_to_cpu,
-        state_return_from_cpu
-    } state;
-    conn_acceptor_t *acceptor;
-    
-    void on_cpu_switch() {
-        switch (state) {
-    
-            case state_go_to_cpu: {
-                
-                while (conn_fsm_handler_t *h = acceptor->conn_handlers[get_cpu_id()].head()) {
-                
-                    assert(h->state == conn_fsm_handler_t::state_waiting_for_conn_fsm_quit);
-                    
-                    h->conn_fsm->start_quit();
-                    
-                    /* start_quit() should have caused the conn_fsm_handler_t to be removed
-                    from the list because it should have caused the conn_fsm_t to send an
-                    on_conn_fsm_quit() to the conn_fsm_handler_t. */
-                    assert(h != acceptor->conn_handlers[get_cpu_id()].head());
-                }
-                
-                state = state_return_from_cpu;
-                if (continue_on_cpu(acceptor->home_cpu, this)) on_cpu_switch();
-                break;
-            }
-            
-            case state_return_from_cpu:
-                delete this;
-                break;
-            
-            default: fail("Bad state");
-        }
-    }
-};
-
 bool conn_acceptor_t::shutdown(shutdown_callback_t *cb) {
     
     assert(state == state_ready);
@@ -97,19 +56,7 @@ bool conn_acceptor_t::shutdown(shutdown_callback_t *cb) {
     /* Notify any existing network connections to shut down */
     
     for (int i = 0; i < get_num_cpus(); i++) {
-        shutdown_conns_message_t *m = new shutdown_conns_message_t();
-        m->state = shutdown_conns_message_t::state_go_to_cpu;
-        m->acceptor = this;
-        
-        if (continue_on_cpu(i, m)) m->on_cpu_switch();
-        
-        /* It's not necessary to wait for the shutdown_conns_message_t objects to return
-        before proceeding to the next state. Even if we return 'true' before the
-        shutdown_conns_message_t gets back, it will still get freed because the event
-        queue cannot shut down before the logger has been shut down, and that requires
-        at least one more round trip. Because the shutdown_conns_message_t must be before
-        the reply from the shutting down the logger in the message queue, it is
-        guaranteed to be freed before the event queues shut down. */
+        do_on_cpu(i, this, &conn_acceptor_t::shutdown_conns_on_this_core);
     }
     
     /* Check if we can proceed immediately */
@@ -125,35 +72,39 @@ bool conn_acceptor_t::shutdown(shutdown_callback_t *cb) {
     }
 }
 
+bool conn_acceptor_t::shutdown_conns_on_this_core() {
+    
+    while (conn_fsm_handler_t *h = conn_handlers[get_cpu_id()].head()) {
+    
+        assert(h->state == conn_fsm_handler_t::state_waiting_for_conn_fsm_quit);
+        
+        h->conn_fsm->start_quit();
+        
+        /* start_quit() should have caused the conn_fsm_handler_t to be removed
+        from the list because it should have caused the conn_fsm_t to send an
+        on_conn_fsm_quit() to the conn_fsm_handler_t. */
+        assert(h != conn_handlers[get_cpu_id()].head());
+    }
+    
+    return true;
+}
+
 conn_fsm_handler_t::conn_fsm_handler_t(conn_acceptor_t *parent, net_conn_t *conn)
     : state(state_go_to_cpu), parent(parent), conn(conn), conn_fsm(NULL) {
 }
 
-void conn_fsm_handler_t::on_cpu_switch() {
-    switch (state) {
-        
-        case state_go_to_cpu: {
+bool conn_fsm_handler_t::create_conn_fsm() {
             
-            request_handler_t *rh = new memcached_handler_t(parent->server);
-            conn_fsm = new conn_fsm_t(conn, this, rh);
-            rh->conn_fsm = conn_fsm;
-            
-            parent->conn_handlers[get_cpu_id()].push_back(this);
-            
-            state = state_waiting_for_conn_fsm_quit;
-            break;
-        }
-        
-        case state_return_from_cpu:
-            
-            parent->on_conn_fsm_close();
-            delete this;
-            break;
-        
-        default: fail("Bad state.");
-    }
+    request_handler_t *rh = new memcached_handler_t(parent->server);
+    conn_fsm = new conn_fsm_t(conn, this, rh);
+    rh->conn_fsm = conn_fsm;
+    
+    parent->conn_handlers[get_cpu_id()].push_back(this);
+    
+    state = state_waiting_for_conn_fsm_quit;
+    return true;
 }
-
+ 
 /* Shutting down a connection might not be an atomic process because there might be
 outstanding btree_fsm_ts that the conn_fsm_t is still waiting for. We get an
 on_conn_fsm_quit() when the conn_fsm begins the process of shutting down, and an
@@ -176,7 +127,15 @@ void conn_fsm_handler_t::on_conn_fsm_shutdown() {
     
     assert(state == state_waiting_for_conn_fsm_shutdown);
     state = state_return_from_cpu;
-    if (continue_on_cpu(parent->home_cpu, this)) on_cpu_switch();
+    
+    do_on_cpu(parent->home_cpu, this, &conn_fsm_handler_t::cleanup);
+}
+ 
+bool conn_fsm_handler_t::cleanup() {
+
+    parent->on_conn_fsm_close();
+    delete this;
+    return true;
 }
 
 conn_fsm_handler_t::~conn_fsm_handler_t() {
