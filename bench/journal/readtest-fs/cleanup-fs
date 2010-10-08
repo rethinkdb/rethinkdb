@@ -1,6 +1,0 @@
-#!/bin/bash
-
-# Unmount the fs (might fail, that's ok)
-echo sudo -S umount $2
-echo $1 | sudo -S umount $2
-

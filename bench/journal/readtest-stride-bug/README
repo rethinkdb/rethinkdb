@@ -1,3 +1,0 @@
-Measuring the effect of the block size and random distribution on the number of random read operations per second for rotational and ssd drives.
-
-This benchmark turned out to measure two variables by mistake - there was a bug in rebench that caused the random read boundary to be set to the block size, not the stride size. The peaks on the graph might show up because of these boundaries, not because of the block-size. This benchmark is faulty, but is still interesting.
