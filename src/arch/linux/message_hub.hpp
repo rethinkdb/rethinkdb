@@ -36,7 +36,7 @@ public:
 
     // Called by linux_event_queue_t
     void push_messages();
-    void pull_messages(unsigned int ncpu, msg_list_t *msg_list);
+    void pull_messages();
 
 public:
     linux_thread_pool_t *thread_pool;

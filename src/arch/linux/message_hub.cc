@@ -22,6 +22,9 @@ linux_message_hub_t::~linux_message_hub_t() {
     
     for (int i = 0; i < thread_pool->n_threads; i++) {
         
+        assert(queues[i].msg_local_list.empty());
+        assert(queues[i].msg_global_list.empty());
+        
         res = pthread_spin_destroy(&queues[i].lock);
         check("Could not destroy spin lock", res != 0);
     }
@@ -73,14 +76,18 @@ void linux_message_hub_t::push_messages() {
 }
     
 // Pulls the messages stored in global lists for a given CPU.
-void linux_message_hub_t::pull_messages(unsigned int ncpu, msg_list_t *msg_list) {
+void linux_message_hub_t::pull_messages() {
     
-    cpu_queue_t *queue = &queues[ncpu];
+    msg_list_t msg_list;
+    
+    cpu_queue_t *queue = &queues[get_cpu_id()];
     pthread_spin_lock(&queue->lock);
-    msg_list->append_and_clear(&queue->msg_global_list);
+    msg_list.append_and_clear(&queue->msg_global_list);
     pthread_spin_unlock(&queue->lock);
 
-    // TODO: we should use regular mutexes on single core CPU
-    // instead of spinlocks
+    while (linux_cpu_message_t *m = msg_list.head()) {
+        msg_list.remove(m);
+        m->on_cpu_switch();
+    }
 }
 

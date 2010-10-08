@@ -1,124 +1,75 @@
-// TODO PERFMON
-#if 0
-
 #ifndef __PERFMON_HPP__
 #define __PERFMON_HPP__
 
+#include <string>
 #include <map>
-#include "config/args.hpp"
 #include "config/alloc.hpp"
-#include "message_hub.hpp"
-#include "alloc/alloc_mixin.hpp"
+#include "utils.hpp"
 
+// Horrible hack because we define fail() as a macro
+#pragma push_macro("fail")
+#undef fail
+#include <sstream>
+#pragma pop_macro("fail")
 
-/* Variable monitor types */
-struct var_monitor_t {
+class perfmon_watcher_t;
+class perfmon_fsm_t;
+
+typedef std::basic_string<char, std::char_traits<char>, gnew_alloc<char> > std_string_t;
+
+typedef std::map<std_string_t, std_string_t, std::less<std_string_t>,
+    gnew_alloc<std::pair<std_string_t, std_string_t> > > perfmon_stats_t;
+
+struct perfmon_callback_t {
+    virtual void on_perfmon_stats() = 0;
+};
+
+class perfmon_controller_t {
+    friend class perfmon_watcher_t;
+    friend class one_perfmon_fsm_t;
+    friend class perfmon_fsm_t;
+    
 public:
-    enum var_type_t {
-        vt_undefined,
-        vt_int,
-        vt_long_int,
-        vt_float,
-        vt_int_function,
-        vt_float_function,
-    };
+    perfmon_controller_t();
+    ~perfmon_controller_t();
 
-public:
-    typedef float   (*float_function)();
-    typedef int     (*int_function)();
-    typedef void    (*combinerf)(var_monitor_t *, const var_monitor_t *);
-        
-public:
-    var_monitor_t()
-        : type(vt_undefined), name(NULL), value(NULL)
-        {}
-    var_monitor_t(var_type_t _type, const char *_name, void *_value, combinerf _combiner)
-        : type(_type), name(_name), value(_value), combiner(_combiner)
-        {}
-    virtual ~var_monitor_t() {}
+    bool get_stats(perfmon_stats_t *dest, perfmon_callback_t *cb);
+    
+    static perfmon_controller_t *controller;
+    
+private:    
+    typedef std::map<std_string_t, perfmon_watcher_t*, std::less<std_string_t>,
+        gnew_alloc<std::pair<std_string_t, perfmon_watcher_t*> > > var_map_t;
+    var_map_t *var_maps[MAX_CPUS];
+};
 
-    void combine(const var_monitor_t *val);
-    int print(char *buf, int max_size);
-    void freeze_state();
-
+class perfmon_watcher_t :
+    public home_cpu_mixin_t
+{
 public:
-    var_type_t type;
+    perfmon_watcher_t(const char *name);
+    ~perfmon_watcher_t();
+    virtual std_string_t get_value() = 0;
+
+private:
     const char *name;
-    void *value;
-    combinerf combiner;
-    /* var_monitor_t (*combiner)(var_monitor_t &vm1, var_monitor_t &v2); */
-    char value_copy[8];
+};
 
-    /* combiners */
+template<class var_t>
+class perfmon_var_t :
+    public perfmon_watcher_t
+{
 public:
-    static void var_monitor_combine_sum(var_monitor_t *v1, const var_monitor_t *v2) {
-        switch(v1->type) {
-            case vt_int:
-                *((int*)v1->value) += *((int*)v2->value);
-                break;
-            case vt_long_int:
-                *((long int*)v1->value) += *((long int*)v2->value);
-                break;
-            case vt_float:
-                *((float*)v1->value) += *((float*)v2->value);
-                break;
-            case vt_int_function:
-                //just leave the value as is
-                break;
-            case vt_float_function:
-                //just leave the value as is
-                break;
-            default:
-                fail("Bad var mon type");
-        }
+    perfmon_var_t(const char *name, var_t *var)
+        : perfmon_watcher_t(name), var(var) { }
+    
+    std_string_t get_value() {
+        std::basic_stringstream<char, std::char_traits<char>, gnew_alloc<char> > s;
+        s << *var;
+        return s.str();
     }
-
-    static void var_monitor_combine_pass(var_monitor_t *v1, const var_monitor_t *v2) {}
-
+    
+    var_t *var;
 };
 
-/* The actual perfmon Module */
-struct perfmon_t : public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, perfmon_t> {
-public:
-    typedef std::map<const char*, var_monitor_t, std::less<const char*>, gnew_alloc<var_monitor_t> > perfmon_map_t;
-public:
-    void monitor(var_monitor_t monitor);
-    void accumulate(perfmon_t *s);
-    void copy_from(const perfmon_t &rhs);
-    
-    // TODO: Watch the allocation.
-    perfmon_map_t registry;
-};
-
-/* This is what gets sent to a core when another core requests it's perfmon module. */
-struct perfmon_msg_t : public cpu_message_t,
-                       public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, perfmon_msg_t >
-{   
-public:
-    enum perfmon_msg_state {
-        // Initial request for perfmon info
-        sm_request,
-        // Response with the copy of perfmon info
-        sm_response,
-        // Request to cleanup the copy
-        sm_copy_cleanup,
-        // Response suggesting copy has been cleaned up and it's time
-        // to cleanup the msg structure itself
-        sm_msg_cleanup
-    };
-        
-    perfmon_msg_t()
-        : perfmon(NULL), state(sm_request)
-        {}
-    
-    void send_back_to_free_perfmon();
-    
-    perfmon_t *perfmon;
-    perfmon_msg_state state;
-    
-    void on_cpu_switch();
-};
-
-#endif // __PERFMON_HPP__
-
-#endif
+#endif /* __PERFMON_HPP__ */

@@ -6,6 +6,7 @@
 #include "btree/key_value_store.hpp"
 #include "conn_acceptor.hpp"
 #include "utils.hpp"
+#include "perfmon.hpp"
 
 /* There is one server_t per server (obviously). It acts as a "master FSM" that is
 responsible for the entire lifetime of the server. It creates and destroys the
@@ -28,7 +29,8 @@ struct server_t :
 
     cmd_config_t *cmd_config;
     thread_pool_t *thread_pool;
-    
+
+    perfmon_controller_t perfmon_controller;
     log_controller_t log_controller;
     store_t store;
     conn_acceptor_t conn_acceptor;

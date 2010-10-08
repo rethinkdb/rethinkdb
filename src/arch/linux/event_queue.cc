@@ -211,20 +211,19 @@ void linux_event_queue_t::run() {
 
         // We're done with the current batch of events, process cross
         // CPU requests
-        linux_message_hub_t::msg_list_t cpu_requests;
         for(int i = 0; i < message_hub.thread_pool->n_threads; i++) {
-            message_hub.thread_pool->queues[i]->message_hub.pull_messages(message_hub.current_cpu, &cpu_requests);
-        }
-        while (linux_cpu_message_t *m = cpu_requests.head()) {
-            cpu_requests.remove(m);
-            m->on_cpu_switch();
+            message_hub.thread_pool->queues[i]->message_hub.pull_messages();
         }
 
         // Push the messages we collected in this batch for other CPUs
         message_hub.push_messages();
-        
     }
-
+    
+    // Let any final messages pass
+    for(int i = 0; i < message_hub.thread_pool->n_threads; i++) {
+        message_hub.thread_pool->queues[i]->message_hub.pull_messages();
+    }
+    
     // Delete the registered timers
     // TODO: We should instead assert there are no timers.
     while(timer_t *t = timers.head()) {

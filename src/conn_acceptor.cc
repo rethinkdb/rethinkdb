@@ -4,7 +4,7 @@
 #include "request_handler/memcached_handler.hpp"
 
 conn_acceptor_t::conn_acceptor_t(server_t *server)
-    : state(state_off), server(server), listener(NULL), next_cpu(0), n_active_conns(0) { }
+    : state(state_off), server(server), listener(NULL), next_cpu(0), n_active_conns_perfmon("curr_connections", &n_active_conns), n_active_conns(0) { }
 
 conn_acceptor_t::~conn_acceptor_t() {
     assert(state == state_off);

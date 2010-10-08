@@ -51,8 +51,8 @@ as the "home_cpu" variable. */
 struct home_cpu_mixin_t {
 
     int home_cpu;
-    home_cpu_mixin_t()
-        : home_cpu(get_cpu_id()) { }
+    home_cpu_mixin_t() : home_cpu(get_cpu_id()) { }
+    ~home_cpu_mixin_t() { assert_cpu(); }
     
 #ifndef NDEBUG
     void assert_cpu() { assert(home_cpu == get_cpu_id()); }
@@ -107,11 +107,23 @@ from cpu_message_t. Call do_on_cpu() with an object and a method for that object
 The method will be called on the other CPU. If the cpu to call the method on is
 the current cpu, returns the method's return value. Otherwise, returns false. */
 
+template<class callable_t>
+bool do_on_cpu(int cpu, const callable_t &callable);
+
 template<class obj_t>
 bool do_on_cpu(int cpu, obj_t *obj, bool (obj_t::*on_other_core)());
 
 template<class obj_t, class arg1_t>
 bool do_on_cpu(int cpu, obj_t *obj, bool (obj_t::*on_other_core)(arg1_t), arg1_t arg);
+
+template<class obj_t, class arg1_t, class arg2_t>
+bool do_on_cpu(int cpu, obj_t *obj, bool (obj_t::*on_other_core)(arg1_t, arg2_t), arg1_t arg1, arg2_t arg2);
+
+template<class obj_t>
+void delete_on_cpu(int cpu, obj_t *obj);
+
+template<class obj_t>
+void gdelete_on_cpu(int cpu, obj_t *obj);
 
 #include "utils.tcc"
 

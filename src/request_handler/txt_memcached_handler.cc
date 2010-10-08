@@ -11,6 +11,7 @@
 #include "btree/incr_decr_fsm.hpp"
 #include "btree/set_fsm.hpp"
 #include "server.hpp"
+#include "perfmon.hpp"
 
 #define DELIMS " \t\n\r"
 #define MALFORMED_RESPONSE "ERROR\r\n"
@@ -399,80 +400,54 @@ private:
     btree_delete_fsm_t *fsm;
 };
 
-/*
-
-TODO PERFMON 
-
 class txt_memcached_perfmon_request_t :
     public txt_memcached_request_t,
+    public cpu_message_t,   // For call_later_on_this_cpu()
+    public perfmon_callback_t,
     public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, txt_memcached_perfmon_request_t> {
 
 public:
+    perfmon_stats_t stats;
+    
     txt_memcached_perfmon_request_t(txt_memcached_handler_t *rh)
         : txt_memcached_request_t(rh, false) {
 
-        int nworkers = (int)get_cpu_context()->worker->event_queue->parent_pool->nworkers;
-
-        // Tell every single CPU core to pass their perfmon module *by copy*
-        // to this CPU
-        for (int i = 0; i < nworkers; i++)
-        {
-            assert(i < MAX_OPS_IN_REQUEST);
-            msgs[i] = new perfmon_msg_t();
-            this->request->add(msgs[i], i);
+        if (perfmon_controller_t::controller->get_stats(&stats, this)) {
+        
+            /* The world is not ready for the power of completing a request immediately.
+            So we delay so that the request handler doesn't get confused. */
+            call_later_on_this_cpu(this);
         }
+        
+        nfsms = 1;
     }
-
-    void dispatch() {
-        this->request->dispatch();
+    
+    void on_cpu_switch() {
+        on_perfmon_stats();
     }
-
-    ~txt_memcached_perfmon_request_t() {
-        // Do NOT delete the perfmon messages. They are sent back to the cores that provided
-        // the stats so that the perfmon objects can be freed.
-        int nworkers = (int)get_cpu_context()->worker->event_queue->parent_pool->nworkers;
-        for (int i = 0; i < nworkers; i ++) {
-            msgs[i]->send_back_to_free_perfmon();
-        }
+    
+    void on_perfmon_stats() {
+        on_btree_fsm_complete();   // Hack
     }
 
     bool build_response(linked_buf_t *sbuf) {
-        // Combine all responses into one
-        int nworkers = (int)get_cpu_context()->worker->event_queue->parent_pool->nworkers;
-        perfmon_t combined_perfmon;
-        for(int i = 0; i < nworkers; i++) {
-            combined_perfmon.accumulate(msgs[i]->perfmon);
-        }
 
-        // Print the resultings perfmon
-        char tmpbuf[255];
-#if defined(VALGRIND) || !defined(NDEBUG)
-        // Fill the buffer with garbage in debug mode so valgrind doesn't complain, and to help
-        // catch uninitialized memory errors.
-        memset(tmpbuf, 0xBD, sizeof(tmpbuf));
-#endif
-        perfmon_t::perfmon_map_t *registry = &combined_perfmon.registry;
-        if (strlen(fields) == 0){
-            for(perfmon_t::perfmon_map_t::iterator iter = registry->begin(); iter != registry->end(); iter++)
-            {
-                sbuf->printf("STAT %s ", iter->first);
-                int val_len = iter->second.print(tmpbuf, 10);
-                sbuf->append(tmpbuf, val_len);
-                sbuf->printf("\r\n");
+        if (strlen(fields) == 0) {
+            for (perfmon_stats_t::iterator iter = stats.begin(); iter != stats.end(); iter++) {
+                sbuf->printf("STAT %s %s\r\n", iter->first.c_str(), iter->second.c_str());
             }
-        }
-        else {
+            
+        } else {
             char *fields_ptr = fields;
             char *stat;
             while ((stat = strtok_r(NULL, DELIMS, &fields_ptr))) {
                 sbuf->printf("STAT %s ", stat);
-                perfmon_t::perfmon_map_t::iterator stat_entry = registry->find(stat);
-                if (stat_entry == registry->end()) {
+                std_string_t s(stat);
+                perfmon_stats_t::iterator stat_entry = stats.find(s);
+                if (stat_entry == stats.end()) {
                     sbuf->printf("NOT FOUND\r\n");
                 } else {
-                    int val_len = stat_entry->second.print(tmpbuf, 10);
-                    sbuf->append(tmpbuf, val_len);
-                    sbuf->printf("\r\n");
+                    sbuf->printf("%s\r\n", stat_entry->second.c_str());
                 }
             }
         }
@@ -480,13 +455,9 @@ public:
     }
 
 public:
-    perfmon_msg_t *msgs[MAX_OPS_IN_REQUEST];
-
-public:
     //! \brief which fields user is requesting, empty indicates all fields
     char fields[MAX_STATS_REQ_LEN];
 };
-*/
 
 // Process commands received from the user
 txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::parse_request(event_t *event) {
@@ -687,11 +658,9 @@ txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::parse_storage_c
 }
 
 txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::parse_stat_command(char *state, unsigned int line_len) {
-    fail("Perfmon is broken.");
-    /* txt_memcached_perfmon_request_t *rq = new txt_memcached_perfmon_request_t(this);
+    txt_memcached_perfmon_request_t *rq = new txt_memcached_perfmon_request_t(this);
     check("Too big of a stat request", line_len > MAX_STATS_REQ_LEN);
     memcpy(rq->fields, state, line_len);
-    rq->dispatch(); */
     return request_handler_t::op_req_complex;
 }
 
