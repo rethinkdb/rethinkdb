@@ -21,7 +21,7 @@ void _fail(const char*, int, const char*, ...) __attribute__ ((noreturn));
     ((err) ? \
         (errno == 0 ? \
             fail((msg)) : \
-            fail(msg " (errno = %s)", strerror(errno)) \
+            fail(msg " (errno %d - %s)", errno, strerror(errno))    \
             ) : \
         (void)(0) \
         )
