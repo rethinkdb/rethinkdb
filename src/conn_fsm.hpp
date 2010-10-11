@@ -69,7 +69,9 @@ public:
     void start_quit();
 private:
     bool quitting; /* !< if true don't issue anymore requests just let them finish and then quit */
+#ifndef NDEBUG
     bool we_are_closed;
+#endif
 
 public:
     void consume(unsigned int bytes);
