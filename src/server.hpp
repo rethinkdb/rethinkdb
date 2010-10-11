@@ -34,7 +34,6 @@ public:
     cmd_config_t *cmd_config;
     thread_pool_t *thread_pool;
 
-    perfmon_controller_t perfmon_controller;
     log_controller_t log_controller;
     store_t store;
     conn_acceptor_t conn_acceptor;

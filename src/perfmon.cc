@@ -1,5 +1,6 @@
 #include "perfmon.hpp"
 #include "arch/arch.hpp"
+#include "utils.hpp"
 
 /* The var map keeps track of all of the perfmon_watcher_t objects on each core. */
 
@@ -51,15 +52,14 @@ struct perfmon_fsm_t :
     }
     
     bool gather_data() {
-        perfmon_stats_t *local_stats = gnew<perfmon_stats_t>();
         if (var_map) {
             for (var_map_t::iterator it = var_map->begin(); it != var_map->end(); it++) {
                 const std_string_t &name = (*it).first;
-                const std_string_t &value = (*it).second->get_value()
+                const std_string_t &value = (*it).second->get_value();
                 if (dest->find(name) == dest->end()) {
-                    dest[name] = value;
+                    (*dest)[name] = value;
                 } else {
-                    dest[name] = (*it).second->combine(value, dest[name]);
+                    (*dest)[name] = (*it).second->combine_value(value, (*dest)[name]);
                 }
             }
         }

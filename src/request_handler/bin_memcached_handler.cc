@@ -289,7 +289,7 @@ public:
     bin_memcached_perfmon_request_t(bin_memcached_handler_t *rh, packet_t *pkt)
         : bin_memcached_request_t(rh, pkt) {
 
-        if (perfmon_controller_t::controller->get_stats(&stats, this)) {
+        if (perfmon_get_stats(&stats, this)) {
         
             /* The world is not ready for the power of completing a request immediately.
             So we delay so that the request handler doesn't get confused. */

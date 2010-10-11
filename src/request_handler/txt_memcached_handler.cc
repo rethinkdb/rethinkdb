@@ -412,7 +412,7 @@ public:
     txt_memcached_perfmon_request_t(txt_memcached_handler_t *rh)
         : txt_memcached_request_t(rh, false) {
 
-        if (perfmon_controller_t::controller->get_stats(&stats, this)) {
+        if (perfmon_get_stats(&stats, this)) {
         
             /* The world is not ready for the power of completing a request immediately.
             So we delay so that the request handler doesn't get confused. */

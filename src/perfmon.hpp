@@ -80,7 +80,7 @@ class perfmon_summed_var_t :
     public perfmon_var_t<var_t>
 {
 public:
-    std_string_t combine(std_string_t v1, std_string_t v2) {
+    std_string_t combine_value(std_string_t v1, std_string_t v2) {
         std::basic_stringstream<char, std::char_traits<char>, gnew_alloc<char> > s;
         s << (atoi(v1.c_str()) + atoi(v2.c_str()));
         return s.str();
