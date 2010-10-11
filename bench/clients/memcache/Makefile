@@ -10,7 +10,7 @@ CXXFLAGS = -g $(INCLUDE)
 OBJ = $(addsuffix .o, $(basename $(SRC)))
 
 build: $(OBJ)
-	$(CXX) $(CXXFLAGS) -o $(EXEC_NAME) $(OBJ) -lm $(TLIB) $(LIBS)
+	$(CXX) $(CXXFLAGS) -o $(EXEC_NAME) $(OBJ) -lm -lrt $(TLIB) $(LIBS)
 
 clean:
 	rm -f *~
