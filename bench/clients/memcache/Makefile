@@ -1,7 +1,7 @@
 
 INCLUDE = -I../../../lib/libmemcached
 LIBS = -lmemcached
-SRC = main.cc
+SRC = main.cc utils.cc
 
 EXEC_NAME = memcache
 CXX = g++
