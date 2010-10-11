@@ -1,6 +1,6 @@
 
 INCLUDE = -I../../../lib/libmemcached
-LIBS = -lmemcached
+LIBS = -lmemcached -lmysqlclient
 SRC = main.cc utils.cc
 
 EXEC_NAME = memcache
