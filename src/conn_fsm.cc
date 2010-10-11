@@ -85,6 +85,7 @@ conn_fsm_t::result_t conn_fsm_t::fill_buf(void *buf, unsigned int *bytes_filled,
         if (state != fsm_socket_recv_incomplete)
             state = fsm_outstanding_data;
     } else {
+        // TODO: process all outstanding ops already in the buffer
         // The client closed the socket, we got on_net_conn_readable()
         assert(sz == 0);
         we_are_closed = true;
