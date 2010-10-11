@@ -2,6 +2,9 @@
 #ifndef __LOAD_HPP__
 #define __LOAD_HPP__
 
+#include <stdlib.h>
+#include <string.h>
+
 /* Defines a load in terms of ratio of deletes, updates, inserts, and
  * reads. */
 struct load_t {

@@ -3,6 +3,7 @@
 #define __DISTR_HPP__
 
 #include <stdio.h>
+#include <string.h>
 #include "load.hpp"
 
 /* Helpful typedefs */

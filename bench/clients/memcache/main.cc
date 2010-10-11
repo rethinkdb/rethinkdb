@@ -5,15 +5,19 @@
 #include <stdio.h>
 #include <vector>
 #include <stdio.h>
-#include <libmemcached/memcached.h>
 #include "utils.hpp"
 #include "load.hpp"
 #include "distr.hpp"
 #include "config.hpp"
 #include "client.hpp"
 #include "args.hpp"
+#include "memcached_protocol.hpp"
 
 using namespace std;
+
+protocol_t* make_mc() {
+    return (protocol_t*) new memcached_protocol_t();
+}
 
 /* Tie it all together */
 int main(int argc, char *argv[])
@@ -27,7 +31,7 @@ int main(int argc, char *argv[])
     config.print();
 
     // Create the shared structure
-    shared_t shared(&config);
+    shared_t shared(&config, make_mc);
     client_data_t client_data;
     client_data.config = &config;
     client_data.shared = &shared;

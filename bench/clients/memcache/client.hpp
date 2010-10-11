@@ -2,15 +2,22 @@
 #ifndef __CLIENT_HPP__
 #define __CLIENT_HPP__
 
+#include <pthread.h>
+#include "protocol.hpp"
+
 using namespace std;
 
 /* Information shared between clients */
 struct shared_t {
 public:
-    shared_t(config_t *_config)
+    typedef protocol_t*(*protocol_factory_t)(void);
+    
+public:
+    shared_t(config_t *_config, protocol_factory_t _protocol_factory)
         : config(_config),
           qps_offset(0), latencies_offset(0),
-          qps_fd(NULL), latencies_fd(NULL)
+          qps_fd(NULL), latencies_fd(NULL),
+          protocol_factory(_protocol_factory)
         {
             pthread_mutex_init(&mutex, NULL);
             
@@ -95,6 +102,9 @@ public:
         unlock();
     }
 
+public:
+    protocol_factory_t protocol_factory;
+    
 private:
     config_t *config;
     map<int, pair<int, int> > qps_map;
@@ -124,11 +134,11 @@ void* run_client(void* data) {
     client_data_t *client_data = (client_data_t*)data;
     config_t *config = client_data->config;
     shared_t *shared = client_data->shared;
+    shared_t::protocol_factory_t pf = shared->protocol_factory;
+    protocol_t *proto = (*pf)();
     
     // Connect to the server
-    memcached_st memcached;
-    memcached_create(&memcached);
-    memcached_server_add(&memcached, config->host, config->port);
+    proto->connect(config->host, config->port);
 
     // Store the keys so we can run updates and deletes.
     vector<payload_t> keys;
@@ -143,11 +153,6 @@ void* run_client(void* data) {
         int _val;
         payload_t key, value;
         
-        char *_value;
-        size_t _value_length;
-        uint32_t _flags;
-        memcached_return_t _error;
-        
         switch(cmd) {
         case load_t::delete_op:
             // Find the key
@@ -156,11 +161,7 @@ void* run_client(void* data) {
             _val = random(0, keys.size() - 1);
             key = keys[_val];
             // Delete it from the server
-            _error = memcached_delete(&memcached, key.first, key.second, 0);
-            if(_error != MEMCACHED_SUCCESS) {
-                fprintf(stderr, "Error performing delete operation (%d)\n", _error);
-                exit(-1);
-            }
+            proto->remove(key.first, key.second);
             // Our own bookkeeping
             free(key.first);
             keys[_val] = keys[keys.size() - 1];
@@ -174,11 +175,7 @@ void* run_client(void* data) {
             key = keys[random(0, keys.size() - 1)];
             config->values.toss(&value);
             // Send it to server
-            _error = memcached_set(&memcached, key.first, key.second, value.first, value.second, 0, 0);
-            if(_error != MEMCACHED_SUCCESS) {
-                fprintf(stderr, "Error performing update operation (%d)\n", _error);
-                exit(-1);
-            }
+            proto->update(key.first, key.second, value.first, value.second);
             // Free the value
             free(value.first);
             break;
@@ -188,11 +185,7 @@ void* run_client(void* data) {
             config->keys.toss(&key);
             config->values.toss(&value);
             // Send it to server
-            _error = memcached_set(&memcached, key.first, key.second, value.first, value.second, 0, 0);
-            if(_error != MEMCACHED_SUCCESS) {
-                fprintf(stderr, "Error performing insert operation (%d)\n", _error);
-                exit(-1);
-            }
+            proto->insert(key.first, key.second, value.first, value.second);
             // Free the value and save the key
             free(value.first);
             keys.push_back(key);
@@ -204,14 +197,7 @@ void* run_client(void* data) {
                 break;
             key = keys[random(0, keys.size() - 1)];
             // Read it from the server
-            _value = memcached_get(&memcached, key.first, key.second,
-                                   &_value_length, &_flags, &_error);
-            if(_error != MEMCACHED_SUCCESS) {
-                fprintf(stderr, "Error performing read operation (%d)\n", _error);
-                exit(-1);
-            }
-            // Our own bookkeeping
-            free(_value);
+            proto->read(key.first, key.second);
             break;
         };
         now_time = get_ticks();
@@ -231,10 +217,9 @@ void* run_client(void* data) {
             tick++;
         }
     }
-    
-    // Disconnect
-    memcached_free(&memcached);
 
+    delete proto;
+    
     // Free all the keys
     for(vector<payload_t>::iterator i = keys.begin(); i != keys.end(); i++) {
         free(i->first);
