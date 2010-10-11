@@ -1,83 +1,48 @@
 #include "perfmon.hpp"
 #include "arch/arch.hpp"
 
+/* The var map keeps track of all of the perfmon_watcher_t objects on each core. */
+
+typedef std::map<std_string_t, perfmon_watcher_t*, std::less<std_string_t>,
+        gnew_alloc<std::pair<std_string_t, perfmon_watcher_t*> > > var_map_t;
+
+__thread var_map_t *var_map = NULL;
+
 perfmon_watcher_t::perfmon_watcher_t(const char *name)
     : name(name)
 {
-    perfmon_controller_t *c = perfmon_controller_t::controller;
-    perfmon_controller_t::var_map_t *&map = c->var_maps[get_cpu_id()];
+    if (!var_map) var_map = gnew<var_map_t>();
     
-    if (!map) map = gnew<perfmon_controller_t::var_map_t>();
-    
-    assert(map->find(name) == map->end());
-    (*map)[name] = this;
+    assert(var_map->find(name) == var_map->end());
+    (*var_map)[name] = this;
 }
 
 perfmon_watcher_t::~perfmon_watcher_t() {
     
-    perfmon_controller_t *c = perfmon_controller_t::controller;
-    perfmon_controller_t::var_map_t *&map = c->var_maps[get_cpu_id()];
+    assert((*var_map)[name] == this);
+    var_map->erase(name);
     
-    assert((*map)[name] == this);
-    map->erase(name);
-    
-    if (map->empty()) {
-        gdelete(map);
-        map = NULL;
+    if (var_map->empty()) {
+        gdelete(var_map);
+        var_map = NULL;
     }
 }
 
-perfmon_controller_t::perfmon_controller_t() {
-    
-    assert(controller == NULL);
-    controller = this;
-    
-    for (int i = 0; i < get_num_cpus(); i++) {
-        var_maps[i] = NULL;
-    }
-}
-
-perfmon_controller_t::~perfmon_controller_t() {
-
-#ifndef NDEBUG
-    for (int i = 0; i < get_num_cpus(); i++) {
-        if (var_maps[i] != NULL) {
-            const std_string_t &name = (*var_maps[i]->begin()).first;
-            fail("A perfmon variable was never deregistered: %s", name.c_str());
-        }
-    }
-#endif
-    
-    assert(controller == this);
-    controller = NULL;
-}
-
-perfmon_controller_t *perfmon_controller_t::controller = NULL;
+/* The perfmon_fsm_t goes to all the cores, collects stats for each one, and then goes back. */
 
 struct perfmon_fsm_t :
     public home_cpu_mixin_t,
     public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, perfmon_fsm_t>
 {
-    int messages_out;
-    perfmon_controller_t *controller;
     perfmon_stats_t *dest;
     perfmon_callback_t *callback;
     
-    perfmon_fsm_t(perfmon_controller_t *controller, perfmon_stats_t *dest)
-        : controller(controller), dest(dest) {
-        
-        assert(controller);
-    }
-    
+    perfmon_fsm_t(perfmon_stats_t *dest) : dest(dest) { }
     ~perfmon_fsm_t() { }
     
     bool run(perfmon_callback_t *cb) {
         callback = NULL;
-        messages_out = get_num_cpus();
-        for (int i = 0; i < get_num_cpus(); i++) {
-            do_on_cpu(i, this, &perfmon_fsm_t::gather_data);
-        }
-        if (messages_out == 0) {
+        if (do_on_cpu(0, this, &perfmon_fsm_t::gather_data)) {
             return true;
         } else {
             callback = cb;
@@ -87,36 +52,33 @@ struct perfmon_fsm_t :
     
     bool gather_data() {
         perfmon_stats_t *local_stats = gnew<perfmon_stats_t>();
-        if (controller->var_maps[get_cpu_id()]) {
-            for (perfmon_controller_t::var_map_t::iterator it = controller->var_maps[get_cpu_id()]->begin();
-                 it != controller->var_maps[get_cpu_id()]->end();
-                 it++) {
-                local_stats->insert(std::pair<std_string_t, std_string_t>((*it).first, (*it).second->get_value()));
+        if (var_map) {
+            for (var_map_t::iterator it = var_map->begin(); it != var_map->end(); it++) {
+                const std_string_t &name = (*it).first;
+                const std_string_t &value = (*it).second->get_value()
+                if (dest->find(name) == dest->end()) {
+                    dest[name] = value;
+                } else {
+                    dest[name] = (*it).second->combine(value, dest[name]);
+                }
             }
         }
-        return do_on_cpu(home_cpu, this, &perfmon_fsm_t::deliver_data, get_cpu_id(), local_stats);
+        if (get_cpu_id() == get_num_cpus() - 1) {
+            return do_on_cpu(home_cpu, this, &perfmon_fsm_t::deliver_data);
+        } else {
+            return do_on_cpu(get_cpu_id()+1, this, &perfmon_fsm_t::gather_data);
+        }
     }
     
-    bool deliver_data(int cpu, perfmon_stats_t *local_stats) {
-        for (perfmon_stats_t::iterator it = local_stats->begin();
-             it != local_stats->end();
-             it++) {
-            dest->insert(*it);
-        }
-        
-        gdelete_on_cpu(cpu, local_stats);
-        messages_out--;
-        assert(messages_out >= 0);
-        if (messages_out == 0) {
-            if (callback) callback->on_perfmon_stats();
-            delete this;
-        }
+    bool deliver_data() {
+        if (callback) callback->on_perfmon_stats();
+        delete this;
         return true;
     }
 };
 
-bool perfmon_controller_t::get_stats(perfmon_stats_t *dest, perfmon_callback_t *cb) {
+bool perfmon_get_stats(perfmon_stats_t *dest, perfmon_callback_t *cb) {
     
-    perfmon_fsm_t *fsm = new perfmon_fsm_t(this, dest);
+    perfmon_fsm_t *fsm = new perfmon_fsm_t(dest);
     return fsm->run(cb);
 }
