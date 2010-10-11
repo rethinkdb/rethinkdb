@@ -52,6 +52,7 @@ public: // XXX Should this be private?
         not_loaded,
         loading,
         loaded,
+        deleted,
         released
     };
     state_t state;
@@ -239,9 +240,12 @@ private:
 // TODO: Some of the code in here belongs in large_buf_t.
 class write_large_value_msg_t : public cpu_message_t,
                                 public data_transferred_callback,
+                                public home_cpu_mixin_t,
                                 public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, write_large_value_msg_t> {
 private:
     large_buf_t *large_value;
+    btree_fsm_t *fsm;
+    int rh_cpu;
     request_callback_t *req;
     unsigned int next_segment;
     large_value_completed_callback *cb;
@@ -253,20 +257,27 @@ public:
     } state;
 
 public:
-    write_large_value_msg_t(large_buf_t *large_value, request_callback_t *req, large_value_completed_callback *cb)
-        : large_value(large_value), req(req), next_segment(0), cb(cb), state(ready) {
-fprintf(stderr, "write_lv_msg constructed on cpu %d\n", get_cpu_id());
+    write_large_value_msg_t(large_buf_t *large_value, btree_fsm_t *fsm, int rh_cpu, request_callback_t *req, large_value_completed_callback *cb)
+        : large_value(large_value), fsm(fsm), rh_cpu(rh_cpu), req(req), next_segment(0), cb(cb), state(ready) {
+    }
+
+    void dispatch() {
+        assert(get_cpu_id() == home_cpu);
+        if (continue_on_cpu(rh_cpu, this)) call_later_on_this_cpu(this);
     }
 
     void on_cpu_switch() {
         switch (state) {
             case ready:
-                req->on_fsm_ready();
+                assert(get_cpu_id() == rh_cpu);
+                req->on_fsm_ready(fsm);
                 break;
             case reading:
+                assert(get_cpu_id() == rh_cpu);
                 read_segments();
                 break;
             case completed:
+                assert(get_cpu_id() == home_cpu);
                 cb->on_large_value_completed(true); // XXX
                 delete this;
                 break;
@@ -295,13 +306,12 @@ private:
 
         assert(next_segment <= large_value->get_num_segments());
         if (next_segment == large_value->get_num_segments()) {
-            req->on_fsm_ready();
+            req->on_fsm_ready(fsm);
             state = completed;
             
             // continue_on_cpu() returns true if we are already on that cpu
-fprintf(stderr, "read_segments done; continuing on cpu %d (this cpu: %u)\n", return_cpu, get_cpu_id());
             //if (continue_on_cpu(return_cpu, this)) on_cpu_switch();
-            if (continue_on_cpu(return_cpu, this)) call_later_on_this_cpu(this);
+            if (continue_on_cpu(home_cpu, this)) call_later_on_this_cpu(this);
         }
     }
 };

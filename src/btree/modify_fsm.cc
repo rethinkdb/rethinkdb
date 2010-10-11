@@ -364,7 +364,7 @@ btree_modify_fsm_t::transition_result_t btree_modify_fsm_t::do_transition(event_
                    assert(have_computed_new_value);
                    assert(node_handler::is_leaf(node));
                    if (new_value) { // We have a new value to insert
-                       if (new_value->has_cas()) {
+                       if (new_value->has_cas() && !cas_already_set) {
                            new_value->set_cas(slice->gen_cas());
                        }
                        bool success = leaf_node_handler::insert(leaf_node_handler::leaf_node(buf->get_data_write()), &key, new_value);

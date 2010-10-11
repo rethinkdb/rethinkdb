@@ -60,23 +60,24 @@ public:
                 this->update_needed = false;
                 return btree_fsm_t::transition_ok;
             }
+        }
+
+        if (type == set_type_cas || (old_value && old_value->has_cas())) {
             value.set_cas(0xCA5ADDED); // Turns the flag on and makes room. modify_fsm will set an actual CAS later. TODO: We should probably have a separate function for this.
         }
-        
+
         if (got_large) {
             large_value = new large_buf_t(this->transaction);
             large_value->allocate(length);
             value.set_lv_index_block_id(large_value->get_index_block_id());
-            //*new_value = &value; // XXX Only do this if we filled the value read_successfully.
-            
+
             fill_large_value_msg_t *msg = new fill_large_value_msg_t(large_value, req, this, 0, length);
-            
+
             // continue_on_cpu() returns true if we are already on that cpu, but we don't want to
             // call the callback immediately in that case anyway.
             if (continue_on_cpu(return_cpu, msg))  {
                 call_later_on_this_cpu(msg);
             }
-            // XXX Figure out where things are deleted.
             return btree_fsm_t::transition_incomplete;
         }
 

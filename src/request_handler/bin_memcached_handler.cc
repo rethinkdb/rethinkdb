@@ -36,7 +36,7 @@ public:
     virtual br_result_t build_response(packet_t *pkt) = 0;
     virtual ~bin_memcached_request_t() { }
     
-    void on_btree_fsm_complete() {
+    void on_btree_fsm_complete(btree_fsm_t *fsm) {
         
         conn_fsm_t *c = rh->conn_fsm;
         

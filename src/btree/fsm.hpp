@@ -8,13 +8,11 @@
 #include "event.hpp"
 
 struct btree_fsm_callback_t {
-    virtual void on_btree_fsm_complete() = 0;
+    virtual void on_btree_fsm_complete(btree_fsm_t *fsm) = 0;
 };
 
 class btree_fsm_t :
     public cpu_message_t,
-    //public large_value_filled_callback, // XXX This should be a separate callback.
-    //public large_value_completed_callback, // XXX Rename.
     public block_available_callback_t,
     public large_buf_available_callback_t,
     public transaction_begin_callback_t,
@@ -41,13 +39,6 @@ public:
         // These aren't memcached status codes:
         S_READ_FAILURE
     };
-
-    //enum large_value_state {
-    //    lv_state_unknown,
-    //    lv_state_ready,
-    //    lv_state_copying
-    //};
-
 
 public:
     btree_fsm_t(btree_key *_key, btree_key_value_store_t *store)

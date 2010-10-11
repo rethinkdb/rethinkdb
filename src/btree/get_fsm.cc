@@ -117,7 +117,6 @@ btree_get_fsm_t::transition_result_t btree_get_fsm_t::do_acquire_node(event_t *e
         } else {
             state = lookup_complete;
         }
-fprintf(stderr, "get FSM reached leaf (key %*.*s, cpu %d, ret %d), found %d\n", key.size, key.size, key.contents, get_cpu_id(), this->return_cpu, found);
         this->status_code = found ? btree_fsm_t::S_SUCCESS : btree_fsm_t::S_NOT_FOUND;
         return btree_fsm_t::transition_ok;
     }
@@ -152,12 +151,9 @@ btree_get_fsm_t::transition_result_t btree_get_fsm_t::do_large_value_acquired(ev
     assert(!event);
     assert(large_value->get_index_block_id() == value.lv_index_block_id());
 
-    write_lv_msg = new write_large_value_msg_t(large_value, req, this);
-    
-fprintf(stderr, "sending write_lv_msg (key %*.*s, lv %p) to cpu %d (we're on %d)\n", this->key.size, this->key.size, this->key.contents, large_value, return_cpu, get_cpu_id());
-    if (continue_on_cpu(return_cpu, write_lv_msg))  {
-        call_later_on_this_cpu(write_lv_msg);
-    }
+    write_lv_msg = new write_large_value_msg_t(large_value, this, return_cpu, req, this);
+
+    write_lv_msg->dispatch();
     // And now, we wait... For the socket to be ready for our value.
     return btree_fsm_t::transition_incomplete;
 }
@@ -228,8 +224,14 @@ btree_get_fsm_t::transition_result_t btree_get_fsm_t::do_transition(event_t *eve
     return res;
 }
 
-void btree_get_fsm_t::on_large_value_completed(bool _success) {
-    assert(_success);
+void btree_get_fsm_t::on_large_value_completed(bool success) {
+    assert(success);
     write_lv_msg = NULL;
     this->step();
+}
+
+void btree_get_fsm_t::begin_lv_write() {
+    //assert_cpu();
+    state = large_value_writing; // XXX
+    write_lv_msg->begin_write();
 }

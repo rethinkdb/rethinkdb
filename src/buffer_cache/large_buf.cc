@@ -3,8 +3,6 @@
 large_buf_t::large_buf_t(transaction_t *txn) : transaction(txn), num_acquired(0), state(not_loaded) {
     assert(sizeof(large_buf_index) <= IO_BUFFER_SIZE); // Where should this go?
     assert(transaction);
-    // XXX Can we know the size in here already?
-fprintf(stderr, "large value constructed (%p)\n", this);
 }
 
 void large_buf_t::allocate(uint32_t _size) {
@@ -17,9 +15,9 @@ void large_buf_t::allocate(uint32_t _size) {
     state = loading;
 
     index_buf = transaction->allocate(&index_block_id);
-    get_index_write()->first_block_offset = 0;
-    //get_index()->num_segments = get_num_segments();
-    get_index_write()->num_segments = NUM_SEGMENTS(size, BTREE_USABLE_BLOCK_SIZE);
+    large_buf_index *index = get_index_write();
+    index->first_block_offset = 0;
+    index->num_segments = NUM_SEGMENTS(size, BTREE_USABLE_BLOCK_SIZE);
 
     for (int i = 0; i < get_num_segments(); i++) {
         bufs[i] = transaction->allocate(&get_index_write()->blocks[i]);
@@ -39,7 +37,7 @@ void large_buf_t::acquire(block_id_t _index_block, uint32_t _size, access_t _acc
     segment_block_available_callback_t *cb = new segment_block_available_callback_t(this);
     buf_t *buf = transaction->acquire(index_block_id, access, cb);
     if (buf) {
-        delete cb; // TODO (here and below): Preferably do all the deleting in one blace.
+        delete cb; // TODO (here and below): Preferably do all the deleting in one place.
         index_acquired(buf);
     }
     // TODO: If we acquire the index and all the segments directly, we can return directly as well.
@@ -50,7 +48,9 @@ void large_buf_t::index_acquired(buf_t *buf) {
     assert(buf);
     index_buf = buf;
 
-    // XXX: We do this because when all the segments are acquired, sometimes we call the callback which adds a new segment, which causes this loop to keep going when it shouldn't. This isn't a good solution.
+    // XXX: We do this because when all the segments are acquired, sometimes we
+    // call the callback which adds a new segment, which causes this loop to
+    // keep going when it shouldn't. This isn't a good solution.
     uint16_t num_segments = get_num_segments();
 
     for (int i = 0; i < num_segments; i++) {
@@ -126,7 +126,6 @@ void large_buf_t::prepend(uint32_t extra_size) {
 
 // Reads size bytes from data.
 void large_buf_t::fill_at(uint32_t pos, const byte *data, uint32_t fill_size) {
-    // XXX: This code is almost identical to fill_large_value_msg_t.
     assert(state == loaded);
     assert(pos + fill_size <= size);
     assert(get_index()->first_block_offset < BTREE_USABLE_BLOCK_SIZE);
@@ -216,17 +215,11 @@ void large_buf_t::mark_deleted() {
     for (int i = 0; i < num_segs; i++) {
         bufs[i]->mark_deleted();
     }
-    // TODO: We should probably set state to deleted here or something.
+    state = deleted;
 }
 
 void large_buf_t::release() {
-flockfile(stderr);
-fprintf(stderr, "release() called (%p) (cpu %u):\n", this, get_cpu_id());
-//fprintf(stderr, "------------------------------\n");
-//print_backtrace();
-//fprintf(stderr, "------------------------------\n");
-funlockfile(stderr);
-    assert(state == loaded);
+    assert(state == loaded || state == deleted);
     uint16_t num_segments = get_num_segments(); // Since we'll be releasing the index.
     index_buf->release();
     for (int i = 0; i < num_segments; i++) {
@@ -321,5 +314,4 @@ large_buf_t::~large_buf_t() {
     //assert(state != loading);
     //if (state == loaded) release();
     assert(state == released);
-fprintf(stderr, "large value destructed (%p)\n", this);
 }

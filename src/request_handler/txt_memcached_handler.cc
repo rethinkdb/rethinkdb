@@ -45,7 +45,8 @@ public:
     
     virtual bool build_response(linked_buf_t *) = 0;
 
-    void on_btree_fsm_complete() {
+    void on_btree_fsm_complete(btree_fsm_t *fsm) {
+        on_fsm_ready(fsm);
         nfsms--;
         if (nfsms == 0) {
             if (!noreply) {
@@ -78,7 +79,7 @@ public:
     bool add_get(btree_key *key) {
         if (num_fsms < MAX_OPS_IN_REQUEST) {
             btree_get_fsm_t *fsm = new btree_get_fsm_t(key, &rh->server->store, this);
-fprintf(stderr, "getting key %*.*s, rh on cpu %d, sending (fsm %p) to %d\n", key->size, key->size, key->contents, get_cpu_id(), fsm, key_to_cpu(key, rh->event_queue->parent->nworkers));
+            ready_fsms[num_fsms] = false;
             fsms[num_fsms ++] = fsm;
             nfsms++;
             return true;
@@ -108,33 +109,41 @@ fprintf(stderr, "getting key %*.*s, rh on cpu %d, sending (fsm %p) to %d\n", key
                 fsm->value.value_size());
     }
 
-    void on_fsm_ready() {
-fprintf(stderr, "on_fsm_ready(); curr_fsm %d\n", curr_fsm);
-        linked_buf_t *sbuf = rh->conn_fsm->sbuf; // XXX
-        while (curr_fsm < num_fsms) {
-            btree_get_fsm_t *fsm = fsms[curr_fsm];
-            if (fsm->state < btree_get_fsm_t::large_value_acquired) { // XXX
-fprintf(stderr, "o_f_r state < lv_acquired; returning\n");
-                return;
+    void on_fsm_ready(btree_fsm_t *ready_fsm) {
+        int i;
+        for (i = 0; i < num_fsms; i++) { // XXX: Is this the right way to do this?
+            if (ready_fsm == fsms[i]) {
+                ready_fsms[i] = true;
+                break;
             }
-fprintf(stderr, "o_f_r switching\n");
+        }
+        assert(i < num_fsms);
+        linked_buf_t *sbuf = rh->conn_fsm->sbuf; // XXX
+        send_next_value(sbuf);
+    }
+
+    void send_next_value(linked_buf_t *sbuf) {
+        while (curr_fsm < num_fsms) {
+            if (!ready_fsms[curr_fsm]) return; // The next FSM we're supposed to be sending isn't ready yet.
+            btree_get_fsm_t *fsm = fsms[curr_fsm];
             switch (fsm->status_code) {
                 case btree_get_fsm_t::S_SUCCESS:
-fprintf(stderr, "o_f_r S_SUCCESS\n");
                     if (fsm->value.is_large()) {
-fprintf(stderr, "o_f_r is_large\n");
-                        if (fsm->state == btree_get_fsm_t::large_value_acquired) {
-fprintf(stderr, "o_f_r state == lv_acquired\n");
-                            value_header(sbuf, fsm);
-                            fsm->state = btree_get_fsm_t::large_value_writing; // XXX
-                            fsm->write_lv_msg->begin_write(); // Double XXX
-                            return;
-                        } else if (fsm->state == btree_get_fsm_t::lookup_complete) {
-fprintf(stderr, "o_f_r state == complete\n");
-                            sbuf->printf("\r\n");
-                        } else {
-fprintf(stderr, "o_f_r state == other (%d)\n", fsm->state);
-                            return;
+                        switch (fsm->state) { // XXX
+                            case btree_get_fsm_t::large_value_acquired:
+                                value_header(sbuf, fsm);
+                                fsm->begin_lv_write();
+                                return;
+                                break;
+                            case btree_get_fsm_t::lookup_complete:
+                                sbuf->printf("\r\n");
+                                break;
+                            case btree_get_fsm_t::large_value_writing:
+                                return;
+                                break;
+                            default:
+                                assert(0);
+                                break;
                         }
                     } else {
                         value_header(sbuf, fsm);
@@ -154,10 +163,14 @@ fprintf(stderr, "o_f_r state == other (%d)\n", fsm->state);
     }
 
     bool build_response(linked_buf_t *sbuf) {
-        on_fsm_ready();
+#ifndef NDEBUG
+        for (int i = 0; i < num_fsms; i++) {
+            assert(ready_fsms[i]);
+        }
+#endif
+        send_next_value(sbuf);
         assert(curr_fsm == num_fsms);
         sbuf->printf(RETRIEVE_TERMINATOR);
-fprintf(stderr, "GET COMPLETED SUCCESSFULLY!\n\n\n\n\n\n\n\n");
         return true;
     }
 
@@ -165,6 +178,7 @@ private:
     int num_fsms;
     int curr_fsm;
     btree_get_fsm_t *fsms[MAX_OPS_IN_REQUEST];
+    bool ready_fsms[MAX_OPS_IN_REQUEST];
 };
 
 // FIXME horrible redundancy
@@ -185,6 +199,7 @@ public:
     bool add_get(btree_key *key) {
         if (num_fsms < MAX_OPS_IN_REQUEST) {
             btree_get_cas_fsm_t *fsm = new btree_get_cas_fsm_t(key, &rh->server->store, this);
+            ready_fsms[num_fsms] = false;
             fsms[num_fsms ++] = fsm;
             nfsms++;
             return true;
@@ -207,7 +222,7 @@ public:
 
     void value_header(linked_buf_t *sbuf, btree_get_cas_fsm_t *fsm) {
         // TODO: Figure out stats.
-        get_cpu_context()->worker->get_hits++;
+        //get_cpu_context()->worker->get_hits++; // XXX: Perfmon is broken.
         sbuf->printf("VALUE %*.*s %u %u %llu\r\n",
             fsm->key.size, fsm->key.size, fsm->key.contents,
             fsm->value.value_size(),
@@ -215,36 +230,43 @@ public:
             fsm->value.cas());
     }
 
-    void on_fsm_ready() {
+    void on_fsm_ready(btree_fsm_t *ready_fsm) {
+        int i;
+        for (i = 0; i < num_fsms; i++) { // XXX: Is this the right way to do this?
+            if (ready_fsm == fsms[i]) {
+                ready_fsms[i] = true;
+                break;
+            }
+        }
+        assert(i < num_fsms);
         linked_buf_t *sbuf = rh->conn_fsm->sbuf; // XXX
+        send_next_value(sbuf);
+    }
+
+    void send_next_value(linked_buf_t *sbuf) {
         while (curr_fsm < num_fsms) {
+            if (!ready_fsms[curr_fsm]) return; // The next FSM we're supposed to be sending isn't ready yet.
             btree_get_cas_fsm_t *fsm = fsms[curr_fsm];
             switch (fsm->status_code) {
                 case btree_get_fsm_t::S_SUCCESS:
-                    //value_header(sbuf, fsm);
-                    //sbuf->append(fsm->value.value(), fsm->value.value_size());
-                    //sbuf->printf("\r\n");
                     if (fsm->value.is_large()) {
-                        if (fsm->state == btree_get_cas_fsm_t::operating) {
-                            value_header(sbuf, fsm);
-                            //fsm->state = btree_get_cas_fsm_t::
-                            fsm->write_lv_msg->begin_write();
-                            return;
-                        } else if (fsm->state > btree_get_cas_fsm_t::operating) { // XXX!
-                            sbuf->printf("\r\n");
-                        } else {
-                            return;
+                        switch (fsm->lv_state) {
+                            case btree_get_cas_fsm_t::lv_state_ready:
+                                value_header(sbuf, fsm);
+                                fsm->begin_lv_write();
+                                return;
+                                break;
+                            case btree_get_cas_fsm_t::lv_state_done:
+                                sbuf->printf("\r\n");
+                                // XXX: Set ready back to false?
+                                break;
+                            case btree_get_cas_fsm_t::lv_state_writing:
+                                return;
+                                break;
+                            default:
+                                assert(0);
+                                break;
                         }
-                        //if (fsm->state == btree_get_cas_fsm_t::large_value_acquired) {
-                        //    value_header(sbuf, fsm);
-                        //    fsm->state = btree_get_cas_fsm_t::large_value_writing; // XXX
-                        //    fsm->write_lv_msg->begin_write(); // Double XXX
-                        //    return;
-                        //} else if (fsm->state == btree_get_cas_fsm_t::lookup_complete) {
-                        //    sbuf->printf("\r\n");
-                        //} else {
-                        //    return;
-                        //}
                     } else {
                         value_header(sbuf, fsm);
                         sbuf->append(fsm->value.value(), fsm->value.value_size());
@@ -252,7 +274,7 @@ public:
                     }
                     break;
                 case btree_get_fsm_t::S_NOT_FOUND:
-                    get_cpu_context()->worker->get_misses++;
+                    //get_cpu_context()->worker->get_misses++; // XXX Perfmon is broken.
                     break;
                 default:
                     assert(0);
@@ -263,7 +285,12 @@ public:
     }
 
     bool build_response(linked_buf_t *sbuf) {
-        on_fsm_ready();
+#ifndef NDEBUG
+            for (int i = 0; i < num_fsms; i++) {
+                assert(ready_fsms[i]);
+            }
+#endif
+        send_next_value(sbuf);
         assert(curr_fsm == num_fsms);
         sbuf->printf(RETRIEVE_TERMINATOR);
         return true;
@@ -273,6 +300,7 @@ private:
     int num_fsms;
     int curr_fsm;
     btree_get_cas_fsm_t *fsms[MAX_OPS_IN_REQUEST];
+    bool ready_fsms[MAX_OPS_IN_REQUEST];
 };
 
 class txt_memcached_set_request_t :
@@ -281,7 +309,6 @@ class txt_memcached_set_request_t :
 public:
     txt_memcached_set_request_t(txt_memcached_handler_t *rh, btree_key *key, bool is_large, uint32_t length, byte *data, btree_set_fsm_t::set_type_t type, btree_value::mcflags_t mcflags, btree_value::exptime_t exptime, btree_value::cas_t req_cas, bool noreply)
         : txt_memcached_request_t(rh, noreply),
-          fsm(new btree_set_fsm_t(key, &rh->server->store, this, data, length, type, mcflags, convert_exptime(exptime), req_cas)) {
           fsm(new btree_set_fsm_t(key, &rh->server->store, this, is_large, length, data, type, mcflags, convert_exptime(exptime), req_cas)) {
         fsm->run(this);
         nfsms = 1;
@@ -313,7 +340,6 @@ public:
                 assert(0);
                 break;
         }
-fprintf(stderr, "SET COMPLETED SUCCESSFULLY!\n\n\n\n\n\n\n\n");
         return true;
     }
 
@@ -387,7 +413,6 @@ class txt_memcached_append_prepend_request_t :
 public:
     txt_memcached_append_prepend_request_t(txt_memcached_handler_t *rh, btree_key *key, bool got_large, int length, byte *data, bool append, bool noreply)
         : txt_memcached_request_t(rh, noreply),
-          fsm(new btree_append_prepend_fsm_t(key, &rh->server->store, data, length, append)) {
           fsm(new btree_append_prepend_fsm_t(key, &rh->server->store, this, got_large, length, data, append)) {
         fsm->run(this);
         nfsms = 1;

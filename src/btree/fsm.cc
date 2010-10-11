@@ -27,9 +27,7 @@ void btree_fsm_t::on_large_buf_available(large_buf_t *large_buf) {
     event.op = eo_read;
     event.buf = large_buf;
     event.result = 1;
-    if (do_transition(&event) == transition_complete && on_complete) {
-        on_complete(this);
-    }
+    if (do_transition(&event) == transition_complete) done();
 }
 
 void btree_fsm_t::on_txn_begin(transaction_t *txn) {
@@ -63,7 +61,7 @@ void btree_fsm_t::on_cpu_switch() {
     if (is_finished()) {
         // We have just been sent back to the core that created us
         if (callback) {
-            callback->on_btree_fsm_complete();
+            callback->on_btree_fsm_complete(this);
         } else {
             // A btree not associated with any request.
             delete this;

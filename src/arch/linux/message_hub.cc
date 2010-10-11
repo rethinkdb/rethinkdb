@@ -48,9 +48,7 @@ linux_message_hub_t::~linux_message_hub_t() {
     
 // Collects a message for a given CPU onto a local list.
 void linux_message_hub_t::store_message(unsigned int ncpu, linux_cpu_message_t *msg) {
-    
     assert(ncpu < (unsigned)thread_pool->n_threads);
-    msg->return_cpu = current_cpu;
     queues[ncpu].msg_local_list.push_back(msg);
 }
 

@@ -35,6 +35,8 @@ public:
 
     void on_large_value_completed(bool _success);
 
+    void begin_lv_write();
+
 public:
     union {
         char value_memory[MAX_TOTAL_NODE_CONTENTS_SIZE+sizeof(btree_value)];
