@@ -1,13 +1,15 @@
 #include <errno.h>
+#include <unistd.h>
 #include "thread_pool.hpp"
 #include "errors.hpp"
 #include "arch/linux/event_queue.hpp"
 #include <sys/eventfd.h>
 #include <signal.h>
+#include <fcntl.h>
 
 __thread linux_thread_pool_t *linux_thread_pool_t::thread_pool;
-__thread linux_event_queue_t *linux_thread_pool_t::event_queue;
 __thread int linux_thread_pool_t::cpu_id;
+__thread linux_thread_t *linux_thread_pool_t::thread;
 
 linux_thread_pool_t::linux_thread_pool_t(int n_threads)
     : interrupt_message(NULL), n_threads(n_threads)
@@ -50,7 +52,7 @@ struct thread_data_t {
     linux_cpu_message_t *initial_message;
 };
 
-void *linux_thread_pool_t::start_event_queue(void *arg) {
+void *linux_thread_pool_t::start_thread(void *arg) {
     
     int res;
     
@@ -60,14 +62,14 @@ void *linux_thread_pool_t::start_event_queue(void *arg) {
     linux_thread_pool_t::thread_pool = tdata->thread_pool;
     linux_thread_pool_t::cpu_id = tdata->current_cpu;
     
-    // Use a separate block so that it's very clear how long the event queue lives for
+    // Use a separate block so that it's very clear how long the thread lives for
     // It's not really necessary, but I like it.
     {
-        linux_event_queue_t event_queue(tdata->thread_pool, tdata->current_cpu);
-        tdata->thread_pool->queues[tdata->current_cpu] = &event_queue;
-        linux_thread_pool_t::event_queue = &event_queue;
+        linux_thread_t thread(tdata->thread_pool, tdata->current_cpu);
+        tdata->thread_pool->threads[tdata->current_cpu] = &thread;
+        linux_thread_pool_t::thread = &thread;
         
-        // If one event queue is allowed to run before another one has finished
+        // If one thread is allowed to run before another one has finished
         // starting up, then it might try to access an uninitialized part of the
         // unstarted one.
         res = pthread_barrier_wait(tdata->barrier);
@@ -75,19 +77,19 @@ void *linux_thread_pool_t::start_event_queue(void *arg) {
         
         // Prime the pump by calling the initial CPU message that was passed to thread_pool::run()
         if (tdata->initial_message) {
-            event_queue.message_hub.store_message(tdata->current_cpu, tdata->initial_message);
+            thread.message_hub.store_message(tdata->current_cpu, tdata->initial_message);
         }
         
-        event_queue.run();
+        thread.queue.run();
         
-        // If one event queue is allowed to delete itself before another one has
+        // If one thread is allowed to delete itself before another one has
         // broken out of its loop, it might delete something that the other thread
         // needed to access.
         res = pthread_barrier_wait(tdata->barrier);
         check("Could not wait at stop barrier", res != 0 && res != PTHREAD_BARRIER_SERIAL_THREAD);
         
-        tdata->thread_pool->queues[tdata->current_cpu] = NULL;
-        linux_thread_pool_t::event_queue = NULL;
+        tdata->thread_pool->threads[tdata->current_cpu] = NULL;
+        linux_thread_pool_t::thread = NULL;
     }
     
     // Delete all custom allocators
@@ -124,7 +126,7 @@ void linux_thread_pool_t::run(linux_cpu_message_t *initial_message) {
         tdata->current_cpu = i;
         tdata->initial_message = (i == 0) ? initial_message : NULL;
         
-        res = pthread_create(&threads[i], NULL, &start_event_queue, (void*)tdata);
+        res = pthread_create(&pthreads[i], NULL, &start_thread, (void*)tdata);
         check("Could not create thread", res != 0);
         
         // Distribute threads evenly among CPUs
@@ -133,7 +135,7 @@ void linux_thread_pool_t::run(linux_cpu_message_t *initial_message) {
         cpu_set_t mask;
         CPU_ZERO(&mask);
         CPU_SET(i % ncpus, &mask);
-        res = pthread_setaffinity_np(threads[i], sizeof(cpu_set_t), &mask);
+        res = pthread_setaffinity_np(pthreads[i], sizeof(cpu_set_t), &mask);
         check("Could not set thread affinity", res != 0);
     }
     
@@ -187,8 +189,8 @@ void linux_thread_pool_t::run(linux_cpu_message_t *initial_message) {
         
         // Cause child thread to break out of its loop
         
-        queues[i]->do_shut_down = true;
-        res = eventfd_write(queues[i]->core_notify_fd, 1);
+        threads[i]->do_shutdown = true;
+        res = eventfd_write(threads[i]->shutdown_notify_fd, 1);
         check("Could not write to core_notify_fd", res != 0);
     }
     
@@ -196,7 +198,7 @@ void linux_thread_pool_t::run(linux_cpu_message_t *initial_message) {
     
         // Wait for child thread to actually exit
         
-        res = pthread_join(threads[i], NULL);
+        res = pthread_join(pthreads[i], NULL);
         check("Could not join thread", res != 0);
     }
     
@@ -221,7 +223,7 @@ void linux_thread_pool_t::interrupt_handler(int) {
     linux_cpu_message_t *interrupt_msg = self->set_interrupt_message(NULL);
     
     if (interrupt_msg) {
-        self->queues[0]->message_hub.insert_external_message(interrupt_msg);
+        self->threads[0]->message_hub.insert_external_message(interrupt_msg);
     }
 }
 
@@ -250,4 +252,68 @@ linux_thread_pool_t::~linux_thread_pool_t() {
     
     res = pthread_spin_destroy(&interrupt_message_lock);
     check("Could not destroy interrupt spin lock", res != 0);
+}
+
+linux_thread_t::linux_thread_t(linux_thread_pool_t *parent_pool, int thread_id)
+    : queue(this),
+      message_hub(&queue, parent_pool, thread_id),
+      timer_handler(&queue),
+      iosys(&queue),
+      do_shutdown(false)
+{
+    int res;
+    
+    // Create and watch an eventfd for shutdown notifications
+    
+    shutdown_notify_fd = eventfd(0, 0);
+    check("Could not create shutdown notification fd", shutdown_notify_fd == -1);
+
+    res = fcntl(shutdown_notify_fd, F_SETFL, O_NONBLOCK);
+    check("Could not make shutdown notify fd non-blocking", res != 0);
+
+    queue.watch_resource(shutdown_notify_fd, EPOLLET|EPOLLIN, this);
+    
+    // Make a timer to do allocator GC
+    
+    allocator_gc_timer = timer_handler.add_timer_internal(
+        ALLOC_GC_INTERVAL_MS,
+        &linux_thread_t::garbage_collect, NULL,
+        false);
+}
+
+linux_thread_t::~linux_thread_t() {
+    
+    int res;
+    
+    res = close(shutdown_notify_fd);
+    check("Could not close shutdown_notify_fd", res != 0);
+    
+    timer_handler.cancel_timer(allocator_gc_timer);
+}
+
+void linux_thread_t::pump() {
+    
+    message_hub.push_messages();
+}
+
+void linux_thread_t::on_epoll(int events) {
+    
+    // No-op. This is just to make sure that the event queue wakes up
+    // so it can shut down.
+}
+
+bool linux_thread_t::should_shut_down() {
+
+    return do_shutdown;
+}
+
+void linux_thread_t::garbage_collect(void *ctx) {
+
+    // Perform allocator gc
+    tls_small_obj_alloc_accessor<alloc_t>::alloc_vector_t *allocs = tls_small_obj_alloc_accessor<alloc_t>::allocs_tl;
+    if(allocs) {
+        for(size_t i = 0; i < allocs->size(); i++) {
+            allocs->operator[](i)->gc();
+        }
+    }
 }

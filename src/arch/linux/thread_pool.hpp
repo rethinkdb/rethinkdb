@@ -3,9 +3,13 @@
 
 #include <pthread.h>
 #include "config/args.hpp"
+#include "arch/linux/event_queue.hpp"
+#include "arch/linux/io.hpp"
+#include "arch/linux/timer.hpp"
+#include "arch/linux/message_hub.hpp"
 
 struct linux_cpu_message_t;
-struct linux_event_queue_t;
+struct linux_thread_t;
 
 /* A thread pool represents a group of threads, each of which is associated with an
 event queue. There is one thread pool per server. It is responsible for starting up
@@ -33,7 +37,7 @@ public:
     ~linux_thread_pool_t();
 
 private:
-    static void *start_event_queue(void*);
+    static void *start_thread(void*);
     
     static void interrupt_handler(int);
     pthread_spinlock_t interrupt_message_lock;
@@ -45,16 +49,40 @@ private:
     pthread_mutex_t shutdown_cond_mutex;
 
 public:
-    pthread_t threads[MAX_CPUS];
-    linux_event_queue_t *queues[MAX_CPUS];
+    pthread_t pthreads[MAX_CPUS];
+    linux_thread_t *threads[MAX_CPUS];
     
     int n_threads;
     // The thread_pool that started the thread we are currently in
     static __thread linux_thread_pool_t *thread_pool;
     // The ID of the thread we are currently in
     static __thread int cpu_id;
-    // The event queue for the thread we are currently in (same as thread_pool->queues[cpu_id])
-    static __thread linux_event_queue_t *event_queue;
+    // The event queue for the thread we are currently in (same as &thread_pool->threads[cpu_id])
+    static __thread linux_thread_t *thread;
+};
+
+class linux_thread_t :
+    public linux_epoll_callback_t,
+    public linux_queue_parent_t
+{
+
+public:
+    linux_thread_t(linux_thread_pool_t *parent_pool, int thread_id);
+    ~linux_thread_t();
+    
+    linux_event_queue_t queue;
+    linux_message_hub_t message_hub;
+    linux_timer_handler_t timer_handler;
+    linux_io_calls_t iosys;
+    
+    linux_timer_token_t *allocator_gc_timer;
+    static void garbage_collect(void *unused);
+    
+    bool do_shutdown;
+    fd_t shutdown_notify_fd;
+    void pump();   // Called by the event queue
+    bool should_shut_down();   // Called by the event queue
+    void on_epoll(int events);
 };
 
 #endif /* __LINUX_THREAD_POOL_HPP__ */
