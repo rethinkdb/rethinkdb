@@ -53,6 +53,7 @@ conn_fsm_t::result_t conn_fsm_t::fill_buf(void *buf, unsigned int *bytes_filled,
     
     // TODO: we assume the command will fit comfortably into
     // IO_BUFFER_SIZE. We'll need to implement streaming later.
+    assert(!we_are_closed);
     ssize_t sz = conn->read_nonblocking((byte *) buf + *bytes_filled, total_length - *bytes_filled);
     
     if (sz == -1) {
@@ -70,28 +71,28 @@ conn_fsm_t::result_t conn_fsm_t::fill_buf(void *buf, unsigned int *bytes_filled,
             //break;
         } else if (errno == ENETDOWN) {
             check("Enetdown wtf", sz == -1);
-        } else {
-            check("Could not read from socket", sz == -1);
-        }
-        
-    } else if (sz > 0 || *bytes_filled > 0) {
-        *bytes_filled += sz;
-        if (state != fsm_socket_recv_incomplete)
-            state = fsm_outstanding_data;
-        
-    } else {
-        if (state == fsm_socket_recv_incomplete) {
-            return fsm_no_data_in_socket;
-            
-        } else {
-            // If the client closes the socket, then we will get an on_net_conn_readable() but there
-            // will be no data on the socket.
+        } else if (errno == ECONNRESET) {
+            we_are_closed = true;
             if (shutdown_callback && !quitting)
                 shutdown_callback->on_conn_fsm_quit();
             assert(state == fsm_outstanding_data || state == fsm_socket_connected);
             return fsm_quit_connection;
+        } else {
+            check("Could not read from socket", sz == -1);
         }
-        // TODO: what about application-level keepalive?
+    } else if (sz > 0) {
+        *bytes_filled += sz;
+        if (state != fsm_socket_recv_incomplete)
+            state = fsm_outstanding_data;
+    } else {
+        // TODO: process all outstanding ops already in the buffer
+        // The client closed the socket, we got on_net_conn_readable()
+        assert(sz == 0);
+        we_are_closed = true;
+        if (shutdown_callback && !quitting)
+            shutdown_callback->on_conn_fsm_quit();
+        assert(state == fsm_outstanding_data || state == fsm_socket_connected);
+        return fsm_quit_connection;
     }
 
     return fsm_transition_ok;
@@ -383,6 +384,7 @@ conn_fsm_t::result_t conn_fsm_t::do_transition(event_t *event) {
 conn_fsm_t::conn_fsm_t(net_conn_t *conn, conn_fsm_shutdown_callback_t *c, request_handler_t *rh)
     : quitting(false), conn(conn), req_handler(rh), shutdown_callback(c)
 {
+    we_are_closed = false;
     fprintf(stderr, "Opened socket %p\n", this);
     
     conn->set_callback(this);   // I can haz chezborger when there is data on the network?
