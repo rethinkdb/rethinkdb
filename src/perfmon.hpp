@@ -7,10 +7,9 @@
 #include "utils.hpp"
 
 // Horrible hack because we define fail() as a macro
-#pragma push_macro("fail")
 #undef fail
 #include <sstream>
-#pragma pop_macro("fail")
+#define fail(...) _fail(__FILE__, __LINE__, __VA_ARGS__)
 
 class perfmon_watcher_t;
 class perfmon_fsm_t;
