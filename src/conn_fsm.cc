@@ -72,7 +72,9 @@ conn_fsm_t::result_t conn_fsm_t::fill_buf(void *buf, unsigned int *bytes_filled,
         } else if (errno == ENETDOWN) {
             check("Enetdown wtf", sz == -1);
         } else if (errno == ECONNRESET) {
+#ifndef NDEBUG
             we_are_closed = true;
+#endif
             if (shutdown_callback && !quitting)
                 shutdown_callback->on_conn_fsm_quit();
             assert(state == fsm_outstanding_data || state == fsm_socket_connected);
@@ -88,7 +90,9 @@ conn_fsm_t::result_t conn_fsm_t::fill_buf(void *buf, unsigned int *bytes_filled,
         // TODO: process all outstanding ops already in the buffer
         // The client closed the socket, we got on_net_conn_readable()
         assert(sz == 0);
+#ifndef NDEBUG
         we_are_closed = true;
+#endif
         if (shutdown_callback && !quitting)
             shutdown_callback->on_conn_fsm_quit();
         assert(state == fsm_outstanding_data || state == fsm_socket_connected);
@@ -384,7 +388,9 @@ conn_fsm_t::result_t conn_fsm_t::do_transition(event_t *event) {
 conn_fsm_t::conn_fsm_t(net_conn_t *conn, conn_fsm_shutdown_callback_t *c, request_handler_t *rh)
     : quitting(false), conn(conn), req_handler(rh), shutdown_callback(c)
 {
+#ifndef NDEBUG
     we_are_closed = false;
+#endif
     fprintf(stderr, "Opened socket %p\n", this);
     
     conn->set_callback(this);   // I can haz chezborger when there is data on the network?
