@@ -1,4 +1,6 @@
 
+#include <unistd.h>
+#include <getopt.h>
 #include <stdio.h>
 #include <vector>
 #include <time.h>
@@ -54,6 +56,37 @@ public:
         exit(-1);
     }
 
+    void parse(char *str) {
+        char *tok = strtok(str, "/");
+        int c = 0;
+        while(tok != NULL) {
+            switch(c) {
+            case 0:
+                deletes = atoi(tok);
+                break;
+            case 1:
+                updates = atoi(tok);
+                break;
+            case 2:
+                inserts = atoi(tok);
+                break;
+            case 3:
+                reads = atoi(tok);
+                break;
+            default:
+                fprintf(stderr, "Invalid load format (use D/U/I/R)\n");
+                exit(-1);
+                break;
+            }
+            tok = strtok(NULL, "/");
+            c++;
+        }
+        if(c < 4) {
+            fprintf(stderr, "Invalid load format (use D/U/I/R)\n");
+            exit(-1);
+        }
+    }
+    
     void print() {
         printf("%d/%d/%d/%d", deletes, updates, inserts, reads);
     }
@@ -71,7 +104,7 @@ public:
     distr_t(int _min, int _max)
         : min(_min), max(_max)
         {}
-    
+
     distr_t()
         : min(8), max(16)
         {}
@@ -92,6 +125,31 @@ public:
         payload->first = l;
         payload->second = s;
     }
+
+    void parse(char *str) {
+        char *tok = strtok(str, "-");
+        int c = 0;
+        while(tok != NULL) {
+            switch(c) {
+            case 0:
+                min = atoi(tok);
+                break;
+            case 1:
+                max = atoi(tok);
+                break;
+            default:
+                fprintf(stderr, "Invalid distr format (use MIN-MAX)\n");
+                exit(-1);
+                break;
+            }
+            tok = strtok(NULL, "-");
+            c++;
+        }
+        if(c < 2) {
+            fprintf(stderr, "Invalid distr format (use MIN-MAX)\n");
+            exit(-1);
+        }
+    }
     
     void print() {
         printf("%d-%d", min, max);
@@ -109,7 +167,7 @@ public:
         : port(11211),
           clients(64), load(load_t()),
           keys(distr_t(8, 16)), values(distr_t(8, 128)),
-          duration(10000000)
+          duration(10000000L)
         {
             strcpy(host, "localhost");
         }
@@ -145,10 +203,10 @@ void usage(const char *name) {
     printf("\t%s [OPTIONS]\n", name);
 
     printf("\nOptions:\n");
-    printf("\t-h, --host\n\t\tServer host to connect to. Defaults to [%s].\n", _d.host);
+    printf("\t-n, --host\n\t\tServer host to connect to. Defaults to [%s].\n", _d.host);
     printf("\t-p, --port\n\t\tServer port to connect to. Defaults to [%d].\n", _d.port);
     printf("\t-c, --clients\n\t\tNumber of concurrent clients. Defaults to [%d].\n", _d.clients);
-    printf("\t-l, --load\n\t\tTarget load to generate. Expects a value in format D:U:I:R, where\n" \
+    printf("\t-l, --load\n\t\tTarget load to generate. Expects a value in format D/U/I/R, where\n" \
            "\t\t\tD - number of deletes\n" \
            "\t\t\tU - number of updates\n" \
            "\t\t\tI - number of inserts\n" \
@@ -171,6 +229,72 @@ void usage(const char *name) {
     exit(-1);
 }
 
+/* Parse the args */
+void parse(config_t *config, int argc, char *argv[]) {
+    optind = 1; // reinit getopt
+    while(1)
+    {
+        int do_help = 0;
+        struct option long_options[] =
+            {
+                {"host",       required_argument, 0, 'n'},
+                {"port",       required_argument, 0, 'p'},
+                {"clients",    required_argument, 0, 'c'},
+                {"load",       required_argument, 0, 'l'},
+                {"keys",       required_argument, 0, 'k'},
+                {"values",     required_argument, 0, 'v'},
+                {"duration",   required_argument, 0, 'd'},
+                {"help",       no_argument, &do_help, 1},
+                {0, 0, 0, 0}
+            };
+
+        int option_index = 0;
+        int c = getopt_long(argc, argv, "n:p:c:l:k:v:d:h", long_options, &option_index);
+
+        if(do_help)
+            c = 'h';
+     
+        /* Detect the end of the options. */
+        if (c == -1)
+            break;
+     
+        switch (c)
+        {
+        case 0:
+            break;
+        case 'n':
+            strncpy(config->host, optarg, MAX_HOST);
+            break;
+        case 'p':
+            config->port = atoi(optarg);
+            break;
+        case 'c':
+            config->clients = atoi(optarg);
+            break;
+        case 'l':
+            config->load.parse(optarg);
+            break;
+        case 'k':
+            config->keys.parse(optarg);
+            break;
+        case 'v':
+            config->values.parse(optarg);
+            break;
+        case 'd':
+            config->duration = atol(optarg);
+            break;
+        case 'h':
+            usage(argv[0]);
+            break;
+     
+        default:
+            /* getopt_long already printed an error message. */
+            usage(argv[0]);
+        }
+    }
+}
+
+/* The function that does the work */
 void* run_client(void* data) {
     // Grab the config
     config_t *config = (config_t*)data;
@@ -184,7 +308,7 @@ void* run_client(void* data) {
     vector<payload_t> keys;
 
     // Perform the ops
-    for(int i = 0; i < config->duration; i++) {
+    for(int i = 0; i < config->duration / config->clients; i++) {
         // Generate the command
         load_t::load_op_t cmd = config->load.toss();
 
@@ -273,13 +397,18 @@ void* run_client(void* data) {
     }
 }
 
-int main(int argv, char *argc[])
+/* Tie it all together */
+int main(int argc, char *argv[])
 {
     // Initialize randomness
     srand(time(NULL));
     
     // Parse the arguments
     config_t config;
+    parse(&config, argc, argv);
+    config.print();
+
+    // Let's rock 'n roll
     int res;
     vector<pthread_t> threads(config.clients);
     
