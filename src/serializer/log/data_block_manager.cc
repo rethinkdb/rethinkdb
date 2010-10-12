@@ -298,11 +298,18 @@ void data_block_manager_t::remove_last_unyoung_entry() {
 // garbage) and we gc all blocks with that ratio or higher.
 
 bool data_block_manager_t::should_we_keep_gcing(const gc_entry entry) {
+<<<<<<< HEAD:src/serializer/log/data_block_manager.cc
     return entry.g_array.count() >= ((extent_manager->extent_size / BTREE_BLOCK_SIZE) * GC_THRESHOLD_RATIO_NUMERATOR) / GC_THRESHOLD_RATIO_DENOMINATOR && !entry.active; // 3/4 garbage
 }
 
 bool data_block_manager_t::do_we_want_to_start_gcing() {
+
     return gc_stats.garbage_blocks * GC_THRESHOLD_RATIO_DENOMINATOR >= GC_THRESHOLD_RATIO_NUMERATOR * gc_stats.total_blocks;
+
+}
+
+bool data_block_manager_t::do_we_want_to_start_gcing() {
+    return garbage_ratio() >= 0.75;
 }
 
 /* !< is x less than y */

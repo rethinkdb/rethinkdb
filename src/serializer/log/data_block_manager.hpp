@@ -173,8 +173,11 @@ private:
 
     bool should_we_keep_gcing(const gc_entry);
 
+
+
     void mark_unyoung_entries();
     void remove_last_unyoung_entry();
+
 
 private:
     /* internal garbage collection structures */
