@@ -586,6 +586,7 @@ void log_serializer_t::prepare_metablock(metablock_t *mb_buffer) {
 
 
 void log_serializer_t::consider_start_gc() {
+
     if (data_block_manager.do_we_want_to_start_gcing() && state == log_serializer_t::state_ready) {
 	// We do not do GC if we're not in the ready state
 	// (i.e. shutting down)
