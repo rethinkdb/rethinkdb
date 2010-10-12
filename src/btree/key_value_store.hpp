@@ -81,9 +81,14 @@ private:
     } state;
     
     initialize_superblock_fsm_t *sb_fsm;
-
+    
 public:
     cache_t cache;
+    
+public:
+    /* Statistics */
+    int total_set_operations;
+    perfmon_var_t<int> pm_total_set_operations;
 };
 
 /* btree_key_value_store_t represents a collection of slices, possibly distributed

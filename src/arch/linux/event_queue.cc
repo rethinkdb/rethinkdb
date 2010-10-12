@@ -18,7 +18,8 @@
 // TODO: report event queue statistics.
 
 linux_event_queue_t::linux_event_queue_t(linux_queue_parent_t *parent)
-    : parent(parent)
+    : parent(parent),
+      events_per_loop(0), pm_events_per_loop("events_per_loop", &events_per_loop, &perfmon_combiner_average)
 {
     // Create a poll fd
     
@@ -54,7 +55,7 @@ void linux_event_queue_t::run() {
         // (see section 7 [CPU scheduling] in B-tree Indexes and CPU
         // Caches by Goetz Graege and Pre-Ake Larson).
 
-        for (int i = 0; i < res; i++) {
+        for (int i = 0; i < nevents; i++) {
             if (events[i].data.ptr == NULL) {
                 // The event was queued for a resource that's
                 // been destroyed, so forget_resource is kindly
@@ -66,7 +67,7 @@ void linux_event_queue_t::run() {
             }
         }
 
-        // All done with OS event processing
+        events_per_loop = nevents;
         nevents = 0;
         
         parent->pump();

@@ -5,6 +5,7 @@
 #include <map>
 #include "config/alloc.hpp"
 #include "utils2.hpp"
+#include "containers/intrusive_list.hpp"
 
 // Horrible hack because we define fail() as a macro
 #undef fail
@@ -37,31 +38,30 @@ bool perfmon_get_stats(perfmon_stats_t *dest, perfmon_callback_t *cb);
 it in a global map and its destructor deregisters it. Subclass it and override its
 get_value() method to make a performance monitor variable. */
 
-class perfmon_watcher_t
+typedef std_string_t perfmon_combiner_t(std_string_t, std_string_t);
+
+class perfmon_watcher_t :
+    public intrusive_list_node_t<perfmon_watcher_t>
 {
 public:
-    perfmon_watcher_t(const char *name);
+    perfmon_watcher_t(const char *name, perfmon_combiner_t *combiner = NULL);
     ~perfmon_watcher_t();
     
     virtual std_string_t get_value() = 0;
-    
-    virtual std_string_t combine_value(std_string_t, std_string_t) {
-        fail("Perfmon variable namespace collision for name %s", name);
-    }
 
-private:
     const char *name;
+    perfmon_combiner_t *combiner;
 };
 
 /* perfmon_var_t is a perfmon_watcher_t that just watches a variable. */
 
 template<class var_t>
 class perfmon_var_t :
-    public perfmon_watcher_t
+    public virtual perfmon_watcher_t
 {
 public:
-    perfmon_var_t(const char *name, var_t *var)
-        : perfmon_watcher_t(name), var(var) { }
+    perfmon_var_t(const char *name, var_t *var, perfmon_combiner_t *combiner = NULL)
+        : perfmon_watcher_t(name, combiner), var(var) { }
     
     std_string_t get_value() {
         std::basic_stringstream<char, std::char_traits<char>, gnew_alloc<char> > s;
@@ -72,19 +72,17 @@ public:
     var_t *var;
 };
 
-/* perfmon_summed_var_t is a perfmon_watcher_t that watches a numeric variable and
-sums its value across cores. */
+/* If two perfmon watchers (on the same thread or on different ones) have the same name,
+then the combiner function of one of them will be invoked to combine their values.
+Which one's combiner function is invoked is arbitrary, so they should have the same
+combiner function and it should be commutative and associative. */
 
-template<class var_t>
-class perfmon_summed_var_t :
-    public perfmon_var_t<var_t>
-{
-public:
-    std_string_t combine_value(std_string_t v1, std_string_t v2) {
-        std::basic_stringstream<char, std::char_traits<char>, gnew_alloc<char> > s;
-        s << (atoi(v1.c_str()) + atoi(v2.c_str()));
-        return s.str();
-    }
-};
+// The sum combiner assumes that both strings represent integers; it returns their sum.
+std_string_t perfmon_combiner_sum(std_string_t v1, std_string_t v2);
+
+// The average combiner averages integer values. Because the combiner must be associative,
+// it returns a string of the form "%d (average of %d)", and correctly handles strings of
+// that form if they are passed as its argument.
+std_string_t perfmon_combiner_average(std_string_t v1, std_string_t v2);
 
 #endif /* __PERFMON_HPP__ */

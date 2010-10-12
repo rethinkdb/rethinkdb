@@ -2,30 +2,23 @@
 #include "arch/arch.hpp"
 #include "utils.hpp"
 
-/* The var map keeps track of all of the perfmon_watcher_t objects on each core. */
+/* The var list keeps track of all of the perfmon_watcher_t objects on each core. */
 
-typedef std::map<std_string_t, perfmon_watcher_t*, std::less<std_string_t>,
-        gnew_alloc<std::pair<std_string_t, perfmon_watcher_t*> > > var_map_t;
+__thread intrusive_list_t<perfmon_watcher_t> *var_list = NULL;
 
-__thread var_map_t *var_map = NULL;
-
-perfmon_watcher_t::perfmon_watcher_t(const char *name)
-    : name(name)
+perfmon_watcher_t::perfmon_watcher_t(const char *name, perfmon_combiner_t *combiner)
+    : name(name), combiner(combiner)
 {
-    if (!var_map) var_map = gnew<var_map_t>();
-    
-    assert(var_map->find(name) == var_map->end());
-    (*var_map)[name] = this;
+    if (!var_list) var_list = gnew<intrusive_list_t<perfmon_watcher_t> >();
+    var_list->push_back(this);
 }
 
 perfmon_watcher_t::~perfmon_watcher_t() {
     
-    assert((*var_map)[name] == this);
-    var_map->erase(name);
-    
-    if (var_map->empty()) {
-        gdelete(var_map);
-        var_map = NULL;
+    var_list->remove(this);
+    if (var_list->empty()) {
+        gdelete(var_list);
+        var_list = NULL;
     }
 }
 
@@ -52,14 +45,18 @@ struct perfmon_fsm_t :
     }
     
     bool gather_data() {
-        if (var_map) {
-            for (var_map_t::iterator it = var_map->begin(); it != var_map->end(); it++) {
-                const std_string_t &name = (*it).first;
-                const std_string_t &value = (*it).second->get_value();
-                if (dest->find(name) == dest->end()) {
-                    (*dest)[name] = value;
+        if (var_list) {
+            for (perfmon_watcher_t *var = var_list->head(); var; var = var_list->next(var)) {
+                const std_string_t &value = var->get_value();
+                if (dest->find(var->name) == dest->end()) {
+                    (*dest)[var->name] = value;
                 } else {
-                    (*dest)[name] = (*it).second->combine_value(value, (*dest)[name]);
+                    if (var->combiner) {
+                        (*dest)[var->name] = var->combiner(value, (*dest)[var->name]);
+                    } else {
+                        fail("Two perfmon watchers are both called %s and one lacks a combiner "
+                            "function.", var->name);
+                    }
                 }
             }
         }
@@ -81,4 +78,32 @@ bool perfmon_get_stats(perfmon_stats_t *dest, perfmon_callback_t *cb) {
     
     perfmon_fsm_t *fsm = new perfmon_fsm_t(dest);
     return fsm->run(cb);
+}
+
+std_string_t perfmon_combiner_sum(std_string_t v1, std_string_t v2) {
+    
+    std::basic_stringstream<char, std::char_traits<char>, gnew_alloc<char> > s;
+    s << (atoll(v1.c_str()) + atoll(v2.c_str()));
+    return s.str();
+}
+
+static void read_average(const char *s, long long int *num, int *count) {
+    switch (sscanf(s, "%lld (average of %d)", num, count)) {
+        case 0: fail("Bad input to perfmon_average_combiner: %s", s);
+        case 1: *count = 1; break;
+        case 2: break;
+        default: fail("But there were only two format specifiers in the string!");
+    }
+}
+
+std_string_t perfmon_combiner_average(std_string_t v1, std_string_t v2) {
+    
+    long long int num1, num2;
+    int count1, count2;
+    read_average(v1.c_str(), &num1, &count1);
+    read_average(v2.c_str(), &num2, &count2);
+    
+    char buf[20];
+    sprintf(buf, "%lld (average of %d)", (num1*count1+num2*count2)/(count1+count2), count1+count2);
+    return buf;
 }

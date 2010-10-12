@@ -6,6 +6,7 @@
 #include <sys/epoll.h>
 #include "corefwd.hpp"
 #include "config/args.hpp"
+#include "perfmon.hpp"
 
 typedef int fd_t;
 #define INVALID_FD fd_t(-1)
@@ -37,6 +38,10 @@ private:
     // resources that are being destroyed.
     epoll_event events[MAX_IO_EVENT_PROCESSING_BATCH_SIZE];
     int nevents;
+
+private:
+    int events_per_loop;
+    perfmon_var_t<int> pm_events_per_loop;
 
 public:
     // These should only be called by the event queue itself or by the linux_* classes

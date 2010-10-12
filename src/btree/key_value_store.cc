@@ -1,7 +1,8 @@
 #include "key_value_store.hpp"
 
 btree_key_value_store_t::btree_key_value_store_t(cmd_config_t *cmd_config)
-    : cmd_config(cmd_config), state(state_off) {
+    : cmd_config(cmd_config), state(state_off)
+{
     
     assert(cmd_config->n_slices > 0);
     for (int i = 0; i < cmd_config->n_slices; i++) {
@@ -318,7 +319,8 @@ btree_slice_t::btree_slice_t(
     unsigned int flush_threshold_percent)
     : cas_counter(0),
       state(state_unstarted),
-      cache(filename, block_size, max_size, wait_for_flush, flush_timer_ms, flush_threshold_percent)
+      cache(filename, block_size, max_size, wait_for_flush, flush_timer_ms, flush_threshold_percent),
+      total_set_operations(0), pm_total_set_operations("cmd_set", &total_set_operations, &perfmon_combiner_sum)
     { }
 
 btree_slice_t::~btree_slice_t() {
