@@ -152,6 +152,7 @@
 #define GC_THRESHOLD_RATIO_NUMERATOR              3
 #define GC_THRESHOLD_RATIO_DENOMINATOR            4
 
+
 // What's the maximum number of "young" extents we can have?
 #define GC_YOUNG_EXTENT_MAX_SIZE                  50
 // What's the definition of a "young" extent in milliseconds?
@@ -160,6 +161,8 @@
 // The ratio at which we should GC the lba list.
 #define LBA_GC_THRESHOLD_RATIO_NUMERATOR          9
 #define LBA_GC_THRESHOLD_RATIO_DENOMINATOR        10
+
+
 
 #endif // __CONFIG_ARGS_H__
 

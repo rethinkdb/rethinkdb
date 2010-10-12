@@ -255,6 +255,7 @@ bool lba_list_t::we_want_to_gc() {
     // ratio's backwards.  The constants describe "the garbage ratio"
     // and numer/denom is the "non-garbage ratio".
 
+
     return numer < denom && (denom - numer) * LBA_GC_THRESHOLD_RATIO_DENOMINATOR >= LBA_GC_THRESHOLD_RATIO_NUMERATOR * denom;
 }
 
