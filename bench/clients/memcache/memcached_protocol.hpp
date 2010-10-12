@@ -4,7 +4,6 @@
 
 #include <libmemcached/memcached.h>
 #include <stdlib.h>
-#include <assert.h>
 #include "protocol.hpp"
 
 struct memcached_protocol_t {
@@ -24,7 +23,6 @@ struct memcached_protocol_t {
     virtual void remove(const char *key, size_t key_size) {
         memcached_return_t _error = memcached_delete(&memcached, key, key_size, 0);
         if(_error != MEMCACHED_SUCCESS) {
-            assert(0);
             fprintf(stderr, "Error performing delete operation (%d)\n", _error);
             exit(-1);
         }
@@ -36,7 +34,6 @@ struct memcached_protocol_t {
         memcached_return_t _error = memcached_set(&memcached, key, key_size,
                                                   value, value_size, 0, 0);
         if(_error != MEMCACHED_SUCCESS) {
-            assert(0);
             fprintf(stderr, "Error performing delete operation (%d)\n", _error);
             exit(-1);
         }
@@ -56,7 +53,6 @@ struct memcached_protocol_t {
         _value = memcached_get(&memcached, key, key_size,
                                &_value_length, &_flags, &_error);
         if(_error != MEMCACHED_SUCCESS) {
-            assert(0);
             fprintf(stderr, "Error performing read operation (%d)\n", _error);
             exit(-1);
         }
