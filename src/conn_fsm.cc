@@ -95,7 +95,9 @@ conn_fsm_t::result_t conn_fsm_t::fill_buf(void *buf, unsigned int *bytes_filled,
 #endif
         if (shutdown_callback && !quitting)
             shutdown_callback->on_conn_fsm_quit();
-        assert(state == fsm_outstanding_data || state == fsm_socket_connected);
+        assert(state == fsm_outstanding_data
+               || state == fsm_socket_connected
+               || state == fsm_socket_recv_incomplete);
         return fsm_quit_connection;
     }
 
@@ -229,7 +231,7 @@ conn_fsm_t::result_t conn_fsm_t::do_fsm_outstanding_req(event_t *event) {
     }
 
     if (nrbuf == 0) {
-        state = fsm_socket_recv_incomplete;
+        state = fsm_socket_connected;
         return fsm_transition_ok;
     }
 
@@ -367,10 +369,12 @@ conn_fsm_t::result_t conn_fsm_t::do_transition(event_t *event) {
                 return res;
             }
 
-            if (state == fsm_socket_recv_incomplete) {
+            if (state == fsm_socket_connected && res == fsm_transition_ok) {
                 event->event_type = et_sock;
                 res = read_data(event);
-                
+
+                if (res == fsm_quit_connection)
+                    return res;
                 if (res == fsm_no_data_in_socket)
                     return fsm_transition_ok;
             }
