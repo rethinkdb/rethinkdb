@@ -168,6 +168,8 @@ public:
 private:
     void prepare_metablock(metablock_t *mb_buffer);
 
+    void consider_start_gc();
+
 private:
     enum state_t {
         state_unstarted,
