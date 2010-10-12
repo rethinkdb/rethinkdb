@@ -168,7 +168,9 @@ bool lba_list_t::sync(sync_callback_t *cb) {
     assert(state == state_ready);
     
     // Just to make sure that the LBA GC gets exercised
-    if (rand() % 5 == 1) gc();
+    if (we_want_to_gc()) {
+	gc();
+    }
     
     lba_syncer_t *syncer = new lba_syncer_t(this);
     return syncer->run(cb);
@@ -226,6 +228,10 @@ struct gc_fsm_t :
         delete this;
     }
 };
+
+bool lba_list_t::we_want_to_gc() {
+    return rand() % 5 == 1;
+}
 
 void lba_list_t::gc() {
     if(!gc_fsm) {

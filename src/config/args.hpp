@@ -148,5 +148,9 @@
 // Every time the data file gets full, grow it by this many extents
 #define FILE_GROWTH_RATE_IN_EXTENTS               5
 
+// The ratio at which we should start GCing.
+#define GC_THRESHOLD_RATIO_NUMERATOR              3
+#define GC_THRESHOLD_RATIO_DENOMINATOR            4
+
 #endif // __CONFIG_ARGS_H__
 
