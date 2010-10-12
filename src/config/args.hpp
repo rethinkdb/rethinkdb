@@ -81,10 +81,10 @@
 
 // Maximum number of CPUs we support
 // TODO: make this dynamic where possible
-#define MAX_CPUS                                  32
+#define MAX_CPUS                                  128
 
 // Maximum slices per thread
-#define MAX_SLICES                                32
+#define MAX_SLICES                                128
 
 // The number of ways we split a BTree (the most optimal is the number
 // of cores, but we use a higher split factor to allow upgrading to
