@@ -72,6 +72,8 @@ void linux_net_conn_t::on_epoll(int events) {
         return;
         
     } else {
+        // TODO: this actually happened at some point. Handle all of
+        // these things properly.
         fail("epoll_wait came back with an unhandled event");
     }
     
