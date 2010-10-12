@@ -44,7 +44,7 @@ bool in_place_serializer_t::start(ready_callback_t *cb) {
     return true;
 }
 
-bool in_place_serializer_t::do_read(block_id_t block_id, void *buf, read_callback_t *callback) {
+bool in_place_serializer_t::do_read(ser_block_id_t block_id, void *buf, read_callback_t *callback) {
     
     assert(state == state_ready);
     
@@ -83,7 +83,7 @@ bool in_place_serializer_t::do_write(write_t *writes, int num_writes, write_txn_
     return (num_actual_writes == 0);
 }
 
-block_id_t in_place_serializer_t::gen_block_id() {
+ser_block_id_t in_place_serializer_t::gen_block_id() {
     assert(dbsize != 0);   // Superblock ID is reserved
     off64_t new_block_id = dbsize / block_size;
     dbsize += block_size;
@@ -100,6 +100,6 @@ bool in_place_serializer_t::shutdown(shutdown_callback_t *cb) {
     return true;
 }
 
-off64_t in_place_serializer_t::id_to_offset(block_id_t id) {
+off64_t in_place_serializer_t::id_to_offset(ser_block_id_t id) {
     return id * block_size;
 }

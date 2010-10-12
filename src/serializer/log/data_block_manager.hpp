@@ -3,6 +3,7 @@
 #define __SERIALIZER_LOG_DATA_BLOCK_MANAGER_HPP__
 
 #include "arch/arch.hpp"
+#include "serializer/types.hpp"
 #include "extents/extent_manager.hpp"
 #include "log_serializer_callbacks.hpp"
 #include "containers/priority_queue.hpp"
@@ -39,7 +40,7 @@ public:
 public:
     /* data to be serialized to disk with each block */
     struct buf_data_t {
-        block_id_t block_id;
+        ser_block_id_t block_id;
     };
 
 public:

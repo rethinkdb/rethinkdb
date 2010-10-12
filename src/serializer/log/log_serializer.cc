@@ -248,7 +248,7 @@ struct ls_block_writer_t :
         if (write.buf) {
         
             off64_t new_offset;
-            *(block_id_t *) write.buf = write.block_id;
+            *(ser_block_id_t *) write.buf = write.block_id;
             bool done = ser->data_block_manager.write(write.buf, &new_offset, this);
             ser->lba_index.set_block_offset(write.block_id, new_offset);
             
@@ -494,7 +494,7 @@ bool log_serializer_t::do_write(write_t *writes, int num_writes, write_txn_callb
     return res;
 }
 
-bool log_serializer_t::do_read(block_id_t block_id, void *buf, read_callback_t *callback) {
+bool log_serializer_t::do_read(ser_block_id_t block_id, void *buf, read_callback_t *callback) {
     
     assert(state == state_ready);
     
@@ -518,7 +518,7 @@ bool log_serializer_t::do_read(block_id_t block_id, void *buf, read_callback_t *
     }
 }
 
-block_id_t log_serializer_t::gen_block_id() {
+ser_block_id_t log_serializer_t::gen_block_id() {
     assert(state == state_ready);
     return lba_index.gen_block_id();
 }

@@ -2,7 +2,6 @@
 #define __LARGE_BUF_HPP__
 
 #include "buffer_cache/buffer_cache.hpp"
-#include "arch/resource.hpp"
 #include "config/args.hpp"
 #include "btree/node.hpp"
 #include "conn_fsm.hpp"
