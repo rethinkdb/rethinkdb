@@ -9,9 +9,10 @@
 #include "serializer/serializer.hpp"
 #include "buffer_cache/mirrored/mirrored.hpp"
 #include "buffer_cache/mirrored/concurrency/rwi_conc.hpp"
-#include "buffer_cache/mirrored/page_map/array.hpp"
+#include "buffer_cache/mirrored/page_map.hpp"
 #include "buffer_cache/mirrored/page_repl/page_repl_random.hpp"
 #include "buffer_cache/mirrored/writeback/writeback.hpp"
+#include "buffer_cache/mirrored/free_list.hpp"
 
 struct standard_mc_config_t {
     
@@ -21,6 +22,7 @@ struct standard_mc_config_t {
     typedef array_map_t<standard_mc_config_t> page_map_t;
     typedef page_repl_random_t<standard_mc_config_t> page_repl_t;
     typedef writeback_tmpl_t<standard_mc_config_t> writeback_t;
+    typedef array_free_list_t<standard_mc_config_t> free_list_t;
 };
 
 #include "buffer_cache/semantic_checking.hpp"

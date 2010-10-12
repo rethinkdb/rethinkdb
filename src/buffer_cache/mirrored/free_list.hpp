@@ -1,0 +1,30 @@
+#ifndef __BUFFER_CACHE_MIRRORED_FREE_LIST_HPP__
+#define __BUFFER_CACHE_MIRRORED_FREE_LIST_HPP__
+
+#include "serializer/serializer.hpp"
+#include "buffer_cache/types.hpp"
+#include "containers/segmented_vector.hpp"
+
+/* TODO combine array_free_list_t with array_map_t because they happen to conveniently
+never overlap */
+
+template<class mc_config_t>
+class array_free_list_t {
+    
+public:
+    array_free_list_t(mc_cache_t<mc_config_t> *);
+    void start();   // Must be called after serializer has started up
+    ~array_free_list_t();
+    
+    block_id_t gen_block_id();
+    void release_block_id(block_id_t);
+
+private:
+    mc_cache_t<mc_config_t> *cache;
+    segmented_vector_t<block_id_t, MAX_BLOCK_ID> free_list;
+    block_id_t first_block;
+};
+
+#include "free_list.tcc"
+
+#endif /* __BUFFER_CACHE_MIRRORED_FREE_LIST_HPP__ */

@@ -34,7 +34,6 @@ are involved in startup and which parts are not. */
 struct ls_start_fsm_t :
     public mb_manager_t::metablock_read_callback_t,
     public lba_index_t::ready_callback_t,
-    public log_serializer_t::write_txn_callback_t,
     public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, ls_start_fsm_t >
 {
     
@@ -97,31 +96,10 @@ struct ls_start_fsm_t :
                 ser->extent_manager.start(ser->dbfile);
                 ser->data_block_manager.start(ser->dbfile);
                 ser->lba_index.start(ser->dbfile);
-                state = state_write_initial_superblock;
+                state = state_finish;
 #ifndef NDEBUG
                 ser->prepare_metablock(&ser->debug_mb_buffer);
 #endif
-            }
-        }
-        
-        if (state == state_write_initial_superblock) {
-            
-            log_serializer_t::write_t w;
-            w.block_id = SUPERBLOCK_ID;
-            w.buf = initial_superblock;
-            w.callback = NULL;
-            
-            // Backdoor around do_write()'s assertion
-            log_serializer_t::state_t _state = ser->state;
-            ser->state = log_serializer_t::state_ready;
-            bool write_done = ser->do_write(&w, 1, this);
-            ser->state = _state;
-            
-            if (write_done) {
-                state = state_finish;
-            } else {
-                state = state_waiting_for_initial_superblock;
-                return false;
             }
         }
         
@@ -161,12 +139,6 @@ struct ls_start_fsm_t :
         next_starting_up_step();
     }
     
-    void on_serializer_write_txn() {
-        assert(state == state_waiting_for_initial_superblock);
-        state = state_finish;
-        next_starting_up_step();
-    }
-    
     log_serializer_t *ser;
     log_serializer_t::ready_callback_t *ready_callback;
     
@@ -176,8 +148,6 @@ struct ls_start_fsm_t :
         state_waiting_for_metablock,
         state_start_lba,
         state_waiting_for_lba,
-        state_write_initial_superblock,
-        state_waiting_for_initial_superblock,
         state_finish,
         state_done
     } state;
@@ -264,7 +234,7 @@ struct ls_block_writer_t :
         } else {
         
             /* Deletion */
-            ser->lba_index.delete_block(write.block_id);
+            ser->lba_index.set_block_offset(write.block_id, DELETE_BLOCK);
             
             return do_finish();
         }
@@ -518,9 +488,16 @@ bool log_serializer_t::do_read(ser_block_id_t block_id, void *buf, read_callback
     }
 }
 
-ser_block_id_t log_serializer_t::gen_block_id() {
+ser_block_id_t log_serializer_t::max_block_id() {
+    
     assert(state == state_ready);
-    return lba_index.gen_block_id();
+    return lba_index.max_block_id();
+}
+
+bool log_serializer_t::block_in_use(ser_block_id_t id) {
+    
+    assert(state == state_ready);
+    return lba_index.get_block_offset(id) != DELETE_BLOCK;
 }
 
 bool log_serializer_t::shutdown(shutdown_callback_t *cb) {
