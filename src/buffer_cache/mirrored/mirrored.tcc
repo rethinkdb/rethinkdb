@@ -46,7 +46,7 @@ mc_buf_t<mc_config_t>::mc_buf_t(cache_t *cache)
 #ifndef NDEBUG
       active_callback_count(0),
 #endif
-      block_id(cache->serializer.gen_block_id()),
+      block_id(cache->free_list.gen_block_id()),
       cached(true),
       do_delete(false),
       writeback_buf(this),
@@ -328,6 +328,7 @@ mc_cache_t<mc_config_t>::mc_cache_t(
         wait_for_flush,
         flush_timer_ms,
         _max_size / _block_size * flush_threshold_percent / 100),
+    free_list(this),
     shutdown_transaction_backdoor(false),
     state(state_unstarted),
     num_live_transactions(0)
@@ -371,7 +372,22 @@ bool mc_cache_t<mc_config_t>::next_starting_up_step() {
     }
     
     if (state == state_starting_up_finish) {
-        writeback.start();
+    
+        free_list.start();
+        
+        /* Create an initial superblock */
+        if (serializer.max_block_id() == 0 && !serializer.block_in_use(SUPERBLOCK_ID)) {
+        
+            buf_t *b = new mc_buf_t<mc_config_t>(this);
+#ifndef NDEBUG
+            n_blocks_acquired++;   // Because release() increments n_blocks_released
+#endif
+            b->concurrency_buf.acquire(rwi_write, NULL);
+            assert(b->get_block_id() == SUPERBLOCK_ID);
+            bzero(b->get_data_write(), BTREE_USABLE_BLOCK_SIZE);
+            b->release();
+        }
+        
         state = state_ready;
         
         if (ready_callback) ready_callback->on_cache_ready();

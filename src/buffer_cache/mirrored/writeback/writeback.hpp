@@ -29,8 +29,6 @@ public:
         virtual void on_sync() = 0;
     };
     
-    void start();
-    
     /* Forces a writeback to happen soon. If there is nothing to write, return 'true'; otherwise,
     returns 'false' and calls 'callback' as soon as the next writeback cycle is over. */
     bool sync(sync_callback_t *callback);
@@ -89,7 +87,6 @@ private:
     /* Internal variables used at all times. */
     
     enum state_t {
-        state_unstarted,
         state_ready,
         state_locking,
         state_locked,
