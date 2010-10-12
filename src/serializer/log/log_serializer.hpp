@@ -8,7 +8,7 @@
 #include <fcntl.h>
 #include <map>
 
-#include "arch/resource.hpp"
+#include "serializer/types.hpp"
 #include "config/cmd_args.hpp"
 #include "config/alloc.hpp"
 #include "utils.hpp"
@@ -100,7 +100,7 @@ public:
             on_serializer_read();
         }
     };
-    bool do_read(block_id_t block_id, void *buf, read_callback_t *callback);
+    bool do_read(ser_block_id_t block_id, void *buf, read_callback_t *callback);
     
     /* do_write() updates or deletes a group of bufs.
     
@@ -117,7 +117,7 @@ public:
     typedef _write_block_callback_t write_block_callback_t;
     
     struct write_t {
-        block_id_t block_id;
+        ser_block_id_t block_id;
         void *buf;   /* If NULL, a deletion */
         write_block_callback_t *callback;
     };
@@ -125,7 +125,7 @@ public:
     
 public:
     /* Generates a unique block id. */
-    block_id_t gen_block_id();
+    ser_block_id_t gen_block_id();
     
     /* shutdown() should be called when you are done with the serializer.
     
@@ -189,9 +189,9 @@ private:
     for a block ID that we are currently writing but is not on disk yet, we can return
     the most current version. */
     typedef std::map<
-        block_id_t, ls_block_writer_t*,
-        std::less<block_id_t>,
-        gnew_alloc<std::pair<block_id_t, ls_block_writer_t*> >
+        ser_block_id_t, ls_block_writer_t*,
+        std::less<ser_block_id_t>,
+        gnew_alloc<std::pair<ser_block_id_t, ls_block_writer_t*> >
         > block_writer_map_t;
     block_writer_map_t block_writer_map;
 #ifndef NDEBUG

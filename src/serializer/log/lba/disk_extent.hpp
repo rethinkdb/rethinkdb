@@ -83,7 +83,7 @@ public:
         return amount_filled() == em->extent_size;
     }
     
-    void add_entry(block_id_t id, off64_t offset) {
+    void add_entry(ser_block_id_t id, off64_t offset) {
         
         // Make sure that entries will align with DEVICE_BLOCK_SIZE
         assert(DEVICE_BLOCK_SIZE % sizeof(lba_entry_t) == 0);

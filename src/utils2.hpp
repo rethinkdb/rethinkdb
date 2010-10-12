@@ -5,12 +5,15 @@
 The reason it is separate from utils.hpp is that the IO layer needs some of the things in
 utils2.hpp, but utils.hpp needs some things in the IO layer. */
 
+#include <stdint.h>
 #include "errors.hpp"
 #include "config/alloc.hpp"
 
 int get_cpu_count();
 long get_available_ram();
 long get_total_ram();
+
+typedef char byte;
 
 template<typename T1, typename T2>
 T1 ceil_aligned(T1 value, T2 alignment) {

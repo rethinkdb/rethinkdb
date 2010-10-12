@@ -6,7 +6,7 @@
 #include <string.h>
 #include <time.h>
 #include "utils.hpp"
-#include "arch/resource.hpp"
+#include "buffer_cache/types.hpp"
 
 struct btree_superblock_t {
     int database_exists;

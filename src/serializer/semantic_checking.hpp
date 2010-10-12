@@ -56,7 +56,7 @@ private:
 
 private:
     struct persisted_block_info_t {
-        block_id_t block_id;
+        ser_block_id_t block_id;
         block_info_t block_info;
     };
     int semantic_fd;
@@ -109,12 +109,12 @@ public:
         public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, reader_t>
     {
         semantic_checking_serializer_t *parent;
-        block_id_t block_id;
+        ser_block_id_t block_id;
         void *buf;
         block_info_t expected_block_state;
         read_callback_t *callback;
         
-        reader_t(semantic_checking_serializer_t *parent, block_id_t block_id, void *buf, block_info_t expected_block_state)
+        reader_t(semantic_checking_serializer_t *parent, ser_block_id_t block_id, void *buf, block_info_t expected_block_state)
             : parent(parent), block_id(block_id), buf(buf), expected_block_state(expected_block_state) {}
         
         void on_serializer_read() {
@@ -151,7 +151,7 @@ public:
         }
     };
     
-    bool do_read(block_id_t block_id, void *buf, read_callback_t *callback) {
+    bool do_read(ser_block_id_t block_id, void *buf, read_callback_t *callback) {
 #ifdef SERIALIZER_DEBUG_PRINT
         printf("Reading %ld\n", block_id);
 #endif
@@ -243,7 +243,7 @@ public:
     }
     
 public:
-    block_id_t gen_block_id() {
+    ser_block_id_t gen_block_id() {
         return inner_serializer.gen_block_id();
     }
     

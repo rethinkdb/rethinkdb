@@ -7,7 +7,6 @@
 #include "utils2.hpp"
 #include "config/args.hpp"
 #include "config/alloc.hpp"
-#include "arch/resource.hpp"
 #include "arch/linux/event_queue.hpp"
 #include "event.hpp"
 #include "corefwd.hpp"

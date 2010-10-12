@@ -1,15 +1,6 @@
 #ifndef __ARCH_ARCH_HPP__
 #define __ARCH_ARCH_HPP__
 
-/* Cross-platform stuff */
-
-#include <stdint.h>
-
-typedef uint64_t block_id_t;
-#define NULL_BLOCK_ID (block_id_t(-1))
-
-typedef char byte;
-
 /* Select platform-specific stuff */
 
 /* #if WE_ARE_ON_LINUX */

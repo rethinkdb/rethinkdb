@@ -1,7 +1,7 @@
 #ifndef __BUFFER_CACHE_MOCK_HPP__
 #define __BUFFER_CACHE_MOCK_HPP__
 
-#include "arch/resource.hpp"
+#include "buffer_cache/types.hpp"
 #include "concurrency/access.hpp"
 #include "containers/segmented_vector.hpp"
 #include "utils.hpp"

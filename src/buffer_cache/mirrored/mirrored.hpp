@@ -3,6 +3,7 @@
 #define __MIRRORED_CACHE_HPP__
 
 #include "arch/arch.hpp"
+#include "buffer_cache/types.hpp"
 #include "concurrency/access.hpp"
 #include "concurrency/rwi_lock.hpp"
 #include "buffer_cache/mirrored/callbacks.hpp"

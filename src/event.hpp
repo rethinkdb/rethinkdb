@@ -1,7 +1,6 @@
 #ifndef __EVENT_HPP__
 #define __EVENT_HPP__
 
-#include "arch/resource.hpp"
 #include <sys/types.h>
 
 // Event

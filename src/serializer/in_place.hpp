@@ -6,7 +6,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <fcntl.h>
-#include "arch/resource.hpp"
+#include "serializer/types.hpp"
 #include "arch/arch.hpp"
 #include "utils.hpp"
 
@@ -48,7 +48,7 @@ public:
             on_serializer_read();
         }
     };
-    bool do_read(block_id_t block_id, void *buf, read_callback_t *callback);
+    bool do_read(ser_block_id_t block_id, void *buf, read_callback_t *callback);
     
     /* do_write() updates or deletes a group of bufs.
     
@@ -88,7 +88,7 @@ public:
         }
     };
     struct write_t {
-        block_id_t block_id;
+        ser_block_id_t block_id;
         void *buf;
         write_block_callback_t *callback;
     };
@@ -96,7 +96,7 @@ public:
     
 public:
     /* Generates a unique block id. */
-    block_id_t gen_block_id();
+    ser_block_id_t gen_block_id();
     
     /* shutdown() should be called when you are done with the serializer. It is safe to call
     shutdown() before the serializer finishes starting up.
@@ -113,7 +113,7 @@ public:
     size_t block_size;
 
 private:
-    off64_t id_to_offset(block_id_t id);
+    off64_t id_to_offset(ser_block_id_t id);
     
     enum state_t {
         state_unstarted,

@@ -4,6 +4,10 @@
 
 
 
+#include "serializer/types.hpp"
+
+
+
 #define NULL_OFFSET off64_t(-1)
 
 struct lba_metablock_mixin_t {
@@ -23,13 +27,13 @@ struct lba_metablock_mixin_t {
 
 // PADDING_BLOCK_ID and PADDING_OFFSET indicate that an entry in the LBA list only exists to fill
 // out a DEVICE_BLOCK_SIZE-sized chunk of the extent.
-#define PADDING_BLOCK_ID block_id_t(-1)
+#define PADDING_BLOCK_ID ser_block_id_t(-1)
 #define PADDING_OFFSET off64_t(-1)
 
 #define DELETE_BLOCK off64_t(-1)
 
 struct lba_entry_t {
-    block_id_t block_id;
+    ser_block_id_t block_id;
     off64_t offset;   // Is either an offset into the file or DELETE_BLOCK
 };
 
