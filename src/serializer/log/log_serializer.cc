@@ -7,7 +7,6 @@ log_serializer_t::log_serializer_t(char *_db_path, size_t block_size)
     : shutdown_callback(NULL),
       block_size(block_size),
       state(state_unstarted),
-      gc_counter(0),
       dbfile(NULL),
       extent_manager(EXTENT_SIZE),
       metablock_manager(&extent_manager),
@@ -587,8 +586,7 @@ void log_serializer_t::prepare_metablock(metablock_t *mb_buffer) {
 
 
 void log_serializer_t::consider_start_gc() {
-    gc_counter = (gc_counter + 1) % 5;
-    if (gc_counter == 0 && state == log_serializer_t::state_ready) {
+    if (data_block_manager.do_we_want_to_start_gcing() && state == log_serializer_t::state_ready) {
 	// We do not do GC if we're not in the ready state
 	// (i.e. shutting down)
 	data_block_manager.start_gc();

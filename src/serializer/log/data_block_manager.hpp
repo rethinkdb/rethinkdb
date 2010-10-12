@@ -84,6 +84,9 @@ public:
     };
     bool shutdown(shutdown_callback_t *cb);
 
+public:
+    bool do_we_want_to_start_gcing();
+
 private:
     shutdown_callback_t *shutdown_callback;
 
@@ -144,9 +147,8 @@ private:
 #endif
     }
 
-    struct gc_criterion {
-        bool operator() (const gc_entry);
-    };
+    bool should_we_keep_gcing(const gc_entry);
+
 private:
     /* internal garbage collection structures */
     struct gc_read_callback_t : public iocallback_t {

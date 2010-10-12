@@ -107,7 +107,7 @@ void data_block_manager_t::run_gc() {
             case gc_ready:
                 fallthrough = false;
                 //TODO, need to make sure we don't gc the extent we're writing to
-                if (gc_criterion()(gc_pq.peak())) {
+                if (should_we_keep_gcing(gc_pq.peak())) {
                     /* grab the entry */
                     gc_state.current_entry = gc_pq.pop();
 
@@ -267,8 +267,15 @@ void data_block_manager_t::add_gc_entry() {
 
 /* functions for gc structures */
 
-bool data_block_manager_t::gc_criterion::operator() (const gc_entry entry) {
+// Right now we start gc'ing when the garbage ratio is >= 0.75 (75%
+// garbage) and we gc all blocks with that ratio or higher.
+
+bool data_block_manager_t::should_we_keep_gcing(const gc_entry entry) {
     return entry.g_array.count() >= ((EXTENT_SIZE / BTREE_BLOCK_SIZE) * 3) / 4 && !entry.active; // 3/4 garbage
+}
+
+bool data_block_manager_t::do_we_want_to_start_gcing() {
+    return garbage_ratio() >= 0.75;
 }
 
 /* !< is x less than y */

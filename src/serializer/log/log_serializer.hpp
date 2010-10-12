@@ -179,8 +179,6 @@ private:
         state_shut_down,
     } state;
 
-    int gc_counter; /* ticks off when it's time to do gc */
-    
     char db_path[MAX_DB_FILE_NAME];
     direct_file_t *dbfile;
     
