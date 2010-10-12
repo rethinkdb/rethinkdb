@@ -1,5 +1,6 @@
 
 INCLUDE = -I../../../lib/libmemcached
+#LIBS = -lmemcached -lmysqlclient
 LIBS = -lmemcached -lmysqlclient
 SRC = main.cc utils.cc
 
