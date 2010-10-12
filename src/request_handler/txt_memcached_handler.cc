@@ -46,7 +46,7 @@ public:
     virtual bool build_response(linked_buf_t *) = 0;
 
     void on_btree_fsm_complete(btree_fsm_t *fsm) {
-        on_fsm_ready(fsm);
+        if (fsm) on_fsm_ready(fsm); // Hack
         nfsms--;
         if (nfsms == 0) {
             if (!noreply) {
@@ -509,7 +509,7 @@ public:
     }
     
     void on_perfmon_stats() {
-        on_btree_fsm_complete();   // Hack
+        on_btree_fsm_complete(NULL);   // Hack
     }
 
     bool build_response(linked_buf_t *sbuf) {

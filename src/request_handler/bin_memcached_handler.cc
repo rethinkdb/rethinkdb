@@ -37,7 +37,8 @@ public:
     virtual ~bin_memcached_request_t() { }
     
     void on_btree_fsm_complete(btree_fsm_t *fsm) {
-        
+        // NULL in the case of perfmon.
+
         conn_fsm_t *c = rh->conn_fsm;
         
         br_result_t res;
@@ -303,7 +304,7 @@ public:
     
     void on_perfmon_stats() {
         iter = stats.begin();
-        on_btree_fsm_complete();   // Hack
+        on_btree_fsm_complete(NULL);   // Hack
     }
     
     ~bin_memcached_perfmon_request_t() {}
