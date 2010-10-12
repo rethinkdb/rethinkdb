@@ -428,8 +428,9 @@ public:
             case btree_append_prepend_fsm_t::S_SUCCESS:
                 sbuf->printf(STORAGE_SUCCESS);
                 break;
+            case btree_append_prepend_fsm_t::S_TOO_LARGE:
             case btree_append_prepend_fsm_t::S_NOT_FOUND:
-                // memcached pronounces this "NOT_STORED"
+                // memcached pronounces these "NOT_STORED".
                 sbuf->printf(STORAGE_FAILURE);
                 break;
             case btree_append_prepend_fsm_t::S_READ_FAILURE:
@@ -739,6 +740,11 @@ txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::parse_storage_c
     return read_data();
 }
 
+void txt_memcached_handler_t::on_large_value_completed(bool success) {
+    // Used for consuming data from the socket. XXX: This should be renamed.
+    assert(success);
+}
+
 txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::parse_stat_command(char *state, unsigned int line_len) {
     txt_memcached_perfmon_request_t *rq = new txt_memcached_perfmon_request_t(this);
     check("Too big of a stat request", line_len > MAX_STATS_REQ_LEN);
@@ -748,6 +754,18 @@ txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::parse_stat_comm
 
 txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::read_data() {
     check("memcached handler should be in loading data state", !loading_data);
+    if (consuming) {
+        int bytes_to_consume = std::min(conn_fsm->nrbuf, bytes);
+        conn_fsm->consume(bytes_to_consume);
+        bytes -= bytes_to_consume;
+        if (bytes == 0) {
+            consuming = false;
+            loading_data = false;
+            return request_handler_t::op_req_send_now;
+        } else {
+            return request_handler_t::op_partial_packet;
+        }
+    }
     bool is_large = bytes > MAX_IN_NODE_VALUE_SIZE;
     if (!is_large) {
         if (conn_fsm->nrbuf < bytes + 2){ // check that the buffer contains enough data.  must also include \r\n
@@ -764,7 +782,6 @@ txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::read_data() {
             if (conn_fsm->nrbuf < 2) {
                 return request_handler_t::op_partial_packet;
             }
-            // XXX What if data comes in at
             bool well_formed = conn_fsm->rbuf[0] == '\r' && conn_fsm->rbuf[1] == '\n';
             conn_fsm->consume(2);
             this->fill_lv_msg->fill_complete(well_formed);
@@ -776,6 +793,11 @@ txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::read_data() {
                 conn_fsm->sbuf->printf(BAD_BLOB);
                 return request_handler_t::op_malformed;
             }
+        } else if (bytes > MAX_VALUE_SIZE) {
+                conn_fsm->sbuf->printf(TOO_LARGE);
+                consuming = true;
+                bytes += 2; // \r\n
+                return request_handler_t::op_req_send_now;
         } else {
             // Will be handled in the FSM.
         }
@@ -806,7 +828,7 @@ txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::read_data() {
             return malformed_request();
     }
 
-    if (bytes <= MAX_IN_NODE_VALUE_SIZE) {
+    if (!is_large) {
         conn_fsm->consume(bytes+2);
 
         if (noreply)

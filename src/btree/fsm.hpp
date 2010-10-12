@@ -37,7 +37,8 @@ public:
         S_DELETED,
         S_NOT_NUMERIC,
         // These aren't memcached status codes:
-        S_READ_FAILURE
+        S_READ_FAILURE,
+        S_TOO_LARGE
     };
 
 public:

@@ -39,7 +39,7 @@ public:
             this->status_code = btree_fsm_t::S_NOT_STORED;
             set_failed = true;
             if (got_large) {
-                fill_large_value_msg_t *msg = new fill_large_value_msg_t(req, this, length);
+                fill_large_value_msg_t *msg = new fill_large_value_msg_t(return_cpu, req->rh, this, length);
                 if (continue_on_cpu(return_cpu, msg)) call_later_on_this_cpu(msg);
                 return btree_fsm_t::transition_incomplete;
             }
@@ -67,11 +67,17 @@ public:
         }
 
         if (got_large) {
+            assert (length <= MAX_VALUE_SIZE);
+            //if (length > MAX_VALUE_SIZE) {
+            //    fill_large_value_msg_t *msg = new fill_large_value_msg_t(return_cpu, req->rh, this, length);
+            //    if (continue_on_cpu(return_cpu, msg)) call_later_on_this_cpu(msg);
+            //    return btree_fsm_t::transition_ok;
+            //}
             large_value = new large_buf_t(this->transaction);
             large_value->allocate(length);
             value.set_lv_index_block_id(large_value->get_index_block_id());
 
-            fill_large_value_msg_t *msg = new fill_large_value_msg_t(large_value, req, this, 0, length);
+            fill_large_value_msg_t *msg = new fill_large_value_msg_t(large_value, return_cpu, req->rh, this, 0, length);
 
             // continue_on_cpu() returns true if we are already on that cpu, but we don't want to
             // call the callback immediately in that case anyway.

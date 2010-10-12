@@ -123,6 +123,7 @@ struct segment_block_available_callback_t : public block_available_callback_t,
 // TODO: Some of the code in here belongs in large_buf_t.
 
 class fill_large_value_msg_t : public cpu_message_t,
+                               public home_cpu_mixin_t,
                                public data_transferred_callback,
                                public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, fill_large_value_msg_t> {
 private:
@@ -133,25 +134,27 @@ private:
         consume // Consume from the socket.
     } mode;
 
+    int rh_cpu;
+
     iobuf_t *buf;
 
     bool completed;
     bool success;
 
     large_buf_t *large_value;
-    request_callback_t *req;
+    request_handler_t *rh;
     large_value_completed_callback *cb;
     uint32_t pos;
     uint32_t length;
 
 public:
-    fill_large_value_msg_t(large_buf_t *large_value, request_callback_t *req, large_value_completed_callback *cb, uint32_t pos, uint32_t length)
-        : mode(fill), buf(NULL), completed(false), success(false), large_value(large_value), req(req), cb(cb), pos(pos), length(length) {
+    fill_large_value_msg_t(large_buf_t *large_value, int rh_cpu, request_handler_t *rh, large_value_completed_callback *cb, uint32_t pos, uint32_t length)
+        : mode(fill), rh_cpu(rh_cpu), buf(NULL), completed(false), success(false), large_value(large_value), rh(rh), cb(cb), pos(pos), length(length) {
         //assert(pos + length < large_value->size); // XXX
     }
 
-    fill_large_value_msg_t(request_callback_t *req, large_value_completed_callback *cb, uint32_t length)
-        : mode(consume), buf(new iobuf_t()), completed(false), req(req), cb(cb), length(length) {}
+    fill_large_value_msg_t(int rh_cpu, request_handler_t *rh, large_value_completed_callback *cb, uint32_t length)
+        : mode(consume), rh_cpu(rh_cpu), buf(new iobuf_t()), completed(false), rh(rh), cb(cb), length(length) {}
 
     ~fill_large_value_msg_t() {
         if (buf) {
@@ -162,8 +165,10 @@ public:
 
     void on_cpu_switch() {
         if (!completed) {
+            assert(get_cpu_id() == rh_cpu);
             step();
         } else {
+            assert(get_cpu_id() == home_cpu);
             cb->on_large_value_completed(success);
             delete this;
         }
@@ -176,7 +181,7 @@ public:
     void fill_complete(bool _success) {
         success = _success;
         completed = true;
-        if (continue_on_cpu(return_cpu, this)) {
+        if (continue_on_cpu(home_cpu, this)) {
             call_later_on_this_cpu(this);
         }
     }
@@ -197,14 +202,15 @@ private:
         if (length > 0) {
             uint32_t bytes_to_transfer = std::min((uint32_t) iobuf_t::size, length);
             length -= bytes_to_transfer;
-            req->rh->fill_value((byte *) buf, bytes_to_transfer, this);
+            rh->fill_value((byte *) buf, bytes_to_transfer, this);
             return;
         }
 
         if (length == 0) {
-            req->rh->fill_lv_msg = this;
-            //req->rh->conn_fsm->dummy_sock_event();
-            //if (continue_on_cpu(return_cpu, this)) on_cpu_switch();
+            rh->fill_lv_msg = this;
+            //rh->conn_fsm->dummy_sock_event();
+            //if (continue_on_cpu(home_cpu, this)) on_cpu_switch();
+            // XXX!
         }
     }
 
@@ -220,9 +226,9 @@ private:
             assert(seg_pos + bytes_to_transfer <= BTREE_USABLE_BLOCK_SIZE);
             pos += bytes_to_transfer;
             length -= bytes_to_transfer;
-            req->rh->fill_value(buf + seg_pos, bytes_to_transfer, this);
+            rh->fill_value(buf + seg_pos, bytes_to_transfer, this);
             return;
-            //fill_success = req->rh->fill_value(buf, seg_len, this);
+            //fill_success = rh->fill_value(buf, seg_len, this);
             //if (!fill_success) break;
             //next_segment++;
         }
@@ -230,8 +236,8 @@ private:
         //assert(next_segment <= large_value->get_num_segments());
         //if (next_segment == large_value->get_num_segments()) {
         if (length == 0) {
-            req->rh->fill_lv_msg = this;
-            //req->rh->conn_fsm->dummy_sock_event();
+            rh->fill_lv_msg = this;
+            //rh->conn_fsm->dummy_sock_event();
         }
     }
 };

@@ -229,7 +229,7 @@ void large_buf_t::release() {
 }
 
 uint16_t large_buf_t::get_num_segments() {
-    assert(state == loaded || state == loading);
+    assert(state == loaded || state == loading || state == deleted);
     // Blach.
     //uint16_t num_segs = NUM_SEGMENTS(size - (BTREE_USABLE_BLOCK_SIZE - get_index()->first_block_offset), BTREE_USABLE_BLOCK_SIZE)
     //                  + (get_index->first_block_offset > 0);
@@ -296,7 +296,7 @@ byte *large_buf_t::get_segment_write(int ix, uint16_t *seg_size) {
 }
 
 block_id_t large_buf_t::get_index_block_id() {
-    assert(state == loaded || state == loading);
+    assert(state == loaded || state == loading || state == deleted);
     return index_block_id;
 }
 
@@ -311,7 +311,5 @@ large_buf_index *large_buf_t::get_index_write() {
 }
 
 large_buf_t::~large_buf_t() {
-    //assert(state != loading);
-    //if (state == loaded) release();
     assert(state == released);
 }

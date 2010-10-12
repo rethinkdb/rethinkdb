@@ -29,10 +29,8 @@ public:
         new_value = _new_value;
 
         if (!old_value) {
-            this->status_code = btree_fsm_t::S_NOT_FOUND;
-            //this->update_needed = false;
             if (got_large) {
-                fill_large_value_msg_t *msg = new fill_large_value_msg_t(req, this, extra_size);
+                fill_large_value_msg_t *msg = new fill_large_value_msg_t(return_cpu, req->rh, this, extra_size);
                 if (continue_on_cpu(return_cpu, msg)) call_later_on_this_cpu(msg);
                 return btree_fsm_t::transition_incomplete;
             }
@@ -41,6 +39,9 @@ public:
 
         valuecpy(&value, old_value);
         new_size = old_value->value_size() + extra_size;
+        if (new_size > MAX_VALUE_SIZE) {
+            return btree_fsm_t::transition_ok;
+        }
 
         if (new_size <= MAX_IN_NODE_VALUE_SIZE) { // small + small = small
             assert(!old_value->is_large());
@@ -75,8 +76,8 @@ public:
             return btree_fsm_t::transition_ok;
         } else { // _ + large = large; we got a large value so we're going to read it directly from the socket.
             fill_large_value_msg_t *msg;
-            if (append) msg = new fill_large_value_msg_t(large_value, req, this, old_value->value_size(), extra_size);
-            else        msg = new fill_large_value_msg_t(large_value, req, this, 0, extra_size);
+            if (append) msg = new fill_large_value_msg_t(large_value, return_cpu, req->rh, this, old_value->value_size(), extra_size);
+            else        msg = new fill_large_value_msg_t(large_value, return_cpu, req->rh, this, 0, extra_size);
             // continue_on_cpu() returns true if we are already on that cpu,
             // but we don't want to call the callback immediately in that case
             // anyway.
@@ -88,9 +89,16 @@ public:
     }
 
     void on_operate_completed() {
-        if (!old_value) { // XXX
+        if (!old_value) {
             this->update_needed = false;
-            if (!read_success) this->status_code = btree_fsm_t::S_READ_FAILURE;
+            this->status_code = (!got_large || read_success)
+                              ? btree_fsm_t::S_NOT_FOUND
+                              : btree_fsm_t::S_READ_FAILURE;
+            return;
+        }
+        if (new_size > MAX_VALUE_SIZE) {
+            this->status_code = btree_fsm_t::S_TOO_LARGE;
+            this->update_needed = false;
             return;
         }
         if (!got_large || read_success) {
