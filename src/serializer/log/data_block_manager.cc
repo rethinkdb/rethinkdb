@@ -79,6 +79,7 @@ void data_block_manager_t::mark_live(off64_t offset) {
         gc_entry entry;
         entry.offset = extent_id * extent_manager->extent_size;
         entry.active = false;
+	entry.young = false;
         entry.g_array.set(); //set everything to garbage
 
         entries.set(extent_id, gc_pq.push(entry));
@@ -267,7 +268,8 @@ void data_block_manager_t::add_gc_entry() {
     /* update stats */
     gc_stats.total_blocks += extent_manager->extent_size / BTREE_BLOCK_SIZE;
 
-    /* update young_extent_queue */
+    /* declare youthful, update young_extent_queue */
+    entry.young = true;
     young_extent_queue.push(pq_entry);
     mark_unyoung_entries();
 }
