@@ -127,7 +127,8 @@ private:
     public:
         gc_entry() {
 	    // We put things in init because we don't want to do the
-	    // timestamp in the constructor.
+	    // timestamp in the constructor.  priority_queue_t just
+	    // calls the constructor for unused array elements.
         }
 	void init(off64_t offset_, bool active_, bool young_) {
 	    timestamp = gc_entry::current_timestamp();
