@@ -394,8 +394,8 @@ conn_fsm_t::conn_fsm_t(net_conn_t *conn, conn_fsm_shutdown_callback_t *c, reques
 {
 #ifndef NDEBUG
     we_are_closed = false;
-#endif
     fprintf(stderr, "Opened socket %p\n", this);
+#endif
     
     conn->set_callback(this);   // I can haz chezborger when there is data on the network?
     
@@ -407,7 +407,9 @@ conn_fsm_t::conn_fsm_t(net_conn_t *conn, conn_fsm_shutdown_callback_t *c, reques
 
 conn_fsm_t::~conn_fsm_t() {
     
+#ifndef NDEBUG
     fprintf(stderr, "Closed socket %p\n", this);
+#endif
     
     // TODO PERFMON get_cpu_context()->worker->curr_connections--;
     

@@ -61,8 +61,12 @@ struct perfmon_fsm_t :
             }
         }
         if (get_cpu_id() == get_num_cpus() - 1) {
+            /* Ok, we're on the last cpu now, all data has been
+             * gathered, we can deliver it. */
             return do_on_cpu(home_cpu, this, &perfmon_fsm_t::deliver_data);
         } else {
+            /* We're not on the last cpu yet, gather data from the
+             * next cpu. */
             return do_on_cpu(get_cpu_id()+1, this, &perfmon_fsm_t::gather_data);
         }
     }

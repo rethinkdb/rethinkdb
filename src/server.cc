@@ -8,7 +8,7 @@ server_t::server_t(cmd_config_t *cmd_config, thread_pool_t *thread_pool)
 void server_t::do_start() {
     
     printf("Physical cores: %d\n", get_cpu_count());
-    printf("Number of threads: %d\n", cmd_config->n_workers);
+    printf("Number of DB threads: %d\n", cmd_config->n_workers);
     printf("Total RAM: %ldMB\n", get_total_ram() / 1024 / 1024);
     printf("Free RAM: %ldMB (%.2f%%)\n",
            get_available_ram() / 1024 / 1024,
@@ -28,7 +28,7 @@ void server_t::on_logger_ready() {
 
 void server_t::do_start_store() {
 
-    printf("Shard factor: %d\n", cmd_config->n_slices);
+    printf("Shards per thread: %d\n", cmd_config->n_slices);
     printf("Max cache memory usage: %lldMB\n", (long long int)(cmd_config->max_cache_size / 1024 / 1024));
     
     if (strncmp(cmd_config->db_file_name, DATA_DIRECTORY, strlen(DATA_DIRECTORY)) == 0) {
