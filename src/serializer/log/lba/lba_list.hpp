@@ -95,6 +95,7 @@ private:
     void gc();
 
     bool we_want_to_gc();
+
 };
 
 #endif /* __SERIALIZER_LOG_LBA_LIST_HPP__ */

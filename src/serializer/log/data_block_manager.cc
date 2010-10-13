@@ -267,6 +267,7 @@ void data_block_manager_t::add_gc_entry() {
     /* update stats */
     gc_stats.total_blocks += extent_manager->extent_size / BTREE_BLOCK_SIZE;
 
+
     /* update young_extent_queue */
     young_extent_queue.push(pq_entry);
     mark_unyoung_entries();
@@ -298,8 +299,6 @@ void data_block_manager_t::remove_last_unyoung_entry() {
 // garbage) and we gc all blocks with that ratio or higher.
 
 bool data_block_manager_t::should_we_keep_gcing(const gc_entry entry) {
-<<<<<<< HEAD:src/serializer/log/data_block_manager.cc
-<<<<<<< HEAD:src/serializer/log/data_block_manager.cc
     return entry.g_array.count() >= ((extent_manager->extent_size / BTREE_BLOCK_SIZE) * GC_THRESHOLD_RATIO_NUMERATOR) / GC_THRESHOLD_RATIO_DENOMINATOR && !entry.active; // 3/4 garbage
 }
 
