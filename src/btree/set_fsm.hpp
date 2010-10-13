@@ -53,6 +53,7 @@ public:
                 if (continue_on_cpu(return_cpu, msg)) call_later_on_this_cpu(msg);
                 return btree_fsm_t::transition_incomplete;
             }
+            read_success = true;
             return btree_fsm_t::transition_ok;
             // TODO: If we implement support for the delete queue (although
             // memcached 1.4.5 doesn't support it): When a value is in the
