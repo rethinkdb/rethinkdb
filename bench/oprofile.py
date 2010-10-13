@@ -221,8 +221,8 @@ class Profile():
         self.events = _events
         self.ratios = _ratios
         for i in ratios:
-        assert ratios.numerator in map(lambda x: x.name, events)
-        assert ratios.denominator in map(lambda x: x.name, events)
+            assert ratios.numerator in map(lambda x: x.name, events)
+            assert ratios.denominator in map(lambda x: x.name, events)
 
 #small packet ratios
 class Ratio():
