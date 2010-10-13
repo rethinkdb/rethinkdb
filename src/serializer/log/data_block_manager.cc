@@ -69,7 +69,9 @@ void data_block_manager_t::start_reconstruct() {
 }
 
 void data_block_manager_t::mark_live(off64_t offset) {
+    // This is called at startup.
     assert(gc_state.step == gc_reconstruct);
+
     unsigned int extent_id = (offset / extent_manager->extent_size);
     unsigned int block_id = (offset % extent_manager->extent_size) / block_size;
 
@@ -262,7 +264,7 @@ void data_block_manager_t::add_gc_entry() {
     entries.set(extent_id, gc_pq.push(entry));
 
     /* update stats */
-    gc_stats.total_blocks += EXTENT_SIZE / BTREE_BLOCK_SIZE;
+    gc_stats.total_blocks += extent_manager->extent_size / BTREE_BLOCK_SIZE;
 }
 
 /* functions for gc structures */
@@ -292,5 +294,6 @@ bool data_block_manager_t::Less::operator() (const data_block_manager_t::gc_entr
  *Stat functions*
  ****************/
 float  data_block_manager_t::garbage_ratio() {
+    // TODO: not divide by zero?
     return (float) gc_stats.garbage_blocks / (float) gc_stats.total_blocks;
 }

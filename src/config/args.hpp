@@ -152,5 +152,9 @@
 #define GC_THRESHOLD_RATIO_NUMERATOR              3
 #define GC_THRESHOLD_RATIO_DENOMINATOR            4
 
+// The ratio at which we should GC the lba list.
+#define LBA_GC_THRESHOLD_RATIO_NUMERATOR          9
+#define LBA_GC_THRESHOLD_RATIO_DENOMINATOR        10
+
 #endif // __CONFIG_ARGS_H__
 

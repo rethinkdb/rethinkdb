@@ -137,6 +137,8 @@ public:
     intrusive_list_t<lba_disk_extent_t> extents;
     bool modified;
     off64_t offset;
+
+
     
     bool sync(sync_callback_t *cb) {
         

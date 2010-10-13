@@ -3,13 +3,14 @@
 #define __SERIALIZER_LOG_DATA_BLOCK_MANAGER_HPP__
 
 #include "arch/arch.hpp"
-#include "serializer/types.hpp"
-#include "extents/extent_manager.hpp"
-#include "log_serializer_callbacks.hpp"
 #include "containers/priority_queue.hpp"
 #include "containers/two_level_array.hpp"
-#include <functional>
+#include "extents/extent_manager.hpp"
+#include "log_serializer_callbacks.hpp"
+#include "serializer/types.hpp"
 #include <bitset>
+#include <functional>
+#include <queue>
 #include <utility>
 #include <time.h>
 
@@ -111,6 +112,10 @@ private:
 
 private:
     void add_gc_entry();
+
+    // Identifies an extent, the time we started writing to the
+    // extent, whether it's the extent we're currently writing to, and
+    // describes blocks are garbage.
     struct gc_entry : public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, gc_entry> {
     public:
         off64_t offset; /* !< the offset that this extent starts at */
