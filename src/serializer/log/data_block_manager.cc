@@ -300,6 +300,7 @@ void data_block_manager_t::remove_last_unyoung_entry() {
 
 bool data_block_manager_t::should_we_keep_gcing(const gc_entry entry) {
     return entry.g_array.count() >= ((extent_manager->extent_size / BTREE_BLOCK_SIZE) * GC_THRESHOLD_RATIO_NUMERATOR) / GC_THRESHOLD_RATIO_DENOMINATOR && !entry.active; // 3/4 garbage
+
 }
 
 bool data_block_manager_t::do_we_want_to_start_gcing() {
