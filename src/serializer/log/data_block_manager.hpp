@@ -153,6 +153,7 @@ private:
     // A priority queue of gc_entrys, by garbage ratio.
     priority_queue_t<gc_entry, Less> gc_pq;
 
+
     typedef priority_queue_t<gc_entry, Less>::entry_t gc_pq_entry_t;
 
     // An array of pointers into the priority queue, indexed by extent
