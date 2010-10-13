@@ -217,13 +217,12 @@ mock_transaction_t::~mock_transaction_t() {
 /* Cache */
 
 mock_cache_t::mock_cache_t(
-    char *filename,
-    size_t block_size,
+    serializer_t *serializer,
     size_t _max_size,
     bool wait_for_flush,
     unsigned int flush_timer_ms,
     unsigned int flush_threshold_percent)
-    : running(false), n_transactions(0), block_size(block_size) { }
+    : serializer(serializer), running(false), n_transactions(0), block_size(serializer->block_size) { }
 
 mock_cache_t::~mock_cache_t() {
     assert(!running);

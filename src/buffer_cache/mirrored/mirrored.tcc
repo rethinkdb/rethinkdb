@@ -19,12 +19,12 @@ mc_buf_t<mc_config_t>::mc_buf_t(cache_t *cache, block_id_t block_id, block_avail
       concurrency_buf(this),
       page_map_buf(this) {
       
-    data = cache->alloc.malloc(cache->serializer.block_size);
+    data = cache->alloc.malloc(cache->serializer->block_size);
     
 #ifndef NDEBUG
     active_callback_count ++;
 #endif
-    bool res = cache->serializer.do_read(block_id, data, this);
+    bool res = cache->serializer->do_read(block_id, data, this);
     
     if(res) {
         // We got the buf from the serializer right away, the callback
@@ -54,12 +54,12 @@ mc_buf_t<mc_config_t>::mc_buf_t(cache_t *cache)
       concurrency_buf(this),
       page_map_buf(this) {
       
-    data = cache->alloc.malloc(cache->serializer.block_size);
+    data = cache->alloc.malloc(cache->serializer->block_size);
 
 #ifndef NDEBUG
     // The memory allocator already filled this with 0xBD, but it's nice to be able to distinguish
     // between problems with uninitialized memory and problems with uninitialized blocks
-    memset(data, 0xCD, cache->serializer.block_size);
+    memset(data, 0xCD, cache->serializer->block_size);
 #endif
 }
 
@@ -70,7 +70,7 @@ mc_buf_t<mc_config_t>::~mc_buf_t() {
     // We're about to free the data, let's set it to a recognizable
     // value to make sure we don't depend on accessing things that may
     // be flushed out of the cache.
-    memset(data, 0xDD, cache->serializer.block_size);
+    memset(data, 0xDD, cache->serializer->block_size);
 #endif
     
     assert(safe_to_unload());
@@ -307,8 +307,7 @@ mc_buf_t<mc_config_t> *mc_transaction_t<mc_config_t>::acquire(block_id_t block_i
 
 template<class mc_config_t>
 mc_cache_t<mc_config_t>::mc_cache_t(
-            char *filename,
-            size_t _block_size,
+            serializer_t *serializer,
             size_t _max_size,
             bool wait_for_flush,
             unsigned int flush_timer_ms,
@@ -316,18 +315,16 @@ mc_cache_t<mc_config_t>::mc_cache_t(
 #ifndef NDEBUG
     n_blocks_acquired(0), n_blocks_released(0),
 #endif
-    serializer(
-        filename,
-        _block_size),
+    serializer(serializer),
     page_repl(
         // Launch page replacement if the user-specified maximum number of blocks is reached
-        _max_size / _block_size,
+        _max_size / serializer->block_size,
         this),
     writeback(
         this,
         wait_for_flush,
         flush_timer_ms,
-        _max_size / _block_size * flush_threshold_percent / 100),
+        _max_size / serializer->block_size * flush_threshold_percent / 100),
     free_list(this),
     shutdown_transaction_backdoor(false),
     state(state_unstarted),
@@ -349,7 +346,7 @@ mc_cache_t<mc_config_t>::~mc_cache_t() {
 template<class mc_config_t>
 bool mc_cache_t<mc_config_t>::start(ready_callback_t *cb) {
     assert(state == state_unstarted);
-    state = state_starting_up_start_serializer;
+    state = state_starting_up_create_free_list;
     ready_callback = NULL;
     if (next_starting_up_step()) {
         return true;
@@ -362,21 +359,19 @@ bool mc_cache_t<mc_config_t>::start(ready_callback_t *cb) {
 template<class mc_config_t>
 bool mc_cache_t<mc_config_t>::next_starting_up_step() {
     
-    if (state == state_starting_up_start_serializer) {
-        if (serializer.start(this)) {
+    if (state == state_starting_up_create_free_list) {
+        if (free_list.start(this)) {
             state = state_starting_up_finish;
         } else {
-            state = state_starting_up_waiting_for_serializer;
+            state = state_starting_up_waiting_for_free_list;
             return false;
         }
     }
     
     if (state == state_starting_up_finish) {
-    
-        free_list.start();
         
         /* Create an initial superblock */
-        if (serializer.max_block_id() == 0 && !serializer.block_in_use(SUPERBLOCK_ID)) {
+        if (serializer->max_block_id() == 0 && !serializer->block_in_use(SUPERBLOCK_ID)) {
         
             buf_t *b = new mc_buf_t<mc_config_t>(this);
 #ifndef NDEBUG
@@ -400,10 +395,8 @@ bool mc_cache_t<mc_config_t>::next_starting_up_step() {
 }
 
 template<class mc_config_t>
-void mc_cache_t<mc_config_t>::on_serializer_ready() {
-    // If we received a shutdown() before we finished starting up, then the serializer should
-    // not have produced this callback. Therefore we must be in the starting-up state.
-    assert(state == state_starting_up_waiting_for_serializer);
+void mc_cache_t<mc_config_t>::on_free_list_ready() {
+    assert(state == state_starting_up_waiting_for_free_list);
     state = state_starting_up_finish;
     next_starting_up_step();
 }
@@ -472,18 +465,9 @@ bool mc_cache_t<mc_config_t>::next_shutting_down_step() {
 
     if (state == state_shutting_down_start_flush) {
         if (writeback.sync(this)) {
-            state = state_shutting_down_shutdown_serializer;
-        } else {
-            state = state_shutting_down_waiting_for_flush;
-            return false;
-        }
-    }
-    
-    if (state == state_shutting_down_shutdown_serializer) {
-        if (serializer.shutdown(this)) {
             state = state_shutting_down_finish;
         } else {
-            state = state_shutting_down_waiting_for_serializer;
+            state = state_shutting_down_waiting_for_flush;
             return false;
         }
     }
@@ -503,13 +487,6 @@ bool mc_cache_t<mc_config_t>::next_shutting_down_step() {
 template<class mc_config_t>
 void mc_cache_t<mc_config_t>::on_sync() {
     assert(state == state_shutting_down_waiting_for_flush);
-    state = state_shutting_down_shutdown_serializer;
-    next_shutting_down_step();
-}
-
-template<class mc_config_t>
-void mc_cache_t<mc_config_t>::on_serializer_shutdown() {
-    assert(state == state_shutting_down_waiting_for_serializer);
     state = state_shutting_down_finish;
     next_shutting_down_step();
 }

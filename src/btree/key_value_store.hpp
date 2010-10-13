@@ -18,8 +18,10 @@ cache for the purpose of storing a btree. There are many btree_slice_ts per
 btree_key_value_store_t. */
 
 class btree_slice_t :
+    private serializer_t::ready_callback_t,
     private cache_t::ready_callback_t,
     private cache_t::shutdown_callback_t,
+    private serializer_t::shutdown_callback_t,
     public cpu_message_t,  // For call_later_on_this_cpu()
     public home_cpu_mixin_t,
     public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, btree_slice_t>
@@ -44,6 +46,7 @@ public:
     
 private:
     bool next_starting_up_step();
+    void on_serializer_ready();
     void on_cache_ready();
     void on_initialize_superblock();
     ready_callback_t *ready_callback;
@@ -59,7 +62,9 @@ public:
     };
     bool shutdown(shutdown_callback_t *cb);
 private:
+    bool next_shutting_down_step();
     void on_cache_shutdown();
+    void on_serializer_shutdown();
     void on_cpu_switch();
     shutdown_callback_t *shutdown_callback;
 
@@ -67,6 +72,8 @@ private:
     enum state_t {
         state_unstarted,
         
+        state_starting_up_start_serializer,
+        state_starting_up_waiting_for_serializer,
         state_starting_up_start_cache,
         state_starting_up_waiting_for_cache,
         state_starting_up_initialize_superblock,
@@ -75,7 +82,11 @@ private:
         
         state_ready,
         
-        state_shutting_down,
+        state_shutting_down_shutdown_serializer,
+        state_shutting_down_waiting_for_serializer,
+        state_shutting_down_shutdown_cache,
+        state_shutting_down_waiting_for_cache,
+        state_shutting_down_finish,
         
         state_shut_down
     } state;
@@ -83,6 +94,7 @@ private:
     initialize_superblock_fsm_t *sb_fsm;
     
 public:
+    serializer_t serializer;
     cache_t cache;
     
 public:

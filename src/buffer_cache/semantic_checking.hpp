@@ -109,8 +109,7 @@ public:
     typedef scc_block_available_callback_t<inner_cache_t> block_available_callback_t;
     
     scc_cache_t(
-        char *filename,
-        size_t _block_size,
+        serializer_t *serializer,
         size_t _max_size,
         bool wait_for_flush,
         unsigned int flush_timer_ms,

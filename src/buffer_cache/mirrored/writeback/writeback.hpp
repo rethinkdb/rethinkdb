@@ -8,7 +8,7 @@
 template<class mc_config_t>
 struct writeback_tmpl_t :
     public lock_available_callback_t,
-    public mc_config_t::serializer_t::write_txn_callback_t
+    public serializer_t::write_txn_callback_t
 {
     typedef mc_cache_t<mc_config_t> cache_t;
     typedef mc_buf_t<mc_config_t> buf_t;
