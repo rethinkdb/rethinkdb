@@ -45,6 +45,11 @@ else
 # march=native breaks the serializer (I wonder which specific optimization does)
 CXXFLAGS+=-O3 -fno-gcse -DNDEBUG # -march=native
 endif
+
+ifeq ($(OPROFILE),1)
+CXXFLAGS+=-g
+endif
+
 ifeq ($(VALGRIND),1)
 CXXFLAGS+=-DVALGRIND
 endif
