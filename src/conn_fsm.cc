@@ -145,18 +145,16 @@ void conn_fsm_t::fill_external_buf(byte *external_buf, unsigned int size, data_t
     ext_size = size;
     cb = callback;
 
-    //previous_state = state;
-
     unsigned int bytes_to_move = ext_size < nrbuf ? ext_size : nrbuf;
     memcpy(ext_rbuf, rbuf, bytes_to_move);
     consume(bytes_to_move);
     //nrbuf -= bytes_to_move;
     ext_nrbuf = bytes_to_move;
     check_external_buf();
-    dummy_sock_event();
+    dummy_sock_event(); // TODO: Figure this out once quit/shutdown is fixed.
 }
 
-void conn_fsm_t::send_external_buf(byte *external_buf, unsigned int size, data_transferred_callback *callback) {
+void conn_fsm_t::send_external_buf(const byte *external_buf, unsigned int size, data_transferred_callback *callback) {
     // TODO: Write the data directly to the socket instead of to the sbuf when the request handler has better support for it.
     sbuf->append(external_buf, size);
     callback->on_data_transferred();
@@ -167,7 +165,8 @@ void conn_fsm_t::dummy_sock_event() {
     bzero((void*)&event, sizeof(event));
     event.event_type = et_sock;
     event.state = this;
-    do_transition(&event);
+    do_transition(&event); // TODO: Figure this out once quit/shutdown is fixed.
+    //do_transition_and_handle_result(&event);
 }
 
 void conn_fsm_t::check_external_buf() {

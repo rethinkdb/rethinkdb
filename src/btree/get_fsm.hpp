@@ -6,7 +6,6 @@
 #include "btree/fsm.hpp"
 
 class btree_get_fsm_t : public btree_fsm_t,
-                        public large_value_read_callback,
                         public large_value_completed_callback,
                         public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, btree_get_fsm_t> {
 public:
@@ -25,17 +24,18 @@ public:
     };
 
 public:
-    explicit btree_get_fsm_t(btree_key *_key, store_t *store, request_callback_t *req)
+    explicit btree_get_fsm_t(btree_key *_key, btree_key_value_store_t *store, request_callback_t *req)
         : btree_fsm_t(_key, store),
-          large_value(NULL), req(req), state(acquire_superblock), last_buf(NULL), buf(NULL), node_id(NULL_BLOCK_ID)
+          large_value(NULL), req(req), state(acquire_superblock), last_buf(NULL), buf(NULL), node_id(NULL_BLOCK_ID), write_lv_msg(NULL)
         {}
 
     virtual transition_result_t do_transition(event_t *event);
 
     virtual bool is_finished() { return state == lookup_complete; }
 
-    void on_large_value_read();
     void on_large_value_completed(bool _success);
+
+    void begin_lv_write();
 
 public:
     union {

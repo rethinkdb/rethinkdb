@@ -10,36 +10,68 @@
 // unnecessary.
 
 class btree_get_cas_fsm_t : public btree_modify_fsm_t,
+                            public large_value_completed_callback,
                             public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, btree_get_cas_fsm_t> {
     typedef btree_fsm_t::transition_result_t transition_result_t;
 public:
-    explicit btree_get_cas_fsm_t(btree_key *_key, btree_key_value_store_t *store) : btree_modify_fsm_t(_key, store) {}
+    explicit btree_get_cas_fsm_t(btree_key *_key, btree_key_value_store_t *store, request_callback_t *req) : btree_modify_fsm_t(_key, store), req(req), write_lv_msg(NULL), lv_state(lv_state_unknown) {}
     
     transition_result_t operate(btree_value *old_value, large_buf_t *old_large_buf, btree_value **new_value) {
+        this->update_needed = false;
+
         if (old_value) {
-            assert(!old_value->large_value());
             this->status_code = btree_fsm_t::S_SUCCESS;
 
             valuecpy(&value, old_value);
-            *new_value = &value;
+
             if (!value.has_cas()) { // We have always been at war with Eurasia.
-                value.set_cas(1); // Turns the flag on and makes room. modify_fsm will set an actual CAS later.
+                value.set_cas(slice->gen_cas());
+                this->cas_already_set = true;
+                *new_value = &value;
                 this->update_needed = true;
-                return btree_fsm_t::transition_ok;
             }
-            this->update_needed = false;
-            return btree_fsm_t::transition_ok;
+
+            if (value.is_large()) {
+                lv_state = lv_state_ready;
+                write_lv_msg = new write_large_value_msg_t(old_large_buf, this, return_cpu, req, this);
+                write_lv_msg->dispatch();
+                return btree_fsm_t::transition_incomplete;
+            }
+
         } else {
             this->status_code = btree_fsm_t::S_NOT_FOUND;
-            this->update_needed = false;
-            return btree_fsm_t::transition_ok; // Nothing was changed.
         }
+        return btree_fsm_t::transition_ok;
+    }
+
+    void on_large_value_completed(bool success) {
+        assert(success);
+        write_lv_msg = NULL;
+        lv_state = lv_state_done;
+        this->step();
+    }
+
+    void begin_lv_write() {
+        lv_state = lv_state_writing;
+        write_lv_msg->begin_write();
     }
 
     union {
         byte value_memory[MAX_TOTAL_NODE_CONTENTS_SIZE+sizeof(btree_value)];
         btree_value value;
     };
+
+private:
+    request_callback_t *req;
+public:
+    write_large_value_msg_t *write_lv_msg;
+
+    enum large_value_state {
+        lv_state_unknown,
+        lv_state_ready,
+        lv_state_writing,
+        lv_state_done
+    } lv_state;
 };
 
 #endif // __BTREE_GET_CAS_FSM_HPP__

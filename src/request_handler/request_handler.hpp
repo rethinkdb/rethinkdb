@@ -17,13 +17,13 @@ callback system.
 
 class conn_fsm_t;
 class data_transferred_callback;
-class read_large_value_msg_t;
+class fill_large_value_msg_t;
 
 class request_handler_t {
 
 public:
     explicit request_handler_t()
-        : read_lv_msg(NULL) {}
+        : fill_lv_msg(NULL) {}
     virtual ~request_handler_t() {}
 
     enum parse_result_t {
@@ -37,14 +37,14 @@ public:
 
     virtual parse_result_t parse_request(event_t *event) = 0;
 
-    void read_value(byte *buf, unsigned int size, data_transferred_callback *cb);
-    void write_value(byte *buf, unsigned int size, data_transferred_callback *cb);
+    void fill_value(byte *buf, unsigned int size, data_transferred_callback *cb);
+    void write_value(const byte *buf, unsigned int size, data_transferred_callback *cb);
 
     void request_complete();
     
     conn_fsm_t *conn_fsm;
 
-    read_large_value_msg_t *read_lv_msg;
+    fill_large_value_msg_t *fill_lv_msg;
 };
 
 #endif // __REQUEST_HANDLER_HPP__
