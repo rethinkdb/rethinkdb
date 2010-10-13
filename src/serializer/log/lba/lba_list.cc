@@ -169,7 +169,7 @@ bool lba_list_t::sync(sync_callback_t *cb) {
     
     // Just to make sure that the LBA GC gets exercised
     if (we_want_to_gc()) {
-	gc();
+        gc();
     }
     
     lba_syncer_t *syncer = new lba_syncer_t(this);
@@ -235,7 +235,7 @@ bool lba_list_t::we_want_to_gc() {
     // the disk?  (We don't count last_extent.)
 
     if (disk_structure->superblock == NULL) {
-	return false;
+        return false;
     }
     
     int entries_per_extent = disk_structure->num_entries_that_can_fit_in_an_extent();

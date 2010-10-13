@@ -81,7 +81,7 @@ void data_block_manager_t::mark_live(off64_t offset) {
 
     if (entries.get(extent_id) == NULL) {
         gc_entry entry;
-	entry.init(extent_id * extent_manager->extent_size, false, false);
+        entry.init(extent_id * extent_manager->extent_size, false, false);
         entry.g_array.set(); //set everything to garbage
 
         entries.set(extent_id, gc_pq.push(entry));
@@ -278,14 +278,14 @@ void data_block_manager_t::add_gc_entry() {
 // no longer deemed young, marking them as not young.
 void data_block_manager_t::mark_unyoung_entries() {
     while (young_extent_queue.size() > GC_YOUNG_EXTENT_MAX_SIZE) {
-	remove_last_unyoung_entry();
+        remove_last_unyoung_entry();
     }
 
     gc_entry::timestamp_t current_time = gc_entry::current_timestamp();
 
     while (!young_extent_queue.empty()
-	   && current_time - young_extent_queue.front()->data.timestamp > GC_YOUNG_EXTENT_TIMELIMIT_MICROS) {
-	remove_last_unyoung_entry();
+           && current_time - young_extent_queue.front()->data.timestamp > GC_YOUNG_EXTENT_TIMELIMIT_MICROS) {
+        remove_last_unyoung_entry();
     }
 }
 

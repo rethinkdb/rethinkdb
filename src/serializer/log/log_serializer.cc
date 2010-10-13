@@ -407,7 +407,7 @@ struct ls_write_fsm_t :
         state = state_done;
         
         //TODO I'm kind of unhappy that we're calling this from in here we should figure out better where to trigger gc
-	ser->consider_start_gc();
+        ser->consider_start_gc();
         
         if (callback) callback->on_serializer_write_txn();
         
@@ -587,8 +587,8 @@ void log_serializer_t::prepare_metablock(metablock_t *mb_buffer) {
 
 void log_serializer_t::consider_start_gc() {
     if (data_block_manager.do_we_want_to_start_gcing() && state == log_serializer_t::state_ready) {
-	// We do not do GC if we're not in the ready state
-	// (i.e. shutting down)
-	data_block_manager.start_gc();
+        // We do not do GC if we're not in the ready state
+        // (i.e. shutting down)
+        data_block_manager.start_gc();
     }
 }

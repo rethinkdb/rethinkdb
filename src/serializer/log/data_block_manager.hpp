@@ -26,6 +26,8 @@ public:
         : shutdown_callback(NULL), state(state_unstarted), serializer(ser),
           extent_manager(em), block_size(_block_size) {}
     ~data_block_manager_t() {
+        printf("state: %d\n", state);
+        fflush(stdout);
         assert(state == state_unstarted || state == state_shut_down);
     }
 
@@ -122,22 +124,22 @@ private:
     public:
         off64_t offset; /* !< the offset that this extent starts at */
         std::bitset<EXTENT_SIZE / BTREE_BLOCK_SIZE> g_array; /* !< bit array for whether or not each block is garbage */
-	typedef uint64_t timestamp_t;
+        typedef uint64_t timestamp_t;
         timestamp_t timestamp; /* !< when we started writing to the extent */
         bool active; /* !< this the extent we're currently writing to? */
-	bool young; /* !< this extent is considered young? */
+        bool young; /* !< this extent is considered young? */
     public:
         gc_entry() {
-	    // We put things in init because we don't want to do the
-	    // timestamp in the constructor.  priority_queue_t just
-	    // calls the constructor for unused array elements.
+            // We put things in init because we don't want to do the
+            // timestamp in the constructor.  priority_queue_t just
+            // calls the constructor for unused array elements.
         }
-	void init(off64_t offset_, bool active_, bool young_) {
-	    timestamp = gc_entry::current_timestamp();
-	    offset = offset_;
-	    active = active_;
-	    young = young_;
-	}
+        void init(off64_t offset_, bool active_, bool young_) {
+            timestamp = gc_entry::current_timestamp();
+            offset = offset_;
+            active = active_;
+            young = young_;
+        }
         void print() {
 #ifndef NDEBUG
             printf("gc_entry:\n");
@@ -149,12 +151,12 @@ private:
 #endif
         }
 
-	// Returns the current timestamp in microseconds.
-	static timestamp_t current_timestamp() {
-	    struct timeval t;
-	    assert(0 == gettimeofday(&t, NULL));
-	    return uint64_t(t.tv_sec) * (1000 * 1000) + t.tv_usec;
-	}
+        // Returns the current timestamp in microseconds.
+        static timestamp_t current_timestamp() {
+            struct timeval t;
+            assert(0 == gettimeofday(&t, NULL));
+            return uint64_t(t.tv_sec) * (1000 * 1000) + t.tv_usec;
+        }
     };
 
     struct Less {
