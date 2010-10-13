@@ -12,7 +12,8 @@ __thread int linux_thread_pool_t::cpu_id;
 __thread linux_thread_t *linux_thread_pool_t::thread;
 
 linux_thread_pool_t::linux_thread_pool_t(int n_threads)
-    : interrupt_message(NULL), n_threads(n_threads)
+    : interrupt_message(NULL),
+      n_threads(n_threads + 1) // we create an extra utility thread
 {
     assert(n_threads > 0);
     assert(n_threads <= MAX_CPUS);
@@ -124,7 +125,10 @@ void linux_thread_pool_t::run(linux_cpu_message_t *initial_message) {
         tdata->barrier = &barrier;
         tdata->thread_pool = this;
         tdata->current_cpu = i;
-        tdata->initial_message = (i == 0) ? initial_message : NULL;
+        // The initial message (which creates utility workers) gets
+        // sent to the last CPU. The last CPU is not reported by
+        // get_num_db_cpus() (see it for more details).
+        tdata->initial_message = (i == n_threads - 1) ? initial_message : NULL;
         
         res = pthread_create(&pthreads[i], NULL, &start_thread, (void*)tdata);
         check("Could not create thread", res != 0);
@@ -223,7 +227,7 @@ void linux_thread_pool_t::interrupt_handler(int) {
     linux_cpu_message_t *interrupt_msg = self->set_interrupt_message(NULL);
     
     if (interrupt_msg) {
-        self->threads[0]->message_hub.insert_external_message(interrupt_msg);
+        self->threads[self->n_threads - 1]->message_hub.insert_external_message(interrupt_msg);
     }
 }
 

@@ -12,14 +12,23 @@ class intrusive_list_node_t {
     friend class intrusive_list_t<derived_t>;
 
 public:
-    intrusive_list_node_t() : prev(NULL), next(NULL) {}
+    intrusive_list_node_t() :
+        prev(NULL), next(NULL)
+#ifndef NDEBUG
+        , in_a_list(false)
+#endif
+        {}
     ~intrusive_list_node_t() {
         assert(prev == NULL);
         assert(next == NULL);
+        assert(!in_a_list);
     }
     
 private:
     derived_t *prev, *next;
+#ifndef NDEBUG
+    bool in_a_list;
+#endif
 };
 
 template <class node_t>
@@ -59,7 +68,10 @@ public:
 #endif
     
         intrusive_list_node_t<node_t> *value = _value;
-        assert(value->next == NULL && value->prev == NULL && _head != _value); // Make sure that the object is not already in a list.
+        assert(value->next == NULL && value->prev == NULL && _head != _value && !value->in_a_list); // Make sure that the object is not already in a list.
+#ifndef NDEBUG
+        value->in_a_list = true;
+#endif
         value->next = _head;
         value->prev = NULL;
         if(_head) {
@@ -82,7 +94,10 @@ public:
 #endif
     
         intrusive_list_node_t<node_t> *value = _value;
-        assert(value->next == NULL && value->prev == NULL && _head != _value); // Make sure that the object is not already in a list.
+        assert(value->next == NULL && value->prev == NULL && _head != _value && !value->in_a_list); // Make sure that the object is not already in a list.
+#ifndef NDEBUG
+        value->in_a_list = true;
+#endif
         value->prev = _tail;
         value->next = NULL;
         if(_tail) {
@@ -103,8 +118,14 @@ public:
 #ifndef NDEBUG
         validate();
 #endif
-    
+
         intrusive_list_node_t<node_t> *value = _value;
+
+#ifndef NDEBUG
+        assert(value->in_a_list);
+        value->in_a_list = false;
+#endif
+
         if(value->next) {
             ((intrusive_list_node_t<node_t>*)(value->next))->prev = value->prev;
         } else {
@@ -163,6 +184,7 @@ public:
         unsigned int count = 0;
         for (node_t *node = _head; node; node=((intrusive_list_node_t<node_t>*)node)->next) {
             count ++;
+            assert(((intrusive_list_node_t<node_t>*)node)->in_a_list);
             assert(((intrusive_list_node_t<node_t>*)node)->prev == last_node);
             last_node = node;
         }

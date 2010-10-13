@@ -5,11 +5,13 @@
 #include "request_handler/request_handler.hpp"
 #include "btree/key_value_store.hpp"
 #include "config/alloc.hpp"
+#include "buffer_cache/large_buf.hpp"
 
 class server_t;
 
 class txt_memcached_handler_t :
     public request_handler_t,
+    public large_value_completed_callback, // Used for consuming data from the socket. XXX: Rename this.
     public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, txt_memcached_handler_t> {
 public:
     typedef request_handler_t::parse_result_t parse_result_t;
@@ -17,10 +19,12 @@ public:
     
 public:
     txt_memcached_handler_t(server_t *server)
-        : request_handler_t(), loading_data(false), server(server)
+        : request_handler_t(), loading_data(false), consuming(false), server(server)
         {}
     
     virtual parse_result_t parse_request(event_t *event);
+
+    void on_large_value_completed(bool success); // TODO: Rename this. Only used for consuming a value.
 
 private:
     enum storage_command { SET, ADD, REPLACE, APPEND, PREPEND, CAS };
@@ -37,6 +41,7 @@ private:
     btree_value::cas_t cas;
     bool noreply;
     bool loading_data;
+    bool consuming;
     
     parse_result_t parse_storage_command(storage_command command, char *state, unsigned int line_len);
     parse_result_t parse_stat_command(char *state, unsigned int line_len);

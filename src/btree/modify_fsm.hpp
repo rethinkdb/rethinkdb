@@ -31,8 +31,8 @@ public:
           node_id(NULL_BLOCK_ID), last_node_id(NULL_BLOCK_ID),
           sib_node_id(NULL_BLOCK_ID), operated(false),
           have_computed_new_value(false), new_value(NULL),
-          update_needed(false), did_split(false), dest_reached(false),
-          key_found(false), old_large_buf(NULL)
+          update_needed(false), did_split(false), cas_already_set(false),
+          dest_reached(false), key_found(false), old_large_buf(NULL)
         {}
 
     transition_result_t do_transition(event_t *event);
@@ -47,9 +47,8 @@ public:
      * filled with a pointer to the new value or NULL if the key should be
      * deleted; *new_value should remain valid as long as the FSM is alive.
      */
-    virtual transition_result_t operate(btree_value *old_value, large_buf_t *old_large_buf, btree_value **new_value) = 0; //, large_buf_t **large_buf) = 0;
+    virtual transition_result_t operate(btree_value *old_value, large_buf_t *old_large_buf, btree_value **new_value) = 0;
     virtual void on_operate_completed() {} // TODO: Rename this.
-//    void large_value_filled(); // XXX
 
 public:
     using btree_fsm_t::transaction;
@@ -83,6 +82,7 @@ public:
 protected:
     bool update_needed;
     bool did_split; /* XXX when an assert on this fails it means EPSILON is wrong */
+    bool cas_already_set; // In case a sub-class needs to set the CAS itself.
 
 private:
     bool dest_reached;

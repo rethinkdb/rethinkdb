@@ -145,8 +145,8 @@ bool lba_disk_structure_t::sync(sync_callback_t *cb) {
     
     lba_writer_t *writer = new lba_writer_t(cb);
     
-    if (last_extent) {
-        if (!last_extent->sync(writer)) writer->outstanding_cbs++;
+    if (last_extent && !last_extent->sync(writer)) {
+        writer->outstanding_cbs++;
     }
     
     if (superblock) {

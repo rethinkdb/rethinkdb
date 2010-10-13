@@ -1,4 +1,5 @@
 #include "key_value_store.hpp"
+#include "db_cpu_info.hpp"
 
 btree_key_value_store_t::btree_key_value_store_t(cmd_config_t *cmd_config)
     : cmd_config(cmd_config), state(state_off)
@@ -20,7 +21,7 @@ bool btree_key_value_store_t::start(ready_callback_t *cb) {
     ready_callback = NULL;
     messages_out = cmd_config->n_slices;
     for (int id = 0; id < cmd_config->n_slices; id++) {
-        do_on_cpu(id % get_num_cpus(), this, &btree_key_value_store_t::create_a_slice_on_this_core, id);
+        do_on_cpu(id % get_num_db_cpus(), this, &btree_key_value_store_t::create_a_slice_on_this_core, id);
     }
     if (messages_out == 0) {
         return true;

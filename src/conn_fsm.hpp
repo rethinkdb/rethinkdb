@@ -104,7 +104,7 @@ public:
     conn_fsm_shutdown_callback_t *shutdown_callback;
 
     void fill_external_buf(byte *external_buf, unsigned int size, data_transferred_callback *callback);
-    void send_external_buf(byte *external_buf, unsigned int size, data_transferred_callback *callback);
+    void send_external_buf(const byte *external_buf, unsigned int size, data_transferred_callback *callback);
     void dummy_sock_event();
 
     void do_transition_and_handle_result(event_t *event);
