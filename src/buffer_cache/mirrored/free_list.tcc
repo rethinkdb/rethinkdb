@@ -5,20 +5,20 @@ array_free_list_t<mc_config_t>::array_free_list_t(mc_cache_t<mc_config_t> *cache
     : cache(cache) { }
 
 template<class mc_config_t>
-void array_free_list_t<mc_config_t>::start() {
-    
-    typename mc_config_t::serializer_t *serializer = &cache->serializer;
+bool array_free_list_t<mc_config_t>::start(ready_callback_t *cb) {
     
     first_block = NULL_BLOCK_ID;
-    free_list.set_size(serializer->max_block_id());
-    for (block_id_t i = 0; i < serializer->max_block_id(); i++) {
-        if (serializer->block_in_use(i)) {
+    free_list.set_size(cache->serializer->max_block_id());
+    for (block_id_t i = 0; i < cache->serializer->max_block_id(); i++) {
+        if (cache->serializer->block_in_use(i)) {
             free_list[i] = BLOCK_IN_USE;
         } else {
             free_list[i] = first_block;
             first_block = i;
         }
     }
+    
+    return true;
 }
 
 template<class mc_config_t>

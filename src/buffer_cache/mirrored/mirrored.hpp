@@ -8,6 +8,7 @@
 #include "concurrency/rwi_lock.hpp"
 #include "buffer_cache/mirrored/callbacks.hpp"
 #include "containers/two_level_array.hpp"
+#include "serializer/serializer.hpp"
 #include <boost/crc.hpp>
 
 // This cache doesn't actually do any operations itself. Instead, it
@@ -19,8 +20,8 @@
 /* Buffer class. */
 template<class mc_config_t>
 class mc_buf_t :
-    public mc_config_t::serializer_t::read_callback_t,
-    public mc_config_t::serializer_t::write_block_callback_t,
+    public serializer_t::read_callback_t,
+    public serializer_t::write_block_callback_t,
     public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, mc_buf_t<mc_config_t> >,
     public intrusive_list_node_t<mc_buf_t<mc_config_t> >
 {
@@ -93,7 +94,7 @@ public:
         assert(cached);
         assert(!safe_to_unload()); // If this assertion fails, it probably means that you're trying to access a buf you don't own.
         assert(!do_delete);
-        assert(sizeof(typename serializer_t::buf_data_t) == BLOCK_META_DATA_SIZE);
+        assert(sizeof(serializer_t::buf_data_t) == BLOCK_META_DATA_SIZE);
 
         writeback_buf.set_dirty();
 
@@ -103,7 +104,7 @@ public:
     const void *get_data_read() {
         assert(cached);
         assert(!safe_to_unload()); // If this assertion fails, it probably means that you're trying to access a buf you don't own.
-        assert(sizeof(typename mc_config_t::serializer_t::buf_data_t) == BLOCK_META_DATA_SIZE);
+        assert(sizeof(serializer_t::buf_data_t) == BLOCK_META_DATA_SIZE);
         return ((char *) data) + BLOCK_META_DATA_SIZE;
     }
 
@@ -165,9 +166,8 @@ private:
 
 template<class mc_config_t>
 struct mc_cache_t :
-    private mc_config_t::serializer_t::ready_callback_t,
+    private mc_config_t::free_list_t::ready_callback_t,
     private mc_config_t::writeback_t::sync_callback_t,
-    private mc_config_t::serializer_t::shutdown_callback_t,
     public home_cpu_mixin_t
 {
     friend class mc_buf_t<mc_config_t>;
@@ -202,7 +202,7 @@ private:
     // extensible when some policy implementation requires access to
     // components it wasn't originally given.
     buffer_alloc_t alloc;
-    typename mc_config_t::serializer_t serializer;
+    serializer_t *serializer;
     typename mc_config_t::page_map_t page_map;
     typename mc_config_t::page_repl_t page_repl;
     typename mc_config_t::writeback_t writeback;
@@ -211,8 +211,7 @@ private:
 
 public:
     mc_cache_t(
-            char *filename,
-            size_t _block_size,
+            serializer_t *serializer,
             size_t _max_size,
             bool wait_for_flush,
             unsigned int flush_timer_ms,
@@ -231,7 +230,7 @@ public:
 private:
     bool next_starting_up_step();
     ready_callback_t *ready_callback;
-    void on_serializer_ready();
+    void on_free_list_ready();
     
 public:
     
@@ -253,7 +252,6 @@ private:
     bool next_shutting_down_step();
     shutdown_callback_t *shutdown_callback;
     void on_sync();
-    void on_serializer_shutdown();
     
     /* It is illegal to start new transactions during shutdown, but the writeback needs to start a
     transaction so that it can request bufs. The way this is done is that the writeback sets
@@ -273,8 +271,8 @@ private:
     enum state_t {
         state_unstarted,
         
-        state_starting_up_start_serializer,
-        state_starting_up_waiting_for_serializer,
+        state_starting_up_create_free_list,
+        state_starting_up_waiting_for_free_list,
         state_starting_up_finish,
         
         state_ready,
@@ -282,8 +280,6 @@ private:
         state_shutting_down_waiting_for_transactions,
         state_shutting_down_start_flush,
         state_shutting_down_waiting_for_flush,
-        state_shutting_down_shutdown_serializer,
-        state_shutting_down_waiting_for_serializer,
         state_shutting_down_finish,
         
         state_shut_down

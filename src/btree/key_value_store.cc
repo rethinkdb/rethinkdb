@@ -320,7 +320,8 @@ btree_slice_t::btree_slice_t(
     unsigned int flush_threshold_percent)
     : cas_counter(0),
       state(state_unstarted),
-      cache(filename, block_size, max_size, wait_for_flush, flush_timer_ms, flush_threshold_percent),
+      serializer(filename, block_size),
+      cache(&serializer, max_size, wait_for_flush, flush_timer_ms, flush_threshold_percent),
       total_set_operations(0), pm_total_set_operations("cmd_set", &total_set_operations, &perfmon_combiner_sum)
     { }
 
@@ -330,7 +331,7 @@ btree_slice_t::~btree_slice_t() {
 
 bool btree_slice_t::start(ready_callback_t *cb) {
     assert(state == state_unstarted);
-    state = state_starting_up_start_cache;
+    state = state_starting_up_start_serializer;
     ready_callback = NULL;
     if (next_starting_up_step()) {
         return true;
@@ -341,6 +342,15 @@ bool btree_slice_t::start(ready_callback_t *cb) {
 }
 
 bool btree_slice_t::next_starting_up_step() {
+    
+    if (state == state_starting_up_start_serializer) {
+        if (serializer.start(this)) {
+            state = state_starting_up_start_cache;
+        } else {
+            state = state_starting_up_waiting_for_serializer;
+            return false;
+        }
+    }
     
     if (state == state_starting_up_start_cache) {
         if (cache.start(this)) {
@@ -374,6 +384,12 @@ bool btree_slice_t::next_starting_up_step() {
     fail("Unexpected state");
 }
 
+void btree_slice_t::on_serializer_ready() {
+    assert(state == state_starting_up_waiting_for_serializer);
+    state = state_starting_up_start_cache;
+    next_starting_up_step();
+}
+
 void btree_slice_t::on_cache_ready() {
     assert(state == state_starting_up_waiting_for_cache);
     state = state_starting_up_initialize_superblock;
@@ -394,22 +410,59 @@ btree_value::cas_t btree_slice_t::gen_cas() {
 
 bool btree_slice_t::shutdown(shutdown_callback_t *cb) {
     assert(state == state_ready);
-    if (cache.shutdown(this)) {
-        state = state_shut_down;
+    state = state_shutting_down_shutdown_cache;
+    shutdown_callback = NULL;
+    if (next_shutting_down_step()) {
         return true;
     } else {
-        state = state_shutting_down;
         shutdown_callback = cb;
         return false;
     }
 }
 
+bool btree_slice_t::next_shutting_down_step() {
+    
+    if (state == state_shutting_down_shutdown_cache) {
+        if (cache.shutdown(this)) {
+            state = state_shutting_down_shutdown_serializer;
+        } else {
+            state = state_shutting_down_waiting_for_cache;
+            return false;
+        }
+    }
+    
+    if (state == state_shutting_down_shutdown_serializer) {
+        if (serializer.shutdown(this)) {
+            state = state_shutting_down_finish;
+        } else {
+            state = state_shutting_down_waiting_for_serializer;
+            return false;
+        }
+    }
+    
+    if (state == state_shutting_down_finish) {
+        state = state_shut_down;
+        if (shutdown_callback) shutdown_callback->on_slice_shutdown(this);
+        return true;
+    }
+    
+    fail("Invalid state.");
+}
+
 void btree_slice_t::on_cache_shutdown() {
-    state = state_shut_down;
+    assert(state == state_shutting_down_waiting_for_cache);
+    state = state_shutting_down_shutdown_serializer;
     // It's not safe to call the cache's destructor from within on_cache_shutdown()
     call_later_on_this_cpu(this);
 }
 
 void btree_slice_t::on_cpu_switch() {
-    if (shutdown_callback) shutdown_callback->on_slice_shutdown(this);
+    next_shutting_down_step();
 }
+
+void btree_slice_t::on_serializer_shutdown() {
+    assert(state == state_shutting_down_waiting_for_serializer);
+    state = state_shutting_down_finish;
+    next_shutting_down_step();
+}
+

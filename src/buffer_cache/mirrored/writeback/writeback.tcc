@@ -189,7 +189,7 @@ bool writeback_tmpl_t<mc_config_t>::next_writeback_step() {
         /* Request read locks on all of the blocks we need to flush. */
         int num_writes = dirty_bufs.size();
         // TODO: optimize away dynamic allocation
-        typename mc_config_t::serializer_t::write_t writes[num_writes];
+        serializer_t::write_t writes[num_writes];
         int i;
         typename intrusive_list_t<local_buf_t>::iterator it;
         for (it = dirty_bufs.begin(), i = 0; it != dirty_bufs.end(); i++) {
@@ -239,7 +239,7 @@ bool writeback_tmpl_t<mc_config_t>::next_writeback_step() {
         // chunks, we may want to worry about submitting more heavily contended
         // bufs earlier in the process so more write FSMs can proceed sooner.
         
-        if (num_writes == 0 || cache->serializer.do_write(writes, num_writes, this)) {
+        if (num_writes == 0 || cache->serializer->do_write(writes, num_writes, this)) {
             state = state_cleanup;
         } else {
             state = state_write_bufs;

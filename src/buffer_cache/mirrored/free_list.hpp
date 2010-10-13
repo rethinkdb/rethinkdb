@@ -13,7 +13,12 @@ class array_free_list_t {
     
 public:
     array_free_list_t(mc_cache_t<mc_config_t> *);
-    void start();   // Must be called after serializer has started up
+    
+    struct ready_callback_t {
+        virtual void on_free_list_ready() = 0;
+    };
+    bool start(ready_callback_t *cb);   // Must be called after serializer has started up
+    
     ~array_free_list_t();
     
     block_id_t gen_block_id();

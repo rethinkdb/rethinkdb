@@ -6,7 +6,6 @@
 
 #ifndef MOCK_CACHE_CHECK
 
-#include "serializer/serializer.hpp"
 #include "buffer_cache/mirrored/mirrored.hpp"
 #include "buffer_cache/mirrored/concurrency/rwi_conc.hpp"
 #include "buffer_cache/mirrored/page_map.hpp"
@@ -15,8 +14,6 @@
 #include "buffer_cache/mirrored/free_list.hpp"
 
 struct standard_mc_config_t {
-    
-    typedef ::serializer_t serializer_t;
     
     typedef rwi_conc_t<standard_mc_config_t> concurrency_t;
     typedef array_map_t<standard_mc_config_t> page_map_t;

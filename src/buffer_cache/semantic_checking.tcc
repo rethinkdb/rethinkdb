@@ -112,13 +112,12 @@ void scc_transaction_t<inner_cache_t>::on_txn_commit(typename inner_cache_t::tra
 
 template<class inner_cache_t>
 scc_cache_t<inner_cache_t>::scc_cache_t(
-        char *filename,
-        size_t block_size,
+        serializer_t *serializer,
         size_t max_size,
         bool wait_for_flush,
         unsigned int flush_timer_ms,
         unsigned int flush_threshold_percent)
-    : inner_cache(filename, block_size, max_size, wait_for_flush, flush_timer_ms, flush_threshold_percent) {
+    : inner_cache(serializer, max_size, wait_for_flush, flush_timer_ms, flush_threshold_percent) {
 }
 
 template<class inner_cache_t>

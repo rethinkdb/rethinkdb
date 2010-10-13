@@ -5,6 +5,7 @@
 #include "concurrency/access.hpp"
 #include "containers/segmented_vector.hpp"
 #include "utils.hpp"
+#include "serializer/serializer.hpp"
 
 /* The mock cache, mock_cache_t, is a drop-in replacement for mc_cache_t that keeps all of
 its contents in memory and artificially generates delays in responding to requests. It
@@ -93,8 +94,7 @@ public:
     typedef mock_block_available_callback_t block_available_callback_t;
     
     mock_cache_t(
-        char *filename,
-        size_t _block_size,
+        serializer_t *serializer,
         size_t _max_size,
         bool wait_for_flush,
         unsigned int flush_timer_ms,
@@ -118,6 +118,7 @@ private:
     friend class mock_buf_t;
     friend class internal_buf_t;
     
+    serializer_t *serializer;
     buffer_alloc_t alloc;
     bool running;
     int n_transactions;
