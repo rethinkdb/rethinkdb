@@ -64,7 +64,12 @@ void linux_message_hub_t::insert_external_message(linux_cpu_message_t *msg) {
 }
 
 void linux_message_hub_t::on_epoll(int events) {
-    
+    // TODO: this is really stupid and is probably the cause of our
+    // performance woes. Eventfd tells us there are messages from A
+    // cpu, but we go collect them from ALL cpus. Even if there are
+    // messages from other CPUs, we go there again on its
+    // eventfd. Stupid stupid stupid. (problem is - eventfd can't
+    // support enough info to tell us which CPU to go to).
     for (int i = 0; i < thread_pool->n_threads; i++) {
         thread_pool->threads[i]->message_hub.pull_messages(current_cpu);
     }
