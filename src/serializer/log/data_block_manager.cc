@@ -68,9 +68,13 @@ void data_block_manager_t::start_reconstruct() {
     gc_state.step = gc_reconstruct;
 }
 
+// Marks the block at the given offset as alive, in the appropriate
+// gc_entry in the entries table.  (This is used when we start up, when
+// everything is presumed to be garbage, until we mark it as
+// non-garbage.)
 void data_block_manager_t::mark_live(off64_t offset) {
-    // This is called at startup.
-    assert(gc_state.step == gc_reconstruct);
+    assert(gc_state.step == gc_reconstruct);  // This is called at startup.
+
 
     unsigned int extent_id = (offset / extent_manager->extent_size);
     unsigned int block_id = (offset % extent_manager->extent_size) / block_size;
@@ -265,11 +269,13 @@ void data_block_manager_t::add_gc_entry() {
     /* update stats */
     gc_stats.total_blocks += extent_manager->extent_size / BTREE_BLOCK_SIZE;
 
-    /* declare youthful, update young_extent_queue */
+    // update young_extent_queue
     young_extent_queue.push(pq_entry);
     mark_unyoung_entries();
 }
 
+// Looks at young_extent_queue and pops things off the queue that are
+// no longer deemed young, marking them as not young.
 void data_block_manager_t::mark_unyoung_entries() {
     while (young_extent_queue.size() > GC_YOUNG_EXTENT_MAX_SIZE) {
 	remove_last_unyoung_entry();
@@ -283,7 +289,11 @@ void data_block_manager_t::mark_unyoung_entries() {
     }
 }
 
+// Pops young_extent_queue and marks the popped entry as unyoung.
+// Assumes young_extent_queue is not empty.
 void data_block_manager_t::remove_last_unyoung_entry() {
+    assert(!young_extent_queue.empty());
+
     priority_queue_t<gc_entry, Less>::entry_t *pq_entry = young_extent_queue.front();
     young_extent_queue.pop();
     pq_entry->data.young = false;
@@ -295,16 +305,18 @@ void data_block_manager_t::remove_last_unyoung_entry() {
 // Right now we start gc'ing when the garbage ratio is >= 0.75 (75%
 // garbage) and we gc all blocks with that ratio or higher.
 
-bool data_block_manager_t::should_we_keep_gcing(const gc_entry entry) {
-<<<<<<< HEAD:src/serializer/log/data_block_manager.cc
-    return entry.g_array.count() >= ((extent_manager->extent_size / BTREE_BLOCK_SIZE) * GC_THRESHOLD_RATIO_NUMERATOR) / GC_THRESHOLD_RATIO_DENOMINATOR && !entry.active; // 3/4 garbage
 
+// Answers the following question: We're in the middle of gc'ing, and
+// look, it's the next largest entry.  Should we keep gc'ing?  Returns
+// false when the entry is active or young, or when its garbage ratio
+// is lower than GC_THRESHOLD_RATIO_*.
+bool data_block_manager_t::should_we_keep_gcing(const gc_entry& entry) {
+    return !entry.active && !entry.young && entry.g_array.count() * GC_THRESHOLD_RATIO_DENOMINATOR >= ((extent_manager->extent_size / BTREE_BLOCK_SIZE) * GC_THRESHOLD_RATIO_NUMERATOR);
 }
 
-bool data_block_manager_t::do_we_want_to_start_gcing() {
-    return gc_stats.garbage_blocks * GC_THRESHOLD_RATIO_DENOMINATOR >= GC_THRESHOLD_RATIO_NUMERATOR * gc_stats.total_blocks;
-}
-
+// Answers the following question: Do we want to bother gc'ing?
+// Returns true when our garbage_ratio is greater than
+// GC_THRESHOLD_RATIO_*.
 bool data_block_manager_t::do_we_want_to_start_gcing() {
     return gc_stats.garbage_blocks * GC_THRESHOLD_RATIO_DENOMINATOR >= GC_THRESHOLD_RATIO_NUMERATOR * gc_stats.total_blocks;
 }
@@ -323,6 +335,7 @@ bool data_block_manager_t::Less::operator() (const data_block_manager_t::gc_entr
  *Stat functions*
  ****************/
 
+// This will return NaN when gc_stats.total_blocks is zero.
 float  data_block_manager_t::garbage_ratio() {
     // TODO: not divide by zero?
     return (float) gc_stats.garbage_blocks / (float) gc_stats.total_blocks;

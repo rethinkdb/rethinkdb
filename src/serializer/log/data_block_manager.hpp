@@ -111,6 +111,8 @@ private:
     off64_t gimme_a_new_offset();
 
 private:
+    // Depends on the value of last_data_extent.  Adds the gc entry for
+    // the last_data_extent to the entries table.
     void add_gc_entry();
 
     // Identifies an extent, the time we started writing to the
@@ -158,17 +160,20 @@ private:
     struct Less {
         bool operator() (const gc_entry x, const gc_entry y);
     };
-    // A priority queue of gc_entrys, by garbage ratio.
-    priority_queue_t<gc_entry, Less> gc_pq;
+
 
     typedef priority_queue_t<gc_entry, Less>::entry_t gc_pq_entry_t;
+
+    // A priority queue of gc_entrys, by garbage ratio.  You may not
+    // pop things off this queue until they've been popped off the
+    // young_extent_queue.
+    priority_queue_t<gc_entry, Less> gc_pq;
 
     // An array of pointers into the priority queue, indexed by extent
     // id.  (The "extent id" being the extent's offset divided
     // by extent_manager->extent_size.)
     two_level_array_t<gc_pq_entry_t *, MAX_DATA_EXTENTS> entries;
-    // A queue of the young entry_t's.  What defines "young"?  Those
-    // with recent timestamps?
+    // A queue of the young entry_ts.
     std::queue< gc_pq_entry_t *, std::deque< gc_pq_entry_t *, gnew_alloc<gc_pq_entry_t *> > > young_extent_queue;
 
     void print_entries() {
@@ -179,20 +184,17 @@ private:
 #endif
     }
 
-    bool should_we_keep_gcing(const gc_entry);
+    // Tells if we should keep gc'ing, being told the next extent that
+    // would be gc'ed.
+    bool should_we_keep_gcing(const gc_entry&);
 
-<<<<<<< HEAD:src/serializer/log/data_block_manager.hpp
-
-
+    // Pops things off young_extent_queue that are no longer young.
     void mark_unyoung_entries();
+    
+    // Pops the last gc_entry off young_extent_queue and declares it
+    // to be not young.
     void remove_last_unyoung_entry();
 
-
-=======
-    void mark_unyoung_entries();
-    void remove_last_unyoung_entry();
-
->>>>>>> Introduced a data_manager_t::young_extent_queue:src/serializer/log/data_block_manager.hpp
 private:
     /* internal garbage collection structures */
     struct gc_read_callback_t : public iocallback_t {

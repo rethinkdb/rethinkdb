@@ -94,6 +94,8 @@ private:
     
     void gc();
 
+    // Returns true if the garbage ratio is bad enough that we want to
+    // gc.
     bool we_want_to_gc();
 
 };

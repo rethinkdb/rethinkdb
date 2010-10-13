@@ -241,21 +241,17 @@ bool lba_list_t::we_want_to_gc() {
     int entries_per_extent = disk_structure->num_entries_that_can_fit_in_an_extent();
 
     // About how much space for entries is used on disk?
-    uint64_t denom = disk_structure->superblock->extents.size() * entries_per_extent;
+    int64_t denom = disk_structure->superblock->extents.size() * entries_per_extent;
 
-    // How many entries are there in memory?
-    uint64_t numer = std::max<uint64_t>(max_block_id(), entries_per_extent);
+    int64_t numer = std::max<int64_t>(max_block_id(), entries_per_extent);
 
     // Is 1 - numer/denom >=
     // LBA_GC_THRESHOLD_RATIO_NUMERATOR / LBA_GC_THRESHOLD_RATIO_DENOMINATOR?
 
     // i.e. is (denom - numer)/denom >= ...
 
-    // The reason we have this (denom - numer) business is that the
-    // ratio's backwards.  The constants describe "the garbage ratio"
-    // and numer/denom is the "non-garbage ratio".
-
-    return numer < denom && (denom - numer) * LBA_GC_THRESHOLD_RATIO_DENOMINATOR >= LBA_GC_THRESHOLD_RATIO_NUMERATOR * denom;
+    // It's possible that numer > denom here, but they're signed.
+    return (denom - numer) * LBA_GC_THRESHOLD_RATIO_DENOMINATOR >= LBA_GC_THRESHOLD_RATIO_NUMERATOR * denom;
 }
 
 void lba_list_t::gc() {
