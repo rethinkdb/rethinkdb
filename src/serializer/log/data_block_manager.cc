@@ -115,8 +115,8 @@ void data_block_manager_t::run_gc() {
 
                     // The reason why the GC deletes the entries instead of the PQ deleting them
                     // is in case we get a write to the block we are GCing.
-                    gdelete(entries.get(gc_state.current_entry.offset / EXTENT_SIZE));
-                    entries.set(gc_state.current_entry.offset / EXTENT_SIZE, NULL);
+                    gdelete(entries.get(gc_state.current_entry.offset / extent_manager->extent_size));
+                    entries.set(gc_state.current_entry.offset / extent_manager->extent_size, NULL);
 
                     /* read all the live data into buffers */
 
@@ -195,8 +195,8 @@ void data_block_manager_t::run_gc() {
                 gc_state.step = gc_ready;
 
                 /* update stats */
-                gc_stats.total_blocks -= EXTENT_SIZE / BTREE_BLOCK_SIZE;
-                gc_stats.garbage_blocks -= EXTENT_SIZE / BTREE_BLOCK_SIZE;
+                gc_stats.total_blocks -= extent_manager->extent_size / BTREE_BLOCK_SIZE;
+                gc_stats.garbage_blocks -= extent_manager->extent_size / BTREE_BLOCK_SIZE;
 
                 if(state == state_shutting_down) {
                     if(shutdown_callback)
@@ -240,8 +240,8 @@ off64_t data_block_manager_t::gimme_a_new_offset() {
 
     if (blocks_in_last_data_extent == extent_manager->extent_size / block_size) {
         /* deactivate the last extent */
-        entries.get(last_data_extent / EXTENT_SIZE)->data.active = false;
-        entries.get(last_data_extent / EXTENT_SIZE)->update();
+        entries.get(last_data_extent / extent_manager->extent_size)->data.active = false;
+        entries.get(last_data_extent / extent_manager->extent_size)->update();
 
         last_data_extent = extent_manager->gen_extent();
         blocks_in_last_data_extent = 0;
@@ -273,7 +273,7 @@ void data_block_manager_t::add_gc_entry() {
 // garbage) and we gc all blocks with that ratio or higher.
 
 bool data_block_manager_t::should_we_keep_gcing(const gc_entry entry) {
-    return entry.g_array.count() >= ((EXTENT_SIZE / BTREE_BLOCK_SIZE) * GC_THRESHOLD_RATIO_NUMERATOR) / GC_THRESHOLD_RATIO_DENOMINATOR && !entry.active; // 3/4 garbage
+    return entry.g_array.count() >= ((extent_manager->extent_size / BTREE_BLOCK_SIZE) * GC_THRESHOLD_RATIO_NUMERATOR) / GC_THRESHOLD_RATIO_DENOMINATOR && !entry.active; // 3/4 garbage
 }
 
 bool data_block_manager_t::do_we_want_to_start_gcing() {
@@ -293,6 +293,7 @@ bool data_block_manager_t::Less::operator() (const data_block_manager_t::gc_entr
 /****************
  *Stat functions*
  ****************/
+
 float  data_block_manager_t::garbage_ratio() {
     // TODO: not divide by zero?
     return (float) gc_stats.garbage_blocks / (float) gc_stats.total_blocks;
