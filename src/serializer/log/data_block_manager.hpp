@@ -153,7 +153,6 @@ private:
     // A priority queue of gc_entrys, by garbage ratio.
     priority_queue_t<gc_entry, Less> gc_pq;
 
-
     typedef priority_queue_t<gc_entry, Less>::entry_t gc_pq_entry_t;
 
     // An array of pointers into the priority queue, indexed by extent
@@ -174,12 +173,18 @@ private:
 
     bool should_we_keep_gcing(const gc_entry);
 
+<<<<<<< HEAD:src/serializer/log/data_block_manager.hpp
 
 
     void mark_unyoung_entries();
     void remove_last_unyoung_entry();
 
 
+=======
+    void mark_unyoung_entries();
+    void remove_last_unyoung_entry();
+
+>>>>>>> Introduced a data_manager_t::young_extent_queue:src/serializer/log/data_block_manager.hpp
 private:
     /* internal garbage collection structures */
     struct gc_read_callback_t : public iocallback_t {

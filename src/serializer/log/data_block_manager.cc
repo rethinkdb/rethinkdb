@@ -267,7 +267,6 @@ void data_block_manager_t::add_gc_entry() {
     /* update stats */
     gc_stats.total_blocks += extent_manager->extent_size / BTREE_BLOCK_SIZE;
 
-
     /* update young_extent_queue */
     young_extent_queue.push(pq_entry);
     mark_unyoung_entries();
