@@ -26,8 +26,6 @@ public:
         : shutdown_callback(NULL), state(state_unstarted), serializer(ser),
           extent_manager(em), block_size(_block_size) {}
     ~data_block_manager_t() {
-        printf("state: %d\n", state);
-        fflush(stdout);
         assert(state == state_unstarted || state == state_shut_down);
     }
 
@@ -85,12 +83,14 @@ public:
     struct shutdown_callback_t {
         virtual void on_datablock_manager_shutdown() = 0;
     };
+    // The shutdown_callback_t may destroy the data_block_manager.
     bool shutdown(shutdown_callback_t *cb);
 
 public:
     bool do_we_want_to_start_gcing();
 
 private:
+    // This is permitted to destroy the data_block_manager.
     shutdown_callback_t *shutdown_callback;
 
 private:
