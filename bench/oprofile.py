@@ -6,12 +6,19 @@ ctrl_str = 'sudo opcontrol'
 rprt_str = 'opreport'
 exec_name = 'rethinkdb'
 
-def tuple_add(x, y):
+def safe_div(x, y):
+    if y == 0:
+        return x
+    else:
+        return x / y
+
+def dict_add(x, y):
+    res = {}
     assert len(x) == len(y)
-    res = []
-    for i,j in zip(x,y):
-        res.append(i + j)
-    return tuple(res)
+    for keyx, keyy in zip(sorted(x), sorted(y)):
+        assert keyx == keyy
+        res[keyx] = x[keyx]+ y[keyy]
+    return res
 
 class Event():
     name = ''
@@ -44,7 +51,7 @@ class OProfile():
         os.system(ctrl_str + ' --shutdown')
         os.system(rprt_str + ' --merge=cpu,lib,tid,tgid,unitmask,all -gdf | op2calltree')
         p = parser()
-        p.parse_file('oprof.out.' + exec_name)
+        return p.parse_file('oprof.out.' + exec_name)
 
     def clean():
         os.system('rm oprof.out.*')
@@ -74,20 +81,20 @@ class line():
                     
 class Function_report():
     function_name = ''
-    counter_totals = (0,0,0,0)
+    counter_totals = {}
     source_file = ''
     lines = {} #number -> line_report
 
 class Line_report():
     line_number = None
-    counter_totals = (0,0,0,0)
+    counter_totals = {}
     def __init__(self, _line_number, _counter_totals):
         self.line_number = _line_number
         self.counter_totals = _counter_totals
 
 class Program_report():
     object_name = ''
-    counter_totals = (0,0,0,0)
+    counter_totals = {}
     counter_names = ('','','','')
     functions = {} #string -> function_report
     def __str__(self):
@@ -107,8 +114,7 @@ class parser():
     source_line     = line("fi=\(\d+\)\s+(.+)\n", [('source_file', 's')])
     sample_line     = line("(0x[0-9a-fA-F]{8})\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\n", [('instruction', 'x'), ('line_number', 'i'), ('event1', 'd'), ('event2', 'd'), ('event3', 'd'), ('event4', 'd')])
     fident_line     = line("fi=\(\d+\)", [])
-    state = ''
-    state_start = 0
+    prog_report     = Program_report()
     def __init__(self):
         pass
 
@@ -158,6 +164,11 @@ class parser():
         if source:
             function_report.source_file = source['source_file']
 
+#set counter_totals to 0
+        function_report.counter_totals = {}
+        for i in range(len(self.prog_report.counter_names)):
+            function_report.counter_totals[self.prog_report.counter_names[i]] = 0
+
         samples = []
         while True:
             samples += self.read_while([self.sample_line], data)
@@ -165,13 +176,12 @@ class parser():
             if not res:
                 break
         for sample in samples:
-            line_report = Line_report(sample['line_number'], (sample['event1'], sample['event2'], sample['event3'], sample['event4']))
-            function_report.counter_totals = tuple_add(function_report.counter_totals, line_report.counter_totals)
+            line_report = Line_report(sample['line_number'], {self.prog_report.counter_names[0] : sample['event1'], self.prog_report.counter_names[1] : sample['event2'], self.prog_report.counter_names[2] : sample['event3'], self.prog_report.counter_names[3] : sample['event4']})
+            function_report.counter_totals = dict_add(function_report.counter_totals, line_report.counter_totals)
             function_report.lines[line_report.line_number] = line_report
         return function_report
             
     def parse_file(self, file_name):
-        program_report = Program_report()
         file = open(file_name)
         data = file.readlines()
         data.reverse() #for some reason pop takes things off the back (it's shit like this Guido, shit like this)
@@ -181,21 +191,63 @@ class parser():
 
         events = self.take(self.events_line, data)
         assert events
-        program_report.counter_names = events
+        self.prog_report.counter_names = (events['event1'], events['event2'], events['event3'], events['event4'])
+
+        self.prog_report.counter_totals = {}
+        for i in range(len(self.prog_report.counter_names)):
+            self.prog_report.counter_totals[self.prog_report.counter_names[i]] = 0
+
 
         summary = self.take(self.summary_line, data)
         assert summary
-        program_report.counter_totals = (summary['event1'], summary['event2'], summary['event3'], summary['event4'])
+        self.prog_report.counter_totals = {self.prog_report.counter_names[0] : summary['event1'], self.prog_report.counter_names[1] : summary['event2'], self.prog_report.counter_names[2] : summary['event3'], self.prog_report.counter_names[3] : summary['event4']}
         
         object_name = self.until(self.obj_line, data)
         assert object_name 
-        program_report.object_name = object_name
+        self.prog_report.object_name = object_name
 
         while True:
             function_report = self.parse_function(data)
             if not function_report:
                 break
-            function_report.counter_totals = tuple_add(program_report.counter_totals, function_report.counter_totals)
-            program_report.functions[function_report.function_name] = function_report
+            self.prog_report.functions[function_report.function_name] = function_report
 
-        return program_report
+        return self.prog_report
+
+class Profile():
+    oprofile_driver = OProfile()
+    events = []
+    ratios = []
+    function_to_profile = None #presumably this will start the rethinkdb process
+    def __init__(self, _events, _function_to_profile, _output):
+        self.events = events
+        self.function_to_profile = _function_to_profile
+        self.output = _output
+    def run():
+        oprofile_driver.start(events)
+        function_to_profile()
+        prog_report = oprofile_driver.stop_and_report()
+        oprofile_driver.clean()
+        return output(prog_report)
+
+#small packet ratios
+class Ratio():
+    numerator = ''
+    denominator = ''
+    top_n = 5
+    def __init__(self, _numerator, _denominator):
+        self.numerator = _numerator
+        self.denominator = _denominator
+    def report(self, prog_report):
+        import StringIO
+        res = StringIO.StringIO()
+        print >>res, "%s / %s = " % (self.numerator, self.denominator),
+        print >>res, safe_div(prog_report.counter_totals[self.numerator], prog_report.counter_totals[self.denominator])
+
+        print >>res, "Top %d functions:" % self.top_n
+        function_list = sorted(prog_report.functions.iteritems(), key = lambda x: safe_div(x[1].counter_totals[self.numerator], x[1].counter_totals[self.denominator]))
+        function_list.reverse()
+        for function in function_list[0:self.top_n]:
+            print >>res, function[0], ' = ',
+            print >>res, safe_div(function[1].counter_totals[self.numerator], function[1].counter_totals[self.denominator])
+        return res.getvalue()
