@@ -20,7 +20,7 @@
 // SSD controller would have to move it and there would be a risk of fragmentation.
 
 class data_block_manager_t {
-    
+
 public:
     data_block_manager_t(log_serializer_t *ser, extent_manager_t *em, size_t _block_size)
         : shutdown_callback(NULL), state(state_unstarted), serializer(ser),
@@ -28,7 +28,7 @@ public:
     ~data_block_manager_t() {
         assert(state == state_unstarted || state == state_shut_down);
     }
-    
+
 public:
     struct metablock_mixin_t {
         off64_t last_data_extent;
@@ -100,14 +100,14 @@ private:
     } state;
 
     log_serializer_t *serializer;
-    
+
     extent_manager_t *extent_manager;
-    
+
     direct_file_t *dbfile;
     size_t block_size;
     off64_t last_data_extent;
     unsigned int blocks_in_last_data_extent;
-    
+
     off64_t gimme_a_new_offset();
 
 private:
@@ -138,7 +138,7 @@ private:
             printf("\n");
 #endif
         }
-	
+
 	// Returns the current timestamp in microseconds.
 	static timestamp_t current_timestamp() {
 	    struct timeval t;

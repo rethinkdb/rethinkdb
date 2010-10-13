@@ -4,7 +4,7 @@
 #include "arch/arch.hpp"
 
 void data_block_manager_t::start(direct_file_t *file) {
-    
+
     assert(state == state_unstarted);
     dbfile = file;
     last_data_extent = extent_manager->gen_extent();
@@ -27,9 +27,9 @@ void data_block_manager_t::start(direct_file_t *file, metablock_mixin_t *last_me
 bool data_block_manager_t::read(off64_t off_in, void *buf_out, iocallback_t *cb) {
 
     assert(state == state_ready);
-    
+
     dbfile->read_async(off_in, block_size, buf_out, cb);
-    
+
     return false;
 }
 
@@ -38,11 +38,11 @@ bool data_block_manager_t::write(void *buf_in, off64_t *off_out, iocallback_t *c
     // finished reading blocks for gc and called do_write.
     assert(state == state_ready
            || (state == state_shutting_down && gc_state.step == gc_read));
-    
+
     off64_t offset = *off_out = gimme_a_new_offset();
-    
+
     dbfile->write_async(offset, block_size, buf_in, cb);
-    
+
     return false;
 }
 
@@ -173,7 +173,7 @@ void data_block_manager_t::run_gc() {
                          * given away until the metablock is
                          * written) */
                         extent_manager->release_extent(gc_state.current_entry.offset);
-                        
+
                         /* schedule the write */
                         fallthrough = serializer->do_write(writes, gc_state.current_entry.g_array.size() - gc_state.current_entry.g_array.count() , (log_serializer_t::write_txn_callback_t *) &gc_state.gc_write_callback);
                     } else {
@@ -204,20 +204,20 @@ void data_block_manager_t::run_gc() {
                     state = state_shut_down;
                     return;
                 }
-                
+
                 break;
             default:
                 fail("Unknown gc_step");
                 break;
         }
-    } while (gc_state.step == gc_ready); 
+    } while (gc_state.step == gc_ready);
 }
 
 void data_block_manager_t::prepare_metablock(metablock_mixin_t *metablock) {
-    
+
     assert(state == state_ready
            || (state == state_shutting_down && gc_state.step == gc_read));
-    
+
     metablock->last_data_extent = last_data_extent;
     metablock->blocks_in_last_data_extent = blocks_in_last_data_extent;
 }
@@ -231,7 +231,7 @@ bool data_block_manager_t::shutdown(shutdown_callback_t *cb) {
         shutdown_callback = cb;
         return false;
     }
-    
+
     state = state_shut_down;
     return true;
 }
