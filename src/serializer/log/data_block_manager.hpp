@@ -12,7 +12,7 @@
 #include <functional>
 #include <queue>
 #include <utility>
-#include <time.h>
+#include <sys/time.h>
 
 // TODO: When we start up, start a new extent rather than continuing on the old extent. The
 // remainder of the old extent is taboo because if we shut down badly, we might have written data
@@ -120,11 +120,13 @@ private:
     public:
         off64_t offset; /* !< the offset that this extent starts at */
         std::bitset<EXTENT_SIZE / BTREE_BLOCK_SIZE> g_array; /* !< bit array for whether or not each block is garbage */
-        time_t timestamp; /* !< when we started writing to the extent */
+	typedef uint64_t timestamp_t;
+        timestamp_t timestamp; /* !< when we started writing to the extent */
         bool active; /* !< this the extent we're currently writing to? */
+	bool young; /* !< this extent is considered young? */
     public:
         gc_entry() {
-            timestamp = time(NULL);
+            timestamp = gc_entry::current_timestamp();
         }
         void print() {
 #ifndef NDEBUG
@@ -136,6 +138,13 @@ private:
             printf("\n");
 #endif
         }
+	
+	// Returns the current timestamp in microseconds.
+	static timestamp_t current_timestamp() {
+	    struct timeval t;
+	    assert(0 == gettimeofday(&t, NULL));
+	    return uint64_t(t.tv_sec) * (1000 * 1000) + t.tv_usec;
+	}
     };
 
     struct Less {
@@ -143,10 +152,16 @@ private:
     };
     // A priority queue of gc_entrys, by garbage ratio.
     priority_queue_t<gc_entry, Less> gc_pq;
+
+    typedef priority_queue_t<gc_entry, Less>::entry_t gc_pq_entry_t;
+
     // An array of pointers into the priority queue, indexed by extent
-    // number.  (The "extent number" being the extent's offset divided
+    // id.  (The "extent id" being the extent's offset divided
     // by extent_manager->extent_size.)
-    two_level_array_t<priority_queue_t<gc_entry, Less>::entry_t *, MAX_DATA_EXTENTS> entries;
+    two_level_array_t<gc_pq_entry_t *, MAX_DATA_EXTENTS> entries;
+    // A queue of the young entry_t's.  What defines "young"?  Those
+    // with recent timestamps?
+    std::queue< gc_pq_entry_t *, std::deque< gc_pq_entry_t *, gnew_alloc<gc_pq_entry_t *> > > young_extent_queue;
 
     void print_entries() {
 #ifndef NDEBUG
@@ -157,6 +172,9 @@ private:
     }
 
     bool should_we_keep_gcing(const gc_entry);
+
+    void mark_unyoung_entries();
+    void remove_last_unyoung_entry();
 
 private:
     /* internal garbage collection structures */

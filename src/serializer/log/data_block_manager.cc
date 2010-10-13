@@ -261,11 +261,36 @@ void data_block_manager_t::add_gc_entry() {
 
     assert(entries.get(extent_id) == NULL);
 
-    entries.set(extent_id, gc_pq.push(entry));
+    priority_queue_t<gc_entry, Less>::entry_t *pq_entry = gc_pq.push(entry);
+    entries.set(extent_id, pq_entry);
 
     /* update stats */
     gc_stats.total_blocks += extent_manager->extent_size / BTREE_BLOCK_SIZE;
+
+    /* update young_extent_queue */
+    young_extent_queue.push(pq_entry);
+    mark_unyoung_entries();
 }
+
+void data_block_manager_t::mark_unyoung_entries() {
+    while (young_extent_queue.size() > GC_YOUNG_EXTENT_MAX_SIZE) {
+	remove_last_unyoung_entry();
+    }
+
+    gc_entry::timestamp_t current_time = gc_entry::current_timestamp();
+
+    while (!young_extent_queue.empty()
+	   && current_time - young_extent_queue.front()->data.timestamp > GC_YOUNG_EXTENT_TIMELIMIT_MICROS) {
+	remove_last_unyoung_entry();
+    }
+}
+
+void data_block_manager_t::remove_last_unyoung_entry() {
+    priority_queue_t<gc_entry, Less>::entry_t *pq_entry = young_extent_queue.front();
+    young_extent_queue.pop();
+    pq_entry->data.young = false;
+}
+
 
 /* functions for gc structures */
 
@@ -282,9 +307,9 @@ bool data_block_manager_t::do_we_want_to_start_gcing() {
 
 /* !< is x less than y */
 bool data_block_manager_t::Less::operator() (const data_block_manager_t::gc_entry x, const data_block_manager_t::gc_entry y) {
-    if (x.active)
+    if (x.active || x.young)
         return true;
-    else if (y.active)
+    else if (y.active || y.young)
         return false;
     else
         return x.g_array.count() < y.g_array.count();
