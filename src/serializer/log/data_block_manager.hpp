@@ -141,7 +141,11 @@ private:
     struct Less {
         bool operator() (const gc_entry x, const gc_entry y);
     };
+    // A priority queue of gc_entrys, by garbage ratio.
     priority_queue_t<gc_entry, Less> gc_pq;
+    // An array of pointers into the priority queue, indexed by extent
+    // number.  (The "extent number" being the extent's offset divided
+    // by extent_manager->extent_size.)
     two_level_array_t<priority_queue_t<gc_entry, Less>::entry_t *, MAX_DATA_EXTENTS> entries;
 
     void print_entries() {

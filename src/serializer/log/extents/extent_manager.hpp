@@ -26,7 +26,7 @@ private:
 
 public:
     extent_manager_t(size_t extent_size)
-        :extent_size(extent_size), last_extent(-1), freed_before_mb_write(NULL)
+        : extent_size(extent_size), last_extent(-1), freed_before_mb_write(NULL)
     {
         assert(extent_size % DEVICE_BLOCK_SIZE == 0);
         freed_before_mb_write = gnew<free_queue_t>();
@@ -161,7 +161,7 @@ public:
     }
 
 public:
-    size_t extent_size;
+    const size_t extent_size;
 
 private:
     direct_file_t *dbfile;
