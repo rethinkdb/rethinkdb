@@ -208,16 +208,11 @@ private:
 
         if (length == 0) {
             rh->fill_lv_msg = this;
-            //rh->conn_fsm->dummy_sock_event();
-            //if (continue_on_cpu(home_cpu, this)) on_cpu_switch();
-            // XXX!
         }
     }
 
     void do_fill() {
-        //bool fill_success;
-        //while (next_segment < large_value->get_num_segments()) {
-        while (length > 0) {
+        if (length > 0) {
             uint16_t ix = large_value->pos_to_ix(pos);
             uint16_t seg_pos = large_value->pos_to_seg_pos(pos);
             uint16_t seg_len;
@@ -228,16 +223,8 @@ private:
             length -= bytes_to_transfer;
             rh->fill_value(buf + seg_pos, bytes_to_transfer, this);
             return;
-            //fill_success = rh->fill_value(buf, seg_len, this);
-            //if (!fill_success) break;
-            //next_segment++;
-        }
-
-        //assert(next_segment <= large_value->get_num_segments());
-        //if (next_segment == large_value->get_num_segments()) {
-        if (length == 0) {
+        } else {
             rh->fill_lv_msg = this;
-            //rh->conn_fsm->dummy_sock_event();
         }
     }
 };
@@ -284,7 +271,7 @@ public:
                 break;
             case completed:
                 assert(get_cpu_id() == home_cpu);
-                cb->on_large_value_completed(true); // XXX
+                cb->on_large_value_completed(true); // Reads always succeed.
                 delete this;
                 break;
         }
@@ -308,15 +295,12 @@ private:
             buf = large_value->get_segment(next_segment, &seg_len);
             req->rh->write_value(buf, seg_len, this);
             return;
-        }
-
-        assert(next_segment <= large_value->get_num_segments());
-        if (next_segment == large_value->get_num_segments()) {
+        } else {
+            assert(next_segment == large_value->get_num_segments());
             req->on_fsm_ready(fsm);
             state = completed;
             
             // continue_on_cpu() returns true if we are already on that cpu
-            //if (continue_on_cpu(return_cpu, this)) on_cpu_switch();
             if (continue_on_cpu(home_cpu, this)) call_later_on_this_cpu(this);
         }
     }

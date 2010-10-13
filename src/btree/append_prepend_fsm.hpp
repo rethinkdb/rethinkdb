@@ -110,15 +110,15 @@ public:
                 large_value->mark_deleted();
                 large_value->release();
                 delete large_value;
+                large_value = NULL;
             } else {
                 // Some bufs in the large value will have been set dirty (and
                 // so new copies will be rewritten unmodified to disk), but
                 // that's not really a problem because it only happens on
-                // erroneous input
+                // erroneous input.
                 if (append) large_value->unappend(extra_size);
                 else        large_value->unprepend(extra_size);
             }
-            //assert(0);
         }
     }
 

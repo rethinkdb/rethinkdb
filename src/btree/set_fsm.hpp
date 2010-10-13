@@ -35,10 +35,20 @@ public:
         new_value = _new_value;
 
         if ((old_value && type == set_type_add) || (!old_value && type == set_type_replace)) {
-            read_success = false;
             this->status_code = btree_fsm_t::S_NOT_STORED;
             set_failed = true;
+        }
+        if (type == set_type_cas) { // TODO: CAS stats
+            if (!old_value || !old_value->has_cas() || old_value->cas() != req_cas) {
+                set_failed = true;
+                this->status_code = old_value ? btree_fsm_t :: S_EXISTS : btree_fsm_t::S_NOT_FOUND;
+            }
+        }
+
+        if (set_failed) {
+            this->update_needed = false;
             if (got_large) {
+                assert(length <= MAX_VALUE_SIZE);
                 fill_large_value_msg_t *msg = new fill_large_value_msg_t(return_cpu, req->rh, this, length);
                 if (continue_on_cpu(return_cpu, msg)) call_later_on_this_cpu(msg);
                 return btree_fsm_t::transition_incomplete;
@@ -49,18 +59,6 @@ public:
             // memcached delete queue, you can neither ADD nor REPLACE it, but
             // you *can* SET it.
         }
-        if (type == set_type_cas) { // TODO: CAS stats
-            if (!old_value) {
-                this->status_code = btree_fsm_t::S_NOT_FOUND;
-                this->update_needed = false;
-                return btree_fsm_t::transition_ok;
-            }
-            if (!old_value->has_cas() || old_value->cas() != req_cas) {
-                this->status_code = btree_fsm_t::S_EXISTS;
-                this->update_needed = false;
-                return btree_fsm_t::transition_ok;
-            }
-        }
 
         if (type == set_type_cas || (old_value && old_value->has_cas())) {
             value.set_cas(0xCA5ADDED); // Turns the flag on and makes room. modify_fsm will set an actual CAS later. TODO: We should probably have a separate function for this.
@@ -68,11 +66,6 @@ public:
 
         if (got_large) {
             assert (length <= MAX_VALUE_SIZE);
-            //if (length > MAX_VALUE_SIZE) {
-            //    fill_large_value_msg_t *msg = new fill_large_value_msg_t(return_cpu, req->rh, this, length);
-            //    if (continue_on_cpu(return_cpu, msg)) call_later_on_this_cpu(msg);
-            //    return btree_fsm_t::transition_ok;
-            //}
             large_value = new large_buf_t(this->transaction);
             large_value->allocate(length);
             value.set_lv_index_block_id(large_value->get_index_block_id());
