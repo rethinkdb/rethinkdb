@@ -215,29 +215,24 @@ class parser():
         return self.prog_report
 
 class Profile():
-    oprofile_driver = OProfile()
     events = []
     ratios = []
-    function_to_profile = None #presumably this will start the rethinkdb process
-    def __init__(self, _events, _function_to_profile, _output):
-        self.events = events
-        self.function_to_profile = _function_to_profile
-        self.output = _output
-    def run():
-        oprofile_driver.start(events)
-        function_to_profile()
-        prog_report = oprofile_driver.stop_and_report()
-        oprofile_driver.clean()
-        return output(prog_report)
+    def __init__(self, _events, _ratios):
+        self.events = _events
+        self.ratios = _ratios
+        for i in ratios:
+        assert ratios.numerator in map(lambda x: x.name, events)
+        assert ratios.denominator in map(lambda x: x.name, events)
 
 #small packet ratios
 class Ratio():
     numerator = ''
     denominator = ''
     top_n = 5
+#_numerator and denominator should be Event()s
     def __init__(self, _numerator, _denominator):
-        self.numerator = _numerator
-        self.denominator = _denominator
+        self.numerator = _numerator.name
+        self.denominator = _denominator.name
     def report(self, prog_report):
         import StringIO
         res = StringIO.StringIO()
