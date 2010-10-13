@@ -77,9 +77,7 @@ void data_block_manager_t::mark_live(off64_t offset) {
 
     if (entries.get(extent_id) == NULL) {
         gc_entry entry;
-        entry.offset = extent_id * extent_manager->extent_size;
-        entry.active = false;
-	entry.young = false;
+	entry.init(extent_id * extent_manager->extent_size, false, false);
         entry.g_array.set(); //set everything to garbage
 
         entries.set(extent_id, gc_pq.push(entry));
@@ -256,8 +254,7 @@ off64_t data_block_manager_t::gimme_a_new_offset() {
 
 void data_block_manager_t::add_gc_entry() {
     gc_entry entry;
-    entry.offset = last_data_extent;
-    entry.active = true;
+    entry.init(last_data_extent, true, true);
     unsigned int extent_id = last_data_extent / extent_manager->extent_size;
 
     assert(entries.get(extent_id) == NULL);
@@ -269,7 +266,6 @@ void data_block_manager_t::add_gc_entry() {
     gc_stats.total_blocks += extent_manager->extent_size / BTREE_BLOCK_SIZE;
 
     /* declare youthful, update young_extent_queue */
-    entry.young = true;
     young_extent_queue.push(pq_entry);
     mark_unyoung_entries();
 }
@@ -300,6 +296,7 @@ void data_block_manager_t::remove_last_unyoung_entry() {
 // garbage) and we gc all blocks with that ratio or higher.
 
 bool data_block_manager_t::should_we_keep_gcing(const gc_entry entry) {
+<<<<<<< HEAD:src/serializer/log/data_block_manager.cc
     return entry.g_array.count() >= ((extent_manager->extent_size / BTREE_BLOCK_SIZE) * GC_THRESHOLD_RATIO_NUMERATOR) / GC_THRESHOLD_RATIO_DENOMINATOR && !entry.active; // 3/4 garbage
 
 }

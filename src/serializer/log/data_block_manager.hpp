@@ -126,8 +126,15 @@ private:
 	bool young; /* !< this extent is considered young? */
     public:
         gc_entry() {
-            timestamp = gc_entry::current_timestamp();
+	    // We put things in init because we don't want to do the
+	    // timestamp in the constructor.
         }
+	void init(off64_t offset_, bool active_, bool young_) {
+	    timestamp = gc_entry::current_timestamp();
+	    offset = offset_;
+	    active = active_;
+	    young = young_;
+	}
         void print() {
 #ifndef NDEBUG
             printf("gc_entry:\n");
