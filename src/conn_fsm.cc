@@ -72,7 +72,9 @@ conn_fsm_t::result_t conn_fsm_t::fill_buf(void *buf, unsigned int *bytes_filled,
         } else if (errno == ENETDOWN) {
             check("Enetdown wtf", sz == -1);
         } else if (errno == ECONNRESET) {
+#ifndef NDEBUG
             we_are_closed = true;
+#endif
             if (shutdown_callback && !quitting)
                 shutdown_callback->on_conn_fsm_quit();
             assert(state == fsm_outstanding_data || state == fsm_socket_connected);
@@ -88,10 +90,14 @@ conn_fsm_t::result_t conn_fsm_t::fill_buf(void *buf, unsigned int *bytes_filled,
         // TODO: process all outstanding ops already in the buffer
         // The client closed the socket, we got on_net_conn_readable()
         assert(sz == 0);
+#ifndef NDEBUG
         we_are_closed = true;
+#endif
         if (shutdown_callback && !quitting)
             shutdown_callback->on_conn_fsm_quit();
-        assert(state == fsm_outstanding_data || state == fsm_socket_connected);
+        assert(state == fsm_outstanding_data
+               || state == fsm_socket_connected
+               || state == fsm_socket_recv_incomplete);
         return fsm_quit_connection;
     }
 
@@ -139,18 +145,16 @@ void conn_fsm_t::fill_external_buf(byte *external_buf, unsigned int size, data_t
     ext_size = size;
     cb = callback;
 
-    //previous_state = state;
-
     unsigned int bytes_to_move = ext_size < nrbuf ? ext_size : nrbuf;
     memcpy(ext_rbuf, rbuf, bytes_to_move);
     consume(bytes_to_move);
     //nrbuf -= bytes_to_move;
     ext_nrbuf = bytes_to_move;
     check_external_buf();
-    dummy_sock_event();
+    dummy_sock_event(); // TODO: Figure this out once quit/shutdown is fixed.
 }
 
-void conn_fsm_t::send_external_buf(byte *external_buf, unsigned int size, data_transferred_callback *callback) {
+void conn_fsm_t::send_external_buf(const byte *external_buf, unsigned int size, data_transferred_callback *callback) {
     // TODO: Write the data directly to the socket instead of to the sbuf when the request handler has better support for it.
     sbuf->append(external_buf, size);
     callback->on_data_transferred();
@@ -161,7 +165,8 @@ void conn_fsm_t::dummy_sock_event() {
     bzero((void*)&event, sizeof(event));
     event.event_type = et_sock;
     event.state = this;
-    do_transition(&event);
+    do_transition(&event); // TODO: Figure this out once quit/shutdown is fixed.
+    //do_transition_and_handle_result(&event);
 }
 
 void conn_fsm_t::check_external_buf() {
@@ -225,7 +230,7 @@ conn_fsm_t::result_t conn_fsm_t::do_fsm_outstanding_req(event_t *event) {
     }
 
     if (nrbuf == 0) {
-        state = fsm_socket_recv_incomplete;
+        state = fsm_socket_connected;
         return fsm_transition_ok;
     }
 
@@ -363,10 +368,12 @@ conn_fsm_t::result_t conn_fsm_t::do_transition(event_t *event) {
                 return res;
             }
 
-            if (state == fsm_socket_recv_incomplete) {
+            if (state == fsm_socket_connected && res == fsm_transition_ok) {
                 event->event_type = et_sock;
                 res = read_data(event);
-                
+
+                if (res == fsm_quit_connection)
+                    return res;
                 if (res == fsm_no_data_in_socket)
                     return fsm_transition_ok;
             }
@@ -384,8 +391,10 @@ conn_fsm_t::result_t conn_fsm_t::do_transition(event_t *event) {
 conn_fsm_t::conn_fsm_t(net_conn_t *conn, conn_fsm_shutdown_callback_t *c, request_handler_t *rh)
     : quitting(false), conn(conn), req_handler(rh), shutdown_callback(c)
 {
+#ifndef NDEBUG
     we_are_closed = false;
     fprintf(stderr, "Opened socket %p\n", this);
+#endif
     
     conn->set_callback(this);   // I can haz chezborger when there is data on the network?
     
@@ -397,7 +406,9 @@ conn_fsm_t::conn_fsm_t(net_conn_t *conn, conn_fsm_shutdown_callback_t *c, reques
 
 conn_fsm_t::~conn_fsm_t() {
     
+#ifndef NDEBUG
     fprintf(stderr, "Closed socket %p\n", this);
+#endif
     
     // TODO PERFMON get_cpu_context()->worker->curr_connections--;
     

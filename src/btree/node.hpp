@@ -6,7 +6,7 @@
 #include <string.h>
 #include <time.h>
 #include "utils.hpp"
-#include "arch/resource.hpp"
+#include "buffer_cache/types.hpp"
 
 struct btree_superblock_t {
     int database_exists;
@@ -39,18 +39,22 @@ struct btree_value {
     byte metadata_flags;
     byte contents[0];
 
+    void init() { // XXX
+    }
+
     uint16_t mem_size() {
-        //assert(!large_value());
+        //assert(!is_large());
         return value_offset() + size;
-                //(large_value() ? sizeof(block_id_t) + (assert(0),0) : value_size());
+                //(is_large() ? sizeof(block_id_t) + (assert(0),0) : value_size());
     }
 
     uint32_t value_size() {
-        if (large_value()) {
+        if (is_large()) {
             // Size is stored in contents along with the block ID.
             // TODO: Should the size go here or in the index block? Should other metadata go here?
             // TODO: Is it a good idea to store other metadata in here?
             // TODO: If we really wanted to, we could save a byte by using the size field and only three bytes of contents.
+            assert(*lv_size_addr() > MAX_IN_NODE_VALUE_SIZE);
             return *lv_size_addr();
         } else {
             return size;
@@ -59,13 +63,13 @@ struct btree_value {
 
     void value_size(uint32_t new_size) {
         if (new_size <= MAX_IN_NODE_VALUE_SIZE) {
-            if (large_value()) {
+            if (is_large()) {
                 clear_space((byte *) lv_size_addr(), sizeof(uint32_t), lv_size_offset());
                 metadata_flags &= ~LARGE_VALUE;
             }
             size = new_size;
         } else {
-            if (!large_value()) {
+            if (!is_large()) {
                 metadata_flags |= LARGE_VALUE;
                 make_space((byte *) lv_size_addr(), sizeof(uint32_t), lv_size_offset());
             }
@@ -83,13 +87,13 @@ struct btree_value {
     bool has_mcflags() { return metadata_flags & MEMCACHED_FLAGS;   }
     bool has_cas()     { return metadata_flags & MEMCACHED_CAS;     }
     bool has_exptime() { return metadata_flags & MEMCACHED_EXPTIME; }
-    bool large_value() { return metadata_flags & LARGE_VALUE;       }
+    bool is_large()    { return metadata_flags & LARGE_VALUE;       }
 
     uint8_t mcflags_offset() { return 0;                                                    }
     uint8_t exptime_offset() { return mcflags_offset() + sizeof(mcflags_t) * has_mcflags(); }
     uint8_t cas_offset()     { return exptime_offset() + sizeof(exptime_t) * has_exptime(); }
     uint8_t lv_size_offset() { return     cas_offset() + sizeof(cas_t)     * has_cas();     }
-    uint8_t value_offset()   { return lv_size_offset() + sizeof(uint32_t)  * large_value(); }
+    uint8_t value_offset()   { return lv_size_offset() + sizeof(uint32_t)  * is_large(); }
 
     mcflags_t *mcflags_addr() { return (mcflags_t *) (contents + mcflags_offset()); }
     exptime_t *exptime_addr() { return (exptime_t *) (contents + exptime_offset()); }
@@ -99,7 +103,7 @@ struct btree_value {
 
     block_id_t lv_index_block_id() { return * (block_id_t *) value(); }
     void set_lv_index_block_id(block_id_t block_id) {
-        assert(large_value());
+        assert(is_large());
         *(block_id_t *) value() = block_id;
     }
 

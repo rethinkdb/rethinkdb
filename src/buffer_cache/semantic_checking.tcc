@@ -71,7 +71,11 @@ scc_buf_t<inner_cache_t> *scc_transaction_t<inner_cache_t>::acquire(block_id_t b
     if (typename inner_cache_t::buf_t *inner_buf = inner_transaction->acquire(block_id, mode, buf)) {
         buf->inner_buf = inner_buf;
         assert(block_id == buf->get_block_id());
-        assert(buf->compute_crc() == cache->crc_map.get(block_id));
+        if (cache->crc_map.get(block_id)) {
+            assert(buf->compute_crc() == cache->crc_map.get(block_id));
+        } else {
+            cache->crc_map.set(block_id, buf->compute_crc());
+        }
         return buf;
     } else {
         buf->available_cb = callback;
@@ -83,6 +87,7 @@ template<class inner_cache_t>
 scc_buf_t<inner_cache_t> *scc_transaction_t<inner_cache_t>::allocate(block_id_t *new_block_id) {
     scc_buf_t<inner_cache_t> *buf = new scc_buf_t<inner_cache_t>(this->cache);
     buf->inner_buf = inner_transaction->allocate(new_block_id);
+    cache->crc_map.set(*new_block_id, buf->compute_crc());
     return buf;
 }
 

@@ -7,12 +7,9 @@
 #include "utils2.hpp"
 #include "config/args.hpp"
 #include "config/alloc.hpp"
-#include "arch/resource.hpp"
 #include "arch/linux/event_queue.hpp"
 #include "event.hpp"
 #include "corefwd.hpp"
-
-struct linux_event_queue_t;
 
 struct linux_iocallback_t {
     virtual ~linux_iocallback_t() {}
@@ -108,6 +105,40 @@ private:
     bool is_block;
     uint64_t file_size;
     void verify(size_t offset, size_t length, void* buf);
+};
+
+class linux_io_calls_t :
+    public linux_epoll_callback_t
+{
+
+public:
+    linux_io_calls_t(linux_event_queue_t *queue);
+    ~linux_io_calls_t();
+
+    typedef std::vector<iocb*, gnew_alloc<iocb*> > request_vector_t;
+
+    void process_requests();
+    int process_request_batch(request_vector_t *requests);
+
+    linux_event_queue_t *queue;
+    io_context_t aio_context;
+    fd_t aio_notify_fd;
+
+    request_vector_t r_requests, w_requests;
+
+    int n_pending;
+
+#ifndef NDEBUG
+    // We need the extra pointer in debug mode because
+    // tls_small_obj_alloc_accessor creates the pools to expect it
+    static const size_t iocb_size = sizeof(iocb) + sizeof(void*);
+#else
+    static const size_t iocb_size = sizeof(iocb);
+#endif
+
+public:
+    void on_epoll(int events);
+    void aio_notify(iocb *event, int result);
 };
 
 #endif // __IO_CALLS_HPP__

@@ -1,7 +1,7 @@
 #ifndef __BUFFER_CACHE_SEMANTIC_CHECKING_HPP__
 #define __BUFFER_CACHE_SEMANTIC_CHECKING_HPP__
 
-#include "arch/resource.hpp"
+#include "buffer_cache/types.hpp"
 #include "utils.hpp"
 
 /* The semantic-checking cache (scc_cache_t) is a wrapper around another cache that will

@@ -11,129 +11,38 @@
 struct in_memory_index_t :
     public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, in_memory_index_t>
 {
-    
-    enum block_state_t {
-        // block_state_t is limited to two bits in block_info_t
-        block_not_found = 0,  // we initialize the state as not found
-        block_unused    = 1,  // we mark a block as unused if we see it's deleted or don't find it at all
-        block_in_limbo  = 2,  // block is in limbo if someone asked for it but didn't set its data block yet
-        block_used      = 3   // block is used when it is used :)
-    };
-    
-    struct block_info_t {
-    public:
-        block_info_t()
-            : state(block_not_found)
-            {}
-        
-        block_state_t get_state() {
-            return state;
-        }
-        void set_state(block_state_t _state) {
-            state = _state;
-        }
-
-        off64_t get_offset() {
-            assert(get_state() == block_used);
-            return offset;
-        }
-        void set_offset(off64_t _offset) {
-            assert(get_state() == block_used);
-            offset = _offset;
-        }
-
-        block_id_t get_next_free_id() {
-            assert(get_state() == block_unused);
-            // We need to do this because NULL_BLOCK_ID is -1,
-            // block_id_t is uint, and _id and next_free_id have
-            // different number of bits
-            struct temp_t {
-                block_id_t id : 62;
-            };
-            temp_t temp;
-            temp.id = 0;
-            temp.id--;
-            if(next_free_id == temp.id)
-                return NULL_BLOCK_ID;
-            else
-                return next_free_id;
-        }
-        void set_next_free_id(block_id_t _id) {
-            assert(get_state() == block_unused);
-            // We need to do this because NULL_BLOCK_ID is -1,
-            // block_id_t is uint, and _id and next_free_id have
-            // different number of bits
-            if(_id == NULL_BLOCK_ID) {
-                next_free_id = 0;
-                next_free_id--;
-            }
-            else
-                next_free_id = _id;
-        }
-
-    private:
-        block_state_t state          : 2;
-        union {
-            off64_t offset           : 62;  // If state == block_used, the location of the block in the file
-            block_id_t next_free_id  : 62;  // If state == block_unused, contains the id of the next free block
-        };
-    };
-    
-    segmented_vector_t<block_info_t, MAX_BLOCK_ID> blocks;
-    block_id_t next_free_id;
+    segmented_vector_t<off64_t, MAX_BLOCK_ID> blocks;
 
 public:
     in_memory_index_t() {
-        /* This constructor is used when we are creating a new database. The only entry is the
-        superblock. The reason why we put the superblock ID into limbo manually is because this is
-        the best way to guarantee that block ID 0 is the superblock. */
-        blocks.set_size(1);
-        blocks[SUPERBLOCK_ID].set_state(block_in_limbo);
-        next_free_id = NULL_BLOCK_ID;
+        /* This constructor is used when we are creating a new database. Initially no blocks
+        exist. */
     }
     
     in_memory_index_t(lba_disk_structure_t *s, data_block_manager_t *dbm, extent_manager_t *em) {
         
-        /* Call each lba_extent_t in reverse order */
-        
-        if (s->last_extent) fill_from_extent(s->last_extent);
+        /* Call each lba_extent_t in the same order they were written */
         
         if (s->superblock) {
-            lba_disk_extent_t *e = s->superblock->extents.tail();
-            while (e) {
+            for (lba_disk_extent_t *e = s->superblock->extents.head();
+                 e;
+                 e = s->superblock->extents.next(e)) {
                 fill_from_extent(e);
-                e = s->superblock->extents.prev(e);
             }
         }
+        if (s->last_extent) fill_from_extent(s->last_extent);
         
-        // Now that we're finished loading the lba blocks, go
-        // through the ids and create a freelist of unused ids so
-        // that we can recycle and reuse them (this is necessary
-        // because the system depends on the id space being
-        // dense). We're doing another pass here, and it sucks,
-        // but will do for first release. TODO: fix the lba system
-        // to avoid O(n) algorithms on startup.
+        // Inform the DBM which blocks are in use
         dbm->start_reconstruct();
-        next_free_id = NULL_BLOCK_ID;
-        for (block_id_t id = 0; id < blocks.get_size(); id ++) {
-            // Remap blocks that weren't found to unused
-            switch (blocks[id].get_state()) {
-                case block_not_found:
-                    blocks[id].set_state(block_unused);
-                    //fall through intentional
-                case block_unused:
-                    blocks[id].set_next_free_id(next_free_id);
-                    next_free_id = id;
-                    break;
-                case block_in_limbo:
-                    fail("Block in limbo during reconstruct");
-                    break;
-                case block_used:
-                    dbm->mark_live(blocks[id].get_offset());
-                    break;
-                default:
-                    fail("Block in unknown state during reconstruct");
-                    break;
+        for (ser_block_id_t id = 0; id < blocks.get_size(); id ++) {
+        
+            // The segmented_vector_t will initialize its cells to 0. For this to
+            // be zero probably means we didn't fill it in with anything for some
+            // reason.
+            assert(blocks[id] != 0);
+            
+            if (blocks[id] != DELETE_BLOCK) {
+                dbm->mark_live(blocks[id]);
             }
         }
         end_reconstruct(dbm, em, s);
@@ -165,8 +74,7 @@ private:
 public:
     bool is_extent_referenced(unsigned int extent_id) {
         for (unsigned int i = 0; i < blocks.get_size(); i++) {
-            block_info_t block = blocks[i];
-            if (block.get_state() == block_used && block.get_offset() / EXTENT_SIZE == extent_id) {
+            if (blocks[i] / EXTENT_SIZE == extent_id) {
                 printf("Referenced with block_id: %d\n", i);
                 return true;
             }
@@ -177,8 +85,7 @@ public:
     int extent_refcount(unsigned int extent_id) {
         int refcount = 0;
         for (unsigned int i = 0; i < blocks.get_size(); i++) {
-            block_info_t block = blocks[i];
-            if (block.get_state() == block_used && block.get_offset() / EXTENT_SIZE == extent_id) {
+            if (blocks[i] / EXTENT_SIZE == extent_id) {
                 printf("refed by block id: %d\n", i);
                 refcount++;
             }
@@ -188,17 +95,15 @@ public:
 
     bool is_offset_referenced(off64_t offset) {
         for (unsigned int i = 0; i < blocks.get_size(); i++) {
-            block_info_t block = blocks[i];
-            if (block.get_state() == block_used && block.get_offset() == offset)
+            if (blocks[i] == offset)
                 return true;
         }
         return false;
     }
 
-    bool is_offset_referenced(block_id_t block_id, off64_t offset) {
+    bool is_offset_referenced(ser_block_id_t block_id, off64_t offset) {
         for (unsigned int i = 0; i < blocks.get_size(); i++) {
-            block_info_t block = blocks[i];
-            if (block.get_state() == block_used && block.get_offset() == offset && i != block_id)
+            if (blocks[i] == offset && i != block_id)
                 return true;
         }
         return false;
@@ -206,13 +111,9 @@ public:
 
     bool have_duplicates() {
         for (unsigned int i = 0; i < blocks.get_size(); i++) {
-            off64_t offset;
-            if (blocks[i].get_state() == block_used)
-                offset = blocks[i].get_offset();
-            else 
-                continue;
+            if (blocks[i] == DELETE_BLOCK) continue;
             for (unsigned int j = i + 1; j < blocks.get_size(); j++) {
-                if (blocks[j].get_state() == block_used && blocks[j].get_offset() == offset)
+                if (blocks[j] == blocks[i])
                     return true;
             }
         }
@@ -256,7 +157,7 @@ public:
 public:
     void fill_from_extent(lba_disk_extent_t *x) {
     
-        for (int i = x->count - 1; i >= 0; i --) {
+        for (int i = 0; i < x->count; i ++) {
             
             lba_entry_t *entry = &x->data->data()->entries[i];
         
@@ -266,98 +167,54 @@ public:
             assert(entry->block_id != PADDING_BLOCK_ID);
         
             // Sanity check. If this assertion fails, it probably means that the file was
-            // corrupted, or was created with a different btree block size.
+            // corrupted, or was created with a different device block size.
             assert(entry->offset == DELETE_BLOCK || entry->offset % DEVICE_BLOCK_SIZE == 0);
 
-            // If it's an entry for a block we haven't seen before, then record its information
-            if(entry->block_id >= blocks.get_size())
+            // Grow the array if necessary
+            if (entry->block_id >= blocks.get_size()) {
+                ser_block_id_t old_size = blocks.get_size();
                 blocks.set_size(entry->block_id + 1);
-        
-            block_info_t *binfo = &blocks[entry->block_id];
-            if (binfo->get_state() == block_not_found) {
-                if (entry->offset == DELETE_BLOCK) {
-                    binfo->set_state(block_unused);
-                } else {
-                    binfo->set_state(block_used);
-                    binfo->set_offset(entry->offset);
+                for (ser_block_id_t i = old_size; i < entry->block_id; i++) {
+                    blocks[i] = DELETE_BLOCK;
                 }
             }
+            
+            // Write the entry
+            blocks[entry->block_id] = entry->offset;
         }
     }
     
-    block_id_t gen_block_id(void) {
-        if(next_free_id == NULL_BLOCK_ID) {
-            // There is no recyclable block id
-            block_id_t id = blocks.get_size();
-            blocks.set_size(blocks.get_size() + 1);
-            blocks[id].set_state(block_in_limbo);
-            return id;
-        } else {
-            // Grab a recyclable id from the freelist
-            block_id_t id = next_free_id;
-            assert(blocks[id].get_state() == block_unused);
-            next_free_id = blocks[id].get_next_free_id();
-            blocks[id].set_state(block_in_limbo);
-            return id;
-        }
-    }
-    
-    block_id_t max_block_id() {
+    ser_block_id_t max_block_id() {
         return blocks.get_size();
     }
     
-    off64_t get_block_offset(block_id_t id) {
+    off64_t get_block_offset(ser_block_id_t id) {
         if(id >= blocks.get_size()) {
-            fail("Tried to get offset of a block that doesn't exist (id %lu too high)", id);
-        }
-        if (blocks[id].get_state() == block_used) {
-            return blocks[id].get_offset();
-        } else {
             return DELETE_BLOCK;
+        } else {
+            return blocks[id];
         }
     }
     
-    void set_block_offset(block_id_t id, off64_t offset) {
-    
-        // Blocks must be returned by gen_block_id() before they are legal to use
-        assert(blocks[id].get_state() != block_unused);
+    void set_block_offset(ser_block_id_t id, off64_t offset) {
         
-        blocks[id].set_state(block_used);
-        blocks[id].set_offset(offset);
+        /* Grow the array if necessary, and fill in the empty space with DELETE_BLOCK */
+        if (id >= blocks.get_size()) {
+            int old_size = blocks.get_size();
+            blocks.set_size(id + 1);
+            for (unsigned i = old_size; i < blocks.get_size(); i++) {
+                blocks[i] = DELETE_BLOCK;
+            }
+        }
+        
+        blocks[id] = offset;
     }
     
-    void delete_block(block_id_t id) {
-    
-        assert(blocks[id].get_state() != block_unused);
-        blocks[id].set_state(block_unused);
-        
-        // Add the unused block to the freelist
-        blocks[id].set_next_free_id(next_free_id);
-        next_free_id = id;
-    }
-
     void print() {
 #ifndef NDEBUG
         printf("LBA:\n");
-        for (unsigned int i = 0; i <blocks.get_size(); i++) {
-            printf("%d ", i);
-            switch (blocks[i].get_state()) {
-                case block_not_found:
-                    printf("block_not_found");
-                    break;
-                case block_unused:
-                    printf("block_unused");
-                    break;
-                case block_in_limbo:
-                    printf("block_in_limbo");
-                    break;
-                case block_used:
-                    printf("block_used --> %.8x\n", (unsigned int) blocks[i].get_offset());
-                    break;
-                default:
-                    fail("Block in unknown state during print");
-                    break;
-            }
+        for (unsigned int i = 0; i < blocks.get_size(); i++) {
+            printf("%d %.8lx\n", i, (unsigned long int)blocks[i]);
         }
 #endif
     }

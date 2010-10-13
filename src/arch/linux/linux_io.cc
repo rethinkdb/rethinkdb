@@ -1,4 +1,5 @@
 #include <fcntl.h>
+#include <sys/eventfd.h>
 #include <algorithm>
 #include <unistd.h>
 #include <stdio.h>
@@ -31,7 +32,7 @@ void linux_net_conn_t::set_callback(linux_net_conn_callback_t *cb) {
     assert(cb);
     callback = cb;
     
-    linux_thread_pool_t::event_queue->watch_resource(sock, EPOLLET|EPOLLIN|EPOLLOUT, this);
+    linux_thread_pool_t::thread->queue.watch_resource(sock, EPOLLET|EPOLLIN|EPOLLOUT, this);
 }
 
 ssize_t linux_net_conn_t::read_nonblocking(void *buf, size_t count) {
@@ -71,6 +72,8 @@ void linux_net_conn_t::on_epoll(int events) {
         return;
         
     } else {
+        // TODO: this actually happened at some point. Handle all of
+        // these things properly.
         fail("epoll_wait came back with an unhandled event");
     }
     
@@ -83,7 +86,7 @@ linux_net_conn_t::~linux_net_conn_t() {
         *set_me_true_on_delete = true;
     
     if (sock != INVALID_FD) {
-        if (callback) linux_thread_pool_t::event_queue->forget_resource(sock, this);
+        if (callback) linux_thread_pool_t::thread->queue.forget_resource(sock, this);
         ::close(sock);
         sock = INVALID_FD;
     }
@@ -127,7 +130,7 @@ void linux_net_listener_t::set_callback(linux_net_listener_callback_t *cb) {
     assert(cb);
     callback = cb;
     
-    linux_thread_pool_t::event_queue->watch_resource(sock, EPOLLET|EPOLLIN, this);
+    linux_thread_pool_t::thread->queue.watch_resource(sock, EPOLLET|EPOLLIN, this);
 }
 
 void linux_net_listener_t::on_epoll(int events) {
@@ -151,7 +154,7 @@ linux_net_listener_t::~linux_net_listener_t() {
     
     int res;
     
-    if (callback) linux_thread_pool_t::event_queue->forget_resource(sock, this);
+    if (callback) linux_thread_pool_t::thread->queue.forget_resource(sock, this);
     
     res = shutdown(sock, SHUT_RDWR);
     check("Could not shutdown main socket", res == -1);
@@ -246,13 +249,12 @@ bool linux_direct_file_t::read_async(size_t offset, size_t length, void *buf, li
     
     verify(offset, length, buf);
     
-    linux_event_queue_t *queue = linux_thread_pool_t::event_queue;
-    linux_io_calls_t *iosys = &queue->iosys;
+    linux_io_calls_t *iosys = &linux_thread_pool_t::thread->iosys;
     
     // Prepare the request
     iocb *request = (iocb*)tls_small_obj_alloc_accessor<alloc_t>::get_alloc<iocb>()->malloc(iosys->iocb_size);
     io_prep_pread(request, fd, buf, length, offset);
-    io_set_eventfd(request, queue->aio_notify_fd);
+    io_set_eventfd(request, iosys->aio_notify_fd);
     request->data = callback;
 
     // Add it to a list of outstanding read requests
@@ -276,13 +278,12 @@ bool linux_direct_file_t::write_async(size_t offset, size_t length, void *buf, l
     
     verify(offset, length, buf);
     
-    linux_event_queue_t *queue = linux_thread_pool_t::event_queue;
-    linux_io_calls_t *iosys = &queue->iosys;
+    linux_io_calls_t *iosys = &linux_thread_pool_t::thread->iosys;
     
     // Prepare the request
     iocb *request = (iocb*)tls_small_obj_alloc_accessor<alloc_t>::get_alloc<iocb>()->malloc(iosys->iocb_size);
     io_prep_pwrite(request, fd, buf, length, offset);
-    io_set_eventfd(request, queue->aio_notify_fd);
+    io_set_eventfd(request, iosys->aio_notify_fd);
     request->data = callback;
 
     // Add it to a list of outstanding write requests
@@ -327,10 +328,30 @@ void linux_direct_file_t::verify(size_t offset, size_t length, void *buf) {
 /* TODO: Batch requests internally so that we can send multiple requests per
 call to io_submit(). */
 
-linux_io_calls_t::linux_io_calls_t(linux_event_queue_t *_queue)
-    : queue(_queue),
+linux_io_calls_t::linux_io_calls_t(linux_event_queue_t *queue)
+    : queue(queue),
       n_pending(0)
 {
+    int res;
+    
+    // Create aio context
+    
+    aio_context = 0;
+    res = io_setup(MAX_CONCURRENT_IO_REQUESTS, &aio_context);
+    check("Could not setup aio context", res != 0);
+    
+    // Create aio notify fd
+    
+    aio_notify_fd = eventfd(0, 0);
+    check("Could not create aio notification fd", aio_notify_fd == -1);
+
+    res = fcntl(aio_notify_fd, F_SETFL, O_NONBLOCK);
+    check("Could not make aio notify fd non-blocking", res != 0);
+
+    queue->watch_resource(aio_notify_fd, EPOLLET|EPOLLIN, this);
+    
+    // Expand vectors now so we don't have to grow them later
+    
     r_requests.reserve(MAX_CONCURRENT_IO_REQUESTS);
     w_requests.reserve(MAX_CONCURRENT_IO_REQUESTS);
 }
@@ -340,6 +361,48 @@ linux_io_calls_t::~linux_io_calls_t()
     assert(r_requests.empty());
     assert(w_requests.empty());
     assert(n_pending == 0);
+    
+    int res;
+    
+    res = close(aio_notify_fd);
+    check("Could not close aio_notify_fd", res != 0);
+    
+    res = io_destroy(aio_context);
+    check("Could not destroy aio_context", res != 0);
+}
+
+void linux_io_calls_t::on_epoll(int) {
+    
+    int res, nevents;
+    eventfd_t nevents_total;
+    
+    res = eventfd_read(aio_notify_fd, &nevents_total);
+    check("Could not read aio_notify_fd value", res != 0);
+
+    // Note: O(1) array allocators are hard. To avoid all the
+    // complexity, we'll use a fixed sized array and call io_getevents
+    // multiple times if we have to (which should be very unlikely,
+    // anyway).
+    io_event events[MAX_IO_EVENT_PROCESSING_BATCH_SIZE];
+    
+    do {
+        // Grab the events. Note: we need to make sure we don't read
+        // more than nevents_total, otherwise we risk reading an io
+        // event and getting an eventfd for this read event later due
+        // to the way the kernel is structured. Better avoid this
+        // complexity (hence std::min below).
+        nevents = io_getevents(aio_context, 0,
+                               std::min((int)nevents_total, MAX_IO_EVENT_PROCESSING_BATCH_SIZE),
+                               events, NULL);
+        check("Waiting for AIO event failed", nevents < 1);
+        
+        // Process the events
+        for(int i = 0; i < nevents; i++) {
+            aio_notify((iocb*)events[i].obj, events[i].res);
+        }
+        nevents_total -= nevents;
+        
+    } while (nevents_total > 0);
 }
 
 void linux_io_calls_t::aio_notify(iocb *event, int result) {
@@ -392,7 +455,7 @@ int linux_io_calls_t::process_request_batch(request_vector_t *requests) {
     // Submit a batch
     int res = 0;
     if(requests->size() > 0) {
-        res = io_submit(queue->aio_context,
+        res = io_submit(aio_context,
                         std::min(requests->size(), size_t(TARGET_IO_QUEUE_DEPTH / 2)),
                         &requests->operator[](0));
         if(res > 0) {

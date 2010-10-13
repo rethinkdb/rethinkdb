@@ -3,6 +3,7 @@
 #define __MIRRORED_CACHE_HPP__
 
 #include "arch/arch.hpp"
+#include "buffer_cache/types.hpp"
 #include "concurrency/access.hpp"
 #include "concurrency/rwi_lock.hpp"
 #include "buffer_cache/mirrored/callbacks.hpp"
@@ -179,6 +180,7 @@ struct mc_cache_t :
     friend class mc_config_t::concurrency_t::local_buf_t;
     friend class mc_config_t::page_map_t;
     friend class mc_config_t::page_map_t::local_buf_t;    
+    friend class mc_config_t::free_list_t;
     
 public:
     typedef mc_buf_t<mc_config_t> buf_t;
@@ -205,6 +207,7 @@ private:
     typename mc_config_t::page_repl_t page_repl;
     typename mc_config_t::writeback_t writeback;
     typename mc_config_t::concurrency_t concurrency;
+    typename mc_config_t::free_list_t free_list;
 
 public:
     mc_cache_t(

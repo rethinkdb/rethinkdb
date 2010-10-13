@@ -29,28 +29,32 @@ struct linux_io_config_t {
     }
     
     static bool continue_on_cpu(int cpu, linux_cpu_message_t *msg) {
+        msg->return_cpu = get_cpu_id();
         if (cpu == get_cpu_id()) {
             // The CPU to continue on is the CPU we are already on
             return true;
         } else {
-            linux_thread_pool_t::event_queue->message_hub.store_message(cpu, msg);
+            linux_thread_pool_t::thread->message_hub.store_message(cpu, msg);
             return false;
         }
     }
     
     static void call_later_on_this_cpu(linux_cpu_message_t *msg) {
-        linux_thread_pool_t::event_queue->message_hub.store_message(get_cpu_id(), msg);
+        linux_thread_pool_t::thread->message_hub.store_message(get_cpu_id(), msg);
     }
     
-    typedef linux_event_queue_t::timer_t timer_token_t;
+    typedef linux_timer_token_t timer_token_t;
+    
     static timer_token_t *add_timer(long ms, void (*callback)(void *), void *ctx) {
-        return linux_thread_pool_t::event_queue->add_timer_internal(ms, callback, ctx, false);
+        return linux_thread_pool_t::thread->timer_handler.add_timer_internal(ms, callback, ctx, false);
     }
+    
     static timer_token_t *fire_timer_once(long ms, void (*callback)(void *), void *ctx) {
-        return linux_thread_pool_t::event_queue->add_timer_internal(ms, callback, ctx, true);
+        return linux_thread_pool_t::thread->timer_handler.add_timer_internal(ms, callback, ctx, true);
     }
+    
     static void cancel_timer(timer_token_t *timer) {
-        linux_thread_pool_t::event_queue->cancel_timer(timer);
+        linux_thread_pool_t::thread->timer_handler.cancel_timer(timer);
     }
 };
 

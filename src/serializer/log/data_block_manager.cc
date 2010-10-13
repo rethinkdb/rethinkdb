@@ -157,7 +157,7 @@ void data_block_manager_t::run_gc() {
 
                         for (unsigned int i = 0; i < extent_manager->extent_size / BTREE_BLOCK_SIZE; i++) {
                             if (!gc_state.current_entry.g_array[i]) {
-                                writes[nwrites].block_id = *((block_id_t *) (gc_state.gc_blocks + (i * block_size)));
+                                writes[nwrites].block_id = *((ser_block_id_t *) (gc_state.gc_blocks + (i * block_size)));
                                 writes[nwrites].buf = gc_state.gc_blocks + (i * block_size);
                                 writes[nwrites].callback = NULL;
                                 nwrites++;

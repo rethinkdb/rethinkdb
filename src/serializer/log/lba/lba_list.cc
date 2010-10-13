@@ -89,19 +89,13 @@ bool lba_list_t::start(direct_file_t *file, metablock_mixin_t *last_metablock, r
     return starter->run(last_metablock, cb);
 }
 
-block_id_t lba_list_t::gen_block_id() {
-    assert(state == state_ready);
-    
-    return in_memory_index->gen_block_id();
-}
-
-block_id_t lba_list_t::max_block_id() {
+ser_block_id_t lba_list_t::max_block_id() {
     assert(state == state_ready);
     
     return in_memory_index->max_block_id();
 }
 
-off64_t lba_list_t::get_block_offset(block_id_t block) {
+off64_t lba_list_t::get_block_offset(ser_block_id_t block) {
     assert(state == state_ready);
     
     return in_memory_index->get_block_offset(block);
@@ -121,7 +115,7 @@ int lba_list_t::extent_refcount(off64_t offset) {
 }
 #endif
 
-void lba_list_t::set_block_offset(block_id_t block, off64_t offset) {
+void lba_list_t::set_block_offset(ser_block_id_t block, off64_t offset) {
     assert(state == state_ready);
     
     in_memory_index->set_block_offset(block, offset);
@@ -132,15 +126,6 @@ void lba_list_t::set_block_offset(block_id_t block, off64_t offset) {
     since our changes are also being put into the in_memory_index, they will be
     incorporated into the new disk_structure that the GC creates, so they won't get lost. */
     disk_structure->add_entry(block, offset);
-}
-
-void lba_list_t::delete_block(block_id_t block) {
-    assert(state == state_ready);
-    
-    in_memory_index->delete_block(block);
-    
-    /* See set_block_offset() for why this is OK even when the GC is running */
-    disk_structure->add_entry(block, DELETE_BLOCK);
 }
 
 struct lba_syncer_t :
@@ -217,7 +202,7 @@ struct gc_fsm_t :
         
         /* Put entries in the new empty LBA */
         
-        for (block_id_t id = 0; id < owner->max_block_id(); id++) {
+        for (ser_block_id_t id = 0; id < owner->max_block_id(); id++) {
             owner->disk_structure->add_entry(id, owner->get_block_offset(id));
         }
         

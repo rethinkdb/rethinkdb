@@ -112,7 +112,7 @@ btree_get_fsm_t::transition_result_t btree_get_fsm_t::do_acquire_node(event_t *e
             delete_expired(&key, store);
             found = false;
         }
-        if (found && value.large_value()) {
+        if (found && value.is_large()) {
             state = acquire_large_value;
         } else {
             state = lookup_complete;
@@ -126,7 +126,7 @@ btree_get_fsm_t::transition_result_t btree_get_fsm_t::do_acquire_node(event_t *e
 btree_get_fsm_t::transition_result_t btree_get_fsm_t::do_acquire_large_value(event_t *event) {
     assert(state == acquire_large_value);
 
-    assert(value.large_value());
+    assert(value.is_large());
 
     if (!event) {
         large_value = new large_buf_t(transaction);
@@ -151,12 +151,9 @@ btree_get_fsm_t::transition_result_t btree_get_fsm_t::do_large_value_acquired(ev
     assert(!event);
     assert(large_value->get_index_block_id() == value.lv_index_block_id());
 
-    write_lv_msg = new write_large_value_msg_t(large_value, req, this, this);
-    
-    if (continue_on_cpu(return_cpu, write_lv_msg))  {
-        call_later_on_this_cpu(write_lv_msg);
-    }
-    
+    write_lv_msg = new write_large_value_msg_t(large_value, this, return_cpu, req, this);
+
+    write_lv_msg->dispatch();
     // And now, we wait... For the socket to be ready for our value.
     return btree_fsm_t::transition_incomplete;
 }
@@ -209,6 +206,7 @@ btree_get_fsm_t::transition_result_t btree_get_fsm_t::do_transition(event_t *eve
             case large_value_writing:
                 assert(!event);
                 large_value->release();
+                delete large_value;
                 state = lookup_complete;
                 break;
 
@@ -226,12 +224,14 @@ btree_get_fsm_t::transition_result_t btree_get_fsm_t::do_transition(event_t *eve
     return res;
 }
 
-void btree_get_fsm_t::on_large_value_read() {
+void btree_get_fsm_t::on_large_value_completed(bool success) {
+    assert(success);
+    write_lv_msg = NULL;
     this->step();
 }
 
-void btree_get_fsm_t::on_large_value_completed(bool _success) {
-    assert(_success);
-    write_lv_msg = NULL;
-    this->step();
+void btree_get_fsm_t::begin_lv_write() {
+    //assert_cpu();
+    state = large_value_writing; // XXX
+    write_lv_msg->begin_write();
 }

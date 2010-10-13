@@ -9,6 +9,7 @@
 #include <boost/crc.hpp>
 #include "arch/arch.hpp"
 #include "config/args.hpp"
+#include "serializer/types.hpp"
 #include "containers/two_level_array.hpp"
 
 /* This is a thin wrapper around the log serializer that makes sure that the
@@ -56,7 +57,7 @@ private:
 
 private:
     struct persisted_block_info_t {
-        block_id_t block_id;
+        ser_block_id_t block_id;
         block_info_t block_info;
     };
     int semantic_fd;
@@ -109,12 +110,12 @@ public:
         public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, reader_t>
     {
         semantic_checking_serializer_t *parent;
-        block_id_t block_id;
+        ser_block_id_t block_id;
         void *buf;
         block_info_t expected_block_state;
         read_callback_t *callback;
         
-        reader_t(semantic_checking_serializer_t *parent, block_id_t block_id, void *buf, block_info_t expected_block_state)
+        reader_t(semantic_checking_serializer_t *parent, ser_block_id_t block_id, void *buf, block_info_t expected_block_state)
             : parent(parent), block_id(block_id), buf(buf), expected_block_state(expected_block_state) {}
         
         void on_serializer_read() {
@@ -151,7 +152,7 @@ public:
         }
     };
     
-    bool do_read(block_id_t block_id, void *buf, read_callback_t *callback) {
+    bool do_read(ser_block_id_t block_id, void *buf, read_callback_t *callback) {
 #ifdef SERIALIZER_DEBUG_PRINT
         printf("Reading %ld\n", block_id);
 #endif
@@ -243,8 +244,18 @@ public:
     }
     
 public:
-    block_id_t gen_block_id() {
-        return inner_serializer.gen_block_id();
+    ser_block_id_t max_block_id() {
+        return inner_serializer.max_block_id();
+    }
+    
+    bool block_in_use(ser_block_id_t id) {
+        bool in_use = inner_serializer.block_in_use(id);
+        switch (blocks.get(id).state) {
+            case block_info_t::state_unknown: break;
+            case block_info_t::state_deleted: assert(!in_use); break;
+            case block_info_t::state_have_crc: assert(in_use); break;
+        }
+        return in_use;
     }
     
 public:

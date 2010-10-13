@@ -51,7 +51,7 @@
 #define BTREE_BLOCK_SIZE                          (4 * KILOBYTE)
 
 //actual btree block size we have to work with
-#define BTREE_USABLE_BLOCK_SIZE                   BTREE_BLOCK_SIZE - BLOCK_META_DATA_SIZE
+#define BTREE_USABLE_BLOCK_SIZE                   (BTREE_BLOCK_SIZE - BLOCK_META_DATA_SIZE)
 
 // Maximum number of data blocks
 #define MAX_DATA_EXTENTS                          (1 << 64 / EXTENT_SIZE)
@@ -81,10 +81,10 @@
 
 // Maximum number of CPUs we support
 // TODO: make this dynamic where possible
-#define MAX_CPUS                                  32
+#define MAX_CPUS                                  128
 
 // Maximum slices per thread
-#define MAX_SLICES                                32
+#define MAX_SLICES                                128
 
 // The number of ways we split a BTree (the most optimal is the number
 // of cores, but we use a higher split factor to allow upgrading to

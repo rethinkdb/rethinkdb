@@ -107,15 +107,23 @@ endif
 	$(QUIET) $(CXX) $(LDFLAGS) $(OBJS) -o $(BUILD_DIR)/$(SERVER_EXEC_NAME)
 	$(QUIET) cp $(SCRIPTS_DIR)/$(START_DB_NAME) $(BUILD_DIR)/$(START_DB_NAME)
 	$(QUIET) cp $(SCRIPTS_DIR)/$(GDB_FUNCTIONS_NAME) $(BUILD_DIR)/$(GDB_FUNCTIONS_NAME)
+
 # The 'run' and 'gdb' targets build the server, automatically remove old data files, and then start
-# it up. The difference is that the 'gdb' target starts it under a debugger.
+# it up. The difference is that the 'gdb' target starts it under a debugger. The 're*' targets are
+# like the similarly-named targets except that they don't remove old data files.
 
 run: $(BUILD_DIR)/$(SERVER_EXEC_NAME)
 	$(QUIET) rm -rf db_data
 	$(BUILD_DIR)/$(SERVER_EXEC_NAME) -p $(RUN_PORT) $(RUN_FLAGS)
 
+rerun: $(BUILD_DIR)/$(SERVER_EXEC_NAME)
+	$(BUILD_DIR)/$(SERVER_EXEC_NAME) -p $(RUN_PORT) $(RUN_FLAGS)
+
 gdb: $(BUILD_DIR)/$(SERVER_EXEC_NAME)
 	$(QUIET) rm -rf db_data
+	gdb --args $(BUILD_DIR)/$(SERVER_EXEC_NAME) -p $(RUN_PORT) $(RUN_FLAGS)
+
+regdb: $(BUILD_DIR)/$(SERVER_EXEC_NAME)
 	gdb --args $(BUILD_DIR)/$(SERVER_EXEC_NAME) -p $(RUN_PORT) $(RUN_FLAGS)
 
 valgrind: $(BUILD_DIR)/$(SERVER_EXEC_NAME)

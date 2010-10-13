@@ -14,7 +14,7 @@ struct request_callback_t {
 
     request_callback_t(request_handler_t *rh) : rh(rh) {}
 
-    virtual void on_fsm_ready() {} // XXX Rename this
+    virtual void on_fsm_ready(btree_fsm_t *fsm) {} // XXX Rename this
 
     request_handler_t *rh;
 };

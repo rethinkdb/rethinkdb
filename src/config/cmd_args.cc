@@ -115,9 +115,17 @@ void parse_cmd_args(int argc, char *argv[], cmd_config_t *config)
             break;
         case 'c':
             config->n_workers = atoi(optarg);
+            // Subtract one because of utility cpu
+            if(config->n_workers > MAX_CPUS - 1) {
+                fail("Maximum number of CPUs is %d\n", MAX_CPUS - 1);
+                abort();
+            }
             break;
         case 's':
             config->n_slices = atoi(optarg);
+            if(config->n_slices > MAX_SLICES) {
+                fail("Maximum number of slices is %d\n", MAX_SLICES);
+            }
             break;
         case 'm':
             config->max_cache_size = atoll(optarg) * 1024 * 1024;

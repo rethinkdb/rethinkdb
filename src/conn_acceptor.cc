@@ -2,6 +2,7 @@
 #include "server.hpp"
 #include "conn_fsm.hpp"
 #include "request_handler/memcached_handler.hpp"
+#include "db_cpu_info.hpp"
 
 conn_acceptor_t::conn_acceptor_t(server_t *server)
     : state(state_off), server(server), listener(NULL), next_cpu(0), n_active_conns_perfmon("curr_connections", &n_active_conns), n_active_conns(0) { }
@@ -27,7 +28,7 @@ void conn_acceptor_t::on_net_listener_accept(net_conn_t *conn) {
     conn_fsm_handler_t *c = new conn_fsm_handler_t(this, conn);
     n_active_conns++;
     
-    int cpu = next_cpu++ % get_num_cpus();
+    int cpu = next_cpu++ % get_num_db_cpus();
     do_on_cpu(cpu, c, &conn_fsm_handler_t::create_conn_fsm);
 }
 
@@ -55,7 +56,7 @@ bool conn_acceptor_t::shutdown(shutdown_callback_t *cb) {
     
     /* Notify any existing network connections to shut down */
     
-    for (int i = 0; i < get_num_cpus(); i++) {
+    for (int i = 0; i < get_num_db_cpus(); i++) {
         do_on_cpu(i, this, &conn_acceptor_t::shutdown_conns_on_this_core);
     }
     

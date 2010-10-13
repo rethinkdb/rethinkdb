@@ -119,7 +119,7 @@ struct lba_writer_t :
     }
 };
 
-void lba_disk_structure_t::add_entry(block_id_t block_id, off64_t offset) {
+void lba_disk_structure_t::add_entry(ser_block_id_t block_id, off64_t offset) {
     
     if (last_extent && last_extent->full()) {
         
@@ -145,8 +145,8 @@ bool lba_disk_structure_t::sync(sync_callback_t *cb) {
     
     lba_writer_t *writer = new lba_writer_t(cb);
     
-    if (last_extent) {
-        if (!last_extent->sync(writer)) writer->outstanding_cbs++;
+    if (last_extent && !last_extent->sync(writer)) {
+        writer->outstanding_cbs++;
     }
     
     if (superblock) {

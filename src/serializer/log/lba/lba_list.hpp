@@ -3,7 +3,7 @@
 #ifndef __SERIALIZER_LOG_LBA_LIST_HPP__
 #define __SERIALIZER_LOG_LBA_LIST_HPP__
 
-#include "arch/resource.hpp"
+#include "serializer/types.hpp"
 #include "../extents/extent_manager.hpp"
 #include "disk_format.hpp"
 #include "in_memory_index.hpp"
@@ -40,15 +40,13 @@ public:
     bool start(direct_file_t *dbfile, metablock_mixin_t *last_metablock, ready_callback_t *cb);
     
 public:
-    /* gen_block_id() will return a block ID which is "in limbo". It is not considered to be
-    "in use" until it is actually written to disk, but gen_block_id() will not return the same
-    ID again until either it is written to disk and then deleted or the database is restarted. */
-    block_id_t gen_block_id();
-    
     /* Returns DELETE_BLOCK if the block does not exist */
-    off64_t get_block_offset(block_id_t block);
+    off64_t get_block_offset(ser_block_id_t block);
     
-    block_id_t max_block_id();
+    /* Returns a block ID such that all blocks that exist are guaranteed to have IDs less than
+    that block ID. */
+    ser_block_id_t max_block_id();
+    
 #ifndef NDEBUG
     bool is_extent_referenced(off64_t offset);
     bool is_offset_referenced(off64_t offset);
@@ -56,8 +54,7 @@ public:
 #endif
     
 public:
-    void set_block_offset(block_id_t block, off64_t offset);
-    void delete_block(block_id_t block);
+    void set_block_offset(ser_block_id_t block, off64_t offset);
     
     struct sync_callback_t {
         virtual void on_lba_sync() = 0;

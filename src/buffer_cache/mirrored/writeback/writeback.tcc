@@ -10,23 +10,18 @@ writeback_tmpl_t<mc_config_t>::writeback_tmpl_t(
       flush_timer_ms(flush_timer_ms),
       flush_threshold(flush_threshold),
       flush_timer(NULL),
-      state(state_unstarted),
+      state(state_ready),
       cache(cache),
       start_next_sync_immediately(false),
       transaction(NULL) {
+    
+    flush_lock = gnew<rwi_lock_t>();
 }
 
 template<class mc_config_t>
 writeback_tmpl_t<mc_config_t>::~writeback_tmpl_t() {
     assert(!flush_timer);
     gdelete(flush_lock);
-}
-
-template<class mc_config_t>
-void writeback_tmpl_t<mc_config_t>::start() {
-    assert(state == state_unstarted);
-    flush_lock = gnew<rwi_lock_t>();
-    state = state_ready;
 }
 
 template<class mc_config_t>
@@ -228,6 +223,8 @@ bool writeback_tmpl_t<mc_config_t>::next_writeback_step() {
                 buf->writeback_buf.dirty = false;
                 buf->release();
                 dirty_bufs.remove(&buf->writeback_buf);
+                
+                cache->free_list.release_block_id(buf->get_block_id());
                 
                 delete buf;
             }

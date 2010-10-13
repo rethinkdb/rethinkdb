@@ -116,7 +116,7 @@ btree_modify_fsm_t::transition_result_t btree_modify_fsm_t::do_acquire_node(even
 btree_modify_fsm_t::transition_result_t btree_modify_fsm_t::do_acquire_large_value(event_t *event) {
     assert(state == acquire_large_value);
 
-    assert(old_value.large_value());
+    assert(old_value.is_large());
 
     if (!event) {
         old_large_buf = new large_buf_t(transaction);
@@ -307,7 +307,7 @@ btree_modify_fsm_t::transition_result_t btree_modify_fsm_t::do_transition(event_
                         dest_reached = true;
                     }
 
-                    if (key_found && old_value.large_value() && !old_large_buf) {
+                    if (key_found && old_value.is_large() && !old_large_buf) {
                         state = acquire_large_value;
                         break;
                     }
@@ -364,7 +364,7 @@ btree_modify_fsm_t::transition_result_t btree_modify_fsm_t::do_transition(event_
                    assert(have_computed_new_value);
                    assert(node_handler::is_leaf(node));
                    if (new_value) { // We have a new value to insert
-                       if (new_value->has_cas()) {
+                       if (new_value->has_cas() && !cas_already_set) {
                            new_value->set_cas(slice->gen_cas());
                        }
                        bool success = leaf_node_handler::insert(leaf_node_handler::leaf_node(buf->get_data_write()), &key, new_value);
@@ -485,7 +485,13 @@ btree_modify_fsm_t::transition_result_t btree_modify_fsm_t::do_transition(event_
                     last_node_id = NULL_BLOCK_ID;
                 }
                 if (old_large_buf) {
-                    old_large_buf->release(); // TODO: Delete if necessary.
+                    assert(old_value.is_large());
+                    assert(old_value.lv_index_block_id() == old_large_buf->get_index_block_id());
+                    if (update_needed && (!new_value || new_value->lv_index_block_id() != old_large_buf->get_index_block_id())) {
+                        old_large_buf->mark_deleted();
+                    }
+                    old_large_buf->release();
+                    delete old_large_buf;
                 }
 
                 // End the transaction

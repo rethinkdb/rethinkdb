@@ -8,7 +8,7 @@
 #include <fcntl.h>
 #include <map>
 
-#include "arch/resource.hpp"
+#include "serializer/types.hpp"
 #include "config/cmd_args.hpp"
 #include "config/alloc.hpp"
 #include "utils.hpp"
@@ -81,17 +81,17 @@ public:
     /* data to be serialized with each data block */
     typedef data_block_manager_t::buf_data_t buf_data_t;
 
+public:
     /* start() must be called before the serializer can be used. It will return 'true' if it is
     ready immediately; otherwise, it will return 'false' and then call the given callback later. */
-public:
     struct ready_callback_t {
         virtual void on_serializer_ready() = 0;
     };
     bool start(ready_callback_t *ready_cb);
 
+public:
     /* do_read() reads the block with the given ID. It returns 'true' if the read completes
     immediately; otherwise, it will return 'false' and call the given callback later. */
-public:
     struct read_callback_t : private iocallback_t {
         friend class log_serializer_t;
         virtual void on_serializer_read() = 0;
@@ -100,8 +100,9 @@ public:
             on_serializer_read();
         }
     };
-    bool do_read(block_id_t block_id, void *buf, read_callback_t *callback);
-    
+    bool do_read(ser_block_id_t block_id, void *buf, read_callback_t *callback);
+
+public:
     /* do_write() updates or deletes a group of bufs.
     
     Each write_t passed to do_write() identifies an update or deletion. If 'buf' is NULL, then it
@@ -111,27 +112,34 @@ public:
     call the given callback at a later date.
     
     'writes' can be freed as soon as do_write() returns. */
-public:
+
     typedef _write_txn_callback_t write_txn_callback_t;
 
     typedef _write_block_callback_t write_block_callback_t;
     
     struct write_t {
-        block_id_t block_id;
+        ser_block_id_t block_id;
         void *buf;   /* If NULL, a deletion */
         write_block_callback_t *callback;
     };
     bool do_write(write_t *writes, int num_writes, write_txn_callback_t *callback);
     
 public:
-    /* Generates a unique block id. */
-    block_id_t gen_block_id();
+    /* max_block_id() and block_in_use() are used by the buffer cache to reconstruct
+    the free list of unused block IDs. */
     
+    /* Returns a block ID such that every existing block has an ID less than
+    that ID. Note that block_in_use(max_block_id() - 1) is not guaranteed. */
+    ser_block_id_t max_block_id();
+    
+    /* Checks whether a given block ID exists */
+    bool block_in_use(ser_block_id_t id);
+
+public:
     /* shutdown() should be called when you are done with the serializer.
     
     If the shutdown is done immediately, shutdown() will return 'true'. Otherwise, it will return
     'false' and then call the given callback when the shutdown is done. */
-public:
     struct shutdown_callback_t {
         virtual void on_serializer_shutdown() = 0;
     };
@@ -189,9 +197,9 @@ private:
     for a block ID that we are currently writing but is not on disk yet, we can return
     the most current version. */
     typedef std::map<
-        block_id_t, ls_block_writer_t*,
-        std::less<block_id_t>,
-        gnew_alloc<std::pair<block_id_t, ls_block_writer_t*> >
+        ser_block_id_t, ls_block_writer_t*,
+        std::less<ser_block_id_t>,
+        gnew_alloc<std::pair<ser_block_id_t, ls_block_writer_t*> >
         > block_writer_map_t;
     block_writer_map_t block_writer_map;
 #ifndef NDEBUG
