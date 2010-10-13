@@ -20,6 +20,7 @@
 /* Buffer class. */
 template<class mc_config_t>
 class mc_buf_t :
+    public cpu_message_t,
     public serializer_t::read_callback_t,
     public serializer_t::write_block_callback_t,
     public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, mc_buf_t<mc_config_t> >,
@@ -77,11 +78,13 @@ private:
     
     bool is_cached() { return cached; }
 
-    // Callback API
-    void add_load_callback(block_available_callback_t *callback);
+    void on_cpu_switch();
     
-    void on_serializer_read();
-    void on_serializer_write_block();
+    void add_load_callback(block_available_callback_t *callback);
+    void on_serializer_read();   // Called on serializer CPU
+    void have_read();   // Called on cache CPU
+    
+    void on_serializer_write_block();   // Called on serializer CPU
     
     bool safe_to_unload();
     bool safe_to_delete();

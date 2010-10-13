@@ -24,18 +24,47 @@ mc_buf_t<mc_config_t>::mc_buf_t(cache_t *cache, block_id_t block_id, block_avail
 #ifndef NDEBUG
     active_callback_count ++;
 #endif
-    bool res = cache->serializer->do_read(block_id, data, this);
     
-    if(res) {
-        // We got the buf from the serializer right away, the callback
-        // ain't coming. We artifically call on_serializer_read and
-        // return without adding a load callback - acquire will check
-        // if the block is loaded and handle it appropriately itself.
-        on_serializer_read();
-    } else {
+    if (continue_on_cpu(cache->serializer->home_cpu, this)) on_cpu_switch();
+    
+    if (!cached) {
         // Can't get the buf right away, gotta go through the
         // callback...
         add_load_callback(callback);
+    }
+}
+
+template<class mc_config_t>
+void mc_buf_t<mc_config_t>::on_serializer_read() {
+    
+    cache->serializer->assert_cpu();
+    assert(!cached);
+    cached = true;
+    if (continue_on_cpu(cache->home_cpu, this)) on_cpu_switch();
+}
+
+template<class mc_config_t>
+void mc_buf_t<mc_config_t>::have_read() {
+    
+    cache->assert_cpu();
+    
+#ifndef NDEBUG
+    active_callback_count --;
+    assert(active_callback_count >= 0);
+#endif
+    
+    // We're calling back objects that were all able to grab a lock,
+    // but are waiting on a load. Because of this, we can notify all
+    // of them.
+    
+    int n_callbacks = load_callbacks.size();
+    while (n_callbacks-- > 0) {
+        block_available_callback_t *callback = load_callbacks.head();
+        load_callbacks.remove(callback);
+        callback->on_block_available(this);
+        // At this point, 'this' may be invalid because the callback might cause the block to be
+        // unloaded as a side effect. That's why we use 'n_callbacks' rather than checking for
+        // load_callbacks.empty().
     }
 }
 
@@ -53,7 +82,9 @@ mc_buf_t<mc_config_t>::mc_buf_t(cache_t *cache)
       page_repl_buf(this),
       concurrency_buf(this),
       page_map_buf(this) {
-      
+    
+    cache->assert_cpu();
+    
     data = cache->alloc.malloc(cache->serializer->block_size);
 
 #ifndef NDEBUG
@@ -65,7 +96,9 @@ mc_buf_t<mc_config_t>::mc_buf_t(cache_t *cache)
 
 template<class mc_config_t>
 mc_buf_t<mc_config_t>::~mc_buf_t() {
-
+    
+    cache->assert_cpu();
+    
 #ifndef NDEBUG
     // We're about to free the data, let's set it to a recognizable
     // value to make sure we don't depend on accessing things that may
@@ -79,6 +112,9 @@ mc_buf_t<mc_config_t>::~mc_buf_t() {
 
 template<class mc_config_t>
 void mc_buf_t<mc_config_t>::release() {
+    
+    cache->assert_cpu();
+    
 #ifndef NDEBUG
     cache->n_blocks_released++;
 #endif
@@ -96,43 +132,36 @@ void mc_buf_t<mc_config_t>::release() {
 }
 
 template<class mc_config_t>
-void mc_buf_t<mc_config_t>::on_serializer_read() {
+void mc_buf_t<mc_config_t>::on_serializer_write_block() {
     
-    // TODO: add an assert to make sure on_serializer_read is called by the
-    // same event_queue as the one on which the buf_t was created.
-    
-#ifndef NDEBUG
-    active_callback_count --;
-    assert(active_callback_count >= 0);
-#endif
-    
-    assert(!cached);
-    cached = true;
-    
-    // We're calling back objects that were all able to grab a lock,
-    // but are waiting on a load. Because of this, we can notify all
-    // of them.
-    
-    int n_callbacks = load_callbacks.size();
-    while(n_callbacks-- > 0) {
-        block_available_callback_t *callback = load_callbacks.head();
-        load_callbacks.remove(callback);
-        callback->on_block_available(this);
-        // At this point, 'this' may be invalid because the callback might cause the block to be
-        // unloaded as a side effect. That's why we use 'n_callbacks' rather than checking for
-        // load_callbacks.empty().
-    }
+    cache->serializer->assert_cpu();
+    assert(is_dirty());
+    if (continue_on_cpu(cache->home_cpu, this)) on_cpu_switch();
 }
 
 template<class mc_config_t>
-void mc_buf_t<mc_config_t>::on_serializer_write_block() {
+void mc_buf_t<mc_config_t>::on_cpu_switch() {
 
+    if (!is_cached()) {
+        /* We are going to the serializer's CPU to ask it to load us. */
+        cache->serializer->assert_cpu();
+        if (cache->serializer->do_read(block_id, data, this)) on_serializer_read();
+    
+    } else if (!is_dirty()) {
+        /* We are returning from the serializer's CPU after loading our data. */
+        cache->assert_cpu();
+        have_read();
+    
+    } else {
+        /* We are returning from the serializer's CPU after getting 
+        on_serializer_write_block() */
+        cache->assert_cpu();
 #ifndef NDEBUG
-    active_callback_count --;
-    assert(active_callback_count >= 0);
+        active_callback_count --;
+        assert(active_callback_count >= 0);
 #endif
-
-    cache->writeback.buf_was_written(this);
+        cache->writeback.buf_was_written(this);
+    }
 }
 
 template<class mc_config_t>
@@ -371,7 +400,7 @@ bool mc_cache_t<mc_config_t>::next_starting_up_step() {
     if (state == state_starting_up_finish) {
         
         /* Create an initial superblock */
-        if (serializer->max_block_id() == 0 && !serializer->block_in_use(SUPERBLOCK_ID)) {
+        if (free_list.num_blocks_in_use == 0) {
         
             buf_t *b = new mc_buf_t<mc_config_t>(this);
 #ifndef NDEBUG

@@ -63,8 +63,10 @@ struct ls_block_writer_t;
 struct ls_write_fsm_t;
 struct ls_start_fsm_t;
 
-struct log_serializer_t : private data_block_manager_t::shutdown_callback_t,
-                          private lba_list_t::shutdown_callback_t
+struct log_serializer_t :
+    public home_cpu_mixin_t,
+    private data_block_manager_t::shutdown_callback_t,
+    private lba_list_t::shutdown_callback_t
 {
     friend class ls_block_writer_t;
     friend class ls_write_fsm_t;

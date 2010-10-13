@@ -75,24 +75,17 @@ private:
     // much longer the data can sit in memory.
     timer_token_t *flush_timer;
     static void flush_timer_callback(void *ctx);
-
-    virtual void on_lock_available();
-    void on_serializer_write_txn();
     
-    // Start or continue a writeback. Should only be called by the writeback itself. Returns 'true'
-    // if the writeback completes, or 'false' if it is waiting for something and will complete
-    // later.
-    bool next_writeback_step();
+    bool writeback_in_progress;
     
-    /* Internal variables used at all times. */
+    /* Functions and callbacks for different phases of the writeback */
     
-    enum state_t {
-        state_ready,
-        state_locking,
-        state_locked,
-        state_write_bufs,
-        state_cleanup
-    } state;
+    bool writeback_start_and_acquire_lock();   // Called on cache CPU
+    virtual void on_lock_available();   // Called on cache CPU
+    bool writeback_acquire_bufs();   // Called on cache CPU
+    bool writeback_do_write();   // Called on serializer CPU
+    void on_serializer_write_txn();   // Called on serializer CPU
+    bool writeback_do_cleanup();   // Called on cache CPU
     
     cache_t *cache;
 
@@ -130,6 +123,10 @@ private:
     
     // Transaction that the writeback is using to grab buffers
     transaction_t *transaction;
+    
+    // Transaction to submit to the serializer
+    int num_serializer_writes;
+    serializer_t::write_t *serializer_writes;
     
     // List of things to call back as soon as the writeback currently in progress is over.
     intrusive_list_t<sync_callback_t> current_sync_callbacks;

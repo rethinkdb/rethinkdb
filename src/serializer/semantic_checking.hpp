@@ -19,7 +19,8 @@ the log serializer. */
 //#define SERIALIZER_DEBUG_PRINT 1
 
 template<class inner_serializer_t>
-class semantic_checking_serializer_t
+class semantic_checking_serializer_t :
+    public home_cpu_mixin_t
 {
 public:
     typedef typename inner_serializer_t::buf_data_t buf_data_t;
