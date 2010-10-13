@@ -220,9 +220,9 @@ class Profile():
     def __init__(self, _events, _ratios):
         self.events = _events
         self.ratios = _ratios
-        for i in ratios:
-            assert ratios.numerator in map(lambda x: x.name, events)
-            assert ratios.denominator in map(lambda x: x.name, events)
+        for r in self.ratios:
+            assert r.numerator in [e.name for e in self.events]
+            assert r.denominator in [e.name for e in self.events]
 
 #small packet ratios
 class Ratio():
@@ -236,7 +236,7 @@ class Ratio():
     def report(self, prog_report):
         import StringIO
         res = StringIO.StringIO()
-        print >>res, "%s / %s = " % (self.numerator, self.denominator),
+        print >>res, "%s / %s = " % (self.numerator, self.denominator)
         print >>res, safe_div(prog_report.counter_totals[self.numerator], prog_report.counter_totals[self.denominator])
 
         print >>res, "Top %d functions:" % self.top_n

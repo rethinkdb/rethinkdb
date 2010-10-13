@@ -1,4 +1,4 @@
-from oprofile import Event, Ratio
+from oprofile import Event, Ratio, Profile
 
 #Events
 CPU_CLK_UNHALTED = Event('CPU_CLK_UNHALTED', 90000, 0x00, 0, 1)
@@ -17,15 +17,15 @@ DTLB_MISSES = Event('DTLB_MISSES', 90000, 0x01, 0, 1)
 L1D_CACHE_ST = Event('L1D_CACHE_ST', 90000, 0x1, 0, 1)
 
 
-small_packet_profiles = [Profile([CPU_CLK_UNHALTED, INST_RETIRED, BR_INST_EXEC, ], 
+small_packet_profiles = [Profile([CPU_CLK_UNHALTED, INST_RETIRED, BR_INST_EXEC, L1I], 
                                  [Ratio(CPU_CLK_UNHALTED, INST_RETIRED),
                                   Ratio(L1I, CPU_CLK_UNHALTED),
-                                  Ratio(BR_INST_EXEC, INST_RETIRED)])
-                         Profile([CPU_CLK_UNHALTED, L1D_CACHE_LD, STORE_BLOCKS, DTLB_LOAD_MISSES]
+                                  Ratio(BR_INST_EXEC, INST_RETIRED)]),
+                         Profile([CPU_CLK_UNHALTED, L1D_CACHE_LD, STORE_BLOCKS, DTLB_LOAD_MISSES],
                                  [Ratio(L1D_CACHE_LD, CPU_CLK_UNHALTED),
                                   Ratio(STORE_BLOCKS, CPU_CLK_UNHALTED),
-                                  Ratio(DTLB_LOAD_MISSES, CPU_CLK_UNHALTED)])
-                         Profile([INST_RETIRED, L1D, L2_LINES_IN, DTLB_MISSES]
+                                  Ratio(DTLB_LOAD_MISSES, CPU_CLK_UNHALTED)]),
+                         Profile([INST_RETIRED, L1D, L2_LINES_IN, DTLB_LOAD_MISSES],
                                  [Ratio(L1D, INST_RETIRED),
                                   Ratio(L2_LINES_IN, INST_RETIRED),
                                   Ratio(DTLB_LOAD_MISSES, INST_RETIRED)])]
