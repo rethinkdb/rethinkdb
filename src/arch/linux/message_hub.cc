@@ -16,17 +16,19 @@ linux_message_hub_t::linux_message_hub_t(linux_event_queue_t *queue, linux_threa
     
         res = pthread_spin_init(&queues[i].lock, PTHREAD_PROCESS_PRIVATE);
         check("Could not initialize spin lock", res != 0);
+
+        // Create notify fd for other cores that send work to us
+        notify[i].notifier_cpu = i;
+        notify[i].parent = this;
+        
+        notify[i].fd = eventfd(0, 0);
+        check("Could not create core notification fd", notify[i].fd == -1);
+
+        res = fcntl(notify[i].fd, F_SETFL, O_NONBLOCK);
+        check("Could not make core notify fd non-blocking", res != 0);
+
+        queue->watch_resource(notify[i].fd, EPOLLET|EPOLLIN, &notify[i]);
     }
-    
-    // Create notify fd for other cores that send work to us
-    
-    core_notify_fd = eventfd(0, 0);
-    check("Could not create core notification fd", core_notify_fd == -1);
-
-    res = fcntl(core_notify_fd, F_SETFL, O_NONBLOCK);
-    check("Could not make core notify fd non-blocking", res != 0);
-
-    queue->watch_resource(core_notify_fd, EPOLLET|EPOLLIN, this);
 }
 
 linux_message_hub_t::~linux_message_hub_t() {
@@ -40,10 +42,10 @@ linux_message_hub_t::~linux_message_hub_t() {
         
         res = pthread_spin_destroy(&queues[i].lock);
         check("Could not destroy spin lock", res != 0);
+
+        res = close(notify[i].fd);
+        check("Could not close core_notify_fd", res != 0);
     }
-    
-    res = close(core_notify_fd);
-    check("Could not close core_notify_fd", res != 0);
 }
     
 // Collects a message for a given CPU onto a local list.
@@ -59,20 +61,12 @@ void linux_message_hub_t::insert_external_message(linux_cpu_message_t *msg) {
     pthread_spin_unlock(&queues[current_cpu].lock);
     
     // Wakey wakey eggs and bakey
-    int res = eventfd_write(thread_pool->threads[current_cpu]->message_hub.core_notify_fd, 1);
+    int res = eventfd_write(notify[current_cpu].fd, 1);
     check("Could not write to core_notify_fd", res != 0);
 }
 
-void linux_message_hub_t::on_epoll(int events) {
-    // TODO: this is really stupid and is probably the cause of our
-    // performance woes. Eventfd tells us there are messages from A
-    // cpu, but we go collect them from ALL cpus. Even if there are
-    // messages from other CPUs, we go there again on its
-    // eventfd. Stupid stupid stupid. (problem is - eventfd can't
-    // support enough info to tell us which CPU to go to).
-    for (int i = 0; i < thread_pool->n_threads; i++) {
-        thread_pool->threads[i]->message_hub.pull_messages(current_cpu);
-    }
+void linux_message_hub_t::notify_t::on_epoll(int events) {
+    parent->thread_pool->threads[notifier_cpu]->message_hub.pull_messages(parent->current_cpu);
 }
 
 // Pulls the messages stored in global lists for a given CPU.
@@ -108,7 +102,7 @@ void linux_message_hub_t::push_messages() {
             pthread_spin_unlock(&queue->lock);
             
             // Wakey wakey eggs and bakey
-            int res = eventfd_write(thread_pool->threads[i]->message_hub.core_notify_fd, 1);
+            int res = eventfd_write(thread_pool->threads[i]->message_hub.notify[current_cpu].fd, 1);
             check("Could not write to core_notify_fd", res != 0);
         }
 

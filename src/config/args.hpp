@@ -148,5 +148,23 @@
 // Every time the data file gets full, grow it by this many extents
 #define FILE_GROWTH_RATE_IN_EXTENTS               5
 
+// The ratio at which we should start GCing.
+#define DEFAULT_GC_HIGH_RATIO                     0.75
+#define MAX_GC_HIGH_RATIO                         0.99
+
+// The ratio at which we don't want to keep GC'ing.
+#define DEFAULT_GC_LOW_RATIO                      0.5
+#define MIN_GC_LOW_RATIO                          0.01
+
+
+// What's the maximum number of "young" extents we can have?
+#define GC_YOUNG_EXTENT_MAX_SIZE                  50
+// What's the definition of a "young" extent in microseconds?
+#define GC_YOUNG_EXTENT_TIMELIMIT_MICROS          50000
+
+// The ratio at which we should GC the lba list.
+#define LBA_GC_THRESHOLD_RATIO_NUMERATOR          9
+#define LBA_GC_THRESHOLD_RATIO_DENOMINATOR        10
+
 #endif // __CONFIG_ARGS_H__
 

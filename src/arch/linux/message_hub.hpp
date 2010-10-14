@@ -25,8 +25,7 @@ struct linux_cpu_message_t : public intrusive_list_node_t<linux_cpu_message_t>
     virtual void on_cpu_switch() = 0;
 };
 
-struct linux_message_hub_t :
-    public linux_epoll_callback_t
+struct linux_message_hub_t
 {
     
 public:
@@ -47,13 +46,13 @@ public:
     ~linux_message_hub_t();
 
 private:
-    void on_epoll(int events);
     void pull_messages(int cpu);
 
-    fd_t core_notify_fd;
     linux_event_queue_t *queue;
     linux_thread_pool_t *thread_pool;
     
+    /* We maintain a queue structure for every other cpu on the
+     * system. We interact with those CPUs through this queue. */
     struct cpu_queue_t {
     
         // Lists of messages for each CPU local to this thread. 
@@ -65,8 +64,22 @@ private:
 
         // Spinlock for the global list 
         pthread_spinlock_t lock;
-    };
-    cpu_queue_t queues[MAX_CPUS];
+    } queues[MAX_CPUS];
+
+    // Each notify_fd represents a message from the appropriate cpu
+    // (denoted by the index in the array). We listen for each of
+    // these, and when a cpu wants to notify us it's got messages for
+    // us, it should signal the appropriate fd.
+    struct notify_t : public linux_epoll_callback_t
+    {
+    public:
+        void on_epoll(int events);
+
+    public:
+        int notifier_cpu;           // the cpu that notifies us it's got messages for us
+        fd_t fd;                    // the eventfd to call
+        linux_message_hub_t *parent;
+    } notify[MAX_CPUS];
     
     unsigned int current_cpu;
 };

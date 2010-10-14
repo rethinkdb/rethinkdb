@@ -73,7 +73,7 @@ struct log_serializer_t :
     friend class ls_start_fsm_t;
     
 public:
-    log_serializer_t(char *db_path, size_t _block_size);
+    log_serializer_t(cmd_config_t *cmd_config, char *db_path, size_t _block_size);
     virtual ~log_serializer_t();
 
 public:
@@ -168,6 +168,8 @@ public:
 private:
     void prepare_metablock(metablock_t *mb_buffer);
 
+    void consider_start_gc();
+
 private:
     enum state_t {
         state_unstarted,
@@ -177,8 +179,6 @@ private:
         state_shut_down,
     } state;
 
-    int gc_counter; /* ticks off when it's time to do gc */
-    
     char db_path[MAX_DB_FILE_NAME];
     direct_file_t *dbfile;
     

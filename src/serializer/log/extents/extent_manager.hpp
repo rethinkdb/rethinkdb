@@ -58,14 +58,6 @@ public:
     which extents were already in use */
     
     void reserve_extent(off64_t extent) {
-
-#ifndef NDEBUG
-        flockfile(stderr);
-        debugf("Reserve extent %.8x:\n", extent);
-        print_backtrace(stderr, false);
-        fprintf(stderr, "\n");
-        funlockfile(stderr);
-#endif
         
         assert(state == state_reserving_extents);
         assert(extent % extent_size == 0);
@@ -101,22 +93,6 @@ public:
         }
         
         state = state_running;
-
-#ifndef NDEBUG
-        flockfile(stderr);
-        debugf("The following extents are in use as of startup time:\n");
-        int count = 0;
-        for (off64_t extent = 0; extent < (unsigned)(extents.get_size() * extent_size); extent += extent_size) {
-            if (extent_info(extent) == EXTENT_IN_USE) {
-                fprintf(stderr, "%.8lx ", extent);
-                count++;
-            }
-        }
-        fprintf(stderr, "\n");
-        debugf("Total: %d\n", count);
-        assert(count == n_extents_in_use);
-        funlockfile(stderr);
-#endif
     }
 
     void start(direct_file_t *file, metablock_mixin_t *last_metablock) {
@@ -162,28 +138,12 @@ public:
         }
         
         extent_info(extent) = EXTENT_IN_USE;
-
-#ifndef NDEBUG
-        flockfile(stderr);
-        debugf("Gen extent %.8x:\n", extent);
-        print_backtrace(stderr, false);
-        fprintf(stderr, "\n");
-        funlockfile(stderr);
-#endif
         
         return extent;
     }
 
     void release_extent(off64_t extent) {
 
-#ifndef NDEBUG
-        flockfile(stderr);
-        debugf("Release extent %.8x:\n", extent);
-        print_backtrace(stderr, false);
-        fprintf(stderr, "\n");
-        funlockfile(stderr);
-#endif
-        
         assert(state == state_running);
         assert(current_transaction);
         
@@ -224,26 +184,10 @@ public:
         assert(state == state_running);
         assert(!current_transaction);
         state = state_shut_down;
-        
-#ifndef NDEBUG
-        flockfile(stderr);
-        debugf("The following extents are in use as of shutdown time:\n");
-        int count = 0;
-        for (off64_t extent = 0; extent < (unsigned)(extents.get_size() * extent_size); extent += extent_size) {
-            if (extent_info(extent) == EXTENT_IN_USE) {
-                fprintf(stderr, "%.8lx ", extent);
-                count++;
-            }
-        }
-        fprintf(stderr, "\n");
-        debugf("Total: %d\n", count);
-        assert(count == n_extents_in_use);
-        funlockfile(stderr);
-#endif
     }
 
 public:
-    size_t extent_size;
+    const size_t extent_size;
 
 private:
     direct_file_t *dbfile;

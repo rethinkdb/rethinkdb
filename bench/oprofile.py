@@ -36,7 +36,7 @@ class Event():
         return '--event=%s:%d:%x:%d:%d' % (self.name, self.count, self.mask, self.kernel, self.user)
 
 class OProfile():
-    def start(events):
+    def start(self, events):
         os.system(ctrl_str + ' --reset')
         os.system(ctrl_str + ' --no-vmlinux')
         os.system(ctrl_str + ' --separate=lib,kernel,cpu')
@@ -47,13 +47,13 @@ class OProfile():
             os.system(event_str)
         os.system(ctrl_str + ' --start')
 
-    def stop_and_report():
+    def stop_and_report(self):
         os.system(ctrl_str + ' --shutdown')
         os.system(rprt_str + ' --merge=cpu,lib,tid,tgid,unitmask,all -gdf | op2calltree')
         p = parser()
         return p.parse_file('oprof.out.' + exec_name)
 
-    def clean():
+    def clean(self):
         os.system('rm oprof.out.*')
 
 #Parsing code
@@ -74,6 +74,8 @@ class line():
                     val = matches.group(groupi)
                 elif (field[1] == 'x'):
                     val = int(matches.group(groupi), 0)
+                else:
+                    assert 0
                 result[field[0]] = val
             return result
         else:
@@ -112,7 +114,7 @@ class parser():
     obj_line        = line("ob=(.+)\n", [('obj_file', 's')])
     function_line   = line("fn=(.+)\n", [('function_name', 's')])
     source_line     = line("fi=\(\d+\)\s+(.+)\n", [('source_file', 's')])
-    sample_line     = line("(0x[0-9a-fA-F]{8})\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\n", [('instruction', 'x'), ('line_number', 'i'), ('event1', 'd'), ('event2', 'd'), ('event3', 'd'), ('event4', 'd')])
+    sample_line     = line("(0x[0-9a-fA-F]{8})\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\n", [('instruction', 'x'), ('line_number', 'd'), ('event1', 'd'), ('event2', 'd'), ('event3', 'd'), ('event4', 'd')])
     fident_line     = line("fi=\(\d+\)", [])
     prog_report     = Program_report()
     def __init__(self):
@@ -147,7 +149,8 @@ class parser():
                 res.append(m)
                 data.pop()
             else:
-                return res
+                break
+        return res
 
     def parse_function(self, data):
         if (len(data) == 0):
@@ -192,11 +195,6 @@ class parser():
         events = self.take(self.events_line, data)
         assert events
         self.prog_report.counter_names = (events['event1'], events['event2'], events['event3'], events['event4'])
-
-        self.prog_report.counter_totals = {}
-        for i in range(len(self.prog_report.counter_names)):
-            self.prog_report.counter_totals[self.prog_report.counter_names[i]] = 0
-
 
         summary = self.take(self.summary_line, data)
         assert summary

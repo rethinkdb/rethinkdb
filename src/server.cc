@@ -57,7 +57,7 @@ bool server_t::start_a_serializer(int i) {
     //     int len = snprintf(name, MAX_DB_FILE_NAME, "/dev/sdb");
     check("Name too long", len == MAX_DB_FILE_NAME);
     
-    serializers[i] = gnew<serializer_t>(name, BTREE_BLOCK_SIZE);
+    serializers[i] = gnew<serializer_t>(cmd_config, name, BTREE_BLOCK_SIZE);
     
     if (serializers[i]->start(this)) on_serializer_ready(serializers[i]);
     return true;

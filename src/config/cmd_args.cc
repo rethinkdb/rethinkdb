@@ -42,6 +42,10 @@ void usage(const char *name) {
     printf("      --flush-threshold\tIf more than X%% of the server's maximum cache size is\n"
             "\t\t\tmodified data, the server will flush it all to disk. Pass 0 to flush\n"
             "\t\t\timmediately when changes are made.\n");
+
+    printf("      --gc-range low-high  (e.g. --gc-range 0.5-0.75)\n"
+           "\t\t\tThe proportion of garbage maintained by garbage collection.\n");
+
     
     exit(-1);
 }
@@ -66,12 +70,16 @@ void init_config(cmd_config_t *config) {
     config->n_slices = BTREE_SHARD_FACTOR;
     config->n_workers = get_cpu_count();
     config->n_serializers = 1;
+
+    config->gc_low_ratio = DEFAULT_GC_LOW_RATIO;
+    config->gc_high_ratio = DEFAULT_GC_HIGH_RATIO;
 }
 
 enum {
     wait_for_flush = 256, // Start these values above the ASCII range.
     flush_timer,
-    flush_threshold
+    flush_threshold,
+    gc_range
 };
 
 void parse_cmd_args(int argc, char *argv[], cmd_config_t *config)
@@ -87,6 +95,7 @@ void parse_cmd_args(int argc, char *argv[], cmd_config_t *config)
                 {"wait-for-flush",       required_argument, 0, wait_for_flush},
                 {"flush-timer",          required_argument, 0, flush_timer},
                 {"flush-threshold",      required_argument, 0, flush_threshold},
+                {"gc-range",             required_argument, 0, gc_range},
                 {"cores",                required_argument, 0, 'c'},
                 {"slices",               required_argument, 0, 's'},
                 {"files",                required_argument, 0, 'f'},
@@ -149,7 +158,7 @@ void parse_cmd_args(int argc, char *argv[], cmd_config_t *config)
             if (strcmp(optarg, "disable")==0) config->flush_timer_ms = NEVER_FLUSH;
             else {
                 config->flush_timer_ms = atoi(optarg);
-                check("flush timer should not be negative; use 'disable' to allow changes"
+                check("flush timer should not be negative; use 'disable' to allow changes "
                     "to sit in memory indefinitely",
                     config->flush_timer_ms < 0);
             }
@@ -157,6 +166,21 @@ void parse_cmd_args(int argc, char *argv[], cmd_config_t *config)
         case flush_threshold:
             config->flush_threshold_percent = atoi(optarg);
             break;
+        case gc_range: {
+            float low = 0.0;
+            float high = 0.0;
+            int consumed = 0;
+            if (3 != sscanf(optarg, "%f-%f%n", &low, &high, &consumed) || ((size_t)consumed) != strlen(optarg)) {
+                usage(argv[0]);
+            }
+            if (!(MIN_GC_LOW_RATIO <= low && low < high && high <= MAX_GC_HIGH_RATIO)) {
+                fail("gc-range expects \"low-high\", with %f <= low < high <= %f",
+                     MIN_GC_LOW_RATIO, MAX_GC_HIGH_RATIO);
+            }
+            config->gc_low_ratio = low;
+            config->gc_high_ratio = high;
+            break;
+        }
         case 'h':
             usage(argv[0]);
             break;

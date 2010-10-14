@@ -91,6 +91,11 @@ private:
     lba_disk_structure_t *disk_structure;
     
     void gc();
+
+    // Returns true if the garbage ratio is bad enough that we want to
+    // gc.
+    bool we_want_to_gc();
+
 };
 
 #endif /* __SERIALIZER_LOG_LBA_LIST_HPP__ */

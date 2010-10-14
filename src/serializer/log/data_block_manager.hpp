@@ -3,15 +3,17 @@
 #define __SERIALIZER_LOG_DATA_BLOCK_MANAGER_HPP__
 
 #include "arch/arch.hpp"
-#include "serializer/types.hpp"
-#include "extents/extent_manager.hpp"
-#include "log_serializer_callbacks.hpp"
+#include "config/cmd_args.hpp"
 #include "containers/priority_queue.hpp"
 #include "containers/two_level_array.hpp"
-#include <functional>
+#include "extents/extent_manager.hpp"
+#include "log_serializer_callbacks.hpp"
+#include "serializer/types.hpp"
 #include <bitset>
+#include <functional>
+#include <queue>
 #include <utility>
-#include <time.h>
+#include <sys/time.h>
 
 // TODO: When we start up, start a new extent rather than continuing on the old extent. The
 // remainder of the old extent is taboo because if we shut down badly, we might have written data
@@ -19,18 +21,15 @@
 // SSD controller would have to move it and there would be a risk of fragmentation.
 
 class data_block_manager_t {
-    
+
 public:
-    data_block_manager_t(log_serializer_t *ser, extent_manager_t *em, size_t _block_size)
+    data_block_manager_t(log_serializer_t *ser, cmd_config_t *cmd_config, extent_manager_t *em, size_t _block_size)
         : shutdown_callback(NULL), state(state_unstarted), serializer(ser),
-          extent_manager(em), block_size(_block_size) {}
+          cmd_config(cmd_config), extent_manager(em), block_size(_block_size) {}
     ~data_block_manager_t() {
         assert(state == state_unstarted || state == state_shut_down);
-        while (!gc_pq.empty()) {
-            delete gc_pq.pop();
-        }
     }
-    
+
 public:
     struct metablock_mixin_t {
         off64_t last_data_extent;
@@ -80,14 +79,18 @@ public:
 
 public:
     void prepare_metablock(metablock_mixin_t *metablock);
+    bool do_we_want_to_start_gcing() const;
 
 public:
     struct shutdown_callback_t {
         virtual void on_datablock_manager_shutdown() = 0;
     };
+    // The shutdown_callback_t may destroy the data_block_manager.
     bool shutdown(shutdown_callback_t *cb);
 
 private:
+    void actually_shutdown();
+    // This is permitted to destroy the data_block_manager.
     shutdown_callback_t *shutdown_callback;
 
 private:
@@ -99,36 +102,81 @@ private:
     } state;
 
     log_serializer_t *serializer;
-    
+
+    cmd_config_t *cmd_config;
+
     extent_manager_t *extent_manager;
-    
+
     direct_file_t *dbfile;
     size_t block_size;
-    off64_t last_data_extent;
-    unsigned int blocks_in_last_data_extent;
-    
+
     off64_t gimme_a_new_offset();
 
 private:
-    void add_gc_entry();
     
     struct gc_entry;
     
     struct Less {
         bool operator() (const gc_entry *x, const gc_entry *y);
     };
-    
-    struct gc_entry : public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, gc_entry> {
+
+    // Identifies an extent, the time we started writing to the
+    // extent, whether it's the extent we're currently writing to, and
+    // describes blocks are garbage.
+    struct gc_entry :
+        public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, gc_entry>
+    {
     public:
+        typedef uint64_t timestamp_t;
+    
         off64_t offset; /* !< the offset that this extent starts at */
         std::bitset<EXTENT_SIZE / BTREE_BLOCK_SIZE> g_array; /* !< bit array for whether or not each block is garbage */
-        time_t timestamp; /* !< when we started writing to the extent */
-        bool active; /* !< this the extent we're currently writing to? */
+        timestamp_t timestamp; /* !< when we started writing to the extent */
         priority_queue_t<gc_entry*, Less>::entry_t *our_pq_entry; /* !< The PQ entry pointing to us */
+        
+        enum state_t {
+            // We are currently putting things on this extent. It is equal to last_data_extent.
+            state_active,
+            // Not active, but not a GC candidate yet. It is in young_extent_queue.
+            state_young,
+            // Candidate to be GCed. It is in gc_pq.
+            state_old,
+            // Currently being GCed. It is equal to gc_state.current_entry.
+            state_in_gc,
+        } state;
+        
     public:
-        gc_entry() {
-            timestamp = time(NULL);
+        /* This constructor is for an extent that we were working on filling when we last shut
+        down and are now resuming filling. */
+        explicit gc_entry(metablock_mixin_t *mb) {
+            offset = mb->last_data_extent;
+            g_array.set();
+            for (unsigned i = 0; i < mb->blocks_in_last_data_extent; i++) {
+                g_array[i] = 0;
+            }
+            timestamp = current_timestamp();
+            state = state_active;
+            our_pq_entry = NULL;
         }
+        
+        /* This constructor is for starting a new extent. */
+        explicit gc_entry(extent_manager_t *em) {
+            offset = em->gen_extent();
+            g_array.set();
+            timestamp = current_timestamp();
+            state = state_active;
+            our_pq_entry = NULL;
+        }
+        
+        /* This constructor is for an extent that we filled up in a previous run and are now
+        reconstructing. */
+        explicit gc_entry(off64_t off) {
+            offset = off;
+            g_array.set();
+            timestamp = -1;
+            state = state_old;
+        }
+        
         void print() {
 #ifndef NDEBUG
             printf("gc_entry:\n");
@@ -139,14 +187,32 @@ private:
             printf("\n");
 #endif
         }
+
+        // Returns the current timestamp in microseconds.
+        static timestamp_t current_timestamp() {
+            struct timeval t;
+            assert(0 == gettimeofday(&t, NULL));
+            return uint64_t(t.tv_sec) * (1000 * 1000) + t.tv_usec;
+        }
     };
     
-    priority_queue_t<gc_entry*, Less> gc_pq;
     two_level_array_t<gc_entry*, MAX_DATA_EXTENTS> entries;
+    
+    gc_entry *last_data_extent;
+    std::deque< gc_entry*, gnew_alloc<gc_entry*> > young_extent_queue;
+    priority_queue_t<gc_entry*, Less> gc_pq;
 
-    struct gc_criterion {
-        bool operator() (const gc_entry);
-    };
+    // Tells if we should keep gc'ing, being told the next extent that
+    // would be gc'ed.
+    bool should_we_keep_gcing(const gc_entry&) const;
+
+    // Pops things off young_extent_queue that are no longer young.
+    void mark_unyoung_entries();
+    
+    // Pops the last gc_entry off young_extent_queue and declares it
+    // to be not young.
+    void remove_last_unyoung_entry();
+
 private:
     /* internal garbage collection structures */
     struct gc_read_callback_t : public iocallback_t {
@@ -187,25 +253,23 @@ private:
         ~gc_state_t() {
             free(gc_blocks);
         }
-    };
-
-    gc_state_t gc_state;
+    } gc_state;
+    
 private:
     /* \brief structure to keep track of global stats about the data blocks
      */
     struct gc_stats_t {
-        int total_blocks;
-        int garbage_blocks;
+        int unyoung_total_blocks;
+        int unyoung_garbage_blocks;
         gc_stats_t()
-            : total_blocks(0), garbage_blocks(0)
+            : unyoung_total_blocks(0), unyoung_garbage_blocks(0)
         {}
-    };
-
-    gc_stats_t gc_stats;
+    } gc_stats;
+    
 public:
     /* \brief ratio of garbage to blocks in the system
      */
-    float garbage_ratio();
+    float garbage_ratio() const;
 };
 
 #endif /* __SERIALIZER_LOG_DATA_BLOCK_MANAGER_HPP__ */
