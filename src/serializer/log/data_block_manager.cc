@@ -82,12 +82,18 @@ void data_block_manager_t::mark_live(off64_t offset) {
         gc_entry entry;
         entry.init(extent_id * extent_manager->extent_size, false, false);
         entry.g_array.set(); //set everything to garbage
-
         entries.set(extent_id, gc_pq.push(entry));
+
+        // All are deemed garbage, and the block is not young.
+        gc_stats.unyoung_total_blocks += extent_manager->extent_size / BTREE_BLOCK_SIZE;
+        gc_stats.unyoung_garbage_blocks += extent_manager->extent_size / BTREE_BLOCK_SIZE;
     }
 
     /* mark the block as alive */
     entries.get(extent_id)->data.g_array.set(block_id, 0);
+    // The block should never be young because we're reconstructing.
+    assert(!(entries.get(extent_id)->data.young));
+    gc_stats.unyoung_garbage_blocks--;
 }
 
 void data_block_manager_t::end_reconstruct() {
