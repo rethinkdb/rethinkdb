@@ -74,6 +74,8 @@ class line():
                     val = matches.group(groupi)
                 elif (field[1] == 'x'):
                     val = int(matches.group(groupi), 0)
+                else:
+                    assert 0
                 result[field[0]] = val
             return result
         else:
@@ -112,7 +114,7 @@ class parser():
     obj_line        = line("ob=(.+)\n", [('obj_file', 's')])
     function_line   = line("fn=(.+)\n", [('function_name', 's')])
     source_line     = line("fi=\(\d+\)\s+(.+)\n", [('source_file', 's')])
-    sample_line     = line("(0x[0-9a-fA-F]{8})\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\n", [('instruction', 'x'), ('line_number', 'i'), ('event1', 'd'), ('event2', 'd'), ('event3', 'd'), ('event4', 'd')])
+    sample_line     = line("(0x[0-9a-fA-F]{8})\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\n", [('instruction', 'x'), ('line_number', 'd'), ('event1', 'd'), ('event2', 'd'), ('event3', 'd'), ('event4', 'd')])
     fident_line     = line("fi=\(\d+\)", [])
     prog_report     = Program_report()
     def __init__(self):
