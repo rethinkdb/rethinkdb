@@ -178,6 +178,11 @@ private:
     // id.  (The "extent id" being the extent's offset divided
     // by extent_manager->extent_size.)
     two_level_array_t<gc_pq_entry_t *, MAX_DATA_EXTENTS> entries;
+
+    // TODO: Change this young_extent_queue to a queue of gc_entry*
+    // once we start picking 100%-garbage entries out of the priority
+    // queue.  Be careful about gc_entry lifetimes.
+
     // A queue of the young entry_ts.
     std::queue< gc_pq_entry_t *, std::deque< gc_pq_entry_t *, gnew_alloc<gc_pq_entry_t *> > > young_extent_queue;
 
