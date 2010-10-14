@@ -83,8 +83,11 @@
 // TODO: make this dynamic where possible
 #define MAX_CPUS                                  128
 
-// Maximum slices per thread
+// Maximum slices total
 #define MAX_SLICES                                128
+
+// Maximum number of files we use
+#define MAX_SERIALIZERS                           32
 
 // The number of ways we split a BTree (the most optimal is the number
 // of cores, but we use a higher split factor to allow upgrading to

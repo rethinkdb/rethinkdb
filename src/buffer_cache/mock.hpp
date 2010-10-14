@@ -94,7 +94,9 @@ public:
     typedef mock_block_available_callback_t block_available_callback_t;
     
     mock_cache_t(
-        serializer_t *serializer,
+        // mock_cache gets a serializer so its constructor is consistent with
+        // the mirrored cache's serializer, but it doesn't use it.
+        serializer_t *serializer, int, int,
         size_t _max_size,
         bool wait_for_flush,
         unsigned int flush_timer_ms,

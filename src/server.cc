@@ -1,11 +1,15 @@
 #include "server.hpp"
+#include "db_cpu_info.hpp"
 #include <sys/stat.h>
 
 server_t::server_t(cmd_config_t *cmd_config, thread_pool_t *thread_pool)
     : cmd_config(cmd_config), thread_pool(thread_pool),
-      log_controller(cmd_config), store(cmd_config), conn_acceptor(this) { }
+      log_controller(cmd_config),
+      conn_acceptor(this) { }
 
 void server_t::do_start() {
+    
+    assert_cpu();
     
     printf("Physical cores: %d\n", get_cpu_count());
     printf("Number of DB threads: %d\n", cmd_config->n_workers);
@@ -13,6 +17,8 @@ void server_t::do_start() {
     printf("Free RAM: %ldMB (%.2f%%)\n",
            get_available_ram() / 1024 / 1024,
            (double)get_available_ram() / (double)get_total_ram() * 100.0f);
+    printf("Shards total: %d\n", cmd_config->n_slices);
+    printf("Max cache memory usage: %lldMB\n", (long long int)(cmd_config->max_cache_size / 1024 / 1024));
     
     do_start_loggers();
 }
@@ -23,27 +29,75 @@ void server_t::do_start_loggers() {
 }
 
 void server_t::on_logger_ready() {
-    do_start_store();
+    do_start_serializers();
 }
 
-void server_t::do_start_store() {
-
-    printf("Shards per thread: %d\n", cmd_config->n_slices);
-    printf("Max cache memory usage: %lldMB\n", (long long int)(cmd_config->max_cache_size / 1024 / 1024));
+void server_t::do_start_serializers() {
     
     if (strncmp(cmd_config->db_file_name, DATA_DIRECTORY, strlen(DATA_DIRECTORY)) == 0) {
         mkdir(DATA_DIRECTORY, 0777);
     }
     
+    assert_cpu();
+    
+    printf("Starting serializers...\n");
+    messages_out = cmd_config->n_serializers;
+    for (int i = 0; i < cmd_config->n_serializers; i++) {
+        do_on_cpu(i % get_num_db_cpus(), this, &server_t::start_a_serializer, i);
+    }
+}
+
+bool server_t::start_a_serializer(int i) {
+    
+    char name[MAX_DB_FILE_NAME];
+    int len = snprintf(name, MAX_DB_FILE_NAME, "%s_%d", cmd_config->db_file_name, i);
+    // TODO: the below line is currently the only way to write to a block device,
+    // we need a command line way to do it, this also requires consolidating to one
+    // file
+    //     int len = snprintf(name, MAX_DB_FILE_NAME, "/dev/sdb");
+    check("Name too long", len == MAX_DB_FILE_NAME);
+    
+    serializers[i] = gnew<serializer_t>(name, BTREE_BLOCK_SIZE);
+    
+    if (serializers[i]->start(this)) on_serializer_ready(serializers[i]);
+    return true;
+}
+
+void server_t::on_serializer_ready(serializer_t *ser) {
+    
+    ser->assert_cpu();
+    do_on_cpu(home_cpu, this, &server_t::have_started_a_serializer);
+}
+
+bool server_t::have_started_a_serializer() {
+    
+    assert_cpu();
+    messages_out--;
+    assert(messages_out >= 0);
+    if (messages_out == 0) {
+        do_start_store();
+    }
+    return true;
+}
+
+void server_t::do_start_store() {
+
+    assert_cpu();
     printf("Starting cache...\n");
-    if (store.start(this)) on_store_ready();
+    
+    store = gnew<store_t>(cmd_config, serializers, cmd_config->n_serializers);
+    if (store->start(this)) on_store_ready();
 }
 
 void server_t::on_store_ready() {
+
+    assert_cpu();
     do_start_conn_acceptor();
 }
 
 void server_t::do_start_conn_acceptor() {
+    
+    assert_cpu();
     
     conn_acceptor.start();
     
@@ -54,6 +108,8 @@ void server_t::do_start_conn_acceptor() {
 }
 
 void server_t::shutdown() {
+    
+    assert_cpu();
     
     cpu_message_t *old_interrupt_msg = thread_pool->set_interrupt_message(NULL);
     
@@ -77,16 +133,50 @@ void server_t::do_shutdown_conn_acceptor() {
 }
 
 void server_t::on_conn_acceptor_shutdown() {
+    assert_cpu();
     do_shutdown_store();
 }
 
 void server_t::do_shutdown_store() {
     printf("Shutting down cache...\n");
-    if (store.shutdown(this)) on_store_shutdown();
+    if (store->shutdown(this)) on_store_shutdown();
 }
 
 void server_t::on_store_shutdown() {
-    do_shutdown_loggers();
+    assert_cpu();
+    gdelete(store);
+    store = NULL;
+    do_shutdown_serializers();
+}
+
+void server_t::do_shutdown_serializers() {
+    printf("Shutting down serializers...\n");
+    messages_out = cmd_config->n_serializers;
+    for (int i = 0; i < cmd_config->n_serializers; i++) {
+        do_on_cpu(serializers[i]->home_cpu, this, &server_t::shutdown_a_serializer, i);
+    }
+}
+
+bool server_t::shutdown_a_serializer(int i) {
+    serializers[i]->assert_cpu();
+    if (serializers[i]->shutdown(this)) on_serializer_shutdown(serializers[i]);
+    return true;
+}
+
+void server_t::on_serializer_shutdown(serializer_t *ser) {
+    ser->assert_cpu();
+    gdelete(ser);
+    do_on_cpu(home_cpu, this, &server_t::have_shutdown_a_serializer);
+}
+
+bool server_t::have_shutdown_a_serializer() {
+    assert_cpu();
+    messages_out--;
+    assert(messages_out >= 0);
+    if (messages_out == 0) {
+        do_shutdown_loggers();
+    }
+    return true;
 }
 
 void server_t::do_shutdown_loggers() {
@@ -95,6 +185,7 @@ void server_t::do_shutdown_loggers() {
 }
 
 void server_t::on_logger_shutdown() {
+    assert_cpu();
     do_message_flush();
 }
 
@@ -140,6 +231,7 @@ void server_t::on_message_flush() {
 
 void server_t::do_stop_threads() {
     
+    assert_cpu();
     // This returns immediately, but will cause all of the threads to stop after we
     // return to the event queue.
     thread_pool->shutdown();

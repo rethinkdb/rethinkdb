@@ -145,7 +145,7 @@ void mc_buf_t<mc_config_t>::on_cpu_switch() {
     if (!is_cached()) {
         /* We are going to the serializer's CPU to ask it to load us. */
         cache->serializer->assert_cpu();
-        if (cache->serializer->do_read(block_id, data, this)) on_serializer_read();
+        if (cache->serializer->do_read(cache->get_ser_block_id(block_id), data, this)) on_serializer_read();
     
     } else if (!is_dirty()) {
         /* We are returning from the serializer's CPU after loading our data. */
@@ -337,6 +337,8 @@ mc_buf_t<mc_config_t> *mc_transaction_t<mc_config_t>::acquire(block_id_t block_i
 template<class mc_config_t>
 mc_cache_t<mc_config_t>::mc_cache_t(
             serializer_t *serializer,
+            int id_on_serializer,
+            int count_on_serializer,
             size_t _max_size,
             bool wait_for_flush,
             unsigned int flush_timer_ms,
@@ -345,6 +347,8 @@ mc_cache_t<mc_config_t>::mc_cache_t(
     n_blocks_acquired(0), n_blocks_released(0),
 #endif
     serializer(serializer),
+    id_on_serializer(id_on_serializer),
+    count_on_serializer(count_on_serializer),
     page_repl(
         // Launch page replacement if the user-specified maximum number of blocks is reached
         _max_size / serializer->block_size,
@@ -448,6 +452,12 @@ mc_transaction_t<mc_config_t> *mc_cache_t<mc_config_t>::begin_transaction(access
 }
 
 template<class mc_config_t>
+ser_block_id_t mc_cache_t<mc_config_t>::get_ser_block_id(block_id_t block_id) {
+    
+    return block_id * count_on_serializer + id_on_serializer;
+}
+
+template<class mc_config_t>
 void mc_cache_t<mc_config_t>::on_transaction_commit(transaction_t *txn) {
     
     assert(state == state_ready ||
@@ -503,7 +513,9 @@ bool mc_cache_t<mc_config_t>::next_shutting_down_step() {
     
     if (state == state_shutting_down_finish) {
         
-        if (shutdown_callback) shutdown_callback->on_cache_shutdown();
+        /* Use do_later() rather than calling it immediately because it might call
+        our destructor, and it might not be safe to call our destructor right here. */
+        if (shutdown_callback) do_later(shutdown_callback, &shutdown_callback_t::on_cache_shutdown);
         shutdown_callback = NULL;
         state = state_shut_down;
         

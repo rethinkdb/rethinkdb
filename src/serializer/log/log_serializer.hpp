@@ -87,7 +87,7 @@ public:
     /* start() must be called before the serializer can be used. It will return 'true' if it is
     ready immediately; otherwise, it will return 'false' and then call the given callback later. */
     struct ready_callback_t {
-        virtual void on_serializer_ready() = 0;
+        virtual void on_serializer_ready(log_serializer_t *) = 0;
     };
     bool start(ready_callback_t *ready_cb);
 
@@ -143,7 +143,7 @@ public:
     If the shutdown is done immediately, shutdown() will return 'true'. Otherwise, it will return
     'false' and then call the given callback when the shutdown is done. */
     struct shutdown_callback_t {
-        virtual void on_serializer_shutdown() = 0;
+        virtual void on_serializer_shutdown(log_serializer_t *) = 0;
     };
     bool shutdown(shutdown_callback_t *cb);
 

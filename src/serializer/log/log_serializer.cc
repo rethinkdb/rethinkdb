@@ -108,7 +108,7 @@ struct ls_start_fsm_t :
             assert(ser->state == log_serializer_t::state_starting_up);
             ser->state = log_serializer_t::state_ready;
             if(ready_callback)
-                ready_callback->on_serializer_ready();
+                ready_callback->on_serializer_ready(ser);
 
 #ifndef NDEBUG
             if(metablock_found) {
@@ -564,7 +564,7 @@ bool log_serializer_t::next_shutdown_step() {
         // Don't call the callback if we went through the entire
         // shutdown process in one synchronous shot.
         if(!shutdown_in_one_shot && shutdown_callback) {
-            shutdown_callback->on_serializer_shutdown();
+            do_later(shutdown_callback, &shutdown_callback_t::on_serializer_shutdown, this);
         }
 
         return true;

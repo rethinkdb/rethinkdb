@@ -19,9 +19,11 @@ class server_t :
     public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, server_t>,
     public home_cpu_mixin_t,
     public log_controller_t::ready_callback_t,
+    public serializer_t::ready_callback_t,
     public store_t::ready_callback_t,
     public conn_acceptor_t::shutdown_callback_t,
     public store_t::shutdown_callback_t,
+    public serializer_t::shutdown_callback_t,
     public log_controller_t::shutdown_callback_t
 {
     friend class flush_message_t;
@@ -35,12 +37,20 @@ public:
     thread_pool_t *thread_pool;
 
     log_controller_t log_controller;
-    store_t store;
+    serializer_t *serializers[MAX_SERIALIZERS];
+    store_t *store;
     conn_acceptor_t conn_acceptor;
     
 private:
+    
+    int messages_out;
+    
     void do_start_loggers();
     void on_logger_ready();
+    void do_start_serializers();
+    bool start_a_serializer(int i);   // Called on serializer thread
+    void on_serializer_ready(serializer_t *);   // Called on serializer thread
+    bool have_started_a_serializer();   // Called on server thread
     void do_start_store();
     void on_store_ready();
     void do_start_conn_acceptor();
@@ -59,9 +69,12 @@ private:
     void on_conn_acceptor_shutdown();
     void do_shutdown_store();
     void on_store_shutdown();
+    void do_shutdown_serializers();
+    bool shutdown_a_serializer(int i);   // Called on serializer thread
+    void on_serializer_shutdown(serializer_t *);   // Called on serializer thread
+    bool have_shutdown_a_serializer();   // Called on server thread
     void do_shutdown_loggers();
     void on_logger_shutdown();
-    int messages_out;
     void do_message_flush();
     void on_message_flush();
     void do_stop_threads();

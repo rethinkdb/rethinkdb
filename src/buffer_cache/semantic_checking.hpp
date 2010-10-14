@@ -110,6 +110,8 @@ public:
     
     scc_cache_t(
         serializer_t *serializer,
+        int id_on_serializer,
+        int count_on_serializer,
         size_t _max_size,
         bool wait_for_flush,
         unsigned int flush_timer_ms,

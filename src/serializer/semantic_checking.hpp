@@ -20,7 +20,9 @@ the log serializer. */
 
 template<class inner_serializer_t>
 class semantic_checking_serializer_t :
-    public home_cpu_mixin_t
+    public home_cpu_mixin_t,
+    private inner_serializer_t::ready_callback_t,
+    private inner_serializer_t::shutdown_callback_t
 {
 public:
     typedef typename inner_serializer_t::buf_data_t buf_data_t;
@@ -82,8 +84,10 @@ public:
     }
 
 public:
-    typedef typename inner_serializer_t::ready_callback_t ready_callback_t;
-    bool start(ready_callback_t *ready_cb) {
+    struct ready_callback_t {
+        virtual void on_serializer_ready(semantic_checking_serializer_t *) = 0;
+    };
+    bool start(ready_callback_t *cb) {
         // fill up the blocks from the semantic checking file
         int res = -1;
         do {
@@ -94,8 +98,14 @@ public:
                 blocks.set(buf.block_id, buf.block_info);
             }
         } while(res == sizeof(persisted_block_info_t));
-
-        return inner_serializer.start(ready_cb);
+        
+        ready_callback = cb;
+        return inner_serializer.start(this);
+    }
+private:
+    ready_callback_t *ready_callback;
+    void on_serializer_ready(inner_serializer_t *ser) {
+        if (ready_callback) ready_callback->on_serializer_ready(this);
     }
     
 public:
@@ -260,9 +270,17 @@ public:
     }
     
 public:
-    typedef typename inner_serializer_t::shutdown_callback_t shutdown_callback_t;
+    struct shutdown_callback_t {
+        virtual void on_serializer_shutdown(semantic_checking_serializer_t *) = 0;
+    };
     bool shutdown(shutdown_callback_t *cb) {
-        return inner_serializer.shutdown(cb);
+        shutdown_callback = cb;
+        return inner_serializer.shutdown(this);
+    }
+private:
+    shutdown_callback_t *shutdown_callback;
+    void on_serializer_shutdown(inner_serializer_t *ser) {
+        if (shutdown_callback) shutdown_callback->on_serializer_shutdown(this);
     }
 };
 

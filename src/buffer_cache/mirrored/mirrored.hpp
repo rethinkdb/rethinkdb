@@ -205,7 +205,10 @@ private:
     // extensible when some policy implementation requires access to
     // components it wasn't originally given.
     buffer_alloc_t alloc;
+    
     serializer_t *serializer;
+    int id_on_serializer, count_on_serializer;
+    
     typename mc_config_t::page_map_t page_map;
     typename mc_config_t::page_repl_t page_repl;
     typename mc_config_t::writeback_t writeback;
@@ -214,7 +217,15 @@ private:
 
 public:
     mc_cache_t(
+            /* If multiple caches use the same serializer, they must take care not to step on
+            each other's toes. count_on_serializer is the number of total caches that are using
+            the given serializer; id_on_serializer is a different number for each one.
+            0 <= id_on_serializer < count_on_serializer. Each cache only uses IDs of the form
+            (n * count_on_serializer + id_on_serializer). */
             serializer_t *serializer,
+            int id_on_serializer,
+            int count_on_serializer,
+            
             size_t _max_size,
             bool wait_for_flush,
             unsigned int flush_timer_ms,
@@ -268,6 +279,7 @@ private:
 #endif
 
 private:
+    ser_block_id_t get_ser_block_id(block_id_t id);
     
     void on_transaction_commit(transaction_t *txn);
     
