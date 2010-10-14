@@ -202,6 +202,8 @@ void data_block_manager_t::run_gc() {
                 gc_stats.garbage_blocks -= extent_manager->extent_size / BTREE_BLOCK_SIZE;
 
                 if(state == state_shutting_down) {
+                    // The state = state_shut_down must happen
+                    // _before_ the shutdown_callback is called.
                     state = state_shut_down;
                     if(shutdown_callback)
                         shutdown_callback->on_datablock_manager_shutdown();
