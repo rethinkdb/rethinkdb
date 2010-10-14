@@ -225,8 +225,8 @@ public:
         //get_cpu_context()->worker->get_hits++; // XXX: Perfmon is broken.
         sbuf->printf("VALUE %*.*s %u %u %llu\r\n",
             fsm->key.size, fsm->key.size, fsm->key.contents,
-            fsm->value.value_size(),
             fsm->value.mcflags(),
+            fsm->value.value_size(),
             fsm->value.cas());
     }
 
