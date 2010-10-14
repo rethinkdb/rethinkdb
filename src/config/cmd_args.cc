@@ -23,7 +23,9 @@ void usage(const char *name) {
     printf("  -h, --help\t\tPrint these usage options.\n");
     printf("  -c, --cores\t\tNumber of cores to use for handling requests.\n");
 
-    printf("  -s, --slices\t\tShards per thread.\n");
+    printf("  -s, --slices\t\tShards total.\n");
+    
+    printf("  -f, --files\t\tNumber of files to use.\n");
     
     printf("  -m, --max-cache-size\tMaximum amount of RAM to use for caching disk\n");
     printf("\t\t\tblocks, in megabytes.\n");
@@ -63,6 +65,7 @@ void init_config(cmd_config_t *config) {
     
     config->n_slices = BTREE_SHARD_FACTOR;
     config->n_workers = get_cpu_count();
+    config->n_serializers = 1;
 }
 
 enum {
@@ -86,6 +89,7 @@ void parse_cmd_args(int argc, char *argv[], cmd_config_t *config)
                 {"flush-threshold",      required_argument, 0, flush_threshold},
                 {"cores",                required_argument, 0, 'c'},
                 {"slices",               required_argument, 0, 's'},
+                {"files",                required_argument, 0, 'f'},
                 {"max-cache-size",       required_argument, 0, 'm'},
                 {"log-file",             required_argument, 0, 'l'},
                 {"port",                 required_argument, 0, 'p'},
@@ -125,6 +129,12 @@ void parse_cmd_args(int argc, char *argv[], cmd_config_t *config)
             config->n_slices = atoi(optarg);
             if(config->n_slices > MAX_SLICES) {
                 fail("Maximum number of slices is %d\n", MAX_SLICES);
+            }
+            break;
+        case 'f':
+            config->n_serializers = atoi(optarg);
+            if (config->n_serializers > MAX_SERIALIZERS) {
+                fail("Maximum number of serializers is %d\n", MAX_SERIALIZERS);
             }
             break;
         case 'm':

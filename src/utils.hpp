@@ -119,11 +119,14 @@ bool do_on_cpu(int cpu, obj_t *obj, bool (obj_t::*on_other_core)(arg1_t), arg1_t
 template<class obj_t, class arg1_t, class arg2_t>
 bool do_on_cpu(int cpu, obj_t *obj, bool (obj_t::*on_other_core)(arg1_t, arg2_t), arg1_t arg1, arg2_t arg2);
 
-template<class obj_t>
-void delete_on_cpu(int cpu, obj_t *obj);
+template<class callable_t>
+void do_later(const callable_t &callable);
 
 template<class obj_t>
-void gdelete_on_cpu(int cpu, obj_t *obj);
+void do_later(obj_t *obj, bool (obj_t::*later)());
+
+template<class obj_t, class arg1_t>
+void do_later(obj_t *obj, bool (obj_t::*later)(arg1_t), arg1_t arg1);
 
 #include "utils.tcc"
 

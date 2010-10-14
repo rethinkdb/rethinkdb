@@ -321,7 +321,6 @@ void conn_fsm_t::do_transition_and_handle_result(event_t *event) {
 // Switch on the current state and call the appropriate transition
 // function.
 conn_fsm_t::result_t conn_fsm_t::do_transition(event_t *event) {
-    
     result_t res;
 
     switch (state) {
@@ -368,7 +367,7 @@ conn_fsm_t::result_t conn_fsm_t::do_transition(event_t *event) {
                 return res;
             }
 
-            if (state == fsm_socket_connected && res == fsm_transition_ok) {
+            if ((state == fsm_socket_connected || state == fsm_socket_recv_incomplete) && res == fsm_transition_ok) {
                 event->event_type = et_sock;
                 res = read_data(event);
 

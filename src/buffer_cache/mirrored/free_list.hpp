@@ -21,10 +21,18 @@ public:
     
     ~array_free_list_t();
     
+    int num_blocks_in_use;
     block_id_t gen_block_id();
     void release_block_id(block_id_t);
 
 private:
+    ready_callback_t *ready_callback;
+    int max_block_id;
+    bool do_get_size();   // Called on serializer CPU
+    bool have_gotten_size(ser_block_id_t max_block_id);   // Called on cache CPU
+    bool do_make_list();   // Called on serializer CPU
+    bool have_made_list();   // Called on cache CPU
+    
     mc_cache_t<mc_config_t> *cache;
     segmented_vector_t<block_id_t, MAX_BLOCK_ID> free_list;
     block_id_t first_block;

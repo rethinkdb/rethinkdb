@@ -217,7 +217,7 @@ mock_transaction_t::~mock_transaction_t() {
 /* Cache */
 
 mock_cache_t::mock_cache_t(
-    serializer_t *serializer,
+    serializer_t *serializer, int, int,
     size_t _max_size,
     bool wait_for_flush,
     unsigned int flush_timer_ms,

@@ -1,8 +1,8 @@
 #include "key_value_store.hpp"
 #include "db_cpu_info.hpp"
 
-btree_key_value_store_t::btree_key_value_store_t(cmd_config_t *cmd_config)
-    : cmd_config(cmd_config), state(state_off)
+btree_key_value_store_t::btree_key_value_store_t(cmd_config_t *cmd_config, serializer_t **serializers, int n_serializers)
+    : cmd_config(cmd_config), serializers(serializers), n_serializers(n_serializers), state(state_off)
 {
     
     assert(cmd_config->n_slices > 0);
@@ -33,17 +33,24 @@ bool btree_key_value_store_t::start(ready_callback_t *cb) {
 
 bool btree_key_value_store_t::create_a_slice_on_this_core(int id) {
     
-    char name[MAX_DB_FILE_NAME];
-    int len = snprintf(name, MAX_DB_FILE_NAME, "%s_%d", cmd_config->db_file_name, id);
-    // TODO: the below line is currently the only way to write to a block device,
-    // we need a command line way to do it, this also requires consolidating to one
-    // file
-    //     int len = snprintf(name, MAX_DB_FILE_NAME, "/dev/sdb");
-    check("Name too long", len == MAX_DB_FILE_NAME);
+    // TODO try to align slices with serializers so that when possible, a slice is on the
+    // same thread as its serializer
+    
+    serializer_t *serializer = serializers[id % n_serializers];
+    int id_on_serializer = id / n_serializers;
+    
+    int count_on_serializer = 0;
+    for (int i = 0; i < cmd_config->n_slices; i++) {
+        if (i % n_serializers == id % n_serializers) count_on_serializer++;
+    }
+    assert(count_on_serializer >= 1);
+    assert(count_on_serializer >= cmd_config->n_slices / n_serializers);
+    assert(count_on_serializer <= cmd_config->n_slices / n_serializers + 1);
     
     slices[id] = new btree_slice_t(
-        name,
-        BTREE_BLOCK_SIZE,
+        serializer,
+        id_on_serializer,
+        count_on_serializer,
         cmd_config->max_cache_size / cmd_config->n_slices,
         cmd_config->wait_for_flush,
         cmd_config->flush_timer_ms,
@@ -312,16 +319,17 @@ private:
 };
 
 btree_slice_t::btree_slice_t(
-    char *filename,
-    size_t block_size,
+    serializer_t *serializer,
+    int id_on_serializer,
+    int count_on_serializer,
+    
     size_t max_size,
     bool wait_for_flush,
     unsigned int flush_timer_ms,
     unsigned int flush_threshold_percent)
     : cas_counter(0),
       state(state_unstarted),
-      serializer(filename, block_size),
-      cache(&serializer, max_size, wait_for_flush, flush_timer_ms, flush_threshold_percent),
+      cache(serializer, id_on_serializer, count_on_serializer, max_size, wait_for_flush, flush_timer_ms, flush_threshold_percent),
       total_set_operations(0), pm_total_set_operations("cmd_set", &total_set_operations, &perfmon_combiner_sum)
     { }
 
@@ -331,7 +339,7 @@ btree_slice_t::~btree_slice_t() {
 
 bool btree_slice_t::start(ready_callback_t *cb) {
     assert(state == state_unstarted);
-    state = state_starting_up_start_serializer;
+    state = state_starting_up_start_cache;
     ready_callback = NULL;
     if (next_starting_up_step()) {
         return true;
@@ -342,15 +350,6 @@ bool btree_slice_t::start(ready_callback_t *cb) {
 }
 
 bool btree_slice_t::next_starting_up_step() {
-    
-    if (state == state_starting_up_start_serializer) {
-        if (serializer.start(this)) {
-            state = state_starting_up_start_cache;
-        } else {
-            state = state_starting_up_waiting_for_serializer;
-            return false;
-        }
-    }
     
     if (state == state_starting_up_start_cache) {
         if (cache.start(this)) {
@@ -382,12 +381,6 @@ bool btree_slice_t::next_starting_up_step() {
     }
     
     fail("Unexpected state");
-}
-
-void btree_slice_t::on_serializer_ready() {
-    assert(state == state_starting_up_waiting_for_serializer);
-    state = state_starting_up_start_cache;
-    next_starting_up_step();
 }
 
 void btree_slice_t::on_cache_ready() {
@@ -424,18 +417,9 @@ bool btree_slice_t::next_shutting_down_step() {
     
     if (state == state_shutting_down_shutdown_cache) {
         if (cache.shutdown(this)) {
-            state = state_shutting_down_shutdown_serializer;
-        } else {
-            state = state_shutting_down_waiting_for_cache;
-            return false;
-        }
-    }
-    
-    if (state == state_shutting_down_shutdown_serializer) {
-        if (serializer.shutdown(this)) {
             state = state_shutting_down_finish;
         } else {
-            state = state_shutting_down_waiting_for_serializer;
+            state = state_shutting_down_waiting_for_cache;
             return false;
         }
     }
@@ -451,17 +435,6 @@ bool btree_slice_t::next_shutting_down_step() {
 
 void btree_slice_t::on_cache_shutdown() {
     assert(state == state_shutting_down_waiting_for_cache);
-    state = state_shutting_down_shutdown_serializer;
-    // It's not safe to call the cache's destructor from within on_cache_shutdown()
-    call_later_on_this_cpu(this);
-}
-
-void btree_slice_t::on_cpu_switch() {
-    next_shutting_down_step();
-}
-
-void btree_slice_t::on_serializer_shutdown() {
-    assert(state == state_shutting_down_waiting_for_serializer);
     state = state_shutting_down_finish;
     next_shutting_down_step();
 }

@@ -80,7 +80,7 @@ public:
 
 public:
     bin_memcached_get_request_t(bin_memcached_handler_t *rh, packet_t *pkt, btree_key *key)
-        : bin_memcached_request_t(rh, pkt), fsm(new btree_get_fsm_t(key, &rh->server->store, this))
+        : bin_memcached_request_t(rh, pkt), fsm(new btree_get_fsm_t(key, rh->server->store, this))
         {
         fsm->run(this);
     }
@@ -128,7 +128,7 @@ public:
 
 public:
     bin_memcached_set_request_t(bin_memcached_handler_t *rh, packet_t *pkt, btree_key *key, byte *data, uint32_t size, btree_set_fsm_t::set_type_t type, btree_value::mcflags_t mcflags, btree_value::exptime_t exptime, uint64_t req_cas)
-        : bin_memcached_request_t(rh, pkt), fsm(new btree_set_fsm_t(key, &rh->server->store, this, false, size, data, type, mcflags, exptime, req_cas))
+        : bin_memcached_request_t(rh, pkt), fsm(new btree_set_fsm_t(key, rh->server->store, this, false, size, data, type, mcflags, exptime, req_cas))
         {
         assert(type == btree_set_fsm_t::set_type_set);   // We haven't hooked up ADD and REPLACE yet, and we're going to handle CAS differently.
         fsm->run(this);
@@ -162,7 +162,7 @@ public:
 
 public:
     bin_memcached_incr_decr_request_t(bin_memcached_handler_t *rh, packet_t *pkt, btree_key *key, bool increment, long long delta)
-        : bin_memcached_request_t(rh, pkt), fsm(new btree_incr_decr_fsm_t(key, &rh->server->store, increment, delta))
+        : bin_memcached_request_t(rh, pkt), fsm(new btree_incr_decr_fsm_t(key, rh->server->store, increment, delta))
         {
         fsm->run(this);
     }
@@ -206,7 +206,7 @@ public:
 
 public:
     bin_memcached_append_prepend_request_t(bin_memcached_handler_t *rh, packet_t *pkt, btree_key *key, byte *data, int size, bool append) :
-        bin_memcached_request_t(rh, pkt), fsm(new btree_append_prepend_fsm_t(key, &rh->server->store, this, false, size, data, append)) {
+        bin_memcached_request_t(rh, pkt), fsm(new btree_append_prepend_fsm_t(key, rh->server->store, this, false, size, data, append)) {
         fsm->run(this);
     }
 
@@ -245,7 +245,7 @@ public:
 
 public:
     bin_memcached_delete_request_t(bin_memcached_handler_t *rh, packet_t *pkt, btree_key *key)
-        : bin_memcached_request_t(rh, pkt), fsm(new btree_delete_fsm_t(key, &rh->server->store))
+        : bin_memcached_request_t(rh, pkt), fsm(new btree_delete_fsm_t(key, rh->server->store))
         {
         fsm->run(this);
     }

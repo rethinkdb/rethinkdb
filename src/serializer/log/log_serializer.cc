@@ -108,7 +108,7 @@ struct ls_start_fsm_t :
             assert(ser->state == log_serializer_t::state_starting_up);
             ser->state = log_serializer_t::state_ready;
             if(ready_callback)
-                ready_callback->on_serializer_ready();
+                ready_callback->on_serializer_ready(ser);
 
 #ifndef NDEBUG
             if(metablock_found) {
@@ -161,6 +161,7 @@ struct ls_start_fsm_t :
 bool log_serializer_t::start(ready_callback_t *ready_cb) {
 
     assert(state == state_unstarted);
+    assert_cpu();
     
     ls_start_fsm_t *s = new ls_start_fsm_t(this);
     return s->run(ready_cb);
@@ -445,7 +446,9 @@ bool log_serializer_t::do_write(write_t *writes, int num_writes, write_txn_callb
     // datablock manager on gc (because it's writing the final gc as
     // we're shutting down). That is ok, which is why we don't assert
     // on state here.
-
+    
+    assert_cpu();
+    
 #ifndef NDEBUG
     metablock_t _debug_mb_buffer;
     prepare_metablock(&_debug_mb_buffer);
@@ -467,6 +470,7 @@ bool log_serializer_t::do_write(write_t *writes, int num_writes, write_txn_callb
 bool log_serializer_t::do_read(ser_block_id_t block_id, void *buf, read_callback_t *callback) {
     
     assert(state == state_ready);
+    assert_cpu();
     
     /* See if we are currently in the process of writing the block */
     block_writer_map_t::iterator it = block_writer_map.find(block_id);
@@ -491,18 +495,24 @@ bool log_serializer_t::do_read(ser_block_id_t block_id, void *buf, read_callback
 ser_block_id_t log_serializer_t::max_block_id() {
     
     assert(state == state_ready);
+    assert_cpu();
+    
     return lba_index.max_block_id();
 }
 
 bool log_serializer_t::block_in_use(ser_block_id_t id) {
     
     assert(state == state_ready);
+    assert_cpu();
+    
     return lba_index.get_block_offset(id) != DELETE_BLOCK;
 }
 
 bool log_serializer_t::shutdown(shutdown_callback_t *cb) {
+
     assert(cb);
     assert(state == state_ready);
+    assert_cpu();
     shutdown_callback = cb;
 
     shutdown_state = shutdown_begin;
@@ -512,7 +522,9 @@ bool log_serializer_t::shutdown(shutdown_callback_t *cb) {
 }
 
 bool log_serializer_t::next_shutdown_step() {
-
+    
+    assert_cpu();
+    
     if(shutdown_state == shutdown_begin) {
         // First shutdown step
         shutdown_state = shutdown_waiting_on_serializer;
@@ -552,7 +564,7 @@ bool log_serializer_t::next_shutdown_step() {
         // Don't call the callback if we went through the entire
         // shutdown process in one synchronous shot.
         if(!shutdown_in_one_shot && shutdown_callback) {
-            shutdown_callback->on_serializer_shutdown();
+            do_later(shutdown_callback, &shutdown_callback_t::on_serializer_shutdown, this);
         }
 
         return true;

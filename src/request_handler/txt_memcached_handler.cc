@@ -78,7 +78,7 @@ public:
 
     bool add_get(btree_key *key) {
         if (num_fsms < MAX_OPS_IN_REQUEST) {
-            btree_get_fsm_t *fsm = new btree_get_fsm_t(key, &rh->server->store, this);
+            btree_get_fsm_t *fsm = new btree_get_fsm_t(key, rh->server->store, this);
             ready_fsms[num_fsms] = false;
             fsms[num_fsms ++] = fsm;
             nfsms++;
@@ -198,7 +198,7 @@ public:
 
     bool add_get(btree_key *key) {
         if (num_fsms < MAX_OPS_IN_REQUEST) {
-            btree_get_cas_fsm_t *fsm = new btree_get_cas_fsm_t(key, &rh->server->store, this);
+            btree_get_cas_fsm_t *fsm = new btree_get_cas_fsm_t(key, rh->server->store, this);
             ready_fsms[num_fsms] = false;
             fsms[num_fsms ++] = fsm;
             nfsms++;
@@ -309,7 +309,7 @@ class txt_memcached_set_request_t :
 public:
     txt_memcached_set_request_t(txt_memcached_handler_t *rh, btree_key *key, bool is_large, uint32_t length, byte *data, btree_set_fsm_t::set_type_t type, btree_value::mcflags_t mcflags, btree_value::exptime_t exptime, btree_value::cas_t req_cas, bool noreply)
         : txt_memcached_request_t(rh, noreply),
-          fsm(new btree_set_fsm_t(key, &rh->server->store, this, is_large, length, data, type, mcflags, convert_exptime(exptime), req_cas)) {
+          fsm(new btree_set_fsm_t(key, rh->server->store, this, is_large, length, data, type, mcflags, convert_exptime(exptime), req_cas)) {
         fsm->run(this);
         nfsms = 1;
     }
@@ -374,7 +374,7 @@ class txt_memcached_incr_decr_request_t :
 public:
     txt_memcached_incr_decr_request_t(txt_memcached_handler_t *rh, btree_key *key, bool increment, long long delta, bool noreply)
         : txt_memcached_request_t(rh, noreply),
-          fsm(new btree_incr_decr_fsm_t(key, &rh->server->store, increment, delta))
+          fsm(new btree_incr_decr_fsm_t(key, rh->server->store, increment, delta))
         {
         fsm->run(this);
         nfsms = 1;
@@ -413,7 +413,7 @@ class txt_memcached_append_prepend_request_t :
 public:
     txt_memcached_append_prepend_request_t(txt_memcached_handler_t *rh, btree_key *key, bool got_large, int length, byte *data, bool append, bool noreply)
         : txt_memcached_request_t(rh, noreply),
-          fsm(new btree_append_prepend_fsm_t(key, &rh->server->store, this, got_large, length, data, append)) {
+          fsm(new btree_append_prepend_fsm_t(key, rh->server->store, this, got_large, length, data, append)) {
         fsm->run(this);
         nfsms = 1;
     }
@@ -454,7 +454,7 @@ class txt_memcached_delete_request_t :
 public:
     txt_memcached_delete_request_t(txt_memcached_handler_t *rh, btree_key *key, bool noreply)
         : txt_memcached_request_t(rh, noreply),
-          fsm(new btree_delete_fsm_t(key, &rh->server->store)) {
+          fsm(new btree_delete_fsm_t(key, rh->server->store)) {
         fsm->run(this);
         nfsms = 1;
     }
