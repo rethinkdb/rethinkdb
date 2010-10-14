@@ -36,7 +36,7 @@ class Event():
         return '--event=%s:%d:%x:%d:%d' % (self.name, self.count, self.mask, self.kernel, self.user)
 
 class OProfile():
-    def start(events):
+    def start(self, events):
         os.system(ctrl_str + ' --reset')
         os.system(ctrl_str + ' --no-vmlinux')
         os.system(ctrl_str + ' --separate=lib,kernel,cpu')
@@ -47,13 +47,13 @@ class OProfile():
             os.system(event_str)
         os.system(ctrl_str + ' --start')
 
-    def stop_and_report():
+    def stop_and_report(self):
         os.system(ctrl_str + ' --shutdown')
         os.system(rprt_str + ' --merge=cpu,lib,tid,tgid,unitmask,all -gdf | op2calltree')
         p = parser()
         return p.parse_file('oprof.out.' + exec_name)
 
-    def clean():
+    def clean(self):
         os.system('rm oprof.out.*')
 
 #Parsing code

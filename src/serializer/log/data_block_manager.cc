@@ -184,7 +184,7 @@ void data_block_manager_t::run_gc() {
                     break;
             case gc_write:
                 //not valid when writes are asynchronous (it would be nice if we could have this)
-                assert(gc_state.current_entry.g_array.count() == gc_state.current_entry.g_array.size());
+                assert(gc_state.current_entry.g_array.count() == gc_state.current_entry.g_array.size()); //Checks if everything in the array has been marked as garbage
                 assert(entries.get(gc_state.current_entry.offset / extent_manager->extent_size) == NULL);
 
                 assert(gc_state.refcount == 0);
