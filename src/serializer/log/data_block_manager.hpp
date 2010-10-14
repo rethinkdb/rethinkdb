@@ -26,6 +26,9 @@ public:
           extent_manager(em), block_size(_block_size) {}
     ~data_block_manager_t() {
         assert(state == state_unstarted || state == state_shut_down);
+        while (!gc_pq.empty()) {
+            delete gc_pq.pop();
+        }
     }
     
 public:
@@ -108,12 +111,20 @@ private:
 
 private:
     void add_gc_entry();
+    
+    struct gc_entry;
+    
+    struct Less {
+        bool operator() (const gc_entry *x, const gc_entry *y);
+    };
+    
     struct gc_entry : public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, gc_entry> {
     public:
         off64_t offset; /* !< the offset that this extent starts at */
         std::bitset<EXTENT_SIZE / BTREE_BLOCK_SIZE> g_array; /* !< bit array for whether or not each block is garbage */
         time_t timestamp; /* !< when we started writing to the extent */
         bool active; /* !< this the extent we're currently writing to? */
+        priority_queue_t<gc_entry*, Less>::entry_t *our_pq_entry; /* !< The PQ entry pointing to us */
     public:
         gc_entry() {
             timestamp = time(NULL);
@@ -129,20 +140,9 @@ private:
 #endif
         }
     };
-
-    struct Less {
-        bool operator() (const gc_entry x, const gc_entry y);
-    };
-    priority_queue_t<gc_entry, Less> gc_pq;
-    two_level_array_t<priority_queue_t<gc_entry, Less>::entry_t *, MAX_DATA_EXTENTS> entries;
-
-    void print_entries() {
-#ifndef NDEBUG
-        for (unsigned int i = 0; i * extent_manager->extent_size < (unsigned int) extent_manager->max_extent(); i++)
-            if (entries.get(i) != NULL)
-                entries.get(i)->data.print();
-#endif
-    }
+    
+    priority_queue_t<gc_entry*, Less> gc_pq;
+    two_level_array_t<gc_entry*, MAX_DATA_EXTENTS> entries;
 
     struct gc_criterion {
         bool operator() (const gc_entry);
@@ -169,17 +169,16 @@ private:
         gc_ready, /* ready to start */
         gc_read,  /* waiting for reads, sending out writes */
         gc_write, /* waiting for writes */
-    } gc_step_t;
+    };
 
     struct gc_state_t {
         gc_step step;               /* !< which step we're on */
         int refcount;               /* !< outstanding io reqs */
         char *gc_blocks;            /* !< buffer for blocks we're transferring */
-        gc_entry current_entry;     /* !< entry we're currently gcing */
-        int blocks_copying;         /* !< how many blocks we're copying */
+        gc_entry *current_entry;    /* !< entry we're currently GCing */
         data_block_manager_t::gc_read_callback_t gc_read_callback;
         data_block_manager_t::gc_write_callback_t gc_write_callback;
-        gc_state_t() : step(gc_ready), refcount(0), blocks_copying(0)
+        gc_state_t() : step(gc_ready), refcount(0), current_entry(NULL)
         {
             memalign_alloc_t<DEVICE_BLOCK_SIZE> blocks_buffer_allocator;
             /* TODO this is excessive as soon as we have a bound on how much space we need we should allocate less */

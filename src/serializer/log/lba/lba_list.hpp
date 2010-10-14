@@ -8,7 +8,6 @@
 #include "disk_format.hpp"
 #include "in_memory_index.hpp"
 #include "disk_structure.hpp"
-#include "serializer/log/data_block_manager.hpp"
 
 class lba_start_fsm_t;
 class lba_syncer_t;
@@ -24,7 +23,7 @@ public:
     typedef lba_metablock_mixin_t metablock_mixin_t;
     
 public:
-    lba_list_t(data_block_manager_t *dbm, extent_manager_t *em);
+    lba_list_t(extent_manager_t *em);
     ~lba_list_t();
 
 public:
@@ -75,7 +74,6 @@ private:
     bool __shutdown();
 
 private:
-    data_block_manager_t *data_block_manager;
     extent_manager_t *extent_manager;
     
     enum state_t {

@@ -4,8 +4,8 @@
 #include "lba_list.hpp"
 #include "arch/arch.hpp"
 
-lba_list_t::lba_list_t(data_block_manager_t *dbm, extent_manager_t *em)
-    : shutdown_callback(NULL), gc_fsm(NULL), data_block_manager(dbm), extent_manager(em),
+lba_list_t::lba_list_t(extent_manager_t *em)
+    : shutdown_callback(NULL), gc_fsm(NULL), extent_manager(em),
       state(state_unstarted), in_memory_index(NULL), disk_structure(NULL)
     {}
 
@@ -70,7 +70,7 @@ struct lba_start_fsm_t :
     }
     
     void finish() {
-        owner->in_memory_index = new in_memory_index_t(owner->disk_structure, owner->data_block_manager, owner->extent_manager);
+        owner->in_memory_index = new in_memory_index_t(owner->disk_structure, owner->extent_manager);
         owner->state = lba_list_t::state_ready;
         
         if (callback) callback->on_lba_ready();
@@ -100,20 +100,6 @@ off64_t lba_list_t::get_block_offset(ser_block_id_t block) {
     
     return in_memory_index->get_block_offset(block);
 }
-
-#ifndef NDEBUG
-bool lba_list_t::is_extent_referenced(off64_t offset) {
-    return in_memory_index->is_extent_referenced(offset / EXTENT_SIZE);
-}
-
-bool lba_list_t::is_offset_referenced(off64_t offset) {
-    return in_memory_index->is_offset_referenced(offset);
-}
-
-int lba_list_t::extent_refcount(off64_t offset) {
-    return in_memory_index->extent_refcount(offset / EXTENT_SIZE);
-}
-#endif
 
 void lba_list_t::set_block_offset(ser_block_id_t block, off64_t offset) {
     assert(state == state_ready);

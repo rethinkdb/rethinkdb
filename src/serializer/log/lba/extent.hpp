@@ -59,7 +59,7 @@ private:
     // Used only if mode == mode_loaded
     bool done_loading;
     load_callback_t *load_callback;
-    bool _destroy, _shutdown;
+    bool destroying;
 
 public:
     off64_t offset;
@@ -67,7 +67,7 @@ public:
 private:
     // Use create() or load() instead
     extent_t(extent_manager_t *_em, direct_file_t *file, off64_t _offset)
-        : em(_em), file(file), _destroy(false), _shutdown(false), offset(_offset), last_sync(NULL)
+        : em(_em), file(file), destroying(false), offset(_offset), last_sync(NULL)
     {
         assert(em);
         assert(offset % (em->extent_size) == 0);
@@ -90,6 +90,8 @@ public:
     /* Make a extent_t reflecting data already on disk */
     static bool load(extent_manager_t *em, direct_file_t *file, off64_t offset, size_t amount_used, extent_t **out, load_callback_t *cb)
     {
+        em->reserve_extent(offset);
+        
         extent_t *buf = new extent_t(em, file, offset);
         buf->mode = mode_loaded;
         buf->amount_synced = amount_used;
@@ -169,7 +171,7 @@ private:
         void done() {
             if (this == owner->last_sync) {
                 owner->last_sync = NULL;
-                owner->maybe_finalize();
+                if (owner->destroying) delete owner;
             }
             while (sync_callback_t *cb = callbacks.head()) {
                 callbacks.remove(cb);
@@ -209,31 +211,13 @@ public:
 
 public:
     void destroy() {
-        _shutdown = true;
-        _destroy = true;
-        if(last_sync == NULL) {
-            maybe_finalize();
-        }
+        em->release_extent(offset);
+        if (last_sync == NULL) delete this;
+        else destroying = true;
     }
     
     void shutdown() {
-        _shutdown = true;
-        if(last_sync == NULL) {
-            maybe_finalize();
-        }
-    }
-
-    void maybe_finalize() {
-        if(!_shutdown) {
-            assert(!_destroy);
-            return;
-        }
-
         assert(last_sync == NULL);
-        
-        if(_destroy) {
-            em->release_extent(offset);
-        }
         delete this;
     }
 };

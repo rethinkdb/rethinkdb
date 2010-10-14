@@ -54,7 +54,7 @@
 #define BTREE_USABLE_BLOCK_SIZE                   (BTREE_BLOCK_SIZE - BLOCK_META_DATA_SIZE)
 
 // Maximum number of data blocks
-#define MAX_DATA_EXTENTS                          (1 << 64 / EXTENT_SIZE)
+#define MAX_DATA_EXTENTS                          (TERABYTE / EXTENT_SIZE)
 
 // Size of each extent (in bytes)
 // Value is very low for testing purposes.
