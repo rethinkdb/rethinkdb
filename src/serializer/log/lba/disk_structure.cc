@@ -195,6 +195,10 @@ void lba_disk_structure_t::prepare_metablock(lba_metablock_mixin_t *mb_out) {
     }
 }
 
+int lba_disk_structure_t::num_entries_that_can_fit_in_an_extent() const {
+    return (em->extent_size - offsetof(lba_extent_t, entries[0])) / sizeof(lba_entry_t);
+}
+
 void lba_disk_structure_t::destroy() {
     if (superblock) superblock->destroy();
     if (last_extent) last_extent->destroy();

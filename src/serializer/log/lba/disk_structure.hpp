@@ -37,11 +37,14 @@ public:
     void destroy();   // Delete both in memory and on disk
     void shutdown();   // Delete just in memory
 
+    int num_entries_that_can_fit_in_an_extent() const;
+
 private:
     extent_manager_t *em;
     direct_file_t *file;
 
 public:
+    // Can be NULL, for a while.
     lba_disk_superblock_t *superblock;
     lba_disk_extent_t *last_extent;
 

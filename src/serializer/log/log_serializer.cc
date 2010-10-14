@@ -3,15 +3,14 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-log_serializer_t::log_serializer_t(char *_db_path, size_t block_size)
+log_serializer_t::log_serializer_t(cmd_config_t *cmd_config, char *_db_path, size_t block_size)
     : shutdown_callback(NULL),
       block_size(block_size),
       state(state_unstarted),
-      gc_counter(0),
       dbfile(NULL),
       extent_manager(EXTENT_SIZE),
       metablock_manager(&extent_manager),
-      data_block_manager(this, &extent_manager, block_size),
+      data_block_manager(this, cmd_config, &extent_manager, block_size),
       lba_index(&data_block_manager, &extent_manager),
       last_write(NULL),
       active_write_count(0) {
@@ -408,12 +407,7 @@ struct ls_write_fsm_t :
         state = state_done;
         
         //TODO I'm kind of unhappy that we're calling this from in here we should figure out better where to trigger gc
-        ser->gc_counter = (ser->gc_counter + 1) % 5;
-        if (ser->gc_counter == 0 && ser->state == log_serializer_t::state_ready) {
-            // We do not do GC if we're not in the ready state
-            // (i.e. shutting down)
-            ser->data_block_manager.start_gc();
-        }
+        ser->consider_start_gc();
         
         if (callback) callback->on_serializer_write_txn();
         
@@ -439,6 +433,7 @@ private:
     
     log_serializer_t::metablock_t mb_buffer;
 };
+
 
 bool log_serializer_t::do_write(write_t *writes, int num_writes, write_txn_callback_t *callback) {
 
@@ -587,4 +582,13 @@ void log_serializer_t::prepare_metablock(metablock_t *mb_buffer) {
     extent_manager.prepare_metablock(&mb_buffer->extent_manager_part);
     data_block_manager.prepare_metablock(&mb_buffer->data_block_manager_part);
     lba_index.prepare_metablock(&mb_buffer->lba_index_part);
+}
+
+
+void log_serializer_t::consider_start_gc() {
+    if (data_block_manager.do_we_want_to_start_gcing() && state == log_serializer_t::state_ready) {
+        // We do not do GC if we're not in the ready state
+        // (i.e. shutting down)
+        data_block_manager.start_gc();
+    }
 }

@@ -3,15 +3,17 @@
 #define __SERIALIZER_LOG_DATA_BLOCK_MANAGER_HPP__
 
 #include "arch/arch.hpp"
-#include "serializer/types.hpp"
-#include "extents/extent_manager.hpp"
-#include "log_serializer_callbacks.hpp"
+#include "config/cmd_args.hpp"
 #include "containers/priority_queue.hpp"
 #include "containers/two_level_array.hpp"
-#include <functional>
+#include "extents/extent_manager.hpp"
+#include "log_serializer_callbacks.hpp"
+#include "serializer/types.hpp"
 #include <bitset>
+#include <functional>
+#include <queue>
 #include <utility>
-#include <time.h>
+#include <sys/time.h>
 
 // TODO: When we start up, start a new extent rather than continuing on the old extent. The
 // remainder of the old extent is taboo because if we shut down badly, we might have written data
@@ -19,15 +21,15 @@
 // SSD controller would have to move it and there would be a risk of fragmentation.
 
 class data_block_manager_t {
-    
+
 public:
-    data_block_manager_t(log_serializer_t *ser, extent_manager_t *em, size_t _block_size)
+    data_block_manager_t(log_serializer_t *ser, cmd_config_t *cmd_config, extent_manager_t *em, size_t _block_size)
         : shutdown_callback(NULL), state(state_unstarted), serializer(ser),
-          extent_manager(em), block_size(_block_size) {}
+          cmd_config(cmd_config), extent_manager(em), block_size(_block_size) {}
     ~data_block_manager_t() {
         assert(state == state_unstarted || state == state_shut_down);
     }
-    
+
 public:
     struct metablock_mixin_t {
         off64_t last_data_extent;
@@ -82,9 +84,14 @@ public:
     struct shutdown_callback_t {
         virtual void on_datablock_manager_shutdown() = 0;
     };
+    // The shutdown_callback_t may destroy the data_block_manager.
     bool shutdown(shutdown_callback_t *cb);
 
+public:
+    bool do_we_want_to_start_gcing() const;
+
 private:
+    // This is permitted to destroy the data_block_manager.
     shutdown_callback_t *shutdown_callback;
 
 private:
@@ -96,27 +103,45 @@ private:
     } state;
 
     log_serializer_t *serializer;
-    
+
+    cmd_config_t *cmd_config;
+
     extent_manager_t *extent_manager;
-    
+
     direct_file_t *dbfile;
     size_t block_size;
     off64_t last_data_extent;
     unsigned int blocks_in_last_data_extent;
-    
+
     off64_t gimme_a_new_offset();
 
 private:
+    // Depends on the value of last_data_extent.  Adds the gc entry for
+    // the last_data_extent to the entries table.
     void add_gc_entry();
+
+    // Identifies an extent, the time we started writing to the
+    // extent, whether it's the extent we're currently writing to, and
+    // describes blocks are garbage.
     struct gc_entry : public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, gc_entry> {
     public:
         off64_t offset; /* !< the offset that this extent starts at */
         std::bitset<EXTENT_SIZE / BTREE_BLOCK_SIZE> g_array; /* !< bit array for whether or not each block is garbage */
-        time_t timestamp; /* !< when we started writing to the extent */
+        typedef uint64_t timestamp_t;
+        timestamp_t timestamp; /* !< when we started writing to the extent */
         bool active; /* !< this the extent we're currently writing to? */
+        bool young; /* !< this extent is considered young? */
     public:
         gc_entry() {
-            timestamp = time(NULL);
+            // We put things in init because we don't want to do the
+            // timestamp in the constructor.  priority_queue_t just
+            // calls the constructor for unused array elements.
+        }
+        void init(off64_t offset_, bool active_, bool young_) {
+            timestamp = gc_entry::current_timestamp();
+            offset = offset_;
+            active = active_;
+            young = young_;
         }
         void print() {
 #ifndef NDEBUG
@@ -128,13 +153,38 @@ private:
             printf("\n");
 #endif
         }
+
+        // Returns the current timestamp in microseconds.
+        static timestamp_t current_timestamp() {
+            struct timeval t;
+            assert(0 == gettimeofday(&t, NULL));
+            return uint64_t(t.tv_sec) * (1000 * 1000) + t.tv_usec;
+        }
     };
 
     struct Less {
         bool operator() (const gc_entry x, const gc_entry y);
     };
+
+
+    typedef priority_queue_t<gc_entry, Less>::entry_t gc_pq_entry_t;
+
+    // A priority queue of gc_entrys, by garbage ratio.  You may not
+    // pop things off this queue until they've been popped off the
+    // young_extent_queue.
     priority_queue_t<gc_entry, Less> gc_pq;
-    two_level_array_t<priority_queue_t<gc_entry, Less>::entry_t *, MAX_DATA_EXTENTS> entries;
+
+    // An array of pointers into the priority queue, indexed by extent
+    // id.  (The "extent id" being the extent's offset divided
+    // by extent_manager->extent_size.)
+    two_level_array_t<gc_pq_entry_t *, MAX_DATA_EXTENTS> entries;
+
+    // TODO: Change this young_extent_queue to a queue of gc_entry*
+    // once we start picking 100%-garbage entries out of the priority
+    // queue.  Be careful about gc_entry lifetimes.
+
+    // A queue of the young entry_ts.
+    std::queue< gc_pq_entry_t *, std::deque< gc_pq_entry_t *, gnew_alloc<gc_pq_entry_t *> > > young_extent_queue;
 
     void print_entries() {
 #ifndef NDEBUG
@@ -144,9 +194,17 @@ private:
 #endif
     }
 
-    struct gc_criterion {
-        bool operator() (const gc_entry);
-    };
+    // Tells if we should keep gc'ing, being told the next extent that
+    // would be gc'ed.
+    bool should_we_keep_gcing(const gc_entry&) const;
+
+    // Pops things off young_extent_queue that are no longer young.
+    void mark_unyoung_entries();
+    
+    // Pops the last gc_entry off young_extent_queue and declares it
+    // to be not young.
+    void remove_last_unyoung_entry();
+
 private:
     /* internal garbage collection structures */
     struct gc_read_callback_t : public iocallback_t {
@@ -195,10 +253,10 @@ private:
     /* \brief structure to keep track of global stats about the data blocks
      */
     struct gc_stats_t {
-        int total_blocks;
-        int garbage_blocks;
+        int unyoung_total_blocks;
+        int unyoung_garbage_blocks;
         gc_stats_t()
-            : total_blocks(0), garbage_blocks(0)
+            : unyoung_total_blocks(0), unyoung_garbage_blocks(0)
         {}
     };
 
