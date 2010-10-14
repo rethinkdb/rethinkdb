@@ -331,12 +331,21 @@ bool data_block_manager_t::do_we_want_to_start_gcing() const {
 
 /* !< is x less than y */
 bool data_block_manager_t::Less::operator() (const data_block_manager_t::gc_entry x, const data_block_manager_t::gc_entry y) {
-    if (x.active || x.young)
-        return true;
-    else if (y.active || y.young)
+    if (y.active) {
         return false;
-    else
+    }
+    else if (x.active) {
+        return true;
+    }
+    else if (y.young) {
+        return false;
+    }
+    else if (x.young) {
+        return true;
+    }
+    else {
         return x.g_array.count() < y.g_array.count();
+    }
 }
 
 /****************
