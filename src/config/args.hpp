@@ -148,13 +148,14 @@
 // Every time the data file gets full, grow it by this many extents
 #define FILE_GROWTH_RATE_IN_EXTENTS               5
 
-// The ratio at which we should start GCing.  The "high" garbage ratio.
-#define GC_HIGH_THRESHOLD_RATIO_NUMERATOR              3
-#define GC_HIGH_THRESHOLD_RATIO_DENOMINATOR            4
+// The ratio at which we should start GCing.
+#define DEFAULT_GC_HIGH_RATIO                     0.75
+#define MAX_GC_HIGH_RATIO                         0.99
 
 // The ratio at which we don't want to keep GC'ing.
-#define GC_LOW_THRESHOLD_RATIO_NUMERATOR          1
-#define GC_LOW_THRESHOLD_RATIO_DENOMINATOR        2
+#define DEFAULT_GC_LOW_RATIO                      0.5
+#define MIN_GC_LOW_RATIO                          0.01
+
 
 // What's the maximum number of "young" extents we can have?
 #define GC_YOUNG_EXTENT_MAX_SIZE                  50

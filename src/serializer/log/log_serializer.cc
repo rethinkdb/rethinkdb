@@ -3,14 +3,14 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-log_serializer_t::log_serializer_t(char *_db_path, size_t block_size)
+log_serializer_t::log_serializer_t(cmd_config_t *cmd_config, char *_db_path, size_t block_size)
     : shutdown_callback(NULL),
       block_size(block_size),
       state(state_unstarted),
       dbfile(NULL),
       extent_manager(EXTENT_SIZE),
       metablock_manager(&extent_manager),
-      data_block_manager(this, &extent_manager, block_size),
+      data_block_manager(this, cmd_config, &extent_manager, block_size),
       lba_index(&data_block_manager, &extent_manager),
       last_write(NULL),
       active_write_count(0) {

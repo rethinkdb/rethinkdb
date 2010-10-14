@@ -73,7 +73,7 @@ struct log_serializer_t :
     friend class ls_start_fsm_t;
     
 public:
-    log_serializer_t(char *db_path, size_t _block_size);
+    log_serializer_t(cmd_config_t *cmd_config, char *db_path, size_t _block_size);
     virtual ~log_serializer_t();
 
 public:

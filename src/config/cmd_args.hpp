@@ -31,6 +31,13 @@ struct cmd_config_t {
     char log_file_name[MAX_LOG_FILE_NAME];
     // Log messages below this level aren't printed
     //log_level min_log_level;
+
+
+    // The garbage ratio at which we stop collecting.
+    float gc_low_ratio;
+
+    // The garbage ratio at which we begin collecting.
+    float gc_high_ratio;
 };
 
 void parse_cmd_args(int argc, char *argv[], cmd_config_t *config);

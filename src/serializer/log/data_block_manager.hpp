@@ -3,6 +3,7 @@
 #define __SERIALIZER_LOG_DATA_BLOCK_MANAGER_HPP__
 
 #include "arch/arch.hpp"
+#include "config/cmd_args.hpp"
 #include "containers/priority_queue.hpp"
 #include "containers/two_level_array.hpp"
 #include "extents/extent_manager.hpp"
@@ -22,9 +23,9 @@
 class data_block_manager_t {
 
 public:
-    data_block_manager_t(log_serializer_t *ser, extent_manager_t *em, size_t _block_size)
+    data_block_manager_t(log_serializer_t *ser, cmd_config_t *cmd_config, extent_manager_t *em, size_t _block_size)
         : shutdown_callback(NULL), state(state_unstarted), serializer(ser),
-          extent_manager(em), block_size(_block_size) {}
+          cmd_config(cmd_config), extent_manager(em), block_size(_block_size) {}
     ~data_block_manager_t() {
         assert(state == state_unstarted || state == state_shut_down);
     }
@@ -102,6 +103,8 @@ private:
     } state;
 
     log_serializer_t *serializer;
+
+    cmd_config_t *cmd_config;
 
     extent_manager_t *extent_manager;
 

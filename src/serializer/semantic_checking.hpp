@@ -68,8 +68,8 @@ private:
 public:
     size_t block_size;
     
-    semantic_checking_serializer_t(char *db_path, size_t block_size)
-        : inner_serializer(db_path, block_size),
+    semantic_checking_serializer_t(cmd_config_t *cmd_config, char *db_path, size_t block_size)
+        : inner_serializer(cmd_config, db_path, block_size),
           last_write_started(0), last_write_callbacked(0),
           semantic_fd(-1), block_size(block_size)
         {
