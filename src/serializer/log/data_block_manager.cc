@@ -54,14 +54,13 @@ void data_block_manager_t::mark_garbage(off64_t offset) {
         && gc_state.current_entry.offset / extent_manager->extent_size == extent_id)
     {
         gc_state.current_entry.g_array.set(block_id, 1);
+        gc_stats.unyoung_garbage_blocks++;
     } else {
         assert(entries.get(extent_id));
         entries.get(extent_id)->data.g_array.set(block_id, 1);
         entries.get(extent_id)->update();
+        gc_stats.unyoung_garbage_blocks += !(entries.get(extent_id)->data.young);
     }
-
-
-    gc_stats.garbage_blocks++;
 }
 
 void data_block_manager_t::start_reconstruct() {
@@ -198,8 +197,8 @@ void data_block_manager_t::run_gc() {
                 gc_state.step = gc_ready;
 
                 /* update stats */
-                gc_stats.total_blocks -= extent_manager->extent_size / BTREE_BLOCK_SIZE;
-                gc_stats.garbage_blocks -= extent_manager->extent_size / BTREE_BLOCK_SIZE;
+                gc_stats.unyoung_total_blocks -= extent_manager->extent_size / BTREE_BLOCK_SIZE;
+                gc_stats.unyoung_garbage_blocks -= extent_manager->extent_size / BTREE_BLOCK_SIZE;
 
                 if(state == state_shutting_down) {
                     // The state = state_shut_down must happen
@@ -268,9 +267,6 @@ void data_block_manager_t::add_gc_entry() {
     priority_queue_t<gc_entry, Less>::entry_t *pq_entry = gc_pq.push(entry);
     entries.set(extent_id, pq_entry);
 
-    /* update stats */
-    gc_stats.total_blocks += extent_manager->extent_size / BTREE_BLOCK_SIZE;
-
     // update young_extent_queue
     young_extent_queue.push(pq_entry);
     mark_unyoung_entries();
@@ -300,6 +296,9 @@ void data_block_manager_t::remove_last_unyoung_entry() {
     young_extent_queue.pop();
     pq_entry->data.young = false;
     pq_entry->update();
+
+    gc_stats.unyoung_total_blocks += extent_manager->extent_size / BTREE_BLOCK_SIZE;
+    gc_stats.unyoung_garbage_blocks += pq_entry->data.g_array.count();
 }
 
 
@@ -313,15 +312,15 @@ void data_block_manager_t::remove_last_unyoung_entry() {
 // look, it's the next largest entry.  Should we keep gc'ing?  Returns
 // false when the entry is active or young, or when its garbage ratio
 // is lower than GC_THRESHOLD_RATIO_*.
-bool data_block_manager_t::should_we_keep_gcing(const gc_entry& entry) {
+bool data_block_manager_t::should_we_keep_gcing(const gc_entry& entry) const {
     return !entry.active && !entry.young && entry.g_array.count() * GC_THRESHOLD_RATIO_DENOMINATOR >= ((extent_manager->extent_size / BTREE_BLOCK_SIZE) * GC_THRESHOLD_RATIO_NUMERATOR);
 }
 
 // Answers the following question: Do we want to bother gc'ing?
 // Returns true when our garbage_ratio is greater than
 // GC_THRESHOLD_RATIO_*.
-bool data_block_manager_t::do_we_want_to_start_gcing() {
-    return gc_stats.garbage_blocks * GC_THRESHOLD_RATIO_DENOMINATOR >= GC_THRESHOLD_RATIO_NUMERATOR * gc_stats.total_blocks;
+bool data_block_manager_t::do_we_want_to_start_gcing() const {
+    return gc_stats.unyoung_garbage_blocks * GC_THRESHOLD_RATIO_DENOMINATOR >= GC_THRESHOLD_RATIO_NUMERATOR * gc_stats.unyoung_total_blocks;
 }
 
 /* !< is x less than y */
@@ -338,8 +337,8 @@ bool data_block_manager_t::Less::operator() (const data_block_manager_t::gc_entr
  *Stat functions*
  ****************/
 
-// This will return NaN when gc_stats.total_blocks is zero.
+// This will return NaN when gc_stats.unyoung_total_blocks is zero.
 float  data_block_manager_t::garbage_ratio() {
     // TODO: not divide by zero?
-    return (float) gc_stats.garbage_blocks / (float) gc_stats.total_blocks;
+    return (float) gc_stats.unyoung_garbage_blocks / (float) gc_stats.unyoung_total_blocks;
 }

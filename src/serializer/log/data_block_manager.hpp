@@ -87,7 +87,7 @@ public:
     bool shutdown(shutdown_callback_t *cb);
 
 public:
-    bool do_we_want_to_start_gcing();
+    bool do_we_want_to_start_gcing() const;
 
 private:
     // This is permitted to destroy the data_block_manager.
@@ -188,7 +188,7 @@ private:
 
     // Tells if we should keep gc'ing, being told the next extent that
     // would be gc'ed.
-    bool should_we_keep_gcing(const gc_entry&);
+    bool should_we_keep_gcing(const gc_entry&) const;
 
     // Pops things off young_extent_queue that are no longer young.
     void mark_unyoung_entries();
@@ -245,10 +245,10 @@ private:
     /* \brief structure to keep track of global stats about the data blocks
      */
     struct gc_stats_t {
-        int total_blocks;
-        int garbage_blocks;
+        int unyoung_total_blocks;
+        int unyoung_garbage_blocks;
         gc_stats_t()
-            : total_blocks(0), garbage_blocks(0)
+            : unyoung_total_blocks(0), unyoung_garbage_blocks(0)
         {}
     };
 
