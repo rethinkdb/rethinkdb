@@ -1,9 +1,9 @@
 
 INCLUDE = -I../../../lib/libmemcached
-LIBS = -lmemcached -lmysqlclient
+LIBS = -L. -lmemcached -lmysqlclient
 SRC = main.cc utils.cc
 
-EXEC_NAME = memcache
+EXEC_NAME = stress
 CXX = g++
 CXXFLAGS = -g $(INCLUDE)
 
