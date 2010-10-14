@@ -147,7 +147,8 @@ class parser():
                 res.append(m)
                 data.pop()
             else:
-                return res
+                break
+        return res
 
     def parse_function(self, data):
         if (len(data) == 0):
@@ -192,11 +193,6 @@ class parser():
         events = self.take(self.events_line, data)
         assert events
         self.prog_report.counter_names = (events['event1'], events['event2'], events['event3'], events['event4'])
-
-        self.prog_report.counter_totals = {}
-        for i in range(len(self.prog_report.counter_names)):
-            self.prog_report.counter_totals[self.prog_report.counter_names[i]] = 0
-
 
         summary = self.take(self.summary_line, data)
         assert summary
