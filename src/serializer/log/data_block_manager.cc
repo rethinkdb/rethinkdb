@@ -319,14 +319,14 @@ void data_block_manager_t::remove_last_unyoung_entry() {
 // false when the entry is active or young, or when its garbage ratio
 // is lower than GC_THRESHOLD_RATIO_*.
 bool data_block_manager_t::should_we_keep_gcing(const gc_entry& entry) const {
-    return !entry.active && !entry.young && entry.g_array.count() * GC_THRESHOLD_RATIO_DENOMINATOR >= ((extent_manager->extent_size / BTREE_BLOCK_SIZE) * GC_THRESHOLD_RATIO_NUMERATOR);
+    return !entry.active && !entry.young && gc_stats.unyoung_garbage_blocks * GC_LOW_THRESHOLD_RATIO_DENOMINATOR >= GC_LOW_THRESHOLD_RATIO_NUMERATOR * gc_stats.unyoung_total_blocks;
 }
 
 // Answers the following question: Do we want to bother gc'ing?
 // Returns true when our garbage_ratio is greater than
 // GC_THRESHOLD_RATIO_*.
 bool data_block_manager_t::do_we_want_to_start_gcing() const {
-    return gc_stats.unyoung_garbage_blocks * GC_THRESHOLD_RATIO_DENOMINATOR >= GC_THRESHOLD_RATIO_NUMERATOR * gc_stats.unyoung_total_blocks;
+    return gc_stats.unyoung_garbage_blocks * GC_HIGH_THRESHOLD_RATIO_DENOMINATOR >= GC_HIGH_THRESHOLD_RATIO_NUMERATOR * gc_stats.unyoung_total_blocks;
 }
 
 /* !< is x less than y */
