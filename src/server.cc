@@ -109,7 +109,7 @@ void server_t::do_start_conn_acceptor() {
 
 void server_t::shutdown() {
     
-    assert_cpu();
+    /* This can be called from any CPU! */
     
     cpu_message_t *old_interrupt_msg = thread_pool->set_interrupt_message(NULL);
     
@@ -123,6 +123,8 @@ void server_t::shutdown() {
 }
 
 void server_t::do_shutdown() {
+    
+    assert_cpu();
     printf("Shutting down.\n");
     do_shutdown_conn_acceptor();
 }
