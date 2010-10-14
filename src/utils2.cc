@@ -19,7 +19,15 @@ uses the IO layer, and it must be safe to include utils2 from within the IO laye
 
 void random_delay(void (*fun)(void*), void *arg) {
 
-    int ms = rand() % 50;
+    int ms = randint(50);
     
     fire_timer_once(ms, fun, arg);
+}
+
+
+
+
+int randint(int n) {
+    assert(n > 0 && n < RAND_MAX);
+    return rand() % n;
 }
