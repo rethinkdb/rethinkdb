@@ -297,6 +297,7 @@ void data_block_manager_t::remove_last_unyoung_entry() {
     priority_queue_t<gc_entry, Less>::entry_t *pq_entry = young_extent_queue.front();
     young_extent_queue.pop();
     pq_entry->data.young = false;
+    pq_entry->update();
 }
 
 
