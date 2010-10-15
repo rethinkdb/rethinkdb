@@ -300,7 +300,7 @@ void linux_thread_t::pump() {
     message_hub.push_messages();
 }
 
-void linux_thread_t::on_epoll(int events) {
+void linux_thread_t::on_event(int events) {
     
     // No-op. This is just to make sure that the event queue wakes up
     // so it can shut down.

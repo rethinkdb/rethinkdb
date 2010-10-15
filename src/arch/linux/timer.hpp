@@ -26,7 +26,7 @@ private:
 
 
 struct linux_timer_handler_t :
-    public linux_epoll_callback_t
+    public linux_event_callback_t
 {
     linux_timer_handler_t(linux_event_queue_t *queue);
     ~linux_timer_handler_t();
@@ -36,7 +36,7 @@ struct linux_timer_handler_t :
     long timer_ticks_since_server_startup;
     intrusive_list_t<linux_timer_token_t> timers;
     
-    void on_epoll(int events);
+    void on_event(int events);
     
     linux_timer_token_t *add_timer_internal(long ms, void (*callback)(void *ctx), void *ctx, bool once);
     void cancel_timer(linux_timer_token_t *timer);

@@ -12,12 +12,12 @@
 #include "config/alloc.hpp"
 #include "utils2.hpp"
 #include "arch/linux/io.hpp"
-#include "arch/linux/event_queue.hpp"
+#include "arch/linux/event_queue/epoll.hpp"
 #include "arch/linux/thread_pool.hpp"
 
 // TODO: report event queue statistics.
 
-linux_event_queue_t::linux_event_queue_t(linux_queue_parent_t *parent)
+epoll_event_queue_t::epoll_event_queue_t(linux_queue_parent_t *parent)
     : parent(parent),
       events_per_loop(0), pm_events_per_loop("events_per_loop", &events_per_loop, &perfmon_combiner_average)
 {
@@ -27,7 +27,7 @@ linux_event_queue_t::linux_event_queue_t(linux_queue_parent_t *parent)
     check("Could not create epoll fd", epoll_fd == -1);
 }
 
-void linux_event_queue_t::run() {
+void epoll_event_queue_t::run() {
     
     int res;
     
@@ -62,8 +62,8 @@ void linux_event_queue_t::run() {
                 // notifying us to skip it.
                 continue;
             } else {
-                linux_epoll_callback_t *cb = (linux_epoll_callback_t*)events[i].data.ptr;
-                cb->on_epoll(events[i].events);
+                linux_event_callback_t *cb = (linux_event_callback_t*)events[i].data.ptr;
+                cb->on_event(events[i].events);
             }
         }
 
@@ -74,7 +74,7 @@ void linux_event_queue_t::run() {
     }
 }
 
-linux_event_queue_t::~linux_event_queue_t()
+epoll_event_queue_t::~epoll_event_queue_t()
 {
     int res;
     
@@ -82,7 +82,7 @@ linux_event_queue_t::~linux_event_queue_t()
     check("Could not close epoll_fd", res != 0);
 }
 
-void linux_event_queue_t::watch_resource(fd_t resource, int watch_mode, linux_epoll_callback_t *cb) {
+void epoll_event_queue_t::watch_resource(fd_t resource, int watch_mode, linux_event_callback_t *cb) {
 
     assert(cb);
     epoll_event event;
@@ -94,7 +94,7 @@ void linux_event_queue_t::watch_resource(fd_t resource, int watch_mode, linux_ep
     check("Could not pass socket to worker", res != 0);
 }
 
-void linux_event_queue_t::forget_resource(fd_t resource, linux_epoll_callback_t *cb) {
+void epoll_event_queue_t::forget_resource(fd_t resource, linux_event_callback_t *cb) {
 
     assert(cb);
     

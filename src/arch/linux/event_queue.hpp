@@ -2,52 +2,33 @@
 #ifndef __EVENT_QUEUE_HPP__
 #define __EVENT_QUEUE_HPP__
 
-#include <queue>
-#include <sys/epoll.h>
-#include "corefwd.hpp"
-#include "config/args.hpp"
-#include "perfmon.hpp"
+// Event queue callback
+struct linux_event_callback_t {
+    virtual void on_event(int events) = 0;
+};
 
+// Some other stuff
 typedef int fd_t;
 #define INVALID_FD fd_t(-1)
-
-struct linux_epoll_callback_t {
-    virtual void on_epoll(int events) = 0;
-};
 
 struct linux_queue_parent_t {
     virtual void pump() = 0;
     virtual bool should_shut_down() = 0;
 };
 
-// Event queue structure
-struct linux_event_queue_t {
+/* Pick the queue now*/
+#ifdef NO_EPOLL
 
-public:
-    linux_event_queue_t(linux_queue_parent_t *parent);
-    void run();
-    ~linux_event_queue_t();
+// Use poll instead of epoll
+#include "arch/linux/event_queue/poll.hpp"
+typedef poll_event_queue_t linux_event_queue_t;
 
-private:
-    linux_queue_parent_t *parent;
-    
-    fd_t epoll_fd;
-    
-    // We store this as a class member because forget_resource needs
-    // to go through the events and remove queued messages for
-    // resources that are being destroyed.
-    epoll_event events[MAX_IO_EVENT_PROCESSING_BATCH_SIZE];
-    int nevents;
+#else
 
-private:
-    int events_per_loop;
-    perfmon_var_t<int> pm_events_per_loop;
+// Epoll to the rescue
+#include "arch/linux/event_queue/epoll.hpp"
+typedef epoll_event_queue_t linux_event_queue_t;
 
-public:
-    // These should only be called by the event queue itself or by the linux_* classes
-    void watch_resource(fd_t resource, int events, linux_epoll_callback_t *cb);
-    void forget_resource(fd_t resource, linux_epoll_callback_t *cb);
-};
-
+#endif
 
 #endif // __EVENT_QUEUE_HPP__

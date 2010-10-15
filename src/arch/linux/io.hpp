@@ -23,7 +23,7 @@ struct linux_net_conn_callback_t {
 };
 
 class linux_net_conn_t :
-    public linux_epoll_callback_t,
+    public linux_event_callback_t,
     // linux_net_conn_t can be safely destroyed on a different core from the one it was created on,
     // unlike most data types in RethinkDB.
     public alloc_mixin_t<cross_thread_alloc_accessor_t<malloc_alloc_t>, linux_net_conn_t>
@@ -38,14 +38,13 @@ public:
 private:
     friend class linux_io_calls_t;
     friend class linux_net_listener_t;
-    friend class linux_event_queue_t;
     
     fd_t sock;
     linux_net_conn_callback_t *callback;
     bool *set_me_true_on_delete;   // So we can tell if a callback deletes the conn_fsm_t
     
     linux_net_conn_t(fd_t);
-    void on_epoll(int events);
+    void on_event(int events);
 };
 
 struct linux_net_listener_callback_t {
@@ -53,7 +52,7 @@ struct linux_net_listener_callback_t {
 };
 
 class linux_net_listener_t :
-    public linux_epoll_callback_t,
+    public linux_event_callback_t,
     public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, linux_net_listener_t>
 {
 
@@ -66,7 +65,7 @@ private:
     fd_t sock;
     linux_net_listener_callback_t *callback;
     
-    void on_epoll(int events);
+    void on_event(int events);
 };
 
 /* The "direct" in linux_direct_file_t refers to the fact that the file is opened in
@@ -108,7 +107,7 @@ private:
 };
 
 class linux_io_calls_t :
-    public linux_epoll_callback_t
+    public linux_event_callback_t
 {
 
 public:
@@ -137,7 +136,7 @@ public:
 #endif
 
 public:
-    void on_epoll(int events);
+    void on_event(int events);
     void aio_notify(iocb *event, int result);
 };
 

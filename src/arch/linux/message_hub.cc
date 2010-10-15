@@ -65,7 +65,7 @@ void linux_message_hub_t::insert_external_message(linux_cpu_message_t *msg) {
     check("Could not write to core_notify_fd", res != 0);
 }
 
-void linux_message_hub_t::notify_t::on_epoll(int events) {
+void linux_message_hub_t::notify_t::on_event(int events) {
     parent->thread_pool->threads[notifier_cpu]->message_hub.pull_messages(parent->current_cpu);
 }
 

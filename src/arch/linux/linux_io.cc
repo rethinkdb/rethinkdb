@@ -47,7 +47,7 @@ ssize_t linux_net_conn_t::write_nonblocking(const void *buf, size_t count) {
     return ::write(sock, buf, count);
 }
 
-void linux_net_conn_t::on_epoll(int events) {
+void linux_net_conn_t::on_event(int events) {
     
     assert(callback);
     
@@ -133,7 +133,7 @@ void linux_net_listener_t::set_callback(linux_net_listener_callback_t *cb) {
     linux_thread_pool_t::thread->queue.watch_resource(sock, EPOLLET|EPOLLIN, this);
 }
 
-void linux_net_listener_t::on_epoll(int events) {
+void linux_net_listener_t::on_event(int events) {
     
     while (true) {
         sockaddr_in client_addr;
@@ -371,7 +371,7 @@ linux_io_calls_t::~linux_io_calls_t()
     check("Could not destroy aio_context", res != 0);
 }
 
-void linux_io_calls_t::on_epoll(int) {
+void linux_io_calls_t::on_event(int) {
     
     int res, nevents;
     eventfd_t nevents_total;
