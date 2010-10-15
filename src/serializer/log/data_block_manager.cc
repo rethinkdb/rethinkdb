@@ -12,15 +12,89 @@ void data_block_manager_t::start(direct_file_t *file) {
     state = state_ready;
 }
 
+void data_block_manager_t::start_reconstruct() {
+
+    assert(state == state_unstarted);
+    gc_state.step = gc_reconstruct;
+}
+
+// Marks the block at the given offset as alive, in the appropriate
+// gc_entry in the entries table.  (This is used when we start up, when
+// everything is presumed to be garbage, until we mark it as
+// non-garbage.)
+void data_block_manager_t::mark_live(off64_t offset) {
+
+    assert(gc_state.step == gc_reconstruct);  // This is called at startup.
+
+    unsigned int extent_id = (offset / extent_manager->extent_size);
+    unsigned int block_id = (offset % extent_manager->extent_size) / block_size;
+
+    if (entries.get(extent_id) == NULL) {
+    
+        gc_entry *entry = new gc_entry(extent_id * extent_manager->extent_size);
+        entries.set(extent_id, entry);
+        
+        extent_manager->reserve_extent(entry->offset);
+        
+        reconstructed_extents.push_back(entry);
+    }
+
+    /* mark the block as alive */
+    assert(entries.get(extent_id)->g_array[block_id] == 1);
+    entries.get(extent_id)->g_array.set(block_id, 0);
+}
+
+void data_block_manager_t::end_reconstruct() {
+
+    assert(state == state_unstarted);
+    gc_state.step = gc_ready;
+}
+
 void data_block_manager_t::start(direct_file_t *file, metablock_mixin_t *last_metablock) {
 
     assert(state == state_unstarted);
     dbfile = file;
-    if (last_metablock->last_data_extent) {
-        last_data_extent = new gc_entry(last_metablock);
+    
+    /* Reconstruct the last data extent */
+    
+    if (last_metablock->last_data_extent != NULL_OFFSET) {
+    
+        last_data_extent = entries.get(last_metablock->last_data_extent / extent_manager->extent_size);
+        blocks_in_last_data_extent = last_metablock->blocks_in_last_data_extent;
+        assert(last_data_extent);
+        assert(blocks_in_last_data_extent > 0);
+        
+        /* Turn the last data extent into the active extent */
+        assert(last_data_extent->state == gc_entry::state_reconstructing);
+        reconstructed_extents.remove(last_data_extent);
+        last_data_extent->state = gc_entry::state_active;
+        last_data_extent->timestamp = gc_entry::current_timestamp();
+        
+        /* Make sure that the LBA doesn't claim that there are any live blocks in the part
+        of the last data extent that the metablock says we haven't written to yet */
+        for (unsigned i = blocks_in_last_data_extent; i < extent_manager->extent_size / block_size; i++) {
+            assert(last_data_extent->g_array[i]);
+        }
+
     } else {
         last_data_extent = NULL;
     }
+    
+    /* Put any other extents that contain data onto the priority queue */
+    
+    while (gc_entry *entry = reconstructed_extents.head()) {
+    
+        reconstructed_extents.remove(entry);
+        
+        assert(entry->state == gc_entry::state_reconstructing);
+        entry->state = gc_entry::state_old;
+        
+        entry->our_pq_entry = gc_pq.push(entry);
+        
+        gc_stats.unyoung_total_blocks += extent_manager->extent_size / block_size;
+        gc_stats.unyoung_garbage_blocks += entry->g_array.count();
+    }
+    
     state = state_ready;
 }
 
@@ -37,7 +111,7 @@ bool data_block_manager_t::write(void *buf_in, off64_t *off_out, iocallback_t *c
     // Either we're ready to write, or we're shutting down and just
     // finished reading blocks for gc and called do_write.
     assert(state == state_ready
-           || (state == state_shutting_down && gc_state.step == gc_read));
+           || (state == state_shutting_down && gc_state.step == gc_write));
 
     off64_t offset = *off_out = gimme_a_new_offset();
 
@@ -67,21 +141,16 @@ void data_block_manager_t::mark_garbage(off64_t offset) {
         
         switch (entry->state) {
             
+            case gc_entry::state_reconstructing:
+                fail("Marking something as garbage during startup.");
+            
             case gc_entry::state_active:
                 fail("Marking something in the active extent as garbage.");
             
             /* Remove from the young extent queue */
-            case gc_entry::state_young: {
-                std::deque< gc_entry*, gnew_alloc<gc_entry*> >::iterator it;
-                for (it = young_extent_queue.begin(); ; it++) {
-                    assert(it != young_extent_queue.end());
-                    if (*it == entry) {
-                        young_extent_queue.erase(it);
-                        break;
-                    }
-                }
+            case gc_entry::state_young:
+                young_extent_queue.remove(entry);
                 break;
-            }
             
             /* Remove from the priority queue */
             case gc_entry::state_old:
@@ -106,46 +175,6 @@ void data_block_manager_t::mark_garbage(off64_t offset) {
     
         entry->our_pq_entry->update();
     }
-}
-
-void data_block_manager_t::start_reconstruct() {
-
-    gc_state.step = gc_reconstruct;
-}
-
-// Marks the block at the given offset as alive, in the appropriate
-// gc_entry in the entries table.  (This is used when we start up, when
-// everything is presumed to be garbage, until we mark it as
-// non-garbage.)
-void data_block_manager_t::mark_live(off64_t offset) {
-    assert(gc_state.step == gc_reconstruct);  // This is called at startup.
-
-    unsigned int extent_id = (offset / extent_manager->extent_size);
-    unsigned int block_id = (offset % extent_manager->extent_size) / block_size;
-
-    if (entries.get(extent_id) == NULL) {
-    
-        gc_entry *entry = new gc_entry(extent_id * extent_manager->extent_size);
-        entries.set(extent_id, entry);
-        entry->our_pq_entry = gc_pq.push(entry);
-        
-        extent_manager->reserve_extent(entry->offset);
-        
-        // All are deemed garbage, and the extent is not young.
-        gc_stats.unyoung_total_blocks += extent_manager->extent_size / BTREE_BLOCK_SIZE;
-        gc_stats.unyoung_garbage_blocks += extent_manager->extent_size / BTREE_BLOCK_SIZE;
-    }
-
-    /* mark the block as alive */
-    assert(entries.get(extent_id)->g_array[block_id] == 1);
-    entries.get(extent_id)->g_array.set(block_id, 0);
-    
-    gc_stats.unyoung_garbage_blocks--;
-}
-
-void data_block_manager_t::end_reconstruct() {
-
-    gc_state.step = gc_ready;
 }
 
 void data_block_manager_t::start_gc() {
@@ -255,12 +284,11 @@ void data_block_manager_t::run_gc() {
 void data_block_manager_t::prepare_metablock(metablock_mixin_t *metablock) {
 
     assert(state == state_ready
-           || (state == state_shutting_down && gc_state.step == gc_read));
+           || (state == state_shutting_down && gc_state.step == gc_write));
 
     if (last_data_extent) {
         metablock->last_data_extent = last_data_extent->offset;
-        metablock->blocks_in_last_data_extent =
-            last_data_extent->g_array.size() - last_data_extent->g_array.count();
+        metablock->blocks_in_last_data_extent = blocks_in_last_data_extent;
         
     } else {
         metablock->last_data_extent = NULL_OFFSET;
@@ -288,14 +316,16 @@ void data_block_manager_t::actually_shutdown() {
     assert(state == state_shutting_down);
     state = state_shut_down;
     
+    assert(!reconstructed_extents.head());
+    
     if (last_data_extent) {
         delete last_data_extent;
         last_data_extent = NULL;
     }
     
-    while (!young_extent_queue.empty()) {
-        delete young_extent_queue.front();
-        young_extent_queue.pop_front();
+    while (gc_entry *entry = young_extent_queue.head()) {
+        young_extent_queue.remove(entry);
+        delete entry;
     }
     
     while (!gc_pq.empty()) {
@@ -310,6 +340,7 @@ off64_t data_block_manager_t::gimme_a_new_offset() {
     if (!last_data_extent) {
     
         last_data_extent = new gc_entry(extent_manager);
+        blocks_in_last_data_extent = 0;
 
         unsigned int extent_id = last_data_extent->offset / extent_manager->extent_size;
         assert(entries.get(extent_id) == NULL);
@@ -317,8 +348,7 @@ off64_t data_block_manager_t::gimme_a_new_offset() {
     }
     
     assert(last_data_extent->state == gc_entry::state_active);
-    
-    unsigned blocks_in_last_data_extent = last_data_extent->g_array.size() - last_data_extent->g_array.count();
+    assert(last_data_extent->g_array.count() > 0);
     assert(blocks_in_last_data_extent < extent_manager->extent_size / block_size);
     
     off64_t offset = last_data_extent->offset + blocks_in_last_data_extent * block_size;
@@ -326,7 +356,9 @@ off64_t data_block_manager_t::gimme_a_new_offset() {
     assert(last_data_extent->g_array[blocks_in_last_data_extent]);
     last_data_extent->g_array.set(blocks_in_last_data_extent, 0);
     
-    if (last_data_extent->g_array.count() == 0) {
+    blocks_in_last_data_extent++;
+    
+    if (blocks_in_last_data_extent == extent_manager->extent_size / block_size) {
         
         last_data_extent->state = gc_entry::state_young;
         young_extent_queue.push_back(last_data_extent);
@@ -347,8 +379,8 @@ void data_block_manager_t::mark_unyoung_entries() {
 
     gc_entry::timestamp_t current_time = gc_entry::current_timestamp();
 
-    while (!young_extent_queue.empty()
-           && current_time - young_extent_queue.front()->timestamp > GC_YOUNG_EXTENT_TIMELIMIT_MICROS) {
+    while (young_extent_queue.head()
+           && current_time - young_extent_queue.head()->timestamp > GC_YOUNG_EXTENT_TIMELIMIT_MICROS) {
         remove_last_unyoung_entry();
     }
 }
@@ -357,15 +389,15 @@ void data_block_manager_t::mark_unyoung_entries() {
 // Assumes young_extent_queue is not empty.
 void data_block_manager_t::remove_last_unyoung_entry() {
 
-    assert(!young_extent_queue.empty());
-
-    gc_entry *entry = young_extent_queue.front();
-    young_extent_queue.pop_front();
+    gc_entry *entry = young_extent_queue.head();
+    young_extent_queue.remove(entry);
     
     assert(entry->state == gc_entry::state_young);
     entry->state = gc_entry::state_old;
+    
     entry->our_pq_entry = gc_pq.push(entry);
-    gc_stats.unyoung_total_blocks += extent_manager->extent_size / BTREE_BLOCK_SIZE;
+    
+    gc_stats.unyoung_total_blocks += extent_manager->extent_size / block_size;
     gc_stats.unyoung_garbage_blocks += entry->g_array.count();
 }
 

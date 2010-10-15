@@ -124,7 +124,8 @@ private:
     // extent, whether it's the extent we're currently writing to, and
     // describes blocks are garbage.
     struct gc_entry :
-        public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, gc_entry>
+        public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, gc_entry>,
+        public intrusive_list_node_t<gc_entry>
     {
     public:
         typedef uint64_t timestamp_t;
@@ -135,6 +136,8 @@ private:
         priority_queue_t<gc_entry*, Less>::entry_t *our_pq_entry; /* !< The PQ entry pointing to us */
         
         enum state_t {
+            // It has been, or is being, reconstructed from data on disk.
+            state_reconstructing,
             // We are currently putting things on this extent. It is equal to last_data_extent.
             state_active,
             // Not active, but not a GC candidate yet. It is in young_extent_queue.
@@ -146,18 +149,6 @@ private:
         } state;
         
     public:
-        /* This constructor is for an extent that we were working on filling when we last shut
-        down and are now resuming filling. */
-        explicit gc_entry(metablock_mixin_t *mb) {
-            offset = mb->last_data_extent;
-            g_array.set();
-            for (unsigned i = 0; i < mb->blocks_in_last_data_extent; i++) {
-                g_array[i] = 0;
-            }
-            timestamp = current_timestamp();
-            state = state_active;
-            our_pq_entry = NULL;
-        }
         
         /* This constructor is for starting a new extent. */
         explicit gc_entry(extent_manager_t *em) {
@@ -168,23 +159,24 @@ private:
             our_pq_entry = NULL;
         }
         
-        /* This constructor is for an extent that we filled up in a previous run and are now
-        reconstructing. */
+        /* This constructor is for reconstructing extents that the LBA tells us contained
+        data blocks. */
         explicit gc_entry(off64_t off) {
             offset = off;
             g_array.set();
             timestamp = -1;
-            state = state_old;
+            state = state_reconstructing;
+            our_pq_entry = NULL;
         }
         
         void print() {
 #ifndef NDEBUG
-            printf("gc_entry:\n");
-            printf("offset: %ld\n", offset);
+            debugf("gc_entry:\n");
+            debugf("offset: %ld\n", offset);
             for (unsigned int i = 0; i < g_array.size(); i++)
-                printf("%.8x:\t%d\n", (unsigned int) (offset + (i * DEVICE_BLOCK_SIZE)), g_array.test(i));
-            printf("\n");
-            printf("\n");
+                debugf("%.8x:\t%d\n", (unsigned int) (offset + (i * DEVICE_BLOCK_SIZE)), g_array.test(i));
+            debugf("\n");
+            debugf("\n");
 #endif
         }
 
@@ -198,8 +190,10 @@ private:
     
     two_level_array_t<gc_entry*, MAX_DATA_EXTENTS> entries;
     
+    intrusive_list_t< gc_entry > reconstructed_extents;
     gc_entry *last_data_extent;
-    std::deque< gc_entry*, gnew_alloc<gc_entry*> > young_extent_queue;
+    unsigned blocks_in_last_data_extent;
+    intrusive_list_t< gc_entry > young_extent_queue;
     priority_queue_t<gc_entry*, Less> gc_pq;
 
     // Tells if we should keep gc'ing, being told the next extent that

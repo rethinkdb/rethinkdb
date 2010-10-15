@@ -134,6 +134,13 @@ endif
 	$(QUIET) rm -rf db_data
 	valgrind $(VALGRIND_FLAGS) $(BUILD_DIR)/$(SERVER_EXEC_NAME) -p $(RUN_PORT) $(RUN_FLAGS)
 
+revalgrind: $(BUILD_DIR)/$(SERVER_EXEC_NAME)
+ifeq ($(VALGRIND),0)
+	$(error Using the 'revalgrind' target doesn't automatically set VALGRIND to 1. Try again with \
+'make valgrind VALGRIND=1')
+endif
+	valgrind $(VALGRIND_FLAGS) $(BUILD_DIR)/$(SERVER_EXEC_NAME) -p $(RUN_PORT) $(RUN_FLAGS)
+
 callgrind: $(BUILD_DIR)/$(SERVER_EXEC_NAME)
 ifeq ($(CALLGRIND),0)
 	$(error Using the 'callgrind' target doesn't automatically set CALLGRIND to 1. Try again with \

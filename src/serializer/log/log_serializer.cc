@@ -10,8 +10,8 @@ log_serializer_t::log_serializer_t(cmd_config_t *cmd_config, char *_db_path, siz
       dbfile(NULL),
       extent_manager(EXTENT_SIZE),
       metablock_manager(&extent_manager),
-      data_block_manager(this, cmd_config, &extent_manager, block_size),
       lba_index(&extent_manager),
+      data_block_manager(this, cmd_config, &extent_manager, block_size),
       last_write(NULL),
       active_write_count(0) {
     
@@ -102,13 +102,13 @@ struct ls_start_fsm_t :
         
         if (state == state_reconstruct) {
 
-            ser->data_block_manager.start(ser->dbfile, &metablock_buffer.data_block_manager_part);
             ser->data_block_manager.start_reconstruct();
             for (ser_block_id_t id = 0; id < ser->lba_index.max_block_id(); id++) {
                 off64_t offset = ser->lba_index.get_block_offset(id);
                 if (offset != DELETE_BLOCK) ser->data_block_manager.mark_live(offset);
             }
             ser->data_block_manager.end_reconstruct();
+            ser->data_block_manager.start(ser->dbfile, &metablock_buffer.data_block_manager_part);
             
             ser->extent_manager.start(ser->dbfile, &metablock_buffer.extent_manager_part);
             
