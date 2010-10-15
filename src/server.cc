@@ -109,8 +109,6 @@ void server_t::do_start_conn_acceptor() {
 
 void server_t::shutdown() {
     
-    assert_cpu();
-    
     cpu_message_t *old_interrupt_msg = thread_pool->set_interrupt_message(NULL);
     
     /* If the interrupt message already was NULL, that means that either shutdown() was for

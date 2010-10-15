@@ -275,7 +275,7 @@ linux_thread_t::linux_thread_t(linux_thread_pool_t *parent_pool, int thread_id)
     res = fcntl(shutdown_notify_fd, F_SETFL, O_NONBLOCK);
     check("Could not make shutdown notify fd non-blocking", res != 0);
 
-    queue.watch_resource(shutdown_notify_fd, EPOLLET|EPOLLIN, this);
+    queue.watch_resource(shutdown_notify_fd, poll_event_in, this);
     
     // Make a timer to do allocator GC
     

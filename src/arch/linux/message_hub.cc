@@ -27,7 +27,7 @@ linux_message_hub_t::linux_message_hub_t(linux_event_queue_t *queue, linux_threa
         res = fcntl(notify[i].fd, F_SETFL, O_NONBLOCK);
         check("Could not make core notify fd non-blocking", res != 0);
 
-        queue->watch_resource(notify[i].fd, EPOLLET|EPOLLIN, &notify[i]);
+        queue->watch_resource(notify[i].fd, poll_event_in, &notify[i]);
     }
 }
 

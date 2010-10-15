@@ -3,14 +3,19 @@
 #define __POLL_EVENT_QUEUE_HPP__
 
 #include <queue>
-#include <sys/epoll.h>
+#include <poll.h>
+#include <vector>
 #include "corefwd.hpp"
 #include "config/args.hpp"
 #include "perfmon.hpp"
 
 // Event queue structure
 struct poll_event_queue_t {
-
+public:
+    typedef std::vector<pollfd, gnew_alloc<pollfd> > pollfd_vector_t;
+    typedef std::map<fd_t, linux_event_callback_t*, std::less<fd_t>,
+                     gnew_alloc<std::pair<fd_t, linux_event_callback_t*> > > callback_map_t;
+    
 public:
     poll_event_queue_t(linux_queue_parent_t *parent);
     void run();
@@ -19,17 +24,12 @@ public:
 private:
     linux_queue_parent_t *parent;
     
-    fd_t epoll_fd;
-    
-    // We store this as a class member because forget_resource needs
-    // to go through the events and remove queued messages for
-    // resources that are being destroyed.
-    epoll_event events[MAX_IO_EVENT_PROCESSING_BATCH_SIZE];
-    int nevents;
-
 private:
     int events_per_loop;
     perfmon_var_t<int> pm_events_per_loop;
+
+    pollfd_vector_t watched_fds;
+    callback_map_t callbacks;
 
 public:
     // These should only be called by the event queue itself or by the linux_* classes

@@ -17,6 +17,29 @@
 
 // TODO: report event queue statistics.
 
+int user_to_epoll(int mode) {
+    int out_mode = 0;
+    if(mode & poll_event_in)
+        out_mode |= EPOLLIN;
+    if(mode & poll_event_out)
+        out_mode |= EPOLLOUT;
+
+    return out_mode;
+}
+
+int epoll_to_user(int mode) {
+    int out_mode = 0;
+    if(mode & EPOLLIN)
+        out_mode |= poll_event_in;
+    if(mode & EPOLLOUT)
+        out_mode |= poll_event_out;
+    if((mode & EPOLLRDHUP) || (mode & EPOLLERR) || (mode & EPOLLHUP)) {
+        out_mode |= poll_event_err;
+    }
+
+    return out_mode;
+}
+
 epoll_event_queue_t::epoll_event_queue_t(linux_queue_parent_t *parent)
     : parent(parent),
       events_per_loop(0), pm_events_per_loop("events_per_loop", &events_per_loop, &perfmon_combiner_average)
@@ -63,7 +86,7 @@ void epoll_event_queue_t::run() {
                 continue;
             } else {
                 linux_event_callback_t *cb = (linux_event_callback_t*)events[i].data.ptr;
-                cb->on_event(events[i].events);
+                cb->on_event(epoll_to_user(events[i].events));
             }
         }
 
@@ -87,7 +110,7 @@ void epoll_event_queue_t::watch_resource(fd_t resource, int watch_mode, linux_ev
     assert(cb);
     epoll_event event;
     
-    event.events = watch_mode;
+    event.events = EPOLLET | user_to_epoll(watch_mode);
     event.data.ptr = (void*)cb;
     
     int res = epoll_ctl(epoll_fd, EPOLL_CTL_ADD, resource, &event);

@@ -16,7 +16,13 @@ struct linux_queue_parent_t {
     virtual bool should_shut_down() = 0;
 };
 
+const int poll_event_in = 1;
+const int poll_event_out = 2;
+const int poll_event_err = 4;
+
 /* Pick the queue now*/
+//#define NO_EPOLL
+
 #ifdef NO_EPOLL
 
 // Use poll instead of epoll
