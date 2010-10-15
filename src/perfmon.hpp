@@ -63,8 +63,9 @@ class perfmon_var_t :
     public virtual perfmon_watcher_t
 {
 public:
-    perfmon_var_t(const char *name, var_t *var, perfmon_combiner_t *combiner = NULL)
-        : perfmon_watcher_t(name, combiner), var(var) { }
+    perfmon_var_t(const char *name, var_t *var, perfmon_combiner_t *combiner = NULL,
+                  perfmon_transformer_t *transformer = NULL)
+        : perfmon_watcher_t(name, combiner, transformer), var(var) { }
     
     std_string_t get_value() {
         std::basic_stringstream<char, std::char_traits<char>, gnew_alloc<char> > s;
@@ -83,9 +84,13 @@ combiner function and it should be commutative and associative. */
 // The sum combiner assumes that both strings represent integers; it returns their sum.
 std_string_t perfmon_combiner_sum(std_string_t v1, std_string_t v2);
 
+std_string_t perfmon_combiner_twosum(std_string_t v1, std_string_t v2);
+
 // The average combiner averages integer values. Because the combiner must be associative,
 // it returns a string of the form "%d (average of %d)", and correctly handles strings of
 // that form if they are passed as its argument.
 std_string_t perfmon_combiner_average(std_string_t v1, std_string_t v2);
+
+std_string_t perfmon_weighted_average_transformer(std_string_t intpair);
 
 #endif /* __PERFMON_HPP__ */

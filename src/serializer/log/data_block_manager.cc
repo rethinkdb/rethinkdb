@@ -439,3 +439,8 @@ float data_block_manager_t::garbage_ratio() const {
     // TODO: not divide by zero?
     return (float) gc_stats.old_garbage_blocks / (float) gc_stats.old_total_blocks;
 }
+
+
+std::ostream& operator<<(std::ostream& out, const data_block_manager_t::gc_stats_t& stats) {
+    return out << stats.unyoung_garbage_blocks << ' ' << stats.unyoung_total_blocks;
+}

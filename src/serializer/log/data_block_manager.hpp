@@ -26,8 +26,8 @@ public:
     data_block_manager_t(log_serializer_t *ser, cmd_config_t *cmd_config, extent_manager_t *em, size_t _block_size)
         : shutdown_callback(NULL), state(state_unstarted), serializer(ser),
           cmd_config(cmd_config), extent_manager(em), block_size(_block_size),
-          pm_total_blocks("total_blocks", &gc_stats.unyoung_total_blocks, perfmon_combiner_sum),
-          pm_garbage_blocks("garbage_blocks", &gc_stats.unyoung_garbage_blocks, perfmon_combiner_sum)
+          pm_garbage_ratio("garbage_ratio", &gc_stats, perfmon_combiner_sum,
+                           perfmon_weighted_average_transformer)
     {}
     ~data_block_manager_t() {
         assert(state == state_unstarted || state == state_shut_down);
@@ -263,8 +263,9 @@ private:
         {}
     } gc_stats;
 
-    perfmon_var_t<int> pm_total_blocks;
-    perfmon_var_t<int> pm_garbage_blocks;
+    friend std::ostream& operator<<(std::ostream& out, const data_block_manager_t::gc_stats_t& stats);
+
+    perfmon_var_t<gc_stats_t> pm_garbage_ratio;
 
     DISABLE_COPYING(data_block_manager_t);
 
@@ -276,5 +277,7 @@ public:
     int64_t garbage_ratio_total_blocks() const { return gc_stats.unyoung_garbage_blocks; }
     int64_t garbage_ratio_garbage_blocks() const { return gc_stats.unyoung_garbage_blocks; }
 };
+
+std::ostream& operator<<(std::ostream&, const data_block_manager_t::gc_stats_t&);
 
 #endif /* __SERIALIZER_LOG_DATA_BLOCK_MANAGER_HPP__ */

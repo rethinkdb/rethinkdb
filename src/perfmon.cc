@@ -89,6 +89,8 @@ private:
     DISABLE_COPYING(perfmon_fsm_t);
 };
 
+typedef std::basic_stringstream<char, std::char_traits<char>, gnew_alloc<char> > sstream;
+
 bool perfmon_get_stats(perfmon_stats_t *dest, perfmon_callback_t *cb) {
     
     perfmon_fsm_t *fsm = new perfmon_fsm_t(dest);
@@ -96,10 +98,19 @@ bool perfmon_get_stats(perfmon_stats_t *dest, perfmon_callback_t *cb) {
 }
 
 std_string_t perfmon_combiner_sum(std_string_t v1, std_string_t v2) {
+    sstream s1(v1), s2(v2), out;
     
-    std::basic_stringstream<char, std::char_traits<char>, gnew_alloc<char> > s;
-    s << (atoll(v1.c_str()) + atoll(v2.c_str()));
-    return s.str();
+    bool first = true;
+    int64_t i1, i2;
+    while ((s1 >> i1) && (s2 >> i2)) {
+        if (!first) {
+            out << ' ';
+        }
+        first = false;
+        out << (i1 + i2);
+    }
+
+    return out.str();
 }
 
 static void read_average(const char *s, long long int *num, int *count) {
@@ -121,4 +132,19 @@ std_string_t perfmon_combiner_average(std_string_t v1, std_string_t v2) {
     char buf[20];
     sprintf(buf, "%lld (average of %d)", (num1*count1+num2*count2)/(count1+count2), count1+count2);
     return buf;
+}
+
+std_string_t perfmon_weighted_average_transformer(std_string_t numer_denom_pair) {
+    int64_t numer, denom;
+    sstream(numer_denom_pair) >> numer >> denom;
+    sstream out;
+    out << numer << "/" << denom
+        << " (";
+    if (denom == 0) {
+        out << "NaN";
+    } else {
+        out << double(numer)/denom;
+    }
+    out << ")";
+    return out.str();
 }
