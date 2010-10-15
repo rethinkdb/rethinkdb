@@ -39,18 +39,21 @@ it in a global map and its destructor deregisters it. Subclass it and override i
 get_value() method to make a performance monitor variable. */
 
 typedef std_string_t perfmon_combiner_t(std_string_t, std_string_t);
+typedef std_string_t perfmon_transformer_t(std_string_t);
 
 class perfmon_watcher_t :
     public intrusive_list_node_t<perfmon_watcher_t>
 {
 public:
-    perfmon_watcher_t(const char *name, perfmon_combiner_t *combiner = NULL);
+    perfmon_watcher_t(const char *name, perfmon_combiner_t *combiner = NULL,
+                      perfmon_transformer_t *transformer = NULL);
     ~perfmon_watcher_t();
     
     virtual std_string_t get_value() = 0;
 
     const char *name;
     perfmon_combiner_t *combiner;
+    perfmon_transformer_t *transformer;
 };
 
 /* perfmon_var_t is a perfmon_watcher_t that just watches a variable. */

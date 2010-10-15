@@ -6,8 +6,9 @@
 
 __thread intrusive_list_t<perfmon_watcher_t> *var_list = NULL;
 
-perfmon_watcher_t::perfmon_watcher_t(const char *name, perfmon_combiner_t *combiner)
-    : name(name), combiner(combiner)
+perfmon_watcher_t::perfmon_watcher_t(const char *name, perfmon_combiner_t *combiner,
+                                     perfmon_transformer_t *transformer)
+    : name(name), combiner(combiner), transformer(transformer)
 {
     if (!var_list) var_list = gnew<intrusive_list_t<perfmon_watcher_t> >();
     var_list->push_back(this);
@@ -29,6 +30,7 @@ struct perfmon_fsm_t :
     public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, perfmon_fsm_t>
 {
     perfmon_stats_t *dest;
+    perfmon_stats_t untransformed_dest;
     perfmon_callback_t *callback;
     
     perfmon_fsm_t(perfmon_stats_t *dest) : dest(dest) { }
@@ -48,11 +50,11 @@ struct perfmon_fsm_t :
         if (var_list) {
             for (perfmon_watcher_t *var = var_list->head(); var; var = var_list->next(var)) {
                 const std_string_t &value = var->get_value();
-                if (dest->find(var->name) == dest->end()) {
-                    (*dest)[var->name] = value;
+                if (untransformed_dest.find(var->name) == untransformed_dest.end()) {
+                    untransformed_dest[var->name] = value;
                 } else {
                     if (var->combiner) {
-                        (*dest)[var->name] = var->combiner(value, (*dest)[var->name]);
+                        untransformed_dest[var->name] = var->combiner(value, untransformed_dest[var->name]);
                     } else {
                         fail("Two perfmon watchers are both called %s and one lacks a combiner "
                             "function.", var->name);
@@ -72,10 +74,19 @@ struct perfmon_fsm_t :
     }
     
     bool deliver_data() {
+        if (var_list) {
+            for (perfmon_watcher_t *var = var_list->head(); var; var = var_list->next(var)) {
+                (*dest)[var->name] = var->transformer == NULL ? untransformed_dest[var->name] : var->transformer(untransformed_dest[var->name]);
+            }
+        }
+
         if (callback) callback->on_perfmon_stats();
         delete this;
         return true;
     }
+
+private:
+    DISABLE_COPYING(perfmon_fsm_t);
 };
 
 bool perfmon_get_stats(perfmon_stats_t *dest, perfmon_callback_t *cb) {
