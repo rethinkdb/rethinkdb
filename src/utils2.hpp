@@ -49,6 +49,10 @@ bool maybe_random_delay(cb_t *cb, void (cb_t::*method)(arg1_t), arg1_t arg);
 // bias tends to get worse when RAND_MAX is far from a multiple of n.
 int randint(int n);
 
+// Put this in a private: declaration.
+#define DISABLE_COPYING(T)                      \
+    T(const T&);                                \
+    void operator=(const T&)
 
 
 #include "utils2.tcc"

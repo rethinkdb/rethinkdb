@@ -434,7 +434,7 @@ bool data_block_manager_t::Less::operator() (const data_block_manager_t::gc_entr
  *Stat functions*
  ****************/
 
-// This will return NaN when gc_stats.old_total_blocks is zero.
+// This will return NaN when gc_stats.unyoung_total_blocks is zero.
 float data_block_manager_t::garbage_ratio() const {
     // TODO: not divide by zero?
     return (float) gc_stats.old_garbage_blocks / (float) gc_stats.old_total_blocks;
