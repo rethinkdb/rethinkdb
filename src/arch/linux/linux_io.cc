@@ -17,7 +17,9 @@
 /* Network connection object */
 
 linux_net_conn_t::linux_net_conn_t(fd_t sock)
-    : sock(sock), callback(NULL), set_me_true_on_delete(NULL) {
+    : sock(sock), callback(NULL), set_me_true_on_delete(NULL),
+      registered_for_write_notifications(false)
+{
     
     assert(sock != INVALID_FD);
     
@@ -31,7 +33,7 @@ void linux_net_conn_t::set_callback(linux_net_conn_callback_t *cb) {
     assert(cb);
     callback = cb;
     
-    linux_thread_pool_t::thread->queue.watch_resource(sock, poll_event_in | poll_event_out, this);
+    linux_thread_pool_t::thread->queue.watch_resource(sock, poll_event_in, this);
 }
 
 ssize_t linux_net_conn_t::read_nonblocking(void *buf, size_t count) {
@@ -43,7 +45,19 @@ ssize_t linux_net_conn_t::read_nonblocking(void *buf, size_t count) {
 ssize_t linux_net_conn_t::write_nonblocking(const void *buf, size_t count) {
 
     // TODO PERFMON get_cpu_context()->worker->bytes_written += count;
-    return ::write(sock, buf, count);
+    int res = ::write(sock, buf, count);
+    if(res == EAGAIN || res == EWOULDBLOCK) {
+        // Whoops, got stuff to write, turn on write notification.
+        linux_thread_pool_t::thread->queue.adjust_resource(sock, poll_event_in | poll_event_out, this);
+        registered_for_write_notifications = true;
+    } else if(registered_for_write_notifications) {
+        // We can turn off write notifications now as we no longer
+        // have stuff to write and are waiting on the socket.
+        linux_thread_pool_t::thread->queue.adjust_resource(sock, poll_event_in, this);
+        registered_for_write_notifications = false;
+    }
+
+    return res;
 }
 
 void linux_net_conn_t::on_event(int events) {
@@ -56,10 +70,14 @@ void linux_net_conn_t::on_event(int events) {
     
     if (events & poll_event_in || events & poll_event_out) {
 
-        if (events & poll_event_in) callback->on_net_conn_readable();
+        if (events & poll_event_in) {
+            callback->on_net_conn_readable();
+        }
         if (was_deleted) return;
         
-        if (events & poll_event_out) callback->on_net_conn_writable();
+        if (events & poll_event_out) {
+            callback->on_net_conn_writable();
+        }
         if (was_deleted) return;
         
     } else if (events & poll_event_err) {

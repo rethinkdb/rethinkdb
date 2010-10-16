@@ -42,6 +42,11 @@ private:
     fd_t sock;
     linux_net_conn_callback_t *callback;
     bool *set_me_true_on_delete;   // So we can tell if a callback deletes the conn_fsm_t
+
+    // We are implementing this for level-triggered mechanisms such as
+    // poll, that will keep bugging us about the write when we don't
+    // need it, and use up 100% of cpu
+    bool registered_for_write_notifications;
     
     linux_net_conn_t(fd_t);
     void on_event(int events);

@@ -114,7 +114,17 @@ void epoll_event_queue_t::watch_resource(fd_t resource, int watch_mode, linux_ev
     event.data.ptr = (void*)cb;
     
     int res = epoll_ctl(epoll_fd, EPOLL_CTL_ADD, resource, &event);
-    check("Could not pass socket to worker", res != 0);
+    check("Could not watch resource", res != 0);
+}
+
+void epoll_event_queue_t::adjust_resource(fd_t resource, int events, linux_event_callback_t *cb) {
+    epoll_event event;
+    
+    event.events = EPOLLET | user_to_epoll(events);
+    event.data.ptr = (void*)cb;
+    
+    int res = epoll_ctl(epoll_fd, EPOLL_CTL_MOD, resource, &event);
+    check("Could not adjust resource", res != 0);
 }
 
 void epoll_event_queue_t::forget_resource(fd_t resource, linux_event_callback_t *cb) {
@@ -127,7 +137,7 @@ void epoll_event_queue_t::forget_resource(fd_t resource, linux_event_callback_t 
     event.data.ptr = NULL;
     
     int res = epoll_ctl(epoll_fd, EPOLL_CTL_DEL, resource, &event);
-    check("Couldn't remove socket from watching", res != 0);
+    check("Couldn't remove resource from watching", res != 0);
 
     // Go through the queue of messages in the current poll cycle and
     // clean out the ones that are referencing the resource we're

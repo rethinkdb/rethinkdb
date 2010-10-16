@@ -34,6 +34,7 @@ private:
 public:
     // These should only be called by the event queue itself or by the linux_* classes
     void watch_resource(fd_t resource, int events, linux_event_callback_t *cb);
+    void adjust_resource(fd_t resource, int events, linux_event_callback_t *cb);
     void forget_resource(fd_t resource, linux_event_callback_t *cb);
 };
 

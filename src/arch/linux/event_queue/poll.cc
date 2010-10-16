@@ -96,6 +96,17 @@ void poll_event_queue_t::watch_resource(fd_t resource, int watch_mode, linux_eve
     callbacks[resource] = cb;
 }
 
+void poll_event_queue_t::adjust_resource(fd_t resource, int events, linux_event_callback_t *cb) {
+    // Find and adjust the event
+    callbacks[resource] = cb;
+    for (unsigned int i = 0; i < watched_fds.size(); i++) {
+        if(watched_fds[i].fd == resource) {
+            watched_fds[i].events = events;
+            return;
+        }
+    }
+}
+
 void poll_event_queue_t::forget_resource(fd_t resource, linux_event_callback_t *cb) {
 
     assert(cb);
