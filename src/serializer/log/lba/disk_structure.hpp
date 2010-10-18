@@ -27,12 +27,12 @@ public:
 
 public:
     static void create(extent_manager_t *em, direct_file_t *file, lba_disk_structure_t **out);
-    static bool load(extent_manager_t *em, direct_file_t *file, lba_metablock_mixin_t *metablock,
+    static bool load(extent_manager_t *em, direct_file_t *file, lba_shard_metablock_t *metablock,
         lba_disk_structure_t **out, load_callback_t *cb);
     
     void add_entry(ser_block_id_t block_id, off64_t offset);
     bool sync(sync_callback_t *cb);
-    void prepare_metablock(lba_metablock_mixin_t *mb_out);
+    void prepare_metablock(lba_shard_metablock_t *mb_out);
     
     void destroy();   // Delete both in memory and on disk
     void shutdown();   // Delete just in memory

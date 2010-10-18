@@ -5,9 +5,11 @@
 #include "arch/arch.hpp"
 
 lba_list_t::lba_list_t(extent_manager_t *em)
-    : shutdown_callback(NULL), gc_fsm(NULL), extent_manager(em),
-      state(state_unstarted), in_memory_index(NULL), disk_structure(NULL)
-    {}
+    : shutdown_callback(NULL), gc_count(0), extent_manager(em),
+      state(state_unstarted), in_memory_index(NULL)
+{
+    for (int i = 0; i < LBA_SHARD_FACTOR; i++) disk_structures[i] = NULL;
+}
 
 /* This form of start() is called when we are creating a new database */
 void lba_list_t::start(direct_file_t *file) {
@@ -18,7 +20,9 @@ void lba_list_t::start(direct_file_t *file) {
     
     in_memory_index = new in_memory_index_t();
     
-    lba_disk_structure_t::create(extent_manager, dbfile, &disk_structure);
+    for (int i = 0; i < LBA_SHARD_FACTOR; i++) {
+        lba_disk_structure_t::create(extent_manager, dbfile, &disk_structures[i]);
+    }
     
     state = state_ready;
 }
@@ -32,6 +36,7 @@ struct lba_start_fsm_t :
         state_loading_lba,
         state_done
     } state;
+    int num_shards_loading;
     
     lba_list_t *owner;
     
@@ -52,10 +57,16 @@ struct lba_start_fsm_t :
         assert(owner->state == lba_list_t::state_unstarted);
         owner->state = lba_list_t::state_starting_up;
         
-        bool done = lba_disk_structure_t::load(owner->extent_manager, owner->dbfile, last_metablock,
-            &owner->disk_structure, this);
+        num_shards_loading = LBA_SHARD_FACTOR;
+        for (int i = 0; i < LBA_SHARD_FACTOR; i++) {
+            bool done = lba_disk_structure_t::load(
+                owner->extent_manager, owner->dbfile,
+                &last_metablock->shards[i],
+                &owner->disk_structures[i], this);
+            if (done) num_shards_loading--;
+        }
         
-        if (done) {
+        if (num_shards_loading == 0) {
             callback = NULL;
             finish();
             return true;
@@ -66,11 +77,13 @@ struct lba_start_fsm_t :
     }
     
     void on_load_lba() {
-        finish();
+        assert(num_shards_loading > 0);
+        num_shards_loading--;
+        if (num_shards_loading == 0) finish();
     }
     
     void finish() {
-        owner->in_memory_index = new in_memory_index_t(owner->disk_structure, owner->extent_manager);
+        owner->in_memory_index = new in_memory_index_t(owner->disk_structures, LBA_SHARD_FACTOR, owner->extent_manager);
         owner->state = lba_list_t::state_ready;
         
         if (callback) callback->on_lba_ready();
@@ -111,7 +124,7 @@ void lba_list_t::set_block_offset(ser_block_id_t block, off64_t offset) {
     current disk_structure, so it's meaningless but harmless to call add_entry(). However,
     since our changes are also being put into the in_memory_index, they will be
     incorporated into the new disk_structure that the GC creates, so they won't get lost. */
-    disk_structure->add_entry(block, offset);
+    disk_structures[block % LBA_SHARD_FACTOR]->add_entry(block, offset);
 }
 
 struct lba_syncer_t :
@@ -122,6 +135,7 @@ struct lba_syncer_t :
     lba_list_t *owner;
     lba_syncer_t(lba_list_t *owner) : owner(owner) {}
 
+    int structures_unsynced;
     lba_list_t::sync_callback_t *callback;
     
     bool run(lba_list_t::sync_callback_t *cb) {
@@ -135,12 +149,18 @@ struct lba_syncer_t :
     }
     
     bool do_write() {
-        if (owner->disk_structure->sync(this)) return finish();
+        structures_unsynced = LBA_SHARD_FACTOR;
+        for (int i = 0; i < LBA_SHARD_FACTOR; i++) {
+            if (owner->disk_structures[i]->sync(this)) structures_unsynced--;
+        }
+        if (structures_unsynced == 0) return finish();
         else return false;
     }
     
     void on_sync_lba() {
-        finish();
+        assert(structures_unsynced > 0);
+        structures_unsynced--;
+        if (structures_unsynced == 0) finish();
     }
     
     bool finish() {
@@ -154,8 +174,8 @@ bool lba_list_t::sync(sync_callback_t *cb) {
     assert(state == state_ready);
     
     // Just to make sure that the LBA GC gets exercised
-    if (we_want_to_gc()) {
-        gc();
+    for (int i = 0; i < LBA_SHARD_FACTOR; i++) {
+        if (we_want_to_gc(i)) gc(i);
     }
     
     lba_syncer_t *syncer = new lba_syncer_t(this);
@@ -163,7 +183,9 @@ bool lba_list_t::sync(sync_callback_t *cb) {
 }
 
 void lba_list_t::prepare_metablock(metablock_mixin_t *mb_out) {
-    disk_structure->prepare_metablock(mb_out);
+    for (int i = 0; i < LBA_SHARD_FACTOR; i++) {
+        disk_structures[i]->prepare_metablock(&mb_out->shards[i]);
+    }
 }
 
 struct gc_fsm_t :
@@ -171,32 +193,32 @@ struct gc_fsm_t :
     public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, gc_fsm_t>
 {
     lba_list_t *owner;
-    gc_fsm_t(lba_list_t *owner)
-        : owner(owner)
+    int i;
+    
+    gc_fsm_t(lba_list_t *owner, int i)
+        : owner(owner), i(i)
         {
+            owner->gc_count++;
             do_replace_disk_structure();
         }
-    
-    void on_lock_available() {
-        do_replace_disk_structure();
-    }
     
     void do_replace_disk_structure() {
         
         /* Replace the LBA with a new empty LBA */
         
-        owner->disk_structure->destroy();
-        lba_disk_structure_t::create(owner->extent_manager, owner->dbfile, &owner->disk_structure);
+        owner->disk_structures[i]->destroy();
+        lba_disk_structure_t::create(owner->extent_manager, owner->dbfile, &owner->disk_structures[i]);
         
         /* Put entries in the new empty LBA */
         
-        for (ser_block_id_t id = 0; id < owner->max_block_id(); id++) {
-            owner->disk_structure->add_entry(id, owner->get_block_offset(id));
+        for (ser_block_id_t id = i; id < owner->max_block_id(); id += LBA_SHARD_FACTOR) {
+            assert(id % LBA_SHARD_FACTOR == (unsigned)i);
+            owner->disk_structures[i]->add_entry(id, owner->get_block_offset(id));
         }
         
         /* Sync the new LBA */
         
-        if (owner->disk_structure->sync(this)) {
+        if (owner->disk_structures[i]->sync(this)) {
             do_cleanup();
         }
     }
@@ -206,9 +228,10 @@ struct gc_fsm_t :
     }
     
     void do_cleanup() {
-        owner->gc_fsm = NULL;
+        assert(owner->gc_count > 0);
+        owner->gc_count--;
 
-        if(owner->state == lba_list_t::state_shutting_down)
+        if(owner->state == lba_list_t::state_shutting_down && owner->gc_count == 0)
             owner->__shutdown();
         
         delete this;
@@ -216,18 +239,18 @@ struct gc_fsm_t :
 };
 
 // Decides, based on the number of unused entries.
-bool lba_list_t::we_want_to_gc() {
+bool lba_list_t::we_want_to_gc(int i) {
     // How much total space is being used (or unused) for entries on
     // the disk?  (We don't count last_extent.)
 
-    if (disk_structure->superblock == NULL) {
+    if (disk_structures[i]->superblock == NULL) {
         return false;
     }
     
-    int entries_per_extent = disk_structure->num_entries_that_can_fit_in_an_extent();
+    int entries_per_extent = disk_structures[i]->num_entries_that_can_fit_in_an_extent();
 
     // About how much space for entries is used on disk?
-    int64_t denom = disk_structure->superblock->extents.size() * entries_per_extent;
+    int64_t denom = disk_structures[i]->superblock->extents.size() * entries_per_extent;
 
     int64_t numer = std::max<int64_t>(max_block_id(), entries_per_extent);
 
@@ -240,18 +263,15 @@ bool lba_list_t::we_want_to_gc() {
     return (denom - numer) * LBA_GC_THRESHOLD_RATIO_DENOMINATOR >= LBA_GC_THRESHOLD_RATIO_NUMERATOR * denom;
 }
 
-void lba_list_t::gc() {
-    if(!gc_fsm) {
-        // Only gc if we're not gc'ing already
-        gc_fsm = new gc_fsm_t(this);
-    }
+void lba_list_t::gc(int i) {
+    new gc_fsm_t(this, i);
 }
 
 bool lba_list_t::shutdown(shutdown_callback_t *cb) {
     assert(state == state_ready);
     assert(cb);
     
-    if(gc_fsm) {
+    if (gc_count > 0) {
         // We're gc'ing, can't shut down just yet...
         state = state_shutting_down;
         shutdown_callback = cb;
@@ -266,8 +286,10 @@ bool lba_list_t::__shutdown() {
     delete in_memory_index;
     in_memory_index = NULL;
     
-    disk_structure->shutdown();   // Also deletes it
-    disk_structure = NULL;
+    for (int i = 0; i < LBA_SHARD_FACTOR; i++) {
+        disk_structures[i]->shutdown();   // Also deletes it
+        disk_structures[i] = NULL;
+    }
     
     state = state_shut_down;
 
@@ -280,5 +302,5 @@ bool lba_list_t::__shutdown() {
 lba_list_t::~lba_list_t() {
     assert(state == state_unstarted || state == state_shut_down);
     assert(in_memory_index == NULL);
-    assert(disk_structure == NULL);
+    for (int i = 0; i < LBA_SHARD_FACTOR; i++) assert(disk_structures[i] == NULL);
 }

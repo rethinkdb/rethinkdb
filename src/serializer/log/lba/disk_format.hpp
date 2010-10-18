@@ -10,7 +10,7 @@
 
 #define NULL_OFFSET off64_t(-1)
 
-struct lba_metablock_mixin_t {
+struct lba_shard_metablock_t {
     /* Reference to the last lba extent (that's currently being
      * written to). Once the extent is filled, the reference is
      * moved to the lba superblock, and the next block gets a
@@ -21,6 +21,11 @@ struct lba_metablock_mixin_t {
     /* Reference to the LBA superblock and its size */
     off64_t lba_superblock_offset;
     int lba_superblock_entries_count;
+};
+
+struct lba_metablock_mixin_t {
+    
+    lba_shard_metablock_t shards[LBA_SHARD_FACTOR];
 };
 
 

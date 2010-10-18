@@ -19,18 +19,23 @@ public:
         exist. */
     }
     
-    in_memory_index_t(lba_disk_structure_t *s, extent_manager_t *em) {
+    in_memory_index_t(lba_disk_structure_t **shards, int n_shards, extent_manager_t *em) {
         
-        /* Call each lba_extent_t in the same order they were written */
-        
-        if (s->superblock) {
-            for (lba_disk_extent_t *e = s->superblock->extents.head();
-                 e;
-                 e = s->superblock->extents.next(e)) {
-                fill_from_extent(e);
+        for (int i = 0; i < n_shards; i++) {
+            
+            lba_disk_structure_t *s = shards[i];
+            
+            /* Call each lba_extent_t in the same order they were written */
+            
+            if (s->superblock) {
+                for (lba_disk_extent_t *e = s->superblock->extents.head();
+                     e;
+                     e = s->superblock->extents.next(e)) {
+                    fill_from_extent(e);
+                }
             }
+            if (s->last_extent) fill_from_extent(s->last_extent);
         }
-        if (s->last_extent) fill_from_extent(s->last_extent);
     }
 
 public:

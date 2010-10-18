@@ -166,5 +166,8 @@
 #define LBA_GC_THRESHOLD_RATIO_NUMERATOR          9
 #define LBA_GC_THRESHOLD_RATIO_DENOMINATOR        10
 
+// How many LBA structures to have for each file
+#define LBA_SHARD_FACTOR                          16
+
 #endif // __CONFIG_ARGS_H__
 

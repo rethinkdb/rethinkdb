@@ -70,7 +70,7 @@ public:
 
 private:
     shutdown_callback_t *shutdown_callback;
-    gc_fsm_t *gc_fsm;
+    int gc_count;   // Number of active GC fsms
     bool __shutdown();
 
 private:
@@ -88,13 +88,14 @@ private:
     
     in_memory_index_t *in_memory_index;
     
-    lba_disk_structure_t *disk_structure;
+    lba_disk_structure_t *disk_structures[LBA_SHARD_FACTOR];
     
-    void gc();
+    // Garbage-collect the given shard
+    void gc(int i);
 
     // Returns true if the garbage ratio is bad enough that we want to
-    // gc.
-    bool we_want_to_gc();
+    // gc. The integer is which shard to GC.
+    bool we_want_to_gc(int i);
 
 };
 
