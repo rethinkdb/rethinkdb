@@ -571,7 +571,42 @@ public:
     }
 
     bool build_response(linked_buf_t *sbuf) {
+        // TODO: figure out what to print here.
         sbuf->printf("GC_STOPPED\r\n");
+        return true;
+    }
+};
+
+// TODO: ugh, code duplication
+class txt_memcached_start_gc_request_t :
+    public server_t::gc_started_callback_t,
+    public cpu_message_t,   // As with txt_memcached_perfmon_request_t, for call_later_on_this_cpu()
+    public txt_memcached_request_t,
+    public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, txt_memcached_start_gc_request_t> {
+
+public:
+    txt_memcached_start_gc_request_t(txt_memcached_handler_t *rh)
+        : txt_memcached_request_t(rh, false) {
+
+        if (rh->server->start_gc(this)) {
+            call_later_on_this_cpu(this);
+        }
+
+        nfsms = 1;
+    }
+
+    void on_cpu_switch() {
+        on_gc_started();
+    }
+
+    void on_gc_started() {
+        // Hack: there is no btree_fsm_t.
+        on_btree_fsm_complete(NULL);
+    }
+
+    bool build_response(linked_buf_t *sbuf) {
+        // TODO: also figure out what to print here.
+        sbuf->printf("GC_STARTED\r\n");
         return true;
     }
 };
@@ -660,6 +695,17 @@ txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::parse_request(e
         conn_fsm->consume(line_len);
         // TODO: where does this get freed?  See parse_stat_command too.
         new txt_memcached_stop_gc_request_t(this);
+        return request_handler_t::op_req_complex;
+    } else if(!strcmp(cmd_str, "start_gc")) {
+        // TODO: more duplication.
+
+        if (strtok_r(NULL, DELIMS, &state)) {  // strtok will return NULL if there are no more tokens
+            conn_fsm->consume(line_len);
+            return malformed_request();
+        }
+        conn_fsm->consume(line_len);
+        // TODO: where does this get freed?  See parse_stat_command too.
+        new txt_memcached_start_gc_request_t(this);
         return request_handler_t::op_req_complex;
     } else if(!strcmp(cmd_str, "set")) {     // check for storage commands
         return parse_storage_command(SET, state, line_len);

@@ -245,3 +245,9 @@ bool server_t::stop_gc(gc_stopped_callback_t *cb) {
     return true;
     //    cb->on_gc_stopped();
 }
+
+bool server_t::start_gc(gc_started_callback_t *cb) {
+    return true;
+    // cb->on_gc_started();
+}
+

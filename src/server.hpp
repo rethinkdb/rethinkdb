@@ -37,7 +37,12 @@ public:
         virtual void on_gc_stopped() = 0;
     };
 
+    struct gc_started_callback_t {
+        virtual void on_gc_started() = 0;
+    };
+
     bool stop_gc(gc_stopped_callback_t *);
+    bool start_gc(gc_started_callback_t *);
 
     
 
