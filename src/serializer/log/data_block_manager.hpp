@@ -253,10 +253,10 @@ private:
     /* \brief structure to keep track of global stats about the data blocks
      */
     struct gc_stats_t {
-        int unyoung_total_blocks;
-        int unyoung_garbage_blocks;
+        int old_total_blocks;
+        int old_garbage_blocks;
         gc_stats_t()
-            : unyoung_total_blocks(0), unyoung_garbage_blocks(0)
+            : old_total_blocks(0), old_garbage_blocks(0)
         {}
     } gc_stats;
     

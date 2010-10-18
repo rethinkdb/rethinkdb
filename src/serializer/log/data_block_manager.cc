@@ -91,8 +91,8 @@ void data_block_manager_t::start(direct_file_t *file, metablock_mixin_t *last_me
         
         entry->our_pq_entry = gc_pq.push(entry);
         
-        gc_stats.unyoung_total_blocks += extent_manager->extent_size / block_size;
-        gc_stats.unyoung_garbage_blocks += entry->g_array.count();
+        gc_stats.old_total_blocks += extent_manager->extent_size / block_size;
+        gc_stats.old_garbage_blocks += entry->g_array.count();
     }
     
     state = state_ready;
@@ -129,11 +129,11 @@ void data_block_manager_t::mark_garbage(off64_t offset) {
     assert(entry->g_array[block_id] == 0);
     entry->g_array.set(block_id, 1);
     
-    if (entry->state != gc_entry::state_young) {
-        gc_stats.unyoung_garbage_blocks++;
+    if (entry->state == gc_entry::state_old) {
+        gc_stats.old_garbage_blocks++;
     }
     
-    if (entry->g_array.count() == entry->g_array.size()) {
+    if (entry->g_array.count() == extent_manager->extent_size / block_size && entry->state != gc_entry::state_active) {
     
         /* Every block in the extent is now garbage. */
         
@@ -145,7 +145,7 @@ void data_block_manager_t::mark_garbage(off64_t offset) {
                 fail("Marking something as garbage during startup.");
             
             case gc_entry::state_active:
-                fail("Marking something in the active extent as garbage.");
+                fail("We shouldn't have gotten here.");
             
             /* Remove from the young extent queue */
             case gc_entry::state_young:
@@ -155,6 +155,8 @@ void data_block_manager_t::mark_garbage(off64_t offset) {
             /* Remove from the priority queue */
             case gc_entry::state_old:
                 gc_pq.remove(entry->our_pq_entry);
+                gc_stats.old_total_blocks -= extent_manager->extent_size / block_size;
+                gc_stats.old_garbage_blocks -= extent_manager->extent_size / block_size;
                 break;
             
             /* Notify the GC that the extent got released during GC */
@@ -162,10 +164,6 @@ void data_block_manager_t::mark_garbage(off64_t offset) {
                 assert(gc_state.current_entry == entry);
                 gc_state.current_entry = NULL;
                 break;
-        }
-        
-        if (entry->state != gc_entry::state_young) {
-            gc_stats.unyoung_total_blocks -= extent_manager->extent_size / block_size;
         }
         
         delete entry;
@@ -195,7 +193,11 @@ void data_block_manager_t::run_gc() {
             /* grab the entry */
             gc_state.current_entry = gc_pq.pop();
             gc_state.current_entry->our_pq_entry = NULL;
+            
+            assert(gc_state.current_entry->state == gc_entry::state_old);
             gc_state.current_entry->state = gc_entry::state_in_gc;
+            gc_stats.old_garbage_blocks -= gc_state.current_entry->g_array.count();
+            gc_stats.old_total_blocks -= extent_manager->extent_size / block_size;
 
             /* read all the live data into buffers */
 
@@ -231,7 +233,7 @@ void data_block_manager_t::run_gc() {
             }
             
             /* an array to put our writes in */
-            int num_writes = gc_state.current_entry->g_array.size() - gc_state.current_entry->g_array.count();
+            int num_writes = extent_manager->extent_size / block_size - gc_state.current_entry->g_array.count();
             log_serializer_t::write_t writes[num_writes];
             int current_write = 0;
 
@@ -397,8 +399,8 @@ void data_block_manager_t::remove_last_unyoung_entry() {
     
     entry->our_pq_entry = gc_pq.push(entry);
     
-    gc_stats.unyoung_total_blocks += extent_manager->extent_size / block_size;
-    gc_stats.unyoung_garbage_blocks += entry->g_array.count();
+    gc_stats.old_total_blocks += extent_manager->extent_size / block_size;
+    gc_stats.old_garbage_blocks += entry->g_array.count();
 }
 
 
@@ -432,8 +434,8 @@ bool data_block_manager_t::Less::operator() (const data_block_manager_t::gc_entr
  *Stat functions*
  ****************/
 
-// This will return NaN when gc_stats.unyoung_total_blocks is zero.
+// This will return NaN when gc_stats.old_total_blocks is zero.
 float data_block_manager_t::garbage_ratio() const {
     // TODO: not divide by zero?
-    return (float) gc_stats.unyoung_garbage_blocks / (float) gc_stats.unyoung_total_blocks;
+    return (float) gc_stats.old_garbage_blocks / (float) gc_stats.old_total_blocks;
 }
