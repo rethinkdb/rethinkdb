@@ -12,12 +12,35 @@
 #include "config/alloc.hpp"
 #include "utils2.hpp"
 #include "arch/linux/io.hpp"
-#include "arch/linux/event_queue.hpp"
+#include "arch/linux/event_queue/epoll.hpp"
 #include "arch/linux/thread_pool.hpp"
 
 // TODO: report event queue statistics.
 
-linux_event_queue_t::linux_event_queue_t(linux_queue_parent_t *parent)
+int user_to_epoll(int mode) {
+    int out_mode = 0;
+    if(mode & poll_event_in)
+        out_mode |= EPOLLIN;
+    if(mode & poll_event_out)
+        out_mode |= EPOLLOUT;
+
+    return out_mode;
+}
+
+int epoll_to_user(int mode) {
+    int out_mode = 0;
+    if(mode & EPOLLIN)
+        out_mode |= poll_event_in;
+    if(mode & EPOLLOUT)
+        out_mode |= poll_event_out;
+    if((mode & EPOLLRDHUP) || (mode & EPOLLERR) || (mode & EPOLLHUP)) {
+        out_mode |= poll_event_err;
+    }
+
+    return out_mode;
+}
+
+epoll_event_queue_t::epoll_event_queue_t(linux_queue_parent_t *parent)
     : parent(parent),
       events_per_loop(0), pm_events_per_loop("events_per_loop", &events_per_loop, &perfmon_combiner_average)
 {
@@ -27,7 +50,7 @@ linux_event_queue_t::linux_event_queue_t(linux_queue_parent_t *parent)
     check("Could not create epoll fd", epoll_fd == -1);
 }
 
-void linux_event_queue_t::run() {
+void epoll_event_queue_t::run() {
     
     int res;
     
@@ -62,8 +85,8 @@ void linux_event_queue_t::run() {
                 // notifying us to skip it.
                 continue;
             } else {
-                linux_epoll_callback_t *cb = (linux_epoll_callback_t*)events[i].data.ptr;
-                cb->on_epoll(events[i].events);
+                linux_event_callback_t *cb = (linux_event_callback_t*)events[i].data.ptr;
+                cb->on_event(epoll_to_user(events[i].events));
             }
         }
 
@@ -74,7 +97,7 @@ void linux_event_queue_t::run() {
     }
 }
 
-linux_event_queue_t::~linux_event_queue_t()
+epoll_event_queue_t::~epoll_event_queue_t()
 {
     int res;
     
@@ -82,19 +105,29 @@ linux_event_queue_t::~linux_event_queue_t()
     check("Could not close epoll_fd", res != 0);
 }
 
-void linux_event_queue_t::watch_resource(fd_t resource, int watch_mode, linux_epoll_callback_t *cb) {
+void epoll_event_queue_t::watch_resource(fd_t resource, int watch_mode, linux_event_callback_t *cb) {
 
     assert(cb);
     epoll_event event;
     
-    event.events = watch_mode;
+    event.events = EPOLLET | user_to_epoll(watch_mode);
     event.data.ptr = (void*)cb;
     
     int res = epoll_ctl(epoll_fd, EPOLL_CTL_ADD, resource, &event);
-    check("Could not pass socket to worker", res != 0);
+    check("Could not watch resource", res != 0);
 }
 
-void linux_event_queue_t::forget_resource(fd_t resource, linux_epoll_callback_t *cb) {
+void epoll_event_queue_t::adjust_resource(fd_t resource, int events, linux_event_callback_t *cb) {
+    epoll_event event;
+    
+    event.events = EPOLLET | user_to_epoll(events);
+    event.data.ptr = (void*)cb;
+    
+    int res = epoll_ctl(epoll_fd, EPOLL_CTL_MOD, resource, &event);
+    check("Could not adjust resource", res != 0);
+}
+
+void epoll_event_queue_t::forget_resource(fd_t resource, linux_event_callback_t *cb) {
 
     assert(cb);
     
@@ -104,7 +137,7 @@ void linux_event_queue_t::forget_resource(fd_t resource, linux_epoll_callback_t 
     event.data.ptr = NULL;
     
     int res = epoll_ctl(epoll_fd, EPOLL_CTL_DEL, resource, &event);
-    check("Couldn't remove socket from watching", res != 0);
+    check("Couldn't remove resource from watching", res != 0);
 
     // Go through the queue of messages in the current poll cycle and
     // clean out the ones that are referencing the resource we're

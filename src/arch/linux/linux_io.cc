@@ -3,7 +3,6 @@
 #include <algorithm>
 #include <unistd.h>
 #include <stdio.h>
-#include <sys/epoll.h>
 #include <sys/ioctl.h>
 #include <linux/fs.h>
 #include "arch/linux/arch.hpp"
@@ -18,7 +17,9 @@
 /* Network connection object */
 
 linux_net_conn_t::linux_net_conn_t(fd_t sock)
-    : sock(sock), callback(NULL), set_me_true_on_delete(NULL) {
+    : sock(sock), callback(NULL), set_me_true_on_delete(NULL),
+      registered_for_write_notifications(false)
+{
     
     assert(sock != INVALID_FD);
     
@@ -32,7 +33,7 @@ void linux_net_conn_t::set_callback(linux_net_conn_callback_t *cb) {
     assert(cb);
     callback = cb;
     
-    linux_thread_pool_t::thread->queue.watch_resource(sock, EPOLLET|EPOLLIN|EPOLLOUT, this);
+    linux_thread_pool_t::thread->queue.watch_resource(sock, poll_event_in, this);
 }
 
 ssize_t linux_net_conn_t::read_nonblocking(void *buf, size_t count) {
@@ -44,10 +45,22 @@ ssize_t linux_net_conn_t::read_nonblocking(void *buf, size_t count) {
 ssize_t linux_net_conn_t::write_nonblocking(const void *buf, size_t count) {
 
     // TODO PERFMON get_cpu_context()->worker->bytes_written += count;
-    return ::write(sock, buf, count);
+    int res = ::write(sock, buf, count);
+    if(res == EAGAIN || res == EWOULDBLOCK) {
+        // Whoops, got stuff to write, turn on write notification.
+        linux_thread_pool_t::thread->queue.adjust_resource(sock, poll_event_in | poll_event_out, this);
+        registered_for_write_notifications = true;
+    } else if(registered_for_write_notifications) {
+        // We can turn off write notifications now as we no longer
+        // have stuff to write and are waiting on the socket.
+        linux_thread_pool_t::thread->queue.adjust_resource(sock, poll_event_in, this);
+        registered_for_write_notifications = false;
+    }
+
+    return res;
 }
 
-void linux_net_conn_t::on_epoll(int events) {
+void linux_net_conn_t::on_event(int events) {
     
     assert(callback);
     
@@ -55,15 +68,19 @@ void linux_net_conn_t::on_epoll(int events) {
     bool was_deleted = false;
     set_me_true_on_delete = &was_deleted;
     
-    if (events & EPOLLIN || events & EPOLLOUT) {
+    if (events & poll_event_in || events & poll_event_out) {
 
-        if (events & EPOLLIN) callback->on_net_conn_readable();
+        if (events & poll_event_in) {
+            callback->on_net_conn_readable();
+        }
         if (was_deleted) return;
         
-        if (events & EPOLLOUT) callback->on_net_conn_writable();
+        if (events & poll_event_out) {
+            callback->on_net_conn_writable();
+        }
         if (was_deleted) return;
         
-    } else if (events == EPOLLRDHUP || events == EPOLLERR || events == EPOLLHUP) {
+    } else if (events & poll_event_err) {
               
         callback->on_net_conn_close();
         if (was_deleted) return;
@@ -130,10 +147,10 @@ void linux_net_listener_t::set_callback(linux_net_listener_callback_t *cb) {
     assert(cb);
     callback = cb;
     
-    linux_thread_pool_t::thread->queue.watch_resource(sock, EPOLLET|EPOLLIN, this);
+    linux_thread_pool_t::thread->queue.watch_resource(sock, poll_event_in, this);
 }
 
-void linux_net_listener_t::on_epoll(int events) {
+void linux_net_listener_t::on_event(int events) {
     
     while (true) {
         sockaddr_in client_addr;
@@ -348,7 +365,7 @@ linux_io_calls_t::linux_io_calls_t(linux_event_queue_t *queue)
     res = fcntl(aio_notify_fd, F_SETFL, O_NONBLOCK);
     check("Could not make aio notify fd non-blocking", res != 0);
 
-    queue->watch_resource(aio_notify_fd, EPOLLET|EPOLLIN, this);
+    queue->watch_resource(aio_notify_fd, poll_event_in, this);
     
     // Expand vectors now so we don't have to grow them later
     
@@ -371,7 +388,7 @@ linux_io_calls_t::~linux_io_calls_t()
     check("Could not destroy aio_context", res != 0);
 }
 
-void linux_io_calls_t::on_epoll(int) {
+void linux_io_calls_t::on_event(int) {
     
     int res, nevents;
     eventfd_t nevents_total;

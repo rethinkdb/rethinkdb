@@ -62,7 +62,7 @@ public:
 };
 
 class linux_thread_t :
-    public linux_epoll_callback_t,
+    public linux_event_callback_t,
     public linux_queue_parent_t
 {
 
@@ -82,7 +82,7 @@ public:
     fd_t shutdown_notify_fd;
     void pump();   // Called by the event queue
     bool should_shut_down();   // Called by the event queue
-    void on_epoll(int events);
+    void on_event(int events);
 };
 
 #endif /* __LINUX_THREAD_POOL_HPP__ */

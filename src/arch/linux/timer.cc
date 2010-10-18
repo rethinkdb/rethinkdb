@@ -25,7 +25,7 @@ linux_timer_handler_t::linux_timer_handler_t(linux_event_queue_t *queue)
     
     timer_ticks_since_server_startup = 0;
     
-    queue->watch_resource(timer_fd, EPOLLET|EPOLLIN, this);
+    queue->watch_resource(timer_fd, poll_event_in, this);
 }
 
 linux_timer_handler_t::~linux_timer_handler_t() {
@@ -43,7 +43,7 @@ linux_timer_handler_t::~linux_timer_handler_t() {
     check("Could not close the timer.", res != 0);
 }
 
-void linux_timer_handler_t::on_epoll(int events) {
+void linux_timer_handler_t::on_event(int events) {
     
     int res;
     eventfd_t nexpirations;
