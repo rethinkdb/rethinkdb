@@ -33,6 +33,14 @@ public:
     void do_start();
     void shutdown();   // Can be called from any thread
 
+    struct gc_stopped_callback_t {
+        virtual void on_gc_stopped() = 0;
+    };
+
+    bool stop_gc(gc_stopped_callback_t *);
+
+    
+
     cmd_config_t *cmd_config;
     thread_pool_t *thread_pool;
 

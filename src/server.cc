@@ -239,3 +239,9 @@ void server_t::do_stop_threads() {
     thread_pool->shutdown();
     delete this;
 }
+
+
+bool server_t::stop_gc(gc_stopped_callback_t *cb) {
+    return true;
+    //    cb->on_gc_stopped();
+}

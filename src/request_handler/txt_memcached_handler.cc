@@ -31,7 +31,7 @@
 
 // Please read and understand the memcached protocol before modifying this
 // file. If you only do a cursory readthrough, please check with someone who
-// has read it in depth before comitting.
+// has read it in depth before committing.
 
 class txt_memcached_request_t :
     public request_callback_t,
@@ -542,6 +542,43 @@ public:
     char fields[MAX_STATS_REQ_LEN];
 };
 
+
+
+class txt_memcached_stop_gc_request_t :
+    public server_t::gc_stopped_callback_t,
+    public cpu_message_t,   // As with txt_memcached_perfmon_request_t, for call_later_on_this_cpu()
+    public txt_memcached_request_t,
+    public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, txt_memcached_stop_gc_request_t> {
+
+public:
+    txt_memcached_stop_gc_request_t(txt_memcached_handler_t *rh)
+        : txt_memcached_request_t(rh, false) {
+
+        if (rh->server->stop_gc(this)) {
+            call_later_on_this_cpu(this);
+        }
+
+        nfsms = 1;
+    }
+
+    void on_cpu_switch() {
+        on_gc_stopped();
+    }
+
+    void on_gc_stopped() {
+        // Hack: there is no btree_fsm_t.
+        on_btree_fsm_complete(NULL);
+    }
+
+    bool build_response(linked_buf_t *sbuf) {
+        sbuf->printf("GC_STOPPED\r\n");
+        return true;
+    }
+};
+
+
+
+
 // Process commands received from the user
 txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::parse_request(event_t *event) {
     assert(event->state == conn_fsm);
@@ -614,9 +651,16 @@ txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::parse_request(e
 
     } else if(!strcmp(cmd_str, "stats") || !strcmp(cmd_str, "stat")) {
         conn_fsm->consume(line_len);
-        parse_stat_command(state, line_len);
+        return parse_stat_command(state, line_len);
+    } else if(!strcmp(cmd_str, "stop_gc")) {
+        if (strtok_r(NULL, DELIMS, &state)) {  // strtok will return NULL if there are no more tokens
+            conn_fsm->consume(line_len);
+            return malformed_request();
+        }
+        conn_fsm->consume(line_len);
+        // TODO: where does this get freed?  See parse_stat_command too.
+        new txt_memcached_stop_gc_request_t(this);
         return request_handler_t::op_req_complex;
-
     } else if(!strcmp(cmd_str, "set")) {     // check for storage commands
         return parse_storage_command(SET, state, line_len);
     } else if(!strcmp(cmd_str, "add")) {
@@ -746,6 +790,7 @@ void txt_memcached_handler_t::on_large_value_completed(bool success) {
 }
 
 txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::parse_stat_command(char *state, unsigned int line_len) {
+    // TODO: where does rq get freed?
     txt_memcached_perfmon_request_t *rq = new txt_memcached_perfmon_request_t(this);
     check("Too big of a stat request", line_len > MAX_STATS_REQ_LEN);
     memcpy(rq->fields, state, line_len);
