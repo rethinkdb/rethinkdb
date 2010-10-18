@@ -1,5 +1,6 @@
 import os
 import re
+from test_common import *
 NEVENTS = 4
 
 ctrl_str = 'sudo opcontrol'
@@ -12,12 +13,29 @@ def safe_div(x, y):
     else:
         return x / y
 
+#dict add requires that dictionaries have the same schema while dict union does not
 def dict_add(x, y):
     res = {}
     assert len(x) == len(y)
     for keyx, keyy in zip(sorted(x), sorted(y)):
         assert keyx == keyy
         res[keyx] = x[keyx]+ y[keyy]
+    return res
+
+def dict_union(x, y):
+    res = x.copy()
+    for key in y.keys():
+        if x.has_key(key):
+            res[key] = max(x[key], y[key]) #no good reason this has to be max (maybe it should be avg, or maybe we should scale them to be the same
+        else:
+            res[key] = y[key]
+
+def tuple_union(x, y):
+    res = x.copy()
+    for val in y:
+        if not val in res:
+            if not val in x:
+                res += (val,)
     return res
 
 class Event():
@@ -83,9 +101,17 @@ class line():
                     
 class Function_report():
     function_name = ''
-    counter_totals = {}
+    counter_totals = {} #string -> int
     source_file = ''
     lines = {} #number -> line_report
+    def __add__(self, other):
+        res = Function_report()
+        assert self.function_name = other.function_name
+        res.function_name = self.function_name
+        res.counter_totals = self.counter_totals + other.counter_totals
+        res.source_file = max(self.source_file, other.source_line, key = lambda x: len(x))
+        res.lines = self.lines + other.lines
+        return res
 
 class Line_report():
     line_number = None
@@ -93,6 +119,12 @@ class Line_report():
     def __init__(self, _line_number, _counter_totals):
         self.line_number = _line_number
         self.counter_totals = _counter_totals
+    def __add__(self, other):
+        assert self.line_number == other.line_number
+        res = Line_report()
+        res.line_number = self.line_number
+        res.counter_totals = self.counter_totals + other.counter_totals
+        return res
 
 class Program_report():
     object_name = ''
@@ -106,6 +138,26 @@ class Program_report():
         res += '\n'
         res += str(self.functions)
         return res
+    def __add__(self, other):
+        assert  self.object_name == other.object_name
+        res = Program_report()
+        res.counter_totals = self.counter_totals + other.counter_totals
+        res.counter_names = tuple_union(self.counter_names + other.counter_names)
+        res.functions = self.functions + other.functions
+        return res
+    def report(self, ratios, ordering_key, top_n = 5):
+        import StringIO
+        res = StringIO.StringIO()
+
+        print >>res, "Top %d functions:" % top_n
+        function_list = sorted(prog_report.functions.iteritems(), key = lambda x: x[1].counter_totals[ordering_key.name])
+        function_list.reverse()
+        for function in function_list[0:top_n]:
+            print >>res, function[1].function_name, ' ratios:'
+            for ratio in ratios:
+                print >>res, "%s / %s :" % ratio.numerator, ratio.denominator
+                print >>res, "%.2f" % safe_div(float(function[1].counter_totals[ratio.numerator]), function[1].counter_totals[ratio.denominator])
+        return res.getvalue()
 
 class parser():
     positions_line = line("positions: (\w+) (\w+)\n", [('instr', 's'), ('line', 's')])
@@ -231,16 +283,3 @@ class Ratio():
     def __init__(self, _numerator, _denominator):
         self.numerator = _numerator.name
         self.denominator = _denominator.name
-    def report(self, prog_report):
-        import StringIO
-        res = StringIO.StringIO()
-        print >>res, "%s / %s = " % (self.numerator, self.denominator)
-        print >>res, safe_div(prog_report.counter_totals[self.numerator], prog_report.counter_totals[self.denominator])
-
-        print >>res, "Top %d functions:" % self.top_n
-        function_list = sorted(prog_report.functions.iteritems(), key = lambda x: safe_div(x[1].counter_totals[self.numerator], x[1].counter_totals[self.denominator]))
-        function_list.reverse()
-        for function in function_list[0:self.top_n]:
-            print >>res, function[0], ' = ',
-            print >>res, safe_div(function[1].counter_totals[self.numerator], function[1].counter_totals[self.denominator])
-        return res.getvalue()
