@@ -19,139 +19,23 @@ public:
         exist. */
     }
     
-    in_memory_index_t(lba_disk_structure_t *s, data_block_manager_t *dbm, extent_manager_t *em) {
+    in_memory_index_t(lba_disk_structure_t **shards, int n_shards, extent_manager_t *em) {
         
-        /* Call each lba_extent_t in the same order they were written */
-        
-        if (s->superblock) {
-            for (lba_disk_extent_t *e = s->superblock->extents.head();
-                 e;
-                 e = s->superblock->extents.next(e)) {
-                fill_from_extent(e);
-            }
-        }
-        if (s->last_extent) fill_from_extent(s->last_extent);
-        
-        // Inform the DBM which blocks are in use
-        dbm->start_reconstruct();
-        for (ser_block_id_t id = 0; id < blocks.get_size(); id ++) {
-        
-            // The segmented_vector_t will initialize its cells to 0. For this to
-            // be zero probably means we didn't fill it in with anything for some
-            // reason.
-            assert(blocks[id] != 0);
+        for (int i = 0; i < n_shards; i++) {
             
-            if (blocks[id] != DELETE_BLOCK) {
-                dbm->mark_live(blocks[id]);
+            lba_disk_structure_t *s = shards[i];
+            
+            /* Call each lba_extent_t in the same order they were written */
+            
+            if (s->superblock) {
+                for (lba_disk_extent_t *e = s->superblock->extents.head();
+                     e;
+                     e = s->superblock->extents.next(e)) {
+                    fill_from_extent(e);
+                }
             }
+            if (s->last_extent) fill_from_extent(s->last_extent);
         }
-        end_reconstruct(dbm, em, s);
-    }
-
-private:
-    void end_reconstruct(data_block_manager_t *dbm, extent_manager_t *em, lba_disk_structure_t *s) {
-        // Go through all extents and release each one if it isn't in
-        // use.
-        for (unsigned int extent_id = 0;
-             (extent_id * em->extent_size) < (unsigned int) em->max_extent();
-             extent_id++)
-        {
-            if (!is_extent_in_use(dbm, em, s, extent_id))
-                em->release_extent(extent_id * em->extent_size);
-        }
-        dbm->end_reconstruct();
-    }
-
-    bool is_extent_in_use(data_block_manager_t *dbm, extent_manager_t *em, lba_disk_structure_t *s, unsigned int extent_id) {
-        off64_t extent_offset = extent_id * em->extent_size;
-        return
-            em->is_reserved(extent_offset) ||
-            dbm->is_extent_in_use(extent_id) ||
-            is_extent_in_use_by_lba(em, s, extent_id);
-    }
-
-#ifndef NDEBUG
-public:
-    bool is_extent_referenced(unsigned int extent_id) {
-        for (unsigned int i = 0; i < blocks.get_size(); i++) {
-            if (blocks[i] / EXTENT_SIZE == extent_id) {
-                printf("Referenced with block_id: %d\n", i);
-                return true;
-            }
-        }
-        return false;
-    }
-
-    int extent_refcount(unsigned int extent_id) {
-        int refcount = 0;
-        for (unsigned int i = 0; i < blocks.get_size(); i++) {
-            if (blocks[i] / EXTENT_SIZE == extent_id) {
-                printf("refed by block id: %d\n", i);
-                refcount++;
-            }
-        }
-        return refcount;
-    }
-
-    bool is_offset_referenced(off64_t offset) {
-        for (unsigned int i = 0; i < blocks.get_size(); i++) {
-            if (blocks[i] == offset)
-                return true;
-        }
-        return false;
-    }
-
-    bool is_offset_referenced(ser_block_id_t block_id, off64_t offset) {
-        for (unsigned int i = 0; i < blocks.get_size(); i++) {
-            if (blocks[i] == offset && i != block_id)
-                return true;
-        }
-        return false;
-    }
-
-    bool have_duplicates() {
-        for (unsigned int i = 0; i < blocks.get_size(); i++) {
-            if (blocks[i] == DELETE_BLOCK) continue;
-            for (unsigned int j = i + 1; j < blocks.get_size(); j++) {
-                if (blocks[j] == blocks[i])
-                    return true;
-            }
-        }
-        return false;
-    }
-#endif
-
-    bool is_extent_in_use_by_lba(extent_manager_t *em, lba_disk_structure_t *s, unsigned int extent_id) {
-        off64_t extent_offset = extent_id * em->extent_size;
-        // First check if it's the last extent
-        if (s->last_extent && s->last_extent->offset == extent_offset)
-            return true;
-        // If we have a superblock, gotta check if extent is
-        // superblock or one of the other extents stored in the
-        // superblock
-        if (s->superblock != NULL) {
-            // TODO: this is shit. Superblock offset may be in the
-            // middle of the extent, and we round it up here to the
-            // extent boundary. When we load superblocks in
-            // disk_superblock.hpp we do the same thing. We should do
-            // it one place (i.e. superblock_t::get_extent_id()).
-            off64_t sb_offset = s->superblock->offset;
-            sb_offset = sb_offset - sb_offset % em->extent_size;
-            if(sb_offset == extent_offset)
-                return true;
-
-            // TODO: This is O(N^2) because we check if every extent
-            // is one of LBA extents - no good, fix it!
-            for (intrusive_list_t<lba_disk_extent_t>::iterator it = s->superblock->extents.begin();
-                 it != s->superblock->extents.end();
-                 it++)
-            {
-                assert((*it).offset % em->extent_size == 0);
-                if((*it).offset == extent_offset)
-                    return true;
-            }
-        }
-        return false;
     }
 
 public:

@@ -54,7 +54,7 @@ public:
     
     void set_size_at_least(size_t size) {
         if (get_size() < size) {
-            size_t actual_size = size + (rand() % 10) * DEVICE_BLOCK_SIZE;
+            size_t actual_size = size + randint(10) * DEVICE_BLOCK_SIZE;
             set_size(actual_size);
         }
     }
@@ -111,7 +111,7 @@ private:
             data = (char*)malloc_aligned(DEVICE_BLOCK_SIZE, DEVICE_BLOCK_SIZE);
             
             // Initialize to either random data or zeroes, choosing at random
-            char d = (rand() & 1) ? 0 : (rand() & 0xFF);
+            char d = randint(2) ? 0 : randint(0x100);
             memset(data, d, DEVICE_BLOCK_SIZE);
         }
         

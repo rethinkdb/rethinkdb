@@ -3,6 +3,7 @@
 #define __BUFFER_CACHE_WRITEBACK_HPP__
 
 #include "concurrency/rwi_lock.hpp"
+#include "flush_time_randomizer.hpp"
 #include "utils.hpp"
 
 template<class mc_config_t>
@@ -65,7 +66,9 @@ public:
     /* User-controlled settings. */
     
     bool wait_for_flush;
-    int flush_timer_ms;
+
+private:
+    flush_time_randomizer_t flush_time_randomizer;
     unsigned int flush_threshold;   // Number of blocks, not percentage
     
 private:    

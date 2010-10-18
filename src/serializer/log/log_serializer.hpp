@@ -184,8 +184,8 @@ private:
     
     extent_manager_t extent_manager;
     mb_manager_t metablock_manager;
-    data_block_manager_t data_block_manager;
     lba_index_t lba_index;
+    data_block_manager_t data_block_manager;
     
     /* The ls_write_fsm_ts organize themselves into a list so that they can be sure to
     write their metablocks in the correct order. last_write points to the most recent

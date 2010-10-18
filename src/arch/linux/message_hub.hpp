@@ -70,10 +70,10 @@ private:
     // (denoted by the index in the array). We listen for each of
     // these, and when a cpu wants to notify us it's got messages for
     // us, it should signal the appropriate fd.
-    struct notify_t : public linux_epoll_callback_t
+    struct notify_t : public linux_event_callback_t
     {
     public:
-        void on_epoll(int events);
+        void on_event(int events);
 
     public:
         int notifier_cpu;           // the cpu that notifies us it's got messages for us

@@ -79,6 +79,7 @@ public:
 
 public:
     void prepare_metablock(metablock_mixin_t *metablock);
+    bool do_we_want_to_start_gcing() const;
 
 public:
     struct shutdown_callback_t {
@@ -87,10 +88,8 @@ public:
     // The shutdown_callback_t may destroy the data_block_manager.
     bool shutdown(shutdown_callback_t *cb);
 
-public:
-    bool do_we_want_to_start_gcing() const;
-
 private:
+    void actually_shutdown();
     // This is permitted to destroy the data_block_manager.
     shutdown_callback_t *shutdown_callback;
 
@@ -110,47 +109,74 @@ private:
 
     direct_file_t *dbfile;
     size_t block_size;
-    off64_t last_data_extent;
-    unsigned int blocks_in_last_data_extent;
 
     off64_t gimme_a_new_offset();
 
 private:
-    // Depends on the value of last_data_extent.  Adds the gc entry for
-    // the last_data_extent to the entries table.
-    void add_gc_entry();
+    
+    struct gc_entry;
+    
+    struct Less {
+        bool operator() (const gc_entry *x, const gc_entry *y);
+    };
 
     // Identifies an extent, the time we started writing to the
     // extent, whether it's the extent we're currently writing to, and
     // describes blocks are garbage.
-    struct gc_entry : public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, gc_entry> {
+    struct gc_entry :
+        public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, gc_entry>,
+        public intrusive_list_node_t<gc_entry>
+    {
     public:
+        typedef uint64_t timestamp_t;
+    
         off64_t offset; /* !< the offset that this extent starts at */
         std::bitset<EXTENT_SIZE / BTREE_BLOCK_SIZE> g_array; /* !< bit array for whether or not each block is garbage */
-        typedef uint64_t timestamp_t;
         timestamp_t timestamp; /* !< when we started writing to the extent */
-        bool active; /* !< this the extent we're currently writing to? */
-        bool young; /* !< this extent is considered young? */
+        priority_queue_t<gc_entry*, Less>::entry_t *our_pq_entry; /* !< The PQ entry pointing to us */
+        
+        enum state_t {
+            // It has been, or is being, reconstructed from data on disk.
+            state_reconstructing,
+            // We are currently putting things on this extent. It is equal to last_data_extent.
+            state_active,
+            // Not active, but not a GC candidate yet. It is in young_extent_queue.
+            state_young,
+            // Candidate to be GCed. It is in gc_pq.
+            state_old,
+            // Currently being GCed. It is equal to gc_state.current_entry.
+            state_in_gc,
+        } state;
+        
     public:
-        gc_entry() {
-            // We put things in init because we don't want to do the
-            // timestamp in the constructor.  priority_queue_t just
-            // calls the constructor for unused array elements.
+        
+        /* This constructor is for starting a new extent. */
+        explicit gc_entry(extent_manager_t *em) {
+            offset = em->gen_extent();
+            g_array.set();
+            timestamp = current_timestamp();
+            state = state_active;
+            our_pq_entry = NULL;
         }
-        void init(off64_t offset_, bool active_, bool young_) {
-            timestamp = gc_entry::current_timestamp();
-            offset = offset_;
-            active = active_;
-            young = young_;
+        
+        /* This constructor is for reconstructing extents that the LBA tells us contained
+        data blocks. */
+        explicit gc_entry(off64_t off) {
+            offset = off;
+            g_array.set();
+            timestamp = -1;
+            state = state_reconstructing;
+            our_pq_entry = NULL;
         }
+        
         void print() {
 #ifndef NDEBUG
-            printf("gc_entry:\n");
-            printf("offset: %ld\n", offset);
+            debugf("gc_entry:\n");
+            debugf("offset: %ld\n", offset);
             for (unsigned int i = 0; i < g_array.size(); i++)
-                printf("%.8x:\t%d\n", (unsigned int) (offset + (i * DEVICE_BLOCK_SIZE)), g_array.test(i));
-            printf("\n");
-            printf("\n");
+                debugf("%.8x:\t%d\n", (unsigned int) (offset + (i * DEVICE_BLOCK_SIZE)), g_array.test(i));
+            debugf("\n");
+            debugf("\n");
 #endif
         }
 
@@ -161,38 +187,14 @@ private:
             return uint64_t(t.tv_sec) * (1000 * 1000) + t.tv_usec;
         }
     };
-
-    struct Less {
-        bool operator() (const gc_entry x, const gc_entry y);
-    };
-
-
-    typedef priority_queue_t<gc_entry, Less>::entry_t gc_pq_entry_t;
-
-    // A priority queue of gc_entrys, by garbage ratio.  You may not
-    // pop things off this queue until they've been popped off the
-    // young_extent_queue.
-    priority_queue_t<gc_entry, Less> gc_pq;
-
-    // An array of pointers into the priority queue, indexed by extent
-    // id.  (The "extent id" being the extent's offset divided
-    // by extent_manager->extent_size.)
-    two_level_array_t<gc_pq_entry_t *, MAX_DATA_EXTENTS> entries;
-
-    // TODO: Change this young_extent_queue to a queue of gc_entry*
-    // once we start picking 100%-garbage entries out of the priority
-    // queue.  Be careful about gc_entry lifetimes.
-
-    // A queue of the young entry_ts.
-    std::queue< gc_pq_entry_t *, std::deque< gc_pq_entry_t *, gnew_alloc<gc_pq_entry_t *> > > young_extent_queue;
-
-    void print_entries() {
-#ifndef NDEBUG
-        for (unsigned int i = 0; i * extent_manager->extent_size < (unsigned int) extent_manager->max_extent(); i++)
-            if (entries.get(i) != NULL)
-                entries.get(i)->data.print();
-#endif
-    }
+    
+    two_level_array_t<gc_entry*, MAX_DATA_EXTENTS> entries;
+    
+    intrusive_list_t< gc_entry > reconstructed_extents;
+    gc_entry *last_data_extent;
+    unsigned blocks_in_last_data_extent;
+    intrusive_list_t< gc_entry > young_extent_queue;
+    priority_queue_t<gc_entry*, Less> gc_pq;
 
     // Tells if we should keep gc'ing, being told the next extent that
     // would be gc'ed.
@@ -227,17 +229,16 @@ private:
         gc_ready, /* ready to start */
         gc_read,  /* waiting for reads, sending out writes */
         gc_write, /* waiting for writes */
-    } gc_step_t;
+    };
 
     struct gc_state_t {
         gc_step step;               /* !< which step we're on */
         int refcount;               /* !< outstanding io reqs */
         char *gc_blocks;            /* !< buffer for blocks we're transferring */
-        gc_entry current_entry;     /* !< entry we're currently gcing */
-        int blocks_copying;         /* !< how many blocks we're copying */
+        gc_entry *current_entry;    /* !< entry we're currently GCing */
         data_block_manager_t::gc_read_callback_t gc_read_callback;
         data_block_manager_t::gc_write_callback_t gc_write_callback;
-        gc_state_t() : step(gc_ready), refcount(0), blocks_copying(0)
+        gc_state_t() : step(gc_ready), refcount(0), current_entry(NULL)
         {
             memalign_alloc_t<DEVICE_BLOCK_SIZE> blocks_buffer_allocator;
             /* TODO this is excessive as soon as we have a bound on how much space we need we should allocate less */
@@ -246,25 +247,23 @@ private:
         ~gc_state_t() {
             free(gc_blocks);
         }
-    };
-
-    gc_state_t gc_state;
+    } gc_state;
+    
 private:
     /* \brief structure to keep track of global stats about the data blocks
      */
     struct gc_stats_t {
-        int unyoung_total_blocks;
-        int unyoung_garbage_blocks;
+        int old_total_blocks;
+        int old_garbage_blocks;
         gc_stats_t()
-            : unyoung_total_blocks(0), unyoung_garbage_blocks(0)
+            : old_total_blocks(0), old_garbage_blocks(0)
         {}
-    };
-
-    gc_stats_t gc_stats;
+    } gc_stats;
+    
 public:
     /* \brief ratio of garbage to blocks in the system
      */
-    float garbage_ratio();
+    float garbage_ratio() const;
 };
 
 #endif /* __SERIALIZER_LOG_DATA_BLOCK_MANAGER_HPP__ */

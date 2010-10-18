@@ -36,7 +36,7 @@ void _fail(const char*, int, const char*, ...) __attribute__ ((noreturn));
 #endif
 
 #ifndef NDEBUG
-void print_backtrace(FILE *out = stderr);
+void print_backtrace(FILE *out = stderr, bool use_addr2line = true);
 char *demangle_cpp_name(const char *mangled_name);
 #endif
 

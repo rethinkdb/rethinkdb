@@ -54,7 +54,7 @@
 #define BTREE_USABLE_BLOCK_SIZE                   (BTREE_BLOCK_SIZE - BLOCK_META_DATA_SIZE)
 
 // Maximum number of data blocks
-#define MAX_DATA_EXTENTS                          (1 << 64 / EXTENT_SIZE)
+#define MAX_DATA_EXTENTS                          (TERABYTE / EXTENT_SIZE)
 
 // Size of each extent (in bytes)
 // Value is very low for testing purposes.
@@ -165,6 +165,9 @@
 // The ratio at which we should GC the lba list.
 #define LBA_GC_THRESHOLD_RATIO_NUMERATOR          9
 #define LBA_GC_THRESHOLD_RATIO_DENOMINATOR        10
+
+// How many LBA structures to have for each file
+#define LBA_SHARD_FACTOR                          16
 
 #endif // __CONFIG_ARGS_H__
 

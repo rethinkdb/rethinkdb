@@ -27,7 +27,7 @@ linux_message_hub_t::linux_message_hub_t(linux_event_queue_t *queue, linux_threa
         res = fcntl(notify[i].fd, F_SETFL, O_NONBLOCK);
         check("Could not make core notify fd non-blocking", res != 0);
 
-        queue->watch_resource(notify[i].fd, EPOLLET|EPOLLIN, &notify[i]);
+        queue->watch_resource(notify[i].fd, poll_event_in, &notify[i]);
     }
 }
 
@@ -65,7 +65,15 @@ void linux_message_hub_t::insert_external_message(linux_cpu_message_t *msg) {
     check("Could not write to core_notify_fd", res != 0);
 }
 
-void linux_message_hub_t::notify_t::on_epoll(int events) {
+void linux_message_hub_t::notify_t::on_event(int events) {
+
+    // Read from the event so level-triggered mechanism such as poll
+    // don't pester us and use 100% cpu
+    eventfd_t value;
+    int res = eventfd_read(fd, &value);
+    check("Could not read notification event in message hub", res != 0);
+
+    // Pull the messages
     parent->thread_pool->threads[notifier_cpu]->message_hub.pull_messages(parent->current_cpu);
 }
 
@@ -79,7 +87,9 @@ void linux_message_hub_t::pull_messages(int cpu) {
     msg_list.append_and_clear(&queue->msg_global_list);
     pthread_spin_unlock(&queue->lock);
 
+    int count = 0;
     while (linux_cpu_message_t *m = msg_list.head()) {
+        count++;
         msg_list.remove(m);
         m->on_cpu_switch();
     }

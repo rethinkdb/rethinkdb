@@ -53,6 +53,7 @@ public:
     size_t size();
     T peak();
     entry_t *push(T);
+    void remove(entry_t *);
     T pop();
     void update(int);
 public:

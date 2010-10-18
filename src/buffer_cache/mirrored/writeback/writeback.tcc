@@ -7,7 +7,7 @@ writeback_tmpl_t<mc_config_t>::writeback_tmpl_t(
         unsigned int flush_timer_ms,
         unsigned int flush_threshold)
     : wait_for_flush(wait_for_flush),
-      flush_timer_ms(flush_timer_ms),
+      flush_time_randomizer(flush_timer_ms),
       flush_threshold(flush_threshold),
       flush_timer(NULL),
       writeback_in_progress(false),
@@ -94,12 +94,12 @@ void writeback_tmpl_t<mc_config_t>::on_transaction_commit(transaction_t *txn) {
         threshold to force writeback to start. */
         if (num_dirty_blocks() > flush_threshold) {
             sync(NULL);
-        } else if (num_dirty_blocks() > 0 && flush_timer_ms == 0) {
+        } else if (num_dirty_blocks() > 0 && flush_time_randomizer.is_zero()) {
             sync(NULL);
-        } else if (!flush_timer && flush_timer_ms != NEVER_FLUSH && num_dirty_blocks() > 0) {
+        } else if (!flush_timer && !flush_time_randomizer.is_never_flush() && num_dirty_blocks() > 0) {
             /* Start the flush timer so that the modified data doesn't sit in memory for too long
             without being written to disk. */
-            flush_timer = fire_timer_once(flush_timer_ms, flush_timer_callback, this);
+            flush_timer = fire_timer_once(flush_time_randomizer.next_time_interval(), flush_timer_callback, this);
         }
     }
 }

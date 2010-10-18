@@ -8,7 +8,6 @@
 #include "disk_format.hpp"
 #include "in_memory_index.hpp"
 #include "disk_structure.hpp"
-#include "serializer/log/data_block_manager.hpp"
 
 class lba_start_fsm_t;
 class lba_syncer_t;
@@ -24,7 +23,7 @@ public:
     typedef lba_metablock_mixin_t metablock_mixin_t;
     
 public:
-    lba_list_t(data_block_manager_t *dbm, extent_manager_t *em);
+    lba_list_t(extent_manager_t *em);
     ~lba_list_t();
 
 public:
@@ -71,11 +70,10 @@ public:
 
 private:
     shutdown_callback_t *shutdown_callback;
-    gc_fsm_t *gc_fsm;
+    int gc_count;   // Number of active GC fsms
     bool __shutdown();
 
 private:
-    data_block_manager_t *data_block_manager;
     extent_manager_t *extent_manager;
     
     enum state_t {
@@ -90,13 +88,14 @@ private:
     
     in_memory_index_t *in_memory_index;
     
-    lba_disk_structure_t *disk_structure;
+    lba_disk_structure_t *disk_structures[LBA_SHARD_FACTOR];
     
-    void gc();
+    // Garbage-collect the given shard
+    void gc(int i);
 
     // Returns true if the garbage ratio is bad enough that we want to
-    // gc.
-    bool we_want_to_gc();
+    // gc. The integer is which shard to GC.
+    bool we_want_to_gc(int i);
 
 };
 

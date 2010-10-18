@@ -103,15 +103,34 @@ typename priority_queue_t<T, Less>::entry_t *priority_queue_t<T, Less>::push(T d
 }
 
 template<class T, class Less>
+void priority_queue_t<T, Less>::remove(entry_t *e) {
+    
+    unsigned index = e->index;
+
+    if (index < heap.size() - 1) {
+        heap[index] = heap.back();
+        heap[index]->index = index;
+        update(index);
+    }
+
+    heap.pop_back();
+    gdelete(e);
+}
+
+
+template<class T, class Less>
 T priority_queue_t<T, Less>::pop() {
+    
     T result = heap.front()->data;
-    heap.front()->pq = NULL;
-    heap.front()->index = -1;
+    
+    gdelete(heap.front());
     heap.pop_front();
 
-    heap.push_front(heap.back());
-    heap.front()->index = 0;
-    heap.pop_back();
+    if (!heap.empty()) {
+        heap.push_front(heap.back());
+        heap.front()->index = 0;
+        heap.pop_back();
+    }
 
     bubble_down(0);
 

@@ -53,9 +53,27 @@ static bool parse_backtrace_line(char *line, char **filename, char **function, c
     return true;
 }
 
-void print_backtrace(FILE *out) {
+static bool run_addr2line(char *executable, char *address, char *line, int line_size) {
     
-    fprintf(out, "\nBacktrace:\n");
+    // Generate and run addr2line command
+    char cmd_buf[255] = {0};
+    snprintf(cmd_buf, sizeof(cmd_buf), "addr2line -s -e %s %s", executable, address);
+    FILE *fline = popen(cmd_buf, "r");
+    if (!fline) return false;
+    
+    int count = fread(line, sizeof(char), line_size - 1, fline);
+    pclose(fline);
+    if (count == 0) return false;
+    
+    if (line[count-1] == '\n') line[count-1] = '\0';
+    else line[count] = '\0';
+    
+    if (strcmp(line, "??:0") == 0) return false;
+    
+    return true;
+}
+
+void print_backtrace(FILE *out, bool use_addr2line) {
     
     // Get a backtrace
     static const int max_frames = 100;
@@ -68,39 +86,36 @@ void print_backtrace(FILE *out) {
         
             // Parse each line of the backtrace
             char *line = strdup(symbols[i]);
-            char *filename, *function, *offset, *address;
+            char *executable, *function, *offset, *address;
             
             fprintf(out, "%d: ", i+1);
             
-            if (!parse_backtrace_line(line, &filename, &function, &offset, &address)) {
+            if (!parse_backtrace_line(line, &executable, &function, &offset, &address)) {
                 fprintf(out, "%s\n", symbols[i]);
-                
-            } else if (function) {
-                if (char *demangled = demangle_cpp_name(function)) {
-                    char cmd_buf[255], line[255], exec_name[255];
-                    // Make valgrind happy
-                    bzero((void*)cmd_buf, sizeof(cmd_buf));
-                    bzero((void*)line, sizeof(line));
-                    bzero((void*)exec_name, sizeof(exec_name));
-                    // Get current executable path
-                    size_t exec_name_size = readlink( "/proc/self/exe", exec_name, 255);
-                    exec_name[exec_name_size] = '\0';
-                    // Generate and run addr2line command
-                    snprintf(cmd_buf, sizeof(cmd_buf), "addr2line -s -e %s %s",
-                             exec_name, address);
-                    FILE *fline = popen(cmd_buf, "r");
-                    int __attribute__((__unused__)) res = fread(line, sizeof(char), sizeof(line), fline);
-                    pclose(fline);
-                    // Output the result
-                    fprintf(out, "%s at %s", demangled, line);
-                    free(demangled);
-                } else {
-                    fprintf(out, "[ %s(%s+%s) [%s] ]\n", filename, function, offset, address);
-                }
             
             } else {
-                fprintf(out, "[ %s [%s] ]\n", filename, address);
                 
+                if (function) {
+                    if (char *demangled = demangle_cpp_name(function)) {
+                        fprintf(out, "%s", demangled);
+                        free(demangled);
+                    } else {
+                        fprintf(out, "%s+%s", function, offset);
+                    }
+                } else {
+                    fprintf(out, "?");
+                }
+                
+                fprintf(out, " at ");
+                
+                char line[255] = {0};
+                if (use_addr2line && run_addr2line(executable, address, line, sizeof(line))) {
+                    fprintf(out, "%s", line);
+                } else {
+                    fprintf(out, "%s (%s)", address, executable);
+                }
+                
+                fprintf(out, "\n");
             }
             
             free(line);
@@ -127,6 +142,7 @@ void _fail(const char *file, int line, const char *msg, ...) {
     va_end(args);
     
 #ifndef NDEBUG
+    fprintf(stderr, "\nBacktrace:\n");
     print_backtrace();
 #endif
     

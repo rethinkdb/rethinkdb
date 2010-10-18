@@ -24,7 +24,7 @@ struct lba_load_fsm_t :
     bool waiting_for_superblock;
     bool waiting_for_last_extent;
     
-    bool run(lba_metablock_mixin_t *metablock, lba_disk_structure_t::load_callback_t *cb) {
+    bool run(lba_shard_metablock_t *metablock, lba_disk_structure_t::load_callback_t *cb) {
         
         if (metablock->last_lba_extent_offset != NULL_OFFSET) {
             waiting_for_last_extent = !lba_disk_extent_t::load(
@@ -76,7 +76,7 @@ struct lba_load_fsm_t :
     }
 };
 
-bool lba_disk_structure_t::load(extent_manager_t *em, direct_file_t *file, lba_metablock_mixin_t *metablock,
+bool lba_disk_structure_t::load(extent_manager_t *em, direct_file_t *file, lba_shard_metablock_t *metablock,
     lba_disk_structure_t **out, lba_disk_structure_t::load_callback_t *cb) {
     
     lba_disk_structure_t *s = new lba_disk_structure_t();
@@ -173,7 +173,7 @@ bool lba_disk_structure_t::sync(sync_callback_t *cb) {
     }
 }
 
-void lba_disk_structure_t::prepare_metablock(lba_metablock_mixin_t *mb_out) {
+void lba_disk_structure_t::prepare_metablock(lba_shard_metablock_t *mb_out) {
     
     if (last_extent) {
         mb_out->last_lba_extent_offset = last_extent->offset;

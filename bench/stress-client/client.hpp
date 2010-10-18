@@ -17,7 +17,8 @@ public:
         : config(_config),
           qps_offset(0), latencies_offset(0),
           qps_fd(NULL), latencies_fd(NULL),
-          protocol_factory(_protocol_factory)
+          protocol_factory(_protocol_factory),
+          last_qps(0), n_op(1), n_tick(1)
         {
             pthread_mutex_init(&mutex, NULL);
             
@@ -43,7 +44,7 @@ public:
     }
     
     void push_qps(int _qps, int tick) {
-        if(!qps_fd)
+        if(!qps_fd && !latencies_fd)
             return;
         
         lock();
@@ -68,36 +69,56 @@ public:
             return;
         }
             
-        int _off = snprintf(qps + qps_offset, sizeof(qps) - qps_offset, "%d\n", _qps);
+        last_qps = _qps;
+
+        if(!qps_fd) {
+            unlock();
+            return;
+        }
+        
+        int _off = snprintf(qps + qps_offset, sizeof(qps) - qps_offset, "%d\t\t%d\n", n_tick, _qps);
         if(_off >= sizeof(qps) - qps_offset) {
             // Couldn't write everything, flush
             fwrite(qps, 1, qps_offset, qps_fd);
             
             // Write again
             qps_offset = 0;
-            _off = snprintf(qps + qps_offset, sizeof(qps) - qps_offset, "%d\n", _qps);
+            _off = snprintf(qps + qps_offset, sizeof(qps) - qps_offset, "%d\t\t%d\n", n_tick, _qps);
         }
         qps_offset += _off;
+
+        n_tick++;
         
         unlock();
     }
 
     void push_latency(float latency) {
-        if(!latencies_fd)
+        if(!latencies_fd || last_qps == 0)
             return;
+
+        // We cannot possibly write every latency because that stalls
+        // the client, so we want to scale that by the number of qps
+        // (we'll sample latencies for roughly N random ops every
+        // second).
+        const int samples_per_second = 20;
+        if(rand() % (last_qps / samples_per_second) != 0) {
+            return;
+        }
 
         lock();
         
-        int _off = snprintf(latencies + latencies_offset, sizeof(latencies) - latencies_offset, "%.2f\n", latency);
+        int _off = snprintf(latencies + latencies_offset, sizeof(latencies) - latencies_offset, "%ld\t\t%.2f\n", n_op, latency);
         if(_off >= sizeof(latencies) - latencies_offset) {
             // Couldn't write everything, flush
             fwrite(latencies, 1, latencies_offset, latencies_fd);
             
             // Write again
             latencies_offset = 0;
-            _off = snprintf(latencies + latencies_offset, sizeof(latencies) - latencies_offset, "%.2f\n", latency);
+            _off = snprintf(latencies + latencies_offset, sizeof(latencies) - latencies_offset, "%ld\t\t%.2f\n", n_op, latency);
         }
         latencies_offset += _off;
+
+        n_op++;
 
         unlock();
     }
@@ -112,6 +133,10 @@ private:
     int qps_offset, latencies_offset;
     FILE *qps_fd, *latencies_fd;
     pthread_mutex_t mutex;
+    int last_qps;
+
+    long n_op;
+    int n_tick;
 
 private:
     void lock() {

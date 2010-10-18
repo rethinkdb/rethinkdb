@@ -10,8 +10,8 @@ log_serializer_t::log_serializer_t(cmd_config_t *cmd_config, char *_db_path, siz
       dbfile(NULL),
       extent_manager(EXTENT_SIZE),
       metablock_manager(&extent_manager),
+      lba_index(&extent_manager),
       data_block_manager(this, cmd_config, &extent_manager, block_size),
-      lba_index(&data_block_manager, &extent_manager),
       last_write(NULL),
       active_write_count(0) {
     
@@ -83,23 +83,36 @@ struct ls_start_fsm_t :
 #ifndef NDEBUG
                 memcpy(&ser->debug_mb_buffer, &metablock_buffer, sizeof(metablock_buffer));
 #endif
-                ser->extent_manager.start(ser->dbfile, &metablock_buffer.extent_manager_part);
-                ser->data_block_manager.start(ser->dbfile, &metablock_buffer.data_block_manager_part);
                 if (ser->lba_index.start(ser->dbfile, &metablock_buffer.lba_index_part, this)) {
-                    state = state_finish;
+                    state = state_reconstruct;
                 } else {
                     state = state_waiting_for_lba;
                     return false;
                 }
             } else {
-                ser->extent_manager.start(ser->dbfile);
-                ser->data_block_manager.start(ser->dbfile);
                 ser->lba_index.start(ser->dbfile);
+                ser->data_block_manager.start(ser->dbfile);
+                ser->extent_manager.start(ser->dbfile);
                 state = state_finish;
 #ifndef NDEBUG
                 ser->prepare_metablock(&ser->debug_mb_buffer);
 #endif
             }
+        }
+        
+        if (state == state_reconstruct) {
+
+            ser->data_block_manager.start_reconstruct();
+            for (ser_block_id_t id = 0; id < ser->lba_index.max_block_id(); id++) {
+                off64_t offset = ser->lba_index.get_block_offset(id);
+                if (offset != DELETE_BLOCK) ser->data_block_manager.mark_live(offset);
+            }
+            ser->data_block_manager.end_reconstruct();
+            ser->data_block_manager.start(ser->dbfile, &metablock_buffer.data_block_manager_part);
+            
+            ser->extent_manager.start(ser->dbfile, &metablock_buffer.extent_manager_part);
+            
+            state = state_finish;
         }
         
         if (state == state_finish) {
@@ -134,7 +147,7 @@ struct ls_start_fsm_t :
     
     void on_lba_ready() {
         assert(state == state_waiting_for_lba);
-        state = state_finish;
+        state = state_reconstruct;
         next_starting_up_step();
     }
     
@@ -147,6 +160,7 @@ struct ls_start_fsm_t :
         state_waiting_for_metablock,
         state_start_lba,
         state_waiting_for_lba,
+        state_reconstruct,
         state_finish,
         state_done
     } state;
@@ -280,6 +294,8 @@ struct ls_write_fsm_t :
     log_serializer_t::write_t *writes;
     int num_writes;
     
+    extent_manager_t::transaction_t *extent_txn;
+    
     /* We notify this after we have submitted our metablock to the metablock manager; it
     waits for our notification before submitting its metablock to the metablock
     manager. This way we guarantee that the metablocks are ordered correctly. */
@@ -310,6 +326,9 @@ struct ls_write_fsm_t :
         
         ser->active_write_count++;
         
+        /* Start an extent manager transaction so we can allocate and release extents */
+        extent_txn = ser->extent_manager.begin_transaction();
+        
         state = state_waiting_for_data_and_lba;
         
         /* Launch each individual block writer */
@@ -329,6 +348,10 @@ struct ls_write_fsm_t :
         our data and LBA. */
 
         ser->prepare_metablock(&mb_buffer);
+        
+        /* Stop the extent manager transaction so another one can start, but don't commit it
+        yet */
+        ser->extent_manager.end_transaction(extent_txn);
         
         /* Get in line for the metablock manager */
         
@@ -402,7 +425,8 @@ struct ls_write_fsm_t :
         
         ser->active_write_count--;
 
-        ser->extent_manager.on_metablock_comitted(&mb_buffer.extent_manager_part);
+        /* End the extent manager transaction so the extents can actually get reused. */
+        ser->extent_manager.commit_transaction(extent_txn);
         
         state = state_done;
         
