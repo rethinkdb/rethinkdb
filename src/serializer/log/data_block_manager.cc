@@ -450,6 +450,8 @@ std::ostream& operator<<(std::ostream& out, const data_block_manager_t::gc_stats
 
 
 bool data_block_manager_t::disable_gc(gc_disable_callback_t *cb) {
+    // We _always_ call the callback!
+
     assert(gc_state.gc_disable_callback == NULL);
     gc_state.should_be_stopped = true;
 

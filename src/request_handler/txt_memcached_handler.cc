@@ -43,8 +43,6 @@ public:
         : request_callback_t(rh), rh(rh), noreply(noreply), nfsms(0)
         {}
     virtual ~txt_memcached_request_t() { }
-    
-    virtual bool build_response(linked_buf_t *) = 0;
 
     void on_btree_fsm_complete(btree_fsm_t *fsm) {
         if (fsm) on_fsm_ready(fsm); // Hack
@@ -57,9 +55,12 @@ public:
             delete this;
         }
     }
-    
-    txt_memcached_handler_t *rh;
-    bool noreply;
+
+protected:    
+    virtual void build_response(linked_buf_t *) = 0;
+
+    txt_memcached_handler_t * const rh;
+    bool const noreply;
     int nfsms;
 };
 
@@ -163,7 +164,7 @@ public:
         }
     }
 
-    bool build_response(linked_buf_t *sbuf) {
+    void build_response(linked_buf_t *sbuf) {
 #ifndef NDEBUG
         for (int i = 0; i < num_fsms; i++) {
             assert(ready_fsms[i]);
@@ -172,7 +173,6 @@ public:
         send_next_value(sbuf);
         assert(curr_fsm == num_fsms);
         sbuf->printf(RETRIEVE_TERMINATOR);
-        return true;
     }
 
 private:
@@ -285,7 +285,7 @@ public:
         }
     }
 
-    bool build_response(linked_buf_t *sbuf) {
+    void build_response(linked_buf_t *sbuf) {
 #ifndef NDEBUG
             for (int i = 0; i < num_fsms; i++) {
                 assert(ready_fsms[i]);
@@ -294,7 +294,6 @@ public:
         send_next_value(sbuf);
         assert(curr_fsm == num_fsms);
         sbuf->printf(RETRIEVE_TERMINATOR);
-        return true;
     }
 
 private:
@@ -320,7 +319,7 @@ public:
         delete fsm;
     }
 
-    bool build_response(linked_buf_t *sbuf) {
+    void build_response(linked_buf_t *sbuf) {
         switch (fsm->status_code) {
             case btree_set_fsm_t::S_SUCCESS:
                 sbuf->printf(STORAGE_SUCCESS);
@@ -341,7 +340,6 @@ public:
                 assert(0);
                 break;
         }
-        return true;
     }
 
     // This is protocol.txt, verbatim:
@@ -386,7 +384,7 @@ public:
         delete fsm;
     }
 
-    bool build_response(linked_buf_t *sbuf) {
+    void build_response(linked_buf_t *sbuf) {
         switch (fsm->status_code) {
             case btree_incr_decr_fsm_t::S_SUCCESS:
                 sbuf->printf("%llu\r\n", (unsigned long long)fsm->new_number);
@@ -401,7 +399,6 @@ public:
                 assert(0);
                 break;
         }
-        return true;
     }
 
 private:
@@ -424,7 +421,7 @@ public:
         delete fsm;
     }
 
-    bool build_response(linked_buf_t *sbuf) {
+    void build_response(linked_buf_t *sbuf) {
         switch (fsm->status_code) {
             case btree_append_prepend_fsm_t::S_SUCCESS:
                 sbuf->printf(STORAGE_SUCCESS);
@@ -441,7 +438,6 @@ public:
                 assert(0);
                 break;
         }
-        return true;
     }
 
 private:
@@ -464,7 +460,7 @@ public:
         delete fsm;
     }
 
-    bool build_response(linked_buf_t *sbuf) {
+    void build_response(linked_buf_t *sbuf) {
         switch (fsm->status_code) {
             case btree_delete_fsm_t::S_DELETED:
                 sbuf->printf(DELETE_SUCCESS);
@@ -476,7 +472,6 @@ public:
                 assert(0);
                 break;
         }
-        return true;
     }
 
 private:
@@ -484,7 +479,7 @@ private:
 };
 
 class txt_memcached_perfmon_request_t :
-    public txt_memcached_request_t,
+    public request_callback_t,
     public cpu_message_t,   // For call_later_on_this_cpu()
     public perfmon_callback_t,
     public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, txt_memcached_perfmon_request_t> {
@@ -493,7 +488,7 @@ public:
     perfmon_stats_t stats;
     
     txt_memcached_perfmon_request_t(txt_memcached_handler_t *rh)
-        : txt_memcached_request_t(rh, false) {
+        : request_callback_t(rh) {
 
         if (perfmon_get_stats(&stats, this)) {
         
@@ -504,8 +499,6 @@ public:
 
             call_later_on_this_cpu(this);
         }
-        
-        nfsms = 1;
     }
     
     void on_cpu_switch() {
@@ -513,10 +506,12 @@ public:
     }
     
     void on_perfmon_stats() {
-        on_btree_fsm_complete(NULL);   // Hack
+        build_response(rh->conn_fsm->sbuf);
+        rh->request_complete();
+        delete this;
     }
 
-    bool build_response(linked_buf_t *sbuf) {
+    void build_response(linked_buf_t *sbuf) {
 
         if (strlen(fields) == 0) {
             for (perfmon_stats_t::iterator iter = stats.begin(); iter != stats.end(); iter++) {
@@ -538,7 +533,6 @@ public:
             }
         }
         sbuf->printf("END\r\n");
-        return true;
     }
 
 public:
@@ -548,22 +542,21 @@ public:
 
 
 
-class stop_gc_request_t :
+class disable_gc_request_t :
     public server_t::all_gc_disabled_callback_t,  // gives us multiple_users_seen
     public cpu_message_t,   // As with txt_memcached_perfmon_request_t, for call_later_on_this_cpu()
     public home_cpu_mixin_t,
-    public txt_memcached_request_t,
-    public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, stop_gc_request_t> {
+    public request_callback_t,
+    public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, disable_gc_request_t> {
 
     bool done;
 
 public:
-    stop_gc_request_t(txt_memcached_handler_t *rh)
-        : txt_memcached_request_t(rh, false), done(false) {
+    disable_gc_request_t(txt_memcached_handler_t *rh)
+        : request_callback_t(rh), done(false) {
 
         rh->server->disable_gc(this);
         done = true;
-        nfsms = 1;
     }
 
     void on_cpu_switch() {
@@ -580,35 +573,32 @@ public:
             return;
         }
 
-        // Hack: there is no btree_fsm_t.
-        on_btree_fsm_complete(NULL);
+        build_response(rh->conn_fsm->sbuf);
+        rh->request_complete();
+        delete this;
     }
 
-    bool build_response(linked_buf_t *sbuf) {
-        // TODO: use a better warning.
-
+    void build_response(linked_buf_t *sbuf) {
         // TODO: figure out what to print here.
         sbuf->printf("DISABLED%s\r\n", multiple_users_seen ? " (Warning: multiple users think they're the one who disabled the gc.)" : "");
-        return true;
     }
 };
 
-class start_gc_request_t :
+class enable_gc_request_t :
     public server_t::all_gc_enabled_callback_t,  // gives us multiple_users_seen
     public cpu_message_t,
     public home_cpu_mixin_t,
-    public txt_memcached_request_t,
-    public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, start_gc_request_t> {
+    public request_callback_t,
+    public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, enable_gc_request_t> {
 
     bool done;
     
 public:
-    start_gc_request_t(txt_memcached_handler_t *rh)
-        : txt_memcached_request_t(rh, false), done(false) {
+    enable_gc_request_t(txt_memcached_handler_t *rh)
+        : request_callback_t(rh), done(false) {
 
         rh->server->enable_gc(this);
         done = true;
-        nfsms = 1;
     }
 
     void on_cpu_switch() {
@@ -625,16 +615,14 @@ public:
             return;
         }
 
-        // Hack: there is no btree_fsm_t.
-        on_btree_fsm_complete(NULL);
+        build_response(rh->conn_fsm->sbuf);
+        rh->request_complete();
+        delete this;
     }
 
-    bool build_response(linked_buf_t *sbuf) {
-        // TODO: use a better warning.
-
+    void build_response(linked_buf_t *sbuf) {
         // TODO: figure out what to print here.
         sbuf->printf("ENABLED%s\r\n", multiple_users_seen ? " (Warning: gc was already enabled.)" : "");
-        return true;
     }
 };
 
@@ -734,7 +722,7 @@ txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::parse_request(e
                 }
                 conn_fsm->consume(line_len);
                 
-                new stop_gc_request_t(this);
+                new disable_gc_request_t(this);
                 return request_handler_t::op_req_complex;
             } else if (!strcmp(gc_subcommand, "enable")) {
                 if (strtok_r(NULL, DELIMS, &state)) {
@@ -743,7 +731,7 @@ txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::parse_request(e
                 }
                 conn_fsm->consume(line_len);
                 
-                new start_gc_request_t(this);
+                new enable_gc_request_t(this);
                 return request_handler_t::op_req_complex;
             } else {
                 conn_fsm->consume(line_len);
