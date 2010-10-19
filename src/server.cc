@@ -5,7 +5,8 @@
 server_t::server_t(cmd_config_t *cmd_config, thread_pool_t *thread_pool)
     : cmd_config(cmd_config), thread_pool(thread_pool),
       log_controller(cmd_config),
-      conn_acceptor(this) { }
+      conn_acceptor(this),
+      toggler(this) { }
 
 void server_t::do_start() {
     
@@ -240,14 +241,107 @@ void server_t::do_stop_threads() {
     delete this;
 }
 
+bool server_t::disable_gc(all_gc_disabled_callback_t *cb) {
+    assert_cpu();
 
-bool server_t::stop_gc(gc_stopped_callback_t *cb) {
-    return true;
-    //    cb->on_gc_stopped();
+    return toggler.disable_gc(cb);
 }
 
-bool server_t::start_gc(gc_started_callback_t *cb) {
-    return true;
-    // cb->on_gc_started();
+void server_t::enable_gc(bool *out_multiple_users) {
+    assert_cpu();
+
+    return toggler.enable_gc(out_multiple_users);
 }
 
+
+
+server_t::gc_toggler_t::gc_toggler_t(server_t *server) : num_disabled_serializers_(0), server_(server) { }
+
+bool server_t::gc_toggler_t::disable_gc(server_t::all_gc_disabled_callback_t *cb) {
+    if (state_ == enabled) {
+        assert(callbacks_.size() == 0);
+
+        int num_serializers = server_->cmd_config->n_serializers;
+
+        int num_immediately_disabled = 0;
+        for (int i = 0; i < num_serializers; ++i) {
+            serializer_t::gc_disable_callback_t *this_as_callback = this;
+            num_immediately_disabled += do_on_cpu(server_->serializers[i]->home_cpu, server_->serializers[i], &serializer_t::disable_gc, this_as_callback);
+        }
+
+        num_disabled_serializers_ = num_immediately_disabled;
+        if (num_immediately_disabled == num_serializers) {
+            state_ = disabled;
+            return true;
+        } else {
+            state_ = disabling;
+            callbacks_.push_back(cb);
+            return false;
+        }
+    } else if (state_ == disabling) {
+        assert(callbacks_.size() > 0);
+
+        callbacks_.push_back(cb);
+        return false;
+    } else if (state_ == disabled) {
+        assert(state_ == disabled);
+        cb->multiple_users_seen = true;
+        return true;
+    } else {
+        assert(0);
+    }
+}
+
+void server_t::gc_toggler_t::enable_gc(bool *out_warning_multiple_users) {
+    int num_serializers = server_->cmd_config->n_serializers;
+
+    // The return value of serializer_t::enable_gc is always true.
+
+    bool always_true = true;
+    for (int i = 0; i < num_serializers; ++i) {
+        always_true &= do_on_cpu(server_->serializers[i]->home_cpu, server_->serializers[i], &serializer_t::enable_gc);
+    }
+
+    assert(always_true);
+
+    if (state_ == enabled) {
+        *out_warning_multiple_users = true;
+    } else if (state_ == disabling) {
+        state_ = enabled;
+
+        // We tell the people requesting a disable that the disabling
+        // process was completed, but that multiple people are using
+        // it.
+        for (callback_vector_t::iterator p = callbacks_.begin(), e = callbacks_.end(); p < e; ++p) {
+            (*p)->multiple_users_seen = true;
+            (*p)->on_gc_disabled();
+        }
+
+        *out_warning_multiple_users = true;
+    } else if (state_ == disabled) {
+        state_ = enabled;
+        *out_warning_multiple_users = false;
+    }
+}
+
+void server_t::gc_toggler_t::on_gc_disabled() {
+    assert(state_ == disabling);
+
+    int num_serializers = server_->cmd_config->n_serializers;
+
+    assert(num_disabled_serializers_ < num_serializers);
+
+    num_disabled_serializers_++;
+    if (num_disabled_serializers_ == num_serializers) {
+        // We are no longer disabling, we're now disabled!
+
+        bool multiple_disablers_seen = (callbacks_.size() > 1);
+
+        for (callback_vector_t::iterator p = callbacks_.begin(), e = callbacks_.end(); p < e; ++p) {
+            (*p)->multiple_users_seen = multiple_disablers_seen;
+            (*p)->on_gc_disabled();
+        }
+
+        state_ = disabled;
+    }
+}

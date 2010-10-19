@@ -91,6 +91,17 @@ public:
     // The shutdown_callback_t may destroy the data_block_manager.
     bool shutdown(shutdown_callback_t *cb);
 
+public:
+
+    struct gc_disable_callback_t {
+        virtual void on_gc_disabled() = 0;
+    };
+
+
+    bool disable_gc(gc_disable_callback_t *cb);
+
+    void enable_gc();
+
 private:
     void actually_shutdown();
     // This is permitted to destroy the data_block_manager.
@@ -235,13 +246,20 @@ private:
     };
 
     struct gc_state_t {
-        gc_step step;               /* !< which step we're on */
+    private:
+        gc_step step_;               /* !< which step we're on */
+    public:
+        bool should_be_stopped;      /* !< whether gc is/should be
+                                       stopped, and how many people
+                                       think so */
         int refcount;               /* !< outstanding io reqs */
         char *gc_blocks;            /* !< buffer for blocks we're transferring */
         gc_entry *current_entry;    /* !< entry we're currently GCing */
         data_block_manager_t::gc_read_callback_t gc_read_callback;
         data_block_manager_t::gc_write_callback_t gc_write_callback;
-        gc_state_t() : step(gc_ready), refcount(0), current_entry(NULL)
+        data_block_manager_t::gc_disable_callback_t *gc_disable_callback;
+
+        gc_state_t() : step_(gc_ready), should_be_stopped(0), refcount(0), current_entry(NULL)
         {
             memalign_alloc_t<DEVICE_BLOCK_SIZE> blocks_buffer_allocator;
             /* TODO this is excessive as soon as we have a bound on how much space we need we should allocate less */
@@ -250,8 +268,18 @@ private:
         ~gc_state_t() {
             free(gc_blocks);
         }
+        inline gc_step step() const { return step_; }
+        void set_step(gc_step next_step) {
+            if (should_be_stopped && next_step == gc_ready && (step_ == gc_read || step_ == gc_write)) {
+                assert(gc_disable_callback);
+                gc_disable_callback->on_gc_disabled();
+                gc_disable_callback = NULL;
+            }
+
+            step_ = next_step;
+        }
     } gc_state;
-    
+
 private:
     /* \brief structure to keep track of global stats about the data blocks
      */

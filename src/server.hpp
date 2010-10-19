@@ -33,16 +33,14 @@ public:
     void do_start();
     void shutdown();   // Can be called from any thread
 
-    struct gc_stopped_callback_t {
-        virtual void on_gc_stopped() = 0;
-    };
+    struct all_gc_disabled_callback_t {
+        bool multiple_users_seen;
 
-    struct gc_started_callback_t {
-        virtual void on_gc_started() = 0;
+        all_gc_disabled_callback_t() : multiple_users_seen(false) { }
+        virtual void on_gc_disabled() = 0;
     };
-
-    bool stop_gc(gc_stopped_callback_t *);
-    bool start_gc(gc_started_callback_t *);
+    bool disable_gc(all_gc_disabled_callback_t *);
+    void enable_gc(bool *out_multiple_users);
 
     
 
@@ -91,6 +89,33 @@ private:
     void do_message_flush();
     void on_message_flush();
     void do_stop_threads();
+
+    class gc_toggler_t : public serializer_t::gc_disable_callback_t {
+    public:
+        gc_toggler_t(server_t *server);
+        bool disable_gc(all_gc_disabled_callback_t *cb);
+        void enable_gc(bool *out_warning_multiple_users);
+        
+        void on_gc_disabled();
+
+    private:
+        enum toggle_state_t {
+            enabled,
+            disabling,
+            disabled
+        };
+
+        toggle_state_t state_;
+        int num_disabled_serializers_;
+        typedef std::vector<all_gc_disabled_callback_t *, gnew_alloc<all_gc_disabled_callback_t *> > callback_vector_t;
+        callback_vector_t callbacks_;
+
+        server_t *server_;
+
+        DISABLE_COPYING(gc_toggler_t);
+    };
+
+    gc_toggler_t toggler;
 };
 
 #endif // __SERVER_HPP__

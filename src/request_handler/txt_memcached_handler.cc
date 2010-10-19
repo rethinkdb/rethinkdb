@@ -1,6 +1,7 @@
+#include "request_handler/txt_memcached_handler.hpp"
+
 #include <string.h>
 #include "arch/arch.hpp"
-#include "request_handler/txt_memcached_handler.hpp"
 #include "conn_fsm.hpp"
 #include "corefwd.hpp"
 #include "request.hpp"
@@ -545,7 +546,7 @@ public:
 
 
 class txt_memcached_stop_gc_request_t :
-    public server_t::gc_stopped_callback_t,
+    public server_t::all_gc_disabled_callback_t,  // gives us multiple_users_seen
     public cpu_message_t,   // As with txt_memcached_perfmon_request_t, for call_later_on_this_cpu()
     public txt_memcached_request_t,
     public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, txt_memcached_stop_gc_request_t> {
@@ -554,7 +555,7 @@ public:
     txt_memcached_stop_gc_request_t(txt_memcached_handler_t *rh)
         : txt_memcached_request_t(rh, false) {
 
-        if (rh->server->stop_gc(this)) {
+        if (rh->server->disable_gc(this)) {
             call_later_on_this_cpu(this);
         }
 
@@ -562,55 +563,22 @@ public:
     }
 
     void on_cpu_switch() {
-        on_gc_stopped();
+        on_gc_disabled();
     }
 
-    void on_gc_stopped() {
+    void on_gc_disabled() {
         // Hack: there is no btree_fsm_t.
         on_btree_fsm_complete(NULL);
     }
 
     bool build_response(linked_buf_t *sbuf) {
+        // TODO: use a better warning.
+
         // TODO: figure out what to print here.
-        sbuf->printf("GC_STOPPED\r\n");
+        sbuf->printf("DISABLED%s\r\n", multiple_users_seen ? " (Warning: multiple users think they're the one who disabled the gc.)" : "");
         return true;
     }
 };
-
-// TODO: ugh, code duplication
-class txt_memcached_start_gc_request_t :
-    public server_t::gc_started_callback_t,
-    public cpu_message_t,   // As with txt_memcached_perfmon_request_t, for call_later_on_this_cpu()
-    public txt_memcached_request_t,
-    public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, txt_memcached_start_gc_request_t> {
-
-public:
-    txt_memcached_start_gc_request_t(txt_memcached_handler_t *rh)
-        : txt_memcached_request_t(rh, false) {
-
-        if (rh->server->start_gc(this)) {
-            call_later_on_this_cpu(this);
-        }
-
-        nfsms = 1;
-    }
-
-    void on_cpu_switch() {
-        on_gc_started();
-    }
-
-    void on_gc_started() {
-        // Hack: there is no btree_fsm_t.
-        on_btree_fsm_complete(NULL);
-    }
-
-    bool build_response(linked_buf_t *sbuf) {
-        // TODO: also figure out what to print here.
-        sbuf->printf("GC_STARTED\r\n");
-        return true;
-    }
-};
-
 
 
 
@@ -687,7 +655,7 @@ txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::parse_request(e
     } else if(!strcmp(cmd_str, "stats") || !strcmp(cmd_str, "stat")) {
         conn_fsm->consume(line_len);
         return parse_stat_command(state, line_len);
-    } else if(!strcmp(cmd_str, "stop_gc")) {
+    } else if(!strcmp(cmd_str, "disable_gc")) {
         if (strtok_r(NULL, DELIMS, &state)) {  // strtok will return NULL if there are no more tokens
             conn_fsm->consume(line_len);
             return malformed_request();
@@ -696,16 +664,18 @@ txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::parse_request(e
         // TODO: where does this get freed?  See parse_stat_command too.
         new txt_memcached_stop_gc_request_t(this);
         return request_handler_t::op_req_complex;
-    } else if(!strcmp(cmd_str, "start_gc")) {
-        // TODO: more duplication.
-
+    } else if(!strcmp(cmd_str, "enable_gc")) {
         if (strtok_r(NULL, DELIMS, &state)) {  // strtok will return NULL if there are no more tokens
             conn_fsm->consume(line_len);
             return malformed_request();
         }
         conn_fsm->consume(line_len);
-        // TODO: where does this get freed?  See parse_stat_command too.
-        new txt_memcached_start_gc_request_t(this);
+
+        bool multiple_users = false;
+        this->server->enable_gc(&multiple_users);
+
+        conn_fsm->sbuf->printf("ENABLED%s\r\n", multiple_users ? " (warning: gc was already enabled)" : "");
+
         return request_handler_t::op_req_complex;
     } else if(!strcmp(cmd_str, "set")) {     // check for storage commands
         return parse_storage_command(SET, state, line_len);

@@ -111,7 +111,8 @@ bool data_block_manager_t::write(void *buf_in, off64_t *off_out, iocallback_t *c
     // Either we're ready to write, or we're shutting down and just
     // finished reading blocks for gc and called do_write.
     assert(state == state_ready
-           || (state == state_shutting_down && gc_state.step == gc_write));
+           || (state == state_shutting_down && gc_state.step() == gc_write));
+
 
     off64_t offset = *off_out = gimme_a_new_offset();
 
@@ -176,15 +177,14 @@ void data_block_manager_t::mark_garbage(off64_t offset) {
 }
 
 void data_block_manager_t::start_gc() {
-    if (gc_state.step == gc_ready)
+    if (gc_state.step() == gc_ready )
         run_gc();
 }
 
 /* TODO this currently cleans extent by extent, we should tune it to always have a certain number of outstanding blocks
  */
 void data_block_manager_t::run_gc() {
-
-    switch (gc_state.step) {
+    switch (gc_state.step()) {
     
         case gc_ready:
             //TODO, need to make sure we don't gc the extent we're writing to
@@ -215,7 +215,7 @@ void data_block_manager_t::run_gc() {
                 }
             }
             assert(gc_state.refcount > 0);
-            gc_state.step = gc_read;
+            gc_state.set_step(gc_read);
             break;
             
         case gc_read: {
@@ -228,7 +228,7 @@ void data_block_manager_t::run_gc() {
             /* If other forces cause all of the blocks in the extent to become garbage
             before we even finish GCing it, they will set current_entry to NULL. */
             if (gc_state.current_entry == NULL) {
-                gc_state.step = gc_ready;
+                gc_state.set_step(gc_ready);
                 break;
             }
             
@@ -254,7 +254,7 @@ void data_block_manager_t::run_gc() {
             /* make sure the callback knows who we are */
             gc_state.gc_write_callback.parent = this;
             
-            gc_state.step = gc_write;
+            gc_state.set_step(gc_write);
 
             /* schedule the write */
             bool done = serializer->do_write(writes, num_writes, &gc_state.gc_write_callback);
@@ -269,13 +269,14 @@ void data_block_manager_t::run_gc() {
             
             assert(gc_state.refcount == 0);
 
-            gc_state.step = gc_ready;
+            gc_state.set_step(gc_ready);
 
             if(state == state_shutting_down) {
                 actually_shutdown();
                 return;
             }
-            
+
+            // TODO: how far does this recurse?
             run_gc();   // We might want to start another GC round
             break;
             
@@ -286,7 +287,7 @@ void data_block_manager_t::run_gc() {
 void data_block_manager_t::prepare_metablock(metablock_mixin_t *metablock) {
 
     assert(state == state_ready
-           || (state == state_shutting_down && gc_state.step == gc_write));
+           || (state == state_shutting_down && gc_state.step() == gc_write));
 
     if (last_data_extent) {
         metablock->last_data_extent = last_data_extent->offset;
@@ -303,7 +304,7 @@ bool data_block_manager_t::shutdown(shutdown_callback_t *cb) {
     assert(state == state_ready);
     state = state_shutting_down;
 
-    if(gc_state.step != gc_ready) {
+    if(gc_state.step() != gc_ready) {
         shutdown_callback = cb;
         return false;
     } else {
@@ -415,14 +416,14 @@ void data_block_manager_t::remove_last_unyoung_entry() {
 // false when the entry is active or young, or when its garbage ratio
 // is lower than GC_THRESHOLD_RATIO_*.
 bool data_block_manager_t::should_we_keep_gcing(const gc_entry& entry) const {
-    return garbage_ratio() > cmd_config->gc_low_ratio;
+    return !gc_state.should_be_stopped && garbage_ratio() > cmd_config->gc_low_ratio;
 }
 
 // Answers the following question: Do we want to bother gc'ing?
 // Returns true when our garbage_ratio is greater than
 // GC_THRESHOLD_RATIO_*.
 bool data_block_manager_t::do_we_want_to_start_gcing() const {
-    return garbage_ratio() > cmd_config->gc_high_ratio;
+    return !gc_state.should_be_stopped && garbage_ratio() > cmd_config->gc_high_ratio;
 }
 
 /* !< is x less than y */
@@ -443,4 +444,24 @@ float data_block_manager_t::garbage_ratio() const {
 
 std::ostream& operator<<(std::ostream& out, const data_block_manager_t::gc_stats_t& stats) {
     return out << stats.unyoung_garbage_blocks << ' ' << stats.unyoung_total_blocks;
+}
+
+
+
+
+bool data_block_manager_t::disable_gc(gc_disable_callback_t *cb) {
+    assert(gc_state.gc_disable_callback == NULL);
+    gc_state.should_be_stopped = true;
+
+    if (gc_state.step() != gc_ready && gc_state.step() != gc_reconstruct) {
+        gc_state.gc_disable_callback = cb;
+        return false;
+    } else {
+        return true;
+    }
+}
+
+
+void data_block_manager_t::enable_gc() {
+    gc_state.should_be_stopped = false;
 }

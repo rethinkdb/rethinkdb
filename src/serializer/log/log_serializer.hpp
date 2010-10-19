@@ -163,6 +163,23 @@ private:
     virtual void on_lba_shutdown();
 
 public:
+    // stop_gc() should be called when you want to turn off the gc
+    // temporarily.
+    //
+    // stop_gc() will return 'true' if gc is stopped immediately,
+    // otherwise it will return 'false' and then call the given
+    // callback when the shutdown is done.
+    typedef data_block_manager_t::gc_disable_callback_t gc_disable_callback_t;
+
+    bool disable_gc(gc_disable_callback_t *cb);
+
+    // start_gc() should be called when you want to turn on the gc.
+    // gc will be turned on immediately (but that doesn't mean a gc
+    // will happen immediately!)  Always returns 'true' for do_on_cpu.
+    bool enable_gc();
+
+
+public:
     size_t block_size;
 
 private:
