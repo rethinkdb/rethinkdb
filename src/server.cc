@@ -289,6 +289,7 @@ bool server_t::gc_toggler_t::disable_gc(server_t::all_gc_disabled_callback_t *cb
         return true;
     } else {
         assert(0);
+        return false;  // Make compiler happy.
     }
 }
 
