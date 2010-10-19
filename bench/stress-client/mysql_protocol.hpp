@@ -6,7 +6,7 @@
 #include <mysql/mysql.h>
 #include "protocol.hpp"
 
-struct mysql_protocol_t {
+struct mysql_protocol_t : public protocol_t {
     mysql_protocol_t() {
         mysql_init(&mysql);
     }
@@ -103,7 +103,7 @@ struct mysql_protocol_t {
     {
     }
     
-    virtual void read(const char *key, size_t key_size) {
+    virtual void read(payload_t *keys, int count) {
     }
 
 private:
