@@ -498,7 +498,10 @@ public:
         if (perfmon_get_stats(&stats, this)) {
         
             /* The world is not ready for the power of completing a request immediately.
-            So we delay so that the request handler doesn't get confused. */
+            So we delay so that the request handler doesn't get confused.  We don't know
+            if this is necessary. */
+
+
             call_later_on_this_cpu(this);
         }
         
@@ -710,24 +713,58 @@ txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::parse_request(e
     } else if(!strcmp(cmd_str, "stats") || !strcmp(cmd_str, "stat")) {
         conn_fsm->consume(line_len);
         return parse_stat_command(state, line_len);
-    } else if(!strcmp(cmd_str, "disable_gc")) {
-        if (strtok_r(NULL, DELIMS, &state)) {  // strtok will return NULL if there are no more tokens
+    } else if(!strcmp(cmd_str, "rethinkdbctl")) {
+        const char *subcommand = strtok_r(NULL, DELIMS, &state);
+
+        if (subcommand == NULL) {
             conn_fsm->consume(line_len);
             return malformed_request();
         }
-        conn_fsm->consume(line_len);
 
-        new stop_gc_request_t(this);
-        return request_handler_t::op_req_complex;
-    } else if(!strcmp(cmd_str, "enable_gc")) {
-        if (strtok_r(NULL, DELIMS, &state)) {  // strtok will return NULL if there are no more tokens
+        if (!strcmp(subcommand, "gc")) {
+            const char *gc_subcommand = strtok_r(NULL, DELIMS, &state);
+
+            if (gc_subcommand == NULL) {
+                conn_fsm->consume(line_len);
+                return malformed_request();
+            } else if (!strcmp(gc_subcommand, "disable")) {
+                if (strtok_r(NULL, DELIMS, &state)) {
+                    conn_fsm->consume(line_len);
+                    return malformed_request();
+                }
+                conn_fsm->consume(line_len);
+                
+                new stop_gc_request_t(this);
+                return request_handler_t::op_req_complex;
+            } else if (!strcmp(gc_subcommand, "enable")) {
+                if (strtok_r(NULL, DELIMS, &state)) {
+                    conn_fsm->consume(line_len);
+                    return malformed_request();
+                }
+                conn_fsm->consume(line_len);
+                
+                new start_gc_request_t(this);
+                return request_handler_t::op_req_complex;
+            } else {
+                conn_fsm->consume(line_len);
+                return malformed_request();
+            }
+        } else if (!strcmp(subcommand, "help")) {
+            if (strtok_r(NULL, DELIMS, &state)) {
+                conn_fsm->consume(line_len);
+                return malformed_request();
+            }
+
+            conn_fsm->consume(line_len);
+
+            conn_fsm->sbuf->printf("Commonly used commands:\n  rethinkdbctl gc disable\n  rethinkdbctl gc enable\n");
+            return request_handler_t::op_req_send_now;
+        } else {
+            // Invalid command.
             conn_fsm->consume(line_len);
             return malformed_request();
         }
-        conn_fsm->consume(line_len);
 
-        new start_gc_request_t(this);
-        return request_handler_t::op_req_complex;
     } else if(!strcmp(cmd_str, "set")) {     // check for storage commands
         return parse_storage_command(SET, state, line_len);
     } else if(!strcmp(cmd_str, "add")) {
