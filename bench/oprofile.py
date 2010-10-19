@@ -1,6 +1,5 @@
 import os
 import re
-from test_common import *
 NEVENTS = 4
 
 ctrl_str = 'sudo opcontrol'
@@ -22,6 +21,16 @@ def dict_add(x, y):
         res[keyx] = x[keyx]+ y[keyy]
     return res
 
+def dict_merge(x, y):
+    res = x.copy()
+    for key in y.keys():
+        if x.has_key(key):
+            res[key] = x[key] + y[key]
+        else:
+            res[key] = y[key]
+    return res
+
+#for counter totals
 def dict_union(x, y):
     res = x.copy()
     for key in y.keys():
@@ -29,13 +38,15 @@ def dict_union(x, y):
             res[key] = max(x[key], y[key]) #no good reason this has to be max (maybe it should be avg, or maybe we should scale them to be the same
         else:
             res[key] = y[key]
+    return res
 
 def tuple_union(x, y):
-    res = x.copy()
+    res = ()
+    for val in x:
+        res = res + (val,)
     for val in y:
-        if not val in res:
-            if not val in x:
-                res += (val,)
+        if not val in x:
+            res += (val,)
     return res
 
 class Event():
@@ -100,17 +111,18 @@ class line():
             return False
                     
 class Function_report():
-    function_name = ''
-    counter_totals = {} #string -> int
-    source_file = ''
-    lines = {} #number -> line_report
+    def __init__(self):
+        self.function_name = ''
+        self.counter_totals = {} #string -> int
+        self.source_file = ''
+        self.lines = {} #number -> line_report
     def __add__(self, other):
         res = Function_report()
-        assert self.function_name = other.function_name
+        assert self.function_name == other.function_name
         res.function_name = self.function_name
-        res.counter_totals = self.counter_totals + other.counter_totals
-        res.source_file = max(self.source_file, other.source_line, key = lambda x: len(x))
-        res.lines = self.lines + other.lines
+        res.counter_totals = dict_union(self.counter_totals, other.counter_totals)
+        res.source_file = max(self.source_file, other.source_file, key = lambda x: len(x))
+        res.lines = dict_merge(self.lines, other.lines)
         return res
 
 class Line_report():
@@ -121,16 +133,14 @@ class Line_report():
         self.counter_totals = _counter_totals
     def __add__(self, other):
         assert self.line_number == other.line_number
-        res = Line_report()
-        res.line_number = self.line_number
-        res.counter_totals = self.counter_totals + other.counter_totals
-        return res
+        res = Line_report(self.line_number, dict_union(self.counter_totals, other.counter_totals))
 
 class Program_report():
-    object_name = ''
-    counter_totals = {}
-    counter_names = ('','','','')
-    functions = {} #string -> function_report
+    def __init__(self):
+        self.object_name = ''
+        self.counter_totals = {}
+        self.counter_names = ('','','','')
+        self.functions = {} #string -> function_report
     def __str__(self):
         res = ''
         for name, total in zip(self.counter_names, self.counter_totals):
@@ -141,16 +151,16 @@ class Program_report():
     def __add__(self, other):
         assert  self.object_name == other.object_name
         res = Program_report()
-        res.counter_totals = self.counter_totals + other.counter_totals
-        res.counter_names = tuple_union(self.counter_names + other.counter_names)
-        res.functions = self.functions + other.functions
+        res.counter_totals = dict_union(self.counter_totals, other.counter_totals)
+        res.counter_names = tuple_union(self.counter_names, other.counter_names)
+        res.functions = dict_merge(self.functions, other.functions)
         return res
     def report(self, ratios, ordering_key, top_n = 5):
         import StringIO
         res = StringIO.StringIO()
 
         print >>res, "Top %d functions:" % top_n
-        function_list = sorted(prog_report.functions.iteritems(), key = lambda x: x[1].counter_totals[ordering_key.name])
+        function_list = sorted(self.functions.iteritems(), key = lambda x: x[1].counter_totals[ordering_key.name])
         function_list.reverse()
         for function in function_list[0:top_n]:
             print >>res, function[1].function_name, ' ratios:'
@@ -168,7 +178,7 @@ class parser():
     source_line     = line("fi=\(\d+\)\s+(.+)\n", [('source_file', 's')])
     sample_line     = line("(0x[0-9a-fA-F]{8})\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\n", [('instruction', 'x'), ('line_number', 'd'), ('event1', 'd'), ('event2', 'd'), ('event3', 'd'), ('event4', 'd')])
     fident_line     = line("fi=\(\d+\)", [])
-    prog_report     = Program_report()
+    prog_report     = None
     def __init__(self):
         pass
 
@@ -237,6 +247,7 @@ class parser():
         return function_report
             
     def parse_file(self, file_name):
+        self.prog_report = Program_report()
         file = open(file_name)
         data = file.readlines()
         data.reverse() #for some reason pop takes things off the back (it's shit like this Guido, shit like this)
