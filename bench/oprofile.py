@@ -1,5 +1,6 @@
 import os
 import re
+import StringIO
 NEVENTS = 4
 
 ctrl_str = 'sudo opcontrol'
@@ -60,11 +61,6 @@ def tuple_union(x, y):
     return res
 
 class Event():
-    name = ''
-    count = 90000
-    mask = 0x01
-    kernel = 0
-    user = 1
     def __init__(self, _name, _count = 90000, _mask = 0x01, _kernel = 0, _user = 1):
         self.name = _name
         self.count = _count
@@ -72,7 +68,9 @@ class Event():
         self.kernel = _kernel
         self.user = _user
     def cmd_str(self):
-        return '--event=%s:%d:%x:%d:%d' % (self.name, self.count, self.mask, self.kernel, self.user)
+        return '--event=%s:%d:0x%.2x:%d:%d' % (self.name, self.count, self.mask, self.kernel, self.user)
+    def __str__(self):
+        return self.name
 
 class OProfile():
     def start(self, events):
@@ -164,8 +162,11 @@ class Program_report():
         res.functions = dict_merge(self.functions, other.functions)
         return res
     def report(self, ratios, ordering_key, top_n = 5):
-        import StringIO
         res = StringIO.StringIO()
+
+        print >>res, "Report on %s:" % self.object_name
+        for counter in self.counter_names:
+            print >>res, counter, ':', self.counter_totals[counter]
 
         print >>res, "Top %d functions:" % top_n
         function_list = sorted(self.functions.iteritems(), key = lambda x: x[1].counter_totals[ordering_key.name])
@@ -173,8 +174,8 @@ class Program_report():
         for function in function_list[0:top_n]:
             print >>res, function[1].function_name, ' ratios:'
             for ratio in ratios:
-                print >>res, "%s / %s :" % (ratio.numerator, ratio.denominator)
-                print >>res, "%.2f" % safe_div(float(function[1].counter_totals[ratio.numerator]), function[1].counter_totals[ratio.denominator])
+                print >>res, "\t%s / %s :" % (ratio.numerator, ratio.denominator),
+                print >>res, "%.2f" % safe_div(float(function[1].counter_totals[ratio.numerator.name]), function[1].counter_totals[ratio.denominator.name])
         return res.getvalue()
 
 class parser():
@@ -288,15 +289,25 @@ class Profile():
         self.events = _events
         self.ratios = _ratios
         for r in self.ratios:
-            assert r.numerator in [e.name for e in self.events]
-            assert r.denominator in [e.name for e in self.events]
+            assert r.numerator.name in [e.name for e in self.events]
+            assert r.denominator.name in [e.name for e in self.events]
+
+    def __str__(self):
+        res = StringIO.StringIO()
+        print >>res, "Profile: ", 
+        for event in events():
+            print >>res, event,
+        print >>res, ''
+        return res.getvalue()
 
 #small packet ratios
 class Ratio():
-    numerator = ''
-    denominator = ''
-    top_n = 5
 #_numerator and denominator should be Event()s
     def __init__(self, _numerator, _denominator):
-        self.numerator = _numerator.name
-        self.denominator = _denominator.name
+        self.numerator = _numerator
+        self.denominator = _denominator
+    def __str__(self):
+        res = StringIO.StringIO()
+        print >>res, "Ratio: ",
+        print >>res, self.numerator, ' / ', self.denominator
+        return res.getvalue()
