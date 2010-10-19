@@ -6,6 +6,17 @@ ctrl_str = 'sudo opcontrol'
 rprt_str = 'opreport'
 exec_name = 'rethinkdb'
 
+class default_zero_dict(dict):
+    def __getitem__(self, key):
+        if key in self:
+            return self.get(key)
+        else:
+            return 0
+    def copy(self):
+        copy = default_zero_dict()
+        copy.update(self)
+        return copy
+
 def safe_div(x, y):
     if y == 0:
         return x
@@ -14,11 +25,10 @@ def safe_div(x, y):
 
 #dict add requires that dictionaries have the same schema while dict union does not
 def dict_add(x, y):
-    res = {}
-    assert len(x) == len(y)
-    for keyx, keyy in zip(sorted(x), sorted(y)):
-        assert keyx == keyy
-        res[keyx] = x[keyx]+ y[keyy]
+    res = x.copy() #to make sure we get the same kind of dict
+#assert len(x) == len(y)
+    for keyy in y.keys():
+        res[keyy] += y[keyy]
     return res
 
 def dict_merge(x, y):
@@ -113,7 +123,7 @@ class line():
 class Function_report():
     def __init__(self):
         self.function_name = ''
-        self.counter_totals = {} #string -> int
+        self.counter_totals = default_zero_dict() #string -> int
         self.source_file = ''
         self.lines = {} #number -> line_report
     def __add__(self, other):
@@ -126,8 +136,6 @@ class Function_report():
         return res
 
 class Line_report():
-    line_number = None
-    counter_totals = {}
     def __init__(self, _line_number, _counter_totals):
         self.line_number = _line_number
         self.counter_totals = _counter_totals
@@ -138,7 +146,7 @@ class Line_report():
 class Program_report():
     def __init__(self):
         self.object_name = ''
-        self.counter_totals = {}
+        self.counter_totals = default_zero_dict()
         self.counter_names = ('','','','')
         self.functions = {} #string -> function_report
     def __str__(self):
@@ -165,7 +173,7 @@ class Program_report():
         for function in function_list[0:top_n]:
             print >>res, function[1].function_name, ' ratios:'
             for ratio in ratios:
-                print >>res, "%s / %s :" % ratio.numerator, ratio.denominator
+                print >>res, "%s / %s :" % (ratio.numerator, ratio.denominator)
                 print >>res, "%.2f" % safe_div(float(function[1].counter_totals[ratio.numerator]), function[1].counter_totals[ratio.denominator])
         return res.getvalue()
 
@@ -229,10 +237,8 @@ class parser():
         if source:
             function_report.source_file = source['source_file']
 
-#set counter_totals to 0
-        function_report.counter_totals = {}
-        for i in range(len(self.prog_report.counter_names)):
-            function_report.counter_totals[self.prog_report.counter_names[i]] = 0
+#for i in range(len(self.prog_report.counter_names)):
+#function_report.counter_totals[self.prog_report.counter_names[i]] = 0
 
         samples = []
         while True:
@@ -241,7 +247,7 @@ class parser():
             if not res:
                 break
         for sample in samples:
-            line_report = Line_report(sample['line_number'], {self.prog_report.counter_names[0] : sample['event1'], self.prog_report.counter_names[1] : sample['event2'], self.prog_report.counter_names[2] : sample['event3'], self.prog_report.counter_names[3] : sample['event4']})
+            line_report = Line_report(sample['line_number'], default_zero_dict({self.prog_report.counter_names[0] : sample['event1'], self.prog_report.counter_names[1] : sample['event2'], self.prog_report.counter_names[2] : sample['event3'], self.prog_report.counter_names[3] : sample['event4']}))
             function_report.counter_totals = dict_add(function_report.counter_totals, line_report.counter_totals)
             function_report.lines[line_report.line_number] = line_report
         return function_report
