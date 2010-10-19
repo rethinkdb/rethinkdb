@@ -15,7 +15,7 @@ void data_block_manager_t::start(direct_file_t *file) {
 void data_block_manager_t::start_reconstruct() {
 
     assert(state == state_unstarted);
-    gc_state.step = gc_reconstruct;
+    gc_state.set_step(gc_reconstruct);
 }
 
 // Marks the block at the given offset as alive, in the appropriate
@@ -24,7 +24,7 @@ void data_block_manager_t::start_reconstruct() {
 // non-garbage.)
 void data_block_manager_t::mark_live(off64_t offset) {
 
-    assert(gc_state.step == gc_reconstruct);  // This is called at startup.
+    assert(gc_state.step() == gc_reconstruct);  // This is called at startup.
 
     unsigned int extent_id = (offset / extent_manager->extent_size);
     unsigned int block_id = (offset % extent_manager->extent_size) / block_size;
@@ -47,7 +47,7 @@ void data_block_manager_t::mark_live(off64_t offset) {
 void data_block_manager_t::end_reconstruct() {
 
     assert(state == state_unstarted);
-    gc_state.step = gc_ready;
+    gc_state.set_step(gc_ready);
 }
 
 void data_block_manager_t::start(direct_file_t *file, metablock_mixin_t *last_metablock) {
@@ -443,7 +443,7 @@ float data_block_manager_t::garbage_ratio() const {
 
 
 std::ostream& operator<<(std::ostream& out, const data_block_manager_t::gc_stats_t& stats) {
-    return out << stats.unyoung_garbage_blocks << ' ' << stats.unyoung_total_blocks;
+    return out << stats.old_garbage_blocks << ' ' << stats.old_total_blocks;
 }
 
 

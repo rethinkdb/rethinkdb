@@ -302,8 +302,8 @@ public:
      */
     float garbage_ratio() const;
 
-    int64_t garbage_ratio_total_blocks() const { return gc_stats.unyoung_garbage_blocks; }
-    int64_t garbage_ratio_garbage_blocks() const { return gc_stats.unyoung_garbage_blocks; }
+    int64_t garbage_ratio_total_blocks() const { return gc_stats.old_garbage_blocks; }
+    int64_t garbage_ratio_garbage_blocks() const { return gc_stats.old_garbage_blocks; }
 };
 
 std::ostream& operator<<(std::ostream&, const data_block_manager_t::gc_stats_t&);
