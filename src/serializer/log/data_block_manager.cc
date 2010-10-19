@@ -457,6 +457,7 @@ bool data_block_manager_t::disable_gc(gc_disable_callback_t *cb) {
         gc_state.gc_disable_callback = cb;
         return false;
     } else {
+        cb->on_gc_disabled();
         return true;
     }
 }

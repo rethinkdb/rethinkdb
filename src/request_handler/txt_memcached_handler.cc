@@ -545,20 +545,21 @@ public:
 
 
 
-class txt_memcached_stop_gc_request_t :
+class stop_gc_request_t :
     public server_t::all_gc_disabled_callback_t,  // gives us multiple_users_seen
     public cpu_message_t,   // As with txt_memcached_perfmon_request_t, for call_later_on_this_cpu()
+    public home_cpu_mixin_t,
     public txt_memcached_request_t,
-    public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, txt_memcached_stop_gc_request_t> {
+    public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, stop_gc_request_t> {
+
+    bool done;
 
 public:
-    txt_memcached_stop_gc_request_t(txt_memcached_handler_t *rh)
-        : txt_memcached_request_t(rh, false) {
+    stop_gc_request_t(txt_memcached_handler_t *rh)
+        : txt_memcached_request_t(rh, false), done(false) {
 
-        if (rh->server->disable_gc(this)) {
-            call_later_on_this_cpu(this);
-        }
-
+        rh->server->disable_gc(this);
+        done = true;
         nfsms = 1;
     }
 
@@ -567,6 +568,15 @@ public:
     }
 
     void on_gc_disabled() {
+        if (!continue_on_cpu(home_cpu, this)) {
+            return;
+        }
+
+        if (!done) {
+            call_later_on_this_cpu(this);
+            return;
+        }
+
         // Hack: there is no btree_fsm_t.
         on_btree_fsm_complete(NULL);
     }
@@ -576,6 +586,51 @@ public:
 
         // TODO: figure out what to print here.
         sbuf->printf("DISABLED%s\r\n", multiple_users_seen ? " (Warning: multiple users think they're the one who disabled the gc.)" : "");
+        return true;
+    }
+};
+
+class start_gc_request_t :
+    public server_t::all_gc_enabled_callback_t,  // gives us multiple_users_seen
+    public cpu_message_t,
+    public home_cpu_mixin_t,
+    public txt_memcached_request_t,
+    public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, start_gc_request_t> {
+
+    bool done;
+    
+public:
+    start_gc_request_t(txt_memcached_handler_t *rh)
+        : txt_memcached_request_t(rh, false), done(false) {
+
+        rh->server->enable_gc(this);
+        done = true;
+        nfsms = 1;
+    }
+
+    void on_cpu_switch() {
+        on_gc_enabled();
+    }
+
+    void on_gc_enabled() {
+        if (!continue_on_cpu(home_cpu, this)) {
+            return;
+        }
+
+        if (!done) {
+            call_later_on_this_cpu(this);
+            return;
+        }
+
+        // Hack: there is no btree_fsm_t.
+        on_btree_fsm_complete(NULL);
+    }
+
+    bool build_response(linked_buf_t *sbuf) {
+        // TODO: use a better warning.
+
+        // TODO: figure out what to print here.
+        sbuf->printf("ENABLED%s\r\n", multiple_users_seen ? " (Warning: gc was already enabled.)" : "");
         return true;
     }
 };
@@ -661,8 +716,8 @@ txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::parse_request(e
             return malformed_request();
         }
         conn_fsm->consume(line_len);
-        // TODO: where does this get freed?  See parse_stat_command too.
-        new txt_memcached_stop_gc_request_t(this);
+
+        new stop_gc_request_t(this);
         return request_handler_t::op_req_complex;
     } else if(!strcmp(cmd_str, "enable_gc")) {
         if (strtok_r(NULL, DELIMS, &state)) {  // strtok will return NULL if there are no more tokens
@@ -671,11 +726,7 @@ txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::parse_request(e
         }
         conn_fsm->consume(line_len);
 
-        bool multiple_users = false;
-        this->server->enable_gc(&multiple_users);
-
-        conn_fsm->sbuf->printf("ENABLED%s\r\n", multiple_users ? " (warning: gc was already enabled)" : "");
-
+        new start_gc_request_t(this);
         return request_handler_t::op_req_complex;
     } else if(!strcmp(cmd_str, "set")) {     // check for storage commands
         return parse_storage_command(SET, state, line_len);

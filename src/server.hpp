@@ -40,7 +40,14 @@ public:
         virtual void on_gc_disabled() = 0;
     };
     bool disable_gc(all_gc_disabled_callback_t *);
-    void enable_gc(bool *out_multiple_users);
+
+    struct all_gc_enabled_callback_t {
+        bool multiple_users_seen;
+        
+        all_gc_enabled_callback_t() : multiple_users_seen(false) { }
+        virtual void on_gc_enabled() = 0;
+    };
+    bool enable_gc(all_gc_enabled_callback_t *);
 
     
 
@@ -53,6 +60,11 @@ public:
     conn_acceptor_t conn_acceptor;
     
 private:
+
+    bool do_disable_gc(all_gc_disabled_callback_t *cb);
+    bool do_enable_gc(all_gc_enabled_callback_t *cb);
+
+
     
     int messages_out;
     
@@ -94,11 +106,12 @@ private:
     public:
         gc_toggler_t(server_t *server);
         bool disable_gc(all_gc_disabled_callback_t *cb);
-        void enable_gc(bool *out_warning_multiple_users);
+        bool enable_gc(all_gc_enabled_callback_t *cb);
         
         void on_gc_disabled();
 
     private:
+
         enum toggle_state_t {
             enabled,
             disabling,
