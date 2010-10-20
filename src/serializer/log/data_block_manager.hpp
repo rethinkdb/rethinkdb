@@ -97,9 +97,11 @@ public:
         virtual void on_gc_disabled() = 0;
     };
 
-
+    // Always calls the callback, returns true if the callback has
+    // already been called.
     bool disable_gc(gc_disable_callback_t *cb);
 
+    // Enables gc, immediately.
     void enable_gc();
 
 private:
@@ -247,7 +249,7 @@ private:
 
     struct gc_state_t {
     private:
-        gc_step step_;               /* !< which step we're on */
+        gc_step step_;               /* !< which step we're on.  See set_step.  */
     public:
         bool should_be_stopped;      /* !< whether gc is/should be
                                        stopped, and how many people
@@ -269,6 +271,8 @@ private:
             free(gc_blocks);
         }
         inline gc_step step() const { return step_; }
+
+        // Sets step_, and calls gc_disable_callback if relevant.
         void set_step(gc_step next_step) {
             if (should_be_stopped && next_step == gc_ready && (step_ == gc_read || step_ == gc_write)) {
                 assert(gc_disable_callback);
@@ -295,8 +299,6 @@ private:
 
     perfmon_var_t<gc_stats_t> pm_garbage_ratio;
 
-    DISABLE_COPYING(data_block_manager_t);
-
 public:
     /* \brief ratio of garbage to blocks in the system
      */
@@ -304,6 +306,9 @@ public:
 
     int64_t garbage_ratio_total_blocks() const { return gc_stats.old_garbage_blocks; }
     int64_t garbage_ratio_garbage_blocks() const { return gc_stats.old_garbage_blocks; }
+
+private:
+    DISABLE_COPYING(data_block_manager_t);
 };
 
 std::ostream& operator<<(std::ostream&, const data_block_manager_t::gc_stats_t&);
