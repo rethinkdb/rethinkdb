@@ -58,7 +58,7 @@
 
 // Size of each extent (in bytes)
 // Value is very low for testing purposes.
-#define EXTENT_SIZE                               (16 * KILOBYTE)
+#define EXTENT_SIZE                               (1 * MEGABYTE) //(16 * KILOBYTE)
 
 // Max size of database file name
 #define MAX_DB_FILE_NAME                          1024
