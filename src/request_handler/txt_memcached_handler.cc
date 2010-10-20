@@ -34,6 +34,8 @@
 // file. If you only do a cursory readthrough, please check with someone who
 // has read it in depth before committing.
 
+// Used for making a bunch of calls to some btree_fsm_t's and waiting
+// for them to complete.
 class txt_memcached_request_t :
     public request_callback_t,
     public btree_fsm_callback_t
@@ -56,12 +58,15 @@ public:
         }
     }
 
-protected:    
+protected:
     virtual void build_response(linked_buf_t *) = 0;
 
     txt_memcached_handler_t * const rh;
     bool const noreply;
     int nfsms;
+
+private:
+    DISABLE_COPYING(txt_memcached_request_t);
 };
 
 class txt_memcached_get_request_t :
@@ -485,8 +490,6 @@ class txt_memcached_perfmon_request_t :
     public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, txt_memcached_perfmon_request_t> {
 
 public:
-    perfmon_stats_t stats;
-    
     txt_memcached_perfmon_request_t(txt_memcached_handler_t *rh)
         : request_callback_t(rh) {
 
@@ -495,7 +498,6 @@ public:
             /* The world is not ready for the power of completing a request immediately.
             So we delay so that the request handler doesn't get confused.  We don't know
             if this is necessary. */
-
 
             call_later_on_this_cpu(this);
         }
@@ -536,9 +538,15 @@ public:
     }
 
 public:
+    perfmon_stats_t stats;
+    
     //! \brief which fields user is requesting, empty indicates all fields
     char fields[MAX_STATS_REQ_LEN];
+
+private:
+    DISABLE_COPYING(txt_memcached_perfmon_request_t);
 };
+
 
 
 
@@ -548,9 +556,6 @@ class disable_gc_request_t :
     public home_cpu_mixin_t,
     public request_callback_t,
     public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, disable_gc_request_t> {
-
-    bool done;
-
 public:
     disable_gc_request_t(txt_memcached_handler_t *rh)
         : request_callback_t(rh), done(false) {
@@ -582,6 +587,9 @@ public:
         // TODO: figure out what to print here.
         sbuf->printf("DISABLED%s\r\n", multiple_users_seen ? " (Warning: multiple users think they're the one who disabled the gc.)" : "");
     }
+private:
+    bool done;
+    DISABLE_COPYING(disable_gc_request_t);
 };
 
 class enable_gc_request_t :
@@ -591,8 +599,6 @@ class enable_gc_request_t :
     public request_callback_t,
     public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, enable_gc_request_t> {
 
-    bool done;
-    
 public:
     enable_gc_request_t(txt_memcached_handler_t *rh)
         : request_callback_t(rh), done(false) {
@@ -624,6 +630,10 @@ public:
         // TODO: figure out what to print here.
         sbuf->printf("ENABLED%s\r\n", multiple_users_seen ? " (Warning: gc was already enabled.)" : "");
     }
+
+private:
+    bool done;
+    DISABLE_COPYING(enable_gc_request_t);
 };
 
 
@@ -674,7 +684,32 @@ txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::parse_request(e
     }
 
     // Execute command
-    if(!strcmp(cmd_str, "quit")) {
+    if(!strcmp(cmd_str, "get")) {    // check for retrieval commands
+        return get(state, line_len);
+    } else if(!strcmp(cmd_str, "gets")) {
+        return get_cas(state, line_len);
+
+    } else if(!strcmp(cmd_str, "set")) {     // check for storage commands
+        return parse_storage_command(SET, state, line_len);
+    } else if(!strcmp(cmd_str, "add")) {
+        return parse_storage_command(ADD, state, line_len);
+    } else if(!strcmp(cmd_str, "replace")) {
+        return parse_storage_command(REPLACE, state, line_len);
+    } else if(!strcmp(cmd_str, "append")) {
+        return parse_storage_command(APPEND, state, line_len);
+    } else if(!strcmp(cmd_str, "prepend")) {
+        return parse_storage_command(PREPEND, state, line_len);
+    } else if(!strcmp(cmd_str, "cas")) {
+        return parse_storage_command(CAS, state, line_len);
+
+    } else if(!strcmp(cmd_str, "delete")) {
+        return remove(state, line_len);
+
+    } else if(!strcmp(cmd_str, "incr")) {
+        return parse_adjustment(true, state, line_len);
+    } else if(!strcmp(cmd_str, "decr")) {
+        return parse_adjustment(false, state, line_len);
+    } else if(!strcmp(cmd_str, "quit")) {
         // Make sure there's no more tokens
         if (strtok_r(NULL, DELIMS, &state)) {  //strtok will return NULL if there are no more tokens
             conn_fsm->consume(line_len);
@@ -699,8 +734,16 @@ txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::parse_request(e
         return request_handler_t::op_req_quit;
 
     } else if(!strcmp(cmd_str, "stats") || !strcmp(cmd_str, "stat")) {
+        txt_memcached_perfmon_request_t *rq = new txt_memcached_perfmon_request_t(this);
+        check("Too big of a stat request", line_len > MAX_STATS_REQ_LEN);
+        size_t offset = strlen(cmd_str) + 1;
+        if (offset < line_len) {
+            memcpy(rq->fields, conn_fsm->rbuf + offset, line_len - offset);
+        } else {
+            *rq->fields = '\0';
+        }
         conn_fsm->consume(line_len);
-        return parse_stat_command(state, line_len);
+        return request_handler_t::op_req_complex;
     } else if(!strcmp(cmd_str, "rethinkdbctl")) {
         const char *subcommand = strtok_r(NULL, DELIMS, &state);
 
@@ -753,31 +796,6 @@ txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::parse_request(e
             return malformed_request();
         }
 
-    } else if(!strcmp(cmd_str, "set")) {     // check for storage commands
-        return parse_storage_command(SET, state, line_len);
-    } else if(!strcmp(cmd_str, "add")) {
-        return parse_storage_command(ADD, state, line_len);
-    } else if(!strcmp(cmd_str, "replace")) {
-        return parse_storage_command(REPLACE, state, line_len);
-    } else if(!strcmp(cmd_str, "append")) {
-        return parse_storage_command(APPEND, state, line_len);
-    } else if(!strcmp(cmd_str, "prepend")) {
-        return parse_storage_command(PREPEND, state, line_len);
-    } else if(!strcmp(cmd_str, "cas")) {
-        return parse_storage_command(CAS, state, line_len);
-
-    } else if(!strcmp(cmd_str, "get")) {    // check for retrieval commands
-        return get(state, line_len);
-    } else if(!strcmp(cmd_str, "gets")) {
-        return get_cas(state, line_len);
-
-    } else if(!strcmp(cmd_str, "delete")) {
-        return remove(state, line_len);
-
-    } else if(!strcmp(cmd_str, "incr")) {
-        return parse_adjustment(true, state, line_len);
-    } else if(!strcmp(cmd_str, "decr")) {
-        return parse_adjustment(false, state, line_len);
     } else {
         // Invalid command
         conn_fsm->consume(line_len);
@@ -879,14 +897,6 @@ txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::parse_storage_c
 void txt_memcached_handler_t::on_large_value_completed(bool success) {
     // Used for consuming data from the socket. XXX: This should be renamed.
     assert(success);
-}
-
-txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::parse_stat_command(char *state, unsigned int line_len) {
-    // TODO: where does rq get freed?
-    txt_memcached_perfmon_request_t *rq = new txt_memcached_perfmon_request_t(this);
-    check("Too big of a stat request", line_len > MAX_STATS_REQ_LEN);
-    memcpy(rq->fields, state, line_len);
-    return request_handler_t::op_req_complex;
 }
 
 txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::read_data() {

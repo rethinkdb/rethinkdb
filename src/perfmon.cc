@@ -29,8 +29,13 @@ struct perfmon_fsm_t :
     public home_cpu_mixin_t,
     public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, perfmon_fsm_t>
 {
+    // The map to which we output data.
     perfmon_stats_t *dest;
+
+    // A temporary, local map, to which we output untransformed data.
     perfmon_stats_t untransformed_dest;
+
+
     perfmon_callback_t *callback;
     
     perfmon_fsm_t(perfmon_stats_t *dest) : dest(dest) { }
@@ -97,6 +102,7 @@ bool perfmon_get_stats(perfmon_stats_t *dest, perfmon_callback_t *cb) {
     return fsm->run(cb);
 }
 
+// Computes (unwords . map show . zipWith (+) . map read . words).
 std_string_t perfmon_combiner_sum(std_string_t v1, std_string_t v2) {
     sstream s1(v1), s2(v2), out;
     
@@ -134,6 +140,8 @@ std_string_t perfmon_combiner_average(std_string_t v1, std_string_t v2) {
     return buf;
 }
 
+// Takes "3 4", for example, and returns "3/4 (0.75)".  Or takes "0 0"
+// and returns "0/0 (NaN)".
 std_string_t perfmon_weighted_average_transformer(std_string_t numer_denom_pair) {
     int64_t numer, denom;
     sstream(numer_denom_pair) >> numer >> denom;
