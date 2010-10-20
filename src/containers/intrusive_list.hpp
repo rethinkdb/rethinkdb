@@ -29,6 +29,8 @@ private:
 #ifndef NDEBUG
     bool in_a_list;
 #endif
+
+    DISABLE_COPYING(intrusive_list_node_t);
 };
 
 template <class node_t>
@@ -256,6 +258,8 @@ public:
 private:
     node_t *_head, *_tail;
     unsigned int _size;
+
+    DISABLE_COPYING(intrusive_list_t);
 };
 
 #endif // __INTRUSIVE_LIST_HPP__

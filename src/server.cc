@@ -1,11 +1,11 @@
 #include "server.hpp"
 #include "db_cpu_info.hpp"
-#include <sys/stat.h>
 
 server_t::server_t(cmd_config_t *cmd_config, thread_pool_t *thread_pool)
     : cmd_config(cmd_config), thread_pool(thread_pool),
       log_controller(cmd_config),
-      conn_acceptor(this) { }
+      conn_acceptor(this),
+      toggler(this) { }
 
 void server_t::do_start() {
     
@@ -29,63 +29,15 @@ void server_t::do_start_loggers() {
 }
 
 void server_t::on_logger_ready() {
-    do_start_serializers();
-}
-
-void server_t::do_start_serializers() {
-    
-    if (strncmp(cmd_config->db_file_name, DATA_DIRECTORY, strlen(DATA_DIRECTORY)) == 0) {
-        mkdir(DATA_DIRECTORY, 0777);
-    }
-    
-    assert_cpu();
-    
-    printf("Starting serializers...\n");
-    messages_out = cmd_config->n_serializers;
-    for (int i = 0; i < cmd_config->n_serializers; i++) {
-        do_on_cpu(i % get_num_db_cpus(), this, &server_t::start_a_serializer, i);
-    }
-}
-
-bool server_t::start_a_serializer(int i) {
-    
-    char name[MAX_DB_FILE_NAME];
-    int len = snprintf(name, MAX_DB_FILE_NAME, "%s_%d", cmd_config->db_file_name, i);
-    // TODO: the below line is currently the only way to write to a block device,
-    // we need a command line way to do it, this also requires consolidating to one
-    // file
-    //     int len = snprintf(name, MAX_DB_FILE_NAME, "/dev/sdb");
-    check("Name too long", len == MAX_DB_FILE_NAME);
-    
-    serializers[i] = gnew<serializer_t>(cmd_config, name, BTREE_BLOCK_SIZE);
-    
-    if (serializers[i]->start(this)) on_serializer_ready(serializers[i]);
-    return true;
-}
-
-void server_t::on_serializer_ready(serializer_t *ser) {
-    
-    ser->assert_cpu();
-    do_on_cpu(home_cpu, this, &server_t::have_started_a_serializer);
-}
-
-bool server_t::have_started_a_serializer() {
-    
-    assert_cpu();
-    messages_out--;
-    assert(messages_out >= 0);
-    if (messages_out == 0) {
-        do_start_store();
-    }
-    return true;
+    do_start_store();
 }
 
 void server_t::do_start_store() {
 
     assert_cpu();
-    printf("Starting cache...\n");
+    printf("Starting storage engine...\n");
     
-    store = gnew<store_t>(cmd_config, serializers, cmd_config->n_serializers);
+    store = gnew<store_t>(cmd_config);
     if (store->start(this)) on_store_ready();
 }
 
@@ -101,7 +53,7 @@ void server_t::do_start_conn_acceptor() {
     
     conn_acceptor.start();
     
-    printf("Server started.\n");
+    printf("Server is ready to accept memcached clients on port %d.\n", cmd_config->port);
     
     interrupt_message.server = this;
     thread_pool->set_interrupt_message(&interrupt_message);
@@ -140,7 +92,7 @@ void server_t::on_conn_acceptor_shutdown() {
 }
 
 void server_t::do_shutdown_store() {
-    printf("Shutting down cache...\n");
+    printf("Shutting down storage engine...\n");
     if (store->shutdown(this)) on_store_shutdown();
 }
 
@@ -148,37 +100,7 @@ void server_t::on_store_shutdown() {
     assert_cpu();
     gdelete(store);
     store = NULL;
-    do_shutdown_serializers();
-}
-
-void server_t::do_shutdown_serializers() {
-    printf("Shutting down serializers...\n");
-    messages_out = cmd_config->n_serializers;
-    for (int i = 0; i < cmd_config->n_serializers; i++) {
-        do_on_cpu(serializers[i]->home_cpu, this, &server_t::shutdown_a_serializer, i);
-    }
-}
-
-bool server_t::shutdown_a_serializer(int i) {
-    serializers[i]->assert_cpu();
-    if (serializers[i]->shutdown(this)) on_serializer_shutdown(serializers[i]);
-    return true;
-}
-
-void server_t::on_serializer_shutdown(serializer_t *ser) {
-    ser->assert_cpu();
-    gdelete(ser);
-    do_on_cpu(home_cpu, this, &server_t::have_shutdown_a_serializer);
-}
-
-bool server_t::have_shutdown_a_serializer() {
-    assert_cpu();
-    messages_out--;
-    assert(messages_out >= 0);
-    if (messages_out == 0) {
-        do_shutdown_loggers();
-    }
-    return true;
+    do_shutdown_loggers();
 }
 
 void server_t::do_shutdown_loggers() {
@@ -238,4 +160,126 @@ void server_t::do_stop_threads() {
     // return to the event queue.
     thread_pool->shutdown();
     delete this;
+}
+
+bool server_t::disable_gc(all_gc_disabled_callback_t *cb) {
+    // The callback always gets called.
+
+    return do_on_cpu(home_cpu, this, &server_t::do_disable_gc, cb);
+}
+
+bool server_t::do_disable_gc(all_gc_disabled_callback_t *cb) {
+    assert_cpu();
+
+    return toggler.disable_gc(cb);
+}
+
+bool server_t::enable_gc(all_gc_enabled_callback_t *cb) {
+    // The callback always gets called.
+
+    return do_on_cpu(home_cpu, this, &server_t::do_enable_gc, cb);
+}
+
+bool server_t::do_enable_gc(all_gc_enabled_callback_t *cb) {
+    assert_cpu();
+
+    return toggler.enable_gc(cb);
+}
+
+
+server_t::gc_toggler_t::gc_toggler_t(server_t *server) : state_(enabled), num_disabled_serializers_(0), server_(server) { }
+
+bool server_t::gc_toggler_t::disable_gc(server_t::all_gc_disabled_callback_t *cb) {
+    // We _always_ call the callback.
+
+    if (state_ == enabled) {
+        assert(callbacks_.size() == 0);
+
+        int num_serializers = server_->cmd_config->n_serializers;
+        assert(num_serializers > 0);
+
+        state_ = disabling;
+
+        callbacks_.push_back(cb);
+
+        num_disabled_serializers_ = 0;
+        for (int i = 0; i < num_serializers; ++i) {
+            serializer_t::gc_disable_callback_t *this_as_callback = this;
+            do_on_cpu(server_->store->serializers[i]->home_cpu, server_->store->serializers[i], &serializer_t::disable_gc, this_as_callback);
+        }
+
+        return (state_ == disabled);
+    } else if (state_ == disabling) {
+        assert(callbacks_.size() > 0);
+        callbacks_.push_back(cb);
+        return false;
+    } else if (state_ == disabled) {
+        assert(state_ == disabled);
+        cb->multiple_users_seen = true;
+        cb->on_gc_disabled();
+        return true;
+    } else {
+        assert(0);
+        return false;  // Make compiler happy.
+    }
+}
+
+bool server_t::gc_toggler_t::enable_gc(all_gc_enabled_callback_t *cb) {
+    // Always calls the callback.
+
+    int num_serializers = server_->cmd_config->n_serializers;
+
+    // The return value of serializer_t::enable_gc is always true.
+
+    for (int i = 0; i < num_serializers; ++i) {
+        do_on_cpu(server_->store->serializers[i]->home_cpu, server_->store->serializers[i], &serializer_t::enable_gc);
+    }
+
+    if (state_ == enabled) {
+        cb->multiple_users_seen = true;
+    } else if (state_ == disabling) {
+        state_ = enabled;
+
+        // We tell the people requesting a disable that the disabling
+        // process was completed, but that multiple people are using
+        // it.
+        for (callback_vector_t::iterator p = callbacks_.begin(), e = callbacks_.end(); p < e; ++p) {
+            (*p)->multiple_users_seen = true;
+            (*p)->on_gc_disabled();
+        }
+
+        callbacks_.clear();
+
+        cb->multiple_users_seen = true;
+    } else if (state_ == disabled) {
+        state_ = enabled;
+        cb->multiple_users_seen = false;
+    }
+    cb->on_gc_enabled();
+
+    return true;
+}
+
+void server_t::gc_toggler_t::on_gc_disabled() {
+    assert(state_ == disabling);
+
+    int num_serializers = server_->cmd_config->n_serializers;
+
+    assert(num_disabled_serializers_ < num_serializers);
+
+    num_disabled_serializers_++;
+    if (num_disabled_serializers_ == num_serializers) {
+        // We are no longer disabling, we're now disabled!
+
+        bool multiple_disablers_seen = (callbacks_.size() > 1);
+
+        for (callback_vector_t::iterator p = callbacks_.begin(), e = callbacks_.end(); p < e; ++p) {
+            (*p)->multiple_users_seen = multiple_disablers_seen;
+            (*p)->on_gc_disabled();
+        }
+
+        callbacks_.clear();
+
+        state_ = disabled;
+    }
 }

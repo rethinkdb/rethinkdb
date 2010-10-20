@@ -38,19 +38,27 @@ bool perfmon_get_stats(perfmon_stats_t *dest, perfmon_callback_t *cb);
 it in a global map and its destructor deregisters it. Subclass it and override its
 get_value() method to make a performance monitor variable. */
 
+// Combines two values (from different watchers) into one, using some
+// operation that is commutative and associative.
 typedef std_string_t perfmon_combiner_t(std_string_t, std_string_t);
+
+// A transformer of the final value built by some combination of
+// perfmon_combiner_t calls.
+typedef std_string_t perfmon_transformer_t(std_string_t);
 
 class perfmon_watcher_t :
     public intrusive_list_node_t<perfmon_watcher_t>
 {
 public:
-    perfmon_watcher_t(const char *name, perfmon_combiner_t *combiner = NULL);
+    perfmon_watcher_t(const char *name, perfmon_combiner_t *combiner = NULL,
+                      perfmon_transformer_t *transformer = NULL);
     ~perfmon_watcher_t();
     
     virtual std_string_t get_value() = 0;
 
     const char *name;
     perfmon_combiner_t *combiner;
+    perfmon_transformer_t *transformer;
 };
 
 /* perfmon_var_t is a perfmon_watcher_t that just watches a variable. */
@@ -60,9 +68,13 @@ class perfmon_var_t :
     public virtual perfmon_watcher_t
 {
 public:
-    perfmon_var_t(const char *name, var_t *var, perfmon_combiner_t *combiner = NULL)
-        : perfmon_watcher_t(name, combiner), var(var) { }
-    
+    perfmon_var_t(const char *name, var_t *var, perfmon_combiner_t *combiner = NULL,
+                  perfmon_transformer_t *transformer = NULL)
+        : perfmon_watcher_t(name, combiner, transformer), var(var) { }
+
+    // Gets a string representation of the value.  We work with string
+    // representations of these things because the type system makes
+    // it inconvenient or impossible to use different types.
     std_string_t get_value() {
         std::basic_stringstream<char, std::char_traits<char>, gnew_alloc<char> > s;
         s << *var;
@@ -84,5 +96,7 @@ std_string_t perfmon_combiner_sum(std_string_t v1, std_string_t v2);
 // it returns a string of the form "%d (average of %d)", and correctly handles strings of
 // that form if they are passed as its argument.
 std_string_t perfmon_combiner_average(std_string_t v1, std_string_t v2);
+
+std_string_t perfmon_weighted_average_transformer(std_string_t intpair);
 
 #endif /* __PERFMON_HPP__ */

@@ -25,7 +25,10 @@ class data_block_manager_t {
 public:
     data_block_manager_t(log_serializer_t *ser, cmd_config_t *cmd_config, extent_manager_t *em, size_t _block_size)
         : shutdown_callback(NULL), state(state_unstarted), serializer(ser),
-          cmd_config(cmd_config), extent_manager(em), block_size(_block_size) {}
+          cmd_config(cmd_config), extent_manager(em), block_size(_block_size),
+          pm_garbage_ratio("garbage_ratio", &gc_stats, perfmon_combiner_sum,
+                           perfmon_weighted_average_transformer)
+    {}
     ~data_block_manager_t() {
         assert(state == state_unstarted || state == state_shut_down);
     }
@@ -87,6 +90,19 @@ public:
     };
     // The shutdown_callback_t may destroy the data_block_manager.
     bool shutdown(shutdown_callback_t *cb);
+
+public:
+
+    struct gc_disable_callback_t {
+        virtual void on_gc_disabled() = 0;
+    };
+
+    // Always calls the callback, returns true if the callback has
+    // already been called.
+    bool disable_gc(gc_disable_callback_t *cb);
+
+    // Enables gc, immediately.
+    void enable_gc();
 
 private:
     void actually_shutdown();
@@ -232,13 +248,20 @@ private:
     };
 
     struct gc_state_t {
-        gc_step step;               /* !< which step we're on */
+    private:
+        gc_step step_;               /* !< which step we're on.  See set_step.  */
+    public:
+        bool should_be_stopped;      /* !< whether gc is/should be
+                                       stopped, and how many people
+                                       think so */
         int refcount;               /* !< outstanding io reqs */
         char *gc_blocks;            /* !< buffer for blocks we're transferring */
         gc_entry *current_entry;    /* !< entry we're currently GCing */
         data_block_manager_t::gc_read_callback_t gc_read_callback;
         data_block_manager_t::gc_write_callback_t gc_write_callback;
-        gc_state_t() : step(gc_ready), refcount(0), current_entry(NULL)
+        data_block_manager_t::gc_disable_callback_t *gc_disable_callback;
+
+        gc_state_t() : step_(gc_ready), should_be_stopped(0), refcount(0), current_entry(NULL)
         {
             memalign_alloc_t<DEVICE_BLOCK_SIZE> blocks_buffer_allocator;
             /* TODO this is excessive as soon as we have a bound on how much space we need we should allocate less */
@@ -247,8 +270,20 @@ private:
         ~gc_state_t() {
             free(gc_blocks);
         }
+        inline gc_step step() const { return step_; }
+
+        // Sets step_, and calls gc_disable_callback if relevant.
+        void set_step(gc_step next_step) {
+            if (should_be_stopped && next_step == gc_ready && (step_ == gc_read || step_ == gc_write)) {
+                assert(gc_disable_callback);
+                gc_disable_callback->on_gc_disabled();
+                gc_disable_callback = NULL;
+            }
+
+            step_ = next_step;
+        }
     } gc_state;
-    
+
 private:
     /* \brief structure to keep track of global stats about the data blocks
      */
@@ -259,11 +294,23 @@ private:
             : old_total_blocks(0), old_garbage_blocks(0)
         {}
     } gc_stats;
-    
+
+    friend std::ostream& operator<<(std::ostream& out, const data_block_manager_t::gc_stats_t& stats);
+
+    perfmon_var_t<gc_stats_t> pm_garbage_ratio;
+
 public:
     /* \brief ratio of garbage to blocks in the system
      */
     float garbage_ratio() const;
+
+    int64_t garbage_ratio_total_blocks() const { return gc_stats.old_garbage_blocks; }
+    int64_t garbage_ratio_garbage_blocks() const { return gc_stats.old_garbage_blocks; }
+
+private:
+    DISABLE_COPYING(data_block_manager_t);
 };
+
+std::ostream& operator<<(std::ostream&, const data_block_manager_t::gc_stats_t&);
 
 #endif /* __SERIALIZER_LOG_DATA_BLOCK_MANAGER_HPP__ */

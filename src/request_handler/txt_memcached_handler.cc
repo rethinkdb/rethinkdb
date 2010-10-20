@@ -1,6 +1,7 @@
+#include "request_handler/txt_memcached_handler.hpp"
+
 #include <string.h>
 #include "arch/arch.hpp"
-#include "request_handler/txt_memcached_handler.hpp"
 #include "conn_fsm.hpp"
 #include "corefwd.hpp"
 #include "request.hpp"
@@ -31,8 +32,10 @@
 
 // Please read and understand the memcached protocol before modifying this
 // file. If you only do a cursory readthrough, please check with someone who
-// has read it in depth before comitting.
+// has read it in depth before committing.
 
+// Used for making a bunch of calls to some btree_fsm_t's and waiting
+// for them to complete.
 class txt_memcached_request_t :
     public request_callback_t,
     public btree_fsm_callback_t
@@ -42,8 +45,6 @@ public:
         : request_callback_t(rh), rh(rh), noreply(noreply), nfsms(0)
         {}
     virtual ~txt_memcached_request_t() { }
-    
-    virtual bool build_response(linked_buf_t *) = 0;
 
     void on_btree_fsm_complete(btree_fsm_t *fsm) {
         if (fsm) on_fsm_ready(fsm); // Hack
@@ -56,10 +57,16 @@ public:
             delete this;
         }
     }
-    
-    txt_memcached_handler_t *rh;
-    bool noreply;
+
+protected:
+    virtual void build_response(linked_buf_t *) = 0;
+
+    txt_memcached_handler_t * const rh;
+    bool const noreply;
     int nfsms;
+
+private:
+    DISABLE_COPYING(txt_memcached_request_t);
 };
 
 class txt_memcached_get_request_t :
@@ -162,7 +169,7 @@ public:
         }
     }
 
-    bool build_response(linked_buf_t *sbuf) {
+    void build_response(linked_buf_t *sbuf) {
 #ifndef NDEBUG
         for (int i = 0; i < num_fsms; i++) {
             assert(ready_fsms[i]);
@@ -171,7 +178,6 @@ public:
         send_next_value(sbuf);
         assert(curr_fsm == num_fsms);
         sbuf->printf(RETRIEVE_TERMINATOR);
-        return true;
     }
 
 private:
@@ -284,7 +290,7 @@ public:
         }
     }
 
-    bool build_response(linked_buf_t *sbuf) {
+    void build_response(linked_buf_t *sbuf) {
 #ifndef NDEBUG
             for (int i = 0; i < num_fsms; i++) {
                 assert(ready_fsms[i]);
@@ -293,7 +299,6 @@ public:
         send_next_value(sbuf);
         assert(curr_fsm == num_fsms);
         sbuf->printf(RETRIEVE_TERMINATOR);
-        return true;
     }
 
 private:
@@ -319,7 +324,7 @@ public:
         delete fsm;
     }
 
-    bool build_response(linked_buf_t *sbuf) {
+    void build_response(linked_buf_t *sbuf) {
         switch (fsm->status_code) {
             case btree_set_fsm_t::S_SUCCESS:
                 sbuf->printf(STORAGE_SUCCESS);
@@ -340,7 +345,6 @@ public:
                 assert(0);
                 break;
         }
-        return true;
     }
 
     // This is protocol.txt, verbatim:
@@ -385,7 +389,7 @@ public:
         delete fsm;
     }
 
-    bool build_response(linked_buf_t *sbuf) {
+    void build_response(linked_buf_t *sbuf) {
         switch (fsm->status_code) {
             case btree_incr_decr_fsm_t::S_SUCCESS:
                 sbuf->printf("%llu\r\n", (unsigned long long)fsm->new_number);
@@ -400,7 +404,6 @@ public:
                 assert(0);
                 break;
         }
-        return true;
     }
 
 private:
@@ -423,7 +426,7 @@ public:
         delete fsm;
     }
 
-    bool build_response(linked_buf_t *sbuf) {
+    void build_response(linked_buf_t *sbuf) {
         switch (fsm->status_code) {
             case btree_append_prepend_fsm_t::S_SUCCESS:
                 sbuf->printf(STORAGE_SUCCESS);
@@ -440,7 +443,6 @@ public:
                 assert(0);
                 break;
         }
-        return true;
     }
 
 private:
@@ -463,7 +465,7 @@ public:
         delete fsm;
     }
 
-    bool build_response(linked_buf_t *sbuf) {
+    void build_response(linked_buf_t *sbuf) {
         switch (fsm->status_code) {
             case btree_delete_fsm_t::S_DELETED:
                 sbuf->printf(DELETE_SUCCESS);
@@ -475,7 +477,6 @@ public:
                 assert(0);
                 break;
         }
-        return true;
     }
 
 private:
@@ -483,25 +484,27 @@ private:
 };
 
 class txt_memcached_perfmon_request_t :
-    public txt_memcached_request_t,
+    public request_callback_t,
     public cpu_message_t,   // For call_later_on_this_cpu()
     public perfmon_callback_t,
     public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, txt_memcached_perfmon_request_t> {
 
 public:
-    perfmon_stats_t stats;
-    
-    txt_memcached_perfmon_request_t(txt_memcached_handler_t *rh)
-        : txt_memcached_request_t(rh, false) {
+    txt_memcached_perfmon_request_t(txt_memcached_handler_t *rh, const char *fields_beg, size_t fields_len)
+        : request_callback_t(rh) {
+
+        assert(fields_len <= MAX_STATS_REQ_LEN);
+
+        memcpy(fields, fields_beg, fields_len);
 
         if (perfmon_get_stats(&stats, this)) {
         
             /* The world is not ready for the power of completing a request immediately.
-            So we delay so that the request handler doesn't get confused. */
+            So we delay so that the request handler doesn't get confused.  We don't know
+            if this is necessary. */
+
             call_later_on_this_cpu(this);
         }
-        
-        nfsms = 1;
     }
     
     void on_cpu_switch() {
@@ -509,10 +512,12 @@ public:
     }
     
     void on_perfmon_stats() {
-        on_btree_fsm_complete(NULL);   // Hack
+        build_response(rh->conn_fsm->sbuf);
+        rh->request_complete();
+        delete this;
     }
 
-    bool build_response(linked_buf_t *sbuf) {
+    void build_response(linked_buf_t *sbuf) {
 
         if (strlen(fields) == 0) {
             for (perfmon_stats_t::iterator iter = stats.begin(); iter != stats.end(); iter++) {
@@ -534,13 +539,108 @@ public:
             }
         }
         sbuf->printf("END\r\n");
-        return true;
     }
 
 public:
+    perfmon_stats_t stats;
+    
     //! \brief which fields user is requesting, empty indicates all fields
     char fields[MAX_STATS_REQ_LEN];
+
+private:
+    DISABLE_COPYING(txt_memcached_perfmon_request_t);
 };
+
+
+
+
+class disable_gc_request_t :
+    public server_t::all_gc_disabled_callback_t,  // gives us multiple_users_seen
+    public cpu_message_t,   // As with txt_memcached_perfmon_request_t, for call_later_on_this_cpu()
+    public home_cpu_mixin_t,
+    public request_callback_t,
+    public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, disable_gc_request_t> {
+public:
+    disable_gc_request_t(txt_memcached_handler_t *rh)
+        : request_callback_t(rh), done(false) {
+
+        rh->server->disable_gc(this);
+        done = true;
+    }
+
+    void on_cpu_switch() {
+        on_gc_disabled();
+    }
+
+    void on_gc_disabled() {
+        if (!continue_on_cpu(home_cpu, this)) {
+            return;
+        }
+
+        if (!done) {
+            call_later_on_this_cpu(this);
+            return;
+        }
+
+        build_response(rh->conn_fsm->sbuf);
+        rh->request_complete();
+        delete this;
+    }
+
+    void build_response(linked_buf_t *sbuf) {
+        // TODO: figure out what to print here.
+        sbuf->printf("DISABLED%s\r\n", multiple_users_seen ? " (Warning: multiple users think they're the one who disabled the gc.)" : "");
+    }
+private:
+    bool done;
+    DISABLE_COPYING(disable_gc_request_t);
+};
+
+class enable_gc_request_t :
+    public server_t::all_gc_enabled_callback_t,  // gives us multiple_users_seen
+    public cpu_message_t,
+    public home_cpu_mixin_t,
+    public request_callback_t,
+    public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, enable_gc_request_t> {
+
+public:
+    enable_gc_request_t(txt_memcached_handler_t *rh)
+        : request_callback_t(rh), done(false) {
+
+        rh->server->enable_gc(this);
+        done = true;
+    }
+
+    void on_cpu_switch() {
+        on_gc_enabled();
+    }
+
+    void on_gc_enabled() {
+        if (!continue_on_cpu(home_cpu, this)) {
+            return;
+        }
+
+        if (!done) {
+            call_later_on_this_cpu(this);
+            return;
+        }
+
+        build_response(rh->conn_fsm->sbuf);
+        rh->request_complete();
+        delete this;
+    }
+
+    void build_response(linked_buf_t *sbuf) {
+        // TODO: figure out what to print here.
+        sbuf->printf("ENABLED%s\r\n", multiple_users_seen ? " (Warning: gc was already enabled.)" : "");
+    }
+
+private:
+    bool done;
+    DISABLE_COPYING(enable_gc_request_t);
+};
+
+
 
 // Process commands received from the user
 txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::parse_request(event_t *event) {
@@ -588,7 +688,32 @@ txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::parse_request(e
     }
 
     // Execute command
-    if(!strcmp(cmd_str, "quit")) {
+    if(!strcmp(cmd_str, "get")) {    // check for retrieval commands
+        return get(state, line_len);
+    } else if(!strcmp(cmd_str, "gets")) {
+        return get_cas(state, line_len);
+
+    } else if(!strcmp(cmd_str, "set")) {     // check for storage commands
+        return parse_storage_command(SET, state, line_len);
+    } else if(!strcmp(cmd_str, "add")) {
+        return parse_storage_command(ADD, state, line_len);
+    } else if(!strcmp(cmd_str, "replace")) {
+        return parse_storage_command(REPLACE, state, line_len);
+    } else if(!strcmp(cmd_str, "append")) {
+        return parse_storage_command(APPEND, state, line_len);
+    } else if(!strcmp(cmd_str, "prepend")) {
+        return parse_storage_command(PREPEND, state, line_len);
+    } else if(!strcmp(cmd_str, "cas")) {
+        return parse_storage_command(CAS, state, line_len);
+
+    } else if(!strcmp(cmd_str, "delete")) {
+        return remove(state, line_len);
+
+    } else if(!strcmp(cmd_str, "incr")) {
+        return parse_adjustment(true, state, line_len);
+    } else if(!strcmp(cmd_str, "decr")) {
+        return parse_adjustment(false, state, line_len);
+    } else if(!strcmp(cmd_str, "quit")) {
         // Make sure there's no more tokens
         if (strtok_r(NULL, DELIMS, &state)) {  //strtok will return NULL if there are no more tokens
             conn_fsm->consume(line_len);
@@ -613,35 +738,10 @@ txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::parse_request(e
         return request_handler_t::op_req_quit;
 
     } else if(!strcmp(cmd_str, "stats") || !strcmp(cmd_str, "stat")) {
-        conn_fsm->consume(line_len);
-        parse_stat_command(state, line_len);
-        return request_handler_t::op_req_complex;
+        return parse_stat_command(line_len, cmd_str);
+    } else if(!strcmp(cmd_str, "rethinkdbctl")) {
+        return parse_gc_command(line_len, state);
 
-    } else if(!strcmp(cmd_str, "set")) {     // check for storage commands
-        return parse_storage_command(SET, state, line_len);
-    } else if(!strcmp(cmd_str, "add")) {
-        return parse_storage_command(ADD, state, line_len);
-    } else if(!strcmp(cmd_str, "replace")) {
-        return parse_storage_command(REPLACE, state, line_len);
-    } else if(!strcmp(cmd_str, "append")) {
-        return parse_storage_command(APPEND, state, line_len);
-    } else if(!strcmp(cmd_str, "prepend")) {
-        return parse_storage_command(PREPEND, state, line_len);
-    } else if(!strcmp(cmd_str, "cas")) {
-        return parse_storage_command(CAS, state, line_len);
-
-    } else if(!strcmp(cmd_str, "get")) {    // check for retrieval commands
-        return get(state, line_len);
-    } else if(!strcmp(cmd_str, "gets")) {
-        return get_cas(state, line_len);
-
-    } else if(!strcmp(cmd_str, "delete")) {
-        return remove(state, line_len);
-
-    } else if(!strcmp(cmd_str, "incr")) {
-        return parse_adjustment(true, state, line_len);
-    } else if(!strcmp(cmd_str, "decr")) {
-        return parse_adjustment(false, state, line_len);
     } else {
         // Invalid command
         conn_fsm->consume(line_len);
@@ -743,13 +843,6 @@ txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::parse_storage_c
 void txt_memcached_handler_t::on_large_value_completed(bool success) {
     // Used for consuming data from the socket. XXX: This should be renamed.
     assert(success);
-}
-
-txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::parse_stat_command(char *state, unsigned int line_len) {
-    txt_memcached_perfmon_request_t *rq = new txt_memcached_perfmon_request_t(this);
-    check("Too big of a stat request", line_len > MAX_STATS_REQ_LEN);
-    memcpy(rq->fields, state, line_len);
-    return request_handler_t::op_req_complex;
 }
 
 txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::read_data() {
@@ -969,4 +1062,70 @@ txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::remove(char *st
         return request_handler_t::op_req_parallelizable;
     else
         return request_handler_t::op_req_complex;
+}
+
+txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::parse_stat_command(unsigned int line_len, char *cmd_str) {
+    check("Too big of a stat request", line_len > MAX_STATS_REQ_LEN);
+    size_t offset = strlen(cmd_str) + 1 + (cmd_str - conn_fsm->rbuf);
+    if (offset < line_len) {
+        new txt_memcached_perfmon_request_t(this, conn_fsm->rbuf + offset, line_len - offset);
+    } else {
+        new txt_memcached_perfmon_request_t(this, "0", 1);
+    }
+    conn_fsm->consume(line_len);
+    return request_handler_t::op_req_complex;
+}
+
+txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::parse_gc_command(unsigned int line_len, char *state) {
+    
+    const char *subcommand = strtok_r(NULL, DELIMS, &state);
+
+    if (subcommand == NULL) {
+        conn_fsm->consume(line_len);
+        return malformed_request();
+    }
+
+    if (!strcmp(subcommand, "gc")) {
+        const char *gc_subcommand = strtok_r(NULL, DELIMS, &state);
+
+        if (gc_subcommand == NULL) {
+            conn_fsm->consume(line_len);
+            return malformed_request();
+        } else if (!strcmp(gc_subcommand, "disable")) {
+            if (strtok_r(NULL, DELIMS, &state)) {
+                conn_fsm->consume(line_len);
+                return malformed_request();
+            }
+            conn_fsm->consume(line_len);
+                
+            new disable_gc_request_t(this);
+            return request_handler_t::op_req_complex;
+        } else if (!strcmp(gc_subcommand, "enable")) {
+            if (strtok_r(NULL, DELIMS, &state)) {
+                conn_fsm->consume(line_len);
+                return malformed_request();
+            }
+            conn_fsm->consume(line_len);
+                
+            new enable_gc_request_t(this);
+            return request_handler_t::op_req_complex;
+        } else {
+            conn_fsm->consume(line_len);
+            return malformed_request();
+        }
+    } else if (!strcmp(subcommand, "help")) {
+        if (strtok_r(NULL, DELIMS, &state)) {
+            conn_fsm->consume(line_len);
+            return malformed_request();
+        }
+
+        conn_fsm->consume(line_len);
+
+        conn_fsm->sbuf->printf("Commonly used commands:\n  rethinkdbctl gc disable\n  rethinkdbctl gc enable\n");
+        return request_handler_t::op_req_send_now;
+    } else {
+        // Invalid command.
+        conn_fsm->consume(line_len);
+        return malformed_request();
+    }
 }

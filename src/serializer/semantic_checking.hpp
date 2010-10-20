@@ -282,6 +282,16 @@ private:
     void on_serializer_shutdown(inner_serializer_t *ser) {
         if (shutdown_callback) shutdown_callback->on_serializer_shutdown(this);
     }
+
+public:
+    typedef typename inner_serializer_t::gc_disable_callback_t gc_disable_callback_t;
+    bool disable_gc(gc_disable_callback_t *cb) {
+        return inner_serializer.disable_gc(cb);
+    }
+    bool enable_gc() {
+        return inner_serializer.enable_gc();
+    }
+
 };
 
 #endif /* __SERIALIZER_SEMANTIC_CHECKING_HPP__ */

@@ -6,8 +6,9 @@
 
 __thread intrusive_list_t<perfmon_watcher_t> *var_list = NULL;
 
-perfmon_watcher_t::perfmon_watcher_t(const char *name, perfmon_combiner_t *combiner)
-    : name(name), combiner(combiner)
+perfmon_watcher_t::perfmon_watcher_t(const char *name, perfmon_combiner_t *combiner,
+                                     perfmon_transformer_t *transformer)
+    : name(name), combiner(combiner), transformer(transformer)
 {
     if (!var_list) var_list = gnew<intrusive_list_t<perfmon_watcher_t> >();
     var_list->push_back(this);
@@ -28,7 +29,13 @@ struct perfmon_fsm_t :
     public home_cpu_mixin_t,
     public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, perfmon_fsm_t>
 {
+    // The map to which we output data.
     perfmon_stats_t *dest;
+
+    // A temporary, local map, to which we output untransformed data.
+    perfmon_stats_t untransformed_dest;
+
+
     perfmon_callback_t *callback;
     
     perfmon_fsm_t(perfmon_stats_t *dest) : dest(dest) { }
@@ -48,11 +55,11 @@ struct perfmon_fsm_t :
         if (var_list) {
             for (perfmon_watcher_t *var = var_list->head(); var; var = var_list->next(var)) {
                 const std_string_t &value = var->get_value();
-                if (dest->find(var->name) == dest->end()) {
-                    (*dest)[var->name] = value;
+                if (untransformed_dest.find(var->name) == untransformed_dest.end()) {
+                    untransformed_dest[var->name] = value;
                 } else {
                     if (var->combiner) {
-                        (*dest)[var->name] = var->combiner(value, (*dest)[var->name]);
+                        untransformed_dest[var->name] = var->combiner(value, untransformed_dest[var->name]);
                     } else {
                         fail("Two perfmon watchers are both called %s and one lacks a combiner "
                             "function.", var->name);
@@ -72,11 +79,22 @@ struct perfmon_fsm_t :
     }
     
     bool deliver_data() {
+        if (var_list) {
+            for (perfmon_watcher_t *var = var_list->head(); var; var = var_list->next(var)) {
+                (*dest)[var->name] = var->transformer == NULL ? untransformed_dest[var->name] : var->transformer(untransformed_dest[var->name]);
+            }
+        }
+
         if (callback) callback->on_perfmon_stats();
         delete this;
         return true;
     }
+
+private:
+    DISABLE_COPYING(perfmon_fsm_t);
 };
+
+typedef std::basic_stringstream<char, std::char_traits<char>, gnew_alloc<char> > sstream;
 
 bool perfmon_get_stats(perfmon_stats_t *dest, perfmon_callback_t *cb) {
     
@@ -84,11 +102,21 @@ bool perfmon_get_stats(perfmon_stats_t *dest, perfmon_callback_t *cb) {
     return fsm->run(cb);
 }
 
+// Computes (unwords . map show . zipWith (+) . map read . words).
 std_string_t perfmon_combiner_sum(std_string_t v1, std_string_t v2) {
+    sstream s1(v1), s2(v2), out;
     
-    std::basic_stringstream<char, std::char_traits<char>, gnew_alloc<char> > s;
-    s << (atoll(v1.c_str()) + atoll(v2.c_str()));
-    return s.str();
+    bool first = true;
+    int64_t i1, i2;
+    while ((s1 >> i1) && (s2 >> i2)) {
+        if (!first) {
+            out << ' ';
+        }
+        first = false;
+        out << (i1 + i2);
+    }
+
+    return out.str();
 }
 
 static void read_average(const char *s, long long int *num, int *count) {
@@ -110,4 +138,21 @@ std_string_t perfmon_combiner_average(std_string_t v1, std_string_t v2) {
     char buf[20];
     sprintf(buf, "%lld (average of %d)", (num1*count1+num2*count2)/(count1+count2), count1+count2);
     return buf;
+}
+
+// Takes "3 4", for example, and returns "3/4 (0.75)".  Or takes "0 0"
+// and returns "0/0 (NaN)".
+std_string_t perfmon_weighted_average_transformer(std_string_t numer_denom_pair) {
+    int64_t numer, denom;
+    sstream(numer_denom_pair) >> numer >> denom;
+    sstream out;
+    out << numer << "/" << denom
+        << " (";
+    if (denom == 0) {
+        out << "NaN";
+    } else {
+        out << double(numer)/denom;
+    }
+    out << ")";
+    return out.str();
 }
