@@ -736,7 +736,7 @@ txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::parse_request(e
     } else if(!strcmp(cmd_str, "stats") || !strcmp(cmd_str, "stat")) {
         txt_memcached_perfmon_request_t *rq = new txt_memcached_perfmon_request_t(this);
         check("Too big of a stat request", line_len > MAX_STATS_REQ_LEN);
-        size_t offset = strlen(cmd_str) + 1;
+        size_t offset = strlen(cmd_str) + 1 + (cmd_str - conn_fsm->rbuf);
         if (offset < line_len) {
             memcpy(rq->fields, conn_fsm->rbuf + offset, line_len - offset);
         } else {
