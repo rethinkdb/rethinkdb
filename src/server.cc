@@ -205,7 +205,7 @@ bool server_t::gc_toggler_t::disable_gc(server_t::all_gc_disabled_callback_t *cb
         num_disabled_serializers_ = 0;
         for (int i = 0; i < num_serializers; ++i) {
             serializer_t::gc_disable_callback_t *this_as_callback = this;
-            do_on_cpu(server_->serializers[i]->home_cpu, server_->serializers[i], &serializer_t::disable_gc, this_as_callback);
+            do_on_cpu(server_->store->serializers[i]->home_cpu, server_->store->serializers[i], &serializer_t::disable_gc, this_as_callback);
         }
 
         return (state_ == disabled);
@@ -232,7 +232,7 @@ bool server_t::gc_toggler_t::enable_gc(all_gc_enabled_callback_t *cb) {
     // The return value of serializer_t::enable_gc is always true.
 
     for (int i = 0; i < num_serializers; ++i) {
-        do_on_cpu(server_->serializers[i]->home_cpu, server_->serializers[i], &serializer_t::enable_gc);
+        do_on_cpu(server_->store->serializers[i]->home_cpu, server_->store->serializers[i], &serializer_t::enable_gc);
     }
 
     if (state_ == enabled) {

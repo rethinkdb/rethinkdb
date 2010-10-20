@@ -47,8 +47,6 @@ public:
     };
     bool enable_gc(all_gc_enabled_callback_t *);
 
-    
-
     cmd_config_t *cmd_config;
     thread_pool_t *thread_pool;
 
