@@ -37,7 +37,7 @@ class leaf_node_handler : public node_handler {
 
     static bool lookup(const btree_leaf_node *node, btree_key *key, btree_value *value);
     static bool insert(size_t block_size, btree_leaf_node *node, btree_key *key, btree_value *value);
-    static void remove(size_t block_size, btree_leaf_node *node, btree_key *key); //Currently untested
+    static void remove(size_t block_size, btree_leaf_node *node, btree_key *key); // TODO: Currently untested
     static void split(size_t block_size, btree_leaf_node *node, btree_leaf_node *rnode, btree_key *median);
     static void merge(size_t block_size, btree_leaf_node *node, btree_leaf_node *rnode, btree_key *key_to_remove);
     static bool level(size_t block_size, btree_leaf_node *node, btree_leaf_node *sibling, btree_key *key_to_replace, btree_key *replacement_key);
