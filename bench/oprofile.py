@@ -130,7 +130,7 @@ class Function_report():
         res.function_name = self.function_name
         res.counter_totals = dict_union(self.counter_totals, other.counter_totals)
         res.source_file = max(self.source_file, other.source_file, key = lambda x: len(x))
-        res.lines = dict_merge(self.lines, other.lines)
+#res.lines = dict_merge(self.lines, other.lines)
         return res
 
 class Line_report():
@@ -147,7 +147,7 @@ class Program_report():
         self.counter_totals = default_zero_dict()
         self.counter_names = ('','','','')
         self.functions = {} #string -> function_report
-    def __str__(self):
+    def __repr__(self):
         res = ''
         for name, total in zip(self.counter_names, self.counter_totals):
             res += (str(name) + ": " + str(total) + ' ')
@@ -155,8 +155,9 @@ class Program_report():
         res += str(self.functions)
         return res
     def __add__(self, other):
-        assert  self.object_name == other.object_name
+        assert  self.object_name == other.object_name or self.object_name == '' or other.object_name == '' #let's us add empty Program reports to anything
         res = Program_report()
+        res.object_name = max(self.object_name, other.object_name, key = lambda x:len(x))
         res.counter_totals = dict_union(self.counter_totals, other.counter_totals)
         res.counter_names = tuple_union(self.counter_names, other.counter_names)
         res.functions = dict_merge(self.functions, other.functions)
@@ -292,22 +293,33 @@ class Profile():
             assert r.numerator.name in [e.name for e in self.events]
             assert r.denominator.name in [e.name for e in self.events]
 
-    def __str__(self):
+    def __repr__(self):
         res = StringIO.StringIO()
         print >>res, "Profile: ", 
-        for event in events():
+        for event in self.events:
             print >>res, event,
-        print >>res, ''
         return res.getvalue()
 
-#small packet ratios
+    def copy(self):
+        return Profile(self.events, self.ratios)
+
+    def __add__(self, other):
+        res = self.copy()
+        for event in other.events:
+            if not event in res.events:
+                res.events.append(event)
+        for ratio in other.ratios:
+            if not ratio in res.ratios:
+                res.ratios.append(ratio)
+        return res
+
 class Ratio():
 #_numerator and denominator should be Event()s
     def __init__(self, _numerator, _denominator):
         self.numerator = _numerator
         self.denominator = _denominator
-    def __str__(self):
+    def __repr__(self):
         res = StringIO.StringIO()
         print >>res, "Ratio: ",
-        print >>res, self.numerator, ' / ', self.denominator
+        print >>res, self.numerator, ' / ', self.denominator,
         return res.getvalue()
