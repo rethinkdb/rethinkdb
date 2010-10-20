@@ -44,8 +44,9 @@ private:
     bool consuming;
     
     parse_result_t parse_storage_command(storage_command command, char *state, unsigned int line_len);
-    parse_result_t parse_stat_command(char *state, unsigned int line_len);
+    parse_result_t parse_stat_command(unsigned int line_len, char *cmd_str);
     parse_result_t parse_adjustment(bool increment, char *state, unsigned int line_len);
+    parse_result_t parse_gc_command(unsigned int line_len, char *state);
     parse_result_t read_data();
     parse_result_t get(char *state, unsigned int line_len);
     parse_result_t get_cas(char *state, unsigned int line_len);

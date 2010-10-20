@@ -490,8 +490,12 @@ class txt_memcached_perfmon_request_t :
     public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, txt_memcached_perfmon_request_t> {
 
 public:
-    txt_memcached_perfmon_request_t(txt_memcached_handler_t *rh)
+    txt_memcached_perfmon_request_t(txt_memcached_handler_t *rh, const char *fields_beg, size_t fields_len)
         : request_callback_t(rh) {
+
+        assert(fields_len <= MAX_STATS_REQ_LEN);
+
+        memcpy(fields, fields_beg, fields_len);
 
         if (perfmon_get_stats(&stats, this)) {
         
@@ -734,67 +738,9 @@ txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::parse_request(e
         return request_handler_t::op_req_quit;
 
     } else if(!strcmp(cmd_str, "stats") || !strcmp(cmd_str, "stat")) {
-        txt_memcached_perfmon_request_t *rq = new txt_memcached_perfmon_request_t(this);
-        check("Too big of a stat request", line_len > MAX_STATS_REQ_LEN);
-        size_t offset = strlen(cmd_str) + 1 + (cmd_str - conn_fsm->rbuf);
-        if (offset < line_len) {
-            memcpy(rq->fields, conn_fsm->rbuf + offset, line_len - offset);
-        } else {
-            *rq->fields = '\0';
-        }
-        conn_fsm->consume(line_len);
-        return request_handler_t::op_req_complex;
+        return parse_stat_command(line_len, cmd_str);
     } else if(!strcmp(cmd_str, "rethinkdbctl")) {
-        const char *subcommand = strtok_r(NULL, DELIMS, &state);
-
-        if (subcommand == NULL) {
-            conn_fsm->consume(line_len);
-            return malformed_request();
-        }
-
-        if (!strcmp(subcommand, "gc")) {
-            const char *gc_subcommand = strtok_r(NULL, DELIMS, &state);
-
-            if (gc_subcommand == NULL) {
-                conn_fsm->consume(line_len);
-                return malformed_request();
-            } else if (!strcmp(gc_subcommand, "disable")) {
-                if (strtok_r(NULL, DELIMS, &state)) {
-                    conn_fsm->consume(line_len);
-                    return malformed_request();
-                }
-                conn_fsm->consume(line_len);
-                
-                new disable_gc_request_t(this);
-                return request_handler_t::op_req_complex;
-            } else if (!strcmp(gc_subcommand, "enable")) {
-                if (strtok_r(NULL, DELIMS, &state)) {
-                    conn_fsm->consume(line_len);
-                    return malformed_request();
-                }
-                conn_fsm->consume(line_len);
-                
-                new enable_gc_request_t(this);
-                return request_handler_t::op_req_complex;
-            } else {
-                conn_fsm->consume(line_len);
-                return malformed_request();
-            }
-        } else if (!strcmp(subcommand, "help")) {
-            if (strtok_r(NULL, DELIMS, &state)) {
-                conn_fsm->consume(line_len);
-                return malformed_request();
-            }
-
-            conn_fsm->consume(line_len);
-
-            conn_fsm->sbuf->printf("Commonly used commands:\n  rethinkdbctl gc disable\n  rethinkdbctl gc enable\n");
-            return request_handler_t::op_req_send_now;
-        } else {
-            // Invalid command.
-            conn_fsm->consume(line_len);
-            return malformed_request();
-        }
+        return parse_gc_command(line_len, state);
 
     } else {
         // Invalid command
@@ -1116,4 +1062,70 @@ txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::remove(char *st
         return request_handler_t::op_req_parallelizable;
     else
         return request_handler_t::op_req_complex;
+}
+
+txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::parse_stat_command(unsigned int line_len, char *cmd_str) {
+    check("Too big of a stat request", line_len > MAX_STATS_REQ_LEN);
+    size_t offset = strlen(cmd_str) + 1 + (cmd_str - conn_fsm->rbuf);
+    if (offset < line_len) {
+        new txt_memcached_perfmon_request_t(this, conn_fsm->rbuf + offset, line_len - offset);
+    } else {
+        new txt_memcached_perfmon_request_t(this, "0", 1);
+    }
+    conn_fsm->consume(line_len);
+    return request_handler_t::op_req_complex;
+}
+
+txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::parse_gc_command(unsigned int line_len, char *state) {
+    
+    const char *subcommand = strtok_r(NULL, DELIMS, &state);
+
+    if (subcommand == NULL) {
+        conn_fsm->consume(line_len);
+        return malformed_request();
+    }
+
+    if (!strcmp(subcommand, "gc")) {
+        const char *gc_subcommand = strtok_r(NULL, DELIMS, &state);
+
+        if (gc_subcommand == NULL) {
+            conn_fsm->consume(line_len);
+            return malformed_request();
+        } else if (!strcmp(gc_subcommand, "disable")) {
+            if (strtok_r(NULL, DELIMS, &state)) {
+                conn_fsm->consume(line_len);
+                return malformed_request();
+            }
+            conn_fsm->consume(line_len);
+                
+            new disable_gc_request_t(this);
+            return request_handler_t::op_req_complex;
+        } else if (!strcmp(gc_subcommand, "enable")) {
+            if (strtok_r(NULL, DELIMS, &state)) {
+                conn_fsm->consume(line_len);
+                return malformed_request();
+            }
+            conn_fsm->consume(line_len);
+                
+            new enable_gc_request_t(this);
+            return request_handler_t::op_req_complex;
+        } else {
+            conn_fsm->consume(line_len);
+            return malformed_request();
+        }
+    } else if (!strcmp(subcommand, "help")) {
+        if (strtok_r(NULL, DELIMS, &state)) {
+            conn_fsm->consume(line_len);
+            return malformed_request();
+        }
+
+        conn_fsm->consume(line_len);
+
+        conn_fsm->sbuf->printf("Commonly used commands:\n  rethinkdbctl gc disable\n  rethinkdbctl gc enable\n");
+        return request_handler_t::op_req_send_now;
+    } else {
+        // Invalid command.
+        conn_fsm->consume(line_len);
+        return malformed_request();
+    }
 }

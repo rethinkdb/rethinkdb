@@ -92,8 +92,6 @@ combiner function and it should be commutative and associative. */
 // The sum combiner assumes that both strings represent integers; it returns their sum.
 std_string_t perfmon_combiner_sum(std_string_t v1, std_string_t v2);
 
-std_string_t perfmon_combiner_twosum(std_string_t v1, std_string_t v2);
-
 // The average combiner averages integer values. Because the combiner must be associative,
 // it returns a string of the form "%d (average of %d)", and correctly handles strings of
 // that form if they are passed as its argument.
