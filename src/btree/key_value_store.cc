@@ -1,9 +1,13 @@
 #include "key_value_store.hpp"
 #include "db_cpu_info.hpp"
 
-btree_key_value_store_t::btree_key_value_store_t(cmd_config_t *cmd_config, serializer_t **serializers, int n_serializers)
-    : cmd_config(cmd_config), serializers(serializers), n_serializers(n_serializers), state(state_off)
+btree_key_value_store_t::btree_key_value_store_t(cmd_config_t *cmd_config)
+    : cmd_config(cmd_config), state(state_off)
 {
+    assert(cmd_config->n_serializers > 0);
+    for (int i = 0; i < cmd_config->n_serializers; i++) {
+        serializers[i] = NULL;
+    }
     
     assert(cmd_config->n_slices > 0);
     for (int i = 0; i < cmd_config->n_slices; i++) {
@@ -19,15 +23,66 @@ bool btree_key_value_store_t::start(ready_callback_t *cb) {
     state = state_starting_up;
     
     ready_callback = NULL;
-    messages_out = cmd_config->n_slices;
-    for (int id = 0; id < cmd_config->n_slices; id++) {
-        do_on_cpu(id % get_num_db_cpus(), this, &btree_key_value_store_t::create_a_slice_on_this_core, id);
-    }
-    if (messages_out == 0) {
+    create_serializers();
+    if (state == state_ready) {
         return true;
     } else {
         ready_callback = cb;
         return false;
+    }
+}
+
+void btree_key_value_store_t::create_serializers() {
+    
+    if (strncmp(cmd_config->db_file_name, DATA_DIRECTORY, strlen(DATA_DIRECTORY)) == 0) {
+        mkdir(DATA_DIRECTORY, 0777);
+    }
+    
+    messages_out = cmd_config->n_serializers;
+    for (int id = 0; id < cmd_config->n_serializers; id++) {
+        do_on_cpu(id % get_num_db_cpus(), this, &btree_key_value_store_t::create_a_serializer_on_this_core, id);
+    }
+}
+
+bool btree_key_value_store_t::create_a_serializer_on_this_core(int id) {
+    
+    char name[MAX_DB_FILE_NAME];
+    int len = snprintf(name, MAX_DB_FILE_NAME, "%s_%d", cmd_config->db_file_name, id);
+    // TODO: the below line is currently the only way to write to a block device,
+    // we need a command line way to do it, this also requires consolidating to one
+    // file
+    //     int len = snprintf(name, MAX_DB_FILE_NAME, "/dev/sdb");
+    check("Name too long", len == MAX_DB_FILE_NAME);
+    
+    serializers[id] = gnew<serializer_t>(cmd_config, name, BTREE_BLOCK_SIZE);
+    
+    if (serializers[id]->start(this)) on_serializer_ready(serializers[id]);
+
+    return true;
+}
+
+void btree_key_value_store_t::on_serializer_ready(serializer_t *ser) {
+    
+    ser->assert_cpu();
+    do_on_cpu(home_cpu, this, &btree_key_value_store_t::have_created_a_serializer);
+}
+
+bool btree_key_value_store_t::have_created_a_serializer() {
+
+    assert_cpu();
+    messages_out--;
+    if (messages_out == 0) {
+        create_slices();
+    }
+    
+    return true;
+}
+
+void btree_key_value_store_t::create_slices() {
+    
+    messages_out = cmd_config->n_slices;
+    for (int id = 0; id < cmd_config->n_slices; id++) {
+        do_on_cpu(id % get_num_db_cpus(), this, &btree_key_value_store_t::create_a_slice_on_this_core, id);
     }
 }
 
@@ -36,16 +91,16 @@ bool btree_key_value_store_t::create_a_slice_on_this_core(int id) {
     // TODO try to align slices with serializers so that when possible, a slice is on the
     // same thread as its serializer
     
-    serializer_t *serializer = serializers[id % n_serializers];
-    int id_on_serializer = id / n_serializers;
+    serializer_t *serializer = serializers[id % cmd_config->n_serializers];
+    int id_on_serializer = id / cmd_config->n_serializers;
     
     int count_on_serializer = 0;
     for (int i = 0; i < cmd_config->n_slices; i++) {
-        if (i % n_serializers == id % n_serializers) count_on_serializer++;
+        if (i % cmd_config->n_serializers == id % cmd_config->n_serializers) count_on_serializer++;
     }
     assert(count_on_serializer >= 1);
-    assert(count_on_serializer >= cmd_config->n_slices / n_serializers);
-    assert(count_on_serializer <= cmd_config->n_slices / n_serializers + 1);
+    assert(count_on_serializer >= cmd_config->n_slices / cmd_config->n_serializers);
+    assert(count_on_serializer <= cmd_config->n_slices / cmd_config->n_serializers + 1);
     
     slices[id] = new btree_slice_t(
         serializer,
@@ -56,34 +111,36 @@ bool btree_key_value_store_t::create_a_slice_on_this_core(int id) {
         cmd_config->flush_timer_ms,
         cmd_config->flush_threshold_percent);
     
-    if (slices[id]->start(this)) return a_slice_is_ready();
-    else return false;
+    if (slices[id]->start(this)) on_slice_ready();
+    
+    return true;
 }
 
 void btree_key_value_store_t::on_slice_ready() {
 
-    a_slice_is_ready();
-}
-
-bool btree_key_value_store_t::a_slice_is_ready() {
-
-    return do_on_cpu(home_cpu, this, &btree_key_value_store_t::have_created_a_slice);
+    do_on_cpu(home_cpu, this, &btree_key_value_store_t::have_created_a_slice);
 }
 
 bool btree_key_value_store_t::have_created_a_slice() {
 
+    assert_cpu();
     messages_out--;
     if (messages_out == 0) {
-    
-        assert(state == state_starting_up);
-        state = state_ready;
-        
-        if (ready_callback) {
-            ready_callback->on_store_ready();
-        }
+        finish_start();
     }
     
     return true;
+}
+
+void btree_key_value_store_t::finish_start() {
+    
+    assert_cpu();
+    assert(state == state_starting_up);
+    state = state_ready;
+    
+    if (ready_callback) {
+        ready_callback->on_store_ready();
+    }
 }
 
 /* Hashing keys and choosing a slice for each key */
@@ -147,11 +204,8 @@ bool btree_key_value_store_t::shutdown(shutdown_callback_t *cb) {
     state = state_shutting_down;
     
     shutdown_callback = NULL;
-    messages_out = cmd_config->n_slices;
-    for (int id = 0; id < cmd_config->n_slices; id++) {
-        do_on_cpu(slices[id]->home_cpu, this, &btree_key_value_store_t::shutdown_a_slice, id);
-    }
-    if (messages_out == 0) {
+    shutdown_slices();
+    if (state == state_off) {
         return true;
     } else {
         shutdown_callback = cb;
@@ -159,35 +213,72 @@ bool btree_key_value_store_t::shutdown(shutdown_callback_t *cb) {
     }
 }
 
+void btree_key_value_store_t::shutdown_slices() {
+    
+    messages_out = cmd_config->n_slices;
+    for (int id = 0; id < cmd_config->n_slices; id++) {
+        do_on_cpu(slices[id]->home_cpu, this, &btree_key_value_store_t::shutdown_a_slice, id);
+    }
+}
+
 bool btree_key_value_store_t::shutdown_a_slice(int id) {
     
-    if (slices[id]->shutdown(this)) return a_slice_has_shutdown(slices[id]);
-    else return false;
+    if (slices[id]->shutdown(this)) on_slice_shutdown(slices[id]);
+    return true;
 }
 
 void btree_key_value_store_t::on_slice_shutdown(btree_slice_t *slice) {
-
-    a_slice_has_shutdown(slice);
-}
-
-bool btree_key_value_store_t::a_slice_has_shutdown(btree_slice_t *slice) {
     
     delete slice;
-    return do_on_cpu(home_cpu, this, &btree_key_value_store_t::have_shutdown_a_slice);
+    do_on_cpu(home_cpu, this, &btree_key_value_store_t::have_shutdown_a_slice);
 }
 
 bool btree_key_value_store_t::have_shutdown_a_slice() {
     
     messages_out--;
     if (messages_out == 0) {
-        
-        assert(state == state_shutting_down);
-        state = state_off;
-        
-        if (shutdown_callback) shutdown_callback->on_store_shutdown();
+        shutdown_serializers();
     }
     
     return true;
+}
+
+void btree_key_value_store_t::shutdown_serializers() {
+    
+    messages_out = cmd_config->n_serializers;
+    for (int id = 0; id < cmd_config->n_serializers; id++) {
+        do_on_cpu(serializers[id]->home_cpu, this, &btree_key_value_store_t::shutdown_a_serializer, id);
+    }
+}
+
+bool btree_key_value_store_t::shutdown_a_serializer(int id) {
+    
+    if (serializers[id]->shutdown(this)) on_serializer_shutdown(serializers[id]);
+    return true;
+}
+
+void btree_key_value_store_t::on_serializer_shutdown(serializer_t *serializer) {
+    
+    gdelete(serializer);
+    do_on_cpu(home_cpu, this, &btree_key_value_store_t::have_shutdown_a_serializer);
+}
+
+bool btree_key_value_store_t::have_shutdown_a_serializer() {
+    
+    messages_out--;
+    if (messages_out == 0) {
+        finish_shutdown();
+    }
+    
+    return true;
+}
+
+void btree_key_value_store_t::finish_shutdown() {
+    
+    assert(state == state_shutting_down);
+    state = state_off;
+    
+    if (shutdown_callback) shutdown_callback->on_store_shutdown();
 }
 
 btree_key_value_store_t::~btree_key_value_store_t() {
@@ -396,7 +487,7 @@ void btree_slice_t::on_initialize_superblock() {
 }
 
 btree_value::cas_t btree_slice_t::gen_cas() {
-    // A CAS value is made up of both a timestamp and a per-worker counter,
+    // A CAS value is made up of both a timestamp and a per-slice counter,
     // which should be enough to guarantee that it'll be unique.
     return (time(NULL) << 32) | (++cas_counter);
 }

@@ -28,9 +28,8 @@ class btree_slice_t :
 public:
     btree_slice_t(
         serializer_t *serializer,
-        int id_on_serializer,
-        int count_on_serializer,
-        
+        int id_on_this_serializer,
+        int count_on_this_serializer,
         size_t max_size,
         bool wait_for_flush,
         unsigned int flush_timer_ms,
@@ -104,12 +103,14 @@ provides the abstraction of a key-value store. */
 
 class btree_key_value_store_t :
     public home_cpu_mixin_t,
+    public serializer_t::ready_callback_t,
     public btree_slice_t::ready_callback_t,
-    public btree_slice_t::shutdown_callback_t
+    public btree_slice_t::shutdown_callback_t,
+    public serializer_t::shutdown_callback_t
 {
 
 public:
-    btree_key_value_store_t(cmd_config_t *cmd_config, serializer_t **serializers, int n_serializers);
+    btree_key_value_store_t(cmd_config_t *cmd_config);
     ~btree_key_value_store_t();
     
     struct ready_callback_t {
@@ -126,29 +127,50 @@ public:
 
 public:
     cmd_config_t *cmd_config;
-    serializer_t **serializers;
-    int n_serializers;
     
+    serializer_t *serializers[MAX_SERIALIZERS];
     btree_slice_t *slices[MAX_SLICES];
+    
     enum state_t {
         state_off,
         state_starting_up,
         state_ready,
         state_shutting_down
     } state;
+    
     int messages_out;
     
-    bool create_a_slice_on_this_core(int);   // Called for each slice on its thread
-    void on_slice_ready();
-    bool a_slice_is_ready();   // Called on each thread
-    bool have_created_a_slice();   // Called on home thread
-    ready_callback_t *ready_callback;
+    /* Startup process */
     
-    bool shutdown_a_slice(int id);   // Called for each slice on its thread
-    void on_slice_shutdown(btree_slice_t *slice);
-    bool a_slice_has_shutdown(btree_slice_t *slice);   // Called for each slice on its thread
-    bool have_shutdown_a_slice();   // Called on home thread
+    ready_callback_t *ready_callback;
+
+    void create_serializers();   // Called on home thread
+    bool create_a_serializer_on_this_core(int);   // Called for each serializer on its thread
+    void on_serializer_ready(serializer_t *ser);   // Called on serializer thread
+    bool have_created_a_serializer();   // Called on home thread
+    
+    void create_slices();   // Called on home thread
+    bool create_a_slice_on_this_core(int);   // Called for each slice on its thread
+    void on_slice_ready();   // Called on slice thread
+    bool have_created_a_slice();   // Called on home thread
+    
+    void finish_start();
+    
+    /* Shutdown process */
+    
     shutdown_callback_t *shutdown_callback;
+    
+    void shutdown_slices();   // Called on home thread
+    bool shutdown_a_slice(int id);   // Called on slice thread
+    void on_slice_shutdown(btree_slice_t *slice);   // Called on slice thread
+    bool have_shutdown_a_slice();   // Called on home thread
+    
+    void shutdown_serializers();   // Called on home thread
+    bool shutdown_a_serializer(int id);   // Called on serializer thread
+    void on_serializer_shutdown(serializer_t *serializer);   // Called on serializer thread
+    bool have_shutdown_a_serializer();   // Called on home thread
+    
+    void finish_shutdown();
 };
 
 // Other parts of the code refer to store_t instead of btree_key_value_store_t to
