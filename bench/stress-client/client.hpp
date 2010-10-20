@@ -167,16 +167,19 @@ void* run_client(void* data) {
 
     // Store the keys so we can run updates and deletes.
     vector<payload_t> keys;
+    vector<payload_t> op_keys;
 
     // Perform the ops
     ticks_t last_time = get_ticks(), last_qps_time = last_time, now_time;
     int qps = 0, tick = 0;
-    for(int i = 0; i < config->duration / config->clients; i++) {
+    int total_queries = 0;
+    while(total_queries < config->duration / config->clients) {
         // Generate the command
-        load_t::load_op_t cmd = config->load.toss();
+        load_t::load_op_t cmd = config->load.toss((config->batch_factor.min + config->batch_factor.max) / 2.0f);
 
         int _val;
         payload_t key, value;
+        int j, k, l; // because we can't declare in the loop
         
         switch(cmd) {
         case load_t::delete_op:
@@ -191,6 +194,8 @@ void* run_client(void* data) {
             free(key.first);
             keys[_val] = keys[keys.size() - 1];
             keys.erase(keys.begin() + _val);
+            qps++;
+            total_queries++;
             break;
             
         case load_t::update_op:
@@ -203,6 +208,8 @@ void* run_client(void* data) {
             proto->update(key.first, key.second, value.first, value.second);
             // Free the value
             free(value.first);
+            qps++;
+            total_queries++;
             break;
             
         case load_t::insert_op:
@@ -214,19 +221,32 @@ void* run_client(void* data) {
             // Free the value and save the key
             free(value.first);
             keys.push_back(key);
+            qps++;
+            total_queries++;
             break;
             
         case load_t::read_op:
             // Find the key
             if(keys.empty())
                 break;
-            key = keys[random(0, keys.size() - 1)];
+            op_keys.clear();
+            j = random(config->batch_factor.min, config->batch_factor.max);
+            j = std::min(j, (int)keys.size());
+            l = random(0, keys.size() - 1);
+            for(k = 0; k < j; k++) {
+                key = keys[l];
+                l++;
+                if(l >= keys.size())
+                    l = 0;
+                op_keys.push_back(key);
+            }
             // Read it from the server
-            proto->read(key.first, key.second);
+            proto->read(&op_keys[0], j);
+            qps += j;
+            total_queries += j;
             break;
         };
         now_time = get_ticks();
-        qps++;
 
         // Deal with individual op latency
         ticks_t latency = now_time - last_time;

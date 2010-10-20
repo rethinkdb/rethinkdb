@@ -31,6 +31,10 @@ void usage(const char *name) {
     printf("].\n");
     printf("\t-d, --duration\n\t\tDuration of the run specified in number of operations.\n" \
            "\t\tDefaults to [%ld].\n", _d.duration);
+    printf("\t-b, --batch-factor\n\t\tA range in DISTR format for average number of reads\n" \
+           "\t\tto perform in one shot. Defaults to [");
+    _d.batch_factor.print();
+    printf("].\n");
     printf("\t-l, --latency-file\n\t\tFile name to output individual latency information (in us).\n" \
            "\t\tThe information is not outputted if this argument is skipped.\n");
     printf("\t-q, --qps-file\n\t\tFile name to output QPS information.\n" \
@@ -57,6 +61,7 @@ void parse(config_t *config, int argc, char *argv[]) {
                 {"keys",           required_argument, 0, 'k'},
                 {"values",         required_argument, 0, 'v'},
                 {"duration",       required_argument, 0, 'd'},
+                {"batch-factor",   required_argument, 0, 'b'},
                 {"latency-file",   required_argument, 0, 'l'},
                 {"qps-file",       required_argument, 0, 'q'},
                 {"help",           no_argument, &do_help, 1},
@@ -64,7 +69,7 @@ void parse(config_t *config, int argc, char *argv[]) {
             };
 
         int option_index = 0;
-        int c = getopt_long(argc, argv, "n:p:c:w:k:v:d:l:q:h", long_options, &option_index);
+        int c = getopt_long(argc, argv, "n:p:c:w:k:v:d:b:l:q:h", long_options, &option_index);
 
         if(do_help)
             c = 'h';
@@ -97,6 +102,9 @@ void parse(config_t *config, int argc, char *argv[]) {
             break;
         case 'd':
             config->duration = atol(optarg);
+            break;
+        case 'b':
+            config->batch_factor.parse(optarg);
             break;
         case 'l':
             strncpy(config->latency_file, optarg, MAX_FILE);

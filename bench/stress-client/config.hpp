@@ -13,7 +13,7 @@ public:
         : port(11211),
           clients(64), load(load_t()),
           keys(distr_t(8, 16)), values(distr_t(8, 128)),
-          duration(10000000L)
+          duration(10000000L), batch_factor(distr_t(1, 16))
         {
             strcpy(host, "localhost");
             latency_file[0] = 0;
@@ -29,6 +29,8 @@ public:
         printf(", values: ");
         values.print();
         printf(" , duration: %ld", duration);
+        printf(", batch factor: ");
+        batch_factor.print();
 
         if(latency_file[0] != 0) {
             printf(", latency file: %s", latency_file);
@@ -49,6 +51,7 @@ public:
     distr_t keys;
     distr_t values;
     long duration;
+    distr_t batch_factor;
     char latency_file[MAX_FILE];
     char qps_file[MAX_FILE];
 };
