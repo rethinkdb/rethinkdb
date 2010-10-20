@@ -107,7 +107,7 @@ void parse_cmd_args(int argc, char *argv[], cmd_config_t *config)
             };
 
         int option_index = 0;
-        int c = getopt_long(argc, argv, "c:s:m:l:p:h", long_options, &option_index);
+        int c = getopt_long(argc, argv, "c:s:f:m:l:p:h", long_options, &option_index);
 
         if(do_help)
             c = 'h';

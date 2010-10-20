@@ -1,10 +1,22 @@
 import os
 import re
+import StringIO
 NEVENTS = 4
 
 ctrl_str = 'sudo opcontrol'
 rprt_str = 'opreport'
 exec_name = 'rethinkdb'
+
+class default_zero_dict(dict):
+    def __getitem__(self, key):
+        if key in self:
+            return self.get(key)
+        else:
+            return 0
+    def copy(self):
+        copy = default_zero_dict()
+        copy.update(self)
+        return copy
 
 def safe_div(x, y):
     if y == 0:
@@ -12,20 +24,43 @@ def safe_div(x, y):
     else:
         return x / y
 
+#dict add requires that dictionaries have the same schema while dict union does not
 def dict_add(x, y):
-    res = {}
-    assert len(x) == len(y)
-    for keyx, keyy in zip(sorted(x), sorted(y)):
-        assert keyx == keyy
-        res[keyx] = x[keyx]+ y[keyy]
+    res = x.copy() #to make sure we get the same kind of dict
+#assert len(x) == len(y)
+    for keyy in y.keys():
+        res[keyy] += y[keyy]
+    return res
+
+def dict_merge(x, y):
+    res = x.copy()
+    for key in y.keys():
+        if x.has_key(key):
+            res[key] = x[key] + y[key]
+        else:
+            res[key] = y[key]
+    return res
+
+#for counter totals
+def dict_union(x, y):
+    res = x.copy()
+    for key in y.keys():
+        if x.has_key(key):
+            res[key] = max(x[key], y[key]) #no good reason this has to be max (maybe it should be avg, or maybe we should scale them to be the same
+        else:
+            res[key] = y[key]
+    return res
+
+def tuple_union(x, y):
+    res = ()
+    for val in x:
+        res = res + (val,)
+    for val in y:
+        if not val in x:
+            res += (val,)
     return res
 
 class Event():
-    name = ''
-    count = 90000
-    mask = 0x01
-    kernel = 0
-    user = 1
     def __init__(self, _name, _count = 90000, _mask = 0x01, _kernel = 0, _user = 1):
         self.name = _name
         self.count = _count
@@ -33,7 +68,9 @@ class Event():
         self.kernel = _kernel
         self.user = _user
     def cmd_str(self):
-        return '--event=%s:%d:%x:%d:%d' % (self.name, self.count, self.mask, self.kernel, self.user)
+        return '--event=%s:%d:0x%.2x:%d:%d' % (self.name, self.count, self.mask, self.kernel, self.user)
+    def __str__(self):
+        return self.name
 
 class OProfile():
     def start(self, events):
@@ -82,30 +119,65 @@ class line():
             return False
                     
 class Function_report():
-    function_name = ''
-    counter_totals = {}
-    source_file = ''
-    lines = {} #number -> line_report
+    def __init__(self):
+        self.function_name = ''
+        self.counter_totals = default_zero_dict() #string -> int
+        self.source_file = ''
+        self.lines = {} #number -> line_report
+    def __add__(self, other):
+        res = Function_report()
+        assert self.function_name == other.function_name
+        res.function_name = self.function_name
+        res.counter_totals = dict_union(self.counter_totals, other.counter_totals)
+        res.source_file = max(self.source_file, other.source_file, key = lambda x: len(x))
+#res.lines = dict_merge(self.lines, other.lines)
+        return res
 
 class Line_report():
-    line_number = None
-    counter_totals = {}
     def __init__(self, _line_number, _counter_totals):
         self.line_number = _line_number
         self.counter_totals = _counter_totals
+    def __add__(self, other):
+        assert self.line_number == other.line_number
+        res = Line_report(self.line_number, dict_union(self.counter_totals, other.counter_totals))
 
 class Program_report():
-    object_name = ''
-    counter_totals = {}
-    counter_names = ('','','','')
-    functions = {} #string -> function_report
-    def __str__(self):
+    def __init__(self):
+        self.object_name = ''
+        self.counter_totals = default_zero_dict()
+        self.counter_names = ('','','','')
+        self.functions = {} #string -> function_report
+    def __repr__(self):
         res = ''
         for name, total in zip(self.counter_names, self.counter_totals):
             res += (str(name) + ": " + str(total) + ' ')
         res += '\n'
         res += str(self.functions)
         return res
+    def __add__(self, other):
+        assert  self.object_name == other.object_name or self.object_name == '' or other.object_name == '' #let's us add empty Program reports to anything
+        res = Program_report()
+        res.object_name = max(self.object_name, other.object_name, key = lambda x:len(x))
+        res.counter_totals = dict_union(self.counter_totals, other.counter_totals)
+        res.counter_names = tuple_union(self.counter_names, other.counter_names)
+        res.functions = dict_merge(self.functions, other.functions)
+        return res
+    def report(self, ratios, ordering_key, top_n = 5):
+        res = StringIO.StringIO()
+
+        print >>res, "Report on %s:" % self.object_name
+        for counter in self.counter_names:
+            print >>res, counter, ':', self.counter_totals[counter]
+
+        print >>res, "Top %d functions:" % top_n
+        function_list = sorted(self.functions.iteritems(), key = lambda x: x[1].counter_totals[ordering_key.name])
+        function_list.reverse()
+        for function in function_list[0:top_n]:
+            print >>res, function[1].function_name, ' ratios:'
+            for ratio in ratios:
+                print >>res, "\t%s / %s :" % (ratio.numerator, ratio.denominator),
+                print >>res, "%.2f" % safe_div(float(function[1].counter_totals[ratio.numerator.name]), function[1].counter_totals[ratio.denominator.name])
+        return res.getvalue()
 
 class parser():
     positions_line = line("positions: (\w+) (\w+)\n", [('instr', 's'), ('line', 's')])
@@ -116,7 +188,7 @@ class parser():
     source_line     = line("fi=\(\d+\)\s+(.+)\n", [('source_file', 's')])
     sample_line     = line("(0x[0-9a-fA-F]{8})\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\n", [('instruction', 'x'), ('line_number', 'd'), ('event1', 'd'), ('event2', 'd'), ('event3', 'd'), ('event4', 'd')])
     fident_line     = line("fi=\(\d+\)", [])
-    prog_report     = Program_report()
+    prog_report     = None
     def __init__(self):
         pass
 
@@ -167,10 +239,8 @@ class parser():
         if source:
             function_report.source_file = source['source_file']
 
-#set counter_totals to 0
-        function_report.counter_totals = {}
-        for i in range(len(self.prog_report.counter_names)):
-            function_report.counter_totals[self.prog_report.counter_names[i]] = 0
+#for i in range(len(self.prog_report.counter_names)):
+#function_report.counter_totals[self.prog_report.counter_names[i]] = 0
 
         samples = []
         while True:
@@ -179,12 +249,13 @@ class parser():
             if not res:
                 break
         for sample in samples:
-            line_report = Line_report(sample['line_number'], {self.prog_report.counter_names[0] : sample['event1'], self.prog_report.counter_names[1] : sample['event2'], self.prog_report.counter_names[2] : sample['event3'], self.prog_report.counter_names[3] : sample['event4']})
+            line_report = Line_report(sample['line_number'], default_zero_dict({self.prog_report.counter_names[0] : sample['event1'], self.prog_report.counter_names[1] : sample['event2'], self.prog_report.counter_names[2] : sample['event3'], self.prog_report.counter_names[3] : sample['event4']}))
             function_report.counter_totals = dict_add(function_report.counter_totals, line_report.counter_totals)
             function_report.lines[line_report.line_number] = line_report
         return function_report
             
     def parse_file(self, file_name):
+        self.prog_report = Program_report()
         file = open(file_name)
         data = file.readlines()
         data.reverse() #for some reason pop takes things off the back (it's shit like this Guido, shit like this)
@@ -219,28 +290,36 @@ class Profile():
         self.events = _events
         self.ratios = _ratios
         for r in self.ratios:
-            assert r.numerator in [e.name for e in self.events]
-            assert r.denominator in [e.name for e in self.events]
+            assert r.numerator.name in [e.name for e in self.events]
+            assert r.denominator.name in [e.name for e in self.events]
 
-#small packet ratios
+    def __repr__(self):
+        res = StringIO.StringIO()
+        print >>res, "Profile: ", 
+        for event in self.events:
+            print >>res, event,
+        return res.getvalue()
+
+    def copy(self):
+        return Profile(self.events, self.ratios)
+
+    def __add__(self, other):
+        res = self.copy()
+        for event in other.events:
+            if not event in res.events:
+                res.events.append(event)
+        for ratio in other.ratios:
+            if not ratio in res.ratios:
+                res.ratios.append(ratio)
+        return res
+
 class Ratio():
-    numerator = ''
-    denominator = ''
-    top_n = 5
 #_numerator and denominator should be Event()s
     def __init__(self, _numerator, _denominator):
-        self.numerator = _numerator.name
-        self.denominator = _denominator.name
-    def report(self, prog_report):
-        import StringIO
+        self.numerator = _numerator
+        self.denominator = _denominator
+    def __repr__(self):
         res = StringIO.StringIO()
-        print >>res, "%s / %s = " % (self.numerator, self.denominator)
-        print >>res, safe_div(prog_report.counter_totals[self.numerator], prog_report.counter_totals[self.denominator])
-
-        print >>res, "Top %d functions:" % self.top_n
-        function_list = sorted(prog_report.functions.iteritems(), key = lambda x: safe_div(x[1].counter_totals[self.numerator], x[1].counter_totals[self.denominator]))
-        function_list.reverse()
-        for function in function_list[0:self.top_n]:
-            print >>res, function[0], ' = ',
-            print >>res, safe_div(function[1].counter_totals[self.numerator], function[1].counter_totals[self.denominator])
+        print >>res, "Ratio: ",
+        print >>res, self.numerator, ' / ', self.denominator,
         return res.getvalue()

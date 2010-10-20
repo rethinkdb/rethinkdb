@@ -4,7 +4,8 @@
 server_t::server_t(cmd_config_t *cmd_config, thread_pool_t *thread_pool)
     : cmd_config(cmd_config), thread_pool(thread_pool),
       log_controller(cmd_config),
-      conn_acceptor(this) { }
+      conn_acceptor(this),
+      toggler(this) { }
 
 void server_t::do_start() {
     
@@ -159,4 +160,126 @@ void server_t::do_stop_threads() {
     // return to the event queue.
     thread_pool->shutdown();
     delete this;
+}
+
+bool server_t::disable_gc(all_gc_disabled_callback_t *cb) {
+    // The callback always gets called.
+
+    return do_on_cpu(home_cpu, this, &server_t::do_disable_gc, cb);
+}
+
+bool server_t::do_disable_gc(all_gc_disabled_callback_t *cb) {
+    assert_cpu();
+
+    return toggler.disable_gc(cb);
+}
+
+bool server_t::enable_gc(all_gc_enabled_callback_t *cb) {
+    // The callback always gets called.
+
+    return do_on_cpu(home_cpu, this, &server_t::do_enable_gc, cb);
+}
+
+bool server_t::do_enable_gc(all_gc_enabled_callback_t *cb) {
+    assert_cpu();
+
+    return toggler.enable_gc(cb);
+}
+
+
+server_t::gc_toggler_t::gc_toggler_t(server_t *server) : state_(enabled), num_disabled_serializers_(0), server_(server) { }
+
+bool server_t::gc_toggler_t::disable_gc(server_t::all_gc_disabled_callback_t *cb) {
+    // We _always_ call the callback.
+
+    if (state_ == enabled) {
+        assert(callbacks_.size() == 0);
+
+        int num_serializers = server_->cmd_config->n_serializers;
+        assert(num_serializers > 0);
+
+        state_ = disabling;
+
+        callbacks_.push_back(cb);
+
+        num_disabled_serializers_ = 0;
+        for (int i = 0; i < num_serializers; ++i) {
+            serializer_t::gc_disable_callback_t *this_as_callback = this;
+            do_on_cpu(server_->serializers[i]->home_cpu, server_->serializers[i], &serializer_t::disable_gc, this_as_callback);
+        }
+
+        return (state_ == disabled);
+    } else if (state_ == disabling) {
+        assert(callbacks_.size() > 0);
+        callbacks_.push_back(cb);
+        return false;
+    } else if (state_ == disabled) {
+        assert(state_ == disabled);
+        cb->multiple_users_seen = true;
+        cb->on_gc_disabled();
+        return true;
+    } else {
+        assert(0);
+        return false;  // Make compiler happy.
+    }
+}
+
+bool server_t::gc_toggler_t::enable_gc(all_gc_enabled_callback_t *cb) {
+    // Always calls the callback.
+
+    int num_serializers = server_->cmd_config->n_serializers;
+
+    // The return value of serializer_t::enable_gc is always true.
+
+    for (int i = 0; i < num_serializers; ++i) {
+        do_on_cpu(server_->serializers[i]->home_cpu, server_->serializers[i], &serializer_t::enable_gc);
+    }
+
+    if (state_ == enabled) {
+        cb->multiple_users_seen = true;
+    } else if (state_ == disabling) {
+        state_ = enabled;
+
+        // We tell the people requesting a disable that the disabling
+        // process was completed, but that multiple people are using
+        // it.
+        for (callback_vector_t::iterator p = callbacks_.begin(), e = callbacks_.end(); p < e; ++p) {
+            (*p)->multiple_users_seen = true;
+            (*p)->on_gc_disabled();
+        }
+
+        callbacks_.clear();
+
+        cb->multiple_users_seen = true;
+    } else if (state_ == disabled) {
+        state_ = enabled;
+        cb->multiple_users_seen = false;
+    }
+    cb->on_gc_enabled();
+
+    return true;
+}
+
+void server_t::gc_toggler_t::on_gc_disabled() {
+    assert(state_ == disabling);
+
+    int num_serializers = server_->cmd_config->n_serializers;
+
+    assert(num_disabled_serializers_ < num_serializers);
+
+    num_disabled_serializers_++;
+    if (num_disabled_serializers_ == num_serializers) {
+        // We are no longer disabling, we're now disabled!
+
+        bool multiple_disablers_seen = (callbacks_.size() > 1);
+
+        for (callback_vector_t::iterator p = callbacks_.begin(), e = callbacks_.end(); p < e; ++p) {
+            (*p)->multiple_users_seen = multiple_disablers_seen;
+            (*p)->on_gc_disabled();
+        }
+
+        callbacks_.clear();
+
+        state_ = disabled;
+    }
 }

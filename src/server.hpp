@@ -31,6 +31,24 @@ public:
     void do_start();
     void shutdown();   // Can be called from any thread
 
+    struct all_gc_disabled_callback_t {
+        bool multiple_users_seen;
+
+        all_gc_disabled_callback_t() : multiple_users_seen(false) { }
+        virtual void on_gc_disabled() = 0;
+    };
+    bool disable_gc(all_gc_disabled_callback_t *);
+
+    struct all_gc_enabled_callback_t {
+        bool multiple_users_seen;
+        
+        all_gc_enabled_callback_t() : multiple_users_seen(false) { }
+        virtual void on_gc_enabled() = 0;
+    };
+    bool enable_gc(all_gc_enabled_callback_t *);
+
+    
+
     cmd_config_t *cmd_config;
     thread_pool_t *thread_pool;
 
@@ -39,6 +57,11 @@ public:
     conn_acceptor_t conn_acceptor;
     
 private:
+
+    bool do_disable_gc(all_gc_disabled_callback_t *cb);
+    bool do_enable_gc(all_gc_enabled_callback_t *cb);
+
+
     
     int messages_out;
     
@@ -67,6 +90,34 @@ private:
     void do_message_flush();
     void on_message_flush();
     void do_stop_threads();
+
+    class gc_toggler_t : public serializer_t::gc_disable_callback_t {
+    public:
+        gc_toggler_t(server_t *server);
+        bool disable_gc(all_gc_disabled_callback_t *cb);
+        bool enable_gc(all_gc_enabled_callback_t *cb);
+        
+        void on_gc_disabled();
+
+    private:
+
+        enum toggle_state_t {
+            enabled,
+            disabling,
+            disabled
+        };
+
+        toggle_state_t state_;
+        int num_disabled_serializers_;
+        typedef std::vector<all_gc_disabled_callback_t *, gnew_alloc<all_gc_disabled_callback_t *> > callback_vector_t;
+        callback_vector_t callbacks_;
+
+        server_t *server_;
+
+        DISABLE_COPYING(gc_toggler_t);
+    };
+
+    gc_toggler_t toggler;
 };
 
 #endif // __SERVER_HPP__

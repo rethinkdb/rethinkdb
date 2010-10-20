@@ -616,3 +616,13 @@ void log_serializer_t::consider_start_gc() {
         data_block_manager.start_gc();
     }
 }
+
+
+bool log_serializer_t::disable_gc(gc_disable_callback_t *cb) {
+    return data_block_manager.disable_gc(cb);
+}
+
+bool log_serializer_t::enable_gc() {
+    data_block_manager.enable_gc();
+    return true;
+}

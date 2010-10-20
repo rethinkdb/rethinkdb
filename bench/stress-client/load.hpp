@@ -25,7 +25,14 @@ public:
     
     // Generates an operation to perform using the ratios as
     // probabilities.
-    load_op_t toss() {
+    load_op_t toss(float read_factor) {
+        // Scale everything by read factor (note, we don't divide
+        // reads because we might end up with zero too easily)
+        int deletes = this->deletes * read_factor;
+        int updates = this->updates * read_factor;
+        int inserts = this->inserts * read_factor;
+        
+        // Do the toss
         int total = deletes + updates + inserts + reads;
         int rand_op = random(0, total - 1);
         int acc = 0;
