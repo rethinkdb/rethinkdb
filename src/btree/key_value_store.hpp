@@ -22,6 +22,7 @@ provides the abstraction of a key-value store. */
 struct bkvs_start_new_serializer_fsm_t;
 struct bkvs_start_existing_serializer_fsm_t;
 
+<<<<<<< HEAD:src/btree/key_value_store.hpp
 class btree_key_value_store_t :
     public home_cpu_mixin_t,
     public standard_serializer_t::shutdown_callback_t
@@ -114,7 +115,12 @@ public:
     bool have_shutdown_a_serializer();   // Called on home thread
     
     void finish_shutdown();
+
+private:
+    DISABLE_COPYING(btree_key_value_store_t);
 };
+
+
 
 class initialize_superblock_fsm_t;
 
@@ -194,6 +200,9 @@ public:
     /* Statistics */
     int total_set_operations;
     perfmon_var_t<int> pm_total_set_operations;
+
+private:
+    DISABLE_COPYING(btree_slice_t);
 };
 
 // Other parts of the code refer to store_t instead of btree_key_value_store_t to
