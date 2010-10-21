@@ -18,7 +18,7 @@ public:
           qps_offset(0), latencies_offset(0),
           qps_fd(NULL), latencies_fd(NULL),
           protocol_factory(_protocol_factory),
-          last_qps(0), n_op(1), n_tick(1)
+          last_qps(0), n_op(1), n_tick(1), n_ops_so_far(0)
         {
             pthread_mutex_init(&mutex, NULL);
             
@@ -93,6 +93,11 @@ public:
     }
 
     void push_latency(float latency) {
+        n_ops_so_far++;
+        /*
+        if(n_ops_so_far % 200000 == 0)
+            printf("%ld\n", n_ops_so_far);
+        */
         if(!latencies_fd || last_qps == 0)
             return;
 
@@ -137,6 +142,7 @@ private:
 
     long n_op;
     int n_tick;
+    long n_ops_so_far;
 
 private:
     void lock() {
