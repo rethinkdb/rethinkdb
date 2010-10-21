@@ -18,8 +18,6 @@ struct btree_superblock_t {
     block_id_t root_block;
 };
 
-#define MAX_KEY_SIZE 250
-
 
 
 enum btree_node_type_enum {
