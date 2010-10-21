@@ -2,7 +2,20 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.mlab as mlab
 import re
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 
+class default_empty_dict(dict):
+    def __getitem__(self, key):
+        if key in self:
+            return self.get(key)
+        else:
+            return []
+    def copy(self):
+        copy = default_zero_dict()
+        copy.update(self)
+        return copy
+
+#TODO this code is copy pasted from oprofile.py. They should be moved out into a seperate library
 class line():
     regex = ""
     fields = [] #tuples of form name, type
@@ -18,12 +31,83 @@ class line():
                     val = int(matches.group(groupi))
                 elif (field[1] == 'f'):
                     val = float(matches.group(groupi))
+                elif (field[1] == 's'):
+                    val = matches.group(groupi)
                 else:
                     assert 0
                 result[field[0]] = val
             return result
         else:
             return False
+
+def take(line, data):
+    if len(data) == 0:
+        return False
+    matches = line.parse_line(data[len(data) - 1])
+    data.pop()
+    return matches
+
+#look through an array of data until you get a match (or run out of data)
+def until(line, data):
+    while len(data) > 0:
+        matches = line.parse_line(data[len(data) - 1])
+        data.pop()
+        if matches:
+            return matches
+    return False
+
+#iterate through lines while they match (and there's data)
+def read_while(lines, data):
+    res = []
+    while len(data) > 0:
+        for line in lines:
+            m = line.parse_line(data[len(data) - 1])
+            if m:
+                break
+        if m:
+            res.append(m)
+            data.pop()
+        else:
+            break
+    return res
+
+class IOStat():
+    file_hdr_line   = line("^Linux\s+[\d.]+\s+\(\w+\)\s+[\d\\]+\s+[\d_x]+\s+\(\d+\s+CPU\)$", [])
+    avg_cpu_hdr_line= line("^avg-cpu:  %user   %nice %system %iowait  %steal   %idle$", [])
+    avg_cpu_line    = line("^" + "\s+([\d\.]+" * 6 + "$", [('user', 'f'), ('nice', 'f'), ('system', 'f'), ('iowait', 'f'),  ('steal', 'f'),   ('idle', 'f')])
+    dev_hdr_line    = line("^Device:            tps   Blk_read/s   Blk_wrtn/s   Blk_read   Blk_wrtn$", [])
+    dev_line        = line("^(\w+)\s+([\d\.]+)\s+([\d\.]+)\s+([\d\.]+)\s+(\d+)\s+(\d+)$", [('device', 's'), ('tps', 'f'), (' Blk_read', 'f'), (' Blk_wrtn', 'f'), (' Blk_read', 'd'), (' Blk_wrtn', 'd')])
+
+    def __init__(self, file_name):
+        res = default_empty_dict()
+        self.data = self.parse_file(file_name)
+
+    def parse_file(self, file_name):
+        data = open(file_name).readlines()
+        data.reverse()
+        m = until(self.file_hdr_line, data)
+        assert m
+        while True:
+            m = until(self.avg_cpu_hdr_line, data)
+            if not m:
+                break
+
+            m = take(self.avg_cpu_line, data)
+            assert m
+            for val in m.iteritems():
+                res['cpu_' + val[0]].append(val[1])
+
+            m = until([self.dev_hdr_line], data)
+            assert m
+            for device in m:
+                dev_name = device.pop('device')
+                for val in device.iteritems():
+                    res['dev:' + dev_name + '_' + val[0]].append(val[1])
+
+class VMStat():
+    file_hdr_line   = line("^procs -----------memory---------- ---swap-- -----io---- -system-- ----cpu----$", [])
+    stats_hdr       = line("^r  b   swpd   free   buff  cache   si   so    bi    bo   in   cs us sy id wa$", [])
+
 
 class Latency():
     line = line("(\d+)\s+([\d.]+)\n", [('tick', 'd'), ('latency', 'f')])
@@ -48,13 +132,18 @@ class Latency():
     def scatter(self, out_fname):
         fig = plt.figure()
         ax = fig.add_subplot(111)
-        ax.scatter(range(len(self.data)), self.data, marker='o', c='g')
+        ax.plot(range(len(self.data)), self.data, 'g.-')
         ax.set_xlabel('Time (seconds)')
         ax.set_ylabel('latency')
         ax.set_xlim(0, len(self.data))
         ax.set_ylim(0, max(self.data) * 1.2)
         ax.grid(True)
         plt.savefig(out_fname)
+    def series_hist(self, out_fname):
+        fig = plt.figure(1, figsize=(10.0, 10.0))
+        ax = fig.add_subplot(111)
+        ax.plot(range(len(self.data)), self.data, 'g.-')
+
 
 
 def process_latency(fin, fout):
@@ -85,7 +174,7 @@ class QPS():
     def scatter(self, out_fname):
         fig = plt.figure()
         ax = fig.add_subplot(111)
-        ax.scatter(range(len(self.data)), self.data, marker='o', c='g')
+        ax.plot(range(len(self.data)), self.data, 'g.-')
         ax.set_xlabel('Time (seconds)')
         ax.set_ylabel('QPS')
         ax.set_xlim(0, len(self.data))
