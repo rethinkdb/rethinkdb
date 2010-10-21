@@ -320,15 +320,19 @@ struct ls_block_writer_t :
     log_serializer_t *ser;
     log_serializer_t::write_t write;
     iocallback_t *extra_cb;
+
+    // A buffer that's zeroed out (except in the beginning, where we
+    // write the block id), which we write upon deletion.  Can be NULL.
+    void *zerobuf;
     
     /* true if another write came along and changed the same buf again before we
     finished writing to disk. */
     bool superceded;
-    
+
     ls_block_writer_t(
         log_serializer_t *ser,
         const log_serializer_t::write_t &write)
-        : ser(ser), write(write) { }
+        : ser(ser), write(write), zerobuf(NULL) { }
     
     bool run(iocallback_t *cb) {
         extra_cb = NULL;
@@ -353,7 +357,7 @@ struct ls_block_writer_t :
 
         /* mark the garbage */
         off64_t gc_offset = ser->lba_index->get_block_offset(write.block_id);
-        if (gc_offset != -1)
+        if (gc_offset != DELETE_BLOCK)
             ser->data_block_manager->mark_garbage(gc_offset);
         
         if (write.buf) {
@@ -372,11 +376,35 @@ struct ls_block_writer_t :
             else return false;
         
         } else {
-        
+
             /* Deletion */
             ser->lba_index->set_block_offset(write.block_id, DELETE_BLOCK);
-            
-            return do_finish();
+
+            // TODO: Check that we aren't calling DO_WRITE for deletes
+            // with the assumption it will finish immediately..
+        
+            // TODO: We're going to be writing other version
+            // information next to the block_id.
+
+            /* We tell the data_block_manager to write a zero block to
+               make recovery from a corrupted file more likely.  We
+               don't need to add anything to the block_writer_map
+               because that's for readers' sake, and you can't read a
+               deleted block. */
+
+            // We write a zero buffer with the given block_id at the front.
+            zerobuf = ser->malloc();
+            bzero(zerobuf, ser->get_block_size());
+
+            off64_t new_offset;
+            bool done = ser->data_block_manager->write(zerobuf, write.block_id, &new_offset, this);
+            ser->data_block_manager->mark_garbage(new_offset);
+
+            if (done) {
+                return do_finish();
+            } else {
+                return false;
+            }
         }
     }
     
@@ -396,7 +424,8 @@ struct ls_block_writer_t :
         
         if (write.callback) write.callback->on_serializer_write_block();
         if (extra_cb) extra_cb->on_io_complete(NULL);
-        
+
+        ser->free(zerobuf);
         delete this;
         return true;
     }
