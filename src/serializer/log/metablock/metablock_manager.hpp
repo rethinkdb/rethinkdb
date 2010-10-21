@@ -20,19 +20,21 @@ class metablock_manager_t : private iocallback_t {
     const static uint32_t poly = 0x1337BEEF;
 
 private:
+
+    // This is stored directly to disk.  Changing it will change the disk format.
     struct crc_metablock_t {
         char magic_marker[sizeof(MB_MARKER_MAGIC)];
         char crc_marker[sizeof(MB_MARKER_CRC)];
-        uint32_t            _crc;            /* !< cyclic redundancy check */
+        uint32_t _crc;            /* !< cyclic redundancy check */
         char version_marker[sizeof(MB_MARKER_VERSION)];
-        int             version;
-        metablock_t     metablock;
+        int64_t version;
+        metablock_t metablock;
     public:
         uint32_t crc() {
             //TODO this doesn't do the version
             boost::crc_optimal<32, 0x04C11DB7, 0xFFFFFFFF, 0xFFFFFFFF, true, true> crc_computer;
+            crc_computer.process_bytes(&version, sizeof(version));
             crc_computer.process_bytes(&metablock, sizeof(metablock));
-            //crc_computer.process_bytes(&version, sizeof(version)); for some reason this causes crc to be wrong
             return crc_computer.checksum();
         }
         void set_crc() {
