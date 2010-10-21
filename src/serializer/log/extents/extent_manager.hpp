@@ -131,12 +131,12 @@ public:
         if (free_list_head == EXTENT_FREE_LIST_END) {
             extent = extents.get_size() * extent_size;
             extents.set_size(extents.get_size() + 1);
-            dbfile->set_size_at_least(extent + extent_size);
         } else {
             extent = free_list_head;
             free_list_head = extent_info(free_list_head);
         }
         
+        dbfile->set_size_at_least(extent + extent_size);
         extent_info(extent) = EXTENT_IN_USE;
         
         return extent;

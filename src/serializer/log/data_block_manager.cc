@@ -281,8 +281,9 @@ void data_block_manager_t::run_gc() {
                 return;
             }
 
-            // TODO: how far does this recurse?
-            run_gc();   // We might want to start another GC round
+            /* Start another GC round if appropriate. Note that this will recurse once at most,
+            because the read will never complete immediately. */
+            run_gc();
             break;
             
         default: fail("Unknown gc_step");

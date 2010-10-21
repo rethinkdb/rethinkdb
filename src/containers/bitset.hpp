@@ -25,7 +25,7 @@ public:
     
     bool test(unsigned int place) const {
         assert(place < size());
-        return bits[place / 64] & (1 << (place % 64));
+        return bits[place / 64] & (uint64_t(1) << (place % 64));
     }
     
     void set() {
@@ -38,10 +38,10 @@ public:
         assert(place < size());
         if (value) {
             if (!test(place)) _count++;
-            bits[place / 64] |= (1 << (place % 64));
+            bits[place / 64] |= (uint64_t(1) << (place % 64));
         } else {
             if (test(place)) _count--;
-            bits[place / 64] &= ~ (1 << (place % 64));
+            bits[place / 64] &= ~ (uint64_t(1) << (place % 64));
         }
     }
     
