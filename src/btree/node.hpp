@@ -11,9 +11,10 @@
 static const char btree_superblock_magic[] = {'b', 't', 'r', 'e', 'e', 's', 'b', 'k'};
 
 struct btree_superblock_t {
-    
+
     char magic[sizeof(btree_superblock_magic)];
     
+    int64_t database_exists;
     block_id_t root_block;
 };
 
@@ -81,6 +82,7 @@ struct btree_key {
     }
 };
 
+// Note: This struct is stored directly on disk.
 struct btree_value {
     uint8_t size;
     byte metadata_flags;
