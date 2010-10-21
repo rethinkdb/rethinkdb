@@ -8,6 +8,7 @@
 /* EPSILON to prevent split then merge bug */
 #define LEAF_EPSILON (sizeof(btree_key) + MAX_KEY_SIZE + sizeof(btree_value) + MAX_TOTAL_NODE_CONTENTS_SIZE)
 
+
 //Note: This struct is stored directly on disk.  Changing it invalidates old data.
 struct btree_leaf_pair {
     btree_key key;
@@ -16,16 +17,6 @@ struct btree_leaf_pair {
         return (btree_value *)( ((byte *)&key) + sizeof(btree_key) + key.size );
     }
 };
-
-
-//Note: This struct is stored directly on disk.  Changing it invalidates old data.
-struct btree_leaf_node : public btree_node {
-    uint16_t npairs;
-    uint16_t frontmost_offset; // The smallest offset in pair_offsets
-    uint16_t pair_offsets[0];
-};
-
-typedef btree_leaf_node leaf_node_t;
 
 class leaf_key_comp;
 

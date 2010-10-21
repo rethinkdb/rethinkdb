@@ -19,6 +19,49 @@ struct btree_superblock_t {
 
 #define MAX_KEY_SIZE 250
 
+
+
+enum btree_node_type_enum {
+    // Choose 1 and 2 instead of 0 and 1 to make it less likely that garbage will be interpreted as
+    // a valid node
+    btree_node_type_invalid = 0,
+    btree_node_type_leaf = 1,
+    btree_node_type_internal = 2
+};
+
+typedef uint16_t btree_node_type;
+
+
+
+
+//Note: This struct is stored directly on disk.  Changing it invalidates old data.
+struct btree_internal_node {
+    btree_node_type type;
+    uint16_t npairs;
+    uint16_t frontmost_offset;
+    uint16_t pair_offsets[0];
+};
+
+typedef btree_internal_node internal_node_t;
+
+
+
+//Note: This struct is stored directly on disk.  Changing it invalidates old data.
+struct btree_leaf_node {
+    btree_node_type type;
+    uint16_t npairs;
+    uint16_t frontmost_offset; // The smallest offset in pair_offsets
+    uint16_t pair_offsets[0];
+};
+
+typedef btree_leaf_node leaf_node_t;
+
+
+
+
+
+
+
 enum metadata_flags {
     MEMCACHED_FLAGS   = 0x01,
     MEMCACHED_CAS     = 0x02,
@@ -84,6 +127,9 @@ struct btree_value {
 
     typedef uint32_t mcflags_t;
     typedef uint64_t cas_t;
+
+    // TODO: We assume that time_t can be converted to an exptime_t,
+    // which is 32 bits.  We may run into problems in 2038 or 2106.
     typedef uint32_t exptime_t;
 
     // Every value has mcflags, but they're very often 0, in which case we just
@@ -179,17 +225,19 @@ struct btree_value {
     }
 };
 
-enum btree_node_type_enum {
-    // Choose 1 and 2 instead of 0 and 1 to make it less likely that garbage will be interpreted as
-    // a valid node
-    btree_node_type_leaf = 1,
-    btree_node_type_internal = 2
-};
-
-typedef uint16_t btree_node_type;
-
-struct btree_node {
+// A btree_node is either a btree_internal_node or a btree_leaf_node.
+//
+// Note: &type == &internal.type == &leaf.type.
+//
+// Note: The reason this is not a struct btree_node { btree_node_type
+// tag; union { btree_internal_node internal; btree_leaf_node leaf; }
+// u; } is that btree_node used to superclass
+// btree_{leaf|internal}_node, with one member, type.  A lot of code
+// freely casts between a subclass and parent class type.
+union btree_node {
     btree_node_type type;
+    btree_internal_node internal;
+    btree_leaf_node leaf;
 };
 
 typedef btree_node node_t;
