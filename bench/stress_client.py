@@ -2,7 +2,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.mlab as mlab
 import re
-from mpl_toolkits.axes_grid import make_axes_locatable
 
 def normalize(array):
     denom = max(map(lambda x: abs(x), array))
@@ -63,7 +62,8 @@ def until(line, data):
     while len(data) > 0:
         matches = line.parse_line(data[len(data) - 1])
         data.pop()
-        return matches
+        if matches != False:
+            return matches
     return False
 
 #iterate through lines while they match (and there's data)
@@ -97,7 +97,7 @@ class TimeSeries():
 class IOStat(TimeSeries):
     file_hdr_line   = line("Linux.*", [])
     avg_cpu_hdr_line= line("^avg-cpu:  %user   %nice %system %iowait  %steal   %idle$", [])
-    avg_cpu_line    = line("^" + "\s+([\d\.]+" * 6 + "$", [('user', 'f'), ('nice', 'f'), ('system', 'f'), ('iowait', 'f'),  ('steal', 'f'),   ('idle', 'f')])
+    avg_cpu_line    = line("^" + "\s+([\d\.]+)" * 6 + "$", [('user', 'f'), ('nice', 'f'), ('system', 'f'), ('iowait', 'f'),  ('steal', 'f'),   ('idle', 'f')])
     dev_hdr_line    = line("^Device:            tps   Blk_read/s   Blk_wrtn/s   Blk_read   Blk_wrtn$", [])
     dev_line        = line("^(\w+)\s+([\d\.]+)\s+([\d\.]+)\s+([\d\.]+)\s+(\d+)\s+(\d+)$", [('device', 's'), ('tps', 'f'), (' Blk_read', 'f'), (' Blk_wrtn', 'f'), (' Blk_read', 'd'), (' Blk_wrtn', 'd')])
 
@@ -112,20 +112,22 @@ class IOStat(TimeSeries):
         assert m != False
         while True:
             m = until(self.avg_cpu_hdr_line, data)
-            if not m:
+            if m == False:
                 break
 
             m = take(self.avg_cpu_line, data)
             assert m
             for val in m.iteritems():
-                res['cpu_' + val[0]].append(val[1])
+                res['cpu_' + val[0]] += [val[1]]
 
-            m = read_while([self.dev_hdr_line], data)
-            assert m
+            m = until(self.dev_hdr_line, data)
+            assert m != False
+
+            m = read_while([self.dev_line], data)
             for device in m:
                 dev_name = device.pop('device')
                 for val in device.iteritems():
-                    res['dev:' + dev_name + '_' + val[0]].append(val[1])
+                    res['dev:' + dev_name + '_' + val[0]] += [val[1]]
 
         return res
 
@@ -136,9 +138,9 @@ class IOStat(TimeSeries):
         fig = plt.figure()
         ax = fig.add_subplot(111)
         for series in self.data.iteritems():
-            ax.plot(range(len(series)), normalize(series), 'g.-')
+            ax.plot(range(len(series[1])), normalize(series[1]), 'g.-')
         ax.set_xlabel('Time (seconds)')
-        ax.set_xlim(0, len(self.data))
+        ax.set_xlim(0, len(self.data[self.data.keys()[0]]) - 1)
         ax.set_ylim(0, 1.0)
         ax.grid(True)
         plt.savefig(out_fname)
@@ -163,7 +165,7 @@ class VMStat():
         m = read_while([self.stats_line], data)
         for stat_line in m:
             for val in stat_line.iteritems():
-                res[val[0]].append(val[1])
+                res[val[0]]+= [val[1]]
         return res
 
 class Latency():
