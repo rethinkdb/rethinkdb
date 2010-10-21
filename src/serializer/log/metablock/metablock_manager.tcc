@@ -142,13 +142,15 @@ bool metablock_manager_t<metablock_t>::write_metablock(metablock_t *mb, metabloc
     } else {
         assert(!mb_buffer_in_use);
         memcpy(&(mb_buffer->metablock), mb, sizeof(metablock_t));
+        mb_buffer->version++;
+
         mb_buffer->set_crc();
         assert(mb_buffer->check_crc());
         mb_buffer_in_use = true;
         
         dbfile->write_async(head.offset(), DEVICE_BLOCK_SIZE, mb_buffer, this);
 
-        mb_buffer->version++;
+        // TODO: Does mb_buffer get copied immediately by write_async?  It had better be.
         head++;
 
         state = state_writing;
@@ -171,6 +173,13 @@ void metablock_manager_t<metablock_t>::shutdown() {
 }
 
 template<class metablock_t>
+void metablock_manager_t<metablock_t>::swap_buffers() {
+    crc_metablock_t *tmp = mb_buffer_last;
+    mb_buffer_last = mb_buffer;
+    mb_buffer = tmp;
+}
+
+template<class metablock_t>
 void metablock_manager_t<metablock_t>::on_io_complete(event_t *e) {
     bool done_looking = false; /* whether or not the value in mb_buffer_last is the real metablock */
     switch(state) {
@@ -183,7 +192,7 @@ void metablock_manager_t<metablock_t>::on_io_complete(event_t *e) {
                 head.push();
                 head++;
                 /* mb_buffer_last = mb_buffer and give mb_buffer mb_buffer_last's space so no realloc */
-                swap((void **) &mb_buffer_last, (void **) &mb_buffer);
+                swap_buffers();
                 if (head.wraparound) {
                     done_looking = true;
                 } else {
@@ -213,7 +222,7 @@ void metablock_manager_t<metablock_t>::on_io_complete(event_t *e) {
                 
             } else {
                 /* we found a metablock */
-                swap((void **) &mb_buffer_last, (void **) &mb_buffer);
+                swap_buffers();
 
                 /* set everything up */
                 version = -1; /* version is now useless */

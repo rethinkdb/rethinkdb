@@ -118,12 +118,14 @@ private:
     
     crc_metablock_t *mb_buffer;
     bool            mb_buffer_in_use;   /* !< true: we're using the buffer, no one else can */
-    
-private:
+
+
     /* these are only used in the beginning when we want to find the metablock */
     crc_metablock_t *mb_buffer_last;    /* the last metablock we read */
-    int             version;            /* !< only used during boot up */
+    int64_t         version;            /* !< only used during boot up */
     
+    void swap_buffers();
+
     extent_manager_t *extent_manager;
     
     std::vector<off64_t, gnew_alloc<off64_t> > metablock_offsets;
