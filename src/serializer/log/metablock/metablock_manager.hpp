@@ -31,8 +31,7 @@ private:
         metablock_t metablock;
     public:
         uint32_t crc() {
-            //TODO this doesn't do the version
-            boost::crc_optimal<32, 0x04C11DB7, 0xFFFFFFFF, 0xFFFFFFFF, true, true> crc_computer;
+            boost::crc_32_type crc_computer;
             crc_computer.process_bytes(&version, sizeof(version));
             crc_computer.process_bytes(&metablock, sizeof(metablock));
             return crc_computer.checksum();
