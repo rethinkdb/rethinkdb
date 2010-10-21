@@ -92,7 +92,16 @@ class TimeSeries():
         pass
 
     def plot(self, out_fname):
-        pass
+        assert self.data
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
+        for series in self.data.iteritems():
+            ax.plot(range(len(series[1])), normalize(series[1]), 'g.-')
+        ax.set_xlabel('Time (seconds)')
+        ax.set_xlim(0, len(self.data[self.data.keys()[0]]) - 1)
+        ax.set_ylim(0, 1.0)
+        ax.grid(True)
+        plt.savefig(out_fname)
 
 class IOStat(TimeSeries):
     file_hdr_line   = line("Linux.*", [])
@@ -134,22 +143,10 @@ class IOStat(TimeSeries):
     def histogram(self, out_fname):
         pass
 
-    def plot(self, out_fname):
-        fig = plt.figure()
-        ax = fig.add_subplot(111)
-        for series in self.data.iteritems():
-            ax.plot(range(len(series[1])), normalize(series[1]), 'g.-')
-        ax.set_xlabel('Time (seconds)')
-        ax.set_xlim(0, len(self.data[self.data.keys()[0]]) - 1)
-        ax.set_ylim(0, 1.0)
-        ax.grid(True)
-        plt.savefig(out_fname)
-
-
-class VMStat():
+class VMStat(TimeSeries):
     file_hdr_line   = line("^procs -----------memory---------- ---swap-- -----io---- -system-- ----cpu----$", [])
-    stats_hdr_line  = line("^r  b   swpd   free   buff  cache   si   so    bi    bo   in   cs us sy id wa$", [])
-    stats_line      = line("^" + "\s+(\d+)" * 14 + "$", [('r', 'd'),  ('b', 'd'),   ('swpd', 'd'),   ('free', 'd'),   ('buff', 'd'),  ('cache', 'd'),   ('si', 'd'),   ('so', 'd'),    ('bi', 'd'),    ('bo', 'd'),   ('in', 'd'),   ('cs', 'd'), ('us', 'd'), ('sy', 'd'), ('id', 'd'), ('wa', 'd')])
+    stats_hdr_line  = line("^ r  b   swpd   free   buff  cache   si   so    bi    bo   in   cs us sy id wa$", [])
+    stats_line      = line("\s+(\d+)" * 16, [('r', 'd'),  ('b', 'd'),   ('swpd', 'd'),   ('free', 'd'),   ('buff', 'd'),  ('cache', 'd'),   ('si', 'd'),   ('so', 'd'),    ('bi', 'd'),    ('bo', 'd'),   ('in', 'd'),   ('cs', 'd'), ('us', 'd'), ('sy', 'd'), ('id', 'd'), ('wa', 'd')])
 
     def __init__(self, file_name):
         self.data = self.parse_file(file_name)
@@ -158,14 +155,16 @@ class VMStat():
         res = default_empty_dict()
         data = open(file_name).readlines()
         data.reverse()
-        m = until(self.file_hdr_line, data)
-        assert m
-        m = take(self.stats_hdr_line, data)
-        assert m
-        m = read_while([self.stats_line], data)
-        for stat_line in m:
-            for val in stat_line.iteritems():
-                res[val[0]]+= [val[1]]
+        while True:
+            m = until(self.file_hdr_line, data)
+            if m == False:
+                break
+            m = take(self.stats_hdr_line, data)
+            assert m != False
+            m = read_while([self.stats_line], data)
+            for stat_line in m:
+                for val in stat_line.iteritems():
+                    res[val[0]]+= [val[1]]
         return res
 
 class Latency():
