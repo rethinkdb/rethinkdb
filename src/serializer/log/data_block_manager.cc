@@ -198,7 +198,10 @@ void data_block_manager_t::start_gc() {
 /* TODO this currently cleans extent by extent, we should tune it to always have a certain number of outstanding blocks
  */
 void data_block_manager_t::run_gc() {
-    switch (gc_state.step()) {
+    bool run_again = true;
+    while (run_again) {
+        run_again = false;
+        switch (gc_state.step()) {
     
         case gc_ready:
             //TODO, need to make sure we don't gc the extent we're writing to
@@ -290,12 +293,12 @@ void data_block_manager_t::run_gc() {
                 return;
             }
 
-            /* Start another GC round if appropriate. Note that this will recurse once at most,
-            because the read will never complete immediately. */
-            run_gc();
+            run_again = true;   // We might want to start another GC round
             break;
             
-        default: fail("Unknown gc_step");
+        default:
+            fail("Unknown gc_step");
+        }
     }
 }
 
