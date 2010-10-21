@@ -3,7 +3,7 @@
 #include "utils.hpp"
 #include "arch/arch.hpp"
 
-void data_block_manager_t::start(direct_file_t *file) {
+void data_block_manager_t::start_new(direct_file_t *file) {
 
     assert(state == state_unstarted);
     dbfile = file;
@@ -31,7 +31,7 @@ void data_block_manager_t::mark_live(off64_t offset) {
 
     if (entries.get(extent_id) == NULL) {
     
-        gc_entry *entry = new gc_entry(extent_id * extent_manager->extent_size);
+        gc_entry *entry = new gc_entry(extent_id * extent_manager->extent_size, extent_manager->extent_size / block_size);
         entries.set(extent_id, entry);
         
         extent_manager->reserve_extent(entry->offset);
@@ -50,7 +50,7 @@ void data_block_manager_t::end_reconstruct() {
     gc_state.set_step(gc_ready);
 }
 
-void data_block_manager_t::start(direct_file_t *file, metablock_mixin_t *last_metablock) {
+void data_block_manager_t::start_existing(direct_file_t *file, metablock_mixin_t *last_metablock) {
 
     assert(state == state_unstarted);
     dbfile = file;
@@ -101,22 +101,27 @@ void data_block_manager_t::start(direct_file_t *file, metablock_mixin_t *last_me
 bool data_block_manager_t::read(off64_t off_in, void *buf_out, iocallback_t *cb) {
 
     assert(state == state_ready);
-
-    dbfile->read_async(off_in, block_size, buf_out, cb);
+    
+    buf_data_t *data = (buf_data_t*)buf_out;
+    data--;
+    dbfile->read_async(off_in, block_size, data, cb);
 
     return false;
 }
 
-bool data_block_manager_t::write(void *buf_in, off64_t *off_out, iocallback_t *cb) {
+bool data_block_manager_t::write(void *buf_in, ser_block_id_t block_id, off64_t *off_out, iocallback_t *cb) {
     // Either we're ready to write, or we're shutting down and just
     // finished reading blocks for gc and called do_write.
     assert(state == state_ready
            || (state == state_shutting_down && gc_state.step() == gc_write));
 
-
     off64_t offset = *off_out = gimme_a_new_offset();
-
-    dbfile->write_async(offset, block_size, buf_in, cb);
+    
+    buf_data_t *data = (buf_data_t*)buf_in;
+    data--;
+    data->block_id = block_id;
+    
+    dbfile->write_async(offset, block_size, data, cb);
 
     return false;
 }
@@ -204,7 +209,7 @@ void data_block_manager_t::run_gc() {
             /* make sure the read callback knows who we are */
             gc_state.gc_read_callback.parent = this;
 
-            for (unsigned int i = 0; i < extent_manager->extent_size / BTREE_BLOCK_SIZE; i++) {
+            for (unsigned int i = 0; i < extent_manager->extent_size / block_size; i++) {
                 if (!gc_state.current_entry->g_array[i]) {
                     dbfile->read_async(
                         gc_state.current_entry->offset + (i * block_size),
@@ -237,13 +242,13 @@ void data_block_manager_t::run_gc() {
             log_serializer_t::write_t writes[num_writes];
             int current_write = 0;
 
-            for (unsigned int i = 0; i < extent_manager->extent_size / BTREE_BLOCK_SIZE; i++) {
+            for (unsigned int i = 0; i < extent_manager->extent_size / block_size; i++) {
                 /* We re-check the bit array here in case a write came in for one of the
                 blocks we are GCing. We wouldn't want to overwrite the new valid data with
                 out-of-date data. */
                 if (!gc_state.current_entry->g_array[i]) {
                     writes[current_write].block_id = *((ser_block_id_t *) (gc_state.gc_blocks + (i * block_size)));
-                    writes[current_write].buf = gc_state.gc_blocks + (i * block_size);
+                    writes[current_write].buf = gc_state.gc_blocks + (i * block_size) + sizeof(buf_data_t);
                     writes[current_write].callback = NULL;
                     current_write++;
                 }
@@ -342,7 +347,7 @@ off64_t data_block_manager_t::gimme_a_new_offset() {
     
     if (!last_data_extent) {
     
-        last_data_extent = new gc_entry(extent_manager);
+        last_data_extent = new gc_entry(extent_manager, extent_manager->extent_size / block_size);
         blocks_in_last_data_extent = 0;
 
         unsigned int extent_id = last_data_extent->offset / extent_manager->extent_size;
@@ -407,23 +412,19 @@ void data_block_manager_t::remove_last_unyoung_entry() {
 
 /* functions for gc structures */
 
-// Right now we start gc'ing when the garbage ratio is >= 0.75 (75%
-// garbage) and we gc all blocks with that ratio or higher.
-
-
 // Answers the following question: We're in the middle of gc'ing, and
 // look, it's the next largest entry.  Should we keep gc'ing?  Returns
 // false when the entry is active or young, or when its garbage ratio
 // is lower than GC_THRESHOLD_RATIO_*.
 bool data_block_manager_t::should_we_keep_gcing(const gc_entry& entry) const {
-    return !gc_state.should_be_stopped && garbage_ratio() > cmd_config->gc_low_ratio;
+    return !gc_state.should_be_stopped && garbage_ratio() > dynamic_config->gc_low_ratio;
 }
 
 // Answers the following question: Do we want to bother gc'ing?
 // Returns true when our garbage_ratio is greater than
 // GC_THRESHOLD_RATIO_*.
 bool data_block_manager_t::do_we_want_to_start_gcing() const {
-    return !gc_state.should_be_stopped && garbage_ratio() > cmd_config->gc_high_ratio;
+    return !gc_state.should_be_stopped && garbage_ratio() > dynamic_config->gc_high_ratio;
 }
 
 /* !< is x less than y */

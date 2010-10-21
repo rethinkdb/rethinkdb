@@ -16,7 +16,6 @@
 /**
  * The allocator system
  */
-typedef memalign_alloc_t<BTREE_BLOCK_SIZE> buffer_alloc_t; // TODO: we need a better allocator
 #ifdef VALGRIND
     typedef malloc_alloc_t alloc_t;
 #else

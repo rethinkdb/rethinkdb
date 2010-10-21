@@ -2,29 +2,18 @@
 #ifndef __SERIALIZER_STATIC_HEADER_HPP__
 #define __SERIALIZER_STATIC_HEADER_HPP__
 
-#include "config/args.hpp"
-#include <string.h>
+#include "arch/arch.hpp"
 
-#define BTREE_BLOCK_SIZE_MARKER "BTree Blocksize:"
-#define EXTENT_SIZE_MARKER      "Extent Size:"
+struct static_header_write_callback_t {
+    virtual void on_static_header_write() = 0;
+};
 
-struct static_header {
-    public:
-        char software_name[sizeof(SOFTWARE_NAME_STRING)];
-        char version[sizeof(VERSION_STRING)];
-        char btree_block_size_marker[sizeof(BTREE_BLOCK_SIZE_MARKER)];
-        uint64_t btree_block_size;
-        char extent_size_marker[sizeof(EXTENT_SIZE_MARKER)];
-        uint64_t extent_size;
+bool static_header_write(direct_file_t *file, void *data, size_t data_size, static_header_write_callback_t *cb);
 
-        static_header(uint64_t _btree_block_size, uint64_t _extent_size) {
-            mempcpy(software_name, SOFTWARE_NAME_STRING, sizeof(SOFTWARE_NAME_STRING));
-            mempcpy(version, VERSION_STRING, sizeof(VERSION_STRING));
-            memcpy(btree_block_size_marker, BTREE_BLOCK_SIZE_MARKER, sizeof(BTREE_BLOCK_SIZE_MARKER));
-            btree_block_size = _btree_block_size;
-            memcpy(extent_size_marker, EXTENT_SIZE_MARKER, sizeof(EXTENT_SIZE_MARKER));
-            extent_size = _extent_size;
-        }
-}__attribute__((__packed__));
+struct static_header_read_callback_t {
+    virtual void on_static_header_read() = 0;
+};
 
-#endif
+bool static_header_read(direct_file_t *file, void *data_out, size_t data_size, static_header_read_callback_t *cb);
+
+#endif /* __SERIALIZER_STATIC_HEADER_HPP__ */

@@ -10,7 +10,7 @@
 #define NUM_SEGMENTS(total_size, seg_size) ( ( ((total_size)-1) / (seg_size) ) + 1 )
 
 //#define MAX_LARGE_BUF_SEGMENTS ((((MAX_VALUE_SIZE) - 1) / (BTREE_BLOCK_SIZE)) + 1)
-#define MAX_LARGE_BUF_SEGMENTS (NUM_SEGMENTS((MAX_VALUE_SIZE), (BTREE_USABLE_BLOCK_SIZE)))
+#define MAX_LARGE_BUF_SEGMENTS (NUM_SEGMENTS((MAX_VALUE_SIZE), (4*KILOBYTE)))
 
 class large_buf_t;
 
@@ -43,6 +43,7 @@ private:
     large_buf_available_callback_t *callback;
 
     transaction_t *transaction;
+    size_t block_size;
 
     uint16_t num_acquired;
     buf_t *bufs[MAX_LARGE_BUF_SEGMENTS];
@@ -218,7 +219,6 @@ private:
             uint16_t seg_len;
             byte *buf = large_value->get_segment_write(ix, &seg_len);
             uint16_t bytes_to_transfer = std::min((uint32_t) seg_len - seg_pos, length);
-            assert(seg_pos + bytes_to_transfer <= BTREE_USABLE_BLOCK_SIZE);
             pos += bytes_to_transfer;
             length -= bytes_to_transfer;
             rh->fill_value(buf + seg_pos, bytes_to_transfer, this);

@@ -85,7 +85,7 @@ btree_get_fsm_t::transition_result_t btree_get_fsm_t::do_acquire_node(event_t *e
     }
     assert(buf);
 
-    node_handler::validate(node_handler::node(buf->get_data_read()));
+    node_handler::validate(cache->get_block_size(), node_handler::node(buf->get_data_read()));
 
     // Release the previous buffer
     last_buf->release();

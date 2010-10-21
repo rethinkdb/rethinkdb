@@ -6,14 +6,14 @@
 
 //In this tree, less than or equal takes the left-hand branch and greater than takes the right hand branch
 
-void internal_node_handler::init(btree_internal_node *node) {
+void internal_node_handler::init(size_t block_size, btree_internal_node *node) {
     node->type = btree_node_type_internal;
     node->npairs = 0;
-    node->frontmost_offset = BTREE_USABLE_BLOCK_SIZE;
+    node->frontmost_offset = block_size;
 }
 
-void internal_node_handler::init(btree_internal_node *node, btree_internal_node *lnode, uint16_t *offsets, int numpairs) {
-    init(node);
+void internal_node_handler::init(size_t block_size, btree_internal_node *node, btree_internal_node *lnode, uint16_t *offsets, int numpairs) {
+    init(block_size, node);
     for (int i = 0; i < numpairs; i++) {
         node->pair_offsets[node->npairs+i] = insert_pair(node, get_pair(lnode, offsets[i]));
     }
@@ -40,7 +40,7 @@ block_id_t internal_node_handler::lookup(const btree_internal_node *node, btree_
     return get_pair(node, node->pair_offsets[index])->lnode;
 }
 
-bool internal_node_handler::insert(btree_internal_node *node, btree_key *key, block_id_t lnode, block_id_t rnode) {
+bool internal_node_handler::insert(size_t block_size, btree_internal_node *node, btree_key *key, block_id_t lnode, block_id_t rnode) {
     //TODO: write a unit test for this
     check("key too large", key->size > MAX_KEY_SIZE);
     if (is_full(node)) return false;
@@ -61,7 +61,7 @@ bool internal_node_handler::insert(btree_internal_node *node, btree_key *key, bl
     return true; // XXX
 }
 
-bool internal_node_handler::remove(btree_internal_node *node, btree_key *key) {
+bool internal_node_handler::remove(size_t block_size, btree_internal_node *node, btree_key *key) {
 #ifdef BTREE_DEBUG
     printf("removing key\n");
     internal_node_handler::print(node);
@@ -77,16 +77,16 @@ bool internal_node_handler::remove(btree_internal_node *node, btree_key *key) {
     internal_node_handler::print(node);
 #endif
 
-    validate(node);
+    validate(block_size, node);
     return true; // XXX
 }
 
-void internal_node_handler::split(btree_internal_node *node, btree_internal_node *rnode, btree_key *median) {
+void internal_node_handler::split(size_t block_size, btree_internal_node *node, btree_internal_node *rnode, btree_key *median) {
 #ifdef BTREE_DEBUG
     printf("splitting key\n");
     internal_node_handler::print(node);
 #endif
-    uint16_t total_pairs = BTREE_BLOCK_SIZE - node->frontmost_offset;
+    uint16_t total_pairs = block_size - node->frontmost_offset;
     uint16_t first_pairs = 0;
     int index = 0;
     while (first_pairs < total_pairs/2) { // finds the median index
@@ -99,7 +99,7 @@ void internal_node_handler::split(btree_internal_node *node, btree_internal_node
     btree_key *median_key = &get_pair(node, node->pair_offsets[median_index-1])->key;
     keycpy(median, median_key);
 
-    init(rnode, node, node->pair_offsets + median_index, node->npairs - median_index);
+    init(block_size, rnode, node, node->pair_offsets + median_index, node->npairs - median_index);
 
     // TODO: This is really slow because most pairs will likely be copied
     // repeatedly.  There should be a better way.
@@ -114,11 +114,11 @@ void internal_node_handler::split(btree_internal_node *node, btree_internal_node
     printf("\t|\n\t|\n\t|\n\tV\n");
     internal_node_handler::print(node);
 #endif
-    validate(node);
-    validate(rnode);
+    validate(block_size, node);
+    validate(block_size, rnode);
 }
 
-void internal_node_handler::merge(btree_internal_node *node, btree_internal_node *rnode, btree_key *key_to_remove, btree_internal_node *parent) {
+void internal_node_handler::merge(size_t block_size, btree_internal_node *node, btree_internal_node *rnode, btree_key *key_to_remove, btree_internal_node *parent) {
 #ifdef BTREE_DEBUG
     printf("merging\n");
     printf("node:\n");
@@ -126,14 +126,14 @@ void internal_node_handler::merge(btree_internal_node *node, btree_internal_node
     printf("rnode:\n");
     internal_node_handler::print(rnode);
 #endif
-    validate(node);
-    validate(rnode);
+    validate(block_size, node);
+    validate(block_size, rnode);
     // get the key in parent which points to node
     btree_key *key_from_parent = &get_pair(parent, parent->pair_offsets[get_offset_index(parent, &get_pair(node, node->pair_offsets[0])->key)])->key;
 
     check("internal nodes too full to merge",
             sizeof(btree_internal_node) + (node->npairs + rnode->npairs)*sizeof(*node->pair_offsets) +
-            BTREE_BLOCK_SIZE - node->frontmost_offset + BTREE_BLOCK_SIZE - rnode->frontmost_offset + key_from_parent->size >= BTREE_BLOCK_SIZE);
+            block_size - node->frontmost_offset + block_size - rnode->frontmost_offset + key_from_parent->size >= block_size);
 
     memmove(rnode->pair_offsets + node->npairs, rnode->pair_offsets, rnode->npairs * sizeof(*rnode->pair_offsets));
 
@@ -151,12 +151,12 @@ void internal_node_handler::merge(btree_internal_node *node, btree_internal_node
     printf("rnode:\n");
     internal_node_handler::print(rnode);
 #endif
-    validate(rnode);
+    validate(block_size, rnode);
 }
 
-bool internal_node_handler::level(btree_internal_node *node, btree_internal_node *sibling, btree_key *key_to_replace, btree_key *replacement_key, btree_internal_node *parent) {
-    validate(node);
-    validate(sibling);
+bool internal_node_handler::level(size_t block_size, btree_internal_node *node, btree_internal_node *sibling, btree_key *key_to_replace, btree_key *replacement_key, btree_internal_node *parent) {
+    validate(block_size, node);
+    validate(block_size, sibling);
 #ifdef BTREE_DEBUG
     printf("levelling\n");
     printf("node:\n");
@@ -177,7 +177,7 @@ bool internal_node_handler::level(btree_internal_node *node, btree_internal_node
         while (true) { // TODO: find cleaner way to construct loop
             btree_internal_pair *pair_to_move = get_pair(sibling, sibling->pair_offsets[0]);
             uint16_t size_change = sizeof(*node->pair_offsets) + pair_size(pair_to_move);
-            if (node->npairs*sizeof(*node->pair_offsets) + BTREE_BLOCK_SIZE-node->frontmost_offset + size_change >= sibling->npairs*sizeof(*sibling->pair_offsets) + BTREE_BLOCK_SIZE-sibling->frontmost_offset - size_change)
+            if (node->npairs*sizeof(*node->pair_offsets) + block_size-node->frontmost_offset + size_change >= sibling->npairs*sizeof(*sibling->pair_offsets) + block_size-sibling->frontmost_offset - size_change)
                 break;
             node->pair_offsets[node->npairs++] = insert_pair(node, pair_to_move);
             delete_pair(sibling, sibling->pair_offsets[0]);
@@ -208,7 +208,7 @@ bool internal_node_handler::level(btree_internal_node *node, btree_internal_node
         while (true) { // TODO: find cleaner way to construct loop
             btree_internal_pair *pair_to_move = get_pair(sibling, sibling->pair_offsets[sibling->npairs-1]);
             uint16_t size_change = sizeof(*node->pair_offsets) + pair_size(pair_to_move);
-            if (node->npairs*sizeof(*node->pair_offsets) + BTREE_BLOCK_SIZE-node->frontmost_offset + size_change >= sibling->npairs*sizeof(*sibling->pair_offsets) + BTREE_BLOCK_SIZE-sibling->frontmost_offset - size_change)
+            if (node->npairs*sizeof(*node->pair_offsets) + block_size-node->frontmost_offset + size_change >= sibling->npairs*sizeof(*sibling->pair_offsets) + block_size-sibling->frontmost_offset - size_change)
                 break;
             offset = insert_pair(node, pair_to_move);
             insert_offset(node, offset, 0);
@@ -230,8 +230,8 @@ bool internal_node_handler::level(btree_internal_node *node, btree_internal_node
     printf("sibling:\n");
     internal_node_handler::print(sibling);
 #endif
-    validate(node);
-    validate(sibling);
+    validate(block_size, node);
+    validate(block_size, sibling);
     check("level made internal node dangerously full", change_unsafe(node));
     return true;
 }
@@ -289,31 +289,31 @@ bool internal_node_handler::change_unsafe(const btree_internal_node *node) {
     return sizeof(btree_internal_node) + node->npairs * sizeof(*node->pair_offsets) + MAX_KEY_SIZE >= node->frontmost_offset;
 }
 
-void internal_node_handler::validate(const btree_internal_node *node) {
+void internal_node_handler::validate(size_t block_size, const btree_internal_node *node) {
 #ifndef NDEBUG
     assert((void*)&(node->pair_offsets[node->npairs]) <= (void*)get_pair(node, node->frontmost_offset));
     assert(node->frontmost_offset > 0);
-    assert(node->frontmost_offset <= BTREE_BLOCK_SIZE);
+    assert(node->frontmost_offset <= block_size);
     for (int i = 0; i < node->npairs; i++) {
-        assert(node->pair_offsets[i] < BTREE_BLOCK_SIZE);
+        assert(node->pair_offsets[i] < block_size);
         assert(node->pair_offsets[i] >= node->frontmost_offset);
     }
     check("Offsets no longer in sorted order", !is_sorted(node->pair_offsets, node->pair_offsets+node->npairs, internal_key_comp(node)));
 #endif
 }
 
-bool internal_node_handler::is_underfull(const btree_internal_node *node) {
+bool internal_node_handler::is_underfull(size_t block_size, const btree_internal_node *node) {
 #ifdef DEBUG_MAX_INTERNAL
    return node->npairs < (DEBUG_MAX_INTERNAL + 1) / 2;
 #endif
     return (sizeof(btree_internal_node) + 1) / 2 + 
         node->npairs*sizeof(*node->pair_offsets) +
-        (BTREE_BLOCK_SIZE - node->frontmost_offset) +
+        (block_size - node->frontmost_offset) +
         /* EPSILON TODO this epsilon is too high lower it*/
-        INTERNAL_EPSILON * 2  < BTREE_BLOCK_SIZE / 2;
+        INTERNAL_EPSILON * 2  < block_size / 2;
 }
 
-bool internal_node_handler::is_mergable(const btree_internal_node *node, const btree_internal_node *sibling, const btree_internal_node *parent) {
+bool internal_node_handler::is_mergable(size_t block_size, const btree_internal_node *node, const btree_internal_node *sibling, const btree_internal_node *parent) {
 #ifdef DEBUG_MAX_INTERNAL
    return node->npairs + sibling->npairs < DEBUG_MAX_INTERNAL;
 #endif
@@ -325,10 +325,10 @@ bool internal_node_handler::is_mergable(const btree_internal_node *node, const b
    }
     return sizeof(btree_internal_node) + 
         (node->npairs + sibling->npairs + 1)*sizeof(*node->pair_offsets) +
-        (BTREE_BLOCK_SIZE - node->frontmost_offset) +
-        (BTREE_BLOCK_SIZE - sibling->frontmost_offset) + key_from_parent->size +
+        (block_size - node->frontmost_offset) +
+        (block_size - sibling->frontmost_offset) + key_from_parent->size +
         sizeof(btree_internal_pair) + MAX_KEY_SIZE +
-        INTERNAL_EPSILON < BTREE_BLOCK_SIZE; // must still have enough room for an arbitrary key
+        INTERNAL_EPSILON < block_size; // must still have enough room for an arbitrary key
 }
 
 bool internal_node_handler::is_singleton(const btree_internal_node *node) {
@@ -423,7 +423,6 @@ int internal_node_handler::nodecmp(const btree_internal_node *node1, const btree
 void internal_node_handler::print(const btree_internal_node *node) {
     int freespace = node->frontmost_offset - (sizeof(btree_internal_node) + (node->npairs + 1) * sizeof(*node->pair_offsets) + sizeof(btree_internal_pair) + MAX_KEY_SIZE);
     printf("Free space in node: %d\n",freespace);
-    printf("Used space: %ld)\n", BTREE_BLOCK_SIZE - freespace);
     for (int i = 0; i < node->npairs; i++) {
         btree_internal_pair *pair = get_pair(node, node->pair_offsets[i]);
         printf("|\t");

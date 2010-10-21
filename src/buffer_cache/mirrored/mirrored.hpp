@@ -97,18 +97,16 @@ public:
         assert(cached);
         assert(!safe_to_unload()); // If this assertion fails, it probably means that you're trying to access a buf you don't own.
         assert(!do_delete);
-        assert(sizeof(serializer_t::buf_data_t) == BLOCK_META_DATA_SIZE);
 
         writeback_buf.set_dirty();
 
-        return ((char *) data) + BLOCK_META_DATA_SIZE;
+        return (char *) data;
     }
 
     const void *get_data_read() {
         assert(cached);
         assert(!safe_to_unload()); // If this assertion fails, it probably means that you're trying to access a buf you don't own.
-        assert(sizeof(serializer_t::buf_data_t) == BLOCK_META_DATA_SIZE);
-        return ((char *) data) + BLOCK_META_DATA_SIZE;
+        return (char *) data;
     }
 
     block_id_t get_block_id() const { return block_id; }
@@ -153,6 +151,8 @@ public:
                    block_available_callback_t *callback);
     buf_t *allocate(block_id_t *new_block_id);
 
+    cache_t *cache;
+
 private:
     explicit mc_transaction_t(cache_t *cache, access_t access);
     ~mc_transaction_t();
@@ -160,7 +160,6 @@ private:
     virtual void on_lock_available() { begin_callback->on_txn_begin(this); }
     virtual void on_sync();
 
-    cache_t *cache;
     access_t access;
     transaction_begin_callback_t *begin_callback;
     transaction_commit_callback_t *commit_callback;
@@ -204,7 +203,6 @@ private:
     // many dependencies. The second is more strict, but might not be
     // extensible when some policy implementation requires access to
     // components it wasn't originally given.
-    buffer_alloc_t alloc;
     
     serializer_t *serializer;
     int id_on_serializer, count_on_serializer;
@@ -247,6 +245,8 @@ private:
     void on_free_list_ready();
     
 public:
+    
+    size_t get_block_size();
     
     // Transaction API
     transaction_t *begin_transaction(access_t access, transaction_begin_callback_t *callback);

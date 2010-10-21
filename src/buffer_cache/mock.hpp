@@ -108,6 +108,7 @@ public:
     };
     bool start(ready_callback_t *cb);
     
+    size_t get_block_size();
     transaction_t *begin_transaction(access_t access, transaction_begin_callback_t *callback);
     
     struct shutdown_callback_t {
@@ -121,7 +122,7 @@ private:
     friend class internal_buf_t;
     
     serializer_t *serializer;
-    buffer_alloc_t alloc;
+    malloc_alloc_t alloc;
     bool running;
     int n_transactions;
     size_t block_size;

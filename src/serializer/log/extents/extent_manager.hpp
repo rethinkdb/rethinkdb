@@ -73,7 +73,7 @@ public:
     }
 
 public:
-    void start(direct_file_t *file) {
+    void start_new(direct_file_t *file) {
         
         assert(state == state_reserving_extents);
         
@@ -95,9 +95,9 @@ public:
         state = state_running;
     }
 
-    void start(direct_file_t *file, metablock_mixin_t *last_metablock) {
+    void start_existing(direct_file_t *file, metablock_mixin_t *last_metablock) {
         
-        start(file);
+        start_new(file);
         
         assert(n_extents_in_use == last_metablock->debug_extents_in_use);
     }

@@ -3,15 +3,15 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-log_serializer_t::log_serializer_t(cmd_config_t *cmd_config, char *_db_path, size_t block_size)
-    : shutdown_callback(NULL),
-      block_size(block_size),
+log_serializer_t::log_serializer_t(const char *_db_path, dynamic_config_t *config)
+    : dynamic_config(config),
+      shutdown_callback(NULL),
       state(state_unstarted),
       dbfile(NULL),
-      extent_manager(EXTENT_SIZE),
-      metablock_manager(&extent_manager),
-      lba_index(&extent_manager),
-      data_block_manager(this, cmd_config, &extent_manager, block_size),
+      extent_manager(NULL),
+      metablock_manager(NULL),
+      lba_index(NULL),
+      data_block_manager(NULL),
       last_write(NULL),
       active_write_count(0) {
     
@@ -25,28 +25,124 @@ log_serializer_t::~log_serializer_t() {
     assert(active_write_count == 0);
 }
 
-/* The process of starting up the serializer is handled by the ls_start_fsm_t. This is not
+/* The process of starting up the serializer is handled by the ls_start_*_fsm_t. This is not
 necessary, because there is only ever one startup process for each serializer; the serializer could
 handle its own startup process. It is done this way to make it clear which parts of the serializer
 are involved in startup and which parts are not. */
 
-struct ls_start_fsm_t :
-    public mb_manager_t::metablock_read_callback_t,
-    public lba_index_t::ready_callback_t,
-    public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, ls_start_fsm_t >
+struct ls_start_new_fsm_t :
+    public static_header_write_callback_t,
+    public mb_manager_t::metablock_write_callback_t,
+    public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, ls_start_new_fsm_t>
 {
-    
-    ls_start_fsm_t(log_serializer_t *serializer)
-        : ser(serializer), state(state_start) {
-        
-        // TODO: Allocation
-        initial_superblock = (char *)malloc_aligned(serializer->block_size, DEVICE_BLOCK_SIZE);
-        bzero(initial_superblock, serializer->block_size);
+    ls_start_new_fsm_t(log_serializer_t *serializer)
+        : ser(serializer) {
     }
     
-    ~ls_start_fsm_t() {
+    ~ls_start_new_fsm_t() { }
     
-        free(initial_superblock);
+    bool run(log_serializer_t::static_config_t *config, log_serializer_t::ready_callback_t *ready_cb) {
+        
+        assert(ser->state == log_serializer_t::state_unstarted);
+        ser->state = log_serializer_t::state_starting_up;
+        
+        ser->static_config = *config;
+        
+        ser->dbfile = new direct_file_t(ser->db_path, direct_file_t::mode_read|direct_file_t::mode_write);
+        
+        ready_callback = NULL;
+        if (write_static_header()) {
+            return true;
+        } else {
+            ready_callback = ready_cb;
+            return false;
+        }
+    }
+    
+    bool write_static_header() {
+        
+        if (static_header_write(ser->dbfile, &ser->static_config, sizeof(ser->static_config), this)) {
+            return write_initial_metablock();
+        } else {
+            return false;
+        }
+    }
+    
+    void on_static_header_write() {
+        write_initial_metablock();
+    }
+    
+    log_serializer_t::metablock_t metablock_buffer;
+    
+    bool write_initial_metablock() {
+        
+        ser->extent_manager = gnew<extent_manager_t>(ser->static_config.extent_size);
+        ser->extent_manager->reserve_extent(0);   /* For static header */
+        
+        ser->metablock_manager = gnew<mb_manager_t>(ser->extent_manager);
+        ser->lba_index = gnew<lba_index_t>(ser->extent_manager);
+        ser->data_block_manager = gnew<data_block_manager_t>(ser, ser->dynamic_config, ser->extent_manager, ser->static_config.block_size);
+        
+        ser->metablock_manager->start_new(ser->dbfile);
+        ser->lba_index->start_new(ser->dbfile);
+        ser->data_block_manager->start_new(ser->dbfile);
+        
+        ser->extent_manager->start_new(ser->dbfile);
+
+#ifndef NDEBUG
+        ser->prepare_metablock(&ser->debug_mb_buffer);
+#endif
+
+        ser->prepare_metablock(&metablock_buffer);
+        
+        if (ser->metablock_manager->write_metablock(&metablock_buffer, this)) {
+            return finish();
+        } else {
+            return false;
+        }
+    }
+    
+    void on_metablock_write() {
+        finish();
+    }
+    
+    bool finish() {
+        
+        assert(ser->state == log_serializer_t::state_starting_up);
+        ser->state = log_serializer_t::state_ready;
+        
+        if(ready_callback)
+            ready_callback->on_serializer_ready(ser);
+        
+        delete this;
+        return true;
+    }
+    
+    log_serializer_t *ser;
+    log_serializer_t::ready_callback_t *ready_callback;
+};
+
+bool log_serializer_t::start_new(static_config_t *config, ready_callback_t *ready_cb) {
+    
+    assert(state == state_unstarted);
+    assert_cpu();
+    
+    ls_start_new_fsm_t *s = new ls_start_new_fsm_t(this);
+    return s->run(config, ready_cb);
+}
+
+struct ls_start_existing_fsm_t :
+    public static_header_read_callback_t,
+    public mb_manager_t::metablock_read_callback_t,
+    public lba_index_t::ready_callback_t,
+    public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, ls_start_existing_fsm_t >
+{
+    
+    ls_start_existing_fsm_t(log_serializer_t *serializer)
+        : ser(serializer), state(state_start) {
+    }
+    
+    ~ls_start_existing_fsm_t() {
     }
     
     bool run(log_serializer_t::ready_callback_t *ready_cb) {
@@ -57,7 +153,7 @@ struct ls_start_fsm_t :
         
         ser->dbfile = new direct_file_t(ser->db_path, direct_file_t::mode_read|direct_file_t::mode_write);
         
-        state = state_find_metablock;
+        state = state_read_static_header;
         ready_callback = NULL;
         if (next_starting_up_step()) {
             return true;
@@ -68,9 +164,27 @@ struct ls_start_fsm_t :
     }
     
     bool next_starting_up_step() {
-    
+        
+        if (state == state_read_static_header) {
+        
+            if (static_header_read(ser->dbfile, &ser->static_config, sizeof(ser->static_config), this)) {
+                state = state_find_metablock;
+            } else {
+                state = state_waiting_for_static_header;
+                return false;
+            }
+        }
+        
         if (state == state_find_metablock) {
-            if (ser->metablock_manager.start(ser->dbfile, &metablock_found, &metablock_buffer, this)) {
+        
+            ser->extent_manager = gnew<extent_manager_t>(ser->static_config.extent_size);
+            ser->extent_manager->reserve_extent(0);   /* For static header */
+            
+            ser->metablock_manager = gnew<mb_manager_t>(ser->extent_manager);
+            ser->lba_index = gnew<lba_index_t>(ser->extent_manager);
+            ser->data_block_manager = gnew<data_block_manager_t>(ser, ser->dynamic_config, ser->extent_manager, ser->static_config.block_size);
+            
+            if (ser->metablock_manager->start_existing(ser->dbfile, &metablock_found, &metablock_buffer, this)) {
                 state = state_start_lba;
             } else {
                 state = state_waiting_for_metablock;
@@ -79,38 +193,31 @@ struct ls_start_fsm_t :
         }
         
         if (state == state_start_lba) {
-            if (metablock_found) {
+            
+            if (!metablock_found) fail("Could not find any valid metablock.");
+            
 #ifndef NDEBUG
-                memcpy(&ser->debug_mb_buffer, &metablock_buffer, sizeof(metablock_buffer));
+            memcpy(&ser->debug_mb_buffer, &metablock_buffer, sizeof(metablock_buffer));
 #endif
-                if (ser->lba_index.start(ser->dbfile, &metablock_buffer.lba_index_part, this)) {
-                    state = state_reconstruct;
-                } else {
-                    state = state_waiting_for_lba;
-                    return false;
-                }
+            if (ser->lba_index->start_existing(ser->dbfile, &metablock_buffer.lba_index_part, this)) {
+                state = state_reconstruct;
             } else {
-                ser->lba_index.start(ser->dbfile);
-                ser->data_block_manager.start(ser->dbfile);
-                ser->extent_manager.start(ser->dbfile);
-                state = state_finish;
-#ifndef NDEBUG
-                ser->prepare_metablock(&ser->debug_mb_buffer);
-#endif
+                state = state_waiting_for_lba;
+                return false;
             }
         }
         
         if (state == state_reconstruct) {
 
-            ser->data_block_manager.start_reconstruct();
-            for (ser_block_id_t id = 0; id < ser->lba_index.max_block_id(); id++) {
-                off64_t offset = ser->lba_index.get_block_offset(id);
-                if (offset != DELETE_BLOCK) ser->data_block_manager.mark_live(offset);
+            ser->data_block_manager->start_reconstruct();
+            for (ser_block_id_t id = 0; id < ser->lba_index->max_block_id(); id++) {
+                off64_t offset = ser->lba_index->get_block_offset(id);
+                if (offset != DELETE_BLOCK) ser->data_block_manager->mark_live(offset);
             }
-            ser->data_block_manager.end_reconstruct();
-            ser->data_block_manager.start(ser->dbfile, &metablock_buffer.data_block_manager_part);
+            ser->data_block_manager->end_reconstruct();
+            ser->data_block_manager->start_existing(ser->dbfile, &metablock_buffer.data_block_manager_part);
             
-            ser->extent_manager.start(ser->dbfile, &metablock_buffer.extent_manager_part);
+            ser->extent_manager->start_existing(ser->dbfile, &metablock_buffer.extent_manager_part);
             
             state = state_finish;
         }
@@ -123,13 +230,11 @@ struct ls_start_fsm_t :
                 ready_callback->on_serializer_ready(ser);
 
 #ifndef NDEBUG
-            if(metablock_found) {
-                log_serializer_t::metablock_t debug_mb_buffer;
-                ser->prepare_metablock(&debug_mb_buffer);
-                // Make sure that the metablock has not changed since the last
-                // time we recorded it
-                assert(memcmp(&debug_mb_buffer, &ser->debug_mb_buffer, sizeof(debug_mb_buffer)) == 0);
-            }
+            log_serializer_t::metablock_t debug_mb_buffer;
+            ser->prepare_metablock(&debug_mb_buffer);
+            // Make sure that the metablock has not changed since the last
+            // time we recorded it
+            assert(memcmp(&debug_mb_buffer, &ser->debug_mb_buffer, sizeof(debug_mb_buffer)) == 0);
 #endif
    
             delete this;
@@ -137,6 +242,12 @@ struct ls_start_fsm_t :
         }
         
         fail("Invalid state.");
+    }
+    
+    void on_static_header_read() {
+        assert(state == state_waiting_for_static_header);
+        state = state_find_metablock;
+        next_starting_up_step();
     }
     
     void on_metablock_read() {
@@ -156,6 +267,8 @@ struct ls_start_fsm_t :
     
     enum state_t {
         state_start,
+        state_read_static_header,
+        state_waiting_for_static_header,
         state_find_metablock,
         state_waiting_for_metablock,
         state_start_lba,
@@ -167,17 +280,33 @@ struct ls_start_fsm_t :
     
     bool metablock_found;
     log_serializer_t::metablock_t metablock_buffer;
-    
-    char *initial_superblock;
 };
 
-bool log_serializer_t::start(ready_callback_t *ready_cb) {
+bool log_serializer_t::start_existing(ready_callback_t *ready_cb) {
 
     assert(state == state_unstarted);
     assert_cpu();
     
-    ls_start_fsm_t *s = new ls_start_fsm_t(this);
+    ls_start_existing_fsm_t *s = new ls_start_existing_fsm_t(this);
     return s->run(ready_cb);
+}
+
+void *log_serializer_t::malloc() {
+    
+    assert(state == state_ready);
+    
+    byte_t *data = (byte_t*)malloc_aligned(static_config.block_size, DEVICE_BLOCK_SIZE);
+    data += sizeof(data_block_manager_t::buf_data_t);
+    return (void*)data;
+}
+
+void log_serializer_t::free(void *ptr) {
+    
+    assert(state == state_ready);
+    
+    byte_t *data = (byte_t*)ptr;
+    data -= sizeof(data_block_manager_t::buf_data_t);
+    ::free((void*)data);
 }
 
 /* Each transaction written is handled by a new ls_write_fsm_t instance. This is so that
@@ -225,16 +354,15 @@ struct ls_block_writer_t :
         }
 
         /* mark the garbage */
-        off64_t gc_offset = ser->lba_index.get_block_offset(write.block_id);
+        off64_t gc_offset = ser->lba_index->get_block_offset(write.block_id);
         if (gc_offset != -1)
-            ser->data_block_manager.mark_garbage(gc_offset);
+            ser->data_block_manager->mark_garbage(gc_offset);
         
         if (write.buf) {
         
             off64_t new_offset;
-            *(ser_block_id_t *) write.buf = write.block_id;
-            bool done = ser->data_block_manager.write(write.buf, &new_offset, this);
-            ser->lba_index.set_block_offset(write.block_id, new_offset);
+            bool done = ser->data_block_manager->write(write.buf, write.block_id, &new_offset, this);
+            ser->lba_index->set_block_offset(write.block_id, new_offset);
             
             /* Insert ourselves into the block_writer_map so that if a reader comes looking for the
             block before we finish writing it to disk, it will be able to find us to get the most
@@ -248,7 +376,7 @@ struct ls_block_writer_t :
         } else {
         
             /* Deletion */
-            ser->lba_index.set_block_offset(write.block_id, DELETE_BLOCK);
+            ser->lba_index->set_block_offset(write.block_id, DELETE_BLOCK);
             
             return do_finish();
         }
@@ -327,7 +455,7 @@ struct ls_write_fsm_t :
         ser->active_write_count++;
         
         /* Start an extent manager transaction so we can allocate and release extents */
-        extent_txn = ser->extent_manager.begin_transaction();
+        extent_txn = ser->extent_manager->begin_transaction();
         
         state = state_waiting_for_data_and_lba;
         
@@ -341,7 +469,7 @@ struct ls_write_fsm_t :
         
         /* Sync the LBA */
         
-        offsets_were_written = ser->lba_index.sync(this);
+        offsets_were_written = ser->lba_index->sync(this);
         
         /* Prepare metablock now instead of in when we write it so that we will have the correct
         metablock information for this write even if another write starts before we finish writing
@@ -351,7 +479,7 @@ struct ls_write_fsm_t :
         
         /* Stop the extent manager transaction so another one can start, but don't commit it
         yet */
-        ser->extent_manager.end_transaction(extent_txn);
+        ser->extent_manager->end_transaction(extent_txn);
         
         /* Get in line for the metablock manager */
         
@@ -401,7 +529,7 @@ struct ls_write_fsm_t :
         
         state = state_waiting_for_metablock;
         
-        bool done = ser->metablock_manager.write_metablock(&mb_buffer, this);
+        bool done = ser->metablock_manager->write_metablock(&mb_buffer, this);
         
         /* If there was another transaction waiting for us to write our metablock so it could
         write its metablock, notify it now so it can write its metablock. */
@@ -426,7 +554,7 @@ struct ls_write_fsm_t :
         ser->active_write_count--;
 
         /* End the extent manager transaction so the extents can actually get reused. */
-        ser->extent_manager.commit_transaction(extent_txn);
+        ser->extent_manager->commit_transaction(extent_txn);
         
         state = state_done;
         
@@ -498,17 +626,22 @@ bool log_serializer_t::do_read(ser_block_id_t block_id, void *buf, read_callback
     
         /* We are not currently writing the block; go to disk to get it */
         
-        off64_t offset = lba_index.get_block_offset(block_id);
+        off64_t offset = lba_index->get_block_offset(block_id);
         assert(offset != DELETE_BLOCK);   // Make sure the block actually exists
         
-        return data_block_manager.read(offset, buf, callback);
+        return data_block_manager->read(offset, buf, callback);
     
     } else {
         
         /* We are currently writing the block; we can just get it from memory */
-        memcpy(buf, (*it).second->write.buf, block_size);
+        memcpy(buf, (*it).second->write.buf, get_block_size());
         return true;
     }
+}
+
+size_t log_serializer_t::get_block_size() {
+    
+    return static_config.block_size - sizeof(data_block_manager_t::buf_data_t);
 }
 
 ser_block_id_t log_serializer_t::max_block_id() {
@@ -516,7 +649,7 @@ ser_block_id_t log_serializer_t::max_block_id() {
     assert(state == state_ready);
     assert_cpu();
     
-    return lba_index.max_block_id();
+    return lba_index->max_block_id();
 }
 
 bool log_serializer_t::block_in_use(ser_block_id_t id) {
@@ -524,7 +657,7 @@ bool log_serializer_t::block_in_use(ser_block_id_t id) {
     assert(state == state_ready);
     assert_cpu();
     
-    return lba_index.get_block_offset(id) != DELETE_BLOCK;
+    return lba_index->get_block_offset(id) != DELETE_BLOCK;
 }
 
 bool log_serializer_t::shutdown(shutdown_callback_t *cb) {
@@ -557,7 +690,7 @@ bool log_serializer_t::next_shutdown_step() {
 
     if(shutdown_state == shutdown_waiting_on_serializer) {
         shutdown_state = shutdown_waiting_on_datablock_manager;
-        if(!data_block_manager.shutdown(this)) {
+        if(!data_block_manager->shutdown(this)) {
             shutdown_in_one_shot = false;
             return false;
         }
@@ -565,15 +698,27 @@ bool log_serializer_t::next_shutdown_step() {
 
     if(shutdown_state == shutdown_waiting_on_datablock_manager) {
         shutdown_state = shutdown_waiting_on_lba;
-        if(!lba_index.shutdown(this)) {
+        if(!lba_index->shutdown(this)) {
             shutdown_in_one_shot = false;
             return false;
         }
     }
 
     if(shutdown_state == shutdown_waiting_on_lba) {
-        metablock_manager.shutdown();
-        extent_manager.shutdown();
+        metablock_manager->shutdown();
+        extent_manager->shutdown();
+        
+        gdelete(lba_index);
+        lba_index = NULL;
+        
+        gdelete(data_block_manager);
+        data_block_manager = NULL;
+        
+        gdelete(metablock_manager);
+        metablock_manager = NULL;
+        
+        gdelete(extent_manager);
+        extent_manager = NULL;
         
         delete dbfile;
         dbfile = NULL;
@@ -603,26 +748,27 @@ void log_serializer_t::on_lba_shutdown() {
 
 void log_serializer_t::prepare_metablock(metablock_t *mb_buffer) {
     bzero(mb_buffer, sizeof(*mb_buffer));
-    extent_manager.prepare_metablock(&mb_buffer->extent_manager_part);
-    data_block_manager.prepare_metablock(&mb_buffer->data_block_manager_part);
-    lba_index.prepare_metablock(&mb_buffer->lba_index_part);
+    extent_manager->prepare_metablock(&mb_buffer->extent_manager_part);
+    data_block_manager->prepare_metablock(&mb_buffer->data_block_manager_part);
+    lba_index->prepare_metablock(&mb_buffer->lba_index_part);
 }
 
 
 void log_serializer_t::consider_start_gc() {
-    if (data_block_manager.do_we_want_to_start_gcing() && state == log_serializer_t::state_ready) {
+    if (data_block_manager->do_we_want_to_start_gcing() && state == log_serializer_t::state_ready) {
         // We do not do GC if we're not in the ready state
         // (i.e. shutting down)
-        data_block_manager.start_gc();
+        data_block_manager->start_gc();
     }
 }
 
 
 bool log_serializer_t::disable_gc(gc_disable_callback_t *cb) {
-    return data_block_manager.disable_gc(cb);
+    return data_block_manager->disable_gc(cb);
 }
 
 bool log_serializer_t::enable_gc() {
-    data_block_manager.enable_gc();
+    data_block_manager->enable_gc();
     return true;
 }
+

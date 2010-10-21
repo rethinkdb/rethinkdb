@@ -191,12 +191,12 @@ typedef btree_node node_t;
 class node_handler {
     public:
         static bool is_leaf(const btree_node *node) {
-            validate(node);
+            assert(node->type == btree_node_type_leaf || node->type == btree_node_type_internal);
             return node->type == btree_node_type_leaf;
         }
 
         static bool is_internal(const btree_node *node) {
-            validate(node);
+            assert(node->type == btree_node_type_leaf || node->type == btree_node_type_internal);
             return node->type == btree_node_type_internal;
         }
 
@@ -207,16 +207,16 @@ class node_handler {
             buf->size = (unsigned char)len;
         }
 
-        static bool is_underfull(const btree_node *node);
-        static bool is_mergable(const btree_node *node, const btree_node *sibling, const btree_node *parent);
+        static bool is_underfull(size_t block_size, const btree_node *node);
+        static bool is_mergable(size_t block_size, const btree_node *node, const btree_node *sibling, const btree_node *parent);
         static int nodecmp(const btree_node *node1, const btree_node *node2);
-        static void merge(btree_node *node, btree_node *rnode, btree_key *key_to_remove, btree_node *parent);
-        static void remove(btree_node *node, btree_key *key);
-        static bool level(btree_node *node, btree_node *rnode, btree_key *key_to_replace, btree_key *replacement_key, btree_node *parent);
+        static void merge(size_t block_size, btree_node *node, btree_node *rnode, btree_key *key_to_remove, btree_node *parent);
+        static void remove(size_t block_size, btree_node *node, btree_key *key);
+        static bool level(size_t block_size, btree_node *node, btree_node *rnode, btree_key *key_to_replace, btree_key *replacement_key, btree_node *parent);
 
         static void print(const btree_node *node);
         
-        static void validate(const btree_node *node);
+        static void validate(size_t block_size, const btree_node *node);
         
         static inline const btree_node* node(const void *ptr) {
             return (const btree_node *) ptr;

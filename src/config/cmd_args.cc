@@ -45,7 +45,10 @@ void usage(const char *name) {
 
     printf("      --gc-range low-high  (e.g. --gc-range 0.5-0.75)\n"
            "\t\t\tThe proportion of garbage maintained by garbage collection.\n");
-
+    
+    printf("\nOptions for new databases:\n");
+    printf("      --block-size\t\tSize of a block.\n");
+    printf("      --blocks-per-extent\t\tBlocks per extent.\n");
     
     exit(-1);
 }
@@ -71,15 +74,20 @@ void init_config(cmd_config_t *config) {
     config->n_workers = get_cpu_count();
     config->n_serializers = 1;
 
-    config->gc_low_ratio = DEFAULT_GC_LOW_RATIO;
-    config->gc_high_ratio = DEFAULT_GC_HIGH_RATIO;
+    config->ser_dynamic_config.gc_low_ratio = DEFAULT_GC_LOW_RATIO;
+    config->ser_dynamic_config.gc_high_ratio = DEFAULT_GC_HIGH_RATIO;
+    
+    config->ser_static_config.extent_size = DEFAULT_EXTENT_SIZE;
+    config->ser_static_config.block_size = DEFAULT_BTREE_BLOCK_SIZE;
 }
 
 enum {
     wait_for_flush = 256, // Start these values above the ASCII range.
     flush_timer,
     flush_threshold,
-    gc_range
+    gc_range,
+    block_size,
+    extent_size
 };
 
 void parse_cmd_args(int argc, char *argv[], cmd_config_t *config)
@@ -96,6 +104,8 @@ void parse_cmd_args(int argc, char *argv[], cmd_config_t *config)
                 {"flush-timer",          required_argument, 0, flush_timer},
                 {"flush-threshold",      required_argument, 0, flush_threshold},
                 {"gc-range",             required_argument, 0, gc_range},
+                {"block-size",           required_argument, 0, block_size},
+                {"extent-size",          required_argument, 0, extent_size},
                 {"cores",                required_argument, 0, 'c'},
                 {"slices",               required_argument, 0, 's'},
                 {"files",                required_argument, 0, 'f'},
@@ -177,10 +187,25 @@ void parse_cmd_args(int argc, char *argv[], cmd_config_t *config)
                 fail("gc-range expects \"low-high\", with %f <= low < high <= %f",
                      MIN_GC_LOW_RATIO, MAX_GC_HIGH_RATIO);
             }
-            config->gc_low_ratio = low;
-            config->gc_high_ratio = high;
+            config->ser_dynamic_config.gc_low_ratio = low;
+            config->ser_dynamic_config.gc_high_ratio = high;
             break;
         }
+        case block_size:
+            config->ser_static_config.block_size = atoi(optarg);
+            if (config->ser_static_config.block_size % DEVICE_BLOCK_SIZE != 0) {
+                fail("--block-size must be a multiple of %d", DEVICE_BLOCK_SIZE);
+            }
+            if (config->ser_static_config.block_size <= 0 || config->ser_static_config.block_size > DEVICE_BLOCK_SIZE * 1000) {
+                fail("--block-size value is not reasonable.");
+            }
+            break;
+        case extent_size:
+            config->ser_static_config.extent_size = atoi(optarg);
+            if (config->ser_static_config.extent_size <= 0 || config->ser_static_config.extent_size > TERABYTE) {
+                fail("--extent-size value is not reasonable.");
+            }
+            break;
         case 'h':
             usage(argv[0]);
             break;
@@ -205,6 +230,12 @@ void parse_cmd_args(int argc, char *argv[], cmd_config_t *config)
                "indefinitely before flushing data to disk. Setting wait-for-flush\n"
                "to 'no'.\n\n");
     	config->wait_for_flush = false;
+    }
+    
+    if (config->ser_static_config.extent_size % config->ser_static_config.block_size != 0) {
+        fail("Extent size (%d) is not a multiple of block size (%d).", 
+            config->ser_static_config.extent_size,
+            config->ser_static_config.block_size);
     }
 }
 

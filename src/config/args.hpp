@@ -44,21 +44,15 @@
 // Size of the device block size (in bytes)
 #define DEVICE_BLOCK_SIZE                         (4 * KILOBYTE)
 
-//Size of the field on each block used to record block_id
-#define BLOCK_META_DATA_SIZE                      8
-
 // Size of each btree node (in bytes) on disk
-#define BTREE_BLOCK_SIZE                          (4 * KILOBYTE)
-
-//actual btree block size we have to work with
-#define BTREE_USABLE_BLOCK_SIZE                   (BTREE_BLOCK_SIZE - BLOCK_META_DATA_SIZE)
+#define DEFAULT_BTREE_BLOCK_SIZE                  (4 * KILOBYTE)
 
 // Maximum number of data blocks
-#define MAX_DATA_EXTENTS                          (TERABYTE / EXTENT_SIZE)
+#define MAX_DATA_EXTENTS                          (TERABYTE / (16 * KILOBYTE))
 
 // Size of each extent (in bytes)
 // Value is very low for testing purposes.
-#define EXTENT_SIZE                               (16 * KILOBYTE)
+#define DEFAULT_EXTENT_SIZE                       (16 * KILOBYTE)
 
 // Max size of database file name
 #define MAX_DB_FILE_NAME                          1024
@@ -134,12 +128,12 @@
 #define DATA_FNAME_BASE                           "data.file"
 
 // We assume there will never be more than this many blocks. The value is computed by dividing
-// 1 TB by the size of a block.
-#define MAX_BLOCK_ID                              (TERABYTE / BTREE_BLOCK_SIZE)
+// 1 TB by the smallest reasonable block size.
+#define MAX_BLOCK_ID                              (TERABYTE / KILOBYTE)
 
 // We assume that there will never be more than this many blocks held in memory by the cache at
-// any one time. The value is computed by dividing 50 GB by the size of a block.
-#define MAX_BLOCKS_IN_MEMORY                      (50 * GIGABYTE / BTREE_BLOCK_SIZE)
+// any one time. The value is computed by dividing 50 GB by the smallest reasonable block size.
+#define MAX_BLOCKS_IN_MEMORY                      (50 * GIGABYTE / KILOBYTE)
 
 // This special block ID indicates the superblock. It doesn't really belong here because it's more
 // of a magic constant than a tunable parameter.
