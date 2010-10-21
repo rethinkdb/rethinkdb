@@ -8,10 +8,6 @@
 #include "utils.hpp"
 #include "buffer_cache/types.hpp"
 
-// In addition to the value itself we could potentially store memcached flags
-// and a CAS value in the value contents, so we reserve space for that.
-#define MAX_TOTAL_NODE_CONTENTS_SIZE              (MAX_IN_NODE_VALUE_SIZE + sizeof(uint32_t) + sizeof(uint64_t) + sizeof(uint32_t))
-
 static const char btree_superblock_magic[] = {'b', 't', 'r', 'e', 'e', 's', 'b', 'k'};
 
 struct btree_superblock_t {

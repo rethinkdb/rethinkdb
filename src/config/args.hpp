@@ -107,13 +107,17 @@
 // How large can the key be, in bytes?  This value needs to fit in a byte.
 #define MAX_KEY_SIZE                              250
 
+// Any values of this size or less will be directly stored in btree leaf nodes.
+// Values greater than this size will be stored in overflow blocks. This value
+// needs to fit in a byte.
+#define MAX_IN_NODE_VALUE_SIZE                    250
+
+// In addition to the value itself we could potentially store memcached flags
+// and a CAS value in the value contents, so we reserve space for that.
+#define MAX_TOTAL_NODE_CONTENTS_SIZE              (MAX_IN_NODE_VALUE_SIZE + sizeof(uint32_t) + sizeof(uint64_t) + sizeof(uint32_t))
+
 // memcached specifies the maximum value size to be 1MB
 #define MAX_VALUE_SIZE                            (1024 * KILOBYTE)
-
-// Any values of this size or less will be directly stored in btree
-// leaf nodes.  Values greater than this size will be stored in
-// overflow blocks.  This value needs to fit in a byte.
-#define MAX_IN_NODE_VALUE_SIZE                    250
 
 // Perform allocator GC every N milliseconds (the resolution is limited to TIMER_TICKS_IN_MS)
 #define ALLOC_GC_INTERVAL_MS                      3000
