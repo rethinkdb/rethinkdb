@@ -13,6 +13,9 @@ public:
         bzero(bits, ceil_aligned(size, 64) / 64 * sizeof(uint64_t));
         _size = size;
         _count = 0;
+#ifndef NDEBUG
+        verify();
+#endif
     }
     ~bitset_t() {
         free(bits);
@@ -43,6 +46,9 @@ public:
             if (test(place)) _count--;
             bits[place / 64] &= ~ (uint64_t(1) << (place % 64));
         }
+#ifndef NDEBUG
+        verify();
+#endif
     }
     
     size_t size() const {
@@ -52,6 +58,16 @@ public:
     size_t count() const {
         return _count;
     }
+
+#ifndef NDEBUG
+    void verify() const {
+        unsigned c = 0;
+        for (unsigned i = 0; i < _size; i++) {
+            if (test(i)) c++;
+        }
+        assert(c == _count);
+    }
+#endif
 };
 
 #endif /* __CONTAINERS_BITSET_HPP__ */

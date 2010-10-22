@@ -38,8 +38,9 @@ public:
 
 public:
     struct metablock_mixin_t {
-        /* Nothing is stored in the metablock. We choose a new set of active extents every time
-        we restart, and we reconstruct the rest of our state from the LBA. */
+        
+        off64_t active_extents[MAX_ACTIVE_DATA_EXTENTS];
+        size_t blocks_in_active_extent[MAX_ACTIVE_DATA_EXTENTS];
     };
 
     /* When initializing the database from scratch, call start() with just the database FD. When
@@ -148,7 +149,9 @@ private:
     {
     public:
         typedef uint64_t timestamp_t;
-    
+        
+        data_block_manager_t *parent;
+        
         off64_t offset; /* !< the offset that this extent starts at */
         bitset_t g_array; /* !< bit array for whether or not each block is garbage */
         timestamp_t timestamp; /* !< when we started writing to the extent */
@@ -170,26 +173,39 @@ private:
     public:
         
         /* This constructor is for starting a new extent. */
-        explicit gc_entry(extent_manager_t *em, size_t blocks_per_extent)
-            : g_array(blocks_per_extent)
+        explicit gc_entry(data_block_manager_t *parent)
+            : parent(parent),
+              offset(parent->extent_manager->gen_extent()),
+              g_array(parent->extent_manager->extent_size / parent->static_config->block_size),
+              timestamp(current_timestamp())
         {
-            offset = em->gen_extent();
+            assert(parent->entries.get(offset / parent->extent_manager->extent_size) == NULL);
+            parent->entries.set(offset / parent->extent_manager->extent_size, this);
             g_array.set();
-            timestamp = current_timestamp();
-            state = state_active;
-            our_pq_entry = NULL;
         }
         
         /* This constructor is for reconstructing extents that the LBA tells us contained
         data blocks. */
-        explicit gc_entry(off64_t off, size_t blocks_per_extent)
-            : g_array(blocks_per_extent)
+        explicit gc_entry(data_block_manager_t *parent, off64_t offset)
+            : parent(parent),
+              offset(offset),
+              g_array(parent->extent_manager->extent_size / parent->static_config->block_size),
+              timestamp(current_timestamp())
         {
-            offset = off;
+            parent->extent_manager->reserve_extent(offset);
+            assert(parent->entries.get(offset / parent->extent_manager->extent_size) == NULL);
+            parent->entries.set(offset / parent->extent_manager->extent_size, this);
             g_array.set();
-            timestamp = -1;
-            state = state_reconstructing;
-            our_pq_entry = NULL;
+        }
+        
+        void destroy() {
+            parent->extent_manager->release_extent(offset);
+            delete this;
+        }
+        
+        ~gc_entry() {
+            assert(parent->entries.get(offset / parent->extent_manager->extent_size) == this);
+            parent->entries.set(offset / parent->extent_manager->extent_size, NULL);
         }
         
         void print() {
@@ -219,7 +235,7 @@ private:
     
     /* Contains the extents in the gc_entry::state_active state. The number of active extents
     is determined by dynamic_config->num_active_data_extents. */
-    int next_active_extent;   // Cycles through the active extents
+    unsigned int next_active_extent;   // Cycles through the active extents
     gc_entry *active_extents[MAX_ACTIVE_DATA_EXTENTS];
     unsigned blocks_in_active_extent[MAX_ACTIVE_DATA_EXTENTS];
     
@@ -228,7 +244,7 @@ private:
     
     /* Contains every extent in the gc_entry::state_old state */
     priority_queue_t<gc_entry*, Less> gc_pq;
-
+    
     // Tells if we should keep gc'ing, being told the next extent that
     // would be gc'ed.
     bool should_we_keep_gcing(const gc_entry&) const;
