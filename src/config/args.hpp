@@ -12,7 +12,7 @@
  */
 
 #define SOFTWARE_NAME_STRING "RethinkDB"
-#define VERSION_STRING "0.0.0"
+#define VERSION_STRING "0.0.1"
 
 /**
  * Basic configuration parameters.
@@ -161,6 +161,11 @@
 
 // How many LBA structures to have for each file
 #define LBA_SHARD_FACTOR                          16
+
+// How many different places in each file we should be writing to at once, not counting the
+// metablock or LBA
+#define MAX_ACTIVE_DATA_EXTENTS                   64
+#define DEFAULT_ACTIVE_DATA_EXTENTS               8
 
 #endif // __CONFIG_ARGS_H__
 

@@ -19,14 +19,16 @@
 class data_block_manager_t {
 
 public:
-    data_block_manager_t(log_serializer_t *ser, log_serializer_dynamic_config_t *dynamic_config, extent_manager_t *em, size_t _block_size)
+    data_block_manager_t(log_serializer_t *ser, log_serializer_dynamic_config_t *dynamic_config, extent_manager_t *em, log_serializer_static_config_t *static_config)
         : shutdown_callback(NULL), state(state_unstarted), serializer(ser),
-          dynamic_config(dynamic_config), extent_manager(em), block_size(_block_size),
+          dynamic_config(dynamic_config), static_config(static_config), extent_manager(em),
+          next_active_extent(0),
           gc_state(extent_manager->extent_size),
           pm_garbage_ratio("garbage_ratio", &gc_stats, perfmon_combiner_sum,
                            perfmon_weighted_average_transformer)
     {
         assert(dynamic_config);
+        assert(static_config);
         assert(serializer);
         assert(extent_manager);
     }
@@ -36,8 +38,8 @@ public:
 
 public:
     struct metablock_mixin_t {
-        off64_t last_data_extent;
-        unsigned int blocks_in_last_data_extent;
+        /* Nothing is stored in the metablock. We choose a new set of active extents every time
+        we restart, and we reconstruct the rest of our state from the LBA. */
     };
 
     /* When initializing the database from scratch, call start() with just the database FD. When
@@ -121,11 +123,11 @@ private:
     log_serializer_t *serializer;
 
     log_serializer_dynamic_config_t *dynamic_config;
+    log_serializer_static_config_t *static_config;
 
     extent_manager_t *extent_manager;
 
     direct_file_t *dbfile;
-    size_t block_size;
 
     off64_t gimme_a_new_offset();
 
@@ -215,9 +217,11 @@ private:
     /* Contains every extent in the gc_entry::state_reconstructing state */
     intrusive_list_t< gc_entry > reconstructed_extents;
     
-    /* Contains the extent in the gc_entry::state_active state */
-    gc_entry *last_data_extent;
-    unsigned blocks_in_last_data_extent;
+    /* Contains the extents in the gc_entry::state_active state. The number of active extents
+    is determined by dynamic_config->num_active_data_extents. */
+    int next_active_extent;   // Cycles through the active extents
+    gc_entry *active_extents[MAX_ACTIVE_DATA_EXTENTS];
+    unsigned blocks_in_active_extent[MAX_ACTIVE_DATA_EXTENTS];
     
     /* Contains every extent in the gc_entry::state_young state */
     intrusive_list_t< gc_entry > young_extent_queue;

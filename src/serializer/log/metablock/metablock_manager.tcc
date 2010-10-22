@@ -44,7 +44,7 @@ void metablock_manager_t<metablock_t>::metablock_manager_t::head_t::pop() {
 template<class metablock_t>
 metablock_manager_t<metablock_t>::metablock_manager_t(extent_manager_t *em)
     : head(this), extent_manager(em), state(state_unstarted), dbfile(NULL)
-{
+{    
     assert(sizeof(crc_metablock_t) <= DEVICE_BLOCK_SIZE);
     mb_buffer = (crc_metablock_t *)malloc_aligned(DEVICE_BLOCK_SIZE, DEVICE_BLOCK_SIZE);
     mb_buffer_last = (crc_metablock_t *)malloc_aligned(DEVICE_BLOCK_SIZE, DEVICE_BLOCK_SIZE);
@@ -82,7 +82,7 @@ metablock_manager_t<metablock_t>::metablock_manager_t(extent_manager_t *em)
 
 template<class metablock_t>
 metablock_manager_t<metablock_t>::~metablock_manager_t() {
-
+    
     assert(state == state_unstarted || state == state_shut_down);
     
     assert(!mb_buffer_in_use);
@@ -166,6 +166,7 @@ template<class metablock_t>
 void metablock_manager_t<metablock_t>::shutdown() {
     
     assert(state == state_ready);
+    assert(!mb_buffer_in_use);
     state = state_shut_down;
 }
 
@@ -233,18 +234,28 @@ void metablock_manager_t<metablock_t>::on_io_complete(event_t *e) {
         }
         break;
         
-    case state_writing:
+    case state_writing: {
+        
         state = state_ready;
         mb_buffer_in_use = false;
-        if (write_callback) write_callback->on_metablock_write();
+        
+        /* Store the write callback because when we call it, it might destroy us */
+        metablock_write_callback_t *write_cb = write_callback;
         write_callback = NULL;
+        
+        /* Start the next write if there are more in the queue */
         if (!outstanding_writes.empty()) {
             metablock_write_req_t req = outstanding_writes.front();
             outstanding_writes.pop_front();
             write_metablock(req.mb, req.cb);
         }
-        break;
         
+        /* Call the write callback as the last step, because it might destroy us */
+        if (write_cb) write_cb->on_metablock_write();
+        
+        break;
+    }
+    
     default:
         fail("Unexpected state.");
     }

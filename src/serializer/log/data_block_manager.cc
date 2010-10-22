@@ -7,7 +7,10 @@ void data_block_manager_t::start_new(direct_file_t *file) {
 
     assert(state == state_unstarted);
     dbfile = file;
-    last_data_extent = NULL;
+    
+    for (unsigned int i = 0; i < dynamic_config->num_active_data_extents; i++) {
+        active_extents[i] = NULL;
+    }
 
     state = state_ready;
 }
@@ -27,11 +30,11 @@ void data_block_manager_t::mark_live(off64_t offset) {
     assert(gc_state.step() == gc_reconstruct);  // This is called at startup.
 
     unsigned int extent_id = (offset / extent_manager->extent_size);
-    unsigned int block_id = (offset % extent_manager->extent_size) / block_size;
+    unsigned int block_id = (offset % extent_manager->extent_size) / static_config->block_size;
 
     if (entries.get(extent_id) == NULL) {
     
-        gc_entry *entry = new gc_entry(extent_id * extent_manager->extent_size, extent_manager->extent_size / block_size);
+        gc_entry *entry = new gc_entry(extent_id * extent_manager->extent_size, extent_manager->extent_size / static_config->block_size);
         entries.set(extent_id, entry);
         
         extent_manager->reserve_extent(entry->offset);
@@ -55,32 +58,12 @@ void data_block_manager_t::start_existing(direct_file_t *file, metablock_mixin_t
     assert(state == state_unstarted);
     dbfile = file;
     
-    /* Reconstruct the last data extent */
+    /* All extents that contain data are put into the "old" state. We make no effort to determine
+    which extent we were in the process of writing to when we shut down. */
     
-    if (last_metablock->last_data_extent != NULL_OFFSET) {
-    
-        last_data_extent = entries.get(last_metablock->last_data_extent / extent_manager->extent_size);
-        blocks_in_last_data_extent = last_metablock->blocks_in_last_data_extent;
-        assert(last_data_extent);
-        assert(blocks_in_last_data_extent > 0);
-        
-        /* Turn the last data extent into the active extent */
-        assert(last_data_extent->state == gc_entry::state_reconstructing);
-        reconstructed_extents.remove(last_data_extent);
-        last_data_extent->state = gc_entry::state_active;
-        last_data_extent->timestamp = gc_entry::current_timestamp();
-        
-        /* Make sure that the LBA doesn't claim that there are any live blocks in the part
-        of the last data extent that the metablock says we haven't written to yet */
-        for (unsigned i = blocks_in_last_data_extent; i < extent_manager->extent_size / block_size; i++) {
-            assert(last_data_extent->g_array[i]);
-        }
-
-    } else {
-        last_data_extent = NULL;
+    for (unsigned int i = 0; i < dynamic_config->num_active_data_extents; i++) {
+        active_extents[i] = NULL;
     }
-    
-    /* Put any other extents that contain data onto the priority queue */
     
     while (gc_entry *entry = reconstructed_extents.head()) {
     
@@ -91,7 +74,7 @@ void data_block_manager_t::start_existing(direct_file_t *file, metablock_mixin_t
         
         entry->our_pq_entry = gc_pq.push(entry);
         
-        gc_stats.old_total_blocks += extent_manager->extent_size / block_size;
+        gc_stats.old_total_blocks += extent_manager->extent_size / static_config->block_size;
         gc_stats.old_garbage_blocks += entry->g_array.count();
     }
     
@@ -104,7 +87,7 @@ bool data_block_manager_t::read(off64_t off_in, void *buf_out, iocallback_t *cb)
     
     buf_data_t *data = (buf_data_t*)buf_out;
     data--;
-    dbfile->read_async(off_in, block_size, data, cb);
+    dbfile->read_async(off_in, static_config->block_size, data, cb);
 
     return false;
 }
@@ -121,7 +104,7 @@ bool data_block_manager_t::write(void *buf_in, ser_block_id_t block_id, off64_t 
     data--;
     data->block_id = block_id;
     
-    dbfile->write_async(offset, block_size, data, cb);
+    dbfile->write_async(offset, static_config->block_size, data, cb);
 
     return false;
 }
@@ -129,7 +112,7 @@ bool data_block_manager_t::write(void *buf_in, ser_block_id_t block_id, off64_t 
 void data_block_manager_t::mark_garbage(off64_t offset) {
 
     unsigned int extent_id = (offset / extent_manager->extent_size);
-    unsigned int block_id = (offset % extent_manager->extent_size) / block_size;
+    unsigned int block_id = (offset % extent_manager->extent_size) / static_config->block_size;
     
     gc_entry *entry = entries.get(extent_id);
     assert(entry->g_array[block_id] == 0);
@@ -139,7 +122,7 @@ void data_block_manager_t::mark_garbage(off64_t offset) {
         gc_stats.old_garbage_blocks++;
     }
     
-    if (entry->g_array.count() == extent_manager->extent_size / block_size && entry->state != gc_entry::state_active) {
+    if (entry->g_array.count() == extent_manager->extent_size / static_config->block_size && entry->state != gc_entry::state_active) {
     
         /* Every block in the extent is now garbage. */
         
@@ -161,8 +144,8 @@ void data_block_manager_t::mark_garbage(off64_t offset) {
             /* Remove from the priority queue */
             case gc_entry::state_old:
                 gc_pq.remove(entry->our_pq_entry);
-                gc_stats.old_total_blocks -= extent_manager->extent_size / block_size;
-                gc_stats.old_garbage_blocks -= extent_manager->extent_size / block_size;
+                gc_stats.old_total_blocks -= extent_manager->extent_size / static_config->block_size;
+                gc_stats.old_garbage_blocks -= extent_manager->extent_size / static_config->block_size;
                 break;
             
             /* Notify the GC that the extent got released during GC */
@@ -202,19 +185,19 @@ void data_block_manager_t::run_gc() {
             assert(gc_state.current_entry->state == gc_entry::state_old);
             gc_state.current_entry->state = gc_entry::state_in_gc;
             gc_stats.old_garbage_blocks -= gc_state.current_entry->g_array.count();
-            gc_stats.old_total_blocks -= extent_manager->extent_size / block_size;
+            gc_stats.old_total_blocks -= extent_manager->extent_size / static_config->block_size;
 
             /* read all the live data into buffers */
 
             /* make sure the read callback knows who we are */
             gc_state.gc_read_callback.parent = this;
 
-            for (unsigned int i = 0; i < extent_manager->extent_size / block_size; i++) {
+            for (unsigned int i = 0; i < extent_manager->extent_size / static_config->block_size; i++) {
                 if (!gc_state.current_entry->g_array[i]) {
                     dbfile->read_async(
-                        gc_state.current_entry->offset + (i * block_size),
-                        block_size,
-                        gc_state.gc_blocks + (i * block_size),
+                        gc_state.current_entry->offset + (i * static_config->block_size),
+                        static_config->block_size,
+                        gc_state.gc_blocks + (i * static_config->block_size),
                         &(gc_state.gc_read_callback));
                     gc_state.refcount++;
                 }
@@ -238,17 +221,17 @@ void data_block_manager_t::run_gc() {
             }
             
             /* an array to put our writes in */
-            int num_writes = extent_manager->extent_size / block_size - gc_state.current_entry->g_array.count();
+            int num_writes = extent_manager->extent_size / static_config->block_size - gc_state.current_entry->g_array.count();
             log_serializer_t::write_t writes[num_writes];
             int current_write = 0;
 
-            for (unsigned int i = 0; i < extent_manager->extent_size / block_size; i++) {
+            for (unsigned int i = 0; i < extent_manager->extent_size / static_config->block_size; i++) {
                 /* We re-check the bit array here in case a write came in for one of the
                 blocks we are GCing. We wouldn't want to overwrite the new valid data with
                 out-of-date data. */
                 if (!gc_state.current_entry->g_array[i]) {
-                    writes[current_write].block_id = *((ser_block_id_t *) (gc_state.gc_blocks + (i * block_size)));
-                    writes[current_write].buf = gc_state.gc_blocks + (i * block_size) + sizeof(buf_data_t);
+                    writes[current_write].block_id = *((ser_block_id_t *) (gc_state.gc_blocks + (i * static_config->block_size)));
+                    writes[current_write].buf = gc_state.gc_blocks + (i * static_config->block_size) + sizeof(buf_data_t);
                     writes[current_write].callback = NULL;
                     current_write++;
                 }
@@ -292,17 +275,7 @@ void data_block_manager_t::run_gc() {
 
 void data_block_manager_t::prepare_metablock(metablock_mixin_t *metablock) {
 
-    assert(state == state_ready
-           || (state == state_shutting_down && gc_state.step() == gc_write));
-
-    if (last_data_extent) {
-        metablock->last_data_extent = last_data_extent->offset;
-        metablock->blocks_in_last_data_extent = blocks_in_last_data_extent;
-        
-    } else {
-        metablock->last_data_extent = NULL_OFFSET;
-        metablock->blocks_in_last_data_extent = 0;
-    }
+    /* There is nothing to prepare */
 }
 
 bool data_block_manager_t::shutdown(shutdown_callback_t *cb) {
@@ -327,9 +300,11 @@ void data_block_manager_t::actually_shutdown() {
     
     assert(!reconstructed_extents.head());
     
-    if (last_data_extent) {
-        delete last_data_extent;
-        last_data_extent = NULL;
+    for (unsigned int i = 0; i < dynamic_config->num_active_data_extents; i++) {
+        if (active_extents[i]) {
+            delete active_extents[i];
+            active_extents[i] = NULL;
+        }
     }
     
     while (gc_entry *entry = young_extent_queue.head()) {
@@ -346,33 +321,35 @@ void data_block_manager_t::actually_shutdown() {
 
 off64_t data_block_manager_t::gimme_a_new_offset() {
     
-    if (!last_data_extent) {
+    next_active_extent = (next_active_extent + 1) % dynamic_config->num_active_data_extents;
     
-        last_data_extent = new gc_entry(extent_manager, extent_manager->extent_size / block_size);
-        blocks_in_last_data_extent = 0;
+    if (!active_extents[next_active_extent]) {
+    
+        active_extents[next_active_extent] = new gc_entry(extent_manager, extent_manager->extent_size / static_config->block_size);
+        blocks_in_active_extent[next_active_extent] = 0;
 
-        unsigned int extent_id = last_data_extent->offset / extent_manager->extent_size;
+        unsigned int extent_id = active_extents[next_active_extent]->offset / extent_manager->extent_size;
         assert(entries.get(extent_id) == NULL);
-        entries.set(extent_id, last_data_extent);
+        entries.set(extent_id, active_extents[next_active_extent]);
     }
     
-    assert(last_data_extent->state == gc_entry::state_active);
-    assert(last_data_extent->g_array.count() > 0);
-    assert(blocks_in_last_data_extent < extent_manager->extent_size / block_size);
+    assert(active_extents[next_active_extent]->state == gc_entry::state_active);
+    assert(active_extents[next_active_extent]->g_array.count() > 0);
+    assert(blocks_in_active_extent[next_active_extent] < extent_manager->extent_size / static_config->block_size);
     
-    off64_t offset = last_data_extent->offset + blocks_in_last_data_extent * block_size;
+    off64_t offset = active_extents[next_active_extent]->offset + blocks_in_active_extent[next_active_extent] * static_config->block_size;
     
-    assert(last_data_extent->g_array[blocks_in_last_data_extent]);
-    last_data_extent->g_array.set(blocks_in_last_data_extent, 0);
+    assert(active_extents[next_active_extent]->g_array[blocks_in_active_extent[next_active_extent]]);
+    active_extents[next_active_extent]->g_array.set(blocks_in_active_extent[next_active_extent], 0);
     
-    blocks_in_last_data_extent++;
+    blocks_in_active_extent[next_active_extent]++;
     
-    if (blocks_in_last_data_extent == extent_manager->extent_size / block_size) {
+    if (blocks_in_active_extent[next_active_extent] == extent_manager->extent_size / static_config->block_size) {
         
-        last_data_extent->state = gc_entry::state_young;
-        young_extent_queue.push_back(last_data_extent);
+        active_extents[next_active_extent]->state = gc_entry::state_young;
+        young_extent_queue.push_back(active_extents[next_active_extent]);
         mark_unyoung_entries();
-        last_data_extent = NULL;
+        active_extents[next_active_extent] = NULL;
     }
     
     return offset;
@@ -406,7 +383,7 @@ void data_block_manager_t::remove_last_unyoung_entry() {
     
     entry->our_pq_entry = gc_pq.push(entry);
     
-    gc_stats.old_total_blocks += extent_manager->extent_size / block_size;
+    gc_stats.old_total_blocks += extent_manager->extent_size / static_config->block_size;
     gc_stats.old_garbage_blocks += entry->g_array.count();
 }
 

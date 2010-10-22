@@ -9,6 +9,7 @@
 
 struct log_serializer_dynamic_config_t {
     float gc_low_ratio, gc_high_ratio;
+    unsigned num_active_data_extents;
 };
 
 struct log_serializer_static_config_t {

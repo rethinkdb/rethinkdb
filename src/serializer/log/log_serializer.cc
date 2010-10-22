@@ -81,7 +81,7 @@ struct ls_start_new_fsm_t :
         
         ser->metablock_manager = gnew<mb_manager_t>(ser->extent_manager);
         ser->lba_index = gnew<lba_index_t>(ser->extent_manager);
-        ser->data_block_manager = gnew<data_block_manager_t>(ser, ser->dynamic_config, ser->extent_manager, ser->static_config.block_size);
+        ser->data_block_manager = gnew<data_block_manager_t>(ser, ser->dynamic_config, ser->extent_manager, &ser->static_config);
         
         ser->metablock_manager->start_new(ser->dbfile);
         ser->lba_index->start_new(ser->dbfile);
@@ -182,7 +182,7 @@ struct ls_start_existing_fsm_t :
             
             ser->metablock_manager = gnew<mb_manager_t>(ser->extent_manager);
             ser->lba_index = gnew<lba_index_t>(ser->extent_manager);
-            ser->data_block_manager = gnew<data_block_manager_t>(ser, ser->dynamic_config, ser->extent_manager, ser->static_config.block_size);
+            ser->data_block_manager = gnew<data_block_manager_t>(ser, ser->dynamic_config, ser->extent_manager, &ser->static_config);
             
             if (ser->metablock_manager->start_existing(ser->dbfile, &metablock_found, &metablock_buffer, this)) {
                 state = state_start_lba;

@@ -45,6 +45,7 @@ void usage(const char *name) {
 
     printf("      --gc-range low-high  (e.g. --gc-range 0.5-0.75)\n"
            "\t\t\tThe proportion of garbage maintained by garbage collection.\n");
+    printf("      --active-data-extents\t\tHow many places in the file to write to at once.\n");
     
     printf("\nOptions for new databases:\n");
     printf("      --block-size\t\tSize of a block.\n");
@@ -76,6 +77,7 @@ void init_config(cmd_config_t *config) {
 
     config->ser_dynamic_config.gc_low_ratio = DEFAULT_GC_LOW_RATIO;
     config->ser_dynamic_config.gc_high_ratio = DEFAULT_GC_HIGH_RATIO;
+    config->ser_dynamic_config.num_active_data_extents = DEFAULT_ACTIVE_DATA_EXTENTS;
     
     config->ser_static_config.extent_size = DEFAULT_EXTENT_SIZE;
     config->ser_static_config.block_size = DEFAULT_BTREE_BLOCK_SIZE;
@@ -86,6 +88,7 @@ enum {
     flush_timer,
     flush_threshold,
     gc_range,
+    active_data_extents,
     block_size,
     extent_size
 };
@@ -106,6 +109,7 @@ void parse_cmd_args(int argc, char *argv[], cmd_config_t *config)
                 {"gc-range",             required_argument, 0, gc_range},
                 {"block-size",           required_argument, 0, block_size},
                 {"extent-size",          required_argument, 0, extent_size},
+                {"active-data-extents",  required_argument, 0, active_data_extents},
                 {"cores",                required_argument, 0, 'c'},
                 {"slices",               required_argument, 0, 's'},
                 {"files",                required_argument, 0, 'f'},
@@ -191,6 +195,13 @@ void parse_cmd_args(int argc, char *argv[], cmd_config_t *config)
             config->ser_dynamic_config.gc_high_ratio = high;
             break;
         }
+        case active_data_extents:
+            config->ser_dynamic_config.num_active_data_extents = atoi(optarg);
+            if (config->ser_dynamic_config.num_active_data_extents < 1 ||
+                config->ser_dynamic_config.num_active_data_extents > MAX_ACTIVE_DATA_EXTENTS) {
+                fail("--active-data-extents must be less than or equal to %d", MAX_ACTIVE_DATA_EXTENTS);
+            }
+            break;
         case block_size:
             config->ser_static_config.block_size = atoi(optarg);
             if (config->ser_static_config.block_size % DEVICE_BLOCK_SIZE != 0) {
