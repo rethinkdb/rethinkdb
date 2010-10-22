@@ -53,6 +53,7 @@ struct log_serializer_metablock_t {
     extent_manager_t::metablock_mixin_t extent_manager_part;
     lba_index_t::metablock_mixin_t lba_index_part;
     data_block_manager_t::metablock_mixin_t data_block_manager_part;
+    ser_transaction_id_t transaction_id;
 };
 
 typedef metablock_manager_t<log_serializer_metablock_t> mb_manager_t;
@@ -152,7 +153,7 @@ public:
 
 private:
     typedef log_serializer_metablock_t metablock_t;
-    void prepare_metablock(metablock_t *mb_buffer);
+    void prepare_metablock(metablock_t *mb_buffer, ser_transaction_id_t transaction_id);
 
     void consider_start_gc();
 
@@ -180,6 +181,23 @@ private:
     ls_write_fsm_t *last_write;
     
     int active_write_count;
+
+    /* Every time do_write gets called, this gets incremented.  This
+       gets stored in the metablock, too. */
+    struct transaction_counter {
+        ser_transaction_id_t next_transaction_id;
+        
+        transaction_counter() : next_transaction_id(NULL_SER_TRANSACTION_ID) { }
+
+        // For startup, when we read the metablock with the latest transaction id.
+        void load_latest_transaction_id(ser_transaction_id_t latest) {
+            assert(next_transaction_id != NULL_SER_TRANSACTION_ID);
+            next_transaction_id = latest + 1;
+        }
+        ser_transaction_id_t step_transaction_id() {
+            return next_transaction_id++;
+        }
+    } monotonic_transaction_counter;
     
     /* Keeps track of buffers that are currently being written, so that if we get a read
     for a block ID that we are currently writing but is not on disk yet, we can return

@@ -43,9 +43,7 @@ struct ls_start_new_fsm_t :
         
         assert(ser->state == log_serializer_t::state_unstarted);
         ser->state = log_serializer_t::state_starting_up;
-        
         ser->static_config = *config;
-        
         ser->dbfile = new direct_file_t(ser->db_path, direct_file_t::mode_read|direct_file_t::mode_write);
         
         ready_callback = NULL;
@@ -88,10 +86,11 @@ struct ls_start_new_fsm_t :
         ser->extent_manager->start_new();
 
 #ifndef NDEBUG
-        ser->prepare_metablock(&ser->debug_mb_buffer);
+        ser->prepare_metablock(&ser->debug_mb_buffer, FIRST_SER_TRANSACTION_ID);
 #endif
 
-        ser->prepare_metablock(&metablock_buffer);
+        ser->monotonic_transaction_counter.load_latest_transaction_id(FIRST_SER_TRANSACTION_ID);
+        ser->prepare_metablock(&metablock_buffer, FIRST_SER_TRANSACTION_ID);
         
         if (ser->metablock_manager->write_metablock(&metablock_buffer, this)) {
             return finish();
@@ -197,6 +196,9 @@ struct ls_start_existing_fsm_t :
 #ifndef NDEBUG
             memcpy(&ser->debug_mb_buffer, &metablock_buffer, sizeof(metablock_buffer));
 #endif
+
+            ser->monotonic_transaction_counter.load_latest_transaction_id(metablock_buffer.transaction_id);
+
             if (ser->lba_index->start_existing(ser->dbfile, &metablock_buffer.lba_index_part, this)) {
                 state = state_reconstruct;
             } else {
@@ -228,11 +230,13 @@ struct ls_start_existing_fsm_t :
                 ready_callback->on_serializer_ready(ser);
 
 #ifndef NDEBUG
-            log_serializer_t::metablock_t debug_mb_buffer;
-            ser->prepare_metablock(&debug_mb_buffer);
-            // Make sure that the metablock has not changed since the last
-            // time we recorded it
-            assert(memcmp(&debug_mb_buffer, &ser->debug_mb_buffer, sizeof(debug_mb_buffer)) == 0);
+            {
+                log_serializer_t::metablock_t debug_mb_buffer;
+                ser->prepare_metablock(&debug_mb_buffer, ser->debug_mb_buffer.transaction_id);
+                // Make sure that the metablock has not changed since the last
+                // time we recorded it
+                assert(memcmp(&debug_mb_buffer, &ser->debug_mb_buffer, sizeof(debug_mb_buffer)) == 0);
+            }
 #endif
    
             delete this;
@@ -445,9 +449,11 @@ struct ls_write_fsm_t :
     } state;
     
     log_serializer_t *ser;
-    
+
     log_serializer_t::write_t *writes;
     int num_writes;
+    ser_transaction_id_t transaction_id;
+    
     
     extent_manager_t::transaction_t *extent_txn;
     
@@ -456,8 +462,10 @@ struct ls_write_fsm_t :
     manager. This way we guarantee that the metablocks are ordered correctly. */
     ls_write_fsm_t *next_write;
     
-    ls_write_fsm_t(log_serializer_t *ser, log_serializer_t::write_t *writes, int num_writes)
-        : state(state_start), ser(ser), writes(writes), num_writes(num_writes), next_write(NULL) {
+    ls_write_fsm_t(log_serializer_t *ser, log_serializer_t::write_t *writes, int num_writes,
+                   ser_transaction_id_t transaction_id)
+        : state(state_start), ser(ser), writes(writes), num_writes(num_writes),
+          transaction_id(transaction_id), next_write(NULL) {
     }
     
     ~ls_write_fsm_t() {
@@ -502,7 +510,7 @@ struct ls_write_fsm_t :
         metablock information for this write even if another write starts before we finish writing
         our data and LBA. */
 
-        ser->prepare_metablock(&mb_buffer);
+        ser->prepare_metablock(&mb_buffer, transaction_id);
         
         /* Stop the extent manager transaction so another one can start, but don't commit it
         yet */
@@ -623,20 +631,24 @@ bool log_serializer_t::do_write(write_t *writes, int num_writes, write_txn_callb
     // on state here.
     
     assert_cpu();
+
+    ser_transaction_id_t transaction_id = monotonic_transaction_counter.step_transaction_id();
     
 #ifndef NDEBUG
-    metablock_t _debug_mb_buffer;
-    prepare_metablock(&_debug_mb_buffer);
-    // Make sure that the metablock has not changed since the last
-    // time we recorded it
-    assert(memcmp(&_debug_mb_buffer, &debug_mb_buffer, sizeof(debug_mb_buffer)) == 0);
+    {
+        metablock_t _debug_mb_buffer;
+        prepare_metablock(&_debug_mb_buffer, debug_mb_buffer.transaction_id);
+        // Make sure that the metablock has not changed since the last
+        // time we recorded it
+        assert(memcmp(&_debug_mb_buffer, &debug_mb_buffer, sizeof(debug_mb_buffer)) == 0);
+    }
 #endif
-                
-    ls_write_fsm_t *w = new ls_write_fsm_t(this, writes, num_writes);
+
+    ls_write_fsm_t *w = new ls_write_fsm_t(this, writes, num_writes, transaction_id);
     bool res = w->run(callback);
 
 #ifndef NDEBUG
-    prepare_metablock(&debug_mb_buffer);
+    prepare_metablock(&debug_mb_buffer, transaction_id);
 #endif
 
     return res;
@@ -821,11 +833,12 @@ void log_serializer_t::on_lba_shutdown() {
     next_shutdown_step();
 }
 
-void log_serializer_t::prepare_metablock(metablock_t *mb_buffer) {
+void log_serializer_t::prepare_metablock(metablock_t *mb_buffer, ser_transaction_id_t transaction_id) {
     bzero(mb_buffer, sizeof(*mb_buffer));
     extent_manager->prepare_metablock(&mb_buffer->extent_manager_part);
     data_block_manager->prepare_metablock(&mb_buffer->data_block_manager_part);
     lba_index->prepare_metablock(&mb_buffer->lba_index_part);
+    mb_buffer->transaction_id = transaction_id;
 }
 
 

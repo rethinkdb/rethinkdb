@@ -49,6 +49,7 @@ public:
     /* data to be serialized to disk with each block */
     struct buf_data_t {
         ser_block_id_t block_id;
+        ser_transaction_id_t transaction_id;
     };
 
 public:
