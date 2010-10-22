@@ -324,6 +324,7 @@ struct ls_block_writer_t :
     log_serializer_t *ser;
     log_serializer_t::write_t write;
     iocallback_t *extra_cb;
+    ser_transaction_id_t transaction_id;
 
     // A buffer that's zeroed out (except in the beginning, where we
     // write the block id), which we write upon deletion.  Can be NULL.
@@ -333,10 +334,10 @@ struct ls_block_writer_t :
     finished writing to disk. */
     bool superceded;
 
-    ls_block_writer_t(
-        log_serializer_t *ser,
-        const log_serializer_t::write_t &write)
-        : ser(ser), write(write), zerobuf(NULL) { }
+    ls_block_writer_t(log_serializer_t *ser,
+                      const log_serializer_t::write_t &write,
+                      ser_transaction_id_t transaction_id)
+        : ser(ser), write(write), transaction_id(transaction_id), zerobuf(NULL) { }
     
     bool run(iocallback_t *cb) {
         extra_cb = NULL;
@@ -367,7 +368,7 @@ struct ls_block_writer_t :
         if (write.buf) {
         
             off64_t new_offset;
-            bool done = ser->data_block_manager->write(write.buf, write.block_id, &new_offset, this);
+            bool done = ser->data_block_manager->write(write.buf, write.block_id, transaction_id, &new_offset, this);
             ser->lba_index->set_block_offset(write.block_id, new_offset);
             
             /* Insert ourselves into the block_writer_map so that if a reader comes looking for the
@@ -401,7 +402,7 @@ struct ls_block_writer_t :
             bzero(zerobuf, ser->get_block_size());
 
             off64_t new_offset;
-            bool done = ser->data_block_manager->write(zerobuf, write.block_id, &new_offset, this);
+            bool done = ser->data_block_manager->write(zerobuf, write.block_id, transaction_id, &new_offset, this);
             ser->data_block_manager->mark_garbage(new_offset);
 
             if (done) {
@@ -498,7 +499,7 @@ struct ls_write_fsm_t :
         
         num_writes_waited_for = 0;
         for (int i = 0; i < num_writes; i ++) {
-            ls_block_writer_t *writer = new ls_block_writer_t(ser, writes[i]);
+            ls_block_writer_t *writer = new ls_block_writer_t(ser, writes[i], transaction_id);
             if (!writer->run(this)) num_writes_waited_for++;
         }
         

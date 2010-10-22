@@ -46,11 +46,21 @@ public:
     restarting an existing database, call start() with the last metablock. */
 
 public:
-    /* data to be serialized to disk with each block */
+    /* data to be serialized to disk with each block.  Changing this changes the disk format! */
     struct buf_data_t {
         ser_block_id_t block_id;
         ser_transaction_id_t transaction_id;
     };
+
+        
+    static buf_data_t make_buf_data_t(ser_block_id_t block_id, ser_transaction_id_t transaction_id) {
+        buf_data_t ret;
+        ret.block_id = block_id;
+        ret.transaction_id = transaction_id;
+        return ret;
+    }
+
+
 
 public:
     void start_new(direct_file_t *dbfile);
@@ -62,7 +72,7 @@ public:
     /* The offset that the data block manager chose will be left in off_out as soon as write()
     returns. The callback will be called when the data is actually on disk and it is safe to reuse
     the buffer. */
-    bool write(void *buf_in, ser_block_id_t block_id, off64_t *off_out, iocallback_t *cb);
+    bool write(void *buf_in, ser_block_id_t block_id, ser_transaction_id_t transaction_id, off64_t *off_out, iocallback_t *cb);
 
 public:
     /* exposed gc api */
