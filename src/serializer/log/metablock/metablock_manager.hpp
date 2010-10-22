@@ -19,6 +19,8 @@ template<class metablock_t>
 class metablock_manager_t : private iocallback_t {
     const static uint32_t poly = 0x1337BEEF;
 
+    typedef int64_t metablock_version_t;
+
 private:
 
     // This is stored directly to disk.  Changing it will change the disk format.
@@ -27,7 +29,7 @@ private:
         char crc_marker[sizeof(MB_MARKER_CRC)];
         uint32_t _crc;            /* !< cyclic redundancy check */
         char version_marker[sizeof(MB_MARKER_VERSION)];
-        int64_t version;
+        metablock_version_t version;
         metablock_t metablock;
     public:
         uint32_t crc() {
@@ -115,15 +117,20 @@ public:
 private:
     head_t head; /* !< keeps track of where we are in the extents */
     void on_io_complete(event_t *e);
-    
+
+    metablock_version_t next_version_number;
+
     crc_metablock_t *mb_buffer;
-    bool            mb_buffer_in_use;   /* !< true: we're using the buffer, no one else can */
+    bool mb_buffer_in_use;   /* !< true: we're using the buffer, no one else can */
 
-
-    /* these are only used in the beginning when we want to find the metablock */
-    crc_metablock_t *mb_buffer_last;    /* the last metablock we read */
-    int64_t         version;            /* !< only used during boot up */
-    
+    // Just some compartmentalization to make this mildly cleaner.
+    struct startup {
+        /* these are only used in the beginning when we want to find the metablock */
+        crc_metablock_t *mb_buffer_last;
+        metablock_version_t version;
+    } startup_values;
+        
+    // swaps &mb_buffer and &mb_buffer_last.
     void swap_buffers();
 
     extent_manager_t *extent_manager;
