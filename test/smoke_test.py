@@ -87,7 +87,7 @@ for (mode, checker, protocol) in [("debug", "valgrind", "text")]:
                   "cores"       : cores,
                   "slices"      : slices,
                   "duration"    : 10 },
-                repeat=2, timeout=15)
+                repeat=2, timeout=25)
     
 # Report the results
 report()

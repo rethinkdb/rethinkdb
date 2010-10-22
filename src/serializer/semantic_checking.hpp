@@ -24,9 +24,6 @@ class semantic_checking_serializer_t :
     private inner_serializer_t::ready_callback_t,
     private inner_serializer_t::shutdown_callback_t
 {
-public:
-    typedef typename inner_serializer_t::buf_data_t buf_data_t;
-
 private:
     inner_serializer_t inner_serializer;
     
@@ -52,7 +49,7 @@ private:
         boost::crc_optimal<32, 0x04C11DB7, 0xFFFFFFFF, 0xFFFFFFFF, true, true> crc_computer;
         // We need to not crc BLOCK_META_DATA_SIZE because it's
         // internal to the serializer.
-        crc_computer.process_bytes((void*)((char*)buf + BLOCK_META_DATA_SIZE), block_size - BLOCK_META_DATA_SIZE);
+        crc_computer.process_bytes(buf, get_block_size());
         return crc_computer.checksum();
     }
     
@@ -64,14 +61,16 @@ private:
         block_info_t block_info;
     };
     int semantic_fd;
-    
+
 public:
-    size_t block_size;
-    
-    semantic_checking_serializer_t(cmd_config_t *cmd_config, char *db_path, size_t block_size)
-        : inner_serializer(cmd_config, db_path, block_size),
+    typedef typename inner_serializer_t::dynamic_config_t dynamic_config_t;
+    typedef typename inner_serializer_t::static_config_t static_config_t;
+
+public:    
+    semantic_checking_serializer_t(char *db_path, dynamic_config_t *config)
+        : inner_serializer(db_path, config),
           last_write_started(0), last_write_callbacked(0),
-          semantic_fd(-1), block_size(block_size)
+          semantic_fd(-1)
         {
             std::basic_string<char, std::char_traits<char>, gnew_alloc<char> > semantic_path(db_path);
             semantic_path += ".semantic";
@@ -87,7 +86,13 @@ public:
     struct ready_callback_t {
         virtual void on_serializer_ready(semantic_checking_serializer_t *) = 0;
     };
-    bool start(ready_callback_t *cb) {
+    
+    bool start_new(static_config_t *config, ready_callback_t *cb) {
+        ready_callback = cb;
+        return inner_serializer.start_new(config, this);
+    }
+        
+    bool start_existing(ready_callback_t *cb) {
         // fill up the blocks from the semantic checking file
         int res = -1;
         do {
@@ -100,14 +105,23 @@ public:
         } while(res == sizeof(persisted_block_info_t));
         
         ready_callback = cb;
-        return inner_serializer.start(this);
+        return inner_serializer.start_existing(this);
     }
 private:
     ready_callback_t *ready_callback;
     void on_serializer_ready(inner_serializer_t *ser) {
         if (ready_callback) ready_callback->on_serializer_ready(this);
     }
+
+public:
+    void *malloc() {
+        return inner_serializer.malloc();
+    }
     
+    void free(void *ptr) {
+        inner_serializer.free(ptr);
+    }
+
 public:
     /* For reads, we check to make sure that the data we get back in the read is
     consistent with what was last written there. */
@@ -255,6 +269,10 @@ public:
     }
     
 public:
+    size_t get_block_size() {
+        return inner_serializer.get_block_size();
+    }
+    
     ser_block_id_t max_block_id() {
         return inner_serializer.max_block_id();
     }

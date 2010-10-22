@@ -32,22 +32,22 @@ class leaf_key_comp;
 class leaf_node_handler : public node_handler {
     friend class leaf_key_comp;
     public:
-    static void init(btree_leaf_node *node);
-    static void init(btree_leaf_node *node, btree_leaf_node *lnode, uint16_t *offsets, int numpairs);
+    static void init(size_t block_size, btree_leaf_node *node);
+    static void init(size_t block_size, btree_leaf_node *node, btree_leaf_node *lnode, uint16_t *offsets, int numpairs);
 
     static bool lookup(const btree_leaf_node *node, btree_key *key, btree_value *value);
-    static bool insert(btree_leaf_node *node, btree_key *key, btree_value *value);
-    static void remove(btree_leaf_node *node, btree_key *key); //Currently untested
-    static void split(btree_leaf_node *node, btree_leaf_node *rnode, btree_key *median);
-    static void merge(btree_leaf_node *node, btree_leaf_node *rnode, btree_key *key_to_remove);
-    static bool level(btree_leaf_node *node, btree_leaf_node *sibling, btree_key *key_to_replace, btree_key *replacement_key);
+    static bool insert(size_t block_size, btree_leaf_node *node, btree_key *key, btree_value *value);
+    static void remove(size_t block_size, btree_leaf_node *node, btree_key *key); //Currently untested
+    static void split(size_t block_size, btree_leaf_node *node, btree_leaf_node *rnode, btree_key *median);
+    static void merge(size_t block_size, btree_leaf_node *node, btree_leaf_node *rnode, btree_key *key_to_remove);
+    static bool level(size_t block_size, btree_leaf_node *node, btree_leaf_node *sibling, btree_key *key_to_replace, btree_key *replacement_key);
 
 
     static bool is_empty(const btree_leaf_node *node);
     static bool is_full(const btree_leaf_node *node, btree_key *key, btree_value *value);
-    static bool is_underfull(const btree_leaf_node *node);
-    static bool is_mergable(const btree_leaf_node *node, const btree_leaf_node *sibling);
-    static void validate(const btree_leaf_node *node);
+    static bool is_underfull(size_t block_size, const btree_leaf_node *node);
+    static bool is_mergable(size_t block_size, const btree_leaf_node *node, const btree_leaf_node *sibling);
+    static void validate(size_t block_size, const btree_leaf_node *node);
     static int nodecmp(const btree_leaf_node *node1, const btree_leaf_node *node2);
 
     static void print(const btree_leaf_node *node);

@@ -6,6 +6,7 @@
 #include "config/cmd_args.hpp"
 #include "containers/priority_queue.hpp"
 #include "containers/two_level_array.hpp"
+#include "containers/bitset.hpp"
 #include "extents/extent_manager.hpp"
 #include "log_serializer_callbacks.hpp"
 #include "serializer/types.hpp"
@@ -15,28 +16,31 @@
 #include <utility>
 #include <sys/time.h>
 
-// TODO: When we start up, start a new extent rather than continuing on the old extent. The
-// remainder of the old extent is taboo because if we shut down badly, we might have written data
-// to it but not recorded that we had written data, and if we wrote over that data again then the
-// SSD controller would have to move it and there would be a risk of fragmentation.
-
 class data_block_manager_t {
 
 public:
-    data_block_manager_t(log_serializer_t *ser, cmd_config_t *cmd_config, extent_manager_t *em, size_t _block_size)
+    data_block_manager_t(log_serializer_t *ser, log_serializer_dynamic_config_t *dynamic_config, extent_manager_t *em, log_serializer_static_config_t *static_config)
         : shutdown_callback(NULL), state(state_unstarted), serializer(ser),
-          cmd_config(cmd_config), extent_manager(em), block_size(_block_size),
+          dynamic_config(dynamic_config), static_config(static_config), extent_manager(em),
+          next_active_extent(0),
+          gc_state(extent_manager->extent_size),
           pm_garbage_ratio("garbage_ratio", &gc_stats, perfmon_combiner_sum,
                            perfmon_weighted_average_transformer)
-    {}
+    {
+        assert(dynamic_config);
+        assert(static_config);
+        assert(serializer);
+        assert(extent_manager);
+    }
     ~data_block_manager_t() {
         assert(state == state_unstarted || state == state_shut_down);
     }
 
 public:
     struct metablock_mixin_t {
-        off64_t last_data_extent;
-        unsigned int blocks_in_last_data_extent;
+        
+        off64_t active_extents[MAX_ACTIVE_DATA_EXTENTS];
+        size_t blocks_in_active_extent[MAX_ACTIVE_DATA_EXTENTS];
     };
 
     /* When initializing the database from scratch, call start() with just the database FD. When
@@ -49,8 +53,8 @@ public:
     };
 
 public:
-    void start(direct_file_t *dbfile);
-    void start(direct_file_t *dbfile, metablock_mixin_t *last_metablock);
+    void start_new(direct_file_t *dbfile);
+    void start_existing(direct_file_t *dbfile, metablock_mixin_t *last_metablock);
 
 public:
     bool read(off64_t off_in, void *buf_out, iocallback_t *cb);
@@ -58,7 +62,7 @@ public:
     /* The offset that the data block manager chose will be left in off_out as soon as write()
     returns. The callback will be called when the data is actually on disk and it is safe to reuse
     the buffer. */
-    bool write(void *buf_in, off64_t *off_out, iocallback_t *cb);
+    bool write(void *buf_in, ser_block_id_t block_id, off64_t *off_out, iocallback_t *cb);
 
 public:
     /* exposed gc api */
@@ -119,12 +123,12 @@ private:
 
     log_serializer_t *serializer;
 
-    cmd_config_t *cmd_config;
+    log_serializer_dynamic_config_t *dynamic_config;
+    log_serializer_static_config_t *static_config;
 
     extent_manager_t *extent_manager;
 
     direct_file_t *dbfile;
-    size_t block_size;
 
     off64_t gimme_a_new_offset();
 
@@ -145,9 +149,11 @@ private:
     {
     public:
         typedef uint64_t timestamp_t;
-    
+        
+        data_block_manager_t *parent;
+        
         off64_t offset; /* !< the offset that this extent starts at */
-        std::bitset<EXTENT_SIZE / BTREE_BLOCK_SIZE> g_array; /* !< bit array for whether or not each block is garbage */
+        bitset_t g_array; /* !< bit array for whether or not each block is garbage */
         timestamp_t timestamp; /* !< when we started writing to the extent */
         priority_queue_t<gc_entry*, Less>::entry_t *our_pq_entry; /* !< The PQ entry pointing to us */
         
@@ -167,22 +173,39 @@ private:
     public:
         
         /* This constructor is for starting a new extent. */
-        explicit gc_entry(extent_manager_t *em) {
-            offset = em->gen_extent();
+        explicit gc_entry(data_block_manager_t *parent)
+            : parent(parent),
+              offset(parent->extent_manager->gen_extent()),
+              g_array(parent->extent_manager->extent_size / parent->static_config->block_size),
+              timestamp(current_timestamp())
+        {
+            assert(parent->entries.get(offset / parent->extent_manager->extent_size) == NULL);
+            parent->entries.set(offset / parent->extent_manager->extent_size, this);
             g_array.set();
-            timestamp = current_timestamp();
-            state = state_active;
-            our_pq_entry = NULL;
         }
         
         /* This constructor is for reconstructing extents that the LBA tells us contained
         data blocks. */
-        explicit gc_entry(off64_t off) {
-            offset = off;
+        explicit gc_entry(data_block_manager_t *parent, off64_t offset)
+            : parent(parent),
+              offset(offset),
+              g_array(parent->extent_manager->extent_size / parent->static_config->block_size),
+              timestamp(current_timestamp())
+        {
+            parent->extent_manager->reserve_extent(offset);
+            assert(parent->entries.get(offset / parent->extent_manager->extent_size) == NULL);
+            parent->entries.set(offset / parent->extent_manager->extent_size, this);
             g_array.set();
-            timestamp = -1;
-            state = state_reconstructing;
-            our_pq_entry = NULL;
+        }
+        
+        void destroy() {
+            parent->extent_manager->release_extent(offset);
+            delete this;
+        }
+        
+        ~gc_entry() {
+            assert(parent->entries.get(offset / parent->extent_manager->extent_size) == this);
+            parent->entries.set(offset / parent->extent_manager->extent_size, NULL);
         }
         
         void print() {
@@ -204,14 +227,24 @@ private:
         }
     };
     
+    /* Contains a pointer to every gc_entry, regardless of what its current state is */
     two_level_array_t<gc_entry*, MAX_DATA_EXTENTS> entries;
     
+    /* Contains every extent in the gc_entry::state_reconstructing state */
     intrusive_list_t< gc_entry > reconstructed_extents;
-    gc_entry *last_data_extent;
-    unsigned blocks_in_last_data_extent;
+    
+    /* Contains the extents in the gc_entry::state_active state. The number of active extents
+    is determined by dynamic_config->num_active_data_extents. */
+    unsigned int next_active_extent;   // Cycles through the active extents
+    gc_entry *active_extents[MAX_ACTIVE_DATA_EXTENTS];
+    unsigned blocks_in_active_extent[MAX_ACTIVE_DATA_EXTENTS];
+    
+    /* Contains every extent in the gc_entry::state_young state */
     intrusive_list_t< gc_entry > young_extent_queue;
+    
+    /* Contains every extent in the gc_entry::state_old state */
     priority_queue_t<gc_entry*, Less> gc_pq;
-
+    
     // Tells if we should keep gc'ing, being told the next extent that
     // would be gc'ed.
     bool should_we_keep_gcing(const gc_entry&) const;
@@ -261,11 +294,11 @@ private:
         data_block_manager_t::gc_write_callback_t gc_write_callback;
         data_block_manager_t::gc_disable_callback_t *gc_disable_callback;
 
-        gc_state_t() : step_(gc_ready), should_be_stopped(0), refcount(0), current_entry(NULL)
+        gc_state_t(size_t extent_size) : step_(gc_ready), should_be_stopped(0), refcount(0), current_entry(NULL)
         {
             memalign_alloc_t<DEVICE_BLOCK_SIZE> blocks_buffer_allocator;
             /* TODO this is excessive as soon as we have a bound on how much space we need we should allocate less */
-            gc_blocks = (char *) blocks_buffer_allocator.malloc(EXTENT_SIZE);
+            gc_blocks = (char *) blocks_buffer_allocator.malloc(extent_size);
         }
         ~gc_state_t() {
             free(gc_blocks);

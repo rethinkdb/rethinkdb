@@ -31,12 +31,12 @@ public:
     restarting an existing database, call start() with the last metablock. The first form returns
     immediately; the second form might not. */
     
-    void start(direct_file_t *dbfile);
+    void start_new(direct_file_t *dbfile);
     
     struct ready_callback_t {
         virtual void on_lba_ready() = 0;
     };
-    bool start(direct_file_t *dbfile, metablock_mixin_t *last_metablock, ready_callback_t *cb);
+    bool start_existing(direct_file_t *dbfile, metablock_mixin_t *last_metablock, ready_callback_t *cb);
     
 public:
     /* Returns DELETE_BLOCK if the block does not exist */

@@ -14,6 +14,7 @@ long get_available_ram();
 long get_total_ram();
 
 typedef char byte;
+typedef char byte_t;
 
 template<typename T1, typename T2>
 T1 ceil_aligned(T1 value, T2 alignment) {

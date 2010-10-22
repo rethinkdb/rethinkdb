@@ -48,15 +48,21 @@ bool btree_key_value_store_t::create_a_serializer_on_this_core(int id) {
     
     char name[MAX_DB_FILE_NAME];
     int len = snprintf(name, MAX_DB_FILE_NAME, "%s_%d", cmd_config->db_file_name, id);
-    // TODO: the below line is currently the only way to write to a block device,
-    // we need a command line way to do it, this also requires consolidating to one
-    // file
-    //     int len = snprintf(name, MAX_DB_FILE_NAME, "/dev/sdb");
     check("Name too long", len == MAX_DB_FILE_NAME);
     
-    serializers[id] = gnew<serializer_t>(cmd_config, name, BTREE_BLOCK_SIZE);
+    serializers[id] = gnew<serializer_t>(name, &cmd_config->ser_dynamic_config);
     
-    if (serializers[id]->start(this)) on_serializer_ready(serializers[id]);
+    bool done;
+    int res = access(name, F_OK);
+    if (res == 0) {
+        done = serializers[id]->start_existing(this);
+    } else if (res == -1 && errno == ENOENT) {
+        done = serializers[id]->start_new(&cmd_config->ser_static_config, this);
+    } else {
+        fail("access() failed: %s", strerror(errno));
+    }
+    
+    if (done) on_serializer_ready(serializers[id]);
 
     return true;
 }

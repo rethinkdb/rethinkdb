@@ -12,7 +12,7 @@ lba_list_t::lba_list_t(extent_manager_t *em)
 }
 
 /* This form of start() is called when we are creating a new database */
-void lba_list_t::start(direct_file_t *file) {
+void lba_list_t::start_new(direct_file_t *file) {
     
     assert(state == state_unstarted);
     
@@ -92,7 +92,7 @@ struct lba_start_fsm_t :
 };
 
 /* This form of start() is called when we are loading an existing database */
-bool lba_list_t::start(direct_file_t *file, metablock_mixin_t *last_metablock, ready_callback_t *cb) {
+bool lba_list_t::start_existing(direct_file_t *file, metablock_mixin_t *last_metablock, ready_callback_t *cb) {
     
     assert(state == state_unstarted);
     

@@ -19,7 +19,7 @@ mc_buf_t<mc_config_t>::mc_buf_t(cache_t *cache, block_id_t block_id, block_avail
       concurrency_buf(this),
       page_map_buf(this) {
       
-    data = cache->alloc.malloc(cache->serializer->block_size);
+    data = cache->serializer->malloc();
     
 #ifndef NDEBUG
     active_callback_count ++;
@@ -85,12 +85,12 @@ mc_buf_t<mc_config_t>::mc_buf_t(cache_t *cache)
     
     cache->assert_cpu();
     
-    data = cache->alloc.malloc(cache->serializer->block_size);
+    data = cache->serializer->malloc();
 
-#ifndef NDEBUG
+#if !defined(NDEBUG) || defined(VALGRIND)
     // The memory allocator already filled this with 0xBD, but it's nice to be able to distinguish
     // between problems with uninitialized memory and problems with uninitialized blocks
-    memset(data, 0xCD, cache->serializer->block_size);
+    memset(data, 0xCD, cache->serializer->get_block_size());
 #endif
 }
 
@@ -103,11 +103,11 @@ mc_buf_t<mc_config_t>::~mc_buf_t() {
     // We're about to free the data, let's set it to a recognizable
     // value to make sure we don't depend on accessing things that may
     // be flushed out of the cache.
-    memset(data, 0xDD, cache->serializer->block_size);
+    memset(data, 0xDD, cache->serializer->get_block_size());
 #endif
     
     assert(safe_to_unload());
-    cache->alloc.free(data);
+    cache->serializer->free(data);
 }
 
 template<class mc_config_t>
@@ -351,13 +351,13 @@ mc_cache_t<mc_config_t>::mc_cache_t(
     count_on_serializer(count_on_serializer),
     page_repl(
         // Launch page replacement if the user-specified maximum number of blocks is reached
-        _max_size / serializer->block_size,
+        _max_size / serializer->get_block_size(),
         this),
     writeback(
         this,
         wait_for_flush,
         flush_timer_ms,
-        _max_size / serializer->block_size * flush_threshold_percent / 100),
+        _max_size / serializer->get_block_size() * flush_threshold_percent / 100),
     free_list(this),
     shutdown_transaction_backdoor(false),
     state(state_unstarted),
@@ -412,7 +412,7 @@ bool mc_cache_t<mc_config_t>::next_starting_up_step() {
 #endif
             b->concurrency_buf.acquire(rwi_write, NULL);
             assert(b->get_block_id() == SUPERBLOCK_ID);
-            bzero(b->get_data_write(), BTREE_USABLE_BLOCK_SIZE);
+            bzero(b->get_data_write(), get_block_size());
             b->release();
         }
         
@@ -432,6 +432,11 @@ void mc_cache_t<mc_config_t>::on_free_list_ready() {
     assert(state == state_starting_up_waiting_for_free_list);
     state = state_starting_up_finish;
     next_starting_up_step();
+}
+
+template<class mc_config_t>
+size_t mc_cache_t<mc_config_t>::get_block_size() {
+    return serializer->get_block_size();
 }
 
 template<class mc_config_t>

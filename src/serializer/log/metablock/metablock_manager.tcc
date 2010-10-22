@@ -3,61 +3,48 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
+#define MB_NEXTENTS 2
+#define MB_EXTENT_SEPARATION 4 /* !< every MB_EXTENT_SEPARATIONth extent is for MB, up to MB_EXTENT many */
+
 /* head functions */
 
 template<class metablock_t>
-metablock_manager_t<metablock_t>::metablock_manager_t::head_t::head_t()
-    : mb_slot(0), extent(0), saved_mb_slot(-1), saved_extent(-1), extent_size(-1), wraparound(false)
-{}
+metablock_manager_t<metablock_t>::metablock_manager_t::head_t::head_t(metablock_manager_t *manager)
+    : mb_slot(0), saved_mb_slot(-1), wraparound(false), mgr(manager) { }
 
 template<class metablock_t>
 void metablock_manager_t<metablock_t>::metablock_manager_t::head_t::operator++(int a) {
-    check("Head ++ called with setting extent_size", extent_size == 0);
     mb_slot++;
     wraparound = false;
-    if (mb_slot >= (extent_size - DEVICE_BLOCK_SIZE) / DEVICE_BLOCK_SIZE  ) {
+    
+    if (mb_slot >= mgr->metablock_offsets.size()) {
         mb_slot = 0;
-        extent += MB_EXTENT_SEPERATION;
-        if (extent >= MB_NEXTENTS * MB_EXTENT_SEPERATION) {
-            extent = 0;
-            wraparound = true;
-        }
+        wraparound = true;
     }
 }
 
 template<class metablock_t>
 off64_t metablock_manager_t<metablock_t>::metablock_manager_t::head_t::offset() {
-    check("Head offset called with setting extent_size", extent_size == 0);
-    return DEVICE_BLOCK_SIZE * mb_slot + extent * extent_size + DEVICE_BLOCK_SIZE;
+    
+    return mgr->metablock_offsets[mb_slot];
 }
 
 template<class metablock_t>
 void metablock_manager_t<metablock_t>::metablock_manager_t::head_t::push() {
     saved_mb_slot = mb_slot;
-    saved_extent = extent;
 }
 
 template<class metablock_t>
 void metablock_manager_t<metablock_t>::metablock_manager_t::head_t::pop() {
-    check("Popping without a saved state", saved_mb_slot == (uint32_t) -1 || saved_extent == (uint32_t) -1);
+    check("Popping without a saved state", saved_mb_slot == (uint32_t) -1);
     mb_slot = saved_mb_slot;
-    extent = saved_extent;
-    
     saved_mb_slot = -1;
-    saved_extent = -1;
 }
 
 template<class metablock_t>
 metablock_manager_t<metablock_t>::metablock_manager_t(extent_manager_t *em)
-    : extent_manager(em), state(state_unstarted), dbfile(NULL), hdr(NULL), hdr_ref_count(0)
-{
-    head.extent_size = extent_manager->extent_size;
-    assert(sizeof(static_header) <= DEVICE_BLOCK_SIZE);
-    hdr = (static_header *)malloc_aligned(DEVICE_BLOCK_SIZE, DEVICE_BLOCK_SIZE);
-#ifdef VALGRIND
-    memset(hdr, 0xBD, DEVICE_BLOCK_SIZE);              // Happify Valgrind
-#endif
-
+    : head(this), extent_manager(em), state(state_unstarted), dbfile(NULL)
+{    
     assert(sizeof(crc_metablock_t) <= DEVICE_BLOCK_SIZE);
     mb_buffer = (crc_metablock_t *)malloc_aligned(DEVICE_BLOCK_SIZE, DEVICE_BLOCK_SIZE);
     mb_buffer_last = (crc_metablock_t *)malloc_aligned(DEVICE_BLOCK_SIZE, DEVICE_BLOCK_SIZE);
@@ -66,21 +53,37 @@ metablock_manager_t<metablock_t>::metablock_manager_t(extent_manager_t *em)
     memset(mb_buffer, 0xBD, DEVICE_BLOCK_SIZE);        // Happify Valgrind
     memset(mb_buffer_last, 0xBD, DEVICE_BLOCK_SIZE);   // Happify Valgrind
 #endif
-#ifdef SERIALIZER_MARKERS
-    memcpy(mb_buffer->magic_marker, mb_marker_magic, strlen(mb_marker_magic));
-    memcpy(mb_buffer->crc_marker, mb_marker_crc, strlen(mb_marker_crc));
-    memcpy(mb_buffer->version_marker, mb_marker_version, strlen(mb_marker_version));
-#endif
+    memcpy(mb_buffer->magic_marker, MB_MARKER_MAGIC, sizeof(MB_MARKER_MAGIC));
+    memcpy(mb_buffer->crc_marker, MB_MARKER_CRC, sizeof(MB_MARKER_CRC));
+    memcpy(mb_buffer->version_marker, MB_MARKER_VERSION, sizeof(MB_MARKER_VERSION));
     mb_buffer->set_crc();
     mb_buffer_in_use = false;
+    
+    /* Build the list of metablock locations in the file */
+    
+    for (unsigned i = 0; i < MB_NEXTENTS; i++) {
+        off64_t extent = i * extent_manager->extent_size * MB_EXTENT_SEPARATION;
+        
+        /* The reason why we don't reserve extent 0 is that it has already been reserved for the
+        static header. We can share the first extent with the static header if and only if we don't
+        overwrite the first DEVICE_BLOCK_SIZE of it, but we musn't reserve it again. */
+        if (extent != 0) extent_manager->reserve_extent(extent);
+        
+        for (unsigned j = 0; j < extent_manager->extent_size / DEVICE_BLOCK_SIZE; j++) {
+            off64_t offset = extent + j * DEVICE_BLOCK_SIZE;
+            
+            /* The very first DEVICE_BLOCK_SIZE of the file is used for the static header */
+            if (offset == 0) continue;
+            
+            metablock_offsets.push_back(offset);
+        }
+    }
 }
 
 template<class metablock_t>
 metablock_manager_t<metablock_t>::~metablock_manager_t() {
-
+    
     assert(state == state_unstarted || state == state_shut_down);
-
-    free(hdr);
     
     assert(!mb_buffer_in_use);
     free(mb_buffer);
@@ -90,7 +93,19 @@ metablock_manager_t<metablock_t>::~metablock_manager_t() {
 }
 
 template<class metablock_t>
-bool metablock_manager_t<metablock_t>::start(direct_file_t *file, bool *mb_found, metablock_t *mb_out, metablock_read_callback_t *cb) {
+void metablock_manager_t<metablock_t>::start_new(direct_file_t *file) {
+    
+    assert(state == state_unstarted);
+    dbfile = file;
+    assert(dbfile != NULL);
+    
+    mb_buffer->version = 0;
+    
+    state = state_ready;
+}
+
+template<class metablock_t>
+bool metablock_manager_t<metablock_t>::start_existing(direct_file_t *file, bool *mb_found, metablock_t *mb_out, metablock_read_callback_t *cb) {
     
     assert(state == state_unstarted);
     dbfile = file;
@@ -104,11 +119,7 @@ bool metablock_manager_t<metablock_t>::start(direct_file_t *file, bool *mb_found
 
     version = -1;
     
-    dbfile->set_size_at_least(((MB_NEXTENTS - 1) * MB_EXTENT_SEPERATION + 1) * extent_manager->extent_size);
-    for (int i = 0; i < MB_NEXTENTS; i++) {
-        /* reserve the ith extent */
-        extent_manager->reserve_extent(i * MB_EXTENT_SEPERATION * extent_manager->extent_size);
-    }
+    dbfile->set_size_at_least(metablock_offsets[metablock_offsets.size() - 1] + DEVICE_BLOCK_SIZE);
     
     dbfile->read_async(head.offset(), DEVICE_BLOCK_SIZE, mb_buffer, this);
     
@@ -155,6 +166,7 @@ template<class metablock_t>
 void metablock_manager_t<metablock_t>::shutdown() {
     
     assert(state == state_ready);
+    assert(!mb_buffer_in_use);
     state = state_shut_down;
 }
 
@@ -193,28 +205,26 @@ void metablock_manager_t<metablock_t>::on_io_complete(event_t *e) {
         if (done_looking) {
             if (version == -1) {
                 
-                /* no metablock found anywhere (either the db is toast, or we're on a block device) */
+                /* no metablock found anywhere -- the DB is toast */
                 
                 // Start versions from 0, not from whatever garbage was in the last thing we read
                 mb_buffer->version = 0;
-                
-                state = state_writing_header;
-                write_headers();
                 *mb_found = false;
                 
             } else {
                 /* we found a metablock */
-                *mb_found = true;
                 swap((void **) &mb_buffer_last, (void **) &mb_buffer);
 
                 /* set everything up */
                 version = -1; /* version is now useless */
                 head.pop();
+                *mb_found = true;
                 memcpy(mb_out, &(mb_buffer->metablock), sizeof(metablock_t));
-                state = state_reading_header;
-                read_headers();
             }
             mb_buffer_in_use = false;
+            state = state_ready;
+            if (read_callback) read_callback->on_metablock_read();
+            
         } else {
             dbfile->read_async(
                 head.offset(),
@@ -223,61 +233,30 @@ void metablock_manager_t<metablock_t>::on_io_complete(event_t *e) {
                 this);
         }
         break;
-
-    case state_reading_header:
-        //TODO, we should actually do something with the header once we have it
-        state = state_ready;
-        if (read_callback) read_callback->on_metablock_read();
-            read_callback = NULL;
-        break;
-
-    case state_writing_header:
-        hdr_ref_count--;
-        if (hdr_ref_count == 0) {
-            state = state_ready;
-            if (read_callback) {
-                read_callback->on_metablock_read();
-            }
-            read_callback = NULL;
-        }
-        break;
         
-    case state_writing:
+    case state_writing: {
+        
         state = state_ready;
         mb_buffer_in_use = false;
-        if (write_callback) write_callback->on_metablock_write();
+        
+        /* Store the write callback because when we call it, it might destroy us */
+        metablock_write_callback_t *write_cb = write_callback;
         write_callback = NULL;
+        
+        /* Start the next write if there are more in the queue */
         if (!outstanding_writes.empty()) {
             metablock_write_req_t req = outstanding_writes.front();
             outstanding_writes.pop_front();
             write_metablock(req.mb, req.cb);
         }
-        break;
         
+        /* Call the write callback as the last step, because it might destroy us */
+        if (write_cb) write_cb->on_metablock_write();
+        
+        break;
+    }
+    
     default:
         fail("Unexpected state.");
     }
-}
-
-template<class metablock_t>
-void metablock_manager_t<metablock_t>::write_headers() {
-    assert(state == state_writing_header);
-    static_header hdr(BTREE_BLOCK_SIZE, EXTENT_SIZE);
-    memcpy(this->hdr, &hdr, sizeof(static_header));
-
-    for (int i = 0; i < MB_NEXTENTS; i++) {
-        hdr_ref_count++;
-        dbfile->write_async(
-            i * MB_EXTENT_SEPERATION * extent_manager->extent_size,
-            DEVICE_BLOCK_SIZE,
-            this->hdr,
-            this);
-    }
-}
-
-template<class metablock_t>
-void metablock_manager_t<metablock_t>::read_headers() {
-    assert(state == state_reading_header);
-    
-    dbfile->read_async(0, DEVICE_BLOCK_SIZE, hdr, this);
 }

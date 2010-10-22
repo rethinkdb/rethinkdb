@@ -9,14 +9,11 @@
 #include <deque>
 #include "serializer/log/static_header.hpp"
 
-#define mb_marker_magic     "metablock"
-#define mb_marker_crc       "crc:"
-#define mb_marker_version   "version:"
-
-#define MB_NEXTENTS 2 /* !< number of extents must be HARD coded */
-#define MB_EXTENT_SEPERATION 4 /* !< every MB_EXTENT_SEPERATIONth extent is for MB, up to MB_EXTENT many */
 
 /* TODO support multiple concurrent writes */
+const static char MB_MARKER_MAGIC[8] = {'m', 'e', 't', 'a', 'b', 'l', 'c', 'k'};
+const static char MB_MARKER_CRC[4] = {'c', 'r', 'c', ':'};
+const static char MB_MARKER_VERSION[8] = {'v', 'e', 'r', 's', 'i', 'o', 'n', ':'};
 
 template<class metablock_t>
 class metablock_manager_t : private iocallback_t {
@@ -24,16 +21,10 @@ class metablock_manager_t : private iocallback_t {
 
 private:
     struct crc_metablock_t {
-#ifdef SERIALIZER_MARKERS
-        char magic_marker[sizeof(mb_marker_magic)];
-#endif
-#ifdef SERIALIZER_MARKERS
-        char crc_marker[sizeof(mb_marker_crc)];
-#endif
+        char magic_marker[sizeof(MB_MARKER_MAGIC)];
+        char crc_marker[sizeof(MB_MARKER_CRC)];
         uint32_t            _crc;            /* !< cyclic redundancy check */
-#ifdef SERIALIZER_MARKERS
-        char version_marker[sizeof(mb_marker_crc)];
-#endif
+        char version_marker[sizeof(MB_MARKER_VERSION)];
         int             version;
         metablock_t     metablock;
     public:
@@ -57,16 +48,13 @@ private:
 private:
     struct head_t {
         private:
-            uint32_t mb_slot; /* !< how many metablocks have been written in this extent */
-            uint32_t extent; /* !< which of our extents we're on */
+            uint32_t mb_slot;
             uint32_t saved_mb_slot;
-            uint32_t saved_extent;
-        public:
-            size_t extent_size;
         public:
             bool wraparound; /* !< whether or not we've wrapped around the edge (used during startup) */
         public:
-            head_t();
+            head_t(metablock_manager_t *mgr);
+            metablock_manager_t *mgr;
 
             /* \brief handles moving along successive mb slots
              */
@@ -87,10 +75,15 @@ public:
     ~metablock_manager_t();
 
 public:
+    /* Starts a new database without looking for existing metablocks */
+    void start_new(direct_file_t *dbfile);
+    
+    /* Tries to load existing metablocks */
     struct metablock_read_callback_t {
         virtual void on_metablock_read() = 0;
     };
-    bool start(direct_file_t *dbfile, bool *mb_found, metablock_t *mb_out, metablock_read_callback_t *cb);
+    bool start_existing(direct_file_t *dbfile, bool *mb_found, metablock_t *mb_out, metablock_read_callback_t *cb);
+    
 private:
     metablock_read_callback_t *read_callback;
     metablock_t *mb_out; /* !< where to put the metablock once we find it */
@@ -117,8 +110,6 @@ public:
 
 public:
     void read_next_metablock();
-    void write_headers();
-    void read_headers();
 
 private:
     head_t head; /* !< keeps track of where we are in the extents */
@@ -126,6 +117,7 @@ private:
     
     crc_metablock_t *mb_buffer;
     bool            mb_buffer_in_use;   /* !< true: we're using the buffer, no one else can */
+    
 private:
     /* these are only used in the beginning when we want to find the metablock */
     crc_metablock_t *mb_buffer_last;    /* the last metablock we read */
@@ -133,20 +125,17 @@ private:
     
     extent_manager_t *extent_manager;
     
+    std::vector<off64_t, gnew_alloc<off64_t> > metablock_offsets;
+    
     enum state_t {
         state_unstarted,
         state_reading,
-        state_reading_header,
-        state_writing_header,
         state_ready,
         state_writing,
         state_shut_down,
     } state;
     
     direct_file_t *dbfile;
-private:
-    static_header *hdr;
-    int hdr_ref_count;
 };
 
 #include "metablock_manager.tcc"

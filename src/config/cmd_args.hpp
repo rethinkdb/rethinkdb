@@ -3,8 +3,19 @@
 #define __CMD_ARGS_HPP__
 
 #include "config/args.hpp"
+#include <sys/types.h>
 
 #define NEVER_FLUSH -1
+
+struct log_serializer_dynamic_config_t {
+    float gc_low_ratio, gc_high_ratio;
+    unsigned num_active_data_extents;
+};
+
+struct log_serializer_static_config_t {
+    size_t block_size;
+    size_t extent_size;
+};
 
 struct cmd_config_t {
     int port;
@@ -32,12 +43,9 @@ struct cmd_config_t {
     // Log messages below this level aren't printed
     //log_level min_log_level;
 
-
-    // The garbage ratio at which we stop collecting.
-    float gc_low_ratio;
-
-    // The garbage ratio at which we begin collecting.
-    float gc_high_ratio;
+    // Configuration information for the serializer
+    log_serializer_dynamic_config_t ser_dynamic_config;
+    log_serializer_static_config_t ser_static_config;
 };
 
 void parse_cmd_args(int argc, char *argv[], cmd_config_t *config);

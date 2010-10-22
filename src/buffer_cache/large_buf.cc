@@ -1,6 +1,6 @@
 #include "large_buf.hpp"
 
-large_buf_t::large_buf_t(transaction_t *txn) : transaction(txn), num_acquired(0), state(not_loaded) {
+large_buf_t::large_buf_t(transaction_t *txn) : transaction(txn), block_size(txn->cache->get_block_size()), num_acquired(0), state(not_loaded) {
     assert(sizeof(large_buf_index) <= IO_BUFFER_SIZE); // Where should this go?
     assert(transaction);
 }
@@ -17,7 +17,7 @@ void large_buf_t::allocate(uint32_t _size) {
     index_buf = transaction->allocate(&index_block_id);
     large_buf_index *index = get_index_write();
     index->first_block_offset = 0;
-    index->num_segments = NUM_SEGMENTS(size, BTREE_USABLE_BLOCK_SIZE);
+    index->num_segments = NUM_SEGMENTS(size, block_size);
 
     for (int i = 0; i < get_num_segments(); i++) {
         bufs[i] = transaction->allocate(&get_index_write()->blocks[i]);
@@ -88,7 +88,7 @@ void large_buf_t::append(uint32_t extra_size) {
     // TODO: Make this work like prepend.
 
     while (extra_size > 0) {
-        uint16_t bytes_added = std::min((uint32_t) BTREE_USABLE_BLOCK_SIZE - seg_pos, extra_size);
+        uint16_t bytes_added = std::min((uint32_t) block_size - seg_pos, extra_size);
         if (seg_pos != 0) {
             extra_size -= bytes_added;
             size += bytes_added;
@@ -106,8 +106,8 @@ void large_buf_t::append(uint32_t extra_size) {
 void large_buf_t::prepend(uint32_t extra_size) {
     assert(state == loaded);
 
-    //uint16_t new_segs = (extra_size - get_index()->first_block_offset - 1) / BTREE_USABLE_BLOCK_SIZE + 1;
-    uint16_t new_segs = (extra_size + BTREE_USABLE_BLOCK_SIZE - get_index()->first_block_offset - 1) / BTREE_USABLE_BLOCK_SIZE;
+    //uint16_t new_segs = (extra_size - get_index()->first_block_offset - 1) / block_size + 1;
+    uint16_t new_segs = (extra_size + block_size - get_index()->first_block_offset - 1) / block_size;
     assert(get_num_segments() + new_segs <= MAX_LARGE_BUF_SEGMENTS);
 
     large_buf_index *index = get_index_write();
@@ -119,7 +119,7 @@ void large_buf_t::prepend(uint32_t extra_size) {
         bufs[i] = transaction->allocate(&index->blocks[i]);
     }
 
-    index->first_block_offset = index->first_block_offset + new_segs * BTREE_USABLE_BLOCK_SIZE - extra_size; // XXX
+    index->first_block_offset = index->first_block_offset + new_segs * block_size - extra_size; // XXX
     index->num_segments += new_segs;
     size += extra_size;
 }
@@ -128,7 +128,7 @@ void large_buf_t::prepend(uint32_t extra_size) {
 void large_buf_t::fill_at(uint32_t pos, const byte *data, uint32_t fill_size) {
     assert(state == loaded);
     assert(pos + fill_size <= size);
-    assert(get_index()->first_block_offset < BTREE_USABLE_BLOCK_SIZE);
+    assert(get_index()->first_block_offset < block_size);
 
     // Blach.
     uint16_t ix = pos_to_ix(pos);
@@ -173,8 +173,8 @@ void large_buf_t::unprepend(uint32_t extra_size) {
 
     uint16_t last_seg_pos = pos_to_seg_pos(size);
     uint16_t num_segs = get_num_segments();
-    uint16_t old_fbo = (BTREE_USABLE_BLOCK_SIZE - ((size - last_seg_pos - extra_size) % BTREE_USABLE_BLOCK_SIZE)) % BTREE_USABLE_BLOCK_SIZE;
-    uint16_t new_segs = (extra_size + BTREE_USABLE_BLOCK_SIZE - old_fbo - 1) / BTREE_USABLE_BLOCK_SIZE;
+    uint16_t old_fbo = (block_size - ((size - last_seg_pos - extra_size) % block_size)) % block_size;
+    uint16_t new_segs = (extra_size + block_size - old_fbo - 1) / block_size;
     uint16_t old_num_segs = num_segs - new_segs;
 
     for (int i = 0; i < new_segs; i++) {
@@ -193,17 +193,17 @@ void large_buf_t::unprepend(uint32_t extra_size) {
 
 // Blach.
 uint16_t large_buf_t::pos_to_ix(uint32_t pos) {
-    uint16_t ix = pos < BTREE_USABLE_BLOCK_SIZE - get_index()->first_block_offset
+    uint16_t ix = pos < block_size - get_index()->first_block_offset
                 ? 0
-                : (pos + get_index()->first_block_offset) / BTREE_USABLE_BLOCK_SIZE;
+                : (pos + get_index()->first_block_offset) / block_size;
     assert(ix <= get_num_segments());
     return ix;
 }
 uint16_t large_buf_t::pos_to_seg_pos(uint32_t pos) {
-    uint16_t seg_pos = pos < BTREE_USABLE_BLOCK_SIZE - get_index()->first_block_offset
+    uint16_t seg_pos = pos < block_size - get_index()->first_block_offset
                      ? pos
-                     : (pos + get_index()->first_block_offset) % BTREE_USABLE_BLOCK_SIZE;
-    assert(seg_pos < BTREE_USABLE_BLOCK_SIZE);
+                     : (pos + get_index()->first_block_offset) % block_size;
+    assert(seg_pos < block_size);
     return seg_pos;
 }
 
@@ -231,7 +231,7 @@ void large_buf_t::release() {
 uint16_t large_buf_t::get_num_segments() {
     assert(state == loaded || state == loading || state == deleted);
     // Blach.
-    //uint16_t num_segs = NUM_SEGMENTS(size - (BTREE_USABLE_BLOCK_SIZE - get_index()->first_block_offset), BTREE_USABLE_BLOCK_SIZE)
+    //uint16_t num_segs = NUM_SEGMENTS(size - (block_size - get_index()->first_block_offset), block_size)
     //                  + (get_index->first_block_offset > 0);
     //if (state == loaded) {
     //    assert(get_index()->num_segments == num_segs);
@@ -243,8 +243,8 @@ uint16_t large_buf_t::get_num_segments() {
 uint16_t large_buf_t::segment_size(int ix) {
     assert(state == loaded || state == loading);
 
-    assert(get_index()->first_block_offset < BTREE_USABLE_BLOCK_SIZE);
-    assert(get_index()->first_block_offset == 0 || BTREE_USABLE_BLOCK_SIZE - get_index()->first_block_offset < size);
+    assert(get_index()->first_block_offset < block_size);
+    assert(get_index()->first_block_offset == 0 || block_size - get_index()->first_block_offset < size);
 
     // XXX: This is ugly.
 
@@ -252,16 +252,16 @@ uint16_t large_buf_t::segment_size(int ix) {
 
     if (ix == get_num_segments() - 1) {
         if (get_index()->first_block_offset != 0) {
-            seg_size = (size - (BTREE_USABLE_BLOCK_SIZE - get_index()->first_block_offset) - 1) % BTREE_USABLE_BLOCK_SIZE + 1;
+            seg_size = (size - (block_size - get_index()->first_block_offset) - 1) % block_size + 1;
         } else {
-            seg_size = (size - 1) % BTREE_USABLE_BLOCK_SIZE + 1;
-            //seg_size = (size - get_index()->first_block_offset - 1) % BTREE_USABLE_BLOCK_SIZE + 1;
+            seg_size = (size - 1) % block_size + 1;
+            //seg_size = (size - get_index()->first_block_offset - 1) % block_size + 1;
         }
     } else if (ix == 0) {
         // If first_block_offset != 0, the first block will be filled to the end, because it was made by prepending.
-        seg_size = BTREE_USABLE_BLOCK_SIZE - get_index()->first_block_offset;
+        seg_size = block_size - get_index()->first_block_offset;
     } else { 
-        seg_size = BTREE_USABLE_BLOCK_SIZE;
+        seg_size = block_size;
     }
     
     assert(seg_size <= size);

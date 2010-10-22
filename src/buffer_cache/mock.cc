@@ -222,7 +222,7 @@ mock_cache_t::mock_cache_t(
     bool wait_for_flush,
     unsigned int flush_timer_ms,
     unsigned int flush_threshold_percent)
-    : serializer(serializer), running(false), n_transactions(0), block_size(serializer->block_size) { }
+    : serializer(serializer), running(false), n_transactions(0), block_size(serializer->get_block_size()) { }
 
 mock_cache_t::~mock_cache_t() {
     assert(!running);
@@ -240,6 +240,10 @@ bool mock_cache_t::start(ready_callback_t *cb) {
     bzero(internal_buf->data, block_size);
     
     return maybe_random_delay(cb, &ready_callback_t::on_cache_ready);
+}
+
+size_t mock_cache_t::get_block_size() {
+    return block_size;
 }
 
 mock_transaction_t *mock_cache_t::begin_transaction(access_t access, mock_transaction_begin_callback_t *callback) {

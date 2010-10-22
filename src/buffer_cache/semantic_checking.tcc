@@ -93,7 +93,7 @@ scc_buf_t<inner_cache_t> *scc_transaction_t<inner_cache_t>::allocate(block_id_t 
 
 template<class inner_cache_t>
 scc_transaction_t<inner_cache_t>::scc_transaction_t(access_t _access, scc_cache_t<inner_cache_t> *_cache)
-    : access(_access), begin_cb(NULL), inner_transaction(NULL), cache(_cache) { }
+    : cache(_cache), access(_access), begin_cb(NULL), inner_transaction(NULL) { }
 
 template<class inner_cache_t>
 void scc_transaction_t<inner_cache_t>::on_txn_begin(typename inner_cache_t::transaction_t *txn) {
@@ -125,6 +125,11 @@ scc_cache_t<inner_cache_t>::scc_cache_t(
 template<class inner_cache_t>
 bool scc_cache_t<inner_cache_t>::start(ready_callback_t *cb) {
     return inner_cache.start(cb);
+}
+
+template<class inner_cache_t>
+size_t scc_cache_t<inner_cache_t>::get_block_size() {
+    return inner_cache.get_block_size();
 }
 
 template<class inner_cache_t>

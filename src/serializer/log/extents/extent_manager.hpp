@@ -59,6 +59,11 @@ public:
     
     void reserve_extent(off64_t extent) {
         
+#ifdef DEBUG_EXTENTS
+        debugf("EM %p: Reserve extent %.8lx\n", this, extent);
+        print_backtrace(stderr, false);
+#endif
+        
         assert(state == state_reserving_extents);
         assert(extent % extent_size == 0);
         
@@ -73,7 +78,7 @@ public:
     }
 
 public:
-    void start(direct_file_t *file) {
+    void start_new(direct_file_t *file) {
         
         assert(state == state_reserving_extents);
         
@@ -91,13 +96,23 @@ public:
                 free_list_head = extent;
             }
         }
-        
+
+#ifdef DEBUG_EXTENTS
+        debugf("EM %p: Start. Extents in use:\n", this);
+        for (off64_t extent = 0; extent < (unsigned)(extents.get_size() * extent_size); extent += extent_size) {
+            if (extent_info(extent) == EXTENT_IN_USE) {
+                fprintf(stderr, "%.8lx ", extent);
+            }
+        }
+        fprintf(stderr, "\n");
+#endif
+
         state = state_running;
     }
 
-    void start(direct_file_t *file, metablock_mixin_t *last_metablock) {
+    void start_existing(direct_file_t *file, metablock_mixin_t *last_metablock) {
         
-        start(file);
+        start_new(file);
         
         assert(n_extents_in_use == last_metablock->debug_extents_in_use);
     }
@@ -131,18 +146,28 @@ public:
         if (free_list_head == EXTENT_FREE_LIST_END) {
             extent = extents.get_size() * extent_size;
             extents.set_size(extents.get_size() + 1);
-            dbfile->set_size_at_least(extent + extent_size);
         } else {
             extent = free_list_head;
             free_list_head = extent_info(free_list_head);
         }
         
+        dbfile->set_size_at_least(extent + extent_size);
         extent_info(extent) = EXTENT_IN_USE;
+        
+#ifdef DEBUG_EXTENTS
+        debugf("EM %p: Gen extent %.8lx\n", this, extent);
+        print_backtrace(stderr, false);
+#endif
         
         return extent;
     }
 
     void release_extent(off64_t extent) {
+
+#ifdef DEBUG_EXTENTS
+        debugf("EM %p: Release extent %.8lx\n", this, extent);
+        print_backtrace(stderr, false);
+#endif
 
         assert(state == state_running);
         assert(current_transaction);
@@ -176,11 +201,31 @@ public:
 
 public:
     void prepare_metablock(metablock_mixin_t *metablock) {
+#ifdef DEBUG_EXTENTS
+        debugf("EM %p: Prepare metablock. Extents in use:\n", this);
+        for (off64_t extent = 0; extent < (unsigned)(extents.get_size() * extent_size); extent += extent_size) {
+            if (extent_info(extent) == EXTENT_IN_USE) {
+                fprintf(stderr, "%.8lx ", extent);
+            }
+        }
+        fprintf(stderr, "\n");
+#endif
         assert(state == state_running);
         metablock->debug_extents_in_use = n_extents_in_use;
     }
 
     void shutdown() {
+        
+#ifdef DEBUG_EXTENTS
+        debugf("EM %p: Shutdown. Extents in use:\n", this);
+        for (off64_t extent = 0; extent < (unsigned)(extents.get_size() * extent_size); extent += extent_size) {
+            if (extent_info(extent) == EXTENT_IN_USE) {
+                fprintf(stderr, "%.8lx ", extent);
+            }
+        }
+        fprintf(stderr, "\n");
+#endif
+        
         assert(state == state_running);
         assert(!current_transaction);
         state = state_shut_down;

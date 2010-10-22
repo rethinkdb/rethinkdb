@@ -61,7 +61,8 @@ typedef metablock_manager_t<log_serializer_metablock_t> mb_manager_t;
 // Used internally
 struct ls_block_writer_t;
 struct ls_write_fsm_t;
-struct ls_start_fsm_t;
+struct ls_start_new_fsm_t;
+struct ls_start_existing_fsm_t;
 
 struct log_serializer_t :
     public home_cpu_mixin_t,
@@ -70,26 +71,38 @@ struct log_serializer_t :
 {
     friend class ls_block_writer_t;
     friend class ls_write_fsm_t;
-    friend class ls_start_fsm_t;
-    
+    friend class ls_start_new_fsm_t;
+    friend class ls_start_existing_fsm_t;
+
 public:
-    log_serializer_t(cmd_config_t *cmd_config, char *db_path, size_t _block_size);
+    /* Serializer configuration. dynamic_config_t is everything that can be changed from run
+    to run; static_config_t is the parameters that are set when the database is created and
+    cannot be changed after that. */
+    typedef log_serializer_dynamic_config_t dynamic_config_t;
+    typedef log_serializer_static_config_t static_config_t;
+    
+    dynamic_config_t *dynamic_config;
+    static_config_t static_config;
+
+public:
+    log_serializer_t(const char *filename, dynamic_config_t *dynamic_config);
     virtual ~log_serializer_t();
 
 public:
-    typedef log_serializer_metablock_t metablock_t;
-    
-public:
-    /* data to be serialized with each data block */
-    typedef data_block_manager_t::buf_data_t buf_data_t;
-
-public:
-    /* start() must be called before the serializer can be used. It will return 'true' if it is
-    ready immediately; otherwise, it will return 'false' and then call the given callback later. */
+    /* start_new() or start_existing() must be called before the serializer can be used. If
+    start_new() is called, a new database will be created. If start_existing() is called, the
+    serializer will read from an existing database. */
     struct ready_callback_t {
         virtual void on_serializer_ready(log_serializer_t *) = 0;
     };
-    bool start(ready_callback_t *ready_cb);
+    bool start_new(static_config_t *static_config, ready_callback_t *ready_cb);
+    bool start_existing(ready_callback_t *ready_cb);
+
+public:
+    /* The buffers that are used with do_read() and do_write() must be allocated using
+    these functions. They can be safely called from any thread. */
+    void *malloc();
+    void free(void*);
 
 public:
     /* do_read() reads the block with the given ID. It returns 'true' if the read completes
@@ -127,6 +140,8 @@ public:
     bool do_write(write_t *writes, int num_writes, write_txn_callback_t *callback);
     
 public:
+    size_t get_block_size();
+    
     /* max_block_id() and block_in_use() are used by the buffer cache to reconstruct
     the free list of unused block IDs. */
     
@@ -178,11 +193,8 @@ public:
     // do_on_cpu.
     bool enable_gc();
 
-
-public:
-    size_t block_size;
-
 private:
+    typedef log_serializer_metablock_t metablock_t;
     void prepare_metablock(metablock_t *mb_buffer);
 
     void consider_start_gc();
@@ -199,10 +211,10 @@ private:
     char db_path[MAX_DB_FILE_NAME];
     direct_file_t *dbfile;
     
-    extent_manager_t extent_manager;
-    mb_manager_t metablock_manager;
-    lba_index_t lba_index;
-    data_block_manager_t data_block_manager;
+    extent_manager_t *extent_manager;
+    mb_manager_t *metablock_manager;
+    lba_index_t *lba_index;
+    data_block_manager_t *data_block_manager;
     
     /* The ls_write_fsm_ts organize themselves into a list so that they can be sure to
     write their metablocks in the correct order. last_write points to the most recent
@@ -221,16 +233,6 @@ private:
         gnew_alloc<std::pair<ser_block_id_t, ls_block_writer_t*> >
         > block_writer_map_t;
     block_writer_map_t block_writer_map;
-#ifndef NDEBUG
-public:
-    bool is_extent_referenced(off64_t offset) {
-        return lba_index.is_extent_referenced(offset);
-    }
-
-    int extent_refcount(off64_t offset) {
-        return lba_index.extent_refcount(offset);
-    }
-#endif
 
 #ifndef NDEBUG
     metablock_t debug_mb_buffer;

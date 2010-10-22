@@ -57,7 +57,7 @@ private:
 private:
     crc_t compute_crc() {
         boost::crc_optimal<32, 0x04C11DB7, 0xFFFFFFFF, 0xFFFFFFFF, true, true> crc_computer;
-        crc_computer.process_bytes((void *) inner_buf->get_data_read(), BTREE_USABLE_BLOCK_SIZE);
+        crc_computer.process_bytes((void *) inner_buf->get_data_read(), cache->get_block_size());
         return crc_computer.checksum();
     }
 };
@@ -82,6 +82,8 @@ public:
                    block_available_callback_t *callback);
     buf_t *allocate(block_id_t *new_block_id);
 
+    scc_cache_t<inner_cache_t> *cache;
+
 private:
     friend class scc_cache_t<inner_cache_t>;
     scc_transaction_t(access_t, scc_cache_t<inner_cache_t> *);
@@ -91,7 +93,6 @@ private:
     void on_txn_commit(typename inner_cache_t::transaction_t *txn);
     transaction_commit_callback_t *commit_cb;
     typename inner_cache_t::transaction_t *inner_transaction;
-    scc_cache_t<inner_cache_t> *cache;
 };
 
 /* Cache */
@@ -120,6 +121,7 @@ public:
     typedef typename inner_cache_t::ready_callback_t ready_callback_t;
     bool start(ready_callback_t *cb);
     
+    size_t get_block_size();
     transaction_t *begin_transaction(access_t access, transaction_begin_callback_t *callback);
     
     typedef typename inner_cache_t::shutdown_callback_t shutdown_callback_t;
