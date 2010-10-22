@@ -191,10 +191,12 @@ private:
 
         // For startup, when we read the metablock with the latest transaction id.
         void load_latest_transaction_id(ser_transaction_id_t latest) {
-            assert(next_transaction_id != NULL_SER_TRANSACTION_ID);
+            assert(next_transaction_id == NULL_SER_TRANSACTION_ID);
+            assert(latest != NULL_SER_TRANSACTION_ID);
             next_transaction_id = latest + 1;
         }
         ser_transaction_id_t step_transaction_id() {
+            assert(next_transaction_id != NULL_SER_TRANSACTION_ID);
             return next_transaction_id++;
         }
     } monotonic_transaction_counter;
