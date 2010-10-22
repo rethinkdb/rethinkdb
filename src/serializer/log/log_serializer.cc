@@ -548,6 +548,7 @@ struct ls_write_fsm_t :
         if (offsets_were_written && num_writes_waited_for == 0 && !waiting_for_prev_write) {
             return do_write_metablock();
         } else {
+            // TODO: should this actually return true?
             return false;
         }
     }

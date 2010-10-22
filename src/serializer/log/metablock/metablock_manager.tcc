@@ -150,7 +150,6 @@ bool metablock_manager_t<metablock_t>::write_metablock(metablock_t *mb, metabloc
         
         dbfile->write_async(head.offset(), DEVICE_BLOCK_SIZE, mb_buffer, this);
 
-        // TODO: Does mb_buffer get copied immediately by write_async?  It had better be.
         head++;
 
         state = state_writing;
