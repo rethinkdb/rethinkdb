@@ -1,6 +1,7 @@
 
 #include <vector>
 #include "utils.hpp"
+#include "disk_format.hpp"
 #include "lba_list.hpp"
 #include "arch/arch.hpp"
 
@@ -108,13 +109,13 @@ ser_block_id_t lba_list_t::max_block_id() {
     return in_memory_index->max_block_id();
 }
 
-off64_t lba_list_t::get_block_offset(ser_block_id_t block) {
+flagged_off64_t lba_list_t::get_block_offset(ser_block_id_t block) {
     assert(state == state_ready);
     
     return in_memory_index->get_block_offset(block);
 }
 
-void lba_list_t::set_block_offset(ser_block_id_t block, off64_t offset) {
+void lba_list_t::set_block_offset(ser_block_id_t block, flagged_off64_t offset) {
     assert(state == state_ready);
     
     in_memory_index->set_block_offset(block, offset);

@@ -211,8 +211,8 @@ struct ls_start_existing_fsm_t :
 
             ser->data_block_manager->start_reconstruct();
             for (ser_block_id_t id = 0; id < ser->lba_index->max_block_id(); id++) {
-                off64_t offset = ser->lba_index->get_block_offset(id);
-                if (offset != DELETE_BLOCK) ser->data_block_manager->mark_live(offset);
+                flagged_off64_t offset = ser->lba_index->get_block_offset(id);
+                if (!offset.parts.is_delete) ser->data_block_manager->mark_live(offset.parts.value);
             }
             ser->data_block_manager->end_reconstruct();
             ser->data_block_manager->start_existing(ser->dbfile, &metablock_buffer.data_block_manager_part);
@@ -359,15 +359,15 @@ struct ls_block_writer_t :
         }
 
         /* mark the garbage */
-        off64_t gc_offset = ser->lba_index->get_block_offset(write.block_id);
-        if (gc_offset != DELETE_BLOCK)
-            ser->data_block_manager->mark_garbage(gc_offset);
+        flagged_off64_t gc_offset = ser->lba_index->get_block_offset(write.block_id);
+        if (flagged_off64_t::can_be_gced(gc_offset))
+            ser->data_block_manager->mark_garbage(gc_offset.parts.value);
         
         if (write.buf) {
         
             off64_t new_offset;
             bool done = ser->data_block_manager->write(write.buf, write.block_id, ser->monotonic_transaction_counter.latest_transaction_id(), &new_offset, this);
-            ser->lba_index->set_block_offset(write.block_id, new_offset);
+            ser->lba_index->set_block_offset(write.block_id, flagged_off64_t::real(new_offset));
             
             /* Insert ourselves into the block_writer_map so that if a reader comes looking for the
             block before we finish writing it to disk, it will be able to find us to get the most
@@ -381,8 +381,6 @@ struct ls_block_writer_t :
         } else {
 
             /* Deletion */
-            ser->lba_index->set_block_offset(write.block_id, DELETE_BLOCK);
-
             // TODO: Check that we aren't calling DO_WRITE for deletes
             // with the assumption it will finish immediately..
         
@@ -405,7 +403,7 @@ struct ls_block_writer_t :
 
             off64_t new_offset;
             bool done = ser->data_block_manager->write(zerobuf, write.block_id, ser->monotonic_transaction_counter.latest_transaction_id(), &new_offset, this);
-            ser->data_block_manager->mark_garbage(new_offset);
+            ser->lba_index->set_block_offset(write.block_id, flagged_off64_t::deleteblock(new_offset));
 
             if (done) {
                 return do_finish();
@@ -689,10 +687,10 @@ struct ls_read_fsm_t :
         
             /* We are not currently writing the block; go to disk to get it */
             
-            off64_t offset = ser->lba_index->get_block_offset(block_id);
-            assert(offset != DELETE_BLOCK);   // Make sure the block actually exists
+            flagged_off64_t offset = ser->lba_index->get_block_offset(block_id);
+            assert(!offset.parts.is_delete);   // Make sure the block actually exists
             
-            if (ser->data_block_manager->read(offset, buf, this)) {
+            if (ser->data_block_manager->read(offset.parts.value, buf, this)) {
                 return done();
             } else {
                 return false;
@@ -707,7 +705,6 @@ struct ls_read_fsm_t :
     }
     
     void on_io_complete(event_t *e) {
-        
         done();
     }
     
@@ -746,7 +743,7 @@ bool log_serializer_t::block_in_use(ser_block_id_t id) {
     assert(state == state_ready);
     assert_cpu();
     
-    return lba_index->get_block_offset(id) != DELETE_BLOCK;
+    return !(lba_index->get_block_offset(id).parts.is_delete);
 }
 
 bool log_serializer_t::shutdown(shutdown_callback_t *cb) {

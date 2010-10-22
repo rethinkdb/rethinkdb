@@ -77,7 +77,7 @@ public:
 public:
     /* exposed gc api */
     /* mark a buffer as garbage */
-    void mark_garbage(off64_t);
+    void mark_garbage(off64_t);  // Takes a real off64_t.
 
     bool is_extent_in_use(unsigned int extent_id) {
         return entries.get(extent_id) != NULL;
@@ -85,7 +85,7 @@ public:
 
     /* r{start,stop}_reconstruct functions for safety */
     void start_reconstruct();
-    void mark_live(off64_t);
+    void mark_live(off64_t);  // Takes a real off64_t.
     void end_reconstruct();
 
     /* garbage collect the extents which meet the gc_criterion */
