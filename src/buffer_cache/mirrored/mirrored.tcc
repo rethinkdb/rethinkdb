@@ -87,7 +87,7 @@ mc_buf_t<mc_config_t>::mc_buf_t(cache_t *cache)
     
     data = cache->serializer->malloc();
 
-#ifndef NDEBUG
+#if !defined(NDEBUG) || defined(VALGRIND)
     // The memory allocator already filled this with 0xBD, but it's nice to be able to distinguish
     // between problems with uninitialized memory and problems with uninitialized blocks
     memset(data, 0xCD, cache->serializer->get_block_size());
