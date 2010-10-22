@@ -9,11 +9,11 @@
 #include <deque>
 #include "serializer/log/static_header.hpp"
 
-#define mb_marker_magic     "metablck"
-#define mb_marker_crc       "crc:"
-#define mb_marker_version   "version:"
 
 /* TODO support multiple concurrent writes */
+const static char MB_MARKER_MAGIC[8] = {'m', 'e', 't', 'a', 'b', 'l', 'c', 'k'};
+const static char MB_MARKER_CRC[4] = {'c', 'r', 'c', ':'};
+const static char MB_MARKER_VERSION[8] = {'v', 'e', 'r', 's', 'i', 'o', 'n', ':'};
 
 template<class metablock_t>
 class metablock_manager_t : private iocallback_t {
@@ -21,10 +21,10 @@ class metablock_manager_t : private iocallback_t {
 
 private:
     struct crc_metablock_t {
-        char magic_marker[sizeof(mb_marker_magic)];
-        char crc_marker[sizeof(mb_marker_crc)];
+        char magic_marker[sizeof(MB_MARKER_MAGIC)];
+        char crc_marker[sizeof(MB_MARKER_CRC)];
         uint32_t            _crc;            /* !< cyclic redundancy check */
-        char version_marker[sizeof(mb_marker_crc)];
+        char version_marker[sizeof(MB_MARKER_VERSION)];
         int             version;
         metablock_t     metablock;
     public:

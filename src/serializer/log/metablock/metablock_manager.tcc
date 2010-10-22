@@ -53,9 +53,9 @@ metablock_manager_t<metablock_t>::metablock_manager_t(extent_manager_t *em)
     memset(mb_buffer, 0xBD, DEVICE_BLOCK_SIZE);        // Happify Valgrind
     memset(mb_buffer_last, 0xBD, DEVICE_BLOCK_SIZE);   // Happify Valgrind
 #endif
-    memcpy(mb_buffer->magic_marker, mb_marker_magic, strlen(mb_marker_magic));
-    memcpy(mb_buffer->crc_marker, mb_marker_crc, strlen(mb_marker_crc));
-    memcpy(mb_buffer->version_marker, mb_marker_version, strlen(mb_marker_version));
+    memcpy(mb_buffer->magic_marker, MB_MARKER_MAGIC, sizeof(MB_MARKER_MAGIC));
+    memcpy(mb_buffer->crc_marker, MB_MARKER_CRC, sizeof(MB_MARKER_CRC));
+    memcpy(mb_buffer->version_marker, MB_MARKER_VERSION, sizeof(MB_MARKER_VERSION));
     mb_buffer->set_crc();
     mb_buffer_in_use = false;
     
