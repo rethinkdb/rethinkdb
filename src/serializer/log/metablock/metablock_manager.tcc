@@ -6,6 +6,9 @@
 #define MB_NEXTENTS 2
 #define MB_EXTENT_SEPARATION 4 /* !< every MB_EXTENT_SEPARATIONth extent is for MB, up to MB_EXTENT many */
 
+#define MB_BAD_VERSION (-1)
+#define MB_START_VERSION 1
+
 /* head functions */
 
 template<class metablock_t>
@@ -61,7 +64,7 @@ metablock_manager_t<metablock_t>::metablock_manager_t(extent_manager_t *em)
     
     /* Build the list of metablock locations in the file */
     
-    for (unsigned i = 0; i < MB_NEXTENTS; i++) {
+    for (off64_t i = 0; i < MB_NEXTENTS; i++) {
         off64_t extent = i * extent_manager->extent_size * MB_EXTENT_SEPARATION;
         
         /* The reason why we don't reserve extent 0 is that it has already been reserved for the
@@ -99,7 +102,7 @@ void metablock_manager_t<metablock_t>::start_new(direct_file_t *file) {
     dbfile = file;
     assert(dbfile != NULL);
     
-    mb_buffer->version = 0;
+    mb_buffer->version = MB_START_VERSION;
     
     state = state_ready;
 }
@@ -117,7 +120,7 @@ bool metablock_manager_t<metablock_t>::start_existing(direct_file_t *file, bool 
     assert(!mb_buffer_in_use);
     mb_buffer_in_use = true;
 
-    version = -1;
+    version = MB_BAD_VERSION;
     
     dbfile->set_size_at_least(metablock_offsets[metablock_offsets.size() - 1] + DEVICE_BLOCK_SIZE);
     
@@ -192,31 +195,25 @@ void metablock_manager_t<metablock_t>::on_io_complete(event_t *e) {
                 head++;
                 /* mb_buffer_last = mb_buffer and give mb_buffer mb_buffer_last's space so no realloc */
                 swap_buffers();
-                if (head.wraparound) {
-                    done_looking = true;
-                } else {
-                    done_looking = false;
-                }
+                done_looking = head.wraparound;
             } else {
                 /* version smaller than the one we just had, yahtzee */
                 done_looking = true;
             }
         } else {
             head++;
-            if (head.wraparound) {
-                done_looking = true;
-            } else {
-                done_looking = false;
-            }
+            done_looking = head.wraparound;
         }
 
         if (done_looking) {
-            if (version == -1) {
+            if (version == MB_BAD_VERSION) {
                 
                 /* no metablock found anywhere -- the DB is toast */
                 
+                // TODO: If the db is toast, what does that mean?  Why don't we catastrophically fail?
+                
                 // Start versions from 0, not from whatever garbage was in the last thing we read
-                mb_buffer->version = 0;
+                mb_buffer->version = MB_START_VERSION;
                 *mb_found = false;
                 
             } else {
@@ -224,7 +221,7 @@ void metablock_manager_t<metablock_t>::on_io_complete(event_t *e) {
                 swap_buffers();
 
                 /* set everything up */
-                version = -1; /* version is now useless */
+                version = MB_BAD_VERSION; /* version is now useless */
                 head.pop();
                 *mb_found = true;
                 memcpy(mb_out, &(mb_buffer->metablock), sizeof(metablock_t));
