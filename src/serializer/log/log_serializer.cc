@@ -430,7 +430,9 @@ struct ls_block_writer_t :
         if (write.callback) write.callback->on_serializer_write_block();
         if (extra_cb) extra_cb->on_io_complete(NULL);
 
-        ser->free(zerobuf);
+        if (zerobuf) {
+            ser->free(zerobuf);
+        }
         delete this;
         return true;
     }
