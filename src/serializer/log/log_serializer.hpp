@@ -153,7 +153,7 @@ public:
 
 private:
     typedef log_serializer_metablock_t metablock_t;
-    void prepare_metablock(metablock_t *mb_buffer, ser_transaction_id_t transaction_id);
+    void prepare_metablock(metablock_t *mb_buffer);
 
     void consider_start_gc();
 
@@ -184,20 +184,25 @@ private:
 
     /* Every time do_write gets called, this gets incremented.  This
        gets stored in the metablock, too. */
-    struct transaction_counter {
-        ser_transaction_id_t next_transaction_id;
-        
-        transaction_counter() : next_transaction_id(NULL_SER_TRANSACTION_ID) { }
+    class transaction_counter {
+        ser_transaction_id_t id;
+    public:
+        transaction_counter() : id(NULL_SER_TRANSACTION_ID) { }
 
-        // For startup, when we read the metablock with the latest transaction id.
+        // For startup, when we read the metablock with the latest
+        // transaction id.  This can only be called once.
         void load_latest_transaction_id(ser_transaction_id_t latest) {
-            assert(next_transaction_id == NULL_SER_TRANSACTION_ID);
+            assert(id == NULL_SER_TRANSACTION_ID);
             assert(latest != NULL_SER_TRANSACTION_ID);
-            next_transaction_id = latest + 1;
+            id = latest;
         }
-        ser_transaction_id_t step_transaction_id() {
-            assert(next_transaction_id != NULL_SER_TRANSACTION_ID);
-            return next_transaction_id++;
+        ser_transaction_id_t latest_transaction_id() const {
+            assert(id != NULL_SER_TRANSACTION_ID);
+            return id;
+        }
+        void step_transaction_id() {
+            assert(id != NULL_SER_TRANSACTION_ID);
+            id++;
         }
     } monotonic_transaction_counter;
     

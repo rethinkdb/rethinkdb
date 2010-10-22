@@ -18,7 +18,7 @@
 class data_block_manager_t {
 
 public:
-    data_block_manager_t(log_serializer_t *ser, log_serializer_dynamic_config_t *dynamic_config, extent_manager_t *em, log_serializer_static_config_t *static_config)
+    data_block_manager_t(log_serializer_t *ser, const log_serializer_dynamic_config_t *dynamic_config, extent_manager_t *em, const log_serializer_static_config_t *static_config)
         : shutdown_callback(NULL), state(state_unstarted), serializer(ser),
           dynamic_config(dynamic_config), static_config(static_config), extent_manager(em),
           next_active_extent(0),
@@ -131,14 +131,14 @@ private:
         state_shut_down
     } state;
 
-    log_serializer_t *serializer;
+    log_serializer_t* const serializer;
 
-    log_serializer_dynamic_config_t *dynamic_config;
-    log_serializer_static_config_t *static_config;
+    const log_serializer_dynamic_config_t* const dynamic_config;
+    const log_serializer_static_config_t* const static_config;
 
-    extent_manager_t *extent_manager;
+    extent_manager_t* const extent_manager;
 
-    direct_file_t *dbfile;
+    direct_file_t* dbfile;
 
     off64_t gimme_a_new_offset();
 
