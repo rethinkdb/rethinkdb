@@ -8,8 +8,21 @@
 #define NEVER_FLUSH -1
 
 struct log_serializer_dynamic_config_t {
+
+    /* When the proportion of garbage blocks hits gc_high_ratio, then the serializer will collect
+    garbage until it reaches gc_low_ratio. */
     float gc_low_ratio, gc_high_ratio;
+    
+    /* How many data block extents the serializer will be writing to at once */
     unsigned num_active_data_extents;
+
+    /* If file_size is nonzero and the serializer is not running on a block device, then it will
+    pretend to be running on a block device by immediately resizing the file to file_size and then
+    zoning it like a block device. */
+    size_t file_size;
+    
+    /* How big to make each zone if the database is on a block device or if file_size is given */
+    size_t file_zone_size;
 };
 
 struct log_serializer_static_config_t {

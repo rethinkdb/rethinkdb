@@ -25,6 +25,15 @@ T1 ceil_aligned(T1 value, T2 alignment) {
     }
 }
 
+template<typename T1, typename T2>
+T1 floor_aligned(T1 value, T2 alignment) {
+    if(value % alignment != 0) {
+        return value - (value % alignment);
+    } else {
+        return value;
+    }
+}
+
 /* Functions to create random delays. These must be in utils2.hpp instead of in
 utils.hpp because the mock IO layer uses random delays. Internally, they
 secretly use the IO layer, but it is safe to include utils2.hpp from within the

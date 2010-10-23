@@ -76,7 +76,7 @@ struct ls_start_new_fsm_t :
     
     bool write_initial_metablock() {
         
-        ser->extent_manager = gnew<extent_manager_t>(ser->static_config.extent_size);
+        ser->extent_manager = gnew<extent_manager_t>(ser->dbfile, &ser->static_config, ser->dynamic_config);
         ser->extent_manager->reserve_extent(0);   /* For static header */
         
         ser->metablock_manager = gnew<mb_manager_t>(ser->extent_manager);
@@ -87,7 +87,7 @@ struct ls_start_new_fsm_t :
         ser->lba_index->start_new(ser->dbfile);
         ser->data_block_manager->start_new(ser->dbfile);
         
-        ser->extent_manager->start_new(ser->dbfile);
+        ser->extent_manager->start_new();
 
 #ifndef NDEBUG
         ser->prepare_metablock(&ser->debug_mb_buffer);
@@ -177,7 +177,7 @@ struct ls_start_existing_fsm_t :
         
         if (state == state_find_metablock) {
         
-            ser->extent_manager = gnew<extent_manager_t>(ser->static_config.extent_size);
+            ser->extent_manager = gnew<extent_manager_t>(ser->dbfile, &ser->static_config, ser->dynamic_config);
             ser->extent_manager->reserve_extent(0);   /* For static header */
             
             ser->metablock_manager = gnew<mb_manager_t>(ser->extent_manager);
@@ -217,7 +217,7 @@ struct ls_start_existing_fsm_t :
             ser->data_block_manager->end_reconstruct();
             ser->data_block_manager->start_existing(ser->dbfile, &metablock_buffer.data_block_manager_part);
             
-            ser->extent_manager->start_existing(ser->dbfile, &metablock_buffer.extent_manager_part);
+            ser->extent_manager->start_existing(&metablock_buffer.extent_manager_part);
             
             state = state_finish;
         }
