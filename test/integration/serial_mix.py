@@ -16,7 +16,7 @@ def random_value(opts):
     if random.randint(0, 10) == 0:
         return random.randint(0, opts["valuesize"]) * random.choice("ABCDEFGHIJKLMNOPQRSTUVWXYZ")
     else:
-        return random.randint(0, 200) * random.choice("ABCDEFGHIJKLMNOPQRSTUVWXYZ")
+        return random.randint(0, min(200, opts["valuesize"])) * random.choice("ABCDEFGHIJKLMNOPQRSTUVWXYZ")
 
 def fail(k,v,v2):
     raise ValueError("Key %r should have value %r, but had value %r." % (k, v, v2))
