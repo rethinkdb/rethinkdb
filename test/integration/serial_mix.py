@@ -11,7 +11,12 @@ def random_key(opts):
         for i in xrange(random.randint(1, opts["keysize"] - len(suf)))) + suf
 
 def random_value(opts):
-    return random.randint(0, opts["valuesize"]) * random.choice("ABCDEFGHIJKLMNOPQRSTUVWXYZ")
+    # Most of the time we want to use small values, but we also want to test large values
+    # sometimes.
+    if random.randint(0, 10) == 0:
+        return random.randint(0, opts["valuesize"]) * random.choice("ABCDEFGHIJKLMNOPQRSTUVWXYZ")
+    else:
+        return random.randint(0, 200) * random.choice("ABCDEFGHIJKLMNOPQRSTUVWXYZ")
 
 def fail(k,v,v2):
     raise ValueError("Key %r should have value %r, but had value %r." % (k, v, v2))
@@ -134,7 +139,7 @@ def test(opts, mc):
 if __name__ == "__main__":
     op = make_option_parser()
     op["keysize"] = IntFlag("--keysize", 250)
-    op["valuesize"] = IntFlag("--valuesize", 200)
+    op["valuesize"] = IntFlag("--valuesize", 10000)
     op["thorough"] = BoolFlag("--thorough")
     op["restart_server_prob"] = FloatFlag("--restart-server-prob", 0)
     opts = op.parse(sys.argv)
