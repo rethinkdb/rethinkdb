@@ -4,6 +4,8 @@
 #include "utils.hpp"
 #include "btree/node.hpp"
 
+// See btree_internal_node in node.hpp
+
 /* EPSILON used to prevent split then merge */
 #define INTERNAL_EPSILON (sizeof(btree_key) + MAX_KEY_SIZE + sizeof(block_id_t))
 

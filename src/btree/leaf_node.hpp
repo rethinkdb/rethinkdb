@@ -5,6 +5,8 @@
 #include "btree/node.hpp"
 #include "config/args.hpp"
 
+// See btree_leaf_node in node.hpp
+
 /* EPSILON to prevent split then merge bug */
 #define LEAF_EPSILON (sizeof(btree_key) + MAX_KEY_SIZE + sizeof(btree_value) + MAX_TOTAL_NODE_CONTENTS_SIZE)
 
@@ -12,7 +14,8 @@
 //Note: This struct is stored directly on disk.  Changing it invalidates old data.
 struct btree_leaf_pair {
     btree_key key;
-    btree_value _value;
+    // key is of variable size and there's a btree_value that follows
+    // it that is of variable size.
     btree_value *value() {
         return (btree_value *)( ((byte *)&key) + sizeof(btree_key) + key.size );
     }
