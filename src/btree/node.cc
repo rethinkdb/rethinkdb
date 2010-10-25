@@ -2,6 +2,10 @@
 #include "btree/leaf_node.hpp"
 #include "btree/internal_node.hpp"
 
+bool is_valid_node_type(btree_node_type type) {
+    return type == btree_node_type_leaf || type == btree_node_type_internal;
+}
+
 bool node_handler::is_underfull(size_t block_size, const btree_node *node) {
     return (node_handler::is_leaf(node)     &&     leaf_node_handler::is_underfull(block_size,     leaf_node_handler::leaf_node(node)))
         || (node_handler::is_internal(node) && internal_node_handler::is_underfull(block_size, internal_node_handler::internal_node(node)));

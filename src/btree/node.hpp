@@ -23,12 +23,13 @@ struct btree_superblock_t {
 enum btree_node_type_enum {
     // Choose 1 and 2 instead of 0 and 1 to make it less likely that garbage will be interpreted as
     // a valid node
-    btree_node_type_invalid = 0,
     btree_node_type_leaf = 1,
     btree_node_type_internal = 2
 };
 
 typedef uint16_t btree_node_type;
+
+bool is_valid_node_type(btree_node_type type);
 
 
 
