@@ -17,7 +17,7 @@ class dbench():
 
     def __init__(self, dir):
         self.dir_str = time.asctime().replace(' ', '_').replace(':', '_')
-        os.mkdir(self.out_dir + '/' + self.dir_str)
+        os.makedirs(self.out_dir + '/' + self.dir_str)
         self.bench_stats = self.bench_stats(dir + self.bench_dir + '/1')
         rundirs = os.listdir(dir + '/' + self.oprofile_dir)
         rundirs.remove(self.log_file)
@@ -30,6 +30,7 @@ class dbench():
         self.html = self.report_as_html()
         self.push_html_to_host()
         self.send_email('jdoliner@gmail.com')
+        os.system('rm -rf %s' % self.out_dir)
 
     class bench_stats():
         iostat_path     = 'iostat/output.txt'
