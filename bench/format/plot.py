@@ -133,13 +133,20 @@ class TimeSeries():
         labels = []
         color_index = 0
         for series in self.data.iteritems():
-            labels.append((ax.plot(range(len(series[1])), normalize(series[1]), colors[color_index]), series[0]))
+            if len(self.data) > 1:
+                data_to_use = normalize(series[1])
+            else:
+                data_to_use = series[1]
+            labels.append((ax.plot(range(len(series[1])), data_to_use, colors[color_index]), series[0]))
             color_index += 1
 
         plt.figlegend(tuple(map(lambda x: x[0], labels)), tuple(map(lambda x: x[1], labels)), 'upper right', shadow=True)
         ax.set_xlabel('Time (seconds)')
         ax.set_xlim(0, len(self.data[self.data.keys()[0]]) - 1)
-        ax.set_ylim(0, 1.0)
+        if len(self.data) > 1:
+            ax.set_ylim(0, 1.0)
+        else:
+            ax.set_ylim(0, max(self.data[self.data.keys()[0]]))
         ax.grid(True)
         plt.savefig(out_fname, dpi=300)
 
