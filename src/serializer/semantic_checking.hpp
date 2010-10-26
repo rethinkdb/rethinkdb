@@ -67,7 +67,7 @@ public:
     typedef typename inner_serializer_t::static_config_t static_config_t;
 
 public:    
-    semantic_checking_serializer_t(char *db_path, dynamic_config_t *config)
+    semantic_checking_serializer_t(const char *db_path, dynamic_config_t *config)
         : inner_serializer(db_path, config),
           last_write_started(0), last_write_callbacked(0),
           semantic_fd(-1)

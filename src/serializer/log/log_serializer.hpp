@@ -165,7 +165,7 @@ private:
         state_shut_down,
     } state;
 
-    char db_path[MAX_DB_FILE_NAME];
+    const char *db_path;
     direct_file_t *dbfile;
     
     extent_manager_t *extent_manager;

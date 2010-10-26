@@ -94,8 +94,8 @@ struct cmd_config_t {
     //log_level min_log_level;
     
     // Configuration information for the btree
-    int n_serializers;
-    char db_file_name[MAX_DB_FILE_NAME];
+    int n_files;
+    const char *files[MAX_SERIALIZERS];
     btree_key_value_store_dynamic_config_t store_dynamic_config;
     bool create_store;
     btree_key_value_store_static_config_t store_static_config;

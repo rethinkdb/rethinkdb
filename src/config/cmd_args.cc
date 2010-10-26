@@ -6,28 +6,20 @@
 #include "config/cmd_args.hpp"
 #include "utils.hpp"
 
-static const char* default_db_file_name = "db_data/data.file";
-
 void usage(const char *name) {
     printf("Usage:\n");
     printf("\t%s [OPTIONS] [FILE]\n", name);
-
-    printf("\nArguments:\n");
-    
-    printf("  FILE\t\t\tDevice or file name to store the database file. If the\n");
-    printf("\t\t\tname isn't provided, %s will use '%s' by\n", name, default_db_file_name);
-    printf("\t\t\tdefault.\n");
     
     printf("\nOptions:\n");
     
     printf("  -h, --help\t\tPrint these usage options.\n");
     
     printf("      --create\t\tCreate a new database.\n");
+    printf("  -f, --file\t\tPath to file or block device where database goes. Can be\n"
+            "\t\t\tspecified multiple times to use multiple files.");
     
     printf("  -c, --cores\t\tNumber of cores to use for handling requests.\n");
-    
-    printf("  -f, --files\t\tNumber of files to use.\n");
-    
+        
     printf("  -m, --max-cache-size\tMaximum amount of RAM to use for caching disk\n");
     printf("\t\t\tblocks, in megabytes.\n");
     
@@ -66,9 +58,7 @@ void init_config(cmd_config_t *config) {
     config->log_file_name[0] = 0;
     config->log_file_name[MAX_LOG_FILE_NAME - 1] = 0;
     
-    config->n_serializers = 1;
-    strncpy(config->db_file_name, default_db_file_name, MAX_DB_FILE_NAME);
-    config->db_file_name[MAX_DB_FILE_NAME - 1] = 0;
+    config->n_files = 0;
     
     config->store_dynamic_config.serializer.gc_low_ratio = DEFAULT_GC_LOW_RATIO;
     config->store_dynamic_config.serializer.gc_high_ratio = DEFAULT_GC_HIGH_RATIO;
@@ -120,7 +110,7 @@ void parse_cmd_args(int argc, char *argv[], cmd_config_t *config)
                 {"active-data-extents",  required_argument, 0, active_data_extents},
                 {"cores",                required_argument, 0, 'c'},
                 {"slices",               required_argument, 0, 's'},
-                {"files",                required_argument, 0, 'f'},
+                {"file",                 required_argument, 0, 'f'},
                 {"max-cache-size",       required_argument, 0, 'm'},
                 {"log-file",             required_argument, 0, 'l'},
                 {"port",                 required_argument, 0, 'p'},
@@ -166,10 +156,11 @@ void parse_cmd_args(int argc, char *argv[], cmd_config_t *config)
             }
             break;
         case 'f':
-            config->n_serializers = atoi(optarg);
-            if (config->n_serializers > MAX_SERIALIZERS) {
-                fail("Maximum number of serializers is %d\n", MAX_SERIALIZERS);
+            if (config->n_files >= MAX_SERIALIZERS) {
+                fail("Cannot use more than %d files.", MAX_SERIALIZERS);
             }
+            config->files[config->n_files] = optarg;
+            config->n_files++;
             break;
         case 'm':
             config->store_dynamic_config.cache.max_size = atoll(optarg) * 1024 * 1024;
@@ -241,29 +232,35 @@ void parse_cmd_args(int argc, char *argv[], cmd_config_t *config)
         }
     }
 
-    // Grab the db name
     if (optind < argc) {
-        strncpy(config->db_file_name, argv[optind++], MAX_DB_FILE_NAME);
-        config->db_file_name[MAX_DB_FILE_NAME - 1] = 0;
+        fail("Unexpected extra argument: \"%s\"", argv[optind]);
+    }
+    
+    /* "Idiot mode" -- do something reasonable for novice users */
+    
+    if (config->n_files == 0 && !config->create_store) {        
         
-    } else {
-        if (config->create_store) fail("You must explicitly specify a filename with --create.");
+        config->n_files = 1;
+        config->files[0] = DEFAULT_DB_FILE_NAME;
         
-        /* "Idiot mode" -- do something reasonable for novice users */
-        char buffer[MAX_DB_FILE_NAME];
-        sprintf(buffer, "%s_0", config->db_file_name);
-        int res = access(buffer, F_OK);
+        int res = access(DEFAULT_DB_FILE_NAME, F_OK);
         if (res == 0) {
             /* Found a database file -- try to load it */
-            fprintf(stderr, "Database file was not specified explicitly; loading from %s by default.\n", buffer);
+            fprintf(stderr, "Database file was not specified explicitly; loading from \"%s\" by default.\n", DEFAULT_DB_FILE_NAME);
             config->create_store = false;   // This is redundant
         } else if (res == -1 && errno == ENOENT) {
             /* Create a new database */
-            fprintf(stderr, "Database file was not specified explicitly; creating %s by default.\n", buffer);
+            fprintf(stderr, "Database file was not specified explicitly; creating \"%s\" by default.\n", DEFAULT_DB_FILE_NAME);
             config->create_store = true;
         } else {
-            fail("Could not access() path \"%s\": %s", config->db_file_name, strerror(errno));
+            fail("Could not access() path \"%s\": %s", DEFAULT_DB_FILE_NAME, strerror(errno));
         }
+    }
+    
+    /* Sanity-check the input */
+    
+    if (config->n_files == 0) {
+        fail("You must explicitly specify one or more paths with -f.");
     }
     
     if (config->store_dynamic_config.cache.wait_for_flush == true &&

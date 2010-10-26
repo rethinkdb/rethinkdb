@@ -7,6 +7,7 @@ log_serializer_t::log_serializer_t(const char *_db_path, dynamic_config_t *confi
     : dynamic_config(config),
       shutdown_callback(NULL),
       state(state_unstarted),
+      db_path(_db_path),
       dbfile(NULL),
       extent_manager(NULL),
       metablock_manager(NULL),
@@ -14,9 +15,6 @@ log_serializer_t::log_serializer_t(const char *_db_path, dynamic_config_t *confi
       data_block_manager(NULL),
       last_write(NULL),
       active_write_count(0) {
-    
-    assert(strlen(_db_path) <= MAX_DB_FILE_NAME - 1);   // "- 1" for the null-terminator
-    strncpy(db_path, _db_path, MAX_DB_FILE_NAME);
 }
 
 log_serializer_t::~log_serializer_t() {

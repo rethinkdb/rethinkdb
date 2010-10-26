@@ -3,32 +3,57 @@
 
 /* The key-value store slices up the serializers as follows:
 
-- Each slice is assigned to a serializer. The formula is (slice_id % n_serializers)
-- Block ID 0 on the first serializer is for static btree configuration information.
-- Excepting block ID 0 on the first serializer, each slice uses block IDs of the form
-  (n * (number of serializers on slice) + (slice_id / n_serializers)).
+- Each slice is assigned to a serializer. The formula is (slice_id % n_files)
+- Block ID 0 on each serializer is for static btree configuration information.
+- Each slice uses block IDs of the form (1 + (n * (number of serializers on slice) +
+    (slice_id / n_files))).
 
 */
 
-#define CONFIG_BLOCK_SERIALIZER 0
-#define CONFIG_BLOCK_ID (block_id_t(0))
-
 btree_key_value_store_t::btree_key_value_store_t(
         btree_key_value_store_dynamic_config_t *dynamic_config,
-        int n_serializers,
-        const char *db_filename)
+        int n_files,
+        const char **db_filenames)
     : dynamic_config(dynamic_config),
-      n_serializers(n_serializers),
-      db_filename(db_filename),
+      n_files(n_files),
+      db_filenames(db_filenames),
       state(state_off)
 {
-    assert(n_serializers > 0);
-    for (int i = 0; i < n_serializers; i++) {
+    assert(n_files > 0);
+    for (int i = 0; i < n_files; i++) {
         serializers[i] = NULL;
     }
 }
 
-/* Process of starting individual slices on different cores */
+/* This is the format that block ID 0 on each serializer takes. */
+
+#define CONFIG_BLOCK_ID (ser_block_id_t(0))
+
+static const char serializer_config_block_magic[] = {'b', 't', 'r', 'e', 'e', 'c', 'f', 'g'};
+
+struct serializer_config_block_t {
+    
+    char magic[sizeof(serializer_config_block_magic)];
+    
+    /* What time the database was created. To help catch the case where files from two
+    databases are mixed. */
+    uint32_t database_magic;
+    
+    /* How many serializers the database is using (in case user creates the database with
+    some number of serializers and then specifies less than that many on a subsequent
+    run) */
+    int n_files;
+    
+    /* Which serializer this is, in case user specifies serializers in a different order from
+    run to run */
+    int this_serializer;
+    
+    /* Static btree configuration information, like number of slices. Should be the same on
+    each serializer. */
+    btree_config_t btree_config;
+};
+
+/* Process of creating a new key-value store */
 
 bool btree_key_value_store_t::start_new(ready_callback_t *cb, btree_key_value_store_static_config_t *sc) {
     
@@ -59,121 +84,154 @@ bool btree_key_value_store_t::start(ready_callback_t *cb) {
     }
 }
 
+struct bkvs_start_new_serializer_fsm_t :
+    public standard_serializer_t::ready_callback_t,
+    public serializer_t::write_txn_callback_t
+{
+    btree_key_value_store_t *store;
+    int i;
+    
+    void run() {
+        do_on_cpu(i % get_num_db_cpus(), this, &bkvs_start_new_serializer_fsm_t::create_serializer);
+    }
+    
+    void *config_block;
+    
+    bool create_serializer() {
+        
+        store->serializers[i] = gnew<standard_serializer_t>(store->db_filenames[i], &store->dynamic_config->serializer);
+        
+        if (store->serializers[i]->start_new(store->serializer_static_config, this))
+            on_serializer_ready(NULL);
+        
+        return true;
+    }
+    
+    void on_serializer_ready(standard_serializer_t *ser) {
+        
+        config_block = store->serializers[i]->malloc();
+        bzero(config_block, store->serializers[i]->get_block_size());
+        serializer_config_block_t *c = (serializer_config_block_t *)config_block;
+        memcpy(c->magic, serializer_config_block_magic, sizeof(serializer_config_block_magic));
+        c->database_magic = store->creation_magic;
+        c->n_files = store->n_files;
+        c->this_serializer = i;
+        c->btree_config = store->btree_static_config;
+        
+        serializer_t::write_t w;
+        w.buf = config_block;
+        w.block_id = CONFIG_BLOCK_ID;
+        w.callback = NULL;
+        if (store->serializers[i]->do_write(&w, 1, this)) on_serializer_write_txn();
+    }
+    
+    void on_serializer_write_txn() {
+        
+        store->serializers[i]->free(config_block);
+        do_on_cpu(store->home_cpu, this, &bkvs_start_new_serializer_fsm_t::done);
+    }
+    
+    bool done() {
+    
+        store->have_created_a_serializer();
+        gdelete(this);
+        return true;
+    }
+};
+
+struct bkvs_start_existing_serializer_fsm_t :
+    public standard_serializer_t::ready_callback_t,
+    public serializer_t::read_callback_t
+{
+    btree_key_value_store_t *store;
+    standard_serializer_t *serializer;
+    int i;
+    
+    void run() {
+        do_on_cpu(i % get_num_db_cpus(), this, &bkvs_start_existing_serializer_fsm_t::create_serializer);
+    }
+    
+    void *config_block;
+    
+    bool create_serializer() {
+        
+        serializer = gnew<standard_serializer_t>(store->db_filenames[i], &store->dynamic_config->serializer);
+        
+        if (serializer->start_existing(this)) on_serializer_ready(NULL);
+        
+        return true;
+    }
+    
+    void on_serializer_ready(standard_serializer_t *ser) {
+        
+        config_block = serializer->malloc();
+        if (serializer->do_read(CONFIG_BLOCK_ID, config_block, this)) on_serializer_read();
+    }
+    
+    void on_serializer_read() {
+        
+        serializer_config_block_t *c = (serializer_config_block_t *)config_block;
+        if (c->n_files != store->n_files) {
+            fail("File config block for file \"%s\" says there should be %d files, but we have %d.",
+                store->db_filenames[i], (int)c->n_files, (int)store->n_files);
+        }
+        assert(memcmp(c->magic, serializer_config_block_magic, sizeof(serializer_config_block_magic)) == 0);
+        assert(c->this_serializer >= 0 && c->this_serializer < store->n_files);
+        store->serializer_magics[c->this_serializer] = c->database_magic;
+        store->btree_static_config = c->btree_config;
+        assert(!store->serializers[c->this_serializer]);
+        store->serializers[c->this_serializer] = serializer;
+        serializer->free(config_block);
+        
+        do_on_cpu(store->home_cpu, this, &bkvs_start_existing_serializer_fsm_t::done);
+    }
+    
+    bool done() {
+    
+        store->have_created_a_serializer();
+        gdelete(this);
+        return true;
+    }
+};
+
 void btree_key_value_store_t::create_serializers() {
     
-    if (strncmp(db_filename, DATA_DIRECTORY, strlen(DATA_DIRECTORY)) == 0) {
-        mkdir(DATA_DIRECTORY, 0777);
-    }
-    
-    messages_out = n_serializers;
-    for (int id = 0; id < n_serializers; id++) {
-        do_on_cpu(id % get_num_db_cpus(), this, &btree_key_value_store_t::create_a_serializer_on_this_core, id);
-    }
-}
-
-bool btree_key_value_store_t::create_a_serializer_on_this_core(int id) {
-    
-    char name[MAX_DB_FILE_NAME];
-    int len = snprintf(name, MAX_DB_FILE_NAME, "%s_%d", db_filename, id);
-    check("Name too long", len == MAX_DB_FILE_NAME);
-    
-    serializers[id] = gnew<standard_serializer_t>(name, &dynamic_config->serializer);
-    
-    bool done;
+    messages_out = n_files;
     if (is_start_existing) {
-        done = serializers[id]->start_existing(this);
+        for (int i = 0; i < n_files; i++) {
+            bkvs_start_existing_serializer_fsm_t *f = gnew<bkvs_start_existing_serializer_fsm_t>();
+            f->store = this;
+            f->i = i;
+            f->run();
+        }
     } else {
-        done = serializers[id]->start_new(serializer_static_config, this);
+        creation_magic = time(NULL);
+        for (int i = 0; i < n_files; i++) {
+            bkvs_start_new_serializer_fsm_t *f = gnew<bkvs_start_new_serializer_fsm_t>();
+            f->store = this;
+            f->i = i;
+            f->run();
+        }
     }
-    
-    if (done) on_serializer_ready(serializers[id]);
-
-    return true;
-}
-
-void btree_key_value_store_t::on_serializer_ready(standard_serializer_t *ser) {
-    
-    ser->assert_cpu();
-    do_on_cpu(home_cpu, this, &btree_key_value_store_t::have_created_a_serializer);
 }
 
 bool btree_key_value_store_t::have_created_a_serializer() {
-
-    assert_cpu();
+    
     messages_out--;
     if (messages_out == 0) {
-        if (is_start_existing) read_config_block();
-        else write_config_block();
+    
+        if (is_start_existing) {
+            /* Make sure all the magics line up */
+            for (int i = 1; i < n_files; i++) {
+                if (serializer_magics[i] != serializer_magics[0]) {
+                    fail("The files that the server was started with didn't all come from "
+                        "the same database.");
+                }
+            }
+        }
+    
+        create_pseudoserializers();
     }
-    
-    return true;
-}
-
-void btree_key_value_store_t::write_config_block() {
-    
-    do_on_cpu(serializers[CONFIG_BLOCK_SERIALIZER]->home_cpu, this, &btree_key_value_store_t::do_write_config_block);
-}
-
-bool btree_key_value_store_t::do_write_config_block() {
-    
-    serializers[CONFIG_BLOCK_SERIALIZER]->assert_cpu();
-    
-    config_block = serializers[CONFIG_BLOCK_SERIALIZER]->malloc();
-    bzero(config_block, serializers[CONFIG_BLOCK_SERIALIZER]->get_block_size());
-    assert(serializers[CONFIG_BLOCK_SERIALIZER]->get_block_size() >= sizeof(btree_config_t));
-    *(btree_config_t *)config_block = btree_static_config;
-    
-    serializer_t::write_t write;
-    write.buf = config_block;
-    write.block_id = CONFIG_BLOCK_ID;
-    write.callback = NULL;
-    
-    if (serializers[CONFIG_BLOCK_SERIALIZER]->do_write(&write, 1, this)) on_serializer_write_txn();
-    
-    return true;
-}
-
-void btree_key_value_store_t::on_serializer_write_txn() {
-    
-    serializers[CONFIG_BLOCK_SERIALIZER]->free(config_block);
-    
-    do_on_cpu(home_cpu, this, &btree_key_value_store_t::have_written_config_block);
-}
-
-bool btree_key_value_store_t::have_written_config_block() {
-    
-    create_pseudoserializers();
-    
-    return true;
-}
-
-void btree_key_value_store_t::read_config_block() {
-
-    do_on_cpu(serializers[CONFIG_BLOCK_SERIALIZER]->home_cpu, this, &btree_key_value_store_t::do_read_config_block);
-}
-
-bool btree_key_value_store_t::do_read_config_block() {
-    
-    serializers[CONFIG_BLOCK_SERIALIZER]->assert_cpu();
-    
-    config_block = serializers[CONFIG_BLOCK_SERIALIZER]->malloc();
-    
-    if (serializers[CONFIG_BLOCK_SERIALIZER]->do_read(CONFIG_BLOCK_ID, config_block, this)) on_serializer_read();
-    
-    return true;
-}
-
-void btree_key_value_store_t::on_serializer_read() {
-
-    btree_static_config = *(btree_config_t *)config_block;
-    serializers[CONFIG_BLOCK_SERIALIZER]->free(config_block);
-    
-    do_on_cpu(home_cpu, this, &btree_key_value_store_t::have_read_config_block);
-}
-
-bool btree_key_value_store_t::have_read_config_block() {
-    
-    create_pseudoserializers();
     
     return true;
 }
@@ -182,19 +240,23 @@ void btree_key_value_store_t::create_pseudoserializers() {
     
     messages_out = btree_static_config.n_slices;
     for (int i = 0; i < btree_static_config.n_slices; i++) {
-        int mod_count = btree_static_config.n_slices / n_serializers + (btree_static_config.n_slices % n_serializers > i % n_serializers);
-        do_on_cpu(serializers[i % n_serializers]->home_cpu, this,
-            &btree_key_value_store_t::create_a_pseudoserializer_on_this_core,
-            i, i % n_serializers, mod_count, i / n_serializers);
+        do_on_cpu(serializers[i % n_files]->home_cpu, this,
+            &btree_key_value_store_t::create_a_pseudoserializer_on_this_core, i);
     }
 }
 
-bool btree_key_value_store_t::create_a_pseudoserializer_on_this_core(int pser_id, int ser_id, int mod_count, int mod_id) {
+bool btree_key_value_store_t::create_a_pseudoserializer_on_this_core(int i) {
     
-    /* Make sure we don't overwrite the config block if we are using the first serializer */
-    ser_block_id_t min = (ser_id == CONFIG_BLOCK_SERIALIZER) ? (CONFIG_BLOCK_ID + 1) : 0;
+    /* How many other pseudoserializers are we sharing the serializer with? */
+    int mod_count = btree_static_config.n_slices / n_files +
+        (btree_static_config.n_slices % n_files > i % n_files);
     
-    pseudoserializers[pser_id] = gnew<translator_serializer_t>(serializers[ser_id], mod_count, mod_id, min);
+    pseudoserializers[i] = gnew<translator_serializer_t>(
+        serializers[i % n_files],
+        mod_count,
+        i / n_files,
+        CONFIG_BLOCK_ID + 1   /* Reserve block ID 0 */
+        );
     
     do_on_cpu(home_cpu, this, &btree_key_value_store_t::have_created_a_pseudoserializer);
 
@@ -386,8 +448,8 @@ bool btree_key_value_store_t::delete_a_pseudoserializer(int id) {
 
 void btree_key_value_store_t::shutdown_serializers() {
     
-    messages_out = n_serializers;
-    for (int id = 0; id < n_serializers; id++) {
+    messages_out = n_files;
+    for (int id = 0; id < n_files; id++) {
         do_on_cpu(serializers[id]->home_cpu, this, &btree_key_value_store_t::shutdown_a_serializer, id);
     }
 }

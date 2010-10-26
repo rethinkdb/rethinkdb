@@ -174,9 +174,9 @@ class Server(object):
                 ] + self.extra_flags
             
             if self.times_started == 1:
-                command_line.extend(["--create", os.path.join(db_data_dir, "data_file")])
+                command_line.extend(["--create", "-f", os.path.join(db_data_dir, "data_file")])
             else:
-                command_line.append(os.path.join(db_data_dir, "data_file"))
+                command_line.extend(["-f", os.path.join(db_data_dir, "data_file")])
         
         elif self.opts["database"] == "memcached":
             
