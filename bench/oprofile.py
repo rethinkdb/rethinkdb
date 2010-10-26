@@ -85,8 +85,14 @@ class OProfile():
         os.system(ctrl_str + ' --start')
 
     def stop_and_report(self):
+        self.stop()
+        self.report()
+
+    def stop(self):
         os.system(ctrl_str + ' --shutdown')
         os.system(rprt_str + ' --merge=cpu,lib,tid,tgid,unitmask,all -gdf | op2calltree')
+
+    def report(self):
         p = parser()
         return p.parse_file('oprof.out.' + exec_name)
 
@@ -177,6 +183,57 @@ class Program_report():
             for ratio in ratios:
                 print >>res, "\t%s / %s :" % (ratio.numerator, ratio.denominator),
                 print >>res, "%.2f" % safe_div(float(function[1].counter_totals[ratio.numerator.name]), function[1].counter_totals[ratio.denominator.name])
+        return res.getvalue()
+
+    def report_as_html(self, ratios, ordering_key, top_n = 10):
+        res = StringIO.StringIO()
+
+#entries should be an array of arrays
+        def table(entries, border = 1):
+            res = StringIO.StringIO()
+            print >>res, '<table border = \"%d\">' % border
+            for row in entries:
+                print >>res, "<tr>"
+                for datum in row:
+                    print >>res, "<td>"
+                    print >>res, datum
+                    print >>res, "</td>"
+                print >>res, "</tr>"
+            print >>res, "</table>"
+            return res.getvalue()
+
+#program wide counter totals
+        print >>res, "<p>Program wide counter totals:</p>"
+        counter_totals_table = []
+        for counter in self.counter_names:
+            counter_totals_table.append([counter, self.counter_totals[counter]])
+        print >>res, table(counter_totals_table)
+
+# program wide ratios
+        print >>res, "<p>Program wide ratios:</p>"
+        global_rat_table = []
+        for ratio in ratios:
+            val = safe_div(float(self.counter_totals[ratio.numerator.name]), self.counter_totals[ratio.denominator.name])
+            global_rat_table.append(["%s / %s" % (ratio.numerator, ratio.denominator), "%.2f" % val])
+
+        print >>res, table(global_rat_table)
+
+#per function ratios
+        print >>res, "<p>Worst functions by %s</p>" % ordering_key.name
+        function_table = []
+        function_list = sorted(self.functions.iteritems(), key = lambda x: x[1].counter_totals[ordering_key.name])
+        function_list.reverse()
+        for function in function_list[0:top_n]:
+            row = []
+            row.append(function[1].function_name + ' ratios:')
+            row.append(ordering_key.name + ":%d" % function[1].counter_totals[ordering_key.name])
+            ratios_table = []
+            for ratio in ratios:
+                ratios_table.append(["\t%s / %s :" % (ratio.numerator, ratio.denominator), "%.2f" % safe_div(float(function[1].counter_totals[ratio.numerator.name]), function[1].counter_totals[ratio.denominator.name])])
+            row.append(table(ratios_table))
+            function_table.append(row)
+
+        print >>res, table(function_table)
         return res.getvalue()
 
 class parser():

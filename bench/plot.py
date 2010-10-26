@@ -1,6 +1,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.mlab as mlab
+from mpl_toolkits.mplot3d import Axes3D
+from matplotlib.collections import PolyCollection
 import re
 from colors import *
 
@@ -84,13 +86,16 @@ def read_while(lines, data):
 
 class TimeSeries():
     def __init__(self):
-        self.data = None
+        self.data = default_empty_dict()
 
     def read(self, file_name):
         self.data = self.parse_file(file_name)
+        return self
 
     def copy(self):
-        pass
+        copy = self.__class__()
+        copy.data = self.data.copy()
+        return copy
 
     def __add__(self, other):
         res = self.copy()
@@ -98,7 +103,13 @@ class TimeSeries():
             assert not val[0] in res.data
             res.data[val[0]] = val[1]
         return res
-        
+
+#limit the data to just the keys in keys
+    def select(self, keys):
+        for key in self.data.keys():
+            if not key in keys:
+                self.data.pop(keys)
+
     def parse_file(self, file_name):
         pass
 
@@ -132,17 +143,35 @@ class TimeSeries():
         ax.grid(True)
         plt.savefig(out_fname, dpi=300)
 
+def multi_plot(timeseries, out_fname):
+    fig = plt.figure()
+    ax = fig.add_subplot(111)
+    verts = []
+
+    xs = range(min(map(lambda x: min(map(lambda y: len(y[1]), x.data.iteritems())), timeseries)))
+
+    for z in range(len(timeseries)):
+        for series in timeseries[z].data.iteritems():
+            verts.append(zip(xs, series[1]))
+
+    poly = PolyCollection(verts, facecolors = colors[0:len(verts)])
+    poly.set_alpha(0.7)
+    ax.add_collection3d(poly, range(len(timeseries)), zdir='y')
+
+    ax.set_xlabel('X')
+    ax.set_xlim3d(0, len(xs))
+    ax.set_ylabel('Y')
+    ax.set_ylim3d(-1, len(timeseries))
+    ax.set_zlabel('Z')
+    ax.set_zlim3d(0, max(map(lambda x: max(x), timeseries)))
+    plt.savefig(out_fname, dpi=300)
+
 class IOStat(TimeSeries):
     file_hdr_line   = line("Linux.*", [])
     avg_cpu_hdr_line= line("^avg-cpu:  %user   %nice %system %iowait  %steal   %idle$", [])
     avg_cpu_line    = line("^" + "\s+([\d\.]+)" * 6 + "$", [('user', 'f'), ('nice', 'f'), ('system', 'f'), ('iowait', 'f'),  ('steal', 'f'),   ('idle', 'f')])
     dev_hdr_line    = line("^Device:            tps   Blk_read/s   Blk_wrtn/s   Blk_read   Blk_wrtn$", [])
     dev_line        = line("^(\w+)\s+([\d\.]+)\s+([\d\.]+)\s+([\d\.]+)\s+(\d+)\s+(\d+)$", [('device', 's'), ('tps', 'f'), (' Blk_read', 'f'), (' Blk_wrtn', 'f'), (' Blk_read', 'd'), (' Blk_wrtn', 'd')])
-
-    def copy(self):
-        copy = IOStat()
-        copy.data = self.data.copy()
-        return copy
 
     def parse_file(self, file_name):
         res = default_empty_dict()
@@ -176,11 +205,6 @@ class VMStat(TimeSeries):
     stats_hdr_line  = line("^ r  b   swpd   free   buff  cache   si   so    bi    bo   in   cs us sy id wa$", [])
     stats_line      = line("\s+(\d+)" * 16, [('r', 'd'),  ('b', 'd'),   ('swpd', 'd'),   ('free', 'd'),   ('buff', 'd'),  ('cache', 'd'),   ('si', 'd'),   ('so', 'd'),    ('bi', 'd'),    ('bo', 'd'),   ('in', 'd'),   ('cs', 'd'), ('us', 'd'), ('sy', 'd'), ('id', 'd'), ('wa', 'd')])
 
-    def copy(self):
-        copy = VMStat()
-        copy.data = self.data.copy()
-        return copy
-
     def parse_file(self, file_name):
         res = default_empty_dict()
         data = open(file_name).readlines()
@@ -200,11 +224,6 @@ class VMStat(TimeSeries):
 class Latency(TimeSeries):
     line = line("(\d+)\s+([\d.]+)\n", [('tick', 'd'), ('latency', 'f')])
 
-    def copy(self):
-        copy = Latency()
-        copy.data = self.data.copy()
-        return copy
-
     def parse_file(self, file_name):
         res = default_empty_dict()
         f = open(file_name)
@@ -212,38 +231,8 @@ class Latency(TimeSeries):
             res['latency'] += [self.line.parse_line(line)['latency']]
         return res
 
-#    def histogram(self, out_fname):
-#        fig = plt.figure()
-#        ax = fig.add_subplot(111)
-#        ax.hist(self.data, 400, range=(0, (sum(self.data) / len(self.data)) * 2), facecolor='green', alpha=1.0)
-#        ax.set_xlabel('Latency')
-#        ax.set_ylabel('Count')
-#        ax.set_xlim(0, (sum(self.data) / len(self.data)) * 2)
-#        ax.set_ylim(0, len(self.data) / 60)
-#        ax.grid(True)
-#        plt.savefig(out_fname)
-#    def scatter(self, out_fname):
-#        fig = plt.figure()
-#        ax = fig.add_subplot(111)
-#        ax.plot(range(len(self.data)), self.data, 'g.-')
-#        ax.set_xlabel('Time (seconds)')
-#        ax.set_ylabel('latency')
-#        ax.set_xlim(0, len(self.data))
-#        ax.set_ylim(0, max(self.data) * 1.2)
-#        ax.grid(True)
-#        plt.savefig(out_fname)
-#    def series_hist(self, out_fname):
-#        fig = plt.figure(1, figsize=(10.0, 10.0))
-#        ax = fig.add_subplot(111)
-#        ax.plot(range(len(self.data)), self.data, 'g.-')
-
 class QPS(TimeSeries):
     line = line("(\d+)\s+([\d]+)\n", [('tick', 'd'), ('qps', 'f')])
-
-    def copy(self):
-        copy = QPS()
-        copy.data = self.data.copy()
-        return copy
 
     def parse_file(self, file_name):
         res = default_empty_dict()
@@ -252,36 +241,10 @@ class QPS(TimeSeries):
             res['qps'] += [self.line.parse_line(line)['qps']]
         return res
 
-#    def histogram(self, out_fname):
-#        fig = plt.figure()
-#        ax = fig.add_subplot(111)
-#        ax.hist(self.data, 400, range=(0, (sum(self.data) / len(self.data)) * 2), facecolor='green', alpha=1.0)
-#        ax.set_xlabel('QPS')
-#        ax.set_ylabel('Count')
-#        ax.set_xlim(0, (sum(self.data) / len(self.data)) * 2)
-#        ax.set_ylim(0, len(self.data) / 60)
-#        ax.grid(True)
-#        plt.savefig(out_fname)
-#    def scatter(self, out_fname):
-#        fig = plt.figure()
-#        ax = fig.add_subplot(111)
-#        ax.plot(range(len(self.data)), self.data, 'g.-')
-#        ax.set_xlabel('Time (seconds)')
-#        ax.set_ylabel('QPS')
-#        ax.set_xlim(0, len(self.data))
-#        ax.set_ylim(0, max(self.data) * 1.2)
-#        ax.grid(True)
-#        plt.savefig(out_fname)
-
 class RDBStats(TimeSeries):
     cmd_set_line        = line("STAT cmd_set (\d+)", [('sets', 'd')])
     evts_p_loop_line    = line("STAT events_per_loop (\d+) \(average of \d+\)", [('events_per_loop', 'd')])
     end_line            = line("END", [])
-
-    def copy(self):
-        copy = RDBStats()
-        copy.data = self.data.copy()
-        return copy
 
     def parse_file(self, file_name):
         res = default_empty_dict()
