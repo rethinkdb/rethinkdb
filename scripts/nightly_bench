@@ -1,0 +1,14 @@
+#!/bin/bash
+
+# We need our git-test
+export PATH=$PATH:/usr/local/bin/
+
+# Go into var rethinkdb directory
+cd /var/git/rethinkdb/
+
+# Pull latest from master
+git pull
+
+# Run the tests
+# Email is hard-wired for now.
+git test -b --email IGNORED --revision HEAD bench/full_test
