@@ -26,4 +26,4 @@ rm -f "$(find "$BENCH_DIR" -name rethinkdb_data)"
 cd ../format
 
 # Generate statistics and email.
-./format.py "$BENCH_DIR"
+./report.py "$BENCH_DIR"
