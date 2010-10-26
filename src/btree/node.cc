@@ -57,6 +57,7 @@ void node_handler::print(const btree_node *node) {
 }
 
 void node_handler::validate(size_t block_size, const btree_node *node) {
+#ifndef NDEBUG
     switch(node->type) {
         case btree_node_type_leaf:
             leaf_node_handler::validate(block_size, (btree_leaf_node *)node);
@@ -67,4 +68,5 @@ void node_handler::validate(size_t block_size, const btree_node *node) {
         default:
             fail("Invalid leaf node type.");
     }
+#endif
 }
