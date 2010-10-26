@@ -22,7 +22,6 @@ provides the abstraction of a key-value store. */
 struct bkvs_start_new_serializer_fsm_t;
 struct bkvs_start_existing_serializer_fsm_t;
 
-<<<<<<< HEAD:src/btree/key_value_store.hpp
 class btree_key_value_store_t :
     public home_cpu_mixin_t,
     public standard_serializer_t::shutdown_callback_t
