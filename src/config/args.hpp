@@ -164,5 +164,9 @@
 #define MAX_ACTIVE_DATA_EXTENTS                   64
 #define DEFAULT_ACTIVE_DATA_EXTENTS               8
 
+// How many zones the serializer will divide a block device into
+#define DEFAULT_FILE_ZONE_SIZE                    GIGABYTE
+#define MAX_FILE_ZONES                            (TERABYTE / DEFAULT_FILE_ZONE_SIZE)
+
 #endif // __CONFIG_ARGS_H__
 

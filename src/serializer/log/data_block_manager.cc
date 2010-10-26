@@ -300,7 +300,9 @@ void data_block_manager_t::run_gc() {
 }
 
 void data_block_manager_t::prepare_metablock(metablock_mixin_t *metablock) {
-
+    
+    assert(state == state_ready || state == state_shutting_down);
+    
     for (int i = 0; i < MAX_ACTIVE_DATA_EXTENTS; i++) {
         if (active_extents[i]) {
             metablock->active_extents[i] = active_extents[i]->offset;

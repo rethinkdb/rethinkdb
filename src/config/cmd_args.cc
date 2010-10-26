@@ -78,6 +78,8 @@ void init_config(cmd_config_t *config) {
     config->ser_dynamic_config.gc_low_ratio = DEFAULT_GC_LOW_RATIO;
     config->ser_dynamic_config.gc_high_ratio = DEFAULT_GC_HIGH_RATIO;
     config->ser_dynamic_config.num_active_data_extents = DEFAULT_ACTIVE_DATA_EXTENTS;
+    config->ser_dynamic_config.file_size = 0;   // Unlimited file size
+    config->ser_dynamic_config.file_zone_size = GIGABYTE;
     
     config->ser_static_config.extent_size = DEFAULT_EXTENT_SIZE;
     config->ser_static_config.block_size = DEFAULT_BTREE_BLOCK_SIZE;
