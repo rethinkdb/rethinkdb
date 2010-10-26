@@ -295,12 +295,12 @@ block_id_t large_buf_t::get_index_block_id() {
 
 const large_buf_index *large_buf_t::get_index() {
     assert(index_buf->get_block_id() == get_index_block_id());
-    return (large_buf_index *) index_buf->get_data_read();
+    return reinterpret_cast<const large_buf_index *>(index_buf->get_data_read());
 }
 
 large_buf_index *large_buf_t::get_index_write() {
     assert(index_buf->get_block_id() == get_index_block_id());
-    return (large_buf_index *) index_buf->get_data_write(); //TODO @shachaf figure out if this can be get_data_read
+    return reinterpret_cast<large_buf_index *>(index_buf->get_data_write()); //TODO @shachaf figure out if this can be get_data_read
 }
 
 // A wrapper for transaction->allocate that sets the magic.

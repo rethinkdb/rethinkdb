@@ -214,7 +214,7 @@ private:
         if (length > 0) {
             uint32_t bytes_to_transfer = std::min((uint32_t) iobuf_t::size, length);
             length -= bytes_to_transfer;
-            rh->fill_value((byte *) buf, bytes_to_transfer, this);
+            rh->fill_value(buf->buf, bytes_to_transfer, this);
             return;
         }
 
