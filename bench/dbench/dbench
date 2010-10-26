@@ -1,0 +1,480 @@
+#!/usr/bin/env python
+
+import sys, os, signal, re, errno, socket, time, string, random, copy
+import tempfile
+import shutil
+import argparse
+import subprocess
+import shlex
+
+# Import oprofile from the parent direcotry of the script.
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir)))
+import oprofile
+import profiles
+
+try: from termcolor import colored
+except ImportError:
+    colored = lambda str, color: str
+
+
+def random_str(length = 5, alphabet = string.letters + string.digits):
+    alphabet = string.letters + string.digits
+    return ''.join(random.choice(alphabet) for x in xrange(length))
+
+
+class Worker(object):
+    running = False
+    finished = False
+    process = None
+    out_file = None
+    status_file = None
+    ssh = None
+    argtype = 'Worker'
+
+    def __init__(self, dbench, name, id, ssh, path, raw, param):
+        self.dbench = dbench
+        self.name = name
+        self.id = id
+        self.ssh = ssh
+        self.path = path
+        self.raw = raw
+        self.param = param
+        self.internal_init()
+
+    def __repr__(self):
+        if self.id and self.id != self.name:    id_str = '{%s}' % self.id # XXX
+        else:                                   id_str = ''
+        if self.ssh:   ssh_str = '%s:' % self.ssh
+        else:          ssh_str = ''
+        if self.path:  path_str = '[%s%s]' % (ssh_str, self.path)
+        else:          path_str = ''
+        if self.raw:   raw_str = ':'
+        else:          raw_str = ''
+        if self.param: param_str = ':%s%s' % (raw_str, self.param)
+        else:          param_str = ''
+        return '%s(%s%s%s%s)' % (self.argtype, id_str, self.name, path_str, param_str)
+
+    # Note: start() and stop() are called on the same object once per run
+    # (instead of a new object being created each time).
+
+    def start(self):
+        self.finished = False
+        os.mkdir(self.id)
+        os.chdir(self.id)
+        self.worker_current_dir = os.getcwd()
+        self.status_file = open('status.txt', 'w')
+        print >> self.status_file, 'worker: %r' % self
+        print >> self.status_file, 'start: %d' % int(time.time())
+        self.internal_start()
+        os.chdir('..')
+        self.running = True
+
+    def stop(self):
+        assert self.running
+        self.internal_stop()
+
+        if self.ssh: self.copy_ssh() # XXX: Will this ever need to be overridden?
+
+        print >> self.status_file, 'stop: %d' % int(time.time())
+        if self.process:
+            print >> self.status_file, 'exitstatus: %d' % self.process.poll()
+        self.status_file.close()
+        self.status_file = None
+
+        self.running = False
+
+    def internal_init(self): pass # Override this if needed.
+    def internal_start(self): # Override this.
+        pass
+    def internal_stop(self): # Override this, usually.
+        self.stop_process()
+        self.finished = True
+
+    def run_process(self, executable, args):
+        # It might be better to redirect stdout and stderr to two different
+        # files, but then we'd lose the order of the messages.
+        self.out_file = open('output.txt', 'w')
+        if self.path: executable = self.path
+
+        cmdline = [executable] + args
+
+        if self.ssh:
+            self.ssh_unique_path = '/tmp/dbench-%s-%d-%s' % (socket.gethostname(), os.getpid(), random_str())
+            cmdline = ['ssh', self.ssh, '--', 'dbench-internal-run', self.ssh_unique_path] + cmdline
+
+        print >> self.status_file, 'cmdline: %r' % cmdline
+
+        try:
+            # TODO: Possibly set cmdline[0] to basename and pass in executable=.
+            self.process = subprocess.Popen(cmdline, stdout=self.out_file, stderr=self.out_file)
+        except OSError, e:
+            self.dbench.die("Can't execute `%s': %s" % (executable, e.strerror))
+
+    def copy_ssh(self):
+        def sh_escape_within_single_quotes(str):
+            return str.replace("'", "'\\''")
+
+        if self.ssh:
+            assert self.ssh_unique_path
+            # XXX: Doing this synchronously will probably cause the rest of the monitors to terminate too late, which might cause some trouble.
+            cmdline = ['scp', '-pr', '%s:%s/*' % (self.ssh, self.ssh_unique_path), self.worker_current_dir]
+            ret = subprocess.call(cmdline, stdout=subprocess.PIPE, stderr=subprocess.PIPE) # XXX: Will =subprocess.PIPE block if too much output is printed? Maybe this output should be logged too?
+            if ret != 0:
+                self.dbench.warn('Failed to copy SSH files from %s:%s.' % (self.ssh, self.ssh_unique_path))
+            ret = subprocess.call(['ssh', self.ssh, 'rm', '-rf', "'%s'" % sh_escape_within_single_quotes(self.ssh_unique_path)],
+                                  stdout=subprocess.PIPE, stderr=subprocess.PIPE) # Note: Still needs escaping.
+            if ret != 0:
+                self.dbench.warn('Failed to delete temporary directory %s:%s.' % (self.ssh, self.ssh_unique_path))
+
+    MAX_WAIT_TIME = 30
+    WAIT_INTERVAL = 0.05
+    def bounded_wait(self):
+        bound = time.time() + self.MAX_WAIT_TIME
+        while self.process.poll() == None and time.time() < bound:
+            time.sleep(self.WAIT_INTERVAL)
+        return self.process.poll()
+
+    def stop_process(self):
+        if self.process and self.process.poll() == None:
+            # TODO: Kill more intelligently, as in test_common.
+            self.process.terminate()
+            if self.bounded_wait() == None:
+                self.dbench.warn('%s subprocess not responding to SIGTERM after %d seconds; sending SIGKILL.' % (self, self.MAX_WAIT_TIME))
+                self.process.kill()
+        if self.out_file and not self.out_file.closed:
+            self.out_file.close()
+
+    def wait(self):
+        assert self.process
+        status = self.process.wait()
+        if status != 0:
+            self.dbench.warn('%r exited with status %d' % (self, status))
+        self.stop()
+
+    binary_paths = []
+    def find_binary(self, default):
+        # TODO: This can be much more intelligent.
+        if self.path != None or self.ssh != None:
+            return default # If the path is given, run_process will just use the binary from the path; if we're using SSH we can't easily check if a file exists.
+        for bin in self.binary_paths:
+            if os.path.exists(bin): # Relative to current directory.
+                return bin
+            rel_to_script = os.path.abspath(os.path.join(os.path.dirname(__file__), bin))
+            if os.path.exists(rel_to_script): # Relative to dbench executable.
+                return rel_to_script
+        return default # Will look in $PATH
+
+    def compute_args(self, prefix=[], default = None):
+        args = shlex.split(self.param or '')
+
+        if default == None: default = prefix
+
+        if self.raw: return args
+        elif self.param: return prefix + args
+        else: return default
+
+class Cmd(Worker):
+    def internal_start(self):
+        self.run_process('bash', ['-c', self.param])
+
+class Sleep(Worker):
+    def internal_start(self):
+        self.run_process('sleep', [self.param]) # XXX
+
+class Server(Worker): argtype = 'Server'
+class Client(Worker): argtype = 'Client'
+class Monitor(Worker): argtype = 'Monitor'
+
+
+class MemcachedLikeServer(Server):
+
+    MAX_WAIT_TIME = 30
+    WAIT_INTERVAL = 0.05
+    def wait_for_server_ready(self):
+        bound = time.time() + self.MAX_WAIT_TIME
+        while time.time() < bound:
+            s = socket.socket()
+            try:
+                s.connect(('localhost', self.dbench.port)) # XXX: Change this when we support running on a different host.
+            except socket.error, e:
+                # Couldn't connect; retry.
+                continue
+            # Connected to the server successfully.
+            s.shutdown(socket.SHUT_RDWR)
+            s.close()
+            # XXX: For some reason the RethinkDB server seems to introduce odd
+            # delays if enough clients connect to it with some particular
+            # workload immediately after startup. This should be properly
+            # fixed, but until then, this works well enough.
+            time.sleep(0.1)
+            return
+        self.dbench.die('Unable to connect to server (localhost:%d)' % (self.dbench.port)) # XXX: This too.
+
+class RethinkDB(MemcachedLikeServer):
+    binary_paths = ['../../../../../build/release/rethinkdb']
+
+    def internal_start(self):
+        self.run_process(self.find_binary('rethinkdb'), ['-p', str(self.dbench.port)] + shlex.split(self.param or ''))
+        self.wait_for_server_ready()
+
+class Memcached(MemcachedLikeServer):
+    binary_paths = []
+
+    def internal_start(self):
+        self.run_process(self.find_binary('memcached'), ['-p', str(self.dbench.port)])
+        self.wait_for_server_ready()
+
+class MemcacheDB(MemcachedLikeServer): pass
+class Membase(MemcachedLikeServer): pass
+
+class Stress(Client):
+    binary_paths = ['../../../../stress-client/stress']
+
+    LATENCY_FILE = 'latency.txt'
+    QPS_FILE = 'qps.txt'
+
+    def internal_start(self):
+        default_args = ['-n', socket.gethostname(), # XXX
+                        '-p', str(self.dbench.port),
+                        '-l', self.LATENCY_FILE,
+                        '-q', self.QPS_FILE]
+        args = self.compute_args(default_args)
+        time.sleep(1)
+        self.run_process(self.find_binary('stress'), args)
+
+
+
+class Stat(Monitor):
+    statcmd = ''
+
+    def internal_start(self):
+        args = self.compute_args(prefix=[], default=['1'])
+        self.run_process(self.statcmd, args)
+
+class VMStat(Stat): statcmd = 'vmstat'
+class IOStat(Stat): statcmd = 'iostat'
+class RDBStat(Stat): statcmd = 'rdbstat'
+
+class OProfile(Monitor):
+    # XXX: sudo must allow the user to run opcontrol without a password.
+
+    def internal_init(self):
+        if self.ssh:
+            self.dbench.warn("Can't run OProfile over SSH.")
+            self.ssh = None
+        if self.param:
+            self.dbench.warn("OProfile doesn't support parameters yet.")
+
+        self.op = oprofile.OProfile()
+        self.profiles = copy.deepcopy(profiles.small_packet_profiles)
+
+    def internal_start(self):
+        self.cur_profile = self.profiles.pop(0)
+        self.op.start(self.cur_profile.events)
+
+    def internal_stop(self):
+        # stop_and_report() needs to be called from inside the correct directory. Maybe .stop() should do this instead?
+        old_wd = os.getcwd()
+        os.chdir(self.worker_current_dir)
+        self.op.stop()
+        os.chdir(old_wd)
+        self.finished = self.profiles == []
+
+workers = {
+    'cmd': Cmd,
+    'sleep': Sleep,
+
+    'rethinkdb': RethinkDB,
+    'memcachedb': MemcacheDB,
+    'memcached': Memcached,
+
+    'stress': Stress,
+
+    'oprofile': OProfile,
+    'vmstat': VMStat,
+    'iostat': IOStat,
+    'rdbstat': RDBStat,
+}
+
+class DBench(object):
+
+    worker_re = re.compile(r'''^
+                               (\{
+                                  (?P<id>\w+)
+                               \})?
+                               (?P<name>[^:\[]+)
+                               (\[
+                                  ((?P<ssh>(\w+@)?\w+):)?
+                                  (?P<path>[^\]:]*)
+                               \])?
+                               (:
+                                 (?P<raw>:)?
+                                 (?P<param>.*)
+                               )?
+                               $''', re.X)
+
+    # XXX: Ugh.
+    existing_ids = []
+    def unique_id(self, initial_id, iter=None):
+        id = initial_id + str(iter or '')
+        if id in self.existing_ids:
+            return self.unique_id(initial_id, (iter or 0) + 1)
+        else:
+            self.existing_ids.append(id)
+            return id
+
+    def parse_worker(self, arg):
+        match = self.worker_re.match(arg)
+        if not match:
+            raise argparse.ArgumentTypeError("Invalid argument: %s" % arg)
+        name = match.groupdict()['name']
+        id = self.unique_id(match.groupdict()['id'] or name)
+        ssh = match.groupdict()['ssh']
+        path = match.groupdict()['path']
+        raw = match.groupdict()['raw'] == ':'
+        param = match.groupdict()['param']
+        try:
+            klass = workers[name]
+        except KeyError:
+            raise argparse.ArgumentTypeError("Unknown worker: %s" % name)
+
+        return klass(dbench=self, name=name, id=id, ssh=ssh, path=path, raw=raw, param=param)
+
+    def get_port(self, default=None):
+        if default: return default
+        # Otherwise, find unused port.
+        so = socket.socket()
+        so.bind(('localhost', 0))
+        port = so.getsockname()[1]
+        so.close()
+        time.sleep(0.5) # XXX: To make sure the socket is really closed.
+        return port
+
+    def parse_args(self):
+        parser = argparse.ArgumentParser(description='Run benchmarks and/or profile.')
+        parser.add_argument('server', help='Server XXX', type=self.parse_worker)
+        parser.add_argument('client', help='Client XXX', type=self.parse_worker)
+        parser.add_argument('monitors', help='Monitors XXX', metavar='monitor',
+                            nargs='*', type=self.parse_worker)
+        parser.add_argument('-f', '--force', help='Delete output directory before starting',
+                            action='store_true')
+        parser.add_argument('-d', '--output-directory', help='Directory to output benchmarks to.',
+                            type=str, default='./bench_output')
+        parser.add_argument('-p', '--port', help='Server port (if not specified, will find unused port automatically).', type=int)
+        # TODO: use (/usr/bin/)time?
+        # TODO: time-format
+        # TODO: Minimum #runs.
+        # TODO: Host.
+        self.args = parser.parse_args()
+        self.port = self.get_port(self.args.port)
+        self.monitors = self.args.monitors
+        self.server = self.args.server
+        self.client = self.args.client
+
+    def warn(self, str):
+        self.log('Warning: %s' % str, sys.stderr, 'red')
+
+    dying = False
+    def die(self, str):
+        if self.dying:
+            self.log('Yo dawg error: Died while dying. Exiting immediately.', sys.stderr, 'red')
+            sys.exit(1)
+        self.dying = True
+        self.log('Fatal error: %s' % str, sys.stderr, 'red')
+        self.emergency_cleanup()
+        sys.exit(1)
+
+    def info(self, str):
+        self.log(str, color='green')
+
+    def emergency_cleanup(self):
+        for w in [self.client, self.server] + self.monitors:
+            if w.running: w.stop()
+
+    def sig_handler(self, sig, frame):
+        self.die("Got signal %d." % sig)
+
+    # We store the log messages in an array instead of just writing them to a
+    # file because sometimes the file wasn't created yet, or there was an issue
+    # making it. XXX: This seems needlessly complicated.
+    log_messages = []
+    log_depth = 0
+    def log(self, str, term=sys.stdout, color=None):
+        str = ' ' * self.log_depth + str
+        if color: print >> term, colored(str, color)
+        else:     print >> term, str
+        self.log_messages.append(str)
+
+    def setup(self):
+        self.info('DBench starting with arguments: %s' % sys.argv[1:])
+        # TODO: Print port (after figuring it out).
+        self.parse_args()
+        self.info('(Port: %d)' % self.port)
+        signal.signal(signal.SIGINT, self.sig_handler)
+        signal.signal(signal.SIGTERM, self.sig_handler)
+        if self.args.force and os.path.exists(self.args.output_directory):
+            self.info("(Deleting old output `%s')" % self.args.output_directory)
+            shutil.rmtree(self.args.output_directory)
+
+        try: os.makedirs(self.args.output_directory)
+        except OSError, e:
+            if e.errno != errno.EEXIST: raise
+            self.die('Directory %s exists (use --force to delete)' % self.args.output_directory)
+        os.chdir(self.args.output_directory)
+
+    def finish(self):
+        with open('bench_log.txt', 'w') as f:
+            for msg in self.log_messages:
+                print >> f, msg
+
+    def start_workers(self):
+        for w in [self.server] + self.monitors + [self.client]:
+            w.start()
+            self.info('%s started' % w)
+
+    def wait(self):
+        self.info('Waiting for client...')
+        self.client.wait()
+        self.info('Client completed')
+
+    def stop_workers(self):
+        if self.client.running: self.die('Client not terminated')
+        #for w in [self.server] + self.monitors:
+        for w in self.monitors + [self.server]:
+            w.stop()
+            self.info('%s stopped' % w)
+
+    def setup_run(self):
+        self.info('Starting run %d' % self.run_id)
+        self.log_depth += 1
+        os.mkdir(str(self.run_id))
+        os.chdir(str(self.run_id))
+
+    def finish_run(self):
+        self.log_depth -= 1
+        self.info('Run %d complete' % self.run_id)
+        os.chdir('..')
+        self.run_id += 1
+
+    def one_run(self):
+        self.setup_run()
+
+        self.start_workers()
+        self.wait()
+        self.stop_workers()
+
+        self.finish_run()
+
+    def need_to_run(self):
+        return any(not m.finished for m in [self.server, self.client] + self.monitors)
+
+    run_id = 1
+
+    def run(self):
+        self.setup()
+        while self.need_to_run():
+            self.one_run()
+        self.finish()
+
+if __name__ == '__main__':
+    DBench().run()
