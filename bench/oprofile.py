@@ -72,25 +72,30 @@ class Event():
     def __str__(self):
         return self.name
 
+
 class OProfile():
+    output_file = 'output.txt'
+    def run_cmd(self, cmd):
+        os.system('%s >> %s 2>&1' % (cmd, self.output_file)
     def start(self, events):
-        os.system(ctrl_str + ' --reset')
-        os.system(ctrl_str + ' --no-vmlinux')
-        os.system(ctrl_str + ' --separate=lib,kernel,cpu')
+        os.system('rm -f %s' % self.output_file)
+        self.run_cmd(ctrl_str + ' --reset')
+        self.run_cmd(ctrl_str + ' --no-vmlinux')
+        self.run_cmd(ctrl_str + ' --separate=lib,kernel,cpu')
         if len(events) > 0:
             event_str = ctrl_str + ' '
             for event in events:
                 event_str += (event.cmd_str() + ' ')
-            os.system(event_str)
-        os.system(ctrl_str + ' --start')
+            self.run_cmd(event_str)
+        self.run_cmd(ctrl_str + ' --start')
 
     def stop_and_report(self):
         self.stop()
         self.report()
 
     def stop(self):
-        os.system(ctrl_str + ' --shutdown')
-        os.system(rprt_str + ' --merge=cpu,lib,tid,tgid,unitmask,all -gdf | op2calltree')
+        self.run_cmd(ctrl_str + ' --shutdown')
+        self.run_cmd(rprt_str + ' --merge=cpu,lib,tid,tgid,unitmask,all -gdf 2>%s | op2calltree' % self.output_file)
 
     def report(self):
         p = parser()

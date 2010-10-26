@@ -38,7 +38,7 @@ class dbench():
 
     def report_as_html(self, dir):
         def image(source):
-            return "<a href=\"%s\"> <img src=\"%s\" height=\"1200\" width=\"900\" /> </a>" % (source, source)
+            return "<a href=\"%s\"> <img src=\"%s\" height=\"900\" width=\"1200\" /> </a>" % (source, source)
 
         res = open(dir + '/index.html', 'w')
         dir_str = time.asctime().replace(' ', '_').replace(':', '_')
