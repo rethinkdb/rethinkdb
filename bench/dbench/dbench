@@ -179,7 +179,14 @@ class Cmd(Worker):
 
 class Sleep(Worker):
     def internal_start(self):
-        self.run_process('sleep', [self.param]) # XXX
+        try:
+            length = float(self.param)
+            if length < 0: raise ValueError
+        except ValueError, e:
+            self.dbench.warn("Invalid sleep value `%s'. Defaulting to 1." % self.param)
+            length = 1.0
+        time.sleep(length)
+
 
 class Server(Worker): argtype = 'Server'
 class Client(Worker): argtype = 'Client'
