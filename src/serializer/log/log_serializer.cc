@@ -7,6 +7,7 @@ log_serializer_t::log_serializer_t(const char *_db_path, dynamic_config_t *confi
     : dynamic_config(config),
       shutdown_callback(NULL),
       state(state_unstarted),
+      db_path(_db_path),
       dbfile(NULL),
       extent_manager(NULL),
       metablock_manager(NULL),
@@ -14,9 +15,6 @@ log_serializer_t::log_serializer_t(const char *_db_path, dynamic_config_t *confi
       data_block_manager(NULL),
       last_write(NULL),
       active_write_count(0) {
-    
-    assert(strlen(_db_path) <= MAX_DB_FILE_NAME - 1);   // "- 1" for the null-terminator
-    strncpy(db_path, _db_path, MAX_DB_FILE_NAME);
 }
 
 log_serializer_t::~log_serializer_t() {
@@ -614,29 +612,76 @@ bool log_serializer_t::do_write(write_t *writes, int num_writes, write_txn_callb
     return res;
 }
 
+struct ls_read_fsm_t :
+    private iocallback_t,
+    public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, ls_read_fsm_t >
+{
+    log_serializer_t *ser;
+    ser_block_id_t block_id;
+    void *buf;
+    
+    ls_read_fsm_t(log_serializer_t *ser, ser_block_id_t block_id, void *buf)
+        : ser(ser), block_id(block_id), buf(buf) { }
+    
+    serializer_t::read_callback_t *read_callback;
+    
+    bool run(serializer_t::read_callback_t *cb) {
+    
+        read_callback = NULL;
+        if (do_read()) {
+            return true;
+        } else {
+            read_callback = cb;
+            return false;
+        }
+    }
+    
+    bool do_read() {
+        
+        /* See if we are currently in the process of writing the block */
+        log_serializer_t::block_writer_map_t::iterator it = ser->block_writer_map.find(block_id);
+        
+        if (it == ser->block_writer_map.end()) {
+        
+            /* We are not currently writing the block; go to disk to get it */
+            
+            off64_t offset = ser->lba_index->get_block_offset(block_id);
+            assert(offset != DELETE_BLOCK);   // Make sure the block actually exists
+            
+            if (ser->data_block_manager->read(offset, buf, this)) {
+                return done();
+            } else {
+                return false;
+            }
+        
+        } else {
+            
+            /* We are currently writing the block; we can just get it from memory */
+            memcpy(buf, (*it).second->write.buf, ser->get_block_size());
+            return done();
+        }
+    }
+    
+    void on_io_complete(event_t *e) {
+        
+        done();
+    }
+    
+    bool done() {
+        
+        if (read_callback) read_callback->on_serializer_read();
+        delete this;
+        return true;
+    }
+};
+
 bool log_serializer_t::do_read(ser_block_id_t block_id, void *buf, read_callback_t *callback) {
     
     assert(state == state_ready);
     assert_cpu();
     
-    /* See if we are currently in the process of writing the block */
-    block_writer_map_t::iterator it = block_writer_map.find(block_id);
-    
-    if (it == block_writer_map.end()) {
-    
-        /* We are not currently writing the block; go to disk to get it */
-        
-        off64_t offset = lba_index->get_block_offset(block_id);
-        assert(offset != DELETE_BLOCK);   // Make sure the block actually exists
-        
-        return data_block_manager->read(offset, buf, callback);
-    
-    } else {
-        
-        /* We are currently writing the block; we can just get it from memory */
-        memcpy(buf, (*it).second->write.buf, get_block_size());
-        return true;
-    }
+    ls_read_fsm_t *fsm = new ls_read_fsm_t(this, block_id, buf);
+    return fsm->run(callback);
 }
 
 size_t log_serializer_t::get_block_size() {

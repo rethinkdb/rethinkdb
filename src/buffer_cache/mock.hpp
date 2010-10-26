@@ -6,6 +6,7 @@
 #include "containers/segmented_vector.hpp"
 #include "utils.hpp"
 #include "serializer/serializer.hpp"
+#include "config/cmd_args.hpp"
 
 /* The mock cache, mock_cache_t, is a drop-in replacement for mc_cache_t that keeps all of
 its contents in memory and artificially generates delays in responding to requests. It
@@ -96,11 +97,8 @@ public:
     mock_cache_t(
         // mock_cache gets a serializer so its constructor is consistent with
         // the mirrored cache's serializer, but it doesn't use it.
-        serializer_t *serializer, int, int,
-        size_t _max_size,
-        bool wait_for_flush,
-        unsigned int flush_timer_ms,
-        unsigned int flush_threshold_percent);
+        serializer_t *serializer,
+        mirrored_cache_config_t *config);
     ~mock_cache_t();
     
     struct ready_callback_t {

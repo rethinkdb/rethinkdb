@@ -7,6 +7,8 @@
 
 #define NEVER_FLUSH -1
 
+/* Configuration for the serializer that can change from run to run */
+
 struct log_serializer_dynamic_config_t {
 
     /* When the proportion of garbage blocks hits gc_high_ratio, then the serializer will collect
@@ -25,18 +27,20 @@ struct log_serializer_dynamic_config_t {
     size_t file_zone_size;
 };
 
+/* Configuration for the serializer that is set when the database is created */
+
 struct log_serializer_static_config_t {
+    
     size_t block_size;
     size_t extent_size;
 };
 
-struct cmd_config_t {
-    int port;
-    int n_workers;
-    int n_slices;
-    int n_serializers;
-    char db_file_name[MAX_DB_FILE_NAME];
-    long long max_cache_size;
+/* Configuration for the cache (it can all change from run to run) */
+
+struct mirrored_cache_config_t {
+    
+    // Max amount of memory that will be used for the cache, in bytes.
+    long long max_size;
     
     // If wait_for_flush is true, then write operations will not return until after the data is
     // safely sitting on the disk.
@@ -51,14 +55,50 @@ struct cmd_config_t {
     // buffer cache is more than (flush_threshold_percent / 100) of the maximum number of blocks
     // allowed in memory, then dirty blocks will be flushed to disk.
     int flush_threshold_percent;
+};
 
+/* Configuration for the btree that is set when the database is created and serialized in the
+serializer */
+
+struct btree_config_t {
+    
+    int n_slices;
+};
+
+/* Configuration for the store (btree, cache, and serializers) that can be changed from run
+to run */
+
+struct btree_key_value_store_dynamic_config_t {
+    
+    log_serializer_dynamic_config_t serializer;
+    mirrored_cache_config_t cache;
+};
+
+/* Configuration for the store (btree, cache, and serializers) that is set at database
+creation time */
+
+struct btree_key_value_store_static_config_t {
+    
+    log_serializer_static_config_t serializer;
+    btree_config_t btree;
+};
+
+/* All the configuration together */
+
+struct cmd_config_t {
+    int port;
+    int n_workers;
+    
     char log_file_name[MAX_LOG_FILE_NAME];
     // Log messages below this level aren't printed
     //log_level min_log_level;
-
-    // Configuration information for the serializer
-    log_serializer_dynamic_config_t ser_dynamic_config;
-    log_serializer_static_config_t ser_static_config;
+    
+    // Configuration information for the btree
+    int n_files;
+    const char *files[MAX_SERIALIZERS];
+    btree_key_value_store_dynamic_config_t store_dynamic_config;
+    bool create_store;
+    btree_key_value_store_static_config_t store_static_config;
 };
 
 void parse_cmd_args(int argc, char *argv[], cmd_config_t *config);

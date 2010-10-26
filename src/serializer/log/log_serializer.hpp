@@ -8,12 +8,11 @@
 #include <fcntl.h>
 #include <map>
 
-#include "serializer/types.hpp"
+#include "serializer/serializer.hpp"
 #include "config/cmd_args.hpp"
 #include "config/alloc.hpp"
 #include "utils.hpp"
 
-#include "log_serializer_callbacks.hpp"
 #include "metablock/metablock_manager.hpp"
 #include "extents/extent_manager.hpp"
 #include "lba/lba_list.hpp"
@@ -61,16 +60,18 @@ typedef metablock_manager_t<log_serializer_metablock_t> mb_manager_t;
 // Used internally
 struct ls_block_writer_t;
 struct ls_write_fsm_t;
+struct ls_read_fsm_t;
 struct ls_start_new_fsm_t;
 struct ls_start_existing_fsm_t;
 
 struct log_serializer_t :
-    public home_cpu_mixin_t,
+    public serializer_t,
     private data_block_manager_t::shutdown_callback_t,
     private lba_list_t::shutdown_callback_t
 {
     friend class ls_block_writer_t;
     friend class ls_write_fsm_t;
+    friend class ls_read_fsm_t;
     friend class ls_start_new_fsm_t;
     friend class ls_start_existing_fsm_t;
 
@@ -99,57 +100,13 @@ public:
     bool start_existing(ready_callback_t *ready_cb);
 
 public:
-    /* The buffers that are used with do_read() and do_write() must be allocated using
-    these functions. They can be safely called from any thread. */
+    /* Implementation of the serializer_t API */
     void *malloc();
     void free(void*);
-
-public:
-    /* do_read() reads the block with the given ID. It returns 'true' if the read completes
-    immediately; otherwise, it will return 'false' and call the given callback later. */
-    struct read_callback_t : private iocallback_t {
-        friend class log_serializer_t;
-        virtual void on_serializer_read() = 0;
-    private:
-        void on_io_complete(event_t *unused) {
-            on_serializer_read();
-        }
-    };
     bool do_read(ser_block_id_t block_id, void *buf, read_callback_t *callback);
-
-public:
-    /* do_write() updates or deletes a group of bufs.
-    
-    Each write_t passed to do_write() identifies an update or deletion. If 'buf' is NULL, then it
-    represents a deletion. If 'buf' is non-NULL, then it identifies an update, and the given
-    callback will be called as soon as the data has been copied out of 'buf'. If the entire
-    transaction completes immediately, it will return 'true'; otherwise, it will return 'false' and
-    call the given callback at a later date.
-    
-    'writes' can be freed as soon as do_write() returns. */
-
-    typedef _write_txn_callback_t write_txn_callback_t;
-
-    typedef _write_block_callback_t write_block_callback_t;
-    
-    struct write_t {
-        ser_block_id_t block_id;
-        void *buf;   /* If NULL, a deletion */
-        write_block_callback_t *callback;
-    };
     bool do_write(write_t *writes, int num_writes, write_txn_callback_t *callback);
-    
-public:
     size_t get_block_size();
-    
-    /* max_block_id() and block_in_use() are used by the buffer cache to reconstruct
-    the free list of unused block IDs. */
-    
-    /* Returns a block ID such that every existing block has an ID less than
-    that ID. Note that block_in_use(max_block_id() - 1) is not guaranteed. */
     ser_block_id_t max_block_id();
-    
-    /* Checks whether a given block ID exists */
     bool block_in_use(ser_block_id_t id);
 
 public:
@@ -208,7 +165,7 @@ private:
         state_shut_down,
     } state;
 
-    char db_path[MAX_DB_FILE_NAME];
+    const char *db_path;
     direct_file_t *dbfile;
     
     extent_manager_t *extent_manager;

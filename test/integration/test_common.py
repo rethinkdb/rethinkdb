@@ -171,8 +171,12 @@ class Server(object):
                 "-p", str(server_port),
                 "-c", str(self.opts["cores"]),
                 "-s", str(self.opts["slices"]),
-                os.path.join(db_data_dir, "data_file")] + \
-                self.extra_flags
+                ] + self.extra_flags
+            
+            if self.times_started == 1:
+                command_line.extend(["--create", "-f", os.path.join(db_data_dir, "data_file")])
+            else:
+                command_line.extend(["-f", os.path.join(db_data_dir, "data_file")])
         
         elif self.opts["database"] == "memcached":
             

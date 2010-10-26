@@ -8,8 +8,12 @@
 #include "utils.hpp"
 #include "buffer_cache/types.hpp"
 
+static const char btree_superblock_magic[] = {'b', 't', 'r', 'e', 'e', 's', 'b', 'k'};
+
 struct btree_superblock_t {
-    int database_exists;
+    
+    char magic[sizeof(btree_superblock_magic)];
+    
     block_id_t root_block;
 };
 

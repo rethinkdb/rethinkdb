@@ -53,9 +53,6 @@
 // Size of each extent (in bytes)
 #define DEFAULT_EXTENT_SIZE                       (1 * MEGABYTE)
 
-// Max size of database file name
-#define MAX_DB_FILE_NAME                          1024
-
 // Max size of log file name
 #define MAX_LOG_FILE_NAME                         1024
 
@@ -122,9 +119,7 @@
 #define ALLOC_GC_INTERVAL_MS                      3000
 
 //filenames for the database
-#define DATA_DIRECTORY                            "db_data"
-
-#define DATA_FNAME_BASE                           "data.file"
+#define DEFAULT_DB_FILE_NAME                      "rethinkdb_data"
 
 // We assume there will never be more than this many blocks. The value is computed by dividing
 // 1 TB by the smallest reasonable block size.

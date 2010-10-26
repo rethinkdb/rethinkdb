@@ -111,12 +111,7 @@ public:
     
     scc_cache_t(
         serializer_t *serializer,
-        int id_on_serializer,
-        int count_on_serializer,
-        size_t _max_size,
-        bool wait_for_flush,
-        unsigned int flush_timer_ms,
-        unsigned int flush_threshold_percent);
+        mirrored_cache_config_t *config);
     
     typedef typename inner_cache_t::ready_callback_t ready_callback_t;
     bool start(ready_callback_t *cb);

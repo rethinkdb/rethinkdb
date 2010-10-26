@@ -17,14 +17,11 @@ void server_t::do_start() {
     printf("Free RAM: %ldMB (%.2f%%)\n",
            get_available_ram() / 1024 / 1024,
            (double)get_available_ram() / (double)get_total_ram() * 100.0f);
-    printf("Shards total: %d\n", cmd_config->n_slices);
-    printf("Max cache memory usage: %lldMB\n", (long long int)(cmd_config->max_cache_size / 1024 / 1024));
     
     do_start_loggers();
 }
 
 void server_t::do_start_loggers() {
-    printf("Starting loggers...\n");
     if (log_controller.start(this)) on_logger_ready();
 }
 
@@ -35,10 +32,18 @@ void server_t::on_logger_ready() {
 void server_t::do_start_store() {
 
     assert_cpu();
-    printf("Starting storage engine...\n");
     
-    store = gnew<store_t>(cmd_config);
-    if (store->start(this)) on_store_ready();
+    store = gnew<store_t>(&cmd_config->store_dynamic_config, cmd_config->n_files, cmd_config->files);
+    
+    bool done;
+    if (cmd_config->create_store) {
+        printf("Creating new database...\n");
+        done = store->start_new(this, &cmd_config->store_static_config);
+    } else {
+        printf("Opening existing database on disk...\n");
+        done = store->start_existing(this);
+    }
+    if (done) on_store_ready();
 }
 
 void server_t::on_store_ready() {
@@ -92,7 +97,7 @@ void server_t::on_conn_acceptor_shutdown() {
 }
 
 void server_t::do_shutdown_store() {
-    printf("Shutting down storage engine...\n");
+    printf("Shutting down database...\n");
     if (store->shutdown(this)) on_store_shutdown();
 }
 
@@ -104,7 +109,6 @@ void server_t::on_store_shutdown() {
 }
 
 void server_t::do_shutdown_loggers() {
-    printf("Shutting down loggers...\n");
     if (log_controller.shutdown(this)) do_message_flush();
 }
 
@@ -195,7 +199,7 @@ bool server_t::gc_toggler_t::disable_gc(server_t::all_gc_disabled_callback_t *cb
     if (state_ == enabled) {
         assert(callbacks_.size() == 0);
 
-        int num_serializers = server_->cmd_config->n_serializers;
+        int num_serializers = server_->cmd_config->n_files;
         assert(num_serializers > 0);
 
         state_ = disabling;
@@ -204,8 +208,8 @@ bool server_t::gc_toggler_t::disable_gc(server_t::all_gc_disabled_callback_t *cb
 
         num_disabled_serializers_ = 0;
         for (int i = 0; i < num_serializers; ++i) {
-            serializer_t::gc_disable_callback_t *this_as_callback = this;
-            do_on_cpu(server_->store->serializers[i]->home_cpu, server_->store->serializers[i], &serializer_t::disable_gc, this_as_callback);
+            standard_serializer_t::gc_disable_callback_t *this_as_callback = this;
+            do_on_cpu(server_->store->serializers[i]->home_cpu, server_->store->serializers[i], &standard_serializer_t::disable_gc, this_as_callback);
         }
 
         return (state_ == disabled);
@@ -227,12 +231,12 @@ bool server_t::gc_toggler_t::disable_gc(server_t::all_gc_disabled_callback_t *cb
 bool server_t::gc_toggler_t::enable_gc(all_gc_enabled_callback_t *cb) {
     // Always calls the callback.
 
-    int num_serializers = server_->cmd_config->n_serializers;
+    int num_serializers = server_->cmd_config->n_files;
 
     // The return value of serializer_t::enable_gc is always true.
 
     for (int i = 0; i < num_serializers; ++i) {
-        do_on_cpu(server_->store->serializers[i]->home_cpu, server_->store->serializers[i], &serializer_t::enable_gc);
+        do_on_cpu(server_->store->serializers[i]->home_cpu, server_->store->serializers[i], &standard_serializer_t::enable_gc);
     }
 
     if (state_ == enabled) {
@@ -263,7 +267,7 @@ bool server_t::gc_toggler_t::enable_gc(all_gc_enabled_callback_t *cb) {
 void server_t::gc_toggler_t::on_gc_disabled() {
     assert(state_ == disabling);
 
-    int num_serializers = server_->cmd_config->n_serializers;
+    int num_serializers = server_->cmd_config->n_files;
 
     assert(num_disabled_serializers_ < num_serializers);
 
