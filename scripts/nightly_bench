@@ -11,4 +11,4 @@ git pull
 
 # Run the tests
 # Email is hard-wired for now.
-git test -b --email IGNORED --revision HEAD bench/full_test
+git test -b --email IGNORED --revision HEAD bench/full_bench
