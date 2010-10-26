@@ -99,7 +99,7 @@ class Worker(object):
         cmdline = [executable] + args
 
         if self.ssh:
-            self.ssh_unique_path = '/tmp/dbench-%s-%d-%s' % (socket.gethostname(), os.getpid(), random_str())
+            self.ssh_unique_path = '/tmp/dbench-%s-%d-%s' % (self.dbench.host, os.getpid(), random_str())
             cmdline = ['ssh', self.ssh, '--', 'dbench-internal-run', self.ssh_unique_path] + cmdline
 
         print >> self.status_file, 'cmdline: %r' % cmdline
@@ -202,7 +202,7 @@ class MemcachedLikeServer(Server):
         while time.time() < bound:
             s = socket.socket()
             try:
-                s.connect(('localhost', self.dbench.port)) # XXX: Change this when we support running on a different host.
+                s.connect(('localhost', self.dbench.port)) # XXX: Change this when/if we support running the server on a different host.
             except socket.error, e:
                 # Couldn't connect; retry.
                 continue
@@ -243,12 +243,11 @@ class Stress(Client):
     QPS_FILE = 'qps.txt'
 
     def internal_start(self):
-        default_args = ['-n', socket.gethostname(), # XXX
+        default_args = ['-n', self.dbench.host, # XXX
                         '-p', str(self.dbench.port),
                         '-l', self.LATENCY_FILE,
                         '-q', self.QPS_FILE]
         args = self.compute_args(default_args)
-        #time.sleep(1)
         self.run_process(self.find_binary('stress'), args)
 
 
@@ -388,12 +387,15 @@ class DBench(object):
         parser.add_argument('-d', '--output-directory', help='Directory to output benchmarks to.',
                             type=str, default='./bench_output')
         parser.add_argument('-p', '--port', help='Server port (if not specified, will find unused port automatically).', type=int)
+        default_host = socket.gethostname()
+        parser.add_argument('-H', '--host', help='Host that will be given as an argument to workers run over SSH (default: %s).' % default_host,
+                            type=str, default=default_host)
         # TODO: use (/usr/bin/)time?
         # TODO: time-format
         # TODO: Minimum #runs.
-        # TODO: Host.
         self.args = parser.parse_args()
         self.port = self.get_port(self.args.port)
+        self.host = self.args.host
         self.monitors = self.args.monitors
         self.server = self.args.server
         self.client = self.args.client
