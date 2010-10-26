@@ -12,6 +12,11 @@ others. */
 typedef uint64_t ser_block_id_t;
 #define NULL_SER_BLOCK_ID (ser_block_id_t(-1))
 
+typedef uint64_t ser_transaction_id_t;
+#define NULL_SER_TRANSACTION_ID (ser_transaction_id_t(-1))
+#define FIRST_SER_TRANSACTION_ID (ser_transaction_id_t(1))
+
+
 struct serializer_t :
     /* Except as otherwise noted, the serializer's methods should only be called from the
     thread it was created on, and it should be destroyed on that same thread. */
