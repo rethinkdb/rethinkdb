@@ -391,7 +391,9 @@ btree_modify_fsm_t::transition_result_t btree_modify_fsm_t::do_transition(event_
                     } else {
                         // Sibling acquired, now decide whether to merge or level
                         node_t *sib_node = node_handler::node(sib_buf->get_data_write());
+#ifndef NDEBUG
                         node_handler::validate(cache->get_block_size(), sib_node);
+#endif
                         node_t *parent_node = node_handler::node(last_buf->get_data_write());
                         if (node_handler::is_mergable(cache->get_block_size(), node, sib_node, parent_node)) { // Merge
                             //logf(DBG, "internal merge\n");
