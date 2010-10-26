@@ -159,7 +159,7 @@ class Worker(object):
         for bin in self.binary_paths:
             if os.path.exists(bin): # Relative to current directory.
                 return bin
-            rel_to_script = os.path.abspath(os.path.join(os.path.dirname(__file__), bin))
+            rel_to_script = os.path.abspath(os.path.join(self.dbench.script_path, bin))
             if os.path.exists(rel_to_script): # Relative to dbench executable.
                 return rel_to_script
         return default # Will look in $PATH
@@ -211,24 +211,26 @@ class MemcachedLikeServer(Server):
         self.dbench.die('Unable to connect to server (localhost:%d)' % (self.dbench.port)) # XXX: This too.
 
 class RethinkDB(MemcachedLikeServer):
-    binary_paths = ['../../../../../build/release/rethinkdb']
+    binary_paths = ['../../../../../build/release/rethinkdb', '../../build/release/rethinkdb']
 
     def internal_start(self):
-        self.run_process(self.find_binary('rethinkdb'), ['-p', str(self.dbench.port)] + shlex.split(self.param or ''))
+        args = self.compute_args(['-p', str(self.dbench.port)])
+        self.run_process(self.find_binary('rethinkdb'), args)
         self.wait_for_server_ready()
 
 class Memcached(MemcachedLikeServer):
     binary_paths = []
 
     def internal_start(self):
-        self.run_process(self.find_binary('memcached'), ['-p', str(self.dbench.port)])
+        args = self.compute_args(['-p', str(self.dbench.port)])
+        self.run_process(self.find_binary('memcached'), args)
         self.wait_for_server_ready()
 
 class MemcacheDB(MemcachedLikeServer): pass
 class Membase(MemcachedLikeServer): pass
 
 class Stress(Client):
-    binary_paths = ['../../../../stress-client/stress']
+    binary_paths = ['../../../../stress-client/stress', '../stress-client/stress']
 
     LATENCY_FILE = 'latency.txt'
     QPS_FILE = 'qps.txt'
@@ -239,7 +241,7 @@ class Stress(Client):
                         '-l', self.LATENCY_FILE,
                         '-q', self.QPS_FILE]
         args = self.compute_args(default_args)
-        time.sleep(1)
+        #time.sleep(1)
         self.run_process(self.find_binary('stress'), args)
 
 
@@ -407,9 +409,10 @@ class DBench(object):
 
     def setup(self):
         self.info('DBench starting with arguments: %s' % sys.argv[1:])
-        # TODO: Print port (after figuring it out).
+        self.info('Start time: %d' % int(time.time()))
         self.parse_args()
         self.info('(Port: %d)' % self.port)
+        self.script_path = os.path.abspath(os.path.dirname(__file__)) # XXX: This is a hack.
         signal.signal(signal.SIGINT, self.sig_handler)
         signal.signal(signal.SIGTERM, self.sig_handler)
         if self.args.force and os.path.exists(self.args.output_directory):
@@ -423,6 +426,7 @@ class DBench(object):
         os.chdir(self.args.output_directory)
 
     def finish(self):
+        self.info('End time: %d' % int(time.time()))
         with open('bench_log.txt', 'w') as f:
             for msg in self.log_messages:
                 print >> f, msg
