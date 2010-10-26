@@ -8,7 +8,7 @@ import subprocess
 import shlex
 
 # Import oprofile from the parent direcotry of the script.
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir)))
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir + '/oprofile')))
 import oprofile
 import profiles
 

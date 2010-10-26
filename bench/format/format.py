@@ -1,7 +1,8 @@
+import sys, os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir + '/oprofile')))
 from plot import *
 from oprofile import *
 from profiles import *
-import os
 import time
 import StringIO
 
@@ -34,7 +35,7 @@ class dbench():
                                QPS().read(dir + self.qps_path),
                                RDBStats().read(dir + self.rdbstat_path)]
             self.timeseries_names = ['iostat', 'vmstat', 'latency', 'qps', 'rdbstats']
-#self.oprofile   = parser().parse_file(dir + self.oprofile_path)
+            self.oprofile   = parser().parse_file(dir + self.oprofile_path)
 
     def report_as_html(self, dir):
         def image(source):
@@ -52,8 +53,9 @@ class dbench():
                 print >>res, image('http://' + self.hostname + '/' + self.prof_dir + '/' + dir_str + '/' + name + '.png') #TODO use no-ip
 
 
-#prog_report = sum(map(lambda x: x.oprofile, self.runs))
-#print >>res, prog_report.report_as_html(sum(map(lambda x: x.ratios, small_packet_profiles)), CPU_CLK_UNHALTED, 15)
+        prog_report = reduce(lambda x,y: x + y, (map(lambda x: x.oprofile, self.runs)))
+        ratios = reduce(lambda x,y: x + y, map(lambda x: x.ratios, small_packet_profiles))
+        print >>res, prog_report.report_as_html(ratios, CPU_CLK_UNHALTED, 15)
         res.close()
         #send stuff to host
         os.system('scp -r "%s" "%s:%s"' % (dir + '/' + dir_str, self.hostname, self.www_dir + self.prof_dir))
