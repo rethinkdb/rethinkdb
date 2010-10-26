@@ -252,6 +252,23 @@ class Stress(Client):
         self.run_process(self.find_binary('stress'), args)
 
 
+class StressFree(Stress): # Temporary.
+    # A hacky version of wait() that restarts if the client has an error.
+    def wait(self):
+        assert self.process
+        status = self.process.wait()
+        if status != 0:
+            self.dbench.warn('%r exited with status %d' % (self, status))
+        if status == 255:
+            self.dbench.warn('Assuming stress client failure is temporary; restarting.')
+            old_wd = os.getcwd()
+            os.chdir(self.worker_current_dir)
+            print >> self.status_file, 'restart: %d' % int(time.time())
+            self.internal_start()
+            os.chdir(old_wd)
+            return self.wait()
+        self.stop()
+
 
 class Stat(Monitor):
     statcmd = ''
@@ -298,6 +315,7 @@ workers = {
     'memcached': Memcached,
 
     'stress': Stress,
+    'stressfree': StressFree,
 
     'oprofile': OProfile,
     'vmstat': VMStat,
@@ -456,14 +474,14 @@ class DBench(object):
             self.info('%s stopped' % w)
 
     def setup_run(self):
-        self.info('Starting run %d' % self.run_id)
+        self.info('Starting run %d (at %d)' % (self.run_id, int(time.time())))
         self.log_depth += 1
         os.mkdir(str(self.run_id))
         os.chdir(str(self.run_id))
 
     def finish_run(self):
         self.log_depth -= 1
-        self.info('Run %d complete' % self.run_id)
+        self.info('Run %d complete (at %d)' % (self.run_id, int(time.time())))
         os.chdir('..')
         self.run_id += 1
 
