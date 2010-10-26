@@ -76,7 +76,7 @@ class Event():
 class OProfile():
     output_file = 'output.txt'
     def run_cmd(self, cmd):
-        os.system('%s >> %s 2>&1' % (cmd, self.output_file)
+        os.system('%s >> %s 2>&1' % (cmd, self.output_file))
     def start(self, events):
         os.system('rm -f %s' % self.output_file)
         self.run_cmd(ctrl_str + ' --reset')
