@@ -46,8 +46,8 @@ class Worker(object):
         else:                                   id_str = ''
         if self.ssh:   ssh_str = '%s:' % self.ssh
         else:          ssh_str = ''
-        if self.path:  path_str = '[%s%s]' % (ssh_str, self.path)
-        else:          path_str = ''
+        if self.path or self.ssh: path_str = '[%s%s]' % (ssh_str, (self.path or ''))
+        else:                     path_str = ''
         if self.raw:   raw_str = ':'
         else:          raw_str = ''
         if self.param: param_str = ':%s%s' % (raw_str, self.param)
@@ -304,7 +304,7 @@ class DBench(object):
                                \})?
                                (?P<name>[^:\[]+)
                                (\[
-                                  ((?P<ssh>(\w+@)?\w+):)?
+                                  ((?P<ssh>(\w+@)?[a-zA-Z0-9\-.]+):)?
                                   (?P<path>[^\]:]*)
                                \])?
                                (:
