@@ -29,7 +29,7 @@ class dbench():
     def report(self):
         self.html = self.report_as_html()
         self.push_html_to_host()
-        self.send_email('jdoliner@gmail.com')
+        self.send_email('all@rethinkdb.com')
         os.system('rm -rf %s' % self.out_dir)
 
     class bench_stats():
