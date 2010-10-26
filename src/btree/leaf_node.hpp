@@ -14,6 +14,8 @@
 //Note: This struct is stored directly on disk.  Changing it invalidates old data.
 struct btree_leaf_pair {
     btree_key key;
+    // We have a sizeof(btree_leaf_pair) that depends on the presence of this value!!
+    btree_value value_;
     // key is of variable size and there's a btree_value that follows
     // it that is of variable size.
     btree_value *value() {
