@@ -113,13 +113,8 @@ void scc_transaction_t<inner_cache_t>::on_txn_commit(typename inner_cache_t::tra
 template<class inner_cache_t>
 scc_cache_t<inner_cache_t>::scc_cache_t(
         serializer_t *serializer,
-        int id_on_serializer,
-        int count_on_serializer,
-        size_t max_size,
-        bool wait_for_flush,
-        unsigned int flush_timer_ms,
-        unsigned int flush_threshold_percent)
-    : inner_cache(serializer, id_on_serializer, count_on_serializer, max_size, wait_for_flush, flush_timer_ms, flush_threshold_percent) {
+        mirrored_cache_config_t *config)
+    : inner_cache(serializer, config) {
 }
 
 template<class inner_cache_t>

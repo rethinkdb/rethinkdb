@@ -89,7 +89,7 @@ private:
     void on_message_flush();
     void do_stop_threads();
 
-    class gc_toggler_t : public serializer_t::gc_disable_callback_t {
+    class gc_toggler_t : public standard_serializer_t::gc_disable_callback_t {
     public:
         gc_toggler_t(server_t *server);
         bool disable_gc(all_gc_disabled_callback_t *cb);

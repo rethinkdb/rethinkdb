@@ -198,7 +198,7 @@ bool writeback_tmpl_t<mc_config_t>::writeback_acquire_bufs() {
         assert(buf);         // Acquire must succeed since we hold the flush_lock.
         assert(buf == _buf); // Acquire should return the same buf we stored earlier.
         
-        serializer_writes[i].block_id = cache->get_ser_block_id(buf->get_block_id());
+        serializer_writes[i].block_id = buf->get_block_id();
         
         // Fill the serializer structure
         if (!do_delete) {

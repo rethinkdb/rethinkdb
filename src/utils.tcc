@@ -30,6 +30,19 @@ struct two_arg_method_caller_t {
     ret_t operator()() { return (obj->*m)(arg1, arg2); }
 };
 
+template<class obj_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class ret_t>
+struct four_arg_method_caller_t {
+    obj_t *obj;
+    ret_t (obj_t::*m)(arg1_t, arg2_t, arg3_t, arg4_t);
+    arg1_t arg1;
+    arg2_t arg2;
+    arg3_t arg3;
+    arg4_t arg4;
+    four_arg_method_caller_t(obj_t *o, ret_t(obj_t::*m)(arg1_t, arg2_t, arg3_t, arg4_t), arg1_t a1, arg2_t a2, arg3_t a3, arg4_t a4)
+        : obj(o), m(m), arg1(a1), arg2(a2), arg3(a3), arg4(a4) { }
+    ret_t operator()() { return (obj->*m)(arg1, arg2, arg3, arg4); }
+};
+
 /* Functions to do something on another core in a way that is more convenient than
 continue_on_cpu() is. */
 
@@ -95,6 +108,10 @@ bool do_on_cpu(int cpu, obj_t *obj, bool (obj_t::*on_other_core)(arg1_t), arg1_t
 template<class obj_t, class arg1_t, class arg2_t>
 bool do_on_cpu(int cpu, obj_t *obj, bool (obj_t::*on_other_core)(arg1_t, arg2_t), arg1_t arg1, arg2_t arg2) {
     return do_on_cpu(cpu, two_arg_method_caller_t<obj_t, arg1_t, arg2_t, bool>(obj, on_other_core, arg1, arg2));
+}
+template<class obj_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t>
+bool do_on_cpu(int cpu, obj_t *obj, bool (obj_t::*on_other_core)(arg1_t, arg2_t, arg3_t, arg4_t), arg1_t arg1, arg2_t arg2, arg3_t arg3, arg4_t arg4) {
+    return do_on_cpu(cpu, four_arg_method_caller_t<obj_t, arg1_t, arg2_t, arg3_t, arg4_t, bool>(obj, on_other_core, arg1, arg2, arg3, arg4));
 }
 
 template<class callable_t>

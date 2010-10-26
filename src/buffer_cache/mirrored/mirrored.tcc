@@ -145,7 +145,7 @@ void mc_buf_t<mc_config_t>::on_cpu_switch() {
     if (!is_cached()) {
         /* We are going to the serializer's CPU to ask it to load us. */
         cache->serializer->assert_cpu();
-        if (cache->serializer->do_read(cache->get_ser_block_id(block_id), data, this)) on_serializer_read();
+        if (cache->serializer->do_read(block_id, data, this)) on_serializer_read();
     
     } else if (!is_dirty()) {
         /* We are returning from the serializer's CPU after loading our data. */
@@ -337,27 +337,20 @@ mc_buf_t<mc_config_t> *mc_transaction_t<mc_config_t>::acquire(block_id_t block_i
 template<class mc_config_t>
 mc_cache_t<mc_config_t>::mc_cache_t(
             serializer_t *serializer,
-            int id_on_serializer,
-            int count_on_serializer,
-            size_t _max_size,
-            bool wait_for_flush,
-            unsigned int flush_timer_ms,
-            unsigned int flush_threshold_percent) :
+            mirrored_cache_config_t *config) :
 #ifndef NDEBUG
     n_blocks_acquired(0), n_blocks_released(0),
 #endif
     serializer(serializer),
-    id_on_serializer(id_on_serializer),
-    count_on_serializer(count_on_serializer),
     page_repl(
         // Launch page replacement if the user-specified maximum number of blocks is reached
-        _max_size / serializer->get_block_size(),
+        config->max_size / serializer->get_block_size(),
         this),
     writeback(
         this,
-        wait_for_flush,
-        flush_timer_ms,
-        _max_size / serializer->get_block_size() * flush_threshold_percent / 100),
+        config->wait_for_flush,
+        config->flush_timer_ms,
+        config->max_size / serializer->get_block_size() * config->flush_threshold_percent / 100),
     free_list(this),
     shutdown_transaction_backdoor(false),
     state(state_unstarted),
@@ -454,12 +447,6 @@ mc_transaction_t<mc_config_t> *mc_cache_t<mc_config_t>::begin_transaction(access
     num_live_transactions ++;
     if (writeback.begin_transaction(txn, callback)) return txn;
     else return NULL;
-}
-
-template<class mc_config_t>
-ser_block_id_t mc_cache_t<mc_config_t>::get_ser_block_id(block_id_t block_id) {
-    
-    return block_id * count_on_serializer + id_on_serializer;
 }
 
 template<class mc_config_t>

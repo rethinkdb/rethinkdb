@@ -8,8 +8,7 @@
 #include "containers/two_level_array.hpp"
 #include "containers/bitset.hpp"
 #include "extents/extent_manager.hpp"
-#include "log_serializer_callbacks.hpp"
-#include "serializer/types.hpp"
+#include "serializer/serializer.hpp"
 #include <bitset>
 #include <functional>
 #include <queue>
@@ -265,7 +264,7 @@ private:
         }
     };
 
-    struct gc_write_callback_t : public _write_txn_callback_t{
+    struct gc_write_callback_t : public serializer_t::write_txn_callback_t {
         public:
             data_block_manager_t *parent;
             void on_serializer_write_txn() {

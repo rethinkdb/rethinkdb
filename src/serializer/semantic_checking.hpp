@@ -9,7 +9,7 @@
 #include <boost/crc.hpp>
 #include "arch/arch.hpp"
 #include "config/args.hpp"
-#include "serializer/types.hpp"
+#include "serializer/serializer.hpp"
 #include "containers/two_level_array.hpp"
 
 /* This is a thin wrapper around the log serializer that makes sure that the
@@ -20,7 +20,7 @@ the log serializer. */
 
 template<class inner_serializer_t>
 class semantic_checking_serializer_t :
-    public home_cpu_mixin_t,
+    public serializer_t,
     private inner_serializer_t::ready_callback_t,
     private inner_serializer_t::shutdown_callback_t
 {
@@ -126,12 +126,8 @@ public:
     /* For reads, we check to make sure that the data we get back in the read is
     consistent with what was last written there. */
     
-    struct read_callback_t {
-        virtual void on_serializer_read() = 0;
-    };
-    
     struct reader_t :
-        public inner_serializer_t::read_callback_t,
+        public read_callback_t,
         public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, reader_t>
     {
         semantic_checking_serializer_t *parent;
@@ -196,14 +192,8 @@ public:
     /* For writes, we make sure that the writes come back in the same order that
     we send them to the serializer. */
     
-    typedef typename inner_serializer_t::write_block_callback_t write_block_callback_t;
-    
-    struct write_txn_callback_t {
-        virtual void on_serializer_write_txn() = 0;
-    };
-    
     struct writer_t :
-        public inner_serializer_t::write_txn_callback_t,
+        public write_txn_callback_t,
         public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, writer_t>
     {
         semantic_checking_serializer_t *parent;
@@ -223,15 +213,11 @@ public:
        }
     };
     
-    typedef typename inner_serializer_t::write_t write_t;
-    
     bool do_write(write_t *writes, int num_writes, write_txn_callback_t *callback) {
     
         for (int i = 0; i < num_writes; i++) {
             block_info_t b;
-#ifdef VALGRIND
             bzero((void*)&b, sizeof(b));  // make valgrind happy
-#endif
             if (writes[i].buf) {
                 b.state = block_info_t::state_have_crc;
                 b.crc = compute_crc(writes[i].buf);

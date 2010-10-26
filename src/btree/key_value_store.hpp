@@ -10,6 +10,8 @@
 #include "concurrency/access.hpp"
 #include "config/cmd_args.hpp"
 #include "arch/arch.hpp"
+#include "serializer/config.hpp"
+#include "serializer/translator.hpp"
 
 class initialize_superblock_fsm_t;
 
@@ -28,24 +30,22 @@ class btree_slice_t :
 public:
     btree_slice_t(
         serializer_t *serializer,
-        int id_on_this_serializer,
-        int count_on_this_serializer,
-        size_t max_size,
-        bool wait_for_flush,
-        unsigned int flush_timer_ms,
-        unsigned int flush_threshold_percent);
+        mirrored_cache_config_t *config);
     ~btree_slice_t();
     
 public:
     struct ready_callback_t {
         virtual void on_slice_ready() = 0;
     };
-    bool start(ready_callback_t *cb);
+    bool start_new(ready_callback_t *cb);
+    bool start_existing(ready_callback_t *cb);
     
 private:
+    bool start(ready_callback_t *cb);
     bool next_starting_up_step();
     void on_cache_ready();
     void on_initialize_superblock();
+    bool is_start_existing;
     ready_callback_t *ready_callback;
 
 public:
@@ -103,20 +103,26 @@ provides the abstraction of a key-value store. */
 
 class btree_key_value_store_t :
     public home_cpu_mixin_t,
-    public serializer_t::ready_callback_t,
+    public standard_serializer_t::ready_callback_t,
+    public standard_serializer_t::write_txn_callback_t,
+    public standard_serializer_t::read_callback_t,
     public btree_slice_t::ready_callback_t,
     public btree_slice_t::shutdown_callback_t,
-    public serializer_t::shutdown_callback_t
+    public standard_serializer_t::shutdown_callback_t
 {
 
 public:
-    btree_key_value_store_t(cmd_config_t *cmd_config);
+    btree_key_value_store_t(
+        btree_key_value_store_dynamic_config_t *dynamic_config,
+        int n_serializers,
+        const char *db_filename);
     ~btree_key_value_store_t();
     
     struct ready_callback_t {
         virtual void on_store_ready() = 0;
     };
-    bool start(ready_callback_t *cb);
+    bool start_new(ready_callback_t *cb, btree_key_value_store_static_config_t *static_config);
+    bool start_existing(ready_callback_t *cb);
     
     btree_slice_t *slice_for_key(btree_key *key);
     
@@ -126,9 +132,17 @@ public:
     bool shutdown(shutdown_callback_t *cb);
 
 public:
-    cmd_config_t *cmd_config;
+    btree_key_value_store_dynamic_config_t *dynamic_config;
+    int n_serializers;
+    const char *db_filename;
     
-    serializer_t *serializers[MAX_SERIALIZERS];
+    btree_config_t btree_static_config;
+    
+    /* The key-value store typically has more slices than serializers. The slices share
+    serializers via the "pseudoserializers": translator-serializers, one per slice, that
+    multiplex requests onto the actual serializers. */
+    standard_serializer_t *serializers[MAX_SERIALIZERS];
+    translator_serializer_t *pseudoserializers[MAX_SLICES];
     btree_slice_t *slices[MAX_SLICES];
     
     enum state_t {
@@ -143,11 +157,31 @@ public:
     /* Startup process */
     
     ready_callback_t *ready_callback;
-
+    bool is_start_existing;
+    log_serializer_static_config_t *serializer_static_config;
+    
+    bool start(ready_callback_t *cb);
+    
     void create_serializers();   // Called on home thread
     bool create_a_serializer_on_this_core(int);   // Called for each serializer on its thread
-    void on_serializer_ready(serializer_t *ser);   // Called on serializer thread
+    void on_serializer_ready(standard_serializer_t *ser);   // Called on serializer thread
     bool have_created_a_serializer();   // Called on home thread
+    
+    void *config_block;
+    
+    void write_config_block();   // Called on home thread
+    bool do_write_config_block();   // Called on first serializer's thread
+    void on_serializer_write_txn();   // Called on first serializer's thread
+    bool have_written_config_block();   // Called on home thread
+    
+    void read_config_block();   // Called on home thread
+    bool do_read_config_block();   // Called on first serializer's thread
+    void on_serializer_read();   // Called on first serializer's thread
+    bool have_read_config_block();   // Called on home thread
+    
+    void create_pseudoserializers();   // Called on home thread
+    bool create_a_pseudoserializer_on_this_core(int pser_id, int ser_id, int mod_count, int mod_id);   // Called on serializer thread
+    bool have_created_a_pseudoserializer();   // Called on serializer thread
     
     void create_slices();   // Called on home thread
     bool create_a_slice_on_this_core(int);   // Called for each slice on its thread
@@ -165,9 +199,12 @@ public:
     void on_slice_shutdown(btree_slice_t *slice);   // Called on slice thread
     bool have_shutdown_a_slice();   // Called on home thread
     
+    void delete_pseudoserializers();   // Called on home thread
+    bool delete_a_pseudoserializer(int id);   // Called on serializer thread
+    
     void shutdown_serializers();   // Called on home thread
     bool shutdown_a_serializer(int id);   // Called on serializer thread
-    void on_serializer_shutdown(serializer_t *serializer);   // Called on serializer thread
+    void on_serializer_shutdown(standard_serializer_t *serializer);   // Called on serializer thread
     bool have_shutdown_a_serializer();   // Called on home thread
     
     void finish_shutdown();

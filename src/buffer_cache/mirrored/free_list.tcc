@@ -35,8 +35,7 @@ bool array_free_list_t<mc_config_t>::do_get_size() {
 template<class mc_config_t>
 bool array_free_list_t<mc_config_t>::have_gotten_size(ser_block_id_t m) {
     
-    while (m % cache->count_on_serializer != (unsigned)cache->id_on_serializer) m++;
-    free_list.set_size((m - cache->id_on_serializer) / cache->count_on_serializer);
+    free_list.set_size(m);
     
     return do_on_cpu(cache->serializer->home_cpu, this, &array_free_list_t::do_make_list);
 }
@@ -48,7 +47,7 @@ bool array_free_list_t<mc_config_t>::do_make_list() {
     num_blocks_in_use = 0;
     
     for (block_id_t i = 0; i < free_list.get_size(); i++) {
-        if (cache->serializer->block_in_use(cache->get_ser_block_id(i))) {
+        if (cache->serializer->block_in_use(i)) {
             free_list[i] = BLOCK_IN_USE;
             num_blocks_in_use++;
         } else {
