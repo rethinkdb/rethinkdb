@@ -278,7 +278,14 @@ class Stat(Monitor):
 
 class VMStat(Stat): statcmd = 'vmstat'
 class IOStat(Stat): statcmd = 'iostat'
-class RDBStat(Stat): statcmd = 'rdbstat'
+class RDBStat(Stat):
+    statcmd = 'rdbstat'
+
+    def internal_start(self):
+        if self.ssh: self.dbench.die("Can't run rdbstat over SSH yet.") # XXX: Figure out what to do regarding hosts.
+        prefix = ['-p', str(self.dbench.port)]
+        args = self.compute_args(prefix=prefix, default=prefix + ['1'])
+        self.run_process(self.statcmd, args)
 
 class OProfile(Monitor):
     # XXX: sudo must allow the user to run opcontrol without a password.
