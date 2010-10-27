@@ -2,9 +2,9 @@
 #include "btree/leaf_node.hpp"
 #include "btree/internal_node.hpp"
 
-block_magic_t btree_superblock_t::expected_magic = { {'s','u','p','e'} };
-block_magic_t btree_internal_node::expected_magic = { {'i','n','t','e'} };
-block_magic_t btree_leaf_node::expected_magic = { {'l','e','a','f'} };
+const block_magic_t btree_superblock_t::expected_magic = { {'s','u','p','e'} };
+const block_magic_t btree_internal_node::expected_magic = { {'i','n','t','e'} };
+const block_magic_t btree_leaf_node::expected_magic = { {'l','e','a','f'} };
 
 
 

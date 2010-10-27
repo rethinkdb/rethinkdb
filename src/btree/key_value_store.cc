@@ -33,7 +33,7 @@ static const char serializer_config_block_magic[] = {'b', 't', 'r', 'e', 'e', 'c
 
 struct serializer_config_block_t {
     
-    char magic[sizeof(serializer_config_block_magic)];
+    block_magic_t magic;
     
     /* What time the database was created. To help catch the case where files from two
     databases are mixed. */
@@ -51,7 +51,11 @@ struct serializer_config_block_t {
     /* Static btree configuration information, like number of slices. Should be the same on
     each serializer. */
     btree_config_t btree_config;
+
+    static const block_magic_t expected_magic;
 };
+
+const block_magic_t serializer_config_block_t::expected_magic = { { 'c','f','g','_' } };
 
 /* Process of creating a new key-value store */
 
@@ -112,7 +116,7 @@ struct bkvs_start_new_serializer_fsm_t :
         config_block = store->serializers[i]->malloc();
         bzero(config_block, store->serializers[i]->get_block_size());
         serializer_config_block_t *c = (serializer_config_block_t *)config_block;
-        memcpy(c->magic, serializer_config_block_magic, sizeof(serializer_config_block_magic));
+        c->magic = serializer_config_block_t::expected_magic;
         c->database_magic = store->creation_magic;
         c->n_files = store->n_files;
         c->this_serializer = i;
@@ -175,7 +179,7 @@ struct bkvs_start_existing_serializer_fsm_t :
             fail("File config block for file \"%s\" says there should be %d files, but we have %d.",
                 store->db_filenames[i], (int)c->n_files, (int)store->n_files);
         }
-        assert(memcmp(c->magic, serializer_config_block_magic, sizeof(serializer_config_block_magic)) == 0);
+        assert(check_magic<serializer_config_block_t>(c->magic));
         assert(c->this_serializer >= 0 && c->this_serializer < store->n_files);
         store->serializer_magics[c->this_serializer] = c->database_magic;
         store->btree_static_config = c->btree_config;

@@ -13,7 +13,7 @@ struct btree_superblock_t {
     int64_t database_exists;
     block_id_t root_block;
 
-    static block_magic_t expected_magic;
+    static const block_magic_t expected_magic;
 };
 
 
@@ -25,7 +25,7 @@ struct btree_internal_node {
     uint16_t frontmost_offset;
     uint16_t pair_offsets[0];
 
-    static block_magic_t expected_magic;
+    static const block_magic_t expected_magic;
 };
 
 typedef btree_internal_node internal_node_t;
@@ -39,7 +39,7 @@ struct btree_leaf_node {
     uint16_t frontmost_offset; // The smallest offset in pair_offsets
     uint16_t pair_offsets[0];
 
-    static block_magic_t expected_magic;
+    static const block_magic_t expected_magic;
 };
 
 typedef btree_leaf_node leaf_node_t;
