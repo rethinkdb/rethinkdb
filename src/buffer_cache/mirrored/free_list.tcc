@@ -2,7 +2,7 @@
 
 template<class mc_config_t>
 array_free_list_t<mc_config_t>::array_free_list_t(mc_cache_t<mc_config_t> *cache)
-    : cache(cache) { }
+    : cache(cache), pm_num_blocks_in_use("blocks_total", &num_blocks_in_use, perfmon_combiner_sum) { }
 
 template<class mc_config_t>
 bool array_free_list_t<mc_config_t>::start(ready_callback_t *cb) {

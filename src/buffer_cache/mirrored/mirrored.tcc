@@ -32,6 +32,8 @@ mc_buf_t<mc_config_t>::mc_buf_t(cache_t *cache, block_id_t block_id, block_avail
         // callback...
         add_load_callback(callback);
     }
+    
+    cache->pm_n_blocks_in_memory++;
 }
 
 template<class mc_config_t>
@@ -61,6 +63,7 @@ void mc_buf_t<mc_config_t>::have_read() {
     while (n_callbacks-- > 0) {
         block_available_callback_t *callback = load_callbacks.head();
         load_callbacks.remove(callback);
+        cache->pm_n_bufs_ready++;
         callback->on_block_available(this);
         // At this point, 'this' may be invalid because the callback might cause the block to be
         // unloaded as a side effect. That's why we use 'n_callbacks' rather than checking for
@@ -92,6 +95,8 @@ mc_buf_t<mc_config_t>::mc_buf_t(cache_t *cache)
     // between problems with uninitialized memory and problems with uninitialized blocks
     memset(data, 0xCD, cache->serializer->get_block_size());
 #endif
+    
+    cache->pm_n_blocks_in_memory++;
 }
 
 template<class mc_config_t>
@@ -108,6 +113,8 @@ mc_buf_t<mc_config_t>::~mc_buf_t() {
     
     assert(safe_to_unload());
     cache->serializer->free(data);
+    
+    cache->pm_n_blocks_in_memory += -1;
 }
 
 template<class mc_config_t>
@@ -115,9 +122,7 @@ void mc_buf_t<mc_config_t>::release() {
     
     cache->assert_cpu();
     
-#ifndef NDEBUG
-    cache->n_blocks_released++;
-#endif
+    cache->pm_n_bufs_released++;
     concurrency_buf.release();
     
     /*
@@ -193,17 +198,23 @@ mc_transaction_t<mc_config_t>::mc_transaction_t(cache_t *cache, access_t access)
       begin_callback(NULL),
       commit_callback(NULL),
       state(state_open) {
+    
+    cache->pm_n_transactions_started++;
     assert(access == rwi_read || access == rwi_write);
 }
 
 template<class mc_config_t>
 mc_transaction_t<mc_config_t>::~mc_transaction_t() {
+
     assert(state == state_committed);
+    cache->pm_n_transactions_completed++;
 }
 
 template<class mc_config_t>
 bool mc_transaction_t<mc_config_t>::commit(transaction_commit_callback_t *callback) {
+    
     assert(state == state_open);
+    cache->pm_n_transactions_committed++;
     
     /* We have to call sync_patiently() before on_transaction_commit() so that if
     on_transaction_commit() starts a sync, we will get included in it */
@@ -255,9 +266,8 @@ mc_buf_t<mc_config_t> *mc_transaction_t<mc_config_t>::allocate(block_id_t *block
 
     /* Make a completely new block, complete with a shiny new block_id. */
     
-#ifndef NDEBUG
-    cache->n_blocks_acquired++;
-#endif
+    cache->pm_n_bufs_acquired++;
+    cache->pm_n_bufs_ready++;
     assert(access == rwi_write);
     
     // If we are getting low on memory, kick out old blocks
@@ -279,9 +289,7 @@ mc_buf_t<mc_config_t> *mc_transaction_t<mc_config_t>::acquire(block_id_t block_i
                                block_available_callback_t *callback) {
     assert(mode == rwi_read || access != rwi_read);
        
-#ifndef NDEBUG
-    cache->n_blocks_acquired++;
-#endif
+    cache->pm_n_bufs_acquired++;
 
     buf_t *buf = cache->page_map.find(block_id);
     if (!buf) {
@@ -304,6 +312,7 @@ mc_buf_t<mc_config_t> *mc_transaction_t<mc_config_t>::acquire(block_id_t block_i
         // right way because of its internal caching. If that's the
         // case, just return it right away.
         if(buf->is_cached()) {
+            cache->pm_n_bufs_ready++;
             return buf;
         } else {
             return NULL;
@@ -325,6 +334,7 @@ mc_buf_t<mc_config_t> *mc_transaction_t<mc_config_t>::acquire(block_id_t block_i
             return NULL;
             
         } else {
+            cache->pm_n_bufs_ready++;
             return buf;
         }
     }
@@ -338,9 +348,7 @@ template<class mc_config_t>
 mc_cache_t<mc_config_t>::mc_cache_t(
             serializer_t *serializer,
             mirrored_cache_config_t *config) :
-#ifndef NDEBUG
-    n_blocks_acquired(0), n_blocks_released(0),
-#endif
+    
     serializer(serializer),
     page_repl(
         // Launch page replacement if the user-specified maximum number of blocks is reached
@@ -354,7 +362,16 @@ mc_cache_t<mc_config_t>::mc_cache_t(
     free_list(this),
     shutdown_transaction_backdoor(false),
     state(state_unstarted),
-    num_live_transactions(0)
+    num_live_transactions(0),
+    
+    pm_n_transactions_started("transactions_started"),
+    pm_n_transactions_ready("transactions_ready"),
+    pm_n_transactions_committed("transactions_committed"),
+    pm_n_transactions_completed("transactions_completed"),
+    pm_n_bufs_acquired("bufs_acquired"),
+    pm_n_bufs_ready("bufs_ready"),
+    pm_n_bufs_released("bufs_released"),
+    pm_n_blocks_in_memory("blocks_in_memory")
     { }
 
 template<class mc_config_t>
@@ -365,7 +382,7 @@ mc_cache_t<mc_config_t>::~mc_cache_t() {
     while (buf_t *buf = page_repl.get_first_buf()) {
        delete buf;
     }
-    assert(n_blocks_released == n_blocks_acquired);
+    assert(pm_n_bufs_released.value == pm_n_bufs_acquired.value);
     assert(num_live_transactions == 0);
 }
 
@@ -400,9 +417,11 @@ bool mc_cache_t<mc_config_t>::next_starting_up_step() {
         if (free_list.num_blocks_in_use == 0) {
         
             buf_t *b = new mc_buf_t<mc_config_t>(this);
-#ifndef NDEBUG
-            n_blocks_acquired++;   // Because release() increments n_blocks_released
-#endif
+            
+            // Because release() increments n_bufs_released
+            pm_n_bufs_acquired++;
+            pm_n_bufs_ready++;
+            
             b->concurrency_buf.acquire(rwi_write, NULL);
             assert(b->get_block_id() == SUPERBLOCK_ID);
             bzero(b->get_data_write(), get_block_size());
@@ -445,8 +464,12 @@ mc_transaction_t<mc_config_t> *mc_cache_t<mc_config_t>::begin_transaction(access
     
     transaction_t *txn = new transaction_t(this, access);
     num_live_transactions ++;
-    if (writeback.begin_transaction(txn, callback)) return txn;
-    else return NULL;
+    if (writeback.begin_transaction(txn, callback)) {
+        pm_n_transactions_ready++;
+        return txn;
+    } else {
+        return NULL;
+    }
 }
 
 template<class mc_config_t>

@@ -36,6 +36,8 @@ private:
     mc_cache_t<mc_config_t> *cache;
     segmented_vector_t<block_id_t, MAX_BLOCK_ID> free_list;
     block_id_t first_block;
+    
+    perfmon_var_t<int> pm_num_blocks_in_use;
 };
 
 #include "free_list.tcc"

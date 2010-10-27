@@ -158,7 +158,10 @@ private:
     explicit mc_transaction_t(cache_t *cache, access_t access);
     ~mc_transaction_t();
 
-    virtual void on_lock_available() { begin_callback->on_txn_begin(this); }
+    virtual void on_lock_available() {
+        cache->pm_n_transactions_ready++;
+        begin_callback->on_txn_begin(this);
+    }
     virtual void on_sync();
 
     access_t access;
@@ -193,9 +196,6 @@ public:
     typedef mc_transaction_commit_callback_t<mc_config_t> transaction_commit_callback_t;
     
 private:
-#ifndef NDEBUG
-    int n_blocks_acquired, n_blocks_released;
-#endif
     
     // TODO: how do we design communication between cache policies?
     // Should they all have access to the cache, or should they only
@@ -292,7 +292,15 @@ private:
     // Used to keep track of how many transactions there are so that we can wait for transactions to
     // complete before shutting down.
     int num_live_transactions;
+    
 private:
+    // Stats
+    
+    perfmon_counter_t pm_n_transactions_started, pm_n_transactions_ready,
+        pm_n_transactions_committed, pm_n_transactions_completed;
+    perfmon_counter_t pm_n_bufs_acquired, pm_n_bufs_ready, pm_n_bufs_released;
+    
+    perfmon_counter_t pm_n_blocks_in_memory;
 };
 
 #include "mirrored.tcc"

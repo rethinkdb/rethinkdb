@@ -276,7 +276,7 @@ bool linux_direct_file_t::read_async(size_t offset, size_t length, void *buf, li
 
     // Add it to a list of outstanding read requests
     iosys->r_requests.queue.push_back(request);
-    iosys->r_requests.n_started++;
+    iosys->r_requests.pm_n_started++;
 
     // Process whatever is left
     iosys->process_requests();
@@ -306,7 +306,7 @@ bool linux_direct_file_t::write_async(size_t offset, size_t length, void *buf, l
 
     // Add it to a list of outstanding write requests
     iosys->w_requests.queue.push_back(request);
-    iosys->w_requests.n_started++;
+    iosys->w_requests.pm_n_started++;
     
     // Process whatever is left
     iosys->process_requests();
@@ -417,8 +417,8 @@ void linux_io_calls_t::on_event(int) {
 void linux_io_calls_t::aio_notify(iocb *event, int result) {
     
     // Update stats
-    if (event->aio_lio_opcode == IO_CMD_PREAD) r_requests.n_completed++;
-    else w_requests.n_completed++;
+    if (event->aio_lio_opcode == IO_CMD_PREAD) r_requests.pm_n_completed++;
+    else w_requests.pm_n_completed++;
     
     // Schedule the requests we couldn't finish last time
     n_pending--;
@@ -466,16 +466,12 @@ void linux_io_calls_t::process_requests() {
 }
 
 linux_io_calls_t::queue_t::queue_t(linux_io_calls_t *parent, const char *name)
-    : parent(parent), n_started(0), n_passed_to_kernel(0), n_completed(0),
-      pm_n_started(NULL, &n_started, perfmon_combiner_sum),
-      pm_n_passed_to_kernel(NULL, &n_passed_to_kernel, perfmon_combiner_sum),
-      pm_n_completed(NULL, &n_completed, perfmon_combiner_sum)
+    : parent(parent),
+      pm_n_started("io_%ss_started", name),
+      pm_n_passed_to_kernel("io_%ss_passed_to_kernel", name),
+      pm_n_completed("io_%ss_completed", name)
 {
     queue.reserve(MAX_CONCURRENT_IO_REQUESTS);
-    
-    pm_n_started.set_name("io_%ss_started", name);
-    pm_n_passed_to_kernel.set_name("io_%ss_passed_to_kernel", name);
-    pm_n_completed.set_name("io_%ss_completed", name);
 }
 
 int linux_io_calls_t::queue_t::process_request_batch() {
@@ -490,7 +486,7 @@ int linux_io_calls_t::queue_t::process_request_batch() {
             // the back. Perhaps we should optimize this somehow.
             queue.erase(queue.begin(), queue.begin() + res);
             parent->n_pending += res;
-            n_passed_to_kernel += res;
+            pm_n_passed_to_kernel += res;
         }
     }
     return res;
@@ -498,5 +494,5 @@ int linux_io_calls_t::queue_t::process_request_batch() {
 
 linux_io_calls_t::queue_t::~queue_t() {
     
-    assert(n_started == n_completed);
+    assert(pm_n_started.value == pm_n_completed.value);
 }

@@ -60,6 +60,7 @@ struct rwi_conc_t {
             block_available_callback_t *callback = lock_callbacks.head();
             lock_callbacks.remove(callback);
             
+            gbuf->cache->pm_n_bufs_ready++;
             callback->on_block_available(gbuf);
             // Note that callback may cause block to be unloaded, so we can't safely do anything
             // after callback returns.
