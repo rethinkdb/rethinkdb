@@ -29,8 +29,8 @@ class dbench():
     def report(self):
         self.html = self.report_as_html()
         self.push_html_to_host()
-        self.send_email('all@rethinkdb.com')
-#self.send_email('jdoliner@gmail.com')
+#self.send_email('all@rethinkdb.com')
+        self.send_email('jdoliner@gmail.com')
         os.system('rm -rf %s' % self.out_dir)
 
     class bench_stats():
@@ -76,6 +76,7 @@ class dbench():
                 timeseries.plot(self.out_dir + """/""" + self.dir_str + """/""" + name)
                 print >>res, "<p> %s: </p>" % name
                 print >>res, image("""http://""" + self.hostname + """/""" + self.prof_dir + """/""" + self.dir_str + """/""" + name + """.png""") #TODO use no-ip
+                print >>res, image("""http://""" + self.hostname + """/""" + self.prof_dir + """/""" + self.dir_str + """/""" + name + """_legend""" + """.png""") #TODO use no-ip
 
 
         prog_report = reduce(lambda x,y: x + y, (map(lambda x: x.oprofile, self.prof_stats)))

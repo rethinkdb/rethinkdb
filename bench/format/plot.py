@@ -116,12 +116,12 @@ class TimeSeries():
     def select(self, keys):
         for key in self.data.keys():
             if not key in keys:
-                self.data.pop(keys)
+                self.data.pop(key)
 
     def drop(self, keys):
         for key in self.data.keys():
             if key in keys:
-                self.data.pop(keys)
+                self.data.pop(key)
 
     def parse_file(self, file_name):
         pass
@@ -157,7 +157,6 @@ class TimeSeries():
             labels.append((ax.plot(range(len(series[1])), data_to_use, colors[color_index]), series[0]))
             color_index += 1
 
-        plt.figlegend(tuple(map(lambda x: x[0], labels)), tuple(map(lambda x: x[1], labels)), 'upper right', shadow=True)
         ax.set_xlabel('Time (seconds)')
         ax.set_xlim(0, len(self.data[self.data.keys()[0]]) - 1)
         if len(self.data) > 1:
@@ -166,11 +165,14 @@ class TimeSeries():
             ax.set_ylim(0, max(self.data[self.data.keys()[0]]))
         ax.grid(True)
         plt.savefig(out_fname, dpi=300)
+        plt.legend(tuple(map(lambda x: x[0], labels)), tuple(map(lambda x: x[1], labels)), loc=2)
+        plt.savefig(out_fname + '_legend', dpi=300)
 
 #function : (serieses)/len(arg_names) -> series
     def derive(self, name, arg_keys, function):
         args = []
         for key in arg_keys:
+            assert key in self.data
             args.append(self.data[key])
 
         self.data[name] = function(tuple(args))
@@ -334,14 +336,12 @@ class RDBStats(TimeSeries):
         return res
 
     def process(self):
-        differences = [('io_reads_complete', 'io_reads_started'), 
+        differences = [('io_reads_completed', 'io_reads_started'), 
                        ('io_writes_started', 'io_writes_completed'), 
                        ('transactions_started', 'transactions_ready'), 
                        ('transactions_ready', 'transactions_completed'),
                        ('bufs_acquired', 'bufs_ready'),
                        ('bufs_ready', 'bufs_released')]
-        self.derive('io_reads_complete - io_reads_started', ('io_reads_complete', 'io_reads_started'), difference)
-
         keys_to_drop = set()
         for dif in differences:
             self.derive(dif[0] + ' - ' + dif[1], dif, difference)
