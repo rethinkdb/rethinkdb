@@ -64,7 +64,7 @@ if __name__ == "__main__":
     
     # Start second server
     
-    server2 = Server(opts, "second server")
+    server2 = Server(opts, "second server", use_existing = True)
     if not server2.start(): sys.exit(1)
     
     # Check to make sure that the values are all present
