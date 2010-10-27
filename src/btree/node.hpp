@@ -215,14 +215,6 @@ struct btree_value {
 };
 
 // A btree_node is either a btree_internal_node or a btree_leaf_node.
-//
-// Note: &type == &internal.type == &leaf.type.
-//
-// Note: The reason this is not a struct btree_node { btree_node_type
-// tag; union { btree_internal_node internal; btree_leaf_node leaf; }
-// u; } is that btree_node used to superclass
-// btree_{leaf|internal}_node, with one member, type.  A lot of code
-// freely casts between a subclass and parent class type.
 struct btree_node {
     block_magic_t magic;
 };

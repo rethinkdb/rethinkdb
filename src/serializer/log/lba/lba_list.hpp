@@ -39,7 +39,6 @@ public:
     bool start_existing(direct_file_t *dbfile, metablock_mixin_t *last_metablock, ready_callback_t *cb);
     
 public:
-    /* Returns DELETE_BLOCK if the block does not exist */
     flagged_off64_t get_block_offset(ser_block_id_t block);
     
     /* Returns a block ID such that all blocks that exist are guaranteed to have IDs less than

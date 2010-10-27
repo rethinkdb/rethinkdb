@@ -381,16 +381,7 @@ struct ls_block_writer_t :
         } else {
 
             /* Deletion */
-            // TODO: Check that we aren't calling DO_WRITE for deletes
-            // with the assumption it will finish immediately..
         
-            // TODO: We're going to be writing other version
-            // information next to the block_id.
-
-            // TODO: We can't gc zerobuf right away because it might
-            // get gc'd before the other buf.  We need to have a
-            // zerobuf for all the bufs we had.
-
             /* We tell the data_block_manager to write a zero block to
                make recovery from a corrupted file more likely.  We
                don't need to add anything to the block_writer_map
