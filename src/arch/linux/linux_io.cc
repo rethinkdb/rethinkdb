@@ -275,7 +275,8 @@ bool linux_direct_file_t::read_async(size_t offset, size_t length, void *buf, li
     request->data = callback;
 
     // Add it to a list of outstanding read requests
-    iosys->r_requests.push_back(request);
+    iosys->r_requests.queue.push_back(request);
+    iosys->r_requests.n_started++;
 
     // Process whatever is left
     iosys->process_requests();
@@ -304,7 +305,8 @@ bool linux_direct_file_t::write_async(size_t offset, size_t length, void *buf, l
     request->data = callback;
 
     // Add it to a list of outstanding write requests
-    iosys->w_requests.push_back(request);
+    iosys->w_requests.queue.push_back(request);
+    iosys->w_requests.n_started++;
     
     // Process whatever is left
     iosys->process_requests();
@@ -346,8 +348,7 @@ void linux_direct_file_t::verify(size_t offset, size_t length, void *buf) {
 call to io_submit(). */
 
 linux_io_calls_t::linux_io_calls_t(linux_event_queue_t *queue)
-    : queue(queue),
-      n_pending(0)
+    : queue(queue), n_pending(0), r_requests(this, "read"), w_requests(this, "write")
 {
     int res;
     
@@ -366,19 +367,10 @@ linux_io_calls_t::linux_io_calls_t(linux_event_queue_t *queue)
     check("Could not make aio notify fd non-blocking", res != 0);
 
     queue->watch_resource(aio_notify_fd, poll_event_in, this);
-    
-    // Expand vectors now so we don't have to grow them later
-    
-    r_requests.reserve(MAX_CONCURRENT_IO_REQUESTS);
-    w_requests.reserve(MAX_CONCURRENT_IO_REQUESTS);
 }
 
 linux_io_calls_t::~linux_io_calls_t()
 {
-    assert(r_requests.empty());
-    assert(w_requests.empty());
-    assert(n_pending == 0);
-    
     int res;
     
     res = close(aio_notify_fd);
@@ -423,6 +415,11 @@ void linux_io_calls_t::on_event(int) {
 }
 
 void linux_io_calls_t::aio_notify(iocb *event, int result) {
+    
+    // Update stats
+    if (event->aio_lio_opcode == IO_CMD_PREAD) r_requests.n_completed++;
+    else w_requests.n_completed++;
+    
     // Schedule the requests we couldn't finish last time
     n_pending--;
     process_requests();
@@ -446,42 +443,60 @@ void linux_io_calls_t::aio_notify(iocb *event, int result) {
     qevent.op = event->aio_lio_opcode == IO_CMD_PREAD ? eo_read : eo_write;
 
     callback->on_io_complete(&qevent);
-
+    
     // Free the iocb structure
     tls_small_obj_alloc_accessor<alloc_t>::get_alloc<iocb>()->free(event);
 }
 
 void linux_io_calls_t::process_requests() {
-    if(n_pending > TARGET_IO_QUEUE_DEPTH)
+    if (n_pending > TARGET_IO_QUEUE_DEPTH)
         return;
     
     int res = 0;
-    while(!r_requests.empty() || !w_requests.empty()) {
-        res = process_request_batch(&r_requests);
+    while(!r_requests.queue.empty() || !w_requests.queue.empty()) {
+        res = r_requests.process_request_batch();
         if(res < 0)
             break;
         
-        res = process_request_batch(&w_requests);
+        res = w_requests.process_request_batch();
         if(res < 0)
             break;
     }
     check("Could not submit IO request", res < 0 && res != -EAGAIN);
 }
 
-int linux_io_calls_t::process_request_batch(request_vector_t *requests) {
+linux_io_calls_t::queue_t::queue_t(linux_io_calls_t *parent, const char *name)
+    : parent(parent), n_started(0), n_passed_to_kernel(0), n_completed(0),
+      pm_n_started(NULL, &n_started, perfmon_combiner_sum),
+      pm_n_passed_to_kernel(NULL, &n_passed_to_kernel, perfmon_combiner_sum),
+      pm_n_completed(NULL, &n_completed, perfmon_combiner_sum)
+{
+    queue.reserve(MAX_CONCURRENT_IO_REQUESTS);
+    
+    pm_n_started.set_name("io_%ss_started", name);
+    pm_n_passed_to_kernel.set_name("io_%ss_passed_to_kernel", name);
+    pm_n_completed.set_name("io_%ss_completed", name);
+}
+
+int linux_io_calls_t::queue_t::process_request_batch() {
     // Submit a batch
     int res = 0;
-    if(requests->size() > 0) {
-        res = io_submit(aio_context,
-                        std::min(requests->size(), size_t(TARGET_IO_QUEUE_DEPTH / 2)),
-                        &requests->operator[](0));
-        if(res > 0) {
+    if(queue.size() > 0) {
+        res = io_submit(parent->aio_context,
+                        std::min(queue.size(), size_t(TARGET_IO_QUEUE_DEPTH / 2)),
+                        &queue[0]);
+        if (res > 0) {
             // TODO: erase will cause the vector to shift elements in
             // the back. Perhaps we should optimize this somehow.
-            requests->erase(requests->begin(), requests->begin() + res);
-            n_pending += res;
+            queue.erase(queue.begin(), queue.begin() + res);
+            parent->n_pending += res;
+            n_passed_to_kernel += res;
         }
     }
     return res;
 }
 
+linux_io_calls_t::queue_t::~queue_t() {
+    
+    assert(n_started == n_completed);
+}

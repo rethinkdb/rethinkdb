@@ -119,18 +119,27 @@ public:
     linux_io_calls_t(linux_event_queue_t *queue);
     ~linux_io_calls_t();
 
-    typedef std::vector<iocb*, gnew_alloc<iocb*> > request_vector_t;
-
     void process_requests();
-    int process_request_batch(request_vector_t *requests);
 
     linux_event_queue_t *queue;
     io_context_t aio_context;
     fd_t aio_notify_fd;
-
-    request_vector_t r_requests, w_requests;
-
+    
     int n_pending;
+    
+    struct queue_t {
+        
+        linux_io_calls_t *parent;
+        typedef std::vector<iocb*, gnew_alloc<iocb*> > request_vector_t;
+        request_vector_t queue;
+        uint64_t n_started, n_passed_to_kernel, n_completed;
+        perfmon_var_t<uint64_t> pm_n_started, pm_n_passed_to_kernel, pm_n_completed;
+        
+        queue_t(linux_io_calls_t *parent, const char *name);
+        int process_request_batch();
+        ~queue_t();
+        
+    } r_requests, w_requests;
 
 #ifndef NDEBUG
     // We need the extra pointer in debug mode because

@@ -1,17 +1,28 @@
 #include "perfmon.hpp"
 #include "arch/arch.hpp"
 #include "utils.hpp"
+#include <stdarg.h>
 
 /* The var list keeps track of all of the perfmon_watcher_t objects on each core. */
 
 __thread intrusive_list_t<perfmon_watcher_t> *var_list = NULL;
 
-perfmon_watcher_t::perfmon_watcher_t(const char *name, perfmon_combiner_t *combiner,
+perfmon_watcher_t::perfmon_watcher_t(const char *n, perfmon_combiner_t *combiner,
                                      perfmon_transformer_t *transformer)
-    : name(name), combiner(combiner), transformer(transformer)
+    : combiner(combiner), transformer(transformer)
 {
+    if (n) set_name("%s", n);
+    
     if (!var_list) var_list = gnew<intrusive_list_t<perfmon_watcher_t> >();
     var_list->push_back(this);
+}
+
+void perfmon_watcher_t::set_name(const char *fmt, ...) {
+    
+    va_list args;
+    va_start(args, fmt);
+    vsnprintf(name, sizeof(name), fmt, args);
+    va_end(args);
 }
 
 perfmon_watcher_t::~perfmon_watcher_t() {
@@ -54,6 +65,7 @@ struct perfmon_fsm_t :
     bool gather_data() {
         if (var_list) {
             for (perfmon_watcher_t *var = var_list->head(); var; var = var_list->next(var)) {
+                assert(var->name[0]);
                 const std_string_t &value = var->get_value();
                 if (untransformed_dest.find(var->name) == untransformed_dest.end()) {
                     untransformed_dest[var->name] = value;

@@ -113,14 +113,14 @@ endif
 # like the similarly-named targets except that they don't remove old data files.
 
 run: $(BUILD_DIR)/$(SERVER_EXEC_NAME)
-	$(QUIET) rm -rf db_data
+	$(QUIET) rm -f rethinkdb_data
 	$(BUILD_DIR)/$(SERVER_EXEC_NAME) -p $(RUN_PORT) $(RUN_FLAGS)
 
 rerun: $(BUILD_DIR)/$(SERVER_EXEC_NAME)
 	$(BUILD_DIR)/$(SERVER_EXEC_NAME) -p $(RUN_PORT) $(RUN_FLAGS)
 
 gdb: $(BUILD_DIR)/$(SERVER_EXEC_NAME)
-	$(QUIET) rm -rf db_data
+	$(QUIET) rm -f rethinkdb_data
 	gdb --args $(BUILD_DIR)/$(SERVER_EXEC_NAME) -p $(RUN_PORT) $(RUN_FLAGS)
 
 regdb: $(BUILD_DIR)/$(SERVER_EXEC_NAME)
@@ -131,7 +131,7 @@ ifeq ($(VALGRIND),0)
 	$(error Using the 'valgrind' target doesn't automatically set VALGRIND to 1. Try again with \
 'make valgrind VALGRIND=1')
 endif
-	$(QUIET) rm -rf db_data
+	$(QUIET) rm -f rethinkdb_data
 	valgrind $(VALGRIND_FLAGS) $(BUILD_DIR)/$(SERVER_EXEC_NAME) -p $(RUN_PORT) $(RUN_FLAGS)
 
 revalgrind: $(BUILD_DIR)/$(SERVER_EXEC_NAME)
@@ -146,7 +146,7 @@ ifeq ($(CALLGRIND),0)
 	$(error Using the 'callgrind' target doesn't automatically set CALLGRIND to 1. Try again with \
 'make calgrind CALLGRIND=1')
 endif
-	$(QUIET) rm -rf db_data
+	$(QUIET) rm -f rethinkdb_data
 	valgrind --tool=callgrind $(CALLGRIND_FLAGS) $(BUILD_DIR)/$(SERVER_EXEC_NAME) -p $(RUN_PORT) $(RUN_FLAGS)
 
 tags:
