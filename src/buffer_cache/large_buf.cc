@@ -1,6 +1,6 @@
 #include "large_buf.hpp"
 
-large_buf_t::large_buf_t(transaction_t *txn) : transaction(txn), block_size(txn->cache->get_block_size()), num_acquired(0), state(not_loaded) {
+large_buf_t::large_buf_t(transaction_t *txn) : transaction(txn), effective_segment_block_size(txn->cache->get_block_size() - sizeof(large_buf_segment)), num_acquired(0), state(not_loaded) {
     assert(sizeof(large_buf_index) <= IO_BUFFER_SIZE); // Where should this go?
     assert(transaction);
 }
@@ -16,11 +16,12 @@ void large_buf_t::allocate(uint32_t _size) {
 
     index_buf = transaction->allocate(&index_block_id);
     large_buf_index *index = get_index_write();
+    index->magic = large_buf_index::expected_magic;
     index->first_block_offset = 0;
-    index->num_segments = NUM_SEGMENTS(size, block_size);
+    index->num_segments = NUM_SEGMENTS(size, effective_segment_block_size);
 
     for (int i = 0; i < get_num_segments(); i++) {
-        bufs[i] = transaction->allocate(&get_index_write()->blocks[i]);
+        bufs[i] = allocate_segment(&get_index_write()->blocks[i]);
     }
 
     state = loaded;
@@ -88,14 +89,14 @@ void large_buf_t::append(uint32_t extra_size) {
     // TODO: Make this work like prepend.
 
     while (extra_size > 0) {
-        uint16_t bytes_added = std::min((uint32_t) block_size - seg_pos, extra_size);
+        uint16_t bytes_added = std::min((uint32_t) effective_segment_block_size - seg_pos, extra_size);
         if (seg_pos != 0) {
             extra_size -= bytes_added;
             size += bytes_added;
             seg_pos = 0;
             continue;
         }
-        bufs[get_index()->num_segments] = transaction->allocate(&get_index_write()->blocks[get_index()->num_segments]);
+        bufs[get_index()->num_segments] = allocate_segment(&get_index_write()->blocks[get_index()->num_segments]);
         get_index_write()->num_segments++;
         extra_size -= bytes_added;
         size += bytes_added;
@@ -106,8 +107,7 @@ void large_buf_t::append(uint32_t extra_size) {
 void large_buf_t::prepend(uint32_t extra_size) {
     assert(state == loaded);
 
-    //uint16_t new_segs = (extra_size - get_index()->first_block_offset - 1) / block_size + 1;
-    uint16_t new_segs = (extra_size + block_size - get_index()->first_block_offset - 1) / block_size;
+    uint16_t new_segs = (extra_size + effective_segment_block_size - get_index()->first_block_offset - 1) / effective_segment_block_size;
     assert(get_num_segments() + new_segs <= MAX_LARGE_BUF_SEGMENTS);
 
     large_buf_index *index = get_index_write();
@@ -116,10 +116,10 @@ void large_buf_t::prepend(uint32_t extra_size) {
     memmove(bufs + new_segs, bufs, get_num_segments() * sizeof(*bufs));
 
     for (int i = 0; i < new_segs; i++) {
-        bufs[i] = transaction->allocate(&index->blocks[i]);
+        bufs[i] = allocate_segment(&index->blocks[i]);
     }
 
-    index->first_block_offset = index->first_block_offset + new_segs * block_size - extra_size; // XXX
+    index->first_block_offset = index->first_block_offset + new_segs * effective_segment_block_size - extra_size; // XXX
     index->num_segments += new_segs;
     size += extra_size;
 }
@@ -128,7 +128,7 @@ void large_buf_t::prepend(uint32_t extra_size) {
 void large_buf_t::fill_at(uint32_t pos, const byte *data, uint32_t fill_size) {
     assert(state == loaded);
     assert(pos + fill_size <= size);
-    assert(get_index()->first_block_offset < block_size);
+    assert(get_index()->first_block_offset < effective_segment_block_size);
 
     // Blach.
     uint16_t ix = pos_to_ix(pos);
@@ -173,8 +173,8 @@ void large_buf_t::unprepend(uint32_t extra_size) {
 
     uint16_t last_seg_pos = pos_to_seg_pos(size);
     uint16_t num_segs = get_num_segments();
-    uint16_t old_fbo = (block_size - ((size - last_seg_pos - extra_size) % block_size)) % block_size;
-    uint16_t new_segs = (extra_size + block_size - old_fbo - 1) / block_size;
+    uint16_t old_fbo = (effective_segment_block_size - ((size - last_seg_pos - extra_size) % effective_segment_block_size)) % effective_segment_block_size;
+    uint16_t new_segs = (extra_size + effective_segment_block_size - old_fbo - 1) / effective_segment_block_size;
     uint16_t old_num_segs = num_segs - new_segs;
 
     for (int i = 0; i < new_segs; i++) {
@@ -193,17 +193,17 @@ void large_buf_t::unprepend(uint32_t extra_size) {
 
 // Blach.
 uint16_t large_buf_t::pos_to_ix(uint32_t pos) {
-    uint16_t ix = pos < block_size - get_index()->first_block_offset
+    uint16_t ix = pos < effective_segment_block_size - get_index()->first_block_offset
                 ? 0
-                : (pos + get_index()->first_block_offset) / block_size;
+                : (pos + get_index()->first_block_offset) / effective_segment_block_size;
     assert(ix <= get_num_segments());
     return ix;
 }
 uint16_t large_buf_t::pos_to_seg_pos(uint32_t pos) {
-    uint16_t seg_pos = pos < block_size - get_index()->first_block_offset
+    uint16_t seg_pos = pos < effective_segment_block_size - get_index()->first_block_offset
                      ? pos
-                     : (pos + get_index()->first_block_offset) % block_size;
-    assert(seg_pos < block_size);
+                     : (pos + get_index()->first_block_offset) % effective_segment_block_size;
+    assert(seg_pos < effective_segment_block_size);
     return seg_pos;
 }
 
@@ -230,12 +230,6 @@ void large_buf_t::release() {
 
 uint16_t large_buf_t::get_num_segments() {
     assert(state == loaded || state == loading || state == deleted);
-    // Blach.
-    //uint16_t num_segs = NUM_SEGMENTS(size - (block_size - get_index()->first_block_offset), block_size)
-    //                  + (get_index->first_block_offset > 0);
-    //if (state == loaded) {
-    //    assert(get_index()->num_segments == num_segs);
-    //}
     uint16_t num_segs = get_index()->num_segments;
     return num_segs;
 }
@@ -243,8 +237,8 @@ uint16_t large_buf_t::get_num_segments() {
 uint16_t large_buf_t::segment_size(int ix) {
     assert(state == loaded || state == loading);
 
-    assert(get_index()->first_block_offset < block_size);
-    assert(get_index()->first_block_offset == 0 || block_size - get_index()->first_block_offset < size);
+    assert(get_index()->first_block_offset < effective_segment_block_size);
+    assert(get_index()->first_block_offset == 0 || effective_segment_block_size - get_index()->first_block_offset < size);
 
     // XXX: This is ugly.
 
@@ -252,16 +246,15 @@ uint16_t large_buf_t::segment_size(int ix) {
 
     if (ix == get_num_segments() - 1) {
         if (get_index()->first_block_offset != 0) {
-            seg_size = (size - (block_size - get_index()->first_block_offset) - 1) % block_size + 1;
+            seg_size = (size - (effective_segment_block_size - get_index()->first_block_offset) - 1) % effective_segment_block_size + 1;
         } else {
-            seg_size = (size - 1) % block_size + 1;
-            //seg_size = (size - get_index()->first_block_offset - 1) % block_size + 1;
+            seg_size = (size - 1) % effective_segment_block_size + 1;
         }
     } else if (ix == 0) {
         // If first_block_offset != 0, the first block will be filled to the end, because it was made by prepending.
-        seg_size = block_size - get_index()->first_block_offset;
+        seg_size = effective_segment_block_size - get_index()->first_block_offset;
     } else { 
-        seg_size = block_size;
+        seg_size = effective_segment_block_size;
     }
     
     assert(seg_size <= size);
@@ -275,7 +268,7 @@ const byte *large_buf_t::get_segment(int ix, uint16_t *seg_size) {
 
     *seg_size = segment_size(ix);
 
-    byte *seg = (byte *) bufs[ix]->get_data_read();
+    const byte *seg = sizeof(large_buf_segment) + reinterpret_cast<const byte*>(bufs[ix]->get_data_read());
 
     if (ix == 0) seg += get_index()->first_block_offset;
  
@@ -288,7 +281,7 @@ byte *large_buf_t::get_segment_write(int ix, uint16_t *seg_size) {
 
     *seg_size = segment_size(ix);
 
-    byte *seg = (byte *) bufs[ix]->get_data_write();
+    byte *seg = sizeof(large_buf_segment) + reinterpret_cast<byte*>(bufs[ix]->get_data_write());
 
     if (ix == 0) seg += get_index()->first_block_offset;
  
@@ -302,14 +295,25 @@ block_id_t large_buf_t::get_index_block_id() {
 
 const large_buf_index *large_buf_t::get_index() {
     assert(index_buf->get_block_id() == get_index_block_id());
-    return (large_buf_index *) index_buf->get_data_read();
+    return reinterpret_cast<const large_buf_index *>(index_buf->get_data_read());
 }
 
 large_buf_index *large_buf_t::get_index_write() {
     assert(index_buf->get_block_id() == get_index_block_id());
-    return (large_buf_index *) index_buf->get_data_write(); //TODO @shachaf figure out if this can be get_data_read
+    return reinterpret_cast<large_buf_index *>(index_buf->get_data_write()); //TODO @shachaf figure out if this can be get_data_read
+}
+
+// A wrapper for transaction->allocate that sets the magic.
+buf_t *large_buf_t::allocate_segment(block_id_t *id) {
+    buf_t *ret = transaction->allocate(id);
+    large_buf_segment *seg = reinterpret_cast<large_buf_segment *>(ret->get_data_write());
+    seg->magic = large_buf_segment::expected_magic;
+    return ret;
 }
 
 large_buf_t::~large_buf_t() {
     assert(state == released);
 }
+
+block_magic_t large_buf_index::expected_magic = { { 'l','i','n','d' } };
+block_magic_t large_buf_segment::expected_magic = { { 'l','s','e','g' } };

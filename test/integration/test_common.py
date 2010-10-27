@@ -127,7 +127,7 @@ class Server(object):
     
     wait_interval = 0.25
     
-    def __init__(self, opts, name = "server", extra_flags = []):
+    def __init__(self, opts, name = "server", extra_flags = [], use_existing = False):
         
         assert made_test_dir
         
@@ -135,6 +135,7 @@ class Server(object):
         self.opts = opts
         self.base_name = name
         self.extra_flags = extra_flags
+        self.use_existing = use_existing
         
         self.times_started = 0
     
@@ -173,8 +174,9 @@ class Server(object):
                 "-s", str(self.opts["slices"]),
                 ] + self.extra_flags
             
-            if self.times_started == 1:
+            if not self.use_existing:
                 command_line.extend(["--create", "-f", os.path.join(db_data_dir, "data_file")])
+                self.use_existing = True
             else:
                 command_line.extend(["-f", os.path.join(db_data_dir, "data_file")])
         

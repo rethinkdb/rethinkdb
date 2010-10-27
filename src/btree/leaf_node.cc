@@ -5,7 +5,7 @@
 //#define DEBUG_MAX_LEAF 10
 
 void leaf_node_handler::init(size_t block_size, btree_leaf_node *node) {
-    node->type = btree_node_type_leaf;
+    node->magic = btree_leaf_node::expected_magic;
     node->npairs = 0;
     node->frontmost_offset = block_size;
 }

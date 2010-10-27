@@ -53,6 +53,7 @@ struct log_serializer_metablock_t {
     extent_manager_t::metablock_mixin_t extent_manager_part;
     lba_index_t::metablock_mixin_t lba_index_part;
     data_block_manager_t::metablock_mixin_t data_block_manager_part;
+    ser_transaction_id_t transaction_id;
 };
 
 typedef metablock_manager_t<log_serializer_metablock_t> mb_manager_t;
@@ -67,7 +68,7 @@ struct ls_start_existing_fsm_t;
 struct log_serializer_t :
     public serializer_t,
     private data_block_manager_t::shutdown_callback_t,
-    private lba_list_t::shutdown_callback_t
+    private lba_index_t::shutdown_callback_t
 {
     friend class ls_block_writer_t;
     friend class ls_write_fsm_t;
@@ -180,6 +181,9 @@ private:
     ls_write_fsm_t *last_write;
     
     int active_write_count;
+
+
+    ser_transaction_id_t current_transaction_id;
     
     /* Keeps track of buffers that are currently being written, so that if we get a read
     for a block ID that we are currently writing but is not on disk yet, we can return

@@ -101,13 +101,13 @@ public:
 
         writeback_buf.set_dirty();
 
-        return (char *) data;
+        return data;
     }
 
     const void *get_data_read() {
         assert(cached);
         assert(!safe_to_unload()); // If this assertion fails, it probably means that you're trying to access a buf you don't own.
-        return (char *) data;
+        return data;
     }
 
     block_id_t get_block_id() const { return block_id; }

@@ -8,16 +8,47 @@
 #include "utils.hpp"
 #include "buffer_cache/types.hpp"
 
-static const char btree_superblock_magic[] = {'b', 't', 'r', 'e', 'e', 's', 'b', 'k'};
-
 struct btree_superblock_t {
-    
-    char magic[sizeof(btree_superblock_magic)];
-    
+    block_magic_t magic;
+    int64_t database_exists;
     block_id_t root_block;
+
+    static block_magic_t expected_magic;
 };
 
-#define MAX_KEY_SIZE 250
+
+
+//Note: This struct is stored directly on disk.  Changing it invalidates old data.
+struct btree_internal_node {
+    block_magic_t magic;
+    uint16_t npairs;
+    uint16_t frontmost_offset;
+    uint16_t pair_offsets[0];
+
+    static block_magic_t expected_magic;
+};
+
+typedef btree_internal_node internal_node_t;
+
+
+
+//Note: This struct is stored directly on disk.  Changing it invalidates old data.
+struct btree_leaf_node {
+    block_magic_t magic;
+    uint16_t npairs;
+    uint16_t frontmost_offset; // The smallest offset in pair_offsets
+    uint16_t pair_offsets[0];
+
+    static block_magic_t expected_magic;
+};
+
+typedef btree_leaf_node leaf_node_t;
+
+
+
+
+
+
 
 enum metadata_flags {
     MEMCACHED_FLAGS   = 0x01,
@@ -38,6 +69,7 @@ struct btree_key {
     }
 };
 
+// Note: This struct is stored directly on disk.
 struct btree_value {
     uint8_t size;
     byte metadata_flags;
@@ -84,6 +116,9 @@ struct btree_value {
 
     typedef uint32_t mcflags_t;
     typedef uint64_t cas_t;
+
+    // TODO: We assume that time_t can be converted to an exptime_t,
+    // which is 32 bits.  We may run into problems in 2038 or 2106.
     typedef uint32_t exptime_t;
 
     // Every value has mcflags, but they're very often 0, in which case we just
@@ -179,29 +214,27 @@ struct btree_value {
     }
 };
 
-typedef enum {
-    // Choose 1 and 2 instead of 0 and 1 to make it less likely that garbage will be interpreted as
-    // a valid node
-    btree_node_type_leaf = 1,
-    btree_node_type_internal = 2
-} btree_node_type;
-
+// A btree_node is either a btree_internal_node or a btree_leaf_node.
 struct btree_node {
-    btree_node_type type;
+    block_magic_t magic;
 };
+
+template <>
+bool check_magic<btree_node>(block_magic_t magic);
+
 
 typedef btree_node node_t;
 
 class node_handler {
     public:
         static bool is_leaf(const btree_node *node) {
-            assert(node->type == btree_node_type_leaf || node->type == btree_node_type_internal);
-            return node->type == btree_node_type_leaf;
+            assert(check_magic<btree_node>(node->magic));
+            return check_magic<btree_leaf_node>(node->magic);
         }
 
         static bool is_internal(const btree_node *node) {
-            assert(node->type == btree_node_type_leaf || node->type == btree_node_type_internal);
-            return node->type == btree_node_type_internal;
+            assert(check_magic<btree_node>(node->magic));
+            return check_magic<btree_internal_node>(node->magic);
         }
 
         static void str_to_key(char *str, btree_key *buf) {

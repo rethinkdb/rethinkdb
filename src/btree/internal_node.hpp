@@ -4,6 +4,8 @@
 #include "utils.hpp"
 #include "btree/node.hpp"
 
+// See btree_internal_node in node.hpp
+
 /* EPSILON used to prevent split then merge */
 #define INTERNAL_EPSILON (sizeof(btree_key) + MAX_KEY_SIZE + sizeof(block_id_t))
 
@@ -14,16 +16,7 @@ struct btree_internal_pair {
 };
 
 
-//Note: This struct is stored directly on disk.  Changing it invalidates old data.
-struct btree_internal_node : public btree_node {
-    uint16_t npairs;
-    uint16_t frontmost_offset;
-    uint16_t pair_offsets[0];
-};
-
 class internal_key_comp;
-
-typedef btree_internal_node internal_node_t;
 
 class internal_node_handler : public node_handler {
     friend class internal_key_comp;

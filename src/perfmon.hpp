@@ -54,9 +54,13 @@ public:
                       perfmon_transformer_t *transformer = NULL);
     ~perfmon_watcher_t();
     
+    /* If you pass NULL to the constructor as the name and then instead call set_name(), you can
+    use format characters in the name */
+    void set_name(const char *fmt, ...);
+    
     virtual std_string_t get_value() = 0;
 
-    const char *name;
+    char name[100];
     perfmon_combiner_t *combiner;
     perfmon_transformer_t *transformer;
 };
