@@ -118,6 +118,11 @@ class TimeSeries():
             if not key in keys:
                 self.data.pop(keys)
 
+    def drop(self, keys):
+        for key in self.data.keys():
+            if key in keys:
+                self.data.pop(keys)
+
     def parse_file(self, file_name):
         pass
 
@@ -200,6 +205,13 @@ def differentiate(series):
     res = []
     for f_t, f_t_plus_one in zip(series[:len(series) - 1], series[1:]):
         res.append(f_t_plus_one - f_t)
+
+    return res
+
+def difference(serieses):
+    res = []
+    for x,y in zip(serieses[0], serieses[1]):
+        res.append(x - y)
 
     return res
 
@@ -322,5 +334,17 @@ class RDBStats(TimeSeries):
         return res
 
     def process(self):
-        for key in self.data.keys():
-            self.derive('D ' + key + '/ Dt', (key, ), differentiate)
+        differences = [('io_reads_complete', 'io_reads_started'), 
+                       ('io_writes_started', 'io_writes_completed'), 
+                       ('transactions_started', 'transactions_ready'), 
+                       ('transactions_ready', 'transactions_completed'),
+                       ('bufs_acquired', 'bufs_ready'),
+                       ('bufs_ready', 'bufs_released')]
+        self.derive('io_reads_complete - io_reads_started', ('io_reads_complete', 'io_reads_started'), difference)
+
+        keys_to_drop = set()
+        for dif in differences:
+            self.derive(dif[0] + ' - ' + dif[1], dif, difference)
+            keys_to_drop.add(dif[0])
+            keys_to_drop.add(dif[1])
+        self.drop(keys_to_drop)
