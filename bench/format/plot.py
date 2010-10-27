@@ -60,6 +60,13 @@ def take(line, data):
     data.pop()
     return matches
 
+def take_maybe(line, data):
+    if len(data) == 0:
+        return False
+    matches = line.parse_line(data[len(data) - 1])
+    if matches != False: data.pop()
+    return matches
+
 #look through an array of data until you get a match (or run out of data)
 def until(line, data):
     while len(data) > 0:
@@ -249,29 +256,44 @@ class QPS(TimeSeries):
         return res
 
 class RDBStats(TimeSeries):
-    cmd_set_line        = line("STAT cmd_set (\d+)", [('sets', 'd')])
-    evts_p_loop_line    = line("STAT events_per_loop (\d+) \(average of \d+\)", [('events_per_loop', 'd')])
-    end_line            = line("END", [])
 
+    stat_line = line("STAT (\S+) (.+)", [('name', 's'), ('value', 's')])
+    end_line  = line("END", [])
+    
+    parsers = [
+        line("(\d+)", [('value', 'd')]),
+        line("(\d+) \(average of \d+\)", [('value', 'd')]),
+        line("\d+/%d+ \((\d+\.\d+)\)", [('value', 'f')]),
+        ]
+    
     def parse_file(self, file_name):
         res = default_empty_dict()
         data = open(file_name).readlines()
         data.reverse()
-        while True:
-            m = take(self.cmd_set_line, data)
-            if m == False:
-                break
+        
+        while data:
             
-            for val in m.iteritems():
-                res[val[0]] += [val[1]]
-
-            m = take(self.evts_p_loop_line, data)
-            assert m
-
-            for val in m.iteritems():
-                res[val[0]] += [val[1]]
-
+            while True:
+                m = take_maybe(self.stat_line, data)
+                if m == False: break
+                
+                for parser in self.parsers:
+                    m2 = parser.parse_line(m["value"])
+                    if m2 != False:
+                        res[m["name"]] += [m2["value"]]
+                        break
+                else:
+                    # TODO: Can we do better in the case of parsing failures?
+                    res[m["name"]] += [-1]
+            
             m = take(self.end_line, data)
             assert m != False
-
+        
+        # Make sure that the same stats appear every time, so that
+        # the time series are not out of sync
+        if res:
+            first = res.keys()[0]
+            for key in res.keys()[1:]:
+                assert len(res[first]) == len(res[key])
+        
         return res
