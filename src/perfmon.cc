@@ -44,8 +44,10 @@ struct perfmon_fsm_t :
     perfmon_stats_t *dest;
 
     // A temporary, local map, to which we output untransformed data.
-    perfmon_stats_t untransformed_dest;
-
+    perfmon_stats_t vars;
+    
+    std::map<std_string_t, perfmon_transformer_t *, std::less<std_string_t>,
+        gnew_alloc<std::pair<std_string_t, perfmon_transformer_t *> > > transformers;
 
     perfmon_callback_t *callback;
     
@@ -67,11 +69,12 @@ struct perfmon_fsm_t :
             for (perfmon_watcher_t *var = var_list->head(); var; var = var_list->next(var)) {
                 assert(var->name[0]);
                 const std_string_t &value = var->get_value();
-                if (untransformed_dest.find(var->name) == untransformed_dest.end()) {
-                    untransformed_dest[var->name] = value;
+                if (vars.find(var->name) == vars.end()) {
+                    vars[var->name] = value;
+                    transformers[var->name] = var->transformer;
                 } else {
                     if (var->combiner) {
-                        untransformed_dest[var->name] = var->combiner(value, untransformed_dest[var->name]);
+                        vars[var->name] = var->combiner(value, vars[var->name]);
                     } else {
                         fail("Two perfmon watchers are both called %s and one lacks a combiner "
                             "function.", var->name);
@@ -91,12 +94,13 @@ struct perfmon_fsm_t :
     }
     
     bool deliver_data() {
-        if (var_list) {
-            for (perfmon_watcher_t *var = var_list->head(); var; var = var_list->next(var)) {
-                (*dest)[var->name] = var->transformer == NULL ? untransformed_dest[var->name] : var->transformer(untransformed_dest[var->name]);
-            }
+        
+        for (perfmon_stats_t::iterator it = vars.begin(); it != vars.end(); it++) {
+            const std_string_t &name = it->first;
+            perfmon_transformer_t *trans = transformers[name];
+            (*dest)[name] = trans ? trans(vars[name]) : vars[name];
         }
-
+        
         if (callback) callback->on_perfmon_stats();
         delete this;
         return true;
@@ -114,7 +118,7 @@ bool perfmon_get_stats(perfmon_stats_t *dest, perfmon_callback_t *cb) {
     return fsm->run(cb);
 }
 
-// Computes (unwords . map show . zipWith (+) . map read . words).
+// Computes (unwords $ map show $ zipWith (+) (map read $ words v1) (map read $ words v2))
 std_string_t perfmon_combiner_sum(std_string_t v1, std_string_t v2) {
     sstream s1(v1), s2(v2), out;
     
