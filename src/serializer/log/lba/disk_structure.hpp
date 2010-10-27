@@ -30,7 +30,7 @@ public:
     static bool load(extent_manager_t *em, direct_file_t *file, lba_shard_metablock_t *metablock,
         lba_disk_structure_t **out, load_callback_t *cb);
     
-    void add_entry(ser_block_id_t block_id, off64_t offset);
+    void add_entry(ser_block_id_t block_id, flagged_off64_t offset);
     bool sync(sync_callback_t *cb);
     void prepare_metablock(lba_shard_metablock_t *mb_out);
     

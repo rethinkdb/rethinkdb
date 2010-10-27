@@ -83,7 +83,8 @@ public:
         return amount_filled() == em->extent_size;
     }
     
-    void add_entry(ser_block_id_t id, off64_t offset) {
+    // TODO: just pass this an lba_entry_t, eh?
+    void add_entry(ser_block_id_t id, flagged_off64_t offset) {
         
         // Make sure that entries will align with DEVICE_BLOCK_SIZE
         assert(DEVICE_BLOCK_SIZE % sizeof(lba_entry_t) == 0);
@@ -111,8 +112,7 @@ public:
     bool sync(sync_callback_t *cb) {
         
         while (amount_filled() % DEVICE_BLOCK_SIZE != 0) {
-            data->data()->entries[count].block_id = PADDING_BLOCK_ID;
-            data->data()->entries[count].offset = PADDING_OFFSET;
+            data->data()->entries[count] = lba_entry_t::make_padding_entry();
             count++;
         }
         

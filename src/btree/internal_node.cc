@@ -7,7 +7,7 @@
 //In this tree, less than or equal takes the left-hand branch and greater than takes the right hand branch
 
 void internal_node_handler::init(size_t block_size, btree_internal_node *node) {
-    node->type = btree_node_type_internal;
+    node->magic = btree_internal_node::expected_magic;
     node->npairs = 0;
     node->frontmost_offset = block_size;
 }
@@ -349,9 +349,9 @@ void internal_node_handler::delete_pair(btree_internal_node *node, uint16_t offs
     size_t shift = pair_size(pair_to_delete);
     size_t size = offset - node->frontmost_offset;
 
-    assert(node->type != 0);
+    assert(check_magic<btree_node>(node->magic));
     memmove( ((byte *)front_pair)+shift, front_pair, size);
-    assert(node->type != 0);
+    assert(check_magic<btree_node>(node->magic));
 
     node->frontmost_offset += shift;
     for (int i = 0; i < node->npairs; i++) {

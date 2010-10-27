@@ -563,7 +563,7 @@ private:
         
         if (state == state_make_change) {
             btree_superblock_t *sb = (btree_superblock_t*)(sb_buf->get_data_write());
-            memcpy(sb->magic, btree_superblock_magic, sizeof(btree_superblock_magic));
+            sb->magic = btree_superblock_t::expected_magic;
             sb->root_block = NULL_BLOCK_ID;
             sb_buf->release();
             state = state_commit_transaction;

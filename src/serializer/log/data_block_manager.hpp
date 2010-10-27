@@ -18,7 +18,7 @@
 class data_block_manager_t {
 
 public:
-    data_block_manager_t(log_serializer_t *ser, log_serializer_dynamic_config_t *dynamic_config, extent_manager_t *em, log_serializer_static_config_t *static_config)
+    data_block_manager_t(log_serializer_t *ser, const log_serializer_dynamic_config_t *dynamic_config, extent_manager_t *em, const log_serializer_static_config_t *static_config)
         : shutdown_callback(NULL), state(state_unstarted), serializer(ser),
           dynamic_config(dynamic_config), static_config(static_config), extent_manager(em),
           next_active_extent(0),
@@ -46,10 +46,21 @@ public:
     restarting an existing database, call start() with the last metablock. */
 
 public:
-    /* data to be serialized to disk with each block */
+    /* data to be serialized to disk with each block.  Changing this changes the disk format! */
     struct buf_data_t {
         ser_block_id_t block_id;
+        ser_transaction_id_t transaction_id;
     };
+
+        
+    static buf_data_t make_buf_data_t(ser_block_id_t block_id, ser_transaction_id_t transaction_id) {
+        buf_data_t ret;
+        ret.block_id = block_id;
+        ret.transaction_id = transaction_id;
+        return ret;
+    }
+
+
 
 public:
     void start_new(direct_file_t *dbfile);
@@ -61,12 +72,12 @@ public:
     /* The offset that the data block manager chose will be left in off_out as soon as write()
     returns. The callback will be called when the data is actually on disk and it is safe to reuse
     the buffer. */
-    bool write(void *buf_in, ser_block_id_t block_id, off64_t *off_out, iocallback_t *cb);
+    bool write(void *buf_in, ser_block_id_t block_id, ser_transaction_id_t transaction_id, off64_t *off_out, iocallback_t *cb);
 
 public:
     /* exposed gc api */
     /* mark a buffer as garbage */
-    void mark_garbage(off64_t);
+    void mark_garbage(off64_t);  // Takes a real off64_t.
 
     bool is_extent_in_use(unsigned int extent_id) {
         return entries.get(extent_id) != NULL;
@@ -74,7 +85,7 @@ public:
 
     /* r{start,stop}_reconstruct functions for safety */
     void start_reconstruct();
-    void mark_live(off64_t);
+    void mark_live(off64_t);  // Takes a real off64_t.
     void end_reconstruct();
 
     /* garbage collect the extents which meet the gc_criterion */
@@ -120,14 +131,14 @@ private:
         state_shut_down
     } state;
 
-    log_serializer_t *serializer;
+    log_serializer_t* const serializer;
 
-    log_serializer_dynamic_config_t *dynamic_config;
-    log_serializer_static_config_t *static_config;
+    const log_serializer_dynamic_config_t* const dynamic_config;
+    const log_serializer_static_config_t* const static_config;
 
-    extent_manager_t *extent_manager;
+    extent_manager_t* const extent_manager;
 
-    direct_file_t *dbfile;
+    direct_file_t* dbfile;
 
     off64_t gimme_a_new_offset();
 

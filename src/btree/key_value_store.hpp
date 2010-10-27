@@ -114,7 +114,12 @@ public:
     bool have_shutdown_a_serializer();   // Called on home thread
     
     void finish_shutdown();
+
+private:
+    DISABLE_COPYING(btree_key_value_store_t);
 };
+
+
 
 class initialize_superblock_fsm_t;
 
@@ -194,6 +199,9 @@ public:
     /* Statistics */
     int total_set_operations;
     perfmon_var_t<int> pm_total_set_operations;
+
+private:
+    DISABLE_COPYING(btree_slice_t);
 };
 
 // Other parts of the code refer to store_t instead of btree_key_value_store_t to

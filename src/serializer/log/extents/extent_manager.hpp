@@ -64,7 +64,7 @@ public:
         
         free_list_head = EXTENT_FREE_LIST_END;
         
-        for (off64_t extent = start; extent < start + (unsigned)(extents.get_size() * extent_size); extent += extent_size) {
+        for (off64_t extent = start; extent < start + (off64_t)(extents.get_size() * extent_size); extent += extent_size) {
             if (extents[offset_to_id(extent)] == EXTENT_UNRESERVED) {
                 extents[offset_to_id(extent)] = free_list_head;
                 free_list_head = extent;
