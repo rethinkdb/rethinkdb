@@ -97,7 +97,8 @@ class TimeSeries():
 
     def read(self, file_name):
         self.data = self.parse_file(file_name)
-        return self
+        self.process()
+        return self #this just lets you do initialization in one line
 
     def copy(self):
         copy = self.__class__()
@@ -118,6 +119,10 @@ class TimeSeries():
                 self.data.pop(keys)
 
     def parse_file(self, file_name):
+        pass
+
+#do post processing things on the data (ratios and derivatives and stuff)
+    def process(self):
         pass
 
     def histogram(self, out_fname):
@@ -157,6 +162,14 @@ class TimeSeries():
         ax.grid(True)
         plt.savefig(out_fname, dpi=300)
 
+#function : (serieses)/len(arg_names) -> series
+    def derive(self, name, arg_keys, function):
+        args = []
+        for key in arg_keys:
+            args.append(self.data[key])
+
+        self.data[name] = function(tuple(args))
+
 def multi_plot(timeseries, out_fname):
     fig = plt.figure()
     ax = fig.add_subplot(111)
@@ -179,6 +192,16 @@ def multi_plot(timeseries, out_fname):
     ax.set_zlabel('Z')
     ax.set_zlim3d(0, max(map(lambda x: max(x), timeseries)))
     plt.savefig(out_fname, dpi=300)
+
+#take discret derivative of a series (shortens series by 1)
+def differentiate(series):
+#series will be a tuple
+    series = series[0]
+    res = []
+    for f_t, f_t_plus_one in zip(series[:len(series) - 1], series[1:]):
+        res.append(f_t_plus_one - f_t)
+
+    return res
 
 class IOStat(TimeSeries):
     file_hdr_line   = line("Linux.*", [])
@@ -297,3 +320,7 @@ class RDBStats(TimeSeries):
                 assert len(res[first]) == len(res[key])
         
         return res
+
+    def process(self):
+        for key in self.data.keys():
+            self.derive('D ' + key + '/ Dt', (key, ), differentiate)
