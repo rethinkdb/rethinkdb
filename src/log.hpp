@@ -17,16 +17,18 @@ enum log_level_t {
 
 // Log a message in one chunk. You still have to provide '\n'.
 
-void _logf(const char *src_file, int src_line, log_level_t level, const char *format, ...);
-#define logf(lvl, fmt, args...) (_logf(__FILE__, __LINE__, (lvl), (fmt) , ##args))
+// logf is a standard library function in <math.h>.  So we use Logf.
+
+void _Logf(const char *src_file, int src_line, log_level_t level, const char *format, ...);
+#define Logf(lvl, fmt, args...) (_Logf(__FILE__, __LINE__, (lvl), (fmt) , ##args))
 
 // Log a message in pieces.
 
-void _mlog_start(const char *src_file, int src_line, log_level_t level);
-#define mlog_start(lvl) (_mlog_start(__FILE__, __LINE__, (lvl)))
+void _mLog_start(const char *src_file, int src_line, log_level_t level);
+#define mLog_start(lvl) (_mLog_start(__FILE__, __LINE__, (lvl)))
 
-void mlogf(const char *format, ...);
+void mLogf(const char *format, ...);
 
-void mlog_end();
+void mLog_end();
 
 #endif /* __LOG_HPP__ */

@@ -32,18 +32,19 @@ private:
         metablock_version_t version;
         metablock_t metablock;
     public:
-        uint32_t crc() {
-            boost::crc_32_type crc_computer;
-            crc_computer.process_bytes(&version, sizeof(version));
-            crc_computer.process_bytes(&metablock, sizeof(metablock));
-            return crc_computer.checksum();
-        }
         void set_crc() {
             _crc = crc();
         }           
 
         bool check_crc() {
             return (_crc == crc());
+        }
+    private:
+        uint32_t crc() {
+            boost::crc_32_type crc_computer;
+            crc_computer.process_bytes(&version, sizeof(version));
+            crc_computer.process_bytes(&metablock, sizeof(metablock));
+            return crc_computer.checksum();
         }
     };
 /* \brief struct head_t is used to keep track of where we are writing or reading the metablock from

@@ -4,6 +4,12 @@
 
 #include "arch/arch.hpp"
 
+struct static_header_t {
+    char software_name[16];
+    char version[16];
+    byte_t data[0];
+};
+
 struct static_header_write_callback_t {
     virtual void on_static_header_write() = 0;
 };

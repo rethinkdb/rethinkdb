@@ -105,7 +105,7 @@ struct dynamic_pool_alloc_t {
 
 #ifndef NDEBUG
         if(blocks_reclaimed > 0) {
-            logf(INF, "gc (%dB in %d blocks)\n", mem_reclaimed, blocks_reclaimed);
+            Logf(INF, "gc (%dB in %d blocks)\n", mem_reclaimed, blocks_reclaimed);
         }
 #endif
         return blocks_reclaimed;

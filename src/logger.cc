@@ -22,7 +22,7 @@ struct logger_t :
     logger_t(log_controller_t *controller)
         : msg(NULL), controller(controller), active_msg_count(0), shutting_down(false) { }
     
-    // The message we are currently composing; non-NULL between mlog_start() and mlog_end()
+    // The message we are currently composing; non-NULL between mLog_start() and mLog_end()
     log_msg_t *msg;
     
     log_controller_t *controller;
@@ -123,23 +123,23 @@ public:
 
 /* Functions to actually do the logging */
 
-static void vmlogf(const char *format, va_list arg) {
+static void vmLogf(const char *format, va_list arg) {
     int pos = strlen(logger_t::logger->msg->str);
     vsnprintf((char *)logger_t::logger->msg->str + pos, (size_t) MAX_LOG_MSGLEN - pos, format, arg);
 }
 
-void _logf(const char *src_file, int src_line, log_level_t level, const char *format, ...) {
-    _mlog_start(src_file, src_line, level);
+void _Logf(const char *src_file, int src_line, log_level_t level, const char *format, ...) {
+    _mLog_start(src_file, src_line, level);
 
     va_list arg;
     va_start(arg, format);
-    vmlogf(format, arg);
+    vmLogf(format, arg);
     va_end(arg);
 
-    mlog_end();
+    mLog_end();
 }
 
-void _mlog_start(const char *src_file, int src_line, log_level_t level) {
+void _mLog_start(const char *src_file, int src_line, log_level_t level) {
     assert(!logger_t::logger->msg);
     log_msg_t *msg = logger_t::logger->msg = new log_msg_t(logger_t::logger);
     msg->level = level;
@@ -148,14 +148,14 @@ void _mlog_start(const char *src_file, int src_line, log_level_t level) {
     msg->logger = logger_t::logger;
 }
 
-void mlogf(const char *format, ...) {
+void mLogf(const char *format, ...) {
     va_list arg;
     va_start(arg, format);
-    vmlogf(format, arg);
+    vmLogf(format, arg);
     va_end(arg);
 }
 
-void mlog_end() {
+void mLog_end() {
     log_msg_t *msg = logger_t::logger->msg;
     assert(msg);
     if (continue_on_cpu(logger_t::logger->controller->home_cpu, msg)) msg->on_cpu_switch();
