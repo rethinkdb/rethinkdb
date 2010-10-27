@@ -85,7 +85,7 @@ struct ls_start_new_fsm_t :
         
         ser->extent_manager->start_new();
 
-        ser->monotonic_transaction_counter.load_latest_transaction_id(FIRST_SER_TRANSACTION_ID);
+        ser->current_transaction_id = FIRST_SER_TRANSACTION_ID;
 
 #ifndef NDEBUG
         ser->prepare_metablock(&ser->debug_mb_buffer);
@@ -197,7 +197,7 @@ struct ls_start_existing_fsm_t :
             memcpy(&ser->debug_mb_buffer, &metablock_buffer, sizeof(metablock_buffer));
 #endif
 
-            ser->monotonic_transaction_counter.load_latest_transaction_id(metablock_buffer.transaction_id);
+            ser->current_transaction_id = metablock_buffer.transaction_id;
 
             if (ser->lba_index->start_existing(ser->dbfile, &metablock_buffer.lba_index_part, this)) {
                 state = state_reconstruct;
@@ -366,7 +366,7 @@ struct ls_block_writer_t :
         if (write.buf) {
         
             off64_t new_offset;
-            bool done = ser->data_block_manager->write(write.buf, write.block_id, ser->monotonic_transaction_counter.latest_transaction_id(), &new_offset, this);
+            bool done = ser->data_block_manager->write(write.buf, write.block_id, ser->current_transaction_id, &new_offset, this);
             ser->lba_index->set_block_offset(write.block_id, flagged_off64_t::real(new_offset));
             
             /* Insert ourselves into the block_writer_map so that if a reader comes looking for the
@@ -393,7 +393,7 @@ struct ls_block_writer_t :
             bzero(zerobuf, ser->get_block_size());
 
             off64_t new_offset;
-            bool done = ser->data_block_manager->write(zerobuf, write.block_id, ser->monotonic_transaction_counter.latest_transaction_id(), &new_offset, this);
+            bool done = ser->data_block_manager->write(zerobuf, write.block_id, ser->current_transaction_id, &new_offset, this);
             ser->lba_index->set_block_offset(write.block_id, flagged_off64_t::deleteblock(new_offset));
 
             if (done) {
@@ -633,7 +633,7 @@ bool log_serializer_t::do_write(write_t *writes, int num_writes, write_txn_callb
     }
 #endif
 
-    monotonic_transaction_counter.step_transaction_id();
+    current_transaction_id++;
 
     ls_write_fsm_t *w = new ls_write_fsm_t(this, writes, num_writes);
     bool res = w->run(callback);
@@ -828,7 +828,7 @@ void log_serializer_t::prepare_metablock(metablock_t *mb_buffer) {
     extent_manager->prepare_metablock(&mb_buffer->extent_manager_part);
     data_block_manager->prepare_metablock(&mb_buffer->data_block_manager_part);
     lba_index->prepare_metablock(&mb_buffer->lba_index_part);
-    mb_buffer->transaction_id = monotonic_transaction_counter.latest_transaction_id();
+    mb_buffer->transaction_id = current_transaction_id;
 }
 
 

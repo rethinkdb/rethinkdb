@@ -182,29 +182,8 @@ private:
     
     int active_write_count;
 
-    /* Every time do_write gets called, this gets incremented.  This
-       gets stored in the metablock, too. */
-    class transaction_counter {
-        ser_transaction_id_t id;
-    public:
-        transaction_counter() : id(NULL_SER_TRANSACTION_ID) { }
 
-        // For startup, when we read the metablock with the latest
-        // transaction id.  This can only be called once.
-        void load_latest_transaction_id(ser_transaction_id_t latest) {
-            assert(id == NULL_SER_TRANSACTION_ID);
-            assert(latest != NULL_SER_TRANSACTION_ID);
-            id = latest;
-        }
-        ser_transaction_id_t latest_transaction_id() const {
-            assert(id != NULL_SER_TRANSACTION_ID);
-            return id;
-        }
-        void step_transaction_id() {
-            assert(id != NULL_SER_TRANSACTION_ID);
-            id++;
-        }
-    } monotonic_transaction_counter;
+    ser_transaction_id_t current_transaction_id;
     
     /* Keeps track of buffers that are currently being written, so that if we get a read
     for a block ID that we are currently writing but is not on disk yet, we can return
