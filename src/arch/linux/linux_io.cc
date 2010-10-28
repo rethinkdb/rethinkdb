@@ -18,7 +18,6 @@
 
 linux_net_conn_t::linux_net_conn_t(fd_t sock)
     : sock(sock), callback(NULL), set_me_true_on_delete(NULL),
-      registered_for_read_notifications(true),
       registered_for_write_notifications(false)
 {
     
@@ -34,59 +33,28 @@ void linux_net_conn_t::set_callback(linux_net_conn_callback_t *cb) {
     assert(cb);
     callback = cb;
     
-    registered_for_read_notifications = true;
-    linux_thread_pool_t::thread->iosys.pm_conns_read_blocked++;
-    registered_for_write_notifications = false;
-    linux_thread_pool_t::thread->iosys.pm_conns_write_ok++;
     linux_thread_pool_t::thread->queue.watch_resource(sock, poll_event_in, this);
 }
 
-void linux_net_conn_t::update_registration(bool read, bool write) {
-    
-    if (read != registered_for_read_notifications || write != registered_for_write_notifications) {
-        
-        int flags = 0;
-        if (read) flags |= poll_event_in;
-        if (write) flags |= poll_event_out;
-        linux_thread_pool_t::thread->queue.adjust_resource(sock, flags, this);
-        
-        linux_io_calls_t *i = &linux_thread_pool_t::thread->iosys;
-        
-        if (registered_for_read_notifications) i->pm_conns_read_blocked--;
-        else i->pm_conns_read_ok--;
-        if (read) i->pm_conns_read_blocked++;
-        else i->pm_conns_read_ok++;
-        registered_for_read_notifications = read;
-        
-        if (registered_for_read_notifications) i->pm_conns_write_blocked--;
-        else i->pm_conns_write_ok--;
-        if (read) i->pm_conns_write_blocked++;
-        else i->pm_conns_write_ok++;
-        registered_for_write_notifications = write;
-    }
-}
-
 ssize_t linux_net_conn_t::read_nonblocking(void *buf, size_t count) {
-    
-    int res = ::read(sock, buf, count);
-    if ((res == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)) ||
-        ((unsigned)res < count)) {
-        update_registration(true, registered_for_write_notifications);
-    } else if (res == -1 && errno != EAGAIN && errno != EWOULDBLOCK) {
-        fail("Could not read from socket: %s\n", strerror(errno));
-    }
-    return res;
+    return ::read(sock, buf, count);
 }
 
 ssize_t linux_net_conn_t::write_nonblocking(const void *buf, size_t count) {
 
+    // TODO PERFMON get_cpu_context()->worker->bytes_written += count;
     int res = ::write(sock, buf, count);
-    if ((res == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)) ||
-        ((unsigned)res < count)) {
-        update_registration(registered_for_read_notifications, true);
-    } else if (res == -1 && errno != EAGAIN && errno != EWOULDBLOCK) {
-        fail("Could not write to socket: %s\n", strerror(errno));
+    if(res == EAGAIN || res == EWOULDBLOCK) {
+        // Whoops, got stuff to write, turn on write notification.
+        linux_thread_pool_t::thread->queue.adjust_resource(sock, poll_event_in | poll_event_out, this);
+        registered_for_write_notifications = true;
+    } else if(registered_for_write_notifications) {
+        // We can turn off write notifications now as we no longer
+        // have stuff to write and are waiting on the socket.
+        linux_thread_pool_t::thread->queue.adjust_resource(sock, poll_event_in, this);
+        registered_for_write_notifications = false;
     }
+
     return res;
 }
 
@@ -99,14 +67,7 @@ void linux_net_conn_t::on_event(int events) {
     set_me_true_on_delete = &was_deleted;
     
     if (events & poll_event_in || events & poll_event_out) {
-        
-        /* If we got a notification for something, deregister ourselves for
-        that thing. */
-        update_registration(
-            registered_for_read_notifications && !(events & poll_event_in),
-            registered_for_write_notifications && !(events & poll_event_out)
-            );
-        
+
         if (events & poll_event_in) {
             callback->on_net_conn_readable();
         }
@@ -140,17 +101,7 @@ linux_net_conn_t::~linux_net_conn_t() {
         *set_me_true_on_delete = true;
     
     if (sock != INVALID_FD) {
-        
-        if (callback) {
-            linux_thread_pool_t::thread->queue.forget_resource(sock, this);
-
-            linux_io_calls_t *i = &linux_thread_pool_t::thread->iosys;
-            if (registered_for_read_notifications) i->pm_conns_read_blocked--;
-            else i->pm_conns_read_ok--;
-            if (registered_for_read_notifications) i->pm_conns_write_blocked--;
-            else i->pm_conns_write_ok--;
-        }
-        
+        if (callback) linux_thread_pool_t::thread->queue.forget_resource(sock, this);
         ::close(sock);
         sock = INVALID_FD;
     }
@@ -395,9 +346,7 @@ void linux_direct_file_t::verify(size_t offset, size_t length, void *buf) {
 call to io_submit(). */
 
 linux_io_calls_t::linux_io_calls_t(linux_event_queue_t *queue)
-    : queue(queue), n_pending(0), r_requests(this, "read"), w_requests(this, "write"),
-      pm_conns_read_ok("conns_read_ok"), pm_conns_read_blocked("conns_read_blocked"),
-      pm_conns_write_ok("conns_write_ok"), pm_conns_write_blocked("conns_write_blocked")
+    : queue(queue), n_pending(0), r_requests(this, "read"), w_requests(this, "write")
 {
     int res;
     

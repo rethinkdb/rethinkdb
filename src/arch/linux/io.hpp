@@ -46,9 +46,7 @@ private:
     // We are implementing this for level-triggered mechanisms such as
     // poll, that will keep bugging us about the write when we don't
     // need it, and use up 100% of cpu
-    bool registered_for_read_notifications;
     bool registered_for_write_notifications;
-    void update_registration(bool read, bool write);
     
     linux_net_conn_t(fd_t);
     void on_event(int events);
@@ -153,11 +151,6 @@ public:
 public:
     void on_event(int events);
     void aio_notify(iocb *event, int result);
-
-public:
-    // Stats for network connections
-    perfmon_counter_t pm_conns_read_ok, pm_conns_read_blocked,
-        pm_conns_write_ok, pm_conns_write_blocked;
 };
 
 #endif // __IO_CALLS_HPP__

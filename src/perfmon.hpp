@@ -120,10 +120,12 @@ public:
     }
     
     int64_t value;
-    void operator++(int) { value++; }
-    void operator--(int) { value--; }
-    void operator+=(int64_t num) { value += num; }
-    void operator-=(int64_t num) { value -= num; }
+    void operator++(int) {
+        value++;
+    }
+    void operator+=(int64_t num) {
+        value += num;
+    }
     
     std_string_t get_value() {
         std::basic_stringstream<char, std::char_traits<char>, gnew_alloc<char> > s;
