@@ -50,13 +50,14 @@ public:
             fclose(fp);
         }
     }
-    void dump(btree_key *key, byteslice *slices, size_t num_slices) {
+    void dump(btree_key *key, btree_value::mcflags_t flags, btree_value::exptime_t exptime,
+              byteslice *slices, size_t num_slices) {
         int len = 0;
         for (size_t i = 0; i < num_slices; ++i) {
             len += slices[i].len;
         }
 
-        check("could not write to file", 0 > fprintf(fp, "set %.*s 0 0 %u\r\n", key->size, key->contents, len));
+        check("could not write to file", 0 > fprintf(fp, "set %.*s %u %u 0 %u\r\n", key->size, key->contents, flags, exptime, len));
         
         for (size_t i = 0; i < num_slices; ++i) {
             check("could not write to file", slices[i].len != fwrite(slices[i].buf, 1, slices[i].len, fp));
@@ -205,8 +206,8 @@ void dump_pair_value(dumper_t &dumper, direct_file_t& file, cfg_t cfg, const seg
 
     // TODO: implement dumping the value for this given pair.
             
-    //    btree_value::mcflags_t flags = value->mcflags();
-    //    btree_value::exptime_t exptime = value->exptime();
+    btree_value::mcflags_t flags = value->mcflags();
+    btree_value::exptime_t exptime = value->exptime();
     // We can't save the cas right now.
             
     byte *valuebuf = value->value();
@@ -295,5 +296,5 @@ void dump_pair_value(dumper_t &dumper, direct_file_t& file, cfg_t cfg, const seg
     // So now we have a key, and a value split into one or more slices.
     // TODO: write the flags/exptime(/cas?).
     
-    dumper.dump(key, slices, num_slices);
+    dumper.dump(key, flags, exptime, slices, num_slices);
 }
