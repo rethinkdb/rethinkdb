@@ -5,6 +5,7 @@ from mpl_toolkits.mplot3d import Axes3D
 from matplotlib.collections import PolyCollection
 import re
 from colors import *
+import json
 
 def normalize(array):
     denom = max(map(lambda x: abs(x), array))
@@ -129,6 +130,13 @@ class TimeSeries():
 #do post processing things on the data (ratios and derivatives and stuff)
     def process(self):
         pass
+
+    def json(self):
+        plots = {}
+        for series in self.data.iteritems():
+            plots[series[0]] = map(lambda x: list(x), zip(range(len(series[1])), series[1]))
+
+        return json.dumps({'rethinkdb' : plots})
 
     def histogram(self, out_fname):
         assert self.data
