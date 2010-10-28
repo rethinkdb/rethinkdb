@@ -92,10 +92,6 @@ inline uint16_t hton(uint16_t val) { return htobe16(val); }
 inline uint32_t hton(uint32_t val) { return htobe32(val); }
 inline uint64_t hton(uint64_t val) { return htobe64(val); }
 
-/* Debugging printing API (prints CPU core in addition to message) */
-
-void debugf(const char *msg, ...);
-
 /* API to allow a nicer way of performing jobs on other cores than subclassing
 from cpu_message_t. Call do_on_cpu() with an object and a method for that object.
 The method will be called on the other CPU. If the cpu to call the method on is

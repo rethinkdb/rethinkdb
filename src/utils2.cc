@@ -24,8 +24,16 @@ void random_delay(void (*fun)(void*), void *arg) {
     fire_timer_once(ms, fun, arg);
 }
 
-
-
+void debugf(const char *msg, ...) {
+    
+    flockfile(stderr);
+    va_list args;
+    va_start(args, msg);
+    fprintf(stderr, "CPU %d: ", get_cpu_id());
+    vfprintf(stderr, msg, args);
+    va_end(args);
+    funlockfile(stderr);
+}
 
 int randint(int n) {
     assert(n > 0 && n < RAND_MAX);

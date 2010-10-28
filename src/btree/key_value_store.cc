@@ -277,7 +277,7 @@ void btree_key_value_store_t::create_slices() {
     
     /* Divvy up the memory available between the several slices. */
     cache_config = dynamic_config->cache;
-    cache_config.max_size /= btree_static_config.num_slices;
+    cache_config.max_size /= btree_static_config.n_slices;
     
     messages_out = btree_static_config.n_slices;
     for (int id = 0; id < btree_static_config.n_slices; id++) {

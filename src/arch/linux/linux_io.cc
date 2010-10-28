@@ -69,8 +69,11 @@ void linux_net_conn_t::update_registration(bool read, bool write) {
 ssize_t linux_net_conn_t::read_nonblocking(void *buf, size_t count) {
     
     int res = ::read(sock, buf, count);
-    if (res == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
+    if ((res == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)) ||
+        ((unsigned)res < count)) {
         update_registration(true, registered_for_write_notifications);
+    } else if (res == -1 && errno != EAGAIN && errno != EWOULDBLOCK) {
+        fail("Could not read from socket: %s\n", strerror(errno));
     }
     return res;
 }
@@ -78,8 +81,11 @@ ssize_t linux_net_conn_t::read_nonblocking(void *buf, size_t count) {
 ssize_t linux_net_conn_t::write_nonblocking(const void *buf, size_t count) {
 
     int res = ::write(sock, buf, count);
-    if (res == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
+    if ((res == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)) ||
+        ((unsigned)res < count)) {
         update_registration(registered_for_read_notifications, true);
+    } else if (res == -1 && errno != EAGAIN && errno != EWOULDBLOCK) {
+        fail("Could not write to socket: %s\n", strerror(errno));
     }
     return res;
 }
