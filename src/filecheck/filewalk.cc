@@ -15,39 +15,69 @@
 typedef log_serializer_static_config_t cfg_t;
 typedef data_block_manager_t::buf_data_t buf_data_t;
 
-void walk_extents(direct_file_t &file, cfg_t static_config);
+class dumper_t;
+
+void walk_extents(dumper_t &dumper, direct_file_t &file, cfg_t static_config);
 void observe_blocks(block_registry &registry, direct_file_t &file, cfg_t cfg, size_t filesize);
 bool check_config(cfg_t cfg);
-void get_values(FILE *fp, direct_file_t& file, cfg_t cfg, const segmented_vector_t<off64_t, MAX_BLOCK_ID>& offsets, size_t i);
-void dump_pair_value(FILE *fp, direct_file_t& file, cfg_t cfg, const segmented_vector_t<off64_t, MAX_BLOCK_ID>& offsets, btree_leaf_pair *pair);
+void get_values(dumper_t &dumper, direct_file_t& file, cfg_t cfg, const segmented_vector_t<off64_t, MAX_BLOCK_ID>& offsets, size_t i);
+void dump_pair_value(dumper_t &dumper, direct_file_t& file, cfg_t cfg, const segmented_vector_t<off64_t, MAX_BLOCK_ID>& offsets, btree_leaf_pair *pair);
 
 struct byteslice {
     const byte *buf;
     size_t len;
 };
 
-void dump(FILE *fp, btree_key *key, byteslice *slices, size_t num_slices) {
-    int len = 0;
-    for (size_t i = 0; i < num_slices; ++i) {
-        len += slices[i].len;
-    }
+// A small simple helper, refactor if we ever use smart pointers elsewhere.
+class freer {
+public:
+    freer() { }
+    ~freer() { for (size_t i = 0; i < ptrs.size(); ++i) free(ptrs[i]); }
+    void add(void *p) { ptrs.push_back(p); }
+private:
+    std::vector<void *, gnew_alloc<void *> > ptrs;
+    DISABLE_COPYING(freer);
+};
 
-    check("could not write to file", 0 > fprintf(fp, "set %.*s 0 0 %u\r\n", key->size, key->contents, len));
+class dumper_t {
+public:
+    dumper_t(const char *path) {
+        fp = fopen(path, "wbx");
+        check("could not open file", !fp);
+    }
+    ~dumper_t() {
+        if (fp != NULL) {
+            fclose(fp);
+        }
+    }
+    void dump(btree_key *key, byteslice *slices, size_t num_slices) {
+        int len = 0;
+        for (size_t i = 0; i < num_slices; ++i) {
+            len += slices[i].len;
+        }
+
+        check("could not write to file", 0 > fprintf(fp, "set %.*s 0 0 %u\r\n", key->size, key->contents, len));
         
-    for (size_t i = 0; i < num_slices; ++i) {
-        check("could not write to file", slices[i].len != fwrite(slices[i].buf, 1, slices[i].len, fp));
-    }
+        for (size_t i = 0; i < num_slices; ++i) {
+            check("could not write to file", slices[i].len != fwrite(slices[i].buf, 1, slices[i].len, fp));
+        }
 
-    fprintf(fp, "\r\n");
-}
+        fprintf(fp, "\r\n");
+    };
+private:
+    FILE *fp;
+    DISABLE_COPYING(dumper_t);
+};
 
-
-
-void walkfile(const char *path) {
+void walkfile(dumper_t &dumper, const char *path) {
     // TODO: give the user the ability to force the block size and extent size.
     direct_file_t file(path, direct_file_t::mode_read);
 
     static_header_t *header = (static_header_t *)malloc_aligned(DEVICE_BLOCK_SIZE, DEVICE_BLOCK_SIZE);
+    freer f;
+    f.add(header);
+ 
+
     file.read_blocking(0, DEVICE_BLOCK_SIZE, header);
 
     Logf(INF, "software_name: %s\n", header->software_name);
@@ -59,9 +89,7 @@ void walkfile(const char *path) {
     //    size_t block_size = static_config.block_size;
     //    size_t extent_size = static_config.extent_size;
     
-    walk_extents(file, static_config);
-
-    free(header);
+    walk_extents(dumper, file, static_config);
 }
 
 bool check_config(size_t filesize, cfg_t cfg) {
@@ -87,7 +115,7 @@ bool check_config(size_t filesize, cfg_t cfg) {
     return !errors;
 }
 
-void walk_extents(direct_file_t &file, cfg_t cfg) {
+void walk_extents(dumper_t &dumper, direct_file_t &file, cfg_t cfg) {
     size_t filesize = file.get_size();
 
     if (!check_config(filesize, cfg)) {
@@ -108,15 +136,8 @@ void walk_extents(direct_file_t &file, cfg_t cfg) {
 
     size_t n = offsets.get_size();
 
-    {
-        FILE *fp = fopen("dump.txt", "rbx");
-        check("could not open dump file", !fp);
-
-        for (size_t i = 0; i < n; ++i) {
-            get_values(fp, file, cfg, offsets, i);
-        }
-
-        check("could not close dump file", fclose(fp));
+    for (size_t i = 0; i < n; ++i) {
+        get_values(dumper, file, cfg, offsets, i);
     }
 }
 
@@ -124,6 +145,8 @@ void observe_blocks(block_registry &registry, direct_file_t &file, cfg_t cfg, si
     off64_t offset = 0;
 
     void *buf = malloc_aligned(cfg.block_size, DEVICE_BLOCK_SIZE);
+    freer f;
+    f.add(buf);
 
     while (offset <= off64_t(filesize - cfg.block_size)) {
         file.read_blocking(offset, cfg.block_size, buf);
@@ -148,14 +171,14 @@ void observe_blocks(block_registry &registry, direct_file_t &file, cfg_t cfg, si
             }
         }
     }
-
-    free(buf);
 }
 
 
-void get_values(FILE *fp, direct_file_t& file, cfg_t cfg, const segmented_vector_t<off64_t, MAX_BLOCK_ID>& offsets, size_t i) {
+void get_values(dumper_t &dumper, direct_file_t& file, cfg_t cfg, const segmented_vector_t<off64_t, MAX_BLOCK_ID>& offsets, size_t i) {
     // TODO: malloc this less often.
     void *buf = malloc_aligned(cfg.block_size, DEVICE_BLOCK_SIZE);
+    freer f;
+    f.add(buf);
 
     file.read_blocking(offsets[i], cfg.block_size, buf);
 
@@ -168,26 +191,15 @@ void get_values(FILE *fp, direct_file_t& file, cfg_t cfg, const segmented_vector
         for (uint16_t i = 0; i < num_pairs; ++i) {
             btree_leaf_pair *pair = leaf_node_handler::get_pair(leaf, leaf->pair_offsets[num_pairs]);
 
-            dump_pair_value(fp, file, cfg, offsets, pair);
+            dump_pair_value(dumper, file, cfg, offsets, pair);
         }
     }
-
-    free(buf);
 }
 
 
-// A small simple helper, refactor if we ever use smart pointers elsewhere.
-class freer {
-public:
-    freer() { }
-    ~freer() { for (size_t i = 0; i < ptrs.size(); ++i) free(ptrs[i]); }
-    void add(void *p) { ptrs.push_back(p); }
-private:
-    std::vector<void *, gnew_alloc<void *> > ptrs;
-    DISABLE_COPYING(freer);
-};
 
-void dump_pair_value(FILE *fp, direct_file_t& file, cfg_t cfg, const segmented_vector_t<off64_t, MAX_BLOCK_ID>& offsets, btree_leaf_pair *pair) {
+
+void dump_pair_value(dumper_t &dumper, direct_file_t& file, cfg_t cfg, const segmented_vector_t<off64_t, MAX_BLOCK_ID>& offsets, btree_leaf_pair *pair) {
     btree_key *key = &pair->key;
     btree_value *value = pair->value();
 
@@ -283,7 +295,5 @@ void dump_pair_value(FILE *fp, direct_file_t& file, cfg_t cfg, const segmented_v
     // So now we have a key, and a value split into one or more slices.
     // TODO: write the flags/exptime(/cas?).
     
-    dump(fp, key, slices, num_slices);
-    
-
+    dumper.dump(key, slices, num_slices);
 }
