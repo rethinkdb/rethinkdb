@@ -98,7 +98,7 @@ class TimeSeries():
 
     def read(self, file_name):
         self.data = self.parse_file(file_name)
-        self.process()
+#self.process()
         return self #this just lets you do initialization in one line
 
     def copy(self):
@@ -136,7 +136,7 @@ class TimeSeries():
         for series in self.data.iteritems():
             plots[series[0]] = map(lambda x: list(x), zip(range(len(series[1])), series[1]))
 
-        f = open(out_fname + '.js')
+        f = open(out_fname + '.js', 'w')
         print >>f, json.dumps({'rethinkdb' : plots})
         f.close()
 
