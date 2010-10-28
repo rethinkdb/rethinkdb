@@ -11,4 +11,4 @@ git pull
 
 # Run the tests
 # Email is hard-wired for now.
-git test -b --email IGNORED --revision HEAD bench/full_bench
+git test -b --email all@rethinkdb.com --revision HEAD bench/full_bench
