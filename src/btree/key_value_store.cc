@@ -709,7 +709,7 @@ void btree_slice_t::on_initialize_superblock() {
 btree_value::cas_t btree_slice_t::gen_cas() {
     // A CAS value is made up of both a timestamp and a per-slice counter,
     // which should be enough to guarantee that it'll be unique.
-    return (time(NULL) << 32) | (++cas_counter);
+    return ((uint64_t)time(NULL) << 32) | (++cas_counter);
 }
 
 bool btree_slice_t::shutdown(shutdown_callback_t *cb) {

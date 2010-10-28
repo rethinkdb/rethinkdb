@@ -68,7 +68,7 @@ void leaf_node_handler::remove(size_t block_size, btree_leaf_node *node, btree_k
 bool leaf_node_handler::lookup(const btree_leaf_node *node, btree_key *key, btree_value *value) {
     int index = find_key(node, key);
     if (index != -1) {
-        block_id_t offset = node->pair_offsets[index];
+        uint16_t offset = node->pair_offsets[index];
         btree_leaf_pair *pair = get_pair(node, offset);
         btree_value *stored_value = pair->value();
         memcpy(value, stored_value, sizeof(btree_value) + stored_value->mem_size());
