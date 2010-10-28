@@ -131,12 +131,14 @@ class TimeSeries():
     def process(self):
         pass
 
-    def json(self):
+    def json(self, out_fname):
         plots = {}
         for series in self.data.iteritems():
             plots[series[0]] = map(lambda x: list(x), zip(range(len(series[1])), series[1]))
 
-        return json.dumps({'rethinkdb' : plots})
+        f = open(out_fname + '.js')
+        print >>f, json.dumps({'rethinkdb' : plots})
+        f.close()
 
     def histogram(self, out_fname):
         assert self.data
