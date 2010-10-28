@@ -156,19 +156,18 @@ std_string_t perfmon_combiner_average(std_string_t v1, std_string_t v2) {
     return buf;
 }
 
-// Takes "3 4", for example, and returns "3/4 (0.75)".  Or takes "0 0"
-// and returns "0/0 (NaN)".
+// Takes "3 4", for example, and returns "0.75 (3/4)".  Or takes "0 0"
+// and returns "0 (0/0)".
 std_string_t perfmon_weighted_average_transformer(std_string_t numer_denom_pair) {
     int64_t numer, denom;
     sstream(numer_denom_pair) >> numer >> denom;
     sstream out;
-    out << numer << "/" << denom
-        << " (";
     if (denom == 0) {
-        out << "NaN";
+        out << "0";
     } else {
-        out << double(numer)/denom;
+        out << double(numer)/double(denom);
     }
-    out << ")";
+
+    out << " (" << numer << "/" << denom << ")";
     return out.str();
 }
