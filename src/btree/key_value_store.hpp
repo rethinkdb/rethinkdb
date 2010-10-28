@@ -51,6 +51,7 @@ public:
 
 public:
     btree_key_value_store_dynamic_config_t *dynamic_config;
+    mirrored_cache_config_t cache_config;   /* Duplicate so we can modify it */
     int n_files;
     const char **db_filenames;
     

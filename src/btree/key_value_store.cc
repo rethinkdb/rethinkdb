@@ -275,6 +275,10 @@ bool btree_key_value_store_t::have_created_a_pseudoserializer() {
 
 void btree_key_value_store_t::create_slices() {
     
+    /* Divvy up the memory available between the several slices. */
+    cache_config = dynamic_config->cache;
+    cache_config.max_size /= btree_static_config.num_slices;
+    
     messages_out = btree_static_config.n_slices;
     for (int id = 0; id < btree_static_config.n_slices; id++) {
         do_on_cpu(id % get_num_db_cpus(), this, &btree_key_value_store_t::create_a_slice_on_this_core, id);
@@ -288,7 +292,7 @@ bool btree_key_value_store_t::create_a_slice_on_this_core(int id) {
     
     slices[id] = new btree_slice_t(
         pseudoserializers[id],
-        &dynamic_config->cache);
+        &cache_config);
     
     bool done;
     if (is_start_existing) {
