@@ -119,7 +119,7 @@ bool data_block_manager_t::read(off64_t off_in, void *buf_out, iocallback_t *cb)
     return false;
 }
 
-bool data_block_manager_t::write(void *buf_in, ser_block_id_t block_id, off64_t *off_out, iocallback_t *cb) {
+bool data_block_manager_t::write(void *buf_in, ser_block_id_t block_id, ser_transaction_id_t transaction_id, off64_t *off_out, iocallback_t *cb) {
     // Either we're ready to write, or we're shutting down and just
     // finished reading blocks for gc and called do_write.
     assert(state == state_ready
@@ -127,9 +127,10 @@ bool data_block_manager_t::write(void *buf_in, ser_block_id_t block_id, off64_t 
 
     off64_t offset = *off_out = gimme_a_new_offset();
     
+    // TODO: This is absolutely disgusting.
     buf_data_t *data = (buf_data_t*)buf_in;
     data--;
-    data->block_id = block_id;
+    *data = make_buf_data_t(block_id, transaction_id);
     
     dbfile->write_async(offset, static_config->block_size, data, cb);
 
@@ -198,7 +199,10 @@ void data_block_manager_t::start_gc() {
 /* TODO this currently cleans extent by extent, we should tune it to always have a certain number of outstanding blocks
  */
 void data_block_manager_t::run_gc() {
-    switch (gc_state.step()) {
+    bool run_again = true;
+    while (run_again) {
+        run_again = false;
+        switch (gc_state.step()) {
     
         case gc_ready:
             //TODO, need to make sure we don't gc the extent we're writing to
@@ -290,12 +294,12 @@ void data_block_manager_t::run_gc() {
                 return;
             }
 
-            /* Start another GC round if appropriate. Note that this will recurse once at most,
-            because the read will never complete immediately. */
-            run_gc();
+            run_again = true;   // We might want to start another GC round
             break;
             
-        default: fail("Unknown gc_step");
+        default:
+            fail("Unknown gc_step");
+        }
     }
 }
 

@@ -10,7 +10,7 @@
 struct in_memory_index_t :
     public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, in_memory_index_t>
 {
-    segmented_vector_t<off64_t, MAX_BLOCK_ID> blocks;
+    segmented_vector_t<flagged_off64_t, MAX_BLOCK_ID> blocks;
 
 public:
     in_memory_index_t() {
@@ -45,25 +45,15 @@ public:
             lba_entry_t *entry = &x->data->data()->entries[i];
         
             // Skip it if it's padding
-            if (entry->block_id == PADDING_BLOCK_ID && entry->offset == PADDING_OFFSET)
+            if (lba_entry_t::is_padding(entry))
                 continue;
             assert(entry->block_id != PADDING_BLOCK_ID);
         
             // Sanity check. If this assertion fails, it probably means that the file was
             // corrupted, or was created with a different device block size.
-            assert(entry->offset == DELETE_BLOCK || entry->offset % DEVICE_BLOCK_SIZE == 0);
+            assert(entry->offset.parts.value % DEVICE_BLOCK_SIZE == 0);
 
-            // Grow the array if necessary
-            if (entry->block_id >= blocks.get_size()) {
-                ser_block_id_t old_size = blocks.get_size();
-                blocks.set_size(entry->block_id + 1);
-                for (ser_block_id_t i = old_size; i < entry->block_id; i++) {
-                    blocks[i] = DELETE_BLOCK;
-                }
-            }
-            
-            // Write the entry
-            blocks[entry->block_id] = entry->offset;
+            set_block_offset(entry->block_id, entry->offset);
         }
     }
     
@@ -71,23 +61,19 @@ public:
         return blocks.get_size();
     }
     
-    off64_t get_block_offset(ser_block_id_t id) {
+    flagged_off64_t get_block_offset(ser_block_id_t id) {
         if(id >= blocks.get_size()) {
-            return DELETE_BLOCK;
+            return flagged_off64_t::unused();
         } else {
             return blocks[id];
         }
     }
     
-    void set_block_offset(ser_block_id_t id, off64_t offset) {
+    void set_block_offset(ser_block_id_t id, flagged_off64_t offset) {
         
-        /* Grow the array if necessary, and fill in the empty space with DELETE_BLOCK */
+        /* Grow the array if necessary, and fill in the empty space with flagged_off64_t::unused(). */
         if (id >= blocks.get_size()) {
-            int old_size = blocks.get_size();
-            blocks.set_size(id + 1);
-            for (unsigned i = old_size; i < blocks.get_size(); i++) {
-                blocks[i] = DELETE_BLOCK;
-            }
+            blocks.set_size(id + 1, flagged_off64_t::unused());
         }
         
         blocks[id] = offset;
@@ -97,7 +83,7 @@ public:
 #ifndef NDEBUG
         printf("LBA:\n");
         for (unsigned int i = 0; i < blocks.get_size(); i++) {
-            printf("%d %.8lx\n", i, (unsigned long int)blocks[i]);
+            printf("%d %.8lx\n", i, (unsigned long int)blocks[i].whole_value);
         }
 #endif
     }

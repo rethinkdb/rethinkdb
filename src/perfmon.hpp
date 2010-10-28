@@ -3,6 +3,7 @@
 
 #include <string>
 #include <map>
+#include <stdarg.h>
 #include "config/alloc.hpp"
 #include "utils2.hpp"
 #include "containers/intrusive_list.hpp"
@@ -54,18 +55,37 @@ public:
                       perfmon_transformer_t *transformer = NULL);
     ~perfmon_watcher_t();
     
+    /* If you pass NULL to the constructor as the name and then instead call set_name(), you can
+    use format characters in the name */
+    void set_name(const char *fmt, ...);
+    
     virtual std_string_t get_value() = 0;
 
-    const char *name;
+    char name[100];
     perfmon_combiner_t *combiner;
     perfmon_transformer_t *transformer;
 };
+
+/* If two perfmon watchers (on the same thread or on different ones) have the same name,
+then the combiner function of one of them will be invoked to combine their values.
+Which one's combiner function is invoked is arbitrary, so they should have the same
+combiner function and it should be commutative and associative. */
+
+// The sum combiner assumes that both strings represent integers; it returns their sum.
+std_string_t perfmon_combiner_sum(std_string_t v1, std_string_t v2);
+
+// The average combiner averages integer values. Because the combiner must be associative,
+// it returns a string of the form "%d (average of %d)", and correctly handles strings of
+// that form if they are passed as its argument.
+std_string_t perfmon_combiner_average(std_string_t v1, std_string_t v2);
+
+std_string_t perfmon_weighted_average_transformer(std_string_t intpair);
 
 /* perfmon_var_t is a perfmon_watcher_t that just watches a variable. */
 
 template<class var_t>
 class perfmon_var_t :
-    public virtual perfmon_watcher_t
+    public perfmon_watcher_t
 {
 public:
     perfmon_var_t(const char *name, var_t *var, perfmon_combiner_t *combiner = NULL,
@@ -84,19 +104,32 @@ public:
     var_t *var;
 };
 
-/* If two perfmon watchers (on the same thread or on different ones) have the same name,
-then the combiner function of one of them will be invoked to combine their values.
-Which one's combiner function is invoked is arbitrary, so they should have the same
-combiner function and it should be commutative and associative. */
+/* perfmon_counter_t is a perfmon that can be incremented. */
 
-// The sum combiner assumes that both strings represent integers; it returns their sum.
-std_string_t perfmon_combiner_sum(std_string_t v1, std_string_t v2);
-
-// The average combiner averages integer values. Because the combiner must be associative,
-// it returns a string of the form "%d (average of %d)", and correctly handles strings of
-// that form if they are passed as its argument.
-std_string_t perfmon_combiner_average(std_string_t v1, std_string_t v2);
-
-std_string_t perfmon_weighted_average_transformer(std_string_t intpair);
+class perfmon_counter_t :
+    public perfmon_watcher_t
+{
+public:
+    perfmon_counter_t(const char *fmt, ...)
+        : perfmon_watcher_t(NULL, perfmon_combiner_sum), value(0)
+    {
+        va_list l;
+        va_start(l, fmt);
+        vsnprintf(name, sizeof(name), fmt, l);
+        va_end(l);
+    }
+    
+    int64_t value;
+    void operator++(int) { value++; }
+    void operator--(int) { value--; }
+    void operator+=(int64_t num) { value += num; }
+    void operator-=(int64_t num) { value -= num; }
+    
+    std_string_t get_value() {
+        std::basic_stringstream<char, std::char_traits<char>, gnew_alloc<char> > s;
+        s << value;
+        return s.str();
+    }
+};
 
 #endif /* __PERFMON_HPP__ */

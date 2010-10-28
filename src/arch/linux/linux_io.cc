@@ -18,6 +18,7 @@
 
 linux_net_conn_t::linux_net_conn_t(fd_t sock)
     : sock(sock), callback(NULL), set_me_true_on_delete(NULL),
+      registered_for_read_notifications(true),
       registered_for_write_notifications(false)
 {
     
@@ -33,30 +34,53 @@ void linux_net_conn_t::set_callback(linux_net_conn_callback_t *cb) {
     assert(cb);
     callback = cb;
     
+    registered_for_read_notifications = true;
+    linux_thread_pool_t::thread->iosys.pm_conns_read_blocked++;
+    registered_for_write_notifications = false;
+    linux_thread_pool_t::thread->iosys.pm_conns_write_ok++;
     linux_thread_pool_t::thread->queue.watch_resource(sock, poll_event_in, this);
+}
+
+void linux_net_conn_t::update_registration(bool read, bool write) {
+    
+    if (read != registered_for_read_notifications || write != registered_for_write_notifications) {
+        
+        int flags = 0;
+        if (read) flags |= poll_event_in;
+        if (write) flags |= poll_event_out;
+        linux_thread_pool_t::thread->queue.adjust_resource(sock, flags, this);
+        
+        linux_io_calls_t *i = &linux_thread_pool_t::thread->iosys;
+        
+        if (registered_for_read_notifications) i->pm_conns_read_blocked--;
+        else i->pm_conns_read_ok--;
+        if (read) i->pm_conns_read_blocked++;
+        else i->pm_conns_read_ok++;
+        registered_for_read_notifications = read;
+        
+        if (registered_for_read_notifications) i->pm_conns_write_blocked--;
+        else i->pm_conns_write_ok--;
+        if (read) i->pm_conns_write_blocked++;
+        else i->pm_conns_write_ok++;
+        registered_for_write_notifications = write;
+    }
 }
 
 ssize_t linux_net_conn_t::read_nonblocking(void *buf, size_t count) {
     
-    // TODO PERFMON get_cpu_context()->worker->bytes_read += count;
-    return ::read(sock, buf, count);
+    int res = ::read(sock, buf, count);
+    if (res == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
+        update_registration(true, registered_for_write_notifications);
+    }
+    return res;
 }
 
 ssize_t linux_net_conn_t::write_nonblocking(const void *buf, size_t count) {
 
-    // TODO PERFMON get_cpu_context()->worker->bytes_written += count;
     int res = ::write(sock, buf, count);
-    if(res == EAGAIN || res == EWOULDBLOCK) {
-        // Whoops, got stuff to write, turn on write notification.
-        linux_thread_pool_t::thread->queue.adjust_resource(sock, poll_event_in | poll_event_out, this);
-        registered_for_write_notifications = true;
-    } else if(registered_for_write_notifications) {
-        // We can turn off write notifications now as we no longer
-        // have stuff to write and are waiting on the socket.
-        linux_thread_pool_t::thread->queue.adjust_resource(sock, poll_event_in, this);
-        registered_for_write_notifications = false;
+    if (res == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
+        update_registration(registered_for_read_notifications, true);
     }
-
     return res;
 }
 
@@ -69,7 +93,14 @@ void linux_net_conn_t::on_event(int events) {
     set_me_true_on_delete = &was_deleted;
     
     if (events & poll_event_in || events & poll_event_out) {
-
+        
+        /* If we got a notification for something, deregister ourselves for
+        that thing. */
+        update_registration(
+            registered_for_read_notifications && !(events & poll_event_in),
+            registered_for_write_notifications && !(events & poll_event_out)
+            );
+        
         if (events & poll_event_in) {
             callback->on_net_conn_readable();
         }
@@ -103,7 +134,17 @@ linux_net_conn_t::~linux_net_conn_t() {
         *set_me_true_on_delete = true;
     
     if (sock != INVALID_FD) {
-        if (callback) linux_thread_pool_t::thread->queue.forget_resource(sock, this);
+        
+        if (callback) {
+            linux_thread_pool_t::thread->queue.forget_resource(sock, this);
+
+            linux_io_calls_t *i = &linux_thread_pool_t::thread->iosys;
+            if (registered_for_read_notifications) i->pm_conns_read_blocked--;
+            else i->pm_conns_read_ok--;
+            if (registered_for_read_notifications) i->pm_conns_write_blocked--;
+            else i->pm_conns_write_ok--;
+        }
+        
         ::close(sock);
         sock = INVALID_FD;
     }
@@ -275,7 +316,8 @@ bool linux_direct_file_t::read_async(size_t offset, size_t length, void *buf, li
     request->data = callback;
 
     // Add it to a list of outstanding read requests
-    iosys->r_requests.push_back(request);
+    iosys->r_requests.queue.push_back(request);
+    iosys->r_requests.pm_n_started++;
 
     // Process whatever is left
     iosys->process_requests();
@@ -304,7 +346,8 @@ bool linux_direct_file_t::write_async(size_t offset, size_t length, void *buf, l
     request->data = callback;
 
     // Add it to a list of outstanding write requests
-    iosys->w_requests.push_back(request);
+    iosys->w_requests.queue.push_back(request);
+    iosys->w_requests.pm_n_started++;
     
     // Process whatever is left
     iosys->process_requests();
@@ -346,8 +389,9 @@ void linux_direct_file_t::verify(size_t offset, size_t length, void *buf) {
 call to io_submit(). */
 
 linux_io_calls_t::linux_io_calls_t(linux_event_queue_t *queue)
-    : queue(queue),
-      n_pending(0)
+    : queue(queue), n_pending(0), r_requests(this, "read"), w_requests(this, "write"),
+      pm_conns_read_ok("conns_read_ok"), pm_conns_read_blocked("conns_read_blocked"),
+      pm_conns_write_ok("conns_write_ok"), pm_conns_write_blocked("conns_write_blocked")
 {
     int res;
     
@@ -366,19 +410,10 @@ linux_io_calls_t::linux_io_calls_t(linux_event_queue_t *queue)
     check("Could not make aio notify fd non-blocking", res != 0);
 
     queue->watch_resource(aio_notify_fd, poll_event_in, this);
-    
-    // Expand vectors now so we don't have to grow them later
-    
-    r_requests.reserve(MAX_CONCURRENT_IO_REQUESTS);
-    w_requests.reserve(MAX_CONCURRENT_IO_REQUESTS);
 }
 
 linux_io_calls_t::~linux_io_calls_t()
 {
-    assert(r_requests.empty());
-    assert(w_requests.empty());
-    assert(n_pending == 0);
-    
     int res;
     
     res = close(aio_notify_fd);
@@ -423,6 +458,11 @@ void linux_io_calls_t::on_event(int) {
 }
 
 void linux_io_calls_t::aio_notify(iocb *event, int result) {
+    
+    // Update stats
+    if (event->aio_lio_opcode == IO_CMD_PREAD) r_requests.pm_n_completed++;
+    else w_requests.pm_n_completed++;
+    
     // Schedule the requests we couldn't finish last time
     n_pending--;
     process_requests();
@@ -446,42 +486,56 @@ void linux_io_calls_t::aio_notify(iocb *event, int result) {
     qevent.op = event->aio_lio_opcode == IO_CMD_PREAD ? eo_read : eo_write;
 
     callback->on_io_complete(&qevent);
-
+    
     // Free the iocb structure
     tls_small_obj_alloc_accessor<alloc_t>::get_alloc<iocb>()->free(event);
 }
 
 void linux_io_calls_t::process_requests() {
-    if(n_pending > TARGET_IO_QUEUE_DEPTH)
+    if (n_pending > TARGET_IO_QUEUE_DEPTH)
         return;
     
     int res = 0;
-    while(!r_requests.empty() || !w_requests.empty()) {
-        res = process_request_batch(&r_requests);
+    while(!r_requests.queue.empty() || !w_requests.queue.empty()) {
+        res = r_requests.process_request_batch();
         if(res < 0)
             break;
         
-        res = process_request_batch(&w_requests);
+        res = w_requests.process_request_batch();
         if(res < 0)
             break;
     }
     check("Could not submit IO request", res < 0 && res != -EAGAIN);
 }
 
-int linux_io_calls_t::process_request_batch(request_vector_t *requests) {
+linux_io_calls_t::queue_t::queue_t(linux_io_calls_t *parent, const char *name)
+    : parent(parent),
+      pm_n_started("io_%ss_started", name),
+      pm_n_passed_to_kernel("io_%ss_passed_to_kernel", name),
+      pm_n_completed("io_%ss_completed", name)
+{
+    queue.reserve(MAX_CONCURRENT_IO_REQUESTS);
+}
+
+int linux_io_calls_t::queue_t::process_request_batch() {
     // Submit a batch
     int res = 0;
-    if(requests->size() > 0) {
-        res = io_submit(aio_context,
-                        std::min(requests->size(), size_t(TARGET_IO_QUEUE_DEPTH / 2)),
-                        &requests->operator[](0));
-        if(res > 0) {
+    if(queue.size() > 0) {
+        res = io_submit(parent->aio_context,
+                        std::min(queue.size(), size_t(TARGET_IO_QUEUE_DEPTH / 2)),
+                        &queue[0]);
+        if (res > 0) {
             // TODO: erase will cause the vector to shift elements in
             // the back. Perhaps we should optimize this somehow.
-            requests->erase(requests->begin(), requests->begin() + res);
-            n_pending += res;
+            queue.erase(queue.begin(), queue.begin() + res);
+            parent->n_pending += res;
+            pm_n_passed_to_kernel += res;
         }
     }
     return res;
 }
 
+linux_io_calls_t::queue_t::~queue_t() {
+    
+    assert(pm_n_started.value == pm_n_completed.value);
+}

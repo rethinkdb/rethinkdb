@@ -6,6 +6,9 @@
 #define MB_NEXTENTS 2
 #define MB_EXTENT_SEPARATION 4 /* !< every MB_EXTENT_SEPARATIONth extent is for MB, up to MB_EXTENT many */
 
+#define MB_BAD_VERSION (-1)
+#define MB_START_VERSION 1
+
 /* head functions */
 
 template<class metablock_t>
@@ -47,11 +50,11 @@ metablock_manager_t<metablock_t>::metablock_manager_t(extent_manager_t *em)
 {    
     assert(sizeof(crc_metablock_t) <= DEVICE_BLOCK_SIZE);
     mb_buffer = (crc_metablock_t *)malloc_aligned(DEVICE_BLOCK_SIZE, DEVICE_BLOCK_SIZE);
-    mb_buffer_last = (crc_metablock_t *)malloc_aligned(DEVICE_BLOCK_SIZE, DEVICE_BLOCK_SIZE);
+    startup_values.mb_buffer_last = (crc_metablock_t *)malloc_aligned(DEVICE_BLOCK_SIZE, DEVICE_BLOCK_SIZE);
     assert(mb_buffer);
 #ifdef VALGRIND
     memset(mb_buffer, 0xBD, DEVICE_BLOCK_SIZE);        // Happify Valgrind
-    memset(mb_buffer_last, 0xBD, DEVICE_BLOCK_SIZE);   // Happify Valgrind
+    memset(startup_values.mb_buffer_last, 0xBD, DEVICE_BLOCK_SIZE);   // Happify Valgrind
 #endif
     memcpy(mb_buffer->magic_marker, MB_MARKER_MAGIC, sizeof(MB_MARKER_MAGIC));
     memcpy(mb_buffer->crc_marker, MB_MARKER_CRC, sizeof(MB_MARKER_CRC));
@@ -61,7 +64,7 @@ metablock_manager_t<metablock_t>::metablock_manager_t(extent_manager_t *em)
     
     /* Build the list of metablock locations in the file */
     
-    for (unsigned i = 0; i < MB_NEXTENTS; i++) {
+    for (off64_t i = 0; i < MB_NEXTENTS; i++) {
         off64_t extent = i * extent_manager->extent_size * MB_EXTENT_SEPARATION;
         
         /* The reason why we don't reserve extent 0 is that it has already been reserved for the
@@ -88,8 +91,8 @@ metablock_manager_t<metablock_t>::~metablock_manager_t() {
     assert(!mb_buffer_in_use);
     free(mb_buffer);
 
-    free(mb_buffer_last); 
-    mb_buffer_last = NULL;
+    free(startup_values.mb_buffer_last); 
+    startup_values.mb_buffer_last = NULL;
 }
 
 template<class metablock_t>
@@ -99,7 +102,7 @@ void metablock_manager_t<metablock_t>::start_new(direct_file_t *file) {
     dbfile = file;
     assert(dbfile != NULL);
     
-    mb_buffer->version = 0;
+    mb_buffer->version = MB_START_VERSION;
     
     state = state_ready;
 }
@@ -117,7 +120,7 @@ bool metablock_manager_t<metablock_t>::start_existing(direct_file_t *file, bool 
     assert(!mb_buffer_in_use);
     mb_buffer_in_use = true;
 
-    version = -1;
+    startup_values.version = MB_BAD_VERSION;
     
     dbfile->set_size_at_least(metablock_offsets[metablock_offsets.size() - 1] + DEVICE_BLOCK_SIZE);
     
@@ -141,14 +144,15 @@ bool metablock_manager_t<metablock_t>::write_metablock(metablock_t *mb, metabloc
         outstanding_writes.push_back(metablock_write_req_t(mb, cb));
     } else {
         assert(!mb_buffer_in_use);
-        memcpy(&(mb_buffer->metablock), mb, sizeof(metablock_t));
+        mb_buffer->metablock = *mb;
+        mb_buffer->version++;
+
         mb_buffer->set_crc();
         assert(mb_buffer->check_crc());
         mb_buffer_in_use = true;
         
         dbfile->write_async(head.offset(), DEVICE_BLOCK_SIZE, mb_buffer, this);
 
-        mb_buffer->version++;
         head++;
 
         state = state_writing;
@@ -171,52 +175,53 @@ void metablock_manager_t<metablock_t>::shutdown() {
 }
 
 template<class metablock_t>
+void metablock_manager_t<metablock_t>::swap_buffers() {
+    crc_metablock_t *tmp = startup_values.mb_buffer_last;
+    startup_values.mb_buffer_last = mb_buffer;
+    mb_buffer = tmp;
+}
+
+template<class metablock_t>
 void metablock_manager_t<metablock_t>::on_io_complete(event_t *e) {
     bool done_looking = false; /* whether or not the value in mb_buffer_last is the real metablock */
     switch(state) {
  
     case state_reading:
         if (mb_buffer->check_crc()) {
-            if (mb_buffer->version > version) {
+            if (mb_buffer->version > startup_values.version) {
                 /* this metablock is good, maybe there are more? */
-                version = mb_buffer->version;
+                startup_values.version = mb_buffer->version;
                 head.push();
                 head++;
                 /* mb_buffer_last = mb_buffer and give mb_buffer mb_buffer_last's space so no realloc */
-                swap((void **) &mb_buffer_last, (void **) &mb_buffer);
-                if (head.wraparound) {
-                    done_looking = true;
-                } else {
-                    done_looking = false;
-                }
+                swap_buffers();
+                done_looking = head.wraparound;
             } else {
                 /* version smaller than the one we just had, yahtzee */
                 done_looking = true;
             }
         } else {
             head++;
-            if (head.wraparound) {
-                done_looking = true;
-            } else {
-                done_looking = false;
-            }
+            done_looking = head.wraparound;
         }
 
         if (done_looking) {
-            if (version == -1) {
+            if (startup_values.version == MB_BAD_VERSION) {
                 
                 /* no metablock found anywhere -- the DB is toast */
                 
+                // TODO: If the db is toast, what does that mean?  Why don't we catastrophically fail?
+                
                 // Start versions from 0, not from whatever garbage was in the last thing we read
-                mb_buffer->version = 0;
+                mb_buffer->version = MB_START_VERSION;
                 *mb_found = false;
                 
             } else {
                 /* we found a metablock */
-                swap((void **) &mb_buffer_last, (void **) &mb_buffer);
+                swap_buffers();
 
                 /* set everything up */
-                version = -1; /* version is now useless */
+                startup_values.version = MB_BAD_VERSION; /* version is now useless */
                 head.pop();
                 *mb_found = true;
                 memcpy(mb_out, &(mb_buffer->metablock), sizeof(metablock_t));

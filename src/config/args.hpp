@@ -104,8 +104,12 @@
 // How many times the page replacement algorithm tries to find an eligible page before giving up
 #define PAGE_REPL_NUM_TRIES                       3
 
+// How large can the key be, in bytes?  This value needs to fit in a byte.
+#define MAX_KEY_SIZE                              250
+
 // Any values of this size or less will be directly stored in btree leaf nodes.
-// Values greater than this size will be stored in overflow blocks.
+// Values greater than this size will be stored in overflow blocks. This value
+// needs to fit in a byte.
 #define MAX_IN_NODE_VALUE_SIZE                    250
 
 // In addition to the value itself we could potentially store memcached flags

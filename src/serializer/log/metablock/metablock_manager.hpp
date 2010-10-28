@@ -19,20 +19,23 @@ template<class metablock_t>
 class metablock_manager_t : private iocallback_t {
     const static uint32_t poly = 0x1337BEEF;
 
+    typedef int64_t metablock_version_t;
+
 private:
+
+    // This is stored directly to disk.  Changing it will change the disk format.
     struct crc_metablock_t {
         char magic_marker[sizeof(MB_MARKER_MAGIC)];
         char crc_marker[sizeof(MB_MARKER_CRC)];
-        uint32_t            _crc;            /* !< cyclic redundancy check */
+        uint32_t _crc;            /* !< cyclic redundancy check */
         char version_marker[sizeof(MB_MARKER_VERSION)];
-        int             version;
-        metablock_t     metablock;
+        metablock_version_t version;
+        metablock_t metablock;
     public:
         uint32_t crc() {
-            //TODO this doesn't do the version
-            boost::crc_optimal<32, 0x04C11DB7, 0xFFFFFFFF, 0xFFFFFFFF, true, true> crc_computer;
+            boost::crc_32_type crc_computer;
+            crc_computer.process_bytes(&version, sizeof(version));
             crc_computer.process_bytes(&metablock, sizeof(metablock));
-            //crc_computer.process_bytes(&version, sizeof(version)); for some reason this causes crc to be wrong
             return crc_computer.checksum();
         }
         void set_crc() {
@@ -114,15 +117,22 @@ public:
 private:
     head_t head; /* !< keeps track of where we are in the extents */
     void on_io_complete(event_t *e);
-    
+
+    metablock_version_t next_version_number;
+
     crc_metablock_t *mb_buffer;
-    bool            mb_buffer_in_use;   /* !< true: we're using the buffer, no one else can */
-    
-private:
-    /* these are only used in the beginning when we want to find the metablock */
-    crc_metablock_t *mb_buffer_last;    /* the last metablock we read */
-    int             version;            /* !< only used during boot up */
-    
+    bool mb_buffer_in_use;   /* !< true: we're using the buffer, no one else can */
+
+    // Just some compartmentalization to make this mildly cleaner.
+    struct startup {
+        /* these are only used in the beginning when we want to find the metablock */
+        crc_metablock_t *mb_buffer_last;
+        metablock_version_t version;
+    } startup_values;
+        
+    // swaps &mb_buffer and &mb_buffer_last.
+    void swap_buffers();
+
     extent_manager_t *extent_manager;
     
     std::vector<off64_t, gnew_alloc<off64_t> > metablock_offsets;

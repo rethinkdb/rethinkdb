@@ -9,7 +9,6 @@
 
 #define NUM_SEGMENTS(total_size, seg_size) ( ( ((total_size)-1) / (seg_size) ) + 1 )
 
-//#define MAX_LARGE_BUF_SEGMENTS ((((MAX_VALUE_SIZE) - 1) / (BTREE_BLOCK_SIZE)) + 1)
 #define MAX_LARGE_BUF_SEGMENTS (NUM_SEGMENTS((MAX_VALUE_SIZE), (4*KILOBYTE)))
 
 class large_buf_t;
@@ -27,10 +26,19 @@ struct large_value_completed_callback {
 
 // Must be smaller than a buf.
 struct large_buf_index {
+    block_magic_t magic;
     //uint32_t size; // TODO: Put the size here instead of in the btree value.
     uint16_t num_segments;
     uint16_t first_block_offset; // For prepend.
     block_id_t blocks[MAX_LARGE_BUF_SEGMENTS];
+
+    static block_magic_t expected_magic;
+};
+
+struct large_buf_segment {
+    block_magic_t magic;
+
+    static block_magic_t expected_magic;
 };
 
 class large_buf_t :
@@ -43,7 +51,7 @@ private:
     large_buf_available_callback_t *callback;
 
     transaction_t *transaction;
-    size_t block_size;
+    size_t effective_segment_block_size;
 
     uint16_t num_acquired;
     buf_t *bufs[MAX_LARGE_BUF_SEGMENTS];
@@ -93,6 +101,9 @@ public:
 
     void index_acquired(buf_t *buf);
     void segment_acquired(buf_t *buf, uint16_t ix);
+    
+private:
+    buf_t *allocate_segment(block_id_t *id);
 };
 
 // TODO: Rename this.
@@ -203,7 +214,7 @@ private:
         if (length > 0) {
             uint32_t bytes_to_transfer = std::min((uint32_t) iobuf_t::size, length);
             length -= bytes_to_transfer;
-            rh->fill_value((byte *) buf, bytes_to_transfer, this);
+            rh->fill_value(buf->buf, bytes_to_transfer, this);
             return;
         }
 

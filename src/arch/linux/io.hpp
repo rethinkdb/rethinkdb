@@ -46,7 +46,9 @@ private:
     // We are implementing this for level-triggered mechanisms such as
     // poll, that will keep bugging us about the write when we don't
     // need it, and use up 100% of cpu
+    bool registered_for_read_notifications;
     bool registered_for_write_notifications;
+    void update_registration(bool read, bool write);
     
     linux_net_conn_t(fd_t);
     void on_event(int events);
@@ -119,18 +121,26 @@ public:
     linux_io_calls_t(linux_event_queue_t *queue);
     ~linux_io_calls_t();
 
-    typedef std::vector<iocb*, gnew_alloc<iocb*> > request_vector_t;
-
     void process_requests();
-    int process_request_batch(request_vector_t *requests);
 
     linux_event_queue_t *queue;
     io_context_t aio_context;
     fd_t aio_notify_fd;
-
-    request_vector_t r_requests, w_requests;
-
+    
     int n_pending;
+    
+    struct queue_t {
+        
+        linux_io_calls_t *parent;
+        typedef std::vector<iocb*, gnew_alloc<iocb*> > request_vector_t;
+        request_vector_t queue;
+        perfmon_counter_t pm_n_started, pm_n_passed_to_kernel, pm_n_completed;
+        
+        queue_t(linux_io_calls_t *parent, const char *name);
+        int process_request_batch();
+        ~queue_t();
+        
+    } r_requests, w_requests;
 
 #ifndef NDEBUG
     // We need the extra pointer in debug mode because
@@ -143,6 +153,11 @@ public:
 public:
     void on_event(int events);
     void aio_notify(iocb *event, int result);
+
+public:
+    // Stats for network connections
+    perfmon_counter_t pm_conns_read_ok, pm_conns_read_blocked,
+        pm_conns_write_ok, pm_conns_write_blocked;
 };
 
 #endif // __IO_CALLS_HPP__

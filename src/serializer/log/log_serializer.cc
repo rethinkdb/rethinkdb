@@ -43,9 +43,7 @@ struct ls_start_new_fsm_t :
         
         assert(ser->state == log_serializer_t::state_unstarted);
         ser->state = log_serializer_t::state_starting_up;
-        
         ser->static_config = *config;
-        
         ser->dbfile = new direct_file_t(ser->db_path, direct_file_t::mode_read|direct_file_t::mode_write);
         
         ready_callback = NULL;
@@ -87,10 +85,11 @@ struct ls_start_new_fsm_t :
         
         ser->extent_manager->start_new();
 
+        ser->current_transaction_id = FIRST_SER_TRANSACTION_ID;
+
 #ifndef NDEBUG
         ser->prepare_metablock(&ser->debug_mb_buffer);
 #endif
-
         ser->prepare_metablock(&metablock_buffer);
         
         if (ser->metablock_manager->write_metablock(&metablock_buffer, this)) {
@@ -197,6 +196,9 @@ struct ls_start_existing_fsm_t :
 #ifndef NDEBUG
             memcpy(&ser->debug_mb_buffer, &metablock_buffer, sizeof(metablock_buffer));
 #endif
+
+            ser->current_transaction_id = metablock_buffer.transaction_id;
+
             if (ser->lba_index->start_existing(ser->dbfile, &metablock_buffer.lba_index_part, this)) {
                 state = state_reconstruct;
             } else {
@@ -209,8 +211,10 @@ struct ls_start_existing_fsm_t :
 
             ser->data_block_manager->start_reconstruct();
             for (ser_block_id_t id = 0; id < ser->lba_index->max_block_id(); id++) {
-                off64_t offset = ser->lba_index->get_block_offset(id);
-                if (offset != DELETE_BLOCK) ser->data_block_manager->mark_live(offset);
+                flagged_off64_t offset = ser->lba_index->get_block_offset(id);
+                if (flagged_off64_t::can_be_gced(offset)) {
+                    ser->data_block_manager->mark_live(offset.parts.value);
+                }
             }
             ser->data_block_manager->end_reconstruct();
             ser->data_block_manager->start_existing(ser->dbfile, &metablock_buffer.data_block_manager_part);
@@ -228,11 +232,13 @@ struct ls_start_existing_fsm_t :
                 ready_callback->on_serializer_ready(ser);
 
 #ifndef NDEBUG
-            log_serializer_t::metablock_t debug_mb_buffer;
-            ser->prepare_metablock(&debug_mb_buffer);
-            // Make sure that the metablock has not changed since the last
-            // time we recorded it
-            assert(memcmp(&debug_mb_buffer, &ser->debug_mb_buffer, sizeof(debug_mb_buffer)) == 0);
+            {
+                log_serializer_t::metablock_t debug_mb_buffer;
+                ser->prepare_metablock(&debug_mb_buffer);
+                // Make sure that the metablock has not changed since the last
+                // time we recorded it
+                assert(memcmp(&debug_mb_buffer, &ser->debug_mb_buffer, sizeof(debug_mb_buffer)) == 0);
+            }
 #endif
    
             delete this;
@@ -320,15 +326,18 @@ struct ls_block_writer_t :
     log_serializer_t *ser;
     log_serializer_t::write_t write;
     iocallback_t *extra_cb;
+
+    // A buffer that's zeroed out (except in the beginning, where we
+    // write the block id), which we write upon deletion.  Can be NULL.
+    void *zerobuf;
     
     /* true if another write came along and changed the same buf again before we
     finished writing to disk. */
     bool superceded;
-    
-    ls_block_writer_t(
-        log_serializer_t *ser,
-        const log_serializer_t::write_t &write)
-        : ser(ser), write(write) { }
+
+    ls_block_writer_t(log_serializer_t *ser,
+                      const log_serializer_t::write_t &write)
+        : ser(ser), write(write), zerobuf(NULL) { }
     
     bool run(iocallback_t *cb) {
         extra_cb = NULL;
@@ -352,15 +361,15 @@ struct ls_block_writer_t :
         }
 
         /* mark the garbage */
-        off64_t gc_offset = ser->lba_index->get_block_offset(write.block_id);
-        if (gc_offset != -1)
-            ser->data_block_manager->mark_garbage(gc_offset);
+        flagged_off64_t gc_offset = ser->lba_index->get_block_offset(write.block_id);
+        if (flagged_off64_t::can_be_gced(gc_offset))
+            ser->data_block_manager->mark_garbage(gc_offset.parts.value);
         
         if (write.buf) {
         
             off64_t new_offset;
-            bool done = ser->data_block_manager->write(write.buf, write.block_id, &new_offset, this);
-            ser->lba_index->set_block_offset(write.block_id, new_offset);
+            bool done = ser->data_block_manager->write(write.buf, write.block_id, ser->current_transaction_id, &new_offset, this);
+            ser->lba_index->set_block_offset(write.block_id, flagged_off64_t::real(new_offset));
             
             /* Insert ourselves into the block_writer_map so that if a reader comes looking for the
             block before we finish writing it to disk, it will be able to find us to get the most
@@ -372,11 +381,28 @@ struct ls_block_writer_t :
             else return false;
         
         } else {
-        
+
             /* Deletion */
-            ser->lba_index->set_block_offset(write.block_id, DELETE_BLOCK);
-            
-            return do_finish();
+        
+            /* We tell the data_block_manager to write a zero block to
+               make recovery from a corrupted file more likely.  We
+               don't need to add anything to the block_writer_map
+               because that's for readers' sake, and you can't read a
+               deleted block. */
+
+            // We write a zero buffer with the given block_id at the front.
+            zerobuf = ser->malloc();
+            bzero(zerobuf, ser->get_block_size());
+
+            off64_t new_offset;
+            bool done = ser->data_block_manager->write(zerobuf, write.block_id, ser->current_transaction_id, &new_offset, this);
+            ser->lba_index->set_block_offset(write.block_id, flagged_off64_t::deleteblock(new_offset));
+
+            if (done) {
+                return do_finish();
+            } else {
+                return false;
+            }
         }
     }
     
@@ -396,7 +422,10 @@ struct ls_block_writer_t :
         
         if (write.callback) write.callback->on_serializer_write_block();
         if (extra_cb) extra_cb->on_io_complete(NULL);
-        
+
+        if (zerobuf) {
+            ser->free(zerobuf);
+        }
         delete this;
         return true;
     }
@@ -416,9 +445,10 @@ struct ls_write_fsm_t :
     } state;
     
     log_serializer_t *ser;
-    
+
     log_serializer_t::write_t *writes;
     int num_writes;
+    
     
     extent_manager_t::transaction_t *extent_txn;
     
@@ -519,6 +549,7 @@ struct ls_write_fsm_t :
         if (offsets_were_written && num_writes_waited_for == 0 && !waiting_for_prev_write) {
             return do_write_metablock();
         } else {
+            // TODO: should this actually return true?
             return false;
         }
     }
@@ -593,15 +624,19 @@ bool log_serializer_t::do_write(write_t *writes, int num_writes, write_txn_callb
     // on state here.
     
     assert_cpu();
-    
+
 #ifndef NDEBUG
-    metablock_t _debug_mb_buffer;
-    prepare_metablock(&_debug_mb_buffer);
-    // Make sure that the metablock has not changed since the last
-    // time we recorded it
-    assert(memcmp(&_debug_mb_buffer, &debug_mb_buffer, sizeof(debug_mb_buffer)) == 0);
+    {
+        metablock_t _debug_mb_buffer;
+        prepare_metablock(&_debug_mb_buffer);
+        // Make sure that the metablock has not changed since the last
+        // time we recorded it
+        assert(memcmp(&_debug_mb_buffer, &debug_mb_buffer, sizeof(debug_mb_buffer)) == 0);
+    }
 #endif
-                
+
+    current_transaction_id++;
+
     ls_write_fsm_t *w = new ls_write_fsm_t(this, writes, num_writes);
     bool res = w->run(callback);
 
@@ -645,10 +680,10 @@ struct ls_read_fsm_t :
         
             /* We are not currently writing the block; go to disk to get it */
             
-            off64_t offset = ser->lba_index->get_block_offset(block_id);
-            assert(offset != DELETE_BLOCK);   // Make sure the block actually exists
+            flagged_off64_t offset = ser->lba_index->get_block_offset(block_id);
+            assert(!offset.parts.is_delete);   // Make sure the block actually exists
             
-            if (ser->data_block_manager->read(offset, buf, this)) {
+            if (ser->data_block_manager->read(offset.parts.value, buf, this)) {
                 return done();
             } else {
                 return false;
@@ -663,7 +698,6 @@ struct ls_read_fsm_t :
     }
     
     void on_io_complete(event_t *e) {
-        
         done();
     }
     
@@ -702,7 +736,7 @@ bool log_serializer_t::block_in_use(ser_block_id_t id) {
     assert(state == state_ready);
     assert_cpu();
     
-    return lba_index->get_block_offset(id) != DELETE_BLOCK;
+    return !(lba_index->get_block_offset(id).parts.is_delete);
 }
 
 bool log_serializer_t::shutdown(shutdown_callback_t *cb) {
@@ -796,6 +830,7 @@ void log_serializer_t::prepare_metablock(metablock_t *mb_buffer) {
     extent_manager->prepare_metablock(&mb_buffer->extent_manager_part);
     data_block_manager->prepare_metablock(&mb_buffer->data_block_manager_part);
     lba_index->prepare_metablock(&mb_buffer->lba_index_part);
+    mb_buffer->transaction_id = current_transaction_id;
 }
 
 

@@ -5,27 +5,23 @@
 #include "btree/node.hpp"
 #include "config/args.hpp"
 
-/* EPSILON to prevet split then merge bug */
+// See btree_leaf_node in node.hpp
+
+/* EPSILON to prevent split then merge bug */
 #define LEAF_EPSILON (sizeof(btree_key) + MAX_KEY_SIZE + sizeof(btree_value) + MAX_TOTAL_NODE_CONTENTS_SIZE)
+
 
 //Note: This struct is stored directly on disk.  Changing it invalidates old data.
 struct btree_leaf_pair {
     btree_key key;
-    btree_value _value;
+    // We have a sizeof(btree_leaf_pair) that depends on the presence of this value!!
+    btree_value value_;
+    // key is of variable size and there's a btree_value that follows
+    // it that is of variable size.
     btree_value *value() {
         return (btree_value *)( ((byte *)&key) + sizeof(btree_key) + key.size );
     }
 };
-
-
-//Note: This struct is stored directly on disk.  Changing it invalidates old data.
-struct btree_leaf_node : public btree_node {
-    uint16_t npairs;
-    uint16_t frontmost_offset; // The smallest offset in pair_offsets
-    uint16_t pair_offsets[0];
-};
-
-typedef btree_leaf_node leaf_node_t;
 
 class leaf_key_comp;
 
@@ -37,7 +33,7 @@ class leaf_node_handler : public node_handler {
 
     static bool lookup(const btree_leaf_node *node, btree_key *key, btree_value *value);
     static bool insert(size_t block_size, btree_leaf_node *node, btree_key *key, btree_value *value);
-    static void remove(size_t block_size, btree_leaf_node *node, btree_key *key); //Currently untested
+    static void remove(size_t block_size, btree_leaf_node *node, btree_key *key); // TODO: Currently untested
     static void split(size_t block_size, btree_leaf_node *node, btree_leaf_node *rnode, btree_key *median);
     static void merge(size_t block_size, btree_leaf_node *node, btree_leaf_node *rnode, btree_key *key_to_remove);
     static bool level(size_t block_size, btree_leaf_node *node, btree_leaf_node *sibling, btree_key *key_to_replace, btree_key *replacement_key);
