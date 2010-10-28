@@ -88,14 +88,3 @@ void print_hd(void *buf, size_t offset, size_t length) {
         }
     }
 }
-
-void debugf(const char *msg, ...) {
-    
-    flockfile(stderr);
-    va_list args;
-    va_start(args, msg);
-    fprintf(stderr, "CPU %d: ", get_cpu_id());
-    vfprintf(stderr, msg, args);
-    va_end(args);
-    funlockfile(stderr);
-}
