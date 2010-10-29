@@ -132,9 +132,8 @@ public:
         linux_io_calls_t *parent;
         typedef std::vector<iocb*, gnew_alloc<iocb*> > request_vector_t;
         request_vector_t queue;
-        perfmon_counter_t pm_n_started, pm_n_passed_to_kernel, pm_n_completed;
         
-        queue_t(linux_io_calls_t *parent, const char *name);
+        queue_t(linux_io_calls_t *parent);
         int process_request_batch();
         ~queue_t();
         

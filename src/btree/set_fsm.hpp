@@ -19,7 +19,8 @@ public:
 
     explicit btree_set_fsm_t(btree_key *key, btree_key_value_store_t *store, request_callback_t *req, bool got_large, uint32_t length, byte *data, set_type_t type, btree_value::mcflags_t mcflags, btree_value::exptime_t exptime, btree_value::cas_t req_cas)
         : btree_modify_fsm_t(key, store), length(length), req(req), got_large(got_large), type(type), req_cas(req_cas), read_success(false), set_failed(false), large_value(NULL) {
-        slice->total_set_operations++;
+        
+        pm_cmd_set++;
         // XXX This does unnecessary setting and copying.
         value.metadata_flags = 0;
         value.value_size(0);

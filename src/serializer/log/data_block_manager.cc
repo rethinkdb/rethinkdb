@@ -3,6 +3,10 @@
 #include "utils.hpp"
 #include "arch/arch.hpp"
 
+perfmon_counter_t
+    pm_blocks_on_disk("blocks_on_disk"),
+    pm_serializer_extents_gced("serializer_extents_gced");
+
 void data_block_manager_t::start_new(direct_file_t *file) {
 
     assert(state == state_unstarted);
@@ -205,9 +209,10 @@ void data_block_manager_t::run_gc() {
         switch (gc_state.step()) {
     
         case gc_ready:
-            //TODO, need to make sure we don't gc the extent we're writing to
             if (gc_pq.empty() || !should_we_keep_gcing(*gc_pq.peak())) return;
-
+            
+            pm_serializer_extents_gced++;
+            
             /* grab the entry */
             gc_state.current_entry = gc_pq.pop();
             gc_state.current_entry->our_pq_entry = NULL;
@@ -476,14 +481,6 @@ float data_block_manager_t::garbage_ratio() const {
     }
 }
 
-
-std::ostream& operator<<(std::ostream& out, const data_block_manager_t::gc_stats_t& stats) {
-    return out << stats.old_garbage_blocks << ' ' << stats.old_total_blocks;
-}
-
-
-
-
 bool data_block_manager_t::disable_gc(gc_disable_callback_t *cb) {
     // We _always_ call the callback!
 
@@ -498,7 +495,6 @@ bool data_block_manager_t::disable_gc(gc_disable_callback_t *cb) {
         return true;
     }
 }
-
 
 void data_block_manager_t::enable_gc() {
     gc_state.should_be_stopped = false;

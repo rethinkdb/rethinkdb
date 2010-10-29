@@ -2,7 +2,7 @@
 
 template<class mc_config_t>
 array_free_list_t<mc_config_t>::array_free_list_t(mc_cache_t<mc_config_t> *cache)
-    : cache(cache), pm_num_blocks_in_use("blocks_total", &num_blocks_in_use, perfmon_combiner_sum) { }
+    : cache(cache) { }
 
 template<class mc_config_t>
 bool array_free_list_t<mc_config_t>::start(ready_callback_t *cb) {
@@ -49,6 +49,7 @@ bool array_free_list_t<mc_config_t>::do_make_list() {
     for (block_id_t i = 0; i < free_list.get_size(); i++) {
         if (cache->serializer->block_in_use(i)) {
             free_list[i] = BLOCK_IN_USE;
+            pm_n_blocks_total++;
             num_blocks_in_use++;
         } else {
             free_list[i] = first_block;
@@ -86,6 +87,7 @@ block_id_t array_free_list_t<mc_config_t>::gen_block_id() {
         first_block = free_list[first_block];
     }
     
+    pm_n_blocks_total++;
     num_blocks_in_use++;
     
     free_list[id] = BLOCK_IN_USE;
@@ -100,5 +102,6 @@ void array_free_list_t<mc_config_t>::release_block_id(block_id_t id) {
     free_list[id] = first_block;
     first_block = id;
     
+    pm_n_blocks_total--;
     num_blocks_in_use--;
 }

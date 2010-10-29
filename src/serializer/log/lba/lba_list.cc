@@ -5,6 +5,8 @@
 #include "lba_list.hpp"
 #include "arch/arch.hpp"
 
+perfmon_counter_t pm_serializer_lba_gcs("serializer_lba_gcs");
+
 lba_list_t::lba_list_t(extent_manager_t *em)
     : shutdown_callback(NULL), gc_count(0), extent_manager(em),
       state(state_unstarted), in_memory_index(NULL)
@@ -199,6 +201,7 @@ struct gc_fsm_t :
     gc_fsm_t(lba_list_t *owner, int i)
         : owner(owner), i(i)
         {
+            pm_serializer_lba_gcs++;
             owner->gc_count++;
             do_replace_disk_structure();
         }

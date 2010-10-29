@@ -15,7 +15,8 @@
 #include "arch/linux/event_queue/epoll.hpp"
 #include "arch/linux/thread_pool.hpp"
 
-// TODO: report event queue statistics.
+/* Declared here but NOT in poll.cc; this instance provides for either one */
+perfmon_thread_average_t pm_events_per_loop("events_per_loop");
 
 int user_to_epoll(int mode) {
     int out_mode = 0;
@@ -41,8 +42,7 @@ int epoll_to_user(int mode) {
 }
 
 epoll_event_queue_t::epoll_event_queue_t(linux_queue_parent_t *parent)
-    : parent(parent),
-      events_per_loop(0), pm_events_per_loop("events_per_loop", &events_per_loop, &perfmon_combiner_average)
+    : parent(parent)
 {
     // Create a poll fd
     
@@ -69,6 +69,7 @@ void epoll_event_queue_t::run() {
 
         // nevents might be used by forget_resource during the loop
         nevents = res;
+        pm_events_per_loop.set_value_for_this_thread(nevents);
 
         // TODO: instead of processing the events immediately, we
         // might want to queue them up and then process the queue in
@@ -90,7 +91,6 @@ void epoll_event_queue_t::run() {
             }
         }
 
-        events_per_loop = nevents;
         nevents = 0;
         
         parent->pump();

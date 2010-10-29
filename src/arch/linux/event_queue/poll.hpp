@@ -25,9 +25,6 @@ private:
     linux_queue_parent_t *parent;
     
 private:
-    int events_per_loop;
-    perfmon_var_t<int> pm_events_per_loop;
-
     pollfd_vector_t watched_fds;
     callback_map_t callbacks;
 

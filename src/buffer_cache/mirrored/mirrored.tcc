@@ -1,4 +1,5 @@
 #include "buffer_cache/mirrored/mirrored.hpp"
+#include "buffer_cache/stats.hpp"
 
 /**
  * Buffer implementation.
@@ -33,7 +34,7 @@ mc_buf_t<mc_config_t>::mc_buf_t(cache_t *cache, block_id_t block_id, block_avail
         add_load_callback(callback);
     }
     
-    cache->pm_n_blocks_in_memory++;
+    pm_n_blocks_in_memory++;
 }
 
 template<class mc_config_t>
@@ -63,7 +64,7 @@ void mc_buf_t<mc_config_t>::have_read() {
     while (n_callbacks-- > 0) {
         block_available_callback_t *callback = load_callbacks.head();
         load_callbacks.remove(callback);
-        cache->pm_n_bufs_ready++;
+        pm_n_bufs_ready++;
         callback->on_block_available(this);
         // At this point, 'this' may be invalid because the callback might cause the block to be
         // unloaded as a side effect. That's why we use 'n_callbacks' rather than checking for
@@ -96,7 +97,7 @@ mc_buf_t<mc_config_t>::mc_buf_t(cache_t *cache)
     memset(data, 0xCD, cache->serializer->get_block_size());
 #endif
     
-    cache->pm_n_blocks_in_memory++;
+    pm_n_blocks_in_memory++;
 }
 
 template<class mc_config_t>
@@ -114,7 +115,7 @@ mc_buf_t<mc_config_t>::~mc_buf_t() {
     assert(safe_to_unload());
     cache->serializer->free(data);
     
-    cache->pm_n_blocks_in_memory += -1;
+    pm_n_blocks_in_memory += -1;
 }
 
 template<class mc_config_t>
@@ -122,7 +123,7 @@ void mc_buf_t<mc_config_t>::release() {
     
     cache->assert_cpu();
     
-    cache->pm_n_bufs_released++;
+    pm_n_bufs_released++;
     concurrency_buf.release();
     
     /*
@@ -199,7 +200,7 @@ mc_transaction_t<mc_config_t>::mc_transaction_t(cache_t *cache, access_t access)
       commit_callback(NULL),
       state(state_open) {
     
-    cache->pm_n_transactions_started++;
+    pm_n_transactions_started++;
     assert(access == rwi_read || access == rwi_write);
 }
 
@@ -207,14 +208,14 @@ template<class mc_config_t>
 mc_transaction_t<mc_config_t>::~mc_transaction_t() {
 
     assert(state == state_committed);
-    cache->pm_n_transactions_completed++;
+    pm_n_transactions_completed++;
 }
 
 template<class mc_config_t>
 bool mc_transaction_t<mc_config_t>::commit(transaction_commit_callback_t *callback) {
     
     assert(state == state_open);
-    cache->pm_n_transactions_committed++;
+    pm_n_transactions_committed++;
     
     /* We have to call sync_patiently() before on_transaction_commit() so that if
     on_transaction_commit() starts a sync, we will get included in it */
@@ -266,8 +267,8 @@ mc_buf_t<mc_config_t> *mc_transaction_t<mc_config_t>::allocate(block_id_t *block
 
     /* Make a completely new block, complete with a shiny new block_id. */
     
-    cache->pm_n_bufs_acquired++;
-    cache->pm_n_bufs_ready++;
+    pm_n_bufs_acquired++;
+    pm_n_bufs_ready++;
     assert(access == rwi_write);
     
     // If we are getting low on memory, kick out old blocks
@@ -289,7 +290,7 @@ mc_buf_t<mc_config_t> *mc_transaction_t<mc_config_t>::acquire(block_id_t block_i
                                block_available_callback_t *callback) {
     assert(mode == rwi_read || access != rwi_read);
        
-    cache->pm_n_bufs_acquired++;
+    pm_n_bufs_acquired++;
 
     buf_t *buf = cache->page_map.find(block_id);
     if (!buf) {
@@ -312,7 +313,7 @@ mc_buf_t<mc_config_t> *mc_transaction_t<mc_config_t>::acquire(block_id_t block_i
         // right way because of its internal caching. If that's the
         // case, just return it right away.
         if(buf->is_cached()) {
-            cache->pm_n_bufs_ready++;
+            pm_n_bufs_ready++;
             return buf;
         } else {
             return NULL;
@@ -334,7 +335,7 @@ mc_buf_t<mc_config_t> *mc_transaction_t<mc_config_t>::acquire(block_id_t block_i
             return NULL;
             
         } else {
-            cache->pm_n_bufs_ready++;
+            pm_n_bufs_ready++;
             return buf;
         }
     }
@@ -362,16 +363,7 @@ mc_cache_t<mc_config_t>::mc_cache_t(
     free_list(this),
     shutdown_transaction_backdoor(false),
     state(state_unstarted),
-    num_live_transactions(0),
-    
-    pm_n_transactions_started("transactions_started"),
-    pm_n_transactions_ready("transactions_ready"),
-    pm_n_transactions_committed("transactions_committed"),
-    pm_n_transactions_completed("transactions_completed"),
-    pm_n_bufs_acquired("bufs_acquired"),
-    pm_n_bufs_ready("bufs_ready"),
-    pm_n_bufs_released("bufs_released"),
-    pm_n_blocks_in_memory("blocks_in_memory")
+    num_live_transactions(0)
     { }
 
 template<class mc_config_t>
@@ -382,7 +374,6 @@ mc_cache_t<mc_config_t>::~mc_cache_t() {
     while (buf_t *buf = page_repl.get_first_buf()) {
        delete buf;
     }
-    assert(pm_n_bufs_released.value == pm_n_bufs_acquired.value);
     assert(num_live_transactions == 0);
 }
 

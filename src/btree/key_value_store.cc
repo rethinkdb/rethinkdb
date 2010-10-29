@@ -617,8 +617,7 @@ btree_slice_t::btree_slice_t(
     mirrored_cache_config_t *config)
     : cas_counter(0),
       state(state_unstarted),
-      cache(serializer, config),
-      total_set_operations(0), pm_total_set_operations("cmd_set", &total_set_operations, &perfmon_combiner_sum)
+      cache(serializer, config)
     { }
 
 btree_slice_t::~btree_slice_t() {
@@ -747,3 +746,8 @@ void btree_slice_t::on_cache_shutdown() {
     next_shutting_down_step();
 }
 
+// Stats
+
+perfmon_counter_t
+    pm_cmd_set("cmd_set"),
+    pm_cmd_get("cmd_get");

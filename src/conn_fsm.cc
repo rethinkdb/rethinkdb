@@ -4,6 +4,16 @@
 #include "utils.hpp"
 #include <signal.h>
 
+/* Global counters for the number of conn_fsms in each state */
+
+static perfmon_counter_t
+    pm1("conns_in_socket_connected"),
+    pm2("conns_in_socket_recv_incomplete"),
+    pm3("conns_in_socket_send_incomplete"),
+    pm4("conns_in_btree_incomplete"),
+    pm5("conns_in_outstanding_data");
+static perfmon_counter_t *state_counters[] = { &pm1, &pm2, &pm3, &pm4, &pm5 };
+
 /*
 ~~~ A Brief History of the conn_fsm_t ~~~
 
@@ -303,11 +313,14 @@ void conn_fsm_t::on_net_conn_close() {
 
 void conn_fsm_t::do_transition_and_handle_result(event_t *event) {
     
+    (*(state_counters[state]))--;
+    
     switch (do_transition(event)) {
         
         case fsm_transition_ok:
         case fsm_no_data_in_socket:
-            // Nothing todo
+            // No action
+            (*(state_counters[state]))++;
             break;
             
         case fsm_quit_connection:
@@ -399,8 +412,7 @@ conn_fsm_t::conn_fsm_t(net_conn_t *conn, conn_fsm_shutdown_callback_t *c, reques
     
     init_state();
     
-    // TODO PERFMON get_cpu_context()->worker->curr_connections++;
-    // TODO PERFMON get_cpu_context()->worker->total_connections++;
+    (*(state_counters[state]))++;
 }
 
 conn_fsm_t::~conn_fsm_t() {
@@ -408,8 +420,6 @@ conn_fsm_t::~conn_fsm_t() {
 #ifndef NDEBUG
     fprintf(stderr, "Closed socket %p\n", this);
 #endif
-    
-    // TODO PERFMON get_cpu_context()->worker->curr_connections--;
     
     if (conn) delete conn;
     
@@ -425,6 +435,8 @@ conn_fsm_t::~conn_fsm_t() {
     
     if (shutdown_callback)
         shutdown_callback->on_conn_fsm_shutdown();
+    
+    (*(state_counters[state]))--;
 }
 
 void conn_fsm_t::start_quit() {

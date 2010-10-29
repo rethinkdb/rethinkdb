@@ -15,6 +15,10 @@
 #include <utility>
 #include <sys/time.h>
 
+// Stats
+
+extern perfmon_counter_t pm_blocks_on_disk;
+
 class data_block_manager_t {
 
 public:
@@ -22,9 +26,7 @@ public:
         : shutdown_callback(NULL), state(state_unstarted), serializer(ser),
           dynamic_config(dynamic_config), static_config(static_config), extent_manager(em),
           next_active_extent(0),
-          gc_state(extent_manager->extent_size),
-          pm_garbage_ratio("garbage_ratio", &gc_stats, perfmon_combiner_sum,
-                           perfmon_weighted_average_transformer)
+          gc_state(extent_manager->extent_size)
     {
         assert(dynamic_config);
         assert(static_config);
@@ -192,6 +194,8 @@ private:
             assert(parent->entries.get(offset / parent->extent_manager->extent_size) == NULL);
             parent->entries.set(offset / parent->extent_manager->extent_size, this);
             g_array.set();
+            
+            pm_blocks_on_disk += parent->extent_manager->extent_size / parent->static_config->block_size;
         }
         
         /* This constructor is for reconstructing extents that the LBA tells us contained
@@ -206,6 +210,8 @@ private:
             assert(parent->entries.get(offset / parent->extent_manager->extent_size) == NULL);
             parent->entries.set(offset / parent->extent_manager->extent_size, this);
             g_array.set();
+            
+            pm_blocks_on_disk += parent->extent_manager->extent_size / parent->static_config->block_size;
         }
         
         void destroy() {
@@ -216,6 +222,8 @@ private:
         ~gc_entry() {
             assert(parent->entries.get(offset / parent->extent_manager->extent_size) == this);
             parent->entries.set(offset / parent->extent_manager->extent_size, NULL);
+            
+            pm_blocks_on_disk -= parent->extent_manager->extent_size / parent->static_config->block_size;
         }
         
         void print() {
@@ -338,10 +346,6 @@ private:
         {}
     } gc_stats;
 
-    friend std::ostream& operator<<(std::ostream& out, const data_block_manager_t::gc_stats_t& stats);
-
-    perfmon_var_t<gc_stats_t> pm_garbage_ratio;
-
 public:
     /* \brief ratio of garbage to blocks in the system
      */
@@ -353,7 +357,5 @@ public:
 private:
     DISABLE_COPYING(data_block_manager_t);
 };
-
-std::ostream& operator<<(std::ostream&, const data_block_manager_t::gc_stats_t&);
 
 #endif /* __SERIALIZER_LOG_DATA_BLOCK_MANAGER_HPP__ */

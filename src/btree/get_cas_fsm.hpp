@@ -14,7 +14,11 @@ class btree_get_cas_fsm_t : public btree_modify_fsm_t,
                             public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, btree_get_cas_fsm_t> {
     typedef btree_fsm_t::transition_result_t transition_result_t;
 public:
-    explicit btree_get_cas_fsm_t(btree_key *_key, btree_key_value_store_t *store, request_callback_t *req) : btree_modify_fsm_t(_key, store), req(req), write_lv_msg(NULL), lv_state(lv_state_unknown) {}
+    explicit btree_get_cas_fsm_t(btree_key *_key, btree_key_value_store_t *store, request_callback_t *req)
+        : btree_modify_fsm_t(_key, store), req(req), write_lv_msg(NULL), lv_state(lv_state_unknown)
+    {
+        pm_cmd_get++;
+    }
     
     transition_result_t operate(btree_value *old_value, large_buf_t *old_large_buf, btree_value **new_value) {
         this->update_needed = false;

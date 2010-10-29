@@ -37,11 +37,8 @@ int poll_to_user(int mode) {
     return out_mode;
 }
 
-// TODO: report event queue statistics.
-
 poll_event_queue_t::poll_event_queue_t(linux_queue_parent_t *parent)
-    : parent(parent),
-      events_per_loop(0), pm_events_per_loop("events_per_loop", &events_per_loop, &perfmon_combiner_average)
+    : parent(parent)
 {
 }
 
@@ -61,7 +58,9 @@ void poll_event_queue_t::run() {
             continue;
         }
         check("Waiting for poll events failed", res == -1);
-
+        
+        pm_events_per_loop.set_value_for_this_thread(res);
+        
         int count = 0;
         for (unsigned int i = 0; i < watched_fds.size(); i++) {
             if(watched_fds[i].revents != 0) {
@@ -72,8 +71,6 @@ void poll_event_queue_t::run() {
             if(count == res)
                 break;
         }
-
-        events_per_loop = res;
         
         parent->pump();
     }

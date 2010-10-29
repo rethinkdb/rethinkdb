@@ -3,6 +3,10 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
+perfmon_counter_t
+    pm_serializer_writes_started("serializer_writes_started"),
+    pm_serializer_writes_completed("serializer_writes_completed");
+
 log_serializer_t::log_serializer_t(const char *_db_path, dynamic_config_t *config)
     : dynamic_config(config),
       shutdown_callback(NULL),
@@ -458,11 +462,14 @@ struct ls_write_fsm_t :
     ls_write_fsm_t *next_write;
     
     ls_write_fsm_t(log_serializer_t *ser, log_serializer_t::write_t *writes, int num_writes)
-        : state(state_start), ser(ser), writes(writes), num_writes(num_writes), next_write(NULL) {
+        : state(state_start), ser(ser), writes(writes), num_writes(num_writes), next_write(NULL)
+    {
+        pm_serializer_writes_started++;
     }
     
     ~ls_write_fsm_t() {
         assert(state == state_start || state == state_done);
+        pm_serializer_writes_completed++;
     }
     
     bool run(log_serializer_t::write_txn_callback_t *cb) {

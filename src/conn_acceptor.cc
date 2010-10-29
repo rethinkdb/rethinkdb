@@ -5,7 +5,7 @@
 #include "db_cpu_info.hpp"
 
 conn_acceptor_t::conn_acceptor_t(server_t *server)
-    : state(state_off), server(server), listener(NULL), next_cpu(0), n_active_conns_perfmon("curr_connections", &n_active_conns), n_active_conns(0) { }
+    : state(state_off), server(server), listener(NULL), next_cpu(0), n_active_conns(0) { }
 
 conn_acceptor_t::~conn_acceptor_t() {
     assert(state == state_off);
@@ -90,8 +90,12 @@ bool conn_acceptor_t::shutdown_conns_on_this_core() {
     return true;
 }
 
+perfmon_counter_t pm_conns_total("conns_total");
+
 conn_fsm_handler_t::conn_fsm_handler_t(conn_acceptor_t *parent, net_conn_t *conn)
-    : state(state_go_to_cpu), parent(parent), conn(conn), conn_fsm(NULL) {
+    : state(state_go_to_cpu), parent(parent), conn(conn), conn_fsm(NULL)
+{
+    pm_conns_total++;
 }
 
 bool conn_fsm_handler_t::create_conn_fsm() {
@@ -141,4 +145,5 @@ bool conn_fsm_handler_t::cleanup() {
 
 conn_fsm_handler_t::~conn_fsm_handler_t() {
     assert(!conn_fsm);
+    pm_conns_total--;
 }

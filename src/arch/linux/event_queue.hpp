@@ -2,6 +2,8 @@
 #ifndef __EVENT_QUEUE_HPP__
 #define __EVENT_QUEUE_HPP__
 
+#include "perfmon.hpp"
+
 // Event queue callback
 struct linux_event_callback_t {
     virtual void on_event(int events) = 0;
@@ -19,6 +21,9 @@ struct linux_queue_parent_t {
 const int poll_event_in = 1;
 const int poll_event_out = 2;
 const int poll_event_err = 4;
+
+// Queue stats (declared here so whichever queue is chosen can access it)
+extern perfmon_thread_average_t pm_events_per_loop;
 
 /* Pick the queue now*/
 //#define NO_EPOLL

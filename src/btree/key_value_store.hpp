@@ -195,15 +195,16 @@ private:
     
 public:
     cache_t cache;
-    
-public:
-    /* Statistics */
-    int total_set_operations;
-    perfmon_var_t<int> pm_total_set_operations;
 
 private:
     DISABLE_COPYING(btree_slice_t);
 };
+
+// Stats
+
+extern perfmon_counter_t
+    pm_cmd_set,
+    pm_cmd_get;
 
 // Other parts of the code refer to store_t instead of btree_key_value_store_t to
 // facilitate the process of adding another type of store (such as a hashmap)

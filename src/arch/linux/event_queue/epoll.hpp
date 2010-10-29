@@ -27,10 +27,6 @@ private:
     epoll_event events[MAX_IO_EVENT_PROCESSING_BATCH_SIZE];
     int nevents;
 
-private:
-    int events_per_loop;
-    perfmon_var_t<int> pm_events_per_loop;
-
 public:
     // These should only be called by the event queue itself or by the linux_* classes
     void watch_resource(fd_t resource, int events, linux_event_callback_t *cb);

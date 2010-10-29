@@ -46,7 +46,6 @@ private:
     void on_net_listener_accept(net_conn_t *conn);
     void on_conn_fsm_close();
     
-    perfmon_var_t<int> n_active_conns_perfmon;
     int n_active_conns;
     intrusive_list_t<conn_fsm_handler_t> conn_handlers[MAX_CPUS];
     
