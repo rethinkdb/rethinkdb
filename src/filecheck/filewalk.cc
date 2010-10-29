@@ -12,32 +12,16 @@
 
 #include "filecheck/block_registry.hpp"
 
+namespace {
+
 typedef log_serializer_static_config_t cfg_t;
 typedef data_block_manager_t::buf_data_t buf_data_t;
-
-class dumper_t;
-
-void walk_extents(dumper_t &dumper, direct_file_t &file, cfg_t static_config);
-void observe_blocks(block_registry &registry, direct_file_t &file, cfg_t cfg, size_t filesize);
-bool check_config(cfg_t cfg);
-void get_values(dumper_t &dumper, direct_file_t& file, cfg_t cfg, const segmented_vector_t<off64_t, MAX_BLOCK_ID>& offsets, size_t i);
-void dump_pair_value(dumper_t &dumper, direct_file_t& file, cfg_t cfg, const segmented_vector_t<off64_t, MAX_BLOCK_ID>& offsets, btree_leaf_pair *pair);
 
 struct byteslice {
     const byte *buf;
     size_t len;
 };
 
-// A small simple helper, refactor if we ever use smart pointers elsewhere.
-class freer {
-public:
-    freer() { }
-    ~freer() { for (size_t i = 0; i < ptrs.size(); ++i) free(ptrs[i]); }
-    void add(void *p) { ptrs.push_back(p); }
-private:
-    std::vector<void *, gnew_alloc<void *> > ptrs;
-    DISABLE_COPYING(freer);
-};
 
 class dumper_t {
 public:
@@ -70,28 +54,24 @@ private:
     DISABLE_COPYING(dumper_t);
 };
 
-void walkfile(dumper_t &dumper, const char *path) {
-    // TODO: give the user the ability to force the block size and extent size.
-    direct_file_t file(path, direct_file_t::mode_read);
+void walk_extents(dumper_t &dumper, direct_file_t &file, cfg_t static_config);
+void observe_blocks(block_registry &registry, direct_file_t &file, cfg_t cfg, size_t filesize);
+bool check_config(cfg_t cfg);
+void get_values(dumper_t &dumper, direct_file_t& file, cfg_t cfg, const segmented_vector_t<off64_t, MAX_BLOCK_ID>& offsets, size_t i);
+void dump_pair_value(dumper_t &dumper, direct_file_t& file, cfg_t cfg, const segmented_vector_t<off64_t, MAX_BLOCK_ID>& offsets, btree_leaf_pair *pair);
+void walkfile(dumper_t &dumper, const char *path);
 
-    static_header_t *header = (static_header_t *)malloc_aligned(DEVICE_BLOCK_SIZE, DEVICE_BLOCK_SIZE);
-    freer f;
-    f.add(header);
- 
 
-    file.read_blocking(0, DEVICE_BLOCK_SIZE, header);
-
-    Logf(INF, "software_name: %s\n", header->software_name);
-    Logf(INF, "version: %s\n", header->version);
-
-    cfg_t static_config;
-    memcpy(&static_config, header->data, sizeof(static_config));
-
-    //    size_t block_size = static_config.block_size;
-    //    size_t extent_size = static_config.extent_size;
-    
-    walk_extents(dumper, file, static_config);
-}
+// A small simple helper, refactor if we ever use smart pointers elsewhere.
+class freer {
+public:
+    freer() { }
+    ~freer() { for (size_t i = 0; i < ptrs.size(); ++i) free(ptrs[i]); }
+    void add(void *p) { ptrs.push_back(p); }
+private:
+    std::vector<void *, gnew_alloc<void *> > ptrs;
+    DISABLE_COPYING(freer);
+};
 
 bool check_config(size_t filesize, cfg_t cfg) {
     // Check that we have reasonable block_size and extent_size.
@@ -297,4 +277,39 @@ void dump_pair_value(dumper_t &dumper, direct_file_t& file, cfg_t cfg, const seg
     // TODO: write the flags/exptime(/cas?).
     
     dumper.dump(key, flags, exptime, slices, num_slices);
+}
+
+
+
+
+void walkfile(dumper_t &dumper, const char *path) {
+    // TODO: give the user the ability to force the block size and extent size.
+    direct_file_t file(path, direct_file_t::mode_read);
+
+    static_header_t *header = (static_header_t *)malloc_aligned(DEVICE_BLOCK_SIZE, DEVICE_BLOCK_SIZE);
+    freer f;
+    f.add(header);
+ 
+
+    file.read_blocking(0, DEVICE_BLOCK_SIZE, header);
+
+    Logf(INF, "software_name: %s\n", header->software_name);
+    Logf(INF, "version: %s\n", header->version);
+
+    cfg_t static_config;
+    memcpy(&static_config, header->data, sizeof(static_config));
+
+    //    size_t block_size = static_config.block_size;
+    //    size_t extent_size = static_config.extent_size;
+    
+    walk_extents(dumper, file, static_config);
+}
+
+
+} // namespace (anonymous)
+
+
+void dumpfile(const char *db_filepath, const char *dump_filepath) {
+    dumper_t dumper(dump_filepath);
+    walkfile(dumper, db_filepath);
 }

@@ -1,8 +1,9 @@
 #ifndef __FILECHECK_FILEWALK_HPP__
 #define __FILECHECK_FILEWALK_HPP__
 
-void walkfile(const char *path);
 
+
+void dumpfile(const char *db_filepath, const char *dump_filepath);
 
 
 
