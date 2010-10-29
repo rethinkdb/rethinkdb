@@ -78,7 +78,7 @@ def until(line, data):
     return False
 
 #iterate through lines while they match (and there's data)
-def read_while(lines, data):
+def take_while(lines, data):
     res = []
     while len(data) > 0:
         for line in lines:
@@ -253,7 +253,7 @@ class IOStat(TimeSeries):
             m = until(self.dev_hdr_line, data)
             assert m != False
 
-            m = read_while([self.dev_line], data)
+            m = take_while([self.dev_line], data)
             for device in m:
                 dev_name = device.pop('device')
                 for val in device.iteritems():
@@ -276,7 +276,7 @@ class VMStat(TimeSeries):
                 break
             m = take(self.stats_hdr_line, data)
             assert m != False
-            m = read_while([self.stats_line], data)
+            m = take_while([self.stats_line], data)
             for stat_line in m:
                 for val in stat_line.iteritems():
                     res[val[0]]+= [val[1]]
@@ -303,46 +303,28 @@ class QPS(TimeSeries):
         return res
 
 class RDBStats(TimeSeries):
-
-    stat_line = line("STAT (\S+) (.+)", [('name', 's'), ('value', 's')])
+    int_line  = line("STAT\s+(\w+)\s+(\d+)[^\.](?:\s+\(average of \d+\))?", [('name', 's'), ('value', 'd')])
+    flt_line  = line("STAT\s+(\w+)\s+([\d.]+)\s+\([\d/]+\)", [('name', 's'), ('value', 'f')])
     end_line  = line("END", [])
-    
-    parsers = [
-        line("(\d+)", [('value', 'd')]),
-        line("(\d+) \(average of \d+\)", [('value', 'd')]),
-        line("\d+/%d+ \((\d+\.\d+)\)", [('value', 'f')]),
-        ]
     
     def parse_file(self, file_name):
         res = default_empty_dict()
         data = open(file_name).readlines()
         data.reverse()
         
-        while data:
-            
-            while True:
-                m = take_maybe(self.stat_line, data)
-                if m == False: break
-                
-                for parser in self.parsers:
-                    m2 = parser.parse_line(m["value"])
-                    if m2 != False:
-                        res[m["name"]] += [m2["value"]]
-                        break
-                else:
-                    # TODO: Can we do better in the case of parsing failures?
-                    res[m["name"]] += [-1]
-            
+        while True:
+            m = take_while([self.int_line, self.flt_line], data)
+            if not m:
+                break
+            for match in m:
+                res[match['name']] += [match['value']]
+
             m = take(self.end_line, data)
             assert m != False
-        
-        # Make sure that the same stats appear every time, so that
-        # the time series are not out of sync
-        if res:
-            first = res.keys()[0]
-            for key in res.keys()[1:]:
-                assert len(res[first]) == len(res[key])
-        
+
+            if res:
+                lens = map(lambda x: len(x[1]), res.iteritems())
+                assert max(lens) == min(lens)
         return res
 
     def process(self):
