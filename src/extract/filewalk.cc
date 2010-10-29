@@ -12,7 +12,7 @@
 
 #include "extract/block_registry.hpp"
 
-namespace {
+
 
 typedef log_serializer_static_config_t cfg_t;
 typedef data_block_manager_t::buf_data_t buf_data_t;
@@ -41,7 +41,7 @@ public:
             len += slices[i].len;
         }
 
-        check("could not write to file", 0 > fprintf(fp, "set %.*s %u %u 0 %u\r\n", key->size, key->contents, flags, exptime, len));
+        check("could not write to file", 0 > fprintf(fp, "set %.*s %u %u %u\r\n", key->size, key->contents, flags, exptime, len));
         
         for (size_t i = 0; i < num_slices; ++i) {
             check("could not write to file", slices[i].len != fwrite(slices[i].buf, 1, slices[i].len, fp));
@@ -117,9 +117,23 @@ void walk_extents(dumper_t &dumper, direct_file_t &file, cfg_t cfg) {
 
     size_t n = offsets.get_size();
 
+    Logf(INF, "Finished reading block ids, retrieving key-value pairs (n=%u).\n", n);
     for (size_t i = 0; i < n; ++i) {
+        Logf(DBG, "Getting value %u at offset %d.\n", i, offsets[i]);
         get_values(dumper, file, cfg, offsets, i);
     }
+    Logf(INF, "finished retrieving key-value pairs.\n");
+    
+}
+
+bool check_all_known_magic(block_magic_t magic) {
+    return check_magic<btree_leaf_node>(magic)
+        || check_magic<btree_internal_node>(magic)
+        || check_magic<btree_superblock_t>(magic)
+        || check_magic<large_buf_index>(magic)
+        || check_magic<large_buf_segment>(magic)
+        || !memcmp(&magic, "zerozerozerozero", sizeof(magic));
+    // TODO: less magic string duplication.
 }
 
 void observe_blocks(block_registry &registry, direct_file_t &file, cfg_t cfg, size_t filesize) {
@@ -134,7 +148,7 @@ void observe_blocks(block_registry &registry, direct_file_t &file, cfg_t cfg, si
 
         // TODO: remove magic string code duplication
         if (!memcmp(buf, "lbamagic", 8) || !memcmp(buf, "lbasuper", 8)
-            || !memcmp(buf, "metablck", 8)) {
+            || !memcmp(buf, "RethinkDB", 9)) {
             Logf(INF, "Skipping extent #%u with magic \"%.*s\".\n", offset / cfg.extent_size, 8, buf);
             offset += cfg.extent_size;
         } else {
@@ -145,9 +159,12 @@ void observe_blocks(block_registry &registry, direct_file_t &file, cfg_t cfg, si
                 file.read_blocking(offset, cfg.block_size, buf);
 
                 buf_data_t *buf_data = reinterpret_cast<buf_data_t *>(buf);
+                block_magic_t *magic = reinterpret_cast<block_magic_t *>(buf_data + 1);
 
-                registry.tell_block(offset, buf_data);
-                
+                if (check_all_known_magic(*magic)) {
+                    registry.tell_block(offset, buf_data);
+                }
+
                 offset += cfg.block_size;
             }
         }
@@ -156,23 +173,25 @@ void observe_blocks(block_registry &registry, direct_file_t &file, cfg_t cfg, si
 
 
 void get_values(dumper_t &dumper, direct_file_t& file, cfg_t cfg, const segmented_vector_t<off64_t, MAX_BLOCK_ID>& offsets, size_t i) {
-    // TODO: malloc this less often.
-    void *buf = malloc_aligned(cfg.block_size, DEVICE_BLOCK_SIZE);
-    freer f;
-    f.add(buf);
+    if (offsets[i] != block_registry::null) {
+        // TODO: malloc this less often.
+        void *buf = malloc_aligned(cfg.block_size, DEVICE_BLOCK_SIZE);
+        freer f;
+        f.add(buf);
 
-    file.read_blocking(offsets[i], cfg.block_size, buf);
+        file.read_blocking(offsets[i], cfg.block_size, buf);
 
-    btree_leaf_node *leaf = reinterpret_cast<leaf_node_t *>(reinterpret_cast<buf_data_t *>(buf) + 1);
+        btree_leaf_node *leaf = reinterpret_cast<leaf_node_t *>(reinterpret_cast<buf_data_t *>(buf) + 1);
     
-    if (check_magic<btree_leaf_node>(leaf->magic)) {
-        // We have a leaf node.
+        if (check_magic<btree_leaf_node>(leaf->magic)) {
+            // We have a leaf node.
 
-        uint16_t num_pairs = leaf->npairs;
-        for (uint16_t i = 0; i < num_pairs; ++i) {
-            btree_leaf_pair *pair = leaf_node_handler::get_pair(leaf, leaf->pair_offsets[num_pairs]);
+            uint16_t num_pairs = leaf->npairs;
+            for (uint16_t i = 0; i < num_pairs; ++i) {
+                btree_leaf_pair *pair = leaf_node_handler::get_pair(leaf, leaf->pair_offsets[i]);
 
-            dump_pair_value(dumper, file, cfg, offsets, pair);
+                dump_pair_value(dumper, file, cfg, offsets, pair);
+            }
         }
     }
 }
@@ -200,6 +219,9 @@ void dump_pair_value(dumper_t &dumper, direct_file_t& file, cfg_t cfg, const seg
 
     int64_t seg_size = cfg.block_size - sizeof(large_buf_segment);
 
+    Logf(DBG, "Dumping value for key '%.*s'...\n",
+         key->size, key->contents);
+
     if (value->is_large()) {
         block_id_t indexblock_id = *reinterpret_cast<block_id_t *>(valuebuf);
         if (!(indexblock_id < offsets.get_size())) {
@@ -207,10 +229,17 @@ void dump_pair_value(dumper_t &dumper, direct_file_t& file, cfg_t cfg, const seg
                  key->size, key->contents, indexblock_id);
             return;
         }
-        large_buf_index *indexblockbuf = (large_buf_index *)malloc_aligned(cfg.block_size, DEVICE_BLOCK_SIZE);
-        seg_ptrs.add(indexblockbuf);
+        if (offsets[indexblock_id] == block_registry::null) {
+            Logf(ERR, "With key '%.*s': no blocks seen with large_buf_index block id: %u\n",
+                 key->size, key->contents, indexblock_id);
+            return;
+        }
 
-        file.read_blocking(offsets[indexblock_id], cfg.block_size, indexblockbuf);
+        byte *fullbuf = (byte *)malloc_aligned(cfg.block_size, DEVICE_BLOCK_SIZE);
+        seg_ptrs.add(fullbuf);
+        file.read_blocking(offsets[indexblock_id], cfg.block_size, fullbuf);
+
+        large_buf_index *indexblockbuf = (large_buf_index *)((byte*)fullbuf + sizeof(buf_data_t));
 
         if (!check_magic<large_buf_index>(indexblockbuf->magic)) {
             Logf(ERR, "With key '%.*s': large_buf_index has invalid magic: '%.*s'\n",
@@ -247,8 +276,19 @@ void dump_pair_value(dumper_t &dumper, direct_file_t& file, cfg_t cfg, const seg
         }
 
         for (uint16_t i = 0; i < num_slices; ++i) {
-            large_buf_segment *seg = (large_buf_segment *)malloc_aligned(cfg.block_size, DEVICE_BLOCK_SIZE);
-            seg_ptrs.add(seg);
+            byte *segbuf = (byte *)malloc_aligned(cfg.block_size, DEVICE_BLOCK_SIZE);
+            seg_ptrs.add(segbuf);
+            if (offsets[indexblockbuf->blocks[i]] == block_registry::null) {
+                Logf(ERR,
+                     "With key '%.*s': large_buf has invalid block id %u at segment #%u.\n",
+                     key->size, key->contents, indexblockbuf->blocks[i], i);
+                return;
+            }
+            file.read_blocking(offsets[indexblockbuf->blocks[i]], cfg.block_size, segbuf);
+
+            large_buf_segment *seg = (large_buf_segment *)(segbuf + sizeof(buf_data_t));
+            
+            
 
             if (!check_magic<large_buf_segment>(seg->magic)) {
                 Logf(ERR, "With key '%.*s': large_buf_segment (#%u) has invalid magic: '%.*s'\n",
@@ -306,7 +346,7 @@ void walkfile(dumper_t &dumper, const char *path) {
 }
 
 
-} // namespace (anonymous)
+
 
 
 void dumpfile(const char *db_filepath, const char *dump_filepath) {

@@ -18,6 +18,8 @@ public:
     // like to free up memory.
     const segmented_vector_t<off64_t, MAX_BLOCK_ID>& destroy_transaction_ids();
 
+    enum { null = -1 };
+
 private:
 
     segmented_vector_t<ser_transaction_id_t, MAX_BLOCK_ID> transaction_ids;

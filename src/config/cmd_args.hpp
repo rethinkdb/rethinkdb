@@ -103,5 +103,8 @@ struct cmd_config_t {
 
 void parse_cmd_args(int argc, char *argv[], cmd_config_t *config);
 
+// TODO: remove this.
+void init_config(cmd_config_t *config);
+
 #endif // __CMD_ARGS_HPP__
 
