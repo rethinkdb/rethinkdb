@@ -98,7 +98,7 @@ class TimeSeries():
 
     def read(self, file_name):
         self.data = self.parse_file(file_name)
-#self.process()
+        self.process()
         return self #this just lets you do initialization in one line
 
     def copy(self):
