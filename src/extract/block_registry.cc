@@ -1,4 +1,4 @@
-#include "filecheck/block_registry.hpp"
+#include "extract/block_registry.hpp"
 
 #include "logger.hpp"
 

@@ -1,4 +1,4 @@
-#include "filecheck/filewalk.hpp"
+#include "extract/filewalk.hpp"
 
 #include "alloc/gnew.hpp"
 #include "arch/arch.hpp"
@@ -10,7 +10,7 @@
 #include "utils.hpp"
 #include "logger.hpp"
 
-#include "filecheck/block_registry.hpp"
+#include "extract/block_registry.hpp"
 
 namespace {
 

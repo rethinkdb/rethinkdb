@@ -1,5 +1,5 @@
-#ifndef __FILECHECK_LEAF_REGISTRY_HPP__
-#define __FILECHECK_LEAF_REGISTRY_HPP__
+#ifndef __EXTRACT_LEAF_REGISTRY_HPP__
+#define __EXTRACT_LEAF_REGISTRY_HPP__
 
 #include "serializer/log/data_block_manager.hpp"
 struct btree_leaf_node;
@@ -28,4 +28,4 @@ private:
 
 
 
-#endif  // __FILECHECK_LEAF_REGISTRY_HPP__
+#endif  // __EXTRACT_LEAF_REGISTRY_HPP__
