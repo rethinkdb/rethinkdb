@@ -76,20 +76,20 @@ private:
 bool check_config(size_t filesize, cfg_t cfg) {
     // Check that we have reasonable block_size and extent_size.
     bool errors = false;
-    Logf(INF, "DEVICE_BLOCK_SIZE: %20u\n", DEVICE_BLOCK_SIZE);
-    Logf(INF, "block_size:        %20u\n", cfg.block_size);
+    logINF("DEVICE_BLOCK_SIZE: %20u\n", DEVICE_BLOCK_SIZE);
+    logINF("block_size:        %20u\n", cfg.block_size);
     if (cfg.block_size % DEVICE_BLOCK_SIZE != 0) {
-        Logf(ERR, "block_size is not a multiple of DEVICE_BLOCK_SIZE.\n");
+        logERR("block_size is not a multiple of DEVICE_BLOCK_SIZE.\n");
         errors = true;
     }
-    Logf(INF, "extent_size:       %20u   (%u * block_size)\n", cfg.extent_size, cfg.extent_size / cfg.block_size);
+    logINF("extent_size:       %20u   (%u * block_size)\n", cfg.extent_size, cfg.extent_size / cfg.block_size);
     if (cfg.extent_size % cfg.block_size != 0) {
-        Logf(ERR, "extent_size is not a multiple of block_size.\n");
+        logERR("extent_size is not a multiple of block_size.\n");
         errors = true;
     }
-    Logf(INF, "filesize:          %20u\n", filesize);
+    logINF("filesize:          %20u\n", filesize);
     if (filesize % cfg.extent_size != 0) {
-        Logf(WRN, "filesize is not a multiple of extent_size.\n");
+        logWRN("filesize is not a multiple of extent_size.\n");
         // Maybe this is not so bad.
     }
 
@@ -100,7 +100,7 @@ void walk_extents(dumper_t &dumper, direct_file_t &file, cfg_t cfg) {
     size_t filesize = file.get_size();
 
     if (!check_config(filesize, cfg)) {
-        Logf(ERR, "Errors occurred in the configuration.\n");
+        logERR("Errors occurred in the configuration.\n");
         return;
     }
  
@@ -109,7 +109,7 @@ void walk_extents(dumper_t &dumper, direct_file_t &file, cfg_t cfg) {
     observe_blocks(registry, file, cfg, filesize);
 
     if (!registry.check_block_id_contiguity()) {
-        Logf(WRN, "Block id contiguity check failed.\n");
+        logWRN("Block id contiguity check failed.\n");
     }
 
     // 2.  Pass 2.  Visit leaf nodes, dump their values.
@@ -117,12 +117,12 @@ void walk_extents(dumper_t &dumper, direct_file_t &file, cfg_t cfg) {
 
     size_t n = offsets.get_size();
 
-    Logf(INF, "Finished reading block ids, retrieving key-value pairs (n=%u).\n", n);
+    logINF("Finished reading block ids, retrieving key-value pairs (n=%u).\n", n);
     for (size_t i = 0; i < n; ++i) {
-        Logf(DBG, "Getting value %u at offset %d.\n", i, offsets[i]);
+        logDBG("Getting value %u at offset %d.\n", i, offsets[i]);
         get_values(dumper, file, cfg, offsets, i);
     }
-    Logf(INF, "finished retrieving key-value pairs.\n");
+    logINF("finished retrieving key-value pairs.\n");
     
 }
 
@@ -149,7 +149,7 @@ void observe_blocks(block_registry &registry, direct_file_t &file, cfg_t cfg, si
         // TODO: remove magic string code duplication
         if (!memcmp(buf, "lbamagic", 8) || !memcmp(buf, "lbasuper", 8)
             || !memcmp(buf, "RethinkDB", 9)) {
-            Logf(INF, "Skipping extent #%u with magic \"%.*s\".\n", offset / cfg.extent_size, 8, buf);
+            logINF("Skipping extent #%u with magic \"%.*s\".\n", offset / cfg.extent_size, 8, buf);
             offset += cfg.extent_size;
         } else {
             off64_t end_of_extent = std::min(filesize, offset + cfg.extent_size);
@@ -219,18 +219,19 @@ void dump_pair_value(dumper_t &dumper, direct_file_t& file, cfg_t cfg, const seg
 
     int64_t seg_size = cfg.block_size - sizeof(large_buf_segment);
 
-    Logf(DBG, "Dumping value for key '%.*s'...\n",
-         key->size, key->contents);
+    logDBG("Dumping value for key '%.*s'...\n",
+           key->size, key->contents);
+
 
     if (value->is_large()) {
         block_id_t indexblock_id = *reinterpret_cast<block_id_t *>(valuebuf);
         if (!(indexblock_id < offsets.get_size())) {
-            Logf(ERR, "With key '%.*s': large value has invalid block id: %u\n",
+            logERR("With key '%.*s': large value has invalid block id: %u\n",
                  key->size, key->contents, indexblock_id);
             return;
         }
         if (offsets[indexblock_id] == block_registry::null) {
-            Logf(ERR, "With key '%.*s': no blocks seen with large_buf_index block id: %u\n",
+            logERR("With key '%.*s': no blocks seen with large_buf_index block id: %u\n",
                  key->size, key->contents, indexblock_id);
             return;
         }
@@ -242,22 +243,22 @@ void dump_pair_value(dumper_t &dumper, direct_file_t& file, cfg_t cfg, const seg
         large_buf_index *indexblockbuf = (large_buf_index *)((byte*)fullbuf + sizeof(buf_data_t));
 
         if (!check_magic<large_buf_index>(indexblockbuf->magic)) {
-            Logf(ERR, "With key '%.*s': large_buf_index has invalid magic: '%.*s'\n",
+            logERR("With key '%.*s': large_buf_index has invalid magic: '%.*s'\n",
                  key->size, key->contents, sizeof(indexblockbuf->magic), indexblockbuf->magic.bytes);
             return;
         }
         if (!indexblockbuf->num_segments <= MAX_LARGE_BUF_SEGMENTS) {
-            Logf(ERR, "With key '%.*s': large_buf_index::num_segments is too big: '%u'\n",
+            logERR("With key '%.*s': large_buf_index::num_segments is too big: '%u'\n",
                  key->size, key->contents, indexblockbuf->num_segments);
             return;
         }
         if (!indexblockbuf->first_block_offset > seg_size) {
-            Logf(ERR, "With key '%.*s': large_buf_index::first_block_offset is too big: '%u'\n",
+            logERR("With key '%.*s': large_buf_index::first_block_offset is too big: '%u'\n",
                  key->size, key->contents, indexblockbuf->first_block_offset);
             return;
         }
         if (value->value_size() <= MAX_IN_NODE_VALUE_SIZE) {
-            Logf(ERR, "With key '%.*s': large_buf size is %u which is less than MAX_IN_NODE_VALUE_SIZE (which is %u)",
+            logERR("With key '%.*s': large_buf size is %u which is less than MAX_IN_NODE_VALUE_SIZE (which is %u)",
                  key->size, key->contents, value->value_size(), MAX_IN_NODE_VALUE_SIZE);
             return;
         }
@@ -266,12 +267,11 @@ void dump_pair_value(dumper_t &dumper, direct_file_t& file, cfg_t cfg, const seg
         int64_t firstslicelen = seg_size - indexblockbuf->first_block_offset;
         int64_t lastslicelen = value->value_size() - firstslicelen - (num_slices - 2) * seg_size;
         if (lastslicelen < 0 || lastslicelen > seg_size) {
-            Logf(ERR,
-                 "With key '%.*s': large_buf has a size/num_segments/"
-                 "first_block_offset mismatch (size %u, num_segments %u, "
-                 "first_block_offset %u)\n",
-                 key->size, key->contents, value->value_size(),
-                 indexblockbuf->num_segments, indexblockbuf->first_block_offset);
+            logERR("With key '%.*s': large_buf has a size/num_segments/"
+                   "first_block_offset mismatch (size %u, num_segments %u, "
+                   "first_block_offset %u)\n",
+                   key->size, key->contents, value->value_size(),
+                   indexblockbuf->num_segments, indexblockbuf->first_block_offset);
             return;
         }
 
@@ -279,9 +279,8 @@ void dump_pair_value(dumper_t &dumper, direct_file_t& file, cfg_t cfg, const seg
             byte *segbuf = (byte *)malloc_aligned(cfg.block_size, DEVICE_BLOCK_SIZE);
             seg_ptrs.add(segbuf);
             if (offsets[indexblockbuf->blocks[i]] == block_registry::null) {
-                Logf(ERR,
-                     "With key '%.*s': large_buf has invalid block id %u at segment #%u.\n",
-                     key->size, key->contents, indexblockbuf->blocks[i], i);
+                logERR("With key '%.*s': large_buf has invalid block id %u at segment #%u.\n",
+                       key->size, key->contents, indexblockbuf->blocks[i], i);
                 return;
             }
             file.read_blocking(offsets[indexblockbuf->blocks[i]], cfg.block_size, segbuf);
@@ -291,7 +290,7 @@ void dump_pair_value(dumper_t &dumper, direct_file_t& file, cfg_t cfg, const seg
             
 
             if (!check_magic<large_buf_segment>(seg->magic)) {
-                Logf(ERR, "With key '%.*s': large_buf_segment (#%u) has invalid magic: '%.*s'\n",
+                logERR("With key '%.*s': large_buf_segment (#%u) has invalid magic: '%.*s'\n",
                      key->size, key->contents, i, sizeof(seg->magic), seg->magic);
                 return;
             }
@@ -333,8 +332,8 @@ void walkfile(dumper_t &dumper, const char *path) {
 
     file.read_blocking(0, DEVICE_BLOCK_SIZE, header);
 
-    Logf(INF, "software_name: %s\n", header->software_name);
-    Logf(INF, "version: %s\n", header->version);
+    logINF("software_name: %s\n", header->software_name);
+    logINF("version: %s\n", header->version);
 
     cfg_t static_config;
     memcpy(&static_config, header->data, sizeof(static_config));

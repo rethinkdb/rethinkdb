@@ -770,49 +770,49 @@ error_breakout:
 
             void print() {
 #ifndef NDEBUG
-                mLog_start(DBG);
-                mLogf("\n");
+                mlog_start(DBG);
+                mlogf("\n");
                 //header
-                mLogf("+---------------+---------------+---------------+---------------+ <--- HEADER\n");
-                mLogf("|Magic: 0x%x\t|Opcode: 0x%x\t|Key Length: %u\t\t\t|\n", magic(), opcode(), key_length());
-                mLogf("+---------------+---------------+---------------+---------------+\n");
+                mlogf("+---------------+---------------+---------------+---------------+ <--- HEADER\n");
+                mlogf("|Magic: 0x%x\t|Opcode: 0x%x\t|Key Length: %u\t\t\t|\n", magic(), opcode(), key_length());
+                mlogf("+---------------+---------------+---------------+---------------+\n");
                 if (is_request())
-                    mLogf("|Ex. L: %u\t|Data type: 0x%x\t|Reserved: %u\t\t\t|\n", extra_length(), data_type(), reserved());
+                    mlogf("|Ex. L: %u\t|Data type: 0x%x\t|Reserved: %u\t\t\t|\n", extra_length(), data_type(), reserved());
                 else
-                    mLogf("|Ex. L: %u\t|Data type: 0x%x\t|Status: 0x%x\t\t\t|\n", extra_length(), data_type(), status());
-                mLogf("+---------------+---------------+---------------+---------------+\n");
-                mLogf("|Total body length: %u\t\t\t\t\t\t|\n", total_body_length());
-                mLogf("+---------------+---------------+---------------+---------------+\n");
-                mLogf("|Opaque: %u\t\t\t\t\t\t\t|\n", opaque());
-                mLogf("+---------------+---------------+---------------+---------------+\n");
-                mLogf("|CAS: %lu\t\t\t\t\t\t\t\t|\n", cas());
-                mLogf("|                                                               |\n");
+                    mlogf("|Ex. L: %u\t|Data type: 0x%x\t|Status: 0x%x\t\t\t|\n", extra_length(), data_type(), status());
+                mlogf("+---------------+---------------+---------------+---------------+\n");
+                mlogf("|Total body length: %u\t\t\t\t\t\t|\n", total_body_length());
+                mlogf("+---------------+---------------+---------------+---------------+\n");
+                mlogf("|Opaque: %u\t\t\t\t\t\t\t|\n", opaque());
+                mlogf("+---------------+---------------+---------------+---------------+\n");
+                mlogf("|CAS: %lu\t\t\t\t\t\t\t\t|\n", cas());
+                mlogf("|                                                               |\n");
 
                 //extras
-                mLogf("+---------------+---------------+---------------+---------------+ <-- EXTRAS\n");
+                mlogf("+---------------+---------------+---------------+---------------+ <-- EXTRAS\n");
                 for (unsigned int i = 0; i < extra_length(); i++) {
                     if (i % 4 == 0 && i != 0)
-                        mLogf("|\n+---------------+---------------+---------------+---------------+\n");
-                    mLogf("|0x%x\t\t", (uint8_t) extras()[i]);
+                        mlogf("|\n+---------------+---------------+---------------+---------------+\n");
+                    mlogf("|0x%x\t\t", (uint8_t) extras()[i]);
                 }
 
                 //key
-                mLogf("|\n+---------------+---------------+---------------+---------------+ <-- KEY\n");
+                mlogf("|\n+---------------+---------------+---------------+---------------+ <-- KEY\n");
                 for (unsigned int i = 0; i < key_length(); i++) {
                     if (i % 4 == 0 && i != 0)
-                        mLogf("|\n+---------------+---------------+---------------+---------------+\n");
-                    mLogf("|%c\t\t", key()[i]);
+                        mlogf("|\n+---------------+---------------+---------------+---------------+\n");
+                    mlogf("|%c\t\t", key()[i]);
                 }
 
                 //value
-                mLogf("|\n+---------------+---------------+---------------+---------------+ <-- VALUE\n");
+                mlogf("|\n+---------------+---------------+---------------+---------------+ <-- VALUE\n");
                 for (unsigned int i = 0; i < value_length(); i++) {
                     if (i % 4 == 0 && i != 0)
-                        mLogf("|\n+---------------+---------------+---------------+---------------+\n");
-                    mLogf("|%c\t\t", value()[i]);
+                        mlogf("|\n+---------------+---------------+---------------+---------------+\n");
+                    mlogf("|%c\t\t", value()[i]);
                 }
-                mLogf("|\n+---------------+---------------+---------------+---------------+\n");
-                mLog_end();
+                mlogf("|\n+---------------+---------------+---------------+---------------+\n");
+                mlog_end();
 #endif
             }
     };

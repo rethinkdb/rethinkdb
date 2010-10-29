@@ -22,7 +22,7 @@ struct logger_t :
     logger_t(log_controller_t *controller)
         : msg(NULL), controller(controller), active_msg_count(0), shutting_down(false) { }
     
-    // The message we are currently composing; non-NULL between mLog_start() and mLog_end()
+    // The message we are currently composing; non-NULL between mlog_start() and mlog_end()
     log_msg_t *msg;
     
     log_controller_t *controller;
@@ -123,23 +123,23 @@ public:
 
 /* Functions to actually do the logging */
 
-static void vmLogf(const char *format, va_list arg) {
+static void vmlogf(const char *format, va_list arg) {
     int pos = strlen(logger_t::logger->msg->str);
     vsnprintf((char *)logger_t::logger->msg->str + pos, (size_t) MAX_LOG_MSGLEN - pos, format, arg);
 }
 
-void _Logf(const char *src_file, int src_line, log_level_t level, const char *format, ...) {
-    _mLog_start(src_file, src_line, level);
+void _logf(const char *src_file, int src_line, log_level_t level, const char *format, ...) {
+    _mlog_start(src_file, src_line, level);
 
     va_list arg;
     va_start(arg, format);
-    vmLogf(format, arg);
+    vmlogf(format, arg);
     va_end(arg);
 
-    mLog_end();
+    mlog_end();
 }
 
-void _mLog_start(const char *src_file, int src_line, log_level_t level) {
+void _mlog_start(const char *src_file, int src_line, log_level_t level) {
     assert(!logger_t::logger->msg);
     log_msg_t *msg = logger_t::logger->msg = new log_msg_t(logger_t::logger);
     msg->level = level;
@@ -148,14 +148,14 @@ void _mLog_start(const char *src_file, int src_line, log_level_t level) {
     msg->logger = logger_t::logger;
 }
 
-void mLogf(const char *format, ...) {
+void mlogf(const char *format, ...) {
     va_list arg;
     va_start(arg, format);
-    vmLogf(format, arg);
+    vmlogf(format, arg);
     va_end(arg);
 }
 
-void mLog_end() {
+void mlog_end() {
     log_msg_t *msg = logger_t::logger->msg;
     assert(msg);
     if (continue_on_cpu(logger_t::logger->controller->home_cpu, msg)) msg->on_cpu_switch();
@@ -173,7 +173,7 @@ log_controller_t::~log_controller_t() {
     assert(log_file == NULL);
 }
 
-/* Log controller startup process */
+/* log controller startup process */
 
 bool log_controller_t::start(ready_callback_t *ready_cb) {
     
@@ -233,7 +233,7 @@ void log_controller_t::write(const char *str) {
     writef("%s", str);
 }
 
-/* Log controller shutdown process */
+/* log controller shutdown process */
 
 bool log_controller_t::shutdown(shutdown_callback_t *cb) {
     

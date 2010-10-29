@@ -19,16 +19,25 @@ enum log_level_t {
 
 // logf is a standard library function in <math.h>.  So we use Logf.
 
-void _Logf(const char *src_file, int src_line, log_level_t level, const char *format, ...);
-#define Logf(lvl, fmt, args...) (_Logf(__FILE__, __LINE__, (lvl), (fmt) , ##args))
+void _logf(const char *src_file, int src_line, log_level_t level, const char *format, ...);
+
+#ifndef NDEBUG
+#define logDBG(fmt, args...) _logf(__FILE__, __LINE__, DBG, (fmt), ##args)
+#else
+#define logDBG(fmt, args...) ((void)0)
+#endif
+
+#define logINF(fmt, args...) _logf(__FILE__, __LINE__, INF, (fmt), ##args)
+#define logWRN(fmt, args...) _logf(__FILE__, __LINE__, WRN, (fmt), ##args)
+#define logERR(fmt, args...) _logf(__FILE__, __LINE__, ERR, (fmt), ##args)
 
 // Log a message in pieces.
 
-void _mLog_start(const char *src_file, int src_line, log_level_t level);
-#define mLog_start(lvl) (_mLog_start(__FILE__, __LINE__, (lvl)))
+void _mlog_start(const char *src_file, int src_line, log_level_t level);
+#define mlog_start(lvl) (_mlog_start(__FILE__, __LINE__, (lvl)))
 
-void mLogf(const char *format, ...);
+void mlogf(const char *format, ...);
 
-void mLog_end();
+void mlog_end();
 
 #endif /* __LOG_HPP__ */

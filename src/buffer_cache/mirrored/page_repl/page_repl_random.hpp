@@ -99,8 +99,8 @@ public:
                 delete block_to_unload;
             } else {
                 if (array.size() > target + (target / 100) + 10) {
-                    Logf(INF, "cache %p exceeding memory target. %d blocks in memory, %d dirty, target is %d.\n",
-                        cache, array.size(), cache->writeback.num_dirty_blocks(), target);
+                    logINF("cache %p exceeding memory target. %d blocks in memory, %d dirty, target is %d.\n",
+                           cache, array.size(), cache->writeback.num_dirty_blocks(), target);
                 }
                 break;
             }
