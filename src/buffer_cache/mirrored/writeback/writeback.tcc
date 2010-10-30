@@ -138,6 +138,7 @@ bool writeback_tmpl_t<mc_config_t>::writeback_start_and_acquire_lock() {
 
     assert(!writeback_in_progress);
     writeback_in_progress = true;
+    pm_flushes_started++;
     cache->assert_cpu();
         
     // Cancel the flush timer because we're doing writeback now, so we don't need it to remind
@@ -178,7 +179,9 @@ bool writeback_tmpl_t<mc_config_t>::writeback_acquire_bufs() {
     
     assert(writeback_in_progress);
     cache->assert_cpu();
-
+    
+    pm_flushes_acquired_lock++;
+    
     current_sync_callbacks.append_and_clear(&sync_callbacks);
 
     /* Request read locks on all of the blocks we need to flush.
@@ -294,6 +297,7 @@ bool writeback_tmpl_t<mc_config_t>::writeback_do_cleanup() {
     // Don't clear writeback_in_progress until after we call all the sync callbacks, because
     // otherwise it would crash if a sync callback called sync().
     writeback_in_progress = false;
+    pm_flushes_completed++;
 
     if (start_next_sync_immediately) {
         start_next_sync_immediately = false;

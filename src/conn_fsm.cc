@@ -435,8 +435,6 @@ conn_fsm_t::~conn_fsm_t() {
     
     if (shutdown_callback)
         shutdown_callback->on_conn_fsm_shutdown();
-    
-    (*(state_counters[state]))--;
 }
 
 void conn_fsm_t::start_quit() {
@@ -455,6 +453,7 @@ void conn_fsm_t::start_quit() {
         case fsm_outstanding_data:
             consume(nrbuf);
             return_to_socket_connected();
+            (*(state_counters[state]))--;
             delete this;
             break;
         case fsm_socket_send_incomplete:

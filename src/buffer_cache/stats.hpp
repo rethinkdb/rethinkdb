@@ -19,4 +19,9 @@ extern perfmon_counter_t
     pm_n_blocks_dirty,
     pm_n_blocks_total;
 
+extern perfmon_counter_t
+    pm_flushes_started,
+    pm_flushes_acquired_lock,
+    pm_flushes_completed;
+
 #endif /* __BUFFER_CACHE_STATS_HPP__ */

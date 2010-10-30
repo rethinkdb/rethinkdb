@@ -15,3 +15,8 @@ perfmon_counter_t
     pm_n_blocks_in_memory("blocks_in_memory"),
     pm_n_blocks_dirty("blocks_dirty"),
     pm_n_blocks_total("blocks_total");
+
+perfmon_counter_t
+    pm_flushes_started("flushes_started"),
+    pm_flushes_acquired_lock("flushes_acquired_lock"),
+    pm_flushes_completed("flushes_completed");
