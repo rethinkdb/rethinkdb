@@ -115,11 +115,13 @@ void writeback_tmpl_t<mc_config_t>::local_buf_t::set_dirty(bool _dirty) {
         // Mark block as dirty if it hasn't been already
         dirty = true;
         gbuf->cache->writeback.dirty_bufs.push_back(this);
+        pm_n_blocks_dirty++;
     }
     if(dirty && !_dirty) {
         // We need to "unmark" the buf
         dirty = false;
         gbuf->cache->writeback.dirty_bufs.remove(this);
+        pm_n_blocks_dirty--;
     }
 }
 
@@ -215,6 +217,7 @@ bool writeback_tmpl_t<mc_config_t>::writeback_acquire_bufs() {
             
             // Dodge assertions so we can delete the buf
             buf->writeback_buf.dirty = false;
+            pm_n_blocks_dirty--;
             buf->release();
             dirty_bufs.remove(&buf->writeback_buf);
             
@@ -256,6 +259,7 @@ void writeback_tmpl_t<mc_config_t>::buf_was_written(buf_t *buf) {
     cache->assert_cpu();
     assert(buf);
     buf->writeback_buf.dirty = false;
+    pm_n_blocks_dirty--;
     buf->release();
 }
 

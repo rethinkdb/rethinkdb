@@ -16,6 +16,7 @@ extern perfmon_counter_t
 
 extern perfmon_counter_t
     pm_n_blocks_in_memory,
+    pm_n_blocks_dirty,
     pm_n_blocks_total;
 
 #endif /* __BUFFER_CACHE_STATS_HPP__ */

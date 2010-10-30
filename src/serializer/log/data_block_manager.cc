@@ -4,8 +4,11 @@
 #include "arch/arch.hpp"
 
 perfmon_counter_t
-    pm_blocks_on_disk("blocks_on_disk"),
-    pm_serializer_extents_gced("serializer_extents_gced");
+    pm_serializer_data_extents("serializer_data_extents"),
+    pm_serializer_data_extents_allocated("serializer_data_extents_allocated"),
+    pm_serializer_data_extents_reclaimed("serializer_data_extents_reclaimed"),
+    pm_serializer_data_extents_gced("serializer_data_extents_gced"),
+    pm_serializer_data_blocks_written("serializer_data_blocks_written");
 
 void data_block_manager_t::start_new(direct_file_t *file) {
 
@@ -131,7 +134,8 @@ bool data_block_manager_t::write(void *buf_in, ser_block_id_t block_id, ser_tran
 
     off64_t offset = *off_out = gimme_a_new_offset();
     
-    // TODO: This is absolutely disgusting.
+    pm_serializer_data_blocks_written++;
+    
     buf_data_t *data = (buf_data_t*)buf_in;
     data--;
     *data = make_buf_data_t(block_id, transaction_id);
@@ -187,6 +191,8 @@ void data_block_manager_t::mark_garbage(off64_t offset) {
                 break;
         }
         
+        pm_serializer_data_extents_reclaimed++;
+        
         entry->destroy();
         
     } else if (entry->state == gc_entry::state_old) {
@@ -211,7 +217,7 @@ void data_block_manager_t::run_gc() {
         case gc_ready:
             if (gc_pq.empty() || !should_we_keep_gcing(*gc_pq.peak())) return;
             
-            pm_serializer_extents_gced++;
+            pm_serializer_data_extents_gced++;
             
             /* grab the entry */
             gc_state.current_entry = gc_pq.pop();
@@ -373,6 +379,8 @@ off64_t data_block_manager_t::gimme_a_new_offset() {
         active_extents[next_active_extent] = new gc_entry(this);
         active_extents[next_active_extent]->state = gc_entry::state_active;
         blocks_in_active_extent[next_active_extent] = 0;
+        
+        pm_serializer_data_extents_allocated++;
     }
     
     /* Put the block into the chosen extent */

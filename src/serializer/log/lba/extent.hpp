@@ -31,6 +31,8 @@ We need a way to tell the extent_t that we don't actually need its contents in m
 it can free its internal buffer. This is an optimization to save memory and isn't urgent.
 */
 
+extern perfmon_counter_t pm_serializer_lba_extents;
+
 template <class data_t>
 struct extent_t :
     public iocallback_t,
@@ -78,12 +80,15 @@ private:
 #ifdef VALGRIND
         memset(_data, 0xBD, em->extent_size);   // Make Valgrind happy
 #endif
+        
+        pm_serializer_lba_extents++;
     }
     
     // Use delete() or shutdown() instead
     virtual ~extent_t() {
         assert(!last_sync);
         free(_data);
+        pm_serializer_lba_extents--;
     }
 
 public:

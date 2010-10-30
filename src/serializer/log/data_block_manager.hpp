@@ -17,7 +17,7 @@
 
 // Stats
 
-extern perfmon_counter_t pm_blocks_on_disk;
+extern perfmon_counter_t pm_serializer_data_extents;
 
 class data_block_manager_t {
 
@@ -195,7 +195,7 @@ private:
             parent->entries.set(offset / parent->extent_manager->extent_size, this);
             g_array.set();
             
-            pm_blocks_on_disk += parent->extent_manager->extent_size / parent->static_config->block_size;
+            pm_serializer_data_extents++;
         }
         
         /* This constructor is for reconstructing extents that the LBA tells us contained
@@ -211,7 +211,7 @@ private:
             parent->entries.set(offset / parent->extent_manager->extent_size, this);
             g_array.set();
             
-            pm_blocks_on_disk += parent->extent_manager->extent_size / parent->static_config->block_size;
+            pm_serializer_data_extents++;
         }
         
         void destroy() {
@@ -223,7 +223,7 @@ private:
             assert(parent->entries.get(offset / parent->extent_manager->extent_size) == this);
             parent->entries.set(offset / parent->extent_manager->extent_size, NULL);
             
-            pm_blocks_on_disk -= parent->extent_manager->extent_size / parent->static_config->block_size;
+            pm_serializer_data_extents--;
         }
         
         void print() {

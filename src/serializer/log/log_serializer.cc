@@ -4,6 +4,8 @@
 #include <unistd.h>
 
 perfmon_counter_t
+    pm_serializer_reads_started("serializer_reads_started"),
+    pm_serializer_reads_completed("serializer_reads_completed"),
     pm_serializer_writes_started("serializer_writes_started"),
     pm_serializer_writes_completed("serializer_writes_completed");
 
@@ -663,7 +665,14 @@ struct ls_read_fsm_t :
     void *buf;
     
     ls_read_fsm_t(log_serializer_t *ser, ser_block_id_t block_id, void *buf)
-        : ser(ser), block_id(block_id), buf(buf) { }
+        : ser(ser), block_id(block_id), buf(buf)
+    {
+        pm_serializer_reads_started++;
+    }
+    
+    ~ls_read_fsm_t() {
+        pm_serializer_reads_completed++;
+    }
     
     serializer_t::read_callback_t *read_callback;
     
