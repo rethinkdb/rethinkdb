@@ -9,6 +9,7 @@
 struct memcached_protocol_t : public protocol_t {
     memcached_protocol_t() {
         memcached_create(&memcached);
+        memcached_behavior_set(&memcached, MEMCACHED_BEHAVIOR_NOREPLY, 1);
     }
 
     virtual ~memcached_protocol_t() {
