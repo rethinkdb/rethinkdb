@@ -78,7 +78,7 @@ class dbench():
 
         flot_data = 'data'
         reduce(lambda x, y: x + y, self.bench_stats.timeseries).json(self.out_dir + '/' + self.dir_str + '/' + flot_data)
-        print >>res, flot('http://' + self.hostname + '/' + self.prof_dir + '/' + self.dir_str + '/' + flot_data + '.js', 'View data')
+        print >>res, flot('/' + self.prof_dir + '/' + self.dir_str + '/' + flot_data + '.js', 'View data')
         
 #        for name, timeseries in zip(self.bench_stats.timeseries_names, self.bench_stats.timeseries):
 #            if timeseries.data:
