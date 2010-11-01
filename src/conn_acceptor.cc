@@ -90,7 +90,7 @@ bool conn_acceptor_t::shutdown_conns_on_this_core() {
     return true;
 }
 
-perfmon_counter_t pm_conns_total("conns_total");
+perfmon_counter_t pm_conns_total("conns_total[conns]");
 
 conn_fsm_handler_t::conn_fsm_handler_t(conn_acceptor_t *parent, net_conn_t *conn)
     : state(state_go_to_cpu), parent(parent), conn(conn), conn_fsm(NULL)

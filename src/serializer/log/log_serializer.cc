@@ -4,10 +4,10 @@
 #include <unistd.h>
 
 perfmon_counter_t
-    pm_serializer_reads_started("serializer_reads_started"),
-    pm_serializer_reads_completed("serializer_reads_completed"),
-    pm_serializer_writes_started("serializer_writes_started"),
-    pm_serializer_writes_completed("serializer_writes_completed");
+    pm_serializer_reads_started("serializer_reads_started[sreads]"),
+    pm_serializer_reads_completed("serializer_reads_completed[sreads]"),
+    pm_serializer_writes_started("serializer_writes_started[swrites]"),
+    pm_serializer_writes_completed("serializer_writes_completed[swrites]");
 
 log_serializer_t::log_serializer_t(const char *_db_path, dynamic_config_t *config)
     : dynamic_config(config),

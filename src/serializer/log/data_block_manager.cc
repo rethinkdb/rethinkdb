@@ -5,9 +5,9 @@
 
 perfmon_counter_t
     pm_serializer_data_extents("serializer_data_extents"),
-    pm_serializer_data_extents_allocated("serializer_data_extents_allocated"),
-    pm_serializer_data_extents_reclaimed("serializer_data_extents_reclaimed"),
-    pm_serializer_data_extents_gced("serializer_data_extents_gced"),
+    pm_serializer_data_extents_allocated("serializer_data_extents_allocated[dexts]"),
+    pm_serializer_data_extents_reclaimed("serializer_data_extents_reclaimed[dexts]"),
+    pm_serializer_data_extents_gced("serializer_data_extents_gced[dexts]"),
     pm_serializer_data_blocks_written("serializer_data_blocks_written");
 
 void data_block_manager_t::start_new(direct_file_t *file) {
