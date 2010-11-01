@@ -26,10 +26,9 @@ There are two ways to destroy an extent_t:
 You should not use the 'new' or 'delete' operators with extent_t.
 */
 
-/* TODO:
-We need a way to tell the extent_t that we don't actually need its contents in memory anymore, so
-it can free its internal buffer. This is an optimization to save memory and isn't urgent.
-*/
+/* TODO: We need a way to tell the extent_t that we don't actually need its contents in memory
+anymore, so it can free its internal buffer. This is an optimization to save memory and isn't
+urgent. */
 
 extern perfmon_counter_t pm_serializer_lba_extents;
 

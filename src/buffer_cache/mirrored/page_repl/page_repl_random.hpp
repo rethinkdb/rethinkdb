@@ -8,11 +8,6 @@
 // OS doesn't swap out our pages, since we're doing swapping
 // ourselves.
 
-// TODO: we might want to decouple selection of pages to free from the
-// actual cleaning process (e.g. we might have random vs. lru
-// selection strategies, and immediate vs. proactive cleaing
-// strategy).
-
 /*
 The random page replacement algorithm needs to be able to quickly choose a random buf among all the
 bufs in memory. This is accomplished using a dense array of buf_t* in a completely arbitrary order.
@@ -102,13 +97,10 @@ public:
                 details */
                 delete block_to_unload;
             } else {
-#ifndef NDEBUG
-                // TODO: Use logging
-                // TODO: Each cache needs its own identifier so that we can make this message
-                // say which cache the problem came from
-                printf("exceeding memory target. %d blocks in memory, %d dirty, target is %d.\n",
-                    array.size(), cache->writeback.num_dirty_blocks(), target);
-#endif
+                if (array.size() > target + (target / 100) + 10) {
+                    logf(INF, "cache %p exceeding memory target. %d blocks in memory, %d dirty, target is %d.\n",
+                        cache, array.size(), cache->writeback.num_dirty_blocks(), target);
+                }
                 break;
             }
         }

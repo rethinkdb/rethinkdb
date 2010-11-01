@@ -206,8 +206,6 @@ void data_block_manager_t::start_gc() {
         run_gc();
 }
 
-/* TODO this currently cleans extent by extent, we should tune it to always have a certain number of outstanding blocks
- */
 void data_block_manager_t::run_gc() {
     bool run_again = true;
     while (run_again) {

@@ -1,7 +1,6 @@
 #include "get_fsm.hpp"
 #include "utils.hpp"
 
-//TODO: remove
 #include "btree/internal_node.hpp"
 #include "btree/leaf_node.hpp"
 

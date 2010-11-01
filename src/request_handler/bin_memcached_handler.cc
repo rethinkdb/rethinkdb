@@ -86,20 +86,17 @@ public:
     }
     
     ~bin_memcached_get_request_t() {
-        // TODO PERFMON get_cpu_context()->worker->cmd_get++;
         delete fsm;
     }
     
     br_result_t build_response(packet_t *res_pkt) {
         switch (fsm->status_code) {
             case btree_get_fsm_t::S_SUCCESS:
-                // TODO PERFMON get_cpu_context()->worker->get_hits++;
                 res_pkt->status(bin_memcached_handler_t::bin_status_no_error);
                 res_pkt->set_value(&fsm->value);
                 res_pkt->set_extras(extra_flags, extra_flags_length);
                 break;
             case btree_get_fsm_t::S_NOT_FOUND:
-                // TODO PERFMON get_cpu_context()->worker->get_misses++;
                 res_pkt->status(bin_memcached_handler_t::bin_status_key_not_found);
                 break;
             default:
@@ -135,7 +132,6 @@ public:
     }
     
     ~bin_memcached_set_request_t() {
-        // TODO PERFMON get_cpu_context()->worker->cmd_set++;
         delete fsm;
     }
     
@@ -168,7 +164,6 @@ public:
     }
     
     ~bin_memcached_incr_decr_request_t() {
-        // TODO PERFMON get_cpu_context()->worker->cmd_set++;
         delete fsm;
     }
     
@@ -184,10 +179,7 @@ public:
             case btree_incr_decr_fsm_t::S_NOT_FOUND:
                 res_pkt->status(bin_memcached_handler_t::bin_status_key_not_found);
                 break;
-            default:
-                // XXX
-                assert(0);
-                break;
+            default: fail("Bad status code.");
         }
         return br_done;
     }
@@ -211,7 +203,6 @@ public:
     }
 
     ~bin_memcached_append_prepend_request_t() {
-        // TODO PERFMON get_cpu_context()->worker->cmd_set++;
         delete fsm;
     }
 

@@ -3,6 +3,10 @@
 
 #include <sys/types.h>
 
+/* TODO: It would be nice to remove this file and the event_t type completely. Right now, it's used
+irregularly in a couple of different places, but it doesn't really mean anything and should just
+be gotten rid of. */
+
 // Event
 enum event_type_t {
     et_empty, et_sock, et_request_complete, et_cache, et_large_buf,

@@ -42,7 +42,6 @@ ssize_t linux_net_conn_t::read_nonblocking(void *buf, size_t count) {
 
 ssize_t linux_net_conn_t::write_nonblocking(const void *buf, size_t count) {
 
-    // TODO PERFMON get_cpu_context()->worker->bytes_written += count;
     int res = ::write(sock, buf, count);
     if(res == EAGAIN || res == EWOULDBLOCK) {
         // Whoops, got stuff to write, turn on write notification.

@@ -103,13 +103,11 @@ public:
     
     ~txt_memcached_get_request_t() {
         for (int i = 0; i < num_fsms; i ++) {
-            // TODO PERFMON get_cpu_context()->worker->cmd_get++;
             delete fsms[i];
         }
     }
 
     void value_header(linked_buf_t *sbuf, btree_get_fsm_t *fsm) {
-        // TODO PERFMON get_cpu_context()->worker->get_hits++;
         sbuf->printf("VALUE %*.*s %u %u\r\n",
                 fsm->key.size, fsm->key.size, fsm->key.contents,
                 fsm->value.mcflags(),
@@ -159,7 +157,6 @@ public:
                     }
                     break;
                 case btree_get_fsm_t::S_NOT_FOUND:
-                    // TODO PERFMON get_cpu_context()->worker->get_misses++;
                     break;
                 default:
                     assert(0);
@@ -227,8 +224,6 @@ public:
     }
 
     void value_header(linked_buf_t *sbuf, btree_get_cas_fsm_t *fsm) {
-        // TODO: Figure out stats.
-        //get_cpu_context()->worker->get_hits++; // XXX: Perfmon is broken.
         sbuf->printf("VALUE %*.*s %u %u %llu\r\n",
             fsm->key.size, fsm->key.size, fsm->key.contents,
             fsm->value.mcflags(),
@@ -280,7 +275,6 @@ public:
                     }
                     break;
                 case btree_get_fsm_t::S_NOT_FOUND:
-                    //get_cpu_context()->worker->get_misses++; // XXX Perfmon is broken.
                     break;
                 default:
                     assert(0);
@@ -320,7 +314,6 @@ public:
     }
 
     ~txt_memcached_set_request_t() {
-        // TODO PERFMON get_cpu_context()->worker->cmd_set++;
         delete fsm;
     }
 
@@ -385,7 +378,6 @@ public:
     }
 
     ~txt_memcached_incr_decr_request_t() {
-        // TODO PERFMON get_cpu_context()->worker->cmd_set++;
         delete fsm;
     }
 
@@ -422,7 +414,6 @@ public:
     }
 
     ~txt_memcached_append_prepend_request_t() {
-        // TODO PERFMON get_cpu_context()->worker->cmd_set++;
         delete fsm;
     }
 
@@ -645,11 +636,6 @@ private:
 // Process commands received from the user
 txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::parse_request(event_t *event) {
     assert(event->state == conn_fsm);
-
-    // TODO: we might end up getting a command, and a piece of the
-    // next command. It also means that we can't use one buffer
-    //for both recv and send, we need to add a send buffer
-    // (assuming we want to support out of band  commands).
 
     // check if we're supposed to be reading a binary blob
     if (loading_data) {

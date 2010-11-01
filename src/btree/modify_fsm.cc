@@ -353,13 +353,6 @@ btree_modify_fsm_t::transition_result_t btree_modify_fsm_t::do_transition(event_
 
                 // STEP 3: Update if we're at a leaf node and operate() told us to.
                 if (update_needed) {
-                    // Update stats
-                    if (new_value && !key_found) {
-                        // TODO PERFMON get_cpu_context()->worker->total_items++;
-                        // TODO PERFMON get_cpu_context()->worker->curr_items++;
-                    } else if (key_found && !new_value) {
-                        // TODO PERFMON get_cpu_context()->worker->curr_items--;
-                    }
                     
                    assert(have_computed_new_value);
                    assert(node_handler::is_leaf(node));

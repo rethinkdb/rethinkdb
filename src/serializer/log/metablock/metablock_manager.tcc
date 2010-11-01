@@ -210,11 +210,14 @@ void metablock_manager_t<metablock_t>::on_io_complete(event_t *e) {
                 
                 /* no metablock found anywhere -- the DB is toast */
                 
-                // TODO: If the db is toast, what does that mean?  Why don't we catastrophically fail?
-                
                 // Start versions from 0, not from whatever garbage was in the last thing we read
                 mb_buffer->version = MB_START_VERSION;
                 *mb_found = false;
+                
+                /* The log serializer will catastrophically fail when it sees that mb_found is
+                false. We could catastrophically fail here, but it's a bit nicer to have the
+                metablock manager as a standalone component that doesn't know how to behave if there
+                is no metablock. */
                 
             } else {
                 /* we found a metablock */

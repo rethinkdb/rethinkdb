@@ -5,9 +5,7 @@
 // TODO: add cursor/iterator mechanism
 
 void btree_fsm_t::on_block_available(buf_t *buf) {
-    // TODO: Since we're changing the event system to untangle the
-    // central processing at main.cc, we should have do_transition
-    // accept a buf_t instead of event_t.
+    // TODO: We should get rid of event_t and pass a buf_t instead?
     
     // Convert buf to an event and call do_transition
     event_t event;
