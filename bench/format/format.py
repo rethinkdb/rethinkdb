@@ -21,9 +21,13 @@ class dbench():
         self.dir_str = time.asctime().replace(' ', '_').replace(':', '_')
         os.makedirs(self.out_dir + '/' + self.dir_str)
         self.bench_stats = self.bench_stats(dir + self.bench_dir + '/1')
-        rundirs = os.listdir(dir + '/' + self.oprofile_dir)
-        rundirs.remove(self.log_file)
-        rundirs.sort(key = lambda x: int(x))
+        rundirs = []
+        try:
+            rundirs += os.listdir(dir + '/' + self.oprofile_dir)
+            rundirs.remove(self.log_file)
+            rundirs.sort(key = lambda x: int(x))
+        except:
+            print 'No OProfile data found'
         self.prof_stats = []
         for rundir in rundirs:
             self.prof_stats.append(self.oprofile_stats(dir + self.oprofile_dir + '/' + rundir + '/'))
@@ -80,16 +84,12 @@ class dbench():
         reduce(lambda x, y: x + y, self.bench_stats.timeseries).json(self.out_dir + '/' + self.dir_str + '/' + flot_data)
         print >>res, flot('/' + self.prof_dir + '/' + self.dir_str + '/' + flot_data + '.js', 'View data')
         
-#        for name, timeseries in zip(self.bench_stats.timeseries_names, self.bench_stats.timeseries):
-#            if timeseries.data:
-#                timeseries.json(self.out_dir + """/""" + self.dir_str + """/""" + name)
-#                print >>res, "<p> %s: </p>" % name
-#                print >>res, flot("""http://""" + self.hostname + """/""" + self.prof_dir + """/""" + self.dir_str + """/""" + name + """.js""", """View data for: %s""" % name) #TODO use no-ip
-
-
-        prog_report = reduce(lambda x,y: x + y, (map(lambda x: x.oprofile, self.prof_stats)))
-        ratios = reduce(lambda x,y: x + y, map(lambda x: x.ratios, small_packet_profiles))
-        print >>res, prog_report.report_as_html(ratios, CPU_CLK_UNHALTED, 15)
+        if self.prof_stats:
+            prog_report = reduce(lambda x,y: x + y, (map(lambda x: x.oprofile, self.prof_stats)))
+            ratios = reduce(lambda x,y: x + y, map(lambda x: x.ratios, small_packet_profiles))
+            print >>res, prog_report.report_as_html(ratios, CPU_CLK_UNHALTED, 15)
+        else:
+            print >>res, "No oprofile data reported"
 
         print >>res, """</html>"""
         return res.getvalue()

@@ -110,8 +110,12 @@ class TimeSeriesCollection():
         self.data = default_empty_timeseries_dict()
 
     def read(self, file_name):
-        self.data = self.parse_file(file_name)
-        self.process()
+        try:
+            data = open(file_name).readlines()
+            self.data = self.parse(data)
+            self.process()
+        except IOError:
+            print 'Missing file: %s data from it will not be reported' % file_name
         return self #this just lets you do initialization in one line
 
     def copy(self):
@@ -137,7 +141,7 @@ class TimeSeriesCollection():
             if key in keys:
                 self.data.pop(key)
 
-    def parse_file(self, file_name):
+    def parse(self, data):
         pass
 
 #do post processing things on the data (ratios and derivatives and stuff)
@@ -253,9 +257,8 @@ class IOStat(TimeSeriesCollection):
     dev_hdr_line    = line("^Device:            tps   Blk_read/s   Blk_wrtn/s   Blk_read   Blk_wrtn$", [])
     dev_line        = line("^(\w+)\s+([\d\.]+)\s+([\d\.]+)\s+([\d\.]+)\s+(\d+)\s+(\d+)$", [('device', 's'), ('tps', 'f'), (' Blk_read', 'f'), (' Blk_wrtn', 'f'), (' Blk_read', 'd'), (' Blk_wrtn', 'd')])
 
-    def parse_file(self, file_name):
+    def parse(self, data):
         res = default_empty_timeseries_dict()
-        data = open(file_name).readlines()
         data.reverse()
         m = until(self.file_hdr_line, data)
         assert m != False
@@ -285,9 +288,8 @@ class VMStat(TimeSeriesCollection):
     stats_hdr_line  = line("^ r  b   swpd   free   buff  cache   si   so    bi    bo   in   cs us sy id wa$", [])
     stats_line      = line("\s+(\d+)" * 16, [('r', 'd'),  ('b', 'd'),   ('swpd', 'd'),   ('free', 'd'),   ('buff', 'd'),  ('cache', 'd'),   ('si', 'd'),   ('so', 'd'),    ('bi', 'd'),    ('bo', 'd'),   ('in', 'd'),   ('cs', 'd'), ('us', 'd'), ('sy', 'd'), ('id', 'd'), ('wa', 'd')])
 
-    def parse_file(self, file_name):
+    def parse(self, data):
         res = default_empty_timeseries_dict()
-        data = open(file_name).readlines()
         data.reverse()
         while True:
             m = until(self.file_hdr_line, data)
@@ -304,20 +306,18 @@ class VMStat(TimeSeriesCollection):
 class Latency(TimeSeriesCollection):
     line = line("(\d+)\s+([\d.]+)\n", [('tick', 'd'), ('latency', 'f')])
 
-    def parse_file(self, file_name):
+    def parse(self, data):
         res = default_empty_timeseries_dict()
-        f = open(file_name)
-        for line in f:
+        for line in data:
             res['latency'] += [self.line.parse_line(line)['latency']]
         return res
 
 class QPS(TimeSeriesCollection):
     line = line("(\d+)\s+([\d]+)\n", [('tick', 'd'), ('qps', 'f')])
 
-    def parse_file(self, file_name):
+    def parse(self, data):
         res = default_empty_timeseries_dict()
-        f = open(file_name)
-        for line in f:
+        for line in data:
             res['qps'] += [self.line.parse_line(line)['qps']]
         return res
 
@@ -326,9 +326,8 @@ class RDBStats(TimeSeriesCollection):
     flt_line  = line("STAT\s+(\w+)\s+([\d.]+)\s+\([\d/]+\)", [('name', 's'), ('value', 'f')])
     end_line  = line("END", [])
     
-    def parse_file(self, file_name):
+    def parse(self, data):
         res = default_empty_timeseries_dict()
-        data = open(file_name).readlines()
         data.reverse()
         
         while True:
