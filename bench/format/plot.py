@@ -6,6 +6,7 @@ from matplotlib.collections import PolyCollection
 import re
 from colors import *
 import json
+import time
 
 def normalize(array):
     denom = max(map(lambda x: abs(x), array))
@@ -13,17 +14,6 @@ def normalize(array):
         return array
     else:
         return map(lambda x: float(x) / denom, array)
-
-class default_empty_dict(dict):
-    def __getitem__(self, key):
-        if key in self:
-            return self.get(key)
-        else:
-            return []
-    def copy(self):
-        copy = default_empty_dict()
-        copy.update(self)
-        return copy
 
 #TODO this code is copy pasted from oprofile.py. They should be moved out into a seperate library
 class line():
@@ -92,9 +82,32 @@ def take_while(lines, data):
             break
     return res
 
-class TimeSeries():
+
+class TimeSeries(list):
+    def __init__(self, units):
+        self.units = units
+
+class default_empty_timeseries_dict(dict):
+    units_line = line("([A-Za-z_]+)(\[[A-Za-z_]\]+)", [('key', 's'), ('units', 's')])
+    def __getitem__(self, key):
+        m = self.units_line.parse_line(key)
+        if m:
+            key = m['key']
+            units = m['units']
+        else:
+            units = ''
+        if key in self:
+            return self.get(key)
+        else:
+            return TimeSeries(units)
+    def copy(self):
+        copy = default_empty_timeseries_dict()
+        copy.update(self)
+        return copy
+
+class TimeSeriesCollection():
     def __init__(self):
-        self.data = default_empty_dict()
+        self.data = default_empty_timeseries_dict()
 
     def read(self, file_name):
         self.data = self.parse_file(file_name)
@@ -132,12 +145,17 @@ class TimeSeries():
         pass
 
     def json(self, out_fname):
-        plots = {}
+        top_level = {}
+        top_level['date'] = time.asctime() 
+        top_level['notes'] = 'Go Team'
+        top_level['series'] = {}
         for series in self.data.iteritems():
-            plots[series[0]] = map(lambda x: list(x), zip(range(len(series[1])), series[1]))
+            top_level['series'][series[0]] = {}
+            top_level['series'][series[0]]['data'] = map(lambda x: list(x), zip(range(len(series[1])), series[1]))
+            top_level['series'][series[0]]['units'] = series[1].units
 
         f = open(out_fname + '.js', 'w')
-        print >>f, json.dumps({'rethinkdb' : plots})
+        print >>f, json.dumps({'data' : top_level})
         f.close()
 
     def histogram(self, out_fname):
@@ -221,13 +239,14 @@ def differentiate(series):
     return res
 
 def difference(serieses):
-    res = []
+    assert serieses[0].units == serieses[1].units
+    res = TimeSeries(serieses[0].units)
     for x,y in zip(serieses[0], serieses[1]):
         res.append(x - y)
 
     return res
 
-class IOStat(TimeSeries):
+class IOStat(TimeSeriesCollection):
     file_hdr_line   = line("Linux.*", [])
     avg_cpu_hdr_line= line("^avg-cpu:  %user   %nice %system %iowait  %steal   %idle$", [])
     avg_cpu_line    = line("^" + "\s+([\d\.]+)" * 6 + "$", [('user', 'f'), ('nice', 'f'), ('system', 'f'), ('iowait', 'f'),  ('steal', 'f'),   ('idle', 'f')])
@@ -235,7 +254,7 @@ class IOStat(TimeSeries):
     dev_line        = line("^(\w+)\s+([\d\.]+)\s+([\d\.]+)\s+([\d\.]+)\s+(\d+)\s+(\d+)$", [('device', 's'), ('tps', 'f'), (' Blk_read', 'f'), (' Blk_wrtn', 'f'), (' Blk_read', 'd'), (' Blk_wrtn', 'd')])
 
     def parse_file(self, file_name):
-        res = default_empty_dict()
+        res = default_empty_timeseries_dict()
         data = open(file_name).readlines()
         data.reverse()
         m = until(self.file_hdr_line, data)
@@ -261,13 +280,13 @@ class IOStat(TimeSeries):
 
         return res
 
-class VMStat(TimeSeries):
+class VMStat(TimeSeriesCollection):
     file_hdr_line   = line("^procs -----------memory---------- ---swap-- -----io---- -system-- ----cpu----$", [])
     stats_hdr_line  = line("^ r  b   swpd   free   buff  cache   si   so    bi    bo   in   cs us sy id wa$", [])
     stats_line      = line("\s+(\d+)" * 16, [('r', 'd'),  ('b', 'd'),   ('swpd', 'd'),   ('free', 'd'),   ('buff', 'd'),  ('cache', 'd'),   ('si', 'd'),   ('so', 'd'),    ('bi', 'd'),    ('bo', 'd'),   ('in', 'd'),   ('cs', 'd'), ('us', 'd'), ('sy', 'd'), ('id', 'd'), ('wa', 'd')])
 
     def parse_file(self, file_name):
-        res = default_empty_dict()
+        res = default_empty_timeseries_dict()
         data = open(file_name).readlines()
         data.reverse()
         while True:
@@ -282,33 +301,33 @@ class VMStat(TimeSeries):
                     res[val[0]]+= [val[1]]
         return res
 
-class Latency(TimeSeries):
+class Latency(TimeSeriesCollection):
     line = line("(\d+)\s+([\d.]+)\n", [('tick', 'd'), ('latency', 'f')])
 
     def parse_file(self, file_name):
-        res = default_empty_dict()
+        res = default_empty_timeseries_dict()
         f = open(file_name)
         for line in f:
             res['latency'] += [self.line.parse_line(line)['latency']]
         return res
 
-class QPS(TimeSeries):
+class QPS(TimeSeriesCollection):
     line = line("(\d+)\s+([\d]+)\n", [('tick', 'd'), ('qps', 'f')])
 
     def parse_file(self, file_name):
-        res = default_empty_dict()
+        res = default_empty_timeseries_dict()
         f = open(file_name)
         for line in f:
             res['qps'] += [self.line.parse_line(line)['qps']]
         return res
 
-class RDBStats(TimeSeries):
+class RDBStats(TimeSeriesCollection):
     int_line  = line("STAT\s+(\w+)\s+(\d+)[^\.](?:\s+\(average of \d+\))?", [('name', 's'), ('value', 'd')])
     flt_line  = line("STAT\s+(\w+)\s+([\d.]+)\s+\([\d/]+\)", [('name', 's'), ('value', 'f')])
     end_line  = line("END", [])
     
     def parse_file(self, file_name):
-        res = default_empty_dict()
+        res = default_empty_timeseries_dict()
         data = open(file_name).readlines()
         data.reverse()
         
