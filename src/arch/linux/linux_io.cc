@@ -180,10 +180,10 @@ linux_net_listener_t::~linux_net_listener_t() {
 /* Disk file object */
 
 perfmon_counter_t
-    pm_io_reads_started("io_reads_started"),
-    pm_io_reads_completed("io_reads_completed"),
-    pm_io_writes_started("io_writes_started"),
-    pm_io_writes_completed("io_writes_completed");
+    pm_io_reads_started("io_reads_started[ioreads]"),
+    pm_io_reads_completed("io_reads_completed[ioreads]"),
+    pm_io_writes_started("io_writes_started[iowrites]"),
+    pm_io_writes_completed("io_writes_completed[iowrites]");
 
 linux_direct_file_t::linux_direct_file_t(const char *path, int mode) {
     
