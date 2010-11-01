@@ -95,6 +95,15 @@ for mode in ["debug", "release"]:
                           "cores"       : cores,
                           "slices"      : slices },
                         repeat=5)
+
+                do_test("integration/extraction.py",
+                        { "auto"        : True,
+                          "mode"        : mode,
+                          "no-valgrind" : not checker,
+                          "protocol"    : protocol,
+                          "cores"       : cores,
+                          "slices"      : slices },
+                        repeat=5)
             
                 do_test("integration/pipeline.py",
                         { "auto"        : True,
