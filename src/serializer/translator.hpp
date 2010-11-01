@@ -9,6 +9,8 @@ of the block IDs available on the inner serializer, but presents the illusion of
 serializer. It is used for splitting one serializer among several buffer caches on different
 threads. */
 
+
+
 class translator_serializer_t :
     public serializer_t
 {
@@ -17,8 +19,27 @@ private:
     int mod_count, mod_id;
     ser_block_id_t min;
     
-    ser_block_id_t xlate(ser_block_id_t id) {
+public:
+    // Translates a block id given the particular parameters.  This
+    // needs to be exposed in some way because recovery tools depend
+    // on it.
+    static ser_block_id_t translate_block_id(ser_block_id_t id, int mod_count, int mod_id, ser_block_id_t min) {
         return id * mod_count + mod_id + min;
+    }
+
+    // "Inverts" translate_block_id, converting inner_id back to mod_id (not back to id).
+    static ser_block_id_t untranslate_block_id(ser_block_id_t inner_id, int mod_count, ser_block_id_t min) {
+        // We know that inner_id == id * mod_count + mod_id + min.
+        // Thus inner_id - min == id * mod_count + mod_id.
+        // It follows that inner_id - min === mod_id (modulo mod_count).
+        // So (inner_id - min) % mod_count == mod_id (since 0 <= mod_id < mod_count).
+        // (And inner_id - min >= 0, so '%' works as expected.)
+        return (inner_id - min) % mod_count;
+    }
+
+private:
+    ser_block_id_t xlate(ser_block_id_t id) {
+        return translate_block_id(id, mod_count, mod_id, min);
     }
     
 public:
@@ -32,7 +53,6 @@ public:
         assert(mod_id < mod_count);
     }
     
-public:
     void *malloc() {
         return inner->malloc();
     }

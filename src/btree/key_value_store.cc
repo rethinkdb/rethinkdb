@@ -25,35 +25,6 @@ btree_key_value_store_t::btree_key_value_store_t(
     }
 }
 
-/* This is the format that block ID 0 on each serializer takes. */
-
-#define CONFIG_BLOCK_ID (ser_block_id_t(0))
-
-static const char serializer_config_block_magic[] = {'b', 't', 'r', 'e', 'e', 'c', 'f', 'g'};
-
-struct serializer_config_block_t {
-    
-    block_magic_t magic;
-    
-    /* What time the database was created. To help catch the case where files from two
-    databases are mixed. */
-    uint32_t database_magic;
-    
-    /* How many serializers the database is using (in case user creates the database with
-    some number of serializers and then specifies less than that many on a subsequent
-    run) */
-    int n_files;
-    
-    /* Which serializer this is, in case user specifies serializers in a different order from
-    run to run */
-    int this_serializer;
-    
-    /* Static btree configuration information, like number of slices. Should be the same on
-    each serializer. */
-    btree_config_t btree_config;
-
-    static const block_magic_t expected_magic;
-};
 
 const block_magic_t serializer_config_block_t::expected_magic = { { 'c','f','g','_' } };
 
@@ -249,11 +220,14 @@ void btree_key_value_store_t::create_pseudoserializers() {
     }
 }
 
+int btree_key_value_store_t::compute_mod_count(int32_t file_number, int32_t n_files, int32_t n_slices) {
+    return n_slices / n_files + (n_slices % n_files > file_number);
+}
+
 bool btree_key_value_store_t::create_a_pseudoserializer_on_this_core(int i) {
     
     /* How many other pseudoserializers are we sharing the serializer with? */
-    int mod_count = btree_static_config.n_slices / n_files +
-        (btree_static_config.n_slices % n_files > i % n_files);
+    int mod_count = compute_mod_count(i % n_files, n_files, btree_static_config.n_slices);
     
     pseudoserializers[i] = gnew<translator_serializer_t>(
         serializers[i % n_files],

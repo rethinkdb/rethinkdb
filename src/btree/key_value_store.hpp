@@ -13,6 +13,36 @@
 #include "serializer/config.hpp"
 #include "serializer/translator.hpp"
 
+#define CONFIG_BLOCK_ID (ser_block_id_t(0))
+
+// TODO move serializer_config_block_t to separate file
+/* This is the format that block ID 0 on each serializer takes. */
+
+struct serializer_config_block_t {
+    
+    block_magic_t magic;
+    
+    /* What time the database was created. To help catch the case where files from two
+    databases are mixed. */
+    uint32_t database_magic;
+    
+    /* How many serializers the database is using (in case user creates the database with
+    some number of serializers and then specifies less than that many on a subsequent
+    run) */
+    int32_t n_files;
+    
+    /* Which serializer this is, in case user specifies serializers in a different order from
+    run to run */
+    int32_t this_serializer;
+    
+    /* Static btree configuration information, like number of slices. Should be the same on
+    each serializer. */
+    btree_config_t btree_config;
+
+    static const block_magic_t expected_magic;
+};
+
+
 struct btree_slice_t;
 
 /* btree_key_value_store_t represents a collection of slices, possibly distributed
@@ -86,6 +116,8 @@ public:
     uint32_t serializer_magics[MAX_SERIALIZERS];   // Used in start-existing mode
     bool have_created_a_serializer();   // Called on home thread
     
+    static int compute_mod_count(int32_t file_number, int32_t n_files, int32_t n_slices);
+
     void create_pseudoserializers();   // Called on home thread
     bool create_a_pseudoserializer_on_this_core(int i);   // Called on serializer thread
     bool have_created_a_pseudoserializer();   // Called on serializer thread

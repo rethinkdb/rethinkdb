@@ -16,7 +16,6 @@ void large_buf_t::allocate(uint32_t _size) {
 
     index_buf = transaction->allocate(&index_block_id);
     large_buf_index *index = get_index_write();
-    index->magic = large_buf_index::expected_magic;
     index->first_block_offset = 0;
     index->num_segments = NUM_SEGMENTS(size, effective_segment_block_size);
 
@@ -281,7 +280,10 @@ byte *large_buf_t::get_segment_write(int ix, uint16_t *seg_size) {
 
     *seg_size = segment_size(ix);
 
-    byte *seg = sizeof(large_buf_segment) + reinterpret_cast<byte*>(bufs[ix]->get_data_write());
+    large_buf_segment *segg = reinterpret_cast<large_buf_segment*>(bufs[ix]->get_data_write());
+    // TODO: remove this?
+    segg->magic = large_buf_segment::expected_magic;
+    byte *seg = reinterpret_cast<byte*>(segg + 1);
 
     if (ix == 0) seg += get_index()->first_block_offset;
  
@@ -300,7 +302,11 @@ const large_buf_index *large_buf_t::get_index() {
 
 large_buf_index *large_buf_t::get_index_write() {
     assert(index_buf->get_block_id() == get_index_block_id());
-    return reinterpret_cast<large_buf_index *>(index_buf->get_data_write()); //TODO @shachaf figure out if this can be get_data_read
+    //TODO @shachaf figure out if this can be get_data_read
+    large_buf_index *index = reinterpret_cast<large_buf_index *>(index_buf->get_data_write());
+    index->magic = large_buf_index::expected_magic;
+    debugf("Setting index magic with block id %u (which equals %u)\n", get_index_block_id(), index_buf->get_block_id());
+    return index;
 }
 
 // A wrapper for transaction->allocate that sets the magic.
