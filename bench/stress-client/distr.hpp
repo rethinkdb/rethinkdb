@@ -26,10 +26,16 @@ public:
         // generate the size
         int s = random(min, max);
         
-        // malloc and fill memory
         char *l = (char*)malloc(s);
-        for(int i = 0; i < s; i++) {
-            l[i] = random(65, 90);
+        
+        /* The random number generator is slow, so we randomly generate the first 8 bytes and then
+        pad the rest with '*'. */
+        int i;
+        for (i = 0; i < s && i < 8; i++) {
+            l[i] = random('A', 'Z');
+        }
+        for (; i < s; i++) {
+            l[i] = '*';
         }
         
         // fill the payload
