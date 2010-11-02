@@ -159,7 +159,7 @@ class TimeSeriesCollection():
             top_level['series'][series[0]]['units'] = series[1].units
 
         f = open(out_fname + '.js', 'w')
-        print >>f, json.dumps({'data' : top_level})
+        print >>f, json.dumps({'bm_results' : top_level})
         f.close()
 
     def histogram(self, out_fname):
