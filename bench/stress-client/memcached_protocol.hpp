@@ -7,9 +7,17 @@
 #include "protocol.hpp"
 
 struct memcached_protocol_t : public protocol_t {
-    memcached_protocol_t() {
+    memcached_protocol_t()
+        {
         memcached_create(&memcached);
-        memcached_behavior_set(&memcached, MEMCACHED_BEHAVIOR_NOREPLY, 1);
+        
+        // NOTE: we don't turn on noreply behavior because the stress
+        // client is designed to emulate real-world behavior, which
+        // commonly requires a reply. In order to do this properly we
+        // should pipeline sets according to batch factor, and then
+        // wait for store notifications for the batch.
+        
+        //memcached_behavior_set(&memcached, MEMCACHED_BEHAVIOR_NOREPLY, 1);
     }
 
     virtual ~memcached_protocol_t() {
