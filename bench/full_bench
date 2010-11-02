@@ -17,7 +17,8 @@ cd ../dbench
 mkdir -p "$BENCH_DIR"
 
 # A regular benchmark is 10^9 operations, but when profiling, it's run 5 times, so we only do 10^8 operations.
-./dbench -d "$BENCH_DIR/bench_output" -H 10.0.0.2 {server}rethinkdb:'-c 12 -s 48' {client}stressfree[dr-doom:/home/teapot/stress]:'-c 512 -d 1000000000' iostat:1 vmstat:1 rdbstat:1
+./dbench -d "$BENCH_DIR/bench_output/1" -H 10.0.0.2 {server}rethinkdb:'-c 12 -s 48' {client}stressfree[dr-doom:/home/teapot/stress]:'-c 512 -d 1000000000' iostat:1 vmstat:1 rdbstat:1
+./dbench -d "$BENCH_DIR/bench_output/2" -H 10.0.0.2 {server}rethinkdb:'-c 12 -s 48' {client}stressfree[dr-doom:/home/teapot/stress]:'-c 512 -d 1000000000 -w 0/0/1/0' iostat:1 vmstat:1 rdbstat:1
 ./dbench -d  "$BENCH_DIR/prof_output" -H 10.0.0.2 {server}rethinkdb:'-c 12 -s 48' {client}stressfree[dr-doom:/home/teapot/stress]:'-c 512 -d 100000000'  iostat:1 vmstat:1 rdbstat:1 oprofile
 
 # Get rid of database files -- they are large and useless.
