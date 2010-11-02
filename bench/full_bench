@@ -1,5 +1,4 @@
 #!/bin/bash
-
 BENCH_DIR="$HOME/bench/$(date +%Y-%m-%d-%H:%M)"
 
 cd src
@@ -27,4 +26,4 @@ rm -f "$(find "$BENCH_DIR" -name rethinkdb_data)"
 cd ../format
 
 # Generate statistics and email.
-./report.py "$BENCH_DIR" "$@"
+./report.py "$BENCH_DIR" --email "$2"
