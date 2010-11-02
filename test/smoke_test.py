@@ -46,12 +46,6 @@ for (mode, checker, protocol) in [("debug", "valgrind", "text")]:
               "mode"        : mode,
               "no-valgrind" : not checker,
               "protocol"    : protocol })
-
-    do_test("integration/extraction.py",
-            { "auto"        : True,
-              "mode"        : mode,
-              "no-valgrind" : not checker,
-              "protocol"    : protocol })
     
     # More advanced tests in various cores/slices configuration
     for (cores, slices) in [(1, 1)]:

@@ -173,10 +173,6 @@ class Server(object):
 
             executable_path = get_executable_path(self.opts, "rethinkdb")
             
-            if not os.path.exists(executable_path):
-                raise ValueError("rethinkdb has not been built; it should be at %r." %
-                    executable_path);
-            
             command_line = [executable_path,
                 "-p", str(server_port),
                 "-c", str(self.opts["cores"]),

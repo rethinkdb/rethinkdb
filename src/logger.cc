@@ -173,7 +173,7 @@ log_controller_t::~log_controller_t() {
     assert(log_file == NULL);
 }
 
-/* log controller startup process */
+/* Log controller startup process */
 
 bool log_controller_t::start(ready_callback_t *ready_cb) {
     
@@ -233,7 +233,7 @@ void log_controller_t::write(const char *str) {
     writef("%s", str);
 }
 
-/* log controller shutdown process */
+/* Log controller shutdown process */
 
 bool log_controller_t::shutdown(shutdown_callback_t *cb) {
     

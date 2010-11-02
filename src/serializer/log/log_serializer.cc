@@ -5,6 +5,8 @@
 
 #include "buffer_cache/types.hpp"
 
+const block_magic_t zerobuf_magic = { { 'z', 'e', 'r', 'o' } };
+
 perfmon_counter_t
     pm_serializer_reads_started("serializer_reads_started[sreads]"),
     pm_serializer_reads_completed("serializer_reads_completed[sreads]"),
@@ -401,7 +403,7 @@ struct ls_block_writer_t :
             // We write a zero buffer with the given block_id at the front.
             zerobuf = ser->malloc();
             bzero(zerobuf, ser->get_block_size());
-            memcpy(zerobuf, "zerozerozerozero", sizeof(block_magic_t));
+            memcpy(zerobuf, &zerobuf_magic, sizeof(block_magic_t));
 
             off64_t new_offset;
             bool done = ser->data_block_manager->write(zerobuf, write.block_id, ser->current_transaction_id, &new_offset, this);

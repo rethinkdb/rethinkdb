@@ -42,9 +42,7 @@ public:
     // array to grow to that size (e.g. one hundred elements might be
     // initialized even though the array might be of size 1).
     void set_size(size_t new_size) {
-
-        printf("Setting size to %lu\n", new_size);
-
+        
         assert(new_size < max_size);
         
         size_t num_segs = size ? ((size - 1) / ELEMENTS_PER_SEGMENT) + 1 : 0;
