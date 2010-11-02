@@ -5,6 +5,7 @@
 #include <math.h>
 #include "config/args.hpp"
 #include "errors.hpp"
+#include "log.hpp"
 
 // TODO: We double the size of the allocator every time, which means
 // we can use half the RAM or so until the super_alloc allocator
@@ -102,10 +103,9 @@ struct dynamic_pool_alloc_t {
         if(smallest_free > nallocs - 1)
             smallest_free = nallocs - 1;
 
-        // TODO: convert this to a logging infrustructure (when it's in place)
 #ifndef NDEBUG
         if(blocks_reclaimed > 0) {
-            printf("gc (%dB in %d blocks)\n", mem_reclaimed, blocks_reclaimed);
+            logINF("gc (%dB in %d blocks)\n", mem_reclaimed, blocks_reclaimed);
         }
 #endif
         return blocks_reclaimed;

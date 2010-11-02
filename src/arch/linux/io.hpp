@@ -109,6 +109,8 @@ private:
     bool is_block;
     uint64_t file_size;
     void verify(size_t offset, size_t length, void* buf);
+
+    DISABLE_COPYING(linux_direct_file_t);
 };
 
 class linux_io_calls_t :

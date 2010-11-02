@@ -13,7 +13,7 @@ typedef uint64_t ser_block_id_t;
 #define NULL_SER_BLOCK_ID (ser_block_id_t(-1))
 
 typedef uint64_t ser_transaction_id_t;
-#define NULL_SER_TRANSACTION_ID (ser_transaction_id_t(-1))
+#define NULL_SER_TRANSACTION_ID (ser_transaction_id_t(0))
 #define FIRST_SER_TRANSACTION_ID (ser_transaction_id_t(1))
 
 

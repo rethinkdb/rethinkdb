@@ -25,37 +25,36 @@ public:
     }
 
 public:
-    element_t &operator[](unsigned i) {
-    
-        assert(i < size);
-        
-        segment_t *segment = segments[i / ELEMENTS_PER_SEGMENT];
-        assert(segment);
-        return segment->elements[i % ELEMENTS_PER_SEGMENT];
+    element_t &operator[](size_t i) {
+        return const_cast<element_t &>(const_get(i));
+    }
+
+    const element_t &operator[](size_t i) const {
+        return const_get(i);
     }
     
-    size_t get_size() {
+    size_t get_size() const {
     
         return size;
     }
-    
+
     // Note: sometimes elements will be initialized before you ask the
     // array to grow to that size (e.g. one hundred elements might be
-    // initialized eventhough the array might be of size 1).
+    // initialized even though the array might be of size 1).
     void set_size(size_t new_size) {
         
         assert(new_size < max_size);
         
-        unsigned num_segs = size ? ((size - 1) / ELEMENTS_PER_SEGMENT) + 1 : 0;
-        unsigned new_num_segs = new_size ? ((new_size - 1) / ELEMENTS_PER_SEGMENT) + 1 : 0;
+        size_t num_segs = size ? ((size - 1) / ELEMENTS_PER_SEGMENT) + 1 : 0;
+        size_t new_num_segs = new_size ? ((new_size - 1) / ELEMENTS_PER_SEGMENT) + 1 : 0;
         
         if (num_segs > new_num_segs) {
-            for (unsigned si = new_num_segs; si < num_segs; si ++) {
+            for (size_t si = new_num_segs; si < num_segs; si ++) {
                 delete segments[si];
             }
         }
         if (new_num_segs > num_segs) {
-            for (unsigned si = num_segs; si < new_num_segs; si ++) {
+            for (size_t si = num_segs; si < new_num_segs; si ++) {
                 segments[si] = new segment_t;
             }
         }
@@ -70,6 +69,20 @@ public:
         set_size(new_size);
         for (; old_size < new_size; old_size++) (*this)[old_size] = fill;
     }
+
+private:
+    const element_t &const_get(size_t i) const {
+        if (!(i < size)) {
+            printf("i is %lu, size is %lu\n", i, size);
+        }
+        assert(i < size);
+        
+        segment_t *segment = segments[i / ELEMENTS_PER_SEGMENT];
+        assert(segment);
+        return segment->elements[i % ELEMENTS_PER_SEGMENT];
+    }
+
+    DISABLE_COPYING(segmented_vector_t);
 };
 
 #endif /* __SEGMENTED_VECTOR_HPP_ */

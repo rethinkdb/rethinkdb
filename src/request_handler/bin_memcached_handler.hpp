@@ -145,7 +145,6 @@ public:
 
     //check if a packet requires no response
     static bool is_quiet_code(bin_opcode_t opcode) {
-        //TODO what's the standard c++ pardigm for this? it sucks
         switch (opcode) {
             case bin_opcode_getq:
             case bin_opcode_getkq:

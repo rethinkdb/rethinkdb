@@ -76,7 +76,7 @@ void init_config(cmd_config_t *config) {
     config->store_static_config.serializer.extent_size = DEFAULT_EXTENT_SIZE;
     config->store_static_config.serializer.block_size = DEFAULT_BTREE_BLOCK_SIZE;
     
-    config->store_static_config.btree.n_slices = BTREE_SHARD_FACTOR;
+    config->store_static_config.btree.n_slices = DEFAULT_BTREE_SHARD_FACTOR;
 }
 
 enum {

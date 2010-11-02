@@ -7,14 +7,6 @@
 
 struct event_t;
 
-/*
-initiate_conn_fsm_transition() is in main.cc. There should be a better way for the request handler
-to notify the connection FSM that there is a response in the send buffer waiting to be sent, but
-that's something for another day.
-TODO: Come up with a better way for request handler to notify conn_fsm as part of redoing the
-callback system.
-*/
-
 class conn_fsm_t;
 class data_transferred_callback;
 class fill_large_value_msg_t;

@@ -7,11 +7,11 @@
 /* Global counters for the number of conn_fsms in each state */
 
 static perfmon_counter_t
-    pm1("conns_in_socket_connected"),
-    pm2("conns_in_socket_recv_incomplete"),
-    pm3("conns_in_socket_send_incomplete"),
-    pm4("conns_in_btree_incomplete"),
-    pm5("conns_in_outstanding_data");
+    pm1("conns_in_socket_connected[conns]"),
+    pm2("conns_in_socket_recv_incomplete[conns]"),
+    pm3("conns_in_socket_send_incomplete[conns]"),
+    pm4("conns_in_btree_incomplete[conns]"),
+    pm5("conns_in_outstanding_data[conns]");
 static perfmon_counter_t *state_counters[] = { &pm1, &pm2, &pm3, &pm4, &pm5 };
 
 /*

@@ -281,11 +281,12 @@ byte *large_buf_t::get_segment_write(int ix, uint16_t *seg_size) {
 
     *seg_size = segment_size(ix);
 
-    byte *seg = sizeof(large_buf_segment) + reinterpret_cast<byte*>(bufs[ix]->get_data_write());
+    large_buf_segment *segg = reinterpret_cast<large_buf_segment*>(bufs[ix]->get_data_write());
+    byte *bytes = reinterpret_cast<byte*>(segg + 1);
 
-    if (ix == 0) seg += get_index()->first_block_offset;
+    if (ix == 0) bytes += get_index()->first_block_offset;
  
-    return seg;
+    return bytes;
 }
 
 block_id_t large_buf_t::get_index_block_id() {
@@ -301,6 +302,7 @@ const large_buf_index *large_buf_t::get_index() {
 large_buf_index *large_buf_t::get_index_write() {
     assert(index_buf->get_block_id() == get_index_block_id());
     return reinterpret_cast<large_buf_index *>(index_buf->get_data_write()); //TODO @shachaf figure out if this can be get_data_read
+
 }
 
 // A wrapper for transaction->allocate that sets the magic.

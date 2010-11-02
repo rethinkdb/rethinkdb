@@ -269,8 +269,6 @@ private:
 #endif
 
 private:
-    ser_block_id_t get_ser_block_id(block_id_t id);
-    
     void on_transaction_commit(transaction_t *txn);
     
     enum state_t {

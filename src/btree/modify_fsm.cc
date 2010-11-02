@@ -353,13 +353,6 @@ btree_modify_fsm_t::transition_result_t btree_modify_fsm_t::do_transition(event_
 
                 // STEP 3: Update if we're at a leaf node and operate() told us to.
                 if (update_needed) {
-                    // Update stats
-                    if (new_value && !key_found) {
-                        // TODO PERFMON get_cpu_context()->worker->total_items++;
-                        // TODO PERFMON get_cpu_context()->worker->curr_items++;
-                    } else if (key_found && !new_value) {
-                        // TODO PERFMON get_cpu_context()->worker->curr_items--;
-                    }
                     
                    assert(have_computed_new_value);
                    assert(node_handler::is_leaf(node));
@@ -385,7 +378,7 @@ btree_modify_fsm_t::transition_result_t btree_modify_fsm_t::do_transition(event_
                                            internal_node.cc and leaf_node.cc */
                     // merge or level.
                     if(!sib_buf) { // Acquire a sibling to merge or level with
-                        //logf(DBG, "generic acquire sibling\n");
+                        //logDBG("generic acquire sibling\n");
                         state = acquire_sibling;
                         break;
                     } else {
@@ -396,7 +389,7 @@ btree_modify_fsm_t::transition_result_t btree_modify_fsm_t::do_transition(event_
 #endif
                         node_t *parent_node = node_handler::node(last_buf->get_data_write());
                         if (node_handler::is_mergable(cache->get_block_size(), node, sib_node, parent_node)) { // Merge
-                            //logf(DBG, "internal merge\n");
+                            //logDBG("internal merge\n");
                             btree_key *key_to_remove = (btree_key *)alloca(sizeof(btree_key) + MAX_KEY_SIZE); //TODO get alloca outta here
                             if (node_handler::nodecmp(node, sib_node) < 0) { // Nodes must be passed to merge in ascending order
                                 node_handler::merge(cache->get_block_size(), node_handler::node(buf->get_data_write()), sib_node, key_to_remove, parent_node);
@@ -417,7 +410,7 @@ btree_modify_fsm_t::transition_result_t btree_modify_fsm_t::do_transition(event_
                             if (!internal_node_handler::is_singleton((internal_node_t*)parent_node)) {
                                 internal_node_handler::remove(cache->get_block_size(), (internal_node_t*)parent_node, key_to_remove);
                             } else {
-                                //logf(DBG, "generic collapse root\n");
+                                //logDBG("generic collapse root\n");
                                 // parent has only 1 key (which means it is also the root), replace it with the node
                                 // when we get here node_id should be the id of the new root
                                 last_buf->mark_deleted();
@@ -427,7 +420,7 @@ btree_modify_fsm_t::transition_result_t btree_modify_fsm_t::do_transition(event_
                             }
                         } else {
                             // Level
-                            //logf(DBG, "generic level\n");
+                            //logDBG("generic level\n");
                             btree_key *key_to_replace = (btree_key *)alloca(sizeof(btree_key) + MAX_KEY_SIZE);
                             btree_key *replacement_key = (btree_key *)alloca(sizeof(btree_key) + MAX_KEY_SIZE);
                             bool leveled = node_handler::level(cache->get_block_size(), node_handler::node(buf->get_data_write()), sib_node, key_to_replace, replacement_key, parent_node);

@@ -152,9 +152,11 @@ bool lba_disk_structure_t::sync(sync_callback_t *cb) {
     if (superblock) {
         
         /* Sync each extent hanging off the superblock. */
-        /* TODO: It might make more sense for superblock->sync() to also sync all the extents
+        
+        /* It might make more sense for superblock->sync() to also sync all the extents
         attached to the superblock, since superblock->load() loads all the extents attached to the
-        superblock. */
+        superblock. But we don't do that. */
+        
         for (lba_disk_extent_t *e = superblock->extents.head(); e; e = superblock->extents.next(e)) {
             if (!e->sync(writer)) writer->outstanding_cbs++;
         }

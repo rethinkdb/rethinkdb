@@ -3,15 +3,11 @@
 #define __PAGE_REPL_RANDOM_HPP__
 
 #include "config/args.hpp"
+#include "log.hpp"
 
 // TODO: We should use mlock (or mlockall or related) to make sure the
 // OS doesn't swap out our pages, since we're doing swapping
 // ourselves.
-
-// TODO: we might want to decouple selection of pages to free from the
-// actual cleaning process (e.g. we might have random vs. lru
-// selection strategies, and immediate vs. proactive cleaing
-// strategy).
 
 /*
 The random page replacement algorithm needs to be able to quickly choose a random buf among all the
@@ -102,13 +98,10 @@ public:
                 details */
                 delete block_to_unload;
             } else {
-#ifndef NDEBUG
-                // TODO: Use logging
-                // TODO: Each cache needs its own identifier so that we can make this message
-                // say which cache the problem came from
-                printf("exceeding memory target. %d blocks in memory, %d dirty, target is %d.\n",
-                    array.size(), cache->writeback.num_dirty_blocks(), target);
-#endif
+                if (array.size() > target + (target / 100) + 10) {
+                    logINF("cache %p exceeding memory target. %d blocks in memory, %d dirty, target is %d.\n",
+                           cache, array.size(), cache->writeback.num_dirty_blocks(), target);
+                }
                 break;
             }
         }

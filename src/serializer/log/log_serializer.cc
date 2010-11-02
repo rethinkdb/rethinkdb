@@ -3,11 +3,15 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
+#include "buffer_cache/types.hpp"
+
+const block_magic_t zerobuf_magic = { { 'z', 'e', 'r', 'o' } };
+
 perfmon_counter_t
-    pm_serializer_reads_started("serializer_reads_started"),
-    pm_serializer_reads_completed("serializer_reads_completed"),
-    pm_serializer_writes_started("serializer_writes_started"),
-    pm_serializer_writes_completed("serializer_writes_completed");
+    pm_serializer_reads_started("serializer_reads_started[sreads]"),
+    pm_serializer_reads_completed("serializer_reads_completed[sreads]"),
+    pm_serializer_writes_started("serializer_writes_started[swrites]"),
+    pm_serializer_writes_completed("serializer_writes_completed[swrites]");
 
 log_serializer_t::log_serializer_t(const char *_db_path, dynamic_config_t *config)
     : dynamic_config(config),
@@ -399,6 +403,7 @@ struct ls_block_writer_t :
             // We write a zero buffer with the given block_id at the front.
             zerobuf = ser->malloc();
             bzero(zerobuf, ser->get_block_size());
+            memcpy(zerobuf, &zerobuf_magic, sizeof(block_magic_t));
 
             off64_t new_offset;
             bool done = ser->data_block_manager->write(zerobuf, write.block_id, ser->current_transaction_id, &new_offset, this);
@@ -558,7 +563,6 @@ struct ls_write_fsm_t :
         if (offsets_were_written && num_writes_waited_for == 0 && !waiting_for_prev_write) {
             return do_write_metablock();
         } else {
-            // TODO: should this actually return true?
             return false;
         }
     }

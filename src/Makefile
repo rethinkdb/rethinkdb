@@ -1,6 +1,8 @@
 ##### Configuring stuff
 
 SERVER_EXEC_NAME:=rethinkdb
+SERVER_EXTRACT_NAME:=rethinkdb-extract
+
 SCRIPTS_DIR:=../scripts
 START_DB_NAME:=start_rethinkdb
 GDB_FUNCTIONS_NAME:=rethinkdb-gdb.py
@@ -89,10 +91,16 @@ endif
 
 ##### Finding what to build
 
-SOURCES:=$(shell find $(SOURCE_DIR) -name \*.cc)
+
+
+SOURCES:=$(shell find $(SOURCE_DIR) -name '*.cc')
 NAMES:=$(patsubst $(SOURCE_DIR)/%.cc,%,$(SOURCES))
 DEPS:=$(patsubst %,$(DEP_DIR)/%.d,$(NAMES))
 OBJS:=$(patsubst %,$(OBJ_DIR)/%.o,$(NAMES))
+
+SERVER_EXEC_OBJS:=$(patsubst %.cc,$(OBJ_DIR)/%.o,$(shell find $(SOURCE_DIR) -name '*.cc' | grep -vF "`find $(SOURCE_DIR)/extract -name '*.cc'`"))
+
+SERVER_EXTRACT_OBJS:=$(patsubst %.cc,$(OBJ_DIR)/%.o,$(shell find $(SOURCE_DIR) -name '*.cc' | grep -vF "$(SOURCE_DIR)/main.cc"))
 
 
 
@@ -100,12 +108,24 @@ OBJS:=$(patsubst %,$(OBJ_DIR)/%.o,$(NAMES))
 
 # High level build targets
 
+all: $(BUILD_DIR)/$(SERVER_EXEC_NAME) $(BUILD_DIR)/$(SERVER_EXTRACT_NAME) $(BUILD_DIR)/$(START_DB_NAME) $(BUILD_DIR)/$(GDB_FUNCTIONS_NAME)
+
 $(BUILD_DIR)/$(SERVER_EXEC_NAME): $(OBJS) $(BUILD_DIR)
 ifeq ($(VERBOSE),0)
 	@echo "    LD $@"
 endif
-	$(QUIET) $(CXX) $(LDFLAGS) $(OBJS) -o $(BUILD_DIR)/$(SERVER_EXEC_NAME)
+	$(QUIET) $(CXX) $(LDFLAGS) $(SERVER_EXEC_OBJS) -o $(BUILD_DIR)/$(SERVER_EXEC_NAME)
+
+$(BUILD_DIR)/$(SERVER_EXTRACT_NAME): $(OBJS) $(BUILD_DIR)
+ifeq ($(VERBOSE),0)
+	@echo "    LD $@"
+endif
+	$(QUIET) $(CXX) $(LDFLAGS) $(SERVER_EXTRACT_OBJS) -o $(BUILD_DIR)/$(SERVER_EXTRACT_NAME)
+
+$(BUILD_DIR)/$(START_DB_NAME):
 	$(QUIET) cp $(SCRIPTS_DIR)/$(START_DB_NAME) $(BUILD_DIR)/$(START_DB_NAME)
+
+$(BUILD_DIR)/$(GDB_FUNCTIONS_NAME):
 	$(QUIET) cp $(SCRIPTS_DIR)/$(GDB_FUNCTIONS_NAME) $(BUILD_DIR)/$(GDB_FUNCTIONS_NAME)
 
 # The 'run' and 'gdb' targets build the server, automatically remove old data files, and then start

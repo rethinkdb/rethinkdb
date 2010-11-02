@@ -6,7 +6,6 @@
 // Provides flush intervals for us to use.
 class flush_time_randomizer_t {
 public:
-    // TODO: explicit
     explicit flush_time_randomizer_t(int flush_timer_ms_);
 
     // Creates a probability distribution to twiggle with flush timing

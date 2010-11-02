@@ -113,6 +113,18 @@ def run_and_report(obj, args = (), kwargs = {}, timeout = None, name = "the test
     else:
         assert False
 
+def get_executable_path(opts, name):
+    executable_path = os.path.join(os.path.dirname(__file__), "../../build")
+    executable_path = os.path.join(executable_path, opts["mode"])
+    if opts["valgrind"]: executable_path += "-valgrind"
+    executable_path = os.path.join(executable_path, name)
+            
+    if not os.path.exists(executable_path):
+        raise ValueError(name + " has not been built; it should be at %r." % executable_path)
+
+    return executable_path
+    
+
 class Server(object):
     
     # Special exit code that we pass to Valgrind to indicate an error
@@ -158,15 +170,8 @@ class Server(object):
             # Make a directory to hold server data files
             db_data_dir = os.path.join(test_dir, "db_data")
             if not os.path.isdir(db_data_dir): os.mkdir(db_data_dir)
-            
-            executable_path = os.path.join(os.path.dirname(__file__), "../../build")
-            executable_path = os.path.join(executable_path, self.opts["mode"])
-            if self.opts["valgrind"]: executable_path += "-valgrind"
-            executable_path = os.path.join(executable_path, "rethinkdb")
-            
-            if not os.path.exists(executable_path):
-                raise ValueError("rethinkdb has not been built; it should be at %r." %
-                    executable_path);
+
+            executable_path = get_executable_path(self.opts, "rethinkdb")
             
             command_line = [executable_path,
                 "-p", str(server_port),

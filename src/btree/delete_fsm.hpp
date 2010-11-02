@@ -16,7 +16,6 @@ public:
         : btree_modify_fsm_t(_key, store)
         {}
     transition_result_t operate(btree_value *old_value, large_buf_t *old_large_buf, btree_value **new_value) {
-    	// TODO: Joe, add stats here
         // If the key didn't exist before, we fail
         if (!old_value) {
             this->status_code = btree_fsm_t::S_NOT_FOUND;
