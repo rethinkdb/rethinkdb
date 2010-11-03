@@ -3,10 +3,10 @@ import matplotlib.pyplot as plt
 import matplotlib.mlab as mlab
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib.collections import PolyCollection
-import re
 from colors import *
 import json
 import time
+from line import *
 
 def normalize(array):
     denom = max(map(lambda x: abs(x), array))
@@ -14,74 +14,6 @@ def normalize(array):
         return array
     else:
         return map(lambda x: float(x) / denom, array)
-
-#TODO this code is copy pasted from oprofile.py. They should be moved out into a seperate library
-class line():
-    regex = ""
-    fields = [] #tuples of form name, type
-    def __init__(self, _regex, _fields):
-        self.regex = _regex
-        self.fields = _fields
-
-    def __repr__(self):
-        return self.regex
-
-    def parse_line(self, line):
-        matches = re.match(self.regex, line)
-        if matches:
-            result = {}
-            for field, groupi in zip(self.fields, range(1, len(self.fields) + 1)):
-                if (field[1] == 'd'):
-                    val = int(matches.group(groupi))
-                elif (field[1] == 'f'):
-                    val = float(matches.group(groupi))
-                elif (field[1] == 's'):
-                    val = matches.group(groupi)
-                else:
-                    assert 0
-                result[field[0]] = val
-            return result
-        else:
-            return False
-
-def take(line, data):
-    if len(data) == 0:
-        return False
-    matches = line.parse_line(data[len(data) - 1])
-    data.pop()
-    return matches
-
-def take_maybe(line, data):
-    if len(data) == 0:
-        return False
-    matches = line.parse_line(data[len(data) - 1])
-    if matches != False: data.pop()
-    return matches
-
-#look through an array of data until you get a match (or run out of data)
-def until(line, data):
-    while len(data) > 0:
-        matches = line.parse_line(data[len(data) - 1])
-        data.pop()
-        if matches != False:
-            return matches
-    return False
-
-#iterate through lines while they match (and there's data)
-def take_while(lines, data):
-    res = []
-    while len(data) > 0:
-        for line in lines:
-            m = line.parse_line(data[len(data) - 1])
-            if m:
-                break
-        if m:
-            res.append(m)
-            data.pop()
-        else:
-            break
-    return res
-
 
 class TimeSeries(list):
     def __init__(self, units):
@@ -132,14 +64,20 @@ class TimeSeriesCollection():
 
 #limit the data to just the keys in keys
     def select(self, keys):
-        for key in self.data.keys():
+        copy = self.copy()
+        for key in copy.data.keys():
             if not key in keys:
-                self.data.pop(key)
+                copy.data.pop(key)
+
+        return copy
 
     def drop(self, keys):
-        for key in self.data.keys():
+        copy = self.copy()
+        for key in copy.data.keys():
             if key in keys:
-                self.data.pop(key)
+                copy.data.pop(key)
+
+        return copy
 
     def parse(self, data):
         pass
@@ -187,7 +125,7 @@ class TimeSeriesCollection():
                 data_to_use = normalize(series[1])
             else:
                 data_to_use = series[1]
-            labels.append((ax.plot(range(len(series[1])), data_to_use, colors[color_index]), series[0]))
+            labels.append((ax.plot(range(len(series[1])), data_to_use, 'black'), series[0]))
             color_index += 1
 
         ax.set_xlabel('Time (seconds)')
@@ -197,9 +135,19 @@ class TimeSeriesCollection():
         else:
             ax.set_ylim(0, max(self.data[self.data.keys()[0]]))
         ax.grid(True)
-        plt.savefig(out_fname, dpi=300)
         plt.legend(tuple(map(lambda x: x[0], labels)), tuple(map(lambda x: x[1], labels)), loc=2)
-        plt.savefig(out_fname + '_legend', dpi=300)
+        plt.savefig(out_fname, dpi=300)
+
+    def stats(self):
+        from statlib import stats
+        res = {}
+        for val in self.data.iteritems():
+            stat_report = {}
+            stat_report['mean'] = stats.mean(map(lambda x: x, val[1]))
+            stat_report['stdev'] = stats.stdev(map(lambda x: x, val[1]))
+            res[val[0]] = stat_report
+
+        return res
 
 #function : (serieses)/len(arg_names) -> series
     def derive(self, name, arg_keys, function):
