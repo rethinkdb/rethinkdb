@@ -196,7 +196,7 @@ class Monitor(Worker): argtype = 'Monitor'
 class MemcachedLikeServer(Server):
 
     MAX_WAIT_TIME = 30
-    WAIT_INTERVAL = 0.05
+    WAIT_INTERVAL = 0.5
     def wait_for_server_ready(self):
         bound = time.time() + self.MAX_WAIT_TIME
         while time.time() < bound:
@@ -205,6 +205,7 @@ class MemcachedLikeServer(Server):
                 s.connect(('localhost', self.dbench.port)) # XXX: Change this when/if we support running the server on a different host.
             except socket.error, e:
                 # Couldn't connect; retry.
+                time.sleep(self.WAIT_INTERVAL)
                 continue
             # Connected to the server successfully.
             s.shutdown(socket.SHUT_RDWR)
@@ -213,7 +214,6 @@ class MemcachedLikeServer(Server):
             # delays if enough clients connect to it with some particular
             # workload immediately after startup. This should be properly
             # fixed, but until then, this works well enough.
-            time.sleep(0.1)
             return
         self.dbench.die('Unable to connect to server (localhost:%d)' % (self.dbench.port)) # XXX: This too.
 
@@ -233,7 +233,22 @@ class Memcached(MemcachedLikeServer):
         self.run_process(self.find_binary('memcached'), args)
         self.wait_for_server_ready()
 
-class MemcacheDB(MemcachedLikeServer): pass
+class MemcacheDB(MemcachedLikeServer):
+    binary_paths = []
+
+    def internal_start(self):
+        args = self.compute_args(['-p', str(self.dbench.port),
+                                  '-H', 'memcachedb_data',
+                                  '-N'              # enable DB_TXN_NOSYNC to gain big performance improved, default is off
+                                  #'-t', '<num>'    # number of threads to use, default 4
+                                  #'-v'             # verbose (print errors/warnings while in event loop)
+                                  #'-m', '<num>'    # in-memmory cache size of BerkeleyDB in megabytes, default is 64MB
+                                  #'-B' '<db_type>' # type of database, 'btree' or 'hash'. default is 'btree'
+                                 ])
+        self.run_process(self.find_binary('memcachedb'), args)
+        self.wait_for_server_ready()
+
+
 class Membase(MemcachedLikeServer): pass
 
 class Stress(Client):
@@ -278,6 +293,15 @@ class Stat(Monitor):
 
 class VMStat(Stat): statcmd = 'vmstat'
 class IOStat(Stat): statcmd = 'iostat'
+class IFStat(Stat):
+    statcmd = 'ifstat'
+
+    def internal_start(self):
+        prefix = ['-n', # Display header only once.
+                  '-t'] # Timestamps.
+        args = self.compute_args(prefix=prefix, default=prefix + ['1'])
+        self.run_process(self.statcmd, args)
+
 class RDBStat(Stat):
     statcmd = 'rdbstat'
 
@@ -326,6 +350,7 @@ workers = {
     'oprofile': OProfile,
     'vmstat': VMStat,
     'iostat': IOStat,
+    'ifstat': IFStat,
     'rdbstat': RDBStat,
 }
 
