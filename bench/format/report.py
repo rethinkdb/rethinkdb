@@ -2,7 +2,7 @@
 from format import *
 import sys
 def usage(prog_name):
-    print "Usage: %s dbench_output_dir %s email_to_report_to" % (prog_name, email_flag)
+    print "Usage: %s dbench_output_dir email_to_report_to" % prog_name
 if len(sys.argv) != 3:
     usage(sys.argv[0])
     sys.exit(2)
