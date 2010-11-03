@@ -11,13 +11,15 @@
 #include "config.hpp"
 #include "client.hpp"
 #include "args.hpp"
+#include "memcached_sock_protocol.hpp"
 #include "memcached_protocol.hpp"
 #include "mysql_protocol.hpp"
 
 using namespace std;
 
 protocol_t* make_mc() {
-    return (protocol_t*) new memcached_protocol_t();
+    return (protocol_t*) new memcached_sock_protocol_t();
+    //return (protocol_t*) new memcached_protocol_t();
 }
 
 protocol_t* make_mysql() {

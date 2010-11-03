@@ -2,13 +2,12 @@ var plot_bm = {
 	data: {},
 	default_sets: ['rethinkdb'],
 	default_series: ['qps'],
-	colors: {
-		"EDB on SSD" : "rgb(204,0,51)",
-		"EDB on HDD" : "rgb(255,204,0)",
-		"MyISAM on SSD" : "rgb(0,51,255)",
-		"MyISAM on HDD" : "rgb(112,224,0)"
-	},
-	filename_date_format: 'yyyyMMdd-HHmmss',
+	default_options: ['enableTooltip'],
+	// Assign specific colors to a given series
+	colors: {},
+	// Use the given set of colors to for all the series in incremental order
+	color_scheme: [],
+	filename_date_format: 'ddd MMM d HH:mm:ss yyyy',
 	formatted_date: 'MMM d, yyyy - h:mm tt',
 	date_latest_filename: 'latest.js',
 	date_latest: 'Latest',
@@ -18,8 +17,16 @@ var plot_bm = {
 	current_date: '',
 	large_series_warning: 1000,
 	axis_list: [],
-	zoom_active: true,
-	pan_active: false
+	tools: {
+		zoom: {
+			current_mode: 0,
+			modes: ['xy','x','y'],
+			active: true,
+		},
+		pan: {
+			active: false,
+		}
+	}
 };
 
 var divs = {};
@@ -45,23 +52,18 @@ $(document).ready(function() {
 		},
 		lines: { show: true },
 		points: { show: true },
-		selection: { mode: "x" },
-		zoom: {
-			interactive: true
-		},
-		pan: {
-			interactive: false
-		},
-		xaxis: {
-			zoomRange: [100,100],
-			min: null,
-			max: null
-		}
+		selection: { mode: plot_bm.tools.zoom.current_mode },
+		zoom: {	interactive: true },
+		pan: { interactive: false },
+		
+		xaxes: [],
+		yaxes: [],
 	};
 	
 	plot_bm.build_controls();
 	plot_bm.assign_plot_actions();
 	plot_bm.assign_overview_actions();
+	plot_bm.assign_option_actions();
 	
 	// Determine which file we are being asked to load
 	get_data(window.location.hash.slice(1));
@@ -72,8 +74,11 @@ var get_data = function(url) {
 	$('#loadingAnimation').remove();
 	$('#placeholder').animate({opacity: 0.2}, 1000);
 	$('<img id="loadingAnimation" src="base/images/loading-animation.gif" />').appendTo("#plot");
-	$.getJSON(url, function(data) {
-	    plot_bm.data = data;
+	$.getJSON(url, function(json) {
+		plot_bm.current_date = json.date;
+	    plot_bm.metadata = json.metadata;
+	    plot_bm.data = json.data;
+	    
         plot_bm.build_controls();
         $('#loadingAnimation').animate( {opacity: 0.0}, 1000, function() {
             $(this).remove();
@@ -81,7 +86,7 @@ var get_data = function(url) {
 
             var plot_title = $('#plotTitle').text(url);
 
-            plot_bm.replot();
+            //WARNINGplot_bm.replot();
         });
     });
 };
@@ -95,9 +100,13 @@ $(window).load(function() {
 plot_bm.replot = function() {
 	plot_bm.active_data = [];
 	var datetime_format = '';
-	if (plot_bm.current_date != '')
-		datetime_format = 'Benchmarks generated on '+Date.parseExact(plot_bm.current_date, plot_bm.filename_date_format).toString(plot_bm.formatted_date)+'.';
-
+	if (plot_bm.current_date != '') {
+		parsedDate = Date.parseExact(plot_bm.current_date, plot_bm.filename_date_format);
+		//console.log("date: "+parsedDate);
+		if (parsedDate != null)
+			datetime_format = 'Benchmarks generated on '+Date.parseExact(plot_bm.current_date, plot_bm.filename_date_format).toString(plot_bm.formatted_date)+'.';
+	}
+	
 	// Collect the active data based on the user's selections
 	$('.set:checked').each(function(key,val) {
 		set = $(this).attr('name');
@@ -105,14 +114,14 @@ plot_bm.replot = function() {
 		
 		$('.series:checked').each(function (key, val) {
 			series = $(this).attr('name');
-			var id = $(this).attr('id');
+			id = $(this).attr('id');
 			
 			if (plot_bm.data[set][series] != null) {
 				plot_bm.active_data.push({
 					id: parseInt(id),
-					color: parseInt(id),
+					color: (plot_bm.color_scheme.length > 0) ? plot_bm.color_scheme[parseInt(id) % plot_bm.color_scheme.length] : parseInt(id),
 					label : set + " : " + series,
-					data : plot_bm.data[set][series],
+					data : plot_bm.data[set][series].data,
 					yaxis: y_axis_num
 				});
 			y_axis_num = y_axis_num + 1;
@@ -128,13 +137,14 @@ plot_bm.replot = function() {
 	divs.placeholder.height(h);
 	
 	// Set zooming or panning mode based on what's active	
-	if (plot_bm.zoom_active) {
-		plot_bm.options.selection.mode = 'x';
+	if (plot_bm.tools.zoom.active) {
+		plot_bm.options.selection.mode = plot_bm.tools.zoom.modes[plot_bm.tools.zoom.current_mode];
 		plot_bm.options.pan.interactive = false;
-	} else if (plot_bm.pan_active) {
+	} else if (plot_bm.tools.pan.active) {
 		plot_bm.options.selection.mode = null;
 		plot_bm.options.pan.interactive = true;
 	}
+	
 	
 	// Draw the plot
 	plot_bm.plot = $.plot(divs.placeholder, plot_bm.active_data, plot_bm.options);
@@ -175,7 +185,7 @@ plot_bm.build_controls = function() {
 				data_series_labels.push(key);
 			}
 			// Check if the series is gigantic
-			if (series.length > plot_bm.large_series_warning)
+			if (series.data.length > plot_bm.large_series_warning)
 				large_data_series.push(key);
 		});
 	});
@@ -195,14 +205,6 @@ plot_bm.build_controls = function() {
 			$('.series[name^='+series+']').addClass('largeData');		
 		}
 	});
-	
-	// Make sure the default series and default sets are checked
-	$.each(plot_bm.default_sets, function() {
-		$('.set[name^='+this+']').attr('checked','true');
-	});
-	$.each(plot_bm.default_series, function() {
-		$('.series[name^='+this+']').attr('checked','true');
-	});
 
 	// Update the plot whenever a set is selected or deselected
 	$('.set').click(function() {
@@ -213,13 +215,27 @@ plot_bm.build_controls = function() {
 	$('.series').click(function() {
 		// Check if the selected data series is gigantic, and throw up a warning before plotting the series
 		if ($(this).hasClass('largeData') && $(this).attr('checked')) {
-				var answer = confirm("The data set '" + series + "' has over 1,000 data points, which will take a very long time to plot. Proceed with plotting?");
-				if (answer < 1) {
-					$(this).attr('checked',false);
-					return;
+			var answer = confirm("The data set '" + $(this).attr('name') + "' has over 1,000 data points, which will take a very long time to plot. Proceed with plotting?");
+			if (answer < 1) {
+				$(this).attr('checked',false);
+				return;
 			}
 		}
+		
+		// Reset the plot selection zoom		
+		plot_bm.reset_axis_ranges();
+		
 		plot_bm.replot();
+	});
+	
+	// Make sure the default sets are checked
+	$.each(plot_bm.default_sets, function() {
+		$('.set[name^='+this+']').click();
+	});
+	
+	// Make sure the default series are checked
+	$.each(plot_bm.default_series, function() {
+		$('.series[name^='+this+']').click();
 	});
 
 	// Set the default state of each control section (collapsed / expanded)
@@ -227,7 +243,12 @@ plot_bm.build_controls = function() {
 	$('#chooseSeriesHeader').jcollapser({target: '#chooseSeries', state: 'expanded'});	
 	$('#plotOptionsHeader').jcollapser({target: '#plotOptions', state: 'collapsed'});	
 	$('#overviewHeader').jcollapser({target: '#overview', state: 'collapsed'});	
+	
+	// DIRTY HACK: Force a replot and reset the axis range to ensure *all* default series are plotted (click handler replots each series before the input box reports it's been selectedon page load);
+	plot_bm.replot();
+	plot_bm.reset_axis_ranges();
 };
+
 // Add axis highlighting to the plot
 plot_bm.add_axis_highlighting = function() {
 	plot_bm.axis_list = [];
@@ -280,15 +301,13 @@ plot_bm.add_axis_highlighting = function() {
 // Add navigation controls to the plot
 plot_bm.add_nav_controls = function() {
 	// Navigation controls: add zoom out button (taken from Flot examples)
-    $('<div class="button" style="position: absolute;right:20px;bottom:30px;color: #777; font-size: small;">reset zoom</div>').appendTo(divs.placeholder).click(function (e) {
+    $('<div id="reset" class="button" style="position: absolute;right:20px;bottom:30px;color: #777; font-size: small;">reset zoom and pan</div>').appendTo(divs.placeholder).click(function (e) {
         e.preventDefault();
-        // Reset the vertical zoom
-        plot_bm.plot.zoomOut();
         
-        // Reset the horizontal zoom
-		plot_bm.options.xaxis.min = null;
-		plot_bm.options.xaxis.max = null;
-        plot_bm.replot();
+        // Reset the plot selection zoom		
+		plot_bm.reset_axis_ranges();
+		
+       plot_bm.replot();
     });
     
 	// Navigation controls: Helper function for adding panning arrows    
@@ -306,50 +325,65 @@ plot_bm.add_nav_controls = function() {
     addArrow('down', 40, 55, { top: 100 });
     
     // Navigation controls: add panning button
-    $('<img class="button" id="pan" src="base/images/pan.png" style="position: absolute;right:30px;bottom: 120px;" />').appendTo(divs.placeholder).click(function (e) {
+    $('<img class="button" id="pan" src="base/images/pan.png" style="position: absolute;right:32px;bottom: 120px;" />').appendTo(divs.placeholder).click(function (e) {
 		e.preventDefault();
-		if(!$(this).hasClass('selected')) {
+		if(!plot_bm.tools.pan.active) {
 			// Turn panning on
 			$(this).addClass('selected').attr('src','base/images/pan_selected.png');
-			plot_bm.pan_active = true;
+			plot_bm.tools.pan.active = true;
 			
 			// Deactivate zooming
-			if($('#zoom').hasClass('selected')) {
+			if(plot_bm.tools.zoom.active) {
 				$('#zoom').removeClass('selected').attr('src','base/images/zoom.png');
-				plot_bm.zoom_active = false;
+				plot_bm.tools.zoom.active = false;
 			}
+			
+			// Save the axis ranges between tools for continuity
+			plot_bm.save_axis_ranges();
+			
 			plot_bm.replot();
 		}
 	});
         
     // Navigation controls: add zooming button
-     $('<img class="button" id="zoom" src="base/images/zoom.png" style="position: absolute;right:30px;bottom: 170px;" />').appendTo(divs.placeholder).click(function (e) {
+     $('<img class="button" id="zoom" src="base/images/zoom.png" style="position: absolute;right:11px;bottom: 170px;" />').appendTo(divs.placeholder).click(function (e) {
         e.preventDefault();
-        if(!$(this).hasClass('selected')) {
+        if(!plot_bm.tools.zoom.active) {
         	// Turn zooming on
-        	$(this).addClass('selected').attr('src','base/images/zoom_selected.png');
-        	plot_bm.zoom_active = true;
+        	$(this).addClass('selected').attr('src','base/images/zoom_selected_'+plot_bm.tools.zoom.modes[plot_bm.tools.zoom.current_mode]+'.png');
+        	plot_bm.tools.zoom.active = true;
         	
         	// Deactivate panning
-        	if($('#pan').hasClass('selected')) {
+        	if (plot_bm.tools.pan.active) {
 				$('#pan').removeClass('selected').attr('src','base/images/pan.png');
-				plot_bm.pan_active = false;
+				plot_bm.tools.pan.active = false;
 			}
+			
+			// Save the axis ranges between tools for continuity
+			plot_bm.save_axis_ranges();
+			
+			plot_bm.replot();
+        }
+        // If zoom is already on, switch the mode to something like xy, x, or y
+        else if (plot_bm.tools.zoom.active) {
+        	plot_bm.tools.zoom.current_mode = (plot_bm.tools.zoom.current_mode+1) % plot_bm.tools.zoom.modes.length;
+        	$(this).attr('src','base/images/zoom_selected_'+plot_bm.tools.zoom.modes[plot_bm.tools.zoom.current_mode]+'.png');
+        	
 			plot_bm.replot();
         }
     });
     
-    // Activate the button that is the default (zoom / pan)
-    if (plot_bm.pan_active) {
+    // When first building controls, select the button for the currently active tool (zoom / pan)
+    if (plot_bm.tools.pan.active) {
 		// Turn panning on
 		$('#pan').addClass('selected').attr('src','base/images/pan_selected.png');
-		plot_bm.pan_active = true;
+		plot_bm.tools.pan.active = true;
 	}
     
-    if (plot_bm.zoom_active) {
+    if (plot_bm.tools.zoom.active) {
 		// Turn zooming on
-		$('#zoom').addClass('selected').attr('src','base/images/zoom_selected.png');
-		plot_bm.zoom_active = true;
+		$('#zoom').addClass('selected').attr('src','base/images/zoom_selected_'+plot_bm.tools.zoom.modes[plot_bm.tools.zoom.current_mode]+'.png');
+		plot_bm.tools.zoom.active = true;
 	}
 };
 
@@ -365,12 +399,11 @@ plot_bm.assign_plot_actions = function() {
 
 	// Behavior on hover (show a tooltip)
 	divs.placeholder.bind("plothover", function (event, pos, item) {
-		
 		if (item) {
 			if (previousPoint == null || previousPoint[0] != item.datapoint[0] || previousPoint[1] != item.datapoint[1]) {
 
-				// If there was no axis highlighted, or the highlighted axis will be changing, remove the current highlighting
-				if (previousAxis != null && previousAxis != item.series.id)
+				// If there was no axis highlighted, or the highlighted axis will be changing, remove the current highlighting (make sure the axis still exists first)
+				if (previousAxis != null && previousAxis != item.series.id && plot_bm.axis_list[previousAxis] != undefined)
 					plot_bm.axis_list[previousAxis].mouseout();
 				
 				// Acquire the current point and axis, assign them as the previous point and axis
@@ -395,8 +428,8 @@ plot_bm.assign_plot_actions = function() {
 			}
 		}
 		else {
-			// Clean up since we're not on an item. Remove the tooltip and axis hover
-			if (previousAxis != null)
+			// Clean up since we're not on an item. Remove the tooltip and axis hover (make sure the axis still exists first)
+			if (previousAxis != null && plot_bm.axis_list[previousAxis] != undefined)
 				plot_bm.axis_list[previousAxis].mouseout();
 			$("#tooltip").remove();
 			previousPoint = null;
@@ -419,18 +452,43 @@ plot_bm.assign_plot_actions = function() {
 
 	// Behavior on select (zoom in on the main plot)
 	divs.placeholder.bind("plotselected", function (event, ranges) {
-		// Zoom in to the selection on the plot horizontally		
-		plot_bm.options.xaxis.min = ranges.xaxis.from;
-		plot_bm.options.xaxis.max = ranges.xaxis.to;
+		// Get the current list of x and y axes
+		var xaxes = plot_bm.plot.getXAxes();
+		var yaxes = plot_bm.plot.getYAxes();
 		
-		// Uncomment to zoom in to the selection vertically		
-		/*plot_bm.options.yaxis.min = ranges.xaxis.from;
-		plot_bm.options.yaxis.to = ranges.xaxis.to;*/
+		// Zoom in to the selection on the plot horizontally
+        for (i = 0; i < xaxes.length; i++) {
+        	// Reconstruct each axis name
+        	axis_name = xaxes[i].direction + ((xaxes[i].n > 1) ? xaxes[i].n : "") + "axis";
+        	// For all the used axes, set ieachts max and min values to the currently selected region
+			if (xaxes[i].used) {
+        		plot_bm.options[xaxes[i].direction+"axes"][i].min = ranges[axis_name].from;
+				plot_bm.options[xaxes[i].direction+"axes"][i].max = ranges[axis_name].to;
+			}
+		}
+		
+		for (i = 0; i < yaxes.length; i++) {
+        	// Reconstruct each axis name
+        	axis_name = yaxes[i].direction + ((yaxes[i].n > 1) ? yaxes[i].n : "") + "axis";
+        	// For all the used axes, set each max and min values to the currently selected region
+			if (yaxes[i].used) {
+        		plot_bm.options[yaxes[i].direction+"axes"][i].min = ranges[axis_name].from;
+				plot_bm.options[yaxes[i].direction+"axes"][i].max = ranges[axis_name].to;
+			}
+		}
 		
 		plot_bm.replot();
 
 		// Don't zoom in on the overview
 		plot_bm.overview.setSelection(ranges, true);
+	});
+	
+	divs.placeholder.bind("plotpan", function(event, plot) {
+		//plot_bm.reset_axis_ranges();
+	});
+	
+	divs.placeholder.bind("plotzoom", function(event, plot) {
+		//plot_bm.reset_axis_ranges();
 	});
 	
 	// Helper function: debug the plot by logging clicks
@@ -442,6 +500,75 @@ plot_bm.assign_plot_actions = function() {
 		}
 	});
 	*/
+};
+
+// Assign actions for the plot options
+plot_bm.assign_option_actions = function() {
+	// Disable scroll zooming (useful on sensitive mice)
+	$('#disableScrollZooming').click(function() {
+		if ($(this).attr('checked'))
+			plot_bm.options.zoom.interactive = false;
+		else
+			plot_bm.options.zoom.interactive = true;
+		
+		// Save the axis ranges (changing mode) and replot
+		plot_bm.save_axis_ranges();
+		plot_bm.replot();
+	});
+	
+	// Click each of the default options by id
+	$.each(plot_bm.default_options, function() {
+		console.log(this+"");
+		$('#'+this).click();
+	});
+};
+
+// Helper function: save the currently viewed region for each plot axis (useful when switching modes)
+plot_bm.save_axis_ranges = function() {
+	// Get the current list of x and y axes
+	var xaxes = plot_bm.plot.getXAxes();
+	var yaxes = plot_bm.plot.getYAxes();
+	
+	// Save all x axis ranges
+	for (i = 0; i < xaxes.length; i++) {
+		// For all the used axes, set its max and min values to the current viewing region
+		if (xaxes[i].used) {
+			plot_bm.options[xaxes[i].direction+"axes"][i].min = xaxes[i].min;
+			plot_bm.options[xaxes[i].direction+"axes"][i].max = xaxes[i].max;
+		}
+	}
+	
+	// Save all x axis ranges
+	for (i = 0; i < yaxes.length; i++) {
+		// For all the used axes, set its max and min values to the current viewing region
+		if (yaxes[i].used) {
+			plot_bm.options[yaxes[i].direction+"axes"][i].min =  yaxes[i].min;
+			plot_bm.options[yaxes[i].direction+"axes"][i].max =  yaxes[i].max;
+		}
+	}
+};
+
+// Helper function: reset the plot axes to their default ranges
+plot_bm.reset_axis_ranges = function() {
+	if (plot_bm.plot) {
+		// Get the current list of x and y axes
+		var xaxes = plot_bm.plot.getXAxes();
+		var yaxes = plot_bm.plot.getYAxes();
+		
+		// Reset the current list of x and y axes ranges
+		plot_bm.options.xaxes = [];
+		plot_bm.options.yaxes = [];
+		
+		// Rebuild the x-axis array, so that we can set the min and max values later for all used axes
+		for (i = 0; i < xaxes.length; i++)
+			if (xaxes[i].used)
+				plot_bm.options.xaxes[i] = { min: null, max: null};
+				
+		// Rebuild the y-axis array, so that we can set the min and max values later for all used axes
+		for (i = 0; i < yaxes.length; i++)
+			if (yaxes[i].used)
+				plot_bm.options.yaxes[i] = { min: null, max: null};
+	}
 };
 
 // Add interactivity to the plot overview through selections and clicks.
