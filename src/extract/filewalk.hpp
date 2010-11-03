@@ -15,10 +15,12 @@ struct extract_config_t {
         int extent_size;
         // Zero if the mod count is not forced.
         int mod_count;  // TODO parse command line
+
+        bool any() { return block_size || extent_size || mod_count; }
     } overrides;
 
     // The path to the file we're going to recover from.
-    std_string_t input_file;
+    std::vector<std_string_t, gnew_alloc<std_string_t> > input_files;
 
     // TODO: use this
     std_string_t log_file;
@@ -34,9 +36,11 @@ struct extract_config_t {
     void init() { 
         overrides.block_size = NO_FORCED_BLOCK_SIZE;
         overrides.extent_size = NO_FORCED_EXTENT_SIZE;
-        input_file = "";
+        input_files.clear();
+        log_file = "";
         output_file = EXTRACT_CONFIG_DEFAULT_OUTPUT_FILE;
     }
+
 private:
     DISABLE_COPYING(extract_config_t);
 };

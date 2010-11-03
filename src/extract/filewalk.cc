@@ -377,7 +377,7 @@ void walkfile(dumper_t& dumper, const std_string_t& db_file, cfg_t overrides) {
     if (overrides.block_size == extract_config_t::NO_FORCED_BLOCK_SIZE) {
         overrides.block_size = static_config.block_size;
     }
-    if (overrides.extent_size != extract_config_t::NO_FORCED_EXTENT_SIZE) {
+    if (overrides.extent_size == extract_config_t::NO_FORCED_EXTENT_SIZE) {
         overrides.extent_size = static_config.extent_size;
     }
 
@@ -391,5 +391,8 @@ void walkfile(dumper_t& dumper, const std_string_t& db_file, cfg_t overrides) {
 void dumpfile(const extract_config_t& config) {
     dumper_t dumper(config.output_file.c_str());
 
-    walkfile(dumper, config.input_file, config.overrides);
+    for (unsigned i = 0; i < config.input_files.size(); ++i) {
+        walkfile(dumper, config.input_files[i], config.overrides);
+    }
+
 }

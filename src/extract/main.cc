@@ -71,7 +71,7 @@ void parse_cmd_args(int argc, char **argv, extract_config_t *config) {
         case 0:
             break;
         case 'f':
-            config->input_file = optarg;
+            config->input_files.push_back(optarg);
             break;
         case 'l':
             config->log_file = optarg;
@@ -117,23 +117,13 @@ void parse_cmd_args(int argc, char **argv, extract_config_t *config) {
 
     // Sanity-check the input.
 
-    if (config->input_file.empty()) {
-        fail("You must explicitly specify a path with -f.");
+    if (config->input_files.empty()) {
+        fail("A path must be specified with -f.");
     }
 
-    if (config->overrides.extent_size && config->overrides.block_size
-        && (config->overrides.extent_size % config->overrides.block_size != 0)) {
-        fail("The forced extent size (%d) is not a multiple of the forced block size (%d).",
-             config->overrides.extent_size, config->overrides.block_size);
+    if (config->overrides.any() && config->input_files.size() >= 2) {
+        fail("--force-* options can only be used with one file at a time.");
     }
-}
-
-// This can be treated practically like a main function, except that a
-// thread pool has already been created so that the loggers work.
-void extractmain(int argc, char **argv) {
-    extract_config_t cfg;
-    parse_cmd_args(argc, argv, &cfg);
-    dumpfile(cfg);
 }
 
 void filecheck_crash_handler(int signum) {
@@ -187,11 +177,10 @@ private:
 
 
 struct runner : public blocking_runner_t {
-    int argc;
-    char **argv;
-    runner(int argc, char **argv) : argc(argc), argv(argv) { }
+    extract_config_t *config;
+    runner(extract_config_t *cfg) : config(cfg) { }
     void run() {
-        extractmain(argc, argv);
+        dumpfile(*config);
     }
 };
 
@@ -207,22 +196,25 @@ int main(int argc, char **argv) {
     res = sigaction(SIGSEGV, &action, NULL);
     check("Could not install SEGV handler", res < 0);
 
+
+    extract_config_t config;
+    extract::parse_cmd_args(argc, argv, &config);
+
+
     // Initial CPU message to start server
     struct server_starter_t :
         public cpu_message_t
     {
-        int argc;
-        char **argv;
+        extract_config_t *config;
         thread_pool_t *pool;
         void on_cpu_switch() {
-            extract::runner *runner = gnew<extract::runner>(argc, argv);
+            extract::runner *runner = gnew<extract::runner>(config);
             extract::run_in_loggers_fsm_t *fsm = gnew<extract::run_in_loggers_fsm_t>(pool, runner);
             fsm->start();
         }
     } starter;
 
-    starter.argc = argc;
-    starter.argv = argv;
+    starter.config = &config;
 
     // Run the server
     thread_pool_t thread_pool(1);
