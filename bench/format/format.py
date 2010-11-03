@@ -121,12 +121,12 @@ class dbench():
 #qps plot
             data.select('qps').plot(os.path.join(self.out_dir, self.dir_str, 'qps' + str(id)))
             print >>res, image(os.path.join(self.out_dir, self.dir_str, 'qps' + str(id)))
-            print >>res, '<div>', 'Mean qps: %f' % data.select('qps').stats()['mean'], '</div>'
+            print >>res, '<div>', 'Mean qps: %f' % data.select('qps').stats()['qps']['mean'], '</div>'
 
 #latency histogram
             data.select('latency').plot(os.path.join(self.out_dir, self.dir_str, 'latency' + str(id)))
             print >>res, image(os.path.join(self.out_dir, self.dir_str, 'latency' + str(id)))
-            print >>res, '<div>', 'Mean latency: %f - stddev: %f' % (data.select('qps').stats()['mean'], data.select('qps').stats()['stddev']), '</div>'
+            print >>res, '<div>', 'Mean latency: %f - stddev: %f' % (data.select('qps').stats['latency']['mean'], data.select('qps').stats['latency']['stddev']), '</div>'
 #flot link
             data.json(self.out_dir + '/' + self.dir_str + '/' + flot_data + str(id),'Server:' + server_meta + 'Client:' + client_meta)
             print >>res, '<p>'
