@@ -46,7 +46,7 @@ struct memcached_sock_protocol_t : public protocol_t {
         int res = ::connect(sockfd, (struct sockaddr *)&sin, sizeof(sin));
         if(res < 0) {
             int err = errno;
-            fprintf(stderr, "Could not connect to server\n");
+            fprintf(stderr, "Could not connect to server (%d)\n", err);
             exit(-1);
         }
     }
