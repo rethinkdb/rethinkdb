@@ -64,26 +64,28 @@ class dbench():
                                      QPS().read(dir + '/' + rundir + '/1/' + self.qps_path),
                                      RDBStats().read(dir + '/' + rundir + '/1/' + self.rdbstat_path)]]
                 try:
-                   self.server_meta += [open(dir + '/' + rundir + '/1/' + self.server_meta_path).read()]
-                except:
+                   self.server_meta += [self.parse_server_meta(open(dir + '/' + rundir + '/1/' + self.server_meta_path).readlines())]
+                except IOError:
                     self.server_meta += ['']
                     print "No meta data for server found"
 
                 try:
-                   self.client_meta += [open(dir + '/' + rundir + '/1/' + self.client_meta_path).read()]
-                except:
+                   self.client_meta += [self.parse_client_meta(open(dir + '/' + rundir + '/1/' + self.client_meta_path).readlines())]
+                except IOError:
                     self.client_meta += ['']
                     print "No meta data for client found"
 
-        def parse_meta_server(self, data):
+        def parse_server_meta(self, data):
             threads_line = line('Number of DB threads: (\d+)', [('threads', 'd')])
             m = until(threads_line, data)
             assert m != False
             return "Threads: %d" % m['threads']
 
-        def parse_meta_client(self, data):
-            client_line = line('\[host: [\d\.]+, port: \d+, clients: 512, load: (\d+)/(\d+)(\d+)/(\d+), keys: 8-16, values: 8-128 , duration: (\d+), batch factor: 1-16, latency file: latency.txt, QPS file: qps.txt\]', [('deletes', 'd'), ('updates', 'd'), ('inserts', 'd'), ('reads', 'd'), ('duration', 'd')])
-            
+        def parse_client_meta(self, data):
+            client_line = line('\[host: [\d\.]+, port: \d+, clients: \d+, load: (\d+)/(\d+)/(\d+)/(\d+), keys: \d+-\d+, values: \d+-\d+ , duration: (\d+), batch factor: \d+-\d+, latency file: latency.txt, QPS file: qps.txt\]', [('deletes', 'd'), ('updates', 'd'), ('inserts', 'd'), ('reads', 'd'), ('duration', 'd')])
+            m = until(client_line, data) 
+            assert m != False
+            return "D/U/I/R = %d/%d/%d/%d Duration = %d" % (m['deletes'], m['updates'], m['inserts'], m['reads'], m['duration'])
 
     class oprofile_stats():
         oprofile_path   = 'oprofile/oprof.out.rethinkdb'
@@ -120,13 +122,13 @@ class dbench():
             data = reduce(lambda x, y: x + y, run)
 #qps plot
             data.select('qps').plot(os.path.join(self.out_dir, self.dir_str, 'qps' + str(id)))
-            print >>res, image(os.path.join(self.out_dir, self.dir_str, 'qps' + str(id)))
+            print >>res, image(os.path.join(self.hostname, self.prof_dir, self.dir_str, 'qps' + str(id) + '.png'))
             print >>res, '<div>', 'Mean qps: %f' % data.select('qps').stats()['qps']['mean'], '</div>'
 
 #latency histogram
-            data.select('latency').plot(os.path.join(self.out_dir, self.dir_str, 'latency' + str(id)))
-            print >>res, image(os.path.join(self.out_dir, self.dir_str, 'latency' + str(id)))
-            print >>res, '<div>', 'Mean latency: %f - stddev: %f' % (data.select('qps').stats['latency']['mean'], data.select('qps').stats['latency']['stddev']), '</div>'
+            data.select('latency').histogram(os.path.join(self.out_dir, self.dir_str, 'latency' + str(id)))
+            print >>res, image(os.path.join(self.hostname, self.prof_dir, self.dir_str, 'latency' + str(id) + 'latency' + '.png'))
+            print >>res, '<div>', 'Mean latency: %f - stdev: %f' % (data.select('latency').stats()['latency']['mean'], data.select('latency').stats()['latency']['stdev']), '</div>'
 #flot link
             data.json(self.out_dir + '/' + self.dir_str + '/' + flot_data + str(id),'Server:' + server_meta + 'Client:' + client_meta)
             print >>res, '<p>'

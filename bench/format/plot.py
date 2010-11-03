@@ -125,7 +125,7 @@ class TimeSeriesCollection():
                 data_to_use = normalize(series[1])
             else:
                 data_to_use = series[1]
-            labels.append((ax.plot(range(len(series[1])), data_to_use, colors[color_index]), series[0]))
+            labels.append((ax.plot(range(len(series[1])), data_to_use, 'black'), series[0]))
             color_index += 1
 
         ax.set_xlabel('Time (seconds)')
@@ -135,9 +135,8 @@ class TimeSeriesCollection():
         else:
             ax.set_ylim(0, max(self.data[self.data.keys()[0]]))
         ax.grid(True)
-        plt.savefig(out_fname, dpi=300)
         plt.legend(tuple(map(lambda x: x[0], labels)), tuple(map(lambda x: x[1], labels)), loc=2)
-        plt.savefig(out_fname + '_legend', dpi=300)
+        plt.savefig(out_fname, dpi=300)
 
     def stats(self):
         from statlib import stats
