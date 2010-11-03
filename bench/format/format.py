@@ -144,7 +144,7 @@ class dbench():
         
         s.starttls()
         s.login(sender, sender_pw)
-        header = 'Subject: Profiling results\nContent-Type: text/html\n\n'
+        header = 'Subject: Profiling results %s \nContent-Type: text/html\n\n' % time.asctime()
         s.sendmail(sender, [recipient], header + self.html)
         s.quit()
         
