@@ -5,6 +5,7 @@ from oprofile import *
 from profiles import *
 import time
 import StringIO
+from line import *
 
 class dbench():
     log_file = 'bench_log.txt'
@@ -45,7 +46,7 @@ class dbench():
         qps_path        = 'client/qps.txt'
         rdbstat_path    = 'rdbstat/output.txt'
         server_meta_path= 'server/output.txt'
-        client_meta_path= 'client/status.txt'
+        client_meta_path= 'client/output.txt'
         def __init__(self, dir):
             rundirs = []
             try:
@@ -73,6 +74,16 @@ class dbench():
                 except:
                     self.client_meta += ['']
                     print "No meta data for client found"
+
+        def parse_meta_server(self, data):
+            threads_line = line('Number of DB threads: (\d+)', [('threads', 'd')])
+            m = until(threads_line, data)
+            assert m != False
+            return "Threads: %d" % m['threads']
+
+        def parse_meta_client(self, data):
+            client_line = line('\[host: [\d\.]+, port: \d+, clients: 512, load: (\d+)/(\d+)(\d+)/(\d+), keys: 8-16, values: 8-128 , duration: (\d+), batch factor: 1-16, latency file: latency.txt, QPS file: qps.txt\]', [('deletes', 'd'), ('updates', 'd'), ('inserts', 'd'), ('reads', 'd'), ('duration', 'd')])
+            
 
     class oprofile_stats():
         oprofile_path   = 'oprofile/oprof.out.rethinkdb'
@@ -104,11 +115,23 @@ class dbench():
 
         flot_data = 'data'
         for run, id, server_meta, client_meta in zip(self.bench_stats.bench_runs, range(len(self.bench_stats.bench_runs)), self.bench_stats.server_meta, self.bench_stats.client_meta):
-            reduce(lambda x, y: x + y, run).json(self.out_dir + '/' + self.dir_str + '/' + flot_data + str(id),'Server:' + server_meta + 'Client:' + client_meta)
-            print >>res, '<p>'
-            print >>res, '<pre>', flot('/' + self.prof_dir + '/' + self.dir_str + '/' + flot_data + str(id) + '.js', 'View data for run: %d' % id), '</pre>'
             print >>res, '<pre>', server_meta, '</pre>'
             print >>res, '<pre>', client_meta, '</pre>'
+            data = reduce(lambda x, y: x + y, run)
+#qps plot
+            data.select('qps').plot(os.path.join(self.out_dir, self.dir_str, 'qps' + str(id)))
+            print >>res, image(os.path.join(self.out_dir, self.dir_str, 'qps' + str(id)))
+            print >>res, '<div>', 'Mean qps: %f' % data.select('qps').stats()['mean'], '</div>'
+
+#latency histogram
+            data.select('latency').plot(os.path.join(self.out_dir, self.dir_str, 'latency' + str(id)))
+            print >>res, image(os.path.join(self.out_dir, self.dir_str, 'latency' + str(id)))
+            print >>res, '<div>', 'Mean latency: %f - stddev: %f' % (data.select('qps').stats()['mean'], data.select('qps').stats()['stddev']), '</div>'
+#flot link
+            data.json(self.out_dir + '/' + self.dir_str + '/' + flot_data + str(id),'Server:' + server_meta + 'Client:' + client_meta)
+            print >>res, '<p>'
+            print >>res, '<pre>', flot('/' + self.prof_dir + '/' + self.dir_str + '/' + flot_data + str(id) + '.js', 'View data for run: %d' % id), '</pre>'
+            print >>res, '</p>'
         
         if self.prof_stats:
             prog_report = reduce(lambda x,y: x + y, (map(lambda x: x.oprofile, self.prof_stats)))
