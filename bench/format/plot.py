@@ -145,7 +145,7 @@ class TimeSeriesCollection():
         for val in self.data.iteritems():
             stat_report = {}
             stat_report['mean'] = stats.mean(map(lambda x: x, val[1]))
-            stat_report['stddev'] = stats.stddev(map(lambda x: x, val[1]))
+            stat_report['stdev'] = stats.stdev(map(lambda x: x, val[1]))
             res[val[0]] = stat_report
 
         return res
