@@ -23,6 +23,7 @@ The way to use it is to say "/path/to/script.html#http://path/to/file.json", whe
 		<script type="text/javascript" src="base/js/jquery.flot.selection.js"></script>
 		<script type="text/javascript" src="base/js/date.js"></script>
 		<script type="text/javascript" src="base/js/plot-benchmarks.js"></script>
+		<script type="text/javascript" src="base/js/plot-colorscheme.js"></script>
 
 		<!-- CSS resources -->
 	    <link rel='stylesheet' type='text/css' href='base/css/ui.dynatree.css'>
@@ -55,8 +56,12 @@ The way to use it is to say "/path/to/script.html#http://path/to/file.json", whe
 					</fieldset>
 					<div id="plotOptions" class="controlContent">
 						<p id="tooltipOption" class="controlOption">
-							<input id="enableTooltip" type="checkbox" checked="true" />
+							<input id="enableTooltip" type="checkbox" />
 							Enable data point tooltip
+						</p>
+						<p id="scrollZoomOption" class="controlOption">
+							<input id="disableScrollZooming" type="checkbox" />
+							Disable scroll wheel zooming
 						</p>
 					</div>
 				</div>
