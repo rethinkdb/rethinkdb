@@ -43,7 +43,7 @@ public:
         return false;
     }
     
-    size_t get_size() {
+    uint64_t get_size() {
         return blocks.get_size() * DEVICE_BLOCK_SIZE;
     }
     

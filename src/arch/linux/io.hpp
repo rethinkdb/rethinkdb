@@ -90,7 +90,7 @@ public:
     linux_direct_file_t(const char *path, int mode);
     
     bool is_block_device();
-    size_t get_size();
+    uint64_t get_size();
     void set_size(size_t size);
     void set_size_at_least(size_t size);
     

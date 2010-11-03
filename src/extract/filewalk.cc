@@ -15,7 +15,8 @@
 
 
 
-typedef log_serializer_static_config_t cfg_t;
+
+typedef extract_config_t::override_t cfg_t;
 typedef data_block_manager_t::buf_data_t buf_data_t;
 
 struct byteslice {
@@ -55,11 +56,11 @@ private:
     DISABLE_COPYING(dumper_t);
 };
 
-void walk_extents(dumper_t &dumper, direct_file_t &file, cfg_t static_config);
-void observe_blocks(block_registry &registry, direct_file_t &file, cfg_t cfg, size_t filesize);
-bool check_config(cfg_t cfg);
-void get_values(dumper_t &dumper, direct_file_t& file, cfg_t cfg, const segmented_vector_t<off64_t, MAX_BLOCK_ID>& offsets, size_t i, int mod_count);
-void dump_pair_value(dumper_t &dumper, direct_file_t& file, cfg_t cfg, const segmented_vector_t<off64_t, MAX_BLOCK_ID>& offsets, btree_leaf_pair *pair, ser_block_id_t this_block, int mod_count);
+void walk_extents(dumper_t &dumper, direct_file_t &file, const cfg_t static_config);
+void observe_blocks(block_registry &registry, direct_file_t &file, const cfg_t cfg, uint64_t filesize);
+bool check_config(const cfg_t& cfg);
+void get_values(dumper_t &dumper, direct_file_t& file, const cfg_t cfg, const segmented_vector_t<off64_t, MAX_BLOCK_ID>& offsets, size_t i);
+void dump_pair_value(dumper_t &dumper, direct_file_t& file, const cfg_t cfg, const segmented_vector_t<off64_t, MAX_BLOCK_ID>& offsets, btree_leaf_pair *pair, ser_block_id_t this_block);
 void walkfile(dumper_t &dumper, const char *path);
 
 
@@ -74,7 +75,7 @@ private:
     DISABLE_COPYING(freer);
 };
 
-bool check_config(size_t filesize, cfg_t cfg) {
+bool check_config(size_t filesize, const cfg_t cfg) {
     // Check that we have reasonable block_size and extent_size.
     bool errors = false;
     logINF("DEVICE_BLOCK_SIZE: %20u\n", DEVICE_BLOCK_SIZE);
@@ -98,7 +99,7 @@ bool check_config(size_t filesize, cfg_t cfg) {
 }
 
 void walk_extents(dumper_t &dumper, direct_file_t &file, cfg_t cfg) {
-    size_t filesize = file.get_size();
+    uint64_t filesize = file.get_size();
 
     if (!check_config(filesize, cfg)) {
         logERR("Errors occurred in the configuration.\n");
@@ -125,7 +126,6 @@ void walk_extents(dumper_t &dumper, direct_file_t &file, cfg_t cfg) {
         return;
     }
 
-    int mod_count;
     {
         buf_data_t *buf = (buf_data_t *)malloc_aligned(cfg.block_size, DEVICE_BLOCK_SIZE);
         freer f;
@@ -142,17 +142,18 @@ void walk_extents(dumper_t &dumper, direct_file_t &file, cfg_t cfg) {
             return;
         }
 
-        mod_count = btree_key_value_store_t::compute_mod_count(serbuf->this_serializer, serbuf->n_files, serbuf->btree_config.n_slices);
+        if (cfg.mod_count == 0) {
+            cfg.mod_count = btree_key_value_store_t::compute_mod_count(serbuf->this_serializer, serbuf->n_files, serbuf->btree_config.n_slices);
+        }
     }
     
     
 
     logINF("Finished reading block ids, retrieving key-value pairs (n=%u).\n", n);
     for (size_t i = 0; i < n; ++i) {
-        logDBG("Getting value %u at offset %d.\n", i, offsets[i]);
-        get_values(dumper, file, cfg, offsets, i, mod_count);
+        get_values(dumper, file, cfg, offsets, i);
     }
-    logINF("finished retrieving key-value pairs.\n");
+    logINF("Finished retrieving key-value pairs.\n");
     
 }
 
@@ -167,7 +168,7 @@ bool check_all_known_magic(block_magic_t magic) {
     // TODO: less magic string duplication.
 }
 
-void observe_blocks(block_registry &registry, direct_file_t &file, cfg_t cfg, size_t filesize) {
+void observe_blocks(block_registry &registry, direct_file_t &file, const cfg_t cfg, uint64_t filesize) {
     off64_t offset = 0;
 
     void *buf = malloc_aligned(cfg.block_size, DEVICE_BLOCK_SIZE);
@@ -183,7 +184,7 @@ void observe_blocks(block_registry &registry, direct_file_t &file, cfg_t cfg, si
             logINF("Skipping extent #%u with magic \"%.*s\".\n", offset / cfg.extent_size, 8, buf);
             offset += cfg.extent_size;
         } else {
-            off64_t end_of_extent = std::min(filesize, offset + cfg.extent_size);
+            off64_t end_of_extent = std::min(filesize, offset + (uint64_t)cfg.extent_size);
 
             while (offset <= off64_t(end_of_extent - cfg.block_size)) {
 
@@ -202,8 +203,8 @@ void observe_blocks(block_registry &registry, direct_file_t &file, cfg_t cfg, si
     }
 }
 
-
-void get_values(dumper_t &dumper, direct_file_t& file, cfg_t cfg, const segmented_vector_t<off64_t, MAX_BLOCK_ID>& offsets, size_t i, int mod_count) {
+// Dumps the values from block i.
+void get_values(dumper_t &dumper, direct_file_t& file, const cfg_t cfg, const segmented_vector_t<off64_t, MAX_BLOCK_ID>& offsets, size_t i) {
     if (offsets[i] != block_registry::null) {
         logDBG("Offset not null.\n");
         // TODO: malloc this less often.
@@ -221,21 +222,18 @@ void get_values(dumper_t &dumper, direct_file_t& file, cfg_t cfg, const segmente
             for (uint16_t j = 0; j < num_pairs; ++j) {
                 btree_leaf_pair *pair = leaf_node_handler::get_pair(leaf, leaf->pair_offsets[j]);
 
-                dump_pair_value(dumper, file, cfg, offsets, pair, i, mod_count);
+                dump_pair_value(dumper, file, cfg, offsets, pair, i);
             }
         }
     }
 }
 
 
-
-
-void dump_pair_value(dumper_t &dumper, direct_file_t& file, cfg_t cfg, const segmented_vector_t<off64_t, MAX_BLOCK_ID>& offsets, btree_leaf_pair *pair, ser_block_id_t this_block, int mod_count) {
+// Dumps the values for a given pair.
+void dump_pair_value(dumper_t &dumper, direct_file_t& file, const cfg_t cfg, const segmented_vector_t<off64_t, MAX_BLOCK_ID>& offsets, btree_leaf_pair *pair, ser_block_id_t this_block) {
     btree_key *key = &pair->key;
     btree_value *value = pair->value();
 
-    // TODO: implement dumping the value for this given pair.
-            
     btree_value::mcflags_t flags = value->mcflags();
     btree_value::exptime_t exptime = value->exptime();
     // We can't save the cas right now.
@@ -253,10 +251,10 @@ void dump_pair_value(dumper_t &dumper, direct_file_t& file, cfg_t cfg, const seg
     logDBG("Dumping value for key '%.*s'...\n",
            key->size, key->contents);
 
-    int mod_id = translator_serializer_t::untranslate_block_id(this_block, mod_count, CONFIG_BLOCK_ID + 1);
+    int mod_id = translator_serializer_t::untranslate_block_id(this_block, cfg.mod_count, CONFIG_BLOCK_ID + 1);
 
     if (value->is_large()) {
-        block_id_t indexblock_id = translator_serializer_t::translate_block_id(value->lv_index_block_id(), mod_count, mod_id, CONFIG_BLOCK_ID + 1);
+        block_id_t indexblock_id = translator_serializer_t::translate_block_id(value->lv_index_block_id(), cfg.mod_count, mod_id, CONFIG_BLOCK_ID + 1);
         if (!(indexblock_id < offsets.get_size())) {
             logERR("With key '%.*s': large value has invalid block id: %u\n",
                  key->size, key->contents, indexblock_id);
@@ -311,7 +309,7 @@ void dump_pair_value(dumper_t &dumper, direct_file_t& file, cfg_t cfg, const seg
         }
 
         for (uint16_t i = 0; i < num_pieces; ++i) {
-            ser_block_id_t seg_id = translator_serializer_t::translate_block_id(indexblockbuf->blocks[i], mod_count, mod_id, CONFIG_BLOCK_ID + 1);  // TODO take out this CONFIG_BLOCK_ID stuff.
+            ser_block_id_t seg_id = translator_serializer_t::translate_block_id(indexblockbuf->blocks[i], cfg.mod_count, mod_id, CONFIG_BLOCK_ID + 1);  // TODO take out this CONFIG_BLOCK_ID stuff.
 
             byte *segbuf = (byte *)malloc_aligned(cfg.block_size, DEVICE_BLOCK_SIZE);
             seg_ptrs.add(segbuf);
@@ -358,9 +356,9 @@ void dump_pair_value(dumper_t &dumper, direct_file_t& file, cfg_t cfg, const seg
 
 
 
-void walkfile(dumper_t &dumper, const char *path) {
+void walkfile(dumper_t& dumper, const std_string_t& db_file, cfg_t overrides) {
     // TODO: give the user the ability to force the block size and extent size.
-    direct_file_t file(path, direct_file_t::mode_read);
+    direct_file_t file(db_file.c_str(), direct_file_t::mode_read);
 
     static_header_t *header = (static_header_t *)malloc_aligned(DEVICE_BLOCK_SIZE, DEVICE_BLOCK_SIZE);
     freer f;
@@ -372,20 +370,26 @@ void walkfile(dumper_t &dumper, const char *path) {
     logINF("software_name: %s\n", header->software_name);
     logINF("version: %s\n", header->version);
 
-    cfg_t static_config;
+    log_serializer_static_config_t static_config;
     memcpy(&static_config, header->data, sizeof(static_config));
 
-    //    size_t block_size = static_config.block_size;
-    //    size_t extent_size = static_config.extent_size;
-    
-    walk_extents(dumper, file, static_config);
+    // Do overrides.
+    if (overrides.block_size == extract_config_t::NO_FORCED_BLOCK_SIZE) {
+        overrides.block_size = static_config.block_size;
+    }
+    if (overrides.extent_size != extract_config_t::NO_FORCED_EXTENT_SIZE) {
+        overrides.extent_size = static_config.extent_size;
+    }
+
+    walk_extents(dumper, file, overrides);
 }
 
 
 
 
 
-void dumpfile(const char *db_filepath, const char *dump_filepath) {
-    dumper_t dumper(dump_filepath);
-    walkfile(dumper, db_filepath);
+void dumpfile(const extract_config_t& config) {
+    dumper_t dumper(config.output_file.c_str());
+
+    walkfile(dumper, config.input_file, config.overrides);
 }
