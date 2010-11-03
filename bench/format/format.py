@@ -104,7 +104,7 @@ class dbench():
 
         flot_data = 'data'
         for run, id, server_meta, client_meta in zip(self.bench_stats.bench_runs, range(len(self.bench_stats.bench_runs)), self.bench_stats.server_meta, self.bench_stats.client_meta):
-            reduce(lambda x, y: x + y, run).json(self.out_dir + '/' + self.dir_str + '/' + flot_data + str(id))
+            reduce(lambda x, y: x + y, run).json(self.out_dir + '/' + self.dir_str + '/' + flot_data + str(id),'Server:' + server_meta + 'Client:' + client_meta)
             print >>res, '<p>'
             print >>res, '<pre>', flot('/' + self.prof_dir + '/' + self.dir_str + '/' + flot_data + str(id) + '.js', 'View data for run: %d' % id), '</pre>'
             print >>res, '<pre>', server_meta, '</pre>'

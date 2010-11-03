@@ -148,10 +148,11 @@ class TimeSeriesCollection():
     def process(self):
         pass
 
-    def json(self, out_fname):
+    def json(self, out_fname, meta_data):
         top_level = {}
         top_level['date'] = time.asctime() 
         top_level['notes'] = 'Go Team'
+        top_level['meta'] = meta_data
         top_level['series'] = {}
         for series in self.data.iteritems():
             top_level['series'][series[0]] = {}
