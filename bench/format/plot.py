@@ -151,16 +151,16 @@ class TimeSeriesCollection():
     def json(self, out_fname, meta_data):
         top_level = {}
         top_level['date'] = time.asctime() 
-        top_level['notes'] = 'Go Team'
         top_level['meta'] = meta_data
-        top_level['series'] = {}
+        top_level['data'] = {}
+        top_level['data']['rethinkdb'] = {}
         for series in self.data.iteritems():
-            top_level['series'][series[0]] = {}
-            top_level['series'][series[0]]['data'] = map(lambda x: list(x), zip(range(len(series[1])), series[1]))
-            top_level['series'][series[0]]['units'] = series[1].units
+            top_level['data']['rethinkdb'][series[0]] = {}
+            top_level['data']['rethinkdb'][series[0]]['data'] = map(lambda x: list(x), zip(range(len(series[1])), series[1]))
+            top_level['data']['rethinkdb'][series[0]]['units'] = series[1].units
 
         f = open(out_fname + '.js', 'w')
-        print >>f, json.dumps({'bm_results' : top_level})
+        print >>f, json.dumps(top_level)
         f.close()
 
     def histogram(self, out_fname):
