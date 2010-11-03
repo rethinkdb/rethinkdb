@@ -64,14 +64,20 @@ class TimeSeriesCollection():
 
 #limit the data to just the keys in keys
     def select(self, keys):
-        for key in self.data.keys():
+        copy = self.copy()
+        for key in copy.data.keys():
             if not key in keys:
-                self.data.pop(key)
+                copy.data.pop(key)
+
+        return copy
 
     def drop(self, keys):
-        for key in self.data.keys():
+        copy = self.copy()
+        for key in copy.data.keys():
             if key in keys:
-                self.data.pop(key)
+                copy.data.pop(key)
+
+        return copy
 
     def parse(self, data):
         pass
