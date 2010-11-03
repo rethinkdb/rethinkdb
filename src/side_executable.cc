@@ -23,9 +23,17 @@ void consider_execve_side_executable(int argc, char **argv, const char *command_
         strcpy(commandbuf + strlen(argv[0]) + 1, argv[1]);
         strcpy(argv_0_buf + strlen(argv[0]) + 1, argv[1]);
 
-        // TODO: is this really proper Unix behavior?  Maybe look at
-        // how git searches for its subcommands.
+        // TODO: This might not be proper Unix behavior.  At least
+        // it's not git-like behavior.  Adjust the Makefile to give us
+        // a hard-coded path (e.g. /usr/lib/rethinkdb/ or
+        // /usr/local...) into which we dump rethinkdb-extract and
+        // other executables.  Then we'll call that executable
+        // specifically.
 
+        // Part of the problem is making the development cycle easy.
+        // In "development mode," we need separate directories for
+        // each set of build settings.
+        
         // Drop the first argument from argv.
         argv[1] = argv_0_buf;
         int code = execvp(commandbuf, argv + 1);
