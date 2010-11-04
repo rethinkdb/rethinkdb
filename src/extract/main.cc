@@ -74,7 +74,7 @@ void parse_cmd_args(int argc, char **argv, extract_config_t *config) {
             config->input_files.push_back(optarg);
             break;
         case 'l':
-            config->log_file = optarg;
+            config->log_file_name = optarg;
             break;
         case 'o':
             config->output_file = optarg;
@@ -146,6 +146,9 @@ int main(int argc, char **argv) {
     extract_config_t config;
     extract::parse_cmd_args(argc, argv, &config);
 
+    if (config.log_file_name != "") {
+        log_file = fopen(config.log_file_name.c_str(), "w");
+    }
 
     // Initial CPU message to start server
     struct server_starter_t :
