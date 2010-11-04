@@ -169,7 +169,7 @@ void* run_client(void* data) {
     protocol_t *proto = (*pf)(config);
     
     // Connect to the server
-    proto->connect(config->host, config->port);
+    proto->connect(config);
 
     // Store the keys so we can run updates and deletes.
     vector<payload_t> keys;

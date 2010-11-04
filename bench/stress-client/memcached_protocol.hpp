@@ -25,8 +25,8 @@ struct memcached_protocol_t : public protocol_t {
         memcached_free(&memcached);
     }
     
-    virtual void connect(const char *host, int port) {
-        memcached_server_add(&memcached, host, port);
+    virtual void connect(config_t *config) {
+        memcached_server_add(&memcached, config->host, config->port);
     }
     
     virtual void remove(const char *key, size_t key_size) {

@@ -51,8 +51,10 @@ void usage(const char *name) {
            "\t\tThe information is not outputted if this argument is skipped.\n");
 
     printf("\nAdditional information:\n");
-    printf("\t\tDISTR format describes a range and can be specified in as MIN-MAX.\n");
+    printf("\t\tDISTR format describes a range and can be specified in as MIN-MAX.\n\n");
     printf("\t\tPossible protocols are libmemcached, sockmemcached, and mysql.\n");
+    printf("\t\tFor mysql protocol the host argument should be in the following\n" \
+           "\t\tformat: username/password@host:database.\n");
     
     exit(-1);
 }

@@ -6,7 +6,7 @@
 
 struct protocol_t {
     virtual ~protocol_t() {}
-    virtual void connect(const char *host, int port) = 0;
+    virtual void connect(config_t *config) = 0;
     
     virtual void remove(const char *key, size_t key_size) = 0;
     virtual void update(const char *key, size_t key_size,

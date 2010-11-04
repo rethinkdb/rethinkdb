@@ -26,7 +26,18 @@ public:
 
     void print() {
         printf("--- Workload -----\n");
-        printf("Duration..........%ldops", duration);
+        printf("Duration..........%ldops\n", duration);
+
+        printf("Protocol..........");
+        if(protocol == protocol_libmemcached)
+            printf("libmemcached");
+        else if(protocol == protocol_sockmemcached)
+            printf("sockmemcached");
+        else if(protocol == protocol_mysql)
+            printf("mysql");
+        else
+            printf("unknown");
+        
         printf("\nClients...........%d\nLoad..............", clients);
         load.print();
         printf("\nKeys..............");
