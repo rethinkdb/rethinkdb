@@ -318,7 +318,7 @@ void print_database_flags(cmd_config_t *config) {
     printf("Extent size........%ldKB\n", config->store_static_config.serializer.extent_size / KILOBYTE);
     
     for(int i = 0; i < config->n_files; i++) {
-        printf("File %.2d............%s\n", config->n_files, config->files[0]);
+        printf("File %.2d............%s\n", i + 1, config->files[0]);
     }
 }
 
