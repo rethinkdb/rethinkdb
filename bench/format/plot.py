@@ -7,6 +7,15 @@ from colors import *
 import json
 import time
 from line import *
+from statlib import stats
+
+def cull_outliers(data, n_sigma):
+    mean = stats.mean(map(lambda x: x, data))
+    sigma  = stats.stdev(map(lambda x: x, data))
+    return filter(lambda x: abs(x - mean) < n_sigma * sigma, data)
+
+def clip(data, min, max):
+    return map(lambda x: min<x<max, data)
 
 def normalize(array):
     denom = max(map(lambda x: abs(x), array))
@@ -79,6 +88,11 @@ class TimeSeriesCollection():
 
         return copy
 
+    def remap(self, orig_name, new_name):
+        copy = self.drop(orig_name)
+        copy.data[new_name] = self.data[orig_name]
+        return copy
+
     def parse(self, data):
         pass
 
@@ -95,7 +109,7 @@ class TimeSeriesCollection():
         for series in self.data.iteritems():
             top_level['data']['rethinkdb'][series[0]] = {}
             top_level['data']['rethinkdb'][series[0]]['data'] = map(lambda x: list(x), zip(range(len(series[1])), series[1]))
-            top_level['data']['rethinkdb'][series[0]]['units'] = series[1].units
+            top_level['data']['rethinkdb'][series[0]]['unit'] = series[1].units
 
         f = open(out_fname + '.js', 'w')
         print >>f, json.dumps(top_level)
@@ -103,43 +117,45 @@ class TimeSeriesCollection():
 
     def histogram(self, out_fname):
         assert self.data
-        for series in self.data.iteritems():
-            fig = plt.figure()
-            ax = fig.add_subplot(111)
-            ax.hist(series[1], 40, range=(0, (sum(series[1]) / len(series[1])) * 2), facecolor='green', alpha=1.0)
+
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
+
+        data = map(lambda x: x[1], self.data.iteritems())
+        for series, color in zip(self.data.iteritems(), colors):
+            ax.hist(cull_outliers(series[1], 1.3), 40, histtype='step', facecolor = color, alpha = .4, label = series[0])
             ax.set_xlabel(series[0])
             ax.set_ylabel('Count')
-            ax.set_xlim(0, (sum(series[1]) / len(series[1])) * 2)
-            ax.set_ylim(0, len(series[1]) / 10)
+#ax.set_xlim(0, max(map(max, data)))
+#ax.set_ylim(0, max(map(len, data)))
             ax.grid(True)
-            plt.savefig(out_fname + series[0])
+            plt.savefig(out_fname, dpi=300)
 
-    def plot(self, out_fname):
+    def plot(self, out_fname, normalize = False):
         assert self.data
         fig = plt.figure()
         ax = fig.add_subplot(111)
         labels = []
         color_index = 0
         for series in self.data.iteritems():
-            if len(self.data) > 1:
+            if normalize:
                 data_to_use = normalize(series[1])
             else:
                 data_to_use = series[1]
-            labels.append((ax.plot(range(len(series[1])), data_to_use, 'black'), series[0]))
+            labels.append((ax.plot(range(len(series[1])), data_to_use, colors[color_index]), series[0]))
             color_index += 1
 
         ax.set_xlabel('Time (seconds)')
         ax.set_xlim(0, len(self.data[self.data.keys()[0]]) - 1)
-        if len(self.data) > 1:
+        if normalize:
             ax.set_ylim(0, 1.0)
         else:
             ax.set_ylim(0, max(self.data[self.data.keys()[0]]))
         ax.grid(True)
-        plt.legend(tuple(map(lambda x: x[0], labels)), tuple(map(lambda x: x[1], labels)), loc=2)
+        plt.legend(tuple(map(lambda x: x[0], labels)), tuple(map(lambda x: x[1], labels)), loc=1)
         plt.savefig(out_fname, dpi=300)
 
     def stats(self):
-        from statlib import stats
         res = {}
         for val in self.data.iteritems():
             stat_report = {}
@@ -149,7 +165,8 @@ class TimeSeriesCollection():
 
         return res
 
-#function : (serieses)/len(arg_names) -> series
+#function : (serieses)*len(arg_keys) -> series
+#TODO this should return a copy with the changes
     def derive(self, name, arg_keys, function):
         args = []
         for key in arg_keys:
@@ -157,6 +174,7 @@ class TimeSeriesCollection():
             args.append(self.data[key])
 
         self.data[name] = function(tuple(args))
+        return self
 
 def multi_plot(timeseries, out_fname):
     fig = plt.figure()

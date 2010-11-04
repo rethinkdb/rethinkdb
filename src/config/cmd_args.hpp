@@ -99,6 +99,8 @@ struct cmd_config_t {
     btree_key_value_store_dynamic_config_t store_dynamic_config;
     bool create_store;
     btree_key_value_store_static_config_t store_static_config;
+
+    bool verbose;
 };
 
 void parse_cmd_args(int argc, char *argv[], cmd_config_t *config);

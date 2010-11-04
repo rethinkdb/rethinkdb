@@ -82,12 +82,12 @@ void server_t::shutdown() {
 void server_t::do_shutdown() {
     
     assert_cpu();
-    printf("Shutting down.\n");
+    //printf("Shutting down.\n");
     do_shutdown_conn_acceptor();
 }
 
 void server_t::do_shutdown_conn_acceptor() {
-    printf("Shutting down connections...\n");
+    //printf("Shutting down connections...\n");
     if (conn_acceptor.shutdown(this)) on_conn_acceptor_shutdown();
 }
 
@@ -97,7 +97,7 @@ void server_t::on_conn_acceptor_shutdown() {
 }
 
 void server_t::do_shutdown_store() {
-    printf("Shutting down database...\n");
+    //printf("Shutting down database...\n");
     if (store->shutdown(this)) on_store_shutdown();
 }
 

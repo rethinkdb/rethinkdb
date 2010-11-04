@@ -25,8 +25,8 @@ if __name__ == "__main__":
     dump_path = os.path.join(test_dir, "db_data_dump.txt")
 
     command_line = [extract_path,
-                    os.path.join(test_dir, "db_data", "data_file"),
-                    dump_path]
+                    "-f", os.path.join(test_dir, "db_data", "data_file"),
+                    "-o", dump_path]
 
     subprocess.check_call(command_line)
 
