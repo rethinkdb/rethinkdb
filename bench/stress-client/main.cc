@@ -17,13 +17,17 @@
 
 using namespace std;
 
-protocol_t* make_mc() {
-    return (protocol_t*) new memcached_sock_protocol_t();
-    //return (protocol_t*) new memcached_protocol_t();
-}
-
-protocol_t* make_mysql() {
-    return (protocol_t*) new mysql_protocol_t();
+protocol_t* make_protocol(config_t *config) {
+    if(config->protocol == protocol_mysql)
+        return (protocol_t*) new mysql_protocol_t();
+    else if(config->protocol == protocol_sockmemcached)
+        return (protocol_t*) new memcached_sock_protocol_t();
+    else if(config->protocol == protocol_libmemcached)
+        return (protocol_t*) new memcached_protocol_t();
+    else {
+        printf("Unknown protocol\n");
+        exit(-1);
+    }
 }
 
 /* Tie it all together */
@@ -38,7 +42,7 @@ int main(int argc, char *argv[])
     config.print();
 
     // Create the shared structure
-    shared_t shared(&config, make_mc);
+    shared_t shared(&config, make_protocol);
     client_data_t client_data;
     client_data.config = &config;
     client_data.shared = &shared;

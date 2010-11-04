@@ -5,12 +5,16 @@
 #define MAX_HOST    255
 #define MAX_FILE    255
 
+enum protocol_enum_t {
+    protocol_libmemcached, protocol_sockmemcached, protocol_mysql
+};
+
 /* Defines a client configuration, including sensible default
  * values.*/
 struct config_t {
 public:
     config_t()
-        : port(11211),
+        : port(11211), protocol(protocol_sockmemcached),
           clients(64), load(load_t()),
           keys(distr_t(8, 16)), values(distr_t(8, 128)),
           duration(10000000L), batch_factor(distr_t(1, 16))
@@ -54,6 +58,7 @@ public:
 public:
     char host[MAX_HOST];
     int port;
+    protocol_enum_t protocol;
     int clients;
     load_t load;
     distr_t keys;
