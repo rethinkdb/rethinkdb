@@ -10,7 +10,7 @@ using namespace std;
 /* Information shared between clients */
 struct shared_t {
 public:
-    typedef protocol_t*(*protocol_factory_t)(void);
+    typedef protocol_t*(*protocol_factory_t)(config_t*);
     
 public:
     shared_t(config_t *_config, protocol_factory_t _protocol_factory)
@@ -166,7 +166,7 @@ void* run_client(void* data) {
     config_t *config = client_data->config;
     shared_t *shared = client_data->shared;
     shared_t::protocol_factory_t pf = shared->protocol_factory;
-    protocol_t *proto = (*pf)();
+    protocol_t *proto = (*pf)(config);
     
     // Connect to the server
     proto->connect(config->host, config->port);
