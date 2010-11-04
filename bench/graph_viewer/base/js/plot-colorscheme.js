@@ -45,11 +45,11 @@ plot_bm.color_scheme = [
 '#E84A5F', // melonjolly
 '#2A363B', // coup de grace
 '#FF847C', // complete coral
-'#9F111B', // redder state
 '#99B898', // seeking sage
 '#FECEA8', // comfortable skin
 '#91204D', // t r a n c e
 '#E4844A', // t r a n c e
+'#9F111B', // redder state
 '#452632', // t r a n c e
 '#359668', // as breath swells
 '#A8D46F', // and trembling hands
