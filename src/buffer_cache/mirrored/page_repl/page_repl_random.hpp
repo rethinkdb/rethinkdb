@@ -3,7 +3,7 @@
 #define __PAGE_REPL_RANDOM_HPP__
 
 #include "config/args.hpp"
-#include "log.hpp"
+#include "logger.hpp"
 
 // TODO: We should use mlock (or mlockall or related) to make sure the
 // OS doesn't swap out our pages, since we're doing swapping

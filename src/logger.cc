@@ -1,134 +1,138 @@
 #include <stdio.h>
 #include <stdarg.h>
 #include <stdlib.h>
-#include "config/args.hpp"
-#include "config/cmd_args.hpp"
 #include "config/alloc.hpp"
 #include "logger.hpp"
 #include <string.h>
 #include "utils.hpp"
 #include "arch/arch.hpp"
 
-struct log_msg_t;
+FILE *log_file = stderr;
 
-/* Each thread has a logger_t that is responsible for log messages originating
-on that thread. All of the logger_ts are tied to the master log_controller_t. */
+/* As an optimization, during the main phase of the server's running we route all log messages
+to one thread to write them. */
 
-struct logger_t :
-    public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, logger_t>,
+struct log_controller_t;
+
+static __thread log_controller_t *log_controller = NULL;   // Non-NULL if we are routing log messages
+
+struct log_controller_t :
     public home_cpu_mixin_t
 {
-
-    logger_t(log_controller_t *controller)
-        : msg(NULL), controller(controller), active_msg_count(0), shutting_down(false) { }
+    /* Startup process */
     
-    // The message we are currently composing; non-NULL between mlog_start() and mlog_end()
-    log_msg_t *msg;
-    
-    log_controller_t *controller;
-    
-    /* Shutting down a logger_t consists of waiting for any outstanding messages
-    to come back. */
-    
-    bool shutdown() {
-        shutting_down = true;
-        return (active_msg_count == 0);
-    }
-    
-    void finish_shutdown() {
-        controller->a_logger_has_shutdown();
-    }
-    
-    int active_msg_count;   // How many outstanding log_msg_ts there are on this core
-    bool shutting_down;
-    
-    static __thread logger_t *logger;   // The logger instance for this thread
-};
-
-__thread logger_t *logger_t::logger;
-
-/* log_msg_t represents a log message. It originates on some core, travels to the core
-where the log_controller_t resides, writes itself, travels back to the original core,
-and then deletes itself. */
-
-struct log_msg_t :
-    public cpu_message_t,
-    public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, log_msg_t>
-{
-public:
-    log_msg_t(logger_t *logger)
-        : logger(logger)
-    {
-        *str = '\0';
-        del = false;
-        assert(!logger->shutting_down);
-        logger->active_msg_count++;
-    }
-
-    void on_cpu_switch() {
+    log_controller_t() {
         
-        if (del) {
-            /* We have returned to the core we were created on */
-            delete this;
-            
-        } else {
-            /* We have reached the core where the log controller is */
-            logger->controller->writef("(%s)Q%d:%s:%d:", level_str(), logger->home_cpu, src_file, src_line);
-            logger->controller->write(str);
-            
-            /* Now go back to be deleted */
-            del = true;
-            if (continue_on_cpu(logger->home_cpu, this)) on_cpu_switch();
+        shutting_down = false;
+        for (int i = 0; i < get_num_cpus(); i++) {
+            do_on_cpu(i, this, &log_controller_t::install);
         }
     }
     
-    const char *level_str() {
-        switch (level) {
-    #ifndef NDEBUG
-            case DBG:
-                return "DD";
-                break;
-    #endif
-            case INF:
-                return "II";
-                break;
-            case WRN:
-                return "WW";
-                break;
-            case ERR:
-                return "EE";
-                break;
-            default:
-                return "??";
-                break;
+    bool install() {
+    
+        assert(log_controller == NULL);
+        log_controller = this;
+        messages_out[get_cpu_id()] = 0;
+        return true;
+    }
+    
+    /* Shutdown process */
+    
+    bool shutting_down;
+    int num_threads_up;
+    int messages_out[MAX_CPUS];
+    logger_shutdown_callback_t *shutdown_callback;
+    
+    void shutdown(logger_shutdown_callback_t *cb) {
+        
+        shutting_down = true;
+        num_threads_up = get_num_cpus();
+        shutdown_callback = cb;
+        for (int i = 0; i < get_num_cpus(); i++) {
+            do_on_cpu(i, this, &log_controller_t::uninstall);
         }
     }
     
-    ~log_msg_t() {
-        logger->active_msg_count--;
-        if (logger->shutting_down && logger->active_msg_count == 0) {
-            logger->finish_shutdown();
-        }
+    bool uninstall() {
+    
+        assert(log_controller == this);
+        log_controller = NULL;
+        if (messages_out[get_cpu_id()] == 0)
+            do_on_cpu(home_cpu, this, &log_controller_t::have_uninstalled);
+        return true;
     }
     
-public:
-    char str[MAX_LOG_MSGLEN];
-    log_level_t level;
-    const char *src_file;
-    int src_line;
+    bool have_uninstalled() {
+        
+        num_threads_up--;
+        if (num_threads_up == 0) {
+            shutdown_callback->on_logger_shutdown();
+            gdelete(this);
+        }
+        return true;
+    }
     
-    bool del;
-    logger_t *logger;
+    /* Log writing process */
+    
+    void write(const char *ptr, size_t length) {
+        
+        char *msg = strndup(ptr, length);
+        messages_out[get_cpu_id()]++;
+        do_on_cpu(home_cpu, this, &log_controller_t::do_write, msg, get_cpu_id());
+    }
+    
+    bool do_write(char *msg, int return_cpu) {
+        
+        fprintf(log_file, "%s", msg);
+        do_on_cpu(return_cpu, this, &log_controller_t::done, msg);
+        return true;
+    }
+    
+    bool done(char *msg) {
+        
+        free(msg);
+        messages_out[get_cpu_id()]--;
+        if (shutting_down && messages_out[get_cpu_id()] == 0) {
+            do_on_cpu(home_cpu, this, &log_controller_t::have_uninstalled);
+        }
+        return true;
+    }
 };
+
+void logger_start(logger_ready_callback_t *cb) {
+    
+    gnew<log_controller_t>();
+    
+    /* Call callback immediately because it's OK if log messages get written before the log
+    controller finishes installing itself--there might be lock contention on the log file,
+    but everything will still work. */
+    cb->on_logger_ready();
+}
+
+void logger_shutdown(logger_shutdown_callback_t *cb) {
+    
+    assert(log_controller);
+    log_controller->shutdown(cb);
+}
 
 /* Functions to actually do the logging */
 
+static __thread bool logging = false;
+static __thread int message_len;
+static __thread char message[MAX_LOG_MSGLEN];
+
 static void vmlogf(const char *format, va_list arg) {
-    int pos = strlen(logger_t::logger->msg->str);
-    vsnprintf((char *)logger_t::logger->msg->str + pos, (size_t) MAX_LOG_MSGLEN - pos, format, arg);
+
+    assert(logging);
+    message_len += vsnprintf(
+        message + message_len,
+        (size_t) MAX_LOG_MSGLEN - message_len,
+        format, arg);
 }
 
 void _logf(const char *src_file, int src_line, log_level_t level, const char *format, ...) {
+
     _mlog_start(src_file, src_line, level);
 
     va_list arg;
@@ -140,15 +144,30 @@ void _logf(const char *src_file, int src_line, log_level_t level, const char *fo
 }
 
 void _mlog_start(const char *src_file, int src_line, log_level_t level) {
-    assert(!logger_t::logger->msg);
-    log_msg_t *msg = logger_t::logger->msg = new log_msg_t(logger_t::logger);
-    msg->level = level;
-    msg->src_file = src_file;
-    msg->src_line = src_line;
-    msg->logger = logger_t::logger;
+
+    assert(!logging);
+    logging = true;
+    
+    message_len = 0;
+    message[0] = '\0';
+    
+    const char *level_str;
+    switch (level) {
+        case DBG: level_str = "debug"; break;
+        case INF: level_str = "info"; break;
+        case WRN: level_str = "warn"; break;
+        case ERR: level_str = "error"; break;
+    };
+    
+    /* If the log controller hasn't been started yet, then assume the thread pool hasn't been
+    started either, so don't write which core the message came from. */
+    
+    if (log_controller) mlogf("%s (Q%d, %s:%d): ", level_str, get_cpu_id(), src_file, src_line);
+    else mlogf("%s (%s:%d): ", level_str, src_file, src_line);
 }
 
 void mlogf(const char *format, ...) {
+
     va_list arg;
     va_start(arg, format);
     vmlogf(format, arg);
@@ -156,127 +175,15 @@ void mlogf(const char *format, ...) {
 }
 
 void mlog_end() {
-    log_msg_t *msg = logger_t::logger->msg;
-    assert(msg);
-    if (continue_on_cpu(logger_t::logger->controller->home_cpu, msg)) msg->on_cpu_switch();
-    logger_t::logger->msg = NULL;
-}
 
-/* The log_controller_t is responsible for starting and shutting down the per-thread
-logger_t objects, and for actually writing the log messages. */
-
-log_controller_t::log_controller_t(cmd_config_t *cmd_config)
-    : state(state_off), cmd_config(cmd_config), log_file(NULL) { }
-
-log_controller_t::~log_controller_t() {
-    assert(state == state_off);
-    assert(log_file == NULL);
-}
-
-/* Log controller startup process */
-
-bool log_controller_t::start(ready_callback_t *ready_cb) {
+    assert(logging);
+    logging = false;
     
-    assert(state == state_off);
-    state = state_starting_loggers;
-    
-    // Open the log file
-    
-    if (*cmd_config->log_file_name) {
-        log_file = fopen(cmd_config->log_file_name, "w");
+    if (log_controller) {
+        // Send the message to the log controller to be routed to the appropriate thread
+        log_controller->write(message, message_len);
     } else {
-        log_file = stderr;
+        // Write directly to the log file from whatever thread we're on
+        fwrite(message, 1, message_len, log_file);
     }
-    
-    // Start the per-thread logger objects
-    
-    ready_callback = NULL;   // In case the startup finishes immediately
-    messages_out = get_num_cpus();
-    bool done = true;
-    for (int i = 0; i < get_num_cpus(); i++) {
-        done = do_on_cpu(i, this, &log_controller_t::start_a_logger) && done;
-    }
-    if (done) {
-        // This happens when there is only one thread: the one we are on
-        return true;
-    } else {
-        ready_callback = ready_cb;
-        return false;
-    }
-}
-
-bool log_controller_t::start_a_logger() {
-    logger_t::logger = new logger_t(this);
-    return do_on_cpu(home_cpu, this, &log_controller_t::have_started_a_logger);
-}
-
-bool log_controller_t::have_started_a_logger() {
-    messages_out--;
-    if (messages_out == 0) {
-        assert(state == state_starting_loggers);
-        state = state_ready;
-        if (ready_callback) ready_callback->on_logger_ready();
-    }
-    return true;
-}
-
-/* Writing log messages */
-
-void log_controller_t::writef(const char *format, ...) {
-    va_list arg;
-    va_start(arg, format);
-    vfprintf(log_file, format, arg);
-    va_end(arg);
-}
-
-void log_controller_t::write(const char *str) {
-    writef("%s", str);
-}
-
-/* Log controller shutdown process */
-
-bool log_controller_t::shutdown(shutdown_callback_t *cb) {
-    
-    assert(state == state_ready);
-    state = state_shutting_down_loggers;
-    
-    shutdown_callback = NULL;   // In case the shutdown finishes immediately
-    messages_out = get_num_cpus();
-    bool done = true;
-    for (int i = 0; i < get_num_cpus(); i++) {
-        done = do_on_cpu(i, this, &log_controller_t::shutdown_a_logger) && done;
-    }
-    if (done) {
-        return true;
-    } else {
-        shutdown_callback = cb;
-        return false;
-    }
-}
-
-bool log_controller_t::shutdown_a_logger() {
-    if (logger_t::logger->shutdown()) return a_logger_has_shutdown();
-    else return false;
-}
-
-bool log_controller_t::a_logger_has_shutdown() {
-    delete logger_t::logger;
-    logger_t::logger = NULL;
-    return do_on_cpu(home_cpu, this, &log_controller_t::have_shutdown_a_logger);
-}
-
-bool log_controller_t::have_shutdown_a_logger() {
-    messages_out--;
-    if (messages_out == 0) {
-        assert(state == state_shutting_down_loggers);
-        state = state_off;
-        
-        if (log_file && log_file != stderr) {
-            fclose(log_file);
-        }
-        log_file = NULL;
-        
-        if (shutdown_callback) shutdown_callback->on_logger_shutdown();
-    }
-    return true;
 }
