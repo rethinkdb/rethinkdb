@@ -2,6 +2,7 @@
 #include "arch/arch.hpp"
 #include <unistd.h>
 
+/* System configuration*/
 int get_cpu_count() {
     return sysconf(_SC_NPROCESSORS_ONLN);
 }

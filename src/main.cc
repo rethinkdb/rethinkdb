@@ -50,7 +50,7 @@ int main(int argc, char *argv[]) {
     starter.thread_pool = &thread_pool;
     thread_pool.run(&starter);
     
-    fprintf(stderr, "Server is shut down.\n");
+    //fprintf(stderr, "Server is shut down.\n");
     
     return 0;
 }
