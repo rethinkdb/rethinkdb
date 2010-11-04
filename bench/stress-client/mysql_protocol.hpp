@@ -64,18 +64,20 @@ struct mysql_protocol_t : public protocol_t {
             fprintf(stderr, "Could not prepare read statement\n");
             exit(-1);
         }
+
+        // [Re]create the schema
+        create_schema();
     }
     
     virtual void remove(const char *key, size_t key_size) {
         // Bind the data
         MYSQL_BIND bind[1];
-        long unsigned int val_size;
         memset(bind, 0, sizeof(bind));
         bind[0].buffer_type = MYSQL_TYPE_STRING;
         bind[0].buffer = (char*)key;
         bind[0].buffer_length = key_size;
         bind[0].is_null = 0;
-        bind[0].length = &val_size;
+        bind[0].length = &key_size;
         
         int res = mysql_stmt_bind_param(remove_stmt, bind);
         if(res != 0) {
@@ -89,8 +91,6 @@ struct mysql_protocol_t : public protocol_t {
             fprintf(stderr, "Could not execute remove statement\n");
             exit(-1);
         }
-
-        
     }
     
     virtual void update(const char *key, size_t key_size,
@@ -104,6 +104,12 @@ struct mysql_protocol_t : public protocol_t {
     }
     
     virtual void read(payload_t *keys, int count) {
+    }
+
+private:
+    void create_schema() {
+        // Drop the table if it exists
+        // Create the table
     }
 
 private:

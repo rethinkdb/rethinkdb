@@ -4,62 +4,56 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
-#include "config/args.hpp"
-#include "config/cmd_args.hpp"
-#include "utils.hpp"
-#include "log.hpp"
 
-/* server_t creates one log_controller_t for the entire thread pool. The
-log_controller_t takes care of starting and shutting down the per-thread
-logger_t objects. */
+// The file to write log messages to. It defaults to stderr, but main() may set it to something
+// different.
+extern FILE *log_file;
 
-class logger_t;
+/* These functions log things. */
 
-class log_controller_t :
-    public home_cpu_mixin_t
-{
-    friend class logger_t;
+enum log_level_t { DBG = 0, INF = 1, WRN, ERR };
 
-public:
-    log_controller_t(cmd_config_t *cmd_config);
-    
-    struct ready_callback_t {
-        virtual void on_logger_ready() = 0;
-    };
-    bool start(ready_callback_t *cb);
-    
-    struct shutdown_callback_t {
-        virtual void on_logger_shutdown() = 0;
-    };
-    bool shutdown(shutdown_callback_t *cb);
-    
-    ~log_controller_t();
-    
-    void writef(const char *format, ...);
-    void write(const char *str);
+// Log a message in one chunk. You still have to provide '\n'.
 
-private:
-    bool start_a_logger();   // Called on each thread
-    bool have_started_a_logger();   // Called on main thread
-    bool shutdown_a_logger();   // Called on each thread
-    bool a_logger_has_shutdown();   // Called on each thread
-    bool have_shutdown_a_logger();   // Called on main thread
-    
-    enum state_t {
-        state_off,
-        state_starting_loggers,
-        state_ready,
-        state_shutting_down_loggers
-    } state;
-    cmd_config_t *cmd_config;
-    FILE *log_file;
-    
-    ready_callback_t *ready_callback;
-    shutdown_callback_t *shutdown_callback;
-    
-    /* The number of start_logger_message_ts or shutdown_logger_message_ts in existence,
-    NOT the number of log_msg_ts in existence */
-    int messages_out;
+// logf is a standard library function in <math.h>.  So we use _logf.
+
+void _logf(const char *src_file, int src_line, log_level_t level, const char *format, ...);
+
+#ifndef NDEBUG
+#define logDBG(fmt, args...) _logf(__FILE__, __LINE__, DBG, (fmt), ##args)
+#else
+#define logDBG(fmt, args...) ((void)0)
+#endif
+
+#define logINF(fmt, args...) _logf(__FILE__, __LINE__, INF, (fmt), ##args)
+#define logWRN(fmt, args...) _logf(__FILE__, __LINE__, WRN, (fmt), ##args)
+#define logERR(fmt, args...) _logf(__FILE__, __LINE__, ERR, (fmt), ##args)
+
+// Log a message in pieces.
+
+void _mlog_start(const char *src_file, int src_line, log_level_t level);
+#define mlog_start(lvl) (_mlog_start(__FILE__, __LINE__, (lvl)))
+
+void mlogf(const char *format, ...);
+
+void mlog_end();
+
+/* The logger has two modes. During the main phase of the server running, it will send all log
+messages to one thread and write them to the file from there; this makes it so that we don't block
+on the log file's lock. During the startup and shutdown phases, we just write messages directly
+from the file and don't care about the performance hit from the lock. */
+
+// Enter mode where we route all log messages to the core that logger_start() is called on. Only
+// call this after the thread pool has started up.
+struct logger_ready_callback_t {
+    virtual void on_logger_ready() = 0;
 };
+void logger_start(logger_ready_callback_t *cb);
+
+// Exit log-message-routing mode. Call this before the thread pool shuts down.
+struct logger_shutdown_callback_t {
+    virtual void on_logger_shutdown() = 0;
+};
+void logger_shutdown(logger_shutdown_callback_t *cb);
 
 #endif // __LOGGER_HPP__

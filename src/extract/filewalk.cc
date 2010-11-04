@@ -8,6 +8,7 @@
 #include "buffer_cache/large_buf.hpp"
 #include "config/cmd_args.hpp"
 #include "serializer/log/static_header.hpp"
+#include "serializer/log/lba/disk_format.hpp"
 #include "utils.hpp"
 #include "logger.hpp"
 
@@ -119,14 +120,13 @@ void walk_extents(dumper_t &dumper, direct_file_t &file, cfg_t cfg) {
         return;
     }
 
-    if (!(CONFIG_BLOCK_ID < n && offsets[CONFIG_BLOCK_ID] != block_registry::null)) {
-        logERR("Config block cannot be found (CONFIG_BLOCK_ID = %u, offsets.get_size() = %u)\n",
-               CONFIG_BLOCK_ID, n);
-        // TODO don't return, use command line args.
-        return;
-    }
+    if (cfg.mod_count == extract_config_t::NO_FORCED_MOD_COUNT) {
+        if (!(CONFIG_BLOCK_ID < n && offsets[CONFIG_BLOCK_ID] != block_registry::null)) {
+            fail("Config block cannot be found (CONFIG_BLOCK_ID = %u, offsets.get_size() = %u)."
+                 "  Use --force-mod-count to override.\n",
+                 CONFIG_BLOCK_ID, n);
+        }
 
-    {
         buf_data_t *buf = (buf_data_t *)malloc_aligned(cfg.block_size, DEVICE_BLOCK_SIZE);
         freer f;
         f.add(buf);
@@ -142,13 +142,11 @@ void walk_extents(dumper_t &dumper, direct_file_t &file, cfg_t cfg) {
             return;
         }
 
-        if (cfg.mod_count == 0) {
+        if (cfg.mod_count == extract_config_t::NO_FORCED_MOD_COUNT) {
             cfg.mod_count = btree_key_value_store_t::compute_mod_count(serbuf->this_serializer, serbuf->n_files, serbuf->btree_config.n_slices);
         }
     }
     
-    
-
     logINF("Finished reading block ids, retrieving key-value pairs (n=%u).\n", n);
     for (size_t i = 0; i < n; ++i) {
         get_values(dumper, file, cfg, offsets, i);
@@ -164,8 +162,7 @@ bool check_all_known_magic(block_magic_t magic) {
         || check_magic<large_buf_index>(magic)
         || check_magic<large_buf_segment>(magic)
         || check_magic<serializer_config_block_t>(magic)
-        || !memcmp(&magic, "zerozerozerozero", sizeof(magic));
-    // TODO: less magic string duplication.
+        || magic == log_serializer_t::zerobuf_magic;
 }
 
 void observe_blocks(block_registry &registry, direct_file_t &file, const cfg_t cfg, uint64_t filesize) {
@@ -178,27 +175,20 @@ void observe_blocks(block_registry &registry, direct_file_t &file, const cfg_t c
     while (offset <= off64_t(filesize - cfg.block_size)) {
         file.read_blocking(offset, cfg.block_size, buf);
 
-        // TODO: remove magic string code duplication
-        if (false && (!memcmp(buf, "lbamagic", 8) || !memcmp(buf, "lbasuper", 8)
-                      || !memcmp(buf, "RethinkDB", 9))) {
-            logINF("Skipping extent #%u with magic \"%.*s\".\n", offset / cfg.extent_size, 8, buf);
-            offset += cfg.extent_size;
-        } else {
-            off64_t end_of_extent = std::min(filesize, offset + (uint64_t)cfg.extent_size);
+        off64_t end_of_extent = std::min(filesize, offset + (uint64_t)cfg.extent_size);
 
-            while (offset <= off64_t(end_of_extent - cfg.block_size)) {
+        while (offset <= off64_t(end_of_extent - cfg.block_size)) {
 
-                file.read_blocking(offset, cfg.block_size, buf);
+            file.read_blocking(offset, cfg.block_size, buf);
 
-                buf_data_t *buf_data = reinterpret_cast<buf_data_t *>(buf);
-                block_magic_t *magic = reinterpret_cast<block_magic_t *>(buf_data + 1);
+            buf_data_t *buf_data = (buf_data_t *)(buf);
+            block_magic_t *magic = (block_magic_t *)(buf_data + 1);
 
-                if (check_all_known_magic(*magic)) {
-                    registry.tell_block(offset, buf_data);
-                }
-
-                offset += cfg.block_size;
+            if (check_all_known_magic(*magic)) {
+                registry.tell_block(offset, buf_data);
             }
+
+            offset += cfg.block_size;
         }
     }
 }
@@ -206,15 +196,13 @@ void observe_blocks(block_registry &registry, direct_file_t &file, const cfg_t c
 // Dumps the values from block i.
 void get_values(dumper_t &dumper, direct_file_t& file, const cfg_t cfg, const segmented_vector_t<off64_t, MAX_BLOCK_ID>& offsets, size_t i) {
     if (offsets[i] != block_registry::null) {
-        logDBG("Offset not null.\n");
-        // TODO: malloc this less often.
         void *buf = malloc_aligned(cfg.block_size, DEVICE_BLOCK_SIZE);
         freer f;
         f.add(buf);
 
         file.read_blocking(offsets[i], cfg.block_size, buf);
 
-        btree_leaf_node *leaf = reinterpret_cast<leaf_node_t *>(reinterpret_cast<buf_data_t *>(buf) + 1);
+        btree_leaf_node *leaf = (leaf_node_t *)((buf_data_t *)(buf) + 1);
     
         if (check_magic<btree_leaf_node>(leaf->magic)) {
             uint16_t num_pairs = leaf->npairs;
@@ -240,6 +228,7 @@ void dump_pair_value(dumper_t &dumper, direct_file_t& file, const cfg_t cfg, con
             
     byte *valuebuf = value->value();
 
+    // We're going to write the value, split into pieces, into this set of pieces.
     size_t num_pieces = 0;
     byteslice pieces[MAX_LARGE_BUF_SEGMENTS];
 
@@ -254,15 +243,16 @@ void dump_pair_value(dumper_t &dumper, direct_file_t& file, const cfg_t cfg, con
     int mod_id = translator_serializer_t::untranslate_block_id(this_block, cfg.mod_count, CONFIG_BLOCK_ID + 1);
 
     if (value->is_large()) {
-        block_id_t indexblock_id = translator_serializer_t::translate_block_id(value->lv_index_block_id(), cfg.mod_count, mod_id, CONFIG_BLOCK_ID + 1);
+        block_id_t pretranslated = value->lv_index_block_id();
+        block_id_t indexblock_id = translator_serializer_t::translate_block_id(pretranslated, cfg.mod_count, mod_id, CONFIG_BLOCK_ID + 1);
         if (!(indexblock_id < offsets.get_size())) {
-            logERR("With key '%.*s': large value has invalid block id: %u\n",
-                 key->size, key->contents, indexblock_id);
+            logERR("With key '%.*s': large value has invalid block id: %u (buffer_cache block id = %u, mod_id = %d, mod_count = %d)\n",
+                   key->size, key->contents, indexblock_id, pretranslated, mod_id, cfg.mod_count);
             return;
         }
         if (offsets[indexblock_id] == block_registry::null) {
             logERR("With key '%.*s': no blocks seen with large_buf_index block id: %u\n",
-                 key->size, key->contents, indexblock_id);
+                   key->size, key->contents, indexblock_id);
             return;
         }
 
@@ -270,7 +260,7 @@ void dump_pair_value(dumper_t &dumper, direct_file_t& file, const cfg_t cfg, con
         seg_ptrs.add(fullbuf);
         file.read_blocking(offsets[indexblock_id], cfg.block_size, fullbuf);
 
-        large_buf_index *indexblockbuf = (large_buf_index *)((byte*)fullbuf + sizeof(buf_data_t));
+        large_buf_index *indexblockbuf = (large_buf_index *)(fullbuf + sizeof(buf_data_t));
 
         if (!check_magic<large_buf_index>(indexblockbuf->magic)) {
             logERR("With key '%.*s': large_buf_index (offset %u) has invalid magic: '%.*s'\n",
@@ -309,7 +299,7 @@ void dump_pair_value(dumper_t &dumper, direct_file_t& file, const cfg_t cfg, con
         }
 
         for (uint16_t i = 0; i < num_pieces; ++i) {
-            ser_block_id_t seg_id = translator_serializer_t::translate_block_id(indexblockbuf->blocks[i], cfg.mod_count, mod_id, CONFIG_BLOCK_ID + 1);  // TODO take out this CONFIG_BLOCK_ID stuff.
+            ser_block_id_t seg_id = translator_serializer_t::translate_block_id(indexblockbuf->blocks[i], cfg.mod_count, mod_id, CONFIG_BLOCK_ID + 1);
 
             byte *segbuf = (byte *)malloc_aligned(cfg.block_size, DEVICE_BLOCK_SIZE);
             seg_ptrs.add(segbuf);
@@ -331,13 +321,13 @@ void dump_pair_value(dumper_t &dumper, direct_file_t& file, const cfg_t cfg, con
             }
 
             if (i == 0) {
-                pieces[i].buf = reinterpret_cast<byte *>(seg + 1) + indexblockbuf->first_block_offset;
+                pieces[i].buf = (byte *)(seg + 1) + indexblockbuf->first_block_offset;
                 pieces[i].len = (num_pieces == 1 ? value->value_size() : firstslicelen);
             } else if (i != num_pieces - 1) {
-                pieces[i].buf = reinterpret_cast<byte *>(seg + 1);
+                pieces[i].buf = (byte *)(seg + 1);
                 pieces[i].len = seg_size;
             } else {
-                pieces[i].buf = reinterpret_cast<byte *>(seg + 1);
+                pieces[i].buf = (byte *)(seg + 1);
                 pieces[i].len = lastslicelen;
             }
         }
@@ -348,8 +338,8 @@ void dump_pair_value(dumper_t &dumper, direct_file_t& file, const cfg_t cfg, con
     }
 
     // So now we have a key, and a value split into one or more pieces.
-    // TODO: write the flags/exptime(/cas?).
-    
+    // Dump them!
+
     dumper.dump(key, flags, exptime, pieces, num_pieces);
 }
 
@@ -357,7 +347,6 @@ void dump_pair_value(dumper_t &dumper, direct_file_t& file, const cfg_t cfg, con
 
 
 void walkfile(dumper_t& dumper, const std_string_t& db_file, cfg_t overrides) {
-    // TODO: give the user the ability to force the block size and extent size.
     direct_file_t file(db_file.c_str(), direct_file_t::mode_read);
 
     static_header_t *header = (static_header_t *)malloc_aligned(DEVICE_BLOCK_SIZE, DEVICE_BLOCK_SIZE);

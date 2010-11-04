@@ -14,6 +14,16 @@ void usage(const char *name) {
     printf("\nOptions:\n");
     printf("\t-n, --host\n\t\tServer host to connect to. Defaults to [%s].\n", _d.host);
     printf("\t-p, --port\n\t\tServer port to connect to. Defaults to [%d].\n", _d.port);
+    printf("\t-r, --protocol\n\t\tProtocol to connect to server. Defaults to [");
+    if(_d.protocol == protocol_libmemcached)
+        printf("libmemcached");
+    else if(_d.protocol == protocol_sockmemcached)
+        printf("sockmemcached");
+    else if(_d.protocol == protocol_mysql)
+        printf("mysql");
+    else
+        printf("unknown");
+    printf("]\n");
     printf("\t-c, --clients\n\t\tNumber of concurrent clients. Defaults to [%d].\n", _d.clients);
     printf("\t-w, --workload\n\t\tTarget load to generate. Expects a value in format D/U/I/R, where\n" \
            "\t\t\tD - number of deletes\n" \
@@ -41,7 +51,8 @@ void usage(const char *name) {
            "\t\tThe information is not outputted if this argument is skipped.\n");
 
     printf("\nAdditional information:\n");
-    printf("\t\tDISTR format describes a range and can be specified in as MIN-MAX\n");
+    printf("\t\tDISTR format describes a range and can be specified in as MIN-MAX.\n");
+    printf("\t\tPossible protocols are libmemcached, sockmemcached, and mysql.\n");
     
     exit(-1);
 }
@@ -56,6 +67,7 @@ void parse(config_t *config, int argc, char *argv[]) {
             {
                 {"host",           required_argument, 0, 'n'},
                 {"port",           required_argument, 0, 'p'},
+                {"protocol",       required_argument, 0, 'r'},
                 {"clients",        required_argument, 0, 'c'},
                 {"workload",       required_argument, 0, 'w'},
                 {"keys",           required_argument, 0, 'k'},
@@ -69,7 +81,7 @@ void parse(config_t *config, int argc, char *argv[]) {
             };
 
         int option_index = 0;
-        int c = getopt_long(argc, argv, "n:p:c:w:k:v:d:b:l:q:h", long_options, &option_index);
+        int c = getopt_long(argc, argv, "n:p:r:c:w:k:v:d:b:l:q:h", long_options, &option_index);
 
         if(do_help)
             c = 'h';
@@ -87,6 +99,18 @@ void parse(config_t *config, int argc, char *argv[]) {
             break;
         case 'p':
             config->port = atoi(optarg);
+            break;
+        case 'r':
+            if(strcmp(optarg, "mysql") == 0)
+                config->protocol = protocol_mysql;
+            else if(strcmp(optarg, "libmemcached") == 0)
+                config->protocol = protocol_libmemcached;
+            else if(strcmp(optarg, "sockmemcached") == 0)
+                config->protocol = protocol_sockmemcached;
+            else {
+                printf("Unknown protocol\n");
+                exit(-1);
+            }
             break;
         case 'c':
             config->clients = atoi(optarg);

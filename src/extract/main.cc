@@ -13,6 +13,9 @@
 namespace extract {
 
 void usage(const char *name) {
+    // Note: some error messages may refer to the names of command
+    // line options here, so keep them updated accordingly.
+
     printf("Usage:\n");
     printf("        %s [OPTIONS] -f data_file [-o dumpfile]\n", name);
     printf("\nOptions:\n"
@@ -74,7 +77,7 @@ void parse_cmd_args(int argc, char **argv, extract_config_t *config) {
             config->input_files.push_back(optarg);
             break;
         case 'l':
-            config->log_file = optarg;
+            config->log_file_name = optarg;
             break;
         case 'o':
             config->output_file = optarg;
@@ -130,60 +133,6 @@ void filecheck_crash_handler(int signum) {
     fail("Internal crash detected.");
 }
 
-
-// TODO: put run_in_loggers_fsm_t in its own file.  Maybe.
-struct blocking_runner_t {
-    virtual void run() = 0;
-};
-
-cmd_config_t *make_fake_config() {
-    static cmd_config_t fake_config;
-    init_config(&fake_config);
-    return &fake_config;
-}
-
-struct run_in_loggers_fsm_t : public log_controller_t::ready_callback_t,
-                              public log_controller_t::shutdown_callback_t {
-    run_in_loggers_fsm_t(thread_pool_t *pool, blocking_runner_t *runner) : pool(pool), runner(runner), controller(make_fake_config()) { }
-    ~run_in_loggers_fsm_t() {
-        gdelete(runner);
-    }
-
-    void start() {
-        if (controller.start(this)) {
-            on_logger_ready();
-        }
-    }
-
-    void on_logger_ready() {
-        runner->run();
-
-        if (controller.shutdown(this)) {
-            on_logger_shutdown();
-        }
-    }
-
-    void on_logger_shutdown() {
-        pool->shutdown();
-        gdelete(this);
-    }
-
-private:
-    thread_pool_t *pool;
-    blocking_runner_t *runner;
-    log_controller_t controller;
-};
-
-
-
-struct runner : public blocking_runner_t {
-    extract_config_t *config;
-    runner(extract_config_t *cfg) : config(cfg) { }
-    void run() {
-        dumpfile(*config);
-    }
-};
-
 }  // namespace extract
 
 int main(int argc, char **argv) {
@@ -200,6 +149,9 @@ int main(int argc, char **argv) {
     extract_config_t config;
     extract::parse_cmd_args(argc, argv, &config);
 
+    if (config.log_file_name != "") {
+        log_file = fopen(config.log_file_name.c_str(), "w");
+    }
 
     // Initial CPU message to start server
     struct server_starter_t :
@@ -208,9 +160,7 @@ int main(int argc, char **argv) {
         extract_config_t *config;
         thread_pool_t *pool;
         void on_cpu_switch() {
-            extract::runner *runner = gnew<extract::runner>(config);
-            extract::run_in_loggers_fsm_t *fsm = gnew<extract::run_in_loggers_fsm_t>(pool, runner);
-            fsm->start();
+            dumpfile(*config);
         }
     } starter;
 

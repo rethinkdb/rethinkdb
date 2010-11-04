@@ -3,7 +3,6 @@
 
 server_t::server_t(cmd_config_t *cmd_config, thread_pool_t *thread_pool)
     : cmd_config(cmd_config), thread_pool(thread_pool),
-      log_controller(cmd_config),
       conn_acceptor(this),
       toggler(this) { }
 
@@ -14,7 +13,7 @@ void server_t::do_start() {
 }
 
 void server_t::do_start_loggers() {
-    if (log_controller.start(this)) on_logger_ready();
+    logger_start(this);
 }
 
 void server_t::on_logger_ready() {
@@ -34,7 +33,7 @@ void server_t::do_start_store() {
         // figure out when we want to use our log system, stderr,
         // stdout, and stdlog, and put messages there accordingly.
         
-        //printf("Creating new database...\n");
+        logINF("Creating new database...\n");
         
         done = store->start_new(this, &cmd_config->store_static_config);
     } else {
@@ -82,12 +81,12 @@ void server_t::shutdown() {
 void server_t::do_shutdown() {
     
     assert_cpu();
-    //printf("Shutting down.\n");
+    logINF("Shutting down.\n");
     do_shutdown_conn_acceptor();
 }
 
 void server_t::do_shutdown_conn_acceptor() {
-    //printf("Shutting down connections...\n");
+    logINF("Shutting down connections...\n");
     if (conn_acceptor.shutdown(this)) on_conn_acceptor_shutdown();
 }
 
@@ -97,7 +96,7 @@ void server_t::on_conn_acceptor_shutdown() {
 }
 
 void server_t::do_shutdown_store() {
-    //printf("Shutting down database...\n");
+    logINF("Shutting down database...\n");
     if (store->shutdown(this)) on_store_shutdown();
 }
 
@@ -109,7 +108,7 @@ void server_t::on_store_shutdown() {
 }
 
 void server_t::do_shutdown_loggers() {
-    if (log_controller.shutdown(this)) do_message_flush();
+    logger_shutdown(this);
 }
 
 void server_t::on_logger_shutdown() {
