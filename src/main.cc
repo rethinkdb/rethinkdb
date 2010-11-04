@@ -5,6 +5,7 @@
 #include "utils.hpp"
 #include "arch/arch.hpp"
 #include "server.hpp"
+#include "side_executable.hpp"
 
 void crash_handler(int signum) {
     // We call fail here instead of letting the OS handle it because
@@ -13,6 +14,11 @@ void crash_handler(int signum) {
 }
 
 int main(int argc, char *argv[]) {
+    // Before we do anything, we look at the first argument and
+    // consider running a different executable (such as
+    // ./rethinkdb-extract).
+
+    consider_execve_side_executable(argc, argv, "extract");
     
     int res;
     
@@ -44,7 +50,7 @@ int main(int argc, char *argv[]) {
     starter.thread_pool = &thread_pool;
     thread_pool.run(&starter);
     
-    fprintf(stderr, "Server is shut down.\n");
+    //fprintf(stderr, "Server is shut down.\n");
     
     return 0;
 }

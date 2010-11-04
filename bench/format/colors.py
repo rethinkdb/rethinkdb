@@ -1,5 +1,7 @@
 #these colors will all look good on a white background
 colors = [
+'#00FF00',
+'#FF0000',
 '#00FFFF',
 '#7FFFD4',
 '#FFE4C4',

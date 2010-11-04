@@ -3,10 +3,19 @@ import matplotlib.pyplot as plt
 import matplotlib.mlab as mlab
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib.collections import PolyCollection
-import re
 from colors import *
 import json
 import time
+from line import *
+from statlib import stats
+
+def cull_outliers(data, n_sigma):
+    mean = stats.mean(map(lambda x: x, data))
+    sigma  = stats.stdev(map(lambda x: x, data))
+    return filter(lambda x: abs(x - mean) < n_sigma * sigma, data)
+
+def clip(data, min, max):
+    return map(lambda x: min<x<max, data)
 
 def normalize(array):
     denom = max(map(lambda x: abs(x), array))
@@ -14,74 +23,6 @@ def normalize(array):
         return array
     else:
         return map(lambda x: float(x) / denom, array)
-
-#TODO this code is copy pasted from oprofile.py. They should be moved out into a seperate library
-class line():
-    regex = ""
-    fields = [] #tuples of form name, type
-    def __init__(self, _regex, _fields):
-        self.regex = _regex
-        self.fields = _fields
-
-    def __repr__(self):
-        return self.regex
-
-    def parse_line(self, line):
-        matches = re.match(self.regex, line)
-        if matches:
-            result = {}
-            for field, groupi in zip(self.fields, range(1, len(self.fields) + 1)):
-                if (field[1] == 'd'):
-                    val = int(matches.group(groupi))
-                elif (field[1] == 'f'):
-                    val = float(matches.group(groupi))
-                elif (field[1] == 's'):
-                    val = matches.group(groupi)
-                else:
-                    assert 0
-                result[field[0]] = val
-            return result
-        else:
-            return False
-
-def take(line, data):
-    if len(data) == 0:
-        return False
-    matches = line.parse_line(data[len(data) - 1])
-    data.pop()
-    return matches
-
-def take_maybe(line, data):
-    if len(data) == 0:
-        return False
-    matches = line.parse_line(data[len(data) - 1])
-    if matches != False: data.pop()
-    return matches
-
-#look through an array of data until you get a match (or run out of data)
-def until(line, data):
-    while len(data) > 0:
-        matches = line.parse_line(data[len(data) - 1])
-        data.pop()
-        if matches != False:
-            return matches
-    return False
-
-#iterate through lines while they match (and there's data)
-def take_while(lines, data):
-    res = []
-    while len(data) > 0:
-        for line in lines:
-            m = line.parse_line(data[len(data) - 1])
-            if m:
-                break
-        if m:
-            res.append(m)
-            data.pop()
-        else:
-            break
-    return res
-
 
 class TimeSeries(list):
     def __init__(self, units):
@@ -132,14 +73,25 @@ class TimeSeriesCollection():
 
 #limit the data to just the keys in keys
     def select(self, keys):
-        for key in self.data.keys():
+        copy = self.copy()
+        for key in copy.data.keys():
             if not key in keys:
-                self.data.pop(key)
+                copy.data.pop(key)
+
+        return copy
 
     def drop(self, keys):
-        for key in self.data.keys():
+        copy = self.copy()
+        for key in copy.data.keys():
             if key in keys:
-                self.data.pop(key)
+                copy.data.pop(key)
+
+        return copy
+
+    def remap(self, orig_name, new_name):
+        copy = self.drop(orig_name)
+        copy.data[new_name] = self.data[orig_name]
+        return copy
 
     def parse(self, data):
         pass
@@ -157,7 +109,7 @@ class TimeSeriesCollection():
         for series in self.data.iteritems():
             top_level['data']['rethinkdb'][series[0]] = {}
             top_level['data']['rethinkdb'][series[0]]['data'] = map(lambda x: list(x), zip(range(len(series[1])), series[1]))
-            top_level['data']['rethinkdb'][series[0]]['units'] = series[1].units
+            top_level['data']['rethinkdb'][series[0]]['unit'] = series[1].units
 
         f = open(out_fname + '.js', 'w')
         print >>f, json.dumps(top_level)
@@ -165,25 +117,28 @@ class TimeSeriesCollection():
 
     def histogram(self, out_fname):
         assert self.data
-        for series in self.data.iteritems():
-            fig = plt.figure()
-            ax = fig.add_subplot(111)
-            ax.hist(series[1], 40, range=(0, (sum(series[1]) / len(series[1])) * 2), facecolor='green', alpha=1.0)
+
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
+
+        data = map(lambda x: x[1], self.data.iteritems())
+        for series, color in zip(self.data.iteritems(), colors):
+            ax.hist(cull_outliers(series[1], 1.3), 40, histtype='step', facecolor = color, alpha = .4, label = series[0])
             ax.set_xlabel(series[0])
             ax.set_ylabel('Count')
-            ax.set_xlim(0, (sum(series[1]) / len(series[1])) * 2)
-            ax.set_ylim(0, len(series[1]) / 10)
+#ax.set_xlim(0, max(map(max, data)))
+#ax.set_ylim(0, max(map(len, data)))
             ax.grid(True)
-            plt.savefig(out_fname + series[0])
+            plt.savefig(out_fname, dpi=300)
 
-    def plot(self, out_fname):
+    def plot(self, out_fname, normalize = False):
         assert self.data
         fig = plt.figure()
         ax = fig.add_subplot(111)
         labels = []
         color_index = 0
         for series in self.data.iteritems():
-            if len(self.data) > 1:
+            if normalize:
                 data_to_use = normalize(series[1])
             else:
                 data_to_use = series[1]
@@ -192,16 +147,26 @@ class TimeSeriesCollection():
 
         ax.set_xlabel('Time (seconds)')
         ax.set_xlim(0, len(self.data[self.data.keys()[0]]) - 1)
-        if len(self.data) > 1:
+        if normalize:
             ax.set_ylim(0, 1.0)
         else:
             ax.set_ylim(0, max(self.data[self.data.keys()[0]]))
         ax.grid(True)
+        plt.legend(tuple(map(lambda x: x[0], labels)), tuple(map(lambda x: x[1], labels)), loc=1)
         plt.savefig(out_fname, dpi=300)
-        plt.legend(tuple(map(lambda x: x[0], labels)), tuple(map(lambda x: x[1], labels)), loc=2)
-        plt.savefig(out_fname + '_legend', dpi=300)
 
-#function : (serieses)/len(arg_names) -> series
+    def stats(self):
+        res = {}
+        for val in self.data.iteritems():
+            stat_report = {}
+            stat_report['mean'] = stats.mean(map(lambda x: x, val[1]))
+            stat_report['stdev'] = stats.stdev(map(lambda x: x, val[1]))
+            res[val[0]] = stat_report
+
+        return res
+
+#function : (serieses)*len(arg_keys) -> series
+#TODO this should return a copy with the changes
     def derive(self, name, arg_keys, function):
         args = []
         for key in arg_keys:
@@ -209,6 +174,7 @@ class TimeSeriesCollection():
             args.append(self.data[key])
 
         self.data[name] = function(tuple(args))
+        return self
 
 def multi_plot(timeseries, out_fname):
     fig = plt.figure()

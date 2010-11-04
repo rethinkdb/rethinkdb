@@ -10,14 +10,6 @@ server_t::server_t(cmd_config_t *cmd_config, thread_pool_t *thread_pool)
 void server_t::do_start() {
     
     assert_cpu();
-    
-    printf("Physical cores: %d\n", get_cpu_count());
-    printf("Number of DB threads: %d\n", cmd_config->n_workers);
-    printf("Total RAM: %ldMB\n", get_total_ram() / 1024 / 1024);
-    printf("Free RAM: %ldMB (%.2f%%)\n",
-           get_available_ram() / 1024 / 1024,
-           (double)get_available_ram() / (double)get_total_ram() * 100.0f);
-    
     do_start_loggers();
 }
 
@@ -37,10 +29,15 @@ void server_t::do_start_store() {
     
     bool done;
     if (cmd_config->create_store) {
-        printf("Creating new database...\n");
+        // TODO: when we pass --create, we shouldn't start the server
+        // - we should just create the files and quit. We should also
+        // figure out when we want to use our log system, stderr,
+        // stdout, and stdlog, and put messages there accordingly.
+        
+        //printf("Creating new database...\n");
+        
         done = store->start_new(this, &cmd_config->store_static_config);
     } else {
-        printf("Opening existing database on disk...\n");
         done = store->start_existing(this);
     }
     if (done) on_store_ready();
@@ -55,10 +52,13 @@ void server_t::on_store_ready() {
 void server_t::do_start_conn_acceptor() {
     
     assert_cpu();
+
+    // We've now loaded everything. It's safe to print the config
+    // specs (part of them depends on the information loaded from the
+    // db file).
+    print_config(cmd_config);
     
     conn_acceptor.start();
-    
-    printf("Server is ready to accept memcached clients on port %d.\n", cmd_config->port);
     
     interrupt_message.server = this;
     thread_pool->set_interrupt_message(&interrupt_message);
@@ -82,12 +82,12 @@ void server_t::shutdown() {
 void server_t::do_shutdown() {
     
     assert_cpu();
-    printf("Shutting down.\n");
+    //printf("Shutting down.\n");
     do_shutdown_conn_acceptor();
 }
 
 void server_t::do_shutdown_conn_acceptor() {
-    printf("Shutting down connections...\n");
+    //printf("Shutting down connections...\n");
     if (conn_acceptor.shutdown(this)) on_conn_acceptor_shutdown();
 }
 
@@ -97,7 +97,7 @@ void server_t::on_conn_acceptor_shutdown() {
 }
 
 void server_t::do_shutdown_store() {
-    printf("Shutting down database...\n");
+    //printf("Shutting down database...\n");
     if (store->shutdown(this)) on_store_shutdown();
 }
 

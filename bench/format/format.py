@@ -5,6 +5,7 @@ from oprofile import *
 from profiles import *
 import time
 import StringIO
+from line import *
 
 class dbench():
     log_file = 'bench_log.txt'
@@ -45,7 +46,7 @@ class dbench():
         qps_path        = 'client/qps.txt'
         rdbstat_path    = 'rdbstat/output.txt'
         server_meta_path= 'server/output.txt'
-        client_meta_path= 'client/status.txt'
+        client_meta_path= 'client/output.txt'
         def __init__(self, dir):
             rundirs = []
             try:
@@ -63,16 +64,28 @@ class dbench():
                                      QPS().read(dir + '/' + rundir + '/1/' + self.qps_path),
                                      RDBStats().read(dir + '/' + rundir + '/1/' + self.rdbstat_path)]]
                 try:
-                   self.server_meta += [open(dir + '/' + rundir + '/1/' + self.server_meta_path).read()]
-                except:
+                   self.server_meta += [(open(dir + '/' + rundir + '/1/' + self.server_meta_path).read())]
+                except IOError:
                     self.server_meta += ['']
                     print "No meta data for server found"
 
                 try:
-                   self.client_meta += [open(dir + '/' + rundir + '/1/' + self.client_meta_path).read()]
-                except:
+                   self.client_meta += [(open(dir + '/' + rundir + '/1/' + self.client_meta_path).read())]
+                except IOError:
                     self.client_meta += ['']
                     print "No meta data for client found"
+
+        def parse_server_meta(self, data):
+            threads_line = line('Number of DB threads: (\d+)', [('threads', 'd')])
+            m = until(threads_line, data)
+            assert m != False
+            return "Threads: %d" % m['threads']
+
+        def parse_client_meta(self, data):
+            client_line = line('\[host: [\d\.]+, port: \d+, clients: \d+, load: (\d+)/(\d+)/(\d+)/(\d+), keys: \d+-\d+, values: \d+-\d+ , duration: (\d+), batch factor: \d+-\d+, latency file: latency.txt, QPS file: qps.txt\]', [('deletes', 'd'), ('updates', 'd'), ('inserts', 'd'), ('reads', 'd'), ('duration', 'd')])
+            m = until(client_line, data) 
+            assert m != False
+            return "D/U/I/R = %d/%d/%d/%d Duration = %d" % (m['deletes'], m['updates'], m['inserts'], m['reads'], m['duration'])
 
     class oprofile_stats():
         oprofile_path   = 'oprofile/oprof.out.rethinkdb'
@@ -104,11 +117,35 @@ class dbench():
 
         flot_data = 'data'
         for run, id, server_meta, client_meta in zip(self.bench_stats.bench_runs, range(len(self.bench_stats.bench_runs)), self.bench_stats.server_meta, self.bench_stats.client_meta):
-            reduce(lambda x, y: x + y, run).json(self.out_dir + '/' + self.dir_str + '/' + flot_data + str(id),'Server:' + server_meta + 'Client:' + client_meta)
+            print >>res, '<pre id="#server_meta" style="font-size:large">', server_meta, '</pre>'
+            print >>res, '<pre id="#server_meta" style="font-size:large">', client_meta, '</pre>'
+            data = reduce(lambda x, y: x + y, run)
+#qps plot
+            rdb_data = data.select('qps').remap('qps', 'rethinkdb')
+            def halve(series):
+                return map(lambda x: x/2, series[0])
+                
+            other_data = rdb_data.copy().derive('Bad Guy', ['rethinkdb'], halve).drop('rethinkdb')
+#data.select('qps').plot(os.path.join(self.out_dir, self.dir_str, 'qps' + str(id)))
+            (rdb_data + other_data).plot(os.path.join(self.out_dir, self.dir_str, 'qps' + str(id)))
+            print >>res, image(os.path.join(self.hostname, self.prof_dir, self.dir_str, 'qps' + str(id) + '.png'))
+            print >>res, '<div>', 'Mean qps: %f - stdev: %f' % (data.select('qps').stats()['qps']['mean'], data.select('qps').stats()['qps']['stdev']), '</div>'
+
+#latency histogram
+            rdb_data = data.select('latency').remap('latency', 'rethinkdb')
+            def double(series):
+                return map(lambda x: 2 * x, series[0])
+
+            other_data = rdb_data.copy().derive('Bad Guy', ['rethinkdb'], double).drop('rethinkdb')
+            (rdb_data + other_data).histogram(os.path.join(self.out_dir, self.dir_str, 'latency' + str(id)))
+#rdb_data.histogram(os.path.join(self.out_dir, self.dir_str, 'latency' + str(id)))
+            print >>res, image(os.path.join(self.hostname, self.prof_dir, self.dir_str, 'latency' + str(id) + '.png'))
+            print >>res, '<div>', 'Mean latency: %f - stdev: %f' % (data.select('latency').stats()['latency']['mean'], data.select('latency').stats()['latency']['stdev']), '</div>'
+#flot link
+            data.json(self.out_dir + '/' + self.dir_str + '/' + flot_data + str(id),'Server:' + server_meta + 'Client:' + client_meta)
             print >>res, '<p>'
             print >>res, '<pre>', flot('/' + self.prof_dir + '/' + self.dir_str + '/' + flot_data + str(id) + '.js', 'View data for run: %d' % id), '</pre>'
-            print >>res, '<pre>', server_meta, '</pre>'
-            print >>res, '<pre>', client_meta, '</pre>'
+            print >>res, '</p>'
         
         if self.prof_stats:
             prog_report = reduce(lambda x,y: x + y, (map(lambda x: x.oprofile, self.prof_stats)))

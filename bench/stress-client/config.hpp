@@ -21,26 +21,34 @@ public:
         }
 
     void print() {
-        printf("[host: %s, port: %d, clients: %d, load: ",
-               host, port, clients);
+        printf("--- Workload -----\n");
+        printf("Duration..........%ldops", duration);
+        printf("\nClients...........%d\nLoad..............", clients);
         load.print();
-        printf(", keys: ");
+        printf("\nKeys..............");
         keys.print();
-        printf(", values: ");
+        printf("\nValues............");
         values.print();
-        printf(" , duration: %ld", duration);
-        printf(", batch factor: ");
+        printf("\nBatch factor......");
         batch_factor.print();
+        printf("\n");
 
+        printf("\n--- Networking ---\n");
+        printf("Host..............%s\nPort..............%d\n", host, port);
+        
+        printf("\n--- Data files ---\n");
+        printf("Latency file......");
         if(latency_file[0] != 0) {
-            printf(", latency file: %s", latency_file);
+            printf("%s\n", latency_file);
+        } else {
+            printf("[N/A]\n");
         }
-        
+        printf("QPS file..........");
         if(qps_file[0] != 0) {
-            printf(", QPS file: %s", qps_file);
+            printf("%s\n", qps_file);
+        } else {
+            printf("[N/A]\n");
         }
-        
-        printf("]\n", duration);
     }
     
 public:

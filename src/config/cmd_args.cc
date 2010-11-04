@@ -11,39 +11,40 @@ void usage(const char *name) {
     printf("\t%s [OPTIONS] [FILE]\n", name);
     
     printf("\nOptions:\n");
-    
-    printf("  -h, --help\t\tPrint these usage options.\n");
-    
-    printf("      --create\t\tCreate a new database.\n");
-    printf("  -f, --file\t\tPath to file or block device where database goes. Can be\n"
-            "\t\t\tspecified multiple times to use multiple files.");
-    
-    printf("  -c, --cores\t\tNumber of cores to use for handling requests.\n");
-        
-    printf("  -m, --max-cache-size\tMaximum amount of RAM to use for caching disk\n");
-    printf("\t\t\tblocks, in megabytes.\n");
-    
-    printf("  -l, --log-file\tFile to log to. If not provided, messages will be printed to stderr.\n");
-    printf("  -p, --port\t\tSocket port to listen on. Defaults to %d.\n", DEFAULT_LISTEN_PORT);
-    printf("      --wait-for-flush\tDo not respond to commands until changes are durable. Expects\n"
-            "\t\t\t'y' or 'n'.\n");
-    printf("      --flush-timer\tTime in milliseconds that the server should allow changes to sit\n"
-            "\t\t\tin memory before flushing it to disk. Pass 'disable' to allow modified data to\n"
-            "\t\t\tsit in memory indefinitely.\n");
-    if (DEFAULT_FLUSH_TIMER_MS == NEVER_FLUSH) printf("\t\t\tDefaults to 'disable'.\n");
-    else printf("\t\t\tDefaults to %dms.\n", DEFAULT_FLUSH_TIMER_MS);
-    printf("      --flush-threshold\tIf more than X%% of the server's maximum cache size is\n"
-            "\t\t\tmodified data, the server will flush it all to disk. Pass 0 to flush\n"
-            "\t\t\timmediately when changes are made.\n");
 
+    //     "                        24 characters start here.
+    printf("  -h, --help            Print these usage options.\n");
+    printf("  -v, --verbose         Print extra information to standard output.\n");
+    printf("      --create          Create a new database.\n");
+    printf("  -f, --file            Path to file or block device where database goes. Can be\n"
+           "                        specified multiple times to use multiple files.\n");
+    printf("  -c, --cores           Number of cores to use for handling requests.\n");
+    printf("  -m, --max-cache-size  Maximum amount of RAM to use for caching disk\n");
+    printf("                        blocks, in megabytes.\n");
+    printf("  -l, --log-file        File to log to. If not provided, messages will be printed to stderr.\n");
+    printf("  -p, --port            Socket port to listen on. Defaults to %d.\n", DEFAULT_LISTEN_PORT);
+    printf("      --wait-for-flush  Do not respond to commands until changes are durable. Expects\n"
+           "                        'y' or 'n'.\n");
+    printf("      --flush-timer     Time in milliseconds that the server should allow changes to sit\n"
+           "                        in memory before flushing it to disk. Pass 'disable' to allow modified data to\n"
+           "                        sit in memory indefinitely.\n");
+    if (DEFAULT_FLUSH_TIMER_MS == NEVER_FLUSH) {
+        printf("                        Defaults to 'disable'.\n");
+    }
+    else {
+        printf("                        Defaults to %dms.\n", DEFAULT_FLUSH_TIMER_MS);
+    }
+    printf("      --flush-threshold If more than X%% of the server's maximum cache size is\n"
+           "                        modified data, the server will flush it all to disk. Pass 0 to flush\n"
+           "                        immediately when changes are made.\n");
     printf("      --gc-range low-high  (e.g. --gc-range 0.5-0.75)\n"
-           "\t\t\tThe proportion of garbage maintained by garbage collection.\n");
-    printf("      --active-data-extents\t\tHow many places in the file to write to at once.\n");
-    
+           "                        The proportion of garbage maintained by garbage collection.\n");
+    printf("      --active-data-extents\n"
+           "                        How many places in the file to write to at once.\n");
     printf("\nOptions for new databases:\n");
-    printf("  -s, --slices\t\tShards total.\n");
-    printf("      --block-size\t\tSize of a block, in bytes.\n");
-    printf("      --extent-size\t\tSize of an extent, in bytes.\n");
+    printf("  -s, --slices          Shards total.\n");
+    printf("      --block-size      Size of a block, in bytes.\n");
+    printf("      --extent-size     Size of an extent, in bytes.\n");
     
     exit(-1);
 }
@@ -52,6 +53,7 @@ void init_config(cmd_config_t *config) {
 
     bzero(config, sizeof(*config));
     
+    config->verbose = false;
     config->port = DEFAULT_LISTEN_PORT;
     config->n_workers = get_cpu_count();
     
@@ -114,13 +116,14 @@ void parse_cmd_args(int argc, char *argv[], cmd_config_t *config)
                 {"max-cache-size",       required_argument, 0, 'm'},
                 {"log-file",             required_argument, 0, 'l'},
                 {"port",                 required_argument, 0, 'p'},
+                {"verbose",              no_argument, (int*)&config->verbose, 1},
                 {"create",               no_argument, &do_create_database, 1},
                 {"help",                 no_argument, &do_help, 1},
                 {0, 0, 0, 0}
             };
 
         int option_index = 0;
-        int c = getopt_long(argc, argv, "c:s:f:m:l:p:h", long_options, &option_index);
+        int c = getopt_long(argc, argv, "vc:s:f:m:l:p:h", long_options, &option_index);
 
         if (do_help)
             c = 'h';
@@ -134,6 +137,9 @@ void parse_cmd_args(int argc, char *argv[], cmd_config_t *config)
         switch (c)
         {
         case 0:
+            break;
+        case 'v':
+            config->verbose = true;
             break;
         case 'p':
             config->port = atoi(optarg);
@@ -246,11 +252,9 @@ void parse_cmd_args(int argc, char *argv[], cmd_config_t *config)
         int res = access(DEFAULT_DB_FILE_NAME, F_OK);
         if (res == 0) {
             /* Found a database file -- try to load it */
-            fprintf(stderr, "Database file was not specified explicitly; loading from \"%s\" by default.\n", DEFAULT_DB_FILE_NAME);
             config->create_store = false;   // This is redundant
         } else if (res == -1 && errno == ENOENT) {
             /* Create a new database */
-            fprintf(stderr, "Database file was not specified explicitly; creating \"%s\" by default.\n", DEFAULT_DB_FILE_NAME);
             config->create_store = true;
         } else {
             fail("Could not access() path \"%s\": %s", DEFAULT_DB_FILE_NAME, strerror(errno));
@@ -278,5 +282,67 @@ void parse_cmd_args(int argc, char *argv[], cmd_config_t *config)
             config->store_static_config.serializer.extent_size,
             config->store_static_config.serializer.block_size);
     }
+}
+
+/* Printing the configuration */
+void print_runtime_flags(cmd_config_t *config) {
+    printf("--- Runtime ----\n");
+    printf("Threads............%d\n", config->n_workers);
+    
+    printf("Block cache........%lldMB\n", config->store_dynamic_config.cache.max_size / 1024 / 1024);
+    printf("Wait for flush.....");
+    if(config->store_dynamic_config.cache.wait_for_flush) {
+        printf("Y\n");
+    } else {
+        printf("N\n");
+    }
+    printf("Flush timer........");
+    if(config->store_dynamic_config.cache.flush_timer_ms == NEVER_FLUSH) {
+        printf("Never\n");
+    } else {
+        printf("%dms\n", config->store_dynamic_config.cache.flush_timer_ms);
+    }
+
+    printf("Active writers.....%d\n", config->store_dynamic_config.serializer.num_active_data_extents);
+    printf("GC range...........%g - %g\n",
+           config->store_dynamic_config.serializer.gc_low_ratio,
+           config->store_dynamic_config.serializer.gc_high_ratio);
+    
+    printf("Port...............%d\n", config->port);
+}
+
+void print_database_flags(cmd_config_t *config) {
+    printf("--- Database ---\n");
+    printf("Slices.............%d\n", config->store_static_config.btree.n_slices);
+    printf("Block size.........%ldKB\n", config->store_static_config.serializer.block_size / KILOBYTE);
+    printf("Extent size........%ldKB\n", config->store_static_config.serializer.extent_size / KILOBYTE);
+    
+    for(int i = 0; i < config->n_files; i++) {
+        printf("File %.2d............%s\n", i + 1, config->files[0]);
+    }
+}
+
+void print_system_spec(cmd_config_t *config) {
+    printf("--- Hardware ---\n");
+    // CPU and RAM
+    printf("CPUs...............%d\n" \
+           "Total RAM..........%ldMB\nFree RAM...........%ldMB (%.2f%%)\n",
+           get_cpu_count(),
+           get_total_ram() / 1024 / 1024,
+           get_available_ram() / 1024 / 1024,
+           (double)get_available_ram() / (double)get_total_ram() * 100.0f);
+    // TODO: print CPU topology
+    // TODO: print disk and filesystem information
+}
+
+void print_config(cmd_config_t *config) {
+    if(!config->verbose)
+        return;
+    
+    print_runtime_flags(config);
+    printf("\n");
+    print_database_flags(config);
+    printf("\n");
+    print_system_spec(config);
 }
 
