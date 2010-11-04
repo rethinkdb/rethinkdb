@@ -13,6 +13,9 @@
 namespace extract {
 
 void usage(const char *name) {
+    // Note: some error messages may refer to the names of command
+    // line options here, so keep them updated accordingly.
+
     printf("Usage:\n");
     printf("        %s [OPTIONS] -f data_file [-o dumpfile]\n", name);
     printf("\nOptions:\n"
