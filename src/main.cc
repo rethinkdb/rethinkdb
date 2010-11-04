@@ -7,12 +7,6 @@
 #include "side_executable.hpp"
 #include "logger.hpp"
 
-void crash_handler(int signum) {
-    // We call fail here instead of letting the OS handle it because
-    // fail prints a backtrace.
-    fail("Internal crash detected.");
-}
-
 int main(int argc, char *argv[]) {
     // Before we do anything, we look at the first argument and
     // consider running a different executable (such as
@@ -24,7 +18,7 @@ int main(int argc, char *argv[]) {
     
     struct sigaction action;
     bzero((char*)&action, sizeof(action));
-    action.sa_handler = crash_handler;
+    action.sa_handler = generic_crash_handler;
     res = sigaction(SIGSEGV, &action, NULL);
     check("Could not install SEGV handler", res < 0);
     

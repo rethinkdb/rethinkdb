@@ -128,10 +128,6 @@ void parse_cmd_args(int argc, char **argv, extract_config_t *config) {
     }
 }
 
-void filecheck_crash_handler(int signum) {
-    fail("Internal crash detected.");
-}
-
 }  // namespace extract
 
 int main(int argc, char **argv) {
@@ -140,7 +136,7 @@ int main(int argc, char **argv) {
 
     struct sigaction action;
     bzero((char*)&action, sizeof(action));
-    action.sa_handler = extract::filecheck_crash_handler;
+    action.sa_handler = generic_crash_handler;
     res = sigaction(SIGSEGV, &action, NULL);
     check("Could not install SEGV handler", res < 0);
 

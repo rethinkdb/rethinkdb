@@ -6,6 +6,10 @@
 #include "utils.hpp"
 #include "arch/arch.hpp"
 
+void generic_crash_handler(int signum) {
+    fail("Internal crash detected.");
+}
+
 void *malloc_aligned(size_t size, size_t alignment) {
     void *ptr = NULL;
     int res = posix_memalign(&ptr, alignment, size);

@@ -15,6 +15,9 @@
 #include "arch/arch.hpp"
 #include "utils2.hpp"
 
+// The signal handler for SIGSEGV
+void generic_crash_handler(int signum);
+
 void print_hd(void *buf, size_t offset, size_t length);
 
 void *malloc_aligned(size_t size, size_t alignment = 64);

@@ -3,7 +3,7 @@
 #define __BTREE_KEY_VALUE_STORE_HPP__
 
 #include "buffer_cache/buffer_cache.hpp"
-#include "btree/node.hpp"   // For btree_superblock_t
+#include "btree/node.hpp"
 #include "utils.hpp"
 #include "containers/intrusive_list.hpp"
 #include "concurrency/access.hpp"
