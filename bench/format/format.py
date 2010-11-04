@@ -64,13 +64,13 @@ class dbench():
                                      QPS().read(dir + '/' + rundir + '/1/' + self.qps_path),
                                      RDBStats().read(dir + '/' + rundir + '/1/' + self.rdbstat_path)]]
                 try:
-                   self.server_meta += [self.parse_server_meta(open(dir + '/' + rundir + '/1/' + self.server_meta_path).readlines())]
+                   self.server_meta += [(open(dir + '/' + rundir + '/1/' + self.server_meta_path).read())]
                 except IOError:
                     self.server_meta += ['']
                     print "No meta data for server found"
 
                 try:
-                   self.client_meta += [self.parse_client_meta(open(dir + '/' + rundir + '/1/' + self.client_meta_path).readlines())]
+                   self.client_meta += [(open(dir + '/' + rundir + '/1/' + self.client_meta_path).read())]
                 except IOError:
                     self.client_meta += ['']
                     print "No meta data for client found"
@@ -117,17 +117,29 @@ class dbench():
 
         flot_data = 'data'
         for run, id, server_meta, client_meta in zip(self.bench_stats.bench_runs, range(len(self.bench_stats.bench_runs)), self.bench_stats.server_meta, self.bench_stats.client_meta):
-            print >>res, '<pre>', server_meta, '</pre>'
-            print >>res, '<pre>', client_meta, '</pre>'
+            print >>res, '<pre id="#server_meta" style="font-size:large">', server_meta, '</pre>'
+            print >>res, '<pre id="#server_meta" style="font-size:large">', client_meta, '</pre>'
             data = reduce(lambda x, y: x + y, run)
 #qps plot
-            data.select('qps').plot(os.path.join(self.out_dir, self.dir_str, 'qps' + str(id)))
+            rdb_data = data.select('qps').remap('qps', 'rethinkdb')
+            def halve(series):
+                return map(lambda x: x/2, series[0])
+                
+            other_data = rdb_data.copy().derive('Bad Guy', ['rethinkdb'], halve).drop('rethinkdb')
+#data.select('qps').plot(os.path.join(self.out_dir, self.dir_str, 'qps' + str(id)))
+            (rdb_data + other_data).plot(os.path.join(self.out_dir, self.dir_str, 'qps' + str(id)))
             print >>res, image(os.path.join(self.hostname, self.prof_dir, self.dir_str, 'qps' + str(id) + '.png'))
-            print >>res, '<div>', 'Mean qps: %f' % data.select('qps').stats()['qps']['mean'], '</div>'
+            print >>res, '<div>', 'Mean qps: %f - stdev: %f' % (data.select('qps').stats()['qps']['mean'], data.select('qps').stats()['qps']['stdev']), '</div>'
 
 #latency histogram
-            data.select('latency').histogram(os.path.join(self.out_dir, self.dir_str, 'latency' + str(id)))
-            print >>res, image(os.path.join(self.hostname, self.prof_dir, self.dir_str, 'latency' + str(id) + 'latency' + '.png'))
+            rdb_data = data.select('latency').remap('latency', 'rethinkdb')
+            def double(series):
+                return map(lambda x: 2 * x, series[0])
+
+            other_data = rdb_data.copy().derive('Bad Guy', ['rethinkdb'], double).drop('rethinkdb')
+            (rdb_data + other_data).histogram(os.path.join(self.out_dir, self.dir_str, 'latency' + str(id)))
+#rdb_data.histogram(os.path.join(self.out_dir, self.dir_str, 'latency' + str(id)))
+            print >>res, image(os.path.join(self.hostname, self.prof_dir, self.dir_str, 'latency' + str(id) + '.png'))
             print >>res, '<div>', 'Mean latency: %f - stdev: %f' % (data.select('latency').stats()['latency']['mean'], data.select('latency').stats()['latency']['stdev']), '</div>'
 #flot link
             data.json(self.out_dir + '/' + self.dir_str + '/' + flot_data + str(id),'Server:' + server_meta + 'Client:' + client_meta)
