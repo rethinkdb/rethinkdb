@@ -15,7 +15,7 @@ def cull_outliers(data, n_sigma):
     return filter(lambda x: abs(x - mean) < n_sigma * sigma, data)
 
 def clip(data, min, max):
-    return map(lambda x: min<x<max, data)
+    return filter(lambda x: min<x<max, data)
 
 def normalize(array):
     denom = max(map(lambda x: abs(x), array))
@@ -122,14 +122,18 @@ class TimeSeriesCollection():
         ax = fig.add_subplot(111)
 
         data = map(lambda x: x[1], self.data.iteritems())
+        mean = stats.mean(map(lambda x: x, reduce(lambda x, y: x + y, data)))
+        stdev= stats.stdev(map(lambda x: x, reduce(lambda x, y: x + y, data)))
+        labels = []
         for series, color in zip(self.data.iteritems(), colors):
-            ax.hist(cull_outliers(series[1], 1.3), 40, histtype='step', facecolor = color, alpha = .4, label = series[0])
-            ax.set_xlabel(series[0])
-            ax.set_ylabel('Count')
-#ax.set_xlim(0, max(map(max, data)))
-#ax.set_ylim(0, max(map(len, data)))
-            ax.grid(True)
-            plt.savefig(out_fname, dpi=300)
+            ax.hist(clip(series[1], mean - .3 * stdev, mean + .3 * stdev), 40, histtype='step', facecolor = color, alpha = .4, label = series[0])
+            labels.append(series[0])
+
+        ax.set_ylabel('Count')
+        ax.set_xlabel('Latency') #simply should not be hardcoded but we want nice pictures now
+        ax.grid(True)
+        plt.legend(labels, loc=1)
+        plt.savefig(out_fname, dpi=300)
 
     def plot(self, out_fname, normalize = False):
         assert self.data
