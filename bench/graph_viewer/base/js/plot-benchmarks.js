@@ -26,7 +26,8 @@ var plot_bm = {
 		pan: {
 			active: false,
 		}
-	}
+	},
+	units: []
 };
 
 var divs = {};
@@ -85,8 +86,6 @@ var get_data = function(url) {
             $('#placeholder').animate({opacity: 1.0}, 1000);
 
             var plot_title = $('#plotTitle').text(url);
-
-            //WARNINGplot_bm.replot();
         });
     });
 };
@@ -99,7 +98,9 @@ $(window).load(function() {
 // Replot the current plot
 plot_bm.replot = function() {
 	plot_bm.active_data = [];
+	plot_bm.units = [];
 	var datetime_format = '';
+	
 	if (plot_bm.current_date != '') {
 		parsedDate = Date.parseExact(plot_bm.current_date, plot_bm.filename_date_format);
 		//console.log("date: "+parsedDate);
@@ -107,24 +108,41 @@ plot_bm.replot = function() {
 			datetime_format = 'Benchmarks generated on '+Date.parseExact(plot_bm.current_date, plot_bm.filename_date_format).toString(plot_bm.formatted_date)+'.';
 	}
 	
+	// Build the units list
+	$('.set:checked').each(function(key,val) {
+		set_name = $(this).attr('name');
+		$('.series:checked').each(function(key,val) {
+			series_name = $(this).attr('name');
+			series = plot_bm.data[set_name][series_name];
+			
+			if (series != null && series.unit != "" && $.inArray(series.unit,plot_bm.units) < 0)
+				plot_bm.units.push(series.unit);
+		});
+	});
+	
 	// Collect the active data based on the user's selections
 	$('.set:checked').each(function(key,val) {
-		set = $(this).attr('name');
-		var y_axis_num = 1;
+		set_name = $(this).attr('name');
+		var y_axis_num = plot_bm.units.length+1;
 		
-		$('.series:checked').each(function (key, val) {
-			series = $(this).attr('name');
-			id = $(this).attr('id');
+		$('.series:checked').each(function(key, val) {
+			series_name = $(this).attr('name');
+			series_id = $(this).attr('id');
+			series = plot_bm.data[set_name][series_name];
 			
-			if (plot_bm.data[set][series] != null) {
-				plot_bm.active_data.push({
-					id: parseInt(id),
-					color: (plot_bm.color_scheme.length > 0) ? plot_bm.color_scheme[parseInt(id) % plot_bm.color_scheme.length] : parseInt(id),
-					label : set + " : " + series,
-					data : plot_bm.data[set][series].data,
-					yaxis: y_axis_num
-				});
-			y_axis_num = y_axis_num + 1;
+			if (series != null) {
+				series_unit_num = $.inArray(series.unit,plot_bm.units);
+				var test = {
+					id: parseInt(series_id),
+					color: (plot_bm.color_scheme.length > 0) ? plot_bm.color_scheme[parseInt(series_id) % plot_bm.color_scheme.length] : parseInt(series_id),
+					label : set_name + " : " + series_name,
+					data : series.data,
+					yaxis: (series_unit_num > -1) ? series_unit_num+1 : y_axis_num
+				};
+				plot_bm.active_data.push(test);
+				
+				if (series_unit_num < 0)
+					y_axis_num = y_axis_num + 1;
 			}
 		});
 	});
@@ -369,6 +387,9 @@ plot_bm.add_nav_controls = function() {
         	plot_bm.tools.zoom.current_mode = (plot_bm.tools.zoom.current_mode+1) % plot_bm.tools.zoom.modes.length;
         	$(this).attr('src','base/images/zoom_selected_'+plot_bm.tools.zoom.modes[plot_bm.tools.zoom.current_mode]+'.png');
         	
+        	// Save the axis ranges between tools for continuity
+			plot_bm.save_axis_ranges();
+			
 			plot_bm.replot();
         }
     });
@@ -451,44 +472,18 @@ plot_bm.assign_plot_actions = function() {
 	}	
 
 	// Behavior on select (zoom in on the main plot)
-	divs.placeholder.bind("plotselected", function (event, ranges) {
-		// Get the current list of x and y axes
-		var xaxes = plot_bm.plot.getXAxes();
-		var yaxes = plot_bm.plot.getYAxes();
+	divs.placeholder.bind("plotselected", function (event, ranges) {		
 		
-		// Zoom in to the selection on the plot horizontally
-        for (i = 0; i < xaxes.length; i++) {
-        	// Reconstruct each axis name
-        	axis_name = xaxes[i].direction + ((xaxes[i].n > 1) ? xaxes[i].n : "") + "axis";
-        	// For all the used axes, set ieachts max and min values to the currently selected region
-			if (xaxes[i].used) {
-        		plot_bm.options[xaxes[i].direction+"axes"][i].min = ranges[axis_name].from;
-				plot_bm.options[xaxes[i].direction+"axes"][i].max = ranges[axis_name].to;
-			}
-		}
-		
-		for (i = 0; i < yaxes.length; i++) {
-        	// Reconstruct each axis name
-        	axis_name = yaxes[i].direction + ((yaxes[i].n > 1) ? yaxes[i].n : "") + "axis";
-        	// For all the used axes, set each max and min values to the currently selected region
-			if (yaxes[i].used) {
-        		plot_bm.options[yaxes[i].direction+"axes"][i].min = ranges[axis_name].from;
-				plot_bm.options[yaxes[i].direction+"axes"][i].max = ranges[axis_name].to;
-			}
-		}
+		// Zoom in to the selection on the plot
+		$.each(plot_bm.plot.getAxes(), function(axis) {
+			if (this.used)
+				plot_bm.options[this.direction+"axes"][this.n-1] = {min: ranges[axis].from, max: ranges[axis].to };
+		});
 		
 		plot_bm.replot();
 
 		// Don't zoom in on the overview
 		plot_bm.overview.setSelection(ranges, true);
-	});
-	
-	divs.placeholder.bind("plotpan", function(event, plot) {
-		//plot_bm.reset_axis_ranges();
-	});
-	
-	divs.placeholder.bind("plotzoom", function(event, plot) {
-		//plot_bm.reset_axis_ranges();
 	});
 	
 	// Helper function: debug the plot by logging clicks
@@ -518,56 +513,33 @@ plot_bm.assign_option_actions = function() {
 	
 	// Click each of the default options by id
 	$.each(plot_bm.default_options, function() {
-		console.log(this+"");
 		$('#'+this).click();
 	});
 };
 
 // Helper function: save the currently viewed region for each plot axis (useful when switching modes)
 plot_bm.save_axis_ranges = function() {
-	// Get the current list of x and y axes
-	var xaxes = plot_bm.plot.getXAxes();
-	var yaxes = plot_bm.plot.getYAxes();
-	
-	// Save all x axis ranges
-	for (i = 0; i < xaxes.length; i++) {
-		// For all the used axes, set its max and min values to the current viewing region
-		if (xaxes[i].used) {
-			plot_bm.options[xaxes[i].direction+"axes"][i].min = xaxes[i].min;
-			plot_bm.options[xaxes[i].direction+"axes"][i].max = xaxes[i].max;
+
+	// For all the used axes, set its max and min values to the current viewing region
+	$.each(plot_bm.plot.getAxes(), function() {
+		if (this.used) {
+			plot_bm.options[this.direction+"axes"][this.n-1] = {min: this.min, max: this.max };
 		}
-	}
-	
-	// Save all x axis ranges
-	for (i = 0; i < yaxes.length; i++) {
-		// For all the used axes, set its max and min values to the current viewing region
-		if (yaxes[i].used) {
-			plot_bm.options[yaxes[i].direction+"axes"][i].min =  yaxes[i].min;
-			plot_bm.options[yaxes[i].direction+"axes"][i].max =  yaxes[i].max;
-		}
-	}
+	});
 };
 
 // Helper function: reset the plot axes to their default ranges
 plot_bm.reset_axis_ranges = function() {
 	if (plot_bm.plot) {
-		// Get the current list of x and y axes
-		var xaxes = plot_bm.plot.getXAxes();
-		var yaxes = plot_bm.plot.getYAxes();
-		
 		// Reset the current list of x and y axes ranges
 		plot_bm.options.xaxes = [];
 		plot_bm.options.yaxes = [];
 		
-		// Rebuild the x-axis array, so that we can set the min and max values later for all used axes
-		for (i = 0; i < xaxes.length; i++)
-			if (xaxes[i].used)
-				plot_bm.options.xaxes[i] = { min: null, max: null};
-				
-		// Rebuild the y-axis array, so that we can set the min and max values later for all used axes
-		for (i = 0; i < yaxes.length; i++)
-			if (yaxes[i].used)
-				plot_bm.options.yaxes[i] = { min: null, max: null};
+		// Reset the min and max values for each axis
+		$.each(plot_bm.plot.getAxes(), function() {
+			if (this.used)
+				plot_bm.options[this.direction+"axes"][this.n-1] = { min: null, max: null};
+		});
 	}
 };
 
