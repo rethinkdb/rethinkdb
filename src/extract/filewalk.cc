@@ -142,7 +142,7 @@ void walk_extents(dumper_t &dumper, direct_file_t &file, cfg_t cfg) {
             return;
         }
 
-        if (cfg.mod_count == 0) {
+        if (cfg.mod_count == extract_config_t::NO_FORCED_MOD_COUNT) {
             cfg.mod_count = btree_key_value_store_t::compute_mod_count(serbuf->this_serializer, serbuf->n_files, serbuf->btree_config.n_slices);
         }
     }
@@ -206,8 +206,6 @@ void observe_blocks(block_registry &registry, direct_file_t &file, const cfg_t c
 // Dumps the values from block i.
 void get_values(dumper_t &dumper, direct_file_t& file, const cfg_t cfg, const segmented_vector_t<off64_t, MAX_BLOCK_ID>& offsets, size_t i) {
     if (offsets[i] != block_registry::null) {
-        logDBG("Offset not null.\n");
-        // TODO: malloc this less often.
         void *buf = malloc_aligned(cfg.block_size, DEVICE_BLOCK_SIZE);
         freer f;
         f.add(buf);
@@ -254,15 +252,16 @@ void dump_pair_value(dumper_t &dumper, direct_file_t& file, const cfg_t cfg, con
     int mod_id = translator_serializer_t::untranslate_block_id(this_block, cfg.mod_count, CONFIG_BLOCK_ID + 1);
 
     if (value->is_large()) {
-        block_id_t indexblock_id = translator_serializer_t::translate_block_id(value->lv_index_block_id(), cfg.mod_count, mod_id, CONFIG_BLOCK_ID + 1);
+        block_id_t pretranslated = value->lv_index_block_id();
+        block_id_t indexblock_id = translator_serializer_t::translate_block_id(pretranslated, cfg.mod_count, mod_id, CONFIG_BLOCK_ID + 1);
         if (!(indexblock_id < offsets.get_size())) {
-            logERR("With key '%.*s': large value has invalid block id: %u\n",
-                 key->size, key->contents, indexblock_id);
+            logERR("With key '%.*s': large value has invalid block id: %u (buffer_cache block id = %u, mod_id = %d, mod_count = %d)\n",
+                   key->size, key->contents, indexblock_id, pretranslated, mod_id, cfg.mod_count);
             return;
         }
         if (offsets[indexblock_id] == block_registry::null) {
             logERR("With key '%.*s': no blocks seen with large_buf_index block id: %u\n",
-                 key->size, key->contents, indexblock_id);
+                   key->size, key->contents, indexblock_id);
             return;
         }
 
@@ -270,7 +269,7 @@ void dump_pair_value(dumper_t &dumper, direct_file_t& file, const cfg_t cfg, con
         seg_ptrs.add(fullbuf);
         file.read_blocking(offsets[indexblock_id], cfg.block_size, fullbuf);
 
-        large_buf_index *indexblockbuf = (large_buf_index *)((byte*)fullbuf + sizeof(buf_data_t));
+        large_buf_index *indexblockbuf = (large_buf_index *)(fullbuf + sizeof(buf_data_t));
 
         if (!check_magic<large_buf_index>(indexblockbuf->magic)) {
             logERR("With key '%.*s': large_buf_index (offset %u) has invalid magic: '%.*s'\n",
