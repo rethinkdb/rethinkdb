@@ -54,7 +54,7 @@ struct mirrored_cache_config_t {
     // flush_threshold_percent is a number between 0 and 100. If the number of dirty blocks in a
     // buffer cache is more than (flush_threshold_percent / 100) of the maximum number of blocks
     // allowed in memory, then dirty blocks will be flushed to disk.
-    int flush_threshold_percent;
+    int flush_threshold_percent; // TODO: this probably should not be configurable
 };
 
 /* Configuration for the btree that is set when the database is created and serialized in the
@@ -105,6 +105,7 @@ void parse_cmd_args(int argc, char *argv[], cmd_config_t *config);
 
 // TODO: remove this.
 void init_config(cmd_config_t *config);
+void print_config(cmd_config_t *config);
 
 #endif // __CMD_ARGS_HPP__
 
