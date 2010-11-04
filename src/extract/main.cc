@@ -130,60 +130,6 @@ void filecheck_crash_handler(int signum) {
     fail("Internal crash detected.");
 }
 
-
-// TODO: put run_in_loggers_fsm_t in its own file.  Maybe.
-struct blocking_runner_t {
-    virtual void run() = 0;
-};
-
-cmd_config_t *make_fake_config() {
-    static cmd_config_t fake_config;
-    init_config(&fake_config);
-    return &fake_config;
-}
-
-struct run_in_loggers_fsm_t : public log_controller_t::ready_callback_t,
-                              public log_controller_t::shutdown_callback_t {
-    run_in_loggers_fsm_t(thread_pool_t *pool, blocking_runner_t *runner) : pool(pool), runner(runner), controller(make_fake_config()) { }
-    ~run_in_loggers_fsm_t() {
-        gdelete(runner);
-    }
-
-    void start() {
-        if (controller.start(this)) {
-            on_logger_ready();
-        }
-    }
-
-    void on_logger_ready() {
-        runner->run();
-
-        if (controller.shutdown(this)) {
-            on_logger_shutdown();
-        }
-    }
-
-    void on_logger_shutdown() {
-        pool->shutdown();
-        gdelete(this);
-    }
-
-private:
-    thread_pool_t *pool;
-    blocking_runner_t *runner;
-    log_controller_t controller;
-};
-
-
-
-struct runner : public blocking_runner_t {
-    extract_config_t *config;
-    runner(extract_config_t *cfg) : config(cfg) { }
-    void run() {
-        dumpfile(*config);
-    }
-};
-
 }  // namespace extract
 
 int main(int argc, char **argv) {
@@ -208,9 +154,7 @@ int main(int argc, char **argv) {
         extract_config_t *config;
         thread_pool_t *pool;
         void on_cpu_switch() {
-            extract::runner *runner = gnew<extract::runner>(config);
-            extract::run_in_loggers_fsm_t *fsm = gnew<extract::run_in_loggers_fsm_t>(pool, runner);
-            fsm->start();
+            dumpfile(*config);
         }
     } starter;
 

@@ -6,6 +6,7 @@
 #include "arch/arch.hpp"
 #include "server.hpp"
 #include "side_executable.hpp"
+#include "logger.hpp"
 
 void crash_handler(int signum) {
     // We call fail here instead of letting the OS handle it because
@@ -32,6 +33,11 @@ int main(int argc, char *argv[]) {
     cmd_config_t config;
     parse_cmd_args(argc, argv, &config);
     
+    // Open log file if necessary
+    if (config.log_file_name[0]) {
+        log_file = fopen(config.log_file_name, "w");
+    }
+    
     // Initial CPU message to start server
     struct server_starter_t :
         public cpu_message_t
@@ -50,7 +56,13 @@ int main(int argc, char *argv[]) {
     starter.thread_pool = &thread_pool;
     thread_pool.run(&starter);
     
-    //fprintf(stderr, "Server is shut down.\n");
+    logINF("Server is shut down.\n");
+    
+    // Close log file if necessary
+    if (config.log_file_name[0]) {
+        fclose(log_file);
+        log_file = stderr;
+    }
     
     return 0;
 }
