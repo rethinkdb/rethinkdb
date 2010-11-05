@@ -60,7 +60,9 @@ public:
     bool sync(sync_callback_t *cb);
     
     void prepare_metablock(metablock_mixin_t *mb_out);
-
+    
+    void consider_gc();
+    
 public:
     struct shutdown_callback_t {
         virtual void on_lba_shutdown() = 0;
@@ -85,7 +87,7 @@ private:
     
     direct_file_t *dbfile;
     
-    in_memory_index_t *in_memory_index;
+    in_memory_index_t in_memory_index;
     
     lba_disk_structure_t *disk_structures[LBA_SHARD_FACTOR];
     

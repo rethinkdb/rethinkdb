@@ -378,6 +378,8 @@ linux_io_calls_t::~linux_io_calls_t()
 {
     int res;
     
+    assert(n_pending == 0);
+    
     res = close(aio_notify_fd);
     check("Could not close aio_notify_fd", res != 0);
     
@@ -494,4 +496,5 @@ int linux_io_calls_t::queue_t::process_request_batch() {
 }
 
 linux_io_calls_t::queue_t::~queue_t() {
+    assert(queue.size() == 0);
 }

@@ -34,13 +34,13 @@ struct memcached_sock_protocol_t : public protocol_t {
         }
     }
     
-    virtual void connect(const char *hostname, int portno) {
+    virtual void connect(config_t *config) {
         // Setup the host/port data structures
         struct sockaddr_in sin;
-        struct hostent *host = gethostbyname(hostname);
+        struct hostent *host = gethostbyname(config->host);
         memcpy(&sin.sin_addr.s_addr, host->h_addr, host->h_length);
         sin.sin_family = AF_INET;
-        sin.sin_port = htons(portno);
+        sin.sin_port = htons(config->port);
 
         // Connect to server
         int res = ::connect(sockfd, (struct sockaddr *)&sin, sizeof(sin));

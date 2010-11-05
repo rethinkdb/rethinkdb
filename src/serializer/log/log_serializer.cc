@@ -501,6 +501,10 @@ struct ls_write_fsm_t :
         
         state = state_waiting_for_data_and_lba;
         
+        /* Just to make sure that the LBA GC gets exercised */
+        
+        ser->lba_index->consider_gc();
+        
         /* Launch each individual block writer */
         
         num_writes_waited_for = 0;
