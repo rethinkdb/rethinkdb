@@ -10,18 +10,30 @@
 #include "serializer/log/static_header.hpp"
 
 
+
+#define MB_NEXTENTS 2
+#define MB_EXTENT_SEPARATION 4 /* !< every MB_EXTENT_SEPARATIONth extent is for MB, up to MB_NEXTENTS many */
+
+#define MB_BAD_VERSION (-1)
+#define MB_START_VERSION 1
+
+
+
 /* TODO support multiple concurrent writes */
 const static char MB_MARKER_MAGIC[8] = {'m', 'e', 't', 'a', 'b', 'l', 'c', 'k'};
 const static char MB_MARKER_CRC[4] = {'c', 'r', 'c', ':'};
 const static char MB_MARKER_VERSION[8] = {'v', 'e', 'r', 's', 'i', 'o', 'n', ':'};
 
+void initialize_metablock_offsets(off64_t extent_size, std::vector<off64_t, gnew_alloc<off64_t> > *offsets);
+
+
+
 template<class metablock_t>
 class metablock_manager_t : private iocallback_t {
     const static uint32_t poly = 0x1337BEEF;
 
+public:
     typedef int64_t metablock_version_t;
-
-private:
 
     // This is stored directly to disk.  Changing it will change the disk format.
     struct crc_metablock_t {
