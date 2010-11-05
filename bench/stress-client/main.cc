@@ -47,6 +47,11 @@ int main(int argc, char *argv[])
     client_data.config = &config;
     client_data.shared = &shared;
 
+    // Gotta run the shared init
+    protocol_t *p = make_protocol(&config);
+    p->connect(&config);
+    p->shared_init();
+
     // Let's rock 'n roll
     int res;
     vector<pthread_t> threads(config.clients);

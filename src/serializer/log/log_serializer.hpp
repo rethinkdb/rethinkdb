@@ -18,6 +18,8 @@
 #include "lba/lba_list.hpp"
 #include "data_block_manager.hpp"
 
+struct block_magic_t;
+
 /**
  * This is the log-structured serializer, the holiest of holies of
  * RethinkDB. Please treat it with courtesy, professionalism, and
@@ -150,6 +152,10 @@ public:
     // gc will be enabled immediately.  Always returns 'true' for
     // do_on_cpu.
     bool enable_gc();
+
+public:
+    // The magic value used for "zero" buffers written upon deletion.
+    static const block_magic_t zerobuf_magic;
 
 private:
     typedef log_serializer_metablock_t metablock_t;

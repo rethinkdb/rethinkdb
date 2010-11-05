@@ -13,6 +13,9 @@
 namespace extract {
 
 void usage(const char *name) {
+    // Note: some error messages may refer to the names of command
+    // line options here, so keep them updated accordingly.
+
     printf("Usage:\n");
     printf("        %s [OPTIONS] -f data_file [-o dumpfile]\n", name);
     printf("\nOptions:\n"
@@ -74,7 +77,7 @@ void parse_cmd_args(int argc, char **argv, extract_config_t *config) {
             config->input_files.push_back(optarg);
             break;
         case 'l':
-            config->log_file = optarg;
+            config->log_file_name = optarg;
             break;
         case 'o':
             config->output_file = optarg;
@@ -146,6 +149,9 @@ int main(int argc, char **argv) {
     extract_config_t config;
     extract::parse_cmd_args(argc, argv, &config);
 
+    if (config.log_file_name != "") {
+        log_file = fopen(config.log_file_name.c_str(), "w");
+    }
 
     // Initial CPU message to start server
     struct server_starter_t :
@@ -155,6 +161,7 @@ int main(int argc, char **argv) {
         thread_pool_t *pool;
         void on_cpu_switch() {
             dumpfile(*config);
+            pool->shutdown();
         }
     } starter;
 

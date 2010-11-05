@@ -126,7 +126,7 @@ class TimeSeriesCollection():
         stdev= stats.stdev(map(lambda x: x, reduce(lambda x, y: x + y, data)))
         labels = []
         for series, color in zip(self.data.iteritems(), colors):
-            ax.hist(clip(series[1], mean - .3 * stdev, mean + .3 * stdev), 40, histtype='step', facecolor = color, alpha = .4, label = series[0])
+            ax.hist(clip(series[1], 0, 6000), 40, histtype='step', facecolor = color, alpha = .4, label = series[0])
             labels.append(series[0])
 
         ax.set_ylabel('Count')

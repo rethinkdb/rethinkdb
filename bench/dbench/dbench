@@ -249,7 +249,15 @@ class MemcacheDB(MemcachedLikeServer):
         self.wait_for_server_ready()
 
 
-class Membase(MemcachedLikeServer): pass
+class Membase(MemcachedLikeServer):
+    binary_paths = []
+
+    def internal_start(self):
+        if self.dbench.port != 11211:
+            self.dbench.die('Membase requires port 11211; please run explicitly with that port.')
+        # XXX: membase-wrapper requires that you specify -m and -d. Say this here.
+        args = self.compute_args([])
+        self.run_process(self.find_binary('membase-wrapper'), args)
 
 class Stress(Client):
     binary_paths = ['../../../../stress-client/stress', '../stress-client/stress']
@@ -342,6 +350,7 @@ workers = {
 
     'rethinkdb': RethinkDB,
     'memcachedb': MemcacheDB,
+    'membase': Membase,
     'memcached': Memcached,
 
     'stress': Stress,
