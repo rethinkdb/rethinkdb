@@ -18,6 +18,13 @@ struct block_knowledge {
     // (for non-deleted blocks) that the block is "used," since we
     // update the value when we read the buffer at the above offset.
     ser_transaction_id_t transaction_id;
+
+    static block_knowledge unused() {
+        block_knowledge ret;
+        ret.offset = flagged_off64_t::unused();
+        ret.transaction_id = NULL_SER_TRANSACTION_ID;
+        return ret;
+    }
 };
 
 // The knowledge we have about a particular file is gathered here.
@@ -40,8 +47,8 @@ struct file_knowledge {
     bool metablock_known;
 
     // The block id to offset mapping.
-    segmented_vector_t<flagged_off64_t, MAX_BLOCK_ID> block_offsets;
-    bool block_offsets_known;
+    segmented_vector_t<block_knowledge, MAX_BLOCK_ID> block_info;
+    bool block_info_known;
 
     // The block from CONFIG_BLOCK_ID (well, the beginning of such a block).
     serializer_config_block_t config_block;
@@ -49,7 +56,7 @@ struct file_knowledge {
 
     file_knowledge()
         : predicted_serializer_number(-1), filesize_known(false), static_config_known(false),
-          metablock_known(false), block_offsets_known(false), config_block_known(false) { }
+          metablock_known(false), block_info_known(false), config_block_known(false) { }
 
 private:
     DISABLE_COPYING(file_knowledge);
@@ -85,15 +92,6 @@ private:
 };
 
 
-struct block {
-    void *buf;
-    block(off64_t size, direct_file_t *file, off64_t offset)
-        : buf(malloc_aligned(size, DEVICE_BLOCK_SIZE)) {
-        file->read_blocking(offset, size, buf);
-    }
-    ~block() { free(buf); }
-};
-
 void require_fact(bool fact, const char *test, const char *options, ...) {
     // TODO varargs
     if (!fact) {
@@ -121,6 +119,78 @@ bool check_fact(bool fact, const char *msg, ...) {
     }
     return fact;
 }
+
+
+struct block {
+    void *buf;
+    block(off64_t size, direct_file_t *file, off64_t offset)
+        : buf(malloc_aligned(size, DEVICE_BLOCK_SIZE)) {
+        file->read_blocking(offset, size, buf);
+    }
+    ~block() { free(buf); }
+private:
+    DISABLE_COPYING(block);
+};
+
+// This doesn't really make the blocks, but it's a nice name.  See btree_block below.
+struct blockmaker {
+    direct_file_t *file;
+    file_knowledge *knog;
+    int local_slice_id;
+    int mod_count;
+    blockmaker(direct_file_t *file, file_knowledge *knog, int global_slice_id)
+        : file(file), knog(knog), local_slice_id(global_slice_id / knog->config_block.n_files),
+          mod_count(btree_key_value_store_t::compute_mod_count(knog->config_block.this_serializer, knog->config_block.n_files, knog->config_block.btree_config.n_slices)) { }
+    ser_block_id_t to_ser_block_id(block_id_t id) {
+        return translator_serializer_t::translate_block_id(id, mod_count, local_slice_id, CONFIG_BLOCK_ID + 1);
+    }
+private:
+    DISABLE_COPYING(blockmaker);
+};
+
+struct btree_block {
+    // buf is a fake!  buf is sizeof(buf_data_t) greater than realbuf, which is below.
+    void *buf;
+
+    btree_block(blockmaker &maker, block_id_t block_id) : buf(NULL) {
+        init(maker.file, maker.knog, maker.to_ser_block_id(block_id));
+    }
+    // for when we already have the ser_block_id, which is probably
+    // just for loading the CONFIG_BLOCK_ID block.
+    btree_block(direct_file_t *file, file_knowledge *knog, ser_block_id_t ser_block_id) : buf(NULL) {
+        init(file, knog, ser_block_id);
+    }
+    void init(direct_file_t *file, file_knowledge *knog, ser_block_id_t ser_block_id) {
+        realbuf = malloc_aligned(knog->static_config.block_size, DEVICE_BLOCK_SIZE);
+        unrecoverable_fact(knog->block_info.get_size() > ser_block_id, "block id in range");
+        flagged_off64_t offset = knog->block_info[ser_block_id].offset;
+
+        // CHECK that the block exists, that the block id is not too high for this slice, perhaps.
+        unrecoverable_fact(flagged_off64_t::has_value(offset), "block exists");
+
+        file->read_blocking(offset.parts.value, knog->static_config.block_size, realbuf);
+
+        data_block_manager_t::buf_data_t *block_header = (data_block_manager_t::buf_data_t *)realbuf;
+        buf = (void *)(block_header + 1);
+
+        // CHECK that we have a valid ser_block_id_t in the header.
+        unrecoverable_fact(block_header->block_id == ser_block_id, "block labeled with correct ser_block_id");
+        ser_transaction_id_t transaction = block_header->transaction_id;
+
+        // CHECK that we have a valid ser_transaction_id_t.
+        unrecoverable_fact(transaction >= FIRST_SER_TRANSACTION_ID, "transaction in block header >= FIRST_SER_TRANSACTION_ID");
+        unrecoverable_fact(transaction <= knog->metablock.transaction_id, "transaction in block header >= supposed latest transaction id");
+
+        // LEARN the block's ser_transaction_id_t.
+        knog->block_info[ser_block_id].transaction_id = transaction;
+    }
+    ~btree_block() {
+        free(realbuf);
+    }
+private:
+    void *realbuf;
+    DISABLE_COPYING(btree_block);
+};
 
 
 void check_filesize(direct_file_t *file, file_knowledge *knog) {
@@ -282,10 +352,10 @@ void check_lba_extent(direct_file_t *file, file_knowledge *knog, unsigned int sh
         require_valid_block(knog, entry.offset.parts.value, "lba offset aligned to block_size");
 
         // LEARN offsets for each block id.
-        if (knog->block_offsets.get_size() <= entry.block_id) {
-            knog->block_offsets.set_size(entry.block_id + 1, flagged_off64_t::unused());
+        if (knog->block_info.get_size() <= entry.block_id) {
+            knog->block_info.set_size(entry.block_id + 1, block_knowledge::unused());
         }
-        knog->block_offsets[entry.block_id] = entry.offset;
+        knog->block_info[entry.block_id].offset = entry.offset;
     }
 }
 
@@ -330,16 +400,30 @@ void check_lba(direct_file_t *file, file_knowledge *knog) {
         check_lba_shard(file, knog, shards, i);
     }
 
-    assert(!knog->block_offsets_known);
-    knog->block_offsets_known = true;
+    assert(!knog->block_info_known);
+    knog->block_info_known = true;
 }
 
 void check_config_block(direct_file_t *file, file_knowledge *knog) {
-    // TODO
+    assert(knog->block_info_known);
+    /* Read block 0 (the CONFIG_BLOCK_ID block)
+         - LEARN n_files, n_slices, serializer_number. */
+
+    btree_block config_block(file, knog, CONFIG_BLOCK_ID);
+    serializer_config_block_t *buf = (serializer_config_block_t *)config_block.buf;
+
+    // TODO block_id and magic
+    
+    knog->config_block = *buf;
+    assert(!knog->config_block_known);
+    knog->config_block_known = true;
 }
 
 void check_slice(direct_file_t *file, file_knowledge *knog, int global_slice_number) {
-    // TODO
+    blockmaker maker(file, knog, global_slice_number);
+    
+
+
 }
 
 void check_garbage_block_inferiority(direct_file_t *file, file_knowledge *knog) {
@@ -360,7 +444,48 @@ void check_to_config_block(direct_file_t *file, file_knowledge *knog) {
 }
 
 void check_config_blocks(knowledge *knog) {
-    // TODO
+    /* Compare CONFIG_BLOCK_ID blocks.
+         - CHECK that n_files is correct in all files.
+         - CHECK that n_slices is the same in all files.
+         - CHECK that the db_magic is the same in all files.
+         - CHECK that the serializer_numbers are happy pigeons. */
+    
+    int num_files = knog->filenames.size();
+
+    std::vector<int, gnew_alloc<int> > this_serializer_counts(num_files, 0);
+
+    bool all_have_correct_num_files = true;
+    bool all_have_same_num_files = true;
+    bool all_have_same_num_slices = true;
+    bool all_have_same_db_magic = true;
+    bool out_of_order_serializers = false;
+    for (int i = 0; i < num_files; ++i) {
+        assert(knog->file_knog[i]->config_block_known);
+    
+        all_have_correct_num_files &= (knog->file_knog[i]->config_block.n_files == num_files);
+        all_have_same_num_files &= (knog->file_knog[i]->config_block.n_files == knog->file_knog[0]->config_block.n_files);
+        all_have_same_num_slices &= (knog->file_knog[i]->config_block.btree_config.n_slices
+                                     == knog->file_knog[0]->config_block.btree_config.n_slices);
+        all_have_same_db_magic &= (knog->file_knog[i]->config_block.database_magic
+                                   == knog->file_knog[0]->config_block.database_magic);
+        out_of_order_serializers |= (i == knog->file_knog[i]->config_block.this_serializer);
+        unrecoverable_fact(0 <= knog->file_knog[i]->config_block.this_serializer && knog->file_knog[i]->config_block.this_serializer < num_files,
+                           "0 <= this_serializer < num_files");
+        this_serializer_counts[knog->file_knog[i]->config_block.this_serializer] += 1;
+    }
+
+    unrecoverable_fact(all_have_same_num_files, "all have same n_files");
+    unrecoverable_fact(all_have_correct_num_files, "all have the same n_files as given on the command line");
+    unrecoverable_fact(all_have_same_num_slices, "all have same n_slices");
+    unrecoverable_fact(0 < knog->file_knog[0]->config_block.btree_config.n_slices, "n_slices is positive");
+    unrecoverable_fact(all_have_same_db_magic, "all have same database_magic");
+
+    bool contiguous_serializers = true;
+    for (int i = 0; i < num_files; ++i) {
+        contiguous_serializers &= (this_serializer_counts[i] == 1);
+    }
+
+    unrecoverable_fact(contiguous_serializers, "serializers have unique this_serializer values");
 }
 
 void check_after_config_block(direct_file_t *file, file_knowledge *knog) {
@@ -368,8 +493,9 @@ void check_after_config_block(direct_file_t *file, file_knowledge *knog) {
 
     // TODO figure out which slices.
 
-    for (int i = 0; i < knog->config_block.btree_config.n_slices; ++i) {
-        check_slice(file, knog, i);  // TODO
+    int step = knog->config_block.n_files;
+    for (int i = knog->config_block.this_serializer; i < knog->config_block.btree_config.n_slices; i += step) {
+        check_slice(file, knog, i);
     }
 
     check_garbage_block_inferiority(file, knog);  // TODO

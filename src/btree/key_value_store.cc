@@ -5,7 +5,7 @@
 
 - Each slice is assigned to a serializer. The formula is (slice_id % n_files)
 - Block ID 0 on each serializer is for static btree configuration information.
-- Each slice uses block IDs of the form (1 + (n * (number of serializers on slice) +
+- Each slice uses block IDs of the form (1 + (n * (number of slices on serializer) +
     (slice_id / n_files))).
 
 */

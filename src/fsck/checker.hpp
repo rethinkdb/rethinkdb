@@ -79,6 +79,16 @@ namespace fsck {
 
     - LEARN n_files, n_slices, serializer_number.
 
+  * Compare CONFIG_BLOCK_ID blocks.
+
+    - CHECK that n_files is correct in all files.
+
+    - CHECK that n_slices is the same in all files.
+
+    - CHECK that the db_magic is the same in all files.
+
+    - CHECK that the serializer_numbers are happy pigeons.
+
   * *FOR EACH SLICE*
 
     * Read the btree_superblock_t.

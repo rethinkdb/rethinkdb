@@ -53,10 +53,13 @@ union flagged_off64_t {
         return ret;
     }
     
-
-    static inline bool can_be_gced(flagged_off64_t offset) {
+    static bool has_value(flagged_off64_t offset) {
         offset.parts.is_delete = 1;
         return offset.whole_value != off64_t(-1);
+    }
+    
+    static inline bool can_be_gced(flagged_off64_t offset) {
+        return has_value(offset);
     }
 };
 
