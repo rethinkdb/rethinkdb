@@ -114,8 +114,10 @@ static const char lba_magic[LBA_MAGIC_SIZE] = {'l', 'b', 'a', 'm', 'a', 'g', 'i'
 
 struct lba_extent_t {
     // Header needs to be padded to a multiple of sizeof(lba_entry_t)
-    char magic[LBA_MAGIC_SIZE];
-    char padding[sizeof(lba_entry_t) - sizeof(magic) % sizeof(lba_entry_t)];
+    struct header_t {
+        char magic[LBA_MAGIC_SIZE];
+        char padding[sizeof(lba_entry_t) - sizeof(magic) % sizeof(lba_entry_t)];
+    } header;
     lba_entry_t entries[0];
 };
 

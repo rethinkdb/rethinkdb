@@ -6,32 +6,42 @@
 #include "../extents/extent_manager.hpp"
 #include "disk_format.hpp"
 #include "disk_extent.hpp"
-#include "disk_superblock.hpp"
 
 class lba_load_fsm_t;
 class lba_writer_t;
 
 class lba_disk_structure_t :
+    public extent_t::read_callback_t,
     public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, lba_disk_structure_t>
 {
     friend class lba_load_fsm_t;
     friend class lba_writer_t;
-    
-public:
-    struct load_callback_t {
-        virtual void on_load_lba() = 0;
-    };
-    struct sync_callback_t {
-        virtual void on_sync_lba() = 0;
-    };
 
 public:
-    static void create(extent_manager_t *em, direct_file_t *file, lba_disk_structure_t **out);
-    static bool load(extent_manager_t *em, direct_file_t *file, lba_shard_metablock_t *metablock,
-        lba_disk_structure_t **out, load_callback_t *cb);
+    // Create a new LBA
+    lba_disk_structure_t(extent_manager_t *em, direct_file_t *file);
     
+    // Load an existing LBA from disk
+    struct load_callback_t {
+        virtual void on_lba_load() = 0;
+    };
+    lba_disk_structure_t(extent_manager_t *em, direct_file_t *file, lba_shard_metablock_t *metablock);
+    void set_load_callback(load_callback_t *lcb);
+    
+    // Put entries in an LBA and then call sync() to write to disk
     void add_entry(ser_block_id_t block_id, flagged_off64_t offset);
-    bool sync(sync_callback_t *cb);
+    struct sync_callback_t {
+        virtual void on_lba_sync() = 0;
+    };
+    void sync(sync_callback_t *cb);
+    
+    // If you call read(), then the in_memory_index_t will be populated and then the read_callback_t
+    // will be called when it is done.
+    struct read_callback_t {
+        virtual void on_lba_read() = 0;
+    };
+    void read(in_memory_index_t *index, read_callback_t *cb);
+    
     void prepare_metablock(lba_shard_metablock_t *mb_out);
     
     void destroy();   // Delete both in memory and on disk
@@ -44,13 +54,19 @@ private:
     direct_file_t *file;
 
 public:
-    // Can be NULL, for a while.
-    lba_disk_superblock_t *superblock;
+    extent_t *superblock_extent;   // Can be NULL
+    off64_t superblock_offset;
+    intrusive_list_t<lba_disk_extent_t> extents_in_superblock;
     lba_disk_extent_t *last_extent;
 
 private:
-    /* Use create(), load(), destroy(), and shutdown() instead */
-    lba_disk_structure_t() {}
+    /* Used during the startup process */
+    void on_extent_read();
+    load_callback_t *start_callback;
+    int startup_superblock_count;
+    lba_superblock_t *startup_superblock_buffer;
+
+    /* Use destroy() or shutdown() instead */
     ~lba_disk_structure_t() {}
 };
 

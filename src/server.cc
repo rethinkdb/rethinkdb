@@ -57,6 +57,8 @@ void server_t::do_start_conn_acceptor() {
     // db file).
     print_config(cmd_config);
     
+    logINF("Server is now accepting memcached connections on port %d.\n", cmd_config->port);
+    
     conn_acceptor.start();
     
     interrupt_message.server = this;
