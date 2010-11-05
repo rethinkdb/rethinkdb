@@ -174,7 +174,8 @@ class TimeSeriesCollection():
     def derive(self, name, arg_keys, function):
         args = []
         for key in arg_keys:
-            assert key in self.data
+            if not key in self.data:
+                return self
             args.append(self.data[key])
 
         self.data[name] = function(tuple(args))
@@ -293,6 +294,7 @@ class QPS(TimeSeriesCollection):
         return res
 
 class RDBStats(TimeSeriesCollection):
+    stat_line = line("STAT\s+(\w+)(\[\w+\])?\s+(\d+)", [('name', 's'), ('units', 's'), ('value', 'd')])
     int_line  = line("STAT\s+(\w+)\s+(\d+)[^\.](?:\s+\(average of \d+\))?", [('name', 's'), ('value', 'd')])
     flt_line  = line("STAT\s+(\w+)\s+([\d.]+)\s+\([\d/]+\)", [('name', 's'), ('value', 'f')])
     end_line  = line("END", [])
@@ -302,7 +304,7 @@ class RDBStats(TimeSeriesCollection):
         data.reverse()
         
         while True:
-            m = take_while([self.int_line, self.flt_line], data)
+            m = take_while([self.stat_line], data)
             if not m:
                 break
             for match in m:
