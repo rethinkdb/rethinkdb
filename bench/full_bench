@@ -2,6 +2,11 @@
 
 BENCH_DIR="$HOME/bench/$(date +%Y-%m-%d-%H:%M)"
 
+mkdir -p "$BENCH_DIR"
+
+exec > "$BENCH_DIR/full_bench.log" 2>&1
+
+
 # Horrible but working way of finding the argument after --email.
 email="$(perl -e 'use List::Util qw(first); my $email_idx = 1 + first { $ARGV[$_] eq "--email" } 0 .. $#ARGV; print $ARGV[$email_idx]' -- "$@")"
 
@@ -16,8 +21,6 @@ make
 scp stress dr-doom:/home/teapot/stress
 
 cd ../dbench
-
-mkdir -p "$BENCH_DIR"
 
 # A regular benchmark is 10^9 operations, but when profiling, it's run 5 times, so we only do 10^8 operations.
 
@@ -56,14 +59,14 @@ duration=10000000
 #delete_database_files
 
 #Multiple drives
-./dbench -d "$BENCH_DIR/bench_output/c16" -H 10.0.0.2 {server}rethinkdb:'--create -c 16 -s 128 -m 512 -f /dev/sdb' {client}stressfree[dr-doom:/home/teapot/stress]:'-c 512 -d 600s'            iostat:1 vmstat:1 rdbstat:1
-delete_database_files
-./dbench -d "$BENCH_DIR/bench_output/c16" -H 10.0.0.2 {server}rethinkdb:'--create -c 16 -s 128 -m 512 -f /dev/sdb -f /dev/sdc' {client}stressfree[dr-doom:/home/teapot/stress]:'-c 512 -d 600s'            iostat:1 vmstat:1 rdbstat:1
-delete_database_files
-./dbench -d "$BENCH_DIR/bench_output/c16" -H 10.0.0.2 {server}rethinkdb:'--create -c 16 -s 128 -m 512 -f /dev/sdb -f /dev/sdc -f /dev/sdd' {client}stressfree[dr-doom:/home/teapot/stress]:'-c 512 -d 600s'            iostat:1 vmstat:1 rdbstat:1
-delete_database_files
-./dbench -d "$BENCH_DIR/bench_output/c16" -H 10.0.0.2 {server}rethinkdb:'--create -c 16 -s 128 -m 512 -f /dev/sdb -f /dev/sdc -f /dev/sdd -f /dev/sde' {client}stressfree[dr-doom:/home/teapot/stress]:'-c 512 -d 600s'            iostat:1 vmstat:1 rdbstat:1
-delete_database_files
+../../build/release/rethinkdb --create -f /dev/sdb
+./dbench -d "$BENCH_DIR/bench_output/c16" -H 10.0.0.2 {server}rethinkdb:'-c 16 -s 128 -m 512 -f /dev/sdb' {client}stressfree[dr-doom:/home/teapot/stress]:'-c 512 -d 600s'            iostat:1 vmstat:1 rdbstat:1
+../../build/release/rethinkdb --create -f /dev/sdb -f /dev/sdc
+./dbench -d "$BENCH_DIR/bench_output/c16" -H 10.0.0.2 {server}rethinkdb:'-c 16 -s 128 -m 512 -f /dev/sdb -f /dev/sdc' {client}stressfree[dr-doom:/home/teapot/stress]:'-c 512 -d 600s'            iostat:1 vmstat:1 rdbstat:1
+../../build/release/rethinkdb --create -f /dev/sdb -f /dev/sdc -f /dev/sdd
+./dbench -d "$BENCH_DIR/bench_output/c16" -H 10.0.0.2 {server}rethinkdb:'-c 16 -s 128 -m 512 -f /dev/sdb -f /dev/sdc -f /dev/sdd' {client}stressfree[dr-doom:/home/teapot/stress]:'-c 512 -d 600s'            iostat:1 vmstat:1 rdbstat:1
+../../build/release/rethinkdb --create -f /dev/sdb -f /dev/sdc -f /dev/sdd -f /dev/sde
+./dbench -d "$BENCH_DIR/bench_output/c16" -H 10.0.0.2 {server}rethinkdb:'-c 16 -s 128 -m 512 -f /dev/sdb -f /dev/sdc -f /dev/sdd -f /dev/sde' {client}stressfree[dr-doom:/home/teapot/stress]:'-c 512 -d 600s'            iostat:1 vmstat:1 rdbstat:1
 
 #OProfile
 #./dbench -d  "$BENCH_DIR/prof_output"     -H 10.0.0.2 {server}rethinkdb:'-c 12 -s 128' {client}stressfree[dr-doom:/home/teapot/stress]:'-c 512 -d 10000000'             iostat:1 vmstat:1 rdbstat:1 oprofile
