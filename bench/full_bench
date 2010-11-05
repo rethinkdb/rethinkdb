@@ -72,4 +72,4 @@ delete_database_files
 cd ../format
 
 # Generate statistics and email.
-./report.py "$BENCH_DIR" "$email"
+./report.py "$BENCH_DIR" "$email" > "$BENCH_DIR/report.log" 2>&1
