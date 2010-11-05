@@ -85,23 +85,14 @@ private:
 };
 
 
-struct device_block {
+struct block {
     void *buf;
-    device_block(direct_file_t *file, off64_t offset) : buf(malloc_aligned(DEVICE_BLOCK_SIZE, DEVICE_BLOCK_SIZE)) {
-        file->read_blocking(offset, DEVICE_BLOCK_SIZE, buf);
+    block(off64_t size, direct_file_t *file, off64_t offset)
+        : buf(malloc_aligned(size, DEVICE_BLOCK_SIZE)) {
+        file->read_blocking(offset, size, buf);
     }
-    ~device_block() { free(buf); }
+    ~block() { free(buf); }
 };
-
-struct btree_block {
-    void *buf;
-    btree_block(direct_file_t *file, file_knowledge *knog, off64_t offset)
-        : buf(malloc_aligned(knog->static_config.block_size, DEVICE_BLOCK_SIZE)) {
-        file->read_blocking(offset, knog->static_config.block_size, buf);
-    }
-    ~btree_block() { free(buf); }
-};
-
 
 void require_fact(bool fact, const char *test, const char *options, ...) {
     // TODO varargs
@@ -123,11 +114,12 @@ void unrecoverable_fact(bool fact, const char *test, ...) {
     }
 }
 
-void check_fact(bool fact, const char *msg, ...) {
+bool check_fact(bool fact, const char *msg, ...) {
     // TODO record errors.
     if (!fact) {
         logWRN("Checking '%s': FAIL\n", msg);
     }
+    return fact;
 }
 
 
@@ -144,7 +136,7 @@ void check_static_config(direct_file_t *file, file_knowledge *knog) {
          - MAGIC
          - CHECK block_size divides extent_size divides file_size.
          - LEARN block_size, extent_size. */
-    device_block header(file, 0);
+    block header(DEVICE_BLOCK_SIZE, file, 0);
     static_header_t *buf = (static_header_t *)header.buf;
     
 
@@ -204,7 +196,7 @@ void check_metablock(direct_file_t *file, file_knowledge *knog) {
 
     for (size_t i = 0; i < metablock_offsets.size(); ++i) {
         off64_t off = metablock_offsets[i];
-        device_block b(file, off);
+        block b(DEVICE_BLOCK_SIZE, file, off);
         crc_metablock_t *metablock = (crc_metablock_t *)b.buf;
 
         if (metablock->check_crc()) {
@@ -240,7 +232,7 @@ void check_metablock(direct_file_t *file, file_knowledge *knog) {
                  "--tolerate-metablock-disorder");  // TODO option
 
     // Reread the best block, based on the metablock version.
-    device_block high_block(file, high_version_offset);
+    block high_block(DEVICE_BLOCK_SIZE, file, high_version_offset);
     crc_metablock_t *high_metablock = (crc_metablock_t *)high_block.buf;
 
     knog->metablock = high_metablock->metablock;
@@ -248,54 +240,98 @@ void check_metablock(direct_file_t *file, file_knowledge *knog) {
     knog->metablock_known = true;
 }
 
+void require_valid_offset(file_knowledge *knog, off64_t offset, off64_t alignment, const char *what, const char *aligned_to_what) {
+    unrecoverable_fact(offset % alignment == 0 && offset >= 0 && (uint64_t)offset < knog->filesize,
+                       "offset %s aligned to %s", what, aligned_to_what);
+}
+
+void require_valid_extent(file_knowledge *knog, off64_t offset, const char *what) {
+    require_valid_offset(knog, offset, knog->static_config.extent_size, what, "extent_size");
+}
+
+void require_valid_block(file_knowledge *knog, off64_t offset, const char *what) {
+    require_valid_offset(knog, offset, knog->static_config.block_size, what, "block_size");
+}
+
+void require_valid_device_block(file_knowledge *knog, off64_t offset, const char *what) {
+    require_valid_offset(knog, offset, DEVICE_BLOCK_SIZE, what, "DEVICE_BLOCK_SIZE");
+}
+
+void check_lba_extent(direct_file_t *file, file_knowledge *knog, unsigned int shard_number, off64_t extent_offset, int entries_count) {
+    // CHECK that each off64_t is a real extent.
+    require_valid_extent(knog, extent_offset, "lba_extent_t offset");
+    unrecoverable_fact(entries_count >= 0, "entries_count >= 0");
+
+    uint64_t size_needed = offsetof(lba_extent_t, entries) + entries_count * sizeof(lba_entry_t);
+
+    unrecoverable_fact(size_needed <= knog->static_config.extent_size, "lba_extent_t entries_count implies size greater than extent_size");
+
+    block extent(knog->static_config.extent_size, file, extent_offset);
+    lba_extent_t *buf = (lba_extent_t *)extent.buf;
+
+    for (int i = 0; i < entries_count; ++i) {
+        lba_entry_t entry = buf->entries[i];
+        
+        // CHECK that 0 <= block_ids <= MAX_BLOCK_ID.
+        unrecoverable_fact(entry.block_id <= MAX_BLOCK_ID, "0 <= block_id <= MAX_BLOCK_ID");
+
+        // CHECK that each block id is in the proper shard.
+        unrecoverable_fact(entry.block_id % LBA_SHARD_FACTOR == shard_number, "block_id in correct LBA shard");
+
+        // CHECK that each offset is aligned to block_size.
+        require_valid_block(knog, entry.offset.parts.value, "lba offset aligned to block_size");
+
+        // LEARN offsets for each block id.
+        if (knog->block_offsets.get_size() <= entry.block_id) {
+            knog->block_offsets.set_size(entry.block_id + 1, flagged_off64_t::unused());
+        }
+        knog->block_offsets[entry.block_id] = entry.offset;
+    }
+}
+
 // Returns true if the LBA shard was successfully read, false otherwise.
-bool check_lba_shard(direct_file_t *file, file_knowledge *knog, lba_shard_metablock_t *shards, int i) {
+void check_lba_shard(direct_file_t *file, file_knowledge *knog, lba_shard_metablock_t *shards, int shard_number) {
 
     // Read the superblock.
-    int superblock_size = lba_superblock_t::entry_count_to_file_size(shards[i].lba_superblock_entries_count);
+    int superblock_size = lba_superblock_t::entry_count_to_file_size(shards[shard_number].lba_superblock_entries_count);
     int superblock_aligned_size = ceil_aligned(superblock_size, DEVICE_BLOCK_SIZE);
-    if (!check_device_block(shards[i].lba_superblock_offset, "lba_superblock_offset")) {
-        return false;
-    }
+    require_valid_device_block(knog, shards[shard_number].lba_superblock_offset, "lba_superblock_offset");
     lba_superblock_t *buf = (lba_superblock_t *)malloc_aligned(superblock_aligned_size, DEVICE_BLOCK_SIZE);
     freer f;
     f.add(buf);
-    file->read_blocking(shards[i].lba_superblock_offset, superblock_aligned_size, buf);
+    file->read_blocking(shards[shard_number].lba_superblock_offset, superblock_aligned_size, buf);
 
-    if (!check_fact(!memcmp(buf, lba_super_magic, LBA_SUPER_MAGIC_SIZE), "lba superblock magic")) {
-        return false;
+    unrecoverable_fact(!memcmp(buf, lba_super_magic, LBA_SUPER_MAGIC_SIZE), "lba superblock magic");
+
+    // 1. Read the entries from the superblock.
+    for (int i = 0; i < shards[shard_number].lba_superblock_entries_count; ++i) {
+        check_lba_extent(file, knog, shard_number, buf->entries[i].offset, buf->entries[i].lba_entries_count);
     }
 
-
-
+    // 2. Read the entries from the last extent.
+    check_lba_extent(file, knog, shard_number, shards[shard_number].last_lba_extent_offset,
+                     shards[shard_number].last_lba_extent_entries_count);
 }
 
-// Returns true if the LBA was successfully read, false otherwise.
-bool check_real_lba(direct_file_t *file, file_knowledge *knog) {
+
+void check_lba(direct_file_t *file, file_knowledge *knog) {
     assert(knog->metablock_known);
     /* Read the LBA shards
        - MAGIC
        - CHECK that 0 <= block_ids <= MAX_BLOCK_ID.
        - CHECK that each off64_t is in a real extent.
        - CHECK that each block id is in the proper shard.
+       - CHECK that each offset is aligned to block_size.
        - LEARN offsets for each block id.
     */
-    lba_shard_metablock_t *shards = &knog->metablock.lba_index_part.shards;
+    lba_shard_metablock_t *shards = knog->metablock.lba_index_part.shards;
 
     for (int i = 0; i < LBA_SHARD_FACTOR; ++i) {
-        if (!check_lba_shard(file, knog, shards, i)) {
-            return false;
-        }
+        check_lba_shard(file, knog, shards, i);
     }
-    return true;
-}
 
-void check_lba(direct_file_t *file, file_knowledge *knog) {
-    assert(knog->metablock_known);
-
-    if (!check_real_lba(file, knog)) {
-        unrecoverable_fact(false, "Could not read LBA.");
-    }
+    assert(!knog->block_offsets_known);
+    knog->block_offsets_known = true;
 }
 
 void check_config_block(direct_file_t *file, file_knowledge *knog) {

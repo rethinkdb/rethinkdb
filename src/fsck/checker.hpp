@@ -71,6 +71,8 @@ namespace fsck {
 
     - CHECK that each block id is in the proper shard.
 
+    - CHECK that each offset is aligned to block_size.
+
     - LEARN offsets for each block id.
 
   * Read block 0 (the CONFIG_BLOCK_ID block)

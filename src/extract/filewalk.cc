@@ -64,16 +64,6 @@ void dump_pair_value(dumper_t &dumper, direct_file_t& file, const cfg_t cfg, con
 void walkfile(dumper_t &dumper, const char *path);
 
 
-// A small simple helper, refactor if we ever use smart pointers elsewhere.
-class freer {
-public:
-    freer() { }
-    ~freer() { for (size_t i = 0; i < ptrs.size(); ++i) free(ptrs[i]); }
-    void add(void *p) { ptrs.push_back(p); }
-private:
-    std::vector<void *> ptrs;
-    DISABLE_COPYING(freer);
-};
 
 bool check_config(size_t filesize, const cfg_t cfg) {
     // Check that we have reasonable block_size and extent_size.

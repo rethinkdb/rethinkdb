@@ -29,11 +29,6 @@ T1 floor_aligned(T1 value, T2 alignment) {
     return value - (value % alignment);
 }
 
-template<typename T1, typename T2>
-T1 ceil_aligned(T1 value, T2 alignment) {
-    return value + alignment - ((value + alignment - 1) % alignment + 1);
-}
-
 /* Functions to create random delays. These must be in utils2.hpp instead of in
 utils.hpp because the mock IO layer uses random delays. Internally, they
 secretly use the IO layer, but it is safe to include utils2.hpp from within the
@@ -66,6 +61,17 @@ int randint(int n);
     T(const T&);                                \
     void operator=(const T&)
 
+
+// A small simple helper, refactor if we ever use smart pointers elsewhere.
+class freer {
+public:
+    freer() { }
+    ~freer() { for (size_t i = 0; i < ptrs.size(); ++i) free(ptrs[i]); }
+    void add(void *p) { ptrs.push_back(p); }
+private:
+    std::vector<void *, gnew_alloc<void *> > ptrs;
+    DISABLE_COPYING(freer);
+};
 
 #include "utils2.tcc"
 
