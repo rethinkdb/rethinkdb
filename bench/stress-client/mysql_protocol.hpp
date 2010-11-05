@@ -60,66 +60,64 @@ struct mysql_protocol_t : public protocol_t {
             &mysql, _host, _username, _password, NULL,
             config->port, NULL, 0);
         if(_mysql != &mysql) {
-            fprintf(stderr, "Could not connect to mysql\n");
+            fprintf(stderr, "Could not connect to mysql: %s\n", mysql_error(&mysql));
             exit(-1);
         }
 
-        // [Re]create the schema (must be done before we prepare
-        // statements)
-        // TODO: only do this once and call use_db instead
-        create_schema();
-
-        // Prepare remove statement
-        remove_stmt = mysql_stmt_init(&mysql);
-        const char remove_stmt_str[] = "DELETE FROM bench WHERE __key=?";
-        int res = mysql_stmt_prepare(remove_stmt, remove_stmt_str, strlen(remove_stmt_str));
-        if(res != 0) {
-            fprintf(stderr, "Could not prepare remove statement: %s\n",
-                    mysql_stmt_error(remove_stmt));
-            exit(-1);
-        }
-
-        // Prepare update statement
-        update_stmt = mysql_stmt_init(&mysql);
-        const char update_stmt_str[] = "UPDATE bench SET __value=? WHERE __key=?";
-        res = mysql_stmt_prepare(update_stmt, update_stmt_str, strlen(update_stmt_str));
-        if(res != 0) {
-            fprintf(stderr, "Could not prepare update statement: %s\n",
-                    mysql_stmt_error(update_stmt));
-            exit(-1);
-        }
-
-        // Prepare insert statement
-        insert_stmt = mysql_stmt_init(&mysql);
-        const char insert_stmt_str[] = "INSERT INTO bench VALUES (?, ?)";
-        res = mysql_stmt_prepare(insert_stmt, insert_stmt_str, strlen(insert_stmt_str));
-        if(res != 0) {
-            fprintf(stderr, "Could not prepare insert statement: %s\n",
-                    mysql_stmt_error(insert_stmt));
-            exit(-1);
-        }
-
-        // Prepare read statements for each batch factor
-        for(int i = 0; i < (config->batch_factor.max - config->batch_factor.min + 1); i++) {
-            MYSQL_STMT *read_stmt;
-            read_stmt = mysql_stmt_init(&mysql);
-
-            // Set up the string for the current read factor
-            char read_stmt_str[8192];
-            int count = snprintf(read_stmt_str, sizeof(read_stmt_str), "SELECT __value FROM bench WHERE __key=?");
-            for(int j = 1; j < config->batch_factor.min + i; j++) {
-                count += snprintf(read_stmt_str + count, sizeof(read_stmt_str) - count,
-                                  " AND __key=?");
-            }
-
-            // Prepare the actual statement
-            res = mysql_stmt_prepare(read_stmt, read_stmt_str, count);
+        // Use the db we want (it should have been created via shared_init)
+        if(use_db(false)) {
+            // Prepare remove statement
+            remove_stmt = mysql_stmt_init(&mysql);
+            const char remove_stmt_str[] = "DELETE FROM bench WHERE __key=?";
+            int res = mysql_stmt_prepare(remove_stmt, remove_stmt_str, strlen(remove_stmt_str));
             if(res != 0) {
-                fprintf(stderr, "Could not prepare read statement: %s\n",
-                        mysql_stmt_error(read_stmt));
+                fprintf(stderr, "Could not prepare remove statement: %s\n",
+                        mysql_stmt_error(remove_stmt));
                 exit(-1);
             }
-            read_stmts.push_back(read_stmt);
+
+            // Prepare update statement
+            update_stmt = mysql_stmt_init(&mysql);
+            const char update_stmt_str[] = "UPDATE bench SET __value=? WHERE __key=?";
+            res = mysql_stmt_prepare(update_stmt, update_stmt_str, strlen(update_stmt_str));
+            if(res != 0) {
+                fprintf(stderr, "Could not prepare update statement: %s\n",
+                        mysql_stmt_error(update_stmt));
+                exit(-1);
+            }
+
+            // Prepare insert statement
+            insert_stmt = mysql_stmt_init(&mysql);
+            const char insert_stmt_str[] = "INSERT INTO bench VALUES (?, ?)";
+            res = mysql_stmt_prepare(insert_stmt, insert_stmt_str, strlen(insert_stmt_str));
+            if(res != 0) {
+                fprintf(stderr, "Could not prepare insert statement: %s\n",
+                        mysql_stmt_error(insert_stmt));
+                exit(-1);
+            }
+
+            // Prepare read statements for each batch factor
+            for(int i = 0; i < (config->batch_factor.max - config->batch_factor.min + 1); i++) {
+                MYSQL_STMT *read_stmt;
+                read_stmt = mysql_stmt_init(&mysql);
+
+                // Set up the string for the current read factor
+                char read_stmt_str[8192];
+                int count = snprintf(read_stmt_str, sizeof(read_stmt_str), "SELECT __value FROM bench WHERE __key=?");
+                for(int j = 1; j < config->batch_factor.min + i; j++) {
+                    count += snprintf(read_stmt_str + count, sizeof(read_stmt_str) - count,
+                                      " OR __key=?");
+                }
+
+                // Prepare the actual statement
+                res = mysql_stmt_prepare(read_stmt, read_stmt_str, count);
+                if(res != 0) {
+                    fprintf(stderr, "Could not prepare read statement: %s\n",
+                            mysql_stmt_error(read_stmt));
+                    exit(-1);
+                }
+                read_stmts.push_back(read_stmt);
+            }
         }
     }
     
@@ -235,8 +233,6 @@ struct mysql_protocol_t : public protocol_t {
             exit(-1);
         }
 
-        // TODO: buffer everything on the client
-
         // Go through the results so we don't get out of sync errors
         MYSQL_BIND resbind[1];
         char buf[8192];
@@ -253,6 +249,12 @@ struct mysql_protocol_t : public protocol_t {
             exit(-1);
         }
 
+        // Buffer everything on the client so we don't fetch it one at a time
+        if(mysql_stmt_store_result(read_stmt)) {
+            fprintf(stderr, "Could not buffer resultset: %s\n", mysql_stmt_error(read_stmt));
+            exit(-1);
+        }
+        
         while (!mysql_stmt_fetch(read_stmt)) {
             // Ain't nothing to do, we're just fetching for kicks and
             // giggles and avoiding out of sync issues and benchmark
@@ -260,16 +262,25 @@ struct mysql_protocol_t : public protocol_t {
         }
     }
 
+    virtual void shared_init() {
+        create_schema();
+    }
+
 private:
-    void use_db() {
+    bool use_db(bool fail_on_failure) {
         // Use the database
         char buf[2048];
         snprintf(buf, sizeof(buf), "USE %s", _dbname);
         int status = mysql_query(&mysql, buf);
-        if(status != 0) {
+        if(status != 0 && !fail_on_failure) {
+            return false;
+        }
+        if(status != 0 && fail_on_failure) {
             fprintf(stderr, "Could not use the database.\n");
             exit(-1);
+            return false;
         }
+        else return true;
     }
     
     void create_schema() {
@@ -292,11 +303,14 @@ private:
         }
 
         // Use the database
-        use_db();
+        use_db(true);
         
         // Create the table
-        // TODO: use indexing and varcharing properly
-        snprintf(buf, sizeof(buf), "CREATE TABLE bench (__key varchar(200), __value varchar(200))");
+        snprintf(buf, sizeof(buf),
+                 "CREATE TABLE bench (__key varchar(%d), __value varchar(%d)," \
+                 "INDEX __main_index (__key)) " \
+                 "ENGINE=InnoDB",
+                 _config->keys.max, _config->values.max);
         status = mysql_query(&mysql, buf);
         if(status != 0) {
             fprintf(stderr, "Could not create the table.\n");

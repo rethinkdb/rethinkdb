@@ -15,6 +15,8 @@ struct protocol_t {
                         const char *value, size_t value_size) = 0;
 
     virtual void read(payload_t *keys, int count) = 0;
+
+    virtual void shared_init() {}
     
 };
 
