@@ -7,16 +7,7 @@
 
 namespace fsck {
 
-struct device_block {
-    void *buf;
-    device_block() : buf(malloc_aligned(DEVICE_BLOCK_SIZE, DEVICE_BLOCK_SIZE)) { }
-    device_block(direct_file_t *file, off64_t offset) : buf(malloc_aligned(DEVICE_BLOCK_SIZE, DEVICE_BLOCK_SIZE)) {
-        file->read_blocking(offset, DEVICE_BLOCK_SIZE, buf);
-    }
-    ~device_block() { free(buf); }
-};
-
-// Knowledge that we contain for a particular block id.
+// knowledge that we contain for a particular block id.
 struct block_knowledge {
     // The offset found in the LBA.
     flagged_off64_t offset;
@@ -92,6 +83,25 @@ struct knowledge {
 private:
     DISABLE_COPYING(knowledge);
 };
+
+
+struct device_block {
+    void *buf;
+    device_block(direct_file_t *file, off64_t offset) : buf(malloc_aligned(DEVICE_BLOCK_SIZE, DEVICE_BLOCK_SIZE)) {
+        file->read_blocking(offset, DEVICE_BLOCK_SIZE, buf);
+    }
+    ~device_block() { free(buf); }
+};
+
+struct btree_block {
+    void *buf;
+    btree_block(direct_file_t *file, file_knowledge *knog, off64_t offset)
+        : buf(malloc_aligned(knog->static_config.block_size, DEVICE_BLOCK_SIZE)) {
+        file->read_blocking(offset, knog->static_config.block_size, buf);
+    }
+    ~btree_block() { free(buf); }
+};
+
 
 void require_fact(bool fact, const char *test, const char *options, ...) {
     // TODO varargs
@@ -238,8 +248,54 @@ void check_metablock(direct_file_t *file, file_knowledge *knog) {
     knog->metablock_known = true;
 }
 
+// Returns true if the LBA shard was successfully read, false otherwise.
+bool check_lba_shard(direct_file_t *file, file_knowledge *knog, lba_shard_metablock_t *shards, int i) {
+
+    // Read the superblock.
+    int superblock_size = lba_superblock_t::entry_count_to_file_size(shards[i].lba_superblock_entries_count);
+    int superblock_aligned_size = ceil_aligned(superblock_size, DEVICE_BLOCK_SIZE);
+    if (!check_device_block(shards[i].lba_superblock_offset, "lba_superblock_offset")) {
+        return false;
+    }
+    lba_superblock_t *buf = (lba_superblock_t *)malloc_aligned(superblock_aligned_size, DEVICE_BLOCK_SIZE);
+    freer f;
+    f.add(buf);
+    file->read_blocking(shards[i].lba_superblock_offset, superblock_aligned_size, buf);
+
+    if (!check_fact(!memcmp(buf, lba_super_magic, LBA_SUPER_MAGIC_SIZE), "lba superblock magic")) {
+        return false;
+    }
+
+
+
+}
+
+// Returns true if the LBA was successfully read, false otherwise.
+bool check_real_lba(direct_file_t *file, file_knowledge *knog) {
+    assert(knog->metablock_known);
+    /* Read the LBA shards
+       - MAGIC
+       - CHECK that 0 <= block_ids <= MAX_BLOCK_ID.
+       - CHECK that each off64_t is in a real extent.
+       - CHECK that each block id is in the proper shard.
+       - LEARN offsets for each block id.
+    */
+    lba_shard_metablock_t *shards = &knog->metablock.lba_index_part.shards;
+
+    for (int i = 0; i < LBA_SHARD_FACTOR; ++i) {
+        if (!check_lba_shard(file, knog, shards, i)) {
+            return false;
+        }
+    }
+    return true;
+}
+
 void check_lba(direct_file_t *file, file_knowledge *knog) {
-    // TODO    
+    assert(knog->metablock_known);
+
+    if (!check_real_lba(file, knog)) {
+        unrecoverable_fact(false, "Could not read LBA.");
+    }
 }
 
 void check_config_block(direct_file_t *file, file_knowledge *knog) {

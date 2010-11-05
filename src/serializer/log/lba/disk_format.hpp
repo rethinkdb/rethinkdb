@@ -114,6 +114,7 @@ struct lba_extent_t {
     // Header needs to be padded to a multiple of sizeof(lba_entry_t)
     struct header_t {
         char magic[LBA_MAGIC_SIZE];
+        // TODO fix the math on this padding.
         char padding[sizeof(lba_entry_t) - sizeof(magic) % sizeof(lba_entry_t)];
     } header;
     lba_entry_t entries[0];
@@ -132,6 +133,7 @@ static const char lba_super_magic[LBA_SUPER_MAGIC_SIZE] = {'l', 'b', 'a', 's', '
 struct lba_superblock_t {
     // Header needs to be padded to a multiple of sizeof(lba_superblock_entry_t)
     char magic[LBA_SUPER_MAGIC_SIZE];
+    // TODO fix the math on this padding.
     char padding[sizeof(lba_superblock_entry_t) - sizeof(magic) % sizeof(lba_superblock_entry_t)];
 
     /* The superblock contains references to all the extents
