@@ -161,6 +161,7 @@ int main(int argc, char **argv) {
         thread_pool_t *pool;
         void on_cpu_switch() {
             dumpfile(*config);
+            pool->shutdown();
         }
     } starter;
 
