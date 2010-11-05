@@ -31,16 +31,16 @@ function delete_database_files() { # They are large and useless.
 duration=10000000
 
 #Core scalability
-#./dbench -d "$BENCH_DIR/bench_output/c1"  -H 10.0.0.2 {server}rethinkdb:'-c 1  -s 128' {client}stressfree[dr-doom:/home/teapot/stress]:'-c 512 -d 100000000'            iostat:1 vmstat:1 rdbstat:1
-#delete_database_files
+./dbench -d "$BENCH_DIR/bench_output/c1"  -H 10.0.0.2 {server}rethinkdb:'-c 1  -s 128' {client}stressfree[dr-doom:/home/teapot/stress]:'-c 512 -d 100000000'            iostat:1 vmstat:1 rdbstat:1
+delete_database_files
 #./dbench -d "$BENCH_DIR/bench_output/c2"  -H 10.0.0.2 {server}rethinkdb:'-c 2  -s 128' {client}stressfree[dr-doom:/home/teapot/stress]:'-c 512 -d 100000000'            iostat:1 vmstat:1 rdbstat:1
 #delete_database_files
 #./dbench -d "$BENCH_DIR/bench_output/c4"  -H 10.0.0.2 {server}rethinkdb:'-c 4  -s 128' {client}stressfree[dr-doom:/home/teapot/stress]:'-c 512 -d 100000000'            iostat:1 vmstat:1 rdbstat:1
 #delete_database_files
 #./dbench -d "$BENCH_DIR/bench_output/c8"  -H 10.0.0.2 {server}rethinkdb:'-c 8  -s 128' {client}stressfree[dr-doom:/home/teapot/stress]:'-c 512 -d 100000000'            iostat:1 vmstat:1 rdbstat:1
 #delete_database_files
-#./dbench -d "$BENCH_DIR/bench_output/c16" -H 10.0.0.2 {server}rethinkdb:'-c 16 -s 128' {client}stressfree[dr-doom:/home/teapot/stress]:'-c 512 -d 100000000'            iostat:1 vmstat:1 rdbstat:1
-#delete_database_files
+./dbench -d "$BENCH_DIR/bench_output/c16" -H 10.0.0.2 {server}rethinkdb:'-c 16 -s 128' {client}stressfree[dr-doom:/home/teapot/stress]:'-c 512 -d 100000000'            iostat:1 vmstat:1 rdbstat:1
+delete_database_files
 #./dbench -d "$BENCH_DIR/bench_output/c32" -H 10.0.0.2 {server}rethinkdb:'-c 32 -s 128' {client}stressfree[dr-doom:/home/teapot/stress]:'-c 512 -d 100000000'            iostat:1 vmstat:1 rdbstat:1
 #delete_database_files
 
@@ -59,14 +59,15 @@ duration=10000000
 #delete_database_files
 
 #Multiple drives
-../../build/release/rethinkdb --create -f /dev/sdb
-./dbench -d "$BENCH_DIR/bench_output/c16" -H 10.0.0.2 {server}rethinkdb:'-c 16 -s 128 -m 512 -f /dev/sdb' {client}stressfree[dr-doom:/home/teapot/stress]:'-c 512 -d 600s'            iostat:1 vmstat:1 rdbstat:1
-../../build/release/rethinkdb --create -f /dev/sdb -f /dev/sdc
-./dbench -d "$BENCH_DIR/bench_output/c16" -H 10.0.0.2 {server}rethinkdb:'-c 16 -s 128 -m 512 -f /dev/sdb -f /dev/sdc' {client}stressfree[dr-doom:/home/teapot/stress]:'-c 512 -d 600s'            iostat:1 vmstat:1 rdbstat:1
-../../build/release/rethinkdb --create -f /dev/sdb -f /dev/sdc -f /dev/sdd
-./dbench -d "$BENCH_DIR/bench_output/c16" -H 10.0.0.2 {server}rethinkdb:'-c 16 -s 128 -m 512 -f /dev/sdb -f /dev/sdc -f /dev/sdd' {client}stressfree[dr-doom:/home/teapot/stress]:'-c 512 -d 600s'            iostat:1 vmstat:1 rdbstat:1
-../../build/release/rethinkdb --create -f /dev/sdb -f /dev/sdc -f /dev/sdd -f /dev/sde
-./dbench -d "$BENCH_DIR/bench_output/c16" -H 10.0.0.2 {server}rethinkdb:'-c 16 -s 128 -m 512 -f /dev/sdb -f /dev/sdc -f /dev/sdd -f /dev/sde' {client}stressfree[dr-doom:/home/teapot/stress]:'-c 512 -d 600s'            iostat:1 vmstat:1 rdbstat:1
+# XXX: When do we specify the number of slices, etc.?
+#../../build/release/rethinkdb --create -f /dev/sdb
+#./dbench -d "$BENCH_DIR/bench_output/c16-1d" -H 10.0.0.2 {server}rethinkdb:'-c 16 -s 128 -m 512 -f /dev/sdb' {client}stressfree[dr-doom:/home/teapot/stress]:'-c 512 -d 600s'            iostat:1 vmstat:1 rdbstat:1
+#../../build/release/rethinkdb --create -f /dev/sdb -f /dev/sdc
+#./dbench -d "$BENCH_DIR/bench_output/c16-2d" -H 10.0.0.2 {server}rethinkdb:'-c 16 -s 128 -m 512 -f /dev/sdb -f /dev/sdc' {client}stressfree[dr-doom:/home/teapot/stress]:'-c 512 -d 600s'            iostat:1 vmstat:1 rdbstat:1
+#../../build/release/rethinkdb --create -f /dev/sdb -f /dev/sdc -f /dev/sdd
+#./dbench -d "$BENCH_DIR/bench_output/c16-3d" -H 10.0.0.2 {server}rethinkdb:'-c 16 -s 128 -m 512 -f /dev/sdb -f /dev/sdc -f /dev/sdd' {client}stressfree[dr-doom:/home/teapot/stress]:'-c 512 -d 600s'            iostat:1 vmstat:1 rdbstat:1
+#../../build/release/rethinkdb --create -f /dev/sdb -f /dev/sdc -f /dev/sdd -f /dev/sde
+#./dbench -d "$BENCH_DIR/bench_output/c16-4d" -H 10.0.0.2 {server}rethinkdb:'-c 16 -s 128 -m 512 -f /dev/sdb -f /dev/sdc -f /dev/sdd -f /dev/sde' {client}stressfree[dr-doom:/home/teapot/stress]:'-c 512 -d 600s'            iostat:1 vmstat:1 rdbstat:1
 
 #OProfile
 #./dbench -d  "$BENCH_DIR/prof_output"     -H 10.0.0.2 {server}rethinkdb:'-c 12 -s 128' {client}stressfree[dr-doom:/home/teapot/stress]:'-c 512 -d 10000000'             iostat:1 vmstat:1 rdbstat:1 oprofile
