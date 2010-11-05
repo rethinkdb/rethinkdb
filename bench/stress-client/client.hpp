@@ -176,10 +176,12 @@ void* run_client(void* data) {
     vector<payload_t> op_keys;
 
     // Perform the ops
-    ticks_t last_time = get_ticks(), last_qps_time = last_time, now_time;
+    ticks_t last_time = get_ticks(), start_time = last_time, last_qps_time = last_time, now_time;
     int qps = 0, tick = 0;
     int total_queries = 0;
-    while(total_queries < config->duration / config->clients) {
+    int total_inserts = 0;
+    bool keep_running = true;
+    while(keep_running) {
         // Generate the command
         load_t::load_op_t cmd = config->load.toss((config->batch_factor.min + config->batch_factor.max) / 2.0f);
 
@@ -229,6 +231,7 @@ void* run_client(void* data) {
             keys.push_back(key);
             qps++;
             total_queries++;
+            total_inserts++;
             break;
             
         case load_t::read_op:
@@ -266,6 +269,22 @@ void* run_client(void* data) {
             last_qps_time = now_time;
             qps = 0;
             tick++;
+        }
+
+        // See if we should keep running
+        switch(config->duration.units) {
+        case duration_t::queries_t:
+            keep_running = total_queries < config->duration.duration / config->clients;
+            break;
+        case duration_t::seconds_t:
+            keep_running = ticks_to_secs(now_time - start_time) < config->duration.duration;
+            break;
+        case duration_t::inserts_t:
+            keep_running = total_inserts < config->duration.duration / config->clients;
+            break;
+        default:
+            fprintf(stderr, "Unknown duration unit\n");
+            exit(-1);
         }
     }
 

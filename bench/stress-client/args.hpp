@@ -39,8 +39,9 @@ void usage(const char *name) {
     printf("\t-v, --values\n\t\tValue distribution in DISTR format (see below). Defaults to [");
     _d.values.print();
     printf("].\n");
-    printf("\t-d, --duration\n\t\tDuration of the run specified in number of operations.\n" \
-           "\t\tDefaults to [%ld].\n", _d.duration);
+    printf("\t-d, --duration\n\t\tDuration of the run. Defaults to [");
+    _d.duration.print();
+    printf("].\n");
     printf("\t-b, --batch-factor\n\t\tA range in DISTR format for average number of reads\n" \
            "\t\tto perform in one shot. Defaults to [");
     _d.batch_factor.print();
@@ -54,7 +55,9 @@ void usage(const char *name) {
     printf("\t\tDISTR format describes a range and can be specified in as MIN-MAX.\n\n");
     printf("\t\tPossible protocols are libmemcached, sockmemcached, and mysql.\n");
     printf("\t\tFor mysql protocol the host argument should be in the following\n" \
-           "\t\tformat: username/password@host:database.\n");
+           "\t\tformat: username/password@host:database.\n\n");
+    printf("\t\tDuration can be specified as a number of queries (e.g. 5000 or 5000q),\n" \
+           "\t\ta number of rows inserted (e.g. 5000i), or a number of seconds (e.g. 5000s).\n");
     
     exit(-1);
 }
@@ -127,7 +130,7 @@ void parse(config_t *config, int argc, char *argv[]) {
             config->values.parse(optarg);
             break;
         case 'd':
-            config->duration = atol(optarg);
+            config->duration.parse(optarg);
             break;
         case 'b':
             config->batch_factor.parse(optarg);
