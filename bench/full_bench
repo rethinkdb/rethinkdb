@@ -56,13 +56,13 @@ duration=10000000
 #delete_database_files
 
 #Multiple drives
-./dbench -d "$BENCH_DIR/bench_output/c16" -H 10.0.0.2 {server}rethinkdb:'--create -c 16 -s 128 -m 512 -f /dev/sdb' {client}stressfree[dr-doom:/home/teapot/stress]:'-c 512 -d 100000000'            iostat:1 vmstat:1 rdbstat:1
+./dbench -d "$BENCH_DIR/bench_output/c16" -H 10.0.0.2 {server}rethinkdb:'--create -c 16 -s 128 -m 512 -f /dev/sdb' {client}stressfree[dr-doom:/home/teapot/stress]:'-c 512 -d 600s'            iostat:1 vmstat:1 rdbstat:1
 delete_database_files
-./dbench -d "$BENCH_DIR/bench_output/c16" -H 10.0.0.2 {server}rethinkdb:'--create -c 16 -s 128 -m 512 -f /dev/sdb -f /dev/sdc' {client}stressfree[dr-doom:/home/teapot/stress]:'-c 512 -d 100000000'            iostat:1 vmstat:1 rdbstat:1
+./dbench -d "$BENCH_DIR/bench_output/c16" -H 10.0.0.2 {server}rethinkdb:'--create -c 16 -s 128 -m 512 -f /dev/sdb -f /dev/sdc' {client}stressfree[dr-doom:/home/teapot/stress]:'-c 512 -d 600s'            iostat:1 vmstat:1 rdbstat:1
 delete_database_files
-./dbench -d "$BENCH_DIR/bench_output/c16" -H 10.0.0.2 {server}rethinkdb:'--create -c 16 -s 128 -m 512 -f /dev/sdb -f /dev/sdc -f /dev/sdd' {client}stressfree[dr-doom:/home/teapot/stress]:'-c 512 -d 100000000'            iostat:1 vmstat:1 rdbstat:1
+./dbench -d "$BENCH_DIR/bench_output/c16" -H 10.0.0.2 {server}rethinkdb:'--create -c 16 -s 128 -m 512 -f /dev/sdb -f /dev/sdc -f /dev/sdd' {client}stressfree[dr-doom:/home/teapot/stress]:'-c 512 -d 600s'            iostat:1 vmstat:1 rdbstat:1
 delete_database_files
-./dbench -d "$BENCH_DIR/bench_output/c16" -H 10.0.0.2 {server}rethinkdb:'--create -c 16 -s 128 -m 512 -f /dev/sdb -f /dev/sdc -f /dev/sdd -f /dev/sde' {client}stressfree[dr-doom:/home/teapot/stress]:'-c 512 -d 100000000'            iostat:1 vmstat:1 rdbstat:1
+./dbench -d "$BENCH_DIR/bench_output/c16" -H 10.0.0.2 {server}rethinkdb:'--create -c 16 -s 128 -m 512 -f /dev/sdb -f /dev/sdc -f /dev/sdd -f /dev/sde' {client}stressfree[dr-doom:/home/teapot/stress]:'-c 512 -d 600s'            iostat:1 vmstat:1 rdbstat:1
 delete_database_files
 
 #OProfile
