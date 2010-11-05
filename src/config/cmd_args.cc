@@ -74,6 +74,7 @@ void init_config(cmd_config_t *config) {
     config->store_dynamic_config.cache.flush_threshold_percent = DEFAULT_FLUSH_THRESHOLD_PERCENT;
     
     config->create_store = false;
+    config->shutdown_after_creation = false;
     
     config->store_static_config.serializer.extent_size = DEFAULT_EXTENT_SIZE;
     config->store_static_config.serializer.block_size = DEFAULT_BTREE_BLOCK_SIZE;
@@ -227,6 +228,7 @@ void parse_cmd_args(int argc, char *argv[], cmd_config_t *config)
             break;
         case create_database:
             config->create_store = true;
+            config->shutdown_after_creation = true;
             break;
         case 'h':
             usage(argv[0]);
@@ -256,6 +258,7 @@ void parse_cmd_args(int argc, char *argv[], cmd_config_t *config)
         } else if (res == -1 && errno == ENOENT) {
             /* Create a new database */
             config->create_store = true;
+            config->shutdown_after_creation = false;
         } else {
             fail("Could not access() path \"%s\": %s", DEFAULT_DB_FILE_NAME, strerror(errno));
         }

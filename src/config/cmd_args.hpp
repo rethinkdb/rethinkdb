@@ -97,7 +97,7 @@ struct cmd_config_t {
     int n_files;
     const char *files[MAX_SERIALIZERS];
     btree_key_value_store_dynamic_config_t store_dynamic_config;
-    bool create_store;
+    bool create_store, shutdown_after_creation;
     btree_key_value_store_static_config_t store_static_config;
 
     bool verbose;

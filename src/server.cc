@@ -28,15 +28,10 @@ void server_t::do_start_store() {
     
     bool done;
     if (cmd_config->create_store) {
-        // TODO: when we pass --create, we shouldn't start the server
-        // - we should just create the files and quit. We should also
-        // figure out when we want to use our log system, stderr,
-        // stdout, and stdlog, and put messages there accordingly.
-        
         logINF("Creating new database...\n");
-        
         done = store->start_new(this, &cmd_config->store_static_config);
     } else {
+        logINF("Loading existing database...\n");
         done = store->start_existing(this);
     }
     if (done) on_store_ready();
@@ -45,7 +40,13 @@ void server_t::do_start_store() {
 void server_t::on_store_ready() {
 
     assert_cpu();
-    do_start_conn_acceptor();
+    
+    if (cmd_config->shutdown_after_creation) {
+        logINF("Done creating database.\n");
+        do_shutdown_store();
+    } else {
+        do_start_conn_acceptor();
+    }
 }
 
 void server_t::do_start_conn_acceptor() {
@@ -82,13 +83,13 @@ void server_t::shutdown() {
 
 void server_t::do_shutdown() {
     
+    logINF("Shutting down...\n");
+    
     assert_cpu();
-    logINF("Shutting down.\n");
     do_shutdown_conn_acceptor();
 }
 
 void server_t::do_shutdown_conn_acceptor() {
-    logINF("Shutting down connections...\n");
     if (conn_acceptor.shutdown(this)) on_conn_acceptor_shutdown();
 }
 
@@ -98,7 +99,6 @@ void server_t::on_conn_acceptor_shutdown() {
 }
 
 void server_t::do_shutdown_store() {
-    logINF("Shutting down database...\n");
     if (store->shutdown(this)) on_store_shutdown();
 }
 
