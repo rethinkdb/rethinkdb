@@ -64,6 +64,9 @@ struct mysql_protocol_t : public protocol_t {
             exit(-1);
         }
 
+        // Make sure autocommit is on
+        mysql_autocommit(&mysql, 1);
+
         // Use the db we want (it should have been created via shared_init)
         if(use_db(false)) {
             // Prepare remove statement

@@ -174,6 +174,11 @@ void* run_client(void* data) {
     // Store the keys so we can run updates and deletes.
     vector<payload_t> keys;
     vector<payload_t> op_keys;
+    if(config->duration.units == duration_t::inserts_t) {
+        keys.reserve(config->duration.duration / config->clients);  // resize the vector right away
+        
+        // TODO: attempt to do this for queries and seconds
+    }
 
     // Perform the ops
     ticks_t last_time = get_ticks(), start_time = last_time, last_qps_time = last_time, now_time;
