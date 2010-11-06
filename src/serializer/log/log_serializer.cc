@@ -51,6 +51,8 @@ struct ls_start_new_fsm_t :
     
     bool run(log_serializer_t::static_config_t *config, log_serializer_t::ready_callback_t *ready_cb) {
         
+        /* TODO: Check if there was already a database there and warn if so. */
+        
         assert(ser->state == log_serializer_t::state_unstarted);
         ser->state = log_serializer_t::state_starting_up;
         ser->static_config = *config;
