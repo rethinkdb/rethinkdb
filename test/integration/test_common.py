@@ -147,7 +147,44 @@ class Server(object):
         self.opts = opts
         self.base_name = name
         self.extra_flags = extra_flags
-        self.use_existing = use_existing
+        
+        if self.opts["database"] == "rethinkdb":
+            
+            self.executable_path = get_executable_path(self.opts, "rethinkdb")
+            
+            db_data_dir = os.path.join(test_dir, "db_data")
+            if not os.path.isdir(db_data_dir): os.mkdir(db_data_dir)
+            self.db_data_path = os.path.join(db_data_dir, "data_file")
+            
+            if not use_existing:
+                
+                # Create data file
+                
+                command_line = [self.executable_path,
+                    "--create",
+                    "-c", str(self.opts["cores"]),
+                    "-s", str(self.opts["slices"]),
+                    "-f", self.db_data_path
+                    ] + self.extra_flags
+                
+                if self.opts["valgrind"]:
+                    cmd_line = ["valgrind"]
+                    if self.opts["interactive"]:
+                        cmd_line += ["--db-attach=yes"]
+                    cmd_line += \
+                        ["--leak-check=full",
+                         "--error-exitcode=%d" % self.valgrind_error_code]
+                    command_line = cmd_line + command_line
+                
+                output_path = os.path.join(test_dir, "creator_output.txt")
+                creator_output = file(output_path, "w") 
+                
+                creator_server = subprocess.Popen(command_line,
+                    stdout = creator_output, stderr = subprocess.STDOUT);
+                
+                dead = wait_with_timeout(creator_server, 5) is not None
+                if not dead:
+                    raise ValueError("Server took longer than 5 seconds to create database.")
         
         self.times_started = 0
     
@@ -168,22 +205,11 @@ class Server(object):
         if self.opts["database"] == "rethinkdb":
             
             # Make a directory to hold server data files
-            db_data_dir = os.path.join(test_dir, "db_data")
-            if not os.path.isdir(db_data_dir): os.mkdir(db_data_dir)
-
-            executable_path = get_executable_path(self.opts, "rethinkdb")
-            
-            command_line = [executable_path,
+            command_line = [self.executable_path,
                 "-p", str(server_port),
                 "-c", str(self.opts["cores"]),
-                "-s", str(self.opts["slices"]),
+                "-f", self.db_data_path
                 ] + self.extra_flags
-            
-            if not self.use_existing:
-                command_line.extend(["--create", "-f", os.path.join(db_data_dir, "data_file")])
-                self.use_existing = True
-            else:
-                command_line.extend(["-f", os.path.join(db_data_dir, "data_file")])
         
         elif self.opts["database"] == "memcached":
             
