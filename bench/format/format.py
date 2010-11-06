@@ -155,14 +155,14 @@ class dbench():
             core_runs_names=['c1','c2', 'c4', 'c8', 'c16', 'c32']
             core_runs = {}
             for name in core_runs_names:
-                core_runs[name]  = self.bench_stats.bench_runs[name].select('qps').remap('qps', core_run[0] + 'qps')
+                core_runs[name]  = reduce(lambda x,y: x+y, self.bench_stats.bench_runs[name]).select('qps').remap('qps', name + 'qps')
 
-            means = reduce(lambda x,y: x[1] + y[1], core_runs.iteritems()).derive('qps', map(lambda x : x + 'qps', core_runs_names), means)
+            core_means = reduce(lambda x,y: x + y, map(lambda x: x[1], core_runs.iteritems())).derive('qps', map(lambda x : x + 'qps', core_runs_names), means)
 
 #do some plotting
             print >>res, '<p id="#server_meta" style="font-size:large">', 'Core scalability', '</p>'
-            means.plot(os.path.join(self.out_dir, self.dir_str, 'core_scalability' + run_name))
-            print >>res, image(os.path.join(self.hostname, self.prof_dir, self.dir_str, 'core_scalability' + run_name + '.png'))
+            core_means.select('qps').plot(os.path.join(self.out_dir, self.dir_str, 'core_scalability'))
+            print >>res, image(os.path.join(self.hostname, self.prof_dir, self.dir_str, 'core_scalability' + '.png'))
             
         except KeyError:
             print 'Not enough core runs to report data, that or a fuck up. Let\'s face it if we were betting men, we\'d bet on it being a fuck up' 
