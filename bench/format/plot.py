@@ -228,6 +228,7 @@ def means(serieses):
     res = []
     for series in serieses:
         res.append(stats.mean(map(lambda x: x, series)))
+    return res
 
 class IOStat(TimeSeriesCollection):
     file_hdr_line   = line("Linux.*", [])
