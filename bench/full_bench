@@ -77,3 +77,7 @@ cd ../format
 
 # Generate statistics and email.
 ./report.py "$BENCH_DIR" "$email" > "$BENCH_DIR/report.log" 2>&1
+
+# Generate "latest" symlink
+rm -f latest
+ln -s $BENCH_DIR latest
