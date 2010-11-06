@@ -140,7 +140,7 @@ struct mysql_protocol_t : public protocol_t {
         // Execute the statement
         res = mysql_stmt_execute(remove_stmt);
         if(res != 0) {
-            fprintf(stderr, "Could not execute remove statement\n");
+            fprintf(stderr, "Could not execute remove statement: %s\n", mysql_stmt_error(remove_stmt));
             exit(-1);
         }
     }
