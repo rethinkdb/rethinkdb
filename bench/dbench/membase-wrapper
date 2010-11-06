@@ -39,7 +39,8 @@ while true; do
     sleep 0.1
 done
 
-# Configure server
+# Configure server.
+# XXX: The server may need to be restarted after configuration.
 curl -s "$URI_BASE"/nodes/self/controller/settings -d "path=$DATA_DIR"                                           > /dev/null
 curl -s "$URI_BASE"/pools/default                  -d "memoryQuota=$RAM_QUOTA"                                   > /dev/null
 curl -s "$URI_BASE"/controller/setupDefaultBucket  -d "bucketType=membase&ramQuotaMB=$RAM_QUOTA&replicaNumber=1" > /dev/null

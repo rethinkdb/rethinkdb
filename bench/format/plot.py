@@ -204,6 +204,7 @@ def multi_plot(timeseries, out_fname):
     ax.set_zlim3d(0, max(map(lambda x: max(x), timeseries)))
     plt.savefig(out_fname, dpi=300)
 
+#A few useful derivation functions
 #take discret derivative of a series (shortens series by 1)
 def differentiate(series):
 #series will be a tuple
@@ -221,6 +222,12 @@ def difference(serieses):
         res.append(x - y)
 
     return res
+
+#report the means of a list of runs
+def means(serieses):
+    res = []
+    for series in serieses:
+        res.append(stats.mean(map(lambda x: x, series)))
 
 class IOStat(TimeSeriesCollection):
     file_hdr_line   = line("Linux.*", [])
