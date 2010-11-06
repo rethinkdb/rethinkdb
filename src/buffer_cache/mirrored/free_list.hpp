@@ -4,15 +4,17 @@
 #include "serializer/serializer.hpp"
 #include "buffer_cache/types.hpp"
 #include "containers/segmented_vector.hpp"
+#include "utils.hpp"
 
 /* TODO combine array_free_list_t with array_map_t because they happen to conveniently
 never overlap */
 
-template<class mc_config_t>
-class array_free_list_t {
+class array_free_list_t :
+    public home_cpu_mixin_t
+{
     
 public:
-    array_free_list_t(mc_cache_t<mc_config_t> *);
+    array_free_list_t(serializer_t *);
     
     struct ready_callback_t {
         virtual void on_free_list_ready() = 0;
@@ -33,11 +35,9 @@ private:
     bool do_make_list();   // Called on serializer CPU
     bool have_made_list();   // Called on cache CPU
     
-    mc_cache_t<mc_config_t> *cache;
+    serializer_t *serializer;
     segmented_vector_t<block_id_t, MAX_BLOCK_ID> free_list;
     block_id_t first_block;
 };
-
-#include "free_list.tcc"
 
 #endif /* __BUFFER_CACHE_MIRRORED_FREE_LIST_HPP__ */

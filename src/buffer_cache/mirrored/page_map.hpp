@@ -3,25 +3,19 @@
 #define __BUFFER_CACHE_PAGE_MAP_ARRAY_HPP__
 
 #include "containers/two_level_array.hpp"
+#include "config/args.hpp"
+#include "buffer_cache/types.hpp"
 
-template<class mc_config_t>
+struct mc_buf_t;
+
 struct array_map_t {
     
-    typedef mc_buf_t<mc_config_t> buf_t;
+    typedef mc_buf_t buf_t;
     
 public:
     struct local_buf_t {
-    
-        explicit local_buf_t(buf_t *gbuf) : gbuf(gbuf) {
-            assert(!gbuf->cache->page_map.array.get(gbuf->get_block_id()));
-            gbuf->cache->page_map.array.set(gbuf->get_block_id(), gbuf);
-        }
-        
-        ~local_buf_t() {
-            assert(gbuf->cache->page_map.array.get(gbuf->get_block_id()));
-            gbuf->cache->page_map.array.set(gbuf->get_block_id(), NULL);
-        }
-        
+        explicit local_buf_t(buf_t *gbuf);
+        ~local_buf_t();
     private:
         buf_t *gbuf;
     };

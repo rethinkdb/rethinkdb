@@ -15,11 +15,12 @@
  * on that slice.
  */
 
-template<class mc_config_t>
+struct mc_buf_t;
+
 struct rwi_conc_t {
     
-    typedef mc_buf_t<mc_config_t> buf_t;
-    typedef mc_block_available_callback_t<mc_config_t> block_available_callback_t;
+    typedef mc_buf_t buf_t;
+    typedef mc_block_available_callback_t block_available_callback_t;
     
     struct local_buf_t : public lock_available_callback_t {
     
