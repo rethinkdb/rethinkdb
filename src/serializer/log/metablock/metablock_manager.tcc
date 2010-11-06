@@ -52,14 +52,6 @@ metablock_manager_t<metablock_t>::metablock_manager_t(extent_manager_t *em)
     mb_buffer = (crc_metablock_t *)malloc_aligned(DEVICE_BLOCK_SIZE, DEVICE_BLOCK_SIZE);
     startup_values.mb_buffer_last = (crc_metablock_t *)malloc_aligned(DEVICE_BLOCK_SIZE, DEVICE_BLOCK_SIZE);
     assert(mb_buffer);
-#ifdef VALGRIND
-    memset(mb_buffer, 0xBD, DEVICE_BLOCK_SIZE);        // Happify Valgrind
-    memset(startup_values.mb_buffer_last, 0xBD, DEVICE_BLOCK_SIZE);   // Happify Valgrind
-#endif
-    memcpy(mb_buffer->magic_marker, MB_MARKER_MAGIC, sizeof(MB_MARKER_MAGIC));
-    memcpy(mb_buffer->crc_marker, MB_MARKER_CRC, sizeof(MB_MARKER_CRC));
-    memcpy(mb_buffer->version_marker, MB_MARKER_VERSION, sizeof(MB_MARKER_VERSION));
-    mb_buffer->set_crc();
     mb_buffer_in_use = false;
     
     /* Build the list of metablock locations in the file */
@@ -102,7 +94,16 @@ void metablock_manager_t<metablock_t>::start_new(direct_file_t *file) {
     dbfile = file;
     assert(dbfile != NULL);
     
-    mb_buffer->version = MB_START_VERSION;
+    dbfile->set_size_at_least(metablock_offsets[metablock_offsets.size() - 1] + DEVICE_BLOCK_SIZE);
+    
+    /* Wipe the metablock slots so we don't mistake something left by a previous database as a
+    valid metablock. */
+    bzero(mb_buffer, DEVICE_BLOCK_SIZE);
+    for (unsigned i = 0; i < metablock_offsets.size(); i++) {
+        dbfile->write_blocking(metablock_offsets[i], DEVICE_BLOCK_SIZE, mb_buffer);
+    }
+    
+    next_version_number = MB_START_VERSION;
     
     state = state_ready;
 }
@@ -144,8 +145,12 @@ bool metablock_manager_t<metablock_t>::write_metablock(metablock_t *mb, metabloc
         outstanding_writes.push_back(metablock_write_req_t(mb, cb));
     } else {
         assert(!mb_buffer_in_use);
+        
         mb_buffer->metablock = *mb;
-        mb_buffer->version++;
+        memcpy(mb_buffer->magic_marker, MB_MARKER_MAGIC, sizeof(MB_MARKER_MAGIC));
+        memcpy(mb_buffer->crc_marker, MB_MARKER_CRC, sizeof(MB_MARKER_CRC));
+        memcpy(mb_buffer->version_marker, MB_MARKER_VERSION, sizeof(MB_MARKER_VERSION));
+        mb_buffer->version = next_version_number++;
 
         mb_buffer->set_crc();
         assert(mb_buffer->check_crc());
@@ -210,8 +215,7 @@ void metablock_manager_t<metablock_t>::on_io_complete(event_t *e) {
                 
                 /* no metablock found anywhere -- the DB is toast */
                 
-                // Start versions from 0, not from whatever garbage was in the last thing we read
-                mb_buffer->version = MB_START_VERSION;
+                next_version_number = MB_START_VERSION;
                 *mb_found = false;
                 
                 /* The log serializer will catastrophically fail when it sees that mb_found is
@@ -224,6 +228,7 @@ void metablock_manager_t<metablock_t>::on_io_complete(event_t *e) {
                 swap_buffers();
 
                 /* set everything up */
+                next_version_number = startup_values.version + 1;
                 startup_values.version = MB_BAD_VERSION; /* version is now useless */
                 head.pop();
                 *mb_found = true;
