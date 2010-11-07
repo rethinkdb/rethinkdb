@@ -4,6 +4,10 @@ BENCH_DIR="$HOME/bench/$(date +%Y-%m-%d-%H:%M)"
 
 mkdir -p "$BENCH_DIR"
 
+# Generate "latest" symlink
+rm -f $HOME/bench/latest
+ln -s $BENCH_DIR $HOME/bench/latest
+
 exec > "$BENCH_DIR/full_bench.log" 2>&1
 
 
@@ -74,7 +78,8 @@ delete_database_files
 #delete_database_files
 
 # test COW in the buffer cache
-./dbench -d "$BENCH_DIR/bench_output/canonical" -H 10.0.0.2 {server}rethinkdb:'-c 12 -s 128 -m 4096 --active-data-extents 1' {client}stressfree[dr-doom:/home/teapot/stress]:'-c 512 -d 600s'            iostat:1 vmstat:1 rdbstat:1
+delete_database_files
+./dbench -d "$BENCH_DIR/bench_output/canonical" -H 10.0.0.2 {server}rethinkdb:'-c 12 -m 4096 --active-data-extents 1' {client}stressfree[dr-doom:/home/teapot/stress]:'-c 512 -d 60s'            iostat:1 vmstat:1 rdbstat:1
 delete_database_files
 
 
@@ -83,6 +88,3 @@ cd ../format
 # Generate statistics and email.
 ./report.py "$BENCH_DIR" "$email" > "$BENCH_DIR/report.log" 2>&1
 
-# Generate "latest" symlink
-rm -f latest
-ln -s $BENCH_DIR latest
