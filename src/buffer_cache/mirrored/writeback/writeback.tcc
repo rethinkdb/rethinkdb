@@ -263,7 +263,11 @@ void writeback_tmpl_t<mc_config_t>::buf_was_written(buf_t *buf) {
     
     cache->assert_cpu();
     assert(buf);
-    buf->writeback_buf.dirty = false;
+    if(buf->data == buf->cow_data) {
+        // We can only mark the buf as no longer dirty if it hasn't
+        // changed while we were flushing it.
+        buf->writeback_buf.dirty = false;
+    }
     pm_n_blocks_dirty--;
     buf->release_cow();
 }
