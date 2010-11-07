@@ -4,6 +4,7 @@
 
 #include <stdlib.h>
 #include <mysql/mysql.h>
+#include <mysql/mysqld_error.h>
 #include <vector>
 #include "protocol.hpp"
 
@@ -205,11 +206,11 @@ struct mysql_protocol_t : public protocol_t {
         // Execute the statement
         res = mysql_stmt_execute(insert_stmt);
         if(res != 0) {
-            fprintf(stderr, "Could not execute insert statement: %s\n", mysql_stmt_error(insert_stmt));
-            exit(-1);
+            if(mysql_stmt_errno(insert_stmt) != ER_DUP_ENTRY) {
+                fprintf(stderr, "Could not execute insert statement: %s\n", mysql_stmt_error(insert_stmt));
+                exit(-1);
+            }
         }
-
-        
     }
     
     virtual void read(payload_t *keys, int count) {
