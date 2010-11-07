@@ -127,6 +127,7 @@ class dbench():
 
         flot_data = 'data'
 
+        # Report stats for each run
         for run_name in self.bench_stats.bench_runs.keys():
             run = self.bench_stats.bench_runs[run_name]
             server_meta = self.bench_stats.server_meta[run_name]
@@ -151,7 +152,6 @@ class dbench():
             other_data = rdb_data.copy().derive('Bad Guy', ['rethinkdb'], halve).drop('rethinkdb')
 
             # Plot the qps data
-#data.select('qps').plot(os.path.join(self.out_dir, self.dir_str, 'qps' + run_name))
             (rdb_data + other_data).plot(os.path.join(self.out_dir, self.dir_str, 'qps' + run_name))
 
             # Add the qps plot image and metadata
@@ -194,7 +194,6 @@ class dbench():
             
             # Plot the latency histogram
             (rdb_data + other_data).histogram(os.path.join(self.out_dir, self.dir_str, 'latency' + run_name))
-#rdb_data.histogram(os.path.join(self.out_dir, self.dir_str, 'latency' + run_name))
 
             # Add the latency histogram image and metadata
             print >>res, '<td><h3 style="text-align: center">Latency in microseconds</h3>'
@@ -237,6 +236,24 @@ class dbench():
 #            print >>res, '</table>'
 
             print >>res, '</div>'
+
+        # Accumulate data across multiple runs, and plot an average for each one (this is for plots where we compare run, e.g. comparing the same workload against different numbers of cores, drives, etc.)
+        try:
+            core_runs_names=['c1','c2', 'c4', 'c8', 'c16', 'c32']
+            core_runs = {}
+            for name in core_runs_names:
+                core_runs[name]  = reduce(lambda x,y: x+y, self.bench_stats.bench_runs[name]).select('qps').remap('qps', name + 'qps')
+
+            core_means = reduce(lambda x,y: x + y, map(lambda x: x[1], core_runs.iteritems())).derive('qps', map(lambda x : x + 'qps', core_runs_names), means)
+
+            # Plot the cross-run averages
+            print >>res, '<p id="#server_meta" style="font-size:large">', 'Core scalability', '</p>'
+            core_means.select('qps').plot(os.path.join(self.out_dir, self.dir_str, 'core_scalability'))
+            print >>res, image(os.path.join(self.hostname, self.prof_dir, self.dir_str, 'core_scalability' + '.png'))
+            
+        except KeyError:
+            print 'Not enough core runs to report data, that or a fuck up. Let\'s face it if we were betting men, we\'d bet on it being a fuck up' 
+
         
         # Add oprofile data
 #        print >> res, '<div class="oprofile">' 
@@ -247,6 +264,7 @@ class dbench():
 #        else:
 #            print >>res, "<p>No oprofile data reported</p>"
 #        print >> res, '</div>' 
+          
 
         return res.getvalue()
 

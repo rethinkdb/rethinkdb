@@ -105,7 +105,9 @@ public:
 public:
     /* Implementation of the serializer_t API */
     void *malloc();
+    void *clone(void*); // clones a buf
     void free(void*);
+    
     bool do_read(ser_block_id_t block_id, void *buf, read_callback_t *callback);
     bool do_write(write_t *writes, int num_writes, write_txn_callback_t *callback);
     size_t get_block_size();

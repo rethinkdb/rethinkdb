@@ -51,6 +51,8 @@ int main(int argc, char *argv[])
     protocol_t *p = make_protocol(&config);
     p->connect(&config);
     p->shared_init();
+    delete p;
+    p = NULL;
 
     // Let's rock 'n roll
     int res;

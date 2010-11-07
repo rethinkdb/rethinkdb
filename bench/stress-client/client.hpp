@@ -174,12 +174,18 @@ void* run_client(void* data) {
     // Store the keys so we can run updates and deletes.
     vector<payload_t> keys;
     vector<payload_t> op_keys;
+    if(config->duration.units == duration_t::inserts_t) {
+        keys.reserve(config->duration.duration / config->clients);  // resize the vector right away
+        
+        // TODO: attempt to do this for queries and seconds
+    }
 
     // Perform the ops
     ticks_t last_time = get_ticks(), start_time = last_time, last_qps_time = last_time, now_time;
     int qps = 0, tick = 0;
     int total_queries = 0;
     int total_inserts = 0;
+    int total_deletes = 0;
     bool keep_running = true;
     while(keep_running) {
         // Generate the command
@@ -204,6 +210,7 @@ void* run_client(void* data) {
             keys.erase(keys.begin() + _val);
             qps++;
             total_queries++;
+            total_deletes++;
             break;
             
         case load_t::update_op:
@@ -280,7 +287,7 @@ void* run_client(void* data) {
             keep_running = ticks_to_secs(now_time - start_time) < config->duration.duration;
             break;
         case duration_t::inserts_t:
-            keep_running = total_inserts < config->duration.duration / config->clients;
+            keep_running = total_inserts - total_deletes < config->duration.duration / config->clients;
             break;
         default:
             fprintf(stderr, "Unknown duration unit\n");
