@@ -1,125 +1,87 @@
-#these colors will all look good on a white background
+#these colors will all look good on a white background (taken from colourlovers.org)
 colors = [
-'#00FF00',
-'#FF0000',
-'#00FFFF',
-'#7FFFD4',
-'#FFE4C4',
-'#000000',
-'#0000FF',
-'#8A2BE2',
-'#A52A2A',
-'#DEB887',
-'#5F9EA0',
-'#7FFF00',
-'#D2691E',
-'#FF7F50',
-'#6495ED',
-'#DC143C',
-'#00FFFF',
-'#00008B',
-'#008B8B',
-'#B8860B',
-'#A9A9A9',
-'#006400',
-'#BDB76B',
-'#8B008B',
-'#556B2F',
-'#FF8C00',
-'#9932CC',
-'#8B0000',
-'#E9967A',
-'#8FBC8F',
-'#483D8B',
-'#2F4F4F',
-'#00CED1',
-'#9400D3',
-'#FF1493',
-'#00BFFF',
-'#696969',
-'#1E90FF',
-'#B22222',
-'#228B22',
-'#FF00FF',
-'#FFD700',
-'#DAA520',
-'#7F7F7F',
-'#BEBEBE',
-'#007F00',
-'#00FF00',
-'#ADFF2F',
-'#FF69B4',
-'#CD5C5C',
-'#4B0082',
-'#F0E68C',
-'#7CFC00',
-'#FFFACD',
-'#ADD8E6',
-'#F08080',
-'#FAFAD2',
-'#D3D3D3',
-'#90EE90',
-'#FFB6C1',
-'#FFA07A',
-'#20B2AA',
-'#87CEFA',
-'#778899',
-'#B0C4DE',
-'#00FF00',
-'#32CD32',
-'#FF00FF',
-'#7F0000',
-'#B03060',
-'#66CDAA',
-'#0000CD',
-'#BA55D3',
-'#9370DB',
-'#3CB371',
-'#7B68EE',
-'#00FA9A',
-'#48D1CC',
-'#C71585',
-'#191970',
-'#FFE4E1',
-'#FFE4B5',
-'#FFDEAD',
-'#000080',
-'#808000',
-'#6B8E23',
-'#FFA500',
-'#FF4500',
-'#DA70D6',
-'#EEE8AA',
-'#98FB98',
-'#AFEEEE',
-'#DB7093',
-'#FFDAB9',
-'#CD853F',
-'#FFC0CB',
-'#DDA0DD',
-'#B0E0E6',
-'#7F007F',
-'#A020F0',
-'#FF0000',
-'#BC8F8F',
-'#4169E1',
-'#8B4513',
-'#FA8072',
-'#F4A460',
-'#2E8B57',
-'#A0522D',
-'#C0C0C0',
-'#87CEEB',
-'#6A5ACD',
-'#708090',
-'#00FF7F',
-'#4682B4',
-'#D2B48C',
-'#008080',
-'#D8BFD8',
-'#FF6347',
-'#40E0D0',
-'#EE82EE',
-'#F5DEB3',
-'#FFFF00',
-'#9ACD32',]
+'#9F111B', # redder state
+'#A8D46F', # and trembling hands
+'#FF9C5B', # Yamabuki
+'#556270', # mighty slate
+'#4ECDC4', # pacifica
+'#C7F464', # apple chic
+'#FF6B6B', # cheery pink
+'#C44D58', # grandma's pillow
+'#ECD078', # thought by some
+'#D95B43', # thoughtful brick
+'#C02942', # thoughtless
+'#542437', # thought you were
+'#53777A', # thoughtless
+'#B9D7D9', # light blue wall
+'#69D2E7', # aoi
+'#A7DBD8', # clean pondwater
+'#F38630', # giant goldfish
+'#036564', # acqua
+'#033649', # acqua profonda
+'#031634', # abisso
+'#490A3D', # party confetti
+'#BD1550', # sugar hearts you
+'#8A9B0F', # happy balloon
+'#774F38', # banquette
+'#E08E79', # strawberry sugar
+'#C5E0DC', # charlotte
+'#594F4F', # feind
+'#547980', # rock my world
+'#45ADA8', # med. green blue
+'#9DE0AD', # fetch me some
+'#2E2633', # evening cloud
+'#99173C', # heliotrope
+'#00A0B0', # invisible ufo
+'#6A4A3C', # 432~carabic brown
+'#CC333F', # 433~carabic red
+'#EB6841', # 434~carabic sun
+'#EDC951', # 435~carabic daylight
+'#67917A', # hellohellohellohello
+'#8C2318', # Eames 
+'#F5634A', # Manic Craving
+'#ED303C', # WhatIBelieve
+'#FAD089', # walls
+'#3B8183', # Mananged Arm
+'#7B3B3B', # red door
+'#493736', # dancing on air
+'#E84A5F', # melonjolly
+'#2A363B', # coup de grace
+'#FF847C', # complete coral
+'#99B898', # seeking sage
+'#FECEA8', # comfortable skin
+'#91204D', # t r a n c e
+'#E4844A', # t r a n c e
+'#452632', # t r a n c e
+'#359668', # as breath swells
+'#3C3251', # into insurmountable
+'#00A8C6', # topiteal
+'#8FBE00', # feeble week
+'#F5B349', # groviera moon
+'#FC3A51', # Funny like You
+'#0E2430', # Funny Like the Space
+'#633D2E', # Dert
+'#BFD8AD', # Glass
+'#F7AF63', # Marilla
+'#91A398', # technical object
+'#33605A', # 21st century dreamer
+'#DA825F', # arabic spice
+'#C4975C', # arabic evening
+'#F06D61', # spicy
+'#7B86E2', # Love to All Lovers
+'#7AA7D6', # Love is Everything
+'#3D1C00', # RenegadeBrown
+'#86B8B1', # dusty aqua
+'#009989', # I love you
+'#EDB92E', # i love you
+'#A3A948', # i love you
+'#DE4126', # Kitten For
+'#607848', # Ivy League
+'#78C0A8', # tweakedturqouise
+'#F0A830', # JoystiqGold
+'#606078', # Suburban Legend
+'#B05574', # Thank You So Much
+'#5E9FA3', # One Sixty-Eight
+'#292C37', # black eye
+'#13747D', # Miaka
+]
