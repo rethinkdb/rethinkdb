@@ -31,7 +31,7 @@ function delete_database_files() { # They are large and useless.
 duration=10000000
 
 #Core scalability
-./dbench -d "$BENCH_DIR/bench_output/c1"  -H 10.0.0.2 {server}rethinkdb:'-c 1  -s 128' {client}stressfree[dr-doom:/home/teapot/stress]:'-c 512 -d 600s'            iostat:1 vmstat:1 rdbstat:1
+#./dbench -d "$BENCH_DIR/bench_output/c1"  -H 10.0.0.2 {server}rethinkdb:'-c 1  -s 128' {client}stressfree[dr-doom:/home/teapot/stress]:'-c 512 -d 600s'            iostat:1 vmstat:1 rdbstat:1
 delete_database_files
 #./dbench -d "$BENCH_DIR/bench_output/c2"  -H 10.0.0.2 {server}rethinkdb:'-c 2  -s 128' {client}stressfree[dr-doom:/home/teapot/stress]:'-c 512 -d 100000000'            iostat:1 vmstat:1 rdbstat:1
 #delete_database_files
@@ -39,8 +39,8 @@ delete_database_files
 #delete_database_files
 #./dbench -d "$BENCH_DIR/bench_output/c8"  -H 10.0.0.2 {server}rethinkdb:'-c 8  -s 128' {client}stressfree[dr-doom:/home/teapot/stress]:'-c 512 -d 100000000'            iostat:1 vmstat:1 rdbstat:1
 #delete_database_files
-./dbench -d "$BENCH_DIR/bench_output/c16" -H 10.0.0.2 {server}rethinkdb:'-c 16 -s 128' {client}stressfree[dr-doom:/home/teapot/stress]:'-c 512 -d 600s'            iostat:1 vmstat:1 rdbstat:1
-delete_database_files
+#./dbench -d "$BENCH_DIR/bench_output/c16" -H 10.0.0.2 {server}rethinkdb:'-c 16 -s 128' {client}stressfree[dr-doom:/home/teapot/stress]:'-c 512 -d 600s'            iostat:1 vmstat:1 rdbstat:1
+#delete_database_files
 #./dbench -d "$BENCH_DIR/bench_output/c32" -H 10.0.0.2 {server}rethinkdb:'-c 32 -s 128' {client}stressfree[dr-doom:/home/teapot/stress]:'-c 512 -d 100000000'            iostat:1 vmstat:1 rdbstat:1
 #delete_database_files
 
@@ -72,6 +72,11 @@ delete_database_files
 #OProfile
 #./dbench -d  "$BENCH_DIR/prof_output"     -H 10.0.0.2 {server}rethinkdb:'-c 12 -s 128' {client}stressfree[dr-doom:/home/teapot/stress]:'-c 512 -d 10000000'             iostat:1 vmstat:1 rdbstat:1 oprofile
 #delete_database_files
+
+# test COW in the buffer cache
+./dbench -d "$BENCH_DIR/bench_output/canonical" -H 10.0.0.2 {server}rethinkdb:'-c 12 -s 128 -m 4096 --active-data-extents 1' {client}stressfree[dr-doom:/home/teapot/stress]:'-c 512 -d 600s'            iostat:1 vmstat:1 rdbstat:1
+delete_database_files
+
 
 cd ../format
 

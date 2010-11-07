@@ -59,6 +59,12 @@ private:
 
     /* Is the block meant to be deleted upon release? */
     bool do_delete;
+
+    /* cow_data acts both as a flag and a pointer. If cow_data isn't
+     * NULL, the buffer has been acquired in rwi_read_outdated_ok
+     * mode, and if someone attempts to acquire it for writing, it
+     * should be copied. */
+    void *cow_data;
     
     typedef intrusive_list_t<block_available_callback_t> callbacks_t;
     callbacks_t load_callbacks;
@@ -91,8 +97,21 @@ private:
     bool safe_to_unload();
     bool safe_to_delete();
 
+    void do_cow_copy();
+
 public:
     void release();
+
+    // TODO: this a hack that allows us to release a buf acquired via
+    // rwi_read_outdated_ok. We need this because release() doesn't
+    // know whether we're releasing a simple rwi_read/rwi_write or
+    // rwi_read_outdated_ok. In fact, rwi_intent (if we ever use it)
+    // has the same problem. We should refactor this so that acquire()
+    // returns a token that needs to be passed to release(), so that
+    // release() knows what it's releasing. After we do that, we can
+    // get rid of release_cow() function. BTW, cow here means
+    // copy-on-write.
+    void release_cow();
 
 
     void *get_data_write() {
@@ -125,7 +144,9 @@ public:
     }
 };
 
-
+/* Forward declaration annoyance */
+template<class mc_config_t>
+struct acquire_lock_callback_t;
 
 /* Transaction class. */
 template<class mc_config_t>
@@ -142,6 +163,7 @@ class mc_transaction_t :
     
     friend class mc_cache_t<mc_config_t>;
     friend class mc_config_t::writeback_t;
+    friend struct acquire_lock_callback_t<mc_config_t>;
     
 public:
     cache_t *get_cache() const { return cache; }
@@ -165,6 +187,8 @@ private:
     }
     virtual void on_sync();
 
+    void process_buf(buf_t *buf, access_t mode);
+    
     access_t access;
     transaction_begin_callback_t *begin_callback;
     transaction_commit_callback_t *commit_callback;

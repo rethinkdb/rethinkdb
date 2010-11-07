@@ -37,6 +37,7 @@ public:
     translator_serializer_t(serializer_t *inner, int mod_count, int mod_id, ser_block_id_t min);
     
     void *malloc();
+    virtual void *clone(void*);
     void free(void *ptr);
     bool do_read(ser_block_id_t block_id, void *buf, read_callback_t *callback);
     bool do_write(write_t *writes, int num_writes, write_txn_callback_t *callback);

@@ -118,6 +118,10 @@ public:
         return inner_serializer.malloc();
     }
     
+    void *clone(void *data) {
+        return inner_serializer.clone(data);
+    }
+    
     void free(void *ptr) {
         inner_serializer.free(ptr);
     }
