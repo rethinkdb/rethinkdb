@@ -54,7 +54,7 @@ enum metadata_flags {
     MEMCACHED_CAS     = 0x02,
     MEMCACHED_EXPTIME = 0x04,
     // DELETE_QUEUE   = 0x08, // If we implement this.
-    LARGE_VALUE       = 0x80
+    LARGE_VALUE       = 0x80,
 };
 
 // Note: Changing this struct changes the format of the data stored on disk.
@@ -71,7 +71,7 @@ struct btree_key {
 // Note: This struct is stored directly on disk.
 struct btree_value {
     uint8_t size;
-    byte metadata_flags;
+    uint8_t metadata_flags;
     byte contents[0];
 
     void init() { // XXX

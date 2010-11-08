@@ -9,6 +9,7 @@
 #include "btree/node.hpp"
 #include "btree/leaf_node.hpp"
 #include "btree/internal_node.hpp"
+#include "buffer_cache/large_buf.hpp"
 
 namespace fsck {
 
@@ -431,7 +432,37 @@ void check_hash(const blockmaker& maker, btree_key *key) {
 }
 
 void check_value(blockmaker& maker, btree_value *value) {
-    // TODO implement.
+    // CHECK large buf.  (Check that size and num_segments are
+    // compatible, check that the block_id_ts are in use.)
+
+    unrecoverable_fact(!(value->metadata_flags & ~(MEMCACHED_FLAGS | MEMCACHED_CAS | MEMCACHED_EXPTIME | LARGE_VALUE)),
+                       "no unrecognized metadata flags");
+
+    if (!value->is_large()) {
+        unrecoverable_fact(value->value_size() <= MAX_IN_NODE_VALUE_SIZE,
+                           "small value value_size() <= MAX_IN_NODE_VALUE_SIZE");
+    } else {
+        size_t size = value->value_size();
+        unrecoverable_fact(size > MAX_IN_NODE_VALUE_SIZE, "large value value_size() > MAX_IN_NODE_VALUE_SIZE");
+        block_id_t index_block_id = value->lv_index_block_id();
+        btree_block index_block(maker, index_block_id);
+
+        large_buf_index *index_buf = (large_buf_index *)index_block.buf;
+        // MAGIC
+        unrecoverable_fact(check_magic<large_buf_index>(index_buf->magic), "large_buf_index magic");
+
+        int seg_size = maker.knog->static_config.block_size - sizeof(data_block_manager_t::buf_data_t) - sizeof(block_magic_t);
+        
+        unrecoverable_fact(index_buf->first_block_offset < seg_size, "large buf first_block_offset < seg_size");
+        unrecoverable_fact(index_buf->num_segments == ceil_aligned(index_buf->first_block_offset + size, seg_size),
+                           "large buf num_segments agrees with first_block_offset and size");
+
+        for (int i = 0, n = index_buf->num_segments; i < n; ++i) {
+            btree_block segment(maker, index_buf->blocks[i]);
+            unrecoverable_fact(check_magic<large_buf_segment>(((large_buf_segment *)segment.buf)->magic),
+                               "large_buf_segment magic");
+        }
+    }
 }
 
 bool leaf_node_inspect_range(const blockmaker& maker, btree_leaf_node *buf, uint16_t offset) {
