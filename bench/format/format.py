@@ -19,12 +19,13 @@ class dbench():
     bench_dir = 'bench_output'
     oprofile_dir = 'prof_output'
     flot_script_location = '/graph_viewer/index.html'
+    competitor_dir = '/home/teapot/competitor_bench'
 
     def __init__(self, dir, email):
         self.email = email
         self.dir_str = time.asctime().replace(' ', '_').replace(':', '_')
         os.makedirs(self.out_dir + '/' + self.dir_str)
-        self.bench_stats = self.bench_stats(dir + self.bench_dir)
+        self.rdb_stats = self.bench_stats(dir + self.bench_dir)
         rundirs = []
         try:
             rundirs += os.listdir(dir + '/' + self.oprofile_dir)
@@ -35,6 +36,11 @@ class dbench():
         self.prof_stats = []
         for rundir in rundirs:
             self.prof_stats.append(self.oprofile_stats(dir + self.oprofile_dir + '/' + rundir + '/'))
+#get competitor info
+        self.competitors = {}
+        competitor_dirs = os.listdir(self.competitor_dir)
+        for dir in competitor_dirs:
+            self.competitors[dir] = self.bench_stats(os.path.join(self.competitor_dir, dir))
 
     def report(self):
         self.html = self.report_as_html()
@@ -55,7 +61,7 @@ class dbench():
             try:
                 rundirs += os.listdir(dir)
             except:
-                print 'No bench runs found'
+                print 'No bench runs found in: %s' % dir
 
             self.bench_runs = {}
             self.server_meta = {}
@@ -128,12 +134,12 @@ class dbench():
         flot_data = 'data'
 
         # Report stats for each run
-        for run_name in self.bench_stats.bench_runs.keys():
-            run = self.bench_stats.bench_runs[run_name]
-            server_meta = self.bench_stats.server_meta[run_name]
-            client_meta = self.bench_stats.client_meta[run_name]
+        for run_name in self.rdb_stats.bench_runs.keys():
+            run = self.rdb_stats.bench_runs[run_name]
+            server_meta = self.rdb_stats.server_meta[run_name]
+            client_meta = self.rdb_stats.client_meta[run_name]
 
-            if run_name != self.bench_stats.bench_runs.keys()[0]:
+            if run_name != self.rdb_stats.bench_runs.keys()[0]:
                 print >>res, '<hr style="height: 1px; width: 910px; border-top: 1px solid #999; margin: 30px 0px; padding: 0px 30px;" />'
             print >>res, '<div class="run">'
             print >>res, '<h2 style="font-size: xx-large; display: inline;">', run_name.replace('_',' ') ,'</h2>'
@@ -242,7 +248,7 @@ class dbench():
             core_runs_names=['c1','c2', 'c4', 'c8', 'c16', 'c32']
             core_runs = {}
             for name in core_runs_names:
-                core_runs[name]  = reduce(lambda x,y: x+y, self.bench_stats.bench_runs[name]).select('qps').remap('qps', name + 'qps')
+                core_runs[name]  = reduce(lambda x,y: x+y, self.rdb_stats.bench_runs[name]).select('qps').remap('qps', name + 'qps')
 
             core_means = reduce(lambda x,y: x + y, map(lambda x: x[1], core_runs.iteritems())).derive('qps', map(lambda x : x + 'qps', core_runs_names), means)
 
