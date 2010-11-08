@@ -173,10 +173,10 @@ void* run_client(void* data) {
     proto->connect(config);
 
     // Store the keys so we can run updates and deletes.
-    vector<payload_t> &keys = *(client_data->keys);
+    vector<payload_t> *keys = client_data->keys;
     vector<payload_t> op_keys;
     if(config->duration.units == duration_t::inserts_t) {
-        keys.reserve(keys.size() + config->duration.duration / config->clients);  // resize the vector right away
+        keys->reserve(keys->size() + config->duration.duration / config->clients);  // resize the vector right away
         
         // TODO: attempt to do this for queries and seconds
     }
@@ -199,16 +199,16 @@ void* run_client(void* data) {
         switch(cmd) {
         case load_t::delete_op:
             // Find the key
-            if(keys.empty())
+            if(keys->empty())
                 break;
-            _val = random(0, keys.size() - 1);
-            key = keys[_val];
+            _val = random(0, keys->size() - 1);
+            key = keys->operator[](_val);
             // Delete it from the server
             proto->remove(key.first, key.second);
             // Our own bookkeeping
             free(key.first);
-            keys[_val] = keys[keys.size() - 1];
-            keys.erase(keys.begin() + _val);
+            keys->operator[](_val) = keys->operator[](keys->size() - 1);
+            keys->erase(keys->begin() + _val);
             qps++;
             total_queries++;
             total_deletes++;
@@ -216,9 +216,9 @@ void* run_client(void* data) {
             
         case load_t::update_op:
             // Find the key and generate the payload
-            if(keys.empty())
+            if(keys->empty())
                 break;
-            key = keys[random(0, keys.size() - 1)];
+            key = keys->operator[](random(0, keys->size() - 1));
             config->values.toss(&value);
             // Send it to server
             proto->update(key.first, key.second, value.first, value.second);
@@ -236,7 +236,7 @@ void* run_client(void* data) {
             proto->insert(key.first, key.second, value.first, value.second);
             // Free the value and save the key
             free(value.first);
-            keys.push_back(key);
+            keys->push_back(key);
             qps++;
             total_queries++;
             total_inserts++;
@@ -244,16 +244,16 @@ void* run_client(void* data) {
             
         case load_t::read_op:
             // Find the key
-            if(keys.empty())
+            if(keys->empty())
                 break;
             op_keys.clear();
             j = random(config->batch_factor.min, config->batch_factor.max);
-            j = std::min(j, (int)keys.size());
-            l = random(0, keys.size() - 1);
+            j = std::min(j, (int)keys->size());
+            l = random(0, keys->size() - 1);
             for(k = 0; k < j; k++) {
-                key = keys[l];
+                key = keys->operator[](l);
                 l++;
-                if(l >= keys.size())
+                if(l >= keys->size())
                     l = 0;
                 op_keys.push_back(key);
             }
@@ -272,6 +272,7 @@ void* run_client(void* data) {
 
         // Deal with QPS
         if(ticks_to_secs(now_time - last_qps_time) >= 1.0f) {
+            printf("hala %d %d\n", tick, qps);
             shared->push_qps(qps, tick);
 
             last_qps_time = now_time;

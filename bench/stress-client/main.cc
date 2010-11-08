@@ -41,12 +41,6 @@ int main(int argc, char *argv[])
     parse(&config, argc, argv);
     config.print();
 
-    // Create the shared structure
-    shared_t shared(&config, make_protocol);
-    client_data_t client_data;
-    client_data.config = &config;
-    client_data.shared = &shared;
-
     // Gotta run the shared init
     protocol_t *p = make_protocol(&config);
     p->connect(&config);
@@ -58,10 +52,15 @@ int main(int argc, char *argv[])
     int res;
     vector<pthread_t> threads(config.clients);
 
+    // Create the shared structure
+    shared_t shared(&config, make_protocol);
+
     // Create key vectors
-    vector<payload_t> *key_vectors[config.clients];
+    client_data_t client_data[config.clients];
     for(int i = 0; i < config.clients; i++) {
-        key_vectors[i] = new vector<payload_t>();
+        client_data[i].config = &config;
+        client_data[i].shared = &shared;
+        client_data[i].keys = new vector<payload_t>();
     }
 
     // Populate key vectors if we have an in file
@@ -84,21 +83,19 @@ int main(int argc, char *argv[])
     // Create the threads
     int keys_per_client = loaded_keys.size() / config.clients;
     for(int i = 0; i < config.clients; i++) {
-        client_data.keys = key_vectors[i];
-
         // If we preloaded the keys, distribute them across the
         // clients
         if(!loaded_keys.empty()) {
-            client_data.keys->reserve(keys_per_client);
+            client_data[i].keys->reserve(keys_per_client);
             for(int j = 0; j < keys_per_client; j++) {
                 int idx = i * keys_per_client + j;
                 if(idx < loaded_keys.size()) {
-                    client_data.keys->push_back(loaded_keys[idx]);
+                    client_data[i].keys->push_back(loaded_keys[idx]);
                 }
             }
         }
         
-        int res = pthread_create(&threads[i], NULL, run_client, &client_data);
+        int res = pthread_create(&threads[i], NULL, run_client, &client_data[i]);
         if(res != 0) {
             fprintf(stderr, "Can't create thread");
             exit(-1);
@@ -121,9 +118,10 @@ int main(int argc, char *argv[])
 
         // Dump the keys
         for(int i = 0; i < config.clients; i++) {
-            for(int j = 0; j < key_vectors[i]->size(); j++) {
-                char *key = (*key_vectors)[i][j].first;
-                size_t key_size = (*key_vectors)[i][j].second;
+            client_data_t *cd = &client_data[i];
+            for(int j = 0; j < cd->keys->size(); j++) {
+                char *key = cd->keys->operator[](j).first;
+                size_t key_size = cd->keys->operator[](j).second;
                 fwrite(&key_size, sizeof(size_t), 1, out_file);
                 fwrite(key, key_size, sizeof(char), out_file);
             }
@@ -134,11 +132,11 @@ int main(int argc, char *argv[])
     
     // Free keys and delete key vectors
     for(int i = 0; i < config.clients; i++) {
-        vector<payload_t> &keys = *(key_vectors[i]);
+        vector<payload_t> &keys = *(client_data[i].keys);
         for(vector<payload_t>::iterator j = keys.begin(); j != keys.end(); j++) {
             free(j->first);
         }
-        delete key_vectors[i];
+        delete client_data[i].keys;
     }
     
     return 0;
