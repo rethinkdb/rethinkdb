@@ -610,6 +610,33 @@ void check_subtree(blockmaker& maker, block_id_t id, btree_key *lo, btree_key *h
     }
 }
 
+void check_slice_other_blocks(blockmaker& maker) {
+    ser_block_id_t min_block = translator_serializer_t::translate_block_id(0, maker.mod_count, maker.local_slice_id, CONFIG_BLOCK_ID + 1);
+
+    segmented_vector_t<block_knowledge, MAX_BLOCK_ID>& block_info = maker.knog->block_info;
+    for (ser_block_id_t id = min_block, n = block_info.get_size(); id < n; id += maker.mod_count) {
+        block_knowledge info = block_info[id];
+        if (flagged_off64_t::has_value(info.offset) && !info.offset.parts.is_delete
+            && info.transaction_id == NULL_SER_TRANSACTION_ID) {
+            // Aha!  We have an unused block!  Crap.
+
+            btree_block b(maker.file, maker.knog, id);
+
+            unrecoverable_fact(0, "Block with ser_block_id_t (%u) and block_id_t (%u) is not used.",
+                               id, (id - min_block) / maker.mod_count);
+
+            // TODO more info about their contents.
+        } 
+        if (flagged_off64_t::has_value(info.offset) && info.offset.parts.is_delete) {
+            assert(info.transaction_id == NULL_SER_TRANSACTION_ID);
+
+            btree_block zeroblock(maker.file, maker.knog, id);
+            unrecoverable_fact(log_serializer_t::zerobuf_magic == *((block_magic_t *)zeroblock.buf),
+                               "deleted buf has zerobuf_magic");
+        }
+    }
+}
+
 void check_slice(direct_file_t *file, file_knowledge *knog, int global_slice_number) {
     blockmaker maker(file, knog, global_slice_number);
     /* *FOR EACH SLICE*
@@ -631,7 +658,13 @@ void check_slice(direct_file_t *file, file_knowledge *knog, int global_slice_num
     // * Walk tree
     check_subtree(maker, root_block_id, NULL, NULL);
 
-
+    // * For each non-deleted block unused by btree
+    //     - LEARN transaction id.
+    //     - REPORT error.
+    // * For each deleted block
+    //     - CHECK zerobuf.
+    //     - LEARN transaction id.
+    check_slice_other_blocks(maker);
     
 
 
