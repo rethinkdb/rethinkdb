@@ -56,9 +56,9 @@ class leaf_node_handler : public node_handler {
     }
 
     static btree_leaf_pair *get_pair(const btree_leaf_node *node, uint16_t offset);
+    static size_t pair_size(btree_leaf_pair *pair);
 
     protected:
-    static size_t pair_size(btree_leaf_pair *pair);
     static void delete_pair(btree_leaf_node *node, uint16_t offset);
     static uint16_t insert_pair(btree_leaf_node *node, btree_leaf_pair *pair);
     static uint16_t insert_pair(btree_leaf_node *node, btree_value *value, btree_key *key);

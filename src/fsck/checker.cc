@@ -434,13 +434,44 @@ void check_value(blockmaker& maker, btree_value *value) {
     // TODO implement.
 }
 
+bool leaf_node_inspect_range(const blockmaker& maker, btree_leaf_node *buf, uint16_t offset) {
+    // There are some completely bad HACKs here.  We subtract 3 for
+    // pair->key.size, pair->value()->size, pair->value()->metadata_flags.
+    if (maker.knog->static_config.block_size - sizeof(data_block_manager_t::buf_data_t) - 3 >= offset
+        && offset >= buf->frontmost_offset) {
+        btree_leaf_pair *pair = leaf_node_handler::get_pair(buf, offset);
+        btree_value *value = pair->value();
+        uint32_t value_offset = (((byte *)value) - ((byte *)pair)) + offset;
+        // The other HACK: We subtract 2 for value->size, value->metadata_flags.
+        if (value_offset <= maker.knog->static_config.block_size - sizeof(data_block_manager_t::buf_data_t) - 2) {
+            uint32_t tot_offset = value_offset + value->mem_size();
+            return (maker.knog->static_config.block_size - sizeof(data_block_manager_t::buf_data_t) >= tot_offset);
+        }
+    }
+    return false;
+}
+
 void check_subtree_leaf_node(blockmaker& maker, btree_leaf_node *buf, btree_key *lo, btree_key *hi) {
     /* Walk tree
-         - CHECK ordering, balance, hash function, value, size limit, internal node last key.
+         - CHECK ordering, balance, hash function, value, size limit, internal node last key,
+           field width.
          - LEARN which blocks are in the tree.  (This is done with the btree_block constructor.)
          - LEARN transaction id.  (This is done with the btree_block constructor.) */
 
-    // TODO check field width
+    // CHECK field width.
+    {
+        std::vector<uint16_t, gnew_alloc<uint16_t> > sorted_offsets(buf->pair_offsets, buf->pair_offsets + buf->npairs);
+        std::sort(sorted_offsets.begin(), sorted_offsets.end());
+        uint16_t expected_offset = buf->frontmost_offset;
+
+        for (int i = 0, n = sorted_offsets.size(); i < n; ++i) {
+            unrecoverable_fact(sorted_offsets[i] == expected_offset, "noncontiguous offsets (i = %d)", i);
+            unrecoverable_fact(leaf_node_inspect_range(maker, buf, expected_offset), "offset + value width out of range");
+            expected_offset += leaf_node_handler::pair_size(leaf_node_handler::get_pair(buf, expected_offset));
+        }
+        unrecoverable_fact(expected_offset == maker.knog->static_config.block_size - sizeof(data_block_manager_t::buf_data_t), "offsets adjacent (with value %u) to buf size", expected_offset);
+
+    }
 
     btree_key *prev_key = lo;
     for (uint16_t i = 0; i < buf->npairs; ++i) {
@@ -468,8 +499,8 @@ void check_subtree_leaf_node(blockmaker& maker, btree_leaf_node *buf, btree_key 
                        "leaf node last key ordering");
 }
 
-bool internal_node_begin_offset_in_range(blockmaker& maker, btree_internal_node *buf, uint16_t offset) {
-    return (maker.knog->static_config.block_size - sizeof(data_block_manager_t::buf_data_t) - sizeof(btree_internal_pair)) >= offset && offset >= offsetof(btree_internal_node, pair_offsets);
+bool internal_node_begin_offset_in_range(const blockmaker& maker, btree_internal_node *buf, uint16_t offset) {
+    return (maker.knog->static_config.block_size - sizeof(data_block_manager_t::buf_data_t) - sizeof(btree_internal_pair)) >= offset && offset >= buf->frontmost_offset;
 }
 
 // Glorious mutual recursion.
@@ -491,8 +522,8 @@ void check_subtree_internal_node(blockmaker& maker, btree_internal_node *buf, bt
         uint16_t expected_offset = buf->frontmost_offset;
   
         for (int i = 0, n = sorted_offsets.size(); i < n; ++i) {
-            unrecoverable_fact(internal_node_begin_offset_in_range(maker, buf, expected_offset), "frontmost_offset out of range.");
             unrecoverable_fact(sorted_offsets[i] == expected_offset, "noncontiguous offsets (i = %d)", i);
+            unrecoverable_fact(internal_node_begin_offset_in_range(maker, buf, expected_offset), "offset out of range.");
             expected_offset += internal_node_handler::pair_size(internal_node_handler::get_pair(buf, expected_offset));
         }
         unrecoverable_fact(expected_offset == maker.knog->static_config.block_size - sizeof(data_block_manager_t::buf_data_t), "offsets adjacent (with value %u) to buf size", expected_offset);
