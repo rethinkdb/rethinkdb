@@ -204,7 +204,7 @@ class dbench():
             print >>res, """<table style="border-spacing: 0px; border-collapse: collapse; margin-left: auto; margin-right: auto; margin-top: 20px;">
                                 <tr style="font-weight: bold; text-align: left; border-bottom: 2px solid #FFFFFF; color: #FFFFFF; background: #556270;">
                                     <th style="padding: 0.5em 0.8em; font-size: small;"></th>
-                                    <th style="padding: 0.5em 0.8em; font-size: small;">Mean qps</th>
+                                    <th style="padding: 0.5em 0.8em; font-size: small;">Mean latency</th>
                                     <th style="padding: 0.5em 0.8em; font-size: small;">Standard deviation</th>
                                 </tr>
                                 <tr style="text-align: left; border-bottom: 2px solid #FFFFFF;">

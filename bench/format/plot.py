@@ -157,7 +157,7 @@ class TimeSeriesCollection():
         font = fm.FontProperties(family=['sans-serif'],size='small',fname='/usr/share/fonts/truetype/aurulent_sans_regular.ttf')
         fig = plt.figure()
         # Set the margins for the plot to ensure a minimum of whitespace
-        ax = plt.axes([0.12,0.12,0.85,0.85])
+        ax = plt.axes([0.13,0.12,0.85,0.85])
         labels = []
         color_index = 0
         for series in self.data.iteritems():
