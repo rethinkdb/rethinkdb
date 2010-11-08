@@ -1,5 +1,7 @@
 #include "fsck/checker.hpp"
 
+#include <algorithm>
+
 #include "config/cmd_args.hpp"
 #include "containers/segmented_vector.hpp"
 #include "serializer/log/log_serializer.hpp"
@@ -464,8 +466,10 @@ void check_subtree_leaf_node(blockmaker& maker, btree_leaf_node *buf, btree_key 
     // CHECK ordering (keyN-1 < hi)
     unrecoverable_fact(prev_key == NULL || hi == NULL || leaf_key_comp::compare(prev_key, hi) < 0,
                        "leaf node last key ordering");
-    
+}
 
+bool internal_node_begin_offset_in_range(blockmaker& maker, btree_internal_node *buf, uint16_t offset) {
+    return (maker.knog->static_config.block_size - sizeof(data_block_manager_t::buf_data_t) - sizeof(btree_internal_pair)) >= offset && offset >= offsetof(btree_internal_node, pair_offsets);
 }
 
 // Glorious mutual recursion.
@@ -473,12 +477,29 @@ void check_subtree(blockmaker& maker, block_id_t id, btree_key *lo, btree_key *h
 
 void check_subtree_internal_node(blockmaker& maker, btree_internal_node *buf, btree_key *lo, btree_key *hi) {
     /* Walk tree
-         - CHECK ordering, balance, hash function, value, size limit, internal node last key.
+         - CHECK ordering, balance, hash function, value, size limit, internal node last key,
+           field width.
          - LEARN which blocks are in the tree.  (This is done with the btree_block constructor.)
          - LEARN transaction id.  (This is done with the btree_block constructor.) */
 
     // TODO: check balance
-    // TODO: check field width
+
+    // CHECK field width.
+    {
+        std::vector<uint16_t, gnew_alloc<uint16_t> > sorted_offsets(buf->pair_offsets, buf->pair_offsets + buf->npairs);
+        std::sort(sorted_offsets.begin(), sorted_offsets.end());
+        uint16_t expected_offset = buf->frontmost_offset;
+  
+        for (int i = 0, n = sorted_offsets.size(); i < n; ++i) {
+            unrecoverable_fact(internal_node_begin_offset_in_range(maker, buf, expected_offset), "frontmost_offset out of range.");
+            unrecoverable_fact(sorted_offsets[i] == expected_offset, "noncontiguous offsets (i = %d)", i);
+            expected_offset += internal_node_handler::pair_size(internal_node_handler::get_pair(buf, expected_offset));
+        }
+        unrecoverable_fact(expected_offset == maker.knog->static_config.block_size - sizeof(data_block_manager_t::buf_data_t), "offsets adjacent (with value %u) to buf size", expected_offset);
+
+    }
+
+    // Now check other things.
 
     btree_key *prev_key = lo;
     for (uint16_t i = 0; i < buf->npairs; ++i) {
