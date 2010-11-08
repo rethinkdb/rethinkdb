@@ -197,7 +197,7 @@ class dbench():
 
             # Add the latency histogram image and metadata
             print >>res, '<td><h3 style="text-align: center">Latency in microseconds</h3>'
-            print >>res, image(os.path.join(self.hostname, self.prof_dir, self.dir_str, 'latency' + run_name + '.png'))
+            print >>res, image('http://' + os.path.join(self.hostname, self.prof_dir, self.dir_str, 'latency' + run_name + '.png'))
 
             latency_mean = format_metadata(data.select('latency').stats()['latency']['mean'])
             latency_stdev = format_metadata(data.select('latency').stats()['latency']['stdev'])
@@ -249,7 +249,7 @@ class dbench():
             # Plot the cross-run averages
             print >>res, '<p id="#server_meta" style="font-size:large">', 'Core scalability', '</p>'
             core_means.select('qps').plot(os.path.join(self.out_dir, self.dir_str, 'core_scalability'))
-            print >>res, image(os.path.join(self.hostname, self.prof_dir, self.dir_str, 'core_scalability' + '.png'))
+            print >>res, image('http://' + os.path.join(self.hostname, self.prof_dir, self.dir_str, 'core_scalability' + '.png'))
             
         except KeyError:
             print 'Not enough core runs to report data, that or a fuck up. Let\'s face it if we were betting men, we\'d bet on it being a fuck up' 
