@@ -163,7 +163,7 @@ void mc_buf_t::release_cow() {
 void mc_buf_t::on_serializer_write_block() {
     
     cache->serializer->assert_cpu();
-    assert(is_dirty());
+    assert(cow_data);   // We should be in a flush right now
     if (continue_on_cpu(cache->home_cpu, this)) on_cpu_switch();
 }
 
@@ -174,7 +174,7 @@ void mc_buf_t::on_cpu_switch() {
         cache->serializer->assert_cpu();
         if (cache->serializer->do_read(block_id, data, this)) on_serializer_read();
     
-    } else if (!is_dirty()) {
+    } else if (!cow_data) {
         /* We are returning from the serializer's CPU after loading our data. */
         cache->assert_cpu();
         have_read();
@@ -200,7 +200,8 @@ void mc_buf_t::add_load_callback(block_available_callback_t *cb) {
 bool mc_buf_t::safe_to_unload() {
     return concurrency_buf.safe_to_unload() &&
         load_callbacks.empty() &&
-        writeback_buf.safe_to_unload();
+        writeback_buf.safe_to_unload() &&
+        !cow_data;
 }
 
 bool mc_buf_t::safe_to_delete() {

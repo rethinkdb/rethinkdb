@@ -178,11 +178,11 @@ bool writeback_t::writeback_acquire_bufs() {
     num_serializer_writes = dirty_bufs.size();
     serializer_writes = (serializer_t::write_t *)malloc(sizeof(serializer_t::write_t) * num_serializer_writes);
     
-    int i;
-    intrusive_list_t<local_buf_t>::iterator it;
-    for (it = dirty_bufs.begin(), i = 0; it != dirty_bufs.end(); i++) {
-        buf_t *_buf = (*it).gbuf;
-        it++;   // Increment the iterator so we can safely delete the thing it points to later
+    int i = 0;
+    while (local_buf_t *lbuf = dirty_bufs.head()) {
+    
+        buf_t *_buf = lbuf->gbuf;
+        lbuf->set_dirty(false);   // Removes it from dirty_bufs
         
         bool do_delete = _buf->do_delete;
         
@@ -208,19 +208,16 @@ bool writeback_t::writeback_acquire_bufs() {
             serializer_writes[i].buf = NULL;   // NULL indicates a deletion
             serializer_writes[i].callback = NULL;
             
-            // Dodge assertions so we can delete the buf
-            buf->writeback_buf.dirty = false;
-            pm_n_blocks_dirty--;
             assert(buf_access_mode != rwi_read_outdated_ok);
             buf->release();
-            dirty_bufs.remove(&buf->writeback_buf);
             
             cache->free_list.release_block_id(buf->get_block_id());
             
             delete buf;
         }
+        
+        i++;
     }
-    dirty_bufs.clear();
     
     flush_lock->unlock(); // Write transactions can now proceed again.
     
@@ -250,12 +247,6 @@ void writeback_t::buf_was_written(buf_t *buf) {
     
     cache->assert_cpu();
     assert(buf);
-    if(buf->data == buf->cow_data) {
-        // We can only mark the buf as no longer dirty if it hasn't
-        // changed while we were flushing it.
-        buf->writeback_buf.dirty = false;
-    }
-    pm_n_blocks_dirty--;
     buf->release_cow();
 }
 
