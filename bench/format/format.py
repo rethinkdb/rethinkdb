@@ -136,7 +136,7 @@ class dbench():
             if run_name != self.bench_stats.bench_runs.keys()[0]:
                 print >>res, '<hr style="height: 1px; width: 910px; border-top: 1px solid #999; margin: 30px 0px; padding: 0px 30px;" />'
             print >>res, '<div class="run">'
-            print >>res, '<h2 style="font-size: xx-large; display: inline;">', run_name ,'</h2>'
+            print >>res, '<h2 style="font-size: xx-large; display: inline;">', run_name.replace('_',' ') ,'</h2>'
 
             # Accumulating data for the run
             data = reduce(lambda x, y: x + y, run)
