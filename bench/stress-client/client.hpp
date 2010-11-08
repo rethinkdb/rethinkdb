@@ -272,7 +272,6 @@ void* run_client(void* data) {
 
         // Deal with QPS
         if(ticks_to_secs(now_time - last_qps_time) >= 1.0f) {
-            printf("hala %d %d\n", tick, qps);
             shared->push_qps(qps, tick);
 
             last_qps_time = now_time;
