@@ -1,6 +1,6 @@
 
-INCLUDE = -I../../../lib/libmemcached
-LIBS = -L. -lmemcached -lmysqlclient
+INCLUDE = -I../../../lib/libmemcached -I /usr/local/mysql/include
+LIBS = -L. -lmemcached -lmysqlclient -L /usr/local/mysql/lib/mysql
 SRC = main.cc utils.cc
 
 EXEC_NAME = stress

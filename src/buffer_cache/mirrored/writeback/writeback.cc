@@ -188,7 +188,8 @@ bool writeback_t::writeback_acquire_bufs() {
         
         // Acquire the blocks
         _buf->do_delete = false; /* Backdoor around acquire()'s assertion */
-        buf_t *buf = transaction->acquire(_buf->get_block_id(), rwi_read, NULL);
+        access_t buf_access_mode = do_delete ? rwi_read : rwi_read_outdated_ok;
+        buf_t *buf = transaction->acquire(_buf->get_block_id(), buf_access_mode, NULL);
         assert(buf);         // Acquire must succeed since we hold the flush_lock.
         assert(buf == _buf); // Acquire should return the same buf we stored earlier.
         
@@ -210,6 +211,7 @@ bool writeback_t::writeback_acquire_bufs() {
             // Dodge assertions so we can delete the buf
             buf->writeback_buf.dirty = false;
             pm_n_blocks_dirty--;
+            assert(buf_access_mode != rwi_read_outdated_ok);
             buf->release();
             dirty_bufs.remove(&buf->writeback_buf);
             
@@ -248,9 +250,13 @@ void writeback_t::buf_was_written(buf_t *buf) {
     
     cache->assert_cpu();
     assert(buf);
-    buf->writeback_buf.dirty = false;
+    if(buf->data == buf->cow_data) {
+        // We can only mark the buf as no longer dirty if it hasn't
+        // changed while we were flushing it.
+        buf->writeback_buf.dirty = false;
+    }
     pm_n_blocks_dirty--;
-    buf->release();
+    buf->release_cow();
 }
 
 void writeback_t::on_serializer_write_txn() {

@@ -4,6 +4,7 @@
 
 #include <stdlib.h>
 #include <mysql/mysql.h>
+#include <mysql/mysqld_error.h>
 #include <vector>
 #include "protocol.hpp"
 
@@ -63,6 +64,9 @@ struct mysql_protocol_t : public protocol_t {
             fprintf(stderr, "Could not connect to mysql: %s\n", mysql_error(&mysql));
             exit(-1);
         }
+
+        // Make sure autocommit is on
+        mysql_autocommit(&mysql, 1);
 
         // Use the db we want (it should have been created via shared_init)
         if(use_db(false)) {
@@ -140,7 +144,7 @@ struct mysql_protocol_t : public protocol_t {
         // Execute the statement
         res = mysql_stmt_execute(remove_stmt);
         if(res != 0) {
-            fprintf(stderr, "Could not execute remove statement\n");
+            fprintf(stderr, "Could not execute remove statement: %s\n", mysql_stmt_error(remove_stmt));
             exit(-1);
         }
     }
@@ -202,8 +206,10 @@ struct mysql_protocol_t : public protocol_t {
         // Execute the statement
         res = mysql_stmt_execute(insert_stmt);
         if(res != 0) {
-            fprintf(stderr, "Could not execute insert statement\n");
-            exit(-1);
+            if(mysql_stmt_errno(insert_stmt) != ER_DUP_ENTRY) {
+                fprintf(stderr, "Could not execute insert statement: %s\n", mysql_stmt_error(insert_stmt));
+                exit(-1);
+            }
         }
     }
     
@@ -229,7 +235,7 @@ struct mysql_protocol_t : public protocol_t {
         // Execute the statement
         res = mysql_stmt_execute(read_stmt);
         if(res != 0) {
-            fprintf(stderr, "Could not execute read statement\n");
+            fprintf(stderr, "Could not execute read statement: %s\n", mysql_stmt_error(read_stmt));
             exit(-1);
         }
 
@@ -306,9 +312,11 @@ private:
         use_db(true);
         
         // Create the table
+        // "INDEX __main_index (__key)) "        \
+
         snprintf(buf, sizeof(buf),
                  "CREATE TABLE bench (__key varchar(%d), __value varchar(%d)," \
-                 "INDEX __main_index (__key)) " \
+                 "PRIMARY KEY (__key)) "                             \
                  "ENGINE=InnoDB",
                  _config->keys.max, _config->values.max);
         status = mysql_query(&mysql, buf);

@@ -50,6 +50,8 @@ void usage(const char *name) {
            "\t\tThe information is not outputted if this argument is skipped.\n");
     printf("\t-q, --qps-file\n\t\tFile name to output QPS information.\n" \
            "\t\tThe information is not outputted if this argument is skipped.\n");
+    printf("\t-o, --out-file\n\t\tIf present, dump all inserted keys to this file.\n");
+    printf("\t-i, --in-file\n\t\tIf present, populate initial keys from this file.\n");
 
     printf("\nAdditional information:\n");
     printf("\t\tDISTR format describes a range and can be specified in as MIN-MAX.\n\n");
@@ -81,12 +83,14 @@ void parse(config_t *config, int argc, char *argv[]) {
                 {"batch-factor",   required_argument, 0, 'b'},
                 {"latency-file",   required_argument, 0, 'l'},
                 {"qps-file",       required_argument, 0, 'q'},
+                {"out-file",       required_argument, 0, 'o'},
+                {"in-file",        required_argument, 0, 'i'},
                 {"help",           no_argument, &do_help, 1},
                 {0, 0, 0, 0}
             };
 
         int option_index = 0;
-        int c = getopt_long(argc, argv, "n:p:r:c:w:k:v:d:b:l:q:h", long_options, &option_index);
+        int c = getopt_long(argc, argv, "n:p:r:c:w:k:v:d:b:l:q:o:i:h", long_options, &option_index);
 
         if(do_help)
             c = 'h';
@@ -140,6 +144,12 @@ void parse(config_t *config, int argc, char *argv[]) {
             break;
         case 'q':
             strncpy(config->qps_file, optarg, MAX_FILE);
+            break;
+        case 'o':
+            strncpy(config->out_file, optarg, MAX_FILE);
+            break;
+        case 'i':
+            strncpy(config->in_file, optarg, MAX_FILE);
             break;
         case 'h':
             usage(argv[0]);

@@ -28,6 +28,10 @@ void *translator_serializer_t::malloc() {
     return inner->malloc();
 }
 
+void *translator_serializer_t::clone(void *data) {
+    return inner->clone(data);
+}
+
 void translator_serializer_t::free(void *ptr) {
     inner->free(ptr);
 }

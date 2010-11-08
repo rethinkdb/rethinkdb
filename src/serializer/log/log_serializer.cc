@@ -311,7 +311,27 @@ void *log_serializer_t::malloc() {
     
     assert(state == state_ready);
     
+    // TODO: we shouldn't use malloc_aligned here, we should use our
+    // custom allocation system instead (and use corresponding
+    // free). This is tough because serializer object may not be on
+    // the same core as the cache that's using it, so we should expose
+    // the malloc object in a different way.
     byte_t *data = (byte_t*)malloc_aligned(static_config.block_size, DEVICE_BLOCK_SIZE);
+    data += sizeof(data_block_manager_t::buf_data_t);
+    return (void*)data;
+}
+
+void *log_serializer_t::clone(void *_data) {
+    
+    assert(state == state_ready);
+    
+    // TODO: we shouldn't use malloc_aligned here, we should use our
+    // custom allocation system instead (and use corresponding
+    // free). This is tough because serializer object may not be on
+    // the same core as the cache that's using it, so we should expose
+    // the malloc object in a different way.
+    byte_t *data = (byte_t*)malloc_aligned(static_config.block_size, DEVICE_BLOCK_SIZE);
+    memcpy(data, (byte_t*)_data - sizeof(data_block_manager_t::buf_data_t), static_config.block_size);
     data += sizeof(data_block_manager_t::buf_data_t);
     return (void*)data;
 }

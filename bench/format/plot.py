@@ -1,6 +1,9 @@
+import pdb
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.mlab as mlab
+import matplotlib.font_manager as fm
+from matplotlib.ticker import FuncFormatter
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib.collections import PolyCollection
 from colors import *
@@ -118,27 +121,43 @@ class TimeSeriesCollection():
     def histogram(self, out_fname):
         assert self.data
 
+        font = fm.FontProperties(family=['sans-serif'],size='small',fname='/usr/share/fonts/truetype/aurulent_sans_regular.ttf')
         fig = plt.figure()
-        ax = fig.add_subplot(111)
+        # Set the margins for the plot to ensure a minimum of whitespace
+        ax = plt.axes([0.12,0.12,0.85,0.85])
 
         data = map(lambda x: x[1], self.data.iteritems())
         mean = stats.mean(map(lambda x: x, reduce(lambda x, y: x + y, data)))
         stdev= stats.stdev(map(lambda x: x, reduce(lambda x, y: x + y, data)))
         labels = []
+        hists = []
         for series, color in zip(self.data.iteritems(), colors):
-            ax.hist(clip(series[1], 0, 6000), 40, histtype='step', facecolor = color, alpha = .4, label = series[0])
+            _, _, foo = ax.hist(clip(series[1], 0, 6000), bins=200, histtype='bar', facecolor = color, alpha = .5, label = series[0])
+            hists.append(foo)
             labels.append(series[0])
 
-        ax.set_ylabel('Count')
-        ax.set_xlabel('Latency') #simply should not be hardcoded but we want nice pictures now
+        for tick in ax.xaxis.get_major_ticks():
+            tick.label1.set_fontproperties(font)
+        for tick in ax.yaxis.get_major_ticks():
+            tick.label1.set_fontproperties(font)
+
+        ax.set_ylabel('Frequency', fontproperties = font)
+        ax.set_xlabel('Latency (microseconds)', fontproperties = font) #simply should not be hardcoded but we want nice pictures now
         ax.grid(True)
-        plt.legend(labels, loc=1)
-        plt.savefig(out_fname, dpi=300)
+        # Dirty hack to get around legend miscoloring: drop all the hists generated into the legend one by one
+        plt.legend(map(lambda x: x[0], hists), labels, loc=1, prop = font)
+        fig.set_size_inches(5,3.7)
+        fig.set_dpi(90)
+        plt.savefig(out_fname)
 
     def plot(self, out_fname, normalize = False):
         assert self.data
+
+        queries_formatter = FuncFormatter(lambda x, pos: '%1.fk' % (x*1e-3))
+        font = fm.FontProperties(family=['sans-serif'],size='small',fname='/usr/share/fonts/truetype/aurulent_sans_regular.ttf')
         fig = plt.figure()
-        ax = fig.add_subplot(111)
+        # Set the margins for the plot to ensure a minimum of whitespace
+        ax = plt.axes([0.13,0.12,0.85,0.85])
         labels = []
         color_index = 0
         for series in self.data.iteritems():
@@ -148,16 +167,25 @@ class TimeSeriesCollection():
                 data_to_use = series[1]
             labels.append((ax.plot(range(len(series[1])), data_to_use, colors[color_index]), series[0]))
             color_index += 1
+         
+        for tick in ax.xaxis.get_major_ticks():
+            tick.label1.set_fontproperties(font)
+        for tick in ax.yaxis.get_major_ticks():
+            tick.label1.set_fontproperties(font)
 
-        ax.set_xlabel('Time (seconds)')
+        ax.yaxis.set_major_formatter(queries_formatter)
+        ax.set_ylabel('Queries', fontproperties = font)
+        ax.set_xlabel('Time (seconds)', fontproperties = font)
         ax.set_xlim(0, len(self.data[self.data.keys()[0]]) - 1)
         if normalize:
             ax.set_ylim(0, 1.0)
         else:
             ax.set_ylim(0, max(self.data[self.data.keys()[0]]))
         ax.grid(True)
-        plt.legend(tuple(map(lambda x: x[0], labels)), tuple(map(lambda x: x[1], labels)), loc=1)
-        plt.savefig(out_fname, dpi=300)
+        plt.legend(tuple(map(lambda x: x[0], labels)), tuple(map(lambda x: x[1], labels)), loc=1, prop = font)
+        fig.set_size_inches(5,3.7)
+        fig.set_dpi(90)
+        plt.savefig(out_fname, bbox_inches="tight")
 
     def stats(self):
         res = {}
@@ -202,7 +230,9 @@ def multi_plot(timeseries, out_fname):
     ax.set_ylim3d(-1, len(timeseries))
     ax.set_zlabel('Z')
     ax.set_zlim3d(0, max(map(lambda x: max(x), timeseries)))
-    plt.savefig(out_fname, dpi=300)
+    fig.set_size_inches(5,3.7)
+    fig.set_dpi(90)
+    plt.savefig(out_fname)
 
 #A few useful derivation functions
 #take discret derivative of a series (shortens series by 1)
@@ -228,6 +258,7 @@ def means(serieses):
     res = []
     for series in serieses:
         res.append(stats.mean(map(lambda x: x, series)))
+    return res
 
 class IOStat(TimeSeriesCollection):
     file_hdr_line   = line("Linux.*", [])

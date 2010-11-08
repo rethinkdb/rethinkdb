@@ -82,6 +82,8 @@ public:
             strcpy(host, "localhost");
             latency_file[0] = 0;
             qps_file[0] = 0;
+            out_file[0] = 0;
+            in_file[0] = 0;
         }
 
     void print() {
@@ -109,23 +111,6 @@ public:
         printf("\nBatch factor......");
         batch_factor.print();
         printf("\n");
-
-        printf("\n--- Networking ---\n");
-        printf("Host..............%s\nPort..............%d\n", host, port);
-        
-        printf("\n--- Data files ---\n");
-        printf("Latency file......");
-        if(latency_file[0] != 0) {
-            printf("%s\n", latency_file);
-        } else {
-            printf("[N/A]\n");
-        }
-        printf("QPS file..........");
-        if(qps_file[0] != 0) {
-            printf("%s\n", qps_file);
-        } else {
-            printf("[N/A]\n");
-        }
     }
     
 public:
@@ -140,6 +125,8 @@ public:
     distr_t batch_factor;
     char latency_file[MAX_FILE];
     char qps_file[MAX_FILE];
+    char out_file[MAX_FILE];
+    char in_file[MAX_FILE];
 };
 
 #endif // __CONFIG_HPP__

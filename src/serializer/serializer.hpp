@@ -26,6 +26,7 @@ struct serializer_t :
     these functions. They can be safely called from any thread. */
     
     virtual void *malloc() = 0;
+    virtual void *clone(void*) = 0; // clones a buf
     virtual void free(void*) = 0;
     
     /* Reading a block from the serializer */

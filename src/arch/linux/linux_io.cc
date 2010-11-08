@@ -260,6 +260,8 @@ void linux_direct_file_t::set_size_at_least(size_t size) {
     } else {
         /* Grow in large chunks at a time */
         if (file_size < size) {
+            // TODO: we should make the growth rate of a db file
+            // configurable.
             set_size(ceil_aligned(size, DEVICE_BLOCK_SIZE * 128));
         }
     }

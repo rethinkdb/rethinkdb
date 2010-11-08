@@ -14,6 +14,7 @@ mc_buf_t::mc_buf_t(cache_t *cache, block_id_t block_id, block_available_callback
       block_id(block_id),
       cached(false),
       do_delete(false),
+      cow_data(NULL),
       writeback_buf(this),
       page_repl_buf(this),
       concurrency_buf(this),
@@ -78,6 +79,7 @@ mc_buf_t::mc_buf_t(cache_t *cache)
       block_id(cache->free_list.gen_block_id()),
       cached(true),
       do_delete(false),
+      cow_data(NULL),
       writeback_buf(this),
       page_repl_buf(this),
       concurrency_buf(this),
@@ -119,6 +121,33 @@ void mc_buf_t::release() {
     
     pm_n_bufs_released++;
     concurrency_buf.release();
+    
+    /*
+    // If this code is not commented out, then it will cause bufs to be unloaded very aggressively.
+    // This is useful for catching bugs in which something expects a buf to remain valid even though
+    // it is eligible to be unloaded.
+    
+    if (safe_to_unload()) {
+        delete this;
+    }
+    */
+}
+
+void mc_buf_t::release_cow() {
+    
+    assert(cow_data);
+    cache->assert_cpu();
+    pm_n_bufs_released++;
+
+    if(cow_data == data) {
+        // The block has not been copied
+        cow_data = NULL;
+    } else {
+        // The block has been copied while it was locked for COW. We
+        // can now free cow_data.
+        cache->serializer->free(cow_data);
+        cow_data = NULL;
+    }
     
     /*
     // If this code is not commented out, then it will cause bufs to be unloaded very aggressively.
@@ -176,6 +205,11 @@ bool mc_buf_t::safe_to_unload() {
 
 bool mc_buf_t::safe_to_delete() {
     return load_callbacks.empty();
+}
+
+void mc_buf_t::do_cow_copy() {
+    assert(cow_data);
+    data = cache->serializer->clone(data);
 }
 
 /**
@@ -269,9 +303,51 @@ mc_buf_t *mc_transaction_t::allocate(block_id_t *block_id) {
     return buf;
 }
 
+struct acquire_lock_callback_t : public mc_block_available_callback_t,
+                                 public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, acquire_lock_callback_t >
+{
+    acquire_lock_callback_t(mc_transaction_t *_transaction,
+                            mc_block_available_callback_t *_callback,
+                            access_t _mode)
+        : transaction(_transaction),
+          callback(_callback),
+          mode(_mode)
+        {}
+    
+    virtual void on_block_available(mc_buf_t *buf) {
+        // Block has been unlocked and is now available to us
+        transaction->process_buf(buf, mode);
+        if(callback) {
+            callback->on_block_available(buf);
+        }
+        delete this;
+    }
+
+private:
+    mc_transaction_t *transaction;
+    mc_block_available_callback_t *callback;
+    access_t mode;
+};
+        
+void mc_transaction_t::process_buf(mc_buf_t *buf, access_t mode) {
+    if(buf->cow_data && buf->data == buf->cow_data && mode == rwi_write) {
+        // Gotta do copy on write
+        buf->do_cow_copy();
+    } else if(mode == rwi_read_outdated_ok) {
+        // One rwi_read_outdated_ok at a time
+        assert(buf->cow_data == NULL);
+        // set the cow_data
+        buf->cow_data = buf->data;
+        // since rwi_read_outdated_ok is only done by writeback, the
+        // block can't be unloaded
+        buf->concurrency_buf.release();
+    }
+    pm_n_bufs_ready++;
+}
+
 mc_buf_t *mc_transaction_t::acquire(block_id_t block_id, access_t mode,
                                block_available_callback_t *callback) {
-    assert(mode == rwi_read || access != rwi_read);
+    assert(mode == rwi_read || mode == rwi_read_outdated_ok || access != rwi_read);
        
     pm_n_bufs_acquired++;
 
@@ -280,7 +356,14 @@ mc_buf_t *mc_transaction_t::acquire(block_id_t block_id, access_t mode,
         
         /* Unlike in allocate(), we aren't creating a new block; the block already existed but we
         are creating a buf to represent it in memory, and then loading it from disk. */
-        
+
+        // Currently only flush code acquires a buf with
+        // rwi_read_outdated_ok, and it only does it for bufs that are
+        // already in memory (dirty bufs can't be pushed
+        // out). Therefore if !buf &&mode == rwi_read_outdated_ok,
+        // something is very wrong.
+        assert(mode != rwi_read_outdated_ok);
+
         // If we are getting low on memory, kick out old blocks
         cache->page_repl.make_space(1);
         
@@ -303,22 +386,34 @@ mc_buf_t *mc_transaction_t::acquire(block_id_t block_id, access_t mode,
         }
         
     } else {
-        
         assert(!buf->do_delete);
-        
-        bool acquired = buf->concurrency_buf.acquire(mode, callback);
+        // We only allow one acquisition for COW at a time
+        assert(mode != rwi_read_outdated_ok || !buf->cow_data);
 
-        if (!acquired) {
+        acquire_lock_callback_t *_callback = new acquire_lock_callback_t(this, callback, mode);
+        access_t _mode = mode;
+        if(_mode == rwi_read_outdated_ok)
+            _mode = rwi_read;
+        bool acquired = buf->concurrency_buf.acquire(_mode, _callback);
+
+        if (!acquired)
             return NULL;
-            
-        } else if(!buf->is_cached()) {
+        else
+            delete _callback;
+         
+        if(!buf->is_cached()) {
             // Acquired the block, but it's not cached yet, add
             // callback to load_callbacks.
             buf->add_load_callback(callback);
+
+            // Only writeback acquired blocks in rwi_read_outdated_ok
+            // mode, so if that's the case the block should be cached
+            // already
+            assert(mode != rwi_read_outdated_ok);
             return NULL;
             
         } else {
-            pm_n_bufs_ready++;
+            process_buf(buf, mode);
             return buf;
         }
     }
