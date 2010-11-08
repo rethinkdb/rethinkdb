@@ -111,7 +111,7 @@ class dbench():
             return "<a href=\"%s\"> <img src=\"%s\" width=\"450\" /> </a>" % (source, source)
 
         def flot(source, text):
-            return "<a href=\"%s\">%s</a>" % (self.hostname + self.flot_script_location + '#' + source, text)
+            return "<a href=\"%s\">%s</a>" % ('http://' + self.hostname + self.flot_script_location + '#' + source, text)
 
         def format_metadata(f):
             return locale.format("%.2f", f, grouping=True)
@@ -157,7 +157,7 @@ class dbench():
             # Add the qps plot image and metadata
             print >>res, '<table style="width: 910px;" class="runPlots">'
             print >>res, '<tr><td><h3 style="text-align: center">Queries per second</h3>'
-            print >>res, image(os.path.join(self.hostname, self.prof_dir, self.dir_str, 'qps' + run_name + '.png'))
+            print >>res, image('http://' + os.path.join(self.hostname, self.prof_dir, self.dir_str, 'qps' + run_name + '.png'))
 
             qps_mean = format_metadata(data.select('qps').stats()['qps']['mean'])
             qps_stdev = format_metadata(data.select('qps').stats()['qps']['stdev'])
@@ -197,7 +197,7 @@ class dbench():
 
             # Add the latency histogram image and metadata
             print >>res, '<td><h3 style="text-align: center">Latency in microseconds</h3>'
-            print >>res, image(os.path.join(self.hostname, self.prof_dir, self.dir_str, 'latency' + run_name + '.png'))
+            print >>res, image('http://' + os.path.join(self.hostname, self.prof_dir, self.dir_str, 'latency' + run_name + '.png'))
 
             latency_mean = format_metadata(data.select('latency').stats()['latency']['mean'])
             latency_stdev = format_metadata(data.select('latency').stats()['latency']['stdev'])
@@ -249,7 +249,7 @@ class dbench():
             # Plot the cross-run averages
             print >>res, '<p id="#server_meta" style="font-size:large">', 'Core scalability', '</p>'
             core_means.select('qps').plot(os.path.join(self.out_dir, self.dir_str, 'core_scalability'))
-            print >>res, image(os.path.join(self.hostname, self.prof_dir, self.dir_str, 'core_scalability' + '.png'))
+            print >>res, image('http://' + os.path.join(self.hostname, self.prof_dir, self.dir_str, 'core_scalability' + '.png'))
             
         except KeyError:
             print 'Not enough core runs to report data, that or a fuck up. Let\'s face it if we were betting men, we\'d bet on it being a fuck up' 
