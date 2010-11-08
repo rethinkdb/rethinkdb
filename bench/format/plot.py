@@ -31,6 +31,12 @@ class TimeSeries(list):
     def __init__(self, units):
         self.units = units
 
+class Plot():
+    def __init__(self, x, y):
+        assert len(x) == len(y)
+        self.x = x
+        self.y = y
+
 class default_empty_timeseries_dict(dict):
     units_line = line("([A-Za-z_]+)(\[[A-Za-z_]\]+)", [('key', 's'), ('units', 's')])
     def __getitem__(self, key):
@@ -46,6 +52,17 @@ class default_empty_timeseries_dict(dict):
             return TimeSeries(units)
     def copy(self):
         copy = default_empty_timeseries_dict()
+        copy.update(self)
+        return copy
+
+class default_empty_plot_dict(dict):
+    def __getitem__(self, key):
+        if key in self:
+            return self.get(key)
+        else:
+            return Plot([], [])
+    def copy(self):
+        copy = default_empty_plot_dict()
         copy.update(self)
         return copy
 
@@ -209,33 +226,59 @@ class TimeSeriesCollection():
         self.data[name] = function(tuple(args))
         return self
 
-def multi_plot(timeseries, out_fname):
-    fig = plt.figure()
-    ax = fig.add_subplot(111)
-    verts = []
+class PlotCollection():
+    def __init__(self, xlabel = None, ylabel = None):
+        self.data = default_empty_plot_dict()
+        self.xlabel = xlabel
+        self.ylabel = ylabel
 
-    xs = range(min(map(lambda x: min(map(lambda y: len(y[1]), x.data.iteritems())), timeseries)))
+    def plot(self, out_fname, normalize = False):
+        assert self.data
 
-    for z in range(len(timeseries)):
-        for series in timeseries[z].data.iteritems():
-            verts.append(zip(xs, series[1]))
+        queries_formatter = FuncFormatter(lambda x, pos: '%1.fk' % (x*1e-3))
+        font = fm.FontProperties(family=['sans-serif'],size='small',fname='/usr/share/fonts/truetype/aurulent_sans_regular.ttf')
+        fig = plt.figure()
+        # Set the margins for the plot to ensure a minimum of whitespace
+        ax = plt.axes([0.13,0.12,0.85,0.85])
+        labels = []
+        color_index = 0
+        for series in self.data.iteritems():
+            if normalize:
+                data_to_use = normalize(series[1])
+            else:
+                data_to_use = series[1].y
+            labels.append((ax.plot(series[1].x, data_to_use, colors[color_index]), series[0]))
+            color_index += 1
+         
+        for tick in ax.xaxis.get_major_ticks():
+            tick.label1.set_fontproperties(font)
+        for tick in ax.yaxis.get_major_ticks():
+            tick.label1.set_fontproperties(font)
 
-    poly = PolyCollection(verts, facecolors = colors[0:len(verts)])
-    poly.set_alpha(0.7)
-    ax.add_collection3d(poly, range(len(timeseries)), zdir='y')
+        ax.yaxis.set_major_formatter(queries_formatter)
+        if self.ylabel:
+            ax.set_ylabel(self.ylabel, fontproperties = font)
+        else:
+            ax.set_ylabel('Queries', fontproperties = font)
 
-    ax.set_xlabel('X')
-    ax.set_xlim3d(0, len(xs))
-    ax.set_ylabel('Y')
-    ax.set_ylim3d(-1, len(timeseries))
-    ax.set_zlabel('Z')
-    ax.set_zlim3d(0, max(map(lambda x: max(x), timeseries)))
-    fig.set_size_inches(5,3.7)
-    fig.set_dpi(90)
-    plt.savefig(out_fname)
+        if self.xlabel:
+            ax.set_xlabel(self.xlabel, fontproperties = font)
+        else:
+            ax.set_xlabel('Time (seconds)', fontproperties = font)
+
+        ax.set_xlim(0, max(self.data[self.data.keys()[0]].x) - 1)
+        if normalize:
+            ax.set_ylim(0, 1.0)
+        else:
+            ax.set_ylim(0, max(self.data[self.data.keys()[0]].y))
+        ax.grid(True)
+        plt.legend(tuple(map(lambda x: x[0], labels)), tuple(map(lambda x: x[1], labels)), loc=1, prop = font)
+        fig.set_size_inches(5,3.7)
+        fig.set_dpi(90)
+        plt.savefig(out_fname, bbox_inches="tight")
 
 #A few useful derivation functions
-#take discret derivative of a series (shortens series by 1)
+#take discret derivative of a series (shorter by 1)
 def differentiate(series):
 #series will be a tuple
     series = series[0]
