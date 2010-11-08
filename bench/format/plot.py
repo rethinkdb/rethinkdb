@@ -166,6 +166,9 @@ class TimeSeriesCollection():
         fig.set_size_inches(5,3.7)
         fig.set_dpi(90)
         plt.savefig(out_fname)
+        fig.set_size_inches(20,14.8)
+        fig.set_dpi(300)
+        plt.savefig(out_fname + '_large')
 
     def plot(self, out_fname, normalize = False):
         assert self.data
@@ -203,6 +206,9 @@ class TimeSeriesCollection():
         fig.set_size_inches(5,3.7)
         fig.set_dpi(90)
         plt.savefig(out_fname, bbox_inches="tight")
+        fig.set_size_inches(20,14.8)
+        fig.set_dpi(300)
+        plt.savefig(out_fname + '_large', bbox_inches="tight")
 
     def stats(self):
         res = {}
@@ -276,6 +282,9 @@ class PlotCollection():
         fig.set_size_inches(5,3.7)
         fig.set_dpi(90)
         plt.savefig(out_fname, bbox_inches="tight")
+        fig.set_size_inches(20,14.8)
+        fig.set_dpi(300)
+        plt.savefig(out_fname + '_large')
 
 #A few useful derivation functions
 #take discret derivative of a series (shorter by 1)
