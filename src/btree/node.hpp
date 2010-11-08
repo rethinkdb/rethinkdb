@@ -10,7 +10,6 @@
 
 struct btree_superblock_t {
     block_magic_t magic;
-    int64_t database_exists;
     block_id_t root_block;
 
     static const block_magic_t expected_magic;
