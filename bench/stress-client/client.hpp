@@ -157,6 +157,7 @@ private:
 struct client_data_t {
     config_t *config;
     shared_t *shared;
+    vector<payload_t> *keys;
 };
 
 /* The function that does the work */
@@ -172,10 +173,10 @@ void* run_client(void* data) {
     proto->connect(config);
 
     // Store the keys so we can run updates and deletes.
-    vector<payload_t> keys;
+    vector<payload_t> &keys = *(client_data->keys);
     vector<payload_t> op_keys;
     if(config->duration.units == duration_t::inserts_t) {
-        keys.reserve(config->duration.duration / config->clients);  // resize the vector right away
+        keys.reserve(keys.size() + config->duration.duration / config->clients);  // resize the vector right away
         
         // TODO: attempt to do this for queries and seconds
     }
@@ -296,11 +297,6 @@ void* run_client(void* data) {
     }
 
     delete proto;
-    
-    // Free all the keys
-    for(vector<payload_t>::iterator i = keys.begin(); i != keys.end(); i++) {
-        free(i->first);
-    }
 }
 
 #endif // __CLIENT_HPP__
