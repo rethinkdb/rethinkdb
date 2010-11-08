@@ -670,11 +670,6 @@ void check_slice(direct_file_t *file, file_knowledge *knog, int global_slice_num
 
 }
 
-void check_garbage_block_inferiority(direct_file_t *file, file_knowledge *knog) {
-    // TODO
-    // TODO consider doing this slice by slice.
-}
-
 void check_to_config_block(direct_file_t *file, file_knowledge *knog) {
     check_filesize(file, knog);
 
@@ -741,8 +736,6 @@ void check_after_config_block(direct_file_t *file, file_knowledge *knog) {
     for (int i = knog->config_block.this_serializer; i < knog->config_block.btree_config.n_slices; i += step) {
         check_slice(file, knog, i);
     }
-
-    check_garbage_block_inferiority(file, knog);  // TODO
 }
 
 void check_files(const fsck_config_t& cfg) {

@@ -116,10 +116,6 @@ namespace fsck {
 
       - LEARN transaction id.
 
-  * For each garbage block
-
-    - CHECK ser transaction id inferiority.
-
 */
 
 struct fsck_config_t {
