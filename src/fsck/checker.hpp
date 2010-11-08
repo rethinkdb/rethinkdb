@@ -93,33 +93,32 @@ namespace fsck {
 
     * Read the btree_superblock_t.
 
-      - CHECK database_exists.
-
       - LEARN root_block.
 
     * Walk tree
 
-      - CHECK ordering, balance, hash function, large buf, size limit.
+      - CHECK ordering, balance, hash function, large buf, size limit,
+        internal node last key.
 
       - LEARN which blocks are in the tree.
 
-      - LEARN transaction id
+      - LEARN transaction id.
 
     * For each non-deleted block unused by btree
 
-      - LEARN transaction id
+      - LEARN transaction id.
 
-      - REPORT error
+      - REPORT error.
 
     * For each deleted block
 
       - CHECK zerobuf.
 
-      - LEARN transaction id
+      - LEARN transaction id.
 
   * For each garbage block
 
-    - CHECK ser transaction id inferiority
+    - CHECK ser transaction id inferiority.
 
 */
 

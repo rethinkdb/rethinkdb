@@ -345,7 +345,7 @@ void btree_key_value_store_t::finish_start() {
 #define get16bits(d) ((((uint32_t)(((const uint8_t *)(d))[1])) << 8)\
                        +(uint32_t)(((const uint8_t *)(d))[0]) )
 
-uint32_t hash(btree_key *key) {
+uint32_t btree_key_value_store_t::hash(btree_key *key) {
     const char *data = key->contents;
     int len = key->size;
     uint32_t hash = len, tmp;

@@ -4,6 +4,9 @@
 #include "containers/segmented_vector.hpp"
 #include "serializer/log/log_serializer.hpp"
 #include "btree/key_value_store.hpp"  // TODO move serializer_config_block_t to its own file.
+#include "btree/node.hpp"
+#include "btree/leaf_node.hpp"
+#include "btree/internal_node.hpp"
 
 namespace fsck {
 
@@ -136,10 +139,11 @@ private:
 struct blockmaker {
     direct_file_t *file;
     file_knowledge *knog;
+    int global_slice_id;
     int local_slice_id;
     int mod_count;
     blockmaker(direct_file_t *file, file_knowledge *knog, int global_slice_id)
-        : file(file), knog(knog), local_slice_id(global_slice_id / knog->config_block.n_files),
+        : file(file), knog(knog), global_slice_id(global_slice_id), local_slice_id(global_slice_id / knog->config_block.n_files),
           mod_count(btree_key_value_store_t::compute_mod_count(knog->config_block.this_serializer, knog->config_block.n_files, knog->config_block.btree_config.n_slices)) { }
     ser_block_id_t to_ser_block_id(block_id_t id) {
         return translator_serializer_t::translate_block_id(id, mod_count, local_slice_id, CONFIG_BLOCK_ID + 1);
@@ -412,15 +416,139 @@ void check_config_block(direct_file_t *file, file_knowledge *knog) {
     btree_block config_block(file, knog, CONFIG_BLOCK_ID);
     serializer_config_block_t *buf = (serializer_config_block_t *)config_block.buf;
 
-    // TODO block_id and magic
-    
+    unrecoverable_fact(check_magic<serializer_config_block_t>(buf->magic), "serializer_config_block_t (at CONFIG_BLOCK_ID) has bad magic.");
+
     knog->config_block = *buf;
     assert(!knog->config_block_known);
     knog->config_block_known = true;
 }
 
+void check_hash(const blockmaker& maker, btree_key *key) {
+    unrecoverable_fact(btree_key_value_store_t::hash(key) % maker.knog->config_block.btree_config.n_slices == (unsigned)maker.global_slice_id,
+                       "key hashes to appropriate slice");
+}
+
+void check_value(blockmaker& maker, btree_value *value) {
+    // TODO implement.
+}
+
+void check_subtree_leaf_node(blockmaker& maker, btree_leaf_node *buf, btree_key *lo, btree_key *hi) {
+    /* Walk tree
+         - CHECK ordering, balance, hash function, value, size limit, internal node last key.
+         - LEARN which blocks are in the tree.  (This is done with the btree_block constructor.)
+         - LEARN transaction id.  (This is done with the btree_block constructor.) */
+
+    // TODO check field width
+
+    btree_key *prev_key = lo;
+    for (uint16_t i = 0; i < buf->npairs; ++i) {
+        uint16_t offset = buf->pair_offsets[i];
+        btree_leaf_pair *pair = leaf_node_handler::get_pair(buf, offset);
+
+        // CHECK size limit.
+        unrecoverable_fact(pair->key.size <= MAX_KEY_SIZE, "key size <= MAX_KEY_SIZE");
+
+        // CHECK hash function.
+        check_hash(maker, &pair->key);
+
+        // CHECK ordering (lo < key0 < key1 < ... < keyN-1)
+        unrecoverable_fact(prev_key == NULL || leaf_key_comp::compare(prev_key, &pair->key) < 0,
+                           "leaf node key ordering");
+
+        // CHECK value
+        check_value(maker, pair->value());
+
+        prev_key = &pair->key;
+    }
+    
+    // CHECK ordering (keyN-1 < hi)
+    unrecoverable_fact(prev_key == NULL || hi == NULL || leaf_key_comp::compare(prev_key, hi) < 0,
+                       "leaf node last key ordering");
+    
+
+}
+
+// Glorious mutual recursion.
+void check_subtree(blockmaker& maker, block_id_t id, btree_key *lo, btree_key *hi);
+
+void check_subtree_internal_node(blockmaker& maker, btree_internal_node *buf, btree_key *lo, btree_key *hi) {
+    /* Walk tree
+         - CHECK ordering, balance, hash function, value, size limit, internal node last key.
+         - LEARN which blocks are in the tree.  (This is done with the btree_block constructor.)
+         - LEARN transaction id.  (This is done with the btree_block constructor.) */
+
+    // TODO: check balance
+    // TODO: check field width
+
+    btree_key *prev_key = lo;
+    for (uint16_t i = 0; i < buf->npairs; ++i) {
+        uint16_t offset = buf->pair_offsets[i];
+        btree_internal_pair *pair = internal_node_handler::get_pair(buf, offset);
+
+        // CHECK size limit
+        unrecoverable_fact(pair->key.size <= MAX_KEY_SIZE, "key size <= MAX_KEY_SIZE");
+
+        if (i != buf->npairs - 1) {
+            // CHECK hash function.
+            check_hash(maker, &pair->key);
+            // * Walk tree (recursively).
+            check_subtree(maker, pair->lnode, prev_key, &pair->key);
+
+            // CHECK ordering.  (lo < key0 < key1 < ... < keyN-2)
+            unrecoverable_fact(prev_key == NULL || internal_key_comp::compare(prev_key, &pair->key) < 0,
+                               "internal node keys in order");
+        } else {
+            // CHECK internal node last key.
+            unrecoverable_fact(pair->key.size == 0, "last key in internal node has size zero");
+
+            // CHECK ordering.  (keyN-2 < hi)
+            unrecoverable_fact(prev_key == NULL || hi == NULL || internal_key_comp::compare(prev_key, hi) < 0,
+                               "internal node last key ordering");
+
+            // * Walk tree (recursively).
+            check_subtree(maker, pair->lnode, prev_key, hi);
+        }
+
+        prev_key = &pair->key;
+    }
+}
+
+void check_subtree(blockmaker& maker, block_id_t id, btree_key *lo, btree_key *hi) {
+    /* Walk tree */
+
+    btree_block node(maker, id);
+
+    if (check_magic<btree_leaf_node>(((btree_leaf_node *)node.buf)->magic)) {
+        check_subtree_leaf_node(maker, (btree_leaf_node *)node.buf, lo, hi);
+    } else if (check_magic<btree_internal_node>(((btree_internal_node *)node.buf)->magic)) {
+        check_subtree_internal_node(maker, (btree_internal_node *)node.buf, lo, hi);
+    } else {
+        unrecoverable_fact(0, "Bad magic on leaf or internal node.");
+    }
+}
+
 void check_slice(direct_file_t *file, file_knowledge *knog, int global_slice_number) {
     blockmaker maker(file, knog, global_slice_number);
+    /* *FOR EACH SLICE*
+       * Read the btree_superblock_t.
+         - LEARN root_block.
+       * Walk tree
+       */
+
+    // * Read the btree_superblock_t.
+    //   - LEARN root_block.
+    block_id_t root_block_id;
+    {
+        btree_block btree_superblock(maker, SUPERBLOCK_ID);
+        btree_superblock_t *buf = (btree_superblock_t *)btree_superblock.buf;
+        unrecoverable_fact(check_magic<btree_superblock_t>(buf->magic), "btree_superblock_t has bad magic.");
+        root_block_id = buf->root_block;
+    }
+
+    // * Walk tree
+    check_subtree(maker, root_block_id, NULL, NULL);
+
+
     
 
 

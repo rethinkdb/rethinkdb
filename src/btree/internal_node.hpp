@@ -20,7 +20,7 @@ class internal_key_comp;
 
 class internal_node_handler : public node_handler {
     friend class internal_key_comp;
-    public:
+public:
     static void init(size_t block_size, btree_internal_node *node);
     static void init(size_t block_size, btree_internal_node *node, btree_internal_node *lnode, uint16_t *offsets, int numpairs);
 
@@ -49,9 +49,10 @@ class internal_node_handler : public node_handler {
         return (internal_node_t *) ptr;
     }
 
-    protected:
-    static size_t pair_size(btree_internal_pair *pair);
     static btree_internal_pair *get_pair(const btree_internal_node *node, uint16_t offset);
+
+protected:
+    static size_t pair_size(btree_internal_pair *pair);
     static void delete_pair(btree_internal_node *node, uint16_t offset);
     static uint16_t insert_pair(btree_internal_node *node, btree_internal_pair *pair);
     static uint16_t insert_pair(btree_internal_node *node, block_id_t lnode, btree_key *key);
@@ -71,17 +72,17 @@ class internal_key_comp {
     bool operator()(const uint16_t offset1, const uint16_t offset2) {
         btree_key *key1 = offset1 == 0 ? key : &internal_node_handler::get_pair(node, offset1)->key;
         btree_key *key2 = offset2 == 0 ? key : &internal_node_handler::get_pair(node, offset2)->key;
-        int cmp;
+        return compare(key1, key2) < 0;
+    }
+    static int compare(btree_key *key1, btree_key *key2) {
         if (key1->size == 0 && key2->size == 0) //check for the special end pair
-            cmp = 0;
+            return 0;
         else if (key1->size == 0)
-            cmp = 1;
+            return 1;
         else if (key2->size == 0)
-            cmp = -1;
+            return -1;
         else
-            cmp = sized_strcmp(key1->contents, key1->size, key2->contents, key2->size);
-
-        return cmp < 0;
+            return sized_strcmp(key1->contents, key1->size, key2->contents, key2->size);
     }
 };
 
