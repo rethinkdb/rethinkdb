@@ -111,7 +111,7 @@ class dbench():
             return "<a href=\"%s\"> <img src=\"%s\" width=\"450\" /> </a>" % (source, source)
 
         def flot(source, text):
-            return "<a href=\"%s\">%s</a>" % (self.hostname + self.flot_script_location + '#' + source, text)
+            return "<a href=\"%s\">%s</a>" % ('http://' + self.hostname + self.flot_script_location + '#' + source, text)
 
         def format_metadata(f):
             return locale.format("%.2f", f, grouping=True)
@@ -157,7 +157,7 @@ class dbench():
             # Add the qps plot image and metadata
             print >>res, '<table style="width: 910px;" class="runPlots">'
             print >>res, '<tr><td><h3 style="text-align: center">Queries per second</h3>'
-            print >>res, image(os.path.join(self.hostname, self.prof_dir, self.dir_str, 'qps' + run_name + '.png'))
+            print >>res, image('http://' + os.path.join(self.hostname, self.prof_dir, self.dir_str, 'qps' + run_name + '.png'))
 
             qps_mean = format_metadata(data.select('qps').stats()['qps']['mean'])
             qps_stdev = format_metadata(data.select('qps').stats()['qps']['stdev'])
