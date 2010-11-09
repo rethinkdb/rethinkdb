@@ -104,7 +104,7 @@ void require_fact(bool fact, const char *test, const char *options, ...) {
         logERR("Checking '%s': FAIL\n", test);
         fail("ERROR: test '%s' failed!  To override, use options %s.", test, options);
     } else {
-        logDBG("Checking '%s': PASS", test);
+        logDBG("Checking '%s': PASS\n", test);
     }
 }
 
@@ -736,7 +736,7 @@ void check_after_config_block(direct_file_t *file, file_knowledge *knog) {
     }
 }
 
-void check_files(const fsck_config_t& cfg) {
+void check_files(const config_t& cfg) {
     // 1. Open.
     knowledge knog(cfg.input_filenames);
 

@@ -118,12 +118,12 @@ namespace fsck {
 
 */
 
-struct fsck_config_t {
+struct config_t {
     std::vector<std_string_t, gnew_alloc<std_string_t> > input_filenames;
     std_string_t log_file_name;
 };
 
-void check_files(const fsck_config_t& config);
+void check_files(const config_t& config);
 
 
 

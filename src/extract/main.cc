@@ -44,7 +44,7 @@ void parse_cmd_args(int argc, char **argv, extract_config_t *config) {
     optind = 1;  // reinit getopt.
     for (;;) {
         int do_help = 0;
-        struct option long_options[] =
+        const static struct option long_options[] =
             {
                 {"force-block-size", required_argument, 0, force_block_size},
                 {"force-extent-size", required_argument, 0, force_extent_size},
@@ -141,6 +141,4 @@ int main(int argc, char **argv) {
     }
 
     dumpfile(config);
-
-    return 0;
 }
