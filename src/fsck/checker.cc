@@ -730,8 +730,6 @@ void check_config_blocks(knowledge *knog) {
 void check_after_config_block(direct_file_t *file, file_knowledge *knog) {
     assert(knog->config_block_known);
 
-    // TODO figure out which slices.
-
     int step = knog->config_block.n_files;
     for (int i = knog->config_block.this_serializer; i < knog->config_block.btree_config.n_slices; i += step) {
         check_slice(file, knog, i);
