@@ -153,7 +153,7 @@ class TimeSeriesCollection():
 #don't have any data points on the histogram
             clipped_data = clip(series[1], 0, 6000)
             if clipped_data:
-                _, _, foo = ax.hist(clipped_data, bins=200, histtype='bar', facecolor = color, alpha = .5, label = series[0].capitalize())
+                _, _, foo = ax.hist(clipped_data, bins=200, histtype='bar', facecolor = color, alpha = .5, label = series[0])
                 hists.append(foo)
                 labels.append(series[0])
             else:
@@ -194,7 +194,7 @@ class TimeSeriesCollection():
                 data_to_use = normalize(series[1])
             else:
                 data_to_use = series[1]
-            labels.append((ax.plot(range(len(series[1])), data_to_use, colors[color_index]), series[0].capitalize()))
+            labels.append((ax.plot(range(len(series[1])), data_to_use, colors[color_index]), series[0]))
             color_index += 1
          
         for tick in ax.xaxis.get_major_ticks():
@@ -205,6 +205,7 @@ class TimeSeriesCollection():
         ax.yaxis.set_major_formatter(queries_formatter)
         ax.set_ylabel('Queries', fontproperties = font)
         ax.set_xlabel('Time (seconds)', fontproperties = font)
+
         ax.set_xlim(0, len(self.data[self.data.keys()[0]]) - 1)
         if normalize:
             ax.set_ylim(0, 1.0)

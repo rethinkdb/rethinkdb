@@ -158,7 +158,7 @@ class dbench():
             print >>res, '<span style="display: inline;">', flot('/' + self.prof_dir + '/' + self.dir_str + '/' + flot_data + run_name + '.js', '(explore data)</span>')
             
             # Build data for qps plot
-            qps_data = data.select('qps').remap('qps', 'rethinkdb')
+            qps_data = data.select('qps').remap('qps', 'RethinkDB')
 
             for competitor in competitor_data.iteritems():
                 qps_data += competitor[1].select('qps').remap('qps', competitor[0])
