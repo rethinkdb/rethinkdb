@@ -1,5 +1,6 @@
 import pdb
 import numpy as np
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 import matplotlib.mlab as mlab
 import matplotlib.font_manager as fm
@@ -182,8 +183,14 @@ class TimeSeriesCollection():
         queries_formatter = FuncFormatter(lambda x, pos: '%1.fk' % (x*1e-3))
         if not large:
             font = fm.FontProperties(family=['sans-serif'],size='small',fname='/usr/share/fonts/truetype/aurulent_sans_regular.ttf')
+            mpl.rcParams['xtick.major.pad'] = 4
+            mpl.rcParams['ytick.major.pad'] = 4
+            mpl.rcParams['lines.linewidth'] = 1
         else:
             font = fm.FontProperties(family=['sans-serif'],size=36,fname='/usr/share/fonts/truetype/aurulent_sans_regular.ttf')
+            mpl.rcParams['xtick.major.pad'] = 20
+            mpl.rcParams['ytick.major.pad'] = 20
+            mpl.rcParams['lines.linewidth'] = 5
         fig = plt.figure()
         # Set the margins for the plot to ensure a minimum of whitespace
         ax = plt.axes([0.13,0.12,0.85,0.85])
@@ -217,6 +224,8 @@ class TimeSeriesCollection():
             fig.set_dpi(90)
             plt.savefig(out_fname, bbox_inches="tight")
         else:
+            ax.yaxis.LABELPAD = 40
+            ax.xaxis.LABELPAD = 40
             fig.set_size_inches(20,14.8)
             fig.set_dpi(300)
             plt.savefig(out_fname, bbox_inches="tight")
