@@ -17,6 +17,7 @@
 
 // The signal handler for SIGSEGV
 void generic_crash_handler(int signum);
+void install_generic_crash_handler();
 
 void print_hd(void *buf, size_t offset, size_t length);
 

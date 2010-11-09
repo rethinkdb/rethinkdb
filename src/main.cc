@@ -1,5 +1,4 @@
 
-#include <signal.h>
 #include "config/cmd_args.hpp"
 #include "utils.hpp"
 #include "arch/arch.hpp"
@@ -13,14 +12,8 @@ int main(int argc, char *argv[]) {
     // ./rethinkdb-extract).
 
     consider_execve_side_executable(argc, argv, "extract");
-    
-    int res;
-    
-    struct sigaction action;
-    bzero((char*)&action, sizeof(action));
-    action.sa_handler = generic_crash_handler;
-    res = sigaction(SIGSEGV, &action, NULL);
-    check("Could not install SEGV handler", res < 0);
+
+    install_generic_crash_handler();
     
     // Parse command line arguments
     cmd_config_t config;

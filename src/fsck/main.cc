@@ -1,5 +1,12 @@
 #include <stdio.h>
 
-int main() {
-    printf("fsck is here.  Hello, world!\n");
+#include "utils.hpp"
+
+int main(int argc, char **argv) {
+    install_generic_crash_handler();
+
+
+
+
+
 }

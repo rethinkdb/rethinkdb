@@ -1,13 +1,22 @@
+#include "utils.hpp"
 
+#include <signal.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 #include <stdarg.h>
-#include "utils.hpp"
 #include "arch/arch.hpp"
 
 void generic_crash_handler(int signum) {
     fail("Internal crash detected.");
+}
+
+void install_generic_crash_handler() {
+    struct sigaction action;
+    bzero(&action, sizeof(action));
+    action.sa_handler = generic_crash_handler;
+    int res = sigaction(SIGSEGV, &action, NULL);
+    check("Could not install SEGV handler", res < 0);
 }
 
 void *malloc_aligned(size_t size, size_t alignment) {
