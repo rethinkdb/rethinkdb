@@ -138,6 +138,7 @@ void mc_buf_t::release_cow() {
     assert(cow_data);
     cache->assert_cpu();
     pm_n_bufs_released++;
+    pm_n_cows_destroyed++;
 
     if(cow_data == data) {
         // The block has not been copied
@@ -334,6 +335,7 @@ void mc_transaction_t::process_buf(mc_buf_t *buf, access_t mode) {
     if(buf->cow_data && buf->data == buf->cow_data && mode == rwi_write) {
         // Gotta do copy on write
         buf->do_cow_copy();
+        pm_n_cows_made++;
     } else if(mode == rwi_read_outdated_ok) {
         // One rwi_read_outdated_ok at a time
         assert(buf->cow_data == NULL);
