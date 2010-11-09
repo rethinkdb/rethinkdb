@@ -158,18 +158,27 @@ class dbench():
             print >>res, '<span style="display: inline;">', flot('/' + self.prof_dir + '/' + self.dir_str + '/' + flot_data + run_name + '.js', '(explore data)</span>')
             
             # Build data for qps plot
-            qps_data = data.select('qps').remap('qps', 'rethinkdb')
+            qps_data = data.select('qps').remap('qps', 'RethinkDB')
 
             for competitor in competitor_data.iteritems():
                 qps_data += competitor[1].select('qps').remap('qps', competitor[0])
 
             # Plot the qps data
             qps_data.plot(os.path.join(self.out_dir, self.dir_str, 'qps' + run_name))
+            qps_data.plot(os.path.join(self.out_dir, self.dir_str, 'qps' + run_name + '_large'), True)
 
             # Add the qps plot image and metadata
             print >>res, '<table style="width: 910px;" class="runPlots">'
             print >>res, '<tr><td><h3 style="text-align: center">Queries per second</h3>'
             print >>res, image('http://' + os.path.join(self.hostname, self.prof_dir, self.dir_str, 'qps' + run_name + '.png'))
+
+            cum_stats = {}
+            cum_stats['rdb_qps_mean'] = format_metadata(data.select('qps').stats()['qps']['mean'])
+            cum_stats['rdb_qps_stdev'] = format_metadata(data.select('qps').stats()['qps']['stdev'])
+
+            for competitor in competitor_data.iteritems():
+                cum_stats[competitor[0] + '_qps_mean'] = format_metadata(competitor[1].select('qps').stats()['qps']['mean'])
+                cum_stats[competitor[0] + '_qps_stdev']= format_metadata(competitor[1].select('qps').stats()['qps']['stdev'])
 
             qps_mean = format_metadata(data.select('qps').stats()['qps']['mean'])
             qps_stdev = format_metadata(data.select('qps').stats()['qps']['stdev'])
@@ -196,7 +205,7 @@ class dbench():
                                 </tr>
                             </table>
                         </td>
-                        """ % (qps_mean,qps_stdev,qps_mean,qps_stdev,qps_mean,qps_stdev)
+                        """ % (cum_stats.get('rdb_qps_mean', '8===D'), cum_stats.get('rdb_qps_stdev', '8===D'), cum_stats.get('membase_qps_mean', '8===D'), cum_stats.get('membase_qps_stdev', '8===D'), cum_stats.get('mysql_qps_mean', '8===D'), cum_stats.get('mysql_qps.stdev', '8===D'))
 
             # Build data for the latency histogram
             lat_data = data.select('latency').remap('latency', 'rethinkdb')
