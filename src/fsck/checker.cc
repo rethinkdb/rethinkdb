@@ -617,6 +617,13 @@ void check_subtree(blockmaker& maker, block_id_t id, btree_key *lo, btree_key *h
 }
 
 void check_slice_other_blocks(blockmaker& maker) {
+    // * For each non-deleted block unused by btree
+    //     - LEARN transaction id.
+    //     - REPORT error.
+    // * For each deleted block
+    //     - CHECK zerobuf.
+    //     - LEARN transaction id.
+
     ser_block_id_t min_block = translator_serializer_t::translate_block_id(0, maker.mod_count, maker.local_slice_id, CONFIG_BLOCK_ID + 1);
 
     segmented_vector_t<block_knowledge, MAX_BLOCK_ID>& block_info = maker.knog->block_info;
@@ -626,8 +633,10 @@ void check_slice_other_blocks(blockmaker& maker) {
             && info.transaction_id == NULL_SER_TRANSACTION_ID) {
             // Aha!  We have an unused block!  Crap.
 
+            // LEARN transaction id.
             btree_block b(maker.file, maker.knog, id);
 
+            // REPORT error.
             unrecoverable_fact(0, "block not used");
 
             // TODO more info about their contents.
@@ -635,7 +644,10 @@ void check_slice_other_blocks(blockmaker& maker) {
         if (flagged_off64_t::has_value(info.offset) && info.offset.parts.is_delete) {
             assert(info.transaction_id == NULL_SER_TRANSACTION_ID);
 
+            // LEARN transaction id.
             btree_block zeroblock(maker.file, maker.knog, id);
+
+            // CHECK zerobuf.
             unrecoverable_fact(log_serializer_t::zerobuf_magic == *((block_magic_t *)zeroblock.buf),
                                "deleted buf has zerobuf_magic");
         }
@@ -660,19 +672,13 @@ void check_slice(direct_file_t *file, file_knowledge *knog, int global_slice_num
         root_block_id = buf->root_block;
     }
 
-    // * Walk tree
-    check_subtree(maker, root_block_id, NULL, NULL);
+    if (root_block_id != NULL_BLOCK_ID) {
+        // * Walk tree
+        check_subtree(maker, root_block_id, NULL, NULL);
 
-    // * For each non-deleted block unused by btree
-    //     - LEARN transaction id.
-    //     - REPORT error.
-    // * For each deleted block
-    //     - CHECK zerobuf.
-    //     - LEARN transaction id.
+    }
+
     check_slice_other_blocks(maker);
-    
-
-
 }
 
 void check_to_config_block(direct_file_t *file, file_knowledge *knog) {
