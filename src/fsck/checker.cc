@@ -550,8 +550,6 @@ void check_subtree_internal_node(blockmaker& maker, btree_internal_node *buf, bt
          - LEARN which blocks are in the tree.  (This is done with the btree_block constructor.)
          - LEARN transaction id.  (This is done with the btree_block constructor.) */
 
-    // TODO: check balance
-
     // CHECK field width.
     {
         std::vector<uint16_t, gnew_alloc<uint16_t> > sorted_offsets(buf->pair_offsets, buf->pair_offsets + buf->npairs);
@@ -606,6 +604,15 @@ void check_subtree(blockmaker& maker, block_id_t id, btree_key *lo, btree_key *h
     /* Walk tree */
 
     btree_block node(maker, id);
+
+    // CHECK balance.
+    if (lo != NULL && hi != NULL) {
+        // (We're happy with an underfull root block.)
+        unrecoverable_fact(!node_handler::is_underfull(maker.knog->static_config.block_size - sizeof(data_block_manager_t::buf_data_t), (btree_node *)node.buf),
+                           "balanced node");
+    }
+
+
 
     if (check_magic<btree_leaf_node>(((btree_leaf_node *)node.buf)->magic)) {
         check_subtree_leaf_node(maker, (btree_leaf_node *)node.buf, lo, hi);
