@@ -149,8 +149,9 @@ class TimeSeriesCollection():
         labels = []
         hists = []
         for series, color in zip(self.data.iteritems(), colors):
-            if series[1]:
-                _, _, foo = ax.hist(clip(series[1], 0, 6000), bins=200, histtype='bar', facecolor = color, alpha = .5, label = series[0])
+            clipped_data = clip(series[1], 0, 6000)
+            if clipped_data:
+                _, _, foo = ax.hist(clipped_data, bins=200, histtype='bar', facecolor = color, alpha = .5, label = series[0])
                 hists.append(foo)
                 labels.append(series[0])
             else:
