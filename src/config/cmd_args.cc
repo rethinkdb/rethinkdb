@@ -285,6 +285,12 @@ void parse_cmd_args(int argc, char *argv[], cmd_config_t *config)
             config->store_static_config.serializer.extent_size,
             config->store_static_config.serializer.block_size);
     }
+    
+    if (config->store_static_config.serializer.extent_size == config->store_dynamic_config.serializer.file_zone_size) {
+        printf("WARNING: You made the extent size the same as the file zone size.\n"
+               "This is not a big problem, but it is better to use a huge or\n"
+               "unlimited zone size to get the effect you probably want.\n");
+    }
 }
 
 /* Printing the configuration */
