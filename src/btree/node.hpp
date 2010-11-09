@@ -54,7 +54,7 @@ enum metadata_flags {
     MEMCACHED_CAS     = 0x02,
     MEMCACHED_EXPTIME = 0x04,
     // DELETE_QUEUE   = 0x08, // If we implement this.
-    LARGE_VALUE       = 0x80,
+    LARGE_VALUE       = 0x80
 };
 
 // Note: Changing this struct changes the format of the data stored on disk.

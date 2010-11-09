@@ -49,8 +49,8 @@ public:
         return (internal_node_t *) ptr;
     }
 
-    static btree_internal_pair *get_pair(const btree_internal_node *node, uint16_t offset);
     static size_t pair_size(btree_internal_pair *pair);
+    static btree_internal_pair *get_pair(const btree_internal_node *node, uint16_t offset);
 
 protected:
     static void delete_pair(btree_internal_node *node, uint16_t offset);
