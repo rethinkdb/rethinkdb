@@ -130,12 +130,15 @@ class Server(object):
     # Special exit code that we pass to Valgrind to indicate an error
     valgrind_error_code = 100
     
+    # Server should not take more than %(server_create_time)d seconds to create database
+    server_create_time = 15
+    
     # Server should shut down within %(server_quit_time)d seconds of SIGINT
-    server_sigint_time = 3
+    server_sigint_time = 15
     
     # If server does not respond to SIGINT, give SIGTERM and then, after %(server_sigterm_time)
     # seconds, send SIGKILL 
-    server_sigterm_time = 3
+    server_sigterm_time = 15
     
     wait_interval = 0.25
     
@@ -182,9 +185,10 @@ class Server(object):
                 creator_server = subprocess.Popen(command_line,
                     stdout = creator_output, stderr = subprocess.STDOUT);
                 
-                dead = wait_with_timeout(creator_server, 5) is not None
+                dead = wait_with_timeout(creator_server, self.server_create_time) is not None
                 if not dead:
-                    raise ValueError("Server took longer than 5 seconds to create database.")
+                    raise ValueError("Server took longer than %d seconds to create database." %
+                        self.server_create_time)
         
         self.times_started = 0
     
