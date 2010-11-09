@@ -19,6 +19,7 @@ class server_t :
     public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, server_t>,
     public home_cpu_mixin_t,
     public logger_ready_callback_t,
+    public store_t::check_callback_t,
     public store_t::ready_callback_t,
     public conn_acceptor_t::shutdown_callback_t,
     public store_t::shutdown_callback_t,
@@ -64,6 +65,8 @@ private:
     
     void do_start_loggers();
     void on_logger_ready();
+    void do_check_store();
+    void on_store_check(bool is_existing);
     void do_start_store();
     void on_store_ready();
     void do_start_conn_acceptor();

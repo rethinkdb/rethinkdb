@@ -25,6 +25,36 @@ btree_key_value_store_t::btree_key_value_store_t(
     }
 }
 
+/* Function to check if any of the files seem to contain existing databases */
+
+struct check_existing_fsm_t
+    : public standard_serializer_t::check_callback_t
+{
+    int n_unchecked;
+    btree_key_value_store_t::check_callback_t *callback;
+    bool is_ok;
+    check_existing_fsm_t(int n_files, const char **db_filenames, btree_key_value_store_t::check_callback_t *cb)
+        : callback(cb)
+    {
+        n_unchecked = n_files;
+        is_ok = true;
+        for (int i = 0; i < n_files; i++)
+            standard_serializer_t::check_existing(db_filenames[i], this);
+    }
+    void on_serializer_check(bool ok) {
+        is_ok = is_ok && ok;
+        n_unchecked--;
+        if (n_unchecked == 0) {
+            callback->on_store_check(is_ok);
+            gdelete(this);
+        }
+    }
+};
+
+void btree_key_value_store_t::check_existing(int n_files, const char **db_filenames, check_callback_t *cb) {
+    
+    gnew<check_existing_fsm_t>(n_files, db_filenames, cb);
+}
 
 const block_magic_t serializer_config_block_t::expected_magic = { { 'c','f','g','_' } };
 
