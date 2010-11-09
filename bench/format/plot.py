@@ -149,9 +149,12 @@ class TimeSeriesCollection():
         labels = []
         hists = []
         for series, color in zip(self.data.iteritems(), colors):
-            _, _, foo = ax.hist(clip(series[1], 0, 6000), bins=200, histtype='bar', facecolor = color, alpha = .5, label = series[0])
-            hists.append(foo)
-            labels.append(series[0])
+            if series[1]:
+                _, _, foo = ax.hist(clip(series[1], 0, 6000), bins=200, histtype='bar', facecolor = color, alpha = .5, label = series[0])
+                hists.append(foo)
+                labels.append(series[0])
+            else:
+                print "Tried to make a histogram of a series of size 0"
 
         for tick in ax.xaxis.get_major_ticks():
             tick.label1.set_fontproperties(font)
