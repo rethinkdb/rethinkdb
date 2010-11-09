@@ -8,7 +8,6 @@
 namespace fsck {
 
 /*
-
   Here is a superset of the checks we're going to perform.
 
   - that block_size divides extent_size divides filesize.  (size ratio
@@ -43,79 +42,6 @@ namespace fsck {
 
   - that blocks in use have greater transaction ids than blocks not
     in use.  (supremacy check)
-*/
-
-
-
-/*
-  The general algorithm we use is straightforward and is as follows,
-  except that checks for "magic" are implicit.
-  
-  * Read the file static config.
-  
-    - CHECK block_size divides extent_size divides file_size.
-
-    - LEARN block_size, extent_size.
-
-  * Read metablocks
-
-    - CHECK metablock monotonicity.
-
-    - LEARN lba_shard_metablock_t[0:LBA_SHARD_FACTOR].
-
-  * Read the LBA shards
-
-    - CHECK that 0 <= block_ids <= MAX_BLOCK_ID.
-
-    - CHECK that each off64_t is in a real extent.
-
-    - CHECK that each block id is in the proper shard.
-
-    - CHECK that each offset is aligned to block_size.
-
-    - LEARN offsets for each block id.
-
-  * Read block 0 (the CONFIG_BLOCK_ID block)
-
-    - LEARN n_files, n_slices, serializer_number.
-
-  * Compare CONFIG_BLOCK_ID blocks.
-
-    - CHECK that n_files is correct in all files.
-
-    - CHECK that n_slices is the same in all files.
-
-    - CHECK that the db_magic is the same in all files.
-
-    - CHECK that the serializer_numbers are happy pigeons.
-
-  * *FOR EACH SLICE*
-
-    * Read the btree_superblock_t.
-
-      - LEARN root_block.
-
-    * Walk tree
-
-      - CHECK ordering, balance, hash function, large buf, size limit,
-        internal node last key.
-
-      - LEARN which blocks are in the tree.
-
-      - LEARN transaction id.
-
-    * For each non-deleted block unused by btree
-
-      - LEARN transaction id.
-
-      - REPORT error.
-
-    * For each deleted block
-
-      - CHECK zerobuf.
-
-      - LEARN transaction id.
-
 */
 
 struct config_t {

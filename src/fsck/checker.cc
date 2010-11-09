@@ -5,7 +5,7 @@
 #include "config/cmd_args.hpp"
 #include "containers/segmented_vector.hpp"
 #include "serializer/log/log_serializer.hpp"
-#include "btree/key_value_store.hpp"  // TODO move serializer_config_block_t to its own file.
+#include "btree/key_value_store.hpp"
 #include "btree/node.hpp"
 #include "btree/leaf_node.hpp"
 #include "btree/internal_node.hpp"
@@ -161,7 +161,6 @@ struct btree_block {
         unrecoverable_fact(knog->block_info.get_size() > ser_block_id, "block id in range");
         flagged_off64_t offset = knog->block_info[ser_block_id].offset;
 
-        // CHECK that the block exists, that the block id is not too high for this slice, perhaps.
         unrecoverable_fact(flagged_off64_t::has_value(offset), "block exists");
 
         file->read_blocking(offset.parts.value, knog->static_config->block_size, realbuf);
@@ -169,15 +168,12 @@ struct btree_block {
         data_block_manager_t::buf_data_t *block_header = (data_block_manager_t::buf_data_t *)realbuf;
         buf = (void *)(block_header + 1);
 
-        // CHECK that we have a valid ser_block_id_t in the header.
         unrecoverable_fact(block_header->block_id == ser_block_id, "block labeled with correct ser_block_id");
         ser_transaction_id_t transaction = block_header->transaction_id;
 
-        // CHECK that we have a valid ser_transaction_id_t.
         unrecoverable_fact(transaction >= FIRST_SER_TRANSACTION_ID, "transaction in block header >= FIRST_SER_TRANSACTION_ID");
         unrecoverable_fact(transaction <= knog->metablock->transaction_id, "transaction in block header >= supposed latest transaction id");
 
-        // LEARN the block's ser_transaction_id_t.
         knog->block_info[ser_block_id].transaction_id = transaction;
     }
     ~btree_block() {
@@ -194,10 +190,6 @@ void check_filesize(direct_file_t *file, file_knowledge *knog) {
 }
 
 void check_static_config(direct_file_t *file, file_knowledge *knog) {
-    /* Read the file static config.
-         - MAGIC
-         - CHECK block_size divides extent_size divides file_size.
-         - LEARN block_size, extent_size. */
     block header(DEVICE_BLOCK_SIZE, file, 0);
     static_header_t *buf = (static_header_t *)header.buf;
     
@@ -215,28 +207,17 @@ void check_static_config(direct_file_t *file, file_knowledge *knog) {
     logINF("static_header extent_size: %lu\n", extent_size);
     logINF("              file_size: %lu\n", file_size);
 
-    // MAGIC
     unrecoverable_fact(!strcmp(buf->software_name, SOFTWARE_NAME_STRING), "static_header software_name");
     unrecoverable_fact(!strcmp(buf->version, VERSION_STRING), "static_header version");
 
-    // CHECK block_size divides extent_size divides file_size.
-
-    // TODO option
     unrecoverable_fact(block_size % DEVICE_BLOCK_SIZE == 0, "block_size % DEVICE_BLOCK_SIZE");
     unrecoverable_fact(extent_size % block_size == 0, "extent_size % block_size");
     unrecoverable_fact(file_size % extent_size == 0, "file_size % extent_size");
 
-    // LEARN block_size, extent_size.
     knog->static_config = *static_cfg;
 }
 
 void check_metablock(direct_file_t *file, file_knowledge *knog) {
-    /* Read metablocks
-         - MAGIC
-         - CHECK metablock monotonicity.
-         - LEARN lba_shard_metablock_t[0:LBA_SHARD_FACTOR].
-    */
-
     std::vector<off64_t, gnew_alloc<off64_t> > metablock_offsets;
     initialize_metablock_offsets(knog->static_config->extent_size, &metablock_offsets);
 
@@ -313,7 +294,6 @@ void require_valid_device_block(file_knowledge *knog, off64_t offset, const char
 }
 
 void check_lba_extent(direct_file_t *file, file_knowledge *knog, unsigned int shard_number, off64_t extent_offset, int entries_count) {
-    // CHECK that each off64_t is a real extent.
     require_valid_extent(knog, extent_offset, "lba_extent_t offset");
     unrecoverable_fact(entries_count >= 0, "entries_count >= 0");
 
@@ -327,17 +307,11 @@ void check_lba_extent(direct_file_t *file, file_knowledge *knog, unsigned int sh
     for (int i = 0; i < entries_count; ++i) {
         lba_entry_t entry = buf->entries[i];
         
-        // CHECK that 0 <= block_ids <= MAX_BLOCK_ID.
         if (entry.block_id != NULL_SER_BLOCK_ID) {
             unrecoverable_fact(entry.block_id <= MAX_BLOCK_ID, "0 <= block_id <= MAX_BLOCK_ID");
-
-            // CHECK that each block id is in the proper shard.
             unrecoverable_fact(entry.block_id % LBA_SHARD_FACTOR == shard_number, "block_id in correct LBA shard");
-
-            // CHECK that each offset is aligned to block_size.
             require_valid_block(knog, entry.offset.parts.value, "lba offset aligned to block_size");
 
-            // LEARN offsets for each block id.
             if (knog->block_info.get_size() <= entry.block_id) {
                 knog->block_info.set_size(entry.block_id + 1, block_knowledge::unused);
             }
@@ -373,14 +347,6 @@ void check_lba_shard(direct_file_t *file, file_knowledge *knog, lba_shard_metabl
 
 
 void check_lba(direct_file_t *file, file_knowledge *knog) {
-    /* Read the LBA shards
-       - MAGIC
-       - CHECK that 0 <= block_ids <= MAX_BLOCK_ID.
-       - CHECK that each off64_t is in a real extent.
-       - CHECK that each block id is in the proper shard.
-       - CHECK that each offset is aligned to block_size.
-       - LEARN offsets for each block id.
-    */
     lba_shard_metablock_t *shards = knog->metablock->lba_index_part.shards;
 
     for (int i = 0; i < LBA_SHARD_FACTOR; ++i) {
@@ -389,9 +355,6 @@ void check_lba(direct_file_t *file, file_knowledge *knog) {
 }
 
 void check_config_block(direct_file_t *file, file_knowledge *knog) {
-    /* Read block 0 (the CONFIG_BLOCK_ID block)
-         - LEARN n_files, n_slices, serializer_number. */
-
     btree_block config_block(file, knog, CONFIG_BLOCK_ID);
     serializer_config_block_t *buf = (serializer_config_block_t *)config_block.buf;
 
@@ -406,9 +369,6 @@ void check_hash(const slicecx& cx, btree_key *key) {
 }
 
 void check_value(slicecx& cx, btree_value *value) {
-    // CHECK large buf.  (Check that size and num_segments are
-    // compatible, check that the block_id_ts are in use.)
-
     unrecoverable_fact(!(value->metadata_flags & ~(MEMCACHED_FLAGS | MEMCACHED_CAS | MEMCACHED_EXPTIME | LARGE_VALUE)),
                        "no unrecognized metadata flags");
 
@@ -457,13 +417,6 @@ bool leaf_node_inspect_range(const slicecx& cx, btree_leaf_node *buf, uint16_t o
 }
 
 void check_subtree_leaf_node(slicecx& cx, btree_leaf_node *buf, btree_key *lo, btree_key *hi) {
-    /* Walk tree
-         - CHECK ordering, balance, hash function, value, size limit, internal node last key,
-           field width.
-         - LEARN which blocks are in the tree.  (This is done with the btree_block constructor.)
-         - LEARN transaction id.  (This is done with the btree_block constructor.) */
-
-    // CHECK field width.
     {
         std::vector<uint16_t, gnew_alloc<uint16_t> > sorted_offsets(buf->pair_offsets, buf->pair_offsets + buf->npairs);
         std::sort(sorted_offsets.begin(), sorted_offsets.end());
@@ -483,23 +436,16 @@ void check_subtree_leaf_node(slicecx& cx, btree_leaf_node *buf, btree_key *lo, b
         uint16_t offset = buf->pair_offsets[i];
         btree_leaf_pair *pair = leaf_node_handler::get_pair(buf, offset);
 
-        // CHECK size limit.
         unrecoverable_fact(pair->key.size <= MAX_KEY_SIZE, "key size <= MAX_KEY_SIZE");
-
-        // CHECK hash function.
         check_hash(cx, &pair->key);
-
-        // CHECK ordering (lo < key0 < key1 < ... < keyN-1)
         unrecoverable_fact(prev_key == NULL || leaf_key_comp::compare(prev_key, &pair->key) < 0,
                            "leaf node key ordering");
 
-        // CHECK value
         check_value(cx, pair->value());
 
         prev_key = &pair->key;
     }
     
-    // CHECK ordering (keyN-1 < hi)
     unrecoverable_fact(prev_key == NULL || hi == NULL || leaf_key_comp::compare(prev_key, hi) < 0,
                        "leaf node last key ordering");
 }
@@ -512,13 +458,6 @@ bool internal_node_begin_offset_in_range(const slicecx& cx, btree_internal_node 
 void check_subtree(slicecx& cx, block_id_t id, btree_key *lo, btree_key *hi);
 
 void check_subtree_internal_node(slicecx& cx, btree_internal_node *buf, btree_key *lo, btree_key *hi) {
-    /* Walk tree
-         - CHECK ordering, balance, hash function, value, size limit, internal node last key,
-           field width.
-         - LEARN which blocks are in the tree.  (This is done with the btree_block constructor.)
-         - LEARN transaction id.  (This is done with the btree_block constructor.) */
-
-    // CHECK field width.
     {
         std::vector<uint16_t, gnew_alloc<uint16_t> > sorted_offsets(buf->pair_offsets, buf->pair_offsets + buf->npairs);
         std::sort(sorted_offsets.begin(), sorted_offsets.end());
@@ -540,27 +479,20 @@ void check_subtree_internal_node(slicecx& cx, btree_internal_node *buf, btree_ke
         uint16_t offset = buf->pair_offsets[i];
         btree_internal_pair *pair = internal_node_handler::get_pair(buf, offset);
 
-        // CHECK size limit
         unrecoverable_fact(pair->key.size <= MAX_KEY_SIZE, "key size <= MAX_KEY_SIZE");
 
         if (i != buf->npairs - 1) {
-            // CHECK hash function.
             check_hash(cx, &pair->key);
-            // * Walk tree (recursively).
+
             check_subtree(cx, pair->lnode, prev_key, &pair->key);
 
-            // CHECK ordering.  (lo < key0 < key1 < ... < keyN-2)
             unrecoverable_fact(prev_key == NULL || internal_key_comp::compare(prev_key, &pair->key) < 0,
                                "internal node keys in order");
         } else {
-            // CHECK internal node last key.
             unrecoverable_fact(pair->key.size == 0, "last key in internal node has size zero");
-
-            // CHECK ordering.  (keyN-2 < hi)
             unrecoverable_fact(prev_key == NULL || hi == NULL || internal_key_comp::compare(prev_key, hi) < 0,
                                "internal node last key ordering");
 
-            // * Walk tree (recursively).
             check_subtree(cx, pair->lnode, prev_key, hi);
         }
 
@@ -573,7 +505,6 @@ void check_subtree(slicecx& cx, block_id_t id, btree_key *lo, btree_key *hi) {
 
     btree_block node(cx, id);
 
-    // CHECK balance.
     if (lo != NULL && hi != NULL) {
         // (We're happy with an underfull root block.)
         unrecoverable_fact(!node_handler::is_underfull(cx.knog->static_config->block_size - sizeof(data_block_manager_t::buf_data_t), (btree_node *)node.buf),
@@ -592,13 +523,6 @@ void check_subtree(slicecx& cx, block_id_t id, btree_key *lo, btree_key *hi) {
 }
 
 void check_slice_other_blocks(slicecx& cx) {
-    // * For each non-deleted block unused by btree
-    //     - LEARN transaction id.
-    //     - REPORT error.
-    // * For each deleted block
-    //     - CHECK zerobuf.
-    //     - LEARN transaction id.
-
     ser_block_id_t min_block = translator_serializer_t::translate_block_id(0, cx.mod_count, cx.local_slice_id, CONFIG_BLOCK_ID + 1);
 
     segmented_vector_t<block_knowledge, MAX_BLOCK_ID>& block_info = cx.knog->block_info;
@@ -607,22 +531,16 @@ void check_slice_other_blocks(slicecx& cx) {
         if (flagged_off64_t::has_value(info.offset) && !info.offset.parts.is_delete
             && info.transaction_id == NULL_SER_TRANSACTION_ID) {
             // Aha!  We have an unused block!  Crap.
-
-            // LEARN transaction id.
+            
             btree_block b(cx.file, cx.knog, id);
 
-            // REPORT error.
             unrecoverable_fact(0, "block not used");
-
-            // TODO more info about their contents.
         } 
         if (flagged_off64_t::has_value(info.offset) && info.offset.parts.is_delete) {
             assert(info.transaction_id == NULL_SER_TRANSACTION_ID);
 
-            // LEARN transaction id.
             btree_block zeroblock(cx.file, cx.knog, id);
 
-            // CHECK zerobuf.
             unrecoverable_fact(log_serializer_t::zerobuf_magic == *((block_magic_t *)zeroblock.buf),
                                "deleted buf has zerobuf_magic");
         }
@@ -631,14 +549,6 @@ void check_slice_other_blocks(slicecx& cx) {
 
 void check_slice(direct_file_t *file, file_knowledge *knog, int global_slice_number) {
     slicecx cx(file, knog, global_slice_number);
-    /* *FOR EACH SLICE*
-       * Read the btree_superblock_t.
-         - LEARN root_block.
-       * Walk tree
-       */
-
-    // * Read the btree_superblock_t.
-    //   - LEARN root_block.
     block_id_t root_block_id;
     {
         btree_block btree_superblock(cx, SUPERBLOCK_ID);
@@ -648,9 +558,7 @@ void check_slice(direct_file_t *file, file_knowledge *knog, int global_slice_num
     }
 
     if (root_block_id != NULL_BLOCK_ID) {
-        // * Walk tree
         check_subtree(cx, root_block_id, NULL, NULL);
-
     }
 
     check_slice_other_blocks(cx);
@@ -669,12 +577,6 @@ void check_to_config_block(direct_file_t *file, file_knowledge *knog) {
 }
 
 void check_config_blocks(knowledge *knog) {
-    /* Compare CONFIG_BLOCK_ID blocks.
-         - CHECK that n_files is correct in all files.
-         - CHECK that n_slices is the same in all files.
-         - CHECK that the db_magic is the same in all files.
-         - CHECK that the serializer_numbers are happy pigeons. */
-    
     int num_files = knog->filenames.size();
 
     std::vector<int, gnew_alloc<int> > this_serializer_counts(num_files, 0);
@@ -726,15 +628,12 @@ void check_files(const config_t& cfg) {
 
     unrecoverable_fact(num_files > 0, "a positive number of files");
 
-    // 2. Read some (and check).  This could be parallelized.
     for (int i = 0; i < num_files; ++i) {
         check_to_config_block(knog.files[i], knog.file_knog[i]);
     }
 
-    // 3. Check.
     check_config_blocks(&knog);
 
-    // 4. Read some more (and check).  This could be parallelized.
     for (int i = 0; i < num_files; ++i) {
         check_after_config_block(knog.files[i], knog.file_knog[i]);
     }
