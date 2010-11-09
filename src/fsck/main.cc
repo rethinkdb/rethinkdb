@@ -2,6 +2,7 @@
 #include <stdio.h>
 
 #include "fsck/checker.hpp"
+#include "logger.hpp"
 #include "utils.hpp"
 
 namespace fsck {
