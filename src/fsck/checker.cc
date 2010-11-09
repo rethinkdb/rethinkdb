@@ -17,21 +17,15 @@ namespace fsck {
 struct block_knowledge {
     // The offset found in the LBA.
     flagged_off64_t offset;
-    
-    // If known, what is the serializer transaction id (of the current
-    // instance of the block)?  If not known, the value is
-    // NULL_SER_TRANSACTION_ID.  If the value is known, that means
-    // (for non-deleted blocks) that the block is "used," since we
-    // update the value when we read the buffer at the above offset.
+
+    // The serializer transaction id we saw when we've read the block.
+    // Or, NULL_SER_TRANSACTION_ID, if we have not read the block.
     ser_transaction_id_t transaction_id;
 
-    static block_knowledge unused() {
-        block_knowledge ret;
-        ret.offset = flagged_off64_t::unused();
-        ret.transaction_id = NULL_SER_TRANSACTION_ID;
-        return ret;
-    }
+    static const block_knowledge unused;
 };
+
+const block_knowledge block_knowledge::unused = { flagged_off64_t::unused(), NULL_SER_TRANSACTION_ID };
 
 // The knowledge we have about a particular file is gathered here.
 struct file_knowledge {
@@ -98,16 +92,6 @@ private:
 };
 
 
-void require_fact(bool fact, const char *test, const char *options) {
-    // TODO varargs
-    if (!fact) {
-        logERR("Checking '%s': FAIL\n", test);
-        fail("ERROR: test '%s' failed!  To override, use options %s.", test, options);
-    } else {
-        logDBG("Checking '%s': PASS\n", test);
-    }
-}
-
 void unrecoverable_fact(bool fact, const char *test) {
     // TODO varargs
     if (!fact) {
@@ -117,15 +101,6 @@ void unrecoverable_fact(bool fact, const char *test) {
         logDBG("Checking '%s': PASS\n", test);
     }
 }
-
-bool check_fact(bool fact, const char *msg) {
-    // TODO record errors.
-    if (!fact) {
-        logWRN("Checking '%s': FAIL\n", msg);
-    }
-    return fact;
-}
-
 
 struct block {
     void *buf;
@@ -139,28 +114,28 @@ private:
 };
 
 // This doesn't really make the blocks, but it's a nice name.  See btree_block below.
-struct blockmaker {
+struct slicecx {
     direct_file_t *file;
     file_knowledge *knog;
     int global_slice_id;
     int local_slice_id;
     int mod_count;
-    blockmaker(direct_file_t *file, file_knowledge *knog, int global_slice_id)
+    slicecx(direct_file_t *file, file_knowledge *knog, int global_slice_id)
         : file(file), knog(knog), global_slice_id(global_slice_id), local_slice_id(global_slice_id / knog->config_block.n_files),
           mod_count(btree_key_value_store_t::compute_mod_count(knog->config_block.this_serializer, knog->config_block.n_files, knog->config_block.btree_config.n_slices)) { }
     ser_block_id_t to_ser_block_id(block_id_t id) {
         return translator_serializer_t::translate_block_id(id, mod_count, local_slice_id, CONFIG_BLOCK_ID + 1);
     }
 private:
-    DISABLE_COPYING(blockmaker);
+    DISABLE_COPYING(slicecx);
 };
 
 struct btree_block {
     // buf is a fake!  buf is sizeof(buf_data_t) greater than realbuf, which is below.
     void *buf;
 
-    btree_block(blockmaker &maker, block_id_t block_id) : buf(NULL) {
-        init(maker.file, maker.knog, maker.to_ser_block_id(block_id));
+    btree_block(slicecx &cx, block_id_t block_id) : buf(NULL) {
+        init(cx.file, cx.knog, cx.to_ser_block_id(block_id));
     }
     // for when we already have the ser_block_id, which is probably
     // just for loading the CONFIG_BLOCK_ID block.
@@ -231,17 +206,15 @@ void check_static_config(direct_file_t *file, file_knowledge *knog) {
     logINF("              file_size: %lu\n", file_size);
 
     // MAGIC
-    require_fact(!strcmp(buf->software_name, SOFTWARE_NAME_STRING),
-                 "static_header software_name", "--ignore-static-header-magic");  // TODO option
-    require_fact(!strcmp(buf->version, VERSION_STRING),
-                 "static_header version", "--ignore-static-header-magic");
+    unrecoverable_fact(!strcmp(buf->software_name, SOFTWARE_NAME_STRING), "static_header software_name");
+    unrecoverable_fact(!strcmp(buf->version, VERSION_STRING), "static_header version");
 
     // CHECK block_size divides extent_size divides file_size.
 
     // TODO option
-    require_fact(block_size % DEVICE_BLOCK_SIZE == 0, "block_size % DEVICE_BLOCK_SIZE", "--force-block-size --force-extent-size");
-    require_fact(extent_size % block_size == 0, "extent_size % block_size", "--force-block-size --force-extent-size");
-    require_fact(file_size % extent_size == 0, "file_size % extent_size", "--force-block-size --force-extent-size");
+    unrecoverable_fact(block_size % DEVICE_BLOCK_SIZE == 0, "block_size % DEVICE_BLOCK_SIZE");
+    unrecoverable_fact(extent_size % block_size == 0, "extent_size % block_size");
+    unrecoverable_fact(file_size % extent_size == 0, "file_size % extent_size");
 
     // LEARN block_size, extent_size.
     knog->static_config = *static_cfg;
@@ -278,10 +251,10 @@ void check_metablock(direct_file_t *file, file_knowledge *knog) {
 
         if (metablock->check_crc()) {
             // MAGIC
-            check_fact(!memcmp(metablock->magic_marker, MB_MARKER_MAGIC, sizeof(MB_MARKER_MAGIC))
-                       && !memcmp(metablock->crc_marker, MB_MARKER_CRC, sizeof(MB_MARKER_CRC))
-                       && !memcmp(metablock->version_marker, MB_MARKER_VERSION, sizeof(MB_MARKER_VERSION)),
-                       "metablock magic");
+            unrecoverable_fact(!memcmp(metablock->magic_marker, MB_MARKER_MAGIC, sizeof(MB_MARKER_MAGIC))
+                               && !memcmp(metablock->crc_marker, MB_MARKER_CRC, sizeof(MB_MARKER_CRC))
+                               && !memcmp(metablock->version_marker, MB_MARKER_VERSION, sizeof(MB_MARKER_VERSION)),
+                               "metablock magic");
 
             if (high_version < metablock->version) {
                 high_version = metablock->version;
@@ -298,15 +271,15 @@ void check_metablock(direct_file_t *file, file_knowledge *knog) {
             for (int i = 0; i < DEVICE_BLOCK_SIZE; ++i) {
                 all_zero &= (buf[i] == 0);
             }
-            check_fact(all_zero, "metablock crc");
+            unrecoverable_fact(all_zero, "metablock crc");
         }
     }
 
     unrecoverable_fact(high_version_index != -1, "expecting some nonzero metablocks");
 
-    require_fact(high_version_index == high_transaction_index,
-                 "metablocks' metablock_version_t and ser_transaction_id are equally monotonic",
-                 "--tolerate-metablock-disorder");  // TODO option
+    unrecoverable_fact(high_version_index == high_transaction_index,
+                       "metablocks' metablock_version_t and ser_transaction_id are equally monotonic");
+
 
     // Reread the best block, based on the metablock version.
     block high_block(DEVICE_BLOCK_SIZE, file, metablock_offsets[high_version_index]);
@@ -362,7 +335,7 @@ void check_lba_extent(direct_file_t *file, file_knowledge *knog, unsigned int sh
 
             // LEARN offsets for each block id.
             if (knog->block_info.get_size() <= entry.block_id) {
-                knog->block_info.set_size(entry.block_id + 1, block_knowledge::unused());
+                knog->block_info.set_size(entry.block_id + 1, block_knowledge::unused);
             }
             knog->block_info[entry.block_id].offset = entry.offset;
         }
@@ -432,12 +405,12 @@ void check_config_block(direct_file_t *file, file_knowledge *knog) {
     knog->config_block_known = true;
 }
 
-void check_hash(const blockmaker& maker, btree_key *key) {
-    unrecoverable_fact(btree_key_value_store_t::hash(key) % maker.knog->config_block.btree_config.n_slices == (unsigned)maker.global_slice_id,
+void check_hash(const slicecx& cx, btree_key *key) {
+    unrecoverable_fact(btree_key_value_store_t::hash(key) % cx.knog->config_block.btree_config.n_slices == (unsigned)cx.global_slice_id,
                        "key hashes to appropriate slice");
 }
 
-void check_value(blockmaker& maker, btree_value *value) {
+void check_value(slicecx& cx, btree_value *value) {
     // CHECK large buf.  (Check that size and num_segments are
     // compatible, check that the block_id_ts are in use.)
 
@@ -451,44 +424,44 @@ void check_value(blockmaker& maker, btree_value *value) {
         size_t size = value->value_size();
         unrecoverable_fact(size > MAX_IN_NODE_VALUE_SIZE, "large value value_size() > MAX_IN_NODE_VALUE_SIZE");
         block_id_t index_block_id = value->lv_index_block_id();
-        btree_block index_block(maker, index_block_id);
+        btree_block index_block(cx, index_block_id);
 
         large_buf_index *index_buf = (large_buf_index *)index_block.buf;
         // MAGIC
         unrecoverable_fact(check_magic<large_buf_index>(index_buf->magic), "large_buf_index magic");
 
-        int seg_size = maker.knog->static_config.block_size - sizeof(data_block_manager_t::buf_data_t) - sizeof(block_magic_t);
+        int seg_size = cx.knog->static_config.block_size - sizeof(data_block_manager_t::buf_data_t) - sizeof(block_magic_t);
         
         unrecoverable_fact(index_buf->first_block_offset < seg_size, "large buf first_block_offset < seg_size");
         unrecoverable_fact(index_buf->num_segments == ceil_aligned(index_buf->first_block_offset + size, seg_size),
                            "large buf num_segments agrees with first_block_offset and size");
 
         for (int i = 0, n = index_buf->num_segments; i < n; ++i) {
-            btree_block segment(maker, index_buf->blocks[i]);
+            btree_block segment(cx, index_buf->blocks[i]);
             unrecoverable_fact(check_magic<large_buf_segment>(((large_buf_segment *)segment.buf)->magic),
                                "large_buf_segment magic");
         }
     }
 }
 
-bool leaf_node_inspect_range(const blockmaker& maker, btree_leaf_node *buf, uint16_t offset) {
+bool leaf_node_inspect_range(const slicecx& cx, btree_leaf_node *buf, uint16_t offset) {
     // There are some completely bad HACKs here.  We subtract 3 for
     // pair->key.size, pair->value()->size, pair->value()->metadata_flags.
-    if (maker.knog->static_config.block_size - sizeof(data_block_manager_t::buf_data_t) - 3 >= offset
+    if (cx.knog->static_config.block_size - sizeof(data_block_manager_t::buf_data_t) - 3 >= offset
         && offset >= buf->frontmost_offset) {
         btree_leaf_pair *pair = leaf_node_handler::get_pair(buf, offset);
         btree_value *value = pair->value();
         uint32_t value_offset = (((byte *)value) - ((byte *)pair)) + offset;
         // The other HACK: We subtract 2 for value->size, value->metadata_flags.
-        if (value_offset <= maker.knog->static_config.block_size - sizeof(data_block_manager_t::buf_data_t) - 2) {
+        if (value_offset <= cx.knog->static_config.block_size - sizeof(data_block_manager_t::buf_data_t) - 2) {
             uint32_t tot_offset = value_offset + value->mem_size();
-            return (maker.knog->static_config.block_size - sizeof(data_block_manager_t::buf_data_t) >= tot_offset);
+            return (cx.knog->static_config.block_size - sizeof(data_block_manager_t::buf_data_t) >= tot_offset);
         }
     }
     return false;
 }
 
-void check_subtree_leaf_node(blockmaker& maker, btree_leaf_node *buf, btree_key *lo, btree_key *hi) {
+void check_subtree_leaf_node(slicecx& cx, btree_leaf_node *buf, btree_key *lo, btree_key *hi) {
     /* Walk tree
          - CHECK ordering, balance, hash function, value, size limit, internal node last key,
            field width.
@@ -503,10 +476,10 @@ void check_subtree_leaf_node(blockmaker& maker, btree_leaf_node *buf, btree_key 
 
         for (int i = 0, n = sorted_offsets.size(); i < n; ++i) {
             unrecoverable_fact(sorted_offsets[i] == expected_offset, "noncontiguous offsets");
-            unrecoverable_fact(leaf_node_inspect_range(maker, buf, expected_offset), "offset + value width out of range");
+            unrecoverable_fact(leaf_node_inspect_range(cx, buf, expected_offset), "offset + value width out of range");
             expected_offset += leaf_node_handler::pair_size(leaf_node_handler::get_pair(buf, expected_offset));
         }
-        unrecoverable_fact(expected_offset == maker.knog->static_config.block_size - sizeof(data_block_manager_t::buf_data_t), "offsets adjacent to buf size");
+        unrecoverable_fact(expected_offset == cx.knog->static_config.block_size - sizeof(data_block_manager_t::buf_data_t), "offsets adjacent to buf size");
 
     }
 
@@ -519,14 +492,14 @@ void check_subtree_leaf_node(blockmaker& maker, btree_leaf_node *buf, btree_key 
         unrecoverable_fact(pair->key.size <= MAX_KEY_SIZE, "key size <= MAX_KEY_SIZE");
 
         // CHECK hash function.
-        check_hash(maker, &pair->key);
+        check_hash(cx, &pair->key);
 
         // CHECK ordering (lo < key0 < key1 < ... < keyN-1)
         unrecoverable_fact(prev_key == NULL || leaf_key_comp::compare(prev_key, &pair->key) < 0,
                            "leaf node key ordering");
 
         // CHECK value
-        check_value(maker, pair->value());
+        check_value(cx, pair->value());
 
         prev_key = &pair->key;
     }
@@ -536,14 +509,14 @@ void check_subtree_leaf_node(blockmaker& maker, btree_leaf_node *buf, btree_key 
                        "leaf node last key ordering");
 }
 
-bool internal_node_begin_offset_in_range(const blockmaker& maker, btree_internal_node *buf, uint16_t offset) {
-    return (maker.knog->static_config.block_size - sizeof(data_block_manager_t::buf_data_t) - sizeof(btree_internal_pair)) >= offset && offset >= buf->frontmost_offset;
+bool internal_node_begin_offset_in_range(const slicecx& cx, btree_internal_node *buf, uint16_t offset) {
+    return (cx.knog->static_config.block_size - sizeof(data_block_manager_t::buf_data_t) - sizeof(btree_internal_pair)) >= offset && offset >= buf->frontmost_offset;
 }
 
 // Glorious mutual recursion.
-void check_subtree(blockmaker& maker, block_id_t id, btree_key *lo, btree_key *hi);
+void check_subtree(slicecx& cx, block_id_t id, btree_key *lo, btree_key *hi);
 
-void check_subtree_internal_node(blockmaker& maker, btree_internal_node *buf, btree_key *lo, btree_key *hi) {
+void check_subtree_internal_node(slicecx& cx, btree_internal_node *buf, btree_key *lo, btree_key *hi) {
     /* Walk tree
          - CHECK ordering, balance, hash function, value, size limit, internal node last key,
            field width.
@@ -558,10 +531,10 @@ void check_subtree_internal_node(blockmaker& maker, btree_internal_node *buf, bt
   
         for (int i = 0, n = sorted_offsets.size(); i < n; ++i) {
             unrecoverable_fact(sorted_offsets[i] == expected_offset, "noncontiguous offsets");
-            unrecoverable_fact(internal_node_begin_offset_in_range(maker, buf, expected_offset), "offset out of range.");
+            unrecoverable_fact(internal_node_begin_offset_in_range(cx, buf, expected_offset), "offset out of range.");
             expected_offset += internal_node_handler::pair_size(internal_node_handler::get_pair(buf, expected_offset));
         }
-        unrecoverable_fact(expected_offset == maker.knog->static_config.block_size - sizeof(data_block_manager_t::buf_data_t), "offsets adjacent to buf size");
+        unrecoverable_fact(expected_offset == cx.knog->static_config.block_size - sizeof(data_block_manager_t::buf_data_t), "offsets adjacent to buf size");
 
     }
 
@@ -577,9 +550,9 @@ void check_subtree_internal_node(blockmaker& maker, btree_internal_node *buf, bt
 
         if (i != buf->npairs - 1) {
             // CHECK hash function.
-            check_hash(maker, &pair->key);
+            check_hash(cx, &pair->key);
             // * Walk tree (recursively).
-            check_subtree(maker, pair->lnode, prev_key, &pair->key);
+            check_subtree(cx, pair->lnode, prev_key, &pair->key);
 
             // CHECK ordering.  (lo < key0 < key1 < ... < keyN-2)
             unrecoverable_fact(prev_key == NULL || internal_key_comp::compare(prev_key, &pair->key) < 0,
@@ -593,37 +566,37 @@ void check_subtree_internal_node(blockmaker& maker, btree_internal_node *buf, bt
                                "internal node last key ordering");
 
             // * Walk tree (recursively).
-            check_subtree(maker, pair->lnode, prev_key, hi);
+            check_subtree(cx, pair->lnode, prev_key, hi);
         }
 
         prev_key = &pair->key;
     }
 }
 
-void check_subtree(blockmaker& maker, block_id_t id, btree_key *lo, btree_key *hi) {
+void check_subtree(slicecx& cx, block_id_t id, btree_key *lo, btree_key *hi) {
     /* Walk tree */
 
-    btree_block node(maker, id);
+    btree_block node(cx, id);
 
     // CHECK balance.
     if (lo != NULL && hi != NULL) {
         // (We're happy with an underfull root block.)
-        unrecoverable_fact(!node_handler::is_underfull(maker.knog->static_config.block_size - sizeof(data_block_manager_t::buf_data_t), (btree_node *)node.buf),
+        unrecoverable_fact(!node_handler::is_underfull(cx.knog->static_config.block_size - sizeof(data_block_manager_t::buf_data_t), (btree_node *)node.buf),
                            "balanced node");
     }
 
 
 
     if (check_magic<btree_leaf_node>(((btree_leaf_node *)node.buf)->magic)) {
-        check_subtree_leaf_node(maker, (btree_leaf_node *)node.buf, lo, hi);
+        check_subtree_leaf_node(cx, (btree_leaf_node *)node.buf, lo, hi);
     } else if (check_magic<btree_internal_node>(((btree_internal_node *)node.buf)->magic)) {
-        check_subtree_internal_node(maker, (btree_internal_node *)node.buf, lo, hi);
+        check_subtree_internal_node(cx, (btree_internal_node *)node.buf, lo, hi);
     } else {
         unrecoverable_fact(0, "Bad magic on leaf or internal node.");
     }
 }
 
-void check_slice_other_blocks(blockmaker& maker) {
+void check_slice_other_blocks(slicecx& cx) {
     // * For each non-deleted block unused by btree
     //     - LEARN transaction id.
     //     - REPORT error.
@@ -631,17 +604,17 @@ void check_slice_other_blocks(blockmaker& maker) {
     //     - CHECK zerobuf.
     //     - LEARN transaction id.
 
-    ser_block_id_t min_block = translator_serializer_t::translate_block_id(0, maker.mod_count, maker.local_slice_id, CONFIG_BLOCK_ID + 1);
+    ser_block_id_t min_block = translator_serializer_t::translate_block_id(0, cx.mod_count, cx.local_slice_id, CONFIG_BLOCK_ID + 1);
 
-    segmented_vector_t<block_knowledge, MAX_BLOCK_ID>& block_info = maker.knog->block_info;
-    for (ser_block_id_t id = min_block, n = block_info.get_size(); id < n; id += maker.mod_count) {
+    segmented_vector_t<block_knowledge, MAX_BLOCK_ID>& block_info = cx.knog->block_info;
+    for (ser_block_id_t id = min_block, n = block_info.get_size(); id < n; id += cx.mod_count) {
         block_knowledge info = block_info[id];
         if (flagged_off64_t::has_value(info.offset) && !info.offset.parts.is_delete
             && info.transaction_id == NULL_SER_TRANSACTION_ID) {
             // Aha!  We have an unused block!  Crap.
 
             // LEARN transaction id.
-            btree_block b(maker.file, maker.knog, id);
+            btree_block b(cx.file, cx.knog, id);
 
             // REPORT error.
             unrecoverable_fact(0, "block not used");
@@ -652,7 +625,7 @@ void check_slice_other_blocks(blockmaker& maker) {
             assert(info.transaction_id == NULL_SER_TRANSACTION_ID);
 
             // LEARN transaction id.
-            btree_block zeroblock(maker.file, maker.knog, id);
+            btree_block zeroblock(cx.file, cx.knog, id);
 
             // CHECK zerobuf.
             unrecoverable_fact(log_serializer_t::zerobuf_magic == *((block_magic_t *)zeroblock.buf),
@@ -662,7 +635,7 @@ void check_slice_other_blocks(blockmaker& maker) {
 }
 
 void check_slice(direct_file_t *file, file_knowledge *knog, int global_slice_number) {
-    blockmaker maker(file, knog, global_slice_number);
+    slicecx cx(file, knog, global_slice_number);
     /* *FOR EACH SLICE*
        * Read the btree_superblock_t.
          - LEARN root_block.
@@ -673,7 +646,7 @@ void check_slice(direct_file_t *file, file_knowledge *knog, int global_slice_num
     //   - LEARN root_block.
     block_id_t root_block_id;
     {
-        btree_block btree_superblock(maker, SUPERBLOCK_ID);
+        btree_block btree_superblock(cx, SUPERBLOCK_ID);
         btree_superblock_t *buf = (btree_superblock_t *)btree_superblock.buf;
         unrecoverable_fact(check_magic<btree_superblock_t>(buf->magic), "btree_superblock_t has bad magic.");
         root_block_id = buf->root_block;
@@ -681,11 +654,11 @@ void check_slice(direct_file_t *file, file_knowledge *knog, int global_slice_num
 
     if (root_block_id != NULL_BLOCK_ID) {
         // * Walk tree
-        check_subtree(maker, root_block_id, NULL, NULL);
+        check_subtree(cx, root_block_id, NULL, NULL);
 
     }
 
-    check_slice_other_blocks(maker);
+    check_slice_other_blocks(cx);
 }
 
 void check_to_config_block(direct_file_t *file, file_knowledge *knog) {
