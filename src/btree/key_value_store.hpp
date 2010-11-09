@@ -66,6 +66,11 @@ public:
         const char **db_filenames);
     ~btree_key_value_store_t();
     
+    struct check_callback_t {
+        virtual void on_store_check(bool valid) = 0;
+    };
+    static void check_existing(int n_files, const char **db_filenames, check_callback_t *cb);
+    
     struct ready_callback_t {
         virtual void on_store_ready() = 0;
     };

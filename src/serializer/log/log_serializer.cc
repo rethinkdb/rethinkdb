@@ -33,6 +33,26 @@ log_serializer_t::~log_serializer_t() {
     assert(active_write_count == 0);
 }
 
+struct ls_check_existing_fsm_t :
+    public static_header_check_callback_t
+{
+    direct_file_t df;
+    log_serializer_t::check_callback_t *cb;
+    ls_check_existing_fsm_t(const char *filename, log_serializer_t::check_callback_t *cb)
+        : df(filename, direct_file_t::mode_read), cb(cb) {
+        static_header_check(&df, this);
+    }
+    void on_static_header_check(bool valid) {
+        cb->on_serializer_check(valid);
+        gdelete(this);
+    }
+};
+
+void log_serializer_t::check_existing(const char *filename, check_callback_t *cb) {
+    
+    gnew<ls_check_existing_fsm_t>(filename, cb);
+}
+
 /* The process of starting up the serializer is handled by the ls_start_*_fsm_t. This is not
 necessary, because there is only ever one startup process for each serializer; the serializer could
 handle its own startup process. It is done this way to make it clear which parts of the serializer

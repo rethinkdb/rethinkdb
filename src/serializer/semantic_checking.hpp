@@ -81,7 +81,12 @@ public:
     virtual ~semantic_checking_serializer_t() {
         close(semantic_fd);
     }
-
+    
+    typedef typename inner_serializer_t::check_callback_t check_callback_t;
+    static void check_existing(const char *db_path, check_callback_t *cb) {
+        inner_serializer_t::check_existing(db_path, cb);
+    }
+    
 public:
     struct ready_callback_t {
         virtual void on_serializer_ready(semantic_checking_serializer_t *) = 0;

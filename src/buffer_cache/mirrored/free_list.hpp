@@ -6,8 +6,8 @@
 #include "containers/segmented_vector.hpp"
 #include "utils.hpp"
 
-/* TODO combine array_free_list_t with array_map_t because they happen to conveniently
-never overlap */
+/* TODO We could implement a free list in the unused cells of the page map, saving a little bit
+of memory. */
 
 class array_free_list_t :
     public home_cpu_mixin_t
@@ -29,15 +29,15 @@ public:
 
 private:
     ready_callback_t *ready_callback;
-    int max_block_id;
-    bool do_get_size();   // Called on serializer CPU
-    bool have_gotten_size(ser_block_id_t max_block_id);   // Called on cache CPU
     bool do_make_list();   // Called on serializer CPU
     bool have_made_list();   // Called on cache CPU
     
     serializer_t *serializer;
-    segmented_vector_t<block_id_t, MAX_BLOCK_ID> free_list;
-    block_id_t first_block;
+    
+    /* A block ID is free if it is >= next_new_block_id or if it is in free_ids. All the IDs in
+    free_ids are less than next_new_block_id. */
+    block_id_t next_new_block_id;
+    std::deque<block_id_t, gnew_alloc<block_id_t> > free_ids;
 };
 
 #endif /* __BUFFER_CACHE_MIRRORED_FREE_LIST_HPP__ */

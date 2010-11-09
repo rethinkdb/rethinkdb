@@ -93,6 +93,12 @@ public:
     virtual ~log_serializer_t();
 
 public:
+    struct check_callback_t {
+        virtual void on_serializer_check(bool is_existing) = 0;
+    };
+    static void check_existing(const char *filename, check_callback_t *cb);
+
+public:
     /* start_new() or start_existing() must be called before the serializer can be used. If
     start_new() is called, a new database will be created. If start_existing() is called, the
     serializer will read from an existing database. */
