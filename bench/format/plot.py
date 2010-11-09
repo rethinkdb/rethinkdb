@@ -149,6 +149,8 @@ class TimeSeriesCollection():
         labels = []
         hists = []
         for series, color in zip(self.data.iteritems(), colors):
+#TODO @mglukhovsky a clipping at 6000 means that some competitors (membase)
+#don't have any data points on the histogram
             clipped_data = clip(series[1], 0, 6000)
             if clipped_data:
                 _, _, foo = ax.hist(clipped_data, bins=200, histtype='bar', facecolor = color, alpha = .5, label = series[0])
