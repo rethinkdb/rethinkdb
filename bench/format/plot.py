@@ -326,6 +326,15 @@ def difference(serieses):
 
     return res
 
+def slide(serieses):
+    res = TimeSeries('seconds')
+    for i in range(min(map(lambda x: len(x), serieses))):
+        for j in range(i, len(serieses[1])):
+            if serieses[0][i] <= serieses[1][j]:
+                res += [j - i]
+                break
+    return res
+
 #report the means of a list of runs
 def means(serieses):
     res = []
@@ -436,9 +445,18 @@ class RDBStats(TimeSeriesCollection):
                        ('transactions_ready', 'transactions_completed'),
                        ('bufs_acquired', 'bufs_ready'),
                        ('bufs_ready', 'bufs_released')]
+        slides = [('flushes_started', 'flushes_acquired_lock'),
+                  ('flushes_acquired_lock', 'flushes_completed'),
+                  ('io_writes_started', 'io_writes_completed')]
         keys_to_drop = set()
         for dif in differences:
             self.derive(dif[0] + ' - ' + dif[1], dif, difference)
             keys_to_drop.add(dif[0])
             keys_to_drop.add(dif[1])
+
+        for s in slides:
+            self.derive('slide(' + s[0] + ', ' + s[1] + ')', s, slide)
+            keys_to_drop.add(s[0])
+            keys_to_drop.add(s[1])
+
         self.drop(keys_to_drop)
