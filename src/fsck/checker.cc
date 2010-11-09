@@ -352,10 +352,8 @@ void check_lba_shard(direct_file_t *file, file_knowledge *knog, lba_shard_metabl
     // 1. Read the entries from the superblock (if there is one).
     if (shards[shard_number].lba_superblock_offset != -1) {
         require_valid_device_block(knog, shards[shard_number].lba_superblock_offset, "lba_superblock_offset");
-        lba_superblock_t *buf = (lba_superblock_t *)malloc_aligned(superblock_aligned_size, DEVICE_BLOCK_SIZE);
-        freer f;
-        f.add(buf);
-        file->read_blocking(shards[shard_number].lba_superblock_offset, superblock_aligned_size, buf);
+        block superblock(superblock_aligned_size, file, shards[shard_number].lba_superblock_offset);
+        lba_superblock_t *buf = (lba_superblock_t *)superblock.buf;
 
         unrecoverable_fact(!memcmp(buf, lba_super_magic, LBA_SUPER_MAGIC_SIZE), "lba superblock magic");
 
