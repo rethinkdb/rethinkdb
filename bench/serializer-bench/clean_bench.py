@@ -47,7 +47,11 @@ def run_clean_bench(drive_path, parameters, workload):
     serv = subprocess.Popen(
         ["./serializer-bench", "-f", drive_path, "--forever"] + format_args(parameters),
         stderr = subprocess.PIPE, stdout = subprocess.PIPE)
-    output = serv.communicate()[1]
+    try:
+        output = serv.communicate()[1]
+    finally:
+        try: serv.terminate()
+        except RuntimeError: pass
     print "Took %.3f seconds." % (time.time() - start_time)
     assert "RethinkDB ran out of disk space." in output
     
@@ -56,7 +60,11 @@ def run_clean_bench(drive_path, parameters, workload):
     serv = subprocess.Popen(
         ["./serializer-bench", "-f", drive_path] + format_args(parameters) + format_args(workload),
         stderr = subprocess.PIPE, stdout = subprocess.PIPE)
-    output = serv.communicate()[1]
+    try:
+        output = serv.communicate()[1]
+    finally:
+        try: serv.terminate()
+        except RuntimeError: pass
     if serv.returncode != 0:
         raise RuntimeError("RethinkDB serializer failed:\n" + output)
     

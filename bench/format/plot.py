@@ -1,5 +1,6 @@
 import pdb
 import numpy as np
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 import matplotlib.mlab as mlab
 import matplotlib.font_manager as fm
@@ -149,9 +150,15 @@ class TimeSeriesCollection():
         labels = []
         hists = []
         for series, color in zip(self.data.iteritems(), colors):
-            _, _, foo = ax.hist(clip(series[1], 0, 6000), bins=200, histtype='bar', facecolor = color, alpha = .5, label = series[0])
-            hists.append(foo)
-            labels.append(series[0])
+#TODO @mglukhovsky a clipping at 6000 means that some competitors (membase)
+#don't have any data points on the histogram
+            clipped_data = clip(series[1], 0, 6000)
+            if clipped_data:
+                _, _, foo = ax.hist(clipped_data, bins=200, histtype='bar', facecolor = color, alpha = .5, label = series[0])
+                hists.append(foo)
+                labels.append(series[0])
+            else:
+                print "Tried to make a histogram of a series of size 0"
 
         for tick in ax.xaxis.get_major_ticks():
             tick.label1.set_fontproperties(font)
@@ -170,11 +177,20 @@ class TimeSeriesCollection():
         fig.set_dpi(300)
         plt.savefig(out_fname + '_large')
 
-    def plot(self, out_fname, normalize = False):
+    def plot(self, out_fname, large = False, normalize = False):
         assert self.data
 
         queries_formatter = FuncFormatter(lambda x, pos: '%1.fk' % (x*1e-3))
-        font = fm.FontProperties(family=['sans-serif'],size='small',fname='/usr/share/fonts/truetype/aurulent_sans_regular.ttf')
+        if not large:
+            font = fm.FontProperties(family=['sans-serif'],size='small',fname='/usr/share/fonts/truetype/aurulent_sans_regular.ttf')
+            mpl.rcParams['xtick.major.pad'] = 4
+            mpl.rcParams['ytick.major.pad'] = 4
+            mpl.rcParams['lines.linewidth'] = 1
+        else:
+            font = fm.FontProperties(family=['sans-serif'],size=36,fname='/usr/share/fonts/truetype/aurulent_sans_regular.ttf')
+            mpl.rcParams['xtick.major.pad'] = 20
+            mpl.rcParams['ytick.major.pad'] = 20
+            mpl.rcParams['lines.linewidth'] = 5
         fig = plt.figure()
         # Set the margins for the plot to ensure a minimum of whitespace
         ax = plt.axes([0.13,0.12,0.85,0.85])
@@ -196,6 +212,7 @@ class TimeSeriesCollection():
         ax.yaxis.set_major_formatter(queries_formatter)
         ax.set_ylabel('Queries', fontproperties = font)
         ax.set_xlabel('Time (seconds)', fontproperties = font)
+
         ax.set_xlim(0, len(self.data[self.data.keys()[0]]) - 1)
         if normalize:
             ax.set_ylim(0, 1.0)
@@ -203,12 +220,16 @@ class TimeSeriesCollection():
             ax.set_ylim(0, max(self.data[self.data.keys()[0]]))
         ax.grid(True)
         plt.legend(tuple(map(lambda x: x[0], labels)), tuple(map(lambda x: x[1], labels)), loc=1, prop = font)
-        fig.set_size_inches(5,3.7)
-        fig.set_dpi(90)
-        plt.savefig(out_fname, bbox_inches="tight")
-        fig.set_size_inches(20,14.8)
-        fig.set_dpi(300)
-        plt.savefig(out_fname + '_large', bbox_inches="tight")
+        if not large:
+            fig.set_size_inches(5,3.7)
+            fig.set_dpi(90)
+            plt.savefig(out_fname, bbox_inches="tight")
+        else:
+            ax.yaxis.LABELPAD = 40
+            ax.xaxis.LABELPAD = 40
+            fig.set_size_inches(20,14.8)
+            fig.set_dpi(300)
+            plt.savefig(out_fname, bbox_inches="tight")
 
     def stats(self):
         res = {}

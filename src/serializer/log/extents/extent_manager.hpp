@@ -13,6 +13,9 @@
 #include "config/args.hpp"
 #include "config/cmd_args.hpp"
 #include "containers/segmented_vector.hpp"
+#include "logger.hpp"
+
+#define NULL_OFFSET off64_t(-1)
 
 #define EXTENT_UNRESERVED (off64_t(-2))
 #define EXTENT_IN_USE (off64_t(-3))
@@ -79,10 +82,9 @@ public:
         if (free_list_head == EXTENT_FREE_LIST_END) {
         
             extent = start + extents.get_size() * extent_size;
-            extents.set_size(extents.get_size() + 1);
+            if (extent == end) return NULL_OFFSET;
             
-            /* How's that for graceful failure? */
-            if (extent == end) fail("RethinkDB ran out of disk space.");
+            extents.set_size(extents.get_size() + 1);
             
         } else {
         
@@ -144,7 +146,12 @@ public:
             
             /* If we are given a fixed file size, we pretend to be on a block device. */
             if (!file->is_block_device()) {
-                file->set_size(dynamic_config->file_size);
+                if (file->get_size() <= dynamic_config->file_size) {
+                    file->set_size(dynamic_config->file_size);
+                } else {
+                    logWRN("File size specified is smaller than the file actually is. To avoid "
+                        "risk of smashing database, ignoring file size specification.");
+                }
             }
             
             /* On a block device, chop the block device up into equal-sized zones, the number of
@@ -286,9 +293,25 @@ public:
         assert(state == state_running);
         assert(current_transaction);
         n_extents_in_use++;
-        next_zone = (next_zone+1) % num_zones;
-        off64_t extent = zones[next_zone]->gen_extent();
+        
+        off64_t extent;
+        int first_zone = next_zone;
+        for (;;) {   /* Loop looking for a zone with a free extent */
+            
+            extent = zones[next_zone]->gen_extent();
+            next_zone = (next_zone+1) % num_zones;
+            
+            if (extent != NULL_OFFSET) break;
+            
+            if (next_zone == first_zone) {
+                /* We tried every zone and there were no free extents */
+                fail("RethinkDB ran out of disk space.");
+            }
+        }
+        
+        /* In case we are not on a block device */
         dbfile->set_size_at_least(extent + extent_size);
+        
 #ifdef DEBUG_EXTENTS
         debugf("EM %p: Gen extent %.8lx\n", this, extent);
         print_backtrace(stderr, false);
