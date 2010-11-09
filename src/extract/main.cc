@@ -133,7 +133,6 @@ int main(int argc, char **argv) {
 
     install_generic_crash_handler();
 
-
     extract_config_t config;
     extract::parse_cmd_args(argc, argv, &config);
 
@@ -141,24 +140,7 @@ int main(int argc, char **argv) {
         log_file = fopen(config.log_file_name.c_str(), "w");
     }
 
-    // Initial CPU message to start server
-    struct server_starter_t :
-        public cpu_message_t
-    {
-        extract_config_t *config;
-        thread_pool_t *pool;
-        void on_cpu_switch() {
-            dumpfile(*config);
-            pool->shutdown();
-        }
-    } starter;
-
-    starter.config = &config;
-
-    // Run the server
-    thread_pool_t thread_pool(1);
-    starter.pool = &thread_pool;
-    thread_pool.run(&starter);
+    dumpfile(config);
 
     return 0;
 }
