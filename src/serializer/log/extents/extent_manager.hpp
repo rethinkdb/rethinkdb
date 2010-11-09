@@ -13,6 +13,7 @@
 #include "config/args.hpp"
 #include "config/cmd_args.hpp"
 #include "containers/segmented_vector.hpp"
+#include "logger.hpp"
 
 #define NULL_OFFSET off64_t(-1)
 
