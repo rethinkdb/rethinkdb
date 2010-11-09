@@ -165,6 +165,7 @@ class dbench():
 
             # Plot the qps data
             qps_data.plot(os.path.join(self.out_dir, self.dir_str, 'qps' + run_name))
+            qps_data.plot(os.path.join(self.out_dir, self.dir_str, 'qps' + run_name + '_large'), True)
 
             # Add the qps plot image and metadata
             print >>res, '<table style="width: 910px;" class="runPlots">'

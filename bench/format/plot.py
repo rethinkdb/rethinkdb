@@ -176,11 +176,14 @@ class TimeSeriesCollection():
         fig.set_dpi(300)
         plt.savefig(out_fname + '_large')
 
-    def plot(self, out_fname, normalize = False):
+    def plot(self, out_fname, large = False, normalize = False):
         assert self.data
 
         queries_formatter = FuncFormatter(lambda x, pos: '%1.fk' % (x*1e-3))
-        font = fm.FontProperties(family=['sans-serif'],size='small',fname='/usr/share/fonts/truetype/aurulent_sans_regular.ttf')
+        if not large:
+            font = fm.FontProperties(family=['sans-serif'],size='small',fname='/usr/share/fonts/truetype/aurulent_sans_regular.ttf')
+        else:
+            font = fm.FontProperties(family=['sans-serif'],size=36,fname='/usr/share/fonts/truetype/aurulent_sans_regular.ttf')
         fig = plt.figure()
         # Set the margins for the plot to ensure a minimum of whitespace
         ax = plt.axes([0.13,0.12,0.85,0.85])
@@ -209,12 +212,14 @@ class TimeSeriesCollection():
             ax.set_ylim(0, max(self.data[self.data.keys()[0]]))
         ax.grid(True)
         plt.legend(tuple(map(lambda x: x[0], labels)), tuple(map(lambda x: x[1], labels)), loc=1, prop = font)
-        fig.set_size_inches(5,3.7)
-        fig.set_dpi(90)
-        plt.savefig(out_fname, bbox_inches="tight")
-        fig.set_size_inches(20,14.8)
-        fig.set_dpi(300)
-        plt.savefig(out_fname + '_large', bbox_inches="tight")
+        if not large:
+            fig.set_size_inches(5,3.7)
+            fig.set_dpi(90)
+            plt.savefig(out_fname, bbox_inches="tight")
+        else:
+            fig.set_size_inches(20,14.8)
+            fig.set_dpi(300)
+            plt.savefig(out_fname, bbox_inches="tight")
 
     def stats(self):
         res = {}
