@@ -1,4 +1,5 @@
-import subprocess, stat, os, re
+#!/usr/bin/env python
+import subprocess, stat, os, re, time
 
 def format_args(d):
     """Formats a dictionary of key-value pairs into a list of arguments of the form
@@ -29,14 +30,21 @@ def run_clean_bench(drive_path, parameters, workload):
     
     # Secure-erase the drive as the first step of putting it in a steady state
     # Note that 'hdparm --secure-erase' is only safe for use on solid state drives!
-    print "Secure erasing %r..." % drive_path
-    drive_password = "password"
-    subprocess.check_call("hdparm --user-master u --security-set-pass %s %s" % (drive_password, drive_path))
-    subprocess.check_call("hdparm --user-master u --security-erase %s %s" % (drive_password, drive_path))
+    if False:
+        print "Secure erasing %r..." % drive_path
+        start_time = time.time()
+        drive_password = "password"
+        subprocess.check_call(["hdparm", "--user-master", "u", "--security-set-pass", drive_password, drive_path])
+        try:
+            subprocess.check_call(["hdparm", "--user-master", "u", "--security-erase", drive_password, drive_path])
+        finally:
+            subprocess.check_call(["hdparm", "--user-master", "u", "--security-unlock", drive_password, drive_path])
+        print "Took %.3f seconds." % (time.time() - start_time)
     
     # Now fill it with the RethinkDB serializer, the second step of putting it into a steady state
     print "Putting %r into a steady state..." % drive_path
-    serv = subprocess.Subprocess(
+    start_time = time.time()
+    serv = subprocess.Popen(
         ["./serializer-bench", "-f", drive_path, "--forever"] + format_args(parameters),
         stderr = subprocess.PIPE, stdout = subprocess.PIPE)
     try:
@@ -44,11 +52,12 @@ def run_clean_bench(drive_path, parameters, workload):
     finally:
         try: serv.terminate()
         except RuntimeError: pass
+    print "Took %.3f seconds." % (time.time() - start_time)
     assert "RethinkDB ran out of disk space." in output
     
     # Now run the actual test on it
     print "Running the actual test..."
-    serv = subprocess.Subprocess(
+    serv = subprocess.Popen(
         ["./serializer-bench", "-f", drive_path] + format_args(parameters) + format_args(workload),
         stderr = subprocess.PIPE, stdout = subprocess.PIPE)
     try:
@@ -62,10 +71,10 @@ def run_clean_bench(drive_path, parameters, workload):
     print "Done."
     
     # Parse the output
-    time = re.search("The test took ([0-9]+\\.[0-9]+) seconds.", output)
-    if time is None:
+    t = re.search("The test took ([0-9]+\\.[0-9]+) seconds.", output)
+    if t is None:
         raise ValueError("Couldn't parse output: %r" % output)
-    return float(time.group(1))
+    return float(t.group(1))
 
 if __name__ == "__main__":
     
