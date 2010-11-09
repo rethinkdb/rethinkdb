@@ -86,9 +86,10 @@ struct tester_t :
     config_t *config;
     thread_pool_t *pool;
     time_t start_ticks;
+    bool stop;
     
     tester_t(config_t *config, thread_pool_t *pool)
-        : active_txns(0), total_txns(0), config(config), pool(pool) { }
+        : active_txns(0), total_txns(0), config(config), pool(pool), stop(false) { }
     
     void on_cpu_switch() {
         fprintf(stderr, "Starting serializer...\n");
@@ -104,13 +105,24 @@ struct tester_t :
     
     void pump() {
         
-        while (active_txns < config->concurrent_txns && ((signed)total_txns < config->duration || config->duration == RUN_FOREVER)) {
+        while (active_txns < config->concurrent_txns && !stop) {
             active_txns++;
             total_txns++;
             gnew<transaction_t>(ser, config->inserts_per_txn, config->updates_per_txn, this);
         }
         
-        if (active_txns == 0 && (signed)total_txns == config->duration) {
+        if ((signed)total_txns == config->duration) stop = true;
+        
+        if (active_txns == 0 && stop) {
+            if ((signed)total_txns == config->duration) {
+                ticks_t end_ticks = get_ticks();
+                fprintf(stderr, "Test over.\n");
+                fprintf(stderr, "The test took %.3f seconds.\n", ticks_to_secs(end_ticks - start_ticks));
+            } else if (config->duration == RUN_FOREVER) {
+                fprintf(stderr, "Test interrupted (did %d transactions)\n", total_txns);
+            } else {
+                fprintf(stderr, "Test interrupted (did %d of %d transactions)\n", total_txns, config->duration);
+            }
             shutdown();
         }
     }
@@ -121,9 +133,12 @@ struct tester_t :
     }
     
     void shutdown() {
-        ticks_t end_ticks = get_ticks();
-        fprintf(stderr, "Test over.\n");
-        fprintf(stderr, "The test took %.3f seconds.\n", ticks_to_secs(end_ticks - start_ticks));
+        
+        if (ser->shutdown(this)) on_serializer_shutdown(ser);
+    }
+    
+    void interrupt() {
+        
         if (ser->shutdown(this)) on_serializer_shutdown(ser);
     }
     
@@ -131,6 +146,16 @@ struct tester_t :
         fprintf(stderr, "Serializer shut down.\n");
         gdelete(ser);
         pool->shutdown();
+    }
+};
+
+struct interrupt_msg_t :
+    public cpu_message_t
+{
+    tester_t *tester;
+    interrupt_msg_t(tester_t *tester) : tester(tester) { }
+    void on_cpu_switch() {
+        tester->stop = true;
     }
 };
 
@@ -208,6 +233,8 @@ int main(int argc, char *argv[]) {
     
     thread_pool_t thread_pool(1);
     tester_t tester(&config, &thread_pool);
+    interrupt_msg_t interruptor(&tester);
+    thread_pool.set_interrupt_message(&interruptor);
     thread_pool.run(&tester);
     
     return 0;
