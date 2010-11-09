@@ -98,7 +98,7 @@ private:
 };
 
 
-void require_fact(bool fact, const char *test, const char *options, ...) {
+void require_fact(bool fact, const char *test, const char *options) {
     // TODO varargs
     if (!fact) {
         logERR("Checking '%s': FAIL\n", test);
@@ -108,17 +108,17 @@ void require_fact(bool fact, const char *test, const char *options, ...) {
     }
 }
 
-void unrecoverable_fact(bool fact, const char *test, ...) {
+void unrecoverable_fact(bool fact, const char *test) {
     // TODO varargs
     if (!fact) {
         logERR("Checking '%s': FAIL\n", test);
         fail("ERROR: test '%s' failed!  Cannot override.", test);
     } else {
-        logDBG("Checking '%s': PASS\n");
+        logDBG("Checking '%s': PASS\n", test);
     }
 }
 
-bool check_fact(bool fact, const char *msg, ...) {
+bool check_fact(bool fact, const char *msg) {
     // TODO record errors.
     if (!fact) {
         logWRN("Checking '%s': FAIL\n", msg);
@@ -264,10 +264,10 @@ void check_metablock(direct_file_t *file, file_knowledge *knog) {
     typedef manager_t::crc_metablock_t crc_metablock_t;
 
 
-    off64_t high_version_offset = -1;
+    off64_t high_version_index = -1;
     manager_t::metablock_version_t high_version = MB_START_VERSION - 1;
 
-    off64_t high_transaction_offset = -1;
+    off64_t high_transaction_index = -1;
     ser_transaction_id_t high_transaction = NULL_SER_TRANSACTION_ID;
 
 
@@ -281,16 +281,16 @@ void check_metablock(direct_file_t *file, file_knowledge *knog) {
             check_fact(!memcmp(metablock->magic_marker, MB_MARKER_MAGIC, sizeof(MB_MARKER_MAGIC))
                        && !memcmp(metablock->crc_marker, MB_MARKER_CRC, sizeof(MB_MARKER_CRC))
                        && !memcmp(metablock->version_marker, MB_MARKER_VERSION, sizeof(MB_MARKER_VERSION)),
-                       "metablock with bad magic! (offset = %ld)", off);
+                       "metablock magic");
 
             if (high_version < metablock->version) {
                 high_version = metablock->version;
-                high_version_offset = i;
+                high_version_index = i;
             }
 
             if (high_transaction < metablock->metablock.transaction_id) {
                 high_transaction = metablock->metablock.transaction_id;
-                high_transaction_offset = i;
+                high_transaction_index = i;
             }
         } else {
             bool all_zero = true;
@@ -298,18 +298,18 @@ void check_metablock(direct_file_t *file, file_knowledge *knog) {
             for (int i = 0; i < DEVICE_BLOCK_SIZE; ++i) {
                 all_zero &= (buf[i] == 0);
             }
-            check_fact(all_zero, "metablock with bad crc! (offset = %ld)", off);
+            check_fact(all_zero, "metablock crc");
         }
     }
 
-    unrecoverable_fact(high_version_offset != -1, "Expecting some nonzero metablocks!");
+    unrecoverable_fact(high_version_index != -1, "expecting some nonzero metablocks");
 
-    require_fact(high_version_offset == high_transaction_offset,
-                 "metablocks' metablock_version_t and ser_transaction_id are not equally monotonic!",
+    require_fact(high_version_index == high_transaction_index,
+                 "metablocks' metablock_version_t and ser_transaction_id are equally monotonic",
                  "--tolerate-metablock-disorder");  // TODO option
 
     // Reread the best block, based on the metablock version.
-    block high_block(DEVICE_BLOCK_SIZE, file, high_version_offset);
+    block high_block(DEVICE_BLOCK_SIZE, file, metablock_offsets[high_version_index]);
     crc_metablock_t *high_metablock = (crc_metablock_t *)high_block.buf;
 
     knog->metablock = high_metablock->metablock;
@@ -318,8 +318,9 @@ void check_metablock(direct_file_t *file, file_knowledge *knog) {
 }
 
 void require_valid_offset(file_knowledge *knog, off64_t offset, off64_t alignment, const char *what, const char *aligned_to_what) {
+    // TODO varargs
     unrecoverable_fact(offset % alignment == 0 && offset >= 0 && (uint64_t)offset < knog->filesize,
-                       "offset %s aligned to %s", what, aligned_to_what);
+                       "offset alignment");
 }
 
 void require_valid_extent(file_knowledge *knog, off64_t offset, const char *what) {
@@ -350,19 +351,21 @@ void check_lba_extent(direct_file_t *file, file_knowledge *knog, unsigned int sh
         lba_entry_t entry = buf->entries[i];
         
         // CHECK that 0 <= block_ids <= MAX_BLOCK_ID.
-        unrecoverable_fact(entry.block_id <= MAX_BLOCK_ID, "0 <= block_id <= MAX_BLOCK_ID");
+        if (entry.block_id != NULL_SER_BLOCK_ID) {
+            unrecoverable_fact(entry.block_id <= MAX_BLOCK_ID, "0 <= block_id <= MAX_BLOCK_ID");
 
-        // CHECK that each block id is in the proper shard.
-        unrecoverable_fact(entry.block_id % LBA_SHARD_FACTOR == shard_number, "block_id in correct LBA shard");
+            // CHECK that each block id is in the proper shard.
+            unrecoverable_fact(entry.block_id % LBA_SHARD_FACTOR == shard_number, "block_id in correct LBA shard");
 
-        // CHECK that each offset is aligned to block_size.
-        require_valid_block(knog, entry.offset.parts.value, "lba offset aligned to block_size");
+            // CHECK that each offset is aligned to block_size.
+            require_valid_block(knog, entry.offset.parts.value, "lba offset aligned to block_size");
 
-        // LEARN offsets for each block id.
-        if (knog->block_info.get_size() <= entry.block_id) {
-            knog->block_info.set_size(entry.block_id + 1, block_knowledge::unused());
+            // LEARN offsets for each block id.
+            if (knog->block_info.get_size() <= entry.block_id) {
+                knog->block_info.set_size(entry.block_id + 1, block_knowledge::unused());
+            }
+            knog->block_info[entry.block_id].offset = entry.offset;
         }
-        knog->block_info[entry.block_id].offset = entry.offset;
     }
 }
 
@@ -372,17 +375,20 @@ void check_lba_shard(direct_file_t *file, file_knowledge *knog, lba_shard_metabl
     // Read the superblock.
     int superblock_size = lba_superblock_t::entry_count_to_file_size(shards[shard_number].lba_superblock_entries_count);
     int superblock_aligned_size = ceil_aligned(superblock_size, DEVICE_BLOCK_SIZE);
-    require_valid_device_block(knog, shards[shard_number].lba_superblock_offset, "lba_superblock_offset");
-    lba_superblock_t *buf = (lba_superblock_t *)malloc_aligned(superblock_aligned_size, DEVICE_BLOCK_SIZE);
-    freer f;
-    f.add(buf);
-    file->read_blocking(shards[shard_number].lba_superblock_offset, superblock_aligned_size, buf);
 
-    unrecoverable_fact(!memcmp(buf, lba_super_magic, LBA_SUPER_MAGIC_SIZE), "lba superblock magic");
+    // 1. Read the entries from the superblock (if there is one).
+    if (shards[shard_number].lba_superblock_offset != -1) {
+        require_valid_device_block(knog, shards[shard_number].lba_superblock_offset, "lba_superblock_offset");
+        lba_superblock_t *buf = (lba_superblock_t *)malloc_aligned(superblock_aligned_size, DEVICE_BLOCK_SIZE);
+        freer f;
+        f.add(buf);
+        file->read_blocking(shards[shard_number].lba_superblock_offset, superblock_aligned_size, buf);
 
-    // 1. Read the entries from the superblock.
-    for (int i = 0; i < shards[shard_number].lba_superblock_entries_count; ++i) {
-        check_lba_extent(file, knog, shard_number, buf->entries[i].offset, buf->entries[i].lba_entries_count);
+        unrecoverable_fact(!memcmp(buf, lba_super_magic, LBA_SUPER_MAGIC_SIZE), "lba superblock magic");
+
+        for (int i = 0; i < shards[shard_number].lba_superblock_entries_count; ++i) {
+            check_lba_extent(file, knog, shard_number, buf->entries[i].offset, buf->entries[i].lba_entries_count);
+        }
     }
 
     // 2. Read the entries from the last extent.
@@ -496,11 +502,11 @@ void check_subtree_leaf_node(blockmaker& maker, btree_leaf_node *buf, btree_key 
         uint16_t expected_offset = buf->frontmost_offset;
 
         for (int i = 0, n = sorted_offsets.size(); i < n; ++i) {
-            unrecoverable_fact(sorted_offsets[i] == expected_offset, "noncontiguous offsets (i = %d)", i);
+            unrecoverable_fact(sorted_offsets[i] == expected_offset, "noncontiguous offsets");
             unrecoverable_fact(leaf_node_inspect_range(maker, buf, expected_offset), "offset + value width out of range");
             expected_offset += leaf_node_handler::pair_size(leaf_node_handler::get_pair(buf, expected_offset));
         }
-        unrecoverable_fact(expected_offset == maker.knog->static_config.block_size - sizeof(data_block_manager_t::buf_data_t), "offsets adjacent (with value %u) to buf size", expected_offset);
+        unrecoverable_fact(expected_offset == maker.knog->static_config.block_size - sizeof(data_block_manager_t::buf_data_t), "offsets adjacent to buf size");
 
     }
 
@@ -553,11 +559,11 @@ void check_subtree_internal_node(blockmaker& maker, btree_internal_node *buf, bt
         uint16_t expected_offset = buf->frontmost_offset;
   
         for (int i = 0, n = sorted_offsets.size(); i < n; ++i) {
-            unrecoverable_fact(sorted_offsets[i] == expected_offset, "noncontiguous offsets (i = %d)", i);
+            unrecoverable_fact(sorted_offsets[i] == expected_offset, "noncontiguous offsets");
             unrecoverable_fact(internal_node_begin_offset_in_range(maker, buf, expected_offset), "offset out of range.");
             expected_offset += internal_node_handler::pair_size(internal_node_handler::get_pair(buf, expected_offset));
         }
-        unrecoverable_fact(expected_offset == maker.knog->static_config.block_size - sizeof(data_block_manager_t::buf_data_t), "offsets adjacent (with value %u) to buf size", expected_offset);
+        unrecoverable_fact(expected_offset == maker.knog->static_config.block_size - sizeof(data_block_manager_t::buf_data_t), "offsets adjacent to buf size");
 
     }
 
@@ -622,8 +628,7 @@ void check_slice_other_blocks(blockmaker& maker) {
 
             btree_block b(maker.file, maker.knog, id);
 
-            unrecoverable_fact(0, "Block with ser_block_id_t (%u) and block_id_t (%u) is not used.",
-                               id, (id - min_block) / maker.mod_count);
+            unrecoverable_fact(0, "block not used");
 
             // TODO more info about their contents.
         } 
@@ -741,6 +746,8 @@ void check_files(const config_t& cfg) {
     knowledge knog(cfg.input_filenames);
 
     int num_files = knog.filenames.size();
+
+    unrecoverable_fact(num_files > 0, "a positive number of files");
 
     // 2. Read some (and check).  This could be parallelized.
     for (int i = 0; i < num_files; ++i) {
