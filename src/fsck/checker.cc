@@ -145,8 +145,6 @@ private:
     DISABLE_COPYING(slicecx);
 };
 
-// TODO: we shouldn't need this eventually.
-static const char *errname[] = { "none", "no_block", "already_accessed", "block_id_mismatch", "transaction_id_invalid", "transaction_id_too_large" };
 
 struct btree_block {
     enum error { none = 0, no_block, already_accessed, block_id_mismatch, transaction_id_invalid,
@@ -587,6 +585,10 @@ struct subtree_errors {
     std::vector<value_error, gnew_alloc<value_error> > value_errors;
 
     subtree_errors() { }
+
+    bool is_bad() const {
+        return !(node_errors.empty() && value_errors.empty());
+    }
 private:
     DISABLE_COPYING(subtree_errors);
 };
@@ -802,61 +804,105 @@ void check_subtree(slicecx& cx, block_id_t id, btree_key *lo, btree_key *hi, sub
     }
 }
 
-void check_slice_other_blocks(slicecx& cx) {
+static const block_magic_t Zilch = { { 0, 0, 0, 0 } };
+
+struct rogue_block_description {
+    block_id_t block_id;
+    block_magic_t magic;
+    btree_block::error loading_error;
+
+    rogue_block_description() : block_id(NULL_BLOCK_ID), magic(Zilch), loading_error(btree_block::none) { }
+};
+
+struct other_block_errors {
+    std::vector<rogue_block_description> unused_blocks;
+    std::vector<rogue_block_description> allegedly_deleted_blocks;
+    other_block_errors() { }
+private:
+    DISABLE_COPYING(other_block_errors);
+};
+
+void check_slice_other_blocks(slicecx& cx, other_block_errors *errs) {
     ser_block_id_t min_block = translator_serializer_t::translate_block_id(0, cx.mod_count, cx.local_slice_id, CONFIG_BLOCK_ID + 1);
 
     segmented_vector_t<block_knowledge, MAX_BLOCK_ID>& block_info = cx.knog->block_info;
-    for (ser_block_id_t id = min_block, n = block_info.get_size(); id < n; id += cx.mod_count) {
+    for (ser_block_id_t id = min_block, end = block_info.get_size(); id < end; id += cx.mod_count) {
         block_knowledge info = block_info[id];
-        if (flagged_off64_t::has_value(info.offset) && !info.offset.parts.is_delete
-            && info.transaction_id == NULL_SER_TRANSACTION_ID) {
-            // Aha!  We have an unused block!  Crap.
-            
-            btree_block b;
-            if (!b.init(cx.file, cx.knog, id)) {
-                unrecoverable_fact(0, errname[b.err]);
+        if (flagged_off64_t::has_value(info.offset)) {
+            if (!info.offset.parts.is_delete && info.transaction_id == NULL_SER_TRANSACTION_ID) {
+                // Aha!  We have an unused block!  Crap.
+                rogue_block_description desc;
+                desc.block_id = id;
+
+                btree_block b;
+                if (!b.init(cx.file, cx.knog, id)) {
+                    desc.loading_error = b.err;
+                } else {
+                    desc.magic = *((block_magic_t *)b.buf);
+                }
+
+                errs->unused_blocks.push_back(desc);
+
+            } else if (info.offset.parts.is_delete) {
+                assert(info.transaction_id == NULL_SER_TRANSACTION_ID);
+                rogue_block_description desc;
+                desc.block_id = id;
+
+                btree_block zeroblock;
+                if (!zeroblock.init(cx.file, cx.knog, id)) {
+                    desc.loading_error = zeroblock.err;
+                    errs->allegedly_deleted_blocks.push_back(desc);
+                } else {
+                    block_magic_t magic = *((block_magic_t *)zeroblock.buf);
+                    if (log_serializer_t::zerobuf_magic == magic) {
+                        desc.magic = magic;
+                        errs->allegedly_deleted_blocks.push_back(desc);
+                    }
+                }
             }
-
-            unrecoverable_fact(0, "block not used");
-        } 
-        if (flagged_off64_t::has_value(info.offset) && info.offset.parts.is_delete) {
-            assert(info.transaction_id == NULL_SER_TRANSACTION_ID);
-
-            btree_block zeroblock;
-            if (!zeroblock.init(cx.file, cx.knog, id)) {
-                unrecoverable_fact(0, errname[zeroblock.err]);
-            }
-            
-
-            unrecoverable_fact(log_serializer_t::zerobuf_magic == *((block_magic_t *)zeroblock.buf),
-                               "deleted buf has zerobuf_magic");
         }
     }
 }
 
-void check_slice(direct_file_t *file, file_knowledge *knog, int global_slice_number) {
+struct slice_errors {
+    int global_slice_number;
+    btree_block::error superblock_code;
+    bool superblock_bad_magic;
+
+    subtree_errors tree_errs;
+    other_block_errors other_block_errs;
+
+    slice_errors(int global_slice_number)
+        : global_slice_number(global_slice_number),
+          superblock_code(btree_block::none), superblock_bad_magic(false), tree_errs(), other_block_errs() { }
+
+    bool is_bad() const {
+        return superblock_code != btree_block::none || superblock_bad_magic || tree_errs.is_bad();
+    }
+};
+
+void check_slice(direct_file_t *file, file_knowledge *knog, int global_slice_number, slice_errors *errs) {
     slicecx cx(file, knog, global_slice_number);
     block_id_t root_block_id;
     {
         btree_block btree_superblock;
         if (!btree_superblock.init(cx, SUPERBLOCK_ID)) {
-            unrecoverable_fact(0, errname[btree_superblock.err]);
+            errs->superblock_code = btree_superblock.err;
+            return;
         }
         btree_superblock_t *buf = (btree_superblock_t *)btree_superblock.buf;
-        unrecoverable_fact(check_magic<btree_superblock_t>(buf->magic), "btree_superblock_t has bad magic.");
+        if (!check_magic<btree_superblock_t>(buf->magic)) {
+            errs->superblock_bad_magic = true;
+            return;
+        }
         root_block_id = buf->root_block;
     }
 
     if (root_block_id != NULL_BLOCK_ID) {
-        subtree_errors tree_errs;
-        check_subtree(cx, root_block_id, NULL, NULL, &tree_errs);
-
-        if (!tree_errs.node_errors.empty() || !tree_errs.value_errors.empty()) {
-            unrecoverable_fact(0, "tree errors");
-        }
+        check_subtree(cx, root_block_id, NULL, NULL, &errs->tree_errs);
     }
 
-    check_slice_other_blocks(cx);
+    check_slice_other_blocks(cx, &errs->other_block_errs);
 }
 
 struct check_to_config_block_errors {
@@ -923,7 +969,8 @@ bool check_interfile(knowledge *knog, interfile_errors *errs) {
 void check_after_config_block(direct_file_t *file, file_knowledge *knog) {
     int step = knog->config_block->n_files;
     for (int i = knog->config_block->this_serializer; i < knog->config_block->btree_config.n_slices; i += step) {
-        check_slice(file, knog, i);
+        slice_errors errs(i);
+        check_slice(file, knog, i, &errs);
     }
 }
 
