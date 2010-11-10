@@ -20,3 +20,7 @@ perfmon_counter_t
     pm_flushes_started("flushes_started[flushes]"),
     pm_flushes_acquired_lock("flushes_acquired_lock[flushes]"),
     pm_flushes_completed("flushes_completed[flushes]");
+
+perfmon_counter_t
+    pm_n_cows_made("cows_made[cows]"),
+    pm_n_cows_destroyed("cows_destroyed[cows]");

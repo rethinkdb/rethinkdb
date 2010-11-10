@@ -24,4 +24,8 @@ extern perfmon_counter_t
     pm_flushes_acquired_lock,
     pm_flushes_completed;
 
+extern perfmon_counter_t
+    pm_n_cows_made,
+    pm_n_cows_destroyed;
+
 #endif /* __BUFFER_CACHE_STATS_HPP__ */
