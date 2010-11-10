@@ -2,6 +2,8 @@
 #ifndef __COREFWD_HPP__
 #define __COREFWD_HPP__
 
+/* TODO get rid of corefwd.hpp */
+
 // Connection FSM
 struct conn_fsm_t;
 
@@ -44,25 +46,6 @@ class memcached_handler_t;
 
 // Context
 struct iocb;
-
-// IO Calls
-struct posix_io_calls_t;
-
-// Allocators
-template <class super_alloc_t>
-struct dynamic_pool_alloc_t;
-
-template <class super_alloc_t>
-struct pool_alloc_t;
-
-template <class super_alloc_t>
-struct alloc_stats_t;
-
-template <class accessor_t, class type_t>
-class alloc_mixin_t;
-
-template <class alloc_t>
-class tls_small_obj_alloc_accessor;
 
 #endif // __COREFWD_HPP__
 

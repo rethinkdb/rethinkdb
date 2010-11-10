@@ -46,14 +46,14 @@ struct check_existing_fsm_t
         n_unchecked--;
         if (n_unchecked == 0) {
             callback->on_store_check(is_ok);
-            gdelete(this);
+            delete this;
         }
     }
 };
 
 void btree_key_value_store_t::check_existing(int n_files, const char **db_filenames, check_callback_t *cb) {
     
-    gnew<check_existing_fsm_t>(n_files, db_filenames, cb);
+    new check_existing_fsm_t(n_files, db_filenames, cb);
 }
 
 const block_magic_t serializer_config_block_t::expected_magic = { { 'c','f','g','_' } };
@@ -104,7 +104,7 @@ struct bkvs_start_new_serializer_fsm_t :
     
     bool create_serializer() {
         
-        store->serializers[i] = gnew<standard_serializer_t>(store->db_filenames[i], &store->dynamic_config->serializer);
+        store->serializers[i] = new standard_serializer_t(store->db_filenames[i], &store->dynamic_config->serializer);
         
         if (store->serializers[i]->start_new(store->serializer_static_config, this))
             on_serializer_ready(NULL);
@@ -139,7 +139,7 @@ struct bkvs_start_new_serializer_fsm_t :
     bool done() {
     
         store->have_created_a_serializer();
-        gdelete(this);
+        delete this;
         return true;
     }
 };
@@ -160,7 +160,7 @@ struct bkvs_start_existing_serializer_fsm_t :
     
     bool create_serializer() {
         
-        serializer = gnew<standard_serializer_t>(store->db_filenames[i], &store->dynamic_config->serializer);
+        serializer = new standard_serializer_t(store->db_filenames[i], &store->dynamic_config->serializer);
         
         if (serializer->start_existing(this)) on_serializer_ready(NULL);
         
@@ -194,7 +194,7 @@ struct bkvs_start_existing_serializer_fsm_t :
     bool done() {
     
         store->have_created_a_serializer();
-        gdelete(this);
+        delete this;
         return true;
     }
 };
@@ -204,7 +204,7 @@ void btree_key_value_store_t::create_serializers() {
     messages_out = n_files;
     if (is_start_existing) {
         for (int i = 0; i < n_files; i++) {
-            bkvs_start_existing_serializer_fsm_t *f = gnew<bkvs_start_existing_serializer_fsm_t>();
+            bkvs_start_existing_serializer_fsm_t *f = new bkvs_start_existing_serializer_fsm_t();
             f->store = this;
             f->i = i;
             f->run();
@@ -212,7 +212,7 @@ void btree_key_value_store_t::create_serializers() {
     } else {
         creation_magic = time(NULL);
         for (int i = 0; i < n_files; i++) {
-            bkvs_start_new_serializer_fsm_t *f = gnew<bkvs_start_new_serializer_fsm_t>();
+            bkvs_start_new_serializer_fsm_t *f = new bkvs_start_new_serializer_fsm_t();
             f->store = this;
             f->i = i;
             f->run();
@@ -259,7 +259,7 @@ bool btree_key_value_store_t::create_a_pseudoserializer_on_this_core(int i) {
     /* How many other pseudoserializers are we sharing the serializer with? */
     int mod_count = compute_mod_count(i % n_files, n_files, btree_static_config.n_slices);
     
-    pseudoserializers[i] = gnew<translator_serializer_t>(
+    pseudoserializers[i] = new translator_serializer_t(
         serializers[i % n_files],
         mod_count,
         i / n_files,
@@ -453,7 +453,7 @@ void btree_key_value_store_t::delete_pseudoserializers() {
 
 bool btree_key_value_store_t::delete_a_pseudoserializer(int id) {
 
-    gdelete<translator_serializer_t>(pseudoserializers[id]);
+    delete pseudoserializers[id];
     
     return true;
 }
@@ -474,7 +474,7 @@ bool btree_key_value_store_t::shutdown_a_serializer(int id) {
 
 void btree_key_value_store_t::on_serializer_shutdown(standard_serializer_t *serializer) {
     
-    gdelete(serializer);
+    delete serializer;
     do_on_cpu(home_cpu, this, &btree_key_value_store_t::have_shutdown_a_serializer);
 }
 
@@ -509,8 +509,8 @@ superblock to contain NULL_BLOCK_ID rather than zero as the root node. */
 class initialize_superblock_fsm_t :
     private block_available_callback_t,
     private transaction_begin_callback_t,
-    private transaction_commit_callback_t,
-    public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, initialize_superblock_fsm_t>{
+    private transaction_commit_callback_t
+{
 
 public:
     initialize_superblock_fsm_t(cache_t *cache)

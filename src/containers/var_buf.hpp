@@ -1,7 +1,6 @@
 #ifndef __VAR_BUF_HPP__
 #define __VAR_BUF_HPP__
 
-#include "config/alloc.hpp"
 #include "config/args.hpp"
 #include "conn_fsm.hpp"
 #include <stdarg.h>
@@ -15,8 +14,8 @@
  *  \brief linked version of iobuf_t
  *  \param _size the maximum bytes that can be stored in one link 
  */
-struct linked_buf_t : public buffer_base_t<IO_BUFFER_SIZE>,
-                      public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, linked_buf_t> {
+struct linked_buf_t : public buffer_base_t<IO_BUFFER_SIZE>
+{
     private:
         linked_buf_t    *next;
         int           nbuf; // !< the total number of bytes in the buffer

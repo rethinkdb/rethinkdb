@@ -2,7 +2,6 @@
 #ifndef __RWI_LOCK_HPP__
 #define __RWI_LOCK_HPP__
 
-#include "alloc/alloc_mixin.hpp"
 #include "containers/intrusive_list.hpp"
 #include "concurrency/access.hpp"
 #include "arch/arch.hpp"
@@ -29,8 +28,6 @@ public:
 struct rwi_lock_t {
 public:
     struct lock_request_t : public cpu_message_t,
-                            public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>,
-                                                 lock_request_t>,
                             public intrusive_list_node_t<lock_request_t>
     {
         lock_request_t(access_t _op, lock_available_callback_t *_callback)

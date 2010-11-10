@@ -70,8 +70,8 @@ private:
 };
 
 class txt_memcached_get_request_t :
-    public txt_memcached_request_t,
-    public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, txt_memcached_get_request_t> {
+    public txt_memcached_request_t
+{
 
 public:
     using txt_memcached_request_t::rh;
@@ -186,8 +186,8 @@ private:
 
 // FIXME horrible redundancy
 class txt_memcached_get_cas_request_t :
-    public txt_memcached_request_t,
-    public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, txt_memcached_get_cas_request_t> {
+    public txt_memcached_request_t
+{
 public:
     using txt_memcached_request_t::rh;
 
@@ -303,8 +303,8 @@ private:
 };
 
 class txt_memcached_set_request_t :
-    public txt_memcached_request_t,
-    public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, txt_memcached_set_request_t> {
+    public txt_memcached_request_t
+{
 public:
     txt_memcached_set_request_t(txt_memcached_handler_t *rh, btree_key *key, bool is_large, uint32_t length, byte *data, btree_set_fsm_t::set_type_t type, btree_value::mcflags_t mcflags, btree_value::exptime_t exptime, btree_value::cas_t req_cas, bool noreply)
         : txt_memcached_request_t(rh, noreply),
@@ -365,8 +365,8 @@ private:
 };
 
 class txt_memcached_incr_decr_request_t :
-    public txt_memcached_request_t,
-    public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, txt_memcached_incr_decr_request_t> {
+    public txt_memcached_request_t
+{
 
 public:
     txt_memcached_incr_decr_request_t(txt_memcached_handler_t *rh, btree_key *key, bool increment, long long delta, bool noreply)
@@ -403,8 +403,8 @@ private:
 };
 
 class txt_memcached_append_prepend_request_t :
-    public txt_memcached_request_t,
-    public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, txt_memcached_append_prepend_request_t> {
+    public txt_memcached_request_t
+{
 public:
     txt_memcached_append_prepend_request_t(txt_memcached_handler_t *rh, btree_key *key, bool got_large, int length, byte *data, bool append, bool noreply)
         : txt_memcached_request_t(rh, noreply),
@@ -441,8 +441,8 @@ private:
 };
 
 class txt_memcached_delete_request_t :
-    public txt_memcached_request_t,
-    public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, txt_memcached_delete_request_t> {
+    public txt_memcached_request_t
+{
 
 public:
     txt_memcached_delete_request_t(txt_memcached_handler_t *rh, btree_key *key, bool noreply)
@@ -477,8 +477,8 @@ private:
 class txt_memcached_perfmon_request_t :
     public request_callback_t,
     public cpu_message_t,   // For call_later_on_this_cpu()
-    public perfmon_callback_t,
-    public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, txt_memcached_perfmon_request_t> {
+    public perfmon_callback_t
+{
 
 public:
     txt_memcached_perfmon_request_t(txt_memcached_handler_t *rh, const char *fields_beg, size_t fields_len)
@@ -520,7 +520,7 @@ public:
             char *stat;
             while ((stat = strtok_r(NULL, DELIMS, &fields_ptr))) {
                 sbuf->printf("STAT %s ", stat);
-                std_string_t s(stat);
+                std::string s(stat);
                 perfmon_stats_t::iterator stat_entry = stats.find(s);
                 if (stat_entry == stats.end()) {
                     sbuf->printf("NOT FOUND\r\n");
@@ -549,8 +549,8 @@ class disable_gc_request_t :
     public server_t::all_gc_disabled_callback_t,  // gives us multiple_users_seen
     public cpu_message_t,   // As with txt_memcached_perfmon_request_t, for call_later_on_this_cpu()
     public home_cpu_mixin_t,
-    public request_callback_t,
-    public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, disable_gc_request_t> {
+    public request_callback_t
+{
 public:
     disable_gc_request_t(txt_memcached_handler_t *rh)
         : request_callback_t(rh), done(false) {
@@ -591,8 +591,8 @@ class enable_gc_request_t :
     public server_t::all_gc_enabled_callback_t,  // gives us multiple_users_seen
     public cpu_message_t,
     public home_cpu_mixin_t,
-    public request_callback_t,
-    public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, enable_gc_request_t> {
+    public request_callback_t
+{
 
 public:
     enable_gc_request_t(txt_memcached_handler_t *rh)

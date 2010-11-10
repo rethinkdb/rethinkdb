@@ -3,7 +3,6 @@
 #define __TWO_LEVEL_ARRAY_HPP__
 
 #include "utils.hpp"
-#include "config/alloc.hpp"
 
 /* two_level_array_t is a tree that always has exactly two levels. Its computational complexity is
 similar to that of an array, but it neither allocates all of its memory at once nor needs to
@@ -36,7 +35,7 @@ private:
     static const unsigned int num_chunks = max_size / chunk_size + 1;
     unsigned int count;
     
-    struct chunk_t : public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, chunk_t > {
+    struct chunk_t {
         chunk_t()
             : count(0), values()   // default-initialize each value in values
             { }

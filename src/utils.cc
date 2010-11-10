@@ -9,10 +9,8 @@
 void *malloc_aligned(size_t size, size_t alignment) {
     void *ptr = NULL;
     int res = posix_memalign(&ptr, alignment, size);
-    if(res != 0)
-        return NULL;
-    else
-        return ptr;
+    if(res != 0) fail("Out of memory.");
+    return ptr;
 }
 
 // fast non-null terminated string comparison

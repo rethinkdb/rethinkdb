@@ -10,8 +10,7 @@
 #include "in_memory_index.hpp"
 
 class lba_disk_extent_t :
-    public intrusive_list_node_t<lba_disk_extent_t>,
-    public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, lba_disk_extent_t>
+    public intrusive_list_node_t<lba_disk_extent_t>
 {
 
 private:

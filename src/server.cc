@@ -37,7 +37,7 @@ void server_t::do_start_store() {
 
     assert_cpu();
     
-    store = gnew<store_t>(&cmd_config->store_dynamic_config, cmd_config->n_files, cmd_config->files);
+    store = new store_t(&cmd_config->store_dynamic_config, cmd_config->n_files, cmd_config->files);
     
     bool done;
     if (cmd_config->create_store) {
@@ -117,7 +117,7 @@ void server_t::do_shutdown_store() {
 
 void server_t::on_store_shutdown() {
     assert_cpu();
-    gdelete(store);
+    delete store;
     store = NULL;
     do_shutdown_loggers();
 }
@@ -146,7 +146,7 @@ struct flush_message_t :
     void on_cpu_switch() {
         if (returning) {
             server->on_message_flush();
-            gdelete(this);
+            delete this;
         } else {
             returning = true;
             if (continue_on_cpu(server->home_cpu, this)) on_cpu_switch();
@@ -157,7 +157,7 @@ struct flush_message_t :
 void server_t::do_message_flush() {
     messages_out = get_num_cpus();
     for (int i = 0; i < get_num_cpus(); i++) {
-        flush_message_t *m = gnew<flush_message_t>();
+        flush_message_t *m = new flush_message_t();
         m->returning = false;
         m->server = this;
         if (continue_on_cpu(i, m)) m->on_cpu_switch();

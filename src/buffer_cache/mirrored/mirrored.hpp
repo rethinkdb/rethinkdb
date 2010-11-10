@@ -38,7 +38,6 @@ class mc_buf_t :
     public cpu_message_t,
     public serializer_t::read_callback_t,
     public serializer_t::write_block_callback_t,
-    public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, mc_buf_t >,
     public intrusive_list_node_t<mc_buf_t >
 {
     typedef mc_cache_t cache_t;
@@ -163,7 +162,6 @@ struct acquire_lock_callback_t;
 /* Transaction class. */
 class mc_transaction_t :
     public lock_available_callback_t,
-    public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, mc_transaction_t >,
     public writeback_t::sync_callback_t
 {
     typedef mc_cache_t cache_t;

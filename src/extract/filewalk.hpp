@@ -20,14 +20,14 @@ struct extract_config_t {
     } overrides;
 
     // The path to the file we're going to recover from.
-    std::vector<std_string_t, gnew_alloc<std_string_t> > input_files;
+    std::vector<std::string> input_files;
 
     // TODO: use this
-    std_string_t log_file_name;
+    std::string log_file_name;
 
     // The path to a file that does not exist at the beginning of the
     // program's run, to which we write output files.
-    std_string_t output_file;
+    std::string output_file;
 
     static const int NO_FORCED_BLOCK_SIZE = 0;
     static const int NO_FORCED_EXTENT_SIZE = 0;

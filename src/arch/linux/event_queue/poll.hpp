@@ -12,9 +12,8 @@
 // Event queue structure
 struct poll_event_queue_t {
 public:
-    typedef std::vector<pollfd, gnew_alloc<pollfd> > pollfd_vector_t;
-    typedef std::map<fd_t, linux_event_callback_t*, std::less<fd_t>,
-                     gnew_alloc<std::pair<fd_t, linux_event_callback_t*> > > callback_map_t;
+    typedef std::vector<pollfd> pollfd_vector_t;
+    typedef std::map<fd_t, linux_event_callback_t*> callback_map_t;
     
 public:
     poll_event_queue_t(linux_queue_parent_t *parent);

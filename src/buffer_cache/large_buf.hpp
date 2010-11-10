@@ -41,8 +41,8 @@ struct large_buf_segment {
     static block_magic_t expected_magic;
 };
 
-class large_buf_t :
-    public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, large_buf_t> {
+class large_buf_t
+{
 private:
     block_id_t index_block_id;
     buf_t *index_buf;
@@ -107,8 +107,9 @@ private:
 };
 
 // TODO: Rename this.
-struct segment_block_available_callback_t : public block_available_callback_t,
-                                            public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, segment_block_available_callback_t> {
+struct segment_block_available_callback_t :
+    public block_available_callback_t
+{
     large_buf_t *owner;
 
     bool is_index_block;
@@ -136,8 +137,8 @@ struct segment_block_available_callback_t : public block_available_callback_t,
 
 class fill_large_value_msg_t : public cpu_message_t,
                                public home_cpu_mixin_t,
-                               public data_transferred_callback,
-                               public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, fill_large_value_msg_t> {
+                               public data_transferred_callback
+{
 private:
     typedef buffer_t<IO_BUFFER_SIZE> iobuf_t;
 
@@ -244,8 +245,8 @@ private:
 // TODO: Some of the code in here belongs in large_buf_t.
 class write_large_value_msg_t : public cpu_message_t,
                                 public data_transferred_callback,
-                                public home_cpu_mixin_t,
-                                public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, write_large_value_msg_t> {
+                                public home_cpu_mixin_t
+{
 private:
     large_buf_t *large_value;
     btree_fsm_t *fsm;

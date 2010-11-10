@@ -111,7 +111,7 @@ private:
     must exclude all of the transactions.
     */
     
-    rwi_lock_t *flush_lock;
+    rwi_lock_t flush_lock;
     
     // List of things waiting for their data to be written to disk. They will be called back after
     // the next complete writeback cycle completes.

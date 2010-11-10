@@ -10,8 +10,8 @@
 // unnecessary.
 
 class btree_get_cas_fsm_t : public btree_modify_fsm_t,
-                            public large_value_completed_callback,
-                            public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, btree_get_cas_fsm_t> {
+                            public large_value_completed_callback
+{
     typedef btree_fsm_t::transition_result_t transition_result_t;
 public:
     explicit btree_get_cas_fsm_t(btree_key *_key, btree_key_value_store_t *store, request_callback_t *req)

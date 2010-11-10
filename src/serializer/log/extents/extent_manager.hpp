@@ -32,8 +32,8 @@ public:
     };
 
 private:
-    typedef std::set<off64_t, std::less<off64_t>, gnew_alloc<off64_t> > reserved_extent_set_t;
-    typedef std::deque<off64_t, gnew_alloc<off64_t> > free_queue_t;
+    typedef std::set<off64_t> reserved_extent_set_t;
+    typedef std::deque<off64_t> free_queue_t;
     
     log_serializer_static_config_t *static_config;
     log_serializer_dynamic_config_t *dynamic_config;
@@ -42,8 +42,7 @@ public:
     size_t extent_size;   /* Same as static_config->extent_size */
     
 public:
-    class transaction_t :
-        alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, transaction_t>
+    class transaction_t
     {
         friend class extent_manager_t;
         transaction_t() { }

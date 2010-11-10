@@ -2,7 +2,6 @@
 #ifndef __SEGMENTED_VECTOR_HPP__
 #define __SEGMENTED_VECTOR_HPP__
 
-#include "config/alloc.hpp"
 
 #define ELEMENTS_PER_SEGMENT (1 << 14)
 
@@ -10,7 +9,7 @@ template<class element_t, int max_size>
 class segmented_vector_t
 {
 private:
-    struct segment_t : public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, segment_t > {
+    struct segment_t {
         element_t elements[ELEMENTS_PER_SEGMENT];
     } *segments[max_size / ELEMENTS_PER_SEGMENT];
     size_t size;

@@ -14,13 +14,10 @@ writeback_t::writeback_t(
       cache(cache),
       start_next_sync_immediately(false),
       transaction(NULL) {
-    
-    flush_lock = gnew<rwi_lock_t>();
 }
 
 writeback_t::~writeback_t() {
     assert(!flush_timer);
-    gdelete(flush_lock);
 }
 
 bool writeback_t::sync(sync_callback_t *callback) {
@@ -69,7 +66,7 @@ bool writeback_t::begin_transaction(transaction_t *txn,
         case rwi_write:
             // Lock the flush lock "for reading", but what we really mean is to lock it non-
             // exclusively because more than one write transaction can proceed at once.
-            if (flush_lock->lock(rwi_read, txn)) {
+            if (flush_lock.lock(rwi_read, txn)) {
                 return true;
             } else {
                 txn->begin_callback = callback;
@@ -83,7 +80,7 @@ bool writeback_t::begin_transaction(transaction_t *txn,
 void writeback_t::on_transaction_commit(transaction_t *txn) {
     
     if (txn->get_access() == rwi_write) {
-        flush_lock->unlock();
+        flush_lock.unlock();
         
         /* At the end of every write transaction, check if the number of dirty blocks exceeds the
         threshold to force writeback to start. */
@@ -154,7 +151,7 @@ bool writeback_t::writeback_start_and_acquire_lock() {
     assert(transaction != NULL); // Read txns always start immediately.
 
     /* Request exclusive flush_lock, forcing all write txns to complete. */
-    if (flush_lock->lock(rwi_write, this)) return writeback_acquire_bufs();
+    if (flush_lock.lock(rwi_write, this)) return writeback_acquire_bufs();
     else return false;
 }
 
@@ -176,7 +173,7 @@ bool writeback_t::writeback_acquire_bufs() {
     /* Request read locks on all of the blocks we need to flush.
     TODO: Find a better way to do the allocation. */
     num_serializer_writes = dirty_bufs.size();
-    serializer_writes = (serializer_t::write_t *)malloc(sizeof(serializer_t::write_t) * num_serializer_writes);
+    serializer_writes = new serializer_t::write_t[num_serializer_writes];
     
     int i = 0;
     while (local_buf_t *lbuf = dirty_bufs.head()) {
@@ -219,7 +216,7 @@ bool writeback_t::writeback_acquire_bufs() {
         i++;
     }
     
-    flush_lock->unlock(); // Write transactions can now proceed again.
+    flush_lock.unlock(); // Write transactions can now proceed again.
     
     return do_on_cpu(cache->serializer->home_cpu, this, &writeback_t::writeback_do_write);
 }
@@ -268,7 +265,7 @@ bool writeback_t::writeback_do_cleanup() {
     assert(committed); // Read-only transactions commit immediately.
     transaction = NULL;
     
-    free(serializer_writes);
+    delete[] serializer_writes;
     
     while (!current_sync_callbacks.empty()) {
         sync_callback_t *cb = current_sync_callbacks.head();

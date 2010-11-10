@@ -37,7 +37,7 @@ private:
     /* A block ID is free if it is >= next_new_block_id or if it is in free_ids. All the IDs in
     free_ids are less than next_new_block_id. */
     block_id_t next_new_block_id;
-    std::deque<block_id_t, gnew_alloc<block_id_t> > free_ids;
+    std::deque<block_id_t> free_ids;
 };
 
 #endif /* __BUFFER_CACHE_MIRRORED_FREE_LIST_HPP__ */

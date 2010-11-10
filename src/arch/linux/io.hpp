@@ -6,7 +6,6 @@
 #include <vector>
 #include "utils2.hpp"
 #include "config/args.hpp"
-#include "config/alloc.hpp"
 #include "arch/linux/event_queue.hpp"
 #include "event.hpp"
 #include "corefwd.hpp"
@@ -23,12 +22,8 @@ struct linux_net_conn_callback_t {
 };
 
 class linux_net_conn_t :
-    public linux_event_callback_t,
-    // linux_net_conn_t can be safely destroyed on a different core from the one it was created on,
-    // unlike most data types in RethinkDB.
-    public alloc_mixin_t<cross_thread_alloc_accessor_t<malloc_alloc_t>, linux_net_conn_t>
+    public linux_event_callback_t
 {
-    
 public:
     void set_callback(linux_net_conn_callback_t *cb);
     ssize_t read_nonblocking(void *buf, size_t count);
@@ -57,8 +52,7 @@ struct linux_net_listener_callback_t {
 };
 
 class linux_net_listener_t :
-    public linux_event_callback_t,
-    public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, linux_net_listener_t>
+    public linux_event_callback_t
 {
 
 public:
@@ -77,8 +71,7 @@ private:
 O_DIRECT mode, and there are restrictions on the alignment of the chunks being written
 and read to and from the file. */
 
-class linux_direct_file_t :
-    public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, linux_direct_file_t>
+class linux_direct_file_t
 {
 
 public:
@@ -132,7 +125,7 @@ public:
     struct queue_t {
         
         linux_io_calls_t *parent;
-        typedef std::vector<iocb*, gnew_alloc<iocb*> > request_vector_t;
+        typedef std::vector<iocb*> request_vector_t;
         request_vector_t queue;
         
         queue_t(linux_io_calls_t *parent);
@@ -140,14 +133,6 @@ public:
         ~queue_t();
         
     } r_requests, w_requests;
-
-#ifndef NDEBUG
-    // We need the extra pointer in debug mode because
-    // tls_small_obj_alloc_accessor creates the pools to expect it
-    static const size_t iocb_size = sizeof(iocb) + sizeof(void*);
-#else
-    static const size_t iocb_size = sizeof(iocb);
-#endif
 
 public:
     void on_event(int events);

@@ -11,8 +11,7 @@ class lba_load_fsm_t;
 class lba_writer_t;
 
 class lba_disk_structure_t :
-    public extent_t::read_callback_t,
-    public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, lba_disk_structure_t>
+    public extent_t::read_callback_t
 {
     friend class lba_load_fsm_t;
     friend class lba_writer_t;

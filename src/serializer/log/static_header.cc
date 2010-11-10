@@ -31,13 +31,13 @@ struct static_header_write_fsm_t :
     }
     void on_io_complete(event_t *e) {
         if (callback) callback->on_static_header_write();
-        gdelete(this);
+        delete this;
     }
 };
 
 bool static_header_write(direct_file_t *file, void *data, size_t data_size, static_header_write_callback_t *cb) {
     
-    static_header_write_fsm_t *fsm = gnew<static_header_write_fsm_t>();
+    static_header_write_fsm_t *fsm = new static_header_write_fsm_t();
     fsm->callback = cb;
     
     assert(sizeof(static_header_t) + data_size < DEVICE_BLOCK_SIZE);
@@ -87,7 +87,7 @@ struct static_header_read_fsm_t :
         memcpy(data_out, buffer->data, data_size);
         
         if (callback) callback->on_static_header_read();
-        gdelete(this);
+        delete this;
     }
 };
 
@@ -95,7 +95,7 @@ bool static_header_read(direct_file_t *file, void *data_out, size_t data_size, s
         
     assert(sizeof(static_header_t) + data_size < DEVICE_BLOCK_SIZE);
     
-    static_header_read_fsm_t *fsm = gnew<static_header_read_fsm_t>();
+    static_header_read_fsm_t *fsm = new static_header_read_fsm_t();
     fsm->data_out = data_out;
     fsm->data_size = data_size;
 

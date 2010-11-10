@@ -44,13 +44,13 @@ struct ls_check_existing_fsm_t :
     }
     void on_static_header_check(bool valid) {
         cb->on_serializer_check(valid);
-        gdelete(this);
+        delete this;
     }
 };
 
 void log_serializer_t::check_existing(const char *filename, check_callback_t *cb) {
     
-    gnew<ls_check_existing_fsm_t>(filename, cb);
+    new ls_check_existing_fsm_t(filename, cb);
 }
 
 /* The process of starting up the serializer is handled by the ls_start_*_fsm_t. This is not
@@ -60,8 +60,7 @@ are involved in startup and which parts are not. */
 
 struct ls_start_new_fsm_t :
     public static_header_write_callback_t,
-    public mb_manager_t::metablock_write_callback_t,
-    public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, ls_start_new_fsm_t>
+    public mb_manager_t::metablock_write_callback_t
 {
     ls_start_new_fsm_t(log_serializer_t *serializer)
         : ser(serializer) {
@@ -104,12 +103,12 @@ struct ls_start_new_fsm_t :
     
     bool write_initial_metablock() {
         
-        ser->extent_manager = gnew<extent_manager_t>(ser->dbfile, &ser->static_config, ser->dynamic_config);
+        ser->extent_manager = new extent_manager_t(ser->dbfile, &ser->static_config, ser->dynamic_config);
         ser->extent_manager->reserve_extent(0);   /* For static header */
         
-        ser->metablock_manager = gnew<mb_manager_t>(ser->extent_manager);
-        ser->lba_index = gnew<lba_index_t>(ser->extent_manager);
-        ser->data_block_manager = gnew<data_block_manager_t>(ser, ser->dynamic_config, ser->extent_manager, &ser->static_config);
+        ser->metablock_manager = new mb_manager_t(ser->extent_manager);
+        ser->lba_index = new lba_index_t(ser->extent_manager);
+        ser->data_block_manager = new data_block_manager_t(ser, ser->dynamic_config, ser->extent_manager, &ser->static_config);
         
         ser->metablock_manager->start_new(ser->dbfile);
         ser->lba_index->start_new(ser->dbfile);
@@ -163,8 +162,7 @@ bool log_serializer_t::start_new(static_config_t *config, ready_callback_t *read
 struct ls_start_existing_fsm_t :
     public static_header_read_callback_t,
     public mb_manager_t::metablock_read_callback_t,
-    public lba_index_t::ready_callback_t,
-    public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, ls_start_existing_fsm_t >
+    public lba_index_t::ready_callback_t
 {
     
     ls_start_existing_fsm_t(log_serializer_t *serializer)
@@ -206,12 +204,12 @@ struct ls_start_existing_fsm_t :
         
         if (state == state_find_metablock) {
         
-            ser->extent_manager = gnew<extent_manager_t>(ser->dbfile, &ser->static_config, ser->dynamic_config);
+            ser->extent_manager = new extent_manager_t(ser->dbfile, &ser->static_config, ser->dynamic_config);
             ser->extent_manager->reserve_extent(0);   /* For static header */
             
-            ser->metablock_manager = gnew<mb_manager_t>(ser->extent_manager);
-            ser->lba_index = gnew<lba_index_t>(ser->extent_manager);
-            ser->data_block_manager = gnew<data_block_manager_t>(ser, ser->dynamic_config, ser->extent_manager, &ser->static_config);
+            ser->metablock_manager = new mb_manager_t(ser->extent_manager);
+            ser->lba_index = new lba_index_t(ser->extent_manager);
+            ser->data_block_manager = new data_block_manager_t(ser, ser->dynamic_config, ser->extent_manager, &ser->static_config);
             
             if (ser->metablock_manager->start_existing(ser->dbfile, &metablock_found, &metablock_buffer, this)) {
                 state = state_start_lba;
@@ -372,8 +370,7 @@ one cache should be able to start a flush before the previous cache's flush is d
 Within a transaction, each individual change is handled by a new ls_block_writer_t.*/
 
 struct ls_block_writer_t :
-    public iocallback_t,
-    public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, ls_block_writer_t >
+    public iocallback_t
 {
     log_serializer_t *ser;
     log_serializer_t::write_t write;
@@ -487,8 +484,7 @@ struct ls_block_writer_t :
 struct ls_write_fsm_t :
     private iocallback_t,
     private lba_index_t::sync_callback_t,
-    private mb_manager_t::metablock_write_callback_t,
-    public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, ls_write_fsm_t >
+    private mb_manager_t::metablock_write_callback_t
 {
     enum state_t {
         state_start,
@@ -707,8 +703,7 @@ bool log_serializer_t::do_write(write_t *writes, int num_writes, write_txn_callb
 }
 
 struct ls_read_fsm_t :
-    private iocallback_t,
-    public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, ls_read_fsm_t >
+    private iocallback_t
 {
     log_serializer_t *ser;
     ser_block_id_t block_id;
@@ -853,16 +848,16 @@ bool log_serializer_t::next_shutdown_step() {
         metablock_manager->shutdown();
         extent_manager->shutdown();
         
-        gdelete(lba_index);
+        delete lba_index;
         lba_index = NULL;
         
-        gdelete(data_block_manager);
+        delete data_block_manager;
         data_block_manager = NULL;
         
-        gdelete(metablock_manager);
+        delete metablock_manager;
         metablock_manager = NULL;
         
-        gdelete(extent_manager);
+        delete extent_manager;
         extent_manager = NULL;
         
         delete dbfile;

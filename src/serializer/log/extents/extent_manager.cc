@@ -116,13 +116,13 @@ extent_manager_t::extent_manager_t(direct_file_t *file, log_serializer_static_co
         while (end != floor_aligned((off64_t)file->get_size(), extent_size)) {
             off64_t start = end;
             end = std::min(start + zone_size, floor_aligned(file->get_size(), extent_size));
-            zones[num_zones++] = gnew<extent_zone_t>(start, end, extent_size);
+            zones[num_zones++] = new extent_zone_t(start, end, extent_size);
         }
         
     } else {
         /* On an ordinary file on disk, make one "zone" that is large enough to encompass
         any file. */
-        zones[0] = gnew<extent_zone_t>(0, TERABYTE * 1024, extent_size);
+        zones[0] = new extent_zone_t(0, TERABYTE * 1024, extent_size);
         num_zones = 1;
     }
     
@@ -133,7 +133,7 @@ extent_manager_t::~extent_manager_t() {
     assert(state == state_reserving_extents || state == state_shut_down);
     
     for (unsigned int i = 0; i < num_zones; i++) {
-        gdelete(zones[i]);
+        delete zones[i];
     }
 }
 

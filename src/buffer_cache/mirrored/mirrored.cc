@@ -305,8 +305,7 @@ mc_buf_t *mc_transaction_t::allocate(block_id_t *block_id) {
     return buf;
 }
 
-struct acquire_lock_callback_t : public mc_block_available_callback_t,
-                                 public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, acquire_lock_callback_t >
+struct acquire_lock_callback_t : public mc_block_available_callback_t
 {
     acquire_lock_callback_t(mc_transaction_t *_transaction,
                             mc_block_available_callback_t *_callback,
