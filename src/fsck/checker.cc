@@ -494,7 +494,7 @@ bool check_lba(direct_file_t *file, file_knowledge *knog, lba_errors *errs) {
     errs->error_happened = false;
     lba_shard_metablock_t *shards = knog->metablock->lba_index_part.shards;
 
-    bool no_errors;
+    bool no_errors = true;
     for (int i = 0; i < LBA_SHARD_FACTOR; ++i) {
         no_errors &= check_lba_shard(file, knog, shards, i, &errs->shard_errors[i]);
     }
@@ -764,41 +764,48 @@ bool check_to_config_block(direct_file_t *file, file_knowledge *knog, check_to_c
         && check_config_block(file, knog, &*errs->config_block_errs);
 }
 
-void check_config_blocks(knowledge *knog) {
+struct interfile_errors {
+    bool all_have_correct_num_files;  // must be true
+    bool all_have_same_num_files;  // must be true
+    bool all_have_same_num_slices;  // must be true
+    bool all_have_same_db_magic;  // must be true
+    bool out_of_order_serializers;  // must be false
+    bool bad_this_serializer_values;  // must be false
+    bool bad_num_slices;  // must be false
+    bool discontiguous_serializers;  // must be false
+};
+
+bool check_interfile(knowledge *knog, interfile_errors *errs) {
     int num_files = knog->filenames.size();
 
     std::vector<int, gnew_alloc<int> > this_serializer_counts(num_files, 0);
 
-    bool all_have_correct_num_files = true;
-    bool all_have_same_num_files = true;
-    bool all_have_same_num_slices = true;
-    bool all_have_same_db_magic = true;
-    bool out_of_order_serializers = false;
+    errs->all_have_correct_num_files = true;
+    errs->all_have_same_num_files = true;
+    errs->all_have_same_num_slices = true;
+    errs->all_have_same_db_magic = true;
+    errs->out_of_order_serializers = false;
+    errs->bad_this_serializer_values = false;
     for (int i = 0; i < num_files; ++i) {
-        all_have_correct_num_files &= (knog->file_knog[i]->config_block->n_files == num_files);
-        all_have_same_num_files &= (knog->file_knog[i]->config_block->n_files == knog->file_knog[0]->config_block->n_files);
-        all_have_same_num_slices &= (knog->file_knog[i]->config_block->btree_config.n_slices
+        errs->all_have_correct_num_files &= (knog->file_knog[i]->config_block->n_files == num_files);
+        errs->all_have_same_num_files &= (knog->file_knog[i]->config_block->n_files == knog->file_knog[0]->config_block->n_files);
+        errs->all_have_same_num_slices &= (knog->file_knog[i]->config_block->btree_config.n_slices
                                      == knog->file_knog[0]->config_block->btree_config.n_slices);
-        all_have_same_db_magic &= (knog->file_knog[i]->config_block->database_magic
+        errs->all_have_same_db_magic &= (knog->file_knog[i]->config_block->database_magic
                                    == knog->file_knog[0]->config_block->database_magic);
-        out_of_order_serializers |= (i == knog->file_knog[i]->config_block->this_serializer);
-        unrecoverable_fact(0 <= knog->file_knog[i]->config_block->this_serializer && knog->file_knog[i]->config_block->this_serializer < num_files,
-                           "0 <= this_serializer < num_files");
+        errs->out_of_order_serializers |= (i == knog->file_knog[i]->config_block->this_serializer);
+        errs->bad_this_serializer_values |= (knog->file_knog[i]->config_block->this_serializer < 0 || knog->file_knog[i]->config_block->this_serializer >= num_files);
         this_serializer_counts[knog->file_knog[i]->config_block->this_serializer] += 1;
     }
 
-    unrecoverable_fact(all_have_same_num_files, "all have same n_files");
-    unrecoverable_fact(all_have_correct_num_files, "all have the same n_files as given on the command line");
-    unrecoverable_fact(all_have_same_num_slices, "all have same n_slices");
-    unrecoverable_fact(0 < knog->file_knog[0]->config_block->btree_config.n_slices, "n_slices is positive");
-    unrecoverable_fact(all_have_same_db_magic, "all have same database_magic");
+    errs->bad_num_slices = (knog->file_knog[0]->config_block->btree_config.n_slices < 0);
 
-    bool contiguous_serializers = true;
+    errs->discontiguous_serializers = false;
     for (int i = 0; i < num_files; ++i) {
-        contiguous_serializers &= (this_serializer_counts[i] == 1);
+        errs->discontiguous_serializers |= (this_serializer_counts[i] != 1);
     }
 
-    unrecoverable_fact(contiguous_serializers, "serializers have unique this_serializer values");
+    return (errs->all_have_correct_num_files && errs->all_have_same_num_files && errs->all_have_same_num_slices && errs->all_have_same_db_magic && !errs->out_of_order_serializers && !errs->bad_this_serializer_values && !errs->bad_num_slices && !errs->discontiguous_serializers);
 }
 
 void check_after_config_block(direct_file_t *file, file_knowledge *knog) {
@@ -823,7 +830,10 @@ void check_files(const config_t& cfg) {
         }
     }
 
-    check_config_blocks(&knog);
+    interfile_errors errs;
+    if (!check_interfile(&knog, &errs)) {
+        unrecoverable_fact(0, "interfile_errs");
+    }
 
     for (int i = 0; i < num_files; ++i) {
         check_after_config_block(knog.files[i], knog.file_knog[i]);
