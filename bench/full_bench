@@ -44,8 +44,8 @@ SSD_DRIVES='-f /dev/sdb -f /dev/sdc -f /dev/sdd -f /dev/sde'
 # SSD I/O bound performance
 ../../build/release/rethinkdb --create $SSD_DRIVES
 ./dbench                                                                                            \
-    -d "$BENCH_DIR/bench_output/Canonical_workload_on_canonical_hardware" -H 10.0.0.2               \
-    {server}rethinkdb:'-c 12 -m 1 -f /dev/sdb -f /dev/sdc -f /dev/sdd -f /dev/sde'                  \
+    -d "$BENCH_DIR/bench_output/SSD_IO_performance" -H 10.0.0.2                                     \
+    {server}rethinkdb:'-c 12 -m 0 -f /dev/sdb -f /dev/sdc -f /dev/sdd -f /dev/sde'                  \
     {client}stressfree[dr-doom:/home/teapot/stress]:'-c 512 -d 60s'                                 \
     iostat:1 vmstat:1 rdbstat:1
 
