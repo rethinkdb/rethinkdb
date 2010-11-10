@@ -2,7 +2,6 @@
 #define __REQUEST_HANDLER_HPP__
 
 #include "event.hpp"
-#include "config/alloc.hpp"
 #include "arch/arch.hpp"
 
 struct event_t;

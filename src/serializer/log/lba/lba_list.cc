@@ -31,8 +31,7 @@ void lba_list_t::start_new(direct_file_t *file) {
 
 struct lba_start_fsm_t :
     private lba_disk_structure_t::load_callback_t,
-    private lba_disk_structure_t::read_callback_t,
-    public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, lba_start_fsm_t>
+    private lba_disk_structure_t::read_callback_t
 {
     int cbs_out;
     lba_list_t *owner;
@@ -117,8 +116,7 @@ void lba_list_t::set_block_offset(ser_block_id_t block, flagged_off64_t offset) 
 }
 
 struct lba_syncer_t :
-    public lba_disk_structure_t::sync_callback_t,
-    public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, lba_syncer_t>
+    public lba_disk_structure_t::sync_callback_t
 {
     lba_list_t *owner;
     bool done, should_delete_self;
@@ -172,8 +170,7 @@ void lba_list_t::consider_gc() {
 }
 
 struct gc_fsm_t :
-    public lba_disk_structure_t::sync_callback_t,
-    public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, gc_fsm_t>
+    public lba_disk_structure_t::sync_callback_t
 {
     lba_list_t *owner;
     int i;

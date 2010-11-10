@@ -1,7 +1,6 @@
 
 #include <signal.h>
 #include "config/cmd_args.hpp"
-#include "config/alloc.hpp"
 #include "utils.hpp"
 #include "arch/arch.hpp"
 #include "server.hpp"

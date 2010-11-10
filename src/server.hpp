@@ -16,7 +16,6 @@ main() creates the thread pool and then creates the server within the thread poo
 class flush_message_t;
 
 class server_t :
-    public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, server_t>,
     public home_cpu_mixin_t,
     public logger_ready_callback_t,
     public store_t::check_callback_t,
@@ -109,7 +108,7 @@ private:
 
         toggle_state_t state_;
         int num_disabled_serializers_;
-        typedef std::vector<all_gc_disabled_callback_t *, gnew_alloc<all_gc_disabled_callback_t *> > callback_vector_t;
+        typedef std::vector<all_gc_disabled_callback_t *> callback_vector_t;
         callback_vector_t callbacks_;
 
         server_t *server_;

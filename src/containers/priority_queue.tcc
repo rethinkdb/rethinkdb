@@ -71,7 +71,7 @@ priority_queue_t<T, Less>::priority_queue_t() {}
 template<class T, class Less>
 priority_queue_t<T, Less>::~priority_queue_t() {
     for (unsigned int i = 0; i < heap.size(); i++)
-        gdelete(heap[i]);
+        delete heap[i];
 }
 
 template<class T, class Less>
@@ -92,7 +92,7 @@ T priority_queue_t<T, Less>::peak() {
 
 template<class T, class Less>
 typename priority_queue_t<T, Less>::entry_t *priority_queue_t<T, Less>::push(T data) {
-    typename priority_queue_t<T, Less>::entry_t *result = gnew<entry_t>();
+    typename priority_queue_t<T, Less>::entry_t *result = new entry_t();
     result->data = data;
     result->pq = this;
     result->index = heap.size();
@@ -114,7 +114,7 @@ void priority_queue_t<T, Less>::remove(entry_t *e) {
     }
 
     heap.pop_back();
-    gdelete(e);
+    delete e;
 }
 
 
@@ -123,7 +123,7 @@ T priority_queue_t<T, Less>::pop() {
     
     T result = heap.front()->data;
     
-    gdelete(heap.front());
+    delete heap.front();
     heap.pop_front();
 
     if (!heap.empty()) {

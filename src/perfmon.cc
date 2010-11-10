@@ -22,7 +22,7 @@ struct perfmon_fsm_t :
 {
     perfmon_callback_t *cb;
     perfmon_stats_t *dest;
-    std::vector<perfmon_t::step_t*, gnew_alloc<perfmon_t::step_t*> > steps;
+    std::vector<perfmon_t::step_t*> steps;
     int messages_out;
     perfmon_fsm_t(perfmon_stats_t *dest) : cb(NULL), dest(dest) {
         steps.reserve(get_var_list().size());
@@ -51,7 +51,7 @@ struct perfmon_fsm_t :
             }
             if (cb) {
                 cb->on_perfmon_stats();
-                gdelete(this);
+                delete this;
             } else {
                 /* Don't delete ourself; perfmon_get_stats() will delete us */
             }
@@ -62,10 +62,10 @@ struct perfmon_fsm_t :
 
 bool perfmon_get_stats(perfmon_stats_t *dest, perfmon_callback_t *cb) {
     
-    perfmon_fsm_t *fsm = gnew<perfmon_fsm_t>(dest);
+    perfmon_fsm_t *fsm = new perfmon_fsm_t(dest);
     if (fsm->messages_out == 0) {
         /* It has already finished */
-        gdelete(fsm);
+        delete fsm;
         return true;
     } else {
         /* It has not finished yet */
@@ -113,11 +113,11 @@ struct perfmon_counter_step_t :
     void visit() {
         values[get_cpu_id()] = parent->values[get_cpu_id()];
     }
-    std_string_t end() {
+    std::string end() {
         int64_t value = 0;
         for (int i = 0; i < get_num_cpus(); i++) value += values[i];
-        gdelete(this);
-        std::basic_stringstream<char, std::char_traits<char>, gnew_alloc<char> > s;
+        delete this;
+        std::stringstream s;
         s << value;
         return s.str();
     }
@@ -125,7 +125,7 @@ struct perfmon_counter_step_t :
 
 perfmon_t::step_t *perfmon_counter_t::begin() {
     
-    return gnew<perfmon_counter_step_t>(this);
+    return new perfmon_counter_step_t(this);
 }
 
 /* perfmon_thread_average_t */
@@ -148,12 +148,12 @@ struct perfmon_thread_average_step_t :
     void visit() {
         values[get_cpu_id()] = parent->values[get_cpu_id()];
     }
-    std_string_t end() {
+    std::string end() {
         int64_t value = 0;
         for (int i = 0; i < get_num_cpus(); i++) value += values[i];
         value /= get_num_cpus();
-        gdelete(this);
-        std::basic_stringstream<char, std::char_traits<char>, gnew_alloc<char> > s;
+        delete this;
+        std::stringstream s;
         s << value;
         return s.str();
     }
@@ -161,5 +161,5 @@ struct perfmon_thread_average_step_t :
 
 perfmon_t::step_t *perfmon_thread_average_t::begin() {
     
-    return gnew<perfmon_thread_average_step_t>(this);
+    return new perfmon_thread_average_step_t(this);
 }

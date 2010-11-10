@@ -28,7 +28,6 @@ struct conn_fsm_shutdown_callback_t {
 // The actual state structure
 struct conn_fsm_t :
     public intrusive_list_node_t<conn_fsm_t>,
-    public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, conn_fsm_t>,
     public net_conn_callback_t
 {
 public:

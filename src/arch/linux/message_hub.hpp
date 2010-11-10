@@ -6,7 +6,6 @@
 #include "containers/intrusive_list.hpp"
 #include "utils2.hpp"
 #include "config/args.hpp"
-#include "config/alloc.hpp"
 #include "arch/linux/event_queue.hpp"
 
 struct linux_thread_pool_t;

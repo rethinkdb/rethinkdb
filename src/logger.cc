@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include <stdarg.h>
 #include <stdlib.h>
-#include "config/alloc.hpp"
 #include "logger.hpp"
 #include <string.h>
 #include "utils.hpp"
@@ -68,7 +67,7 @@ struct log_controller_t :
         num_threads_up--;
         if (num_threads_up == 0) {
             shutdown_callback->on_logger_shutdown();
-            gdelete(this);
+            delete this;
         }
         return true;
     }
@@ -102,7 +101,7 @@ struct log_controller_t :
 
 void logger_start(logger_ready_callback_t *cb) {
     
-    gnew<log_controller_t>();
+    new log_controller_t();
     
     /* Call callback immediately because it's OK if log messages get written before the log
     controller finishes installing itself--there might be lock contention on the log file,

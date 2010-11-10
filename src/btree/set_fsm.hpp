@@ -4,8 +4,8 @@
 #include "btree/modify_fsm.hpp"
 
 class btree_set_fsm_t : public btree_modify_fsm_t,
-                        public large_value_completed_callback,
-                        public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, btree_set_fsm_t> {
+                        public large_value_completed_callback
+{
 private:
     typedef btree_fsm_t::transition_result_t transition_result_t;
 

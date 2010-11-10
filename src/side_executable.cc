@@ -13,8 +13,8 @@ void consider_execve_side_executable(int argc, char **argv, const char *command_
         // for, and use "$argv[0] $argv[1]" as the command name to
         // pass on as the value of argv[0].
 
-        char *commandbuf = (char *)malloc(strlen(argv[0]) + 1 + strlen(argv[1]) + 1);
-        char *argv_0_buf = (char *)malloc(strlen(argv[0]) + 1 + strlen(argv[1]) + 1);
+        char *commandbuf = new char[strlen(argv[0]) + 1 + strlen(argv[1]) + 1];
+        char *argv_0_buf = new char[strlen(argv[0]) + 1 + strlen(argv[1]) + 1];
         
         strcpy(commandbuf, argv[0]);
         strcpy(argv_0_buf, argv[0]);

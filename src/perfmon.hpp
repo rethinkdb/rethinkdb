@@ -4,8 +4,8 @@
 #include <string>
 #include <map>
 #include <stdarg.h>
-#include "config/alloc.hpp"
 #include "utils2.hpp"
+#include "config/args.hpp"
 #include "containers/intrusive_list.hpp"
 
 // Horrible hack because we define fail() as a macro
@@ -19,10 +19,7 @@ various parts of the server. */
 /* A perfmon_stats_t is just a mapping from string keys to string values; it
 stores statistics about the server. */
 
-typedef std::basic_string<char, std::char_traits<char>, gnew_alloc<char> > std_string_t;
-
-typedef std::map<std_string_t, std_string_t, std::less<std_string_t>,
-    gnew_alloc<std::pair<std_string_t, std_string_t> > > perfmon_stats_t;
+typedef std::map<std::string, std::string> perfmon_stats_t;
 
 /* perfmon_get_stats() collects all the stats about the server and puts them
 into the given perfmon_stats_t object. Its interface is asynchronous, but at
@@ -56,7 +53,7 @@ public:
     You usually want to call perfmon_get_stats() instead of calling these methods directly. */
     struct step_t {
         virtual void visit() = 0;
-        virtual std_string_t end() = 0;
+        virtual std::string end() = 0;
     };
     virtual step_t *begin() = 0;
 };

@@ -1,6 +1,7 @@
 #include "utils2.hpp"
 #include "arch/arch.hpp"
 #include <unistd.h>
+#include <stdlib.h>
 
 /* System configuration*/
 int get_cpu_count() {

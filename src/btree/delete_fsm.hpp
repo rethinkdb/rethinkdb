@@ -8,8 +8,8 @@
 #include "btree/leaf_node.hpp"
 #include "btree/fsm.hpp"
 
-class btree_delete_fsm_t : public btree_modify_fsm_t,
-                           public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, btree_delete_fsm_t> {
+class btree_delete_fsm_t : public btree_modify_fsm_t
+{
     typedef btree_fsm_t::transition_result_t transition_result_t;
 public:
     explicit btree_delete_fsm_t(btree_key *_key, btree_key_value_store_t *store)

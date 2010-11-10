@@ -10,8 +10,7 @@ struct mock_iocallback_t {
 };
 
 template<class inner_io_config_t>
-class mock_direct_file_t :
-    public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, mock_direct_file_t<inner_io_config_t> >
+class mock_direct_file_t
 {
     
 public:

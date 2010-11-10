@@ -3,23 +3,22 @@
 
 /* Internal buf object */
 
-struct internal_buf_t :
-    public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, internal_buf_t>
+struct internal_buf_t
 {
     mock_cache_t *cache;
     block_id_t block_id;
     void *data;
     bool writing;
     int n_reading;
-    std::vector<mock_block_available_callback_t*, gnew_alloc<mock_block_available_callback_t*> > waiting_readers, waiting_writers;
+    std::vector<mock_block_available_callback_t*> waiting_readers, waiting_writers;
     
     internal_buf_t(mock_cache_t *cache, block_id_t block_id)
-        : cache(cache), block_id(block_id), data(cache->alloc.malloc(cache->block_size)), writing(false), n_reading(0) {
+        : cache(cache), block_id(block_id), data(malloc(cache->block_size)), writing(false), n_reading(0) {
         assert(data);
     }
     
     ~internal_buf_t() {
-        cache->alloc.free(data);
+        free(data);
     }
     
     bool can_acquire(access_t access) {
