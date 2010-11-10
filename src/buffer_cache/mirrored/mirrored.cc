@@ -138,7 +138,6 @@ void mc_buf_t::release_cow() {
     assert(cow_data);
     cache->assert_cpu();
     pm_n_bufs_released++;
-    pm_n_cows_destroyed++;
 
     if(cow_data == data) {
         // The block has not been copied
@@ -148,6 +147,7 @@ void mc_buf_t::release_cow() {
         // can now free cow_data.
         cache->serializer->free(cow_data);
         cow_data = NULL;
+        pm_n_cows_destroyed++;
     }
     
     /*
