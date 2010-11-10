@@ -872,8 +872,8 @@ struct slice_errors {
     subtree_errors tree_errs;
     other_block_errors other_block_errs;
 
-    slice_errors(int global_slice_number)
-        : global_slice_number(global_slice_number),
+    slice_errors()
+        : global_slice_number(-1),
           superblock_code(btree_block::none), superblock_bad_magic(false), tree_errs(), other_block_errs() { }
 
     bool is_bad() const {
@@ -966,11 +966,21 @@ bool check_interfile(knowledge *knog, interfile_errors *errs) {
     return (errs->all_have_correct_num_files && errs->all_have_same_num_files && errs->all_have_same_num_slices && errs->all_have_same_db_magic && !errs->out_of_order_serializers && !errs->bad_this_serializer_values && !errs->bad_num_slices && !errs->discontiguous_serializers);
 }
 
-void check_after_config_block(direct_file_t *file, file_knowledge *knog) {
+struct all_slices_errors {
+    int n_files;
+    slice_errors *slice;
+
+    all_slices_errors(int n_files) : n_files(n_files), slice(new slice_errors[n_files]) { }
+
+    ~all_slices_errors() { delete[] slice; }
+};
+
+void check_after_config_block(direct_file_t *file, file_knowledge *knog, all_slices_errors *errs) {
     int step = knog->config_block->n_files;
+
     for (int i = knog->config_block->this_serializer; i < knog->config_block->btree_config.n_slices; i += step) {
-        slice_errors errs(i);
-        check_slice(file, knog, i, &errs);
+        errs->slice[i].global_slice_number = i;
+        check_slice(file, knog, i, &errs->slice[i]);
     }
 }
 
@@ -994,8 +1004,9 @@ void check_files(const config_t& cfg) {
         unrecoverable_fact(0, "interfile_errs");
     }
 
+    all_slices_errors slices_errs(knog.file_knog[0]->config_block->n_files);  // TODO combine info gracefully
     for (int i = 0; i < num_files; ++i) {
-        check_after_config_block(knog.files[i], knog.file_knog[i]);
+        check_after_config_block(knog.files[i], knog.file_knog[i], &slices_errs);
     }
 }
 
