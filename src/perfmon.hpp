@@ -48,15 +48,27 @@ public:
     ~perfmon_t();
     
     const char *name;
-    virtual std_string_t get_value() = 0;   /* Should this be asynchronous? */
+    
+    /* To get a value from a given perfmon: Call begin(). On each core, call the visit() method
+    of the step_t that was returned from begin(). Then call end() on the step_t on the same core
+    that you called begin() on.
+    
+    You usually want to call perfmon_get_stats() instead of calling these methods directly. */
+    struct step_t {
+        virtual void visit() = 0;
+        virtual std_string_t end() = 0;
+    };
+    virtual step_t *begin() = 0;
 };
 
 /* perfmon_counter_t is a perfmon_t that keeps a global counter that can be incremented
 and decremented. (Internally, it keeps many individual counters for thread-safety.) */
 
+struct perfmon_counter_step_t;
 class perfmon_counter_t :
     public perfmon_t
 {
+    friend class perfmon_counter_step_t;
     int64_t values[MAX_CPUS];
     int64_t &get();
 public:
@@ -65,20 +77,23 @@ public:
     void operator+=(int64_t num) { get() += num; }
     void operator--(int) { get()--; }
     void operator-=(int64_t num) { get() -= num; }
-    std_string_t get_value();
+    
+    perfmon_t::step_t *begin();
 };
 
 /* perfmon_thread_average_t is a perfmon_t that averages together values from
 separate threads. */
 
+struct perfmon_thread_average_step_t;
 class perfmon_thread_average_t :
     public perfmon_t
 {
+    friend class perfmon_thread_average_step_t;
     int64_t values[MAX_CPUS];
 public:
     perfmon_thread_average_t(const char *name);
     void set_value_for_this_thread(int64_t v);
-    std_string_t get_value();
+    perfmon_t::step_t *begin();
 };
 
 #endif /* __PERFMON_HPP__ */

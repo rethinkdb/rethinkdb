@@ -6,8 +6,7 @@
  */
  
 // This form of the buf constructor is used when the block exists on disk and needs to be loaded
-template<class mc_config_t>
-mc_buf_t<mc_config_t>::mc_buf_t(cache_t *cache, block_id_t block_id, block_available_callback_t *callback)
+mc_buf_t::mc_buf_t(cache_t *cache, block_id_t block_id, block_available_callback_t *callback)
     : cache(cache),
 #ifndef NDEBUG
       active_callback_count(0),
@@ -38,8 +37,7 @@ mc_buf_t<mc_config_t>::mc_buf_t(cache_t *cache, block_id_t block_id, block_avail
     pm_n_blocks_in_memory++;
 }
 
-template<class mc_config_t>
-void mc_buf_t<mc_config_t>::on_serializer_read() {
+void mc_buf_t::on_serializer_read() {
     
     cache->serializer->assert_cpu();
     assert(!cached);
@@ -47,8 +45,7 @@ void mc_buf_t<mc_config_t>::on_serializer_read() {
     if (continue_on_cpu(cache->home_cpu, this)) on_cpu_switch();
 }
 
-template<class mc_config_t>
-void mc_buf_t<mc_config_t>::have_read() {
+void mc_buf_t::have_read() {
     
     cache->assert_cpu();
     
@@ -74,8 +71,7 @@ void mc_buf_t<mc_config_t>::have_read() {
 }
 
 // This form of the buf constructor is used when a completely new block is being created
-template<class mc_config_t>
-mc_buf_t<mc_config_t>::mc_buf_t(cache_t *cache)
+mc_buf_t::mc_buf_t(cache_t *cache)
     : cache(cache),
 #ifndef NDEBUG
       active_callback_count(0),
@@ -102,8 +98,7 @@ mc_buf_t<mc_config_t>::mc_buf_t(cache_t *cache)
     pm_n_blocks_in_memory++;
 }
 
-template<class mc_config_t>
-mc_buf_t<mc_config_t>::~mc_buf_t() {
+mc_buf_t::~mc_buf_t() {
     
     cache->assert_cpu();
     
@@ -120,8 +115,7 @@ mc_buf_t<mc_config_t>::~mc_buf_t() {
     pm_n_blocks_in_memory += -1;
 }
 
-template<class mc_config_t>
-void mc_buf_t<mc_config_t>::release() {
+void mc_buf_t::release() {
     
     cache->assert_cpu();
     
@@ -139,12 +133,12 @@ void mc_buf_t<mc_config_t>::release() {
     */
 }
 
-template<class mc_config_t>
-void mc_buf_t<mc_config_t>::release_cow() {
+void mc_buf_t::release_cow() {
     
     assert(cow_data);
     cache->assert_cpu();
     pm_n_bufs_released++;
+    pm_n_cows_destroyed++;
 
     if(cow_data == data) {
         // The block has not been copied
@@ -167,23 +161,21 @@ void mc_buf_t<mc_config_t>::release_cow() {
     */
 }
 
-template<class mc_config_t>
-void mc_buf_t<mc_config_t>::on_serializer_write_block() {
+void mc_buf_t::on_serializer_write_block() {
     
     cache->serializer->assert_cpu();
-    assert(is_dirty());
+    assert(cow_data);   // We should be in a flush right now
     if (continue_on_cpu(cache->home_cpu, this)) on_cpu_switch();
 }
 
-template<class mc_config_t>
-void mc_buf_t<mc_config_t>::on_cpu_switch() {
+void mc_buf_t::on_cpu_switch() {
 
     if (!is_cached()) {
         /* We are going to the serializer's CPU to ask it to load us. */
         cache->serializer->assert_cpu();
         if (cache->serializer->do_read(block_id, data, this)) on_serializer_read();
     
-    } else if (!is_dirty()) {
+    } else if (!cow_data) {
         /* We are returning from the serializer's CPU after loading our data. */
         cache->assert_cpu();
         have_read();
@@ -200,27 +192,24 @@ void mc_buf_t<mc_config_t>::on_cpu_switch() {
     }
 }
 
-template<class mc_config_t>
-void mc_buf_t<mc_config_t>::add_load_callback(block_available_callback_t *cb) {
+void mc_buf_t::add_load_callback(block_available_callback_t *cb) {
     assert(!cached);
     assert(cb);
     load_callbacks.push_back(cb);
 }
 
-template<class mc_config_t>
-bool mc_buf_t<mc_config_t>::safe_to_unload() {
+bool mc_buf_t::safe_to_unload() {
     return concurrency_buf.safe_to_unload() &&
         load_callbacks.empty() &&
-        writeback_buf.safe_to_unload();
+        writeback_buf.safe_to_unload() &&
+        !cow_data;
 }
 
-template<class mc_config_t>
-bool mc_buf_t<mc_config_t>::safe_to_delete() {
+bool mc_buf_t::safe_to_delete() {
     return load_callbacks.empty();
 }
 
-template<class mc_config_t>
-void mc_buf_t<mc_config_t>::do_cow_copy() {
+void mc_buf_t::do_cow_copy() {
     assert(cow_data);
     data = cache->serializer->clone(data);
 }
@@ -228,8 +217,7 @@ void mc_buf_t<mc_config_t>::do_cow_copy() {
 /**
  * Transaction implementation.
  */
-template<class mc_config_t>
-mc_transaction_t<mc_config_t>::mc_transaction_t(cache_t *cache, access_t access)
+mc_transaction_t::mc_transaction_t(cache_t *cache, access_t access)
     : cache(cache),
       access(access),
       begin_callback(NULL),
@@ -240,15 +228,13 @@ mc_transaction_t<mc_config_t>::mc_transaction_t(cache_t *cache, access_t access)
     assert(access == rwi_read || access == rwi_write);
 }
 
-template<class mc_config_t>
-mc_transaction_t<mc_config_t>::~mc_transaction_t() {
+mc_transaction_t::~mc_transaction_t() {
 
     assert(state == state_committed);
     pm_n_transactions_completed++;
 }
 
-template<class mc_config_t>
-bool mc_transaction_t<mc_config_t>::commit(transaction_commit_callback_t *callback) {
+bool mc_transaction_t::commit(transaction_commit_callback_t *callback) {
     
     assert(state == state_open);
     pm_n_transactions_committed++;
@@ -277,8 +263,7 @@ bool mc_transaction_t<mc_config_t>::commit(transaction_commit_callback_t *callba
     }
 }
 
-template<class mc_config_t>
-void mc_transaction_t<mc_config_t>::on_sync() {
+void mc_transaction_t::on_sync() {
     /* cache->on_transaction_commit() could cause on_sync() to be called even after sync_patiently()
     failed. To detect when this happens, we use the state state_in_commit_call. If we get an
     on_sync() while in state_in_commit_call, we know that we are still inside of commit(), so we
@@ -298,8 +283,7 @@ void mc_transaction_t<mc_config_t>::on_sync() {
     }
 }
 
-template<class mc_config_t>
-mc_buf_t<mc_config_t> *mc_transaction_t<mc_config_t>::allocate(block_id_t *block_id) {
+mc_buf_t *mc_transaction_t::allocate(block_id_t *block_id) {
 
     /* Make a completely new block, complete with a shiny new block_id. */
     
@@ -321,19 +305,18 @@ mc_buf_t<mc_config_t> *mc_transaction_t<mc_config_t>::allocate(block_id_t *block
     return buf;
 }
 
-template<class mc_config_t>
-struct acquire_lock_callback_t : public mc_block_available_callback_t<mc_config_t>,
-                                 public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, acquire_lock_callback_t<mc_config_t> >
+struct acquire_lock_callback_t : public mc_block_available_callback_t,
+                                 public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, acquire_lock_callback_t >
 {
-    acquire_lock_callback_t(mc_transaction_t<mc_config_t> *_transaction,
-                            mc_block_available_callback_t<mc_config_t> *_callback,
+    acquire_lock_callback_t(mc_transaction_t *_transaction,
+                            mc_block_available_callback_t *_callback,
                             access_t _mode)
         : transaction(_transaction),
           callback(_callback),
           mode(_mode)
         {}
     
-    virtual void on_block_available(mc_buf_t<mc_config_t> *buf) {
+    virtual void on_block_available(mc_buf_t *buf) {
         // Block has been unlocked and is now available to us
         transaction->process_buf(buf, mode);
         if(callback) {
@@ -343,16 +326,16 @@ struct acquire_lock_callback_t : public mc_block_available_callback_t<mc_config_
     }
 
 private:
-    mc_transaction_t<mc_config_t> *transaction;
-    mc_block_available_callback_t<mc_config_t> *callback;
+    mc_transaction_t *transaction;
+    mc_block_available_callback_t *callback;
     access_t mode;
 };
         
-template<class mc_config_t>
-void mc_transaction_t<mc_config_t>::process_buf(mc_buf_t<mc_config_t> *buf, access_t mode) {
+void mc_transaction_t::process_buf(mc_buf_t *buf, access_t mode) {
     if(buf->cow_data && buf->data == buf->cow_data && mode == rwi_write) {
         // Gotta do copy on write
         buf->do_cow_copy();
+        pm_n_cows_made++;
     } else if(mode == rwi_read_outdated_ok) {
         // One rwi_read_outdated_ok at a time
         assert(buf->cow_data == NULL);
@@ -365,8 +348,7 @@ void mc_transaction_t<mc_config_t>::process_buf(mc_buf_t<mc_config_t> *buf, acce
     pm_n_bufs_ready++;
 }
 
-template<class mc_config_t>
-mc_buf_t<mc_config_t> *mc_transaction_t<mc_config_t>::acquire(block_id_t block_id, access_t mode,
+mc_buf_t *mc_transaction_t::acquire(block_id_t block_id, access_t mode,
                                block_available_callback_t *callback) {
     assert(mode == rwi_read || mode == rwi_read_outdated_ok || access != rwi_read);
        
@@ -411,7 +393,7 @@ mc_buf_t<mc_config_t> *mc_transaction_t<mc_config_t>::acquire(block_id_t block_i
         // We only allow one acquisition for COW at a time
         assert(mode != rwi_read_outdated_ok || !buf->cow_data);
 
-        acquire_lock_callback_t<mc_config_t> *_callback = new acquire_lock_callback_t<mc_config_t>(this, callback, mode);
+        acquire_lock_callback_t *_callback = new acquire_lock_callback_t(this, callback, mode);
         access_t _mode = mode;
         if(_mode == rwi_read_outdated_ok)
             _mode = rwi_read;
@@ -444,8 +426,7 @@ mc_buf_t<mc_config_t> *mc_transaction_t<mc_config_t>::acquire(block_id_t block_i
  * Cache implementation.
  */
 
-template<class mc_config_t>
-mc_cache_t<mc_config_t>::mc_cache_t(
+mc_cache_t::mc_cache_t(
             serializer_t *serializer,
             mirrored_cache_config_t *config) :
     
@@ -459,14 +440,13 @@ mc_cache_t<mc_config_t>::mc_cache_t(
         config->wait_for_flush,
         config->flush_timer_ms,
         config->max_size / serializer->get_block_size() * config->flush_threshold_percent / 100),
-    free_list(this),
+    free_list(serializer),
     shutdown_transaction_backdoor(false),
     state(state_unstarted),
     num_live_transactions(0)
     { }
 
-template<class mc_config_t>
-mc_cache_t<mc_config_t>::~mc_cache_t() {
+mc_cache_t::~mc_cache_t() {
     
     assert(state == state_unstarted || state == state_shut_down);
     
@@ -476,8 +456,7 @@ mc_cache_t<mc_config_t>::~mc_cache_t() {
     assert(num_live_transactions == 0);
 }
 
-template<class mc_config_t>
-bool mc_cache_t<mc_config_t>::start(ready_callback_t *cb) {
+bool mc_cache_t::start(ready_callback_t *cb) {
     assert(state == state_unstarted);
     state = state_starting_up_create_free_list;
     ready_callback = NULL;
@@ -489,8 +468,7 @@ bool mc_cache_t<mc_config_t>::start(ready_callback_t *cb) {
     }
 }
 
-template<class mc_config_t>
-bool mc_cache_t<mc_config_t>::next_starting_up_step() {
+bool mc_cache_t::next_starting_up_step() {
     
     if (state == state_starting_up_create_free_list) {
         if (free_list.start(this)) {
@@ -506,7 +484,7 @@ bool mc_cache_t<mc_config_t>::next_starting_up_step() {
         /* Create an initial superblock */
         if (free_list.num_blocks_in_use == 0) {
         
-            buf_t *b = new mc_buf_t<mc_config_t>(this);
+            buf_t *b = new mc_buf_t(this);
             
             // Because release() increments n_bufs_released
             pm_n_bufs_acquired++;
@@ -529,20 +507,17 @@ bool mc_cache_t<mc_config_t>::next_starting_up_step() {
     fail("Invalid state.");
 }
 
-template<class mc_config_t>
-void mc_cache_t<mc_config_t>::on_free_list_ready() {
+void mc_cache_t::on_free_list_ready() {
     assert(state == state_starting_up_waiting_for_free_list);
     state = state_starting_up_finish;
     next_starting_up_step();
 }
 
-template<class mc_config_t>
-size_t mc_cache_t<mc_config_t>::get_block_size() {
+size_t mc_cache_t::get_block_size() {
     return serializer->get_block_size();
 }
 
-template<class mc_config_t>
-mc_transaction_t<mc_config_t> *mc_cache_t<mc_config_t>::begin_transaction(access_t access,
+mc_transaction_t *mc_cache_t::begin_transaction(access_t access,
         transaction_begin_callback_t *callback) {\
     
     // shutdown_transaction_backdoor allows the writeback to request a transaction for the shutdown
@@ -562,8 +537,7 @@ mc_transaction_t<mc_config_t> *mc_cache_t<mc_config_t>::begin_transaction(access
     }
 }
 
-template<class mc_config_t>
-void mc_cache_t<mc_config_t>::on_transaction_commit(transaction_t *txn) {
+void mc_cache_t::on_transaction_commit(transaction_t *txn) {
     
     assert(state == state_ready ||
         state == state_shutting_down_waiting_for_transactions ||
@@ -581,8 +555,7 @@ void mc_cache_t<mc_config_t>::on_transaction_commit(transaction_t *txn) {
     }
 }
 
-template<class mc_config_t>
-bool mc_cache_t<mc_config_t>::shutdown(shutdown_callback_t *cb) {
+bool mc_cache_t::shutdown(shutdown_callback_t *cb) {
 
     assert(state == state_ready);
 
@@ -604,8 +577,7 @@ bool mc_cache_t<mc_config_t>::shutdown(shutdown_callback_t *cb) {
     }
 }
 
-template<class mc_config_t>
-bool mc_cache_t<mc_config_t>::next_shutting_down_step() {
+bool mc_cache_t::next_shutting_down_step() {
 
     if (state == state_shutting_down_start_flush) {
         if (writeback.sync(this)) {
@@ -630,8 +602,7 @@ bool mc_cache_t<mc_config_t>::next_shutting_down_step() {
     fail("Invalid state.");
 }
 
-template<class mc_config_t>
-void mc_cache_t<mc_config_t>::on_sync() {
+void mc_cache_t::on_sync() {
     assert(state == state_shutting_down_waiting_for_flush);
     state = state_shutting_down_finish;
     next_shutting_down_step();

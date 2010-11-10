@@ -5,25 +5,30 @@
 #include "concurrency/rwi_lock.hpp"
 #include "flush_time_randomizer.hpp"
 #include "utils.hpp"
+#include "serializer/serializer.hpp"
+#include "../callbacks.hpp"
 
-template<class mc_config_t>
-struct writeback_tmpl_t :
+struct mc_cache_t;
+struct mc_buf_t;
+struct mc_transaction_t;
+
+struct writeback_t :
     public lock_available_callback_t,
     public serializer_t::write_txn_callback_t
 {
-    typedef mc_cache_t<mc_config_t> cache_t;
-    typedef mc_buf_t<mc_config_t> buf_t;
-    typedef mc_transaction_t<mc_config_t> transaction_t;
-    typedef mc_transaction_begin_callback_t<mc_config_t> transaction_begin_callback_t;
-    typedef mc_transaction_commit_callback_t<mc_config_t> transaction_commit_callback_t;
+    typedef mc_cache_t cache_t;
+    typedef mc_buf_t buf_t;
+    typedef mc_transaction_t transaction_t;
+    typedef mc_transaction_begin_callback_t transaction_begin_callback_t;
+    typedef mc_transaction_commit_callback_t transaction_commit_callback_t;
     
 public:
-    writeback_tmpl_t(
+    writeback_t(
         cache_t *cache,
         bool wait_for_flush,
         unsigned int flush_timer_ms,
         unsigned int flush_threshold);
-    virtual ~writeback_tmpl_t();
+    virtual ~writeback_t();
     
     struct sync_callback_t : public intrusive_list_node_t<sync_callback_t> {
         virtual ~sync_callback_t() {}
@@ -47,7 +52,7 @@ public:
     
     class local_buf_t : public intrusive_list_node_t<local_buf_t> {
         
-        friend class writeback_tmpl_t;
+        friend class writeback_t;
         
     public:
         explicit local_buf_t(buf_t *gbuf)
@@ -134,8 +139,6 @@ private:
     // List of things to call back as soon as the writeback currently in progress is over.
     intrusive_list_t<sync_callback_t> current_sync_callbacks;
 };
-
-#include "writeback.tcc"
 
 #endif // __BUFFER_CACHE_WRITEBACK_HPP__
 

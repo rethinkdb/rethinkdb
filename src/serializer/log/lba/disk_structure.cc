@@ -216,7 +216,6 @@ struct reader_t :
 
 void lba_disk_structure_t::read(in_memory_index_t *index, read_callback_t *cb) {
     
-    debugf("gnew()ing reader_t\n");
     gnew<reader_t>(this, index, cb);
 }
 

@@ -7,29 +7,14 @@
 #ifndef MOCK_CACHE_CHECK
 
 #include "buffer_cache/mirrored/mirrored.hpp"
-#include "buffer_cache/mirrored/concurrency/rwi_conc.hpp"
-#include "buffer_cache/mirrored/page_map.hpp"
-#include "buffer_cache/mirrored/page_repl/page_repl_random.hpp"
-#include "buffer_cache/mirrored/writeback/writeback.hpp"
-#include "buffer_cache/mirrored/free_list.hpp"
-
-struct standard_mc_config_t {
-    
-    typedef rwi_conc_t<standard_mc_config_t> concurrency_t;
-    typedef array_map_t<standard_mc_config_t> page_map_t;
-    typedef page_repl_random_t<standard_mc_config_t> page_repl_t;
-    typedef writeback_tmpl_t<standard_mc_config_t> writeback_t;
-    typedef array_free_list_t<standard_mc_config_t> free_list_t;
-};
-
 #include "buffer_cache/semantic_checking.hpp"
 
 #if !defined(VALGRIND) && !defined(NDEBUG)
 // scc_cache_t is way too slow under valgrind and makes automated
 // tests run forever.
-typedef scc_cache_t<mc_cache_t<standard_mc_config_t> > cache_t;
+typedef scc_cache_t<mc_cache_t > cache_t;
 #else
-typedef mc_cache_t<standard_mc_config_t> cache_t;
+typedef mc_cache_t cache_t;
 #endif
 
 #else

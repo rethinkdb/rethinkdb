@@ -1,7 +1,7 @@
 #include "writeback.hpp"
+#include "buffer_cache/mirrored/mirrored.hpp"
 
-template<class mc_config_t>
-writeback_tmpl_t<mc_config_t>::writeback_tmpl_t(
+writeback_t::writeback_t(
         cache_t *cache,
         bool wait_for_flush,
         unsigned int flush_timer_ms,
@@ -18,14 +18,12 @@ writeback_tmpl_t<mc_config_t>::writeback_tmpl_t(
     flush_lock = gnew<rwi_lock_t>();
 }
 
-template<class mc_config_t>
-writeback_tmpl_t<mc_config_t>::~writeback_tmpl_t() {
+writeback_t::~writeback_t() {
     assert(!flush_timer);
     gdelete(flush_lock);
 }
 
-template<class mc_config_t>
-bool writeback_tmpl_t<mc_config_t>::sync(sync_callback_t *callback) {
+bool writeback_t::sync(sync_callback_t *callback) {
 
     if (!writeback_in_progress) {
         /* Start the writeback process immediately */
@@ -50,8 +48,7 @@ bool writeback_tmpl_t<mc_config_t>::sync(sync_callback_t *callback) {
     }
 }
 
-template<class mc_config_t>
-bool writeback_tmpl_t<mc_config_t>::sync_patiently(sync_callback_t *callback) {
+bool writeback_t::sync_patiently(sync_callback_t *callback) {
 
     if (num_dirty_blocks() > 0) {
         if (callback) sync_callbacks.push_back(callback);
@@ -63,8 +60,7 @@ bool writeback_tmpl_t<mc_config_t>::sync_patiently(sync_callback_t *callback) {
     }
 }
 
-template<class mc_config_t>
-bool writeback_tmpl_t<mc_config_t>::begin_transaction(transaction_t *txn,
+bool writeback_t::begin_transaction(transaction_t *txn,
         transaction_begin_callback_t *callback) {
     
     switch(txn->get_access()) {
@@ -84,8 +80,7 @@ bool writeback_tmpl_t<mc_config_t>::begin_transaction(transaction_t *txn,
     }
 }
 
-template<class mc_config_t>
-void writeback_tmpl_t<mc_config_t>::on_transaction_commit(transaction_t *txn) {
+void writeback_t::on_transaction_commit(transaction_t *txn) {
     
     if (txn->get_access() == rwi_write) {
         flush_lock->unlock();
@@ -104,13 +99,11 @@ void writeback_tmpl_t<mc_config_t>::on_transaction_commit(transaction_t *txn) {
     }
 }
 
-template<class mc_config_t>
-unsigned int writeback_tmpl_t<mc_config_t>::num_dirty_blocks() {
+unsigned int writeback_t::num_dirty_blocks() {
     return dirty_bufs.size();
 }
 
-template<class mc_config_t>
-void writeback_tmpl_t<mc_config_t>::local_buf_t::set_dirty(bool _dirty) {
+void writeback_t::local_buf_t::set_dirty(bool _dirty) {
     if(!dirty && _dirty) {
         // Mark block as dirty if it hasn't been already
         dirty = true;
@@ -125,16 +118,14 @@ void writeback_tmpl_t<mc_config_t>::local_buf_t::set_dirty(bool _dirty) {
     }
 }
 
-template<class mc_config_t>
-void writeback_tmpl_t<mc_config_t>::flush_timer_callback(void *ctx) {
-    writeback_tmpl_t *self = static_cast<writeback_tmpl_t *>(ctx);
+void writeback_t::flush_timer_callback(void *ctx) {
+    writeback_t *self = static_cast<writeback_t *>(ctx);
     self->flush_timer = NULL;
     
     self->sync(NULL);
 }
 
-template<class mc_config_t>
-bool writeback_tmpl_t<mc_config_t>::writeback_start_and_acquire_lock() {
+bool writeback_t::writeback_start_and_acquire_lock() {
 
     assert(!writeback_in_progress);
     writeback_in_progress = true;
@@ -167,15 +158,13 @@ bool writeback_tmpl_t<mc_config_t>::writeback_start_and_acquire_lock() {
     else return false;
 }
 
-template<class mc_config_t>
-void writeback_tmpl_t<mc_config_t>::on_lock_available() {
+void writeback_t::on_lock_available() {
 
     assert(writeback_in_progress);
     writeback_acquire_bufs();
 }
 
-template<class mc_config_t>
-bool writeback_tmpl_t<mc_config_t>::writeback_acquire_bufs() {
+bool writeback_t::writeback_acquire_bufs() {
     
     assert(writeback_in_progress);
     cache->assert_cpu();
@@ -189,11 +178,11 @@ bool writeback_tmpl_t<mc_config_t>::writeback_acquire_bufs() {
     num_serializer_writes = dirty_bufs.size();
     serializer_writes = (serializer_t::write_t *)malloc(sizeof(serializer_t::write_t) * num_serializer_writes);
     
-    int i;
-    typename intrusive_list_t<local_buf_t>::iterator it;
-    for (it = dirty_bufs.begin(), i = 0; it != dirty_bufs.end(); i++) {
-        buf_t *_buf = (*it).gbuf;
-        it++;   // Increment the iterator so we can safely delete the thing it points to later
+    int i = 0;
+    while (local_buf_t *lbuf = dirty_bufs.head()) {
+    
+        buf_t *_buf = lbuf->gbuf;
+        lbuf->set_dirty(false);   // Removes it from dirty_bufs
         
         bool do_delete = _buf->do_delete;
         
@@ -219,27 +208,23 @@ bool writeback_tmpl_t<mc_config_t>::writeback_acquire_bufs() {
             serializer_writes[i].buf = NULL;   // NULL indicates a deletion
             serializer_writes[i].callback = NULL;
             
-            // Dodge assertions so we can delete the buf
-            buf->writeback_buf.dirty = false;
-            pm_n_blocks_dirty--;
             assert(buf_access_mode != rwi_read_outdated_ok);
             buf->release();
-            dirty_bufs.remove(&buf->writeback_buf);
             
             cache->free_list.release_block_id(buf->get_block_id());
             
             delete buf;
         }
+        
+        i++;
     }
-    dirty_bufs.clear();
     
     flush_lock->unlock(); // Write transactions can now proceed again.
     
-    return do_on_cpu(cache->serializer->home_cpu, this, &writeback_tmpl_t::writeback_do_write);
+    return do_on_cpu(cache->serializer->home_cpu, this, &writeback_t::writeback_do_write);
 }
 
-template<class mc_config_t>
-bool writeback_tmpl_t<mc_config_t>::writeback_do_write() {
+bool writeback_t::writeback_do_write() {
 
     /* Start writing all the dirty bufs down, as a transaction. */
     
@@ -252,36 +237,27 @@ bool writeback_tmpl_t<mc_config_t>::writeback_do_write() {
     
     if (num_serializer_writes == 0 ||
             cache->serializer->do_write(serializer_writes, num_serializer_writes, this)) {
-        return do_on_cpu(cache->home_cpu, this, &writeback_tmpl_t::writeback_do_cleanup);
+        return do_on_cpu(cache->home_cpu, this, &writeback_t::writeback_do_cleanup);
     } else {
         return false;
     }
 }
 
-template<class mc_config_t>
-void writeback_tmpl_t<mc_config_t>::buf_was_written(buf_t *buf) {
+void writeback_t::buf_was_written(buf_t *buf) {
     
     cache->assert_cpu();
     assert(buf);
-    if(buf->data == buf->cow_data) {
-        // We can only mark the buf as no longer dirty if it hasn't
-        // changed while we were flushing it.
-        buf->writeback_buf.dirty = false;
-    }
-    pm_n_blocks_dirty--;
     buf->release_cow();
 }
 
-template<class mc_config_t>
-void writeback_tmpl_t<mc_config_t>::on_serializer_write_txn() {
+void writeback_t::on_serializer_write_txn() {
     
     assert(writeback_in_progress);
     cache->serializer->assert_cpu();
-    do_on_cpu(cache->home_cpu, this, &writeback_tmpl_t::writeback_do_cleanup);
+    do_on_cpu(cache->home_cpu, this, &writeback_t::writeback_do_cleanup);
 }
 
-template<class mc_config_t>
-bool writeback_tmpl_t<mc_config_t>::writeback_do_cleanup() {
+bool writeback_t::writeback_do_cleanup() {
     
     assert(writeback_in_progress);
     cache->assert_cpu();

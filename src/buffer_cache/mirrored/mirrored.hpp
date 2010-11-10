@@ -13,6 +13,20 @@
 #include "buffer_cache/stats.hpp"
 #include <boost/crc.hpp>
 
+#include "writeback/writeback.hpp"
+
+#include "page_repl/page_repl_random.hpp"
+typedef page_repl_random_t page_repl_t;
+
+#include "free_list.hpp"
+typedef array_free_list_t free_list_t;
+
+#include "page_map.hpp"
+typedef array_map_t page_map_t;
+
+#include "concurrency/rwi_conc.hpp"
+typedef rwi_conc_t concurrency_t;
+
 // This cache doesn't actually do any operations itself. Instead, it
 // provides a framework that collects all components of the cache
 // (memory allocation, page lookup, page replacement, writeback, etc.)
@@ -20,27 +34,26 @@
 // various components of the cache to improve performance.
 
 /* Buffer class. */
-template<class mc_config_t>
 class mc_buf_t :
     public cpu_message_t,
     public serializer_t::read_callback_t,
     public serializer_t::write_block_callback_t,
-    public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, mc_buf_t<mc_config_t> >,
-    public intrusive_list_node_t<mc_buf_t<mc_config_t> >
+    public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, mc_buf_t >,
+    public intrusive_list_node_t<mc_buf_t >
 {
-    typedef mc_cache_t<mc_config_t> cache_t;
-    typedef mc_block_available_callback_t<mc_config_t> block_available_callback_t;
+    typedef mc_cache_t cache_t;
+    typedef mc_block_available_callback_t block_available_callback_t;
     
-    friend class mc_cache_t<mc_config_t>;
-    friend class mc_transaction_t<mc_config_t>;
-    friend class mc_config_t::writeback_t;
-    friend class mc_config_t::writeback_t::local_buf_t;
-    friend class mc_config_t::page_repl_t;
-    friend class mc_config_t::page_repl_t::local_buf_t;
-    friend class mc_config_t::concurrency_t;
-    friend class mc_config_t::concurrency_t::local_buf_t;
-    friend class mc_config_t::page_map_t;
-    friend class mc_config_t::page_map_t::local_buf_t;
+    friend class mc_cache_t;
+    friend class mc_transaction_t;
+    friend class writeback_t;
+    friend class writeback_t::local_buf_t;
+    friend class page_repl_random_t;
+    friend class page_repl_random_t::local_buf_t;
+    friend class rwi_conc_t;
+    friend class rwi_conc_t::local_buf_t;
+    friend class array_map_t;
+    friend class array_map_t::local_buf_t;
     
 private:
     cache_t *cache;
@@ -70,10 +83,10 @@ private:
     callbacks_t load_callbacks;
     
     // Each of these local buf types holds a redundant pointer to the buf that they are a part of
-    typename mc_config_t::writeback_t::local_buf_t writeback_buf;
-    typename mc_config_t::page_repl_t::local_buf_t page_repl_buf;
-    typename mc_config_t::concurrency_t::local_buf_t concurrency_buf;
-    typename mc_config_t::page_map_t::local_buf_t page_map_buf;
+    writeback_t::local_buf_t writeback_buf;
+    page_repl_t::local_buf_t page_repl_buf;
+    concurrency_t::local_buf_t concurrency_buf;
+    page_map_t::local_buf_t page_map_buf;
 
     // This constructor creates a buf for an existing block, and starts the process of loading it
     // from the file
@@ -145,25 +158,23 @@ public:
 };
 
 /* Forward declaration annoyance */
-template<class mc_config_t>
 struct acquire_lock_callback_t;
 
 /* Transaction class. */
-template<class mc_config_t>
 class mc_transaction_t :
     public lock_available_callback_t,
-    public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, mc_transaction_t<mc_config_t> >,
-    public mc_config_t::writeback_t::sync_callback_t
+    public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, mc_transaction_t >,
+    public writeback_t::sync_callback_t
 {
-    typedef mc_cache_t<mc_config_t> cache_t;
-    typedef mc_buf_t<mc_config_t> buf_t;
-    typedef mc_transaction_begin_callback_t<mc_config_t> transaction_begin_callback_t;
-    typedef mc_transaction_commit_callback_t<mc_config_t> transaction_commit_callback_t;
-    typedef mc_block_available_callback_t<mc_config_t> block_available_callback_t;
+    typedef mc_cache_t cache_t;
+    typedef mc_buf_t buf_t;
+    typedef mc_transaction_begin_callback_t transaction_begin_callback_t;
+    typedef mc_transaction_commit_callback_t transaction_commit_callback_t;
+    typedef mc_block_available_callback_t block_available_callback_t;
     
-    friend class mc_cache_t<mc_config_t>;
-    friend class mc_config_t::writeback_t;
-    friend struct acquire_lock_callback_t<mc_config_t>;
+    friend class mc_cache_t;
+    friend class writeback_t;
+    friend struct acquire_lock_callback_t;
     
 public:
     cache_t *get_cache() const { return cache; }
@@ -195,30 +206,28 @@ private:
     enum { state_open, state_in_commit_call, state_committing, state_committed } state;
 };
 
-template<class mc_config_t>
 struct mc_cache_t :
-    private mc_config_t::free_list_t::ready_callback_t,
-    private mc_config_t::writeback_t::sync_callback_t,
+    private free_list_t::ready_callback_t,
+    private writeback_t::sync_callback_t,
     public home_cpu_mixin_t
 {
-    friend class mc_buf_t<mc_config_t>;
-    friend class mc_transaction_t<mc_config_t>;
-    friend class mc_config_t::writeback_t;
-    friend class mc_config_t::writeback_t::local_buf_t;
-    friend class mc_config_t::page_repl_t;
-    friend class mc_config_t::page_repl_t::local_buf_t;
-    friend class mc_config_t::concurrency_t;
-    friend class mc_config_t::concurrency_t::local_buf_t;
-    friend class mc_config_t::page_map_t;
-    friend class mc_config_t::page_map_t::local_buf_t;    
-    friend class mc_config_t::free_list_t;
+    friend class mc_buf_t;
+    friend class mc_transaction_t;
+    friend class writeback_t;
+    friend class writeback_t::local_buf_t;
+    friend class page_repl_random_t;
+    friend class page_repl_random_t::local_buf_t;
+    friend class rwi_conc_t;
+    friend class rwi_conc_t::local_buf_t;
+    friend class array_map_t;
+    friend class array_map_t::local_buf_t;    
     
 public:
-    typedef mc_buf_t<mc_config_t> buf_t;
-    typedef mc_transaction_t<mc_config_t> transaction_t;
-    typedef mc_block_available_callback_t<mc_config_t> block_available_callback_t;
-    typedef mc_transaction_begin_callback_t<mc_config_t> transaction_begin_callback_t;
-    typedef mc_transaction_commit_callback_t<mc_config_t> transaction_commit_callback_t;
+    typedef mc_buf_t buf_t;
+    typedef mc_transaction_t transaction_t;
+    typedef mc_block_available_callback_t block_available_callback_t;
+    typedef mc_transaction_begin_callback_t transaction_begin_callback_t;
+    typedef mc_transaction_commit_callback_t transaction_commit_callback_t;
     
 private:
     
@@ -232,11 +241,11 @@ private:
     
     serializer_t *serializer;
     
-    typename mc_config_t::page_map_t page_map;
-    typename mc_config_t::page_repl_t page_repl;
-    typename mc_config_t::writeback_t writeback;
-    typename mc_config_t::concurrency_t concurrency;
-    typename mc_config_t::free_list_t free_list;
+    page_map_t page_map;
+    page_repl_t page_repl;
+    writeback_t writeback;
+    concurrency_t concurrency;
+    free_list_t free_list;
 
 public:
     mc_cache_t(
@@ -316,8 +325,6 @@ private:
     // complete before shutting down.
     int num_live_transactions;
 };
-
-#include "mirrored.tcc"
 
 #endif // __MIRRORED_CACHE_HPP__
 
