@@ -527,45 +527,127 @@ bool check_config_block(direct_file_t *file, file_knowledge *knog, config_block_
     return true;
 }
 
-void check_hash(const slicecx& cx, btree_key *key) {
-    unrecoverable_fact(btree_key_value_store_t::hash(key) % cx.knog->config_block->btree_config.n_slices == (unsigned)cx.global_slice_id,
-                       "key hashes to appropriate slice");
+struct value_error {
+    block_id_t block_id;
+    std_string_t key;
+    bool bad_metadata_flags;
+    bool too_big;
+    bool lv_too_small;
+    block_id_t index_block_id;
+    btree_block::error lv_index_block_code;
+    enum lv_errcode { none, lv_index_bad_magic, lv_bad_first_block_offset, lv_bad_num_segments };
+    lv_errcode lv_code;
+
+    struct segment_error {
+        block_id_t block_id;
+        btree_block::error block_code;
+        bool bad_magic;
+    };
+
+    std::vector<segment_error> lv_segment_errors;
+
+    value_error(block_id_t block_id) : block_id(block_id), bad_metadata_flags(false), too_big(false),
+                                       lv_too_small(false), index_block_id(NULL_BLOCK_ID),
+                                       lv_index_block_code(btree_block::none), lv_code(none) { }
+
+    bool is_bad() const {
+        return bad_metadata_flags || too_big || lv_too_small || lv_index_block_code != btree_block::none || lv_code == value_error::none;
+    }
+};
+
+struct node_error {
+    block_id_t block_id;
+    btree_block::error block_not_found_error;  // must be none
+    bool block_underfull;  // should be false
+    bool bad_magic;  // should be false
+    bool noncontiguous_offsets;  // should be false
+    bool value_out_of_buf;  // must be false
+    bool keys_too_big;  // should be false
+    bool keys_in_wrong_slice;  // should be false
+    bool out_of_order;  // should be false
+    bool value_errors_exist;  // should be false
+    bool last_internal_node_key_nonempty;  // should be false
+    
+    node_error(block_id_t block_id) : block_id(block_id), block_not_found_error(btree_block::none),
+                                      block_underfull(false), bad_magic(false),
+                                      noncontiguous_offsets(false), value_out_of_buf(false),
+                                      keys_too_big(false), keys_in_wrong_slice(false),
+                                      out_of_order(false), value_errors_exist(false),
+                                      last_internal_node_key_nonempty(false) { }
+
+    bool is_bad() const {
+        return block_not_found_error != btree_block::none || block_underfull || bad_magic
+            || noncontiguous_offsets || value_out_of_buf || keys_too_big || keys_in_wrong_slice
+            || out_of_order || value_errors_exist;
+    }
+};
+
+struct subtree_errors {
+    std::vector<node_error, gnew_alloc<node_error> > node_errors;
+    std::vector<value_error, gnew_alloc<value_error> > value_errors;
+
+    subtree_errors() { }
+private:
+    DISABLE_COPYING(subtree_errors);
+};
+
+
+bool is_valid_hash(const slicecx& cx, btree_key *key) {
+    return btree_key_value_store_t::hash(key) % cx.knog->config_block->btree_config.n_slices == (unsigned)cx.global_slice_id;
 }
 
-void check_value(slicecx& cx, btree_value *value) {
-    unrecoverable_fact(!(value->metadata_flags & ~(MEMCACHED_FLAGS | MEMCACHED_CAS | MEMCACHED_EXPTIME | LARGE_VALUE)),
-                       "no unrecognized metadata flags");
+void check_value(slicecx& cx, btree_value *value, subtree_errors *tree_errs, value_error *errs) {
+    errs->bad_metadata_flags = !!(value->metadata_flags & ~(MEMCACHED_FLAGS | MEMCACHED_CAS | MEMCACHED_EXPTIME | LARGE_VALUE));
 
+    size_t size = value->value_size();
     if (!value->is_large()) {
-        unrecoverable_fact(value->value_size() <= MAX_IN_NODE_VALUE_SIZE,
-                           "small value value_size() <= MAX_IN_NODE_VALUE_SIZE");
+        errs->too_big = (size > MAX_IN_NODE_VALUE_SIZE);
     } else {
-        size_t size = value->value_size();
-        unrecoverable_fact(size > MAX_IN_NODE_VALUE_SIZE, "large value value_size() > MAX_IN_NODE_VALUE_SIZE");
+        errs->lv_too_small = (size <= MAX_IN_NODE_VALUE_SIZE);
+
         block_id_t index_block_id = value->lv_index_block_id();
+        errs->index_block_id = index_block_id;
         btree_block index_block;
-        if (!index_block.init(cx, index_block_id)) {
-            unrecoverable_fact(0, errname[index_block.err]);
+        if (!index_block.init(cx, errs->index_block_id)) {
+            errs->lv_index_block_code = index_block.err;
+            return;
         }
 
         large_buf_index *index_buf = (large_buf_index *)index_block.buf;
-        // MAGIC
-        unrecoverable_fact(check_magic<large_buf_index>(index_buf->magic), "large_buf_index magic");
+
+        if (!check_magic<large_buf_index>(index_buf->magic)) {
+            errs->lv_code = value_error::lv_index_bad_magic;
+            return;
+        } 
 
         int seg_size = cx.knog->static_config->block_size - sizeof(data_block_manager_t::buf_data_t) - sizeof(block_magic_t);
         
-        unrecoverable_fact(index_buf->first_block_offset < seg_size, "large buf first_block_offset < seg_size");
-        unrecoverable_fact(index_buf->num_segments == ceil_aligned(index_buf->first_block_offset + size, seg_size),
-                           "large buf num_segments agrees with first_block_offset and size");
+        if (!(index_buf->first_block_offset < seg_size)) {
+            errs->lv_code = value_error::lv_bad_first_block_offset;
+            return;
+        }
+
+        if (!(index_buf->num_segments == ceil_aligned(index_buf->first_block_offset + size, seg_size))) {
+            errs->lv_code = value_error::lv_bad_num_segments;
+            return;
+        }
 
         for (int i = 0, n = index_buf->num_segments; i < n; ++i) {
+            value_error::segment_error seg_err;
+            seg_err.block_id = index_buf->blocks[i];
+
             btree_block segment;
-            if (!segment.init(cx, index_buf->blocks[i])) {
-                unrecoverable_fact(0, errname[segment.err]);
+            if (!segment.init(cx, seg_err.block_id)) {
+                seg_err.block_code = segment.err;
+                seg_err.bad_magic = false;
+                errs->lv_segment_errors.push_back(seg_err);
+            } else if (!check_magic<large_buf_segment>(((large_buf_segment *)segment.buf)->magic)) {
+                seg_err.block_code = btree_block::none;
+                seg_err.bad_magic = true;
+                errs->lv_segment_errors.push_back(seg_err);
             }
-            unrecoverable_fact(check_magic<large_buf_segment>(((large_buf_segment *)segment.buf)->magic),
-                               "large_buf_segment magic");
         }
+
     }
 }
 
@@ -586,18 +668,21 @@ bool leaf_node_inspect_range(const slicecx& cx, btree_leaf_node *buf, uint16_t o
     return false;
 }
 
-void check_subtree_leaf_node(slicecx& cx, btree_leaf_node *buf, btree_key *lo, btree_key *hi) {
+void check_subtree_leaf_node(slicecx& cx, btree_leaf_node *buf, btree_key *lo, btree_key *hi, subtree_errors *tree_errs, node_error *errs) {
     {
         std::vector<uint16_t, gnew_alloc<uint16_t> > sorted_offsets(buf->pair_offsets, buf->pair_offsets + buf->npairs);
         std::sort(sorted_offsets.begin(), sorted_offsets.end());
         uint16_t expected_offset = buf->frontmost_offset;
 
         for (int i = 0, n = sorted_offsets.size(); i < n; ++i) {
-            unrecoverable_fact(sorted_offsets[i] == expected_offset, "noncontiguous offsets");
-            unrecoverable_fact(leaf_node_inspect_range(cx, buf, expected_offset), "offset + value width out of range");
+            errs->noncontiguous_offsets |= (sorted_offsets[i] != expected_offset);
+            if (!leaf_node_inspect_range(cx, buf, expected_offset)) {
+                errs->value_out_of_buf = true;
+                return;
+            }
             expected_offset += leaf_node_handler::pair_size(leaf_node_handler::get_pair(buf, expected_offset));
         }
-        unrecoverable_fact(expected_offset == cx.knog->static_config->block_size - sizeof(data_block_manager_t::buf_data_t), "offsets adjacent to buf size");
+        errs->noncontiguous_offsets |= (expected_offset != cx.knog->static_config->block_size - sizeof(data_block_manager_t::buf_data_t));
 
     }
 
@@ -606,39 +691,45 @@ void check_subtree_leaf_node(slicecx& cx, btree_leaf_node *buf, btree_key *lo, b
         uint16_t offset = buf->pair_offsets[i];
         btree_leaf_pair *pair = leaf_node_handler::get_pair(buf, offset);
 
-        unrecoverable_fact(pair->key.size <= MAX_KEY_SIZE, "key size <= MAX_KEY_SIZE");
-        check_hash(cx, &pair->key);
-        unrecoverable_fact(prev_key == NULL || leaf_key_comp::compare(prev_key, &pair->key) < 0,
-                           "leaf node key ordering");
+        errs->keys_too_big |= (pair->key.size > MAX_KEY_SIZE);
+        errs->keys_in_wrong_slice |= !is_valid_hash(cx, &pair->key);
+        errs->out_of_order |= !(prev_key == NULL || leaf_key_comp::compare(prev_key, &pair->key) < 0);
 
-        check_value(cx, pair->value());
+        value_error valerr(errs->block_id);
+        check_value(cx, pair->value(), tree_errs, &valerr);
+
+        if (valerr.is_bad()) {
+            valerr.key = std_string_t(pair->key.contents, pair->key.contents + pair->key.size);
+            tree_errs->value_errors.push_back(valerr);
+        }
 
         prev_key = &pair->key;
     }
-    
-    unrecoverable_fact(prev_key == NULL || hi == NULL || leaf_key_comp::compare(prev_key, hi) < 0,
-                       "leaf node last key ordering");
+
+    errs->out_of_order |= !(prev_key == NULL || hi == NULL || leaf_key_comp::compare(prev_key, hi) < 0);
 }
 
 bool internal_node_begin_offset_in_range(const slicecx& cx, btree_internal_node *buf, uint16_t offset) {
     return (cx.knog->static_config->block_size - sizeof(data_block_manager_t::buf_data_t) - sizeof(btree_internal_pair)) >= offset && offset >= buf->frontmost_offset;
 }
 
-// Glorious mutual recursion.
-void check_subtree(slicecx& cx, block_id_t id, btree_key *lo, btree_key *hi);
+void check_subtree(slicecx& cx, block_id_t id, btree_key *lo, btree_key *hi, subtree_errors *errs);
 
-void check_subtree_internal_node(slicecx& cx, btree_internal_node *buf, btree_key *lo, btree_key *hi) {
+void check_subtree_internal_node(slicecx& cx, btree_internal_node *buf, btree_key *lo, btree_key *hi, subtree_errors *tree_errs, node_error *errs) {
     {
         std::vector<uint16_t, gnew_alloc<uint16_t> > sorted_offsets(buf->pair_offsets, buf->pair_offsets + buf->npairs);
         std::sort(sorted_offsets.begin(), sorted_offsets.end());
         uint16_t expected_offset = buf->frontmost_offset;
   
         for (int i = 0, n = sorted_offsets.size(); i < n; ++i) {
-            unrecoverable_fact(sorted_offsets[i] == expected_offset, "noncontiguous offsets");
-            unrecoverable_fact(internal_node_begin_offset_in_range(cx, buf, expected_offset), "offset out of range.");
+            errs->noncontiguous_offsets |= (sorted_offsets[i] != expected_offset);
+            if (!internal_node_begin_offset_in_range(cx, buf, expected_offset)) {
+                errs->value_out_of_buf = true;
+                return;
+            }
             expected_offset += internal_node_handler::pair_size(internal_node_handler::get_pair(buf, expected_offset));
         }
-        unrecoverable_fact(expected_offset == cx.knog->static_config->block_size - sizeof(data_block_manager_t::buf_data_t), "offsets adjacent to buf size");
+        errs->noncontiguous_offsets |= (expected_offset == cx.knog->static_config->block_size - sizeof(data_block_manager_t::buf_data_t));
 
     }
 
@@ -649,49 +740,65 @@ void check_subtree_internal_node(slicecx& cx, btree_internal_node *buf, btree_ke
         uint16_t offset = buf->pair_offsets[i];
         btree_internal_pair *pair = internal_node_handler::get_pair(buf, offset);
 
-        unrecoverable_fact(pair->key.size <= MAX_KEY_SIZE, "key size <= MAX_KEY_SIZE");
+        errs->keys_too_big |= (pair->key.size > MAX_KEY_SIZE);
 
         if (i != buf->npairs - 1) {
-            check_hash(cx, &pair->key);
+            errs->out_of_order |= !(prev_key == NULL || internal_key_comp::compare(prev_key, &pair->key) < 0);
 
-            check_subtree(cx, pair->lnode, prev_key, &pair->key);
-
-            unrecoverable_fact(prev_key == NULL || internal_key_comp::compare(prev_key, &pair->key) < 0,
-                               "internal node keys in order");
+            if (errs->out_of_order) {
+                // It's not like we can restrict a subtree when our
+                // keys are out of order.
+                check_subtree(cx, pair->lnode, NULL, NULL, tree_errs);
+            } else {
+                check_subtree(cx, pair->lnode, prev_key, &pair->key, tree_errs);
+            }
         } else {
-            unrecoverable_fact(pair->key.size == 0, "last key in internal node has size zero");
-            unrecoverable_fact(prev_key == NULL || hi == NULL || internal_key_comp::compare(prev_key, hi) < 0,
-                               "internal node last key ordering");
+            errs->last_internal_node_key_nonempty = (pair->key.size != 0);
 
-            check_subtree(cx, pair->lnode, prev_key, hi);
+            errs->out_of_order |= (prev_key == NULL || hi == NULL || internal_key_comp::compare(prev_key, hi) < 0);
+
+            // TODO avoid infinite looping
+            if (errs->out_of_order) {
+                check_subtree(cx, pair->lnode, NULL, NULL, tree_errs);
+            } else {
+                check_subtree(cx, pair->lnode, prev_key, hi, tree_errs);
+            }
         }
 
         prev_key = &pair->key;
     }
 }
 
-void check_subtree(slicecx& cx, block_id_t id, btree_key *lo, btree_key *hi) {
+void check_subtree(slicecx& cx, block_id_t id, btree_key *lo, btree_key *hi, subtree_errors *errs) {
     /* Walk tree */
 
     btree_block node;
     if (!node.init(cx, id)) {
-        unrecoverable_fact(0, errname[node.err]);
+        node_error err(id);
+        err.block_not_found_error = node.err;
+        errs->node_errors.push_back(err);
+        return;
     }
+
+    node_error node_err(id);
 
     if (lo != NULL && hi != NULL) {
         // (We're happy with an underfull root block.)
-        unrecoverable_fact(!node_handler::is_underfull(cx.knog->static_config->block_size - sizeof(data_block_manager_t::buf_data_t), (btree_node *)node.buf),
-                           "balanced node");
+        if (node_handler::is_underfull(cx.knog->static_config->block_size - sizeof(data_block_manager_t::buf_data_t), (btree_node *)node.buf)) {
+            node_err.block_underfull = true;
+        }
     }
 
-
-
     if (check_magic<btree_leaf_node>(((btree_leaf_node *)node.buf)->magic)) {
-        check_subtree_leaf_node(cx, (btree_leaf_node *)node.buf, lo, hi);
-    } else if (check_magic<btree_internal_node>(((btree_internal_node *)node.buf)->magic)) {
-        check_subtree_internal_node(cx, (btree_internal_node *)node.buf, lo, hi);
+        check_subtree_leaf_node(cx, (btree_leaf_node *)node.buf, lo, hi, errs, &node_err);
+   } else if (check_magic<btree_internal_node>(((btree_internal_node *)node.buf)->magic)) {
+        check_subtree_internal_node(cx, (btree_internal_node *)node.buf, lo, hi, errs, &node_err);
     } else {
-        unrecoverable_fact(0, "Bad magic on leaf or internal node.");
+        node_err.bad_magic = true;
+    }
+
+    if (node_err.is_bad()) {
+        errs->node_errors.push_back(node_err);
     }
 }
 
@@ -741,7 +848,12 @@ void check_slice(direct_file_t *file, file_knowledge *knog, int global_slice_num
     }
 
     if (root_block_id != NULL_BLOCK_ID) {
-        check_subtree(cx, root_block_id, NULL, NULL);
+        subtree_errors tree_errs;
+        check_subtree(cx, root_block_id, NULL, NULL, &tree_errs);
+
+        if (!tree_errs.node_errors.empty() || !tree_errs.value_errors.empty()) {
+            unrecoverable_fact(0, "tree errors");
+        }
     }
 
     check_slice_other_blocks(cx);
