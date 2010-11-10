@@ -1,6 +1,6 @@
 #include "serializer/log/metablock/metablock_manager.hpp"
 
-void initialize_metablock_offsets(off64_t extent_size, std::vector<off64_t, gnew_alloc<off64_t> > *offsets) {
+void initialize_metablock_offsets(off64_t extent_size, std::vector<off64_t> *offsets) {
     offsets->clear();
 
     for (off64_t i = 0; i < MB_NEXTENTS; i++) {

@@ -83,17 +83,17 @@ private:
 
 // The knowledge we have is gathered here.
 struct knowledge {
-    const std::vector<std_string_t, gnew_alloc<std_string_t> > filenames;
-    std::vector<direct_file_t *, gnew_alloc<direct_file_t *> > files;
-    std::vector<file_knowledge *, gnew_alloc<file_knowledge *> > file_knog;
+    const std::vector<std::string> filenames;
+    std::vector<direct_file_t *> files;
+    std::vector<file_knowledge *> file_knog;
 
-    knowledge(const std::vector<std_string_t, gnew_alloc<std_string_t> >& filenames)
+    knowledge(const std::vector<std::string>& filenames)
         : filenames(filenames), files(filenames.size(), NULL), file_knog(filenames.size(), NULL) {
         int num_files = filenames.size();
         for (int i = 0; i < num_files; ++i) {
             direct_file_t *file = new direct_file_t(filenames[i].c_str(), direct_file_t::mode_read);
             files[i] = file;
-            file_knog[i] = gnew<file_knowledge>();
+            file_knog[i] = new file_knowledge();
             file_knog[i]->predicted_serializer_number = i;
         }
     }
@@ -102,7 +102,7 @@ struct knowledge {
         int num_files = filenames.size();
         for (int i = 0; i < num_files; ++i) {
             delete files[i];
-            gdelete(file_knog[i]);
+            delete file_knog[i];
         }
     }
 
@@ -270,7 +270,7 @@ bool check_metablock(direct_file_t *file, file_knowledge *knog, metablock_errors
     errs->not_monotonic = false;
     errs->no_valid_metablocks = false;
 
-    std::vector<off64_t, gnew_alloc<off64_t> > metablock_offsets;
+    std::vector<off64_t> metablock_offsets;
     initialize_metablock_offsets(knog->static_config->extent_size, &metablock_offsets);
 
     errs->total_count = metablock_offsets.size();
@@ -527,7 +527,7 @@ bool check_config_block(direct_file_t *file, file_knowledge *knog, config_block_
 
 struct value_error {
     block_id_t block_id;
-    std_string_t key;
+    std::string key;
     bool bad_metadata_flags;
     bool too_big;
     bool lv_too_small;
@@ -581,8 +581,8 @@ struct node_error {
 };
 
 struct subtree_errors {
-    std::vector<node_error, gnew_alloc<node_error> > node_errors;
-    std::vector<value_error, gnew_alloc<value_error> > value_errors;
+    std::vector<node_error> node_errors;
+    std::vector<value_error> value_errors;
 
     subtree_errors() { }
 
@@ -672,7 +672,7 @@ bool leaf_node_inspect_range(const slicecx& cx, btree_leaf_node *buf, uint16_t o
 
 void check_subtree_leaf_node(slicecx& cx, btree_leaf_node *buf, btree_key *lo, btree_key *hi, subtree_errors *tree_errs, node_error *errs) {
     {
-        std::vector<uint16_t, gnew_alloc<uint16_t> > sorted_offsets(buf->pair_offsets, buf->pair_offsets + buf->npairs);
+        std::vector<uint16_t> sorted_offsets(buf->pair_offsets, buf->pair_offsets + buf->npairs);
         std::sort(sorted_offsets.begin(), sorted_offsets.end());
         uint16_t expected_offset = buf->frontmost_offset;
 
@@ -701,7 +701,7 @@ void check_subtree_leaf_node(slicecx& cx, btree_leaf_node *buf, btree_key *lo, b
         check_value(cx, pair->value(), tree_errs, &valerr);
 
         if (valerr.is_bad()) {
-            valerr.key = std_string_t(pair->key.contents, pair->key.contents + pair->key.size);
+            valerr.key = std::string(pair->key.contents, pair->key.contents + pair->key.size);
             tree_errs->value_errors.push_back(valerr);
         }
 
@@ -719,7 +719,7 @@ void check_subtree(slicecx& cx, block_id_t id, btree_key *lo, btree_key *hi, sub
 
 void check_subtree_internal_node(slicecx& cx, btree_internal_node *buf, btree_key *lo, btree_key *hi, subtree_errors *tree_errs, node_error *errs) {
     {
-        std::vector<uint16_t, gnew_alloc<uint16_t> > sorted_offsets(buf->pair_offsets, buf->pair_offsets + buf->npairs);
+        std::vector<uint16_t> sorted_offsets(buf->pair_offsets, buf->pair_offsets + buf->npairs);
         std::sort(sorted_offsets.begin(), sorted_offsets.end());
         uint16_t expected_offset = buf->frontmost_offset;
   
@@ -936,7 +936,7 @@ struct interfile_errors {
 bool check_interfile(knowledge *knog, interfile_errors *errs) {
     int num_files = knog->filenames.size();
 
-    std::vector<int, gnew_alloc<int> > this_serializer_counts(num_files, 0);
+    std::vector<int> this_serializer_counts(num_files, 0);
 
     errs->all_have_correct_num_files = true;
     errs->all_have_same_num_files = true;

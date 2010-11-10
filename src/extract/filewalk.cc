@@ -71,7 +71,7 @@ public:
     ~freer() { for (size_t i = 0; i < ptrs.size(); ++i) free(ptrs[i]); }
     void add(void *p) { ptrs.push_back(p); }
 private:
-    std::vector<void *, gnew_alloc<void *> > ptrs;
+    std::vector<void *> ptrs;
     DISABLE_COPYING(freer);
 };
 

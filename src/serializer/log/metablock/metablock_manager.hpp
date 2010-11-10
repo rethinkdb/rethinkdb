@@ -24,7 +24,7 @@ const static char MB_MARKER_MAGIC[8] = {'m', 'e', 't', 'a', 'b', 'l', 'c', 'k'};
 const static char MB_MARKER_CRC[4] = {'c', 'r', 'c', ':'};
 const static char MB_MARKER_VERSION[8] = {'v', 'e', 'r', 's', 'i', 'o', 'n', ':'};
 
-void initialize_metablock_offsets(off64_t extent_size, std::vector<off64_t, gnew_alloc<off64_t> > *offsets);
+void initialize_metablock_offsets(off64_t extent_size, std::vector<off64_t> *offsets);
 
 
 
