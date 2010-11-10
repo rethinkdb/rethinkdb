@@ -1,0 +1,137 @@
+=== 5 August 2010 ===
+
+I've just released perftools 1.6
+
+This version also has a large number of minor changes, including
+support for `malloc_usable_size()` as a glibc-compatible alias to
+`malloc_size()`, the addition of SVG-based output to `pprof`, and
+experimental support for tcmalloc large pages, which may speed up
+tcmalloc at the cost of greater memory use.  To use tcmalloc large
+pages, see the
+[http://google-perftools.googlecode.com/svn/tags/perftools-1.5/INSTALL
+INSTALL file]; for all changes, see the
+[http://google-perftools.googlecode.com/svn/tags/perftools-1.5/ChangeLog
+ChangeLog].
+
+OS X NOTE: improvements in the profiler unittest have turned up an OS
+X issue: in multithreaded programs, it seems that OS X often delivers
+the profiling signal (from sigitimer()) to the main thread, even when
+it's sleeping, rather than spawned threads that are doing actual work.
+If anyone knows details of how OS X handles SIGPROF events (from
+setitimer) in threaded programs, and has insight into this problem,
+please send mail to google-perftools@googlegroups.com.
+
+To see if you're affected by this, look for profiling time that pprof
+attributes to ___semwait_signal.  This is work being done in other
+threads, that is being attributed to sleeping-time in the main thread.
+
+
+=== 20 January 2010 ===
+
+I've just released perftools 1.5
+
+This version has a slew of changes, leading to somewhat faster
+performance and improvements in portability.  It adds features like
+`ITIMER_REAL` support to the cpu profiler, and `tc_set_new_mode` to
+mimic the windows function of the same name.  Full details are in the
+[http://google-perftools.googlecode.com/svn/tags/perftools-1.5/ChangeLog
+ChangeLog].
+
+=== 11 September 2009 ===
+
+I've just released perftools 1.4
+
+The major change this release is the addition of a debugging malloc
+library!  If you link with `libtcmalloc_debug.so` instead of
+`libtcmalloc.so` (and likewise for the `minimal` variants) you'll get
+a debugging malloc, which will catch double-frees, writes to freed
+data, `free`/`delete` and `delete`/`delete[]` mismatches, and even
+(optionally) writes past the end of an allocated block.
+
+We plan to do more with this library in the future, including
+supporting it on Windows, and adding the ability to use the debugging
+library with your default malloc in addition to using it with
+tcmalloc.
+
+There are also the usual complement of bug fixes, documented in the
+ChangeLog, and a few minor user-tunable knobs added to components like
+the system allocator.
+
+
+=== 9 June 2009 ===
+
+I've just released perftools 1.3
+
+Like 1.2, this has a variety of bug fixes, especially related to the
+Windows build.  One of my bugfixes is to undo the weird `ld -r` fix to
+`.a` files that I introduced in perftools 1.2: it caused problems on
+too many platforms.  I've reverted back to normal `.a` files.  To work
+around the original problem that prompted the `ld -r` fix, I now
+provide `libtcmalloc_and_profiler.a`, for folks who want to link in
+both.
+
+The most interesting API change is that I now not only override
+`malloc`/`free`/etc, I also expose them via a unique set of symbols:
+`tc_malloc`/`tc_free`/etc.  This enables clients to write their own
+memory wrappers that use tcmalloc:
+{{{
+   void* malloc(size_t size) { void* r = tc_malloc(size); Log(r); return r; }
+}}}
+
+
+=== 17 April 2009 ===
+
+I've just released perftools 1.2.
+
+This is mostly a bugfix release.  The major change is internal: I have
+a new system for creating packages, which allows me to create 64-bit
+packages.  (I still don't do that for perftools, because there is
+still no great 64-bit solution, with libunwind still giving problems
+and --disable-frame-pointers not practical in every environment.)
+
+Another interesting change involves Windows: a
+[http://code.google.com/p/google-perftools/issues/detail?id=126 new
+patch] allows users to choose to override malloc/free/etc on Windows
+rather than patching, as is done now.  This can be used to create
+custom CRTs.
+
+My fix for this
+[http://groups.google.com/group/google-perftools/browse_thread/thread/1ff9b50043090d9d/a59210c4206f2060?lnk=gst&q=dynamic#a59210c4206f2060
+bug involving static linking] ended up being to make libtcmalloc.a and
+libperftools.a a big .o file, rather than a true `ar` archive.  This
+should not yield any problems in practice -- in fact, it should be
+better, since the heap profiler, leak checker, and cpu profiler will
+now all work even with the static libraries -- but if you find it
+does, please file a bug report.
+
+Finally, the profile_handler_unittest provided in the perftools
+testsuite (new in this release) is failing on FreeBSD.  The end-to-end
+test that uses the profile-handler is passing, so I suspect the
+problem may be with the test, not the perftools code itself.  However,
+I do not know enough about how itimers work on FreeBSD to be able to
+debug it.  If you can figure it out, please let me know!
+
+=== 11 March 2009 ===
+
+I've just released perftools 1.1!
+
+It has many changes since perftools 1.0 including
+
+  * Faster performance due to dynamically sized thread caches
+  * Better heap-sampling for more realistic profiles
+  * Improved support on Windows (MSVC 7.1 and cygwin)
+  * Better stacktraces in linux (using VDSO)
+  * Many bug fixes and feature requests
+
+Note: if you use the CPU-profiler with applications that fork without
+doing an exec right afterwards, please see the README.  Recent testing
+has shown that profiles are unreliable in that case.  The problem has
+existed since the first release of perftools.  We expect to have a fix
+for perftools 1.2.  For more details, see
+[http://code.google.com/p/google-perftools/issues/detail?id=105 issue 105].
+
+Everyone who uses perftools 1.0 is encouraged to upgrade to perftools
+1.1.  If you see any problems with the new release, please file a bug
+report at http://code.google.com/p/google-perftools/issues/list.
+
+Enjoy!
