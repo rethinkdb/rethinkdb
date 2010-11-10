@@ -21,20 +21,30 @@ public:
             return btree_fsm_t::transition_ok;
         }
         valuecpy(&temp_value, old_value);
-
-        char *endptr;
-        new_number = strtoull(old_value->value(), &endptr, 10);
-        if (endptr == old_value->value()) {
+        
+        bool valid;
+        if (old_value->size < 50) {
+            char buffer[50];
+            memcpy(buffer, old_value->value(), old_value->size);
+            buffer[old_value->size] = 0;
+            char *endptr;
+            new_number = strtoull(buffer, &endptr, 10);
+            if (endptr == buffer) valid = false;
+            else valid = true;
+        } else {
+            valid = false;
+        }
+        if (!valid) {
             this->status_code = btree_fsm_t::S_NOT_NUMERIC;
             this->update_needed = false;
             return btree_fsm_t::transition_ok;
         }
 
        /*  NOTE: memcached actually does a few things differently:
-        *   - If you say `decr 1 -50`, memcached will set 1 to 0 no matter
-        *      what it's value is. We on the other hand will add 50 to 1.
+        *   - If you say `decr X -50`, memcached will set X to 0 no matter
+        *      what it's value is. We on the other hand will add 50 to X.
         *
-        *   - Also, if you say 'incr 1 -50' in memcached and the value
+        *   - Also, if you say 'incr X -50' in memcached and the value
         *     goes below 0, memcached will wrap around. We just set the value to 0.
         */
         
