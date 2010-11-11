@@ -303,7 +303,7 @@ class Membase(MemcachedLikeServer):
 class MySQL(Server):
     def internal_start(self):
         args = self.compute_args()
-        self.run_process('/usr/localmysqld_safe', args)
+        self.run_process('/usr/local/mysqld_safe', args)
 
 class Stress(Client):
     binary_paths = ['../../../../stress-client/stress', '../stress-client/stress']
@@ -325,7 +325,7 @@ class MySQLStress(Stress):
             self.dbench.die('We run MySQL on the default port, 3306; please run explicitly with that port.')
 
         default_args = ['-r', 'mysql',
-                        '-n', 'root/@%s:bench' % self.dbench.host,
+                        '-n', 'teapot/teapot@%s:bench' % self.dbench.host, # XXX: This shouldn't be hard-wired.
                         '-p', str(self.dbench.port),
                         '-l', self.LATENCY_FILE,
                         '-q', self.QPS_FILE]
