@@ -10,7 +10,6 @@
 
 #include "serializer/serializer.hpp"
 #include "config/cmd_args.hpp"
-#include "config/alloc.hpp"
 #include "utils.hpp"
 
 #include "metablock/metablock_manager.hpp"
@@ -91,6 +90,12 @@ public:
 public:
     log_serializer_t(const char *filename, dynamic_config_t *dynamic_config);
     virtual ~log_serializer_t();
+
+public:
+    struct check_callback_t {
+        virtual void on_serializer_check(bool is_existing) = 0;
+    };
+    static void check_existing(const char *filename, check_callback_t *cb);
 
 public:
     /* start_new() or start_existing() must be called before the serializer can be used. If
@@ -197,9 +202,7 @@ private:
     for a block ID that we are currently writing but is not on disk yet, we can return
     the most current version. */
     typedef std::map<
-        ser_block_id_t, ls_block_writer_t*,
-        std::less<ser_block_id_t>,
-        gnew_alloc<std::pair<ser_block_id_t, ls_block_writer_t*> >
+        ser_block_id_t, ls_block_writer_t*
         > block_writer_map_t;
     block_writer_map_t block_writer_map;
 

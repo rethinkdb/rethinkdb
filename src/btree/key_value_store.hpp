@@ -2,7 +2,6 @@
 #ifndef __BTREE_KEY_VALUE_STORE_HPP__
 #define __BTREE_KEY_VALUE_STORE_HPP__
 
-#include "config/alloc.hpp"
 #include "buffer_cache/buffer_cache.hpp"
 #include "btree/node.hpp"   // For btree_superblock_t
 #include "utils.hpp"
@@ -65,6 +64,11 @@ public:
         int n_files,
         const char **db_filenames);
     ~btree_key_value_store_t();
+    
+    struct check_callback_t {
+        virtual void on_store_check(bool valid) = 0;
+    };
+    static void check_existing(int n_files, const char **db_filenames, check_callback_t *cb);
     
     struct ready_callback_t {
         virtual void on_store_ready() = 0;
@@ -163,8 +167,7 @@ btree_key_value_store_t. */
 class btree_slice_t :
     private cache_t::ready_callback_t,
     private cache_t::shutdown_callback_t,
-    public home_cpu_mixin_t,
-    public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, btree_slice_t>
+    public home_cpu_mixin_t
 {
     friend class initialize_superblock_fsm_t;
     

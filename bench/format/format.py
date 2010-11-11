@@ -19,12 +19,13 @@ class dbench():
     bench_dir = 'bench_output'
     oprofile_dir = 'prof_output'
     flot_script_location = '/graph_viewer/index.html'
+    competitor_dir = '/home/teapot/competitor_bench'
 
     def __init__(self, dir, email):
         self.email = email
         self.dir_str = time.asctime().replace(' ', '_').replace(':', '_')
         os.makedirs(self.out_dir + '/' + self.dir_str)
-        self.bench_stats = self.bench_stats(dir + self.bench_dir)
+        self.rdb_stats = self.bench_stats(dir + self.bench_dir)
         rundirs = []
         try:
             rundirs += os.listdir(dir + '/' + self.oprofile_dir)
@@ -35,6 +36,11 @@ class dbench():
         self.prof_stats = []
         for rundir in rundirs:
             self.prof_stats.append(self.oprofile_stats(dir + self.oprofile_dir + '/' + rundir + '/'))
+#get competitor info
+        self.competitors = {}
+        competitor_dirs = os.listdir(self.competitor_dir)
+        for dir in competitor_dirs:
+            self.competitors[dir] = self.bench_stats(os.path.join(self.competitor_dir, dir, self.bench_dir))
 
     def report(self):
         self.html = self.report_as_html()
@@ -55,7 +61,7 @@ class dbench():
             try:
                 rundirs += os.listdir(dir)
             except:
-                print 'No bench runs found'
+                print 'No bench runs found in: %s' % dir
 
             self.bench_runs = {}
             self.server_meta = {}
@@ -128,36 +134,51 @@ class dbench():
         flot_data = 'data'
 
         # Report stats for each run
-        for run_name in self.bench_stats.bench_runs.keys():
-            run = self.bench_stats.bench_runs[run_name]
-            server_meta = self.bench_stats.server_meta[run_name]
-            client_meta = self.bench_stats.client_meta[run_name]
+        for run_name in self.rdb_stats.bench_runs.keys():
+            run = self.rdb_stats.bench_runs[run_name]
+            server_meta = self.rdb_stats.server_meta[run_name]
+            client_meta = self.rdb_stats.client_meta[run_name]
 
-            if run_name != self.bench_stats.bench_runs.keys()[0]:
+            if run_name != self.rdb_stats.bench_runs.keys()[0]:
                 print >>res, '<hr style="height: 1px; width: 910px; border-top: 1px solid #999; margin: 30px 0px; padding: 0px 30px;" />'
             print >>res, '<div class="run">'
             print >>res, '<h2 style="font-size: xx-large; display: inline;">', run_name.replace('_',' ') ,'</h2>'
 
             # Accumulating data for the run
             data = reduce(lambda x, y: x + y, run)
+            competitor_data = {}
+            for competitor in self.competitors.iteritems():
+                try:
+                    competitor_data[competitor[0]] = reduce(lambda x, y: x + y, competitor[1].bench_runs[run_name])
+                except KeyError:
+                    print 'Bad guy: %s did not report data for run %s' % (competitor[0], run_name)
 
             # Add a link to the graph-viewer (flot)
             data.json(self.out_dir + '/' + self.dir_str + '/' + flot_data + run_name,'Server:' + server_meta + 'Client:' + client_meta)
             print >>res, '<span style="display: inline;">', flot('/' + self.prof_dir + '/' + self.dir_str + '/' + flot_data + run_name + '.js', '(explore data)</span>')
             
             # Build data for qps plot
-            rdb_data = data.select('qps').remap('qps', 'rethinkdb')
-            def halve(series):
-                return map(lambda x: x/2, series[0])
-            other_data = rdb_data.copy().derive('Bad Guy', ['rethinkdb'], halve).drop('rethinkdb')
+            qps_data = data.select('qps').remap('qps', 'RethinkDB')
+
+            for competitor in competitor_data.iteritems():
+                qps_data += competitor[1].select('qps').remap('qps', competitor[0])
 
             # Plot the qps data
-            (rdb_data + other_data).plot(os.path.join(self.out_dir, self.dir_str, 'qps' + run_name))
+            qps_data.plot(os.path.join(self.out_dir, self.dir_str, 'qps' + run_name))
+            qps_data.plot(os.path.join(self.out_dir, self.dir_str, 'qps' + run_name + '_large'), True)
 
             # Add the qps plot image and metadata
             print >>res, '<table style="width: 910px;" class="runPlots">'
             print >>res, '<tr><td><h3 style="text-align: center">Queries per second</h3>'
             print >>res, image('http://' + os.path.join(self.hostname, self.prof_dir, self.dir_str, 'qps' + run_name + '.png'))
+
+            cum_stats = {}
+            cum_stats['rdb_qps_mean'] = format_metadata(data.select('qps').stats()['qps']['mean'])
+            cum_stats['rdb_qps_stdev'] = format_metadata(data.select('qps').stats()['qps']['stdev'])
+
+            for competitor in competitor_data.iteritems():
+                cum_stats[competitor[0] + '_qps_mean'] = format_metadata(competitor[1].select('qps').stats()['qps']['mean'])
+                cum_stats[competitor[0] + '_qps_stdev']= format_metadata(competitor[1].select('qps').stats()['qps']['stdev'])
 
             qps_mean = format_metadata(data.select('qps').stats()['qps']['mean'])
             qps_stdev = format_metadata(data.select('qps').stats()['qps']['stdev'])
@@ -184,16 +205,16 @@ class dbench():
                                 </tr>
                             </table>
                         </td>
-                        """ % (qps_mean,qps_stdev,qps_mean,qps_stdev,qps_mean,qps_stdev)
+                        """ % (cum_stats.get('rdb_qps_mean', '8===D'), cum_stats.get('rdb_qps_stdev', '8===D'), cum_stats.get('membase_qps_mean', '8===D'), cum_stats.get('membase_qps_stdev', '8===D'), cum_stats.get('mysql_qps_mean', '8===D'), cum_stats.get('mysql_qps.stdev', '8===D'))
 
             # Build data for the latency histogram
-            rdb_data = data.select('latency').remap('latency', 'rethinkdb')
-            def double(series):
-                return map(lambda x: 2 * x, series[0])
-            other_data = rdb_data.copy().derive('Bad Guy', ['rethinkdb'], double).drop('rethinkdb')
+            lat_data = data.select('latency').remap('latency', 'rethinkdb')
+
+            for competitor in competitor_data.iteritems():
+                lat_data += competitor[1].select('latency').remap('latency', competitor[0])
             
             # Plot the latency histogram
-            (rdb_data + other_data).histogram(os.path.join(self.out_dir, self.dir_str, 'latency' + run_name))
+            lat_data.histogram(os.path.join(self.out_dir, self.dir_str, 'latency' + run_name))
 
             # Add the latency histogram image and metadata
             print >>res, '<td><h3 style="text-align: center">Latency in microseconds</h3>'
@@ -242,7 +263,7 @@ class dbench():
             core_runs_names=['c1','c2', 'c4', 'c8', 'c16', 'c32']
             core_runs = {}
             for name in core_runs_names:
-                core_runs[name]  = reduce(lambda x,y: x+y, self.bench_stats.bench_runs[name]).select('qps').remap('qps', name + 'qps')
+                core_runs[name]  = reduce(lambda x,y: x+y, self.rdb_stats.bench_runs[name]).select('qps').remap('qps', name + 'qps')
 
             core_means = reduce(lambda x,y: x + y, map(lambda x: x[1], core_runs.iteritems())).derive('qps', map(lambda x : x + 'qps', core_runs_names), means)
 

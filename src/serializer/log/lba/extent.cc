@@ -2,13 +2,12 @@
 
 struct extent_block_t :
     public extent_t::sync_callback_t,
-    public iocallback_t,
-    public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, extent_block_t>
+    public iocallback_t
 {
     byte_t *data;
     extent_t *parent;
     size_t offset;
-    std::vector< extent_t::sync_callback_t*, gnew_alloc<extent_t::sync_callback_t*> > sync_cbs;
+    std::vector< extent_t::sync_callback_t* > sync_cbs;
     bool waiting_for_prev, have_finished_sync, is_last_block;
     
     extent_block_t(extent_t *parent, size_t offset)

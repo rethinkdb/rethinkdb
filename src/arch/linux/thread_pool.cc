@@ -93,17 +93,7 @@ void *linux_thread_pool_t::start_thread(void *arg) {
         linux_thread_pool_t::thread = NULL;
     }
     
-    // Delete all custom allocators
-    tls_small_obj_alloc_accessor<alloc_t>::alloc_vector_t *allocs =
-        tls_small_obj_alloc_accessor<alloc_t>::allocs_tl;
-    if (allocs) {
-        for (unsigned i = 0; i < allocs->size(); i++) {
-            gdelete((*allocs)[i]);
-        }
-        gdelete(allocs);
-    }
-    
-    gdelete(tdata);
+    delete tdata;
     return NULL;
 }
 
@@ -121,7 +111,7 @@ void linux_thread_pool_t::run(linux_cpu_message_t *initial_message) {
     
     for (int i = 0; i < n_threads; i++) {
         
-        thread_data_t *tdata = gnew<thread_data_t>();
+        thread_data_t *tdata = new thread_data_t();
         tdata->barrier = &barrier;
         tdata->thread_pool = this;
         tdata->current_cpu = i;
@@ -276,13 +266,6 @@ linux_thread_t::linux_thread_t(linux_thread_pool_t *parent_pool, int thread_id)
     check("Could not make shutdown notify fd non-blocking", res != 0);
 
     queue.watch_resource(shutdown_notify_fd, poll_event_in, this);
-    
-    // Make a timer to do allocator GC
-    
-    allocator_gc_timer = timer_handler.add_timer_internal(
-        ALLOC_GC_INTERVAL_MS,
-        &linux_thread_t::garbage_collect, NULL,
-        false);
 }
 
 linux_thread_t::~linux_thread_t() {
@@ -291,8 +274,6 @@ linux_thread_t::~linux_thread_t() {
     
     res = close(shutdown_notify_fd);
     check("Could not close shutdown_notify_fd", res != 0);
-    
-    timer_handler.cancel_timer(allocator_gc_timer);
 }
 
 void linux_thread_t::pump() {
@@ -311,13 +292,3 @@ bool linux_thread_t::should_shut_down() {
     return do_shutdown;
 }
 
-void linux_thread_t::garbage_collect(void *ctx) {
-
-    // Perform allocator gc
-    tls_small_obj_alloc_accessor<alloc_t>::alloc_vector_t *allocs = tls_small_obj_alloc_accessor<alloc_t>::allocs_tl;
-    if(allocs) {
-        for(size_t i = 0; i < allocs->size(); i++) {
-            allocs->operator[](i)->gc();
-        }
-    }
-}

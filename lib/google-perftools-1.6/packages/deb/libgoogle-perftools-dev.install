@@ -1,0 +1,8 @@
+usr/include/google/*
+usr/lib/lib*.so
+usr/lib/lib*.a
+usr/lib/*.la
+debian/tmp/usr/include/google/*
+debian/tmp/usr/lib/lib*.so
+debian/tmp/usr/lib/lib*.a
+debian/tmp/usr/lib/*.la

@@ -147,6 +147,7 @@ void mc_buf_t::release_cow() {
         // can now free cow_data.
         cache->serializer->free(cow_data);
         cow_data = NULL;
+        pm_n_cows_destroyed++;
     }
     
     /*
@@ -163,7 +164,7 @@ void mc_buf_t::release_cow() {
 void mc_buf_t::on_serializer_write_block() {
     
     cache->serializer->assert_cpu();
-    assert(is_dirty());
+    assert(cow_data);   // We should be in a flush right now
     if (continue_on_cpu(cache->home_cpu, this)) on_cpu_switch();
 }
 
@@ -174,7 +175,7 @@ void mc_buf_t::on_cpu_switch() {
         cache->serializer->assert_cpu();
         if (cache->serializer->do_read(block_id, data, this)) on_serializer_read();
     
-    } else if (!is_dirty()) {
+    } else if (!cow_data) {
         /* We are returning from the serializer's CPU after loading our data. */
         cache->assert_cpu();
         have_read();
@@ -200,7 +201,8 @@ void mc_buf_t::add_load_callback(block_available_callback_t *cb) {
 bool mc_buf_t::safe_to_unload() {
     return concurrency_buf.safe_to_unload() &&
         load_callbacks.empty() &&
-        writeback_buf.safe_to_unload();
+        writeback_buf.safe_to_unload() &&
+        !cow_data;
 }
 
 bool mc_buf_t::safe_to_delete() {
@@ -303,8 +305,7 @@ mc_buf_t *mc_transaction_t::allocate(block_id_t *block_id) {
     return buf;
 }
 
-struct acquire_lock_callback_t : public mc_block_available_callback_t,
-                                 public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, acquire_lock_callback_t >
+struct acquire_lock_callback_t : public mc_block_available_callback_t
 {
     acquire_lock_callback_t(mc_transaction_t *_transaction,
                             mc_block_available_callback_t *_callback,
@@ -333,6 +334,7 @@ void mc_transaction_t::process_buf(mc_buf_t *buf, access_t mode) {
     if(buf->cow_data && buf->data == buf->cow_data && mode == rwi_write) {
         // Gotta do copy on write
         buf->do_cow_copy();
+        pm_n_cows_made++;
     } else if(mode == rwi_read_outdated_ok) {
         // One rwi_read_outdated_ok at a time
         assert(buf->cow_data == NULL);

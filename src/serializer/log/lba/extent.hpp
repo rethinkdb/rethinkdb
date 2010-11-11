@@ -6,8 +6,7 @@
 
 struct extent_block_t;
 
-class extent_t :
-    public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, extent_t>
+class extent_t
 {
     friend class extent_block_t;
     

@@ -5,7 +5,6 @@
 #include "request_handler/request_handler.hpp"
 #include "btree/key_value_store.hpp"
 #include "logger.hpp"
-#include "config/alloc.hpp"
 #include <arpa/inet.h>
 #include <endian.h>
 
@@ -20,8 +19,8 @@ static const size_t extra_flags_length = 4;
 static const byte extra_flags[extra_flags_length] = {0x00, 0x00, 0x00, 0x00};
 
 class bin_memcached_handler_t :
-    public request_handler_t,
-    public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, bin_memcached_handler_t> {
+    public request_handler_t
+{
 
 public:
     typedef request_handler_t::parse_result_t parse_result_t;
@@ -222,9 +221,7 @@ public:
         bin_expr_time_t         expr_time;
     };
 
-    struct packet_t;
-
-    struct packet_t : public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, packet_t >
+    struct packet_t
         {
         public:
             packet_t() :data(NULL) {}

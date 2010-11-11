@@ -12,7 +12,6 @@
 #include <endian.h>
 #include "corefwd.hpp"
 #include "errors.hpp"
-#include "config/alloc.hpp"
 #include "arch/arch.hpp"
 #include "utils2.hpp"
 
@@ -32,8 +31,7 @@ struct buffer_base_t
 };
 
 template <int _size>
-struct buffer_t : public buffer_base_t<_size>,
-                  public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, buffer_t<_size> >
+struct buffer_t : public buffer_base_t<_size>
 {
 };
 

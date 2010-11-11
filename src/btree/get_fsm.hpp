@@ -6,8 +6,8 @@
 #include "btree/fsm.hpp"
 
 class btree_get_fsm_t : public btree_fsm_t,
-                        public large_value_completed_callback,
-                        public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, btree_get_fsm_t> {
+                        public large_value_completed_callback
+{
 public:
     typedef btree_fsm_t::transition_result_t transition_result_t;
     using btree_fsm_t::key;

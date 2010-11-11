@@ -2,7 +2,6 @@
 #define __REQUEST_HPP__
 
 #include "config/args.hpp"
-#include "config/alloc.hpp"
 
 /* This is a pretty horrible hack. Originally there was a type called request_t that
 abstracted the idea of starting multiple btree_fsms and waiting for them all to complete.

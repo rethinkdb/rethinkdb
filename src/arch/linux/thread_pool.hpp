@@ -75,9 +75,6 @@ public:
     linux_timer_handler_t timer_handler;
     linux_io_calls_t iosys;
     
-    linux_timer_token_t *allocator_gc_timer;
-    static void garbage_collect(void *unused);
-    
     bool do_shutdown;
     fd_t shutdown_notify_fd;
     void pump();   // Called by the event queue

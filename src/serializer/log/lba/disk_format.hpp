@@ -8,8 +8,6 @@
 
 
 
-#define NULL_OFFSET off64_t(-1)
-
 // An off64_t with the highest bit saying that a block is deleted.
 // Deleted blocks still have an offset, since there's a zero block
 // sitting in place for them.  The remaining 63 bits give the offset

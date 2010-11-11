@@ -33,8 +33,7 @@ struct mock_block_available_callback_t {
 
 /* Buf */
 
-class mock_buf_t :
-    public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, mock_buf_t >
+class mock_buf_t
 {
     typedef mock_block_available_callback_t block_available_callback_t;
 
@@ -57,8 +56,7 @@ private:
 
 /* Transaction */
 
-class mock_transaction_t :
-    public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, mock_transaction_t >
+class mock_transaction_t
 {
     typedef mock_buf_t buf_t;
     typedef mock_transaction_begin_callback_t transaction_begin_callback_t;
@@ -120,7 +118,6 @@ private:
     friend class internal_buf_t;
     
     serializer_t *serializer;
-    malloc_alloc_t alloc;
     bool running;
     int n_transactions;
     size_t block_size;

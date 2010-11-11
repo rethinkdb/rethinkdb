@@ -1,6 +1,5 @@
 #include "extract/filewalk.hpp"
 
-#include "alloc/gnew.hpp"
 #include "arch/arch.hpp"
 #include "btree/node.hpp"
 #include "btree/leaf_node.hpp"
@@ -72,7 +71,7 @@ public:
     ~freer() { for (size_t i = 0; i < ptrs.size(); ++i) free(ptrs[i]); }
     void add(void *p) { ptrs.push_back(p); }
 private:
-    std::vector<void *, gnew_alloc<void *> > ptrs;
+    std::vector<void *> ptrs;
     DISABLE_COPYING(freer);
 };
 
@@ -346,7 +345,7 @@ void dump_pair_value(dumper_t &dumper, direct_file_t& file, const cfg_t cfg, con
 
 
 
-void walkfile(dumper_t& dumper, const std_string_t& db_file, cfg_t overrides) {
+void walkfile(dumper_t& dumper, const std::string& db_file, cfg_t overrides) {
     direct_file_t file(db_file.c_str(), direct_file_t::mode_read);
 
     static_header_t *header = (static_header_t *)malloc_aligned(DEVICE_BLOCK_SIZE, DEVICE_BLOCK_SIZE);

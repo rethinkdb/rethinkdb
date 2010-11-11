@@ -7,7 +7,6 @@
 #include <linux/fs.h>
 #include "arch/linux/arch.hpp"
 #include "config/args.hpp"
-#include "config/alloc.hpp"
 #include "utils2.hpp"
 #include <sys/socket.h>
 #include <arpa/inet.h>
@@ -274,7 +273,7 @@ bool linux_direct_file_t::read_async(size_t offset, size_t length, void *buf, li
     linux_io_calls_t *iosys = &linux_thread_pool_t::thread->iosys;
     
     // Prepare the request
-    iocb *request = (iocb*)tls_small_obj_alloc_accessor<alloc_t>::get_alloc<iocb>()->malloc(iosys->iocb_size);
+    iocb *request = new iocb;
     io_prep_pread(request, fd, buf, length, offset);
     io_set_eventfd(request, iosys->aio_notify_fd);
     request->data = callback;
@@ -305,7 +304,7 @@ bool linux_direct_file_t::write_async(size_t offset, size_t length, void *buf, l
     linux_io_calls_t *iosys = &linux_thread_pool_t::thread->iosys;
     
     // Prepare the request
-    iocb *request = (iocb*)tls_small_obj_alloc_accessor<alloc_t>::get_alloc<iocb>()->malloc(iosys->iocb_size);
+    iocb *request = new iocb;
     io_prep_pwrite(request, fd, buf, length, offset);
     io_set_eventfd(request, iosys->aio_notify_fd);
     request->data = callback;
@@ -454,7 +453,7 @@ void linux_io_calls_t::aio_notify(iocb *event, int result) {
     callback->on_io_complete(&qevent);
     
     // Free the iocb structure
-    tls_small_obj_alloc_accessor<alloc_t>::get_alloc<iocb>()->free(event);
+    delete event;
 }
 
 void linux_io_calls_t::process_requests() {

@@ -4,10 +4,8 @@
 
 #include "containers/segmented_vector.hpp"
 #include "containers/intrusive_list.hpp"
-#include "config/alloc.hpp"
 
-struct in_memory_index_t :
-    public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, in_memory_index_t>
+struct in_memory_index_t
 {
     segmented_vector_t<flagged_off64_t, MAX_BLOCK_ID> blocks;
 

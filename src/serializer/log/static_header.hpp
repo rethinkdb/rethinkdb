@@ -10,6 +10,12 @@ struct static_header_t {
     byte_t data[0];
 };
 
+struct static_header_check_callback_t {
+    virtual void on_static_header_check(bool is_valid) = 0;
+};
+
+void static_header_check(direct_file_t *file, static_header_check_callback_t *cb);
+
 struct static_header_write_callback_t {
     virtual void on_static_header_write() = 0;
 };

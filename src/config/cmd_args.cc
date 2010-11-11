@@ -16,6 +16,8 @@ void usage(const char *name) {
     printf("  -h, --help            Print these usage options.\n");
     printf("  -v, --verbose         Print extra information to standard output.\n");
     printf("      --create          Create a new database.\n");
+    printf("      --force           Used with the --create flag to create a new database\n"
+           "                        even if there already is one.\n");
     printf("  -f, --file            Path to file or block device where database goes. Can be\n"
            "                        specified multiple times to use multiple files.\n");
     printf("  -c, --cores           Number of cores to use for handling requests.\n");
@@ -74,6 +76,7 @@ void init_config(cmd_config_t *config) {
     config->store_dynamic_config.cache.flush_threshold_percent = DEFAULT_FLUSH_THRESHOLD_PERCENT;
     
     config->create_store = false;
+    config->force_create = false;
     config->shutdown_after_creation = false;
     
     config->store_static_config.serializer.extent_size = DEFAULT_EXTENT_SIZE;
@@ -90,7 +93,8 @@ enum {
     active_data_extents,
     block_size,
     extent_size,
-    create_database
+    create_database,
+    force_create
 };
 
 void parse_cmd_args(int argc, char *argv[], cmd_config_t *config)
@@ -102,6 +106,7 @@ void parse_cmd_args(int argc, char *argv[], cmd_config_t *config)
     {
         int do_help = 0;
         int do_create_database = 0;
+        int do_force_create = 0;
         struct option long_options[] =
             {
                 {"wait-for-flush",       required_argument, 0, wait_for_flush},
@@ -119,6 +124,7 @@ void parse_cmd_args(int argc, char *argv[], cmd_config_t *config)
                 {"port",                 required_argument, 0, 'p'},
                 {"verbose",              no_argument, (int*)&config->verbose, 1},
                 {"create",               no_argument, &do_create_database, 1},
+                {"force",                no_argument, &do_force_create, 1},
                 {"help",                 no_argument, &do_help, 1},
                 {0, 0, 0, 0}
             };
@@ -130,6 +136,8 @@ void parse_cmd_args(int argc, char *argv[], cmd_config_t *config)
             c = 'h';
         if (do_create_database)
             c = create_database;
+        if (do_force_create)
+            c = force_create;
      
         /* Detect the end of the options. */
         if (c == -1)
@@ -230,6 +238,9 @@ void parse_cmd_args(int argc, char *argv[], cmd_config_t *config)
             config->create_store = true;
             config->shutdown_after_creation = true;
             break;
+        case force_create:
+            config->force_create = true;
+            break;
         case 'h':
             usage(argv[0]);
             break;
@@ -284,6 +295,12 @@ void parse_cmd_args(int argc, char *argv[], cmd_config_t *config)
         fail("Extent size (%d) is not a multiple of block size (%d).", 
             config->store_static_config.serializer.extent_size,
             config->store_static_config.serializer.block_size);
+    }
+    
+    if (config->store_static_config.serializer.extent_size == config->store_dynamic_config.serializer.file_zone_size) {
+        printf("WARNING: You made the extent size the same as the file zone size.\n"
+               "This is not a big problem, but it is better to use a huge or\n"
+               "unlimited zone size to get the effect you probably want.\n");
     }
 }
 

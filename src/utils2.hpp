@@ -7,7 +7,6 @@ utils2.hpp, but utils.hpp needs some things in the IO layer. */
 
 #include <stdint.h>
 #include "errors.hpp"
-#include "config/alloc.hpp"
 
 int get_cpu_count();
 long get_available_ram();

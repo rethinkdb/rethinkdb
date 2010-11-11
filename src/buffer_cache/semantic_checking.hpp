@@ -34,8 +34,7 @@ struct scc_block_available_callback_t {
 
 template<class inner_cache_t>
 class scc_buf_t :
-    private inner_cache_t::block_available_callback_t,
-    public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, scc_buf_t<inner_cache_t> >
+    private inner_cache_t::block_available_callback_t
 {
     typedef scc_block_available_callback_t<inner_cache_t> block_available_callback_t;
 
@@ -67,8 +66,7 @@ private:
 template<class inner_cache_t>
 class scc_transaction_t :
     private inner_cache_t::transaction_begin_callback_t,
-    private inner_cache_t::transaction_commit_callback_t,
-    public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, scc_transaction_t<inner_cache_t> >
+    private inner_cache_t::transaction_commit_callback_t
 {
     typedef scc_buf_t<inner_cache_t> buf_t;
     typedef scc_transaction_begin_callback_t<inner_cache_t> transaction_begin_callback_t;

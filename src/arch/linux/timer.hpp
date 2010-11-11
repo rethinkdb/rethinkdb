@@ -2,11 +2,10 @@
 #define __ARCH_LINUX_TIMER_HPP__
 
 #include "containers/intrusive_list.hpp"
-#include "config/alloc.hpp"
 
 struct linux_timer_token_t :
-    public intrusive_list_node_t<linux_timer_token_t>,
-    public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, linux_timer_token_t> {
+    public intrusive_list_node_t<linux_timer_token_t>
+{
     
     friend class linux_timer_handler_t;
     

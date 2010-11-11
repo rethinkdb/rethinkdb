@@ -2,7 +2,6 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include "config/args.hpp"
-#include "config/alloc.hpp"
 #include "message_hub.hpp"
 #include "arch/linux/event_queue.hpp"
 #include "arch/linux/thread_pool.hpp"

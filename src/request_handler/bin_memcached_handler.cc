@@ -69,8 +69,8 @@ public:
 };
 
 class bin_memcached_get_request_t :
-    public bin_memcached_request_t,
-    public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, bin_memcached_get_request_t> {
+    public bin_memcached_request_t
+{
 
 public:
     typedef bin_memcached_handler_t::packet_t packet_t;
@@ -115,8 +115,8 @@ private:
 };
 
 class bin_memcached_set_request_t :
-    public bin_memcached_request_t,
-    public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, bin_memcached_set_request_t> {
+    public bin_memcached_request_t
+{
 
 public:
     typedef bin_memcached_handler_t::packet_t packet_t;
@@ -148,8 +148,8 @@ private:
 };
 
 class bin_memcached_incr_decr_request_t :
-    public bin_memcached_request_t,
-    public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, bin_memcached_incr_decr_request_t> {
+    public bin_memcached_request_t
+{
 
 public:
     typedef bin_memcached_handler_t::packet_t packet_t;
@@ -188,8 +188,8 @@ private:
 };
 
 class bin_memcached_append_prepend_request_t :
-    public bin_memcached_request_t,
-    public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, bin_memcached_append_prepend_request_t> {
+    public bin_memcached_request_t
+{
 
 public:
     typedef bin_memcached_handler_t::packet_t packet_t;
@@ -226,8 +226,8 @@ private:
 };
 
 class bin_memcached_delete_request_t :
-    public bin_memcached_request_t,
-    public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, bin_memcached_delete_request_t> {
+    public bin_memcached_request_t
+{
 
 public:
     typedef bin_memcached_handler_t::packet_t packet_t;
@@ -266,8 +266,8 @@ private:
 class bin_memcached_perfmon_request_t :
     public bin_memcached_request_t,
     public cpu_message_t,   // For call_later_on_this_cpu()
-    public perfmon_callback_t,
-    public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, bin_memcached_perfmon_request_t> {
+    public perfmon_callback_t
+{
 
 public:
     typedef bin_memcached_handler_t::packet_t packet_t;
