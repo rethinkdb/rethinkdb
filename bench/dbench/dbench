@@ -321,7 +321,7 @@ class Stress(Client):
 
 class MySQLStress(Stress):
     def internal_start(self):
-        default_args = ['--port=%d' % str(self.dbench.port),
+        default_args = ['--port=%d' % self.dbench.port,
                         '-r', 'mysql',
                         '-n', 'teapot/teapot@%s:bench' % self.dbench.host, # XXX: This shouldn't be hard-wired.
                         '-p', str(self.dbench.port),
