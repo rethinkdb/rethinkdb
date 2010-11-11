@@ -303,7 +303,7 @@ class Membase(MemcachedLikeServer):
 class MySQL(Server):
     def internal_start(self):
         args = self.compute_args()
-        self.run_process('/usr/local/mysqld_safe', args)
+        self.run_process('/usr/local/mysql/bin/mysqld_safe', args)
 
 class Stress(Client):
     binary_paths = ['../../../../stress-client/stress', '../stress-client/stress']
