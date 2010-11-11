@@ -1126,8 +1126,22 @@ void report_subtree_errors(const subtree_errors *errs) {
     }
 }
 
-void report_other_block_errors(const other_block_errors *errs) {
+void report_rogue_block_description(const char *title, const rogue_block_description& desc) {
+    printf("ERROR %s %lu ", title, desc.block_id);
+    if (desc.loading_error != btree_block::none) {
+        printf("could not load: %s\n", btree_block::error_name(desc.loading_error));
+    } else {
+        printf("magic: '%.*s'\n", int(sizeof(block_magic_t)), desc.magic.bytes);
+    }
+}
 
+void report_other_block_errors(const other_block_errors *errs) {
+    for (int i = 0, n = errs->unused_blocks.size(); i < n; ++i) {
+        report_rogue_block_description("unused block", errs->unused_blocks[i]);
+    }
+    for (int i = 0, n = errs->allegedly_deleted_blocks.size(); i < n; ++i) {
+        report_rogue_block_description("nonzeroed deleted block", errs->allegedly_deleted_blocks[i]);
+    }
 }
 
 void report_slice_errors(const slice_errors *errs) {
