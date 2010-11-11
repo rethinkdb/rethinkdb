@@ -169,7 +169,8 @@ class TimeSeriesCollection():
         ax.set_xlabel('Latency (microseconds)', fontproperties = font) #simply should not be hardcoded but we want nice pictures now
         ax.grid(True)
         # Dirty hack to get around legend miscoloring: drop all the hists generated into the legend one by one
-        plt.legend(map(lambda x: x[0], hists), labels, loc=1, prop = font)
+        if hists:
+            plt.legend(map(lambda x: x[0], hists), labels, loc=1, prop = font)
         fig.set_size_inches(5,3.7)
         fig.set_dpi(90)
         plt.savefig(out_fname)
@@ -217,7 +218,7 @@ class TimeSeriesCollection():
         if normalize:
             ax.set_ylim(0, 1.0)
         else:
-            ax.set_ylim(0, max(self.data[self.data.keys()[0]]))
+            ax.set_ylim(0, max(reduce(lambda x,y :x + y, self.data.values())))
         ax.grid(True)
         plt.legend(tuple(map(lambda x: x[0], labels)), tuple(map(lambda x: x[1], labels)), loc=1, prop = font)
         if not large:
@@ -324,6 +325,21 @@ def difference(serieses):
     for x,y in zip(serieses[0], serieses[1]):
         res.append(x - y)
 
+    return res
+
+def slide(serieses):
+    res = TimeSeries('seconds')
+    for i in range(min(map(lambda x: len(x), serieses))):
+        for j in range(i, len(serieses[1])):
+            if serieses[0][i] <= serieses[1][j]:
+                res += [j - i]
+                break
+    return res
+
+def ratio(serieses):
+    res = TimeSeries(serieses[0].units + '/' + serieses[1].units)
+    for x,y in zip(serieses[0], serieses[1]):
+        res += [float(x)/float(y)]
     return res
 
 #report the means of a list of runs
@@ -436,9 +452,29 @@ class RDBStats(TimeSeriesCollection):
                        ('transactions_ready', 'transactions_completed'),
                        ('bufs_acquired', 'bufs_ready'),
                        ('bufs_ready', 'bufs_released')]
+        ratios = [('conns_in_btree_incomplete', 'conns_total'),
+                  ('conns_in_outstanding_data', 'conns_total'),
+                  ('conns_in_socket_connected', 'conns_total'),
+                  ('conns_in_socket_recv_incomplete', 'conns_total'),
+                  ('conns_in_socket_send_incomplete', 'conns_total'),
+                  ('blocks_dirty', 'blocks_total'),
+                  ('blocks_in_memory', 'blocks_total')]
+        slides = [('flushes_started', 'flushes_acquired_lock'),
+                  ('flushes_acquired_lock', 'flushes_completed'),
+                  ('io_writes_started', 'io_writes_completed')]
         keys_to_drop = set()
         for dif in differences:
             self.derive(dif[0] + ' - ' + dif[1], dif, difference)
             keys_to_drop.add(dif[0])
             keys_to_drop.add(dif[1])
+
+        for rat in ratios:
+            self.derive(rat[0] + ' / ' + rat[1], rat, ratio)
+            keys_to_drop.add(rat[0])
+
+        for s in slides:
+            self.derive('slide(' + s[0] + ', ' + s[1] + ')', s, slide)
+            keys_to_drop.add(s[0])
+            keys_to_drop.add(s[1])
+
         self.drop(keys_to_drop)
