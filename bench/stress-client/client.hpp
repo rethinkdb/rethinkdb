@@ -50,23 +50,25 @@ public:
         lock();
 
         // Collect qps info from all clients before attempting to print
-        int qps_count = 0, agg_qps = 0;
-        map<int, pair<int, int> >::iterator op = qps_map.find(tick);
-        if(op != qps_map.end()) {
-            qps_count = op->second.first;
-            agg_qps = op->second.second;
-        }
+        if(config->clients > 1) {
+            int qps_count = 0, agg_qps = 0;
+            map<int, pair<int, int> >::iterator op = qps_map.find(tick);
+            if(op != qps_map.end()) {
+                qps_count = op->second.first;
+                agg_qps = op->second.second;
+            }
 
-        qps_count += 1;
-        agg_qps += _qps;
+            qps_count += 1;
+            agg_qps += _qps;
         
-        if(qps_count == config->clients) {
-            _qps = agg_qps;
-            qps_map.erase(op);
-        } else {
-            qps_map[tick] = pair<int, int>(qps_count, agg_qps);
-            unlock();
-            return;
+            if(qps_count == config->clients) {
+                _qps = agg_qps;
+                qps_map.erase(op);
+            } else {
+                qps_map[tick] = pair<int, int>(qps_count, agg_qps);
+                unlock();
+                return;
+            }
         }
             
         last_qps = _qps;
