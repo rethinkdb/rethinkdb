@@ -1065,9 +1065,88 @@ void report_interfile_errors(const interfile_errors &errs) {
     }
 }
 
-void report_post_config_block_errors(const all_slices_errors &slices_errs) {
-    
+void report_subtree_errors(const subtree_errors *errs) {
+    if (!errs->node_errors.empty()) {
+        printf("ERROR subtree node errors found...\n");
+        for (int i = 0, n = errs->node_errors.size(); i < n; ++i) {
+            const node_error& e = errs->node_errors[i];
+            printf("           %lu:", e.block_id);
+            if (e.block_not_found_error != btree_block::none) {
+                printf(" block not found: %s\n", btree_block::error_name(e.block_not_found_error));
+            } else {
+                
+                printf("%s%s%s%s%s%s%s%s%s\n",
+                       e.block_underfull ? " block_underfull" : "",
+                       e.bad_magic ? " bad_magic" : "",
+                       e.noncontiguous_offsets ? " noncontiguous_offsets" : "",
+                       e.value_out_of_buf ? " value_out_of_buf" : "",
+                       e.keys_too_big ? " keys_too_big" : "",
+                       e.keys_in_wrong_slice ? " keys_in_wrong_slice" : "",
+                       e.out_of_order ? " out_of_order" : "",
+                       e.value_errors_exist ? " value_errors_exist" : "",
+                       e.last_internal_node_key_nonempty ? " last_internal_node_key_nonempty" : "");
 
+            }
+        }
+    }
+
+    if (!errs->value_errors.empty()) {
+        printf("ERROR subtree value errors found...\n");
+        for (int i = 0, n = errs->value_errors.size(); i < n; ++i) {
+            const value_error& e = errs->value_errors[i];
+            printf("          %lu/%s :", e.block_id, e.key.c_str());
+            printf("%s%s%s",
+                   e.bad_metadata_flags ? " bad_metadata_flags" : "",
+                   e.too_big ? " too_big" : "",
+                   e.lv_too_small ? " lv_too_small" : "");
+            if (e.index_block_id != NULL_BLOCK_ID) {
+                printf(" (index_block_id = %lu)", e.index_block_id);
+                if (e.lv_index_block_code != btree_block::none) {
+                    printf(" could not load index block: %s", btree_block::error_name(e.lv_index_block_code));
+                } else {
+                    printf("%s", e.lv_code == value_error::none ? ""
+                           : e.lv_code == value_error::lv_index_bad_magic ? " lv_index_bad_magic"
+                           : e.lv_code == value_error::lv_bad_first_block_offset ? " lv_bad_first_block_offset"
+                           : e.lv_code == value_error::lv_bad_num_segments ? " lv_bad_num_segments"
+                           : " lv_errcode error");
+
+                    if (!e.lv_segment_errors.empty()) {
+                        for (int j = 0, m = e.lv_segment_errors.size(); j < m; ++j) {
+                            const value_error::segment_error se = e.lv_segment_errors[j];
+
+                            printf(" segment_error(%lu, %s)", se.block_id,
+                                   se.block_code == btree_block::none ? "bad magic" : btree_block::error_name(se.block_code));
+                        }
+                    }
+                }
+            }
+
+            printf("\n");
+        }
+    }
+}
+
+void report_other_block_errors(const other_block_errors *errs) {
+
+}
+
+void report_slice_errors(const slice_errors *errs) {
+    if (errs->superblock_code != btree_block::none) {
+        printf("ERROR could not find btree superblock: %s\n", btree_block::error_name(errs->superblock_code));
+        return;
+    }
+    if (errs->superblock_bad_magic) {
+        printf("ERROR btree superblock had bad magic\n");
+        return;
+    }
+    report_subtree_errors(&errs->tree_errs);
+    report_other_block_errors(&errs->other_block_errs);
+}
+
+void report_post_config_block_errors(const all_slices_errors &slices_errs) {
+    for (int i = 0; i < slices_errs.n_files; ++i) {
+        report_slice_errors(&slices_errs.slice[i]);
+    }
 }
 
 void check_files(const config_t& cfg) {
