@@ -131,7 +131,7 @@ void walk_extents(dumper_t &dumper, direct_file_t &file, cfg_t cfg) {
         off64_t off = offsets[CONFIG_BLOCK_ID];
 
         block serblock;
-        serblock.init(&file, cfg.block_size, off);
+        serblock.init(cfg.block_size, &file, off);
         serializer_config_block_t *serbuf = (serializer_config_block_t *)serblock.buf;
        
 
@@ -167,7 +167,7 @@ bool check_all_known_magic(block_magic_t magic) {
 void observe_blocks(block_registry &registry, direct_file_t &file, const cfg_t cfg, uint64_t filesize) {
     for (off64_t offset = 0, max_offset = filesize - cfg.block_size; offset <= max_offset; offset += cfg.block_size) {
         block b;
-        b.init(&file, cfg.block_size, offset);
+        b.init(cfg.block_size, &file, offset);
 
         if (check_all_known_magic(*(block_magic_t *)b.buf)) {
             registry.tell_block(offset, b.buf_data());
@@ -179,7 +179,7 @@ void observe_blocks(block_registry &registry, direct_file_t &file, const cfg_t c
 void get_values(dumper_t &dumper, direct_file_t& file, const cfg_t cfg, const segmented_vector_t<off64_t, MAX_BLOCK_ID>& offsets, size_t i) {
     if (offsets[i] != block_registry::null) {
         block b;
-        b.init(&file, cfg.block_size, offsets[i]);
+        b.init(cfg.block_size, &file, offsets[i]);
 
         const btree_leaf_node *leaf = (leaf_node_t *)b.buf;
     
@@ -232,7 +232,7 @@ void dump_pair_value(dumper_t &dumper, direct_file_t& file, const cfg_t cfg, con
         }
 
         block indexblock;
-        indexblock.init(&file, cfg.block_size, offsets[indexblock_id]);
+        indexblock.init(cfg.block_size, &file, offsets[indexblock_id]);
         const large_buf_index *indexblockbuf = (large_buf_index *)indexblock.buf;
 
         if (!check_magic<large_buf_index>(indexblockbuf->magic)) {
@@ -280,7 +280,7 @@ void dump_pair_value(dumper_t &dumper, direct_file_t& file, const cfg_t cfg, con
                 return;
             }
             block segblock;
-            segblock.init(&file, cfg.block_size, offsets[seg_id]);
+            segblock.init(cfg.block_size, &file, offsets[seg_id]);
             const large_buf_segment *seg = (large_buf_segment *)segblock.buf;
             
 
@@ -320,7 +320,7 @@ void walkfile(dumper_t& dumper, const std::string& db_file, cfg_t overrides) {
     direct_file_t file(db_file.c_str(), direct_file_t::mode_read);
 
     block headerblock;
-    headerblock.init(&file, DEVICE_BLOCK_SIZE, 0);
+    headerblock.init(DEVICE_BLOCK_SIZE, &file, 0);
 
     static_header_t *header = (static_header_t *)headerblock.realbuf;
 

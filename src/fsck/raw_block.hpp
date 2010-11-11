@@ -20,8 +20,8 @@ public:
 protected:
     raw_block();
     ~raw_block();
-    void init(direct_file_t *file, size_t block_size, off64_t offset);
-    bool init(direct_file_t *file, size_t block_size, off64_t offset, ser_block_id_t ser_block_id);
+    void init(size_t block_size, direct_file_t *file, off64_t offset);
+    bool init(size_t block_size, direct_file_t *file, off64_t offset, ser_block_id_t ser_block_id);
 
     buf_data_t *realbuf;
 private:

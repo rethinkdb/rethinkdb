@@ -118,15 +118,10 @@ void unrecoverable_fact(bool fact, const char *test) {
     }
 }
 
-struct block {
-    void *buf;
-    block(off64_t size, direct_file_t *file, off64_t offset)
-        : buf(malloc_aligned(size, DEVICE_BLOCK_SIZE)) {
-        file->read_blocking(offset, size, buf);
-    }
-    ~block() { free(buf); }
-private:
-    DISABLE_COPYING(block);
+class block : public raw_block {
+public:
+    using raw_block::realbuf;
+    using raw_block::init;
 };
 
 // This doesn't really make the blocks, but it's a nice name.  See btree_block below.
@@ -173,7 +168,7 @@ public:
             return false;
         }
 
-        if (!raw_block::init(file, knog->static_config->block_size, offset.parts.value, ser_block_id)) {
+        if (!raw_block::init(knog->static_config->block_size, file, offset.parts.value, ser_block_id)) {
             return false;
         }
 
@@ -206,8 +201,9 @@ void check_filesize(direct_file_t *file, file_knowledge *knog) {
 enum static_config_error { none = 0, bad_software_name, bad_version, bad_sizes, bad_filesize };
 
 bool check_static_config(direct_file_t *file, file_knowledge *knog, static_config_error *err) {
-    block header(DEVICE_BLOCK_SIZE, file, 0);
-    static_header_t *buf = (static_header_t *)header.buf;
+    block header;
+    header.init(DEVICE_BLOCK_SIZE, file, 0);
+    static_header_t *buf = (static_header_t *)header.realbuf;
     
     log_serializer_static_config_t *static_cfg = (log_serializer_static_config_t *)(buf + 1);
     
@@ -270,8 +266,9 @@ bool check_metablock(direct_file_t *file, file_knowledge *knog, metablock_errors
     for (int i = 0, n = metablock_offsets.size(); i < n; ++i) {
         off64_t off = metablock_offsets[i];
 
-        block b(DEVICE_BLOCK_SIZE, file, off);
-        crc_metablock_t *metablock = (crc_metablock_t *)b.buf;
+        block b;
+        b.init(DEVICE_BLOCK_SIZE, file, off);
+        crc_metablock_t *metablock = (crc_metablock_t *)b.realbuf;
 
         if (metablock->check_crc()) {
             if (0 != memcmp(metablock->magic_marker, MB_MARKER_MAGIC, sizeof(MB_MARKER_MAGIC))
@@ -303,7 +300,7 @@ bool check_metablock(direct_file_t *file, file_knowledge *knog, metablock_errors
             // There can be bad CRCs for metablocks that haven't been
             // used yet, if the database is very young.
             bool all_zero = true;
-            byte *buf = (byte *)b.buf;
+            byte *buf = (byte *)b.realbuf;
             for (int i = 0; i < DEVICE_BLOCK_SIZE; ++i) {
                 all_zero &= (buf[i] == 0);
             }
@@ -322,8 +319,9 @@ bool check_metablock(direct_file_t *file, file_knowledge *knog, metablock_errors
         return false;
     }
 
-    block high_block(DEVICE_BLOCK_SIZE, file, metablock_offsets[high_version_index]);
-    crc_metablock_t *high_metablock = (crc_metablock_t *)high_block.buf;
+    block high_block;
+    high_block.init(DEVICE_BLOCK_SIZE, file, metablock_offsets[high_version_index]);
+    crc_metablock_t *high_metablock = (crc_metablock_t *)high_block.realbuf;
     knog->metablock = high_metablock->metablock;
     return true;
 }
@@ -371,8 +369,9 @@ bool check_lba_extent(direct_file_t *file, file_knowledge *knog, unsigned int sh
         return false;
     }
 
-    block extent(knog->static_config->extent_size, file, extent_offset);
-    lba_extent_t *buf = (lba_extent_t *)extent.buf;
+    block extent;
+    extent.init(knog->static_config->extent_size, file, extent_offset);
+    lba_extent_t *buf = (lba_extent_t *)extent.realbuf;
 
     errs->total_count += entries_count;
 
@@ -429,7 +428,8 @@ bool check_lba_shard(direct_file_t *file, file_knowledge *knog, lba_shard_metabl
             return false;
         }
 
-        block superblock(superblock_aligned_size, file, shard->lba_superblock_offset);
+        block superblock;
+        superblock.init(superblock_aligned_size, file, shard->lba_superblock_offset);
         lba_superblock_t *buf = (lba_superblock_t *)superblock.buf;
 
         if (0 != memcmp(buf, lba_super_magic, LBA_SUPER_MAGIC_SIZE)) {
