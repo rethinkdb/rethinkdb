@@ -137,8 +137,7 @@ void mc_buf_t::release_cow() {
     
     assert(cow_data);
     cache->assert_cpu();
-    pm_n_bufs_released++;
-
+    
     if(cow_data == data) {
         // The block has not been copied
         cow_data = NULL;
@@ -335,6 +334,7 @@ void mc_transaction_t::process_buf(mc_buf_t *buf, access_t mode) {
         // Gotta do copy on write
         buf->do_cow_copy();
         pm_n_cows_made++;
+        pm_n_bufs_ready++;
     } else if(mode == rwi_read_outdated_ok) {
         // One rwi_read_outdated_ok at a time
         assert(buf->cow_data == NULL);
@@ -343,15 +343,16 @@ void mc_transaction_t::process_buf(mc_buf_t *buf, access_t mode) {
         // since rwi_read_outdated_ok is only done by writeback, the
         // block can't be unloaded
         buf->concurrency_buf.release();
+    } else {
+        pm_n_bufs_ready++;
     }
-    pm_n_bufs_ready++;
 }
 
 mc_buf_t *mc_transaction_t::acquire(block_id_t block_id, access_t mode,
                                block_available_callback_t *callback) {
     assert(mode == rwi_read || mode == rwi_read_outdated_ok || access != rwi_read);
        
-    pm_n_bufs_acquired++;
+    if (mode != rwi_read_outdated_ok) pm_n_bufs_acquired++;
 
     buf_t *buf = cache->page_map.find(block_id);
     if (!buf) {
