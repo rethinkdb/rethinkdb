@@ -77,7 +77,7 @@ class Worker(object):
 
         print >> self.status_file, 'stop: %d' % int(time.time())
         if self.process:
-            print >> self.status_file, 'exitstatus: %d' % self.process.poll()
+            print >> self.status_file, 'exitstatus: %s' % str(self.process.poll())
         self.status_file.close()
         self.status_file = None
 
@@ -189,12 +189,8 @@ class Sleep(Worker):
         time.sleep(length)
 
 
-class Server(Worker): argtype = 'Server'
-class Client(Worker): argtype = 'Client'
-class Monitor(Worker): argtype = 'Monitor'
-
-
-class MemcachedLikeServer(Server):
+class Server(Worker):
+    argtype = 'Server'
 
     MAX_WAIT_TIME = 30
     WAIT_INTERVAL = 0.5
@@ -217,6 +213,14 @@ class MemcachedLikeServer(Server):
             # fixed, but until then, this works well enough.
             return
         self.dbench.die('Unable to connect to server (localhost:%d)' % (self.dbench.port)) # XXX: This too.
+
+class Client(Worker): argtype = 'Client'
+class Monitor(Worker): argtype = 'Monitor'
+
+
+class MemcachedLikeServer(Server):
+    pass
+
 
 class RethinkDB(MemcachedLikeServer):
     binary_paths = ['../../../../../build/release/rethinkdb', '../../build/release/rethinkdb']
@@ -302,8 +306,9 @@ class Membase(MemcachedLikeServer):
 
 class MySQL(Server):
     def internal_start(self):
-        args = self.compute_args()
-        self.run_process('/usr/localmysqld_safe', args)
+        args = self.compute_args(['--port=%d' % self.dbench.port])
+        self.run_process('/usr/local/mysql/libexec/mysqld', args)
+        self.wait_for_server_ready()
 
 class Stress(Client):
     binary_paths = ['../../../../stress-client/stress', '../stress-client/stress']
@@ -321,11 +326,8 @@ class Stress(Client):
 
 class MySQLStress(Stress):
     def internal_start(self):
-        if self.dbench.port != 3306:
-            self.dbench.die('We run MySQL on the default port, 3306; please run explicitly with that port.')
-
         default_args = ['-r', 'mysql',
-                        '-n', 'root/@%s:bench' % self.dbench.host,
+                        '-n', 'teapot/teapot@%s:bench' % self.dbench.host, # XXX: This shouldn't be hard-wired.
                         '-p', str(self.dbench.port),
                         '-l', self.LATENCY_FILE,
                         '-q', self.QPS_FILE]
