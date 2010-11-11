@@ -51,7 +51,8 @@ void usage(const char *name) {
     printf("\t-q, --qps-file\n\t\tFile name to output QPS information.\n" \
            "\t\tThe information is not outputted if this argument is skipped.\n");
     printf("\t-o, --out-file\n\t\tIf present, dump all inserted keys to this file.\n");
-    printf("\t-i, --in-file\n\t\tIf present, populate initial keys from this file.\n");
+    printf("\t-i, --in-file\n\t\tIf present, populate initial keys from this file\n"\
+           "\t\tand don't drop the database (for relevant protocols).\n");
 
     printf("\nAdditional information:\n");
     printf("\t\tDISTR format describes a range and can be specified in as MIN-MAX.\n\n");
