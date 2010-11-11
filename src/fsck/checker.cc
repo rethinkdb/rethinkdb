@@ -924,14 +924,13 @@ bool check_to_config_block(direct_file_t *file, file_knowledge *knog, check_to_c
 }
 
 struct interfile_errors {
-    bool all_have_correct_num_files;  // must be true
+    bool all_have_correct_num_files;  // should be true
     bool all_have_same_num_files;  // must be true
     bool all_have_same_num_slices;  // must be true
     bool all_have_same_db_magic;  // must be true
-    bool out_of_order_serializers;  // must be false
+    bool out_of_order_serializers;  // should be false
     bool bad_this_serializer_values;  // must be false
     bool bad_num_slices;  // must be false
-    bool discontiguous_serializers;  // must be false
     bool reused_serializer_numbers;  // must be false
 };
 
@@ -954,20 +953,20 @@ bool check_interfile(knowledge *knog, interfile_errors *errs) {
         errs->all_have_same_db_magic &= (knog->file_knog[i]->config_block->database_magic
                                    == knog->file_knog[0]->config_block->database_magic);
         errs->out_of_order_serializers |= (i == knog->file_knog[i]->config_block->this_serializer);
-        errs->bad_this_serializer_values |= (knog->file_knog[i]->config_block->this_serializer < 0 || knog->file_knog[i]->config_block->this_serializer >= num_files);
-        this_serializer_counts[knog->file_knog[i]->config_block->this_serializer] += 1;
+        errs->bad_this_serializer_values |= (knog->file_knog[i]->config_block->this_serializer < 0 || knog->file_knog[i]->config_block->this_serializer >= knog->file_knog[i]->config_block->n_files);
+        if (knog->file_knog[i]->config_block->this_serializer < num_files && knog->file_knog[i]->config_block->this_serializer >= 0) {
+            this_serializer_counts[knog->file_knog[i]->config_block->this_serializer] += 1;
+        }
     }
 
     errs->bad_num_slices = (knog->file_knog[0]->config_block->btree_config.n_slices < 0);
 
-    errs->discontiguous_serializers = false;
     errs->reused_serializer_numbers = false;
     for (int i = 0; i < num_files; ++i) {
-        errs->discontiguous_serializers |= (this_serializer_counts[i] != 1);
         errs->reused_serializer_numbers |= (this_serializer_counts[i] > 1);
     }
 
-    return (/* errs->all_have_correct_num_files && */ errs->all_have_same_num_files && errs->all_have_same_num_slices && errs->all_have_same_db_magic /* && !errs->out_of_order_serializers */ && !errs->bad_this_serializer_values && !errs->bad_num_slices && !errs->discontiguous_serializers && !errs->reused_serializer_numbers);
+    return (/* errs->all_have_correct_num_files && */ errs->all_have_same_num_files && errs->all_have_same_num_slices && errs->all_have_same_db_magic /* && !errs->out_of_order_serializers */ && !errs->bad_this_serializer_values && !errs->bad_num_slices && !errs->reused_serializer_numbers);
 }
 
 struct all_slices_errors {
@@ -1041,11 +1040,33 @@ void report_pre_config_block_errors(const check_to_config_block_errors& errs) {
 }
 
 void report_interfile_errors(const interfile_errors &errs) {
+    if (!errs.all_have_same_num_files) {
+        printf("ERROR config blocks disagree on number of files\n");
+    } else if (!errs.all_have_same_num_files) {
+        printf("WARNING wrong number of files specified on command line\n");
+    }
 
+    if (errs.bad_num_slices) {
+        printf("ERROR some config blocks specify an absurd number of slices\n");
+    } else if (!errs.all_have_same_num_slices) {
+        printf("ERROR config blocks disagree on number of slices\n");
+    }
+
+    if (!errs.all_have_same_db_magic) {
+        printf("ERROR config blocks have different database_magic\n");
+    }
+
+    if (errs.bad_this_serializer_values) {
+        printf("ERROR some config blocks have absurd this_serializer values\n");
+    } else if (errs.reused_serializer_numbers) {
+        printf("ERROR some config blocks specify the same this_serializer value\n");  // TODO check for duplicate files on cmd line
+    } else if (errs.out_of_order_serializers) {
+        printf("WARNING files apparently specified out of order on command line\n");
+    }
 }
 
 void report_post_config_block_errors(const all_slices_errors &slices_errs) {
-
+    
 
 }
 
