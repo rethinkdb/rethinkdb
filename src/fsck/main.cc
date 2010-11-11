@@ -1,6 +1,8 @@
 #include <getopt.h>
 #include <stdio.h>
 
+#include <algorithm>
+
 #include "fsck/checker.hpp"
 #include "logger.hpp"
 #include "utils.hpp"
@@ -64,9 +66,23 @@ void parse_cmd_args(int argc, char **argv, config_t *config) {
         }
     }
 
-    if (config->input_filenames.size() == 0) {
+    if (optind < argc) {
+        fail("Unexpected extra argument: \"%s\"", argv[optind]);
+    }
+
+    // Sanity checks
+
+    if (config->input_filenames.empty()) {
         fprintf(stderr, "Please specify some files.");
         usage(argv[0]);
+    }
+
+    {
+        std::vector<std::string> names = config->input_filenames;
+        std::sort(names.begin(), names.end());
+        if (std::unique(names.begin(), names.end()) != names.end()) {
+            fail("Duplicate file names provided.");
+        }
     }
 }
 

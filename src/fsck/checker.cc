@@ -19,6 +19,7 @@ namespace fsck {
 // overdesigned C++ism that you should flush out of this file.  Maybe
 // these should be moved to utils.hpp.  Maybe the fact that we have so
 // many calls to this function is a sign of poor software design.
+// Maybe not.
 template <class T>
 inline const T* ptr_cast(const void *p) { return reinterpret_cast<const T*>(p); }
 
@@ -29,7 +30,7 @@ static const char *state = NULL;
 
 typedef data_block_manager_t::buf_data_t buf_data_t;
 
-// knowledge that we contain for a particular block id.
+// Knowledge that we contain for every block id.
 struct block_knowledge {
     // The offset found in the LBA.
     flagged_off64_t offset;
@@ -43,8 +44,8 @@ struct block_knowledge {
 
 const block_knowledge block_knowledge::unused = { flagged_off64_t::unused(), NULL_SER_TRANSACTION_ID };
 
-// Makes sure (at run time) a piece of knowledge is learned before we
-// try to use it.
+// A safety wrapper to make sure we've learned a value before we try
+// to use it.
 template <class T>
 class learned {
     T value;
@@ -75,61 +76,53 @@ public:
     T *operator->() { return &operator*(); }
 };
 
-// The knowledge we have about a particular file is gathered here.
+// The non-error knowledge we have about a particular file.
 struct file_knowledge {
     std::string filename;
-
-    // The serializer number, known by position on command line.
-    // These values get happily overridden, with only a warning, by
-    // serializer_config_block_t::this_serializer.
-    int predicted_serializer_number;
 
     // The file size, known after we've looked at the file.
     learned<uint64_t> filesize;
 
-    // The block size and extent size.
+    // The block_size and extent_size.
     learned<log_serializer_static_config_t> static_config;
     
     // The metablock with the most recent version.
     learned<log_serializer_metablock_t> metablock;
 
-    // The block id to offset mapping.
+    // Information about some of the blocks.
     segmented_vector_t<block_knowledge, MAX_BLOCK_ID> block_info;
 
     // The block from CONFIG_BLOCK_ID (well, the beginning of such a block).
     learned<serializer_config_block_t> config_block;
 
-    file_knowledge() : predicted_serializer_number(-1) { }
+    file_knowledge(const std::string filename) : filename(filename) { }
 
 private:
     DISABLE_COPYING(file_knowledge);
 };
 
-// The knowledge we have is gathered here.
+// All the files' file_knowledge.
 struct knowledge {
-    const std::vector<std::string> filenames;
     std::vector<direct_file_t *> files;
     std::vector<file_knowledge *> file_knog;
 
     knowledge(const std::vector<std::string>& filenames)
-        : filenames(filenames), files(filenames.size(), NULL), file_knog(filenames.size(), NULL) {
-        int num_files = filenames.size();
-        for (int i = 0; i < num_files; ++i) {
+        : files(filenames.size(), NULL), file_knog(filenames.size(), NULL) {
+        for (int i = 0, n = filenames.size(); i < n; ++i) {
             direct_file_t *file = new direct_file_t(filenames[i].c_str(), direct_file_t::mode_read);
             files[i] = file;
-            file_knog[i] = new file_knowledge();
-            file_knog[i]->filename = filenames[i];
-            file_knog[i]->predicted_serializer_number = i;
+            file_knog[i] = new file_knowledge(filenames[i]);
         }
     }
 
     ~knowledge() {
-        int num_files = filenames.size();
-        for (int i = 0; i < num_files; ++i) {
+        for (int i = 0, n = files.size(); i < n; ++i) {
             delete files[i];
             delete file_knog[i];
         }
     }
+
+    int num_files() const { return files.size(); }
 
 private:
     DISABLE_COPYING(knowledge);
@@ -165,7 +158,8 @@ private:
     DISABLE_COPYING(slicecx);
 };
 
-
+// A loader/destroyer of btree blocks, which performs all the
+// error-checking dirty work.
 class btree_block : public raw_block {
 public:
     enum { no_block = raw_block_err_count, already_accessed, transaction_id_invalid, transaction_id_too_large };
@@ -177,10 +171,12 @@ public:
 
     btree_block() : raw_block() { }
 
+    // Uses and modifies knog->block_info[cx.to_ser_block_id(block_id)].
     bool init(slicecx &cx, block_id_t block_id) {
         return init(cx.file, cx.knog, cx.to_ser_block_id(block_id));
     }
 
+    // Modifies knog->block_info[ser_block_id].
     bool init(direct_file_t *file, file_knowledge *knog, ser_block_id_t ser_block_id) {
         if (ser_block_id >= knog->block_info.get_size()) {
             err = no_block;
@@ -269,13 +265,13 @@ bool check_static_config(direct_file_t *file, file_knowledge *knog, static_confi
 }
 
 struct metablock_errors {
-    int bad_crc_count;  // This should be zero.
-    int bad_markers_count;  // This must be zero.
-    int bad_content_count;  // This must be zero.
+    int bad_crc_count;  // should be zero
+    int bad_markers_count;  // must be zero
+    int bad_content_count;  // must be zero
     int zeroed_count;
     int total_count;
-    bool not_monotonic;  // This should be false.
-    bool no_valid_metablocks;  // This must be false.
+    bool not_monotonic;  // should be false
+    bool no_valid_metablocks;  // must be false
 };
 
 bool check_metablock(direct_file_t *file, file_knowledge *knog, metablock_errors *errs) {
@@ -442,8 +438,10 @@ bool check_lba_extent(direct_file_t *file, file_knowledge *knog, unsigned int sh
 struct lba_shard_errors {
     enum errcode { none = 0, bad_lba_superblock_offset, bad_lba_superblock_magic, bad_lba_extent };
     errcode code;
+
     // -1 if no extents deemed bad.
     int bad_extent_number;
+
     // We put the sum of error counts here if bad_extent_number is -1.
     lba_extent_errors extent_errors;
 };
@@ -461,7 +459,7 @@ bool check_lba_shard(direct_file_t *file, file_knowledge *knog, lba_shard_metabl
     int superblock_aligned_size = ceil_aligned(superblock_size, DEVICE_BLOCK_SIZE);
 
     // 1. Read the entries from the superblock (if there is one).
-    if (shards[shard_number].lba_superblock_offset != -1) {  // TODO -1 constant
+    if (shards[shard_number].lba_superblock_offset != NULL_OFFSET) {
 
         if (!is_valid_device_block(knog, shard->lba_superblock_offset)) {
             errs->code = lba_shard_errors::bad_lba_superblock_offset;
@@ -483,8 +481,6 @@ bool check_lba_shard(direct_file_t *file, file_knowledge *knog, lba_shard_metabl
                 errs->code = lba_shard_errors::bad_lba_extent;
                 errs->bad_extent_number = i;
                 return false;
-
-                // TODO: possibly remove short-circuiting behavior.
             }
         }
     }
@@ -789,7 +785,6 @@ void check_subtree_internal_node(slicecx& cx, const btree_internal_node *buf, bt
 
             errs->out_of_order |= (prev_key == NULL || hi == NULL || internal_key_comp::compare(prev_key, hi) < 0);
 
-            // TODO avoid infinite looping
             if (errs->out_of_order) {
                 check_subtree(cx, pair->lnode, NULL, NULL, tree_errs);
             } else {
@@ -977,9 +972,9 @@ struct interfile_errors {
 };
 
 bool check_interfile(knowledge *knog, interfile_errors *errs) {
-    int num_files = knog->filenames.size();
+    int num_files = knog->num_files();
 
-    std::vector<int> this_serializer_counts(num_files, 0);
+    std::vector<int> counts(num_files, 0);
 
     errs->all_have_correct_num_files = true;
     errs->all_have_same_num_files = true;
@@ -987,28 +982,31 @@ bool check_interfile(knowledge *knog, interfile_errors *errs) {
     errs->all_have_same_db_magic = true;
     errs->out_of_order_serializers = false;
     errs->bad_this_serializer_values = false;
+
+    serializer_config_block_t& zeroth = *knog->file_knog[0]->config_block;
+
     for (int i = 0; i < num_files; ++i) {
-        errs->all_have_correct_num_files &= (knog->file_knog[i]->config_block->n_files == num_files);
-        errs->all_have_same_num_files &= (knog->file_knog[i]->config_block->n_files == knog->file_knog[0]->config_block->n_files);
-        errs->all_have_same_num_slices &= (knog->file_knog[i]->config_block->btree_config.n_slices
-                                     == knog->file_knog[0]->config_block->btree_config.n_slices);
-        errs->all_have_same_db_magic &= (knog->file_knog[i]->config_block->database_magic
-                                   == knog->file_knog[0]->config_block->database_magic);
-        errs->out_of_order_serializers |= (i == knog->file_knog[i]->config_block->this_serializer);
-        errs->bad_this_serializer_values |= (knog->file_knog[i]->config_block->this_serializer < 0 || knog->file_knog[i]->config_block->this_serializer >= knog->file_knog[i]->config_block->n_files);
-        if (knog->file_knog[i]->config_block->this_serializer < num_files && knog->file_knog[i]->config_block->this_serializer >= 0) {
-            this_serializer_counts[knog->file_knog[i]->config_block->this_serializer] += 1;
+        serializer_config_block_t& cb = *knog->file_knog[i]->config_block;
+
+        errs->all_have_correct_num_files &= (cb.n_files == num_files);
+        errs->all_have_same_num_files &= (cb.n_files == zeroth.n_files);
+        errs->all_have_same_num_slices &= (cb.btree_config.n_slices == zeroth.btree_config.n_slices);
+        errs->all_have_same_db_magic &= (cb.database_magic == zeroth.database_magic);
+        errs->out_of_order_serializers |= (i == cb.this_serializer);
+        errs->bad_this_serializer_values |= (cb.this_serializer < 0 || cb.this_serializer >= cb.n_files);
+        if (cb.this_serializer < num_files && cb.this_serializer >= 0) {
+            counts[cb.this_serializer] += 1;
         }
     }
 
-    errs->bad_num_slices = (knog->file_knog[0]->config_block->btree_config.n_slices < 0);
+    errs->bad_num_slices = (zeroth.btree_config.n_slices < 0);
 
     errs->reused_serializer_numbers = false;
     for (int i = 0; i < num_files; ++i) {
-        errs->reused_serializer_numbers |= (this_serializer_counts[i] > 1);
+        errs->reused_serializer_numbers |= (counts[i] > 1);
     }
 
-    return (/* errs->all_have_correct_num_files && */ errs->all_have_same_num_files && errs->all_have_same_num_slices && errs->all_have_same_db_magic /* && !errs->out_of_order_serializers */ && !errs->bad_this_serializer_values && !errs->bad_num_slices && !errs->reused_serializer_numbers);
+    return (errs->all_have_same_num_files && errs->all_have_same_num_slices && errs->all_have_same_db_magic && !errs->bad_this_serializer_values && !errs->bad_num_slices && !errs->reused_serializer_numbers);
 }
 
 struct all_slices_errors {
@@ -1108,7 +1106,7 @@ void report_interfile_errors(const interfile_errors &errs) {
     if (errs.bad_this_serializer_values) {
         printf("ERROR some config blocks have absurd this_serializer values\n");
     } else if (errs.reused_serializer_numbers) {
-        printf("ERROR some config blocks specify the same this_serializer value\n");  // TODO check for duplicate files on cmd line
+        printf("ERROR some config blocks specify the same this_serializer value\n");
     } else if (errs.out_of_order_serializers) {
         printf("WARNING files apparently specified out of order on command line\n");
     }
@@ -1225,7 +1223,7 @@ void check_files(const config_t& cfg) {
     // 1. Open.
     knowledge knog(cfg.input_filenames);
 
-    int num_files = knog.filenames.size();
+    int num_files = knog.num_files();
 
     unrecoverable_fact(num_files > 0, "a positive number of files");
 
@@ -1234,7 +1232,7 @@ void check_files(const config_t& cfg) {
         check_to_config_block_errors errs;
         if (!check_to_config_block(knog.files[i], knog.file_knog[i], &errs)) {
             any = true;
-            std::string s = std::string("(in file '") + knog.filenames[i] + "')";
+            std::string s = std::string("(in file '") + knog.file_knog[i]->filename + "')";
             state = s.c_str();
             report_pre_config_block_errors(errs);
         }
@@ -1250,7 +1248,7 @@ void check_files(const config_t& cfg) {
         return;
     }
 
-    all_slices_errors slices_errs(knog.file_knog[0]->config_block->btree_config.n_slices);  // TODO combine info gracefully
+    all_slices_errors slices_errs(knog.file_knog[0]->config_block->btree_config.n_slices);
     for (int i = 0; i < num_files; ++i) {
         check_after_config_block(knog.files[i], knog.file_knog[i], &slices_errs);
     }

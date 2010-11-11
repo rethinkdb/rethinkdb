@@ -8,7 +8,7 @@
 namespace fsck {
 
 /*
-  Here is a superset of the checks we're going to perform.
+  Here are the checks that we perform.
 
   - that block_size divides extent_size divides filesize.  (size ratio
     check)
