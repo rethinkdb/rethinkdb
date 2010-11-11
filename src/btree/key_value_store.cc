@@ -756,6 +756,6 @@ void btree_slice_t::on_cache_shutdown() {
 
 // Stats
 
-perfmon_counter_t
-    pm_cmd_set("cmd_set"),
-    pm_cmd_get("cmd_get");
+perfmon_duration_sampler_t
+    pm_cmd_set("cmd_set", secs_to_ticks(1)),
+    pm_cmd_get("cmd_get", secs_to_ticks(1));

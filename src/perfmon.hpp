@@ -3,6 +3,7 @@
 
 #include <string>
 #include <map>
+#include <deque>
 #include <stdarg.h>
 #include "utils2.hpp"
 #include "config/args.hpp"
@@ -41,10 +42,8 @@ class perfmon_t :
     public intrusive_list_node_t<perfmon_t>
 {
 public:
-    perfmon_t(const char *name);
+    perfmon_t();
     ~perfmon_t();
-    
-    const char *name;
     
     /* To get a value from a given perfmon: Call begin(). On each core, call the visit() method
     of the step_t that was returned from begin(). Then call end() on the step_t on the same core
@@ -53,7 +52,7 @@ public:
     You usually want to call perfmon_get_stats() instead of calling these methods directly. */
     struct step_t {
         virtual void visit() = 0;
-        virtual std::string end() = 0;
+        virtual void end(perfmon_stats_t *dest) = 0;
     };
     virtual step_t *begin() = 0;
 };
@@ -68,8 +67,9 @@ class perfmon_counter_t :
     friend class perfmon_counter_step_t;
     int64_t values[MAX_CPUS];
     int64_t &get();
+    std::string name;
 public:
-    perfmon_counter_t(const char *name);
+    perfmon_counter_t(std::string name);
     void operator++(int) { get()++; }
     void operator+=(int64_t num) { get() += num; }
     void operator--(int) { get()--; }
@@ -78,19 +78,54 @@ public:
     perfmon_t::step_t *begin();
 };
 
-/* perfmon_thread_average_t is a perfmon_t that averages together values from
-separate threads. */
+/* perfmon_sampler_t is a perfmon_t that keeps a log of events that happen. When something
+happens, call the perfmon_sampler_t's record() method. The perfmon_sampler_t will retain that
+record until 'length' ticks have passed. It will produce stats for the number of records in the
+time period, the average record, and the min and max records. */
 
-struct perfmon_thread_average_step_t;
-class perfmon_thread_average_t :
+struct perfmon_sampler_step_t;
+class perfmon_sampler_t :
     public perfmon_t
 {
-    friend class perfmon_thread_average_step_t;
-    int64_t values[MAX_CPUS];
 public:
-    perfmon_thread_average_t(const char *name);
-    void set_value_for_this_thread(int64_t v);
+    typedef double value_t;
+private:
+    friend class perfmon_sampler_step_t;
+    struct sample_t {
+        value_t value;
+        ticks_t timestamp;
+        sample_t(value_t v, time_t t) : value(v), timestamp(t) { }
+    };
+    std::deque<sample_t> values[MAX_CPUS];
+    void expire();
+    ticks_t length;
+    std::string name;
+public:
+    perfmon_sampler_t(std::string name, ticks_t length);
+    void record(value_t value);
     perfmon_t::step_t *begin();
+};
+
+/* perfmon_duration_sampler_t is a perfmon_t that monitors events that have a starting and ending
+time. When something starts, call begin(); when something ends, call end() with the same value
+as begin. It will produce stats for the number of active events, the average length of an event,
+and the like. */
+
+struct perfmon_duration_sampler_t {
+private:
+    perfmon_counter_t active;
+    perfmon_sampler_t recent;
+public:
+    perfmon_duration_sampler_t(std::string name, ticks_t length)
+        : active(name + "_count"), recent(name + "_time", length) { }
+    void begin(ticks_t *v) {
+        active++;
+        *v = get_ticks();
+    }
+    void end(ticks_t *v) {
+        active--;
+        recent.record(ticks_to_secs(get_ticks() - *v));
+    }
 };
 
 #endif /* __PERFMON_HPP__ */

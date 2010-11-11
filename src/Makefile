@@ -34,7 +34,7 @@ OBJ_DIR:=$(BUILD_DIR)/obj
 
 # Define configuration variables
 CXX:=g++
-LDFLAGS:=-lrt -laio -ltcmalloc
+LDFLAGS:=-lrt -laio -ltcmalloc_minimal
 CXXFLAGS:=-I$(SOURCE_DIR) -Wall -Wextra -Wformat=2 -Wno-unused-parameter -Werror
 
 # Configure debug vs. release

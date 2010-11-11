@@ -4,12 +4,6 @@
 #include "perfmon.hpp"
 
 extern perfmon_counter_t
-    pm_n_transactions_started,
-    pm_n_transactions_ready,
-    pm_n_transactions_committed,
-    pm_n_transactions_completed;
-
-extern perfmon_counter_t
     pm_n_bufs_acquired,
     pm_n_bufs_ready,
     pm_n_bufs_released;
@@ -18,11 +12,6 @@ extern perfmon_counter_t
     pm_n_blocks_in_memory,
     pm_n_blocks_dirty,
     pm_n_blocks_total;
-
-extern perfmon_counter_t
-    pm_flushes_started,
-    pm_flushes_acquired_lock,
-    pm_flushes_completed;
 
 extern perfmon_counter_t
     pm_n_cows_made,

@@ -189,11 +189,10 @@ public:
 private:
     explicit mc_transaction_t(cache_t *cache, access_t access);
     ~mc_transaction_t();
-
-    virtual void on_lock_available() {
-        pm_n_transactions_ready++;
-        begin_callback->on_txn_begin(this);
-    }
+    
+    ticks_t start_time;
+    
+    virtual void on_lock_available();
     virtual void on_sync();
 
     void process_buf(buf_t *buf, access_t mode);

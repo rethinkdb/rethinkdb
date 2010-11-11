@@ -129,6 +129,8 @@ private:
 
     /* Internal variables used only during a flush operation. */
     
+    ticks_t start_time;
+    
     // Transaction that the writeback is using to grab buffers
     transaction_t *transaction;
     
