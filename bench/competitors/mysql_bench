@@ -18,7 +18,7 @@ cd ../dbench
 MYSQL_FLAGS="--innodb_flush_log_at_trx_commit=0 --innodb_support_xa=off --innodb_lock_wait_timeout=5 --innodb_buffer_pool_size=1073741824 --innodb_doublewrite=0 --innodb_flush_method=O_DIRECT --innodb_log_file_size=104857600 --max-connections=600"
 
 # Canonical workload on the canonical setup
-./dbench -p 3306                                                                      \
+./dbench                                                                              \
     -d "$BENCH_DIR/bench_output/Canonical_workload_on_canonical_hardware" -H 10.0.0.2 \
     {server}mysql:"$MYSQL_FLAGS"                                                      \
     {client}mysqlstress[dr-doom:/home/teapot/stress]:'-c 128 -d 60s'                  \
@@ -28,7 +28,7 @@ MYSQL_FLAGS="--innodb_flush_log_at_trx_commit=0 --innodb_support_xa=off --innodb
 
 # Minimum Membase cache size is 256MB.
 # I/O bound performance
-./dbench -p 3306                                                        \
+./dbench                                                                \
     -d "$BENCH_DIR/bench_output/SSD_IO_performance" -H 10.0.0.2         \
     {server}mysql:"$MYSQL_FLAGS"                                        \
     {client}mysqlstress[dr-doom:/home/teapot/stress]:'-c 128 -d 60s'    \
@@ -38,14 +38,14 @@ MYSQL_FLAGS="--innodb_flush_log_at_trx_commit=0 --innodb_support_xa=off --innodb
 TMP_KEY_FILE="$(ssh dr-doom mktemp)"
 
 # Pure inserts performance
-./dbench -p 3306                                                                                \
-    -d "$BENCH_DIR/bench_output/Pure_inserts_on_canonical_hardware" -H 10.0.0.2                 \
-    {server}mysql:"$MYSQL_FLAGS"
+./dbench                                                                                         \
+    -d "$BENCH_DIR/bench_output/Pure_inserts_on_canonical_hardware" -H 10.0.0.2                  \
+    {server}mysql:"$MYSQL_FLAGS"                                                                 \
     {client}mysqlstress[dr-doom:/home/teapot/stress]:"-c 128 -w 0/0/1/0 -o $TMP_KEY_FILE -d 60s" \
     iostat:1 vmstat:1
 
 # Pure selects performance (run right after insert without recreating the database)
-./dbench -p 3306                                                                                 \
+./dbench                                                                                         \
     -d "$BENCH_DIR/bench_output/Pure_selects_on_canonical_hardware" -H 10.0.0.2                  \
     {server}mysql:"$MYSQL_FLAGS"                                                                 \
     {client}mysqlstress[dr-doom:/home/teapot/stress]:"-c 128 -w 0/0/0/1 -i $TMP_KEY_FILE -d 60s" \
