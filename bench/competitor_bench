@@ -51,7 +51,6 @@ TMP_KEY_FILE="$(ssh dr-doom mktemp)"
 PERSISTENT_DATA_FILE="$BENCH_DIR/Membase/membase_data"
 
 # Pure inserts performance
-../../build/release/rethinkdb --create $SSD_DRIVES --force
 ./dbench -p 11211                                                                               \
     -d "$BENCH_DIR/Membase/bench_output/Pure_inserts_on_canonical_hardware" -H 10.0.0.2                 \
     {server}membase:"-d $PERSISTENT_DATA_FILE -m 32768"                          \
