@@ -3,7 +3,6 @@
 #define __MEMCACHED_HANDLER_HPP__
 
 #include "request_handler/request_handler.hpp"
-#include "config/alloc.hpp"
 #include "btree/key_value_store.hpp"
 #include "ctype.h"
 
@@ -14,8 +13,8 @@ class server_t;
  *         which parses incoming packets to determine which type they are
  */
 class memcached_handler_t :
-    public request_handler_t,
-    public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, memcached_handler_t> {
+    public request_handler_t
+{
 public:
     typedef request_handler_t::parse_result_t parse_result_t;
     using request_handler_t::conn_fsm;

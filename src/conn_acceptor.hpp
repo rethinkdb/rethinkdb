@@ -60,8 +60,7 @@ conn_fsm_t isn't too closely tied to conn_acceptor_t. */
 
 class conn_fsm_handler_t :
     public conn_fsm_shutdown_callback_t,
-    public intrusive_list_node_t<conn_fsm_handler_t>,
-    public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, conn_fsm_handler_t>
+    public intrusive_list_node_t<conn_fsm_handler_t>
 {
     friend class conn_acceptor_t;
 

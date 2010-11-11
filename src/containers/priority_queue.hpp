@@ -5,7 +5,6 @@
 #include <bitset>
 #include <deque>
 #include <functional>
-#include "alloc/alloc_mixin.hpp"
 #include "utils.hpp"
 
 /* \brief priority_queue_t
@@ -13,9 +12,9 @@
  * pop() gives you an element a such that for all b in the heap Less(b, a) == True
  */
 template<class T, class Less = std::less<T> >
-class priority_queue_t : public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, priority_queue_t<T, Less> > {
+class priority_queue_t {
 public:
-    struct entry_t /* : public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, priority_queue_t<T, Less>::entry_t>  */ { //TODO make this allocator work
+    struct entry_t {
         public:
             T data;
 
@@ -36,7 +35,7 @@ public:
                 {}
     };
 private:
-    std::deque<entry_t *, gnew_alloc<entry_t *> > heap;
+    std::deque<entry_t *> heap;
 private:
     inline unsigned int parent(unsigned int);
     inline unsigned int left(unsigned int);

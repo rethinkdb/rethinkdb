@@ -376,6 +376,7 @@ conn_fsm_t::result_t conn_fsm_t::do_transition(event_t *event) {
                 res = fsm_quit_connection;
 
             if (res == fsm_quit_connection) {
+                consume(nrbuf);
                 return_to_socket_connected();
                 return res;
             }

@@ -120,8 +120,7 @@ void lba_disk_structure_t::add_entry(ser_block_id_t block_id, flagged_off64_t of
 }
 
 struct lba_writer_t :
-    public extent_t::sync_callback_t,
-    public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, lba_writer_t>
+    public extent_t::sync_callback_t
 {
     
     int outstanding_cbs;
@@ -175,7 +174,7 @@ struct reader_t :
         lba_disk_extent_t::read_info_t read_info;
         extent_info_t(lba_disk_extent_t *e) : extent(e) { }
     };
-    std::vector< extent_info_t, gnew_alloc< extent_info_t > > extents;
+    std::vector< extent_info_t > extents;
     int cbs_out;
     
     reader_t(lba_disk_structure_t *ds, in_memory_index_t *index, lba_disk_structure_t::read_callback_t *cb)
@@ -188,7 +187,7 @@ struct reader_t :
         
         if (extents.size() == 0) {
             rcb->on_lba_read();
-            gdelete(this);
+            delete this;
         } else {
             cbs_out = extents.size();
             
@@ -209,14 +208,14 @@ struct reader_t :
                 extents[i].extent->read_step_2(&extents[i].read_info, index);
             }
             rcb->on_lba_read();
-            gdelete(this);
+            delete this;
         }
     }
 };
 
 void lba_disk_structure_t::read(in_memory_index_t *index, read_callback_t *cb) {
     
-    gnew<reader_t>(this, index, cb);
+    new reader_t(this, index, cb);
 }
 
 void lba_disk_structure_t::prepare_metablock(lba_shard_metablock_t *mb_out) {

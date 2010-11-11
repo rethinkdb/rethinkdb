@@ -30,48 +30,53 @@ DURATION=10000000
 SSD_DRIVES='-f /dev/sdb -f /dev/sdc -f /dev/sdd -f /dev/sde'
 
 # Canonical workload on the canonical setup
-../../build/release/rethinkdb --create $SSD_DRIVES
-./dbench                                                                                            \
-    -d "$BENCH_DIR/bench_output/Canonical_workload_on_canonical_hardware" -H 10.0.0.2               \
-    {server}rethinkdb:'-c 12 -m 32768 -f /dev/sdb -f /dev/sdc -f /dev/sdd -f /dev/sde'              \
-    {client}stressfree[dr-doom:/home/teapot/stress]:'-c 512 -d 60s'                                 \
+../../build/release/rethinkdb --create $SSD_DRIVES --force
+./dbench                                                                              \
+    -d "$BENCH_DIR/bench_output/Canonical_workload_on_canonical_hardware" -H 10.0.0.2 \
+    {server}rethinkdb:"-c 12 -m 32768 $SSD_DRIVES"                                    \
+    {client}stressfree[dr-doom:/home/teapot/stress]:'-c 512 -d 60s'                   \
     iostat:1 vmstat:1 rdbstat:1
 
-# Core scalability
 # Out of RAM performance
-# Concurrent clients scalability
-
 # SSD I/O bound performance
-../../build/release/rethinkdb --create $SSD_DRIVES
-./dbench                                                                                            \
-    -d "$BENCH_DIR/bench_output/SSD_IO_performance" -H 10.0.0.2                                     \
-    {server}rethinkdb:'-c 12 -m 0 -f /dev/sdb -f /dev/sdc -f /dev/sdd -f /dev/sde'                  \
-    {client}stressfree[dr-doom:/home/teapot/stress]:'-c 512 -d 60s'                                 \
+../../build/release/rethinkdb --create $SSD_DRIVES --force
+./dbench                                                            \
+    -d "$BENCH_DIR/bench_output/SSD_IO_performance" -H 10.0.0.2     \
+    {server}rethinkdb:"-c 12 -m 0 $SSD_DRIVES"                      \
+    {client}stressfree[dr-doom:/home/teapot/stress]:'-c 512 -d 60s' \
     iostat:1 vmstat:1 rdbstat:1
 
-# Canonical workload on HDD performance
+# Store keys in temporary file.
+TMP_KEY_FILE="$(ssh dr-doom mktemp)"
 
 # Pure inserts performance
-../../build/release/rethinkdb --create $SSD_DRIVES
-./dbench                                                                                            \
-    -d "$BENCH_DIR/bench_output/Pure_inserts_on_canonical_hardware" -H 10.0.0.2                     \
-    {server}rethinkdb:'-c 12 -m 32768 -f /dev/sdb -f /dev/sdc -f /dev/sdd -f /dev/sde'              \
-    {client}stressfree[dr-doom:/home/teapot/stress]:'-c 512 -w 0/0/1/0 -o /home/teapot/tmp_keys -d 60s'          \
+../../build/release/rethinkdb --create $SSD_DRIVES --force
+./dbench                                                                                        \
+    -d "$BENCH_DIR/bench_output/Pure_inserts_on_canonical_hardware" -H 10.0.0.2                 \
+    {server}rethinkdb:"-c 12 -m 32768 $SSD_DRIVES"                                              \
+    {client}stressfree[dr-doom:/home/teapot/stress]:"-c 512 -w 0/0/1/0 -o $TMP_KEY_FILE -d 60s" \
     iostat:1 vmstat:1 rdbstat:1
 
 # Pure selects performance (run right after insert without recreating the database)
-./dbench                                                                                            \
-    -d "$BENCH_DIR/bench_output/Pure_selects_on_canonical_hardware" -H 10.0.0.2                     \
-    {server}rethinkdb:'-c 12 -m 32768 -f /dev/sdb -f /dev/sdc -f /dev/sdd -f /dev/sde'              \
-    {client}stressfree[dr-doom:/home/teapot/stress]:'-c 512 -w 0/0/0/1 -i /home/teapot/tmp_keys -d 60s'          \
+./dbench                                                                                        \
+    -d "$BENCH_DIR/bench_output/Pure_selects_on_canonical_hardware" -H 10.0.0.2                 \
+    {server}rethinkdb:"-c 12 -m 32768 $SSD_DRIVES"                                              \
+    {client}stressfree[dr-doom:/home/teapot/stress]:"-c 512 -w 0/0/0/1 -i $TMP_KEY_FILE -d 60s" \
     iostat:1 vmstat:1 rdbstat:1
 
+# Delete temporary key file.
+ssh dr-doom -- rm "$TMP_KEY_FILE"
+
+# Core/CPU scalability
+# Concurrent clients scalability
+# Canonical workload on HDD performance
+
 # Durability settings performance
-../../build/release/rethinkdb --create $SSD_DRIVES
-./dbench                                                                                            \
-    -d "$BENCH_DIR/bench_output/Strong_durability_performance" -H 10.0.0.2                          \
-    {server}rethinkdb:'--wait-for-flush y --flush-timer 2 -c 12 -m 32768 -f /dev/sdb -f /dev/sdc -f /dev/sdd -f /dev/sde' \
-    {client}stressfree[dr-doom:/home/teapot/stress]:'-c 512 -d 60s'                                 \
+../../build/release/rethinkdb --create $SSD_DRIVES --force
+./dbench                                                                              \
+    -d "$BENCH_DIR/bench_output/Strong_durability_performance" -H 10.0.0.2            \
+    {server}rethinkdb:"--wait-for-flush y --flush-timer 2 -c 12 -m 32768 $SSD_DRIVES" \
+    {client}stressfree[dr-doom:/home/teapot/stress]:'-c 512 -d 60s'                   \
     iostat:1 vmstat:1 rdbstat:1
 
 # Now that all benchmarks are done, delete any database files that might have been left over

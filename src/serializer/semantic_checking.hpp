@@ -72,7 +72,7 @@ public:
           last_write_started(0), last_write_callbacked(0),
           semantic_fd(-1)
         {
-            std::basic_string<char, std::char_traits<char>, gnew_alloc<char> > semantic_path(db_path);
+            std::string semantic_path(db_path);
             semantic_path += ".semantic";
             semantic_fd = open(semantic_path.c_str(), O_RDWR | O_CREAT, S_IRWXU | S_IRWXG | S_IRWXO);
             check("Could not open a semantic checking data file", semantic_fd == -1);
@@ -81,7 +81,12 @@ public:
     virtual ~semantic_checking_serializer_t() {
         close(semantic_fd);
     }
-
+    
+    typedef typename inner_serializer_t::check_callback_t check_callback_t;
+    static void check_existing(const char *db_path, check_callback_t *cb) {
+        inner_serializer_t::check_existing(db_path, cb);
+    }
+    
 public:
     struct ready_callback_t {
         virtual void on_serializer_ready(semantic_checking_serializer_t *) = 0;
@@ -131,8 +136,7 @@ public:
     consistent with what was last written there. */
     
     struct reader_t :
-        public read_callback_t,
-        public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, reader_t>
+        public read_callback_t
     {
         semantic_checking_serializer_t *parent;
         ser_block_id_t block_id;
@@ -197,8 +201,7 @@ public:
     we send them to the serializer. */
     
     struct writer_t :
-        public write_txn_callback_t,
-        public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, writer_t>
+        public write_txn_callback_t
     {
         semantic_checking_serializer_t *parent;
         int version;

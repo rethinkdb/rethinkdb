@@ -30,14 +30,6 @@
 // decrease concurrency
 #define MAX_IO_EVENT_PROCESSING_BATCH_SIZE        50
 
-// Defines the maximum number of allocators in
-// dynamic_pool_alloc_t. Since the size of each allocator is doubled
-// every time, a reasonably small number should be sufficient.
-#define DYNAMIC_POOL_MAX_ALLOCS                   20
-
-// Initial number of objects in the first dynamic pool allocator.
-#define DYNAMIC_POOL_INITIAL_NOBJECTS             100
-
 // Size of the buffer used to perform IO operations (in bytes).
 #define IO_BUFFER_SIZE                            (4 * KILOBYTE)
 

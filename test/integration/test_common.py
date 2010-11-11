@@ -164,7 +164,7 @@ class Server(object):
                 # Create data file
                 
                 command_line = [self.executable_path,
-                    "--create",
+                    "--create", "--force",
                     "-c", str(self.opts["cores"]),
                     "-s", str(self.opts["slices"]),
                     "-f", self.db_data_path

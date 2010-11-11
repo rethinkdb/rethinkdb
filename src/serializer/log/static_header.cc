@@ -2,6 +2,22 @@
 #include "config/args.hpp"
 #include "utils.hpp"
 
+void static_header_check(direct_file_t *file, static_header_check_callback_t *cb) {
+    
+    if (file->get_size() < DEVICE_BLOCK_SIZE) {
+        cb->on_static_header_check(false);
+    } else {
+        static_header_t *buffer = (static_header_t *)malloc_aligned(DEVICE_BLOCK_SIZE, DEVICE_BLOCK_SIZE);
+        file->read_blocking(0, DEVICE_BLOCK_SIZE, buffer);
+        if (memcmp(buffer, SOFTWARE_NAME_STRING, sizeof(SOFTWARE_NAME_STRING)) == 0) {
+            cb->on_static_header_check(true);
+        } else {
+            cb->on_static_header_check(false);
+        }
+        free(buffer);
+    }
+}
+
 struct static_header_write_fsm_t :
     public iocallback_t
 {
@@ -15,13 +31,13 @@ struct static_header_write_fsm_t :
     }
     void on_io_complete(event_t *e) {
         if (callback) callback->on_static_header_write();
-        gdelete(this);
+        delete this;
     }
 };
 
 bool static_header_write(direct_file_t *file, void *data, size_t data_size, static_header_write_callback_t *cb) {
     
-    static_header_write_fsm_t *fsm = gnew<static_header_write_fsm_t>();
+    static_header_write_fsm_t *fsm = new static_header_write_fsm_t();
     fsm->callback = cb;
     
     assert(sizeof(static_header_t) + data_size < DEVICE_BLOCK_SIZE);
@@ -71,7 +87,7 @@ struct static_header_read_fsm_t :
         memcpy(data_out, buffer->data, data_size);
         
         if (callback) callback->on_static_header_read();
-        gdelete(this);
+        delete this;
     }
 };
 
@@ -79,7 +95,7 @@ bool static_header_read(direct_file_t *file, void *data_out, size_t data_size, s
         
     assert(sizeof(static_header_t) + data_size < DEVICE_BLOCK_SIZE);
     
-    static_header_read_fsm_t *fsm = gnew<static_header_read_fsm_t>();
+    static_header_read_fsm_t *fsm = new static_header_read_fsm_t();
     fsm->data_out = data_out;
     fsm->data_size = data_size;
 

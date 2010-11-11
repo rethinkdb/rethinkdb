@@ -156,7 +156,6 @@ private:
     // extent, whether it's the extent we're currently writing to, and
     // describes blocks are garbage.
     struct gc_entry :
-        public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, gc_entry>,
         public intrusive_list_node_t<gc_entry>
     {
     public:
@@ -314,9 +313,8 @@ private:
 
         gc_state_t(size_t extent_size) : step_(gc_ready), should_be_stopped(0), refcount(0), current_entry(NULL)
         {
-            memalign_alloc_t<DEVICE_BLOCK_SIZE> blocks_buffer_allocator;
             /* TODO this is excessive as soon as we have a bound on how much space we need we should allocate less */
-            gc_blocks = (char *) blocks_buffer_allocator.malloc(extent_size);
+            gc_blocks = (char *)malloc_aligned(extent_size, DEVICE_BLOCK_SIZE);
         }
         ~gc_state_t() {
             free(gc_blocks);

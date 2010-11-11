@@ -17,14 +17,61 @@ intrusive_list_t<perfmon_t> &get_var_list() {
 
 /* This is the function that actually gathers the stats. */
 
+struct perfmon_fsm_t :
+    public home_cpu_mixin_t
+{
+    perfmon_callback_t *cb;
+    perfmon_stats_t *dest;
+    std::vector<perfmon_t::step_t*> steps;
+    int messages_out;
+    perfmon_fsm_t(perfmon_stats_t *dest) : cb(NULL), dest(dest) {
+        steps.reserve(get_var_list().size());
+        for (perfmon_t *p = get_var_list().head(); p; p = get_var_list().next(p)) {
+            steps.push_back(p->begin());
+        }
+        messages_out = get_num_cpus();
+        for (int i = 0; i < get_num_cpus(); i++) {
+            do_on_cpu(i, this, &perfmon_fsm_t::visit);
+        }
+    }
+    bool visit() {
+        for (unsigned i = 0; i < get_var_list().size(); i++) {
+            steps[i]->visit();
+        }
+        do_on_cpu(home_cpu, this, &perfmon_fsm_t::have_visited);
+        return true;
+    }
+    bool have_visited() {
+        messages_out--;
+        if (messages_out == 0) {
+            int i = 0;
+            for (perfmon_t *p = get_var_list().head(); p; p = get_var_list().next(p)) {
+                perfmon_t::step_t *s = steps[i++];
+                (*dest)[p->name] = s->end();
+            }
+            if (cb) {
+                cb->on_perfmon_stats();
+                delete this;
+            } else {
+                /* Don't delete ourself; perfmon_get_stats() will delete us */
+            }
+        }
+        return true;
+    }
+};
+
 bool perfmon_get_stats(perfmon_stats_t *dest, perfmon_callback_t *cb) {
     
-    for (perfmon_t *p = get_var_list().head(); p; p = get_var_list().next(p)) {
-        
-        (*dest)[p->name] = p->get_value();
+    perfmon_fsm_t *fsm = new perfmon_fsm_t(dest);
+    if (fsm->messages_out == 0) {
+        /* It has already finished */
+        delete fsm;
+        return true;
+    } else {
+        /* It has not finished yet */
+        fsm->cb = cb;
+        return false;
     }
-    
-    return true;
 }
 
 /* Constructor and destructor register and deregister the perfmon.
@@ -56,19 +103,29 @@ int64_t &perfmon_counter_t::get() {
     return values[get_cpu_id()];
 }
 
-std_string_t perfmon_counter_t::get_value() {
+struct perfmon_counter_step_t :
+    public perfmon_t::step_t
+{
+    perfmon_counter_t *parent;
+    int64_t values[MAX_CPUS];
+    perfmon_counter_step_t(perfmon_counter_t *parent)
+        : parent(parent) { }
+    void visit() {
+        values[get_cpu_id()] = parent->values[get_cpu_id()];
+    }
+    std::string end() {
+        int64_t value = 0;
+        for (int i = 0; i < get_num_cpus(); i++) value += values[i];
+        delete this;
+        std::stringstream s;
+        s << value;
+        return s.str();
+    }
+};
+
+perfmon_t::step_t *perfmon_counter_t::begin() {
     
-    /* Don't bother sending messages to the other CPUs to request values because it would
-    be too much trouble. Instead, just copy the value directly even though another core might
-    be modifying it. It's unlikely that this will cause a problem, and besides if it does the
-    worst that will happen is the stats will be nonsense. */
-    
-    int64_t value = 0;
-    for (int i = 0; i < MAX_CPUS; i++) value += values[i];
-    
-    std::basic_stringstream<char, std::char_traits<char>, gnew_alloc<char> > s;
-    s << value;
-    return s.str();
+    return new perfmon_counter_step_t(this);
 }
 
 /* perfmon_thread_average_t */
@@ -81,13 +138,28 @@ void perfmon_thread_average_t::set_value_for_this_thread(int64_t v) {
     values[get_cpu_id()] = v;
 }
 
-std_string_t perfmon_thread_average_t::get_value() {
+struct perfmon_thread_average_step_t :
+    public perfmon_t::step_t
+{
+    perfmon_thread_average_t *parent;
+    int64_t values[MAX_CPUS];
+    perfmon_thread_average_step_t(perfmon_thread_average_t *parent)
+        : parent(parent) { }
+    void visit() {
+        values[get_cpu_id()] = parent->values[get_cpu_id()];
+    }
+    std::string end() {
+        int64_t value = 0;
+        for (int i = 0; i < get_num_cpus(); i++) value += values[i];
+        value /= get_num_cpus();
+        delete this;
+        std::stringstream s;
+        s << value;
+        return s.str();
+    }
+};
 
-    int64_t value = 0;
-    for (int i = 0; i < get_num_cpus(); i++) value += values[i];
-    value /= get_num_cpus();
+perfmon_t::step_t *perfmon_thread_average_t::begin() {
     
-    std::basic_stringstream<char, std::char_traits<char>, gnew_alloc<char> > s;
-    s << value;
-    return s.str();
+    return new perfmon_thread_average_step_t(this);
 }

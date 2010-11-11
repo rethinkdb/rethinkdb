@@ -107,7 +107,7 @@ private:
 
     metablock_write_callback_t *write_callback;
 
-    std::deque<metablock_write_req_t, gnew_alloc<metablock_write_req_t> > outstanding_writes;
+    std::deque<metablock_write_req_t> outstanding_writes;
 
 public:
     void shutdown();
@@ -136,7 +136,7 @@ private:
 
     extent_manager_t *extent_manager;
     
-    std::vector<off64_t, gnew_alloc<off64_t> > metablock_offsets;
+    std::vector<off64_t> metablock_offsets;
     
     enum state_t {
         state_unstarted,

@@ -20,7 +20,7 @@ def run_clean_bench(drive_path, parameters, workload):
     
     'workload' is workload parameters for serializer-bench, in the same format as 'parameters'.
     
-    Return value will be how many seconds the test took."""
+    Return value will be None. Test output will be put in "transactions.txt"."""
     
     drive_path = os.path.abspath(drive_path)
     assert stat.S_ISBLK(os.stat(drive_path)[stat.ST_MODE])
@@ -57,24 +57,20 @@ def run_clean_bench(drive_path, parameters, workload):
     
     # Now run the actual test on it
     print "Running the actual test..."
+    start_time = time.time()
     serv = subprocess.Popen(
-        ["./serializer-bench", "-f", drive_path] + format_args(parameters) + format_args(workload),
+        ["./serializer-bench", "-f", drive_path, "--log", "transactions.txt"] + format_args(parameters) + format_args(workload),
         stderr = subprocess.PIPE, stdout = subprocess.PIPE)
     try:
-        output = serv.communicate()[1]
+        serv.wait()
     finally:
         try: serv.terminate()
         except RuntimeError: pass
     if serv.returncode != 0:
         raise RuntimeError("RethinkDB serializer failed:\n" + output)
+    print "Took %.3f seconds." % (time.time() - start_time)
     
     print "Done."
-    
-    # Parse the output
-    t = re.search("The test took ([0-9]+\\.[0-9]+) seconds.", output)
-    if t is None:
-        raise ValueError("Couldn't parse output: %r" % output)
-    return float(t.group(1))
 
 if __name__ == "__main__":
     

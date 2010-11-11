@@ -49,8 +49,7 @@ continue_on_cpu() is. */
 template<class callable_t>
 struct cpu_doer_t :
     public cpu_message_t,
-    public home_cpu_mixin_t,
-    public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, cpu_doer_t<callable_t> >
+    public home_cpu_mixin_t
 {
     callable_t callable;
     int cpu;
@@ -116,8 +115,7 @@ bool do_on_cpu(int cpu, obj_t *obj, bool (obj_t::*on_other_core)(arg1_t, arg2_t,
 
 template<class callable_t>
 struct later_doer_t :
-    public cpu_message_t,
-    public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, later_doer_t<callable_t> >
+    public cpu_message_t
 {
     callable_t callable;
     

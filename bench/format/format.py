@@ -38,7 +38,7 @@ class dbench():
             self.prof_stats.append(self.oprofile_stats(dir + self.oprofile_dir + '/' + rundir + '/'))
 #get competitor info
         self.competitors = {}
-        competitor_dirs = os.listdir(self.competitor_dir)
+        competitor_dirs = [dir for dir in os.listdir(self.competitor_dir) if os.path.isdir(os.path.join(self.competitor_dir, dir))]
         for dir in competitor_dirs:
             self.competitors[dir] = self.bench_stats(os.path.join(self.competitor_dir, dir, self.bench_dir))
 

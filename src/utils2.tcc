@@ -3,8 +3,7 @@
 /* Functions to create random delays */
 
 template<class cb_t>
-struct no_arg_caller_t :
-    public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, no_arg_caller_t<cb_t> >
+struct no_arg_caller_t
 {
     cb_t *cb;
     void (cb_t::*method)();
@@ -28,8 +27,7 @@ void random_delay(cb_t *cb, void (cb_t::*method)()) {
 }
 
 template<class cb_t, class arg1_t>
-struct one_arg_caller_t :
-    public alloc_mixin_t<tls_small_obj_alloc_accessor<alloc_t>, one_arg_caller_t<cb_t, arg1_t> >
+struct one_arg_caller_t
 {
     cb_t *cb;
     void (cb_t::*method)(arg1_t);
