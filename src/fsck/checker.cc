@@ -10,6 +10,7 @@
 #include "btree/leaf_node.hpp"
 #include "btree/internal_node.hpp"
 #include "buffer_cache/large_buf.hpp"
+#include "fsck/raw_block.hpp"
 
 namespace fsck {
 
@@ -146,23 +147,17 @@ private:
 };
 
 
-struct btree_block {
-    enum error { none = 0, no_block, already_accessed, block_id_mismatch, transaction_id_invalid,
-                 transaction_id_too_large };
+class btree_block : public raw_block {
+public:
+    enum { no_block = raw_block_err_count, already_accessed, transaction_id_invalid, transaction_id_too_large };
 
-    error err;
-
-    // buf is a fake!  buf is sizeof(buf_data_t) greater than realbuf, which is below.
-    void *buf;
-
-    btree_block() : buf(NULL), realbuf(NULL) { }
+    btree_block() : raw_block() { }
 
     bool init(slicecx &cx, block_id_t block_id) {
         return init(cx.file, cx.knog, cx.to_ser_block_id(block_id));
     }
 
     bool init(direct_file_t *file, file_knowledge *knog, ser_block_id_t ser_block_id) {
-        assert(!realbuf);
         if (ser_block_id >= knog->block_info.get_size()) {
             err = no_block;
             return false;
@@ -178,17 +173,11 @@ struct btree_block {
             return false;
         }
 
-        realbuf = malloc_aligned(knog->static_config->block_size, DEVICE_BLOCK_SIZE);
-        file->read_blocking(offset.parts.value, knog->static_config->block_size, realbuf);
-        buf_data_t *block_header = (buf_data_t *)realbuf;
-        buf = (void *)(block_header + 1);
-
-        if (block_header->block_id != ser_block_id) {
-            err = block_id_mismatch;
+        if (!raw_block::init(file, knog->static_config->block_size, offset.parts.value, ser_block_id)) {
             return false;
         }
 
-        ser_transaction_id_t tx_id = block_header->transaction_id;
+        ser_transaction_id_t tx_id = realbuf->transaction_id;
         if (tx_id < FIRST_SER_TRANSACTION_ID) {
             err = transaction_id_invalid;
             return false;
@@ -197,17 +186,9 @@ struct btree_block {
             return false;
         }
 
-        info.transaction_id = tx_id;
         err = none;
         return true;
     }
-
-    ~btree_block() {
-        free(realbuf);
-    }
-private:
-    void *realbuf;
-    DISABLE_COPYING(btree_block);
 };
 
 

@@ -38,7 +38,7 @@ enum { force_block_size = 256,  // Start these values above the ASCII range.
        force_mod_count
 };
 
-void parse_cmd_args(int argc, char **argv, extract_config_t *config) {
+void parse_cmd_args(int argc, char **argv, config_t *config) {
     config->init();
 
     optind = 1;  // reinit getopt.
@@ -133,12 +133,12 @@ int main(int argc, char **argv) {
 
     install_generic_crash_handler();
 
-    extract_config_t config;
+    extract::config_t config;
     extract::parse_cmd_args(argc, argv, &config);
 
     if (config.log_file_name != "") {
         log_file = fopen(config.log_file_name.c_str(), "w");
     }
 
-    dumpfile(config);
+    extract::dumpfile(config);
 }

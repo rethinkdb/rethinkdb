@@ -5,8 +5,9 @@
 
 #define EXTRACT_CONFIG_DEFAULT_OUTPUT_FILE "memcached_dump_file.out"
 
+namespace extract {
 
-struct extract_config_t {
+struct config_t {
     // Values that override those read from the db file.
     struct override_t {
         // Zero if the block size is not forced.
@@ -32,7 +33,7 @@ struct extract_config_t {
     static const int NO_FORCED_BLOCK_SIZE = 0;
     static const int NO_FORCED_EXTENT_SIZE = 0;
     static const int NO_FORCED_MOD_COUNT = 0;
-    extract_config_t() { init(); }
+    config_t() { init(); }
 
     void init() { 
         overrides.block_size = NO_FORCED_BLOCK_SIZE;
@@ -44,11 +45,11 @@ struct extract_config_t {
     }
 
 private:
-    DISABLE_COPYING(extract_config_t);
+    DISABLE_COPYING(config_t);
 };
 
-void dumpfile(const extract_config_t&);
+void dumpfile(const extract::config_t&);
 
-
+}  // namespace extract
 
 #endif  // __EXTRACT_FILEWALK_HPP__

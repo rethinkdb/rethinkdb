@@ -7,9 +7,9 @@ typedef data_block_manager_t::buf_data_t buf_data_t;
 block_registry::block_registry() { }
 
 
-void block_registry::tell_block(off64_t offset, buf_data_t *buf_data) {
-    ser_block_id_t block_id = buf_data->block_id;
-    ser_transaction_id_t transaction_id = buf_data->transaction_id;
+void block_registry::tell_block(off64_t offset, const buf_data_t& buf_data) {
+    ser_block_id_t block_id = buf_data.block_id;
+    ser_transaction_id_t transaction_id = buf_data.transaction_id;
     
     if (block_id >= transaction_ids.get_size()) {
         transaction_ids.set_size(block_id + 1, NULL_SER_TRANSACTION_ID);
