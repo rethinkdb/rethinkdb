@@ -106,7 +106,8 @@ class Worker(object):
 
         try:
             # TODO: Possibly set cmdline[0] to basename and pass in executable=.
-            self.process = subprocess.Popen(cmdline, stdout=self.out_file, stderr=self.out_file)
+            self.process = subprocess.Popen(cmdline, preexec_fn=os.setsid,
+                                            stdout=self.out_file, stderr=self.out_file)
         except OSError, e:
             self.dbench.die("Can't execute `%s': %s" % (executable, e.strerror))
 
@@ -258,6 +259,51 @@ class Membase(MemcachedLikeServer):
         # XXX: membase-wrapper requires that you specify -m and -d. Say this here.
         args = self.compute_args([])
         self.run_process(self.find_binary('membase-wrapper'), args)
+        self.wait_for_server_ready()
+
+    MAX_WAIT_TIME = 30
+    WAIT_INTERVAL = 0.5
+    # When membase is first run, before the configuration step is complete,
+    # clients that connect are automatically directed to a "null bucket", and
+    # remain connected to it for the lifetime of the connection. We want to
+    # wait until we can connect to a real bucket; we can't do that here.
+    def wait_for_server_ready(self):
+        reasonable_responses = ['SERVER_ERROR unauthorized, null bucket\r\n',
+                                'SERVER_ERROR a2b not_my_vbucket\r\n']
+
+        bound = time.time() + self.MAX_WAIT_TIME
+        while time.time() < bound:
+            try:
+                s = socket.socket()
+                s.connect(('localhost', self.dbench.port)) # XXX: Change this when/if we support running the server on a different host.
+                s.send('set test 0 0 0\r\n\r\n')
+                res = s.makefile().readline()
+                if res == 'STORED\r\n':
+                    return
+                elif res not in reasonable_responses:
+                    self.dbench.warn('Unknown response from membase server: %s' % res)
+            except socket.error, e:
+                pass
+            finally:
+                s.close()
+            time.sleep(self.WAIT_INTERVAL)
+        self.dbench.die('Unable to connect to server (localhost:%d)' % (self.dbench.port)) # XXX: This too.
+
+    # XXX: This shouldn't be necessary when we're smarter about killing children.
+    def stop_process(self):
+        if self.process and self.process.poll() == None:
+            os.killpg(self.process.pid, signal.SIGTERM)
+            if self.bounded_wait() == None:
+                self.dbench.warn('%s sub-process-group not responding to SIGTERM after %d seconds; sending SIGKILL.' % (self, self.MAX_WAIT_TIME))
+                os.killpg(self.process.pid, signal.SIGKILL)
+        if self.out_file and not self.out_file.closed:
+            self.out_file.close()
+
+
+class MySQL(Server):
+    def internal_start(self):
+        args = self.compute_args()
+        self.run_process('/usr/localmysqld_safe', args)
 
 class Stress(Client):
     binary_paths = ['../../../../stress-client/stress', '../stress-client/stress']
@@ -273,6 +319,18 @@ class Stress(Client):
         args = self.compute_args(default_args)
         self.run_process(self.find_binary('stress'), args)
 
+class MySQLStress(Stress):
+    def internal_start(self):
+        if self.dbench.port != 3306:
+            self.dbench.die('We run MySQL on the default port, 3306; please run explicitly with that port.')
+
+        default_args = ['-r', 'mysql',
+                        '-n', 'root/@%s:bench' % self.dbench.host,
+                        '-p', str(self.dbench.port),
+                        '-l', self.LATENCY_FILE,
+                        '-q', self.QPS_FILE]
+        args = self.compute_args(default_args)
+        self.run_process(self.find_binary('stress'), args)
 
 class StressFree(Stress): # Temporary.
     # A hacky version of wait() that restarts if the client has an error.
@@ -353,7 +411,10 @@ workers = {
     'membase': Membase,
     'memcached': Memcached,
 
+    'mysql': MySQL,
+
     'stress': Stress,
+    'mysqlstress': MySQLStress,
     'stressfree': StressFree,
 
     'oprofile': OProfile,
