@@ -145,23 +145,22 @@ class dbench():
             print >>res, '<h2 style="font-size: xx-large; display: inline;">', run_name.replace('_',' ') ,'</h2>'
 
             # Accumulating data for the run
-            data = reduce(lambda x, y: x + y, run)
-            competitor_data = {}
+            data = {}
+            data['RethinkDB'] = reduce(lambda x, y: x + y, run)
             for competitor in self.competitors.iteritems():
                 try:
-                    competitor_data[competitor[0]] = reduce(lambda x, y: x + y, competitor[1].bench_runs[run_name])
+                    data[competitor[0]] = reduce(lambda x, y: x + y, competitor[1].bench_runs[run_name])
                 except KeyError:
                     print 'Bad guy: %s did not report data for run %s' % (competitor[0], run_name)
 
             # Add a link to the graph-viewer (flot)
-            data.json(self.out_dir + '/' + self.dir_str + '/' + flot_data + run_name,'Server:' + server_meta + 'Client:' + client_meta)
+            data['RethinkDB'].json(self.out_dir + '/' + self.dir_str + '/' + flot_data + run_name,'Server:' + server_meta + 'Client:' + client_meta)
             print >>res, '<span style="display: inline;">', flot('/' + self.prof_dir + '/' + self.dir_str + '/' + flot_data + run_name + '.js', '(explore data)</span>')
             
-            # Build data for qps plot
-            qps_data = data.select('qps').remap('qps', 'RethinkDB')
+            qps_data = TimeSeriesCollection()
 
-            for competitor in competitor_data.iteritems():
-                qps_data += competitor[1].select('qps').remap('qps', competitor[0])
+            for database in data.iteritems():
+                qps_data += database[1].select('qps').remap('qps', database[0])
 
             # Plot the qps data
             qps_data.plot(os.path.join(self.out_dir, self.dir_str, 'qps' + run_name))
@@ -172,43 +171,25 @@ class dbench():
             print >>res, '<tr><td><h3 style="text-align: center">Queries per second</h3>'
             print >>res, image('http://' + os.path.join(self.hostname, self.prof_dir, self.dir_str, 'qps' + run_name + '.png'))
 
-            cum_stats = {}
-            cum_stats['rdb_qps_mean'] = format_metadata(data.select('qps').stats()['qps']['mean'])
-            cum_stats['rdb_qps_stdev'] = format_metadata(data.select('qps').stats()['qps']['stdev'])
-
-            for competitor in competitor_data.iteritems():
-                cum_stats[competitor[0] + '_qps_mean'] = format_metadata(competitor[1].select('qps').stats()['qps']['mean'])
-                cum_stats[competitor[0] + '_qps_stdev']= format_metadata(competitor[1].select('qps').stats()['qps']['stdev'])
-
             print >>res, """<table style="border-spacing: 0px; border-collapse: collapse; margin-left: auto; margin-right: auto; margin-top: 20px;">
                                 <tr style="font-weight: bold; text-align: left; border-bottom: 2px solid #FFFFFF; color: #FFFFFF; background: #556270;">
                                     <th style="padding: 0.5em 0.8em; font-size: small;"></th>
                                     <th style="padding: 0.5em 0.8em; font-size: small;">Mean qps</th>
                                     <th style="padding: 0.5em 0.8em; font-size: small;">Standard deviation</th>
-                                </tr>
-                                <tr style="text-align: left; border-bottom: 2px solid #FFFFFF;">
-                                    <td style="background: #DBE2F1; padding: 0.5em 0.8em; font-weight: bold;">RethinkDB</td>
-                                    <td style="background: #DBE2F1; padding: 0.5em 0.8em;">%s</td>
-                                    <td style="background: #DBE2F1; padding: 0.5em 0.8em;">%s</td>
-                                </tr>
-                                <tr style="text-align: left; border-bottom: 2px solid #FFFFFF;">
-                                    <td style="background: #DBE2F1; padding: 0.5em 0.8em; font-weight: bold;">Membase</td>
-                                    <td style="background: #DBE2F1; padding: 0.5em 0.8em;">%s</td>
-                                    <td style="background: #DBE2F1; padding: 0.5em 0.8em;">%s</td>
-                                </tr>
-                                <tr style="text-align: left; border-bottom: 2px solid #FFFFFF;">
-                                    <td style="background: #DBE2F1; padding: 0.5em 0.8em; font-weight: bold;">MySQL</td>
-                                    <td style="background: #DBE2F1; padding: 0.5em 0.8em;">%s</td>
-                                    <td style="background: #DBE2F1; padding: 0.5em 0.8em;">%s</td>
-                                </tr>
-                            </table>
-                        </td>
-                        """ % (cum_stats.get('rdb_qps_mean', '8===D'), cum_stats.get('rdb_qps_stdev', '8===D'), cum_stats.get('Membase_qps_mean', '8===D'), cum_stats.get('Membase_qps_stdev', '8===D'), cum_stats.get('mysql_qps_mean', '8===D'), cum_stats.get('mysql_qps.stdev', '8===D'))
+                                </tr>"""
+            for competitor in data.iteritems():
+                print >>res,     """<tr style="text-align: left; border-bottom: 2px solid #FFFFFF;">
+                                        <td style="background: #DBE2F1; padding: 0.5em 0.8em; font-weight: bold;">%s</td>
+                                        <td style="background: #DBE2F1; padding: 0.5em 0.8em;">%s</td>
+                                        <td style="background: #DBE2F1; padding: 0.5em 0.8em;">%s</td>
+                                    </tr>""" % (competitor[0], format_metadata(competitor[1].select('qps').stats()['qps']['mean']), format_metadata(competitor[1].select('qps').stats()['qps']['stdev']))
+            print >>res, """</table>
+                        </td>"""
 
             # Build data for the latency histogram
-            lat_data = data.select('latency').remap('latency', 'rethinkdb')
+            lat_data = TimeSeriesCollection()
 
-            for competitor in competitor_data.iteritems():
+            for competitor in data.iteritems():
                 lat_data += competitor[1].select('latency').remap('latency', competitor[0])
             
             # Plot the latency histogram
@@ -218,42 +199,20 @@ class dbench():
             print >>res, '<td><h3 style="text-align: center">Latency in microseconds</h3>'
             print >>res, image('http://' + os.path.join(self.hostname, self.prof_dir, self.dir_str, 'latency' + run_name + '.png'))
 
-            cum_stats = {}
-            cum_stats['rdb_latency_mean'] = format_metadata(data.select('latency').stats()['latency']['mean'])
-            cum_stats['rdb_latency_stdev'] = format_metadata(data.select('latency').stats()['latency']['stdev'])
-
-            for competitor in competitor_data.iteritems():
-                cum_stats[competitor[0] + '_latency_mean'] = format_metadata(competitor[1].select('latency').stats()['latency']['mean'])
-                cum_stats[competitor[0] + '_latency_stdev']= format_metadata(competitor[1].select('latency').stats()['latency']['stdev'])
-
-            latency_mean = format_metadata(data.select('latency').stats()['latency']['mean'])
-            latency_stdev = format_metadata(data.select('latency').stats()['latency']['stdev'])
             print >>res, """<table style="border-spacing: 0px; border-collapse: collapse; margin-left: auto; margin-right: auto; margin-top: 20px;">
                                 <tr style="font-weight: bold; text-align: left; border-bottom: 2px solid #FFFFFF; color: #FFFFFF; background: #556270;">
                                     <th style="padding: 0.5em 0.8em; font-size: small;"></th>
                                     <th style="padding: 0.5em 0.8em; font-size: small;">Mean latency</th>
                                     <th style="padding: 0.5em 0.8em; font-size: small;">Standard deviation</th>
-                                </tr>
-                                <tr style="text-align: left; border-bottom: 2px solid #FFFFFF;">
-                                    <td style="background: #DBE2F1; padding: 0.5em 0.8em; font-weight: bold;">RethinkDB</td>
-                                    <td style="background: #DBE2F1; padding: 0.5em 0.8em;">%s</td>
-                                    <td style="background: #DBE2F1; padding: 0.5em 0.8em;">%s</td>
-                                </tr>
-                                <tr style="text-align: left; border-bottom: 2px solid #FFFFFF;">
-                                    <td style="background: #DBE2F1; padding: 0.5em 0.8em; font-weight: bold;">Membase</td>
-                                    <td style="background: #DBE2F1; padding: 0.5em 0.8em;">%s</td>
-                                    <td style="background: #DBE2F1; padding: 0.5em 0.8em;">%s</td>
-                                </tr>
-                                <tr style="text-align: left; border-bottom: 2px solid #FFFFFF;">
-                                    <td style="background: #DBE2F1; padding: 0.5em 0.8em; font-weight: bold;">MySQL</td>
-                                    <td style="background: #DBE2F1; padding: 0.5em 0.8em;">%s</td>
-                                    <td style="background: #DBE2F1; padding: 0.5em 0.8em;">%s</td>
-                                </tr>
-                            </table>
-                        </td>
-                        """ % (cum_stats.get('rdb_latency_mean', '8===D'), cum_stats.get('rdb_latency_stdev', '8===D'), cum_stats.get('Membase_latency_mean', '8===D'), cum_stats.get('Membase_latency_stdev', '8===D'), cum_stats.get('mysql_latency_mean', '8===D'), cum_stats.get('mysql_latency.stdev', '8===D'))
-            print >>res, '</tr></table>'
-
+                                </tr>"""
+            for competitor in data.iteritems():
+                print >>res,     """<tr style="text-align: left; border-bottom: 2px solid #FFFFFF;">
+                                        <td style="background: #DBE2F1; padding: 0.5em 0.8em; font-weight: bold;">%s</td>
+                                        <td style="background: #DBE2F1; padding: 0.5em 0.8em;">%s</td>
+                                        <td style="background: #DBE2F1; padding: 0.5em 0.8em;">%s</td>
+                                    </tr>""" % (competitor[0], format_metadata(competitor[1].select('latency').stats()['latency']['mean']), format_metadata(competitor[1].select('latency').stats()['latency']['stdev']))
+            print >>res, """</table>
+                        </td>"""
 
 
             # Metadata about the server and client
