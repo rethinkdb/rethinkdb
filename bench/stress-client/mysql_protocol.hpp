@@ -269,7 +269,9 @@ struct mysql_protocol_t : public protocol_t {
     }
 
     virtual void shared_init() {
-        create_schema();
+        if(_config->in_file[0] == 0) {
+            create_schema();
+        }
     }
 
 private:
