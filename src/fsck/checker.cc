@@ -49,6 +49,10 @@ public:
         value = other;
         known = true;
     }
+    T& use() {
+        known = true;
+        return value;
+    }
     T& operator*() {
         if (!known) {
             fail("Value not known.");
@@ -917,10 +921,10 @@ struct check_to_config_block_errors {
 bool check_to_config_block(direct_file_t *file, file_knowledge *knog, check_to_config_block_errors *errs) {
     check_filesize(file, knog);
 
-    return check_static_config(file, knog, &*errs->static_config_err)
-        && check_metablock(file, knog, &*errs->metablock_errs)
-        && check_lba(file, knog, &*errs->lba_errs)
-        && check_config_block(file, knog, &*errs->config_block_errs);
+    return check_static_config(file, knog, &errs->static_config_err.use())
+        && check_metablock(file, knog, &errs->metablock_errs.use())
+        && check_lba(file, knog, &errs->lba_errs.use())
+        && check_config_block(file, knog, &errs->config_block_errs.use());
 }
 
 struct interfile_errors {
@@ -970,10 +974,10 @@ bool check_interfile(knowledge *knog, interfile_errors *errs) {
 }
 
 struct all_slices_errors {
-    int n_files;
+    int n_slices;
     slice_errors *slice;
 
-    all_slices_errors(int n_files) : n_files(n_files), slice(new slice_errors[n_files]) { }
+    all_slices_errors(int n_slices) : n_slices(n_slices), slice(new slice_errors[n_slices]) { }
 
     ~all_slices_errors() { delete[] slice; }
 };
@@ -981,7 +985,7 @@ struct all_slices_errors {
 void check_after_config_block(direct_file_t *file, file_knowledge *knog, all_slices_errors *errs) {
     int step = knog->config_block->n_files;
 
-    for (int i = knog->config_block->this_serializer; i < knog->config_block->btree_config.n_slices; i += step) {
+    for (int i = knog->config_block->this_serializer; i < errs->n_slices; i += step) {
         errs->slice[i].global_slice_number = i;
         check_slice(file, knog, i, &errs->slice[i]);
     }
@@ -1094,7 +1098,7 @@ void report_subtree_errors(const subtree_errors *errs) {
         printf("ERROR subtree value errors found...\n");
         for (int i = 0, n = errs->value_errors.size(); i < n; ++i) {
             const value_error& e = errs->value_errors[i];
-            printf("          %lu/%s :", e.block_id, e.key.c_str());
+            printf("          %lu/'%s' :", e.block_id, e.key.c_str());
             printf("%s%s%s",
                    e.bad_metadata_flags ? " bad_metadata_flags" : "",
                    e.too_big ? " too_big" : "",
@@ -1158,7 +1162,7 @@ void report_slice_errors(const slice_errors *errs) {
 }
 
 void report_post_config_block_errors(const all_slices_errors &slices_errs) {
-    for (int i = 0; i < slices_errs.n_files; ++i) {
+    for (int i = 0; i < slices_errs.n_slices; ++i) {
         report_slice_errors(&slices_errs.slice[i]);
     }
 }
@@ -1190,7 +1194,7 @@ void check_files(const config_t& cfg) {
         return;
     }
 
-    all_slices_errors slices_errs(knog.file_knog[0]->config_block->n_files);  // TODO combine info gracefully
+    all_slices_errors slices_errs(knog.file_knog[0]->config_block->btree_config.n_slices);  // TODO combine info gracefully
     for (int i = 0; i < num_files; ++i) {
         check_after_config_block(knog.files[i], knog.file_knog[i], &slices_errs);
     }
