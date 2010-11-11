@@ -847,7 +847,8 @@ struct rogue_block_description {
 struct other_block_errors {
     std::vector<rogue_block_description> unused_blocks;
     std::vector<rogue_block_description> allegedly_deleted_blocks;
-    other_block_errors() { }
+    ser_block_id_t contiguity_failure;
+    other_block_errors() : contiguity_failure(NULL_SER_BLOCK_ID) { }
 private:
     DISABLE_COPYING(other_block_errors);
 };
@@ -856,9 +857,20 @@ void check_slice_other_blocks(slicecx& cx, other_block_errors *errs) {
     ser_block_id_t min_block = translator_serializer_t::translate_block_id(0, cx.mod_count, cx.local_slice_id, CONFIG_BLOCK_ID + 1);
 
     segmented_vector_t<block_knowledge, MAX_BLOCK_ID>& block_info = cx.knog->block_info;
+
+    ser_block_id_t first_valueless_block = NULL_SER_BLOCK_ID;
+
     for (ser_block_id_t id = min_block, end = block_info.get_size(); id < end; id += cx.mod_count) {
         block_knowledge info = block_info[id];
-        if (flagged_off64_t::has_value(info.offset)) {
+        if (!flagged_off64_t::has_value(info.offset)) {
+            if (first_valueless_block == NULL_SER_BLOCK_ID) {
+                first_valueless_block = id;
+            }
+        } else {
+            if (first_valueless_block != NULL_SER_BLOCK_ID) {
+                errs->contiguity_failure = first_valueless_block;
+            }
+
             if (!info.offset.parts.is_delete && info.transaction_id == NULL_SER_TRANSACTION_ID) {
                 // Aha!  We have an unused block!  Crap.
                 rogue_block_description desc;
@@ -1178,6 +1190,9 @@ void report_other_block_errors(const other_block_errors *errs) {
     }
     for (int i = 0, n = errs->allegedly_deleted_blocks.size(); i < n; ++i) {
         report_rogue_block_description("nonzeroed deleted block", errs->allegedly_deleted_blocks[i]);
+    }
+    if (errs->contiguity_failure != NULL_SER_TRANSACTION_ID) {
+        printf("ERROR %s slice block contiguity failure at serializer block id %lu\n", state, errs->contiguity_failure);
     }
 }
 
