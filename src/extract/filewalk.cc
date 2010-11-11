@@ -43,7 +43,7 @@ public:
             len += slices[i].len;
         }
 
-        check("could not write to file", 0 > fprintf(fp, "set %.*s %u %u %u\r\n", key->size, key->contents, flags, exptime, len));
+        check("could not write to file", 0 > fprintf(fp, "set %.*s %u %u %u noreply\r\n", key->size, key->contents, flags, exptime, len));
         
         for (size_t i = 0; i < num_slices; ++i) {
             check("could not write to file", slices[i].len != fwrite(slices[i].buf, 1, slices[i].len, fp));
