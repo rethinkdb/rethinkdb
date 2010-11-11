@@ -2,6 +2,11 @@
 
 namespace fsck {
 
+const char *raw_block::error_name(error code) {
+    static const char *codes[] = {"none", "block id mismatch"};
+    return codes[code];
+}
+
 raw_block::raw_block() : err(none), buf(NULL), realbuf(NULL) { }
 
 void raw_block::init(size_t block_size, direct_file_t *file, off64_t offset) {

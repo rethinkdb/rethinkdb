@@ -38,6 +38,10 @@ class learned {
     bool known;
 public:
     learned() : known(false) { }
+    bool is_known(const T** ptr) const {
+        *ptr = known ? &value : NULL;
+        return known;
+    }
     void operator=(const T& other) {
         if (known) {
             fail("Value already known.");
@@ -146,6 +150,11 @@ class btree_block : public raw_block {
 public:
     enum { no_block = raw_block_err_count, already_accessed, transaction_id_invalid, transaction_id_too_large };
 
+    static const char *error_name(error code) {
+        static const char *codes[] = {"already accessed", "bad transaction id", "transaction id too large"};
+        return code >= raw_block_err_count ? codes[code - raw_block_err_count] : raw_block::error_name(code);
+    }
+
     btree_block() : raw_block() { }
 
     bool init(slicecx &cx, block_id_t block_id) {
@@ -198,7 +207,8 @@ void check_filesize(direct_file_t *file, file_knowledge *knog) {
 
 #define CHECK(test, errcode) CHECK_OR(test, { *err = (errcode); })
 
-enum static_config_error { none = 0, bad_software_name, bad_version, bad_sizes, bad_filesize };
+const char *static_config_errstring[] = { "none", "bad_software_name", "bad_version", "bad_sizes", "bad_filesize" };
+enum static_config_error { static_config_none = 0, bad_software_name, bad_version, bad_sizes, bad_filesize };
 
 bool check_static_config(direct_file_t *file, file_knowledge *knog, static_config_error *err) {
     block header;
@@ -225,7 +235,7 @@ bool check_static_config(direct_file_t *file, file_knowledge *knog, static_confi
 
     knog->static_config = *static_cfg;
 
-    *err = none;
+    *err = static_config_none;
     return true;
 }
 
@@ -355,6 +365,7 @@ struct lba_extent_errors {
         bad_block_id_count = 0;
         wrong_shard_count = 0;
         bad_offset_count = 0;
+        total_count = 0;
     }
 };
 
@@ -537,15 +548,15 @@ struct value_error {
 struct node_error {
     block_id_t block_id;
     btree_block::error block_not_found_error;  // must be none
-    bool block_underfull;  // should be false
-    bool bad_magic;  // should be false
-    bool noncontiguous_offsets;  // should be false
-    bool value_out_of_buf;  // must be false
-    bool keys_too_big;  // should be false
-    bool keys_in_wrong_slice;  // should be false
-    bool out_of_order;  // should be false
-    bool value_errors_exist;  // should be false
-    bool last_internal_node_key_nonempty;  // should be false
+    bool block_underfull : 1;  // should be false
+    bool bad_magic : 1;  // should be false
+    bool noncontiguous_offsets : 1;  // should be false
+    bool value_out_of_buf : 1;  // must be false
+    bool keys_too_big : 1;  // should be false
+    bool keys_in_wrong_slice : 1;  // should be false
+    bool out_of_order : 1;  // should be false
+    bool value_errors_exist : 1;  // should be false
+    bool last_internal_node_key_nonempty : 1;  // should be false
     
     node_error(block_id_t block_id) : block_id(block_id), block_not_found_error(btree_block::none),
                                       block_underfull(false), bad_magic(false),
@@ -570,6 +581,15 @@ struct subtree_errors {
     bool is_bad() const {
         return !(node_errors.empty() && value_errors.empty());
     }
+
+    void add_error(const node_error& error) {
+        node_errors.push_back(error);
+    }
+
+    void add_error(const value_error& error) {
+        value_errors.push_back(error);
+    }
+    
 private:
     DISABLE_COPYING(subtree_errors);
 };
@@ -683,7 +703,7 @@ void check_subtree_leaf_node(slicecx& cx, btree_leaf_node *buf, btree_key *lo, b
 
         if (valerr.is_bad()) {
             valerr.key = std::string(pair->key.contents, pair->key.contents + pair->key.size);
-            tree_errs->value_errors.push_back(valerr);
+            tree_errs->add_error(valerr);
         }
 
         prev_key = &pair->key;
@@ -759,7 +779,7 @@ void check_subtree(slicecx& cx, block_id_t id, btree_key *lo, btree_key *hi, sub
     if (!node.init(cx, id)) {
         node_error err(id);
         err.block_not_found_error = node.err;
-        errs->node_errors.push_back(err);
+        errs->add_error(err);
         return;
     }
 
@@ -781,7 +801,7 @@ void check_subtree(slicecx& cx, block_id_t id, btree_key *lo, btree_key *hi, sub
     }
 
     if (node_err.is_bad()) {
-        errs->node_errors.push_back(node_err);
+        errs->add_error(node_err);
     }
 }
 
@@ -912,6 +932,7 @@ struct interfile_errors {
     bool bad_this_serializer_values;  // must be false
     bool bad_num_slices;  // must be false
     bool discontiguous_serializers;  // must be false
+    bool reused_serializer_numbers;  // must be false
 };
 
 bool check_interfile(knowledge *knog, interfile_errors *errs) {
@@ -940,11 +961,13 @@ bool check_interfile(knowledge *knog, interfile_errors *errs) {
     errs->bad_num_slices = (knog->file_knog[0]->config_block->btree_config.n_slices < 0);
 
     errs->discontiguous_serializers = false;
+    errs->reused_serializer_numbers = false;
     for (int i = 0; i < num_files; ++i) {
         errs->discontiguous_serializers |= (this_serializer_counts[i] != 1);
+        errs->reused_serializer_numbers |= (this_serializer_counts[i] > 1);
     }
 
-    return (errs->all_have_correct_num_files && errs->all_have_same_num_files && errs->all_have_same_num_slices && errs->all_have_same_db_magic && !errs->out_of_order_serializers && !errs->bad_this_serializer_values && !errs->bad_num_slices && !errs->discontiguous_serializers);
+    return (/* errs->all_have_correct_num_files && */ errs->all_have_same_num_files && errs->all_have_same_num_slices && errs->all_have_same_db_magic /* && !errs->out_of_order_serializers */ && !errs->bad_this_serializer_values && !errs->bad_num_slices && !errs->discontiguous_serializers && !errs->reused_serializer_numbers);
 }
 
 struct all_slices_errors {
@@ -965,6 +988,67 @@ void check_after_config_block(direct_file_t *file, file_knowledge *knog, all_sli
     }
 }
 
+void report_pre_config_block_errors(const check_to_config_block_errors& errs) {
+    const static_config_error *sc;
+    if (errs.static_config_err.is_known(&sc) && *sc != static_config_none) {
+        printf("ERROR static config: %s\n", static_config_errstring[*sc]);
+    }
+    const metablock_errors *mb;
+    if (errs.metablock_errs.is_known(&mb)) {
+        if (mb->bad_crc_count > 0) {
+            printf("WARNING %d of %d metablocks have bad CRC\n", mb->bad_crc_count, mb->total_count);
+        }
+        if (mb->bad_markers_count > 0) {
+            printf("ERROR %d of %d metablocks have bad markers\n", mb->bad_markers_count, mb->total_count);
+        }
+        if (mb->bad_content_count > 0) {
+            printf("ERROR %d of %d metablocks have bad content\n", mb->bad_content_count, mb->total_count);
+        }
+        if (mb->zeroed_count > 0) {
+            printf("INFO %d of %d metablocks uninitialized (maybe this is a new database?)\n", mb->zeroed_count, mb->total_count);
+        }
+        if (mb->not_monotonic) {
+            printf("WARNING metablock versions not monotonic\n");
+        }
+        if (mb->no_valid_metablocks) {
+            printf("ERROR no valid metablocks\n");
+        }
+    }
+    const lba_errors *lba;
+    if (errs.lba_errs.is_known(&lba) && lba->error_happened) {
+        for (int i = 0; i < LBA_SHARD_FACTOR; ++i) {
+            const lba_shard_errors *sherr = &lba->shard_errors[i];
+            if (sherr->code == lba_shard_errors::bad_lba_superblock_offset) {
+                printf("ERROR lba shard %d has invalid lba superblock offset\n", i);
+            } else if (sherr->code == lba_shard_errors::bad_lba_superblock_magic) {
+                printf("ERROR lba shard %d has invalid superblock magic\n", i);
+            } else if (sherr->code == lba_shard_errors::bad_lba_extent) {
+                printf("ERROR lba shard %d, extent %d, %s\n",
+                       i, sherr->bad_extent_number, sherr->extent_errors.code == lba_extent_errors::bad_extent_offset ? "has bad extent offset" : sherr->extent_errors.code == lba_extent_errors::bad_entries_count ? "has bad entries count" : "was specified invalidly");
+            } else if (sherr->extent_errors.bad_block_id_count > 0 || sherr->extent_errors.wrong_shard_count > 0 || sherr->extent_errors.bad_offset_count > 0) {
+                printf("ERROR lba shard %d had bad lba entries: %d bad block ids, %d in wrong shard, %d with bad offset, of %d total\n", i, sherr->extent_errors.bad_block_id_count, sherr->extent_errors.wrong_shard_count, sherr->extent_errors.bad_offset_count, sherr->extent_errors.total_count);
+            }
+        }
+    }
+    const config_block_errors *cb;
+    if (errs.config_block_errs.is_known(&cb)) {
+        if (cb->block_open_code != btree_block::none) {
+            printf("ERROR config block not found: %s\n", btree_block::error_name(cb->block_open_code));
+        } else if (cb->bad_magic) {
+            printf("ERROR config block had bad magic\n");
+        }
+    }
+}
+
+void report_interfile_errors(const interfile_errors &errs) {
+
+}
+
+void report_post_config_block_errors(const all_slices_errors &slices_errs) {
+
+
+}
+
 void check_files(const config_t& cfg) {
     // 1. Open.
     knowledge knog(cfg.input_filenames);
@@ -973,22 +1057,31 @@ void check_files(const config_t& cfg) {
 
     unrecoverable_fact(num_files > 0, "a positive number of files");
 
+    bool any = false;
     for (int i = 0; i < num_files; ++i) {
         check_to_config_block_errors errs;
         if (!check_to_config_block(knog.files[i], knog.file_knog[i], &errs)) {
-            unrecoverable_fact(0, "bad checks upto config block");
+            any = true;
+            report_pre_config_block_errors(errs);
         }
+    }
+
+    if (any) {
+        return;
     }
 
     interfile_errors errs;
     if (!check_interfile(&knog, &errs)) {
-        unrecoverable_fact(0, "interfile_errs");
+        report_interfile_errors(errs);
+        return;
     }
 
     all_slices_errors slices_errs(knog.file_knog[0]->config_block->n_files);  // TODO combine info gracefully
     for (int i = 0; i < num_files; ++i) {
         check_after_config_block(knog.files[i], knog.file_knog[i], &slices_errs);
     }
+
+    report_post_config_block_errors(slices_errs);
 }
 
 

@@ -12,6 +12,8 @@ public:
     enum { none = 0, block_id_mismatch, raw_block_err_count };
     typedef uint8_t error;
 
+    static const char *error_name(error code);
+
     error err;
 
     // buf is a fake!  buf is sizeof(buf_data_t) greater than realbuf, which is below.

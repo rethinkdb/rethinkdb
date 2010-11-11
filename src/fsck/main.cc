@@ -63,6 +63,11 @@ void parse_cmd_args(int argc, char **argv, config_t *config) {
             usage(argv[0]);
         }
     }
+
+    if (config->input_filenames.size() == 0) {
+        fprintf(stderr, "Please specify some files.");
+        usage(argv[0]);
+    }
 }
 
 
