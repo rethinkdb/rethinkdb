@@ -194,6 +194,10 @@ public:
             return false;
         }
 
+        // (This line, which modifies the file_knowledge object, is
+        // the main reason we have this btree_block abstraction.)
+        info.transaction_id = tx_id;
+
         err = none;
         return true;
     }
@@ -545,7 +549,7 @@ struct value_error {
                                        lv_index_block_code(btree_block::none), lv_code(none) { }
 
     bool is_bad() const {
-        return bad_metadata_flags || too_big || lv_too_small || lv_index_block_code != btree_block::none || lv_code == value_error::none;
+        return bad_metadata_flags || too_big || lv_too_small || lv_index_block_code != btree_block::none || lv_code != value_error::none;
     }
 };
 
@@ -1131,11 +1135,11 @@ void report_subtree_errors(const subtree_errors *errs) {
 }
 
 void report_rogue_block_description(const char *title, const rogue_block_description& desc) {
-    printf("ERROR %s %lu ", title, desc.block_id);
+    printf("ERROR %s (#%lu):", title, desc.block_id);
     if (desc.loading_error != btree_block::none) {
         printf("could not load: %s\n", btree_block::error_name(desc.loading_error));
     } else {
-        printf("magic: '%.*s'\n", int(sizeof(block_magic_t)), desc.magic.bytes);
+        printf("magic = '%.*s'\n", int(sizeof(block_magic_t)), desc.magic.bytes);
     }
 }
 
