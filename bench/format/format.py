@@ -38,7 +38,7 @@ class dbench():
             self.prof_stats.append(self.oprofile_stats(dir + self.oprofile_dir + '/' + rundir + '/'))
 #get competitor info
         self.competitors = {}
-        competitor_dirs = os.listdir(self.competitor_dir)
+        competitor_dirs = [dir for dir in os.listdir(self.competitor_dir) if os.path.isdir(os.path.join(self.competitor_dir, dir))]
         for dir in competitor_dirs:
             self.competitors[dir] = self.bench_stats(os.path.join(self.competitor_dir, dir, self.bench_dir))
 
@@ -180,8 +180,6 @@ class dbench():
                 cum_stats[competitor[0] + '_qps_mean'] = format_metadata(competitor[1].select('qps').stats()['qps']['mean'])
                 cum_stats[competitor[0] + '_qps_stdev']= format_metadata(competitor[1].select('qps').stats()['qps']['stdev'])
 
-            qps_mean = format_metadata(data.select('qps').stats()['qps']['mean'])
-            qps_stdev = format_metadata(data.select('qps').stats()['qps']['stdev'])
             print >>res, """<table style="border-spacing: 0px; border-collapse: collapse; margin-left: auto; margin-right: auto; margin-top: 20px;">
                                 <tr style="font-weight: bold; text-align: left; border-bottom: 2px solid #FFFFFF; color: #FFFFFF; background: #556270;">
                                     <th style="padding: 0.5em 0.8em; font-size: small;"></th>
@@ -205,7 +203,7 @@ class dbench():
                                 </tr>
                             </table>
                         </td>
-                        """ % (cum_stats.get('rdb_qps_mean', '8===D'), cum_stats.get('rdb_qps_stdev', '8===D'), cum_stats.get('membase_qps_mean', '8===D'), cum_stats.get('membase_qps_stdev', '8===D'), cum_stats.get('mysql_qps_mean', '8===D'), cum_stats.get('mysql_qps.stdev', '8===D'))
+                        """ % (cum_stats.get('rdb_qps_mean', '8===D'), cum_stats.get('rdb_qps_stdev', '8===D'), cum_stats.get('Membase_qps_mean', '8===D'), cum_stats.get('Membase_qps_stdev', '8===D'), cum_stats.get('mysql_qps_mean', '8===D'), cum_stats.get('mysql_qps.stdev', '8===D'))
 
             # Build data for the latency histogram
             lat_data = data.select('latency').remap('latency', 'rethinkdb')
@@ -219,6 +217,14 @@ class dbench():
             # Add the latency histogram image and metadata
             print >>res, '<td><h3 style="text-align: center">Latency in microseconds</h3>'
             print >>res, image('http://' + os.path.join(self.hostname, self.prof_dir, self.dir_str, 'latency' + run_name + '.png'))
+
+            cum_stats = {}
+            cum_stats['rdb_latency_mean'] = format_metadata(data.select('latency').stats()['latency']['mean'])
+            cum_stats['rdb_latency_stdev'] = format_metadata(data.select('latency').stats()['latency']['stdev'])
+
+            for competitor in competitor_data.iteritems():
+                cum_stats[competitor[0] + '_latency_mean'] = format_metadata(competitor[1].select('latency').stats()['latency']['mean'])
+                cum_stats[competitor[0] + '_latency_stdev']= format_metadata(competitor[1].select('latency').stats()['latency']['stdev'])
 
             latency_mean = format_metadata(data.select('latency').stats()['latency']['mean'])
             latency_stdev = format_metadata(data.select('latency').stats()['latency']['stdev'])
@@ -245,7 +251,7 @@ class dbench():
                                 </tr>
                             </table>
                         </td>
-                        """ % (latency_mean, latency_stdev, latency_mean, latency_stdev, latency_mean, latency_stdev)
+                        """ % (cum_stats.get('rdb_latency_mean', '8===D'), cum_stats.get('rdb_latency_stdev', '8===D'), cum_stats.get('Membase_latency_mean', '8===D'), cum_stats.get('Membase_latency_stdev', '8===D'), cum_stats.get('mysql_latency_mean', '8===D'), cum_stats.get('mysql_latency.stdev', '8===D'))
             print >>res, '</tr></table>'
 
 
