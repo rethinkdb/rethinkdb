@@ -65,7 +65,8 @@ class linux_thread_t :
     public linux_event_callback_t,
     public linux_queue_parent_t
 {
-
+    linux_timer_token_t *perfmon_stats_timer;
+    
 public:
     linux_thread_t(linux_thread_pool_t *parent_pool, int thread_id);
     ~linux_thread_t();

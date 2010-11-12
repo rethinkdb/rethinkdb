@@ -20,7 +20,7 @@ public:
     explicit btree_set_fsm_t(btree_key *key, btree_key_value_store_t *store, request_callback_t *req, bool got_large, uint32_t length, byte *data, set_type_t type, btree_value::mcflags_t mcflags, btree_value::exptime_t exptime, btree_value::cas_t req_cas)
         : btree_modify_fsm_t(key, store), length(length), req(req), got_large(got_large), type(type), req_cas(req_cas), read_success(false), set_failed(false), large_value(NULL) {
         
-        pm_cmd_set++;
+        pm_cmd_set.begin(&start_time);
         // XXX This does unnecessary setting and copying.
         value.metadata_flags = 0;
         value.value_size(0);
@@ -31,7 +31,11 @@ public:
             memcpy(value.value(), data, length);
         }
     }
-
+    
+    ~btree_set_fsm_t() {
+        pm_cmd_set.end(&start_time);
+    }
+    
     transition_result_t operate(btree_value *old_value, large_buf_t *old_large_value, btree_value **_new_value) {
         new_value = _new_value;
 
@@ -120,7 +124,7 @@ public:
 
 private:
     uint32_t length;
-
+    ticks_t start_time;
     request_callback_t *req;
 
     bool got_large;

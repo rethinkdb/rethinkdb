@@ -17,7 +17,11 @@ public:
     explicit btree_get_cas_fsm_t(btree_key *_key, btree_key_value_store_t *store, request_callback_t *req)
         : btree_modify_fsm_t(_key, store), req(req), write_lv_msg(NULL), lv_state(lv_state_unknown)
     {
-        pm_cmd_get++;
+        pm_cmd_get.begin(&start_time);
+    }
+    
+    ~btree_get_cas_fsm_t() {
+        pm_cmd_get.end(&start_time);
     }
     
     transition_result_t operate(btree_value *old_value, large_buf_t *old_large_buf, btree_value **new_value) {
@@ -67,6 +71,7 @@ public:
 
 private:
     request_callback_t *req;
+    ticks_t start_time;
 public:
     write_large_value_msg_t *write_lv_msg;
 

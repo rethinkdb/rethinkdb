@@ -7,6 +7,9 @@
 #include <signal.h>
 #include <fcntl.h>
 
+/* Defined in perfmon_system.cc */
+void poll_system_stats(void *);
+
 __thread linux_thread_pool_t *linux_thread_pool_t::thread_pool;
 __thread int linux_thread_pool_t::cpu_id;
 __thread linux_thread_t *linux_thread_pool_t::thread;
@@ -266,9 +269,15 @@ linux_thread_t::linux_thread_t(linux_thread_pool_t *parent_pool, int thread_id)
     check("Could not make shutdown notify fd non-blocking", res != 0);
 
     queue.watch_resource(shutdown_notify_fd, poll_event_in, this);
+    
+    // Start the stats timer
+    
+    perfmon_stats_timer = timer_handler.add_timer_internal(1000, poll_system_stats, NULL, false);
 }
 
 linux_thread_t::~linux_thread_t() {
+    
+    timer_handler.cancel_timer(perfmon_stats_timer);
     
     int res;
     

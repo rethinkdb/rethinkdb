@@ -58,7 +58,7 @@ void poll_event_queue_t::run() {
         }
         check("Waiting for poll events failed", res == -1);
         
-        pm_events_per_loop.set_value_for_this_thread(res);
+        pm_events_per_loop.record(res);
         
         int count = 0;
         for (unsigned int i = 0; i < watched_fds.size(); i++) {

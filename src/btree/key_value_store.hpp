@@ -238,7 +238,7 @@ private:
 
 // Stats
 
-extern perfmon_counter_t
+extern perfmon_duration_sampler_t
     pm_cmd_set,
     pm_cmd_get;
 

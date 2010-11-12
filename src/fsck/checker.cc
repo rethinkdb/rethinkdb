@@ -1189,7 +1189,7 @@ void report_other_block_errors(const other_block_errors *errs) {
     for (int i = 0, n = errs->allegedly_deleted_blocks.size(); i < n; ++i) {
         report_rogue_block_description("nonzeroed deleted block", errs->allegedly_deleted_blocks[i]);
     }
-    if (errs->contiguity_failure != NULL_SER_TRANSACTION_ID) {
+    if (errs->contiguity_failure != NULL_SER_BLOCK_ID) {
         printf("ERROR %s slice block contiguity failure at serializer block id %lu\n", state, errs->contiguity_failure);
     }
 }

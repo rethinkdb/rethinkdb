@@ -29,6 +29,14 @@ T1 floor_aligned(T1 value, T2 alignment) {
     return value - (value % alignment);
 }
 
+typedef unsigned long long ticks_t;
+ticks_t secs_to_ticks(float secs);
+ticks_t get_ticks();
+long get_ticks_res();
+float ticks_to_secs(ticks_t ticks);
+float ticks_to_ms(ticks_t ticks);
+float ticks_to_us(ticks_t ticks);
+
 /* Functions to create random delays. These must be in utils2.hpp instead of in
 utils.hpp because the mock IO layer uses random delays. Internally, they
 secretly use the IO layer, but it is safe to include utils2.hpp from within the

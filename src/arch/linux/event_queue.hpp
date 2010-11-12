@@ -23,7 +23,7 @@ const int poll_event_out = 2;
 const int poll_event_err = 4;
 
 // Queue stats (declared here so whichever queue is chosen can access it)
-extern perfmon_thread_average_t pm_events_per_loop;
+extern perfmon_sampler_t pm_events_per_loop;
 
 /* Pick the queue now*/
 //#define NO_EPOLL

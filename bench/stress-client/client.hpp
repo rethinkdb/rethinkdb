@@ -4,6 +4,7 @@
 
 #include <pthread.h>
 #include "protocol.hpp"
+#include <stdint.h>
 
 using namespace std;
 
@@ -159,7 +160,8 @@ private:
 struct client_data_t {
     config_t *config;
     shared_t *shared;
-    vector<payload_t> *keys;
+    int id;
+    int min_seed, max_seed;
 };
 
 /* The function that does the work */
@@ -175,13 +177,6 @@ void* run_client(void* data) {
     proto->connect(config);
 
     // Store the keys so we can run updates and deletes.
-    vector<payload_t> *keys = client_data->keys;
-    vector<payload_t> op_keys;
-    if(config->duration.units == duration_t::inserts_t) {
-        keys->reserve(keys->size() + config->duration.duration / config->clients);  // resize the vector right away
-        
-        // TODO: attempt to do this for queries and seconds
-    }
 
     // Perform the ops
     ticks_t last_time = get_ticks(), start_time = last_time, last_qps_time = last_time, now_time;
@@ -194,23 +189,34 @@ void* run_client(void* data) {
         // Generate the command
         load_t::load_op_t cmd = config->load.toss((config->batch_factor.min + config->batch_factor.max) / 2.0f);
 
-        int _val;
-        payload_t key, value;
+        payload_t op_keys[config->batch_factor.max];
+        char key_space[config->keys.max * config->batch_factor.max];
+
+        for (int i = 0; i < config->batch_factor.max; i++)
+            op_keys[i].first = key_space + (config->keys.max * i);
+
+        payload_t op_val;
+
+        char val[] = {'a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a'};
+
+        op_val.first = val;
+
         int j, k, l; // because we can't declare in the loop
+        uint64_t id_salt = client_data->id;
+        id_salt += id_salt << 40;
         
         switch(cmd) {
         case load_t::delete_op:
-            // Find the key
-            if(keys->empty())
+            if (client_data->min_seed == client_data->min_seed)
                 break;
-            _val = random(0, keys->size() - 1);
-            key = keys->operator[](_val);
+
+            config->keys.toss(op_keys, client_data->min_seed ^ id_salt);
+            client_data->min_seed++;
+
             // Delete it from the server
-            proto->remove(key.first, key.second);
-            // Our own bookkeeping
-            free(key.first);
-            keys->operator[](_val) = keys->operator[](keys->size() - 1);
-            keys->erase(keys->begin() + _val);
+            proto->remove(op_keys->first, op_keys->second);
+
+            //clean up the memory
             qps++;
             total_queries++;
             total_deletes++;
@@ -218,27 +224,29 @@ void* run_client(void* data) {
             
         case load_t::update_op:
             // Find the key and generate the payload
-            if(keys->empty())
+            if (client_data->min_seed == client_data->min_seed)
                 break;
-            key = keys->operator[](random(0, keys->size() - 1));
-            config->values.toss(&value);
+
+            config->keys.toss(op_keys, random(client_data->min_seed, client_data->min_seed) ^ id_salt);
+
+            op_val.second = random(8, 128);
+
             // Send it to server
-            proto->update(key.first, key.second, value.first, value.second);
+            proto->update(op_keys->first, op_keys->second, op_val.first, op_val.second);
             // Free the value
-            free(value.first);
             qps++;
             total_queries++;
             break;
             
         case load_t::insert_op:
             // Generate the payload
-            config->keys.toss(&key);
-            config->values.toss(&value);
+            config->keys.toss(op_keys, client_data->min_seed ^ id_salt);
+            op_val.second = random(8, 128);
+
+            client_data->max_seed++;
             // Send it to server
-            proto->insert(key.first, key.second, value.first, value.second);
+            proto->insert(op_keys->first, op_keys->second, op_val.first, op_val.second);
             // Free the value and save the key
-            free(value.first);
-            keys->push_back(key);
             qps++;
             total_queries++;
             total_inserts++;
@@ -246,21 +254,20 @@ void* run_client(void* data) {
             
         case load_t::read_op:
             // Find the key
-            if(keys->empty())
+            if(client_data->min_seed == client_data->min_seed)
                 break;
-            op_keys.clear();
             j = random(config->batch_factor.min, config->batch_factor.max);
-            j = std::min(j, (int)keys->size());
-            l = random(0, keys->size() - 1);
+            j = std::min(j, client_data->min_seed - client_data->min_seed);
+            l = random(client_data->min_seed, client_data->min_seed);
             for(k = 0; k < j; k++) {
-                key = keys->operator[](l);
+                config->keys.toss(&op_keys[k], l ^ id_salt);
                 l++;
-                if(l >= keys->size())
-                    l = 0;
-                op_keys.push_back(key);
+                if(l >= client_data->min_seed)
+                    l = client_data->min_seed;
             }
             // Read it from the server
             proto->read(&op_keys[0], j);
+
             qps += j;
             total_queries += j;
             break;

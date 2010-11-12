@@ -4,7 +4,12 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <stdint.h>
 #include "load.hpp"
+
+#define SALT1 0xFEEDABE0
+#define SALT2 0xBEDFACE8
+#define SALT3 0xFEDBABE5
 
 /* Helpful typedefs */
 typedef std::pair<char*, size_t> payload_t;
@@ -22,25 +27,49 @@ public:
 
     // Generates a random payload within given bounds. It is the
     // user's responsibility to clean up the payload.
-    void toss(payload_t *payload) {
-        // generate the size
-        int s = random(min, max);
-        
-        char *l = (char*)malloc(s);
-        
-        /* The random number generator is slow, so we randomly generate the first 8 bytes and then
-        pad the rest with '*'. */
-        int i;
-        for (i = 0; i < s && i < 8; i++) {
-            l[i] = random('A', 'Z');
+    void toss(payload_t *payload, uint64_t seed) {
+        /* compute out the size */
+        uint64_t size = seed;
+        size ^= SALT1;
+        size += size << 19;
+        size ^= size >> 17;
+        size += size << 3;
+        size ^= size >> 37;
+        size += size << 5;
+        size ^= size >> 11;
+        size += size << 2;
+        size ^= size >> 47;
+        size += size << 13;
+
+        size %= max - min;
+        size += min;
+
+        char *l = payload->first;
+        for(;size > 4; size -= 4) {
+            uint64_t hash = seed;
+            hash ^= (size << 7);
+            hash += SALT2;
+            hash ^= SALT3;
+
+            hash += hash << 43;
+            hash ^= hash >> 27;
+
+            char *hash_head = (char *) &hash;
+
+            switch (size) {
+                default:
+                    *l++ = (*hash_head++ % ('z' - 'a')) + 'a';
+                case (3):
+                    *l++ = (*hash_head++ % ('z' - 'a')) + 'a';
+                case (2):
+                    *l++ = (*hash_head++ % ('z' - 'a')) + 'a';
+                case (1):
+                    *l++ = (*hash_head++ % ('z' - 'a')) + 'a';
+                    break;
+            }
         }
-        for (; i < s; i++) {
-            l[i] = '*';
-        }
-        
         // fill the payload
-        payload->first = l;
-        payload->second = s;
+        payload->second = size;
     }
 
     void parse(char *str) {

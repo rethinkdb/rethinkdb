@@ -28,7 +28,11 @@ public:
         : btree_fsm_t(_key, store),
           large_value(NULL), req(req), state(acquire_superblock), last_buf(NULL), buf(NULL), node_id(NULL_BLOCK_ID), write_lv_msg(NULL)
     {
-        pm_cmd_get++;
+        pm_cmd_get.begin(&start_time);
+    }
+
+    ~btree_get_fsm_t() {
+        pm_cmd_get.end(&start_time);
     }
 
     virtual transition_result_t do_transition(event_t *event);
@@ -58,6 +62,7 @@ private:
     transition_result_t do_large_value_acquired(event_t *event);
 
 private:
+    ticks_t start_time;
     request_callback_t *req;
     // Some relevant state information
 public: // XXX
