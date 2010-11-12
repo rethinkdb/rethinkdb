@@ -115,12 +115,14 @@ and the like. */
 struct perfmon_duration_sampler_t {
 private:
     perfmon_counter_t active;
+    perfmon_counter_t total;
     perfmon_sampler_t recent;
 public:
     perfmon_duration_sampler_t(std::string name, ticks_t length)
-        : active(name + "_count"), recent(name + "_time", length, true) { }
+        : active(name + "_active_count"), total(name + "_total"), recent(name, length, true) { }
     void begin(ticks_t *v) {
         active++;
+        total++;
         *v = get_ticks();
     }
     void end(ticks_t *v) {

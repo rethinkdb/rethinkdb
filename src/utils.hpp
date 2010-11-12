@@ -21,8 +21,6 @@ void install_generic_crash_handler();
 
 void print_hd(void *buf, size_t offset, size_t length);
 
-void *malloc_aligned(size_t size, size_t alignment = 64);
-
 // Fast string compare
 int sized_strcmp(const char *str1, int len1, const char *str2, int len2);
 

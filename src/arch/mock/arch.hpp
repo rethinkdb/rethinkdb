@@ -36,7 +36,7 @@ struct mock_io_config_t {
         return inner_io_config_t::call_later_on_this_cpu(msg);
     }
     
-    typedef typename inner_io_config_t::timer_t timer_token_t;
+    typedef typename inner_io_config_t::timer_token_t timer_token_t;
     
     static timer_token_t *add_timer(long ms, void (*callback)(void *), void *ctx) {
         return inner_io_config_t::add_timer(ms, callback, ctx);

@@ -27,11 +27,6 @@ BUILD_DIR:=$(BUILD_ROOT_DIR)/debug
 else
 BUILD_DIR:=$(BUILD_ROOT_DIR)/release
 endif
-ifeq ($(VALGRIND),1)
-BUILD_DIR:=$(BUILD_DIR)-valgrind
-endif
-DEP_DIR:=$(BUILD_DIR)/dep
-OBJ_DIR:=$(BUILD_DIR)/obj
 
 # Define configuration variables
 CXX:=g++
@@ -53,10 +48,6 @@ ifeq ($(OPROFILE),1)
 CXXFLAGS+=-g
 endif
 
-ifeq ($(VALGRIND),1)
-CXXFLAGS+=-DVALGRIND
-endif
-
 ifeq ($(CALLGRIND),1)
 CXXFLAGS+=-g
 endif
@@ -67,6 +58,11 @@ endif
 
 ifeq ($(MOCK_CACHE_CHECK),1)
 CXXFLAGS+=-DMOCK_CACHE_CHECK
+endif
+
+ifeq ($(MOCK_IO_LAYER),1)
+CXXFLAGS+=-DMOCK_IO_LAYER
+BUILD_DIR:=$(BUILD_DIR)-mockio
 endif
 
 ifeq ($(BTREE_DEBUG),1)
@@ -81,6 +77,11 @@ ifneq ($(MEMCACHED_STRICT), 0)
 CXXFLAGS+=-DMEMCACHED_STRICT
 endif
 
+ifeq ($(VALGRIND),1)
+CXXFLAGS+=-DVALGRIND
+BUILD_DIR:=$(BUILD_DIR)-valgrind
+endif
+
 # Should makefile be noisy?
 ifeq ($(VERBOSE),1)
 QUIET:=
@@ -92,7 +93,8 @@ endif
 
 ##### Finding what to build
 
-
+DEP_DIR:=$(BUILD_DIR)/dep
+OBJ_DIR:=$(BUILD_DIR)/obj
 
 SOURCES:=$(shell find $(SOURCE_DIR) -name '*.cc')
 NAMES:=$(patsubst $(SOURCE_DIR)/%.cc,%,$(SOURCES))
