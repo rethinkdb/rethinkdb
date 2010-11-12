@@ -71,8 +71,8 @@ private:
 
 void walk_extents(dumper_t &dumper, direct_file_t &file, const cfg_t static_config);
 void observe_blocks(block_registry &registry, direct_file_t &file, const cfg_t cfg, uint64_t filesize);
+void get_all_values(dumper_t& dumper, const segmented_vector_t<off64_t, MAX_BLOCK_ID>& offsets, direct_file_t& file, const cfg_t cfg, uint64_t filesize);
 bool check_config(const cfg_t& cfg);
-void get_values(dumper_t &dumper, direct_file_t& file, const cfg_t cfg, const segmented_vector_t<off64_t, MAX_BLOCK_ID>& offsets, size_t i);
 void dump_pair_value(dumper_t &dumper, direct_file_t& file, const cfg_t cfg, const segmented_vector_t<off64_t, MAX_BLOCK_ID>& offsets, btree_leaf_pair *pair, ser_block_id_t this_block);
 void walkfile(dumper_t &dumper, const char *path);
 
@@ -147,9 +147,7 @@ void walk_extents(dumper_t &dumper, direct_file_t &file, cfg_t cfg) {
     }
     
     logINF("Finished reading block ids, retrieving key-value pairs (n=%u).\n", n);
-    for (size_t i = 0; i < n; ++i) {
-        get_values(dumper, file, cfg, offsets, i);
-    }
+    get_all_values(dumper, offsets, file, cfg, filesize);
     logINF("Finished retrieving key-value pairs.\n");
     
 }
@@ -164,7 +162,7 @@ bool check_all_known_magic(block_magic_t magic) {
         || magic == log_serializer_t::zerobuf_magic;
 }
 
-void observe_blocks(block_registry &registry, direct_file_t &file, const cfg_t cfg, uint64_t filesize) {
+void observe_blocks(block_registry& registry, direct_file_t& file, const cfg_t cfg, uint64_t filesize) {
     for (off64_t offset = 0, max_offset = filesize - cfg.block_size; offset <= max_offset; offset += cfg.block_size) {
         block b;
         b.init(cfg.block_size, &file, offset);
@@ -175,25 +173,33 @@ void observe_blocks(block_registry &registry, direct_file_t &file, const cfg_t c
     }
 }
 
-// Dumps the values from block i.
-void get_values(dumper_t &dumper, direct_file_t& file, const cfg_t cfg, const segmented_vector_t<off64_t, MAX_BLOCK_ID>& offsets, size_t i) {
-    if (offsets[i] != block_registry::null) {
+void get_all_values(dumper_t& dumper, const segmented_vector_t<off64_t, MAX_BLOCK_ID>& offsets, direct_file_t& file, const cfg_t cfg, uint64_t filesize) {
+    // If the database has been copied to a normal filesystem, it's
+    // _way_ faster to rescan the file in order of offset than in
+    // order of block id.  However, we still do some random access
+    // when retrieving large buf values.
+
+    for (off64_t offset = 0, max_offset = filesize - cfg.block_size; offset <= max_offset; offset += cfg.block_size) {
         block b;
-        b.init(cfg.block_size, &file, offsets[i]);
+        b.init(cfg.block_size, &file, offset);
 
-        const btree_leaf_node *leaf = (leaf_node_t *)b.buf;
+        ser_block_id_t block_id = b.buf_data().block_id;
+        if (block_id < offsets.get_size() && offsets[block_id] == offset) {
+            const btree_leaf_node *leaf = (leaf_node_t *)b.buf;
     
-        if (check_magic<btree_leaf_node>(leaf->magic)) {
-            uint16_t num_pairs = leaf->npairs;
-            logDBG("We have a leaf node with %d pairs.\n", num_pairs);
-            for (uint16_t j = 0; j < num_pairs; ++j) {
-                btree_leaf_pair *pair = leaf_node_handler::get_pair(leaf, leaf->pair_offsets[j]);
-
-                dump_pair_value(dumper, file, cfg, offsets, pair, i);
+            if (check_magic<btree_leaf_node>(leaf->magic)) {
+                uint16_t num_pairs = leaf->npairs;
+                logDBG("We have a leaf node with %d pairs.\n", num_pairs);
+                for (uint16_t j = 0; j < num_pairs; ++j) {
+                    btree_leaf_pair *pair = leaf_node_handler::get_pair(leaf, leaf->pair_offsets[j]);
+                    
+                    dump_pair_value(dumper, file, cfg, offsets, pair, block_id);
+                }
             }
         }
     }
 }
+
 
 // Dumps the values for a given pair.
 void dump_pair_value(dumper_t &dumper, direct_file_t& file, const cfg_t cfg, const segmented_vector_t<off64_t, MAX_BLOCK_ID>& offsets, btree_leaf_pair *pair, ser_block_id_t this_block) {
@@ -209,6 +215,7 @@ void dump_pair_value(dumper_t &dumper, direct_file_t& file, const cfg_t cfg, con
     // We're going to write the value, split into pieces, into this set of pieces.
     size_t num_pieces = 0;
     byteslice pieces[MAX_LARGE_BUF_SEGMENTS];
+    block segblock[MAX_LARGE_BUF_SEGMENTS];
 
     int64_t seg_size = cfg.block_size - sizeof(buf_data_t) - sizeof(large_buf_segment);
 
@@ -279,9 +286,8 @@ void dump_pair_value(dumper_t &dumper, direct_file_t& file, const cfg_t cfg, con
                        key->size, key->contents, indexblockbuf->blocks[i], i);
                 return;
             }
-            block segblock;
-            segblock.init(cfg.block_size, &file, offsets[seg_id]);
-            const large_buf_segment *seg = (large_buf_segment *)segblock.buf;
+            segblock[i].init(cfg.block_size, &file, offsets[seg_id]);
+            const large_buf_segment *seg = (large_buf_segment *)segblock[i].buf;
             
 
             if (!check_magic<large_buf_segment>(seg->magic)) {
