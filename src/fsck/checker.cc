@@ -708,7 +708,7 @@ void check_subtree_leaf_node(slicecx& cx, const btree_leaf_node *buf, btree_key 
                 errs->value_out_of_buf = true;
                 return;
             }
-            expected_offset += leaf_node_handler::pair_size(leaf_node_handler::get_pair(buf, expected_offset));
+            expected_offset += leaf_node_handler::pair_size(leaf_node_handler::get_pair(buf, sorted_offsets[i]));
         }
         errs->noncontiguous_offsets |= (expected_offset != cx.knog->static_config->block_size - sizeof(data_block_manager_t::buf_data_t));
 
@@ -734,7 +734,7 @@ void check_subtree_leaf_node(slicecx& cx, const btree_leaf_node *buf, btree_key 
         prev_key = &pair->key;
     }
 
-    errs->out_of_order |= !(prev_key == NULL || hi == NULL || leaf_key_comp::compare(prev_key, hi) < 0);
+    errs->out_of_order |= !(prev_key == NULL || hi == NULL || leaf_key_comp::compare(prev_key, hi) <= 0);
 }
 
 bool internal_node_begin_offset_in_range(const slicecx& cx, const btree_internal_node *buf, uint16_t offset) {
@@ -755,10 +755,9 @@ void check_subtree_internal_node(slicecx& cx, const btree_internal_node *buf, bt
                 errs->value_out_of_buf = true;
                 return;
             }
-            expected_offset += internal_node_handler::pair_size(internal_node_handler::get_pair(buf, expected_offset));
+            expected_offset += internal_node_handler::pair_size(internal_node_handler::get_pair(buf, sorted_offsets[i]));
         }
-        errs->noncontiguous_offsets |= (expected_offset == cx.knog->static_config->block_size - sizeof(data_block_manager_t::buf_data_t));
-
+        errs->noncontiguous_offsets |= (expected_offset != cx.knog->static_config->block_size - sizeof(data_block_manager_t::buf_data_t));
     }
 
     // Now check other things.
@@ -783,7 +782,7 @@ void check_subtree_internal_node(slicecx& cx, const btree_internal_node *buf, bt
         } else {
             errs->last_internal_node_key_nonempty = (pair->key.size != 0);
 
-            errs->out_of_order |= (prev_key == NULL || hi == NULL || internal_key_comp::compare(prev_key, hi) < 0);
+            errs->out_of_order |= !(prev_key == NULL || hi == NULL || internal_key_comp::compare(prev_key, hi) <= 0);
 
             if (errs->out_of_order) {
                 check_subtree(cx, pair->lnode, NULL, NULL, tree_errs);
@@ -1207,7 +1206,7 @@ void report_slice_errors(const slice_errors *errs) {
     report_other_block_errors(&errs->other_block_errs);
 }
 
-void report_post_config_block_errors(const all_slices_errors &slices_errs) {
+void report_post_config_block_errors(const all_slices_errors& slices_errs) {
     for (int i = 0; i < slices_errs.n_slices; ++i) {
         char buf[100] = { 0 };
         snprintf(buf, 99, "%d", i);
@@ -1217,6 +1216,12 @@ void report_post_config_block_errors(const all_slices_errors &slices_errs) {
 
         report_slice_errors(&slices_errs.slice[i]);
     }
+}
+
+void print_interfile_summary(const serializer_config_block_t& c) {
+    printf("config_block database_magic: %u\n", c.database_magic);
+    printf("config_block n_files: %d\n", c.n_files);
+    printf("config_block n_slices: %d\n", c.btree_config.n_slices);
 }
 
 void check_files(const config_t& cfg) {
@@ -1247,6 +1252,8 @@ void check_files(const config_t& cfg) {
         report_interfile_errors(errs);
         return;
     }
+
+    print_interfile_summary(*knog.file_knog[0]->config_block);
 
     all_slices_errors slices_errs(knog.file_knog[0]->config_block->btree_config.n_slices);
     for (int i = 0; i < num_files; ++i) {

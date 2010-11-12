@@ -63,8 +63,8 @@ struct btree_key {
     uint8_t size;
     char contents[0];
     void print() {
-        //printf("%*.*s", size, size, contents);
-        printf("%d", size);
+        printf("%*.*s", size, size, contents);
+        //printf("%d", size);
     }
 };
 
