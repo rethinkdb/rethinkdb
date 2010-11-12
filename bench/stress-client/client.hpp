@@ -190,7 +190,11 @@ void* run_client(void* data) {
         load_t::load_op_t cmd = config->load.toss((config->batch_factor.min + config->batch_factor.max) / 2.0f);
 
         payload_t op_keys[config->batch_factor.max];
-        payload_t op_vals[config->batch_factor.max];
+        payload_t op_val;
+
+        char val[] = {'a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a'};
+
+        op_val.first = val;
 
         int j, k, l; // because we can't declare in the loop
         uint64_t id_salt = client_data->id;
@@ -221,13 +225,12 @@ void* run_client(void* data) {
 
             config->keys.toss(op_keys, random(client_data->min_seed, client_data->min_seed) ^ id_salt);
 
-            config->values.toss(op_vals, random(0, 200));
+            op_val.second = random(8, 128);
 
             // Send it to server
-            proto->update(op_keys->first, op_keys->second, op_vals->first, op_vals->second);
+            proto->update(op_keys->first, op_keys->second, op_val.first, op_val.second);
             // Free the value
             free(op_keys->first);
-            free(op_vals->first);
             qps++;
             total_queries++;
             break;
@@ -235,14 +238,13 @@ void* run_client(void* data) {
         case load_t::insert_op:
             // Generate the payload
             config->keys.toss(op_keys, client_data->min_seed ^ id_salt);
-            client_data->min_seed++;
+            op_val.second = random(8, 128);
 
-            config->values.toss(op_vals, random(0, 200));
+            client_data->max_seed++;
             // Send it to server
-            proto->insert(op_keys->first, op_keys->second, op_vals->first, op_vals->second);
+            proto->insert(op_keys->first, op_keys->second, op_val.first, op_val.second);
             // Free the value and save the key
             free(op_keys->first);
-            free(op_vals->first);
             qps++;
             total_queries++;
             total_inserts++;

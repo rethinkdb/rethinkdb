@@ -54,20 +54,18 @@ public:
 
             hash += hash << 43;
             hash ^= hash >> 27;
-            hash += hash << 47;
-            hash ^= hash >> 1;
 
             char *hash_head = (char *) &hash;
 
             switch (size) {
                 default:
-                    *head++ = *hash_head++;
+                    *head++ = (*hash_head++ % ('z' - 'a')) + 'a';
                 case (3):
-                    *head++ = *hash_head++;
+                    *head++ = (*hash_head++ % ('z' - 'a')) + 'a';
                 case (2):
-                    *head++ = *hash_head++;
+                    *head++ = (*hash_head++ % ('z' - 'a')) + 'a';
                 case (1):
-                    *head++ = *hash_head++;
+                    *head++ = (*hash_head++ % ('z' - 'a')) + 'a';
                     break;
             }
         }
