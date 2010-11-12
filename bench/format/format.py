@@ -236,7 +236,7 @@ class dbench():
             # Accumulating data for competitors' run
             for competitor in self.competitors.iteritems():
                 try:
-                    data[competitor[0]] = reduce(lambda x, y: x + y, competitor[1].single_runs[run_name]i.data)
+                    data[competitor[0]] = reduce(lambda x, y: x + y, competitor[1].single_runs[run_name].data)
                 except KeyError:
                     print 'Competitor: %s did not report data for run %s' % (competitor[0], run.name)
 
