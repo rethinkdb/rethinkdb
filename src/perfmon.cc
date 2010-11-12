@@ -177,21 +177,23 @@ struct perfmon_sampler_step_t :
     void end(perfmon_stats_t *dest) {
         perfmon_sampler_t::value_t value = 0;
         uint64_t count = 0;
-        perfmon_sampler_t::value_t min, max;
+        perfmon_sampler_t::value_t min = 0, max = 0;   /* Initializers to make GCC shut up */
+        bool have_any = false;
         for (int i = 0; i < get_num_cpus(); i++) {
             value += values[i];
             count += counts[i];
-            if (i > 0) {
-                if (counts[i]) {
+            if (counts[i]) {
+                if (have_any) {
                     min = std::min(mins[i], min);
                     max = std::max(maxes[i], max);
+                } else {
+                    min = mins[i];
+                    max = maxes[i];
+                    have_any = true;
                 }
-            } else {
-                min = mins[i];
-                max = maxes[i];
             }
         }
-        if (count > 0) {
+        if (have_any) {
             (*dest)[parent->name + "_avg[" + parent->name + "]"] = format(value / count);
             (*dest)[parent->name + "_min[" + parent->name + "]"] = format(min);
             (*dest)[parent->name + "_max[" + parent->name + "]"] = format(max);
