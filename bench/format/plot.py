@@ -82,10 +82,14 @@ class TimeSeriesCollection():
     def read(self, file_name):
         try:
             data = open(file_name).readlines()
-            self.data = self.parse(data)
-            self.process()
         except IOError:
             print 'Missing file: %s data from it will not be reported' % file_name
+        try:
+            self.data = self.parse(data)
+        except AssertionError:
+            print 'Malformed data from %s' % file_name
+        try:
+            self.process()
         return self #this just lets you do initialization in one line
 
     def copy(self):
