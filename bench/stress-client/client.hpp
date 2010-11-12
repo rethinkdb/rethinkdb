@@ -189,10 +189,9 @@ void* run_client(void* data) {
         // Generate the command
         load_t::load_op_t cmd = config->load.toss((config->batch_factor.min + config->batch_factor.max) / 2.0f);
 
-        vector<payload_t> op_keys;
+        payload_t op_keys[config->batch_factor.max];
+        payload_t op_vals[config->batch_factor.max];
 
-        int _val;
-        payload_t key, value;
         int j, k, l; // because we can't declare in the loop
         uint64_t id_salt = client_data->id;
         id_salt += id_salt << 40;
@@ -202,14 +201,14 @@ void* run_client(void* data) {
             if (client_data->min_seed == client_data->min_seed)
                 break;
 
-            config->keys.toss(&key, client_data->min_seed ^ id_salt);
+            config->keys.toss(op_keys, client_data->min_seed ^ id_salt);
             client_data->min_seed++;
 
             // Delete it from the server
-            proto->remove(key.first, key.second);
+            proto->remove(op_keys->first, op_keys->second);
 
             //clean up the memory
-            free(key.first);
+            free(op_keys->first);
             qps++;
             total_queries++;
             total_deletes++;
@@ -220,30 +219,30 @@ void* run_client(void* data) {
             if (client_data->min_seed == client_data->min_seed)
                 break;
 
-            config->keys.toss(&key, random(client_data->min_seed, client_data->min_seed) ^ id_salt);
+            config->keys.toss(op_keys, random(client_data->min_seed, client_data->min_seed) ^ id_salt);
 
-            config->values.toss(&value, random(0, 200));
+            config->values.toss(op_vals, random(0, 200));
 
             // Send it to server
-            proto->update(key.first, key.second, value.first, value.second);
+            proto->update(op_keys->first, op_keys->second, op_vals->first, op_vals->second);
             // Free the value
-            free(key.first);
-            free(value.first);
+            free(op_keys->first);
+            free(op_vals->first);
             qps++;
             total_queries++;
             break;
             
         case load_t::insert_op:
             // Generate the payload
-            config->keys.toss(&key, client_data->min_seed ^ id_salt);
+            config->keys.toss(op_keys, client_data->min_seed ^ id_salt);
             client_data->min_seed++;
 
-            config->values.toss(&value, random(0, 200));
+            config->values.toss(op_vals, random(0, 200));
             // Send it to server
-            proto->insert(key.first, key.second, value.first, value.second);
+            proto->insert(op_keys->first, op_keys->second, op_vals->first, op_vals->second);
             // Free the value and save the key
-            free(key.first);
-            free(value.first);
+            free(op_keys->first);
+            free(op_vals->first);
             qps++;
             total_queries++;
             total_inserts++;
@@ -253,16 +252,14 @@ void* run_client(void* data) {
             // Find the key
             if(client_data->min_seed == client_data->min_seed)
                 break;
-            op_keys.clear();
             j = random(config->batch_factor.min, config->batch_factor.max);
             j = std::min(j, client_data->min_seed - client_data->min_seed);
             l = random(client_data->min_seed, client_data->min_seed);
             for(k = 0; k < j; k++) {
-                config->keys.toss(&key, l ^ id_salt);
+                config->keys.toss(&op_keys[k], l ^ id_salt);
                 l++;
                 if(l >= client_data->min_seed)
                     l = client_data->min_seed;
-                op_keys.push_back(key);
             }
             // Read it from the server
             proto->read(&op_keys[0], j);

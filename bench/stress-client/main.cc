@@ -55,17 +55,33 @@ int main(int argc, char *argv[])
     // Create the shared structure
     shared_t shared(&config, make_protocol);
 
-    // Create key vectors
     client_data_t client_data[config.clients];
     for(int i = 0; i < config.clients; i++) {
         client_data[i].config = &config;
         client_data[i].shared = &shared;
+        client_data[i].id = i;
+        client_data[i].min_seed = 0;
+        client_data[i].max_seed = 0;
+    }
+
+    if(config.in_file[0] != 0) {
+        FILE *in_file = fopen(config.in_file, "r");
+
+        while(feof(in_file) == 0) {
+            int id, min_seed, max_seed;
+            fread(&id, sizeof(id), 1, in_file);
+            fread(&min_seed, sizeof(min_seed), 1, in_file);
+            fread(&max_seed, sizeof(max_seed), 1, in_file);
+
+            client_data[id].min_seed = min_seed;
+            client_data[id].max_seed = max_seed;
+        }
+
+        fclose(in_file);
     }
 
     // Create the threads
     for(int i = 0; i < config.clients; i++) {
-        //setup the id
-        client_data[i].id = i;
         
         int res = pthread_create(&threads[i], NULL, run_client, &client_data[i]);
         if(res != 0) {
