@@ -229,7 +229,7 @@ void* run_client(void* data) {
 
             config->keys.toss(op_keys, random(client_data->min_seed, client_data->min_seed) ^ id_salt);
 
-            op_val.second = random(8, 128);
+            op_val.second = random(config->values.min, config->values.max);
 
             // Send it to server
             proto->update(op_keys->first, op_keys->second, op_val.first, op_val.second);
@@ -241,7 +241,7 @@ void* run_client(void* data) {
         case load_t::insert_op:
             // Generate the payload
             config->keys.toss(op_keys, client_data->min_seed ^ id_salt);
-            op_val.second = random(8, 128);
+            op_val.second = random(config->values.min, config->values.max);
 
             client_data->max_seed++;
             // Send it to server
