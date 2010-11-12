@@ -734,7 +734,7 @@ void check_subtree_leaf_node(slicecx& cx, const btree_leaf_node *buf, btree_key 
         prev_key = &pair->key;
     }
 
-    errs->out_of_order |= !(prev_key == NULL || hi == NULL || leaf_key_comp::compare(prev_key, hi) < 0);
+    errs->out_of_order |= !(prev_key == NULL || hi == NULL || leaf_key_comp::compare(prev_key, hi) <= 0);
 }
 
 bool internal_node_begin_offset_in_range(const slicecx& cx, const btree_internal_node *buf, uint16_t offset) {
@@ -783,7 +783,7 @@ void check_subtree_internal_node(slicecx& cx, const btree_internal_node *buf, bt
         } else {
             errs->last_internal_node_key_nonempty = (pair->key.size != 0);
 
-            errs->out_of_order |= (prev_key == NULL || hi == NULL || internal_key_comp::compare(prev_key, hi) < 0);
+            errs->out_of_order |= !(prev_key == NULL || hi == NULL || internal_key_comp::compare(prev_key, hi) <= 0);
 
             if (errs->out_of_order) {
                 check_subtree(cx, pair->lnode, NULL, NULL, tree_errs);
