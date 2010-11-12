@@ -1207,7 +1207,7 @@ void report_slice_errors(const slice_errors *errs) {
     report_other_block_errors(&errs->other_block_errs);
 }
 
-void report_post_config_block_errors(const all_slices_errors &slices_errs) {
+void report_post_config_block_errors(const all_slices_errors& slices_errs) {
     for (int i = 0; i < slices_errs.n_slices; ++i) {
         char buf[100] = { 0 };
         snprintf(buf, 99, "%d", i);
@@ -1217,6 +1217,12 @@ void report_post_config_block_errors(const all_slices_errors &slices_errs) {
 
         report_slice_errors(&slices_errs.slice[i]);
     }
+}
+
+void print_interfile_summary(const serializer_config_block_t& c) {
+    printf("config_block database_magic: %u\n", c.database_magic);
+    printf("config_block n_files: %d\n", c.n_files);
+    printf("config_block n_slices: %d\n", c.btree_config.n_slices);
 }
 
 void check_files(const config_t& cfg) {
@@ -1247,6 +1253,8 @@ void check_files(const config_t& cfg) {
         report_interfile_errors(errs);
         return;
     }
+
+    print_interfile_summary(*knog.file_knog[0]->config_block);
 
     all_slices_errors slices_errs(knog.file_knog[0]->config_block->btree_config.n_slices);
     for (int i = 0; i < num_files; ++i) {
