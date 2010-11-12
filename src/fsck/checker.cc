@@ -708,7 +708,7 @@ void check_subtree_leaf_node(slicecx& cx, const btree_leaf_node *buf, btree_key 
                 errs->value_out_of_buf = true;
                 return;
             }
-            expected_offset += leaf_node_handler::pair_size(leaf_node_handler::get_pair(buf, expected_offset));
+            expected_offset += leaf_node_handler::pair_size(leaf_node_handler::get_pair(buf, sorted_offsets[i]));
         }
         errs->noncontiguous_offsets |= (expected_offset != cx.knog->static_config->block_size - sizeof(data_block_manager_t::buf_data_t));
 
@@ -755,10 +755,9 @@ void check_subtree_internal_node(slicecx& cx, const btree_internal_node *buf, bt
                 errs->value_out_of_buf = true;
                 return;
             }
-            expected_offset += internal_node_handler::pair_size(internal_node_handler::get_pair(buf, expected_offset));
+            expected_offset += internal_node_handler::pair_size(internal_node_handler::get_pair(buf, sorted_offsets[i]));
         }
-        errs->noncontiguous_offsets |= (expected_offset == cx.knog->static_config->block_size - sizeof(data_block_manager_t::buf_data_t));
-
+        errs->noncontiguous_offsets |= (expected_offset != cx.knog->static_config->block_size - sizeof(data_block_manager_t::buf_data_t));
     }
 
     // Now check other things.
