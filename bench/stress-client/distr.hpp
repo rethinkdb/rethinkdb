@@ -44,8 +44,7 @@ public:
         size %= max - min;
         size += min;
 
-        char *l = (char*) malloc(size);
-        char *head = l;
+        char *l = payload->first;
         for(;size > 4; size -= 4) {
             uint64_t hash = seed;
             hash ^= (size << 7);
@@ -59,18 +58,17 @@ public:
 
             switch (size) {
                 default:
-                    *head++ = (*hash_head++ % ('z' - 'a')) + 'a';
+                    *l++ = (*hash_head++ % ('z' - 'a')) + 'a';
                 case (3):
-                    *head++ = (*hash_head++ % ('z' - 'a')) + 'a';
+                    *l++ = (*hash_head++ % ('z' - 'a')) + 'a';
                 case (2):
-                    *head++ = (*hash_head++ % ('z' - 'a')) + 'a';
+                    *l++ = (*hash_head++ % ('z' - 'a')) + 'a';
                 case (1):
-                    *head++ = (*hash_head++ % ('z' - 'a')) + 'a';
+                    *l++ = (*hash_head++ % ('z' - 'a')) + 'a';
                     break;
             }
         }
         // fill the payload
-        payload->first = l;
         payload->second = size;
     }
 

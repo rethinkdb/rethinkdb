@@ -190,6 +190,11 @@ void* run_client(void* data) {
         load_t::load_op_t cmd = config->load.toss((config->batch_factor.min + config->batch_factor.max) / 2.0f);
 
         payload_t op_keys[config->batch_factor.max];
+        char key_space[config->keys.max * config->batch_factor.max];
+
+        for (int i = 0; i < config->batch_factor.max; i++)
+            op_keys[i].first = key_space + (config->keys.max * i);
+
         payload_t op_val;
 
         char val[] = {'a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a'};
@@ -212,7 +217,6 @@ void* run_client(void* data) {
             proto->remove(op_keys->first, op_keys->second);
 
             //clean up the memory
-            free(op_keys->first);
             qps++;
             total_queries++;
             total_deletes++;
@@ -230,7 +234,6 @@ void* run_client(void* data) {
             // Send it to server
             proto->update(op_keys->first, op_keys->second, op_val.first, op_val.second);
             // Free the value
-            free(op_keys->first);
             qps++;
             total_queries++;
             break;
@@ -244,7 +247,6 @@ void* run_client(void* data) {
             // Send it to server
             proto->insert(op_keys->first, op_keys->second, op_val.first, op_val.second);
             // Free the value and save the key
-            free(op_keys->first);
             qps++;
             total_queries++;
             total_inserts++;
@@ -266,9 +268,6 @@ void* run_client(void* data) {
             // Read it from the server
             proto->read(&op_keys[0], j);
 
-            for (k = 0; k < j; k++) {
-                free(op_keys[k].first);
-            }
             qps += j;
             total_queries += j;
             break;
