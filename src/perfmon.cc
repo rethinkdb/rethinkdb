@@ -35,7 +35,7 @@ struct perfmon_fsm_t :
         }
     }
     bool visit() {
-        for (unsigned i = 0; i < get_var_list().size(); i++) {
+        for (unsigned i = 0; i < steps.size(); i++) {
             steps[i]->visit();
         }
         do_on_cpu(home_cpu, this, &perfmon_fsm_t::have_visited);
@@ -44,10 +44,8 @@ struct perfmon_fsm_t :
     bool have_visited() {
         messages_out--;
         if (messages_out == 0) {
-            int i = 0;
-            for (perfmon_t *p = get_var_list().head(); p; p = get_var_list().next(p)) {
-                perfmon_t::step_t *s = steps[i++];
-                (*dest)[p->name] = s->end();
+            for (unsigned i = 0; i < steps.size(); i++) {
+                steps[i]->end(dest);
             }
             if (cb) {
                 cb->on_perfmon_stats();
@@ -80,8 +78,7 @@ Right now, it is illegal to make perfmon_t objects that are not static variables
 we don't have to worry about locking the var list. If we locked it, then we could
 create and destroy perfmon_ts at runtime. */
 
-perfmon_t::perfmon_t(const char *n)
-    : name(n)
+perfmon_t::perfmon_t()
 {
     get_var_list().push_back(this);
 }
@@ -91,10 +88,20 @@ perfmon_t::~perfmon_t() {
     get_var_list().remove(this);
 }
 
+/* Number formatter */
+
+template<class T>
+std::string format(T value) {
+    std::stringstream ss;
+    ss.precision(8);
+    ss << std::fixed << value;
+    return ss.str();
+}
+
 /* perfmon_counter_t */
 
-perfmon_counter_t::perfmon_counter_t(const char *name)
-    : perfmon_t(name)
+perfmon_counter_t::perfmon_counter_t(std::string name)
+    : name(name)
 {
     for (int i = 0; i < MAX_CPUS; i++) values[i] = 0;
 }
@@ -113,13 +120,11 @@ struct perfmon_counter_step_t :
     void visit() {
         values[get_cpu_id()] = parent->values[get_cpu_id()];
     }
-    std::string end() {
+    void end(perfmon_stats_t *dest) {
         int64_t value = 0;
         for (int i = 0; i < get_num_cpus(); i++) value += values[i];
+        (*dest)[parent->name] = format(value);
         delete this;
-        std::stringstream s;
-        s << value;
-        return s.str();
     }
 };
 
@@ -128,38 +133,83 @@ perfmon_t::step_t *perfmon_counter_t::begin() {
     return new perfmon_counter_step_t(this);
 }
 
-/* perfmon_thread_average_t */
+/* perfmon_sampler_t */
 
-perfmon_thread_average_t::perfmon_thread_average_t(const char *name)
-    : perfmon_t(name) { }
+perfmon_sampler_t::perfmon_sampler_t(std::string name, ticks_t length, bool include_rate)
+    : name(name), length(length), include_rate(include_rate) { }
 
-void perfmon_thread_average_t::set_value_for_this_thread(int64_t v) {
-
-    values[get_cpu_id()] = v;
+void perfmon_sampler_t::expire() {
+    ticks_t now = get_ticks();
+    std::deque<sample_t> &queue = values[get_cpu_id()];
+    while (!queue.empty() && queue.front().timestamp + length < now) queue.pop_front();
 }
 
-struct perfmon_thread_average_step_t :
+void perfmon_sampler_t::record(value_t v) {
+    expire();
+    values[get_cpu_id()].push_back(sample_t(v, get_ticks()));
+}
+
+struct perfmon_sampler_step_t :
     public perfmon_t::step_t
 {
-    perfmon_thread_average_t *parent;
-    int64_t values[MAX_CPUS];
-    perfmon_thread_average_step_t(perfmon_thread_average_t *parent)
+    perfmon_sampler_t *parent;
+    uint64_t counts[MAX_CPUS];
+    perfmon_sampler_t::value_t values[MAX_CPUS], mins[MAX_CPUS], maxes[MAX_CPUS];
+    perfmon_sampler_step_t(perfmon_sampler_t *parent)
         : parent(parent) { }
     void visit() {
-        values[get_cpu_id()] = parent->values[get_cpu_id()];
+        parent->expire();
+        values[get_cpu_id()] = 0;
+        counts[get_cpu_id()] = 0;
+        for (std::deque<perfmon_sampler_t::sample_t>::iterator it = parent->values[get_cpu_id()].begin();
+             it != parent->values[get_cpu_id()].end(); it++) {
+            values[get_cpu_id()] += (*it).value;
+            if (counts[get_cpu_id()] > 0) {
+                mins[get_cpu_id()] = std::min(mins[get_cpu_id()], (*it).value);
+                maxes[get_cpu_id()] = std::max(maxes[get_cpu_id()], (*it).value);
+            } else {
+                mins[get_cpu_id()] = (*it).value;
+                maxes[get_cpu_id()] = (*it).value;
+            }
+            counts[get_cpu_id()]++;
+        }
     }
-    std::string end() {
-        int64_t value = 0;
-        for (int i = 0; i < get_num_cpus(); i++) value += values[i];
-        value /= get_num_cpus();
+    void end(perfmon_stats_t *dest) {
+        perfmon_sampler_t::value_t value = 0;
+        uint64_t count = 0;
+        perfmon_sampler_t::value_t min = 0, max = 0;   /* Initializers to make GCC shut up */
+        bool have_any = false;
+        for (int i = 0; i < get_num_cpus(); i++) {
+            value += values[i];
+            count += counts[i];
+            if (counts[i]) {
+                if (have_any) {
+                    min = std::min(mins[i], min);
+                    max = std::max(maxes[i], max);
+                } else {
+                    min = mins[i];
+                    max = maxes[i];
+                    have_any = true;
+                }
+            }
+        }
+        if (have_any) {
+            (*dest)[parent->name + "_avg[" + parent->name + "]"] = format(value / count);
+            (*dest)[parent->name + "_min[" + parent->name + "]"] = format(min);
+            (*dest)[parent->name + "_max[" + parent->name + "]"] = format(max);
+        } else {
+            (*dest)[parent->name + "_avg[" + parent->name + "]"] = "-";
+            (*dest)[parent->name + "_min[" + parent->name + "]"] = "-";
+            (*dest)[parent->name + "_max[" + parent->name + "]"] = "-";
+        }
+        if (parent->include_rate) {
+            (*dest)[parent->name + "_persec"] = format(count / ticks_to_secs(parent->length));
+        }
         delete this;
-        std::stringstream s;
-        s << value;
-        return s.str();
     }
 };
 
-perfmon_t::step_t *perfmon_thread_average_t::begin() {
+perfmon_t::step_t *perfmon_sampler_t::begin() {
     
-    return new perfmon_thread_average_step_t(this);
+    return new perfmon_sampler_step_t(this);
 }

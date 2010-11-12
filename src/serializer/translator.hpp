@@ -26,7 +26,7 @@ public:
     static ser_block_id_t translate_block_id(ser_block_id_t id, int mod_count, int mod_id, ser_block_id_t min);
 
     // "Inverts" translate_block_id, converting inner_id back to mod_id (not back to id).
-    static ser_block_id_t untranslate_block_id(ser_block_id_t inner_id, int mod_count, ser_block_id_t min);
+    static int untranslate_block_id(ser_block_id_t inner_id, int mod_count, ser_block_id_t min);
 
 private:
     ser_block_id_t xlate(ser_block_id_t id);

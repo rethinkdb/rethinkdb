@@ -7,12 +7,6 @@
 
 const block_magic_t log_serializer_t::zerobuf_magic = { { 'z', 'e', 'r', 'o' } };
 
-perfmon_counter_t
-    pm_serializer_reads_started("serializer_reads_started[sreads]"),
-    pm_serializer_reads_completed("serializer_reads_completed[sreads]"),
-    pm_serializer_writes_started("serializer_writes_started[swrites]"),
-    pm_serializer_writes_completed("serializer_writes_completed[swrites]");
-
 log_serializer_t::log_serializer_t(const char *_db_path, dynamic_config_t *config)
     : dynamic_config(config),
       shutdown_callback(NULL),
@@ -481,6 +475,8 @@ struct ls_block_writer_t :
     }
 };
 
+perfmon_duration_sampler_t pm_serializer_writes("serializer_writes", secs_to_ticks(1));
+
 struct ls_write_fsm_t :
     private iocallback_t,
     private lba_index_t::sync_callback_t,
@@ -493,11 +489,12 @@ struct ls_write_fsm_t :
         state_done
     } state;
     
+    ticks_t start_time;
+    
     log_serializer_t *ser;
 
     log_serializer_t::write_t *writes;
     int num_writes;
-    
     
     extent_manager_t::transaction_t *extent_txn;
     
@@ -509,12 +506,12 @@ struct ls_write_fsm_t :
     ls_write_fsm_t(log_serializer_t *ser, log_serializer_t::write_t *writes, int num_writes)
         : state(state_start), ser(ser), writes(writes), num_writes(num_writes), next_write(NULL)
     {
-        pm_serializer_writes_started++;
+        pm_serializer_writes.begin(&start_time);
     }
     
     ~ls_write_fsm_t() {
         assert(state == state_start || state == state_done);
-        pm_serializer_writes_completed++;
+        pm_serializer_writes.end(&start_time);
     }
     
     bool run(log_serializer_t::write_txn_callback_t *cb) {
@@ -702,9 +699,12 @@ bool log_serializer_t::do_write(write_t *writes, int num_writes, write_txn_callb
     return res;
 }
 
+perfmon_duration_sampler_t pm_serializer_reads("serializer_reads", secs_to_ticks(1));
+
 struct ls_read_fsm_t :
     private iocallback_t
 {
+    ticks_t start_time;
     log_serializer_t *ser;
     ser_block_id_t block_id;
     void *buf;
@@ -712,11 +712,11 @@ struct ls_read_fsm_t :
     ls_read_fsm_t(log_serializer_t *ser, ser_block_id_t block_id, void *buf)
         : ser(ser), block_id(block_id), buf(buf)
     {
-        pm_serializer_reads_started++;
+        pm_serializer_reads.begin(&start_time);
     }
     
     ~ls_read_fsm_t() {
-        pm_serializer_reads_completed++;
+        pm_serializer_reads.end(&start_time);
     }
     
     serializer_t::read_callback_t *read_callback;

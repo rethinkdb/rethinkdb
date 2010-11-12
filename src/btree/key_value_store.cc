@@ -5,7 +5,7 @@
 
 - Each slice is assigned to a serializer. The formula is (slice_id % n_files)
 - Block ID 0 on each serializer is for static btree configuration information.
-- Each slice uses block IDs of the form (1 + (n * (number of serializers on slice) +
+- Each slice uses block IDs of the form (1 + (n * (number of slices on serializer) +
     (slice_id / n_files))).
 
 */
@@ -345,7 +345,7 @@ void btree_key_value_store_t::finish_start() {
 #define get16bits(d) ((((uint32_t)(((const uint8_t *)(d))[1])) << 8)\
                        +(uint32_t)(((const uint8_t *)(d))[0]) )
 
-uint32_t hash(btree_key *key) {
+uint32_t btree_key_value_store_t::hash(btree_key *key) {
     const char *data = key->contents;
     int len = key->size;
     uint32_t hash = len, tmp;
@@ -756,6 +756,6 @@ void btree_slice_t::on_cache_shutdown() {
 
 // Stats
 
-perfmon_counter_t
-    pm_cmd_set("cmd_set"),
-    pm_cmd_get("cmd_get");
+perfmon_duration_sampler_t
+    pm_cmd_set("cmd_set", secs_to_ticks(1)),
+    pm_cmd_get("cmd_get", secs_to_ticks(1));

@@ -15,7 +15,7 @@
 #include "arch/linux/thread_pool.hpp"
 
 /* Declared here but NOT in poll.cc; this instance provides for either one */
-perfmon_thread_average_t pm_events_per_loop("events_per_loop");
+perfmon_sampler_t pm_events_per_loop("events_per_loop", secs_to_ticks(1));
 
 int user_to_epoll(int mode) {
     int out_mode = 0;
@@ -68,7 +68,7 @@ void epoll_event_queue_t::run() {
 
         // nevents might be used by forget_resource during the loop
         nevents = res;
-        pm_events_per_loop.set_value_for_this_thread(nevents);
+        pm_events_per_loop.record(nevents);
 
         // TODO: instead of processing the events immediately, we
         // might want to queue them up and then process the queue in

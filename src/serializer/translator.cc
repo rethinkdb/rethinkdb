@@ -4,7 +4,7 @@ ser_block_id_t translator_serializer_t::translate_block_id(ser_block_id_t id, in
     return id * mod_count + mod_id + min;
 }
 
-ser_block_id_t translator_serializer_t::untranslate_block_id(ser_block_id_t inner_id, int mod_count, ser_block_id_t min) {
+int translator_serializer_t::untranslate_block_id(ser_block_id_t inner_id, int mod_count, ser_block_id_t min) {
     // We know that inner_id == id * mod_count + mod_id + min.
     // Thus inner_id - min == id * mod_count + mod_id.
     // It follows that inner_id - min === mod_id (modulo mod_count).

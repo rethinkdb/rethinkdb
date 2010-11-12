@@ -1,6 +1,10 @@
 #include "writeback.hpp"
 #include "buffer_cache/mirrored/mirrored.hpp"
 
+perfmon_duration_sampler_t
+    pm_flushes_locking("flushes_locking", secs_to_ticks(1)),
+    pm_flushes_writing("flushes_writing", secs_to_ticks(1));
+
 writeback_t::writeback_t(
         cache_t *cache,
         bool wait_for_flush,
@@ -126,7 +130,7 @@ bool writeback_t::writeback_start_and_acquire_lock() {
 
     assert(!writeback_in_progress);
     writeback_in_progress = true;
-    pm_flushes_started++;
+    pm_flushes_locking.begin(&start_time);
     cache->assert_cpu();
         
     // Cancel the flush timer because we're doing writeback now, so we don't need it to remind
@@ -166,7 +170,8 @@ bool writeback_t::writeback_acquire_bufs() {
     assert(writeback_in_progress);
     cache->assert_cpu();
     
-    pm_flushes_acquired_lock++;
+    pm_flushes_locking.end(&start_time);
+    pm_flushes_writing.begin(&start_time);
     
     current_sync_callbacks.append_and_clear(&sync_callbacks);
 
@@ -276,7 +281,7 @@ bool writeback_t::writeback_do_cleanup() {
     // Don't clear writeback_in_progress until after we call all the sync callbacks, because
     // otherwise it would crash if a sync callback called sync().
     writeback_in_progress = false;
-    pm_flushes_completed++;
+    pm_flushes_writing.end(&start_time);
 
     if (start_next_sync_immediately) {
         start_next_sync_immediately = false;

@@ -12,12 +12,25 @@
 #include "logger.hpp"
 
 #include "extract/block_registry.hpp"
+#include "fsck/raw_block.hpp"
 
+namespace extract {
 
-
-
-typedef extract_config_t::override_t cfg_t;
+typedef config_t::override_t cfg_t;
 typedef data_block_manager_t::buf_data_t buf_data_t;
+
+class block : public fsck::raw_block {
+public:
+    block() { }
+
+    using raw_block::init;
+    using raw_block::realbuf;
+
+    const buf_data_t& buf_data() const {
+        return *realbuf;
+    }
+};
+
 
 struct byteslice {
     const byte *buf;
@@ -64,17 +77,6 @@ void dump_pair_value(dumper_t &dumper, direct_file_t& file, const cfg_t cfg, con
 void walkfile(dumper_t &dumper, const char *path);
 
 
-// A small simple helper, refactor if we ever use smart pointers elsewhere.
-class freer {
-public:
-    freer() { }
-    ~freer() { for (size_t i = 0; i < ptrs.size(); ++i) free(ptrs[i]); }
-    void add(void *p) { ptrs.push_back(p); }
-private:
-    std::vector<void *> ptrs;
-    DISABLE_COPYING(freer);
-};
-
 bool check_config(size_t filesize, const cfg_t cfg) {
     // Check that we have reasonable block_size and extent_size.
     bool errors = false;
@@ -119,21 +121,19 @@ void walk_extents(dumper_t &dumper, direct_file_t &file, cfg_t cfg) {
         return;
     }
 
-    if (cfg.mod_count == extract_config_t::NO_FORCED_MOD_COUNT) {
+    if (cfg.mod_count == config_t::NO_FORCED_MOD_COUNT) {
         if (!(CONFIG_BLOCK_ID < n && offsets[CONFIG_BLOCK_ID] != block_registry::null)) {
             fail("Config block cannot be found (CONFIG_BLOCK_ID = %u, offsets.get_size() = %u)."
                  "  Use --force-mod-count to override.\n",
                  CONFIG_BLOCK_ID, n);
         }
-
-        buf_data_t *buf = (buf_data_t *)malloc_aligned(cfg.block_size, DEVICE_BLOCK_SIZE);
-        freer f;
-        f.add(buf);
-
-        serializer_config_block_t *serbuf = (serializer_config_block_t *)(buf + 1);
-       
+        
         off64_t off = offsets[CONFIG_BLOCK_ID];
-        file.read_blocking(off, cfg.block_size, buf);
+
+        block serblock;
+        serblock.init(cfg.block_size, &file, off);
+        serializer_config_block_t *serbuf = (serializer_config_block_t *)serblock.buf;
+       
 
         if (!check_magic<serializer_config_block_t>(serbuf->magic)) {
             logERR("Config block has invalid magic (offset = %lu, magic = %.*s)\n",
@@ -141,7 +141,7 @@ void walk_extents(dumper_t &dumper, direct_file_t &file, cfg_t cfg) {
             return;
         }
 
-        if (cfg.mod_count == extract_config_t::NO_FORCED_MOD_COUNT) {
+        if (cfg.mod_count == config_t::NO_FORCED_MOD_COUNT) {
             cfg.mod_count = btree_key_value_store_t::compute_mod_count(serbuf->this_serializer, serbuf->n_files, serbuf->btree_config.n_slices);
         }
     }
@@ -165,29 +165,12 @@ bool check_all_known_magic(block_magic_t magic) {
 }
 
 void observe_blocks(block_registry &registry, direct_file_t &file, const cfg_t cfg, uint64_t filesize) {
-    off64_t offset = 0;
+    for (off64_t offset = 0, max_offset = filesize - cfg.block_size; offset <= max_offset; offset += cfg.block_size) {
+        block b;
+        b.init(cfg.block_size, &file, offset);
 
-    void *buf = malloc_aligned(cfg.block_size, DEVICE_BLOCK_SIZE);
-    freer f;
-    f.add(buf);
-
-    while (offset <= off64_t(filesize - cfg.block_size)) {
-        file.read_blocking(offset, cfg.block_size, buf);
-
-        off64_t end_of_extent = std::min(filesize, offset + (uint64_t)cfg.extent_size);
-
-        while (offset <= off64_t(end_of_extent - cfg.block_size)) {
-
-            file.read_blocking(offset, cfg.block_size, buf);
-
-            buf_data_t *buf_data = (buf_data_t *)(buf);
-            block_magic_t *magic = (block_magic_t *)(buf_data + 1);
-
-            if (check_all_known_magic(*magic)) {
-                registry.tell_block(offset, buf_data);
-            }
-
-            offset += cfg.block_size;
+        if (check_all_known_magic(*(block_magic_t *)b.buf)) {
+            registry.tell_block(offset, b.buf_data());
         }
     }
 }
@@ -195,13 +178,10 @@ void observe_blocks(block_registry &registry, direct_file_t &file, const cfg_t c
 // Dumps the values from block i.
 void get_values(dumper_t &dumper, direct_file_t& file, const cfg_t cfg, const segmented_vector_t<off64_t, MAX_BLOCK_ID>& offsets, size_t i) {
     if (offsets[i] != block_registry::null) {
-        void *buf = malloc_aligned(cfg.block_size, DEVICE_BLOCK_SIZE);
-        freer f;
-        f.add(buf);
+        block b;
+        b.init(cfg.block_size, &file, offsets[i]);
 
-        file.read_blocking(offsets[i], cfg.block_size, buf);
-
-        btree_leaf_node *leaf = (leaf_node_t *)((buf_data_t *)(buf) + 1);
+        const btree_leaf_node *leaf = (leaf_node_t *)b.buf;
     
         if (check_magic<btree_leaf_node>(leaf->magic)) {
             uint16_t num_pairs = leaf->npairs;
@@ -214,7 +194,6 @@ void get_values(dumper_t &dumper, direct_file_t& file, const cfg_t cfg, const se
         }
     }
 }
-
 
 // Dumps the values for a given pair.
 void dump_pair_value(dumper_t &dumper, direct_file_t& file, const cfg_t cfg, const segmented_vector_t<off64_t, MAX_BLOCK_ID>& offsets, btree_leaf_pair *pair, ser_block_id_t this_block) {
@@ -230,9 +209,6 @@ void dump_pair_value(dumper_t &dumper, direct_file_t& file, const cfg_t cfg, con
     // We're going to write the value, split into pieces, into this set of pieces.
     size_t num_pieces = 0;
     byteslice pieces[MAX_LARGE_BUF_SEGMENTS];
-
-    // A place for extra pointers that get freed when we return.
-    freer seg_ptrs;
 
     int64_t seg_size = cfg.block_size - sizeof(buf_data_t) - sizeof(large_buf_segment);
 
@@ -255,11 +231,9 @@ void dump_pair_value(dumper_t &dumper, direct_file_t& file, const cfg_t cfg, con
             return;
         }
 
-        byte *fullbuf = (byte *)malloc_aligned(cfg.block_size, DEVICE_BLOCK_SIZE);
-        seg_ptrs.add(fullbuf);
-        file.read_blocking(offsets[indexblock_id], cfg.block_size, fullbuf);
-
-        large_buf_index *indexblockbuf = (large_buf_index *)(fullbuf + sizeof(buf_data_t));
+        block indexblock;
+        indexblock.init(cfg.block_size, &file, offsets[indexblock_id]);
+        const large_buf_index *indexblockbuf = (large_buf_index *)indexblock.buf;
 
         if (!check_magic<large_buf_index>(indexblockbuf->magic)) {
             logERR("With key '%.*s': large_buf_index (offset %u) has invalid magic: '%.*s'\n",
@@ -300,17 +274,14 @@ void dump_pair_value(dumper_t &dumper, direct_file_t& file, const cfg_t cfg, con
         for (uint16_t i = 0; i < num_pieces; ++i) {
             ser_block_id_t seg_id = translator_serializer_t::translate_block_id(indexblockbuf->blocks[i], cfg.mod_count, mod_id, CONFIG_BLOCK_ID + 1);
 
-            byte *segbuf = (byte *)malloc_aligned(cfg.block_size, DEVICE_BLOCK_SIZE);
-            seg_ptrs.add(segbuf);
             if (offsets[seg_id] == block_registry::null) {
                 logERR("With key '%.*s': large_buf has invalid block id %u at segment #%u.\n",
                        key->size, key->contents, indexblockbuf->blocks[i], i);
                 return;
             }
-            file.read_blocking(offsets[seg_id], cfg.block_size, segbuf);
-
-            large_buf_segment *seg = (large_buf_segment *)(segbuf + sizeof(buf_data_t));
-            
+            block segblock;
+            segblock.init(cfg.block_size, &file, offsets[seg_id]);
+            const large_buf_segment *seg = (large_buf_segment *)segblock.buf;
             
 
             if (!check_magic<large_buf_segment>(seg->magic)) {
@@ -348,12 +319,10 @@ void dump_pair_value(dumper_t &dumper, direct_file_t& file, const cfg_t cfg, con
 void walkfile(dumper_t& dumper, const std::string& db_file, cfg_t overrides) {
     direct_file_t file(db_file.c_str(), direct_file_t::mode_read);
 
-    static_header_t *header = (static_header_t *)malloc_aligned(DEVICE_BLOCK_SIZE, DEVICE_BLOCK_SIZE);
-    freer f;
-    f.add(header);
- 
+    block headerblock;
+    headerblock.init(DEVICE_BLOCK_SIZE, &file, 0);
 
-    file.read_blocking(0, DEVICE_BLOCK_SIZE, header);
+    static_header_t *header = (static_header_t *)headerblock.realbuf;
 
     logINF("software_name: %s\n", header->software_name);
     logINF("version: %s\n", header->version);
@@ -362,10 +331,10 @@ void walkfile(dumper_t& dumper, const std::string& db_file, cfg_t overrides) {
     memcpy(&static_config, header->data, sizeof(static_config));
 
     // Do overrides.
-    if (overrides.block_size == extract_config_t::NO_FORCED_BLOCK_SIZE) {
+    if (overrides.block_size == config_t::NO_FORCED_BLOCK_SIZE) {
         overrides.block_size = static_config.block_size;
     }
-    if (overrides.extent_size == extract_config_t::NO_FORCED_EXTENT_SIZE) {
+    if (overrides.extent_size == config_t::NO_FORCED_EXTENT_SIZE) {
         overrides.extent_size = static_config.extent_size;
     }
 
@@ -376,7 +345,7 @@ void walkfile(dumper_t& dumper, const std::string& db_file, cfg_t overrides) {
 
 
 
-void dumpfile(const extract_config_t& config) {
+void dumpfile(const config_t& config) {
     dumper_t dumper(config.output_file.c_str());
 
     for (unsigned i = 0; i < config.input_files.size(); ++i) {
@@ -384,3 +353,5 @@ void dumpfile(const extract_config_t& config) {
     }
 
 }
+
+}  // namespace extract

@@ -9,7 +9,7 @@ public:
     block_registry();
 
     // Tells the block_registry about some new block that has been read.
-    void tell_block(off64_t offset, data_block_manager_t::buf_data_t *buf_data);
+    void tell_block(off64_t offset, const data_block_manager_t::buf_data_t& buf_data);
 
     // Checks that we have seen a block with every single block id.
     bool check_block_id_contiguity() const;

@@ -137,8 +137,7 @@ void mc_buf_t::release_cow() {
     
     assert(cow_data);
     cache->assert_cpu();
-    pm_n_bufs_released++;
-
+    
     if(cow_data == data) {
         // The block has not been copied
         cow_data = NULL;
@@ -217,6 +216,12 @@ void mc_buf_t::do_cow_copy() {
 /**
  * Transaction implementation.
  */
+
+perfmon_duration_sampler_t
+    pm_transactions_starting("transactions_starting", secs_to_ticks(1)),
+    pm_transactions_active("transactions_active", secs_to_ticks(1)),
+    pm_transactions_committing("transactions_committing", secs_to_ticks(1));
+
 mc_transaction_t::mc_transaction_t(cache_t *cache, access_t access)
     : cache(cache),
       access(access),
@@ -224,20 +229,27 @@ mc_transaction_t::mc_transaction_t(cache_t *cache, access_t access)
       commit_callback(NULL),
       state(state_open) {
     
-    pm_n_transactions_started++;
+    pm_transactions_starting.begin(&start_time);
     assert(access == rwi_read || access == rwi_write);
 }
 
 mc_transaction_t::~mc_transaction_t() {
 
     assert(state == state_committed);
-    pm_n_transactions_completed++;
+    pm_transactions_committing.end(&start_time);
+}
+
+void mc_transaction_t::on_lock_available() {
+    pm_transactions_starting.end(&start_time);
+    pm_transactions_active.begin(&start_time);
+    begin_callback->on_txn_begin(this);
 }
 
 bool mc_transaction_t::commit(transaction_commit_callback_t *callback) {
     
     assert(state == state_open);
-    pm_n_transactions_committed++;
+    pm_transactions_active.end(&start_time);
+    pm_transactions_committing.begin(&start_time);
     
     /* We have to call sync_patiently() before on_transaction_commit() so that if
     on_transaction_commit() starts a sync, we will get included in it */
@@ -335,6 +347,7 @@ void mc_transaction_t::process_buf(mc_buf_t *buf, access_t mode) {
         // Gotta do copy on write
         buf->do_cow_copy();
         pm_n_cows_made++;
+        pm_n_bufs_ready++;
     } else if(mode == rwi_read_outdated_ok) {
         // One rwi_read_outdated_ok at a time
         assert(buf->cow_data == NULL);
@@ -343,15 +356,16 @@ void mc_transaction_t::process_buf(mc_buf_t *buf, access_t mode) {
         // since rwi_read_outdated_ok is only done by writeback, the
         // block can't be unloaded
         buf->concurrency_buf.release();
+    } else {
+        pm_n_bufs_ready++;
     }
-    pm_n_bufs_ready++;
 }
 
 mc_buf_t *mc_transaction_t::acquire(block_id_t block_id, access_t mode,
                                block_available_callback_t *callback) {
     assert(mode == rwi_read || mode == rwi_read_outdated_ok || access != rwi_read);
        
-    pm_n_bufs_acquired++;
+    if (mode != rwi_read_outdated_ok) pm_n_bufs_acquired++;
 
     buf_t *buf = cache->page_map.find(block_id);
     if (!buf) {
@@ -529,7 +543,8 @@ mc_transaction_t *mc_cache_t::begin_transaction(access_t access,
     transaction_t *txn = new transaction_t(this, access);
     num_live_transactions ++;
     if (writeback.begin_transaction(txn, callback)) {
-        pm_n_transactions_ready++;
+        pm_transactions_starting.end(&txn->start_time);
+        pm_transactions_active.begin(&txn->start_time);
         return txn;
     } else {
         return NULL;
