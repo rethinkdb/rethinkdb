@@ -14,14 +14,17 @@ class line():
         if matches:
             result = {}
             for field, groupi in zip(self.fields, range(1, len(self.fields) + 1)):
-                if (field[1] == 'd'):
-                    val = int(matches.group(groupi))
-                elif (field[1] == 'f'):
-                    val = float(matches.group(groupi))
-                elif (field[1] == 's'):
-                    val = matches.group(groupi)
-                else:
-                    assert 0
+                try:
+                    if (field[1] == 'd'):
+                        val = int(matches.group(groupi))
+                    elif (field[1] == 'f'):
+                        val = float(matches.group(groupi))
+                    elif (field[1] == 's'):
+                        val = matches.group(groupi)
+                    else:
+                        assert 0
+                except:
+                       val = None
                 result[field[0]] = val
             return result
         else:

@@ -429,7 +429,7 @@ class QPS(TimeSeriesCollection):
         return res
 
 class RDBStats(TimeSeriesCollection):
-    stat_line = line("STAT\s+(\w+)(\[\w+\])?\s+(\d+)", [('name', 's'), ('units', 's'), ('value', 'd')])
+    stat_line = line("STAT\s+(\w+)(\[\w+\])?\s+(\d+|-)", [('name', 's'), ('units', 's'), ('value', 'd')])
     int_line  = line("STAT\s+(\w+)\s+(\d+)[^\.](?:\s+\(average of \d+\))?", [('name', 's'), ('value', 'd')])
     flt_line  = line("STAT\s+(\w+)\s+([\d.]+)\s+\([\d/]+\)", [('name', 's'), ('value', 'f')])
     end_line  = line("END", [])
