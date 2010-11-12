@@ -39,7 +39,14 @@ class Plot():
         self.y = y
 
 class default_empty_timeseries_dict(dict):
-    units_line = line("([A-Za-z_]+)(\[[A-Za-z_]\]+)", [('key', 's'), ('units', 's')])
+    units_line = line("(\w+)\[(\w+)\]", [('key', 's'), ('units', 's')])
+    def __setitem__(self, key, item):
+        m = self.units_line.parse_line(key)
+        if m:
+            key = m['key']
+            units = m['units']
+        dict.__setitem__(self, key, item)
+
     def __getitem__(self, key):
         m = self.units_line.parse_line(key)
         if m:
@@ -51,6 +58,7 @@ class default_empty_timeseries_dict(dict):
             return self.get(key)
         else:
             return TimeSeries(units)
+
     def copy(self):
         copy = default_empty_timeseries_dict()
         copy.update(self)
@@ -435,7 +443,12 @@ class RDBStats(TimeSeriesCollection):
             if not m:
                 break
             for match in m:
-                res[match['name']] += [match['value']]
+                if not match['units']:
+                    units = ''
+                else:
+                    units = match['units']
+
+                res[match['name'] + units] += [match['value']]
 
             m = take(self.end_line, data)
             assert m != False

@@ -2,6 +2,7 @@
 
 SERVER_EXEC_NAME:=rethinkdb
 SERVER_EXTRACT_NAME:=rethinkdb-extract
+SERVER_FSCK_NAME:=rethinkdb-fsck
 
 SCRIPTS_DIR:=../scripts
 START_DB_NAME:=start_rethinkdb
@@ -98,9 +99,12 @@ NAMES:=$(patsubst $(SOURCE_DIR)/%.cc,%,$(SOURCES))
 DEPS:=$(patsubst %,$(DEP_DIR)/%.d,$(NAMES))
 OBJS:=$(patsubst %,$(OBJ_DIR)/%.o,$(NAMES))
 
-SERVER_EXEC_OBJS:=$(patsubst %.cc,$(OBJ_DIR)/%.o,$(shell find $(SOURCE_DIR) -name '*.cc' | grep -vF "`find $(SOURCE_DIR)/extract -name '*.cc'`"))
+SERVER_EXEC_OBJS:=$(patsubst %.cc,$(OBJ_DIR)/%.o,$(shell find $(SOURCE_DIR) -name '*.cc' | grep -vF "`find $(SOURCE_DIR)/extract $(SOURCE_DIR)/fsck -name '*.cc'`"))
 
-SERVER_EXTRACT_OBJS:=$(patsubst %.cc,$(OBJ_DIR)/%.o,$(shell find $(SOURCE_DIR) -name '*.cc' | grep -vF "$(SOURCE_DIR)/main.cc"))
+SERVER_NOMAIN_OBJS:=$(patsubst %.cc,$(OBJ_DIR)/%.o,$(shell find $(SOURCE_DIR) -name '*.cc' | grep -vF "`find $(SOURCE_DIR) -name 'main.cc'`"))
+
+SERVER_EXTRACT_OBJS:=$(SERVER_NOMAIN_OBJS) $(OBJ_DIR)/extract/main.o
+SERVER_FSCK_OBJS:=$(SERVER_NOMAIN_OBJS) $(OBJ_DIR)/fsck/main.o
 
 
 
@@ -108,8 +112,12 @@ SERVER_EXTRACT_OBJS:=$(patsubst %.cc,$(OBJ_DIR)/%.o,$(shell find $(SOURCE_DIR) -
 
 # High level build targets
 
-all: $(BUILD_DIR)/$(SERVER_EXEC_NAME) $(BUILD_DIR)/$(SERVER_EXTRACT_NAME) $(BUILD_DIR)/$(START_DB_NAME) $(BUILD_DIR)/$(GDB_FUNCTIONS_NAME)
+all: $(BUILD_DIR)/$(SERVER_EXEC_NAME) $(BUILD_DIR)/$(SERVER_EXTRACT_NAME) $(BUILD_DIR)/$(SERVER_FSCK_NAME) $(BUILD_DIR)/$(START_DB_NAME) $(BUILD_DIR)/$(GDB_FUNCTIONS_NAME)
 
+
+
+
+# There is some copy-pastage between EXEC EXTRACT AND FSCK here.
 $(BUILD_DIR)/$(SERVER_EXEC_NAME): $(OBJS) $(BUILD_DIR)
 ifeq ($(VERBOSE),0)
 	@echo "    LD $@"
@@ -121,6 +129,18 @@ ifeq ($(VERBOSE),0)
 	@echo "    LD $@"
 endif
 	$(QUIET) $(CXX) $(LDFLAGS) $(SERVER_EXTRACT_OBJS) -o $(BUILD_DIR)/$(SERVER_EXTRACT_NAME)
+
+$(BUILD_DIR)/$(SERVER_FSCK_NAME): $(OBJS) $(BUILD_DIR)
+ifeq ($(VERBOSE),0)
+	@echo "    LD $@"
+endif
+	$(QUIET) $(CXX) $(LDFLAGS) $(SERVER_FSCK_OBJS) -o $(BUILD_DIR)/$(SERVER_FSCK_NAME)
+
+
+
+
+
+
 
 $(BUILD_DIR)/$(START_DB_NAME):
 	$(QUIET) cp $(SCRIPTS_DIR)/$(START_DB_NAME) $(BUILD_DIR)/$(START_DB_NAME)

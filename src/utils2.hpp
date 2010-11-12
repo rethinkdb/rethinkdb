@@ -26,11 +26,7 @@ T1 ceil_aligned(T1 value, T2 alignment) {
 
 template<typename T1, typename T2>
 T1 floor_aligned(T1 value, T2 alignment) {
-    if(value % alignment != 0) {
-        return value - (value % alignment);
-    } else {
-        return value;
-    }
+    return value - (value % alignment);
 }
 
 typedef unsigned long long ticks_t;

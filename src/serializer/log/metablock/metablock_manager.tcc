@@ -3,11 +3,6 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-#define MB_NEXTENTS 2
-#define MB_EXTENT_SEPARATION 4 /* !< every MB_EXTENT_SEPARATIONth extent is for MB, up to MB_EXTENT many */
-
-#define MB_BAD_VERSION (-1)
-#define MB_START_VERSION 1
 
 /* head functions */
 
@@ -63,16 +58,9 @@ metablock_manager_t<metablock_t>::metablock_manager_t(extent_manager_t *em)
         static header. We can share the first extent with the static header if and only if we don't
         overwrite the first DEVICE_BLOCK_SIZE of it, but we musn't reserve it again. */
         if (extent != 0) extent_manager->reserve_extent(extent);
-        
-        for (unsigned j = 0; j < extent_manager->extent_size / DEVICE_BLOCK_SIZE; j++) {
-            off64_t offset = extent + j * DEVICE_BLOCK_SIZE;
-            
-            /* The very first DEVICE_BLOCK_SIZE of the file is used for the static header */
-            if (offset == 0) continue;
-            
-            metablock_offsets.push_back(offset);
-        }
     }
+
+    initialize_metablock_offsets(extent_manager->extent_size, &metablock_offsets);
 }
 
 template<class metablock_t>

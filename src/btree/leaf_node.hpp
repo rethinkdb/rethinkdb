@@ -56,9 +56,9 @@ class leaf_node_handler : public node_handler {
     }
 
     static btree_leaf_pair *get_pair(const btree_leaf_node *node, uint16_t offset);
+    static size_t pair_size(btree_leaf_pair *pair);
 
     protected:
-    static size_t pair_size(btree_leaf_pair *pair);
     static void delete_pair(btree_leaf_node *node, uint16_t offset);
     static uint16_t insert_pair(btree_leaf_node *node, btree_leaf_pair *pair);
     static uint16_t insert_pair(btree_leaf_node *node, btree_value *value, btree_key *key);
@@ -79,9 +79,12 @@ class leaf_key_comp {
     bool operator()(const uint16_t offset1, const uint16_t offset2) {
         btree_key *key1 = offset1 == 0 ? key : &leaf_node_handler::get_pair(node, offset1)->key;
         btree_key *key2 = offset2 == 0 ? key : &leaf_node_handler::get_pair(node, offset2)->key;
-        int cmp = sized_strcmp(key1->contents, key1->size, key2->contents, key2->size);
+        int cmp = leaf_key_comp::compare(key1, key2);
 
         return cmp < 0;
+    }
+    static int compare(btree_key *key1, btree_key *key2) {
+        return sized_strcmp(key1->contents, key1->size, key2->contents, key2->size);
     }
 };
 

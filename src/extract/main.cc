@@ -1,6 +1,5 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <signal.h>
 #include <string.h>
 #include <getopt.h>
 
@@ -39,13 +38,13 @@ enum { force_block_size = 256,  // Start these values above the ASCII range.
        force_mod_count
 };
 
-void parse_cmd_args(int argc, char **argv, extract_config_t *config) {
+void parse_cmd_args(int argc, char **argv, config_t *config) {
     config->init();
 
     optind = 1;  // reinit getopt.
     for (;;) {
         int do_help = 0;
-        struct option long_options[] =
+        const static struct option long_options[] =
             {
                 {"force-block-size", required_argument, 0, force_block_size},
                 {"force-extent-size", required_argument, 0, force_extent_size},
@@ -128,48 +127,18 @@ void parse_cmd_args(int argc, char **argv, extract_config_t *config) {
     }
 }
 
-void filecheck_crash_handler(int signum) {
-    fail("Internal crash detected.");
-}
-
 }  // namespace extract
 
 int main(int argc, char **argv) {
 
-    int res;
+    install_generic_crash_handler();
 
-    struct sigaction action;
-    bzero((char*)&action, sizeof(action));
-    action.sa_handler = extract::filecheck_crash_handler;
-    res = sigaction(SIGSEGV, &action, NULL);
-    check("Could not install SEGV handler", res < 0);
-
-
-    extract_config_t config;
+    extract::config_t config;
     extract::parse_cmd_args(argc, argv, &config);
 
     if (config.log_file_name != "") {
         log_file = fopen(config.log_file_name.c_str(), "w");
     }
 
-    // Initial CPU message to start server
-    struct server_starter_t :
-        public cpu_message_t
-    {
-        extract_config_t *config;
-        thread_pool_t *pool;
-        void on_cpu_switch() {
-            dumpfile(*config);
-            pool->shutdown();
-        }
-    } starter;
-
-    starter.config = &config;
-
-    // Run the server
-    thread_pool_t thread_pool(1);
-    starter.pool = &thread_pool;
-    thread_pool.run(&starter);
-
-    return 0;
+    extract::dumpfile(config);
 }
