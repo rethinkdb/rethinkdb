@@ -64,65 +64,6 @@ struct proc_pid_stat_t {
     }
 };
 
-/* Class to represent and parse the contents of /proc/[pid]/statm */
-
-struct proc_pid_statm_t {
-
-    int size, resident, share, text, lib, data, dt;
-    
-    void read(const char *path) {
-        
-        FILE *statm_file = fopen(path, "r");
-        if (!statm_file) fail("Could not open '%s'", path);
-        
-        fscanf(statm_file, "%d %d %d %d %d %d %d",
-            &size, &resident, &share, &text, &lib, &data, &dt);
-        
-        fclose(statm_file);
-    }
-};
-
-/* Class to represent and parse (part of) the contents of /proc/stat */
-
-struct proc_stat_t {
-    
-    struct cpu_info_t {
-        int user, nice, system, idle, iowait, irq, softirq, steal, guest;
-        cpu_info_t(std::string line) {
-            sscanf(line.c_str(), "%d %d %d %d %d %d %d %d %d",
-                &user, &nice, &system, &idle, &iowait, &irq, &softirq, &steal, &guest);
-        }
-    };
-    std::vector<cpu_info_t> cpu_info;
-    
-    proc_stat_t() {
-        
-        FILE *stat_file = fopen("/proc/stat", "r");
-        if (!stat_file) fail("Could not open '/proc/stat'");
-        
-        std::map<std::string, std::string> stats;
-        while (!feof(stat_file)) {
-            char *line = NULL;
-            size_t size = 0;
-            getline(&line, &size, stat_file);
-            char *context;
-            char *name = strtok_r(line, "\n", &context);
-            char *rest = strtok_r(NULL, "\n", &context);
-            stats[name] = rest;
-            free(line);
-        }
-        
-        for (int i = 0; ; i++) {
-            std::string name = "cpu" + format(i);
-            if (stats.find(name) != stats.end()) {
-                cpu_info.push_back(cpu_info_t(stats[name]));
-            } else {
-                break;
-            }
-        }
-    }
-};
-
 /* perfmon_system_t is used to monitor system stats that do not need to be polled. */
 
 class perfmon_system_step_t :
