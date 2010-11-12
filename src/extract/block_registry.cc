@@ -23,6 +23,10 @@ void block_registry::tell_block(off64_t offset, const buf_data_t& buf_data) {
     }
 }
 
+bool block_registry::has_block(ser_block_id_t block_id, off64_t offset) const {
+    return block_id < offsets.get_size() && offsets[block_id] == offset;
+}
+
 bool block_registry::check_block_id_contiguity() const {
     ser_block_id_t n = transaction_ids.get_size();
 

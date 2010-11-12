@@ -41,35 +41,28 @@ public:
         size ^= size >> 47;
         size += size << 13;
 
-        size %= max - min;
+        size %= max - min + 1;
         size += min;
 
         char *l = payload->first;
-        for(;size > 4; size -= 4) {
+        payload->second = size;
+        int _size = size;
+        do {
             uint64_t hash = seed;
-            hash ^= (size << 7);
+            hash ^= ((uint64_t)_size << 7);
             hash += SALT2;
             hash ^= SALT3;
 
             hash += hash << 43;
             hash ^= hash >> 27;
 
-            char *hash_head = (char *) &hash;
+            unsigned char *hash_head = (unsigned char *) &hash;
 
-            switch (size) {
-                default:
-                    *l++ = (*hash_head++ % ('z' - 'a')) + 'a';
-                case (3):
-                    *l++ = (*hash_head++ % ('z' - 'a')) + 'a';
-                case (2):
-                    *l++ = (*hash_head++ % ('z' - 'a')) + 'a';
-                case (1):
-                    *l++ = (*hash_head++ % ('z' - 'a')) + 'a';
-                    break;
+            for(int j = 0; j < std::min(_size, 4); j++) {
+                *l++ = (*hash_head++ % ('z' - 'a' + 1)) + 'a';
             }
-        }
-        // fill the payload
-        payload->second = size;
+            _size -= 4;
+        } while(_size > 0);
     }
 
     void parse(char *str) {
