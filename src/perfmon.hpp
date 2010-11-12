@@ -98,10 +98,11 @@ private:
     };
     std::deque<sample_t> values[MAX_CPUS];
     void expire();
-    ticks_t length;
     std::string name;
+    ticks_t length;
+    bool include_rate;
 public:
-    perfmon_sampler_t(std::string name, ticks_t length);
+    perfmon_sampler_t(std::string name, ticks_t length, bool include_rate = false);
     void record(value_t value);
     perfmon_t::step_t *begin();
 };
@@ -117,7 +118,7 @@ private:
     perfmon_sampler_t recent;
 public:
     perfmon_duration_sampler_t(std::string name, ticks_t length)
-        : active(name + "_count"), recent(name + "_time", length) { }
+        : active(name + "_count"), recent(name + "_time", length, true) { }
     void begin(ticks_t *v) {
         active++;
         *v = get_ticks();

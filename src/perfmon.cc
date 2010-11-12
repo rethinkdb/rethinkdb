@@ -135,8 +135,8 @@ perfmon_t::step_t *perfmon_counter_t::begin() {
 
 /* perfmon_sampler_t */
 
-perfmon_sampler_t::perfmon_sampler_t(std::string name, ticks_t length)
-    : length(length), name(name) { }
+perfmon_sampler_t::perfmon_sampler_t(std::string name, ticks_t length, bool include_rate)
+    : name(name), length(length), include_rate(include_rate) { }
 
 void perfmon_sampler_t::expire() {
     ticks_t now = get_ticks();
@@ -191,15 +191,17 @@ struct perfmon_sampler_step_t :
                 max = maxes[i];
             }
         }
-        (*dest)[parent->name + std::string("_nsamples")] = format(count);
         if (count > 0) {
-            (*dest)[parent->name + std::string("_avg[secs]")] = format(value / count);
-            (*dest)[parent->name + std::string("_min[secs]")] = format(min);
-            (*dest)[parent->name + std::string("_max[secs]")] = format(max);
+            (*dest)[parent->name + "_avg[" + parent->name + "]"] = format(value / count);
+            (*dest)[parent->name + "_min[" + parent->name + "]"] = format(min);
+            (*dest)[parent->name + "_max[" + parent->name + "]"] = format(max);
         } else {
-            (*dest)[parent->name + std::string("_avg[secs]")] = "-";
-            (*dest)[parent->name + std::string("_min[secs]")] = "-";
-            (*dest)[parent->name + std::string("_max[secs]")] = "-";
+            (*dest)[parent->name + "_avg[" + parent->name + "]"] = "-";
+            (*dest)[parent->name + "_min[" + parent->name + "]"] = "-";
+            (*dest)[parent->name + "_max[" + parent->name + "]"] = "-";
+        }
+        if (parent->include_rate) {
+            (*dest)[parent->name + "_persec"] = format(count / ticks_to_secs(parent->length));
         }
         delete this;
     }
