@@ -207,7 +207,7 @@ void* run_client(void* data) {
         
         switch(cmd) {
         case load_t::delete_op:
-            if (client_data->min_seed == client_data->min_seed)
+            if (client_data->min_seed == client_data->max_seed)
                 break;
 
             config->keys.toss(op_keys, client_data->min_seed ^ id_salt);
@@ -224,10 +224,10 @@ void* run_client(void* data) {
             
         case load_t::update_op:
             // Find the key and generate the payload
-            if (client_data->min_seed == client_data->min_seed)
+            if (client_data->min_seed == client_data->max_seed)
                 break;
 
-            config->keys.toss(op_keys, random(client_data->min_seed, client_data->min_seed) ^ id_salt);
+            config->keys.toss(op_keys, random(client_data->min_seed, client_data->max_seed) ^ id_salt);
 
             op_val.second = random(config->values.min, config->values.max);
 
@@ -240,7 +240,7 @@ void* run_client(void* data) {
             
         case load_t::insert_op:
             // Generate the payload
-            config->keys.toss(op_keys, client_data->min_seed ^ id_salt);
+            config->keys.toss(op_keys, client_data->max_seed ^ id_salt);
             op_val.second = random(config->values.min, config->values.max);
 
             client_data->max_seed++;
@@ -254,15 +254,15 @@ void* run_client(void* data) {
             
         case load_t::read_op:
             // Find the key
-            if(client_data->min_seed == client_data->min_seed)
+            if(client_data->min_seed == client_data->max_seed)
                 break;
             j = random(config->batch_factor.min, config->batch_factor.max);
-            j = std::min(j, client_data->min_seed - client_data->min_seed);
-            l = random(client_data->min_seed, client_data->min_seed);
+            j = std::min(j, client_data->max_seed - client_data->min_seed);
+            l = random(client_data->min_seed, client_data->max_seed);
             for(k = 0; k < j; k++) {
                 config->keys.toss(&op_keys[k], l ^ id_salt);
                 l++;
-                if(l >= client_data->min_seed)
+                if(l >= client_data->max_seed)
                     l = client_data->min_seed;
             }
             // Read it from the server
