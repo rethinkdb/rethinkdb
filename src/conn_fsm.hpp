@@ -109,6 +109,8 @@ public:
     void do_transition_and_handle_result(event_t *event);
 
 private:
+    ticks_t start_time;
+    
     void check_external_buf();
     
     result_t do_transition(event_t *event);

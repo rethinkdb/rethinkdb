@@ -30,7 +30,7 @@ endif
 
 # Define configuration variables
 CXX:=g++
-LDFLAGS:=-lrt -laio -ltcmalloc_minimal
+LDFLAGS:=-lrt -laio
 CXXFLAGS:=-I$(SOURCE_DIR) -Wall -Wextra -Wformat=2 -Wno-unused-parameter -Werror
 
 # Configure debug vs. release
@@ -80,6 +80,8 @@ endif
 ifeq ($(VALGRIND),1)
 CXXFLAGS+=-DVALGRIND
 BUILD_DIR:=$(BUILD_DIR)-valgrind
+else
+LDFLAGS+=-ltcmalloc_minimal
 endif
 
 # Should makefile be noisy?

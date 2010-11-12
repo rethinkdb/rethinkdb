@@ -45,22 +45,19 @@ public:
     perfmon_t();
     ~perfmon_t();
     
-    /* To get a value from a given perfmon: Call begin(). On each core, call the visit() method
-    of the step_t that was returned from begin(). Then call end() on the step_t on the same core
-    that you called begin() on.
+    /* To get a value from a given perfmon: Call begin_stats(). On each core, call the visit_stats()
+    method with the pointer that was returned from begin_stats(). Then call end_stats() on the
+    pointer on the same core that you called begin_stats() on.
     
     You usually want to call perfmon_get_stats() instead of calling these methods directly. */
-    struct step_t {
-        virtual void visit() = 0;
-        virtual void end(perfmon_stats_t *dest) = 0;
-    };
-    virtual step_t *begin() = 0;
+    virtual void *begin_stats() = 0;
+    virtual void visit_stats(void *) = 0;
+    virtual void end_stats(void *, perfmon_stats_t *) = 0;
 };
 
 /* perfmon_counter_t is a perfmon_t that keeps a global counter that can be incremented
 and decremented. (Internally, it keeps many individual counters for thread-safety.) */
 
-struct perfmon_counter_step_t;
 class perfmon_counter_t :
     public perfmon_t
 {
@@ -75,7 +72,9 @@ public:
     void operator--(int) { get()--; }
     void operator-=(int64_t num) { get() -= num; }
     
-    perfmon_t::step_t *begin();
+    void *begin_stats();
+    void visit_stats(void *);
+    void end_stats(void *, perfmon_stats_t *);
 };
 
 /* perfmon_sampler_t is a perfmon_t that keeps a log of events that happen. When something
@@ -104,7 +103,10 @@ private:
 public:
     perfmon_sampler_t(std::string name, ticks_t length, bool include_rate = false);
     void record(value_t value);
-    perfmon_t::step_t *begin();
+    
+    void *begin_stats();
+    void visit_stats(void *);
+    void end_stats(void *, perfmon_stats_t *);
 };
 
 /* perfmon_duration_sampler_t is a perfmon_t that monitors events that have a starting and ending
