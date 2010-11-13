@@ -8,15 +8,22 @@ do_test("cd ../src/; make clean")
 for mode in ["debug", "release"]:
     for checker in ["valgrind", None]:
         for mock_io in [True, False]:
-            # Build our targets
-            do_test("cd ../src/; make -j8",
-                    { "DEBUG"         : 1 if mode    == "debug"    else 0,
-                      "VALGRIND"      : 1 if checker == "valgrind" else 0,
-                      "MOCK_IO_LAYER" : 1 if mock_io               else 0},
-                    cmd_format="make")
+            for mock_cache in [True, False]:
+                # Build our targets
+                do_test("cd ../src/; make -j8",
+                        { "DEBUG"            : 1 if mode    == "debug"    else 0,
+                          "VALGRIND"         : 1 if checker == "valgrind" else 0,
+                          "MOCK_IO_LAYER"    : 1 if mock_io               else 0,
+                          "MOCK_CACHE_CHECK" : 1 if mock_cache            else 0},
+                        cmd_format="make")
 
 # Go through all our environments
-for (mode, checker) in [("debug", "valgrind"), ("release", "valgrind"), ("release", None), ("release-mockio", None)]:
+for (mode, checker) in [
+        ("debug", "valgrind"),
+        ("release", "valgrind"),
+        ("release", None),
+        ("release-mockio", None),
+        ("debug-mockcache", "valgrind")]:
     for protocol in ["text"]: # ["text", "binary"]:
         for (cores, slices) in [(1, 1), (2, 3)]:
             # Run tests

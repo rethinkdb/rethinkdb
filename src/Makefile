@@ -58,6 +58,7 @@ endif
 
 ifeq ($(MOCK_CACHE_CHECK),1)
 CXXFLAGS+=-DMOCK_CACHE_CHECK
+BUILD_DIR:=$(BUILD_DIR)-mockcache
 endif
 
 ifeq ($(MOCK_IO_LAYER),1)
