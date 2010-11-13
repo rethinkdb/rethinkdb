@@ -66,11 +66,15 @@ struct proc_pid_stat_t {
 
 /* perfmon_system_t is used to monitor system stats that do not need to be polled. */
 
-class perfmon_system_step_t :
-    public perfmon_t::step_t
+class perfmon_system_t :
+    public perfmon_t
 {
-    void visit() { }
-    void end(perfmon_stats_t *dest) {
+    void *begin_stats() {
+        return NULL;
+    }
+    void visit_stats(void *) {
+    }
+    void end_stats(void *, perfmon_stats_t *dest) {
         
         char proc_pid_stat_path[100];
         sprintf(proc_pid_stat_path, "/proc/%d/stat", getpid());
@@ -79,16 +83,6 @@ class perfmon_system_step_t :
         (*dest)["pid"] = format(pid_stat.pid);
         (*dest)["memory_virtual[bytes]"] = format(pid_stat.vsize);
         (*dest)["memory_real[bytes]"] = format(pid_stat.rss * sysconf(_SC_PAGESIZE));
-        
-        delete this;
-    }
-};
-
-class perfmon_system_t :
-    public perfmon_t
-{
-    perfmon_t::step_t *begin() {
-        return new perfmon_system_step_t();
     }
 } pm_system;
 

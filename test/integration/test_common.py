@@ -33,12 +33,14 @@ def make_option_parser():
     o["mclib"] = ChoiceFlag("--mclib", ["memcache", "pylibmc"], "pylibmc")
     o["protocol"] = ChoiceFlag("--protocol", ["text", "binary"], "text")
     o["valgrind"] = BoolFlag("--no-valgrind", invert = True)
-    o["mode"] = ChoiceFlag("--mode", ["debug", "release"], "debug")
+    o["mode"] = StringFlag("--mode", "debug")
     o["netrecord"] = BoolFlag("--no-netrecord", invert = True)
     o["restart_server_prob"] = FloatFlag("--restart-server-prob", 0)
     o["cores"] = IntFlag("--cores", 2)
     o["slices"] = IntFlag("--slices", 3)
+    o["memory"] = IntFlag("--memory", 100)
     o["duration"] = IntFlag("--duration", 10)
+    o["flags"] = StringFlag("--flags", "")
     return o
 
 # Choose a random port at which to start searching to reduce the probability of collisions
@@ -133,6 +135,9 @@ class Server(object):
     # Server should not take more than %(server_create_time)d seconds to create database
     server_create_time = 15
     
+    # Server should not take more than %(server_start_time)d seconds to start up
+    server_start_time = 30
+    
     # Server should shut down within %(server_quit_time)d seconds of SIGINT
     server_sigint_time = 15
     
@@ -168,7 +173,7 @@ class Server(object):
                     "-c", str(self.opts["cores"]),
                     "-s", str(self.opts["slices"]),
                     "-f", self.db_data_path
-                    ] + self.extra_flags
+                    ] + self.extra_flags + shlex.split(self.opts["flags"])
                 
                 if self.opts["valgrind"]:
                     cmd_line = ["valgrind"]
@@ -212,8 +217,9 @@ class Server(object):
             command_line = [self.executable_path,
                 "-p", str(server_port),
                 "-c", str(self.opts["cores"]),
+                "-m", str(self.opts["memory"]),
                 "-f", self.db_data_path
-                ] + self.extra_flags
+                ] + self.extra_flags + shlex.split(self.opts["flags"])
         
         elif self.opts["database"] == "memcached":
             
@@ -270,8 +276,7 @@ class Server(object):
         # Wait for server to start up
         
         waited = 0
-        limit = 5
-        while waited < limit:
+        while waited < self.server_start_time:
             s = socket.socket()
             try: s.connect(("localhost", server_port))
             except Exception, e:
@@ -283,7 +288,7 @@ class Server(object):
             else: break
             finally: s.close()
         else:
-            print "%s took longer than %.2f seconds to start." % (self.name.capitalize(), limit)
+            print "%s took longer than %.2f seconds to start." % (self.name.capitalize(), self.server_start_time)
             return False
         print "%s took %.2f seconds to start." % (self.name.capitalize(), waited)
         time.sleep(0.2)
@@ -471,7 +476,7 @@ def adjust_timeout(opts, timeout):
     if opts["interactive"]:
         return None
     else:
-        return timeout
+        return timeout + 15
 
 def auto_server_test_main(test_function, opts, timeout = 30, extra_flags = []):
     """Drop-in main() for tests that test against one server that they do not start up or shut

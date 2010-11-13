@@ -22,12 +22,12 @@ struct perfmon_fsm_t :
 {
     perfmon_callback_t *cb;
     perfmon_stats_t *dest;
-    std::vector<perfmon_t::step_t*> steps;
+    std::vector<void*> data;
     int messages_out;
     perfmon_fsm_t(perfmon_stats_t *dest) : cb(NULL), dest(dest) {
-        steps.reserve(get_var_list().size());
+        data.reserve(get_var_list().size());
         for (perfmon_t *p = get_var_list().head(); p; p = get_var_list().next(p)) {
-            steps.push_back(p->begin());
+            data.push_back(p->begin_stats());
         }
         messages_out = get_num_cpus();
         for (int i = 0; i < get_num_cpus(); i++) {
@@ -35,8 +35,9 @@ struct perfmon_fsm_t :
         }
     }
     bool visit() {
-        for (unsigned i = 0; i < steps.size(); i++) {
-            steps[i]->visit();
+        int i = 0;
+        for (perfmon_t *p = get_var_list().head(); p; p = get_var_list().next(p)) {
+            p->visit_stats(data[i++]);
         }
         do_on_cpu(home_cpu, this, &perfmon_fsm_t::have_visited);
         return true;
@@ -44,8 +45,9 @@ struct perfmon_fsm_t :
     bool have_visited() {
         messages_out--;
         if (messages_out == 0) {
-            for (unsigned i = 0; i < steps.size(); i++) {
-                steps[i]->end(dest);
+            int i = 0;
+            for (perfmon_t *p = get_var_list().head(); p; p = get_var_list().next(p)) {
+                p->end_stats(data[i++], dest);
             }
             if (cb) {
                 cb->on_perfmon_stats();
@@ -110,27 +112,19 @@ int64_t &perfmon_counter_t::get() {
     return values[get_cpu_id()];
 }
 
-struct perfmon_counter_step_t :
-    public perfmon_t::step_t
-{
-    perfmon_counter_t *parent;
-    int64_t values[MAX_CPUS];
-    perfmon_counter_step_t(perfmon_counter_t *parent)
-        : parent(parent) { }
-    void visit() {
-        values[get_cpu_id()] = parent->values[get_cpu_id()];
-    }
-    void end(perfmon_stats_t *dest) {
-        int64_t value = 0;
-        for (int i = 0; i < get_num_cpus(); i++) value += values[i];
-        (*dest)[parent->name] = format(value);
-        delete this;
-    }
-};
+void *perfmon_counter_t::begin_stats() {
+    return new int64_t[get_num_cpus()];
+}
 
-perfmon_t::step_t *perfmon_counter_t::begin() {
-    
-    return new perfmon_counter_step_t(this);
+void perfmon_counter_t::visit_stats(void *data) {
+    ((int64_t *)data)[get_cpu_id()] = get();
+}
+
+void perfmon_counter_t::end_stats(void *data, perfmon_stats_t *dest) {
+    int64_t value = 0;
+    for (int i = 0; i < get_num_cpus(); i++) value += ((int64_t *)data)[i];
+    (*dest)[name] = format(value);
+    delete[] (int64_t *)data;
 }
 
 /* perfmon_sampler_t */
@@ -149,67 +143,65 @@ void perfmon_sampler_t::record(value_t v) {
     values[get_cpu_id()].push_back(sample_t(v, get_ticks()));
 }
 
-struct perfmon_sampler_step_t :
-    public perfmon_t::step_t
-{
-    perfmon_sampler_t *parent;
+struct perfmon_sampler_step_t {
     uint64_t counts[MAX_CPUS];
     perfmon_sampler_t::value_t values[MAX_CPUS], mins[MAX_CPUS], maxes[MAX_CPUS];
-    perfmon_sampler_step_t(perfmon_sampler_t *parent)
-        : parent(parent) { }
-    void visit() {
-        parent->expire();
-        values[get_cpu_id()] = 0;
-        counts[get_cpu_id()] = 0;
-        for (std::deque<perfmon_sampler_t::sample_t>::iterator it = parent->values[get_cpu_id()].begin();
-             it != parent->values[get_cpu_id()].end(); it++) {
-            values[get_cpu_id()] += (*it).value;
-            if (counts[get_cpu_id()] > 0) {
-                mins[get_cpu_id()] = std::min(mins[get_cpu_id()], (*it).value);
-                maxes[get_cpu_id()] = std::max(maxes[get_cpu_id()], (*it).value);
-            } else {
-                mins[get_cpu_id()] = (*it).value;
-                maxes[get_cpu_id()] = (*it).value;
-            }
-            counts[get_cpu_id()]++;
-        }
-    }
-    void end(perfmon_stats_t *dest) {
-        perfmon_sampler_t::value_t value = 0;
-        uint64_t count = 0;
-        perfmon_sampler_t::value_t min = 0, max = 0;   /* Initializers to make GCC shut up */
-        bool have_any = false;
-        for (int i = 0; i < get_num_cpus(); i++) {
-            value += values[i];
-            count += counts[i];
-            if (counts[i]) {
-                if (have_any) {
-                    min = std::min(mins[i], min);
-                    max = std::max(maxes[i], max);
-                } else {
-                    min = mins[i];
-                    max = maxes[i];
-                    have_any = true;
-                }
-            }
-        }
-        if (have_any) {
-            (*dest)[parent->name + "_avg[" + parent->name + "]"] = format(value / count);
-            (*dest)[parent->name + "_min[" + parent->name + "]"] = format(min);
-            (*dest)[parent->name + "_max[" + parent->name + "]"] = format(max);
-        } else {
-            (*dest)[parent->name + "_avg[" + parent->name + "]"] = "-";
-            (*dest)[parent->name + "_min[" + parent->name + "]"] = "-";
-            (*dest)[parent->name + "_max[" + parent->name + "]"] = "-";
-        }
-        if (parent->include_rate) {
-            (*dest)[parent->name + "_persec"] = format(count / ticks_to_secs(parent->length));
-        }
-        delete this;
-    }
 };
 
-perfmon_t::step_t *perfmon_sampler_t::begin() {
-    
-    return new perfmon_sampler_step_t(this);
+void *perfmon_sampler_t::begin_stats() {
+    return new perfmon_sampler_step_t;
 }
+
+void perfmon_sampler_t::visit_stats(void *data) {
+    perfmon_sampler_step_t *d = (perfmon_sampler_step_t *)data;
+    expire();
+    d->values[get_cpu_id()] = 0;
+    d->counts[get_cpu_id()] = 0;
+    for (std::deque<perfmon_sampler_t::sample_t>::iterator it = values[get_cpu_id()].begin();
+         it != values[get_cpu_id()].end(); it++) {
+        d->values[get_cpu_id()] += (*it).value;
+        if (d->counts[get_cpu_id()] > 0) {
+            d->mins[get_cpu_id()] = std::min(d->mins[get_cpu_id()], (*it).value);
+            d->maxes[get_cpu_id()] = std::max(d->maxes[get_cpu_id()], (*it).value);
+        } else {
+            d->mins[get_cpu_id()] = (*it).value;
+            d->maxes[get_cpu_id()] = (*it).value;
+        }
+        d->counts[get_cpu_id()]++;
+    }
+}
+
+void perfmon_sampler_t::end_stats(void *data, perfmon_stats_t *dest) {
+    perfmon_sampler_step_t *d = (perfmon_sampler_step_t *)data;
+    perfmon_sampler_t::value_t value = 0;
+    uint64_t count = 0;
+    perfmon_sampler_t::value_t min = 0, max = 0;   /* Initializers to make GCC shut up */
+    bool have_any = false;
+    for (int i = 0; i < get_num_cpus(); i++) {
+        value += d->values[i];
+        count += d->counts[i];
+        if (d->counts[i]) {
+            if (have_any) {
+                min = std::min(d->mins[i], min);
+                max = std::max(d->maxes[i], max);
+            } else {
+                min = d->mins[i];
+                max = d->maxes[i];
+                have_any = true;
+            }
+        }
+    }
+    if (have_any) {
+        (*dest)[name + "_avg"] = format(value / count);
+        (*dest)[name + "_min"] = format(min);
+        (*dest)[name + "_max"] = format(max);
+    } else {
+        (*dest)[name + "_avg"] = "-";
+        (*dest)[name + "_min"] = "-";
+        (*dest)[name + "_max"] = "-";
+    }
+    if (include_rate) {
+        (*dest)[name + "_persec"] = format(count / ticks_to_secs(length));
+    }
+    delete d;
+};

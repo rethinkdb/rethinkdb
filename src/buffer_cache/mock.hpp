@@ -68,10 +68,11 @@ public:
 
     buf_t *acquire(block_id_t block_id, access_t mode, block_available_callback_t *callback);
     buf_t *allocate(block_id_t *new_block_id);
-
+    
+    mock_cache_t *cache;
+    
 private:
     friend class mock_cache_t;
-    mock_cache_t *cache;
     access_t access;
     int n_bufs;
     void finish_committing(mock_transaction_commit_callback_t *cb);
@@ -82,7 +83,9 @@ private:
 /* Cache */
 
 class mock_cache_t :
-    public home_cpu_mixin_t
+    public home_cpu_mixin_t,
+    public serializer_t::read_callback_t,
+    public serializer_t::write_txn_callback_t
 {
     
 public:
@@ -123,7 +126,16 @@ private:
     size_t block_size;
     segmented_vector_t<internal_buf_t *, MAX_BLOCK_ID> bufs;
     
+    ready_callback_t *ready_callback;
+    bool load_blocks_from_serializer();
+    int blocks_to_load;
+    void on_serializer_read();
+    bool have_loaded_blocks();
+    
     shutdown_callback_t *shutdown_callback;
+    bool shutdown_write_bufs();
+    bool shutdown_do_send_bufs_to_serializer();
+    void on_serializer_write_txn();
     bool shutdown_destroy_bufs();
     void shutdown_finish();
 };
