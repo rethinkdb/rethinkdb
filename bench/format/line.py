@@ -23,8 +23,8 @@ class line():
                         val = matches.group(groupi)
                     else:
                         assert 0
-                except:
-                       val = None
+                except ValueError:
+                    val = None
                 result[field[0]] = val
             return result
         else:

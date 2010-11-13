@@ -84,12 +84,18 @@ class TimeSeriesCollection():
             data = open(file_name).readlines()
         except IOError:
             print 'Missing file: %s data from it will not be reported' % file_name
+            return self
         try:
             self.data = self.parse(data)
         except AssertionError:
             print 'Malformed data from %s' % file_name
+            return self
         try:
             self.process()
+        except AssertionError:
+            print "Processing failed on %s" % file_name
+            return self
+
         return self #this just lets you do initialization in one line
 
     def copy(self):
@@ -433,26 +439,20 @@ class QPS(TimeSeriesCollection):
         return res
 
 class RDBStats(TimeSeriesCollection):
-    stat_line = line("STAT\s+(\w+)(\[\w+\])?\s+(\d+|-)", [('name', 's'), ('units', 's'), ('value', 'd')])
-    int_line  = line("STAT\s+(\w+)\s+(\d+)[^\.](?:\s+\(average of \d+\))?", [('name', 's'), ('value', 'd')])
-    flt_line  = line("STAT\s+(\w+)\s+([\d.]+)\s+\([\d/]+\)", [('name', 's'), ('value', 'f')])
-    end_line  = line("END", [])
+    int_line = line("^STAT\s+([\w\[\]]+)\s+(\d+|-)\r$", [('name', 's'), ('value', 'd')])
+    flt_line = line("^STAT\s+([\w\[\]]+)\s+([\d\.]+|-)\r$", [('name', 's'), ('value', 'f')])
+    end_line = line("END", [])
     
     def parse(self, data):
         res = default_empty_timeseries_dict()
         data.reverse()
         
         while True:
-            m = take_while([self.stat_line], data)
+            m = take_while([self.int_line, self.flt_line], data)
             if not m:
                 break
             for match in m:
-                if not match['units']:
-                    units = ''
-                else:
-                    units = match['units']
-
-                res[match['name'] + units] += [match['value']]
+                res[match['name']] += [match['value']]
 
             m = take(self.end_line, data)
             assert m != False
