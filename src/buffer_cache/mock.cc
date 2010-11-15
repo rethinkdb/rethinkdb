@@ -13,12 +13,13 @@ struct internal_buf_t
     std::vector<mock_block_available_callback_t*> waiting_readers, waiting_writers;
     
     internal_buf_t(mock_cache_t *cache, block_id_t block_id)
-        : cache(cache), block_id(block_id), data(malloc(cache->block_size)), writing(false), n_reading(0) {
+        : cache(cache), block_id(block_id), data(cache->serializer->malloc()), writing(false), n_reading(0) {
         assert(data);
+        bzero(data, cache->block_size);
     }
     
     ~internal_buf_t() {
-        free(data);
+        cache->serializer->free(data);
     }
     
     bool can_acquire(access_t access) {
@@ -209,7 +210,7 @@ mock_transaction_t::~mock_transaction_t() {
     
     cache->n_transactions--;
     if (cache->n_transactions == 0 && !cache->running) {
-        cache->shutdown_destroy_bufs();
+        cache->shutdown_write_bufs();
     }
 }
 
@@ -227,15 +228,58 @@ mock_cache_t::~mock_cache_t() {
 
 bool mock_cache_t::start(ready_callback_t *cb) {
     
+    ready_callback = NULL;
+    if (do_on_cpu(serializer->home_cpu, this, &mock_cache_t::load_blocks_from_serializer)) {
+        return true;
+    } else {
+        ready_callback = cb;
+        return false;
+    }
+}
+
+bool mock_cache_t::load_blocks_from_serializer() {
+    
+    if (serializer->max_block_id() == 0) {
+        
+        // Create the superblock
+        bufs.set_size(1);
+        assert(SUPERBLOCK_ID == 0);
+        bufs[SUPERBLOCK_ID] = new internal_buf_t(this, SUPERBLOCK_ID);
+        
+        return do_on_cpu(home_cpu, this, &mock_cache_t::have_loaded_blocks);;
+        
+    } else {
+        
+        // Load the blocks from the serializer
+        bufs.set_size(serializer->max_block_id(), NULL);
+        blocks_to_load = 0;
+        for (ser_block_id_t i = 0; i < serializer->max_block_id(); i++) {
+            if (serializer->block_in_use(i)) {
+                internal_buf_t *internal_buf = bufs[i] = new internal_buf_t(this, i);
+                serializer->do_read(i, internal_buf->data, this);
+                blocks_to_load++;
+            }
+        }
+        if (blocks_to_load == 0) {
+            return do_on_cpu(home_cpu, this, &mock_cache_t::have_loaded_blocks);
+        } else {
+            return false;
+        }
+    }
+}
+
+void mock_cache_t::on_serializer_read() {
+    blocks_to_load--;
+    if (blocks_to_load == 0) {
+        do_on_cpu(home_cpu, this, &mock_cache_t::have_loaded_blocks);
+    }
+}
+
+bool mock_cache_t::have_loaded_blocks() {
+    
     running = true;
-    
-    // Create the superblock
-    bufs.set_size(1);
-    assert(SUPERBLOCK_ID == 0);
-    internal_buf_t *internal_buf = bufs[SUPERBLOCK_ID] = new internal_buf_t(this, SUPERBLOCK_ID);
-    bzero(internal_buf->data, block_size);
-    
-    return maybe_random_delay(cb, &ready_callback_t::on_cache_ready);
+    if (ready_callback) ready_callback->on_cache_ready();
+    return true;
 }
 
 size_t mock_cache_t::get_block_size() {
@@ -267,7 +311,7 @@ bool mock_cache_t::shutdown(shutdown_callback_t *cb) {
     
     shutdown_callback = NULL;
     if (n_transactions == 0) {
-        if (shutdown_destroy_bufs()) {
+        if (shutdown_write_bufs()) {
             return true;
         } else {
             shutdown_callback = cb;
@@ -277,6 +321,32 @@ bool mock_cache_t::shutdown(shutdown_callback_t *cb) {
         shutdown_callback = cb;
         return false;
     }
+}
+
+bool mock_cache_t::shutdown_write_bufs() {
+    
+    return do_on_cpu(serializer->home_cpu, this, &mock_cache_t::shutdown_do_send_bufs_to_serializer);
+}
+
+bool mock_cache_t::shutdown_do_send_bufs_to_serializer() {
+    
+    serializer_t::write_t writes[bufs.get_size()];
+    for (block_id_t i = 0; i < bufs.get_size(); i++) {
+        writes[i].block_id = i;
+        writes[i].buf = bufs[i] ? bufs[i]->data : NULL;
+        writes[i].callback = NULL;
+    }
+    
+    if (serializer->do_write(writes, bufs.get_size(), this)) {
+        return do_on_cpu(home_cpu, this, &mock_cache_t::shutdown_destroy_bufs);
+    } else {
+        return false;
+    }
+}
+
+void mock_cache_t::on_serializer_write_txn() {
+    
+    do_on_cpu(home_cpu, this, &mock_cache_t::shutdown_destroy_bufs);
 }
 
 bool mock_cache_t::shutdown_destroy_bufs() {

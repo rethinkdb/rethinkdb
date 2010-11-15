@@ -28,6 +28,7 @@ btree_get_fsm_t::transition_result_t btree_get_fsm_t::do_acquire_superblock(even
         // cache notification). Grab the root id, and move on to
         // acquiring the root.
         node_id = ((const btree_superblock_t*)last_buf->get_data_read())->root_block;
+        assert(node_id != SUPERBLOCK_ID);
         state = acquire_root;
         return btree_fsm_t::transition_ok;
     } else {

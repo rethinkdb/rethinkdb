@@ -4,6 +4,7 @@
 
 #include "containers/segmented_vector.hpp"
 #include "utils2.hpp"
+#include <stdlib.h>
 
 struct mock_iocallback_t {
     virtual void on_io_complete(event_t *event) = 0;

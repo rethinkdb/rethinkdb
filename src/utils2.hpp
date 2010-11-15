@@ -15,6 +15,8 @@ long get_total_ram();
 typedef char byte;
 typedef char byte_t;
 
+void *malloc_aligned(size_t size, size_t alignment = 64);
+
 template<typename T1, typename T2>
 T1 ceil_aligned(T1 value, T2 alignment) {
     if(value % alignment != 0) {

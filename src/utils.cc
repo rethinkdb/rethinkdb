@@ -19,13 +19,6 @@ void install_generic_crash_handler() {
     check("Could not install SEGV handler", res < 0);
 }
 
-void *malloc_aligned(size_t size, size_t alignment) {
-    void *ptr = NULL;
-    int res = posix_memalign(&ptr, alignment, size);
-    if(res != 0) fail("Out of memory.");
-    return ptr;
-}
-
 // fast non-null terminated string comparison
 int sized_strcmp(const char *str1, int len1, const char *str2, int len2) {
     int min_len = std::min(len1, len2);

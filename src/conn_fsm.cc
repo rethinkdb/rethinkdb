@@ -6,13 +6,13 @@
 
 /* Global counters for the number of conn_fsms in each state */
 
-static perfmon_counter_t
-    pm1("conns_in_socket_connected[conns]"),
-    pm2("conns_in_socket_recv_incomplete[conns]"),
-    pm3("conns_in_socket_send_incomplete[conns]"),
-    pm4("conns_in_btree_incomplete[conns]"),
-    pm5("conns_in_outstanding_data[conns]");
-static perfmon_counter_t *state_counters[] = { &pm1, &pm2, &pm3, &pm4, &pm5 };
+static perfmon_duration_sampler_t
+    pm1("conns_in_socket_connected", secs_to_ticks(1)),
+    pm2("conns_in_socket_recv_incomplete", secs_to_ticks(1)),
+    pm3("conns_in_socket_send_incomplete", secs_to_ticks(1)),
+    pm4("conns_in_btree_incomplete", secs_to_ticks(1)),
+    pm5("conns_in_outstanding_data", secs_to_ticks(1));
+static perfmon_duration_sampler_t *state_counters[] = { &pm1, &pm2, &pm3, &pm4, &pm5 };
 
 /*
 ~~~ A Brief History of the conn_fsm_t ~~~
@@ -313,17 +313,21 @@ void conn_fsm_t::on_net_conn_close() {
 
 void conn_fsm_t::do_transition_and_handle_result(event_t *event) {
     
-    (*(state_counters[state]))--;
+    int old_state = state;
     
     switch (do_transition(event)) {
         
         case fsm_transition_ok:
         case fsm_no_data_in_socket:
+            if (state != old_state) {
+                state_counters[old_state]->end(&start_time);
+                state_counters[state]->begin(&start_time);
+            }
             // No action
-            (*(state_counters[state]))++;
             break;
             
         case fsm_quit_connection:
+            state_counters[old_state]->end(&start_time);
             delete this;
             break;
         
@@ -413,7 +417,7 @@ conn_fsm_t::conn_fsm_t(net_conn_t *conn, conn_fsm_shutdown_callback_t *c, reques
     
     init_state();
     
-    (*(state_counters[state]))++;
+    state_counters[state]->begin(&start_time);
 }
 
 conn_fsm_t::~conn_fsm_t() {
@@ -454,7 +458,7 @@ void conn_fsm_t::start_quit() {
         case fsm_outstanding_data:
             consume(nrbuf);
             return_to_socket_connected();
-            (*(state_counters[state]))--;
+            state_counters[state]->end(&start_time);
             delete this;
             break;
         case fsm_socket_send_incomplete:
