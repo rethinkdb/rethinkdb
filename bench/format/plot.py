@@ -96,6 +96,8 @@ class TimeSeriesCollection():
             print "Processing failed on %s" % file_name
             return self
 
+        self.shorten()
+
         return self #this just lets you do initialization in one line
 
     def copy(self):
@@ -138,6 +140,11 @@ class TimeSeriesCollection():
 #do post processing things on the data (ratios and derivatives and stuff)
     def process(self):
         pass
+
+    def shorten(self):
+        if len(self.data.values()[0]) > 1500:
+            for key in self.data.keys():
+                self.derive(key, (key,), drop_points)
 
     def json(self, out_fname, meta_data):
         top_level = {}
@@ -365,6 +372,13 @@ def means(serieses):
     res = []
     for series in serieses:
         res.append(stats.mean(map(lambda x: x, series)))
+    return res
+
+def drop_points(serieses):
+    res = TimeSeries([])
+    res.units = serieses[0].units
+    for i in range(0, len(serieses[0]), max(len(serieses[0]) / 1000, 1)):
+        res.append(serieses[0][i])
     return res
 
 class IOStat(TimeSeriesCollection):

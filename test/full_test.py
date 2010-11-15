@@ -71,7 +71,7 @@ for (mode, checker) in [
                       "cores"       : cores,
                       "slices"      : slices,
                       "duration"    : 240 },
-                    repeat=5, timeout=250)
+                    repeat=5, timeout=300)
         
             do_test("integration/serial_mix.py",
                     { "auto"        : True,
@@ -82,7 +82,7 @@ for (mode, checker) in [
                       "slices"      : slices,
                       "duration"    : 240,
                       "restart-server-prob" : "0.0005"},
-                    repeat=5, timeout=250)
+                    repeat=5, timeout=300)
         
             do_test("integration/multi_serial_mix.py",
                     { "auto"        : True,
@@ -93,7 +93,7 @@ for (mode, checker) in [
                       "slices"      : slices,
                       "num-testers" : 16,
                       "duration"    : 240},
-                    repeat=5, timeout=250)
+                    repeat=5, timeout=300)
         
             do_test("integration/expiration.py",
                     { "auto"        : True,
@@ -139,16 +139,20 @@ for (mode, checker) in [
                       "cores"       : cores,
                       "slices"      : slices,
                       "num-keys"    : 50000},
-                    repeat=3, timeout=300)
-        
-            do_test("integration/corruption.py",
-                    { "auto"        : True,
-                      "mode"        : mode,
-                      "no-valgrind" : not checker,
-                      "protocol"    : protocol,
-                      "cores"       : cores,
-                      "slices"      : slices },
-                    repeat=12)
+                    repeat=3, timeout=60*90)
+            
+            # Don't run the corruption test in mockio or mockcache mode because in those modes
+            # we don't flush to disk at all until the server is shut down, so obviously the
+            # corruption test will fail.
+            if "mock" not in mode:
+                do_test("integration/corruption.py",
+                        { "auto"        : True,
+                          "mode"        : mode,
+                          "no-valgrind" : not checker,
+                          "protocol"    : protocol,
+                          "cores"       : cores,
+                          "slices"      : slices },
+                        repeat=12)
             
 # Report the results
 report()
