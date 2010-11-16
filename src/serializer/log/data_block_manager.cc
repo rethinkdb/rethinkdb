@@ -215,7 +215,6 @@ void data_block_manager_t::run_gc() {
         switch (gc_state.step()) {
     
         case gc_ready:
-            printf("Before: OGB: %d OTB: %d\n", gc_stats.old_garbage_blocks.get(), gc_stats.old_total_blocks.get());
             if (gc_pq.empty() || !should_we_keep_gcing(*gc_pq.peak())) return;
             
             pm_serializer_data_extents_gced++;
@@ -301,8 +300,6 @@ void data_block_manager_t::run_gc() {
             assert(gc_state.refcount == 0);
 
             gc_state.set_step(gc_ready);
-
-            printf("After: OGB: %d OTB: %d\n", gc_stats.old_garbage_blocks.get(), gc_stats.old_total_blocks.get());
 
             if(state == state_shutting_down) {
                 actually_shutdown();
