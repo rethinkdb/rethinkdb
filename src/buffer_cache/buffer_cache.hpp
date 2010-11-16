@@ -20,7 +20,8 @@ typedef mc_cache_t cache_t;
 #else
 
 #include "buffer_cache/mock.hpp"
-typedef mock_cache_t cache_t;
+#include "buffer_cache/semantic_checking.hpp"
+typedef scc_cache_t<mock_cache_t> cache_t;
 
 #endif /* MOCK_CACHE */
 

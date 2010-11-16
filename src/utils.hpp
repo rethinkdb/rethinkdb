@@ -19,7 +19,7 @@
 void generic_crash_handler(int signum);
 void install_generic_crash_handler();
 
-void print_hd(void *buf, size_t offset, size_t length);
+void print_hd(const void *buf, size_t offset, size_t length);
 
 // Fast string compare
 int sized_strcmp(const char *str1, int len1, const char *str2, int len2);

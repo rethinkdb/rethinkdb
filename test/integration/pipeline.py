@@ -77,4 +77,4 @@ if __name__ == "__main__":
     op = make_option_parser()
     op["num_ints"] = IntFlag("--num-ints", 1000)
     op["num_chunks"] = IntFlag("--num-chunks", 50)
-    auto_server_test_main(test_function, op.parse(sys.argv), timeout = 5)
+    auto_server_test_main(test_function, op.parse(sys.argv), timeout = 120)
