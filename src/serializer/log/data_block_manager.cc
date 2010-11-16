@@ -215,6 +215,7 @@ void data_block_manager_t::run_gc() {
         switch (gc_state.step()) {
     
         case gc_ready:
+            printf("Before: OGB: %d OTB: %d\n", gc_stats.old_garbage_blocks.get(), gc_stats.old_total_blocks.get());
             if (gc_pq.empty() || !should_we_keep_gcing(*gc_pq.peak())) return;
             
             pm_serializer_data_extents_gced++;
@@ -291,6 +292,7 @@ void data_block_manager_t::run_gc() {
         }
             
         case gc_write:
+            mark_unyoung_entries(); //We need to do this here so that we don't get stuck on the GC treadmill
             /* Our write should have forced all of the blocks in the extent to become garbage,
             which should have caused the extent to be released and gc_state.current_offset to
             become NULL. */
@@ -299,6 +301,8 @@ void data_block_manager_t::run_gc() {
             assert(gc_state.refcount == 0);
 
             gc_state.set_step(gc_ready);
+
+            printf("After: OGB: %d OTB: %d\n", gc_stats.old_garbage_blocks.get(), gc_stats.old_total_blocks.get());
 
             if(state == state_shutting_down) {
                 actually_shutdown();
