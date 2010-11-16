@@ -126,7 +126,7 @@
 #define SUPERBLOCK_ID                             0
 
 // The ratio at which we should start GCing.
-#define DEFAULT_GC_HIGH_RATIO                     0.75
+#define DEFAULT_GC_HIGH_RATIO                     0.65
 #define MAX_GC_HIGH_RATIO                         0.99
 
 // The ratio at which we don't want to keep GC'ing.

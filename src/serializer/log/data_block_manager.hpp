@@ -17,7 +17,10 @@
 
 // Stats
 
-extern perfmon_counter_t pm_serializer_data_extents;
+extern perfmon_counter_t 
+    pm_serializer_data_extents,
+    pm_serializer_old_garbage_blocks,
+    pm_serializer_old_total_blocks;
 
 class data_block_manager_t {
 
@@ -336,11 +339,26 @@ private:
 private:
     /* \brief structure to keep track of global stats about the data blocks
      */
+    class gc_stat_t {
+        private: 
+            int val;
+            perfmon_counter_t &perfmon;
+        public:
+            gc_stat_t(perfmon_counter_t &perfmon)
+                :val(0), perfmon(perfmon)
+            {}
+            void operator++(int) { val++; perfmon++;}
+            void operator+=(int64_t num) { val += num; perfmon += num; }
+            void operator--(int) { val--; perfmon--;}
+            void operator-=(int64_t num) { val -= num; perfmon -= num;}
+            int get() const {return val;}
+    };
+
     struct gc_stats_t {
-        int old_total_blocks;
-        int old_garbage_blocks;
+        gc_stat_t old_total_blocks;
+        gc_stat_t old_garbage_blocks;
         gc_stats_t()
-            : old_total_blocks(0), old_garbage_blocks(0)
+            : old_total_blocks(pm_serializer_old_total_blocks), old_garbage_blocks(pm_serializer_old_garbage_blocks)
         {}
     } gc_stats;
 
@@ -349,8 +367,8 @@ public:
      */
     float garbage_ratio() const;
 
-    int64_t garbage_ratio_total_blocks() const { return gc_stats.old_garbage_blocks; }
-    int64_t garbage_ratio_garbage_blocks() const { return gc_stats.old_garbage_blocks; }
+    int64_t garbage_ratio_total_blocks() const { return gc_stats.old_garbage_blocks.get(); }
+    int64_t garbage_ratio_garbage_blocks() const { return gc_stats.old_garbage_blocks.get(); }
 
 private:
     DISABLE_COPYING(data_block_manager_t);
