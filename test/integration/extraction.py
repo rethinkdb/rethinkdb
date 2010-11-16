@@ -76,7 +76,7 @@ if __name__ == "__main__":
 
     equiv_dict = {}
     for i in xrange(0, len(dumplines) / 2):
-        m = re.match(r"set (\d+) 0 0 (\d+)\r\n", dumplines[2 * i])
+        m = re.match(r"set (\d+) 0 0 (\d+) noreply\r\n", dumplines[2 * i])
         if m == None:
             raise ValueError("Invalid extraction for this test (line %d)" % (2 * i))
         (key, length) = m.groups()
