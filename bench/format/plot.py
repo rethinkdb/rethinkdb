@@ -13,6 +13,12 @@ import time
 from line import *
 from statlib import stats
 
+def safe_div(x, y):
+    if y == 0:
+        return x
+    else:
+        return x / y
+
 def cull_outliers(data, n_sigma):
     mean = stats.mean(map(lambda x: x, data))
     sigma  = stats.stdev(map(lambda x: x, data))
@@ -364,7 +370,10 @@ def slide(serieses):
 def ratio(serieses):
     res = TimeSeries(serieses[0].units + '/' + serieses[1].units)
     for x,y in zip(serieses[0], serieses[1]):
-        res += [float(x)/float(y)]
+        if y == 0:
+            res += [None]
+        else:
+            res += [float(x)/float(y)]
     return res
 
 #report the means of a list of runs
