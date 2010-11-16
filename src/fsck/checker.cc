@@ -738,6 +738,7 @@ void check_subtree_leaf_node(slicecx& cx, const btree_leaf_node *buf, btree_key 
 }
 
 bool internal_node_begin_offset_in_range(const slicecx& cx, const btree_internal_node *buf, uint16_t offset) {
+    // TODO: what about key size?  look in the buf?
     return (cx.knog->static_config->block_size - sizeof(data_block_manager_t::buf_data_t) - sizeof(btree_internal_pair)) >= offset && offset >= buf->frontmost_offset;
 }
 

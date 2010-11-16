@@ -13,6 +13,12 @@ import time
 from line import *
 from statlib import stats
 
+def safe_div(x, y):
+    if y == 0:
+        return x
+    else:
+        return x / y
+
 def cull_outliers(data, n_sigma):
     mean = stats.mean(map(lambda x: x, data))
     sigma  = stats.stdev(map(lambda x: x, data))
@@ -364,7 +370,10 @@ def slide(serieses):
 def ratio(serieses):
     res = TimeSeries(serieses[0].units + '/' + serieses[1].units)
     for x,y in zip(serieses[0], serieses[1]):
-        res += [float(x)/float(y)]
+        if y == 0:
+            res += [None]
+        else:
+            res += [float(x)/float(y)]
     return res
 
 #report the means of a list of runs
@@ -489,7 +498,9 @@ class RDBStats(TimeSeriesCollection):
                   ('conns_in_socket_recv_incomplete', 'conns_total'),
                   ('conns_in_socket_send_incomplete', 'conns_total'),
                   ('blocks_dirty', 'blocks_total'),
-                  ('blocks_in_memory', 'blocks_total')]
+                  ('blocks_in_memory', 'blocks_total'),
+                  ('serializer_old_garbage_blocks',  'serializer_old_total_blocks')]
+
         slides = [('flushes_started', 'flushes_acquired_lock'),
                   ('flushes_acquired_lock', 'flushes_completed'),
                   ('io_writes_started', 'io_writes_completed')]
@@ -502,6 +513,8 @@ class RDBStats(TimeSeriesCollection):
         for rat in ratios:
             self.derive(rat[0] + ' / ' + rat[1], rat, ratio)
             keys_to_drop.add(rat[0])
+
+        self.remap('serializer_old_garbage_blocks / serializer_old_total_blocks', 'garbage_ratio')
 
         for s in slides:
             self.derive('slide(' + s[0] + ', ' + s[1] + ')', s, slide)

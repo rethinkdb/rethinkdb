@@ -28,7 +28,10 @@ int sized_strcmp(const char *str1, int len1, const char *str2, int len2) {
     return res;
 }
 
-void print_hd(void *buf, size_t offset, size_t length) {
+void print_hd(const void *buf, size_t offset, size_t length) {
+    
+    flockfile(stderr);
+    
     size_t count = 0;
     char *_buf = (char*)buf;
     char bd_sample[16] = { 0xBD, 0xBD, 0xBD, 0xBD, 0xBD, 0xBD, 0xBD, 0xBD, 
@@ -49,46 +52,50 @@ void print_hd(void *buf, size_t offset, size_t length) {
         // Print a line
         if(!skip) {
             // print the current offset
-            printf("%.8x  ", (unsigned int)(offset + count));
+            fprintf(stderr, "%.8x  ", (unsigned int)(offset + count));
 
             skip_last = false;
             for(int j = 0; j < 2; j++) {
                 // Print a column
                 for(int i = 0; i < 8; i++) {
-                    printf("%.2hhx ", _buf[count]);
+                    fprintf(stderr, "%.2hhx ", _buf[count]);
                     count++;
                     if(count >= length) {
-                        printf("\n");
+                        fprintf(stderr, "\n");
+                        funlockfile(stderr);
                         return;
                     }
                 }
-                printf(" ");
+                fprintf(stderr, " ");
             }
             // Print a char representation
-            printf("|");
+            fprintf(stderr, "|");
             for(int i = 0; i < 16; i++) {
                 char c = _buf[count - 16 + i];
                 if(isprint(c))
-                    printf("%c", c);
+                    fprintf(stderr, "%c", c);
                 else
-                    printf(".");
+                    fprintf(stderr, ".");
             }
-            printf("|\n");
+            fprintf(stderr, "|\n");
             line++;
             if(line == 8) {
-                printf("\n");
+                fprintf(stderr, "\n");
                 line = 0;
             }
         } else {
             if(!skip_last) {
                 skip_last = true;
-                printf("*\n");
+                fprintf(stderr, "*\n");
             }
             count += 16;
             if(count >= length) {
-                printf("\n");
+                fprintf(stderr, "\n");
+                funlockfile(stderr);
                 return;
             }
         }
     }
+    
+    funlockfile(stderr);
 }

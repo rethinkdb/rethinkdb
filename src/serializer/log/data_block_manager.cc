@@ -8,7 +8,9 @@ perfmon_counter_t
     pm_serializer_data_extents_allocated("serializer_data_extents_allocated[dexts]"),
     pm_serializer_data_extents_reclaimed("serializer_data_extents_reclaimed[dexts]"),
     pm_serializer_data_extents_gced("serializer_data_extents_gced[dexts]"),
-    pm_serializer_data_blocks_written("serializer_data_blocks_written");
+    pm_serializer_data_blocks_written("serializer_data_blocks_written"),
+    pm_serializer_old_garbage_blocks("serializer_old_garbage_blocks"),
+    pm_serializer_old_total_blocks("serializer_old_total_blocks");
 
 void data_block_manager_t::start_new(direct_file_t *file) {
 
@@ -480,10 +482,10 @@ bool data_block_manager_t::Less::operator() (const data_block_manager_t::gc_entr
  ****************/
 
 float data_block_manager_t::garbage_ratio() const {
-    if (gc_stats.old_total_blocks == 0) {
+    if (gc_stats.old_total_blocks.get() == 0) {
         return 0.0;
     } else {
-        return (float) gc_stats.old_garbage_blocks / (float) gc_stats.old_total_blocks;
+        return (float) gc_stats.old_garbage_blocks.get() / (float) gc_stats.old_total_blocks.get();
     }
 }
 

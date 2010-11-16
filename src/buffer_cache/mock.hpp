@@ -7,6 +7,7 @@
 #include "utils.hpp"
 #include "serializer/serializer.hpp"
 #include "config/cmd_args.hpp"
+#include "concurrency/rwi_lock.hpp"
 
 /* The mock cache, mock_cache_t, is a drop-in replacement for mc_cache_t that keeps all of
 its contents in memory and artificially generates delays in responding to requests. It
@@ -33,24 +34,28 @@ struct mock_block_available_callback_t {
 
 /* Buf */
 
-class mock_buf_t
+class mock_buf_t :
+    public lock_available_callback_t
 {
     typedef mock_block_available_callback_t block_available_callback_t;
-
+    
 public:
     block_id_t get_block_id();
     void *get_data_write();
     const void *get_data_read();
     void mark_deleted();
     void release();
+    bool is_dirty();
 
 private:
+    void on_lock_available();
     friend class mock_transaction_t;
     friend class mock_cache_t;
     friend class internal_buf_t;
     internal_buf_t *internal_buf;
     access_t access;
     bool dirty, deleted;
+    block_available_callback_t *cb;
     mock_buf_t(internal_buf_t *buf, access_t access);
 };
 
