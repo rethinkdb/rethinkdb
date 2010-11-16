@@ -48,10 +48,15 @@ void conn_fsm_t::init_state() {
     cb = NULL;
 }
 
-// This function returns the socket to clean connected state
-void conn_fsm_t::return_to_socket_connected() {
-    assert(nrbuf == 0);
-    assert(!sbuf || sbuf->outstanding() == linked_buf_t::linked_buf_empty);
+/* !< return the function to a clean state.
+   if error == false make sure everything is in a tidy state first
+   if error == true don't worry about it
+*/
+void conn_fsm_t::return_to_socket_connected(bool error = false) {
+    if (!error) {
+        assert(nrbuf == 0);
+        assert(!sbuf || sbuf->outstanding() == linked_buf_t::linked_buf_empty);
+    }
     if(rbuf)
         delete (iobuf_t*)(rbuf);
     if(sbuf)
@@ -489,6 +494,12 @@ void conn_fsm_t::send_msg_to_client() {
                 break;
             case linked_buf_t::linked_buf_empty:
                 state = fsm_outstanding_data;
+                break;
+            case linked_buf_t::linked_buf_error:
+                return_to_socket_connected(true);
+                break;
+            default:
+                fail("Illegal value in res");
                 break;
         }
     }
