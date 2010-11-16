@@ -53,6 +53,9 @@ public:
     static btree_internal_pair *get_pair(const btree_internal_node *node, uint16_t offset);
 
 protected:
+    static size_t pair_size_with_key(btree_key *key);
+    static size_t pair_size_with_key_size(uint8_t size);
+
     static void delete_pair(btree_internal_node *node, uint16_t offset);
     static uint16_t insert_pair(btree_internal_node *node, btree_internal_pair *pair);
     static uint16_t insert_pair(btree_internal_node *node, block_id_t lnode, btree_key *key);

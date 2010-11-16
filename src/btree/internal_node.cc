@@ -167,7 +167,7 @@ bool internal_node_handler::level(size_t block_size, btree_internal_node *node, 
 
     if (nodecmp(node, sibling) < 0) {
         btree_key *key_from_parent = &get_pair(parent, parent->pair_offsets[get_offset_index(parent, &get_pair(node, node->pair_offsets[0])->key)])->key;
-        if (sizeof(btree_internal_node) + (node->npairs + 1) * sizeof(*node->pair_offsets) + sizeof(btree_internal_pair) + key_from_parent->size >= node->frontmost_offset)
+        if (sizeof(btree_internal_node) + (node->npairs + 1) * sizeof(*node->pair_offsets) + pair_size_with_key(key_from_parent) >= node->frontmost_offset)
             return false;
         uint16_t special_pair_offset = node->pair_offsets[node->npairs-1];
         block_id_t last_offset = get_pair(node, special_pair_offset)->lnode;
@@ -196,7 +196,7 @@ bool internal_node_handler::level(size_t block_size, btree_internal_node *node, 
     } else {
         uint16_t offset;
         btree_key *key_from_parent = &get_pair(parent, parent->pair_offsets[get_offset_index(parent, &get_pair(sibling, sibling->pair_offsets[0])->key)])->key;
-        if (sizeof(btree_internal_node) + (node->npairs + 1) * sizeof(*node->pair_offsets) + sizeof(btree_internal_pair) + key_from_parent->size >= node->frontmost_offset)
+        if (sizeof(btree_internal_node) + (node->npairs + 1) * sizeof(*node->pair_offsets) + pair_size_with_key(key_from_parent) >= node->frontmost_offset)
             return false;
         block_id_t first_offset = get_pair(sibling, sibling->pair_offsets[sibling->npairs-1])->lnode;
         offset = insert_pair(node, first_offset, key_from_parent);
@@ -260,7 +260,7 @@ void internal_node_handler::update_key(btree_internal_node *node, btree_key *key
     int index = get_offset_index(node, key_to_replace);
     block_id_t tmp_lnode = get_pair(node, node->pair_offsets[index])->lnode;
     delete_pair(node, node->pair_offsets[index]);
-    check("cannot fit updated key in internal node",  sizeof(btree_internal_node) + (node->npairs) * sizeof(*node->pair_offsets) + sizeof(btree_internal_pair) + replacement_key->size >= node->frontmost_offset);
+    check("cannot fit updated key in internal node",  sizeof(btree_internal_node) + (node->npairs) * sizeof(*node->pair_offsets) + pair_size_with_key(replacement_key) >= node->frontmost_offset);
     node->pair_offsets[index] = insert_pair(node, tmp_lnode, replacement_key);
 #ifdef BTREE_DEBUG
     printf("\t|\n\t|\n\t|\n\tV\n");
@@ -278,7 +278,8 @@ bool internal_node_handler::is_full(const btree_internal_node *node) {
 #ifdef BTREE_DEBUG
     printf("sizeof(btree_internal_node): %ld, (node->npairs + 1): %d, sizeof(*node->pair_offsets): %ld, sizeof(btree_internal_node): %ld, MAX_KEY_SIZE: %d, node->frontmost_offset: %d\n", sizeof(btree_internal_node), (node->npairs + 1), sizeof(*node->pair_offsets), sizeof(btree_internal_pair), MAX_KEY_SIZE, node->frontmost_offset);
 #endif
-    return sizeof(btree_internal_node) + (node->npairs + 1) * sizeof(*node->pair_offsets) + sizeof(btree_internal_pair) + MAX_KEY_SIZE >=  node->frontmost_offset;
+    // TODO: we're using MAX_KEY_SIZE?  what.  pass the desired key size to this function, perhaps?
+    return sizeof(btree_internal_node) + (node->npairs + 1) * sizeof(*node->pair_offsets) + pair_size_with_key_size(MAX_KEY_SIZE) >=  node->frontmost_offset;
 }
 
 bool internal_node_handler::change_unsafe(const btree_internal_node *node) {
@@ -327,8 +328,8 @@ bool internal_node_handler::is_mergable(size_t block_size, const btree_internal_
         (node->npairs + sibling->npairs + 1)*sizeof(*node->pair_offsets) +
         (block_size - node->frontmost_offset) +
         (block_size - sibling->frontmost_offset) + key_from_parent->size +
-        sizeof(btree_internal_pair) + MAX_KEY_SIZE +
-        INTERNAL_EPSILON < block_size; // must still have enough room for an arbitrary key
+        pair_size_with_key_size(MAX_KEY_SIZE) +
+        INTERNAL_EPSILON < block_size; // must still have enough room for an arbitrary key  // TODO: we can't be tighter?
 }
 
 bool internal_node_handler::is_singleton(const btree_internal_node *node) {
@@ -336,7 +337,15 @@ bool internal_node_handler::is_singleton(const btree_internal_node *node) {
 }
 
 size_t internal_node_handler::pair_size(btree_internal_pair *pair) {
-    return offsetof(btree_internal_pair, key) + offsetof(btree_key, contents) + pair->key.size;
+    return pair_size_with_key_size(pair->key.size);
+}
+
+size_t internal_node_handler::pair_size_with_key(btree_key *key) {
+    return pair_size_with_key_size(key->size);
+}
+
+size_t internal_node_handler::pair_size_with_key_size(uint8_t size) {
+    return offsetof(btree_internal_pair, key) + offsetof(btree_key, contents) + size;
 }
 
 btree_internal_pair *internal_node_handler::get_pair(const btree_internal_node *node, uint16_t offset) {
@@ -371,7 +380,7 @@ uint16_t internal_node_handler::insert_pair(btree_internal_node *node, btree_int
 }
 
 uint16_t internal_node_handler::insert_pair(btree_internal_node *node, block_id_t lnode, btree_key *key) {
-    node->frontmost_offset -= sizeof(btree_internal_pair) + key->size;;
+    node->frontmost_offset -= pair_size_with_key(key);
     btree_internal_pair *new_pair = get_pair(node, node->frontmost_offset);
 
     // insert contents
