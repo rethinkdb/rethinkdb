@@ -78,10 +78,11 @@ conn_fsm_t::result_t conn_fsm_t::fill_buf(void *buf, unsigned int *bytes_filled,
             // since we break out in these cases. So it's
             // safe to free the buffer.
             assert(state != fsm_socket_send_incomplete);
-            //TODO Modify this so that we go into send_incomplete and try to empty our send buffer
-            if(state != fsm_socket_recv_incomplete && *bytes_filled == 0)
-                return_to_socket_connected();
-            else
+            if(state != fsm_socket_recv_incomplete && *bytes_filled == 0) {
+                send_msg_to_client();
+                if (sbuf && sbuf->outstanding() == linked_buf_t::linked_buf_empty)
+                    return_to_socket_connected();
+            } else
                 state = fsm_socket_connected; //we're wating for a socket event
             //break;
         } else if (errno == ENETDOWN) {
