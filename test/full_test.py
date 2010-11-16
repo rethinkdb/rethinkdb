@@ -120,7 +120,7 @@ for (mode, checker) in [
                       "protocol"    : protocol,
                       "cores"       : cores,
                       "slices"      : slices },
-                    repeat=3)
+                    repeat=3, timeout = 180)
         
             do_test("integration/bin_pipeline.py",
                     { "auto"        : True,

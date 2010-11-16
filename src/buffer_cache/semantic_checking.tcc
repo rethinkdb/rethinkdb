@@ -9,7 +9,7 @@ block_id_t scc_buf_t<inner_cache_t>::get_block_id() {
 
 template<class inner_cache_t>
 bool scc_buf_t<inner_cache_t>::is_dirty() {
-    return inner_buf->writeback_buf.dirty;
+    return inner_buf->is_dirty();
 }
 
 template<class inner_cache_t>
@@ -43,6 +43,11 @@ template<class inner_cache_t>
 void scc_buf_t<inner_cache_t>::on_block_available(typename inner_cache_t::buf_t *buf) {
     assert(!inner_buf);
     inner_buf = buf;
+    if (cache->crc_map.get(inner_buf->get_block_id())) {
+        assert(compute_crc() == cache->crc_map.get(inner_buf->get_block_id()));
+    } else {
+        cache->crc_map.set(inner_buf->get_block_id(), compute_crc());
+    }
     if (available_cb) available_cb->on_block_available(this);
 }
 

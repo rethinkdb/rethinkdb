@@ -3,6 +3,8 @@
 
 #include "buffer_cache/types.hpp"
 #include "utils.hpp"
+#include <boost/crc.hpp>
+#include "containers/two_level_array.hpp"
 
 /* The semantic-checking cache (scc_cache_t) is a wrapper around another cache that will
 make sure that the inner cache obeys the proper semantics. */

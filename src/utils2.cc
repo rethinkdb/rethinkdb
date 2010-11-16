@@ -49,6 +49,12 @@ void debugf(const char *msg, ...) {
 }
 
 int randint(int n) {
+    static bool initted = false;
+    if (!initted) {
+        srand(time(NULL));
+        initted = true;
+    }
+    
     assert(n > 0 && n < RAND_MAX);
     return rand() % n;
 }

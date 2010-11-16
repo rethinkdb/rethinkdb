@@ -8,12 +8,10 @@ struct internal_buf_t
     mock_cache_t *cache;
     block_id_t block_id;
     void *data;
-    bool writing;
-    int n_reading;
-    std::vector<mock_block_available_callback_t*> waiting_readers, waiting_writers;
+    rwi_lock_t lock;
     
     internal_buf_t(mock_cache_t *cache, block_id_t block_id)
-        : cache(cache), block_id(block_id), data(cache->serializer->malloc()), writing(false), n_reading(0) {
+        : cache(cache), block_id(block_id), data(cache->serializer->malloc()) {
         assert(data);
         bzero(data, cache->block_size);
     }
@@ -22,83 +20,9 @@ struct internal_buf_t
         cache->serializer->free(data);
     }
     
-    bool can_acquire(access_t access) {
-    
-        switch(access) {
-            case rwi_read: return !writing;
-            case rwi_write: return !writing && n_reading == 0;
-            default: fail("Bad access.");
-        }
-    }
-    
-    void acquire(access_t access) {
-    
-        assert(can_acquire(access));
-        switch(access) {    
-            case rwi_read:
-                n_reading++;
-                break;
-            case rwi_write:
-                writing = true;
-                break;
-            default: fail("Bad access.");
-        }
-    }
-    
-    void release(access_t access) {
-    
-        switch(access) {
-            case rwi_read:
-                assert(n_reading > 0);
-                n_reading--;
-                break;
-            case rwi_write:
-                assert(writing);
-                writing = false;
-                break;
-            default: fail("Bad access.");
-        }
-        
-        if (!writing && n_reading == 0) {
-        
-            /* If both writers and readers are waiting, then randomly either let all the
-            readers go or one of the writers go */
-            
-            if (waiting_writers.size() > 0 && (waiting_readers.size() == 0 || (random() & 1) == 0)) {
-            
-                mock_buf_t *buf = new mock_buf_t(this, rwi_write);
-                random_delay(waiting_writers[0], &mock_block_available_callback_t::on_block_available, buf);
-                waiting_writers.erase(waiting_writers.begin());
-            
-            } else if (waiting_readers.size() > 0) {
-            
-                for (unsigned i = 0; i < waiting_readers.size(); i++) {
-                    mock_buf_t *buf = new mock_buf_t(this, rwi_read);
-                    random_delay(waiting_readers[i], &mock_block_available_callback_t::on_block_available, buf);
-                }
-                waiting_readers.clear();
-            }
-        }
-    }
-    
-    void add_waiter(mock_block_available_callback_t *waiter, access_t access) {
-        assert(!can_acquire(access));
-        switch(access) {
-            case rwi_read:
-                waiting_readers.push_back(waiter);
-                break;
-            case rwi_write:
-                waiting_writers.push_back(waiter);
-                break;
-            default: fail("Bad access.");
-        }
-    }
-    
     void destroy() {
-        assert(writing);
-        assert(n_reading == 0);
-        assert(waiting_readers.size() == 0);
-        assert(waiting_writers.size() == 0);
+        
+        assert(!lock.locked());
         
         assert(cache->bufs[block_id] == this);
         cache->bufs[block_id] = NULL;
@@ -108,6 +32,10 @@ struct internal_buf_t
 };
 
 /* Buf */
+
+void mock_buf_t::on_lock_available() {
+    random_delay(cb, &mock_block_available_callback_t::on_block_available, this);
+}
 
 block_id_t mock_buf_t::get_block_id() {
     return internal_buf->block_id;
@@ -129,17 +57,17 @@ void mock_buf_t::mark_deleted() {
 }
 
 void mock_buf_t::release() {
-    if (deleted) {
-        internal_buf->destroy();
-    } else {
-        internal_buf->release(access);
-    }
+    internal_buf->lock.unlock();
+    if (deleted) internal_buf->destroy();
     delete this;
+}
+
+bool mock_buf_t::is_dirty() {
+    return dirty;
 }
 
 mock_buf_t::mock_buf_t(internal_buf_t *internal_buf, access_t access)
     : internal_buf(internal_buf), access(access), dirty(false), deleted(false) {
-    internal_buf->acquire(access);
 }
 
 /* Transaction */
@@ -174,15 +102,15 @@ mock_buf_t *mock_transaction_t::acquire(block_id_t block_id, access_t mode, mock
     internal_buf_t *internal_buf = cache->bufs[block_id];
     assert(internal_buf);
     
-    if (internal_buf->can_acquire(mode)) {
-        mock_buf_t *buf = new mock_buf_t(internal_buf, mode);
+    mock_buf_t *buf = new mock_buf_t(internal_buf, mode);
+    if (internal_buf->lock.lock(mode, buf)) {
         if (maybe_random_delay(callback, &mock_block_available_callback_t::on_block_available, buf)) {
             return buf;
         } else {
             return NULL;
         }
     } else {
-        internal_buf->add_waiter(callback, mode);
+        buf->cb = callback;
         return NULL;
     }
 }
@@ -194,6 +122,8 @@ mock_buf_t *mock_transaction_t::allocate(block_id_t *new_block_id) {
     block_id_t block_id = *new_block_id = cache->bufs.get_size();
     cache->bufs.set_size(block_id + 1);
     internal_buf_t *internal_buf = cache->bufs[block_id] = new internal_buf_t(cache, block_id);
+    bool locked __attribute__((unused)) = internal_buf->lock.lock(rwi_write, NULL);
+    assert(locked);
     
     mock_buf_t *buf = new mock_buf_t(internal_buf, rwi_write);
     return buf;
