@@ -489,7 +489,9 @@ class RDBStats(TimeSeriesCollection):
                   ('conns_in_socket_recv_incomplete', 'conns_total'),
                   ('conns_in_socket_send_incomplete', 'conns_total'),
                   ('blocks_dirty', 'blocks_total'),
-                  ('blocks_in_memory', 'blocks_total')]
+                  ('blocks_in_memory', 'blocks_total'),
+                  ('serializer_old_garbage_blocks',  'serializer_old_total_blocks')]
+
         slides = [('flushes_started', 'flushes_acquired_lock'),
                   ('flushes_acquired_lock', 'flushes_completed'),
                   ('io_writes_started', 'io_writes_completed')]
@@ -502,6 +504,8 @@ class RDBStats(TimeSeriesCollection):
         for rat in ratios:
             self.derive(rat[0] + ' / ' + rat[1], rat, ratio)
             keys_to_drop.add(rat[0])
+
+        self.remap('serializer_old_garbage_blocks / serializer_old_total_blocks', 'garbage_ratio')
 
         for s in slides:
             self.derive('slide(' + s[0] + ', ' + s[1] + ')', s, slide)
