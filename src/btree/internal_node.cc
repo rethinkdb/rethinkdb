@@ -336,7 +336,7 @@ bool internal_node_handler::is_singleton(const btree_internal_node *node) {
 }
 
 size_t internal_node_handler::pair_size(btree_internal_pair *pair) {
-    return sizeof(btree_internal_pair) + pair->key.size;
+    return offsetof(btree_internal_pair, key) + offsetof(btree_key, contents) + pair->key.size;
 }
 
 btree_internal_pair *internal_node_handler::get_pair(const btree_internal_node *node, uint16_t offset) {
