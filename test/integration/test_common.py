@@ -1,5 +1,6 @@
 import shlex, sys, traceback, os, shutil, socket, subprocess, time, signal, threading, random
 from vcoptparse import *
+from corrupter import *
 
 test_dir = "output_from_test"
 made_test_dir = False
@@ -36,6 +37,7 @@ def make_option_parser():
     o["mode"] = StringFlag("--mode", "debug")
     o["netrecord"] = BoolFlag("--no-netrecord", invert = True)
     o["restart_server_prob"] = FloatFlag("--restart-server-prob", 0)
+    o["corruption_p"] = FloatFlag("--corruption-p", 0)
     o["cores"] = IntFlag("--cores", 2)
     o["slices"] = IntFlag("--slices", 3)
     o["memory"] = IntFlag("--memory", 100)
@@ -438,6 +440,7 @@ class MemcachedWrapperThatRestartsServer(object):
         for fn in os.listdir(os.path.join(test_dir, "db_data")):
             path = os.path.join(test_dir, "db_data", fn)
             if os.path.isfile(path):
+                corrupt(path, self.opts["corruption_p"])
                 shutil.copyfile(path, os.path.join(snapshot_dir, fn))
         
         assert shutdown_ok

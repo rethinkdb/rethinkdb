@@ -48,10 +48,15 @@ void conn_fsm_t::init_state() {
     cb = NULL;
 }
 
-// This function returns the socket to clean connected state
-void conn_fsm_t::return_to_socket_connected() {
-    assert(nrbuf == 0);
-    assert(!sbuf || sbuf->outstanding() == linked_buf_t::linked_buf_empty);
+/* !< return the function to a clean state.
+   if error == false make sure everything is in a tidy state first
+   if error == true don't worry about it
+*/
+void conn_fsm_t::return_to_socket_connected(bool error = false) {
+    if (!error) {
+        assert(nrbuf == 0);
+        assert(!sbuf || sbuf->outstanding() == linked_buf_t::linked_buf_empty);
+    }
     if(rbuf)
         delete (iobuf_t*)(rbuf);
     if(sbuf)
@@ -73,10 +78,11 @@ conn_fsm_t::result_t conn_fsm_t::fill_buf(void *buf, unsigned int *bytes_filled,
             // since we break out in these cases. So it's
             // safe to free the buffer.
             assert(state != fsm_socket_send_incomplete);
-            //TODO Modify this so that we go into send_incomplete and try to empty our send buffer
-            if(state != fsm_socket_recv_incomplete && *bytes_filled == 0)
-                return_to_socket_connected();
-            else
+            if(state != fsm_socket_recv_incomplete && *bytes_filled == 0) {
+                send_msg_to_client();
+                if (sbuf && sbuf->outstanding() == linked_buf_t::linked_buf_empty)
+                    return_to_socket_connected();
+            } else
                 state = fsm_socket_connected; //we're wating for a socket event
             //break;
         } else if (errno == ENETDOWN) {
@@ -489,6 +495,12 @@ void conn_fsm_t::send_msg_to_client() {
                 break;
             case linked_buf_t::linked_buf_empty:
                 state = fsm_outstanding_data;
+                break;
+            case linked_buf_t::linked_buf_error:
+                return_to_socket_connected(true);
+                break;
+            default:
+                fail("Illegal value in res");
                 break;
         }
     }

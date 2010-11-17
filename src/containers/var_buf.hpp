@@ -26,6 +26,7 @@ struct linked_buf_t : public buffer_base_t<IO_BUFFER_SIZE>
         typedef enum {
             linked_buf_outstanding = 0,
             linked_buf_empty,
+            linked_buf_error,
             linked_buf_num_states,
         } linked_buf_state_t;
 
@@ -95,7 +96,7 @@ struct linked_buf_t : public buffer_base_t<IO_BUFFER_SIZE>
                     if(errno == EAGAIN || errno == EWOULDBLOCK)
                         res = linked_buf_outstanding;
                     else
-                        fail("Error sending to socket");
+                        return linked_buf_error;
                 } else {
                     nsent += sz;
                     if (next == NULL) {

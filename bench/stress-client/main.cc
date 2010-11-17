@@ -67,6 +67,11 @@ int main(int argc, char *argv[])
     if(config.in_file[0] != 0) {
         FILE *in_file = fopen(config.in_file, "r");
 
+        if(in_file == NULL) {
+            fprintf(stderr, "Could not open output key file");
+            exit(-1);
+        }
+
         while(feof(in_file) == 0) {
             int id, min_seed, max_seed;
             fread(&id, sizeof(id), 1, in_file);

@@ -129,7 +129,7 @@ private:
     
     void send_msg_to_client();
     void init_state();
-    void return_to_socket_connected();
+    void return_to_socket_connected(bool);
 };
 
 #endif // __CONN_FSM_HPP__

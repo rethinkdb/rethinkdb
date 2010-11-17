@@ -27,6 +27,7 @@
 #define BAD_BLOB "CLIENT_ERROR bad data chunk\r\n"
 #define TOO_LARGE "SERVER_ERROR object too large for cache\r\n"
 #define MAX_COMMAND_SIZE 100
+#define BAD_STAT "MALFORMED STAT REQUEST\r\n"
 
 #define MAX_STATS_REQ_LEN 100
 
@@ -1051,7 +1052,11 @@ txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::remove(char *st
 }
 
 txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::parse_stat_command(unsigned int line_len, char *cmd_str) {
-    check("Too big of a stat request", line_len > MAX_STATS_REQ_LEN);
+    if(line_len > MAX_STATS_REQ_LEN) {
+        //stat line is too big (if we run in to this alot increase MAX_STATS_REQ_LEN
+        conn_fsm->sbuf->printf("%sTOO BIG\n", BAD_STAT);
+        return request_handler_t::op_req_send_now;
+    }
     size_t offset = strlen(cmd_str) + 1 + (cmd_str - conn_fsm->rbuf);
     if (offset < line_len) {
         new txt_memcached_perfmon_request_t(this, conn_fsm->rbuf + offset, line_len - offset);

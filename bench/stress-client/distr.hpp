@@ -59,7 +59,7 @@ public:
             unsigned char *hash_head = (unsigned char *) &hash;
 
             for(int j = 0; j < std::min(_size, 4); j++) {
-                *l++ = (*hash_head++ % ('z' - 'a' + 1)) + 'a';
+                *l++ = (*hash_head++ & 31) + 'A';
             }
             _size -= 4;
         } while(_size > 0);

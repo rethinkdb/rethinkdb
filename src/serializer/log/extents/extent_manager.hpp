@@ -96,6 +96,9 @@ public:
     void end_transaction(transaction_t *t);
     void commit_transaction(transaction_t *t);
 
+public:
+    int held_extents();
+
 private:
     direct_file_t *dbfile;
     
