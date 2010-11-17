@@ -486,7 +486,7 @@ float data_block_manager_t::garbage_ratio() const {
     if (gc_stats.old_total_blocks.get() == 0) {
         return 0.0;
     } else {
-        return (float) gc_stats.old_garbage_blocks.get() / (float) gc_stats.old_total_blocks.get();
+        return (float) gc_stats.old_garbage_blocks.get() / ((float) gc_stats.old_total_blocks.get() + extent_manager->held_extents() * (extent_manager->extent_size / static_config->block_size));
     }
 }
 
