@@ -6,7 +6,6 @@
 #include "arch/arch.hpp"
 #include "request_handler/request_handler.hpp"
 #include "event.hpp"
-#include "corefwd.hpp"
 #include <stdarg.h>
 
 // TODO: the lifetime of conn_fsm isn't well defined - some objects

@@ -9,7 +9,6 @@
 #include "btree/incr_decr_fsm.hpp"
 #include "btree/set_fsm.hpp"
 #include "conn_fsm.hpp"
-#include "corefwd.hpp"
 #include "server.hpp"
 
 class bin_memcached_request_t :

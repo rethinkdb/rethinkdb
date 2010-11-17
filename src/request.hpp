@@ -3,6 +3,9 @@
 
 #include "config/args.hpp"
 
+class btree_fsm_t;
+class request_handler_t;
+
 /* This is a pretty horrible hack. Originally there was a type called request_t that
 abstracted the idea of starting multiple btree_fsms and waiting for them all to complete.
 When we got rid of request_t, we kept request_callback_t because it was playing a
