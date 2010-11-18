@@ -7,15 +7,6 @@
 #include <sys/syscall.h>
 #include <sys/stat.h>
 #include <fcntl.h>
-
-template<class T>
-std::string format(T value) {
-    std::stringstream ss;
-    ss.precision(8);
-    ss << std::fixed << value;
-    return ss.str();
-}
-
 /* Class to represent and parse the contents of /proc/[pid]/stat */
 
 struct proc_pid_stat_t {

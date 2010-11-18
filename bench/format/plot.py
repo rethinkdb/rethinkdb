@@ -102,7 +102,8 @@ class TimeSeriesCollection():
             print "Processing failed on %s" % file_name
             return self
 
-        self.shorten()
+#self.shorten()
+        self.smooth_curves()
 
         return self #this just lets you do initialization in one line
 
@@ -151,6 +152,10 @@ class TimeSeriesCollection():
         if len(self.data.values()[0]) > 1500:
             for key in self.data.keys():
                 self.derive(key, (key,), drop_points)
+
+    def smooth_curves(self):
+        for key in self.data.keys():
+            self.derive(key, (key,), smooth)
 
     def json(self, out_fname, meta_data):
         top_level = {}
@@ -388,6 +393,20 @@ def drop_points(serieses):
     res.units = serieses[0].units
     for i in range(0, len(serieses[0]), max(len(serieses[0]) / 1000, 1)):
         res.append(serieses[0][i])
+    return res
+
+def smooth(serieses):
+    res = TimeSeries([])
+    res.units = serieses[0].units
+    for i in range(len(serieses[0])):
+        index_range = range(max(i - 15, 0), min(i + 15, len(serieses[0]) - 1))
+        val = 0
+        for j in index_range:
+            if serieses[0][j]:
+                val += serieses[0][j] / len(index_range)
+
+        res += [val]
+
     return res
 
 class IOStat(TimeSeriesCollection):

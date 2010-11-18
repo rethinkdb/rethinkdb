@@ -14,6 +14,7 @@
 #include <queue>
 #include <utility>
 #include <sys/time.h>
+#include "perfmon.hpp"
 
 // Stats
 
@@ -31,7 +32,9 @@ public:
         : shutdown_callback(NULL), state(state_unstarted), serializer(ser),
           dynamic_config(dynamic_config), static_config(static_config), extent_manager(em),
           next_active_extent(0),
-          gc_state(extent_manager->extent_size)
+          gc_state(extent_manager->extent_size),
+          garbage_ratio_reporter(this),
+          pm_garbage_ratio("serializer_garbage_ratio", &garbage_ratio_reporter)
     {
         assert(dynamic_config);
         assert(static_config);
@@ -369,8 +372,29 @@ public:
      */
     float garbage_ratio() const;
 
+    /* \brief perfmon to output the garbage ratio
+     */
+    class garbage_ratio_reporter_t :
+        public perfmon_function_t<float>::internal_function_t
+    {
+    private: 
+        data_block_manager_t *data_block_manager;
+    public:
+        garbage_ratio_reporter_t(data_block_manager_t *data_block_manager)
+            : data_block_manager(data_block_manager) {}
+        ~garbage_ratio_reporter_t() {}
+        float operator()() {
+            return data_block_manager->garbage_ratio();
+        }
+    };
+
+    garbage_ratio_reporter_t garbage_ratio_reporter;
+
+    perfmon_function_t<float> pm_garbage_ratio;
+
     int64_t garbage_ratio_total_blocks() const { return gc_stats.old_garbage_blocks.get(); }
     int64_t garbage_ratio_garbage_blocks() const { return gc_stats.old_garbage_blocks.get(); }
+
 
 private:
     DISABLE_COPYING(data_block_manager_t);
