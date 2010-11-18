@@ -10,7 +10,6 @@
 #include <functional>
 #include <vector>
 #include <endian.h>
-#include "corefwd.hpp"
 #include "errors.hpp"
 #include "arch/arch.hpp"
 #include "utils2.hpp"

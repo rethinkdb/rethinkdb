@@ -5,7 +5,6 @@
 #include "request_handler/bin_memcached_handler.hpp"
 #include "request_handler/txt_memcached_handler.hpp"
 #include "conn_fsm.hpp"
-#include "corefwd.hpp"
 
 memcached_handler_t::parse_result_t memcached_handler_t::parse_request(event_t *event)
 {

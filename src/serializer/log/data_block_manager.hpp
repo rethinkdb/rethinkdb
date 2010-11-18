@@ -22,6 +22,8 @@ extern perfmon_counter_t
     pm_serializer_old_garbage_blocks,
     pm_serializer_old_total_blocks;
 
+class log_serializer_t;
+
 class data_block_manager_t {
 
 public:
