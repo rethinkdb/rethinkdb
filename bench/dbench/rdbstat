@@ -2,6 +2,7 @@
 
 import os, sys, signal, time, socket, errno, argparse
 
+RECV_BUFSIZE = 2048
 
 def parse_args():
     try: default_port = int(os.environ['RUN_PORT'])
@@ -17,12 +18,12 @@ def parse_args():
 
 def read_print_stats(sock):
     sock.send('stats\r\n')
-    f = sock.makefile()
-    while True:
-        line = f.readline()
-        sys.stdout.write(line)
-        sys.stdout.flush()
-        if line == 'END\r\n': return
+    stats = ''
+    while stats[-7:] != '\r\nEND\r\n':
+        buf = sock.recv(RECV_BUFSIZE)
+        if buf == '': raise socket.error('Socket closed')
+        else: stats += buf
+    sys.stdout.write(stats)
 
 def start(args):
     sock = socket.socket()
@@ -49,8 +50,11 @@ def loop(args, sock):
 
 
 def cleanup(sock):
-    sock.shutdown(socket.SHUT_RDWR)
-    sock.close()
+    try:
+        sock.shutdown(socket.SHUT_RDWR)
+        sock.close()
+    except socket.error:
+        pass
     sys.exit(0)
 
 
@@ -58,4 +62,5 @@ args = parse_args()
 sock = start(args)
 try: loop(args, sock)
 except KeyboardInterrupt: pass
+except socket.error: pass
 cleanup(sock)
