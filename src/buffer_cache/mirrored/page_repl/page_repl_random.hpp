@@ -20,13 +20,13 @@ position in the dense random array; this allows all insertion, deletion, and ran
 done in constant time.
 */
 
-struct mc_buf_t;
+struct mc_inner_buf_t;
 struct mc_cache_t;
 
 struct page_repl_random_t {
     
     typedef mc_cache_t cache_t;
-    typedef mc_buf_t buf_t;
+    typedef mc_inner_buf_t inner_buf_t;
     
 public:
     
@@ -38,11 +38,11 @@ public:
     public:
         /* When bufs are created or destroyed, this constructor and destructor are called; this is
         how the page replacement system keeps track of the buffers in memory. */
-        explicit local_buf_t(buf_t *gbuf);
+        explicit local_buf_t(inner_buf_t *gbuf);
         ~local_buf_t();
     
     private:
-        buf_t *gbuf;
+        inner_buf_t *gbuf;
         unsigned int index;
     };
     friend class local_buf_t;
@@ -58,13 +58,13 @@ public:
     reasonable implementation of a page replacement system will need to keep track of all of the
     buffers in memory anyway, so the cache can depend on the page replacement system's buffer list
     rather than keeping a buffer list of its own. */
-    buf_t *get_first_buf();
-    buf_t *get_next_buf(buf_t *buf);
+    inner_buf_t *get_first_buf();
+    inner_buf_t *get_next_buf(inner_buf_t *buf);
     
 private:
     unsigned int unload_threshold;
     cache_t *cache;
-    two_level_array_t<buf_t*, MAX_BLOCKS_IN_MEMORY> array;
+    two_level_array_t<inner_buf_t*, MAX_BLOCKS_IN_MEMORY> array;
 };
 
 #endif // __PAGE_REPL_RANDOM_HPP__

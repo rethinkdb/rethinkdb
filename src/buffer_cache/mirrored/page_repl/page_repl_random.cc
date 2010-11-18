@@ -6,7 +6,7 @@ page_repl_random_t::page_repl_random_t(unsigned int _unload_threshold, cache_t *
       cache(_cache)
     {}
     
-page_repl_random_t::local_buf_t::local_buf_t(buf_t *gbuf) : gbuf(gbuf) {
+page_repl_random_t::local_buf_t::local_buf_t(inner_buf_t *gbuf) : gbuf(gbuf) {
     index = gbuf->cache->page_repl.array.size();
     gbuf->cache->page_repl.array.set(index, gbuf);
 }
@@ -19,7 +19,7 @@ page_repl_random_t::local_buf_t::~local_buf_t() {
         gbuf->cache->page_repl.array.set(index, NULL);
 
     } else {
-        buf_t *replacement = gbuf->cache->page_repl.array.get(last_index);
+        inner_buf_t *replacement = gbuf->cache->page_repl.array.get(last_index);
         replacement->page_repl_buf.index = index;
         gbuf->cache->page_repl.array.set(index, replacement);
         gbuf->cache->page_repl.array.set(last_index, NULL);
@@ -39,12 +39,12 @@ void page_repl_random_t::make_space(unsigned int space_needed) {
                 
         // Try to find a block we can unload. Blocks are ineligible to be unloaded if they are
         // dirty or in use.
-        buf_t *block_to_unload = NULL;
+        inner_buf_t *block_to_unload = NULL;
         for (int tries = PAGE_REPL_NUM_TRIES; tries > 0; tries --) {
             
             /* Choose a block in memory at random. */
             unsigned int n = random() % array.size();
-            buf_t *block = array.get(n);
+            inner_buf_t *block = array.get(n);
             
             if (block->safe_to_unload()) {
                 block_to_unload = block;
@@ -55,7 +55,7 @@ void page_repl_random_t::make_space(unsigned int space_needed) {
         if (block_to_unload) {
             //printf("Unloading: %ld\n", block_to_unload->block_id);
             
-            /* buf_t's destructor, and the destructors of the local_buf_ts, take care of the
+            /* inner_buf_t's destructor, and the destructors of the local_buf_ts, take care of the
             details */
             delete block_to_unload;
         } else {
@@ -68,12 +68,12 @@ void page_repl_random_t::make_space(unsigned int space_needed) {
     }
 }
 
-mc_buf_t *page_repl_random_t::get_first_buf() {
+mc_inner_buf_t *page_repl_random_t::get_first_buf() {
     if (array.size() == 0) return NULL;
     return array.get(0);
 }
 
-mc_buf_t *page_repl_random_t::get_next_buf(buf_t *buf) {
+mc_inner_buf_t *page_repl_random_t::get_next_buf(inner_buf_t *buf) {
     if (buf->page_repl_buf.index == array.size() - 1) return NULL;
     else return array.get(buf->page_repl_buf.index + 1);
 }

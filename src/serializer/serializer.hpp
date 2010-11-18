@@ -54,7 +54,7 @@ struct serializer_t :
     };
     struct write_t {
         ser_block_id_t block_id;
-        void *buf;   /* If NULL, a deletion */
+        const void *buf;   /* If NULL, a deletion */
         write_block_callback_t *callback;
     };
     virtual bool do_write(write_t *writes, int num_writes, write_txn_callback_t *callback) = 0;
