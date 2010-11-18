@@ -101,15 +101,32 @@ void internal_node_handler::split(size_t block_size, btree_internal_node *node, 
 
     init(block_size, rnode, node, node->pair_offsets + median_index, node->npairs - median_index);
 
-    // TODO: This is really slow because most pairs will likely be copied
-    // repeatedly.  There should be a better way.
-    for (index = median_index; index < node->npairs; index++) {
-        delete_pair(node, node->pair_offsets[index]);
-    }
+    // Don't think about the ones we want to delete.  Think about the ones we want to keep.
 
+    std::vector<std::pair<uint16_t, uint16_t> > offsets(median_index);
+    for (int i = 0; i < median_index; ++i) {
+        offsets[i].first = node->pair_offsets[i];
+        offsets[i].second = i;
+    }
+    std::sort(offsets.begin(), offsets.end());
+
+    byte *front = ((byte *)node) + block_size;
+    int i = median_index;
+
+    // make last pair special
+    btree_internal_pair *last = get_pair(node, node->pair_offsets[median_index - 1]);
+    last->key.size = 0;
+    
+    while (i-- > 0) {
+        btree_internal_pair *p = get_pair(node, offsets[i].first);
+        int k = pair_size(p);
+        front -= k;
+        memmove(front, p, k);
+        node->pair_offsets[offsets[i].second] = front - (byte *)node;
+    }
     node->npairs = median_index;
-    //make last pair special
-    make_last_pair_special(node);
+    node->frontmost_offset = (front - (byte *)node);
+
 #ifdef BTREE_DEBUG
     printf("\t|\n\t|\n\t|\n\tV\n");
     internal_node_handler::print(node);
