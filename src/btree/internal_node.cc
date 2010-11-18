@@ -110,13 +110,12 @@ void internal_node_handler::split(size_t block_size, btree_internal_node *node, 
     }
     std::sort(offsets.begin(), offsets.end());
 
-    byte *front = ((byte *)node) + block_size;
-    int i = median_index;
-
     // make last pair special
     btree_internal_pair *last = get_pair(node, node->pair_offsets[median_index - 1]);
     last->key.size = 0;
     
+    byte *front = ((byte *)node) + block_size;
+    int i = median_index;
     while (i-- > 0) {
         btree_internal_pair *p = get_pair(node, offsets[i].first);
         int k = pair_size(p);
