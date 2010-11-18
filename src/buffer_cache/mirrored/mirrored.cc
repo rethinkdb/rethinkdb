@@ -4,90 +4,68 @@
 /**
  * Buffer implementation.
  */
- 
+
+/* This mini-FSM loads a buf from disk. */
+
+struct load_buf_fsm_t :
+    public cpu_message_t,
+    serializer_t::read_callback_t
+{
+    bool have_loaded;
+    mc_inner_buf_t *inner_buf;
+    load_buf_fsm_t(mc_inner_buf_t *buf) : inner_buf(buf) {
+        bool locked __attribute__((unused)) = inner_buf->lock.lock(rwi_write, NULL);
+        assert(locked);
+        have_loaded = false;
+        if (continue_on_cpu(inner_buf->cache->serializer->home_cpu, this)) on_cpu_switch();
+    }
+    void on_cpu_switch() {
+        if (!have_loaded) {
+            if (inner_buf->cache->serializer->do_read(inner_buf->block_id, inner_buf->data, this))
+                on_serializer_read();
+        } else {
+            inner_buf->lock.unlock();
+            delete this;
+        }
+    }
+    void on_serializer_read() {
+        have_loaded = true;
+        if (continue_on_cpu(inner_buf->cache->home_cpu, this)) on_cpu_switch();
+    }
+};
+
 // This form of the buf constructor is used when the block exists on disk and needs to be loaded
-mc_buf_t::mc_buf_t(cache_t *cache, block_id_t block_id, block_available_callback_t *callback)
+
+mc_inner_buf_t::mc_inner_buf_t(cache_t *cache, block_id_t block_id)
     : cache(cache),
-#ifndef NDEBUG
-      active_callback_count(0),
-#endif
       block_id(block_id),
-      cached(false),
+      data(cache->serializer->malloc()),
+      refcount(0),
       do_delete(false),
-      cow_data(NULL),
+      cow_will_be_needed(false),
       writeback_buf(this),
       page_repl_buf(this),
-      concurrency_buf(this),
       page_map_buf(this) {
-      
-    data = cache->serializer->malloc();
     
-#ifndef NDEBUG
-    active_callback_count ++;
-#endif
-    
-    if (continue_on_cpu(cache->serializer->home_cpu, this)) on_cpu_switch();
-    
-    if (!cached) {
-        // Can't get the buf right away, gotta go through the
-        // callback...
-        add_load_callback(callback);
-    }
+    new load_buf_fsm_t(this);
     
     pm_n_blocks_in_memory++;
-}
-
-void mc_buf_t::on_serializer_read() {
-    
-    cache->serializer->assert_cpu();
-    assert(!cached);
-    cached = true;
-    if (continue_on_cpu(cache->home_cpu, this)) on_cpu_switch();
-}
-
-void mc_buf_t::have_read() {
-    
-    cache->assert_cpu();
-    
-#ifndef NDEBUG
-    active_callback_count --;
-    assert(active_callback_count >= 0);
-#endif
-    
-    // We're calling back objects that were all able to grab a lock,
-    // but are waiting on a load. Because of this, we can notify all
-    // of them.
-    
-    int n_callbacks = load_callbacks.size();
-    while (n_callbacks-- > 0) {
-        block_available_callback_t *callback = load_callbacks.head();
-        load_callbacks.remove(callback);
-        pm_n_bufs_ready++;
-        callback->on_block_available(this);
-        // At this point, 'this' may be invalid because the callback might cause the block to be
-        // unloaded as a side effect. That's why we use 'n_callbacks' rather than checking for
-        // load_callbacks.empty().
-    }
+    cache->page_repl.make_space(1);
 }
 
 // This form of the buf constructor is used when a completely new block is being created
-mc_buf_t::mc_buf_t(cache_t *cache)
+mc_inner_buf_t::mc_inner_buf_t(cache_t *cache)
     : cache(cache),
-#ifndef NDEBUG
-      active_callback_count(0),
-#endif
       block_id(cache->free_list.gen_block_id()),
-      cached(true),
+      data(cache->serializer->malloc()),
+      refcount(0),
       do_delete(false),
-      cow_data(NULL),
+      cow_will_be_needed(false),
       writeback_buf(this),
       page_repl_buf(this),
-      concurrency_buf(this),
       page_map_buf(this) {
     
     cache->assert_cpu();
-    
-    data = cache->serializer->malloc();
 
 #if !defined(NDEBUG) || defined(VALGRIND)
     // The memory allocator already filled this with 0xBD, but it's nice to be able to distinguish
@@ -96,9 +74,10 @@ mc_buf_t::mc_buf_t(cache_t *cache)
 #endif
     
     pm_n_blocks_in_memory++;
+    cache->page_repl.make_space(1);
 }
 
-mc_buf_t::~mc_buf_t() {
+mc_inner_buf_t::~mc_inner_buf_t() {
     
     cache->assert_cpu();
     
@@ -112,105 +91,110 @@ mc_buf_t::~mc_buf_t() {
     assert(safe_to_unload());
     cache->serializer->free(data);
     
-    pm_n_blocks_in_memory += -1;
+    pm_n_blocks_in_memory--;
+}
+
+bool mc_inner_buf_t::safe_to_unload() {
+    return !lock.locked() && writeback_buf.safe_to_unload() && refcount == 0 && !cow_will_be_needed;
+}
+
+perfmon_duration_sampler_t
+    pm_bufs_acquiring("bufs_acquring", secs_to_ticks(1)),
+    pm_bufs_held("bufs_held", secs_to_ticks(1));
+
+mc_buf_t::mc_buf_t(mc_inner_buf_t *inner, access_t mode)
+    : ready(false), callback(NULL), mode(mode), inner_buf(inner)
+{
+    pm_bufs_acquiring.begin(&start_time);
+    inner_buf->refcount++;
+    if (inner_buf->lock.lock(mode == rwi_read_outdated_ok ? rwi_read : mode, this)) {
+        on_lock_available();
+    }
+}
+
+void mc_buf_t::on_lock_available() {
+    
+    pm_bufs_acquiring.end(&start_time);
+    
+    inner_buf->cache->assert_cpu();
+    assert(!inner_buf->do_delete);
+    
+    switch (mode) {
+        case rwi_read: {
+            data = inner_buf->data;
+            break;
+        }
+        case rwi_read_outdated_ok: {
+            if (inner_buf->cow_will_be_needed) {
+                data = inner_buf->cache->serializer->malloc();
+                memcpy(data, inner_buf->data, inner_buf->cache->get_block_size());
+            } else {
+                data = inner_buf->data;
+                inner_buf->cow_will_be_needed = true;
+                inner_buf->lock.unlock();
+            }
+            break;
+        }
+        case rwi_write: {
+            if (inner_buf->cow_will_be_needed) {
+                data = inner_buf->cache->serializer->malloc();
+                memcpy(data, inner_buf->data, inner_buf->cache->get_block_size());
+                inner_buf->data = data;
+                inner_buf->cow_will_be_needed = false;
+            }
+            data = inner_buf->data;
+            break;
+        }
+        default: {
+            fail("Locking with intent not supported yet.");
+        }
+    }
+    
+    pm_bufs_held.begin(&start_time);
+    
+    ready = true;
+    if (callback) callback->on_block_available(this);
 }
 
 void mc_buf_t::release() {
     
-    cache->assert_cpu();
+    pm_bufs_held.end(&start_time);
     
-    pm_n_bufs_released++;
-    concurrency_buf.release();
+    inner_buf->cache->assert_cpu();
     
-    /*
+    inner_buf->refcount--;
+    
+    switch (mode) {
+        case rwi_read:
+        case rwi_write: {
+            inner_buf->lock.unlock();
+            break;
+        }
+        case rwi_read_outdated_ok: {
+            if (data == inner_buf->data) {
+                inner_buf->cow_will_be_needed = false;
+            } else {
+                inner_buf->cache->serializer->free(data);
+            }
+            break;
+        }
+        default: fail("Unexpected mode.");
+    }
+    
     // If this code is not commented out, then it will cause bufs to be unloaded very aggressively.
     // This is useful for catching bugs in which something expects a buf to remain valid even though
     // it is eligible to be unloaded.
     
-    if (safe_to_unload()) {
-        delete this;
-    }
-    */
-}
-
-void mc_buf_t::release_cow() {
-    
-    assert(cow_data);
-    cache->assert_cpu();
-    
-    if(cow_data == data) {
-        // The block has not been copied
-        cow_data = NULL;
-    } else {
-        // The block has been copied while it was locked for COW. We
-        // can now free cow_data.
-        cache->serializer->free(cow_data);
-        cow_data = NULL;
-        pm_n_cows_destroyed++;
-    }
-    
     /*
-    // If this code is not commented out, then it will cause bufs to be unloaded very aggressively.
-    // This is useful for catching bugs in which something expects a buf to remain valid even though
-    // it is eligible to be unloaded.
-    
-    if (safe_to_unload()) {
-        delete this;
+    if (inner_buf->safe_to_unload()) {
+        delete inner_buf;
     }
     */
-}
-
-void mc_buf_t::on_serializer_write_block() {
     
-    cache->serializer->assert_cpu();
-    assert(cow_data);   // We should be in a flush right now
-    if (continue_on_cpu(cache->home_cpu, this)) on_cpu_switch();
+    delete this;
 }
 
-void mc_buf_t::on_cpu_switch() {
-
-    if (!is_cached()) {
-        /* We are going to the serializer's CPU to ask it to load us. */
-        cache->serializer->assert_cpu();
-        if (cache->serializer->do_read(block_id, data, this)) on_serializer_read();
-    
-    } else if (!cow_data) {
-        /* We are returning from the serializer's CPU after loading our data. */
-        cache->assert_cpu();
-        have_read();
-    
-    } else {
-        /* We are returning from the serializer's CPU after getting 
-        on_serializer_write_block() */
-        cache->assert_cpu();
-#ifndef NDEBUG
-        active_callback_count --;
-        assert(active_callback_count >= 0);
-#endif
-        cache->writeback.buf_was_written(this);
-    }
-}
-
-void mc_buf_t::add_load_callback(block_available_callback_t *cb) {
-    assert(!cached);
-    assert(cb);
-    load_callbacks.push_back(cb);
-}
-
-bool mc_buf_t::safe_to_unload() {
-    return concurrency_buf.safe_to_unload() &&
-        load_callbacks.empty() &&
-        writeback_buf.safe_to_unload() &&
-        !cow_data;
-}
-
-bool mc_buf_t::safe_to_delete() {
-    return load_callbacks.empty();
-}
-
-void mc_buf_t::do_cow_copy() {
-    assert(cow_data);
-    data = cache->serializer->clone(data);
+mc_buf_t::~mc_buf_t() {
 }
 
 /**
@@ -299,139 +283,36 @@ mc_buf_t *mc_transaction_t::allocate(block_id_t *block_id) {
 
     /* Make a completely new block, complete with a shiny new block_id. */
     
-    pm_n_bufs_acquired++;
-    pm_n_bufs_ready++;
     assert(access == rwi_write);
     
-    // If we are getting low on memory, kick out old blocks
-    cache->page_repl.make_space(1);
-    
-    // This form of the buf_t constructor generates a new block with a new block ID.
-    buf_t *buf = new buf_t(cache);
-    *block_id = buf->get_block_id();   // Find out what block ID the buf was assigned
+    // This form of the inner_buf_t constructor generates a new block with a new block ID.
+    inner_buf_t *inner_buf = new inner_buf_t(cache);
+    *block_id = inner_buf->block_id;   // Find out what block ID the buf was assigned
     
     // This must pass since no one else holds references to this block.
-    bool acquired __attribute__((unused)) = buf->concurrency_buf.acquire(rwi_write, NULL);
-    assert(acquired);
+    buf_t *buf = new buf_t(inner_buf, rwi_write);
+    assert(buf->ready);
 
     return buf;
 }
 
-struct acquire_lock_callback_t : public mc_block_available_callback_t
-{
-    acquire_lock_callback_t(mc_transaction_t *_transaction,
-                            mc_block_available_callback_t *_callback,
-                            access_t _mode)
-        : transaction(_transaction),
-          callback(_callback),
-          mode(_mode)
-        {}
-    
-    virtual void on_block_available(mc_buf_t *buf) {
-        // Block has been unlocked and is now available to us
-        transaction->process_buf(buf, mode);
-        if(callback) {
-            callback->on_block_available(buf);
-        }
-        delete this;
-    }
-
-private:
-    mc_transaction_t *transaction;
-    mc_block_available_callback_t *callback;
-    access_t mode;
-};
-        
-void mc_transaction_t::process_buf(mc_buf_t *buf, access_t mode) {
-    if(buf->cow_data && buf->data == buf->cow_data && mode == rwi_write) {
-        // Gotta do copy on write
-        buf->do_cow_copy();
-        pm_n_cows_made++;
-        pm_n_bufs_ready++;
-    } else if(mode == rwi_read_outdated_ok) {
-        // One rwi_read_outdated_ok at a time
-        assert(buf->cow_data == NULL);
-        // set the cow_data
-        buf->cow_data = buf->data;
-        // since rwi_read_outdated_ok is only done by writeback, the
-        // block can't be unloaded
-        buf->concurrency_buf.release();
-    } else {
-        pm_n_bufs_ready++;
-    }
-}
-
 mc_buf_t *mc_transaction_t::acquire(block_id_t block_id, access_t mode,
                                block_available_callback_t *callback) {
+    
     assert(mode == rwi_read || mode == rwi_read_outdated_ok || access != rwi_read);
        
-    if (mode != rwi_read_outdated_ok) pm_n_bufs_acquired++;
-
-    buf_t *buf = cache->page_map.find(block_id);
-    if (!buf) {
-        
-        /* Unlike in allocate(), we aren't creating a new block; the block already existed but we
-        are creating a buf to represent it in memory, and then loading it from disk. */
-
-        // Currently only flush code acquires a buf with
-        // rwi_read_outdated_ok, and it only does it for bufs that are
-        // already in memory (dirty bufs can't be pushed
-        // out). Therefore if !buf &&mode == rwi_read_outdated_ok,
-        // something is very wrong.
-        assert(mode != rwi_read_outdated_ok);
-
-        // If we are getting low on memory, kick out old blocks
-        cache->page_repl.make_space(1);
-        
-        // This form of the buf_t constructor will instruct it to load itself from the file and
-        // call us back when it finishes.
-        buf = new buf_t(cache, block_id, callback);
-        
-        // This must pass since no one else holds references to this block.
-        bool acquired __attribute__((unused)) = buf->concurrency_buf.acquire(mode, NULL);
-        assert(acquired);
-
-        // It's possible that we got the block from the serializer
-        // right way because of its internal caching. If that's the
-        // case, just return it right away.
-        if(buf->is_cached()) {
-            pm_n_bufs_ready++;
-            return buf;
-        } else {
-            return NULL;
-        }
-        
+    inner_buf_t *inner_buf = cache->page_map.find(block_id);
+    if (!inner_buf) {
+        /* The buf isn't in the cache and must be loaded from disk */
+        inner_buf = new inner_buf_t(cache, block_id);
+    }
+    
+    buf_t *buf = new buf_t(inner_buf, mode);
+    if (buf->ready) {
+        return buf;
     } else {
-        assert(!buf->do_delete);
-        // We only allow one acquisition for COW at a time
-        assert(mode != rwi_read_outdated_ok || !buf->cow_data);
-
-        acquire_lock_callback_t *_callback = new acquire_lock_callback_t(this, callback, mode);
-        access_t _mode = mode;
-        if(_mode == rwi_read_outdated_ok)
-            _mode = rwi_read;
-        bool acquired = buf->concurrency_buf.acquire(_mode, _callback);
-
-        if (!acquired)
-            return NULL;
-        else
-            delete _callback;
-         
-        if(!buf->is_cached()) {
-            // Acquired the block, but it's not cached yet, add
-            // callback to load_callbacks.
-            buf->add_load_callback(callback);
-
-            // Only writeback acquired blocks in rwi_read_outdated_ok
-            // mode, so if that's the case the block should be cached
-            // already
-            assert(mode != rwi_read_outdated_ok);
-            return NULL;
-            
-        } else {
-            process_buf(buf, mode);
-            return buf;
-        }
+        buf->callback = callback;
+        return NULL;
     }
 }
 
@@ -463,7 +344,7 @@ mc_cache_t::~mc_cache_t() {
     
     assert(state == state_unstarted || state == state_shut_down);
     
-    while (buf_t *buf = page_repl.get_first_buf()) {
+    while (inner_buf_t *buf = page_repl.get_first_buf()) {
        delete buf;
     }
     assert(num_live_transactions == 0);
@@ -497,16 +378,9 @@ bool mc_cache_t::next_starting_up_step() {
         /* Create an initial superblock */
         if (free_list.num_blocks_in_use == 0) {
         
-            buf_t *b = new mc_buf_t(this);
-            
-            // Because release() increments n_bufs_released
-            pm_n_bufs_acquired++;
-            pm_n_bufs_ready++;
-            
-            b->concurrency_buf.acquire(rwi_write, NULL);
-            assert(b->get_block_id() == SUPERBLOCK_ID);
-            bzero(b->get_data_write(), get_block_size());
-            b->release();
+            inner_buf_t *b = new mc_inner_buf_t(this);
+            assert(b->block_id == SUPERBLOCK_ID);
+            bzero(b->data, get_block_size());
         }
         
         state = state_ready;

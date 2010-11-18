@@ -165,6 +165,22 @@ void writeback_t::on_lock_available() {
     writeback_acquire_bufs();
 }
 
+struct buf_writer_t :
+    public serializer_t::write_block_callback_t,
+    public cpu_message_t,
+    public home_cpu_mixin_t
+{
+    mc_buf_t *buf;
+    buf_writer_t(mc_buf_t *buf) : buf(buf) { }
+    void on_serializer_write_block() {
+        if (continue_on_cpu(home_cpu, this)) on_cpu_switch();
+    }
+    void on_cpu_switch() {
+        buf->release();
+        delete this;
+    }
+};
+
 bool writeback_t::writeback_acquire_bufs() {
     
     assert(writeback_in_progress);
@@ -183,27 +199,24 @@ bool writeback_t::writeback_acquire_bufs() {
     int i = 0;
     while (local_buf_t *lbuf = dirty_bufs.head()) {
     
-        buf_t *_buf = lbuf->gbuf;
+        inner_buf_t *inner_buf = lbuf->gbuf;
         lbuf->set_dirty(false);   // Removes it from dirty_bufs
         
-        bool do_delete = _buf->do_delete;
+        bool do_delete = inner_buf->do_delete;
         
         // Acquire the blocks
-        _buf->do_delete = false; /* Backdoor around acquire()'s assertion */
+        inner_buf->do_delete = false; /* Backdoor around acquire()'s assertion */
         access_t buf_access_mode = do_delete ? rwi_read : rwi_read_outdated_ok;
-        buf_t *buf = transaction->acquire(_buf->get_block_id(), buf_access_mode, NULL);
+        buf_t *buf = transaction->acquire(inner_buf->block_id, buf_access_mode, NULL);
         assert(buf);         // Acquire must succeed since we hold the flush_lock.
-        assert(buf == _buf); // Acquire should return the same buf we stored earlier.
         
-        serializer_writes[i].block_id = buf->get_block_id();
+        serializer_writes[i].block_id = inner_buf->block_id;
         
         // Fill the serializer structure
         if (!do_delete) {
-            serializer_writes[i].buf = buf->data;
-            serializer_writes[i].callback = buf;
-#ifndef NDEBUG
-            buf->active_callback_count ++;
-#endif
+        
+            serializer_writes[i].buf = buf->get_data_read();
+            serializer_writes[i].callback = new buf_writer_t(buf);
 
         } else {
         
@@ -213,9 +226,9 @@ bool writeback_t::writeback_acquire_bufs() {
             assert(buf_access_mode != rwi_read_outdated_ok);
             buf->release();
             
-            cache->free_list.release_block_id(buf->get_block_id());
+            cache->free_list.release_block_id(inner_buf->block_id);
             
-            delete buf;
+            delete inner_buf;
         }
         
         i++;
@@ -243,13 +256,6 @@ bool writeback_t::writeback_do_write() {
     } else {
         return false;
     }
-}
-
-void writeback_t::buf_was_written(buf_t *buf) {
-    
-    cache->assert_cpu();
-    assert(buf);
-    buf->release_cow();
 }
 
 void writeback_t::on_serializer_write_txn() {

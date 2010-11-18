@@ -10,6 +10,7 @@
 
 struct mc_cache_t;
 struct mc_buf_t;
+struct mc_inner_buf_t;
 struct mc_transaction_t;
 
 struct writeback_t :
@@ -18,6 +19,7 @@ struct writeback_t :
 {
     typedef mc_cache_t cache_t;
     typedef mc_buf_t buf_t;
+    typedef mc_inner_buf_t inner_buf_t;
     typedef mc_transaction_t transaction_t;
     typedef mc_transaction_begin_callback_t transaction_begin_callback_t;
     typedef mc_transaction_commit_callback_t transaction_commit_callback_t;
@@ -45,9 +47,6 @@ public:
     bool begin_transaction(transaction_t *txn, transaction_begin_callback_t *cb);
     void on_transaction_commit(transaction_t *txn);
     
-    // This is called by buf_t when the OS informs the buf that a write operation completed
-    void buf_was_written(buf_t *buf);
-    
     unsigned int num_dirty_blocks();
     
     class local_buf_t : public intrusive_list_node_t<local_buf_t> {
@@ -55,7 +54,7 @@ public:
         friend class writeback_t;
         
     public:
-        explicit local_buf_t(buf_t *gbuf)
+        explicit local_buf_t(inner_buf_t *gbuf)
             : gbuf(gbuf), dirty(false) {}
         
         void set_dirty(bool _dirty = true);
@@ -63,7 +62,7 @@ public:
         bool safe_to_unload() const { return !dirty; }
 
     private:
-        buf_t *gbuf;
+        inner_buf_t *gbuf;
     public: //TODO make this private again @jdoliner
         bool dirty;
     };
