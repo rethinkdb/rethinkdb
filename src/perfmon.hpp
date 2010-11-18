@@ -14,6 +14,17 @@
 #include <sstream>
 #define fail(...) _fail(__FILE__, __LINE__, __VA_ARGS__)
 
+/* Number formatter */
+
+template<class T>
+std::string format(T value) {
+    std::stringstream ss;
+    ss.precision(8);
+    ss << std::fixed << value;
+    return ss.str();
+}
+
+
 /* The perfmon (short for "PERFormance MONitor") is responsible for gathering data about
 various parts of the server. */
 
@@ -130,6 +141,39 @@ public:
     void end(ticks_t *v) {
         active--;
         recent.record(ticks_to_secs(get_ticks() - *v));
+    }
+};
+
+/* perfmon_function_t is a perfmon for outputting a function as a stat
+ */
+template<class T>
+struct perfmon_function_t :
+    public perfmon_t
+{
+public:
+    class internal_function_t {
+    public:
+        internal_function_t() {}
+        ~internal_function_t() {}
+        virtual T operator()() = 0;
+    };
+private:
+    std::string name;
+    internal_function_t *function;
+
+public:
+    perfmon_function_t(std::string name, internal_function_t *f)
+        : perfmon_t(), name(name), function(f) {}
+    ~perfmon_function_t() {}
+
+    void *begin_stats() {
+        return (void *) 0;
+    }
+    void visit_stats(void *) {
+        return;
+    }
+    void end_stats(void *unused, perfmon_stats_t *dest) {
+        (*dest)[name] = format((*function)());
     }
 };
 

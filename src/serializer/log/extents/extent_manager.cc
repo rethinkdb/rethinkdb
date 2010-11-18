@@ -30,6 +30,10 @@ class extent_zone_t {
     segmented_vector_t<off64_t, MAX_DATA_EXTENTS> extents;
     
     off64_t free_list_head;
+private:
+    int _held_extents;
+public:
+    int held_extents() {return _held_extents;}
     
 public:
     extent_zone_t(off64_t start, off64_t end, size_t extent_size)
@@ -57,6 +61,7 @@ public:
             if (extents[offset_to_id(extent)] == EXTENT_UNRESERVED) {
                 extents[offset_to_id(extent)] = free_list_head;
                 free_list_head = extent;
+                _held_extents++;
             }
         }
     }
@@ -76,6 +81,7 @@ public:
         
             extent = free_list_head;
             free_list_head = extents[offset_to_id(free_list_head)];
+            _held_extents--;
         }
         
         extents[offset_to_id(extent)] = EXTENT_IN_USE;
@@ -88,7 +94,9 @@ public:
         assert(extents[offset_to_id(extent)] == EXTENT_IN_USE);
         extents[offset_to_id(extent)] = free_list_head;
         free_list_head = extent;
-    }
+        _held_extents++;
+    } 
+
 };
 
 extent_manager_t::extent_manager_t(direct_file_t *file, log_serializer_static_config_t *static_config, log_serializer_dynamic_config_t *dynamic_config)
@@ -275,4 +283,11 @@ void extent_manager_t::commit_transaction(transaction_t *t) {
         zone_for_offset(extent)->release_extent(extent);
     }
     delete t;
+}
+
+int extent_manager_t::held_extents() {
+    int total = 0;
+    for (unsigned int i = 0; i < num_zones; i++)
+        total += zones[i]->held_extents();
+    return total;
 }

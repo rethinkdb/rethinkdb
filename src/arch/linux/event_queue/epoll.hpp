@@ -4,7 +4,6 @@
 
 #include <queue>
 #include <sys/epoll.h>
-#include "corefwd.hpp"
 #include "config/args.hpp"
 #include "perfmon.hpp"
 

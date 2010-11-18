@@ -1,7 +1,6 @@
 #ifndef __BTREE_DELETE_FSM_HPP__
 #define __BTREE_DELETE_FSM_HPP__
 
-#include "corefwd.hpp"
 #include "event.hpp"
 #include "btree/node.hpp"
 #include "btree/internal_node.hpp"

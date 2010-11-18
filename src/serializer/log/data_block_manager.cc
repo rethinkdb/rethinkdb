@@ -291,6 +291,7 @@ void data_block_manager_t::run_gc() {
         }
             
         case gc_write:
+            mark_unyoung_entries(); //We need to do this here so that we don't get stuck on the GC treadmill
             /* Our write should have forced all of the blocks in the extent to become garbage,
             which should have caused the extent to be released and gc_state.current_offset to
             become NULL. */
@@ -485,7 +486,7 @@ float data_block_manager_t::garbage_ratio() const {
     if (gc_stats.old_total_blocks.get() == 0) {
         return 0.0;
     } else {
-        return (float) gc_stats.old_garbage_blocks.get() / (float) gc_stats.old_total_blocks.get();
+        return (float) gc_stats.old_garbage_blocks.get() / ((float) gc_stats.old_total_blocks.get() + extent_manager->held_extents() * (extent_manager->extent_size / static_config->block_size));
     }
 }
 

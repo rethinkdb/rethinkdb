@@ -6,7 +6,6 @@
 #include "arch/arch.hpp"
 #include "request_handler/request_handler.hpp"
 #include "event.hpp"
-#include "corefwd.hpp"
 #include <stdarg.h>
 
 // TODO: the lifetime of conn_fsm isn't well defined - some objects
@@ -129,7 +128,7 @@ private:
     
     void send_msg_to_client();
     void init_state();
-    void return_to_socket_connected();
+    void return_to_socket_connected(bool);
 };
 
 #endif // __CONN_FSM_HPP__

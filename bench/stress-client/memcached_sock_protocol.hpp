@@ -33,14 +33,31 @@ struct memcached_sock_protocol_t : public protocol_t {
             }
         }
     }
-    
-    virtual void connect(config_t *config) {
+
+    virtual void connect(config_t *config, server_t *server) {
+        // Parse the host string
+        char _host[MAX_HOST];
+        strncpy(_host, server->host, MAX_HOST);
+
+        char *_port = NULL;
+
+        _port = strchr(_host, ':');
+        if(_port) {
+            *_port = '\0';
+            _port++;
+        } else {
+            fprintf(stderr, "Please use host string of the form host:port.\n");
+            exit(-1);
+        }
+
+        int port = atoi(_port);
+
         // Setup the host/port data structures
         struct sockaddr_in sin;
-        struct hostent *host = gethostbyname(config->host);
+        struct hostent *host = gethostbyname(_host);
         memcpy(&sin.sin_addr.s_addr, host->h_addr, host->h_length);
         sin.sin_family = AF_INET;
-        sin.sin_port = htons(config->port);
+        sin.sin_port = htons(port);
 
         // Connect to server
         int res = ::connect(sockfd, (struct sockaddr *)&sin, sizeof(sin));
@@ -50,7 +67,7 @@ struct memcached_sock_protocol_t : public protocol_t {
             exit(-1);
         }
     }
-    
+
     virtual void remove(const char *key, size_t key_size) {
         // Setup the text command
         char *buf = buffer;
@@ -65,12 +82,12 @@ struct memcached_sock_protocol_t : public protocol_t {
         // Check the result
         expect(false);
     }
-    
+
     virtual void update(const char *key, size_t key_size,
                         const char *value, size_t value_size) {
         insert(key, key_size, value, value_size);
     }
-    
+
     virtual void insert(const char *key, size_t key_size,
                         const char *value, size_t value_size) {
         // Setup the text command
@@ -89,7 +106,7 @@ struct memcached_sock_protocol_t : public protocol_t {
         // Check the result
         expect(false);
     }
-    
+
     virtual void read(payload_t *keys, int count) {
         // Setup the text command
         char *buf = buffer;
@@ -102,7 +119,7 @@ struct memcached_sock_protocol_t : public protocol_t {
             }
         }
         buf += sprintf(buf, "\r\n");
-        
+
         // Send it on its merry way to the server
         send_command(buf - buffer);
 
@@ -145,7 +162,7 @@ private:
             } else {
                 ptr = memmem(buffer, nread, "\r\n", 2);
             }
-            
+
             if(ptr) {
                 return;
             }

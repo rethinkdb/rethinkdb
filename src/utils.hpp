@@ -10,13 +10,13 @@
 #include <functional>
 #include <vector>
 #include <endian.h>
-#include "corefwd.hpp"
 #include "errors.hpp"
 #include "arch/arch.hpp"
 #include "utils2.hpp"
 
 // The signal handler for SIGSEGV
 void generic_crash_handler(int signum);
+void ignore_crash_handler(int signum);
 void install_generic_crash_handler();
 
 void print_hd(const void *buf, size_t offset, size_t length);

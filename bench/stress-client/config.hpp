@@ -2,12 +2,11 @@
 #ifndef __CONFIG_HPP__
 #define __CONFIG_HPP__
 
-#define MAX_HOST    255
-#define MAX_FILE    255
+#include <stdio.h>
+#include <vector>
+#include "server.hpp"
 
-enum protocol_enum_t {
-    protocol_libmemcached, protocol_sockmemcached, protocol_mysql
-};
+#define MAX_FILE    255
 
 
 struct duration_t {
@@ -15,7 +14,7 @@ public:
     enum duration_units_t {
         queries_t, seconds_t, inserts_t
     };
-    
+
 public:
     duration_t(long _duration, duration_units_t _units)
         : duration(_duration), units(_units)
@@ -74,12 +73,10 @@ public:
 struct config_t {
 public:
     config_t()
-        : port(11211), protocol(protocol_sockmemcached),
-          clients(64), load(load_t()),
+        : clients(64), load(load_t()),
           keys(distr_t(8, 16)), values(distr_t(8, 128)),
           duration(10000000L, duration_t::queries_t), batch_factor(distr_t(1, 16))
         {
-            strcpy(host, "localhost");
             latency_file[0] = 0;
             qps_file[0] = 0;
             out_file[0] = 0;
@@ -87,22 +84,18 @@ public:
         }
 
     void print() {
-        printf("--- Workload -----\n");
+        printf("---- Workload ----\n");
         printf("Duration..........");
         duration.print();
         printf("\n");
 
-        printf("Protocol..........");
-        if(protocol == protocol_libmemcached)
-            printf("libmemcached");
-        else if(protocol == protocol_sockmemcached)
-            printf("sockmemcached");
-        else if(protocol == protocol_mysql)
-            printf("mysql");
-        else
-            printf("unknown");
-        
-        printf("\nClients...........%d\nLoad..............", clients);
+        for (int i = 0; i < servers.size(); i++) {
+            printf("Server............");
+            servers[i].print();
+            printf("\n");
+        }
+
+        printf("Clients...........%d\nLoad..............", clients);
         load.print();
         printf("\nKeys..............");
         keys.print();
@@ -112,11 +105,9 @@ public:
         batch_factor.print();
         printf("\n");
     }
-    
+
 public:
-    char host[MAX_HOST];
-    int port;
-    protocol_enum_t protocol;
+    std::vector<server_t> servers;
     int clients;
     load_t load;
     distr_t keys;

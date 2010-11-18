@@ -17,16 +17,20 @@
 
 using namespace std;
 
-protocol_t* make_protocol(config_t *config) {
-    if(config->protocol == protocol_mysql)
-        return (protocol_t*) new mysql_protocol_t();
-    else if(config->protocol == protocol_sockmemcached)
-        return (protocol_t*) new memcached_sock_protocol_t();
-    else if(config->protocol == protocol_libmemcached)
-        return (protocol_t*) new memcached_protocol_t();
-    else {
-        printf("Unknown protocol\n");
-        exit(-1);
+protocol_t* make_protocol(protocol_enum_t protocol) {
+    switch (protocol) {
+        case protocol_mysql:
+            return (protocol_t*) new mysql_protocol_t();
+            break;
+        case protocol_sockmemcached:
+            return (protocol_t*) new memcached_sock_protocol_t();
+            break;
+        case protocol_libmemcached:
+            return (protocol_t*) new memcached_protocol_t();
+            break;
+        default:
+            fprintf(stderr, "Unknown protocol\n");
+            exit(-1);
     }
 }
 
@@ -35,18 +39,19 @@ int main(int argc, char *argv[])
 {
     // Initialize randomness
     srand(time(NULL));
-    
+
     // Parse the arguments
     config_t config;
     parse(&config, argc, argv);
     config.print();
 
-    // Gotta run the shared init
-    protocol_t *p = make_protocol(&config);
-    p->connect(&config);
-    p->shared_init();
-    delete p;
-    p = NULL;
+    // Gotta run the shared init for each server.
+    for (int i = 0; i < config.servers.size(); i++) {
+        protocol_t *p = make_protocol(config.servers[i].protocol);
+        p->connect(&config, &config.servers[i]);
+        p->shared_init();
+        delete p;
+    }
 
     // Let's rock 'n roll
     int res;
@@ -58,6 +63,7 @@ int main(int argc, char *argv[])
     client_data_t client_data[config.clients];
     for(int i = 0; i < config.clients; i++) {
         client_data[i].config = &config;
+        client_data[i].server = &config.servers[i % config.servers.size()];
         client_data[i].shared = &shared;
         client_data[i].id = i;
         client_data[i].min_seed = 0;
@@ -66,6 +72,11 @@ int main(int argc, char *argv[])
 
     if(config.in_file[0] != 0) {
         FILE *in_file = fopen(config.in_file, "r");
+
+        if(in_file == NULL) {
+            fprintf(stderr, "Could not open output key file");
+            exit(-1);
+        }
 
         while(feof(in_file) == 0) {
             int id, min_seed, max_seed;
@@ -82,7 +93,7 @@ int main(int argc, char *argv[])
 
     // Create the threads
     for(int i = 0; i < config.clients; i++) {
-        
+
         int res = pthread_create(&threads[i], NULL, run_client, &client_data[i]);
         if(res != 0) {
             fprintf(stderr, "Can't create thread");
@@ -110,10 +121,10 @@ int main(int argc, char *argv[])
             fwrite(&cd->min_seed, sizeof(cd->min_seed), 1, out_file);
             fwrite(&cd->max_seed, sizeof(cd->max_seed), 1, out_file);
         }
-        
+
         fclose(out_file);
     }
-    
+
     return 0;
 }
 

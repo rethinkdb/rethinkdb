@@ -11,12 +11,19 @@ void generic_crash_handler(int signum) {
     fail("Internal crash detected.");
 }
 
+void ignore_crash_handler(int signum) {}
+
 void install_generic_crash_handler() {
     struct sigaction action;
     bzero(&action, sizeof(action));
     action.sa_handler = generic_crash_handler;
     int res = sigaction(SIGSEGV, &action, NULL);
     check("Could not install SEGV handler", res < 0);
+
+    bzero(&action, sizeof(action));
+    action.sa_handler = ignore_crash_handler;
+    res = sigaction(SIGPIPE, &action, NULL);
+    check("Could not install PIPE handler", res < 0);
 }
 
 // fast non-null terminated string comparison

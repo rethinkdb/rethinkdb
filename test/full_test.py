@@ -140,6 +140,16 @@ for (mode, checker) in [
                       "slices"      : slices,
                       "num-keys"    : 50000},
                     repeat=3, timeout=60*90)
+
+            do_test("integration/fuzz.py",
+                    { "auto"        : True,
+                      "mode"        : mode,
+                      "no-valgrind" : not checker,
+                      "protocol"    : protocol,
+                      "cores"       : cores,
+                      "slices"      : slices,
+                      "duration"    : 240},
+                    repeat=3, timeout=60*90)
             
             # Don't run the corruption test in mockio or mockcache mode because in those modes
             # we don't flush to disk at all until the server is shut down, so obviously the
