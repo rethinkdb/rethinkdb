@@ -90,16 +90,6 @@ perfmon_t::~perfmon_t() {
     get_var_list().remove(this);
 }
 
-/* Number formatter */
-
-template<class T>
-std::string format(T value) {
-    std::stringstream ss;
-    ss.precision(8);
-    ss << std::fixed << value;
-    return ss.str();
-}
-
 /* perfmon_counter_t */
 
 perfmon_counter_t::perfmon_counter_t(std::string name)
@@ -205,3 +195,4 @@ void perfmon_sampler_t::end_stats(void *data, perfmon_stats_t *dest) {
     }
     delete d;
 };
+
