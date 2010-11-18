@@ -6,24 +6,18 @@
 void usage(const char *name) {
     // Create a default config
     config_t _d;
+    server_t _d_server;
 
     // Print usage
     printf("Usage:\n");
     printf("\t%s [OPTIONS]\n", name);
 
     printf("\nOptions:\n");
-    printf("\t-n, --host\n\t\tServer host to connect to. Defaults to [%s].\n", _d.host);
-    printf("\t-p, --port\n\t\tServer port to connect to. Defaults to [%d].\n", _d.port);
-    printf("\t-r, --protocol\n\t\tProtocol to connect to server. Defaults to [");
-    if(_d.protocol == protocol_libmemcached)
-        printf("libmemcached");
-    else if(_d.protocol == protocol_sockmemcached)
-        printf("sockmemcached");
-    else if(_d.protocol == protocol_mysql)
-        printf("mysql");
-    else
-        printf("unknown");
-    printf("]\n");
+    printf("\t-s, --server\n\t\tServer to connect to, in the form [PROTOCOL,]HOSTSTRING. This option\n");
+    printf("\t\tcan be specified more than once to distribute clients over several\n");
+    printf("\t\tservers. If no servers are specified, defaults to [");
+    _d_server.print();
+    printf("].\n");
     printf("\t-c, --clients\n\t\tNumber of concurrent clients. Defaults to [%d].\n", _d.clients);
     printf("\t-w, --workload\n\t\tTarget load to generate. Expects a value in format D/U/I/R, where\n" \
            "\t\t\tD - number of deletes\n" \
@@ -56,12 +50,18 @@ void usage(const char *name) {
 
     printf("\nAdditional information:\n");
     printf("\t\tDISTR format describes a range and can be specified in as MIN-MAX.\n\n");
-    printf("\t\tPossible protocols are libmemcached, sockmemcached, and mysql.\n");
+    printf("\t\tPossible protocols are libmemcached, sockmemcached, and mysql. Protocol\n");
+    printf("\t\tis optional; if not specified, will default to [");
+    _d_server.print_protocol();
+    printf("].\n\n");
+
+    printf("\t\tFor memcached protocols the host argument should be in the form host:port.\n");
     printf("\t\tFor mysql protocol the host argument should be in the following\n" \
-           "\t\tformat: username/password@host:database.\n\n");
+           "\t\tformat: username/password@host:port+database.\n\n");
+
     printf("\t\tDuration can be specified as a number of queries (e.g. 5000 or 5000q),\n" \
            "\t\ta number of rows inserted (e.g. 5000i), or a number of seconds (e.g. 5000s).\n");
-    
+
     exit(-1);
 }
 
@@ -73,9 +73,7 @@ void parse(config_t *config, int argc, char *argv[]) {
         int do_help = 0;
         struct option long_options[] =
             {
-                {"host",           required_argument, 0, 'n'},
-                {"port",           required_argument, 0, 'p'},
-                {"protocol",       required_argument, 0, 'r'},
+                {"server",         required_argument, 0, 's'},
                 {"clients",        required_argument, 0, 'c'},
                 {"workload",       required_argument, 0, 'w'},
                 {"keys",           required_argument, 0, 'k'},
@@ -91,37 +89,25 @@ void parse(config_t *config, int argc, char *argv[]) {
             };
 
         int option_index = 0;
-        int c = getopt_long(argc, argv, "n:p:r:c:w:k:v:d:b:l:q:o:i:h", long_options, &option_index);
+        int c = getopt_long(argc, argv, "s:n:p:r:c:w:k:v:d:b:l:q:o:i:h", long_options, &option_index);
 
         if(do_help)
             c = 'h';
-     
+
         /* Detect the end of the options. */
         if (c == -1)
             break;
-     
+
         switch (c)
         {
         case 0:
             break;
-        case 'n':
-            strncpy(config->host, optarg, MAX_HOST);
+        case 's': {
+            server_t server;
+            server.parse(optarg);
+            config->servers.push_back(server);
             break;
-        case 'p':
-            config->port = atoi(optarg);
-            break;
-        case 'r':
-            if(strcmp(optarg, "mysql") == 0)
-                config->protocol = protocol_mysql;
-            else if(strcmp(optarg, "libmemcached") == 0)
-                config->protocol = protocol_libmemcached;
-            else if(strcmp(optarg, "sockmemcached") == 0)
-                config->protocol = protocol_sockmemcached;
-            else {
-                printf("Unknown protocol\n");
-                exit(-1);
-            }
-            break;
+        }
         case 'c':
             config->clients = atoi(optarg);
             break;
@@ -155,11 +141,15 @@ void parse(config_t *config, int argc, char *argv[]) {
         case 'h':
             usage(argv[0]);
             break;
-     
+
         default:
             /* getopt_long already printed an error message. */
             usage(argv[0]);
         }
+    }
+
+    if (config->servers.size() == 0) { // No server specified -- add one to be used as the default.
+        config->servers.push_back(server_t());
     }
 }
 

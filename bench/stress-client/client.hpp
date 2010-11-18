@@ -11,8 +11,8 @@ using namespace std;
 /* Information shared between clients */
 struct shared_t {
 public:
-    typedef protocol_t*(*protocol_factory_t)(config_t*);
-    
+    typedef protocol_t*(*protocol_factory_t)(protocol_enum_t);
+
 public:
     shared_t(config_t *_config, protocol_factory_t _protocol_factory)
         : config(_config),
@@ -22,7 +22,7 @@ public:
           last_qps(0), n_op(1), n_tick(1), n_ops_so_far(0)
         {
             pthread_mutex_init(&mutex, NULL);
-            
+
             if(config->qps_file[0] != 0) {
                 qps_fd = fopen(config->qps_file, "wa");
             }
@@ -43,11 +43,11 @@ public:
 
         pthread_mutex_destroy(&mutex);
     }
-    
+
     void push_qps(int _qps, int tick) {
         if(!qps_fd && !latencies_fd)
             return;
-        
+
         lock();
 
         // Collect qps info from all clients before attempting to print
@@ -61,7 +61,7 @@ public:
 
             qps_count += 1;
             agg_qps += _qps;
-        
+
             if(qps_count == config->clients) {
                 _qps = agg_qps;
                 qps_map.erase(op);
@@ -71,19 +71,19 @@ public:
                 return;
             }
         }
-            
+
         last_qps = _qps;
 
         if(!qps_fd) {
             unlock();
             return;
         }
-        
+
         int _off = snprintf(qps + qps_offset, sizeof(qps) - qps_offset, "%d\t\t%d\n", n_tick, _qps);
         if(_off >= sizeof(qps) - qps_offset) {
             // Couldn't write everything, flush
             fwrite(qps, 1, qps_offset, qps_fd);
-            
+
             // Write again
             qps_offset = 0;
             _off = snprintf(qps + qps_offset, sizeof(qps) - qps_offset, "%d\t\t%d\n", n_tick, _qps);
@@ -91,12 +91,15 @@ public:
         qps_offset += _off;
 
         n_tick++;
-        
+
         unlock();
     }
 
     void push_latency(float latency) {
+        lock();
         n_ops_so_far++;
+        unlock();
+
         /*
         if(n_ops_so_far % 200000 == 0)
             printf("%ld\n", n_ops_so_far);
@@ -114,12 +117,12 @@ public:
         }
 
         lock();
-        
+
         int _off = snprintf(latencies + latencies_offset, sizeof(latencies) - latencies_offset, "%ld\t\t%.2f\n", n_op, latency);
         if(_off >= sizeof(latencies) - latencies_offset) {
             // Couldn't write everything, flush
             fwrite(latencies, 1, latencies_offset, latencies_fd);
-            
+
             // Write again
             latencies_offset = 0;
             _off = snprintf(latencies + latencies_offset, sizeof(latencies) - latencies_offset, "%ld\t\t%.2f\n", n_op, latency);
@@ -133,7 +136,7 @@ public:
 
 public:
     protocol_factory_t protocol_factory;
-    
+
 private:
     config_t *config;
     map<int, pair<int, int> > qps_map;
@@ -159,6 +162,7 @@ private:
 /* Communication structure for main thread and clients */
 struct client_data_t {
     config_t *config;
+    server_t *server;
     shared_t *shared;
     int id;
     int min_seed, max_seed;
@@ -169,12 +173,13 @@ void* run_client(void* data) {
     // Grab the config
     client_data_t *client_data = (client_data_t*)data;
     config_t *config = client_data->config;
+    server_t *server = client_data->server;
     shared_t *shared = client_data->shared;
     shared_t::protocol_factory_t pf = shared->protocol_factory;
-    protocol_t *proto = (*pf)(config);
-    
+    protocol_t *proto = (*pf)(server->protocol);
+
     // Connect to the server
-    proto->connect(config);
+    proto->connect(config, server);
 
     // Store the keys so we can run updates and deletes.
 
@@ -204,7 +209,7 @@ void* run_client(void* data) {
         int j, k, l; // because we can't declare in the loop
         uint64_t id_salt = client_data->id;
         id_salt += id_salt << 40;
-        
+
         switch(cmd) {
         case load_t::delete_op:
             if (client_data->min_seed == client_data->max_seed)
@@ -221,7 +226,7 @@ void* run_client(void* data) {
             total_queries++;
             total_deletes++;
             break;
-            
+
         case load_t::update_op:
             // Find the key and generate the payload
             if (client_data->min_seed == client_data->max_seed)
@@ -237,7 +242,7 @@ void* run_client(void* data) {
             qps++;
             total_queries++;
             break;
-            
+
         case load_t::insert_op:
             // Generate the payload
             config->keys.toss(op_keys, client_data->max_seed ^ id_salt);
@@ -251,7 +256,7 @@ void* run_client(void* data) {
             total_queries++;
             total_inserts++;
             break;
-            
+
         case load_t::read_op:
             // Find the key
             if(client_data->min_seed == client_data->max_seed)

@@ -363,8 +363,7 @@ class Stress(Client):
     QPS_FILE = 'qps.txt'
 
     def internal_start(self):
-        default_args = ['-n', self.dbench.host, # XXX
-                        '-p', str(self.dbench.port),
+        default_args = ['-s', 'sockmemcached,%s:%d''-n' % (self.dbench.host, self.dbench.port),
                         '-l', self.LATENCY_FILE,
                         '-q', self.QPS_FILE]
         args = self.compute_args(default_args)
@@ -372,9 +371,8 @@ class Stress(Client):
 
 class MySQLStress(Stress):
     def internal_start(self):
-        default_args = ['-r', 'mysql',
-                        '-n', 'teapot/teapot@%s:bench' % self.dbench.host, # XXX: This shouldn't be hard-wired.
-                        '-p', str(self.dbench.port),
+        user, passwd, db = 'teapot', 'teapot', 'bench' # XXX: This shouldn't be hard-wired.
+        default_args = ['-s', 'mysql,%s/%s@%s:%d+%s' % (user, passwd, self.dbench.host, self.dbench.port, db),
                         '-l', self.LATENCY_FILE,
                         '-q', self.QPS_FILE]
         args = self.compute_args(default_args)
