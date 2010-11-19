@@ -38,11 +38,10 @@ class TimeSeries(list):
     def __init__(self, units):
         self.units = units
 
-class Plot():
-    def __init__(self, x, y):
-        assert len(x) == len(y)
-        self.x = x
-        self.y = y
+class Scatter():
+    def __init__(self, list_of_tuples, xnames = None):
+        self.data = list_of_tuples
+        self.names = xnames
 
 class default_empty_timeseries_dict(dict):
     units_line = line("(\w+)\[(\w+)\]", [('key', 's'), ('units', 's')])
@@ -75,7 +74,7 @@ class default_empty_plot_dict(dict):
         if key in self:
             return self.get(key)
         else:
-            return Plot([], [])
+            return Scatter([])
     def copy(self):
         copy = default_empty_plot_dict()
         copy.update(self)
@@ -290,8 +289,8 @@ class TimeSeriesCollection():
         self.data[name] = function(tuple(args))
         return self
 
-class PlotCollection():
-    def __init__(self, xlabel = None, ylabel = None):
+class ScatterCollection():
+    def __init__(self, TimeSeriesCollections, xlabel = None, ylabel = None):
         self.data = default_empty_plot_dict()
         self.xlabel = xlabel
         self.ylabel = ylabel
@@ -343,6 +342,17 @@ class PlotCollection():
         fig.set_size_inches(20,14.8)
         fig.set_dpi(300)
         plt.savefig(out_fname + '_large')
+
+class TimeSeriesMeans():
+    def __init__(self, TimeSeriesCollections):
+        TS = reduce(lambda x,y: x + y, TimeSeriesCollections)
+        series_means = TS.means(tuple(TS.data.keys()))
+        names = {}
+        for i,key in zip(range(len(TS.data.keys())), TS.data.keys()):
+            names[i] = key
+
+        self.scatter = Scatter(zip(range(len(series_means)), series_means), names)
+        self.TimeSeriesCollections = TimeSeriesCollections
 
 #A few useful derivation functions
 #take discret derivative of a series (shorter by 1)

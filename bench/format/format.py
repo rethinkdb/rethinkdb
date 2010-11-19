@@ -165,6 +165,7 @@ class dbench():
                     collect_run_data(run,os.path.join(multirun_dir,run,'1'), runs)
 
                 self.multi_runs[multirun] = Multirun(multirun, runs,unit)
+                #@glukhovsky MapReduce and make means for multirun.data which would yield a PointsCollection
 
         def parse_server_meta(self, data):
             threads_line = line('Number of DB threads: (\d+)', [('threads', 'd')])
