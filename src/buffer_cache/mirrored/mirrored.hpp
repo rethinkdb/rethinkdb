@@ -24,140 +24,116 @@ typedef array_free_list_t free_list_t;
 #include "page_map.hpp"
 typedef array_map_t page_map_t;
 
-#include "concurrency/rwi_conc.hpp"
-typedef rwi_conc_t concurrency_t;
-
 // This cache doesn't actually do any operations itself. Instead, it
 // provides a framework that collects all components of the cache
 // (memory allocation, page lookup, page replacement, writeback, etc.)
 // into a coherent whole. This allows easily experimenting with
 // various components of the cache to improve performance.
 
-/* Buffer class. */
+class mc_inner_buf_t {
+
+    friend class load_buf_fsm_t;
+    friend class mc_cache_t;
+    friend class mc_transaction_t;
+    friend class mc_buf_t;
+    friend class writeback_t;
+    friend class writeback_t::local_buf_t;
+    friend class page_repl_random_t;
+    friend class page_repl_random_t::local_buf_t;
+    friend class array_map_t;
+    friend class array_map_t::local_buf_t;
+    
+    typedef mc_cache_t cache_t;
+    
+    cache_t *cache;
+    block_id_t block_id;
+    void *data;
+    rwi_lock_t lock;
+    
+    /* The number of mc_buf_ts that exist for this mc_inner_buf_t */
+    int refcount;
+    
+    /* true if we are being deleted */
+    bool do_delete;
+    
+    /* true if there is a mc_buf_t that holds a pointer to the data in read-only outdated-OK
+    mode. */
+    bool cow_will_be_needed;
+    
+    // Each of these local buf types holds a redundant pointer to the inner_buf that they are a part of
+    writeback_t::local_buf_t writeback_buf;
+    page_repl_t::local_buf_t page_repl_buf;
+    page_map_t::local_buf_t page_map_buf;
+    
+    bool safe_to_unload();
+    
+    // Load an existing buf from disk
+    mc_inner_buf_t(cache_t *cache, block_id_t block_id);
+    
+    // Create an entirely new buf
+    mc_inner_buf_t(cache_t *cache);
+    
+    ~mc_inner_buf_t();
+};
+
+/* This class represents a hold on a mc_inner_buf_t. */
 class mc_buf_t :
-    public cpu_message_t,
-    public serializer_t::read_callback_t,
-    public serializer_t::write_block_callback_t,
-    public intrusive_list_node_t<mc_buf_t >
+    public lock_available_callback_t
 {
     typedef mc_cache_t cache_t;
     typedef mc_block_available_callback_t block_available_callback_t;
     
     friend class mc_cache_t;
     friend class mc_transaction_t;
-    friend class writeback_t;
-    friend class writeback_t::local_buf_t;
-    friend class page_repl_random_t;
-    friend class page_repl_random_t::local_buf_t;
-    friend class rwi_conc_t;
-    friend class rwi_conc_t::local_buf_t;
-    friend class array_map_t;
-    friend class array_map_t::local_buf_t;
     
 private:
-    cache_t *cache;
-
-#ifndef NDEBUG
-    // This field helps catch bugs wherein a block is unloaded even though a callback still points
-    // to it.
-    int active_callback_count;
-#endif
-  
-    block_id_t block_id;
-    void *data;
+    mc_buf_t(mc_inner_buf_t *, access_t mode);
+    void on_lock_available();
+    bool ready;
+    block_available_callback_t *callback;
     
-    /* Is data valid, or are we waiting for a read? */
-    bool cached;
-
-    /* Is the block meant to be deleted upon release? */
-    bool do_delete;
-
-    /* cow_data acts both as a flag and a pointer. If cow_data isn't
-     * NULL, the buffer has been acquired in rwi_read_outdated_ok
-     * mode, and if someone attempts to acquire it for writing, it
-     * should be copied. */
-    void *cow_data;
+    ticks_t start_time;
     
-    typedef intrusive_list_t<block_available_callback_t> callbacks_t;
-    callbacks_t load_callbacks;
-    
-    // Each of these local buf types holds a redundant pointer to the buf that they are a part of
-    writeback_t::local_buf_t writeback_buf;
-    page_repl_t::local_buf_t page_repl_buf;
-    concurrency_t::local_buf_t concurrency_buf;
-    page_map_t::local_buf_t page_map_buf;
-
-    // This constructor creates a buf for an existing block, and starts the process of loading it
-    // from the file
-    mc_buf_t(cache_t *cache, block_id_t block_id, block_available_callback_t *callback);
-    
-    // This constructor creates a new buf with a new block id
-    explicit mc_buf_t(cache_t *cache);
+    access_t mode;
+    mc_inner_buf_t *inner_buf;
+    void *data;   /* Same as inner_buf->data until a COW happens */
 
     ~mc_buf_t();
-    
-    bool is_cached() { return cached; }
-
-    void on_cpu_switch();
-    
-    void add_load_callback(block_available_callback_t *callback);
-    void on_serializer_read();   // Called on serializer CPU
-    void have_read();   // Called on cache CPU
-    
-    void on_serializer_write_block();   // Called on serializer CPU
-    
-    bool safe_to_unload();
-    bool safe_to_delete();
-
-    void do_cow_copy();
 
 public:
     void release();
 
-    // TODO: this a hack that allows us to release a buf acquired via
-    // rwi_read_outdated_ok. We need this because release() doesn't
-    // know whether we're releasing a simple rwi_read/rwi_write or
-    // rwi_read_outdated_ok. In fact, rwi_intent (if we ever use it)
-    // has the same problem. We should refactor this so that acquire()
-    // returns a token that needs to be passed to release(), so that
-    // release() knows what it's releasing. After we do that, we can
-    // get rid of release_cow() function. BTW, cow here means
-    // copy-on-write.
-    void release_cow();
-
-
     void *get_data_write() {
-        assert(cached);
-        assert(!safe_to_unload()); // If this assertion fails, it probably means that you're trying to access a buf you don't own.
-        assert(!do_delete);
-
-        writeback_buf.set_dirty();
-
+        assert(ready);
+        assert(!inner_buf->safe_to_unload()); // If this assertion fails, it probably means that you're trying to access a buf you don't own.
+        assert(!inner_buf->do_delete);
+        assert(mode == rwi_write);
+        inner_buf->writeback_buf.set_dirty();
+        
+        assert(data == inner_buf->data);
         return data;
     }
 
     const void *get_data_read() {
-        assert(cached);
-        assert(!safe_to_unload()); // If this assertion fails, it probably means that you're trying to access a buf you don't own.
+        assert(ready);
         return data;
     }
 
-    block_id_t get_block_id() const { return block_id; }
+    block_id_t get_block_id() const {
+        return inner_buf->block_id;
+    }
     
     void mark_deleted() {
-        assert(!safe_to_unload());
-        assert(safe_to_delete());
-        do_delete = true;
-        writeback_buf.set_dirty();
+        assert(mode == rwi_write);
+        assert(!inner_buf->safe_to_unload());
+        inner_buf->do_delete = true;
+        inner_buf->writeback_buf.set_dirty();
     }
 
     bool is_dirty() {
-        return writeback_buf.dirty;
+        return inner_buf->writeback_buf.dirty;
     }
 };
-
-/* Forward declaration annoyance */
-struct acquire_lock_callback_t;
 
 /* Transaction class. */
 class mc_transaction_t :
@@ -166,6 +142,7 @@ class mc_transaction_t :
 {
     typedef mc_cache_t cache_t;
     typedef mc_buf_t buf_t;
+    typedef mc_inner_buf_t inner_buf_t;
     typedef mc_transaction_begin_callback_t transaction_begin_callback_t;
     typedef mc_transaction_commit_callback_t transaction_commit_callback_t;
     typedef mc_block_available_callback_t block_available_callback_t;
@@ -208,18 +185,19 @@ struct mc_cache_t :
     private writeback_t::sync_callback_t,
     public home_cpu_mixin_t
 {
+    friend class load_buf_fsm_t;
     friend class mc_buf_t;
+    friend class mc_inner_buf_t;
     friend class mc_transaction_t;
     friend class writeback_t;
     friend class writeback_t::local_buf_t;
     friend class page_repl_random_t;
     friend class page_repl_random_t::local_buf_t;
-    friend class rwi_conc_t;
-    friend class rwi_conc_t::local_buf_t;
     friend class array_map_t;
     friend class array_map_t::local_buf_t;    
     
 public:
+    typedef mc_inner_buf_t inner_buf_t;
     typedef mc_buf_t buf_t;
     typedef mc_transaction_t transaction_t;
     typedef mc_block_available_callback_t block_available_callback_t;
@@ -241,7 +219,6 @@ private:
     page_map_t page_map;
     page_repl_t page_repl;
     writeback_t writeback;
-    concurrency_t concurrency;
     free_list_t free_list;
 
 public:
