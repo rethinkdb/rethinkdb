@@ -15,6 +15,8 @@
 // TODO: change rwi_write to rwi_intent followed by rwi_upgrade where
 // relevant.
 
+perfmon_counter_t pm_btree_depth("btree_depth");
+
 btree_modify_fsm_t::transition_result_t btree_modify_fsm_t::do_start_transaction(event_t *event) {
     assert(state == start_transaction);
 
@@ -70,6 +72,7 @@ btree_modify_fsm_t::transition_result_t btree_modify_fsm_t::do_acquire_root(even
         buf = transaction->allocate(&node_id);
         leaf_node_handler::init(cache->get_block_size(), leaf_node_handler::leaf_node(buf->get_data_write()));
         insert_root(node_id);
+        pm_btree_depth++;
         return btree_fsm_t::transition_ok;
     }
 
@@ -349,6 +352,7 @@ btree_modify_fsm_t::transition_result_t btree_modify_fsm_t::do_transition(event_
                     bool new_root = do_check_for_split(&node);
                     if(new_root) {
                         insert_root(last_node_id);
+                        pm_btree_depth++;
                     }
                 }
 
@@ -416,6 +420,7 @@ btree_modify_fsm_t::transition_result_t btree_modify_fsm_t::do_transition(event_
                                 // when we get here node_id should be the id of the new root
                                 last_buf->mark_deleted();
                                 insert_root(node_id);
+                                pm_btree_depth--;
                                 assert(state == acquire_node);
                                 break;
                             }
