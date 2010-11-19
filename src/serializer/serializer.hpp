@@ -9,7 +9,7 @@
 behave. It is implemented by log_serializer_t, semantic_checking_serializer_t, and
 others. */
 
-typedef uint64_t ser_block_id_t;
+typedef uint32_t ser_block_id_t;
 #define NULL_SER_BLOCK_ID (ser_block_id_t(-1))
 
 typedef uint64_t ser_transaction_id_t;

@@ -60,7 +60,7 @@ public:
     struct buf_data_t {
         ser_block_id_t block_id;
         ser_transaction_id_t transaction_id;
-    };
+    } __attribute__((__packed__));
 
         
     static buf_data_t make_buf_data_t(ser_block_id_t block_id, ser_transaction_id_t transaction_id) {
