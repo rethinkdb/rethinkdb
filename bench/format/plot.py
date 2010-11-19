@@ -38,11 +38,10 @@ class TimeSeries(list):
     def __init__(self, units):
         self.units = units
 
-class Plot():
-    def __init__(self, x, y):
-        assert len(x) == len(y)
-        self.x = x
-        self.y = y
+class Scatter():
+    def __init__(self, list_of_tuples, xnames = None):
+        self.data = list_of_tuples
+        self.names = xnames
 
 class default_empty_timeseries_dict(dict):
     units_line = line("(\w+)\[(\w+)\]", [('key', 's'), ('units', 's')])
@@ -75,7 +74,7 @@ class default_empty_plot_dict(dict):
         if key in self:
             return self.get(key)
         else:
-            return Plot([], [])
+            return Scatter([])
     def copy(self):
         copy = default_empty_plot_dict()
         copy.update(self)
@@ -102,7 +101,8 @@ class TimeSeriesCollection():
             print "Processing failed on %s" % file_name
             return self
 
-        self.shorten()
+#self.shorten()
+        self.smooth_curves()
 
         return self #this just lets you do initialization in one line
 
@@ -151,6 +151,10 @@ class TimeSeriesCollection():
         if len(self.data.values()[0]) > 1500:
             for key in self.data.keys():
                 self.derive(key, (key,), drop_points)
+
+    def smooth_curves(self):
+        for key in self.data.keys():
+            self.derive(key, (key,), smooth)
 
     def json(self, out_fname, meta_data):
         top_level = {}
@@ -285,8 +289,8 @@ class TimeSeriesCollection():
         self.data[name] = function(tuple(args))
         return self
 
-class PlotCollection():
-    def __init__(self, xlabel = None, ylabel = None):
+class ScatterCollection():
+    def __init__(self, TimeSeriesCollections, xlabel = None, ylabel = None):
         self.data = default_empty_plot_dict()
         self.xlabel = xlabel
         self.ylabel = ylabel
@@ -339,6 +343,17 @@ class PlotCollection():
         fig.set_dpi(300)
         plt.savefig(out_fname + '_large')
 
+class TimeSeriesMeans():
+    def __init__(self, TimeSeriesCollections):
+        TS = reduce(lambda x,y: x + y, TimeSeriesCollections)
+        series_means = TS.means(tuple(TS.data.keys()))
+        names = {}
+        for i,key in zip(range(len(TS.data.keys())), TS.data.keys()):
+            names[i] = key
+
+        self.scatter = Scatter(zip(range(len(series_means)), series_means), names)
+        self.TimeSeriesCollections = TimeSeriesCollections
+
 #A few useful derivation functions
 #take discret derivative of a series (shorter by 1)
 def differentiate(series):
@@ -388,6 +403,20 @@ def drop_points(serieses):
     res.units = serieses[0].units
     for i in range(0, len(serieses[0]), max(len(serieses[0]) / 1000, 1)):
         res.append(serieses[0][i])
+    return res
+
+def smooth(serieses):
+    res = TimeSeries([])
+    res.units = serieses[0].units
+    for i in range(len(serieses[0])):
+        index_range = range(max(i - 15, 0), min(i + 15, len(serieses[0]) - 1))
+        val = 0
+        for j in index_range:
+            if serieses[0][j]:
+                val += serieses[0][j] / len(index_range)
+
+        res += [val]
+
     return res
 
 class IOStat(TimeSeriesCollection):

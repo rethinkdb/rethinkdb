@@ -1,7 +1,6 @@
 #ifndef __BTREE_GET_FSM_HPP__
 #define __BTREE_GET_FSM_HPP__
 
-#include "corefwd.hpp"
 #include "event.hpp"
 #include "btree/fsm.hpp"
 

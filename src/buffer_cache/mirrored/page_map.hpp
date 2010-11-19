@@ -6,18 +6,18 @@
 #include "config/args.hpp"
 #include "buffer_cache/types.hpp"
 
-struct mc_buf_t;
+struct mc_inner_buf_t;
 
 struct array_map_t {
     
-    typedef mc_buf_t buf_t;
+    typedef mc_inner_buf_t inner_buf_t;
     
 public:
     struct local_buf_t {
-        explicit local_buf_t(buf_t *gbuf);
+        explicit local_buf_t(inner_buf_t *gbuf);
         ~local_buf_t();
     private:
-        buf_t *gbuf;
+        inner_buf_t *gbuf;
     };
     friend class local_buf_t;
     
@@ -27,12 +27,12 @@ public:
         assert(array.size() == 0);
     }
 
-    buf_t* find(block_id_t block_id) {
+    inner_buf_t* find(block_id_t block_id) {
         return array.get(block_id);
     }
 
 private:
-    two_level_array_t<buf_t*, MAX_BLOCK_ID> array;
+    two_level_array_t<inner_buf_t*, MAX_BLOCK_ID> array;
 };
 
 #endif // __BUFFER_CACHE_PAGE_MAP_ARRAY_HPP__

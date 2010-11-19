@@ -45,7 +45,7 @@ private:
     
     two_level_array_t<block_info_t, MAX_BLOCK_ID> blocks;
     
-    crc_t compute_crc(void *buf) {
+    crc_t compute_crc(const void *buf) {
         boost::crc_optimal<32, 0x04C11DB7, 0xFFFFFFFF, 0xFFFFFFFF, true, true> crc_computer;
         // We need to not crc BLOCK_META_DATA_SIZE because it's
         // internal to the serializer.

@@ -4,8 +4,8 @@ import sys, os, signal, re, errno, socket, time, string, random, copy
 import tempfile
 import shutil
 import argparse
-import subprocess
-import shlex
+import subprocess, shlex
+from contextlib import contextmanager
 
 # Import oprofile from the parent direcotry of the script.
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir + '/oprofile')))
@@ -20,6 +20,47 @@ except ImportError:
 def random_str(length = 5, alphabet = string.letters + string.digits):
     alphabet = string.letters + string.digits
     return ''.join(random.choice(alphabet) for x in xrange(length))
+
+def sh_escape_within_single_quotes(str):
+    return str.replace("'", "'\\''")
+
+class SafeContextManagerHelper(object):
+    def __init__(self, coroutine):
+        self.coroutine = coroutine
+    def __enter__(self):
+        return self.coroutine.next()
+    def __exit__(self, t, v, tb):
+        try:
+            self.coroutine.next()
+        except StopIteration:
+            pass
+        else:
+            raise RuntimeError("safe_contextmanager used with an incorrectly implemented function")
+
+def safe_contextmanager(fun):
+    """contextlib.contextmanager has a weird behavior where if an exception is raised within the
+    body of the with-block, it will reraise that exception within the context manager. This is
+    bad because it defeats the purpose of using a with-block to make it easy to do cleanup."""
+    def fun2(*args, **kwargs):
+        return SafeContextManagerHelper(fun(*args, **kwargs))
+    return fun2
+
+@safe_contextmanager
+def bracket(start, end):
+    start()
+    yield
+    end()
+
+@safe_contextmanager
+def directory(new_dir):
+    try: os.makedirs(new_dir)
+    except OSError, e:
+        if e.errno != errno.EEXIST: raise
+        # Otherwise the directory already existed, so it's fine.
+    old_dir = os.getcwd()
+    os.chdir(new_dir)
+    yield
+    os.chdir(old_dir)
 
 
 class Worker(object):
@@ -59,14 +100,12 @@ class Worker(object):
 
     def start(self):
         self.finished = False
-        os.mkdir(self.id)
-        os.chdir(self.id)
-        self.worker_current_dir = os.getcwd()
-        self.status_file = open('status.txt', 'w')
-        print >> self.status_file, 'worker: %r' % self
-        print >> self.status_file, 'start: %d' % int(time.time())
-        self.internal_start()
-        os.chdir('..')
+        with directory(self.id):
+            self.worker_current_dir = os.getcwd()
+            self.status_file = open('status.txt', 'w')
+            print >> self.status_file, 'worker: %r' % self
+            print >> self.status_file, 'start: %d' % int(time.time())
+            self.internal_start()
         self.running = True
 
     def stop(self):
@@ -77,7 +116,19 @@ class Worker(object):
 
         print >> self.status_file, 'stop: %d' % int(time.time())
         if self.process:
-            print >> self.status_file, 'exitstatus: %s' % str(self.process.poll())
+            status = self.process.poll()
+            print >> self.status_file, 'exitstatus: %s' % self.process.poll()
+            if status == None:
+                self.dbench.warn('%r not terminated despite calling internal_stop()' % self)
+            elif status > 0:
+                # TODO: If the status is negative, that means the process was
+                # killed. Usually that's OK, because we kill it in
+                # internal_stop() (e.g. monitors); we want to report this if it
+                # was killed by another process, though.
+                self.dbench.warn('%r exited with positive status %d; output:' % (self, status))
+                with open(os.path.join(self.worker_current_dir, 'output.txt'), 'r') as f:
+                    # TODO: Need a better multi-line log.
+                    self.dbench.log(f.read())
         self.status_file.close()
         self.status_file = None
 
@@ -112,9 +163,6 @@ class Worker(object):
             self.dbench.die("Can't execute `%s': %s" % (executable, e.strerror))
 
     def copy_ssh(self):
-        def sh_escape_within_single_quotes(str):
-            return str.replace("'", "'\\''")
-
         if self.ssh:
             assert self.ssh_unique_path
             # XXX: Doing this synchronously will probably cause the rest of the monitors to terminate too late, which might cause some trouble.
@@ -127,7 +175,7 @@ class Worker(object):
             if ret != 0:
                 self.dbench.warn('Failed to delete temporary directory %s:%s.' % (self.ssh, self.ssh_unique_path))
 
-    MAX_WAIT_TIME = 30
+    MAX_WAIT_TIME = 5
     WAIT_INTERVAL = 0.05
     def bounded_wait(self):
         bound = time.time() + self.MAX_WAIT_TIME
@@ -147,9 +195,7 @@ class Worker(object):
 
     def wait(self):
         assert self.process
-        status = self.process.wait()
-        if status != 0:
-            self.dbench.warn('%r exited with status %d' % (self, status))
+        self.process.wait()
         self.stop()
 
     binary_paths = []
@@ -317,8 +363,7 @@ class Stress(Client):
     QPS_FILE = 'qps.txt'
 
     def internal_start(self):
-        default_args = ['-n', self.dbench.host, # XXX
-                        '-p', str(self.dbench.port),
+        default_args = ['-s', 'sockmemcached,%s:%d''-n' % (self.dbench.host, self.dbench.port),
                         '-l', self.LATENCY_FILE,
                         '-q', self.QPS_FILE]
         args = self.compute_args(default_args)
@@ -326,9 +371,8 @@ class Stress(Client):
 
 class MySQLStress(Stress):
     def internal_start(self):
-        default_args = ['-r', 'mysql',
-                        '-n', 'teapot/teapot@%s:bench' % self.dbench.host, # XXX: This shouldn't be hard-wired.
-                        '-p', str(self.dbench.port),
+        user, passwd, db = 'teapot', 'teapot', 'bench' # XXX: This shouldn't be hard-wired.
+        default_args = ['-s', 'mysql,%s/%s@%s:%d+%s' % (user, passwd, self.dbench.host, self.dbench.port, db),
                         '-l', self.LATENCY_FILE,
                         '-q', self.QPS_FILE]
         args = self.compute_args(default_args)
@@ -343,18 +387,15 @@ class StressFree(Stress): # Temporary.
             self.dbench.warn('%r exited with status %d' % (self, status))
         if status == 255:
             self.dbench.warn('Assuming stress client failure is temporary; restarting.')
-            old_wd = os.getcwd()
-            os.chdir(self.worker_current_dir)
-            print >> self.status_file, 'restart: %d' % int(time.time())
-            self.internal_start()
-            os.chdir(old_wd)
+            with directory(self.worker_current_dir):
+                print >> self.status_file, 'restart: %d' % int(time.time())
+                self.internal_start()
             return self.wait()
         self.stop()
 
 
 class Stat(Monitor):
-    statcmd = ''
-
+    # Runs a 
     def internal_start(self):
         args = self.compute_args(prefix=[], default=['1'])
         self.run_process(self.statcmd, args)
@@ -398,10 +439,8 @@ class OProfile(Monitor):
 
     def internal_stop(self):
         # stop_and_report() needs to be called from inside the correct directory. Maybe .stop() should do this instead?
-        old_wd = os.getcwd()
-        os.chdir(self.worker_current_dir)
-        self.op.stop()
-        os.chdir(old_wd)
+        with directory(self.worker_current_dir):
+            self.op.stop()
         self.finished = self.profiles == []
 
 workers = {
@@ -477,7 +516,7 @@ class DBench(object):
         so.bind(('localhost', 0))
         port = so.getsockname()[1]
         so.close()
-        time.sleep(0.5) # XXX: To make sure the socket is really closed.
+        time.sleep(0.5) # XXX: To make sure the socket is really closed. Surely there's a better way to do this.
         return port
 
     def parse_args(self):
@@ -537,6 +576,20 @@ class DBench(object):
         if color: print >> term, colored(str, color)
         else:     print >> term, str
         self.log_messages.append(str)
+    
+    # XXX: This isn't a good way of doing it.
+    @safe_contextmanager
+    def deeper_log(self, delta = 1):
+        self.log_depth += 1
+        yield
+        self.log_depth -= 1
+
+    @safe_contextmanager
+    def timed_subsection(self, name):
+        self.info("Starting %s (at %d)" % (name, int(time.time())))
+        with self.deeper_log(1):
+            yield
+        self.info("Finished %s (at %d)" % (name, int(time.time())))
 
     def setup(self):
         self.info('DBench starting with arguments: %s' % sys.argv[1:])
@@ -566,39 +619,31 @@ class DBench(object):
         for w in [self.server] + self.monitors + [self.client]:
             w.start()
             self.info('%s started' % w)
+    def stop_workers(self):
+        if self.client.running: self.die('Client not terminated')
+        # XXX: We stop the monitors before the server because they sometimes misbehave otherwise.
+        for w in self.monitors + [self.server]:
+            w.stop()
+            self.info('%s stopped' % w)
+
 
     def wait(self):
         self.info('Waiting for client...')
         self.client.wait()
         self.info('Client completed')
 
-    def stop_workers(self):
-        if self.client.running: self.die('Client not terminated')
-        #for w in [self.server] + self.monitors:
-        for w in self.monitors + [self.server]:
-            w.stop()
-            self.info('%s stopped' % w)
-
+    @safe_contextmanager
     def setup_run(self):
-        self.info('Starting run %d (at %d)' % (self.run_id, int(time.time())))
-        self.log_depth += 1
-        os.mkdir(str(self.run_id))
-        os.chdir(str(self.run_id))
-
-    def finish_run(self):
-        self.log_depth -= 1
-        self.info('Run %d complete (at %d)' % (self.run_id, int(time.time())))
-        os.chdir('..')
+        with directory(str(self.run_id)):
+            with self.timed_subsection('run %d' % self.run_id):
+                yield
         self.run_id += 1
 
     def one_run(self):
-        self.setup_run()
+        with self.setup_run():
+            with bracket(self.start_workers, self.stop_workers):
+                self.wait()
 
-        self.start_workers()
-        self.wait()
-        self.stop_workers()
-
-        self.finish_run()
 
     def need_to_run(self):
         return any(not m.finished for m in [self.server, self.client] + self.monitors)
@@ -606,10 +651,9 @@ class DBench(object):
     run_id = 1
 
     def run(self):
-        self.setup()
-        while self.need_to_run():
-            self.one_run()
-        self.finish()
+        with bracket(self.setup, self.finish):
+            while self.need_to_run():
+                self.one_run()
 
 if __name__ == '__main__':
     DBench().run()

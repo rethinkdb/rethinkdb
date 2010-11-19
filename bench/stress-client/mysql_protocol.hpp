@@ -24,20 +24,26 @@ struct mysql_protocol_t : public protocol_t {
         mysql_stmt_close(remove_stmt);
         mysql_close(&mysql);
     }
-    
-    virtual void connect(config_t *config) {
+
+    virtual void connect(config_t *config, server_t *server) {
         _config = config;
-        
+
         // Parse the host string
         char __host[512];
-        strcpy(__host, config->host);
+        strcpy(__host, server->host);
         char *_host = NULL;
+        char *_port;
         char *_username = NULL;
         char *_password = NULL;
-        _dbname = strstr((char*)__host, ":");
+        _dbname = strstr((char*)__host, "+");
         if(_dbname) {
             *_dbname = '\0';
             _dbname++;
+        }
+        _port = strstr((char*)__host, ":");
+        if(_port) {
+            *_port = '\0';
+            _port++;
         }
         _host = strstr((char*)__host, "@");
         if(_host) {
@@ -51,15 +57,17 @@ struct mysql_protocol_t : public protocol_t {
         }
         _username = (char*)__host;
 
-        if(!_dbname || !_host || !_username || !_password) {
-            fprintf(stderr, "Please use host string of the form username/password@host:database.\n");
+        if(!_dbname || !_host || !_port || !_username || !_password) {
+            fprintf(stderr, "Please use host string of the form username/password@host:port+database.\n");
             exit(-1);
         }
+
+        int port = atoi(_port);
 
         // Connect to the db
         MYSQL *_mysql = mysql_real_connect(
             &mysql, _host, _username, _password, NULL,
-            config->port, NULL, 0);
+            port, NULL, 0);
         if(_mysql != &mysql) {
             fprintf(stderr, "Could not connect to mysql: %s\n", mysql_error(&mysql));
             exit(-1);
@@ -101,14 +109,14 @@ struct mysql_protocol_t : public protocol_t {
             }
 
             // Prepare read statements for each batch factor
-            for(int i = 0; i < (config->batch_factor.max - config->batch_factor.min + 1); i++) {
+            for(int bf = config->batch_factor.min; bf <= config->batch_factor.max; bf++) {
                 MYSQL_STMT *read_stmt;
                 read_stmt = mysql_stmt_init(&mysql);
 
                 // Set up the string for the current read factor
                 char read_stmt_str[8192];
                 int count = snprintf(read_stmt_str, sizeof(read_stmt_str), "SELECT __value FROM bench WHERE __key=?");
-                for(int j = 1; j < config->batch_factor.min + i; j++) {
+                for(int i = 0; i < bf - 1; i++) {
                     count += snprintf(read_stmt_str + count, sizeof(read_stmt_str) - count,
                                       " OR __key=?");
                 }
@@ -124,7 +132,7 @@ struct mysql_protocol_t : public protocol_t {
             }
         }
     }
-    
+
     virtual void remove(const char *key, size_t key_size) {
         // Bind the data
         MYSQL_BIND bind[1];
@@ -134,7 +142,7 @@ struct mysql_protocol_t : public protocol_t {
         bind[0].buffer_length = key_size;
         bind[0].is_null = 0;
         bind[0].length = &key_size;
-        
+
         int res = mysql_stmt_bind_param(remove_stmt, bind);
         if(res != 0) {
             fprintf(stderr, "Could not bind remove statement\n");
@@ -148,7 +156,7 @@ struct mysql_protocol_t : public protocol_t {
             exit(-1);
         }
     }
-    
+
     virtual void update(const char *key, size_t key_size,
                         const char *value, size_t value_size)
     {
@@ -165,7 +173,7 @@ struct mysql_protocol_t : public protocol_t {
         bind[1].buffer_length = key_size;
         bind[1].is_null = 0;
         bind[1].length = &key_size;
-        
+
         int res = mysql_stmt_bind_param(update_stmt, bind);
         if(res != 0) {
             fprintf(stderr, "Could not bind update statement\n");
@@ -179,7 +187,7 @@ struct mysql_protocol_t : public protocol_t {
             exit(-1);
         }
     }
-    
+
     virtual void insert(const char *key, size_t key_size,
                         const char *value, size_t value_size)
     {
@@ -196,7 +204,7 @@ struct mysql_protocol_t : public protocol_t {
         bind[1].buffer_length = value_size;
         bind[1].is_null = 0;
         bind[1].length = &value_size;
-        
+
         int res = mysql_stmt_bind_param(insert_stmt, bind);
         if(res != 0) {
             fprintf(stderr, "Could not bind insert statement\n");
@@ -212,7 +220,7 @@ struct mysql_protocol_t : public protocol_t {
             }
         }
     }
-    
+
     virtual void read(payload_t *keys, int count) {
         // Bind the data
         MYSQL_BIND bind[count];
@@ -224,7 +232,7 @@ struct mysql_protocol_t : public protocol_t {
             bind[i].is_null = 0;
             bind[i].length = &keys[i].second;
         }
-        
+
         MYSQL_STMT *read_stmt = read_stmts[count - _config->batch_factor.min];
         int res = mysql_stmt_bind_param(read_stmt, bind);
         if(res != 0) {
@@ -249,8 +257,7 @@ struct mysql_protocol_t : public protocol_t {
         resbind[0].buffer_length = sizeof(buf);
         resbind[0].length = &val_length;
 
-        if(mysql_stmt_bind_result(read_stmt, resbind) != 0)
-        {
+        if(mysql_stmt_bind_result(read_stmt, resbind) != 0) {
             fprintf(stderr, "Could not bind read result: %s\n", mysql_stmt_error(read_stmt));
             exit(-1);
         }
@@ -260,7 +267,7 @@ struct mysql_protocol_t : public protocol_t {
             fprintf(stderr, "Could not buffer resultset: %s\n", mysql_stmt_error(read_stmt));
             exit(-1);
         }
-        
+
         while (!mysql_stmt_fetch(read_stmt)) {
             // Ain't nothing to do, we're just fetching for kicks and
             // giggles and avoiding out of sync issues and benchmark
@@ -290,7 +297,7 @@ private:
         }
         else return true;
     }
-    
+
     void create_schema() {
         char buf[2048];
 
@@ -312,7 +319,7 @@ private:
 
         // Use the database
         use_db(true);
-        
+
         // Create the table
         // "INDEX __main_index (__key)) "        \
 

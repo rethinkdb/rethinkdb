@@ -14,6 +14,7 @@
 #include <queue>
 #include <utility>
 #include <sys/time.h>
+#include "perfmon.hpp"
 
 // Stats
 
@@ -22,6 +23,8 @@ extern perfmon_counter_t
     pm_serializer_old_garbage_blocks,
     pm_serializer_old_total_blocks;
 
+class log_serializer_t;
+
 class data_block_manager_t {
 
 public:
@@ -29,7 +32,9 @@ public:
         : shutdown_callback(NULL), state(state_unstarted), serializer(ser),
           dynamic_config(dynamic_config), static_config(static_config), extent_manager(em),
           next_active_extent(0),
-          gc_state(extent_manager->extent_size)
+          gc_state(extent_manager->extent_size),
+          garbage_ratio_reporter(this),
+          pm_garbage_ratio("serializer_garbage_ratio", &garbage_ratio_reporter)
     {
         assert(dynamic_config);
         assert(static_config);
@@ -77,7 +82,7 @@ public:
     /* The offset that the data block manager chose will be left in off_out as soon as write()
     returns. The callback will be called when the data is actually on disk and it is safe to reuse
     the buffer. */
-    bool write(void *buf_in, ser_block_id_t block_id, ser_transaction_id_t transaction_id, off64_t *off_out, iocallback_t *cb);
+    bool write(const void *buf_in, ser_block_id_t block_id, ser_transaction_id_t transaction_id, off64_t *off_out, iocallback_t *cb);
 
 public:
     /* exposed gc api */
@@ -367,8 +372,29 @@ public:
      */
     float garbage_ratio() const;
 
+    /* \brief perfmon to output the garbage ratio
+     */
+    class garbage_ratio_reporter_t :
+        public perfmon_function_t<float>::internal_function_t
+    {
+    private: 
+        data_block_manager_t *data_block_manager;
+    public:
+        garbage_ratio_reporter_t(data_block_manager_t *data_block_manager)
+            : data_block_manager(data_block_manager) {}
+        ~garbage_ratio_reporter_t() {}
+        float operator()() {
+            return data_block_manager->garbage_ratio();
+        }
+    };
+
+    garbage_ratio_reporter_t garbage_ratio_reporter;
+
+    perfmon_function_t<float> pm_garbage_ratio;
+
     int64_t garbage_ratio_total_blocks() const { return gc_stats.old_garbage_blocks.get(); }
     int64_t garbage_ratio_garbage_blocks() const { return gc_stats.old_garbage_blocks.get(); }
+
 
 private:
     DISABLE_COPYING(data_block_manager_t);

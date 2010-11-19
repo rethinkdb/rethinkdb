@@ -90,18 +90,30 @@ void leaf_node_handler::split(size_t block_size, btree_leaf_node *node, btree_le
 
     init(block_size, rnode, node, node->pair_offsets + median_index, node->npairs - median_index);
 
-    // TODO: This is really slow because most pairs will likely be copied
-    // repeatedly.  There should be a better way.
-    for (index = median_index; index < node->npairs; index++) {
-        delete_pair(node, node->pair_offsets[index]);
-    }
 
+    std::vector<std::pair<uint16_t, uint16_t> > offsets(median_index);
+
+    for (int i = 0; i < median_index; ++i) {
+        offsets[i].first = node->pair_offsets[i];
+        offsets[i].second = i;
+    }
+    std::sort(offsets.begin(), offsets.end());
+
+    byte *front = ((byte *)node) + block_size;
+    int i = median_index;
+    while (i-- > 0) {
+        btree_leaf_pair *p = get_pair(node, offsets[i].first);
+        int k = pair_size(p);
+        front -= k;
+        memmove(front, p, k);
+        node->pair_offsets[offsets[i].second] = front - (byte *)node;
+    }
     node->npairs = median_index;
+    node->frontmost_offset = (front - (byte *)node);
 
     // Equality takes the left branch, so the median should be from this node.
     btree_key *median_key = &get_pair(node, node->pair_offsets[median_index-1])->key;
     keycpy(median, median_key);
-
 }
 
 void leaf_node_handler::merge(size_t block_size, btree_leaf_node *node, btree_leaf_node *rnode, btree_key *key_to_remove) {

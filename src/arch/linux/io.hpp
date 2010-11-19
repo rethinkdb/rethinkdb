@@ -8,7 +8,6 @@
 #include "config/args.hpp"
 #include "arch/linux/event_queue.hpp"
 #include "event.hpp"
-#include "corefwd.hpp"
 
 struct linux_iocallback_t {
     virtual ~linux_iocallback_t() {}

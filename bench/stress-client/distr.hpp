@@ -89,11 +89,11 @@ public:
             exit(-1);
         }
     }
-    
+
     void print() {
         printf("%d-%d", min, max);
     }
-        
+
 public:
     int min, max; 
 };

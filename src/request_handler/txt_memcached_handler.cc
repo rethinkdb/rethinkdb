@@ -3,7 +3,6 @@
 #include <string.h>
 #include "arch/arch.hpp"
 #include "conn_fsm.hpp"
-#include "corefwd.hpp"
 #include "request.hpp"
 #include "btree/append_prepend_fsm.hpp"
 #include "btree/delete_fsm.hpp"

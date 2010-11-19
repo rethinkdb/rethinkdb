@@ -5,7 +5,6 @@
 #include <queue>
 #include <poll.h>
 #include <vector>
-#include "corefwd.hpp"
 #include "config/args.hpp"
 #include "perfmon.hpp"
 
