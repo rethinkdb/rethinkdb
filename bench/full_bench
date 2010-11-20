@@ -25,14 +25,14 @@ function delete_database_files() { # They are large and useless.
     rm -f "$(find "$BENCH_DIR" -name rethinkdb_data)"
 }
 
-# A regular benchmark is 10^9 operations, but when profiling, it's run 5 times, so we only do 10^8 operations.
-DURATION=10000000
-SSD_DRIVES='-f /dev/sdb -f /dev/sdc -f /dev/sdd -f /dev/sde'
+# Set up the SSDs as individual devices, and note their names to pass to rethinkdb.
+SSD_DRIVES="$(sudo /usr/local/bin/raidconfig ssd single | sed 's/^/-f /; s/$/ /' | tr -d '\n')"
+
 
 # Canonical workload on the canonical setup
 ../../build/release/rethinkdb --create $SSD_DRIVES --force
 ./dbench                                                                              \
-    -d "$BENCH_DIR/bench_output/Canonical_workload_on_canonical_hardware" -H 10.0.0.2 \
+    -d "$BENCH_DIR/bench_output/Canonical_workload_on_canonical_hardware" -H magneto2 \
     {server}rethinkdb:"-c 12 -m 32768 $SSD_DRIVES"                                    \
     {client}stressfree[dr-doom:/home/teapot/stress]:'-c 512 -d 60s'                   \
     iostat:1 vmstat:1 rdbstat:1
@@ -41,7 +41,7 @@ SSD_DRIVES='-f /dev/sdb -f /dev/sdc -f /dev/sdd -f /dev/sde'
 # SSD I/O bound performance
 ../../build/release/rethinkdb --create $SSD_DRIVES --force
 ./dbench                                                            \
-    -d "$BENCH_DIR/bench_output/SSD_IO_performance" -H 10.0.0.2     \
+    -d "$BENCH_DIR/bench_output/SSD_IO_performance" -H magneto2     \
     {server}rethinkdb:"-c 12 -m 0 $SSD_DRIVES"                      \
     {client}stressfree[dr-doom:/home/teapot/stress]:'-c 512 -d 60s' \
     iostat:1 vmstat:1 rdbstat:1
@@ -52,14 +52,14 @@ TMP_KEY_FILE="$(ssh dr-doom mktemp)"
 # Pure inserts performance
 ../../build/release/rethinkdb --create $SSD_DRIVES --force
 ./dbench                                                                                        \
-    -d "$BENCH_DIR/bench_output/Pure_inserts_on_canonical_hardware" -H 10.0.0.2                 \
+    -d "$BENCH_DIR/bench_output/Pure_inserts_on_canonical_hardware" -H magneto2                 \
     {server}rethinkdb:"-c 12 -m 32768 $SSD_DRIVES"                                              \
     {client}stressfree[dr-doom:/home/teapot/stress]:"-c 512 -w 0/0/1/0 -o $TMP_KEY_FILE -d 60s" \
     iostat:1 vmstat:1 rdbstat:1
 
 # Pure selects performance (run right after insert without recreating the database)
 ./dbench                                                                                        \
-    -d "$BENCH_DIR/bench_output/Pure_selects_on_canonical_hardware" -H 10.0.0.2                 \
+    -d "$BENCH_DIR/bench_output/Pure_selects_on_canonical_hardware" -H magneto2                 \
     {server}rethinkdb:"-c 12 -m 32768 $SSD_DRIVES"                                              \
     {client}stressfree[dr-doom:/home/teapot/stress]:"-c 512 -w 0/0/0/1 -i $TMP_KEY_FILE -d 60s" \
     iostat:1 vmstat:1 rdbstat:1
@@ -74,7 +74,7 @@ ssh dr-doom -- rm "$TMP_KEY_FILE"
 # Durability settings performance
 ../../build/release/rethinkdb --create $SSD_DRIVES --force
 ./dbench                                                                              \
-    -d "$BENCH_DIR/bench_output/Strong_durability_performance" -H 10.0.0.2            \
+    -d "$BENCH_DIR/bench_output/Strong_durability_performance" -H magneto2            \
     {server}rethinkdb:"--wait-for-flush y --flush-timer 2 -c 12 -m 32768 $SSD_DRIVES" \
     {client}stressfree[dr-doom:/home/teapot/stress]:'-c 512 -d 60s'                   \
     iostat:1 vmstat:1 rdbstat:1
@@ -83,7 +83,7 @@ ssh dr-doom -- rm "$TMP_KEY_FILE"
 delete_database_files
 
 # OProfile example
-#./dbench -d  "$BENCH_DIR/prof_output"     -H 10.0.0.2 {server}rethinkdb:'-c 12 -s 128' {client}stressfree[dr-doom:/home/teapot/stress]:'-c 512 -d 10000000'             iostat:1 vmstat:1 rdbstat:1 oprofile
+#./dbench -d  "$BENCH_DIR/prof_output"     -H magneto2 {server}rethinkdb:'-c 12 -s 128' {client}stressfree[dr-doom:/home/teapot/stress]:'-c 512 -d 10000000'             iostat:1 vmstat:1 rdbstat:1 oprofile
 #delete_database_files
 
 # Generate statistics and email.
