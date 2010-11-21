@@ -151,7 +151,9 @@ struct tester_t :
     
     void on_serializer_ready(log_serializer_t *ls) {
         fprintf(stderr, "Running test...\n");
-        timer = fire_timer_once(config->duration * 1000, &tester_t::on_timer, this);
+        if(config->duration != RUN_FOREVER) {
+            timer = fire_timer_once(config->duration * 1000, &tester_t::on_timer, this);
+        }
         
         pool->set_interrupt_message(&interruptor);
         
