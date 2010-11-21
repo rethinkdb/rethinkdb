@@ -5,7 +5,7 @@ SRC = main.cc utils.cc random.cc
 
 EXEC_NAME = stress
 CXX = g++
-CXXFLAGS = -g $(INCLUDE)
+CXXFLAGS = -g $(INCLUDE) -O3
 
 OBJ = $(addsuffix .o, $(basename $(SRC)))
 
