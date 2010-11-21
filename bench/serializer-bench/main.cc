@@ -7,7 +7,7 @@ struct txn_info_t {
     ticks_t start, end;
 };
 
-typedef std::deque<txn_info_t, gnew_alloc<txn_info_t> > log_t;
+typedef std::deque<txn_info_t> log_t;
 
 struct transaction_t :
     public serializer_t::write_txn_callback_t
@@ -16,7 +16,7 @@ struct transaction_t :
     ticks_t start_time;
     log_t *log;
     void *dummy_buf;
-    std::vector<serializer_t::write_t, gnew_alloc<serializer_t::write_t> > writes;
+    std::vector<serializer_t::write_t> writes;
     
     struct callback_t {
         virtual void on_transaction_complete() = 0;
@@ -82,7 +82,7 @@ struct transaction_t :
         ser->free(dummy_buf);
         
         cb->on_transaction_complete();
-        gdelete(this);
+        delete(this);
     }
 };
 
@@ -139,13 +139,13 @@ struct tester_t :
     void start() {
     
         if (config->log_file) {
-            log = gnew<log_t>();
+            log = new log_t();
         } else {
             log = NULL;
         }
         
         fprintf(stderr, "Starting serializer...\n");
-        ser = gnew<log_serializer_t>(config->filename, &config->ser_dynamic_config);
+        ser = new log_serializer_t(config->filename, &config->ser_dynamic_config);
         if (ser->start_new(&config->ser_static_config, this)) on_serializer_ready(ser);
     }
     
@@ -169,7 +169,7 @@ struct tester_t :
         while (active_txns < config->concurrent_txns && !stop) {
             active_txns++;
             total_txns++;
-            gnew<transaction_t>(ser, log, config->inserts_per_txn, config->updates_per_txn, this);
+            new transaction_t(ser, log, config->inserts_per_txn, config->updates_per_txn, this);
         }
         
         if (active_txns == 0 && stop) {
@@ -194,7 +194,7 @@ struct tester_t :
             }
             fclose(log_file);
             fprintf(stderr, "Wrote log to '%s'\n", config->log_file);
-            gdelete(log);
+            delete(log);
         }
         
         stop = true;
@@ -215,7 +215,7 @@ struct tester_t :
     
     void on_serializer_shutdown(log_serializer_t *ser) {
         fprintf(stderr, "Done.\n");
-        gdelete(ser);
+        delete(ser);
         pool->shutdown();
     }
 };
