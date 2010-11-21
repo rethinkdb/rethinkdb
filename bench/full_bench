@@ -5,7 +5,7 @@ BENCH_DIR="$HOME/bench/$(date +%Y-%m-%d-%H:%M)"
 mkdir -p "$BENCH_DIR"
 rm -f $HOME/bench/latest
 ln -s $BENCH_DIR $HOME/bench/latest
-exec > "$BENCH_DIR/full_bench.log" 2>&1
+#exec > "$BENCH_DIR/full_bench.log" 2>&1
 
 
 # Horrible but working way of finding the argument after --email.
@@ -31,19 +31,19 @@ SSD_DRIVES="$(sudo /usr/local/bin/raidconfig ssd single | sed 's/^/-f /; s/$/ /'
 
 # Canonical workload on the canonical setup
 ../../build/release/rethinkdb --create $SSD_DRIVES --force
-./dbench                                                                              \
-    -d "$BENCH_DIR/bench_output/Canonical_workload_on_canonical_hardware" -H magneto2 \
-    {server}rethinkdb:"-c 12 -m 32768 $SSD_DRIVES"                                    \
-    {client}stressfree[dr-doom:/home/teapot/stress]:'-c 512 -d 60s'                   \
+./dbench                                                                                      \
+    -d "$BENCH_DIR/bench_output/Canonical_workload_on_canonical_hardware" -H magneto,magneto2 \
+    {server}rethinkdb:"-c 12 -m 32768 $SSD_DRIVES"                                            \
+    {client}stressfree[dr-doom:/home/teapot/stress]:'-c 512 -d 60s'                           \
     iostat:1 vmstat:1 rdbstat:1
 
 # Out of RAM performance
 # SSD I/O bound performance
 ../../build/release/rethinkdb --create $SSD_DRIVES --force
-./dbench                                                            \
-    -d "$BENCH_DIR/bench_output/SSD_IO_performance" -H magneto2     \
-    {server}rethinkdb:"-c 12 -m 0 $SSD_DRIVES"                      \
-    {client}stressfree[dr-doom:/home/teapot/stress]:'-c 512 -d 60s' \
+./dbench                                                                \
+    -d "$BENCH_DIR/bench_output/SSD_IO_performance" -H magneto,magneto2 \
+    {server}rethinkdb:"-c 12 -m 0 $SSD_DRIVES"                          \
+    {client}stressfree[dr-doom:/home/teapot/stress]:'-c 512 -d 60s'     \
     iostat:1 vmstat:1 rdbstat:1
 
 # Store keys in temporary file.
@@ -52,14 +52,14 @@ TMP_KEY_FILE="$(ssh dr-doom mktemp)"
 # Pure inserts performance
 ../../build/release/rethinkdb --create $SSD_DRIVES --force
 ./dbench                                                                                        \
-    -d "$BENCH_DIR/bench_output/Pure_inserts_on_canonical_hardware" -H magneto2                 \
+    -d "$BENCH_DIR/bench_output/Pure_inserts_on_canonical_hardware" -H magneto,magneto2         \
     {server}rethinkdb:"-c 12 -m 32768 $SSD_DRIVES"                                              \
     {client}stressfree[dr-doom:/home/teapot/stress]:"-c 512 -w 0/0/1/0 -o $TMP_KEY_FILE -d 60s" \
     iostat:1 vmstat:1 rdbstat:1
 
 # Pure selects performance (run right after insert without recreating the database)
 ./dbench                                                                                        \
-    -d "$BENCH_DIR/bench_output/Pure_selects_on_canonical_hardware" -H magneto2                 \
+    -d "$BENCH_DIR/bench_output/Pure_selects_on_canonical_hardware" -H magneto,magneto2         \
     {server}rethinkdb:"-c 12 -m 32768 $SSD_DRIVES"                                              \
     {client}stressfree[dr-doom:/home/teapot/stress]:"-c 512 -w 0/0/0/1 -i $TMP_KEY_FILE -d 60s" \
     iostat:1 vmstat:1 rdbstat:1
@@ -74,7 +74,7 @@ ssh dr-doom -- rm "$TMP_KEY_FILE"
 # Durability settings performance
 ../../build/release/rethinkdb --create $SSD_DRIVES --force
 ./dbench                                                                              \
-    -d "$BENCH_DIR/bench_output/Strong_durability_performance" -H magneto2            \
+    -d "$BENCH_DIR/bench_output/Strong_durability_performance" -H magneto,magneto2    \
     {server}rethinkdb:"--wait-for-flush y --flush-timer 2 -c 12 -m 32768 $SSD_DRIVES" \
     {client}stressfree[dr-doom:/home/teapot/stress]:'-c 512 -d 60s'                   \
     iostat:1 vmstat:1 rdbstat:1
@@ -83,7 +83,7 @@ ssh dr-doom -- rm "$TMP_KEY_FILE"
 delete_database_files
 
 # OProfile example
-#./dbench -d  "$BENCH_DIR/prof_output"     -H magneto2 {server}rethinkdb:'-c 12 -s 128' {client}stressfree[dr-doom:/home/teapot/stress]:'-c 512 -d 10000000'             iostat:1 vmstat:1 rdbstat:1 oprofile
+#./dbench -d  "$BENCH_DIR/prof_output"     -H magneto,magneto2 {server}rethinkdb:'-c 12 -s 128' {client}stressfree[dr-doom:/home/teapot/stress]:'-c 512 -d 10000000'             iostat:1 vmstat:1 rdbstat:1 oprofile
 #delete_database_files
 
 # Generate statistics and email.
