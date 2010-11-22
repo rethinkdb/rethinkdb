@@ -93,19 +93,26 @@ struct lba_metablock_mixin_t {
 
 struct lba_entry_t {
     ser_block_id_t block_id;
-    flagged_off64_t offset;   // Is an offset into the file with is_delete set appropriately.
+    uint32_t timestamp;  // reserved
+    // An offset into the file, with is_delete set appropriately.
+    flagged_off64_t offset;
+
+    static inline lba_entry_t make(ser_block_id_t block_id, flagged_off64_t offset) {
+        lba_entry_t entry;
+        entry.block_id = block_id;
+        entry.timestamp = 0;
+        entry.offset = offset;
+        return entry;
+    }
 
     static inline bool is_padding(const lba_entry_t* entry) {
         return entry->block_id == PADDING_BLOCK_ID  && flagged_off64_t::is_padding(entry->offset);
     }
 
     static inline lba_entry_t make_padding_entry() {
-        lba_entry_t entry;
-        entry.block_id = PADDING_BLOCK_ID;
-        entry.offset = flagged_off64_t::padding();
-        return entry;
+        return make(PADDING_BLOCK_ID, flagged_off64_t::padding());
     }
-};
+} __attribute((__packed__));
 
     
     
