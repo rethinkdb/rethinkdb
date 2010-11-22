@@ -15,9 +15,9 @@ void internal_node_handler::init(block_size_t block_size, btree_internal_node *n
 void internal_node_handler::init(block_size_t block_size, btree_internal_node *node, btree_internal_node *lnode, uint16_t *offsets, int numpairs) {
     init(block_size, node);
     for (int i = 0; i < numpairs; i++) {
-        node->pair_offsets[node->npairs+i] = insert_pair(node, get_pair(lnode, offsets[i]));
+        node->pair_offsets[i] = insert_pair(node, get_pair(lnode, offsets[i]));
     }
-    node->npairs += numpairs;
+    node->npairs = numpairs;
     std::sort(node->pair_offsets, node->pair_offsets+node->npairs, internal_key_comp(node));
 }
 

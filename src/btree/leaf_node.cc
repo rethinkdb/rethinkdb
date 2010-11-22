@@ -15,9 +15,9 @@ void leaf_node_handler::init(block_size_t block_size, btree_leaf_node *node) {
 void leaf_node_handler::init(block_size_t block_size, btree_leaf_node *node, btree_leaf_node *lnode, uint16_t *offsets, int numpairs) {
     init(block_size, node);
     for (int i = 0; i < numpairs; i++) {
-        node->pair_offsets[node->npairs+i] = insert_pair(node, get_pair(lnode, offsets[i]));
+        node->pair_offsets[i] = insert_pair(node, get_pair(lnode, offsets[i]));
     }
-    node->npairs += numpairs;
+    node->npairs = numpairs;
     std::sort(node->pair_offsets, node->pair_offsets+node->npairs, leaf_key_comp(node));
 }
 
