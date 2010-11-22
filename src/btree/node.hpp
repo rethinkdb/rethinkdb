@@ -31,10 +31,13 @@ struct btree_internal_node {
 
 typedef btree_internal_node internal_node_t;
 
-// for safety
+// for safety  TODO: move this to a different file
 struct repl_timestamp {
     uint32_t time;
 };
+
+// TODO: move this to a different file
+repl_timestamp current_time();
 
 // Here's how we represent the modification history of the leaf node.
 // The last_modified time gives the modification time of the most

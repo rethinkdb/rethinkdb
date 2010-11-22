@@ -79,3 +79,15 @@ template <>
 bool check_magic<btree_node>(block_magic_t magic) {
     return check_magic<btree_leaf_node>(magic) || check_magic<btree_internal_node>(magic);
 }
+
+
+repl_timestamp current_time() {
+    // Get the current time, cast it to 32 bits.  The lack of
+    // precision will not break things in 2038 or 2106 if we compare
+    // times correctly.
+
+    // TODO: consider avoiding system calls.
+    repl_timestamp ret;
+    ret.time = time(NULL);
+    return ret;
+}

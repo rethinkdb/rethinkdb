@@ -71,7 +71,7 @@ btree_modify_fsm_t::transition_result_t btree_modify_fsm_t::do_acquire_root(even
     // If there is no root, we make one.
     if(node_id == NULL_BLOCK_ID) {
         buf = transaction->allocate(&node_id);
-        leaf_node_handler::init(cache->get_block_size(), leaf_node_handler::leaf_node(buf->get_data_write()));
+        leaf_node_handler::init(cache->get_block_size(), leaf_node_handler::leaf_node(buf->get_data_write()), current_time());
         insert_root(node_id);
         pm_btree_depth++;
         return btree_fsm_t::transition_ok;
@@ -408,7 +408,7 @@ void btree_modify_fsm_t::do_transition(event_t *event) {
                        if (new_value->has_cas() && !cas_already_set) {
                            new_value->set_cas(slice->gen_cas());
                        }
-                       bool success = leaf_node_handler::insert(cache->get_block_size(), leaf_node_handler::leaf_node(buf->get_data_write()), &key, new_value);
+                       bool success = leaf_node_handler::insert(cache->get_block_size(), leaf_node_handler::leaf_node(buf->get_data_write()), &key, new_value, current_time());
                        check("could not insert leaf btree node", !success);
                    } else {
                         // If we haven't already, do some deleting 
