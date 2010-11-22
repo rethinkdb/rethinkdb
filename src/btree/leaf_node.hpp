@@ -27,7 +27,7 @@ class leaf_key_comp;
 
 class leaf_node_handler : public node_handler {
     friend class leaf_key_comp;
-    public:
+public:
     static void init(block_size_t block_size, btree_leaf_node *node);
     static void init(block_size_t block_size, btree_leaf_node *node, btree_leaf_node *lnode, uint16_t *offsets, int numpairs);
 
@@ -58,7 +58,7 @@ class leaf_node_handler : public node_handler {
     static btree_leaf_pair *get_pair(const btree_leaf_node *node, uint16_t offset);
     static size_t pair_size(btree_leaf_pair *pair);
 
-    protected:
+protected:
     static void delete_pair(btree_leaf_node *node, uint16_t offset);
     static uint16_t insert_pair(btree_leaf_node *node, btree_leaf_pair *pair);
     static uint16_t insert_pair(btree_leaf_node *node, btree_value *value, btree_key *key);
@@ -68,6 +68,13 @@ class leaf_node_handler : public node_handler {
     static void delete_offset(btree_leaf_node *node, int index);
     static void insert_offset(btree_leaf_node *node, uint16_t offset, int index);
     static bool is_equal(btree_key *key1, btree_key *key2);
+
+    // Initializes a leaf_timestamps_t.
+    static void initialize_times(leaf_timestamps_t *times, uint32_t current_time);
+
+    // Shifts a newer timestamp onto the leaf_timestamps_t, pushing
+    // the last one off.
+    static void shift_time(leaf_timestamps_t *times, uint32_t latest_time);
 };
 
 class leaf_key_comp {

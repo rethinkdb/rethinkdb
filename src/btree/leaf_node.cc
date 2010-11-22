@@ -2,6 +2,8 @@
 #include "btree/leaf_node.hpp"
 #include <algorithm>
 
+#include "logger.hpp"
+
 //#define DEBUG_MAX_LEAF 10
 
 void leaf_node_handler::init(block_size_t block_size, btree_leaf_node *node) {
@@ -350,6 +352,30 @@ void leaf_node_handler::insert_offset(btree_leaf_node *node, uint16_t offset, in
 
 bool leaf_node_handler::is_equal(btree_key *key1, btree_key *key2) {
     return sized_strcmp(key1->contents, key1->size, key2->contents, key2->size) == 0;
+}
+
+void leaf_node_handler::initialize_times(leaf_timestamps_t *times, uint32_t current_time) {
+    times->last_modified = current_time;
+    for (int i = 0; i < NUM_LEAF_NODE_EARLIER_TIMES; ++i) {
+        times->earlier[i] = 0;
+    }
+}
+
+void leaf_node_handler::shift_time(leaf_timestamps_t *times, uint32_t latest_time) {
+    int32_t diff = latest_time - times->last_modified;
+    if (diff < 0) {
+        logWRN("We seemingly stepped backwards in time, with new timestamp %d earlier than %d", latest_time, times->last_modified);
+        // Something strange happened, wipe out everything.
+        initialize_times(times, latest_time);
+    } else {
+        int i = NUM_LEAF_NODE_EARLIER_TIMES;
+        while (i-- > 1) {
+            uint32_t dt = diff + times->earlier[i - 1];
+            times->earlier[i] = (dt > 0xFFFF ? 0xFFFF : dt);
+        }
+        times->earlier[0] = (diff > 0xFFFF ? 0xFFFF : diff);
+        times->last_modified = latest_time;
+    }
 }
 
 int leaf_node_handler::nodecmp(const btree_leaf_node *node1, const btree_leaf_node *node2) {

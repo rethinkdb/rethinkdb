@@ -117,6 +117,10 @@
 // Values larger than this will be streamed in a get operation
 #define MAX_BUFFERED_GET_SIZE                     10000
 
+// How many timestamps we store in a leaf node.  We store the
+// NUM_LEAF_NODE_EARLIER_TIMES+1 most-recent timestamps.
+#define NUM_LEAF_NODE_EARLIER_TIMES               2
+
 // Perform allocator GC every N milliseconds (the resolution is limited to TIMER_TICKS_IN_MS)
 #define ALLOC_GC_INTERVAL_MS                      3000
 
