@@ -10,7 +10,6 @@ serializer-bench: main.cc Makefile
 	g++ main.o random.o `find $(OBJDIR) -name "*.o" | grep -v main.o` -o serializer-bench $(LDFLAGS)
 
 clean:
-	cd ../../src && make clean
 	rm -f *~
 	rm -f *.o
 	rm -f serializer-bench
