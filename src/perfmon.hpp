@@ -125,6 +125,7 @@ time. When something starts, call begin(); when something ends, call end() with 
 as begin. It will produce stats for the number of active events, the average length of an event,
 and the like. */
 
+#ifndef FAST_PERFMON
 struct perfmon_duration_sampler_t {
 private:
     perfmon_counter_t active;
@@ -134,19 +135,28 @@ public:
     perfmon_duration_sampler_t(std::string name, ticks_t length)
         : active(name + "_active_count"), total(name + "_total"), recent(name, length, true) { }
     void begin(ticks_t *v) {
-#ifndef FAST_PERFMON
         active++;
         total++;
         *v = get_ticks();
-#endif
     }
     void end(ticks_t *v) {
-#ifndef FAST_PERFMON
         active--;
         recent.record(ticks_to_secs(get_ticks() - *v));
-#endif
     }
 };
+
+#else
+
+/* stub version of the class with no overhead
+ */
+
+struct perfmon_duration_sampler_t {
+
+    perfmon_duration_sampler_t(std::string name, ticks_t length) {}
+    void begin(ticks_t *v) {}
+    void end(ticks_t *v) {}
+};
+#endif
 
 /* perfmon_function_t is a perfmon for outputting a function as a stat
  */
