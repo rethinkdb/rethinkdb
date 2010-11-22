@@ -90,7 +90,7 @@ struct transaction_t :
 
 struct config_t {
     
-    const char *filename, *log_file;
+    const char *filename, *log_file, *tps_log_file;
     log_serializer_static_config_t ser_static_config;
     log_serializer_dynamic_config_t ser_dynamic_config;
     int duration;   /* Seconds */
@@ -105,12 +105,15 @@ struct tester_t :
     public log_serializer_t::shutdown_callback_t
 {
     log_t *log;
+    FILE *tps_log_fd;
     log_serializer_t *ser;
     unsigned active_txns, total_txns;
     config_t *config;
     thread_pool_t *pool;
     bool stop, interrupted;
     timer_token_t *timer;
+    ticks_t last_time;
+    unsigned txns_last_sec;
     
     struct interrupt_msg_t :
         public cpu_message_t
@@ -125,8 +128,12 @@ struct tester_t :
     } interruptor;
     
     tester_t(config_t *config, thread_pool_t *pool)
-        : ser(NULL), active_txns(0), total_txns(0), config(config), pool(pool), stop(false), interrupted(false), interruptor(this)
+        : tps_log_fd(NULL), ser(NULL), active_txns(0), total_txns(0), config(config), pool(pool), stop(false), interrupted(false), last_time(0), txns_last_sec(0), interruptor(this)
     {
+        last_time = get_ticks();
+        if(config->tps_log_file) {
+            tps_log_fd = fopen(config->tps_log_file, "a");
+        }
     }
     
     /* When on_cpu_switch() is called, it could either be the start message telling us to run the
@@ -167,11 +174,22 @@ struct tester_t :
     }
     
     void pump() {
-        
         while (active_txns < config->concurrent_txns && !stop) {
             active_txns++;
             total_txns++;
+            txns_last_sec++;
             new transaction_t(ser, log, config->inserts_per_txn, config->updates_per_txn, this);
+
+            // See if we need to report the TPS
+            ticks_t cur_time = get_ticks();
+            if(ticks_to_secs(cur_time - last_time) >= 1.0f) {
+                if(tps_log_fd) {
+                    fprintf(tps_log_fd, "%d\n", txns_last_sec);
+                }
+                
+                last_time = cur_time;
+                txns_last_sec = 0;
+            }
         }
         
         if (active_txns == 0 && stop) {
@@ -188,6 +206,9 @@ struct tester_t :
         
         fprintf(stderr, "Started %d transactions and completed %d of them\n",
             total_txns, total_txns - active_txns);
+
+        fclose(tps_log_fd);
+        
         if (config->log_file) {
             FILE *log_file = fopen(config->log_file, "w");
             log_t::iterator it;
@@ -235,6 +256,7 @@ void parse_config(int argc, char *argv[], config_t *config) {
     
     config->filename = "rethinkdb_data";
     config->log_file = NULL;
+    config->tps_log_file = NULL;
     
     config->ser_static_config.block_size = DEFAULT_BTREE_BLOCK_SIZE;
     config->ser_static_config.extent_size = DEFAULT_EXTENT_SIZE;
@@ -258,7 +280,8 @@ void parse_config(int argc, char *argv[], config_t *config) {
             config->filename = read_arg(argc, argv);
         } else if (strcmp(flag, "--log") == 0) {
             config->log_file = read_arg(argc, argv);
-        
+        } else if (strcmp(flag, "--tps-log") == 0) {
+            config->tps_log_file = read_arg(argc, argv);
         } else if (strcmp(flag, "--block-size") == 0) {
             config->ser_static_config.block_size = atoi(read_arg(argc, argv));
         } else if (strcmp(flag, "--extent-size") == 0) {

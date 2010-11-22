@@ -11,15 +11,19 @@ MEGABYTE = KILOBYTE * 1024
 MINUTE = 60
 
 # Define run arguments
-duration = 5
-log_file_prefix = "log_"
+duration = 10
 tps_file_prefix = "tps_"
 drives = ["sdb", "sdc", "sdd", "sde"]
 
 # Define possible serializer parameters
 block_sizes = [4 * KILOBYTE, 8 * KILOBYTE]
-extent_size = [512 * KILOBYTE, 2 * MEGABYTE, 8 * MEGABYTE]
-active_extents = [1, 8]
+extent_size = [256 * KILOBYTE, 512 * KILOBYTE, 1 * MEGABYTE, 2 * MEGABYTE, 4 * MEGABYTE, 8 * MEGABYTE]
+active_extents = [1, 4, 8]
+
+# For testing
+block_sizes = [4 * KILOBYTE, 8 * KILOBYTE]
+extent_size = [256 * KILOBYTE, 2 * MEGABYTE]
+active_extents = [1, 4]
 
 # Some more arguments
 bench_exec_path = "./serializer-bench"
@@ -52,7 +56,7 @@ def get_available_drive():
 # Sets the linux io scheduler
 def set_io_scheduler(drive_name, scheduler):
 	f = open('/sys/block/' + drive_name + '/queue/scheduler', 'w')
-	f.write(scheduler)
+	f.write(scheduler + '\n')
 	f.close()
 
 # Runs a specific profile on a specific drive
@@ -71,6 +75,12 @@ def run_benchmark(profile, drive_name):
 		print "Finished run %s" % cmd
 	# Set io scheduler to noop
 	set_io_scheduler(drive_name, "noop")
+        # Print run name as first run in the tps log file
+        run_header = str(block_size) + "_" + str(extent_size) + "_" + str(active_extents)
+        tps_file_path = tps_file_prefix + run_header
+        f = open(tps_file_path, 'w')
+        f.write('#' + run_header + '\n')
+        f.close()
 	# Do the run
 	run_process_and_callback_on_done([
 					  ["hdparm", "--user-master", "u", "--security-set-pass", "test", drive],
@@ -80,7 +90,8 @@ def run_benchmark(profile, drive_name):
 					  "--extent-size", str(extent_size),
 					  "--active-data-extents", str(active_extents),
 					  "--duration", str(duration),
-					  "-f", drive]
+					  "-f", drive,
+                                          "--tps-log", tps_file_path]
 					 ],
 					 on_run_complete)
 
