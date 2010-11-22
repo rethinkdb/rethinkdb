@@ -86,9 +86,9 @@ int main(int argc, char *argv[])
 
         while(feof(in_file) == 0) {
             int id, min_seed, max_seed;
-            fread(&id, sizeof(id), 1, in_file);
-            fread(&min_seed, sizeof(min_seed), 1, in_file);
-            fread(&max_seed, sizeof(max_seed), 1, in_file);
+            size_t res __attribute__((unused)) = fread(&id, sizeof(id), 1, in_file);
+            res = fread(&min_seed, sizeof(min_seed), 1, in_file);
+            res = fread(&max_seed, sizeof(max_seed), 1, in_file);
 
             client_data[id].min_seed = min_seed;
             client_data[id].max_seed = max_seed;
