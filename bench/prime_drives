@@ -1,0 +1,19 @@
+#!/bin/bash
+
+echo Reconfiguring RAID to begin priming the drives
+SSD_DRIVES="$(sudo /usr/local/bin/raidconfig ssd single)"
+
+sleep 3
+
+for DRIVE in $SSD_DRIVES
+do
+    echo Starting to prime $DRIVE
+    ./serializer-bench/serializer-bench -f $DRIVE --forever &
+done
+
+echo Waiting for all prime tasks to complete
+wait
+echo Priming completed
+
+
+

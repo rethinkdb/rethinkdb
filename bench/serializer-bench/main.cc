@@ -76,7 +76,7 @@ struct transaction_t :
             txn_info_t info;
             info.start = start_time;
             info.end = end_time;
-            log->push_back(info);
+            //log->push_back(info);
         }
         
         ser->free(dummy_buf);
@@ -247,7 +247,7 @@ void parse_config(int argc, char *argv[], config_t *config) {
     config->duration = 10;   /* Seconds */
     config->concurrent_txns = 8;
     config->inserts_per_txn = 10;
-    config->updates_per_txn = 10;
+    config->updates_per_txn = 2;
     
     read_arg(argc, argv);
     
