@@ -31,6 +31,11 @@ struct btree_internal_node {
 
 typedef btree_internal_node internal_node_t;
 
+// for safety
+struct repl_timestamp {
+    uint32_t time;
+};
+
 // Here's how we represent the modification history of the leaf node.
 // The last_modified time gives the modification time of the most
 // recently modified key of the node.  Then, last_modified -
@@ -43,7 +48,7 @@ typedef btree_internal_node internal_node_t;
 // newer than it really is.  So when earlier[i] overflows,
 // we pin it to 0xFFFF.
 struct leaf_timestamps_t {
-    uint32_t last_modified;  // 0
+    repl_timestamp last_modified;  // 0
     uint16_t earlier[NUM_LEAF_NODE_EARLIER_TIMES];  // 4
 };
 

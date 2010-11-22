@@ -29,7 +29,7 @@ class leaf_node_handler : public node_handler {
     friend class leaf_key_comp;
 public:
     static void init(block_size_t block_size, btree_leaf_node *node);
-    static void init(block_size_t block_size, btree_leaf_node *node, btree_leaf_node *lnode, uint16_t *offsets, int numpairs);
+    static void init(block_size_t block_size, btree_leaf_node *node, btree_leaf_node *lnode, uint16_t *offsets, int numpairs, repl_timestamp modification_time);
 
     static bool lookup(const btree_leaf_node *node, btree_key *key, btree_value *value);
     static bool insert(block_size_t block_size, btree_leaf_node *node, btree_key *key, btree_value *value);
@@ -70,11 +70,11 @@ protected:
     static bool is_equal(btree_key *key1, btree_key *key2);
 
     // Initializes a leaf_timestamps_t.
-    static void initialize_times(leaf_timestamps_t *times, uint32_t current_time);
+    static void initialize_times(leaf_timestamps_t *times, repl_timestamp current_time);
 
     // Shifts a newer timestamp onto the leaf_timestamps_t, pushing
     // the last one off.
-    static void shift_time(leaf_timestamps_t *times, uint32_t latest_time);
+    static void shift_time(leaf_timestamps_t *times, repl_timestamp latest_time);
 };
 
 class leaf_key_comp {

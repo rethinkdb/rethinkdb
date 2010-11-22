@@ -12,12 +12,17 @@ void leaf_node_handler::init(block_size_t block_size, btree_leaf_node *node) {
     node->frontmost_offset = block_size.value();
 }
 
-void leaf_node_handler::init(block_size_t block_size, btree_leaf_node *node, btree_leaf_node *lnode, uint16_t *offsets, int numpairs) {
+// TODO: We end up making modification time data more conservative and
+// more coarse than conceivably possible.  We could also let the
+// caller supply an earlier[] array.
+// TODO: maybe lnode should just supply the modification time.
+void leaf_node_handler::init(block_size_t block_size, btree_leaf_node *node, btree_leaf_node *lnode, uint16_t *offsets, int numpairs, repl_timestamp modification_time) {
     init(block_size, node);
     for (int i = 0; i < numpairs; i++) {
         node->pair_offsets[i] = insert_pair(node, get_pair(lnode, offsets[i]));
     }
     node->npairs = numpairs;
+    initialize_times(&node->times, modification_time);
     std::sort(node->pair_offsets, node->pair_offsets+node->npairs, leaf_key_comp(node));
 }
 
@@ -90,7 +95,7 @@ void leaf_node_handler::split(block_size_t block_size, btree_leaf_node *node, bt
     }
     int median_index = index;
 
-    init(block_size, rnode, node, node->pair_offsets + median_index, node->npairs - median_index);
+    init(block_size, rnode, node, node->pair_offsets + median_index, node->npairs - median_index, node->times.last_modified);
 
     // TODO: This is really slow because most pairs will likely be copied
     // repeatedly.  There should be a better way.
@@ -99,6 +104,9 @@ void leaf_node_handler::split(block_size_t block_size, btree_leaf_node *node, bt
     }
 
     node->npairs = median_index;
+
+    // TODO: this could be less coarse (if we made leaf_node_handler::init less coarse).
+    initialize_times(&node->times, node->times.last_modified);
 
     // Equality takes the left branch, so the median should be from this node.
     btree_key *median_key = &get_pair(node, node->pair_offsets[median_index-1])->key;
@@ -354,17 +362,17 @@ bool leaf_node_handler::is_equal(btree_key *key1, btree_key *key2) {
     return sized_strcmp(key1->contents, key1->size, key2->contents, key2->size) == 0;
 }
 
-void leaf_node_handler::initialize_times(leaf_timestamps_t *times, uint32_t current_time) {
+void leaf_node_handler::initialize_times(leaf_timestamps_t *times, repl_timestamp current_time) {
     times->last_modified = current_time;
     for (int i = 0; i < NUM_LEAF_NODE_EARLIER_TIMES; ++i) {
         times->earlier[i] = 0;
     }
 }
 
-void leaf_node_handler::shift_time(leaf_timestamps_t *times, uint32_t latest_time) {
-    int32_t diff = latest_time - times->last_modified;
+void leaf_node_handler::shift_time(leaf_timestamps_t *times, repl_timestamp latest_time) {
+    int32_t diff = latest_time.time - times->last_modified.time;
     if (diff < 0) {
-        logWRN("We seemingly stepped backwards in time, with new timestamp %d earlier than %d", latest_time, times->last_modified);
+        logWRN("We seemingly stepped backwards in time, with new timestamp %d earlier than %d", latest_time.time, times->last_modified);
         // Something strange happened, wipe out everything.
         initialize_times(times, latest_time);
     } else {
