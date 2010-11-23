@@ -939,6 +939,12 @@ txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::get(char *state
         txt_memcached_get_request_t *rq = new txt_memcached_get_request_t(this);
 
         do {
+            if (strlen(key_str) >  MAX_KEY_SIZE) {
+                //check to make sure the key isn't too long
+                res = malformed_request();
+                delete rq;
+                goto error_breakout;
+            }
             node_handler::str_to_key(key_str, &key);
 
             if (!rq->add_get(&key)) {
@@ -961,6 +967,7 @@ txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::get(char *state
         res = request_handler_t::op_req_complex;
     }
     //clean out the rbuf
+error_breakout:
     conn_fsm->consume(line_len); //XXX this line must always be called (no returning from anywhere else)
     return res;
 }
