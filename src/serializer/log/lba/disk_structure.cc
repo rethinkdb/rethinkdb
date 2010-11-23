@@ -115,7 +115,7 @@ void lba_disk_structure_t::add_entry(ser_block_id_t block_id, flagged_off64_t of
     
     lba_entry_t e;
     e.block_id = block_id;
-    e.timestamp = 0;
+    e.recency = repl_timestamp::invalid;
     e.offset = offset;
     last_extent->add_entry(e);
 }

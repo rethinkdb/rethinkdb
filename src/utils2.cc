@@ -17,6 +17,14 @@ long get_total_ram() {
 }
 
 
+const repl_timestamp repl_timestamp::invalid = { -1 };
+
+repl_timestamp repl_time(time_t t) {
+    repl_timestamp ret;
+    uint32_t x = t;
+    ret.time = (x == (uint32_t)-1 ? 0 : x);
+    return ret;
+}
 
 repl_timestamp current_time() {
     // Get the current time, cast it to 32 bits.  The lack of
