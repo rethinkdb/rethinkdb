@@ -75,6 +75,7 @@ protected:
     // Shifts a newer timestamp onto the leaf_timestamps_t, pushing
     // the last one off.
     static void rotate_time(leaf_timestamps_t *times, repl_timestamp latest_time, int prev_timestamp_offset);
+    static void remove_time(leaf_timestamps_t *times, int offset);
 
     // Returns the offset of the timestamp (or -1 or
     // NUM_LEAF_NODE_EARLIER_TIMES) for the key-value pair at the

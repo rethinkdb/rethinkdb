@@ -64,9 +64,12 @@ void leaf_node_handler::remove(block_size_t block_size, btree_leaf_node *node, b
     leaf_node_handler::print(node);
 #endif
     int index = find_key(node, key);
-
     assert(index != -1);
-    delete_pair(node, node->pair_offsets[index]);
+
+    uint16_t offset = node->pair_offsets[index];
+    remove_time(&node->times, get_timestamp_offset(block_size, node, offset));
+
+    delete_pair(node, offset);
     delete_offset(node, index);
 
 #ifdef BTREE_DEBUG
@@ -391,6 +394,22 @@ void leaf_node_handler::rotate_time(leaf_timestamps_t *times, repl_timestamp lat
         uint32_t dt = (-1 == prev_timestamp_offset ? times->earlier[0] : diff);
         times->earlier[0] = (dt > 0xFFFF ? 0xFFFF : dt);
         times->last_modified = latest_time;
+    }
+}
+
+void leaf_node_handler::remove_time(leaf_timestamps_t *times, int offset) {
+    uint16_t d = (offset == -1 ? times->earlier[0] : 0);
+    uint16_t t = times->earlier[NUM_LEAF_NODE_EARLIER_TIMES - 1];
+
+    int i = NUM_LEAF_NODE_EARLIER_TIMES - 1;
+    while (i-- > 0) {
+        uint16_t x = times->earlier[i];
+        times->earlier[i] = (offset <= i ? t : x) - d;
+        t = x;
+    }
+
+    if (offset == -1) {
+        times->last_modified.time -= d;
     }
 }
 
