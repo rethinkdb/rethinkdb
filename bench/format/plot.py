@@ -101,9 +101,6 @@ class TimeSeriesCollection():
             print "Processing failed on %s" % file_name
             return self
 
-#self.shorten()
-        self.smooth_curves()
-
         return self #this just lets you do initialization in one line
 
     def copy(self):
@@ -551,3 +548,25 @@ class RDBStats(TimeSeriesCollection):
             keys_to_drop.add(s[1])
 
         self.drop(keys_to_drop)
+
+ncolumns = 37 #TODO man this is awful
+class RunStats(TimeSeriesCollection):
+    name_line = line("^" + "([\#\d_]+)[\t\n]+"* ncolumns, [('col%d' % i, 's') for i in range(ncolumns)])
+    data_line = line("^" + "(\d+)[\t\n]+"* ncolumns, [('col%d' % i, 'd') for i in range(ncolumns)])
+
+    def parse(self, data):
+        res = default_empty_timeseries_dict()
+
+        data.reverse()
+
+        m = take(self.name_line, data)
+        assert m
+        print len(m)
+        col_names = m
+
+        m = take_while([self.data_line], data)
+        for line in m:
+            for col in line.iteritems():
+                res[col_names[col[0]]] += [col[1]]
+
+        return res
