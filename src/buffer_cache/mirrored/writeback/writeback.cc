@@ -195,8 +195,7 @@ bool writeback_t::writeback_acquire_bufs() {
     
     current_sync_callbacks.append_and_clear(&sync_callbacks);
 
-    /* Request read locks on all of the blocks we need to flush.
-    TODO: Find a better way to do the allocation. */
+    // Request read locks on all of the blocks we need to flush.
     serializer_writes.clear();
 
     int i = 0;
@@ -252,6 +251,9 @@ bool writeback_t::writeback_do_write() {
     
     if (serializer_writes.empty() ||
         cache->serializer->do_write(serializer_writes.data(), serializer_writes.size(), this)) {
+
+        // We don't need this buffer any more.
+        serializer_writes.clear();
         return do_on_cpu(cache->home_cpu, this, &writeback_t::writeback_do_cleanup);
     } else {
         return false;

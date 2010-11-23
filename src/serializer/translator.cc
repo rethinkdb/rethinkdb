@@ -47,7 +47,7 @@ bool translator_serializer_t::do_write(write_t *writes, int num_writes, serializ
         writes2.push_back(serializer_t::write_t(xlate(writes[i].block_id), writes[i].recency,
                                                 writes[i].buf, writes[i].callback));
     }
-    return inner->do_write(writes2.data(), writes2.size(), callback);
+    return inner->do_write(writes2.data(), num_writes, callback);
 }
 
 

@@ -259,15 +259,12 @@ bool mock_cache_t::shutdown_write_bufs() {
 }
 
 bool mock_cache_t::shutdown_do_send_bufs_to_serializer() {
-
     std::vector<translator_serializer_t::write_t> writes;
-
     for (block_id_t i = 0; i < bufs.get_size(); i++) {
-        translator_serializer_t::write_t wr(i, repl_timestamp::placeholder,
-                                            bufs[i] ? bufs[i]->data : NULL, NULL);
-        writes.push_back(wr);
+        writes.push_back(translator_serializer_t::write_t(i, repl_timestamp::placeholder,
+                                                          bufs[i] ? bufs[i]->data : NULL, NULL));
     }
-    
+
     if (serializer->do_write(writes.data(), writes.size(), this)) {
         return do_on_cpu(home_cpu, this, &mock_cache_t::shutdown_destroy_bufs);
     } else {

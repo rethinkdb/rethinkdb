@@ -39,6 +39,7 @@ public:
     void *malloc();
     virtual void *clone(void*);
     void free(void *ptr);
+
     bool do_read(block_id_t block_id, void *buf, serializer_t::read_callback_t *callback);
     struct write_t {
         block_id_t block_id;
