@@ -17,7 +17,7 @@ union flagged_off64_t {
     struct {
         // The actual offset into the file.
         off64_t value : 63;
-    
+
         // This block id was deleted, and the offset points to a zeroed
         // out buffer.
         int is_delete : 1;
@@ -52,12 +52,12 @@ union flagged_off64_t {
         ret.parts.is_delete = 1;
         return ret;
     }
-    
+
     static bool has_value(flagged_off64_t offset) {
         offset.parts.is_delete = 1;
         return offset.whole_value != off64_t(-1);
     }
-    
+
     static inline bool can_be_gced(flagged_off64_t offset) {
         return has_value(offset);
     }
@@ -79,7 +79,7 @@ struct lba_shard_metablock_t {
 };
 
 struct lba_metablock_mixin_t {
-    
+
     lba_shard_metablock_t shards[LBA_SHARD_FACTOR];
 };
 
@@ -114,8 +114,8 @@ struct lba_entry_t {
     }
 } __attribute((__packed__));
 
-    
-    
+
+
 
 #define LBA_MAGIC_SIZE 8
 static const char lba_magic[LBA_MAGIC_SIZE] = {'l', 'b', 'a', 'm', 'a', 'g', 'i', 'c'};

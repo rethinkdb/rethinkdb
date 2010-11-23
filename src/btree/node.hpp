@@ -254,9 +254,9 @@ class node_handler {
         static bool level(block_size_t block_size, btree_node *node, btree_node *rnode, btree_key *key_to_replace, btree_key *replacement_key, btree_node *parent);
 
         static void print(const btree_node *node);
-        
+
         static void validate(block_size_t block_size, const btree_node *node);
-        
+
         static inline const btree_node* node(const void *ptr) {
             return (const btree_node *) ptr;
         }

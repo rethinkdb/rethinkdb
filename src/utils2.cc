@@ -65,7 +65,7 @@ void random_delay(void (*fun)(void*), void *arg) {
 }
 
 void debugf(const char *msg, ...) {
-    
+
     flockfile(stderr);
     va_list args;
     va_start(args, msg);
@@ -81,7 +81,7 @@ int randint(int n) {
         srand(time(NULL));
         initted = true;
     }
-    
+
     assert(n > 0 && n < RAND_MAX);
     return rand() % n;
 }

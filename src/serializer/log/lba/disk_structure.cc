@@ -106,13 +106,13 @@ void lba_disk_structure_t::add_entry(ser_block_id_t block_id, flagged_off64_t of
         superblock_offset = superblock_extent->offset + superblock_extent->amount_filled;
         superblock_extent->append(buffer, ceil_aligned(superblock_size, DEVICE_BLOCK_SIZE));
     }
-    
+
     if (!last_extent) {
         last_extent = new lba_disk_extent_t(em, file);
     }
-    
+
     assert(!last_extent->full());
-    
+
     lba_entry_t e;
     e.block_id = block_id;
     e.recency = repl_timestamp::invalid;
