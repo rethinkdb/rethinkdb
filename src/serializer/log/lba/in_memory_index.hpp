@@ -32,7 +32,9 @@ public:
     void set_block_info(ser_block_id_t id, repl_timestamp recency,
                         flagged_off64_t offset);
 
+#ifndef NDEBUG
     void print();
+#endif
 };
 
 #endif /* __SERIALIZER_LOG_LBA_IN_MEMORY_INDEX__ */

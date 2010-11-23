@@ -29,11 +29,11 @@ void in_memory_index_t::set_block_info(ser_block_id_t id, repl_timestamp recency
     timestamps[id.value] = recency;
 }
 
-void in_memory_index_t::print() {
 #ifndef NDEBUG
+void in_memory_index_t::print() {
     printf("LBA:\n");
     for (unsigned int i = 0; i < blocks.get_size(); i++) {
         printf("%d %.8lx\n", i, (unsigned long int)blocks[i].whole_value);
     }
-#endif
 }
+#endif
