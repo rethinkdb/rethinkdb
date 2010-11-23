@@ -268,9 +268,13 @@ class TimeSeriesCollection():
         res = {}
         for val in self.data.iteritems():
             stat_report = {}
-            stat_report['mean'] = stats.mean(map(lambda x: x, val[1]))
-            stat_report['stdev'] = stats.stdev(map(lambda x: x, val[1]))
-            res[val[0]] = stat_report
+	    full_series = map(lambda x: x, val[1])
+	    steady_series = full_series[int(len(full_series) * 0.7):]
+            stat_report['mean'] = stats.mean(full_series)
+            stat_report['stdev'] = stats.stdev(full_series)
+            stat_report['steady_mean'] = stats.mean(steady_series)
+            stat_report['steady_stdev'] = stats.stdev(steady_series)
+	    res[val[0]] = stat_report
 
         return res
 
@@ -550,7 +554,7 @@ class RDBStats(TimeSeriesCollection):
         self.drop(keys_to_drop)
 
 ncolumns = 37 #TODO man this is awful
-class DriveStats(TimeSeriesCollection):
+class RunStats(TimeSeriesCollection):
     name_line = line("^" + "([\#\d_]+)[\t\n]+"* ncolumns, [('col%d' % i, 's') for i in range(ncolumns)])
     data_line = line("^" + "(\d+)[\t\n]+"* ncolumns, [('col%d' % i, 'd') for i in range(ncolumns)])
 
