@@ -15,6 +15,19 @@ long get_total_ram();
 typedef char byte;
 typedef char byte_t;
 
+// for safety  TODO: move this to a different file
+struct repl_timestamp {
+    uint32_t time;
+};
+
+// TODO: move this to a different file
+repl_timestamp current_time();
+
+// This is almost like std::max except it compares times locally, so
+// that overflow is handled gracefully.
+repl_timestamp later_time(repl_timestamp x, repl_timestamp y);
+
+
 void *malloc_aligned(size_t size, size_t alignment = 64);
 
 template<typename T1, typename T2>
