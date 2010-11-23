@@ -16,3 +16,4 @@ src/.gdbinit
 src/standard_commands
 test/unit/.retest
 bench/stress-client/stress
+bench/serializer-bench/serializer-bench
