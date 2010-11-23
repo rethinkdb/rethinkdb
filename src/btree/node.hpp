@@ -262,7 +262,6 @@ class node_handler {
         static bool is_mergable(block_size_t block_size, const btree_node *node, const btree_node *sibling, const btree_node *parent);
         static int nodecmp(const btree_node *node1, const btree_node *node2);
         static void merge(block_size_t block_size, btree_node *node, btree_node *rnode, btree_key *key_to_remove, btree_node *parent);
-        static void remove(block_size_t block_size, btree_node *node, btree_key *key);
         static bool level(block_size_t block_size, btree_node *node, btree_node *rnode, btree_key *key_to_replace, btree_key *replacement_key, btree_node *parent);
 
         static void print(const btree_node *node);
