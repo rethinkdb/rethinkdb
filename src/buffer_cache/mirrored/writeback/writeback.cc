@@ -199,9 +199,6 @@ bool writeback_t::writeback_acquire_bufs() {
     TODO: Find a better way to do the allocation. */
     serializer_writes.clear();
 
-    // Yes, we are calling this on the right core.
-    repl_timestamp t = current_time();
-
     int i = 0;
     while (local_buf_t *lbuf = dirty_bufs.head()) {
 
@@ -218,12 +215,12 @@ bool writeback_t::writeback_acquire_bufs() {
 
         // Fill the serializer structure
         if (!do_delete) {
-            translator_serializer_t::write_t wr(inner_buf->block_id, t,
+            translator_serializer_t::write_t wr(inner_buf->block_id, repl_timestamp::placeholder,
                                                 buf->get_data_read(), new buf_writer_t(buf));
             serializer_writes.push_back(wr);
         } else {
             // NULL indicates a deletion
-            translator_serializer_t::write_t wr(inner_buf->block_id, t, NULL, NULL);
+            translator_serializer_t::write_t wr(inner_buf->block_id, repl_timestamp::placeholder, NULL, NULL);
             serializer_writes.push_back(wr);
 
             assert(buf_access_mode != rwi_read_outdated_ok);
