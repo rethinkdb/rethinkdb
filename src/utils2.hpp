@@ -21,6 +21,9 @@ struct repl_timestamp {
     uint32_t time;
 
     static const repl_timestamp invalid;
+
+    // TODO remove this, remove referencs to this.
+    static const repl_timestamp placeholder;
 };
 
 repl_timestamp repl_time(time_t t);

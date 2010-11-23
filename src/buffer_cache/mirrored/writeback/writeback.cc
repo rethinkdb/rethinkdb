@@ -197,9 +197,7 @@ bool writeback_t::writeback_acquire_bufs() {
 
     /* Request read locks on all of the blocks we need to flush.
     TODO: Find a better way to do the allocation. */
-    num_serializer_writes = dirty_bufs.size();
-    serializer_writes = new translator_serializer_t::write_t[num_serializer_writes];
-    
+    serializer_writes.clear();
     int i = 0;
     while (local_buf_t *lbuf = dirty_bufs.head()) {
     
@@ -213,25 +211,23 @@ bool writeback_t::writeback_acquire_bufs() {
         access_t buf_access_mode = do_delete ? rwi_read : rwi_read_outdated_ok;
         buf_t *buf = transaction->acquire(inner_buf->block_id, buf_access_mode, NULL);
         assert(buf);         // Acquire must succeed since we hold the flush_lock.
-        
-        serializer_writes[i].block_id = inner_buf->block_id;
-        
+
         // Fill the serializer structure
         if (!do_delete) {
-        
-            serializer_writes[i].buf = buf->get_data_read();
-            serializer_writes[i].callback = new buf_writer_t(buf);
-
+            translator_serializer_t::write_t wr(inner_buf->block_id, repl_timestamp::placeholder,
+                                                buf->get_data_read(), new buf_writer_t(buf));
+            serializer_writes.push_back(wr);
         } else {
-        
-            serializer_writes[i].buf = NULL;   // NULL indicates a deletion
-            serializer_writes[i].callback = NULL;
-            
+            // NULL indicates a deletion
+            translator_serializer_t::write_t wr(inner_buf->block_id, repl_timestamp::placeholder,
+                                                NULL, NULL);
+            serializer_writes.push_back(wr);
+
             assert(buf_access_mode != rwi_read_outdated_ok);
             buf->release();
-            
+
             cache->free_list.release_block_id(inner_buf->block_id);
-            
+
             delete inner_buf;
         }
         
@@ -254,8 +250,8 @@ bool writeback_t::writeback_do_write() {
     assert(writeback_in_progress);
     cache->serializer->assert_cpu();
     
-    if (num_serializer_writes == 0 ||
-            cache->serializer->do_write(serializer_writes, num_serializer_writes, this)) {
+    if (serializer_writes.empty() ||
+        cache->serializer->do_write(serializer_writes.data(), serializer_writes.size(), this)) {
         return do_on_cpu(cache->home_cpu, this, &writeback_t::writeback_do_cleanup);
     } else {
         return false;
@@ -279,9 +275,9 @@ bool writeback_t::writeback_do_cleanup() {
     bool committed __attribute__((unused)) = transaction->commit(NULL);
     assert(committed); // Read-only transactions commit immediately.
     transaction = NULL;
-    
-    delete[] serializer_writes;
-    
+
+    serializer_writes.clear();
+
     while (!current_sync_callbacks.empty()) {
         sync_callback_t *cb = current_sync_callbacks.head();
         current_sync_callbacks.remove(cb);

@@ -133,11 +133,10 @@ private:
     
     // Transaction that the writeback is using to grab buffers
     transaction_t *transaction;
-    
+
     // Transaction to submit to the serializer
-    int num_serializer_writes;
-    translator_serializer_t::write_t *serializer_writes;
-    
+    std::vector<translator_serializer_t::write_t> serializer_writes;
+
     // List of things to call back as soon as the writeback currently in progress is over.
     intrusive_list_t<sync_callback_t> current_sync_callbacks;
 };

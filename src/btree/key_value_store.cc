@@ -127,11 +127,8 @@ struct bkvs_start_new_serializer_fsm_t :
         c->n_files = store->n_files;
         c->this_serializer = i;
         c->btree_config = store->btree_static_config;
-        
-        serializer_t::write_t w;
-        w.buf = config_block;
-        w.block_id = CONFIG_BLOCK_ID.ser_id;
-        w.callback = NULL;
+
+        serializer_t::write_t w(CONFIG_BLOCK_ID.ser_id, repl_timestamp::placeholder, config_block, NULL);
         if (store->serializers[i]->do_write(&w, 1, this)) on_serializer_write_txn();
     }
     

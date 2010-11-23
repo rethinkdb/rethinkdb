@@ -40,14 +40,14 @@ bool translator_serializer_t::do_read(block_id_t block_id, void *buf, serializer
     return inner->do_read(xlate(block_id), buf, callback);
 }
 
+
 bool translator_serializer_t::do_write(write_t *writes, int num_writes, serializer_t::write_txn_callback_t *callback) {
-    serializer_t::write_t writes2[num_writes];
+    std::vector<serializer_t::write_t> writes2;
     for (int i = 0; i < num_writes; i++) {
-        writes2[i].block_id = xlate(writes[i].block_id);
-        writes2[i].buf = writes[i].buf;
-        writes2[i].callback = writes[i].callback;
+        writes2.push_back(serializer_t::write_t(xlate(writes[i].block_id), writes[i].recency,
+                                                writes[i].buf, writes[i].callback));
     }
-    return inner->do_write(writes2, num_writes, callback);
+    return inner->do_write(writes2.data(), writes2.size(), callback);
 }
 
 

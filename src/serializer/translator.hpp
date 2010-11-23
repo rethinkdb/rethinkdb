@@ -42,8 +42,13 @@ public:
     bool do_read(block_id_t block_id, void *buf, serializer_t::read_callback_t *callback);
     struct write_t {
         block_id_t block_id;
+        repl_timestamp recency;  // TODO ensure this is set
         const void *buf;
         serializer_t::write_block_callback_t *callback;
+
+        write_t(block_id_t block_id, repl_timestamp recency,
+                const void *buf, serializer_t::write_block_callback_t *callbock)
+            : block_id(block_id), recency(recency), buf(buf), callback(callback) { }
     };
     bool do_write(write_t *writes, int num_writes, serializer_t::write_txn_callback_t *callback);
     block_size_t get_block_size();
