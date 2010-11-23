@@ -43,7 +43,7 @@ bool leaf_node_handler::insert(block_size_t block_size, btree_leaf_node *node, b
 
         rotate_time(&node->times, insertion_time, prev_timestamp_offset);
 
-        delete_pair(node, prev_timestamp_offset);
+        delete_pair(node, prev_offset);
         node->pair_offsets[index] = insert_pair(node, value, key);
     } else {
         // manipulate timestamps.
