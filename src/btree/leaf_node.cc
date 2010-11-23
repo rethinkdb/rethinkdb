@@ -136,6 +136,9 @@ void leaf_node_handler::merge(block_size_t block_size, btree_leaf_node *node, bt
           sizeof(btree_leaf_node) + (node->npairs + rnode->npairs)*sizeof(*node->pair_offsets) +
           (block_size.value() - node->frontmost_offset) + (block_size.value() - rnode->frontmost_offset) >= block_size.value());
 
+    // TODO: this is coarser than it could be.
+    initialize_times(&node->times, later_time(node->times.last_modified, rnode->times.last_modified));
+
     memmove(rnode->pair_offsets + node->npairs, rnode->pair_offsets, rnode->npairs * sizeof(*rnode->pair_offsets));
 
     for (int i = 0; i < node->npairs; i++) {

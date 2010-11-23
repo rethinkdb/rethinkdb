@@ -39,6 +39,10 @@ struct repl_timestamp {
 // TODO: move this to a different file
 repl_timestamp current_time();
 
+// This is almost like std::max except it compares times locally, so
+// that overflow is handled gracefully.
+repl_timestamp later_time(repl_timestamp x, repl_timestamp y);
+
 // Here's how we represent the modification history of the leaf node.
 // The last_modified time gives the modification time of the most
 // recently modified key of the node.  Then, last_modified -

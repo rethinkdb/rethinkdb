@@ -91,3 +91,8 @@ repl_timestamp current_time() {
     ret.time = time(NULL);
     return ret;
 }
+
+repl_timestamp later_time(repl_timestamp x, repl_timestamp y) {
+    int32_t diff = y.time - x.time;
+    return diff < 0 ? x : y;
+}
