@@ -55,6 +55,7 @@ struct serializer_t :
     };
     struct write_t {
         ser_block_id_t block_id;
+        repl_timestamp recency;  // TODO ensure this is set
         const void *buf;   /* If NULL, a deletion */
         write_block_callback_t *callback;
     };

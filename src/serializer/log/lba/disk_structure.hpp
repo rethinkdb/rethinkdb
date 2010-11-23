@@ -19,7 +19,7 @@ class lba_disk_structure_t :
 public:
     // Create a new LBA
     lba_disk_structure_t(extent_manager_t *em, direct_file_t *file);
-    
+
     // Load an existing LBA from disk
     struct load_callback_t {
         virtual void on_lba_load() = 0;
@@ -27,9 +27,10 @@ public:
     };
     lba_disk_structure_t(extent_manager_t *em, direct_file_t *file, lba_shard_metablock_t *metablock);
     void set_load_callback(load_callback_t *lcb);
-    
+
     // Put entries in an LBA and then call sync() to write to disk
-    void add_entry(ser_block_id_t block_id, flagged_off64_t offset);
+    void add_entry(ser_block_id_t block_id, repl_timestamp recency,
+                   flagged_off64_t offset);
     struct sync_callback_t {
         virtual void on_lba_sync() = 0;
         virtual ~sync_callback_t() {}

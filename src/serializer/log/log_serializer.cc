@@ -413,8 +413,8 @@ struct ls_block_writer_t :
         
             off64_t new_offset;
             bool done = ser->data_block_manager->write(write.buf, write.block_id, ser->current_transaction_id, &new_offset, this);
-            ser->lba_index->set_block_offset(write.block_id, flagged_off64_t::real(new_offset));
-            
+            ser->lba_index->set_block_offset(write.block_id, write.recency, flagged_off64_t::real(new_offset));
+
             /* Insert ourselves into the block_writer_map so that if a reader comes looking for the
             block before we finish writing it to disk, it will be able to find us to get the most
             recent version */
@@ -441,7 +441,7 @@ struct ls_block_writer_t :
 
             off64_t new_offset;
             bool done = ser->data_block_manager->write(zerobuf, write.block_id, ser->current_transaction_id, &new_offset, this);
-            ser->lba_index->set_block_offset(write.block_id, flagged_off64_t::deleteblock(new_offset));
+            ser->lba_index->set_block_offset(write.block_id, write.recency, flagged_off64_t::deleteblock(new_offset));
 
             if (done) {
                 return do_finish();

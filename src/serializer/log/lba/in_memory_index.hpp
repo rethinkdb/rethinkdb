@@ -7,32 +7,45 @@
 
 struct in_memory_index_t
 {
+    // blocks.get_size() == timestamps.get_size().  We use parallel
+    // arrays to avoid wasting memory from alignment.
     segmented_vector_t<flagged_off64_t, MAX_BLOCK_ID> blocks;
+    segmented_vector_t<repl_timestamp, MAX_BLOCK_ID> timestamps;
 
 public:
-    in_memory_index_t() {
-    }
+    in_memory_index_t() { }
 
+    // TODO: Rename this function.  It's one greater than the max
+    // block id.
     ser_block_id_t max_block_id() {
         return ser_block_id_t::make(blocks.get_size());
     }
 
-    flagged_off64_t get_block_offset(ser_block_id_t id) {
-        if (id.value >= blocks.get_size()) {
-            return flagged_off64_t::unused();
+    struct info_t {
+        flagged_off64_t offset;
+        repl_timestamp recency;
+    };
+
+    info_t get_block_info(ser_block_id_t id) {
+        if(id >= blocks.get_size()) {
+            info_t ret = { flagged_off64_t::unused(), repl_timestamp::invalid };
+            return ret;
         } else {
-            return blocks[id.value];
+            info_t ret = { blocks[id.value], timestamps[id.value] };
+            return ret;
         }
     }
 
-    void set_block_offset(ser_block_id_t id, flagged_off64_t offset) {
+    void set_block_info(ser_block_id_t id, repl_timestamp recency,
+                        flagged_off64_t offset) {
 
-        /* Grow the array if necessary, and fill in the empty space with flagged_off64_t::unused(). */
         if (id.value >= blocks.get_size()) {
             blocks.set_size(id.value + 1, flagged_off64_t::unused());
+            timestamps.set_size(id.value + 1, repl_timestamp::invalid);
         }
 
         blocks[id.value] = offset;
+        timestamps[id.value] = recency;
     }
 
     void print() {
