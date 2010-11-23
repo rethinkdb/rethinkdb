@@ -114,6 +114,7 @@ struct tester_t :
     timer_token_t *timer;
     ticks_t last_time;
     unsigned txns_last_sec;
+    unsigned secs_so_far;
     
     struct interrupt_msg_t :
         public cpu_message_t
@@ -128,7 +129,7 @@ struct tester_t :
     } interruptor;
     
     tester_t(config_t *config, thread_pool_t *pool)
-        : tps_log_fd(NULL), ser(NULL), active_txns(0), total_txns(0), config(config), pool(pool), stop(false), interrupted(false), last_time(0), txns_last_sec(0), interruptor(this)
+        : tps_log_fd(NULL), ser(NULL), active_txns(0), total_txns(0), config(config), pool(pool), stop(false), interrupted(false), last_time(0), txns_last_sec(0), secs_so_far(0), interruptor(this)
     {
         last_time = get_ticks();
         if(config->tps_log_file) {
@@ -177,24 +178,30 @@ struct tester_t :
         while (active_txns < config->concurrent_txns && !stop) {
             active_txns++;
             total_txns++;
-            txns_last_sec++;
             new transaction_t(ser, log, config->inserts_per_txn, config->updates_per_txn, this);
 
-            // See if we need to report the TPS
-            ticks_t cur_time = get_ticks();
-            if(ticks_to_secs(cur_time - last_time) >= 1.0f) {
-                if(tps_log_fd) {
-                    fprintf(tps_log_fd, "%d\n", txns_last_sec);
-                }
-                
-                last_time = cur_time;
-                txns_last_sec = 0;
-            }
         }
         
+        // See if we need to report the TPS
+        ticks_t cur_time = get_ticks();
+        if(ticks_to_secs(cur_time - last_time) >= 1.0f) {
+            if(tps_log_fd) {
+                fprintf(tps_log_fd, "%d\n", txns_last_sec);
+            }
+                
+            last_time = cur_time;
+            txns_last_sec = 0;
+            secs_so_far++;
+            
+            // Flush every five seconds in case of a crash
+            if(secs_so_far % 5 == 0) {
+                fflush(tps_log_fd);
+            }
+        }
+
         if (active_txns == 0 && stop) {
             /* Serializer doesn't like shutdown() to be called from within
-            on_serializer_write_txn() */
+               on_serializer_write_txn() */
             call_later_on_this_cpu(this);
         }
     }
@@ -228,6 +235,7 @@ struct tester_t :
     
     void on_transaction_complete() {
         active_txns--;
+        txns_last_sec++;
         pump();
     }
     
