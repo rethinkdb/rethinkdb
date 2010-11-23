@@ -450,13 +450,13 @@ struct ls_block_writer_t :
             }
         }
     }
-    
+
     void on_io_complete(event_t *e) {
         do_finish();
     }
-    
+
     bool do_finish() {
-        
+
         /* Now that the block is safely on disk, we remove ourselves from the block_writer_map; if
         a reader comes along looking for the block, it will get it from disk. */
         if (write.buf && !superceded) {
@@ -464,7 +464,7 @@ struct ls_block_writer_t :
             assert((*it).second == this);
             ser->block_writer_map.erase(it);
         }
-        
+
         if (write.callback) write.callback->on_serializer_write_block();
         if (extra_cb) extra_cb->on_io_complete(NULL);
 

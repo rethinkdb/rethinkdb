@@ -59,9 +59,9 @@ struct serializer_t :
         const void *buf;   /* If NULL, a deletion */
         write_block_callback_t *callback;
 
-        write_t(ser_block_id_t block_id, repl_timestamp recency,
-                const void *buf, write_block_callback_t *callbock)
-            : block_id(block_id), recency(recency), buf(buf), callback(callback) { }
+        write_t(ser_block_id_t block_id_, repl_timestamp recency_,
+                const void *buf_, write_block_callback_t *callback_)
+            : block_id(block_id_), recency(recency_), buf(buf_), callback(callback_) { }
     };
     virtual bool do_write(write_t *writes, int num_writes, write_txn_callback_t *callback) = 0;
     
