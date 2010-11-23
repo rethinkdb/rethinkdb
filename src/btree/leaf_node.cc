@@ -194,6 +194,10 @@ bool leaf_node_handler::level(block_size_t block_size, btree_leaf_node *node, bt
             delete_offset(sibling, 0);
         }
 
+        // TODO: node and sibling's times are tolerable but coarse.
+        // They are newer than they could be.
+        initialize_times(&node->times, later_time(node->times.last_modified, sibling->times.last_modified));
+
         keycpy(key_to_replace, &get_pair(node, node->pair_offsets[0])->key);
         keycpy(replacement_key, &get_pair(node, node->pair_offsets[node->npairs-1])->key);
     } else {
@@ -221,6 +225,10 @@ bool leaf_node_handler::level(block_size_t block_size, btree_leaf_node *node, bt
             delete_pair(sibling, sibling->pair_offsets[index]); //decrements sibling->npairs
             delete_offset(sibling, index);
         }
+
+        // TODO: node and sibling's times are tolerable but coarse.
+        // They are newer than they could be.
+        initialize_times(&node->times, later_time(node->times.last_modified, sibling->times.last_modified));
 
         keycpy(key_to_replace, &get_pair(sibling, sibling->pair_offsets[0])->key);
         keycpy(replacement_key, &get_pair(sibling, sibling->pair_offsets[sibling->npairs-1])->key);
