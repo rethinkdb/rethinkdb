@@ -198,14 +198,18 @@ bool writeback_t::writeback_acquire_bufs() {
     /* Request read locks on all of the blocks we need to flush.
     TODO: Find a better way to do the allocation. */
     serializer_writes.clear();
+
+    // Yes, we are calling this on the right core.
+    repl_timestamp t = current_time();
+
     int i = 0;
     while (local_buf_t *lbuf = dirty_bufs.head()) {
-    
+
         inner_buf_t *inner_buf = lbuf->gbuf;
         lbuf->set_dirty(false);   // Removes it from dirty_bufs
-        
+
         bool do_delete = inner_buf->do_delete;
-        
+
         // Acquire the blocks
         inner_buf->do_delete = false; /* Backdoor around acquire()'s assertion */
         access_t buf_access_mode = do_delete ? rwi_read : rwi_read_outdated_ok;
@@ -214,13 +218,12 @@ bool writeback_t::writeback_acquire_bufs() {
 
         // Fill the serializer structure
         if (!do_delete) {
-            translator_serializer_t::write_t wr(inner_buf->block_id, repl_timestamp::placeholder,
+            translator_serializer_t::write_t wr(inner_buf->block_id, t,
                                                 buf->get_data_read(), new buf_writer_t(buf));
             serializer_writes.push_back(wr);
         } else {
             // NULL indicates a deletion
-            translator_serializer_t::write_t wr(inner_buf->block_id, repl_timestamp::placeholder,
-                                                NULL, NULL);
+            translator_serializer_t::write_t wr(inner_buf->block_id, t, NULL, NULL);
             serializer_writes.push_back(wr);
 
             assert(buf_access_mode != rwi_read_outdated_ok);
@@ -230,12 +233,12 @@ bool writeback_t::writeback_acquire_bufs() {
 
             delete inner_buf;
         }
-        
+
         i++;
     }
-    
+
     flush_lock.unlock(); // Write transactions can now proceed again.
-    
+
     return do_on_cpu(cache->serializer->home_cpu, this, &writeback_t::writeback_do_write);
 }
 
