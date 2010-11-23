@@ -260,7 +260,9 @@ void data_block_manager_t::run_gc() {
             }
             
             /* an array to put our writes in */
+#ifndef NDEBUG
             int num_writes = static_config->blocks_per_extent() - gc_state.current_entry->g_array.count();
+#endif
             std::vector<log_serializer_t::write_t> writes;
             int current_write = 0;
 
