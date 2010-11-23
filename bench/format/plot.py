@@ -550,7 +550,7 @@ class RDBStats(TimeSeriesCollection):
         self.drop(keys_to_drop)
 
 ncolumns = 37 #TODO man this is awful
-class RunStats(TimeSeriesCollection):
+class DriveStats(TimeSeriesCollection):
     name_line = line("^" + "([\#\d_]+)[\t\n]+"* ncolumns, [('col%d' % i, 's') for i in range(ncolumns)])
     data_line = line("^" + "(\d+)[\t\n]+"* ncolumns, [('col%d' % i, 'd') for i in range(ncolumns)])
 
@@ -561,7 +561,6 @@ class RunStats(TimeSeriesCollection):
 
         m = take(self.name_line, data)
         assert m
-        print len(m)
         col_names = m
 
         m = take_while([self.data_line], data)
