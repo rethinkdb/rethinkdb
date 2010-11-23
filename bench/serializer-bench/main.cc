@@ -44,25 +44,19 @@ struct transaction_t :
         a contiguous range of blocks starting at a random offset within range */
         
         ser_block_id_t begin = ser_block_id_t::make(random(0, ser->max_block_id().value - updates));
-        
+
         for (unsigned i = 0; i < updates; i++) {
-            serializer_t::write_t w;
-            w.block_id = ser_block_id_t::make(begin.value + i);
-            w.buf = dummy_buf;
-            w.callback = NULL;
+            serializer_t::write_t w(ser_block_id_t::make(begin.value + i), repl_timestamp::placeholder, dummy_buf, NULL);
             writes.push_back(w);
         }
-        
+
         /* Generate new IDs to insert by simply taking (highest ID + 1) */
-        
+
         for (unsigned i = 0; i < inserts; i++) {
-            serializer_t::write_t w;
-            w.block_id = ser_block_id_t::make(ser->max_block_id().value + i);
-            w.buf = dummy_buf;
-            w.callback = NULL;
+            serializer_t::write_t w(ser_block_id_t::make(ser->max_block_id().value + i), repl_timestamp::placeholder, dummy_buf, NULL);
             writes.push_back(w);
         }
-        
+
         start_time = get_ticks();
         
         bool done = ser->do_write(&writes[0], writes.size(), this);
