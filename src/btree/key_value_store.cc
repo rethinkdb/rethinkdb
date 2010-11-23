@@ -116,9 +116,9 @@ struct bkvs_start_new_serializer_fsm_t :
         
         return true;
     }
-    
+
     void on_serializer_ready(standard_serializer_t *ser) {
-        
+
         config_block = store->serializers[i]->malloc();
         bzero(config_block, store->serializers[i]->get_block_size().value());
         serializer_config_block_t *c = (serializer_config_block_t *)config_block;
@@ -128,10 +128,10 @@ struct bkvs_start_new_serializer_fsm_t :
         c->this_serializer = i;
         c->btree_config = store->btree_static_config;
 
-        serializer_t::write_t w(CONFIG_BLOCK_ID.ser_id, repl_timestamp::placeholder, config_block, NULL);
+        serializer_t::write_t w(CONFIG_BLOCK_ID.ser_id, repl_timestamp::invalid, config_block, NULL);
         if (store->serializers[i]->do_write(&w, 1, this)) on_serializer_write_txn();
     }
-    
+
     void on_serializer_write_txn() {
         
         store->serializers[i]->free(config_block);
