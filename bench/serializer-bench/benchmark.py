@@ -78,8 +78,9 @@ def run_benchmark(profile, drive_name):
         f.close()
 	# Do the run
 	run_process_and_callback_on_done([
-					  ["hdparm", "--user-master", "u", "--security-set-pass", "test", drive],
-					  ["hdparm", "--user-master", "u", "--security-erase", "test", drive],
+					  #["hdparm", "--user-master", "u", "--security-set-pass", "test", drive],
+					  #["hdparm", "--user-master", "u", "--security-erase", "test", drive],
+					  ["sg_format", "--wait", "--format", drive],
 					  [bench_exec_path,
 					  "--block-size", str(block_size),
 					  "--extent-size", str(extent_size),
