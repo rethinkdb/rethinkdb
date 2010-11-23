@@ -1,0 +1,28 @@
+#!/bin/bash
+
+echo Reconfiguring RAID to begin priming the drives
+#SSD_DRIVES="$(sudo /usr/local/bin/raidconfig ssd single)"
+SSD_DRIVES="/dev/sdb /dev/sdc /dev/sdd /dev/sde"
+
+sleep 3
+
+for DRIVE in $SSD_DRIVES
+do
+    echo Performing security erase on $DRIVE
+    sudo hdparm --user-master u --security-set-pass test $DRIVE
+    sudo hdparm --user-master u --security-erase test $DRIVE
+    echo Done
+done
+
+for DRIVE in $SSD_DRIVES
+do
+    echo Starting to prime $DRIVE
+    ./serializer-bench/serializer-bench -f $DRIVE --forever &
+done
+
+echo Waiting for all prime tasks to complete
+wait
+echo Priming completed
+
+
+

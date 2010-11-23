@@ -3,7 +3,7 @@
 
 #include "utils2.hpp"
 
-typedef uint64_t block_id_t;
+typedef uint32_t block_id_t;
 #define NULL_BLOCK_ID (block_id_t(-1))
 
 

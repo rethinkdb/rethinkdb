@@ -1117,7 +1117,7 @@ void report_subtree_errors(const subtree_errors *errs) {
         printf("ERROR %s subtree node errors found...\n", state);
         for (int i = 0, n = errs->node_errors.size(); i < n; ++i) {
             const node_error& e = errs->node_errors[i];
-            printf("           %lu:", e.block_id);
+            printf("           %u:", e.block_id);
             if (e.block_not_found_error != btree_block::none) {
                 printf(" block not found: %s\n", btree_block::error_name(e.block_not_found_error));
             } else {
@@ -1141,13 +1141,13 @@ void report_subtree_errors(const subtree_errors *errs) {
         printf("ERROR %s subtree value errors found...\n", state);
         for (int i = 0, n = errs->value_errors.size(); i < n; ++i) {
             const value_error& e = errs->value_errors[i];
-            printf("          %lu/'%s' :", e.block_id, e.key.c_str());
+            printf("          %u/'%s' :", e.block_id, e.key.c_str());
             printf("%s%s%s",
                    e.bad_metadata_flags ? " bad_metadata_flags" : "",
                    e.too_big ? " too_big" : "",
                    e.lv_too_small ? " lv_too_small" : "");
             if (e.index_block_id != NULL_BLOCK_ID) {
-                printf(" (index_block_id = %lu)", e.index_block_id);
+                printf(" (index_block_id = %u)", e.index_block_id);
                 if (e.lv_index_block_code != btree_block::none) {
                     printf(" could not load index block: %s", btree_block::error_name(e.lv_index_block_code));
                 } else {
@@ -1161,7 +1161,7 @@ void report_subtree_errors(const subtree_errors *errs) {
                         for (int j = 0, m = e.lv_segment_errors.size(); j < m; ++j) {
                             const value_error::segment_error se = e.lv_segment_errors[j];
 
-                            printf(" segment_error(%lu, %s)", se.block_id,
+                            printf(" segment_error(%u, %s)", se.block_id,
                                    se.block_code == btree_block::none ? "bad magic" : btree_block::error_name(se.block_code));
                         }
                     }
@@ -1174,7 +1174,7 @@ void report_subtree_errors(const subtree_errors *errs) {
 }
 
 void report_rogue_block_description(const char *title, const rogue_block_description& desc) {
-    printf("ERROR %s %s (#%lu):", state, title, desc.block_id);
+    printf("ERROR %s %s (#%u):", state, title, desc.block_id);
     if (desc.loading_error != btree_block::none) {
         printf("could not load: %s\n", btree_block::error_name(desc.loading_error));
     } else {
@@ -1190,7 +1190,7 @@ void report_other_block_errors(const other_block_errors *errs) {
         report_rogue_block_description("nonzeroed deleted block", errs->allegedly_deleted_blocks[i]);
     }
     if (errs->contiguity_failure != NULL_SER_BLOCK_ID) {
-        printf("ERROR %s slice block contiguity failure at serializer block id %lu\n", state, errs->contiguity_failure);
+        printf("ERROR %s slice block contiguity failure at serializer block id %u\n", state, errs->contiguity_failure);
     }
 }
 

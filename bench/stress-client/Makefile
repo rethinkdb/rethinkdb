@@ -1,11 +1,11 @@
 
 INCLUDE = -I../../../lib/libmemcached -I /usr/local/mysql/include
 LIBS = -L. -lmemcached -lmysqlclient -L /usr/local/mysql/lib/mysql
-SRC = main.cc utils.cc
+SRC = main.cc utils.cc random.cc
 
 EXEC_NAME = stress
 CXX = g++
-CXXFLAGS = -g $(INCLUDE)
+CXXFLAGS = -g $(INCLUDE) -O3
 
 OBJ = $(addsuffix .o, $(basename $(SRC)))
 

@@ -113,8 +113,10 @@
 //filenames for the database
 #define DEFAULT_DB_FILE_NAME                      "rethinkdb_data"
 
-// We assume there will never be more than this many blocks. The value is computed by dividing
-// 1 TB by the smallest reasonable block size.
+// We assume there will never be more than this many blocks. The value
+// is computed by dividing 1 TB by the smallest reasonable block size.
+// This value currently fits in 32 bits, and so block_id_t and
+// ser_block_id_t is a uint32_t.
 #define MAX_BLOCK_ID                              (TERABYTE / KILOBYTE)
 
 // We assume that there will never be more than this many blocks held in memory by the cache at

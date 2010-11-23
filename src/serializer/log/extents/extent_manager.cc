@@ -37,7 +37,7 @@ public:
     
 public:
     extent_zone_t(off64_t start, off64_t end, size_t extent_size)
-        : start(start), end(end), extent_size(extent_size)
+        : start(start), end(end), extent_size(extent_size), _held_extents(0)
     {
         assert(start % extent_size == 0);
         assert(end % extent_size == 0);

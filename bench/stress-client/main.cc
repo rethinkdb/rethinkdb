@@ -68,8 +68,14 @@ int main(int argc, char *argv[])
         client_data[i].id = i;
         client_data[i].min_seed = 0;
         client_data[i].max_seed = 0;
+
+        // Create and connect all protocols first to avoid weird TCP
+        // timeout bugs
+        client_data[i].proto = (*make_protocol)(client_data[i].server->protocol);
+        client_data[i].proto->connect(&config, client_data[i].server);
     }
 
+    // If input keys are provided, read them in
     if(config.in_file[0] != 0) {
         FILE *in_file = fopen(config.in_file, "r");
 
@@ -80,9 +86,9 @@ int main(int argc, char *argv[])
 
         while(feof(in_file) == 0) {
             int id, min_seed, max_seed;
-            fread(&id, sizeof(id), 1, in_file);
-            fread(&min_seed, sizeof(min_seed), 1, in_file);
-            fread(&max_seed, sizeof(max_seed), 1, in_file);
+            size_t res __attribute__((unused)) = fread(&id, sizeof(id), 1, in_file);
+            res = fread(&min_seed, sizeof(min_seed), 1, in_file);
+            res = fread(&max_seed, sizeof(max_seed), 1, in_file);
 
             client_data[id].min_seed = min_seed;
             client_data[id].max_seed = max_seed;
@@ -93,7 +99,6 @@ int main(int argc, char *argv[])
 
     // Create the threads
     for(int i = 0; i < config.clients; i++) {
-
         int res = pthread_create(&threads[i], NULL, run_client, &client_data[i]);
         if(res != 0) {
             fprintf(stderr, "Can't create thread");
@@ -110,6 +115,11 @@ int main(int argc, char *argv[])
         }
     }
 
+    // Disconnect everyone
+    for(int i = 0; i < config.clients; i++) {
+        delete client_data[i].proto;
+    }
+    
     // Dump key vectors if we have an out file
     if(config.out_file[0] != 0) {
         FILE *out_file = fopen(config.out_file, "aw");

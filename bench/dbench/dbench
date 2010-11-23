@@ -150,7 +150,7 @@ class Worker(object):
         cmdline = [executable] + args
 
         if self.ssh:
-            self.ssh_unique_path = '/tmp/dbench-%s-%d-%s' % (self.dbench.host, os.getpid(), random_str())
+            self.ssh_unique_path = '/tmp/dbench-%s-%d-%s' % (self.dbench.hosts[0], os.getpid(), random_str())
             cmdline = ['ssh', self.ssh, '--', 'dbench-internal-run', self.ssh_unique_path] + cmdline
 
         print >> self.status_file, 'cmdline: %r' % cmdline
@@ -363,8 +363,13 @@ class Stress(Client):
     QPS_FILE = 'qps.txt'
 
     def internal_start(self):
-        default_args = ['-s', 'sockmemcached,%s:%d''-n' % (self.dbench.host, self.dbench.port),
-                        '-l', self.LATENCY_FILE,
+        host_args = []
+        for host in self.dbench.hosts:
+            host_args.append('-s')
+            host_args.append('sockmemcached,%s:%d' % (host, self.dbench.port))
+
+        default_args = host_args + \
+                       ['-l', self.LATENCY_FILE,
                         '-q', self.QPS_FILE]
         args = self.compute_args(default_args)
         self.run_process(self.find_binary('stress'), args)
@@ -372,8 +377,13 @@ class Stress(Client):
 class MySQLStress(Stress):
     def internal_start(self):
         user, passwd, db = 'teapot', 'teapot', 'bench' # XXX: This shouldn't be hard-wired.
-        default_args = ['-s', 'mysql,%s/%s@%s:%d+%s' % (user, passwd, self.dbench.host, self.dbench.port, db),
-                        '-l', self.LATENCY_FILE,
+        host_args = []
+        for host in self.dbench.hosts:
+            host_args.append('-s')
+            host_args.append('mysql,%s/%s@%s:%d+%s' % (user, passwd, host, self.dbench.port, db))
+
+        default_args = host_args + \
+                       ['-l', self.LATENCY_FILE,
                         '-q', self.QPS_FILE]
         args = self.compute_args(default_args)
         self.run_process(self.find_binary('stress'), args)
@@ -531,14 +541,14 @@ class DBench(object):
                             type=str, default='./bench_output')
         parser.add_argument('-p', '--port', help='Server port (if not specified, will find unused port automatically).', type=int)
         default_host = socket.gethostname()
-        parser.add_argument('-H', '--host', help='Host that will be given as an argument to workers run over SSH (default: %s).' % default_host,
-                            type=str, default=default_host)
+        parser.add_argument('-H', '--hosts', help='Comma-separated list of hostnames that will be given as an argument to workers run over SSH (default: %s). Note: All hostnames must point to the same machine for now; multiple hostnames should only be used for benchmarking over multiple network interfaces.' % default_host,
+                            type=lambda hosts: hosts.split(','), default=[default_host])
         # TODO: use (/usr/bin/)time?
         # TODO: time-format
         # TODO: Minimum #runs.
         self.args = parser.parse_args()
         self.port = self.get_port(self.args.port)
-        self.host = self.args.host
+        self.hosts = self.args.hosts
         self.monitors = self.args.monitors
         self.server = self.args.server
         self.client = self.args.client

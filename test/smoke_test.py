@@ -14,6 +14,14 @@ for mode in ["debug", "release"]:
                   "SEMANTIC_SERIALIZER_CHECK" : 1 },
                 cmd_format="make")
 
+# Make sure auxillary tools compile
+do_test("cd ../bench/stress-client/; make clean; make",
+        {},
+        cmd_format="make")
+do_test("cd ../bench/serializer-bench/; make clean; make",
+        {},
+        cmd_format="make")
+
 # Do quick smoke tests in some environments
 for (mode, checker, protocol) in [("debug", "valgrind", "text")]:
     # VERY basic tests

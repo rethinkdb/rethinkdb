@@ -17,6 +17,14 @@ for mode in ["debug", "release"]:
                           "MOCK_CACHE_CHECK" : 1 if mock_cache            else 0},
                         cmd_format="make")
 
+# Make sure auxillary tools compile
+do_test("cd ../bench/stress-client/; make clean; make",
+        {},
+        cmd_format="make")
+do_test("cd ../bench/serializer-bench/; make clean; make",
+        {},
+        cmd_format="make")
+
 # Go through all our environments
 for (mode, checker) in [
         ("debug", "valgrind"),

@@ -234,7 +234,8 @@ class Server(object):
                 cmd_line += ["--db-attach=yes"]
             cmd_line += \
                 ["--leak-check=full",
-                 "--error-exitcode=%d" % self.valgrind_error_code]
+                 "--error-exitcode=%d" % self.valgrind_error_code,
+                 '--track-origins=yes']
             command_line = cmd_line + command_line
         
         # Start the server
