@@ -11,7 +11,7 @@ MEGABYTE = KILOBYTE * 1024
 MINUTE = 60
 
 # Define run arguments
-duration = 10
+duration = 45 * MINUTE
 tps_file_prefix = "tps_"
 drives = ["sdb", "sdc", "sdd", "sde"]
 
@@ -19,11 +19,6 @@ drives = ["sdb", "sdc", "sdd", "sde"]
 block_sizes = [4 * KILOBYTE, 8 * KILOBYTE]
 extent_size = [256 * KILOBYTE, 512 * KILOBYTE, 1 * MEGABYTE, 2 * MEGABYTE, 4 * MEGABYTE, 8 * MEGABYTE]
 active_extents = [1, 4, 8]
-
-# For testing
-block_sizes = [4 * KILOBYTE, 8 * KILOBYTE]
-extent_size = [256 * KILOBYTE, 2 * MEGABYTE]
-active_extents = [1, 4]
 
 # Some more arguments
 bench_exec_path = "./serializer-bench"
