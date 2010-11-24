@@ -105,17 +105,39 @@ unsigned int writeback_t::num_dirty_blocks() {
 }
 
 void writeback_t::local_buf_t::set_dirty(bool _dirty) {
-    if(!dirty && _dirty) {
+    if (!dirty && _dirty) {
         // Mark block as dirty if it hasn't been already
         dirty = true;
-        gbuf->cache->writeback.dirty_bufs.push_back(this);
+        if (!recency_dirty) {
+            gbuf->cache->writeback.dirty_bufs.push_back(this);
+        }
         pm_n_blocks_dirty++;
     }
-    if(dirty && !_dirty) {
+    if (dirty && !_dirty) {
         // We need to "unmark" the buf
         dirty = false;
-        gbuf->cache->writeback.dirty_bufs.remove(this);
+        if (!recency_dirty) {
+            gbuf->cache->writeback.dirty_bufs.remove(this);
+        }
         pm_n_blocks_dirty--;
+    }
+}
+
+void writeback_t::local_buf_t::set_recency_dirty(bool _recency_dirty) {
+    if (!recency_dirty && _recency_dirty) {
+        // Mark block as recency_dirty if it hasn't been already.
+        recency_dirty = true;
+        if (!dirty) {
+            gbuf->cache->writeback.dirty_bufs.push_back(this);
+        }
+        // TODO perfmon
+    }
+    if (recency_dirty && !_recency_dirty) {
+        recency_dirty = false;
+        if (!dirty) {
+            gbuf->cache->writeback.dirty_bufs.remove(this);
+        }
+        // TODO perfmon
     }
 }
 
@@ -202,32 +224,50 @@ bool writeback_t::writeback_acquire_bufs() {
     while (local_buf_t *lbuf = dirty_bufs.head()) {
 
         inner_buf_t *inner_buf = lbuf->gbuf;
-        lbuf->set_dirty(false);   // Removes it from dirty_bufs
 
-        bool do_delete = inner_buf->do_delete;
+        bool buf_dirty = lbuf->dirty;
+#ifndef NDEBUG
+        bool recency_dirty = lbuf->recency_dirty;
+#endif
 
-        // Acquire the blocks
-        inner_buf->do_delete = false; /* Backdoor around acquire()'s assertion */
-        access_t buf_access_mode = do_delete ? rwi_read : rwi_read_outdated_ok;
-        buf_t *buf = transaction->acquire(inner_buf->block_id, buf_access_mode, NULL);
-        assert(buf);         // Acquire must succeed since we hold the flush_lock.
+        // Removes it from dirty_bufs
+        lbuf->set_dirty(false);
+        lbuf->set_recency_dirty(false);
 
-        // Fill the serializer structure
-        if (!do_delete) {
-            translator_serializer_t::write_t wr(inner_buf->block_id, repl_timestamp::placeholder,
-                                                buf->get_data_read(), new buf_writer_t(buf));
-            serializer_writes.push_back(wr);
+        if (buf_dirty) {
+
+            bool do_delete = inner_buf->do_delete;
+
+            // Acquire the blocks
+            inner_buf->do_delete = false; /* Backdoor around acquire()'s assertion */  // TODO: backdoor?
+            access_t buf_access_mode = do_delete ? rwi_read : rwi_read_outdated_ok;
+            buf_t *buf = transaction->acquire(inner_buf->block_id, buf_access_mode, NULL);
+            assert(buf);         // Acquire must succeed since we hold the flush_lock.
+
+            // Fill the serializer structure
+            if (!do_delete) {
+                translator_serializer_t::write_t wr = translator_serializer_t::write_t::make(inner_buf->block_id, inner_buf->subtree_recency,
+                                                                                             buf->get_data_read(), new buf_writer_t(buf));
+                serializer_writes.push_back(wr);
+            } else {
+                // NULL indicates a deletion
+                translator_serializer_t::write_t wr = translator_serializer_t::write_t::make(inner_buf->block_id, inner_buf->subtree_recency,
+                                                                                             NULL, NULL);
+                serializer_writes.push_back(wr);
+
+                assert(buf_access_mode != rwi_read_outdated_ok);
+                buf->release();
+
+                cache->free_list.release_block_id(inner_buf->block_id);
+
+                delete inner_buf;
+            }
+
         } else {
-            // NULL indicates a deletion
-            translator_serializer_t::write_t wr(inner_buf->block_id, repl_timestamp::placeholder, NULL, NULL);
-            serializer_writes.push_back(wr);
+            assert(recency_dirty);
 
-            assert(buf_access_mode != rwi_read_outdated_ok);
-            buf->release();
-
-            cache->free_list.release_block_id(inner_buf->block_id);
-
-            delete inner_buf;
+            // No need to acquire the block.
+            serializer_writes.push_back(translator_serializer_t::write_t::make_touch(inner_buf->block_id, inner_buf->subtree_recency, NULL));
         }
 
         i++;

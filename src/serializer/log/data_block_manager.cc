@@ -264,24 +264,20 @@ void data_block_manager_t::run_gc() {
             int num_writes = static_config->blocks_per_extent() - gc_state.current_entry->g_array.count();
 #endif
             std::vector<log_serializer_t::write_t> writes;
-            int current_write = 0;
 
             for (unsigned int i = 0; i < static_config->blocks_per_extent(); i++) {
                 /* We re-check the bit array here in case a write came in for one of the
                 blocks we are GCing. We wouldn't want to overwrite the new valid data with
                 out-of-date data. */
                 if (!gc_state.current_entry->g_array[i]) {
-                    log_serializer_t::write_t wr(*((ser_block_id_t *) (gc_state.gc_blocks + (i * static_config->block_size().ser_value()))),
-                                                 repl_timestamp::placeholder,
-                                                 gc_state.gc_blocks + (i * static_config->block_size().ser_value()) + sizeof(buf_data_t),
-                                                 NULL);
-                    writes.push_back(wr);
-                    current_write++;
+                        writes.push_back(log_serializer_t::write_t::make_internal(*((ser_block_id_t *) (gc_state.gc_blocks + (i * static_config->block_size().ser_value()))),
+                                                                                  gc_state.gc_blocks + (i * static_config->block_size().ser_value()) + sizeof(buf_data_t),
+                                                                              NULL));
                 }
             }
-            
-            assert(current_write == num_writes);
-            
+
+            assert(writes.size() == (size_t)num_writes);
+
             /* make sure the callback knows who we are */
             gc_state.gc_write_callback.parent = this;
             

@@ -394,61 +394,81 @@ struct ls_block_writer_t :
     }
     
     bool do_write() {
-        
-        /* If there was another write currently in progress for the same block, then
-        remove it from the block map because we are superceding it */
-        log_serializer_t::block_writer_map_t::iterator it = ser->block_writer_map.find(write.block_id);
-        if (it != ser->block_writer_map.end()) {
-            ls_block_writer_t *writer_we_are_superceding = (*it).second;
-            writer_we_are_superceding->superceded = true;
-            ser->block_writer_map.erase(it);
-        }
 
-        /* mark the garbage */
-        flagged_off64_t gc_offset = ser->lba_index->get_block_offset(write.block_id);
-        if (flagged_off64_t::can_be_gced(gc_offset))
-            ser->data_block_manager->mark_garbage(gc_offset.parts.value);
-        
-        if (write.buf) {
-        
-            off64_t new_offset;
-            bool done = ser->data_block_manager->write(write.buf, write.block_id, ser->current_transaction_id, &new_offset, this);
-            ser->lba_index->set_block_offset(write.block_id, write.recency, flagged_off64_t::real(new_offset));
+        if (write.buf_specified) {
 
-            /* Insert ourselves into the block_writer_map so that if a reader comes looking for the
-            block before we finish writing it to disk, it will be able to find us to get the most
-            recent version */
-            ser->block_writer_map[write.block_id] = this;
-            superceded = false;
-            
-            if (done) return do_finish();
-            else return false;
-        
-        } else {
+            /* If there was another write currently in progress for the same block, then
+               remove it from the block map because we are superceding it */
+            log_serializer_t::block_writer_map_t::iterator it = ser->block_writer_map.find(write.block_id);
+            if (it != ser->block_writer_map.end()) {
+                ls_block_writer_t *writer_we_are_superceding = (*it).second;
+                writer_we_are_superceding->superceded = true;
+                ser->block_writer_map.erase(it);
+            }
 
-            /* Deletion */
-        
-            /* We tell the data_block_manager to write a zero block to
-               make recovery from a corrupted file more likely.  We
-               don't need to add anything to the block_writer_map
-               because that's for readers' sake, and you can't read a
-               deleted block. */
+            /* mark the garbage */
+            flagged_off64_t gc_offset = ser->lba_index->get_block_offset(write.block_id);
+            if (flagged_off64_t::can_be_gced(gc_offset))
+                ser->data_block_manager->mark_garbage(gc_offset.parts.value);
 
-            // We write a zero buffer with the given block_id at the front.
-            zerobuf = ser->malloc();
-            bzero(zerobuf, ser->get_block_size().value());
-            memcpy(zerobuf, &log_serializer_t::zerobuf_magic, sizeof(block_magic_t));
+            bool done;
 
-            off64_t new_offset;
-            bool done = ser->data_block_manager->write(zerobuf, write.block_id, ser->current_transaction_id, &new_offset, this);
-            ser->lba_index->set_block_offset(write.block_id, write.recency, flagged_off64_t::deleteblock(new_offset));
+            repl_timestamp recency = write.recency_specified ? write.recency : ser->lba_index->get_block_recency(write.block_id);
 
+
+            if (write.buf) {
+
+                off64_t new_offset;
+                done = ser->data_block_manager->write(write.buf, write.block_id, ser->current_transaction_id, &new_offset, this);
+
+                ser->lba_index->set_block_offset(write.block_id, recency, flagged_off64_t::real(new_offset));
+
+                /* Insert ourselves into the block_writer_map so that if a reader comes looking for the
+                   block before we finish writing it to disk, it will be able to find us to get the most
+                   recent version */
+                ser->block_writer_map[write.block_id] = this;
+                superceded = false;
+
+            } else {
+
+                /* Deletion */
+
+                /* We tell the data_block_manager to write a zero block to
+                   make recovery from a corrupted file more likely.  We
+                   don't need to add anything to the block_writer_map
+                   because that's for readers' sake, and you can't read a
+                   deleted block. */
+
+                // We write a zero buffer with the given block_id at the front.
+                zerobuf = ser->malloc();
+                bzero(zerobuf, ser->get_block_size().value());
+                memcpy(zerobuf, &log_serializer_t::zerobuf_magic, sizeof(block_magic_t));
+
+                off64_t new_offset;
+                done = ser->data_block_manager->write(zerobuf, write.block_id, ser->current_transaction_id, &new_offset, this);
+                ser->lba_index->set_block_offset(write.block_id, recency, flagged_off64_t::deleteblock(new_offset));
+            }
             if (done) {
                 return do_finish();
             } else {
                 return false;
             }
+
+        } else {
+            // It doesn't make sense for a write to not specify a
+            // recency _or_ a buffer, since such a write does not
+            // actually do anything.
+            assert(write.recency_specified);
+
+
+            if (write.recency_specified) {
+                ser->lba_index->set_block_offset(write.block_id, write.recency, ser->lba_index->get_block_offset(write.block_id));
+            }
+
+            return do_finish();
+
         }
+
     }
 
     void on_io_complete(event_t *e) {

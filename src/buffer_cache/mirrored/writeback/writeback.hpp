@@ -56,9 +56,10 @@ public:
         
     public:
         explicit local_buf_t(inner_buf_t *gbuf)
-            : gbuf(gbuf), dirty(false) {}
+            : gbuf(gbuf), dirty(false), recency_dirty(false) {}
         
         void set_dirty(bool _dirty = true);
+        void set_recency_dirty(bool _recency_dirty = true);
         
         bool safe_to_unload() const { return !dirty; }
 
@@ -66,6 +67,7 @@ public:
         inner_buf_t *gbuf;
     public: //TODO make this private again @jdoliner
         bool dirty;
+        bool recency_dirty;
     };
     
     /* User-controlled settings. */

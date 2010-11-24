@@ -55,13 +55,32 @@ struct serializer_t :
     };
     struct write_t {
         ser_block_id_t block_id;
-        repl_timestamp recency;  // TODO ensure this is set
+        bool recency_specified;
+        bool buf_specified;
+        repl_timestamp recency;
         const void *buf;   /* If NULL, a deletion */
         write_block_callback_t *callback;
 
-        write_t(ser_block_id_t block_id_, repl_timestamp recency_,
-                const void *buf_, write_block_callback_t *callback_)
-            : block_id(block_id_), recency(recency_), buf(buf_), callback(callback_) { }
+        friend class data_block_manager_t;
+
+        static write_t make_touch(ser_block_id_t block_id_, repl_timestamp recency_, write_block_callback_t *callback_) {
+            return write_t(block_id_, true, recency_, false, NULL, callback_);
+        }
+
+        static write_t make(ser_block_id_t block_id_, repl_timestamp recency_, const void *buf_, write_block_callback_t *callback_) {
+            return write_t(block_id_, true, recency_, true, buf_, callback_);
+        }
+
+        friend class translator_serializer_t;
+
+    private:
+        static write_t make_internal(ser_block_id_t block_id_, const void *buf_, write_block_callback_t *callback_) {
+            return write_t(block_id_, false, repl_timestamp::invalid, true, buf_, callback_);
+        }
+
+        write_t(ser_block_id_t block_id_, bool recency_specified_, repl_timestamp recency_,
+                bool buf_specified_, const void *buf_, write_block_callback_t *callback_)
+            : block_id(block_id_), recency_specified(recency_specified_), buf_specified(buf_specified_), recency(recency_), buf(buf_), callback(callback_) { }
     };
     virtual bool do_write(write_t *writes, int num_writes, write_txn_callback_t *callback) = 0;
     
