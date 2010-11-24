@@ -1,4 +1,4 @@
-#! /bin/sh
+#! /bin/bash
 
 # libtoolT - Provide generalized library-building support services.
 # Generated automatically by  (GNU google-perftools 1.6)
@@ -44,10 +44,10 @@ available_tags=" CXX"
 
 # ### BEGIN LIBTOOL CONFIG
 
-# Libtool was configured on host meta.mtv.corp.google.com:
+# Libtool was configured on host electro:
 
 # Shell to use when invoking shell scripts.
-SHELL="/bin/sh"
+SHELL="/bin/bash"
 
 # Whether or not to build shared libraries.
 build_libtool_libs=yes
@@ -147,7 +147,7 @@ pic_flag=" -fPIC -DPIC"
 pic_mode=default
 
 # What is the maximum length of a command?
-max_cmd_len=98304
+max_cmd_len=1572864
 
 # Does compiler simultaneously support -c and -o options?
 compiler_c_o="yes"
@@ -329,10 +329,10 @@ variables_saved_for_relink="PATH LD_LIBRARY_PATH LD_RUN_PATH GCC_EXEC_PREFIX COM
 link_all_deplibs=no
 
 # Compile-time system search path for libraries
-sys_lib_search_path_spec="/usr/lib/gcc/x86_64-linux-gnu/4.2.4 /usr/lib /lib"
+sys_lib_search_path_spec="/usr/lib/gcc/x86_64-linux-gnu/4.4.3 /usr/lib /lib"
 
 # Run-time system search path for libraries
-sys_lib_dlsearch_path_spec="/lib /usr/lib /usr/lib32/alsa-lib /usr/lib/alsa-lib /usr/local/lib /lib/x86_64-linux-gnu /usr/lib/x86_64-linux-gnu "
+sys_lib_dlsearch_path_spec="/lib /usr/lib /usr/lib/mesa /usr/lib32/mesa /usr/local/lib /lib/x86_64-linux-gnu /usr/lib/x86_64-linux-gnu "
 
 # Fix the shell variable $srcfile for the compiler.
 fix_srcfile_path=""
@@ -7320,10 +7320,10 @@ disable_libs=static
 # End:
 # ### BEGIN LIBTOOL TAG CONFIG: CXX
 
-# Libtool was configured on host meta.mtv.corp.google.com:
+# Libtool was configured on host electro:
 
 # Shell to use when invoking shell scripts.
-SHELL="/bin/sh"
+SHELL="/bin/bash"
 
 # Whether or not to build shared libraries.
 build_libtool_libs=yes
@@ -7423,7 +7423,7 @@ pic_flag=" -fPIC -DPIC"
 pic_mode=default
 
 # What is the maximum length of a command?
-max_cmd_len=98304
+max_cmd_len=1572864
 
 # Does compiler simultaneously support -c and -o options?
 compiler_c_o="yes"
@@ -7502,11 +7502,11 @@ striplib="strip --strip-unneeded"
 
 # Dependencies to place before the objects being linked to create a
 # shared library.
-predep_objects="/usr/lib/gcc/x86_64-linux-gnu/4.2.4/../../../../lib/crti.o /usr/lib/gcc/x86_64-linux-gnu/4.2.4/crtbeginS.o"
+predep_objects="/usr/lib/gcc/x86_64-linux-gnu/4.4.3/../../../../lib/crti.o /usr/lib/gcc/x86_64-linux-gnu/4.4.3/crtbeginS.o"
 
 # Dependencies to place after the objects being linked to create a
 # shared library.
-postdep_objects="/usr/lib/gcc/x86_64-linux-gnu/4.2.4/crtendS.o /usr/lib/gcc/x86_64-linux-gnu/4.2.4/../../../../lib/crtn.o"
+postdep_objects="/usr/lib/gcc/x86_64-linux-gnu/4.4.3/crtendS.o /usr/lib/gcc/x86_64-linux-gnu/4.4.3/../../../../lib/crtn.o"
 
 # Dependencies to place before the objects being linked to create a
 # shared library.
@@ -7518,11 +7518,11 @@ postdeps="-lstdc++ -lm -lgcc_s -lc -lgcc_s"
 
 # The directories searched by this compiler when creating a shared
 # library
-compiler_lib_search_dirs="/usr/lib/gcc/x86_64-linux-gnu/4.2.4 /usr/lib/gcc/x86_64-linux-gnu/4.2.4 /usr/lib/gcc/x86_64-linux-gnu/4.2.4/../../../../lib /lib/../lib /usr/lib/../lib /usr/lib/gcc/x86_64-linux-gnu/4.2.4/../../.."
+compiler_lib_search_dirs="/usr/lib/gcc/x86_64-linux-gnu/4.4.3 /usr/lib/gcc/x86_64-linux-gnu/4.4.3 /usr/lib/gcc/x86_64-linux-gnu/4.4.3/../../../../lib /lib/../lib /usr/lib/../lib /usr/lib/gcc/x86_64-linux-gnu/4.4.3/../../.."
 
 # The library search path used internally by the compiler when linking
 # a shared library.
-compiler_lib_search_path="-L/usr/lib/gcc/x86_64-linux-gnu/4.2.4 -L/usr/lib/gcc/x86_64-linux-gnu/4.2.4 -L/usr/lib/gcc/x86_64-linux-gnu/4.2.4/../../../../lib -L/lib/../lib -L/usr/lib/../lib -L/usr/lib/gcc/x86_64-linux-gnu/4.2.4/../../.."
+compiler_lib_search_path="-L/usr/lib/gcc/x86_64-linux-gnu/4.4.3 -L/usr/lib/gcc/x86_64-linux-gnu/4.4.3 -L/usr/lib/gcc/x86_64-linux-gnu/4.4.3/../../../../lib -L/lib/../lib -L/usr/lib/../lib -L/usr/lib/gcc/x86_64-linux-gnu/4.4.3/../../.."
 
 # Method to check whether dependent libraries are shared objects.
 deplibs_check_method="pass_all"
@@ -7602,10 +7602,10 @@ variables_saved_for_relink="PATH LD_LIBRARY_PATH LD_RUN_PATH GCC_EXEC_PREFIX COM
 link_all_deplibs=no
 
 # Compile-time system search path for libraries
-sys_lib_search_path_spec="/usr/lib/gcc/x86_64-linux-gnu/4.2.4 /usr/lib /lib"
+sys_lib_search_path_spec="/usr/lib/gcc/x86_64-linux-gnu/4.4.3 /usr/lib /lib"
 
 # Run-time system search path for libraries
-sys_lib_dlsearch_path_spec="/lib /usr/lib /usr/lib32/alsa-lib /usr/lib/alsa-lib /usr/local/lib /lib/x86_64-linux-gnu /usr/lib/x86_64-linux-gnu "
+sys_lib_dlsearch_path_spec="/lib /usr/lib /usr/lib/mesa /usr/lib32/mesa /usr/local/lib /lib/x86_64-linux-gnu /usr/lib/x86_64-linux-gnu "
 
 # Fix the shell variable $srcfile for the compiler.
 fix_srcfile_path=""
