@@ -149,16 +149,26 @@ void leaf_node_handler::merge(size_t block_size, btree_leaf_node *node, btree_le
 }
 
 void leaf_node_handler::keep_pairs_and_offsets(size_t block_size, btree_leaf_node *node, int beg_index, int end_index) {
-    // TODO make this more efficient
-    int n = node->npairs - end_index;
-    for (int i = 0; i < n; ++i) {
-        delete_pair(node, node->pair_offsets[end_index]);
-        delete_offset(node, end_index);
+    int n = end_index - beg_index;
+    std::vector<std::pair<uint16_t, uint16_t> > offsets(n);
+
+    for (int i = beg_index; i < end_index; ++i) {
+        offsets[i].first = node->pair_offsets[i];
+        offsets[i].second = i;
     }
-    for (int i = 0; i < beg_index; ++i) {
-        delete_pair(node, node->pair_offsets[0]);
-        delete_offset(node, 0);
+    std::sort(offsets.begin(), offsets.end());
+
+    byte *front = ((byte *)node) + block_size;
+    int i = n;
+    while (i-- > 0) {
+        btree_leaf_pair *p = get_pair(node, offsets[i].first);
+        int k = pair_size(p);
+        front -= k;
+        memmove(front, p, k);
+        node->pair_offsets[offsets[i].second - beg_index] = front - (byte *)node;
     }
+    node->npairs = n;
+    node->frontmost_offset = front - (byte *)node;
 }
 
 bool leaf_node_handler::level(size_t block_size, btree_leaf_node *node, btree_leaf_node *sibling, btree_key *key_to_replace, btree_key *replacement_key) {
