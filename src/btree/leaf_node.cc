@@ -148,11 +148,16 @@ void leaf_node_handler::merge(size_t block_size, btree_leaf_node *node, btree_le
     validate(block_size, node);
 }
 
-void leaf_node_handler::delete_pairs_and_offsets(size_t block_size, btree_leaf_node *node, int beg_index, int end_index) {
-    // TODO make this more efficient.
-    for (int i = 0, n = end_index - beg_index; i < n; ++i) {
-        delete_pair(node, node->pair_offsets[beg_index]);
-        delete_offset(node, beg_index);
+void leaf_node_handler::keep_pairs_and_offsets(size_t block_size, btree_leaf_node *node, int beg_index, int end_index) {
+    // TODO make this more efficient
+    int n = node->npairs - end_index;
+    for (int i = 0; i < n; ++i) {
+        delete_pair(node, node->pair_offsets[end_index]);
+        delete_offset(node, end_index);
+    }
+    for (int i = 0; i < beg_index; ++i) {
+        delete_pair(node, node->pair_offsets[0]);
+        delete_offset(node, 0);
     }
 }
 
@@ -187,7 +192,7 @@ bool leaf_node_handler::level(size_t block_size, btree_leaf_node *node, btree_le
         }
         node->npairs += index;
 
-        delete_pairs_and_offsets(block_size, sibling, 0, index);
+        keep_pairs_and_offsets(block_size, sibling, index, sibling->npairs);
 
         keycpy(key_to_replace, &get_pair(node, node->pair_offsets[0])->key);
         keycpy(replacement_key, &get_pair(node, node->pair_offsets[node->npairs-1])->key);
@@ -211,7 +216,7 @@ bool leaf_node_handler::level(size_t block_size, btree_leaf_node *node, btree_le
         }
         node->npairs += pairs_to_move;
 
-        delete_pairs_and_offsets(block_size, sibling, index, sibling->npairs);
+        keep_pairs_and_offsets(block_size, sibling, 0, index);
 
         keycpy(key_to_replace, &get_pair(sibling, sibling->pair_offsets[0])->key);
         keycpy(replacement_key, &get_pair(sibling, sibling->pair_offsets[sibling->npairs-1])->key);
