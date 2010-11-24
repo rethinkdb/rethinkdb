@@ -219,6 +219,7 @@ bool writeback_t::writeback_acquire_bufs() {
 
     // Request read locks on all of the blocks we need to flush.
     serializer_writes.clear();
+    serializer_writes.reserve(dirty_bufs.size());
 
     int i = 0;
     while (local_buf_t *lbuf = dirty_bufs.head()) {
@@ -246,14 +247,12 @@ bool writeback_t::writeback_acquire_bufs() {
 
             // Fill the serializer structure
             if (!do_delete) {
-                translator_serializer_t::write_t wr = translator_serializer_t::write_t::make(inner_buf->block_id, inner_buf->subtree_recency,
-                                                                                             buf->get_data_read(), new buf_writer_t(buf));
-                serializer_writes.push_back(wr);
+                serializer_writes.push_back(translator_serializer_t::write_t::make(inner_buf->block_id, inner_buf->subtree_recency,
+                                                                                   buf->get_data_read(), new buf_writer_t(buf)));
             } else {
                 // NULL indicates a deletion
-                translator_serializer_t::write_t wr = translator_serializer_t::write_t::make(inner_buf->block_id, inner_buf->subtree_recency,
-                                                                                             NULL, NULL);
-                serializer_writes.push_back(wr);
+                serializer_writes.push_back(translator_serializer_t::write_t::make(inner_buf->block_id, inner_buf->subtree_recency,
+                                                                                   NULL, NULL));
 
                 assert(buf_access_mode != rwi_read_outdated_ok);
                 buf->release();
