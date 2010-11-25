@@ -1,11 +1,15 @@
 #ifndef __STORE_HPP__
 #define __STORE_HPP__
 
+#include "utils.hpp"
+
 typedef uint32_t mcflags_t;
 typedef uint32_t exptime_t;
 typedef uint64_t cas_t;
 
-struct key_t {
+// Note: Changing this struct changes the format of the data stored on disk.
+// If you change this struct, previous stored data will be misinterpreted.
+struct store_key_t {
     uint8_t size;
     char contents[0];
     void print() {
@@ -15,15 +19,22 @@ struct key_t {
 
 struct buffer_group_t {
     struct buffer_t {
-        size_t size;
+        ssize_t size;
         void *data;
     };
-    std::vector<buffer_t *> buffers;
+    std::vector<buffer_t> buffers;
     void add_buffer(size_t s, void *d) {
         buffer_t b;
         b.size = s;
         b.data = d;
         buffers.push_back(b);
+    }
+    size_t get_size() {
+        size_t s = 0;
+        for (int i = 0; i < (int)buffers.size(); i++) {
+            s += buffers[i].size;
+        }
+        return s;
     }
 };
 
@@ -56,8 +67,8 @@ struct store_t {
         virtual void value(buffer_group_t *value, done_callback_t *cb, mcflags_t flags, cas_t cas) = 0;
         virtual void not_found() = 0;
     };
-    virtual void get(key_t *key, get_callback_t *cb);
-    virtual void get_cas(key_t *key, get_callback_t *cb);
+    virtual void get(store_key_t *key, get_callback_t *cb) = 0;
+    virtual void get_cas(store_key_t *key, get_callback_t *cb) = 0;
     
     /* To set a value in the database, call set(), add(), or replace(). Provide a key* for the key
     to be set and a data_provider_t* for the data. Note that the data_provider_t may be called on
@@ -80,10 +91,10 @@ struct store_t {
         /* Called if the data_provider_t that you gave returned have_failed(). */
         virtual void data_provider_failed() = 0;
     };
-    virtual void set(key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, set_callback_t *cb) = 0;
-    virtual void add(key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, set_callback_t *cb) = 0;
-    virtual void replace(key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, set_callback_t *cb) = 0;
-    virtual void cas(key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, cas_t unique, set_callback_t *cb) = 0;
+    virtual void set(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, set_callback_t *cb) = 0;
+    virtual void add(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, set_callback_t *cb) = 0;
+    virtual void replace(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, set_callback_t *cb) = 0;
+    virtual void cas(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, cas_t unique, set_callback_t *cb) = 0;
     
     /* To increment or decrement a value, use incr() or decr(). They're pretty straight-forward. */
     
@@ -93,8 +104,8 @@ struct store_t {
         virtual void not_found() = 0;
         virtual void not_numeric() = 0;
     };
-    virtual void incr(key_t *key, unsigned long long amount, incr_decr_callback_t *cb) = 0;
-    virtual void decr(key_t *key, unsigned long long amount, incr_decr_callback_t *cb) = 0;
+    virtual void incr(store_key_t *key, unsigned long long amount, incr_decr_callback_t *cb) = 0;
+    virtual void decr(store_key_t *key, unsigned long long amount, incr_decr_callback_t *cb) = 0;
     
     /* To append or prepend a value, use append() or prepend(). */
     
@@ -105,8 +116,8 @@ struct store_t {
         virtual void not_found() = 0;
         virtual void data_provider_failed() = 0;
     };
-    virtual void append(key_t *key, data_provider_t *data, append_prepend_callback_t *cb) = 0;
-    virtual void prepend(key_t *key, data_provider_t *data, append_prepend_callback_t *cb) = 0;
+    virtual void append(store_key_t *key, data_provider_t *data, append_prepend_callback_t *cb) = 0;
+    virtual void prepend(store_key_t *key, data_provider_t *data, append_prepend_callback_t *cb) = 0;
     
     /* To delete a key-value pair, use delete(). */
     
@@ -115,7 +126,7 @@ struct store_t {
         virtual void deleted() = 0;
         virtual void not_found() = 0;
     };
-    virtual void delete_key(key_t *key, delete_callback_t *cb) = 0;
+    virtual void delete_key(store_key_t *key, delete_callback_t *cb) = 0;
 };
 
 #endif /* __STORE_HPP__ */

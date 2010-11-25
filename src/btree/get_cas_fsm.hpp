@@ -9,8 +9,9 @@
 // hasn't been set, for instance), but depending on how CAS is used, that may be
 // unnecessary.
 
-class btree_get_cas_fsm_t : public btree_modify_fsm_t,
-                            public large_value_completed_callback
+class btree_get_cas_fsm_t :
+    public btree_modify_fsm_t,
+    public store_t::get_callback_t::done_callback_t
 {
     typedef btree_fsm_t::transition_result_t transition_result_t;
 public:
@@ -28,7 +29,7 @@ public:
         
         if (!old_value) {
             result = result_not_found;
-            have_failed_operation();
+            have_failed_operating();
         
         } else {
             valuecpy(&value, old_value);
@@ -42,9 +43,9 @@ public:
             if (value.is_large()) {
                 result = result_large_value;
                 // Prepare the buffer group
-                for (int i = 0; i < large_value->get_num_segments(); i++) {
+                for (int i = 0; i < old_large_buf->get_num_segments(); i++) {
                     uint16_t size;
-                    void *data = const_cast<void *>(large_value->get_segment(i, &size));
+                    void *data = const_cast<byte *>(old_large_buf->get_segment(i, &size));
                     buffer_group.add_buffer(size, data);
                 }
                 
@@ -56,22 +57,20 @@ public:
                 done_with_operate();
             }
         }
-        
-        return btree_fsm_t::transition_ok;
     }
     
     void done_with_operate() {
         if (there_was_cas_before) {
-            have_failed_operation();   // We didn't actually fail, but we made no change
+            have_failed_operating();   // We didn't actually fail, but we made no change
         } else {
-            have_finished_operation(&value);
+            have_finished_operating(&value);
         }
     }
     
     void on_cpu_switch() {
         if (in_operate) {
             if (!have_delivered_value) {
-                callback->value(&buffer_group, this, value.flags(), value.cas());
+                callback->value(&buffer_group, this, value.mcflags(), value.cas());
             } else {
                 in_operate = false;
                 done_with_operate();
@@ -103,7 +102,7 @@ public:
                 break;
             case result_small_value:
                 buffer_group.add_buffer(value.value_size(), value.value());
-                callback->value(&buffer_group, this, value.flags(), value.cas());
+                callback->value(&buffer_group, this, value.mcflags(), value.cas());
                 break;
             case result_large_value:
                 // We already delivered our callback during operate().

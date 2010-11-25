@@ -3,6 +3,7 @@
 #include <errno.h>
 #include "utils.hpp"
 #include <signal.h>
+#include "request_handler/request_handler.hpp"
 
 /* Global counters for the number of conn_fsms in each state */
 

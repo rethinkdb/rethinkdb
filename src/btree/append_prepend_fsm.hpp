@@ -15,8 +15,7 @@ public:
     {
     }
 
-    void operate(btree_value *_old_value, large_buf_t *old_large_value) {
-        old_value = _old_value;
+    void operate(btree_value *old_value, large_buf_t *old_large_value) {
 
         if (!old_value) {
             result = result_not_found;
@@ -24,9 +23,9 @@ public:
             return;
         }
         
-        new_size = old_value->value_size() + data->get_size();
+        size_t new_size = old_value->value_size() + data->get_size();
         if (new_size > MAX_VALUE_SIZE) {
-            result = result_too_large();
+            result = result_too_large;
             data->get_value(NULL, this);
             return;
         }
@@ -42,10 +41,10 @@ public:
             assert(!old_value->is_large());
             // XXX This does unnecessary copying now.
             if (append) {
-                buffer_group.append_buf(value.value() + old_value->value_size(), data->get_size());
+                buffer_group.add_buffer(data->get_size(), value.value() + old_value->value_size());
             } else { // prepend
                 memmove(value.value() + data->get_size(), value.value(), old_value->value_size());
-                buffer_group.append_buf(value.value(), data->get_size());
+                buffer_group.add_buffer(data->get_size(), value.value());
             }
             
         } else {
@@ -76,8 +75,8 @@ public:
                 uint16_t seg_len;
                 byte_t *seg = large_value->get_segment_write(ix, &seg_len);
                 assert(seg_len >= seg_pos);
-                uint16_t seg_bytes_to_fil = std::min((uint32_t)(seg_len - seg_pos), fill_size);
-                buffer_group.append_buf(seg + seg_pos, seg_bytes_to_fill);
+                uint16_t seg_bytes_to_fill = std::min((uint32_t)(seg_len - seg_pos), fill_size);
+                buffer_group.add_buffer(seg_bytes_to_fill, seg + seg_pos);
                 fill_size -= seg_bytes_to_fill;
                 seg_pos = 0;
                 ix++;
@@ -87,7 +86,7 @@ public:
         // Dispatch the data request
         
         result = result_success;
-        data->get_data(&buffer_group, this);
+        data->get_value(&buffer_group, this);
     }
     
     void have_provided_value() {

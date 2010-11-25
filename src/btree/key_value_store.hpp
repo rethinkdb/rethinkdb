@@ -2,7 +2,6 @@
 #ifndef __BTREE_KEY_VALUE_STORE_HPP__
 #define __BTREE_KEY_VALUE_STORE_HPP__
 
-#include "buffer_cache/buffer_cache.hpp"
 #include "btree/slice.hpp"
 #include "btree/node.hpp"
 #include "utils.hpp"
@@ -84,17 +83,17 @@ public:
 public:
     /* store_t interface. */
     
-    void get(key_t *key, get_callback_t *cb);
-    void get_cas(key_t *key, get_callback_t *cb);
-    void set(key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, set_callback_t *cb);
-    void add(key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, set_callback_t *cb);
-    void replace(key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, set_callback_t *cb);
-    void cas(key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, cas_t unique, set_callback_t *cb);
-    void incr(key_t *key, unsigned long long amount, incr_decr_callback_t *cb);
-    void decr(key_t *key, unsigned long long amount, incr_decr_callback_t *cb);
-    void append(key_t *key, data_provider_t *data, append_prepend_callback_t *cb);
-    void prepend(key_t *key, data_provider_t *data, append_prepend_callback_t *cb);
-    void delete_key(key_t *key, delete_callback_t *cb);
+    void get(store_key_t *key, get_callback_t *cb);
+    void get_cas(store_key_t *key, get_callback_t *cb);
+    void set(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, set_callback_t *cb);
+    void add(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, set_callback_t *cb);
+    void replace(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, set_callback_t *cb);
+    void cas(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, cas_t unique, set_callback_t *cb);
+    void incr(store_key_t *key, unsigned long long amount, incr_decr_callback_t *cb);
+    void decr(store_key_t *key, unsigned long long amount, incr_decr_callback_t *cb);
+    void append(store_key_t *key, data_provider_t *data, append_prepend_callback_t *cb);
+    void prepend(store_key_t *key, data_provider_t *data, append_prepend_callback_t *cb);
+    void delete_key(store_key_t *key, delete_callback_t *cb);
 
 public:
     btree_key_value_store_dynamic_config_t *dynamic_config;
@@ -177,10 +176,5 @@ private:
 extern perfmon_duration_sampler_t
     pm_cmd_set,
     pm_cmd_get;
-
-// Other parts of the code refer to store_t instead of btree_key_value_store_t to
-// facilitate the process of adding another type of store (such as a hashmap)
-// later on.
-typedef btree_key_value_store_t store_t;
 
 #endif /* __BTREE_KEY_VALUE_STORE_HPP__ */

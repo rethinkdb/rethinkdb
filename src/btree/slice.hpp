@@ -1,11 +1,16 @@
 #ifndef __BTREE_SLICE_HPP__
 #define __BTREE_SLICE_HPP__
 
+#include "store.hpp"
+#include "buffer_cache/buffer_cache.hpp"
+
 class initialize_superblock_fsm_t;
 
 /* btree_slice_t is a thin wrapper around cache_t that handles initializing the buffer
 cache for the purpose of storing a btree. There are many btree_slice_ts per
 btree_key_value_store_t. */
+
+struct btree_key_value_store_t;
 
 class btree_slice_t :
     private cache_t::ready_callback_t,
@@ -34,7 +39,7 @@ private:
     ready_callback_t *ready_callback;
 
 public:
-    btree_value::cas_t gen_cas();
+    cas_t gen_cas();
 private:
     uint32_t cas_counter;
 

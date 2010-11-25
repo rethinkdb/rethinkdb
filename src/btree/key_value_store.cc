@@ -1,5 +1,11 @@
 #include "key_value_store.hpp"
 #include "db_cpu_info.hpp"
+#include "btree/get_fsm.hpp"
+#include "btree/set_fsm.hpp"
+#include "btree/incr_decr_fsm.hpp"
+#include "btree/append_prepend_fsm.hpp"
+#include "btree/delete_fsm.hpp"
+#include "btree/get_cas_fsm.hpp"
 
 /* The key-value store slices up the serializers as follows:
 
@@ -395,47 +401,47 @@ btree_slice_t *btree_key_value_store_t::slice_for_key(btree_key *key) {
 
 /* store_t interface */
 
-void btree_key_value_store_t::get(key_t *key, get_callback_t *cb) {
+void btree_key_value_store_t::get(store_key_t *key, get_callback_t *cb) {
     new btree_get_fsm_t(key, this, cb);
 }
 
-void btree_key_value_store_t::get_cas(key_t *key, get_callback_t *cb) {
+void btree_key_value_store_t::get_cas(store_key_t *key, get_callback_t *cb) {
     new btree_get_cas_fsm_t(key, this, cb);
 }
 
-void btree_key_value_store_t::set(key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, set_callback_t *cb) {
-    new btree_set_fsm_t(key, this, data, set_type_set, flags, exptime, 0, cb);
+void btree_key_value_store_t::set(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, set_callback_t *cb) {
+    new btree_set_fsm_t(key, this, data, btree_set_fsm_t::set_type_set, flags, exptime, 0, cb);
 }
 
-void btree_key_value_store_t::add(key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, set_callback_t *cb) {
-    new btree_set_fsm_t(key, this, data, set_type_add, flags, exptime, 0, cb);
+void btree_key_value_store_t::add(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, set_callback_t *cb) {
+    new btree_set_fsm_t(key, this, data, btree_set_fsm_t::set_type_add, flags, exptime, 0, cb);
 }
 
-void btree_key_value_store_t::replace(key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, set_callback_t *cb) {
-    new btree_set_fsm_t(key, this, data, set_type_replace, flags, exptime, 0, cb);
+void btree_key_value_store_t::replace(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, set_callback_t *cb) {
+    new btree_set_fsm_t(key, this, data, btree_set_fsm_t::set_type_replace, flags, exptime, 0, cb);
 }
 
-void btree_key_value_store_t::cas(key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, cas_t unique, set_callback_t *cb) {
-    new btree_set_fsm_t(key, this, data, set_type_cas, flags, exptime, unique, cb);
+void btree_key_value_store_t::cas(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, cas_t unique, set_callback_t *cb) {
+    new btree_set_fsm_t(key, this, data, btree_set_fsm_t::set_type_cas, flags, exptime, unique, cb);
 }
 
-void btree_key_value_store_t::incr(key_t *key, unsigned long long amount, incr_decr_callback_t *cb) {
+void btree_key_value_store_t::incr(store_key_t *key, unsigned long long amount, incr_decr_callback_t *cb) {
     new btree_incr_decr_fsm_t(key, this, true, amount, cb);
 }
 
-void btree_key_value_store_t::decr(key_t *key, unsigned long long amount, incr_decr_callback_t *cb) {
+void btree_key_value_store_t::decr(store_key_t *key, unsigned long long amount, incr_decr_callback_t *cb) {
     new btree_incr_decr_fsm_t(key, this, false, amount, cb);
 }
 
-void btree_key_value_store_t::append(key_t *key, data_provider_t *data, append_prepend_callback_t *cb) {
+void btree_key_value_store_t::append(store_key_t *key, data_provider_t *data, append_prepend_callback_t *cb) {
     new btree_append_prepend_fsm_t(key, this, data, true, cb);
 }
 
-void btree_key_value_store_t::prepend(key_t *key, data_provider_t *data, append_prepend_callback_t *cb) {
+void btree_key_value_store_t::prepend(store_key_t *key, data_provider_t *data, append_prepend_callback_t *cb) {
     new btree_append_prepend_fsm_t(key, this, data, false, cb);
 }
 
-void btree_key_value_store_t::delete_key(key_t *key, delete_callback_t *cb) {
+void btree_key_value_store_t::delete_key(store_key_t *key, delete_callback_t *cb) {
     new btree_delete_fsm_t(key, this, cb);
 }
 

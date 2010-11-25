@@ -44,8 +44,7 @@ public:
         pm_cmd_get.end(&start_time);
     }
     
-    void on_cpu_switch();
-    virtual transition_result_t do_transition(event_t *event);
+    virtual void do_transition(event_t *event);
     void have_copied_value(); /* Called by the request handler when it's done with the value we gave it */
     bool in_callback_value_call, value_was_copied;
     
@@ -65,11 +64,16 @@ private:
     transition_result_t do_acquire_root(event_t *event);
     transition_result_t do_acquire_node(event_t *event);
     transition_result_t do_acquire_large_value(event_t *event);
-    transition_result_t do_large_value_acquired(event_t *event);
+    transition_result_t do_deliver_large_value(event_t *event);
+    transition_result_t do_write_large_value(event_t *event);
+    transition_result_t do_return_after_deliver_large_value(event_t *event);
+    transition_result_t do_free_large_value(event_t *event);
+    transition_result_t do_deliver_small_value(event_t *event);
+    transition_result_t do_deliver_not_found_notification(event_t *event);
 
 private:
     ticks_t start_time;
-    store_t::get_callback_t *cb;
+    store_t::get_callback_t *callback;
     
     // Some relevant state information
 public: // XXX

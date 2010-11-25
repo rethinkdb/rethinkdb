@@ -19,7 +19,7 @@ public:
     };
 
     explicit btree_set_fsm_t(btree_key *key, btree_key_value_store_t *store, data_provider_t *data, set_type_t type, btree_value::mcflags_t mcflags, btree_value::exptime_t exptime, btree_value::cas_t req_cas, store_t::set_callback_t *cb)
-        : btree_modify_fsm_t(key, store), data(data), type(type), mcflags(mcflags), exptime(exptime), req_cas(req_cas), read_success(false), set_failed(false), large_value(NULL), callback(cb)
+        : btree_modify_fsm_t(key, store), data(data), type(type), mcflags(mcflags), exptime(exptime), req_cas(req_cas), large_value(NULL), callback(cb)
     {
         pm_cmd_set.begin(&start_time);
     }
@@ -63,23 +63,23 @@ public:
             buffer_group.add_buffer(data->get_size(), value.contents);
         } else {
             large_value = new large_buf_t(this->transaction);
-            large_value->allocate(length);
+            large_value->allocate(data->get_size());
             value.set_lv_index_block_id(large_value->get_index_block_id());
-            for (int i = 0; i < large_value->get_num_segments()) {
+            for (int i = 0; i < large_value->get_num_segments(); i++) {
                 uint16_t size;
                 void *data = large_value->get_segment_write(i, &size);
                 buffer_group.add_buffer(size, data);
             }
         }
         
-        result = result_success;
+        result = result_stored;
         data->get_value(&buffer_group, this);
     }
     
     void have_provided_value() {
         /* Called by the data provider when it filled the buffer we gave it. */
         
-        if (result == result_success) {
+        if (result == result_stored) {
             if (large_value) {
                 large_value->release();
                 delete large_value;
@@ -133,7 +133,7 @@ private:
 
     data_provider_t *data;
     set_type_t type;
-    mcflags_t flags;
+    mcflags_t mcflags;
     exptime_t exptime;
     btree_value::cas_t req_cas;
     
@@ -152,7 +152,7 @@ private:
     large_buf_t *large_value;
     buffer_group_t buffer_group;
     
-    store_t::set_callback_t *cb;
+    store_t::set_callback_t *callback;
 };
 
 #endif // __BTREE_SET_FSM_HPP__

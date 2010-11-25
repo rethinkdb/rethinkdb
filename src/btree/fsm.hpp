@@ -39,7 +39,7 @@ public:
      * using a virtual function, and testing the performance
      * difference. */
 
-    virtual transition_result_t do_transition(event_t *event) = 0;
+    virtual void do_transition(event_t *event) = 0;
     
     void done();
     
@@ -59,10 +59,7 @@ public:
 
     transaction_t *transaction;
     cache_t *cache;
-    btree_fsm_callback_t *callback;
     bool noreply;
-
-    status_code_t status_code;
     
     btree_key_value_store_t *store;
     btree_slice_t *slice;

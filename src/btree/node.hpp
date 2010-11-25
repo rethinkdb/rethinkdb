@@ -7,6 +7,7 @@
 #include <time.h>
 #include "utils.hpp"
 #include "buffer_cache/types.hpp"
+#include "store.hpp"
 
 struct btree_superblock_t {
     block_magic_t magic;
@@ -57,16 +58,7 @@ enum metadata_flags {
     LARGE_VALUE       = 0x80
 };
 
-// Note: Changing this struct changes the format of the data stored on disk.
-// If you change this struct, previous stored data will be misinterpreted.
-struct btree_key {
-    uint8_t size;
-    char contents[0];
-    void print() {
-        printf("%*.*s", size, size, contents);
-        //printf("%d", size);
-    }
-};
+typedef store_key_t btree_key;
 
 // Note: This struct is stored directly on disk.
 struct btree_value {

@@ -1,4 +1,6 @@
 #include "btree/slice.hpp"
+#include "btree/node.hpp"
+#include "btree/key_value_store.hpp"
 
 /* When the serializer starts up, it will create an initial superblock and initialize it to zero.
 This isn't quite the behavior we want. The job of initialize_superblock_fsm is to initialize the

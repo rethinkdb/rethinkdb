@@ -40,7 +40,7 @@ public:
     // A txt_memcached_get_request_t supports more than one get at one time, so it takes several steps
     // to build it. First the constructor is called; then add_get() is called one or more times.
     
-    txt_memcached_request_handler_t *rh;
+    txt_memcached_handler_t *rh;
     
     txt_memcached_get_request_t(txt_memcached_handler_t *rh, bool with_cas)
         : rh(rh), num_gets(0), curr_get(-1), with_cas(with_cas)
@@ -48,7 +48,7 @@ public:
     }
 
     bool add_get(btree_key *key) {
-        if (num_fsms < MAX_OPS_IN_REQUEST) {
+        if (num_gets < MAX_OPS_IN_REQUEST) {
             get_t *g = &gets[num_gets++];
             keycpy(&g->key, key);
             g->ready = false;
@@ -117,9 +117,10 @@ private:
                         "VALUE %*.*s %u %u\r\n",
                         key.size, key.size, key.contents, flags, buffer->get_size());
                 }
-                if (buffer->get_size() > 1000) {
+                // TODO: The "1000" is a magic constant for streaming vs. buffering.
+                if (buffer->get_size() < 1000) {
                     for (int i = 0; i < (signed)buffer->buffers.size(); i++) {
-                        parent->rh->conn_fsm->sbuf->append(buffer->buffers[i].data, buffer->buffers[i].size);
+                        parent->rh->conn_fsm->sbuf->append((char *)buffer->buffers[i].data, buffer->buffers[i].size);
                     }
                     done();
                 } else {
@@ -131,15 +132,15 @@ private:
         
         void on_data_transferred() {
             buffer_being_sent++;
-            if (buffer_being_sent == buffer->buffers.size()) {
+            if (buffer_being_sent == (int)buffer->buffers.size()) {
                 done();
             } else {
-                parent->rh->write_value(buffer->buffers[buffer_being_sent].data, buffer->buffers[buffer_being_sent].size, this);
+                parent->rh->write_value((char *)buffer->buffers[buffer_being_sent].data, buffer->buffers[buffer_being_sent].size, this);
             }
         }
         
         void done() {
-            callback->have_copied_value()
+            callback->have_copied_value();
             parent->rh->conn_fsm->sbuf->printf("\r\n");
             assert(&parent->gets[parent->curr_get] == this);
             parent->curr_get++;
@@ -152,14 +153,14 @@ private:
     bool with_cas;
     
     void pump() {
-        if (curr_fsm == -1) return;   // So we don't finish before we're done starting
-        if (curr_fsm < num_fsms) {
-            get_t *g = &gets[curr_fsm];
+        if (curr_get == -1) return;   // So we don't finish before we're done starting
+        if (curr_get < num_gets) {
+            get_t *g = &gets[curr_get];
             if (g->ready && !g->sending) {
                 g->write();   // When this completes, it will increment curr_fsm and call pump()
             }
         } else {
-            rh->sbuf->printf(RETRIEVE_TERMINATOR);
+            rh->conn_fsm->sbuf->printf(RETRIEVE_TERMINATOR);
             rh->request_complete();
             delete this;
         }
@@ -291,7 +292,7 @@ public:
     
     void not_numeric() {
         if (!noreply) {
-            rh->conn_fsm->sbuf->printf(NOT_NUMERIC);
+            rh->conn_fsm->sbuf->printf(INCR_DECR_ON_NON_NUMERIC_VALUE);
             rh->request_complete();
         }
         delete this;
@@ -828,7 +829,7 @@ txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::read_data() {
             return malformed_request();
     }
 
-    if () {
+    if (!is_large) {
         conn_fsm->consume(bytes+2);
 
         if (noreply)

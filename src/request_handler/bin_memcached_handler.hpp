@@ -8,6 +8,8 @@
 #include <arpa/inet.h>
 #include <endian.h>
 
+#if 0
+
 class server_t;
 
 // TODO This shouldn't be necessary.
@@ -833,5 +835,7 @@ private:
 public:
     server_t *server;
 };
+
+#endif /* 0 */
 
 #endif // __BIN_MEMCACHED_HANDLER_HPP__

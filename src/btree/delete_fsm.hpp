@@ -23,7 +23,7 @@ public:
     }
     
     void call_callback_and_delete() {
-        if (exists) callback->success();
+        if (exists) callback->deleted();
         else callback->not_found();
         delete this;
     }

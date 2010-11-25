@@ -22,7 +22,7 @@ void server_t::on_logger_ready() {
 }
 
 void server_t::do_check_store() {
-    store_t::check_existing(cmd_config->n_files, cmd_config->files, this);
+    btree_key_value_store_t::check_existing(cmd_config->n_files, cmd_config->files, this);
 }
 
 void server_t::on_store_check(bool ok) {
@@ -37,7 +37,7 @@ void server_t::do_start_store() {
 
     assert_cpu();
     
-    store = new store_t(&cmd_config->store_dynamic_config, cmd_config->n_files, cmd_config->files);
+    store = new btree_key_value_store_t(&cmd_config->store_dynamic_config, cmd_config->n_files, cmd_config->files);
     
     bool done;
     if (cmd_config->create_store) {

@@ -38,7 +38,7 @@ public:
         do_transition(NULL);
     }
 
-    transition_result_t do_transition(event_t *event);
+    void do_transition(event_t *event);
 
     /* btree_modify_fsm calls operate() when it finds the leaf node.
      * 'old_value' is the previous value or NULL if the key was not present
@@ -48,7 +48,7 @@ public:
      * have_finished_operating(), the buffer it passes should remain valid
      * until the btree_modify_fsm is destroyed.
      */
-    virtual transition_result_t operate(btree_value *old_value, large_buf_t *old_large_buf, btree_value **new_value) = 0;
+    virtual void operate(btree_value *old_value, large_buf_t *old_large_buf) = 0;
     void have_finished_operating(btree_value *new_value);
     void have_failed_operating();
     

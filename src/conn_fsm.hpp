@@ -4,7 +4,6 @@
 #include "containers/intrusive_list.hpp"
 #include "containers/var_buf.hpp"
 #include "arch/arch.hpp"
-#include "request_handler/request_handler.hpp"
 #include "event.hpp"
 #include <stdarg.h>
 
@@ -13,6 +12,8 @@
 // pool allocator is designed for objects that have roughly the same
 // lifetime. We should use a different allocator for objects like
 // conn_fsm (and btree buffers).
+
+struct request_handler_t;
 
 struct data_transferred_callback {
     virtual void on_data_transferred() = 0;

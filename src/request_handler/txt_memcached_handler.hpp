@@ -9,8 +9,8 @@ class server_t;
 class rh_data_provider_t;
 
 class txt_memcached_handler_t :
-    public request_handler_t,
-    public large_value_completed_callback // Used for consuming data from the socket. XXX: Rename this.
+    public request_handler_t //,
+    // public large_value_completed_callback // Used for consuming data from the socket. XXX: Rename this.
 {
 public:
     typedef request_handler_t::parse_result_t parse_result_t;

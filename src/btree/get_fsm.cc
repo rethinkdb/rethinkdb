@@ -6,6 +6,14 @@
 
 #include "btree/delete_expired_fsm.hpp"
 
+/* The get_fsm has two paths it takes: one for large values and one for small ones. For large
+values, it holds onto the large value buffer while it goes back to the request handler's core
+and delivers the large value. Then it returns again to the cache's core and frees the value,
+and finally goes to the request handler's core again to free itself. For small values, it
+duplicates the value into an internal buffer and then goes to the request handler's core,
+delivers the value, and frees itself all in one trip. If the value is not found, we take
+a third path that is basically the same as the one for small values. */
+
 btree_get_fsm_t::transition_result_t btree_get_fsm_t::do_acquire_superblock(event_t *event) {
     assert(state == acquire_superblock);
 
@@ -144,7 +152,7 @@ btree_get_fsm_t::transition_result_t btree_get_fsm_t::do_acquire_large_value(eve
         assert(large_value == (large_buf_t *) event->buf);
         assert(large_value->state == large_buf_t::loaded);
 
-        state = large_value_acquired;
+        state = deliver_large_value;
         return btree_fsm_t::transition_ok;
     }
 }
@@ -158,7 +166,8 @@ btree_get_fsm_t::transition_result_t btree_get_fsm_t::do_deliver_large_value(eve
 
     for (int i = 0; i < large_value->get_num_segments(); i++) {
         uint16_t size;
-        void *data = const_cast<void *>(large_value->get_segment(i, &size));
+        // TODO: This const_cast is a hack because there's no such thing as a const_buffer_group_t
+        void *data = const_cast<byte *>(large_value->get_segment(i, &size));
         value_buffers.add_buffer(size, data);
     }
     
@@ -172,7 +181,7 @@ btree_get_fsm_t::transition_result_t btree_get_fsm_t::do_write_large_value(event
     
     in_callback_value_call = true;
     value_was_copied = false;
-    callback->value(&value_buffers, this, value.flags(), 0);
+    callback->value(&value_buffers, this, value.mcflags(), 0);
     in_callback_value_call = false;
     
     state = return_after_deliver_large_value;
@@ -209,8 +218,8 @@ btree_get_fsm_t::transition_result_t btree_get_fsm_t::do_deliver_small_value(eve
     
     in_callback_value_call = true;
     value_was_copied = false;
-    value_buffers.add_buffer(value.size(), value.contents());
-    callback->value(&value_buffers, this, value.flags(), 0);
+    value_buffers.add_buffer(value.value_size(), value.value());
+    callback->value(&value_buffers, this, value.mcflags(), 0);
     in_callback_value_call = false;
     
     state = delete_self;
@@ -227,7 +236,7 @@ btree_get_fsm_t::transition_result_t btree_get_fsm_t::do_deliver_not_found_notif
     return btree_fsm_t::transition_ok;
 }
 
-btree_get_fsm_t::transition_result_t btree_get_fsm_t::do_transition(event_t *event) {
+void btree_get_fsm_t::do_transition(event_t *event) {
     transition_result_t res = btree_fsm_t::transition_ok;
 
     // Make sure we've got either an empty or a cache event
@@ -301,14 +310,14 @@ btree_get_fsm_t::transition_result_t btree_get_fsm_t::do_transition(event_t *eve
                 res = do_deliver_small_value(event);
                 break;
             
+            case deliver_not_found_notification:
+                res = do_deliver_not_found_notification(event);
+                break;
+            
             // Delete ourself to reclaim the memory
             case delete_self:
                 delete this;
-                return 0;
-           }
         }
         event = NULL;
     }
-
-    return res;
 }

@@ -3,11 +3,11 @@
 
 #include "event.hpp"
 #include "arch/arch.hpp"
+#include "conn_fsm.hpp"
+#include "store.hpp"
 
 struct event_t;
-
-class conn_fsm_t;
-class data_transferred_callback;
+class rh_data_provider_t;
 
 class request_handler_t {
 
@@ -59,13 +59,13 @@ struct buffered_data_provider_t :
     void get_value(buffer_group_t *bg, data_provider_t::done_callback_t *cb) {
         if (bg) {
             int pos = 0;
-            for (int i = 0; i < bg->buffers.size(); i++) {
-                memcpy(bg->buffers[i].data, buffer + pos, bg->buffers[i].size);
+            for (int i = 0; i < (signed)bg->buffers.size(); i++) {
+                memcpy(bg->buffers[i].data, (char*)buffer + pos, bg->buffers[i].size);
                 pos += bg->buffers[i].size;
             }
-            assert(pos == length);
+            assert(pos == (signed)length);
         }
-        cb->have_provided_data();
+        cb->have_provided_value();
     }
 private:
     void *buffer;
@@ -98,24 +98,24 @@ private:
     bool completed;
     bool success;
 
-    txt_memcached_request_handler_t *rh;   // Request handler for us to read from
-    uint32_t length;   // Our length
+    request_handler_t *rh;   // Request handler for us to read from
+    size_t length;   // Our length
 
     buffer_group_t *bg;   // Buffers to read into in fill mode
     int bg_seg, bg_seg_pos;   // Segment we're currently reading into and how many bytes are in it
 
-    iobuf_t *buf;   // Dummy buf used in consume mode
-    uint32_t bytes_consumed;
+    char *dummy_buf;   // Dummy buf used in consume mode
+    size_t bytes_consumed;
 
 public:
-    rh_data_provider_t(txt_memcached_request_handler_t *rh, uint32_t length)
-        : mode(unused), length(length), rh(rh) { }
+    rh_data_provider_t(request_handler_t *rh, uint32_t length)
+        : mode(unused), rh(rh), length(length) { }
     
     ~rh_data_provider_t() {
         assert(mode != unused);
-        if (buf) {
+        if (dummy_buf) {
             assert(mode == consume);
-            delete buf;
+            delete[] dummy_buf;
         }
     }
     
@@ -127,12 +127,12 @@ public:
         assert(mode == unused);
         if (b) {
             mode = fill;
-            buf = NULL;
+            dummy_buf = NULL;
             bg = b;
-            bg_seg = bg_pos = 0;
+            bg_seg = bg_seg_pos = 0;
         } else {
             mode = consume;
-            buf = new iobuf_t();
+            dummy_buf = new char[IO_BUFFER_SIZE];
             bytes_consumed = 0;
         }
         requestor_cpu = get_cpu_id();
@@ -180,9 +180,9 @@ private:
 
     void do_consume() {
         if (bytes_consumed < length) {
-            uint32_t bytes_to_transfer = std::min((uint32_t) iobuf_t::size, length - bytes_consumed);
+            size_t bytes_to_transfer = std::min(IO_BUFFER_SIZE, (long int)length - (long int)bytes_consumed);
             bytes_consumed += bytes_to_transfer;
-            rh->fill_value(buf->buf, bytes_to_transfer, this);
+            rh->fill_value(dummy_buf, bytes_to_transfer, this);
             return;
         }
 
@@ -192,16 +192,16 @@ private:
     }
 
     void do_fill() {
-        if (bg_seg < bg->buffers.size()) {
+        if (bg_seg < (signed)bg->buffers.size()) {
             buffer_group_t::buffer_t *bg_buf = &bg->buffers[bg_seg];
             uint16_t start_pos = bg_seg_pos;
-            uint16_t bytes_to_transfer = std::min(bg_buf->size - start_pos, length);
+            uint16_t bytes_to_transfer = std::min(bg_buf->size - start_pos, (ssize_t)length);
             bg_seg_pos += bytes_to_transfer;
-            if (bg_seg_pos == bg_buf->size) {
+            if (bg_seg_pos == (signed)bg_buf->size) {
                 bg_seg++;
                 bg_seg_pos = 0;
             }
-            rh->fill_value(bg_buf->buf + start_pos, bytes_to_transfer, this);
+            rh->fill_value((char*)bg_buf->data + start_pos, bytes_to_transfer, this);
             return;
         } else {
             rh->data_provider = this;

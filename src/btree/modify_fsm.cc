@@ -248,7 +248,7 @@ void btree_modify_fsm_t::have_failed_operating() {
     if (!in_operate_call) do_transition(NULL);
 }
 
-btree_modify_fsm_t::transition_result_t btree_modify_fsm_t::do_transition(event_t *event) {
+void btree_modify_fsm_t::do_transition(event_t *event) {
     transition_result_t res = btree_fsm_t::transition_ok;
 
     // Make sure we've got either an empty or a cache event
@@ -547,8 +547,6 @@ btree_modify_fsm_t::transition_result_t btree_modify_fsm_t::do_transition(event_
         // without getting a new event.
         event = NULL;
     }
-
-    return res;
 }
 
 void btree_modify_fsm_t::split_node(buf_t *buf, buf_t **rbuf,

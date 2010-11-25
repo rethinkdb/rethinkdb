@@ -70,7 +70,7 @@ public:
         have_finished_operating(&temp_value);
     }
     
-    void call_callback() {
+    void call_callback_and_delete() {
         switch (result) {
             case result_success:
                 callback->success(new_number);
