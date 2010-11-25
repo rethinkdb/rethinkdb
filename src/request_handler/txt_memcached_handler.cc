@@ -51,6 +51,7 @@ public:
         if (num_gets < MAX_OPS_IN_REQUEST) {
             get_t *g = &gets[num_gets++];
             keycpy(&g->key, key);
+            g->parent = this;
             g->ready = false;
             if (with_cas) rh->server->store->get_cas(key, g);
             else rh->server->store->get(key, g);
@@ -122,17 +123,23 @@ private:
                     for (int i = 0; i < (signed)buffer->buffers.size(); i++) {
                         parent->rh->conn_fsm->sbuf->append((char *)buffer->buffers[i].data, buffer->buffers[i].size);
                     }
+                    callback->have_copied_value();
+                    parent->rh->conn_fsm->sbuf->printf("\r\n");
                     done();
                 } else {
                     buffer_being_sent = -1;
                     on_data_transferred();
                 }
+            } else {
+                done();
             }
         }
         
         void on_data_transferred() {
             buffer_being_sent++;
             if (buffer_being_sent == (int)buffer->buffers.size()) {
+                callback->have_copied_value();
+                parent->rh->conn_fsm->sbuf->printf("\r\n");
                 done();
             } else {
                 parent->rh->write_value((char *)buffer->buffers[buffer_being_sent].data, buffer->buffers[buffer_being_sent].size, this);
@@ -140,8 +147,6 @@ private:
         }
         
         void done() {
-            callback->have_copied_value();
-            parent->rh->conn_fsm->sbuf->printf("\r\n");
             assert(&parent->gets[parent->curr_get] == this);
             parent->curr_get++;
             parent->pump();

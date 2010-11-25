@@ -258,6 +258,7 @@ void btree_get_fsm_t::do_transition(event_t *event) {
             
             // Go to the core where the cache is
             case go_to_cache_core:
+                state = acquire_superblock;
                 if (continue_on_cpu(slice->home_cpu, this)) res = btree_fsm_t::transition_ok;
                 else res = btree_fsm_t::transition_incomplete;
                 break;
@@ -317,6 +318,7 @@ void btree_get_fsm_t::do_transition(event_t *event) {
             // Delete ourself to reclaim the memory
             case delete_self:
                 delete this;
+                return;
         }
         event = NULL;
     }
