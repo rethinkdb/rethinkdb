@@ -45,9 +45,9 @@ btree_get_fsm_t::transition_result_t btree_get_fsm_t::do_acquire_root(event_t *e
     if(node_id == NULL_BLOCK_ID) {
         last_buf->release();
         last_buf = NULL;
-        this->status_code = btree_fsm_t::S_NOT_FOUND;
-        state = lookup_complete;
-        return btree_fsm_t::transition_ok;
+        state = deliver_not_found_notification;
+        if (continue_on_cpu(home_cpu, this)) return btree_fsm_t::transition_ok;
+        else return btree_fsm_t::transition_incomplete;
     }
 
     if(event == NULL) {
@@ -112,13 +112,18 @@ btree_get_fsm_t::transition_result_t btree_get_fsm_t::do_acquire_node(event_t *e
             delete_expired(&key, store);
             found = false;
         }
-        if (found && value.is_large()) {
+        if (!found) {
+            state = deliver_not_found_notification;
+            if (continue_on_cpu(home_cpu, this)) return btree_fsm_t::transition_ok;
+            else return btree_fsm_t::transition_incomplete;
+        } else if (value.is_large()) {
             state = acquire_large_value;
+            return btree_fsm_t::transition_ok;
         } else {
-            state = lookup_complete;
+            state = deliver_small_value;
+            if (continue_on_cpu(home_cpu, this)) return btree_fsm_t::transition_ok;
+            else return btree_fsm_t::transition_incomplete;
         }
-        this->status_code = found ? btree_fsm_t::S_SUCCESS : btree_fsm_t::S_NOT_FOUND;
-        return btree_fsm_t::transition_ok;
     }
 }
 
@@ -144,18 +149,82 @@ btree_get_fsm_t::transition_result_t btree_get_fsm_t::do_acquire_large_value(eve
     }
 }
 
-btree_get_fsm_t::transition_result_t btree_get_fsm_t::do_large_value_acquired(event_t *event) {
-    assert(state == large_value_acquired);
+btree_get_fsm_t::transition_result_t btree_get_fsm_t::do_deliver_large_value(event_t *event) {
+    assert(state == deliver_large_value);
 
     assert(large_value);
     assert(!event);
     assert(large_value->get_index_block_id() == value.lv_index_block_id());
 
-    write_lv_msg = new write_large_value_msg_t(large_value, this, return_cpu, req, this);
+    for (int i = 0; i < large_value->get_num_segments(); i++) {
+        uint16_t size;
+        void *data = const_cast<void *>(large_value->get_segment(i, &size));
+        value_buffers.add_buffer(size, data);
+    }
+    
+    state = write_large_value;
+    if (continue_on_cpu(home_cpu, this)) return btree_fsm_t::transition_ok;
+    else return btree_fsm_t::transition_incomplete;
+}
 
-    write_lv_msg->dispatch();
-    // And now, we wait... For the socket to be ready for our value.
-    return btree_fsm_t::transition_incomplete;
+btree_get_fsm_t::transition_result_t btree_get_fsm_t::do_write_large_value(event_t *event) {
+    assert(state == write_large_value);
+    
+    in_callback_value_call = true;
+    value_was_copied = false;
+    callback->value(&value_buffers, this, value.flags(), 0);
+    in_callback_value_call = false;
+    
+    state = return_after_deliver_large_value;
+    if (value_was_copied) return btree_fsm_t::transition_ok;
+    else return btree_fsm_t::transition_incomplete;
+}
+
+void btree_get_fsm_t::have_copied_value() {
+    value_was_copied = true;
+    if (!in_callback_value_call) do_transition(NULL);
+}
+
+btree_get_fsm_t::transition_result_t btree_get_fsm_t::do_return_after_deliver_large_value(event_t *event) {
+    assert(state == return_after_deliver_large_value);
+    
+    state = free_large_value;
+    if (continue_on_cpu(slice->home_cpu, this)) return btree_fsm_t::transition_ok;
+    else return btree_fsm_t::transition_incomplete;
+}
+
+btree_get_fsm_t::transition_result_t btree_get_fsm_t::do_free_large_value(event_t *event) {
+    assert(state == free_large_value);
+    
+    large_value->release();
+    delete large_value;
+    
+    state = delete_self;
+    if (continue_on_cpu(home_cpu, this)) return btree_fsm_t::transition_ok;
+    else return btree_fsm_t::transition_incomplete;
+}
+
+btree_get_fsm_t::transition_result_t btree_get_fsm_t::do_deliver_small_value(event_t *event) {
+    assert(state == deliver_small_value);
+    
+    in_callback_value_call = true;
+    value_was_copied = false;
+    value_buffers.add_buffer(value.size(), value.contents());
+    callback->value(&value_buffers, this, value.flags(), 0);
+    in_callback_value_call = false;
+    
+    state = delete_self;
+    if (value_was_copied) return btree_fsm_t::transition_ok;
+    else return btree_fsm_t::transition_incomplete;
+}
+
+btree_get_fsm_t::transition_result_t btree_get_fsm_t::do_deliver_not_found_notification(event_t *event) {
+    assert(state == deliver_not_found_notification);
+    
+    callback->not_found();
+    
+    state = delete_self;
+    return btree_fsm_t::transition_ok;
 }
 
 btree_get_fsm_t::transition_result_t btree_get_fsm_t::do_transition(event_t *event) {
@@ -177,6 +246,13 @@ btree_get_fsm_t::transition_result_t btree_get_fsm_t::do_transition(event_t *eve
 
     while (res == btree_fsm_t::transition_ok) {
         switch (state) {
+            
+            // Go to the core where the cache is
+            case go_to_cache_core:
+                if (continue_on_cpu(slice->home_cpu, this)) res = btree_fsm_t::transition_ok;
+                else res = btree_fsm_t::transition_incomplete;
+                break;
+            
             // First, acquire the superblock (to get root node ID)
             case acquire_superblock:
                 res = do_acquire_superblock(event);
@@ -197,41 +273,42 @@ btree_get_fsm_t::transition_result_t btree_get_fsm_t::do_transition(event_t *eve
                 res = do_acquire_large_value(event);
                 break;
 
-            // The large value is acquired; now we need to output it to the socket.
-            case large_value_acquired:
-                res = do_large_value_acquired(event);
+            // The large value is acquired; now we need to output it to the socket. Go to
+            // the core of the thing that requested the value.
+            case deliver_large_value:
+                res = do_deliver_large_value(event);
                 break;
 
-            // XXX
-            case large_value_writing:
-                assert(!event);
-                large_value->release();
-                delete large_value;
-                state = lookup_complete;
+            // Call the callback to deliver the large value.
+            case write_large_value:
+                res = do_write_large_value(event);
                 break;
-
-            // Finally, end our transaction. This should always succeed immediately.
-            case lookup_complete: {
-                bool committed __attribute__((unused)) = transaction->commit(NULL);
-                assert(committed); /* Read-only commits always finish immediately. */
-                res = btree_fsm_t::transition_complete;
+            
+            // Return to free the large value.
+            case return_after_deliver_large_value:
+                res = do_return_after_deliver_large_value(event);
                 break;
+            
+            // Free the large value, then go back to free ourself
+            case free_large_value:
+                res = do_free_large_value(event);
+                break;
+            
+            // If we had a small value, we go straight to here after acquire_node. Go to
+            // the core of the thing that requested the value, with the value in our
+            // 'value' attribute.
+            case deliver_small_value:
+                res = do_deliver_small_value(event);
+                break;
+            
+            // Delete ourself to reclaim the memory
+            case delete_self:
+                delete this;
+                return 0;
            }
         }
         event = NULL;
     }
 
     return res;
-}
-
-void btree_get_fsm_t::on_large_value_completed(bool success) {
-    assert(success);
-    write_lv_msg = NULL;
-    this->step();
-}
-
-void btree_get_fsm_t::begin_lv_write() {
-    //assert_cpu();
-    state = large_value_writing; // XXX
-    write_lv_msg->begin_write();
 }

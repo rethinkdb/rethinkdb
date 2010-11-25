@@ -29,6 +29,7 @@ struct buffer_group_t {
 
 struct data_provider_t {
     
+    virtual ~data_provider_t() { }
     virtual size_t get_size() = 0;
     struct done_callback_t {
         virtual void have_provided_value() = 0;
@@ -60,8 +61,8 @@ struct store_t {
     
     /* To set a value in the database, call set(), add(), or replace(). Provide a key* for the key
     to be set and a data_provider_t* for the data. Note that the data_provider_t may be called on
-    any core, so you must implement core-switching yourself if necessary. The data_provider_t may
-    not be called, but it will not be called more than once. Also provide a set_callback_t. */
+    any core, so you must implement core-switching yourself if necessary. The data_provider_t will
+    always be called exactly once. Also provide a set_callback_t. */
     
     struct set_callback_t {
         
