@@ -88,7 +88,7 @@ public:
     static_config_t static_config;
 
 public:
-    log_serializer_t(const char *filename, dynamic_config_t *dynamic_config);
+    log_serializer_t(int serializer_ix, dynamic_config_t *dynamic_config);
     virtual ~log_serializer_t();
 
 public:

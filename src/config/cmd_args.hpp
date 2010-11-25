@@ -4,6 +4,8 @@
 
 #include "config/args.hpp"
 #include <sys/types.h>
+#include <string>
+#include <vector>
 
 #define NEVER_FLUSH -1
 
@@ -25,6 +27,11 @@ struct log_serializer_dynamic_config_t {
     
     /* How big to make each zone if the database is on a block device or if file_size is given */
     size_t file_zone_size;
+
+    std::vector<std::string> db_filenames;
+#ifdef SEMANTIC_SERIALIZER_CHECK
+    std::vector<std::string> semantic_filenames;
+#endif
 };
 
 /* Configuration for the serializer that is set when the database is created */
@@ -69,7 +76,6 @@ struct btree_config_t {
 to run */
 
 struct btree_key_value_store_dynamic_config_t {
-    
     log_serializer_dynamic_config_t serializer;
     mirrored_cache_config_t cache;
 };
@@ -94,11 +100,9 @@ struct cmd_config_t {
     //log_level min_log_level;
     
     // Configuration information for the btree
-    int n_files;
-    const char *files[MAX_SERIALIZERS];
     btree_key_value_store_dynamic_config_t store_dynamic_config;
-    bool create_store, force_create, shutdown_after_creation;
     btree_key_value_store_static_config_t store_static_config;
+    bool create_store, force_create, shutdown_after_creation;
 
     bool verbose;
 };

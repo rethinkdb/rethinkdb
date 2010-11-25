@@ -7,11 +7,11 @@
 
 const block_magic_t log_serializer_t::zerobuf_magic = { { 'z', 'e', 'r', 'o' } };
 
-log_serializer_t::log_serializer_t(const char *_db_path, dynamic_config_t *config)
+log_serializer_t::log_serializer_t(int serializer_ix, dynamic_config_t *config)
     : dynamic_config(config),
       shutdown_callback(NULL),
       state(state_unstarted),
-      db_path(_db_path),
+      db_path(config->db_filenames[serializer_ix].c_str()),
       dbfile(NULL),
       extent_manager(NULL),
       metablock_manager(NULL),

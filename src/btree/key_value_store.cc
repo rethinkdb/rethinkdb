@@ -11,15 +11,13 @@
 */
 
 btree_key_value_store_t::btree_key_value_store_t(
-        btree_key_value_store_dynamic_config_t *dynamic_config,
-        int n_files,
-        const char **db_filenames)
+        btree_key_value_store_dynamic_config_t *dynamic_config)
     : dynamic_config(dynamic_config),
-      n_files(n_files),
-      db_filenames(db_filenames),
+      n_files(dynamic_config->serializer.db_filenames.size()),
       state(state_off)
 {
     assert(n_files > 0);
+    assert(n_files <= MAX_SERIALIZERS);
     for (int i = 0; i < n_files; i++) {
         serializers[i] = NULL;
     }
@@ -33,13 +31,14 @@ struct check_existing_fsm_t
     int n_unchecked;
     btree_key_value_store_t::check_callback_t *callback;
     bool is_ok;
-    check_existing_fsm_t(int n_files, const char **db_filenames, btree_key_value_store_t::check_callback_t *cb)
+    check_existing_fsm_t(const std::vector<std::string>& db_filenames, btree_key_value_store_t::check_callback_t *cb)
         : callback(cb)
     {
+        int n_files = db_filenames.size();
         n_unchecked = n_files;
         is_ok = true;
         for (int i = 0; i < n_files; i++)
-            standard_serializer_t::check_existing(db_filenames[i], this);
+            standard_serializer_t::check_existing(db_filenames[i].c_str(), this);
     }
     void on_serializer_check(bool ok) {
         is_ok = is_ok && ok;
@@ -51,9 +50,9 @@ struct check_existing_fsm_t
     }
 };
 
-void btree_key_value_store_t::check_existing(int n_files, const char **db_filenames, check_callback_t *cb) {
+void btree_key_value_store_t::check_existing(const std::vector<std::string>& db_filenames, check_callback_t *cb) {
     
-    new check_existing_fsm_t(n_files, db_filenames, cb);
+    new check_existing_fsm_t(db_filenames, cb);
 }
 
 const block_magic_t serializer_config_block_t::expected_magic = { { 'c','f','g','_' } };
@@ -104,7 +103,7 @@ struct bkvs_start_new_serializer_fsm_t :
     
     bool create_serializer() {
         
-        store->serializers[i] = new standard_serializer_t(store->db_filenames[i], &store->dynamic_config->serializer);
+        store->serializers[i] = new standard_serializer_t(i, &store->dynamic_config->serializer);
         
         if (store->serializers[i]->start_new(store->serializer_static_config, this))
             on_serializer_ready(NULL);
@@ -160,7 +159,7 @@ struct bkvs_start_existing_serializer_fsm_t :
     
     bool create_serializer() {
         
-        serializer = new standard_serializer_t(store->db_filenames[i], &store->dynamic_config->serializer);
+        serializer = new standard_serializer_t(i, &store->dynamic_config->serializer);
         
         if (serializer->start_existing(this)) on_serializer_ready(NULL);
         
@@ -178,13 +177,17 @@ struct bkvs_start_existing_serializer_fsm_t :
         serializer_config_block_t *c = (serializer_config_block_t *)config_block;
         if (c->n_files != store->n_files) {
             fail("File config block for file \"%s\" says there should be %d files, but we have %d.",
-                store->db_filenames[i], (int)c->n_files, (int)store->n_files);
+                store->dynamic_config->serializer.db_filenames[i].c_str(), (int)c->n_files, (int)store->n_files);
         }
+
         assert(check_magic<serializer_config_block_t>(c->magic));
         assert(c->this_serializer >= 0 && c->this_serializer < store->n_files);
+
         store->serializer_magics[c->this_serializer] = c->database_magic;
         store->btree_static_config = c->btree_config;
+
         assert(!store->serializers[c->this_serializer]);
+
         store->serializers[c->this_serializer] = serializer;
         serializer->free(config_block);
         
@@ -230,7 +233,7 @@ bool btree_key_value_store_t::have_created_a_serializer() {
             for (int i = 1; i < n_files; i++) {
                 if (serializer_magics[i] != serializer_magics[0]) {
                     fail("The files that the server was started with didn't all come from "
-                        "the same database.");
+                         "the same database.");
                 }
             }
         }
