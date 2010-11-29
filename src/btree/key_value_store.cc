@@ -13,7 +13,7 @@
 btree_key_value_store_t::btree_key_value_store_t(
         btree_key_value_store_dynamic_config_t *dynamic_config)
     : dynamic_config(dynamic_config),
-      n_files(dynamic_config->serializer.db_filenames.size()),
+      n_files(dynamic_config->serializer_private.size()),
       state(state_off)
 {
     assert(n_files > 0);
@@ -31,14 +31,14 @@ struct check_existing_fsm_t
     int n_unchecked;
     btree_key_value_store_t::check_callback_t *callback;
     bool is_ok;
-    check_existing_fsm_t(const std::vector<std::string>& db_filenames, btree_key_value_store_t::check_callback_t *cb)
+    check_existing_fsm_t(const std::vector<std::string>& filenames, btree_key_value_store_t::check_callback_t *cb)
         : callback(cb)
     {
-        int n_files = db_filenames.size();
+        int n_files = filenames.size();
         n_unchecked = n_files;
         is_ok = true;
         for (int i = 0; i < n_files; i++)
-            standard_serializer_t::check_existing(db_filenames[i].c_str(), this);
+            standard_serializer_t::check_existing(filenames[i].c_str(), this);
     }
     void on_serializer_check(bool ok) {
         is_ok = is_ok && ok;
@@ -50,9 +50,8 @@ struct check_existing_fsm_t
     }
 };
 
-void btree_key_value_store_t::check_existing(const std::vector<std::string>& db_filenames, check_callback_t *cb) {
-    
-    new check_existing_fsm_t(db_filenames, cb);
+void btree_key_value_store_t::check_existing(const std::vector<std::string>& filenames, check_callback_t *cb) {
+    new check_existing_fsm_t(filenames, cb);
 }
 
 const block_magic_t serializer_config_block_t::expected_magic = { { 'c','f','g','_' } };
@@ -103,7 +102,7 @@ struct bkvs_start_new_serializer_fsm_t :
     
     bool create_serializer() {
         
-        store->serializers[i] = new standard_serializer_t(i, &store->dynamic_config->serializer);
+        store->serializers[i] = new standard_serializer_t(&store->dynamic_config->serializer, &store->dynamic_config->serializer_private[i]);
         
         if (store->serializers[i]->start_new(store->serializer_static_config, this))
             on_serializer_ready(NULL);
@@ -159,7 +158,7 @@ struct bkvs_start_existing_serializer_fsm_t :
     
     bool create_serializer() {
         
-        serializer = new standard_serializer_t(i, &store->dynamic_config->serializer);
+        serializer = new standard_serializer_t(&store->dynamic_config->serializer, &store->dynamic_config->serializer_private[i]);
         
         if (serializer->start_existing(this)) on_serializer_ready(NULL);
         
@@ -177,7 +176,7 @@ struct bkvs_start_existing_serializer_fsm_t :
         serializer_config_block_t *c = (serializer_config_block_t *)config_block;
         if (c->n_files != store->n_files) {
             fail("File config block for file \"%s\" says there should be %d files, but we have %d.",
-                store->dynamic_config->serializer.db_filenames[i].c_str(), (int)c->n_files, (int)store->n_files);
+                store->dynamic_config->serializer_private[i].db_filename.c_str(), (int)c->n_files, (int)store->n_files);
         }
 
         assert(check_magic<serializer_config_block_t>(c->magic));

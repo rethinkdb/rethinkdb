@@ -81,14 +81,16 @@ public:
     /* Serializer configuration. dynamic_config_t is everything that can be changed from run
     to run; static_config_t is the parameters that are set when the database is created and
     cannot be changed after that. */
+    typedef log_serializer_private_dynamic_config_t private_dynamic_config_t;
     typedef log_serializer_dynamic_config_t dynamic_config_t;
     typedef log_serializer_static_config_t static_config_t;
     
     dynamic_config_t *dynamic_config;
+    private_dynamic_config_t *private_config;
     static_config_t static_config;
 
 public:
-    log_serializer_t(int serializer_ix, dynamic_config_t *dynamic_config);
+    log_serializer_t(dynamic_config_t *dynamic_config, private_dynamic_config_t *private_dynamic_config);
     virtual ~log_serializer_t();
 
 public:
