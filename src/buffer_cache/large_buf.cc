@@ -319,3 +319,6 @@ large_buf_t::~large_buf_t() {
 
 block_magic_t large_buf_index::expected_magic = { { 'l','i','n','d' } };
 block_magic_t large_buf_segment::expected_magic = { { 'l','s','e','g' } };
+
+const block_magic_t large_buf_internal::expected_magic = { { 'l', 'a', 'r', 'i' } };
+const block_magic_t large_buf_leaf::expected_magic = { { 'l', 'a', 'r', 'l' } };

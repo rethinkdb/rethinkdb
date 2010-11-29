@@ -23,6 +23,26 @@ struct large_value_completed_callback {
     virtual ~large_value_completed_callback() {}
 };
 
+struct large_buf_ref {
+    int64_t size;
+    int64_t offset;
+    block_id_t block;
+};
+
+struct large_buf_internal {
+    block_magic_t magic;
+    large_buf_ref refs[];
+
+    static const block_magic_t expected_magic;
+};
+
+struct large_buf_leaf {
+    block_magic_t magic;
+    byte buf[];
+
+    static const block_magic_t expected_magic;
+};
+
 // Must be smaller than a buf.
 struct large_buf_index {
     block_magic_t magic;
