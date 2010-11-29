@@ -63,18 +63,18 @@ private:
     int semantic_fd;
 
 public:
+    typedef typename inner_serializer_t::private_dynamic_config_t private_dynamic_config_t;
     typedef typename inner_serializer_t::dynamic_config_t dynamic_config_t;
     typedef typename inner_serializer_t::static_config_t static_config_t;
 
 public:    
-    semantic_checking_serializer_t(const char *db_path, dynamic_config_t *config)
-        : inner_serializer(db_path, config),
+    semantic_checking_serializer_t(dynamic_config_t *config, private_dynamic_config_t *private_config)
+        : inner_serializer(config, private_config),
           last_write_started(0), last_write_callbacked(0),
           semantic_fd(-1)
         {
-            std::string semantic_path(db_path);
-            semantic_path += ".semantic";
-            semantic_fd = open(semantic_path.c_str(), O_RDWR | O_CREAT, S_IRWXU | S_IRWXG | S_IRWXO);
+            semantic_fd = open(private_config->semantic_filename.c_str(),
+                O_RDWR | O_CREAT, S_IRWXU | S_IRWXG | S_IRWXO);
             check("Could not open a semantic checking data file", semantic_fd == -1);
         }
 
