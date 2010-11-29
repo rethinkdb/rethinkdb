@@ -84,7 +84,9 @@ public:
     net_conn_t *conn;
     state_t state;
     bool corked; //whether or not we should buffer our responses
-
+    
+    bool in_do_transition;   // For sanity checking to make sure do_transition() isn't called recursively
+    
     // A buffer with IO communication (possibly incomplete). The nrbuf
     // variable indicates how many bytes are stored in the buffer.
     char *rbuf;

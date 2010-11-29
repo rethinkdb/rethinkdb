@@ -320,6 +320,10 @@ void conn_fsm_t::on_net_conn_close() {
 
 void conn_fsm_t::do_transition_and_handle_result(event_t *event) {
     
+    // Make sure we're not calling do_transition() recursively
+    assert(!in_do_transition);
+    in_do_transition = true;
+    
     int old_state = state;
     
     switch (do_transition(event)) {
@@ -331,6 +335,7 @@ void conn_fsm_t::do_transition_and_handle_result(event_t *event) {
                 state_counters[state]->begin(&start_time);
             }
             // No action
+            in_do_transition = false;
             break;
             
         case fsm_quit_connection:
@@ -413,7 +418,7 @@ conn_fsm_t::result_t conn_fsm_t::do_transition(event_t *event) {
 }
 
 conn_fsm_t::conn_fsm_t(net_conn_t *conn, conn_fsm_shutdown_callback_t *c, request_handler_t *rh)
-    : quitting(false), conn(conn), req_handler(rh), shutdown_callback(c)
+    : quitting(false), conn(conn), in_do_transition(false), req_handler(rh), shutdown_callback(c)
 {
 #ifndef NDEBUG
     we_are_closed = false;

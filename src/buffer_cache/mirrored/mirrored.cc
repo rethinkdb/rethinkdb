@@ -218,7 +218,7 @@ mc_transaction_t::mc_transaction_t(cache_t *cache, access_t access)
 }
 
 mc_transaction_t::~mc_transaction_t() {
-
+    
     assert(state == state_committed);
     pm_transactions_committing.end(&start_time);
 }

@@ -89,6 +89,7 @@ private:
         int buffer_being_sent;
         
         void value(buffer_group_t *b, store_t::get_callback_t::done_callback_t *cb, mcflags_t f, cas_t c) {
+            assert(b);
             buffer = b;
             callback = cb;
             flags = f;
@@ -315,6 +316,7 @@ public:
     txt_memcached_append_prepend_request_t(txt_memcached_handler_t *rh, btree_key *key, data_provider_t *data, bool append, bool noreply)
         : rh(rh), noreply(noreply), data(data)
     {
+        debugf("Begin append/prepend request\n");
         if (append) rh->server->store->append(key, data, this);
         else rh->server->store->prepend(key, data, this);
     }
@@ -324,6 +326,7 @@ public:
     }
 
     void success() {
+        debugf("End append/prepend request: success\n");
         if (!noreply) {
             rh->conn_fsm->sbuf->printf(STORAGE_SUCCESS);
             rh->request_complete();
@@ -332,6 +335,7 @@ public:
     }
     
     void too_large() {
+        debugf("End append/prepend request: too large\n");
         if (!noreply) {
             rh->conn_fsm->sbuf->printf(STORAGE_FAILURE);
             rh->request_complete();
@@ -340,6 +344,7 @@ public:
     }
     
     void not_found() {
+        debugf("End append/prepend request: not found\n");
         if (!noreply) {
             rh->conn_fsm->sbuf->printf(STORAGE_FAILURE);
             rh->request_complete();
@@ -348,6 +353,7 @@ public:
     }
     
     void data_provider_failed() {
+        debugf("End append/prepend request: d/p failed\n");
         // read_data() handles printing the error.
         if (!noreply) rh->request_complete();
         delete this;
@@ -747,10 +753,13 @@ void txt_memcached_handler_t::on_large_value_completed(bool success) {
 txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::read_data() {
     check("memcached handler should be in loading data state", !loading_data);
     
+    debugf("read_data 1\n");
+    
     /* This function is a messy POS. It is possibly called many times per request, and it
     performs several different roles, some of which I don't entirely understand. */
     
     if (consuming) {
+        debugf("consuming\n");
         int bytes_to_consume = std::min(conn_fsm->nrbuf, bytes);
         conn_fsm->consume(bytes_to_consume);
         bytes -= bytes_to_consume;
@@ -767,21 +776,26 @@ txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::read_data() {
     bool is_large = bytes > 1000;   // Threshold for buffering vs. streaming TODO: make a defined constant.
     if (!is_large) {
         if (conn_fsm->nrbuf < bytes + 2){ // check that the buffer contains enough data.  must also include \r\n
+            debugf("small -> partial packet\n");
             return request_handler_t::op_partial_packet;
         }
         loading_data = false;
         if (conn_fsm->rbuf[bytes] != '\r' || conn_fsm->rbuf[bytes+1] != '\n') {
             conn_fsm->sbuf->printf(BAD_BLOB);
             conn_fsm->consume(bytes+2);
+            debugf("small -> malformed\n");
             return request_handler_t::op_malformed;
         }
+        debugf("created buffered DP\n");
         dp = new buffered_data_provider_t(conn_fsm->rbuf, bytes);
+        conn_fsm->consume(bytes+2);
     } else {
         if (this->data_provider) {
             /* We already dispatched a request to the KVS and the rh_data_provider_t fed it data.
             Now we're checking to make sure that it ends in "\r\n" so we can sign off on the
             rh_data_provider_t so that it sends a "success" rather than "failure" to its caller. */
             if (conn_fsm->nrbuf < 2) {
+                debugf("finish DP -> waiting for \\r\\n\n");
                 return request_handler_t::op_partial_packet;
             }
             bool well_formed = conn_fsm->rbuf[0] == '\r' && conn_fsm->rbuf[1] == '\n';
@@ -790,23 +804,29 @@ txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::read_data() {
             this->data_provider = NULL;
             loading_data = false;
             if (well_formed) {
+                debugf("finish DP -> done\n");
                 return request_handler_t::op_req_complex;
             } else {
+                debugf("finish DP -> malformed\n");
                 conn_fsm->sbuf->printf(BAD_BLOB);
                 return request_handler_t::op_malformed;
             }
         } else if (bytes > MAX_VALUE_SIZE) {
+            debugf("too large\n");
             conn_fsm->sbuf->printf(TOO_LARGE);
             consuming = true;
             bytes += 2; // \r\n
             return request_handler_t::op_req_send_now;
         } else {
+            debugf("large\n");
             dp = new rh_data_provider_t(this, bytes);
         }
     }
     
     /* We might not reach this point in the function; there's a good chance of having bailed out
     above for various reasons, like if we had already started a request or something. */
+    
+    debugf("creating request_t(%d) [SET = %d, ADD = %d, REPLACE = %d, CAS = %d, APPEND = %d, PREPEND = %d]\n", cmd, SET, ADD, REPLACE, CAS, APPEND, PREPEND);
     
     switch(cmd) {
         case SET:
@@ -829,14 +849,10 @@ txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::read_data() {
             new txt_memcached_append_prepend_request_t(this, &key, dp, false, noreply);
             break;
         default:
-            delete dp;
-            conn_fsm->consume(bytes+2);
-            return malformed_request();
+            fail("Bad storage command.");
     }
-
+    
     if (!is_large) {
-        conn_fsm->consume(bytes+2);
-
         if (noreply)
             return request_handler_t::op_req_parallelizable;
         else

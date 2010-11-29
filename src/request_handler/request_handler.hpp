@@ -9,11 +9,13 @@
 struct event_t;
 class rh_data_provider_t;
 
-class request_handler_t {
+class request_handler_t :
+    private cpu_message_t
+{
 
 public:
     explicit request_handler_t()
-        : data_provider(NULL) {}
+        : data_provider(NULL), request_count(0) {}
     virtual ~request_handler_t() {}
 
     enum parse_result_t {
@@ -37,6 +39,10 @@ public:
     // The data provider that's currently getting data from us and providing it to the key-value
     // store, if there is such a data provider at the moment
     rh_data_provider_t *data_provider;
+
+private:
+    int request_count;   // The number of et_request_completes to send to the conn_fsm
+    void on_cpu_switch();
 };
 
 /* The buffered_data_provider_t provides data from an internal buffer. */
