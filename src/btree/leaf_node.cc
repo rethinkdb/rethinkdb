@@ -90,30 +90,18 @@ void leaf_node_handler::split(size_t block_size, btree_leaf_node *node, btree_le
 
     init(block_size, rnode, node, node->pair_offsets + median_index, node->npairs - median_index);
 
-
-    std::vector<std::pair<uint16_t, uint16_t> > offsets(median_index);
-
-    for (int i = 0; i < median_index; ++i) {
-        offsets[i].first = node->pair_offsets[i];
-        offsets[i].second = i;
+    // TODO: This is really slow because most pairs will likely be copied
+    // repeatedly.  There should be a better way.
+    for (index = median_index; index < node->npairs; index++) {
+        delete_pair(node, node->pair_offsets[index]);
     }
-    std::sort(offsets.begin(), offsets.end());
 
-    byte *front = ((byte *)node) + block_size;
-    int i = median_index;
-    while (i-- > 0) {
-        btree_leaf_pair *p = get_pair(node, offsets[i].first);
-        int k = pair_size(p);
-        front -= k;
-        memmove(front, p, k);
-        node->pair_offsets[offsets[i].second] = front - (byte *)node;
-    }
     node->npairs = median_index;
-    node->frontmost_offset = (front - (byte *)node);
 
     // Equality takes the left branch, so the median should be from this node.
     btree_key *median_key = &get_pair(node, node->pair_offsets[median_index-1])->key;
     keycpy(median, median_key);
+
 }
 
 void leaf_node_handler::merge(size_t block_size, btree_leaf_node *node, btree_leaf_node *rnode, btree_key *key_to_remove) {
@@ -148,29 +136,6 @@ void leaf_node_handler::merge(size_t block_size, btree_leaf_node *node, btree_le
     validate(block_size, node);
 }
 
-void leaf_node_handler::keep_pairs_and_offsets(size_t block_size, btree_leaf_node *node, int beg_index, int end_index) {
-    int n = end_index - beg_index;
-    std::vector<std::pair<uint16_t, uint16_t> > offsets(n);
-
-    for (int i = beg_index; i < end_index; ++i) {
-        offsets[i].first = node->pair_offsets[i];
-        offsets[i].second = i;
-    }
-    std::sort(offsets.begin(), offsets.end());
-
-    byte *front = ((byte *)node) + block_size;
-    int i = n;
-    while (i-- > 0) {
-        btree_leaf_pair *p = get_pair(node, offsets[i].first);
-        int k = pair_size(p);
-        front -= k;
-        memmove(front, p, k);
-        node->pair_offsets[offsets[i].second - beg_index] = front - (byte *)node;
-    }
-    node->npairs = n;
-    node->frontmost_offset = front - (byte *)node;
-}
-
 bool leaf_node_handler::level(size_t block_size, btree_leaf_node *node, btree_leaf_node *sibling, btree_key *key_to_replace, btree_key *replacement_key) {
 #ifdef BTREE_DEBUG
     printf("leveling\n");
@@ -202,7 +167,11 @@ bool leaf_node_handler::level(size_t block_size, btree_leaf_node *node, btree_le
         }
         node->npairs += index;
 
-        keep_pairs_and_offsets(block_size, sibling, index, sibling->npairs);
+        //TODO: Make this more efficient.  Currently this loop involves repeated memmoves.
+        for (int i = 0; i < index; i++) {
+            delete_pair(sibling, sibling->pair_offsets[0]);
+            delete_offset(sibling, 0);
+        }
 
         keycpy(key_to_replace, &get_pair(node, node->pair_offsets[0])->key);
         keycpy(replacement_key, &get_pair(node, node->pair_offsets[node->npairs-1])->key);
@@ -226,7 +195,11 @@ bool leaf_node_handler::level(size_t block_size, btree_leaf_node *node, btree_le
         }
         node->npairs += pairs_to_move;
 
-        keep_pairs_and_offsets(block_size, sibling, 0, index);
+        //TODO: Make this more efficient.  Currently this loop involves repeated memmoves.
+        while (index < sibling->npairs) {
+            delete_pair(sibling, sibling->pair_offsets[index]); //decrements sibling->npairs
+            delete_offset(sibling, index);
+        }
 
         keycpy(key_to_replace, &get_pair(sibling, sibling->pair_offsets[0])->key);
         keycpy(replacement_key, &get_pair(sibling, sibling->pair_offsets[sibling->npairs-1])->key);
