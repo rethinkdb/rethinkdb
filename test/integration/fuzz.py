@@ -40,14 +40,18 @@ def funny():
 
 def test_function(opts, port):
 
-    log = open('fuzz_out', 'w')
+    sent_log = open('fuzz_sent', 'w')
+    recv_log = open('fuzz_recv', 'w')
     
     start_time = time.time()
 
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.connect(("localhost", port))
 
+    time.sleep(2)
+
     while (time.time() - start_time < opts["duration"]):
+        time.sleep(.01)
         str = ''
         for i in range(20):
             choice = random.random()
@@ -64,13 +68,16 @@ def test_function(opts, port):
 
         for substr in rand_split(str, random.randint(10, 40)):
             s.send(substr)
-            log.write(substr)
+            sent_log.write(substr)
 
         s.settimeout(0)
         try:
-            s.recv(100000)
+            server_str = s.recv(100000)
+            recv_log.write(server_str)
         except:
             pass
+
+    s.send('quit\r\n')
 
     s.close()
 
