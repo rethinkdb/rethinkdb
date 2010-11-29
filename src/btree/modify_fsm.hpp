@@ -35,7 +35,6 @@ public:
           update_needed(false), did_split(false), cas_already_set(false),
           dest_reached(false), key_found(false), old_large_buf(NULL)
     {
-        do_transition(NULL);
     }
 
     void do_transition(event_t *event);

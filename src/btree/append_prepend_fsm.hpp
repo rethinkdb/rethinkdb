@@ -13,6 +13,7 @@ public:
     explicit btree_append_prepend_fsm_t(btree_key *key, btree_key_value_store_t *store, data_provider_t *data, bool append, store_t::append_prepend_callback_t *cb)
         : btree_modify_fsm_t(key, store), data(data), append(append), callback(cb)
     {
+        do_transition(NULL);
     }
 
     void operate(btree_value *old_value, large_buf_t *old_large_value) {
@@ -46,6 +47,7 @@ public:
                 memmove(value.value() + data->get_size(), value.value(), old_value->value_size());
                 buffer_group.add_buffer(data->get_size(), value.value());
             }
+            large_value = NULL;
             
         } else {
             // Prepare the large value if necessary.

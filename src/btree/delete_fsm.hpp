@@ -14,7 +14,9 @@ class btree_delete_fsm_t : public btree_modify_fsm_t
 public:
     explicit btree_delete_fsm_t(btree_key *_key, btree_key_value_store_t *store, store_t::delete_callback_t *cb)
         : btree_modify_fsm_t(_key, store), callback(cb)
-        {}
+    {
+        do_transition(NULL);
+    }
     bool exists;
     void operate(btree_value *old_value, large_buf_t *old_large_buf) {
         exists = bool(old_value);

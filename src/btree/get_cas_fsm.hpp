@@ -19,6 +19,7 @@ public:
         : btree_modify_fsm_t(_key, store), callback(cb)
     {
         pm_cmd_get.begin(&start_time);
+        do_transition(NULL);
     }
     
     ~btree_get_cas_fsm_t() {

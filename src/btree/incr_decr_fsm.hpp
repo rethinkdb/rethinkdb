@@ -12,7 +12,9 @@ public:
           increment(increment),
           delta(delta),
           callback(cb)
-        {}
+    {
+        do_transition(NULL);
+    }
     
     void operate(btree_value *old_value, large_buf_t *old_large_buf) {
     

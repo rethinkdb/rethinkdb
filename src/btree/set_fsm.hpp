@@ -22,6 +22,7 @@ public:
         : btree_modify_fsm_t(key, store), data(data), type(type), mcflags(mcflags), exptime(exptime), req_cas(req_cas), large_value(NULL), callback(cb)
     {
         pm_cmd_set.begin(&start_time);
+        do_transition(NULL);
     }
     
     ~btree_set_fsm_t() {

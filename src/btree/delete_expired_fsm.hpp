@@ -9,7 +9,10 @@ class btree_delete_expired_fsm_t :
     typedef btree_fsm_t::transition_result_t transition_result_t;
 public:
     explicit btree_delete_expired_fsm_t(btree_key *_key, btree_key_value_store_t *store)
-        : btree_modify_fsm_t(_key, store) {}
+        : btree_modify_fsm_t(_key, store)
+    {
+        do_transition(NULL);
+    }
 
     void operate(btree_value *old_value, large_buf_t *old_large_buf) {
 
