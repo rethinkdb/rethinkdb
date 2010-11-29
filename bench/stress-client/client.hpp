@@ -289,19 +289,21 @@ void* run_client(void* data) {
         }
 
         // See if we should keep running
-        switch(config->duration.units) {
-        case duration_t::queries_t:
-            keep_running = total_queries < config->duration.duration / config->clients;
-            break;
-        case duration_t::seconds_t:
-            keep_running = ticks_to_secs(now_time - start_time) < config->duration.duration;
-            break;
-        case duration_t::inserts_t:
-            keep_running = total_inserts - total_deletes < config->duration.duration / config->clients;
-            break;
-        default:
-            fprintf(stderr, "Unknown duration unit\n");
-            exit(-1);
+        if (config->duration.duration != -1) {
+            switch(config->duration.units) {
+            case duration_t::queries_t:
+                keep_running = total_queries < config->duration.duration / config->clients;
+                break;
+            case duration_t::seconds_t:
+                keep_running = ticks_to_secs(now_time - start_time) < config->duration.duration;
+                break;
+            case duration_t::inserts_t:
+                keep_running = total_inserts - total_deletes < config->duration.duration / config->clients;
+                break;
+            default:
+                fprintf(stderr, "Unknown duration unit\n");
+                exit(-1);
+            }
         }
     }
 }
