@@ -4,6 +4,9 @@
 #include "btree/fsm.hpp"
 #include "btree/node.hpp"
 
+/* Stats */
+extern perfmon_counter_t pm_btree_depth;
+
 class btree_modify_fsm_t : public btree_fsm_t {
 public:
     typedef btree_fsm_t::transition_result_t transition_result_t;

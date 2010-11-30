@@ -4,6 +4,7 @@
 
 #include <stdio.h>
 #include <vector>
+#include <string.h>
 #include "server.hpp"
 
 #define MAX_FILE    255
@@ -39,28 +40,33 @@ public:
     }
 
     void parse(char *duration) {
-        int len = strlen(duration);
-        switch(duration[len - 1]) {
-        case 'q':
+        if (strcmp(duration, "infinity") == 0) {
+            this->duration = -1;
             units = queries_t;
-            break;
-        case 's':
-            units = seconds_t;
-            break;
-        case 'i':
-            units = inserts_t;
-            break;
-        default:
-            if(duration[len - 1] >= '0' && duration[len - 1] <= '9')
+        } else {
+            int len = strlen(duration);
+            switch(duration[len - 1]) {
+            case 'q':
                 units = queries_t;
-            else {
-                fprintf(stderr, "Unknown duration unit\n");
-                exit(-1);
+                break;
+            case 's':
+                units = seconds_t;
+                break;
+            case 'i':
+                units = inserts_t;
+                break;
+            default:
+                if(duration[len - 1] >= '0' && duration[len - 1] <= '9')
+                    units = queries_t;
+                else {
+                    fprintf(stderr, "Unknown duration unit\n");
+                    exit(-1);
+                }
+                break;
             }
-            break;
-        }
 
-        this->duration = atol(duration);
+            this->duration = atol(duration);
+        }
     }
 
 public:

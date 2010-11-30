@@ -59,15 +59,13 @@ class btree_key_value_store_t :
     
 public:
     btree_key_value_store_t(
-        btree_key_value_store_dynamic_config_t *dynamic_config,
-        int n_files,
-        const char **db_filenames);
+        btree_key_value_store_dynamic_config_t *dynamic_config);
     ~btree_key_value_store_t();
     
     struct check_callback_t {
         virtual void on_store_check(bool valid) = 0;
     };
-    static void check_existing(int n_files, const char **db_filenames, check_callback_t *cb);
+    static void check_existing(const std::vector<std::string>& db_filenames, check_callback_t *cb);
     
     struct ready_callback_t {
         virtual void on_store_ready() = 0;
@@ -99,7 +97,6 @@ public:
     btree_key_value_store_dynamic_config_t *dynamic_config;
     mirrored_cache_config_t cache_config;   /* Duplicate so we can modify it */
     int n_files;
-    const char **db_filenames;
     
     btree_config_t btree_static_config;
     

@@ -44,6 +44,8 @@ def make_option_parser():
     o["memory"] = IntFlag("--memory", 100)
     o["duration"] = IntFlag("--duration", 10)
     o["flags"] = StringFlag("--flags", "")
+    o["stress"] = StringFlag("--stress", "")
+    o["no-timeout"] = BoolFlag("--no-timeout", invert = False)
     return o
 
 # Choose a random port at which to start searching to reduce the probability of collisions
@@ -263,7 +265,8 @@ class Server(object):
                 cmd_line += ["--db-attach=yes"]
             cmd_line += \
                 ["--leak-check=full",
-                 "--error-exitcode=%d" % self.valgrind_error_code]
+                 "--error-exitcode=%d" % self.valgrind_error_code,
+                 '--track-origins=yes']
             command_line = cmd_line + command_line
         
         # Start the server
@@ -485,7 +488,7 @@ def connect_to_server(opts, server):
     return mc
 
 def adjust_timeout(opts, timeout):
-    if opts["interactive"]:
+    if opts["interactive"] or opts["no-timeout"]:
         return None
     else:
         return timeout + 15

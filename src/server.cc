@@ -22,7 +22,15 @@ void server_t::on_logger_ready() {
 }
 
 void server_t::do_check_store() {
-    btree_key_value_store_t::check_existing(cmd_config->n_files, cmd_config->files, this);
+    /* Copy database filenames from private serializer configurations into a single vector of strings */
+    std::vector<std::string> db_filenames;
+    std::vector<log_serializer_private_dynamic_config_t>& serializer_private = cmd_config->store_dynamic_config.serializer_private;
+    std::vector<log_serializer_private_dynamic_config_t>::iterator it;
+
+    for (it = serializer_private.begin(); it != serializer_private.end(); ++it) {
+        db_filenames.push_back((*it).db_filename);
+    }
+    btree_key_value_store_t::check_existing(db_filenames, this);
 }
 
 void server_t::on_store_check(bool ok) {
@@ -37,7 +45,11 @@ void server_t::do_start_store() {
 
     assert_cpu();
     
+<<<<<<< HEAD:src/server.cc
     store = new btree_key_value_store_t(&cmd_config->store_dynamic_config, cmd_config->n_files, cmd_config->files);
+=======
+    store = new store_t(&cmd_config->store_dynamic_config);
+>>>>>>> 0cadf7650231c1a1933e1dfbd9258d2209b2f091:src/server.cc
     
     bool done;
     if (cmd_config->create_store) {
@@ -213,7 +225,7 @@ bool server_t::gc_toggler_t::disable_gc(server_t::all_gc_disabled_callback_t *cb
     if (state_ == enabled) {
         assert(callbacks_.size() == 0);
 
-        int num_serializers = server_->cmd_config->n_files;
+        int num_serializers = server_->cmd_config->store_dynamic_config.serializer_private.size();
         assert(num_serializers > 0);
 
         state_ = disabling;
@@ -245,7 +257,7 @@ bool server_t::gc_toggler_t::disable_gc(server_t::all_gc_disabled_callback_t *cb
 bool server_t::gc_toggler_t::enable_gc(all_gc_enabled_callback_t *cb) {
     // Always calls the callback.
 
-    int num_serializers = server_->cmd_config->n_files;
+    int num_serializers = server_->cmd_config->store_dynamic_config.serializer_private.size();
 
     // The return value of serializer_t::enable_gc is always true.
 
@@ -281,7 +293,7 @@ bool server_t::gc_toggler_t::enable_gc(all_gc_enabled_callback_t *cb) {
 void server_t::gc_toggler_t::on_gc_disabled() {
     assert(state_ == disabling);
 
-    int num_serializers = server_->cmd_config->n_files;
+    int num_serializers = server_->cmd_config->store_dynamic_config.serializer_private.size();
 
     assert(num_disabled_serializers_ < num_serializers);
 

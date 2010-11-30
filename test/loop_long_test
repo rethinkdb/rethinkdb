@@ -1,0 +1,10 @@
+#!/usr/bin/python
+import os
+
+def main():
+    while True:
+        os.system('git pull')
+        os.system('./integration/long_test.py --stress ../../bench/stress-client/stress --auto --no-timeout --cores 4')
+
+if __name__ == '__main__':
+    main()

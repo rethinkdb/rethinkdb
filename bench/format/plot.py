@@ -38,11 +38,10 @@ class TimeSeries(list):
     def __init__(self, units):
         self.units = units
 
-class Plot():
-    def __init__(self, x, y):
-        assert len(x) == len(y)
-        self.x = x
-        self.y = y
+class Scatter():
+    def __init__(self, list_of_tuples, xnames = None):
+        self.data = list_of_tuples
+        self.names = xnames
 
 class default_empty_timeseries_dict(dict):
     units_line = line("(\w+)\[(\w+)\]", [('key', 's'), ('units', 's')])
@@ -75,7 +74,7 @@ class default_empty_plot_dict(dict):
         if key in self:
             return self.get(key)
         else:
-            return Plot([], [])
+            return Scatter([])
     def copy(self):
         copy = default_empty_plot_dict()
         copy.update(self)
@@ -101,9 +100,6 @@ class TimeSeriesCollection():
         except AssertionError:
             print "Processing failed on %s" % file_name
             return self
-
-#self.shorten()
-        self.smooth_curves()
 
         return self #this just lets you do initialization in one line
 
@@ -272,9 +268,13 @@ class TimeSeriesCollection():
         res = {}
         for val in self.data.iteritems():
             stat_report = {}
-            stat_report['mean'] = stats.mean(map(lambda x: x, val[1]))
-            stat_report['stdev'] = stats.stdev(map(lambda x: x, val[1]))
-            res[val[0]] = stat_report
+	    full_series = map(lambda x: x, val[1])
+	    steady_series = full_series[int(len(full_series) * 0.7):]
+            stat_report['mean'] = stats.mean(full_series)
+            stat_report['stdev'] = stats.stdev(full_series)
+            stat_report['steady_mean'] = stats.mean(steady_series)
+            stat_report['steady_stdev'] = stats.stdev(steady_series)
+	    res[val[0]] = stat_report
 
         return res
 
@@ -290,8 +290,8 @@ class TimeSeriesCollection():
         self.data[name] = function(tuple(args))
         return self
 
-class PlotCollection():
-    def __init__(self, xlabel = None, ylabel = None):
+class ScatterCollection():
+    def __init__(self, TimeSeriesCollections, xlabel = None, ylabel = None):
         self.data = default_empty_plot_dict()
         self.xlabel = xlabel
         self.ylabel = ylabel
@@ -343,6 +343,17 @@ class PlotCollection():
         fig.set_size_inches(20,14.8)
         fig.set_dpi(300)
         plt.savefig(out_fname + '_large')
+
+class TimeSeriesMeans():
+    def __init__(self, TimeSeriesCollections):
+        TS = reduce(lambda x,y: x + y, TimeSeriesCollections)
+        series_means = TS.means(tuple(TS.data.keys()))
+        names = {}
+        for i,key in zip(range(len(TS.data.keys())), TS.data.keys()):
+            names[i] = key
+
+        self.scatter = Scatter(zip(range(len(series_means)), series_means), names)
+        self.TimeSeriesCollections = TimeSeriesCollections
 
 #A few useful derivation functions
 #take discret derivative of a series (shorter by 1)
@@ -541,3 +552,24 @@ class RDBStats(TimeSeriesCollection):
             keys_to_drop.add(s[1])
 
         self.drop(keys_to_drop)
+
+ncolumns = 37 #TODO man this is awful
+class RunStats(TimeSeriesCollection):
+    name_line = line("^" + "([\#\d_]+)[\t\n]+"* ncolumns, [('col%d' % i, 's') for i in range(ncolumns)])
+    data_line = line("^" + "(\d+)[\t\n]+"* ncolumns, [('col%d' % i, 'd') for i in range(ncolumns)])
+
+    def parse(self, data):
+        res = default_empty_timeseries_dict()
+
+        data.reverse()
+
+        m = take(self.name_line, data)
+        assert m
+        col_names = m
+
+        m = take_while([self.data_line], data)
+        for line in m:
+            for col in line.iteritems():
+                res[col_names[col[0]]] += [col[1]]
+
+        return res

@@ -1,11 +1,21 @@
-
 #ifndef __CMD_ARGS_HPP__
 #define __CMD_ARGS_HPP__
 
 #include "config/args.hpp"
 #include <sys/types.h>
+#include <string>
+#include <vector>
 
 #define NEVER_FLUSH -1
+
+/* Private serializer dynamic configuration values */
+
+struct log_serializer_private_dynamic_config_t {
+    std::string db_filename;
+#ifdef SEMANTIC_SERIALIZER_CHECK
+    std::string semantic_filename;
+#endif
+};
 
 /* Configuration for the serializer that can change from run to run */
 
@@ -69,8 +79,11 @@ struct btree_config_t {
 to run */
 
 struct btree_key_value_store_dynamic_config_t {
-    
     log_serializer_dynamic_config_t serializer;
+
+    /* Vector of per-serializer database information structures */
+    std::vector<log_serializer_private_dynamic_config_t> serializer_private;
+
     mirrored_cache_config_t cache;
 };
 
@@ -94,11 +107,9 @@ struct cmd_config_t {
     //log_level min_log_level;
     
     // Configuration information for the btree
-    int n_files;
-    const char *files[MAX_SERIALIZERS];
     btree_key_value_store_dynamic_config_t store_dynamic_config;
-    bool create_store, force_create, shutdown_after_creation;
     btree_key_value_store_static_config_t store_static_config;
+    bool create_store, force_create, shutdown_after_creation;
 
     bool verbose;
 };
