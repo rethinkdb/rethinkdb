@@ -18,8 +18,15 @@ void usage(const char *name) {
     printf("      --create          Create a new database.\n");
     printf("      --force           Used with the --create flag to create a new database\n"
            "                        even if there already is one.\n");
+
     printf("  -f, --file            Path to file or block device where database goes. Can be\n"
            "                        specified multiple times to use multiple files.\n");
+#ifdef SEMANTIC_SERIALIZER_CHECK
+    printf("  -S, --semantic-file   Path to the semantic file for the previously specified database file.\n"
+           "                        Can only be specified after the path to the database file.\n"
+           "                        Default is the name of the database file with '%s' appended.\n", DEFAULT_SEMANTIC_EXTENSION);
+#endif
+
     printf("  -c, --cores           Number of cores to use for handling requests.\n");
     printf("  -m, --max-cache-size  Maximum amount of RAM to use for caching disk\n");
     printf("                        blocks, in megabytes.\n");
@@ -62,8 +69,6 @@ void init_config(cmd_config_t *config) {
     config->log_file_name[0] = 0;
     config->log_file_name[MAX_LOG_FILE_NAME - 1] = 0;
     
-    config->n_files = 0;
-    
     config->store_dynamic_config.serializer.gc_low_ratio = DEFAULT_GC_LOW_RATIO;
     config->store_dynamic_config.serializer.gc_high_ratio = DEFAULT_GC_HIGH_RATIO;
     config->store_dynamic_config.serializer.num_active_data_extents = DEFAULT_ACTIVE_DATA_EXTENTS;
@@ -100,6 +105,8 @@ enum {
 void parse_cmd_args(int argc, char *argv[], cmd_config_t *config)
 {
     init_config(config);
+
+    std::vector<log_serializer_private_dynamic_config_t>& private_configs = config->store_dynamic_config.serializer_private;
     
     optind = 1; // reinit getopt
     while(1)
@@ -119,6 +126,9 @@ void parse_cmd_args(int argc, char *argv[], cmd_config_t *config)
                 {"cores",                required_argument, 0, 'c'},
                 {"slices",               required_argument, 0, 's'},
                 {"file",                 required_argument, 0, 'f'},
+#ifdef SEMANTIC_SERIALIZER_CHECK
+                {"semantic-file",        required_argument, 0, 'S'},
+#endif
                 {"max-cache-size",       required_argument, 0, 'm'},
                 {"log-file",             required_argument, 0, 'l'},
                 {"port",                 required_argument, 0, 'p'},
@@ -130,7 +140,7 @@ void parse_cmd_args(int argc, char *argv[], cmd_config_t *config)
             };
 
         int option_index = 0;
-        int c = getopt_long(argc, argv, "vc:s:f:m:l:p:h", long_options, &option_index);
+        int c = getopt_long(argc, argv, "vc:s:f:S:m:l:p:h", long_options, &option_index);
 
         if (do_help)
             c = 'h';
@@ -167,16 +177,33 @@ void parse_cmd_args(int argc, char *argv[], cmd_config_t *config)
         case 's':
             config->store_static_config.btree.n_slices = atoi(optarg);
             if(config->store_static_config.btree.n_slices > MAX_SLICES) {
-                fail("Maximum number of slices is %d\n", MAX_SLICES);
+                fail("Maximum number of slices is %d", MAX_SLICES);
             }
             break;
         case 'f':
-            if (config->n_files >= MAX_SERIALIZERS) {
-                fail("Cannot use more than %d files.", MAX_SERIALIZERS);
+            {
+                if (private_configs.size() >= MAX_SERIALIZERS) {
+                    fail("Cannot use more than %d files.", MAX_SERIALIZERS);
+                }
+                struct log_serializer_private_dynamic_config_t db_info;
+                db_info.db_filename = optarg;
+#ifdef SEMANTIC_SERIALIZER_CHECK
+                db_info.semantic_filename = std::string(optarg) + DEFAULT_SEMANTIC_EXTENSION;
+#endif
+                private_configs.push_back(db_info);
+                break;
             }
-            config->files[config->n_files] = optarg;
-            config->n_files++;
-            break;
+#ifdef SEMANTIC_SERIALIZER_CHECK
+        case 'S':
+            {
+                if (private_configs.size() == 0) {
+                    fail("You can specify the semantic file name only after specifying a database file name.");
+                }
+                assert(private_configs.size() <= MAX_SERIALIZERS);
+                private_configs.back().semantic_filename = optarg;
+                break;
+            }
+#endif
         case 'm':
             config->store_dynamic_config.cache.max_size = atoll(optarg) * 1024 * 1024;
             break;
@@ -257,10 +284,13 @@ void parse_cmd_args(int argc, char *argv[], cmd_config_t *config)
     
     /* "Idiot mode" -- do something reasonable for novice users */
     
-    if (config->n_files == 0 && !config->create_store) {        
-        
-        config->n_files = 1;
-        config->files[0] = DEFAULT_DB_FILE_NAME;
+    if (private_configs.empty() && !config->create_store) {        
+        struct log_serializer_private_dynamic_config_t db_info;
+        db_info.db_filename = DEFAULT_DB_FILE_NAME;
+#ifdef SEMANTIC_SERIALIZER_CHECK
+        db_info.semantic_filename = std::string(DEFAULT_DB_FILE_NAME) + DEFAULT_SEMANTIC_EXTENSION;
+#endif
+        private_configs.push_back(db_info);
         
         int res = access(DEFAULT_DB_FILE_NAME, F_OK);
         if (res == 0) {
@@ -277,7 +307,7 @@ void parse_cmd_args(int argc, char *argv[], cmd_config_t *config)
     
     /* Sanity-check the input */
     
-    if (config->n_files == 0) {
+    if (private_configs.empty()) {
         fail("You must explicitly specify one or more paths with -f.");
     }
     
@@ -337,8 +367,14 @@ void print_database_flags(cmd_config_t *config) {
     printf("Block size.........%ldKB\n", config->store_static_config.serializer.block_size / KILOBYTE);
     printf("Extent size........%ldKB\n", config->store_static_config.serializer.extent_size / KILOBYTE);
     
-    for(int i = 0; i < config->n_files; i++) {
-        printf("File %.2d............%s\n", i + 1, config->files[0]);
+    const std::vector<log_serializer_private_dynamic_config_t>& private_configs = config->store_dynamic_config.serializer_private;
+    
+    for (size_t i = 0; i != private_configs.size(); i++) {
+        const log_serializer_private_dynamic_config_t& db_info = private_configs[i];
+        printf("File %.2u............%s\n", (uint) i + 1, db_info.db_filename.c_str());
+#ifdef SEMANTIC_SERIALIZER_CHECK
+        printf("Semantic file %.2u...%s\n", (uint) i + 1, db_info.semantic_filename.c_str());
+#endif
     }
 }
 
