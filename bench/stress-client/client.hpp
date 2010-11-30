@@ -11,14 +11,10 @@ using namespace std;
 /* Information shared between clients */
 struct shared_t {
 public:
-    typedef protocol_t*(*protocol_factory_t)(protocol_enum_t);
-
-public:
-    shared_t(config_t *_config, protocol_factory_t _protocol_factory)
+    shared_t(config_t *_config)
         : config(_config),
           qps_offset(0), latencies_offset(0),
           qps_fd(NULL), latencies_fd(NULL),
-          protocol_factory(_protocol_factory),
           last_qps(0), n_op(1), n_tick(1), n_ops_so_far(0)
         {
             pthread_mutex_init(&mutex, NULL);
@@ -29,6 +25,9 @@ public:
             if(config->latency_file[0] != 0) {
                 latencies_fd = fopen(config->latency_file, "wa");
             }
+
+            value_buf = new char[config->values.max];
+            memset((void *) value_buf, 'A', config->values.max);
         }
 
     ~shared_t() {
@@ -42,6 +41,8 @@ public:
         }
 
         pthread_mutex_destroy(&mutex);
+        
+        delete value_buf;
     }
 
     void push_qps(int _qps, int tick) {
@@ -134,9 +135,6 @@ public:
         unlock();
     }
 
-public:
-    protocol_factory_t protocol_factory;
-
 private:
     config_t *config;
     map<int, pair<int, int> > qps_map;
@@ -149,6 +147,10 @@ private:
     long n_op;
     int n_tick;
     long n_ops_so_far;
+
+public:
+    // We have one value shared among all the threads.
+    char *value_buf;
 
 private:
     void lock() {
@@ -197,14 +199,13 @@ void* run_client(void* data) {
 
         payload_t op_val;
 
-        char val[] = {'a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a'};
-
-        op_val.first = val;
+        op_val.first = shared->value_buf;
 
         int j, k, l; // because we can't declare in the loop
         uint64_t id_salt = client_data->id;
         id_salt += id_salt << 40;
 
+        // TODO: If an workload contains contains no inserts and there are no keys available for a particular client (and the duration is specified in q/i), it'll just loop forever.
         switch(cmd) {
         case load_t::delete_op:
             if (client_data->min_seed == client_data->max_seed)
