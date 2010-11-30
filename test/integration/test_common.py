@@ -44,7 +44,7 @@ def make_option_parser():
     o["duration"] = IntFlag("--duration", 10)
     o["flags"] = StringFlag("--flags", "")
     o["stress"] = StringFlag("--stress", "")
-    o["no-timeout"] = BoolFlag("--no-timeout", invert = True)
+    o["no-timeout"] = BoolFlag("--no-timeout", invert = False)
     return o
 
 # Choose a random port at which to start searching to reduce the probability of collisions
