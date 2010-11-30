@@ -45,11 +45,7 @@ void server_t::do_start_store() {
 
     assert_cpu();
     
-<<<<<<< HEAD:src/server.cc
-    store = new btree_key_value_store_t(&cmd_config->store_dynamic_config, cmd_config->n_files, cmd_config->files);
-=======
-    store = new store_t(&cmd_config->store_dynamic_config);
->>>>>>> 0cadf7650231c1a1933e1dfbd9258d2209b2f091:src/server.cc
+    store = new btree_key_value_store_t(&cmd_config->store_dynamic_config);
     
     bool done;
     if (cmd_config->create_store) {
