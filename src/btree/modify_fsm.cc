@@ -332,9 +332,9 @@ void btree_modify_fsm_t::do_transition(event_t *event) {
 
                     expired = key_found && old_value.expired();
                     if (expired) {
-                        // We tell operate() that the key wasn't found. If it returns
-                        // true, we'll replace/delete the value as usual; if it returns
-                        // false, we'll silently delete the key.
+                        // We tell operate() that the key wasn't found. If it calls
+                        // have_finished_operating(), we'll replace/delete the value as usual;
+                        // if it calls have_failed_operating(), we'll silently delete the key.
                         key_found = false;
                     }
 

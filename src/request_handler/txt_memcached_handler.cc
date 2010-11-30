@@ -113,6 +113,7 @@ private:
                     parent->rh->conn_fsm->sbuf->printf(
                         "VALUE %*.*s %u %u %llu\r\n",
                         key.size, key.size, key.contents, flags, buffer->get_size(), cas);
+                    debugf("CAS unique: %llu\n", cas);
                 } else {
                     assert(cas == 0);
                     parent->rh->conn_fsm->sbuf->printf(
@@ -122,14 +123,16 @@ private:
                 // TODO: The "1000" is a magic constant for streaming vs. buffering.
                 if (buffer->get_size() < 1000) {
                     for (int i = 0; i < (signed)buffer->buffers.size(); i++) {
-                        parent->rh->conn_fsm->sbuf->append((char *)buffer->buffers[i].data, buffer->buffers[i].size);
+                        buffer_group_t::buffer_t b = buffer->buffers[i];
+                        debugf("cas value block %d: %d bytes %*.*s\n", i, b.size, b.size, b.size, (char*)b.data);
+                        parent->rh->conn_fsm->sbuf->append((char *)b.data, b.size);
                     }
                     callback->have_copied_value();
                     parent->rh->conn_fsm->sbuf->printf("\r\n");
                     done();
                 } else {
                     buffer_being_sent = -1;
-                    on_data_transferred();
+                    on_data_transferred();   // Start the data transfer loop
                 }
             } else {
                 done();
@@ -916,7 +919,7 @@ txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::get_cas(char *s
     if (key_str == NULL) {
         res = malformed_request();
     } else {
-        txt_memcached_get_request_t *rq = new txt_memcached_get_request_t(this, false);
+        txt_memcached_get_request_t *rq = new txt_memcached_get_request_t(this, true);
 
         do {
             node_handler::str_to_key(key_str, &key);

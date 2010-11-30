@@ -16,7 +16,7 @@ class btree_get_cas_fsm_t :
     typedef btree_fsm_t::transition_result_t transition_result_t;
 public:
     explicit btree_get_cas_fsm_t(btree_key *_key, btree_key_value_store_t *store, store_t::get_callback_t *cb)
-        : btree_modify_fsm_t(_key, store), callback(cb)
+        : btree_modify_fsm_t(_key, store), callback(cb), in_operate(false)
     {
         pm_cmd_get.begin(&start_time);
         do_transition(NULL);

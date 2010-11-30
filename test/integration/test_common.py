@@ -2,23 +2,24 @@ import shlex, sys, traceback, os, shutil, socket, subprocess, time, signal, thre
 from vcoptparse import *
 from corrupter import *
 
-test_dir = "output_from_test"
+test_dir_name = "output_from_test"
 made_test_dir = False
 
 def make_test_dir():
     global made_test_dir
-    made_test_dir = True
-    if os.path.exists(test_dir):
-        assert os.path.isdir(test_dir)
-        shutil.rmtree(test_dir)
-    os.mkdir(test_dir)
+    if not made_test_dir:
+        if os.path.exists(test_dir_name):
+            assert os.path.isdir(test_dir_name)
+            shutil.rmtree(test_dir_name)
+        os.mkdir(test_dir_name)
+        made_test_dir = True
+    return test_dir_name
 
 class StdoutAsLog(object):
     def __init__(self, name):
         self.name = name
     def __enter__(self):
-        assert made_test_dir
-        self.path = os.path.join(test_dir, self.name)
+        self.path = os.path.join(make_test_dir(), self.name)
         print "Writing log file %r." % self.path
         self.f = file(self.path, "w")
         sys.stdout = self.f
@@ -121,7 +122,7 @@ class NetRecord(object):
     
     def __init__(self, target_port, name = "net"):
     
-        nrc_log_dir = os.path.join(test_dir, "network_logs")
+        nrc_log_dir = os.path.join(make_test_dir(), "network_logs")
         if not os.path.isdir(nrc_log_dir): os.mkdir(nrc_log_dir)
         nrc_log_root = os.path.join(nrc_log_dir, "%s_conn" % name.replace(" ","_"))
         print "Logging network traffic to %s_*." % nrc_log_root
@@ -144,7 +145,7 @@ class NetRecord(object):
         self.process = None
     
     def __del__(self):
-        if self.process: self.stop()
+        if getattr(self, "process"): self.stop()
 
 def get_executable_path(opts, name):
     executable_path = os.path.join(os.path.dirname(__file__), "../../build")
@@ -190,7 +191,7 @@ class Server(object):
             
             self.executable_path = get_executable_path(self.opts, "rethinkdb")
             
-            db_data_dir = os.path.join(test_dir, "db_data")
+            db_data_dir = os.path.join(make_test_dir(), "db_data")
             if not os.path.isdir(db_data_dir): os.mkdir(db_data_dir)
             self.db_data_path = os.path.join(db_data_dir, "data_file")
             
@@ -214,7 +215,7 @@ class Server(object):
                          "--error-exitcode=%d" % self.valgrind_error_code]
                     command_line = cmd_line + command_line
                 
-                output_path = os.path.join(test_dir, "creator_output.txt")
+                output_path = os.path.join(make_test_dir(), "creator_output.txt")
                 creator_output = file(output_path, "w") 
                 
                 creator_server = subprocess.Popen(command_line,
@@ -235,7 +236,7 @@ class Server(object):
         print "Starting %s." % self.name
         
         # Make a file to log what the server prints
-        output_path = os.path.join(test_dir, "%s_output.txt" % self.name.replace(" ","_"))
+        output_path = os.path.join(make_test_dir(), "%s_output.txt" % self.name.replace(" ","_"))
         print "Redirecting output to %r." % output_path
         server_output = file(output_path, "w")
         
@@ -442,11 +443,11 @@ class MemcachedWrapperThatRestartsServer(object):
         
         shutdown_ok = self.server.shutdown()
         
-        snapshot_dir = os.path.join(test_dir, "db_data", self.server.name.replace(" ", "_"))
+        snapshot_dir = os.path.join(make_test_dir(), "db_data", self.server.name.replace(" ", "_"))
         print "Storing a snapshot of server data files in %r." % snapshot_dir
         os.mkdir(snapshot_dir)
-        for fn in os.listdir(os.path.join(test_dir, "db_data")):
-            path = os.path.join(test_dir, "db_data", fn)
+        for fn in os.listdir(os.path.join(make_test_dir(), "db_data")):
+            path = os.path.join(make_test_dir(), "db_data", fn)
             if os.path.isfile(path):
                 corrupt(path, self.opts["corruption_p"])
                 shutil.copyfile(path, os.path.join(snapshot_dir, fn))

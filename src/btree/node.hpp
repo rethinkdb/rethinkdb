@@ -201,7 +201,7 @@ struct btree_value {
     }
 
     void print() {
-        printf("%*.*s", size, size, value());
+        fprintf(stderr, "%*.*s", size, size, value());
     }
 };
 
