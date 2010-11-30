@@ -75,9 +75,11 @@ class Result(object):
     """The Result class represents the result of a test. It is either a pass or a fail; if it is a
     fail, then it includes a string description."""
     
-    def __init__(self, result, description=None):
+    def __init__(self, start_time, result, description=None):
         
         assert result in ["pass", "fail"]
+
+        self.running_time = start_time - time.clock()
         
         if result == "pass":
             self.result = "pass"
@@ -122,7 +124,9 @@ def run_test(command, timeout = None):
     environ = dict(os.environ)
     environ["TMP"] = temp_dir.path
     environ["PYTHONUNBUFFERED"] = "1"
-    
+
+    start_time = time.clock()
+
     process = subprocess.Popen(
         command,
         stdout = output,
@@ -139,9 +143,9 @@ def run_test(command, timeout = None):
         
             process.wait()
             if process.returncode == 0:
-                result = Result("pass")
+                result = Result(start_time, "pass")
             else:
-                result = Result("fail", "%r exited with %s." % \
+                result = Result(start_time, "fail", "%r exited with %s." % \
                     (command, format_exit_code(process.returncode)))
                     
         else:
@@ -152,9 +156,9 @@ def run_test(command, timeout = None):
                 if process.poll() is not None:
                     # Cool, it died on its own.
                     if process.returncode == 0:
-                        result = Result("pass")
+                        result = Result(start_time, "pass")
                     else:
-                        result = Result("fail", "%r exited with %s." % \
+                        result = Result(start_time, "fail", "%r exited with %s." % \
                             (command, format_exit_code(process.returncode)))
                     break
             
@@ -171,7 +175,7 @@ def run_test(command, timeout = None):
                 
                 if process.poll() is not None:
                     # SIGINT worked.
-                    result = Result("fail", "%r failed to terminate within %g seconds, but " \
+                    result = Result(start_time, "fail", "%r failed to terminate within %g seconds, but " \
                         "exited with %s after being sent SIGINT." % \
                         (command, timeout, format_exit_code(process.poll())))
                 
@@ -182,7 +186,7 @@ def run_test(command, timeout = None):
                     time.sleep(1)
                     
                     if process.poll() is not None:
-                        result = Result("fail", "%r failed to terminate within %g seconds and " \
+                        result = Result(start_time, "fail", "%r failed to terminate within %g seconds and " \
                             "did not respond to SIGINT, but exited with %s after being sent " \
                             "SIGQUIT." % (command, timeout, format_exit_code(process.poll())))
                     
@@ -195,12 +199,12 @@ def run_test(command, timeout = None):
                         time.sleep(1)
                         
                         if process.poll() is not None:
-                            result = Result("fail", "%r failed to terminate within %g seconds and " \
+                            result = Result(start_time, "fail", "%r failed to terminate within %g seconds and " \
                                 "did not respond to SIGINT or SIGQUIT." % (command, timeout))
                         
                         else:
                             # I don't expect this to ever happen
-                            result = Result("fail", "%r failed to terminate within %g seconds and " \
+                            result = Result(start_time, "fail", "%r failed to terminate within %g seconds and " \
                                 "did not respond to SIGINT or SIGQUIT. Even SIGKILL had no " \
                                 "apparent effect against this monster. I recommend you terminate " \
                                 "it manually, because it's probably still rampaging through your " \
@@ -437,11 +441,11 @@ def print_results_as_plaintext(opts, tests):
             i += 1   # Convert from 0-indexing to 1-indexing
             
             if result.result == "pass":
-                print "Run #%d:" % i, "Passed." 
+                print "Run #%d:" % i, "Passed. (%f seconds)" % result.running_time
                 print
                 
             else:
-                print "Run #%d:" % i, result.description
+                print "Run #%d:" % i, result.description, " (%f seconds)" % result.running_time
                 print
             
                 if result.output_dir is not None:
@@ -550,11 +554,11 @@ def print_results_as_html(opts, tests):
             print """<div style="border: solid 1px gray; border-top: none; padding: 0.3cm">"""
             
             if result.result == "pass":
-                print """<p><b>Run #%d:</b> <span style="color: green">Passed</span></p>""" % i
+                print """<p><b>Run #%d:</b> <span style="color: green">Passed</span> (%f speconds)</p>""" % (i, result.running_time)
                 
             else:
-                print """<p><b>Run #%d:</b> <span style="color: red">Failed</span>. %s</p>""" % \
-                    (i, code(result.description))
+                print """<p><b>Run #%d:</b> <span style="color: red">Failed</span>. (%f seconds) %s</p>""" % \
+                    (i, result.running_time, code(result.description))
             
                 if result.output_dir is not None:
                     (output_dir, output_files) = process_output_dir(result)

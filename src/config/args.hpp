@@ -79,6 +79,9 @@
 // Default port to listen on
 #define DEFAULT_LISTEN_PORT                       8080
 
+// Default extension for the semantic file which is appended to the database name
+#define DEFAULT_SEMANTIC_EXTENSION                ".semantic"
+
 // Ticks (in milliseconds) the internal timed tasks are performed at
 #define TIMER_TICKS_IN_MS                         5
 
