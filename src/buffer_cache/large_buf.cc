@@ -520,7 +520,8 @@ uint16_t large_buf_t::pos_to_ix(int64_t pos) {
 uint16_t large_buf_t::pos_to_seg_pos(int64_t pos) {
     assert(0 <= pos);
     assert(pos < root_ref.size);
-    return (pos + root_ref.offset) % num_leaf_bytes();
+    int64_t first = ceil_aligned(root_ref.offset, num_leaf_bytes()) - root_ref.offset;
+    return (pos < first ? pos : (pos + root_ref.offset) % num_leaf_bytes());
 }
 
 /*
