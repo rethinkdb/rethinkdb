@@ -103,7 +103,7 @@ struct acquire_buftree_fsm_t : public block_available_callback_t, public tree_av
     int life_counter;
 
     acquire_buftree_fsm_t(large_buf_t *lb_, block_id_t block_id_, int64_t offset_, int64_t size_, int levels_, tree_available_callback_t *cb_, int index_)
-        : block_id(block_id), offset(offset_), size(size_), levels(levels_), cb(cb_), tr(new buftree_t()), index(index_), lb(lb_) { }
+        : block_id(block_id_), offset(offset_), size(size_), levels(levels_), cb(cb_), tr(new buftree_t()), index(index_), lb(lb_) { }
 
     void go() {
         buf_t *buf = lb->transaction->acquire(block_id, lb->access, this);
