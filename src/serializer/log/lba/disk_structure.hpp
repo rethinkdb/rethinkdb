@@ -3,7 +3,7 @@
 #define __SERIALIZER_LOG_LBA_DISK_STRUCTURE__
 
 #include "arch/arch.hpp"
-#include "../extents/extent_manager.hpp"
+#include "serializer/log/extents/extent_manager.hpp"
 #include "disk_format.hpp"
 #include "disk_extent.hpp"
 

@@ -2,7 +2,7 @@
 #ifndef __SERIALIZER_LOG_METABLOCK_METABLOCK_MANAGER_HPP__
 #define __SERIALIZER_LOG_METABLOCK_METABLOCK_MANAGER_HPP__
 
-#include "../extents/extent_manager.hpp"
+#include "serializer/log/extents/extent_manager.hpp"
 #include "arch/arch.hpp"
 #include <boost/crc.hpp>
 #include <cstddef>
