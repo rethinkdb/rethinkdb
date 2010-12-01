@@ -77,6 +77,9 @@ public:
             while (fill_size > 0) {
                 uint16_t seg_len;
                 byte_t *seg = large_value->get_segment_write(ix, &seg_len);
+                debugf("append_prepend seg_len=%d seg_pos=%d lvoffset=%d lvsize=%d ix=%d\n",
+                       seg_len, seg_pos, large_value->get_root_ref().offset, large_value->get_root_ref().size, ix);
+
                 assert(seg_len >= seg_pos);
                 uint16_t seg_bytes_to_fill = std::min((uint32_t)(seg_len - seg_pos), fill_size);
                 buffer_group.add_buffer(seg_bytes_to_fill, seg + seg_pos);

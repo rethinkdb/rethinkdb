@@ -442,7 +442,7 @@ void large_buf_t::release() {
 
 int64_t large_buf_t::get_num_segments() {
     assert(state == loaded || state == loading || state == deleted);
-    return std::max(1L, ceil_aligned(root_ref.offset + root_ref.size, num_leaf_bytes()) - floor_aligned(root_ref.offset, num_leaf_bytes()) / num_leaf_bytes());
+    return std::max(1L, (ceil_aligned(root_ref.offset + root_ref.size, num_leaf_bytes()) - floor_aligned(root_ref.offset, num_leaf_bytes())) / num_leaf_bytes());
 }
 
 uint16_t large_buf_t::segment_size(int ix) {
@@ -460,7 +460,7 @@ uint16_t large_buf_t::segment_size(int ix) {
         return root_ref.size;
     }
     if (ix == 0) {
-        return root_ref.offset - min_seg_offset;
+        return num_leaf_bytes() - (root_ref.offset - min_seg_offset);
     } else if (ix == num_segs - 1) {
         return num_leaf_bytes() - (end_seg_offset - (root_ref.offset + root_ref.size));
     } else {
@@ -469,6 +469,7 @@ uint16_t large_buf_t::segment_size(int ix) {
 }
 
 buf_t *large_buf_t::get_segment_buf(int ix, uint16_t *seg_size, uint16_t *seg_offset) {
+    debugf("get_segment_buf offset=%d size=%d block_id=%u .. ix=%d get_num_segments()=%d\n", root_ref.offset, root_ref.size, root_ref.block_id, ix, get_num_segments());
 
     int64_t pos = floor_aligned(root_ref.offset, num_leaf_bytes()) + ix * num_leaf_bytes();
 
