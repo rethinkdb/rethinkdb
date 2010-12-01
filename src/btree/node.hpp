@@ -64,8 +64,10 @@ typedef store_key_t btree_key;
 struct btree_value {
     uint8_t size;
     uint8_t metadata_flags;
+private:
     byte contents[0];
 
+public:
     void init() { // XXX
     }
 

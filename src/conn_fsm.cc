@@ -144,7 +144,7 @@ conn_fsm_t::result_t conn_fsm_t::fill_ext_rbuf() {
 conn_fsm_t::result_t conn_fsm_t::read_data(event_t *event) {
     // TODO: this is really silly; this notification should be done differently
     assert((conn_fsm_t *) event->state == this);
-
+    
     if (ext_rbuf) {
         result_t res = fill_ext_rbuf();
         check_external_buf();
@@ -156,12 +156,13 @@ conn_fsm_t::result_t conn_fsm_t::read_data(event_t *event) {
 
 void conn_fsm_t::fill_external_buf(byte *external_buf, unsigned int size, data_transferred_callback *callback) {
     assert(!ext_rbuf && ext_nrbuf == 0 && ext_size == 0 && !cb);
+    assert(external_buf);
     //assert(!ext_rbuf && ext_nrbuf == 0 && ext_size == 0);// && !cb);
 
     ext_rbuf = external_buf;
     ext_size = size;
     cb = callback;
-
+    
     unsigned int bytes_to_move = ext_size < nrbuf ? ext_size : nrbuf;
     memcpy(ext_rbuf, rbuf, bytes_to_move);
     consume(bytes_to_move);
@@ -351,7 +352,7 @@ void conn_fsm_t::do_transition_and_handle_result(event_t *event) {
 // function.
 conn_fsm_t::result_t conn_fsm_t::do_transition(event_t *event) {
     result_t res;
-
+    
     switch (state) {
         case fsm_socket_connected:
         case fsm_socket_recv_incomplete:

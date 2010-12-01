@@ -15,11 +15,9 @@ public:
     }
 
     void operate(btree_value *old_value, large_buf_t *old_large_buf) {
-
-        // Re-check the expiration time in case it was set again between when the FSM found
-        // that it was expired and when we got to it.
-        if (old_value->expired()) have_finished_operating(NULL);
-        else have_failed_operating();
+        /* Don't do anything. The modify_fsm will take advantage of the fact that we got to
+        the leaf in write mode to automatically delete the expired key if necessary. */
+        have_failed_operating();
     }
     
     void call_callback_and_delete() {

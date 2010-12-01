@@ -115,7 +115,9 @@ private:
 
 public:
     rh_data_provider_t(request_handler_t *rh, uint32_t length)
-        : mode(unused), rh(rh), length(length) { }
+        : mode(unused), rh(rh), length(length)
+    {
+    }
     
     ~rh_data_provider_t() {
         assert(mode != unused);
@@ -144,7 +146,11 @@ public:
         requestor_cpu = get_cpu_id();
         completed = false;
         cb = c;
-        if (continue_on_cpu(home_cpu, this)) on_cpu_switch();
+        
+        // call_later_on_this_cpu rather than on_cpu_switch() because if we call on_cpu_switch()
+        // immediately then we might try to read from the conn_fsm before the request handler has
+        // even returned from parse_request(), and the conn_fsm will be confused.
+        if (continue_on_cpu(home_cpu, this)) call_later_on_this_cpu(this);
     }
 
     void on_cpu_switch() {

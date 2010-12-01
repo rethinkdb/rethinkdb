@@ -61,7 +61,7 @@ public:
         
         assert(data->get_size() < MAX_VALUE_SIZE);
         if (data->get_size() <= MAX_IN_NODE_VALUE_SIZE) {
-            buffer_group.add_buffer(data->get_size(), value.contents);
+            buffer_group.add_buffer(data->get_size(), value.value());
         } else {
             large_value = new large_buf_t(this->transaction);
             large_value->allocate(data->get_size());

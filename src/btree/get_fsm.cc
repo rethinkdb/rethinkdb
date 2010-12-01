@@ -127,11 +127,18 @@ btree_get_fsm_t::transition_result_t btree_get_fsm_t::do_acquire_node(event_t *e
         }
         
         if (!found) {
+            // Commit transaction now because we won't be returning to this core
+            bool committed __attribute__((unused)) = transaction->commit(NULL);
+            assert(committed);   // Read-only transactions complete immediately
+            
             state = deliver_not_found_notification;
             if (continue_on_cpu(home_cpu, this)) return btree_fsm_t::transition_ok;
             else return btree_fsm_t::transition_incomplete;
             
         } else if (value.is_large()) {
+            // Don't commit transaction yet because we need to keep holding onto
+            // the large buf until it's been read.
+        
             state = acquire_large_value;
             return btree_fsm_t::transition_ok;
             

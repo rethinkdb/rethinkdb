@@ -69,6 +69,7 @@ public:
         assert(chars_written <= MAX_IN_NODE_VALUE_SIZE); // Not really necessary.
         temp_value.value_size(chars_written);
         
+        result = result_success;
         have_finished_operating(&temp_value);
     }
     
