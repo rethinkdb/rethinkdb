@@ -511,7 +511,16 @@ const large_buf_ref& large_buf_t::get_root_ref() const {
 }
 
 uint16_t large_buf_t::pos_to_ix(int64_t pos) {
-    
+    assert(0 <= pos);
+    assert(pos < root_ref.size);
+    int64_t base = floor_aligned(root_ref.offset, num_leaf_bytes());
+    return (pos + (root_ref.offset - base)) / num_leaf_bytes();
+}
+
+uint16_t large_buf_t::pos_to_seg_pos(int64_t pos) {
+    assert(0 <= pos);
+    assert(pos < root_ref.size);
+    return (pos + root_ref.offset) % num_leaf_bytes();
 }
 
 /*

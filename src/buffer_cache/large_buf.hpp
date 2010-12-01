@@ -83,8 +83,9 @@ public:
     void unappend(int64_t extra_size);
     void unprepend(int64_t extra_size);
 
-    uint16_t pos_to_ix(uint32_t pos);
-    uint16_t pos_to_seg_pos(uint32_t pos);
+    // TODO make sure people use int64_t value sizes
+    uint16_t pos_to_ix(int64_t pos);
+    uint16_t pos_to_seg_pos(int64_t pos);
 
     void mark_deleted();
     void release();
