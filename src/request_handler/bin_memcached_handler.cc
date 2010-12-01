@@ -1,6 +1,5 @@
 #include <string.h>
 #include "arch/arch.hpp"
-#include "request.hpp"
 #include "request_handler/bin_memcached_handler.hpp"
 #include "btree/append_prepend_fsm.hpp"
 #include "btree/delete_fsm.hpp"
