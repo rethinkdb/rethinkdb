@@ -168,7 +168,10 @@ btree_get_fsm_t::transition_result_t btree_get_fsm_t::do_acquire_large_value(eve
 
     if (!event) {
         large_value = new large_buf_t(transaction);
-        // TODO: Put the cast in node.hpp
+
+        // TODO: remove this.
+        debugf("do_acquire_large_value: offset=%d, size=%d, block_id=%u\n", value.lb_ref().offset, value.lb_ref().size, value.lb_ref().block_id);
+
         large_value->acquire(value.lb_ref(), rwi_read, this);
         return btree_fsm_t::transition_incomplete;
     } else {

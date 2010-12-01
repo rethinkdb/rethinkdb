@@ -56,7 +56,7 @@ void large_buf_t::allocate_part_of_tree(buftree_t *tr, int64_t offset, int64_t s
 
             if (i + step > offset) {
                 int64_t child_offset = std::max(offset - i, 0L);
-                int64_t child_end_offset = std::min(offset + size - i, i + step);
+                int64_t child_end_offset = std::min(offset + size - i, step);
 
                 if (tr->children[i / step] == NULL) {
                     block_id_t id;
