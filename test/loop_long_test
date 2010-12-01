@@ -1,6 +1,7 @@
 #!/usr/bin/python
 import os
 import time
+import string
 
 from email.MIMEMultipart import MIMEMultipart
 from email.MIMEText import MIMEText
@@ -44,9 +45,13 @@ def main():
     while True:
         os.system('git pull')
         start_time = time.time()
+        os.system('rm -rf output_from_test')
         os.system('./integration/long_test.py --stress ../bench/stress-client/stress --auto --no-timeout --cores 4 --no-valgrind')
         duration = time.time() - start_time
         send_email('jdoliner@gmail.com', "Uptime: %f" % duration)
+        dir_name = string.replace(time.asctime(), ' ', '_')
+        os.system('cp -r output_from_test ../../uptime/%s' % dir_name)
+        os.system('ln -s ../../uptime/%s ../../uptime/latest' % dir_name)
 
 if __name__ == '__main__':
     main()
