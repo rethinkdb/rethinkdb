@@ -46,7 +46,7 @@ public:
                 // Prepare the buffer group
                 for (int i = 0; i < old_large_buf->get_num_segments(); i++) {
                     uint16_t size;
-                    void *data = const_cast<byte *>(old_large_buf->get_segment(i, &size));
+                    const void *data = old_large_buf->get_segment(i, &size);
                     buffer_group.add_buffer(size, data);
                 }
                 
@@ -118,7 +118,7 @@ private:
         byte value_memory[MAX_TOTAL_NODE_CONTENTS_SIZE+sizeof(btree_value)];
         btree_value value;
     };
-    buffer_group_t buffer_group;
+    const_buffer_group_t buffer_group;
     bool in_operate;
     bool have_delivered_value;
     

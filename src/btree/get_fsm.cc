@@ -191,8 +191,7 @@ btree_get_fsm_t::transition_result_t btree_get_fsm_t::do_deliver_large_value(eve
 
     for (int i = 0; i < large_value->get_num_segments(); i++) {
         uint16_t size;
-        // TODO: This const_cast is a hack because there's no such thing as a const_buffer_group_t
-        void *data = const_cast<byte *>(large_value->get_segment(i, &size));
+        const void *data = large_value->get_segment(i, &size);
         value_buffers.add_buffer(size, data);
     }
     

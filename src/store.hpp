@@ -38,6 +38,27 @@ struct buffer_group_t {
     }
 };
 
+struct const_buffer_group_t {
+    struct buffer_t {
+        ssize_t size;
+        const void *data;
+    };
+    std::vector<buffer_t> buffers;
+    void add_buffer(size_t s, const void *d) {
+        buffer_t b;
+        b.size = s;
+        b.data = d;
+        buffers.push_back(b);
+    }
+    size_t get_size() {
+        size_t s = 0;
+        for (int i = 0; i < (int)buffers.size(); i++) {
+            s += buffers[i].size;
+        }
+        return s;
+    }
+};
+
 struct data_provider_t {
     
     virtual ~data_provider_t() { }
@@ -64,7 +85,7 @@ struct store_t {
         struct done_callback_t {
             virtual void have_copied_value() = 0;
         };
-        virtual void value(buffer_group_t *value, done_callback_t *cb, mcflags_t flags, cas_t cas) = 0;
+        virtual void value(const_buffer_group_t *value, done_callback_t *cb, mcflags_t flags, cas_t cas) = 0;
         virtual void not_found() = 0;
     };
     virtual void get(store_key_t *key, get_callback_t *cb) = 0;
