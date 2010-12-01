@@ -31,7 +31,7 @@ int large_buf_t::num_levels(int64_t last_offset) const {
     return levels;
 }
 
-buftree_t *large_buf_t::allocate_buftree(block_id_t *block_id, int64_t offset, int64_t size, int levels) {
+buftree_t *large_buf_t::allocate_buftree(int64_t offset, int64_t size, int levels, block_id_t *block_id) {
     assert(levels >= 1);
     buftree_t *ret = new buftree_t();
     ret->buf = transaction->allocate(block_id);
@@ -50,15 +50,17 @@ void large_buf_t::allocate_part_of_tree(buftree_t *tr, int64_t offset, int64_t s
 
         for (int64_t i = 0; i < offset + size; i += step) {
             assert((int64_t)tr->children.size() >= i / step);
+
             if ((int64_t)tr->children.size() == (i / step))
                 tr->children.push_back(NULL);
+
             if (i + step > offset) {
                 int64_t child_offset = std::max(offset - i, 0L);
-                int64_t child_end_offset = std::min(offset + size - i, step);
+                int64_t child_end_offset = std::min(offset + size - i, i + step);
 
                 if (tr->children[i / step] != NULL) {
                     block_id_t id;
-                    buftree_t *child = allocate_buftree(&id, child_offset, child_end_offset - child_offset, levels - 1);
+                    buftree_t *child = allocate_buftree(child_offset, child_end_offset - child_offset, levels - 1, &id);
                     tr->children[i / step] = child;
                     node->kids[i / step] = id;
                 } else {
@@ -78,7 +80,7 @@ void large_buf_t::allocate(int64_t _size) {
 
     root_ref.offset = 0;
     root_ref.size = _size;
-    root = allocate_buftree(&root_ref.block_id, 0, _size, num_levels(_size));
+    root = allocate_buftree(0, _size, num_levels(_size), &root_ref.block_id);
 
     state = loaded;
 }
