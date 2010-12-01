@@ -22,8 +22,6 @@ int main(int argc, char *argv[]) {
     setrlimit(RLIMIT_CORE, &core_limit);
 #endif
 
-    assert(false);
-
     // Parse command line arguments
     cmd_config_t config;
     parse_cmd_args(argc, argv, &config);
