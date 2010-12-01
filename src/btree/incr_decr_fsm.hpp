@@ -7,21 +7,25 @@ class btree_incr_decr_fsm_t : public btree_modify_fsm_t
 {
     typedef btree_fsm_t::transition_result_t transition_result_t;
 public:
-    explicit btree_incr_decr_fsm_t(btree_key *_key, btree_key_value_store_t *store, bool increment, long long delta)
+    explicit btree_incr_decr_fsm_t(btree_key *_key, btree_key_value_store_t *store, bool increment, long long delta, store_t::incr_decr_callback_t *cb)
         : btree_modify_fsm_t(_key, store),
           increment(increment),
-          delta(delta)
-        {}
+          delta(delta),
+          callback(cb)
+    {
+        do_transition(NULL);
+    }
     
-    transition_result_t operate(btree_value *old_value, large_buf_t *old_large_buf, btree_value **new_value) {
+    void operate(btree_value *old_value, large_buf_t *old_large_buf) {
+    
         // If the key didn't exist before, we fail
         if (!old_value) {
-            this->status_code = btree_fsm_t::S_NOT_FOUND;
-            this->update_needed = false;
-            return btree_fsm_t::transition_ok;
+            result = result_not_found;
+            have_failed_operating();
+            return;
         }
-        valuecpy(&temp_value, old_value);
         
+        // If we can't parse the key as a number, we fail
         bool valid;
         if (old_value->size < 50) {
             char buffer[50];
@@ -35,9 +39,9 @@ public:
             valid = false;
         }
         if (!valid) {
-            this->status_code = btree_fsm_t::S_NOT_NUMERIC;
-            this->update_needed = false;
-            return btree_fsm_t::transition_ok;
+            result = result_not_numeric;
+            have_failed_operating();
+            return;
         }
 
        /*  NOTE: memcached actually does a few things differently:
@@ -60,20 +64,35 @@ public:
         // valid until the btree FSM is destroyed. That's why we can't allocate a buffer on the
         // stack.
         
+        valuecpy(&temp_value, old_value);
         int chars_written = sprintf(temp_value.value(), "%llu", (unsigned long long)new_number);
         assert(chars_written <= MAX_IN_NODE_VALUE_SIZE); // Not really necessary.
         temp_value.value_size(chars_written);
         
-        *new_value = &temp_value;
-        
-        this->status_code = btree_fsm_t::S_SUCCESS;
-        this->update_needed = true;
-        return btree_fsm_t::transition_ok;
+        result = result_success;
+        have_finished_operating(&temp_value);
     }
-
+    
+    void call_callback_and_delete() {
+        switch (result) {
+            case result_success:
+                callback->success(new_number);
+                break;
+            case result_not_found:
+                callback->not_found();
+                break;
+            case result_not_numeric:
+                callback->not_numeric();
+                break;
+        }
+        
+        delete this;
+    }
+    
 private:
     bool increment;   // If false, then decrement
     long long delta;   // Amount to increment or decrement by
+    store_t::incr_decr_callback_t *callback;
     
     /* Used as temporary storage, so that the value we return from operate() doesn't become invalid
     before modify_fsm is done with it. */
@@ -81,10 +100,12 @@ private:
         char temp_value_memory[MAX_TOTAL_NODE_CONTENTS_SIZE+sizeof(btree_value)];
         btree_value temp_value;
     };
-
-public:
-    /* When the FSM is finished, 'status_code' will be S_SUCCESS if the key was
-     * found and new_number will hold the value that it was set to. */
+    
+    enum result_t {
+        result_success,
+        result_not_found,
+        result_not_numeric
+    } result;
     uint64_t new_number;
 };
 

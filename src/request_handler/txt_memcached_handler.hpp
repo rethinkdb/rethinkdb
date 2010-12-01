@@ -4,13 +4,13 @@
 
 #include "request_handler/request_handler.hpp"
 #include "btree/key_value_store.hpp"
-#include "buffer_cache/large_buf.hpp"
 
 class server_t;
+class rh_data_provider_t;
 
 class txt_memcached_handler_t :
-    public request_handler_t,
-    public large_value_completed_callback // Used for consuming data from the socket. XXX: Rename this.
+    public request_handler_t //,
+    // public large_value_completed_callback // Used for consuming data from the socket. XXX: Rename this.
 {
 public:
     typedef request_handler_t::parse_result_t parse_result_t;
@@ -36,6 +36,7 @@ private:
     
     btree_value::mcflags_t mcflags;
     btree_value::exptime_t exptime;
+    
     uint32_t bytes;
     btree_value::cas_t cas;
     bool noreply;

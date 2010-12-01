@@ -20,7 +20,9 @@ memcached_handler_t::parse_result_t memcached_handler_t::parse_request(event_t *
 void memcached_handler_t::determine_protocol(const event_t *event)
 {
     assert(!req_handler);
-    
+    req_handler = new txt_memcached_handler_t(server);
+    req_handler->conn_fsm = conn_fsm;
+    /*
     if (conn_fsm->nrbuf > sizeof(bin_memcached_handler_t::bin_magic_t)) {
         
         if (bin_memcached_handler_t::is_valid_magic(*(bin_memcached_handler_t::bin_magic_t*)conn_fsm->rbuf)) {
@@ -32,5 +34,5 @@ void memcached_handler_t::determine_protocol(const event_t *event)
         }
         
         req_handler->conn_fsm = conn_fsm;
-    }
+    }*/
 }

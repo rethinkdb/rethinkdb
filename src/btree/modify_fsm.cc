@@ -236,7 +236,22 @@ bool btree_modify_fsm_t::do_check_for_split(const node_t **node) {
     return new_root;
 }
 
-btree_modify_fsm_t::transition_result_t btree_modify_fsm_t::do_transition(event_t *event) {
+void btree_modify_fsm_t::have_finished_operating(btree_value *nv) {
+    assert(!operate_is_done);
+    operate_is_done = true;
+    update_needed = true;
+    new_value = nv;
+    if (!in_operate_call) do_transition(NULL);
+}
+
+void btree_modify_fsm_t::have_failed_operating() {
+    assert(!operate_is_done);
+    operate_is_done = true;
+    update_needed = false;
+    if (!in_operate_call) do_transition(NULL);
+}
+
+void btree_modify_fsm_t::do_transition(event_t *event) {
     transition_result_t res = btree_fsm_t::transition_ok;
 
     // Make sure we've got either an empty or a cache event
@@ -253,6 +268,14 @@ btree_modify_fsm_t::transition_result_t btree_modify_fsm_t::do_transition(event_
 
     while (res == btree_fsm_t::transition_ok) {
         switch (state) {
+            
+            // Go to the core with the cache on it.
+            case go_to_cache_core: {
+                state = start_transaction;
+                if (continue_on_cpu(slice->home_cpu, this)) res = btree_fsm_t::transition_ok;
+                else res = btree_fsm_t::transition_incomplete;
+                break;
+            }
             // First, begin a transaction.
             case start_transaction: {
                 res = do_start_transaction(event);
@@ -284,12 +307,6 @@ btree_modify_fsm_t::transition_result_t btree_modify_fsm_t::do_transition(event_
                 if (res == btree_fsm_t::transition_ok) state = acquire_node;
                 break;
             }
-            case operating: {
-                on_operate_completed();
-                state = acquire_node;
-                res = btree_fsm_t::transition_ok;
-                break;
-            }
             // If we were acquiring a node, do that
             // Go up the tree...
             case acquire_node: {
@@ -318,9 +335,9 @@ btree_modify_fsm_t::transition_result_t btree_modify_fsm_t::do_transition(event_
 
                     expired = key_found && old_value.expired();
                     if (expired) {
-                        // We tell operate() that the key wasn't found. If it returns
-                        // true, we'll replace/delete the value as usual; if it returns
-                        // false, we'll silently delete the key.
+                        // We tell operate() that the key wasn't found. If it calls
+                        // have_finished_operating(), we'll replace/delete the value as usual;
+                        // if it calls have_failed_operating(), we'll silently delete the key.
                         key_found = false;
                     }
 
@@ -328,12 +345,13 @@ btree_modify_fsm_t::transition_result_t btree_modify_fsm_t::do_transition(event_
                     // present or expired; now compute the new value.
                     if (!operated) {
                         // TODO: Maybe leaf_node_handler::lookup should put NULL into old_value so we can be more consistent here?
-                        res = operate(key_found ? &old_value : NULL, old_large_buf, &new_value);
+                        in_operate_call = true;
+                        operate_is_done = false;
+                        operate(key_found ? &old_value : NULL, old_large_buf);
+                        in_operate_call = false;
                         operated = true;
-                        if (res == btree_fsm_t::transition_ok) {
-                            on_operate_completed();
-                        } else {
-                            state = operating;
+                        if (!operate_is_done) {
+                            res = btree_fsm_t::transition_incomplete;
                             break;
                         }
                     }
@@ -500,7 +518,9 @@ btree_modify_fsm_t::transition_result_t btree_modify_fsm_t::do_transition(event_
                 state = committing;
                 if (committed) {
                     transaction = NULL;
-                    res = btree_fsm_t::transition_complete;
+                    state = call_callback_and_delete_self;
+                    if (continue_on_cpu(home_cpu, this)) res = btree_fsm_t::transition_ok;
+                    else res = btree_fsm_t::transition_incomplete;
                 } else {
                     res = btree_fsm_t::transition_incomplete;
                 }
@@ -508,22 +528,30 @@ btree_modify_fsm_t::transition_result_t btree_modify_fsm_t::do_transition(event_
             }
 
             // Finalize the transaction commit
-            case committing:
+            case committing: {
                 if (event) {
                     assert(event->event_type == et_commit);
                     assert(event->buf == transaction);
                     transaction = NULL;
-                    res = btree_fsm_t::transition_complete;
+                    state = call_callback_and_delete_self;
+                    if (continue_on_cpu(home_cpu, this)) res = btree_fsm_t::transition_ok;
+                    else res = btree_fsm_t::transition_incomplete;
                 }
                 break;
+            }
+            
+            // Call the callback and clean up
+            case call_callback_and_delete_self: {
+                assert_cpu();
+                call_callback_and_delete();
+                res = btree_fsm_t::transition_incomplete;   // So we break out of the loop
+                break;
+            }
         }
         // We're done with one step, but we may be able to go to the next one
         // without getting a new event.
         event = NULL;
     }
-
-    assert(res != btree_fsm_t::transition_complete || is_finished());
-    return res;
 }
 
 void btree_modify_fsm_t::split_node(buf_t *buf, buf_t **rbuf,
