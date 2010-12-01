@@ -1,6 +1,10 @@
 #include "large_buf.hpp"
 
-large_buf_t::large_buf_t(transaction_t *txn) : transaction(txn), cache_block_size(txn->cache->get_block_size()), state(not_loaded) {
+large_buf_t::large_buf_t(transaction_t *txn) : transaction(txn), cache_block_size(txn->cache->get_block_size()), state(not_loaded)
+#ifndef NDEBUG
+                                             , num_bufs(0)
+#endif
+{
     assert(transaction);
 }
 
@@ -35,6 +39,7 @@ buftree_t *large_buf_t::allocate_buftree(int64_t offset, int64_t size, int level
     assert(levels >= 1);
     buftree_t *ret = new buftree_t();
     ret->buf = transaction->allocate(block_id);
+    num_bufs++;
     allocate_part_of_tree(ret, offset, size, levels);
     return ret;
 }
@@ -113,6 +118,10 @@ struct acquire_buftree_fsm_t : public block_available_callback_t, public tree_av
     }
 
     void on_block_available(buf_t *buf) {
+#ifndef NDEBUG
+        lb->num_bufs++;
+#endif
+
         tr->buf = buf;
 
         if (levels == 1) {
@@ -201,6 +210,7 @@ void large_buf_t::buftree_acquired(buftree_t *tr) {
 buftree_t *large_buf_t::add_level(buftree_t *tr, block_id_t id, block_id_t *new_id) {
     buftree_t *ret = new buftree_t();
     ret->buf = transaction->allocate(new_id);
+    num_bufs++;
     large_buf_internal *node = reinterpret_cast<large_buf_internal *>(ret->buf->get_data_write());
     node->kids[0] = id;
     ret->children.push_back(tr);
@@ -309,9 +319,10 @@ void large_buf_t::fill_tree_at(buftree_t *tr, int64_t pos, const byte *data, int
     }
 }
 
-buftree_t *remove_level(buftree_t *tr, block_id_t id, block_id_t *idout) {
+buftree_t *large_buf_t::remove_level(buftree_t *tr, block_id_t id, block_id_t *idout) {
     tr->buf->mark_deleted();
     tr->buf->release();
+    num_bufs--;
     buftree_t *ret = tr->children[0];
     delete tr;
     *idout = ret->buf->get_block_id();
@@ -339,42 +350,47 @@ void large_buf_t::unappend(int64_t extra_size) {
     root_ref.size -= extra_size;
 }
 
-void large_buf_t::walk_tree_structure(buftree_t *tr, int64_t offset, int64_t size, int levels, void (*bufdoer)(buf_t *), void (*buftree_cleaner)(buftree_t *)) {
+void large_buf_t::walk_tree_structure(buftree_t *tr, int64_t offset, int64_t size, int levels, void (*bufdoer)(large_buf_t *, buf_t *), void (*buftree_cleaner)(buftree_t *)) {
     assert(0 <= offset);
     assert(0 < size);
     assert(offset + size <= max_offset(levels));
-    if (levels == 1) {
-        bufdoer(tr->buf);
-        buftree_cleaner(tr);
-    } else {
-        int64_t step = max_offset(levels - 1);
-
-        int64_t i = floor_aligned(offset, step);
-        int64_t e = ceil_aligned(offset + size, step);
-
-        for (; i < e; i += step) {
-            int64_t beg = std::max(offset, i);
-            int64_t end = std::min(offset + size, i + step);
-            delete_tree_structure(tr->children[i / step], beg - i, end - beg, levels - 1);
-        }
-
-        if (offset == 0 && size == max_offset(levels)) {
-            bufdoer(tr->buf);
+    if (tr != NULL) {
+        if (levels == 1) {
+            bufdoer(this, tr->buf);
             buftree_cleaner(tr);
+        } else {
+            int64_t step = max_offset(levels - 1);
+
+            int64_t i = floor_aligned(offset, step);
+            int64_t e = ceil_aligned(offset + size, step);
+
+            for (; i < e; i += step) {
+                int64_t beg = std::max(offset, i);
+                int64_t end = std::min(offset + size, i + step);
+                buftree_t *child = i / step < (int64_t)tr->children.size() ? tr->children[i / step] : NULL;
+                walk_tree_structure(child, beg - i, end - beg, levels - 1, bufdoer, buftree_cleaner);
+            }
+
+            if (offset == 0 && size == max_offset(levels)) {
+                bufdoer(this, tr->buf);
+                buftree_cleaner(tr);
+            }
         }
     }
 }
 
-void mark_deleted_and_release(buf_t *b) {
+void mark_deleted_and_release(large_buf_t *lb, buf_t *b) {
     b->mark_deleted();
     b->release();
+    lb->num_bufs--;
 }
 
-void mark_deleted_only(buf_t *b) {
+void mark_deleted_only(large_buf_t *lb, buf_t *b) {
     b->mark_deleted();
 }
-void release_only(buf_t *b) {
+void release_only(large_buf_t *lb, buf_t *b) {
     b->release();
+    lb->num_bufs--;
 }
 
 void buftree_delete(buftree_t *tr) {
@@ -421,10 +437,9 @@ void large_buf_t::unprepend(int64_t extra_size) {
 
 void large_buf_t::mark_deleted() {
     assert(state == loaded);
-    int64_t delbeg = floor_aligned(root_ref.offset, num_leaf_bytes());
-    int64_t delend = std::max(delbeg + 1, ceil_aligned(root_ref.offset + root_ref.size, num_leaf_bytes()));
-    only_mark_deleted_tree_structure(root, delbeg, delend - delbeg, num_levels(root_ref.offset + root_ref.size));
-    // TODO get root node... somehow.
+
+    int levels = num_levels(root_ref.offset + root_ref.size);
+    only_mark_deleted_tree_structure(root, 0, max_offset(levels), levels);
 
     state = deleted;
 }
@@ -432,10 +447,8 @@ void large_buf_t::mark_deleted() {
 void large_buf_t::release() {
     assert(state == loaded || state == deleted);
 
-    int64_t relbeg = floor_aligned(root_ref.offset, num_leaf_bytes());
-    int64_t relend = std::max(relbeg + 1, ceil_aligned(root_ref.offset + root_ref.size, num_leaf_bytes()));
-    release_tree_structure(root, relbeg, relend - relbeg, num_levels(root_ref.offset + root_ref.size));
-    // TODO get root node... somehow.
+    int levels = num_levels(root_ref.offset + root_ref.size);
+    release_tree_structure(root, 0, max_offset(levels), levels);
 
     state = released;
 }
@@ -533,6 +546,7 @@ uint16_t large_buf_t::pos_to_seg_pos(int64_t pos) {
 
 large_buf_t::~large_buf_t() {
     assert(state == released);
+    assert(num_bufs == 0);
 }
 
 const block_magic_t large_buf_internal::expected_magic = { { 'l', 'a', 'r', 'i' } };

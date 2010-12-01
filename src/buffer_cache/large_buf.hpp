@@ -63,6 +63,10 @@ public: // XXX Should this be private?
     };
     state_t state;
 
+#ifndef NDEBUG
+    int64_t num_bufs;
+#endif
+
 // TODO: Take care of private methods and friend classes and all that.
 public:
     large_buf_t(transaction_t *txn);
@@ -120,11 +124,12 @@ private:
     void fill_tree_at(buftree_t *tr, int64_t pos, const byte *data, int64_t fill_size, int levels);
     buftree_t *add_level(buftree_t *tr, block_id_t id, block_id_t *new_id);
     void allocate_part_of_tree(buftree_t *tr, int64_t offset, int64_t size, int levels);
-    void walk_tree_structure(buftree_t *tr, int64_t offset, int64_t size, int levels, void (*bufdoer)(buf_t *), void (*buftree_cleaner)(buftree_t *));
+    void walk_tree_structure(buftree_t *tr, int64_t offset, int64_t size, int levels, void (*bufdoer)(large_buf_t *, buf_t *), void (*buftree_cleaner)(buftree_t *));
     void delete_tree_structure(buftree_t *tr, int64_t offset, int64_t size, int levels);
     void only_mark_deleted_tree_structure(buftree_t *tr, int64_t offset, int64_t size, int levels);
     void release_tree_structure(buftree_t *tr, int64_t offset, int64_t size, int levels);
     buf_t *get_segment_buf(int ix, uint16_t *seg_size, uint16_t *seg_offset);
+    buftree_t *remove_level(buftree_t *tr, block_id_t id, block_id_t *idout);
 };
 
 #endif // __LARGE_BUF_HPP__
