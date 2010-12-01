@@ -53,6 +53,11 @@ btree_get_fsm_t::transition_result_t btree_get_fsm_t::do_acquire_root(event_t *e
     if(node_id == NULL_BLOCK_ID) {
         last_buf->release();
         last_buf = NULL;
+        
+        // Commit transaction now because we won't be returning to this core
+        bool committed __attribute__((unused)) = transaction->commit(NULL);
+        assert(committed);   // Read-only transactions complete immediately
+        
         state = deliver_not_found_notification;
         if (continue_on_cpu(home_cpu, this)) return btree_fsm_t::transition_ok;
         else return btree_fsm_t::transition_incomplete;

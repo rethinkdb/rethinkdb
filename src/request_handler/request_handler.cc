@@ -24,7 +24,9 @@ void request_handler_t::request_complete() {
 }
 
 void request_handler_t::on_cpu_switch() {
-    for (; request_count > 0; request_count--) {
+    int count = request_count;   // In case do_transition_and_handle_result() deletes us
+    request_count = 0;
+    for (; count > 0; count--) {
         // Notify the conn_fsm
         event_t e;
         bzero(&e, sizeof(e));
