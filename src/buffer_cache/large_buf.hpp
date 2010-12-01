@@ -6,10 +6,6 @@
 #include "btree/node.hpp"
 #include "conn_fsm.hpp"
 
-#define NUM_SEGMENTS(total_size, seg_size) ( ( ((total_size)-1) / (seg_size) ) + 1 )
-
-#define MAX_LARGE_BUF_SEGMENTS (NUM_SEGMENTS((MAX_VALUE_SIZE), (4*KILOBYTE)))
-
 class large_buf_t;
 
 struct large_buf_available_callback_t :
@@ -129,31 +125,6 @@ private:
     void only_mark_deleted_tree_structure(buftree_t *tr, int64_t offset, int64_t size, int levels);
     void release_tree_structure(buftree_t *tr, int64_t offset, int64_t size, int levels);
     buf_t *get_segment_buf(int ix, uint16_t *seg_size, uint16_t *seg_offset);
-};
-
-// TODO: Rename this.
-struct segment_block_available_callback_t :
-    public block_available_callback_t
-{
-    large_buf_t *owner;
-
-    bool is_index_block;
-    uint16_t ix;
-
-    segment_block_available_callback_t(large_buf_t *owner)
-        : owner(owner), is_index_block(true) {}
-    
-    segment_block_available_callback_t(large_buf_t *owner, uint16_t ix)
-        : owner(owner), is_index_block(false), ix(ix) {}
-
-    void on_block_available(buf_t *buf) {
-        if (is_index_block) {
-            owner->index_acquired(buf);
-        } else {
-            owner->segment_acquired(buf, ix);
-        }
-        delete this;
-    }
 };
 
 #endif // __LARGE_BUF_HPP__

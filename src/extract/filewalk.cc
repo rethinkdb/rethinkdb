@@ -214,7 +214,8 @@ void dump_pair_value(dumper_t &dumper, direct_file_t& file, const cfg_t cfg, con
 
     // We're going to write the value, split into pieces, into this set of pieces.
     size_t num_pieces = 0;
-    byteslice pieces[MAX_LARGE_BUF_SEGMENTS];
+    // TODO pick a number bigger than 9
+    byteslice pieces[9];
     // TODO uncomment
     //    block segblock[MAX_LARGE_BUF_SEGMENTS];
 
