@@ -28,9 +28,10 @@ public:
     ~btree_set_fsm_t() {
         pm_cmd_set.end(&start_time);
     }
-    
-    void operate(btree_value *old_value, large_buf_t *old_large_value) {
-        
+
+
+    void operate(btree_value *old_value, large_buf_t *old_large_value, bool *delete_old_large_buf) {
+
         if ((old_value && type == set_type_add) || (!old_value && type == set_type_replace)) {
             result = result_not_stored;
             data->get_value(NULL, this);
@@ -70,8 +71,9 @@ public:
             buffer_group.add_buffer(data->get_size(), value.value());
         } else {
             large_value = new large_buf_t(this->transaction);
+            *delete_old_large_buf = true;
             large_value->allocate(data->get_size());
-            value.set_lv_index_block_id(large_value->get_index_block_id());
+            value.set_lb_ref(large_value->get_root_ref());
             for (int i = 0; i < large_value->get_num_segments(); i++) {
                 uint16_t size;
                 void *data = large_value->get_segment_write(i, &size);

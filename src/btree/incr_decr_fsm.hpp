@@ -15,9 +15,9 @@ public:
     {
         do_transition(NULL);
     }
-    
-    void operate(btree_value *old_value, large_buf_t *old_large_buf) {
-    
+
+    void operate(btree_value *old_value, large_buf_t *old_large_buf, bool *delete_old_large_buf) {
+
         // If the key didn't exist before, we fail
         if (!old_value) {
             result = result_not_found;

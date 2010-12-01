@@ -23,15 +23,11 @@ struct large_value_completed_callback {
     virtual ~large_value_completed_callback() {}
 };
 
-struct large_buf_ref {
-    int64_t size;
-    int64_t offset;
-    block_id_t block;
-};
+// struct large_buf_ref is defined in buffer_cache/types.hpp.
 
 struct large_buf_internal {
     block_magic_t magic;
-    large_buf_ref refs[];
+    block_id_t kids[];
 
     static const block_magic_t expected_magic;
 };
@@ -43,37 +39,23 @@ struct large_buf_leaf {
     static const block_magic_t expected_magic;
 };
 
-// Must be smaller than a buf.
-struct large_buf_index {
-    block_magic_t magic;
-    //uint32_t size; // TODO: Put the size here instead of in the btree value.
-    uint16_t num_segments;
-    uint16_t first_block_offset; // For prepend.
-    block_id_t blocks[MAX_LARGE_BUF_SEGMENTS];
-
-    static block_magic_t expected_magic;
+struct buftree_t {
+    buf_t *buf;
+    std::vector<buftree_t *> children;
 };
 
-struct large_buf_segment {
-    block_magic_t magic;
-
-    static block_magic_t expected_magic;
-};
+struct tree_available_callback_t;
 
 class large_buf_t
 {
 private:
-    block_id_t index_block_id;
-    buf_t *index_buf;
-    uint32_t size; // XXX possibly unnecessary?
+    large_buf_ref root_ref;
+    buftree_t *root;
     access_t access;
     large_buf_available_callback_t *callback;
 
     transaction_t *transaction;
-    size_t effective_segment_block_size;
-
-    uint16_t num_acquired;
-    buf_t *bufs[MAX_LARGE_BUF_SEGMENTS];
+    size_t cache_block_size;
 
 public: // XXX Should this be private?
     enum state_t {
@@ -90,15 +72,16 @@ public:
     large_buf_t(transaction_t *txn);
     ~large_buf_t();
 
-    void allocate(uint32_t _size);
-    void acquire(block_id_t _index_block, uint32_t _size, access_t _access, large_buf_available_callback_t *_callback);
+    void allocate(int64_t _size);
+    //    void acquire(block_id_t _index_block, uint32_t _size, access_t _access, large_buf_available_callback_t *_callback);
+    void acquire(large_buf_ref root_ref_, access_t access_, large_buf_available_callback_t *callback_);
 
-    void append(uint32_t extra_size);
-    void prepend(uint32_t extra_size);
-    void fill_at(uint32_t pos, const byte *data, uint32_t fill_size);
+    void append(int64_t extra_size);
+    void prepend(int64_t extra_size);
+    void fill_at(int64_t pos, const byte *data, int64_t fill_size);
 
-    void unappend(uint32_t extra_size);
-    void unprepend(uint32_t extra_size);
+    void unappend(int64_t extra_size);
+    void unprepend(int64_t extra_size);
 
     uint16_t pos_to_ix(uint32_t pos);
     uint16_t pos_to_seg_pos(uint32_t pos);
@@ -106,10 +89,14 @@ public:
     void mark_deleted();
     void release();
 
-    block_id_t get_index_block_id();
-    const large_buf_index *get_index();
-    large_buf_index *get_index_write();
-    uint16_t get_num_segments();
+    const large_buf_ref& get_root_ref() const;
+    //    block_id_t get_index_block_id();
+    //    const large_buf_index *get_index();
+    //    large_buf_index *get_index_write();
+
+    // TODO look at calls to this function, make sure people don't use
+    // uint16_t.
+    int64_t get_num_segments();
 
     uint16_t segment_size(int ix);
 
@@ -120,9 +107,27 @@ public:
 
     void index_acquired(buf_t *buf);
     void segment_acquired(buf_t *buf, uint16_t ix);
-    
+    void buftree_acquired(buftree_t *tr);
+
+    friend struct acquire_buftree_fsm_t;
+
 private:
-    buf_t *allocate_segment(block_id_t *id);
+    int64_t num_leaf_bytes() const;
+    int64_t num_internal_kids() const;
+    int64_t max_offset(int levels) const;
+    int num_levels(int64_t last_offset) const;
+
+    buftree_t *allocate_buftree(block_id_t *block_id, int64_t size, int64_t offset, int levels);
+    buftree_t *acquire_buftree(block_id_t block_id, int64_t offset, int64_t size, int levels, tree_available_callback_t *cb);
+    void acquire_slice(large_buf_ref root_ref_, access_t access_, int64_t slice_offset, int64_t slice_size, large_buf_available_callback_t *callback_);
+    void fill_tree_at(buftree_t *tr, int64_t pos, const byte *data, int64_t fill_size, int levels);
+    buftree_t *add_level(buftree_t *tr, block_id_t id, block_id_t *new_id);
+    void allocate_part_of_tree(buftree_t *tr, int64_t offset, int64_t size, int levels);
+    void walk_tree_structure(buftree_t *tr, int64_t offset, int64_t size, int levels, void (*bufdoer)(buf_t *), void (*buftree_cleaner)(buftree_t *));
+    void delete_tree_structure(buftree_t *tr, int64_t offset, int64_t size, int levels);
+    void only_mark_deleted_tree_structure(buftree_t *tr, int64_t offset, int64_t size, int levels);
+    void release_tree_structure(buftree_t *tr, int64_t offset, int64_t size, int levels);
+    buf_t *get_segment_buf(int ix, uint16_t *seg_size, uint16_t *seg_offset);
 };
 
 // TODO: Rename this.

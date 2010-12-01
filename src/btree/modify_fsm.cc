@@ -125,7 +125,7 @@ btree_modify_fsm_t::transition_result_t btree_modify_fsm_t::do_acquire_large_val
     if (!event) {
         old_large_buf = new large_buf_t(transaction);
         // TODO: Put the cast in node.hpp
-        old_large_buf->acquire(* (block_id_t *) old_value.value(), old_value.value_size(), rwi_write, this);
+        old_large_buf->acquire(old_value.lb_ref(), rwi_write, this);
         return btree_fsm_t::transition_incomplete;
     } else {
         assert(event->buf);
@@ -347,7 +347,7 @@ void btree_modify_fsm_t::do_transition(event_t *event) {
                         // TODO: Maybe leaf_node_handler::lookup should put NULL into old_value so we can be more consistent here?
                         in_operate_call = true;
                         operate_is_done = false;
-                        operate(key_found ? &old_value : NULL, old_large_buf);
+                        operate(key_found ? &old_value : NULL, old_large_buf, &delete_old_large_buf);
                         in_operate_call = false;
                         operated = true;
                         if (!operate_is_done) {
@@ -505,8 +505,8 @@ void btree_modify_fsm_t::do_transition(event_t *event) {
                 }
                 if (old_large_buf) {
                     assert(old_value.is_large());
-                    assert(old_value.lv_index_block_id() == old_large_buf->get_index_block_id());
-                    if (update_needed && (!new_value || new_value->lv_index_block_id() != old_large_buf->get_index_block_id())) {
+                    assert(old_value.lb_ref().block_id == old_large_buf->get_root_ref().block_id);
+                    if (update_needed && (!new_value || delete_old_large_buf)) {
                         old_large_buf->mark_deleted();
                     }
                     old_large_buf->release();
