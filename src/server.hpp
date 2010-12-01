@@ -18,10 +18,10 @@ class flush_message_t;
 class server_t :
     public home_cpu_mixin_t,
     public logger_ready_callback_t,
-    public store_t::check_callback_t,
-    public store_t::ready_callback_t,
+    public btree_key_value_store_t::check_callback_t,
+    public btree_key_value_store_t::ready_callback_t,
     public conn_acceptor_t::shutdown_callback_t,
-    public store_t::shutdown_callback_t,
+    public btree_key_value_store_t::shutdown_callback_t,
     public logger_shutdown_callback_t
 {
     friend class flush_message_t;
@@ -50,7 +50,7 @@ public:
     cmd_config_t *cmd_config;
     thread_pool_t *thread_pool;
 
-    store_t *store;
+    btree_key_value_store_t *store;
     conn_acceptor_t conn_acceptor;
     
 private:

@@ -30,7 +30,8 @@ void usage(const char *name) {
     printf("\t-k, --keys\n\t\tKey distribution in DISTR format (see below). Defaults to [");
     _d.keys.print();
     printf("].\n");
-    printf("\t-v, --values\n\t\tValue distribution in DISTR format (see below). Defaults to [");
+    printf("\t-v, --values\n\t\tValue distribution in DISTR format (see below). Maximum possible\n");
+    printf("\t\tvalue size is [%d]. Defaults to [", MAX_VALUE_SIZE);
     _d.values.print();
     printf("].\n");
     printf("\t-d, --duration\n\t\tDuration of the run. Defaults to [");
@@ -119,6 +120,10 @@ void parse(config_t *config, int argc, char *argv[]) {
             break;
         case 'v':
             config->values.parse(optarg);
+            if (config->values.min > MAX_VALUE_SIZE || config->values.max > MAX_VALUE_SIZE) {
+                fprintf(stderr, "Invalid value distribution (maximum value size exceeded).\n");
+                exit(-1);
+            }
             break;
         case 'd':
             config->duration.parse(optarg);

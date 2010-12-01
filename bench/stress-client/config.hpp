@@ -9,6 +9,8 @@
 
 #define MAX_FILE    255
 
+#define MAX_VALUE_SIZE (1024*1024)
+
 
 struct duration_t {
 public:

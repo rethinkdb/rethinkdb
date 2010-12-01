@@ -17,7 +17,7 @@ shutdown_grace_period = 0.5
 
 def test(opts, port):
     
-    tester_log_dir = os.path.join(test_dir, "tester_logs")
+    tester_log_dir = os.path.join(make_test_dir(), "tester_logs")
     if not os.path.isdir(tester_log_dir): os.mkdir(tester_log_dir)
     
     serial_mix_path = os.path.join(os.path.dirname(__file__), "serial_mix.py")

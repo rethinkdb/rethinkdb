@@ -90,9 +90,10 @@ struct transaction_t :
 
 struct config_t {
     
-    const char *filename, *log_file, *tps_log_file;
+    const char *log_file, *tps_log_file;
     log_serializer_static_config_t ser_static_config;
     log_serializer_dynamic_config_t ser_dynamic_config;
+    log_serializer_private_dynamic_config_t ser_private_dynamic_config;
     int duration;   /* Seconds */
     unsigned concurrent_txns;
     unsigned inserts_per_txn, updates_per_txn;
@@ -153,7 +154,7 @@ struct tester_t :
         }
         
         fprintf(stderr, "Starting serializer...\n");
-        ser = new log_serializer_t(config->filename, &config->ser_dynamic_config);
+        ser = new log_serializer_t(&config->ser_dynamic_config, &config->ser_private_dynamic_config);
         if (ser->start_new(&config->ser_static_config, this)) on_serializer_ready(ser);
     }
     
@@ -262,7 +263,10 @@ const char *read_arg(int &argc, char **&argv) {
 
 void parse_config(int argc, char *argv[], config_t *config) {
     
-    config->filename = "rethinkdb_data";
+    config->ser_private_dynamic_config.db_filename = "rethinkdb_data";
+#ifdef SEMANTIC_SERIALIZER_CHECK
+    config->ser_private_dynamic_config.semantic_filename = "rethinkdb_data.semantic";
+#endif
     config->log_file = NULL;
     config->tps_log_file = NULL;
     
@@ -285,7 +289,10 @@ void parse_config(int argc, char *argv[], config_t *config) {
         const char *flag = read_arg(argc, argv);
         
         if (strcmp(flag, "-f") == 0) {
-            config->filename = read_arg(argc, argv);
+            config->ser_private_dynamic_config.db_filename = read_arg(argc, argv);
+#ifdef SEMANTIC_SERIALIZER_CHECK
+            config->ser_private_dynamic_config.semantic_filename = config->ser_private_dynamic_config.db_filename + ".semantic";
+#endif
         } else if (strcmp(flag, "--log") == 0) {
             config->log_file = read_arg(argc, argv);
         } else if (strcmp(flag, "--tps-log") == 0) {

@@ -11,6 +11,8 @@
 #include "conn_fsm.hpp"
 #include "server.hpp"
 
+#if 0
+
 class bin_memcached_request_t :
     public request_callback_t,
     public btree_fsm_callback_t
@@ -483,3 +485,4 @@ bin_memcached_handler_t::parse_result_t bin_memcached_handler_t::unimplemented_r
     return request_handler_t::op_malformed;
 }
 
+#endif /* 0 */

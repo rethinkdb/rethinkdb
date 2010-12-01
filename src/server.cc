@@ -30,7 +30,7 @@ void server_t::do_check_store() {
     for (it = serializer_private.begin(); it != serializer_private.end(); ++it) {
         db_filenames.push_back((*it).db_filename);
     }
-    store_t::check_existing(db_filenames, this);
+    btree_key_value_store_t::check_existing(db_filenames, this);
 }
 
 void server_t::on_store_check(bool ok) {
@@ -45,7 +45,7 @@ void server_t::do_start_store() {
 
     assert_cpu();
     
-    store = new store_t(&cmd_config->store_dynamic_config);
+    store = new btree_key_value_store_t(&cmd_config->store_dynamic_config);
     
     bool done;
     if (cmd_config->create_store) {
