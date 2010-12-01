@@ -34,8 +34,8 @@ linux_timer_handler_t::~linux_timer_handler_t() {
     int res;
     
     // Delete the registered timers
-    // TODO: We should instead assert there are no timers.
     while (linux_timer_token_t *t = timers.head()) {
+        assert(t->deleted);
         timers.remove(t);
         delete t;
     }
