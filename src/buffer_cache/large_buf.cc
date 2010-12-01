@@ -34,30 +34,39 @@ int large_buf_t::num_levels(int64_t last_offset) const {
 buftree_t *large_buf_t::allocate_buftree(block_id_t *block_id, int64_t offset, int64_t size, int levels) {
     assert(levels >= 1);
     buftree_t *ret = new buftree_t();
+    ret->buf = transaction->allocate(block_id);
+    allocate_part_of_tree(ret, offset, size, levels);
+    return ret;
+}
+
+void large_buf_t::allocate_part_of_tree(buftree_t *tr, int64_t offset, int64_t size, int levels) {
     if (levels == 1) {
-        assert(size + offset <= num_leaf_bytes());
-        ret->buf = transaction->allocate(block_id);
+        assert(offset + size <= num_leaf_bytes());
     } else {
-        ret->buf = transaction->allocate(block_id);
         int64_t step = max_offset(levels - 1);
 
-        large_buf_internal *node = reinterpret_cast<large_buf_internal *>(ret->buf->get_data_write());
+        // TODO: it's possible for this sometimes to be get_data_read.
+        large_buf_internal *node = reinterpret_cast<large_buf_internal *>(tr->buf->get_data_write());
 
         for (int64_t i = 0; i < offset + size; i += step) {
-            if (i + step <= offset) {
-                ret->children.push_back(NULL);
-            } else {
+            assert((int64_t)tr->children.size() >= i / step);
+            if ((int64_t)tr->children.size() == (i / step))
+                tr->children.push_back(NULL);
+            if (i + step > offset) {
                 int64_t child_offset = std::max(offset - i, 0L);
                 int64_t child_end_offset = std::min(offset + size - i, step);
 
-                block_id_t id;
-                buftree_t *child = allocate_buftree(&id, child_offset, child_end_offset - child_offset, levels - 1);
-                node->kids[i] = id;
-                ret->children.push_back(child);
+                if (tr->children[i / step] != NULL) {
+                    block_id_t id;
+                    buftree_t *child = allocate_buftree(&id, child_offset, child_end_offset - child_offset, levels - 1);
+                    tr->children[i / step] = child;
+                    node->kids[i / step] = id;
+                } else {
+                    allocate_part_of_tree(tr->children[i / step], child_offset, child_end_offset - child_offset, levels - 1);
+                }
             }
         }
     }
-    return ret;
 }
 
 void large_buf_t::allocate(int64_t _size) {
@@ -194,13 +203,6 @@ buftree_t *large_buf_t::add_level(buftree_t *tr, block_id_t id, block_id_t *new_
     node->kids[0] = id;
     ret->children.push_back(tr);
     return ret;
-}
-
-void large_buf_t::allocate_part_of_tree(buftree_t *tr, int64_t offset, int64_t size, int levels) {
-    assert(0);  // NOT IMPLEMENTED. TODO: IMPLEMENT
-
-
-
 }
 
 // TODO check for and support partial acquisition
@@ -524,33 +526,7 @@ uint16_t large_buf_t::pos_to_seg_pos(int64_t pos) {
     return (pos < first ? pos : (pos + root_ref.offset) % num_leaf_bytes());
 }
 
-/*
-block_id_t large_buf_t::get_index_block_id() {
-    assert(state == loaded || state == loading || state == deleted);
-    return index_block_id;
-}
-
-const large_buf_index *large_buf_t::get_index() {
-    assert(index_buf->get_block_id() == get_index_block_id());
-    return reinterpret_cast<const large_buf_index *>(index_buf->get_data_read());
-}
-
-large_buf_index *large_buf_t::get_index_write() {
-    assert(index_buf->get_block_id() == get_index_block_id());
-    return reinterpret_cast<large_buf_index *>(index_buf->get_data_write()); //TODO @shachaf figure out if this can be get_data_read
-
-}
-*/
-
-// A wrapper for transaction->allocate that sets the magic.
-/*
-buf_t *large_buf_t::allocate_segment(block_id_t *id) {
-    buf_t *ret = transaction->allocate(id);
-    large_buf_segment *seg = reinterpret_cast<large_buf_segment *>(ret->get_data_write());
-    seg->magic = large_buf_segment::expected_magic;
-    return ret;
-}
-*/
+// TODO add magic.
 
 large_buf_t::~large_buf_t() {
     assert(state == released);
