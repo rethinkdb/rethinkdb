@@ -45,15 +45,25 @@ void report_fatal_error(const char*, int, const char*, ...);
 
 #define stringify(x) #x
 
-#define guarantee(cond) guaranteef(cond, "Guarantee failed: " stringify(cond))
-#define guaranteef(cond, ...) do { if (!(cond)) { fail_or_trap(__VA_ARGS__); } } while (0);
+#define format_assert_message(assert_type, cond, msg) (assert_type " failed: [" stringify(cond) "] " msg)
+#define guarantee(cond) guaranteef(cond, "", 0)
+#define guaranteef(cond, msg, ...) do { if (!(cond)) { fail_or_trap(format_assert_message("Guarantee", cond, msg), __VA_ARGS__); } } while (0);
+#define guarantee_err(cond, msg) do {                                           \
+        if (!(cond)) {                                                          \
+            if (errno == 0) {                                                   \
+                fail_or_trap(format_assert_message("Guarantee", cond, msg));    \
+            } else {                                                            \
+                fail_or_trap(format_assert_message("Guarantee", cond,  msg " (errno %d - %s)"), errno, strerror(errno));    \
+            }                                                                   \
+        }                                                                       \
+    } while (0);
 
-#define assert(cond) assertf(cond, "Assertion failed: " stringify(cond))
+#define assert(cond) assertf(cond, "", 0)
 
 #ifdef NDEBUG
-#define assertf(cond, ...) ((void)(0))
+#define assertf(cond, msg, ...) ((void)(0))
 #else
-#define assertf(cond, ...) do { if (!(cond)) { fail_or_trap(__VA_ARGS__); } } while (0);
+#define assertf(cond, msg, ...) do { if (!(cond)) { fail_or_trap(format_assert_message("Assertion", cond, msg), __VA_ARGS__); } } while (0);
 #endif
 
 
