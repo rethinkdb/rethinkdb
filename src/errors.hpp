@@ -4,6 +4,13 @@
 
 #include <errno.h>
 #include <stdio.h>
+#include <cstdlib>
+#include <signal.h>
+
+// #if LINUX x86
+//#define BREAKPOINT __asm__ volatile ("int3")
+#define BREAKPOINT raise(SIGTRAP);
+// #endif
 
 /* Error handling
 
@@ -14,26 +21,41 @@ There are several ways to report errors in RethinkDB:
        it's a legacy thing.
 */
 
-#define fail(...) _fail(__FILE__, __LINE__, __VA_ARGS__)
-void _fail(const char*, int, const char*, ...) __attribute__ ((noreturn));
+#define fail(...) do {                                          \
+        report_fatal_error(__FILE__, __LINE__, __VA_ARGS__);    \
+        abort();                                                \
+    } while (0);
 
-#define check(msg, err) \
-    ((err) ? \
-        (errno == 0 ? \
-            fail((msg)) : \
-            fail(msg " (errno %d - %s)", errno, strerror(errno))    \
-            ) : \
-        (void)(0) \
-        )
+#define fail_or_trap(...) do {                                  \
+        report_fatal_error(__FILE__, __LINE__, __VA_ARGS__);    \
+        BREAKPOINT;                                             \
+    } while (0);
+
+void report_fatal_error(const char*, int, const char*, ...);
+
+#define check(msg, err) do {                                            \
+        if ((err)) {                                                    \
+            if (errno == 0) {                                           \
+                fail((msg));                                            \
+            } else {                                                    \
+                fail(msg " (errno %d - %s)", errno, strerror(errno));   \
+            }                                                           \
+        }                                                               \
+    } while (0);
 
 #define stringify(x) #x
+
+#define guarantee(cond) guaranteef(cond, "Guarantee failed: " stringify(cond))
+#define guaranteef(cond, ...) do { if (!(cond)) { fail_or_trap(__VA_ARGS__); } } while (0);
+
 #define assert(cond) assertf(cond, "Assertion failed: " stringify(cond))
 
 #ifdef NDEBUG
 #define assertf(cond, ...) ((void)(0))
 #else
-#define assertf(cond, ...) ((cond) ? (void)(0) : fail(__VA_ARGS__))
+#define assertf(cond, ...) do { if (!(cond)) { fail_or_trap(__VA_ARGS__); } } while (0);
 #endif
+
 
 #ifndef NDEBUG
 void print_backtrace(FILE *out = stderr, bool use_addr2line = true);
