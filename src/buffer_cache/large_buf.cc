@@ -402,8 +402,6 @@ buftree_t *large_buf_t::remove_level(buftree_t *tr, block_id_t id, block_id_t *i
 #ifndef NDEBUG
     num_bufs--;
 #endif
-    // TODO: this is broken, how do you know the child is at offset 0?
-    // Unprepend doesn't shift (yet).
     buftree_t *ret = tr->children[0];
     delete tr;
     *idout = ret->buf->get_block_id();
