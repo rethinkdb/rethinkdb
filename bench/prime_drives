@@ -6,18 +6,18 @@ SSD_DRIVES="/dev/sdb /dev/sdc /dev/sdd /dev/sde"
 
 sleep 3
 
-for DRIVE in $SSD_DRIVES
-do
-    echo Performing security erase on $DRIVE
-    sudo hdparm --user-master u --security-set-pass test $DRIVE
-    sudo hdparm --user-master u --security-erase test $DRIVE
-    echo Done
-done
+#for DRIVE in $SSD_DRIVES
+#do
+#    echo Performing security erase on $DRIVE
+#    sudo hdparm --user-master u --security-set-pass test $DRIVE
+#    sudo hdparm --user-master u --security-erase test $DRIVE
+#    echo Done
+#done
 
 for DRIVE in $SSD_DRIVES
 do
     echo Starting to prime $DRIVE
-    ./serializer-bench/serializer-bench -f $DRIVE --forever &
+    ./serializer-bench/serializer-bench -f $DRIVE --forever --active-data-extents 1 --extent-size 8388608 --concurrent 8 &
 done
 
 echo Waiting for all prime tasks to complete
