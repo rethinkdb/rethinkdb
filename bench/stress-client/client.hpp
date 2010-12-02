@@ -197,9 +197,10 @@ void* run_client(void* data) {
         for (int i = 0; i < config->batch_factor.max; i++)
             op_keys[i].first = key_space + (config->keys.max * i);
 
-        payload_t op_val;
+        payload_t op_vals[config->batch_factor.max];
 
-        op_val.first = shared->value_buf;
+        for (int i = 0; i < config->batch_factor.max; i++)
+            op_vals[i].first = shared->value_buf;
 
         int j, k, l; // because we can't declare in the loop
         uint64_t id_salt = client_data->id;
@@ -230,10 +231,10 @@ void* run_client(void* data) {
 
             config->keys.toss(op_keys, random(client_data->min_seed, client_data->max_seed) ^ id_salt);
 
-            op_val.second = random(config->values.min, config->values.max);
+            op_vals[0].second = random(config->values.min, config->values.max);
 
             // Send it to server
-            proto->update(op_keys->first, op_keys->second, op_val.first, op_val.second);
+            proto->update(op_keys->first, op_keys->second, op_vals[0].first, op_vals[0].second);
             // Free the value
             qps++;
             total_queries++;
@@ -241,12 +242,13 @@ void* run_client(void* data) {
 
         case load_t::insert_op:
             // Generate the payload
+            printf("Setting key:%d\n", client_data->max_seed);
             config->keys.toss(op_keys, client_data->max_seed ^ id_salt);
-            op_val.second = random(config->values.min, config->values.max);
+            op_vals[0].second = seeded_random(config->values.min, config->values.max, client_data->max_seed ^ id_salt);
 
             client_data->max_seed++;
             // Send it to server
-            proto->insert(op_keys->first, op_keys->second, op_val.first, op_val.second);
+            proto->insert(op_keys->first, op_keys->second, op_vals[0].first, op_vals[0].second);
             // Free the value and save the key
             qps++;
             total_queries++;
@@ -259,12 +261,15 @@ void* run_client(void* data) {
                 break;
             j = random(config->batch_factor.min, config->batch_factor.max);
             j = std::min(j, client_data->max_seed - client_data->min_seed);
-            l = random(client_data->min_seed, client_data->max_seed);
-            for(k = 0; k < j; k++) {
+            l = random(client_data->min_seed, client_data->max_seed - 1);
+            for (k = 0; k < j; k++) {
+                printf("Getting key: %d\n", l);
                 config->keys.toss(&op_keys[k], l ^ id_salt);
+                op_vals[k].second = seeded_random(config->values.min, config->values.max, l ^ id_salt);
                 l++;
                 if(l >= client_data->max_seed)
                     l = client_data->min_seed;
+
             }
             // Read it from the server
             proto->read(&op_keys[0], j);

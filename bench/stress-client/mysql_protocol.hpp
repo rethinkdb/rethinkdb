@@ -221,7 +221,7 @@ struct mysql_protocol_t : public protocol_t {
         }
     }
 
-    virtual void read(payload_t *keys, int count) {
+    virtual void read(payload_t *keys, int count, payload_t *values = NULL) {
         // Bind the data
         MYSQL_BIND bind[count];
         memset(bind, 0, sizeof(bind));

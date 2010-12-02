@@ -14,7 +14,13 @@ struct protocol_t {
     virtual void insert(const char *key, size_t key_size,
                         const char *value, size_t value_size) = 0;
 
-    virtual void read(payload_t *keys, int count) = 0;
+    virtual void read(payload_t *keys, int count, payload_t *values = NULL) = 0;
+
+    /* virtual void append(const char *key, size_t key_size,
+                        const char *value, size_t value_size) = 0;
+
+    virtual void preppend(const char *key, size_t key_size,
+                          const char *value, size_t value_size) = 0; */
 
     virtual void shared_init() {}
 

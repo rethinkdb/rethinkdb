@@ -38,7 +38,7 @@ public:
         size += size << 5;
         size ^= size >> 11;
         size += size << 2;
-        size ^= size >> 47;
+        size ^= size >> 45;
         size += size << 13;
 
         size %= max - min + 1;
@@ -55,6 +55,8 @@ public:
 
             hash += hash << 43;
             hash ^= hash >> 27;
+            hash ^= hash >> 13;
+            hash ^= hash << 11;
 
             unsigned char *hash_head = (unsigned char *) &hash;
 
