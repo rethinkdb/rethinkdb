@@ -271,7 +271,7 @@ class txt_memcached_incr_decr_request_t :
     bool noreply;
     
 public:
-    txt_memcached_incr_decr_request_t(txt_memcached_handler_t *rh, btree_key *key, bool increment, long long delta, bool noreply)
+    txt_memcached_incr_decr_request_t(txt_memcached_handler_t *rh, btree_key *key, bool increment, unsigned long long delta, bool noreply)
         : rh(rh), noreply(noreply)
     {
         if (increment) rh->server->store->incr(key, delta, this);
@@ -669,7 +669,7 @@ txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::parse_adjustmen
     }
 
     node_handler::str_to_key(key_tmp, &key);
-    long long delta = atoll(value_str);
+    unsigned long long delta = strtoull(value_str, NULL, 10);
     new txt_memcached_incr_decr_request_t(this, &key, increment, delta, noreply);
 
     conn_fsm->consume(line_len);
