@@ -8,6 +8,7 @@
 #include "arch/arch.hpp"
 
 void generic_crash_handler(int signum) {
+    fprintf(stderr, "Signum: %d\n", signum);
     fail("Internal crash detected.");
 }
 
