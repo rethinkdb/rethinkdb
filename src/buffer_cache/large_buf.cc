@@ -311,7 +311,7 @@ void large_buf_t::prepend(int64_t extra_size, large_buf_ref *refout) {
             large_buf_internal *node = (large_buf_internal *)tr->buf->get_data_write();
             assert((int64_t)tr->children.size() == back_k);
             tr->children.resize(back_k + k);
-            for (int w = back_k; w-- > k;) {
+            for (int w = back_k; w-- > 0;) {
                 node->kids[w + k] = node->kids[w];
                 tr->children[w + k] = tr->children[w];
             }
