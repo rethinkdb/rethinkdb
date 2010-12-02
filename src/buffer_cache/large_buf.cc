@@ -46,9 +46,9 @@ buftree_t *large_buf_t::allocate_buftree(int64_t offset, int64_t size, int level
     num_bufs++;
 #endif
 
+#ifndef NDEBUG
     large_buf_internal *node = reinterpret_cast<large_buf_internal *>(ret->buf->get_data_write());
 
-#ifndef NDEBUG
     for (int i = 0; i < num_internal_kids(); ++i) {
         node->kids[i] = NULL_BLOCK_ID;
     }
