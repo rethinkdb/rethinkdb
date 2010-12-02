@@ -7,7 +7,7 @@ class btree_incr_decr_fsm_t : public btree_modify_fsm_t
 {
     typedef btree_fsm_t::transition_result_t transition_result_t;
 public:
-    explicit btree_incr_decr_fsm_t(btree_key *_key, btree_key_value_store_t *store, bool increment, long long delta, store_t::incr_decr_callback_t *cb)
+    explicit btree_incr_decr_fsm_t(btree_key *_key, btree_key_value_store_t *store, bool increment, unsigned long long delta, store_t::incr_decr_callback_t *cb)
         : btree_modify_fsm_t(_key, store),
           increment(increment),
           delta(delta),
@@ -44,19 +44,14 @@ public:
             return;
         }
 
-       /*  NOTE: memcached actually does a few things differently:
-        *   - If you say `decr X -50`, memcached will set X to 0 no matter
-        *      what it's value is. We on the other hand will add 50 to X.
-        *
-        *   - Also, if you say 'incr X -50' in memcached and the value
-        *     goes below 0, memcached will wrap around. We just set the value to 0.
-        */
         
+	// If we overflow when doing an increment, set number to 0 (this is as memcached does it as of version 1.4.5)
+	// for decrements, set to 0 on underflows
         if (increment) {
-            if (delta < 0 && new_number + delta > new_number) new_number = 0;
+            if (new_number + delta < new_number) new_number = 0;
             else new_number += delta;
         } else {
-            if (delta > 0 && new_number - delta > new_number) new_number = 0;
+            if (new_number - delta > new_number) new_number = 0;
             else new_number -= delta;
         }
         
@@ -91,7 +86,7 @@ public:
     
 private:
     bool increment;   // If false, then decrement
-    long long delta;   // Amount to increment or decrement by
+    unsigned long long delta;   // Amount to increment or decrement by
     store_t::incr_decr_callback_t *callback;
     
     /* Used as temporary storage, so that the value we return from operate() doesn't become invalid
