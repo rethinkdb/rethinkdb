@@ -39,7 +39,9 @@ buftree_t *large_buf_t::allocate_buftree(int64_t offset, int64_t size, int level
     assert(levels >= 1);
     buftree_t *ret = new buftree_t();
     ret->buf = transaction->allocate(block_id);
+#ifndef NDEBUG
     num_bufs++;
+#endif
     allocate_part_of_tree(ret, offset, size, levels);
     return ret;
 }
@@ -111,6 +113,7 @@ struct acquire_buftree_fsm_t : public block_available_callback_t, public tree_av
         : block_id(block_id_), offset(offset_), size(size_), levels(levels_), cb(cb_), tr(new buftree_t()), index(index_), lb(lb_) { }
 
     void go() {
+        debugf("acquiring a buf: block_id=%d\n", block_id);
         buf_t *buf = lb->transaction->acquire(block_id, lb->access, this);
         if (buf) {
             on_block_available(buf);
@@ -210,7 +213,9 @@ void large_buf_t::buftree_acquired(buftree_t *tr) {
 buftree_t *large_buf_t::add_level(buftree_t *tr, block_id_t id, block_id_t *new_id) {
     buftree_t *ret = new buftree_t();
     ret->buf = transaction->allocate(new_id);
+#ifndef NDEBUG
     num_bufs++;
+#endif
     large_buf_internal *node = reinterpret_cast<large_buf_internal *>(ret->buf->get_data_write());
     node->kids[0] = id;
     ret->children.push_back(tr);
@@ -322,7 +327,9 @@ void large_buf_t::fill_tree_at(buftree_t *tr, int64_t pos, const byte *data, int
 buftree_t *large_buf_t::remove_level(buftree_t *tr, block_id_t id, block_id_t *idout) {
     tr->buf->mark_deleted();
     tr->buf->release();
+#ifndef NDEBUG
     num_bufs--;
+#endif
     buftree_t *ret = tr->children[0];
     delete tr;
     *idout = ret->buf->get_block_id();
@@ -382,7 +389,9 @@ void large_buf_t::walk_tree_structure(buftree_t *tr, int64_t offset, int64_t siz
 void mark_deleted_and_release(large_buf_t *lb, buf_t *b) {
     b->mark_deleted();
     b->release();
+#ifndef NDEBUG
     lb->num_bufs--;
+#endif
 }
 
 void mark_deleted_only(large_buf_t *lb, buf_t *b) {
@@ -390,7 +399,9 @@ void mark_deleted_only(large_buf_t *lb, buf_t *b) {
 }
 void release_only(large_buf_t *lb, buf_t *b) {
     b->release();
+#ifndef NDEBUG
     lb->num_bufs--;
+#endif
 }
 
 void buftree_delete(buftree_t *tr) {
