@@ -80,7 +80,7 @@ private:
             btree_key key;
         };
         
-        buffer_group_t *buffer;   // Can be NULL
+        const_buffer_group_t *buffer;   // Can be NULL
         store_t::get_callback_t::done_callback_t *callback;
         mcflags_t flags;
         cas_t cas;
@@ -88,7 +88,7 @@ private:
         bool ready, sending;
         int buffer_being_sent;
         
-        void value(buffer_group_t *b, store_t::get_callback_t::done_callback_t *cb, mcflags_t f, cas_t c) {
+        void value(const_buffer_group_t *b, store_t::get_callback_t::done_callback_t *cb, mcflags_t f, cas_t c) {
             assert(b);
             buffer = b;
             callback = cb;
@@ -122,8 +122,8 @@ private:
                 // TODO: The "1000" is a magic constant for streaming vs. buffering.
                 if (buffer->get_size() < 1000) {
                     for (int i = 0; i < (signed)buffer->buffers.size(); i++) {
-                        buffer_group_t::buffer_t b = buffer->buffers[i];
-                        parent->rh->conn_fsm->sbuf->append((char *)b.data, b.size);
+                        const_buffer_group_t::buffer_t b = buffer->buffers[i];
+                        parent->rh->conn_fsm->sbuf->append((const char *)b.data, b.size);
                     }
                     callback->have_copied_value();
                     parent->rh->conn_fsm->sbuf->printf("\r\n");
@@ -144,7 +144,7 @@ private:
                 parent->rh->conn_fsm->sbuf->printf("\r\n");
                 done();
             } else {
-                parent->rh->write_value((char *)buffer->buffers[buffer_being_sent].data, buffer->buffers[buffer_being_sent].size, this);
+                parent->rh->write_value((const char *)buffer->buffers[buffer_being_sent].data, buffer->buffers[buffer_being_sent].size, this);
             }
         }
         

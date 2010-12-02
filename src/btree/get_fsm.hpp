@@ -54,7 +54,7 @@ public:
         btree_value value;
     };
     large_buf_t *large_value;
-    buffer_group_t value_buffers;
+    const_buffer_group_t value_buffers;
 
 private:
     using btree_fsm_t::cache;

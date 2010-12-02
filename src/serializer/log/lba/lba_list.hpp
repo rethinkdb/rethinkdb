@@ -4,7 +4,7 @@
 #define __SERIALIZER_LOG_LBA_LIST_HPP__
 
 #include "serializer/serializer.hpp"
-#include "../extents/extent_manager.hpp"
+#include "serializer/log/extents/extent_manager.hpp"
 #include "disk_format.hpp"
 #include "in_memory_index.hpp"
 #include "disk_structure.hpp"

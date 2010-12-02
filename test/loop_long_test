@@ -45,6 +45,8 @@ def main():
     while True:
         os.system('git pull')
         start_time = time.time()
+        os.system('make -C ../src clean')
+        os.system('make -j -C ../src')
         os.system('rm -rf output_from_test')
         os.system('./integration/long_test.py --stress ../bench/stress-client/stress --auto --no-timeout --cores 4 --no-valgrind')
         duration = time.time() - start_time
