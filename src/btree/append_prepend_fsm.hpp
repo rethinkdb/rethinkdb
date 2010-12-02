@@ -54,10 +54,9 @@ public:
             // Prepare the large value if necessary.
             if (!old_value->is_large()) { // small -> large; allocate a new large value and copy existing value into it.
                 large_value = new large_buf_t(this->transaction);
-                large_value->allocate(new_size);
+                large_value->allocate(new_size, value.large_buf_ref_ptr());
                 if (append) large_value->fill_at(0, old_value->value(), old_value->value_size());
                 else        large_value->fill_at(data->get_size(), old_value->value(), old_value->value_size());
-                value.set_lb_ref(large_value->get_root_ref());
                 is_old_large_value = false;
             } else { // large -> large; expand existing large value
                 large_value = old_large_value;

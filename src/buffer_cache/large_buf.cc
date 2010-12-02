@@ -78,7 +78,7 @@ void large_buf_t::allocate_part_of_tree(buftree_t *tr, int64_t offset, int64_t s
     }
 }
 
-void large_buf_t::allocate(int64_t _size) {
+void large_buf_t::allocate(int64_t _size, large_buf_ref *refout) {
     access = rwi_write;
 
     assert(state == not_loaded);
@@ -87,9 +87,12 @@ void large_buf_t::allocate(int64_t _size) {
 
     root_ref.offset = 0;
     root_ref.size = _size;
+    debugf("allocate setting root_ref.size to %d\n", root_ref.size);
     root = allocate_buftree(0, _size, num_levels(_size), &root_ref.block_id);
 
     state = loaded;
+
+    *refout = root_ref;
 }
 
 struct tree_available_callback_t {
@@ -199,7 +202,7 @@ void large_buf_t::acquire_slice(large_buf_ref root_ref_, access_t access_, int64
 }
 
 void large_buf_t::acquire(large_buf_ref root_ref_, access_t access_, large_buf_available_callback_t *callback_) {
-    acquire_slice(root_ref_, access_, root_ref_.offset, root_ref_.size, callback_);
+    acquire_slice(root_ref_, access_, 0, root_ref_.size, callback_);
 }
 
 void large_buf_t::buftree_acquired(buftree_t *tr) {
@@ -239,6 +242,7 @@ void large_buf_t::append(int64_t extra_size) {
 
     allocate_part_of_tree(tr, back, extra_size, levels);
     root_ref.size += extra_size;
+    debugf("append setting root_ref.size to %d\n", root_ref.size);
     root_ref.block_id = id;
     root = tr;
 }
@@ -256,6 +260,7 @@ void large_buf_t::prepend(int64_t extra_size) {
         allocate_part_of_tree(root, newoffset, extra_size, oldlevels);
         root_ref.offset = newoffset;
         root_ref.size += extra_size;
+        debugf("prepend(1) setting root_ref.size to %d\n", root_ref.size);
     } else {
         block_id_t id = root_ref.block_id;
         buftree_t *tr = root;
@@ -293,6 +298,7 @@ void large_buf_t::prepend(int64_t extra_size) {
 
         root_ref.block_id = id;
         root_ref.size += extra_size;
+        debugf("prepend(2) setting root_ref.size to %d\n", root_ref.size);
     }
 }
 
@@ -355,6 +361,7 @@ void large_buf_t::unappend(int64_t extra_size) {
 
     root_ref.block_id = id;
     root_ref.size -= extra_size;
+    debugf("unappend setting root_ref.size to %d\n", root_ref.size);
 }
 
 void large_buf_t::walk_tree_structure(buftree_t *tr, int64_t offset, int64_t size, int levels, void (*bufdoer)(large_buf_t *, buf_t *), void (*buftree_cleaner)(buftree_t *)) {
@@ -442,6 +449,7 @@ void large_buf_t::unprepend(int64_t extra_size) {
     root_ref.block_id = id;
     root_ref.offset += extra_size;
     root_ref.size -= extra_size;
+    debugf("unprepend setting root_ref.size to %d\n", root_ref.size);
 }
 
 
