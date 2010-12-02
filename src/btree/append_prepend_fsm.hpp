@@ -19,24 +19,19 @@ public:
 
     void operate(btree_value *old_value, large_buf_t *old_large_value, bool *delete_old_large_buf) {
 
-        debugf("operate..\n");
         if (!old_value) {
             result = result_not_found;
             data->get_value(NULL, this);
             return;
         }
 
-        //        debugf("operate 2.. lv exists=%d, lv.rr.size=%d old_value exists=%d large=%d refblock=%d refoff=%d refsize=%d\n", !!old_large_value, old_large_value ? old_large_value->get_root_ref().size : -1, !!old_value, old_value, old_value ? old_value->is_large() : -1, old_value->large_buf_ref().block_id, old_value->large_buf_ref().offset, old_value->large_buf_ref().size);
         size_t new_size = old_value->value_size() + data->get_size();
-        debugf("operate 2.5.\n");
-
         if (new_size > MAX_VALUE_SIZE) {
             result = result_too_large;
             data->get_value(NULL, this);
             return;
         }
 
-        debugf("operate 3..\n");
         // Copy flags, exptime, etc.
 
         valuecpy(&value, old_value);
@@ -81,8 +76,6 @@ public:
             while (fill_size > 0) {
                 uint16_t seg_len;
                 byte_t *seg = large_value->get_segment_write(ix, &seg_len);
-                debugf("append_prepend seg_len=%d seg_pos=%d lvoffset=%d lvsize=%d ix=%d\n",
-                       seg_len, seg_pos, large_value->get_root_ref().offset, large_value->get_root_ref().size, ix);
 
                 assert(seg_len >= seg_pos);
                 uint16_t seg_bytes_to_fill = std::min((uint32_t)(seg_len - seg_pos), fill_size);
