@@ -20,6 +20,7 @@
 #define STORAGE_FAILURE "NOT_STORED\r\n"
 #define NOT_FOUND "NOT_FOUND\r\n"
 #define INCR_DECR_ON_NON_NUMERIC_VALUE "CLIENT_ERROR cannot increment or decrement non-numeric value\r\n"
+#define INCR_DECR_ON_NON_UINT_ARGUMENT "CLIENT_ERROR invalid numeric delta argument\r\n"
 #define KEY_EXISTS "EXISTS\r\n"
 #define DELETE_SUCCESS "DELETED\r\n"
 #define RETRIEVE_TERMINATOR "END\r\n"
@@ -669,8 +670,18 @@ txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::parse_adjustmen
     }
 
     node_handler::str_to_key(key_tmp, &key);
-    unsigned long long delta = strtoull(value_str, NULL, 10);
-    new txt_memcached_incr_decr_request_t(this, &key, increment, delta, noreply);
+    // First convert to signed long to catch negative arguments (strtoull handles them as valid unsigned numbers)
+    signed long long signed_delta = strtoll(value_str, NULL, 10);
+    char *endptr = NULL;
+    unsigned long long delta = strtoull(value_str, &endptr, 10);
+    if (*endptr != '\0' || signed_delta < 0) {
+        if (!noreply) {
+            conn_fsm->sbuf->printf(INCR_DECR_ON_NON_UINT_ARGUMENT);
+            request_complete();
+        }
+    } else {
+        new txt_memcached_incr_decr_request_t(this, &key, increment, delta, noreply);
+    }
 
     conn_fsm->consume(line_len);
 
