@@ -109,6 +109,9 @@ struct store_t {
         /* Called if you cas() and the key was modified since get_cas(). */
         virtual void exists() = 0;
         
+        /* Response if the value to be stored is too big */
+        virtual void too_large() = 0;
+        
         /* Called if the data_provider_t that you gave returned have_failed(). */
         virtual void data_provider_failed() = 0;
     };

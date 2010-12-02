@@ -19,6 +19,7 @@
 #define STORAGE_FAILURE "NOT_STORED\r\n"
 #define NOT_FOUND "NOT_FOUND\r\n"
 #define INCR_DECR_ON_NON_NUMERIC_VALUE "CLIENT_ERROR cannot increment or decrement non-numeric value\r\n"
+#define INCR_DECR_ON_NON_UINT_ARGUMENT "CLIENT_ERROR invalid numeric delta argument\r\n"
 #define KEY_EXISTS "EXISTS\r\n"
 #define DELETE_SUCCESS "DELETED\r\n"
 #define RETRIEVE_TERMINATOR "END\r\n"
@@ -118,8 +119,7 @@ private:
                         "VALUE %*.*s %u %u\r\n",
                         key.size, key.size, key.contents, flags, buffer->get_size());
                 }
-                // TODO: The "1000" is a magic constant for streaming vs. buffering.
-                if (buffer->get_size() < 1000) {
+                if (buffer->get_size() < MAX_BUFFERED_GET_SIZE) {
                     for (int i = 0; i < (signed)buffer->buffers.size(); i++) {
                         const_buffer_group_t::buffer_t b = buffer->buffers[i];
                         parent->rh->conn_fsm->sbuf->append((const char *)b.data, b.size);
@@ -232,6 +232,11 @@ public:
         done();
     }
     
+    void too_large() {
+        if (!noreply) rh->conn_fsm->sbuf->printf(TOO_LARGE);
+        done();
+    }
+    
     void data_provider_failed() {
         // read_data() handles printing the error
         done();
@@ -270,7 +275,7 @@ class txt_memcached_incr_decr_request_t :
     bool noreply;
     
 public:
-    txt_memcached_incr_decr_request_t(txt_memcached_handler_t *rh, btree_key *key, bool increment, unsigned long long delta, bool noreply)
+    txt_memcached_incr_decr_request_t(txt_memcached_handler_t *rh, btree_key *key, bool increment, long long delta, bool noreply)
         : rh(rh), noreply(noreply)
     {
         if (increment) rh->server->store->incr(key, delta, this);
@@ -590,9 +595,9 @@ txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::parse_request(e
 
     // Execute command
     if(!strcmp(cmd_str, "get")) {    // check for retrieval commands
-        return get(state, line_len);
+        return get(state, line_len, false);
     } else if(!strcmp(cmd_str, "gets")) {
-        return get_cas(state, line_len);
+        return get(state, line_len, true);
 
     } else if(!strcmp(cmd_str, "set")) {     // check for storage commands
         return parse_storage_command(SET, state, line_len);
@@ -669,8 +674,18 @@ txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::parse_adjustmen
     }
 
     node_handler::str_to_key(key_tmp, &key);
-    unsigned long long delta = strtoull(value_str, NULL, 10);
-    new txt_memcached_incr_decr_request_t(this, &key, increment, delta, noreply);
+    // First convert to signed long to catch negative arguments (strtoull handles them as valid unsigned numbers)
+    signed long long signed_delta = strtoll(value_str, NULL, 10);
+    char *endptr = NULL;
+    unsigned long long delta = strtoull(value_str, &endptr, 10);
+    if (*endptr != '\0' || signed_delta < 0) {
+        if (!noreply) {
+            conn_fsm->sbuf->printf(INCR_DECR_ON_NON_UINT_ARGUMENT);
+            request_complete();
+        }
+    } else {
+        new txt_memcached_incr_decr_request_t(this, &key, increment, delta, noreply);
+    }
 
     conn_fsm->consume(line_len);
 
@@ -752,21 +767,8 @@ txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::read_data() {
     /* This function is a messy POS. It is possibly called many times per request, and it
     performs several different roles, some of which I don't entirely understand. */
     
-    if (consuming) {
-        int bytes_to_consume = std::min(conn_fsm->nrbuf, bytes);
-        conn_fsm->consume(bytes_to_consume);
-        bytes -= bytes_to_consume;
-        if (bytes == 0) {
-            consuming = false;
-            loading_data = false;
-            return request_handler_t::op_req_send_now;
-        } else {
-            return request_handler_t::op_partial_packet;
-        }
-    }
-    
     data_provider_t *dp;
-    bool is_large = bytes > 1000;   // Threshold for buffering vs. streaming TODO: make a defined constant.
+    bool is_large = bytes > MAX_BUFFERED_SET_SIZE;
     if (!is_large) {
         if (conn_fsm->nrbuf < bytes + 2){ // check that the buffer contains enough data.  must also include \r\n
             return request_handler_t::op_partial_packet;
@@ -798,11 +800,6 @@ txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::read_data() {
                 conn_fsm->sbuf->printf(BAD_BLOB);
                 return request_handler_t::op_malformed;
             }
-        } else if (bytes > MAX_VALUE_SIZE) {
-            conn_fsm->sbuf->printf(TOO_LARGE);
-            consuming = true;
-            bytes += 2; // \r\n
-            return request_handler_t::op_req_send_now;
         } else {
             dp = new rh_data_provider_t(this, bytes);
         }
@@ -855,14 +852,14 @@ txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::unimplemented_r
     return request_handler_t::op_malformed;
 }
 
-txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::get(char *state, unsigned int line_len) {
+txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::get(char *state, unsigned int line_len, bool with_cas) {
     txt_memcached_handler_t::parse_result_t res;
 
     char *key_str = strtok_r(NULL, DELIMS, &state);
     if (key_str == NULL) { 
         res = malformed_request();
     } else {
-        txt_memcached_get_request_t *rq = new txt_memcached_get_request_t(this, false);
+        txt_memcached_get_request_t *rq = new txt_memcached_get_request_t(this, with_cas);
 
         do {
             if (strlen(key_str) >  MAX_KEY_SIZE) {
@@ -897,45 +894,6 @@ error_breakout:
     conn_fsm->consume(line_len); //XXX this line must always be called (no returning from anywhere else)
     return res;
 }
-
-// FIXME horrible redundancy
-txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::get_cas(char *state, unsigned int line_len) {
-    txt_memcached_handler_t::parse_result_t res;
-
-    char *key_str = strtok_r(NULL, DELIMS, &state);
-    if (key_str == NULL) {
-        res = malformed_request();
-    } else {
-        txt_memcached_get_request_t *rq = new txt_memcached_get_request_t(this, true);
-
-        do {
-            node_handler::str_to_key(key_str, &key);
-
-            if (!rq->add_get(&key)) {
-                // We can't fit any more operations, let's just break
-                // and complete the ones we already sent out to other
-                // cores.
-                break;
-
-                // TODO: to a user, it will look like some of his
-                // requests aren't satisfied. We need to notify them
-                // somehow.
-            }
-
-            key_str = strtok_r(NULL, DELIMS, &state);
-
-        } while(key_str);
-        
-        rq->dispatch();
-        
-        res = request_handler_t::op_req_complex;
-    }
-
-    //clean out the rbuf
-    conn_fsm->consume(line_len); //XXX this line must always be called (no returning from anywhere else)
-    return res;
-}
-
 
 txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::remove(char *state, unsigned int line_len) {
     char *key_str = strtok_r(NULL, DELIMS, &state);

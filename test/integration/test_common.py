@@ -519,7 +519,7 @@ def auto_server_test_main(test_function, opts, timeout = 30, extra_flags = []):
             nrc = NetRecord(port)
             port = nrc.port
         
-        if not run_and_report(test_function, (opts, port), timeout=timeout): sys.exit(1)
+        if not run_and_report(test_function, (opts, port), timeout = adjust_timeout(opts, timeout)): sys.exit(1)
         
         if opts["netrecord"]:
             nrc.stop()
@@ -554,7 +554,7 @@ def simple_test_main(test_function, opts, timeout = 30, extra_flags = []):
             port = nrc.port
         
         mc = connect_to_port(opts, port)
-        ok = run_and_report(test_function, (opts, mc), timeout = timeout)
+        ok = run_and_report(test_function, (opts, mc), timeout = adjust_timeout(opts, timeout))
         mc.disconnect_all()
         
         if opts["netrecord"]:

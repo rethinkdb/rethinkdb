@@ -43,7 +43,16 @@ for (mode, checker) in [
                       "cores"       : cores,
                       "slices"      : slices },
                     repeat=3)
-        
+            
+            do_test("integration/big_values.py",
+                    { "auto"        : True,
+                      "mode"        : mode,
+                      "no-valgrind" : not checker,
+                      "protocol"    : protocol,
+                      "cores"       : cores,
+                      "slices"      : slices },
+                    repeat=3)
+            
             do_test("integration/cas.py",
                     { "auto"        : True,
                       "mode"        : mode,
