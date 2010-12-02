@@ -77,6 +77,7 @@ void large_buf_t::allocate_part_of_tree(buftree_t *tr, int64_t offset, int64_t s
                     block_id_t id;
                     buftree_t *child = allocate_buftree(child_offset, child_end_offset - child_offset, levels - 1, &id);
                     tr->children[i / step] = child;
+                    debugf("SETTING child of %d to be %d (at offset %d)\n", tr->buf->get_block_id(), id, i / step);
                     node->kids[i / step] = id;
                 } else {
                     allocate_part_of_tree(tr->children[i / step], child_offset, child_end_offset - child_offset, levels - 1);
@@ -144,7 +145,7 @@ struct acquire_buftree_fsm_t : public block_available_callback_t, public tree_av
             int64_t step = lb->max_offset(levels - 1);
 
             const large_buf_internal *node = reinterpret_cast<const large_buf_internal *>(buf->get_data_read());
-            debugf("on_block_available a few buf ids... %d %d %d\n", node->kids[0], node->kids[1], node->kids[2]);
+            debugf("on_block_available a few buf ids (of block %d)... %d %d %d\n", buf->get_block_id(), node->kids[0], node->kids[1], node->kids[2]);
 
             // We start life_counter to 1 and decrement after the for
             // loop, so that it can't reach 0 until we're done the for
@@ -242,6 +243,9 @@ void large_buf_t::append(int64_t extra_size, large_buf_ref *refout) {
     assert(state == loaded);
     // TODO make sure you aren't getting a total b.s. size that creates an overflow and destroys data.
 
+    debugf("Before append of size %ld\n", extra_size);
+    draw_buftree(root, root_ref.offset, root_ref.size, num_levels(root_ref.offset + root_ref.size));
+
     buftree_t *tr = root;
 
     int64_t back = root_ref.offset + root_ref.size;
@@ -258,6 +262,9 @@ void large_buf_t::append(int64_t extra_size, large_buf_ref *refout) {
     root_ref.block_id = id;
     root = tr;
     *refout = root_ref;
+
+    debugf("After append of size %ld\n", extra_size);
+    draw_buftree(root, root_ref.offset, root_ref.size, num_levels(root_ref.offset + root_ref.size));
 }
 
 void large_buf_t::prepend(int64_t extra_size, large_buf_ref *refout) {
@@ -302,8 +309,16 @@ void large_buf_t::prepend(int64_t extra_size, large_buf_ref *refout) {
             memset(leaf->buf, 0, k);
         } else {
             large_buf_internal *node = (large_buf_internal *)tr->buf->get_data_write();
-            memmove(node->kids + k, node->kids, sizeof(*node->kids) * back_k);
-            memset(node->kids, 0, sizeof(*node->kids) * k);
+            assert((int64_t)tr->children.size() == back_k);
+            tr->children.resize(back_k + k);
+            for (int w = back_k; w-- > k;) {
+                node->kids[w + k] = node->kids[w];
+                tr->children[w + k] = tr->children[w];
+            }
+            for (int w = k; w-- > 0;) {
+                node->kids[w] = NULL_BLOCK_ID;
+                tr->children[w] = NULL;
+            }
         }
 
         root_ref.offset = newoffset + k * shiftsize;
@@ -325,12 +340,12 @@ void large_buf_t::fill_at(int64_t pos, const byte *data, int64_t fill_size) {
     assert(pos + fill_size <= root_ref.size);
 
     int levels = num_levels(root_ref.offset + root_ref.size);
-    fill_tree_at(root, pos, data, fill_size, levels);
+    fill_tree_at(root, root_ref.offset + pos, data, fill_size, levels);
 }
 
 void large_buf_t::fill_tree_at(buftree_t *tr, int64_t pos, const byte *data, int64_t fill_size, int levels) {
     if (levels == 1) {
-        large_buf_leaf *node = reinterpret_cast<large_buf_leaf *>(root->buf->get_data_write());
+        large_buf_leaf *node = reinterpret_cast<large_buf_leaf *>(tr->buf->get_data_write());
         memcpy(node->buf + pos, data, fill_size);
     } else {
         int64_t step = max_offset(levels - 1);
@@ -582,6 +597,42 @@ uint16_t large_buf_t::pos_to_seg_pos(int64_t pos) {
     assert(seg_pos < num_leaf_bytes());
     return seg_pos;
 }
+
+void large_buf_t::draw_buftree(buftree_t *tr, int64_t offset, int64_t size, int levels) {
+    if (levels == 1) {
+        const large_buf_leaf *node = reinterpret_cast<const large_buf_leaf *>(tr->buf->get_data_read());
+        if (0 > offset || 0 > size || offset + size > num_leaf_bytes()) {
+            debugf("%*sLEAF: <invalid offset:%ld size:%ld>\n", (6 - levels) * 4, "", offset, size);
+        } else {
+            debugf("%*sLEAF: '%.*s'\n", (6 - levels) * 4, "", size, node->buf + offset);
+        }
+    } else {
+        const large_buf_internal *node = reinterpret_cast<const large_buf_internal *>(tr->buf->get_data_read());
+        if (0 > offset || 0 > size || offset + size > max_offset(levels)) {
+            debugf("%*sINTERNAL: <invalid offset:%ld size:%ld>\n", (6 - levels) * 4, "", offset, size);
+        } else {
+            debugf("%*sINTERNAL... offset=%ld size=%ld\n", (6 - levels) * 4, "", offset, size);
+            int64_t step = max_offset(levels - 1);
+
+            int64_t i = floor_aligned(offset, step);
+            int64_t e = ceil_aligned(offset + size, step);
+
+            for (; i < e; i += step) {
+                int64_t beg = std::max(offset, i);
+                int64_t end = std::min(offset + size, i + step);
+                buftree_t *child = i / step < (int64_t)tr->children.size() ? tr->children[i / step] : NULL;
+                debugf("%*sCHILD: %d %s\n", (6 - levels) * 4, "", node->kids[i / step], child == NULL ? "(NULL!)" : "");
+                if (child != NULL) {
+                    draw_buftree(child, beg - i, end - beg, levels - 1);
+                }
+            }
+        }
+    }
+}
+
+
+
+
 
 // TODO add magic.
 

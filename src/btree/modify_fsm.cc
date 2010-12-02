@@ -505,8 +505,8 @@ void btree_modify_fsm_t::do_transition(event_t *event) {
                 }
                 if (old_large_buf) {
                     assert(old_value.is_large());
-                    assert(old_value.lb_ref().block_id == old_large_buf->get_root_ref().block_id);
                     if (update_needed && (!new_value || delete_old_large_buf)) {
+                        assert(old_value.lb_ref().block_id == old_large_buf->get_root_ref().block_id);
                         old_large_buf->mark_deleted();
                     }
                     old_large_buf->release();
