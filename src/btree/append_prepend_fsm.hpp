@@ -19,21 +19,26 @@ public:
 
     void operate(btree_value *old_value, large_buf_t *old_large_value, bool *delete_old_large_buf) {
 
+        debugf("operate..\n");
         if (!old_value) {
             result = result_not_found;
             data->get_value(NULL, this);
             return;
         }
-        
+
+        //        debugf("operate 2.. lv exists=%d, lv.rr.size=%d old_value exists=%d large=%d refblock=%d refoff=%d refsize=%d\n", !!old_large_value, old_large_value ? old_large_value->get_root_ref().size : -1, !!old_value, old_value, old_value ? old_value->is_large() : -1, old_value->large_buf_ref().block_id, old_value->large_buf_ref().offset, old_value->large_buf_ref().size);
         size_t new_size = old_value->value_size() + data->get_size();
+        debugf("operate 2.5.\n");
+
         if (new_size > MAX_VALUE_SIZE) {
             result = result_too_large;
             data->get_value(NULL, this);
             return;
         }
-        
+
+        debugf("operate 3..\n");
         // Copy flags, exptime, etc.
-        
+
         valuecpy(&value, old_value);
         value.value_size(new_size);
         
@@ -60,8 +65,8 @@ public:
                 is_old_large_value = false;
             } else { // large -> large; expand existing large value
                 large_value = old_large_value;
-                if (append) large_value->append(data->get_size());
-                else        large_value->prepend(data->get_size());
+                if (append) large_value->append(data->get_size(), value.large_buf_ref_ptr());
+                else        large_value->prepend(data->get_size(), value.large_buf_ref_ptr());
                 is_old_large_value = true;
             }
             
@@ -121,8 +126,13 @@ public:
                 // so new copies will be rewritten unmodified to disk), but
                 // that's not really a problem because it only happens on
                 // erroneous input.
-                if (append) large_value->unappend(data->get_size());
-                else large_value->unprepend(data->get_size());
+
+                // TODO: should this be value.large_buf_ref_ptr()?
+                // old_value.large_buf_ref_ptr()?  I don't know.  TEST
+                // THIS!  TEST THIS FUNCTION OR DIE!
+
+                if (append) large_value->unappend(data->get_size(), value.large_buf_ref_ptr());
+                else large_value->unprepend(data->get_size(), value.large_buf_ref_ptr());
             } else {
                 // The old value was small, so we just keep it and delete the large value
                 large_value->mark_deleted();

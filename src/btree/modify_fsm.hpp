@@ -100,14 +100,14 @@ private:
 protected:
     bool cas_already_set; // In case a sub-class needs to set the CAS itself.
 
-private:
-    bool dest_reached;
-    bool key_found;
-
     union {
         byte old_value_memory[MAX_TOTAL_NODE_CONTENTS_SIZE+sizeof(btree_value)];
         btree_value old_value;
     };
+
+private:
+    bool dest_reached;
+    bool key_found;
 
     large_buf_t *old_large_buf;
     bool delete_old_large_buf;

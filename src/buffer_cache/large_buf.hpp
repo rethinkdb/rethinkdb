@@ -76,12 +76,12 @@ public:
     //    void acquire(block_id_t _index_block, uint32_t _size, access_t _access, large_buf_available_callback_t *_callback);
     void acquire(large_buf_ref root_ref_, access_t access_, large_buf_available_callback_t *callback_);
 
-    void append(int64_t extra_size);
-    void prepend(int64_t extra_size);
+    void append(int64_t extra_size, large_buf_ref *refout);
+    void prepend(int64_t extra_size, large_buf_ref *refout);
     void fill_at(int64_t pos, const byte *data, int64_t fill_size);
 
-    void unappend(int64_t extra_size);
-    void unprepend(int64_t extra_size);
+    void unappend(int64_t extra_size, large_buf_ref *refout);
+    void unprepend(int64_t extra_size, large_buf_ref *refout);
 
     // TODO make sure people use int64_t value sizes
     uint16_t pos_to_ix(int64_t pos);

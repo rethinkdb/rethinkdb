@@ -76,7 +76,7 @@ public:
 
     int64_t value_size() {
         if (is_large()) {
-            int64_t ret = large_buf_ref().size;
+            int64_t ret = lb_ref().size;
             debugf("value_size checking %d > %d\n", ret, MAX_IN_NODE_VALUE_SIZE);
             assert(ret > MAX_IN_NODE_VALUE_SIZE);
             return ret;
