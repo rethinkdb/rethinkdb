@@ -123,7 +123,11 @@ void writeback_t::flush_timer_callback(void *ctx) {
     writeback_t *self = static_cast<writeback_t *>(ctx);
     self->flush_timer = NULL;
     
-    self->sync(NULL);
+    /* Don't sync if we're in the shutdown process, because if we do that we'll trip an assert() on
+    the cache, and besides we're about to sync anyway. */
+    if (self->cache->state != cache_t::state_shutting_down_waiting_for_transactions) {
+        self->sync(NULL);
+    }
 }
 
 bool writeback_t::writeback_start_and_acquire_lock() {

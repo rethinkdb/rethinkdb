@@ -1,4 +1,4 @@
-
+#include <sys/resource.h>
 #include "config/cmd_args.hpp"
 #include "utils.hpp"
 #include "arch/arch.hpp"
@@ -14,16 +14,23 @@ int main(int argc, char *argv[]) {
     consider_execve_side_executable(argc, argv, "extract");
 
     install_generic_crash_handler();
-    
+
+#ifndef NDEBUG
+    rlimit core_limit;
+    core_limit.rlim_cur = RLIM_INFINITY;
+    core_limit.rlim_max = RLIM_INFINITY;
+    setrlimit(RLIMIT_CORE, &core_limit);
+#endif
+
     // Parse command line arguments
     cmd_config_t config;
     parse_cmd_args(argc, argv, &config);
-    
+
     // Open log file if necessary
     if (config.log_file_name[0]) {
         log_file = fopen(config.log_file_name, "w");
     }
-    
+
     // Initial CPU message to start server
     struct server_starter_t :
         public cpu_message_t
@@ -36,19 +43,19 @@ int main(int argc, char *argv[]) {
         }
     } starter;
     starter.cmd_config = &config;
-    
+
     // Run the server
     thread_pool_t thread_pool(config.n_workers);
     starter.thread_pool = &thread_pool;
     thread_pool.run(&starter);
-    
+
     logINF("Server is shut down.\n");
-    
+
     // Close log file if necessary
     if (config.log_file_name[0]) {
         fclose(log_file);
         log_file = stderr;
     }
-    
+
     return 0;
 }

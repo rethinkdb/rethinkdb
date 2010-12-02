@@ -374,6 +374,11 @@ public:
 
     /* \brief perfmon to output the garbage ratio
      */
+    
+    /* TODO: This is dangerous because it's supposed to be illegal to create a perfmon
+    except by static initialization. If two serializers happen to start up at the same
+    time, then the perfmon list will be corrupted. */
+    
     class garbage_ratio_reporter_t :
         public perfmon_function_t<float>::internal_function_t
     {

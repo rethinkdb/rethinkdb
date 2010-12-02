@@ -6,7 +6,7 @@
 #include "flush_time_randomizer.hpp"
 #include "utils.hpp"
 #include "serializer/serializer.hpp"
-#include "../callbacks.hpp"
+#include "buffer_cache/mirrored/callbacks.hpp"
 
 struct mc_cache_t;
 struct mc_buf_t;

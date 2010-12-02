@@ -3,7 +3,6 @@
 #include <string.h>
 #include "arch/arch.hpp"
 #include "conn_fsm.hpp"
-#include "request.hpp"
 #include "btree/append_prepend_fsm.hpp"
 #include "btree/delete_fsm.hpp"
 #include "btree/get_fsm.hpp"
@@ -34,61 +33,27 @@
 // file. If you only do a cursory readthrough, please check with someone who
 // has read it in depth before committing.
 
-// Used for making a bunch of calls to some btree_fsm_t's and waiting
-// for them to complete.
-class txt_memcached_request_t :
-    public request_callback_t,
-    public btree_fsm_callback_t
+class txt_memcached_get_request_t
 {
-public:
-    txt_memcached_request_t(txt_memcached_handler_t *rh, bool noreply)
-        : request_callback_t(rh), rh(rh), noreply(noreply), nfsms(0)
-        {}
-    virtual ~txt_memcached_request_t() { }
-
-    void on_btree_fsm_complete(btree_fsm_t *fsm) {
-        if (fsm) on_fsm_ready(fsm); // Hack
-        nfsms--;
-        if (nfsms == 0) {
-            if (!noreply) {
-                build_response(rh->conn_fsm->sbuf);
-                rh->request_complete();
-            }
-            delete this;
-        }
-    }
-
-protected:
-    virtual void build_response(linked_buf_t *) = 0;
-
-    txt_memcached_handler_t * const rh;
-    bool const noreply;
-    int nfsms;
-
-private:
-    DISABLE_COPYING(txt_memcached_request_t);
-};
-
-class txt_memcached_get_request_t :
-    public txt_memcached_request_t
-{
-
-public:
-    using txt_memcached_request_t::rh;
-
 public:
     // A txt_memcached_get_request_t supports more than one get at one time, so it takes several steps
     // to build it. First the constructor is called; then add_get() is called one or more times.
-
-    txt_memcached_get_request_t(txt_memcached_handler_t *rh)
-        : txt_memcached_request_t(rh, false), num_fsms(0), curr_fsm(0) {}
+    
+    txt_memcached_handler_t *rh;
+    
+    txt_memcached_get_request_t(txt_memcached_handler_t *rh, bool with_cas)
+        : rh(rh), num_gets(0), curr_get(-1), with_cas(with_cas)
+    {
+    }
 
     bool add_get(btree_key *key) {
-        if (num_fsms < MAX_OPS_IN_REQUEST) {
-            btree_get_fsm_t *fsm = new btree_get_fsm_t(key, rh->server->store, this);
-            ready_fsms[num_fsms] = false;
-            fsms[num_fsms ++] = fsm;
-            nfsms++;
+        if (num_gets < MAX_OPS_IN_REQUEST) {
+            get_t *g = &gets[num_gets++];
+            keycpy(&g->key, key);
+            g->parent = this;
+            g->ready = false;
+            if (with_cas) rh->server->store->get_cas(key, g);
+            else rh->server->store->get(key, g);
             return true;
         } else {
             return false;
@@ -96,248 +61,185 @@ public:
     }
     
     void dispatch() {
-        for (int i = 0; i < num_fsms; i ++) {
-            fsms[i]->run(this);
-        }
+        curr_get = 0;   // allow pump() to go
+        pump();
     }
     
     ~txt_memcached_get_request_t() {
-        for (int i = 0; i < num_fsms; i ++) {
-            delete fsms[i];
-        }
-    }
-
-    void value_header(linked_buf_t *sbuf, btree_get_fsm_t *fsm) {
-        sbuf->printf("VALUE %*.*s %u %u\r\n",
-                fsm->key.size, fsm->key.size, fsm->key.contents,
-                fsm->value.mcflags(),
-                fsm->value.value_size());
-    }
-
-    void on_fsm_ready(btree_fsm_t *ready_fsm) {
-        int i;
-        for (i = 0; i < num_fsms; i++) { // XXX: Is this the right way to do this?
-            if (ready_fsm == fsms[i]) {
-                ready_fsms[i] = true;
-                break;
-            }
-        }
-        assert(i < num_fsms);
-        linked_buf_t *sbuf = rh->conn_fsm->sbuf; // XXX
-        send_next_value(sbuf);
-    }
-
-    void send_next_value(linked_buf_t *sbuf) {
-        while (curr_fsm < num_fsms) {
-            if (!ready_fsms[curr_fsm]) return; // The next FSM we're supposed to be sending isn't ready yet.
-            btree_get_fsm_t *fsm = fsms[curr_fsm];
-            switch (fsm->status_code) {
-                case btree_get_fsm_t::S_SUCCESS:
-                    if (fsm->value.is_large()) {
-                        switch (fsm->state) { // XXX
-                            case btree_get_fsm_t::large_value_acquired:
-                                value_header(sbuf, fsm);
-                                fsm->begin_lv_write();
-                                return;
-                                break;
-                            case btree_get_fsm_t::lookup_complete:
-                                sbuf->printf("\r\n");
-                                break;
-                            case btree_get_fsm_t::large_value_writing:
-                                return;
-                                break;
-                            default:
-                                assert(0);
-                                break;
-                        }
-                    } else {
-                        value_header(sbuf, fsm);
-                        sbuf->append(fsm->value.value(), fsm->value.value_size());
-                        sbuf->printf("\r\n");
-                    }
-                    break;
-                case btree_get_fsm_t::S_NOT_FOUND:
-                    break;
-                default:
-                    assert(0);
-                    break;
-            }
-            curr_fsm++;
-        }
-    }
-
-    void build_response(linked_buf_t *sbuf) {
-#ifndef NDEBUG
-        for (int i = 0; i < num_fsms; i++) {
-            assert(ready_fsms[i]);
-        }
-#endif
-        send_next_value(sbuf);
-        assert(curr_fsm == num_fsms);
-        sbuf->printf(RETRIEVE_TERMINATOR);
     }
 
 private:
-    int num_fsms;
-    int curr_fsm;
-    btree_get_fsm_t *fsms[MAX_OPS_IN_REQUEST];
-    bool ready_fsms[MAX_OPS_IN_REQUEST];
-};
-
-// FIXME horrible redundancy
-class txt_memcached_get_cas_request_t :
-    public txt_memcached_request_t
-{
-public:
-    using txt_memcached_request_t::rh;
-
-public:
-    // A txt_memcached_get_request supports more than one get at one time, so it takes several steps
-    // to build it. First the constructor is called; then add_get() is called one or more times;
-    // then dispatch() is called.
-
-    txt_memcached_get_cas_request_t(txt_memcached_handler_t *rh)
-        : txt_memcached_request_t(rh, false), num_fsms(0), curr_fsm(0) {}
-
-    bool add_get(btree_key *key) {
-        if (num_fsms < MAX_OPS_IN_REQUEST) {
-            btree_get_cas_fsm_t *fsm = new btree_get_cas_fsm_t(key, rh->server->store, this);
-            ready_fsms[num_fsms] = false;
-            fsms[num_fsms ++] = fsm;
-            nfsms++;
-            return true;
-        } else {
-            return false;
+    struct get_t :
+        public store_t::get_callback_t,
+        public data_transferred_callback
+    {
+        txt_memcached_get_request_t *parent;
+        union {
+            char key_memory[MAX_KEY_SIZE+sizeof(btree_key)];
+            btree_key key;
+        };
+        
+        const_buffer_group_t *buffer;   // Can be NULL
+        store_t::get_callback_t::done_callback_t *callback;
+        mcflags_t flags;
+        cas_t cas;
+        
+        bool ready, sending;
+        int buffer_being_sent;
+        
+        void value(const_buffer_group_t *b, store_t::get_callback_t::done_callback_t *cb, mcflags_t f, cas_t c) {
+            assert(b);
+            buffer = b;
+            callback = cb;
+            flags = f;
+            cas = c;
+            ready = true;
+            sending = false;
+            parent->pump();
         }
-    }
+        
+        void not_found() {
+            buffer = NULL;
+            ready = true;
+            sending = false;
+            parent->pump();
+        }
+        
+        void write() {
+            sending = true;
+            if (buffer) {
+                if (parent->with_cas) {
+                    parent->rh->conn_fsm->sbuf->printf(
+                        "VALUE %*.*s %u %u %llu\r\n",
+                        key.size, key.size, key.contents, flags, buffer->get_size(), cas);
+                } else {
+                    assert(cas == 0);
+                    parent->rh->conn_fsm->sbuf->printf(
+                        "VALUE %*.*s %u %u\r\n",
+                        key.size, key.size, key.contents, flags, buffer->get_size());
+                }
+                // TODO: The "1000" is a magic constant for streaming vs. buffering.
+                if (buffer->get_size() < 1000) {
+                    for (int i = 0; i < (signed)buffer->buffers.size(); i++) {
+                        const_buffer_group_t::buffer_t b = buffer->buffers[i];
+                        parent->rh->conn_fsm->sbuf->append((const char *)b.data, b.size);
+                    }
+                    callback->have_copied_value();
+                    parent->rh->conn_fsm->sbuf->printf("\r\n");
+                    done();
+                } else {
+                    buffer_being_sent = -1;
+                    on_data_transferred();   // Start the data transfer loop
+                }
+            } else {
+                done();
+            }
+        }
+        
+        void on_data_transferred() {
+            buffer_being_sent++;
+            if (buffer_being_sent == (int)buffer->buffers.size()) {
+                callback->have_copied_value();
+                parent->rh->conn_fsm->sbuf->printf("\r\n");
+                done();
+            } else {
+                parent->rh->write_value((const char *)buffer->buffers[buffer_being_sent].data, buffer->buffers[buffer_being_sent].size, this);
+            }
+        }
+        
+        void done() {
+            assert(&parent->gets[parent->curr_get] == this);
+            parent->curr_get++;
+            parent->pump();
+        }
+    };
+    get_t gets[MAX_OPS_IN_REQUEST];
+    int num_gets, curr_get;
     
-    void dispatch() {
-        for (int i = 0; i < num_fsms; i ++) {
-            fsms[i]->run(this);
-        }
-    }
-
-    ~txt_memcached_get_cas_request_t() {
-        for (int i = 0; i < num_fsms; i ++) {
-            delete fsms[i];
-        }
-    }
-
-    void value_header(linked_buf_t *sbuf, btree_get_cas_fsm_t *fsm) {
-        sbuf->printf("VALUE %*.*s %u %u %llu\r\n",
-            fsm->key.size, fsm->key.size, fsm->key.contents,
-            fsm->value.mcflags(),
-            fsm->value.value_size(),
-            fsm->value.cas());
-    }
-
-    void on_fsm_ready(btree_fsm_t *ready_fsm) {
-        int i;
-        for (i = 0; i < num_fsms; i++) { // XXX: Is this the right way to do this?
-            if (ready_fsm == fsms[i]) {
-                ready_fsms[i] = true;
-                break;
+    bool with_cas;
+    
+    void pump() {
+        if (curr_get == -1) return;   // So we don't finish before we're done starting
+        if (curr_get < num_gets) {
+            get_t *g = &gets[curr_get];
+            if (g->ready && !g->sending) {
+                g->write();   // When this completes, it will increment curr_fsm and call pump()
             }
-        }
-        assert(i < num_fsms);
-        linked_buf_t *sbuf = rh->conn_fsm->sbuf; // XXX
-        send_next_value(sbuf);
-    }
-
-    void send_next_value(linked_buf_t *sbuf) {
-        while (curr_fsm < num_fsms) {
-            if (!ready_fsms[curr_fsm]) return; // The next FSM we're supposed to be sending isn't ready yet.
-            btree_get_cas_fsm_t *fsm = fsms[curr_fsm];
-            switch (fsm->status_code) {
-                case btree_get_fsm_t::S_SUCCESS:
-                    if (fsm->value.is_large()) {
-                        switch (fsm->lv_state) {
-                            case btree_get_cas_fsm_t::lv_state_ready:
-                                value_header(sbuf, fsm);
-                                fsm->begin_lv_write();
-                                return;
-                                break;
-                            case btree_get_cas_fsm_t::lv_state_done:
-                                sbuf->printf("\r\n");
-                                // XXX: Set ready back to false?
-                                break;
-                            case btree_get_cas_fsm_t::lv_state_writing:
-                                return;
-                                break;
-                            default:
-                                assert(0);
-                                break;
-                        }
-                    } else {
-                        value_header(sbuf, fsm);
-                        sbuf->append(fsm->value.value(), fsm->value.value_size());
-                        sbuf->printf("\r\n");
-                    }
-                    break;
-                case btree_get_fsm_t::S_NOT_FOUND:
-                    break;
-                default:
-                    assert(0);
-                    break;
-            }
-            curr_fsm++;
+        } else {
+            rh->conn_fsm->sbuf->printf(RETRIEVE_TERMINATOR);
+            rh->request_complete();
+            delete this;
         }
     }
-
-    void build_response(linked_buf_t *sbuf) {
-#ifndef NDEBUG
-            for (int i = 0; i < num_fsms; i++) {
-                assert(ready_fsms[i]);
-            }
-#endif
-        send_next_value(sbuf);
-        assert(curr_fsm == num_fsms);
-        sbuf->printf(RETRIEVE_TERMINATOR);
-    }
-
-private:
-    int num_fsms;
-    int curr_fsm;
-    btree_get_cas_fsm_t *fsms[MAX_OPS_IN_REQUEST];
-    bool ready_fsms[MAX_OPS_IN_REQUEST];
 };
 
 class txt_memcached_set_request_t :
-    public txt_memcached_request_t
+    public store_t::set_callback_t
 {
+    request_handler_t *rh;
+    data_provider_t *data;
+    bool noreply;
+    
 public:
-    txt_memcached_set_request_t(txt_memcached_handler_t *rh, btree_key *key, bool is_large, uint32_t length, byte *data, btree_set_fsm_t::set_type_t type, btree_value::mcflags_t mcflags, btree_value::exptime_t exptime, btree_value::cas_t req_cas, bool noreply)
-        : txt_memcached_request_t(rh, noreply),
-          fsm(new btree_set_fsm_t(key, rh->server->store, this, is_large, length, data, type, mcflags, convert_exptime(exptime), req_cas)) {
-        fsm->run(this);
-        nfsms = 1;
+    txt_memcached_set_request_t(
+        txt_memcached_handler_t *rh,
+        btree_key *key,
+        data_provider_t *data,
+        btree_set_fsm_t::set_type_t type,
+        btree_value::mcflags_t flags,
+        btree_value::exptime_t exptime,
+        btree_value::cas_t req_cas,
+        bool noreply)
+        : rh(rh), data(data), noreply(noreply)
+    {
+        switch (type) {
+            case btree_set_fsm_t::set_type_set:
+                rh->server->store->set(key, data, flags, convert_exptime(exptime), this);
+                break;
+            case btree_set_fsm_t::set_type_add:
+                rh->server->store->add(key, data, flags, convert_exptime(exptime), this);
+                break;
+            case btree_set_fsm_t::set_type_replace:
+                rh->server->store->replace(key, data, flags, convert_exptime(exptime), this);
+                break;
+            case btree_set_fsm_t::set_type_cas:
+                rh->server->store->cas(key, data, flags, convert_exptime(exptime), req_cas, this);
+                break;
+        }
     }
 
     ~txt_memcached_set_request_t() {
-        delete fsm;
+        delete data;
     }
 
-    void build_response(linked_buf_t *sbuf) {
-        switch (fsm->status_code) {
-            case btree_set_fsm_t::S_SUCCESS:
-                sbuf->printf(STORAGE_SUCCESS);
-                break;
-            case btree_set_fsm_t::S_NOT_STORED:
-                sbuf->printf(STORAGE_FAILURE);
-                break;
-            case btree_set_fsm_t::S_EXISTS:
-                sbuf->printf(KEY_EXISTS);
-                break;
-            case btree_set_fsm_t::S_NOT_FOUND:
-                sbuf->printf(NOT_FOUND);
-                break;
-            case btree_set_fsm_t::S_READ_FAILURE:
-                // read_data() handles printing the error.
-                break;
-            default:
-                assert(0);
-                break;
-        }
+    void stored() {
+        if (!noreply) rh->conn_fsm->sbuf->printf(STORAGE_SUCCESS);
+        done();
+    }
+    
+    void not_stored() {
+        if (!noreply) rh->conn_fsm->sbuf->printf(STORAGE_FAILURE);
+        done();
+    }
+    
+    void exists() {
+        if (!noreply) rh->conn_fsm->sbuf->printf(KEY_EXISTS);
+        done();
+    }
+    
+    void not_found() {
+        if (!noreply) rh->conn_fsm->sbuf->printf(NOT_FOUND);
+        done();
+    }
+    
+    void data_provider_failed() {
+        // read_data() handles printing the error
+        done();
+    }
+    
+    void done() {
+        if (!noreply) rh->request_complete();
+        delete this;
     }
 
     // This is protocol.txt, verbatim:
@@ -359,130 +261,142 @@ public:
         // TODO: Do we need to handle exptimes in the past here?
         return exptime;
     }
-
-private:
-    btree_set_fsm_t *fsm;
 };
 
 class txt_memcached_incr_decr_request_t :
-    public txt_memcached_request_t
+    public store_t::incr_decr_callback_t
 {
-
+    txt_memcached_handler_t *rh;
+    bool noreply;
+    
 public:
-    txt_memcached_incr_decr_request_t(txt_memcached_handler_t *rh, btree_key *key, bool increment, long long delta, bool noreply)
-        : txt_memcached_request_t(rh, noreply),
-          fsm(new btree_incr_decr_fsm_t(key, rh->server->store, increment, delta))
-        {
-        fsm->run(this);
-        nfsms = 1;
+    txt_memcached_incr_decr_request_t(txt_memcached_handler_t *rh, btree_key *key, bool increment, unsigned long long delta, bool noreply)
+        : rh(rh), noreply(noreply)
+    {
+        if (increment) rh->server->store->incr(key, delta, this);
+        else rh->server->store->decr(key, delta, this);
     }
 
     ~txt_memcached_incr_decr_request_t() {
-        delete fsm;
     }
-
-    void build_response(linked_buf_t *sbuf) {
-        switch (fsm->status_code) {
-            case btree_incr_decr_fsm_t::S_SUCCESS:
-                sbuf->printf("%llu\r\n", (unsigned long long)fsm->new_number);
-                break;
-            case btree_incr_decr_fsm_t::S_NOT_FOUND:
-                sbuf->printf(NOT_FOUND);
-                break;
-            case btree_incr_decr_fsm_t::S_NOT_NUMERIC:
-                sbuf->printf(INCR_DECR_ON_NON_NUMERIC_VALUE);
-                break;
-            default:
-                assert(0);
-                break;
+    
+    void success(unsigned long long new_value) {
+        if (!noreply) {
+            rh->conn_fsm->sbuf->printf("%llu\r\n", new_value);
+            rh->request_complete();
         }
+        delete this;
     }
-
-private:
-    btree_incr_decr_fsm_t *fsm;
+    
+    void not_found() {
+        if (!noreply) {
+            rh->conn_fsm->sbuf->printf(NOT_FOUND);
+            rh->request_complete();
+        }
+        delete this;
+    }
+    
+    void not_numeric() {
+        if (!noreply) {
+            rh->conn_fsm->sbuf->printf(INCR_DECR_ON_NON_NUMERIC_VALUE);
+            rh->request_complete();
+        }
+        delete this;
+    }
 };
 
 class txt_memcached_append_prepend_request_t :
-    public txt_memcached_request_t
+    public store_t::append_prepend_callback_t
 {
+    txt_memcached_handler_t *rh;
+    bool noreply;
+    data_provider_t *data;
+    
 public:
-    txt_memcached_append_prepend_request_t(txt_memcached_handler_t *rh, btree_key *key, bool got_large, int length, byte *data, bool append, bool noreply)
-        : txt_memcached_request_t(rh, noreply),
-          fsm(new btree_append_prepend_fsm_t(key, rh->server->store, this, got_large, length, data, append)) {
-        fsm->run(this);
-        nfsms = 1;
+    txt_memcached_append_prepend_request_t(txt_memcached_handler_t *rh, btree_key *key, data_provider_t *data, bool append, bool noreply)
+        : rh(rh), noreply(noreply), data(data)
+    {
+        if (append) rh->server->store->append(key, data, this);
+        else rh->server->store->prepend(key, data, this);
     }
 
     ~txt_memcached_append_prepend_request_t() {
-        delete fsm;
+        delete data;
     }
 
-    void build_response(linked_buf_t *sbuf) {
-        switch (fsm->status_code) {
-            case btree_append_prepend_fsm_t::S_SUCCESS:
-                sbuf->printf(STORAGE_SUCCESS);
-                break;
-            case btree_append_prepend_fsm_t::S_TOO_LARGE:
-            case btree_append_prepend_fsm_t::S_NOT_FOUND:
-                // memcached pronounces these "NOT_STORED".
-                sbuf->printf(STORAGE_FAILURE);
-                break;
-            case btree_append_prepend_fsm_t::S_READ_FAILURE:
-                // read_data() handles printing the error.
-                break;
-            default:
-                assert(0);
-                break;
+    void success() {
+        if (!noreply) {
+            rh->conn_fsm->sbuf->printf(STORAGE_SUCCESS);
+            rh->request_complete();
         }
+        delete this;
     }
-
-private:
-    btree_append_prepend_fsm_t *fsm;
+    
+    void too_large() {
+        if (!noreply) {
+            rh->conn_fsm->sbuf->printf(STORAGE_FAILURE);
+            rh->request_complete();
+        }
+        delete this;
+    }
+    
+    void not_found() {
+        if (!noreply) {
+            rh->conn_fsm->sbuf->printf(STORAGE_FAILURE);
+            rh->request_complete();
+        }
+        delete this;
+    }
+    
+    void data_provider_failed() {
+        // read_data() handles printing the error.
+        if (!noreply) rh->request_complete();
+        delete this;
+    }
 };
 
 class txt_memcached_delete_request_t :
-    public txt_memcached_request_t
+    public store_t::delete_callback_t
 {
+    request_handler_t *rh;
+    bool noreply;
 
 public:
     txt_memcached_delete_request_t(txt_memcached_handler_t *rh, btree_key *key, bool noreply)
-        : txt_memcached_request_t(rh, noreply),
-          fsm(new btree_delete_fsm_t(key, rh->server->store)) {
-        fsm->run(this);
-        nfsms = 1;
+        : rh(rh), noreply(noreply)
+    {
+        rh->server->store->delete_key(key, this);
     }
 
     ~txt_memcached_delete_request_t() {
-        delete fsm;
     }
 
-    void build_response(linked_buf_t *sbuf) {
-        switch (fsm->status_code) {
-            case btree_delete_fsm_t::S_DELETED:
-                sbuf->printf(DELETE_SUCCESS);
-                break;
-            case btree_delete_fsm_t::S_NOT_FOUND:
-                sbuf->printf(NOT_FOUND);
-                break;
-            default:
-                assert(0);
-                break;
+    void deleted() {
+        if (!noreply) {
+            rh->conn_fsm->sbuf->printf(DELETE_SUCCESS);
+            rh->request_complete();
         }
+        delete this;
     }
-
-private:
-    btree_delete_fsm_t *fsm;
+    
+    void not_found() {
+        if (!noreply) {
+            rh->conn_fsm->sbuf->printf(NOT_FOUND);
+            rh->request_complete();
+        }
+        delete this;
+    }
 };
 
 class txt_memcached_perfmon_request_t :
-    public request_callback_t,
     public cpu_message_t,   // For call_later_on_this_cpu()
     public perfmon_callback_t
 {
-
+    txt_memcached_handler_t *rh;
+    
 public:
     txt_memcached_perfmon_request_t(txt_memcached_handler_t *rh, const char *fields_beg, size_t fields_len)
-        : request_callback_t(rh) {
+        : rh(rh) {
 
         assert(fields_len <= MAX_STATS_REQ_LEN);
 
@@ -548,12 +462,13 @@ private:
 class disable_gc_request_t :
     public server_t::all_gc_disabled_callback_t,  // gives us multiple_users_seen
     public cpu_message_t,   // As with txt_memcached_perfmon_request_t, for call_later_on_this_cpu()
-    public home_cpu_mixin_t,
-    public request_callback_t
+    public home_cpu_mixin_t
 {
+    txt_memcached_handler_t *rh;
+    
 public:
     disable_gc_request_t(txt_memcached_handler_t *rh)
-        : request_callback_t(rh), done(false) {
+        : rh(rh), done(false) {
 
         rh->server->disable_gc(this);
         done = true;
@@ -590,13 +505,13 @@ private:
 class enable_gc_request_t :
     public server_t::all_gc_enabled_callback_t,  // gives us multiple_users_seen
     public cpu_message_t,
-    public home_cpu_mixin_t,
-    public request_callback_t
+    public home_cpu_mixin_t
 {
-
+    txt_memcached_handler_t *rh;
+    
 public:
     enable_gc_request_t(txt_memcached_handler_t *rh)
-        : request_callback_t(rh), done(false) {
+        : rh(rh), done(false) {
 
         rh->server->enable_gc(this);
         done = true;
@@ -754,7 +669,7 @@ txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::parse_adjustmen
     }
 
     node_handler::str_to_key(key_tmp, &key);
-    long long delta = atoll(value_str);
+    unsigned long long delta = strtoull(value_str, NULL, 10);
     new txt_memcached_incr_decr_request_t(this, &key, increment, delta, noreply);
 
     conn_fsm->consume(line_len);
@@ -833,6 +748,10 @@ void txt_memcached_handler_t::on_large_value_completed(bool success) {
 
 txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::read_data() {
     check("memcached handler should be in loading data state", !loading_data);
+    
+    /* This function is a messy POS. It is possibly called many times per request, and it
+    performs several different roles, some of which I don't entirely understand. */
+    
     if (consuming) {
         int bytes_to_consume = std::min(conn_fsm->nrbuf, bytes);
         conn_fsm->consume(bytes_to_consume);
@@ -845,7 +764,9 @@ txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::read_data() {
             return request_handler_t::op_partial_packet;
         }
     }
-    bool is_large = bytes > MAX_IN_NODE_VALUE_SIZE;
+    
+    data_provider_t *dp;
+    bool is_large = bytes > 1000;   // Threshold for buffering vs. streaming TODO: make a defined constant.
     if (!is_large) {
         if (conn_fsm->nrbuf < bytes + 2){ // check that the buffer contains enough data.  must also include \r\n
             return request_handler_t::op_partial_packet;
@@ -856,15 +777,20 @@ txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::read_data() {
             conn_fsm->consume(bytes+2);
             return request_handler_t::op_malformed;
         }
+        dp = new buffered_data_provider_t(conn_fsm->rbuf, bytes);
+        conn_fsm->consume(bytes+2);
     } else {
-        if (this->fill_lv_msg) {
+        if (this->data_provider) {
+            /* We already dispatched a request to the KVS and the rh_data_provider_t fed it data.
+            Now we're checking to make sure that it ends in "\r\n" so we can sign off on the
+            rh_data_provider_t so that it sends a "success" rather than "failure" to its caller. */
             if (conn_fsm->nrbuf < 2) {
                 return request_handler_t::op_partial_packet;
             }
             bool well_formed = conn_fsm->rbuf[0] == '\r' && conn_fsm->rbuf[1] == '\n';
             conn_fsm->consume(2);
-            this->fill_lv_msg->fill_complete(well_formed);
-            this->fill_lv_msg = NULL;
+            this->data_provider->fill_complete(well_formed);
+            this->data_provider = NULL;
             loading_data = false;
             if (well_formed) {
                 return request_handler_t::op_req_complex;
@@ -873,43 +799,43 @@ txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::read_data() {
                 return request_handler_t::op_malformed;
             }
         } else if (bytes > MAX_VALUE_SIZE) {
-                conn_fsm->sbuf->printf(TOO_LARGE);
-                consuming = true;
-                bytes += 2; // \r\n
-                return request_handler_t::op_req_send_now;
+            conn_fsm->sbuf->printf(TOO_LARGE);
+            consuming = true;
+            bytes += 2; // \r\n
+            return request_handler_t::op_req_send_now;
         } else {
-            // Will be handled in the FSM.
+            dp = new rh_data_provider_t(this, bytes);
         }
     }
-
+    
+    /* We might not reach this point in the function; there's a good chance of having bailed out
+    above for various reasons, like if we had already started a request or something. */
+    
     switch(cmd) {
         case SET:
-            new txt_memcached_set_request_t(this, &key, is_large, bytes, conn_fsm->rbuf, btree_set_fsm_t::set_type_set, mcflags, exptime, 0, noreply);
+            new txt_memcached_set_request_t(this, &key, dp, btree_set_fsm_t::set_type_set, mcflags, exptime, 0, noreply);
             break;
         case ADD:
-            new txt_memcached_set_request_t(this, &key, is_large, bytes, conn_fsm->rbuf, btree_set_fsm_t::set_type_add, mcflags, exptime, 0, noreply);
+            new txt_memcached_set_request_t(this, &key, dp, btree_set_fsm_t::set_type_add, mcflags, exptime, 0, noreply);
             break;
         case REPLACE:
-            new txt_memcached_set_request_t(this, &key, is_large, bytes, conn_fsm->rbuf, btree_set_fsm_t::set_type_replace, mcflags, exptime, 0, noreply);
+            new txt_memcached_set_request_t(this, &key, dp, btree_set_fsm_t::set_type_replace, mcflags, exptime, 0, noreply);
             break;
         case CAS:
-            new txt_memcached_set_request_t(this, &key, is_large, bytes, conn_fsm->rbuf, btree_set_fsm_t::set_type_cas, mcflags, exptime, cas, noreply);
+            new txt_memcached_set_request_t(this, &key, dp, btree_set_fsm_t::set_type_cas, mcflags, exptime, cas, noreply);
             break;
         // APPEND and PREPEND always ignore flags and exptime.
         case APPEND:
-            new txt_memcached_append_prepend_request_t(this, &key, is_large, bytes, conn_fsm->rbuf, true, noreply);
+            new txt_memcached_append_prepend_request_t(this, &key, dp, true, noreply);
             break;
         case PREPEND:
-            new txt_memcached_append_prepend_request_t(this, &key, is_large, bytes, conn_fsm->rbuf, false, noreply);
+            new txt_memcached_append_prepend_request_t(this, &key, dp, false, noreply);
             break;
         default:
-            conn_fsm->consume(bytes+2);
-            return malformed_request();
+            fail("Bad storage command.");
     }
-
+    
     if (!is_large) {
-        conn_fsm->consume(bytes+2);
-
         if (noreply)
             return request_handler_t::op_req_parallelizable;
         else
@@ -936,7 +862,7 @@ txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::get(char *state
     if (key_str == NULL) { 
         res = malformed_request();
     } else {
-        txt_memcached_get_request_t *rq = new txt_memcached_get_request_t(this);
+        txt_memcached_get_request_t *rq = new txt_memcached_get_request_t(this, false);
 
         do {
             if (strlen(key_str) >  MAX_KEY_SIZE) {
@@ -980,7 +906,7 @@ txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::get_cas(char *s
     if (key_str == NULL) {
         res = malformed_request();
     } else {
-        txt_memcached_get_cas_request_t *rq = new txt_memcached_get_cas_request_t(this);
+        txt_memcached_get_request_t *rq = new txt_memcached_get_request_t(this, true);
 
         do {
             node_handler::str_to_key(key_str, &key);

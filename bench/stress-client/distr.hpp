@@ -88,6 +88,10 @@ public:
             fprintf(stderr, "Invalid distr format (use MIN-MAX)\n");
             exit(-1);
         }
+        if (min > max) {
+            fprintf(stderr, "Invalid distr format (use MIN-MAX, where MIN <= MAX)\n");
+            exit(-1);
+        }
     }
 
     void print() {

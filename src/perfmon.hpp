@@ -125,38 +125,39 @@ time. When something starts, call begin(); when something ends, call end() with 
 as begin. It will produce stats for the number of active events, the average length of an event,
 and the like. */
 
-#ifndef FAST_PERFMON
 struct perfmon_duration_sampler_t {
+    
+    /* It turns out to be expensive to call get_ticks() every time anything begins or ends.
+    If we compile with FAST_PERFMON defined, then get_ticks() will not be called and it will
+    not report stats about timing. */
+    
 private:
     perfmon_counter_t active;
     perfmon_counter_t total;
+#ifndef FAST_PERFMON
     perfmon_sampler_t recent;
+#endif
 public:
     perfmon_duration_sampler_t(std::string name, ticks_t length)
-        : active(name + "_active_count"), total(name + "_total"), recent(name, length, true) { }
+        : active(name + "_active_count"), total(name + "_total")
+#ifndef FAST_PERFMON
+        , recent(name, length, true)
+#endif
+        { }
     void begin(ticks_t *v) {
         active++;
         total++;
+#ifndef FAST_PERFMON
         *v = get_ticks();
+#endif
     }
     void end(ticks_t *v) {
         active--;
+#ifndef FAST_PERFMON
         recent.record(ticks_to_secs(get_ticks() - *v));
+#endif
     }
 };
-
-#else
-
-/* stub version of the class with no overhead
- */
-
-struct perfmon_duration_sampler_t {
-
-    perfmon_duration_sampler_t(std::string name, ticks_t length) {}
-    void begin(ticks_t *v) {}
-    void end(ticks_t *v) {}
-};
-#endif
 
 /* perfmon_function_t is a perfmon for outputting a function as a stat
  */

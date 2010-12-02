@@ -3,6 +3,7 @@
 #include <errno.h>
 #include "utils.hpp"
 #include <signal.h>
+#include "request_handler/request_handler.hpp"
 
 /* Global counters for the number of conn_fsms in each state */
 
@@ -143,7 +144,7 @@ conn_fsm_t::result_t conn_fsm_t::fill_ext_rbuf() {
 conn_fsm_t::result_t conn_fsm_t::read_data(event_t *event) {
     // TODO: this is really silly; this notification should be done differently
     assert((conn_fsm_t *) event->state == this);
-
+    
     if (ext_rbuf) {
         result_t res = fill_ext_rbuf();
         check_external_buf();
@@ -155,12 +156,13 @@ conn_fsm_t::result_t conn_fsm_t::read_data(event_t *event) {
 
 void conn_fsm_t::fill_external_buf(byte *external_buf, unsigned int size, data_transferred_callback *callback) {
     assert(!ext_rbuf && ext_nrbuf == 0 && ext_size == 0 && !cb);
+    assert(external_buf);
     //assert(!ext_rbuf && ext_nrbuf == 0 && ext_size == 0);// && !cb);
 
     ext_rbuf = external_buf;
     ext_size = size;
     cb = callback;
-
+    
     unsigned int bytes_to_move = ext_size < nrbuf ? ext_size : nrbuf;
     memcpy(ext_rbuf, rbuf, bytes_to_move);
     consume(bytes_to_move);
@@ -172,6 +174,9 @@ void conn_fsm_t::fill_external_buf(byte *external_buf, unsigned int size, data_t
 
 void conn_fsm_t::send_external_buf(const byte *external_buf, unsigned int size, data_transferred_callback *callback) {
     // TODO: Write the data directly to the socket instead of to the sbuf when the request handler has better support for it.
+    // This is in fact sort of dangerous because we could get a stack overflow; we always call
+    // on_data_transferred() immediately, and it probably will in turn call send_external_buf()
+    // again.
     sbuf->append(external_buf, size);
     callback->on_data_transferred();
 }
@@ -319,6 +324,10 @@ void conn_fsm_t::on_net_conn_close() {
 
 void conn_fsm_t::do_transition_and_handle_result(event_t *event) {
     
+    // Make sure we're not calling do_transition() recursively
+    assert(!in_do_transition);
+    in_do_transition = true;
+    
     int old_state = state;
     
     switch (do_transition(event)) {
@@ -330,6 +339,7 @@ void conn_fsm_t::do_transition_and_handle_result(event_t *event) {
                 state_counters[state]->begin(&start_time);
             }
             // No action
+            in_do_transition = false;
             break;
             
         case fsm_quit_connection:
@@ -345,7 +355,7 @@ void conn_fsm_t::do_transition_and_handle_result(event_t *event) {
 // function.
 conn_fsm_t::result_t conn_fsm_t::do_transition(event_t *event) {
     result_t res;
-
+    
     switch (state) {
         case fsm_socket_connected:
         case fsm_socket_recv_incomplete:
@@ -412,7 +422,7 @@ conn_fsm_t::result_t conn_fsm_t::do_transition(event_t *event) {
 }
 
 conn_fsm_t::conn_fsm_t(net_conn_t *conn, conn_fsm_shutdown_callback_t *c, request_handler_t *rh)
-    : quitting(false), conn(conn), req_handler(rh), shutdown_callback(c)
+    : quitting(false), conn(conn), in_do_transition(false), req_handler(rh), shutdown_callback(c)
 {
 #ifndef NDEBUG
     we_are_closed = false;

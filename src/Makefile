@@ -8,8 +8,9 @@ SCRIPTS_DIR:=../scripts
 START_DB_NAME:=start_rethinkdb
 GDB_FUNCTIONS_NAME:=rethinkdb-gdb.py
 TAGS:=.tags
+CSCOPE_XREF:=.cscope
 RUN_PORT?=11211
-RUN_FLAGS?=
+RUN_FLAGS?=-s 3 -c 2
 VALGRIND_FLAGS?=--leak-check=full --db-attach=yes --show-reachable=yes
 CALLGRIND_FLAGS?=--simulate-cache=yes --simulate-wb=yes --simulate-hwpref=yes --cacheuse=yes --collect-jumps=yes
 DEBUG?=1
@@ -201,6 +202,9 @@ endif
 tags:
 	$(QUIET) ctags -R -f $(TAGS) --langmap="c++:.cc.tcc.hpp"
 
+cscope:
+	$(QUIET) cscope -bR -f $(CSCOPE_XREF)
+
 style:
 	$(QUIET) find . -name \*.cc -o -name \*.hpp | xargs ../scripts/cpplint --verbose 2 --filter=-whitespace/end_of_line,-whitespace/parens,-whitespace/line_length,-readability/casting,-whitespace/braces,-readability/todo,-legal/copyright,-whitespace/comments,-build/include,-whitespace/labels,-runtime/int,-runtime/printf 2>&1 | grep -v Done\ processing
 
@@ -209,10 +213,11 @@ ifeq ($(VERBOSE),0)
 	@echo "    RM *~"
 	@echo "    RM -r $(BUILD_ROOT_DIR)"
 	@echo "    RM $(TAGS)"
+	@echo "    RM $(CSCOPE_XREF)"
 endif
 	$(QUIET) find -name '*~' -exec rm {} \;
 	$(QUIET) rm -r $(BUILD_ROOT_DIR)
-	$(QUIET) rm -f $(TAGS)
+	$(QUIET) rm -f $(TAGS) $(CSCOPE_XREF)
 
 # Directories
 $(BUILD_DIR):

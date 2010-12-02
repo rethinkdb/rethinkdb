@@ -58,7 +58,7 @@ int main(int argc, char *argv[])
     vector<pthread_t> threads(config.clients);
 
     // Create the shared structure
-    shared_t shared(&config, make_protocol);
+    shared_t shared(&config);
 
     client_data_t client_data[config.clients];
     for(int i = 0; i < config.clients; i++) {
