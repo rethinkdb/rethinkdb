@@ -3,6 +3,7 @@
 *~
 .*.swp
 .tags
+.cscope
 build
 src/quickrun_rethinkdb
 src/debug_rethinkdb
