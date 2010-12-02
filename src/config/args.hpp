@@ -110,6 +110,13 @@
 // memcached specifies the maximum value size to be 1MB
 #define MAX_VALUE_SIZE                            (1024 * KILOBYTE)
 
+// Values larger than this will be streamed in a set operation. Must be smaller
+// than the size of the conn_fsm's rbuf.
+#define MAX_BUFFERED_SET_SIZE                     1000
+
+// Values larger than this will be streamed in a get operation
+#define MAX_BUFFERED_GET_SIZE                     10000
+
 // Perform allocator GC every N milliseconds (the resolution is limited to TIMER_TICKS_IN_MS)
 #define ALLOC_GC_INTERVAL_MS                      3000
 

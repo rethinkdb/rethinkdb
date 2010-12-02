@@ -9,8 +9,7 @@ class server_t;
 class rh_data_provider_t;
 
 class txt_memcached_handler_t :
-    public request_handler_t //,
-    // public large_value_completed_callback // Used for consuming data from the socket. XXX: Rename this.
+    public request_handler_t
 {
 public:
     typedef request_handler_t::parse_result_t parse_result_t;
@@ -18,7 +17,7 @@ public:
     
 public:
     txt_memcached_handler_t(server_t *server)
-        : request_handler_t(), loading_data(false), consuming(false), server(server)
+        : request_handler_t(), loading_data(false), server(server)
         {}
     
     virtual parse_result_t parse_request(event_t *event);
@@ -41,15 +40,13 @@ private:
     btree_value::cas_t cas;
     bool noreply;
     bool loading_data;
-    bool consuming;
     
     parse_result_t parse_storage_command(storage_command command, char *state, unsigned int line_len);
     parse_result_t parse_stat_command(unsigned int line_len, char *cmd_str);
     parse_result_t parse_adjustment(bool increment, char *state, unsigned int line_len);
     parse_result_t parse_gc_command(unsigned int line_len, char *state);
     parse_result_t read_data();
-    parse_result_t get(char *state, unsigned int line_len);
-    parse_result_t get_cas(char *state, unsigned int line_len);
+    parse_result_t get(char *state, unsigned int line_len, bool with_cas);
     parse_result_t remove(char *state, unsigned int line_len);
     parse_result_t malformed_request();
     parse_result_t unimplemented_request();

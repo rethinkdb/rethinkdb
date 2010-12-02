@@ -30,7 +30,7 @@ public:
     }
     
     void operate(btree_value *old_value, large_buf_t *old_large_value) {
-
+        
         if ((old_value && type == set_type_add) || (!old_value && type == set_type_replace)) {
             result = result_not_stored;
             data->get_value(NULL, this);
@@ -50,6 +50,12 @@ public:
             }
         }
         
+        if (data->get_size() > MAX_VALUE_SIZE) {
+            result = result_too_large;
+            data->get_value(NULL, this);
+            return;
+        }
+        
         value.metadata_flags = 0;
         value.value_size(0);
         value.set_mcflags(mcflags);
@@ -59,7 +65,7 @@ public:
             value.set_cas(0xCA5ADDED); // Turns the flag on and makes room. modify_fsm will set an actual CAS later. TODO: We should probably have a separate function for this.
         }
         
-        assert(data->get_size() < MAX_VALUE_SIZE);
+        assert(data->get_size() <= MAX_VALUE_SIZE);
         if (data->get_size() <= MAX_IN_NODE_VALUE_SIZE) {
             buffer_group.add_buffer(data->get_size(), value.value());
         } else {
@@ -121,6 +127,9 @@ public:
             case result_exists:
                 callback->exists();
                 break;
+            case result_too_large:
+                callback->too_large();
+                break;
             case result_data_provider_failed:
                 callback->data_provider_failed();
                 break;
@@ -143,6 +152,7 @@ private:
         result_not_stored,
         result_not_found,
         result_exists,
+        result_too_large,
         result_data_provider_failed
     } result;
 

@@ -121,7 +121,11 @@ public:
     void exists() {
         fail("Not implemented");
     }
-        
+    
+    void too_large() {
+        fail("Not implemented");
+    }
+    
     void data_provider_failed() {
         fail("Cannot happen with a buffered data provider");
     }
