@@ -8,9 +8,10 @@
 #include <arpa/inet.h>
 #include <endian.h>
 
-#if 0
-
 class server_t;
+
+/* The bin memcached handler is broken right now. We compile it so it doesn't bitrot but it isn't
+used in the production server and it doesn't work very well. */
 
 // TODO This shouldn't be necessary.
 #define MAX_PACKET_SIZE 200
@@ -515,24 +516,12 @@ error_breakout:
             }
 
             //load the value into an allocated value
-            void value(btree_value *val) {
-                val->size = value_length();
-                if (is_request())
-                    memcpy(val->contents, data + sizeof(request_header_t) + extra_length() + key_length(), value_length());
-                else
-                    memcpy(val->contents, data + sizeof(response_header_t) + extra_length() + key_length(), value_length());
-            }
 
             byte *value() {
                 if (is_request())
                     return data + sizeof(request_header_t) + extra_length() + key_length();
                 else
                     return data + sizeof(response_header_t) + extra_length() + key_length();
-            }
-
-            void set_value(btree_value *val) {
-                memcpy(value(), val->value(), val->value_size());
-                value_length((bin_value_length_t) val->value_size());
             }
 
             void set_value(const byte* data, unsigned long size) {
@@ -835,7 +824,5 @@ private:
 public:
     server_t *server;
 };
-
-#endif /* 0 */
 
 #endif // __BIN_MEMCACHED_HANDLER_HPP__

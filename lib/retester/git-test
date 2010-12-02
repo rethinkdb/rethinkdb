@@ -24,13 +24,18 @@ extra_args = []
 
 # If we are backgrounded, then we do not print anything to stdout or stderr and we ignore SIGHUP.
 if opts["background"]:
+    
     # If we are running in the background, automatically email the user
     if opts["email"]:
-        extra_args.extend(["--email", opts["email"]])
+        recipient = opts["email"]
     else:
         recipient = gitroot.run_command(["git", "config", "--get", "user.email"]).strip()
-        extra_args.extend(["--email", recipient])
-
+    extra_args.extend(["--email", recipient])
+    
+    if os.fork() != 0:
+        print "Running in background; will email '%s' when done." % recipient
+        sys.exit(0)
+    
     if opts["file"]:
         extra_args.extend(["--file", opts["file"]])
     

@@ -5,7 +5,6 @@
 #include "config/args.hpp"
 #include "btree/node.hpp"
 #include "conn_fsm.hpp"
-#include "request.hpp"
 
 #define NUM_SEGMENTS(total_size, seg_size) ( ( ((total_size)-1) / (seg_size) ) + 1 )
 

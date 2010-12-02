@@ -3,7 +3,6 @@
 #include <string.h>
 #include "arch/arch.hpp"
 #include "conn_fsm.hpp"
-#include "request.hpp"
 #include "btree/append_prepend_fsm.hpp"
 #include "btree/delete_fsm.hpp"
 #include "btree/get_fsm.hpp"
@@ -391,14 +390,14 @@ public:
 };
 
 class txt_memcached_perfmon_request_t :
-    public request_callback_t,
     public cpu_message_t,   // For call_later_on_this_cpu()
     public perfmon_callback_t
 {
-
+    txt_memcached_handler_t *rh;
+    
 public:
     txt_memcached_perfmon_request_t(txt_memcached_handler_t *rh, const char *fields_beg, size_t fields_len)
-        : request_callback_t(rh) {
+        : rh(rh) {
 
         assert(fields_len <= MAX_STATS_REQ_LEN);
 
@@ -464,12 +463,13 @@ private:
 class disable_gc_request_t :
     public server_t::all_gc_disabled_callback_t,  // gives us multiple_users_seen
     public cpu_message_t,   // As with txt_memcached_perfmon_request_t, for call_later_on_this_cpu()
-    public home_cpu_mixin_t,
-    public request_callback_t
+    public home_cpu_mixin_t
 {
+    txt_memcached_handler_t *rh;
+    
 public:
     disable_gc_request_t(txt_memcached_handler_t *rh)
-        : request_callback_t(rh), done(false) {
+        : rh(rh), done(false) {
 
         rh->server->disable_gc(this);
         done = true;
@@ -506,13 +506,13 @@ private:
 class enable_gc_request_t :
     public server_t::all_gc_enabled_callback_t,  // gives us multiple_users_seen
     public cpu_message_t,
-    public home_cpu_mixin_t,
-    public request_callback_t
+    public home_cpu_mixin_t
 {
-
+    txt_memcached_handler_t *rh;
+    
 public:
     enable_gc_request_t(txt_memcached_handler_t *rh)
-        : request_callback_t(rh), done(false) {
+        : rh(rh), done(false) {
 
         rh->server->enable_gc(this);
         done = true;
