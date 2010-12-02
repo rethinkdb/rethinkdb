@@ -1,7 +1,7 @@
 #include "conn_acceptor.hpp"
 #include "server.hpp"
 #include "conn_fsm.hpp"
-#include "request_handler/memcached_handler.hpp"
+#include "request_handler/txt_memcached_handler.hpp"
 #include "db_cpu_info.hpp"
 
 conn_acceptor_t::conn_acceptor_t(server_t *server)
@@ -99,8 +99,11 @@ conn_fsm_handler_t::conn_fsm_handler_t(conn_acceptor_t *parent, net_conn_t *conn
 }
 
 bool conn_fsm_handler_t::create_conn_fsm() {
-            
-    request_handler_t *rh = new memcached_handler_t(parent->server);
+    
+    /* To re-enable the binary protocol and packet sniffing, replace
+    "txt_memcached_handler_t" with "memcached_handler_t". */
+    
+    request_handler_t *rh = new txt_memcached_handler_t(parent->server);
     conn_fsm = new conn_fsm_t(conn, this, rh);
     rh->conn_fsm = conn_fsm;
     
