@@ -36,6 +36,9 @@ struct large_buf_leaf {
 };
 
 struct buftree_t {
+#ifndef NDEBUG
+    int level;  // a positive number
+#endif
     buf_t *buf;
     std::vector<buftree_t *> children;
 };
@@ -118,7 +121,11 @@ private:
     buftree_t *acquire_buftree(block_id_t block_id, int64_t offset, int64_t size, int levels, tree_available_callback_t *cb);
     void acquire_slice(large_buf_ref root_ref_, access_t access_, int64_t slice_offset, int64_t slice_size, large_buf_available_callback_t *callback_);
     void fill_tree_at(buftree_t *tr, int64_t pos, const byte *data, int64_t fill_size, int levels);
-    buftree_t *add_level(buftree_t *tr, block_id_t id, block_id_t *new_id);
+    buftree_t *add_level(buftree_t *tr, block_id_t id, block_id_t *new_id
+#ifndef NDEBUG
+                         , int nextlevels
+#endif
+                         );
     void allocate_part_of_tree(buftree_t *tr, int64_t offset, int64_t size, int levels);
     void walk_tree_structure(buftree_t *tr, int64_t offset, int64_t size, int levels, void (*bufdoer)(large_buf_t *, buf_t *), void (*buftree_cleaner)(buftree_t *));
     void delete_tree_structure(buftree_t *tr, int64_t offset, int64_t size, int levels);
