@@ -73,7 +73,6 @@ public:
     ~large_buf_t();
 
     void allocate(int64_t _size, large_buf_ref *refout);
-    //    void acquire(block_id_t _index_block, uint32_t _size, access_t _access, large_buf_available_callback_t *_callback);
     void acquire(large_buf_ref root_ref_, access_t access_, large_buf_available_callback_t *callback_);
 
     void append(int64_t extra_size, large_buf_ref *refout);
@@ -91,9 +90,6 @@ public:
     void release();
 
     const large_buf_ref& get_root_ref() const;
-    //    block_id_t get_index_block_id();
-    //    const large_buf_index *get_index();
-    //    large_buf_index *get_index_write();
 
     // TODO look at calls to this function, make sure people don't use
     // uint16_t.
