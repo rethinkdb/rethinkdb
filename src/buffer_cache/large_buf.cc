@@ -133,7 +133,7 @@ struct acquire_buftree_fsm_t : public block_available_callback_t, public tree_av
             // loop, so that it can't reach 0 until we're done the for
             // loop.
             life_counter = 1;
-            for (int64_t i = 0, k = 0; i < offset + size; i += step, ++k) {
+            for (int64_t i = 0; i < offset + size; i += step) {
                 tr->children.push_back(NULL);
                 if (offset < i + step) {
                     life_counter++;
@@ -142,7 +142,7 @@ struct acquire_buftree_fsm_t : public block_available_callback_t, public tree_av
 
                     const large_buf_internal *node = reinterpret_cast<const large_buf_internal *>(buf->get_data_read());
 
-                    acquire_buftree_fsm_t *fsm = new acquire_buftree_fsm_t(lb, node->kids[i], child_offset, child_end_offset - child_offset, levels - 1, this, i / step);
+                    acquire_buftree_fsm_t *fsm = new acquire_buftree_fsm_t(lb, node->kids[i / step], child_offset, child_end_offset - child_offset, levels - 1, this, i / step);
                     fsm->go();
                 }
             }
