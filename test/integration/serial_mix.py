@@ -86,7 +86,7 @@ def random_action(opts, mc, clone, deleted):
         # Make sure that the value we add isn't long enough to make the value larger than our
         # specified maximum value size
         value_to_pend = random_value(opts)[:opts["valuesize"] - len(clone[key])]
-        if False: # random.randint(1,2) == 1:
+        if random.randint(1,2) == 1:
             # Append
             clone[key] += value_to_pend
             ok = mc.append(key, value_to_pend)
