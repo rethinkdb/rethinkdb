@@ -124,8 +124,8 @@ public:
                 // old_value.large_buf_ref_ptr()?  I don't know.  TEST
                 // THIS!  TEST THIS FUNCTION OR DIE!
 
-                if (append) large_value->unappend(data->get_size(), value.large_buf_ref_ptr());
-                else large_value->unprepend(data->get_size(), value.large_buf_ref_ptr());
+                if (append) large_value->unappend(data->get_size(), old_value.large_buf_ref_ptr());
+                else large_value->unprepend(data->get_size(), old_value.large_buf_ref_ptr());
             } else {
                 // The old value was small, so we just keep it and delete the large value
                 large_value->mark_deleted();
