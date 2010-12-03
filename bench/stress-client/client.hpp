@@ -226,23 +226,24 @@ inline uint64_t id_salt(client_data_t *client_data) {
     return res;
 }
 
+#define set_salt 31415968
 void set_val(client_data_t *cd, payload_t *val, int n) {
-    cd->config->keys.toss(val, n);
+    val->second = seeded_random(cd->config->values.min, cd->config->values.max, n ^ set_salt ^ id_salt(cd));
 }
 
 #define update_salt 1234567
 void update_val(client_data_t *cd, payload_t *val, int n) {
-    cd->config->keys.toss(val, n ^ update_salt ^ id_salt(cd));
+    val->second = seeded_random(cd->config->values.min, cd->config->values.max, n ^ update_salt ^ id_salt(cd));
 }
 
 #define append_salt 545454
 void append_val(client_data_t *cd, payload_t *val, int n) {
-    cd->config->keys.toss(val, n ^ append_salt ^ id_salt(cd));
+    val->second = seeded_random(cd->config->values.min, cd->config->values.max, n ^ append_salt ^ id_salt(cd));
 }
 
 #define prepend_salt 9876543
 void prepend_val(client_data_t *cd, payload_t *val, int n) {
-    cd->config->keys.toss(val, n ^ prepend_salt ^ id_salt(cd));
+    val->second = seeded_random(cd->config->values.min, cd->config->values.max, n ^ append_salt ^ id_salt(cd));
 }
 
 int in_db_val(client_data_t *cd, payload_t *val, int n) {
@@ -303,6 +304,7 @@ void* run_client(void* data) {
             op_vals[i].first = shared->value_buf;
 
         int j, k, l; // because we can't declare in the loop
+        int keyn; //same deal
         uint64_t id_salt = client_data->id;
         id_salt += id_salt << 40;
 
@@ -326,12 +328,13 @@ void* run_client(void* data) {
 
         case load_t::update_op:
             // Find the key and generate the payload
-            if (client_data->min_seed == client_data->max_seed)
+            keyn = client_data->update_c.next_val(client_data->min_seed, client_data->max_seed);
+            if (keyn == -1)
                 break;
 
-            config->keys.toss(op_keys, random(client_data->min_seed, client_data->max_seed) ^ id_salt);
+            config->keys.toss(op_keys, keyn ^ id_salt);
 
-            op_vals[0].second = random(config->values.min, config->values.max);
+            update_val(client_data, op_vals, keyn);
 
             // Send it to server
             proto->update(op_keys->first, op_keys->second, op_vals[0].first, op_vals[0].second);
@@ -343,7 +346,7 @@ void* run_client(void* data) {
         case load_t::insert_op:
             // Generate the payload
             config->keys.toss(op_keys, client_data->max_seed ^ id_salt);
-            op_vals[0].second = seeded_random(config->values.min, config->values.max, client_data->max_seed ^ id_salt);
+            set_val(client_data, op_vals, client_data->max_seed);
 
             client_data->max_seed++;
             // Send it to server
@@ -363,7 +366,7 @@ void* run_client(void* data) {
             l = random(client_data->min_seed, client_data->max_seed - 1);
             for (k = 0; k < j; k++) {
                 config->keys.toss(&op_keys[k], l ^ id_salt);
-                op_vals[k].second = seeded_random(config->values.min, config->values.max, l ^ id_salt);
+                in_db_val(client_data, &op_vals[k], l);
                 l++;
                 if(l >= client_data->max_seed)
                     l = client_data->min_seed;
@@ -376,8 +379,33 @@ void* run_client(void* data) {
             total_queries += j;
             break;
         case load_t::append_op:
+            //Find the key
+            keyn = client_data->append_c.next_val(client_data->min_seed, client_data->max_seed);
+            if (keyn == -1)
+                break;
+
+            config->keys.toss(op_keys, keyn ^ id_salt);
+            append_val(client_data, op_vals, keyn);
+
+            proto->append(op_keys->first, op_keys->second, op_vals->first, op_vals->second);
+
+            qps++;
+            total_queries++;
             break;
+
         case load_t::prepend_op:
+            //Find the key
+            keyn = client_data->prepend_c.next_val(client_data->min_seed, client_data->max_seed);
+            if (keyn == -1)
+                break;
+
+            config->keys.toss(op_keys, keyn ^ id_salt);
+            prepend_val(client_data, op_vals, keyn);
+
+            proto->prepend(op_keys->first, op_keys->second, op_vals->first, op_vals->second);
+
+            qps++;
+            total_queries++;
             break;
         };
         now_time = get_ticks();

@@ -274,6 +274,15 @@ struct mysql_protocol_t : public protocol_t {
             // validity
         }
     }
+    virtual void append(const char *key, size_t key_size,
+                        const char *value, size_t value_size) {
+        //TODO fill this in for MYSQL
+    }
+
+    virtual void prepend(const char *key, size_t key_size,
+                          const char *value, size_t value_size) {
+        //TODO fill this in foir MYSQL
+    }
 
     virtual void shared_init() {
         if(_config->in_file[0] == 0) {
