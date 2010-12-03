@@ -1,5 +1,33 @@
 #include "large_buf.hpp"
 
+int64_t large_buf_t::cache_size_to_leaf_bytes(size_t cache_block_size) {
+    return cache_block_size - sizeof(large_buf_leaf);
+}
+
+int64_t large_buf_t::cache_size_to_internal_kids(size_t cache_block_size) {
+    return (cache_block_size - sizeof(large_buf_internal)) / sizeof(block_id_t);
+}
+
+int64_t large_buf_t::compute_max_offset(size_t cache_block_size, int levels) {
+    assert(levels >= 1);
+    int64_t x = cache_size_to_leaf_bytes(cache_block_size);
+    while (levels > 1) {
+        x *= cache_size_to_internal_kids(cache_block_size);
+        -- levels;
+    }
+    return x;
+}
+
+int large_buf_t::compute_num_levels(size_t cache_block_size, int64_t end_offset) {
+    assert(end_offset >= 0);
+    int levels = 1;
+    while (compute_max_offset(cache_block_size, levels) < end_offset) {
+        levels++;
+    }
+    return levels;
+}
+
+
 large_buf_t::large_buf_t(transaction_t *txn) : transaction(txn)
                                              , cache_block_size(txn->cache->get_block_size())
                                              , state(not_loaded)
@@ -11,30 +39,19 @@ large_buf_t::large_buf_t(transaction_t *txn) : transaction(txn)
 }
 
 int64_t large_buf_t::num_leaf_bytes() const {
-    return cache_block_size - sizeof(large_buf_leaf);
+    return cache_size_to_leaf_bytes(cache_block_size);
 }
 
 int64_t large_buf_t::num_internal_kids() const {
-    return (cache_block_size - sizeof(large_buf_internal)) / sizeof(block_id_t);
+    return cache_size_to_internal_kids(cache_block_size);
 }
 
 int64_t large_buf_t::max_offset(int levels) const {
-    assert(levels >= 1);
-    int64_t x = num_leaf_bytes();
-    while (levels > 1) {
-        x *= num_internal_kids();
-        -- levels;
-    }
-    return x;
+    return compute_max_offset(cache_block_size, levels);
 }
 
-int large_buf_t::num_levels(int64_t last_offset) const {
-    assert(last_offset >= 0);
-    int levels = 1;
-    while (max_offset(levels) < last_offset) {
-        levels++;
-    }
-    return levels;
+int large_buf_t::num_levels(int64_t end_offset) const {
+    return compute_num_levels(cache_block_size, end_offset);
 }
 
 buftree_t *large_buf_t::allocate_buftree(int64_t offset, int64_t size, int levels, block_id_t *block_id) {
@@ -647,6 +664,7 @@ large_buf_t::~large_buf_t() {
     assert(state == released);
     assert(num_bufs == 0);
 }
+
 
 const block_magic_t large_buf_internal::expected_magic = { { 'l', 'a', 'r', 'i' } };
 const block_magic_t large_buf_leaf::expected_magic = { { 'l', 'a', 'r', 'l' } };

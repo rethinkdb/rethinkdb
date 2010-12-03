@@ -110,11 +110,16 @@ public:
 
     friend struct acquire_buftree_fsm_t;
 
+    static int64_t cache_size_to_leaf_bytes(size_t cache_block_size);
+    static int64_t cache_size_to_internal_kids(size_t cache_block_size);
+    static int64_t compute_max_offset(size_t cache_block_size, int levels);
+    static int compute_num_levels(size_t cache_block_size, int64_t end_offset);
+
 private:
     int64_t num_leaf_bytes() const;
     int64_t num_internal_kids() const;
     int64_t max_offset(int levels) const;
-    int num_levels(int64_t last_offset) const;
+    int num_levels(int64_t end_offset) const;
 
     buftree_t *allocate_buftree(int64_t size, int64_t offset, int levels, block_id_t *block_id);
     buftree_t *acquire_buftree(block_id_t block_id, int64_t offset, int64_t size, int levels, tree_available_callback_t *cb);
