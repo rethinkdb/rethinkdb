@@ -95,7 +95,7 @@ public:
     void append(store_key_t *key, data_provider_t *data, append_prepend_callback_t *cb);
     void prepend(store_key_t *key, data_provider_t *data, append_prepend_callback_t *cb);
     void delete_key(store_key_t *key, delete_callback_t *cb);
-    void walk(walk_callback_t *cb);
+    void replicate(replicant_t *cb);
 
 public:
     btree_key_value_store_dynamic_config_t *dynamic_config;

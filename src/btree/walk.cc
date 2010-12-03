@@ -11,9 +11,9 @@ void walk_slice(store_walker_t *parent, btree_slice_t *slice);
 void walk_branch(slice_walker_t *parent, block_id_t node);
 
 struct store_walker_t {
-    store_t::walk_callback_t *callback;
+    store_t::replicant_t *callback;
     int active_slice_walkers;
-    store_walker_t(btree_key_value_store_t *store, store_t::walk_callback_t *cb)
+    store_walker_t(btree_key_value_store_t *store, store_t::replicant_t *cb)
         : callback(cb)
     {
         active_slice_walkers = store->btree_static_config.n_slices;
@@ -27,7 +27,7 @@ struct store_walker_t {
     }
 };
 
-void walk_btrees(btree_key_value_store_t *store, store_t::walk_callback_t *cb) {
+void walk_btrees(btree_key_value_store_t *store, store_t::replicant_t *cb) {
     new store_walker_t(store, cb);
 }
 

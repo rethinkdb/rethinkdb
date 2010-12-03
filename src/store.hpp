@@ -163,26 +163,20 @@ struct store_t {
     };
     virtual void delete_key(store_key_t *key, delete_callback_t *cb) = 0;
     
-    /* To get all of the keys in the database, call walk(). The walk_callback_t's value() method
-    will be called for every key in the database. Call the provided done_callback_t when you are
-    done with the buffer_group_t passed as a parameter to value(). The walk_callback_t's done()
-    method will be called once it has called value() for every key. value() may be called on any
-    core and in any order; there is no guarantee that it will wait for the done_callback_t to be
-    called before calling value() again. */
+    /* To replicate the database, call replicate(). The given replicant_t will be called for each
+    key and value currently in the database, and then subsequently called for every change that
+    is made to the database. */
     
-    struct walk_callback_t {
+    struct replicant_t {
         
         struct done_callback_t {
             virtual void have_copied_value() = 0;
         };
-        virtual void value(store_key_t *key, const_buffer_group_t *value, done_callback_t *cb, mcflags_t flags, exptime_t exptime) = 0;
-        virtual void done() = 0;
-
-        virtual ~walk_callback_t() {}
+        virtual void value(store_key_t *key, const_buffer_group_t *value, done_callback_t *cb, mcflags_t flags, exptime_t exptime, cas_t cas) = 0;
     };
-    virtual void walk(walk_callback_t *cb) = 0;
-
-    virtual ~store_t() {}
+    virtual void replicate(replicant_t *cb) = 0;
+    
+    virtual ~store_t() { }
 };
 
 #endif /* __STORE_HPP__ */

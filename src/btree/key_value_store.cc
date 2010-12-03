@@ -448,8 +448,12 @@ void btree_key_value_store_t::delete_key(store_key_t *key, delete_callback_t *cb
     new btree_delete_fsm_t(key, this, cb);
 }
 
-void btree_key_value_store_t::walk(walk_callback_t *cb) {
+void btree_key_value_store_t::replicate(replicant_t *cb) {
     walk_btrees(this, cb);
+    for (int i = 0; i < btree_static_config.n_slices; i++) {
+        btree_slice_t *slice = slices[i];
+        do_on_cpu(slice->home_cpu, &slice->replicants, &std::vector<store_t::replicant_t *>::push_back, cb);
+    }
 }
 
 /* Process of shutting down */

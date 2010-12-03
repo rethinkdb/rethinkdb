@@ -44,6 +44,9 @@ private:
     uint32_t cas_counter;
 
 public:
+    std::vector<store_t::replicant_t *> replicants;
+
+public:
     typedef btree_key_value_store_t shutdown_callback_t;
     bool shutdown(shutdown_callback_t *cb);
 private:
