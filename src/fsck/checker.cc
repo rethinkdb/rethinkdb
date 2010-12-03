@@ -631,6 +631,9 @@ void check_value(slicecx& cx, btree_value *value, subtree_errors *tree_errs, val
     if (!value->is_large()) {
         errs->too_big = (size > MAX_IN_NODE_VALUE_SIZE);
     } else {
+        // TODO check large value intergity.
+
+        /*
         errs->lv_too_small = (size <= MAX_IN_NODE_VALUE_SIZE);
 
         block_id_t index_block_id = value->lv_index_block_id();
@@ -646,10 +649,10 @@ void check_value(slicecx& cx, btree_value *value, subtree_errors *tree_errs, val
         if (!check_magic<large_buf_index>(index_buf->magic)) {
             errs->lv_code = value_error::lv_index_bad_magic;
             return;
-        } 
+        }
 
         int seg_size = cx.knog->static_config->block_size - sizeof(data_block_manager_t::buf_data_t) - sizeof(block_magic_t);
-        
+
         if (!(index_buf->first_block_offset < seg_size)) {
             errs->lv_code = value_error::lv_bad_first_block_offset;
             return;
@@ -675,7 +678,7 @@ void check_value(slicecx& cx, btree_value *value, subtree_errors *tree_errs, val
                 errs->lv_segment_errors.push_back(seg_err);
             }
         }
-
+        */
     }
 }
 

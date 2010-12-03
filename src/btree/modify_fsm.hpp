@@ -36,7 +36,7 @@ public:
           sib_node_id(NULL_BLOCK_ID), in_operate_call(false), operated(false),
           have_computed_new_value(false), new_value(NULL),
           update_needed(false), did_split(false), cas_already_set(false),
-          dest_reached(false), key_found(false), old_large_buf(NULL)
+          dest_reached(false), key_found(false), old_large_buf(NULL), delete_old_large_buf(false)
     {
     }
 
@@ -50,7 +50,7 @@ public:
      * have_finished_operating(), the buffer it passes should remain valid
      * until the btree_modify_fsm is destroyed.
      */
-    virtual void operate(btree_value *old_value, large_buf_t *old_large_buf) = 0;
+    virtual void operate(btree_value *old_value, large_buf_t *old_large_buf, bool *del_old_large_buf /* TODO remove this silly thing */) = 0;
     void have_finished_operating(btree_value *new_value);
     void have_failed_operating();
     
@@ -100,16 +100,17 @@ private:
 protected:
     bool cas_already_set; // In case a sub-class needs to set the CAS itself.
 
-private:
-    bool dest_reached;
-    bool key_found;
-
     union {
         byte old_value_memory[MAX_TOTAL_NODE_CONTENTS_SIZE+sizeof(btree_value)];
         btree_value old_value;
     };
 
+private:
+    bool dest_reached;
+    bool key_found;
+
     large_buf_t *old_large_buf;
+    bool delete_old_large_buf;
     //large_buf_t *new_large_value;
 };
 
