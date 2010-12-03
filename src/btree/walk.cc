@@ -143,7 +143,7 @@ struct branch_walker_t :
             
             if (current_value->is_large()) {
                 large_value = new large_buf_t(parent->txn);
-                large_value->acquire(current_value->lv_index_block_id(), current_value->value_size(), rwi_read, this);
+                large_value->acquire(current_value->lb_ref(), rwi_read, this);
                 
             } else {
                 large_value = NULL;
