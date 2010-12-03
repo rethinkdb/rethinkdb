@@ -120,10 +120,6 @@ public:
                 // that's not really a problem because it only happens on
                 // erroneous input.
 
-                // TODO: should this be value.large_buf_ref_ptr()?
-                // old_value.large_buf_ref_ptr()?  I don't know.  TEST
-                // THIS!  TEST THIS FUNCTION OR DIE!
-
                 if (append) large_value->unappend(data->get_size(), old_value.large_buf_ref_ptr());
                 else large_value->unprepend(data->get_size(), old_value.large_buf_ref_ptr());
             } else {
