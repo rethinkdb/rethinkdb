@@ -375,6 +375,10 @@ void* run_client(void* data) {
             qps += j;
             total_queries += j;
             break;
+        case load_t::append_op:
+            break;
+        case load_t::prepend_op:
+            break;
         };
         now_time = get_ticks();
 
