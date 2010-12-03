@@ -156,8 +156,8 @@ bool check_all_known_magic(block_magic_t magic) {
     return check_magic<btree_leaf_node>(magic)
         || check_magic<btree_internal_node>(magic)
         || check_magic<btree_superblock_t>(magic)
-        || check_magic<large_buf_index>(magic)
-        || check_magic<large_buf_segment>(magic)
+        || check_magic<large_buf_internal>(magic)
+        || check_magic<large_buf_leaf>(magic)
         || check_magic<serializer_config_block_t>(magic)
         || magic == log_serializer_t::zerobuf_magic;
 }
@@ -214,17 +214,21 @@ void dump_pair_value(dumper_t &dumper, direct_file_t& file, const cfg_t cfg, con
 
     // We're going to write the value, split into pieces, into this set of pieces.
     size_t num_pieces = 0;
-    byteslice pieces[MAX_LARGE_BUF_SEGMENTS];
-    block segblock[MAX_LARGE_BUF_SEGMENTS];
-
-    int64_t seg_size = cfg.block_size - sizeof(buf_data_t) - sizeof(large_buf_segment);
+    // TODO pick a number bigger than 9
+    byteslice pieces[9];
+    // TODO uncomment
+    //    block segblock[MAX_LARGE_BUF_SEGMENTS];
 
     logDBG("Dumping value for key '%.*s'...\n",
            key->size, key->contents);
 
-    int mod_id = translator_serializer_t::untranslate_block_id(this_block, cfg.mod_count, CONFIG_BLOCK_ID + 1);
 
     if (value->is_large()) {
+        /*
+        int mod_id = translator_serializer_t::untranslate_block_id(this_block, cfg.mod_count, CONFIG_BLOCK_ID + 1);
+
+        int64_t seg_size = cfg.block_size - sizeof(buf_data_t) - sizeof(large_buf_segment);
+
         block_id_t pretranslated = value->lv_index_block_id();
         block_id_t indexblock_id = translator_serializer_t::translate_block_id(pretranslated, cfg.mod_count, mod_id, CONFIG_BLOCK_ID + 1);
         if (!(indexblock_id < offsets.get_size())) {
@@ -307,6 +311,8 @@ void dump_pair_value(dumper_t &dumper, direct_file_t& file, const cfg_t cfg, con
                 pieces[i].len = lastslicelen;
             }
         }
+        */
+        // TODO uncomment this, support the new large value paradigm
     } else {
         num_pieces = 1;
         pieces[0].buf = valuebuf;

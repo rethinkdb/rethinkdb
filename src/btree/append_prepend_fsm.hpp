@@ -16,23 +16,24 @@ public:
         do_transition(NULL);
     }
 
-    void operate(btree_value *old_value, large_buf_t *old_large_value) {
+
+    void operate(btree_value *old_value, large_buf_t *old_large_value, bool *delete_old_large_buf) {
 
         if (!old_value) {
             result = result_not_found;
             data->get_value(NULL, this);
             return;
         }
-        
+
         size_t new_size = old_value->value_size() + data->get_size();
         if (new_size > MAX_VALUE_SIZE) {
             result = result_too_large;
             data->get_value(NULL, this);
             return;
         }
-        
+
         // Copy flags, exptime, etc.
-        
+
         valuecpy(&value, old_value);
         value.value_size(new_size);
         
@@ -53,15 +54,14 @@ public:
             // Prepare the large value if necessary.
             if (!old_value->is_large()) { // small -> large; allocate a new large value and copy existing value into it.
                 large_value = new large_buf_t(this->transaction);
-                large_value->allocate(new_size);
+                large_value->allocate(new_size, value.large_buf_ref_ptr());
                 if (append) large_value->fill_at(0, old_value->value(), old_value->value_size());
                 else        large_value->fill_at(data->get_size(), old_value->value(), old_value->value_size());
-                value.set_lv_index_block_id(large_value->get_index_block_id());
                 is_old_large_value = false;
             } else { // large -> large; expand existing large value
                 large_value = old_large_value;
-                if (append) large_value->append(data->get_size());
-                else        large_value->prepend(data->get_size());
+                if (append) large_value->append(data->get_size(), value.large_buf_ref_ptr());
+                else        large_value->prepend(data->get_size(), value.large_buf_ref_ptr());
                 is_old_large_value = true;
             }
             
@@ -76,6 +76,7 @@ public:
             while (fill_size > 0) {
                 uint16_t seg_len;
                 byte_t *seg = large_value->get_segment_write(ix, &seg_len);
+
                 assert(seg_len >= seg_pos);
                 uint16_t seg_bytes_to_fill = std::min((uint32_t)(seg_len - seg_pos), fill_size);
                 buffer_group.add_buffer(seg_bytes_to_fill, seg + seg_pos);
@@ -118,8 +119,9 @@ public:
                 // so new copies will be rewritten unmodified to disk), but
                 // that's not really a problem because it only happens on
                 // erroneous input.
-                if (append) large_value->unappend(data->get_size());
-                else large_value->unprepend(data->get_size());
+
+                if (append) large_value->unappend(data->get_size(), old_value.large_buf_ref_ptr());
+                else large_value->unprepend(data->get_size(), old_value.large_buf_ref_ptr());
             } else {
                 // The old value was small, so we just keep it and delete the large value
                 large_value->mark_deleted();
