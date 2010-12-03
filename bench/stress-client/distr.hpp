@@ -11,8 +11,21 @@
 #define SALT2 0xBEDFACE8
 #define SALT3 0xFEDBABE5
 
+#define MAX_VAL_SIZE 1024*1024
+
 /* Helpful typedefs */
 typedef std::pair<char*, size_t> payload_t;
+
+void append(payload_t *p, payload_t *other) {
+    p->second += other->second;
+    memcpy(p->first + p->second, other->first, other->second);
+}
+
+void prepend(payload_t *p, payload_t *other) {
+    p->second += other->second;
+    memmove(p->first + p->second, p->first, p->second);
+    memcpy(p->first, other->first, other->second);
+}
 
 /* Defines a distribution of values, from min to max. */
 struct distr_t {
