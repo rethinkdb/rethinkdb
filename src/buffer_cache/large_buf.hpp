@@ -85,8 +85,8 @@ public:
     void unappend(int64_t extra_size, large_buf_ref *refout);
     void unprepend(int64_t extra_size, large_buf_ref *refout);
 
-    // TODO make sure people use int64_t value sizes
-    uint16_t pos_to_ix(int64_t pos);
+    // TODO check people use 64 bit
+    int64_t pos_to_ix(int64_t pos);
     uint16_t pos_to_seg_pos(int64_t pos);
 
     void mark_deleted();

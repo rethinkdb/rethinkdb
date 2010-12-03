@@ -622,10 +622,9 @@ const large_buf_ref& large_buf_t::get_root_ref() const {
     return root_ref;
 }
 
-// TODO int64_t this return value
-uint16_t large_buf_t::pos_to_ix(int64_t pos) {
+int64_t large_buf_t::pos_to_ix(int64_t pos) {
     int64_t base = floor_aligned(root_ref.offset, num_leaf_bytes());
-    uint16_t ix = (pos + (root_ref.offset - base)) / num_leaf_bytes();
+    int64_t ix = (pos + (root_ref.offset - base)) / num_leaf_bytes();
     assert(ix <= get_num_segments());
     assert(root->level == num_levels(root_ref.offset + root_ref.size));
     return ix;
