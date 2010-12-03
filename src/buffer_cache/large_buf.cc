@@ -1,6 +1,8 @@
 #include "large_buf.hpp"
 
-large_buf_t::large_buf_t(transaction_t *txn) : transaction(txn), cache_block_size(txn->cache->get_block_size()), state(not_loaded)
+large_buf_t::large_buf_t(transaction_t *txn) : transaction(txn)
+                                             , cache_block_size(txn->cache->get_block_size())
+                                             , state(not_loaded)
 #ifndef NDEBUG
                                              , num_bufs(0)
 #endif
@@ -65,7 +67,6 @@ void large_buf_t::allocate_part_of_tree(buftree_t *tr, int64_t offset, int64_t s
     } else {
         int64_t step = max_offset(levels - 1);
 
-        // TODO: it's possible for this sometimes to be get_data_read.
         large_buf_internal *node = reinterpret_cast<large_buf_internal *>(tr->buf->get_data_write());
 
         for (int64_t i = 0; i < offset + size; i += step) {
@@ -260,7 +261,6 @@ buftree_t *large_buf_t::add_level(buftree_t *tr, block_id_t id, block_id_t *new_
 // TODO check for and support partial acquisition
 void large_buf_t::append(int64_t extra_size, large_buf_ref *refout) {
     assert(state == loaded);
-    // TODO make sure you aren't getting a total b.s. size that creates an overflow and destroys data.
 
     buftree_t *tr = root;
 
@@ -288,7 +288,6 @@ void large_buf_t::append(int64_t extra_size, large_buf_ref *refout) {
 
 void large_buf_t::prepend(int64_t extra_size, large_buf_ref *refout) {
     assert(state == loaded);
-    // TODO make sure you aren't getting a total b.s. size that creates an overflow and destroys data.
 
     int64_t back = root_ref.offset + root_ref.size;
     int oldlevels = num_levels(back);
@@ -316,7 +315,7 @@ void large_buf_t::prepend(int64_t extra_size, large_buf_ref *refout) {
 
         int64_t k = (-newoffset + shiftsize - 1) / shiftsize;
         int64_t back_k = (back + shiftsize - 1) / shiftsize;
-        int64_t max_k = max_offset(levels);
+        int64_t max_k = max_offset(levels) / shiftsize;
         if (k + back_k > max_k) {
             tr = add_level(tr, id, &id
 #ifndef NDEBUG
@@ -354,7 +353,8 @@ void large_buf_t::prepend(int64_t extra_size, large_buf_ref *refout) {
     }
 
     *refout = root_ref;
-    assert(root->level == num_levels(root_ref.offset + root_ref.size));
+    assertf(root->level == num_levels(root_ref.offset + root_ref.size), "root-level=%d num=%d offset=%ld size=%ld extra_size=%ld\n",
+            root->level, num_levels(root_ref.offset + root_ref.size), root_ref.offset, root_ref.size, extra_size);
 }
 
 
@@ -507,7 +507,7 @@ void large_buf_t::unprepend(int64_t extra_size, large_buf_ref *refout) {
         delete_tree_structure(root, delbeg, delend - delbeg, num_levels(root_ref.offset + root_ref.size));
     }
 
-    // TODO shift top block.
+    // TODO shift top block.  This is not strictly necessary, but we want this on queue-like large values.
 
     block_id_t id = root_ref.block_id;
     for (int i = num_levels(root_ref.offset + root_ref.size), e = num_levels(root_ref.offset + root_ref.size - extra_size); i > e; --i) {
