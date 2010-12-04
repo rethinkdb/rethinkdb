@@ -130,7 +130,7 @@ struct bkvs_start_new_serializer_fsm_t :
         
         serializer_t::write_t w;
         w.buf = config_block;
-        w.block_id = CONFIG_BLOCK_ID;
+        w.block_id = CONFIG_BLOCK_ID.ser_id;
         w.callback = NULL;
         if (store->serializers[i]->do_write(&w, 1, this)) on_serializer_write_txn();
     }
@@ -175,7 +175,7 @@ struct bkvs_start_existing_serializer_fsm_t :
     void on_serializer_ready(standard_serializer_t *ser) {
         
         config_block = serializer->malloc();
-        if (serializer->do_read(CONFIG_BLOCK_ID, config_block, this)) on_serializer_read();
+        if (serializer->do_read(CONFIG_BLOCK_ID.ser_id, config_block, this)) on_serializer_read();
     }
     
     void on_serializer_read() {
@@ -272,7 +272,7 @@ bool btree_key_value_store_t::create_a_pseudoserializer_on_this_core(int i) {
         serializers[i % n_files],
         mod_count,
         i / n_files,
-        CONFIG_BLOCK_ID + 1   /* Reserve block ID 0 */
+        CONFIG_BLOCK_ID   /* Reserve block ID 0 */
         );
     
     do_on_cpu(home_cpu, this, &btree_key_value_store_t::have_created_a_pseudoserializer);

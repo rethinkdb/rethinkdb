@@ -9,6 +9,7 @@
 #include "buffer_cache/mirrored/callbacks.hpp"
 #include "containers/two_level_array.hpp"
 #include "serializer/serializer.hpp"
+#include "serializer/translator.hpp"
 #include "config/cmd_args.hpp"
 #include "buffer_cache/stats.hpp"
 #include <boost/crc.hpp>
@@ -214,7 +215,7 @@ private:
     // extensible when some policy implementation requires access to
     // components it wasn't originally given.
     
-    serializer_t *serializer;
+    translator_serializer_t *serializer;
     
     page_map_t page_map;
     page_repl_t page_repl;
@@ -223,7 +224,7 @@ private:
 
 public:
     mc_cache_t(
-            serializer_t *serializer,
+            translator_serializer_t *serializer,
             mirrored_cache_config_t *config);
     ~mc_cache_t();
     

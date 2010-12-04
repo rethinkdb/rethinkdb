@@ -325,7 +325,7 @@ mc_buf_t *mc_transaction_t::acquire(block_id_t block_id, access_t mode,
  */
 
 mc_cache_t::mc_cache_t(
-            serializer_t *serializer,
+            translator_serializer_t *serializer,
             mirrored_cache_config_t *config) :
     
     serializer(serializer),

@@ -113,7 +113,7 @@ public:
     typedef scc_block_available_callback_t<inner_cache_t> block_available_callback_t;
     
     scc_cache_t(
-        serializer_t *serializer,
+        translator_serializer_t *serializer,
         mirrored_cache_config_t *config);
     
     typedef typename inner_cache_t::ready_callback_t ready_callback_t;

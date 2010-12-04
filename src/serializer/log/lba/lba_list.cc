@@ -112,7 +112,7 @@ void lba_list_t::set_block_offset(ser_block_id_t block, flagged_off64_t offset) 
     current disk_structure, so it's meaningless but harmless to call add_entry(). However,
     since our changes are also being put into the in_memory_index, they will be
     incorporated into the new disk_structure that the GC creates, so they won't get lost. */
-    disk_structures[block % LBA_SHARD_FACTOR]->add_entry(block, offset);
+    disk_structures[block.value % LBA_SHARD_FACTOR]->add_entry(block, offset);
 }
 
 struct lba_syncer_t :
@@ -192,9 +192,9 @@ struct gc_fsm_t :
         
         /* Put entries in the new empty LBA */
         
-        for (ser_block_id_t id = i; id < owner->max_block_id(); id += LBA_SHARD_FACTOR) {
+        for (ser_block_id_t::number_t id = i; id < owner->max_block_id().value; id += LBA_SHARD_FACTOR) {
             assert(id % LBA_SHARD_FACTOR == (unsigned)i);
-            owner->disk_structures[i]->add_entry(id, owner->get_block_offset(id));
+            owner->disk_structures[i]->add_entry(ser_block_id_t::make(id), owner->get_block_offset(ser_block_id_t::make(id)));
         }
         
         /* Sync the new LBA */
@@ -227,7 +227,7 @@ bool lba_list_t::we_want_to_gc(int i) {
     // About how much space for entries is used on disk?
     int64_t denom = disk_structures[i]->extents_in_superblock.size() * entries_per_extent;
 
-    int64_t numer = std::max<int64_t>(max_block_id(), entries_per_extent);
+    int64_t numer = std::max<int64_t>(max_block_id().value, entries_per_extent);
 
     // Is 1 - numer/denom >=
     // LBA_GC_THRESHOLD_RATIO_NUMERATOR / LBA_GC_THRESHOLD_RATIO_DENOMINATOR?

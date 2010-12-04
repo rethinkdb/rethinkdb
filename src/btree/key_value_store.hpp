@@ -13,7 +13,8 @@
 #include "serializer/translator.hpp"
 #include "store.hpp"
 
-#define CONFIG_BLOCK_ID (ser_block_id_t(0))
+
+#define CONFIG_BLOCK_ID (config_block_id_t::make(0))
 
 // TODO move serializer_config_block_t to separate file
 /* This is the format that block ID 0 on each serializer takes. */

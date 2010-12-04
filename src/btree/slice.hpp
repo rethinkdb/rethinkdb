@@ -3,6 +3,7 @@
 
 #include "store.hpp"
 #include "buffer_cache/buffer_cache.hpp"
+#include "serializer/translator.hpp"
 
 class initialize_superblock_fsm_t;
 
@@ -21,7 +22,7 @@ class btree_slice_t :
     
 public:
     btree_slice_t(
-        serializer_t *serializer,
+        translator_serializer_t *serializer,
         mirrored_cache_config_t *config);
     ~btree_slice_t();
     

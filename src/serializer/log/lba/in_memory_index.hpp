@@ -12,29 +12,29 @@ struct in_memory_index_t
 public:
     in_memory_index_t() {
     }
-    
+
     ser_block_id_t max_block_id() {
-        return blocks.get_size();
+        return ser_block_id_t::make(blocks.get_size());
     }
-    
+
     flagged_off64_t get_block_offset(ser_block_id_t id) {
-        if(id >= blocks.get_size()) {
+        if (id.value >= blocks.get_size()) {
             return flagged_off64_t::unused();
         } else {
-            return blocks[id];
+            return blocks[id.value];
         }
     }
-    
+
     void set_block_offset(ser_block_id_t id, flagged_off64_t offset) {
-        
+
         /* Grow the array if necessary, and fill in the empty space with flagged_off64_t::unused(). */
-        if (id >= blocks.get_size()) {
-            blocks.set_size(id + 1, flagged_off64_t::unused());
+        if (id.value >= blocks.get_size()) {
+            blocks.set_size(id.value + 1, flagged_off64_t::unused());
         }
-        
-        blocks[id] = offset;
+
+        blocks[id.value] = offset;
     }
-    
+
     void print() {
 #ifndef NDEBUG
         printf("LBA:\n");

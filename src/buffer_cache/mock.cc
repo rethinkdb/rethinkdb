@@ -147,7 +147,7 @@ mock_transaction_t::~mock_transaction_t() {
 /* Cache */
 
 mock_cache_t::mock_cache_t(
-    serializer_t *serializer,
+    translator_serializer_t *serializer,
     mirrored_cache_config_t *config)
     : serializer(serializer), running(false), n_transactions(0), block_size(serializer->get_block_size()) { }
 
@@ -183,7 +183,7 @@ bool mock_cache_t::load_blocks_from_serializer() {
         // Load the blocks from the serializer
         bufs.set_size(serializer->max_block_id(), NULL);
         blocks_to_load = 0;
-        for (ser_block_id_t i = 0; i < serializer->max_block_id(); i++) {
+        for (block_id_t i = 0; i < serializer->max_block_id(); i++) {
             if (serializer->block_in_use(i)) {
                 internal_buf_t *internal_buf = bufs[i] = new internal_buf_t(this, i);
                 serializer->do_read(i, internal_buf->data, this);
@@ -260,7 +260,7 @@ bool mock_cache_t::shutdown_write_bufs() {
 
 bool mock_cache_t::shutdown_do_send_bufs_to_serializer() {
     
-    serializer_t::write_t writes[bufs.get_size()];
+    translator_serializer_t::write_t writes[bufs.get_size()];
     for (block_id_t i = 0; i < bufs.get_size(); i++) {
         writes[i].block_id = i;
         writes[i].buf = bufs[i] ? bufs[i]->data : NULL;

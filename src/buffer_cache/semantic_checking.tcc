@@ -117,7 +117,7 @@ void scc_transaction_t<inner_cache_t>::on_txn_commit(typename inner_cache_t::tra
 
 template<class inner_cache_t>
 scc_cache_t<inner_cache_t>::scc_cache_t(
-        serializer_t *serializer,
+        translator_serializer_t *serializer,
         mirrored_cache_config_t *config)
     : inner_cache(serializer, config) {
 }

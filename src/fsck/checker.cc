@@ -152,7 +152,7 @@ struct slicecx {
         : file(file), knog(knog), global_slice_id(global_slice_id), local_slice_id(global_slice_id / knog->config_block->n_files),
           mod_count(btree_key_value_store_t::compute_mod_count(knog->config_block->this_serializer, knog->config_block->n_files, knog->config_block->btree_config.n_slices)) { }
     ser_block_id_t to_ser_block_id(block_id_t id) {
-        return translator_serializer_t::translate_block_id(id, mod_count, local_slice_id, CONFIG_BLOCK_ID + 1);
+        return translator_serializer_t::translate_block_id(id, mod_count, local_slice_id, CONFIG_BLOCK_ID);
     }
 private:
     DISABLE_COPYING(slicecx);
@@ -178,11 +178,11 @@ public:
 
     // Modifies knog->block_info[ser_block_id].
     bool init(direct_file_t *file, file_knowledge *knog, ser_block_id_t ser_block_id) {
-        if (ser_block_id >= knog->block_info.get_size()) {
+        if (ser_block_id.value >= knog->block_info.get_size()) {
             err = no_block;
             return false;
         }
-        block_knowledge& info = knog->block_info[ser_block_id];
+        block_knowledge& info = knog->block_info[ser_block_id.value];
         flagged_off64_t offset = info.offset;
         if (!flagged_off64_t::has_value(offset)) {
             err = no_block;
@@ -414,20 +414,20 @@ bool check_lba_extent(direct_file_t *file, file_knowledge *knog, unsigned int sh
     for (int i = 0; i < entries_count; ++i) {
         lba_entry_t entry = buf->entries[i];
         
-        if (entry.block_id == NULL_SER_BLOCK_ID) {
+        if (entry.block_id == ser_block_id_t::null()) {
             // do nothing, this is ok.
-        } else if (entry.block_id > MAX_BLOCK_ID) {
+        } else if (entry.block_id.value > MAX_BLOCK_ID) {
             errs->bad_block_id_count++;
-        } else if (entry.block_id % LBA_SHARD_FACTOR != shard_number) {
+        } else if (entry.block_id.value % LBA_SHARD_FACTOR != shard_number) {
             errs->wrong_shard_count++;
         } else if (!is_valid_btree_block(knog, entry.offset.parts.value)) {
             errs->bad_offset_count++;
         } else {
             
-            if (knog->block_info.get_size() <= entry.block_id) {
-                knog->block_info.set_size(entry.block_id + 1, block_knowledge::unused);
+            if (knog->block_info.get_size() <= entry.block_id.value) {
+                knog->block_info.set_size(entry.block_id.value + 1, block_knowledge::unused);
             }
-            knog->block_info[entry.block_id].offset = entry.offset;
+            knog->block_info[entry.block_id.value].offset = entry.offset;
 
         }
     }
@@ -527,7 +527,7 @@ bool check_config_block(direct_file_t *file, file_knowledge *knog, config_block_
     errs->bad_magic = false;
 
     btree_block config_block;
-    if (!config_block.init(file, knog, CONFIG_BLOCK_ID)) {
+    if (!config_block.init(file, knog, CONFIG_BLOCK_ID.ser_id)) {
         errs->block_open_code = config_block.err;
         return false;
     }
@@ -841,26 +841,26 @@ struct other_block_errors {
     std::vector<rogue_block_description> unused_blocks;
     std::vector<rogue_block_description> allegedly_deleted_blocks;
     ser_block_id_t contiguity_failure;
-    other_block_errors() : contiguity_failure(NULL_SER_BLOCK_ID) { }
+    other_block_errors() : contiguity_failure(ser_block_id_t::null()) { }
 private:
     DISABLE_COPYING(other_block_errors);
 };
 
 void check_slice_other_blocks(slicecx& cx, other_block_errors *errs) {
-    ser_block_id_t min_block = translator_serializer_t::translate_block_id(0, cx.mod_count, cx.local_slice_id, CONFIG_BLOCK_ID + 1);
+    ser_block_id_t min_block = translator_serializer_t::translate_block_id(0, cx.mod_count, cx.local_slice_id, CONFIG_BLOCK_ID);
 
     segmented_vector_t<block_knowledge, MAX_BLOCK_ID>& block_info = cx.knog->block_info;
 
-    ser_block_id_t first_valueless_block = NULL_SER_BLOCK_ID;
+    ser_block_id_t first_valueless_block = ser_block_id_t::null();
 
-    for (ser_block_id_t id = min_block, end = block_info.get_size(); id < end; id += cx.mod_count) {
+    for (ser_block_id_t::number_t id = min_block.value, end = block_info.get_size(); id < end; id += cx.mod_count) {
         block_knowledge info = block_info[id];
         if (!flagged_off64_t::has_value(info.offset)) {
-            if (first_valueless_block == NULL_SER_BLOCK_ID) {
-                first_valueless_block = id;
+            if (first_valueless_block == ser_block_id_t::null()) {
+                first_valueless_block = ser_block_id_t::make(id);
             }
         } else {
-            if (first_valueless_block != NULL_SER_BLOCK_ID) {
+            if (first_valueless_block != ser_block_id_t::null()) {
                 errs->contiguity_failure = first_valueless_block;
             }
 
@@ -870,7 +870,7 @@ void check_slice_other_blocks(slicecx& cx, other_block_errors *errs) {
                 desc.block_id = id;
 
                 btree_block b;
-                if (!b.init(cx.file, cx.knog, id)) {
+                if (!b.init(cx.file, cx.knog, ser_block_id_t::make(id))) {
                     desc.loading_error = b.err;
                 } else {
                     desc.magic = *ptr_cast<block_magic_t>(b.buf);
@@ -884,7 +884,7 @@ void check_slice_other_blocks(slicecx& cx, other_block_errors *errs) {
                 desc.block_id = id;
 
                 btree_block zeroblock;
-                if (!zeroblock.init(cx.file, cx.knog, id)) {
+                if (!zeroblock.init(cx.file, cx.knog, ser_block_id_t::make(id))) {
                     desc.loading_error = zeroblock.err;
                     errs->allegedly_deleted_blocks.push_back(desc);
                 } else {
@@ -1178,8 +1178,8 @@ void report_other_block_errors(const other_block_errors *errs) {
     for (int i = 0, n = errs->allegedly_deleted_blocks.size(); i < n; ++i) {
         report_rogue_block_description("nonzeroed deleted block", errs->allegedly_deleted_blocks[i]);
     }
-    if (errs->contiguity_failure != NULL_SER_BLOCK_ID) {
-        printf("ERROR %s slice block contiguity failure at serializer block id %u\n", state, errs->contiguity_failure);
+    if (errs->contiguity_failure != ser_block_id_t::null()) {
+        printf("ERROR %s slice block contiguity failure at serializer block id %u\n", state, errs->contiguity_failure.value);
     }
 }
 

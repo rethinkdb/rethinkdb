@@ -9,8 +9,43 @@
 behave. It is implemented by log_serializer_t, semantic_checking_serializer_t, and
 others. */
 
-typedef uint32_t ser_block_id_t;
-#define NULL_SER_BLOCK_ID (ser_block_id_t(-1))
+
+struct ser_block_id_t {
+    typedef uint32_t number_t;
+
+    // Distrust things that access value directly.
+    number_t value;
+
+    inline bool operator==(ser_block_id_t other) const { return value == other.value; }
+    inline bool operator!=(ser_block_id_t other) const { return value != other.value; }
+    inline bool operator<(ser_block_id_t other) const { return value < other.value; }
+
+    static inline ser_block_id_t make(number_t num) {
+        assert(num != number_t(-1));
+        ser_block_id_t ret;
+        ret.value = num;
+        return ret;
+    }
+
+    static inline ser_block_id_t null() {
+        ser_block_id_t ret;
+        ret.value = uint32_t(-1);
+        return ret;
+    }
+};
+
+struct config_block_id_t {
+    ser_block_id_t ser_id;
+
+    ser_block_id_t subsequent_ser_id() const { return ser_block_id_t::make(ser_id.value + 1); }
+    static inline config_block_id_t make(ser_block_id_t::number_t num) {
+        assert(num == 0);  // only one possible config_block_id_t value.
+
+        config_block_id_t ret;
+        ret.ser_id = ser_block_id_t::make(num);
+        return ret;
+    }
+};
 
 typedef uint64_t ser_transaction_id_t;
 #define NULL_SER_TRANSACTION_ID (ser_transaction_id_t(0))

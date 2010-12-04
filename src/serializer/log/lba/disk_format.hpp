@@ -89,7 +89,7 @@ struct lba_metablock_mixin_t {
 // PADDING_BLOCK_ID and flagged_off64_t::padding() indicate that an entry in the LBA list only exists to fill
 // out a DEVICE_BLOCK_SIZE-sized chunk of the extent.
 
-#define PADDING_BLOCK_ID ser_block_id_t(-1)
+#define PADDING_BLOCK_ID (ser_block_id_t::make(-1))
 
 struct lba_entry_t {
     ser_block_id_t block_id;

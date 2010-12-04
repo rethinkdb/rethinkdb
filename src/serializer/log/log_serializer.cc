@@ -235,8 +235,8 @@ struct ls_start_existing_fsm_t :
         if (state == state_reconstruct) {
 
             ser->data_block_manager->start_reconstruct();
-            for (ser_block_id_t id = 0; id < ser->lba_index->max_block_id(); id++) {
-                flagged_off64_t offset = ser->lba_index->get_block_offset(id);
+            for (ser_block_id_t::number_t id = 0; id < ser->lba_index->max_block_id().value; id++) {
+                flagged_off64_t offset = ser->lba_index->get_block_offset(ser_block_id_t::make(id));
                 if (flagged_off64_t::can_be_gced(offset)) {
                     ser->data_block_manager->mark_live(offset.parts.value);
                 }

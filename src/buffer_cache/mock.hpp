@@ -6,6 +6,7 @@
 #include "containers/segmented_vector.hpp"
 #include "utils.hpp"
 #include "serializer/serializer.hpp"
+#include "serializer/translator.hpp"
 #include "config/cmd_args.hpp"
 #include "concurrency/rwi_lock.hpp"
 
@@ -106,7 +107,7 @@ public:
     mock_cache_t(
         // mock_cache gets a serializer so its constructor is consistent with
         // the mirrored cache's serializer, but it doesn't use it.
-        serializer_t *serializer,
+        translator_serializer_t *serializer,
         mirrored_cache_config_t *config);
     ~mock_cache_t();
     
@@ -130,7 +131,7 @@ private:
     friend class mock_buf_t;
     friend class internal_buf_t;
     
-    serializer_t *serializer;
+    translator_serializer_t *serializer;
     bool running;
     int n_transactions;
     size_t block_size;

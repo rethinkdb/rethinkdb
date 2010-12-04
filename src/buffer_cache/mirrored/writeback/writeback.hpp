@@ -6,6 +6,7 @@
 #include "flush_time_randomizer.hpp"
 #include "utils.hpp"
 #include "serializer/serializer.hpp"
+#include "serializer/translator.hpp"
 #include "buffer_cache/mirrored/callbacks.hpp"
 
 struct mc_cache_t;
@@ -135,7 +136,7 @@ private:
     
     // Transaction to submit to the serializer
     int num_serializer_writes;
-    serializer_t::write_t *serializer_writes;
+    translator_serializer_t::write_t *serializer_writes;
     
     // List of things to call back as soon as the writeback currently in progress is over.
     intrusive_list_t<sync_callback_t> current_sync_callbacks;

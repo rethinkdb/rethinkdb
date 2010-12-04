@@ -198,7 +198,7 @@ bool writeback_t::writeback_acquire_bufs() {
     /* Request read locks on all of the blocks we need to flush.
     TODO: Find a better way to do the allocation. */
     num_serializer_writes = dirty_bufs.size();
-    serializer_writes = new serializer_t::write_t[num_serializer_writes];
+    serializer_writes = new translator_serializer_t::write_t[num_serializer_writes];
     
     int i = 0;
     while (local_buf_t *lbuf = dirty_bufs.head()) {
