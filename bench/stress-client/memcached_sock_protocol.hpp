@@ -80,7 +80,7 @@ struct memcached_sock_protocol_t : public protocol_t {
         send_command(buf - buffer);
 
         // Check the result
-        expect(false);
+        expect(NULL, 0);
     }
 
     virtual void update(const char *key, size_t key_size,
@@ -104,10 +104,10 @@ struct memcached_sock_protocol_t : public protocol_t {
         send_command(buf - buffer);
 
         // Check the result
-        expect(false);
+        expect(NULL, 0);
     }
 
-    virtual void read(payload_t *keys, int count) {
+    virtual void read(payload_t *keys, int count, payload_t *values = NULL) {
         // Setup the text command
         char *buf = buffer;
         buf += sprintf(buf, "get ");
@@ -124,7 +124,15 @@ struct memcached_sock_protocol_t : public protocol_t {
         send_command(buf - buffer);
 
         // Check the result
-        expect(true);
+        if (values) {
+            char *expect_str = cmp_buff;
+            for (int i = 0; i < count; i++)
+                expect_str += sprintf(expect_str, "VALUE %.*s 0 %lu\r\n%.*s\r\nEND\r\n", (int) keys[i].second, keys[i].first, values[i].second,  (int) values[i].second, values[i].first);
+
+            expect(cmp_buff, expect_str - cmp_buff);
+        } else {
+            expect(NULL, 0);
+        }
     }
 
 private:
@@ -141,9 +149,11 @@ private:
         } while(count < total);
     }
 
-    void expect(bool fread) {
+    void expect(char *str, int len) {
         int nread = 0;
         char *buf = buffer;
+        char *strhd = str;
+        bool done = false;
         do {
             // Read
             int res = ::read(sockfd, buf, 256);
@@ -152,26 +162,33 @@ private:
                 fprintf(stderr, "Could not read from socket (%d)\n", errno);
                 exit(-1);
             }
-            nread += res;
-            buf += res;
 
             // Search
-            void *ptr = NULL;
-            if(fread) {
-                ptr = memmem(buffer, nread, "END\r\n", 5);
-            } else {
-                ptr = memmem(buffer, nread, "\r\n", 2);
+            if (str) {
+                if (res + nread > len || memcmp(buf, strhd, res) != 0) {
+                    fprintf(stderr, "Incorrect data in the socket:\nReceived:%.*s\nExpected:%.*s\n", res + nread, buffer, len, str);
+                    exit(-1);
+                }
+            }
+            else {
+                void *ptr = memmem(buf, res, "\r\n", 2);
+                if(ptr)
+                    done = true;
             }
 
-            if(ptr) {
-                return;
-            }
-        } while(true);
+            nread += res;
+            buf += res;
+            strhd += res;
+
+            if (nread == len)
+                done = true;
+
+        } while(!done);
     }
 
 private:
     int sockfd;
-    char buffer[1024 * 10];
+    char buffer[1024 * 10], cmp_buff[1024 * 10];
 };
 
 

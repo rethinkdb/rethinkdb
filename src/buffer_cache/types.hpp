@@ -30,4 +30,12 @@ bool check_magic(block_magic_t magic) {
     return magic == block_value_t::expected_magic;
 }
 
+
+struct large_buf_ref {
+    int64_t size;
+    int64_t offset;
+    block_id_t block_id;
+} __attribute((__packed__));
+
+
 #endif /* __BUFFER_CACHE_TYPES_HPP__ */

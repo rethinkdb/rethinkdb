@@ -168,8 +168,8 @@ btree_get_fsm_t::transition_result_t btree_get_fsm_t::do_acquire_large_value(eve
 
     if (!event) {
         large_value = new large_buf_t(transaction);
-        // TODO: Put the cast in node.hpp
-        large_value->acquire(* (block_id_t *) value.value(), value.value_size(), rwi_read, this);
+
+        large_value->acquire(value.lb_ref(), rwi_read, this);
         return btree_fsm_t::transition_incomplete;
     } else {
         assert(event->buf);
@@ -187,7 +187,7 @@ btree_get_fsm_t::transition_result_t btree_get_fsm_t::do_deliver_large_value(eve
 
     assert(large_value);
     assert(!event);
-    assert(large_value->get_index_block_id() == value.lv_index_block_id());
+    assert(large_value->get_root_ref().block_id == value.lb_ref().block_id);
 
     for (int i = 0; i < large_value->get_num_segments(); i++) {
         uint16_t size;

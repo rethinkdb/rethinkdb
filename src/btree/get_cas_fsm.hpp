@@ -25,9 +25,9 @@ public:
     ~btree_get_cas_fsm_t() {
         pm_cmd_get.end(&start_time);
     }
-    
-    void operate(btree_value *old_value, large_buf_t *old_large_buf) {
-        
+
+void operate(btree_value *old_value, large_buf_t *old_large_buf, bool *delete_old_large_buf) {
+
         if (!old_value) {
             result = result_not_found;
             have_failed_operating();

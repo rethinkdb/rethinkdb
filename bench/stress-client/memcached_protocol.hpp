@@ -72,7 +72,7 @@ struct memcached_protocol_t : public protocol_t {
         update(key, key_size, value, value_size);
     }
 
-    virtual void read(payload_t *keys, int count) {
+    virtual void read(payload_t *keys, int count, payload_t *values = NULL) {
         char *_value;
         size_t _value_length;
         uint32_t _flags;
@@ -101,6 +101,12 @@ struct memcached_protocol_t : public protocol_t {
             if(_error != MEMCACHED_SUCCESS && _error != MEMCACHED_END) {
                 fprintf(stderr, "Error performing read operation (%d)\n", _error);
                 exit(-1);
+            }
+            if (values != NULL) {
+                if (_value_length != values[i].second || memcmp(_value, values[i].first, _value_length) != 0) {
+                    fprintf(stderr, "Incorrect value in database\n");
+                    exit(-1);
+                }
             }
             free(_value);
             i++;

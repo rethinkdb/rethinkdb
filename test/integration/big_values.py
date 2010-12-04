@@ -32,9 +32,13 @@ def test_value_of_size(size, port):
     msg = readline(s)
     
     if msg == "STORED\r\n":
+        print " getting...",
         s.send("get x\r\n");
+        print " sent get...",
         expect(s, "VALUE x 0 %d\r\n" % size)
+        print " value decl...",
         expect(s, "a" * size + "\r\n")
+        print " content...",
         expect(s, "END\r\n")
         too_big = False
         print "ok."
@@ -67,6 +71,32 @@ def test(opts, port):
     
     # threshold for buffering vs. streaming
     test_values_near_size(10000, port)
+
+#    test_values_near_size(40000, port)
+
+#    test_values_near_size(2 ** 16, port)
+
+#    test_values_near_size(66000, port)
+
+#    test_values_near_size(70000, port)
+
+    test_values_near_size(71000, port)
+    test_values_near_size(73500, port)
+    for i in xrange(73700, 73750):
+        assert False == test_value_of_size(i, port)
+
+    test_values_near_size(73750, port)
+    test_values_near_size(74000, port)
+    test_values_near_size(75000, port)
+
+    test_values_near_size(75000, port)
+
+    test_values_near_size(77500, port)
+
+    test_values_near_size(80000, port)
+
+    test_values_near_size(100000, port)
+
     
     # threshold for max legal value size
     test_values_near_size(1024 * 1024, port)
