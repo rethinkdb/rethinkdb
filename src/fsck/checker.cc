@@ -95,7 +95,7 @@ struct file_knowledge {
     // The block from CONFIG_BLOCK_ID (well, the beginning of such a block).
     learned<serializer_config_block_t> config_block;
 
-    file_knowledge(const std::string filename) : filename(filename) { }
+    explicit file_knowledge(const std::string filename) : filename(filename) { }
 
 private:
     DISABLE_COPYING(file_knowledge);
@@ -106,7 +106,7 @@ struct knowledge {
     std::vector<direct_file_t *> files;
     std::vector<file_knowledge *> file_knog;
 
-    knowledge(const std::vector<std::string>& filenames)
+    explicit knowledge(const std::vector<std::string>& filenames)
         : files(filenames.size(), NULL), file_knog(filenames.size(), NULL) {
         for (int i = 0, n = filenames.size(); i < n; ++i) {
             direct_file_t *file = new direct_file_t(filenames[i].c_str(), direct_file_t::mode_read);
@@ -558,8 +558,8 @@ struct value_error {
 
     std::vector<segment_error> lv_segment_errors;
 
-    value_error(block_id_t block_id) : block_id(block_id), bad_metadata_flags(false), too_big(false),
-                                       lv_too_small(false), index_block_id(NULL_BLOCK_ID) { }
+    explicit value_error(block_id_t block_id) : block_id(block_id), bad_metadata_flags(false),
+                                                too_big(false), lv_too_small(false), index_block_id(NULL_BLOCK_ID) { }
 
     bool is_bad() const {
         return bad_metadata_flags || too_big || lv_too_small;
@@ -579,12 +579,12 @@ struct node_error {
     bool value_errors_exist : 1;  // should be false
     bool last_internal_node_key_nonempty : 1;  // should be false
     
-    node_error(block_id_t block_id) : block_id(block_id), block_not_found_error(btree_block::none),
-                                      block_underfull(false), bad_magic(false),
-                                      noncontiguous_offsets(false), value_out_of_buf(false),
-                                      keys_too_big(false), keys_in_wrong_slice(false),
-                                      out_of_order(false), value_errors_exist(false),
-                                      last_internal_node_key_nonempty(false) { }
+    explicit node_error(block_id_t block_id) : block_id(block_id), block_not_found_error(btree_block::none),
+                                               block_underfull(false), bad_magic(false),
+                                               noncontiguous_offsets(false), value_out_of_buf(false),
+                                               keys_too_big(false), keys_in_wrong_slice(false),
+                                               out_of_order(false), value_errors_exist(false),
+                                               last_internal_node_key_nonempty(false) { }
 
     bool is_bad() const {
         return block_not_found_error != btree_block::none || block_underfull || bad_magic
@@ -1011,7 +1011,7 @@ struct all_slices_errors {
     int n_slices;
     slice_errors *slice;
 
-    all_slices_errors(int n_slices) : n_slices(n_slices), slice(new slice_errors[n_slices]) { }
+    explicit all_slices_errors(int n_slices) : n_slices(n_slices), slice(new slice_errors[n_slices]) { }
 
     ~all_slices_errors() { delete[] slice; }
 };

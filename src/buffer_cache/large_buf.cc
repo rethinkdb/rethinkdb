@@ -13,7 +13,7 @@ int64_t large_buf_t::compute_max_offset(size_t cache_block_size, int levels) {
     int64_t x = cache_size_to_leaf_bytes(cache_block_size);
     while (levels > 1) {
         x *= cache_size_to_internal_kids(cache_block_size);
-        -- levels;
+        --levels;
     }
     return x;
 }
@@ -131,6 +131,7 @@ void large_buf_t::allocate(int64_t _size, large_buf_ref *refout) {
 struct tree_available_callback_t {
     // responsible for calling delete this
     virtual void on_available(buftree_t *tr, int index) = 0;
+    virtual ~tree_available_callback_t() {}
 };
 
 struct acquire_buftree_fsm_t : public block_available_callback_t, public tree_available_callback_t {
@@ -150,7 +151,7 @@ struct acquire_buftree_fsm_t : public block_available_callback_t, public tree_av
 #ifndef NDEBUG
         tr->level = levels_;
 #endif
- }
+}
 
     void go() {
         buf_t *buf = lb->transaction->acquire(block_id, lb->access, this);
@@ -212,7 +213,7 @@ struct acquire_buftree_fsm_t : public block_available_callback_t, public tree_av
 
 struct lb_tree_available_callback_t : public tree_available_callback_t {
     large_buf_t *lb;
-    lb_tree_available_callback_t(large_buf_t *lb_) : lb(lb_) { }
+    explicit lb_tree_available_callback_t(large_buf_t *lb_) : lb(lb_) { }
     void on_available(buftree_t *tr, int neg1) {
         assert(neg1 == -1);
         large_buf_t *l = lb;

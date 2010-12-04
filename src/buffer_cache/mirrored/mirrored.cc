@@ -13,7 +13,7 @@ struct load_buf_fsm_t :
 {
     bool have_loaded;
     mc_inner_buf_t *inner_buf;
-    load_buf_fsm_t(mc_inner_buf_t *buf) : inner_buf(buf) {
+    explicit load_buf_fsm_t(mc_inner_buf_t *buf) : inner_buf(buf) {
         bool locked __attribute__((unused)) = inner_buf->lock.lock(rwi_write, NULL);
         assert(locked);
         have_loaded = false;
@@ -419,7 +419,7 @@ mc_transaction_t *mc_cache_t::begin_transaction(access_t access,
                 state == state_shutting_down_waiting_for_flush)));
     
     transaction_t *txn = new transaction_t(this, access);
-    num_live_transactions ++;
+    num_live_transactions++;
     if (writeback.begin_transaction(txn, callback)) {
         pm_transactions_starting.end(&txn->start_time);
         pm_transactions_active.begin(&txn->start_time);

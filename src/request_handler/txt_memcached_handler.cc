@@ -472,7 +472,7 @@ class disable_gc_request_t :
     txt_memcached_handler_t *rh;
     
 public:
-    disable_gc_request_t(txt_memcached_handler_t *rh)
+    explicit disable_gc_request_t(txt_memcached_handler_t *rh)
         : rh(rh), done(false) {
 
         rh->server->disable_gc(this);
@@ -515,7 +515,7 @@ class enable_gc_request_t :
     txt_memcached_handler_t *rh;
     
 public:
-    enable_gc_request_t(txt_memcached_handler_t *rh)
+    explicit enable_gc_request_t(txt_memcached_handler_t *rh)
         : rh(rh), done(false) {
 
         rh->server->enable_gc(this);

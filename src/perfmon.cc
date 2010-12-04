@@ -24,7 +24,7 @@ struct perfmon_fsm_t :
     perfmon_stats_t *dest;
     std::vector<void*> data;
     int messages_out;
-    perfmon_fsm_t(perfmon_stats_t *dest) : cb(NULL), dest(dest) {
+    explicit perfmon_fsm_t(perfmon_stats_t *dest) : cb(NULL), dest(dest) {
         data.reserve(get_var_list().size());
         for (perfmon_t *p = get_var_list().head(); p; p = get_var_list().next(p)) {
             data.push_back(p->begin_stats());

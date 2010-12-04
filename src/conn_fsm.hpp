@@ -23,6 +23,7 @@ struct data_transferred_callback {
 struct conn_fsm_shutdown_callback_t {
     virtual void on_conn_fsm_quit() = 0;
     virtual void on_conn_fsm_shutdown() = 0;
+    virtual ~conn_fsm_shutdown_callback_t() {}
 };
 
 // The actual state structure

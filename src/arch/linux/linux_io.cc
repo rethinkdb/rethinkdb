@@ -157,7 +157,6 @@ void linux_net_listener_t::on_event(int events) {
         if (new_sock == INVALID_FD) {
             if (errno == EAGAIN) break;
             else fail("Cannot accept new connection: errno=%s", strerror(errno));
-        
         } else {
             callback->on_net_listener_accept(new linux_net_conn_t(new_sock));
         }

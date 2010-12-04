@@ -72,7 +72,7 @@ public: // XXX Should this be private?
 
 // TODO: Take care of private methods and friend classes and all that.
 public:
-    large_buf_t(transaction_t *txn);
+    explicit large_buf_t(transaction_t *txn);
     ~large_buf_t();
 
     void allocate(int64_t _size, large_buf_ref *refout);

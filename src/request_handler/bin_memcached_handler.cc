@@ -14,7 +14,7 @@ typedef bin_memcached_handler_t::packet_t packet_t;
 
 struct response_t : public packet_t {
     byte data[MAX_PACKET_SIZE];
-    response_t(packet_t *req) : packet_t(data)
+    explicit response_t(packet_t *req) : packet_t(data)
     {
         opcode(req->opcode());
         data_type(req->data_type());

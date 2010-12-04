@@ -33,6 +33,7 @@ struct serializer_t :
     
     struct read_callback_t {
         virtual void on_serializer_read() = 0;
+        virtual ~read_callback_t() {}
     };
     virtual bool do_read(ser_block_id_t block_id, void *buf, read_callback_t *callback) = 0;
     
@@ -48,9 +49,11 @@ struct serializer_t :
     
     struct write_txn_callback_t {
         virtual void on_serializer_write_txn() = 0;
+        virtual ~write_txn_callback_t() {}
     };
     struct write_block_callback_t {
         virtual void on_serializer_write_block() = 0;
+        virtual ~write_block_callback_t() {}
     };
     struct write_t {
         ser_block_id_t block_id;

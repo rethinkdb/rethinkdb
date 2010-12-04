@@ -127,13 +127,13 @@ struct lba_writer_t :
     int outstanding_cbs;
     lba_disk_structure_t::sync_callback_t *callback;
     
-    lba_writer_t(lba_disk_structure_t::sync_callback_t *cb) {
+    explicit lba_writer_t(lba_disk_structure_t::sync_callback_t *cb) {
         outstanding_cbs = 0;
         callback = cb;
     }
     
     void on_extent_sync() {
-        outstanding_cbs --;
+        outstanding_cbs--;
         if (outstanding_cbs == 0) {
             if (callback) callback->on_lba_sync();
             delete this;
@@ -173,7 +173,7 @@ struct reader_t :
     struct extent_info_t {
         lba_disk_extent_t *extent;
         lba_disk_extent_t::read_info_t read_info;
-        extent_info_t(lba_disk_extent_t *e) : extent(e) { }
+        explicit extent_info_t(lba_disk_extent_t *e) : extent(e) { }
     };
     std::vector< extent_info_t > extents;
     int cbs_out;

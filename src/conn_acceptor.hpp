@@ -21,12 +21,13 @@ class conn_acceptor_t :
     friend class conn_fsm_handler_t;
 
 public:
-    conn_acceptor_t(server_t *server);
+    explicit conn_acceptor_t(server_t *server);
     
     void start();
     
     struct shutdown_callback_t {
         virtual void on_conn_acceptor_shutdown() = 0;
+        virtual ~shutdown_callback_t() {}
     };
     bool shutdown(shutdown_callback_t *cb);
     
