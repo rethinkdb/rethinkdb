@@ -171,20 +171,40 @@ struct client_data_t {
     int min_seed, max_seed;
 
     /* \brief counters are used for to keep track of which keys we've done an
-     * operation on, they allow you to do an operation on every nth key */
+     * operation on, they allow you to do an operation on every nth key
+     * the values returned are of the form offset + n * delta
+     */
     class counter {
     private:
-        int val, delta;
+        int val, delta, offset;
     public:
         counter()
-            :delta(1), val(0)
+            :delta(1), offset(0), val(0)
         {}
-        counter(int delta, int val = 0) 
-            :delta(delta), val(val)
-        {}
-        void init(int _delta, int _val = 0) {
+        counter(int delta, int offset = 0, int val = 0) 
+            :delta(delta), offset(offset)
+        {
+            if (val < offset)
+                this->val = offset;
+            else
+                this->val = val;
+            validate();
+        }
+        void init(int _delta, int _offset = 0, int _val = 0) {
             this->delta = _delta;
-            this->val = _val;
+            this->offset = _offset;
+            if (_val < offset)
+                this->val = offset;
+            else
+                this->val = _val;
+            validate();
+        }
+
+        void validate() {
+            if (val % delta != offset) {
+                fprintf(stderr, "Illegal counter values\n");
+                exit(-1);
+            }
         }
         /* \brief get the next value to apply the operation to min and max must
          * be monotonically increasing on successive calls to this function
@@ -197,16 +217,15 @@ struct client_data_t {
             } else {
                 int remainder = min % delta;
 
-                if (remainder == 0) {
+                if (remainder == offset)
                     res = min;
-                    val = min + delta;
-                } else if (min + delta - remainder < max) {
-                    res = min + delta-remainder;
-                    val = res + delta;
-                } else {
-                    return -1;
-                }
+                else if (min + offset - remainder < max)
+                  res = min + offset - remainder;
+                else
+                  return -1;
+                
 
+                val = res + delta;
                 return res;
             }
         }
