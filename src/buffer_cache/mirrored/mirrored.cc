@@ -50,7 +50,9 @@ mc_inner_buf_t::mc_inner_buf_t(cache_t *cache, block_id_t block_id)
     new load_buf_fsm_t(this);
     
     pm_n_blocks_in_memory++;
+    refcount++; // Make the refcount nonzero so this block won't be considered safe to unload.
     cache->page_repl.make_space(1);
+    refcount--;
 }
 
 // This form of the buf constructor is used when a completely new block is being created
@@ -74,7 +76,9 @@ mc_inner_buf_t::mc_inner_buf_t(cache_t *cache)
 #endif
     
     pm_n_blocks_in_memory++;
+    refcount++; // Make the refcount nonzero so this block won't be considered safe to unload.
     cache->page_repl.make_space(1);
+    refcount--;
 }
 
 mc_inner_buf_t::~mc_inner_buf_t() {
