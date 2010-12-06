@@ -185,7 +185,7 @@ public:
         node_t *last_node = NULL;
         unsigned int count = 0;
         for (node_t *node = _head; node; node=((intrusive_list_node_t<node_t>*)node)->next) {
-            count ++;
+            count++;
             assert(((intrusive_list_node_t<node_t>*)node)->in_a_list);
             assert(((intrusive_list_node_t<node_t>*)node)->prev == last_node);
             last_node = node;
@@ -200,7 +200,7 @@ public:
         friend class intrusive_list_t<node_t>;
         
     private:
-        iterator(node_t *node) : _node(node) { }
+        explicit iterator(node_t *node) : _node(node) { }
         node_t *_node;
         
     public:

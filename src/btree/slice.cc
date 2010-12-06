@@ -13,7 +13,7 @@ class initialize_superblock_fsm_t :
 {
 
 public:
-    initialize_superblock_fsm_t(cache_t *cache)
+    explicit initialize_superblock_fsm_t(cache_t *cache)
         : state(state_unstarted), cache(cache), sb_buf(NULL), txn(NULL)
         {}
     ~initialize_superblock_fsm_t() {

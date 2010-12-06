@@ -15,7 +15,7 @@ private:
     size_t size;
     
 public:
-    segmented_vector_t(size_t size = 0) : size(0) {
+    explicit segmented_vector_t(size_t size = 0) : size(0) {
         set_size(size);
     }
     

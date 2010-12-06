@@ -123,7 +123,7 @@ struct lba_syncer_t :
     int structures_unsynced;
     lba_list_t::sync_callback_t *callback;
     
-    lba_syncer_t(lba_list_t *owner)
+    explicit lba_syncer_t(lba_list_t *owner)
         : owner(owner), done(false), should_delete_self(false), callback(NULL)
     {
         structures_unsynced = LBA_SHARD_FACTOR;

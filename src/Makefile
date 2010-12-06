@@ -179,6 +179,9 @@ gdb: $(BUILD_DIR)/$(SERVER_EXEC_NAME)
 regdb: $(BUILD_DIR)/$(SERVER_EXEC_NAME)
 	gdb --args $(BUILD_DIR)/$(SERVER_EXEC_NAME) -p $(RUN_PORT) $(RUN_FLAGS)
 
+sembuild:
+	make SEMANTIC_SERIALIZER_CHECK=1 clean all
+
 valgrind: $(BUILD_DIR)/$(SERVER_EXEC_NAME)
 ifeq ($(VALGRIND),0)
 	$(error Using the 'valgrind' target doesn't automatically set VALGRIND to 1. Try again with \

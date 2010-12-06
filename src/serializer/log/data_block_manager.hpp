@@ -111,6 +111,7 @@ public:
 public:
     struct shutdown_callback_t {
         virtual void on_datablock_manager_shutdown() = 0;
+        virtual ~shutdown_callback_t() {}
     };
     // The shutdown_callback_t may destroy the data_block_manager.
     bool shutdown(shutdown_callback_t *cb);
@@ -119,6 +120,7 @@ public:
 
     struct gc_disable_callback_t {
         virtual void on_gc_disabled() = 0;
+        virtual ~gc_disable_callback_t() {}
     };
 
     // Always calls the callback, returns true if the callback has
@@ -319,7 +321,7 @@ private:
         data_block_manager_t::gc_write_callback_t gc_write_callback;
         data_block_manager_t::gc_disable_callback_t *gc_disable_callback;
 
-        gc_state_t(size_t extent_size) : step_(gc_ready), should_be_stopped(0), refcount(0), current_entry(NULL)
+        explicit gc_state_t(size_t extent_size) : step_(gc_ready), should_be_stopped(0), refcount(0), current_entry(NULL)
         {
             /* TODO this is excessive as soon as we have a bound on how much space we need we should allocate less */
             gc_blocks = (char *)malloc_aligned(extent_size, DEVICE_BLOCK_SIZE);
@@ -349,8 +351,8 @@ private:
             int val;
             perfmon_counter_t &perfmon;
         public:
-            gc_stat_t(perfmon_counter_t &perfmon)
-                :val(0), perfmon(perfmon)
+            explicit gc_stat_t(perfmon_counter_t &perfmon)
+                : val(0), perfmon(perfmon)
             {}
             void operator++(int) { val++; perfmon++;}
             void operator+=(int64_t num) { val += num; perfmon += num; }
@@ -385,7 +387,7 @@ public:
     private: 
         data_block_manager_t *data_block_manager;
     public:
-        garbage_ratio_reporter_t(data_block_manager_t *data_block_manager)
+        explicit garbage_ratio_reporter_t(data_block_manager_t *data_block_manager)
             : data_block_manager(data_block_manager) {}
         ~garbage_ratio_reporter_t() {}
         float operator()() {

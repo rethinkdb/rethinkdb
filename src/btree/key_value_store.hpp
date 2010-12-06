@@ -64,17 +64,20 @@ public:
     
     struct check_callback_t {
         virtual void on_store_check(bool valid) = 0;
+        virtual ~check_callback_t() {}
     };
     static void check_existing(const std::vector<std::string>& db_filenames, check_callback_t *cb);
     
     struct ready_callback_t {
         virtual void on_store_ready() = 0;
+        virtual ~ready_callback_t() {}
     };
     bool start_new(ready_callback_t *cb, btree_key_value_store_static_config_t *static_config);
     bool start_existing(ready_callback_t *cb);
     
     struct shutdown_callback_t {
         virtual void on_store_shutdown() = 0;
+        virtual ~shutdown_callback_t() {}
     };
     bool shutdown(shutdown_callback_t *cb);
 

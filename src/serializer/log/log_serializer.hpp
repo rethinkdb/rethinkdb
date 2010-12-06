@@ -96,6 +96,7 @@ public:
 public:
     struct check_callback_t {
         virtual void on_serializer_check(bool is_existing) = 0;
+        virtual ~check_callback_t() {}
     };
     static void check_existing(const char *filename, check_callback_t *cb);
 
@@ -105,6 +106,7 @@ public:
     serializer will read from an existing database. */
     struct ready_callback_t {
         virtual void on_serializer_ready(log_serializer_t *) = 0;
+        virtual ~ready_callback_t() {}
     };
     bool start_new(static_config_t *static_config, ready_callback_t *ready_cb);
     bool start_existing(ready_callback_t *ready_cb);
@@ -128,6 +130,7 @@ public:
     'false' and then call the given callback when the shutdown is done. */
     struct shutdown_callback_t {
         virtual void on_serializer_shutdown(log_serializer_t *) = 0;
+        virtual ~shutdown_callback_t() {}
     };
     bool shutdown(shutdown_callback_t *cb);
 

@@ -176,7 +176,7 @@ bool mock_cache_t::load_blocks_from_serializer() {
         assert(SUPERBLOCK_ID == 0);
         bufs[SUPERBLOCK_ID] = new internal_buf_t(this, SUPERBLOCK_ID);
         
-        return do_on_cpu(home_cpu, this, &mock_cache_t::have_loaded_blocks);;
+        return do_on_cpu(home_cpu, this, &mock_cache_t::have_loaded_blocks);
         
     } else {
         

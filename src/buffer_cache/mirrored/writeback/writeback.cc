@@ -175,7 +175,7 @@ struct buf_writer_t :
     public home_cpu_mixin_t
 {
     mc_buf_t *buf;
-    buf_writer_t(mc_buf_t *buf) : buf(buf) { }
+    explicit buf_writer_t(mc_buf_t *buf) : buf(buf) { }
     void on_serializer_write_block() {
         if (continue_on_cpu(home_cpu, this)) on_cpu_switch();
     }

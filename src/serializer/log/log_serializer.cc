@@ -57,7 +57,7 @@ struct ls_start_new_fsm_t :
     public static_header_write_callback_t,
     public mb_manager_t::metablock_write_callback_t
 {
-    ls_start_new_fsm_t(log_serializer_t *serializer)
+    explicit ls_start_new_fsm_t(log_serializer_t *serializer)
         : ser(serializer) {
     }
     
@@ -160,7 +160,7 @@ struct ls_start_existing_fsm_t :
     public lba_index_t::ready_callback_t
 {
     
-    ls_start_existing_fsm_t(log_serializer_t *serializer)
+    explicit ls_start_existing_fsm_t(log_serializer_t *serializer)
         : ser(serializer), state(state_start) {
     }
     
@@ -581,7 +581,7 @@ struct ls_write_fsm_t :
     void on_io_complete(event_t *unused) {
         assert(state == state_waiting_for_data_and_lba);
         assert(num_writes_waited_for > 0);
-        num_writes_waited_for --;
+        num_writes_waited_for--;
         maybe_write_metablock();
     }
     
