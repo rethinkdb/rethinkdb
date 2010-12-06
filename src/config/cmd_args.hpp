@@ -72,7 +72,7 @@ serializer */
 
 struct btree_config_t {
     
-    int n_slices;
+    int32_t n_slices;
 };
 
 /* Configuration for the store (btree, cache, and serializers) that can be changed from run
