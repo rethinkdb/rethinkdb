@@ -22,7 +22,6 @@ struct store_walker_t {
         }
     }
     void done() {
-        callback->done();
         delete this;
     }
 };
@@ -80,7 +79,7 @@ void walk_slice(store_walker_t *parent, btree_slice_t *slice) {
 struct branch_walker_t :
     public block_available_callback_t,
     public large_buf_available_callback_t,
-    public store_t::walk_callback_t::done_callback_t
+    public store_t::replicant_t::done_callback_t
 {
     slice_walker_t *parent;
     buf_t *buf;
