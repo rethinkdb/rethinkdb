@@ -23,7 +23,7 @@ public:
     typedef lba_metablock_mixin_t metablock_mixin_t;
     
 public:
-    lba_list_t(extent_manager_t *em);
+    explicit lba_list_t(extent_manager_t *em);
     ~lba_list_t();
 
 public:
@@ -35,6 +35,7 @@ public:
     
     struct ready_callback_t {
         virtual void on_lba_ready() = 0;
+        virtual ~ready_callback_t() {}
     };
     bool start_existing(direct_file_t *dbfile, metablock_mixin_t *last_metablock, ready_callback_t *cb);
     
@@ -56,6 +57,7 @@ public:
     
     struct sync_callback_t {
         virtual void on_lba_sync() = 0;
+        virtual ~sync_callback_t() {}
     };
     bool sync(sync_callback_t *cb);
     
@@ -66,6 +68,7 @@ public:
 public:
     struct shutdown_callback_t {
         virtual void on_lba_shutdown() = 0;
+        virtual ~shutdown_callback_t() {}
     };
     bool shutdown(shutdown_callback_t *cb);
 

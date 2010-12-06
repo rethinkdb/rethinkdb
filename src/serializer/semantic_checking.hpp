@@ -90,6 +90,7 @@ public:
 public:
     struct ready_callback_t {
         virtual void on_serializer_ready(semantic_checking_serializer_t *) = 0;
+        virtual ~ready_callback_t() {}
     };
     
     bool start_new(static_config_t *config, ready_callback_t *cb) {
@@ -283,6 +284,7 @@ public:
 public:
     struct shutdown_callback_t {
         virtual void on_serializer_shutdown(semantic_checking_serializer_t *) = 0;
+        virtual ~shutdown_callback_t() {}
     };
     bool shutdown(shutdown_callback_t *cb) {
         shutdown_callback = cb;

@@ -30,6 +30,7 @@ public:
     
     struct sync_callback_t {
         virtual void on_extent_sync() = 0;
+        virtual ~sync_callback_t() {}
     };
     void sync(sync_callback_t *cb);
     

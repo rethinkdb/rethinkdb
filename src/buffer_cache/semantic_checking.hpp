@@ -20,16 +20,19 @@ typedef uint32_t crc_t;
 template<class inner_cache_t>
 struct scc_transaction_begin_callback_t {
     virtual void on_txn_begin(scc_transaction_t<inner_cache_t> *txn) = 0;
+    virtual ~scc_transaction_begin_callback_t() {}
 };
 
 template<class inner_cache_t>
 struct scc_transaction_commit_callback_t {
     virtual void on_txn_commit(scc_transaction_t<inner_cache_t> *txn) = 0;
+    virtual ~scc_transaction_commit_callback_t() {}
 };
 
 template<class inner_cache_t>
 struct scc_block_available_callback_t {
     virtual void on_block_available(scc_buf_t<inner_cache_t> *buf) = 0;
+    virtual ~scc_block_available_callback_t() {}
 };
 
 /* Buf */
@@ -53,7 +56,7 @@ private:
     typename inner_cache_t::buf_t *inner_buf;
     void on_block_available(typename inner_cache_t::buf_t *buf);
     block_available_callback_t *available_cb;
-    scc_buf_t(scc_cache_t<inner_cache_t> *);
+    explicit scc_buf_t(scc_cache_t<inner_cache_t> *);
     scc_cache_t<inner_cache_t> *cache;
 private:
     crc_t compute_crc() {

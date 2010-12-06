@@ -47,12 +47,14 @@ from the file and don't care about the performance hit from the lock. */
 // call this after the thread pool has started up.
 struct logger_ready_callback_t {
     virtual void on_logger_ready() = 0;
+    virtual ~logger_ready_callback_t() {}
 };
 void logger_start(logger_ready_callback_t *cb);
 
 // Exit log-message-routing mode. Call this before the thread pool shuts down.
 struct logger_shutdown_callback_t {
     virtual void on_logger_shutdown() = 0;
+    virtual ~logger_shutdown_callback_t() {}
 };
 void logger_shutdown(logger_shutdown_callback_t *cb);
 

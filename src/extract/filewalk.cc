@@ -40,7 +40,7 @@ struct byteslice {
 
 class dumper_t {
 public:
-    dumper_t(const char *path) {
+    explicit dumper_t(const char *path) {
         fp = fopen(path, "wbx");
         check("could not open file", !fp);
     }

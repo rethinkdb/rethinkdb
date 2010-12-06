@@ -22,14 +22,17 @@ class internal_buf_t;
 
 struct mock_transaction_begin_callback_t {
     virtual void on_txn_begin(mock_transaction_t *txn) = 0;
+    virtual ~mock_transaction_begin_callback_t() {}
 };
 
 struct mock_transaction_commit_callback_t {
     virtual void on_txn_commit(mock_transaction_t *txn) = 0;
+    virtual ~mock_transaction_commit_callback_t() {}
 };
 
 struct mock_block_available_callback_t {
     virtual void on_block_available(mock_buf_t *buf) = 0;
+    virtual ~mock_block_available_callback_t() {}
 };
 
 /* Buf */
@@ -109,6 +112,7 @@ public:
     
     struct ready_callback_t {
         virtual void on_cache_ready() = 0;
+        virtual ~ready_callback_t() {}
     };
     bool start(ready_callback_t *cb);
     
@@ -117,6 +121,7 @@ public:
     
     struct shutdown_callback_t {
         virtual void on_cache_shutdown() = 0;
+        virtual ~shutdown_callback_t() {}
     };
     bool shutdown(shutdown_callback_t *cb);
 

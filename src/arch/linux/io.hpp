@@ -18,6 +18,7 @@ struct linux_net_conn_callback_t {
     virtual void on_net_conn_readable() = 0;
     virtual void on_net_conn_writable() = 0;
     virtual void on_net_conn_close() = 0;
+    virtual ~linux_net_conn_callback_t() {}
 };
 
 class linux_net_conn_t :
@@ -42,12 +43,13 @@ private:
     // need it, and use up 100% of cpu
     bool registered_for_write_notifications;
     
-    linux_net_conn_t(fd_t);
+    explicit linux_net_conn_t(fd_t);
     void on_event(int events);
 };
 
 struct linux_net_listener_callback_t {
     virtual void on_net_listener_accept(linux_net_conn_t *conn) = 0;
+    virtual ~linux_net_listener_callback_t() {}
 };
 
 class linux_net_listener_t :
@@ -55,7 +57,7 @@ class linux_net_listener_t :
 {
 
 public:
-    linux_net_listener_t(int port);
+    explicit linux_net_listener_t(int port);
     void set_callback(linux_net_listener_callback_t *cb);
     ~linux_net_listener_t();
 
@@ -110,7 +112,7 @@ class linux_io_calls_t :
 {
 
 public:
-    linux_io_calls_t(linux_event_queue_t *queue);
+    explicit linux_io_calls_t(linux_event_queue_t *queue);
     ~linux_io_calls_t();
 
     void process_requests();
@@ -127,7 +129,7 @@ public:
         typedef std::vector<iocb*> request_vector_t;
         request_vector_t queue;
         
-        queue_t(linux_io_calls_t *parent);
+        explicit queue_t(linux_io_calls_t *parent);
         int process_request_batch();
         ~queue_t();
         

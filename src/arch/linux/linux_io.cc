@@ -157,7 +157,6 @@ void linux_net_listener_t::on_event(int events) {
         if (new_sock == INVALID_FD) {
             if (errno == EAGAIN) break;
             else fail("Cannot accept new connection: errno=%s", strerror(errno));
-        
         } else {
             callback->on_net_listener_accept(new linux_net_conn_t(new_sock));
         }
@@ -206,7 +205,7 @@ linux_direct_file_t::linux_direct_file_t(const char *path, int mode) {
     
     int flags = O_CREAT | O_DIRECT | O_LARGEFILE;
     
-    if (mode & (mode_read | mode_write)) flags |= O_RDWR;
+    if (mode == (mode_read | mode_write)) flags |= O_RDWR;
     else if (mode & mode_write) flags |= O_WRONLY;
     else if (mode & mode_read) flags |= O_RDONLY;
     else fail("Bad mode.");
