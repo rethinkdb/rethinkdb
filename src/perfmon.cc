@@ -15,7 +15,39 @@ intrusive_list_t<perfmon_t> &get_var_list() {
     return var_list;
 }
 
-/* This is the function that actually gathers the stats. */
+/* Class that wraps a pthread spinlock.
+
+TODO: This should live in the arch/ directory. */
+
+class spinlock_t {
+    pthread_spinlock_t l;
+public:
+    spinlock_t() {
+        pthread_spin_init(&l, PTHREAD_PROCESS_PRIVATE);
+    }
+    ~spinlock_t() {
+        pthread_spin_destroy(&l);
+    }
+    void lock() {
+        int res = pthread_spin_lock(&l);
+        guarantee_err(res == 0, "could not lock spin lock");
+    }
+    void unlock() {
+        int res = pthread_spin_unlock(&l);
+        guarantee_err(res == 0, "could not unlock spin lock");
+    }
+};
+
+spinlock_t &get_var_lock() {
+    
+    /* To avoid static initialization fiasco */
+    
+    static spinlock_t lock;
+    return lock;
+}
+
+/* This is the function that actually gathers the stats. It is illegal to create or destroy
+perfmon_t objects while a perfmon_fsm_t is active. */
 
 struct perfmon_fsm_t :
     public home_cpu_mixin_t
@@ -82,12 +114,16 @@ create and destroy perfmon_ts at runtime. */
 
 perfmon_t::perfmon_t()
 {
+    get_var_lock().lock();
     get_var_list().push_back(this);
+    get_var_lock().unlock();
 }
 
 perfmon_t::~perfmon_t() {
     
+    get_var_lock().lock();
     get_var_list().remove(this);
+    get_var_lock().unlock();
 }
 
 /* perfmon_counter_t */
