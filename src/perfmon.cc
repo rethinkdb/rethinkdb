@@ -38,6 +38,10 @@ public:
     }
 };
 
+/* The var lock protects the var list when it is being modified. In theory, this should all work
+automagically because the constructor of every perfmon_t calls get_var_lock(), causing the var lock
+to be constructed before the first perfmon, so it is destroyed after the last perfmon. */
+
 spinlock_t &get_var_lock() {
     
     /* To avoid static initialization fiasco */
