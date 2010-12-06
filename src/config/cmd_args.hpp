@@ -2,6 +2,7 @@
 #define __CMD_ARGS_HPP__
 
 #include "config/args.hpp"
+#include <stdint.h>
 #include <sys/types.h>
 #include <string>
 #include <vector>
@@ -40,9 +41,8 @@ struct log_serializer_dynamic_config_t {
 /* Configuration for the serializer that is set when the database is created */
 
 struct log_serializer_static_config_t {
-    
-    size_t block_size;
-    size_t extent_size;
+    uint64_t block_size;
+    uint64_t extent_size;
 };
 
 /* Configuration for the cache (it can all change from run to run) */
