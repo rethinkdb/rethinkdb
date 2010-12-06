@@ -206,7 +206,7 @@ linux_direct_file_t::linux_direct_file_t(const char *path, int mode) {
     
     int flags = O_CREAT | O_DIRECT | O_LARGEFILE;
     
-    if (mode & (mode_read | mode_write)) flags |= O_RDWR;
+    if (mode == (mode_read | mode_write)) flags |= O_RDWR;
     else if (mode & mode_write) flags |= O_WRONLY;
     else if (mode & mode_read) flags |= O_RDONLY;
     else fail("Bad mode.");
