@@ -29,7 +29,6 @@ struct linux_io_config_t {
     }
     
     static bool continue_on_cpu(int cpu, linux_cpu_message_t *msg) {
-        msg->return_cpu = get_cpu_id();
         if (cpu == get_cpu_id()) {
             // The CPU to continue on is the CPU we are already on
             return true;
