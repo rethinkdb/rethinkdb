@@ -28,22 +28,22 @@ class leaf_key_comp;
 class leaf_node_handler : public node_handler {
     friend class leaf_key_comp;
     public:
-    static void init(size_t block_size, btree_leaf_node *node);
-    static void init(size_t block_size, btree_leaf_node *node, btree_leaf_node *lnode, uint16_t *offsets, int numpairs);
+    static void init(block_size_t block_size, btree_leaf_node *node);
+    static void init(block_size_t block_size, btree_leaf_node *node, btree_leaf_node *lnode, uint16_t *offsets, int numpairs);
 
     static bool lookup(const btree_leaf_node *node, btree_key *key, btree_value *value);
-    static bool insert(size_t block_size, btree_leaf_node *node, btree_key *key, btree_value *value);
-    static void remove(size_t block_size, btree_leaf_node *node, btree_key *key); // TODO: Currently untested
-    static void split(size_t block_size, btree_leaf_node *node, btree_leaf_node *rnode, btree_key *median);
-    static void merge(size_t block_size, btree_leaf_node *node, btree_leaf_node *rnode, btree_key *key_to_remove);
-    static bool level(size_t block_size, btree_leaf_node *node, btree_leaf_node *sibling, btree_key *key_to_replace, btree_key *replacement_key);
+    static bool insert(block_size_t block_size, btree_leaf_node *node, btree_key *key, btree_value *value);
+    static void remove(block_size_t block_size, btree_leaf_node *node, btree_key *key); // TODO: Currently untested
+    static void split(block_size_t block_size, btree_leaf_node *node, btree_leaf_node *rnode, btree_key *median);
+    static void merge(block_size_t block_size, btree_leaf_node *node, btree_leaf_node *rnode, btree_key *key_to_remove);
+    static bool level(block_size_t block_size, btree_leaf_node *node, btree_leaf_node *sibling, btree_key *key_to_replace, btree_key *replacement_key);
 
 
     static bool is_empty(const btree_leaf_node *node);
     static bool is_full(const btree_leaf_node *node, btree_key *key, btree_value *value);
-    static bool is_underfull(size_t block_size, const btree_leaf_node *node);
-    static bool is_mergable(size_t block_size, const btree_leaf_node *node, const btree_leaf_node *sibling);
-    static void validate(size_t block_size, const btree_leaf_node *node);
+    static bool is_underfull(block_size_t block_size, const btree_leaf_node *node);
+    static bool is_mergable(block_size_t block_size, const btree_leaf_node *node, const btree_leaf_node *sibling);
+    static void validate(block_size_t block_size, const btree_leaf_node *node);
     static int nodecmp(const btree_leaf_node *node1, const btree_leaf_node *node2);
 
     static void print(const btree_leaf_node *node);

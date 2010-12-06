@@ -1,14 +1,14 @@
 #include "large_buf.hpp"
 
-int64_t large_buf_t::cache_size_to_leaf_bytes(size_t cache_block_size) {
-    return cache_block_size - sizeof(large_buf_leaf);
+int64_t large_buf_t::cache_size_to_leaf_bytes(block_size_t cache_block_size) {
+    return cache_block_size.value() - sizeof(large_buf_leaf);
 }
 
-int64_t large_buf_t::cache_size_to_internal_kids(size_t cache_block_size) {
-    return (cache_block_size - sizeof(large_buf_internal)) / sizeof(block_id_t);
+int64_t large_buf_t::cache_size_to_internal_kids(block_size_t cache_block_size) {
+    return (cache_block_size.value() - sizeof(large_buf_internal)) / sizeof(block_id_t);
 }
 
-int64_t large_buf_t::compute_max_offset(size_t cache_block_size, int levels) {
+int64_t large_buf_t::compute_max_offset(block_size_t cache_block_size, int levels) {
     assert(levels >= 1);
     int64_t x = cache_size_to_leaf_bytes(cache_block_size);
     while (levels > 1) {
@@ -18,7 +18,7 @@ int64_t large_buf_t::compute_max_offset(size_t cache_block_size, int levels) {
     return x;
 }
 
-int large_buf_t::compute_num_levels(size_t cache_block_size, int64_t end_offset) {
+int large_buf_t::compute_num_levels(block_size_t cache_block_size, int64_t end_offset) {
     assert(end_offset >= 0);
     int levels = 1;
     while (compute_max_offset(cache_block_size, levels) < end_offset) {

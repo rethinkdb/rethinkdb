@@ -245,7 +245,7 @@ private:
     
 public:
     
-    size_t get_block_size();
+    block_size_t get_block_size();
     
     // Transaction API
     transaction_t *begin_transaction(access_t access, transaction_begin_callback_t *callback);

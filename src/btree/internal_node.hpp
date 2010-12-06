@@ -21,25 +21,25 @@ class internal_key_comp;
 class internal_node_handler : public node_handler {
     friend class internal_key_comp;
 public:
-    static void init(size_t block_size, btree_internal_node *node);
-    static void init(size_t block_size, btree_internal_node *node, btree_internal_node *lnode, uint16_t *offsets, int numpairs);
+    static void init(block_size_t block_size, btree_internal_node *node);
+    static void init(block_size_t block_size, btree_internal_node *node, btree_internal_node *lnode, uint16_t *offsets, int numpairs);
 
     static block_id_t lookup(const btree_internal_node *node, btree_key *key);
-    static bool insert(size_t block_size, btree_internal_node *node, btree_key *key, block_id_t lnode, block_id_t rnode);
-    static bool remove(size_t block_size, btree_internal_node *node, btree_key *key);
-    static void split(size_t block_size, btree_internal_node *node, btree_internal_node *rnode, btree_key *median);
-    static void merge(size_t block_size, btree_internal_node *node, btree_internal_node *rnode, btree_key *key_to_remove, btree_internal_node *parent);
-    static bool level(size_t block_size, btree_internal_node *node, btree_internal_node *rnode, btree_key *key_to_replace, btree_key *replacement_key, btree_internal_node *parent);
+    static bool insert(block_size_t block_size, btree_internal_node *node, btree_key *key, block_id_t lnode, block_id_t rnode);
+    static bool remove(block_size_t block_size, btree_internal_node *node, btree_key *key);
+    static void split(block_size_t block_size, btree_internal_node *node, btree_internal_node *rnode, btree_key *median);
+    static void merge(block_size_t block_size, btree_internal_node *node, btree_internal_node *rnode, btree_key *key_to_remove, btree_internal_node *parent);
+    static bool level(block_size_t block_size, btree_internal_node *node, btree_internal_node *rnode, btree_key *key_to_replace, btree_key *replacement_key, btree_internal_node *parent);
     static int sibling(const btree_internal_node *node, btree_key *key, block_id_t *sib_id);
     static void update_key(btree_internal_node *node, btree_key *key_to_replace, btree_key *replacement_key);
     static int nodecmp(const btree_internal_node *node1, const btree_internal_node *node2);
     static bool is_full(const btree_internal_node *node);
-    static bool is_underfull(size_t block_size, const btree_internal_node *node);
+    static bool is_underfull(block_size_t block_size, const btree_internal_node *node);
     static bool change_unsafe(const btree_internal_node *node);
-    static bool is_mergable(size_t block_size, const btree_internal_node *node, const btree_internal_node *sibling, const btree_internal_node *parent);
+    static bool is_mergable(block_size_t block_size, const btree_internal_node *node, const btree_internal_node *sibling, const btree_internal_node *parent);
     static bool is_singleton(const btree_internal_node *node);
 
-    static void validate(size_t block_size, const btree_internal_node *node);
+    static void validate(block_size_t block_size, const btree_internal_node *node);
     static void print(const btree_internal_node *node);
 
     static inline const internal_node_t* internal_node(const void *ptr) {

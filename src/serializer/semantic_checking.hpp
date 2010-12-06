@@ -49,7 +49,7 @@ private:
         boost::crc_optimal<32, 0x04C11DB7, 0xFFFFFFFF, 0xFFFFFFFF, true, true> crc_computer;
         // We need to not crc BLOCK_META_DATA_SIZE because it's
         // internal to the serializer.
-        crc_computer.process_bytes(buf, get_block_size());
+        crc_computer.process_bytes(buf, get_block_size().value());
         return crc_computer.checksum();
     }
     
@@ -263,7 +263,7 @@ public:
     }
     
 public:
-    size_t get_block_size() {
+    block_size_t get_block_size() {
         return inner_serializer.get_block_size();
     }
     

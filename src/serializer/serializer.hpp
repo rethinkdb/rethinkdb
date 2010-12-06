@@ -99,7 +99,7 @@ struct serializer_t :
     
     /* The size, in bytes, of each serializer block */
     
-    virtual size_t get_block_size() = 0;
+    virtual block_size_t get_block_size() = 0;
     
     /* max_block_id() and block_in_use() are used by the buffer cache to reconstruct
     the free list of unused block IDs. */

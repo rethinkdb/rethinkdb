@@ -4,13 +4,13 @@
 
 //#define DEBUG_MAX_LEAF 10
 
-void leaf_node_handler::init(size_t block_size, btree_leaf_node *node) {
+void leaf_node_handler::init(block_size_t block_size, btree_leaf_node *node) {
     node->magic = btree_leaf_node::expected_magic;
     node->npairs = 0;
-    node->frontmost_offset = block_size;
+    node->frontmost_offset = block_size.value();
 }
 
-void leaf_node_handler::init(size_t block_size, btree_leaf_node *node, btree_leaf_node *lnode, uint16_t *offsets, int numpairs) {
+void leaf_node_handler::init(block_size_t block_size, btree_leaf_node *node, btree_leaf_node *lnode, uint16_t *offsets, int numpairs) {
     init(block_size, node);
     for (int i = 0; i < numpairs; i++) {
         node->pair_offsets[node->npairs+i] = insert_pair(node, get_pair(lnode, offsets[i]));
@@ -19,7 +19,7 @@ void leaf_node_handler::init(size_t block_size, btree_leaf_node *node, btree_lea
     std::sort(node->pair_offsets, node->pair_offsets+node->npairs, leaf_key_comp(node));
 }
 
-bool leaf_node_handler::insert(size_t block_size, btree_leaf_node *node, btree_key *key, btree_value* value) {
+bool leaf_node_handler::insert(block_size_t block_size, btree_leaf_node *node, btree_key *key, btree_value* value) {
     if (is_full(node, key, value)) return false;
     int index = get_offset_index(node, key);
     uint16_t prev_offset = node->pair_offsets[index];
@@ -42,7 +42,7 @@ bool leaf_node_handler::insert(size_t block_size, btree_leaf_node *node, btree_k
     return true;
 }
 
-void leaf_node_handler::remove(size_t block_size, btree_leaf_node *node, btree_key *key) {
+void leaf_node_handler::remove(block_size_t block_size, btree_leaf_node *node, btree_key *key) {
 #ifdef BTREE_DEBUG
     printf("removing key: ");
     key->print();
@@ -78,8 +78,8 @@ bool leaf_node_handler::lookup(const btree_leaf_node *node, btree_key *key, btre
     }
 }
 
-void leaf_node_handler::split(size_t block_size, btree_leaf_node *node, btree_leaf_node *rnode, btree_key *median) {
-    uint16_t total_pairs = block_size - node->frontmost_offset;
+void leaf_node_handler::split(block_size_t block_size, btree_leaf_node *node, btree_leaf_node *rnode, btree_key *median) {
+    uint16_t total_pairs = block_size.value() - node->frontmost_offset;
     uint16_t first_pairs = 0;
     int index = 0;
     while (first_pairs < total_pairs/2) { // finds the median index
@@ -104,7 +104,7 @@ void leaf_node_handler::split(size_t block_size, btree_leaf_node *node, btree_le
 
 }
 
-void leaf_node_handler::merge(size_t block_size, btree_leaf_node *node, btree_leaf_node *rnode, btree_key *key_to_remove) {
+void leaf_node_handler::merge(block_size_t block_size, btree_leaf_node *node, btree_leaf_node *rnode, btree_key *key_to_remove) {
 #ifdef BTREE_DEBUG
     printf("merging\n");
     printf("node:\n");
@@ -113,10 +113,8 @@ void leaf_node_handler::merge(size_t block_size, btree_leaf_node *node, btree_le
     leaf_node_handler::print(rnode);
 #endif
     check("leaf nodes too full to merge",
-            sizeof(btree_leaf_node) + (node->npairs + rnode->npairs)*sizeof(*node->pair_offsets) +
-            block_size - node->frontmost_offset + block_size - rnode->frontmost_offset >= block_size);
-    //check("leaf has no pairs!", node->npairs == 0);
-    //check("leaf has no pairs!", rnode->npairs == 0);
+          sizeof(btree_leaf_node) + (node->npairs + rnode->npairs)*sizeof(*node->pair_offsets) +
+          (block_size.value() - node->frontmost_offset) + (block_size.value() - rnode->frontmost_offset) >= block_size.value());
 
     memmove(rnode->pair_offsets + node->npairs, rnode->pair_offsets, rnode->npairs * sizeof(*rnode->pair_offsets));
 
@@ -136,7 +134,7 @@ void leaf_node_handler::merge(size_t block_size, btree_leaf_node *node, btree_le
     validate(block_size, node);
 }
 
-bool leaf_node_handler::level(size_t block_size, btree_leaf_node *node, btree_leaf_node *sibling, btree_key *key_to_replace, btree_key *replacement_key) {
+bool leaf_node_handler::level(block_size_t block_size, btree_leaf_node *node, btree_leaf_node *sibling, btree_key *key_to_replace, btree_key *replacement_key) {
 #ifdef BTREE_DEBUG
     printf("leveling\n");
     printf("node:\n");
@@ -146,8 +144,8 @@ bool leaf_node_handler::level(size_t block_size, btree_leaf_node *node, btree_le
 #endif
     //Note: size does not take into account offsets
 #ifndef DEBUG_MAX_LEAF
-    uint16_t node_size = block_size - node->frontmost_offset;
-    uint16_t sibling_size = block_size - sibling->frontmost_offset;
+    uint16_t node_size = block_size.value() - node->frontmost_offset;
+    uint16_t sibling_size = block_size.value() - sibling->frontmost_offset;
     int optimal_adjustment = (int) (sibling_size - node_size) / 2;
 #endif
 
@@ -238,41 +236,41 @@ bool leaf_node_handler::is_full(const btree_leaf_node *node, btree_key *key, btr
         node->frontmost_offset;
 }
 
-void leaf_node_handler::validate(size_t block_size, const btree_leaf_node *node) {
+void leaf_node_handler::validate(block_size_t block_size, const btree_leaf_node *node) {
 #ifndef NDEBUG
     assert((void*)&(node->pair_offsets[node->npairs]) <= (void*)get_pair(node, node->frontmost_offset));
     assert(node->frontmost_offset > 0);
-    assert(node->frontmost_offset <= block_size);
+    assert(node->frontmost_offset <= block_size.value());
     for (int i = 0; i < node->npairs; i++) {
-        assert(node->pair_offsets[i] < block_size);
+        assert(node->pair_offsets[i] < block_size.value());
         assert(node->pair_offsets[i] >= node->frontmost_offset);
     }
 #endif
 }
 
-bool leaf_node_handler::is_mergable(size_t block_size, const btree_leaf_node *node, const btree_leaf_node *sibling) {
+bool leaf_node_handler::is_mergable(block_size_t block_size, const btree_leaf_node *node, const btree_leaf_node *sibling) {
 #ifdef DEBUG_MAX_INTERNAL
     return node->npairs + sibling->npairs < DEBUG_MAX_LEAF;
 #endif
     return sizeof(btree_leaf_node) + 
         (node->npairs + sibling->npairs)*sizeof(*node->pair_offsets) +
-        (block_size - node->frontmost_offset) +
-        (block_size - sibling->frontmost_offset) +
-        LEAF_EPSILON < block_size;
+        (block_size.value() - node->frontmost_offset) +
+        (block_size.value() - sibling->frontmost_offset) +
+        LEAF_EPSILON < block_size.value();
 }
 
-bool leaf_node_handler::is_underfull(size_t block_size, const btree_leaf_node *node) {
+bool leaf_node_handler::is_underfull(block_size_t block_size, const btree_leaf_node *node) {
 #ifdef DEBUG_MAX_LEAF
     return node->npairs < (DEBUG_MAX_LEAF + 1) / 2;
 #endif
     return (sizeof(btree_leaf_node) + 1) / 2 + 
         node->npairs*sizeof(*node->pair_offsets) +
-        (block_size - node->frontmost_offset) + 
+        (block_size.value() - node->frontmost_offset) + 
         /* EPSILON: this guaruntees that a node is not underfull directly following a split */
         // TODO: Right now the epsilon we use to make is_underfull not
         // return true after a split is too large. We should come back
         // here and make this more precise.
-        LEAF_EPSILON * 2 < block_size / 2;
+        LEAF_EPSILON * 2 < block_size.value() / 2;
 }
 
 size_t leaf_node_handler::pair_size(btree_leaf_pair *pair) {

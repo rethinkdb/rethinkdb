@@ -120,7 +120,7 @@ struct bkvs_start_new_serializer_fsm_t :
     void on_serializer_ready(standard_serializer_t *ser) {
         
         config_block = store->serializers[i]->malloc();
-        bzero(config_block, store->serializers[i]->get_block_size());
+        bzero(config_block, store->serializers[i]->get_block_size().value());
         serializer_config_block_t *c = (serializer_config_block_t *)config_block;
         c->magic = serializer_config_block_t::expected_magic;
         c->database_magic = store->creation_magic;

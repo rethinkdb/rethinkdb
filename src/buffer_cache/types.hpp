@@ -6,7 +6,6 @@
 typedef uint32_t block_id_t;
 #define NULL_BLOCK_ID (block_id_t(-1))
 
-
 typedef uint32_t block_magic_comparison_t;
 
 struct block_magic_t {
@@ -20,7 +19,7 @@ struct block_magic_t {
 
         u.x = *this;
         v.x = other;
-    
+
         return u.n == v.n;
     }
 };

@@ -72,6 +72,17 @@ int randint(int n);
     void operator=(const T&)
 
 
+class block_size_t {
+public:
+    size_t value() const { return cache_bs_; }
+    friend class log_serializer_t;
+private:
+    explicit block_size_t(size_t cache_bs) : cache_bs_(cache_bs) { }
+
+    size_t cache_bs_;
+};
+
+
 #include "utils2.tcc"
 
 #endif /* __UTILS2_HPP__ */

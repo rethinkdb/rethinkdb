@@ -117,7 +117,7 @@ public:
     };
     bool start(ready_callback_t *cb);
     
-    size_t get_block_size();
+    block_size_t get_block_size();
     transaction_t *begin_transaction(access_t access, transaction_begin_callback_t *callback);
     
     struct shutdown_callback_t {
@@ -134,7 +134,7 @@ private:
     translator_serializer_t *serializer;
     bool running;
     int n_transactions;
-    size_t block_size;
+    block_size_t block_size;
     segmented_vector_t<internal_buf_t *, MAX_BLOCK_ID> bufs;
     
     ready_callback_t *ready_callback;

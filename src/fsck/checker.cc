@@ -621,7 +621,7 @@ bool is_valid_hash(const slicecx& cx, btree_key *key) {
 }
 
 void check_large_buf(slicecx& cx, const large_buf_ref& ref, value_error *errs) {
-    int levels = large_buf_t::compute_num_levels(cx.knog->static_config->block_size - sizeof(buf_data_t), ref.offset + ref.size);
+    int levels = large_buf_t::compute_num_levels(log_serializer_t::make_block_size(*cx.knog->static_config), ref.offset + ref.size);
 
     btree_block b;
     if (!b.init(cx, ref.block_id)) {
@@ -643,7 +643,7 @@ void check_large_buf(slicecx& cx, const large_buf_ref& ref, value_error *errs) {
 
         if (levels > 1) {
 
-            int64_t step = large_buf_t::compute_max_offset(cx.knog->static_config->block_size - sizeof(buf_data_t), levels - 1);
+            int64_t step = large_buf_t::compute_max_offset(log_serializer_t::make_block_size(*cx.knog->static_config), levels - 1);
 
             for (int64_t i = floor_aligned(ref.offset, step), e = ceil_aligned(ref.offset + ref.size, step); i < e; i += step) {
                 int64_t beg = std::max(ref.offset, i) - i;
@@ -809,7 +809,7 @@ void check_subtree(slicecx& cx, block_id_t id, btree_key *lo, btree_key *hi, sub
 
     if (lo != NULL && hi != NULL) {
         // (We're happy with an underfull root block.)
-        if (node_handler::is_underfull(cx.knog->static_config->block_size - sizeof(data_block_manager_t::buf_data_t), ptr_cast<btree_node>(node.buf))) {
+        if (node_handler::is_underfull(log_serializer_t::make_block_size(*cx.knog->static_config), ptr_cast<btree_node>(node.buf))) {
             node_err.block_underfull = true;
         }
     }

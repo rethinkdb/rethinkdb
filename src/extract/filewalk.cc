@@ -57,7 +57,7 @@ public:
         }
 
         check("could not write to file", 0 > fprintf(fp, "set %.*s %u %u %u noreply\r\n", key->size, key->contents, flags, exptime, len));
-        
+
         for (size_t i = 0; i < num_slices; ++i) {
             check("could not write to file", slices[i].len != fwrite(slices[i].buf, 1, slices[i].len, fp));
         }
@@ -213,7 +213,7 @@ private:
 };
 
 bool get_large_buf_segments(btree_key *key, direct_file_t& file, const large_buf_ref& ref, const cfg_t& cfg, int mod_id, const segmented_vector_t<off64_t, MAX_BLOCK_ID>& offsets, blocks *segblocks) {
-    int levels = large_buf_t::compute_num_levels(cfg.block_size - sizeof(buf_data_t), ref.offset + ref.size);
+    int levels = large_buf_t::compute_num_levels(log_serializer_t::make_block_size(cfg.block_size), ref.offset + ref.size);
 
     ser_block_id_t::number_t trans_id = translator_serializer_t::translate_block_id(ref.block_id, cfg.mod_count, mod_id, CONFIG_BLOCK_ID).value;
 
@@ -254,7 +254,7 @@ bool get_large_buf_segments(btree_key *key, direct_file_t& file, const large_buf
             return false;
         }
 
-        int64_t step = large_buf_t::compute_max_offset(cfg.block_size - sizeof(buf_data_t), levels - 1);
+        int64_t step = large_buf_t::compute_max_offset(log_serializer_t::make_block_size(cfg.block_size), levels - 1);
 
         for (int64_t i = floor_aligned(ref.offset, step), e = ceil_aligned(ref.offset + ref.size, step); i < e; i += step) {
             int64_t beg = std::max(ref.offset, i) - i;
@@ -297,7 +297,7 @@ void dump_pair_value(dumper_t &dumper, direct_file_t& file, const cfg_t& cfg, co
 
         int mod_id = translator_serializer_t::untranslate_block_id(this_block, cfg.mod_count, CONFIG_BLOCK_ID);
 
-        int64_t seg_size = large_buf_t::cache_size_to_leaf_bytes(cfg.block_size - sizeof(buf_data_t));
+        int64_t seg_size = large_buf_t::cache_size_to_leaf_bytes(log_serializer_t::make_block_size(cfg.block_size));
 
         large_buf_ref ref = value->lb_ref();
 

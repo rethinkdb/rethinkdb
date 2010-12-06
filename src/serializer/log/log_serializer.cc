@@ -436,7 +436,7 @@ struct ls_block_writer_t :
 
             // We write a zero buffer with the given block_id at the front.
             zerobuf = ser->malloc();
-            bzero(zerobuf, ser->get_block_size());
+            bzero(zerobuf, ser->get_block_size().value());
             memcpy(zerobuf, &log_serializer_t::zerobuf_magic, sizeof(block_magic_t));
 
             off64_t new_offset;
@@ -754,7 +754,8 @@ struct ls_read_fsm_t :
         } else {
             
             /* We are currently writing the block; we can just get it from memory */
-            memcpy(buf, (*it).second->write.buf, ser->get_block_size());
+            // TODO:  This is a block_size_t.  Is this the right block size to use?
+            memcpy(buf, (*it).second->write.buf, ser->get_block_size().value());
             return done();
         }
     }
@@ -780,9 +781,8 @@ bool log_serializer_t::do_read(ser_block_id_t block_id, void *buf, read_callback
     return fsm->run(callback);
 }
 
-size_t log_serializer_t::get_block_size() {
-    
-    return static_config.block_size - sizeof(data_block_manager_t::buf_data_t);
+block_size_t log_serializer_t::get_block_size() {
+    return block_size_t(static_config.block_size - sizeof(data_block_manager_t::buf_data_t));
 }
 
 ser_block_id_t log_serializer_t::max_block_id() {

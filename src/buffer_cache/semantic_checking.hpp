@@ -61,7 +61,7 @@ private:
 private:
     crc_t compute_crc() {
         boost::crc_optimal<32, 0x04C11DB7, 0xFFFFFFFF, 0xFFFFFFFF, true, true> crc_computer;
-        crc_computer.process_bytes((void *) inner_buf->get_data_read(), cache->get_block_size());
+        crc_computer.process_bytes((void *) inner_buf->get_data_read(), cache->get_block_size().value());
         return crc_computer.checksum();
     }
 };
@@ -119,7 +119,7 @@ public:
     typedef typename inner_cache_t::ready_callback_t ready_callback_t;
     bool start(ready_callback_t *cb);
     
-    size_t get_block_size();
+    block_size_t get_block_size();
     transaction_t *begin_transaction(access_t access, transaction_begin_callback_t *callback);
     
     typedef typename inner_cache_t::shutdown_callback_t shutdown_callback_t;

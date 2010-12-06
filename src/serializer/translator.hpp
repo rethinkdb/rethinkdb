@@ -46,7 +46,7 @@ public:
         serializer_t::write_block_callback_t *callback;
     };
     bool do_write(write_t *writes, int num_writes, serializer_t::write_txn_callback_t *callback);
-    size_t get_block_size();
+    block_size_t get_block_size();
     block_id_t max_block_id();
     bool block_in_use(block_id_t id);
 };

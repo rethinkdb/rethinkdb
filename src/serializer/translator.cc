@@ -51,7 +51,7 @@ bool translator_serializer_t::do_write(write_t *writes, int num_writes, serializ
 }
 
 
-size_t translator_serializer_t::get_block_size() {
+block_size_t translator_serializer_t::get_block_size() {
     return inner->get_block_size();
 }
 

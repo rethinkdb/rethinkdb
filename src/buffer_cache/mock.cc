@@ -13,7 +13,7 @@ struct internal_buf_t
     internal_buf_t(mock_cache_t *cache, block_id_t block_id)
         : cache(cache), block_id(block_id), data(cache->serializer->malloc()) {
         assert(data);
-        bzero(data, cache->block_size);
+        bzero(data, cache->block_size.value());
     }
     
     ~internal_buf_t() {
@@ -212,7 +212,7 @@ bool mock_cache_t::have_loaded_blocks() {
     return true;
 }
 
-size_t mock_cache_t::get_block_size() {
+block_size_t mock_cache_t::get_block_size() {
     return block_size;
 }
 
