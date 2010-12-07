@@ -11,7 +11,6 @@
 #define SALT2 0xBEDFACE8
 #define SALT3 0xFEDBABE5
 
-#define MAX_VAL_SIZE 1024*1024
 
 /* Helpful typedefs */
 typedef std::pair<char*, size_t> payload_t;

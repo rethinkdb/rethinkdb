@@ -21,9 +21,9 @@ public:
 
     bool exists;
 
-    void operate(btree_value *old_value, large_buf_t *old_large_buf, bool *delete_old_large_buf) {
+    void operate(btree_value *old_value, large_buf_t *old_large_buf) {
         exists = bool(old_value);
-        if (exists) have_finished_operating(NULL);
+        if (exists) have_finished_operating(NULL, NULL);
         else have_failed_operating();
     }
 

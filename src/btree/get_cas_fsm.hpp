@@ -26,7 +26,7 @@ public:
         pm_cmd_get.end(&start_time);
     }
 
-void operate(btree_value *old_value, large_buf_t *old_large_buf, bool *delete_old_large_buf) {
+    void operate(btree_value *old_value, large_buf_t *old_large_buf) {
 
         if (!old_value) {
             result = result_not_found;
@@ -34,6 +34,7 @@ void operate(btree_value *old_value, large_buf_t *old_large_buf, bool *delete_ol
         
         } else {
             valuecpy(&value, old_value);
+            large_value = old_large_buf;
 
             there_was_cas_before = value.has_cas();
             if (!value.has_cas()) { // We have always been at war with Eurasia.
@@ -64,7 +65,7 @@ void operate(btree_value *old_value, large_buf_t *old_large_buf, bool *delete_ol
         if (there_was_cas_before) {
             have_failed_operating();   // We didn't actually fail, but we made no change
         } else {
-            have_finished_operating(&value);
+            have_finished_operating(&value, large_value);
         }
     }
     
@@ -118,6 +119,7 @@ private:
         byte value_memory[MAX_TOTAL_NODE_CONTENTS_SIZE+sizeof(btree_value)];
         btree_value value;
     };
+    large_buf_t *large_value;
     const_buffer_group_t buffer_group;
     bool in_operate;
     bool have_delivered_value;

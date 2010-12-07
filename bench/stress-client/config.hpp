@@ -9,6 +9,10 @@
 
 #define MAX_FILE    255
 
+#define TABLE_NAME "PAIRS"
+#define KEY_COL_NAME "KEY"
+#define VAL_COL_NAME "VAL"
+
 #define MAX_VALUE_SIZE (1024*1024)
 
 
@@ -89,6 +93,7 @@ public:
             qps_file[0] = 0;
             out_file[0] = 0;
             in_file[0] = 0;
+            db_file[0] = 0;
         }
 
     void print() {
@@ -126,6 +131,7 @@ public:
     char qps_file[MAX_FILE];
     char out_file[MAX_FILE];
     char in_file[MAX_FILE];
+    char db_file[MAX_FILE];
 };
 
 #endif // __CONFIG_HPP__
