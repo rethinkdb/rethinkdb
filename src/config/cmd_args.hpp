@@ -44,12 +44,18 @@ struct log_serializer_dynamic_config_t {
 
 class block_size_t {
 public:
+    // This is a bit ugly in that things could use the wrong method:
+    // things could call value() instead of ser_value() or vice versa.
+
+    // The "block size" used by things above the serializer.
     uint64_t value() const { return ser_bs_ - sizeof(buf_data_t); }
+
+    // The "block size" used by things in the serializer.
     uint64_t ser_value() const { return ser_bs_; }
 
-    friend class log_serializer_static_config_t;
-
-    // You should NOT call this function!
+    // Avoid using this function.  We want there to be a small
+    // number of uses so that we can be sure it's impossible to pass
+    // the wrong value as a block_size_t.
     static block_size_t unsafe_make(uint64_t ser_bs) {
         return block_size_t(ser_bs);
     }
@@ -64,21 +70,18 @@ class log_serializer_static_config_t {
     uint64_t block_size_;
     uint64_t extent_size_;
 
-    friend void init_config(cmd_config_t *config);
-    friend void parse_cmd_args(int argc, char *argv[], cmd_config_t *config);
-    friend void print_database_flags(cmd_config_t *config);
 public:
     uint64_t blocks_per_extent() const { return extent_size_ / block_size_; }
     int block_index(off64_t offset) const { return (offset % extent_size_) / block_size_; }
     int extent_index(off64_t offset) const { return offset / extent_size_; }
 
     // Minimize calls to these.
-    block_size_t block_size() const { return block_size_t(block_size_); }
+    block_size_t block_size() const { return block_size_t::unsafe_make(block_size_); }
     uint64_t extent_size() const { return extent_size_; }
 
-    // Avoid these unless necessary, of course.
-    void unsafe_set_block_size(uint64_t block_size) { block_size_ = block_size; }
-    void unsafe_set_extent_size(uint64_t extent_size) { extent_size_ = extent_size; }
+    // Avoid calls to these.
+    uint64_t& unsafe_block_size() { return block_size_; }
+    uint64_t& unsafe_extent_size() { return extent_size_; }
 };
 
 /* Configuration for the cache (it can all change from run to run) */

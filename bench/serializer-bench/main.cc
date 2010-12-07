@@ -270,8 +270,8 @@ void parse_config(int argc, char *argv[], config_t *config) {
     config->log_file = NULL;
     config->tps_log_file = NULL;
     
-    config->ser_static_config.unsafe_set_block_size(DEFAULT_BTREE_BLOCK_SIZE);
-    config->ser_static_config.unsafe_set_extent_size(DEFAULT_EXTENT_SIZE);
+    config->ser_static_config.unsafe_block_size() = DEFAULT_BTREE_BLOCK_SIZE;
+    config->ser_static_config.unsafe_extent_size() = DEFAULT_EXTENT_SIZE;
     config->ser_dynamic_config.gc_low_ratio = DEFAULT_GC_LOW_RATIO;
     config->ser_dynamic_config.gc_high_ratio = DEFAULT_GC_HIGH_RATIO;
     config->ser_dynamic_config.num_active_data_extents = DEFAULT_ACTIVE_DATA_EXTENTS;
@@ -298,9 +298,9 @@ void parse_config(int argc, char *argv[], config_t *config) {
         } else if (strcmp(flag, "--tps-log") == 0) {
             config->tps_log_file = read_arg(argc, argv);
         } else if (strcmp(flag, "--block-size") == 0) {
-            config->ser_static_config.unsafe_set_block_size(atoi(read_arg(argc, argv)));
+            config->ser_static_config.unsafe_block_size() = atoi(read_arg(argc, argv));
         } else if (strcmp(flag, "--extent-size") == 0) {
-            config->ser_static_config.unsafe_set_extent_size(atoi(read_arg(argc, argv)));
+            config->ser_static_config.unsafe_extent_size() = atoi(read_arg(argc, argv));
         } else if (strcmp(flag, "--active-data-extents") == 0) {
             config->ser_dynamic_config.num_active_data_extents = atoi(read_arg(argc, argv));
         } else if (strcmp(flag, "--file-zone-size") == 0) {
