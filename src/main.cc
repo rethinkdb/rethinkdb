@@ -44,7 +44,7 @@ int main(int argc, char *argv[]) {
     } starter;
     starter.cmd_config = &config;
 
-    // Run the server
+    // Run the server.
     thread_pool_t thread_pool(config.n_workers);
     starter.thread_pool = &thread_pool;
     thread_pool.run(&starter);
