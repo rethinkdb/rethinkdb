@@ -26,7 +26,7 @@ int main(int argc, char *argv[]) {
     cmd_config_t config;
     parse_cmd_args(argc, argv, &config);
 
-    // Open log file if necessary
+    // Open the log file, if necessary.
     if (config.log_file_name[0]) {
         log_file = fopen(config.log_file_name, "w");
     }
