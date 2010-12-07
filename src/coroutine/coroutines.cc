@@ -2,9 +2,7 @@
 #include <stdio.h>
 
 __thread coro_t *coro_t::current_coro = NULL;
-__thread coro_t *coro_t::dead_coro = NULL;
 __thread coro_t *coro_t::scheduler = NULL;
-__thread std::list<coro_t*> *coro_t::notified_coros = NULL;
 
 coro_t *coro_t::self() {
     return current_coro;
@@ -23,26 +21,27 @@ void coro_t::switch_to(coro_t *next) {
 void coro_t::notify() {
 #ifndef NDEBUG
     assert(!notified);
-    notified = 1;
+    notified = true;
 #endif
-    notified_coros->push_back(this);
+    call_later_on_this_cpu(this);
     //printf("The notified coros are:\n");
     //for (std::list<coro_t*>::iterator iter = notified_coros->begin(); iter != notified_coros->end(); iter++)
         //printf("   %zx\n", (size_t)(*iter));
 }
 
-void coro_t::resume() {
+void coro_t::on_cpu_switch() {
     //printf("Resuming %zx\n", (size_t)this);
 #ifndef NDEBUG
     assert(notified);
-    notified = 0;
+    notified = false;
 #endif
     scheduler->switch_to(this);
+    if (dead) delete this;
 }
 
 void coro_t::suicide() {
     //printf("I'm killing myself: %zx\n", (size_t)current_coro);
-    dead_coro = current_coro;
+    self()->dead = true;
     coro_t::wait();
 }
 
@@ -64,9 +63,9 @@ void coro_t::run_coroutine(void *data) {
 }
 
 coro_t::coro_t(void (*fn)(void *arg), void *arg)
-    : underlying(Coro_new())
+    : underlying(Coro_new()), dead(false)
 #ifndef NDEBUG
-    , notified(0)
+    , notified(false)
 #endif
 {
     //printf("Making a coroutine\n");
@@ -86,47 +85,21 @@ void execute(void (*arg)()) {
     arg();
 }
 
-void coro_t::run_scheduler(void *arg) {
-    //This should be the main scheduler loop,
-    //and it should launch a coroutine for arg
-    //printf("Hi, I'm the scheduler, at %zx\n", (size_t)coro_t::self());
-    //printf("Setting up begin\n");
-    new coro_t((void (*)(void *))execute, arg);
-    while (notified_coros->size() > 0) {
-        //printf("Waking up a coroutine\n");
-        coro_t *next = notified_coros->front();
-        notified_coros->pop_front();
-        next->resume();
-        //printf("That coroutine decided to wait\n");
-        if (dead_coro != NULL) {
-            //printf("Deleting a dead coroutine\n");
-            delete dead_coro;
-            dead_coro = NULL;
-            //printf("Deleted!\n");
-        }
-    }
-    //printf("That's all\n");
-    exit(0);
-}
-
-void coro_t::launch_scheduler(void (*fn)()) {
-   Coro *mainCoro = Coro_new();
-   Coro_initializeMainCoro(mainCoro);
-
-   notified_coros = new std::list<coro_t*>();
-
-   scheduler = current_coro = new coro_t(Coro_new());
-   Coro_startCoro_(mainCoro, scheduler->underlying, (void *)fn, coro_t::run_scheduler);
+void coro_t::run() {
+    Coro *mainCoro = Coro_new();
+    Coro_initializeMainCoro(mainCoro);
+    scheduler = new coro_t(mainCoro);
 }
 
 void *task_t::join() {
-    assert(waiters.size() == 0 && callbacks.size() == 0);
+    assert(waiters.size() == 0);
     //printf("Joining\n");
     if (!done) {
         //printf("Not yet done\n");
         waiters.push_back(coro_t::self());
         //printf("Pushed\n");
         coro_t::wait();
+        assert(done);
         //printf("Waited\n");
     }
     void *value = result;
@@ -135,13 +108,22 @@ void *task_t::join() {
     return value;
 }
 
+struct task_callback_data {
+    task_callback_t *cb;
+    task_t *task;
+};
+
+void task_t::run_callback(void *arg) {
+    task_callback_data *data = (task_callback_data *)arg;
+    data->cb->on_task_return(data->task->join());
+    delete data;
+}
+
 void task_t::callback(task_callback_t *cb) {
-    assert(waiters.size() == 0 && callbacks.size() == 0);
-    if (done) {
-        cb->on_task_return(result);
-        delete this;
-    } else
-        callbacks.push_back(cb);
+    task_callback_data *data = new task_callback_data();
+    data->cb = cb;
+    data->task = this;
+    new coro_t(&run_callback, data);
 }
 
 struct run_task_data {
@@ -163,15 +145,10 @@ void task_t::run_task(void *arg) {
          iter++) {
         (*iter)->notify();
     }
-    for (std::vector<task_callback_t*>::iterator iter = data.task->callbacks.begin();
-         iter != data.task->callbacks.end();
-         iter++) {
-        (*iter)->on_task_return(data.task->result);
-    }
 }
 
 task_t::task_t(void *(*fn)(void *), void *arg)
-  : coroutine(NULL), done(0), result(NULL), waiters(), callbacks() {
+  : coroutine(NULL), done(0), result(NULL), waiters() {
     run_task_data *data = new run_task_data();
     data->fn = fn;
     data->arg = arg;

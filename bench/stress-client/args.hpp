@@ -85,6 +85,7 @@ void parse(config_t *config, int argc, char *argv[]) {
                 {"qps-file",       required_argument, 0, 'q'},
                 {"out-file",       required_argument, 0, 'o'},
                 {"in-file",        required_argument, 0, 'i'},
+                {"db-file",        required_argument, 0, 'f'},
                 {"help",           no_argument, &do_help, 1},
                 {0, 0, 0, 0}
             };
@@ -143,6 +144,8 @@ void parse(config_t *config, int argc, char *argv[]) {
         case 'i':
             strncpy(config->in_file, optarg, MAX_FILE);
             break;
+        case 'f':
+            strncpy(config->db_file, optarg, MAX_FILE);
         case 'h':
             usage(argv[0]);
             break;

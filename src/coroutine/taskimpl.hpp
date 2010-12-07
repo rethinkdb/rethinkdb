@@ -29,11 +29,12 @@
 #endif
 #endif
 
+//Do we actually need all these includes?
 #include <errno.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
-#include <assert.h>
+//#include <assert.h>
 #include <time.h>
 #include <sys/time.h>
 #include <sys/types.h>

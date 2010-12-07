@@ -5,6 +5,9 @@
 #include <pthread.h>
 #include "protocol.hpp"
 #include <stdint.h>
+#include "sqlite3.h"
+
+#define update_salt 6830
 
 using namespace std;
 
@@ -169,107 +172,7 @@ struct client_data_t {
     protocol_t *proto;
     int id;
     int min_seed, max_seed;
-
-    /* \brief counters are used for to keep track of which keys we've done an
-     * operation on, they allow you to do an operation on every nth key */
-    class counter {
-    private:
-        int val, delta;
-    public:
-        counter()
-            :delta(1), val(0)
-        {}
-        counter(int delta, int val = 0) 
-            :delta(delta), val(val)
-        {}
-        void init(int _delta, int _val = 0) {
-            this->delta = _delta;
-            this->val = _val;
-        }
-        /* \brief get the next value to apply the operation to min and max must
-         * be monotonically increasing on successive calls to this function
-         * returns -1 if a suitable values does not exist*/
-        int next_val(int min, int max) {
-            int res;
-            if (min <= val && val < max) {
-                res = val;
-                val += delta;
-            } else {
-                int remainder = min % delta;
-
-                if (remainder == 0) {
-                    res = min;
-                    val = min + delta;
-                } else if (min + delta - remainder < max) {
-                    res = min + delta-remainder;
-                    val = res + delta;
-                } else {
-                    return -1;
-                }
-
-                return res;
-            }
-        }
-
-        /* \brief whether a value was ever returned by next_val */
-        bool was_returned(int v) {
-            return (v < val && v % delta == 0);
-        }
-    };
-
-    counter update_c, append_c, prepend_c;
 };
-
-inline uint64_t id_salt(client_data_t *client_data) {
-    uint64_t res = client_data->id;
-    res += res << 40;
-    return res;
-}
-
-void set_val(client_data_t *cd, payload_t *val, int n) {
-    cd->config->keys.toss(val, n);
-}
-
-#define update_salt 1234567
-void update_val(client_data_t *cd, payload_t *val, int n) {
-    cd->config->keys.toss(val, n ^ update_salt ^ id_salt(cd));
-}
-
-#define append_salt 545454
-void append_val(client_data_t *cd, payload_t *val, int n) {
-    cd->config->keys.toss(val, n ^ append_salt ^ id_salt(cd));
-}
-
-#define prepend_salt 9876543
-void prepend_val(client_data_t *cd, payload_t *val, int n) {
-    cd->config->keys.toss(val, n ^ prepend_salt ^ id_salt(cd));
-}
-
-int in_db_val(client_data_t *cd, payload_t *val, int n) {
-    if (n >= cd->max_seed || n < cd->min_seed) {
-        return -1;
-    }
-
-    if (!cd->update_c.was_returned(n)) {
-        set_val(cd, val, n);
-        char other_data[MAX_VAL_SIZE];
-        payload_t other;
-        other.first = other_data;
-        other.second = 0;
-        if (cd->append_c.was_returned(n)) {
-            append_val(cd, &other, n);
-            append(val, &other);
-        }
-        if (cd->prepend_c.was_returned(n)) {
-            prepend_val(cd, &other, n);
-            prepend(val, &other);
-        }
-    } else {
-        update_val(cd, val, n);
-    }
-
-    return 0;
-}
 
 /* The function that does the work */
 void* run_client(void* data) {
@@ -303,6 +206,7 @@ void* run_client(void* data) {
             op_vals[i].first = shared->value_buf;
 
         int j, k, l; // because we can't declare in the loop
+        int keyn; //same deal
         uint64_t id_salt = client_data->id;
         id_salt += id_salt << 40;
 
@@ -329,9 +233,10 @@ void* run_client(void* data) {
             if (client_data->min_seed == client_data->max_seed)
                 break;
 
-            config->keys.toss(op_keys, random(client_data->min_seed, client_data->max_seed) ^ id_salt);
+            keyn = random(client_data->min_seed, client_data->max_seed);
 
-            op_vals[0].second = random(config->values.min, config->values.max);
+            config->keys.toss(op_keys, keyn ^ id_salt);
+            op_vals[0].second = seeded_random(config->values.min, config->values.max, client_data->max_seed ^ id_salt ^ update_salt);
 
             // Send it to server
             proto->update(op_keys->first, op_keys->second, op_vals[0].first, op_vals[0].second);
@@ -363,7 +268,6 @@ void* run_client(void* data) {
             l = random(client_data->min_seed, client_data->max_seed - 1);
             for (k = 0; k < j; k++) {
                 config->keys.toss(&op_keys[k], l ^ id_salt);
-                op_vals[k].second = seeded_random(config->values.min, config->values.max, l ^ id_salt);
                 l++;
                 if(l >= client_data->max_seed)
                     l = client_data->min_seed;
@@ -374,6 +278,37 @@ void* run_client(void* data) {
 
             qps += j;
             total_queries += j;
+            break;
+        case load_t::append_op:
+            //Find the key
+            if (client_data->min_seed == client_data->max_seed)
+                break;
+
+            keyn = random(client_data->min_seed, client_data->max_seed);
+
+            config->keys.toss(op_keys, keyn ^ id_salt);
+            op_vals[0].second = seeded_random(config->values.min, config->values.max, client_data->max_seed ^ id_salt);
+
+            proto->append(op_keys->first, op_keys->second, op_vals->first, op_vals->second);
+
+            qps++;
+            total_queries++;
+            break;
+
+        case load_t::prepend_op:
+            //Find the key
+            if (client_data->min_seed == client_data->max_seed)
+                break;
+
+            keyn = random(client_data->min_seed, client_data->max_seed);
+
+            config->keys.toss(op_keys, keyn ^ id_salt);
+            op_vals[0].second = seeded_random(config->values.min, config->values.max, client_data->max_seed ^ id_salt);
+
+            proto->prepend(op_keys->first, op_keys->second, op_vals->first, op_vals->second);
+
+            qps++;
+            total_queries++;
             break;
         };
         now_time = get_ticks();

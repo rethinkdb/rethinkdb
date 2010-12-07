@@ -8,7 +8,7 @@
 #define MAX_HOST 255
 
 enum protocol_enum_t {
-    protocol_libmemcached, protocol_sockmemcached, protocol_mysql
+    protocol_libmemcached, protocol_sockmemcached, protocol_mysql, protocol_sqlite,
 };
 
 struct server_t {
@@ -23,6 +23,8 @@ struct server_t {
             return protocol_libmemcached;
         else if(strcmp(name, "sockmemcached") == 0)
             return protocol_sockmemcached;
+        else if(strcmp(name, "sqlite") == 0)
+            return protocol_sqlite;
         else {
             fprintf(stderr, "Unknown protocol\n");
             exit(-1);
@@ -48,6 +50,8 @@ struct server_t {
             printf("sockmemcached");
         else if(protocol == protocol_mysql)
             printf("mysql");
+        else if(protocol == protocol_sqlite)
+            printf("sqlite");
         else
             printf("unknown");
     }

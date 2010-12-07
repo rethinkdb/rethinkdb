@@ -135,6 +135,44 @@ struct memcached_sock_protocol_t : public protocol_t {
         }
     }
 
+    virtual void append(const char *key, size_t key_size,
+                        const char *value, size_t value_size) {
+        // Setup the text command
+        char *buf = buffer;
+        buf += sprintf(buf, "append ");
+        memcpy(buf, key, key_size);
+        buf += key_size;
+        buf += sprintf(buf, " 0 0 %d\r\n", (int)value_size);
+        memcpy(buf, value, value_size);
+        buf += value_size;
+        buf += sprintf(buf, "\r\n");
+
+        // Send it on its merry way to the server
+        send_command(buf - buffer);
+
+        // Check the result
+        expect(NULL, 0);
+    }
+
+    virtual void prepend(const char *key, size_t key_size,
+                          const char *value, size_t value_size) {
+        // Setup the text command
+        char *buf = buffer;
+        buf += sprintf(buf, "prepend ");
+        memcpy(buf, key, key_size);
+        buf += key_size;
+        buf += sprintf(buf, " 0 0 %d\r\n", (int)value_size);
+        memcpy(buf, value, value_size);
+        buf += value_size;
+        buf += sprintf(buf, "\r\n");
+
+        // Send it on its merry way to the server
+        send_command(buf - buffer);
+
+        // Check the result
+        expect(NULL, 0);
+    }
+
 private:
     void send_command(int total) {
         int count = 0, res = 0;
