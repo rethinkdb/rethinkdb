@@ -14,8 +14,7 @@
 #include "memcached_sock_protocol.hpp"
 #include "memcached_protocol.hpp"
 #include "mysql_protocol.hpp"
-
-#define APPEND_DELTA
+#include "sqlite_protocol.hpp"
 
 using namespace std;
 
@@ -29,6 +28,9 @@ protocol_t* make_protocol(protocol_enum_t protocol) {
             break;
         case protocol_libmemcached:
             return (protocol_t*) new memcached_protocol_t();
+            break;
+        case protocol_sqlite:
+            return (protocol_t*) new sqlite_protocol_t();
             break;
         default:
             fprintf(stderr, "Unknown protocol\n");
@@ -70,22 +72,6 @@ int main(int argc, char *argv[])
         client_data[i].id = i;
         client_data[i].min_seed = 0;
         client_data[i].max_seed = 0;
-        /* Notice: the relationship between these counter values is very
-         * important for verification these guaruntee the following
-         * relationships:
-
-         *  Where U,A,P are the set of key indices that could be updated,
-         *  appended to, or prepended to, respectively.  for all u in U   u is
-         *  congruent to 1 (mod 6) for all a in A   a is congruent to 0 (mod 2)
-         *  for all p in P   p is congruent to 0 (mod 3)
-
-         *  Thus the keys that get appended or prepended to will be distinct
-         *  from those that get updated.  This is necessary because updates do
-         *  not commute with appends and prepends.  (Appends do commute with
-         *  prepends) */
-        client_data[i].update_c.init(6, 1);
-        client_data[i].append_c.init(2);
-        client_data[i].prepend_c.init(3);
 
         // Create and connect all protocols first to avoid weird TCP
         // timeout bugs
