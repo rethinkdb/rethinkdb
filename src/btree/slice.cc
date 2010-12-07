@@ -216,6 +216,11 @@ btree_value::cas_t btree_slice_t::gen_cas() {
     return (time(NULL) << 32) | (++cas_counter);
 }
 
+bool btree_slice_t::add_replicant(store_t::replicant_t *cb) {
+    replicants.push_back(cb);
+    return true;
+}
+
 bool btree_slice_t::shutdown(shutdown_callback_t *cb) {
     assert(state == state_ready);
     state = state_shutting_down_shutdown_cache;

@@ -7,7 +7,10 @@
 /* Stats */
 extern perfmon_counter_t pm_btree_depth;
 
-class btree_modify_fsm_t : public btree_fsm_t {
+class btree_modify_fsm_t :
+    public btree_fsm_t,
+    public store_t::replicant_t::done_callback_t
+{
 public:
     typedef btree_fsm_t::transition_result_t transition_result_t;
     using btree_fsm_t::key;
@@ -22,6 +25,7 @@ public:
         acquire_node,
         acquire_large_value,
         acquire_sibling,
+        call_replicants,
         update_complete,
         committing,
         call_callback_and_delete_self
@@ -111,6 +115,12 @@ private:
     bool key_found;
 
     large_buf_t *old_large_buf, *new_large_buf;
+
+    // Replication-related stuff
+    void have_copied_value();   // Called by replicants when they are done with the value we gave em
+    bool in_value_call;
+    const_buffer_group_t replicant_bg;
+    int replicants_awaited;
 };
 
 // TODO: Figure out includes.

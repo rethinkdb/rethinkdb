@@ -164,7 +164,8 @@ struct branch_walker_t :
     }
     
     void deliver_value() {
-        parent->parent->callback->value(current_key, &buffers, this, current_value->mcflags(), current_value->exptime());
+        parent->parent->callback->value(current_key, &buffers, this,
+            current_value->mcflags(), current_value->exptime(), current_value->cas());
     }
 };
 

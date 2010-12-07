@@ -45,6 +45,7 @@ private:
 
 public:
     std::vector<store_t::replicant_t *> replicants;
+    bool add_replicant(store_t::replicant_t *);   // Returns true for no good reason
 
 public:
     typedef btree_key_value_store_t shutdown_callback_t;
