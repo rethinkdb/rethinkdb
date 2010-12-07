@@ -68,12 +68,15 @@ class log_serializer_static_config_t {
     friend void parse_cmd_args(int argc, char *argv[], cmd_config_t *config);
     friend void print_database_flags(cmd_config_t *config);
 public:
-    block_size_t block_size() const { return block_size_t(block_size_); }
-    uint64_t extent_size() const { return extent_size_; }
     uint64_t blocks_per_extent() const { return extent_size_ / block_size_; }
     int block_index(off64_t offset) const { return (offset % extent_size_) / block_size_; }
     int extent_index(off64_t offset) const { return offset / extent_size_; }
 
+    // Minimize calls to these.
+    block_size_t block_size() const { return block_size_t(block_size_); }
+    uint64_t extent_size() const { return extent_size_; }
+
+    // Avoid these unless necessary, of course.
     void unsafe_set_block_size(uint64_t block_size) { block_size_ = block_size; }
     void unsafe_set_extent_size(uint64_t extent_size) { extent_size_ = extent_size; }
 };
