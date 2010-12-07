@@ -10,7 +10,7 @@ GDB_FUNCTIONS_NAME:=rethinkdb-gdb.py
 TAGS:=.tags
 CSCOPE_XREF:=.cscope
 RUN_PORT?=11211
-RUN_FLAGS?=-s 3 -c 2
+RUN_FLAGS?=-s 3 -c 2 -m 10
 VALGRIND_FLAGS?=--leak-check=full --db-attach=yes --show-reachable=yes
 CALLGRIND_FLAGS?=--simulate-cache=yes --simulate-wb=yes --simulate-hwpref=yes --cacheuse=yes --collect-jumps=yes
 DEBUG?=1

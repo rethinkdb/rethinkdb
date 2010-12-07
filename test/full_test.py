@@ -111,6 +111,18 @@ for (mode, checker) in [
                       "num-testers" : 16,
                       "duration"    : 240},
                     repeat=5, timeout=300)
+            
+            do_test("integration/multi_serial_mix.py",
+                    { "auto"        : True,
+                      "mode"        : mode,
+                      "no-valgrind" : not checker,
+                      "protocol"    : protocol,
+                      "cores"       : cores,
+                      "slices"      : slices,
+                      "num-testers" : 16,
+                      "memory"      : 10,
+                      "duration"    : 240},
+                    repeat=5, timeout=300)
         
             do_test("integration/expiration.py",
                     { "auto"        : True,
