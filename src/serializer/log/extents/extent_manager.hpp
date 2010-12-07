@@ -39,7 +39,7 @@ private:
     log_serializer_dynamic_config_t *dynamic_config;
 
 public:
-    size_t extent_size;   /* Same as static_config->extent_size */
+    const uint64_t extent_size;   /* Same as static_config->extent_size */
     
 public:
     class transaction_t
