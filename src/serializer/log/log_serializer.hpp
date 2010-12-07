@@ -93,13 +93,6 @@ public:
     log_serializer_t(dynamic_config_t *dynamic_config, private_dynamic_config_t *private_dynamic_config);
     virtual ~log_serializer_t();
 
-    static block_size_t make_block_size(const static_config_t& cfg) {
-        return block_size_t(cfg.block_size - sizeof(data_block_manager_t::buf_data_t));
-    }
-    static block_size_t make_block_size(int ser_block_size) {
-        return block_size_t(ser_block_size - sizeof(data_block_manager_t::buf_data_t));
-    }
-
     struct check_callback_t {
         virtual void on_serializer_check(bool is_existing) = 0;
         virtual ~check_callback_t() {}

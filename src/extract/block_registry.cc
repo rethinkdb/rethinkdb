@@ -2,8 +2,6 @@
 
 #include "logger.hpp"
 
-typedef data_block_manager_t::buf_data_t buf_data_t;
-
 block_registry::block_registry() { }
 
 

@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
+#include "config/cmd_args.hpp"
 #include "utils.hpp"
 #include "buffer_cache/types.hpp"
 #include "store.hpp"

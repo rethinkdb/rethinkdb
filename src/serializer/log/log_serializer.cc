@@ -329,9 +329,9 @@ void *log_serializer_t::malloc() {
     // free). This is tough because serializer object may not be on
     // the same core as the cache that's using it, so we should expose
     // the malloc object in a different way.
-    byte_t *data = (byte_t*)malloc_aligned(static_config.block_size, DEVICE_BLOCK_SIZE);
-    data += sizeof(data_block_manager_t::buf_data_t);
-    return (void*)data;
+    char *data = (char *)malloc_aligned(static_config.block_size().ser_value(), DEVICE_BLOCK_SIZE);
+    data += sizeof(buf_data_t);
+    return (void *)data;
 }
 
 void *log_serializer_t::clone(void *_data) {
@@ -343,19 +343,19 @@ void *log_serializer_t::clone(void *_data) {
     // free). This is tough because serializer object may not be on
     // the same core as the cache that's using it, so we should expose
     // the malloc object in a different way.
-    byte_t *data = (byte_t*)malloc_aligned(static_config.block_size, DEVICE_BLOCK_SIZE);
-    memcpy(data, (byte_t*)_data - sizeof(data_block_manager_t::buf_data_t), static_config.block_size);
-    data += sizeof(data_block_manager_t::buf_data_t);
-    return (void*)data;
+    char *data = (char *)malloc_aligned(static_config.block_size().ser_value(), DEVICE_BLOCK_SIZE);
+    memcpy(data, (char *)_data - sizeof(buf_data_t), static_config.block_size().ser_value());
+    data += sizeof(buf_data_t);
+    return (void *)data;
 }
 
 void log_serializer_t::free(void *ptr) {
     
     assert(state == state_ready);
     
-    byte_t *data = (byte_t*)ptr;
-    data -= sizeof(data_block_manager_t::buf_data_t);
-    ::free((void*)data);
+    char *data = (char *)ptr;
+    data -= sizeof(buf_data_t);
+    ::free((void *)data);
 }
 
 /* Each transaction written is handled by a new ls_write_fsm_t instance. This is so that
@@ -782,7 +782,7 @@ bool log_serializer_t::do_read(ser_block_id_t block_id, void *buf, read_callback
 }
 
 block_size_t log_serializer_t::get_block_size() {
-    return block_size_t(static_config.block_size - sizeof(data_block_manager_t::buf_data_t));
+    return static_config.block_size();
 }
 
 ser_block_id_t log_serializer_t::max_block_id() {

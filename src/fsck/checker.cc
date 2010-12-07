@@ -28,8 +28,6 @@ inline T* ptr_cast(void *p) { return reinterpret_cast<T*>(p); }
 
 static const char *state = NULL;
 
-typedef data_block_manager_t::buf_data_t buf_data_t;
-
 // Knowledge that we contain for every block id.
 struct block_knowledge {
     // The offset found in the LBA.
@@ -193,7 +191,7 @@ public:
             return false;
         }
 
-        if (!raw_block::init(knog->static_config->block_size, file, offset.parts.value, ser_block_id)) {
+        if (!raw_block::init(knog->static_config->block_size(), file, offset.parts.value, ser_block_id)) {
             return false;
         }
 
@@ -227,18 +225,18 @@ bool check_static_config(direct_file_t *file, file_knowledge *knog, static_confi
     block header;
     header.init(DEVICE_BLOCK_SIZE, file, 0);
     static_header_t *buf = ptr_cast<static_header_t>(header.realbuf);
-    
+
     log_serializer_static_config_t *static_cfg = ptr_cast<log_serializer_static_config_t>(buf + 1);
-    
-    uint64_t block_size = static_cfg->block_size;
-    uint64_t extent_size = static_cfg->extent_size;
+
+    block_size_t block_size = static_cfg->block_size();
+    uint64_t extent_size = static_cfg->extent_size();
     uint64_t file_size = *knog->filesize;
 
     printf("Pre-scanning file %s:\n", knog->filename.c_str());
     printf("static_header software_name: %.*s\n", int(sizeof(SOFTWARE_NAME_STRING)), buf->software_name);
     printf("static_header version: %.*s\n", int(sizeof(VERSION_STRING)), buf->version);
     printf("              DEVICE_BLOCK_SIZE: %lu\n", DEVICE_BLOCK_SIZE);
-    printf("static_header block_size: %lu\n", block_size);
+    printf("static_header block_size: %lu\n", block_size.ser_value());
     printf("static_header extent_size: %lu\n", extent_size);
     printf("              file_size: %lu\n", file_size);
 
@@ -250,7 +248,7 @@ bool check_static_config(direct_file_t *file, file_knowledge *knog, static_confi
         *err = bad_version;
         return false;
     }
-    if (!(block_size % DEVICE_BLOCK_SIZE == 0 && extent_size % block_size == 0)) {
+    if (!(block_size.ser_value() % DEVICE_BLOCK_SIZE == 0 && extent_size % block_size.ser_value() == 0)) {
         *err = bad_sizes;
         return false;
     }
@@ -283,7 +281,7 @@ bool check_metablock(direct_file_t *file, file_knowledge *knog, metablock_errors
     errs->no_valid_metablocks = false;
 
     std::vector<off64_t> metablock_offsets;
-    initialize_metablock_offsets(knog->static_config->extent_size, &metablock_offsets);
+    initialize_metablock_offsets(knog->static_config->extent_size(), &metablock_offsets);
 
     errs->total_count = metablock_offsets.size();
 
@@ -366,11 +364,11 @@ bool is_valid_offset(file_knowledge *knog, off64_t offset, off64_t alignment) {
 }
 
 bool is_valid_extent(file_knowledge *knog, off64_t offset) {
-    return is_valid_offset(knog, offset, knog->static_config->extent_size);
+    return is_valid_offset(knog, offset, knog->static_config->extent_size());
 }
 
 bool is_valid_btree_block(file_knowledge *knog, off64_t offset) {
-    return is_valid_offset(knog, offset, knog->static_config->block_size);
+    return is_valid_offset(knog, offset, knog->static_config->block_size().ser_value());
 }
 
 bool is_valid_device_block(file_knowledge *knog, off64_t offset) {
@@ -400,13 +398,13 @@ bool check_lba_extent(direct_file_t *file, file_knowledge *knog, unsigned int sh
         return false;
     }
 
-    if (entries_count < 0 || (knog->static_config->extent_size - offsetof(lba_extent_t, entries)) / sizeof(lba_entry_t) < (unsigned)entries_count) {
+    if (entries_count < 0 || (knog->static_config->extent_size() - offsetof(lba_extent_t, entries)) / sizeof(lba_entry_t) < (unsigned)entries_count) {
         errs->code = lba_extent_errors::bad_entries_count;
         return false;
     }
 
     block extent;
-    extent.init(knog->static_config->extent_size, file, extent_offset);
+    extent.init(knog->static_config->extent_size(), file, extent_offset);
     lba_extent_t *buf = ptr_cast<lba_extent_t>(extent.realbuf);
 
     errs->total_count += entries_count;
@@ -621,7 +619,7 @@ bool is_valid_hash(const slicecx& cx, btree_key *key) {
 }
 
 void check_large_buf(slicecx& cx, const large_buf_ref& ref, value_error *errs) {
-    int levels = large_buf_t::compute_num_levels(log_serializer_t::make_block_size(*cx.knog->static_config), ref.offset + ref.size);
+    int levels = large_buf_t::compute_num_levels(cx.knog->static_config->block_size(), ref.offset + ref.size);
 
     btree_block b;
     if (!b.init(cx, ref.block_id)) {
@@ -643,7 +641,7 @@ void check_large_buf(slicecx& cx, const large_buf_ref& ref, value_error *errs) {
 
         if (levels > 1) {
 
-            int64_t step = large_buf_t::compute_max_offset(log_serializer_t::make_block_size(*cx.knog->static_config), levels - 1);
+            int64_t step = large_buf_t::compute_max_offset(cx.knog->static_config->block_size(), levels - 1);
 
             for (int64_t i = floor_aligned(ref.offset, step), e = ceil_aligned(ref.offset + ref.size, step); i < e; i += step) {
                 int64_t beg = std::max(ref.offset, i) - i;
@@ -680,15 +678,15 @@ void check_value(slicecx& cx, btree_value *value, subtree_errors *tree_errs, val
 bool leaf_node_inspect_range(const slicecx& cx, const btree_leaf_node *buf, uint16_t offset) {
     // There are some completely bad HACKs here.  We subtract 3 for
     // pair->key.size, pair->value()->size, pair->value()->metadata_flags.
-    if (cx.knog->static_config->block_size - sizeof(data_block_manager_t::buf_data_t) - 3 >= offset
+    if (cx.knog->static_config->block_size().value() - 3 >= offset
         && offset >= buf->frontmost_offset) {
         btree_leaf_pair *pair = leaf_node_handler::get_pair(buf, offset);
         btree_value *value = pair->value();
         uint32_t value_offset = (ptr_cast<byte>(value) - ptr_cast<byte>(pair)) + offset;
         // The other HACK: We subtract 2 for value->size, value->metadata_flags.
-        if (value_offset <= cx.knog->static_config->block_size - sizeof(data_block_manager_t::buf_data_t) - 2) {
+        if (value_offset <= cx.knog->static_config->block_size().value() - 2) {
             uint32_t tot_offset = value_offset + value->mem_size();
-            return (cx.knog->static_config->block_size - sizeof(data_block_manager_t::buf_data_t) >= tot_offset);
+            return (cx.knog->static_config->block_size().value() >= tot_offset);
         }
     }
     return false;
@@ -708,7 +706,7 @@ void check_subtree_leaf_node(slicecx& cx, const btree_leaf_node *buf, btree_key 
             }
             expected_offset += leaf_node_handler::pair_size(leaf_node_handler::get_pair(buf, sorted_offsets[i]));
         }
-        errs->noncontiguous_offsets |= (expected_offset != cx.knog->static_config->block_size - sizeof(data_block_manager_t::buf_data_t));
+        errs->noncontiguous_offsets |= (expected_offset != cx.knog->static_config->block_size().value());
 
     }
 
@@ -737,7 +735,7 @@ void check_subtree_leaf_node(slicecx& cx, const btree_leaf_node *buf, btree_key 
 
 bool internal_node_begin_offset_in_range(const slicecx& cx, const btree_internal_node *buf, uint16_t offset) {
     // TODO: what about key size?  look in the buf?
-    return (cx.knog->static_config->block_size - sizeof(data_block_manager_t::buf_data_t) - sizeof(btree_internal_pair)) >= offset && offset >= buf->frontmost_offset;
+    return (cx.knog->static_config->block_size().value() - sizeof(btree_internal_pair)) >= offset && offset >= buf->frontmost_offset;
 }
 
 void check_subtree(slicecx& cx, block_id_t id, btree_key *lo, btree_key *hi, subtree_errors *errs);
@@ -756,7 +754,7 @@ void check_subtree_internal_node(slicecx& cx, const btree_internal_node *buf, bt
             }
             expected_offset += internal_node_handler::pair_size(internal_node_handler::get_pair(buf, sorted_offsets[i]));
         }
-        errs->noncontiguous_offsets |= (expected_offset != cx.knog->static_config->block_size - sizeof(data_block_manager_t::buf_data_t));
+        errs->noncontiguous_offsets |= (expected_offset != cx.knog->static_config->block_size().value());
     }
 
     // Now check other things.
@@ -809,7 +807,7 @@ void check_subtree(slicecx& cx, block_id_t id, btree_key *lo, btree_key *hi, sub
 
     if (lo != NULL && hi != NULL) {
         // (We're happy with an underfull root block.)
-        if (node_handler::is_underfull(log_serializer_t::make_block_size(*cx.knog->static_config), ptr_cast<btree_node>(node.buf))) {
+        if (node_handler::is_underfull(cx.knog->static_config->block_size(), ptr_cast<btree_node>(node.buf))) {
             node_err.block_underfull = true;
         }
     }

@@ -7,6 +7,8 @@
 #include <string>
 #include <vector>
 
+#include "serializer/types.hpp"
+
 #define NEVER_FLUSH -1
 
 /* Private serializer dynamic configuration values */
@@ -40,9 +42,37 @@ struct log_serializer_dynamic_config_t {
 
 /* Configuration for the serializer that is set when the database is created */
 
-struct log_serializer_static_config_t {
-    uint64_t block_size;
-    uint64_t extent_size;
+class block_size_t {
+public:
+    uint64_t value() const { return ser_bs_ - sizeof(buf_data_t); }
+    uint64_t ser_value() const { return ser_bs_; }
+
+    friend class log_serializer_static_config_t;
+
+    // You should NOT call this function!
+    static block_size_t unsafe_make(uint64_t ser_bs) {
+        return block_size_t(ser_bs);
+    }
+private:
+    explicit block_size_t(uint64_t ser_bs) : ser_bs_(ser_bs) { }
+    uint64_t ser_bs_;
+};
+
+struct cmd_config_t;
+
+class log_serializer_static_config_t {
+    uint64_t block_size_;
+    uint64_t extent_size_;
+
+    friend void init_config(cmd_config_t *config);
+    friend void parse_cmd_args(int argc, char *argv[], cmd_config_t *config);
+    friend void print_database_flags(cmd_config_t *config);
+public:
+    block_size_t block_size() const { return block_size_t(block_size_); }
+    uint64_t extent_size() const { return extent_size_; }
+    uint64_t blocks_per_extent() const { return extent_size_ / block_size_; }
+    int block_index(off64_t offset) const { return (offset % extent_size_) / block_size_; }
+    int extent_index(off64_t offset) const { return offset / extent_size_; }
 };
 
 /* Configuration for the cache (it can all change from run to run) */
