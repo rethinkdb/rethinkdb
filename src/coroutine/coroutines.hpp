@@ -27,6 +27,7 @@ public:
     static void wait(); //Pauses the current coroutine until it's notified
     static coro_t *self(); //Returns the current coroutine
     static void run();
+    static void destroy();
 
 private:
     static void suicide();
@@ -59,7 +60,7 @@ private:
     coro_t *coroutine;
     bool done;
     void *result;
-    std::vector<coro_t*> waiters; //There should always be 0 or 1 watier
+    std::vector<coro_t*> waiters; //There should always be 0 or 1 waiters
 
     static void run_callback(void *);
 

@@ -91,6 +91,11 @@ void coro_t::run() {
     scheduler = new coro_t(mainCoro);
 }
 
+void coro_t::destroy() {
+    delete scheduler;
+    scheduler = current_coro = NULL;
+}
+
 void *task_t::join() {
     assert(waiters.size() == 0);
     //printf("Joining\n");

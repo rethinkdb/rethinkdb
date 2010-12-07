@@ -3,6 +3,7 @@
 #include "thread_pool.hpp"
 #include "errors.hpp"
 #include "arch/linux/event_queue.hpp"
+#include "coroutine/coroutines.hpp"
 #include <sys/eventfd.h>
 #include <signal.h>
 #include <fcntl.h>
@@ -83,6 +84,8 @@ void *linux_thread_pool_t::start_thread(void *arg) {
         if (tdata->initial_message) {
             thread.message_hub.store_message(tdata->current_cpu, tdata->initial_message);
         }
+
+        coro_t::run();
         
         thread.queue.run();
         
@@ -92,6 +95,7 @@ void *linux_thread_pool_t::start_thread(void *arg) {
         res = pthread_barrier_wait(tdata->barrier);
         check("Could not wait at stop barrier", res != 0 && res != PTHREAD_BARRIER_SERIAL_THREAD);
         
+        coro_t::destroy();
         tdata->thread_pool->threads[tdata->current_cpu] = NULL;
         linux_thread_pool_t::thread = NULL;
     }
@@ -205,6 +209,10 @@ void linux_thread_pool_t::run(linux_cpu_message_t *initial_message) {
     // Fin.
 }
 
+// Note: Maybe we should use a signalfd instead of a signal handler, and then
+// there would be no issues with potential race conditions because the signal
+// would just be pulled out in the main poll/epoll loop. But as long as this works,
+// there's no real reason to change it.
 void linux_thread_pool_t::interrupt_handler(int) {
     
     /* The interrupt handler should run on the main thread, the same thread that
