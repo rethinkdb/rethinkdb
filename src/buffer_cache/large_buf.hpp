@@ -54,7 +54,7 @@ private:
     large_buf_available_callback_t *callback;
 
     transaction_t *transaction;
-    size_t cache_block_size;
+    block_size_t cache_block_size;
 
 public: // XXX Should this be private?
     enum state_t {
@@ -110,10 +110,10 @@ public:
 
     friend struct acquire_buftree_fsm_t;
 
-    static int64_t cache_size_to_leaf_bytes(size_t cache_block_size);
-    static int64_t cache_size_to_internal_kids(size_t cache_block_size);
-    static int64_t compute_max_offset(size_t cache_block_size, int levels);
-    static int compute_num_levels(size_t cache_block_size, int64_t end_offset);
+    static int64_t cache_size_to_leaf_bytes(block_size_t cache_block_size);
+    static int64_t cache_size_to_internal_kids(block_size_t cache_block_size);
+    static int64_t compute_max_offset(block_size_t cache_block_size, int levels);
+    static int compute_num_levels(block_size_t cache_block_size, int64_t end_offset);
 
 private:
     int64_t num_leaf_bytes() const;

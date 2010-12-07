@@ -3,7 +3,7 @@
 
 #define BLOCK_IN_USE (block_id_t(-2))
 
-array_free_list_t::array_free_list_t(serializer_t *serializer)
+array_free_list_t::array_free_list_t(translator_serializer_t *serializer)
     : serializer(serializer) { }
 
 bool array_free_list_t::start(ready_callback_t *cb) {

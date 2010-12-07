@@ -86,17 +86,17 @@ public:
     }
     
     void read_step_2(read_info_t *info, in_memory_index_t *index) {
-        
+
         lba_extent_t *extent = (lba_extent_t *)info->buffer;
         assert(memcmp(extent->header.magic, lba_magic, LBA_MAGIC_SIZE) == 0);
-        
+
         for (int i = 0; i < info->count; i++) {
             lba_entry_t *e = &extent->entries[i];
             if (!lba_entry_t::is_padding(e)) {
-                index->set_block_offset(e->block_id, e->offset);
+                index->set_block_info(e->block_id, e->recency, e->offset);
             }
         }
-        
+
         free(info->buffer);
     }
 

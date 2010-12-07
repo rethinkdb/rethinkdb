@@ -117,7 +117,7 @@ void scc_transaction_t<inner_cache_t>::on_txn_commit(typename inner_cache_t::tra
 
 template<class inner_cache_t>
 scc_cache_t<inner_cache_t>::scc_cache_t(
-        serializer_t *serializer,
+        translator_serializer_t *serializer,
         mirrored_cache_config_t *config)
     : inner_cache(serializer, config) {
 }
@@ -128,7 +128,7 @@ bool scc_cache_t<inner_cache_t>::start(ready_callback_t *cb) {
 }
 
 template<class inner_cache_t>
-size_t scc_cache_t<inner_cache_t>::get_block_size() {
+block_size_t scc_cache_t<inner_cache_t>::get_block_size() {
     return inner_cache.get_block_size();
 }
 

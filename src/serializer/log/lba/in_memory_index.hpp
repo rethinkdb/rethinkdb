@@ -2,47 +2,39 @@
 #ifndef __SERIALIZER_LOG_LBA_IN_MEMORY_INDEX__
 #define __SERIALIZER_LOG_LBA_IN_MEMORY_INDEX__
 
+
 #include "containers/segmented_vector.hpp"
-#include "containers/intrusive_list.hpp"
+#include "config/args.hpp"
+#include "serializer/serializer.hpp"
+#include "serializer/log/lba/disk_format.hpp"
+
 
 struct in_memory_index_t
 {
+    // blocks.get_size() == timestamps.get_size().  We use parallel
+    // arrays to avoid wasting memory from alignment.
     segmented_vector_t<flagged_off64_t, MAX_BLOCK_ID> blocks;
+    segmented_vector_t<repl_timestamp, MAX_BLOCK_ID> timestamps;
 
 public:
-    in_memory_index_t() {
-    }
-    
-    ser_block_id_t max_block_id() {
-        return blocks.get_size();
-    }
-    
-    flagged_off64_t get_block_offset(ser_block_id_t id) {
-        if(id >= blocks.get_size()) {
-            return flagged_off64_t::unused();
-        } else {
-            return blocks[id];
-        }
-    }
-    
-    void set_block_offset(ser_block_id_t id, flagged_off64_t offset) {
-        
-        /* Grow the array if necessary, and fill in the empty space with flagged_off64_t::unused(). */
-        if (id >= blocks.get_size()) {
-            blocks.set_size(id + 1, flagged_off64_t::unused());
-        }
-        
-        blocks[id] = offset;
-    }
-    
-    void print() {
+    in_memory_index_t();
+
+    // TODO: Rename this function.  It's one greater than the max
+    // block id.
+    ser_block_id_t max_block_id();
+
+    struct info_t {
+        flagged_off64_t offset;
+        repl_timestamp recency;
+    };
+
+    info_t get_block_info(ser_block_id_t id);
+    void set_block_info(ser_block_id_t id, repl_timestamp recency,
+                        flagged_off64_t offset);
+
 #ifndef NDEBUG
-        printf("LBA:\n");
-        for (unsigned int i = 0; i < blocks.get_size(); i++) {
-            printf("%d %.8lx\n", i, (unsigned long int)blocks[i].whole_value);
-        }
+    void print();
 #endif
-    }
 };
 
 #endif /* __SERIALIZER_LOG_LBA_IN_MEMORY_INDEX__ */

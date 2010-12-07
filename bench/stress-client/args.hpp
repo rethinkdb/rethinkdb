@@ -20,11 +20,13 @@ void usage(const char *name) {
     _d_server.print();
     printf("].\n");
     printf("\t-c, --clients\n\t\tNumber of concurrent clients. Defaults to [%d].\n", _d.clients);
-    printf("\t-w, --workload\n\t\tTarget load to generate. Expects a value in format D/U/I/R, where\n" \
+    printf("\t-w, --workload\n\t\tTarget load to generate. Expects a value in format D/U/I/R/A/P, where\n" \
            "\t\t\tD - number of deletes\n" \
            "\t\t\tU - number of updates\n" \
            "\t\t\tI - number of inserts\n" \
            "\t\t\tR - number of reads\n" \
+           "\t\t\tA - number of appends\n" \
+           "\t\t\tP - number of prepends\n" \
            "\t\tDefaults to [");
     _d.load.print();
     printf("]\n");

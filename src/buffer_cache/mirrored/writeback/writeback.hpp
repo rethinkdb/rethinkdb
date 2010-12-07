@@ -6,6 +6,7 @@
 #include "flush_time_randomizer.hpp"
 #include "utils.hpp"
 #include "serializer/serializer.hpp"
+#include "serializer/translator.hpp"
 #include "buffer_cache/mirrored/callbacks.hpp"
 
 struct mc_cache_t;
@@ -55,9 +56,10 @@ public:
         
     public:
         explicit local_buf_t(inner_buf_t *gbuf)
-            : gbuf(gbuf), dirty(false) {}
+            : gbuf(gbuf), dirty(false), recency_dirty(false) {}
         
         void set_dirty(bool _dirty = true);
+        void set_recency_dirty(bool _recency_dirty = true);
         
         bool safe_to_unload() const { return !dirty; }
 
@@ -65,6 +67,7 @@ public:
         inner_buf_t *gbuf;
     public: //TODO make this private again @jdoliner
         bool dirty;
+        bool recency_dirty;
     };
     
     /* User-controlled settings. */
@@ -132,11 +135,10 @@ private:
     
     // Transaction that the writeback is using to grab buffers
     transaction_t *transaction;
-    
+
     // Transaction to submit to the serializer
-    int num_serializer_writes;
-    serializer_t::write_t *serializer_writes;
-    
+    std::vector<translator_serializer_t::write_t> serializer_writes;
+
     // List of things to call back as soon as the writeback currently in progress is over.
     intrusive_list_t<sync_callback_t> current_sync_callbacks;
 };

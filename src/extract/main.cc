@@ -82,8 +82,9 @@ void parse_cmd_args(int argc, char **argv, config_t *config) {
             break;
         case force_block_size: {
             char *endptr;
-            config->overrides.block_size = strtol(optarg, &endptr, 10);
-            if (*endptr != '\0' || config->overrides.block_size <= 0) {
+            long bs = strtol(optarg, &endptr, 10);
+            config->overrides.block_size_ = bs;
+            if (*endptr != '\0' || bs <= 0) {
                 fail("Block size must be a positive integer.\n");
             }
         } break;

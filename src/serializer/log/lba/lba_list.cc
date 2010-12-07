@@ -99,20 +99,27 @@ ser_block_id_t lba_list_t::max_block_id() {
 flagged_off64_t lba_list_t::get_block_offset(ser_block_id_t block) {
     assert(state == state_ready);
     
-    return in_memory_index.get_block_offset(block);
+    return in_memory_index.get_block_info(block).offset;
 }
 
-void lba_list_t::set_block_offset(ser_block_id_t block, flagged_off64_t offset) {
+repl_timestamp lba_list_t::get_block_recency(ser_block_id_t block) {
     assert(state == state_ready);
-    
-    in_memory_index.set_block_offset(block, offset);
-    
+
+    return in_memory_index.get_block_info(block).recency;
+}
+
+// TODO rename to set_block_info
+void lba_list_t::set_block_offset(ser_block_id_t block, repl_timestamp recency, flagged_off64_t offset) {
+    assert(state == state_ready);
+
+    in_memory_index.set_block_info(block, recency, offset);
+
     /* Strangely enough, this works even with the GC. Here's the reasoning: If the GC is
     waiting for the disk structure lock, then sync() will never be called again on the
     current disk_structure, so it's meaningless but harmless to call add_entry(). However,
     since our changes are also being put into the in_memory_index, they will be
     incorporated into the new disk_structure that the GC creates, so they won't get lost. */
-    disk_structures[block % LBA_SHARD_FACTOR]->add_entry(block, offset);
+    disk_structures[block.value % LBA_SHARD_FACTOR]->add_entry(block, recency, offset);
 }
 
 struct lba_syncer_t :
@@ -191,12 +198,12 @@ struct gc_fsm_t :
         owner->disk_structures[i] = new lba_disk_structure_t(owner->extent_manager, owner->dbfile);
         
         /* Put entries in the new empty LBA */
-        
-        for (ser_block_id_t id = i; id < owner->max_block_id(); id += LBA_SHARD_FACTOR) {
+
+        for (ser_block_id_t::number_t id = i; id < owner->max_block_id().value; id += LBA_SHARD_FACTOR) {
             assert(id % LBA_SHARD_FACTOR == (unsigned)i);
-            owner->disk_structures[i]->add_entry(id, owner->get_block_offset(id));
+            owner->disk_structures[i]->add_entry(ser_block_id_t::make(id), owner->get_block_recency(ser_block_id_t::make(id)), owner->get_block_offset(ser_block_id_t::make(id)));
         }
-        
+
         /* Sync the new LBA */
         
         owner->disk_structures[i]->sync(this);
@@ -227,7 +234,7 @@ bool lba_list_t::we_want_to_gc(int i) {
     // About how much space for entries is used on disk?
     int64_t denom = disk_structures[i]->extents_in_superblock.size() * entries_per_extent;
 
-    int64_t numer = std::max<int64_t>(max_block_id(), entries_per_extent);
+    int64_t numer = std::max<int64_t>(max_block_id().value, entries_per_extent);
 
     // Is 1 - numer/denom >=
     // LBA_GC_THRESHOLD_RATIO_NUMERATOR / LBA_GC_THRESHOLD_RATIO_DENOMINATOR?

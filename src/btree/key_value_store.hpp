@@ -13,7 +13,8 @@
 #include "serializer/translator.hpp"
 #include "store.hpp"
 
-#define CONFIG_BLOCK_ID (ser_block_id_t(0))
+
+#define CONFIG_BLOCK_ID (config_block_id_t::make(0))
 
 // TODO move serializer_config_block_t to separate file
 /* This is the format that block ID 0 on each serializer takes. */
@@ -48,6 +49,7 @@ provides the abstraction of a key-value store. */
 
 struct bkvs_start_new_serializer_fsm_t;
 struct bkvs_start_existing_serializer_fsm_t;
+struct btree_replicant_t;
 
 class btree_key_value_store_t :
     public home_cpu_mixin_t,
@@ -95,7 +97,8 @@ public:
     void append(store_key_t *key, data_provider_t *data, append_prepend_callback_t *cb);
     void prepend(store_key_t *key, data_provider_t *data, append_prepend_callback_t *cb);
     void delete_key(store_key_t *key, delete_callback_t *cb);
-    void walk(walk_callback_t *cb);
+    void replicate(replicant_t *cb);
+    void stop_replicating(replicant_t *cb);
 
 public:
     btree_key_value_store_dynamic_config_t *dynamic_config;
@@ -112,6 +115,8 @@ public:
     btree_slice_t *slices[MAX_SLICES];
     
     btree_slice_t *slice_for_key(btree_key *key);
+    
+    std::vector<btree_replicant_t *> replicants;
     
     enum state_t {
         state_off,

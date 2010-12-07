@@ -1,35 +1,95 @@
-#include "btree/walk.hpp"
+#include "btree/replicate.hpp"
 #include "buffer_cache/large_buf.hpp"
 #include "btree/node.hpp"
 #include "btree/leaf_node.hpp"
 #include "btree/internal_node.hpp"
+#include "btree/key_value_store.hpp"
+#include "btree/slice.hpp"
 
-struct store_walker_t;
 struct slice_walker_t;
 
-void walk_slice(store_walker_t *parent, btree_slice_t *slice);
+void walk_slice(btree_replicant_t *parent, btree_slice_t *slice);
 void walk_branch(slice_walker_t *parent, block_id_t node);
 
-struct store_walker_t {
-    store_t::walk_callback_t *callback;
-    int active_slice_walkers;
-    store_walker_t(btree_key_value_store_t *store, store_t::walk_callback_t *cb)
-        : callback(cb)
-    {
-        active_slice_walkers = store->btree_static_config.n_slices;
-        for (int i = 0; i < store->btree_static_config.n_slices; i++) {
-            walk_slice(this, store->slices[i]);
+btree_replicant_t::btree_replicant_t(store_t::replicant_t *cb, btree_key_value_store_t *s)
+    : callback(cb), store(s), stopping(false)
+{
+    active_slice_walkers = store->btree_static_config.n_slices;
+
+    // Start walking all the slices so we can get information on keys that were inserted
+    // before we started.
+    for (int i = 0; i < store->btree_static_config.n_slices; i++) {
+        walk_slice(this, store->slices[i]);
+    }
+
+    // Install ourselves as a trigger on each slice
+    for (int i = 0; i < store->btree_static_config.n_slices; i++) {
+        do_on_cpu(store->slices[i]->home_cpu, this, &btree_replicant_t::install, store->slices[i]);
+    }
+}
+
+void btree_replicant_t::slice_walker_done() {
+    active_slice_walkers--;
+    assert(active_slice_walkers >= 0);
+
+    // If the shutdown was blocked on the slice walkers, unblock it
+    if (stopping && active_slice_walkers == 0 && active_uninstallations == 0) {
+        done();
+    }
+}
+
+bool btree_replicant_t::install(btree_slice_t *slice) {
+    slice->replicants.push_back(this);
+    return true;
+}
+
+void btree_replicant_t::stop() {
+
+    assert_cpu();
+    stopping = true;
+
+    // Uninstall our triggers
+    active_uninstallations = store->btree_static_config.n_slices;
+    for (int i = 0; i < store->btree_static_config.n_slices; i++) {
+        do_on_cpu(store->slices[i]->home_cpu, this, &btree_replicant_t::uninstall, store->slices[i]);
+    }
+}
+
+bool btree_replicant_t::uninstall(btree_slice_t *slice) {
+
+    assert(stopping);
+
+    std::vector<btree_replicant_t *>::iterator it;
+    for (it = slice->replicants.begin(); it != slice->replicants.end(); it++) {
+        if (*it == this) {
+            slice->replicants.erase(it);
+            do_on_cpu(home_cpu, this, &btree_replicant_t::have_uninstalled);
+            return true;
         }
     }
-    void done() {
-        callback->done();
-        delete this;
-    }
-};
-
-void walk_btrees(btree_key_value_store_t *store, store_t::walk_callback_t *cb) {
-    new store_walker_t(store, cb);
+    fail("We were never installed on this slice.");
 }
+
+bool btree_replicant_t::have_uninstalled() {
+
+    assert(stopping);
+    active_uninstallations--;
+    assert(active_uninstallations >= 0);
+    if (active_uninstallations == 0 && active_slice_walkers == 0) {
+        done();
+    }
+    return true;
+}
+
+void btree_replicant_t::done() {
+
+    assert(stopping);
+    callback->stopped();
+    delete this;
+}
+
+/* slice_walker_t walks a single btree and visits all the leaves. It reports the results
+to a replicant. */
 
 struct slice_walker_t :
     public home_cpu_mixin_t,
@@ -38,8 +98,8 @@ struct slice_walker_t :
     btree_slice_t *slice;
     int active_branch_walkers;
     transaction_t *txn;
-    store_walker_t *parent;
-    slice_walker_t(store_walker_t *parent, btree_slice_t *slice)
+    btree_replicant_t *parent;
+    slice_walker_t(btree_replicant_t *parent, btree_slice_t *slice)
         : slice(slice), active_branch_walkers(0), parent(parent)
     {
         do_on_cpu(slice->home_cpu, this, &slice_walker_t::start);
@@ -61,26 +121,27 @@ struct slice_walker_t :
         buf->release();
     }
     void done() {
+        bool committed __attribute__((unused)) = txn->commit(NULL);
+        assert(committed);
         do_on_cpu(home_cpu, this, &slice_walker_t::report);
     }
     bool report() {
-        parent->active_slice_walkers--;
-        if (parent->active_slice_walkers == 0) {
-            parent->done();
-        }
+        parent->slice_walker_done();
         delete this;
         return true;
     }
 };
 
-void walk_slice(store_walker_t *parent, btree_slice_t *slice) {
+void walk_slice(btree_replicant_t *parent, btree_slice_t *slice) {
     new slice_walker_t(parent, slice);
 }
+
+/* branch_walker_t walks one branch of a btree. */
 
 struct branch_walker_t :
     public block_available_callback_t,
     public large_buf_available_callback_t,
-    public store_t::walk_callback_t::done_callback_t
+    public store_t::replicant_t::done_callback_t
 {
     slice_walker_t *parent;
     buf_t *buf;
@@ -165,7 +226,9 @@ struct branch_walker_t :
     }
     
     void deliver_value() {
-        parent->parent->callback->value(current_key, &buffers, this, current_value->mcflags(), current_value->exptime());
+        parent->parent->callback->value(current_key, &buffers, this,
+            current_value->mcflags(), current_value->exptime(),
+            current_value->has_cas() ? current_value->cas() : 0);
     }
 };
 

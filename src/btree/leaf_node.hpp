@@ -27,23 +27,23 @@ class leaf_key_comp;
 
 class leaf_node_handler : public node_handler {
     friend class leaf_key_comp;
-    public:
-    static void init(size_t block_size, btree_leaf_node *node);
-    static void init(size_t block_size, btree_leaf_node *node, btree_leaf_node *lnode, uint16_t *offsets, int numpairs);
+public:
+    static void init(block_size_t block_size, btree_leaf_node *node, repl_timestamp modification_time);
+    static void init(block_size_t block_size, btree_leaf_node *node, btree_leaf_node *lnode, uint16_t *offsets, int numpairs, repl_timestamp modification_time);
 
     static bool lookup(const btree_leaf_node *node, btree_key *key, btree_value *value);
-    static bool insert(size_t block_size, btree_leaf_node *node, btree_key *key, btree_value *value);
-    static void remove(size_t block_size, btree_leaf_node *node, btree_key *key); // TODO: Currently untested
-    static void split(size_t block_size, btree_leaf_node *node, btree_leaf_node *rnode, btree_key *median);
-    static void merge(size_t block_size, btree_leaf_node *node, btree_leaf_node *rnode, btree_key *key_to_remove);
-    static bool level(size_t block_size, btree_leaf_node *node, btree_leaf_node *sibling, btree_key *key_to_replace, btree_key *replacement_key);
+    static bool insert(block_size_t block_size, btree_leaf_node *node, btree_key *key, btree_value *value, repl_timestamp insertion_time);
+    static void remove(block_size_t block_size, btree_leaf_node *node, btree_key *key); // TODO: Currently untested
+    static void split(block_size_t block_size, btree_leaf_node *node, btree_leaf_node *rnode, btree_key *median);
+    static void merge(block_size_t block_size, btree_leaf_node *node, btree_leaf_node *rnode, btree_key *key_to_remove);
+    static bool level(block_size_t block_size, btree_leaf_node *node, btree_leaf_node *sibling, btree_key *key_to_replace, btree_key *replacement_key);
 
 
     static bool is_empty(const btree_leaf_node *node);
     static bool is_full(const btree_leaf_node *node, btree_key *key, btree_value *value);
-    static bool is_underfull(size_t block_size, const btree_leaf_node *node);
-    static bool is_mergable(size_t block_size, const btree_leaf_node *node, const btree_leaf_node *sibling);
-    static void validate(size_t block_size, const btree_leaf_node *node);
+    static bool is_underfull(block_size_t block_size, const btree_leaf_node *node);
+    static bool is_mergable(block_size_t block_size, const btree_leaf_node *node, const btree_leaf_node *sibling);
+    static void validate(block_size_t block_size, const btree_leaf_node *node);
     static int nodecmp(const btree_leaf_node *node1, const btree_leaf_node *node2);
 
     static void print(const btree_leaf_node *node);
@@ -58,7 +58,7 @@ class leaf_node_handler : public node_handler {
     static btree_leaf_pair *get_pair(const btree_leaf_node *node, uint16_t offset);
     static size_t pair_size(btree_leaf_pair *pair);
 
-    protected:
+protected:
     static void delete_pair(btree_leaf_node *node, uint16_t offset);
     static uint16_t insert_pair(btree_leaf_node *node, btree_leaf_pair *pair);
     static uint16_t insert_pair(btree_leaf_node *node, btree_value *value, btree_key *key);
@@ -68,6 +68,19 @@ class leaf_node_handler : public node_handler {
     static void delete_offset(btree_leaf_node *node, int index);
     static void insert_offset(btree_leaf_node *node, uint16_t offset, int index);
     static bool is_equal(btree_key *key1, btree_key *key2);
+
+    // Initializes a leaf_timestamps_t.
+    static void initialize_times(leaf_timestamps_t *times, repl_timestamp current_time);
+
+    // Shifts a newer timestamp onto the leaf_timestamps_t, pushing
+    // the last one off.
+    static void rotate_time(leaf_timestamps_t *times, repl_timestamp latest_time, int prev_timestamp_offset);
+    static void remove_time(leaf_timestamps_t *times, int offset);
+
+    // Returns the offset of the timestamp (or -1 or
+    // NUM_LEAF_NODE_EARLIER_TIMES) for the key-value pair at the
+    // given offset.
+    static int get_timestamp_offset(block_size_t block_size, btree_leaf_node *node, uint16_t offset);
 };
 
 class leaf_key_comp {

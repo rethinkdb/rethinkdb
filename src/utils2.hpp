@@ -6,6 +6,7 @@ The reason it is separate from utils.hpp is that the IO layer needs some of the 
 utils2.hpp, but utils.hpp needs some things in the IO layer. */
 
 #include <stdint.h>
+#include <time.h>
 #include "errors.hpp"
 
 int get_cpu_count();
@@ -14,6 +15,26 @@ long get_total_ram();
 
 typedef char byte;
 typedef char byte_t;
+
+// for safety  TODO: move this to a different file
+struct repl_timestamp {
+    uint32_t time;
+
+    static const repl_timestamp invalid;
+
+    // TODO remove this, remove referencs to this.
+    static const repl_timestamp placeholder;
+};
+
+repl_timestamp repl_time(time_t t);
+
+// TODO: move this to a different file
+repl_timestamp current_time();
+
+// This is almost like std::max except it compares times locally, so
+// that overflow is handled gracefully.
+repl_timestamp later_time(repl_timestamp x, repl_timestamp y);
+
 
 void *malloc_aligned(size_t size, size_t alignment = 64);
 
@@ -70,6 +91,7 @@ int randint(int n);
 #define DISABLE_COPYING(T)                      \
     T(const T&);                                \
     void operator=(const T&)
+
 
 
 #include "utils2.tcc"

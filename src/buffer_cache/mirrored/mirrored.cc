@@ -39,6 +39,7 @@ struct load_buf_fsm_t :
 mc_inner_buf_t::mc_inner_buf_t(cache_t *cache, block_id_t block_id)
     : cache(cache),
       block_id(block_id),
+      subtree_recency(repl_timestamp::placeholder),
       data(cache->serializer->malloc()),
       refcount(0),
       do_delete(false),
@@ -59,6 +60,7 @@ mc_inner_buf_t::mc_inner_buf_t(cache_t *cache, block_id_t block_id)
 mc_inner_buf_t::mc_inner_buf_t(cache_t *cache)
     : cache(cache),
       block_id(cache->free_list.gen_block_id()),
+      subtree_recency(repl_timestamp::placeholder),
       data(cache->serializer->malloc()),
       refcount(0),
       do_delete(false),
@@ -72,7 +74,7 @@ mc_inner_buf_t::mc_inner_buf_t(cache_t *cache)
 #if !defined(NDEBUG) || defined(VALGRIND)
     // The memory allocator already filled this with 0xBD, but it's nice to be able to distinguish
     // between problems with uninitialized memory and problems with uninitialized blocks
-    memset(data, 0xCD, cache->serializer->get_block_size());
+    memset(data, 0xCD, cache->serializer->get_block_size().value());
 #endif
     
     pm_n_blocks_in_memory++;
@@ -89,7 +91,7 @@ mc_inner_buf_t::~mc_inner_buf_t() {
     // We're about to free the data, let's set it to a recognizable
     // value to make sure we don't depend on accessing things that may
     // be flushed out of the cache.
-    memset(data, 0xDD, cache->serializer->get_block_size());
+    memset(data, 0xDD, cache->serializer->get_block_size().value());
 #endif
     
     assert(safe_to_unload());
@@ -131,7 +133,7 @@ void mc_buf_t::on_lock_available() {
         case rwi_read_outdated_ok: {
             if (inner_buf->cow_will_be_needed) {
                 data = inner_buf->cache->serializer->malloc();
-                memcpy(data, inner_buf->data, inner_buf->cache->get_block_size());
+                memcpy(data, inner_buf->data, inner_buf->cache->get_block_size().value());
             } else {
                 data = inner_buf->data;
                 inner_buf->cow_will_be_needed = true;
@@ -142,7 +144,7 @@ void mc_buf_t::on_lock_available() {
         case rwi_write: {
             if (inner_buf->cow_will_be_needed) {
                 data = inner_buf->cache->serializer->malloc();
-                memcpy(data, inner_buf->data, inner_buf->cache->get_block_size());
+                memcpy(data, inner_buf->data, inner_buf->cache->get_block_size().value());
                 inner_buf->data = data;
                 inner_buf->cow_will_be_needed = false;
             }
@@ -325,19 +327,19 @@ mc_buf_t *mc_transaction_t::acquire(block_id_t block_id, access_t mode,
  */
 
 mc_cache_t::mc_cache_t(
-            serializer_t *serializer,
+            translator_serializer_t *serializer,
             mirrored_cache_config_t *config) :
     
     serializer(serializer),
     page_repl(
         // Launch page replacement if the user-specified maximum number of blocks is reached
-        config->max_size / serializer->get_block_size(),
+        config->max_size / serializer->get_block_size().value(),
         this),
     writeback(
         this,
         config->wait_for_flush,
         config->flush_timer_ms,
-        config->max_size / serializer->get_block_size() * config->flush_threshold_percent / 100),
+        config->max_size / serializer->get_block_size().value() * config->flush_threshold_percent / 100),
     free_list(serializer),
     shutdown_transaction_backdoor(false),
     state(state_unstarted),
@@ -384,7 +386,7 @@ bool mc_cache_t::next_starting_up_step() {
         
             inner_buf_t *b = new mc_inner_buf_t(this);
             assert(b->block_id == SUPERBLOCK_ID);
-            bzero(b->data, get_block_size());
+            bzero(b->data, get_block_size().value());
         }
         
         state = state_ready;
@@ -404,7 +406,7 @@ void mc_cache_t::on_free_list_ready() {
     next_starting_up_step();
 }
 
-size_t mc_cache_t::get_block_size() {
+block_size_t mc_cache_t::get_block_size() {
     return serializer->get_block_size();
 }
 

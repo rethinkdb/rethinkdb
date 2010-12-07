@@ -6,7 +6,7 @@
 #include "btree/append_prepend_fsm.hpp"
 #include "btree/delete_fsm.hpp"
 #include "btree/get_cas_fsm.hpp"
-#include "btree/walk.hpp"
+#include "btree/replicate.hpp"
 
 /* The key-value store slices up the serializers as follows:
 
@@ -116,25 +116,22 @@ struct bkvs_start_new_serializer_fsm_t :
         
         return true;
     }
-    
+
     void on_serializer_ready(standard_serializer_t *ser) {
-        
+
         config_block = store->serializers[i]->malloc();
-        bzero(config_block, store->serializers[i]->get_block_size());
+        bzero(config_block, store->serializers[i]->get_block_size().value());
         serializer_config_block_t *c = (serializer_config_block_t *)config_block;
         c->magic = serializer_config_block_t::expected_magic;
         c->database_magic = store->creation_magic;
         c->n_files = store->n_files;
         c->this_serializer = i;
         c->btree_config = store->btree_static_config;
-        
-        serializer_t::write_t w;
-        w.buf = config_block;
-        w.block_id = CONFIG_BLOCK_ID;
-        w.callback = NULL;
+
+        serializer_t::write_t w = serializer_t::write_t::make(CONFIG_BLOCK_ID.ser_id, repl_timestamp::invalid, config_block, NULL);
         if (store->serializers[i]->do_write(&w, 1, this)) on_serializer_write_txn();
     }
-    
+
     void on_serializer_write_txn() {
         
         store->serializers[i]->free(config_block);
@@ -175,7 +172,7 @@ struct bkvs_start_existing_serializer_fsm_t :
     void on_serializer_ready(standard_serializer_t *ser) {
         
         config_block = serializer->malloc();
-        if (serializer->do_read(CONFIG_BLOCK_ID, config_block, this)) on_serializer_read();
+        if (serializer->do_read(CONFIG_BLOCK_ID.ser_id, config_block, this)) on_serializer_read();
     }
     
     void on_serializer_read() {
@@ -272,7 +269,7 @@ bool btree_key_value_store_t::create_a_pseudoserializer_on_this_core(int i) {
         serializers[i % n_files],
         mod_count,
         i / n_files,
-        CONFIG_BLOCK_ID + 1   /* Reserve block ID 0 */
+        CONFIG_BLOCK_ID   /* Reserve block ID 0 */
         );
     
     do_on_cpu(home_cpu, this, &btree_key_value_store_t::have_created_a_pseudoserializer);
@@ -448,8 +445,20 @@ void btree_key_value_store_t::delete_key(store_key_t *key, delete_callback_t *cb
     new btree_delete_fsm_t(key, this, cb);
 }
 
-void btree_key_value_store_t::walk(walk_callback_t *cb) {
-    walk_btrees(this, cb);
+void btree_key_value_store_t::replicate(replicant_t *cb) {
+    replicants.push_back(new btree_replicant_t(cb, this));
+}
+
+void btree_key_value_store_t::stop_replicating(replicant_t *cb) {
+    std::vector<btree_replicant_t *>::iterator it;
+    for (it = replicants.begin(); it != replicants.end(); it++) {
+        if ((*it)->callback == cb) {
+            (*it)->stop();
+            replicants.erase(it);
+            return;
+        }
+    }
+    fail("stop_replicating() called on a replicant that isn't replicating.");
 }
 
 /* Process of shutting down */
