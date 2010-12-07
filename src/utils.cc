@@ -8,8 +8,8 @@
 #include "arch/arch.hpp"
 
 void generic_crash_handler(int signum) {
-    fprintf(stderr, "Signum: %d\n", signum);
-    fail("Internal crash detected.");
+    if (signum == SIGSEGV) fail("Segmentation fault.");
+    else fail("Unexpected signal: %d\n", signum);
 }
 
 void ignore_crash_handler(int signum) {}
