@@ -50,7 +50,7 @@ void linux_timer_handler_t::on_event(int events) {
     eventfd_t nexpirations;
     
     res = eventfd_read(timer_fd, &nexpirations);
-    guaranteef(res == 0, "Could not read timer_fd value");
+    guarantee(res == 0, "Could not read timer_fd value");
     
     timer_ticks_since_server_startup += nexpirations;
     long time_in_ms = timer_ticks_since_server_startup * TIMER_TICKS_IN_MS;

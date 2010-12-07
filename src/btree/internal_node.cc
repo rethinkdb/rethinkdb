@@ -42,7 +42,7 @@ block_id_t internal_node_handler::lookup(const btree_internal_node *node, btree_
 
 bool internal_node_handler::insert(size_t block_size, btree_internal_node *node, btree_key *key, block_id_t lnode, block_id_t rnode) {
     //TODO: write a unit test for this
-    guaranteef(key->size <= MAX_KEY_SIZE, "key too large"); // RSI: change to assert
+    guarantee(key->size <= MAX_KEY_SIZE, "key too large"); // RSI: change to assert
     if (is_full(node)) return false;
     if (node->npairs == 0) {
         btree_key special;
@@ -53,7 +53,7 @@ bool internal_node_handler::insert(size_t block_size, btree_internal_node *node,
     }
 
     int index = get_offset_index(node, key);
-    guaranteef(!is_equal(&get_pair(node, node->pair_offsets[index])->key, key),
+    guarantee(!is_equal(&get_pair(node, node->pair_offsets[index])->key, key),
         "tried to insert duplicate key into internal node!");   // RSI: change to assert?
     uint16_t offset = insert_pair(node, lnode, key);
     insert_offset(node, offset, index);
@@ -132,9 +132,9 @@ void internal_node_handler::merge(size_t block_size, btree_internal_node *node, 
     // get the key in parent which points to node
     btree_key *key_from_parent = &get_pair(parent, parent->pair_offsets[get_offset_index(parent, &get_pair(node, node->pair_offsets[0])->key)])->key;
 
-    check("internal nodes too full to merge",
-            sizeof(btree_internal_node) + (node->npairs + rnode->npairs)*sizeof(*node->pair_offsets) +
-            block_size - node->frontmost_offset + block_size - rnode->frontmost_offset + key_from_parent->size >= block_size);  // RSI
+    guarantee(sizeof(btree_internal_node) + (node->npairs + rnode->npairs)*sizeof(*node->pair_offsets) +
+        block_size - node->frontmost_offset + block_size - rnode->frontmost_offset + key_from_parent->size < block_size,
+        "internal nodes too full to merge");  // RSI
 
     memmove(rnode->pair_offsets + node->npairs, rnode->pair_offsets, rnode->npairs * sizeof(*rnode->pair_offsets));
 
@@ -233,7 +233,7 @@ bool internal_node_handler::level(size_t block_size, btree_internal_node *node, 
 #endif
     validate(block_size, node);
     validate(block_size, sibling);
-    guaranteef(!change_unsafe(node), "level made internal node dangerously full");
+    guarantee(!change_unsafe(node), "level made internal node dangerously full");
     return true;
 }
 
@@ -261,7 +261,7 @@ void internal_node_handler::update_key(btree_internal_node *node, btree_key *key
     int index = get_offset_index(node, key_to_replace);
     block_id_t tmp_lnode = get_pair(node, node->pair_offsets[index])->lnode;
     delete_pair(node, node->pair_offsets[index]);
-    guaranteef(sizeof(btree_internal_node) + (node->npairs) * sizeof(*node->pair_offsets) + pair_size_with_key(replacement_key) < node->frontmost_offset,
+    guarantee(sizeof(btree_internal_node) + (node->npairs) * sizeof(*node->pair_offsets) + pair_size_with_key(replacement_key) < node->frontmost_offset,
         "cannot fit updated key in internal node"); // RSI: change to assert?
     node->pair_offsets[index] = insert_pair(node, tmp_lnode, replacement_key);
 #ifdef BTREE_DEBUG
@@ -269,7 +269,7 @@ void internal_node_handler::update_key(btree_internal_node *node, btree_key *key
     internal_node_handler::print(node);
 #endif
 
-    guaranteef(is_sorted(node->pair_offsets, node->pair_offsets+node->npairs, internal_key_comp(node)),
+    guarantee(is_sorted(node->pair_offsets, node->pair_offsets+node->npairs, internal_key_comp(node)),
         "Invalid key given to update_key: offsets no longer in sorted order");  // RSI: change to assert?
 }
 
@@ -302,7 +302,7 @@ void internal_node_handler::validate(size_t block_size, const btree_internal_nod
         assert(node->pair_offsets[i] < block_size);
         assert(node->pair_offsets[i] >= node->frontmost_offset);
     }
-    assertf(is_sorted(node->pair_offsets, node->pair_offsets+node->npairs, internal_key_comp(node)),
+    assert(is_sorted(node->pair_offsets, node->pair_offsets+node->npairs, internal_key_comp(node)),
         "Offsets no longer in sorted order");
 #endif
 }

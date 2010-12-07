@@ -64,7 +64,7 @@ void epoll_event_queue_t::run() {
         if(res == -1 && errno == EINTR) {
             continue;
         }
-        check("Waiting for epoll events failed", res == -1);    // RSI
+        guarantee_err(res != -1, "Waiting for epoll events failed");    // RSI
 
         // nevents might be used by forget_resource during the loop
         nevents = res;

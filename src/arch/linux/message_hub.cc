@@ -13,7 +13,7 @@ linux_message_hub_t::linux_message_hub_t(linux_event_queue_t *queue, linux_threa
     for (int i = 0; i < thread_pool->n_threads; i++) {
     
         res = pthread_spin_init(&queues[i].lock, PTHREAD_PROCESS_PRIVATE);
-        guaranteef(res == 0, "Could not initialize spin lock");
+        guarantee(res == 0, "Could not initialize spin lock");
 
         // Create notify fd for other cores that send work to us
         notify[i].notifier_cpu = i;
@@ -39,7 +39,7 @@ linux_message_hub_t::~linux_message_hub_t() {
         assert(queues[i].msg_global_list.empty());
         
         res = pthread_spin_destroy(&queues[i].lock);
-        guaranteef(res == 0, "Could not destroy spin lock");
+        guarantee(res == 0, "Could not destroy spin lock");
 
         res = close(notify[i].fd);
         guarantee_err(res == 0, "Could not close core_notify_fd");
@@ -60,7 +60,7 @@ void linux_message_hub_t::insert_external_message(linux_cpu_message_t *msg) {
     
     // Wakey wakey eggs and bakey
     int res = eventfd_write(notify[current_cpu].fd, 1);
-    check("Could not write to core_notify_fd", res != 0);
+    guarantee_err(res == 0, "Could not write to core_notify_fd");
 }
 
 void linux_message_hub_t::notify_t::on_event(int events) {

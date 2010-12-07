@@ -88,7 +88,7 @@ void linux_net_conn_t::on_event(int events) {
     } else {
         // TODO: this actually happened at some point. Handle all of
         // these things properly.
-        fail("epoll_wait came back with an unhandled event");
+        crash("epoll_wait came back with an unhandled event");
     }
     
     set_me_true_on_delete = NULL;
@@ -148,16 +148,14 @@ void linux_net_listener_t::set_callback(linux_net_listener_callback_t *cb) {
 }
 
 void linux_net_listener_t::on_event(int events) {
-    
     while (true) {
         sockaddr_in client_addr;
         socklen_t client_addr_len = sizeof(client_addr);
         int new_sock = accept(sock, (sockaddr*)&client_addr, &client_addr_len);
-        
+
         if (new_sock == INVALID_FD) {
-            if (errno == EAGAIN) break;
-            else fail("Cannot accept new connection: errno=%s", strerror(errno));   // RSI
-        
+            guarantee_err(errno == EAGAIN, "Cannot accept new connection"); // RSI
+            break;
         } else {
             callback->on_net_listener_accept(new linux_net_conn_t(new_sock));
         }
@@ -209,7 +207,7 @@ linux_direct_file_t::linux_direct_file_t(const char *path, int mode) {
     if (mode & (mode_read | mode_write)) flags |= O_RDWR;
     else if (mode & mode_write) flags |= O_WRONLY;
     else if (mode & mode_read) flags |= O_RDONLY;
-    else guaranteef(false, "Bad file access mode.");
+    else crash("Bad file access mode.");
     
     // O_NOATIME requires owner or root privileges. This is a bit of a hack; we assume that
     // if we are opening a regular file, we are the owner, but if we are opening a block device,
@@ -363,7 +361,7 @@ linux_io_calls_t::linux_io_calls_t(linux_event_queue_t *queue)
     
     aio_context = 0;
     res = io_setup(MAX_CONCURRENT_IO_REQUESTS, &aio_context);
-    guaranteef(res == 0, "Could not setup aio context");    // errors are returned in res (negated) instead of errno
+    guarantee(res == 0, "Could not setup aio context");    // errors are returned in res (negated) instead of errno
     
     // Create aio notify fd
     
@@ -436,7 +434,7 @@ void linux_io_calls_t::aio_notify(iocb *event, int result) {
     // Check for failure (because the higher-level code usually doesn't)
     if (result != (int)event->u.c.nbytes) {
         errno = -result;
-        check("Read or write failed", 1);   // RSI
+        guarantee_err(false, "Read or write failed");   // RSI
     }
     
     // Notify the interested party about the event

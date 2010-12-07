@@ -762,7 +762,7 @@ void txt_memcached_handler_t::on_large_value_completed(bool success) {
 }
 
 txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::read_data() {
-    guaranteef(loading_data, "memcached handler should be in loading data state");
+    guarantee(loading_data, "memcached handler should be in loading data state");
 
     /* This function is a messy POS. It is possibly called many times per request, and it
     performs several different roles, some of which I don't entirely understand. */

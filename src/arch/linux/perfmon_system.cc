@@ -32,15 +32,17 @@ struct proc_pid_stat_t {
     void read(const char *path) {   // RSI: remove fails
         
         int stat_file = open(path, O_RDONLY);
-        if (stat_file == -1) fail("Could not open '%s'", path);
+        guarantee_err(stat_file != -1, "Could not open '%s'", path);
         
         char buffer[1000];
         int res = ::read(stat_file, buffer, 1000);
-        if (res <= 0) fail("Could not read '%s': %s", path, strerror(errno));
+        guarantee_err(res > 0, "Could not read '%s'", path);
+
         buffer[res] = '\0';
         
         close(stat_file);
         
+        const int items_to_parse = 44;
         int res2 = sscanf(buffer, "%d %s %c %d %d %d %d %d %u %lu %lu %lu %lu %lu %lu %ld %ld "
             "%ld %ld %ld %ld %llu %lu %ld %lu %lu %lu %lu %lu %lu %lu %lu %lu %lu %lu %lu %lu %d "
             "%d %u %u %u %u %llu %lu %ld",
@@ -51,7 +53,8 @@ struct proc_pid_stat_t {
             &kstkesp, &kstkeip, &signal, &blocked, &sigignore, &sigcatch, &wchan,
             &nswap, &cnswap, &exit_signal, &processor, &rt_priority, &processor,
             &rt_priority, &policy, &delayacct_blkio_ticks, &guest_time, &cguest_time);
-        if (res2 < 44) fail("Could not parse \"%s\"; res=%d", buffer, res2);
+        guarantee(res2 == items_to_parse,
+            "Could not parse '%s': expected to parse %d items, parsed %d", buffer, items_to_parse, res2);
     }
 };
 

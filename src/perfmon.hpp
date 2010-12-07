@@ -9,13 +9,7 @@
 #include "config/args.hpp"
 #include "containers/intrusive_list.hpp"
 
-// Horrible hack because we define fail() as a macro
-#undef fail
 #include <sstream>
-#define fail(msg, ...) do {                                         \
-        report_fatal_error(__FILE__, __LINE__, msg, ##__VA_ARGS__);   \
-        abort();                                                    \
-    } while (0);
 
 /* Number formatter */
 

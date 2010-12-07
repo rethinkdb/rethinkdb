@@ -8,7 +8,7 @@
 #include "arch/arch.hpp"
 
 void generic_crash_handler(int signum) {
-    fail("Internal crash detected.");
+    crash("Internal crash detected.");
 }
 
 void ignore_crash_handler(int signum) {}

@@ -238,7 +238,7 @@ public:
                 else if (magic() == bin_magic_response)
                     return false;
                 else {
-                    fail("Packet has corrupted magic number");  // RSI
+                    crash("Packet has corrupted magic number");  // RSI
                 }
             }
 
@@ -340,7 +340,7 @@ public:
                         break;
                 }
 error_breakout:
-                fail("Trying to get flags from something that doesn't have flags"); // RSI
+                crash("Trying to get flags from something that doesn't have flags"); // RSI
             }
 
             bin_expr_time_t expr_time() {
@@ -381,7 +381,7 @@ error_breakout:
                         break;
                 }
 error_breakout:
-                fail("Trying to get expr from something that doesn't have expr");   // RSI
+                crash("Trying to get expr from something that doesn't have expr");   // RSI
             }
             
             bin_delta_t delta() {
@@ -402,7 +402,7 @@ error_breakout:
                         break;
                 }
 error_breakout:
-                fail("Trying to get delta from something that doesn't have delta"); // RSI
+                crash("Trying to get delta from something that doesn't have delta"); // RSI
             }
 
             bin_init_val_t init_val() {
@@ -423,7 +423,7 @@ error_breakout:
                         break;
                 }
 error_breakout:
-                fail("Trying to get init_val from something that doesn't have init_val");   // RSI
+                crash("Trying to get init_val from something that doesn't have init_val");   // RSI
             }
 
             //setters
@@ -558,7 +558,7 @@ error_breakout:
                 }
                 return;
 error_breakout:
-                fail("Trying to set flags in a packet that doesn't have flags");    // RSI
+                crash("Trying to set flags in a packet that doesn't have flags");    // RSI
             }
 
             void expr_time(bin_expr_time_t expr_time) {
@@ -601,7 +601,7 @@ error_breakout:
                 }
                 return;
 error_breakout:
-                fail("Trying to set expr_time in something that doesn't have expr");    // RSI
+                crash("Trying to set expr_time in something that doesn't have expr");    // RSI
             }
             
             void delta(bin_delta_t delta) {
@@ -623,7 +623,7 @@ error_breakout:
                 }
                 return;
 error_breakout:
-                fail("Trying to set delta from something that doesn't have delta"); // RSI
+                crash("Trying to set delta from something that doesn't have delta"); // RSI
             }
 
             void init_val(bin_init_val_t init_val) {
@@ -644,7 +644,7 @@ error_breakout:
                         break;
                 }
 error_breakout:
-                fail("Trying to get expr from something that doesn't have expr");   // RSI
+                crash("Trying to get expr from something that doesn't have expr");   // RSI
             }
 
             bool is_valid_request() {

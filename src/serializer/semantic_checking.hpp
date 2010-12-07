@@ -211,7 +211,7 @@ public:
             : parent(parent), version(version) {}
 
         void on_serializer_write_txn() {
-            guaranteef(parent->last_write_callbacked == version-1, "Serializer completed writes in the wrong order.");
+            guarantee(parent->last_write_callbacked == version-1, "Serializer completed writes in the wrong order.");
             parent->last_write_callbacked = version;
             if (callback) callback->on_serializer_write_txn();
             delete this;
