@@ -39,6 +39,7 @@ the moment it will always return true. */
 
 struct perfmon_callback_t {
     virtual void on_perfmon_stats() = 0;
+    virtual ~perfmon_callback_t() {}
 };
 
 bool perfmon_get_stats(perfmon_stats_t *dest, perfmon_callback_t *cb);
@@ -77,7 +78,7 @@ class perfmon_counter_t :
     int64_t &get();
     std::string name;
 public:
-    perfmon_counter_t(std::string name);
+    explicit perfmon_counter_t(std::string name);
     void operator++(int) { get()++; }
     void operator+=(int64_t num) { get() += num; }
     void operator--(int) { get()--; }

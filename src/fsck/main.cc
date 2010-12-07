@@ -29,7 +29,7 @@ void parse_cmd_args(int argc, char **argv, config_t *config) {
     optind = 1;  // reinit getopt.
     for (;;) {
         int do_help = 0;
-        const static struct option long_options[] =
+        static const struct option long_options[] =
             {
                 {"file", required_argument, 0, 'f'},
                 {"log-file", required_argument, 0, 'l'},

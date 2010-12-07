@@ -70,8 +70,8 @@ class internal_key_comp {
     const btree_internal_node *node;
     btree_key *key;
     public:
-    internal_key_comp(const btree_internal_node *_node) : node(_node), key(NULL)  { };
-    internal_key_comp(const btree_internal_node *_node, btree_key *_key) : node(_node), key(_key)  { };
+    explicit internal_key_comp(const btree_internal_node *_node) : node(_node), key(NULL)  { }
+    internal_key_comp(const btree_internal_node *_node, btree_key *_key) : node(_node), key(_key)  { }
     bool operator()(const uint16_t offset1, const uint16_t offset2) {
         btree_key *key1 = offset1 == 0 ? key : &internal_node_handler::get_pair(node, offset1)->key;
         btree_key *key2 = offset2 == 0 ? key : &internal_node_handler::get_pair(node, offset2)->key;

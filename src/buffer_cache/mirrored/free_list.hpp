@@ -14,10 +14,11 @@ class array_free_list_t :
 {
     
 public:
-    array_free_list_t(serializer_t *);
+    explicit array_free_list_t(serializer_t *);
     
     struct ready_callback_t {
         virtual void on_free_list_ready() = 0;
+        virtual ~ready_callback_t() {}
     };
     bool start(ready_callback_t *cb);   // Must be called after serializer has started up
     

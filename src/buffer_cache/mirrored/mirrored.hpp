@@ -71,7 +71,7 @@ class mc_inner_buf_t {
     mc_inner_buf_t(cache_t *cache, block_id_t block_id);
     
     // Create an entirely new buf
-    mc_inner_buf_t(cache_t *cache);
+    explicit mc_inner_buf_t(cache_t *cache);
     
     ~mc_inner_buf_t();
 };
@@ -234,6 +234,7 @@ public:
 public:
     struct ready_callback_t {
         virtual void on_cache_ready() = 0;
+        virtual ~ready_callback_t() {}
     };
     bool start(ready_callback_t *cb);
 private:
@@ -257,6 +258,7 @@ public:
 public:
     struct shutdown_callback_t {
         virtual void on_cache_shutdown() = 0;
+        virtual ~shutdown_callback_t() {}
     };
     bool shutdown(shutdown_callback_t *cb);
 private:

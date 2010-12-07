@@ -39,8 +39,7 @@ void usage(const char *name) {
            "                        sit in memory indefinitely.\n");
     if (DEFAULT_FLUSH_TIMER_MS == NEVER_FLUSH) {
         printf("                        Defaults to 'disable'.\n");
-    }
-    else {
+    } else {
         printf("                        Defaults to %dms.\n", DEFAULT_FLUSH_TIMER_MS);
     }
     printf("      --flush-threshold If more than X%% of the server's maximum cache size is\n"
@@ -208,12 +207,12 @@ void parse_cmd_args(int argc, char *argv[], cmd_config_t *config)
             config->store_dynamic_config.cache.max_size = atoll(optarg) * 1024 * 1024;
             break;
         case wait_for_flush:
-        	if (strcmp(optarg, "y")==0) config->store_dynamic_config.cache.wait_for_flush = true;
-        	else if (strcmp(optarg, "n")==0) config->store_dynamic_config.cache.wait_for_flush = false;
+        	if (strcmp(optarg, "y") == 0) config->store_dynamic_config.cache.wait_for_flush = true;
+        	else if (strcmp(optarg, "n") == 0) config->store_dynamic_config.cache.wait_for_flush = false;
         	else fail("wait-for-flush expects 'y' or 'n'");
             break;
         case flush_timer:
-            if (strcmp(optarg, "disable")==0) config->store_dynamic_config.cache.flush_timer_ms = NEVER_FLUSH;
+            if (strcmp(optarg, "disable") == 0) config->store_dynamic_config.cache.flush_timer_ms = NEVER_FLUSH;
             else {
                 config->store_dynamic_config.cache.flush_timer_ms = atoi(optarg);
                 check("flush timer should not be negative; use 'disable' to allow changes "

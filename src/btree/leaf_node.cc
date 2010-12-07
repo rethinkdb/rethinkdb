@@ -252,7 +252,7 @@ void leaf_node_handler::validate(size_t block_size, const btree_leaf_node *node)
 
 bool leaf_node_handler::is_mergable(size_t block_size, const btree_leaf_node *node, const btree_leaf_node *sibling) {
 #ifdef DEBUG_MAX_INTERNAL
-   return node->npairs + sibling->npairs < DEBUG_MAX_LEAF;
+    return node->npairs + sibling->npairs < DEBUG_MAX_LEAF;
 #endif
     return sizeof(btree_leaf_node) + 
         (node->npairs + sibling->npairs)*sizeof(*node->pair_offsets) +
@@ -363,7 +363,7 @@ int leaf_node_handler::nodecmp(const btree_leaf_node *node1, const btree_leaf_no
 
 void leaf_node_handler::print(const btree_leaf_node *node) {
     int freespace = node->frontmost_offset - (sizeof(btree_leaf_node) + node->npairs*sizeof(*node->pair_offsets));
-    printf("Free space in node: %d\n",freespace);
+    printf("Free space in node: %d\n", freespace);
     printf("\n\n\n");
     for (int i = 0; i < node->npairs; i++) {
         btree_leaf_pair *pair = get_pair(node, node->pair_offsets[i]);

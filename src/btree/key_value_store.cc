@@ -6,6 +6,7 @@
 #include "btree/append_prepend_fsm.hpp"
 #include "btree/delete_fsm.hpp"
 #include "btree/get_cas_fsm.hpp"
+#include "btree/walk.hpp"
 
 /* The key-value store slices up the serializers as follows:
 
@@ -445,6 +446,10 @@ void btree_key_value_store_t::prepend(store_key_t *key, data_provider_t *data, a
 
 void btree_key_value_store_t::delete_key(store_key_t *key, delete_callback_t *cb) {
     new btree_delete_fsm_t(key, this, cb);
+}
+
+void btree_key_value_store_t::walk(walk_callback_t *cb) {
+    walk_btrees(this, cb);
 }
 
 /* Process of shutting down */

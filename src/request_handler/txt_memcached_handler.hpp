@@ -16,7 +16,7 @@ public:
     using request_handler_t::conn_fsm;
     
 public:
-    txt_memcached_handler_t(server_t *server)
+    explicit txt_memcached_handler_t(server_t *server)
         : request_handler_t(), loading_data(false), server(server)
         {}
     

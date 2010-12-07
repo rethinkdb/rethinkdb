@@ -13,7 +13,7 @@ struct load_buf_fsm_t :
 {
     bool have_loaded;
     mc_inner_buf_t *inner_buf;
-    load_buf_fsm_t(mc_inner_buf_t *buf) : inner_buf(buf) {
+    explicit load_buf_fsm_t(mc_inner_buf_t *buf) : inner_buf(buf) {
         bool locked __attribute__((unused)) = inner_buf->lock.lock(rwi_write, NULL);
         assert(locked);
         have_loaded = false;
@@ -50,7 +50,9 @@ mc_inner_buf_t::mc_inner_buf_t(cache_t *cache, block_id_t block_id)
     new load_buf_fsm_t(this);
     
     pm_n_blocks_in_memory++;
+    refcount++; // Make the refcount nonzero so this block won't be considered safe to unload.
     cache->page_repl.make_space(1);
+    refcount--;
 }
 
 // This form of the buf constructor is used when a completely new block is being created
@@ -74,7 +76,9 @@ mc_inner_buf_t::mc_inner_buf_t(cache_t *cache)
 #endif
     
     pm_n_blocks_in_memory++;
+    refcount++; // Make the refcount nonzero so this block won't be considered safe to unload.
     cache->page_repl.make_space(1);
+    refcount--;
 }
 
 mc_inner_buf_t::~mc_inner_buf_t() {
@@ -415,7 +419,7 @@ mc_transaction_t *mc_cache_t::begin_transaction(access_t access,
                 state == state_shutting_down_waiting_for_flush)));
     
     transaction_t *txn = new transaction_t(this, access);
-    num_live_transactions ++;
+    num_live_transactions++;
     if (writeback.begin_transaction(txn, callback)) {
         pm_transactions_starting.end(&txn->start_time);
         pm_transactions_active.begin(&txn->start_time);

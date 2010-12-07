@@ -40,7 +40,7 @@ struct byteslice {
 
 class dumper_t {
 public:
-    dumper_t(const char *path) {
+    explicit dumper_t(const char *path) {
         fp = fopen(path, "wbx");
         check("could not open file", !fp);
     }
@@ -73,7 +73,7 @@ void walk_extents(dumper_t &dumper, direct_file_t &file, const cfg_t static_conf
 void observe_blocks(block_registry &registry, direct_file_t &file, const cfg_t cfg, uint64_t filesize);
 void get_all_values(dumper_t& dumper, const segmented_vector_t<off64_t, MAX_BLOCK_ID>& offsets, direct_file_t& file, const cfg_t cfg, uint64_t filesize);
 bool check_config(const cfg_t& cfg);
-void dump_pair_value(dumper_t &dumper, direct_file_t& file, const cfg_t cfg, const segmented_vector_t<off64_t, MAX_BLOCK_ID>& offsets, btree_leaf_pair *pair, ser_block_id_t this_block);
+void dump_pair_value(dumper_t &dumper, direct_file_t& file, const cfg_t& cfg, const segmented_vector_t<off64_t, MAX_BLOCK_ID>& offsets, btree_leaf_pair *pair, ser_block_id_t this_block);
 void walkfile(dumper_t &dumper, const char *path);
 
 
@@ -200,121 +200,121 @@ void get_all_values(dumper_t& dumper, const segmented_vector_t<off64_t, MAX_BLOC
     }
 }
 
+struct blocks {
+    std::vector<block *> bs;
+    blocks() { }
+    ~blocks() {
+        for (int64_t i = 0, n = bs.size(); i < n; ++i) {
+            delete bs[i];
+        }
+    }
+private:
+    DISABLE_COPYING(blocks);
+};
+
+bool get_large_buf_segments(btree_key *key, direct_file_t& file, const large_buf_ref& ref, const cfg_t& cfg, int mod_id, const segmented_vector_t<off64_t, MAX_BLOCK_ID>& offsets, blocks *segblocks) {
+    int levels = large_buf_t::compute_num_levels(cfg.block_size - sizeof(buf_data_t), ref.offset + ref.size);
+
+    block_id_t trans_block_id = translator_serializer_t::translate_block_id(ref.block_id, cfg.mod_count, mod_id, CONFIG_BLOCK_ID + 1);
+
+    if (!trans_block_id < offsets.get_size()) {
+        logERR("With key '%.*s': large value has invalid block id: %u (buffer_cache block id = %u, mod_id = %d, mod_count = %d)\n");
+        return false;
+    }
+    if (offsets[trans_block_id] == block_registry::null) {
+        logERR("With key '%.*s': no blocks seen with block id: %u\n",
+               key->size, key->contents, trans_block_id);
+        return false;
+    }
+
+    if (levels == 1) {
+
+        block *b = new block();
+        segblocks->bs.push_back(b);
+        b->init(cfg.block_size, &file, offsets[trans_block_id]);
+
+        const large_buf_leaf *leafbuf = reinterpret_cast<const large_buf_leaf *>(b->buf);
+
+        if (!check_magic<large_buf_leaf>(leafbuf->magic)) {
+            logERR("With key '%.*s': large_buf_leaf (offset %u) has invalid magic: '%.*s'\n",
+                   key->size, key->contents, offsets[trans_block_id], sizeof(leafbuf->magic), leafbuf->magic.bytes);
+            return false;
+        }
+
+    } else {
+
+        block internal;
+        internal.init(cfg.block_size, &file, offsets[trans_block_id]);
+
+        const large_buf_internal *buf = reinterpret_cast<const large_buf_internal *>(internal.buf);
+
+        if (!check_magic<large_buf_internal>(buf->magic)) {
+            logERR("With key '%.*s': large_buf_internal (offset %u) has invalid magic: '%.*s'\n",
+                   key->size, key->contents, offsets[trans_block_id], sizeof(buf->magic), buf->magic.bytes);
+            return false;
+        }
+
+        int64_t step = large_buf_t::compute_max_offset(cfg.block_size - sizeof(buf_data_t), levels - 1);
+
+        for (int64_t i = floor_aligned(ref.offset, step), e = ceil_aligned(ref.offset + ref.size, step); i < e; i += step) {
+            int64_t beg = std::max(ref.offset, i) - i;
+            int64_t end = std::min(ref.offset + ref.size, i + step) - i;
+            large_buf_ref r;
+            r.offset = beg;
+            r.size = end - beg;
+            r.block_id = buf->kids[i / step];
+            if (!get_large_buf_segments(key, file, r, cfg, mod_id, offsets, segblocks)) {
+                return false;
+            }
+        }
+    }
+
+    return true;
+}
+
 
 // Dumps the values for a given pair.
-void dump_pair_value(dumper_t &dumper, direct_file_t& file, const cfg_t cfg, const segmented_vector_t<off64_t, MAX_BLOCK_ID>& offsets, btree_leaf_pair *pair, ser_block_id_t this_block) {
+void dump_pair_value(dumper_t &dumper, direct_file_t& file, const cfg_t& cfg, const segmented_vector_t<off64_t, MAX_BLOCK_ID>& offsets, btree_leaf_pair *pair, ser_block_id_t this_block) {
     btree_key *key = &pair->key;
     btree_value *value = pair->value();
 
     btree_value::mcflags_t flags = value->mcflags();
     btree_value::exptime_t exptime = value->exptime();
     // We can't save the cas right now.
-            
+
     byte *valuebuf = value->value();
 
     // We're going to write the value, split into pieces, into this set of pieces.
-    size_t num_pieces = 0;
-    // TODO pick a number bigger than 9
-    byteslice pieces[9];
-    // TODO uncomment
-    //    block segblock[MAX_LARGE_BUF_SEGMENTS];
+    std::vector<byteslice> pieces;
+    blocks segblocks;
+
 
     logDBG("Dumping value for key '%.*s'...\n",
            key->size, key->contents);
 
 
     if (value->is_large()) {
-        /*
+
         int mod_id = translator_serializer_t::untranslate_block_id(this_block, cfg.mod_count, CONFIG_BLOCK_ID + 1);
 
-        int64_t seg_size = cfg.block_size - sizeof(buf_data_t) - sizeof(large_buf_segment);
+        int64_t seg_size = large_buf_t::cache_size_to_leaf_bytes(cfg.block_size - sizeof(buf_data_t));
 
-        block_id_t pretranslated = value->lv_index_block_id();
-        block_id_t indexblock_id = translator_serializer_t::translate_block_id(pretranslated, cfg.mod_count, mod_id, CONFIG_BLOCK_ID + 1);
-        if (!(indexblock_id < offsets.get_size())) {
-            logERR("With key '%.*s': large value has invalid block id: %u (buffer_cache block id = %u, mod_id = %d, mod_count = %d)\n",
-                   key->size, key->contents, indexblock_id, pretranslated, mod_id, cfg.mod_count);
-            return;
-        }
-        if (offsets[indexblock_id] == block_registry::null) {
-            logERR("With key '%.*s': no blocks seen with large_buf_index block id: %u\n",
-                   key->size, key->contents, indexblock_id);
+        large_buf_ref ref = value->lb_ref();
+
+        if (!get_large_buf_segments(key, file, ref, cfg, mod_id, offsets, &segblocks)) {
             return;
         }
 
-        block indexblock;
-        indexblock.init(cfg.block_size, &file, offsets[indexblock_id]);
-        const large_buf_index *indexblockbuf = (large_buf_index *)indexblock.buf;
+        pieces.resize(segblocks.bs.size());
 
-        if (!check_magic<large_buf_index>(indexblockbuf->magic)) {
-            logERR("With key '%.*s': large_buf_index (offset %u) has invalid magic: '%.*s'\n",
-                   key->size, key->contents, offsets[indexblock_id], sizeof(indexblockbuf->magic), indexblockbuf->magic.bytes);
-            return;
-        }
-        if (!(indexblockbuf->num_segments <= MAX_LARGE_BUF_SEGMENTS)) {
-            logERR("With key '%.*s': large_buf_index::num_segments is too big: '%u'\n",
-                   key->size, key->contents, indexblockbuf->num_segments);
-            return;
-        }
-        if (indexblockbuf->first_block_offset >= seg_size) {
-            logERR("With key '%.*s': large_buf_index::first_block_offset is too big: '%u'\n",
-                   key->size, key->contents, indexblockbuf->first_block_offset);
-            return;
-        }
-        if (value->value_size() <= MAX_IN_NODE_VALUE_SIZE) {
-            logERR("With key '%.*s': large_buf size is %u which is less than MAX_IN_NODE_VALUE_SIZE (which is %u)",
-                   key->size, key->contents, value->value_size(), MAX_IN_NODE_VALUE_SIZE);
-            return;
+        for (int64_t i = 0, n = segblocks.bs.size(); i < n; ++i) {
+            int64_t beg = (i == 0 ? ref.offset % seg_size : 0);
+            pieces[i].buf = reinterpret_cast<const large_buf_leaf *>(segblocks.bs[i]->buf)->buf;
+            pieces[i].len = (i == n - 1 ? (ref.offset + ref.size) % seg_size : seg_size) - beg;
         }
 
-        num_pieces = indexblockbuf->num_segments;
-        int64_t firstslicelen = seg_size - indexblockbuf->first_block_offset;
-        int64_t lastslicelen = value->value_size() - firstslicelen - (num_pieces - 2) * seg_size;
-
-        logDBG("With key '%.*s': num_pieces = %d, firstslicelen = %d, lastslicelen = %d, first_block_offset = %d\n",
-               key->size, key->contents, num_pieces, firstslicelen, lastslicelen, indexblockbuf->first_block_offset);
-        if (lastslicelen < 0 || lastslicelen > seg_size) {
-            logERR("With key '%.*s': large_buf has a size/num_segments/"
-                   "first_block_offset mismatch (size %u, num_segments %u, "
-                   "first_block_offset %u)\n",
-                   key->size, key->contents, value->value_size(),
-                   indexblockbuf->num_segments, indexblockbuf->first_block_offset);
-            return;
-        }
-
-        for (uint16_t i = 0; i < num_pieces; ++i) {
-            ser_block_id_t seg_id = translator_serializer_t::translate_block_id(indexblockbuf->blocks[i], cfg.mod_count, mod_id, CONFIG_BLOCK_ID + 1);
-
-            if (offsets[seg_id] == block_registry::null) {
-                logERR("With key '%.*s': large_buf has invalid block id %u at segment #%u.\n",
-                       key->size, key->contents, indexblockbuf->blocks[i], i);
-                return;
-            }
-            segblock[i].init(cfg.block_size, &file, offsets[seg_id]);
-            const large_buf_segment *seg = (large_buf_segment *)segblock[i].buf;
-            
-
-            if (!check_magic<large_buf_segment>(seg->magic)) {
-                logERR("With key '%.*s': large_buf_segment (#%u) has invalid magic: '%.*s'\n",
-                     key->size, key->contents, i, sizeof(seg->magic), seg->magic);
-                return;
-            }
-
-            if (i == 0) {
-                pieces[i].buf = (byte *)(seg + 1) + indexblockbuf->first_block_offset;
-                pieces[i].len = (num_pieces == 1 ? value->value_size() : firstslicelen);
-            } else if (i != num_pieces - 1) {
-                pieces[i].buf = (byte *)(seg + 1);
-                pieces[i].len = seg_size;
-            } else {
-                pieces[i].buf = (byte *)(seg + 1);
-                pieces[i].len = lastslicelen;
-            }
-        }
-        */
-        // TODO uncomment this, support the new large value paradigm
     } else {
-        num_pieces = 1;
+        pieces.resize(1);
         pieces[0].buf = valuebuf;
         pieces[0].len = value->value_size();
     }
@@ -322,7 +322,7 @@ void dump_pair_value(dumper_t &dumper, direct_file_t& file, const cfg_t cfg, con
     // So now we have a key, and a value split into one or more pieces.
     // Dump them!
 
-    dumper.dump(key, flags, exptime, pieces, num_pieces);
+    dumper.dump(key, flags, exptime, pieces.data(), pieces.size());
 }
 
 
