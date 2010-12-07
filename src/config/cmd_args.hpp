@@ -73,6 +73,9 @@ public:
     uint64_t blocks_per_extent() const { return extent_size_ / block_size_; }
     int block_index(off64_t offset) const { return (offset % extent_size_) / block_size_; }
     int extent_index(off64_t offset) const { return offset / extent_size_; }
+
+    void unsafe_set_block_size(uint64_t block_size) { block_size_ = block_size; }
+    void unsafe_set_extent_size(uint64_t extent_size) { extent_size_ = extent_size; }
 };
 
 /* Configuration for the cache (it can all change from run to run) */
