@@ -169,7 +169,7 @@ struct client_data_t {
     config_t *config;
     server_t *server;
     shared_t *shared;
-    protocol_t *proto;
+    protocol_t *proto, *sqlite;
     int id;
     int min_seed, max_seed;
 };
@@ -182,6 +182,7 @@ void* run_client(void* data) {
     server_t *server = client_data->server;
     shared_t *shared = client_data->shared;
     protocol_t *proto = client_data->proto;
+    protocol_t *sqlite = client_data->sqlite;
 
     // Perform the ops
     ticks_t last_time = get_ticks(), start_time = last_time, last_qps_time = last_time, now_time;
@@ -221,6 +222,8 @@ void* run_client(void* data) {
 
             // Delete it from the server
             proto->remove(op_keys->first, op_keys->second);
+            if (sqlite)
+                sqlite->remove(op_keys->first, op_keys->second);
 
             //clean up the memory
             qps++;
@@ -240,6 +243,7 @@ void* run_client(void* data) {
 
             // Send it to server
             proto->update(op_keys->first, op_keys->second, op_vals[0].first, op_vals[0].second);
+            sqlite->update(op_keys->first, op_keys->second, op_vals[0].first, op_vals[0].second);
             // Free the value
             qps++;
             total_queries++;
@@ -253,6 +257,7 @@ void* run_client(void* data) {
             client_data->max_seed++;
             // Send it to server
             proto->insert(op_keys->first, op_keys->second, op_vals[0].first, op_vals[0].second);
+            sqlite->insert(op_keys->first, op_keys->second, op_vals[0].first, op_vals[0].second);
             // Free the value and save the key
             qps++;
             total_queries++;
@@ -275,6 +280,8 @@ void* run_client(void* data) {
             }
             // Read it from the server
             proto->read(&op_keys[0], j);
+            if (sqlite)
+                sqlite->read(&op_keys[0], j);
 
             qps += j;
             total_queries += j;
@@ -290,6 +297,8 @@ void* run_client(void* data) {
             op_vals[0].second = seeded_random(config->values.min, config->values.max, client_data->max_seed ^ id_salt);
 
             proto->append(op_keys->first, op_keys->second, op_vals->first, op_vals->second);
+            if (sqlite)
+                sqlite->append(op_keys->first, op_keys->second, op_vals->first, op_vals->second);
 
             qps++;
             total_queries++;
@@ -306,6 +315,8 @@ void* run_client(void* data) {
             op_vals[0].second = seeded_random(config->values.min, config->values.max, client_data->max_seed ^ id_salt);
 
             proto->prepend(op_keys->first, op_keys->second, op_vals->first, op_vals->second);
+            if (sqlite)
+                sqlite->prepend(op_keys->first, op_keys->second, op_vals->first, op_vals->second);
 
             qps++;
             total_queries++;

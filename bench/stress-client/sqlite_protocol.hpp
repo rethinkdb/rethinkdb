@@ -39,7 +39,7 @@ struct sqlite_protocol_t : public protocol_t {
 
     virtual void read(payload_t *keys, int count, payload_t *values = NULL) {
         for (int i = 0; i < count; i++) {
-            sprintf(buffer, "select %s from %s where %s == %.*s;\n", VAL_COL_NAME, TABLE_NAME, KEY_COL_NAME, (int) keys[i].second, keys[i].first);
+            sprintf(buffer, "select %s from %s where %s == \"%.*s\";\n", VAL_COL_NAME, TABLE_NAME, KEY_COL_NAME, (int) keys[i].second, keys[i].first);
             prepare();
             assert(step() == SQLITE_ROW);
             const char *val = (const char *) sqlite3_column_text(compiled_stmt, 0);
@@ -51,7 +51,7 @@ struct sqlite_protocol_t : public protocol_t {
 
     virtual void append(const char *key, size_t key_size,
                         const char *value, size_t value_size) {
-        sprintf(buffer, "select %s from %s where %s == %.*s;\n", VAL_COL_NAME, TABLE_NAME, KEY_COL_NAME, (int) key_size, key);
+        sprintf(buffer, "select %s from %s where %s == \"%.*s\";\n", VAL_COL_NAME, TABLE_NAME, KEY_COL_NAME, (int) key_size, key);
         prepare();
         assert(step() == SQLITE_ROW);
         /* notice this was constant but I'm casting it for convenience sake */
@@ -66,7 +66,7 @@ struct sqlite_protocol_t : public protocol_t {
 
     virtual void prepend(const char *key, size_t key_size,
                           const char *value, size_t value_size) {
-        sprintf(buffer, "select %s from %s where %s == %.*s;\n", VAL_COL_NAME, TABLE_NAME, KEY_COL_NAME, (int) key_size, key);
+        sprintf(buffer, "select %s from %s where %s == \"%.*s\";\n", VAL_COL_NAME, TABLE_NAME, KEY_COL_NAME, (int) key_size, key);
         prepare();
         assert(step() == SQLITE_ROW);
         /* notice this was constant but I'm casting it for convenience sake */
@@ -80,7 +80,7 @@ struct sqlite_protocol_t : public protocol_t {
     }
 
     virtual void shared_init() {
-        sprintf(buffer, "CREATE table %s (%s varchar, %s varchar);\n", TABLE_NAME, KEY_COL_NAME, VAL_COL_NAME);
+        sprintf(buffer, "CREATE table if not exists %s (%s varchar, %s varchar);\n", TABLE_NAME, KEY_COL_NAME, VAL_COL_NAME);
         exec();
     }
 private:
@@ -113,7 +113,7 @@ private:
         while ((res = step()) == SQLITE_BUSY) /* this is probably a bad really bad idea. but let's see if it breaks */
             ;
 
-        assert(res == SQLITE_OK);
+        assert(res == SQLITE_DONE);
         assert(clean_up() == SQLITE_OK);
     }
 };

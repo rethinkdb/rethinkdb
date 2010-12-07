@@ -57,6 +57,13 @@ int main(int argc, char *argv[])
         delete p;
     }
 
+    if (config.db_file) {
+        protocol_t *sqlite = make_protocol(protocol_sqlite);
+        sqlite->connect(&config, &config.servers[0]);
+        sqlite->shared_init();
+        delete sqlite;
+    };
+
     // Let's rock 'n roll
     int res;
     vector<pthread_t> threads(config.clients);
@@ -77,6 +84,12 @@ int main(int argc, char *argv[])
         // timeout bugs
         client_data[i].proto = (*make_protocol)(client_data[i].server->protocol);
         client_data[i].proto->connect(&config, client_data[i].server);
+        if (config.db_file) {
+            client_data[i].sqlite = (*make_protocol)(protocol_sqlite);
+            client_data[i].sqlite->connect(&config, client_data[i].server);
+        } else {
+            client_data[i].sqlite = NULL;
+        }
     }
 
     // If input keys are provided, read them in

@@ -1,6 +1,7 @@
 
 #ifndef __ARGS_HPP__
 #define __ARGS_HPP__
+#include <getopt.h>
 
 /* Usage */
 void usage(const char *name) {
@@ -48,6 +49,7 @@ void usage(const char *name) {
     printf("\t-o, --out-file\n\t\tIf present, dump all inserted keys to this file.\n");
     printf("\t-i, --in-file\n\t\tIf present, populate initial keys from this file\n"\
            "\t\tand don't drop the database (for relevant protocols).\n");
+    printf("\t-f, --db-file\n\t\tIf present drop kv pairs into sqlite\n");
 
     printf("\nAdditional information:\n");
     printf("\t\tDISTR format describes a range and can be specified in as MIN-MAX.\n\n");
@@ -91,7 +93,7 @@ void parse(config_t *config, int argc, char *argv[]) {
             };
 
         int option_index = 0;
-        int c = getopt_long(argc, argv, "s:n:p:r:c:w:k:v:d:b:l:q:o:i:h", long_options, &option_index);
+        int c = getopt_long(argc, argv, "s:n:p:r:c:w:k:v:d:b:l:q:o:i:h:f:", long_options, &option_index);
 
         if(do_help)
             c = 'h';
@@ -146,6 +148,7 @@ void parse(config_t *config, int argc, char *argv[]) {
             break;
         case 'f':
             strncpy(config->db_file, optarg, MAX_FILE);
+            break;
         case 'h':
             usage(argv[0]);
             break;
