@@ -78,41 +78,26 @@ void read_file_blocking(direct_file_t *file, size_t offset, size_t length, void 
     printf("And now the blocking is done.\n");
 }
 
-struct static_header_read_data {
-    static_header_read_callback_t *callback;
-    static_header_t *buffer;
-    void *data_out;
-    size_t data_size;
-    direct_file_t *file;
-};
-
-void run_static_header_read(void *argument) {
+void run_static_header_read(direct_file_t *file, static_header_read_callback_t *callback, static_header_t *buffer, void *data_out, size_t data_size) {
     printf("I'm using coroutines!\n");
-    static_header_read_data *data = (static_header_read_data *)argument;
-    read_file_blocking(data->file, 0, DEVICE_BLOCK_SIZE, data->buffer);
-    if (memcmp(data->buffer->software_name, SOFTWARE_NAME_STRING, sizeof(SOFTWARE_NAME_STRING)) != 0) {
+    read_file_blocking(file, 0, DEVICE_BLOCK_SIZE, buffer);
+    if (memcmp(buffer->software_name, SOFTWARE_NAME_STRING, sizeof(SOFTWARE_NAME_STRING)) != 0) {
         fail("This doesn't appear to be a RethinkDB data file.");
     }
-    if (memcmp(data->buffer->version, VERSION_STRING, sizeof(VERSION_STRING)) != 0) {
+    if (memcmp(buffer->version, VERSION_STRING, sizeof(VERSION_STRING)) != 0) {
         fail("File version is incorrect. This file was created with version %s of RethinkDB, "
-            "but you are trying to read it with version %s.", data->buffer->version, VERSION_STRING);
+            "but you are trying to read it with version %s.", buffer->version, VERSION_STRING);
     }
-    memcpy(data->data_out, data->buffer->data, data->data_size);
-    data->callback->on_static_header_read();
-    free(data->buffer);
-    delete data;
+    memcpy(data_out, buffer->data, data_size);
+    callback->on_static_header_read();
+    free(buffer);
 }
 
 bool static_header_read(direct_file_t *file, void *data_out, size_t data_size, static_header_read_callback_t *cb) {
     assert(sizeof(static_header_t) + data_size < DEVICE_BLOCK_SIZE);
     
-    static_header_read_data *data = new static_header_read_data();
-    data->data_out = data_out;
-    data->data_size = data_size;
-    data->file = file;
-    data->callback = cb;
-    data->buffer = (static_header_t*)malloc_aligned(DEVICE_BLOCK_SIZE, DEVICE_BLOCK_SIZE);
-    new coro_t(run_static_header_read, (void*)data);
+    static_header_t *buffer = (static_header_t*)malloc_aligned(DEVICE_BLOCK_SIZE, DEVICE_BLOCK_SIZE);
+    new auto_coro_t(run_static_header_read, file, cb, buffer, data_out, data_size);
     
     return false;
 }

@@ -43,6 +43,114 @@ private:
 #endif
 };
 
+//This class exists just for its constructors. Maybe
+//there is a better way to do it
+
+struct auto_coro_t : public coro_t {
+//Unary typed coroutines
+    template<typename T>
+    auto_coro_t(void (*fn)(T), T arg) : coro_t((void (*)(void *))fn, (void *)arg) { }
+
+//Binary typed coroutines
+private:
+    template<typename A, typename B>
+    struct binary {
+        void (*fn)(A, B);
+        A first;
+        B second;
+        binary(void (*fn)(A, B), A first, B second)
+            : fn(fn), first(first), second(second) { }
+    };
+
+    template<typename A, typename B>
+    static void start_binary(void *arg) {
+        binary<A, B> argument = *(binary<A, B> *)arg;
+        delete (binary<A, B> *)arg;
+        (*argument.fn)(argument.first, argument.second);
+    }
+
+public:
+    template<typename A, typename B>
+    auto_coro_t(void (*fn)(A, B), A first, B second)
+        : coro_t(start_binary<A, B>, (void *)new binary<A, B>(fn, first, second)) { }
+
+//Ternary typed coroutines
+private:
+    template<typename A, typename B, typename C>
+    struct ternary {
+        void (*fn)(A, B, C);
+        A first;
+        B second;
+        C third;
+        ternary(void (*fn)(A, B, C), A first, B second, C third)
+            : fn(fn), first(first), second(second), third(third) { }
+    };
+
+    template<typename A, typename B, typename C>
+    static void start_ternary(void *arg) {
+        ternary<A, B, C> argument = *(ternary<A, B, C> *)arg;
+        delete (ternary<A, B, C> *)arg;
+        (*argument.fn)(argument.first, argument.second, argument.third);
+    }
+
+public:
+    template<typename A, typename B, typename C>
+    auto_coro_t(void (*fn)(A, B, C), A first, B second, C third)
+        : coro_t(start_ternary<A, B, C>, (void *)new ternary<A, B, C>(fn, first, second, third)) { }
+
+//Quaternary typed coroutines
+private:
+    template<typename A, typename B, typename C, typename D>
+    struct quaternary {
+        void (*fn)(A, B, C, D);
+        A first;
+        B second;
+        C third;
+        D fourth;
+        quaternary(void (*fn)(A, B, C, D), A first, B second, C third, D fourth)
+            : fn(fn), first(first), second(second), third(third), fourth(fourth) { }
+    };
+
+    template<typename A, typename B, typename C, typename D>
+    static void start_quaternary(void *arg) {
+        quaternary<A, B, C, D> argument = *(quaternary<A, B, C, D> *)arg;
+        delete (quaternary<A, B, C, D> *)arg;
+        (*argument.fn)(argument.first, argument.second, argument.third, argument.fourth);
+    }
+
+public:
+    template<typename A, typename B, typename C, typename D>
+    auto_coro_t(void (*fn)(A, B, C, D), A first, B second, C third, D fourth)
+        : coro_t(start_quaternary<A, B, C, D>, (void *)new quaternary<A, B, C, D>(fn, first, second, third, fourth)) { }
+
+//Fiveary (?) typed coroutines
+private:
+    template<typename A, typename B, typename C, typename D, typename E>
+    struct fiveary {
+        void (*fn)(A, B, C, D, E);
+        A first;
+        B second;
+        C third;
+        D fourth;
+        E fifth;
+        fiveary(void (*fn)(A, B, C, D, E), A first, B second, C third, D fourth, E fifth)
+            : fn(fn), first(first), second(second), third(third), fourth(fourth), fifth(fifth) { }
+    };
+
+    template<typename A, typename B, typename C, typename D, typename E>
+    static void start_fiveary(void *arg) {
+        fiveary<A, B, C, D, E> argument = *(fiveary<A, B, C, D, E> *)arg;
+        delete (fiveary<A, B, C, D, E> *)arg;
+        (*argument.fn)(argument.first, argument.second, argument.third, argument.fourth, argument.fifth);
+    }
+
+public:
+    template<typename A, typename B, typename C, typename D, typename E>
+    auto_coro_t(void (*fn)(A, B, C, D, E), A first, B second, C third, D fourth, E fifth)
+        : coro_t(start_fiveary<A, B, C, D, E>, (void *)new fiveary<A, B, C, D, E>(fn, first, second, third, fourth, fifth)) { }
+
+};
+
 struct task_callback_t {
     virtual void on_task_return(void *value) = 0;
 };
