@@ -35,8 +35,8 @@ public:
           node_id(NULL_BLOCK_ID), last_node_id(NULL_BLOCK_ID),
           sib_node_id(NULL_BLOCK_ID), in_operate_call(false), operated(false),
           have_computed_new_value(false), new_value(NULL),
-          update_needed(false), did_split(false), cas_already_set(false),
-          dest_reached(false), key_found(false), old_large_buf(NULL), delete_old_large_buf(false)
+          update_needed(false), update_done(false), did_split(false), cas_already_set(false),
+          dest_reached(false), key_found(false), old_large_buf(NULL)
     {
     }
 
@@ -50,8 +50,8 @@ public:
      * have_finished_operating(), the buffer it passes should remain valid
      * until the btree_modify_fsm is destroyed.
      */
-    virtual void operate(btree_value *old_value, large_buf_t *old_large_buf, bool *del_old_large_buf /* TODO remove this silly thing */) = 0;
-    void have_finished_operating(btree_value *new_value);
+    virtual void operate(btree_value *old_value, large_buf_t *old_large_buf) = 0;
+    void have_finished_operating(btree_value *new_value, large_buf_t *new_large_buf);
     void have_failed_operating();
     
     /* btree_modify_fsm calls call_callback_and_delete() after it has
@@ -95,6 +95,7 @@ public:
 
 private:
     bool update_needed;   // true if have_finished_operating(), false if have_failed_operating()
+    bool update_done;
     bool did_split; /* XXX when an assert on this fails it means EPSILON is wrong */
 
 protected:
@@ -109,9 +110,7 @@ private:
     bool dest_reached;
     bool key_found;
 
-    large_buf_t *old_large_buf;
-    bool delete_old_large_buf;
-    //large_buf_t *new_large_value;
+    large_buf_t *old_large_buf, *new_large_buf;
 };
 
 // TODO: Figure out includes.

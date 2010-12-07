@@ -236,11 +236,20 @@ bool btree_modify_fsm_t::do_check_for_split(const node_t **node) {
     return new_root;
 }
 
-void btree_modify_fsm_t::have_finished_operating(btree_value *nv) {
+void btree_modify_fsm_t::have_finished_operating(btree_value *nv, large_buf_t *nlb) {
     assert(!operate_is_done);
     operate_is_done = true;
     update_needed = true;
     new_value = nv;
+    new_large_buf = nlb;
+    
+    if (new_value && new_value->is_large()) {
+        assert(new_large_buf);
+        assert(new_value->lb_ref().block_id == new_large_buf->get_root_ref().block_id);
+    } else {
+        assert(!new_large_buf);
+    }
+    
     if (!in_operate_call) do_transition(NULL);
 }
 
@@ -347,7 +356,7 @@ void btree_modify_fsm_t::do_transition(event_t *event) {
                         // TODO: Maybe leaf_node_handler::lookup should put NULL into old_value so we can be more consistent here?
                         in_operate_call = true;
                         operate_is_done = false;
-                        operate(key_found ? &old_value : NULL, old_large_buf, &delete_old_large_buf);
+                        operate(key_found ? &old_value : NULL, old_large_buf);
                         in_operate_call = false;
                         operated = true;
                         if (!operate_is_done) {
@@ -358,6 +367,7 @@ void btree_modify_fsm_t::do_transition(event_t *event) {
 
                     if (!update_needed && expired) { // Silently delete the key.
                         new_value = NULL;
+                        new_large_buf = NULL;
                         update_needed = true;
                     }
 
@@ -375,7 +385,7 @@ void btree_modify_fsm_t::do_transition(event_t *event) {
                 }
 
                 // STEP 3: Update if we're at a leaf node and operate() told us to.
-                if (update_needed) {
+                if (update_needed && !update_done) {
                     
                    assert(have_computed_new_value);
                    assert(node_handler::is_leaf(node));
@@ -390,7 +400,7 @@ void btree_modify_fsm_t::do_transition(event_t *event) {
                        //key found, and value deleted
                        leaf_node_handler::remove(cache->get_block_size(), leaf_node_handler::leaf_node(buf->get_data_write()), &key);
                    }
-                   update_needed = false; // TODO: update_needed should probably stay true; this can be a different state instead.
+                   update_done = true;
                 }
 
                 // STEP 4: Check to see if it's underfull, and merge/level if it is.
@@ -503,14 +513,25 @@ void btree_modify_fsm_t::do_transition(event_t *event) {
                     last_buf = NULL;
                     last_node_id = NULL_BLOCK_ID;
                 }
-                if (old_large_buf) {
-                    assert(old_value.is_large());
-                    if (update_needed && (!new_value || delete_old_large_buf)) {
+                
+                // Free large bufs if necessary
+                if (update_needed) {
+                    if (old_large_buf && new_large_buf != old_large_buf) {
+                        assert(old_value.is_large());
                         assert(old_value.lb_ref().block_id == old_large_buf->get_root_ref().block_id);
                         old_large_buf->mark_deleted();
+                        old_large_buf->release();
+                        delete old_large_buf;
                     }
-                    old_large_buf->release();
-                    delete old_large_buf;
+                    if (new_large_buf) {
+                        new_large_buf->release();
+                        delete new_large_buf;
+                    }
+                } else {
+                    if (old_large_buf) {
+                        old_large_buf->release();
+                        delete old_large_buf;
+                    }
                 }
 
                 // End the transaction

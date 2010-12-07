@@ -16,7 +16,7 @@ public:
         do_transition(NULL);
     }
 
-    void operate(btree_value *old_value, large_buf_t *old_large_buf, bool *delete_old_large_buf) {
+    void operate(btree_value *old_value, large_buf_t *old_large_buf) {
 
         // If the key didn't exist before, we fail
         if (!old_value) {
@@ -65,7 +65,7 @@ public:
         temp_value.value_size(chars_written);
         
         result = result_success;
-        have_finished_operating(&temp_value);
+        have_finished_operating(&temp_value, NULL);
     }
     
     void call_callback_and_delete() {
