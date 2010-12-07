@@ -9,9 +9,10 @@
 
 #define MAX_FILE    255
 
-#define TABLE_NAME "PAIRS"
-#define KEY_COL_NAME "KEY"
-#define VAL_COL_NAME "VAL"
+#define BACKUP_FOLDER "sqlite_backup"
+#define TABLE_NAME "pairs"
+#define KEY_COL_NAME "key"
+#define VAL_COL_NAME "val"
 
 #define MAX_VALUE_SIZE (1024*1024)
 

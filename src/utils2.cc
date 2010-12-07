@@ -16,6 +16,34 @@ long get_total_ram() {
     return (long)sysconf(_SC_PHYS_PAGES) * (long)sysconf(_SC_PAGESIZE);
 }
 
+
+const repl_timestamp repl_timestamp::invalid = { -1 };
+const repl_timestamp repl_timestamp::placeholder = { -1 };
+
+repl_timestamp repl_time(time_t t) {
+    repl_timestamp ret;
+    uint32_t x = t;
+    ret.time = (x == (uint32_t)-1 ? 0 : x);
+    return ret;
+}
+
+repl_timestamp current_time() {
+    // Get the current time, cast it to 32 bits.  The lack of
+    // precision will not break things in 2038 or 2106 if we compare
+    // times correctly.
+
+    // TODO: consider avoiding system calls.
+    repl_timestamp ret;
+    ret.time = time(NULL);
+    return ret;
+}
+
+repl_timestamp later_time(repl_timestamp x, repl_timestamp y) {
+    int32_t diff = y.time - x.time;
+    return diff < 0 ? x : y;
+}
+
+
 void *malloc_aligned(size_t size, size_t alignment) {
     void *ptr = NULL;
     int res = posix_memalign(&ptr, alignment, size);
@@ -38,7 +66,7 @@ void random_delay(void (*fun)(void*), void *arg) {
 }
 
 void debugf(const char *msg, ...) {
-    
+
     flockfile(stderr);
     va_list args;
     va_start(args, msg);
@@ -54,7 +82,7 @@ int randint(int n) {
         srand(time(NULL));
         initted = true;
     }
-    
+
     assert(n > 0 && n < RAND_MAX);
     return rand() % n;
 }

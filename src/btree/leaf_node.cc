@@ -2,24 +2,31 @@
 #include "btree/leaf_node.hpp"
 #include <algorithm>
 
+#include "logger.hpp"
+
 //#define DEBUG_MAX_LEAF 10
 
-void leaf_node_handler::init(block_size_t block_size, btree_leaf_node *node) {
+void leaf_node_handler::init(block_size_t block_size, btree_leaf_node *node, repl_timestamp modification_time) {
     node->magic = btree_leaf_node::expected_magic;
     node->npairs = 0;
     node->frontmost_offset = block_size.value();
+    initialize_times(&node->times, modification_time);
 }
 
-void leaf_node_handler::init(block_size_t block_size, btree_leaf_node *node, btree_leaf_node *lnode, uint16_t *offsets, int numpairs) {
-    init(block_size, node);
+// TODO: We end up making modification time data more conservative and
+// more coarse than conceivably possible.  We could also let the
+// caller supply an earlier[] array.
+// TODO: maybe lnode should just supply the modification time.
+void leaf_node_handler::init(block_size_t block_size, btree_leaf_node *node, btree_leaf_node *lnode, uint16_t *offsets, int numpairs, repl_timestamp modification_time) {
+    init(block_size, node, modification_time);
     for (int i = 0; i < numpairs; i++) {
-        node->pair_offsets[node->npairs+i] = insert_pair(node, get_pair(lnode, offsets[i]));
+        node->pair_offsets[i] = insert_pair(node, get_pair(lnode, offsets[i]));
     }
-    node->npairs += numpairs;
+    node->npairs = numpairs;
     std::sort(node->pair_offsets, node->pair_offsets+node->npairs, leaf_key_comp(node));
 }
 
-bool leaf_node_handler::insert(block_size_t block_size, btree_leaf_node *node, btree_key *key, btree_value* value) {
+bool leaf_node_handler::insert(block_size_t block_size, btree_leaf_node *node, btree_key *key, btree_value* value, repl_timestamp insertion_time) {
     if (is_full(node, key, value)) return false;
     int index = get_offset_index(node, key);
     uint16_t prev_offset = node->pair_offsets[index];
@@ -27,14 +34,21 @@ bool leaf_node_handler::insert(block_size_t block_size, btree_leaf_node *node, b
     if (index != node->npairs)
         previous = get_pair(node, prev_offset);
     //TODO: write a unit test for this
-    if (previous != NULL && is_equal(&previous->key, key)) { // a duplicate key is being inserted
-        long shift = (long)previous->value()->mem_size() - (long)value->mem_size(); //XXX
-        if (shift != 0) { //the value is a different size, we need to shift
-            shift_pairs(node, prev_offset+pair_size(previous)-previous->value()->mem_size(), shift);
-        }
-        previous = get_pair(node, node->pair_offsets[index]); //node position changed by shift
-        memcpy(previous->value(), value, sizeof(btree_value) + value->mem_size());
+    if (previous != NULL && is_equal(&previous->key, key)) {
+        // A duplicate key is being inserted.  Let's shift the old
+        // key/value pair away _completely_ and put the new one at the
+        // beginning.
+
+        int prev_timestamp_offset = get_timestamp_offset(block_size, node, prev_offset);
+
+        rotate_time(&node->times, insertion_time, prev_timestamp_offset);
+
+        delete_pair(node, prev_offset);
+        node->pair_offsets[index] = insert_pair(node, value, key);
     } else {
+        // manipulate timestamps.
+        rotate_time(&node->times, insertion_time, NUM_LEAF_NODE_EARLIER_TIMES);
+
         uint16_t offset = insert_pair(node, value, key);
         insert_offset(node, offset, index);
     }
@@ -50,9 +64,12 @@ void leaf_node_handler::remove(block_size_t block_size, btree_leaf_node *node, b
     leaf_node_handler::print(node);
 #endif
     int index = find_key(node, key);
-
     assert(index != -1);
-    delete_pair(node, node->pair_offsets[index]);
+
+    uint16_t offset = node->pair_offsets[index];
+    remove_time(&node->times, get_timestamp_offset(block_size, node, offset));
+
+    delete_pair(node, offset);
     delete_offset(node, index);
 
 #ifdef BTREE_DEBUG
@@ -88,7 +105,7 @@ void leaf_node_handler::split(block_size_t block_size, btree_leaf_node *node, bt
     }
     int median_index = index;
 
-    init(block_size, rnode, node, node->pair_offsets + median_index, node->npairs - median_index);
+    init(block_size, rnode, node, node->pair_offsets + median_index, node->npairs - median_index, node->times.last_modified);
 
     // TODO: This is really slow because most pairs will likely be copied
     // repeatedly.  There should be a better way.
@@ -97,6 +114,9 @@ void leaf_node_handler::split(block_size_t block_size, btree_leaf_node *node, bt
     }
 
     node->npairs = median_index;
+
+    // TODO: this could be less coarse (if we made leaf_node_handler::init less coarse).
+    initialize_times(&node->times, node->times.last_modified);
 
     // Equality takes the left branch, so the median should be from this node.
     btree_key *median_key = &get_pair(node, node->pair_offsets[median_index-1])->key;
@@ -115,6 +135,9 @@ void leaf_node_handler::merge(block_size_t block_size, btree_leaf_node *node, bt
     check("leaf nodes too full to merge",
           sizeof(btree_leaf_node) + (node->npairs + rnode->npairs)*sizeof(*node->pair_offsets) +
           (block_size.value() - node->frontmost_offset) + (block_size.value() - rnode->frontmost_offset) >= block_size.value());
+
+    // TODO: this is coarser than it could be.
+    initialize_times(&node->times, later_time(node->times.last_modified, rnode->times.last_modified));
 
     memmove(rnode->pair_offsets + node->npairs, rnode->pair_offsets, rnode->npairs * sizeof(*rnode->pair_offsets));
 
@@ -171,6 +194,10 @@ bool leaf_node_handler::level(block_size_t block_size, btree_leaf_node *node, bt
             delete_offset(sibling, 0);
         }
 
+        // TODO: node and sibling's times are tolerable but coarse.
+        // They are newer than they could be.
+        initialize_times(&node->times, later_time(node->times.last_modified, sibling->times.last_modified));
+
         keycpy(key_to_replace, &get_pair(node, node->pair_offsets[0])->key);
         keycpy(replacement_key, &get_pair(node, node->pair_offsets[node->npairs-1])->key);
     } else {
@@ -198,6 +225,10 @@ bool leaf_node_handler::level(block_size_t block_size, btree_leaf_node *node, bt
             delete_pair(sibling, sibling->pair_offsets[index]); //decrements sibling->npairs
             delete_offset(sibling, index);
         }
+
+        // TODO: node and sibling's times are tolerable but coarse.
+        // They are newer than they could be.
+        initialize_times(&node->times, later_time(node->times.last_modified, sibling->times.last_modified));
 
         keycpy(key_to_replace, &get_pair(sibling, sibling->pair_offsets[0])->key);
         keycpy(replacement_key, &get_pair(sibling, sibling->pair_offsets[sibling->npairs-1])->key);
@@ -350,6 +381,73 @@ void leaf_node_handler::insert_offset(btree_leaf_node *node, uint16_t offset, in
 
 bool leaf_node_handler::is_equal(btree_key *key1, btree_key *key2) {
     return sized_strcmp(key1->contents, key1->size, key2->contents, key2->size) == 0;
+}
+
+void leaf_node_handler::initialize_times(leaf_timestamps_t *times, repl_timestamp current_time) {
+    times->last_modified = current_time;
+    for (int i = 0; i < NUM_LEAF_NODE_EARLIER_TIMES; ++i) {
+        times->earlier[i] = 0;
+    }
+}
+
+void leaf_node_handler::rotate_time(leaf_timestamps_t *times, repl_timestamp latest_time, int prev_timestamp_offset) {
+    int32_t diff = latest_time.time - times->last_modified.time;
+    if (diff < 0) {
+        logWRN("We seemingly stepped backwards in time, with new timestamp %d earlier than %d", latest_time.time, times->last_modified);
+        // Something strange happened, wipe out everything.
+        initialize_times(times, latest_time);
+    } else {
+        int i = NUM_LEAF_NODE_EARLIER_TIMES;
+        while (i-- > 1) {
+            uint32_t dt = diff + times->earlier[i - (i <= prev_timestamp_offset)];
+            times->earlier[i] = (dt > 0xFFFF ? 0xFFFF : dt);
+        }
+        uint32_t dt = (-1 == prev_timestamp_offset ? times->earlier[0] : diff);
+        times->earlier[0] = (dt > 0xFFFF ? 0xFFFF : dt);
+        times->last_modified = latest_time;
+    }
+}
+
+void leaf_node_handler::remove_time(leaf_timestamps_t *times, int offset) {
+    uint16_t d = (offset == -1 ? times->earlier[0] : 0);
+    uint16_t t = times->earlier[NUM_LEAF_NODE_EARLIER_TIMES - 1];
+
+    int i = NUM_LEAF_NODE_EARLIER_TIMES - 1;
+    while (i-- > 0) {
+        uint16_t x = times->earlier[i];
+        times->earlier[i] = (offset <= i ? t : x) - d;
+        t = x;
+    }
+
+    if (offset == -1) {
+        times->last_modified.time -= d;
+    }
+}
+
+// Returns the offset of the timestamp (or -1 or
+// NUM_LEAF_NODE_EARLIER_TIMES) for the key-value pair at the
+// given offset.
+int leaf_node_handler::get_timestamp_offset(block_size_t block_size, btree_leaf_node *node, uint16_t offset) {
+    byte *target = (byte *)get_pair(node, offset);
+
+    byte *p = ((byte *)node) + node->frontmost_offset;
+    byte *e = ((byte *)node) + block_size.value();
+
+    int i = -1;
+    for (;;) {
+        assert(p <= e);
+        if (p >= e) {
+            return NUM_LEAF_NODE_EARLIER_TIMES;
+        }
+        if (p == target) {
+            return i;
+        }
+        ++i;
+        if (i == NUM_LEAF_NODE_EARLIER_TIMES) {
+            return NUM_LEAF_NODE_EARLIER_TIMES;
+        }
+        p += pair_size((btree_leaf_pair *)p);
+    }
 }
 
 int leaf_node_handler::nodecmp(const btree_leaf_node *node1, const btree_leaf_node *node2) {

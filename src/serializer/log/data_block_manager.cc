@@ -260,31 +260,31 @@ void data_block_manager_t::run_gc() {
             }
             
             /* an array to put our writes in */
+#ifndef NDEBUG
             int num_writes = static_config->blocks_per_extent() - gc_state.current_entry->g_array.count();
-            log_serializer_t::write_t writes[num_writes];
-            int current_write = 0;
+#endif
+            std::vector<log_serializer_t::write_t> writes;
 
             for (unsigned int i = 0; i < static_config->blocks_per_extent(); i++) {
                 /* We re-check the bit array here in case a write came in for one of the
                 blocks we are GCing. We wouldn't want to overwrite the new valid data with
                 out-of-date data. */
                 if (!gc_state.current_entry->g_array[i]) {
-                    writes[current_write].block_id = *((ser_block_id_t *) (gc_state.gc_blocks + (i * static_config->block_size().ser_value())));
-                    writes[current_write].buf = gc_state.gc_blocks + (i * static_config->block_size().ser_value()) + sizeof(buf_data_t);
-                    writes[current_write].callback = NULL;
-                    current_write++;
+                        writes.push_back(log_serializer_t::write_t::make_internal(*((ser_block_id_t *) (gc_state.gc_blocks + (i * static_config->block_size().ser_value()))),
+                                                                                  gc_state.gc_blocks + (i * static_config->block_size().ser_value()) + sizeof(buf_data_t),
+                                                                              NULL));
                 }
             }
-            
-            assert(current_write == num_writes);
-            
+
+            assert(writes.size() == (size_t)num_writes);
+
             /* make sure the callback knows who we are */
             gc_state.gc_write_callback.parent = this;
             
             gc_state.set_step(gc_write);
 
             /* schedule the write */
-            bool done = serializer->do_write(writes, num_writes, &gc_state.gc_write_callback);
+            bool done = serializer->do_write(writes.data(), writes.size(), &gc_state.gc_write_callback);
             if (!done) break;
         }
             

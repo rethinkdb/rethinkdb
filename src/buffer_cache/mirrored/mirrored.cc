@@ -39,6 +39,7 @@ struct load_buf_fsm_t :
 mc_inner_buf_t::mc_inner_buf_t(cache_t *cache, block_id_t block_id)
     : cache(cache),
       block_id(block_id),
+      subtree_recency(repl_timestamp::placeholder),
       data(cache->serializer->malloc()),
       refcount(0),
       do_delete(false),
@@ -59,6 +60,7 @@ mc_inner_buf_t::mc_inner_buf_t(cache_t *cache, block_id_t block_id)
 mc_inner_buf_t::mc_inner_buf_t(cache_t *cache)
     : cache(cache),
       block_id(cache->free_list.gen_block_id()),
+      subtree_recency(repl_timestamp::placeholder),
       data(cache->serializer->malloc()),
       refcount(0),
       do_delete(false),

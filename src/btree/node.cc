@@ -39,14 +39,6 @@ void node_handler::merge(block_size_t block_size, btree_node *node, btree_node *
     }
 }
 
-void node_handler::remove(block_size_t block_size, btree_node *node, btree_key *key) {
-    if (node_handler::is_leaf(node)) {
-        leaf_node_handler::remove(block_size, leaf_node_handler::leaf_node(node), key);
-    } else {
-        internal_node_handler::remove(block_size, internal_node_handler::internal_node(node), key);    
-    }
-}
-
 bool node_handler::level(block_size_t block_size, btree_node *node, btree_node *rnode, btree_key *key_to_replace, btree_key *replacement_key, btree_node *parent) {
     if (node_handler::is_leaf(node)) {
         return leaf_node_handler::level(block_size, leaf_node_handler::leaf_node(node), leaf_node_handler::leaf_node(rnode), key_to_replace, replacement_key);
@@ -79,3 +71,4 @@ template <>
 bool check_magic<btree_node>(block_magic_t magic) {
     return check_magic<btree_leaf_node>(magic) || check_magic<btree_internal_node>(magic);
 }
+

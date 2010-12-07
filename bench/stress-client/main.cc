@@ -15,6 +15,7 @@
 #include "memcached_protocol.hpp"
 #include "mysql_protocol.hpp"
 #include "sqlite_protocol.hpp"
+#include "sys/stat.h"
 
 using namespace std;
 
@@ -49,6 +50,11 @@ int main(int argc, char *argv[])
     parse(&config, argc, argv);
     config.print();
 
+    /* make a directory for our sqlite files */
+    if (config.db_file) {
+        mkdir(BACKUP_FOLDER, 0777);
+    }
+
     // Gotta run the shared init for each server.
     for (int i = 0; i < config.servers.size(); i++) {
         protocol_t *p = make_protocol(config.servers[i].protocol);
@@ -57,12 +63,15 @@ int main(int argc, char *argv[])
         delete p;
     }
 
-    if (config.db_file) {
-        protocol_t *sqlite = make_protocol(protocol_sqlite);
-        sqlite->connect(&config, &config.servers[0]);
-        sqlite->shared_init();
-        delete sqlite;
-    };
+    for (int i = 0; i < config.clients; i++) {
+        if (config.db_file) {
+            sqlite_protocol_t *sqlite = (sqlite_protocol_t *) make_protocol(protocol_sqlite);
+            sqlite->set_id(i);
+            sqlite->connect(&config, &config.servers[0]);
+            sqlite->shared_init();
+            delete sqlite;
+        };
+    }
 
     // Let's rock 'n roll
     int res;
@@ -85,7 +94,8 @@ int main(int argc, char *argv[])
         client_data[i].proto = (*make_protocol)(client_data[i].server->protocol);
         client_data[i].proto->connect(&config, client_data[i].server);
         if (config.db_file) {
-            client_data[i].sqlite = (*make_protocol)(protocol_sqlite);
+            client_data[i].sqlite = (sqlite_protocol_t*)(*make_protocol)(protocol_sqlite);
+            client_data[i].sqlite->set_id(i);
             client_data[i].sqlite->connect(&config, client_data[i].server);
         } else {
             client_data[i].sqlite = NULL;
