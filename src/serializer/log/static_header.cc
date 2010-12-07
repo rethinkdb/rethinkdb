@@ -61,26 +61,8 @@ bool static_header_write(direct_file_t *file, void *data, size_t data_size, stat
     return false;
 }
 
-struct file_read_adapter_t : public iocallback_t {
-    coro_t *cont;
-    file_read_adapter_t() : cont(coro_t::self()) { }
-    void on_io_complete(event_t *e) {
-        printf("I completed!\n");
-        cont->notify();
-        delete this;
-    }
-};
-
-void read_file_blocking(direct_file_t *file, size_t offset, size_t length, void *buf) {
-    printf("I'll block\n");
-    file->read_async(offset, length, buf, new file_read_adapter_t());
-    coro_t::wait();
-    printf("And now the blocking is done.\n");
-}
-
 void run_static_header_read(direct_file_t *file, static_header_read_callback_t *callback, static_header_t *buffer, void *data_out, size_t data_size) {
-    printf("I'm using coroutines!\n");
-    read_file_blocking(file, 0, DEVICE_BLOCK_SIZE, buffer);
+    file->co_read(0, DEVICE_BLOCK_SIZE, buffer);
     if (memcmp(buffer->software_name, SOFTWARE_NAME_STRING, sizeof(SOFTWARE_NAME_STRING)) != 0) {
         fail("This doesn't appear to be a RethinkDB data file.");
     }

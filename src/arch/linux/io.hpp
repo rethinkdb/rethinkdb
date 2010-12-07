@@ -92,10 +92,13 @@ public:
     is for consistency with other asynchronous-callback methods */
     bool read_async(size_t offset, size_t length, void *buf, linux_iocallback_t *cb);
     bool write_async(size_t offset, size_t length, void *buf, linux_iocallback_t *cb);
-    
+ 
     void read_blocking(size_t offset, size_t length, void *buf);
     void write_blocking(size_t offset, size_t length, void *buf);
-    
+ 
+    void co_read(size_t offset, size_t length, void *buf);
+    void co_write(size_t offset, size_t length, void *buf);
+
     ~linux_direct_file_t();
     
 private:

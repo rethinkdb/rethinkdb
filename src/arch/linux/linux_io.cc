@@ -11,6 +11,7 @@
 #include "arch/linux/arch.hpp"
 #include "config/args.hpp"
 #include "utils2.hpp"
+#include "coroutine/coroutines.hpp"
 
 // #define DEBUG_DUMP_WRITES 1
 
@@ -318,6 +319,25 @@ bool linux_direct_file_t::write_async(size_t offset, size_t length, void *buf, l
     iosys->process_requests();
     
     return false;
+}
+
+struct io_coroutine_adapter_t : public iocallback_t {
+    coro_t *cont;
+    io_coroutine_adapter_t() : cont(coro_t::self()) { }
+    void on_io_complete(event_t *e) {
+        cont->notify();
+        delete this;
+    }
+};
+
+void linux_direct_file_t::co_read(size_t offset, size_t length, void *buf) {
+    read_async(offset, length, buf, new io_coroutine_adapter_t());
+    coro_t::wait();
+}
+
+void linux_direct_file_t::co_write(size_t offset, size_t length, void *buf) {
+    write_async(offset, length, buf, new io_coroutine_adapter_t());
+    coro_t::wait();
 }
 
 void linux_direct_file_t::read_blocking(size_t offset, size_t length, void *buf) {
