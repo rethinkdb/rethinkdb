@@ -58,6 +58,9 @@ void coro_t::run_coroutine(void *data) {
     information.coroutine->notify();
     information.coroutine->switch_to(information.parent);
     //printf("Doing the coroutine's action\n");
+#ifndef NDEBUG
+    information.coroutine->notified = false;
+#endif
     (information.fn)(information.arg);
     coro_t::suicide();
 }
@@ -88,7 +91,7 @@ void execute(void (*arg)()) {
 void coro_t::run() {
     Coro *mainCoro = Coro_new();
     Coro_initializeMainCoro(mainCoro);
-    scheduler = new coro_t(mainCoro);
+    scheduler = current_coro = new coro_t(mainCoro);
 }
 
 void coro_t::destroy() {
@@ -161,7 +164,6 @@ task_t::task_t(void *(*fn)(void *), void *arg)
     //printf("Making a task\n");
     coroutine = new coro_t(run_task, data);
     //printf("Notifying a task\n");
-    notify();
 }
 
 void task_t::notify() {
