@@ -957,6 +957,28 @@ txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::parse_stat_comm
     return request_handler_t::op_req_complex;
 }
 
+static store_t::replicant_t *test_replicant;
+
+class test_replicant_t :
+    public store_t::replicant_t
+{
+    void value(store_key_t *key, const_buffer_group_t *bg, done_callback_t *cb, mcflags_t flags, exptime_t exptime, cas_t cas) {
+        flockfile(stderr);
+        debugf("VALUE '%*.*s': '", key->size, key->size, key->contents);
+        for (int i = 0; i < (int)bg->buffers.size(); i++) {
+            fwrite(bg->buffers[i].data, 1, bg->buffers[i].size, stderr);
+        }
+        fprintf(stderr, "' %d %d %d\n", (int)flags, (int)exptime, (int)cas);
+        funlockfile(stderr);
+        cb->have_copied_value();
+    }
+    
+    void stopped() {
+        debugf("Stopped replicating.\n");
+        delete this;
+    }
+};
+
 txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::parse_gc_command(unsigned int line_len, char *state) {
     
     const char *subcommand = strtok_r(NULL, DELIMS, &state);
@@ -994,6 +1016,28 @@ txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::parse_gc_comman
             conn_fsm->consume(line_len);
             return malformed_request();
         }
+        
+    } else if (!strcmp(subcommand, "replicate")) {
+        conn_fsm->consume(line_len);
+        if (!test_replicant) {
+            test_replicant = new test_replicant_t;
+            server->store->replicate(test_replicant);
+            conn_fsm->sbuf->printf("Replicating to stderr.\r\n");
+        } else {
+            conn_fsm->sbuf->printf("Already replicating.\r\n");
+        }
+        return request_handler_t::op_req_send_now;
+        
+    } else if (!strcmp(subcommand, "unreplicate")) {
+        if (test_replicant) {
+            server->store->stop_replicating(test_replicant);
+            test_replicant = NULL;
+            conn_fsm->sbuf->printf("Stopped replicating.\r\n");
+        } else {
+            conn_fsm->sbuf->printf("Already not replicating.\r\n");
+        }
+        return request_handler_t::op_req_send_now;
+        
     } else if (!strcmp(subcommand, "help")) {
         if (strtok_r(NULL, DELIMS, &state)) {
             conn_fsm->consume(line_len);
