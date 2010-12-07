@@ -30,8 +30,6 @@ void initialize_metablock_offsets(off64_t extent_size, std::vector<off64_t> *off
 
 template<class metablock_t>
 class metablock_manager_t : private iocallback_t {
-    static const uint32_t poly = 0x1337BEEF;
-
 public:
     typedef int64_t metablock_version_t;
 
