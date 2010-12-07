@@ -2,6 +2,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include "coroutine/coroutines.hpp"
 
 #include "buffer_cache/types.hpp"
 
@@ -28,24 +29,13 @@ log_serializer_t::~log_serializer_t() {
     assert(active_write_count == 0);
 }
 
-struct ls_check_existing_fsm_t :
-    public static_header_check_callback_t
-{
-    direct_file_t df;
-    log_serializer_t::check_callback_t *cb;
-    ls_check_existing_fsm_t(const char *filename, log_serializer_t::check_callback_t *cb)
-        : df(filename, direct_file_t::mode_read), cb(cb) {
-        static_header_check(&df, this);
-    }
-    void on_static_header_check(bool valid) {
-        cb->on_serializer_check(valid);
-        delete this;
-    }
-};
+void ls_check_existing(const char *filename, log_serializer_t::check_callback_t *cb) {
+    direct_file_t df(filename, direct_file_t::mode_read);
+    cb->on_serializer_check(static_header_check(&df));
+}
 
 void log_serializer_t::check_existing(const char *filename, check_callback_t *cb) {
-    
-    new ls_check_existing_fsm_t(filename, cb);
+    new auto_coro_t(ls_check_existing, filename, cb);
 }
 
 /* The process of starting up the serializer is handled by the ls_start_*_fsm_t. This is not
