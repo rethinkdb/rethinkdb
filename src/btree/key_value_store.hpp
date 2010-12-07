@@ -48,6 +48,7 @@ provides the abstraction of a key-value store. */
 
 struct bkvs_start_new_serializer_fsm_t;
 struct bkvs_start_existing_serializer_fsm_t;
+struct btree_replicant_t;
 
 class btree_key_value_store_t :
     public home_cpu_mixin_t,
@@ -113,6 +114,8 @@ public:
     btree_slice_t *slices[MAX_SLICES];
     
     btree_slice_t *slice_for_key(btree_key *key);
+    
+    std::vector<btree_replicant_t *> replicants;
     
     enum state_t {
         state_off,

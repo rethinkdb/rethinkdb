@@ -3,6 +3,7 @@
 #include "buffer_cache/large_buf.hpp"
 #include "btree/leaf_node.hpp"
 #include "btree/internal_node.hpp"
+#include "btree/replicate.hpp"
 
 // TODO: consider B#/B* trees to improve space efficiency
 
@@ -549,7 +550,7 @@ void btree_modify_fsm_t::do_transition(event_t *event) {
 
                         // Pass it to the replicants
                         for (int i = 0; i < (int)slice->replicants.size(); i++) {
-                            slice->replicants[i]->value(&key, &replicant_bg, this,
+                            slice->replicants[i]->callback->value(&key, &replicant_bg, this,
                                 new_value->mcflags(), new_value->exptime(),
                                 new_value->has_cas() ? new_value->cas() : 0);
                         }
@@ -558,7 +559,7 @@ void btree_modify_fsm_t::do_transition(event_t *event) {
 
                         // Pass NULL to the replicants
                         for (int i = 0; i < (int)slice->replicants.size(); i++) {
-                            slice->replicants[i]->value(&key, NULL, this, 0, 0, 0);
+                            slice->replicants[i]->callback->value(&key, NULL, this, 0, 0, 0);
                         }
 
                     }

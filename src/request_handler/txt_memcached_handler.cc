@@ -1026,9 +1026,9 @@ txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::parse_gc_comman
             conn_fsm->consume(line_len);
             return malformed_request();
         }
-    
+
     /* Hack for testing replication */
-    
+
     } else if (!strcmp(subcommand, "replicate")) {
         conn_fsm->consume(line_len);
         if (!test_replicant) {
@@ -1039,8 +1039,9 @@ txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::parse_gc_comman
             conn_fsm->sbuf->printf("Already replicating.\r\n");
         }
         return request_handler_t::op_req_send_now;
-        
+
     } else if (!strcmp(subcommand, "unreplicate")) {
+        conn_fsm->consume(line_len);
         if (test_replicant) {
             server->store->stop_replicating(test_replicant);
             test_replicant = NULL;
@@ -1049,7 +1050,7 @@ txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::parse_gc_comman
             conn_fsm->sbuf->printf("Already not replicating.\r\n");
         }
         return request_handler_t::op_req_send_now;
-        
+
     } else if (!strcmp(subcommand, "help")) {
         if (strtok_r(NULL, DELIMS, &state)) {
             conn_fsm->consume(line_len);
@@ -1058,7 +1059,12 @@ txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::parse_gc_comman
 
         conn_fsm->consume(line_len);
 
-        conn_fsm->sbuf->printf("Commonly used commands:\n  rethinkdbctl gc disable\n  rethinkdbctl gc enable\n");
+        conn_fsm->sbuf->printf("Commonly used commands:\n");
+        conn_fsm->sbuf->printf("rethinkdbctl gc disable\n");
+        conn_fsm->sbuf->printf("rethinkdbctl gc enable\n");
+        conn_fsm->sbuf->printf("rethinkdbctl replicate\n");
+        conn_fsm->sbuf->printf("rethinkdbctl unreplicate\n");
+
         return request_handler_t::op_req_send_now;
     } else {
         // Invalid command.

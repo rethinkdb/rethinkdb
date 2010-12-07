@@ -6,7 +6,7 @@
 #include "btree/append_prepend_fsm.hpp"
 #include "btree/delete_fsm.hpp"
 #include "btree/get_cas_fsm.hpp"
-#include "btree/walk.hpp"
+#include "btree/replicate.hpp"
 
 /* The key-value store slices up the serializers as follows:
 
@@ -449,14 +449,19 @@ void btree_key_value_store_t::delete_key(store_key_t *key, delete_callback_t *cb
 }
 
 void btree_key_value_store_t::replicate(replicant_t *cb) {
-    walk_btrees(this, cb);
-    for (int i = 0; i < btree_static_config.n_slices; i++) {
-        do_on_cpu(slices[i]->home_cpu, slices[i], &btree_slice_t::add_replicant, cb);
-    }
+    replicants.push_back(new btree_replicant_t(cb, this));
 }
 
 void btree_key_value_store_t::stop_replicating(replicant_t *cb) {
-    fail("Not implemented");
+    std::vector<btree_replicant_t *>::iterator it;
+    for (it = replicants.begin(); it != replicants.end(); it++) {
+        if ((*it)->callback == cb) {
+            (*it)->stop();
+            replicants.erase(it);
+            return;
+        }
+    }
+    fail("stop_replicating() called on a replicant that isn't replicating.");
 }
 
 /* Process of shutting down */
