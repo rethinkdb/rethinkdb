@@ -68,7 +68,3 @@ private:
 };
 
 #endif // __COROUTINES_HPP__
-
-
-/* Add error checking to make sure nothing is notified or joined more than once? */
-
