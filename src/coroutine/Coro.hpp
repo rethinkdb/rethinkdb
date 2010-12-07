@@ -4,6 +4,10 @@
 #ifndef CORO_DEFINED
 #define CORO_DEFINED 1
 
+#ifdef VALGRIND
+#define USE_VALGRIND
+#endif
+
 #include "taskimpl.hpp"
 
 #if defined(__SYMBIAN32__)

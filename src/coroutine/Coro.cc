@@ -48,7 +48,7 @@
 	Coro *c = (coro); \
 		c->valgrindStackId = VALGRIND_STACK_REGISTER( \
 											 c->stack, \
-											 c->stack + c->requestedStackSize); \
+											 (size_t)c->stack + c->requestedStackSize); \
 }
 
 #define STACK_DEREGISTER(coro) \
