@@ -267,7 +267,7 @@ void btree_modify_fsm_t::have_failed_operating() {
 // have_copied_value is called by the replicant when it's done with the value
 void btree_modify_fsm_t::have_copied_value() {
     replicants_awaited--;
-    assert(replicants_awaited > 0);
+    assert(replicants_awaited >= 0);
     if (replicants_awaited == 0 && !in_value_call) {
         state = update_complete;
         do_transition(NULL);
@@ -521,18 +521,21 @@ void btree_modify_fsm_t::do_transition(event_t *event) {
 
             // Notify anything that is waiting on a trigger
             case call_replicants: {
-                
+
                 // Release the final node
                 if (last_node_id != NULL_BLOCK_ID) {
                     last_buf->release();
                     last_buf = NULL;
                     last_node_id = NULL_BLOCK_ID;
                 }
-                
+
                 if (update_needed) {
-                
+
+                    replicants_awaited = slice->replicants.size();
+                    in_value_call = true;
+
                     if (new_value) {
-                        
+
                         // Build a value to pass to the replicants
                         if (new_value->is_large()) {
                             for (int i = 0; i < new_large_buf->get_num_segments(); i++) {
@@ -543,32 +546,32 @@ void btree_modify_fsm_t::do_transition(event_t *event) {
                         } else {
                             replicant_bg.add_buffer(new_value->value_size(), new_value->value());
                         }
-                        
+
                         // Pass it to the replicants
-                        replicants_awaited = slice->replicants.size();
-                        in_value_call = true;
                         for (int i = 0; i < (int)slice->replicants.size(); i++) {
-                            slice->replicants[i]->value(&key, &replicant_bg, this, new_value->mcflags(), new_value->exptime(), new_value->cas());
+                            slice->replicants[i]->value(&key, &replicant_bg, this,
+                                new_value->mcflags(), new_value->exptime(),
+                                new_value->has_cas() ? new_value->cas() : 0);
                         }
-                        in_value_call = false;
-                        
-                        if (replicants_awaited == 0) {
-                            state = update_complete;
-                            res = btree_fsm_t::transition_ok;
-                        } else {
-                            res = btree_fsm_t::transition_incomplete;
-                        }
-                    
+
                     } else {
-                        
-                        // Pass NULL to the replicants and don't wait up for them
+
+                        // Pass NULL to the replicants
                         for (int i = 0; i < (int)slice->replicants.size(); i++) {
-                            slice->replicants[i]->value(&key, NULL, NULL, 0, 0, 0);
+                            slice->replicants[i]->value(&key, NULL, this, 0, 0, 0);
                         }
+
+                    }
+
+                    in_value_call = false;
+
+                    if (replicants_awaited == 0) {
                         state = update_complete;
                         res = btree_fsm_t::transition_ok;
+                    } else {
+                        res = btree_fsm_t::transition_incomplete;
                     }
-                    
+
                 } else {
                     state = update_complete;
                     res = btree_fsm_t::transition_ok;

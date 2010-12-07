@@ -957,6 +957,8 @@ txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::parse_stat_comm
     return request_handler_t::op_req_complex;
 }
 
+/* Hack for testing replication */
+
 static store_t::replicant_t *test_replicant;
 
 class test_replicant_t :
@@ -964,11 +966,19 @@ class test_replicant_t :
 {
     void value(store_key_t *key, const_buffer_group_t *bg, done_callback_t *cb, mcflags_t flags, exptime_t exptime, cas_t cas) {
         flockfile(stderr);
-        debugf("VALUE '%*.*s': '", key->size, key->size, key->contents);
-        for (int i = 0; i < (int)bg->buffers.size(); i++) {
-            fwrite(bg->buffers[i].data, 1, bg->buffers[i].size, stderr);
+        debugf("VALUE '%*.*s' = ", key->size, key->size, key->contents);
+        if (bg) {
+            fprintf(stderr, "'");
+            for (int i = 0; i < (int)bg->buffers.size(); i++) {
+                fwrite(bg->buffers[i].data, 1, bg->buffers[i].size, stderr);
+            }
+            fprintf(stderr, "' %d %d %d\n", (int)flags, (int)exptime, (int)cas);
+        } else {
+            assert(flags == 0);
+            assert(exptime == 0);
+            assert(cas == 0);
+            fprintf(stderr, "deleted\n");
         }
-        fprintf(stderr, "' %d %d %d\n", (int)flags, (int)exptime, (int)cas);
         funlockfile(stderr);
         cb->have_copied_value();
     }
@@ -1016,7 +1026,9 @@ txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::parse_gc_comman
             conn_fsm->consume(line_len);
             return malformed_request();
         }
-        
+    
+    /* Hack for testing replication */
+    
     } else if (!strcmp(subcommand, "replicate")) {
         conn_fsm->consume(line_len);
         if (!test_replicant) {
