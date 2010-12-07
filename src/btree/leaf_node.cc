@@ -62,7 +62,7 @@ void leaf_node_handler::remove(size_t block_size, btree_leaf_node *node, btree_k
 
     validate(block_size, node);
     // TODO: Currently this will error incorrectly on root
-//    check("leaf became zero size!", node->npairs == 0);
+    // guaranteef(node->npairs != 0, "leaf became zero size!");
 }
 
 bool leaf_node_handler::lookup(const btree_leaf_node *node, btree_key *key, btree_value *value) {
@@ -112,11 +112,12 @@ void leaf_node_handler::merge(size_t block_size, btree_leaf_node *node, btree_le
     printf("rnode:\n");
     leaf_node_handler::print(rnode);
 #endif
-    check("leaf nodes too full to merge",
+    guaranteef(
             sizeof(btree_leaf_node) + (node->npairs + rnode->npairs)*sizeof(*node->pair_offsets) +
-            block_size - node->frontmost_offset + block_size - rnode->frontmost_offset >= block_size);
-    //check("leaf has no pairs!", node->npairs == 0);
-    //check("leaf has no pairs!", rnode->npairs == 0);
+            block_size - node->frontmost_offset + block_size - rnode->frontmost_offset < block_size,
+            "leaf nodes too full to merge");  // RSI: change to assert?
+    //guaranteef(node->npairs != 0, "leaf has no pairs!");
+    //guaranteef(rnode->npairs != 0, "leaf has no pairs!");
 
     memmove(rnode->pair_offsets + node->npairs, rnode->pair_offsets, rnode->npairs * sizeof(*rnode->pair_offsets));
 
@@ -186,7 +187,8 @@ bool leaf_node_handler::level(size_t block_size, btree_leaf_node *node, btree_le
         int index = sibling->npairs - (sibling->npairs - node->npairs) / 2;
 #endif
         int pairs_to_move = sibling->npairs - index;
-        check("could not level nodes", pairs_to_move < 0);
+        guaranteef(pairs_to_move >= 0, "could not level nodes");    // RSI: change to assert?
+
         if (pairs_to_move == 0) return false;
         //copy from end of sibling to beginning of node
         memmove(node->pair_offsets + pairs_to_move, node->pair_offsets, node->npairs * sizeof(*node->pair_offsets));

@@ -70,7 +70,7 @@ struct linked_buf_t : public buffer_base_t<IO_BUFFER_SIZE>
             va_list args;
             va_start(args, format_str);
             int count = vsnprintf(buffer, MAX_MESSAGE_SIZE, format_str, args);
-            check("Message too big (increase MAX_MESSAGE_SIZE)", count == MAX_MESSAGE_SIZE);
+            guaranteef(count != MAX_MESSAGE_SIZE, "Message too big (increase MAX_MESSAGE_SIZE)");
             va_end(args);
             append(buffer, count);
         }

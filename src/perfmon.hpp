@@ -12,7 +12,10 @@
 // Horrible hack because we define fail() as a macro
 #undef fail
 #include <sstream>
-#define fail(...) { report_fatal_error(__FILE__, __LINE__, __VA_ARGS__); abort(); }
+#define fail(msg, ...) do {                                         \
+        report_fatal_error(__FILE__, __LINE__, msg, ##__VA_ARGS__);   \
+        abort();                                                    \
+    } while (0);
 
 /* Number formatter */
 

@@ -42,7 +42,7 @@ class dumper_t {
 public:
     dumper_t(const char *path) {
         fp = fopen(path, "wbx");
-        check("could not open file", !fp);
+        guarantee_err(fp != NULL, "could not open file");   // RSI: user error?
     }
     ~dumper_t() {
         if (fp != NULL) {
@@ -56,10 +56,12 @@ public:
             len += slices[i].len;
         }
 
-        check("could not write to file", 0 > fprintf(fp, "set %.*s %u %u %u noreply\r\n", key->size, key->contents, flags, exptime, len));
-        
+        int res = fprintf(fp, "set %.*s %u %u %u noreply\r\n", key->size, key->contents, flags, exptime, len);
+        guarantee_err(0 <= res, "could not write to file");
+
         for (size_t i = 0; i < num_slices; ++i) {
-            check("could not write to file", slices[i].len != fwrite(slices[i].buf, 1, slices[i].len, fp));
+            size_t written_size = fwrite(slices[i].buf, 1, slices[i].len, fp);
+            guarantee_err(slices[i].len == written_size, "could not write to file");
         }
 
         fprintf(fp, "\r\n");
@@ -125,7 +127,7 @@ void walk_extents(dumper_t &dumper, direct_file_t &file, cfg_t cfg) {
         if (!(CONFIG_BLOCK_ID < n && offsets[CONFIG_BLOCK_ID] != block_registry::null)) {
             fail("Config block cannot be found (CONFIG_BLOCK_ID = %u, offsets.get_size() = %u)."
                  "  Use --force-mod-count to override.\n",
-                 CONFIG_BLOCK_ID, n);
+                 CONFIG_BLOCK_ID, n);   // RSI
         }
         
         off64_t off = offsets[CONFIG_BLOCK_ID];

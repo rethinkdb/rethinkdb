@@ -29,7 +29,7 @@ struct proc_pid_stat_t {
     long unsigned int guest_time;
     long int cguest_time;
     
-    void read(const char *path) {
+    void read(const char *path) {   // RSI: remove fails
         
         int stat_file = open(path, O_RDONLY);
         if (stat_file == -1) fail("Could not open '%s'", path);

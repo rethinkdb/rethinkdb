@@ -87,7 +87,7 @@ conn_fsm_t::result_t conn_fsm_t::fill_buf(void *buf, unsigned int *bytes_filled,
                 state = fsm_socket_connected; //we're wating for a socket event
             //break;
         } else if (errno == ENETDOWN) {
-            check("Enetdown wtf", sz == -1);
+            guarantee_err(sz != -1, "Enetdown wtf");    // RSI
         } else if (errno == ECONNRESET) {
 #ifndef NDEBUG
             we_are_closed = true;
@@ -97,7 +97,7 @@ conn_fsm_t::result_t conn_fsm_t::fill_buf(void *buf, unsigned int *bytes_filled,
             assert(state == fsm_outstanding_data || state == fsm_socket_connected);
             return fsm_quit_connection;
         } else {
-            check("Could not read from socket", sz == -1);
+            guarantee_err(sz != -1, "Could not read from socket");  // RSI: fail gracefully?
         }
     } else if (sz > 0) {
         *bytes_filled += sz;
@@ -217,7 +217,7 @@ conn_fsm_t::result_t conn_fsm_t::do_fsm_btree_incomplete(event_t *event) {
             state = fsm_outstanding_data;
         }
     } else {
-        fail("fsm_btree_incomplete: Invalid event");
+        unreachable("fsm_btree_incomplete: Invalid event");
     }
     
     return fsm_transition_ok;
@@ -237,7 +237,7 @@ conn_fsm_t::result_t conn_fsm_t::do_socket_send_incomplete(event_t *event) {
             state = fsm_outstanding_data;
         }
     } else {
-        fail("fsm_socket_send_ready: Invalid event");
+        unreachable("fsm_socket_send_ready: Invalid event");
     }
     return fsm_transition_ok;
 }
@@ -294,7 +294,7 @@ conn_fsm_t::result_t conn_fsm_t::do_fsm_outstanding_req(event_t *event) {
             state = fsm_outstanding_data;
             return fsm_transition_ok;
         default:
-            fail("Unknown request parse result");
+            unreachable("Unknown request parse result");
     }
     return fsm_transition_ok;
 }
@@ -347,7 +347,7 @@ void conn_fsm_t::do_transition_and_handle_result(event_t *event) {
             delete this;
             break;
         
-        default: fail("Unhandled fsm transition result");
+        default: unreachable("Unhandled fsm transition result");
     }
 }
 
@@ -372,7 +372,7 @@ conn_fsm_t::result_t conn_fsm_t::do_transition(event_t *event) {
             break;
         default:
             res = fsm_invalid;
-            fail("Invalid state");
+            unreachable("Invalid state");
     }
     if (state == fsm_outstanding_data && res != fsm_quit_connection) {
         if (nrbuf == 0) {
@@ -481,7 +481,7 @@ void conn_fsm_t::start_quit() {
         case fsm_btree_incomplete:
             break;
         default:
-            fail("Bad state");
+            unreachable("Bad state");
     }
 }
 
@@ -510,7 +510,7 @@ void conn_fsm_t::send_msg_to_client() {
                 return_to_socket_connected(true);
                 break;
             default:
-                fail("Illegal value in res");
+                unreachable("Illegal value in res");
                 break;
         }
     }

@@ -42,7 +42,7 @@ block_id_t internal_node_handler::lookup(const btree_internal_node *node, btree_
 
 bool internal_node_handler::insert(size_t block_size, btree_internal_node *node, btree_key *key, block_id_t lnode, block_id_t rnode) {
     //TODO: write a unit test for this
-    check("key too large", key->size > MAX_KEY_SIZE);
+    guaranteef(key->size <= MAX_KEY_SIZE, "key too large"); // RSI: change to assert
     if (is_full(node)) return false;
     if (node->npairs == 0) {
         btree_key special;
@@ -53,12 +53,13 @@ bool internal_node_handler::insert(size_t block_size, btree_internal_node *node,
     }
 
     int index = get_offset_index(node, key);
-    check("tried to insert duplicate key into internal node!", is_equal(&get_pair(node, node->pair_offsets[index])->key, key));
+    guaranteef(!is_equal(&get_pair(node, node->pair_offsets[index])->key, key),
+        "tried to insert duplicate key into internal node!");   // RSI: change to assert?
     uint16_t offset = insert_pair(node, lnode, key);
     insert_offset(node, offset, index);
 
     get_pair(node, node->pair_offsets[index+1])->lnode = rnode;
-    return true; // XXX
+    return true;
 }
 
 bool internal_node_handler::remove(size_t block_size, btree_internal_node *node, btree_key *key) {
@@ -78,7 +79,7 @@ bool internal_node_handler::remove(size_t block_size, btree_internal_node *node,
 #endif
 
     validate(block_size, node);
-    return true; // XXX
+    return true;
 }
 
 void internal_node_handler::split(size_t block_size, btree_internal_node *node, btree_internal_node *rnode, btree_key *median) {
@@ -133,7 +134,7 @@ void internal_node_handler::merge(size_t block_size, btree_internal_node *node, 
 
     check("internal nodes too full to merge",
             sizeof(btree_internal_node) + (node->npairs + rnode->npairs)*sizeof(*node->pair_offsets) +
-            block_size - node->frontmost_offset + block_size - rnode->frontmost_offset + key_from_parent->size >= block_size);
+            block_size - node->frontmost_offset + block_size - rnode->frontmost_offset + key_from_parent->size >= block_size);  // RSI
 
     memmove(rnode->pair_offsets + node->npairs, rnode->pair_offsets, rnode->npairs * sizeof(*rnode->pair_offsets));
 
@@ -232,7 +233,7 @@ bool internal_node_handler::level(size_t block_size, btree_internal_node *node, 
 #endif
     validate(block_size, node);
     validate(block_size, sibling);
-    check("level made internal node dangerously full", change_unsafe(node));
+    guaranteef(!change_unsafe(node), "level made internal node dangerously full");
     return true;
 }
 
@@ -260,14 +261,16 @@ void internal_node_handler::update_key(btree_internal_node *node, btree_key *key
     int index = get_offset_index(node, key_to_replace);
     block_id_t tmp_lnode = get_pair(node, node->pair_offsets[index])->lnode;
     delete_pair(node, node->pair_offsets[index]);
-    check("cannot fit updated key in internal node",  sizeof(btree_internal_node) + (node->npairs) * sizeof(*node->pair_offsets) + pair_size_with_key(replacement_key) >= node->frontmost_offset);
+    guaranteef(sizeof(btree_internal_node) + (node->npairs) * sizeof(*node->pair_offsets) + pair_size_with_key(replacement_key) < node->frontmost_offset,
+        "cannot fit updated key in internal node"); // RSI: change to assert?
     node->pair_offsets[index] = insert_pair(node, tmp_lnode, replacement_key);
 #ifdef BTREE_DEBUG
     printf("\t|\n\t|\n\t|\n\tV\n");
     internal_node_handler::print(node);
 #endif
 
-    check("Invalid key given to update_key: offsets no longer in sorted order", !is_sorted(node->pair_offsets, node->pair_offsets+node->npairs, internal_key_comp(node)));
+    guaranteef(is_sorted(node->pair_offsets, node->pair_offsets+node->npairs, internal_key_comp(node)),
+        "Invalid key given to update_key: offsets no longer in sorted order");  // RSI: change to assert?
 }
 
 bool internal_node_handler::is_full(const btree_internal_node *node) {
@@ -299,7 +302,8 @@ void internal_node_handler::validate(size_t block_size, const btree_internal_nod
         assert(node->pair_offsets[i] < block_size);
         assert(node->pair_offsets[i] >= node->frontmost_offset);
     }
-    check("Offsets no longer in sorted order", !is_sorted(node->pair_offsets, node->pair_offsets+node->npairs, internal_key_comp(node)));
+    assertf(is_sorted(node->pair_offsets, node->pair_offsets+node->npairs, internal_key_comp(node)),
+        "Offsets no longer in sorted order");
 #endif
 }
 

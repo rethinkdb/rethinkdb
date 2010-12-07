@@ -24,7 +24,7 @@ linux_net_conn_t::linux_net_conn_t(fd_t sock)
     assert(sock != INVALID_FD);
     
     int res = fcntl(sock, F_SETFL, O_NONBLOCK);
-    check("Could not make socket non-blocking", res != 0);
+    guarantee_err(res == 0, "Could not make socket non-blocking");
 }
 
 void linux_net_conn_t::set_callback(linux_net_conn_callback_t *cb) {
@@ -115,11 +115,11 @@ linux_net_listener_t::linux_net_listener_t(int port)
     int res;
     
     sock = socket(AF_INET, SOCK_STREAM, 0);
-    check("Couldn't create socket", sock == -1);
+    guarantee_err(sock != -1, "Couldn't create socket");
     
     int sockoptval = 1;
     res = setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &sockoptval, sizeof(sockoptval));
-    check("Could not set REUSEADDR option", res == -1);
+    guarantee_err(res == 0, "Could not set REUSEADDR option");
     
     // Bind the socket
     sockaddr_in serv_addr;
@@ -128,14 +128,14 @@ linux_net_listener_t::linux_net_listener_t(int port)
     serv_addr.sin_port = htons(port);
     serv_addr.sin_addr.s_addr = INADDR_ANY;
     res = bind(sock, (sockaddr*)&serv_addr, sizeof(serv_addr));
-    check("Couldn't bind socket", res != 0);
+    guarantee_err(res == 0, "Couldn't bind socket");
 
     // Start listening to connections
     res = listen(sock, 5);
-    check("Couldn't listen to the socket", res != 0);
+    guarantee_err(res == 0, "Couldn't listen to the socket");
     
     res = fcntl(sock, F_SETFL, O_NONBLOCK);
-    check("Could not make socket non-blocking", res != 0);
+    guarantee_err(res == 0, "Could not make socket non-blocking");
 }
 
 void linux_net_listener_t::set_callback(linux_net_listener_callback_t *cb) {
@@ -156,7 +156,7 @@ void linux_net_listener_t::on_event(int events) {
         
         if (new_sock == INVALID_FD) {
             if (errno == EAGAIN) break;
-            else fail("Cannot accept new connection: errno=%s", strerror(errno));
+            else fail("Cannot accept new connection: errno=%s", strerror(errno));   // RSI
         
         } else {
             callback->on_net_listener_accept(new linux_net_conn_t(new_sock));
@@ -171,10 +171,10 @@ linux_net_listener_t::~linux_net_listener_t() {
     if (callback) linux_thread_pool_t::thread->queue.forget_resource(sock, this);
     
     res = shutdown(sock, SHUT_RDWR);
-    check("Could not shutdown main socket", res == -1);
+    guarantee_err(res != -1, "Could not shutdown main socket");
     
     res = close(sock);
-    check("Could not close main socket", res != 0);
+    guarantee_err(res == 0, "Could not close main socket");
 }
 
 /* Disk file object */
@@ -194,7 +194,7 @@ linux_direct_file_t::linux_direct_file_t(const char *path, int mode) {
     struct stat64 file_stat;
     bzero((void*)&file_stat, sizeof(file_stat)); // make valgrind happy
     res = stat64(path, &file_stat);
-    check("Could not stat file", res == -1 && errno != ENOENT);
+    guarantee_err(res != -1 || errno == ENOENT, "Could not stat file");
     
     if (res == -1 && errno == ENOENT) {
         is_block = false;
@@ -209,7 +209,7 @@ linux_direct_file_t::linux_direct_file_t(const char *path, int mode) {
     if (mode & (mode_read | mode_write)) flags |= O_RDWR;
     else if (mode & mode_write) flags |= O_WRONLY;
     else if (mode & mode_read) flags |= O_RDONLY;
-    else fail("Bad mode.");
+    else guaranteef(false, "Bad file access mode.");
     
     // O_NOATIME requires owner or root privileges. This is a bit of a hack; we assume that
     // if we are opening a regular file, we are the owner, but if we are opening a block device,
@@ -219,19 +219,19 @@ linux_direct_file_t::linux_direct_file_t(const char *path, int mode) {
     // Open the file
     
     fd = open(path, flags, 0644);
-    check("Could not open file", fd == INVALID_FD);
+    guarantee_err(fd != INVALID_FD, "Could not open file");
     
     // Determine the file size
     
     if (is_block) {
         res = ioctl(fd, BLKGETSIZE64, &file_size);
-        check("Could not determine block device size", res == -1);
+        guarantee_err(res != -1, "Could not determine block device size");
         
     } else {
         off64_t size = lseek64(fd, 0, SEEK_END);
-        check("Could not determine file size", size == -1);
+        guarantee_err(size != -1, "Could not determine file size");
         res = lseek64(fd, 0, SEEK_SET);
-        check("Could not reset file position", res == -1);
+        guarantee_err(res != -1, "Could not reset file position");
         
         file_size = size;
     }
@@ -248,7 +248,7 @@ size_t linux_direct_file_t::get_size() {
 void linux_direct_file_t::set_size(size_t size) {
     assert(!is_block);
     int res = ftruncate(fd, size);
-    check("Could not ftruncate()", res == -1);
+    guarantee_err(res == 0, "Could not ftruncate()");
     file_size = size;
 }
 
@@ -325,14 +325,14 @@ void linux_direct_file_t::read_blocking(size_t offset, size_t length, void *buf)
     
     verify(offset, length, buf);
     size_t res = pread(fd, buf, length, offset);
-    check("Blocking read failed", res != length);
+    guarantee_err(res == length, "Blocking read failed");   // RSI: assert?
 }
 
 void linux_direct_file_t::write_blocking(size_t offset, size_t length, void *buf) {
     
     verify(offset, length, buf);
     size_t res = pwrite(fd, buf, length, offset);
-    check("Blocking write failed", res != length);
+    guarantee_err(res == length, "Blocking write failed");   // RSI: assert?
 }
 
 linux_direct_file_t::~linux_direct_file_t() {
@@ -363,15 +363,15 @@ linux_io_calls_t::linux_io_calls_t(linux_event_queue_t *queue)
     
     aio_context = 0;
     res = io_setup(MAX_CONCURRENT_IO_REQUESTS, &aio_context);
-    check("Could not setup aio context", res != 0);
+    guaranteef(res == 0, "Could not setup aio context");    // errors are returned in res (negated) instead of errno
     
     // Create aio notify fd
     
     aio_notify_fd = eventfd(0, 0);
-    check("Could not create aio notification fd", aio_notify_fd == -1);
+    guarantee_err(aio_notify_fd != -1, "Could not create aio notification fd");
 
     res = fcntl(aio_notify_fd, F_SETFL, O_NONBLOCK);
-    check("Could not make aio notify fd non-blocking", res != 0);
+    guarantee_err(res == 0, "Could not make aio notify fd non-blocking");
 
     queue->watch_resource(aio_notify_fd, poll_event_in, this);
 }
@@ -383,10 +383,10 @@ linux_io_calls_t::~linux_io_calls_t()
     assert(n_pending == 0);
     
     res = close(aio_notify_fd);
-    check("Could not close aio_notify_fd", res != 0);
+    guarantee_err(res == 0, "Could not close aio_notify_fd");
     
     res = io_destroy(aio_context);
-    check("Could not destroy aio_context", res != 0);
+    guarantee_err(res == 0, "Could not destroy aio_context");
 }
 
 void linux_io_calls_t::on_event(int) {
@@ -395,7 +395,7 @@ void linux_io_calls_t::on_event(int) {
     eventfd_t nevents_total;
     
     res = eventfd_read(aio_notify_fd, &nevents_total);
-    check("Could not read aio_notify_fd value", res != 0);
+    guarantee_err(res == 0, "Could not read aio_notify_fd value");
 
     // Note: O(1) array allocators are hard. To avoid all the
     // complexity, we'll use a fixed sized array and call io_getevents
@@ -412,7 +412,7 @@ void linux_io_calls_t::on_event(int) {
         nevents = io_getevents(aio_context, 0,
                                std::min((int)nevents_total, MAX_IO_EVENT_PROCESSING_BATCH_SIZE),
                                events, NULL);
-        check("Waiting for AIO event failed", nevents < 1);
+        guarantee_err(nevents >= 1, "Waiting for AIO event failed");
         
         // Process the events
         for(int i = 0; i < nevents; i++) {
@@ -436,7 +436,7 @@ void linux_io_calls_t::aio_notify(iocb *event, int result) {
     // Check for failure (because the higher-level code usually doesn't)
     if (result != (int)event->u.c.nbytes) {
         errno = -result;
-        check("Read or write failed", 1);
+        check("Read or write failed", 1);   // RSI
     }
     
     // Notify the interested party about the event
@@ -471,7 +471,7 @@ void linux_io_calls_t::process_requests() {
         if(res < 0)
             break;
     }
-    check("Could not submit IO request", res < 0 && res != -EAGAIN);
+    guarantee_err(res >= 0 || res == -EAGAIN, "Could not submit IO request");
 }
 
 linux_io_calls_t::queue_t::queue_t(linux_io_calls_t *parent)

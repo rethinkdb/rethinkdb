@@ -84,7 +84,7 @@ bool mock_transaction_t::commit(mock_transaction_commit_callback_t *callback) {
             } else {
                 return false;
             }
-        default: fail("Bad access");
+        default: unreachable("Bad access");
     }
 }
 
@@ -231,7 +231,7 @@ mock_transaction_t *mock_cache_t::begin_transaction(access_t access, mock_transa
             } else {
                 return NULL;
             }
-        default: fail("Bad access.");
+        default: unreachable("Bad access.");
     }
 }
 

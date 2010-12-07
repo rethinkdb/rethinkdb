@@ -169,10 +169,10 @@ void data_block_manager_t::mark_garbage(off64_t offset) {
         switch (entry->state) {
             
             case gc_entry::state_reconstructing:
-                fail("Marking something as garbage during startup.");
+                unreachable("Marking something as garbage during startup.");
             
             case gc_entry::state_active:
-                fail("We shouldn't have gotten here.");
+                unreachable("We shouldn't have gotten here.");
             
             /* Remove from the young extent queue */
             case gc_entry::state_young:
@@ -310,7 +310,7 @@ void data_block_manager_t::run_gc() {
             break;
             
         default:
-            fail("Unknown gc_step");
+            unreachable("Unknown gc_step");
         }
     }
 }

@@ -232,7 +232,7 @@ class node_handler {
 
         static void str_to_key(char *str, btree_key *buf) {
             int len = strlen(str);
-            check("string too long", len > MAX_KEY_SIZE);
+            guaranteef(len <= MAX_KEY_SIZE, "string too long"); // RSI: user error?
             memcpy(buf->contents, str, len);
             buf->size = (unsigned char)len;
         }

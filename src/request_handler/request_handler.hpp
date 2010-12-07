@@ -180,7 +180,7 @@ private:
         assert(!completed);
         switch (mode) {
             case unused:
-                fail("WTF");
+                fail("WTF");    // RSI
             case fill:
                 do_fill();
                 break;

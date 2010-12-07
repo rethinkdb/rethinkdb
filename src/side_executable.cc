@@ -36,9 +36,9 @@ void consider_execve_side_executable(int argc, char **argv, const char *command_
         
         // Drop the first argument from argv.
         argv[1] = argv_0_buf;
-        int code = execvp(commandbuf, argv + 1);
+        (void) execvp(commandbuf, argv + 1);
 
         // execvp will not return unless an error has happened.
-        check("Tried and failed to find an executable file for '%s'.", code);
+        guarantee_err(false, "Tried and failed to find an executable file for '%s'.", commandbuf);
     }
 }

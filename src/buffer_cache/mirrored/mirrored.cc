@@ -146,7 +146,7 @@ void mc_buf_t::on_lock_available() {
             break;
         }
         default: {
-            fail("Locking with intent not supported yet.");
+            not_implemented("Locking with intent not supported yet.");
         }
     }
     
@@ -178,7 +178,7 @@ void mc_buf_t::release() {
             }
             break;
         }
-        default: fail("Unexpected mode.");
+        default: unreachable("Unexpected mode.");
     }
     
     // If this code is not commented out, then it will cause bufs to be unloaded very aggressively.
@@ -275,7 +275,7 @@ void mc_transaction_t::on_sync() {
         commit_callback->on_txn_commit(this);
         delete this;
     } else {
-        fail("Unexpected state.");
+        unreachable("Unexpected state.");
     }
 }
 
@@ -391,7 +391,7 @@ bool mc_cache_t::next_starting_up_step() {
         return true;
     }
     
-    fail("Invalid state.");
+    unreachable("Invalid state.");
 }
 
 void mc_cache_t::on_free_list_ready() {
@@ -487,7 +487,7 @@ bool mc_cache_t::next_shutting_down_step() {
         return true;
     }
     
-    fail("Invalid state.");
+    unreachable("Invalid state.");
 }
 
 void mc_cache_t::on_sync() {

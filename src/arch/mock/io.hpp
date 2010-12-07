@@ -28,9 +28,10 @@ public:
         inner_file = new typename inner_io_config_t::direct_file_t(path, mode2);
         
         if (inner_file->is_block_device()) {
-            fail("Using mock_direct_file_t with a block device is a really bad idea because it "
-                 "reads the entire contents of the underlying file into memory, which could be "
-                 "a lot for a block device.");
+            fail_due_to_user_error(
+                "Using mock_direct_file_t with a block device is a really bad idea because it "
+                "reads the entire contents of the underlying file into memory, which could be "
+                "a lot for a block device.");
         }
         
         set_size(inner_file->get_size());

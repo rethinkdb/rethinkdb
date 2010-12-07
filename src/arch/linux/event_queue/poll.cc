@@ -56,7 +56,7 @@ void poll_event_queue_t::run() {
         if(res == -1 && errno == EINTR) {
             continue;
         }
-        check("Waiting for poll events failed", res == -1);
+        guarantee_err(res == 0, "Waiting for poll events failed");  // RSI
         
         pm_events_per_loop.record(res);
         

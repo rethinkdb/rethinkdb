@@ -19,7 +19,7 @@ long get_total_ram() {
 void *malloc_aligned(size_t size, size_t alignment) {
     void *ptr = NULL;
     int res = posix_memalign(&ptr, alignment, size);
-    if(res != 0) fail("Out of memory.");
+    if(res != 0) fail("Out of memory.");    // RSI
     return ptr;
 }
 

@@ -67,7 +67,7 @@ void parse_cmd_args(int argc, char **argv, config_t *config) {
     }
 
     if (optind < argc) {
-        fail("Unexpected extra argument: \"%s\"", argv[optind]);
+        fail_due_to_user_error("Unexpected extra argument: \"%s\"", argv[optind]);
     }
 
     // Sanity checks
@@ -81,7 +81,7 @@ void parse_cmd_args(int argc, char **argv, config_t *config) {
         std::vector<std::string> names = config->input_filenames;
         std::sort(names.begin(), names.end());
         if (std::unique(names.begin(), names.end()) != names.end()) {
-            fail("Duplicate file names provided.");
+            fail_due_to_user_error("Duplicate file names provided.");
         }
     }
 }

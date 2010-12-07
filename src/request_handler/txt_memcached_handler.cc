@@ -757,16 +757,16 @@ txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::parse_storage_c
 }
 
 void txt_memcached_handler_t::on_large_value_completed(bool success) {
-    // Used for consuming data from the socket. XXX: This should be renamed.
+    // Used for consuming data from the socket. FIXME: This should be renamed.
     assert(success);
 }
 
 txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::read_data() {
-    check("memcached handler should be in loading data state", !loading_data);
-    
+    guaranteef(loading_data, "memcached handler should be in loading data state");
+
     /* This function is a messy POS. It is possibly called many times per request, and it
     performs several different roles, some of which I don't entirely understand. */
-    
+
     data_provider_t *dp;
     bool is_large = bytes > MAX_BUFFERED_SET_SIZE;
     if (!is_large) {
@@ -829,7 +829,7 @@ txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::read_data() {
             new txt_memcached_append_prepend_request_t(this, &key, dp, false, noreply);
             break;
         default:
-            fail("Bad storage command.");
+            unreachable("Bad storage command.");
     }
     
     if (!is_large) {

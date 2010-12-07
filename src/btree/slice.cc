@@ -96,7 +96,7 @@ private:
             return true;
         }
         
-        fail("Unexpected state");
+        unreachable("Unexpected state");
     }
     
     void on_txn_begin(transaction_t *t) {
@@ -195,7 +195,7 @@ bool btree_slice_t::next_starting_up_step() {
         return true;
     }
     
-    fail("Unexpected state");
+    unreachable("Unexpected state");
 }
 
 void btree_slice_t::on_cache_ready() {
@@ -245,7 +245,7 @@ bool btree_slice_t::next_shutting_down_step() {
         return true;
     }
     
-    fail("Invalid state.");
+    unreachable("Invalid state.");
 }
 
 void btree_slice_t::on_cache_shutdown() {

@@ -12,17 +12,17 @@ linux_timer_handler_t::linux_timer_handler_t(linux_event_queue_t *queue)
     int res;
     
     timer_fd = timerfd_create(CLOCK_MONOTONIC, 0);
-    check("Could not create timer", timer_fd < 0);
+    guarantee_err(timer_fd != -1, "Could not create timer");
 
     res = fcntl(timer_fd, F_SETFL, O_NONBLOCK);
-    check("Could not make timer non-blocking", res != 0);
+    guarantee_err(res == 0, "Could not make timer non-blocking");
 
     itimerspec timer_spec;
     bzero(&timer_spec, sizeof(timer_spec));
     timer_spec.it_value.tv_sec = timer_spec.it_interval.tv_sec = TIMER_TICKS_IN_MS / 1000;
     timer_spec.it_value.tv_nsec = timer_spec.it_interval.tv_nsec = (TIMER_TICKS_IN_MS % 1000) * 1000000L;
     res = timerfd_settime(timer_fd, 0, &timer_spec, NULL);
-    check("Could not arm the timer.", res != 0);
+    guarantee_err(res == 0, "Could not arm the timer");
     
     timer_ticks_since_server_startup = 0;
     
@@ -41,7 +41,7 @@ linux_timer_handler_t::~linux_timer_handler_t() {
     }
     
     res = close(timer_fd);
-    check("Could not close the timer.", res != 0);
+    guarantee_err(res == 0, "Could not close the timer.");
 }
 
 void linux_timer_handler_t::on_event(int events) {
@@ -50,7 +50,7 @@ void linux_timer_handler_t::on_event(int events) {
     eventfd_t nexpirations;
     
     res = eventfd_read(timer_fd, &nexpirations);
-    check("Could not read timer_fd value", res != 0);
+    guaranteef(res == 0, "Could not read timer_fd value");
     
     timer_ticks_since_server_startup += nexpirations;
     long time_in_ms = timer_ticks_since_server_startup * TIMER_TICKS_IN_MS;

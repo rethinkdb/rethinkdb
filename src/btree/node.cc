@@ -70,7 +70,7 @@ void node_handler::validate(size_t block_size, const btree_node *node) {
     } else if (check_magic<btree_internal_node>(node->magic)) {
         internal_node_handler::validate(block_size, (btree_internal_node *)node);
     } else {
-        fail("Invalid leaf node type.");
+        unreachable("Invalid leaf node type.");
     }
 #endif
 }

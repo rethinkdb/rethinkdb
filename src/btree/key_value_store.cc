@@ -181,7 +181,7 @@ struct bkvs_start_existing_serializer_fsm_t :
         
         serializer_config_block_t *c = (serializer_config_block_t *)config_block;
         if (c->n_files != store->n_files) {
-            fail("File config block for file \"%s\" says there should be %d files, but we have %d.",
+            fail_due_to_user_error("File config block for file \"%s\" says there should be %d files, but we have %d.",
                 store->dynamic_config->serializer_private[i].db_filename.c_str(), (int)c->n_files, (int)store->n_files);
         }
 
@@ -237,8 +237,7 @@ bool btree_key_value_store_t::have_created_a_serializer() {
             /* Make sure all the magics line up */
             for (int i = 1; i < n_files; i++) {
                 if (serializer_magics[i] != serializer_magics[0]) {
-                    fail("The files that the server was started with didn't all come from "
-                         "the same database.");
+                    fail_due_to_user_error("The files that the server was started with didn't all come from the same database.");
                 }
             }
         }

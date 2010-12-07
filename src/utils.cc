@@ -18,12 +18,12 @@ void install_generic_crash_handler() {
     bzero(&action, sizeof(action));
     action.sa_handler = generic_crash_handler;
     int res = sigaction(SIGSEGV, &action, NULL);
-    check("Could not install SEGV handler", res < 0);
+    guarantee_err(res == 0, "Could not install SEGV handler");
 
     bzero(&action, sizeof(action));
     action.sa_handler = ignore_crash_handler;
     res = sigaction(SIGPIPE, &action, NULL);
-    check("Could not install PIPE handler", res < 0);
+    guarantee_err(res == 0, "Could not install PIPE handler");
 }
 
 // fast non-null terminated string comparison
