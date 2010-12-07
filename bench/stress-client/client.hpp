@@ -4,6 +4,7 @@
 
 #include <pthread.h>
 #include "protocol.hpp"
+#include "sqlite_protocol.hpp"
 #include <stdint.h>
 #include "sqlite3.h"
 
@@ -169,7 +170,8 @@ struct client_data_t {
     config_t *config;
     server_t *server;
     shared_t *shared;
-    protocol_t *proto, *sqlite;
+    protocol_t *proto;
+    sqlite_protocol_t *sqlite;
     int id;
     int min_seed, max_seed;
 };
@@ -182,7 +184,8 @@ void* run_client(void* data) {
     server_t *server = client_data->server;
     shared_t *shared = client_data->shared;
     protocol_t *proto = client_data->proto;
-    protocol_t *sqlite = client_data->sqlite;
+    sqlite_protocol_t *sqlite = client_data->sqlite;
+    sqlite->set_id(client_data->id);
 
     // Perform the ops
     ticks_t last_time = get_ticks(), start_time = last_time, last_qps_time = last_time, now_time;
