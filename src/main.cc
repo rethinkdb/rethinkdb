@@ -51,7 +51,7 @@ int main(int argc, char *argv[]) {
 
     logINF("Server is shut down.\n");
 
-    // Close log file if necessary
+    // Close the log file if necessary.
     if (config.log_file_name[0]) {
         fclose(log_file);
         log_file = stderr;
