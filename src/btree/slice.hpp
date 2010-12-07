@@ -6,6 +6,7 @@
 #include "serializer/translator.hpp"
 
 class initialize_superblock_fsm_t;
+struct btree_replicant_t;
 
 /* btree_slice_t is a thin wrapper around cache_t that handles initializing the buffer
 cache for the purpose of storing a btree. There are many btree_slice_ts per
@@ -43,6 +44,9 @@ public:
     cas_t gen_cas();
 private:
     uint32_t cas_counter;
+
+public:
+    std::vector<btree_replicant_t *> replicants;
 
 public:
     typedef btree_key_value_store_t shutdown_callback_t;

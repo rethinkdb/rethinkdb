@@ -3,6 +3,7 @@
 #include "buffer_cache/large_buf.hpp"
 #include "btree/leaf_node.hpp"
 #include "btree/internal_node.hpp"
+#include "btree/replicate.hpp"
 
 // TODO: consider B#/B* trees to improve space efficiency
 
@@ -236,6 +237,8 @@ bool btree_modify_fsm_t::do_check_for_split(const node_t **node) {
     return new_root;
 }
 
+// have_finished_operating() is called by the subclass when it is done with operate() and has
+// a new value for us to insert (or wants us to delete the key)
 void btree_modify_fsm_t::have_finished_operating(btree_value *nv, large_buf_t *nlb) {
     assert(!operate_is_done);
     operate_is_done = true;
@@ -253,11 +256,23 @@ void btree_modify_fsm_t::have_finished_operating(btree_value *nv, large_buf_t *n
     if (!in_operate_call) do_transition(NULL);
 }
 
+// have_failed_operating() is called by the subclass when it is done with operate() and does
+// not want to make a change
 void btree_modify_fsm_t::have_failed_operating() {
     assert(!operate_is_done);
     operate_is_done = true;
     update_needed = false;
     if (!in_operate_call) do_transition(NULL);
+}
+
+// have_copied_value is called by the replicant when it's done with the value
+void btree_modify_fsm_t::have_copied_value() {
+    replicants_awaited--;
+    assert(replicants_awaited >= 0);
+    if (replicants_awaited == 0 && !in_value_call) {
+        state = update_complete;
+        do_transition(NULL);
+    }
 }
 
 void btree_modify_fsm_t::do_transition(event_t *event) {
@@ -480,7 +495,7 @@ void btree_modify_fsm_t::do_transition(event_t *event) {
                 if(node_handler::is_leaf(node)) {
                     buf->release();
                     buf = NULL;
-                    state = update_complete;
+                    state = call_replicants;
                     res = btree_fsm_t::transition_ok;
                     break;
                 }
@@ -505,15 +520,67 @@ void btree_modify_fsm_t::do_transition(event_t *event) {
                 break;
             }
 
-            // Finalize the operation
-            case update_complete: {
+            // Notify anything that is waiting on a trigger
+            case call_replicants: {
+
                 // Release the final node
                 if (last_node_id != NULL_BLOCK_ID) {
                     last_buf->release();
                     last_buf = NULL;
                     last_node_id = NULL_BLOCK_ID;
                 }
-                
+
+                if (update_needed) {
+
+                    replicants_awaited = slice->replicants.size();
+                    in_value_call = true;
+
+                    if (new_value) {
+
+                        // Build a value to pass to the replicants
+                        if (new_value->is_large()) {
+                            for (int i = 0; i < new_large_buf->get_num_segments(); i++) {
+                                uint16_t size;
+                                const void *data = new_large_buf->get_segment(i, &size);
+                                replicant_bg.add_buffer(size, data);
+                            }
+                        } else {
+                            replicant_bg.add_buffer(new_value->value_size(), new_value->value());
+                        }
+
+                        // Pass it to the replicants
+                        for (int i = 0; i < (int)slice->replicants.size(); i++) {
+                            slice->replicants[i]->callback->value(&key, &replicant_bg, this,
+                                new_value->mcflags(), new_value->exptime(),
+                                new_value->has_cas() ? new_value->cas() : 0);
+                        }
+
+                    } else {
+
+                        // Pass NULL to the replicants
+                        for (int i = 0; i < (int)slice->replicants.size(); i++) {
+                            slice->replicants[i]->callback->value(&key, NULL, this, 0, 0, 0);
+                        }
+
+                    }
+
+                    in_value_call = false;
+
+                    if (replicants_awaited == 0) {
+                        state = update_complete;
+                        res = btree_fsm_t::transition_ok;
+                    } else {
+                        res = btree_fsm_t::transition_incomplete;
+                    }
+
+                } else {
+                    state = update_complete;
+                    res = btree_fsm_t::transition_ok;
+                }
+                break;
+            }
+            
+            case update_complete: {
                 // Free large bufs if necessary
                 if (update_needed) {
                     if (old_large_buf && new_large_buf != old_large_buf) {

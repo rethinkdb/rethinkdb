@@ -163,24 +163,28 @@ struct store_t {
     };
     virtual void delete_key(store_key_t *key, delete_callback_t *cb) = 0;
     
-    /* To get all of the keys in the database, call walk(). The walk_callback_t's value() method
-    will be called for every key in the database. Call the provided done_callback_t when you are
-    done with the buffer_group_t passed as a parameter to value(). The walk_callback_t's done()
-    method will be called once it has called value() for every key. value() may be called on any
-    core and in any order; there is no guarantee that it will wait for the done_callback_t to be
-    called before calling value() again. */
+    /* To start replicating, call replicate() with a replicant_t.
     
-    struct walk_callback_t {
+    The replicant_t's value() method will be called for every key in the database at the time that
+    replicate() is called and for every change that is made after replicate() is called. It may be
+    called on any thread(s) and in any order.
+    
+    To stop replicating, call stop_replicating() with the same replicant. Note that it is not safe
+    to delete the replicant until its stopped() method is called. */
+    
+    struct replicant_t {
         
         struct done_callback_t {
             virtual void have_copied_value() = 0;
         };
-        virtual void value(store_key_t *key, const_buffer_group_t *value, done_callback_t *cb, mcflags_t flags, exptime_t exptime) = 0;
-        virtual void done() = 0;
-
-        virtual ~walk_callback_t() {}
+        virtual void value(store_key_t *key, const_buffer_group_t *value, done_callback_t *cb, mcflags_t flags, exptime_t exptime, cas_t cas) = 0;
+        
+        virtual void stopped() = 0;
+        
+        virtual ~replicant_t() {}
     };
-    virtual void walk(walk_callback_t *cb) = 0;
+    virtual void replicate(replicant_t *cb) = 0;
+    virtual void stop_replicating(replicant_t *cb) = 0;
 
     virtual ~store_t() {}
 };
