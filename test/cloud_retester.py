@@ -1,12 +1,18 @@
-# Note: the start time field in reports is currently broken
 import subprocess, shlex, signal, os, time, shutil, tempfile, sys, traceback, types, gitroot, random, atexit
 base_directory = os.path.dirname(os.path.join(os.getcwd(), sys.argv[0])) + "/../test"
+use_local_retester = os.getenv("USE_CLOUD", "false") == "false"
+
+# The following functions are for external use: setup_testing_nodes(), terminate_testing_nodes(). do_test_cloud(), report_cloud()
+#   + the following functions imported from retester are compatible and can be used in combination with cloud tests: do_test()
+
+# In order to enable running tests in Amazon's EC2, set the USE_CLOUD environment variable
 
 # Please configure these:
 
 testing_nodes_ec2_instance_type = "m1.large" # m1.large / t1.micro
-testing_nodes_ec2_count = 5 # number of nodes to spin up
+testing_nodes_ec2_count = 15 # number of nodes to spin up
 testing_nodes_ec2_image_name = "ami-2272864b"
+testing_nodes_ec2_image_user_name = "ec2-user"
 testing_nodes_ec2_key_pair_name = "cloudtest_default"
 testing_nodes_ec2_security_group_name = "cloudtest_default"
 testing_nodes_ec2_region = "us-east-1"
@@ -19,6 +25,7 @@ round_robin_locking_timeout = 2
 wrapper_script_filename = "cloud_retester_run_test_wrapper.py" # must be just the name of the file, no path!
 
 # END of configuration options
+
 
 
 from stat import *
@@ -47,7 +54,7 @@ class TestingNode:
     def __init__(self, hostname, port, username, private_ssh_key_filename):
         self.hostname = hostname
         self.port = port
-        self.username = username # "ec2-user"
+        self.username = username
         
         #print "Created TestingNode with hostname %s, port %i, username %s" % (hostname, port, username)
         
@@ -74,112 +81,143 @@ class TestingNode:
             self.ssh_transport.close()
 
         
-    def get_transport(self):
+    def get_transport(self, retry=True):
         if self.ssh_transport != None:
             return self.ssh_transport
     
-        # open SSH transport
-        self.ssh_transport = paramiko.Transport((self.hostname, self.port))
-        self.ssh_transport.use_compression()
-        self.ssh_transport.set_keepalive(60)
-        self.ssh_transport.connect(username=self.username, pkey=self.private_ssh_key)
-        
+        try:
+            # open SSH transport
+            self.ssh_transport = paramiko.Transport((self.hostname, self.port))
+            self.ssh_transport.use_compression()
+            self.ssh_transport.set_keepalive(60)
+            self.ssh_transport.connect(username=self.username, pkey=self.private_ssh_key)
+        except (IOError, paramiko.SSHException) as e:
+            self.ssh_transport = None
+            time.sleep(120) # Wait a bit in case the network needs time to recover
+            if retry:
+                return self.get_transport(retry=False)
+            else:
+                raise e
+
         return self.ssh_transport
         
     
     # returns a tupel (return code, output)
-    def run_command(self, command):    
-        # open SSH channel
-        #self.ssh_transport = paramiko.Transport((self.hostname, self.port))
-        #self.ssh_transport.connect(username=self.username, pkey=self.private_ssh_key)
+    def run_command(self, command, retry = True):
         ssh_transport = self.get_transport()
-        ssh_channel = ssh_transport.open_session()
         
-        # issue the command to the node
-        ssh_channel.exec_command(command)
-        
-        # read back command result:
-        # do not timeout while reading (probably default anyway?)
-        ssh_channel.settimeout(None)
-        # read output until we get an EOF
-        command_output = ""
-        output_read = ssh_channel.recv(4096) # No do-while loops in Python? wth?
-        while len(output_read) > 0:
-            command_output += output_read
-            output_read = ssh_channel.recv(4096)
+        try:
+            # open SSH channel
+            ssh_channel = ssh_transport.open_session()
             
-        # retrieve exit code
-        command_exit_status = ssh_channel.recv_exit_status() # side effect: waits until command has finished
-        
-        ssh_channel.close()
-        #self.ssh_transport.close()
-        
-        return (command_exit_status, command_output)            
+            # issue the command to the node
+            ssh_channel.exec_command(command)
+            
+            # read back command result:
+            # do not timeout while reading (probably default anyway?)
+            ssh_channel.settimeout(None)
+            # read output until we get an EOF
+            command_output = ""
+            output_read = ssh_channel.recv(4096) # No do-while loops in Python? wth?
+            while len(output_read) > 0:
+                command_output += output_read
+                output_read = ssh_channel.recv(4096)
+                
+            # retrieve exit code
+            command_exit_status = ssh_channel.recv_exit_status() # side effect: waits until command has finished
+            
+            ssh_channel.close()
+            #self.ssh_transport.close()
+            
+            return (command_exit_status, command_output)
+        except (IOError, paramiko.SSHException) as e:
+            self.ssh_transport = None
+            if retry:
+                return self.run_command(command, retry=False)
+            else:
+                raise e
            
         
-    def put_file(self, local_path, destination_path):
-        # open SFTP session
-        #ssh_transport = paramiko.Transport((self.hostname, self.port))
-        #ssh_transport.use_compression()
-        #ssh_transport.connect(username=self.username, pkey=self.private_ssh_key)
+    def put_file(self, local_path, destination_path, retry = True):
         ssh_transport = self.get_transport()
-        sftp_session = paramiko.SFTPClient.from_transport(ssh_transport)
         
-        # do the operation
-        sftp_session.put(local_path, destination_path)
+        try:
+            # open SFTP session
+            sftp_session = paramiko.SFTPClient.from_transport(ssh_transport)
         
-        sftp_session.close()
-        #ssh_transport.close()
+            # do the operation
+            sftp_session.put(local_path, destination_path)
+        
+            sftp_session.close()
+        except (IOError, paramiko.SSHException) as e:
+            self.ssh_transport = None
+            if retry:
+                return self.put_file(local_path, destination_path, retry=False)
+            else:
+                raise e
         
         
-    def get_file(self, remote_path, destination_path):
-        # open SFTP session
-        #ssh_transport = paramiko.Transport((self.hostname, self.port))
-        #ssh_transport.use_compression()
-        #ssh_transport.connect(username=self.username, pkey=self.private_ssh_key)
+    def get_file(self, remote_path, destination_path, retry = True):        
         ssh_transport = self.get_transport()
-        sftp_session = paramiko.SFTPClient.from_transport(ssh_transport)
         
-        # do the operation
-        sftp_session.get(remote_path, destination_path)
+        try:
+            # open SFTP session
+            sftp_session = paramiko.SFTPClient.from_transport(ssh_transport)
+            
+            # do the operation
+            sftp_session.get(remote_path, destination_path)
+            
+            sftp_session.close()
+        except (IOError, paramiko.SSHException) as e:
+            self.ssh_transport = None
+            if retry:
+                return self.get_file(remote_path, destination_path, retry=False)
+            else:
+                raise e
         
-        sftp_session.close()
-        #ssh_transport.close()
         
-        
-    def put_directory(self, local_path, destination_path):
-        # open SFTP session
-        #ssh_transport = paramiko.Transport((self.hostname, self.port))
-        #ssh_transport.use_compression()
-        #ssh_transport.connect(username=self.username, pkey=self.private_ssh_key)
+    def put_directory(self, local_path, destination_path, retry = True):
         ssh_transport = self.get_transport()
-        sftp_session = paramiko.SFTPClient.from_transport(ssh_transport)
+    
+        try:
+            # open SFTP session    
+            sftp_session = paramiko.SFTPClient.from_transport(ssh_transport)
+            
+            # do the operation
+            for root, dirs, files in os.walk(local_path):
+                for name in files:
+                    sftp_session.put(os.path.join(root, name), os.path.join(destination_path + root[len(local_path):], name))
+                    sftp_session.chmod(os.path.join(destination_path + root[len(local_path):], name), os.stat(os.path.join(root, name))[ST_MODE])
+                for name in dirs:
+                    #print "mk remote dir %s" % os.path.join(destination_path + root[len(local_path):], name)
+                    sftp_session.mkdir(os.path.join(destination_path + root[len(local_path):], name))
+            
+            sftp_session.close()
+        except (IOError, paramiko.SSHException) as e:
+            self.ssh_transport = None
+            if retry:
+                return self.put_directory(local_path, destination_path, retry=False)
+            else:
+                raise e
         
-        # do the operation
-        for root, dirs, files in os.walk(local_path):
-            for name in files:
-                sftp_session.put(os.path.join(root, name), os.path.join(destination_path + root[len(local_path):], name))
-                sftp_session.chmod(os.path.join(destination_path + root[len(local_path):], name), os.stat(os.path.join(root, name))[ST_MODE])
-            for name in dirs:
-                #print "mk remote dir %s" % os.path.join(destination_path + root[len(local_path):], name)
-                sftp_session.mkdir(os.path.join(destination_path + root[len(local_path):], name))
         
-        sftp_session.close()
-        #ssh_transport.close()
-        
-        
-    def make_directory(self, remote_path):
-        # open SFTP session
-        #ssh_transport = paramiko.Transport((self.hostname, self.port))
-        #ssh_transport.connect(username=self.username, pkey=self.private_ssh_key)
+    def make_directory(self, remote_path, retry = True):
         ssh_transport = self.get_transport()
-        sftp_session = paramiko.SFTPClient.from_transport(ssh_transport)
-        
-        # do the operation
-        sftp_session.mkdir(remote_path)
-        
-        sftp_session.close()
-        #ssh_transport.close()
+
+        try:
+            # open SFTP session
+            sftp_session = paramiko.SFTPClient.from_transport(ssh_transport)
+            
+            # do the operation
+            sftp_session.mkdir(remote_path)
+            
+            sftp_session.close()
+        except (IOError, paramiko.SSHException) as e:
+            self.ssh_transport = None
+            if retry:
+                return self.make_directory(remote_path, retry=False)
+            else:
+                raise e
         
         
     def make_directory_recursively(self, remote_path):
@@ -213,10 +251,11 @@ class TestingNode:
 def create_testing_nodes_from_reservation():
     global testing_nodes
     global testing_nodes_ec2_reservation
+    global testing_nodes_ec2_image_user_name
     global private_ssh_key_filename
     
     for instance in testing_nodes_ec2_reservation.instances:
-        new_testing_node = TestingNode(instance.public_dns_name, 22, "ec2-user", private_ssh_key_filename)
+        new_testing_node = TestingNode(instance.public_dns_name, 22, testing_nodes_ec2_image_user_name, private_ssh_key_filename)
         
         testing_nodes.append(new_testing_node)
 
@@ -224,6 +263,10 @@ def create_testing_nodes_from_reservation():
 
 def setup_testing_nodes():
     global testing_nodes
+    global use_local_retester
+    
+    if use_local_retester:
+        return
     
     atexit.register(terminate_testing_nodes)
 
@@ -398,11 +441,7 @@ def copy_basedata_to_testing_node(node):
 
 
 
-def copy_per_test_data_to_testing_node(node, test_reference, test_script):
-    # Create test directory
-    node.make_directory_recursively("cloud_retest")
-    node.make_directory("cloud_retest/%s" % test_reference) # TODO: This fails if the dir exists, which we should catch and handle gracefully (by assigning another reference)
-    
+def copy_per_test_data_to_testing_node(node, test_reference, test_script):    
     # Link build hierarchy
     command_result = node.run_command("ln -s %s cloud_retest/%s/build" % (node.global_build_path, test_reference))
     if command_result[0] != 0:
@@ -451,42 +490,72 @@ def start_test_on_node(node, test_command, test_timeout = None, locking_timeout 
         return False
     #print ("Got lock!")
     
-    # Initialize node if not happened before...
-    if node.basedata_installed == False:
-        copy_basedata_to_testing_node(node)
-    
-    test_script = str.split(test_command)[0] # TODO: Does not allow for white spaces in script file name
+    try:
+        # Initialize node if not happened before...
+        if node.basedata_installed == False:
+            copy_basedata_to_testing_node(node)
+        
+        test_script = str.split(test_command)[0] # TODO: Does not allow for white spaces in script file name
 
-    # Generate random reference
-    system_random = random.SystemRandom()
-    test_reference = "cloudtest_" + str(system_random.randint(10000000, 99999999))
-    print "Starting test with test reference %s on node %s" % (test_reference, node.hostname)
-    # TODO: Introduce safety check that this reference is not occupied, possibly generating another reference
-    
-    # Prepare for test...
-    copy_per_test_data_to_testing_node(node, test_reference, test_script)
-    # Store test_command and test_timeout into some files on the remote node for the wrapper script to pick it up
-    command_result = node.run_command("echo -n %s > cloud_retest/%s/test/test_command" % (test_command, test_reference))
-    if command_result[0] != 0:
-        print "Unable to store command"
-        # TODO: Throw an exception    
-    if test_timeout == None:
-        command_result = node.run_command("echo -n \"\" > cloud_retest/%s/test/test_timeout" % (test_reference))
-    else:
-        command_result = node.run_command("echo -n %i > cloud_retest/%s/test/test_timeout" % (test_timeout, test_reference))
-    if command_result[0] != 0:
-        print "Unable to store timeout"
-        # TODO: Throw an exception
-    
-    # Run test and release lock after it has finished
-    command_result = node.run_command("sh -c \"nohup sh -c \\\"(cd %s; LD_LIBRARY_PATH=/tmp/cloudtest_libs:$LD_LIBRARY_PATH PATH=/tmp/cloudtest_bin:$PATH PYTHONPATH=/tmp/cloudtest_python:$PYTHONPATH VALGRIND_LIB=/tmp/cloudtest_libs/valgrind python %s; %s)&\\\" > /dev/null 2> /dev/null\"" % ("cloud_retest/%s/test" % test_reference, wrapper_script_filename.replace(" ", "\\ "), node.get_release_lock_command()))
-    
+        # Generate random reference
+        system_random = random.SystemRandom()
+        test_reference = "cloudtest_" + str(system_random.randint(10000000, 99999999))
+        
+        # Create test directory and check that it isn't taken
+        directory_created = False
+        while not directory_created:
+            node.make_directory_recursively("cloud_retest")
+            try:
+                node.make_directory("cloud_retest/%s" % test_reference)
+                directory_created = True
+            except IOError:
+                directory_created = False
+                test_reference = "cloudtest_" + str(system_random.randint(10000000, 99999999)) # Try another reference
+        
+        print "Starting test with test reference %s on node %s" % (test_reference, node.hostname)
+        
+        # Prepare for test...
+        copy_per_test_data_to_testing_node(node, test_reference, test_script)
+        # Store test_command and test_timeout into files on the remote node for the wrapper script to pick it up
+        command_result = node.run_command("echo -n %s > cloud_retest/%s/test/test_command" % (test_command, test_reference))
+        if command_result[0] != 0:
+            print "Unable to store command"
+            # TODO: Throw an exception
+        command_result = node.run_command("echo -n %s > cloud_retest/%s/test/test_start_time_offset" % (test_command, str(time.clock())))
+        if command_result[0] != 0:
+            print "Unable to store start_time offset"
+            # TODO: Throw an exception
+        if test_timeout == None:
+            command_result = node.run_command("echo -n \"\" > cloud_retest/%s/test/test_timeout" % (test_reference))
+        else:
+            command_result = node.run_command("echo -n %i > cloud_retest/%s/test/test_timeout" % (test_timeout, test_reference))
+        if command_result[0] != 0:
+            print "Unable to store timeout"
+            # TODO: Throw an exception
+            
+        # Run test and release lock after it has finished
+        command_result = node.run_command("sh -c \"nohup sh -c \\\"(cd %s; LD_LIBRARY_PATH=/tmp/cloudtest_libs:$LD_LIBRARY_PATH PATH=/tmp/cloudtest_bin:$PATH PYTHONPATH=/tmp/cloudtest_python:$PYTHONPATH VALGRIND_LIB=/tmp/cloudtest_libs/valgrind python %s; %s)&\\\" > /dev/null 2> /dev/null\"" % ("cloud_retest/%s/test" % test_reference, wrapper_script_filename.replace(" ", "\\ "), node.get_release_lock_command()))
+            
+    except (IOError, paramiko.SSHException) as e:
+        print "Starting test failed: %s" % e
+        test_reference = "Failed"
+        
+        try:
+            node.release_lock()
+        except (IOError, paramiko.SSHException):
+            print "Unable to release lock on node %s. Node is now defunct." % node.hostname
+        
+            
     return (node, test_reference)
 
 
 def get_report_for_test(test_reference):
     node = test_reference[0]
-    result_start_time = float(node.run_command("cat cloud_retest/" + test_reference[1] + "/test/result_start_time")[1])
+    try:
+        result_start_time = float(node.run_command("cat cloud_retest/" + test_reference[1] + "/test/result_start_time")[1])
+    except ValueError:
+        print "Got invalid start_time for test %s" % test_reference[1]
+        result_start_time = 0.0
     result_result = node.run_command("cat cloud_retest/" + test_reference[1] + "/test/result_result")[1]
     result_description = node.run_command("cat cloud_retest/" + test_reference[1] + "/test/result_description")[1]
     if result_description == "":
@@ -532,10 +601,13 @@ def wait_for_nodes_to_finish():
     print "Waiting for testing nodes to finish"
     
     for node in testing_nodes:
-        node.acquire_lock()
-        node.release_lock()
+        try:
+            node.acquire_lock()
+            node.release_lock()
+        except (IOError, paramiko.SSHException) as e:
+            print "Node %s is broken" % node.hostname
 
-    
+
 def collect_reports_from_nodes():
     global testing_nodes
     global reports
@@ -546,17 +618,23 @@ def collect_reports_from_nodes():
     for test_reference in test_references:
         results = []
         for single_run in test_reference.single_runs:
-            results.append(get_report_for_test(single_run))
+            try:
+                results.append(get_report_for_test(single_run))
             
-            # Clean test (maybe preserve data instead?)
-            node = single_run[0]
-            node.run_command("rm -rf cloud_retest/%s" % test_reference)
+                # Clean test (maybe preserve data instead?)
+                node = single_run[0]
+                node.run_command("rm -rf cloud_retest/%s" % test_reference)
+            except (IOError, paramiko.SSHException) as e:
+                print "Unable to retrieve result for %s from node %s" % (single_run[1], single_run[0].hostname)
         
         reports.append((test_reference.command, results))
     
     # Clean node
     for node in testing_nodes:
-        cleanup_testing_node(node)
+        try:
+            cleanup_testing_node(node)
+        except (IOError, paramiko.SSHException) as e:
+            print "Unable to cleanup node %s: %s" % (node.hostname, e)
         
     terminate_testing_nodes()
 
@@ -572,6 +650,10 @@ atexit.register(terminate_testing_nodes)
 # returns as soon as all repetitions of the test have been issued to some testing node
 def do_test_cloud(cmd, cmd_args={}, cmd_format="gnu", repeat=1, timeout=60):
     global test_references
+    global use_local_retester
+    
+    if use_local_retester:
+        return do_test(cmd, cmd_args, cmd_format, repeat, timeout)
     
     # Build up the command line
     command = cmd
@@ -607,6 +689,10 @@ def do_test_cloud(cmd, cmd_args={}, cmd_format="gnu", repeat=1, timeout=60):
 
 # modified variant of plain retester function...
 def report_cloud():
+    global use_local_retester
+    if use_local_retester:
+        return report()
+
     wait_for_nodes_to_finish()
 
     # fill reports list

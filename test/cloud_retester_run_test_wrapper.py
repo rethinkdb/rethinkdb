@@ -66,6 +66,10 @@ def format_exit_code(code):
 
 # this is a modified variant of run_test() from retester...  
 
+try:
+    start_time_offset = float(open('test_start_time_offset', 'r').read())
+except ValueError:
+    start_time_offset = 0.0
 command = open('test_command', 'r').read()
 timeout = open('test_timeout', 'r').read()
 if timeout == "":
@@ -93,7 +97,7 @@ environ = dict(os.environ)
 environ["TMP"] = temp_dir
 environ["PYTHONUNBUFFERED"] = "1"
 
-start_time = time.clock()
+start_time = time.clock() + start_time_offset
 
 process = subprocess.Popen(
     command,

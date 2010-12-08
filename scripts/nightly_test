@@ -22,7 +22,8 @@ git pull
 
 # Run the tests
 export RETESTER_EMAIL_SENDER=buildbot@rethinkdb.com:allspark
-git test -b --revision HEAD --email all@rethinkdb.com --file /var/www/code.rethinkdb.com/htdocs/tests.html test/full_test_cloud.py
+export USE_CLOUD=false
+git test -b --revision HEAD --email all@rethinkdb.com --file /var/www/code.rethinkdb.com/htdocs/tests.html test/full_test.py
 
 # Remove the breakout file
 rm -f $BREAKOUT_FILE_NAME
