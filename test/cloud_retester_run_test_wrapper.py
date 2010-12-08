@@ -51,33 +51,6 @@ class SmartTemporaryFile(object):
     def __getattr__(self, name):
         return getattr(self.file, name)
 
-class SmartTemporaryDirectory(object):
-    """SmartTemporaryDirectory() creates a temporary directory and destroys it when the
-    SmartTemporaryDirectory object is garbage-collected."""
-    
-    def __init__(self, prefix = "u_"):
-        
-        self.path = tempfile.mkdtemp(prefix = "rt2_" + prefix)
-        assert os.path.isdir(self.path)
-        self.need_to_delete =True
-    
-    def take_dir(self):
-        """By calling take_dir(), the caller takes responsibility for destroying the temporary
-        directory."""
-        if not self.need_to_delete:
-            raise ValueError("take_dir() called twice.")
-        self.need_to_delete = False
-        return self.path
-    
-    def __del__(self):
-        if hasattr(self, "need_to_delete") and self.need_to_delete:
-            try:
-                shutil.rmtree(self.path)
-            except AttributeError:
-                # This is probably because shutil has been unloaded by
-                # now. Unfortunate that we won't get to delete the
-                # temp directory, but alas
-                pass
 
 def format_exit_code(code):
     """If the exit code is positive, return it in string form. If it is negative, try to figure out
@@ -113,9 +86,11 @@ output = SmartTemporaryFile()
 
 # Instruct the command to put any temp files in a new temporary directory in case it is bad at
 # cleaning up after itself
-temp_dir = SmartTemporaryDirectory(prefix = "tmp_")
+temp_dir = os.path.join(cwd, "tmp")
+if not os.path.isdir(temp_dir):
+    os.mkdir(temp_dir)
 environ = dict(os.environ)
-environ["TMP"] = temp_dir.path
+environ["TMP"] = temp_dir
 environ["PYTHONUNBUFFERED"] = "1"
 
 start_time = time.clock()
@@ -211,24 +186,10 @@ finally:
 
 output.close()
 
-if result[1] == "fail":
-    # Include the output directory with the error message
-    new_output_dir = SmartTemporaryDirectory("out_")
-    #result.output_dir = new_output_dir
-    
-    if os.path.isdir(output_dir):
-        # Replace the original directory that the SmartTemporaryDirectory created with our own
-        # directory, but the SmartTemporaryDirectory will still be responsible for deleting it
-        os.rmdir(new_output_dir.path)
-        os.rename(output_dir, new_output_dir.path)
-    
-    # Put the output from the command into said directory as well
-    os.rename(output.take_file(), os.path.join(new_output_dir.path, "test_output.txt"))
+# In difference to the local script, we keep the output dir on the node as it is per-test anyway.
+# Just move the test_output to there:
+os.rename(output.take_file(), os.path.join(output_dir, "test_output.txt"))
 
-else:
-    # Delete the output directory
-    if os.path.isdir(output_dir):
-        shutil.rmtree(output_dir)
     
     
 # store results

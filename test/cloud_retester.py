@@ -1,30 +1,29 @@
-# Note: start time output in report is currently broken
+# Note: the start time field in reports is currently broken
+import subprocess, shlex, signal, os, time, shutil, tempfile, sys, traceback, types, gitroot, random, atexit
+base_directory = os.path.dirname(os.path.join(os.getcwd(), sys.argv[0])) + "/../test"
 
 # Please configure these:
 
-testing_nodes_ec2_instance_type = "t1.micro" # TODO: Change to m1.large later?
-testing_nodes_ec2_count = 4 # number of nodes to spin up
+testing_nodes_ec2_instance_type = "m1.large" # m1.large / t1.micro
+testing_nodes_ec2_count = 5 # number of nodes to spin up
 testing_nodes_ec2_image_name = "ami-d40e5e91"
 testing_nodes_ec2_key_pair_name = "cloudtest_default"
 testing_nodes_ec2_security_group_name = "cloudtest_default"
-testing_nodes_ec2_region = "us-west-1"
+testing_nodes_ec2_region = "us-east-1"
 testing_nodes_ec2_access_key = "AKIAJUKUVO6J45QRZQKA"
 testing_nodes_ec2_private_key = "d9SiQpDD/YfGA2uC7CyqY7jmRoZg5utHM4pxTAhE" # TODO: Use environment variables instead?
 
-private_ssh_key_filename = "/home/daniel/default_ec2_private_key.pem" # TODO: ?
+private_ssh_key_filename = base_directory + "/east_ec2_private_key.pem"
 
-round_robin_locking_timeout = 1
+round_robin_locking_timeout = 2
 wrapper_script_filename = "cloud_retester_run_test_wrapper.py"
 
 # END of configuration options
 
 
-import subprocess, shlex, signal, os, time, shutil, tempfile, sys, traceback, types, gitroot, random, atexit
 from stat import *
 import paramiko # Using Paramiko for SSH2
 import boto, boto.ec2 # Using Boto for AWS commands
-
-base_directory = os.path.dirname(os.path.join(os.getcwd(), sys.argv[0])) + "/../test"
 
 from vcoptparse import *
 from retester import *
@@ -62,6 +61,8 @@ class TestingNode:
     
         system_random = random.SystemRandom()    
         self.global_build_path = "/tmp/cloudtest_build_" + str(system_random.randint(10000000, 99999999));
+        self.global_bench_path = "/tmp/cloudtest_bench_" + str(system_random.randint(10000000, 99999999));
+        self.global_test_path = "/tmp/cloudtest_test_" + str(system_random.randint(10000000, 99999999));
         #print "Installing build into %s\n" % self.global_build_path
         
         self.basedata_installed = False
@@ -78,14 +79,12 @@ class TestingNode:
             return self.ssh_transport
     
         # open SSH transport
-        print "Opening connection to " + self.hostname
         self.ssh_transport = paramiko.Transport((self.hostname, self.port))
         self.ssh_transport.use_compression()
         self.ssh_transport.set_keepalive(60)
         self.ssh_transport.connect(username=self.username, pkey=self.private_ssh_key)
-        print "Got connection"
         
-        return self.ssh_transport
+        return self.ssh_transport        
         
     
     # returns a tupel (return code, output)
@@ -263,8 +262,8 @@ def start_testing_nodes():
     
     create_testing_nodes_from_reservation()
     
-    # Give it another 70 seconds to start up...
-    time.sleep(70)
+    # Give it another 90 seconds to start up...
+    time.sleep(90)
     
     # Check that all testing nodes are up
     for node in testing_nodes:
@@ -298,19 +297,61 @@ def terminate_testing_nodes():
     
 def cleanup_testing_node(node):
     node.run_command("rm -rf " + node.global_build_path)
+    node.run_command("rm -rf " + node.global_bench_path)
+    node.run_command("rm -rf " + node.global_test_path)
     
+    
+def scp_basedata_to_testing_node(source_node, target_node):    
+    # Put private SSH key to source_node...
+    source_node.run_command("rm -f private_ssh_key.pem")
+    source_node.put_file(private_ssh_key_filename, "private_ssh_key.pem")
+    command_result = source_node.run_command("chmod 500 private_ssh_key.pem")
+    if command_result[0] != 0:
+        print "Unable to change access mode of private SSH key on remote node"
+        
+    # Scp stuff to target node
+    for path_to_copy in [("/tmp/cloudtest_libs", "/tmp/cloudtest_libs"), ("/tmp/cloudtest_bin", "/tmp/cloudtest_bin"), ("/tmp/cloudtest_python", "/tmp/cloudtest_python"), (source_node.global_build_path, target_node.global_build_path), (source_node.global_bench_path, target_node.global_bench_path), (source_node.global_test_path, target_node.global_test_path)]:
+        command_result = source_node.run_command("scp -r -C -q -o stricthostkeychecking=no -P %i -i private_ssh_key.pem %s %s@%s:%s" % (target_node.port, path_to_copy[0], target_node.username, target_node.hostname, path_to_copy[1]))
+        if command_result[0] != 0:
+            print "Failed using scp to copy data from %s to %s" % (source_node.hostname, target_node.hostname)
+            
+    target_node.basedata_installed = True
+
     
 def copy_basedata_to_testing_node(node):
+    global testing_nodes
+
     print "Sending base data to node %s" % node.hostname
+    
+    # Check if we can use scp_basedata_to_testing_node instead:
+    for source_node in testing_nodes:
+        if source_node.basedata_installed:
+            print "Scp-ing base data from source node " + source_node.hostname
+            scp_basedata_to_testing_node(source_node, node)
+            return
+            
     
     # TODO: All these static (source) paths are really ugly. Is there a more elegant way?
     node.make_directory_recursively("/tmp/cloudtest_libs")
     node.put_file("/usr/local/lib/libtcmalloc_minimal.so.0", "/tmp/cloudtest_libs/libtcmalloc_minimal.so.0")
     node.put_file("/usr/local/lib/libmemcached.so.5", "/tmp/cloudtest_libs/libmemcached.so.5")
+    node.put_file("/usr/local/lib/libmemcached.so.6", "/tmp/cloudtest_libs/libmemcached.so.6")
+    node.make_directory_recursively("/tmp/cloudtest_libs/valgrind")
+    for valgrind_file in ["vgpreload_memcheck-amd64-linux.so", "vgpreload_core-amd64-linux.so", "memcheck-amd64-linux", "default.supp"]:
+        node.put_file("/usr/lib/valgrind/" + valgrind_file, "/tmp/cloudtest_libs/valgrind/" + valgrind_file)
+    command_result = node.run_command("chmod +x /tmp/cloudtest_libs/valgrind/*-amd64-linux")
+    if command_result[0] != 0:
+        print "Unable to make valgrind files executable"
+    # extend suppression file for EC2 images...
+    command_result = node.run_command("echo -n -e '\n{\n  General dynamic linker\n  Memcheck:Cond\n  obj:/lib64/ld-2.*\n}' >> /tmp/cloudtest_libs/valgrind/default.supp")
+    if command_result[0] != 0:
+        print "Unable to extend valgrind suppression file"
+    #node.put_directory("/usr/lib/valgrind", "/tmp/cloudtest_libs/valgrind")
     
     node.make_directory_recursively("/tmp/cloudtest_bin")
     node.put_file("/usr/local/bin/netrecord", "/tmp/cloudtest_bin/netrecord")
     node.put_file("/usr/bin/valgrind", "/tmp/cloudtest_bin/valgrind")
+    node.put_file("/usr/bin/valgrind.bin", "/tmp/cloudtest_bin/valgrind.bin")
     command_result = node.run_command("chmod +x /tmp/cloudtest_bin/*")
     if command_result[0] != 0:
         print "Unable to make cloudtest_bin files executable"
@@ -321,10 +362,34 @@ def copy_basedata_to_testing_node(node):
     node.put_file("/usr/local/lib/python2.6/dist-packages/pylibmc.py", "/tmp/cloudtest_python/pylibmc.py")
     node.put_file("/usr/local/lib/python2.6/dist-packages/_pylibmc.so", "/tmp/cloudtest_python/_pylibmc.so")
     
-    # Recursively copy build hierarchy
-    # TODO: Maybe not copy all of it, especially leave obj subdirs out...
+    # Copy build hierarchy
     node.make_directory(node.global_build_path)
-    node.put_directory(base_directory + "/../build", node.global_build_path)
+    #node.put_directory(base_directory + "/../build", node.global_build_path)
+    # Just copy essential files to save time...
+    for config in ["debug", "debug-valgrind", "release", "release-valgrind"]:
+        node.make_directory(node.global_build_path + "/" + config)
+        node.put_file(base_directory + "/../build/" + config + "/rethinkdb", node.global_build_path + "/" + config + "/rethinkdb")
+        node.put_file(base_directory + "/../build/" + config + "/rethinkdb-extract", node.global_build_path + "/" + config + "/rethinkdb-extract")
+        #node.put_file(base_directory + "/../build/" + config + "/rethinkdb-fsck", node.global_build_path + "/" + config + "/rethinkdb-fsck")
+        command_result = node.run_command("chmod +x " + node.global_build_path + "/" + config + "/*")
+        if command_result[0] != 0:
+            print "Unable to make rethinkdb executable"
+        
+    # Copy benchmark stuff
+    node.make_directory(node.global_bench_path)
+    node.make_directory(node.global_bench_path + "/stress-client")
+    node.put_file(base_directory + "/../bench/stress-client/stress", node.global_bench_path + "/stress-client/stress")
+    command_result = node.run_command("chmod +x " + node.global_bench_path + "/*/*")
+    if command_result[0] != 0:
+        print "Unable to make bench files executable"
+        
+    # Copy test hierarchy
+    node.make_directory(node.global_test_path)
+    node.make_directory(node.global_test_path + "/integration")
+    node.put_directory(base_directory + "/integration", node.global_test_path + "/integration")
+    
+    # Install the wrapper script
+    node.put_file(base_directory + "/" + wrapper_script_filename, "%s/%s" % (node.global_test_path, wrapper_script_filename));
     
     node.basedata_installed = True
     
@@ -335,29 +400,43 @@ def copy_per_test_data_to_testing_node(node, test_reference, test_script):
     node.make_directory_recursively("cloud_retest")
     node.make_directory("cloud_retest/%s" % test_reference) # TODO: This fails if the dir exists, which we should catch and handle gracefully (by assigning another reference)
     
-    # Link buil hierarchy
+    # Link build hierarchy
     command_result = node.run_command("ln -s %s cloud_retest/%s/build" % (node.global_build_path, test_reference))
     if command_result[0] != 0:
         print "Unable to link build environment"
         # TODO: Throw an exception
+        
+    # Link bench hierarchy
+    command_result = node.run_command("ln -s %s cloud_retest/%s/bench" % (node.global_bench_path, test_reference))
+    if command_result[0] != 0:
+        print "Unable to link bench environment"
+        # TODO: Throw an exception
+    
+    # copy over the global test hierarchy
+    node.make_directory_recursively("cloud_retest/%s/test" % test_reference)    
+    command_result = node.run_command("cp -af %s/* cloud_retest/%s/test" % (node.global_test_path, test_reference))
+    if command_result[0] != 0:
+        print "Unable to copy test environment"
+    
+    # Note: the following commented part is deprecated, as we install all tests as part of the base data (which is faster)
     
     # Create test and test/integration subdirectory
-    node.make_directory("cloud_retest/%s/test" % test_reference)
-    node.make_directory("cloud_retest/%s/test/integration" % test_reference)
+    #node.make_directory_recursively("cloud_retest/%s/test/integration" % test_reference)    
     
     # copy common python files to there
-    node.put_file(base_directory + "/integration/test_common.py", "cloud_retest/%s/test/integration/test_common.py" % test_reference)
-    node.put_file(base_directory + "/integration/corrupter.py", "cloud_retest/%s/test/integration/corrupter.py" % test_reference)
+    #node.put_file(base_directory + "/integration/test_common.py", "cloud_retest/%s/test/integration/test_common.py" % test_reference)
+    #node.put_file(base_directory + "/integration/corrupter.py", "cloud_retest/%s/test/integration/corrupter.py" % test_reference)
+    #node.put_file(base_directory + "/integration/serial_mix.py", "cloud_retest/%s/test/integration/serial_mix.py" % test_reference)
     
     # copy test_script to there
     # TODO: if test_script is not in test/integration, create the correct directory and copy into there
-    node.put_file(base_directory + "/" + test_script, "cloud_retest/%s/test/%s" % (test_reference, test_script))
-    command_result = node.run_command("chmod +x cloud_retest/%s/test/%s" % (test_reference, test_script))
-    if command_result[0] != 0:
-        print "Unable to make test script executable"
+    #node.put_file(base_directory + "/" + test_script, "cloud_retest/%s/test/%s" % (test_reference, test_script))
+    #command_result = node.run_command("chmod +x cloud_retest/%s/test/%s" % (test_reference, test_script))
+    #if command_result[0] != 0:
+    #    print "Unable to make test script executable"
     
     # Install the wrapper script
-    node.put_file(base_directory + "/" + wrapper_script_filename, "cloud_retest/%s/test/%s" % (test_reference, wrapper_script_filename));
+    #node.put_file(base_directory + "/" + wrapper_script_filename, "cloud_retest/%s/test/%s" % (test_reference, wrapper_script_filename));
     
 def start_test_on_node(node, test_command, test_timeout = None, locking_timeout = 0):
     if locking_timeout == None:
@@ -396,9 +475,10 @@ def start_test_on_node(node, test_command, test_timeout = None, locking_timeout 
         # TODO: Throw an exception
     
     # Run test and release lock after it has finished
-    node.run_command("sh -c \"nohup sh -c \\\"(cd %s; LD_LIBRARY_PATH=/tmp/cloudtest_libs:$LD_LIBRARY_PATH PATH=/tmp/cloudtest_bin:$PATH PYTHONPATH=/tmp/cloudtest_python:$PYTHONPATH python %s; %s)&\\\"\"" % ("cloud_retest/%s/test" % test_reference, wrapper_script_filename.replace(" ", "\\ "), node.get_release_lock_command()))
+    command_result = node.run_command("sh -c \"nohup sh -c \\\"(cd %s; LD_LIBRARY_PATH=/tmp/cloudtest_libs:$LD_LIBRARY_PATH PATH=/tmp/cloudtest_bin:$PATH PYTHONPATH=/tmp/cloudtest_python:$PYTHONPATH VALGRIND_LIB=/tmp/cloudtest_libs/valgrind python %s; %s)&\\\" > /dev/null 2> /dev/null\"" % ("cloud_retest/%s/test" % test_reference, wrapper_script_filename.replace(" ", "\\ "), node.get_release_lock_command()))
     
     return (node, test_reference)
+
 
 def get_report_for_test(test_reference):
     node = test_reference[0]
@@ -408,9 +488,19 @@ def get_report_for_test(test_reference):
     if result_description == "":
         result_description = None
     
-    # TODO: Collect additional results (maybe change wrapper not to use a different tmp dir for output?)
+    result = Result(result_start_time, result_result, result_description)
     
-    return Result(result_start_time, result_result, result_description)
+    # Collect a few additional results into a temporary directory
+    result.output_dir = SmartTemporaryDirectory("out_")
+    for file_name in ["server_output.txt", "creator_output.txt", "test_output.txt"]:
+        command_result = node.run_command("cat cloud_retest/" + test_reference[1] + "/test/output_from_test/" + file_name)
+        if command_result[0] == 0:
+            open(result.output_dir.path + "/" + file_name, 'w').write(command_result[1])
+    
+    # TODO: Also fetch network logs if any?    
+    
+    return result
+    
     
 def issue_test_to_some_node(test_command, test_timeout = 0):
     global testing_nodes
@@ -435,6 +525,8 @@ def issue_test_to_some_node(test_command, test_timeout = 0):
 def wait_for_nodes_to_finish():
     global testing_nodes
     
+    print "Waiting for testing nodes to finish"
+    
     for node in testing_nodes:
         node.acquire_lock()
         node.release_lock()
@@ -443,6 +535,8 @@ def collect_reports_from_nodes():
     global testing_nodes
     global reports
     global test_references
+    
+    print "Collecting reports"
     
     for test_reference in test_references:
         results = []
@@ -508,6 +602,8 @@ def do_test_cloud(cmd, cmd_args={}, cmd_format="gnu", repeat=1, timeout=60):
 
 # modified variant of plain retester function...
 def report_cloud():
+    wait_for_nodes_to_finish()
+
     # fill reports list
     collect_reports_from_nodes()
 
