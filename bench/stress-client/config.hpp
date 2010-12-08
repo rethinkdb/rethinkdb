@@ -14,6 +14,8 @@
 #define KEY_COL_NAME "key"
 #define VAL_COL_NAME "val"
 
+#define RELIABILITY 100 /* every RELIABILITYth key is put in the sqlite backup */
+
 #define MAX_VALUE_SIZE (1024*1024)
 
 

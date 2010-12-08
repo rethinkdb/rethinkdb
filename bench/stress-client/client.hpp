@@ -221,14 +221,14 @@ void* run_client(void* data) {
                 break;
 
             config->keys.toss(op_keys, client_data->min_seed ^ id_salt);
-            client_data->min_seed++;
 
             // Delete it from the server
             proto->remove(op_keys->first, op_keys->second);
-            if (sqlite)
+            if (sqlite && (client_data->min_seed % RELIABILITY) == 0)
                 sqlite->remove(op_keys->first, op_keys->second);
 
-            //clean up the memory
+            client_data->min_seed++;
+
             qps++;
             total_queries++;
             total_deletes++;
@@ -246,7 +246,10 @@ void* run_client(void* data) {
 
             // Send it to server
             proto->update(op_keys->first, op_keys->second, op_vals[0].first, op_vals[0].second);
-            sqlite->update(op_keys->first, op_keys->second, op_vals[0].first, op_vals[0].second);
+
+            if (sqlite && (keyn % RELIABILITY) == 0)
+                sqlite->update(op_keys->first, op_keys->second, op_vals[0].first, op_vals[0].second);
+
             // Free the value
             qps++;
             total_queries++;
@@ -257,10 +260,14 @@ void* run_client(void* data) {
             config->keys.toss(op_keys, client_data->max_seed ^ id_salt);
             op_vals[0].second = seeded_random(config->values.min, config->values.max, client_data->max_seed ^ id_salt);
 
-            client_data->max_seed++;
             // Send it to server
             proto->insert(op_keys->first, op_keys->second, op_vals[0].first, op_vals[0].second);
-            sqlite->insert(op_keys->first, op_keys->second, op_vals[0].first, op_vals[0].second);
+
+            if (sqlite && (client_data->max_seed % RELIABILITY) == 0)
+                sqlite->insert(op_keys->first, op_keys->second, op_vals[0].first, op_vals[0].second);
+
+            client_data->max_seed++;
+
             // Free the value and save the key
             qps++;
             total_queries++;
@@ -283,8 +290,6 @@ void* run_client(void* data) {
             }
             // Read it from the server
             proto->read(&op_keys[0], j);
-            if (sqlite)
-                sqlite->read(&op_keys[0], j);
 
             qps += j;
             total_queries += j;
@@ -300,7 +305,7 @@ void* run_client(void* data) {
             op_vals[0].second = seeded_random(config->values.min, config->values.max, client_data->max_seed ^ id_salt);
 
             proto->append(op_keys->first, op_keys->second, op_vals->first, op_vals->second);
-            if (sqlite)
+            if (sqlite && (keyn % RELIABILITY) == 0)
                 sqlite->append(op_keys->first, op_keys->second, op_vals->first, op_vals->second);
 
             qps++;
@@ -318,7 +323,7 @@ void* run_client(void* data) {
             op_vals[0].second = seeded_random(config->values.min, config->values.max, client_data->max_seed ^ id_salt);
 
             proto->prepend(op_keys->first, op_keys->second, op_vals->first, op_vals->second);
-            if (sqlite)
+            if (sqlite && (keyn % RELIABILITY) == 0)
                 sqlite->prepend(op_keys->first, op_keys->second, op_vals->first, op_vals->second);
 
             qps++;
