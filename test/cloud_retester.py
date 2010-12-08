@@ -366,17 +366,17 @@ def copy_basedata_to_testing_node(node):
     
     # Copy build hierarchy
     node.make_directory(node.global_build_path)
-    node.put_directory(base_directory + "/../build", node.global_build_path)
-    
+    #node.put_directory(base_directory + "/../build", node.global_build_path)
     # Just copy essential files to save time...
-    #for config in ["debug", "debug-valgrind", "release", "release-valgrind"]:
-    #    node.make_directory(node.global_build_path + "/" + config)
-    #    node.put_file(base_directory + "/../build/" + config + "/rethinkdb", node.global_build_path + "/" + config + "/rethinkdb")
-    #    node.put_file(base_directory + "/../build/" + config + "/rethinkdb-extract", node.global_build_path + "/" + config + "/rethinkdb-extract")
-    #    #node.put_file(base_directory + "/../build/" + config + "/rethinkdb-fsck", node.global_build_path + "/" + config + "/rethinkdb-fsck")
-    #    command_result = node.run_command("chmod +x " + node.global_build_path + "/" + config + "/*")
-    #    if command_result[0] != 0:
-    #        print "Unable to make rethinkdb executable"
+    for config in io.listdir(base_directory + "/../build"):
+        if os.path.isdir(base_directory + "/../build/" + config):
+            node.make_directory(node.global_build_path + "/" + config)
+            node.put_file(base_directory + "/../build/" + config + "/rethinkdb", node.global_build_path + "/" + config + "/rethinkdb")
+            node.put_file(base_directory + "/../build/" + config + "/rethinkdb-extract", node.global_build_path + "/" + config + "/rethinkdb-extract")
+            #node.put_file(base_directory + "/../build/" + config + "/rethinkdb-fsck", node.global_build_path + "/" + config + "/rethinkdb-fsck")
+            command_result = node.run_command("chmod +x " + node.global_build_path + "/" + config + "/*")
+            if command_result[0] != 0:
+                print "Unable to make rethinkdb executable"
         
     # Copy benchmark stuff
     node.make_directory(node.global_bench_path)
