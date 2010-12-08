@@ -8,8 +8,11 @@
 #include "arch/arch.hpp"
 
 void generic_crash_handler(int signum) {
-    fprintf(stderr, "Signum: %d\n", signum);
-    fail("Internal crash detected.");
+    if (signum == SIGSEGV) {
+        fail("Segmentation fault.");
+    } else {
+        fail("Unexpected signal: %d\n", signum);
+    }
 }
 
 void ignore_crash_handler(int signum) {}
@@ -36,12 +39,13 @@ int sized_strcmp(const char *str1, int len1, const char *str2, int len2) {
     return res;
 }
 
-void print_hd(const void *buf, size_t offset, size_t length) {
-    
+void print_hd(const void *vbuf, size_t offset, size_t ulength) {
+
     flockfile(stderr);
-    
-    size_t count = 0;
-    char *_buf = (char*)buf;
+
+    const char *buf = (const char *)vbuf;
+    ssize_t length = ulength;
+
     char bd_sample[16] = { 0xBD, 0xBD, 0xBD, 0xBD, 0xBD, 0xBD, 0xBD, 0xBD, 
                            0xBD, 0xBD, 0xBD, 0xBD, 0xBD, 0xBD, 0xBD, 0xBD };
     char zero_sample[16] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
@@ -49,61 +53,38 @@ void print_hd(const void *buf, size_t offset, size_t length) {
     char ff_sample[16] = { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 
                            0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
 
-    int line = 0;
-    bool skip_last = false;
-    while(1) {
-        // Check a line for bds
-        bool skip = memcmp(_buf + count, bd_sample, 16) == 0 ||
-                    memcmp(_buf + count, zero_sample, 16) == 0 ||
-                    memcmp(_buf + count, ff_sample, 16) == 0;
-        
-        // Print a line
-        if(!skip) {
-            // print the current offset
-            fprintf(stderr, "%.8x  ", (unsigned int)(offset + count));
+    bool skipped_last = false;
+    while (length > 0) {
 
-            skip_last = false;
-            for(int j = 0; j < 2; j++) {
-                // Print a column
-                for(int i = 0; i < 8; i++) {
-                    fprintf(stderr, "%.2hhx ", _buf[count]);
-                    count++;
-                    if(count >= length) {
-                        fprintf(stderr, "\n");
-                        funlockfile(stderr);
-                        return;
-                    }
-                }
-                fprintf(stderr, " ");
-            }
-            // Print a char representation
-            fprintf(stderr, "|");
-            for(int i = 0; i < 16; i++) {
-                char c = _buf[count - 16 + i];
-                if(isprint(c))
-                    fprintf(stderr, "%c", c);
-                else
-                    fprintf(stderr, ".");
-            }
-            fprintf(stderr, "|\n");
-            line++;
-            if(line == 8) {
-                fprintf(stderr, "\n");
-                line = 0;
-            }
+        bool skip = memcmp(buf, bd_sample, 16) == 0 ||
+                    memcmp(buf, zero_sample, 16) == 0 ||
+                    memcmp(buf, ff_sample, 16) == 0;
+        if (skip) {
+            if (!skipped_last) fprintf(stderr, "*\n");
         } else {
-            if(!skip_last) {
-                skip_last = true;
-                fprintf(stderr, "*\n");
+            fprintf(stderr, "%.8x  ", (unsigned int)offset);
+            for (int i = 0; i < 16; i++) {
+                if (i < (int)length) fprintf(stderr, "%.2hhx ", buf[i]);
+                else fprintf(stderr, "   ");
             }
-            count += 16;
-            if(count >= length) {
-                fprintf(stderr, "\n");
-                funlockfile(stderr);
-                return;
+            fprintf(stderr, "| ");
+            for (int i = 0; i < 16; i++) {
+                if (i < (int)length) {
+                    if (isprint(buf[i])) fputc(buf[i], stderr);
+                    else fputc('.', stderr);
+                } else {
+                    fputc(' ', stderr);
+                }
             }
+            fprintf(stderr, "\n");
         }
+        skipped_last = skip;
+
+        offset += 16;
+        buf += 16;
+        length -= 16;
     }
-    
+
     funlockfile(stderr);
 }
+

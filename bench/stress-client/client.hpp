@@ -7,6 +7,7 @@
 #include "sqlite_protocol.hpp"
 #include <stdint.h>
 #include "sqlite3.h"
+#include "assert.h"
 
 #define update_salt 6830
 
@@ -185,7 +186,8 @@ void* run_client(void* data) {
     shared_t *shared = client_data->shared;
     protocol_t *proto = client_data->proto;
     sqlite_protocol_t *sqlite = client_data->sqlite;
-    sqlite->set_id(client_data->id);
+    if(sqlite)
+        sqlite->set_id(client_data->id);
 
     // Perform the ops
     ticks_t last_time = get_ticks(), start_time = last_time, last_qps_time = last_time, now_time;
@@ -209,7 +211,11 @@ void* run_client(void* data) {
         for (int i = 0; i < config->batch_factor.max; i++)
             op_vals[i].first = shared->value_buf;
 
+        char val_verifcation_buffer[MAX_VALUE_SIZE];
+        char *old_val_buffer;
+
         int j, k, l; // because we can't declare in the loop
+        int count;
         int keyn; //same deal
         uint64_t id_salt = client_data->id;
         id_salt += id_salt << 40;
@@ -221,14 +227,14 @@ void* run_client(void* data) {
                 break;
 
             config->keys.toss(op_keys, client_data->min_seed ^ id_salt);
-            client_data->min_seed++;
 
             // Delete it from the server
             proto->remove(op_keys->first, op_keys->second);
-            if (sqlite)
+            if (sqlite && (client_data->min_seed % RELIABILITY) == 0)
                 sqlite->remove(op_keys->first, op_keys->second);
 
-            //clean up the memory
+            client_data->min_seed++;
+
             qps++;
             total_queries++;
             total_deletes++;
@@ -246,7 +252,10 @@ void* run_client(void* data) {
 
             // Send it to server
             proto->update(op_keys->first, op_keys->second, op_vals[0].first, op_vals[0].second);
-            sqlite->update(op_keys->first, op_keys->second, op_vals[0].first, op_vals[0].second);
+
+            if (sqlite && (keyn % RELIABILITY) == 0)
+                sqlite->update(op_keys->first, op_keys->second, op_vals[0].first, op_vals[0].second);
+
             // Free the value
             qps++;
             total_queries++;
@@ -257,10 +266,14 @@ void* run_client(void* data) {
             config->keys.toss(op_keys, client_data->max_seed ^ id_salt);
             op_vals[0].second = seeded_random(config->values.min, config->values.max, client_data->max_seed ^ id_salt);
 
-            client_data->max_seed++;
             // Send it to server
             proto->insert(op_keys->first, op_keys->second, op_vals[0].first, op_vals[0].second);
-            sqlite->insert(op_keys->first, op_keys->second, op_vals[0].first, op_vals[0].second);
+
+            if (sqlite && (client_data->max_seed % RELIABILITY) == 0)
+                sqlite->insert(op_keys->first, op_keys->second, op_vals[0].first, op_vals[0].second);
+
+            client_data->max_seed++;
+
             // Free the value and save the key
             qps++;
             total_queries++;
@@ -283,13 +296,12 @@ void* run_client(void* data) {
             }
             // Read it from the server
             proto->read(&op_keys[0], j);
-            if (sqlite)
-                sqlite->read(&op_keys[0], j);
 
             qps += j;
             total_queries += j;
             break;
         case load_t::append_op:
+            //TODO, this doesn't check if we'll be making the value too big. Gotta check for that.
             //Find the key
             if (client_data->min_seed == client_data->max_seed)
                 break;
@@ -300,7 +312,7 @@ void* run_client(void* data) {
             op_vals[0].second = seeded_random(config->values.min, config->values.max, client_data->max_seed ^ id_salt);
 
             proto->append(op_keys->first, op_keys->second, op_vals->first, op_vals->second);
-            if (sqlite)
+            if (sqlite && (keyn % RELIABILITY) == 0)
                 sqlite->append(op_keys->first, op_keys->second, op_vals->first, op_vals->second);
 
             qps++;
@@ -318,12 +330,43 @@ void* run_client(void* data) {
             op_vals[0].second = seeded_random(config->values.min, config->values.max, client_data->max_seed ^ id_salt);
 
             proto->prepend(op_keys->first, op_keys->second, op_vals->first, op_vals->second);
-            if (sqlite)
+            if (sqlite && (keyn % RELIABILITY) == 0)
                 sqlite->prepend(op_keys->first, op_keys->second, op_vals->first, op_vals->second);
 
             qps++;
             total_queries++;
             break;
+        case load_t::verify_op:
+            /* this is a very expensive operation it will first do a very
+             * expensive operation on the SQLITE reference db and then it will
+             * do several queries on the db that's being stressed (and only add
+             * 1 total query), it does not make sense to use this as part of a
+             * benchmarking run */
+            
+            // we can't do anything without a reference
+            if (!sqlite)
+                break;
+
+            count = sqlite->count();
+
+            /* this is hacky but whatever */
+            old_val_buffer = op_vals[0].first;
+            op_vals[0].first = val_verifcation_buffer;
+            op_vals[0].second = 0;
+
+            for (k = 0; k < count; k++) {
+                sqlite->read_into(op_keys, op_vals, k);
+                proto->read(op_keys, k, op_vals);
+            }
+
+            op_vals[0].first = old_val_buffer;
+
+            qps++;
+            total_queries++;
+            break;
+        default:
+            fprintf(stderr, "Uknown operation\n");
+            exit(-1);
         };
         now_time = get_ticks();
 

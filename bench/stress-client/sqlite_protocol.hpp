@@ -6,6 +6,9 @@
 #include <vector>
 #include "protocol.hpp"
 #include "sqlite3.h"
+#include "distr.hpp"
+
+#define MAX_COMMAND_SIZE (3 * 1024 * 1024)
 
 using namespace std;
 
@@ -47,11 +50,44 @@ struct sqlite_protocol_t : public protocol_t {
             sprintf(buffer, "SELECT %s FROM %s WHERE %s == \"%.*s\";\n", VAL_COL_NAME, TABLE_NAME, KEY_COL_NAME, (int) keys[i].second, keys[i].first);
             prepare();
             assert(step() == SQLITE_ROW);
-            const char *val = (const char *) sqlite3_column_text(compiled_stmt, 0);
+            const char *val = column(0);
             if (values)
                 assert(strncmp(val, values[i].first, values[i].second) == 0);
             clean_up();
         }
+    }
+
+    /* get the nth key value pair from the data base */
+    void read_into(payload_t *key, payload_t *val, int index) {
+        if (index > count()) {
+            fprintf(stderr, "Invalid key index in read_into\n");
+            exit(-1);
+        }
+        sprintf(buffer, "SELECT * FROM %s ORDER BY %s;\n", TABLE_NAME, KEY_COL_NAME); 
+        prepare();
+        int i;
+        for (i = 0; i < index; i++) {
+            step();
+        }
+
+        assert(step() == SQLITE_ROW);
+
+
+        strcpy(key->first, column(0));
+        key->second = strlen(column(0));
+
+        strcpy(val->first, column(1));
+        val->second = strlen(column(1));
+
+        clean_up();
+    }
+
+    int count() {
+        sprintf(buffer, "SELECT COUNT(*) FROM %s;\n", TABLE_NAME); 
+        prepare();
+        assert(step() == SQLITE_ROW);
+        int res = atoi(column(0));
+        clean_up();
     }
 
     virtual void append(const char *key, size_t key_size,
@@ -60,7 +96,7 @@ struct sqlite_protocol_t : public protocol_t {
         prepare();
         assert(step() == SQLITE_ROW);
         /* notice this was constant but I'm casting it so that I can use the same pointer*/
-        char *orig_val = (char *) sqlite3_column_text(compiled_stmt, 0);
+        char *orig_val = (char *) column(0);
         orig_val = strdup(orig_val);
         clean_up();
 
@@ -75,7 +111,7 @@ struct sqlite_protocol_t : public protocol_t {
         prepare();
         assert(step() == SQLITE_ROW);
         /* notice this was constant but I'm casting it so that I can use the same pointer*/
-        char *orig_val = (char *) sqlite3_column_text(compiled_stmt, 0);
+        char *orig_val = (char *) column(0);
         orig_val = strdup(orig_val);
         clean_up();
 
@@ -97,7 +133,7 @@ private:
     char *_dbname;
     config_t *_config;
     sqlite3 *_dbhandle;
-    char buffer[400];
+    char buffer[MAX_COMMAND_SIZE];
     sqlite3_stmt *compiled_stmt;
 
     /* compile a statement */
@@ -112,6 +148,10 @@ private:
 
     int step() {
         return sqlite3_step(compiled_stmt);
+    }
+
+    const char *column(int n) {
+        return (const char *) sqlite3_column_text(compiled_stmt, n);
     }
 
     int clean_up() {
