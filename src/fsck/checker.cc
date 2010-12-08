@@ -14,17 +14,6 @@
 
 namespace fsck {
 
-// The existence of these functions does not constitute an endorsement
-// of the use of these functions.  Maybe these are a bad, ugly,
-// overdesigned C++ism that you should flush out of this file.  Maybe
-// these should be moved to utils.hpp.  Maybe the fact that we have so
-// many calls to this function is a sign of poor software design.
-// Maybe not.
-template <class T>
-inline const T* ptr_cast(const void *p) { return reinterpret_cast<const T*>(p); }
-
-template <class T>
-inline T* ptr_cast(void *p) { return reinterpret_cast<T*>(p); }
 
 static const char *state = NULL;
 

@@ -88,7 +88,18 @@ void debugf(const char *msg, ...);
 // bias tends to get worse when RAND_MAX is far from a multiple of n.
 int randint(int n);
 
-// Put this in a private: declaration.
+// The existence of these functions does not constitute an endorsement
+// for casts.  These constitute an endorsement for the use of
+// reinterpret_cast, rather than C-style casts.  The latter can break
+// const correctness.
+template <class T>
+inline const T* ptr_cast(const void *p) { return reinterpret_cast<const T*>(p); }
+
+template <class T>
+inline T* ptr_cast(void *p) { return reinterpret_cast<T*>(p); }
+
+
+// Put this in a private: section.
 #define DISABLE_COPYING(T)                      \
     T(const T&);                                \
     void operator=(const T&)
