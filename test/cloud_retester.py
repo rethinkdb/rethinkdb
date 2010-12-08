@@ -368,7 +368,7 @@ def copy_basedata_to_testing_node(node):
     node.make_directory(node.global_build_path)
     #node.put_directory(base_directory + "/../build", node.global_build_path)
     # Just copy essential files to save time...
-    for config in io.listdir(base_directory + "/../build"):
+    for config in os.listdir(base_directory + "/../build"):
         if os.path.isdir(base_directory + "/../build/" + config):
             node.make_directory(node.global_build_path + "/" + config)
             node.put_file(base_directory + "/../build/" + config + "/rethinkdb", node.global_build_path + "/" + config + "/rethinkdb")
