@@ -75,7 +75,7 @@ void report_fatal_error(const char*, int, const char*, ...);
 #define not_implemented(msg, ...) crash("Not implemented: " msg, ##__VA_ARGS__)    // RSI
 
 #ifdef NDEBUG
-#define assert(cond, msg, ...) ((void)(0))
+#define assert(cond, msg...) ((void)(0))
 #else
 #define assert(cond, msg...) do {   \
         if (!(cond)) {              \
