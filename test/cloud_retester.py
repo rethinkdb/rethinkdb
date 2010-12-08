@@ -5,8 +5,8 @@ base_directory = os.path.dirname(os.path.join(os.getcwd(), sys.argv[0])) + "/../
 # Please configure these:
 
 testing_nodes_ec2_instance_type = "m1.large" # m1.large / t1.micro
-testing_nodes_ec2_count = 5 # number of nodes to spin up
-testing_nodes_ec2_image_name = "ami-d40e5e91"
+testing_nodes_ec2_count = 10 # number of nodes to spin up
+testing_nodes_ec2_image_name = "ami-2272864b"
 testing_nodes_ec2_key_pair_name = "cloudtest_default"
 testing_nodes_ec2_security_group_name = "cloudtest_default"
 testing_nodes_ec2_region = "us-east-1"
@@ -16,7 +16,7 @@ testing_nodes_ec2_private_key = "d9SiQpDD/YfGA2uC7CyqY7jmRoZg5utHM4pxTAhE" # TOD
 private_ssh_key_filename = base_directory + "/east_ec2_private_key.pem"
 
 round_robin_locking_timeout = 2
-wrapper_script_filename = "cloud_retester_run_test_wrapper.py"
+wrapper_script_filename = "cloud_retester_run_test_wrapper.py" # must be just the name of the file, no path!
 
 # END of configuration options
 
@@ -336,6 +336,8 @@ def copy_basedata_to_testing_node(node):
     node.put_file("/usr/local/lib/libtcmalloc_minimal.so.0", "/tmp/cloudtest_libs/libtcmalloc_minimal.so.0")
     node.put_file("/usr/local/lib/libmemcached.so.5", "/tmp/cloudtest_libs/libmemcached.so.5")
     node.put_file("/usr/local/lib/libmemcached.so.6", "/tmp/cloudtest_libs/libmemcached.so.6")
+    node.put_file("/usr/lib/libstdc++.so.6", "/tmp/cloudtest_libs/libstdc++.so.6")
+    node.put_file("/usr/lib/libgccpp.so.1", "/tmp/cloudtest_libs/libgccpp.so.1")
     node.make_directory_recursively("/tmp/cloudtest_libs/valgrind")
     for valgrind_file in ["vgpreload_memcheck-amd64-linux.so", "vgpreload_core-amd64-linux.so", "memcheck-amd64-linux", "default.supp"]:
         node.put_file("/usr/lib/valgrind/" + valgrind_file, "/tmp/cloudtest_libs/valgrind/" + valgrind_file)
@@ -364,16 +366,17 @@ def copy_basedata_to_testing_node(node):
     
     # Copy build hierarchy
     node.make_directory(node.global_build_path)
-    #node.put_directory(base_directory + "/../build", node.global_build_path)
+    node.put_directory(base_directory + "/../build", node.global_build_path)
+    
     # Just copy essential files to save time...
-    for config in ["debug", "debug-valgrind", "release", "release-valgrind"]:
-        node.make_directory(node.global_build_path + "/" + config)
-        node.put_file(base_directory + "/../build/" + config + "/rethinkdb", node.global_build_path + "/" + config + "/rethinkdb")
-        node.put_file(base_directory + "/../build/" + config + "/rethinkdb-extract", node.global_build_path + "/" + config + "/rethinkdb-extract")
-        #node.put_file(base_directory + "/../build/" + config + "/rethinkdb-fsck", node.global_build_path + "/" + config + "/rethinkdb-fsck")
-        command_result = node.run_command("chmod +x " + node.global_build_path + "/" + config + "/*")
-        if command_result[0] != 0:
-            print "Unable to make rethinkdb executable"
+    #for config in ["debug", "debug-valgrind", "release", "release-valgrind"]:
+    #    node.make_directory(node.global_build_path + "/" + config)
+    #    node.put_file(base_directory + "/../build/" + config + "/rethinkdb", node.global_build_path + "/" + config + "/rethinkdb")
+    #    node.put_file(base_directory + "/../build/" + config + "/rethinkdb-extract", node.global_build_path + "/" + config + "/rethinkdb-extract")
+    #    #node.put_file(base_directory + "/../build/" + config + "/rethinkdb-fsck", node.global_build_path + "/" + config + "/rethinkdb-fsck")
+    #    command_result = node.run_command("chmod +x " + node.global_build_path + "/" + config + "/*")
+    #    if command_result[0] != 0:
+    #        print "Unable to make rethinkdb executable"
         
     # Copy benchmark stuff
     node.make_directory(node.global_bench_path)

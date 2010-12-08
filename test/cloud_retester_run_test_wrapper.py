@@ -189,7 +189,6 @@ output.close()
 # In difference to the local script, we keep the output dir on the node as it is per-test anyway.
 # Just move the test_output to there:
 os.rename(output.take_file(), os.path.join(output_dir, "test_output.txt"))
-
     
     
 # store results
