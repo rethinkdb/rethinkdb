@@ -415,9 +415,10 @@ def print_results_as_plaintext(opts, tests):
     
     for (name, results) in tests:
         sub_failures = count_sub_failures(results)
-        if sub_failures == 0: print "Passed: %s" % name
-        elif sub_failures == len(results): print "Failed: %s" % name
-        else: print "Failed (intermittently): %s" % name
+        timesum = sum([result.running_time for result in results])
+        if sub_failures == 0: print "Passed (%f s): %s" % (timesum, name)
+        elif sub_failures == len(results): print "Failed (%f s): %s" % (timesum, name)
+        else: print "Failed (intermittently) (%f s): %s" % (timesum, name)
     print
     
     for (name, results) in tests:
@@ -509,12 +510,13 @@ def print_results_as_html(opts, tests):
     for (name, results) in tests:
         print """<tr>"""
         sub_failures = count_sub_failures(results)
+        timesum = sum([result.running_time for result in results])
         if sub_failures == 0:
-            print """<td>%s</td><td><span style="color: green">Passed</span></td>""" % code(name)
+            print """<td>%s</td><td><span style="color: green">Passed</span></td><td>(%f s)</td>""" % (code(name), timesum)
         else:
             if sub_failures == len(results): msg = "Failed"
             else: msg = "Failed (intermittently)"
-            print """<td>%s</td><td><span style="color: red">%s</span></td>""" % (code(name), msg)
+            print """<td>%s</td><td><span style="color: red">%s</span></td><td>(%f s)</td>""" % (code(name), msg, timesum)
         print """</tr>"""
     print """</table>"""
     
