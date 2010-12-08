@@ -10,7 +10,7 @@ use_local_retester = os.getenv("USE_CLOUD", "false") == "false"
 # Please configure these:
 
 testing_nodes_ec2_instance_type = "m1.large" # m1.large / t1.micro
-testing_nodes_ec2_count = 15 # number of nodes to spin up
+testing_nodes_ec2_count = 10 # number of nodes to spin up
 testing_nodes_ec2_image_name = "ami-2272864b"
 testing_nodes_ec2_image_user_name = "ec2-user"
 testing_nodes_ec2_key_pair_name = "cloudtest_default"
@@ -521,7 +521,7 @@ def start_test_on_node(node, test_command, test_timeout = None, locking_timeout 
         if command_result[0] != 0:
             print "Unable to store command"
             # TODO: Throw an exception
-        command_result = node.run_command("echo -n %s > cloud_retest/%s/test/test_start_time_offset" % (test_command, str(time.clock())))
+        command_result = node.run_command("echo -n %f > cloud_retest/%s/test/test_start_time_offset" % (time.clock(), test_reference))
         if command_result[0] != 0:
             print "Unable to store start_time offset"
             # TODO: Throw an exception
