@@ -217,7 +217,7 @@ struct branch_walker_t :
     
     void on_large_buf_available(large_buf_t *) {
         buffers.buffers.clear();
-        for (int i = 0; i < large_value->get_num_segments(); i++) {
+        for (int64_t i = 0; i < large_value->get_num_segments(); i++) {
             uint16_t size;
             const void *data = large_value->get_segment(i, &size);
             buffers.add_buffer(size, data);

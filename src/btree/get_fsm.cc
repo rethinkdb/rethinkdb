@@ -189,7 +189,7 @@ btree_get_fsm_t::transition_result_t btree_get_fsm_t::do_deliver_large_value(eve
     assert(!event);
     assert(large_value->get_root_ref().block_id == value.lb_ref().block_id);
 
-    for (int i = 0; i < large_value->get_num_segments(); i++) {
+    for (int64_t i = 0; i < large_value->get_num_segments(); i++) {
         uint16_t size;
         const void *data = large_value->get_segment(i, &size);
         value_buffers.add_buffer(size, data);
