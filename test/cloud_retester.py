@@ -9,8 +9,8 @@ use_local_retester = os.getenv("USE_CLOUD", "false") == "false"
 
 # Please configure these:
 
-testing_nodes_ec2_instance_type = "m1.large" # m1.large / t1.micro
-testing_nodes_ec2_count = 10 # number of nodes to spin up
+testing_nodes_ec2_instance_type = os.getenv("EC2_INSTANCE_TYPE", "m1.large") # e.g. m1.large / t1.micro
+testing_nodes_ec2_count = int(os.getenv("EC2_INSTANCE_COUNT", "5")) # number of nodes to spin up
 testing_nodes_ec2_image_name = "ami-2272864b"
 testing_nodes_ec2_image_user_name = "ec2-user"
 testing_nodes_ec2_key_pair_name = "cloudtest_default"
@@ -521,10 +521,6 @@ def start_test_on_node(node, test_command, test_timeout = None, locking_timeout 
         if command_result[0] != 0:
             print "Unable to store command"
             # TODO: Throw an exception
-        command_result = node.run_command("echo -n %f > cloud_retest/%s/test/test_start_time_offset" % (time.clock(), test_reference))
-        if command_result[0] != 0:
-            print "Unable to store start_time offset"
-            # TODO: Throw an exception
         if test_timeout == None:
             command_result = node.run_command("echo -n \"\" > cloud_retest/%s/test/test_timeout" % (test_reference))
         else:
@@ -551,17 +547,19 @@ def start_test_on_node(node, test_command, test_timeout = None, locking_timeout 
 
 def get_report_for_test(test_reference):
     node = test_reference[0]
-    try:
-        result_start_time = float(node.run_command("cat cloud_retest/" + test_reference[1] + "/test/result_start_time")[1])
-    except ValueError:
-        print "Got invalid start_time for test %s" % test_reference[1]
-        result_start_time = 0.0
     result_result = node.run_command("cat cloud_retest/" + test_reference[1] + "/test/result_result")[1]
     result_description = node.run_command("cat cloud_retest/" + test_reference[1] + "/test/result_description")[1]
     if result_description == "":
         result_description = None
     
-    result = Result(result_start_time, result_result, result_description)
+    result = Result(0.0, result_result, result_description)
+    
+    # Get running time
+    try:
+        result.running_time = float(node.run_command("cat cloud_retest/" + test_reference[1] + "/test/result_running_time")[1])
+    except ValueError:
+        print "Got invalid start_time for test %s" % test_reference[1]
+        result.running_time = 0.0
     
     # Collect a few additional results into a temporary directory
     result.output_dir = SmartTemporaryDirectory("out_")
