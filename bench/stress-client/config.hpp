@@ -16,6 +16,7 @@
 
 #define RELIABILITY 100 /* every RELIABILITYth key is put in the sqlite backup */
 
+#define MAX_KEY_SIZE (250)
 #define MAX_VALUE_SIZE (1024*1024)
 
 

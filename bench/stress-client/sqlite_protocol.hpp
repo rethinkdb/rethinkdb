@@ -55,28 +55,29 @@ struct sqlite_protocol_t : public protocol_t {
         }
     }
 
-    /* read maximum or fewer keys into the provided space return how many were read */
-    int read_into(payload_t *keys, payload_t *vals, int maximum) {
-        sprintf(buffer, "SELECT * FROM %s;\n", TABLE_NAME); 
+    /* get the nth key value pair from the data base */
+    void read_into(payload_t *key, payload_t *val, int index) {
+        if (index > count()) {
+            fprintf(stderr, "Invalid key index in read_into\n");
+            exit(-1);
+        }
+        sprintf(buffer, "SELECT * FROM %s ORDER BY %s;\n", TABLE_NAME, KEY_COL_NAME); 
         prepare();
         int i;
-        for (i = 0; i < maximum; i++) {
-            if (step() != SQLITE_ROW) {
-                i--; //so that i is the number of rows returned
-                break;
-            }
-
-            const char *key = column(0);
-            strcpy(keys[i].first, key);
-            keys[i].second = strlen(key);
-
-            const char *val = column(1);
-            strcpy(vals[i].first, val);
-            vals[i].second = strlen(val);
+        for (i = 0; i < index; i++) {
+            step();
         }
 
+        assert(step() == SQLITE_ROW);
+
+
+        strcpy(key->first, column(0));
+        key->second = strlen(column(0));
+
+        strcpy(val->first, column(1));
+        val->second = strlen(column(1));
+
         clean_up();
-        return i;
     }
 
     int count() {

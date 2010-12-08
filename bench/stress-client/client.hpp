@@ -7,6 +7,7 @@
 #include "sqlite_protocol.hpp"
 #include <stdint.h>
 #include "sqlite3.h"
+#include "assert.h"
 
 #define update_salt 6830
 
@@ -209,7 +210,11 @@ void* run_client(void* data) {
         for (int i = 0; i < config->batch_factor.max; i++)
             op_vals[i].first = shared->value_buf;
 
+        char val_verifcation_buffer[MAX_VALUE_SIZE];
+        char *old_val_buffer;
+
         int j, k, l; // because we can't declare in the loop
+        int count;
         int keyn; //same deal
         uint64_t id_salt = client_data->id;
         id_salt += id_salt << 40;
@@ -329,6 +334,37 @@ void* run_client(void* data) {
             qps++;
             total_queries++;
             break;
+        case load_t::verify_op:
+            /* this is a very expensive operation it will first do a very
+             * expensive operation on the SQLITE reference db and then it will
+             * do several queries on the db that's being stressed (and only add
+             * 1 total query), it does not make sense to use this as part of a
+             * benchmarking run */
+            
+            // we can't do anything without a reference
+            if (!sqlite)
+                break;
+
+            count = sqlite->count();
+
+            /* this is hacky but whatever */
+            old_val_buffer = op_vals[0].first;
+            op_vals[0].first = val_verifcation_buffer;
+            op_vals[0].second = 0;
+
+            for (k = 0; k < count; k++) {
+                sqlite->read_into(op_keys, op_vals, k);
+                proto->read(op_keys, k, op_vals);
+            }
+
+            op_vals[0].first = old_val_buffer;
+
+            qps++;
+            total_queries++;
+            break;
+        default:
+            fprintf(stderr, "Uknown operation\n");
+            exit(-1);
         };
         now_time = get_ticks();
 
