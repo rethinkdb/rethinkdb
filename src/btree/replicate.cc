@@ -112,7 +112,7 @@ struct slice_walker_t :
         return true;
     }
     void on_block_available(buf_t *buf) {
-        btree_superblock_t *superblock = (btree_superblock_t *)buf->get_data_read();
+        const btree_superblock_t *superblock = ptr_cast<btree_superblock_t>(buf->get_data_read());
         if (superblock->root_block != NULL_BLOCK_ID) {
             walk_branch(this, superblock->root_block);
         } else {
@@ -173,7 +173,7 @@ struct branch_walker_t :
         if (node_handler::is_internal(node_handler::node(buf->get_data_read()))) {
             const internal_node_t *node = internal_node_handler::internal_node(buf->get_data_read());
             for (int i = 0; i < (int)node->npairs; i++) {
-                btree_internal_pair *pair = internal_node_handler::get_pair(node, node->pair_offsets[i]);
+                const btree_internal_pair *pair = internal_node_handler::get_pair(node, node->pair_offsets[i]);
                 walk_branch(parent, pair->lnode);
             }
             delete this;

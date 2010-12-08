@@ -24,9 +24,9 @@ public:
     static void init(block_size_t block_size, internal_node_t *node);
     static void init(block_size_t block_size, internal_node_t *node, internal_node_t *lnode, uint16_t *offsets, int numpairs);
 
-    static block_id_t lookup(const internal_node_t *node, btree_key *key);
-    static bool insert(block_size_t block_size, internal_node_t *node, btree_key *key, block_id_t lnode, block_id_t rnode);
-    static bool remove(block_size_t block_size, internal_node_t *node, btree_key *key);
+    static block_id_t lookup(const internal_node_t *node, const btree_key *key);
+    static bool insert(block_size_t block_size, internal_node_t *node, const btree_key *key, block_id_t lnode, block_id_t rnode);
+    static bool remove(block_size_t block_size, internal_node_t *node, const btree_key *key);
     static void split(block_size_t block_size, internal_node_t *node, internal_node_t *rnode, btree_key *median);
     static void merge(block_size_t block_size, internal_node_t *node, internal_node_t *rnode, btree_key *key_to_remove, internal_node_t *parent);
     static bool level(block_size_t block_size, internal_node_t *node, internal_node_t *rnode, btree_key *key_to_replace, btree_key *replacement_key, internal_node_t *parent);
@@ -43,41 +43,42 @@ public:
     static void print(const internal_node_t *node);
 
     static inline const internal_node_t* internal_node(const void *ptr) {
-        return (const internal_node_t *) ptr;
+        return ptr_cast<internal_node_t>(ptr);
     }
     static inline internal_node_t* internal_node(void *ptr){
-        return (internal_node_t *) ptr;
+        return ptr_cast<internal_node_t>(ptr);
     }
 
-    static size_t pair_size(btree_internal_pair *pair);
-    static btree_internal_pair *get_pair(const internal_node_t *node, uint16_t offset);
+    static size_t pair_size(const btree_internal_pair *pair);
+    static const btree_internal_pair *get_pair(const internal_node_t *node, uint16_t offset);
 
 protected:
-    static size_t pair_size_with_key(btree_key *key);
+    static btree_internal_pair *get_pair(internal_node_t *node, uint16_t offset);
+    static size_t pair_size_with_key(const btree_key *key);
     static size_t pair_size_with_key_size(uint8_t size);
 
     static void delete_pair(internal_node_t *node, uint16_t offset);
-    static uint16_t insert_pair(internal_node_t *node, btree_internal_pair *pair);
-    static uint16_t insert_pair(internal_node_t *node, block_id_t lnode, btree_key *key);
-    static int get_offset_index(const internal_node_t *node, btree_key *key);
+    static uint16_t insert_pair(internal_node_t *node, const btree_internal_pair *pair);
+    static uint16_t insert_pair(internal_node_t *node, block_id_t lnode, const btree_key *key);
+    static int get_offset_index(const internal_node_t *node, const btree_key *key);
     static void delete_offset(internal_node_t *node, int index);
     static void insert_offset(internal_node_t *node, uint16_t offset, int index);
     static void make_last_pair_special(internal_node_t *node);
-    static bool is_equal(btree_key *key1, btree_key *key2);
+    static bool is_equal(const btree_key *key1, const btree_key *key2);
 };
 
 class internal_key_comp {
     const internal_node_t *node;
-    btree_key *key;
+    const btree_key *key;
     public:
     explicit internal_key_comp(const internal_node_t *_node) : node(_node), key(NULL)  { }
-    internal_key_comp(const internal_node_t *_node, btree_key *_key) : node(_node), key(_key)  { }
+    internal_key_comp(const internal_node_t *_node, const btree_key *_key) : node(_node), key(_key)  { }
     bool operator()(const uint16_t offset1, const uint16_t offset2) {
-        btree_key *key1 = offset1 == 0 ? key : &internal_node_handler::get_pair(node, offset1)->key;
-        btree_key *key2 = offset2 == 0 ? key : &internal_node_handler::get_pair(node, offset2)->key;
+        const btree_key *key1 = offset1 == 0 ? key : &internal_node_handler::get_pair(node, offset1)->key;
+        const btree_key *key2 = offset2 == 0 ? key : &internal_node_handler::get_pair(node, offset2)->key;
         return compare(key1, key2) < 0;
     }
-    static int compare(btree_key *key1, btree_key *key2) {
+    static int compare(const btree_key *key1, const btree_key *key2) {
         if (key1->size == 0 && key2->size == 0) //check for the special end pair
             return 0;
         else if (key1->size == 0)

@@ -681,7 +681,7 @@ bool leaf_node_inspect_range(const slicecx& cx, const leaf_node_t *buf, uint16_t
     return false;
 }
 
-void check_subtree_leaf_node(slicecx& cx, const leaf_node_t *buf, btree_key *lo, btree_key *hi, subtree_errors *tree_errs, node_error *errs) {
+void check_subtree_leaf_node(slicecx& cx, const leaf_node_t *buf, const btree_key *lo, const btree_key *hi, subtree_errors *tree_errs, node_error *errs) {
     {
         std::vector<uint16_t> sorted_offsets(buf->pair_offsets, buf->pair_offsets + buf->npairs);
         std::sort(sorted_offsets.begin(), sorted_offsets.end());
@@ -727,9 +727,9 @@ bool internal_node_begin_offset_in_range(const slicecx& cx, const internal_node_
     return (cx.knog->static_config->block_size().value() - sizeof(btree_internal_pair)) >= offset && offset >= buf->frontmost_offset;
 }
 
-void check_subtree(slicecx& cx, block_id_t id, btree_key *lo, btree_key *hi, subtree_errors *errs);
+void check_subtree(slicecx& cx, block_id_t id, const btree_key *lo, const btree_key *hi, subtree_errors *errs);
 
-void check_subtree_internal_node(slicecx& cx, const internal_node_t *buf, btree_key *lo, btree_key *hi, subtree_errors *tree_errs, node_error *errs) {
+void check_subtree_internal_node(slicecx& cx, const internal_node_t *buf, const btree_key *lo, const btree_key *hi, subtree_errors *tree_errs, node_error *errs) {
     {
         std::vector<uint16_t> sorted_offsets(buf->pair_offsets, buf->pair_offsets + buf->npairs);
         std::sort(sorted_offsets.begin(), sorted_offsets.end());
@@ -748,10 +748,10 @@ void check_subtree_internal_node(slicecx& cx, const internal_node_t *buf, btree_
 
     // Now check other things.
 
-    btree_key *prev_key = lo;
+    const btree_key *prev_key = lo;
     for (uint16_t i = 0; i < buf->npairs; ++i) {
         uint16_t offset = buf->pair_offsets[i];
-        btree_internal_pair *pair = internal_node_handler::get_pair(buf, offset);
+        const btree_internal_pair *pair = internal_node_handler::get_pair(buf, offset);
 
         errs->keys_too_big |= (pair->key.size > MAX_KEY_SIZE);
 
@@ -781,7 +781,7 @@ void check_subtree_internal_node(slicecx& cx, const internal_node_t *buf, btree_
     }
 }
 
-void check_subtree(slicecx& cx, block_id_t id, btree_key *lo, btree_key *hi, subtree_errors *errs) {
+void check_subtree(slicecx& cx, block_id_t id, const btree_key *lo, const btree_key *hi, subtree_errors *errs) {
     /* Walk tree */
 
     btree_block node;
