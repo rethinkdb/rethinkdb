@@ -10,7 +10,8 @@
 
 #include "taskimpl.hpp"
 
-#if defined(__SYMBIAN32__)
+
+/*#if defined(__SYMBIAN32__)
 	#define CORO_STACK_SIZE     8192
 	#define CORO_STACK_SIZE_MIN 1024
 #else
@@ -20,7 +21,11 @@
 	//128k needed on PPC due to parser
 	#define CORO_DEFAULT_STACK_SIZE (128*1024)
 	#define CORO_STACK_SIZE_MIN 8192
-#endif
+#endif*/
+//TODO: In a special testing mode, munmap the page above (below)
+//the stack so we can get an error if it overflows
+#define CORO_DEFAULT_STACK_SIZE 8192
+#define CORO_STACK_SIZE_MIN 1024
 
 #if !defined(__MINGW32__) && defined(WIN32)
 #if defined(BUILDING_CORO_DLL) || defined(BUILDING_IOVMALL_DLL)
