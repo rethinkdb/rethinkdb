@@ -52,7 +52,7 @@ void usage(const char *name) {
     printf("\t-o, --out-file\n\t\tIf present, dump all inserted keys to this file.\n");
     printf("\t-i, --in-file\n\t\tIf present, populate initial keys from this file\n"\
            "\t\tand don't drop the database (for relevant protocols).\n");
-    printf("\t-f, --db-file\n\t\tIf present drop kv pairs into sqlite\n");
+    printf("\t-f, --db-file\n\t\tIf present drop kv pairs into sqlite and verify correctness on read.\n");
 
     printf("\nAdditional information:\n");
     printf("\t\tDISTR format describes a range and can be specified in as MIN-MAX.\n\n");
