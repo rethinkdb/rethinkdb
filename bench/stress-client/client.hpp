@@ -300,6 +300,7 @@ void* run_client(void* data) {
             total_queries += j;
             break;
         case load_t::append_op:
+            //TODO, this doesn't check if we'll be making the value too big. Gotta check for that.
             //Find the key
             if (client_data->min_seed == client_data->max_seed)
                 break;

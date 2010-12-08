@@ -8,6 +8,8 @@
 #include "sqlite3.h"
 #include "distr.hpp"
 
+#define MAX_COMMAND_SIZE (3 * 1024 * 1024)
+
 using namespace std;
 
 struct sqlite_protocol_t : public protocol_t {
@@ -131,7 +133,7 @@ private:
     char *_dbname;
     config_t *_config;
     sqlite3 *_dbhandle;
-    char buffer[400];
+    char buffer[MAX_COMMAND_SIZE];
     sqlite3_stmt *compiled_stmt;
 
     /* compile a statement */
