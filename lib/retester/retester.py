@@ -79,7 +79,7 @@ class Result(object):
         
         assert result in ["pass", "fail"]
 
-        self.running_time = time.clock() - start_time
+        self.running_time = time.time() - start_time
         
         if result == "pass":
             self.result = "pass"
@@ -125,7 +125,7 @@ def run_test(command, timeout = None):
     environ["TMP"] = temp_dir.path
     environ["PYTHONUNBUFFERED"] = "1"
 
-    start_time = time.clock()
+    start_time = time.time()
 
     process = subprocess.Popen(
         command,
@@ -512,11 +512,11 @@ def print_results_as_html(opts, tests):
         sub_failures = count_sub_failures(results)
         timesum = sum([result.running_time for result in results])
         if sub_failures == 0:
-            print """<td>%s</td><td><span style="color: green">Passed</span></td><td>(%f s)</td>""" % (code(name), timesum)
+            print """<td>%s</td><td><span style="color: green">Passed</span></td><td>(%f&nbsp;s)</td>""" % (code(name), timesum)
         else:
             if sub_failures == len(results): msg = "Failed"
             else: msg = "Failed (intermittently)"
-            print """<td>%s</td><td><span style="color: red">%s</span></td><td>(%f s)</td>""" % (code(name), msg, timesum)
+            print """<td>%s</td><td><span style="color: red">%s</span></td><td>(%f&nbsp;s)</td>""" % (code(name), msg, timesum)
         print """</tr>"""
     print """</table>"""
     
@@ -556,7 +556,7 @@ def print_results_as_html(opts, tests):
             print """<div style="border: solid 1px gray; border-top: none; padding: 0.3cm">"""
             
             if result.result == "pass":
-                print """<p><b>Run #%d:</b> <span style="color: green">Passed</span> (%f speconds)</p>""" % (i, result.running_time)
+                print """<p><b>Run #%d:</b> <span style="color: green">Passed</span> (%f seconds)</p>""" % (i, result.running_time)
                 
             else:
                 print """<p><b>Run #%d:</b> <span style="color: red">Failed</span>. (%f seconds) %s</p>""" % \
