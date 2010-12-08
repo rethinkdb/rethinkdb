@@ -186,7 +186,8 @@ void* run_client(void* data) {
     shared_t *shared = client_data->shared;
     protocol_t *proto = client_data->proto;
     sqlite_protocol_t *sqlite = client_data->sqlite;
-    sqlite->set_id(client_data->id);
+    if(sqlite)
+        sqlite->set_id(client_data->id);
 
     // Perform the ops
     ticks_t last_time = get_ticks(), start_time = last_time, last_qps_time = last_time, now_time;

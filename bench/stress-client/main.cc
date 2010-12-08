@@ -51,7 +51,7 @@ int main(int argc, char *argv[])
     config.print();
 
     /* make a directory for our sqlite files */
-    if (config.db_file) {
+    if (config.db_file[0]) {
         mkdir(BACKUP_FOLDER, 0777);
     }
 
@@ -64,7 +64,7 @@ int main(int argc, char *argv[])
     }
 
     for (int i = 0; i < config.clients; i++) {
-        if (config.db_file) {
+        if (config.db_file[0]) {
             sqlite_protocol_t *sqlite = (sqlite_protocol_t *) make_protocol(protocol_sqlite);
             sqlite->set_id(i);
             sqlite->connect(&config, &config.servers[0]);
@@ -93,7 +93,7 @@ int main(int argc, char *argv[])
         // timeout bugs
         client_data[i].proto = (*make_protocol)(client_data[i].server->protocol);
         client_data[i].proto->connect(&config, client_data[i].server);
-        if (config.db_file) {
+        if (config.db_file[0]) {
             client_data[i].sqlite = (sqlite_protocol_t*)(*make_protocol)(protocol_sqlite);
             client_data[i].sqlite->set_id(i);
             client_data[i].sqlite->connect(&config, client_data[i].server);
