@@ -565,7 +565,7 @@ int64_t large_buf_t::get_num_segments() {
     return std::max(1L, (ceil_aligned(root_ref.offset + root_ref.size, num_leaf_bytes()) - floor_aligned(root_ref.offset, num_leaf_bytes())) / num_leaf_bytes());
 }
 
-uint16_t large_buf_t::segment_size(int ix) {
+uint16_t large_buf_t::segment_size(int64_t ix) {
     assert(state == loaded || state == loading);
 
     // We pretend that the segments start at zero.
