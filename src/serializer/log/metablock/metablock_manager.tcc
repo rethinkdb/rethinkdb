@@ -2,6 +2,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include "coroutine/coroutines.hpp"
 
 
 /* head functions */
@@ -97,14 +98,10 @@ void metablock_manager_t<metablock_t>::start_new(direct_file_t *file) {
 }
 
 template<class metablock_t>
-bool metablock_manager_t<metablock_t>::start_existing(direct_file_t *file, bool *mb_found, metablock_t *mb_out, metablock_read_callback_t *cb) {
-    
+void metablock_manager_t<metablock_t>::co_start_existing(direct_file_t *file, bool *mb_found, metablock_t *mb_out) {
     assert(state == state_unstarted);
     dbfile = file;
     assert(dbfile != NULL);
-    
-    this->mb_found = mb_found;
-    this->mb_out = mb_out;
     
     assert(!mb_buffer_in_use);
     mb_buffer_in_use = true;
@@ -113,73 +110,11 @@ bool metablock_manager_t<metablock_t>::start_existing(direct_file_t *file, bool 
     
     dbfile->set_size_at_least(metablock_offsets[metablock_offsets.size() - 1] + DEVICE_BLOCK_SIZE);
     
-    dbfile->read_async(head.offset(), DEVICE_BLOCK_SIZE, mb_buffer, this);
+    dbfile->co_read(head.offset(), DEVICE_BLOCK_SIZE, mb_buffer);
     
-    read_callback = cb;
     state = state_reading;
-    return false;
-}
-
-
-template<class metablock_t>
-bool metablock_manager_t<metablock_t>::write_metablock(metablock_t *mb, metablock_write_callback_t *cb) {
-    if (state != state_ready) {
-        /* TODO right now we only queue writes when we're presently writing
-           this is basically the only use case... but we could easily queue
-           in other places by modifying on_io_complete
-         */
-        //printf("Enqueuing write\n");
-        assert(state == state_writing);
-        outstanding_writes.push_back(metablock_write_req_t(mb, cb));
-    } else {
-        assert(!mb_buffer_in_use);
-        
-        mb_buffer->metablock = *mb;
-        memcpy(mb_buffer->magic_marker, MB_MARKER_MAGIC, sizeof(MB_MARKER_MAGIC));
-        memcpy(mb_buffer->crc_marker, MB_MARKER_CRC, sizeof(MB_MARKER_CRC));
-        memcpy(mb_buffer->version_marker, MB_MARKER_VERSION, sizeof(MB_MARKER_VERSION));
-        mb_buffer->version = next_version_number++;
-
-        mb_buffer->set_crc();
-        assert(mb_buffer->check_crc());
-        mb_buffer_in_use = true;
-        
-        dbfile->write_async(head.offset(), DEVICE_BLOCK_SIZE, mb_buffer, this);
-
-        head++;
-
-        state = state_writing;
-        write_callback = cb;
-    }
-    return false;
-}
-
-template <class metablock_t>
-metablock_manager_t<metablock_t>::metablock_write_req_t::metablock_write_req_t(metablock_t *mb, metablock_write_callback_t *cb)
-    :mb(mb), cb(cb)
-{}
-
-template<class metablock_t>
-void metablock_manager_t<metablock_t>::shutdown() {
-    
-    assert(state == state_ready);
-    assert(!mb_buffer_in_use);
-    state = state_shut_down;
-}
-
-template<class metablock_t>
-void metablock_manager_t<metablock_t>::swap_buffers() {
-    crc_metablock_t *tmp = startup_values.mb_buffer_last;
-    startup_values.mb_buffer_last = mb_buffer;
-    mb_buffer = tmp;
-}
-
-template<class metablock_t>
-void metablock_manager_t<metablock_t>::on_io_complete(event_t *e) {
-    bool done_looking = false; /* whether or not the value in mb_buffer_last is the real metablock */
-    switch(state) {
- 
-    case state_reading:
+    bool done_looking = false;
+    while (!done_looking) {
         if (mb_buffer->check_crc()) {
             if (mb_buffer->version > startup_values.version) {
                 /* this metablock is good, maybe there are more? */
@@ -224,40 +159,87 @@ void metablock_manager_t<metablock_t>::on_io_complete(event_t *e) {
             }
             mb_buffer_in_use = false;
             state = state_ready;
-            if (read_callback) read_callback->on_metablock_read();
-            
         } else {
-            dbfile->read_async(
-                head.offset(),
-                DEVICE_BLOCK_SIZE,
-                mb_buffer,
-                this);
+            dbfile->co_read(head.offset(), DEVICE_BLOCK_SIZE, mb_buffer);
         }
-        break;
-        
-    case state_writing: {
-        
-        state = state_ready;
-        mb_buffer_in_use = false;
-        
-        /* Store the write callback because when we call it, it might destroy us */
-        metablock_write_callback_t *write_cb = write_callback;
-        write_callback = NULL;
-        
-        /* Start the next write if there are more in the queue */
-        if (!outstanding_writes.empty()) {
-            metablock_write_req_t req = outstanding_writes.front();
-            outstanding_writes.pop_front();
-            write_metablock(req.mb, req.cb);
-        }
-        
-        /* Call the write callback as the last step, because it might destroy us */
-        if (write_cb) write_cb->on_metablock_write();
-        
-        break;
     }
+}
+
+//The following two functions will go away in favor of the preceding one
+template<class metablock_t>
+void metablock_manager_t<metablock_t>::start_existing_callback(metablock_manager_t<metablock_t> *receiver, direct_file_t *file, bool *mb_found, metablock_t *mb_out, metablock_read_callback_t *cb) {
+    receiver->co_start_existing(file, mb_found, mb_out);
+    cb->on_metablock_read();
+}
+
+template<class metablock_t>
+bool metablock_manager_t<metablock_t>::start_existing(direct_file_t *file, bool *mb_found, metablock_t *mb_out, metablock_read_callback_t *cb) {
+    new auto_coro_t(start_existing_callback, this, file, mb_found, mb_out, cb);
+    return false;
+}
     
-    default:
-        fail("Unexpected state.");
+
+
+template<class metablock_t>
+void metablock_manager_t<metablock_t>::co_write_metablock(metablock_t *mb) {
+    // There is a lock on writes, implemented with the outstanding_writes queue
+    if (state != state_ready) {
+        assert(state == state_writing);
+        outstanding_writes.push_back(coro_t::self());
+        coro_t::wait();
     }
+    assert(!mb_buffer_in_use);
+    
+    mb_buffer->metablock = *mb;
+    memcpy(mb_buffer->magic_marker, MB_MARKER_MAGIC, sizeof(MB_MARKER_MAGIC));
+    memcpy(mb_buffer->crc_marker, MB_MARKER_CRC, sizeof(MB_MARKER_CRC));
+    memcpy(mb_buffer->version_marker, MB_MARKER_VERSION, sizeof(MB_MARKER_VERSION));
+    mb_buffer->version = next_version_number++;
+
+    mb_buffer->set_crc();
+    assert(mb_buffer->check_crc());
+    mb_buffer_in_use = true;
+    
+    state = state_writing;
+    dbfile->co_write(head.offset(), DEVICE_BLOCK_SIZE, mb_buffer);
+
+    head++;
+
+    state = state_ready;
+    mb_buffer_in_use = false;
+    
+    // Start the next write if there are more in the queue
+    // i.e. unlock the lock for writes
+    if (!outstanding_writes.empty()) {
+            coro_t *req = outstanding_writes.front();
+        outstanding_writes.pop_front();
+        req->notify();
+    }
+}
+
+template<class metablock_t>
+void metablock_manager_t<metablock_t>::write_metablock_callback(metablock_manager_t<metablock_t> *receiver, metablock_t *mb, metablock_write_callback_t *cb) {
+    receiver->co_write_metablock(mb);
+    cb->on_metablock_write();
+}
+
+template<class metablock_t>
+bool metablock_manager_t<metablock_t>::write_metablock(metablock_t *mb, metablock_write_callback_t *cb) {
+    new auto_coro_t(write_metablock_callback, this, mb, cb);
+    return false;
+}
+
+template<class metablock_t>
+void metablock_manager_t<metablock_t>::shutdown() {
+    
+    assert(state == state_ready);
+    assert(!mb_buffer_in_use);
+    state = state_shut_down;
+}
+
+template<class metablock_t>
+void metablock_manager_t<metablock_t>::swap_buffers() {
+    crc_metablock_t *tmp = startup_values.mb_buffer_last;
+    startup_values.mb_buffer_last = mb_buffer;
+    mb_buffer = tmp;
 }
