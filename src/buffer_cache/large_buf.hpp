@@ -93,8 +93,6 @@ public:
 
     const large_buf_ref& get_root_ref() const;
 
-    // TODO look at calls to this function, make sure people don't use
-    // uint16_t.
     int64_t get_num_segments();
 
     uint16_t segment_size(int ix);

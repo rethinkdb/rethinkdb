@@ -609,7 +609,6 @@ buf_t *large_buf_t::get_segment_buf(int64_t ix, uint16_t *seg_size, uint16_t *se
     return tr->buf;
 }
 
-// TODO check that people use int64_t for ix.
 const byte *large_buf_t::get_segment(int64_t ix, uint16_t *seg_size) {
     assert(state == loaded);
     assert(ix >= 0 && ix < get_num_segments());
@@ -624,7 +623,6 @@ const byte *large_buf_t::get_segment(int64_t ix, uint16_t *seg_size) {
     return leaf->buf + seg_offset;
 }
 
-// TODO check that people use int64_t for ix.
 byte *large_buf_t::get_segment_write(int64_t ix, uint16_t *seg_size) {
     assert(state == loaded);
     assert(ix >= 0 && ix < get_num_segments());
