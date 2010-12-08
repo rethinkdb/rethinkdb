@@ -539,7 +539,7 @@ void btree_modify_fsm_t::do_transition(event_t *event) {
 
                         // Build a value to pass to the replicants
                         if (new_value->is_large()) {
-                            for (int i = 0; i < new_large_buf->get_num_segments(); i++) {
+                            for (int64_t i = 0; i < new_large_buf->get_num_segments(); i++) {
                                 uint16_t size;
                                 const void *data = new_large_buf->get_segment(i, &size);
                                 replicant_bg.add_buffer(size, data);

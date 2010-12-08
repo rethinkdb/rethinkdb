@@ -64,9 +64,9 @@ if __name__ == "__main__":
     if not server1.kill(): sys.exit(1)
 
     extract_path = get_executable_path(opts, "rethinkdb-extract")
-    dump_path = os.path.join(test_dir, "db_data_dump.txt")
+    dump_path = os.path.join(test_dir_name, "db_data_dump.txt")
     command_line = [extract_path,
-                    "-f", os.path.join(test_dir, "db_data", "data_file"),
+                    "-f", os.path.join(test_dir_name, "db_data", "data_file"),
                     "-o", dump_path]
 
     subprocess.check_call(command_line)
@@ -139,10 +139,10 @@ if __name__ == "__main__":
 
 #     extract_path = get_executable_path(opts, "rethinkdb-extract")
 
-#     dump_path = os.path.join(test_dir, "db_data_dump.txt")
+#     dump_path = os.path.join(test_dir_name, "db_data_dump.txt")
 
 #     command_line = [extract_path,
-#                     "-f", os.path.join(test_dir, "db_data", "data_file"),
+#                     "-f", os.path.join(test_dir_name, "db_data", "data_file"),
 #                     "-o", dump_path]
 
 #     subprocess.check_call(command_line)
