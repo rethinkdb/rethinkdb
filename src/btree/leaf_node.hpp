@@ -51,13 +51,6 @@ public:
 
     static void print(const leaf_node_t *node);
 
-    static inline const leaf_node_t* leaf_node(const void *ptr) {
-        return ptr_cast<leaf_node_t>(ptr);
-    }
-    static inline leaf_node_t* leaf_node(void *ptr) {
-        return ptr_cast<leaf_node_t>(ptr);
-    }
-
     static const btree_leaf_pair *get_pair(const leaf_node_t *node, uint16_t offset);
     static size_t pair_size(const btree_leaf_pair *pair);
 

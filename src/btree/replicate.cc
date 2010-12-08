@@ -171,7 +171,7 @@ struct branch_walker_t :
     void on_block_available(buf_t *b) {
         buf = b;
         if (node_handler::is_internal(node_handler::node(buf->get_data_read()))) {
-            const internal_node_t *node = internal_node_handler::internal_node(buf->get_data_read());
+            const internal_node_t *node = ptr_cast<internal_node_t>(buf->get_data_read());
             for (int i = 0; i < (int)node->npairs; i++) {
                 const btree_internal_pair *pair = internal_node_handler::get_pair(node, node->pair_offsets[i]);
                 walk_branch(parent, pair->lnode);
@@ -193,7 +193,7 @@ struct branch_walker_t :
         
         current_pair++;
         
-        const leaf_node_t *node = leaf_node_handler::leaf_node(buf->get_data_read());
+        const leaf_node_t *node = ptr_cast<leaf_node_t>(buf->get_data_read());
         if (current_pair == node->npairs) {
             delete this;
         

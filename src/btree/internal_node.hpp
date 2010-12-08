@@ -42,13 +42,6 @@ public:
     static void validate(block_size_t block_size, const internal_node_t *node);
     static void print(const internal_node_t *node);
 
-    static inline const internal_node_t* internal_node(const void *ptr) {
-        return ptr_cast<internal_node_t>(ptr);
-    }
-    static inline internal_node_t* internal_node(void *ptr){
-        return ptr_cast<internal_node_t>(ptr);
-    }
-
     static size_t pair_size(const btree_internal_pair *pair);
     static const btree_internal_pair *get_pair(const internal_node_t *node, uint16_t offset);
 
