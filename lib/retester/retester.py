@@ -79,7 +79,7 @@ class Result(object):
         
         assert result in ["pass", "fail"]
 
-        self.running_time = time.clock() - start_time
+        self.running_time = time.time() - start_time
         
         if result == "pass":
             self.result = "pass"
@@ -125,7 +125,7 @@ def run_test(command, timeout = None):
     environ["TMP"] = temp_dir.path
     environ["PYTHONUNBUFFERED"] = "1"
 
-    start_time = time.clock()
+    start_time = time.time()
 
     process = subprocess.Popen(
         command,
