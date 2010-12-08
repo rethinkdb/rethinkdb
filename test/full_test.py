@@ -156,14 +156,14 @@ try:
                           "slices"      : slices },
                         repeat=3, timeout = 180)
             
-'''                do_test_cloud("integration/bin_pipeline.py",
-                        { "auto"        : True,
-                          "mode"        : mode,
-                          "no-valgrind" : not checker,
-                          "protocol"    : protocol,
-                          "cores"       : cores,
-                          "slices"      : slices },
-                        repeat=3)'''
+#                do_test_cloud("integration/bin_pipeline.py",
+#                        { "auto"        : True,
+#                          "mode"        : mode,
+#                          "no-valgrind" : not checker,
+#                          "protocol"    : protocol,
+#                          "cores"       : cores,
+#                          "slices"      : slices },
+#                        repeat=3)
             
                 do_test_cloud("integration/many_keys.py",
                         { "auto"        : True,
