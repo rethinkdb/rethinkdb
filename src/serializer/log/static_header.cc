@@ -45,7 +45,7 @@ void co_static_header_write_helper(direct_file_t *file, static_header_write_call
 }
 
 bool static_header_write(direct_file_t *file, void *data, size_t data_size, static_header_write_callback_t *cb) {
-    new auto_coro_t(co_static_header_write_helper, file, cb, data, data_size);
+    new coro_t(co_static_header_write_helper, file, cb, data, data_size);
     return false;
 }
 
@@ -66,6 +66,6 @@ void co_static_header_read(direct_file_t *file, static_header_read_callback_t *c
 }
 
 bool static_header_read(direct_file_t *file, void *data_out, size_t data_size, static_header_read_callback_t *cb) {
-    new auto_coro_t(co_static_header_read, file, cb, data_out, data_size);
+    new coro_t(co_static_header_read, file, cb, data_out, data_size);
     return false;
 }

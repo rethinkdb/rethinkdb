@@ -19,6 +19,7 @@ struct coro_t : public cpu_message_t {
 
 private:
     void switch_to(coro_t *next);
+    void initialize(void (*fn)(void *), void *arg);
 
     Coro *underlying;
     bool dead;
@@ -41,15 +42,11 @@ private:
 #ifndef NDEBUG
     bool notified;
 #endif
-};
-
-//This class exists just for its constructors. Maybe
-//there is a better way to do it
-
-struct auto_coro_t : public coro_t {
 //Unary typed coroutines
     template<typename T>
-    auto_coro_t(void (*fn)(T), T arg) : coro_t((void (*)(void *))fn, (void *)arg) { }
+    coro_t(void (*fn)(T), T arg) {
+        initialize((void (*)(void *))fn, (void *)arg);
+    }
 
 //Binary typed coroutines
 private:
@@ -71,8 +68,9 @@ private:
 
 public:
     template<typename A, typename B>
-    auto_coro_t(void (*fn)(A, B), A first, B second)
-        : coro_t(start_binary<A, B>, (void *)new binary<A, B>(fn, first, second)) { }
+    coro_t(void (*fn)(A, B), A first, B second) {
+        initialize(start_binary<A, B>, (void *)new binary<A, B>(fn, first, second));
+    }
 
 //Ternary typed coroutines
 private:
@@ -95,8 +93,9 @@ private:
 
 public:
     template<typename A, typename B, typename C>
-    auto_coro_t(void (*fn)(A, B, C), A first, B second, C third)
-        : coro_t(start_ternary<A, B, C>, (void *)new ternary<A, B, C>(fn, first, second, third)) { }
+    coro_t(void (*fn)(A, B, C), A first, B second, C third) {
+        initialize(start_ternary<A, B, C>, (void *)new ternary<A, B, C>(fn, first, second, third));
+    }
 
 //Quaternary typed coroutines
 private:
@@ -120,8 +119,9 @@ private:
 
 public:
     template<typename A, typename B, typename C, typename D>
-    auto_coro_t(void (*fn)(A, B, C, D), A first, B second, C third, D fourth)
-        : coro_t(start_quaternary<A, B, C, D>, (void *)new quaternary<A, B, C, D>(fn, first, second, third, fourth)) { }
+    coro_t(void (*fn)(A, B, C, D), A first, B second, C third, D fourth) {
+        initialize(start_quaternary<A, B, C, D>, (void *)new quaternary<A, B, C, D>(fn, first, second, third, fourth));
+    }
 
 //Fiveary (?) typed coroutines
 private:
@@ -146,9 +146,9 @@ private:
 
 public:
     template<typename A, typename B, typename C, typename D, typename E>
-    auto_coro_t(void (*fn)(A, B, C, D, E), A first, B second, C third, D fourth, E fifth)
-        : coro_t(start_fiveary<A, B, C, D, E>, (void *)new fiveary<A, B, C, D, E>(fn, first, second, third, fourth, fifth)) { }
-
+    coro_t(void (*fn)(A, B, C, D, E), A first, B second, C third, D fourth, E fifth) {
+        initialize(start_fiveary<A, B, C, D, E>, (void *)new fiveary<A, B, C, D, E>(fn, first, second, third, fourth, fifth));
+    }
 };
 
 struct task_callback_t {

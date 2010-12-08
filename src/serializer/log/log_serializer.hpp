@@ -111,6 +111,7 @@ public:
 private:
     static void ls_start_new(log_serializer_t *, static_config_t *, ready_callback_t *);
 
+public:
     /* Implementation of the serializer_t API */
     void *malloc();
     void *clone(void*); // clones a buf

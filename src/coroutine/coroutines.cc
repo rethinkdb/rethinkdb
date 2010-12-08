@@ -57,12 +57,16 @@ void coro_t::run_coroutine(void *data) {
     coro_t::suicide();
 }
 
-coro_t::coro_t(void (*fn)(void *arg), void *arg)
-    : underlying(Coro_new()), dead(false)
+coro_t::coro_t(void (*fn)(void *arg), void *arg) {
+    initialize(fn, arg);
+}
+
+void coro_t::initialize(void (*fn)(void *arg), void *arg) {
+    underlying = Coro_new();
+    dead = false;
 #ifndef NDEBUG
-    , notified(false)
+    notified = false;
 #endif
-{
     coro_initialization_data data;
     data.fn = fn;
     data.arg = arg;
