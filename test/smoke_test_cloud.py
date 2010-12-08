@@ -101,6 +101,17 @@ try:
                       "slices"      : slices,
                       "duration"    : 10 },
                     repeat=2, timeout=25)
+             
+            do_test_cloud("integration/multi_serial_mix.py",
+                    { "auto"        : True,
+                      "mode"        : mode,
+                      "no-valgrind" : not checker,
+                      "protocol"    : protocol,
+                      "cores"       : cores,
+                      "slices"      : slices,
+                      "memory"      : 5,
+                      "duration"    : 10 },
+                    repeat=2, timeout=25)
         
     # Report the results
     report_cloud()

@@ -5,7 +5,7 @@ base_directory = os.path.dirname(os.path.join(os.getcwd(), sys.argv[0])) + "/../
 # Please configure these:
 
 testing_nodes_ec2_instance_type = "m1.large" # m1.large / t1.micro
-testing_nodes_ec2_count = 10 # number of nodes to spin up
+testing_nodes_ec2_count = 5 # number of nodes to spin up
 testing_nodes_ec2_image_name = "ami-2272864b"
 testing_nodes_ec2_key_pair_name = "cloudtest_default"
 testing_nodes_ec2_security_group_name = "cloudtest_default"
@@ -44,7 +44,7 @@ class TestReference:
         self.command = command
 
 class TestingNode:
-    def __init__(self, hostname, port, username, private_ssh_key_filename):  
+    def __init__(self, hostname, port, username, private_ssh_key_filename):
         self.hostname = hostname
         self.port = port
         self.username = username # "ec2-user"
@@ -84,7 +84,7 @@ class TestingNode:
         self.ssh_transport.set_keepalive(60)
         self.ssh_transport.connect(username=self.username, pkey=self.private_ssh_key)
         
-        return self.ssh_transport        
+        return self.ssh_transport
         
     
     # returns a tupel (return code, output)
@@ -208,8 +208,8 @@ class TestingNode:
         if command_result[0] != 0:
             print "Unable to release lock (maybe the node wasn't locked before?)"
             # TODO: Throw exception or something,,,
-            
-            
+
+
 def create_testing_nodes_from_reservation():
     global testing_nodes
     global testing_nodes_ec2_reservation
@@ -274,8 +274,8 @@ def start_testing_nodes():
         else:
             print "Node %s is up" % node.hostname
         # TODO: handle problems gracefully...
-        
-        
+
+
 def terminate_testing_nodes():
     global testing_nodes
     global testing_nodes_ec2_reservation
@@ -293,15 +293,15 @@ def terminate_testing_nodes():
         testing_nodes_ec2_reservation = None
     
     testing_nodes = None
-    
-    
+
+
 def cleanup_testing_node(node):
     node.run_command("rm -rf " + node.global_build_path)
     node.run_command("rm -rf " + node.global_bench_path)
     node.run_command("rm -rf " + node.global_test_path)
-    
-    
-def scp_basedata_to_testing_node(source_node, target_node):    
+
+
+def scp_basedata_to_testing_node(source_node, target_node):
     # Put private SSH key to source_node...
     source_node.run_command("rm -f private_ssh_key.pem")
     source_node.put_file(private_ssh_key_filename, "private_ssh_key.pem")
@@ -317,7 +317,7 @@ def scp_basedata_to_testing_node(source_node, target_node):
             
     target_node.basedata_installed = True
 
-    
+
 def copy_basedata_to_testing_node(node):
     global testing_nodes
 
@@ -395,8 +395,8 @@ def copy_basedata_to_testing_node(node):
     node.put_file(base_directory + "/" + wrapper_script_filename, "%s/%s" % (node.global_test_path, wrapper_script_filename));
     
     node.basedata_installed = True
-    
-    
+
+
 
 def copy_per_test_data_to_testing_node(node, test_reference, test_script):
     # Create test directory
@@ -440,7 +440,8 @@ def copy_per_test_data_to_testing_node(node, test_reference, test_script):
     
     # Install the wrapper script
     #node.put_file(base_directory + "/" + wrapper_script_filename, "cloud_retest/%s/test/%s" % (test_reference, wrapper_script_filename));
-    
+
+
 def start_test_on_node(node, test_command, test_timeout = None, locking_timeout = 0):
     if locking_timeout == None:
         locking_timeout = 0
@@ -503,8 +504,8 @@ def get_report_for_test(test_reference):
     # TODO: Also fetch network logs if any?    
     
     return result
-    
-    
+
+
 def issue_test_to_some_node(test_command, test_timeout = 0):
     global testing_nodes
     global next_node_to_issue_to
@@ -522,7 +523,7 @@ def issue_test_to_some_node(test_command, test_timeout = 0):
     
     # return the reference required to retrieve results later, contains node and report dir
     return test_reference
-    
+
 
 
 def wait_for_nodes_to_finish():
@@ -533,7 +534,8 @@ def wait_for_nodes_to_finish():
     for node in testing_nodes:
         node.acquire_lock()
         node.release_lock()
-        
+
+    
 def collect_reports_from_nodes():
     global testing_nodes
     global reports
