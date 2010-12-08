@@ -20,7 +20,7 @@ struct btree_superblock_t {
 
 
 //Note: This struct is stored directly on disk.  Changing it invalidates old data.
-struct btree_internal_node {
+struct internal_node_t {
     block_magic_t magic;
     uint16_t npairs;
     uint16_t frontmost_offset;
@@ -28,8 +28,6 @@ struct btree_internal_node {
 
     static const block_magic_t expected_magic;
 };
-
-typedef btree_internal_node internal_node_t;
 
 
 // Here's how we represent the modification history of the leaf node.
@@ -44,12 +42,12 @@ typedef btree_internal_node internal_node_t;
 // newer than it really is.  So when earlier[i] overflows,
 // we pin it to 0xFFFF.
 struct leaf_timestamps_t {
-    repl_timestamp last_modified;  // 0
+    repli_timestamp last_modified;  // 0
     uint16_t earlier[NUM_LEAF_NODE_EARLIER_TIMES];  // 4
 };
 
 //Note: This struct is stored directly on disk.  Changing it invalidates old data.
-struct btree_leaf_node {
+struct leaf_node_t {
     block_magic_t magic;        // 0
     leaf_timestamps_t times;    // 4
     uint16_t npairs;            // 12
@@ -60,8 +58,6 @@ struct btree_leaf_node {
 
     static const block_magic_t expected_magic;
 };
-
-typedef btree_leaf_node leaf_node_t;
 
 
 
@@ -232,12 +228,12 @@ class node_handler {
     public:
         static bool is_leaf(const btree_node *node) {
             assert(check_magic<btree_node>(node->magic));
-            return check_magic<btree_leaf_node>(node->magic);
+            return check_magic<leaf_node_t>(node->magic);
         }
 
         static bool is_internal(const btree_node *node) {
             assert(check_magic<btree_node>(node->magic));
-            return check_magic<btree_internal_node>(node->magic);
+            return check_magic<internal_node_t>(node->magic);
         }
 
         static void str_to_key(char *str, btree_key *buf) {

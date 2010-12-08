@@ -45,24 +45,24 @@ public:
         block_id_t block_id;
         bool recency_specified;
         bool buf_specified;
-        repl_timestamp recency;
+        repli_timestamp recency;
         const void *buf;
         serializer_t::write_block_callback_t *callback;
 
-        static write_t make_touch(block_id_t block_id_, repl_timestamp recency_, serializer_t::write_block_callback_t *callback_) {
+        static write_t make_touch(block_id_t block_id_, repli_timestamp recency_, serializer_t::write_block_callback_t *callback_) {
             return write_t(block_id_, true, recency_, false, NULL, callback_);
         }
 
-        static write_t make(block_id_t block_id_, repl_timestamp recency_, const void *buf_, serializer_t::write_block_callback_t *callback_) {
+        static write_t make(block_id_t block_id_, repli_timestamp recency_, const void *buf_, serializer_t::write_block_callback_t *callback_) {
             return write_t(block_id_, true, recency_, true, buf_, callback_);
         }
 
     private:
         static write_t make_internal(block_id_t block_id_, const void *buf_, serializer_t::write_block_callback_t *callback_) {
-            return write_t(block_id_, false, repl_timestamp::invalid, true, buf_, callback_);
+            return write_t(block_id_, false, repli_timestamp::invalid, true, buf_, callback_);
         }
 
-        write_t(block_id_t block_id_, bool recency_specified_, repl_timestamp recency_,
+        write_t(block_id_t block_id_, bool recency_specified_, repli_timestamp recency_,
                 bool buf_specified_, const void *buf_, serializer_t::write_block_callback_t *callback_)
             : block_id(block_id_), recency_specified(recency_specified_), buf_specified(buf_specified_), recency(recency_), buf(buf_), callback(callback_) { }
     };
@@ -70,6 +70,7 @@ public:
     block_size_t get_block_size();
     block_id_t max_block_id();
     bool block_in_use(block_id_t id);
+    repli_timestamp get_recency(block_id_t id);
 };
 
 #endif /* __SERIALIZER_TRANSLATOR_HPP__ */

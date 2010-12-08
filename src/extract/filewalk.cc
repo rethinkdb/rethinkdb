@@ -152,8 +152,8 @@ void walk_extents(dumper_t &dumper, direct_file_t &file, cfg_t cfg) {
 }
 
 bool check_all_known_magic(block_magic_t magic) {
-    return check_magic<btree_leaf_node>(magic)
-        || check_magic<btree_internal_node>(magic)
+    return check_magic<leaf_node_t>(magic)
+        || check_magic<internal_node_t>(magic)
         || check_magic<btree_superblock_t>(magic)
         || check_magic<large_buf_internal>(magic)
         || check_magic<large_buf_leaf>(magic)
@@ -188,9 +188,9 @@ void get_all_values(dumper_t& dumper, const segmented_vector_t<off64_t, MAX_BLOC
 
         ser_block_id_t block_id = b.buf_data().block_id;
         if (block_id.value < offsets.get_size() && offsets[block_id.value] == offset) {
-            const btree_leaf_node *leaf = (leaf_node_t *)b.buf;
+            const leaf_node_t *leaf = (leaf_node_t *)b.buf;
 
-            if (check_magic<btree_leaf_node>(leaf->magic)) {
+            if (check_magic<leaf_node_t>(leaf->magic)) {
                 uint16_t num_pairs = leaf->npairs;
                 logDBG("We have a leaf node with %d pairs.\n", num_pairs);
                 for (uint16_t j = 0; j < num_pairs; ++j) {

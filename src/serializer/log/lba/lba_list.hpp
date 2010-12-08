@@ -41,7 +41,7 @@ public:
     
 public:
     flagged_off64_t get_block_offset(ser_block_id_t block);
-    repl_timestamp get_block_recency(ser_block_id_t block);
+    repli_timestamp get_block_recency(ser_block_id_t block);
     
     /* Returns a block ID such that all blocks that exist are guaranteed to have IDs less than
     that block ID. */
@@ -54,7 +54,7 @@ public:
 #endif
     
 public:
-    void set_block_offset(ser_block_id_t block, repl_timestamp recency,
+    void set_block_offset(ser_block_id_t block, repli_timestamp recency,
                           flagged_off64_t offset);
 
     struct sync_callback_t {

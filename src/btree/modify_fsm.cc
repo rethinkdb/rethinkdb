@@ -348,7 +348,7 @@ void btree_modify_fsm_t::do_transition(event_t *event) {
                 if (node_handler::is_leaf(node) && !have_computed_new_value) {
                     // TODO: Clean up this mess.
                     if (!dest_reached) {
-                        key_found = leaf_node_handler::lookup((btree_leaf_node*)node, &key, &old_value);
+                        key_found = leaf_node_handler::lookup((leaf_node_t *)node, &key, &old_value);
                         dest_reached = true;
                     }
 
@@ -475,7 +475,7 @@ void btree_modify_fsm_t::do_transition(event_t *event) {
                             bool leveled = node_handler::level(cache->get_block_size(), node_handler::node(buf->get_data_write()), sib_node, key_to_replace, replacement_key, parent_node);
 
                             if (leveled) {
-                                internal_node_handler::update_key((btree_internal_node *)parent_node, key_to_replace, replacement_key);
+                                internal_node_handler::update_key((internal_node_t *)parent_node, key_to_replace, replacement_key);
                             }
                             sib_buf->release();
                             sib_buf = NULL;

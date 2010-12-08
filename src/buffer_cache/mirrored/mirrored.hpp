@@ -48,7 +48,7 @@ class mc_inner_buf_t {
     
     cache_t *cache;
     block_id_t block_id;
-    repl_timestamp subtree_recency;
+    repli_timestamp subtree_recency;
     void *data;
     rwi_lock_t lock;
     
@@ -130,6 +130,13 @@ public:
         assert(!inner_buf->safe_to_unload());
         inner_buf->do_delete = true;
         inner_buf->writeback_buf.set_dirty();
+    }
+
+    void touch_recency() {
+        // TODO: use some slice-specific timestamp that gets updated
+        // every epoll call.
+        inner_buf->subtree_recency = current_time();
+        inner_buf->writeback_buf.set_recency_dirty();
     }
 
     bool is_dirty() {

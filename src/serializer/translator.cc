@@ -71,3 +71,7 @@ block_id_t translator_serializer_t::max_block_id() {
 bool translator_serializer_t::block_in_use(block_id_t id) {
     return inner->block_in_use(xlate(id));
 }
+
+repli_timestamp translator_serializer_t::get_recency(block_id_t id) {
+    return inner->get_recency(xlate(id));
+}
