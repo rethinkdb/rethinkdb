@@ -99,13 +99,13 @@ btree_get_fsm_t::transition_result_t btree_get_fsm_t::do_acquire_node(event_t *e
     }
     assert(buf);
 
-    node_handler::validate(cache->get_block_size(), node_handler::node(buf->get_data_read()));
+    node_handler::validate(cache->get_block_size(), ptr_cast<node_t>(buf->get_data_read()));
 
     // Release the previous buffer
     last_buf->release();
     last_buf = NULL;
 
-    const node_t *node = node_handler::node(buf->get_data_read());
+    const node_t *node = ptr_cast<node_t>(buf->get_data_read());
     if(node_handler::is_internal(node)) {
     
         block_id_t next_node_id = internal_node_handler::lookup((internal_node_t*)node, &key);

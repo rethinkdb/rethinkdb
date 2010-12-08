@@ -141,7 +141,7 @@ public:
     bool have_created_a_serializer();   // Called on home thread
     
     static int compute_mod_count(int32_t file_number, int32_t n_files, int32_t n_slices);
-    static uint32_t hash(btree_key *key);
+    static uint32_t hash(const btree_key *key);
 
     void create_pseudoserializers();   // Called on home thread
     bool create_a_pseudoserializer_on_this_core(int i);   // Called on serializer thread

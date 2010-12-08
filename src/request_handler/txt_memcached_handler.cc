@@ -964,7 +964,7 @@ static store_t::replicant_t *test_replicant;
 class test_replicant_t :
     public store_t::replicant_t
 {
-    void value(store_key_t *key, const_buffer_group_t *bg, done_callback_t *cb, mcflags_t flags, exptime_t exptime, cas_t cas) {
+    void value(const store_key_t *key, const_buffer_group_t *bg, done_callback_t *cb, mcflags_t flags, exptime_t exptime, cas_t cas) {
         flockfile(stderr);
         debugf("VALUE '%*.*s' = ", key->size, key->size, key->contents);
         if (bg) {

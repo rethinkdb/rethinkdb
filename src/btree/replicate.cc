@@ -112,7 +112,7 @@ struct slice_walker_t :
         return true;
     }
     void on_block_available(buf_t *buf) {
-        btree_superblock_t *superblock = (btree_superblock_t *)buf->get_data_read();
+        const btree_superblock_t *superblock = ptr_cast<btree_superblock_t>(buf->get_data_read());
         if (superblock->root_block != NULL_BLOCK_ID) {
             walk_branch(this, superblock->root_block);
         } else {
@@ -147,8 +147,8 @@ struct branch_walker_t :
     buf_t *buf;
     
     int current_pair;   // Used for iterating over leaf nodes
-    store_key_t *current_key;
-    btree_value *current_value;
+    const store_key_t *current_key;
+    const btree_value *current_value;
     large_buf_t *large_value;
     const_buffer_group_t buffers;
     
@@ -170,10 +170,10 @@ struct branch_walker_t :
     
     void on_block_available(buf_t *b) {
         buf = b;
-        if (node_handler::is_internal(node_handler::node(buf->get_data_read()))) {
-            const internal_node_t *node = internal_node_handler::internal_node(buf->get_data_read());
+        if (node_handler::is_internal(ptr_cast<node_t>(buf->get_data_read()))) {
+            const internal_node_t *node = ptr_cast<internal_node_t>(buf->get_data_read());
             for (int i = 0; i < (int)node->npairs; i++) {
-                btree_internal_pair *pair = internal_node_handler::get_pair(node, node->pair_offsets[i]);
+                const btree_internal_pair *pair = internal_node_handler::get_pair(node, node->pair_offsets[i]);
                 walk_branch(parent, pair->lnode);
             }
             delete this;
@@ -193,12 +193,12 @@ struct branch_walker_t :
         
         current_pair++;
         
-        const leaf_node_t *node = leaf_node_handler::leaf_node(buf->get_data_read());
+        const leaf_node_t *node = ptr_cast<leaf_node_t>(buf->get_data_read());
         if (current_pair == node->npairs) {
             delete this;
         
         } else {
-            btree_leaf_pair *pair = leaf_node_handler::get_pair(node, node->pair_offsets[current_pair]);
+            const btree_leaf_pair *pair = leaf_node_handler::get_pair(node, node->pair_offsets[current_pair]);
             current_key = &pair->key;
             current_value = pair->value();
             
