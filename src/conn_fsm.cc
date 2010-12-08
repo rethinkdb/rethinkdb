@@ -421,8 +421,8 @@ conn_fsm_t::result_t conn_fsm_t::do_transition(event_t *event) {
     return res;
 }
 
-conn_fsm_t::conn_fsm_t(net_conn_t *conn, conn_fsm_shutdown_callback_t *c, request_handler_t *rh)
-    : quitting(false), conn(conn), in_do_transition(false), req_handler(rh), shutdown_callback(c)
+conn_fsm_t::conn_fsm_t(net_conn_t *c, conn_fsm_shutdown_callback_t *cb, request_handler_t *rh)
+    : quitting(false), conn(new oldstyle_net_conn_t(c)), in_do_transition(false), req_handler(rh), shutdown_callback(cb)
 {
 #ifndef NDEBUG
     we_are_closed = false;

@@ -4,7 +4,7 @@
 #include <pthread.h>
 #include "config/args.hpp"
 #include "arch/linux/event_queue.hpp"
-#include "arch/linux/io.hpp"
+#include "arch/linux/disk.hpp"
 #include "arch/linux/timer.hpp"
 #include "arch/linux/message_hub.hpp"
 

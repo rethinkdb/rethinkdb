@@ -81,7 +81,7 @@ private:
         state_return_from_cpu
     } state;
     conn_acceptor_t *parent;
-    net_conn_t *conn;
+    net_conn_t *conn;   // Temporary storage while we switch CPUs
 
 public:
     conn_fsm_t *conn_fsm;

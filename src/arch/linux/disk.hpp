@@ -1,6 +1,6 @@
 
-#ifndef __IO_CALLS_HPP__
-#define __IO_CALLS_HPP__
+#ifndef __ARCH_LINUX_DISK_HPP__
+#define __ARCH_LINUX_DISK_HPP__
 
 #include <libaio.h>
 #include <vector>
@@ -9,68 +9,14 @@
 #include "arch/linux/event_queue.hpp"
 #include "event.hpp"
 
+/* The "direct" in linux_direct_file_t refers to the fact that the file is opened in
+O_DIRECT mode, and there are restrictions on the alignment of the chunks being written
+and read to and from the file. */
+
 struct linux_iocallback_t {
     virtual ~linux_iocallback_t() {}
     virtual void on_io_complete(event_t *event) = 0;
 };
-
-struct linux_net_conn_callback_t {
-    virtual void on_net_conn_readable() = 0;
-    virtual void on_net_conn_writable() = 0;
-    virtual void on_net_conn_close() = 0;
-    virtual ~linux_net_conn_callback_t() {}
-};
-
-class linux_net_conn_t :
-    public linux_event_callback_t
-{
-public:
-    void set_callback(linux_net_conn_callback_t *cb);
-    ssize_t read_nonblocking(void *buf, size_t count);
-    ssize_t write_nonblocking(const void *buf, size_t count);
-    ~linux_net_conn_t();
-    
-private:
-    friend class linux_io_calls_t;
-    friend class linux_net_listener_t;
-    
-    fd_t sock;
-    linux_net_conn_callback_t *callback;
-    bool *set_me_true_on_delete;   // So we can tell if a callback deletes the conn_fsm_t
-
-    // We are implementing this for level-triggered mechanisms such as
-    // poll, that will keep bugging us about the write when we don't
-    // need it, and use up 100% of cpu
-    bool registered_for_write_notifications;
-    
-    explicit linux_net_conn_t(fd_t);
-    void on_event(int events);
-};
-
-struct linux_net_listener_callback_t {
-    virtual void on_net_listener_accept(linux_net_conn_t *conn) = 0;
-    virtual ~linux_net_listener_callback_t() {}
-};
-
-class linux_net_listener_t :
-    public linux_event_callback_t
-{
-
-public:
-    explicit linux_net_listener_t(int port);
-    void set_callback(linux_net_listener_callback_t *cb);
-    ~linux_net_listener_t();
-
-private:
-    fd_t sock;
-    linux_net_listener_callback_t *callback;
-    
-    void on_event(int events);
-};
-
-/* The "direct" in linux_direct_file_t refers to the fact that the file is opened in
-O_DIRECT mode, and there are restrictions on the alignment of the chunks being written
-and read to and from the file. */
 
 class linux_direct_file_t
 {
@@ -140,5 +86,5 @@ public:
     void aio_notify(iocb *event, int result);
 };
 
-#endif // __IO_CALLS_HPP__
+#endif // __ARCH_LINUX_DISK_HPP__
 

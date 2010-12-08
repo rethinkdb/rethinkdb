@@ -29,7 +29,7 @@ struct conn_fsm_shutdown_callback_t {
 // The actual state structure
 struct conn_fsm_t :
     public intrusive_list_node_t<conn_fsm_t>,
-    public net_conn_callback_t
+    public oldstyle_net_conn_callback_t
 {
 public:
     typedef buffer_t<IO_BUFFER_SIZE> iobuf_t;
@@ -82,7 +82,7 @@ public:
     void on_net_conn_close();
     
 public:
-    net_conn_t *conn;
+    oldstyle_net_conn_t *conn;
     state_t state;
     bool corked; //whether or not we should buffer our responses
     

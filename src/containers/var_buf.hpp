@@ -88,7 +88,7 @@ struct linked_buf_t : public buffer_base_t<IO_BUFFER_SIZE>
         /*! \brief try to send as much of the buffer as possible
          *  \return true if there is still outstanding data
          */
-        linked_buf_state_t send(net_conn_t *conn) {
+        linked_buf_state_t send(oldstyle_net_conn_t *conn) {
             linked_buf_state_t res;
             if (nsent < nbuf) {
                 int sz = conn->write_nonblocking(this->buf + nsent, nbuf - nsent);
