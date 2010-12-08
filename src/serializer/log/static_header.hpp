@@ -17,6 +17,8 @@ struct static_header_write_callback_t {
     virtual ~static_header_write_callback_t() {}
 };
 
+void co_static_header_write(direct_file_t *file, void *data, size_t data_size);
+
 bool static_header_write(direct_file_t *file, void *data, size_t data_size, static_header_write_callback_t *cb);
 
 struct static_header_read_callback_t {

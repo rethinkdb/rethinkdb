@@ -18,7 +18,7 @@ bool static_header_check(direct_file_t *file) {
     }
 }
 
-void co_static_header_write(direct_file_t *file, static_header_write_callback_t *cb, void *data, size_t data_size) {
+void co_static_header_write(direct_file_t *file, void *data, size_t data_size) {
     static_header_t *buffer = (static_header_t *)malloc_aligned(DEVICE_BLOCK_SIZE, DEVICE_BLOCK_SIZE);
     assert(sizeof(static_header_t) + data_size < DEVICE_BLOCK_SIZE);
         
@@ -36,12 +36,16 @@ void co_static_header_write(direct_file_t *file, static_header_write_callback_t 
     
     file->co_write(0, DEVICE_BLOCK_SIZE, buffer);
     
-    cb->on_static_header_write();
     free(buffer);
 }
 
+void co_static_header_write_helper(direct_file_t *file, static_header_write_callback_t *cb, void *data, size_t data_size) {
+    co_static_header_write(file, data, data_size);
+    cb->on_static_header_write();
+}
+
 bool static_header_write(direct_file_t *file, void *data, size_t data_size, static_header_write_callback_t *cb) {
-    new auto_coro_t(co_static_header_write, file, cb, data, data_size);
+    new auto_coro_t(co_static_header_write_helper, file, cb, data, data_size);
     return false;
 }
 
