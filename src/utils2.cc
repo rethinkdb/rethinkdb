@@ -31,10 +31,9 @@ repl_timestamp current_time() {
     // precision will not break things in 2038 or 2106 if we compare
     // times correctly.
 
-    // TODO: consider avoiding system calls.
-    repl_timestamp ret;
-    ret.time = time(NULL);
-    return ret;
+    // time(NULL) does not do a system call (on Linux), last time we
+    // checked, but it's still kind of slow.
+    return repl_time(time(NULL));
 }
 
 repl_timestamp later_time(repl_timestamp x, repl_timestamp y) {

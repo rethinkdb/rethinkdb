@@ -23,13 +23,17 @@ struct repl_timestamp {
     static const repl_timestamp invalid;
 };
 
+// Converts a time_t (in seconds) to a repl_timestamp.  The important
+// thing here is that this will never return repl_timestamp::invalid,
+// which will matter for one second every 116 years.
 repl_timestamp repl_time(time_t t);
 
 // TODO: move this to a different file
 repl_timestamp current_time();
 
-// This is almost like std::max except it compares times locally, so
-// that overflow is handled gracefully.
+// This is almost like std::max except it compares times "locally", so
+// that overflow is handled gracefully.  That is, it compares y - x to
+// 0, instead of comparing y to x.
 repl_timestamp later_time(repl_timestamp x, repl_timestamp y);
 
 
