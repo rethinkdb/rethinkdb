@@ -3,8 +3,8 @@
 #include "btree/internal_node.hpp"
 
 const block_magic_t btree_superblock_t::expected_magic = { {'s','u','p','e'} };
-const block_magic_t btree_internal_node::expected_magic = { {'i','n','t','e'} };
-const block_magic_t btree_leaf_node::expected_magic = { {'l','e','a','f'} };
+const block_magic_t internal_node_t::expected_magic = { {'i','n','t','e'} };
+const block_magic_t leaf_node_t::expected_magic = { {'l','e','a','f'} };
 
 
 
@@ -57,10 +57,10 @@ void node_handler::print(const btree_node *node) {
 
 void node_handler::validate(block_size_t block_size, const btree_node *node) {
 #ifndef NDEBUG
-    if (check_magic<btree_leaf_node>(node->magic)) {
-        leaf_node_handler::validate(block_size, (btree_leaf_node *)node);
-    } else if (check_magic<btree_internal_node>(node->magic)) {
-        internal_node_handler::validate(block_size, (btree_internal_node *)node);
+    if (check_magic<leaf_node_t>(node->magic)) {
+        leaf_node_handler::validate(block_size, (leaf_node_t *)node);
+    } else if (check_magic<internal_node_t>(node->magic)) {
+        internal_node_handler::validate(block_size, (internal_node_t *)node);
     } else {
         fail("Invalid leaf node type.");
     }
@@ -69,6 +69,6 @@ void node_handler::validate(block_size_t block_size, const btree_node *node) {
 
 template <>
 bool check_magic<btree_node>(block_magic_t magic) {
-    return check_magic<btree_leaf_node>(magic) || check_magic<btree_internal_node>(magic);
+    return check_magic<leaf_node_t>(magic) || check_magic<internal_node_t>(magic);
 }
 
