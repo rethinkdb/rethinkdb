@@ -79,7 +79,7 @@ class Result(object):
         
         assert result in ["pass", "fail"]
 
-        self.running_time = start_time - time.clock()
+        self.running_time = time.clock() - start_time
         
         if result == "pass":
             self.result = "pass"
