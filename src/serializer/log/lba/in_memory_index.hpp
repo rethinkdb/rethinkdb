@@ -14,7 +14,7 @@ struct in_memory_index_t
     // blocks.get_size() == timestamps.get_size().  We use parallel
     // arrays to avoid wasting memory from alignment.
     segmented_vector_t<flagged_off64_t, MAX_BLOCK_ID> blocks;
-    segmented_vector_t<repl_timestamp, MAX_BLOCK_ID> timestamps;
+    segmented_vector_t<repli_timestamp, MAX_BLOCK_ID> timestamps;
 
 public:
     in_memory_index_t();
@@ -25,11 +25,11 @@ public:
 
     struct info_t {
         flagged_off64_t offset;
-        repl_timestamp recency;
+        repli_timestamp recency;
     };
 
     info_t get_block_info(ser_block_id_t id);
-    void set_block_info(ser_block_id_t id, repl_timestamp recency,
+    void set_block_info(ser_block_id_t id, repli_timestamp recency,
                         flagged_off64_t offset);
 
 #ifndef NDEBUG

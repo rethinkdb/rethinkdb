@@ -48,7 +48,7 @@ class mc_inner_buf_t {
     
     cache_t *cache;
     block_id_t block_id;
-    repl_timestamp subtree_recency;
+    repli_timestamp subtree_recency;
     void *data;
     rwi_lock_t lock;
     

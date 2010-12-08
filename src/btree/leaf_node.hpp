@@ -28,11 +28,11 @@ class leaf_key_comp;
 class leaf_node_handler : public node_handler {
     friend class leaf_key_comp;
 public:
-    static void init(block_size_t block_size, btree_leaf_node *node, repl_timestamp modification_time);
-    static void init(block_size_t block_size, btree_leaf_node *node, btree_leaf_node *lnode, uint16_t *offsets, int numpairs, repl_timestamp modification_time);
+    static void init(block_size_t block_size, btree_leaf_node *node, repli_timestamp modification_time);
+    static void init(block_size_t block_size, btree_leaf_node *node, btree_leaf_node *lnode, uint16_t *offsets, int numpairs, repli_timestamp modification_time);
 
     static bool lookup(const btree_leaf_node *node, btree_key *key, btree_value *value);
-    static bool insert(block_size_t block_size, btree_leaf_node *node, btree_key *key, btree_value *value, repl_timestamp insertion_time);
+    static bool insert(block_size_t block_size, btree_leaf_node *node, btree_key *key, btree_value *value, repli_timestamp insertion_time);
     static void remove(block_size_t block_size, btree_leaf_node *node, btree_key *key); // TODO: Currently untested
     static void split(block_size_t block_size, btree_leaf_node *node, btree_leaf_node *rnode, btree_key *median);
     static void merge(block_size_t block_size, btree_leaf_node *node, btree_leaf_node *rnode, btree_key *key_to_remove);
@@ -70,11 +70,11 @@ protected:
     static bool is_equal(btree_key *key1, btree_key *key2);
 
     // Initializes a leaf_timestamps_t.
-    static void initialize_times(leaf_timestamps_t *times, repl_timestamp current_time);
+    static void initialize_times(leaf_timestamps_t *times, repli_timestamp current_time);
 
     // Shifts a newer timestamp onto the leaf_timestamps_t, pushing
     // the last one off.
-    static void rotate_time(leaf_timestamps_t *times, repl_timestamp latest_time, int prev_timestamp_offset);
+    static void rotate_time(leaf_timestamps_t *times, repli_timestamp latest_time, int prev_timestamp_offset);
     static void remove_time(leaf_timestamps_t *times, int offset);
 
     // Returns the offset of the timestamp (or -1 or

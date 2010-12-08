@@ -44,7 +44,7 @@ typedef btree_internal_node internal_node_t;
 // newer than it really is.  So when earlier[i] overflows,
 // we pin it to 0xFFFF.
 struct leaf_timestamps_t {
-    repl_timestamp last_modified;  // 0
+    repli_timestamp last_modified;  // 0
     uint16_t earlier[NUM_LEAF_NODE_EARLIER_TIMES];  // 4
 };
 

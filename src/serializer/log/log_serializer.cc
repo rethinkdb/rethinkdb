@@ -413,7 +413,7 @@ struct ls_block_writer_t :
 
             bool done;
 
-            repl_timestamp recency = write.recency_specified ? write.recency : ser->lba_index->get_block_recency(write.block_id);
+            repli_timestamp recency = write.recency_specified ? write.recency : ser->lba_index->get_block_recency(write.block_id);
 
 
             if (write.buf) {
@@ -821,7 +821,7 @@ bool log_serializer_t::block_in_use(ser_block_id_t id) {
     return !(lba_index->get_block_offset(id).parts.is_delete);
 }
 
-repl_timestamp log_serializer_t::get_recency(ser_block_id_t id) {
+repli_timestamp log_serializer_t::get_recency(ser_block_id_t id) {
     return lba_index->get_block_recency(id);
 }
 

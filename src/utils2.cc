@@ -17,26 +17,26 @@ long get_total_ram() {
 }
 
 
-const repl_timestamp repl_timestamp::invalid = { -1 };
+const repli_timestamp repli_timestamp::invalid = { -1 };
 
-repl_timestamp repl_time(time_t t) {
-    repl_timestamp ret;
+repli_timestamp repli_time(time_t t) {
+    repli_timestamp ret;
     uint32_t x = t;
     ret.time = (x == (uint32_t)-1 ? 0 : x);
     return ret;
 }
 
-repl_timestamp current_time() {
+repli_timestamp current_time() {
     // Get the current time, cast it to 32 bits.  The lack of
     // precision will not break things in 2038 or 2106 if we compare
     // times correctly.
 
     // time(NULL) does not do a system call (on Linux), last time we
     // checked, but it's still kind of slow.
-    return repl_time(time(NULL));
+    return repli_time(time(NULL));
 }
 
-repl_timestamp later_time(repl_timestamp x, repl_timestamp y) {
+repli_timestamp later_time(repli_timestamp x, repli_timestamp y) {
     int32_t diff = y.time - x.time;
     return diff < 0 ? x : y;
 }

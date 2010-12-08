@@ -6,7 +6,7 @@
 
 //#define DEBUG_MAX_LEAF 10
 
-void leaf_node_handler::init(block_size_t block_size, btree_leaf_node *node, repl_timestamp modification_time) {
+void leaf_node_handler::init(block_size_t block_size, btree_leaf_node *node, repli_timestamp modification_time) {
     node->magic = btree_leaf_node::expected_magic;
     node->npairs = 0;
     node->frontmost_offset = block_size.value();
@@ -17,7 +17,7 @@ void leaf_node_handler::init(block_size_t block_size, btree_leaf_node *node, rep
 // more coarse than conceivably possible.  We could also let the
 // caller supply an earlier[] array.
 // TODO: maybe lnode should just supply the modification time.
-void leaf_node_handler::init(block_size_t block_size, btree_leaf_node *node, btree_leaf_node *lnode, uint16_t *offsets, int numpairs, repl_timestamp modification_time) {
+void leaf_node_handler::init(block_size_t block_size, btree_leaf_node *node, btree_leaf_node *lnode, uint16_t *offsets, int numpairs, repli_timestamp modification_time) {
     init(block_size, node, modification_time);
     for (int i = 0; i < numpairs; i++) {
         node->pair_offsets[i] = insert_pair(node, get_pair(lnode, offsets[i]));
@@ -26,7 +26,7 @@ void leaf_node_handler::init(block_size_t block_size, btree_leaf_node *node, btr
     std::sort(node->pair_offsets, node->pair_offsets+node->npairs, leaf_key_comp(node));
 }
 
-bool leaf_node_handler::insert(block_size_t block_size, btree_leaf_node *node, btree_key *key, btree_value* value, repl_timestamp insertion_time) {
+bool leaf_node_handler::insert(block_size_t block_size, btree_leaf_node *node, btree_key *key, btree_value* value, repli_timestamp insertion_time) {
     if (is_full(node, key, value)) return false;
     int index = get_offset_index(node, key);
     uint16_t prev_offset = node->pair_offsets[index];
@@ -383,14 +383,14 @@ bool leaf_node_handler::is_equal(btree_key *key1, btree_key *key2) {
     return sized_strcmp(key1->contents, key1->size, key2->contents, key2->size) == 0;
 }
 
-void leaf_node_handler::initialize_times(leaf_timestamps_t *times, repl_timestamp current_time) {
+void leaf_node_handler::initialize_times(leaf_timestamps_t *times, repli_timestamp current_time) {
     times->last_modified = current_time;
     for (int i = 0; i < NUM_LEAF_NODE_EARLIER_TIMES; ++i) {
         times->earlier[i] = 0;
     }
 }
 
-void leaf_node_handler::rotate_time(leaf_timestamps_t *times, repl_timestamp latest_time, int prev_timestamp_offset) {
+void leaf_node_handler::rotate_time(leaf_timestamps_t *times, repli_timestamp latest_time, int prev_timestamp_offset) {
     int32_t diff = latest_time.time - times->last_modified.time;
     if (diff < 0) {
         logWRN("We seemingly stepped backwards in time, with new timestamp %d earlier than %d", latest_time.time, times->last_modified);
