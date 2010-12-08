@@ -262,8 +262,8 @@ def start_testing_nodes():
     
     create_testing_nodes_from_reservation()
     
-    # Give it another 90 seconds to start up...
-    time.sleep(90)
+    # Give it another 120 seconds to start up...
+    time.sleep(120)
     
     # Check that all testing nodes are up
     for node in testing_nodes:

@@ -94,7 +94,7 @@ try:
                           "slices"      : slices,
                           "duration"    : 240 },
                         repeat=5, timeout=300)
-            
+
                 do_test_cloud("integration/serial_mix.py",
                         { "auto"        : True,
                           "mode"        : mode,
@@ -105,7 +105,19 @@ try:
                           "duration"    : 240,
                           "restart-server-prob" : "0.0005"},
                         repeat=5, timeout=300)
-            
+
+                do_test_cloud("integration/multi_serial_mix.py",
+                        { "auto"        : True,
+                          "mode"        : mode,
+                          "no-valgrind" : not checker,
+                          "protocol"    : protocol,
+                          "cores"       : cores,
+                          "slices"      : slices,
+                          "num-testers" : 16,
+                          "memory"      : 10,
+                          "duration"    : 240},
+                        repeat=5, timeout=300)
+
                 do_test_cloud("integration/multi_serial_mix.py",
                         { "auto"        : True,
                           "mode"        : mode,
@@ -116,7 +128,7 @@ try:
                           "num-testers" : 16,
                           "duration"    : 240},
                         repeat=5, timeout=300)
-            
+
                 do_test_cloud("integration/expiration.py",
                         { "auto"        : True,
                           "mode"        : mode,
