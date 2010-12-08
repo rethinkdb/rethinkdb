@@ -24,12 +24,12 @@ There are several ways to report errors in RethinkDB:
 #define fail(...) do {                                          \
         report_fatal_error(__FILE__, __LINE__, __VA_ARGS__);    \
         abort();                                                \
-    } while (0);
+    } while (0)
 
 #define fail_or_trap(...) do {                                  \
         report_fatal_error(__FILE__, __LINE__, __VA_ARGS__);    \
         BREAKPOINT;                                             \
-    } while (0);
+    } while (0)
 
 void report_fatal_error(const char*, int, const char*, ...);
 
@@ -41,13 +41,13 @@ void report_fatal_error(const char*, int, const char*, ...);
                 fail(msg " (errno %d - %s)", errno, strerror(errno));   \
             }                                                           \
         }                                                               \
-    } while (0);
+    } while (0)
 
 #define stringify(x) #x
 
 #define format_assert_message(assert_type, cond, msg) (assert_type " failed: [" stringify(cond) "] " msg)
 #define guarantee(cond) guaranteef(cond, "", 0)
-#define guaranteef(cond, msg, ...) do { if (!(cond)) { fail_or_trap(format_assert_message("Guarantee", cond, msg), __VA_ARGS__); } } while (0);
+#define guaranteef(cond, msg, ...) do { if (!(cond)) { fail_or_trap(format_assert_message("Guarantee", cond, msg), __VA_ARGS__); } } while (0)
 #define guarantee_err(cond, msg) do {                                           \
         if (!(cond)) {                                                          \
             if (errno == 0) {                                                   \
@@ -56,14 +56,14 @@ void report_fatal_error(const char*, int, const char*, ...);
                 fail_or_trap(format_assert_message("Guarantee", cond,  msg " (errno %d - %s)"), errno, strerror(errno));    \
             }                                                                   \
         }                                                                       \
-    } while (0);
+    } while (0)
 
 #define assert(cond) assertf(cond, "", 0)
 
 #ifdef NDEBUG
 #define assertf(cond, msg, ...) ((void)(0))
 #else
-#define assertf(cond, msg, ...) do { if (!(cond)) { fail_or_trap(format_assert_message("Assertion", cond, msg), __VA_ARGS__); } } while (0);
+#define assertf(cond, msg, ...) do { if (!(cond)) { fail_or_trap(format_assert_message("Assertion", cond, msg), __VA_ARGS__); } } while (0)
 #endif
 
 

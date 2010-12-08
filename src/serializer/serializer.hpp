@@ -63,10 +63,6 @@ struct serializer_t :
 
         friend class data_block_manager_t;
 
-        static write_t make_touch(ser_block_id_t block_id_, repl_timestamp recency_, write_block_callback_t *callback_) {
-            return write_t(block_id_, true, recency_, false, NULL, callback_);
-        }
-
         static write_t make(ser_block_id_t block_id_, repl_timestamp recency_, const void *buf_, write_block_callback_t *callback_) {
             return write_t(block_id_, true, recency_, true, buf_, callback_);
         }
