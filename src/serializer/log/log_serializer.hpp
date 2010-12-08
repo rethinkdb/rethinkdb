@@ -119,6 +119,7 @@ public:
     block_size_t get_block_size();
     ser_block_id_t max_block_id();
     bool block_in_use(ser_block_id_t id);
+    repli_timestamp get_recency(ser_block_id_t id);
 
     /* shutdown() should be called when you are done with the serializer.
     

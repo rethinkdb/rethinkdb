@@ -57,13 +57,13 @@ struct serializer_t :
         ser_block_id_t block_id;
         bool recency_specified;
         bool buf_specified;
-        repl_timestamp recency;
+        repli_timestamp recency;
         const void *buf;   /* If NULL, a deletion */
         write_block_callback_t *callback;
 
         friend class data_block_manager_t;
 
-        static write_t make(ser_block_id_t block_id_, repl_timestamp recency_, const void *buf_, write_block_callback_t *callback_) {
+        static write_t make(ser_block_id_t block_id_, repli_timestamp recency_, const void *buf_, write_block_callback_t *callback_) {
             return write_t(block_id_, true, recency_, true, buf_, callback_);
         }
 
@@ -71,10 +71,10 @@ struct serializer_t :
 
     private:
         static write_t make_internal(ser_block_id_t block_id_, const void *buf_, write_block_callback_t *callback_) {
-            return write_t(block_id_, false, repl_timestamp::invalid, true, buf_, callback_);
+            return write_t(block_id_, false, repli_timestamp::invalid, true, buf_, callback_);
         }
 
-        write_t(ser_block_id_t block_id_, bool recency_specified_, repl_timestamp recency_,
+        write_t(ser_block_id_t block_id_, bool recency_specified_, repli_timestamp recency_,
                 bool buf_specified_, const void *buf_, write_block_callback_t *callback_)
             : block_id(block_id_), recency_specified(recency_specified_), buf_specified(buf_specified_), recency(recency_), buf(buf_), callback(callback_) { }
     };
@@ -93,6 +93,9 @@ struct serializer_t :
     
     /* Checks whether a given block ID exists */
     virtual bool block_in_use(ser_block_id_t id) = 0;
+
+    /* Gets a block's timestamp.  This may return repli_timestamp::invalid. */
+    virtual repli_timestamp get_recency(ser_block_id_t id) = 0;
 };
 
 #endif /* __SERIALIZER_HPP__ */

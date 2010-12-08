@@ -45,7 +45,7 @@ public:
             if (value.is_large()) {
                 result = result_large_value;
                 // Prepare the buffer group
-                for (int i = 0; i < old_large_buf->get_num_segments(); i++) {
+                for (int64_t i = 0; i < old_large_buf->get_num_segments(); i++) {
                     uint16_t size;
                     const void *data = old_large_buf->get_segment(i, &size);
                     buffer_group.add_buffer(size, data);

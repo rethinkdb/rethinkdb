@@ -93,14 +93,12 @@ public:
 
     const large_buf_ref& get_root_ref() const;
 
-    // TODO look at calls to this function, make sure people don't use
-    // uint16_t.
     int64_t get_num_segments();
 
-    uint16_t segment_size(int ix);
+    uint16_t segment_size(int64_t ix);
 
-    const byte *get_segment(int num, uint16_t *seg_size);
-    byte *get_segment_write(int num, uint16_t *seg_size);
+    const byte *get_segment(int64_t num, uint16_t *seg_size);
+    byte *get_segment_write(int64_t num, uint16_t *seg_size);
 
     void on_block_available(buf_t *buf);
 
@@ -135,7 +133,7 @@ private:
     void delete_tree_structure(buftree_t *tr, int64_t offset, int64_t size, int levels);
     void only_mark_deleted_tree_structure(buftree_t *tr, int64_t offset, int64_t size, int levels);
     void release_tree_structure(buftree_t *tr, int64_t offset, int64_t size, int levels);
-    buf_t *get_segment_buf(int ix, uint16_t *seg_size, uint16_t *seg_offset);
+    buf_t *get_segment_buf(int64_t ix, uint16_t *seg_size, uint16_t *seg_offset);
     buftree_t *remove_level(buftree_t *tr, block_id_t id, block_id_t *idout);
 };
 

@@ -7,12 +7,12 @@ struct internal_buf_t
 {
     mock_cache_t *cache;
     block_id_t block_id;
-    repl_timestamp subtree_recency;
+    repli_timestamp subtree_recency;
     void *data;
     rwi_lock_t lock;
     
     internal_buf_t(mock_cache_t *cache, block_id_t block_id)
-        : cache(cache), block_id(block_id), subtree_recency(repl_timestamp::placeholder), data(cache->serializer->malloc()) {
+        : cache(cache), block_id(block_id), subtree_recency(cache->serializer->get_recency(block_id)), data(cache->serializer->malloc()) {
         assert(data);
         bzero(data, cache->block_size.value());
     }
@@ -262,7 +262,7 @@ bool mock_cache_t::shutdown_write_bufs() {
 bool mock_cache_t::shutdown_do_send_bufs_to_serializer() {
     std::vector<translator_serializer_t::write_t> writes;
     for (block_id_t i = 0; i < bufs.get_size(); i++) {
-        writes.push_back(translator_serializer_t::write_t::make(i, bufs[i] ? bufs[i]->subtree_recency : repl_timestamp::invalid,
+        writes.push_back(translator_serializer_t::write_t::make(i, bufs[i] ? bufs[i]->subtree_recency : repli_timestamp::invalid,
                                                                 bufs[i] ? bufs[i]->data : NULL, NULL));
     }
 

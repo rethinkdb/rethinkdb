@@ -23,7 +23,7 @@ public:
         {}
 
     enum load_op_t {
-        delete_op, update_op, insert_op, read_op, append_op, prepend_op,
+        delete_op, update_op, insert_op, read_op, append_op, prepend_op, verify_op,
     };
 
     // Generates an operation to perform using the ratios as
@@ -36,9 +36,10 @@ public:
         int inserts = this->inserts * read_factor;
         int appends = this->appends * read_factor;
         int prepends = this->prepends * read_factor;
+        int verifies = this->verifies * read_factor;
 
         // Do the toss
-        int total = deletes + updates + inserts + reads + appends + prepends;
+        int total = deletes + updates + inserts + reads + appends + prepends + verifies;
         int rand_op = random(0, total - 1);
         int acc = 0;
 
@@ -54,6 +55,8 @@ public:
             return append_op;
         if(rand_op >= acc && rand_op < (acc += prepends))
             return prepend_op;
+        if(rand_op >= acc && rand_op < (acc += verifies))
+            return verify_op;
 
         fprintf(stderr, "Something horrible has happened with the toss\n");
         exit(-1);
@@ -82,8 +85,11 @@ public:
             case 5:
                 prepends = atoi(tok);
                 break;
+            case 6:
+                verifies = atoi(tok);
+                break;
             default:
-                fprintf(stderr, "Invalid load format (use D/U/I/R/A/P)\n");
+                fprintf(stderr, "Invalid load format (use D/U/I/R/A/P/V)\n");
                 exit(-1);
                 break;
             }
@@ -91,13 +97,13 @@ public:
             c++;
         }
         if(c < 4) {
-            fprintf(stderr, "Invalid load format (use D/U/I/R/A/P)\n");
+            fprintf(stderr, "Invalid load format (use D/U/I/R/A/P/V)\n");
             exit(-1);
         }
     }
 
     void print() {
-        printf("%d/%d/%d/%d/%d/%d", deletes, updates, inserts, reads,appends, prepends);
+        printf("%d/%d/%d/%d/%d/%d/%d", deletes, updates, inserts, reads,appends, prepends, verifies);
     }
 
 public:
@@ -107,6 +113,7 @@ public:
     int reads;
     int appends;
     int prepends;
+    int verifies;
 };
 
 #endif // __LOAD_HPP__

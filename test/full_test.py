@@ -151,14 +151,14 @@ for (mode, checker) in [
                       "slices"      : slices },
                     repeat=3, timeout = 180)
         
-            do_test("integration/bin_pipeline.py",
+'''            do_test("integration/bin_pipeline.py",
                     { "auto"        : True,
                       "mode"        : mode,
                       "no-valgrind" : not checker,
                       "protocol"    : protocol,
                       "cores"       : cores,
                       "slices"      : slices },
-                    repeat=3)
+                    repeat=3)'''
         
             do_test("integration/many_keys.py",
                     { "auto"        : True,
@@ -178,7 +178,7 @@ for (mode, checker) in [
                       "cores"       : cores,
                       "slices"      : slices,
                       "duration"    : 240},
-                    repeat=3, timeout=60*90)
+                    repeat=3, timeout=270)
             
             # Don't run the corruption test in mockio or mockcache mode because in those modes
             # we don't flush to disk at all until the server is shut down, so obviously the

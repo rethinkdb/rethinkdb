@@ -29,7 +29,7 @@ public:
     void set_load_callback(load_callback_t *lcb);
 
     // Put entries in an LBA and then call sync() to write to disk
-    void add_entry(ser_block_id_t block_id, repl_timestamp recency,
+    void add_entry(ser_block_id_t block_id, repli_timestamp recency,
                    flagged_off64_t offset);
     struct sync_callback_t {
         virtual void on_lba_sync() = 0;

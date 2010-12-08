@@ -39,7 +39,7 @@ struct load_buf_fsm_t :
 mc_inner_buf_t::mc_inner_buf_t(cache_t *cache, block_id_t block_id)
     : cache(cache),
       block_id(block_id),
-      subtree_recency(repl_timestamp::placeholder),
+      subtree_recency(cache->serializer->get_recency(block_id)),
       data(cache->serializer->malloc()),
       refcount(0),
       do_delete(false),
@@ -60,7 +60,7 @@ mc_inner_buf_t::mc_inner_buf_t(cache_t *cache, block_id_t block_id)
 mc_inner_buf_t::mc_inner_buf_t(cache_t *cache)
     : cache(cache),
       block_id(cache->free_list.gen_block_id()),
-      subtree_recency(repl_timestamp::placeholder),
+      subtree_recency(current_time()),
       data(cache->serializer->malloc()),
       refcount(0),
       do_delete(false),
@@ -303,7 +303,7 @@ mc_buf_t *mc_transaction_t::allocate(block_id_t *block_id) {
 }
 
 mc_buf_t *mc_transaction_t::acquire(block_id_t block_id, access_t mode,
-                               block_available_callback_t *callback) {
+                                    block_available_callback_t *callback) {
     
     assert(mode == rwi_read || mode == rwi_read_outdated_ok || access != rwi_read);
        
@@ -312,8 +312,15 @@ mc_buf_t *mc_transaction_t::acquire(block_id_t block_id, access_t mode,
         /* The buf isn't in the cache and must be loaded from disk */
         inner_buf = new inner_buf_t(cache, block_id);
     }
-    
+
     buf_t *buf = new buf_t(inner_buf, mode);
+
+    // We might not want to do this on every buf we acquire a
+    // write-lock on.  But for now this seems like The Right Thing.
+    if (!(mode == rwi_read || mode == rwi_read_outdated_ok)) {
+        buf->touch_recency();
+    }
+
     if (buf->ready) {
         return buf;
     } else {

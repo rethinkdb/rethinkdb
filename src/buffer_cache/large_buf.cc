@@ -565,7 +565,7 @@ int64_t large_buf_t::get_num_segments() {
     return std::max(1L, (ceil_aligned(root_ref.offset + root_ref.size, num_leaf_bytes()) - floor_aligned(root_ref.offset, num_leaf_bytes())) / num_leaf_bytes());
 }
 
-uint16_t large_buf_t::segment_size(int ix) {
+uint16_t large_buf_t::segment_size(int64_t ix) {
     assert(state == loaded || state == loading);
 
     // We pretend that the segments start at zero.
@@ -588,7 +588,7 @@ uint16_t large_buf_t::segment_size(int ix) {
     }
 }
 
-buf_t *large_buf_t::get_segment_buf(int ix, uint16_t *seg_size, uint16_t *seg_offset) {
+buf_t *large_buf_t::get_segment_buf(int64_t ix, uint16_t *seg_size, uint16_t *seg_offset) {
 
     int64_t pos = floor_aligned(root_ref.offset, num_leaf_bytes()) + ix * num_leaf_bytes();
 
@@ -609,7 +609,7 @@ buf_t *large_buf_t::get_segment_buf(int ix, uint16_t *seg_size, uint16_t *seg_of
     return tr->buf;
 }
 
-const byte *large_buf_t::get_segment(int ix, uint16_t *seg_size) {
+const byte *large_buf_t::get_segment(int64_t ix, uint16_t *seg_size) {
     assert(state == loaded);
     assert(ix >= 0 && ix < get_num_segments());
 
@@ -623,7 +623,7 @@ const byte *large_buf_t::get_segment(int ix, uint16_t *seg_size) {
     return leaf->buf + seg_offset;
 }
 
-byte *large_buf_t::get_segment_write(int ix, uint16_t *seg_size) {
+byte *large_buf_t::get_segment_write(int64_t ix, uint16_t *seg_size) {
     assert(state == loaded);
     assert(ix >= 0 && ix < get_num_segments());
 
