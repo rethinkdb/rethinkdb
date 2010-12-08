@@ -17,23 +17,24 @@ typedef char byte;
 typedef char byte_t;
 
 // for safety  TODO: move this to a different file
-struct repl_timestamp {
+struct repli_timestamp {
     uint32_t time;
 
-    static const repl_timestamp invalid;
-
-    // TODO remove this, remove referencs to this.
-    static const repl_timestamp placeholder;
+    static const repli_timestamp invalid;
 };
 
-repl_timestamp repl_time(time_t t);
+// Converts a time_t (in seconds) to a repli_timestamp.  The important
+// thing here is that this will never return repli_timestamp::invalid,
+// which will matter for one second every 116 years.
+repli_timestamp repli_time(time_t t);
 
 // TODO: move this to a different file
-repl_timestamp current_time();
+repli_timestamp current_time();
 
-// This is almost like std::max except it compares times locally, so
-// that overflow is handled gracefully.
-repl_timestamp later_time(repl_timestamp x, repl_timestamp y);
+// This is almost like std::max except it compares times "locally", so
+// that overflow is handled gracefully.  That is, it compares y - x to
+// 0, instead of comparing y to x.
+repli_timestamp later_time(repli_timestamp x, repli_timestamp y);
 
 
 void *malloc_aligned(size_t size, size_t alignment = 64);

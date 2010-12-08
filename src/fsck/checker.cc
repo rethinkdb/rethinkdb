@@ -675,7 +675,7 @@ void check_value(slicecx& cx, btree_value *value, subtree_errors *tree_errs, val
     }
 }
 
-bool leaf_node_inspect_range(const slicecx& cx, const btree_leaf_node *buf, uint16_t offset) {
+bool leaf_node_inspect_range(const slicecx& cx, const leaf_node_t *buf, uint16_t offset) {
     // There are some completely bad HACKs here.  We subtract 3 for
     // pair->key.size, pair->value()->size, pair->value()->metadata_flags.
     if (cx.knog->static_config->block_size().value() - 3 >= offset
@@ -692,7 +692,7 @@ bool leaf_node_inspect_range(const slicecx& cx, const btree_leaf_node *buf, uint
     return false;
 }
 
-void check_subtree_leaf_node(slicecx& cx, const btree_leaf_node *buf, btree_key *lo, btree_key *hi, subtree_errors *tree_errs, node_error *errs) {
+void check_subtree_leaf_node(slicecx& cx, const leaf_node_t *buf, btree_key *lo, btree_key *hi, subtree_errors *tree_errs, node_error *errs) {
     {
         std::vector<uint16_t> sorted_offsets(buf->pair_offsets, buf->pair_offsets + buf->npairs);
         std::sort(sorted_offsets.begin(), sorted_offsets.end());
@@ -733,14 +733,14 @@ void check_subtree_leaf_node(slicecx& cx, const btree_leaf_node *buf, btree_key 
     errs->out_of_order |= !(prev_key == NULL || hi == NULL || leaf_key_comp::compare(prev_key, hi) <= 0);
 }
 
-bool internal_node_begin_offset_in_range(const slicecx& cx, const btree_internal_node *buf, uint16_t offset) {
+bool internal_node_begin_offset_in_range(const slicecx& cx, const internal_node_t *buf, uint16_t offset) {
     // TODO: what about key size?  look in the buf?
     return (cx.knog->static_config->block_size().value() - sizeof(btree_internal_pair)) >= offset && offset >= buf->frontmost_offset;
 }
 
 void check_subtree(slicecx& cx, block_id_t id, btree_key *lo, btree_key *hi, subtree_errors *errs);
 
-void check_subtree_internal_node(slicecx& cx, const btree_internal_node *buf, btree_key *lo, btree_key *hi, subtree_errors *tree_errs, node_error *errs) {
+void check_subtree_internal_node(slicecx& cx, const internal_node_t *buf, btree_key *lo, btree_key *hi, subtree_errors *tree_errs, node_error *errs) {
     {
         std::vector<uint16_t> sorted_offsets(buf->pair_offsets, buf->pair_offsets + buf->npairs);
         std::sort(sorted_offsets.begin(), sorted_offsets.end());
@@ -812,10 +812,10 @@ void check_subtree(slicecx& cx, block_id_t id, btree_key *lo, btree_key *hi, sub
         }
     }
 
-    if (check_magic<btree_leaf_node>(ptr_cast<btree_leaf_node>(node.buf)->magic)) {
-        check_subtree_leaf_node(cx, ptr_cast<btree_leaf_node>(node.buf), lo, hi, errs, &node_err);
-    } else if (check_magic<btree_internal_node>(ptr_cast<btree_internal_node>(node.buf)->magic)) {
-        check_subtree_internal_node(cx, ptr_cast<btree_internal_node>(node.buf), lo, hi, errs, &node_err);
+    if (check_magic<leaf_node_t>(ptr_cast<leaf_node_t>(node.buf)->magic)) {
+        check_subtree_leaf_node(cx, ptr_cast<leaf_node_t>(node.buf), lo, hi, errs, &node_err);
+    } else if (check_magic<internal_node_t>(ptr_cast<internal_node_t>(node.buf)->magic)) {
+        check_subtree_internal_node(cx, ptr_cast<internal_node_t>(node.buf), lo, hi, errs, &node_err);
     } else {
         node_err.bad_magic = true;
     }
