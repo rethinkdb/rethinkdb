@@ -2,6 +2,9 @@
 #ifndef __SERIALIZER_HPP__
 #define __SERIALIZER_HPP__
 
+#include "serializer/types.hpp"
+#include "config/cmd_args.hpp"
+
 #include "utils2.hpp"
 #include "utils.hpp"
 
@@ -9,12 +12,7 @@
 behave. It is implemented by log_serializer_t, semantic_checking_serializer_t, and
 others. */
 
-typedef uint32_t ser_block_id_t;
-#define NULL_SER_BLOCK_ID (ser_block_id_t(-1))
 
-typedef uint64_t ser_transaction_id_t;
-#define NULL_SER_TRANSACTION_ID (ser_transaction_id_t(0))
-#define FIRST_SER_TRANSACTION_ID (ser_transaction_id_t(1))
 
 
 struct serializer_t :
@@ -57,14 +55,34 @@ struct serializer_t :
     };
     struct write_t {
         ser_block_id_t block_id;
+        bool recency_specified;
+        bool buf_specified;
+        repli_timestamp recency;
         const void *buf;   /* If NULL, a deletion */
         write_block_callback_t *callback;
+
+        friend class data_block_manager_t;
+
+        static write_t make(ser_block_id_t block_id_, repli_timestamp recency_, const void *buf_, write_block_callback_t *callback_) {
+            return write_t(block_id_, true, recency_, true, buf_, callback_);
+        }
+
+        friend class translator_serializer_t;
+
+    private:
+        static write_t make_internal(ser_block_id_t block_id_, const void *buf_, write_block_callback_t *callback_) {
+            return write_t(block_id_, false, repli_timestamp::invalid, true, buf_, callback_);
+        }
+
+        write_t(ser_block_id_t block_id_, bool recency_specified_, repli_timestamp recency_,
+                bool buf_specified_, const void *buf_, write_block_callback_t *callback_)
+            : block_id(block_id_), recency_specified(recency_specified_), buf_specified(buf_specified_), recency(recency_), buf(buf_), callback(callback_) { }
     };
     virtual bool do_write(write_t *writes, int num_writes, write_txn_callback_t *callback) = 0;
     
     /* The size, in bytes, of each serializer block */
     
-    virtual size_t get_block_size() = 0;
+    virtual block_size_t get_block_size() = 0;
     
     /* max_block_id() and block_in_use() are used by the buffer cache to reconstruct
     the free list of unused block IDs. */
@@ -75,6 +93,9 @@ struct serializer_t :
     
     /* Checks whether a given block ID exists */
     virtual bool block_in_use(ser_block_id_t id) = 0;
+
+    /* Gets a block's timestamp.  This may return repli_timestamp::invalid. */
+    virtual repli_timestamp get_recency(ser_block_id_t id) = 0;
 };
 
 #endif /* __SERIALIZER_HPP__ */

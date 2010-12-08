@@ -6,6 +6,7 @@ The reason it is separate from utils.hpp is that the IO layer needs some of the 
 utils2.hpp, but utils.hpp needs some things in the IO layer. */
 
 #include <stdint.h>
+#include <time.h>
 #include "errors.hpp"
 
 int get_cpu_count();
@@ -14,6 +15,27 @@ long get_total_ram();
 
 typedef char byte;
 typedef char byte_t;
+
+// for safety  TODO: move this to a different file
+struct repli_timestamp {
+    uint32_t time;
+
+    static const repli_timestamp invalid;
+};
+
+// Converts a time_t (in seconds) to a repli_timestamp.  The important
+// thing here is that this will never return repli_timestamp::invalid,
+// which will matter for one second every 116 years.
+repli_timestamp repli_time(time_t t);
+
+// TODO: move this to a different file
+repli_timestamp current_time();
+
+// This is almost like std::max except it compares times "locally", so
+// that overflow is handled gracefully.  That is, it compares y - x to
+// 0, instead of comparing y to x.
+repli_timestamp later_time(repli_timestamp x, repli_timestamp y);
+
 
 void *malloc_aligned(size_t size, size_t alignment = 64);
 
@@ -70,6 +92,7 @@ int randint(int n);
 #define DISABLE_COPYING(T)                      \
     T(const T&);                                \
     void operator=(const T&)
+
 
 
 #include "utils2.tcc"

@@ -7,13 +7,14 @@ struct internal_buf_t
 {
     mock_cache_t *cache;
     block_id_t block_id;
+    repli_timestamp subtree_recency;
     void *data;
     rwi_lock_t lock;
     
     internal_buf_t(mock_cache_t *cache, block_id_t block_id)
-        : cache(cache), block_id(block_id), data(cache->serializer->malloc()) {
+        : cache(cache), block_id(block_id), subtree_recency(cache->serializer->get_recency(block_id)), data(cache->serializer->malloc()) {
         assert(data);
-        bzero(data, cache->block_size);
+        bzero(data, cache->block_size.value());
     }
     
     ~internal_buf_t() {
@@ -147,7 +148,7 @@ mock_transaction_t::~mock_transaction_t() {
 /* Cache */
 
 mock_cache_t::mock_cache_t(
-    serializer_t *serializer,
+    translator_serializer_t *serializer,
     mirrored_cache_config_t *config)
     : serializer(serializer), running(false), n_transactions(0), block_size(serializer->get_block_size()) { }
 
@@ -183,7 +184,7 @@ bool mock_cache_t::load_blocks_from_serializer() {
         // Load the blocks from the serializer
         bufs.set_size(serializer->max_block_id(), NULL);
         blocks_to_load = 0;
-        for (ser_block_id_t i = 0; i < serializer->max_block_id(); i++) {
+        for (block_id_t i = 0; i < serializer->max_block_id(); i++) {
             if (serializer->block_in_use(i)) {
                 internal_buf_t *internal_buf = bufs[i] = new internal_buf_t(this, i);
                 serializer->do_read(i, internal_buf->data, this);
@@ -212,7 +213,7 @@ bool mock_cache_t::have_loaded_blocks() {
     return true;
 }
 
-size_t mock_cache_t::get_block_size() {
+block_size_t mock_cache_t::get_block_size() {
     return block_size;
 }
 
@@ -259,15 +260,13 @@ bool mock_cache_t::shutdown_write_bufs() {
 }
 
 bool mock_cache_t::shutdown_do_send_bufs_to_serializer() {
-    
-    serializer_t::write_t writes[bufs.get_size()];
+    std::vector<translator_serializer_t::write_t> writes;
     for (block_id_t i = 0; i < bufs.get_size(); i++) {
-        writes[i].block_id = i;
-        writes[i].buf = bufs[i] ? bufs[i]->data : NULL;
-        writes[i].callback = NULL;
+        writes.push_back(translator_serializer_t::write_t::make(i, bufs[i] ? bufs[i]->subtree_recency : repli_timestamp::invalid,
+                                                                bufs[i] ? bufs[i]->data : NULL, NULL));
     }
-    
-    if (serializer->do_write(writes, bufs.get_size(), this)) {
+
+    if (serializer->do_write(writes.data(), writes.size(), this)) {
         return do_on_cpu(home_cpu, this, &mock_cache_t::shutdown_destroy_bufs);
     } else {
         return false;

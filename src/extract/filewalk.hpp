@@ -2,6 +2,7 @@
 #define __EXTRACT_FILEWALK_HPP__
 
 #include "utils.hpp"
+#include "config/cmd_args.hpp"
 
 #define EXTRACT_CONFIG_DEFAULT_OUTPUT_FILE "memcached_dump_file.out"
 
@@ -11,13 +12,15 @@ struct config_t {
     // Values that override those read from the db file.
     struct override_t {
         // Zero if the block size is not forced.
-        int block_size;
+        int block_size_;
         // Zero if the extent size is not forced.
         int extent_size;
         // Zero if the mod count is not forced.
         int mod_count;  // TODO parse command line
 
-        bool any() { return block_size || extent_size || mod_count; }
+        block_size_t block_size() const { return block_size_t::unsafe_make(block_size_); }
+
+        bool any() { return block_size_ || extent_size || mod_count; }
     } overrides;
 
     // The path to the file we're going to recover from.
@@ -36,7 +39,7 @@ struct config_t {
     config_t() { init(); }
 
     void init() { 
-        overrides.block_size = NO_FORCED_BLOCK_SIZE;
+        overrides.block_size_ = NO_FORCED_BLOCK_SIZE;
         overrides.extent_size = NO_FORCED_EXTENT_SIZE;
         overrides.mod_count = NO_FORCED_MOD_COUNT;
         input_files.clear();

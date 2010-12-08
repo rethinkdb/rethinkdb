@@ -12,16 +12,18 @@ struct load_t {
 public:
     load_t()
         : deletes(1), updates(4),
-          inserts(8), reads(64)
+          inserts(8), reads(64),
+          appends(0), prepends(0)
         {}
 
-    load_t(int d, int u, int i, int r)
+    load_t(int d, int u, int i, int r, int a, int p)
         : deletes(d), updates(u),
-          inserts(i), reads(r)
+          inserts(i), reads(r),
+          appends(a), prepends(p)
         {}
 
     enum load_op_t {
-        delete_op, update_op, insert_op, read_op
+        delete_op, update_op, insert_op, read_op, append_op, prepend_op, verify_op,
     };
 
     // Generates an operation to perform using the ratios as
@@ -32,9 +34,12 @@ public:
         int deletes = this->deletes * read_factor;
         int updates = this->updates * read_factor;
         int inserts = this->inserts * read_factor;
+        int appends = this->appends * read_factor;
+        int prepends = this->prepends * read_factor;
+        int verifies = this->verifies * read_factor;
 
         // Do the toss
-        int total = deletes + updates + inserts + reads;
+        int total = deletes + updates + inserts + reads + appends + prepends + verifies;
         int rand_op = random(0, total - 1);
         int acc = 0;
 
@@ -46,6 +51,12 @@ public:
             return insert_op;
         if(rand_op >= acc && rand_op < (acc += reads))
             return read_op;
+        if(rand_op >= acc && rand_op < (acc += appends))
+            return append_op;
+        if(rand_op >= acc && rand_op < (acc += prepends))
+            return prepend_op;
+        if(rand_op >= acc && rand_op < (acc += verifies))
+            return verify_op;
 
         fprintf(stderr, "Something horrible has happened with the toss\n");
         exit(-1);
@@ -68,8 +79,17 @@ public:
             case 3:
                 reads = atoi(tok);
                 break;
+            case 4:
+                appends = atoi(tok);
+                break;
+            case 5:
+                prepends = atoi(tok);
+                break;
+            case 6:
+                verifies = atoi(tok);
+                break;
             default:
-                fprintf(stderr, "Invalid load format (use D/U/I/R)\n");
+                fprintf(stderr, "Invalid load format (use D/U/I/R/A/P/V)\n");
                 exit(-1);
                 break;
             }
@@ -77,13 +97,13 @@ public:
             c++;
         }
         if(c < 4) {
-            fprintf(stderr, "Invalid load format (use D/U/I/R)\n");
+            fprintf(stderr, "Invalid load format (use D/U/I/R/A/P/V)\n");
             exit(-1);
         }
     }
 
     void print() {
-        printf("%d/%d/%d/%d", deletes, updates, inserts, reads);
+        printf("%d/%d/%d/%d/%d/%d/%d", deletes, updates, inserts, reads,appends, prepends, verifies);
     }
 
 public:
@@ -91,6 +111,9 @@ public:
     int updates;
     int inserts;
     int reads;
+    int appends;
+    int prepends;
+    int verifies;
 };
 
 #endif // __LOAD_HPP__

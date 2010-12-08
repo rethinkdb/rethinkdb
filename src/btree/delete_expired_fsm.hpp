@@ -14,7 +14,7 @@ public:
         do_transition(NULL);
     }
 
-    void operate(btree_value *old_value, large_buf_t *old_large_buf, bool *delete_old_large_buf) {
+    void operate(btree_value *old_value, large_buf_t *old_large_buf) {
         /* Don't do anything. The modify_fsm will take advantage of the fact that we got to
         the leaf in write mode to automatically delete the expired key if necessary. */
         have_failed_operating();

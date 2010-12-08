@@ -121,7 +121,7 @@ private:
 };
 
 btree_slice_t::btree_slice_t(
-    serializer_t *serializer,
+    translator_serializer_t *serializer,
     mirrored_cache_config_t *config)
     : cas_counter(0),
       state(state_unstarted),

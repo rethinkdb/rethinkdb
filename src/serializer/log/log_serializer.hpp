@@ -93,14 +93,12 @@ public:
     log_serializer_t(dynamic_config_t *dynamic_config, private_dynamic_config_t *private_dynamic_config);
     virtual ~log_serializer_t();
 
-public:
     struct check_callback_t {
         virtual void on_serializer_check(bool is_existing) = 0;
         virtual ~check_callback_t() {}
     };
     static void check_existing(const char *filename, check_callback_t *cb);
 
-public:
     /* start_new() or start_existing() must be called before the serializer can be used. If
     start_new() is called, a new database will be created. If start_existing() is called, the
     serializer will read from an existing database. */
@@ -113,7 +111,6 @@ public:
 private:
     static void ls_start_new(log_serializer_t *, static_config_t *, ready_callback_t *);
 
-public:
     /* Implementation of the serializer_t API */
     void *malloc();
     void *clone(void*); // clones a buf
@@ -121,11 +118,11 @@ public:
     
     bool do_read(ser_block_id_t block_id, void *buf, read_callback_t *callback);
     bool do_write(write_t *writes, int num_writes, write_txn_callback_t *callback);
-    size_t get_block_size();
+    block_size_t get_block_size();
     ser_block_id_t max_block_id();
     bool block_in_use(ser_block_id_t id);
+    repli_timestamp get_recency(ser_block_id_t id);
 
-public:
     /* shutdown() should be called when you are done with the serializer.
     
     If the shutdown is done immediately, shutdown() will return 'true'. Otherwise, it will return
@@ -167,7 +164,6 @@ public:
     // do_on_cpu.
     bool enable_gc();
 
-public:
     // The magic value used for "zero" buffers written upon deletion.
     static const block_magic_t zerobuf_magic;
 
@@ -177,7 +173,6 @@ private:
 
     void consider_start_gc();
 
-private:
     enum state_t {
         state_unstarted,
         state_starting_up,

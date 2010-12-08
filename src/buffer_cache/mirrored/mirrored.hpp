@@ -9,6 +9,7 @@
 #include "buffer_cache/mirrored/callbacks.hpp"
 #include "containers/two_level_array.hpp"
 #include "serializer/serializer.hpp"
+#include "serializer/translator.hpp"
 #include "config/cmd_args.hpp"
 #include "buffer_cache/stats.hpp"
 #include <boost/crc.hpp>
@@ -47,6 +48,7 @@ class mc_inner_buf_t {
     
     cache_t *cache;
     block_id_t block_id;
+    repli_timestamp subtree_recency;
     void *data;
     rwi_lock_t lock;
     
@@ -128,6 +130,13 @@ public:
         assert(!inner_buf->safe_to_unload());
         inner_buf->do_delete = true;
         inner_buf->writeback_buf.set_dirty();
+    }
+
+    void touch_recency() {
+        // TODO: use some slice-specific timestamp that gets updated
+        // every epoll call.
+        inner_buf->subtree_recency = current_time();
+        inner_buf->writeback_buf.set_recency_dirty();
     }
 
     bool is_dirty() {
@@ -214,7 +223,7 @@ private:
     // extensible when some policy implementation requires access to
     // components it wasn't originally given.
     
-    serializer_t *serializer;
+    translator_serializer_t *serializer;
     
     page_map_t page_map;
     page_repl_t page_repl;
@@ -223,7 +232,7 @@ private:
 
 public:
     mc_cache_t(
-            serializer_t *serializer,
+            translator_serializer_t *serializer,
             mirrored_cache_config_t *config);
     ~mc_cache_t();
     
@@ -244,7 +253,7 @@ private:
     
 public:
     
-    size_t get_block_size();
+    block_size_t get_block_size();
     
     // Transaction API
     transaction_t *begin_transaction(access_t access, transaction_begin_callback_t *callback);

@@ -30,7 +30,7 @@ public:
     }
 
 
-    void operate(btree_value *old_value, large_buf_t *old_large_value, bool *delete_old_large_buf) {
+    void operate(btree_value *old_value, large_buf_t *old_large_value) {
 
         if ((old_value && type == set_type_add) || (!old_value && type == set_type_replace)) {
             result = result_not_stored;
@@ -71,7 +71,6 @@ public:
             buffer_group.add_buffer(data->get_size(), value.value());
         } else {
             large_value = new large_buf_t(this->transaction);
-            *delete_old_large_buf = true;
             large_value->allocate(data->get_size(), value.large_buf_ref_ptr());
             for (int i = 0; i < large_value->get_num_segments(); i++) {
                 uint16_t size;
@@ -88,12 +87,7 @@ public:
         /* Called by the data provider when it filled the buffer we gave it. */
         
         if (result == result_stored) {
-            if (large_value) {
-                large_value->release();
-                delete large_value;
-                large_value = NULL;
-            }
-            have_finished_operating(&value);
+            have_finished_operating(&value, large_value);
         } else {
             have_failed_operating();
         }

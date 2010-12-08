@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
+#include "config/cmd_args.hpp"
 #include "utils.hpp"
 #include "buffer_cache/types.hpp"
 #include "store.hpp"
@@ -19,7 +20,7 @@ struct btree_superblock_t {
 
 
 //Note: This struct is stored directly on disk.  Changing it invalidates old data.
-struct btree_internal_node {
+struct internal_node_t {
     block_magic_t magic;
     uint16_t npairs;
     uint16_t frontmost_offset;
@@ -28,21 +29,35 @@ struct btree_internal_node {
     static const block_magic_t expected_magic;
 };
 
-typedef btree_internal_node internal_node_t;
 
-
+// Here's how we represent the modification history of the leaf node.
+// The last_modified time gives the modification time of the most
+// recently modified key of the node.  Then, last_modified -
+// earlier[0] gives the timestamp for the
+// second-most-recently modified KV of the node.  In general,
+// last_modified - earlier[i] gives the timestamp for the
+// (i+2)th-most-recently modified KV.
+//
+// These values could be lies.  It is harmless to say that a key is
+// newer than it really is.  So when earlier[i] overflows,
+// we pin it to 0xFFFF.
+struct leaf_timestamps_t {
+    repli_timestamp last_modified;  // 0
+    uint16_t earlier[NUM_LEAF_NODE_EARLIER_TIMES];  // 4
+};
 
 //Note: This struct is stored directly on disk.  Changing it invalidates old data.
-struct btree_leaf_node {
-    block_magic_t magic;
-    uint16_t npairs;
-    uint16_t frontmost_offset; // The smallest offset in pair_offsets
-    uint16_t pair_offsets[0];
+struct leaf_node_t {
+    block_magic_t magic;        // 0
+    leaf_timestamps_t times;    // 4
+    uint16_t npairs;            // 12
+
+    // The smallest offset in pair_offsets
+    uint16_t frontmost_offset;  // 14
+    uint16_t pair_offsets[0];   // 16
 
     static const block_magic_t expected_magic;
 };
-
-typedef btree_leaf_node leaf_node_t;
 
 
 
@@ -213,12 +228,12 @@ class node_handler {
     public:
         static bool is_leaf(const btree_node *node) {
             assert(check_magic<btree_node>(node->magic));
-            return check_magic<btree_leaf_node>(node->magic);
+            return check_magic<leaf_node_t>(node->magic);
         }
 
         static bool is_internal(const btree_node *node) {
             assert(check_magic<btree_node>(node->magic));
-            return check_magic<btree_internal_node>(node->magic);
+            return check_magic<internal_node_t>(node->magic);
         }
 
         static void str_to_key(char *str, btree_key *buf) {
@@ -228,17 +243,16 @@ class node_handler {
             buf->size = (unsigned char)len;
         }
 
-        static bool is_underfull(size_t block_size, const btree_node *node);
-        static bool is_mergable(size_t block_size, const btree_node *node, const btree_node *sibling, const btree_node *parent);
+        static bool is_underfull(block_size_t block_size, const btree_node *node);
+        static bool is_mergable(block_size_t block_size, const btree_node *node, const btree_node *sibling, const btree_node *parent);
         static int nodecmp(const btree_node *node1, const btree_node *node2);
-        static void merge(size_t block_size, btree_node *node, btree_node *rnode, btree_key *key_to_remove, btree_node *parent);
-        static void remove(size_t block_size, btree_node *node, btree_key *key);
-        static bool level(size_t block_size, btree_node *node, btree_node *rnode, btree_key *key_to_replace, btree_key *replacement_key, btree_node *parent);
+        static void merge(block_size_t block_size, btree_node *node, btree_node *rnode, btree_key *key_to_remove, btree_node *parent);
+        static bool level(block_size_t block_size, btree_node *node, btree_node *rnode, btree_key *key_to_replace, btree_key *replacement_key, btree_node *parent);
 
         static void print(const btree_node *node);
-        
-        static void validate(size_t block_size, const btree_node *node);
-        
+
+        static void validate(block_size_t block_size, const btree_node *node);
+
         static inline const btree_node* node(const void *ptr) {
             return (const btree_node *) ptr;
         }

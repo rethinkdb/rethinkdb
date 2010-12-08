@@ -9,6 +9,7 @@
 #include "containers/bitset.hpp"
 #include "extents/extent_manager.hpp"
 #include "serializer/serializer.hpp"
+#include "serializer/types.hpp"
 #include <bitset>
 #include <functional>
 #include <queue>
@@ -18,7 +19,7 @@
 
 // Stats
 
-extern perfmon_counter_t 
+extern perfmon_counter_t
     pm_serializer_data_extents,
     pm_serializer_old_garbage_blocks,
     pm_serializer_old_total_blocks;
@@ -56,11 +57,6 @@ public:
     restarting an existing database, call start() with the last metablock. */
 
 public:
-    /* data to be serialized to disk with each block.  Changing this changes the disk format! */
-    struct buf_data_t {
-        ser_block_id_t block_id;
-        ser_transaction_id_t transaction_id;
-    } __attribute__((__packed__));
 
         
     static buf_data_t make_buf_data_t(ser_block_id_t block_id, ser_transaction_id_t transaction_id) {
@@ -197,7 +193,7 @@ private:
         explicit gc_entry(data_block_manager_t *parent)
             : parent(parent),
               offset(parent->extent_manager->gen_extent()),
-              g_array(parent->extent_manager->extent_size / parent->static_config->block_size),
+              g_array(parent->static_config->blocks_per_extent()),
               timestamp(current_timestamp())
         {
             assert(parent->entries.get(offset / parent->extent_manager->extent_size) == NULL);
@@ -212,7 +208,7 @@ private:
         explicit gc_entry(data_block_manager_t *parent, off64_t offset)
             : parent(parent),
               offset(offset),
-              g_array(parent->extent_manager->extent_size / parent->static_config->block_size),
+              g_array(parent->static_config->blocks_per_extent()),
               timestamp(current_timestamp())
         {
             parent->extent_manager->reserve_extent(offset);

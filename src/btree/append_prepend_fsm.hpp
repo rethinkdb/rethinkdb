@@ -17,7 +17,7 @@ public:
     }
 
 
-    void operate(btree_value *old_value, large_buf_t *old_large_value, bool *delete_old_large_buf) {
+    void operate(btree_value *old_value, large_buf_t *old_large_value) {
 
         if (!old_value) {
             result = result_not_found;
@@ -96,15 +96,7 @@ public:
         // Called by data provider when it has filled the buffers
         
         if (result == result_success) {
-            if (large_value) {
-                // If we're adding to an existing large value, modify_fsm will release it later, so we don't need to.
-                if (!is_old_large_value) {
-                    large_value->release();
-                    delete large_value;
-                    large_value = NULL;
-                }
-            }
-            have_finished_operating(&value);
+            have_finished_operating(&value, large_value);
         } else {
             have_failed_operating();
         }
@@ -120,8 +112,8 @@ public:
                 // that's not really a problem because it only happens on
                 // erroneous input.
 
-                if (append) large_value->unappend(data->get_size(), old_value.large_buf_ref_ptr());
-                else large_value->unprepend(data->get_size(), old_value.large_buf_ref_ptr());
+                if (append) large_value->unappend(data->get_size(), value.large_buf_ref_ptr());
+                else large_value->unprepend(data->get_size(), value.large_buf_ref_ptr());
             } else {
                 // The old value was small, so we just keep it and delete the large value
                 large_value->mark_deleted();

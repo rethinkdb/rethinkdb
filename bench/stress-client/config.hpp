@@ -9,6 +9,14 @@
 
 #define MAX_FILE    255
 
+#define BACKUP_FOLDER "sqlite_backup"
+#define TABLE_NAME "pairs"
+#define KEY_COL_NAME "key"
+#define VAL_COL_NAME "val"
+
+#define RELIABILITY 100 /* every RELIABILITYth key is put in the sqlite backup */
+
+#define MAX_KEY_SIZE (250)
 #define MAX_VALUE_SIZE (1024*1024)
 
 
@@ -89,6 +97,7 @@ public:
             qps_file[0] = 0;
             out_file[0] = 0;
             in_file[0] = 0;
+            db_file[0] = 0;
         }
 
     void print() {
@@ -126,6 +135,7 @@ public:
     char qps_file[MAX_FILE];
     char out_file[MAX_FILE];
     char in_file[MAX_FILE];
+    char db_file[MAX_FILE];
 };
 
 #endif // __CONFIG_HPP__
