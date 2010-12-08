@@ -280,7 +280,11 @@ public:
         }
         return in_use;
     }
-    
+
+    repl_timestamp get_recency(ser_block_id_t id) {
+        return inner_serializer.get_recency(id);
+    }
+
 public:
     struct shutdown_callback_t {
         virtual void on_serializer_shutdown(semantic_checking_serializer_t *) = 0;

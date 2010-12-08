@@ -93,6 +93,9 @@ struct serializer_t :
     
     /* Checks whether a given block ID exists */
     virtual bool block_in_use(ser_block_id_t id) = 0;
+
+    /* Gets a block's timestamp.  This may return repl_timestamp::invalid. */
+    virtual repl_timestamp get_recency(ser_block_id_t id) = 0;
 };
 
 #endif /* __SERIALIZER_HPP__ */

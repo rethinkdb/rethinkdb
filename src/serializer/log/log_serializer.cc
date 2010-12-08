@@ -821,6 +821,10 @@ bool log_serializer_t::block_in_use(ser_block_id_t id) {
     return !(lba_index->get_block_offset(id).parts.is_delete);
 }
 
+repl_timestamp log_serializer_t::get_recency(ser_block_id_t id) {
+    return lba_index->get_block_recency(id);
+}
+
 bool log_serializer_t::shutdown(shutdown_callback_t *cb) {
 
     assert(cb);

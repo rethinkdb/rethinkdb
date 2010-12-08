@@ -70,6 +70,7 @@ public:
     block_size_t get_block_size();
     block_id_t max_block_id();
     bool block_in_use(block_id_t id);
+    repl_timestamp get_recency(block_id_t id);
 };
 
 #endif /* __SERIALIZER_TRANSLATOR_HPP__ */

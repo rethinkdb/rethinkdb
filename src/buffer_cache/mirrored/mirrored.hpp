@@ -132,6 +132,13 @@ public:
         inner_buf->writeback_buf.set_dirty();
     }
 
+    void touch_recency() {
+        // TODO: use some slice-specific timestamp that gets updated
+        // every epoll call.
+        inner_buf->subtree_recency = current_time();
+        inner_buf->writeback_buf.set_recency_dirty();
+    }
+
     bool is_dirty() {
         return inner_buf->writeback_buf.dirty;
     }

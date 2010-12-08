@@ -18,7 +18,6 @@ long get_total_ram() {
 
 
 const repl_timestamp repl_timestamp::invalid = { -1 };
-const repl_timestamp repl_timestamp::placeholder = { -1 };
 
 repl_timestamp repl_time(time_t t) {
     repl_timestamp ret;
