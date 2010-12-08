@@ -147,8 +147,8 @@ struct branch_walker_t :
     buf_t *buf;
     
     int current_pair;   // Used for iterating over leaf nodes
-    store_key_t *current_key;
-    btree_value *current_value;
+    const store_key_t *current_key;
+    const btree_value *current_value;
     large_buf_t *large_value;
     const_buffer_group_t buffers;
     
@@ -198,7 +198,7 @@ struct branch_walker_t :
             delete this;
         
         } else {
-            btree_leaf_pair *pair = leaf_node_handler::get_pair(node, node->pair_offsets[current_pair]);
+            const btree_leaf_pair *pair = leaf_node_handler::get_pair(node, node->pair_offsets[current_pair]);
             current_key = &pair->key;
             current_value = pair->value();
             

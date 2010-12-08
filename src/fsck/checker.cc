@@ -603,7 +603,7 @@ private:
 };
 
 
-bool is_valid_hash(const slicecx& cx, btree_key *key) {
+bool is_valid_hash(const slicecx& cx, const btree_key *key) {
     return btree_key_value_store_t::hash(key) % cx.knog->config_block->btree_config.n_slices == (unsigned)cx.global_slice_id;
 }
 
@@ -647,7 +647,7 @@ void check_large_buf(slicecx& cx, const large_buf_ref& ref, value_error *errs) {
     }
 }
 
-void check_value(slicecx& cx, btree_value *value, subtree_errors *tree_errs, value_error *errs) {
+void check_value(slicecx& cx, const btree_value *value, subtree_errors *tree_errs, value_error *errs) {
     errs->bad_metadata_flags = !!(value->metadata_flags & ~(MEMCACHED_FLAGS | MEMCACHED_CAS | MEMCACHED_EXPTIME | LARGE_VALUE));
 
     size_t size = value->value_size();
@@ -669,8 +669,8 @@ bool leaf_node_inspect_range(const slicecx& cx, const leaf_node_t *buf, uint16_t
     // pair->key.size, pair->value()->size, pair->value()->metadata_flags.
     if (cx.knog->static_config->block_size().value() - 3 >= offset
         && offset >= buf->frontmost_offset) {
-        btree_leaf_pair *pair = leaf_node_handler::get_pair(buf, offset);
-        btree_value *value = pair->value();
+        const btree_leaf_pair *pair = leaf_node_handler::get_pair(buf, offset);
+        const btree_value *value = pair->value();
         uint32_t value_offset = (ptr_cast<byte>(value) - ptr_cast<byte>(pair)) + offset;
         // The other HACK: We subtract 2 for value->size, value->metadata_flags.
         if (value_offset <= cx.knog->static_config->block_size().value() - 2) {
@@ -699,10 +699,10 @@ void check_subtree_leaf_node(slicecx& cx, const leaf_node_t *buf, btree_key *lo,
 
     }
 
-    btree_key *prev_key = lo;
+    const btree_key *prev_key = lo;
     for (uint16_t i = 0; i < buf->npairs; ++i) {
         uint16_t offset = buf->pair_offsets[i];
-        btree_leaf_pair *pair = leaf_node_handler::get_pair(buf, offset);
+        const btree_leaf_pair *pair = leaf_node_handler::get_pair(buf, offset);
 
         errs->keys_too_big |= (pair->key.size > MAX_KEY_SIZE);
         errs->keys_in_wrong_slice |= !is_valid_hash(cx, &pair->key);

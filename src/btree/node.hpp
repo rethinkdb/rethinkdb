@@ -85,11 +85,11 @@ private:
 public:
     void init() { }
 
-    uint16_t mem_size() {
+    uint16_t mem_size() const {
         return value_offset() + size;
     }
 
-    int64_t value_size() {
+    int64_t value_size() const {
         if (is_large()) {
             int64_t ret = lb_ref().size;
             assert(ret > MAX_IN_NODE_VALUE_SIZE);
@@ -123,31 +123,35 @@ public:
 
     // Every value has mcflags, but they're very often 0, in which case we just
     // store a bit instead of 4 bytes.
-    bool has_mcflags() { return metadata_flags & MEMCACHED_FLAGS;   }
-    bool has_cas()     { return metadata_flags & MEMCACHED_CAS;     }
-    bool has_exptime() { return metadata_flags & MEMCACHED_EXPTIME; }
-    bool is_large()    { return metadata_flags & LARGE_VALUE;       }
+    bool has_mcflags() const { return metadata_flags & MEMCACHED_FLAGS;   }
+    bool has_cas()     const { return metadata_flags & MEMCACHED_CAS;     }
+    bool has_exptime() const { return metadata_flags & MEMCACHED_EXPTIME; }
+    bool is_large()    const { return metadata_flags & LARGE_VALUE;       }
 
-    uint8_t mcflags_offset() { return 0;                                                    }
-    uint8_t exptime_offset() { return mcflags_offset() + sizeof(mcflags_t) * has_mcflags(); }
-    uint8_t cas_offset()     { return exptime_offset() + sizeof(exptime_t) * has_exptime(); }
-    uint8_t value_offset()   { return     cas_offset() + sizeof(cas_t)     * has_cas();     }
+    uint8_t mcflags_offset() const { return 0;                                                    }
+    uint8_t exptime_offset() const { return mcflags_offset() + sizeof(mcflags_t) * has_mcflags(); }
+    uint8_t cas_offset()     const { return exptime_offset() + sizeof(exptime_t) * has_exptime(); }
+    uint8_t value_offset()   const { return     cas_offset() + sizeof(cas_t)     * has_cas();     }
 
-    mcflags_t *mcflags_addr() { return (mcflags_t *) (contents + mcflags_offset()); }
-    exptime_t *exptime_addr() { return (exptime_t *) (contents + exptime_offset()); }
-    cas_t         *cas_addr() { return (cas_t     *) (contents +     cas_offset()); }
-    byte             *value() { return (byte      *) (contents +   value_offset()); }
+    mcflags_t       *mcflags_addr()       { return ptr_cast<mcflags_t>(contents + mcflags_offset()); }
+    const mcflags_t *mcflags_addr() const { return ptr_cast<mcflags_t>(contents + mcflags_offset()); }
+    exptime_t       *exptime_addr()       { return ptr_cast<exptime_t>(contents + exptime_offset()); }
+    const exptime_t *exptime_addr() const { return ptr_cast<exptime_t>(contents + exptime_offset()); }
+    cas_t           *cas_addr()           { return ptr_cast<cas_t>(contents + cas_offset()); }
+    const cas_t     *cas_addr()     const { return ptr_cast<cas_t>(contents + cas_offset()); }
+    byte            *value()              { return ptr_cast<byte>(contents + value_offset()); }
+    const byte      *value()        const { return ptr_cast<byte>(contents + value_offset()); }
 
-    large_buf_ref *large_buf_ref_ptr() { return (large_buf_ref *) value(); }
+    large_buf_ref *large_buf_ref_ptr() { return ptr_cast<large_buf_ref>(value()); }
 
-    const large_buf_ref& lb_ref() { return *(large_buf_ref *) value(); }
+    const large_buf_ref& lb_ref() const { return *ptr_cast<large_buf_ref>(value()); }
     void set_lb_ref(const large_buf_ref& ref) {
         *(large_buf_ref *) value() = ref;
     }
 
-    mcflags_t mcflags() { return has_mcflags() ? *mcflags_addr() : 0; }
-    exptime_t exptime() { return has_exptime() ? *exptime_addr() : 0; }
-    cas_t         cas() { // We shouldn't be asking for a value's CAS unless we know it has one.
+    mcflags_t mcflags() const { return has_mcflags() ? *mcflags_addr() : 0; }
+    exptime_t exptime() const { return has_exptime() ? *exptime_addr() : 0; }
+    cas_t         cas() const { // We shouldn't be asking for a value's CAS unless we know it has one.
         assert(has_cas());
         return *cas_addr();
     }
@@ -208,7 +212,7 @@ public:
         *cas_addr() = new_cas;
     }
 
-    void print() {
+    void print() const {
         fprintf(stderr, "%*.*s", size, size, value());
     }
 };
@@ -261,11 +265,11 @@ class node_handler {
         }
 };
 
-inline void keycpy(btree_key *dest, btree_key *src) {
+inline void keycpy(btree_key *dest, const btree_key *src) {
     memcpy(dest, src, sizeof(btree_key) + src->size);
 }
 
-inline void valuecpy(btree_value *dest, btree_value *src) {
+inline void valuecpy(btree_value *dest, const btree_value *src) {
     memcpy(dest, src, sizeof(btree_value) + src->mem_size());
 }
 
