@@ -12,7 +12,7 @@ void internal_node_handler::init(block_size_t block_size, internal_node_t *node)
     node->frontmost_offset = block_size.value();
 }
 
-void internal_node_handler::init(block_size_t block_size, internal_node_t *node, internal_node_t *lnode, uint16_t *offsets, int numpairs) {
+void internal_node_handler::init(block_size_t block_size, internal_node_t *node, const internal_node_t *lnode, const uint16_t *offsets, int numpairs) {
     init(block_size, node);
     for (int i = 0; i < numpairs; i++) {
         node->pair_offsets[i] = insert_pair(node, get_pair(lnode, offsets[i]));

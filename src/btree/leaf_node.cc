@@ -17,7 +17,7 @@ void leaf_node_handler::init(block_size_t block_size, leaf_node_t *node, repli_t
 // more coarse than conceivably possible.  We could also let the
 // caller supply an earlier[] array.
 // TODO: maybe lnode should just supply the modification time.
-void leaf_node_handler::init(block_size_t block_size, leaf_node_t *node, leaf_node_t *lnode, uint16_t *offsets, int numpairs, repli_timestamp modification_time) {
+void leaf_node_handler::init(block_size_t block_size, leaf_node_t *node, const leaf_node_t *lnode, const uint16_t *offsets, int numpairs, repli_timestamp modification_time) {
     init(block_size, node, modification_time);
     for (int i = 0; i < numpairs; i++) {
         node->pair_offsets[i] = insert_pair(node, get_pair(lnode, offsets[i]));

@@ -22,7 +22,7 @@ class internal_node_handler : public node_handler {
     friend class internal_key_comp;
 public:
     static void init(block_size_t block_size, internal_node_t *node);
-    static void init(block_size_t block_size, internal_node_t *node, internal_node_t *lnode, uint16_t *offsets, int numpairs);
+    static void init(block_size_t block_size, internal_node_t *node, const internal_node_t *lnode, const uint16_t *offsets, int numpairs);
 
     static block_id_t lookup(const internal_node_t *node, const btree_key *key);
     static bool insert(block_size_t block_size, internal_node_t *node, const btree_key *key, block_id_t lnode, block_id_t rnode);

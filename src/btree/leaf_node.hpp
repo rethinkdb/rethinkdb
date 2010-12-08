@@ -32,7 +32,7 @@ class leaf_node_handler : public node_handler {
     friend class leaf_key_comp;
 public:
     static void init(block_size_t block_size, leaf_node_t *node, repli_timestamp modification_time);
-    static void init(block_size_t block_size, leaf_node_t *node, leaf_node_t *lnode, uint16_t *offsets, int numpairs, repli_timestamp modification_time);
+    static void init(block_size_t block_size, leaf_node_t *node, const leaf_node_t *lnode, const uint16_t *offsets, int numpairs, repli_timestamp modification_time);
 
     static bool lookup(const leaf_node_t *node, const btree_key *key, btree_value *value);
     static bool insert(block_size_t block_size, leaf_node_t *node, const btree_key *key, const btree_value *value, repli_timestamp insertion_time);
