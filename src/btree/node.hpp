@@ -217,26 +217,23 @@ public:
     }
 };
 
-// A btree_node is either a btree_internal_node or a btree_leaf_node.
-struct btree_node {
+// A node_t is either a btree_internal_node or a btree_leaf_node.
+struct node_t {
     block_magic_t magic;
 };
 
 template <>
-bool check_magic<btree_node>(block_magic_t magic);
-
-
-typedef btree_node node_t;
+bool check_magic<node_t>(block_magic_t magic);
 
 class node_handler {
     public:
-        static bool is_leaf(const btree_node *node) {
-            assert(check_magic<btree_node>(node->magic));
+        static bool is_leaf(const node_t *node) {
+            assert(check_magic<node_t>(node->magic));
             return check_magic<leaf_node_t>(node->magic);
         }
 
-        static bool is_internal(const btree_node *node) {
-            assert(check_magic<btree_node>(node->magic));
+        static bool is_internal(const node_t *node) {
+            assert(check_magic<node_t>(node->magic));
             return check_magic<internal_node_t>(node->magic);
         }
 
@@ -244,25 +241,18 @@ class node_handler {
             int len = strlen(str);
             check("string too long", len > MAX_KEY_SIZE);
             memcpy(buf->contents, str, len);
-            buf->size = (unsigned char)len;
+            buf->size = (uint8_t)len;
         }
 
-        static bool is_underfull(block_size_t block_size, const btree_node *node);
-        static bool is_mergable(block_size_t block_size, const btree_node *node, const btree_node *sibling, const btree_node *parent);
-        static int nodecmp(const btree_node *node1, const btree_node *node2);
-        static void merge(block_size_t block_size, btree_node *node, btree_node *rnode, btree_key *key_to_remove, btree_node *parent);
-        static bool level(block_size_t block_size, btree_node *node, btree_node *rnode, btree_key *key_to_replace, btree_key *replacement_key, btree_node *parent);
+        static bool is_underfull(block_size_t block_size, const node_t *node);
+        static bool is_mergable(block_size_t block_size, const node_t *node, const node_t *sibling, const node_t *parent);
+        static int nodecmp(const node_t *node1, const node_t *node2);
+        static void merge(block_size_t block_size, node_t *node, node_t *rnode, btree_key *key_to_remove, node_t *parent);
+        static bool level(block_size_t block_size, node_t *node, node_t *rnode, btree_key *key_to_replace, btree_key *replacement_key, node_t *parent);
 
-        static void print(const btree_node *node);
+        static void print(const node_t *node);
 
-        static void validate(block_size_t block_size, const btree_node *node);
-
-        static inline const btree_node* node(const void *ptr) {
-            return (const btree_node *) ptr;
-        }
-        static inline btree_node* node(void *ptr) {
-            return (btree_node *) ptr;
-        }
+        static void validate(block_size_t block_size, const node_t *node);
 };
 
 inline void keycpy(btree_key *dest, const btree_key *src) {

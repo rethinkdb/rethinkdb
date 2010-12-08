@@ -362,9 +362,9 @@ void internal_node_handler::delete_pair(internal_node_t *node, uint16_t offset) 
     size_t shift = pair_size(pair_to_delete);
     size_t size = offset - node->frontmost_offset;
 
-    assert(check_magic<btree_node>(node->magic));
+    assert(check_magic<node_t>(node->magic));
     memmove(ptr_cast<byte>(front_pair)+shift, front_pair, size);
-    assert(check_magic<btree_node>(node->magic));
+    assert(check_magic<node_t>(node->magic));
 
     node->frontmost_offset += shift;
     for (int i = 0; i < node->npairs; i++) {

@@ -796,7 +796,7 @@ void check_subtree(slicecx& cx, block_id_t id, const btree_key *lo, const btree_
 
     if (lo != NULL && hi != NULL) {
         // (We're happy with an underfull root block.)
-        if (node_handler::is_underfull(cx.knog->static_config->block_size(), ptr_cast<btree_node>(node.buf))) {
+        if (node_handler::is_underfull(cx.knog->static_config->block_size(), ptr_cast<node_t>(node.buf))) {
             node_err.block_underfull = true;
         }
     }
