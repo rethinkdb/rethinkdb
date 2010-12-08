@@ -48,7 +48,7 @@ def main():
         os.system('make -C ../src clean')
         os.system('make -j -C ../src')
         os.system('rm -rf output_from_test')
-        os.system('./integration/long_test.py --stress ../bench/stress-client/stress --auto --no-timeout --cores 4 --no-valgrind')
+        os.system('./integration/long_test.py --stress ../bench/stress-client/stress --auto --no-timeout --cores 8 --memory 40000 --no-valgrind')
         duration = time.time() - start_time
         send_email('jdoliner@gmail.com', "Uptime: %f" % duration)
         dir_name = string.replace(time.asctime(), ' ', '_')
