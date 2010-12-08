@@ -17,8 +17,9 @@ struct btree_replicant_t :
 {
     store_t::replicant_t *callback;
     btree_key_value_store_t *store;
+    repli_timestamp cutoff_recency;
 
-    btree_replicant_t(store_t::replicant_t *, btree_key_value_store_t *);
+    btree_replicant_t(store_t::replicant_t *, btree_key_value_store_t *, repli_timestamp);
     void stop();
 
 private:

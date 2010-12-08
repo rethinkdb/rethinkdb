@@ -445,8 +445,8 @@ void btree_key_value_store_t::delete_key(store_key_t *key, delete_callback_t *cb
     new btree_delete_fsm_t(key, this, cb);
 }
 
-void btree_key_value_store_t::replicate(replicant_t *cb) {
-    replicants.push_back(new btree_replicant_t(cb, this));
+void btree_key_value_store_t::replicate(replicant_t *cb, repli_timestamp cutoff) {
+    replicants.push_back(new btree_replicant_t(cb, this, cutoff));
 }
 
 void btree_key_value_store_t::stop_replicating(replicant_t *cb) {

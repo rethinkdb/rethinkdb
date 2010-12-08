@@ -11,8 +11,8 @@ struct slice_walker_t;
 void walk_slice(btree_replicant_t *parent, btree_slice_t *slice);
 void walk_branch(slice_walker_t *parent, block_id_t node);
 
-btree_replicant_t::btree_replicant_t(store_t::replicant_t *cb, btree_key_value_store_t *s)
-    : callback(cb), store(s), stopping(false)
+btree_replicant_t::btree_replicant_t(store_t::replicant_t *cb, btree_key_value_store_t *s, repli_timestamp cutoff)
+    : callback(cb), store(s), cutoff_recency(cutoff), stopping(false)
 {
     active_slice_walkers = store->btree_static_config.n_slices;
 
@@ -99,8 +99,8 @@ struct slice_walker_t :
     int active_branch_walkers;
     transaction_t *txn;
     btree_replicant_t *parent;
-    slice_walker_t(btree_replicant_t *parent, btree_slice_t *slice)
-        : slice(slice), active_branch_walkers(0), parent(parent)
+    slice_walker_t(btree_replicant_t *parent_, btree_slice_t *slice_)
+        : slice(slice_), active_branch_walkers(0), parent(parent_)
     {
         do_on_cpu(slice->home_cpu, this, &slice_walker_t::start);
     }
@@ -153,7 +153,7 @@ struct branch_walker_t :
     const_buffer_group_t buffers;
     
     branch_walker_t(slice_walker_t *parent, block_id_t block_id)
-        : parent(parent)
+        : parent(parent), buf(NULL)
     {
         parent->active_branch_walkers++;
         buf_t *node = parent->txn->acquire(block_id, rwi_read, this);
@@ -233,5 +233,10 @@ struct branch_walker_t :
 };
 
 void walk_branch(slice_walker_t *parent, block_id_t node) {
-    new branch_walker_t(parent, node);
+    repli_timestamp subtree_recency = parent->txn->get_subtree_recency(node);
+    if (repli_compare(subtree_recency, parent->parent->cutoff_recency) >= 0) {
+        // The subtree is newer than or equal to the cutoff time.  It
+        // has new stuff.  Walk it.
+        new branch_walker_t(parent, node);
+    }
 }

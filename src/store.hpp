@@ -183,7 +183,7 @@ struct store_t {
         
         virtual ~replicant_t() {}
     };
-    virtual void replicate(replicant_t *cb) = 0;
+    virtual void replicate(replicant_t *cb, repli_timestamp cutoff) = 0;
     virtual void stop_replicating(replicant_t *cb) = 0;
 
     virtual ~store_t() {}

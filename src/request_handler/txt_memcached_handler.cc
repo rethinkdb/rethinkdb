@@ -1033,7 +1033,8 @@ txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::parse_gc_comman
         conn_fsm->consume(line_len);
         if (!test_replicant) {
             test_replicant = new test_replicant_t;
-            server->store->replicate(test_replicant);
+            int one_decade = 3600*24*365*10;
+            server->store->replicate(test_replicant, repli_time(time(NULL) - one_decade) /* TODO this is a hack for testing */);
             conn_fsm->sbuf->printf("Replicating to stderr.\r\n");
         } else {
             conn_fsm->sbuf->printf("Already replicating.\r\n");

@@ -137,7 +137,7 @@ void leaf_node_handler::merge(block_size_t block_size, leaf_node_t *node, leaf_n
           (block_size.value() - node->frontmost_offset) + (block_size.value() - rnode->frontmost_offset) >= block_size.value());
 
     // TODO: this is coarser than it could be.
-    initialize_times(&node->times, later_time(node->times.last_modified, rnode->times.last_modified));
+    initialize_times(&node->times, repli_max(node->times.last_modified, rnode->times.last_modified));
 
     memmove(rnode->pair_offsets + node->npairs, rnode->pair_offsets, rnode->npairs * sizeof(*rnode->pair_offsets));
 
@@ -196,7 +196,7 @@ bool leaf_node_handler::level(block_size_t block_size, leaf_node_t *node, leaf_n
 
         // TODO: node and sibling's times are tolerable but coarse.
         // They are newer than they could be.
-        initialize_times(&node->times, later_time(node->times.last_modified, sibling->times.last_modified));
+        initialize_times(&node->times, repli_max(node->times.last_modified, sibling->times.last_modified));
 
         keycpy(key_to_replace, &get_pair(node, node->pair_offsets[0])->key);
         keycpy(replacement_key, &get_pair(node, node->pair_offsets[node->npairs-1])->key);
@@ -228,7 +228,7 @@ bool leaf_node_handler::level(block_size_t block_size, leaf_node_t *node, leaf_n
 
         // TODO: node and sibling's times are tolerable but coarse.
         // They are newer than they could be.
-        initialize_times(&node->times, later_time(node->times.last_modified, sibling->times.last_modified));
+        initialize_times(&node->times, repli_max(node->times.last_modified, sibling->times.last_modified));
 
         keycpy(key_to_replace, &get_pair(sibling, sibling->pair_offsets[0])->key);
         keycpy(replacement_key, &get_pair(sibling, sibling->pair_offsets[sibling->npairs-1])->key);
