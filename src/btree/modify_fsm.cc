@@ -552,14 +552,14 @@ void btree_modify_fsm_t::do_transition(event_t *event) {
                         for (int i = 0; i < (int)slice->replicants.size(); i++) {
                             slice->replicants[i]->callback->value(&key, &replicant_bg, this,
                                 new_value->mcflags(), new_value->exptime(),
-                                new_value->has_cas() ? new_value->cas() : 0);
+                                                                  new_value->has_cas() ? new_value->cas() : 0, current_time()  /* TODO THIS IS BROKEN.  THIS IS BROKEN.  YOU MUST MUST MUST USE THE SAME current_time() VALUE THAT YOU INSERTED, AND NOT A LATER ONE.  (AN EARLIER ONE WOULD BE OK, FWIW.) */);
                         }
 
                     } else {
 
                         // Pass NULL to the replicants
                         for (int i = 0; i < (int)slice->replicants.size(); i++) {
-                            slice->replicants[i]->callback->value(&key, NULL, this, 0, 0, 0);
+                            slice->replicants[i]->callback->value(&key, NULL, this, 0, 0, 0, current_time() /* TODO THIS IS BROKEN.  THIS IS BROKEN.  (Or is it?  You need to use the same current_time() that you pass to the delete queue.  Maybe the replicant passes it to the delete queue... We have not implemented that part yet.) */);
                         }
 
                     }
