@@ -64,7 +64,12 @@ void epoll_event_queue_t::run() {
         if(res == -1 && errno == EINTR) {
             continue;
         }
-        guarantee_err(res != -1, "Waiting for epoll events failed");    // RSI
+
+        // When epoll_wait returns with EBADF, EFAULT, and EINVAL,
+        // it probably means that epoll_fd is no longer valid. There's
+        // no reason to try epoll_wait again, unless we can create a
+        // new descriptor (which we probably can't at this point). 
+        guarantee_err(res != -1, "Waiting for epoll events failed");
 
         // nevents might be used by forget_resource during the loop
         nevents = res;

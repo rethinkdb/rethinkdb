@@ -42,7 +42,9 @@ class dumper_t {
 public:
     dumper_t(const char *path) {
         fp = fopen(path, "wbx");
-        guarantee_err(fp != NULL, "could not open file");   // RSI: user error?
+        if (fp == NULL) {
+            fail_due_to_user_error("could not open file");
+        }
     }
     ~dumper_t() {
         if (fp != NULL) {
@@ -128,7 +130,7 @@ void walk_extents(dumper_t &dumper, direct_file_t &file, cfg_t cfg) {
             fail_due_to_user_error(
                 "Config block cannot be found (CONFIG_BLOCK_ID = %u, offsets.get_size() = %u)."
                  "  Use --force-mod-count to override.\n",
-                 CONFIG_BLOCK_ID, n);   // RSI
+                 CONFIG_BLOCK_ID, n);
         }
         
         off64_t off = offsets[CONFIG_BLOCK_ID];

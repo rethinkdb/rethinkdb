@@ -42,7 +42,7 @@ block_id_t internal_node_handler::lookup(const btree_internal_node *node, btree_
 
 bool internal_node_handler::insert(size_t block_size, btree_internal_node *node, btree_key *key, block_id_t lnode, block_id_t rnode) {
     //TODO: write a unit test for this
-    guarantee(key->size <= MAX_KEY_SIZE, "key too large"); // RSI: change to assert
+    assert(key->size <= MAX_KEY_SIZE, "key too large");
     if (is_full(node)) return false;
     if (node->npairs == 0) {
         btree_key special;
@@ -53,8 +53,8 @@ bool internal_node_handler::insert(size_t block_size, btree_internal_node *node,
     }
 
     int index = get_offset_index(node, key);
-    guarantee(!is_equal(&get_pair(node, node->pair_offsets[index])->key, key),
-        "tried to insert duplicate key into internal node!");   // RSI: change to assert?
+    assert(!is_equal(&get_pair(node, node->pair_offsets[index])->key, key),
+        "tried to insert duplicate key into internal node!");
     uint16_t offset = insert_pair(node, lnode, key);
     insert_offset(node, offset, index);
 
@@ -134,7 +134,7 @@ void internal_node_handler::merge(size_t block_size, btree_internal_node *node, 
 
     guarantee(sizeof(btree_internal_node) + (node->npairs + rnode->npairs)*sizeof(*node->pair_offsets) +
         block_size - node->frontmost_offset + block_size - rnode->frontmost_offset + key_from_parent->size < block_size,
-        "internal nodes too full to merge");  // RSI
+        "internal nodes too full to merge");
 
     memmove(rnode->pair_offsets + node->npairs, rnode->pair_offsets, rnode->npairs * sizeof(*rnode->pair_offsets));
 
@@ -262,7 +262,7 @@ void internal_node_handler::update_key(btree_internal_node *node, btree_key *key
     block_id_t tmp_lnode = get_pair(node, node->pair_offsets[index])->lnode;
     delete_pair(node, node->pair_offsets[index]);
     guarantee(sizeof(btree_internal_node) + (node->npairs) * sizeof(*node->pair_offsets) + pair_size_with_key(replacement_key) < node->frontmost_offset,
-        "cannot fit updated key in internal node"); // RSI: change to assert?
+        "cannot fit updated key in internal node");
     node->pair_offsets[index] = insert_pair(node, tmp_lnode, replacement_key);
 #ifdef BTREE_DEBUG
     printf("\t|\n\t|\n\t|\n\tV\n");
@@ -270,7 +270,7 @@ void internal_node_handler::update_key(btree_internal_node *node, btree_key *key
 #endif
 
     guarantee(is_sorted(node->pair_offsets, node->pair_offsets+node->npairs, internal_key_comp(node)),
-        "Invalid key given to update_key: offsets no longer in sorted order");  // RSI: change to assert?
+        "Invalid key given to update_key: offsets no longer in sorted order");
 }
 
 bool internal_node_handler::is_full(const btree_internal_node *node) {

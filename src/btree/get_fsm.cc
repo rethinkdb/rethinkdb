@@ -266,9 +266,9 @@ btree_get_fsm_t::transition_result_t btree_get_fsm_t::do_deliver_not_found_notif
 void btree_get_fsm_t::do_transition(event_t *event) {
     transition_result_t res = btree_fsm_t::transition_ok;
 
-    // Make sure we've got either an empty or a cache event
-    guarantee_err((!event || event->event_type == et_cache || event->event_type == et_large_buf),
-        "btree_fsm::do_transition - invalid event"); // RSI
+    // Make sure we've got either an empty or a cache event or a large buffer
+    guarantee(!event || event->event_type == et_cache || event->event_type == et_large_buf,
+        "btree_fsm::do_transition - invalid event");
 
     if (event && event->event_type == et_large_buf) assert(state == acquire_large_value);
 

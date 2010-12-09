@@ -230,11 +230,15 @@ class node_handler {
             return check_magic<btree_internal_node>(node->magic);
         }
 
-        static void str_to_key(char *str, btree_key *buf) {
+        static bool str_to_key(char *str, btree_key *buf) {
             int len = strlen(str);
-            guarantee(len <= MAX_KEY_SIZE, "string too long"); // RSI: user error?
-            memcpy(buf->contents, str, len);
-            buf->size = (unsigned char)len;
+            if (len <= MAX_KEY_SIZE) {
+                memcpy(buf->contents, str, len);
+                buf->size = (unsigned char)len;
+                return true;
+            } else {
+                return false;
+            }
         }
 
         static bool is_underfull(size_t block_size, const btree_node *node);

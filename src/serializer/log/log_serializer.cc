@@ -215,8 +215,7 @@ struct ls_start_existing_fsm_t :
         }
         
         if (state == state_start_lba) {
-            
-            if (!metablock_found) crash("Could not find any valid metablock.");  // RSI
+            guarantee(metablock_found, "Could not find any valid metablock.");
             
 #ifndef NDEBUG
             memcpy(&ser->debug_mb_buffer, &metablock_buffer, sizeof(metablock_buffer));

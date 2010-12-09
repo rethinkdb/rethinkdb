@@ -154,7 +154,27 @@ void linux_net_listener_t::on_event(int events) {
         int new_sock = accept(sock, (sockaddr*)&client_addr, &client_addr_len);
 
         if (new_sock == INVALID_FD) {
-            guarantee_err(errno == EAGAIN, "Cannot accept new connection"); // RSI
+            switch (errno) {
+                case EPROTO:
+                case ENOPROTOOPT:
+                case ENETDOWN:
+                case ENONET:
+                case ENETUNREACH:
+                case EAGAIN:
+                    break;
+                case EINTR:
+                    break;
+                default:
+                    // accept man page suggests that EAGAIN may be not equal to
+                    // EWOULDBLOCK. However when they are actually equal, GCC
+                    // issues an error in switch cases above, saying that we
+                    // have duplicate case labels. Thus we need to check it
+                    // separately, here, for compatibility reasons.
+                    if (errno == EWOULDBLOCK) {
+                        break;
+                    }
+                    guarantee_err(false, "Cannot accept new connection");
+            }
             break;
         } else {
             callback->on_net_listener_accept(new linux_net_conn_t(new_sock));
@@ -323,14 +343,16 @@ void linux_direct_file_t::read_blocking(size_t offset, size_t length, void *buf)
     
     verify(offset, length, buf);
     size_t res = pread(fd, buf, length, offset);
-    guarantee_err(res == length, "Blocking read failed");   // RSI: assert?
+    assert(res == length, "Blocking read failed");
+    UNUSED(res);
 }
 
 void linux_direct_file_t::write_blocking(size_t offset, size_t length, void *buf) {
     
     verify(offset, length, buf);
     size_t res = pwrite(fd, buf, length, offset);
-    guarantee_err(res == length, "Blocking write failed");   // RSI: assert?
+    assert(res == length, "Blocking write failed");
+    UNUSED(res);
 }
 
 linux_direct_file_t::~linux_direct_file_t() {
@@ -434,7 +456,12 @@ void linux_io_calls_t::aio_notify(iocb *event, int result) {
     // Check for failure (because the higher-level code usually doesn't)
     if (result != (int)event->u.c.nbytes) {
         errno = -result;
-        guarantee_err(false, "Read or write failed");   // RSI
+
+        // Currently AIO is used only for disk files, not sockets.
+        // Thus, if something fails, we have a good reason to crash
+        // (note that that is not true for sockets: we should just
+        // close the socket and cleanup then).
+        guarantee_err(false, "Read or write failed");
     }
     
     // Notify the interested party about the event

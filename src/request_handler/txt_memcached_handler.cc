@@ -673,7 +673,12 @@ txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::parse_adjustmen
         }
     }
 
-    node_handler::str_to_key(key_tmp, &key);
+    bool key_ok = node_handler::str_to_key(key_tmp, &key);
+    if (!key_ok) {
+        conn_fsm->consume(line_len);
+        return malformed_request();
+    }
+
     // First convert to signed long to catch negative arguments (strtoull handles them as valid unsigned numbers)
     signed long long signed_delta = strtoll(value_str, NULL, 10);
     char *endptr = NULL;
@@ -712,7 +717,12 @@ txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::parse_storage_c
     }
 
     cmd = command;
-    node_handler::str_to_key(key_tmp, &key);
+
+    bool key_ok = node_handler::str_to_key(key_tmp, &key);
+    if (!key_ok) {
+        conn_fsm->consume(line_len);
+        return malformed_request();
+    }
 
     char *invalid_char;
     mcflags = strtoul(mcflags_str, &invalid_char, 10);  //a 32 bit integer.  int alone does not guarantee 32 bit length
@@ -862,13 +872,12 @@ txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::get(char *state
         txt_memcached_get_request_t *rq = new txt_memcached_get_request_t(this, with_cas);
 
         do {
-            if (strlen(key_str) >  MAX_KEY_SIZE) {
-                //check to make sure the key isn't too long
+            bool key_ok = node_handler::str_to_key(key_str, &key);
+            if (!key_ok) {
                 res = malformed_request();
                 delete rq;
                 goto error_breakout;
             }
-            node_handler::str_to_key(key_str, &key);
 
             if (!rq->add_get(&key)) {
                 // We can't fit any more operations, let's just break
@@ -927,7 +936,11 @@ txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::remove(char *st
         }
     }
 
-    node_handler::str_to_key(key_str, &key);
+    bool key_ok = node_handler::str_to_key(key_str, &key);
+    if (!key_ok) {
+        conn_fsm->consume(line_len);
+        return malformed_request();
+    }
 
     // Create request
     new txt_memcached_delete_request_t(this, &key, this->noreply);

@@ -200,7 +200,8 @@ bool btree_modify_fsm_t::do_check_for_split(const node_t **node) {
         }
 
         bool success = internal_node_handler::insert(cache->get_block_size(), last_node, median, node_id, rnode_id);
-        guarantee(success, "could not insert internal btree node");
+        assert(success, "could not insert internal btree node");
+        UNUSED(success);
 
 #ifdef BTREE_DEBUG
         printf("\t|\n\t| Median = "); median->print(); printf("\n\t|\n\tV\n");
@@ -257,7 +258,7 @@ void btree_modify_fsm_t::do_transition(event_t *event) {
     // Make sure we've got either an empty or a cache event
     guarantee(event == NULL || event->event_type == et_cache ||
         event->event_type == et_large_buf || event->event_type == et_commit,
-        "btree_fsm::do_transition - invalid event");    // RSI: change to assert?
+        "btree_fsm::do_transition - invalid event");
 
     // Update the cache with the event
     if (event && (event->event_type == et_cache || event->event_type == et_large_buf)) {

@@ -112,10 +112,9 @@ void leaf_node_handler::merge(size_t block_size, btree_leaf_node *node, btree_le
     printf("rnode:\n");
     leaf_node_handler::print(rnode);
 #endif
-    guarantee(
-            sizeof(btree_leaf_node) + (node->npairs + rnode->npairs)*sizeof(*node->pair_offsets) +
+    guarantee(sizeof(btree_leaf_node) + (node->npairs + rnode->npairs)*sizeof(*node->pair_offsets) +
             block_size - node->frontmost_offset + block_size - rnode->frontmost_offset < block_size,
-            "leaf nodes too full to merge");  // RSI: change to assert?
+            "leaf nodes too full to merge");
     //guarantee(node->npairs != 0, "leaf has no pairs!");
     //guarantee(rnode->npairs != 0, "leaf has no pairs!");
 
@@ -187,7 +186,7 @@ bool leaf_node_handler::level(size_t block_size, btree_leaf_node *node, btree_le
         int index = sibling->npairs - (sibling->npairs - node->npairs) / 2;
 #endif
         int pairs_to_move = sibling->npairs - index;
-        guarantee(pairs_to_move >= 0, "could not level nodes");    // RSI: change to assert?
+        assert(pairs_to_move >= 0, "could not level nodes");
 
         if (pairs_to_move == 0) return false;
         //copy from end of sibling to beginning of node

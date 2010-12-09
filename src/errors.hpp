@@ -71,9 +71,10 @@ void report_fatal_error(const char*, int, const char*, ...);
         }                                                                       \
     } while (0)
 
-#define unreachable(msg, ...) crash("Unreachable code: " msg, ##__VA_ARGS__)       // RSI
-#define not_implemented(msg, ...) crash("Not implemented: " msg, ##__VA_ARGS__)    // RSI
+#define unreachable(msg, ...) crash("Unreachable code: " msg, ##__VA_ARGS__)    // can't use crash_or_trap since code needs to depend on its noreturn property
+#define not_implemented(msg, ...) crash_or_trap("Not implemented: " msg, ##__VA_ARGS__)
 
+#define UNUSED(x) ((void) x)
 #ifdef NDEBUG
 #define assert(cond, msg...) ((void)(0))
 #else

@@ -73,22 +73,20 @@ conn_fsm_t::result_t conn_fsm_t::fill_buf(void *buf, unsigned int *bytes_filled,
     ssize_t sz = conn->read_nonblocking((byte *) buf + *bytes_filled, total_length - *bytes_filled);
     
     if (sz == -1) {
-        if(errno == EAGAIN || errno == EWOULDBLOCK) {
-            // The machine can't be in
-            // fsm_socket_send_incomplete state here,
-            // since we break out in these cases. So it's
-            // safe to free the buffer.
+        if(errno == EAGAIN || errno == EWOULDBLOCK) {   // EAGAIN may be equal to EWOULDBLOCK, so can't put them in a switch below
+            // The machine can't be in fsm_socket_send_incomplete state here,
+            // since we break out in these cases. So it's safe to free the buffer.
             assert(state != fsm_socket_send_incomplete);
             if(state != fsm_socket_recv_incomplete && *bytes_filled == 0) {
                 send_msg_to_client();
-                if (sbuf && sbuf->outstanding() == linked_buf_t::linked_buf_empty)
+                if (sbuf && sbuf->outstanding() == linked_buf_t::linked_buf_empty) {
                     return_to_socket_connected();
+                }
             } else
                 state = fsm_socket_connected; //we're wating for a socket event
             //break;
-        } else if (errno == ENETDOWN) {
-            guarantee_err(sz != -1, "Enetdown wtf");    // RSI
-        } else if (errno == ECONNRESET) {
+        } else {
+            // We must fail gracefully here, probably logging the error.
 #ifndef NDEBUG
             we_are_closed = true;
 #endif
@@ -96,8 +94,6 @@ conn_fsm_t::result_t conn_fsm_t::fill_buf(void *buf, unsigned int *bytes_filled,
                 shutdown_callback->on_conn_fsm_quit();
             assert(state == fsm_outstanding_data || state == fsm_socket_connected);
             return fsm_quit_connection;
-        } else {
-            guarantee_err(sz != -1, "Could not read from socket");  // RSI: fail gracefully?
         }
     } else if (sz > 0) {
         *bytes_filled += sz;
