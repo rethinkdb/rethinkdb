@@ -97,25 +97,26 @@ void large_buf_t::allocate_part_of_tree(buftree_t *tr, int64_t offset, int64_t s
 
         assert(check_magic<large_buf_internal>(node->magic));
 
-        for (int64_t i = 0; i < offset + size; i += step) {
-            assert((int64_t)tr->children.size() >= i / step);
+        for (int k = 0; int64_t(k) * step < offset + size; ++k) {
+            int64_t i = int64_t(k) * step;
+            assert((int)tr->children.size() >= k);
 
-            if ((int64_t)tr->children.size() == (i / step)) {
+            if ((int64_t)tr->children.size() == k) {
                 tr->children.push_back(NULL);
-                node->kids[i / step] = NULL_BLOCK_ID;
+                node->kids[k] = NULL_BLOCK_ID;
             }
 
             if (i + step > offset) {
                 int64_t child_offset = std::max(offset - i, 0L);
                 int64_t child_end_offset = std::min(offset + size - i, step);
 
-                if (tr->children[i / step] == NULL) {
+                if (tr->children[k] == NULL) {
                     block_id_t id;
                     buftree_t *child = allocate_buftree(child_offset, child_end_offset - child_offset, levels - 1, &id);
-                    tr->children[i / step] = child;
-                    node->kids[i / step] = id;
+                    tr->children[k] = child;
+                    node->kids[k] = id;
                 } else {
-                    allocate_part_of_tree(tr->children[i / step], child_offset, child_end_offset - child_offset, levels - 1);
+                    allocate_part_of_tree(tr->children[k], child_offset, child_end_offset - child_offset, levels - 1);
                 }
             }
         }
@@ -191,14 +192,15 @@ struct acquire_buftree_fsm_t : public block_available_callback_t, public tree_av
             // loop, so that it can't reach 0 until we're done the for
             // loop.
             life_counter = 1;
-            for (int64_t i = 0; i < offset + size; i += step) {
+            for (int k = 0; int64_t(k) * step < offset + size; ++k) {
+                int64_t i = int64_t(k) * step;
                 tr->children.push_back(NULL);
                 if (offset < i + step) {
                     life_counter++;
                     int64_t child_offset = std::max(offset - i, 0L);
                     int64_t child_end_offset = std::min(offset + size - i, step);
 
-                    acquire_buftree_fsm_t *fsm = new acquire_buftree_fsm_t(lb, node->kids[i / step], child_offset, child_end_offset - child_offset, levels - 1, this, i / step);
+                    acquire_buftree_fsm_t *fsm = new acquire_buftree_fsm_t(lb, node->kids[k], child_offset, child_end_offset - child_offset, levels - 1, this, k);
                     fsm->go();
                 }
             }
@@ -415,12 +417,12 @@ void large_buf_t::fill_tree_at(buftree_t *tr, int64_t pos, const byte *data, int
     } else {
         int64_t step = max_offset(levels - 1);
 
-        int64_t i = floor_aligned(pos, step);
         int64_t e = ceil_aligned(pos + fill_size, step);
-        for (; i < e; i += step) {
+        for (int k = pos / step, ke = e / step; k < ke; ++k) {
+            int64_t i = int64_t(k) * step;
             int64_t beg = std::max(i, pos);
             int64_t end = std::min(pos + fill_size, i + step);
-            fill_tree_at(tr->children[i / step], beg - i, data + (beg - pos), end - beg, levels - 1);
+            fill_tree_at(tr->children[k], beg - i, data + (beg - pos), end - beg, levels - 1);
         }
     }
     assert(root->level == num_levels(root_ref.offset + root_ref.size));
@@ -478,13 +480,13 @@ void large_buf_t::walk_tree_structure(buftree_t *tr, int64_t offset, int64_t siz
         } else {
             int64_t step = max_offset(levels - 1);
 
-            int64_t i = floor_aligned(offset, step);
             int64_t e = ceil_aligned(offset + size, step);
 
-            for (; i < e; i += step) {
+            for (int k = offset / step, ke = e / step; k < ke; ++k) {
+                int64_t i = int64_t(k) * step;
                 int64_t beg = std::max(offset, i);
                 int64_t end = std::min(offset + size, i + step);
-                buftree_t *child = i / step < (int64_t)tr->children.size() ? tr->children[i / step] : NULL;
+                buftree_t *child = k < int(tr->children.size()) ? tr->children[k] : NULL;
                 walk_tree_structure(child, beg - i, end - beg, levels - 1, bufdoer, buftree_cleaner);
             }
 
@@ -615,7 +617,6 @@ buf_t *large_buf_t::get_segment_buf(int64_t ix, uint16_t *seg_size, uint16_t *se
     int levels = num_levels(root_ref.offset + root_ref.size);
     buftree_t *tr = root;
     while (levels > 1) {
-        // debugf("At level %d with offset=%ld size=%ld pos=%ld tr=%p trchildren=%d\n", levels, root_ref.offset, root_ref.size, pos, tr, tr ? tr->children.size() : 0);
         int64_t step = max_offset(levels - 1);
         tr = tr->children[pos / step];
         pos = pos % step;
