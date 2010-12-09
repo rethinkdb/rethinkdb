@@ -302,6 +302,10 @@ def start_testing_nodes():
         while instance.state != "running":
             time.sleep(5)
             instance.update()
+            if instance.state == "terminated":
+                # Something went wrong :-(
+                terminte_testing_nodes()
+                raise Exception("Could not allocate the requested number of nodes")
     
     create_testing_nodes_from_reservation()
     
