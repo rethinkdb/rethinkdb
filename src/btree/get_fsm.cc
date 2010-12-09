@@ -6,6 +6,125 @@
 
 #include "btree/delete_expired_fsm.hpp"
 
+struct btree_get_t {
+
+    union {
+        char key_memory[MAX_KEY_SIZE+sizeof(btree_key)];
+        btree_key key;
+    };
+    union {
+        char value_memory[MAX_TOTAL_NODE_CONTENTS_SIZE+sizeof(btree_value)];
+        btree_value value;
+    };
+
+    transaction_t *transaction;
+    cache_t *cache;
+    bool noreply;
+    btree_key_value_store_t *store;
+    btree_slice_t *slice;
+    large_buf_t *large_value;
+    const_buffer_group_t value_buffers;
+    int parent_cpu;
+
+    btree_get_t(btree_key *_key, btree_key_value_store *store, store_t::get_callback_t *cb, int parent_cpu)
+        : store(store), cb(cb), transaction(NULL), cache(NULL), parent_cpu(parent_cpu) {
+        keycpy(&key, _key);
+        slice = store->slice_for_key(&key);
+        cache = &slice->cache;
+    }
+
+    static void run(btree_get_t *computation) { computation->run(); } //because coro_on_cpu_t doesn't work with methods
+    static void report_not_found(btree_get_t *receiver) {
+        receiver->cb->not_found();
+        delete receiver;
+        return;
+    }
+    void run() {
+        //Acquire the superblock
+        transaction = cache->begin_transaction(rwi_read, NULL);
+        assert(transaction); // Read-only transaction always begins immediately.
+        last_buf = transaction->co_acquire(SUPERBLOCK_ID, rwi_read);
+        assert(last_buf);
+        node_id = ((const btree_superblock_t*)last_buf->get_data_read())->root_block;
+        assert(node_id != SUPERBLOCK_ID);
+
+        //Acquire the root
+        if (node_id == NULL_BLOCK_ID) {
+            //No root exists
+            last_buf->release();
+            last_buf = NULL;
+            // Commit transaction now because we won't be returning to this core
+            bool committed __attribute__((unused)) = transaction->commit(NULL);
+            assert(committed);   // Read-only transactions complete immediately
+            new coro_on_cpu_t(parent_cpu, report_not_found, this);
+            return;
+        }
+
+        //Acquire the leaf node
+        while (true) {
+            buf = (buf_t*)transaction->co_acquire(node_id, rwi_read);
+            assert(buf);
+            node_handler::validate(cache->get_block_size(), node_handler::node(buf->get_data_read()));
+            
+            // Release the previous buffer
+            last_buf->release();
+            last_buf = NULL;
+
+            const node_t *node = node_handler::node(buf->get_data_read());
+            if(!node_handler::is_internal(node)) break;
+
+            block_id_t next_node_id = internal_node_handler::lookup((internal_node_t*)node, &key);
+            assert(next_node_id != NULL_BLOCK_ID);
+            assert(next_node_id != SUPERBLOCK_ID);
+            last_buf = buf;
+            node_id = next_node_id;
+        }
+
+        //Got down to the leaf, now examine it
+        bool found = leaf_node_handler::lookup((leaf_node_t*)node, &key, &value);
+        buf->release();
+        buf = NULL;
+        
+        if (found && value.expired()) {
+            delete_expired(&key, store);
+            found = false;
+        }
+        
+        if (!found) {
+            // Commit transaction now because we won't be returning to this core
+            bool committed __attribute__((unused)) = transaction->commit(NULL);
+            assert(committed);   // Read-only transactions complete immediately
+            new coro_on_cpu_t(parent_cpu, report_not_found, this);
+            return;
+        } else if (value.is_large()) {
+            // Don't commit transaction yet because we need to keep holding onto
+            // the large buf until it's been read.
+        
+            state = acquire_large_value;
+            return btree_fsm_t::transition_ok;
+            
+        } else {
+            
+            // Commit transaction now because we won't be returning to this core
+            bool committed __attribute__((unused)) = transaction->commit(NULL);
+            assert(committed);   // Read-only transactions complete immediately
+            
+            state = deliver_small_value;
+            if (continue_on_cpu(home_cpu, this)) return btree_fsm_t::transition_ok;
+            else return btree_fsm_t::transition_incomplete;
+        }
+        //NOTE: THIS ISN"T DONE!!!
+    }
+};
+
+//The rewritten btree get fsm, using coroutines
+void btree_get(btree_key *key, btree_key_value_store *store, store_t::get_callback_t *cb) {
+    btree_get_t computation = new btree_get_t(key, store, cb, get_cpu_id());
+    new coro_on_cpu_t(computation->slice->home_cpu, btree_get_t::run, computation);
+}
+
+//The old btree get fsm, for reference
+
 /* The get_fsm has two paths it takes: one for large values and one for small ones. For large
 values, it holds onto the large value buffer while it goes back to the request handler's core
 and delivers the large value. Then it returns again to the cache's core and frees the value,

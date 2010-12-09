@@ -49,7 +49,7 @@ private:
     }
 
 //Binary typed coroutines
-private:
+protected:
     template<typename A, typename B>
     struct binary {
         void (*fn)(A, B);
@@ -73,7 +73,7 @@ public:
     }
 
 //Ternary typed coroutines
-private:
+protected:
     template<typename A, typename B, typename C>
     struct ternary {
         void (*fn)(A, B, C);
@@ -98,7 +98,7 @@ public:
     }
 
 //Quaternary typed coroutines
-private:
+protected:
     template<typename A, typename B, typename C, typename D>
     struct quaternary {
         void (*fn)(A, B, C, D);
@@ -124,7 +124,7 @@ public:
     }
 
 //Fiveary (?) typed coroutines
-private:
+protected:
     template<typename A, typename B, typename C, typename D, typename E>
     struct fiveary {
         void (*fn)(A, B, C, D, E);
@@ -149,6 +149,35 @@ public:
     coro_t(void (*fn)(A, B, C, D, E), A first, B second, C third, D fourth, E fifth) {
         initialize(start_fiveary<A, B, C, D, E>, (void *)new fiveary<A, B, C, D, E>(fn, first, second, third, fourth, fifth));
     }
+
+protected:
+    coro_t() { }
+};
+
+struct coro_on_cpu_t : public coro_t {
+    coro_on_cpu_t(int i, void (*fn)(void *), void *arg) {
+        do_on_cpu(i, this, initialize, fn, arg);
+    }
+
+    template<typename A>
+    coro_on_cpu_t(int i, void(*fn)(A), A arg) {
+        do_on_cpu(i, this, initialize, (void (*)(void *))fn, (void *)arg);
+    }
+
+    template<typename A, typename B>
+    coro_on_cpu_t(int i, void (*fn)(A, B), A first, B second) {
+        do_on_cpu(i, this, initialize, start_binary<A, B>, (void *)new binary(fn, first, second));
+    }
+
+    template<typename A, typename B, typename C>
+    coro_on_cpu_t(int i, void (*fn)(A, B, C), A first, B second, C third) {
+        do_on_cpu(i, this, initialize, start_ternary<A, B, C>, (void *)new ternary(fn, first, second, third));
+    }
+
+    template<typename A, typename B, typename C, typename D>
+    coro_on_cpu_t(int i, void (*fn)(A, B, C, D), A first, B second, C third, D fourth) {
+        do_on_cpu(i, this, initialize, start_quaternary<A, B, C, D>, (void *)new quaternary(fn, first, second, third, fourth));
+    }
 };
 
 struct task_callback_t {
@@ -161,7 +190,7 @@ struct task_t {
     void *join(); //Blocks the current coroutine until the task finishes, returning the result
     //Join should only be called once, or you can add a completion callback:
     void callback(task_callback_t *cb);
-    static void run_task(void*);
+    static void run_task(void *(*)(void *), void *, task_t *);
     void notify();
 
 private:
@@ -170,9 +199,12 @@ private:
     void *result;
     std::vector<coro_t*> waiters; //There should always be 0 or 1 waiters
 
-    static void run_callback(void *);
+    static void run_callback(task_callback_t *cb, task_t *task);
 
     DISABLE_COPYING(task_t);
 };
+
+//TODO: Convenient constructors for task_t, similar to coro_t
+//I'll write this when I have a place to use it; otherwise it'd be annoying to test
 
 #endif // __COROUTINES_HPP__

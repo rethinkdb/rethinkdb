@@ -106,37 +106,19 @@ void *task_t::join() {
     return value;
 }
 
-struct task_callback_data {
-    task_callback_t *cb;
-    task_t *task;
-};
-
-void task_t::run_callback(void *arg) {
-    task_callback_data *data = (task_callback_data *)arg;
-    data->cb->on_task_return(data->task->join());
-    delete data;
+void task_t::run_callback(task_callback_t *cb, task_t *task) {
+    cb->on_task_return(task->join());
 }
 
 void task_t::callback(task_callback_t *cb) {
-    task_callback_data *data = new task_callback_data();
-    data->cb = cb;
-    data->task = this;
-    new coro_t(&run_callback, data);
+    new coro_t(run_callback, cb, this);
 }
 
-struct run_task_data {
-    void *(*fn)(void *);
-    void *arg;
-    task_t *task;
-};
-
-void task_t::run_task(void *arg) {
-    run_task_data data = *(run_task_data *)arg;
-    delete (run_task_data *)arg;
-    data.task->result = (data.fn)(data.arg);
-    data.task->done = 1;
-    for (std::vector<coro_t*>::iterator iter = data.task->waiters.begin();
-         iter != data.task->waiters.end();
+void task_t::run_task(void *(*fn)(void *), void *arg, task_t *task) {
+    task->result = fn(arg);
+    task->done = 1;
+    for (std::vector<coro_t*>::iterator iter = task->waiters.begin();
+         iter != task->waiters.end();
          iter++) {
         (*iter)->notify();
     }
@@ -144,11 +126,7 @@ void task_t::run_task(void *arg) {
 
 task_t::task_t(void *(*fn)(void *), void *arg)
   : coroutine(NULL), done(0), result(NULL), waiters() {
-    run_task_data *data = new run_task_data();
-    data->fn = fn;
-    data->arg = arg;
-    data->task = this;
-    coroutine = new coro_t(run_task, data);
+    coroutine = new coro_t(run_task, fn, arg, this);
 }
 
 void task_t::notify() {

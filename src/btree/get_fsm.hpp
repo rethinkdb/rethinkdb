@@ -4,6 +4,10 @@
 #include "event.hpp"
 #include "btree/fsm.hpp"
 
+//The rewritten btree get code
+void btree_get(btree_key *key, btree_key_value_store *store, store_t::get_callback_t *cb);
+
+//The old code, for reference
 class btree_get_fsm_t :
     public btree_fsm_t,
     public store_t::get_callback_t::done_callback_t

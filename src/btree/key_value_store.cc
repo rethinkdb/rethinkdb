@@ -402,7 +402,7 @@ btree_slice_t *btree_key_value_store_t::slice_for_key(btree_key *key) {
 /* store_t interface */
 
 void btree_key_value_store_t::get(store_key_t *key, get_callback_t *cb) {
-    new btree_get_fsm_t(key, this, cb);
+    btree_get(key, this, cb);
 }
 
 void btree_key_value_store_t::get_cas(store_key_t *key, get_callback_t *cb) {
