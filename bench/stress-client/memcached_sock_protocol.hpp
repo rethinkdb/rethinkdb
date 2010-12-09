@@ -127,6 +127,7 @@ struct memcached_sock_protocol_t : public protocol_t {
         if (values) {
             char *expect_str = cmp_buff;
             for (int i = 0; i < count; i++)
+                //TODO this is gonna break if we batch because they come back in an arbitrary order
                 expect_str += sprintf(expect_str, "VALUE %.*s 0 %lu\r\n%.*s\r\nEND\r\n", (int) keys[i].second, keys[i].first, values[i].second,  (int) values[i].second, values[i].first);
 
             expect(cmp_buff, expect_str - cmp_buff);
