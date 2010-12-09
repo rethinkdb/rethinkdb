@@ -21,7 +21,7 @@ cd /var/git/rethinkdb/
 git pull
 
 # Cloud retester configuration
-export USE_CLOUD=false
+export USE_CLOUD=true
 export EC2_INSTANCE_TYPE=m1.large
 export EC2_INSTANCE_COUNT=10
 
