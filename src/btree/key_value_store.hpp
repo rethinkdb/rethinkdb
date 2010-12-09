@@ -5,7 +5,6 @@
 #include "btree/slice.hpp"
 #include "btree/node.hpp"
 #include "utils.hpp"
-#include "containers/intrusive_list.hpp"
 #include "concurrency/access.hpp"
 #include "config/cmd_args.hpp"
 #include "arch/arch.hpp"
