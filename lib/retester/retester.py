@@ -1,4 +1,4 @@
-import subprocess, shlex, signal, os, time, shutil, tempfile, sys, traceback, types, gitroot
+import subprocess, shlex, signal, os, time, shutil, tempfile, sys, traceback, types, gitroot, shutil
 from vcoptparse import *
 
 reports = []
@@ -375,7 +375,7 @@ def process_output_dir(result):
     i = 1
     while os.path.exists(os.path.join(retest_output_dir, str(i))): i += 1
     output_dir = os.path.join(retest_output_dir, str(i))
-    os.rename(result.output_dir.take_dir(), output_dir)
+    shutil.move(result.output_dir.take_dir(), output_dir)
     
     # Make a generator that scans all the files in the directory
     def walker():
