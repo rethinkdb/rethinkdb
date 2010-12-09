@@ -315,8 +315,9 @@ mc_buf_t *mc_transaction_t::acquire(block_id_t block_id, access_t mode,
 
     buf_t *buf = new buf_t(inner_buf, mode);
 
-    // We might not want to do this on every buf we acquire a
-    // write-lock on.  But for now this seems like The Right Thing.
+    // We set the recency _before_ we get the buf.  This is correct,
+    // because we are "underneath" any replicators that come later
+    // (trees grow downward from the root).
     if (!(mode == rwi_read || mode == rwi_read_outdated_ok)) {
         buf->touch_recency();
     }
@@ -326,6 +327,17 @@ mc_buf_t *mc_transaction_t::acquire(block_id_t block_id, access_t mode,
     } else {
         buf->callback = callback;
         return NULL;
+    }
+}
+
+repli_timestamp mc_transaction_t::get_subtree_recency(block_id_t block_id) {
+    inner_buf_t *inner_buf = cache->page_map.find(block_id);
+    if (inner_buf) {
+        // The buf is in the cache and we must use its recency.
+        return inner_buf->subtree_recency;
+    } else {
+        // The buf is not in the cache, so ask the serializer.
+        return cache->serializer->get_recency(block_id);
     }
 }
 

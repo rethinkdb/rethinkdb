@@ -347,17 +347,16 @@ void* run_client(void* data) {
             if (!sqlite)
                 break;
 
-            count = sqlite->count();
-
             /* this is hacky but whatever */
             old_val_buffer = op_vals[0].first;
             op_vals[0].first = val_verifcation_buffer;
             op_vals[0].second = 0;
 
-            for (k = 0; k < count; k++) {
-                sqlite->read_into(op_keys, op_vals, k);
-                proto->read(op_keys, k, op_vals);
+            sqlite->dump_start();
+            while (sqlite->dump_next(op_keys, op_vals)) {
+                proto->read(op_keys, 1, op_vals);
             }
+            sqlite->dump_end();
 
             op_vals[0].first = old_val_buffer;
 

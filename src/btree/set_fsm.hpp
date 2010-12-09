@@ -72,7 +72,7 @@ public:
         } else {
             large_value = new large_buf_t(this->transaction);
             large_value->allocate(data->get_size(), value.large_buf_ref_ptr());
-            for (int i = 0; i < large_value->get_num_segments(); i++) {
+            for (int64_t i = 0; i < large_value->get_num_segments(); i++) {
                 uint16_t size;
                 void *data = large_value->get_segment_write(i, &size);
                 buffer_group.add_buffer(size, data);

@@ -70,7 +70,7 @@ public:
             uint32_t fill_size = data->get_size();
             uint32_t start_pos = append ? old_value->value_size() : 0;
             
-            uint16_t ix = large_value->pos_to_ix(start_pos);
+            int64_t ix = large_value->pos_to_ix(start_pos);
             uint16_t seg_pos = large_value->pos_to_seg_pos(start_pos);
             
             while (fill_size > 0) {

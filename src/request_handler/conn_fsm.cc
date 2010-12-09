@@ -92,8 +92,7 @@ conn_fsm_t::result_t conn_fsm_t::fill_buf(void *buf, unsigned int *bytes_filled,
 #ifndef NDEBUG
             we_are_closed = true;
 #endif
-            if (shutdown_callback && !quitting)
-                shutdown_callback->on_conn_fsm_quit();
+            if (!quitting) on_quit();
             assert(state == fsm_outstanding_data || state == fsm_socket_connected);
             return fsm_quit_connection;
         } else {
@@ -110,8 +109,7 @@ conn_fsm_t::result_t conn_fsm_t::fill_buf(void *buf, unsigned int *bytes_filled,
 #ifndef NDEBUG
         we_are_closed = true;
 #endif
-        if (shutdown_callback && !quitting)
-            shutdown_callback->on_conn_fsm_quit();
+        if (!quitting) on_quit();
         assert(state == fsm_outstanding_data
                || state == fsm_socket_connected
                || state == fsm_socket_recv_incomplete);
@@ -270,8 +268,7 @@ conn_fsm_t::result_t conn_fsm_t::do_fsm_outstanding_req(event_t *event) {
             break;
         case request_handler_t::op_req_quit:
             // The connection has been closed
-            if (shutdown_callback && !quitting)
-                shutdown_callback->on_conn_fsm_quit();
+            if (!quitting) on_quit();
             if (state == fsm_socket_send_incomplete || state == fsm_btree_incomplete) {
                 quitting = true;
                 return fsm_transition_ok;
@@ -319,7 +316,7 @@ void conn_fsm_t::on_net_conn_writable() {
 
 void conn_fsm_t::on_net_conn_close() {
     conn = NULL;
-    start_quit();
+    quit();
 }
 
 void conn_fsm_t::do_transition_and_handle_result(event_t *event) {
@@ -421,8 +418,8 @@ conn_fsm_t::result_t conn_fsm_t::do_transition(event_t *event) {
     return res;
 }
 
-conn_fsm_t::conn_fsm_t(net_conn_t *conn, conn_fsm_shutdown_callback_t *c, request_handler_t *rh)
-    : quitting(false), conn(conn), in_do_transition(false), req_handler(rh), shutdown_callback(c)
+conn_fsm_t::conn_fsm_t(net_conn_t *c, request_handler_t *rh)
+    : quitting(false), conn(new oldstyle_net_conn_t(c)), in_do_transition(false), req_handler(rh)
 {
 #ifndef NDEBUG
     we_are_closed = false;
@@ -453,17 +450,13 @@ conn_fsm_t::~conn_fsm_t() {
     if (sbuf) {
         delete (sbuf);
     }
-    
-    if (shutdown_callback)
-        shutdown_callback->on_conn_fsm_shutdown();
 }
 
-void conn_fsm_t::start_quit() {
+void conn_fsm_t::quit() {
     
     if (quitting) return;
     
-    if (shutdown_callback)
-        shutdown_callback->on_conn_fsm_quit();
+    on_quit();
     
     quitting = true;
 
