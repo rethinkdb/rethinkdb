@@ -71,7 +71,7 @@ btree_modify_fsm_t::transition_result_t btree_modify_fsm_t::do_acquire_root(even
     // If there is no root, we make one.
     if(node_id == NULL_BLOCK_ID) {
         buf = transaction->allocate(&node_id);
-        leaf_node_handler::init(cache->get_block_size(), leaf_node_handler::leaf_node(buf->get_data_write()), current_time());
+        leaf_node_handler::init(cache->get_block_size(), ptr_cast<leaf_node_t>(buf->get_data_write()), current_time());
         insert_root(node_id);
         pm_btree_depth++;
         return btree_fsm_t::transition_ok;
@@ -142,7 +142,7 @@ btree_modify_fsm_t::transition_result_t btree_modify_fsm_t::do_acquire_sibling(e
 
     if (!event) {
         assert(last_buf);
-        internal_node_t *last_node = internal_node_handler::internal_node(last_buf->get_data_write());
+        internal_node_t *last_node = ptr_cast<internal_node_t>(last_buf->get_data_write());
 
         internal_node_handler::sibling(last_node, &key, &sib_node_id);
         sib_buf = transaction->acquire(sib_node_id, rwi_write, this);
@@ -164,9 +164,9 @@ bool btree_modify_fsm_t::do_check_for_split(const node_t **node) {
     bool full;
     if (node_handler::is_leaf(*node)) {
         if (update_needed && new_value == NULL) return false; // if we're deleting and it's a leaf node, there's no need to split
-        full = update_needed && leaf_node_handler::is_full(leaf_node_handler::leaf_node(*node), &key, new_value);
+        full = update_needed && leaf_node_handler::is_full(ptr_cast<leaf_node_t>(*node), &key, new_value);
     } else {
-        full = internal_node_handler::is_full(internal_node_handler::internal_node(*node));
+        full = internal_node_handler::is_full(ptr_cast<internal_node_t>(*node));
     }
     if (full) {
         did_split = true;
@@ -174,15 +174,15 @@ bool btree_modify_fsm_t::do_check_for_split(const node_t **node) {
         printf("===SPLITTING===\n");
         printf("Parent:\n");
         if (last_buf != NULL)
-            internal_node_handler::print(internal_node_handler::internal_node(last_buf->get_data_read()));
+            internal_node_handler::print(ptr_cast<internal_node_t>(last_buf->get_data_read()));
         else
             printf("NULL parent\n");
 
         printf("node:\n");
         if (node_handler::is_leaf(*node))
-            leaf_node_handler::print(leaf_node_handler::leaf_node(*node));
+            leaf_node_handler::print(ptr_cast<leaf_node_t>(*node));
         else
-            internal_node_handler::print(internal_node_handler::internal_node(*node));
+            internal_node_handler::print(ptr_cast<internal_node_t>(*node));
 #endif
         char memory[sizeof(btree_key) + MAX_KEY_SIZE];
         btree_key *median = (btree_key *)memory;
@@ -194,10 +194,10 @@ bool btree_modify_fsm_t::do_check_for_split(const node_t **node) {
         if(last_buf == NULL) {
             new_root = true;
             last_buf = transaction->allocate(&last_node_id);
-            last_node = internal_node_handler::internal_node(last_buf->get_data_write());
+            last_node = ptr_cast<internal_node_t>(last_buf->get_data_write());
             internal_node_handler::init(cache->get_block_size(), last_node);
         } else {
-            last_node = internal_node_handler::internal_node(last_buf->get_data_write());
+            last_node = ptr_cast<internal_node_t>(last_buf->get_data_write());
         }
         
         bool success = internal_node_handler::insert(cache->get_block_size(), last_node, median, node_id, rnode_id);
@@ -210,15 +210,15 @@ bool btree_modify_fsm_t::do_check_for_split(const node_t **node) {
 
         printf("lnode:\n");
         if (node_handler::is_leaf(*node))
-            leaf_node_handler::print(leaf_node_handler::leaf_node(*node));
+            leaf_node_handler::print(ptr_cast<leaf_node_t>(*node));
         else
-            internal_node_handler::print(internal_node_handler::internal_node(*node));
+            internal_node_handler::print(ptr_cast<internal_node_t>(*node));
 
         printf("rnode:\n");
-        if (node_handler::is_leaf(node_handler::node(rbuf->get_data_read())))
-            leaf_node_handler::print(leaf_node_handler::leaf_node(rbuf->get_data_read()));
+        if (node_handler::is_leaf(ptr_cast<node_t>(rbuf->get_data_read())))
+            leaf_node_handler::print(ptr_cast<leaf_node_t>(rbuf->get_data_read()));
         else
-            internal_node_handler::print(internal_node_handler::internal_node(rbuf->get_data_read()));
+            internal_node_handler::print(ptr_cast<internal_node_t>(rbuf->get_data_read()));
 #endif
             
         // Figure out where the key goes
@@ -230,7 +230,7 @@ bool btree_modify_fsm_t::do_check_for_split(const node_t **node) {
             buf->release();
             buf = rbuf;
             rbuf = NULL;
-            *node = node_handler::node(buf->get_data_read());
+            *node = ptr_cast<node_t>(buf->get_data_read());
             node_id = rnode_id;
         }
     }
@@ -342,7 +342,7 @@ void btree_modify_fsm_t::do_transition(event_t *event) {
                     }
                 }
 
-                const node_t *node = node_handler::node(buf->get_data_read());
+                const node_t *node = ptr_cast<node_t>(buf->get_data_read());
 
                 // STEP 2: If we're at the destination leaf, potentially acquire a large value, then compute a new value.
                 if (node_handler::is_leaf(node) && !have_computed_new_value) {
@@ -408,12 +408,12 @@ void btree_modify_fsm_t::do_transition(event_t *event) {
                        if (new_value->has_cas() && !cas_already_set) {
                            new_value->set_cas(slice->gen_cas());
                        }
-                       bool success = leaf_node_handler::insert(cache->get_block_size(), leaf_node_handler::leaf_node(buf->get_data_write()), &key, new_value, current_time());
+                       bool success = leaf_node_handler::insert(cache->get_block_size(), ptr_cast<leaf_node_t>(buf->get_data_write()), &key, new_value, current_time());
                        check("could not insert leaf btree node", !success);
                    } else {
                         // If we haven't already, do some deleting 
                        //key found, and value deleted
-                       leaf_node_handler::remove(cache->get_block_size(), leaf_node_handler::leaf_node(buf->get_data_write()), &key);
+                       leaf_node_handler::remove(cache->get_block_size(), ptr_cast<leaf_node_t>(buf->get_data_write()), &key);
                    }
                    update_done = true;
                 }
@@ -431,16 +431,16 @@ void btree_modify_fsm_t::do_transition(event_t *event) {
                         break;
                     } else {
                         // Sibling acquired, now decide whether to merge or level
-                        node_t *sib_node = node_handler::node(sib_buf->get_data_write());
+                        node_t *sib_node = ptr_cast<node_t>(sib_buf->get_data_write());
 #ifndef NDEBUG
                         node_handler::validate(cache->get_block_size(), sib_node);
 #endif
-                        node_t *parent_node = node_handler::node(last_buf->get_data_write());
+                        node_t *parent_node = ptr_cast<node_t>(last_buf->get_data_write());
                         if (node_handler::is_mergable(cache->get_block_size(), node, sib_node, parent_node)) { // Merge
                             //logDBG("internal merge\n");
                             btree_key *key_to_remove = (btree_key *)alloca(sizeof(btree_key) + MAX_KEY_SIZE); //TODO get alloca outta here
                             if (node_handler::nodecmp(node, sib_node) < 0) { // Nodes must be passed to merge in ascending order
-                                node_handler::merge(cache->get_block_size(), node_handler::node(buf->get_data_write()), sib_node, key_to_remove, parent_node);
+                                node_handler::merge(cache->get_block_size(), ptr_cast<node_t>(buf->get_data_write()), sib_node, key_to_remove, parent_node);
                                 buf->mark_deleted();
                                 buf->release();
                                 buf = sib_buf;
@@ -448,7 +448,7 @@ void btree_modify_fsm_t::do_transition(event_t *event) {
                                 node_id = sib_node_id;
                                 node = sib_node;
                             } else {
-                                node_handler::merge(cache->get_block_size(), sib_node, node_handler::node(buf->get_data_write()), key_to_remove, parent_node);
+                                node_handler::merge(cache->get_block_size(), sib_node, ptr_cast<node_t>(buf->get_data_write()), key_to_remove, parent_node);
                                 sib_buf->mark_deleted();
                                 sib_buf->release();
                                 sib_buf = NULL;
@@ -472,7 +472,7 @@ void btree_modify_fsm_t::do_transition(event_t *event) {
                             //logDBG("generic level\n");
                             btree_key *key_to_replace = (btree_key *)alloca(sizeof(btree_key) + MAX_KEY_SIZE);
                             btree_key *replacement_key = (btree_key *)alloca(sizeof(btree_key) + MAX_KEY_SIZE);
-                            bool leveled = node_handler::level(cache->get_block_size(), node_handler::node(buf->get_data_write()), sib_node, key_to_replace, replacement_key, parent_node);
+                            bool leveled = node_handler::level(cache->get_block_size(), ptr_cast<node_t>(buf->get_data_write()), sib_node, key_to_replace, replacement_key, parent_node);
 
                             if (leveled) {
                                 internal_node_handler::update_key((internal_node_t *)parent_node, key_to_replace, replacement_key);
@@ -552,14 +552,14 @@ void btree_modify_fsm_t::do_transition(event_t *event) {
                         for (int i = 0; i < (int)slice->replicants.size(); i++) {
                             slice->replicants[i]->callback->value(&key, &replicant_bg, this,
                                 new_value->mcflags(), new_value->exptime(),
-                                new_value->has_cas() ? new_value->cas() : 0);
+                                                                  new_value->has_cas() ? new_value->cas() : 0, current_time()  /* TODO THIS IS BROKEN.  THIS IS BROKEN.  YOU MUST MUST MUST USE THE SAME current_time() VALUE THAT YOU INSERTED, AND NOT A LATER ONE.  (AN EARLIER ONE WOULD BE OK, FWIW.) */);
                         }
 
                     } else {
 
                         // Pass NULL to the replicants
                         for (int i = 0; i < (int)slice->replicants.size(); i++) {
-                            slice->replicants[i]->callback->value(&key, NULL, this, 0, 0, 0);
+                            slice->replicants[i]->callback->value(&key, NULL, this, 0, 0, 0, current_time() /* TODO THIS IS BROKEN.  THIS IS BROKEN.  (Or is it?  You need to use the same current_time() that you pass to the delete queue.  Maybe the replicant passes it to the delete queue... We have not implemented that part yet.) */);
                         }
 
                     }
@@ -645,13 +645,13 @@ void btree_modify_fsm_t::do_transition(event_t *event) {
 void btree_modify_fsm_t::split_node(buf_t *buf, buf_t **rbuf,
                                     block_id_t *rnode_id, btree_key *median) {
     buf_t *res = transaction->allocate(rnode_id);
-    if(node_handler::is_leaf(node_handler::node(buf->get_data_read()))) {
-        leaf_node_t *node = leaf_node_handler::leaf_node(buf->get_data_write());
-        leaf_node_t *rnode = leaf_node_handler::leaf_node(res->get_data_write());
+    if(node_handler::is_leaf(ptr_cast<node_t>(buf->get_data_read()))) {
+        leaf_node_t *node = ptr_cast<leaf_node_t>(buf->get_data_write());
+        leaf_node_t *rnode = ptr_cast<leaf_node_t>(res->get_data_write());
         leaf_node_handler::split(cache->get_block_size(), node, rnode, median);
     } else {
-        internal_node_t *node = internal_node_handler::internal_node(buf->get_data_write());
-        internal_node_t *rnode = internal_node_handler::internal_node(res->get_data_write());
+        internal_node_t *node = ptr_cast<internal_node_t>(buf->get_data_write());
+        internal_node_t *rnode = ptr_cast<internal_node_t>(res->get_data_write());
         internal_node_handler::split(cache->get_block_size(), node, rnode, median);
     }
     *rbuf = res;

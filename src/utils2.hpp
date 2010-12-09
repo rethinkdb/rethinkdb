@@ -31,10 +31,16 @@ repli_timestamp repli_time(time_t t);
 // TODO: move this to a different file
 repli_timestamp current_time();
 
-// This is almost like std::max except it compares times "locally", so
-// that overflow is handled gracefully.  That is, it compares y - x to
-// 0, instead of comparing y to x.
-repli_timestamp later_time(repli_timestamp x, repli_timestamp y);
+// This is not a transitive operation.  It compares times "locally."
+// Imagine a comparison function that compares angles, in the range
+// [0, 2*pi), that is invariant with respect to rotation.  How would
+// you implement that?  This is a function that compares timestamps in
+// [0, 2**32), that is invariant with respect to translation.
+int repli_compare(repli_timestamp x, repli_timestamp y);
+
+// Like std::max, except it's technically not associative because it
+// uses repli_compare.
+repli_timestamp repli_max(repli_timestamp x, repli_timestamp y);
 
 
 void *malloc_aligned(size_t size, size_t alignment = 64);

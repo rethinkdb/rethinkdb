@@ -4,7 +4,6 @@
 #include "buffer_cache/buffer_cache.hpp"
 #include "config/args.hpp"
 #include "btree/node.hpp"
-#include "conn_fsm.hpp"
 
 class large_buf_t;
 

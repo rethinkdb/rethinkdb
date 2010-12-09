@@ -36,9 +36,12 @@ repli_timestamp current_time() {
     return repli_time(time(NULL));
 }
 
-repli_timestamp later_time(repli_timestamp x, repli_timestamp y) {
-    int32_t diff = y.time - x.time;
-    return diff < 0 ? x : y;
+int repli_compare(repli_timestamp x, repli_timestamp y) {
+    return int(int32_t(x.time - y.time));
+}
+
+repli_timestamp repli_max(repli_timestamp x, repli_timestamp y) {
+    return repli_compare(x, y) < 0 ? y : x;
 }
 
 

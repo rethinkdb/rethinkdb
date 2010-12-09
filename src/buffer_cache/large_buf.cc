@@ -60,18 +60,27 @@ buftree_t *large_buf_t::allocate_buftree(int64_t offset, int64_t size, int level
 #ifndef NDEBUG
     ret->level = levels;
 #endif
+
     ret->buf = transaction->allocate(block_id);
+
 #ifndef NDEBUG
     num_bufs++;
 #endif
 
-#ifndef NDEBUG
-    large_buf_internal *node = reinterpret_cast<large_buf_internal *>(ret->buf->get_data_write());
+    if (levels > 1) {
+        large_buf_internal *node = ptr_cast<large_buf_internal>(ret->buf->get_data_write());
+        node->magic = large_buf_internal::expected_magic;
 
-    for (int i = 0; i < num_internal_kids(); ++i) {
-        node->kids[i] = NULL_BLOCK_ID;
-    }
+#ifndef NDEBUG
+        for (int i = 0; i < num_internal_kids(); ++i) {
+            node->kids[i] = NULL_BLOCK_ID;
+        }
 #endif
+
+    } else {
+        large_buf_leaf *node = ptr_cast<large_buf_leaf>(ret->buf->get_data_write());
+        node->magic = large_buf_leaf::expected_magic;
+    }
 
     allocate_part_of_tree(ret, offset, size, levels);
     return ret;
@@ -84,7 +93,9 @@ void large_buf_t::allocate_part_of_tree(buftree_t *tr, int64_t offset, int64_t s
     } else {
         int64_t step = max_offset(levels - 1);
 
-        large_buf_internal *node = reinterpret_cast<large_buf_internal *>(tr->buf->get_data_write());
+        large_buf_internal *node = ptr_cast<large_buf_internal>(tr->buf->get_data_write());
+
+        assert(check_magic<large_buf_internal>(node->magic));
 
         for (int64_t i = 0; i < offset + size; i += step) {
             assert((int64_t)tr->children.size() >= i / step);
@@ -264,14 +275,23 @@ buftree_t *large_buf_t::add_level(buftree_t *tr, block_id_t id, block_id_t *new_
 #endif
 
     ret->buf = transaction->allocate(new_id);
+
 #ifndef NDEBUG
     num_bufs++;
 #endif
-    large_buf_internal *node = reinterpret_cast<large_buf_internal *>(ret->buf->get_data_write());
+
+    large_buf_internal *node = ptr_cast<large_buf_internal>(ret->buf->get_data_write());
+
+    node->magic = large_buf_internal::expected_magic;
+
+#ifndef NDEBUG
     for (int i = 0; i < num_internal_kids(); ++i) {
         node->kids[i] = NULL_BLOCK_ID;
     }
+#endif
+
     node->kids[0] = id;
+
     ret->children.push_back(tr);
     return ret;
 }
@@ -345,11 +365,11 @@ void large_buf_t::prepend(int64_t extra_size, large_buf_ref *refout) {
         }
 
         if (levels == 1) {
-            large_buf_leaf *leaf = (large_buf_leaf *)tr->buf->get_data_write();
+            large_buf_leaf *leaf = ptr_cast<large_buf_leaf>(tr->buf->get_data_write());
             memmove(leaf->buf + k, leaf->buf, back_k);
             memset(leaf->buf, 0, k);
         } else {
-            large_buf_internal *node = (large_buf_internal *)tr->buf->get_data_write();
+            large_buf_internal *node = ptr_cast<large_buf_internal>(tr->buf->get_data_write());
             assert((int64_t)tr->children.size() == back_k);
             tr->children.resize(back_k + k);
             for (int w = back_k; w-- > 0;) {
@@ -657,9 +677,6 @@ uint16_t large_buf_t::pos_to_seg_pos(int64_t pos) {
 }
 
 
-
-
-// TODO add magic.
 
 large_buf_t::~large_buf_t() {
     assert(state == released);
