@@ -1,5 +1,4 @@
 #include "large_buf.hpp"
-#include "utils2.hpp"
 
 int64_t large_buf_t::cache_size_to_leaf_bytes(block_size_t block_size) {
     return block_size.value() - sizeof(large_buf_leaf);
@@ -584,7 +583,7 @@ int64_t large_buf_t::get_num_segments() {
     assert(!root || root->level == num_levels(root_ref.offset + root_ref.size));
 
     int64_t nlb = num_leaf_bytes();
-    return std::max(1L, ceil_divide(root_ref.offset + root_ref.size, nlb) - floor_divide(root_ref.offset, nlb));
+    return std::max(1L, ceil_divide(root_ref.offset + root_ref.size, nlb) - root_ref.offset / nlb);
 }
 
 uint16_t large_buf_t::segment_size(int64_t ix) {
