@@ -1,4 +1,5 @@
 #include "large_buf.hpp"
+#include "utils2.hpp"
 
 int64_t large_buf_t::cache_size_to_leaf_bytes(block_size_t block_size) {
     return block_size.value() - sizeof(large_buf_leaf);
