@@ -32,6 +32,7 @@ struct replication_message_t :
     exptime_t exptime;
     cas_t cas;
 
+    bool sent;
     char header[400];
     int which_buffer_of_group;
 
@@ -39,6 +40,7 @@ struct replication_message_t :
     void on_cpu_switch();
     void on_net_conn_write();
     void on_net_conn_close();
+    void done_sending();
 };
 
 struct replication_master_t :
