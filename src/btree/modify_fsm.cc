@@ -401,18 +401,20 @@ void btree_modify_fsm_t::do_transition(event_t *event) {
 
                 // STEP 3: Update if we're at a leaf node and operate() told us to.
                 if (update_needed && !update_done) {
-                    
+                    // TODO make sure we're updating leaf node timestamps.
+
                    assert(have_computed_new_value);
                    assert(node_handler::is_leaf(node));
                    if (new_value) { // We have a new value to insert
                        if (new_value->has_cas() && !cas_already_set) {
                            new_value->set_cas(slice->gen_cas());
                        }
-                       bool success = leaf_node_handler::insert(cache->get_block_size(), ptr_cast<leaf_node_t>(buf->get_data_write()), &key, new_value, current_time());
+                       new_value_timestamp = current_time();
+                       bool success = leaf_node_handler::insert(cache->get_block_size(), ptr_cast<leaf_node_t>(buf->get_data_write()), &key, new_value, new_value_timestamp);
                        check("could not insert leaf btree node", !success);
                    } else {
-                        // If we haven't already, do some deleting 
-                       //key found, and value deleted
+                       // If we haven't already, do some deleting 
+                       // key found, and value deleted
                        leaf_node_handler::remove(cache->get_block_size(), ptr_cast<leaf_node_t>(buf->get_data_write()), &key);
                    }
                    update_done = true;
@@ -490,7 +492,7 @@ void btree_modify_fsm_t::do_transition(event_t *event) {
                 if(sb_buf && (last_buf || node_handler::is_leaf(node))) {
                         sb_buf->release();
                         sb_buf = NULL;
-                }                    
+                }
 
                 if(node_handler::is_leaf(node)) {
                     buf->release();
@@ -552,14 +554,14 @@ void btree_modify_fsm_t::do_transition(event_t *event) {
                         for (int i = 0; i < (int)slice->replicants.size(); i++) {
                             slice->replicants[i]->callback->value(&key, &replicant_bg, this,
                                 new_value->mcflags(), new_value->exptime(),
-                                                                  new_value->has_cas() ? new_value->cas() : 0, current_time()  /* TODO THIS IS BROKEN.  THIS IS BROKEN.  YOU MUST MUST MUST USE THE SAME current_time() VALUE THAT YOU INSERTED, AND NOT A LATER ONE.  (AN EARLIER ONE WOULD BE OK, FWIW.) */);
+                                                                  new_value->has_cas() ? new_value->cas() : 0, new_value_timestamp);
                         }
 
                     } else {
 
                         // Pass NULL to the replicants
                         for (int i = 0; i < (int)slice->replicants.size(); i++) {
-                            slice->replicants[i]->callback->value(&key, NULL, this, 0, 0, 0, current_time() /* TODO THIS IS BROKEN.  THIS IS BROKEN.  (Or is it?  You need to use the same current_time() that you pass to the delete queue.  Maybe the replicant passes it to the delete queue... We have not implemented that part yet.) */);
+                            slice->replicants[i]->callback->value(&key, NULL, this, 0, 0, 0, current_time());
                         }
 
                     }
