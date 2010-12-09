@@ -440,7 +440,10 @@ void btree_modify_fsm_t::do_transition(event_t *event) {
                         node_t *parent_node = ptr_cast<node_t>(last_buf->get_data_write());
                         if (node_handler::is_mergable(cache->get_block_size(), node, sib_node, parent_node)) { // Merge
                             //logDBG("internal merge\n");
-                            btree_key *key_to_remove = (btree_key *)alloca(sizeof(btree_key) + MAX_KEY_SIZE); //TODO get alloca outta here
+
+                            char key_to_remove_buf[sizeof(btree_key) + MAX_KEY_SIZE];
+                            btree_key *key_to_remove = ptr_cast<btree_key>(key_to_remove_buf);
+
                             if (node_handler::nodecmp(node, sib_node) < 0) { // Nodes must be passed to merge in ascending order
                                 node_handler::merge(cache->get_block_size(), ptr_cast<node_t>(buf->get_data_write()), sib_node, key_to_remove, parent_node);
                                 buf->mark_deleted();
@@ -457,8 +460,8 @@ void btree_modify_fsm_t::do_transition(event_t *event) {
                             }
                             sib_buf = NULL;
 
-                            if (!internal_node_handler::is_singleton((internal_node_t*)parent_node)) {
-                                internal_node_handler::remove(cache->get_block_size(), (internal_node_t*)parent_node, key_to_remove);
+                            if (!internal_node_handler::is_singleton(ptr_cast<internal_node_t>(parent_node))) {
+                                internal_node_handler::remove(cache->get_block_size(), ptr_cast<internal_node_t>(parent_node), key_to_remove);
                             } else {
                                 //logDBG("generic collapse root\n");
                                 // parent has only 1 key (which means it is also the root), replace it with the node
@@ -472,8 +475,10 @@ void btree_modify_fsm_t::do_transition(event_t *event) {
                         } else {
                             // Level
                             //logDBG("generic level\n");
-                            btree_key *key_to_replace = (btree_key *)alloca(sizeof(btree_key) + MAX_KEY_SIZE);
-                            btree_key *replacement_key = (btree_key *)alloca(sizeof(btree_key) + MAX_KEY_SIZE);
+                            char key_to_replace_buf[sizeof(btree_key) + MAX_KEY_SIZE];
+                            btree_key *key_to_replace = ptr_cast<btree_key>(key_to_replace_buf);
+                            char replacement_key_buf[sizeof(btree_key) + MAX_KEY_SIZE];
+                            btree_key *replacement_key = ptr_cast<btree_key>(replacement_key_buf);
                             bool leveled = node_handler::level(cache->get_block_size(), ptr_cast<node_t>(buf->get_data_write()), sib_node, key_to_replace, replacement_key, parent_node);
 
                             if (leveled) {
