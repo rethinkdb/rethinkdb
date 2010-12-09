@@ -45,8 +45,8 @@ bool conn_acceptor_t::have_shutdown_a_conn() {
     assert(n_active_conns >= 0);
 
     if (state == state_shutting_down && n_active_conns == 0) {
-        if (shutdown_callback) shutdown_callback->on_conn_acceptor_shutdown();
         state = state_off;
+        if (shutdown_callback) shutdown_callback->on_conn_acceptor_shutdown();
     }
 
     return true;
