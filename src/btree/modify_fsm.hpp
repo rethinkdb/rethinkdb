@@ -123,7 +123,4 @@ private:
     int replicants_awaited;
 };
 
-// TODO: Figure out includes.
-#include "conn_fsm.hpp"
-
 #endif // __BTREE_MODIFY_FSM_HPP__

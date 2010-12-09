@@ -59,8 +59,7 @@ private:
 
     bool do_disable_gc(all_gc_disabled_callback_t *cb);
     bool do_enable_gc(all_gc_enabled_callback_t *cb);
-
-
+    static conn_handler_t *create_request_handler(net_conn_t *conn, void *server);
     
     int messages_out;
     
