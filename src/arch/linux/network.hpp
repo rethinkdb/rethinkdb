@@ -33,6 +33,7 @@ public:
     linux_net_conn_t(const char *host, int port);
     void read(void *buf, size_t size, linux_net_conn_read_callback_t *cb);
     void write(const void *buf, size_t size, linux_net_conn_write_callback_t *cb);
+    void shutdown();
     ~linux_net_conn_t();
 
 private:
@@ -56,6 +57,8 @@ private:
     linux_net_conn_write_callback_t *write_cb;
     void pump_write();
 
+    void on_shutdown();
+    bool was_shut_down;
     bool *set_me_true_on_delete;
 };
 

@@ -12,8 +12,11 @@ linux_net_conn_t::linux_net_conn_t(const char *host, int port) {
 }
 
 linux_net_conn_t::linux_net_conn_t(fd_t sock)
-    : sock(sock), registration_cpu(-1), read_size(0), write_size(0), set_me_true_on_delete(NULL)
+    : sock(sock), registration_cpu(-1), read_size(0), write_size(0), was_shut_down(false),
+      set_me_true_on_delete(NULL)
 {
+    assert(sock != INVALID_FD);
+
     int res = fcntl(sock, F_SETFL, O_NONBLOCK);
     check("Could not make socket non-blocking", res != 0);
 }
@@ -31,8 +34,16 @@ void linux_net_conn_t::register_with_event_loop() {
 
 void linux_net_conn_t::read(void *buf, size_t size, linux_net_conn_read_callback_t *cb) {
 
+    if (was_shut_down) {
+        cb->on_net_conn_close();
+        return;
+    };
+
     if (read_size) fail("Already reading.");
+
     register_with_event_loop();
+
+    assert(sock != INVALID_FD);
 
     read_buf = buf;
     read_size = size;
@@ -50,7 +61,7 @@ void linux_net_conn_t::pump_read() {
             else fail("Could not read from socket: %s", strerror(errno));
         } else if (res == 0) {
             // Socket was closed
-            delete this;
+            on_shutdown();
         } else {
             read_size -= res;
             read_buf = (void*)((char*)read_buf + res);
@@ -63,8 +74,16 @@ void linux_net_conn_t::pump_read() {
 
 void linux_net_conn_t::write(const void *buf, size_t size, linux_net_conn_write_callback_t *cb) {
 
+    if (was_shut_down) {
+        cb->on_net_conn_close();
+        return;
+    };
+
     if (write_size) fail("Already writing.");
+
     register_with_event_loop();
+
+    assert(sock != INVALID_FD);
 
     write_buf = buf;
     write_size = size;
@@ -78,9 +97,14 @@ void linux_net_conn_t::pump_write() {
         assert(write_buf);
         int res = ::write(sock, write_buf, write_size);
         if (res == -1) {
-            if (errno == EAGAIN || errno == EWOULDBLOCK) return;
-            else if (errno == EPIPE) delete this;
-            else fail("Could not write to socket: %s", strerror(errno));
+            if (errno == EAGAIN || errno == EWOULDBLOCK) {
+                return;
+            } else if (errno == EPIPE) {
+                on_shutdown();
+                return;
+            } else {
+                fail("Could not write to socket: %s", strerror(errno));
+            }
         } else if (res == 0) {
             fail("Didn't expect write() to return 0");
         } else {
@@ -93,38 +117,62 @@ void linux_net_conn_t::pump_write() {
     }
 }
 
-linux_net_conn_t::~linux_net_conn_t() {
+void linux_net_conn_t::shutdown() {
 
-    // So on_event() doesn't call us after we got deleted
-    if (set_me_true_on_delete) *set_me_true_on_delete = true;
+    int res = ::shutdown(sock, SHUT_RDWR);
+    if (res != 0 && errno != ENOTCONN) {
+        fail("Could not shutdown socket: %s", strerror(errno));
+    }
+
+    on_shutdown();
+}
+
+void linux_net_conn_t::on_shutdown() {
+
+    assert(!was_shut_down);
+    assert(sock != INVALID_FD);
+    was_shut_down = true;
+
+    if (read_size) read_cb->on_net_conn_close();
+    if (write_size) write_cb->on_net_conn_close();
 
     if (registration_cpu != -1) {
         assert(registration_cpu == linux_thread_pool_t::cpu_id);
         linux_thread_pool_t::thread->queue.forget_resource(sock, this);
     }
+}
+
+linux_net_conn_t::~linux_net_conn_t() {
 
     // sock would be INVALID_FD if our sock was stolen by a
     // linux_oldstyle_net_conn_t.
-    if (sock != INVALID_FD) close(sock);
+    if (sock != INVALID_FD) {
 
-    if (read_size) read_cb->on_net_conn_close();
-    if (write_size) write_cb->on_net_conn_close();
+        // So on_event() doesn't call us after we got deleted
+        if (set_me_true_on_delete) *set_me_true_on_delete = true;
+
+        assert(was_shut_down);
+        ::close(sock);
+    }
 }
 
 void linux_net_conn_t::on_event(int events) {
+
+    assert(sock != INVALID_FD);
+    assert(!was_shut_down);
 
     bool deleted = false;
     set_me_true_on_delete = &deleted;
     if ((events & poll_event_in) && read_size > 0) {
         pump_read();
-        if (deleted) return;
+        if (deleted || was_shut_down) return;
     }
     if ((events & poll_event_out) && write_size > 0) {
         pump_write();
-        if (deleted) return;
+        if (deleted || was_shut_down) return;
     }
     if (events & poll_event_err) {
-        delete this;
+        shutdown();
         return;
     }
     set_me_true_on_delete = NULL;
@@ -208,8 +256,8 @@ linux_oldstyle_net_conn_t::linux_oldstyle_net_conn_t(linux_net_conn_t *conn)
     assert(sock != INVALID_FD);
 
     // Destroy the original wrapper since we own the socket now
+    assert(conn->registration_cpu == -1);
     conn->sock = INVALID_FD;
-    delete conn;
 }
 
 void linux_oldstyle_net_conn_t::set_callback(linux_oldstyle_net_conn_callback_t *cb) {

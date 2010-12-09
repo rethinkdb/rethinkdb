@@ -28,11 +28,6 @@ void replication_message_t::on_cpu_switch() {
 
 void replication_message_t::on_lock_available() {
 
-    if (!parent->conn) {
-        /* The lock was released because the conn died. */
-        done_sending();
-    }
-
     if (buffer_group) {
 
         which_buffer_of_group = -1;
@@ -79,16 +74,13 @@ void replication_message_t::done_sending() {
 }
 
 void replication_message_t::on_net_conn_close() {
-    parent->quit();
-    delete parent->conn;
-    parent->conn = NULL;
-    parent->conn_write_mutex.unlock();   // So others can see that the conn died
-    sent = true;
-    if (continue_on_cpu(home_cpu, this)) on_cpu_switch();
+    parent->conn_open = false;
+    if (!parent->quitting) parent->quit();
+    done_sending();   // So others can see that the conn died
 }
 
 replication_master_t::replication_master_t(store_t *s, net_conn_t *c)
-    : store(s), conn(c)
+    : store(s), conn(c), quitting(false), conn_open(true)
 {
     logINF("Opened replicant %p\n", this);
     store->replicate(this, repli_time(0));
@@ -104,11 +96,16 @@ void replication_master_t::value(
 
 void replication_master_t::stopped() {
     logINF("Closed replicant %p\n", this);
-    if (conn) delete conn;
     delete this;
 }
 
 void replication_master_t::quit() {
+
+    assert(!quitting);
+    quitting = true;
+
+    if (conn_open) conn->shutdown();
+
     on_quit();
     store->stop_replicating(this);   // Will call stopped() when it is done
 }
