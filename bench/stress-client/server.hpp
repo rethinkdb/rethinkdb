@@ -13,7 +13,7 @@ enum protocol_enum_t {
 
 struct server_t {
     server_t() : protocol(protocol_sockmemcached) {
-        strcpy(host, "localhost:1618");
+        strcpy(host, "localhost:11211");
     }
 
     protocol_enum_t parse_protocol(const char *name) {

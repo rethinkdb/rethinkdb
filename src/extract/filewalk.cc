@@ -48,7 +48,7 @@ public:
             fclose(fp);
         }
     }
-    void dump(btree_key *key, btree_value::mcflags_t flags, btree_value::exptime_t exptime,
+    void dump(const btree_key *key, btree_value::mcflags_t flags, btree_value::exptime_t exptime,
               byteslice *slices, size_t num_slices) {
         int len = 0;
         for (size_t i = 0; i < num_slices; ++i) {
@@ -72,7 +72,7 @@ void walk_extents(dumper_t &dumper, direct_file_t &file, const cfg_t static_conf
 void observe_blocks(block_registry &registry, direct_file_t &file, const cfg_t cfg, uint64_t filesize);
 void get_all_values(dumper_t& dumper, const segmented_vector_t<off64_t, MAX_BLOCK_ID>& offsets, direct_file_t& file, const cfg_t cfg, uint64_t filesize);
 bool check_config(const cfg_t& cfg);
-void dump_pair_value(dumper_t &dumper, direct_file_t& file, const cfg_t& cfg, const segmented_vector_t<off64_t, MAX_BLOCK_ID>& offsets, btree_leaf_pair *pair, ser_block_id_t this_block);
+void dump_pair_value(dumper_t &dumper, direct_file_t& file, const cfg_t& cfg, const segmented_vector_t<off64_t, MAX_BLOCK_ID>& offsets, const btree_leaf_pair *pair, ser_block_id_t this_block);
 void walkfile(dumper_t &dumper, const char *path);
 
 
@@ -194,7 +194,7 @@ void get_all_values(dumper_t& dumper, const segmented_vector_t<off64_t, MAX_BLOC
                 uint16_t num_pairs = leaf->npairs;
                 logDBG("We have a leaf node with %d pairs.\n", num_pairs);
                 for (uint16_t j = 0; j < num_pairs; ++j) {
-                    btree_leaf_pair *pair = leaf_node_handler::get_pair(leaf, leaf->pair_offsets[j]);
+                    const btree_leaf_pair *pair = leaf_node_handler::get_pair(leaf, leaf->pair_offsets[j]);
 
                     dump_pair_value(dumper, file, cfg, offsets, pair, block_id);
                 }
@@ -215,7 +215,7 @@ private:
     DISABLE_COPYING(blocks);
 };
 
-bool get_large_buf_segments(btree_key *key, direct_file_t& file, const large_buf_ref& ref, const cfg_t& cfg, int mod_id, const segmented_vector_t<off64_t, MAX_BLOCK_ID>& offsets, blocks *segblocks) {
+bool get_large_buf_segments(const btree_key *key, direct_file_t& file, const large_buf_ref& ref, const cfg_t& cfg, int mod_id, const segmented_vector_t<off64_t, MAX_BLOCK_ID>& offsets, blocks *segblocks) {
     int levels = large_buf_t::compute_num_levels(cfg.block_size(), ref.offset + ref.size);
 
     ser_block_id_t trans = translator_serializer_t::translate_block_id(ref.block_id, cfg.mod_count, mod_id, CONFIG_BLOCK_ID);
@@ -278,15 +278,15 @@ bool get_large_buf_segments(btree_key *key, direct_file_t& file, const large_buf
 
 
 // Dumps the values for a given pair.
-void dump_pair_value(dumper_t &dumper, direct_file_t& file, const cfg_t& cfg, const segmented_vector_t<off64_t, MAX_BLOCK_ID>& offsets, btree_leaf_pair *pair, ser_block_id_t this_block) {
-    btree_key *key = &pair->key;
-    btree_value *value = pair->value();
+void dump_pair_value(dumper_t &dumper, direct_file_t& file, const cfg_t& cfg, const segmented_vector_t<off64_t, MAX_BLOCK_ID>& offsets, const btree_leaf_pair *pair, ser_block_id_t this_block) {
+    const btree_key *key = &pair->key;
+    const btree_value *value = pair->value();
 
     btree_value::mcflags_t flags = value->mcflags();
     btree_value::exptime_t exptime = value->exptime();
     // We can't save the cas right now.
 
-    byte *valuebuf = value->value();
+    const byte *valuebuf = value->value();
 
     // We're going to write the value, split into pieces, into this set of pieces.
     std::vector<byteslice> pieces;

@@ -97,7 +97,7 @@ public:
     void append(store_key_t *key, data_provider_t *data, append_prepend_callback_t *cb);
     void prepend(store_key_t *key, data_provider_t *data, append_prepend_callback_t *cb);
     void delete_key(store_key_t *key, delete_callback_t *cb);
-    void replicate(replicant_t *cb);
+    void replicate(replicant_t *cb, repli_timestamp cutoff);
     void stop_replicating(replicant_t *cb);
 
 public:
@@ -141,7 +141,7 @@ public:
     bool have_created_a_serializer();   // Called on home thread
     
     static int compute_mod_count(int32_t file_number, int32_t n_files, int32_t n_slices);
-    static uint32_t hash(btree_key *key);
+    static uint32_t hash(const btree_key *key);
 
     void create_pseudoserializers();   // Called on home thread
     bool create_a_pseudoserializer_on_this_core(int i);   // Called on serializer thread

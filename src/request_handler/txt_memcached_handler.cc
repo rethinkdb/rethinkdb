@@ -964,7 +964,7 @@ static store_t::replicant_t *test_replicant;
 class test_replicant_t :
     public store_t::replicant_t
 {
-    void value(store_key_t *key, const_buffer_group_t *bg, done_callback_t *cb, mcflags_t flags, exptime_t exptime, cas_t cas) {
+    void value(const store_key_t *key, const_buffer_group_t *bg, done_callback_t *cb, mcflags_t flags, exptime_t exptime, cas_t cas) {
         flockfile(stderr);
         debugf("VALUE '%*.*s' = ", key->size, key->size, key->contents);
         if (bg) {
@@ -1033,7 +1033,8 @@ txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::parse_gc_comman
         conn_fsm->consume(line_len);
         if (!test_replicant) {
             test_replicant = new test_replicant_t;
-            server->store->replicate(test_replicant);
+            int one_decade = 3600*24*365*10;
+            server->store->replicate(test_replicant, repli_time(time(NULL) - one_decade) /* TODO this is a hack for testing */);
             conn_fsm->sbuf->printf("Replicating to stderr.\r\n");
         } else {
             conn_fsm->sbuf->printf("Already replicating.\r\n");
