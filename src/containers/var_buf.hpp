@@ -2,7 +2,7 @@
 #define __VAR_BUF_HPP__
 
 #include "config/args.hpp"
-#include "conn_fsm.hpp"
+#include "request_handler/conn_fsm.hpp"
 #include <stdarg.h>
 #include "utils.hpp"
 

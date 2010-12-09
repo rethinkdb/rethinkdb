@@ -7,6 +7,7 @@
 #include <vector>
 #include "config/args.hpp"
 #include "perfmon.hpp"
+#include "arch/linux/disk.hpp"
 
 // Event queue structure
 struct poll_event_queue_t {
