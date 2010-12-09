@@ -45,16 +45,17 @@ repli_timestamp repli_max(repli_timestamp x, repli_timestamp y);
 
 void *malloc_aligned(size_t size, size_t alignment = 64);
 
-template<typename T1, typename T2>
+template <class T1, class T2>
 T1 ceil_aligned(T1 value, T2 alignment) {
-    if(value % alignment != 0) {
-        return value + alignment - (value % alignment);
-    } else {
-        return value;
-    }
+    return value + alignment - (((value + alignment - 1) % alignment) + 1);
 }
 
-template<typename T1, typename T2>
+template <class T1, class T2>
+T1 ceil_divide(T1 dividend, T2 alignment) {
+    return (dividend + alignment - 1) / alignment;
+}
+
+template <class T1, class T2>
 T1 floor_aligned(T1 value, T2 alignment) {
     return value - (value % alignment);
 }
