@@ -47,7 +47,6 @@ mc_inner_buf_t::mc_inner_buf_t(cache_t *cache, block_id_t block_id)
       writeback_buf(this),
       page_repl_buf(this),
       page_map_buf(this) {
-    
     new load_buf_fsm_t(this);
     
     pm_n_blocks_in_memory++;
@@ -68,7 +67,6 @@ mc_inner_buf_t::mc_inner_buf_t(cache_t *cache)
       writeback_buf(this),
       page_repl_buf(this),
       page_map_buf(this) {
-    
     cache->assert_cpu();
 
 #if !defined(NDEBUG) || defined(VALGRIND)
@@ -220,7 +218,6 @@ mc_transaction_t::mc_transaction_t(cache_t *cache, access_t access)
       begin_callback(NULL),
       commit_callback(NULL),
       state(state_open) {
-    
     pm_transactions_starting.begin(&start_time);
     assert(access == rwi_read || access == rwi_write);
 }

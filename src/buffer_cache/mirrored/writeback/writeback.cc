@@ -279,7 +279,6 @@ bool writeback_t::writeback_do_write() {
     
     if (serializer_writes.empty() ||
         cache->serializer->do_write(serializer_writes.data(), serializer_writes.size(), this)) {
-
         // We don't need this buffer any more.
         serializer_writes.clear();
         return do_on_cpu(cache->home_cpu, this, &writeback_t::writeback_do_cleanup);

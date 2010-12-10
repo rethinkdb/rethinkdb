@@ -45,8 +45,7 @@ public:
     }
     
     void value(const_buffer_group_t *buffer, store_t::get_callback_t::done_callback_t *cb,
-        mcflags_t flags, cas_t cas) {
-        
+            mcflags_t flags, cas_t cas) {
         response.status(bin_memcached_handler_t::bin_status_no_error);
         
         byte_t *value = new char[buffer->get_size()];

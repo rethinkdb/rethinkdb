@@ -29,6 +29,7 @@ bool conn_acceptor_t::create_conn_on_this_core(net_conn_t *conn) {
     conn_handler_t *handler = creator(conn, creator_udata);
     assert(!handler->parent);
     handler->parent = this;
+    handler->conn = conn;
     conn_handlers[get_cpu_id()].push_back(handler);
 
     return true;
@@ -41,8 +42,8 @@ bool conn_acceptor_t::have_shutdown_a_conn() {
     assert(n_active_conns >= 0);
 
     if (state == state_shutting_down && n_active_conns == 0) {
-        if (shutdown_callback) shutdown_callback->on_conn_acceptor_shutdown();
         state = state_off;
+        if (shutdown_callback) shutdown_callback->on_conn_acceptor_shutdown();
     }
 
     return true;
@@ -89,6 +90,7 @@ bool conn_acceptor_t::shutdown_conns_on_this_core() {
 perfmon_counter_t pm_conns_total("conns_total[conns]");
 
 conn_handler_t::conn_handler_t() : parent(NULL), quitting(false) {
+    pm_conns_total++;
 }
 
 void conn_handler_t::on_quit() {
@@ -108,4 +110,5 @@ conn_handler_t::~conn_handler_t() {
     assert(quitting);
     do_on_cpu(parent->home_cpu, parent, &conn_acceptor_t::have_shutdown_a_conn);
     pm_conns_total--;
+    delete conn;
 }

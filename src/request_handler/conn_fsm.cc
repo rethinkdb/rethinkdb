@@ -90,6 +90,7 @@ conn_fsm_t::result_t conn_fsm_t::fill_buf(void *buf, unsigned int *bytes_filled,
             we_are_closed = true;
 #endif
             if (!quitting) on_quit();
+            quitting = true;
             assert(state == fsm_outstanding_data || state == fsm_socket_connected);
             return fsm_quit_connection;
         }
@@ -105,6 +106,7 @@ conn_fsm_t::result_t conn_fsm_t::fill_buf(void *buf, unsigned int *bytes_filled,
         we_are_closed = true;
 #endif
         if (!quitting) on_quit();
+        quitting = true;
         assert(state == fsm_outstanding_data
                || state == fsm_socket_connected
                || state == fsm_socket_recv_incomplete);
@@ -264,6 +266,7 @@ conn_fsm_t::result_t conn_fsm_t::do_fsm_outstanding_req(event_t *event) {
         case request_handler_t::op_req_quit:
             // The connection has been closed
             if (!quitting) on_quit();
+            quitting = true;
             if (state == fsm_socket_send_incomplete || state == fsm_btree_incomplete) {
                 quitting = true;
                 return fsm_transition_ok;
@@ -450,7 +453,6 @@ void conn_fsm_t::quit() {
     if (quitting) return;
     
     on_quit();
-    
     quitting = true;
 
     switch (state) {
