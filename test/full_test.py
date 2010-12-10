@@ -189,7 +189,7 @@ try:
                         repeat=3, timeout=400)
 
                 for suite_test in glob.glob('integration/memcached_suite/*.t'):
-                    do_test_cloud("integration/memcached_suite_test.py",
+                    do_test_cloud("integration/memcached_suite.py",
                             { "auto"        : True,
                               "mode"        : mode,
                               "no-valgrind" : not checker,
