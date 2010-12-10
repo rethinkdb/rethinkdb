@@ -36,6 +36,7 @@ public:
     static coro_t *self(); //Returns the current coroutine
     static void run();
     static void destroy();
+    static void yield();
 
 private:
     static void suicide();
@@ -216,6 +217,7 @@ private:
 //I'll write this when I have a place to use it; otherwise it'd be annoying to test
 
 void *call_on_cpu(int cpu, void *(*fn)(void *), void *arg);
+void run_on_cpu(int cpu, void (*fn)(void *), void *arg);
 
 //maybe make more things like these, maybe using boost::bind. Does bind return a function pointer, or just a function object?
 

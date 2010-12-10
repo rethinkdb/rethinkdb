@@ -14,6 +14,8 @@ void coro_t::wait() {
 }
 
 void coro_t::switch_to(coro_t *next) {
+    coro_t *old_current_coro __attribute__((unused)) = current_coro;
+    coro_t *old_scheduler __attribute__((unused)) = scheduler;
     current_coro = next;
     Coro_switchTo_(this->underlying, next->underlying);
 }
@@ -101,13 +103,22 @@ void coro_t::destroy() {
     scheduler = current_coro = NULL;
 }
 
+void coro_t::yield() {
+    coro_t::self()->notify();
+    coro_t::wait();
+}
+
 void *task_t::join() {
     assert(waiters.size() == 0);
     if (!done) {
         waiters.push_back(coro_t::self());
-        coro_t::wait();
-        assert(done);
+        while (!done) {
+            printf("Waiting...\n");
+            coro_t::wait();
+            notify();
+        }
     }
+    assert(done);
     void *value = result;
     delete this;
     return value;
@@ -148,4 +159,15 @@ void task_t::notify() {
 void *call_on_cpu(int cpu, void *(*fn)(void *), void *arg) {
     task_t *task = new task_t(cpu, fn, arg);
     return task->join();
+}
+
+void do_run_on_cpu(void (*fn)(void *), void *arg, coro_t *coro) {
+    printf("Doing on cpu\n");
+    fn(arg);
+    coro->notify();
+}
+
+void run_on_cpu(int cpu, void (*fn)(void *), void *arg) {
+    new coro_on_cpu_t(cpu, do_run_on_cpu, fn, arg, coro_t::self());
+    coro_t::wait();
 }
