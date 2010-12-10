@@ -12,7 +12,7 @@ struct replication_message_t :
     public home_cpu_mixin_t,
     public cpu_message_t,
     public lock_available_callback_t,
-    public net_conn_write_callback_t
+    public net_conn_write_external_callback_t
 {
     replication_message_t(
         replication_master_t *parent,
@@ -38,7 +38,7 @@ struct replication_message_t :
 
     void on_lock_available();
     void on_cpu_switch();
-    void on_net_conn_write();
+    void on_net_conn_write_external();
     void on_net_conn_close();
     void done_sending();
 };

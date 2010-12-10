@@ -7,20 +7,25 @@
 
 /* linux_net_conn_t provides a nice wrapper around a network connection. */
 
-struct linux_net_conn_close_callback_t {
+struct linux_net_conn_read_external_callback_t
+{
+    virtual void on_net_conn_read_external() = 0;
     virtual void on_net_conn_close() = 0;
+    virtual ~linux_net_conn_read_external_callback_t() { }
 };
 
-struct linux_net_conn_write_callback_t :
-    public virtual linux_net_conn_close_callback_t
+struct linux_net_conn_read_buffered_callback_t
 {
-    virtual void on_net_conn_write() = 0;
+    virtual void on_net_conn_read_buffered(char *buffer, size_t size) = 0;
+    virtual void on_net_conn_close() = 0;
+    virtual ~linux_net_conn_read_buffered_callback_t() { }
 };
 
-struct linux_net_conn_read_callback_t :
-    public virtual linux_net_conn_close_callback_t
+struct linux_net_conn_write_external_callback_t
 {
-    virtual void on_net_conn_read() = 0;
+    virtual void on_net_conn_write_external() = 0;
+    virtual void on_net_conn_close() = 0;
+    virtual ~linux_net_conn_write_external_callback_t() { }
 };
 
 struct linux_net_conn_t :
@@ -31,13 +36,36 @@ struct linux_net_conn_t :
 
 public:
     linux_net_conn_t(const char *host, int port);
-    void read(void *buf, size_t size, linux_net_conn_read_callback_t *cb);
-    void write(const void *buf, size_t size, linux_net_conn_write_callback_t *cb);
+
+    /* If you know beforehand how many bytes you want to read, use read_external() with a byte
+    buffer. cb->on_net_conn_read_external() will be called when exactly that many bytes have been
+    read. If the connection is closed, then cb->on_net_conn_close() will be called. */
+    void read_external(void *buf, size_t size, linux_net_conn_read_external_callback_t *cb);
+
+    /* If you don't know how many bytes you want to read, use read_buffered().
+    cb->on_net_conn_read_buffered() will be called with some bytes. If there are enough bytes,
+    call accept_buffer() with how many of the bytes you want to consume. If there are not enough,
+    then return from cb->on_net_conn_read_buffered() without calling accept_buffer(), and the
+    net_conn_t will later call on_net_conn_read_buffered() again with more bytes. If the connection
+    is closed before an acceptable amount of data is read, then cb->on_net_conn_close() is called.
+    */
+    void read_buffered(linux_net_conn_read_buffered_callback_t *cb);
+    void accept_buffer(size_t size);
+
+    /* write_external() writes 'size' bytes from 'buf' to the socket and calls
+    cb->on_net_conn_write_external() when it's done. If the connection is closed before all the
+    bytes can be written, cb->on_net_conn_close() is called. */
+    void write_external(const void *buf, size_t size, linux_net_conn_write_external_callback_t *cb);
+
+    /* Call shutdown() to force the connection to close. shutdown() should not be called after
+    getting an on_net_conn_close() from a callback. If there are any active read or write attempts
+    when shutdown() is called, they will get on_net_conn_close() called. */
     void shutdown();
+
     ~linux_net_conn_t();
 
 private:
-    explicit linux_net_conn_t(fd_t sock);   // Used by listener
+    explicit linux_net_conn_t(fd_t sock);   // Used by net_listener_t
     fd_t sock;
 
     /* Before we are being watched by any event loop, registration_cpu is -1. Once an
@@ -46,20 +74,42 @@ private:
     void register_with_event_loop();
 
     void on_event(int events);
+    bool *set_me_true_on_delete;   // In case we get deleted by a callback
 
-    void *read_buf;
-    size_t read_size;
-    linux_net_conn_read_callback_t *read_cb;
-    void pump_read();
+    enum {
+        read_mode_none,
+        read_mode_external,
+        read_mode_buffered
+    } read_mode;
 
-    const void *write_buf;
-    size_t write_size;
-    linux_net_conn_write_callback_t *write_cb;
-    void pump_write();
+    // Used in read_mode_external
+    char *external_read_buf;
+    size_t external_read_size;
+    linux_net_conn_read_external_callback_t *read_external_cb;
+    void try_to_read_external_buf();
 
+    // Used in read_mode_buffered
+    std::vector<char> peek_buffer;
+    linux_net_conn_read_buffered_callback_t *read_buffered_cb;
+    bool in_read_buffered_cb;
+    bool see_if_callback_is_satisfied();
+    void put_more_data_in_peek_buffer();
+
+    enum {
+        write_mode_none,
+        write_mode_external
+    } write_mode;
+
+    // Used in write_mode_external
+    const char *external_write_buf;
+    size_t external_write_size;
+    linux_net_conn_write_external_callback_t *write_external_cb;
+    void try_to_write_external_buf();
+
+    // Called when connection dies for any reason, either via shutdown() or by the remote host
     void on_shutdown();
-    bool was_shut_down;
-    bool *set_me_true_on_delete;
+    bool was_shut_down;   // True when connection is dead but net_conn_t not yet deallocated
+    
 };
 
 /* The linux_net_listener_t is used to listen on a network port for incoming

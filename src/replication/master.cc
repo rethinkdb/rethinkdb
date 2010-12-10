@@ -37,7 +37,7 @@ void replication_message_t::on_lock_available() {
             (int)flags, (int)exptime, (int)buffer_group->get_size(), (int)cas);
         assert(size < (int)sizeof(header));
 
-        parent->conn->write(header, size, this);
+        parent->conn->write_external(header, size, this);
 
     } else {
 
@@ -45,19 +45,19 @@ void replication_message_t::on_lock_available() {
             (int)key->size, (int)key->size, key->contents);
         assert(size < (int)sizeof(header));
 
-        parent->conn->write(header, size, this);
+        parent->conn->write_external(header, size, this);
     }
 }
 
-void replication_message_t::on_net_conn_write() {
+void replication_message_t::on_net_conn_write_external() {
     if (buffer_group) {
         which_buffer_of_group++;
         if (which_buffer_of_group == (int)buffer_group->buffers.size()) {
-            parent->conn->write("\r\n", 2, this);
+            parent->conn->write_external("\r\n", 2, this);
         } else if (which_buffer_of_group == (int)buffer_group->buffers.size() + 1) {
             done_sending();
         } else {
-            parent->conn->write(
+            parent->conn->write_external(
                 buffer_group->buffers[which_buffer_of_group].data,
                 buffer_group->buffers[which_buffer_of_group].size,
                 this);

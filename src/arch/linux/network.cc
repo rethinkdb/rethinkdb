@@ -12,8 +12,11 @@ linux_net_conn_t::linux_net_conn_t(const char *host, int port) {
 }
 
 linux_net_conn_t::linux_net_conn_t(fd_t sock)
-    : sock(sock), registration_cpu(-1), read_size(0), write_size(0), was_shut_down(false),
-      set_me_true_on_delete(NULL)
+    : sock(sock),
+      registration_cpu(-1), set_me_true_on_delete(NULL),
+      read_mode(read_mode_none), in_read_buffered_cb(false),
+      write_mode(write_mode_none),
+      was_shut_down(false)
 {
     assert(sock != INVALID_FD);
 
@@ -22,6 +25,9 @@ linux_net_conn_t::linux_net_conn_t(fd_t sock)
 }
 
 void linux_net_conn_t::register_with_event_loop() {
+
+    /* Register ourself to receive notifications from the event loop if we have not
+    already done so. */
 
     if (registration_cpu == -1) {
         registration_cpu = linux_thread_pool_t::cpu_id;
@@ -32,74 +38,205 @@ void linux_net_conn_t::register_with_event_loop() {
     }
 }
 
-void linux_net_conn_t::read(void *buf, size_t size, linux_net_conn_read_callback_t *cb) {
+void linux_net_conn_t::read_external(void *buf, size_t size, linux_net_conn_read_external_callback_t *cb) {
 
     if (was_shut_down) {
         cb->on_net_conn_close();
         return;
     };
 
-    if (read_size) fail("Already reading.");
-
     register_with_event_loop();
-
     assert(sock != INVALID_FD);
+    assert(read_mode == read_mode_none);
 
-    read_buf = buf;
-    read_size = size;
-    read_cb = cb;
-    assert(read_cb);
-    pump_read();
+    read_mode = read_mode_external;
+    external_read_buf = (char *)buf;
+    external_read_size = size;
+    read_external_cb = cb;
+    assert(read_external_cb);
+
+    // If we were reading in read_mode_buffered before this read, we might have
+    // read more bytes than necessary, in which case the peek buffer will still
+    // contain some data. Drain it out first.
+    int peek_buffer_bytes = std::min(peek_buffer.size(), external_read_size);
+    memcpy(external_read_buf, peek_buffer.data(), peek_buffer_bytes);
+    peek_buffer.erase(peek_buffer.begin(), peek_buffer.begin() + peek_buffer_bytes);
+    external_read_buf += peek_buffer_bytes;
+    external_read_size -= peek_buffer_bytes;
+
+    try_to_read_external_buf();
 }
 
-void linux_net_conn_t::pump_read() {
-    if (read_size > 0) {
-        assert(read_buf);
-        int res = ::read(sock, read_buf, read_size);
+void linux_net_conn_t::try_to_read_external_buf() {
+
+    assert(read_mode == read_mode_external);
+
+    // The only time when external_read_size would be zero here is if read() was called to ask for
+    // zero bytes.
+    if (external_read_size > 0) {
+
+        assert(external_read_buf);
+        int res = ::read(sock, external_read_buf, external_read_size);
+
         if (res == -1) {
-            if (errno == EAGAIN || errno == EWOULDBLOCK) return;
-            else fail("Could not read from socket: %s", strerror(errno));
+            if (errno == EAGAIN || errno == EWOULDBLOCK) {
+                // We'll get called again via on_event() when there is more data
+                return;
+            } else if (errno == ECONNRESET || errno == ENOTCONN) {
+                // Socket was closed
+                on_shutdown();
+            } else {
+                fail("Could not read from socket: %s", strerror(errno));
+            }
+
         } else if (res == 0) {
             // Socket was closed
             on_shutdown();
+
         } else {
-            read_size -= res;
-            read_buf = (void*)((char*)read_buf + res);
+            external_read_size -= res;
+            external_read_buf += res;
         }
     }
-    if (read_size == 0) {
-        read_cb->on_net_conn_read();
+
+    if (external_read_size == 0) {
+        // The request has been fulfilled
+        read_mode = read_mode_none;
+        read_external_cb->on_net_conn_read_external();
     }
 }
 
-void linux_net_conn_t::write(const void *buf, size_t size, linux_net_conn_write_callback_t *cb) {
+void linux_net_conn_t::read_buffered(linux_net_conn_read_buffered_callback_t *cb) {
 
     if (was_shut_down) {
         cb->on_net_conn_close();
         return;
     };
 
-    if (write_size) fail("Already writing.");
-
     register_with_event_loop();
-
     assert(sock != INVALID_FD);
+    assert(read_mode == read_mode_none);
 
-    write_buf = buf;
-    write_size = size;
-    write_cb = cb;
-    assert(write_cb);
-    pump_write();
+    read_mode = read_mode_buffered;
+    read_buffered_cb = cb;
+
+    // We call see_if_callback_is_satisfied() first because there might be data
+    // already in the peek buffer, or the callback might be satisfied with an empty
+    // peek buffer.
+
+    if (!see_if_callback_is_satisfied()) put_more_data_in_peek_buffer();
 }
 
-void linux_net_conn_t::pump_write() {
-    if (write_size > 0) {
-        assert(write_buf);
-        int res = ::write(sock, write_buf, write_size);
+void linux_net_conn_t::put_more_data_in_peek_buffer() {
+
+    assert(read_mode == read_mode_buffered);
+
+    // Grow the peek buffer so we have some space to put what we're about to insert
+    int old_size = peek_buffer.size();
+    peek_buffer.resize(old_size + IO_BUFFER_SIZE);
+
+    int res = ::read(sock, peek_buffer.data() + old_size, IO_BUFFER_SIZE);
+
+    if (res == -1) {
+        if (errno == EAGAIN || errno == EWOULDBLOCK) {
+            // We will get a callback via on_event() at a later date
+            return;
+        } else if (errno == ECONNRESET || errno == ENOTCONN) {
+            // Socket was closed
+            on_shutdown();
+        } else {
+            fail("Could not read from socket: %s", strerror(errno));
+        }
+
+    } else if (res == 0) {
+        // Socket was closed
+        on_shutdown();
+
+    } else {
+        // Shrink the peek buffer so that its 'size' member is only how many bytes are
+        // actually in it. Its internal array will probably not shrink.
+        peek_buffer.resize(old_size + res);
+
+        if (!see_if_callback_is_satisfied()) {
+            if (res == IO_BUFFER_SIZE) {
+                // There might be more data in the kernel buffer
+                put_more_data_in_peek_buffer();
+            }
+        }
+    }
+}
+
+bool linux_net_conn_t::see_if_callback_is_satisfied() {
+
+    assert(read_mode == read_mode_buffered);
+    assert(!in_read_buffered_cb);
+
+    in_read_buffered_cb = true;   // Make it legal to call accept_buffer()
+
+    read_buffered_cb->on_net_conn_read_buffered(peek_buffer.data(), peek_buffer.size());
+
+    if (in_read_buffered_cb) {
+        // accept_buffer() was not called; our offer was rejected.
+        in_read_buffered_cb = false;
+        return false;
+
+    } else {
+        // accept_buffer() was called and it set in_read_buffered_cb to false. It also
+        // already removed the appropriate amount of data from the peek buffer and set
+        // the read mode to read_mode_none. The read_buffered_cb might have gone on to
+        // start another read, though, so there's no guarantee that the read mode is
+        // still read_mode_none.
+        return true;
+
+    }
+}
+
+void linux_net_conn_t::accept_buffer(size_t bytes) {
+
+    assert(read_mode == read_mode_buffered);
+    assert(in_read_buffered_cb);
+
+    assert(bytes <= peek_buffer.size());
+    peek_buffer.erase(peek_buffer.begin(), peek_buffer.begin() + bytes);
+
+    // So that the callback can start another read after calling accept_buffer()
+    in_read_buffered_cb = false;
+    read_mode = read_mode_none;
+}
+
+void linux_net_conn_t::write_external(const void *buf, size_t size, linux_net_conn_write_external_callback_t *cb) {
+
+    if (was_shut_down) {
+        cb->on_net_conn_close();
+        return;
+    };
+
+    register_with_event_loop();
+    assert(sock != INVALID_FD);
+    assert(write_mode == write_mode_none);
+
+    write_mode = write_mode_external;
+    external_write_buf = (const char *)buf;
+    external_write_size = size;
+    write_external_cb = cb;
+    assert(write_external_cb);
+    try_to_write_external_buf();
+}
+
+void linux_net_conn_t::try_to_write_external_buf() {
+
+    assert(write_mode == write_mode_external);
+
+    // The only time when external_write_size would be zero here is if write() was called
+    // with zero bytes.
+    if (external_write_size > 0) {
+        assert(external_write_buf);
+        int res = ::write(sock, external_write_buf, external_write_size);
         if (res == -1) {
-            if (errno == EAGAIN || errno == EWOULDBLOCK) {
+            if (errno == EAGAIN || errno == EWOULDBLOCK || errno == ENOBUFS) {
                 return;
-            } else if (errno == EPIPE) {
+            } else if (errno == EPIPE || errno == ENOTCONN || errno == EHOSTUNREACH ||
+                    errno == ENETDOWN || errno == EHOSTDOWN) {
                 on_shutdown();
                 return;
             } else {
@@ -108,16 +245,23 @@ void linux_net_conn_t::pump_write() {
         } else if (res == 0) {
             fail("Didn't expect write() to return 0");
         } else {
-            write_size -= res;
-            write_buf = (void*)((char*)write_buf + res);
+            external_write_size -= res;
+            external_write_buf += res;
         }
     }
-    if (write_size == 0) {
-        write_cb->on_net_conn_write();
+
+    if (external_write_size == 0) {
+        // The request has been fulfilled
+        write_mode = write_mode_none;
+        write_external_cb->on_net_conn_write_external();
     }
 }
 
 void linux_net_conn_t::shutdown() {
+
+    assertf(!in_read_buffered_cb, "Please don't call net_conn_t::shutdown() from within "
+        "on_net_conn_read_buffered() without calling accept_buffer(). The net_conn_t is "
+        "sort of stupid and you just broke its fragile little mind.");
 
     int res = ::shutdown(sock, SHUT_RDWR);
     if (res != 0 && errno != ENOTCONN) {
@@ -133,8 +277,23 @@ void linux_net_conn_t::on_shutdown() {
     assert(sock != INVALID_FD);
     was_shut_down = true;
 
-    if (read_size) read_cb->on_net_conn_close();
-    if (write_size) write_cb->on_net_conn_close();
+    // Inform any readers or writers that were waiting that the socket has been closed.
+
+    // If there are no readers or writers, nothing gets informed until an attempt is made
+    // to read or write. Is this a problem?
+
+    switch (read_mode) {
+        case read_mode_none: break;
+        case read_mode_external: read_external_cb->on_net_conn_close(); break;
+        case read_mode_buffered: read_buffered_cb->on_net_conn_close(); break;
+    }
+
+    switch (write_mode) {
+        case write_mode_none: break;
+        case write_mode_external: write_external_cb->on_net_conn_close(); break;
+    }
+
+    // Deregister ourself with the event loop
 
     if (registration_cpu != -1) {
         assert(registration_cpu == linux_thread_pool_t::cpu_id);
@@ -161,20 +320,41 @@ void linux_net_conn_t::on_event(int events) {
     assert(sock != INVALID_FD);
     assert(!was_shut_down);
 
+    // So we get notified if 'this' gets deleted and don't try to do any more
+    // operations with it.
     bool deleted = false;
     set_me_true_on_delete = &deleted;
-    if ((events & poll_event_in) && read_size > 0) {
-        pump_read();
-        if (deleted || was_shut_down) return;
+
+    if (events & poll_event_in) {
+        switch (read_mode) {
+            case read_mode_none: break;
+            case read_mode_external: try_to_read_external_buf(); break;
+            case read_mode_buffered: put_more_data_in_peek_buffer(); break;
+        }
+        if (deleted || was_shut_down) {
+            set_me_true_on_delete = NULL;
+            return;
+        }
     }
-    if ((events & poll_event_out) && write_size > 0) {
-        pump_write();
-        if (deleted || was_shut_down) return;
+    if (events & poll_event_out) {
+        switch (write_mode) {
+            case write_mode_none: break;
+            case write_mode_external: try_to_write_external_buf(); break;
+        }
+        if (deleted || was_shut_down) {
+            set_me_true_on_delete = NULL;
+            return;
+        }
     }
     if (events & poll_event_err) {
+        // Should this be on_shutdown()? The difference is that by calling shutdown(), we
+        // cause ::shutdown() to be called on our socket. But if there was a socket error,
+        // it might have shut itself down already. This is probably safe.
         shutdown();
+        set_me_true_on_delete = NULL;
         return;
     }
+
     set_me_true_on_delete = NULL;
 }
 
