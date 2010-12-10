@@ -23,7 +23,7 @@ git pull
 # Cloud retester configuration
 export USE_CLOUD=true
 export EC2_INSTANCE_TYPE=m1.large
-export EC2_INSTANCE_COUNT=9
+export EC2_INSTANCE_COUNT=10
 
 # Run the tests
 export RETESTER_EMAIL_SENDER=buildbot@rethinkdb.com:allspark
