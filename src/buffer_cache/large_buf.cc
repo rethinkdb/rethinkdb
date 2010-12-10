@@ -393,8 +393,9 @@ void large_buf_t::prepend(int64_t extra_size, large_buf_ref *refout) {
     }
 
     *refout = root_ref;
-    assertf(root->level == num_levels(root_ref.offset + root_ref.size), "root-level=%d num=%d offset=%ld size=%ld extra_size=%ld\n",
-            root->level, num_levels(root_ref.offset + root_ref.size), root_ref.offset, root_ref.size, extra_size);
+    assert(root->level == num_levels(root_ref.offset + root_ref.size),
+        "root-level=%d num=%d offset=%ld size=%ld extra_size=%ld\n",
+        root->level, num_levels(root_ref.offset + root_ref.size), root_ref.offset, root_ref.size, extra_size);
 }
 
 
@@ -471,7 +472,7 @@ void large_buf_t::walk_tree_structure(buftree_t *tr, int64_t offset, int64_t siz
     assert(offset + size <= max_offset(levels));
 
     if (tr != NULL) {
-        assertf(tr->level == levels, "tr->level=%d, levels=%d, offset=%d, size=%d\n", tr->level, levels, offset, size);
+        assert(tr->level == levels, "tr->level=%d, levels=%d, offset=%d, size=%d\n", tr->level, levels, offset, size);
 
         if (levels == 1) {
             bufdoer(this, tr->buf);

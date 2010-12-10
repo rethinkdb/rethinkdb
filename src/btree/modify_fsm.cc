@@ -199,10 +199,11 @@ bool btree_modify_fsm_t::do_check_for_split(const node_t **node) {
         } else {
             last_node = ptr_cast<internal_node_t>(last_buf->get_data_write());
         }
-        
+
         bool success = internal_node_handler::insert(cache->get_block_size(), last_node, median, node_id, rnode_id);
-        check("could not insert internal btree node", !success);
-     
+        assert(success, "could not insert internal btree node");
+        UNUSED(success);
+
 #ifdef BTREE_DEBUG
         printf("\t|\n\t| Median = "); median->print(); printf("\n\t|\n\tV\n");
         printf("Parent:\n");
@@ -279,15 +280,14 @@ void btree_modify_fsm_t::do_transition(event_t *event) {
     transition_result_t res = btree_fsm_t::transition_ok;
 
     // Make sure we've got either an empty or a cache event
-    check("btree_fsm::do_transition - invalid event", event != NULL &&
-          event->event_type != et_cache && event->event_type != et_large_buf && event->event_type != et_commit);
+    guarantee(event == NULL || event->event_type == et_cache ||
+        event->event_type == et_large_buf || event->event_type == et_commit,
+        "btree_fsm::do_transition - invalid event");
 
     // Update the cache with the event
-    if(event && (event->event_type == et_cache || event->event_type == et_large_buf)) {
-        check("btree_modify_fsm::do_transition - invalid event", event->op != eo_read);
-        check("Could not complete AIO operation",
-              event->result == 0 ||
-              event->result == -1);
+    if (event && (event->event_type == et_cache || event->event_type == et_large_buf)) {
+        guarantee(event->op == eo_read, "btree_modify_fsm::do_transition - invalid event");
+        guarantee(event->result != 0 && event->result != -1, "Could not complete AIO operation");
     }
 
     while (res == btree_fsm_t::transition_ok) {
@@ -411,7 +411,7 @@ void btree_modify_fsm_t::do_transition(event_t *event) {
                        }
                        new_value_timestamp = current_time();
                        bool success = leaf_node_handler::insert(cache->get_block_size(), ptr_cast<leaf_node_t>(buf->get_data_write()), &key, new_value, new_value_timestamp);
-                       check("could not insert leaf btree node", !success);
+                       guarantee(success, "could not insert leaf btree node");
                    } else {
                        // If we haven't already, do some deleting.
                        // key found, and value deleted

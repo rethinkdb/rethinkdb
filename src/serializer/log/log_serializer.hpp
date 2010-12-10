@@ -36,6 +36,8 @@ TODO: Consider the following situation:
     quickly.
 6. The read from step #2 finally gets performed, but because block B is now at address X, it gets
     the contents of block B instead of block A.
+
+    This situation is generally known as (an example of) ABA problem in concurrency literature.
 */
 
 /*

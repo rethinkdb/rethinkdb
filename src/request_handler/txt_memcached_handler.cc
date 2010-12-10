@@ -673,7 +673,12 @@ txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::parse_adjustmen
         }
     }
 
-    node_handler::str_to_key(key_tmp, &key);
+    bool key_ok = node_handler::str_to_key(key_tmp, &key);
+    if (!key_ok) {
+        conn_fsm->consume(line_len);
+        return malformed_request();
+    }
+
     // First convert to signed long to catch negative arguments (strtoull handles them as valid unsigned numbers)
     signed long long signed_delta = strtoll(value_str, NULL, 10);
     char *endptr = NULL;
@@ -712,7 +717,12 @@ txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::parse_storage_c
     }
 
     cmd = command;
-    node_handler::str_to_key(key_tmp, &key);
+
+    bool key_ok = node_handler::str_to_key(key_tmp, &key);
+    if (!key_ok) {
+        conn_fsm->consume(line_len);
+        return malformed_request();
+    }
 
     char *invalid_char;
     mcflags = strtoul(mcflags_str, &invalid_char, 10);  //a 32 bit integer.  int alone does not guarantee 32 bit length
@@ -757,16 +767,16 @@ txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::parse_storage_c
 }
 
 void txt_memcached_handler_t::on_large_value_completed(bool success) {
-    // Used for consuming data from the socket. XXX: This should be renamed.
+    // Used for consuming data from the socket. FIXME: This should be renamed.
     assert(success);
 }
 
 txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::read_data() {
-    check("memcached handler should be in loading data state", !loading_data);
-    
+    guarantee(loading_data, "memcached handler should be in loading data state");
+
     /* This function is a messy POS. It is possibly called many times per request, and it
     performs several different roles, some of which I don't entirely understand. */
-    
+
     data_provider_t *dp;
     bool is_large = bytes > MAX_BUFFERED_SET_SIZE;
     if (!is_large) {
@@ -829,7 +839,7 @@ txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::read_data() {
             new txt_memcached_append_prepend_request_t(this, &key, dp, false, noreply);
             break;
         default:
-            fail("Bad storage command.");
+            unreachable("Bad storage command.");
     }
     
     if (!is_large) {
@@ -862,13 +872,12 @@ txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::get(char *state
         txt_memcached_get_request_t *rq = new txt_memcached_get_request_t(this, with_cas);
 
         do {
-            if (strlen(key_str) >  MAX_KEY_SIZE) {
-                //check to make sure the key isn't too long
+            bool key_ok = node_handler::str_to_key(key_str, &key);
+            if (!key_ok) {
                 res = malformed_request();
                 delete rq;
                 goto error_breakout;
             }
-            node_handler::str_to_key(key_str, &key);
 
             if (!rq->add_get(&key)) {
                 // We can't fit any more operations, let's just break
@@ -927,7 +936,11 @@ txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::remove(char *st
         }
     }
 
-    node_handler::str_to_key(key_str, &key);
+    bool key_ok = node_handler::str_to_key(key_str, &key);
+    if (!key_ok) {
+        conn_fsm->consume(line_len);
+        return malformed_request();
+    }
 
     // Create request
     new txt_memcached_delete_request_t(this, &key, this->noreply);

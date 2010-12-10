@@ -241,7 +241,7 @@ off64_t extent_manager_t::gen_extent() {
         
         if (next_zone == first_zone) {
             /* We tried every zone and there were no free extents */
-            fail("RethinkDB ran out of disk space.");
+            crash("RethinkDB ran out of disk space.");
         }
     }
     

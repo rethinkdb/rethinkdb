@@ -85,7 +85,7 @@ public:
     void have_copied_value() {
         switch (result) {
             case result_not_found:
-                fail("WTF?");
+                unreachable();
             case result_small_value:
                 delete this;
                 break;
