@@ -100,7 +100,7 @@ public:
 };
 
 extent_manager_t::extent_manager_t(direct_file_t *file, log_serializer_static_config_t *static_config, log_serializer_dynamic_config_t *dynamic_config)
-    : static_config(static_config), dynamic_config(dynamic_config), extent_size(static_config->extent_size), dbfile(file), state(state_reserving_extents), n_extents_in_use(0)
+    : static_config(static_config), dynamic_config(dynamic_config), extent_size(static_config->extent_size()), dbfile(file), state(state_reserving_extents), n_extents_in_use(0)
 {
     assert(extent_size % DEVICE_BLOCK_SIZE == 0);
     

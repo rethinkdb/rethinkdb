@@ -7,6 +7,7 @@
 // Event queue callback
 struct linux_event_callback_t {
     virtual void on_event(int events) = 0;
+    virtual ~linux_event_callback_t() {}
 };
 
 // Some other stuff
@@ -16,6 +17,7 @@ typedef int fd_t;
 struct linux_queue_parent_t {
     virtual void pump() = 0;
     virtual bool should_shut_down() = 0;
+    virtual ~linux_queue_parent_t() {}
 };
 
 const int poll_event_in = 1;

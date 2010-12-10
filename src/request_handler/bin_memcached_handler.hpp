@@ -30,7 +30,7 @@ public:
     using request_handler_t::conn_fsm;
     
 public:
-    bin_memcached_handler_t(server_t *server)
+    explicit bin_memcached_handler_t(server_t *server)
         : request_handler_t(), key((btree_key*)key_memory), server(server)
         {}
     
@@ -227,8 +227,8 @@ public:
     struct packet_t
         {
         public:
-            packet_t() :data(NULL) {}
-            packet_t(byte *data) :data(data) {}
+            packet_t() : data(NULL) {}
+            explicit packet_t(byte *data) : data(data) {}
             ~packet_t() {}
             byte *data;
 
@@ -300,7 +300,7 @@ public:
                     return data + sizeof(response_header_t);
             }
 
-            void set_extras(const byte *data,const bin_extra_length_t length) {
+            void set_extras(const byte *data, const bin_extra_length_t length) {
                 //make space
                 memmove(value() + (length - extra_length()), value(), value_length());
                 memmove(key() + (length - extra_length()), key(), key_length());

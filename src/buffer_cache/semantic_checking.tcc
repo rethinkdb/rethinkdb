@@ -97,6 +97,11 @@ scc_buf_t<inner_cache_t> *scc_transaction_t<inner_cache_t>::allocate(block_id_t 
 }
 
 template<class inner_cache_t>
+repli_timestamp scc_transaction_t<inner_cache_t>::get_subtree_recency(block_id_t block_id) {
+    return inner_transaction->get_subtree_recency(block_id);
+}
+
+template<class inner_cache_t>
 scc_transaction_t<inner_cache_t>::scc_transaction_t(access_t _access, scc_cache_t<inner_cache_t> *_cache)
     : cache(_cache), access(_access), begin_cb(NULL), inner_transaction(NULL) { }
 
@@ -117,7 +122,7 @@ void scc_transaction_t<inner_cache_t>::on_txn_commit(typename inner_cache_t::tra
 
 template<class inner_cache_t>
 scc_cache_t<inner_cache_t>::scc_cache_t(
-        serializer_t *serializer,
+        translator_serializer_t *serializer,
         mirrored_cache_config_t *config)
     : inner_cache(serializer, config) {
 }
@@ -128,7 +133,7 @@ bool scc_cache_t<inner_cache_t>::start(ready_callback_t *cb) {
 }
 
 template<class inner_cache_t>
-size_t scc_cache_t<inner_cache_t>::get_block_size() {
+block_size_t scc_cache_t<inner_cache_t>::get_block_size() {
     return inner_cache.get_block_size();
 }
 

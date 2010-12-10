@@ -2,9 +2,12 @@
 #define __CMD_ARGS_HPP__
 
 #include "config/args.hpp"
+#include <stdint.h>
 #include <sys/types.h>
 #include <string>
 #include <vector>
+
+#include "serializer/types.hpp"
 
 #define NEVER_FLUSH -1
 
@@ -37,12 +40,24 @@ struct log_serializer_dynamic_config_t {
     size_t file_zone_size;
 };
 
-/* Configuration for the serializer that is set when the database is created */
 
-struct log_serializer_static_config_t {
-    
-    size_t block_size;
-    size_t extent_size;
+/* Configuration for the serializer that is set when the database is created */
+class log_serializer_static_config_t {
+    uint64_t block_size_;
+    uint64_t extent_size_;
+
+public:
+    uint64_t blocks_per_extent() const { return extent_size_ / block_size_; }
+    int block_index(off64_t offset) const { return (offset % extent_size_) / block_size_; }
+    int extent_index(off64_t offset) const { return offset / extent_size_; }
+
+    // Minimize calls to these.
+    block_size_t block_size() const { return block_size_t::unsafe_make(block_size_); }
+    uint64_t extent_size() const { return extent_size_; }
+
+    // Avoid calls to these.
+    uint64_t& unsafe_block_size() { return block_size_; }
+    uint64_t& unsafe_extent_size() { return extent_size_; }
 };
 
 /* Configuration for the cache (it can all change from run to run) */
@@ -72,7 +87,7 @@ serializer */
 
 struct btree_config_t {
     
-    int n_slices;
+    int32_t n_slices;
 };
 
 /* Configuration for the store (btree, cache, and serializers) that can be changed from run

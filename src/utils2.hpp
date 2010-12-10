@@ -6,6 +6,7 @@ The reason it is separate from utils.hpp is that the IO layer needs some of the 
 utils2.hpp, but utils.hpp needs some things in the IO layer. */
 
 #include <stdint.h>
+#include <time.h>
 #include "errors.hpp"
 
 int get_cpu_count();
@@ -14,6 +15,33 @@ long get_total_ram();
 
 typedef char byte;
 typedef char byte_t;
+
+// for safety  TODO: move this to a different file
+struct repli_timestamp {
+    uint32_t time;
+
+    static const repli_timestamp invalid;
+};
+
+// Converts a time_t (in seconds) to a repli_timestamp.  The important
+// thing here is that this will never return repli_timestamp::invalid,
+// which will matter for one second every 116 years.
+repli_timestamp repli_time(time_t t);
+
+// TODO: move this to a different file
+repli_timestamp current_time();
+
+// This is not a transitive operation.  It compares times "locally."
+// Imagine a comparison function that compares angles, in the range
+// [0, 2*pi), that is invariant with respect to rotation.  How would
+// you implement that?  This is a function that compares timestamps in
+// [0, 2**32), that is invariant with respect to translation.
+int repli_compare(repli_timestamp x, repli_timestamp y);
+
+// Like std::max, except it's technically not associative because it
+// uses repli_compare.
+repli_timestamp repli_max(repli_timestamp x, repli_timestamp y);
+
 
 void *malloc_aligned(size_t size, size_t alignment = 64);
 
@@ -66,10 +94,22 @@ void debugf(const char *msg, ...);
 // bias tends to get worse when RAND_MAX is far from a multiple of n.
 int randint(int n);
 
-// Put this in a private: declaration.
+// The existence of these functions does not constitute an endorsement
+// for casts.  These constitute an endorsement for the use of
+// reinterpret_cast, rather than C-style casts.  The latter can break
+// const correctness.
+template <class T>
+inline const T* ptr_cast(const void *p) { return reinterpret_cast<const T*>(p); }
+
+template <class T>
+inline T* ptr_cast(void *p) { return reinterpret_cast<T*>(p); }
+
+
+// Put this in a private: section.
 #define DISABLE_COPYING(T)                      \
     T(const T&);                                \
     void operator=(const T&)
+
 
 
 #include "utils2.tcc"

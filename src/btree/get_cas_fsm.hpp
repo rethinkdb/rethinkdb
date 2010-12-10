@@ -25,15 +25,16 @@ public:
     ~btree_get_cas_fsm_t() {
         pm_cmd_get.end(&start_time);
     }
-    
+
     void operate(btree_value *old_value, large_buf_t *old_large_buf) {
-        
+
         if (!old_value) {
             result = result_not_found;
             have_failed_operating();
         
         } else {
             valuecpy(&value, old_value);
+            large_value = old_large_buf;
 
             there_was_cas_before = value.has_cas();
             if (!value.has_cas()) { // We have always been at war with Eurasia.
@@ -44,7 +45,7 @@ public:
             if (value.is_large()) {
                 result = result_large_value;
                 // Prepare the buffer group
-                for (int i = 0; i < old_large_buf->get_num_segments(); i++) {
+                for (int64_t i = 0; i < old_large_buf->get_num_segments(); i++) {
                     uint16_t size;
                     const void *data = old_large_buf->get_segment(i, &size);
                     buffer_group.add_buffer(size, data);
@@ -64,7 +65,7 @@ public:
         if (there_was_cas_before) {
             have_failed_operating();   // We didn't actually fail, but we made no change
         } else {
-            have_finished_operating(&value);
+            have_finished_operating(&value, large_value);
         }
     }
     
@@ -118,6 +119,7 @@ private:
         byte value_memory[MAX_TOTAL_NODE_CONTENTS_SIZE+sizeof(btree_value)];
         btree_value value;
     };
+    large_buf_t *large_value;
     const_buffer_group_t buffer_group;
     bool in_operate;
     bool have_delivered_value;

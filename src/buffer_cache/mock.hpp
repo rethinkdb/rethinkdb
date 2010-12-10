@@ -6,6 +6,7 @@
 #include "containers/segmented_vector.hpp"
 #include "utils.hpp"
 #include "serializer/serializer.hpp"
+#include "serializer/translator.hpp"
 #include "config/cmd_args.hpp"
 #include "concurrency/rwi_lock.hpp"
 
@@ -22,14 +23,17 @@ class internal_buf_t;
 
 struct mock_transaction_begin_callback_t {
     virtual void on_txn_begin(mock_transaction_t *txn) = 0;
+    virtual ~mock_transaction_begin_callback_t() {}
 };
 
 struct mock_transaction_commit_callback_t {
     virtual void on_txn_commit(mock_transaction_t *txn) = 0;
+    virtual ~mock_transaction_commit_callback_t() {}
 };
 
 struct mock_block_available_callback_t {
     virtual void on_block_available(mock_buf_t *buf) = 0;
+    virtual ~mock_block_available_callback_t() {}
 };
 
 /* Buf */
@@ -103,20 +107,22 @@ public:
     mock_cache_t(
         // mock_cache gets a serializer so its constructor is consistent with
         // the mirrored cache's serializer, but it doesn't use it.
-        serializer_t *serializer,
+        translator_serializer_t *serializer,
         mirrored_cache_config_t *config);
     ~mock_cache_t();
     
     struct ready_callback_t {
         virtual void on_cache_ready() = 0;
+        virtual ~ready_callback_t() {}
     };
     bool start(ready_callback_t *cb);
     
-    size_t get_block_size();
+    block_size_t get_block_size();
     transaction_t *begin_transaction(access_t access, transaction_begin_callback_t *callback);
     
     struct shutdown_callback_t {
         virtual void on_cache_shutdown() = 0;
+        virtual ~shutdown_callback_t() {}
     };
     bool shutdown(shutdown_callback_t *cb);
 
@@ -125,10 +131,10 @@ private:
     friend class mock_buf_t;
     friend class internal_buf_t;
     
-    serializer_t *serializer;
+    translator_serializer_t *serializer;
     bool running;
     int n_transactions;
-    size_t block_size;
+    block_size_t block_size;
     segmented_vector_t<internal_buf_t *, MAX_BLOCK_ID> bufs;
     
     ready_callback_t *ready_callback;

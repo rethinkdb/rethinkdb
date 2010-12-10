@@ -7,7 +7,10 @@
 /* Stats */
 extern perfmon_counter_t pm_btree_depth;
 
-class btree_modify_fsm_t : public btree_fsm_t {
+class btree_modify_fsm_t :
+    public btree_fsm_t,
+    public store_t::replicant_t::done_callback_t
+{
 public:
     typedef btree_fsm_t::transition_result_t transition_result_t;
     using btree_fsm_t::key;
@@ -22,6 +25,7 @@ public:
         acquire_node,
         acquire_large_value,
         acquire_sibling,
+        call_replicants,
         update_complete,
         committing,
         call_callback_and_delete_self
@@ -35,7 +39,7 @@ public:
           node_id(NULL_BLOCK_ID), last_node_id(NULL_BLOCK_ID),
           sib_node_id(NULL_BLOCK_ID), in_operate_call(false), operated(false),
           have_computed_new_value(false), new_value(NULL),
-          update_needed(false), did_split(false), cas_already_set(false),
+          update_needed(false), update_done(false), did_split(false), cas_already_set(false),
           dest_reached(false), key_found(false), old_large_buf(NULL)
     {
     }
@@ -51,7 +55,7 @@ public:
      * until the btree_modify_fsm is destroyed.
      */
     virtual void operate(btree_value *old_value, large_buf_t *old_large_buf) = 0;
-    void have_finished_operating(btree_value *new_value);
+    void have_finished_operating(btree_value *new_value, large_buf_t *new_large_buf);
     void have_failed_operating();
     
     /* btree_modify_fsm calls call_callback_and_delete() after it has
@@ -95,25 +99,28 @@ public:
 
 private:
     bool update_needed;   // true if have_finished_operating(), false if have_failed_operating()
+    bool update_done;
     bool did_split; /* XXX when an assert on this fails it means EPSILON is wrong */
 
 protected:
     bool cas_already_set; // In case a sub-class needs to set the CAS itself.
-
-private:
-    bool dest_reached;
-    bool key_found;
 
     union {
         byte old_value_memory[MAX_TOTAL_NODE_CONTENTS_SIZE+sizeof(btree_value)];
         btree_value old_value;
     };
 
-    large_buf_t *old_large_buf;
-    //large_buf_t *new_large_value;
-};
+private:
+    bool dest_reached;
+    bool key_found;
 
-// TODO: Figure out includes.
-#include "conn_fsm.hpp"
+    large_buf_t *old_large_buf, *new_large_buf;
+
+    // Replication-related stuff
+    void have_copied_value();   // Called by replicants when they are done with the value we gave em
+    bool in_value_call;
+    const_buffer_group_t replicant_bg;
+    int replicants_awaited;
+};
 
 #endif // __BTREE_MODIFY_FSM_HPP__

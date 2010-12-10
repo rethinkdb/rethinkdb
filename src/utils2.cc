@@ -16,6 +16,35 @@ long get_total_ram() {
     return (long)sysconf(_SC_PHYS_PAGES) * (long)sysconf(_SC_PAGESIZE);
 }
 
+
+const repli_timestamp repli_timestamp::invalid = { -1 };
+
+repli_timestamp repli_time(time_t t) {
+    repli_timestamp ret;
+    uint32_t x = t;
+    ret.time = (x == (uint32_t)-1 ? 0 : x);
+    return ret;
+}
+
+repli_timestamp current_time() {
+    // Get the current time, cast it to 32 bits.  The lack of
+    // precision will not break things in 2038 or 2106 if we compare
+    // times correctly.
+
+    // time(NULL) does not do a system call (on Linux), last time we
+    // checked, but it's still kind of slow.
+    return repli_time(time(NULL));
+}
+
+int repli_compare(repli_timestamp x, repli_timestamp y) {
+    return int(int32_t(x.time - y.time));
+}
+
+repli_timestamp repli_max(repli_timestamp x, repli_timestamp y) {
+    return repli_compare(x, y) < 0 ? y : x;
+}
+
+
 void *malloc_aligned(size_t size, size_t alignment) {
     void *ptr = NULL;
     int res = posix_memalign(&ptr, alignment, size);
@@ -38,7 +67,7 @@ void random_delay(void (*fun)(void*), void *arg) {
 }
 
 void debugf(const char *msg, ...) {
-    
+
     flockfile(stderr);
     va_list args;
     va_start(args, msg);
@@ -54,7 +83,7 @@ int randint(int n) {
         srand(time(NULL));
         initted = true;
     }
-    
+
     assert(n > 0 && n < RAND_MAX);
     return rand() % n;
 }

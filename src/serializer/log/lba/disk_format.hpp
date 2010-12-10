@@ -17,7 +17,7 @@ union flagged_off64_t {
     struct {
         // The actual offset into the file.
         off64_t value : 63;
-    
+
         // This block id was deleted, and the offset points to a zeroed
         // out buffer.
         int is_delete : 1;
@@ -52,12 +52,12 @@ union flagged_off64_t {
         ret.parts.is_delete = 1;
         return ret;
     }
-    
+
     static bool has_value(flagged_off64_t offset) {
         offset.parts.is_delete = 1;
         return offset.whole_value != off64_t(-1);
     }
-    
+
     static inline bool can_be_gced(flagged_off64_t offset) {
         return has_value(offset);
     }
@@ -79,7 +79,7 @@ struct lba_shard_metablock_t {
 };
 
 struct lba_metablock_mixin_t {
-    
+
     lba_shard_metablock_t shards[LBA_SHARD_FACTOR];
 };
 
@@ -89,18 +89,18 @@ struct lba_metablock_mixin_t {
 // PADDING_BLOCK_ID and flagged_off64_t::padding() indicate that an entry in the LBA list only exists to fill
 // out a DEVICE_BLOCK_SIZE-sized chunk of the extent.
 
-#define PADDING_BLOCK_ID ser_block_id_t(-1)
+static const ser_block_id_t PADDING_BLOCK_ID = ser_block_id_t::null();
 
 struct lba_entry_t {
     ser_block_id_t block_id;
-    uint32_t timestamp;  // reserved
+    repli_timestamp recency;
     // An offset into the file, with is_delete set appropriately.
     flagged_off64_t offset;
 
-    static inline lba_entry_t make(ser_block_id_t block_id, flagged_off64_t offset) {
+    static inline lba_entry_t make(ser_block_id_t block_id, repli_timestamp recency, flagged_off64_t offset) {
         lba_entry_t entry;
         entry.block_id = block_id;
-        entry.timestamp = 0;
+        entry.recency = recency;
         entry.offset = offset;
         return entry;
     }
@@ -110,12 +110,12 @@ struct lba_entry_t {
     }
 
     static inline lba_entry_t make_padding_entry() {
-        return make(PADDING_BLOCK_ID, flagged_off64_t::padding());
+        return make(PADDING_BLOCK_ID, repli_timestamp::invalid, flagged_off64_t::padding());
     }
 } __attribute((__packed__));
 
-    
-    
+
+
 
 #define LBA_MAGIC_SIZE 8
 static const char lba_magic[LBA_MAGIC_SIZE] = {'l', 'b', 'a', 'm', 'a', 'g', 'i', 'c'};

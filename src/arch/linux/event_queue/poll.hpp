@@ -7,6 +7,7 @@
 #include <vector>
 #include "config/args.hpp"
 #include "perfmon.hpp"
+#include "arch/linux/disk.hpp"
 
 // Event queue structure
 struct poll_event_queue_t {
@@ -15,7 +16,7 @@ public:
     typedef std::map<fd_t, linux_event_callback_t*> callback_map_t;
     
 public:
-    poll_event_queue_t(linux_queue_parent_t *parent);
+    explicit poll_event_queue_t(linux_queue_parent_t *parent);
     void run();
     ~poll_event_queue_t();
 

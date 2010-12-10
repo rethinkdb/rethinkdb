@@ -8,7 +8,7 @@ private:
     uint64_t *bits;
 
 public:
-    bitset_t(size_t size) {
+    explicit bitset_t(size_t size) {
         bits = new uint64_t[ceil_aligned(size, 64) / 64];
         bzero(bits, ceil_aligned(size, 64) / 64 * sizeof(uint64_t));
         _size = size;

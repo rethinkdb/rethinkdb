@@ -19,7 +19,7 @@ public:
         the leaf in write mode to automatically delete the expired key if necessary. */
         have_failed_operating();
     }
-    
+
     void call_callback_and_delete() {
         delete this;
     }

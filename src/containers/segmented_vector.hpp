@@ -2,6 +2,10 @@
 #ifndef __SEGMENTED_VECTOR_HPP__
 #define __SEGMENTED_VECTOR_HPP__
 
+#include "utils2.hpp"
+
+#include <stdlib.h>
+
 
 #define ELEMENTS_PER_SEGMENT (1 << 14)
 
@@ -15,7 +19,7 @@ private:
     size_t size;
     
 public:
-    segmented_vector_t(size_t size = 0) : size(0) {
+    explicit segmented_vector_t(size_t size = 0) : size(0) {
         set_size(size);
     }
     

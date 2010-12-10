@@ -45,7 +45,7 @@ def random_action(opts, mc, clone, deleted):
     
     what_to_do = random.random()
     
-    if what_to_do < 0.5:
+    if what_to_do < 0.2:
         # Check a random key
         if opts["thorough"]:
             # We check thoroughly after every test anyway
@@ -53,7 +53,7 @@ def random_action(opts, mc, clone, deleted):
         if not clone: return
         verify(opts, mc, clone, deleted, random.choice(clone.keys()))
         
-    elif what_to_do < 0.55:
+    elif what_to_do < 0.25:
         # Check a deleted or nonexistent key
         if random.random() < 0.5 and deleted:
             # A deleted key
@@ -63,7 +63,7 @@ def random_action(opts, mc, clone, deleted):
             key = random_key(opts)
         verify(opts, mc, clone, deleted, key)
     
-    elif what_to_do < 0.9:
+    elif what_to_do < 0.6:
         # Set
         if random.random() < 0.3 and clone:
             # An existing key

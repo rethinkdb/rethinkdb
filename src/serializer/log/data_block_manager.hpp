@@ -9,6 +9,7 @@
 #include "containers/bitset.hpp"
 #include "extents/extent_manager.hpp"
 #include "serializer/serializer.hpp"
+#include "serializer/types.hpp"
 #include <bitset>
 #include <functional>
 #include <queue>
@@ -18,7 +19,7 @@
 
 // Stats
 
-extern perfmon_counter_t 
+extern perfmon_counter_t
     pm_serializer_data_extents,
     pm_serializer_old_garbage_blocks,
     pm_serializer_old_total_blocks;
@@ -56,11 +57,6 @@ public:
     restarting an existing database, call start() with the last metablock. */
 
 public:
-    /* data to be serialized to disk with each block.  Changing this changes the disk format! */
-    struct buf_data_t {
-        ser_block_id_t block_id;
-        ser_transaction_id_t transaction_id;
-    } __attribute__((__packed__));
 
         
     static buf_data_t make_buf_data_t(ser_block_id_t block_id, ser_transaction_id_t transaction_id) {
@@ -111,6 +107,7 @@ public:
 public:
     struct shutdown_callback_t {
         virtual void on_datablock_manager_shutdown() = 0;
+        virtual ~shutdown_callback_t() {}
     };
     // The shutdown_callback_t may destroy the data_block_manager.
     bool shutdown(shutdown_callback_t *cb);
@@ -119,6 +116,7 @@ public:
 
     struct gc_disable_callback_t {
         virtual void on_gc_disabled() = 0;
+        virtual ~gc_disable_callback_t() {}
     };
 
     // Always calls the callback, returns true if the callback has
@@ -195,7 +193,7 @@ private:
         explicit gc_entry(data_block_manager_t *parent)
             : parent(parent),
               offset(parent->extent_manager->gen_extent()),
-              g_array(parent->extent_manager->extent_size / parent->static_config->block_size),
+              g_array(parent->static_config->blocks_per_extent()),
               timestamp(current_timestamp())
         {
             assert(parent->entries.get(offset / parent->extent_manager->extent_size) == NULL);
@@ -210,7 +208,7 @@ private:
         explicit gc_entry(data_block_manager_t *parent, off64_t offset)
             : parent(parent),
               offset(offset),
-              g_array(parent->extent_manager->extent_size / parent->static_config->block_size),
+              g_array(parent->static_config->blocks_per_extent()),
               timestamp(current_timestamp())
         {
             parent->extent_manager->reserve_extent(offset);
@@ -319,7 +317,7 @@ private:
         data_block_manager_t::gc_write_callback_t gc_write_callback;
         data_block_manager_t::gc_disable_callback_t *gc_disable_callback;
 
-        gc_state_t(size_t extent_size) : step_(gc_ready), should_be_stopped(0), refcount(0), current_entry(NULL)
+        explicit gc_state_t(size_t extent_size) : step_(gc_ready), should_be_stopped(0), refcount(0), current_entry(NULL)
         {
             /* TODO this is excessive as soon as we have a bound on how much space we need we should allocate less */
             gc_blocks = (char *)malloc_aligned(extent_size, DEVICE_BLOCK_SIZE);
@@ -349,8 +347,8 @@ private:
             int val;
             perfmon_counter_t &perfmon;
         public:
-            gc_stat_t(perfmon_counter_t &perfmon)
-                :val(0), perfmon(perfmon)
+            explicit gc_stat_t(perfmon_counter_t &perfmon)
+                : val(0), perfmon(perfmon)
             {}
             void operator++(int) { val++; perfmon++;}
             void operator+=(int64_t num) { val += num; perfmon += num; }
@@ -385,7 +383,7 @@ public:
     private: 
         data_block_manager_t *data_block_manager;
     public:
-        garbage_ratio_reporter_t(data_block_manager_t *data_block_manager)
+        explicit garbage_ratio_reporter_t(data_block_manager_t *data_block_manager)
             : data_block_manager(data_block_manager) {}
         ~garbage_ratio_reporter_t() {}
         float operator()() {

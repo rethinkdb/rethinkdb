@@ -10,7 +10,6 @@ class btree_get_fsm_t :
 {
 public:
     typedef btree_fsm_t::transition_result_t transition_result_t;
-    using btree_fsm_t::key;
 
 public:
     enum state_t {
@@ -57,9 +56,6 @@ public:
     const_buffer_group_t value_buffers;
 
 private:
-    using btree_fsm_t::cache;
-    using btree_fsm_t::transaction;
-
     transition_result_t do_acquire_superblock(event_t *event);
     transition_result_t do_acquire_root(event_t *event);
     transition_result_t do_acquire_node(event_t *event);

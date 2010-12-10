@@ -19,7 +19,11 @@ struct mock_io_config_t {
     typedef typename inner_io_config_t::net_listener_callback_t net_listener_callback_t;
     
     typedef typename inner_io_config_t::net_conn_t net_conn_t;
-    typedef typename inner_io_config_t::net_conn_callback_t net_conn_callback_t;
+    typedef typename inner_io_config_t::net_conn_read_callback_t net_conn_read_callback_t;
+    typedef typename inner_io_config_t::net_conn_write_callback_t net_conn_write_callback_t;
+    
+    typedef typename inner_io_config_t::oldstyle_net_conn_t oldstyle_net_conn_t;
+    typedef typename inner_io_config_t::oldstyle_net_conn_callback_t oldstyle_net_conn_callback_t;
     
     typedef typename inner_io_config_t::cpu_message_t cpu_message_t;
     

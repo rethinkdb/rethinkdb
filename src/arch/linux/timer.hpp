@@ -27,7 +27,7 @@ private:
 struct linux_timer_handler_t :
     public linux_event_callback_t
 {
-    linux_timer_handler_t(linux_event_queue_t *queue);
+    explicit linux_timer_handler_t(linux_event_queue_t *queue);
     ~linux_timer_handler_t();
     
     linux_event_queue_t *queue;

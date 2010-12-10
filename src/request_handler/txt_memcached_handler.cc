@@ -472,7 +472,7 @@ class disable_gc_request_t :
     txt_memcached_handler_t *rh;
     
 public:
-    disable_gc_request_t(txt_memcached_handler_t *rh)
+    explicit disable_gc_request_t(txt_memcached_handler_t *rh)
         : rh(rh), done(false) {
 
         rh->server->disable_gc(this);
@@ -515,7 +515,7 @@ class enable_gc_request_t :
     txt_memcached_handler_t *rh;
     
 public:
-    enable_gc_request_t(txt_memcached_handler_t *rh)
+    explicit enable_gc_request_t(txt_memcached_handler_t *rh)
         : rh(rh), done(false) {
 
         rh->server->enable_gc(this);
@@ -970,6 +970,38 @@ txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::parse_stat_comm
     return request_handler_t::op_req_complex;
 }
 
+/* Hack for testing replication */
+
+static store_t::replicant_t *test_replicant;
+
+class test_replicant_t :
+    public store_t::replicant_t
+{
+    void value(const store_key_t *key, const_buffer_group_t *bg, done_callback_t *cb, mcflags_t flags, exptime_t exptime, cas_t cas) {
+        flockfile(stderr);
+        debugf("VALUE '%*.*s' = ", key->size, key->size, key->contents);
+        if (bg) {
+            fprintf(stderr, "'");
+            for (int i = 0; i < (int)bg->buffers.size(); i++) {
+                fwrite(bg->buffers[i].data, 1, bg->buffers[i].size, stderr);
+            }
+            fprintf(stderr, "' %d %d %d\n", (int)flags, (int)exptime, (int)cas);
+        } else {
+            assert(flags == 0);
+            assert(exptime == 0);
+            assert(cas == 0);
+            fprintf(stderr, "deleted\n");
+        }
+        funlockfile(stderr);
+        cb->have_copied_value();
+    }
+    
+    void stopped() {
+        debugf("Stopped replicating.\n");
+        delete this;
+    }
+};
+
 txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::parse_gc_command(unsigned int line_len, char *state) {
     
     const char *subcommand = strtok_r(NULL, DELIMS, &state);
@@ -1007,6 +1039,32 @@ txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::parse_gc_comman
             conn_fsm->consume(line_len);
             return malformed_request();
         }
+
+    /* Hack for testing replication */
+
+    } else if (!strcmp(subcommand, "replicate")) {
+        conn_fsm->consume(line_len);
+        if (!test_replicant) {
+            test_replicant = new test_replicant_t;
+            int one_decade = 3600*24*365*10;
+            server->store->replicate(test_replicant, repli_time(time(NULL) - one_decade) /* TODO this is a hack for testing */);
+            conn_fsm->sbuf->printf("Replicating to stderr.\r\n");
+        } else {
+            conn_fsm->sbuf->printf("Already replicating.\r\n");
+        }
+        return request_handler_t::op_req_send_now;
+
+    } else if (!strcmp(subcommand, "unreplicate")) {
+        conn_fsm->consume(line_len);
+        if (test_replicant) {
+            server->store->stop_replicating(test_replicant);
+            test_replicant = NULL;
+            conn_fsm->sbuf->printf("Stopped replicating.\r\n");
+        } else {
+            conn_fsm->sbuf->printf("Already not replicating.\r\n");
+        }
+        return request_handler_t::op_req_send_now;
+
     } else if (!strcmp(subcommand, "help")) {
         if (strtok_r(NULL, DELIMS, &state)) {
             conn_fsm->consume(line_len);
@@ -1015,7 +1073,12 @@ txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::parse_gc_comman
 
         conn_fsm->consume(line_len);
 
-        conn_fsm->sbuf->printf("Commonly used commands:\n  rethinkdbctl gc disable\n  rethinkdbctl gc enable\n");
+        conn_fsm->sbuf->printf("Commonly used commands:\n");
+        conn_fsm->sbuf->printf("rethinkdbctl gc disable\n");
+        conn_fsm->sbuf->printf("rethinkdbctl gc enable\n");
+        conn_fsm->sbuf->printf("rethinkdbctl replicate\n");
+        conn_fsm->sbuf->printf("rethinkdbctl unreplicate\n");
+
         return request_handler_t::op_req_send_now;
     } else {
         // Invalid command.

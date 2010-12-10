@@ -57,7 +57,7 @@ struct ls_start_new_fsm_t :
     public static_header_write_callback_t,
     public mb_manager_t::metablock_write_callback_t
 {
-    ls_start_new_fsm_t(log_serializer_t *serializer)
+    explicit ls_start_new_fsm_t(log_serializer_t *serializer)
         : ser(serializer) {
     }
     
@@ -160,7 +160,7 @@ struct ls_start_existing_fsm_t :
     public lba_index_t::ready_callback_t
 {
     
-    ls_start_existing_fsm_t(log_serializer_t *serializer)
+    explicit ls_start_existing_fsm_t(log_serializer_t *serializer)
         : ser(serializer), state(state_start) {
     }
     
@@ -234,8 +234,8 @@ struct ls_start_existing_fsm_t :
         if (state == state_reconstruct) {
 
             ser->data_block_manager->start_reconstruct();
-            for (ser_block_id_t id = 0; id < ser->lba_index->max_block_id(); id++) {
-                flagged_off64_t offset = ser->lba_index->get_block_offset(id);
+            for (ser_block_id_t::number_t id = 0; id < ser->lba_index->max_block_id().value; id++) {
+                flagged_off64_t offset = ser->lba_index->get_block_offset(ser_block_id_t::make(id));
                 if (flagged_off64_t::can_be_gced(offset)) {
                     ser->data_block_manager->mark_live(offset.parts.value);
                 }
@@ -328,9 +328,9 @@ void *log_serializer_t::malloc() {
     // free). This is tough because serializer object may not be on
     // the same core as the cache that's using it, so we should expose
     // the malloc object in a different way.
-    byte_t *data = (byte_t*)malloc_aligned(static_config.block_size, DEVICE_BLOCK_SIZE);
-    data += sizeof(data_block_manager_t::buf_data_t);
-    return (void*)data;
+    char *data = (char *)malloc_aligned(static_config.block_size().ser_value(), DEVICE_BLOCK_SIZE);
+    data += sizeof(buf_data_t);
+    return (void *)data;
 }
 
 void *log_serializer_t::clone(void *_data) {
@@ -342,19 +342,19 @@ void *log_serializer_t::clone(void *_data) {
     // free). This is tough because serializer object may not be on
     // the same core as the cache that's using it, so we should expose
     // the malloc object in a different way.
-    byte_t *data = (byte_t*)malloc_aligned(static_config.block_size, DEVICE_BLOCK_SIZE);
-    memcpy(data, (byte_t*)_data - sizeof(data_block_manager_t::buf_data_t), static_config.block_size);
-    data += sizeof(data_block_manager_t::buf_data_t);
-    return (void*)data;
+    char *data = (char *)malloc_aligned(static_config.block_size().ser_value(), DEVICE_BLOCK_SIZE);
+    memcpy(data, (char *)_data - sizeof(buf_data_t), static_config.block_size().ser_value());
+    data += sizeof(buf_data_t);
+    return (void *)data;
 }
 
 void log_serializer_t::free(void *ptr) {
     
     assert(state == state_ready);
     
-    byte_t *data = (byte_t*)ptr;
-    data -= sizeof(data_block_manager_t::buf_data_t);
-    ::free((void*)data);
+    char *data = (char *)ptr;
+    data -= sizeof(buf_data_t);
+    ::free((void *)data);
 }
 
 /* Each transaction written is handled by a new ls_write_fsm_t instance. This is so that
@@ -393,69 +393,89 @@ struct ls_block_writer_t :
     }
     
     bool do_write() {
-        
-        /* If there was another write currently in progress for the same block, then
-        remove it from the block map because we are superceding it */
-        log_serializer_t::block_writer_map_t::iterator it = ser->block_writer_map.find(write.block_id);
-        if (it != ser->block_writer_map.end()) {
-            ls_block_writer_t *writer_we_are_superceding = (*it).second;
-            writer_we_are_superceding->superceded = true;
-            ser->block_writer_map.erase(it);
-        }
 
-        /* mark the garbage */
-        flagged_off64_t gc_offset = ser->lba_index->get_block_offset(write.block_id);
-        if (flagged_off64_t::can_be_gced(gc_offset))
-            ser->data_block_manager->mark_garbage(gc_offset.parts.value);
-        
-        if (write.buf) {
-        
-            off64_t new_offset;
-            bool done = ser->data_block_manager->write(write.buf, write.block_id, ser->current_transaction_id, &new_offset, this);
-            ser->lba_index->set_block_offset(write.block_id, flagged_off64_t::real(new_offset));
-            
-            /* Insert ourselves into the block_writer_map so that if a reader comes looking for the
-            block before we finish writing it to disk, it will be able to find us to get the most
-            recent version */
-            ser->block_writer_map[write.block_id] = this;
-            superceded = false;
-            
-            if (done) return do_finish();
-            else return false;
-        
-        } else {
+        if (write.buf_specified) {
 
-            /* Deletion */
-        
-            /* We tell the data_block_manager to write a zero block to
-               make recovery from a corrupted file more likely.  We
-               don't need to add anything to the block_writer_map
-               because that's for readers' sake, and you can't read a
-               deleted block. */
+            /* If there was another write currently in progress for the same block, then
+               remove it from the block map because we are superceding it */
+            log_serializer_t::block_writer_map_t::iterator it = ser->block_writer_map.find(write.block_id);
+            if (it != ser->block_writer_map.end()) {
+                ls_block_writer_t *writer_we_are_superceding = (*it).second;
+                writer_we_are_superceding->superceded = true;
+                ser->block_writer_map.erase(it);
+            }
 
-            // We write a zero buffer with the given block_id at the front.
-            zerobuf = ser->malloc();
-            bzero(zerobuf, ser->get_block_size());
-            memcpy(zerobuf, &log_serializer_t::zerobuf_magic, sizeof(block_magic_t));
+            /* mark the garbage */
+            flagged_off64_t gc_offset = ser->lba_index->get_block_offset(write.block_id);
+            if (flagged_off64_t::can_be_gced(gc_offset))
+                ser->data_block_manager->mark_garbage(gc_offset.parts.value);
 
-            off64_t new_offset;
-            bool done = ser->data_block_manager->write(zerobuf, write.block_id, ser->current_transaction_id, &new_offset, this);
-            ser->lba_index->set_block_offset(write.block_id, flagged_off64_t::deleteblock(new_offset));
+            bool done;
 
+            repli_timestamp recency = write.recency_specified ? write.recency : ser->lba_index->get_block_recency(write.block_id);
+
+
+            if (write.buf) {
+
+                off64_t new_offset;
+                done = ser->data_block_manager->write(write.buf, write.block_id, ser->current_transaction_id, &new_offset, this);
+
+                ser->lba_index->set_block_offset(write.block_id, recency, flagged_off64_t::real(new_offset));
+
+                /* Insert ourselves into the block_writer_map so that if a reader comes looking for the
+                   block before we finish writing it to disk, it will be able to find us to get the most
+                   recent version */
+                ser->block_writer_map[write.block_id] = this;
+                superceded = false;
+
+            } else {
+
+                /* Deletion */
+
+                /* We tell the data_block_manager to write a zero block to
+                   make recovery from a corrupted file more likely.  We
+                   don't need to add anything to the block_writer_map
+                   because that's for readers' sake, and you can't read a
+                   deleted block. */
+
+                // We write a zero buffer with the given block_id at the front.
+                zerobuf = ser->malloc();
+                bzero(zerobuf, ser->get_block_size().value());
+                memcpy(zerobuf, &log_serializer_t::zerobuf_magic, sizeof(block_magic_t));
+
+                off64_t new_offset;
+                done = ser->data_block_manager->write(zerobuf, write.block_id, ser->current_transaction_id, &new_offset, this);
+                ser->lba_index->set_block_offset(write.block_id, recency, flagged_off64_t::deleteblock(new_offset));
+            }
             if (done) {
                 return do_finish();
             } else {
                 return false;
             }
+
+        } else {
+            // It doesn't make sense for a write to not specify a
+            // recency _or_ a buffer, since such a write does not
+            // actually do anything.
+            assert(write.recency_specified);
+
+
+            if (write.recency_specified) {
+                ser->lba_index->set_block_offset(write.block_id, write.recency, ser->lba_index->get_block_offset(write.block_id));
+            }
+
+            return do_finish();
+
         }
+
     }
-    
+
     void on_io_complete(event_t *e) {
         do_finish();
     }
-    
+
     bool do_finish() {
-        
+
         /* Now that the block is safely on disk, we remove ourselves from the block_writer_map; if
         a reader comes along looking for the block, it will get it from disk. */
         if (write.buf && !superceded) {
@@ -463,7 +483,7 @@ struct ls_block_writer_t :
             assert((*it).second == this);
             ser->block_writer_map.erase(it);
         }
-        
+
         if (write.callback) write.callback->on_serializer_write_block();
         if (extra_cb) extra_cb->on_io_complete(NULL);
 
@@ -580,7 +600,7 @@ struct ls_write_fsm_t :
     void on_io_complete(event_t *unused) {
         assert(state == state_waiting_for_data_and_lba);
         assert(num_writes_waited_for > 0);
-        num_writes_waited_for --;
+        num_writes_waited_for--;
         maybe_write_metablock();
     }
     
@@ -753,7 +773,8 @@ struct ls_read_fsm_t :
         } else {
             
             /* We are currently writing the block; we can just get it from memory */
-            memcpy(buf, (*it).second->write.buf, ser->get_block_size());
+            // TODO:  This is a block_size_t.  Is this the right block size to use?
+            memcpy(buf, (*it).second->write.buf, ser->get_block_size().value());
             return done();
         }
     }
@@ -779,9 +800,8 @@ bool log_serializer_t::do_read(ser_block_id_t block_id, void *buf, read_callback
     return fsm->run(callback);
 }
 
-size_t log_serializer_t::get_block_size() {
-    
-    return static_config.block_size - sizeof(data_block_manager_t::buf_data_t);
+block_size_t log_serializer_t::get_block_size() {
+    return static_config.block_size();
 }
 
 ser_block_id_t log_serializer_t::max_block_id() {
@@ -798,6 +818,10 @@ bool log_serializer_t::block_in_use(ser_block_id_t id) {
     assert_cpu();
     
     return !(lba_index->get_block_offset(id).parts.is_delete);
+}
+
+repli_timestamp log_serializer_t::get_recency(ser_block_id_t id) {
+    return lba_index->get_block_recency(id);
 }
 
 bool log_serializer_t::shutdown(shutdown_callback_t *cb) {

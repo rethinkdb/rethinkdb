@@ -12,7 +12,7 @@ typedef uint64_t cas_t;
 struct store_key_t {
     uint8_t size;
     char contents[0];
-    void print() {
+    void print() const {
         printf("%*.*s", size, size, contents);
     }
 };
@@ -66,6 +66,7 @@ struct data_provider_t {
     struct done_callback_t {
         virtual void have_provided_value() = 0;
         virtual void have_failed() = 0;
+        virtual ~done_callback_t() {}
     };
     virtual void get_value(buffer_group_t *dest, done_callback_t *cb) = 0;
 };
@@ -84,9 +85,11 @@ struct store_t {
     
         struct done_callback_t {
             virtual void have_copied_value() = 0;
+            virtual ~done_callback_t() {}
         };
         virtual void value(const_buffer_group_t *value, done_callback_t *cb, mcflags_t flags, cas_t cas) = 0;
         virtual void not_found() = 0;
+        virtual ~get_callback_t() {}
     };
     virtual void get(store_key_t *key, get_callback_t *cb) = 0;
     virtual void get_cas(store_key_t *key, get_callback_t *cb) = 0;
@@ -114,6 +117,8 @@ struct store_t {
         
         /* Called if the data_provider_t that you gave returned have_failed(). */
         virtual void data_provider_failed() = 0;
+
+        virtual ~set_callback_t() {}
     };
     virtual void set(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, set_callback_t *cb) = 0;
     virtual void add(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, set_callback_t *cb) = 0;
@@ -127,6 +132,8 @@ struct store_t {
         virtual void success(unsigned long long new_value) = 0;
         virtual void not_found() = 0;
         virtual void not_numeric() = 0;
+
+        virtual ~incr_decr_callback_t() {}
     };
     virtual void incr(store_key_t *key, unsigned long long amount, incr_decr_callback_t *cb) = 0;
     virtual void decr(store_key_t *key, unsigned long long amount, incr_decr_callback_t *cb) = 0;
@@ -139,6 +146,8 @@ struct store_t {
         virtual void too_large() = 0;
         virtual void not_found() = 0;
         virtual void data_provider_failed() = 0;
+
+        virtual ~append_prepend_callback_t() {}
     };
     virtual void append(store_key_t *key, data_provider_t *data, append_prepend_callback_t *cb) = 0;
     virtual void prepend(store_key_t *key, data_provider_t *data, append_prepend_callback_t *cb) = 0;
@@ -149,8 +158,35 @@ struct store_t {
         
         virtual void deleted() = 0;
         virtual void not_found() = 0;
+
+        virtual ~delete_callback_t() {}
     };
     virtual void delete_key(store_key_t *key, delete_callback_t *cb) = 0;
+    
+    /* To start replicating, call replicate() with a replicant_t.
+    
+    The replicant_t's value() method will be called for every key in the database at the time that
+    replicate() is called and for every change that is made after replicate() is called. It may be
+    called on any thread(s) and in any order.
+    
+    To stop replicating, call stop_replicating() with the same replicant. Note that it is not safe
+    to delete the replicant until its stopped() method is called. */
+    
+    struct replicant_t {
+        
+        struct done_callback_t {
+            virtual void have_copied_value() = 0;
+        };
+        virtual void value(const store_key_t *key, const_buffer_group_t *value, done_callback_t *cb, mcflags_t flags, exptime_t exptime, cas_t cas) = 0;
+        
+        virtual void stopped() = 0;
+        
+        virtual ~replicant_t() {}
+    };
+    virtual void replicate(replicant_t *cb, repli_timestamp cutoff) = 0;
+    virtual void stop_replicating(replicant_t *cb) = 0;
+
+    virtual ~store_t() {}
 };
 
 #endif /* __STORE_HPP__ */

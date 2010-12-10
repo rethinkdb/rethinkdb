@@ -39,8 +39,7 @@ void usage(const char *name) {
            "                        sit in memory indefinitely.\n");
     if (DEFAULT_FLUSH_TIMER_MS == NEVER_FLUSH) {
         printf("                        Defaults to 'disable'.\n");
-    }
-    else {
+    } else {
         printf("                        Defaults to %dms.\n", DEFAULT_FLUSH_TIMER_MS);
     }
     printf("      --flush-threshold If more than X%% of the server's maximum cache size is\n"
@@ -84,8 +83,8 @@ void init_config(cmd_config_t *config) {
     config->force_create = false;
     config->shutdown_after_creation = false;
     
-    config->store_static_config.serializer.extent_size = DEFAULT_EXTENT_SIZE;
-    config->store_static_config.serializer.block_size = DEFAULT_BTREE_BLOCK_SIZE;
+    config->store_static_config.serializer.unsafe_extent_size() = DEFAULT_EXTENT_SIZE;
+    config->store_static_config.serializer.unsafe_block_size() = DEFAULT_BTREE_BLOCK_SIZE;
     
     config->store_static_config.btree.n_slices = DEFAULT_BTREE_SHARD_FACTOR;
 }
@@ -207,12 +206,12 @@ void parse_cmd_args(int argc, char *argv[], cmd_config_t *config)
             config->store_dynamic_config.cache.max_size = atoll(optarg) * 1024 * 1024;
             break;
         case wait_for_flush:
-        	if (strcmp(optarg, "y")==0) config->store_dynamic_config.cache.wait_for_flush = true;
-        	else if (strcmp(optarg, "n")==0) config->store_dynamic_config.cache.wait_for_flush = false;
-        	else fail_due_to_user_error("wait-for-flush expects 'y' or 'n'");
+            if (strcmp(optarg, "y") == 0) config->store_dynamic_config.cache.wait_for_flush = true;
+            else if (strcmp(optarg, "n") == 0) config->store_dynamic_config.cache.wait_for_flush = false;
+            else fail_due_to_user_error("wait-for-flush expects 'y' or 'n'");
             break;
         case flush_timer:
-            if (strcmp(optarg, "disable")==0) config->store_dynamic_config.cache.flush_timer_ms = NEVER_FLUSH;
+            if (strcmp(optarg, "disable") == 0) config->store_dynamic_config.cache.flush_timer_ms = NEVER_FLUSH;
             else {
                 config->store_dynamic_config.cache.flush_timer_ms = atoi(optarg);
                 if (config->store_dynamic_config.cache.flush_timer_ms < 0) {
@@ -240,28 +239,30 @@ void parse_cmd_args(int argc, char *argv[], cmd_config_t *config)
             config->store_dynamic_config.serializer.gc_high_ratio = high;
             break;
         }
-        case active_data_extents:
-            config->store_dynamic_config.serializer.num_active_data_extents = atoi(optarg);
-            if (config->store_dynamic_config.serializer.num_active_data_extents < 1 ||
-                config->store_dynamic_config.serializer.num_active_data_extents > MAX_ACTIVE_DATA_EXTENTS) {
+        case active_data_extents: {
+            unsigned nade = atoi(optarg);
+            config->store_dynamic_config.serializer.num_active_data_extents = nade;
+            if (nade < 1 || nade > MAX_ACTIVE_DATA_EXTENTS) {
                 fail_due_to_user_error("--active-data-extents must be less than or equal to %d", MAX_ACTIVE_DATA_EXTENTS);
             }
-            break;
-        case block_size:
-            config->store_static_config.serializer.block_size = atoi(optarg);
-            if (config->store_static_config.serializer.block_size % DEVICE_BLOCK_SIZE != 0) {
+        } break;
+        case block_size: {
+            uint64_t bs = atoi(optarg);
+            config->store_static_config.serializer.unsafe_block_size() = bs;
+            if (bs % DEVICE_BLOCK_SIZE != 0) {
                 fail_due_to_user_error("--block-size must be a multiple of %d", DEVICE_BLOCK_SIZE);
             }
-            if (config->store_static_config.serializer.block_size <= 0 || config->store_static_config.serializer.block_size > DEVICE_BLOCK_SIZE * 1000) {
+            if (bs <= 0 || bs > DEVICE_BLOCK_SIZE * 1000) {
                 fail_due_to_user_error("--block-size value is not reasonable.");
             }
-            break;
-        case extent_size:
-            config->store_static_config.serializer.extent_size = atoi(optarg);
-            if (config->store_static_config.serializer.extent_size <= 0 || config->store_static_config.serializer.extent_size > TERABYTE) {
+        } break;
+        case extent_size: {
+            uint64_t es = atoi(optarg);
+            config->store_static_config.serializer.unsafe_extent_size() = es;
+            if (es <= 0 || es > TERABYTE) {
                 fail_due_to_user_error("--extent-size value is not reasonable.");
             }
-            break;
+        } break;
         case create_database:
             config->create_store = true;
             config->shutdown_after_creation = true;
@@ -315,20 +316,20 @@ void parse_cmd_args(int argc, char *argv[], cmd_config_t *config)
     if (config->store_dynamic_config.cache.wait_for_flush == true &&
         config->store_dynamic_config.cache.flush_timer_ms == NEVER_FLUSH &&
         config->store_dynamic_config.cache.flush_threshold_percent != 0) {
-    	printf("WARNING: Server is configured to wait for data to be flushed\n"
+                       printf("WARNING: Server is configured to wait for data to be flushed\n"
                "to disk before returning, but also configured to wait\n"
                "indefinitely before flushing data to disk. Setting wait-for-flush\n"
                "to 'no'.\n\n");
-    	config->store_dynamic_config.cache.wait_for_flush = false;
+                       config->store_dynamic_config.cache.wait_for_flush = false;
     }
     
-    if (config->store_static_config.serializer.extent_size % config->store_static_config.serializer.block_size != 0) {
+    if (config->store_static_config.serializer.extent_size() % config->store_static_config.serializer.block_size().ser_value() != 0) {
         fail_due_to_user_error("Extent size (%d) is not a multiple of block size (%d).", 
-            config->store_static_config.serializer.extent_size,
-            config->store_static_config.serializer.block_size);
+             config->store_static_config.serializer.extent_size(),
+             config->store_static_config.serializer.block_size().ser_value());
     }
     
-    if (config->store_static_config.serializer.extent_size == config->store_dynamic_config.serializer.file_zone_size) {
+    if (config->store_static_config.serializer.extent_size() == config->store_dynamic_config.serializer.file_zone_size) {
         printf("WARNING: You made the extent size the same as the file zone size.\n"
                "This is not a big problem, but it is better to use a huge or\n"
                "unlimited zone size to get the effect you probably want.\n");
@@ -365,8 +366,8 @@ void print_runtime_flags(cmd_config_t *config) {
 void print_database_flags(cmd_config_t *config) {
     printf("--- Database ---\n");
     printf("Slices.............%d\n", config->store_static_config.btree.n_slices);
-    printf("Block size.........%ldKB\n", config->store_static_config.serializer.block_size / KILOBYTE);
-    printf("Extent size........%ldKB\n", config->store_static_config.serializer.extent_size / KILOBYTE);
+    printf("Block size.........%ldKB\n", config->store_static_config.serializer.block_size().ser_value() / KILOBYTE);
+    printf("Extent size........%ldKB\n", config->store_static_config.serializer.extent_size() / KILOBYTE);
     
     const std::vector<log_serializer_private_dynamic_config_t>& private_configs = config->store_dynamic_config.serializer_private;
     

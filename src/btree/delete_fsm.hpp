@@ -12,18 +12,21 @@ class btree_delete_fsm_t : public btree_modify_fsm_t
     typedef btree_fsm_t::transition_result_t transition_result_t;
     store_t::delete_callback_t *callback;
 public:
+
     explicit btree_delete_fsm_t(btree_key *_key, btree_key_value_store_t *store, store_t::delete_callback_t *cb)
         : btree_modify_fsm_t(_key, store), callback(cb)
     {
         do_transition(NULL);
     }
+
     bool exists;
+
     void operate(btree_value *old_value, large_buf_t *old_large_buf) {
         exists = bool(old_value);
-        if (exists) have_finished_operating(NULL);
+        if (exists) have_finished_operating(NULL, NULL);
         else have_failed_operating();
     }
-    
+
     void call_callback_and_delete() {
         if (exists) callback->deleted();
         else callback->not_found();

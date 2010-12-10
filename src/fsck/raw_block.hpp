@@ -5,8 +5,6 @@
 
 namespace fsck {
 
-typedef data_block_manager_t::buf_data_t buf_data_t;
-
 class raw_block {
 public:
     enum { none = 0, block_id_mismatch, raw_block_err_count };
@@ -22,8 +20,8 @@ public:
 protected:
     raw_block();
     ~raw_block();
-    void init(size_t block_size, direct_file_t *file, off64_t offset);
-    bool init(size_t block_size, direct_file_t *file, off64_t offset, ser_block_id_t ser_block_id);
+    void init(int64_t size, direct_file_t *file, off64_t offset);
+    bool init(block_size_t size, direct_file_t *file, off64_t offset, ser_block_id_t ser_block_id);
 
     buf_data_t *realbuf;
 private:

@@ -44,7 +44,7 @@ void parse_cmd_args(int argc, char **argv, config_t *config) {
     optind = 1;  // reinit getopt.
     for (;;) {
         int do_help = 0;
-        const static struct option long_options[] =
+        static const struct option long_options[] =
             {
                 {"force-block-size", required_argument, 0, force_block_size},
                 {"force-extent-size", required_argument, 0, force_extent_size},
@@ -82,8 +82,9 @@ void parse_cmd_args(int argc, char **argv, config_t *config) {
             break;
         case force_block_size: {
             char *endptr;
-            config->overrides.block_size = strtol(optarg, &endptr, 10);
-            if (*endptr != '\0' || config->overrides.block_size <= 0) {
+            long bs = strtol(optarg, &endptr, 10);
+            config->overrides.block_size_ = bs;
+            if (*endptr != '\0' || bs <= 0) {
                 fail_due_to_user_error("Block size must be a positive integer.\n");
             }
         } break;

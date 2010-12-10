@@ -1,7 +1,8 @@
 #ifndef __ARCH_LINUX_ARCH_HPP__
 #define __ARCH_LINUX_ARCH_HPP__
 
-#include "arch/linux/io.hpp"
+#include "arch/linux/disk.hpp"
+#include "arch/linux/network.hpp"
 #include "arch/linux/event_queue.hpp"
 #include "arch/linux/thread_pool.hpp"
 
@@ -16,7 +17,11 @@ struct linux_io_config_t {
     typedef linux_net_listener_callback_t net_listener_callback_t;
     
     typedef linux_net_conn_t net_conn_t;
-    typedef linux_net_conn_callback_t net_conn_callback_t;
+    typedef linux_net_conn_read_callback_t net_conn_read_callback_t;
+    typedef linux_net_conn_write_callback_t net_conn_write_callback_t;
+    
+    typedef linux_oldstyle_net_conn_t oldstyle_net_conn_t;
+    typedef linux_oldstyle_net_conn_callback_t oldstyle_net_conn_callback_t;
     
     typedef linux_cpu_message_t cpu_message_t;
     
@@ -29,7 +34,6 @@ struct linux_io_config_t {
     }
     
     static bool continue_on_cpu(int cpu, linux_cpu_message_t *msg) {
-        msg->return_cpu = get_cpu_id();
         if (cpu == get_cpu_id()) {
             // The CPU to continue on is the CPU we are already on
             return true;

@@ -26,7 +26,7 @@ int main(int argc, char *argv[]) {
     cmd_config_t config;
     parse_cmd_args(argc, argv, &config);
 
-    // Open log file if necessary
+    // Open the log file, if necessary.
     if (config.log_file_name[0]) {
         log_file = fopen(config.log_file_name, "w");
     }
@@ -44,14 +44,14 @@ int main(int argc, char *argv[]) {
     } starter;
     starter.cmd_config = &config;
 
-    // Run the server
+    // Run the server.
     thread_pool_t thread_pool(config.n_workers);
     starter.thread_pool = &thread_pool;
     thread_pool.run(&starter);
 
     logINF("Server is shut down.\n");
 
-    // Close log file if necessary
+    // Close the log file if necessary.
     if (config.log_file_name[0]) {
         fclose(log_file);
         log_file = stderr;

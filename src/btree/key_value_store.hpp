@@ -13,7 +13,8 @@
 #include "serializer/translator.hpp"
 #include "store.hpp"
 
-#define CONFIG_BLOCK_ID (ser_block_id_t(0))
+
+#define CONFIG_BLOCK_ID (config_block_id_t::make(0))
 
 // TODO move serializer_config_block_t to separate file
 /* This is the format that block ID 0 on each serializer takes. */
@@ -48,6 +49,7 @@ provides the abstraction of a key-value store. */
 
 struct bkvs_start_new_serializer_fsm_t;
 struct bkvs_start_existing_serializer_fsm_t;
+struct btree_replicant_t;
 
 class btree_key_value_store_t :
     public home_cpu_mixin_t,
@@ -64,17 +66,20 @@ public:
     
     struct check_callback_t {
         virtual void on_store_check(bool valid) = 0;
+        virtual ~check_callback_t() {}
     };
     static void check_existing(const std::vector<std::string>& db_filenames, check_callback_t *cb);
     
     struct ready_callback_t {
         virtual void on_store_ready() = 0;
+        virtual ~ready_callback_t() {}
     };
     bool start_new(ready_callback_t *cb, btree_key_value_store_static_config_t *static_config);
     bool start_existing(ready_callback_t *cb);
     
     struct shutdown_callback_t {
         virtual void on_store_shutdown() = 0;
+        virtual ~shutdown_callback_t() {}
     };
     bool shutdown(shutdown_callback_t *cb);
 
@@ -92,6 +97,8 @@ public:
     void append(store_key_t *key, data_provider_t *data, append_prepend_callback_t *cb);
     void prepend(store_key_t *key, data_provider_t *data, append_prepend_callback_t *cb);
     void delete_key(store_key_t *key, delete_callback_t *cb);
+    void replicate(replicant_t *cb, repli_timestamp cutoff);
+    void stop_replicating(replicant_t *cb);
 
 public:
     btree_key_value_store_dynamic_config_t *dynamic_config;
@@ -108,6 +115,8 @@ public:
     btree_slice_t *slices[MAX_SLICES];
     
     btree_slice_t *slice_for_key(btree_key *key);
+    
+    std::vector<btree_replicant_t *> replicants;
     
     enum state_t {
         state_off,
@@ -132,7 +141,7 @@ public:
     bool have_created_a_serializer();   // Called on home thread
     
     static int compute_mod_count(int32_t file_number, int32_t n_files, int32_t n_slices);
-    static uint32_t hash(btree_key *key);
+    static uint32_t hash(const btree_key *key);
 
     void create_pseudoserializers();   // Called on home thread
     bool create_a_pseudoserializer_on_this_core(int i);   // Called on serializer thread

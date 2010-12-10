@@ -1,6 +1,7 @@
 
 #ifndef __ARGS_HPP__
 #define __ARGS_HPP__
+#include <getopt.h>
 
 /* Usage */
 void usage(const char *name) {
@@ -19,11 +20,14 @@ void usage(const char *name) {
     _d_server.print();
     printf("].\n");
     printf("\t-c, --clients\n\t\tNumber of concurrent clients. Defaults to [%d].\n", _d.clients);
-    printf("\t-w, --workload\n\t\tTarget load to generate. Expects a value in format D/U/I/R, where\n" \
+    printf("\t-w, --workload\n\t\tTarget load to generate. Expects a value in format D/U/I/R/A/P/V, where\n" \
            "\t\t\tD - number of deletes\n" \
            "\t\t\tU - number of updates\n" \
            "\t\t\tI - number of inserts\n" \
            "\t\t\tR - number of reads\n" \
+           "\t\t\tA - number of appends\n" \
+           "\t\t\tP - number of prepends\n" \
+           "\t\t\tV - number of verifications\n" \
            "\t\tDefaults to [");
     _d.load.print();
     printf("]\n");
@@ -48,6 +52,7 @@ void usage(const char *name) {
     printf("\t-o, --out-file\n\t\tIf present, dump all inserted keys to this file.\n");
     printf("\t-i, --in-file\n\t\tIf present, populate initial keys from this file\n"\
            "\t\tand don't drop the database (for relevant protocols).\n");
+    printf("\t-f, --db-file\n\t\tIf present drop kv pairs into sqlite and verify correctness on read.\n");
 
     printf("\nAdditional information:\n");
     printf("\t\tDISTR format describes a range and can be specified in as MIN-MAX.\n\n");
@@ -85,12 +90,13 @@ void parse(config_t *config, int argc, char *argv[]) {
                 {"qps-file",       required_argument, 0, 'q'},
                 {"out-file",       required_argument, 0, 'o'},
                 {"in-file",        required_argument, 0, 'i'},
+                {"db-file",        required_argument, 0, 'f'},
                 {"help",           no_argument, &do_help, 1},
                 {0, 0, 0, 0}
             };
 
         int option_index = 0;
-        int c = getopt_long(argc, argv, "s:n:p:r:c:w:k:v:d:b:l:q:o:i:h", long_options, &option_index);
+        int c = getopt_long(argc, argv, "s:n:p:r:c:w:k:v:d:b:l:q:o:i:h:f:", long_options, &option_index);
 
         if(do_help)
             c = 'h';
@@ -142,6 +148,9 @@ void parse(config_t *config, int argc, char *argv[]) {
             break;
         case 'i':
             strncpy(config->in_file, optarg, MAX_FILE);
+            break;
+        case 'f':
+            strncpy(config->db_file, optarg, MAX_FILE);
             break;
         case 'h':
             usage(argv[0]);

@@ -79,7 +79,7 @@ class Result(object):
         
         assert result in ["pass", "fail"]
 
-        self.running_time = start_time - time.clock()
+        self.running_time = time.time() - start_time
         
         if result == "pass":
             self.result = "pass"
@@ -125,7 +125,7 @@ def run_test(command, timeout = None):
     environ["TMP"] = temp_dir.path
     environ["PYTHONUNBUFFERED"] = "1"
 
-    start_time = time.clock()
+    start_time = time.time()
 
     process = subprocess.Popen(
         command,
@@ -227,10 +227,10 @@ def run_test(command, timeout = None):
             # Replace the original directory that the SmartTemporaryDirectory created with our own
             # directory, but the SmartTemporaryDirectory will still be responsible for deleting it
             os.rmdir(new_output_dir.path)
-            os.rename(output_dir, new_output_dir.path)
+            shutil.move(output_dir, new_output_dir.path)
         
         # Put the output from the command into said directory as well
-        os.rename(output.take_file(), os.path.join(new_output_dir.path, "test_output.txt"))
+        shutil.move(output.take_file(), os.path.join(new_output_dir.path, "test_output.txt"))
     
     else:
         # Delete the output directory
@@ -415,9 +415,10 @@ def print_results_as_plaintext(opts, tests):
     
     for (name, results) in tests:
         sub_failures = count_sub_failures(results)
-        if sub_failures == 0: print "Passed: %s" % name
-        elif sub_failures == len(results): print "Failed: %s" % name
-        else: print "Failed (intermittently): %s" % name
+        timesum = sum([result.running_time for result in results])
+        if sub_failures == 0: print "Passed (%f s): %s" % (timesum, name)
+        elif sub_failures == len(results): print "Failed (%f s): %s" % (timesum, name)
+        else: print "Failed (intermittently) (%f s): %s" % (timesum, name)
     print
     
     for (name, results) in tests:
@@ -509,12 +510,13 @@ def print_results_as_html(opts, tests):
     for (name, results) in tests:
         print """<tr>"""
         sub_failures = count_sub_failures(results)
+        timesum = sum([result.running_time for result in results])
         if sub_failures == 0:
-            print """<td>%s</td><td><span style="color: green">Passed</span></td>""" % code(name)
+            print """<td>%s</td><td><span style="color: green">Passed</span></td><td>(%f&nbsp;s)</td>""" % (code(name), timesum)
         else:
             if sub_failures == len(results): msg = "Failed"
             else: msg = "Failed (intermittently)"
-            print """<td>%s</td><td><span style="color: red">%s</span></td>""" % (code(name), msg)
+            print """<td>%s</td><td><span style="color: red">%s</span></td><td>(%f&nbsp;s)</td>""" % (code(name), msg, timesum)
         print """</tr>"""
     print """</table>"""
     
@@ -554,7 +556,7 @@ def print_results_as_html(opts, tests):
             print """<div style="border: solid 1px gray; border-top: none; padding: 0.3cm">"""
             
             if result.result == "pass":
-                print """<p><b>Run #%d:</b> <span style="color: green">Passed</span> (%f speconds)</p>""" % (i, result.running_time)
+                print """<p><b>Run #%d:</b> <span style="color: green">Passed</span> (%f seconds)</p>""" % (i, result.running_time)
                 
             else:
                 print """<p><b>Run #%d:</b> <span style="color: red">Failed</span>. (%f seconds) %s</p>""" % \

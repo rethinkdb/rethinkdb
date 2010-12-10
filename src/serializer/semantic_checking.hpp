@@ -49,7 +49,7 @@ private:
         boost::crc_optimal<32, 0x04C11DB7, 0xFFFFFFFF, 0xFFFFFFFF, true, true> crc_computer;
         // We need to not crc BLOCK_META_DATA_SIZE because it's
         // internal to the serializer.
-        crc_computer.process_bytes(buf, get_block_size());
+        crc_computer.process_bytes(buf, get_block_size().value());
         return crc_computer.checksum();
     }
 
@@ -90,6 +90,7 @@ public:
 public:
     struct ready_callback_t {
         virtual void on_serializer_ready(semantic_checking_serializer_t *) = 0;
+        virtual ~ready_callback_t() {}
     };
 
     bool start_new(static_config_t *config, ready_callback_t *cb) {
@@ -105,7 +106,7 @@ public:
             res = read(semantic_fd, &buf, sizeof(buf));
             guarantee_err(res != -1, "Could not read from the semantic checker file");
             if(res == sizeof(persisted_block_info_t)) {
-                blocks.set(buf.block_id, buf.block_info);
+                blocks.set(buf.block_id.value, buf.block_info);
             }
         } while(res == sizeof(persisted_block_info_t));
 
@@ -169,9 +170,7 @@ public:
 #ifdef SERIALIZER_DEBUG_PRINT
                     printf("Read %ld: %u\n", block_id, actual_crc);
 #endif
-                    if (expected_block_state.crc != actual_crc) {
-                        unreachable("Serializer returned bad value for block ID %d", (int)block_id);
-                    }
+                    guarantee(expected_block_state.crc == actual_crc, "Serializer returned bad value for block ID %u", block_id.value);
                     break;
                 }
             }
@@ -185,7 +184,7 @@ public:
 #ifdef SERIALIZER_DEBUG_PRINT
         printf("Reading %ld\n", block_id);
 #endif
-        reader_t *reader = new reader_t(this, block_id, buf, blocks.get(block_id));
+        reader_t *reader = new reader_t(this, block_id, buf, blocks.get(block_id.value));
         reader->callback = NULL;
         if (inner_serializer.do_read(block_id, buf, reader)) {
             reader->on_serializer_read();
@@ -235,8 +234,8 @@ public:
                 printf("Deleting %ld\n", writes[i].block_id);
 #endif
             }
-            blocks.set(writes[i].block_id, b);
-
+            blocks.set(writes[i].block_id.value, b);
+            
             // Add the block to the semantic checker file
             persisted_block_info_t buf;
 #ifdef VALGRIND
@@ -260,7 +259,7 @@ public:
     }
 
 public:
-    size_t get_block_size() {
+    block_size_t get_block_size() {
         return inner_serializer.get_block_size();
     }
 
@@ -270,7 +269,7 @@ public:
 
     bool block_in_use(ser_block_id_t id) {
         bool in_use = inner_serializer.block_in_use(id);
-        switch (blocks.get(id).state) {
+        switch (blocks.get(id.value).state) {
             case block_info_t::state_unknown: break;
             case block_info_t::state_deleted: assert(!in_use); break;
             case block_info_t::state_have_crc: assert(in_use); break;
@@ -278,9 +277,14 @@ public:
         return in_use;
     }
 
+    repli_timestamp get_recency(ser_block_id_t id) {
+        return inner_serializer.get_recency(id);
+    }
+
 public:
     struct shutdown_callback_t {
         virtual void on_serializer_shutdown(semantic_checking_serializer_t *) = 0;
+        virtual ~shutdown_callback_t() {}
     };
     bool shutdown(shutdown_callback_t *cb) {
         shutdown_callback = cb;

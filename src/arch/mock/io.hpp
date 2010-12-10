@@ -8,6 +8,7 @@
 
 struct mock_iocallback_t {
     virtual void on_io_complete(event_t *event) = 0;
+    virtual ~mock_iocallback_t() {}
 };
 
 template<class inner_io_config_t>

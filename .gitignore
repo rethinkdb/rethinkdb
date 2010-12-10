@@ -15,6 +15,10 @@ src/valgrind_rethinkdb
 src/.gdb_history
 src/.gdbinit
 src/standard_commands
+src/rethinkdb_data
+*/output_from_test/
+core
+vgcore.*
 test/unit/.retest
 bench/stress-client/stress
 bench/serializer-bench/serializer-bench
