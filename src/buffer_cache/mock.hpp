@@ -77,9 +77,10 @@ public:
 
     buf_t *acquire(block_id_t block_id, access_t mode, block_available_callback_t *callback);
     buf_t *allocate(block_id_t *new_block_id);
-    
+    repli_timestamp get_subtree_recency(block_id_t block_id);
+
     mock_cache_t *cache;
-    
+
 private:
     friend class mock_cache_t;
     access_t access;

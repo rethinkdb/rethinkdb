@@ -85,7 +85,7 @@ bool mock_transaction_t::commit(mock_transaction_commit_callback_t *callback) {
             } else {
                 return false;
             }
-        default: fail("Bad access");
+        default: unreachable("Bad access");
     }
 }
 
@@ -128,6 +128,14 @@ mock_buf_t *mock_transaction_t::allocate(block_id_t *new_block_id) {
     
     mock_buf_t *buf = new mock_buf_t(internal_buf, rwi_write);
     return buf;
+}
+
+repli_timestamp mock_transaction_t::get_subtree_recency(block_id_t block_id) {
+    assert(block_id < cache->bufs.get_size());
+    internal_buf_t *internal_buf = cache->bufs[block_id];
+    assert(internal_buf);
+
+    return internal_buf->subtree_recency;
 }
 
 mock_transaction_t::mock_transaction_t(mock_cache_t *cache, access_t access)
@@ -232,7 +240,7 @@ mock_transaction_t *mock_cache_t::begin_transaction(access_t access, mock_transa
             } else {
                 return NULL;
             }
-        default: fail("Bad access.");
+        default: unreachable("Bad access.");
     }
 }
 

@@ -77,7 +77,7 @@ bool writeback_t::begin_transaction(transaction_t *txn,
                 return false;
             }
         default:
-            fail("Transaction access invalid.");
+            unreachable("Transaction access invalid.");
     }
 }
 

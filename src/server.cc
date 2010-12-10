@@ -41,10 +41,12 @@ void server_t::do_check_store() {
 
 void server_t::on_store_check(bool ok) {
     if (ok) {
-        fail("It looks like there already is a database here. RethinkDB will abort in case you "
+        fail_due_to_user_error(
+            "It looks like there already is a database here. RethinkDB will abort in case you "
             "didn't mean to overwrite it. Run with the '--force' flag to override this warning.");
+    } else {
+        do_start_store();
     }
-    do_start_store();
 }
 
 void server_t::do_start_store() {

@@ -93,7 +93,7 @@ environ = dict(os.environ)
 environ["TMP"] = temp_dir
 environ["PYTHONUNBUFFERED"] = "1"
 
-start_time = time.clock()
+start_time = time.time()
 
 process = subprocess.Popen(
     command,
@@ -192,7 +192,7 @@ os.rename(output.take_file(), os.path.join(output_dir, "test_output.txt"))
     
     
 # store results
-open('result_running_time', 'w').write(str(time.clock() - result[0]))
+open('result_running_time', 'w').write(str(time.time() - result[0]))
 open('result_start_time', 'w').write(str(result[0]))
 open('result_result', 'w').write(result[1])
 open('result_description', 'w').write(result[2])

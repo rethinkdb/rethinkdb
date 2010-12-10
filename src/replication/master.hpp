@@ -58,7 +58,7 @@ struct replication_master_t :
     void value(
         const store_key_t *key,
         const_buffer_group_t *value, store_t::replicant_t::done_callback_t *cb,
-        mcflags_t flags, exptime_t exptime, cas_t cas);
+        mcflags_t flags, exptime_t exptime, cas_t cas, repli_timestamp ts);
     void stopped();
 
     bool quitting, conn_open;

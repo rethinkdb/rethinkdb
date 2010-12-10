@@ -89,7 +89,7 @@ replication_master_t::replication_master_t(store_t *s, net_conn_t *c)
 void replication_master_t::value(
     const store_key_t *key,
     const_buffer_group_t *value, store_t::replicant_t::done_callback_t *cb,
-    mcflags_t flags, exptime_t exptime, cas_t cas)
+    mcflags_t flags, exptime_t exptime, cas_t cas, repli_timestamp ts)
 {
     new replication_message_t(this, key, value, cb, flags, exptime, cas);
 }

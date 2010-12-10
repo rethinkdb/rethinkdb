@@ -53,6 +53,7 @@ public:
 
     static const btree_leaf_pair *get_pair(const leaf_node_t *node, uint16_t offset);
     static size_t pair_size(const btree_leaf_pair *pair);
+    static repli_timestamp get_timestamp_value(block_size_t block_size, const leaf_node_t *node, uint16_t offset);
 
 protected:
     static btree_leaf_pair *get_pair(leaf_node_t *node, uint16_t offset);
