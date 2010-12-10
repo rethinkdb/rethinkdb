@@ -23,7 +23,10 @@ void coro_t::notify() {
     assert(!notified);
     notified = true;
 #endif
-    if (!continue_on_cpu(home_cpu, this)) {
+    //We don't just call_later_on_this_cpu, in case notify is called from another CPU
+    //I won't worry about race conditions with the notified error checking, because
+    //(a) it's just error checking (b) coroutines should have well-defined ownership anyway
+    if (continue_on_cpu(home_cpu, this)) {
         call_later_on_this_cpu(this);
     }
 }
