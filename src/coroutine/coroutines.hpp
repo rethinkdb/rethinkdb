@@ -2,11 +2,16 @@
 #define __COROUTINES_HPP__
 #include "coroutine/Coro.hpp"
 #include "arch/arch.hpp"
+#include "utils.hpp"
 #include <list>
 #include <vector>
+#include <boost/bind.hpp>
 
 /* A coroutine represents an action with no return value */
-struct coro_t : public cpu_message_t {
+struct coro_t
+    : private cpu_message_t
+    , private home_cpu_mixin_t
+{
     coro_t(void (*fn)(void *arg), void *arg); //Creates and notifies a coroutine
     explicit coro_t(Coro *underlying) : underlying(underlying), dead(false)
 #ifndef NDEBUG
@@ -17,9 +22,11 @@ struct coro_t : public cpu_message_t {
     ~coro_t();
     virtual void on_cpu_switch();
 
+public:
+    void *initialize(void (*fn)(void *), void *arg);
+
 private:
     void switch_to(coro_t *next);
-    void initialize(void (*fn)(void *), void *arg);
 
     Coro *underlying;
     bool dead;
@@ -156,27 +163,27 @@ protected:
 
 struct coro_on_cpu_t : public coro_t {
     coro_on_cpu_t(int i, void (*fn)(void *), void *arg) {
-        do_on_cpu(i, this, initialize, fn, arg);
+        do_on_cpu(i, boost::bind(&coro_t::initialize, this, fn, arg));
     }
 
     template<typename A>
     coro_on_cpu_t(int i, void(*fn)(A), A arg) {
-        do_on_cpu(i, this, initialize, (void (*)(void *))fn, (void *)arg);
+        do_on_cpu(i, boost::bind(&coro_t::initialize, this, (void (*)(void *))fn, (void *)arg));
     }
 
     template<typename A, typename B>
     coro_on_cpu_t(int i, void (*fn)(A, B), A first, B second) {
-        do_on_cpu(i, this, initialize, start_binary<A, B>, (void *)new binary(fn, first, second));
+        do_on_cpu(i, boost::bind(&coro_t::initialize, this, &coro_t::start_binary<A, B>, (void *)new coro_t::binary<A, B>(fn, first, second)));
     }
 
     template<typename A, typename B, typename C>
     coro_on_cpu_t(int i, void (*fn)(A, B, C), A first, B second, C third) {
-        do_on_cpu(i, this, initialize, start_ternary<A, B, C>, (void *)new ternary(fn, first, second, third));
+        do_on_cpu(i, boost::bind(&coro_t::initialize, this, &coro_t::start_ternary<A, B, C>, (void *)new coro_t::ternary<A, B, C>(fn, first, second, third)));
     }
 
     template<typename A, typename B, typename C, typename D>
     coro_on_cpu_t(int i, void (*fn)(A, B, C, D), A first, B second, C third, D fourth) {
-        do_on_cpu(i, this, initialize, start_quaternary<A, B, C, D>, (void *)new quaternary(fn, first, second, third, fourth));
+        do_on_cpu(i, boost::bind(&coro_t::initialize, this, &coro_t::start_quaternary<A, B, C, D>, (void *)new coro_t::quaternary<A, B, C, D>(fn, first, second, third, fourth)));
     }
 };
 
@@ -186,7 +193,8 @@ struct task_callback_t {
 
 /* A task represents an action with a return value that can be blocked on */
 struct task_t {
-    task_t(void *(*)(void *), void *arg); //Creates and notifies a task to be joined
+    task_t(void *(*fn)(void *), void *arg); //Creates and notifies a task to be joined
+    task_t(int cpu, void *(*fn)(void *), void *arg); //Creates and notifies a task on a different CPU
     void *join(); //Blocks the current coroutine until the task finishes, returning the result
     //Join should only be called once, or you can add a completion callback:
     void callback(task_callback_t *cb);
@@ -206,5 +214,11 @@ private:
 
 //TODO: Convenient constructors for task_t, similar to coro_t
 //I'll write this when I have a place to use it; otherwise it'd be annoying to test
+
+void *call_on_cpu(int cpu, void *(*fn)(void *), void *arg);
+
+//maybe make more things like these, maybe using boost::bind. Does bind return a function pointer, or just a function object?
+
+#define CALL_ON_CPU(...) call_on_cpu(boost::bind(__VA_ARGS__))
 
 #endif // __COROUTINES_HPP__

@@ -168,7 +168,6 @@ public:
 
     buf_t *acquire(block_id_t block_id, access_t mode,
                    block_available_callback_t *callback);
-    buf_t *co_acquire(block_id_t block_id, access_t mode);
     buf_t *allocate(block_id_t *new_block_id);
 
     cache_t *cache;

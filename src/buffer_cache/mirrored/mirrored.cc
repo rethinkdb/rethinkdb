@@ -329,29 +329,6 @@ mc_buf_t *mc_transaction_t::acquire(block_id_t block_id, access_t mode,
     }
 }
 
-struct co_block_available_callback_t : public block_available_callback {
-    coro_t *self;
-    mc_buf_t *value;
-
-    virtual void on_block_available(mc_buf_t *block) {
-        value = block;
-        self->notify();
-    }
-
-    mc_buf_t *join() {
-        self = coro_t::self();
-        coro_t::wait();
-        return value;
-    }
-};
-
-mc_buf_t *mc_transaction_t::co_acquire(block_id_t block_id, access_t mode) {
-    block_available_callback_t *cb = new co_block_available_callback_t();
-    mc_buf_t *value = acquire(block_id, mode, cb);
-    if (!value) value = cb->join();
-    return value;
-}
-
 /**
  * Cache implementation.
  */

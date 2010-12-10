@@ -1,4 +1,5 @@
 #include "coroutine/coroutines.hpp"
+#include "arch/arch.hpp"
 #include <stdio.h>
 
 __thread coro_t *coro_t::current_coro = NULL;
@@ -22,7 +23,9 @@ void coro_t::notify() {
     assert(!notified);
     notified = true;
 #endif
-    call_later_on_this_cpu(this);
+    if (!continue_on_cpu(home_cpu, this)) {
+        call_later_on_this_cpu(this);
+    }
 }
 
 void coro_t::on_cpu_switch() {
@@ -61,7 +64,7 @@ coro_t::coro_t(void (*fn)(void *arg), void *arg) {
     initialize(fn, arg);
 }
 
-void coro_t::initialize(void (*fn)(void *arg), void *arg) {
+void *coro_t::initialize(void (*fn)(void *arg), void *arg) {
     underlying = Coro_new();
     dead = false;
 #ifndef NDEBUG
@@ -73,6 +76,7 @@ void coro_t::initialize(void (*fn)(void *arg), void *arg) {
     coro_t *previous_coro = data.parent = current_coro;
     data.coroutine = current_coro = this;
     Coro_startCoro_(previous_coro->underlying, underlying, &data, run_coroutine);
+    return NULL;
 }
 
 coro_t::~coro_t() {
@@ -129,6 +133,16 @@ task_t::task_t(void *(*fn)(void *), void *arg)
     coroutine = new coro_t(run_task, fn, arg, this);
 }
 
+task_t::task_t(int cpu, void *(*fn)(void *), void *arg)
+  : coroutine(NULL), done(0), result(NULL), waiters() {
+    coroutine = new coro_on_cpu_t(cpu, run_task, fn, arg, this);
+}
+
 void task_t::notify() {
     coroutine->notify();
+}
+
+void *call_on_cpu(int cpu, void *(*fn)(void *), void *arg) {
+    task_t *task = new task_t(cpu, fn, arg);
+    return task->join();
 }
