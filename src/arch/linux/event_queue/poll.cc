@@ -53,10 +53,13 @@ void poll_event_queue_t::run() {
         
         // epoll_wait might return with EINTR in some cases (in
         // particular under GDB), we just need to retry.
-        if(res == -1 && errno == EINTR) {
+        if (res == -1 && errno == EINTR) {
             continue;
         }
-        check("Waiting for poll events failed", res == -1);
+
+        // The only likely poll error here is ENOMEM, which we
+        // have no way of handling, and it's probably fatal.
+        guarantee_err(res == 0, "Waiting for poll events failed");
         
         pm_events_per_loop.record(res);
         

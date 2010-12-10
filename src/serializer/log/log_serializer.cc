@@ -215,8 +215,7 @@ struct ls_start_existing_fsm_t :
         }
         
         if (state == state_start_lba) {
-            
-            if (!metablock_found) fail("Could not find any valid metablock.");
+            guarantee(metablock_found, "Could not find any valid metablock.");
             
 #ifndef NDEBUG
             memcpy(&ser->debug_mb_buffer, &metablock_buffer, sizeof(metablock_buffer));
@@ -270,7 +269,7 @@ struct ls_start_existing_fsm_t :
             return true;
         }
         
-        fail("Invalid state.");
+        unreachable("Invalid state.");
     }
     
     void on_static_header_read() {
@@ -899,7 +898,7 @@ bool log_serializer_t::next_shutdown_step() {
         return true;
     }
 
-    fail("Invalid state.");
+    unreachable("Invalid state.");
     return true; // make compiler happy
 }
 

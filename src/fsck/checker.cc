@@ -44,9 +44,7 @@ public:
         return known;
     }
     void operator=(const T& other) {
-        if (known) {
-            fail("Value already known.");
-        }
+        guarantee(!known, "Value already known.");
         value = other;
         known = true;
     }
@@ -55,9 +53,7 @@ public:
         return value;
     }
     T& operator*() {
-        if (!known) {
-            fail("Value not known.");
-        }
+        guarantee(known, "Value not known.");
         return value;
     }
     T *operator->() { return &operator*(); }
@@ -117,9 +113,7 @@ private:
 
 
 void unrecoverable_fact(bool fact, const char *test) {
-    if (!fact) {
-        fail("ERROR: test '%s' failed!  Cannot override.", test);
-    }
+    guarantee(fact, "ERROR: test '%s' failed!  Cannot override.", test);
 }
 
 class block : public raw_block {

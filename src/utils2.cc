@@ -48,7 +48,7 @@ repli_timestamp repli_max(repli_timestamp x, repli_timestamp y) {
 void *malloc_aligned(size_t size, size_t alignment) {
     void *ptr = NULL;
     int res = posix_memalign(&ptr, alignment, size);
-    if(res != 0) fail("Out of memory.");
+    if(res != 0) crash_or_trap("Out of memory.");
     return ptr;
 }
 

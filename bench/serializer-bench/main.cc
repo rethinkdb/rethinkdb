@@ -1,3 +1,4 @@
+#include "errors.hpp"
 #include "serializer/log/log_serializer.hpp"
 
 #undef __UTILS_HPP__   /* Hack because both RethinkDB and stress-client have a utils.hpp */
@@ -247,7 +248,7 @@ struct tester_t :
 
 const char *read_arg(int &argc, char **&argv) {
     if (argc == 0) {
-        fail("Expected another argument at the end.");
+        fail_due_to_user_error("Expected another argument at the end.");
     } else {
         argc--;
         return (argv++)[0];
@@ -311,7 +312,7 @@ void parse_config(int argc, char *argv[], config_t *config) {
             config->updates_per_txn = atoi(read_arg(argc, argv));
         
         } else {
-            fail("Don't know how to handle \"%s\"", flag);
+            fail_due_to_user_error("Don't know how to handle \"%s\"", flag);
         }
     }
 

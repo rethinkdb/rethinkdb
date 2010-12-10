@@ -99,7 +99,7 @@ public:
                 rh->server->store->replace(key, &dp, mcflags, exptime, this);
                 break;
             default:
-                fail("Not implemented");
+                unreachable("Not implemented");
         }
     }
     
@@ -111,23 +111,23 @@ public:
     }
     
     void not_stored() {
-        fail("Not implemented");
+        not_implemented("Not implemented");
     }
         
     void not_found() {
-        fail("Not implemented");
+        not_implemented("Not implemented");
     }
         
     void exists() {
-        fail("Not implemented");
+        not_implemented("Not implemented");
     }
     
     void too_large() {
-        fail("Not implemented");
+        not_implemented("Not implemented");
     }
     
     void data_provider_failed() {
-        fail("Cannot happen with a buffered data provider");
+        unreachable("Cannot happen with a buffered data provider");
     }
 };
 
@@ -191,7 +191,7 @@ public:
     }
     
     void too_large() {
-        fail("Not implemented");
+        not_implemented("Not implemented");
     }
     
     void not_found() {
@@ -202,7 +202,7 @@ public:
     }
     
     void data_provider_failed() {
-        fail("Cannot happen with a buffered data provider");
+        unreachable("Cannot happen with a buffered data provider");
     }
 };
 
@@ -386,7 +386,7 @@ bin_memcached_handler_t::parse_result_t bin_memcached_handler_t::dispatch_approp
             new bin_memcached_append_prepend_request_t(this, pkt, key, pkt->value(), pkt->value_length(), false);
             break;
         default:
-            fail("Invalid opcode in bin_memcached_handler_t::dispatch_appropriate_fsm");
+            unreachable("Invalid opcode in bin_memcached_handler_t::dispatch_appropriate_fsm");
     }
     
     if (is_quiet_code(pkt->opcode())) return request_handler_t::op_req_parallelizable;

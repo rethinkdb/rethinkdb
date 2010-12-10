@@ -50,43 +50,34 @@ struct sqlite_protocol_t : public protocol_t {
             sprintf(buffer, "SELECT %s FROM %s WHERE %s == \"%.*s\";\n", VAL_COL_NAME, TABLE_NAME, KEY_COL_NAME, (int) keys[i].second, keys[i].first);
             prepare();
             assert(step() == SQLITE_ROW);
-            const char *val = column(0);
+            const char *val = column_text(0);
             if (values)
                 assert(strncmp(val, values[i].first, values[i].second) == 0);
             clean_up();
         }
     }
 
-    /* get the nth key value pair from the data base */
-    void read_into(payload_t *key, payload_t *val, int index) {
-        if (index > count()) {
-            fprintf(stderr, "Invalid key index in read_into\n");
-            exit(-1);
-        }
+    /* start a dump (selecting all the keys from the database) */
+    void dump_start() {
         sprintf(buffer, "SELECT * FROM %s ORDER BY %s;\n", TABLE_NAME, KEY_COL_NAME); 
         prepare();
-        int i;
-        for (i = 0; i < index; i++) {
-            step();
-        }
-
-        assert(step() == SQLITE_ROW);
-
-
-        strcpy(key->first, column(0));
-        key->second = strlen(column(0));
-
-        strcpy(val->first, column(1));
-        val->second = strlen(column(1));
-
-        clean_up();
     }
 
-    int count() {
-        sprintf(buffer, "SELECT COUNT(*) FROM %s;\n", TABLE_NAME); 
-        prepare();
-        assert(step() == SQLITE_ROW);
-        int res = atoi(column(0));
+    /* get the next row. (returns true if there is a next row) */
+    bool dump_next(payload_t *key, payload_t *val) {
+        if (step() != SQLITE_ROW) {
+            return false;
+        } else {
+            strcpy(key->first, column_text(0));
+            key->second = strlen(column_text(0));
+
+            strcpy(val->first, column_text(1));
+            val->second = strlen(column_text(1));
+            return true;
+        }
+    }
+
+    void dump_end() {
         clean_up();
     }
 
@@ -96,7 +87,7 @@ struct sqlite_protocol_t : public protocol_t {
         prepare();
         assert(step() == SQLITE_ROW);
         /* notice this was constant but I'm casting it so that I can use the same pointer*/
-        char *orig_val = (char *) column(0);
+        char *orig_val = (char *) column_text(0);
         orig_val = strdup(orig_val);
         clean_up();
 
@@ -111,7 +102,7 @@ struct sqlite_protocol_t : public protocol_t {
         prepare();
         assert(step() == SQLITE_ROW);
         /* notice this was constant but I'm casting it so that I can use the same pointer*/
-        char *orig_val = (char *) column(0);
+        char *orig_val = (char *) column_text(0);
         orig_val = strdup(orig_val);
         clean_up();
 
@@ -150,8 +141,12 @@ private:
         return sqlite3_step(compiled_stmt);
     }
 
-    const char *column(int n) {
+    const char *column_text(int n) {
         return (const char *) sqlite3_column_text(compiled_stmt, n);
+    }
+
+    const int column_int(int n) {
+        return (const int) sqlite3_column_int(compiled_stmt, n);
     }
 
     int clean_up() {
