@@ -187,6 +187,15 @@ try:
                           "duration"    : 340},
                         repeat=3, timeout=400)
 
+                do_test_cloud("integration/command_line_sanitizing.py",
+                        { "auto"        : False,
+                          "mode"        : mode,
+                          "no-valgrind" : not checker,
+                          "protocol"    : protocol,
+                          "cores"       : cores,
+                          "slices"      : slices},
+                        repeat=1, timeout=180)
+
                 
                 # Don't run the corruption test in mockio or mockcache mode because in those modes
                 # we don't flush to disk at all until the server is shut down, so obviously the
