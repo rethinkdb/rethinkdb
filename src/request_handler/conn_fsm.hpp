@@ -2,7 +2,6 @@
 #define __CONN_FSM_HPP__
 
 #include "conn_acceptor.hpp"
-#include "containers/intrusive_list.hpp"
 #include "containers/var_buf.hpp"
 #include "arch/arch.hpp"
 #include "event.hpp"

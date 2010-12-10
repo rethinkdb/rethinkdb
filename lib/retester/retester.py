@@ -1,4 +1,4 @@
-import subprocess, shlex, signal, os, time, shutil, tempfile, sys, traceback, types, gitroot, shutil
+import subprocess, shlex, signal, os, time, shutil, tempfile, sys, traceback, types, gitroot, datetime, shutil
 from vcoptparse import *
 
 reports = []
@@ -623,7 +623,10 @@ def send_email(opts, message, recipient):
     
     print "Email message sent."
 
+global_start_time = datetime.datetime.now()
+
 def send_results_by_email(opts, tests, recipient, message):
+    global global_start_time
     
     import email.mime.text, cStringIO
     
@@ -645,8 +648,16 @@ def send_results_by_email(opts, tests, recipient, message):
         stringio.close()
     
     message = email.mime.text.MIMEText(output, mime_type)
-    subject = "Test results: %d pass, %d fail" % \
-        (len(tests) - count_failures(tests), count_failures(tests))
+    running_user = os.getenv("USER", "N/A")
+    start_time = global_start_time
+    end_time = datetime.datetime.now()
+    if os.getenv("USE_CLOUD", "false") == "false":
+        cloud_flag_str = ""
+    else:
+        cloud_flag_str = ", run on EC2"
+    subject = "Test results: %d pass, %d fail (initiated by %s, %s - %s%s)" % \
+        (len(tests) - count_failures(tests), count_failures(tests), running_user, \
+        start_time, end_time, cloud_flag_str)
     message.add_header("Subject", subject)
     
     send_email(opts, message, recipient)

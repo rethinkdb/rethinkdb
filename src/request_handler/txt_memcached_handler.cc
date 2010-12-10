@@ -977,7 +977,7 @@ static store_t::replicant_t *test_replicant;
 class test_replicant_t :
     public store_t::replicant_t
 {
-    void value(const store_key_t *key, const_buffer_group_t *bg, done_callback_t *cb, mcflags_t flags, exptime_t exptime, cas_t cas) {
+    void value(const store_key_t *key, const_buffer_group_t *bg, done_callback_t *cb, mcflags_t flags, exptime_t exptime, cas_t cas, repli_timestamp value_timestamp) {
         flockfile(stderr);
         debugf("VALUE '%*.*s' = ", key->size, key->size, key->contents);
         if (bg) {
@@ -985,7 +985,7 @@ class test_replicant_t :
             for (int i = 0; i < (int)bg->buffers.size(); i++) {
                 fwrite(bg->buffers[i].data, 1, bg->buffers[i].size, stderr);
             }
-            fprintf(stderr, "' %d %d %d\n", (int)flags, (int)exptime, (int)cas);
+            fprintf(stderr, "' %d %d %d %d\n", (int)flags, (int)exptime, (int)cas, (int)value_timestamp.time);
         } else {
             assert(flags == 0);
             assert(exptime == 0);

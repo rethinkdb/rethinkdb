@@ -235,7 +235,7 @@ ssize_t linux_oldstyle_net_conn_t::read_nonblocking(void *buf, size_t count) {
 ssize_t linux_oldstyle_net_conn_t::write_nonblocking(const void *buf, size_t count) {
 
     int res = ::write(sock, buf, count);
-    if (res == EAGAIN || res == EWOULDBLOCK) {
+    if (res == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
         // Whoops, got stuff to write, turn on write notification.
         linux_thread_pool_t::thread->queue.adjust_resource(sock, poll_event_in | poll_event_out, this);
         registered_for_write_notifications = true;

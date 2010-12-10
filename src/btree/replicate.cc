@@ -149,6 +149,7 @@ struct branch_walker_t :
     int current_pair;   // Used for iterating over leaf nodes
     const store_key_t *current_key;
     const btree_value *current_value;
+    repli_timestamp current_timestamp;
     large_buf_t *large_value;
     const_buffer_group_t buffers;
     
@@ -196,21 +197,31 @@ struct branch_walker_t :
         const leaf_node_t *node = ptr_cast<leaf_node_t>(buf->get_data_read());
         if (current_pair == node->npairs) {
             delete this;
-        
         } else {
-            const btree_leaf_pair *pair = leaf_node_handler::get_pair(node, node->pair_offsets[current_pair]);
-            current_key = &pair->key;
-            current_value = pair->value();
-            
-            if (current_value->is_large()) {
-                large_value = new large_buf_t(parent->txn);
-                large_value->acquire(current_value->lb_ref(), rwi_read, this);
-                
-            } else {
-                large_value = NULL;
-                buffers.buffers.clear();
-                buffers.add_buffer(current_value->value_size(), current_value->value());
-                deliver_value();
+            current_timestamp = leaf_node_handler::get_timestamp_value(parent->txn->cache->get_block_size(), node, current_pair);
+
+            // TODO: right now we're walking through in order of key.
+            // If we walked through in order of offset (by starting at
+            // frontmost_offset and skipping through) we could
+            // shortcircuit timestamps (because timestamp values are
+            // monotonically decreasing with respect to that
+            // ordering).
+
+            if (repli_compare(current_timestamp, parent->parent->cutoff_recency) >= 0) {
+                const btree_leaf_pair *pair = leaf_node_handler::get_pair(node, node->pair_offsets[current_pair]);
+                current_key = &pair->key;
+                current_value = pair->value();
+
+                if (current_value->is_large()) {
+                    large_value = new large_buf_t(parent->txn);
+                    large_value->acquire(current_value->lb_ref(), rwi_read, this);
+
+                } else {
+                    large_value = NULL;
+                    buffers.buffers.clear();
+                    buffers.add_buffer(current_value->value_size(), current_value->value());
+                    deliver_value();
+                }
             }
         }
     }
@@ -227,8 +238,8 @@ struct branch_walker_t :
     
     void deliver_value() {
         parent->parent->callback->value(current_key, &buffers, this,
-            current_value->mcflags(), current_value->exptime(),
-            current_value->has_cas() ? current_value->cas() : 0);
+                                        current_value->mcflags(), current_value->exptime(),
+                                        current_value->has_cas() ? current_value->cas() : 0, current_timestamp);
     }
 };
 

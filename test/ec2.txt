@@ -1,0 +1,57 @@
+There are different credentials involved in working with EC2:
+
+First there is the login into the EC2 console. Specifically, this is what you
+need for logging in at https://console.aws.amazon.com/. It consists of an e-mail
+address and password. The console login is only useful for human access and is
+needed to check and change billing data or to manually see which nodes are
+running. The console can also be used to configure key pairs and security
+groups (more about these later). None of the automated scripts require these
+credentials though.
+
+Current login data for the EC2 console:
+e-mail: daniel@rethinkdb.com
+password: 
+
+Automated access by scripts on the other hand is based on an access key. Access
+keys can be generated from the EC2 console (go to Account -> Security
+Credentials). They consist of an access key ID and a secret access key. Both 
+values must be reflected in the file test/cloud_retester.py, which provides the
+global configuration variables testing_nodes_ec2_access_key (this is where the
+key ID goes) and testing_nodes_ec2_private_key (for the secret key).
+
+Currently the following access key is used:
+key ID: AKIAJUKUVO6J45QRZQKA
+secret key: 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
+
+To allocate nodes in EC2, an image is required. Each image has an id, which must
+be put to the testing_nodes_ec2_image_name variable in test/cloud_retester.py.
+In addition to the image, the following things are required: an SSH key pair and
+a security group. Bot must be created once using the EC2 console and are
+addressed by a name. The key pair's and security group's name must be provided
+in the testing_nodes_ec2_key_pair_name and testing_nodes_ec2_security_group_name
+variables in test/cloud_retester.py. Security groups specify which network ports
+are accessible on the corresponding nodes. cloud retester requires port 22 (SSH)
+to be accessible from the outside. To get SSH access to a node, it uses the
+private key of the SSH key pair and a provided user name. The private SSH key
+must be stored to a file and that file's path must be specified in the
+private_ssh_key_filename variable in test/cloud_retester.py. The user name to
+use depends on the image. Amazon's default Linux images use a user named
+"ec2-user". The user name must be specified in
+testing_nodes_ec2_image_user_name.
+
+(the following data is for the us-east-1 location)
+The following image is currently used: ami-2272864b
+The following key pair is currently used:
+key pair name: cloudtest_default
+location of private key: test/east_ec2_private_key.pem
+The following security group is used: cloudtest_default
+
+Please note that image ids, key pairs and security groups are local to each EC2
+location. So if you want to switch to another location (e.g. from us-east-1 to
+us-west-1), make sure to create an appropriate key pair and security group on
+that location using the EC2 console and to reflect the new image id as well as
+the names of the key pair and the security group in the variables
+testing_nodes_ec2_image_name, testing_nodes_ec2_key_pair_name and
+testing_nodes_ec2_security_group_name in test.cloud_retester.py and place the
+private key of the new key pair in the location specified by the variable
+private_ssh_key_filename.

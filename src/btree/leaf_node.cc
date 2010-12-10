@@ -428,6 +428,16 @@ void leaf_node_handler::remove_time(leaf_timestamps_t *times, int offset) {
     }
 }
 
+repli_timestamp leaf_node_handler::get_timestamp_value(block_size_t block_size, const leaf_node_t *node, uint16_t offset) {
+    int toff = get_timestamp_offset(block_size, node, offset);
+
+    if (toff == -1) {
+        return node->times.last_modified;
+    } else {
+        return repli_time(node->times.last_modified.time - node->times.earlier[std::min(toff, NUM_LEAF_NODE_EARLIER_TIMES - 1)]);
+    }
+}
+
 // Returns the offset of the timestamp (or -1 or
 // NUM_LEAF_NODE_EARLIER_TIMES) for the key-value pair at the
 // given offset.
