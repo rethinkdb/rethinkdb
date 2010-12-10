@@ -46,9 +46,9 @@ def main():
         os.system('git pull')
         start_time = time.time()
         os.system('make -C ../src clean')
-        os.system('make -j -C ../src')
+        os.system('make -j -C ../src DEBUG=0')
         os.system('rm -rf output_from_test')
-        os.system('./integration/long_test.py --stress ../bench/stress-client/stress --auto --no-timeout --cores 8 --memory 40000 --no-valgrind')
+        os.system('./integration/long_test.py --stress ../bench/stress-client/stress --auto --no-timeout --no-netrecord --cores 8 --memory 40000 --no-valgrind --mode release')
         duration = time.time() - start_time
         send_email('jdoliner@gmail.com', "Uptime: %f" % duration)
         dir_name = string.replace(time.asctime(), ' ', '_')
