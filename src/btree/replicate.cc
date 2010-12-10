@@ -67,7 +67,7 @@ bool btree_replicant_t::uninstall(btree_slice_t *slice) {
             return true;
         }
     }
-    fail("We were never installed on this slice.");
+    fail_due_to_user_error("We were never installed on this slice.");
 }
 
 bool btree_replicant_t::have_uninstalled() {

@@ -62,7 +62,7 @@ void node_handler::validate(block_size_t block_size, const node_t *node) {
     } else if (check_magic<internal_node_t>(node->magic)) {
         internal_node_handler::validate(block_size, (internal_node_t *)node);
     } else {
-        fail("Invalid leaf node type.");
+        unreachable("Invalid leaf node type.");
     }
 #endif
 }

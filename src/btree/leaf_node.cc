@@ -79,7 +79,7 @@ void leaf_node_handler::remove(block_size_t block_size, leaf_node_t *node, const
 
     validate(block_size, node);
     // TODO: Currently this will error incorrectly on root
-//    check("leaf became zero size!", node->npairs == 0);
+    // guarantee(node->npairs != 0, "leaf became zero size!");
 }
 
 bool leaf_node_handler::lookup(const leaf_node_t *node, const btree_key *key, btree_value *value) {
@@ -132,9 +132,10 @@ void leaf_node_handler::merge(block_size_t block_size, leaf_node_t *node, leaf_n
     printf("rnode:\n");
     leaf_node_handler::print(rnode);
 #endif
-    check("leaf nodes too full to merge",
-          sizeof(leaf_node_t) + (node->npairs + rnode->npairs)*sizeof(*node->pair_offsets) +
-          (block_size.value() - node->frontmost_offset) + (block_size.value() - rnode->frontmost_offset) >= block_size.value());
+
+    guarantee(sizeof(leaf_node_t) + (node->npairs + rnode->npairs)*sizeof(*node->pair_offsets) +
+        (block_size.value() - node->frontmost_offset) + (block_size.value() - rnode->frontmost_offset) < block_size.value(),
+        "leaf nodes too full to merge");
 
     // TODO: this is coarser than it could be.
     initialize_times(&node->times, repli_max(node->times.last_modified, rnode->times.last_modified));
@@ -211,7 +212,8 @@ bool leaf_node_handler::level(block_size_t block_size, leaf_node_t *node, leaf_n
         int index = sibling->npairs - (sibling->npairs - node->npairs) / 2;
 #endif
         int pairs_to_move = sibling->npairs - index;
-        check("could not level nodes", pairs_to_move < 0);
+        assert(pairs_to_move >= 0, "could not level nodes");
+
         if (pairs_to_move == 0) return false;
         //copy from end of sibling to beginning of node
         memmove(node->pair_offsets + pairs_to_move, node->pair_offsets, node->npairs * sizeof(*node->pair_offsets));

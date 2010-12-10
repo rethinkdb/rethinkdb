@@ -169,20 +169,19 @@ void parse_cmd_args(int argc, char *argv[], cmd_config_t *config)
             config->n_workers = atoi(optarg);
             // Subtract one because of utility cpu
             if(config->n_workers > MAX_CPUS - 1) {
-                fail("Maximum number of CPUs is %d\n", MAX_CPUS - 1);
-                abort();
+                fail_due_to_user_error("Maximum number of CPUs is %d\n", MAX_CPUS - 1);
             }
             break;
         case 's':
             config->store_static_config.btree.n_slices = atoi(optarg);
             if(config->store_static_config.btree.n_slices > MAX_SLICES) {
-                fail("Maximum number of slices is %d", MAX_SLICES);
+                fail_due_to_user_error("Maximum number of slices is %d", MAX_SLICES);
             }
             break;
         case 'f':
             {
                 if (private_configs.size() >= MAX_SERIALIZERS) {
-                    fail("Cannot use more than %d files.", MAX_SERIALIZERS);
+                    fail_due_to_user_error("Cannot use more than %d files.", MAX_SERIALIZERS);
                 }
                 struct log_serializer_private_dynamic_config_t db_info;
                 db_info.db_filename = optarg;
@@ -196,7 +195,7 @@ void parse_cmd_args(int argc, char *argv[], cmd_config_t *config)
         case 'S':
             {
                 if (private_configs.size() == 0) {
-                    fail("You can specify the semantic file name only after specifying a database file name.");
+                    fail_due_to_user_error("You can specify the semantic file name only after specifying a database file name.");
                 }
                 assert(private_configs.size() <= MAX_SERIALIZERS);
                 private_configs.back().semantic_filename = optarg;
@@ -207,17 +206,19 @@ void parse_cmd_args(int argc, char *argv[], cmd_config_t *config)
             config->store_dynamic_config.cache.max_size = atoll(optarg) * 1024 * 1024;
             break;
         case wait_for_flush:
-        	if (strcmp(optarg, "y") == 0) config->store_dynamic_config.cache.wait_for_flush = true;
-        	else if (strcmp(optarg, "n") == 0) config->store_dynamic_config.cache.wait_for_flush = false;
-        	else fail("wait-for-flush expects 'y' or 'n'");
+            if (strcmp(optarg, "y") == 0) config->store_dynamic_config.cache.wait_for_flush = true;
+            else if (strcmp(optarg, "n") == 0) config->store_dynamic_config.cache.wait_for_flush = false;
+            else fail_due_to_user_error("wait-for-flush expects 'y' or 'n'");
             break;
         case flush_timer:
             if (strcmp(optarg, "disable") == 0) config->store_dynamic_config.cache.flush_timer_ms = NEVER_FLUSH;
             else {
                 config->store_dynamic_config.cache.flush_timer_ms = atoi(optarg);
-                check("flush timer should not be negative; use 'disable' to allow changes "
-                      "to sit in memory indefinitely",
-                      config->store_dynamic_config.cache.flush_timer_ms < 0);
+                if (config->store_dynamic_config.cache.flush_timer_ms < 0) {
+                    fail_due_to_user_error(
+                        "flush timer should not be negative; use 'disable' to allow changes "
+                        "to sit in memory indefinitely");
+                }
             }
             break;
         case flush_threshold:
@@ -231,7 +232,7 @@ void parse_cmd_args(int argc, char *argv[], cmd_config_t *config)
                 usage(argv[0]);
             }
             if (!(MIN_GC_LOW_RATIO <= low && low < high && high <= MAX_GC_HIGH_RATIO)) {
-                fail("gc-range expects \"low-high\", with %f <= low < high <= %f",
+                fail_due_to_user_error("gc-range expects \"low-high\", with %f <= low < high <= %f",
                      MIN_GC_LOW_RATIO, MAX_GC_HIGH_RATIO);
             }
             config->store_dynamic_config.serializer.gc_low_ratio = low;
@@ -241,26 +242,25 @@ void parse_cmd_args(int argc, char *argv[], cmd_config_t *config)
         case active_data_extents: {
             unsigned nade = atoi(optarg);
             config->store_dynamic_config.serializer.num_active_data_extents = nade;
-            if (nade < 1 ||
-                nade > MAX_ACTIVE_DATA_EXTENTS) {
-                fail("--active-data-extents must be less than or equal to %d", MAX_ACTIVE_DATA_EXTENTS);
+            if (nade < 1 || nade > MAX_ACTIVE_DATA_EXTENTS) {
+                fail_due_to_user_error("--active-data-extents must be less than or equal to %d", MAX_ACTIVE_DATA_EXTENTS);
             }
         } break;
         case block_size: {
             uint64_t bs = atoi(optarg);
             config->store_static_config.serializer.unsafe_block_size() = bs;
             if (bs % DEVICE_BLOCK_SIZE != 0) {
-                fail("--block-size must be a multiple of %d", DEVICE_BLOCK_SIZE);
+                fail_due_to_user_error("--block-size must be a multiple of %d", DEVICE_BLOCK_SIZE);
             }
             if (bs <= 0 || bs > DEVICE_BLOCK_SIZE * 1000) {
-                fail("--block-size value is not reasonable.");
+                fail_due_to_user_error("--block-size value is not reasonable.");
             }
         } break;
         case extent_size: {
             uint64_t es = atoi(optarg);
             config->store_static_config.serializer.unsafe_extent_size() = es;
             if (es <= 0 || es > TERABYTE) {
-                fail("--extent-size value is not reasonable.");
+                fail_due_to_user_error("--extent-size value is not reasonable.");
             }
         } break;
         case create_database:
@@ -281,7 +281,7 @@ void parse_cmd_args(int argc, char *argv[], cmd_config_t *config)
     }
 
     if (optind < argc) {
-        fail("Unexpected extra argument: \"%s\"", argv[optind]);
+        fail_due_to_user_error("Unexpected extra argument: \"%s\"", argv[optind]);
     }
     
     /* "Idiot mode" -- do something reasonable for novice users */
@@ -303,28 +303,28 @@ void parse_cmd_args(int argc, char *argv[], cmd_config_t *config)
             config->create_store = true;
             config->shutdown_after_creation = false;
         } else {
-            fail("Could not access() path \"%s\": %s", DEFAULT_DB_FILE_NAME, strerror(errno));
+            fail_due_to_user_error("Could not access() path \"%s\": %s", DEFAULT_DB_FILE_NAME, strerror(errno));
         }
     }
     
     /* Sanity-check the input */
     
     if (private_configs.empty()) {
-        fail("You must explicitly specify one or more paths with -f.");
+        fail_due_to_user_error("You must explicitly specify one or more paths with -f.");
     }
     
     if (config->store_dynamic_config.cache.wait_for_flush == true &&
         config->store_dynamic_config.cache.flush_timer_ms == NEVER_FLUSH &&
         config->store_dynamic_config.cache.flush_threshold_percent != 0) {
-    	printf("WARNING: Server is configured to wait for data to be flushed\n"
+                       printf("WARNING: Server is configured to wait for data to be flushed\n"
                "to disk before returning, but also configured to wait\n"
                "indefinitely before flushing data to disk. Setting wait-for-flush\n"
                "to 'no'.\n\n");
-    	config->store_dynamic_config.cache.wait_for_flush = false;
+                       config->store_dynamic_config.cache.wait_for_flush = false;
     }
     
     if (config->store_static_config.serializer.extent_size() % config->store_static_config.serializer.block_size().ser_value() != 0) {
-        fail("Extent size (%d) is not a multiple of block size (%d).", 
+        fail_due_to_user_error("Extent size (%d) is not a multiple of block size (%d).", 
              config->store_static_config.serializer.extent_size(),
              config->store_static_config.serializer.block_size().ser_value());
     }

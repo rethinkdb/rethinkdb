@@ -17,7 +17,7 @@ bool rwi_lock_t::lock(access_t access, lock_available_callback_t *callback) {
 void rwi_lock_t::unlock() {
     switch(state) {
     case rwis_unlocked:
-        fail("Lock is not locked.");
+        unreachable("Lock is not locked.");
         break;
     case rwis_reading:
         nreaders--;
@@ -71,7 +71,7 @@ bool rwi_lock_t::try_lock(access_t access, bool from_queue) {
         res = try_lock_upgrade(from_queue);
         break;
     default:
-        fail("Invalid lock state");
+        unreachable("Invalid lock state");
     }
 
     return res;
@@ -97,7 +97,7 @@ bool rwi_lock_t::try_lock_read(bool from_queue) {
         nreaders++;
         return true;
     default:
-        fail("Invalid state.");
+        unreachable("Invalid state.");
     }
 }
 
@@ -122,7 +122,7 @@ bool rwi_lock_t::try_lock_write(bool from_queue) {
     case rwis_reading_with_intent:
         return false;
     default:
-        fail("Invalid state.");
+        unreachable("Invalid state.");
     }
 }
     
@@ -146,7 +146,7 @@ bool rwi_lock_t::try_lock_intent(bool from_queue) {
     case rwis_reading_with_intent:
         return false;
     default:
-        fail("Invalid state.");
+        unreachable("Invalid state.");
     }
 }
 

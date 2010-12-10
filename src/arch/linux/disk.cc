@@ -22,7 +22,6 @@ perfmon_counter_t
     pm_io_writes_completed("io_writes_completed[iowrites]");
 
 linux_direct_file_t::linux_direct_file_t(const char *path, int mode) {
-    
     int res;
     
     // Determine if it is a block device
@@ -30,7 +29,7 @@ linux_direct_file_t::linux_direct_file_t(const char *path, int mode) {
     struct stat64 file_stat;
     bzero((void*)&file_stat, sizeof(file_stat)); // make valgrind happy
     res = stat64(path, &file_stat);
-    check("Could not stat file", res == -1 && errno != ENOENT);
+    guarantee_err(res != -1 || errno == ENOENT, "Could not stat file");
     
     if (res == -1 && errno == ENOENT) {
         is_block = false;
@@ -45,7 +44,7 @@ linux_direct_file_t::linux_direct_file_t(const char *path, int mode) {
     if (mode == (mode_read | mode_write)) flags |= O_RDWR;
     else if (mode & mode_write) flags |= O_WRONLY;
     else if (mode & mode_read) flags |= O_RDONLY;
-    else fail("Bad mode.");
+    else crash("Bad file access mode.");
     
     // O_NOATIME requires owner or root privileges. This is a bit of a hack; we assume that
     // if we are opening a regular file, we are the owner, but if we are opening a block device,
@@ -55,19 +54,19 @@ linux_direct_file_t::linux_direct_file_t(const char *path, int mode) {
     // Open the file
     
     fd = open(path, flags, 0644);
-    check("Could not open file", fd == INVALID_FD);
+    guarantee_err(fd != INVALID_FD, "Could not open file");
     
     // Determine the file size
     
     if (is_block) {
         res = ioctl(fd, BLKGETSIZE64, &file_size);
-        check("Could not determine block device size", res == -1);
+        guarantee_err(res != -1, "Could not determine block device size");
         
     } else {
         off64_t size = lseek64(fd, 0, SEEK_END);
-        check("Could not determine file size", size == -1);
+        guarantee_err(size != -1, "Could not determine file size");
         res = lseek64(fd, 0, SEEK_SET);
-        check("Could not reset file position", res == -1);
+        guarantee_err(res != -1, "Could not reset file position");
         
         file_size = size;
     }
@@ -84,12 +83,11 @@ size_t linux_direct_file_t::get_size() {
 void linux_direct_file_t::set_size(size_t size) {
     assert(!is_block);
     int res = ftruncate(fd, size);
-    check("Could not ftruncate()", res == -1);
+    guarantee_err(res == 0, "Could not ftruncate()");
     file_size = size;
 }
 
 void linux_direct_file_t::set_size_at_least(size_t size) {
-    
     if (is_block) {
         assert(file_size >= size);
     
@@ -104,7 +102,6 @@ void linux_direct_file_t::set_size_at_least(size_t size) {
 }
 
 bool linux_direct_file_t::read_async(size_t offset, size_t length, void *buf, linux_iocallback_t *callback) {
-    
     verify(offset, length, buf);
     
     linux_io_calls_t *iosys = &linux_thread_pool_t::thread->iosys;
@@ -127,7 +124,6 @@ bool linux_direct_file_t::read_async(size_t offset, size_t length, void *buf, li
 }
 
 bool linux_direct_file_t::write_async(size_t offset, size_t length, void *buf, linux_iocallback_t *callback) {
-    
 #ifdef DEBUG_DUMP_WRITES
     printf("--- WRITE BEGIN ---\n");
     print_backtrace(stdout);
@@ -158,26 +154,24 @@ bool linux_direct_file_t::write_async(size_t offset, size_t length, void *buf, l
 }
 
 void linux_direct_file_t::read_blocking(size_t offset, size_t length, void *buf) {
-    
     verify(offset, length, buf);
     size_t res = pread(fd, buf, length, offset);
-    check("Blocking read failed", res != length);
+    assert(res == length, "Blocking read failed");
+    UNUSED(res);
 }
 
 void linux_direct_file_t::write_blocking(size_t offset, size_t length, void *buf) {
-    
     verify(offset, length, buf);
     size_t res = pwrite(fd, buf, length, offset);
-    check("Blocking write failed", res != length);
+    assert(res == length, "Blocking write failed");
+    UNUSED(res);
 }
 
 linux_direct_file_t::~linux_direct_file_t() {
-    
     close(fd);
 }
 
 void linux_direct_file_t::verify(size_t offset, size_t length, void *buf) {
-    
     assert(buf);
     assert(offset + length <= file_size);
     assert((intptr_t)buf % DEVICE_BLOCK_SIZE == 0);
@@ -199,15 +193,15 @@ linux_io_calls_t::linux_io_calls_t(linux_event_queue_t *queue)
     
     aio_context = 0;
     res = io_setup(MAX_CONCURRENT_IO_REQUESTS, &aio_context);
-    check("Could not setup aio context", res != 0);
+    guarantee(res == 0, "Could not setup aio context");    // errors are returned in res (negated) instead of errno
     
     // Create aio notify fd
     
     aio_notify_fd = eventfd(0, 0);
-    check("Could not create aio notification fd", aio_notify_fd == -1);
+    guarantee_err(aio_notify_fd != -1, "Could not create aio notification fd");
 
     res = fcntl(aio_notify_fd, F_SETFL, O_NONBLOCK);
-    check("Could not make aio notify fd non-blocking", res != 0);
+    guarantee_err(res == 0, "Could not make aio notify fd non-blocking");
 
     queue->watch_resource(aio_notify_fd, poll_event_in, this);
 }
@@ -219,19 +213,18 @@ linux_io_calls_t::~linux_io_calls_t()
     assert(n_pending == 0);
     
     res = close(aio_notify_fd);
-    check("Could not close aio_notify_fd", res != 0);
+    guarantee_err(res == 0, "Could not close aio_notify_fd");
     
     res = io_destroy(aio_context);
-    check("Could not destroy aio_context", res != 0);
+    guarantee_err(res == 0, "Could not destroy aio_context");
 }
 
 void linux_io_calls_t::on_event(int) {
-    
     int res, nevents;
     eventfd_t nevents_total;
     
     res = eventfd_read(aio_notify_fd, &nevents_total);
-    check("Could not read aio_notify_fd value", res != 0);
+    guarantee_err(res == 0, "Could not read aio_notify_fd value");
 
     // Note: O(1) array allocators are hard. To avoid all the
     // complexity, we'll use a fixed sized array and call io_getevents
@@ -248,7 +241,7 @@ void linux_io_calls_t::on_event(int) {
         nevents = io_getevents(aio_context, 0,
                                std::min((int)nevents_total, MAX_IO_EVENT_PROCESSING_BATCH_SIZE),
                                events, NULL);
-        check("Waiting for AIO event failed", nevents < 1);
+        guarantee_err(nevents >= 1, "Waiting for AIO event failed");
         
         // Process the events
         for(int i = 0; i < nevents; i++) {
@@ -272,7 +265,12 @@ void linux_io_calls_t::aio_notify(iocb *event, int result) {
     // Check for failure (because the higher-level code usually doesn't)
     if (result != (int)event->u.c.nbytes) {
         errno = -result;
-        check("Read or write failed", 1);
+
+        // Currently AIO is used only for disk files, not sockets.
+        // Thus, if something fails, we have a good reason to crash
+        // (note that that is not true for sockets: we should just
+        // close the socket and cleanup then).
+        guarantee_err(false, "Read or write failed");
     }
     
     // Notify the interested party about the event
@@ -307,7 +305,7 @@ void linux_io_calls_t::process_requests() {
         if(res < 0)
             break;
     }
-    check("Could not submit IO request", res < 0 && res != -EAGAIN);
+    guarantee_err(res >= 0 || res == -EAGAIN, "Could not submit IO request");
 }
 
 linux_io_calls_t::queue_t::queue_t(linux_io_calls_t *parent)

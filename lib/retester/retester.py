@@ -1,4 +1,4 @@
-import subprocess, shlex, signal, os, time, shutil, tempfile, sys, traceback, types, gitroot, datetime
+import subprocess, shlex, signal, os, time, shutil, tempfile, sys, traceback, types, gitroot, datetime, shutil
 from vcoptparse import *
 
 reports = []
@@ -227,10 +227,10 @@ def run_test(command, timeout = None):
             # Replace the original directory that the SmartTemporaryDirectory created with our own
             # directory, but the SmartTemporaryDirectory will still be responsible for deleting it
             os.rmdir(new_output_dir.path)
-            os.rename(output_dir, new_output_dir.path)
+            shutil.move(output_dir, new_output_dir.path)
         
         # Put the output from the command into said directory as well
-        os.rename(output.take_file(), os.path.join(new_output_dir.path, "test_output.txt"))
+        shutil.move(output.take_file(), os.path.join(new_output_dir.path, "test_output.txt"))
     
     else:
         # Delete the output directory
@@ -375,7 +375,7 @@ def process_output_dir(result):
     i = 1
     while os.path.exists(os.path.join(retest_output_dir, str(i))): i += 1
     output_dir = os.path.join(retest_output_dir, str(i))
-    os.rename(result.output_dir.take_dir(), output_dir)
+    shutil.move(result.output_dir.take_dir(), output_dir)
     
     # Make a generator that scans all the files in the directory
     def walker():

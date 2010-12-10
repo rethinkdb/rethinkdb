@@ -266,18 +266,16 @@ btree_get_fsm_t::transition_result_t btree_get_fsm_t::do_deliver_not_found_notif
 void btree_get_fsm_t::do_transition(event_t *event) {
     transition_result_t res = btree_fsm_t::transition_ok;
 
-    // Make sure we've got either an empty or a cache event
-    check("btree_fsm::do_transition - invalid event",
-          !(!event || event->event_type == et_cache || event->event_type == et_large_buf));
+    // Make sure we've got either an empty or a cache event or a large buffer
+    guarantee(!event || event->event_type == et_cache || event->event_type == et_large_buf,
+        "btree_fsm::do_transition - invalid event");
 
     if (event && event->event_type == et_large_buf) assert(state == acquire_large_value);
 
     // Update the cache with the event
-    if(event) {
-        check("btree_get_fsm::do_transition - invalid event", event->op != eo_read);
-        check("Could not complete AIO operation",
-              event->result == 0 ||
-              event->result == -1);
+    if (event) {
+        guarantee_err(event->op == eo_read, "btree_get_fsm::do_transition - invalid event");
+        guarantee_err(event->result != 0 && event->result != -1, "Could not complete AIO operation");
     }
 
     while (res == btree_fsm_t::transition_ok) {
