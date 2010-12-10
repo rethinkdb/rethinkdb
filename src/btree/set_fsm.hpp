@@ -88,6 +88,10 @@ public:
         
         if (result == result_stored) {
             have_finished_operating(&value, large_value);
+        } else if (result == result_too_large) {
+            /* To be standards-compliant we must delete the old value when an effort is made to
+            replace it with a value that is too large. */
+            have_finished_operating(NULL, NULL);
         } else {
             have_failed_operating();
         }
