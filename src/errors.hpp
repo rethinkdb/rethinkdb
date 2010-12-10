@@ -34,7 +34,7 @@
 #if defined __i386 || defined __x86_64
 #define BREAKPOINT __asm__ volatile ("int3")
 #else   /* x86/amd64 */
-#define BREAKPOINT raise(SIGTRAP);
+#define BREAKPOINT raise(SIGTRAP)
 #endif  /* x86/amd64 */
  #endif /* __linux__ */
 
@@ -59,8 +59,6 @@ void report_fatal_error(const char*, int, const char*, ...);
             crash_or_trap(format_assert_message("Guarantee", cond) msg); \
         }                               \
     } while (0)
-
-
 #define guarantee_err(cond, msg, args...) do {                                  \
         if (!(cond)) {                                                          \
             if (errno == 0) {                                                   \

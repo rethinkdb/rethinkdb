@@ -206,6 +206,7 @@ void parse_cmd_args(int argc, char *argv[], cmd_config_t *config)
             config->store_dynamic_config.cache.max_size = atoll(optarg) * 1024 * 1024;
             break;
         case wait_for_flush:
+            assert(optarg);
             if (strcmp(optarg, "y") == 0) config->store_dynamic_config.cache.wait_for_flush = true;
             else if (strcmp(optarg, "n") == 0) config->store_dynamic_config.cache.wait_for_flush = false;
             else fail_due_to_user_error("wait-for-flush expects 'y' or 'n'");
@@ -222,14 +223,16 @@ void parse_cmd_args(int argc, char *argv[], cmd_config_t *config)
             }
             break;
         case flush_threshold:
+            assert(optarg);
             config->store_dynamic_config.cache.flush_threshold_percent = atoi(optarg);
             break;
         case gc_range: {
             float low = 0.0;
             float high = 0.0;
             int consumed = 0;
-            if (3 != sscanf(optarg, "%f-%f%n", &low, &high, &consumed) || ((size_t)consumed) != strlen(optarg)) {
-                usage(argv[0]);
+            assert(optarg);
+            if (2 != sscanf(optarg, "%f-%f%n", &low, &high, &consumed) || ((size_t)consumed) != strlen(optarg)) {
+                fail_due_to_user_error("gc-range expects \"low-high\"");
             }
             if (!(MIN_GC_LOW_RATIO <= low && low < high && high <= MAX_GC_HIGH_RATIO)) {
                 fail_due_to_user_error("gc-range expects \"low-high\", with %f <= low < high <= %f",
@@ -240,6 +243,7 @@ void parse_cmd_args(int argc, char *argv[], cmd_config_t *config)
             break;
         }
         case active_data_extents: {
+            assert(optarg);
             unsigned nade = atoi(optarg);
             config->store_dynamic_config.serializer.num_active_data_extents = nade;
             if (nade < 1 || nade > MAX_ACTIVE_DATA_EXTENTS) {

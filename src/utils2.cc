@@ -88,6 +88,27 @@ int randint(int n) {
     return rand() % n;
 }
 
+bool begins_with_minus(const char *string) {
+    while (isspace(*string)) string++;
+    return *string == '-';
+}
+
+unsigned long strtoul_strict(const char *string, char **end, int base) {
+    if (begins_with_minus(string)) {
+        *end = const_cast<char *>(string);
+        return 0;
+    }
+    return strtoul(string, end, base);
+}
+
+unsigned long long strtoull_strict(const char *string, char **end, int base) {
+    if (begins_with_minus(string)) {
+        *end = const_cast<char *>(string);
+        return 0;
+    }
+    return strtoull(string, end, base);
+}
+
 ticks_t secs_to_ticks(float secs) {
     return (unsigned long long)secs * 1000000000L;
 }

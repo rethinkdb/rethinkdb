@@ -54,6 +54,10 @@ public:
 
     btree_key_value_store_t *store;
     conn_acceptor_t conn_acceptor;
+
+#ifdef REPLICATION_ENABLED
+    conn_acceptor_t *replication_acceptor;
+#endif
     
 private:
 

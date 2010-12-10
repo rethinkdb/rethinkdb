@@ -679,11 +679,9 @@ txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::parse_adjustmen
         return malformed_request();
     }
 
-    // First convert to signed long to catch negative arguments (strtoull handles them as valid unsigned numbers)
-    signed long long signed_delta = strtoll(value_str, NULL, 10);
     char *endptr = NULL;
-    unsigned long long delta = strtoull(value_str, &endptr, 10);
-    if (*endptr != '\0' || signed_delta < 0) {
+    unsigned long long delta = strtoull_strict(value_str, &endptr, 10);
+    if (*endptr != '\0') {
         if (!noreply) {
             conn_fsm->sbuf->printf(INCR_DECR_ON_NON_UINT_ARGUMENT);
             request_complete();
@@ -725,26 +723,26 @@ txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::parse_storage_c
     }
 
     char *invalid_char;
-    mcflags = strtoul(mcflags_str, &invalid_char, 10);  //a 32 bit integer.  int alone does not guarantee 32 bit length
+    mcflags = strtoul_strict(mcflags_str, &invalid_char, 10);  //a 32 bit integer.  int alone does not guarantee 32 bit length
     if (*invalid_char != '\0') {  // ensure there were no improper characters in the token - i.e. parse was successful
         conn_fsm->consume(line_len);
         return malformed_request();
     }
 
-    exptime = strtoul(exptime_str, &invalid_char, 10);
+    exptime = strtoul_strict(exptime_str, &invalid_char, 10);
     if (*invalid_char != '\0') {
         conn_fsm->consume(line_len);
         return malformed_request();
     }
 
-    bytes = strtoul(bytes_str, &invalid_char, 10);
+    bytes = strtoul_strict(bytes_str, &invalid_char, 10);
     if (*invalid_char != '\0') {
         conn_fsm->consume(line_len);
         return malformed_request();
     }
 
     if (cmd == CAS) {
-        cas = strtoull(cas_str, &invalid_char, 10);
+        cas = strtoull_strict(cas_str, &invalid_char, 10);
         if (*invalid_char != '\0') {
             conn_fsm->consume(line_len);
             return malformed_request();

@@ -83,6 +83,7 @@ public:
 
 private:
     conn_acceptor_t *parent;
+    net_conn_t *conn;
     bool quitting;
 };
 
