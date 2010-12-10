@@ -32,7 +32,7 @@ public:
             memcpy(buffer, old_value->value(), old_value->size);
             buffer[old_value->size] = 0;
             char *endptr;
-            new_number = strtoull(buffer, &endptr, 10);
+            new_number = strtoull_strict(buffer, &endptr, 10);
             if (endptr == buffer) valid = false;
             else valid = true;
         } else {
