@@ -360,9 +360,11 @@ def scp_basedata_to_testing_node(source_node, target_node):
     for path_to_copy in [("/tmp/cloudtest_libs", "/tmp/cloudtest_libs"), ("/tmp/cloudtest_bin", "/tmp/cloudtest_bin"), ("/tmp/cloudtest_python", "/tmp/cloudtest_python"), (source_node.global_build_path, target_node.global_build_path), (source_node.global_bench_path, target_node.global_bench_path), (source_node.global_test_path, target_node.global_test_path)]:
         command_result = source_node.run_command("scp -r -C -q -o stricthostkeychecking=no -P %i -i private_ssh_key.pem %s %s@%s:%s" % (target_node.port, path_to_copy[0], target_node.username, target_node.hostname, path_to_copy[1]))
         if command_result[0] != 0:
-            print "Failed using scp to copy data from %s to %s" % (source_node.hostname, target_node.hostname)
+            print "Failed using scp to copy data from %s to %s: %s" % (source_node.hostname, target_node.hostname, command_result[1])
+            return False
             
     target_node.basedata_installed = True
+    return True
 
 
 def copy_basedata_to_testing_node(node):
@@ -374,8 +376,8 @@ def copy_basedata_to_testing_node(node):
     for source_node in testing_nodes:
         if source_node.basedata_installed:
             print "Scp-ing base data from source node " + source_node.hostname
-            scp_basedata_to_testing_node(source_node, node)
-            return
+            if scp_basedata_to_testing_node(source_node, node):
+                return
             
     
     # TODO: All these static (source) paths are really ugly. Is there a more elegant way?
