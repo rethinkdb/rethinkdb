@@ -84,7 +84,6 @@ mc_inner_buf_t::mc_inner_buf_t(cache_t *cache)
 }
 
 mc_inner_buf_t::~mc_inner_buf_t() {
-    
     cache->assert_cpu();
     
 #ifndef NDEBUG
@@ -119,7 +118,6 @@ mc_buf_t::mc_buf_t(mc_inner_buf_t *inner, access_t mode)
 }
 
 void mc_buf_t::on_lock_available() {
-    
     pm_bufs_acquiring.end(&start_time);
     
     inner_buf->cache->assert_cpu();
@@ -151,9 +149,11 @@ void mc_buf_t::on_lock_available() {
             data = inner_buf->data;
             break;
         }
-        default: {
+        case rwi_intent:
             not_implemented("Locking with intent not supported yet.");
-        }
+        case rwi_upgrade:
+        default:
+            unreachable();
     }
     
     pm_bufs_held.begin(&start_time);
@@ -163,7 +163,6 @@ void mc_buf_t::on_lock_available() {
 }
 
 void mc_buf_t::release() {
-    
     pm_bufs_held.end(&start_time);
     
     inner_buf->cache->assert_cpu();
@@ -184,7 +183,10 @@ void mc_buf_t::release() {
             }
             break;
         }
-        default: unreachable("Unexpected mode.");
+        case rwi_intent:
+        case rwi_upgrade:
+        default:
+            unreachable("Unexpected mode.");
     }
     
     // If this code is not commented out, then it will cause bufs to be unloaded very aggressively.
@@ -224,7 +226,6 @@ mc_transaction_t::mc_transaction_t(cache_t *cache, access_t access)
 }
 
 mc_transaction_t::~mc_transaction_t() {
-    
     assert(state == state_committed);
     pm_transactions_committing.end(&start_time);
 }
@@ -236,7 +237,6 @@ void mc_transaction_t::on_lock_available() {
 }
 
 bool mc_transaction_t::commit(transaction_commit_callback_t *callback) {
-    
     assert(state == state_open);
     pm_transactions_active.end(&start_time);
     pm_transactions_committing.begin(&start_time);
@@ -286,7 +286,6 @@ void mc_transaction_t::on_sync() {
 }
 
 mc_buf_t *mc_transaction_t::allocate(block_id_t *block_id) {
-
     /* Make a completely new block, complete with a shiny new block_id. */
     
     assert(access == rwi_write);
@@ -304,7 +303,6 @@ mc_buf_t *mc_transaction_t::allocate(block_id_t *block_id) {
 
 mc_buf_t *mc_transaction_t::acquire(block_id_t block_id, access_t mode,
                                     block_available_callback_t *callback) {
-    
     assert(mode == rwi_read || mode == rwi_read_outdated_ok || access != rwi_read);
        
     inner_buf_t *inner_buf = cache->page_map.find(block_id);
@@ -366,7 +364,6 @@ mc_cache_t::mc_cache_t(
     { }
 
 mc_cache_t::~mc_cache_t() {
-    
     assert(state == state_unstarted || state == state_shut_down);
     
     while (inner_buf_t *buf = page_repl.get_first_buf()) {
@@ -388,7 +385,6 @@ bool mc_cache_t::start(ready_callback_t *cb) {
 }
 
 bool mc_cache_t::next_starting_up_step() {
-    
     if (state == state_starting_up_create_free_list) {
         if (free_list.start(this)) {
             state = state_starting_up_finish;
@@ -399,10 +395,8 @@ bool mc_cache_t::next_starting_up_step() {
     }
     
     if (state == state_starting_up_finish) {
-        
         /* Create an initial superblock */
         if (free_list.num_blocks_in_use == 0) {
-        
             inner_buf_t *b = new mc_inner_buf_t(this);
             assert(b->block_id == SUPERBLOCK_ID);
             bzero(b->data, get_block_size().value());
@@ -451,7 +445,6 @@ mc_transaction_t *mc_cache_t::begin_transaction(access_t access,
 }
 
 void mc_cache_t::on_transaction_commit(transaction_t *txn) {
-    
     assert(state == state_ready ||
         state == state_shutting_down_waiting_for_transactions ||
         state == state_shutting_down_start_flush ||
@@ -469,7 +462,6 @@ void mc_cache_t::on_transaction_commit(transaction_t *txn) {
 }
 
 bool mc_cache_t::shutdown(shutdown_callback_t *cb) {
-
     assert(state == state_ready);
 
     if (num_live_transactions == 0) {
@@ -491,7 +483,6 @@ bool mc_cache_t::shutdown(shutdown_callback_t *cb) {
 }
 
 bool mc_cache_t::next_shutting_down_step() {
-
     if (state == state_shutting_down_start_flush) {
         if (writeback.sync(this)) {
             state = state_shutting_down_finish;
@@ -502,7 +493,6 @@ bool mc_cache_t::next_shutting_down_step() {
     }
     
     if (state == state_shutting_down_finish) {
-        
         /* Use do_later() rather than calling it immediately because it might call
         our destructor, and it might not be safe to call our destructor right here. */
         if (shutdown_callback) do_later(shutdown_callback, &shutdown_callback_t::on_cache_shutdown);

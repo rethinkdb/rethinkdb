@@ -20,10 +20,8 @@
 struct extent_zone_t;
 
 class extent_manager_t {
-
 public:
     struct metablock_mixin_t {
-    
         /* When we shut down, we store the number of extents in use in the metablock.
         When we start back up and reconstruct the free list, we assert that it is the same.
         I would wrap this in #ifndef NDEBUG except that I don't want the format to change

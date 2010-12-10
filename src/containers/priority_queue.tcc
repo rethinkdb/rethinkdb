@@ -104,7 +104,6 @@ typename priority_queue_t<T, Less>::entry_t *priority_queue_t<T, Less>::push(T d
 
 template<class T, class Less>
 void priority_queue_t<T, Less>::remove(entry_t *e) {
-    
     unsigned index = e->index;
 
     if (index < heap.size() - 1) {
@@ -120,7 +119,6 @@ void priority_queue_t<T, Less>::remove(entry_t *e) {
 
 template<class T, class Less>
 T priority_queue_t<T, Less>::pop() {
-    
     T result = heap.front()->data;
     
     delete heap.front();

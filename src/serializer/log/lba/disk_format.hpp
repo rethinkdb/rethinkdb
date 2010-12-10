@@ -79,7 +79,6 @@ struct lba_shard_metablock_t {
 };
 
 struct lba_metablock_mixin_t {
-
     lba_shard_metablock_t shards[LBA_SHARD_FACTOR];
 };
 

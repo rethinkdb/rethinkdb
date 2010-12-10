@@ -6,7 +6,6 @@
 struct linux_timer_token_t :
     public intrusive_list_node_t<linux_timer_token_t>
 {
-    
     friend class linux_timer_handler_t;
     
 private:

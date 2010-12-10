@@ -18,9 +18,7 @@ struct linux_iocallback_t {
     virtual void on_io_complete(event_t *event) = 0;
 };
 
-class linux_direct_file_t
-{
-
+class linux_direct_file_t {
 public:
     enum mode_t {
         mode_read = 1 << 0,
@@ -53,10 +51,7 @@ private:
     DISABLE_COPYING(linux_direct_file_t);
 };
 
-class linux_io_calls_t :
-    public linux_event_callback_t
-{
-
+class linux_io_calls_t : public linux_event_callback_t {
 public:
     explicit linux_io_calls_t(linux_event_queue_t *queue);
     ~linux_io_calls_t();
@@ -70,7 +65,6 @@ public:
     int n_pending;
     
     struct queue_t {
-        
         linux_io_calls_t *parent;
         typedef std::vector<iocb*> request_vector_t;
         request_vector_t queue;
@@ -78,7 +72,6 @@ public:
         explicit queue_t(linux_io_calls_t *parent);
         int process_request_batch();
         ~queue_t();
-        
     } r_requests, w_requests;
 
 public:

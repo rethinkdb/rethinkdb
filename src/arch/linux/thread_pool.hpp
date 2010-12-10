@@ -16,7 +16,6 @@ event queue. There is one thread pool per server. It is responsible for starting
 and shutting down the threads and event queues. */
 
 class linux_thread_pool_t {
-
 public:
     explicit linux_thread_pool_t(int n_threads);
     

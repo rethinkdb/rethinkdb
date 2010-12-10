@@ -60,7 +60,6 @@ struct const_buffer_group_t {
 };
 
 struct data_provider_t {
-    
     virtual ~data_provider_t() { }
     virtual size_t get_size() = 0;
     struct done_callback_t {
@@ -72,7 +71,6 @@ struct data_provider_t {
 };
 
 struct store_t {
-    
     /* To get a value from the store, call get() or get_cas(), providing the key you want to get
     and a get_callback_t. If the store finds the value, it will call value(), giving you a
     buffer_group_t holding the value's contents. You must call the provided done_callback_t when
@@ -82,7 +80,6 @@ struct store_t {
     handler core. */
     
     struct get_callback_t {
-    
         struct done_callback_t {
             virtual void have_copied_value() = 0;
             virtual ~done_callback_t() {}
@@ -100,7 +97,6 @@ struct store_t {
     always be called exactly once. Also provide a set_callback_t. */
     
     struct set_callback_t {
-        
         virtual void stored() = 0;
         
         /* Called if you add() and it already exists or you replace() and it doesn't */
@@ -128,7 +124,6 @@ struct store_t {
     /* To increment or decrement a value, use incr() or decr(). They're pretty straight-forward. */
     
     struct incr_decr_callback_t {
-        
         virtual void success(unsigned long long new_value) = 0;
         virtual void not_found() = 0;
         virtual void not_numeric() = 0;
@@ -141,7 +136,6 @@ struct store_t {
     /* To append or prepend a value, use append() or prepend(). */
     
     struct append_prepend_callback_t {
-        
         virtual void success() = 0;
         virtual void too_large() = 0;
         virtual void not_found() = 0;
@@ -155,7 +149,6 @@ struct store_t {
     /* To delete a key-value pair, use delete(). */
     
     struct delete_callback_t {
-        
         virtual void deleted() = 0;
         virtual void not_found() = 0;
 
@@ -173,7 +166,6 @@ struct store_t {
     to delete the replicant until its stopped() method is called. */
     
     struct replicant_t {
-        
         struct done_callback_t {
             virtual void have_copied_value() = 0;
         };

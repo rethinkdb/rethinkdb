@@ -21,10 +21,7 @@ used in the production server and it doesn't work very well. */
 static const size_t extra_flags_length = 4;
 static const byte extra_flags[extra_flags_length] = {0x00, 0x00, 0x00, 0x00};
 
-class bin_memcached_handler_t :
-    public request_handler_t
-{
-
+class bin_memcached_handler_t : public request_handler_t {
 public:
     typedef request_handler_t::parse_result_t parse_result_t;
     using request_handler_t::conn_fsm;

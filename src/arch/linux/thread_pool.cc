@@ -34,7 +34,6 @@ linux_thread_pool_t::linux_thread_pool_t(int n_threads)
 }
 
 linux_cpu_message_t *linux_thread_pool_t::set_interrupt_message(linux_cpu_message_t *m) {
-    
     int res;
     
     res = pthread_spin_lock(&interrupt_message_lock);
@@ -57,7 +56,6 @@ struct thread_data_t {
 };
 
 void *linux_thread_pool_t::start_thread(void *arg) {
-    
     int res;
     
     thread_data_t *tdata = (thread_data_t*)arg;
@@ -101,7 +99,6 @@ void *linux_thread_pool_t::start_thread(void *arg) {
 }
 
 void linux_thread_pool_t::run(linux_cpu_message_t *initial_message) {
-    
     int res;
     
     do_shutdown = false;
@@ -113,7 +110,6 @@ void linux_thread_pool_t::run(linux_cpu_message_t *initial_message) {
     guarantee(res == 0, "Could not create barrier");
     
     for (int i = 0; i < n_threads; i++) {
-        
         thread_data_t *tdata = new thread_data_t();
         tdata->barrier = &barrier;
         tdata->thread_pool = this;
@@ -183,7 +179,6 @@ void linux_thread_pool_t::run(linux_cpu_message_t *initial_message) {
     // Shut down child threads
     
     for (int i = 0; i < n_threads; i++) {
-        
         // Cause child thread to break out of its loop
         
         threads[i]->do_shutdown = true;
@@ -192,7 +187,6 @@ void linux_thread_pool_t::run(linux_cpu_message_t *initial_message) {
     }
     
     for (int i = 0; i < n_threads; i++) {
-    
         // Wait for child thread to actually exit
         
         res = pthread_join(pthreads[i], NULL);
@@ -206,7 +200,6 @@ void linux_thread_pool_t::run(linux_cpu_message_t *initial_message) {
 }
 
 void linux_thread_pool_t::interrupt_handler(int) {
-    
     /* The interrupt handler should run on the main thread, the same thread that
     run() was called on. */
     
@@ -225,7 +218,6 @@ void linux_thread_pool_t::interrupt_handler(int) {
 }
 
 void linux_thread_pool_t::shutdown() {
-    
     int res;
     
     // This will tell the main thread to tell all the child threads to
@@ -238,7 +230,6 @@ void linux_thread_pool_t::shutdown() {
 }
 
 linux_thread_pool_t::~linux_thread_pool_t() {
-    
     int res;
     
     res = pthread_cond_destroy(&shutdown_cond);
@@ -276,7 +267,6 @@ linux_thread_t::linux_thread_t(linux_thread_pool_t *parent_pool, int thread_id)
 }
 
 linux_thread_t::~linux_thread_t() {
-    
     timer_handler.cancel_timer(perfmon_stats_timer);
     
     int res;
@@ -286,18 +276,15 @@ linux_thread_t::~linux_thread_t() {
 }
 
 void linux_thread_t::pump() {
-    
     message_hub.push_messages();
 }
 
 void linux_thread_t::on_event(int events) {
-    
     // No-op. This is just to make sure that the event queue wakes up
     // so it can shut down.
 }
 
 bool linux_thread_t::should_shut_down() {
-
     return do_shutdown;
 }
 

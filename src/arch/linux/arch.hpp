@@ -7,7 +7,6 @@
 #include "arch/linux/thread_pool.hpp"
 
 struct linux_io_config_t {
-    
     typedef linux_thread_pool_t thread_pool_t;
     
     typedef linux_direct_file_t direct_file_t;

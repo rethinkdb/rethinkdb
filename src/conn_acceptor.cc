@@ -11,7 +11,6 @@ conn_acceptor_t::~conn_acceptor_t() {
 }
 
 void conn_acceptor_t::start() {
-
     listener = new net_listener_t(port);
     listener->set_callback(this);
 
@@ -19,7 +18,6 @@ void conn_acceptor_t::start() {
 }
 
 void conn_acceptor_t::on_net_listener_accept(net_conn_t *conn) {
-
     assert(state == state_ready);
 
     n_active_conns++;
@@ -28,7 +26,6 @@ void conn_acceptor_t::on_net_listener_accept(net_conn_t *conn) {
 }
 
 bool conn_acceptor_t::create_conn_on_this_core(net_conn_t *conn) {
-
     conn_handler_t *handler = creator(conn, creator_udata);
     assert(!handler->parent);
     handler->parent = this;
@@ -38,7 +35,6 @@ bool conn_acceptor_t::create_conn_on_this_core(net_conn_t *conn) {
 }
 
 bool conn_acceptor_t::have_shutdown_a_conn() {
-
     assert(state == state_ready || state == state_shutting_down);
 
     n_active_conns--;
@@ -53,7 +49,6 @@ bool conn_acceptor_t::have_shutdown_a_conn() {
 }
 
 bool conn_acceptor_t::shutdown(shutdown_callback_t *cb) {
-
     assert(state == state_ready);
 
     /* Stop accepting new network connections */
@@ -73,7 +68,6 @@ bool conn_acceptor_t::shutdown(shutdown_callback_t *cb) {
         state = state_shutting_down;
         shutdown_callback = cb;
         return false;
-
     } else {
         state = state_off;
         return true;
@@ -81,9 +75,7 @@ bool conn_acceptor_t::shutdown(shutdown_callback_t *cb) {
 }
 
 bool conn_acceptor_t::shutdown_conns_on_this_core() {
-
     while (conn_handler_t *h = conn_handlers[get_cpu_id()].head()) {
-
         assert(!h->quitting);   // If it's already quitting it shouldn't be in the list
         h->quit();
         
@@ -96,13 +88,10 @@ bool conn_acceptor_t::shutdown_conns_on_this_core() {
 
 perfmon_counter_t pm_conns_total("conns_total[conns]");
 
-conn_handler_t::conn_handler_t()
-    : parent(NULL), quitting(false)
-{
+conn_handler_t::conn_handler_t() : parent(NULL), quitting(false) {
 }
 
 void conn_handler_t::on_quit() {
-
     assert(parent);   // We shouldn't get an on_quit() before we finished starting
 
     assert(!quitting);

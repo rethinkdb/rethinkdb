@@ -66,7 +66,7 @@ void report_fatal_error(const char*, int, const char*, ...);
             if (errno == 0) {                                                   \
                 crash_or_trap(format_assert_message("Guarantee", cond) msg);     \
             } else {                                                            \
-                crash_or_trap(format_assert_message("Guarantee", cond) " (errno %d - %s)" msg, errno, strerror(errno), ##args);  \
+                crash_or_trap(format_assert_message("Guarantee", cond) " (errno %d - %s) " msg, errno, strerror(errno), ##args);  \
             }                                                                   \
         }                                                                       \
     } while (0)

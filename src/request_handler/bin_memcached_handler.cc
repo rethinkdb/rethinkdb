@@ -68,7 +68,6 @@ public:
     }
     
     void not_found() {
-        
         response.status(bin_memcached_handler_t::bin_status_key_not_found);
         
         response.send(rh);
@@ -98,6 +97,7 @@ public:
             case btree_set_fsm_t::set_type_replace:
                 rh->server->store->replace(key, &dp, mcflags, exptime, this);
                 break;
+            case btree_set_fsm_t::set_type_cas:
             default:
                 unreachable("Not implemented");
         }
@@ -334,7 +334,6 @@ bin_memcached_handler_t::parse_result_t bin_memcached_handler_t::parse_request(e
 }
 
 bin_memcached_handler_t::parse_result_t bin_memcached_handler_t::dispatch_appropriate_fsm(packet_t *pkt) {
-    
     pkt->key(key);
     
     switch (pkt->opcode()) {

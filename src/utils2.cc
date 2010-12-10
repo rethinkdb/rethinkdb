@@ -56,7 +56,6 @@ void *malloc_aligned(size_t size, size_t alignment) {
 uses the IO layer, and it must be safe to include utils2 from within the IO layer. */
 
 void random_delay(void (*fun)(void*), void *arg) {
-
     /* In one in ten thousand requests, we delay up to 10 seconds. In half of the remaining
     requests, we delay up to 50 milliseconds; in the other half we delay a very short time. */
     int kind = randint(10000), ms;
@@ -67,7 +66,6 @@ void random_delay(void (*fun)(void*), void *arg) {
 }
 
 void debugf(const char *msg, ...) {
-
     flockfile(stderr);
     va_list args;
     va_start(args, msg);

@@ -44,7 +44,6 @@ bool btree_replicant_t::install(btree_slice_t *slice) {
 }
 
 void btree_replicant_t::stop() {
-
     assert_cpu();
     stopping = true;
 
@@ -56,7 +55,6 @@ void btree_replicant_t::stop() {
 }
 
 bool btree_replicant_t::uninstall(btree_slice_t *slice) {
-
     assert(stopping);
 
     std::vector<btree_replicant_t *>::iterator it;
@@ -71,7 +69,6 @@ bool btree_replicant_t::uninstall(btree_slice_t *slice) {
 }
 
 bool btree_replicant_t::have_uninstalled() {
-
     assert(stopping);
     active_uninstallations--;
     assert(active_uninstallations >= 0);
@@ -82,7 +79,6 @@ bool btree_replicant_t::have_uninstalled() {
 }
 
 void btree_replicant_t::done() {
-
     assert(stopping);
     callback->stopped();
     delete this;
@@ -186,7 +182,6 @@ struct branch_walker_t :
     }
     
     void have_copied_value() {
-    
         if (large_value) {
             large_value->release();
             delete large_value;
@@ -215,7 +210,6 @@ struct branch_walker_t :
                 if (current_value->is_large()) {
                     large_value = new large_buf_t(parent->txn);
                     large_value->acquire(current_value->lb_ref(), rwi_read, this);
-
                 } else {
                     large_value = NULL;
                     buffers.buffers.clear();

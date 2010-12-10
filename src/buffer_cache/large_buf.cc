@@ -613,7 +613,6 @@ uint16_t large_buf_t::segment_size(int64_t ix) {
 }
 
 buf_t *large_buf_t::get_segment_buf(int64_t ix, uint16_t *seg_size, uint16_t *seg_offset) {
-
     int64_t nlb = num_leaf_bytes();
     int64_t pos = floor_aligned(root_ref.offset, nlb) + ix * nlb;
 

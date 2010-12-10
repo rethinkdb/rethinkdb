@@ -8,7 +8,6 @@ static perfmon_counter_t pm_extents_in_use("serializer_extents_in_use");
 static perfmon_counter_t pm_bytes_in_use("serializer_bytes_in_use");
 
 class extent_zone_t {
-    
     off64_t start, end;
     size_t extent_size;
     
@@ -44,7 +43,6 @@ public:
     }
     
     void reserve_extent(off64_t extent) {
-        
         unsigned int id = offset_to_id(extent);
         
         if (id >= extents.get_size()) extents.set_size(id + 1, EXTENT_UNRESERVED);
@@ -54,7 +52,6 @@ public:
     }
     
     void reconstruct_free_list() {
-        
         free_list_head = EXTENT_FREE_LIST_END;
         
         for (off64_t extent = start; extent < start + (off64_t)(extents.get_size() * extent_size); extent += extent_size) {
@@ -67,18 +64,14 @@ public:
     }
     
     off64_t gen_extent() {
-        
         off64_t extent;
         
         if (free_list_head == EXTENT_FREE_LIST_END) {
-        
             extent = start + extents.get_size() * extent_size;
             if (extent == end) return NULL_OFFSET;
             
             extents.set_size(extents.get_size() + 1);
-            
         } else {
-        
             extent = free_list_head;
             free_list_head = extents[offset_to_id(free_list_head)];
             _held_extents--;
@@ -90,7 +83,6 @@ public:
     }
     
     void release_extent(off64_t extent) {
-        
         assert(extents[offset_to_id(extent)] == EXTENT_IN_USE);
         extents[offset_to_id(extent)] = free_list_head;
         free_list_head = extent;
@@ -105,7 +97,6 @@ extent_manager_t::extent_manager_t(direct_file_t *file, log_serializer_static_co
     assert(extent_size % DEVICE_BLOCK_SIZE == 0);
     
     if (file->is_block_device() || dynamic_config->file_size > 0) {
-        
         /* If we are given a fixed file size, we pretend to be on a block device. */
         if (!file->is_block_device()) {
             if (file->get_size() <= dynamic_config->file_size) {
@@ -126,7 +117,6 @@ extent_manager_t::extent_manager_t(direct_file_t *file, log_serializer_static_co
             end = std::min(start + zone_size, floor_aligned(file->get_size(), extent_size));
             zones[num_zones++] = new extent_zone_t(start, end, extent_size);
         }
-        
     } else {
         /* On an ordinary file on disk, make one "zone" that is large enough to encompass
         any file. */
@@ -146,7 +136,6 @@ extent_manager_t::~extent_manager_t() {
 }
 
 void extent_manager_t::reserve_extent(off64_t extent) {
-    
 #ifdef DEBUG_EXTENTS
     debugf("EM %p: Reserve extent %.8lx\n", this, extent);
     print_backtrace(stderr, false);
@@ -159,7 +148,6 @@ void extent_manager_t::reserve_extent(off64_t extent) {
 }
 
 void extent_manager_t::start_new() {
-    
     assert(state == state_reserving_extents);
     current_transaction = NULL;
     for (unsigned int i = 0; i < num_zones; i++) {
@@ -179,7 +167,6 @@ void extent_manager_t::start_new() {
 }
 
 void extent_manager_t::start_existing(metablock_mixin_t *last_metablock) {
-    
     start_new();
     assert(n_extents_in_use == last_metablock->debug_extents_in_use);
 }
@@ -199,7 +186,6 @@ void extent_manager_t::prepare_metablock(metablock_mixin_t *metablock) {
 }
 
 void extent_manager_t::shutdown() {
-    
 #ifdef DEBUG_EXTENTS
     debugf("EM %p: Shutdown. Extents in use:\n", this);
     for (off64_t extent = 0; extent < (unsigned)(extents.get_size() * extent_size); extent += extent_size) {
@@ -216,14 +202,12 @@ void extent_manager_t::shutdown() {
 }
 
 extent_manager_t::transaction_t *extent_manager_t::begin_transaction() {
-    
     assert(!current_transaction);
     transaction_t *t = current_transaction = new transaction_t();
     return t;
 }
 
 off64_t extent_manager_t::gen_extent() {
-    
     assert(state == state_running);
     assert(current_transaction);
     n_extents_in_use++;
@@ -256,7 +240,6 @@ off64_t extent_manager_t::gen_extent() {
 }
 
 void extent_manager_t::release_extent(off64_t extent) {
-
 #ifdef DEBUG_EXTENTS
     debugf("EM %p: Release extent %.8lx\n", this, extent);
     print_backtrace(stderr, false);
@@ -270,14 +253,12 @@ void extent_manager_t::release_extent(off64_t extent) {
 }
 
 void extent_manager_t::end_transaction(transaction_t *t) {
-    
     assert(current_transaction == t);
     assert(t);
     current_transaction = NULL;
 }
 
 void extent_manager_t::commit_transaction(transaction_t *t) {
-    
     for (free_queue_t::iterator it = t->free_queue.begin(); it != t->free_queue.end(); it++) {
         off64_t extent = *it;
         zone_for_offset(extent)->release_extent(extent);

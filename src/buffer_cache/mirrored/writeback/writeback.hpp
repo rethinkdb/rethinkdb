@@ -51,7 +51,6 @@ public:
     unsigned int num_dirty_blocks();
     
     class local_buf_t : public intrusive_list_node_t<local_buf_t> {
-        
         friend class writeback_t;
         
     public:

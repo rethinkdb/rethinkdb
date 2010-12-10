@@ -9,7 +9,6 @@ in the code that uses the IO layer. */
 
 template<class inner_io_config_t>
 struct mock_io_config_t {
-    
     typedef typename inner_io_config_t::thread_pool_t thread_pool_t;
     
     typedef mock_direct_file_t<inner_io_config_t> direct_file_t;

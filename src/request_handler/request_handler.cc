@@ -11,7 +11,6 @@ void request_handler_t::write_value(const byte *buf, unsigned int size, data_tra
 }
 
 void request_handler_t::request_complete() {
-
     // We delay in case we are being called from within parse_request. The conn_fsm
     // will get confused if we call do_transition() from within parse_request().
 

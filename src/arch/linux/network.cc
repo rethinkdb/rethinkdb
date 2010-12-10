@@ -220,7 +220,6 @@ linux_oldstyle_net_conn_t::linux_oldstyle_net_conn_t(linux_net_conn_t *conn)
 }
 
 void linux_oldstyle_net_conn_t::set_callback(linux_oldstyle_net_conn_callback_t *cb) {
-
     assert(!callback);
     assert(cb);
     callback = cb;
@@ -233,7 +232,6 @@ ssize_t linux_oldstyle_net_conn_t::read_nonblocking(void *buf, size_t count) {
 }
 
 ssize_t linux_oldstyle_net_conn_t::write_nonblocking(const void *buf, size_t count) {
-
     int res = ::write(sock, buf, count);
     if (res == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
         // Whoops, got stuff to write, turn on write notification.
@@ -282,7 +280,6 @@ void linux_oldstyle_net_conn_t::on_event(int events) {
 }
 
 linux_oldstyle_net_conn_t::~linux_oldstyle_net_conn_t() {
-
     if (set_me_true_on_delete)
         *set_me_true_on_delete = true;
 

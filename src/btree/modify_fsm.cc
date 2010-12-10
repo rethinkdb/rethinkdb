@@ -292,7 +292,6 @@ void btree_modify_fsm_t::do_transition(event_t *event) {
 
     while (res == btree_fsm_t::transition_ok) {
         switch (state) {
-            
             // Go to the core with the cache on it.
             case go_to_cache_core: {
                 state = start_transaction;
@@ -529,7 +528,6 @@ void btree_modify_fsm_t::do_transition(event_t *event) {
 
             // Notify anything that is waiting on a trigger
             case call_replicants: {
-
                 // Release the final node
                 if (last_node_id != NULL_BLOCK_ID) {
                     last_buf->release();
@@ -538,12 +536,10 @@ void btree_modify_fsm_t::do_transition(event_t *event) {
                 }
 
                 if (update_needed) {
-
                     replicants_awaited = slice->replicants.size();
                     in_value_call = true;
 
                     if (new_value) {
-
                         // Build a value to pass to the replicants
                         if (new_value->is_large()) {
                             for (int64_t i = 0; i < new_large_buf->get_num_segments(); i++) {
@@ -561,9 +557,7 @@ void btree_modify_fsm_t::do_transition(event_t *event) {
                                 new_value->mcflags(), new_value->exptime(),
                                                                   new_value->has_cas() ? new_value->cas() : 0, new_value_timestamp);
                         }
-
                     } else {
-
                         // Pass NULL to the replicants
                         for (int i = 0; i < (int)slice->replicants.size(); i++) {
                             slice->replicants[i]->callback->value(&key, NULL, this, 0, 0, 0, current_time());
@@ -579,7 +573,6 @@ void btree_modify_fsm_t::do_transition(event_t *event) {
                     } else {
                         res = btree_fsm_t::transition_incomplete;
                     }
-
                 } else {
                     state = update_complete;
                     res = btree_fsm_t::transition_ok;
@@ -642,6 +635,9 @@ void btree_modify_fsm_t::do_transition(event_t *event) {
                 res = btree_fsm_t::transition_incomplete;   // So we break out of the loop
                 break;
             }
+
+            default:
+                unreachable();
         }
         // We're done with one step, but we may be able to go to the next one
         // without getting a new event.

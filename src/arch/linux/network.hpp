@@ -68,10 +68,7 @@ struct linux_net_listener_callback_t {
     virtual ~linux_net_listener_callback_t() {}
 };
 
-class linux_net_listener_t :
-    public linux_event_callback_t
-{
-
+class linux_net_listener_t : public linux_event_callback_t {
 public:
     explicit linux_net_listener_t(int port);
     void set_callback(linux_net_listener_callback_t *cb);

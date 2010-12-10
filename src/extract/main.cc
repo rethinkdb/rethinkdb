@@ -131,7 +131,6 @@ void parse_cmd_args(int argc, char **argv, config_t *config) {
 }  // namespace extract
 
 int main(int argc, char **argv) {
-
     install_generic_crash_handler();
 
     extract::config_t config;

@@ -30,7 +30,6 @@ linux_timer_handler_t::linux_timer_handler_t(linux_event_queue_t *queue)
 }
 
 linux_timer_handler_t::~linux_timer_handler_t() {
-    
     int res;
     
     // Delete the registered timers
@@ -45,7 +44,6 @@ linux_timer_handler_t::~linux_timer_handler_t() {
 }
 
 void linux_timer_handler_t::on_event(int events) {
-    
     int res;
     eventfd_t nexpirations;
     
@@ -57,7 +55,6 @@ void linux_timer_handler_t::on_event(int events) {
 
     intrusive_list_t<linux_timer_token_t>::iterator t;
     for (t = timers.begin(); t != timers.end(); ) {
-        
         linux_timer_token_t *timer = &*t;
         
         // Increment now instead of in the header of the 'for' loop because we may
@@ -65,7 +62,6 @@ void linux_timer_handler_t::on_event(int events) {
         t++;
         
         if (!timer->deleted && time_in_ms > timer->next_time_in_ms) {
-            
             // Note that a repeating timer may have "expired" multiple times since the last time
             // process_timer_notify() was called. However, everything that uses the timer mechanism
             // right now works better if the timer's callback only happens once. Perhaps there
@@ -89,7 +85,6 @@ void linux_timer_handler_t::on_event(int events) {
 }
     
 linux_timer_token_t *linux_timer_handler_t::add_timer_internal(long ms, void (*callback)(void *ctx), void *ctx, bool once) {
-
     assert(ms >= 0);
     
     linux_timer_token_t *t = new linux_timer_token_t();
@@ -106,7 +101,6 @@ linux_timer_token_t *linux_timer_handler_t::add_timer_internal(long ms, void (*c
 }
 
 void linux_timer_handler_t::cancel_timer(linux_timer_token_t *timer) {
-
     timer->deleted = true;
 }
 

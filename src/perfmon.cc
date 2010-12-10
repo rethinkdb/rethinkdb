@@ -6,7 +6,6 @@
 /* The var list keeps track of all of the perfmon_t objects. */
 
 intrusive_list_t<perfmon_t> &get_var_list() {
-    
     /* Getter function so that we can be sure that var_list is initialized before it is needed,
     as advised by the C++ FAQ. Otherwise, a perfmon_t might be initialized before the var list
     was initialized. */
@@ -43,7 +42,6 @@ automagically because the constructor of every perfmon_t calls get_var_lock(), c
 to be constructed before the first perfmon, so it is destroyed after the last perfmon. */
 
 spinlock_t &get_var_lock() {
-    
     /* To avoid static initialization fiasco */
     
     static spinlock_t lock;
@@ -97,7 +95,6 @@ struct perfmon_fsm_t :
 };
 
 bool perfmon_get_stats(perfmon_stats_t *dest, perfmon_callback_t *cb) {
-    
     perfmon_fsm_t *fsm = new perfmon_fsm_t(dest);
     if (fsm->messages_out == 0) {
         /* It has already finished */
@@ -124,7 +121,6 @@ perfmon_t::perfmon_t()
 }
 
 perfmon_t::~perfmon_t() {
-    
     get_var_lock().lock();
     get_var_list().remove(this);
     get_var_lock().unlock();

@@ -205,6 +205,8 @@ public:
             case btree_set_fsm_t::set_type_cas:
                 rh->server->store->cas(key, data, flags, convert_exptime(exptime), req_cas, this);
                 break;
+            default:
+                unreachable();
         }
     }
 
@@ -408,7 +410,6 @@ public:
         memcpy(fields, fields_beg, fields_len);
 
         if (perfmon_get_stats(&stats, this)) {
-        
             /* The world is not ready for the power of completing a request immediately.
             So we delay so that the request handler doesn't get confused.  We don't know
             if this is necessary. */
@@ -428,12 +429,10 @@ public:
     }
 
     void build_response(linked_buf_t *sbuf) {
-
         if (strlen(fields) == 0) {
             for (perfmon_stats_t::iterator iter = stats.begin(); iter != stats.end(); iter++) {
                 sbuf->printf("STAT %s %s\r\n", iter->first.c_str(), iter->second.c_str());
             }
-            
         } else {
             char *fields_ptr = fields;
             char *stat;
@@ -598,7 +597,6 @@ txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::parse_request(e
         return get(state, line_len, false);
     } else if(!strcmp(cmd_str, "gets")) {
         return get(state, line_len, true);
-
     } else if(!strcmp(cmd_str, "set")) {     // check for storage commands
         return parse_storage_command(SET, state, line_len);
     } else if(!strcmp(cmd_str, "add")) {
@@ -611,10 +609,8 @@ txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::parse_request(e
         return parse_storage_command(PREPEND, state, line_len);
     } else if(!strcmp(cmd_str, "cas")) {
         return parse_storage_command(CAS, state, line_len);
-
     } else if(!strcmp(cmd_str, "delete")) {
         return remove(state, line_len);
-
     } else if(!strcmp(cmd_str, "incr")) {
         return parse_adjustment(true, state, line_len);
     } else if(!strcmp(cmd_str, "decr")) {
@@ -628,7 +624,6 @@ txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::parse_request(e
         // Quit the connection
         conn_fsm->consume(conn_fsm->nrbuf);
         return request_handler_t::op_req_quit;
-
     } else if(!strcmp(cmd_str, "shutdown")) {
         // Make sure there's no more tokens
         if (strtok_r(NULL, DELIMS, &state)) {  //strtok will return NULL if there are no more tokens
@@ -642,12 +637,10 @@ txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::parse_request(e
         server->shutdown();
         
         return request_handler_t::op_req_quit;
-
     } else if(!strcmp(cmd_str, "stats") || !strcmp(cmd_str, "stat")) {
         return parse_stat_command(line_len, cmd_str);
     } else if(!strcmp(cmd_str, "rethinkdbctl")) {
         return parse_gc_command(line_len, state);
-
     } else {
         // Invalid command
         conn_fsm->consume(line_len);
@@ -1003,7 +996,6 @@ class test_replicant_t :
 };
 
 txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::parse_gc_command(unsigned int line_len, char *state) {
-    
     const char *subcommand = strtok_r(NULL, DELIMS, &state);
 
     if (subcommand == NULL) {
@@ -1053,7 +1045,6 @@ txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::parse_gc_comman
             conn_fsm->sbuf->printf("Already replicating.\r\n");
         }
         return request_handler_t::op_req_send_now;
-
     } else if (!strcmp(subcommand, "unreplicate")) {
         conn_fsm->consume(line_len);
         if (test_replicant) {
@@ -1064,7 +1055,6 @@ txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::parse_gc_comman
             conn_fsm->sbuf->printf("Already not replicating.\r\n");
         }
         return request_handler_t::op_req_send_now;
-
     } else if (!strcmp(subcommand, "help")) {
         if (strtok_r(NULL, DELIMS, &state)) {
             conn_fsm->consume(line_len);

@@ -40,7 +40,6 @@ int sized_strcmp(const char *str1, int len1, const char *str2, int len2) {
 }
 
 void print_hd(const void *vbuf, size_t offset, size_t ulength) {
-
     flockfile(stderr);
 
     const char *buf = (const char *)vbuf;
@@ -55,7 +54,6 @@ void print_hd(const void *vbuf, size_t offset, size_t ulength) {
 
     bool skipped_last = false;
     while (length > 0) {
-
         bool skip = memcmp(buf, bd_sample, 16) == 0 ||
                     memcmp(buf, zero_sample, 16) == 0 ||
                     memcmp(buf, ff_sample, 16) == 0;

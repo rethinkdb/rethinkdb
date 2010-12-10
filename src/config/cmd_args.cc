@@ -58,7 +58,6 @@ void usage(const char *name) {
 }
 
 void init_config(cmd_config_t *config) {
-
     bzero(config, sizeof(*config));
     
     config->verbose = false;
