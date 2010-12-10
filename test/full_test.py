@@ -1,4 +1,5 @@
 #!/usr/bin/python
+import glob
 from cloud_retester import do_test, do_test_cloud, report_cloud, setup_testing_nodes, terminate_testing_nodes
 
 # Clean the repo
@@ -184,6 +185,17 @@ try:
                           "slices"      : slices,
                           "duration"    : 240},
                         repeat=3, timeout=270)
+
+                for suite_test in glob.glob('integration/memcached_suite/*.t'):
+                    do_test_cloud("integration/memcached_suite_test.py",
+                            { "auto"        : True,
+                              "mode"        : mode,
+                              "no-valgrind" : not checker,
+                              "protocol"    : protocol,
+                              "cores"       : cores,
+                              "slices"      : slices,
+                              "suite-test"  : suite_test},
+                            repeat=3)
 
                 
                 # Don't run the corruption test in mockio or mockcache mode because in those modes
