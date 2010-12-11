@@ -198,7 +198,8 @@ struct btree_get_t {
         }
     }
 
-    static void finalize(btree_get_t *receiver) {
+    static void finalize(void *arg) {
+        btree_get_t *receiver = (btree_get_t *)arg;
         printf("Releasing large value data structures\n");
         receiver->large_value->release();
         delete receiver->large_value;
@@ -208,9 +209,7 @@ struct btree_get_t {
 
     ~btree_get_t() {
         if (response == got_large_value) {
-            //It doesn't matter exactly when the large_buf_t is deleted,
-            //so we don't need to block on this actually being done
-            new coro_on_cpu_t(slice->home_cpu, finalize, this);
+            run_on_cpu(slice->home_cpu, finalize, this);
         }
     }
 };
