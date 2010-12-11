@@ -156,7 +156,7 @@ public:
     void set_block_size(const char* value);
     void set_extent_size(const char* value);
 #ifdef SEMANTIC_SERIALIZER_CHECK
-    void set_last_semantic_filename(const char* value);
+    void set_last_semantic_file(const char* value);
 #endif
     void push_private_config(const char* value);
     

@@ -140,7 +140,7 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
                 config.push_private_config(optarg); break;
 #ifdef SEMANTIC_SERIALIZER_CHECK
             case 'S':
-                config.set_last_semantic_file(optarg)
+                config.set_last_semantic_file(optarg); break;
 #endif
             case 'm':
                 config.set_max_cache_size(optarg); break;
