@@ -10,7 +10,6 @@
 /* A coroutine represents an action with no return value */
 struct coro_t
     : private cpu_message_t
-    , private home_cpu_mixin_t
 {
     coro_t(void (*fn)(void *arg), void *arg); //Creates and notifies a coroutine
     explicit coro_t(Coro *underlying) : underlying(underlying), dead(false)
@@ -30,6 +29,7 @@ private:
 
     Coro *underlying;
     bool dead;
+    int home_cpu; //not a home_cpu_mixin_t because this is set by initialize
 
 public:
     static void wait(); //Pauses the current coroutine until it's notified

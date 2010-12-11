@@ -68,6 +68,7 @@ struct cpu_doer_t :
     }
     
     bool do_perform_job() {
+        assert(cpu == get_cpu_id());
         bool done = callable();
         do_return_home();
         return done;

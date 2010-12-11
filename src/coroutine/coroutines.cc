@@ -72,6 +72,7 @@ coro_t::coro_t(void (*fn)(void *arg), void *arg) {
 void *coro_t::initialize(void (*fn)(void *arg), void *arg) {
     underlying = Coro_new();
     dead = false;
+    home_cpu = get_cpu_id();
 #ifndef NDEBUG
     notified = false;
 #endif
@@ -161,13 +162,22 @@ void *call_on_cpu(int cpu, void *(*fn)(void *), void *arg) {
     return task->join();
 }
 
-void do_run_on_cpu(void (*fn)(void *), void *arg, coro_t *coro) {
+void do_run_on_cpu(void (*fn)(void *), void *arg, coro_t *coro
+#ifndef NDEBUG
+        , int cpu
+#endif
+    ) {
+    assert(cpu == get_cpu_id());
     printf("Doing on cpu\n");
     fn(arg);
     coro->notify();
 }
 
 void run_on_cpu(int cpu, void (*fn)(void *), void *arg) {
-    new coro_on_cpu_t(cpu, do_run_on_cpu, fn, arg, coro_t::self());
+    new coro_on_cpu_t(cpu, do_run_on_cpu, fn, arg, coro_t::self()
+#ifndef NDEBUG
+        , cpu
+#endif
+    );
     coro_t::wait();
 }
