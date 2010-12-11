@@ -363,8 +363,8 @@ void parsing_cmd_config_t::set_max_cache_size(const char* value) {
     int int_value = parse_int(optarg);
     if (parsing_failed || !is_positive(int_value))
         fail_due_to_user_error("Cache size must be a positive number.");
-    if (is_at_most(int_value, static_cast<int>(get_total_ram() / 1024 / 1024)))
-        fail_due_to_user_error("Cache size is larger than this machine's total memory (%s MB).", get_total_ram() / 1024 / 1024);
+    //if (is_at_most(int_value, static_cast<int>(get_total_ram() / 1024 / 1024)))
+    //    fail_due_to_user_error("Cache size is larger than this machine's total memory (%s MB).", get_total_ram() / 1024 / 1024);
         
     store_dynamic_config.cache.max_size = (long long)(int_value) * 1024ll * 1024ll;
 }
