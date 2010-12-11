@@ -24,7 +24,7 @@
 #endif*/
 //TODO: In a special testing mode, munmap the page above (below)
 //the stack so we can get an error if it overflows
-#define CORO_DEFAULT_STACK_SIZE 8192
+#define CORO_DEFAULT_STACK_SIZE 65536
 #define CORO_STACK_SIZE_MIN 1024
 
 #if !defined(__MINGW32__) && defined(WIN32)
