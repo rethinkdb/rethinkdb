@@ -57,9 +57,9 @@ if __name__ == "__main__":
     # Store snapshot of possibly-corrupted data files
     
     print
-    snapshot_dir = os.path.join(test_dir, "db_data_snapshot")
+    snapshot_dir = os.path.join(test_dir_name, "db_data_snapshot")
     print "Storing snapshot of data files in %r." % snapshot_dir
-    shutil.copytree(os.path.join(test_dir, "db_data"), snapshot_dir)
+    shutil.copytree(os.path.join(test_dir_name, "db_data"), snapshot_dir)
     print
     
     # Start second server

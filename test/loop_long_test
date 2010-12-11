@@ -1,0 +1,59 @@
+#!/usr/bin/python
+import os
+import time
+import string
+
+from email.MIMEMultipart import MIMEMultipart
+from email.MIMEText import MIMEText
+from email.MIMEImage import MIMEImage  
+
+def send_email(recipient, text):
+    print "Sending email to %r..." % recipient
+
+    msg = MIMEMultipart('alternative')
+    msg['Subject'] = 'Uptime test results %s' % time.asctime()
+    msg['From'] = 'buildbot@rethinkdb.com'
+    msg['To'] = recipient
+
+    msg.attach(MIMEText(text, 'html'))
+
+    smtp_server, smtp_port = os.environ.get("RETESTER_SMTP", "smtp.gmail.com:587").split(":")
+    
+    import smtplib
+
+    for tries in range(5):
+        try:
+            s = smtplib.SMTP(smtp_server, smtp_port)
+        except socket.gaierror:
+            # Network is being funny. Try again.
+            time.sleep(try_interval)
+        else:
+            break
+    else:
+        raise Exception("Cannot connect to SMTP server '%s'" % smtp_server)
+    
+    sender, sender_pw = 'buildbot@rethinkdb.com', 'allspark'
+    
+    s.starttls()
+    s.login(sender, sender_pw)
+    s.sendmail(sender, [recipient], msg.as_string())
+    s.quit()
+    
+    print "Email message sent."
+
+def main():
+    while True:
+        os.system('git pull')
+        start_time = time.time()
+        os.system('make -C ../src clean')
+        os.system('make -j -C ../src DEBUG=0')
+        os.system('rm -rf output_from_test')
+        os.system('./integration/long_test.py --stress ../bench/stress-client/stress --auto --no-timeout --no-netrecord --cores 8 --memory 40000 --no-valgrind --mode release')
+        duration = time.time() - start_time
+        send_email('jdoliner@gmail.com', "Uptime: %f" % duration)
+        dir_name = string.replace(time.asctime(), ' ', '_')
+        os.system('cp -r output_from_test ../../uptime/%s' % dir_name)
+        os.system('ln -s ../../uptime/%s ../../uptime/latest' % dir_name)
+
+if __name__ == '__main__':
+    main()

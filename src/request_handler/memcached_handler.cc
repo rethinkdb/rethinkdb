@@ -22,7 +22,6 @@ void memcached_handler_t::determine_protocol(const event_t *event)
     assert(!req_handler);
     
     if (conn_fsm->nrbuf > sizeof(bin_memcached_handler_t::bin_magic_t)) {
-        
         if (bin_memcached_handler_t::is_valid_magic(*(bin_memcached_handler_t::bin_magic_t*)conn_fsm->rbuf)) {
             //Binary protocol
             req_handler = new bin_memcached_handler_t(server);

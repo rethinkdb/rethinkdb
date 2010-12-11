@@ -2,23 +2,24 @@ import shlex, sys, traceback, os, shutil, socket, subprocess, time, signal, thre
 from vcoptparse import *
 from corrupter import *
 
-test_dir = "output_from_test"
+test_dir_name = "output_from_test"
 made_test_dir = False
 
 def make_test_dir():
     global made_test_dir
-    made_test_dir = True
-    if os.path.exists(test_dir):
-        assert os.path.isdir(test_dir)
-        shutil.rmtree(test_dir)
-    os.mkdir(test_dir)
+    if not made_test_dir:
+        if os.path.exists(test_dir_name):
+            assert os.path.isdir(test_dir_name)
+            shutil.rmtree(test_dir_name)
+        os.mkdir(test_dir_name)
+        made_test_dir = True
+    return test_dir_name
 
 class StdoutAsLog(object):
     def __init__(self, name):
         self.name = name
     def __enter__(self):
-        assert made_test_dir
-        self.path = os.path.join(test_dir, self.name)
+        self.path = os.path.join(make_test_dir(), self.name)
         print "Writing log file %r." % self.path
         self.f = file(self.path, "w")
         sys.stdout = self.f
@@ -43,6 +44,8 @@ def make_option_parser():
     o["memory"] = IntFlag("--memory", 100)
     o["duration"] = IntFlag("--duration", 10)
     o["flags"] = StringFlag("--flags", "")
+    o["stress"] = StringFlag("--stress", "")
+    o["no-timeout"] = BoolFlag("--no-timeout", invert = False)
     return o
 
 # Choose a random port at which to start searching to reduce the probability of collisions
@@ -117,6 +120,35 @@ def run_and_report(obj, args = (), kwargs = {}, timeout = None, name = "the test
     else:
         assert False
 
+class NetRecord(object):
+    
+    def __init__(self, target_port, name = "net"):
+    
+        nrc_log_dir = os.path.join(make_test_dir(), "network_logs")
+        if not os.path.isdir(nrc_log_dir): os.mkdir(nrc_log_dir)
+        nrc_log_root = os.path.join(nrc_log_dir, "%s_conn" % name.replace(" ","_"))
+        print "Logging network traffic to %s_*." % nrc_log_root
+        
+        self.port = find_unused_port()
+        try:
+            self.process = subprocess.Popen(
+                ["netrecord", "localhost", str(target_port), str(self.port), nrc_log_root],
+                stdout = file("/dev/null", "w"), stderr = subprocess.STDOUT)
+        except OSError, e:
+            if "No such file or directory" in str(e):
+                raise RuntimeError("Install netrecord. (It's in rethinkdb/scripts/netrecord/.)")
+            else:
+                raise
+    
+    def stop(self):
+        assert self.process
+        self.process.send_signal(signal.SIGINT)
+        self.process.wait()
+        self.process = None
+    
+    def __del__(self):
+        if getattr(self, "process"): self.stop()
+
 def get_executable_path(opts, name):
     executable_path = os.path.join(os.path.dirname(__file__), "../../build")
     executable_path = os.path.join(executable_path, opts["mode"])
@@ -127,7 +159,6 @@ def get_executable_path(opts, name):
         raise ValueError(name + " has not been built; it should be at %r." % executable_path)
 
     return executable_path
-    
 
 class Server(object):
     
@@ -162,7 +193,7 @@ class Server(object):
             
             self.executable_path = get_executable_path(self.opts, "rethinkdb")
             
-            db_data_dir = os.path.join(test_dir, "db_data")
+            db_data_dir = os.path.join(make_test_dir(), "db_data")
             if not os.path.isdir(db_data_dir): os.mkdir(db_data_dir)
             self.db_data_path = os.path.join(db_data_dir, "data_file")
             
@@ -186,7 +217,7 @@ class Server(object):
                          "--error-exitcode=%d" % self.valgrind_error_code]
                     command_line = cmd_line + command_line
                 
-                output_path = os.path.join(test_dir, "creator_output.txt")
+                output_path = os.path.join(make_test_dir(), "creator_output.txt")
                 creator_output = file(output_path, "w") 
                 
                 creator_server = subprocess.Popen(command_line,
@@ -207,7 +238,7 @@ class Server(object):
         print "Starting %s." % self.name
         
         # Make a file to log what the server prints
-        output_path = os.path.join(test_dir, "%s_output.txt" % self.name.replace(" ","_"))
+        output_path = os.path.join(make_test_dir(), "%s_output.txt" % self.name.replace(" ","_"))
         print "Redirecting output to %r." % output_path
         server_output = file(output_path, "w")
         
@@ -254,25 +285,8 @@ class Server(object):
         # Start netrecord if necessary
         
         if self.opts["netrecord"]:
-            
-            nrc_log_dir = os.path.join(test_dir, "network_logs")
-            if not os.path.isdir(nrc_log_dir): os.mkdir(nrc_log_dir)
-            nrc_log_root = os.path.join(nrc_log_dir, "%s_conn" % self.name.replace(" ","_"))
-            print "Logging network traffic to %s_*." % nrc_log_root
-            
-            nrc_port = find_unused_port()
-            try:
-                self.nrc = subprocess.Popen(
-                    ["netrecord", "localhost", str(server_port), str(nrc_port), nrc_log_root],
-                    stdout = file("/dev/null", "w"), stderr = subprocess.STDOUT)
-            except OSError, e:
-                if "No such file or directory" in str(e):
-                    raise ValueError("We don't have netrecord.")
-                else:
-                    raise
-            
-            self.port = nrc_port
-            
+            self.nrc = NetRecord(server_port, self.name)
+            self.port = self.nrc.port
         else:
             self.port = server_port
         
@@ -337,7 +351,7 @@ class Server(object):
         self.server.send_signal(signal.SIGINT)
         
         if self.opts["netrecord"]:
-            self.nrc.send_signal(signal.SIGINT)
+            self.nrc.stop()
         
         # Wait for the server to quit
         
@@ -404,7 +418,7 @@ class Server(object):
         self.server.send_signal(signal.SIGKILL)
         
         if self.opts["netrecord"]:
-            self.nrc.send_signal(signal.SIGINT)
+            self.nrc.stop()
         
         print "Killed %s." % self.name
         return True
@@ -414,9 +428,6 @@ class Server(object):
         # Avoid leaking processes in case there is an error in the test before we call end().
         if hasattr(self, "server") and self.server.poll() == None:
             self.server.send_signal(signal.SIGKILL)
-        
-        if hasattr(self, "nrc") and self.nrc.poll() == None:
-            self.nrc.send_signal(signal.SIGINT)
 
 class MemcachedWrapperThatRestartsServer(object):
     def __init__(self, opts, server, internal_mc_maker):
@@ -435,11 +446,11 @@ class MemcachedWrapperThatRestartsServer(object):
         
         shutdown_ok = self.server.shutdown()
         
-        snapshot_dir = os.path.join(test_dir, "db_data", self.server.name.replace(" ", "_"))
+        snapshot_dir = os.path.join(make_test_dir(), "db_data", self.server.name.replace(" ", "_"))
         print "Storing a snapshot of server data files in %r." % snapshot_dir
         os.mkdir(snapshot_dir)
-        for fn in os.listdir(os.path.join(test_dir, "db_data")):
-            path = os.path.join(test_dir, "db_data", fn)
+        for fn in os.listdir(os.path.join(make_test_dir(), "db_data")):
+            path = os.path.join(make_test_dir(), "db_data", fn)
             if os.path.isfile(path):
                 corrupt(path, self.opts["corruption_p"])
                 shutil.copyfile(path, os.path.join(snapshot_dir, fn))
@@ -477,7 +488,7 @@ def connect_to_server(opts, server):
     return mc
 
 def adjust_timeout(opts, timeout):
-    if opts["interactive"]:
+    if opts["interactive"] or opts["no-timeout"]:
         return None
     else:
         return timeout + 15
@@ -503,7 +514,15 @@ def auto_server_test_main(test_function, opts, timeout = 30, extra_flags = []):
         
         port = int(os.environ.get("RUN_PORT", "11211"))
         print "Assuming user has started a server on port %d." % port
-        if not run_and_report(test_function, (opts, port), timeout=timeout): sys.exit(1)
+        
+        if opts["netrecord"]:
+            nrc = NetRecord(port)
+            port = nrc.port
+        
+        if not run_and_report(test_function, (opts, port), timeout = adjust_timeout(opts, timeout)): sys.exit(1)
+        
+        if opts["netrecord"]:
+            nrc.stop()
     
     sys.exit(0)
 
@@ -529,9 +548,18 @@ def simple_test_main(test_function, opts, timeout = 30, extra_flags = []):
         
         port = int(os.environ.get("RUN_PORT", "11211"))
         print "Assuming user has started a server on port %d." % port
+        
+        if opts["netrecord"]:
+            nrc = NetRecord(port)
+            port = nrc.port
+        
         mc = connect_to_port(opts, port)
-        ok = run_and_report(test_function, (opts, mc), timeout = timeout)
+        ok = run_and_report(test_function, (opts, mc), timeout = adjust_timeout(opts, timeout))
         mc.disconnect_all()
+        
+        if opts["netrecord"]:
+            nrc.stop()
+        
         if not ok: sys.exit(1)
     
     sys.exit(0)

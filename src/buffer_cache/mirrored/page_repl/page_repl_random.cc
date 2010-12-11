@@ -1,5 +1,5 @@
 #include "page_repl_random.hpp"
-#include "../mirrored.hpp"
+#include "buffer_cache/mirrored/mirrored.hpp"
 
 page_repl_random_t::page_repl_random_t(unsigned int _unload_threshold, cache_t *_cache)
     : unload_threshold(_unload_threshold),
@@ -12,12 +12,10 @@ page_repl_random_t::local_buf_t::local_buf_t(inner_buf_t *gbuf) : gbuf(gbuf) {
 }
     
 page_repl_random_t::local_buf_t::~local_buf_t() {
-
     unsigned int last_index = gbuf->cache->page_repl.array.size() - 1;
 
     if (index == last_index) {
         gbuf->cache->page_repl.array.set(index, NULL);
-
     } else {
         inner_buf_t *replacement = gbuf->cache->page_repl.array.get(last_index);
         replacement->page_repl_buf.index = index;
@@ -30,18 +28,15 @@ page_repl_random_t::local_buf_t::~local_buf_t() {
 // make_space tries to make sure that the number of blocks currently in memory is at least
 // 'space_needed' less than the user-specified memory limit.
 void page_repl_random_t::make_space(unsigned int space_needed) {
-    
     unsigned int target;
     if (space_needed > unload_threshold) target = unload_threshold;
     else target = unload_threshold - space_needed;
             
     while (array.size() > target) {
-                
         // Try to find a block we can unload. Blocks are ineligible to be unloaded if they are
         // dirty or in use.
         inner_buf_t *block_to_unload = NULL;
         for (int tries = PAGE_REPL_NUM_TRIES; tries > 0; tries --) {
-            
             /* Choose a block in memory at random. */
             unsigned int n = random() % array.size();
             inner_buf_t *block = array.get(n);

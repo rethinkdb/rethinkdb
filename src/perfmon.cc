@@ -6,7 +6,6 @@
 /* The var list keeps track of all of the perfmon_t objects. */
 
 intrusive_list_t<perfmon_t> &get_var_list() {
-    
     /* Getter function so that we can be sure that var_list is initialized before it is needed,
     as advised by the C++ FAQ. Otherwise, a perfmon_t might be initialized before the var list
     was initialized. */
@@ -15,7 +14,42 @@ intrusive_list_t<perfmon_t> &get_var_list() {
     return var_list;
 }
 
-/* This is the function that actually gathers the stats. */
+/* Class that wraps a pthread spinlock.
+
+TODO: This should live in the arch/ directory. */
+
+class spinlock_t {
+    pthread_spinlock_t l;
+public:
+    spinlock_t() {
+        pthread_spin_init(&l, PTHREAD_PROCESS_PRIVATE);
+    }
+    ~spinlock_t() {
+        pthread_spin_destroy(&l);
+    }
+    void lock() {
+        int res = pthread_spin_lock(&l);
+        guarantee_err(res == 0, "could not lock spin lock");
+    }
+    void unlock() {
+        int res = pthread_spin_unlock(&l);
+        guarantee_err(res == 0, "could not unlock spin lock");
+    }
+};
+
+/* The var lock protects the var list when it is being modified. In theory, this should all work
+automagically because the constructor of every perfmon_t calls get_var_lock(), causing the var lock
+to be constructed before the first perfmon, so it is destroyed after the last perfmon. */
+
+spinlock_t &get_var_lock() {
+    /* To avoid static initialization fiasco */
+    
+    static spinlock_t lock;
+    return lock;
+}
+
+/* This is the function that actually gathers the stats. It is illegal to create or destroy
+perfmon_t objects while a perfmon_fsm_t is active. */
 
 struct perfmon_fsm_t :
     public home_cpu_mixin_t
@@ -24,7 +58,7 @@ struct perfmon_fsm_t :
     perfmon_stats_t *dest;
     std::vector<void*> data;
     int messages_out;
-    perfmon_fsm_t(perfmon_stats_t *dest) : cb(NULL), dest(dest) {
+    explicit perfmon_fsm_t(perfmon_stats_t *dest) : cb(NULL), dest(dest) {
         data.reserve(get_var_list().size());
         for (perfmon_t *p = get_var_list().head(); p; p = get_var_list().next(p)) {
             data.push_back(p->begin_stats());
@@ -61,7 +95,6 @@ struct perfmon_fsm_t :
 };
 
 bool perfmon_get_stats(perfmon_stats_t *dest, perfmon_callback_t *cb) {
-    
     perfmon_fsm_t *fsm = new perfmon_fsm_t(dest);
     if (fsm->messages_out == 0) {
         /* It has already finished */
@@ -82,12 +115,15 @@ create and destroy perfmon_ts at runtime. */
 
 perfmon_t::perfmon_t()
 {
+    get_var_lock().lock();
     get_var_list().push_back(this);
+    get_var_lock().unlock();
 }
 
 perfmon_t::~perfmon_t() {
-    
+    get_var_lock().lock();
     get_var_list().remove(this);
+    get_var_lock().unlock();
 }
 
 /* perfmon_counter_t */

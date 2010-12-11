@@ -43,7 +43,6 @@ makes sure that it is destroyed from the same thread. It exposes the ID of that 
 as the "home_cpu" variable. */
 
 struct home_cpu_mixin_t {
-
     int home_cpu;
     home_cpu_mixin_t() : home_cpu(get_cpu_id()) { }
     ~home_cpu_mixin_t() { assert_cpu(); }

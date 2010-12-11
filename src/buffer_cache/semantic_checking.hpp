@@ -20,16 +20,19 @@ typedef uint32_t crc_t;
 template<class inner_cache_t>
 struct scc_transaction_begin_callback_t {
     virtual void on_txn_begin(scc_transaction_t<inner_cache_t> *txn) = 0;
+    virtual ~scc_transaction_begin_callback_t() {}
 };
 
 template<class inner_cache_t>
 struct scc_transaction_commit_callback_t {
     virtual void on_txn_commit(scc_transaction_t<inner_cache_t> *txn) = 0;
+    virtual ~scc_transaction_commit_callback_t() {}
 };
 
 template<class inner_cache_t>
 struct scc_block_available_callback_t {
     virtual void on_block_available(scc_buf_t<inner_cache_t> *buf) = 0;
+    virtual ~scc_block_available_callback_t() {}
 };
 
 /* Buf */
@@ -53,12 +56,12 @@ private:
     typename inner_cache_t::buf_t *inner_buf;
     void on_block_available(typename inner_cache_t::buf_t *buf);
     block_available_callback_t *available_cb;
-    scc_buf_t(scc_cache_t<inner_cache_t> *);
+    explicit scc_buf_t(scc_cache_t<inner_cache_t> *);
     scc_cache_t<inner_cache_t> *cache;
 private:
     crc_t compute_crc() {
         boost::crc_optimal<32, 0x04C11DB7, 0xFFFFFFFF, 0xFFFFFFFF, true, true> crc_computer;
-        crc_computer.process_bytes((void *) inner_buf->get_data_read(), cache->get_block_size());
+        crc_computer.process_bytes((void *) inner_buf->get_data_read(), cache->get_block_size().value());
         return crc_computer.checksum();
     }
 };
@@ -81,6 +84,7 @@ public:
     buf_t *acquire(block_id_t block_id, access_t mode,
                    block_available_callback_t *callback);
     buf_t *allocate(block_id_t *new_block_id);
+    repli_timestamp get_subtree_recency(block_id_t block_id);
 
     scc_cache_t<inner_cache_t> *cache;
 
@@ -98,10 +102,7 @@ private:
 /* Cache */
 
 template<class inner_cache_t>
-class scc_cache_t :
-    public home_cpu_mixin_t
-{
-
+class scc_cache_t : public home_cpu_mixin_t {
 public:
     typedef scc_buf_t<inner_cache_t> buf_t;
     typedef scc_transaction_t<inner_cache_t> transaction_t;
@@ -110,13 +111,13 @@ public:
     typedef scc_block_available_callback_t<inner_cache_t> block_available_callback_t;
     
     scc_cache_t(
-        serializer_t *serializer,
+        translator_serializer_t *serializer,
         mirrored_cache_config_t *config);
     
     typedef typename inner_cache_t::ready_callback_t ready_callback_t;
     bool start(ready_callback_t *cb);
     
-    size_t get_block_size();
+    block_size_t get_block_size();
     transaction_t *begin_transaction(access_t access, transaction_begin_callback_t *callback);
     
     typedef typename inner_cache_t::shutdown_callback_t shutdown_callback_t;

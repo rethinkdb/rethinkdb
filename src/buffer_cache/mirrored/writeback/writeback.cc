@@ -25,7 +25,6 @@ writeback_t::~writeback_t() {
 }
 
 bool writeback_t::sync(sync_callback_t *callback) {
-
     if (!writeback_in_progress) {
         /* Start the writeback process immediately */
         if (writeback_start_and_acquire_lock()) {
@@ -36,7 +35,6 @@ bool writeback_t::sync(sync_callback_t *callback) {
             if (callback) current_sync_callbacks.push_back(callback);
             return false;
         }
-    
     } else {
         /* There is a writeback currently in progress, but sync() has been called, so there is
         more data that needs to be flushed that didn't become part of the current sync. So we
@@ -50,21 +48,17 @@ bool writeback_t::sync(sync_callback_t *callback) {
 }
 
 bool writeback_t::sync_patiently(sync_callback_t *callback) {
-
     if (num_dirty_blocks() > 0) {
         if (callback) sync_callbacks.push_back(callback);
         return false;
-        
     } else {
         // There's nothing to flush, so the sync is "done"
         return true;
     }
 }
 
-bool writeback_t::begin_transaction(transaction_t *txn,
-        transaction_begin_callback_t *callback) {
-    
-    switch(txn->get_access()) {
+bool writeback_t::begin_transaction(transaction_t *txn, transaction_begin_callback_t *callback) {
+    switch (txn->get_access()) {
         case rwi_read:
             return true;
         case rwi_write:
@@ -76,13 +70,15 @@ bool writeback_t::begin_transaction(transaction_t *txn,
                 txn->begin_callback = callback;
                 return false;
             }
+        case rwi_read_outdated_ok:
+        case rwi_intent:
+        case rwi_upgrade:
         default:
-            fail("Transaction access invalid.");
+            unreachable("Transaction access invalid.");
     }
 }
 
 void writeback_t::on_transaction_commit(transaction_t *txn) {
-    
     if (txn->get_access() == rwi_write) {
         flush_lock.unlock();
         
@@ -105,17 +101,39 @@ unsigned int writeback_t::num_dirty_blocks() {
 }
 
 void writeback_t::local_buf_t::set_dirty(bool _dirty) {
-    if(!dirty && _dirty) {
+    if (!dirty && _dirty) {
         // Mark block as dirty if it hasn't been already
         dirty = true;
-        gbuf->cache->writeback.dirty_bufs.push_back(this);
+        if (!recency_dirty) {
+            gbuf->cache->writeback.dirty_bufs.push_back(this);
+        }
         pm_n_blocks_dirty++;
     }
-    if(dirty && !_dirty) {
+    if (dirty && !_dirty) {
         // We need to "unmark" the buf
         dirty = false;
-        gbuf->cache->writeback.dirty_bufs.remove(this);
+        if (!recency_dirty) {
+            gbuf->cache->writeback.dirty_bufs.remove(this);
+        }
         pm_n_blocks_dirty--;
+    }
+}
+
+void writeback_t::local_buf_t::set_recency_dirty(bool _recency_dirty) {
+    if (!recency_dirty && _recency_dirty) {
+        // Mark block as recency_dirty if it hasn't been already.
+        recency_dirty = true;
+        if (!dirty) {
+            gbuf->cache->writeback.dirty_bufs.push_back(this);
+        }
+        // TODO perfmon
+    }
+    if (recency_dirty && !_recency_dirty) {
+        recency_dirty = false;
+        if (!dirty) {
+            gbuf->cache->writeback.dirty_bufs.remove(this);
+        }
+        // TODO perfmon
     }
 }
 
@@ -123,11 +141,14 @@ void writeback_t::flush_timer_callback(void *ctx) {
     writeback_t *self = static_cast<writeback_t *>(ctx);
     self->flush_timer = NULL;
     
-    self->sync(NULL);
+    /* Don't sync if we're in the shutdown process, because if we do that we'll trip an assert() on
+    the cache, and besides we're about to sync anyway. */
+    if (self->cache->state != cache_t::state_shutting_down_waiting_for_transactions) {
+        self->sync(NULL);
+    }
 }
 
 bool writeback_t::writeback_start_and_acquire_lock() {
-
     assert(!writeback_in_progress);
     writeback_in_progress = true;
     pm_flushes_locking.begin(&start_time);
@@ -160,7 +181,6 @@ bool writeback_t::writeback_start_and_acquire_lock() {
 }
 
 void writeback_t::on_lock_available() {
-
     assert(writeback_in_progress);
     writeback_acquire_bufs();
 }
@@ -171,7 +191,7 @@ struct buf_writer_t :
     public home_cpu_mixin_t
 {
     mc_buf_t *buf;
-    buf_writer_t(mc_buf_t *buf) : buf(buf) { }
+    explicit buf_writer_t(mc_buf_t *buf) : buf(buf) { }
     void on_serializer_write_block() {
         if (continue_on_cpu(home_cpu, this)) on_cpu_switch();
     }
@@ -182,7 +202,6 @@ struct buf_writer_t :
 };
 
 bool writeback_t::writeback_acquire_bufs() {
-    
     assert(writeback_in_progress);
     cache->assert_cpu();
     
@@ -191,56 +210,64 @@ bool writeback_t::writeback_acquire_bufs() {
     
     current_sync_callbacks.append_and_clear(&sync_callbacks);
 
-    /* Request read locks on all of the blocks we need to flush.
-    TODO: Find a better way to do the allocation. */
-    num_serializer_writes = dirty_bufs.size();
-    serializer_writes = new serializer_t::write_t[num_serializer_writes];
-    
+    // Request read locks on all of the blocks we need to flush.
+    serializer_writes.clear();
+    serializer_writes.reserve(dirty_bufs.size());
+
     int i = 0;
     while (local_buf_t *lbuf = dirty_bufs.head()) {
-    
         inner_buf_t *inner_buf = lbuf->gbuf;
-        lbuf->set_dirty(false);   // Removes it from dirty_bufs
-        
-        bool do_delete = inner_buf->do_delete;
-        
-        // Acquire the blocks
-        inner_buf->do_delete = false; /* Backdoor around acquire()'s assertion */
-        access_t buf_access_mode = do_delete ? rwi_read : rwi_read_outdated_ok;
-        buf_t *buf = transaction->acquire(inner_buf->block_id, buf_access_mode, NULL);
-        assert(buf);         // Acquire must succeed since we hold the flush_lock.
-        
-        serializer_writes[i].block_id = inner_buf->block_id;
-        
-        // Fill the serializer structure
-        if (!do_delete) {
-        
-            serializer_writes[i].buf = buf->get_data_read();
-            serializer_writes[i].callback = new buf_writer_t(buf);
 
+        bool buf_dirty = lbuf->dirty;
+#ifndef NDEBUG
+        bool recency_dirty = lbuf->recency_dirty;
+#endif
+
+        // Removes it from dirty_bufs
+        lbuf->set_dirty(false);
+        lbuf->set_recency_dirty(false);
+
+        if (buf_dirty) {
+            bool do_delete = inner_buf->do_delete;
+
+            // Acquire the blocks
+            inner_buf->do_delete = false; /* Backdoor around acquire()'s assertion */  // TODO: backdoor?
+            access_t buf_access_mode = do_delete ? rwi_read : rwi_read_outdated_ok;
+            buf_t *buf = transaction->acquire(inner_buf->block_id, buf_access_mode, NULL);
+            assert(buf);         // Acquire must succeed since we hold the flush_lock.
+
+            // Fill the serializer structure
+            if (!do_delete) {
+                serializer_writes.push_back(translator_serializer_t::write_t::make(inner_buf->block_id, inner_buf->subtree_recency,
+                                                                                   buf->get_data_read(), new buf_writer_t(buf)));
+            } else {
+                // NULL indicates a deletion
+                serializer_writes.push_back(translator_serializer_t::write_t::make(inner_buf->block_id, inner_buf->subtree_recency,
+                                                                                   NULL, NULL));
+
+                assert(buf_access_mode != rwi_read_outdated_ok);
+                buf->release();
+
+                cache->free_list.release_block_id(inner_buf->block_id);
+
+                delete inner_buf;
+            }
         } else {
-        
-            serializer_writes[i].buf = NULL;   // NULL indicates a deletion
-            serializer_writes[i].callback = NULL;
-            
-            assert(buf_access_mode != rwi_read_outdated_ok);
-            buf->release();
-            
-            cache->free_list.release_block_id(inner_buf->block_id);
-            
-            delete inner_buf;
+            assert(recency_dirty);
+
+            // No need to acquire the block.
+            serializer_writes.push_back(translator_serializer_t::write_t::make_touch(inner_buf->block_id, inner_buf->subtree_recency, NULL));
         }
-        
+
         i++;
     }
-    
+
     flush_lock.unlock(); // Write transactions can now proceed again.
-    
+
     return do_on_cpu(cache->serializer->home_cpu, this, &writeback_t::writeback_do_write);
 }
 
 bool writeback_t::writeback_do_write() {
-
     /* Start writing all the dirty bufs down, as a transaction. */
     
     // TODO(NNW): Now that the serializer/aio-system breaks writes up into
@@ -250,8 +277,10 @@ bool writeback_t::writeback_do_write() {
     assert(writeback_in_progress);
     cache->serializer->assert_cpu();
     
-    if (num_serializer_writes == 0 ||
-            cache->serializer->do_write(serializer_writes, num_serializer_writes, this)) {
+    if (serializer_writes.empty() ||
+        cache->serializer->do_write(serializer_writes.data(), serializer_writes.size(), this)) {
+        // We don't need this buffer any more.
+        serializer_writes.clear();
         return do_on_cpu(cache->home_cpu, this, &writeback_t::writeback_do_cleanup);
     } else {
         return false;
@@ -259,14 +288,12 @@ bool writeback_t::writeback_do_write() {
 }
 
 void writeback_t::on_serializer_write_txn() {
-    
     assert(writeback_in_progress);
     cache->serializer->assert_cpu();
     do_on_cpu(cache->home_cpu, this, &writeback_t::writeback_do_cleanup);
 }
 
 bool writeback_t::writeback_do_cleanup() {
-    
     assert(writeback_in_progress);
     cache->assert_cpu();
     
@@ -275,9 +302,9 @@ bool writeback_t::writeback_do_cleanup() {
     bool committed __attribute__((unused)) = transaction->commit(NULL);
     assert(committed); // Read-only transactions commit immediately.
     transaction = NULL;
-    
-    delete[] serializer_writes;
-    
+
+    serializer_writes.clear();
+
     while (!current_sync_callbacks.empty()) {
         sync_callback_t *cb = current_sync_callbacks.head();
         current_sync_callbacks.remove(cb);

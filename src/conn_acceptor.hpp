@@ -3,33 +3,34 @@
 
 #include "arch/arch.hpp"
 #include "utils.hpp"
-#include "conn_fsm.hpp"
 #include "perfmon.hpp"
 
-class conn_fsm_handler_t;
-class server_t;
+class conn_handler_t;
 
 /* The conn_acceptor_t is responsible for accepting incoming network connections, creating
-conn_fsms to deal with them, and shutting down the network connections when the server
-shuts down. It uses net_listener_t to actually accept the connections. The server_t
-creates one conn_acceptor_t for the entire lifetime of the server. */
+objects to deal with them, and shutting down the network connections when the server
+shuts down. It uses net_listener_t to actually accept the connections. Each conn_acceptor_t
+lasts for the entire lifetime of the server. */
 
 class conn_acceptor_t :
     public net_listener_callback_t,
     public home_cpu_mixin_t
 {
-    friend class conn_fsm_handler_t;
+    friend class conn_handler_t;
 
 public:
-    conn_acceptor_t(server_t *server);
-    
+    /* When the conn_acceptor_t gets an incoming connection, it calls the provided creator
+    function to make an object to handle it. */
+    explicit conn_acceptor_t(int port, conn_handler_t *(*creator)(net_conn_t*, void*), void *udata);
+
     void start();
-    
+
     struct shutdown_callback_t {
         virtual void on_conn_acceptor_shutdown() = 0;
+        virtual ~shutdown_callback_t() {}
     };
     bool shutdown(shutdown_callback_t *cb);
-    
+
     ~conn_acceptor_t();
 
 private:
@@ -38,52 +39,52 @@ private:
         state_ready,
         state_shutting_down
     } state;
-    
-    server_t *server;
-    
+
+    int port;
+
+    conn_handler_t *(*creator)(net_conn_t*, void*);
+    void *creator_udata;
+
     net_listener_t *listener;
     int next_cpu;
     void on_net_listener_accept(net_conn_t *conn);
-    void on_conn_fsm_close();
-    
+    bool create_conn_on_this_core(net_conn_t *conn);
+
     int n_active_conns;
-    intrusive_list_t<conn_fsm_handler_t> conn_handlers[MAX_CPUS];
-    
+    intrusive_list_t<conn_handler_t> conn_handlers[MAX_CPUS];
+
+    bool have_shutdown_a_conn();
+
     bool shutdown_conns_on_this_core();   // Called on each thread
     shutdown_callback_t *shutdown_callback;
 };
 
-/* conn_fsm_handler_t takes care of a particular connection. There is a one-to-one
-relationship between conn_fsm_handler_t and conn_fsm_t. The reason why
-conn_fsm_handler_t is a separate type from conn_fsm_t is to make it so that
-conn_fsm_t isn't too closely tied to conn_acceptor_t. */
+/* conn_handler_t represents an object that handles a network connection. To use conn_acceptor_t,
+subclass conn_handler_t and make the function that you pass to conn_acceptor_t's constructor
+return an instance of your own subclass.
 
-class conn_fsm_handler_t :
-    public conn_fsm_shutdown_callback_t,
-    public intrusive_list_node_t<conn_fsm_handler_t>
+When the server is shutting down, it will call the quit() method of every conn_handler_t. The
+conn_handler_t should override quit() to start the process of closing the connection. It should
+also call on_quit() whenever it starts the process of closing the connection (whether because
+quit() was called or because it closed the connection for some other reason). Once it calls
+on_quit(), then quit() will not be called. The server will not actually shut down until the
+destructor of every conn_handler_t has been called. */
+
+class conn_handler_t :
+    public intrusive_list_node_t<conn_handler_t>
 {
     friend class conn_acceptor_t;
 
 public:
-    conn_fsm_handler_t(conn_acceptor_t *parent, net_conn_t *conn);
-    bool create_conn_fsm();
-    void on_conn_fsm_quit();
-    void on_conn_fsm_shutdown();
-    bool cleanup();
-    ~conn_fsm_handler_t();
-    
+    conn_handler_t();
+    virtual void quit() = 0;   // Should call on_quit()
+    void on_quit();
+    ~conn_handler_t();
+
 private:
-    enum state_t {
-        state_go_to_cpu,
-        state_waiting_for_conn_fsm_quit,
-        state_waiting_for_conn_fsm_shutdown,
-        state_return_from_cpu
-    } state;
     conn_acceptor_t *parent;
     net_conn_t *conn;
-
-public:
-    conn_fsm_t *conn_fsm;
+    bool quitting;
 };
 
 #endif /* __CONN_ACCEPTOR_HPP__ */

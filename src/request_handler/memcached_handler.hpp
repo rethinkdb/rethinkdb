@@ -20,7 +20,7 @@ public:
     using request_handler_t::conn_fsm;
 
 public:
-    memcached_handler_t(server_t *server)
+    explicit memcached_handler_t(server_t *server)
         : request_handler_t(), req_handler(NULL), server(server)
         {}
     ~memcached_handler_t() {
@@ -47,7 +47,6 @@ private:
 
 private:
     bool memcached_stats(char *stat_key, char *result) {
-        
         char *c = stat_key;
         
         //make things case insensitive

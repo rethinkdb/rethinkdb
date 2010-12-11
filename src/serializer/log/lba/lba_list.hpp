@@ -4,7 +4,7 @@
 #define __SERIALIZER_LOG_LBA_LIST_HPP__
 
 #include "serializer/serializer.hpp"
-#include "../extents/extent_manager.hpp"
+#include "serializer/log/extents/extent_manager.hpp"
 #include "disk_format.hpp"
 #include "in_memory_index.hpp"
 #include "disk_structure.hpp"
@@ -23,7 +23,7 @@ public:
     typedef lba_metablock_mixin_t metablock_mixin_t;
     
 public:
-    lba_list_t(extent_manager_t *em);
+    explicit lba_list_t(extent_manager_t *em);
     ~lba_list_t();
 
 public:
@@ -35,11 +35,13 @@ public:
     
     struct ready_callback_t {
         virtual void on_lba_ready() = 0;
+        virtual ~ready_callback_t() {}
     };
     bool start_existing(direct_file_t *dbfile, metablock_mixin_t *last_metablock, ready_callback_t *cb);
     
 public:
     flagged_off64_t get_block_offset(ser_block_id_t block);
+    repli_timestamp get_block_recency(ser_block_id_t block);
     
     /* Returns a block ID such that all blocks that exist are guaranteed to have IDs less than
     that block ID. */
@@ -52,10 +54,12 @@ public:
 #endif
     
 public:
-    void set_block_offset(ser_block_id_t block, flagged_off64_t offset);
-    
+    void set_block_offset(ser_block_id_t block, repli_timestamp recency,
+                          flagged_off64_t offset);
+
     struct sync_callback_t {
         virtual void on_lba_sync() = 0;
+        virtual ~sync_callback_t() {}
     };
     bool sync(sync_callback_t *cb);
     
@@ -66,6 +70,7 @@ public:
 public:
     struct shutdown_callback_t {
         virtual void on_lba_shutdown() = 0;
+        virtual ~shutdown_callback_t() {}
     };
     bool shutdown(shutdown_callback_t *cb);
 

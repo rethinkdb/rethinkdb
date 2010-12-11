@@ -18,10 +18,10 @@ class flush_message_t;
 class server_t :
     public home_cpu_mixin_t,
     public logger_ready_callback_t,
-    public store_t::check_callback_t,
-    public store_t::ready_callback_t,
+    public btree_key_value_store_t::check_callback_t,
+    public btree_key_value_store_t::ready_callback_t,
     public conn_acceptor_t::shutdown_callback_t,
-    public store_t::shutdown_callback_t,
+    public btree_key_value_store_t::shutdown_callback_t,
     public logger_shutdown_callback_t
 {
     friend class flush_message_t;
@@ -36,6 +36,7 @@ public:
 
         all_gc_disabled_callback_t() : multiple_users_seen(false) { }
         virtual void on_gc_disabled() = 0;
+        virtual ~all_gc_disabled_callback_t() {}
     };
     bool disable_gc(all_gc_disabled_callback_t *);
 
@@ -44,21 +45,25 @@ public:
         
         all_gc_enabled_callback_t() : multiple_users_seen(false) { }
         virtual void on_gc_enabled() = 0;
+        virtual ~all_gc_enabled_callback_t() {}
     };
     bool enable_gc(all_gc_enabled_callback_t *);
 
     cmd_config_t *cmd_config;
     thread_pool_t *thread_pool;
 
-    store_t *store;
+    btree_key_value_store_t *store;
     conn_acceptor_t conn_acceptor;
+
+#ifdef REPLICATION_ENABLED
+    conn_acceptor_t *replication_acceptor;
+#endif
     
 private:
 
     bool do_disable_gc(all_gc_disabled_callback_t *cb);
     bool do_enable_gc(all_gc_enabled_callback_t *cb);
-
-
+    static conn_handler_t *create_request_handler(net_conn_t *conn, void *server);
     
     int messages_out;
     
@@ -92,7 +97,7 @@ private:
 
     class gc_toggler_t : public standard_serializer_t::gc_disable_callback_t {
     public:
-        gc_toggler_t(server_t *server);
+        explicit gc_toggler_t(server_t *server);
         bool disable_gc(all_gc_disabled_callback_t *cb);
         bool enable_gc(all_gc_enabled_callback_t *cb);
         

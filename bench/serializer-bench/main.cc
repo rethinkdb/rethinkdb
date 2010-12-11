@@ -1,3 +1,4 @@
+#include "errors.hpp"
 #include "serializer/log/log_serializer.hpp"
 
 #undef __UTILS_HPP__   /* Hack because both RethinkDB and stress-client have a utils.hpp */
@@ -27,7 +28,7 @@ struct transaction_t :
     {
         /* If there aren't enough blocks to update, then convert the updates into inserts */
         
-        if (updates > ser->max_block_id()) {
+        if (updates > ser->max_block_id().value) {
             inserts += updates;
             updates = 0;
         }
@@ -36,33 +37,26 @@ struct transaction_t :
         write all the blocks from that one. I hope this doesn't bias the test. */
         
         dummy_buf = ser->malloc();
-        memset(dummy_buf, 0xDB, ser->get_block_size());
+        memset(dummy_buf, 0xDB, ser->get_block_size().value());
         
         writes.reserve(updates + inserts);
         
         /* As a simple way to avoid updating the same block twice in one transaction, select
         a contiguous range of blocks starting at a random offset within range */
         
-        ser_block_id_t begin = random(0, ser->max_block_id() - updates);
-        
+        ser_block_id_t begin = ser_block_id_t::make(random(0, ser->max_block_id().value - updates));
+
+        repli_timestamp tstamp = current_time();
         for (unsigned i = 0; i < updates; i++) {
-            serializer_t::write_t w;
-            w.block_id = begin + i;
-            w.buf = dummy_buf;
-            w.callback = NULL;
-            writes.push_back(w);
+            writes.push_back(serializer_t::write_t::make(ser_block_id_t::make(begin.value + i), tstamp, dummy_buf, NULL));
         }
-        
+
         /* Generate new IDs to insert by simply taking (highest ID + 1) */
-        
+
         for (unsigned i = 0; i < inserts; i++) {
-            serializer_t::write_t w;
-            w.block_id = ser->max_block_id() + i;
-            w.buf = dummy_buf;
-            w.callback = NULL;
-            writes.push_back(w);
+            writes.push_back(serializer_t::write_t::make(ser_block_id_t::make(ser->max_block_id().value + i), tstamp, dummy_buf, NULL));
         }
-        
+
         start_time = get_ticks();
         
         bool done = ser->do_write(&writes[0], writes.size(), this);
@@ -90,9 +84,10 @@ struct transaction_t :
 
 struct config_t {
     
-    const char *filename, *log_file, *tps_log_file;
+    const char *log_file, *tps_log_file;
     log_serializer_static_config_t ser_static_config;
     log_serializer_dynamic_config_t ser_dynamic_config;
+    log_serializer_private_dynamic_config_t ser_private_dynamic_config;
     int duration;   /* Seconds */
     unsigned concurrent_txns;
     unsigned inserts_per_txn, updates_per_txn;
@@ -153,7 +148,7 @@ struct tester_t :
         }
         
         fprintf(stderr, "Starting serializer...\n");
-        ser = new log_serializer_t(config->filename, &config->ser_dynamic_config);
+        ser = new log_serializer_t(&config->ser_dynamic_config, &config->ser_private_dynamic_config);
         if (ser->start_new(&config->ser_static_config, this)) on_serializer_ready(ser);
     }
     
@@ -253,7 +248,7 @@ struct tester_t :
 
 const char *read_arg(int &argc, char **&argv) {
     if (argc == 0) {
-        fail("Expected another argument at the end.");
+        fail_due_to_user_error("Expected another argument at the end.");
     } else {
         argc--;
         return (argv++)[0];
@@ -262,12 +257,15 @@ const char *read_arg(int &argc, char **&argv) {
 
 void parse_config(int argc, char *argv[], config_t *config) {
     
-    config->filename = "rethinkdb_data";
+    config->ser_private_dynamic_config.db_filename = "rethinkdb_data";
+#ifdef SEMANTIC_SERIALIZER_CHECK
+    config->ser_private_dynamic_config.semantic_filename = "rethinkdb_data.semantic";
+#endif
     config->log_file = NULL;
     config->tps_log_file = NULL;
     
-    config->ser_static_config.block_size = DEFAULT_BTREE_BLOCK_SIZE;
-    config->ser_static_config.extent_size = DEFAULT_EXTENT_SIZE;
+    config->ser_static_config.unsafe_block_size() = DEFAULT_BTREE_BLOCK_SIZE;
+    config->ser_static_config.unsafe_extent_size() = DEFAULT_EXTENT_SIZE;
     config->ser_dynamic_config.gc_low_ratio = DEFAULT_GC_LOW_RATIO;
     config->ser_dynamic_config.gc_high_ratio = DEFAULT_GC_HIGH_RATIO;
     config->ser_dynamic_config.num_active_data_extents = DEFAULT_ACTIVE_DATA_EXTENTS;
@@ -285,15 +283,18 @@ void parse_config(int argc, char *argv[], config_t *config) {
         const char *flag = read_arg(argc, argv);
         
         if (strcmp(flag, "-f") == 0) {
-            config->filename = read_arg(argc, argv);
+            config->ser_private_dynamic_config.db_filename = read_arg(argc, argv);
+#ifdef SEMANTIC_SERIALIZER_CHECK
+            config->ser_private_dynamic_config.semantic_filename = config->ser_private_dynamic_config.db_filename + ".semantic";
+#endif
         } else if (strcmp(flag, "--log") == 0) {
             config->log_file = read_arg(argc, argv);
         } else if (strcmp(flag, "--tps-log") == 0) {
             config->tps_log_file = read_arg(argc, argv);
         } else if (strcmp(flag, "--block-size") == 0) {
-            config->ser_static_config.block_size = atoi(read_arg(argc, argv));
+            config->ser_static_config.unsafe_block_size() = atoi(read_arg(argc, argv));
         } else if (strcmp(flag, "--extent-size") == 0) {
-            config->ser_static_config.extent_size = atoi(read_arg(argc, argv));
+            config->ser_static_config.unsafe_extent_size() = atoi(read_arg(argc, argv));
         } else if (strcmp(flag, "--active-data-extents") == 0) {
             config->ser_dynamic_config.num_active_data_extents = atoi(read_arg(argc, argv));
         } else if (strcmp(flag, "--file-zone-size") == 0) {
@@ -311,12 +312,12 @@ void parse_config(int argc, char *argv[], config_t *config) {
             config->updates_per_txn = atoi(read_arg(argc, argv));
         
         } else {
-            fail("Don't know how to handle \"%s\"", flag);
+            fail_due_to_user_error("Don't know how to handle \"%s\"", flag);
         }
     }
 
-    assert(config->ser_static_config.block_size > 0);
-    assert(config->ser_static_config.extent_size > 0);
+    assert(config->ser_static_config.block_size().ser_value() > 0);
+    assert(config->ser_static_config.extent_size() > 0);
     assert(config->ser_dynamic_config.num_active_data_extents > 0);
     assert(config->ser_dynamic_config.file_zone_size > 0);
     assert(config->duration > 0 || config->duration == RUN_FOREVER);

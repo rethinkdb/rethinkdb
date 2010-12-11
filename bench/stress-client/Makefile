@@ -1,7 +1,7 @@
 
 INCLUDE = -I../../../lib/libmemcached -I /usr/local/mysql/include
-LIBS = -L. -lmemcached -lmysqlclient -L /usr/local/mysql/lib/mysql
-SRC = main.cc utils.cc random.cc
+LIBS = -L. -lmemcached -lmysqlclient -L /usr/local/mysql/lib/mysql -lpthread -ldl
+SRC = main.cc utils.cc random.cc sqlite3.c
 
 EXEC_NAME = stress
 CXX = g++

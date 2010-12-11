@@ -16,10 +16,39 @@ long get_total_ram() {
     return (long)sysconf(_SC_PHYS_PAGES) * (long)sysconf(_SC_PAGESIZE);
 }
 
+
+const repli_timestamp repli_timestamp::invalid = { -1 };
+
+repli_timestamp repli_time(time_t t) {
+    repli_timestamp ret;
+    uint32_t x = t;
+    ret.time = (x == (uint32_t)-1 ? 0 : x);
+    return ret;
+}
+
+repli_timestamp current_time() {
+    // Get the current time, cast it to 32 bits.  The lack of
+    // precision will not break things in 2038 or 2106 if we compare
+    // times correctly.
+
+    // time(NULL) does not do a system call (on Linux), last time we
+    // checked, but it's still kind of slow.
+    return repli_time(time(NULL));
+}
+
+int repli_compare(repli_timestamp x, repli_timestamp y) {
+    return int(int32_t(x.time - y.time));
+}
+
+repli_timestamp repli_max(repli_timestamp x, repli_timestamp y) {
+    return repli_compare(x, y) < 0 ? y : x;
+}
+
+
 void *malloc_aligned(size_t size, size_t alignment) {
     void *ptr = NULL;
     int res = posix_memalign(&ptr, alignment, size);
-    if(res != 0) fail("Out of memory.");
+    if(res != 0) crash_or_trap("Out of memory.");
     return ptr;
 }
 
@@ -27,7 +56,6 @@ void *malloc_aligned(size_t size, size_t alignment) {
 uses the IO layer, and it must be safe to include utils2 from within the IO layer. */
 
 void random_delay(void (*fun)(void*), void *arg) {
-
     /* In one in ten thousand requests, we delay up to 10 seconds. In half of the remaining
     requests, we delay up to 50 milliseconds; in the other half we delay a very short time. */
     int kind = randint(10000), ms;
@@ -38,7 +66,6 @@ void random_delay(void (*fun)(void*), void *arg) {
 }
 
 void debugf(const char *msg, ...) {
-    
     flockfile(stderr);
     va_list args;
     va_start(args, msg);
@@ -54,9 +81,30 @@ int randint(int n) {
         srand(time(NULL));
         initted = true;
     }
-    
+
     assert(n > 0 && n < RAND_MAX);
     return rand() % n;
+}
+
+bool begins_with_minus(const char *string) {
+    while (isspace(*string)) string++;
+    return *string == '-';
+}
+
+unsigned long strtoul_strict(const char *string, char **end, int base) {
+    if (begins_with_minus(string)) {
+        *end = const_cast<char *>(string);
+        return 0;
+    }
+    return strtoul(string, end, base);
+}
+
+unsigned long long strtoull_strict(const char *string, char **end, int base) {
+    if (begins_with_minus(string)) {
+        *end = const_cast<char *>(string);
+        return 0;
+    }
+    return strtoull(string, end, base);
 }
 
 ticks_t secs_to_ticks(float secs) {

@@ -2,7 +2,7 @@
 #ifndef __SERIALIZER_LOG_METABLOCK_METABLOCK_MANAGER_HPP__
 #define __SERIALIZER_LOG_METABLOCK_METABLOCK_MANAGER_HPP__
 
-#include "../extents/extent_manager.hpp"
+#include "serializer/log/extents/extent_manager.hpp"
 #include "arch/arch.hpp"
 #include <boost/crc.hpp>
 #include <cstddef>
@@ -20,9 +20,9 @@
 
 
 /* TODO support multiple concurrent writes */
-const static char MB_MARKER_MAGIC[8] = {'m', 'e', 't', 'a', 'b', 'l', 'c', 'k'};
-const static char MB_MARKER_CRC[4] = {'c', 'r', 'c', ':'};
-const static char MB_MARKER_VERSION[8] = {'v', 'e', 'r', 's', 'i', 'o', 'n', ':'};
+static const char MB_MARKER_MAGIC[8] = {'m', 'e', 't', 'a', 'b', 'l', 'c', 'k'};
+static const char MB_MARKER_CRC[4] = {'c', 'r', 'c', ':'};
+static const char MB_MARKER_VERSION[8] = {'v', 'e', 'r', 's', 'i', 'o', 'n', ':'};
 
 void initialize_metablock_offsets(off64_t extent_size, std::vector<off64_t> *offsets);
 
@@ -30,7 +30,7 @@ void initialize_metablock_offsets(off64_t extent_size, std::vector<off64_t> *off
 
 template<class metablock_t>
 class metablock_manager_t : private iocallback_t {
-    const static uint32_t poly = 0x1337BEEF;
+    static const uint32_t poly = 0x1337BEEF;
 
 public:
     typedef int64_t metablock_version_t;
@@ -69,7 +69,7 @@ private:
         public:
             bool wraparound; /* !< whether or not we've wrapped around the edge (used during startup) */
         public:
-            head_t(metablock_manager_t *mgr);
+            explicit head_t(metablock_manager_t *mgr);
             metablock_manager_t *mgr;
 
             /* \brief handles moving along successive mb slots
@@ -87,7 +87,7 @@ private:
     };
 
 public:
-    metablock_manager_t(extent_manager_t *em);
+    explicit metablock_manager_t(extent_manager_t *em);
     ~metablock_manager_t();
 
 public:
@@ -97,6 +97,7 @@ public:
     /* Tries to load existing metablocks */
     struct metablock_read_callback_t {
         virtual void on_metablock_read() = 0;
+        virtual ~metablock_read_callback_t() {}
     };
     bool start_existing(direct_file_t *dbfile, bool *mb_found, metablock_t *mb_out, metablock_read_callback_t *cb);
     
@@ -108,6 +109,7 @@ private:
 public:
     struct metablock_write_callback_t {
         virtual void on_metablock_write() = 0;
+        virtual ~metablock_write_callback_t() {}
     };
     bool write_metablock(metablock_t *mb, metablock_write_callback_t *cb);
 private:

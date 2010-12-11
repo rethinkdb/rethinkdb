@@ -1,5 +1,16 @@
 #!/bin/bash
 
+BREAKOUT_FILE_NAME=~/nightly_test_running
+
+# Don't start the test if it's running already
+if [ -f $BREAKOUT_FILE_NAME ]
+then
+exit
+fi
+
+# Create the breakout file
+touch $BREAKOUT_FILE_NAME
+
 # We need our git-test
 export PATH=$PATH:/usr/local/bin/
 
@@ -9,7 +20,15 @@ cd /var/git/rethinkdb/
 # Pull latest from master
 git pull
 
+# Cloud retester configuration
+export USE_CLOUD=true
+export EC2_INSTANCE_TYPE=m1.large
+export EC2_INSTANCE_COUNT=10
+
 # Run the tests
 export RETESTER_EMAIL_SENDER=buildbot@rethinkdb.com:allspark
 git test -b --revision HEAD --email all@rethinkdb.com --file /var/www/code.rethinkdb.com/htdocs/tests.html test/full_test.py
+
+# Remove the breakout file
+rm -f $BREAKOUT_FILE_NAME
 

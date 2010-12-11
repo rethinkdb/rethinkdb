@@ -14,6 +14,8 @@
 #include "memcached_sock_protocol.hpp"
 #include "memcached_protocol.hpp"
 #include "mysql_protocol.hpp"
+#include "sqlite_protocol.hpp"
+#include "sys/stat.h"
 
 using namespace std;
 
@@ -27,6 +29,9 @@ protocol_t* make_protocol(protocol_enum_t protocol) {
             break;
         case protocol_libmemcached:
             return (protocol_t*) new memcached_protocol_t();
+            break;
+        case protocol_sqlite:
+            return (protocol_t*) new sqlite_protocol_t();
             break;
         default:
             fprintf(stderr, "Unknown protocol\n");
@@ -45,6 +50,11 @@ int main(int argc, char *argv[])
     parse(&config, argc, argv);
     config.print();
 
+    /* make a directory for our sqlite files */
+    if (config.db_file[0]) {
+        mkdir(BACKUP_FOLDER, 0777);
+    }
+
     // Gotta run the shared init for each server.
     for (int i = 0; i < config.servers.size(); i++) {
         protocol_t *p = make_protocol(config.servers[i].protocol);
@@ -53,12 +63,22 @@ int main(int argc, char *argv[])
         delete p;
     }
 
+    for (int i = 0; i < config.clients; i++) {
+        if (config.db_file[0]) {
+            sqlite_protocol_t *sqlite = (sqlite_protocol_t *) make_protocol(protocol_sqlite);
+            sqlite->set_id(i);
+            sqlite->connect(&config, &config.servers[0]);
+            sqlite->shared_init();
+            delete sqlite;
+        };
+    }
+
     // Let's rock 'n roll
     int res;
     vector<pthread_t> threads(config.clients);
 
     // Create the shared structure
-    shared_t shared(&config, make_protocol);
+    shared_t shared(&config);
 
     client_data_t client_data[config.clients];
     for(int i = 0; i < config.clients; i++) {
@@ -73,6 +93,13 @@ int main(int argc, char *argv[])
         // timeout bugs
         client_data[i].proto = (*make_protocol)(client_data[i].server->protocol);
         client_data[i].proto->connect(&config, client_data[i].server);
+        if (config.db_file[0]) {
+            client_data[i].sqlite = (sqlite_protocol_t*)(*make_protocol)(protocol_sqlite);
+            client_data[i].sqlite->set_id(i);
+            client_data[i].sqlite->connect(&config, client_data[i].server);
+        } else {
+            client_data[i].sqlite = NULL;
+        }
     }
 
     // If input keys are provided, read them in

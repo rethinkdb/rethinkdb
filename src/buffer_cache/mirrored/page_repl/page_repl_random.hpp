@@ -24,7 +24,6 @@ struct mc_inner_buf_t;
 struct mc_cache_t;
 
 struct page_repl_random_t {
-    
     typedef mc_cache_t cache_t;
     typedef mc_inner_buf_t inner_buf_t;
     

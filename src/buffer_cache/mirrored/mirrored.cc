@@ -13,7 +13,7 @@ struct load_buf_fsm_t :
 {
     bool have_loaded;
     mc_inner_buf_t *inner_buf;
-    load_buf_fsm_t(mc_inner_buf_t *buf) : inner_buf(buf) {
+    explicit load_buf_fsm_t(mc_inner_buf_t *buf) : inner_buf(buf) {
         bool locked __attribute__((unused)) = inner_buf->lock.lock(rwi_write, NULL);
         assert(locked);
         have_loaded = false;
@@ -39,6 +39,7 @@ struct load_buf_fsm_t :
 mc_inner_buf_t::mc_inner_buf_t(cache_t *cache, block_id_t block_id)
     : cache(cache),
       block_id(block_id),
+      subtree_recency(cache->serializer->get_recency(block_id)),
       data(cache->serializer->malloc()),
       refcount(0),
       do_delete(false),
@@ -46,17 +47,19 @@ mc_inner_buf_t::mc_inner_buf_t(cache_t *cache, block_id_t block_id)
       writeback_buf(this),
       page_repl_buf(this),
       page_map_buf(this) {
-    
     new load_buf_fsm_t(this);
     
     pm_n_blocks_in_memory++;
+    refcount++; // Make the refcount nonzero so this block won't be considered safe to unload.
     cache->page_repl.make_space(1);
+    refcount--;
 }
 
 // This form of the buf constructor is used when a completely new block is being created
 mc_inner_buf_t::mc_inner_buf_t(cache_t *cache)
     : cache(cache),
       block_id(cache->free_list.gen_block_id()),
+      subtree_recency(current_time()),
       data(cache->serializer->malloc()),
       refcount(0),
       do_delete(false),
@@ -64,28 +67,28 @@ mc_inner_buf_t::mc_inner_buf_t(cache_t *cache)
       writeback_buf(this),
       page_repl_buf(this),
       page_map_buf(this) {
-    
     cache->assert_cpu();
 
 #if !defined(NDEBUG) || defined(VALGRIND)
     // The memory allocator already filled this with 0xBD, but it's nice to be able to distinguish
     // between problems with uninitialized memory and problems with uninitialized blocks
-    memset(data, 0xCD, cache->serializer->get_block_size());
+    memset(data, 0xCD, cache->serializer->get_block_size().value());
 #endif
     
     pm_n_blocks_in_memory++;
+    refcount++; // Make the refcount nonzero so this block won't be considered safe to unload.
     cache->page_repl.make_space(1);
+    refcount--;
 }
 
 mc_inner_buf_t::~mc_inner_buf_t() {
-    
     cache->assert_cpu();
     
 #ifndef NDEBUG
     // We're about to free the data, let's set it to a recognizable
     // value to make sure we don't depend on accessing things that may
     // be flushed out of the cache.
-    memset(data, 0xDD, cache->serializer->get_block_size());
+    memset(data, 0xDD, cache->serializer->get_block_size().value());
 #endif
     
     assert(safe_to_unload());
@@ -113,7 +116,6 @@ mc_buf_t::mc_buf_t(mc_inner_buf_t *inner, access_t mode)
 }
 
 void mc_buf_t::on_lock_available() {
-    
     pm_bufs_acquiring.end(&start_time);
     
     inner_buf->cache->assert_cpu();
@@ -127,7 +129,7 @@ void mc_buf_t::on_lock_available() {
         case rwi_read_outdated_ok: {
             if (inner_buf->cow_will_be_needed) {
                 data = inner_buf->cache->serializer->malloc();
-                memcpy(data, inner_buf->data, inner_buf->cache->get_block_size());
+                memcpy(data, inner_buf->data, inner_buf->cache->get_block_size().value());
             } else {
                 data = inner_buf->data;
                 inner_buf->cow_will_be_needed = true;
@@ -138,16 +140,18 @@ void mc_buf_t::on_lock_available() {
         case rwi_write: {
             if (inner_buf->cow_will_be_needed) {
                 data = inner_buf->cache->serializer->malloc();
-                memcpy(data, inner_buf->data, inner_buf->cache->get_block_size());
+                memcpy(data, inner_buf->data, inner_buf->cache->get_block_size().value());
                 inner_buf->data = data;
                 inner_buf->cow_will_be_needed = false;
             }
             data = inner_buf->data;
             break;
         }
-        default: {
-            fail("Locking with intent not supported yet.");
-        }
+        case rwi_intent:
+            not_implemented("Locking with intent not supported yet.");
+        case rwi_upgrade:
+        default:
+            unreachable();
     }
     
     pm_bufs_held.begin(&start_time);
@@ -157,7 +161,6 @@ void mc_buf_t::on_lock_available() {
 }
 
 void mc_buf_t::release() {
-    
     pm_bufs_held.end(&start_time);
     
     inner_buf->cache->assert_cpu();
@@ -178,7 +181,10 @@ void mc_buf_t::release() {
             }
             break;
         }
-        default: fail("Unexpected mode.");
+        case rwi_intent:
+        case rwi_upgrade:
+        default:
+            unreachable("Unexpected mode.");
     }
     
     // If this code is not commented out, then it will cause bufs to be unloaded very aggressively.
@@ -212,13 +218,11 @@ mc_transaction_t::mc_transaction_t(cache_t *cache, access_t access)
       begin_callback(NULL),
       commit_callback(NULL),
       state(state_open) {
-    
     pm_transactions_starting.begin(&start_time);
     assert(access == rwi_read || access == rwi_write);
 }
 
 mc_transaction_t::~mc_transaction_t() {
-
     assert(state == state_committed);
     pm_transactions_committing.end(&start_time);
 }
@@ -230,7 +234,6 @@ void mc_transaction_t::on_lock_available() {
 }
 
 bool mc_transaction_t::commit(transaction_commit_callback_t *callback) {
-    
     assert(state == state_open);
     pm_transactions_active.end(&start_time);
     pm_transactions_committing.begin(&start_time);
@@ -275,12 +278,11 @@ void mc_transaction_t::on_sync() {
         commit_callback->on_txn_commit(this);
         delete this;
     } else {
-        fail("Unexpected state.");
+        unreachable("Unexpected state.");
     }
 }
 
 mc_buf_t *mc_transaction_t::allocate(block_id_t *block_id) {
-
     /* Make a completely new block, complete with a shiny new block_id. */
     
     assert(access == rwi_write);
@@ -297,8 +299,7 @@ mc_buf_t *mc_transaction_t::allocate(block_id_t *block_id) {
 }
 
 mc_buf_t *mc_transaction_t::acquire(block_id_t block_id, access_t mode,
-                               block_available_callback_t *callback) {
-    
+                                    block_available_callback_t *callback) {
     assert(mode == rwi_read || mode == rwi_read_outdated_ok || access != rwi_read);
        
     inner_buf_t *inner_buf = cache->page_map.find(block_id);
@@ -306,8 +307,16 @@ mc_buf_t *mc_transaction_t::acquire(block_id_t block_id, access_t mode,
         /* The buf isn't in the cache and must be loaded from disk */
         inner_buf = new inner_buf_t(cache, block_id);
     }
-    
+
     buf_t *buf = new buf_t(inner_buf, mode);
+
+    // We set the recency _before_ we get the buf.  This is correct,
+    // because we are "underneath" any replicators that come later
+    // (trees grow downward from the root).
+    if (!(mode == rwi_read || mode == rwi_read_outdated_ok)) {
+        buf->touch_recency();
+    }
+
     if (buf->ready) {
         return buf;
     } else {
@@ -316,24 +325,35 @@ mc_buf_t *mc_transaction_t::acquire(block_id_t block_id, access_t mode,
     }
 }
 
+repli_timestamp mc_transaction_t::get_subtree_recency(block_id_t block_id) {
+    inner_buf_t *inner_buf = cache->page_map.find(block_id);
+    if (inner_buf) {
+        // The buf is in the cache and we must use its recency.
+        return inner_buf->subtree_recency;
+    } else {
+        // The buf is not in the cache, so ask the serializer.
+        return cache->serializer->get_recency(block_id);
+    }
+}
+
 /**
  * Cache implementation.
  */
 
 mc_cache_t::mc_cache_t(
-            serializer_t *serializer,
+            translator_serializer_t *serializer,
             mirrored_cache_config_t *config) :
     
     serializer(serializer),
     page_repl(
         // Launch page replacement if the user-specified maximum number of blocks is reached
-        config->max_size / serializer->get_block_size(),
+        config->max_size / serializer->get_block_size().value(),
         this),
     writeback(
         this,
         config->wait_for_flush,
         config->flush_timer_ms,
-        config->max_size / serializer->get_block_size() * config->flush_threshold_percent / 100),
+        config->max_size / serializer->get_block_size().value() * config->flush_threshold_percent / 100),
     free_list(serializer),
     shutdown_transaction_backdoor(false),
     state(state_unstarted),
@@ -341,7 +361,6 @@ mc_cache_t::mc_cache_t(
     { }
 
 mc_cache_t::~mc_cache_t() {
-    
     assert(state == state_unstarted || state == state_shut_down);
     
     while (inner_buf_t *buf = page_repl.get_first_buf()) {
@@ -363,7 +382,6 @@ bool mc_cache_t::start(ready_callback_t *cb) {
 }
 
 bool mc_cache_t::next_starting_up_step() {
-    
     if (state == state_starting_up_create_free_list) {
         if (free_list.start(this)) {
             state = state_starting_up_finish;
@@ -374,13 +392,11 @@ bool mc_cache_t::next_starting_up_step() {
     }
     
     if (state == state_starting_up_finish) {
-        
         /* Create an initial superblock */
         if (free_list.num_blocks_in_use == 0) {
-        
             inner_buf_t *b = new mc_inner_buf_t(this);
             assert(b->block_id == SUPERBLOCK_ID);
-            bzero(b->data, get_block_size());
+            bzero(b->data, get_block_size().value());
         }
         
         state = state_ready;
@@ -391,7 +407,7 @@ bool mc_cache_t::next_starting_up_step() {
         return true;
     }
     
-    fail("Invalid state.");
+    unreachable("Invalid state.");
 }
 
 void mc_cache_t::on_free_list_ready() {
@@ -400,7 +416,7 @@ void mc_cache_t::on_free_list_ready() {
     next_starting_up_step();
 }
 
-size_t mc_cache_t::get_block_size() {
+block_size_t mc_cache_t::get_block_size() {
     return serializer->get_block_size();
 }
 
@@ -415,7 +431,7 @@ mc_transaction_t *mc_cache_t::begin_transaction(access_t access,
                 state == state_shutting_down_waiting_for_flush)));
     
     transaction_t *txn = new transaction_t(this, access);
-    num_live_transactions ++;
+    num_live_transactions++;
     if (writeback.begin_transaction(txn, callback)) {
         pm_transactions_starting.end(&txn->start_time);
         pm_transactions_active.begin(&txn->start_time);
@@ -426,7 +442,6 @@ mc_transaction_t *mc_cache_t::begin_transaction(access_t access,
 }
 
 void mc_cache_t::on_transaction_commit(transaction_t *txn) {
-    
     assert(state == state_ready ||
         state == state_shutting_down_waiting_for_transactions ||
         state == state_shutting_down_start_flush ||
@@ -444,7 +459,6 @@ void mc_cache_t::on_transaction_commit(transaction_t *txn) {
 }
 
 bool mc_cache_t::shutdown(shutdown_callback_t *cb) {
-
     assert(state == state_ready);
 
     if (num_live_transactions == 0) {
@@ -466,7 +480,6 @@ bool mc_cache_t::shutdown(shutdown_callback_t *cb) {
 }
 
 bool mc_cache_t::next_shutting_down_step() {
-
     if (state == state_shutting_down_start_flush) {
         if (writeback.sync(this)) {
             state = state_shutting_down_finish;
@@ -477,7 +490,6 @@ bool mc_cache_t::next_shutting_down_step() {
     }
     
     if (state == state_shutting_down_finish) {
-        
         /* Use do_later() rather than calling it immediately because it might call
         our destructor, and it might not be safe to call our destructor right here. */
         if (shutdown_callback) do_later(shutdown_callback, &shutdown_callback_t::on_cache_shutdown);
@@ -487,7 +499,7 @@ bool mc_cache_t::next_shutting_down_step() {
         return true;
     }
     
-    fail("Invalid state.");
+    unreachable("Invalid state.");
 }
 
 void mc_cache_t::on_sync() {

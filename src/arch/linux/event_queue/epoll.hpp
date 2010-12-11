@@ -9,9 +9,8 @@
 
 // Event queue structure
 struct epoll_event_queue_t {
-
 public:
-    epoll_event_queue_t(linux_queue_parent_t *parent);
+    explicit epoll_event_queue_t(linux_queue_parent_t *parent);
     void run();
     ~epoll_event_queue_t();
 

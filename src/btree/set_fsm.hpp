@@ -3,8 +3,9 @@
 
 #include "btree/modify_fsm.hpp"
 
-class btree_set_fsm_t : public btree_modify_fsm_t,
-                        public large_value_completed_callback
+class btree_set_fsm_t :
+    public btree_modify_fsm_t,
+    public data_provider_t::done_callback_t
 {
 private:
     typedef btree_fsm_t::transition_result_t transition_result_t;
@@ -17,132 +18,151 @@ public:
         set_type_cas
     };
 
-    explicit btree_set_fsm_t(btree_key *key, btree_key_value_store_t *store, request_callback_t *req, bool got_large, uint32_t length, byte *data, set_type_t type, btree_value::mcflags_t mcflags, btree_value::exptime_t exptime, btree_value::cas_t req_cas)
-        : btree_modify_fsm_t(key, store), length(length), req(req), got_large(got_large), type(type), req_cas(req_cas), read_success(false), set_failed(false), large_value(NULL) {
-        
+    explicit btree_set_fsm_t(btree_key *key, btree_key_value_store_t *store, data_provider_t *data, set_type_t type, btree_value::mcflags_t mcflags, btree_value::exptime_t exptime, btree_value::cas_t req_cas, store_t::set_callback_t *cb)
+        : btree_modify_fsm_t(key, store), data(data), type(type), mcflags(mcflags), exptime(exptime), req_cas(req_cas), large_value(NULL), callback(cb)
+    {
         pm_cmd_set.begin(&start_time);
-        // XXX This does unnecessary setting and copying.
-        value.metadata_flags = 0;
-        value.value_size(0);
-        value.set_mcflags(mcflags);
-        value.set_exptime(exptime);
-        value.value_size(length);
-        if (!got_large) {
-            memcpy(value.value(), data, length);
-        }
+        do_transition(NULL);
     }
     
     ~btree_set_fsm_t() {
         pm_cmd_set.end(&start_time);
     }
-    
-    transition_result_t operate(btree_value *old_value, large_buf_t *old_large_value, btree_value **_new_value) {
-        new_value = _new_value;
 
+
+    void operate(btree_value *old_value, large_buf_t *old_large_value) {
         if ((old_value && type == set_type_add) || (!old_value && type == set_type_replace)) {
-            this->status_code = btree_fsm_t::S_NOT_STORED;
-            set_failed = true;
+            result = result_not_stored;
+            data->get_value(NULL, this);
+            return;
         }
+        
         if (type == set_type_cas) { // TODO: CAS stats
-            if (!old_value || !old_value->has_cas() || old_value->cas() != req_cas) {
-                set_failed = true;
-                this->status_code = old_value ? btree_fsm_t :: S_EXISTS : btree_fsm_t::S_NOT_FOUND;
+            if (!old_value) {
+                result = result_not_found;
+                data->get_value(NULL, this);
+                return;
+            }
+            if (!old_value->has_cas() || old_value->cas() != req_cas) {
+                result = result_exists;
+                data->get_value(NULL, this);
+                return;
             }
         }
-
-        if (set_failed) {
-            this->update_needed = false;
-            if (got_large) {
-                assert(length <= MAX_VALUE_SIZE);
-                fill_large_value_msg_t *msg = new fill_large_value_msg_t(return_cpu, req->rh, this, length);
-                if (continue_on_cpu(return_cpu, msg)) call_later_on_this_cpu(msg);
-                return btree_fsm_t::transition_incomplete;
-            }
-            read_success = true;
-            return btree_fsm_t::transition_ok;
-            // TODO: If we implement support for the delete queue (although
-            // memcached 1.4.5 doesn't support it): When a value is in the
-            // memcached delete queue, you can neither ADD nor REPLACE it, but
-            // you *can* SET it.
+        
+        if (data->get_size() > MAX_VALUE_SIZE) {
+            result = result_too_large;
+            data->get_value(NULL, this);
+            return;
         }
-
+        
+        value.metadata_flags = 0;
+        value.value_size(0);
+        value.set_mcflags(mcflags);
+        value.set_exptime(exptime);
+        value.value_size(data->get_size());
         if (type == set_type_cas || (old_value && old_value->has_cas())) {
             value.set_cas(0xCA5ADDED); // Turns the flag on and makes room. modify_fsm will set an actual CAS later. TODO: We should probably have a separate function for this.
         }
-
-        if (got_large) {
-            assert (length <= MAX_VALUE_SIZE);
-            large_value = new large_buf_t(this->transaction);
-            large_value->allocate(length);
-            value.set_lv_index_block_id(large_value->get_index_block_id());
-
-            fill_large_value_msg_t *msg = new fill_large_value_msg_t(large_value, return_cpu, req->rh, this, 0, length);
-
-            // continue_on_cpu() returns true if we are already on that cpu, but we don't want to
-            // call the callback immediately in that case anyway.
-            if (continue_on_cpu(return_cpu, msg))  {
-                call_later_on_this_cpu(msg);
-            }
-            return btree_fsm_t::transition_incomplete;
-        }
-
-        read_success = true;
-        return btree_fsm_t::transition_ok;
-    }
-
-    void on_operate_completed() {
-        if (set_failed) {
-            this->update_needed = false;
-            if (!read_success) this->status_code = btree_fsm_t::S_READ_FAILURE;
-            return;
-        }
-        this->update_needed = read_success;
-        if (read_success) {
-            *new_value = &value;
-            this->status_code = btree_fsm_t::S_SUCCESS;
+        
+        assert(data->get_size() <= MAX_VALUE_SIZE);
+        if (data->get_size() <= MAX_IN_NODE_VALUE_SIZE) {
+            buffer_group.add_buffer(data->get_size(), value.value());
         } else {
-            if (got_large) {
-                assert(large_value);
-                large_value->mark_deleted();
-                this->status_code = btree_fsm_t::S_READ_FAILURE;
-            } else {
-                // status_code is already set.
-                assert(this->status_code != btree_fsm_t::S_UNKNOWN);
+            large_value = new large_buf_t(this->transaction);
+            large_value->allocate(data->get_size(), value.large_buf_ref_ptr());
+            for (int64_t i = 0; i < large_value->get_num_segments(); i++) {
+                uint16_t size;
+                void *data = large_value->get_segment_write(i, &size);
+                buffer_group.add_buffer(size, data);
             }
         }
+        
+        result = result_stored;
+        data->get_value(&buffer_group, this);
+    }
+    
+    void have_provided_value() {
+        /* Called by the data provider when it filled the buffer we gave it. */
+        
+        if (result == result_stored) {
+            have_finished_operating(&value, large_value);
+        } else if (result == result_too_large) {
+            /* To be standards-compliant we must delete the old value when an effort is made to
+            replace it with a value that is too large. */
+            have_finished_operating(NULL, NULL);
+        } else {
+            have_failed_operating();
+        }
+    }
+    
+    void have_failed() {
+        /* Called by the data provider when something went wrong. */
+        
         if (large_value) {
+            large_value->mark_deleted();
             large_value->release();
             delete large_value;
             large_value = NULL;
         }
+        
+        result = result_data_provider_failed;
+        have_failed_operating();
     }
-
-    void on_large_value_completed(bool _read_success) {
-        read_success = _read_success;
-        this->step(); // XXX This should go elsewhere.
+    
+    void call_callback_and_delete() {
+        switch (result) {
+            case result_stored:
+                callback->stored();
+                break;
+            case result_not_stored:
+                callback->not_stored();
+                break;
+            case result_not_found:
+                callback->not_found();
+                break;
+            case result_exists:
+                callback->exists();
+                break;
+            case result_too_large:
+                callback->too_large();
+                break;
+            case result_data_provider_failed:
+                callback->data_provider_failed();
+                break;
+            default:
+                unreachable();
+        }
+        
+        delete this;
     }
-
+    
 private:
-    uint32_t length;
     ticks_t start_time;
-    request_callback_t *req;
 
-    bool got_large;
-
+    data_provider_t *data;
     set_type_t type;
+    mcflags_t mcflags;
+    exptime_t exptime;
     btree_value::cas_t req_cas;
-
-    bool read_success; // XXX: Rename this.
-
-    bool set_failed;
-
-    btree_value **new_value;
+    
+    enum result_t {
+        result_stored,
+        result_not_stored,
+        result_not_found,
+        result_exists,
+        result_too_large,
+        result_data_provider_failed
+    } result;
 
     union {
         char value_memory[MAX_TOTAL_NODE_CONTENTS_SIZE+sizeof(btree_value)];
         btree_value value;
     };
     large_buf_t *large_value;
+    buffer_group_t buffer_group;
+    
+    store_t::set_callback_t *callback;
 };
 
 #endif // __BTREE_SET_FSM_HPP__

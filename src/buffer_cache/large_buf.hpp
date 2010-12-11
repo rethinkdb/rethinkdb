@@ -4,12 +4,6 @@
 #include "buffer_cache/buffer_cache.hpp"
 #include "config/args.hpp"
 #include "btree/node.hpp"
-#include "conn_fsm.hpp"
-#include "request.hpp"
-
-#define NUM_SEGMENTS(total_size, seg_size) ( ( ((total_size)-1) / (seg_size) ) + 1 )
-
-#define MAX_LARGE_BUF_SEGMENTS (NUM_SEGMENTS((MAX_VALUE_SIZE), (4*KILOBYTE)))
 
 class large_buf_t;
 
@@ -24,37 +18,42 @@ struct large_value_completed_callback {
     virtual ~large_value_completed_callback() {}
 };
 
-// Must be smaller than a buf.
-struct large_buf_index {
-    block_magic_t magic;
-    //uint32_t size; // TODO: Put the size here instead of in the btree value.
-    uint16_t num_segments;
-    uint16_t first_block_offset; // For prepend.
-    block_id_t blocks[MAX_LARGE_BUF_SEGMENTS];
+// struct large_buf_ref is defined in buffer_cache/types.hpp.
 
-    static block_magic_t expected_magic;
+struct large_buf_internal {
+    block_magic_t magic;
+    block_id_t kids[];
+
+    static const block_magic_t expected_magic;
 };
 
-struct large_buf_segment {
+struct large_buf_leaf {
     block_magic_t magic;
+    byte buf[];
 
-    static block_magic_t expected_magic;
+    static const block_magic_t expected_magic;
 };
+
+struct buftree_t {
+#ifndef NDEBUG
+    int level;  // a positive number
+#endif
+    buf_t *buf;
+    std::vector<buftree_t *> children;
+};
+
+struct tree_available_callback_t;
 
 class large_buf_t
 {
 private:
-    block_id_t index_block_id;
-    buf_t *index_buf;
-    uint32_t size; // XXX possibly unnecessary?
+    large_buf_ref root_ref;
+    buftree_t *root;
     access_t access;
     large_buf_available_callback_t *callback;
 
     transaction_t *transaction;
-    size_t effective_segment_block_size;
-
-    uint16_t num_acquired;
-    buf_t *bufs[MAX_LARGE_BUF_SEGMENTS];
+    block_size_t block_size;
 
 public: // XXX Should this be private?
     enum state_t {
@@ -66,256 +65,75 @@ public: // XXX Should this be private?
     };
     state_t state;
 
+#ifndef NDEBUG
+    int64_t num_bufs;
+#endif
+
 // TODO: Take care of private methods and friend classes and all that.
 public:
-    large_buf_t(transaction_t *txn);
+    explicit large_buf_t(transaction_t *txn);
     ~large_buf_t();
 
-    void allocate(uint32_t _size);
-    void acquire(block_id_t _index_block, uint32_t _size, access_t _access, large_buf_available_callback_t *_callback);
+    void allocate(int64_t _size, large_buf_ref *refout);
+    void acquire(large_buf_ref root_ref_, access_t access_, large_buf_available_callback_t *callback_);
 
-    void append(uint32_t extra_size);
-    void prepend(uint32_t extra_size);
-    void fill_at(uint32_t pos, const byte *data, uint32_t fill_size);
+    void append(int64_t extra_size, large_buf_ref *refout);
+    void prepend(int64_t extra_size, large_buf_ref *refout);
+    void fill_at(int64_t pos, const byte *data, int64_t fill_size);
 
-    void unappend(uint32_t extra_size);
-    void unprepend(uint32_t extra_size);
+    void unappend(int64_t extra_size, large_buf_ref *refout);
+    void unprepend(int64_t extra_size, large_buf_ref *refout);
 
-    uint16_t pos_to_ix(uint32_t pos);
-    uint16_t pos_to_seg_pos(uint32_t pos);
+    int64_t pos_to_ix(int64_t pos);
+    uint16_t pos_to_seg_pos(int64_t pos);
 
     void mark_deleted();
     void release();
 
-    block_id_t get_index_block_id();
-    const large_buf_index *get_index();
-    large_buf_index *get_index_write();
-    uint16_t get_num_segments();
+    const large_buf_ref& get_root_ref() const;
 
-    uint16_t segment_size(int ix);
+    int64_t get_num_segments();
 
-    const byte *get_segment(int num, uint16_t *seg_size);
-    byte *get_segment_write(int num, uint16_t *seg_size);
+    uint16_t segment_size(int64_t ix);
+
+    const byte *get_segment(int64_t num, uint16_t *seg_size);
+    byte *get_segment_write(int64_t num, uint16_t *seg_size);
 
     void on_block_available(buf_t *buf);
 
     void index_acquired(buf_t *buf);
     void segment_acquired(buf_t *buf, uint16_t ix);
-    
+    void buftree_acquired(buftree_t *tr);
+
+    friend struct acquire_buftree_fsm_t;
+
+    static int64_t cache_size_to_leaf_bytes(block_size_t block_size);
+    static int64_t cache_size_to_internal_kids(block_size_t block_size);
+    static int64_t compute_max_offset(block_size_t block_size, int levels);
+    static int compute_num_levels(block_size_t block_size, int64_t end_offset);
+
 private:
-    buf_t *allocate_segment(block_id_t *id);
-};
+    int64_t num_leaf_bytes() const;
+    int64_t num_internal_kids() const;
+    int64_t max_offset(int levels) const;
+    int num_levels(int64_t end_offset) const;
 
-// TODO: Rename this.
-struct segment_block_available_callback_t :
-    public block_available_callback_t
-{
-    large_buf_t *owner;
-
-    bool is_index_block;
-    uint16_t ix;
-
-    segment_block_available_callback_t(large_buf_t *owner)
-        : owner(owner), is_index_block(true) {}
-    
-    segment_block_available_callback_t(large_buf_t *owner, uint16_t ix)
-        : owner(owner), is_index_block(false), ix(ix) {}
-
-    void on_block_available(buf_t *buf) {
-        if (is_index_block) {
-            owner->index_acquired(buf);
-        } else {
-            owner->segment_acquired(buf, ix);
-        }
-        delete this;
-    }
-};
-
-// TODO: These two are sickeningly similar now. Merge them.
-
-// TODO: Some of the code in here belongs in large_buf_t.
-
-class fill_large_value_msg_t : public cpu_message_t,
-                               public home_cpu_mixin_t,
-                               public data_transferred_callback
-{
-private:
-    typedef buffer_t<IO_BUFFER_SIZE> iobuf_t;
-
-    enum {
-        fill, // Fill a large value
-        consume // Consume from the socket.
-    } mode;
-
-    int rh_cpu;
-
-    iobuf_t *buf;
-
-    bool completed;
-    bool success;
-
-    large_buf_t *large_value;
-    request_handler_t *rh;
-    large_value_completed_callback *cb;
-    uint32_t pos;
-    uint32_t length;
-
-public:
-    fill_large_value_msg_t(large_buf_t *large_value, int rh_cpu, request_handler_t *rh, large_value_completed_callback *cb, uint32_t pos, uint32_t length)
-        : mode(fill), rh_cpu(rh_cpu), buf(NULL), completed(false), success(false), large_value(large_value), rh(rh), cb(cb), pos(pos), length(length) {
-        //assert(pos + length < large_value->size); // XXX
-    }
-
-    fill_large_value_msg_t(int rh_cpu, request_handler_t *rh, large_value_completed_callback *cb, uint32_t length)
-        : mode(consume), rh_cpu(rh_cpu), buf(new iobuf_t()), completed(false), rh(rh), cb(cb), length(length) {}
-
-    ~fill_large_value_msg_t() {
-        if (buf) {
-            assert(mode == consume);
-            delete buf;
-        }
-    }
-
-    void on_cpu_switch() {
-        if (!completed) {
-            assert(get_cpu_id() == rh_cpu);
-            step();
-        } else {
-            assert(get_cpu_id() == home_cpu);
-            cb->on_large_value_completed(success);
-            delete this;
-        }
-    }
-
-    void on_data_transferred() {
-        step();
-    }
-
-    void fill_complete(bool _success) {
-        success = _success;
-        completed = true;
-        if (continue_on_cpu(home_cpu, this)) {
-            call_later_on_this_cpu(this);
-        }
-    }
-private:
-    void step() {
-        assert(!completed);
-        switch (mode) {
-            case fill:
-                do_fill();
-                break;
-            case consume:
-                do_consume();
-                break;
-        }
-    }
-
-    void do_consume() {
-        if (length > 0) {
-            uint32_t bytes_to_transfer = std::min((uint32_t) iobuf_t::size, length);
-            length -= bytes_to_transfer;
-            rh->fill_value(buf->buf, bytes_to_transfer, this);
-            return;
-        }
-
-        if (length == 0) {
-            rh->fill_lv_msg = this;
-        }
-    }
-
-    void do_fill() {
-        if (length > 0) {
-            uint16_t ix = large_value->pos_to_ix(pos);
-            uint16_t seg_pos = large_value->pos_to_seg_pos(pos);
-            uint16_t seg_len;
-            byte *buf = large_value->get_segment_write(ix, &seg_len);
-            uint16_t bytes_to_transfer = std::min((uint32_t) seg_len - seg_pos, length);
-            pos += bytes_to_transfer;
-            length -= bytes_to_transfer;
-            rh->fill_value(buf + seg_pos, bytes_to_transfer, this);
-            return;
-        } else {
-            rh->fill_lv_msg = this;
-        }
-    }
-};
-
-
-// TODO: Some of the code in here belongs in large_buf_t.
-class write_large_value_msg_t : public cpu_message_t,
-                                public data_transferred_callback,
-                                public home_cpu_mixin_t
-{
-private:
-    large_buf_t *large_value;
-    btree_fsm_t *fsm;
-    int rh_cpu;
-    request_callback_t *req;
-    unsigned int next_segment;
-    large_value_completed_callback *cb;
-public:
-    enum {
-        ready,
-        reading,
-        completed,
-    } state;
-
-public:
-    write_large_value_msg_t(large_buf_t *large_value, btree_fsm_t *fsm, int rh_cpu, request_callback_t *req, large_value_completed_callback *cb)
-        : large_value(large_value), fsm(fsm), rh_cpu(rh_cpu), req(req), next_segment(0), cb(cb), state(ready) {
-    }
-
-    void dispatch() {
-        assert(get_cpu_id() == home_cpu);
-        if (continue_on_cpu(rh_cpu, this)) call_later_on_this_cpu(this);
-    }
-
-    void on_cpu_switch() {
-        switch (state) {
-            case ready:
-                assert(get_cpu_id() == rh_cpu);
-                req->on_fsm_ready(fsm);
-                break;
-            case reading:
-                assert(get_cpu_id() == rh_cpu);
-                read_segments();
-                break;
-            case completed:
-                assert(get_cpu_id() == home_cpu);
-                cb->on_large_value_completed(true); // Reads always succeed.
-                delete this;
-                break;
-        }
-    }
-
-    void begin_write() {
-        state = reading;
-        on_cpu_switch();
-    }
-
-    void on_data_transferred() {
-        next_segment++;
-        read_segments();
-    }
-private:
-    void read_segments() {
-        assert(state == reading);
-        uint16_t seg_len;
-        const byte *buf;
-        if (next_segment < large_value->get_num_segments()) {
-            buf = large_value->get_segment(next_segment, &seg_len);
-            req->rh->write_value(buf, seg_len, this);
-            return;
-        } else {
-            assert(next_segment == large_value->get_num_segments());
-            req->on_fsm_ready(fsm);
-            state = completed;
-            
-            // continue_on_cpu() returns true if we are already on that cpu
-            if (continue_on_cpu(home_cpu, this)) call_later_on_this_cpu(this);
-        }
-    }
+    buftree_t *allocate_buftree(int64_t size, int64_t offset, int levels, block_id_t *block_id);
+    buftree_t *acquire_buftree(block_id_t block_id, int64_t offset, int64_t size, int levels, tree_available_callback_t *cb);
+    void acquire_slice(large_buf_ref root_ref_, access_t access_, int64_t slice_offset, int64_t slice_size, large_buf_available_callback_t *callback_);
+    void fill_tree_at(buftree_t *tr, int64_t pos, const byte *data, int64_t fill_size, int levels);
+    buftree_t *add_level(buftree_t *tr, block_id_t id, block_id_t *new_id
+#ifndef NDEBUG
+                         , int nextlevels
+#endif
+                         );
+    void allocate_part_of_tree(buftree_t *tr, int64_t offset, int64_t size, int levels);
+    void walk_tree_structure(buftree_t *tr, int64_t offset, int64_t size, int levels, void (*bufdoer)(large_buf_t *, buf_t *), void (*buftree_cleaner)(buftree_t *));
+    void delete_tree_structure(buftree_t *tr, int64_t offset, int64_t size, int levels);
+    void only_mark_deleted_tree_structure(buftree_t *tr, int64_t offset, int64_t size, int levels);
+    void release_tree_structure(buftree_t *tr, int64_t offset, int64_t size, int levels);
+    buf_t *get_segment_buf(int64_t ix, uint16_t *seg_size, uint16_t *seg_offset);
+    buftree_t *remove_level(buftree_t *tr, block_id_t id, block_id_t *idout);
 };
 
 #endif // __LARGE_BUF_HPP__

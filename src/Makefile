@@ -8,8 +8,9 @@ SCRIPTS_DIR:=../scripts
 START_DB_NAME:=start_rethinkdb
 GDB_FUNCTIONS_NAME:=rethinkdb-gdb.py
 TAGS:=.tags
+CSCOPE_XREF:=.cscope
 RUN_PORT?=11211
-RUN_FLAGS?=
+RUN_FLAGS?=-s 3 -c 2 -m 10
 VALGRIND_FLAGS?=--leak-check=full --db-attach=yes --show-reachable=yes
 CALLGRIND_FLAGS?=--simulate-cache=yes --simulate-wb=yes --simulate-hwpref=yes --cacheuse=yes --collect-jumps=yes
 DEBUG?=1
@@ -31,7 +32,10 @@ endif
 # Define configuration variables
 CXX:=g++
 LDFLAGS:=-lrt -laio
-CXXFLAGS:=-I$(SOURCE_DIR) -Wall -Wextra -Wformat=2 -Wno-unused-parameter -Werror
+CXXFLAGS:=-I$(SOURCE_DIR) -Wall -Wextra -Wformat=2 -Wno-unused-parameter -Wswitch-enum -Wswitch-default -Werror
+
+# Configure libcoroutine
+CXXFLAGS+=-DUSE_UCONTEXT
 
 # Configure debug vs. release
 ifeq ($(DEBUG),1)
@@ -103,17 +107,17 @@ endif
 DEP_DIR:=$(BUILD_DIR)/dep
 OBJ_DIR:=$(BUILD_DIR)/obj
 
-SOURCES:=$(shell find $(SOURCE_DIR) -name '*.cc')
-NAMES:=$(patsubst $(SOURCE_DIR)/%.cc,%,$(SOURCES))
+SOURCES:=$(shell find $(SOURCE_DIR) -regex '.*\.\(S\|cc\)')
+NAMES:=$(patsubst $(SOURCE_DIR)/%.S,%.S,$(patsubst $(SOURCE_DIR)/%.cc,%.cc,$(SOURCES)))
 DEPS:=$(patsubst %,$(DEP_DIR)/%.d,$(NAMES))
 OBJS:=$(patsubst %,$(OBJ_DIR)/%.o,$(NAMES))
 
-SERVER_EXEC_OBJS:=$(patsubst %.cc,$(OBJ_DIR)/%.o,$(shell find $(SOURCE_DIR) -name '*.cc' | grep -vF "`find $(SOURCE_DIR)/extract $(SOURCE_DIR)/fsck -name '*.cc'`"))
+SERVER_EXEC_OBJS:=$(patsubst %.S,$(OBJ_DIR)/%.S.o,$(patsubst %.cc,$(OBJ_DIR)/%.cc.o,$(shell find $(SOURCE_DIR) -regex '.*\.\(S\|cc\)' | grep -vF "`find $(SOURCE_DIR)/extract $(SOURCE_DIR)/fsck -name '*.cc'`")))
 
-SERVER_NOMAIN_OBJS:=$(patsubst %.cc,$(OBJ_DIR)/%.o,$(shell find $(SOURCE_DIR) -name '*.cc' | grep -vF "`find $(SOURCE_DIR) -name 'main.cc'`"))
+SERVER_NOMAIN_OBJS:=$(patsubst %.S,$(OBJ_DIR)/%.S.o,$(patsubst %.cc,$(OBJ_DIR)/%.cc.o,$(shell find $(SOURCE_DIR) -regex '.*\.\(S\|cc\)' | grep -vF "`find $(SOURCE_DIR) -name 'main.cc'`")))
 
-SERVER_EXTRACT_OBJS:=$(SERVER_NOMAIN_OBJS) $(OBJ_DIR)/extract/main.o
-SERVER_FSCK_OBJS:=$(SERVER_NOMAIN_OBJS) $(OBJ_DIR)/fsck/main.o
+SERVER_EXTRACT_OBJS:=$(SERVER_NOMAIN_OBJS) $(OBJ_DIR)/extract/main.cc.o
+SERVER_FSCK_OBJS:=$(SERVER_NOMAIN_OBJS) $(OBJ_DIR)/fsck/main.cc.o
 
 
 
@@ -175,6 +179,9 @@ gdb: $(BUILD_DIR)/$(SERVER_EXEC_NAME)
 regdb: $(BUILD_DIR)/$(SERVER_EXEC_NAME)
 	gdb --args $(BUILD_DIR)/$(SERVER_EXEC_NAME) -p $(RUN_PORT) $(RUN_FLAGS)
 
+sembuild: clean
+	make SEMANTIC_SERIALIZER_CHECK=1 all
+
 valgrind: $(BUILD_DIR)/$(SERVER_EXEC_NAME)
 ifeq ($(VALGRIND),0)
 	$(error Using the 'valgrind' target doesn't automatically set VALGRIND to 1. Try again with \
@@ -201,25 +208,32 @@ endif
 tags:
 	$(QUIET) ctags -R -f $(TAGS) --langmap="c++:.cc.tcc.hpp"
 
+cscope:
+	$(QUIET) cscope -bR -f $(CSCOPE_XREF)
+
 style:
 	$(QUIET) find . -name \*.cc -o -name \*.hpp | xargs ../scripts/cpplint --verbose 2 --filter=-whitespace/end_of_line,-whitespace/parens,-whitespace/line_length,-readability/casting,-whitespace/braces,-readability/todo,-legal/copyright,-whitespace/comments,-build/include,-whitespace/labels,-runtime/int,-runtime/printf 2>&1 | grep -v Done\ processing
+
+showdefines:
+	$(QUIET) $(CXX) $(CXXFLAGS) -m32 -E -dM - < /dev/null
 
 clean:
 ifeq ($(VERBOSE),0)
 	@echo "    RM *~"
 	@echo "    RM -r $(BUILD_ROOT_DIR)"
 	@echo "    RM $(TAGS)"
+	@echo "    RM $(CSCOPE_XREF)"
 endif
 	$(QUIET) find -name '*~' -exec rm {} \;
 	$(QUIET) rm -r $(BUILD_ROOT_DIR)
-	$(QUIET) rm -f $(TAGS)
+	$(QUIET) rm -f $(TAGS) $(CSCOPE_XREF)
 
 # Directories
 $(BUILD_DIR):
 	$(QUIET) mkdir -p $(BUILD_DIR)
 
 # Object files
-$(OBJ_DIR)/%.o: $(SOURCE_DIR)/%.cc Makefile
+$(OBJ_DIR)/%.o: $(SOURCE_DIR)/% Makefile
 	$(QUIET) mkdir -p $(dir $@)
 ifeq ($(VERBOSE),0)
 	@echo "    CC $< -o $@"
@@ -227,7 +241,7 @@ endif
 	$(QUIET) $(CXX) $(CXXFLAGS) -c -o $@ $<
 
 # Dependencies
-$(DEP_DIR)/%.d: $(SOURCE_DIR)/%.cc
+$(DEP_DIR)/%.d: $(SOURCE_DIR)/%
 	$(QUIET) mkdir -p $(dir $@)
 	$(QUIET) $(CXX) $(CXXFLAGS) -M $< > $@.$$$$;				   \
 	sed 's,$(notdir $*)\.o[ :]*,$(OBJ_DIR)/$*.o $@ : ,g' < $@.$$$$ > $@;	  \

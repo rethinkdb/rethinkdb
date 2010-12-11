@@ -9,7 +9,7 @@ public:
     block_registry();
 
     // Tells the block_registry about some new block that has been read.
-    void tell_block(off64_t offset, const data_block_manager_t::buf_data_t& buf_data);
+    void tell_block(off64_t offset, const buf_data_t& buf_data);
 
     bool has_block(ser_block_id_t block_id, off64_t offset) const;
 

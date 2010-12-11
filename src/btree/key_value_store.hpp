@@ -2,23 +2,23 @@
 #ifndef __BTREE_KEY_VALUE_STORE_HPP__
 #define __BTREE_KEY_VALUE_STORE_HPP__
 
-#include "buffer_cache/buffer_cache.hpp"
+#include "btree/slice.hpp"
 #include "btree/node.hpp"
 #include "utils.hpp"
-#include "containers/intrusive_list.hpp"
 #include "concurrency/access.hpp"
 #include "config/cmd_args.hpp"
 #include "arch/arch.hpp"
 #include "serializer/config.hpp"
 #include "serializer/translator.hpp"
+#include "store.hpp"
 
-#define CONFIG_BLOCK_ID (ser_block_id_t(0))
+
+#define CONFIG_BLOCK_ID (config_block_id_t::make(0))
 
 // TODO move serializer_config_block_t to separate file
 /* This is the format that block ID 0 on each serializer takes. */
 
 struct serializer_config_block_t {
-    
     block_magic_t magic;
     
     /* What time the database was created. To help catch the case where files from two
@@ -41,18 +41,17 @@ struct serializer_config_block_t {
     static const block_magic_t expected_magic;
 };
 
-
-struct btree_slice_t;
-
 /* btree_key_value_store_t represents a collection of slices, possibly distributed
 across several cores, each of which holds a btree. Together with the btree_fsms, it
 provides the abstraction of a key-value store. */
 
 struct bkvs_start_new_serializer_fsm_t;
 struct bkvs_start_existing_serializer_fsm_t;
+struct btree_replicant_t;
 
 class btree_key_value_store_t :
     public home_cpu_mixin_t,
+    public store_t,
     public standard_serializer_t::shutdown_callback_t
 {
     friend class bkvs_start_new_serializer_fsm_t;
@@ -60,34 +59,49 @@ class btree_key_value_store_t :
     
 public:
     btree_key_value_store_t(
-        btree_key_value_store_dynamic_config_t *dynamic_config,
-        int n_files,
-        const char **db_filenames);
+        btree_key_value_store_dynamic_config_t *dynamic_config);
     ~btree_key_value_store_t();
     
     struct check_callback_t {
         virtual void on_store_check(bool valid) = 0;
+        virtual ~check_callback_t() {}
     };
-    static void check_existing(int n_files, const char **db_filenames, check_callback_t *cb);
+    static void check_existing(const std::vector<std::string>& db_filenames, check_callback_t *cb);
     
     struct ready_callback_t {
         virtual void on_store_ready() = 0;
+        virtual ~ready_callback_t() {}
     };
     bool start_new(ready_callback_t *cb, btree_key_value_store_static_config_t *static_config);
     bool start_existing(ready_callback_t *cb);
     
-    btree_slice_t *slice_for_key(btree_key *key);
-    
     struct shutdown_callback_t {
         virtual void on_store_shutdown() = 0;
+        virtual ~shutdown_callback_t() {}
     };
     bool shutdown(shutdown_callback_t *cb);
+
+public:
+    /* store_t interface. */
+    
+    void get(store_key_t *key, get_callback_t *cb);
+    void get_cas(store_key_t *key, get_callback_t *cb);
+    void set(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, set_callback_t *cb);
+    void add(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, set_callback_t *cb);
+    void replace(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, set_callback_t *cb);
+    void cas(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, cas_t unique, set_callback_t *cb);
+    void incr(store_key_t *key, unsigned long long amount, incr_decr_callback_t *cb);
+    void decr(store_key_t *key, unsigned long long amount, incr_decr_callback_t *cb);
+    void append(store_key_t *key, data_provider_t *data, append_prepend_callback_t *cb);
+    void prepend(store_key_t *key, data_provider_t *data, append_prepend_callback_t *cb);
+    void delete_key(store_key_t *key, delete_callback_t *cb);
+    void replicate(replicant_t *cb, repli_timestamp cutoff);
+    void stop_replicating(replicant_t *cb);
 
 public:
     btree_key_value_store_dynamic_config_t *dynamic_config;
     mirrored_cache_config_t cache_config;   /* Duplicate so we can modify it */
     int n_files;
-    const char **db_filenames;
     
     btree_config_t btree_static_config;
     
@@ -97,6 +111,10 @@ public:
     standard_serializer_t *serializers[MAX_SERIALIZERS];
     translator_serializer_t *pseudoserializers[MAX_SLICES];
     btree_slice_t *slices[MAX_SLICES];
+    
+    btree_slice_t *slice_for_key(btree_key *key);
+    
+    std::vector<btree_replicant_t *> replicants;
     
     enum state_t {
         state_off,
@@ -121,7 +139,7 @@ public:
     bool have_created_a_serializer();   // Called on home thread
     
     static int compute_mod_count(int32_t file_number, int32_t n_files, int32_t n_slices);
-    static uint32_t hash(btree_key *key);
+    static uint32_t hash(const btree_key *key);
 
     void create_pseudoserializers();   // Called on home thread
     bool create_a_pseudoserializer_on_this_core(int i);   // Called on serializer thread
@@ -157,94 +175,10 @@ private:
     DISABLE_COPYING(btree_key_value_store_t);
 };
 
-
-
-class initialize_superblock_fsm_t;
-
-/* btree_slice_t is a thin wrapper around cache_t that handles initializing the buffer
-cache for the purpose of storing a btree. There are many btree_slice_ts per
-btree_key_value_store_t. */
-
-class btree_slice_t :
-    private cache_t::ready_callback_t,
-    private cache_t::shutdown_callback_t,
-    public home_cpu_mixin_t
-{
-    friend class initialize_superblock_fsm_t;
-    
-public:
-    btree_slice_t(
-        serializer_t *serializer,
-        mirrored_cache_config_t *config);
-    ~btree_slice_t();
-    
-public:
-    typedef btree_key_value_store_t ready_callback_t;
-    bool start_new(ready_callback_t *cb);
-    bool start_existing(ready_callback_t *cb);
-    
-private:
-    bool start(ready_callback_t *cb);
-    bool next_starting_up_step();
-    void on_cache_ready();
-    void on_initialize_superblock();
-    bool is_start_existing;
-    ready_callback_t *ready_callback;
-
-public:
-    btree_value::cas_t gen_cas();
-private:
-    uint32_t cas_counter;
-
-public:
-    typedef btree_key_value_store_t shutdown_callback_t;
-    bool shutdown(shutdown_callback_t *cb);
-private:
-    bool next_shutting_down_step();
-    void on_cache_shutdown();
-    shutdown_callback_t *shutdown_callback;
-
-private:
-    enum state_t {
-        state_unstarted,
-        
-        state_starting_up_start_serializer,
-        state_starting_up_waiting_for_serializer,
-        state_starting_up_start_cache,
-        state_starting_up_waiting_for_cache,
-        state_starting_up_initialize_superblock,
-        state_starting_up_waiting_for_superblock,
-        state_starting_up_finish,
-        
-        state_ready,
-        
-        state_shutting_down_shutdown_serializer,
-        state_shutting_down_waiting_for_serializer,
-        state_shutting_down_shutdown_cache,
-        state_shutting_down_waiting_for_cache,
-        state_shutting_down_finish,
-        
-        state_shut_down
-    } state;
-    
-    initialize_superblock_fsm_t *sb_fsm;
-    
-public:
-    cache_t cache;
-
-private:
-    DISABLE_COPYING(btree_slice_t);
-};
-
 // Stats
 
 extern perfmon_duration_sampler_t
     pm_cmd_set,
     pm_cmd_get;
-
-// Other parts of the code refer to store_t instead of btree_key_value_store_t to
-// facilitate the process of adding another type of store (such as a hashmap)
-// later on.
-typedef btree_key_value_store_t store_t;
 
 #endif /* __BTREE_KEY_VALUE_STORE_HPP__ */

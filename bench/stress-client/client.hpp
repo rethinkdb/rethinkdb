@@ -4,21 +4,22 @@
 
 #include <pthread.h>
 #include "protocol.hpp"
+#include "sqlite_protocol.hpp"
 #include <stdint.h>
+#include "sqlite3.h"
+#include "assert.h"
+
+#define update_salt 6830
 
 using namespace std;
 
 /* Information shared between clients */
 struct shared_t {
 public:
-    typedef protocol_t*(*protocol_factory_t)(protocol_enum_t);
-
-public:
-    shared_t(config_t *_config, protocol_factory_t _protocol_factory)
+    shared_t(config_t *_config)
         : config(_config),
           qps_offset(0), latencies_offset(0),
           qps_fd(NULL), latencies_fd(NULL),
-          protocol_factory(_protocol_factory),
           last_qps(0), n_op(1), n_tick(1), n_ops_so_far(0)
         {
             pthread_mutex_init(&mutex, NULL);
@@ -29,6 +30,9 @@ public:
             if(config->latency_file[0] != 0) {
                 latencies_fd = fopen(config->latency_file, "wa");
             }
+
+            value_buf = new char[config->values.max];
+            memset((void *) value_buf, 'A', config->values.max);
         }
 
     ~shared_t() {
@@ -42,6 +46,8 @@ public:
         }
 
         pthread_mutex_destroy(&mutex);
+        
+        delete value_buf;
     }
 
     void push_qps(int _qps, int tick) {
@@ -134,9 +140,6 @@ public:
         unlock();
     }
 
-public:
-    protocol_factory_t protocol_factory;
-
 private:
     config_t *config;
     map<int, pair<int, int> > qps_map;
@@ -149,6 +152,10 @@ private:
     long n_op;
     int n_tick;
     long n_ops_so_far;
+
+public:
+    // We have one value shared among all the threads.
+    char *value_buf;
 
 private:
     void lock() {
@@ -165,6 +172,7 @@ struct client_data_t {
     server_t *server;
     shared_t *shared;
     protocol_t *proto;
+    sqlite_protocol_t *sqlite;
     int id;
     int min_seed, max_seed;
 };
@@ -177,6 +185,9 @@ void* run_client(void* data) {
     server_t *server = client_data->server;
     shared_t *shared = client_data->shared;
     protocol_t *proto = client_data->proto;
+    sqlite_protocol_t *sqlite = client_data->sqlite;
+    if(sqlite)
+        sqlite->set_id(client_data->id);
 
     // Perform the ops
     ticks_t last_time = get_ticks(), start_time = last_time, last_qps_time = last_time, now_time;
@@ -195,28 +206,35 @@ void* run_client(void* data) {
         for (int i = 0; i < config->batch_factor.max; i++)
             op_keys[i].first = key_space + (config->keys.max * i);
 
-        payload_t op_val;
+        payload_t op_vals[config->batch_factor.max];
 
-        char val[] = {'a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a'};
+        for (int i = 0; i < config->batch_factor.max; i++)
+            op_vals[i].first = shared->value_buf;
 
-        op_val.first = val;
+        char val_verifcation_buffer[MAX_VALUE_SIZE];
+        char *old_val_buffer;
 
         int j, k, l; // because we can't declare in the loop
+        int count;
+        int keyn; //same deal
         uint64_t id_salt = client_data->id;
         id_salt += id_salt << 40;
 
+        // TODO: If an workload contains contains no inserts and there are no keys available for a particular client (and the duration is specified in q/i), it'll just loop forever.
         switch(cmd) {
         case load_t::delete_op:
             if (client_data->min_seed == client_data->max_seed)
                 break;
 
             config->keys.toss(op_keys, client_data->min_seed ^ id_salt);
-            client_data->min_seed++;
 
             // Delete it from the server
             proto->remove(op_keys->first, op_keys->second);
+            if (sqlite && (client_data->min_seed % RELIABILITY) == 0)
+                sqlite->remove(op_keys->first, op_keys->second);
 
-            //clean up the memory
+            client_data->min_seed++;
+
             qps++;
             total_queries++;
             total_deletes++;
@@ -227,12 +245,17 @@ void* run_client(void* data) {
             if (client_data->min_seed == client_data->max_seed)
                 break;
 
-            config->keys.toss(op_keys, random(client_data->min_seed, client_data->max_seed) ^ id_salt);
+            keyn = random(client_data->min_seed, client_data->max_seed);
 
-            op_val.second = random(config->values.min, config->values.max);
+            config->keys.toss(op_keys, keyn ^ id_salt);
+            op_vals[0].second = seeded_random(config->values.min, config->values.max, client_data->max_seed ^ id_salt ^ update_salt);
 
             // Send it to server
-            proto->update(op_keys->first, op_keys->second, op_val.first, op_val.second);
+            proto->update(op_keys->first, op_keys->second, op_vals[0].first, op_vals[0].second);
+
+            if (sqlite && (keyn % RELIABILITY) == 0)
+                sqlite->update(op_keys->first, op_keys->second, op_vals[0].first, op_vals[0].second);
+
             // Free the value
             qps++;
             total_queries++;
@@ -241,11 +264,16 @@ void* run_client(void* data) {
         case load_t::insert_op:
             // Generate the payload
             config->keys.toss(op_keys, client_data->max_seed ^ id_salt);
-            op_val.second = random(config->values.min, config->values.max);
+            op_vals[0].second = seeded_random(config->values.min, config->values.max, client_data->max_seed ^ id_salt);
+
+            // Send it to server
+            proto->insert(op_keys->first, op_keys->second, op_vals[0].first, op_vals[0].second);
+
+            if (sqlite && (client_data->max_seed % RELIABILITY) == 0)
+                sqlite->insert(op_keys->first, op_keys->second, op_vals[0].first, op_vals[0].second);
 
             client_data->max_seed++;
-            // Send it to server
-            proto->insert(op_keys->first, op_keys->second, op_val.first, op_val.second);
+
             // Free the value and save the key
             qps++;
             total_queries++;
@@ -258,12 +286,13 @@ void* run_client(void* data) {
                 break;
             j = random(config->batch_factor.min, config->batch_factor.max);
             j = std::min(j, client_data->max_seed - client_data->min_seed);
-            l = random(client_data->min_seed, client_data->max_seed);
-            for(k = 0; k < j; k++) {
+            l = random(client_data->min_seed, client_data->max_seed - 1);
+            for (k = 0; k < j; k++) {
                 config->keys.toss(&op_keys[k], l ^ id_salt);
                 l++;
                 if(l >= client_data->max_seed)
                     l = client_data->min_seed;
+
             }
             // Read it from the server
             proto->read(&op_keys[0], j);
@@ -271,6 +300,72 @@ void* run_client(void* data) {
             qps += j;
             total_queries += j;
             break;
+        case load_t::append_op:
+            //TODO, this doesn't check if we'll be making the value too big. Gotta check for that.
+            //Find the key
+            if (client_data->min_seed == client_data->max_seed)
+                break;
+
+            keyn = random(client_data->min_seed, client_data->max_seed);
+
+            config->keys.toss(op_keys, keyn ^ id_salt);
+            op_vals[0].second = seeded_random(config->values.min, config->values.max, client_data->max_seed ^ id_salt);
+
+            proto->append(op_keys->first, op_keys->second, op_vals->first, op_vals->second);
+            if (sqlite && (keyn % RELIABILITY) == 0)
+                sqlite->append(op_keys->first, op_keys->second, op_vals->first, op_vals->second);
+
+            qps++;
+            total_queries++;
+            break;
+
+        case load_t::prepend_op:
+            //Find the key
+            if (client_data->min_seed == client_data->max_seed)
+                break;
+
+            keyn = random(client_data->min_seed, client_data->max_seed);
+
+            config->keys.toss(op_keys, keyn ^ id_salt);
+            op_vals[0].second = seeded_random(config->values.min, config->values.max, client_data->max_seed ^ id_salt);
+
+            proto->prepend(op_keys->first, op_keys->second, op_vals->first, op_vals->second);
+            if (sqlite && (keyn % RELIABILITY) == 0)
+                sqlite->prepend(op_keys->first, op_keys->second, op_vals->first, op_vals->second);
+
+            qps++;
+            total_queries++;
+            break;
+        case load_t::verify_op:
+            /* this is a very expensive operation it will first do a very
+             * expensive operation on the SQLITE reference db and then it will
+             * do several queries on the db that's being stressed (and only add
+             * 1 total query), it does not make sense to use this as part of a
+             * benchmarking run */
+            
+            // we can't do anything without a reference
+            if (!sqlite)
+                break;
+
+            /* this is hacky but whatever */
+            old_val_buffer = op_vals[0].first;
+            op_vals[0].first = val_verifcation_buffer;
+            op_vals[0].second = 0;
+
+            sqlite->dump_start();
+            while (sqlite->dump_next(op_keys, op_vals)) {
+                proto->read(op_keys, 1, op_vals);
+            }
+            sqlite->dump_end();
+
+            op_vals[0].first = old_val_buffer;
+
+            qps++;
+            total_queries++;
+            break;
+        default:
+            fprintf(stderr, "Uknown operation\n");
+            exit(-1);
         };
         now_time = get_ticks();
 
@@ -289,19 +384,21 @@ void* run_client(void* data) {
         }
 
         // See if we should keep running
-        switch(config->duration.units) {
-        case duration_t::queries_t:
-            keep_running = total_queries < config->duration.duration / config->clients;
-            break;
-        case duration_t::seconds_t:
-            keep_running = ticks_to_secs(now_time - start_time) < config->duration.duration;
-            break;
-        case duration_t::inserts_t:
-            keep_running = total_inserts - total_deletes < config->duration.duration / config->clients;
-            break;
-        default:
-            fprintf(stderr, "Unknown duration unit\n");
-            exit(-1);
+        if (config->duration.duration != -1) {
+            switch(config->duration.units) {
+            case duration_t::queries_t:
+                keep_running = total_queries < config->duration.duration / config->clients;
+                break;
+            case duration_t::seconds_t:
+                keep_running = ticks_to_secs(now_time - start_time) < config->duration.duration;
+                break;
+            case duration_t::inserts_t:
+                keep_running = total_inserts - total_deletes < config->duration.duration / config->clients;
+                break;
+            default:
+                fprintf(stderr, "Unknown duration unit\n");
+                exit(-1);
+            }
         }
     }
 }

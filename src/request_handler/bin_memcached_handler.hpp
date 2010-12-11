@@ -10,6 +10,9 @@
 
 class server_t;
 
+/* The bin memcached handler is broken right now. We compile it so it doesn't bitrot but it isn't
+used in the production server and it doesn't work very well. */
+
 // TODO This shouldn't be necessary.
 #define MAX_PACKET_SIZE 200
 
@@ -18,16 +21,13 @@ class server_t;
 static const size_t extra_flags_length = 4;
 static const byte extra_flags[extra_flags_length] = {0x00, 0x00, 0x00, 0x00};
 
-class bin_memcached_handler_t :
-    public request_handler_t
-{
-
+class bin_memcached_handler_t : public request_handler_t {
 public:
     typedef request_handler_t::parse_result_t parse_result_t;
     using request_handler_t::conn_fsm;
     
 public:
-    bin_memcached_handler_t(server_t *server)
+    explicit bin_memcached_handler_t(server_t *server)
         : request_handler_t(), key((btree_key*)key_memory), server(server)
         {}
     
@@ -224,8 +224,8 @@ public:
     struct packet_t
         {
         public:
-            packet_t() :data(NULL) {}
-            packet_t(byte *data) :data(data) {}
+            packet_t() : data(NULL) {}
+            explicit packet_t(byte *data) : data(data) {}
             ~packet_t() {}
             byte *data;
 
@@ -235,7 +235,7 @@ public:
                 else if (magic() == bin_magic_response)
                     return false;
                 else {
-                    fail("Packet has corrupted magic number");
+                    crash("Packet has corrupted magic number"); // FIXME we should never crash on input data
                 }
             }
 
@@ -297,7 +297,7 @@ public:
                     return data + sizeof(response_header_t);
             }
 
-            void set_extras(const byte *data,const bin_extra_length_t length) {
+            void set_extras(const byte *data, const bin_extra_length_t length) {
                 //make space
                 memmove(value() + (length - extra_length()), value(), value_length());
                 memmove(key() + (length - extra_length()), key(), key_length());
@@ -337,7 +337,7 @@ public:
                         break;
                 }
 error_breakout:
-                fail("Trying to get flags from something that doesn't have flags");
+                crash_or_trap("Trying to get flags from something that doesn't have flags"); // FIXME handle errors nicely
             }
 
             bin_expr_time_t expr_time() {
@@ -378,7 +378,7 @@ error_breakout:
                         break;
                 }
 error_breakout:
-                fail("Trying to get expr from something that doesn't have expr");
+                crash_or_trap("Trying to get expr from something that doesn't have expr");   // FIXME handle errors nicely
             }
             
             bin_delta_t delta() {
@@ -399,7 +399,7 @@ error_breakout:
                         break;
                 }
 error_breakout:
-                fail("Trying to get delta from something that doesn't have delta");
+                crash_or_trap("Trying to get delta from something that doesn't have delta"); // FIXME handle errors nicely
             }
 
             bin_init_val_t init_val() {
@@ -420,7 +420,7 @@ error_breakout:
                         break;
                 }
 error_breakout:
-                fail("Trying to get init_val from something that doesn't have init_val");
+                crash_or_trap("Trying to get init_val from something that doesn't have init_val");   // FIXME handle errors nicely
             }
 
             //setters
@@ -513,24 +513,12 @@ error_breakout:
             }
 
             //load the value into an allocated value
-            void value(btree_value *val) {
-                val->size = value_length();
-                if (is_request())
-                    memcpy(val->contents, data + sizeof(request_header_t) + extra_length() + key_length(), value_length());
-                else
-                    memcpy(val->contents, data + sizeof(response_header_t) + extra_length() + key_length(), value_length());
-            }
 
             byte *value() {
                 if (is_request())
                     return data + sizeof(request_header_t) + extra_length() + key_length();
                 else
                     return data + sizeof(response_header_t) + extra_length() + key_length();
-            }
-
-            void set_value(btree_value *val) {
-                memcpy(value(), val->value(), val->value_size());
-                value_length((bin_value_length_t) val->value_size());
             }
 
             void set_value(const byte* data, unsigned long size) {
@@ -567,7 +555,7 @@ error_breakout:
                 }
                 return;
 error_breakout:
-                fail("Trying to set flags in a packet that doesn't have flags");
+                crash_or_trap("Trying to set flags in a packet that doesn't have flags");    // FIXME handle errors nicely
             }
 
             void expr_time(bin_expr_time_t expr_time) {
@@ -610,7 +598,7 @@ error_breakout:
                 }
                 return;
 error_breakout:
-                fail("Trying to set expr_time in something that doesn't have expr");
+                crash_or_trap("Trying to set expr_time in something that doesn't have expr");    // FIXME handle errors nicely
             }
             
             void delta(bin_delta_t delta) {
@@ -632,7 +620,7 @@ error_breakout:
                 }
                 return;
 error_breakout:
-                fail("Trying to set delta from something that doesn't have delta");
+                crash_or_trap("Trying to set delta from something that doesn't have delta"); // FIXME handle errors nicely
             }
 
             void init_val(bin_init_val_t init_val) {
@@ -653,7 +641,7 @@ error_breakout:
                         break;
                 }
 error_breakout:
-                fail("Trying to get expr from something that doesn't have expr");
+                crash_or_trap("Trying to get expr from something that doesn't have expr");   // FIXME handle errors nicely
             }
 
             bool is_valid_request() {

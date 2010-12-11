@@ -4,7 +4,7 @@
 #include <pthread.h>
 #include "config/args.hpp"
 #include "arch/linux/event_queue.hpp"
-#include "arch/linux/io.hpp"
+#include "arch/linux/disk.hpp"
 #include "arch/linux/timer.hpp"
 #include "arch/linux/message_hub.hpp"
 
@@ -16,9 +16,8 @@ event queue. There is one thread pool per server. It is responsible for starting
 and shutting down the threads and event queues. */
 
 class linux_thread_pool_t {
-
 public:
-    linux_thread_pool_t(int n_threads);
+    explicit linux_thread_pool_t(int n_threads);
     
     // When the process receives a SIGINT or SIGTERM, interrupt_message will be delivered to the
     // same thread that initial_message was delivered to, and interrupt_message will be set to

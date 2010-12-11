@@ -5,8 +5,10 @@
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
+#include "config/cmd_args.hpp"
 #include "utils.hpp"
 #include "buffer_cache/types.hpp"
+#include "store.hpp"
 
 struct btree_superblock_t {
     block_magic_t magic;
@@ -18,7 +20,7 @@ struct btree_superblock_t {
 
 
 //Note: This struct is stored directly on disk.  Changing it invalidates old data.
-struct btree_internal_node {
+struct internal_node_t {
     block_magic_t magic;
     uint16_t npairs;
     uint16_t frontmost_offset;
@@ -27,21 +29,35 @@ struct btree_internal_node {
     static const block_magic_t expected_magic;
 };
 
-typedef btree_internal_node internal_node_t;
 
-
+// Here's how we represent the modification history of the leaf node.
+// The last_modified time gives the modification time of the most
+// recently modified key of the node.  Then, last_modified -
+// earlier[0] gives the timestamp for the
+// second-most-recently modified KV of the node.  In general,
+// last_modified - earlier[i] gives the timestamp for the
+// (i+2)th-most-recently modified KV.
+//
+// These values could be lies.  It is harmless to say that a key is
+// newer than it really is.  So when earlier[i] overflows,
+// we pin it to 0xFFFF.
+struct leaf_timestamps_t {
+    repli_timestamp last_modified;  // 0
+    uint16_t earlier[NUM_LEAF_NODE_EARLIER_TIMES];  // 4
+};
 
 //Note: This struct is stored directly on disk.  Changing it invalidates old data.
-struct btree_leaf_node {
-    block_magic_t magic;
-    uint16_t npairs;
-    uint16_t frontmost_offset; // The smallest offset in pair_offsets
-    uint16_t pair_offsets[0];
+struct leaf_node_t {
+    block_magic_t magic;        // 0
+    leaf_timestamps_t times;    // 4
+    uint16_t npairs;            // 12
+
+    // The smallest offset in pair_offsets
+    uint16_t frontmost_offset;  // 14
+    uint16_t pair_offsets[0];   // 16
 
     static const block_magic_t expected_magic;
 };
-
-typedef btree_leaf_node leaf_node_t;
 
 
 
@@ -57,59 +73,44 @@ enum metadata_flags {
     LARGE_VALUE       = 0x80
 };
 
-// Note: Changing this struct changes the format of the data stored on disk.
-// If you change this struct, previous stored data will be misinterpreted.
-struct btree_key {
-    uint8_t size;
-    char contents[0];
-    void print() {
-        printf("%*.*s", size, size, contents);
-        //printf("%d", size);
-    }
-};
+typedef store_key_t btree_key;
 
 // Note: This struct is stored directly on disk.
 struct btree_value {
     uint8_t size;
     uint8_t metadata_flags;
+private:
     byte contents[0];
 
-    void init() { // XXX
-    }
+public:
+    void init() { }
 
-    uint16_t mem_size() {
-        //assert(!is_large());
+    uint16_t mem_size() const {
         return value_offset() + size;
-                //(is_large() ? sizeof(block_id_t) + (assert(0),0) : value_size());
     }
 
-    uint32_t value_size() {
+    int64_t value_size() const {
         if (is_large()) {
-            // Size is stored in contents along with the block ID.
-            // TODO: Should the size go here or in the index block? Should other metadata go here?
-            // TODO: Is it a good idea to store other metadata in here?
-            // TODO: If we really wanted to, we could save a byte by using the size field and only three bytes of contents.
-            assert(*lv_size_addr() > MAX_IN_NODE_VALUE_SIZE);
-            return *lv_size_addr();
+            int64_t ret = lb_ref().size;
+            assert(ret > MAX_IN_NODE_VALUE_SIZE);
+            return ret;
         } else {
             return size;
         }
     }
 
-    void value_size(uint32_t new_size) {
+    void value_size(int64_t new_size) {
         if (new_size <= MAX_IN_NODE_VALUE_SIZE) {
             if (is_large()) {
-                clear_space((byte *) lv_size_addr(), sizeof(uint32_t), lv_size_offset());
                 metadata_flags &= ~LARGE_VALUE;
             }
             size = new_size;
         } else {
             if (!is_large()) {
                 metadata_flags |= LARGE_VALUE;
-                make_space((byte *) lv_size_addr(), sizeof(uint32_t), lv_size_offset());
             }
-            size = sizeof(block_id_t);
-            *lv_size_addr() = new_size;
+            size = sizeof(large_buf_ref);
+            large_buf_ref_ptr()->size = new_size;
         }
     }
 
@@ -122,32 +123,35 @@ struct btree_value {
 
     // Every value has mcflags, but they're very often 0, in which case we just
     // store a bit instead of 4 bytes.
-    bool has_mcflags() { return metadata_flags & MEMCACHED_FLAGS;   }
-    bool has_cas()     { return metadata_flags & MEMCACHED_CAS;     }
-    bool has_exptime() { return metadata_flags & MEMCACHED_EXPTIME; }
-    bool is_large()    { return metadata_flags & LARGE_VALUE;       }
+    bool has_mcflags() const { return metadata_flags & MEMCACHED_FLAGS;   }
+    bool has_cas()     const { return metadata_flags & MEMCACHED_CAS;     }
+    bool has_exptime() const { return metadata_flags & MEMCACHED_EXPTIME; }
+    bool is_large()    const { return metadata_flags & LARGE_VALUE;       }
 
-    uint8_t mcflags_offset() { return 0;                                                    }
-    uint8_t exptime_offset() { return mcflags_offset() + sizeof(mcflags_t) * has_mcflags(); }
-    uint8_t cas_offset()     { return exptime_offset() + sizeof(exptime_t) * has_exptime(); }
-    uint8_t lv_size_offset() { return     cas_offset() + sizeof(cas_t)     * has_cas();     }
-    uint8_t value_offset()   { return lv_size_offset() + sizeof(uint32_t)  * is_large(); }
+    uint8_t mcflags_offset() const { return 0;                                                    }
+    uint8_t exptime_offset() const { return mcflags_offset() + sizeof(mcflags_t) * has_mcflags(); }
+    uint8_t cas_offset()     const { return exptime_offset() + sizeof(exptime_t) * has_exptime(); }
+    uint8_t value_offset()   const { return     cas_offset() + sizeof(cas_t)     * has_cas();     }
 
-    mcflags_t *mcflags_addr() { return (mcflags_t *) (contents + mcflags_offset()); }
-    exptime_t *exptime_addr() { return (exptime_t *) (contents + exptime_offset()); }
-    cas_t         *cas_addr() { return (cas_t     *) (contents +     cas_offset()); }
-    uint32_t  *lv_size_addr() { return (uint32_t  *) (contents + lv_size_offset()); }
-    byte             *value() { return (byte      *) (contents +   value_offset()); }
+    mcflags_t       *mcflags_addr()       { return ptr_cast<mcflags_t>(contents + mcflags_offset()); }
+    const mcflags_t *mcflags_addr() const { return ptr_cast<mcflags_t>(contents + mcflags_offset()); }
+    exptime_t       *exptime_addr()       { return ptr_cast<exptime_t>(contents + exptime_offset()); }
+    const exptime_t *exptime_addr() const { return ptr_cast<exptime_t>(contents + exptime_offset()); }
+    cas_t           *cas_addr()           { return ptr_cast<cas_t>(contents + cas_offset()); }
+    const cas_t     *cas_addr()     const { return ptr_cast<cas_t>(contents + cas_offset()); }
+    byte            *value()              { return ptr_cast<byte>(contents + value_offset()); }
+    const byte      *value()        const { return ptr_cast<byte>(contents + value_offset()); }
 
-    block_id_t lv_index_block_id() { return * (block_id_t *) value(); }
-    void set_lv_index_block_id(block_id_t block_id) {
-        assert(is_large());
-        *(block_id_t *) value() = block_id;
+    large_buf_ref *large_buf_ref_ptr() { return ptr_cast<large_buf_ref>(value()); }
+
+    const large_buf_ref& lb_ref() const { return *ptr_cast<large_buf_ref>(value()); }
+    void set_lb_ref(const large_buf_ref& ref) {
+        *(large_buf_ref *) value() = ref;
     }
 
-    mcflags_t mcflags() { return has_mcflags() ? *mcflags_addr() : 0; }
-    exptime_t exptime() { return has_exptime() ? *exptime_addr() : 0; }
-    cas_t         cas() { // We shouldn't be asking for a value's CAS unless we know it has one.
+    mcflags_t mcflags() const { return has_mcflags() ? *mcflags_addr() : 0; }
+    exptime_t exptime() const { return has_exptime() ? *exptime_addr() : 0; }
+    cas_t         cas() const { // We shouldn't be asking for a value's CAS unless we know it has one.
         assert(has_cas());
         return *cas_addr();
     }
@@ -208,65 +212,58 @@ struct btree_value {
         *cas_addr() = new_cas;
     }
 
-    void print() {
-        printf("%*.*s", size, size, value());
+    void print() const {
+        fprintf(stderr, "%*.*s", size, size, value());
     }
 };
 
-// A btree_node is either a btree_internal_node or a btree_leaf_node.
-struct btree_node {
+// A node_t is either a btree_internal_node or a btree_leaf_node.
+struct node_t {
     block_magic_t magic;
 };
 
 template <>
-bool check_magic<btree_node>(block_magic_t magic);
-
-
-typedef btree_node node_t;
+bool check_magic<node_t>(block_magic_t magic);
 
 class node_handler {
     public:
-        static bool is_leaf(const btree_node *node) {
-            assert(check_magic<btree_node>(node->magic));
-            return check_magic<btree_leaf_node>(node->magic);
+        static bool is_leaf(const node_t *node) {
+            assert(check_magic<node_t>(node->magic));
+            return check_magic<leaf_node_t>(node->magic);
         }
 
-        static bool is_internal(const btree_node *node) {
-            assert(check_magic<btree_node>(node->magic));
-            return check_magic<btree_internal_node>(node->magic);
+        static bool is_internal(const node_t *node) {
+            assert(check_magic<node_t>(node->magic));
+            return check_magic<internal_node_t>(node->magic);
         }
 
-        static void str_to_key(char *str, btree_key *buf) {
+        static bool str_to_key(char *str, btree_key *buf) {
             int len = strlen(str);
-            check("string too long", len > MAX_KEY_SIZE);
-            memcpy(buf->contents, str, len);
-            buf->size = (unsigned char)len;
+            if (len <= MAX_KEY_SIZE) {
+                memcpy(buf->contents, str, len);
+                buf->size = (uint8_t) len;
+                return true;
+            } else {
+                return false;
+            }
         }
 
-        static bool is_underfull(size_t block_size, const btree_node *node);
-        static bool is_mergable(size_t block_size, const btree_node *node, const btree_node *sibling, const btree_node *parent);
-        static int nodecmp(const btree_node *node1, const btree_node *node2);
-        static void merge(size_t block_size, btree_node *node, btree_node *rnode, btree_key *key_to_remove, btree_node *parent);
-        static void remove(size_t block_size, btree_node *node, btree_key *key);
-        static bool level(size_t block_size, btree_node *node, btree_node *rnode, btree_key *key_to_replace, btree_key *replacement_key, btree_node *parent);
+        static bool is_underfull(block_size_t block_size, const node_t *node);
+        static bool is_mergable(block_size_t block_size, const node_t *node, const node_t *sibling, const node_t *parent);
+        static int nodecmp(const node_t *node1, const node_t *node2);
+        static void merge(block_size_t block_size, node_t *node, node_t *rnode, btree_key *key_to_remove, node_t *parent);
+        static bool level(block_size_t block_size, node_t *node, node_t *rnode, btree_key *key_to_replace, btree_key *replacement_key, node_t *parent);
 
-        static void print(const btree_node *node);
-        
-        static void validate(size_t block_size, const btree_node *node);
-        
-        static inline const btree_node* node(const void *ptr) {
-            return (const btree_node *) ptr;
-        }
-        static inline btree_node* node(void *ptr) {
-            return (btree_node *) ptr;
-        }
+        static void print(const node_t *node);
+
+        static void validate(block_size_t block_size, const node_t *node);
 };
 
-inline void keycpy(btree_key *dest, btree_key *src) {
+inline void keycpy(btree_key *dest, const btree_key *src) {
     memcpy(dest, src, sizeof(btree_key) + src->size);
 }
 
-inline void valuecpy(btree_value *dest, btree_value *src) {
+inline void valuecpy(btree_value *dest, const btree_value *src) {
     memcpy(dest, src, sizeof(btree_value) + src->mem_size());
 }
 

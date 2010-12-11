@@ -9,6 +9,7 @@
 #include "buffer_cache/mirrored/callbacks.hpp"
 #include "containers/two_level_array.hpp"
 #include "serializer/serializer.hpp"
+#include "serializer/translator.hpp"
 #include "config/cmd_args.hpp"
 #include "buffer_cache/stats.hpp"
 #include <boost/crc.hpp>
@@ -31,7 +32,6 @@ typedef array_map_t page_map_t;
 // various components of the cache to improve performance.
 
 class mc_inner_buf_t {
-
     friend class load_buf_fsm_t;
     friend class mc_cache_t;
     friend class mc_transaction_t;
@@ -47,6 +47,7 @@ class mc_inner_buf_t {
     
     cache_t *cache;
     block_id_t block_id;
+    repli_timestamp subtree_recency;
     void *data;
     rwi_lock_t lock;
     
@@ -71,7 +72,7 @@ class mc_inner_buf_t {
     mc_inner_buf_t(cache_t *cache, block_id_t block_id);
     
     // Create an entirely new buf
-    mc_inner_buf_t(cache_t *cache);
+    explicit mc_inner_buf_t(cache_t *cache);
     
     ~mc_inner_buf_t();
 };
@@ -130,6 +131,13 @@ public:
         inner_buf->writeback_buf.set_dirty();
     }
 
+    void touch_recency() {
+        // TODO: use some slice-specific timestamp that gets updated
+        // every epoll call.
+        inner_buf->subtree_recency = current_time();
+        inner_buf->writeback_buf.set_recency_dirty();
+    }
+
     bool is_dirty() {
         return inner_buf->writeback_buf.dirty;
     }
@@ -160,6 +168,7 @@ public:
     buf_t *acquire(block_id_t block_id, access_t mode,
                    block_available_callback_t *callback);
     buf_t *allocate(block_id_t *new_block_id);
+    repli_timestamp get_subtree_recency(block_id_t block_id);
 
     cache_t *cache;
 
@@ -214,7 +223,7 @@ private:
     // extensible when some policy implementation requires access to
     // components it wasn't originally given.
     
-    serializer_t *serializer;
+    translator_serializer_t *serializer;
     
     page_map_t page_map;
     page_repl_t page_repl;
@@ -223,7 +232,7 @@ private:
 
 public:
     mc_cache_t(
-            serializer_t *serializer,
+            translator_serializer_t *serializer,
             mirrored_cache_config_t *config);
     ~mc_cache_t();
     
@@ -234,6 +243,7 @@ public:
 public:
     struct ready_callback_t {
         virtual void on_cache_ready() = 0;
+        virtual ~ready_callback_t() {}
     };
     bool start(ready_callback_t *cb);
 private:
@@ -243,7 +253,7 @@ private:
     
 public:
     
-    size_t get_block_size();
+    block_size_t get_block_size();
     
     // Transaction API
     transaction_t *begin_transaction(access_t access, transaction_begin_callback_t *callback);
@@ -257,6 +267,7 @@ public:
 public:
     struct shutdown_callback_t {
         virtual void on_cache_shutdown() = 0;
+        virtual ~shutdown_callback_t() {}
     };
     bool shutdown(shutdown_callback_t *cb);
 private:

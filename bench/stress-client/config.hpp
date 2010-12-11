@@ -4,9 +4,20 @@
 
 #include <stdio.h>
 #include <vector>
+#include <string.h>
 #include "server.hpp"
 
 #define MAX_FILE    255
+
+#define BACKUP_FOLDER "sqlite_backup"
+#define TABLE_NAME "pairs"
+#define KEY_COL_NAME "key"
+#define VAL_COL_NAME "val"
+
+#define RELIABILITY 100 /* every RELIABILITYth key is put in the sqlite backup */
+
+#define MAX_KEY_SIZE (250)
+#define MAX_VALUE_SIZE (1024*1024)
 
 
 struct duration_t {
@@ -39,28 +50,33 @@ public:
     }
 
     void parse(char *duration) {
-        int len = strlen(duration);
-        switch(duration[len - 1]) {
-        case 'q':
+        if (strcmp(duration, "infinity") == 0) {
+            this->duration = -1;
             units = queries_t;
-            break;
-        case 's':
-            units = seconds_t;
-            break;
-        case 'i':
-            units = inserts_t;
-            break;
-        default:
-            if(duration[len - 1] >= '0' && duration[len - 1] <= '9')
+        } else {
+            int len = strlen(duration);
+            switch(duration[len - 1]) {
+            case 'q':
                 units = queries_t;
-            else {
-                fprintf(stderr, "Unknown duration unit\n");
-                exit(-1);
+                break;
+            case 's':
+                units = seconds_t;
+                break;
+            case 'i':
+                units = inserts_t;
+                break;
+            default:
+                if(duration[len - 1] >= '0' && duration[len - 1] <= '9')
+                    units = queries_t;
+                else {
+                    fprintf(stderr, "Unknown duration unit\n");
+                    exit(-1);
+                }
+                break;
             }
-            break;
-        }
 
-        this->duration = atol(duration);
+            this->duration = atol(duration);
+        }
     }
 
 public:
@@ -81,6 +97,7 @@ public:
             qps_file[0] = 0;
             out_file[0] = 0;
             in_file[0] = 0;
+            db_file[0] = 0;
         }
 
     void print() {
@@ -118,6 +135,7 @@ public:
     char qps_file[MAX_FILE];
     char out_file[MAX_FILE];
     char in_file[MAX_FILE];
+    char db_file[MAX_FILE];
 };
 
 #endif // __CONFIG_HPP__

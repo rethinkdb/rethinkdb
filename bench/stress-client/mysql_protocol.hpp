@@ -221,7 +221,7 @@ struct mysql_protocol_t : public protocol_t {
         }
     }
 
-    virtual void read(payload_t *keys, int count) {
+    virtual void read(payload_t *keys, int count, payload_t *values = NULL) {
         // Bind the data
         MYSQL_BIND bind[count];
         memset(bind, 0, sizeof(bind));
@@ -273,6 +273,15 @@ struct mysql_protocol_t : public protocol_t {
             // giggles and avoiding out of sync issues and benchmark
             // validity
         }
+    }
+    virtual void append(const char *key, size_t key_size,
+                        const char *value, size_t value_size) {
+        //TODO fill this in for MYSQL
+    }
+
+    virtual void prepend(const char *key, size_t key_size,
+                          const char *value, size_t value_size) {
+        //TODO fill this in foir MYSQL
     }
 
     virtual void shared_init() {

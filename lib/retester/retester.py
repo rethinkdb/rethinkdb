@@ -1,4 +1,4 @@
-import subprocess, shlex, signal, os, time, shutil, tempfile, sys, traceback, types, gitroot
+import subprocess, shlex, signal, os, time, shutil, tempfile, sys, traceback, types, gitroot, datetime, shutil
 from vcoptparse import *
 
 reports = []
@@ -75,9 +75,11 @@ class Result(object):
     """The Result class represents the result of a test. It is either a pass or a fail; if it is a
     fail, then it includes a string description."""
     
-    def __init__(self, result, description=None):
+    def __init__(self, start_time, result, description=None):
         
         assert result in ["pass", "fail"]
+
+        self.running_time = time.time() - start_time
         
         if result == "pass":
             self.result = "pass"
@@ -122,7 +124,9 @@ def run_test(command, timeout = None):
     environ = dict(os.environ)
     environ["TMP"] = temp_dir.path
     environ["PYTHONUNBUFFERED"] = "1"
-    
+
+    start_time = time.time()
+
     process = subprocess.Popen(
         command,
         stdout = output,
@@ -139,9 +143,9 @@ def run_test(command, timeout = None):
         
             process.wait()
             if process.returncode == 0:
-                result = Result("pass")
+                result = Result(start_time, "pass")
             else:
-                result = Result("fail", "%r exited with %s." % \
+                result = Result(start_time, "fail", "%r exited with %s." % \
                     (command, format_exit_code(process.returncode)))
                     
         else:
@@ -152,9 +156,9 @@ def run_test(command, timeout = None):
                 if process.poll() is not None:
                     # Cool, it died on its own.
                     if process.returncode == 0:
-                        result = Result("pass")
+                        result = Result(start_time, "pass")
                     else:
-                        result = Result("fail", "%r exited with %s." % \
+                        result = Result(start_time, "fail", "%r exited with %s." % \
                             (command, format_exit_code(process.returncode)))
                     break
             
@@ -171,7 +175,7 @@ def run_test(command, timeout = None):
                 
                 if process.poll() is not None:
                     # SIGINT worked.
-                    result = Result("fail", "%r failed to terminate within %g seconds, but " \
+                    result = Result(start_time, "fail", "%r failed to terminate within %g seconds, but " \
                         "exited with %s after being sent SIGINT." % \
                         (command, timeout, format_exit_code(process.poll())))
                 
@@ -182,7 +186,7 @@ def run_test(command, timeout = None):
                     time.sleep(1)
                     
                     if process.poll() is not None:
-                        result = Result("fail", "%r failed to terminate within %g seconds and " \
+                        result = Result(start_time, "fail", "%r failed to terminate within %g seconds and " \
                             "did not respond to SIGINT, but exited with %s after being sent " \
                             "SIGQUIT." % (command, timeout, format_exit_code(process.poll())))
                     
@@ -195,12 +199,12 @@ def run_test(command, timeout = None):
                         time.sleep(1)
                         
                         if process.poll() is not None:
-                            result = Result("fail", "%r failed to terminate within %g seconds and " \
+                            result = Result(start_time, "fail", "%r failed to terminate within %g seconds and " \
                                 "did not respond to SIGINT or SIGQUIT." % (command, timeout))
                         
                         else:
                             # I don't expect this to ever happen
-                            result = Result("fail", "%r failed to terminate within %g seconds and " \
+                            result = Result(start_time, "fail", "%r failed to terminate within %g seconds and " \
                                 "did not respond to SIGINT or SIGQUIT. Even SIGKILL had no " \
                                 "apparent effect against this monster. I recommend you terminate " \
                                 "it manually, because it's probably still rampaging through your " \
@@ -223,10 +227,10 @@ def run_test(command, timeout = None):
             # Replace the original directory that the SmartTemporaryDirectory created with our own
             # directory, but the SmartTemporaryDirectory will still be responsible for deleting it
             os.rmdir(new_output_dir.path)
-            os.rename(output_dir, new_output_dir.path)
+            shutil.move(output_dir, new_output_dir.path)
         
         # Put the output from the command into said directory as well
-        os.rename(output.take_file(), os.path.join(new_output_dir.path, "test_output.txt"))
+        shutil.move(output.take_file(), os.path.join(new_output_dir.path, "test_output.txt"))
     
     else:
         # Delete the output directory
@@ -371,7 +375,7 @@ def process_output_dir(result):
     i = 1
     while os.path.exists(os.path.join(retest_output_dir, str(i))): i += 1
     output_dir = os.path.join(retest_output_dir, str(i))
-    os.rename(result.output_dir.take_dir(), output_dir)
+    shutil.move(result.output_dir.take_dir(), output_dir)
     
     # Make a generator that scans all the files in the directory
     def walker():
@@ -411,9 +415,10 @@ def print_results_as_plaintext(opts, tests):
     
     for (name, results) in tests:
         sub_failures = count_sub_failures(results)
-        if sub_failures == 0: print "Passed: %s" % name
-        elif sub_failures == len(results): print "Failed: %s" % name
-        else: print "Failed (intermittently): %s" % name
+        timesum = sum([result.running_time for result in results])
+        if sub_failures == 0: print "Passed (%f s): %s" % (timesum, name)
+        elif sub_failures == len(results): print "Failed (%f s): %s" % (timesum, name)
+        else: print "Failed (intermittently) (%f s): %s" % (timesum, name)
     print
     
     for (name, results) in tests:
@@ -437,11 +442,11 @@ def print_results_as_plaintext(opts, tests):
             i += 1   # Convert from 0-indexing to 1-indexing
             
             if result.result == "pass":
-                print "Run #%d:" % i, "Passed." 
+                print "Run #%d:" % i, "Passed. (%f seconds)" % result.running_time
                 print
                 
             else:
-                print "Run #%d:" % i, result.description
+                print "Run #%d:" % i, result.description, " (%f seconds)" % result.running_time
                 print
             
                 if result.output_dir is not None:
@@ -505,12 +510,13 @@ def print_results_as_html(opts, tests):
     for (name, results) in tests:
         print """<tr>"""
         sub_failures = count_sub_failures(results)
+        timesum = sum([result.running_time for result in results])
         if sub_failures == 0:
-            print """<td>%s</td><td><span style="color: green">Passed</span></td>""" % code(name)
+            print """<td>%s</td><td><span style="color: green">Passed</span></td><td>(%f&nbsp;s)</td>""" % (code(name), timesum)
         else:
             if sub_failures == len(results): msg = "Failed"
             else: msg = "Failed (intermittently)"
-            print """<td>%s</td><td><span style="color: red">%s</span></td>""" % (code(name), msg)
+            print """<td>%s</td><td><span style="color: red">%s</span></td><td>(%f&nbsp;s)</td>""" % (code(name), msg, timesum)
         print """</tr>"""
     print """</table>"""
     
@@ -550,11 +556,11 @@ def print_results_as_html(opts, tests):
             print """<div style="border: solid 1px gray; border-top: none; padding: 0.3cm">"""
             
             if result.result == "pass":
-                print """<p><b>Run #%d:</b> <span style="color: green">Passed</span></p>""" % i
+                print """<p><b>Run #%d:</b> <span style="color: green">Passed</span> (%f seconds)</p>""" % (i, result.running_time)
                 
             else:
-                print """<p><b>Run #%d:</b> <span style="color: red">Failed</span>. %s</p>""" % \
-                    (i, code(result.description))
+                print """<p><b>Run #%d:</b> <span style="color: red">Failed</span>. (%f seconds) %s</p>""" % \
+                    (i, result.running_time, code(result.description))
             
                 if result.output_dir is not None:
                     (output_dir, output_files) = process_output_dir(result)
@@ -617,7 +623,10 @@ def send_email(opts, message, recipient):
     
     print "Email message sent."
 
+global_start_time = datetime.datetime.now()
+
 def send_results_by_email(opts, tests, recipient, message):
+    global global_start_time
     
     import email.mime.text, cStringIO
     
@@ -639,8 +648,16 @@ def send_results_by_email(opts, tests, recipient, message):
         stringio.close()
     
     message = email.mime.text.MIMEText(output, mime_type)
-    subject = "Test results: %d pass, %d fail" % \
-        (len(tests) - count_failures(tests), count_failures(tests))
+    running_user = os.getenv("USER", "N/A")
+    start_time = global_start_time
+    end_time = datetime.datetime.now()
+    if os.getenv("USE_CLOUD", "false") == "false":
+        cloud_flag_str = ""
+    else:
+        cloud_flag_str = ", run on EC2"
+    subject = "Test results: %d pass, %d fail (initiated by %s, %s - %s%s)" % \
+        (len(tests) - count_failures(tests), count_failures(tests), running_user, \
+        start_time, end_time, cloud_flag_str)
     message.add_header("Subject", subject)
     
     send_email(opts, message, recipient)
