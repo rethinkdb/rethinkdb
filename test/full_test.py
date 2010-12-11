@@ -48,6 +48,15 @@ try:
                           "cores"       : cores,
                           "slices"      : slices },
                         repeat=3)
+
+                do_test_cloud("integration/append_stress.py",
+                        { "auto"        : True,
+                          "mode"        : mode,
+                          "no-valgrind" : not checker,
+                          "protocol"    : protocol,
+                          "cores"       : cores,
+                          "slices"      : slices },
+                        repeat=3)
                 
                 do_test_cloud("integration/big_values.py",
                         { "auto"        : True,
