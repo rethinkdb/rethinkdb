@@ -130,6 +130,19 @@ void print_backtrace(FILE *out, bool use_addr2line) {
 
 #endif
 
+void report_user_error(const char *msg, ...) {
+    flockfile(stderr);
+
+    va_list args;
+    va_start(args, msg);
+    fprintf(stderr, "\nError: ");
+    vfprintf(stderr, msg, args);
+    fprintf(stderr, "\n");
+    va_end(args);
+
+    funlockfile(stderr);
+}
+
 void report_fatal_error(const char *file, int line, const char *msg, ...) {
     flockfile(stderr);
 

@@ -85,7 +85,7 @@ void server_t::do_start_conn_acceptor() {
     // We've now loaded everything. It's safe to print the config
     // specs (part of them depends on the information loaded from the
     // db file).
-    print_config(cmd_config);
+    cmd_config->print();
     
     logINF("Server is now accepting memcached connections on port %d.\n", cmd_config->port);
     

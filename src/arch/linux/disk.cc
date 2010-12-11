@@ -54,7 +54,8 @@ linux_direct_file_t::linux_direct_file_t(const char *path, int mode) {
     // Open the file
     
     fd = open(path, flags, 0644);
-    guarantee_err(fd != INVALID_FD, "Could not open file");
+    if (fd == INVALID_FD)
+        fail_due_to_user_error("Inaccessible database file: \"%s\": %s", path, strerror(errno));
     
     // Determine the file size
     

@@ -23,8 +23,7 @@ int main(int argc, char *argv[]) {
 #endif
 
     // Parse command line arguments
-    cmd_config_t config;
-    parse_cmd_args(argc, argv, &config);
+    cmd_config_t config = parse_cmd_args(argc, argv);
 
     // Open the log file, if necessary.
     if (config.log_file_name[0]) {

@@ -38,7 +38,12 @@
 #endif  /* x86/amd64 */
  #endif /* __linux__ */
 
-#define fail_due_to_user_error crash
+// TODO: Abort probably is not the right thing to do here.
+#define fail_due_to_user_error(msg, ...) do {                       \
+        report_user_error(msg, ##__VA_ARGS__);                                     \
+        abort();                                                    \
+    } while (0)
+
 #define crash(msg, ...) do {                                        \
         report_fatal_error(__FILE__, __LINE__, msg, ##__VA_ARGS__); \
         abort();                                                    \
@@ -50,6 +55,7 @@
     } while (0)
 
 void report_fatal_error(const char*, int, const char*, ...);
+void report_user_error(const char*, ...);
 
 #define stringify(x) #x
 
