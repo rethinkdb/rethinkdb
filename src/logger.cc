@@ -21,7 +21,6 @@ struct log_controller_t :
     /* Startup process */
     
     log_controller_t() {
-        
         shutting_down = false;
         for (int i = 0; i < get_num_cpus(); i++) {
             do_on_cpu(i, this, &log_controller_t::install);
@@ -29,7 +28,6 @@ struct log_controller_t :
     }
     
     bool install() {
-    
         assert(log_controller == NULL);
         log_controller = this;
         messages_out[get_cpu_id()] = 0;
@@ -44,7 +42,6 @@ struct log_controller_t :
     logger_shutdown_callback_t *shutdown_callback;
     
     void shutdown(logger_shutdown_callback_t *cb) {
-        
         shutting_down = true;
         num_threads_up = get_num_cpus();
         shutdown_callback = cb;
@@ -54,7 +51,6 @@ struct log_controller_t :
     }
     
     bool uninstall() {
-    
         assert(log_controller == this);
         log_controller = NULL;
         if (messages_out[get_cpu_id()] == 0)
@@ -63,7 +59,6 @@ struct log_controller_t :
     }
     
     bool have_uninstalled() {
-        
         num_threads_up--;
         if (num_threads_up == 0) {
             shutdown_callback->on_logger_shutdown();
@@ -75,21 +70,18 @@ struct log_controller_t :
     /* Log writing process */
     
     void write(const char *ptr, size_t length) {
-        
         char *msg = strndup(ptr, length);
         messages_out[get_cpu_id()]++;
         do_on_cpu(home_cpu, this, &log_controller_t::do_write, msg, get_cpu_id());
     }
     
     bool do_write(char *msg, int return_cpu) {
-        
         fprintf(log_file, "%s", msg);
         do_on_cpu(return_cpu, this, &log_controller_t::done, msg);
         return true;
     }
     
     bool done(char *msg) {
-        
         free(msg);
         messages_out[get_cpu_id()]--;
         if (shutting_down && messages_out[get_cpu_id()] == 0) {
@@ -100,7 +92,6 @@ struct log_controller_t :
 };
 
 void logger_start(logger_ready_callback_t *cb) {
-    
     new log_controller_t();
     
     /* Call callback immediately because it's OK if log messages get written before the log
@@ -110,7 +101,6 @@ void logger_start(logger_ready_callback_t *cb) {
 }
 
 void logger_shutdown(logger_shutdown_callback_t *cb) {
-    
     assert(log_controller);
     log_controller->shutdown(cb);
 }
@@ -122,7 +112,6 @@ static __thread int message_len;
 static __thread char message[MAX_LOG_MSGLEN];
 
 static void vmlogf(const char *format, va_list arg) {
-
     assert(logging);
     message_len += vsnprintf(
         message + message_len,
@@ -131,7 +120,6 @@ static void vmlogf(const char *format, va_list arg) {
 }
 
 void _logf(const char *src_file, int src_line, log_level_t level, const char *format, ...) {
-
     _mlog_start(src_file, src_line, level);
 
     va_list arg;
@@ -143,7 +131,6 @@ void _logf(const char *src_file, int src_line, log_level_t level, const char *fo
 }
 
 void _mlog_start(const char *src_file, int src_line, log_level_t level) {
-
     assert(!logging);
     logging = true;
     
@@ -156,6 +143,7 @@ void _mlog_start(const char *src_file, int src_line, log_level_t level) {
         case INF: level_str = "info"; break;
         case WRN: level_str = "warn"; break;
         case ERR: level_str = "error"; break;
+        default:  unreachable();
     };
     
     /* If the log controller hasn't been started yet, then assume the thread pool hasn't been
@@ -166,7 +154,6 @@ void _mlog_start(const char *src_file, int src_line, log_level_t level) {
 }
 
 void mlogf(const char *format, ...) {
-
     va_list arg;
     va_start(arg, format);
     vmlogf(format, arg);
@@ -174,7 +161,6 @@ void mlogf(const char *format, ...) {
 }
 
 void mlog_end() {
-
     assert(logging);
     logging = false;
     

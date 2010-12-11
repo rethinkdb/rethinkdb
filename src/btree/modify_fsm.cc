@@ -27,7 +27,7 @@ btree_modify_fsm_t::transition_result_t btree_modify_fsm_t::do_start_transaction
         transaction = cache->begin_transaction(rwi_write, this);
     } else {
         assert(event->buf); // We shouldn't get a callback unless this is valid
-        transaction = (transaction_t *)event->buf;
+        transaction = ptr_cast<transaction_t>(event->buf);
     }
 
     /* Determine our forward progress based on our new state. */
@@ -48,14 +48,14 @@ btree_modify_fsm_t::transition_result_t btree_modify_fsm_t::do_acquire_superbloc
         // We already tried to grab the superblock, and we're getting
         // a cache notification about it.
         assert(event->buf);
-        sb_buf = (buf_t *)event->buf;
+        sb_buf = reinterpret_cast<buf_t *>(event->buf);
     }
 
     if(sb_buf) {
         // Got the superblock buffer (either right away or through
         // cache notification). Grab the root id, and move on to
         // acquiring the root.
-        node_id = ((const btree_superblock_t*)sb_buf->get_data_read())->root_block;
+        node_id = reinterpret_cast<const btree_superblock_t*>(sb_buf->get_data_read())->root_block;
         assert(node_id != SUPERBLOCK_ID);
         return btree_fsm_t::transition_ok;
     } else {
@@ -84,9 +84,9 @@ btree_modify_fsm_t::transition_result_t btree_modify_fsm_t::do_acquire_root(even
         // We already tried to acquire the root node, and here it is
         // via the cache notification.
         assert(event->buf);
-        buf = (buf_t *)event->buf;
+        buf = reinterpret_cast<buf_t *>(event->buf);
     }
-    
+
     if(buf == NULL) {
         return btree_fsm_t::transition_incomplete;
     } else {
@@ -96,7 +96,7 @@ btree_modify_fsm_t::transition_result_t btree_modify_fsm_t::do_acquire_root(even
 
 void btree_modify_fsm_t::insert_root(block_id_t root_id) {
     assert(sb_buf);
-    ((btree_superblock_t*)sb_buf->get_data_write())->root_block = root_id;
+    reinterpret_cast<btree_superblock_t *>(sb_buf->get_data_write())->root_block = root_id;
     sb_buf->release();
     sb_buf = NULL;
 }
@@ -107,7 +107,7 @@ btree_modify_fsm_t::transition_result_t btree_modify_fsm_t::do_acquire_node(even
         buf = transaction->acquire(node_id, rwi_write, this);
     } else {
         assert(event->buf);
-        buf = (buf_t*)event->buf;
+        buf = reinterpret_cast<buf_t *>(event->buf);
     }
 
     if(buf) {
@@ -131,7 +131,7 @@ btree_modify_fsm_t::transition_result_t btree_modify_fsm_t::do_acquire_large_val
     } else {
         assert(event->buf);
         assert(event->event_type == et_large_buf);
-        assert(old_large_buf == (large_buf_t *) event->buf);
+        assert(old_large_buf == reinterpret_cast<large_buf_t *>(event->buf));
         assert(old_large_buf->state == large_buf_t::loaded);
         return btree_fsm_t::transition_ok;
     }
@@ -148,7 +148,7 @@ btree_modify_fsm_t::transition_result_t btree_modify_fsm_t::do_acquire_sibling(e
         sib_buf = transaction->acquire(sib_node_id, rwi_write, this);
     } else {
         assert(event->buf);
-        sib_buf = (buf_t*) event->buf;
+        sib_buf = reinterpret_cast<buf_t *>(event->buf);
     }
 
     if (sib_buf) {
@@ -185,7 +185,7 @@ bool btree_modify_fsm_t::do_check_for_split(const node_t **node) {
             internal_node_handler::print(ptr_cast<internal_node_t>(*node));
 #endif
         char memory[sizeof(btree_key) + MAX_KEY_SIZE];
-        btree_key *median = (btree_key *)memory;
+        btree_key *median = reinterpret_cast<btree_key *>(memory);
         buf_t *rbuf;
         internal_node_t *last_node;
         block_id_t rnode_id;
@@ -199,10 +199,11 @@ bool btree_modify_fsm_t::do_check_for_split(const node_t **node) {
         } else {
             last_node = ptr_cast<internal_node_t>(last_buf->get_data_write());
         }
-        
+
         bool success = internal_node_handler::insert(cache->get_block_size(), last_node, median, node_id, rnode_id);
-        check("could not insert internal btree node", !success);
-     
+        assert(success, "could not insert internal btree node");
+        UNUSED(success);
+
 #ifdef BTREE_DEBUG
         printf("\t|\n\t| Median = "); median->print(); printf("\n\t|\n\tV\n");
         printf("Parent:\n");
@@ -279,20 +280,18 @@ void btree_modify_fsm_t::do_transition(event_t *event) {
     transition_result_t res = btree_fsm_t::transition_ok;
 
     // Make sure we've got either an empty or a cache event
-    check("btree_fsm::do_transition - invalid event", event != NULL &&
-          event->event_type != et_cache && event->event_type != et_large_buf && event->event_type != et_commit);
+    guarantee(event == NULL || event->event_type == et_cache ||
+        event->event_type == et_large_buf || event->event_type == et_commit,
+        "btree_fsm::do_transition - invalid event");
 
     // Update the cache with the event
-    if(event && (event->event_type == et_cache || event->event_type == et_large_buf)) {
-        check("btree_modify_fsm::do_transition - invalid event", event->op != eo_read);
-        check("Could not complete AIO operation",
-              event->result == 0 ||
-              event->result == -1);
+    if (event && (event->event_type == et_cache || event->event_type == et_large_buf)) {
+        guarantee(event->op == eo_read, "btree_modify_fsm::do_transition - invalid event");
+        guarantee(event->result != 0 && event->result != -1, "Could not complete AIO operation");
     }
 
     while (res == btree_fsm_t::transition_ok) {
         switch (state) {
-            
             // Go to the core with the cache on it.
             case go_to_cache_core: {
                 state = start_transaction;
@@ -348,7 +347,7 @@ void btree_modify_fsm_t::do_transition(event_t *event) {
                 if (node_handler::is_leaf(node) && !have_computed_new_value) {
                     // TODO: Clean up this mess.
                     if (!dest_reached) {
-                        key_found = leaf_node_handler::lookup((leaf_node_t *)node, &key, &old_value);
+                        key_found = leaf_node_handler::lookup(ptr_cast<leaf_node_t>(node), &key, &old_value);
                         dest_reached = true;
                     }
 
@@ -401,18 +400,20 @@ void btree_modify_fsm_t::do_transition(event_t *event) {
 
                 // STEP 3: Update if we're at a leaf node and operate() told us to.
                 if (update_needed && !update_done) {
-                    
+                    // TODO make sure we're updating leaf node timestamps.
+
                    assert(have_computed_new_value);
                    assert(node_handler::is_leaf(node));
                    if (new_value) { // We have a new value to insert
                        if (new_value->has_cas() && !cas_already_set) {
                            new_value->set_cas(slice->gen_cas());
                        }
-                       bool success = leaf_node_handler::insert(cache->get_block_size(), ptr_cast<leaf_node_t>(buf->get_data_write()), &key, new_value, current_time());
-                       check("could not insert leaf btree node", !success);
+                       new_value_timestamp = current_time();
+                       bool success = leaf_node_handler::insert(cache->get_block_size(), ptr_cast<leaf_node_t>(buf->get_data_write()), &key, new_value, new_value_timestamp);
+                       guarantee(success, "could not insert leaf btree node");
                    } else {
-                        // If we haven't already, do some deleting 
-                       //key found, and value deleted
+                       // If we haven't already, do some deleting.
+                       // key found, and value deleted
                        leaf_node_handler::remove(cache->get_block_size(), ptr_cast<leaf_node_t>(buf->get_data_write()), &key);
                    }
                    update_done = true;
@@ -438,7 +439,10 @@ void btree_modify_fsm_t::do_transition(event_t *event) {
                         node_t *parent_node = ptr_cast<node_t>(last_buf->get_data_write());
                         if (node_handler::is_mergable(cache->get_block_size(), node, sib_node, parent_node)) { // Merge
                             //logDBG("internal merge\n");
-                            btree_key *key_to_remove = (btree_key *)alloca(sizeof(btree_key) + MAX_KEY_SIZE); //TODO get alloca outta here
+
+                            char key_to_remove_buf[sizeof(btree_key) + MAX_KEY_SIZE];
+                            btree_key *key_to_remove = ptr_cast<btree_key>(key_to_remove_buf);
+
                             if (node_handler::nodecmp(node, sib_node) < 0) { // Nodes must be passed to merge in ascending order
                                 node_handler::merge(cache->get_block_size(), ptr_cast<node_t>(buf->get_data_write()), sib_node, key_to_remove, parent_node);
                                 buf->mark_deleted();
@@ -455,8 +459,8 @@ void btree_modify_fsm_t::do_transition(event_t *event) {
                             }
                             sib_buf = NULL;
 
-                            if (!internal_node_handler::is_singleton((internal_node_t*)parent_node)) {
-                                internal_node_handler::remove(cache->get_block_size(), (internal_node_t*)parent_node, key_to_remove);
+                            if (!internal_node_handler::is_singleton(ptr_cast<internal_node_t>(parent_node))) {
+                                internal_node_handler::remove(cache->get_block_size(), ptr_cast<internal_node_t>(parent_node), key_to_remove);
                             } else {
                                 //logDBG("generic collapse root\n");
                                 // parent has only 1 key (which means it is also the root), replace it with the node
@@ -470,12 +474,14 @@ void btree_modify_fsm_t::do_transition(event_t *event) {
                         } else {
                             // Level
                             //logDBG("generic level\n");
-                            btree_key *key_to_replace = (btree_key *)alloca(sizeof(btree_key) + MAX_KEY_SIZE);
-                            btree_key *replacement_key = (btree_key *)alloca(sizeof(btree_key) + MAX_KEY_SIZE);
+                            char key_to_replace_buf[sizeof(btree_key) + MAX_KEY_SIZE];
+                            btree_key *key_to_replace = ptr_cast<btree_key>(key_to_replace_buf);
+                            char replacement_key_buf[sizeof(btree_key) + MAX_KEY_SIZE];
+                            btree_key *replacement_key = ptr_cast<btree_key>(replacement_key_buf);
                             bool leveled = node_handler::level(cache->get_block_size(), ptr_cast<node_t>(buf->get_data_write()), sib_node, key_to_replace, replacement_key, parent_node);
 
                             if (leveled) {
-                                internal_node_handler::update_key((internal_node_t *)parent_node, key_to_replace, replacement_key);
+                                internal_node_handler::update_key(ptr_cast<internal_node_t>(parent_node), key_to_replace, replacement_key);
                             }
                             sib_buf->release();
                             sib_buf = NULL;
@@ -490,7 +496,7 @@ void btree_modify_fsm_t::do_transition(event_t *event) {
                 if(sb_buf && (last_buf || node_handler::is_leaf(node))) {
                         sb_buf->release();
                         sb_buf = NULL;
-                }                    
+                }
 
                 if(node_handler::is_leaf(node)) {
                     buf->release();
@@ -511,7 +517,7 @@ void btree_modify_fsm_t::do_transition(event_t *event) {
                 last_node_id = node_id;
 
                 // Look up the next node
-                node_id = internal_node_handler::lookup((internal_node_t*)node, &key);
+                node_id = internal_node_handler::lookup(ptr_cast<internal_node_t>(node), &key);
                 assert(node_id != NULL_BLOCK_ID);
                 assert(node_id != SUPERBLOCK_ID);
 
@@ -522,7 +528,6 @@ void btree_modify_fsm_t::do_transition(event_t *event) {
 
             // Notify anything that is waiting on a trigger
             case call_replicants: {
-
                 // Release the final node
                 if (last_node_id != NULL_BLOCK_ID) {
                     last_buf->release();
@@ -531,12 +536,10 @@ void btree_modify_fsm_t::do_transition(event_t *event) {
                 }
 
                 if (update_needed) {
-
                     replicants_awaited = slice->replicants.size();
                     in_value_call = true;
 
                     if (new_value) {
-
                         // Build a value to pass to the replicants
                         if (new_value->is_large()) {
                             for (int64_t i = 0; i < new_large_buf->get_num_segments(); i++) {
@@ -552,14 +555,12 @@ void btree_modify_fsm_t::do_transition(event_t *event) {
                         for (int i = 0; i < (int)slice->replicants.size(); i++) {
                             slice->replicants[i]->callback->value(&key, &replicant_bg, this,
                                 new_value->mcflags(), new_value->exptime(),
-                                                                  new_value->has_cas() ? new_value->cas() : 0, current_time()  /* TODO THIS IS BROKEN.  THIS IS BROKEN.  YOU MUST MUST MUST USE THE SAME current_time() VALUE THAT YOU INSERTED, AND NOT A LATER ONE.  (AN EARLIER ONE WOULD BE OK, FWIW.) */);
+                                                                  new_value->has_cas() ? new_value->cas() : 0, new_value_timestamp);
                         }
-
                     } else {
-
                         // Pass NULL to the replicants
                         for (int i = 0; i < (int)slice->replicants.size(); i++) {
-                            slice->replicants[i]->callback->value(&key, NULL, this, 0, 0, 0, current_time() /* TODO THIS IS BROKEN.  THIS IS BROKEN.  (Or is it?  You need to use the same current_time() that you pass to the delete queue.  Maybe the replicant passes it to the delete queue... We have not implemented that part yet.) */);
+                            slice->replicants[i]->callback->value(&key, NULL, this, 0, 0, 0, current_time());
                         }
 
                     }
@@ -572,7 +573,6 @@ void btree_modify_fsm_t::do_transition(event_t *event) {
                     } else {
                         res = btree_fsm_t::transition_incomplete;
                     }
-
                 } else {
                     state = update_complete;
                     res = btree_fsm_t::transition_ok;
@@ -635,6 +635,9 @@ void btree_modify_fsm_t::do_transition(event_t *event) {
                 res = btree_fsm_t::transition_incomplete;   // So we break out of the loop
                 break;
             }
+
+            default:
+                unreachable();
         }
         // We're done with one step, but we may be able to go to the next one
         // without getting a new event.

@@ -9,10 +9,7 @@
 #include "config/args.hpp"
 #include "containers/intrusive_list.hpp"
 
-// Horrible hack because we define fail() as a macro
-#undef fail
 #include <sstream>
-#define fail(...) { report_fatal_error(__FILE__, __LINE__, __VA_ARGS__); abort(); }
 
 /* Number formatter */
 
@@ -127,7 +124,6 @@ as begin. It will produce stats for the number of active events, the average len
 and the like. */
 
 struct perfmon_duration_sampler_t {
-    
     /* It turns out to be expensive to call get_ticks() every time anything begins or ends.
     If we compile with FAST_PERFMON defined, then get_ticks() will not be called and it will
     not report stats about timing. */

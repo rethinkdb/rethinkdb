@@ -5,7 +5,6 @@
 #include "btree/slice.hpp"
 #include "btree/node.hpp"
 #include "utils.hpp"
-#include "containers/intrusive_list.hpp"
 #include "concurrency/access.hpp"
 #include "config/cmd_args.hpp"
 #include "arch/arch.hpp"
@@ -20,7 +19,6 @@
 /* This is the format that block ID 0 on each serializer takes. */
 
 struct serializer_config_block_t {
-    
     block_magic_t magic;
     
     /* What time the database was created. To help catch the case where files from two

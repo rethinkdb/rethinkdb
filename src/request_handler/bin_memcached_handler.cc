@@ -45,8 +45,7 @@ public:
     }
     
     void value(const_buffer_group_t *buffer, store_t::get_callback_t::done_callback_t *cb,
-        mcflags_t flags, cas_t cas) {
-        
+            mcflags_t flags, cas_t cas) {
         response.status(bin_memcached_handler_t::bin_status_no_error);
         
         byte_t *value = new char[buffer->get_size()];
@@ -68,7 +67,6 @@ public:
     }
     
     void not_found() {
-        
         response.status(bin_memcached_handler_t::bin_status_key_not_found);
         
         response.send(rh);
@@ -98,8 +96,9 @@ public:
             case btree_set_fsm_t::set_type_replace:
                 rh->server->store->replace(key, &dp, mcflags, exptime, this);
                 break;
+            case btree_set_fsm_t::set_type_cas:
             default:
-                fail("Not implemented");
+                unreachable("Not implemented");
         }
     }
     
@@ -111,23 +110,23 @@ public:
     }
     
     void not_stored() {
-        fail("Not implemented");
+        not_implemented("Not implemented");
     }
         
     void not_found() {
-        fail("Not implemented");
+        not_implemented("Not implemented");
     }
         
     void exists() {
-        fail("Not implemented");
+        not_implemented("Not implemented");
     }
     
     void too_large() {
-        fail("Not implemented");
+        not_implemented("Not implemented");
     }
     
     void data_provider_failed() {
-        fail("Cannot happen with a buffered data provider");
+        unreachable("Cannot happen with a buffered data provider");
     }
 };
 
@@ -191,7 +190,7 @@ public:
     }
     
     void too_large() {
-        fail("Not implemented");
+        not_implemented("Not implemented");
     }
     
     void not_found() {
@@ -202,7 +201,7 @@ public:
     }
     
     void data_provider_failed() {
-        fail("Cannot happen with a buffered data provider");
+        unreachable("Cannot happen with a buffered data provider");
     }
 };
 
@@ -334,7 +333,6 @@ bin_memcached_handler_t::parse_result_t bin_memcached_handler_t::parse_request(e
 }
 
 bin_memcached_handler_t::parse_result_t bin_memcached_handler_t::dispatch_appropriate_fsm(packet_t *pkt) {
-    
     pkt->key(key);
     
     switch (pkt->opcode()) {
@@ -386,7 +384,7 @@ bin_memcached_handler_t::parse_result_t bin_memcached_handler_t::dispatch_approp
             new bin_memcached_append_prepend_request_t(this, pkt, key, pkt->value(), pkt->value_length(), false);
             break;
         default:
-            fail("Invalid opcode in bin_memcached_handler_t::dispatch_appropriate_fsm");
+            unreachable("Invalid opcode in bin_memcached_handler_t::dispatch_appropriate_fsm");
     }
     
     if (is_quiet_code(pkt->opcode())) return request_handler_t::op_req_parallelizable;

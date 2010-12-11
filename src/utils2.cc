@@ -48,7 +48,7 @@ repli_timestamp repli_max(repli_timestamp x, repli_timestamp y) {
 void *malloc_aligned(size_t size, size_t alignment) {
     void *ptr = NULL;
     int res = posix_memalign(&ptr, alignment, size);
-    if(res != 0) fail("Out of memory.");
+    if(res != 0) crash_or_trap("Out of memory.");
     return ptr;
 }
 
@@ -56,7 +56,6 @@ void *malloc_aligned(size_t size, size_t alignment) {
 uses the IO layer, and it must be safe to include utils2 from within the IO layer. */
 
 void random_delay(void (*fun)(void*), void *arg) {
-
     /* In one in ten thousand requests, we delay up to 10 seconds. In half of the remaining
     requests, we delay up to 50 milliseconds; in the other half we delay a very short time. */
     int kind = randint(10000), ms;
@@ -67,7 +66,6 @@ void random_delay(void (*fun)(void*), void *arg) {
 }
 
 void debugf(const char *msg, ...) {
-
     flockfile(stderr);
     va_list args;
     va_start(args, msg);
@@ -86,6 +84,27 @@ int randint(int n) {
 
     assert(n > 0 && n < RAND_MAX);
     return rand() % n;
+}
+
+bool begins_with_minus(const char *string) {
+    while (isspace(*string)) string++;
+    return *string == '-';
+}
+
+unsigned long strtoul_strict(const char *string, char **end, int base) {
+    if (begins_with_minus(string)) {
+        *end = const_cast<char *>(string);
+        return 0;
+    }
+    return strtoul(string, end, base);
+}
+
+unsigned long long strtoull_strict(const char *string, char **end, int base) {
+    if (begins_with_minus(string)) {
+        *end = const_cast<char *>(string);
+        return 0;
+    }
+    return strtoull(string, end, base);
 }
 
 ticks_t secs_to_ticks(float secs) {

@@ -237,11 +237,15 @@ class node_handler {
             return check_magic<internal_node_t>(node->magic);
         }
 
-        static void str_to_key(char *str, btree_key *buf) {
+        static bool str_to_key(char *str, btree_key *buf) {
             int len = strlen(str);
-            check("string too long", len > MAX_KEY_SIZE);
-            memcpy(buf->contents, str, len);
-            buf->size = (uint8_t)len;
+            if (len <= MAX_KEY_SIZE) {
+                memcpy(buf->contents, str, len);
+                buf->size = (uint8_t) len;
+                return true;
+            } else {
+                return false;
+            }
         }
 
         static bool is_underfull(block_size_t block_size, const node_t *node);

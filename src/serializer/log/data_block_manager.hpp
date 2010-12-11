@@ -27,7 +27,6 @@ extern perfmon_counter_t
 class log_serializer_t;
 
 class data_block_manager_t {
-
 public:
     data_block_manager_t(log_serializer_t *ser, const log_serializer_dynamic_config_t *dynamic_config, extent_manager_t *em, const log_serializer_static_config_t *static_config)
         : shutdown_callback(NULL), state(state_unstarted), serializer(ser),
@@ -48,7 +47,6 @@ public:
 
 public:
     struct metablock_mixin_t {
-        
         off64_t active_extents[MAX_ACTIVE_DATA_EXTENTS];
         size_t blocks_in_active_extent[MAX_ACTIVE_DATA_EXTENTS];
     };

@@ -2,14 +2,17 @@
 #include "db_cpu_info.hpp"
 #include "request_handler/txt_memcached_handler.hpp"
 #include "request_handler/conn_fsm.hpp"
+#include "replication/master.hpp"
 
 server_t::server_t(cmd_config_t *cmd_config, thread_pool_t *thread_pool)
     : cmd_config(cmd_config), thread_pool(thread_pool),
       conn_acceptor(cmd_config->port, &server_t::create_request_handler, (void*)this),
+#ifdef REPLICATION_ENABLED
+      replication_acceptor(NULL),
+#endif
       toggler(this) { }
 
 void server_t::do_start() {
-    
     assert_cpu();
     do_start_loggers();
 }
@@ -37,14 +40,15 @@ void server_t::do_check_store() {
 
 void server_t::on_store_check(bool ok) {
     if (ok) {
-        fail("It looks like there already is a database here. RethinkDB will abort in case you "
+        fail_due_to_user_error(
+            "It looks like there already is a database here. RethinkDB will abort in case you "
             "didn't mean to overwrite it. Run with the '--force' flag to override this warning.");
+    } else {
+        do_start_store();
     }
-    do_start_store();
 }
 
 void server_t::do_start_store() {
-
     assert_cpu();
     
     store = new btree_key_value_store_t(&cmd_config->store_dynamic_config);
@@ -61,7 +65,6 @@ void server_t::do_start_store() {
 }
 
 void server_t::on_store_ready() {
-
     assert_cpu();
     
     if (cmd_config->shutdown_after_creation) {
@@ -73,7 +76,6 @@ void server_t::on_store_ready() {
 }
 
 void server_t::do_start_conn_acceptor() {
-    
     assert_cpu();
 
     // We've now loaded everything. It's safe to print the config
@@ -84,13 +86,17 @@ void server_t::do_start_conn_acceptor() {
     logINF("Server is now accepting memcached connections on port %d.\n", cmd_config->port);
     
     conn_acceptor.start();
+
+#ifdef REPLICATION_ENABLED
+    replication_acceptor = new conn_acceptor_t(cmd_config->port+1, &create_replication_master, (void*)store);
+    replication_acceptor->start();
+#endif
     
     interrupt_message.server = this;
     thread_pool->set_interrupt_message(&interrupt_message);
 }
 
 conn_handler_t *server_t::create_request_handler(net_conn_t *conn, void *server) {
-    
     /* To re-enable the binary protocol and packet sniffing, replace
     "txt_memcached_handler_t" with "memcached_handler_t". */
     
@@ -102,7 +108,6 @@ conn_handler_t *server_t::create_request_handler(net_conn_t *conn, void *server)
 }
 
 void server_t::shutdown() {
-    
     /* This can be called from any CPU! */
     
     cpu_message_t *old_interrupt_msg = thread_pool->set_interrupt_message(NULL);
@@ -117,7 +122,6 @@ void server_t::shutdown() {
 }
 
 void server_t::do_shutdown() {
-    
     logINF("Shutting down...\n");
     
     assert_cpu();
@@ -125,12 +129,24 @@ void server_t::do_shutdown() {
 }
 
 void server_t::do_shutdown_conn_acceptor() {
+#ifdef REPLICATION_ENABLED
+    messages_out = 2;
+    if (replication_acceptor->shutdown(this)) on_conn_acceptor_shutdown();
+#else
+    messages_out = 1;
+#endif
     if (conn_acceptor.shutdown(this)) on_conn_acceptor_shutdown();
 }
 
 void server_t::on_conn_acceptor_shutdown() {
     assert_cpu();
-    do_shutdown_store();
+    messages_out--;
+    if (messages_out == 0) {
+#ifdef REPLICATION_ENABLED
+        delete replication_acceptor;
+#endif
+        do_shutdown_store();
+    }
 }
 
 void server_t::do_shutdown_store() {
@@ -194,7 +210,6 @@ void server_t::on_message_flush() {
 }
 
 void server_t::do_stop_threads() {
-    
     assert_cpu();
     // This returns immediately, but will cause all of the threads to stop after we
     // return to the event queue.

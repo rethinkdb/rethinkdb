@@ -20,7 +20,6 @@ struct extent_block_t :
     }
     
     void write() {
-        
         waiting_for_prev = true;
         have_finished_sync = false;
         
@@ -89,17 +88,14 @@ extent_t::~extent_t() {
 }
 
 void extent_t::read(size_t pos, size_t length, void *buffer, read_callback_t *cb) {
-    
     assert(!last_block);
     file->read_async(offset + pos, length, buffer, cb);
 }
 
 void extent_t::append(void *buffer, size_t length) {
-    
     assert(amount_filled + length <= em->extent_size);
     
     while (length > 0) {
-    
         size_t room_in_block;
         if (amount_filled % DEVICE_BLOCK_SIZE == 0) {
             assert(!current_block);
@@ -126,7 +122,6 @@ void extent_t::append(void *buffer, size_t length) {
 }
 
 void extent_t::sync(sync_callback_t *cb) {
-    
     assert(amount_filled % DEVICE_BLOCK_SIZE == 0);
     assert(!current_block);
     if (last_block) {

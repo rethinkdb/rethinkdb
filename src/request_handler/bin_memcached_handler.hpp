@@ -21,10 +21,7 @@ used in the production server and it doesn't work very well. */
 static const size_t extra_flags_length = 4;
 static const byte extra_flags[extra_flags_length] = {0x00, 0x00, 0x00, 0x00};
 
-class bin_memcached_handler_t :
-    public request_handler_t
-{
-
+class bin_memcached_handler_t : public request_handler_t {
 public:
     typedef request_handler_t::parse_result_t parse_result_t;
     using request_handler_t::conn_fsm;
@@ -238,7 +235,7 @@ public:
                 else if (magic() == bin_magic_response)
                     return false;
                 else {
-                    fail("Packet has corrupted magic number");
+                    crash("Packet has corrupted magic number"); // FIXME we should never crash on input data
                 }
             }
 
@@ -340,7 +337,7 @@ public:
                         break;
                 }
 error_breakout:
-                fail("Trying to get flags from something that doesn't have flags");
+                crash_or_trap("Trying to get flags from something that doesn't have flags"); // FIXME handle errors nicely
             }
 
             bin_expr_time_t expr_time() {
@@ -381,7 +378,7 @@ error_breakout:
                         break;
                 }
 error_breakout:
-                fail("Trying to get expr from something that doesn't have expr");
+                crash_or_trap("Trying to get expr from something that doesn't have expr");   // FIXME handle errors nicely
             }
             
             bin_delta_t delta() {
@@ -402,7 +399,7 @@ error_breakout:
                         break;
                 }
 error_breakout:
-                fail("Trying to get delta from something that doesn't have delta");
+                crash_or_trap("Trying to get delta from something that doesn't have delta"); // FIXME handle errors nicely
             }
 
             bin_init_val_t init_val() {
@@ -423,7 +420,7 @@ error_breakout:
                         break;
                 }
 error_breakout:
-                fail("Trying to get init_val from something that doesn't have init_val");
+                crash_or_trap("Trying to get init_val from something that doesn't have init_val");   // FIXME handle errors nicely
             }
 
             //setters
@@ -558,7 +555,7 @@ error_breakout:
                 }
                 return;
 error_breakout:
-                fail("Trying to set flags in a packet that doesn't have flags");
+                crash_or_trap("Trying to set flags in a packet that doesn't have flags");    // FIXME handle errors nicely
             }
 
             void expr_time(bin_expr_time_t expr_time) {
@@ -601,7 +598,7 @@ error_breakout:
                 }
                 return;
 error_breakout:
-                fail("Trying to set expr_time in something that doesn't have expr");
+                crash_or_trap("Trying to set expr_time in something that doesn't have expr");    // FIXME handle errors nicely
             }
             
             void delta(bin_delta_t delta) {
@@ -623,7 +620,7 @@ error_breakout:
                 }
                 return;
 error_breakout:
-                fail("Trying to set delta from something that doesn't have delta");
+                crash_or_trap("Trying to set delta from something that doesn't have delta"); // FIXME handle errors nicely
             }
 
             void init_val(bin_init_val_t init_val) {
@@ -644,7 +641,7 @@ error_breakout:
                         break;
                 }
 error_breakout:
-                fail("Trying to get expr from something that doesn't have expr");
+                crash_or_trap("Trying to get expr from something that doesn't have expr");   // FIXME handle errors nicely
             }
 
             bool is_valid_request() {

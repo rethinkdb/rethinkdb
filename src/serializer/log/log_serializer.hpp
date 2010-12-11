@@ -25,29 +25,6 @@ struct block_magic_t;
  * respect that it deserves.
  */
 
-/*
-TODO: Consider the following situation:
-1. Block A is stored at address X.
-2. Client issues a read for block A at address X. It gets hung up in the OS somewhere.
-3. Client issues a write for block A. Address Y is chosen. The write completes quickly.
-4. The garbage collector recognizes that block A is no longer at address X, so it releases the
-    extent containing address X.
-5. Client issues a write for block B. Address X, which is now free, is chosen. The write completes
-    quickly.
-6. The read from step #2 finally gets performed, but because block B is now at address X, it gets
-    the contents of block B instead of block A.
-*/
-
-/*
-TODO: Consider the following situation:
-1. The data block manager's current extent is X. From X to X+Y have been filled.
-2. The data block manager fills the range from X+Y to X+Y+Z.
-3. The server crashes before the metablock has been written
-4. On restart, the server only remembers that there is data from X to X+Y.
-5. The data block manager re-fills the range from X+Y to X+Y+Z.
-6. The disk experiences fragmentation, possibly causing a slowdown.
-*/
-
 typedef lba_list_t lba_index_t;
 
 struct log_serializer_metablock_t {

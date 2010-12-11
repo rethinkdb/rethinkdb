@@ -3,7 +3,6 @@
 #include "utils.hpp"
 
 void static_header_check(direct_file_t *file, static_header_check_callback_t *cb) {
-    
     if (file->get_size() < DEVICE_BLOCK_SIZE) {
         cb->on_static_header_check(false);
     } else {
@@ -18,9 +17,7 @@ void static_header_check(direct_file_t *file, static_header_check_callback_t *cb
     }
 }
 
-struct static_header_write_fsm_t :
-    public iocallback_t
-{
+struct static_header_write_fsm_t : public iocallback_t {
     static_header_write_callback_t *callback;
     static_header_t *buffer;
     static_header_write_fsm_t() {
@@ -36,7 +33,6 @@ struct static_header_write_fsm_t :
 };
 
 bool static_header_write(direct_file_t *file, void *data, size_t data_size, static_header_write_callback_t *cb) {
-    
     static_header_write_fsm_t *fsm = new static_header_write_fsm_t();
     fsm->callback = cb;
     
@@ -74,13 +70,12 @@ struct static_header_read_fsm_t :
         free(buffer);
     }
     void on_io_complete(event_t *e) {
-        
         if (memcmp(buffer->software_name, SOFTWARE_NAME_STRING, sizeof(SOFTWARE_NAME_STRING)) != 0) {
-            fail("This doesn't appear to be a RethinkDB data file.");
+            fail_due_to_user_error("This doesn't appear to be a RethinkDB data file.");
         }
         
         if (memcmp(buffer->version, VERSION_STRING, sizeof(VERSION_STRING)) != 0) {
-            fail("File version is incorrect. This file was created with version %s of RethinkDB, "
+            fail_due_to_user_error("File version is incorrect. This file was created with version %s of RethinkDB, "
                 "but you are trying to read it with version %s.", buffer->version, VERSION_STRING);
         }
         
@@ -92,7 +87,6 @@ struct static_header_read_fsm_t :
 };
 
 bool static_header_read(direct_file_t *file, void *data_out, size_t data_size, static_header_read_callback_t *cb) {
-        
     assert(sizeof(static_header_t) + data_size < DEVICE_BLOCK_SIZE);
     
     static_header_read_fsm_t *fsm = new static_header_read_fsm_t();

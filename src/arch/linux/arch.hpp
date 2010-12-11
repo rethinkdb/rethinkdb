@@ -7,7 +7,6 @@
 #include "arch/linux/thread_pool.hpp"
 
 struct linux_io_config_t {
-    
     typedef linux_thread_pool_t thread_pool_t;
     
     typedef linux_direct_file_t direct_file_t;
@@ -17,8 +16,9 @@ struct linux_io_config_t {
     typedef linux_net_listener_callback_t net_listener_callback_t;
     
     typedef linux_net_conn_t net_conn_t;
-    typedef linux_net_conn_read_callback_t net_conn_read_callback_t;
-    typedef linux_net_conn_write_callback_t net_conn_write_callback_t;
+    typedef linux_net_conn_read_external_callback_t net_conn_read_external_callback_t;
+    typedef linux_net_conn_read_buffered_callback_t net_conn_read_buffered_callback_t;
+    typedef linux_net_conn_write_external_callback_t net_conn_write_external_callback_t;
     
     typedef linux_oldstyle_net_conn_t oldstyle_net_conn_t;
     typedef linux_oldstyle_net_conn_callback_t oldstyle_net_conn_callback_t;

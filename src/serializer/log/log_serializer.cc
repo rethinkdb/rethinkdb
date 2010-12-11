@@ -44,7 +44,6 @@ struct ls_check_existing_fsm_t :
 };
 
 void log_serializer_t::check_existing(const char *filename, check_callback_t *cb) {
-    
     new ls_check_existing_fsm_t(filename, cb);
 }
 
@@ -64,7 +63,6 @@ struct ls_start_new_fsm_t :
     ~ls_start_new_fsm_t() { }
     
     bool run(log_serializer_t::static_config_t *config, log_serializer_t::ready_callback_t *ready_cb) {
-        
         /* TODO: Check if there was already a database there and warn if so. */
         
         assert(ser->state == log_serializer_t::state_unstarted);
@@ -82,7 +80,6 @@ struct ls_start_new_fsm_t :
     }
     
     bool write_static_header() {
-        
         if (static_header_write(ser->dbfile, &ser->static_config, sizeof(ser->static_config), this)) {
             return write_initial_metablock();
         } else {
@@ -97,7 +94,6 @@ struct ls_start_new_fsm_t :
     log_serializer_t::metablock_t metablock_buffer;
     
     bool write_initial_metablock() {
-        
         ser->extent_manager = new extent_manager_t(ser->dbfile, &ser->static_config, ser->dynamic_config);
         ser->extent_manager->reserve_extent(0);   /* For static header */
         
@@ -130,7 +126,6 @@ struct ls_start_new_fsm_t :
     }
     
     bool finish() {
-        
         assert(ser->state == log_serializer_t::state_starting_up);
         ser->state = log_serializer_t::state_ready;
         
@@ -146,7 +141,6 @@ struct ls_start_new_fsm_t :
 };
 
 bool log_serializer_t::start_new(static_config_t *config, ready_callback_t *ready_cb) {
-    
     assert(state == state_unstarted);
     assert_cpu();
     
@@ -159,7 +153,6 @@ struct ls_start_existing_fsm_t :
     public mb_manager_t::metablock_read_callback_t,
     public lba_index_t::ready_callback_t
 {
-    
     explicit ls_start_existing_fsm_t(log_serializer_t *serializer)
         : ser(serializer), state(state_start) {
     }
@@ -168,7 +161,6 @@ struct ls_start_existing_fsm_t :
     }
     
     bool run(log_serializer_t::ready_callback_t *ready_cb) {
-        
         assert(state == state_start);
         assert(ser->state == log_serializer_t::state_unstarted);
         ser->state = log_serializer_t::state_starting_up;
@@ -186,9 +178,7 @@ struct ls_start_existing_fsm_t :
     }
     
     bool next_starting_up_step() {
-        
         if (state == state_read_static_header) {
-        
             if (static_header_read(ser->dbfile, &ser->static_config, sizeof(ser->static_config), this)) {
                 state = state_find_metablock;
             } else {
@@ -198,7 +188,6 @@ struct ls_start_existing_fsm_t :
         }
         
         if (state == state_find_metablock) {
-        
             ser->extent_manager = new extent_manager_t(ser->dbfile, &ser->static_config, ser->dynamic_config);
             ser->extent_manager->reserve_extent(0);   /* For static header */
             
@@ -215,8 +204,7 @@ struct ls_start_existing_fsm_t :
         }
         
         if (state == state_start_lba) {
-            
-            if (!metablock_found) fail("Could not find any valid metablock.");
+            guarantee(metablock_found, "Could not find any valid metablock.");
             
 #ifndef NDEBUG
             memcpy(&ser->debug_mb_buffer, &metablock_buffer, sizeof(metablock_buffer));
@@ -233,7 +221,6 @@ struct ls_start_existing_fsm_t :
         }
         
         if (state == state_reconstruct) {
-
             ser->data_block_manager->start_reconstruct();
             for (ser_block_id_t::number_t id = 0; id < ser->lba_index->max_block_id().value; id++) {
                 flagged_off64_t offset = ser->lba_index->get_block_offset(ser_block_id_t::make(id));
@@ -270,7 +257,7 @@ struct ls_start_existing_fsm_t :
             return true;
         }
         
-        fail("Invalid state.");
+        unreachable("Invalid state.");
     }
     
     void on_static_header_read() {
@@ -312,7 +299,6 @@ struct ls_start_existing_fsm_t :
 };
 
 bool log_serializer_t::start_existing(ready_callback_t *ready_cb) {
-
     assert(state == state_unstarted);
     assert_cpu();
     
@@ -321,7 +307,6 @@ bool log_serializer_t::start_existing(ready_callback_t *ready_cb) {
 }
 
 void *log_serializer_t::malloc() {
-    
     assert(state == state_ready);
     
     // TODO: we shouldn't use malloc_aligned here, we should use our
@@ -335,7 +320,6 @@ void *log_serializer_t::malloc() {
 }
 
 void *log_serializer_t::clone(void *_data) {
-    
     assert(state == state_ready);
     
     // TODO: we shouldn't use malloc_aligned here, we should use our
@@ -350,7 +334,6 @@ void *log_serializer_t::clone(void *_data) {
 }
 
 void log_serializer_t::free(void *ptr) {
-    
     assert(state == state_ready);
     
     char *data = (char *)ptr;
@@ -394,9 +377,7 @@ struct ls_block_writer_t :
     }
     
     bool do_write() {
-
         if (write.buf_specified) {
-
             /* If there was another write currently in progress for the same block, then
                remove it from the block map because we are superceding it */
             log_serializer_t::block_writer_map_t::iterator it = ser->block_writer_map.find(write.block_id);
@@ -417,7 +398,6 @@ struct ls_block_writer_t :
 
 
             if (write.buf) {
-
                 off64_t new_offset;
                 done = ser->data_block_manager->write(write.buf, write.block_id, ser->current_transaction_id, &new_offset, this);
 
@@ -428,9 +408,7 @@ struct ls_block_writer_t :
                    recent version */
                 ser->block_writer_map[write.block_id] = this;
                 superceded = false;
-
             } else {
-
                 /* Deletion */
 
                 /* We tell the data_block_manager to write a zero block to
@@ -453,22 +431,17 @@ struct ls_block_writer_t :
             } else {
                 return false;
             }
-
         } else {
             // It doesn't make sense for a write to not specify a
             // recency _or_ a buffer, since such a write does not
             // actually do anything.
             assert(write.recency_specified);
 
-
             if (write.recency_specified) {
                 ser->lba_index->set_block_offset(write.block_id, write.recency, ser->lba_index->get_block_offset(write.block_id));
             }
-
             return do_finish();
-
         }
-
     }
 
     void on_io_complete(event_t *e) {
@@ -476,7 +449,6 @@ struct ls_block_writer_t :
     }
 
     bool do_finish() {
-
         /* Now that the block is safely on disk, we remove ourselves from the block_writer_map; if
         a reader comes along looking for the block, it will get it from disk. */
         if (write.buf && !superceded) {
@@ -536,7 +508,6 @@ struct ls_write_fsm_t :
     }
     
     bool run(log_serializer_t::write_txn_callback_t *cb) {
-        
         assert(state == state_start);
         
         callback = NULL;
@@ -549,7 +520,6 @@ struct ls_write_fsm_t :
     }
     
     bool do_start_writes_and_lba() {
-        
         ser->active_write_count++;
         
         /* Start an extent manager transaction so we can allocate and release extents */
@@ -628,7 +598,6 @@ struct ls_write_fsm_t :
     }
     
     bool do_write_metablock() {
-        
         state = state_waiting_for_metablock;
         
         bool done = ser->metablock_manager->write_metablock(&mb_buffer, this);
@@ -652,7 +621,6 @@ struct ls_write_fsm_t :
     }
     
     bool do_finish() {
-        
         ser->active_write_count--;
 
         /* End the extent manager transaction so the extents can actually get reused. */
@@ -690,7 +658,6 @@ private:
 
 
 bool log_serializer_t::do_write(write_t *writes, int num_writes, write_txn_callback_t *callback) {
-
     // Even if state != state_ready we might get a do_write from the
     // datablock manager on gc (because it's writing the final gc as
     // we're shutting down). That is ok, which is why we don't assert
@@ -743,7 +710,6 @@ struct ls_read_fsm_t :
     serializer_t::read_callback_t *read_callback;
     
     bool run(serializer_t::read_callback_t *cb) {
-    
         read_callback = NULL;
         if (do_read()) {
             return true;
@@ -754,12 +720,10 @@ struct ls_read_fsm_t :
     }
     
     bool do_read() {
-        
         /* See if we are currently in the process of writing the block */
         log_serializer_t::block_writer_map_t::iterator it = ser->block_writer_map.find(block_id);
         
         if (it == ser->block_writer_map.end()) {
-        
             /* We are not currently writing the block; go to disk to get it */
             
             flagged_off64_t offset = ser->lba_index->get_block_offset(block_id);
@@ -770,9 +734,7 @@ struct ls_read_fsm_t :
             } else {
                 return false;
             }
-        
         } else {
-            
             /* We are currently writing the block; we can just get it from memory */
             // TODO:  This is a block_size_t.  Is this the right block size to use?
             memcpy(buf, (*it).second->write.buf, ser->get_block_size().value());
@@ -785,7 +747,6 @@ struct ls_read_fsm_t :
     }
     
     bool done() {
-        
         if (read_callback) read_callback->on_serializer_read();
         delete this;
         return true;
@@ -793,7 +754,6 @@ struct ls_read_fsm_t :
 };
 
 bool log_serializer_t::do_read(ser_block_id_t block_id, void *buf, read_callback_t *callback) {
-    
     assert(state == state_ready);
     assert_cpu();
     
@@ -806,7 +766,6 @@ block_size_t log_serializer_t::get_block_size() {
 }
 
 ser_block_id_t log_serializer_t::max_block_id() {
-    
     assert(state == state_ready);
     assert_cpu();
     
@@ -814,7 +773,6 @@ ser_block_id_t log_serializer_t::max_block_id() {
 }
 
 bool log_serializer_t::block_in_use(ser_block_id_t id) {
-    
     assert(state == state_ready);
     assert_cpu();
     
@@ -826,7 +784,6 @@ repli_timestamp log_serializer_t::get_recency(ser_block_id_t id) {
 }
 
 bool log_serializer_t::shutdown(shutdown_callback_t *cb) {
-
     assert(cb);
     assert(state == state_ready);
     assert_cpu();
@@ -839,7 +796,6 @@ bool log_serializer_t::shutdown(shutdown_callback_t *cb) {
 }
 
 bool log_serializer_t::next_shutdown_step() {
-    
     assert_cpu();
     
     if(shutdown_state == shutdown_begin) {
@@ -892,14 +848,14 @@ bool log_serializer_t::next_shutdown_step() {
 
         // Don't call the callback if we went through the entire
         // shutdown process in one synchronous shot.
-        if(!shutdown_in_one_shot && shutdown_callback) {
+        if (!shutdown_in_one_shot && shutdown_callback) {
             do_later(shutdown_callback, &shutdown_callback_t::on_serializer_shutdown, this);
         }
 
         return true;
     }
 
-    fail("Invalid state.");
+    unreachable("Invalid state.");
     return true; // make compiler happy
 }
 

@@ -38,7 +38,7 @@ public:
           sb_buf(NULL), buf(NULL), last_buf(NULL), sib_buf(NULL),
           node_id(NULL_BLOCK_ID), last_node_id(NULL_BLOCK_ID),
           sib_node_id(NULL_BLOCK_ID), in_operate_call(false), operated(false),
-          have_computed_new_value(false), new_value(NULL),
+          have_computed_new_value(false), new_value(NULL), new_value_timestamp(repli_timestamp::invalid),
           update_needed(false), update_done(false), did_split(false), cas_already_set(false),
           dest_reached(false), key_found(false), old_large_buf(NULL)
     {
@@ -94,6 +94,7 @@ public:
     bool have_computed_new_value; // XXX Rename this -- name is too confusing next to "operated".
 
     btree_value *new_value;
+    repli_timestamp new_value_timestamp;
 
     bool expired;
 

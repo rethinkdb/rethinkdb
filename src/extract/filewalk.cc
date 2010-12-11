@@ -41,7 +41,9 @@ class dumper_t {
 public:
     explicit dumper_t(const char *path) {
         fp = fopen(path, "wbx");
-        check("could not open file", !fp);
+        if (fp == NULL) {
+            fail_due_to_user_error("could not open file");
+        }
     }
     ~dumper_t() {
         if (fp != NULL) {
@@ -55,10 +57,12 @@ public:
             len += slices[i].len;
         }
 
-        check("could not write to file", 0 > fprintf(fp, "set %.*s %u %u %u noreply\r\n", key->size, key->contents, flags, exptime, len));
+        int res = fprintf(fp, "set %.*s %u %u %u noreply\r\n", key->size, key->contents, flags, exptime, len);
+        guarantee_err(0 < res, "could not write to file");
 
         for (size_t i = 0; i < num_slices; ++i) {
-            check("could not write to file", slices[i].len != fwrite(slices[i].buf, 1, slices[i].len, fp));
+            size_t written_size = fwrite(slices[i].buf, 1, slices[i].len, fp);
+            guarantee_err(slices[i].len == written_size, "could not write to file");
         }
 
         fprintf(fp, "\r\n");
@@ -122,8 +126,9 @@ void walk_extents(dumper_t &dumper, direct_file_t &file, cfg_t cfg) {
 
     if (cfg.mod_count == config_t::NO_FORCED_MOD_COUNT) {
         if (!(CONFIG_BLOCK_ID.ser_id.value < n && offsets[CONFIG_BLOCK_ID.ser_id.value] != block_registry::null)) {
-            fail("Config block cannot be found (CONFIG_BLOCK_ID = %u, offsets.get_size() = %u)."
-                 "  Use --force-mod-count to override.\n",
+            fail_due_to_user_error(
+                "Config block cannot be found (CONFIG_BLOCK_ID = %u, offsets.get_size() = %u)."
+                "  Use --force-mod-count to override.\n",
                  CONFIG_BLOCK_ID, n);
         }
         
@@ -232,7 +237,6 @@ bool get_large_buf_segments(const btree_key *key, direct_file_t& file, const lar
     }
 
     if (levels == 1) {
-
         block *b = new block();
         segblocks->bs.push_back(b);
         b->init(cfg.block_size(), &file, offsets[trans_id], trans);
@@ -244,9 +248,7 @@ bool get_large_buf_segments(const btree_key *key, direct_file_t& file, const lar
                    key->size, key->contents, offsets[trans.value], sizeof(leafbuf->magic), leafbuf->magic.bytes);
             return false;
         }
-
     } else {
-
         block internal;
         internal.init(cfg.block_size(), &file, offsets[trans.value], trans);
 
@@ -298,7 +300,6 @@ void dump_pair_value(dumper_t &dumper, direct_file_t& file, const cfg_t& cfg, co
 
 
     if (value->is_large()) {
-
         int mod_id = translator_serializer_t::untranslate_block_id(this_block, cfg.mod_count, CONFIG_BLOCK_ID);
 
         int64_t seg_size = large_buf_t::cache_size_to_leaf_bytes(cfg.block_size());
@@ -316,7 +317,6 @@ void dump_pair_value(dumper_t &dumper, direct_file_t& file, const cfg_t& cfg, co
             pieces[i].buf = reinterpret_cast<const large_buf_leaf *>(segblocks.bs[i]->buf)->buf;
             pieces[i].len = (i == n - 1 ? (ref.offset + ref.size) % seg_size : seg_size) - beg;
         }
-
     } else {
         pieces.resize(1);
         pieces[0].buf = valuebuf;

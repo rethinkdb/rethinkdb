@@ -1,4 +1,5 @@
 #!/usr/bin/python
+import glob
 from cloud_retester import do_test, do_test_cloud, report_cloud, setup_testing_nodes, terminate_testing_nodes
 
 # Clean the repo
@@ -40,6 +41,18 @@ try:
         for protocol in ["text"]: # ["text", "binary"]:
             for (cores, slices) in [(1, 1), (2, 3)]:
                 # Run tests
+
+                # Run the longest running tests first. This gives the dispatcher more chance to parallelize in case of running cloud based test runs
+                do_test_cloud("integration/many_keys.py",
+                        { "auto"        : True,
+                          "mode"        : mode,
+                          "no-valgrind" : not checker,
+                          "protocol"    : protocol,
+                          "cores"       : cores,
+                          "slices"      : slices,
+                          "num-keys"    : 50000},
+                        repeat=3, timeout=60*90)
+                
                 do_test_cloud("integration/append_prepend.py",
                         { "auto"        : True,
                           "mode"        : mode,
@@ -65,7 +78,7 @@ try:
                           "protocol"    : protocol,
                           "cores"       : cores,
                           "slices"      : slices },
-                        repeat=3)
+                        repeat=3, timeout=120)
                 
                 do_test_cloud("integration/cas.py",
                         { "auto"        : True,
@@ -101,8 +114,8 @@ try:
                           "protocol"    : protocol,
                           "cores"       : cores,
                           "slices"      : slices,
-                          "duration"    : 240 },
-                        repeat=5, timeout=300)
+                          "duration"    : 340 },
+                        repeat=5, timeout=400)
             
                 do_test_cloud("integration/serial_mix.py",
                         { "auto"        : True,
@@ -111,9 +124,9 @@ try:
                           "protocol"    : protocol,
                           "cores"       : cores,
                           "slices"      : slices,
-                          "duration"    : 240,
+                          "duration"    : 340,
                           "restart-server-prob" : "0.0005"},
-                        repeat=5, timeout=300)
+                        repeat=5, timeout=400)
             
                 do_test_cloud("integration/multi_serial_mix.py",
                         { "auto"        : True,
@@ -123,8 +136,8 @@ try:
                           "cores"       : cores,
                           "slices"      : slices,
                           "num-testers" : 16,
-                          "duration"    : 240},
-                        repeat=5, timeout=300)
+                          "duration"    : 340},
+                        repeat=5, timeout=400)
                 
                 do_test_cloud("integration/multi_serial_mix.py",
                         { "auto"        : True,
@@ -135,8 +148,8 @@ try:
                           "slices"      : slices,
                           "num-testers" : 16,
                           "memory"      : 10,
-                          "duration"    : 240},
-                        repeat=5, timeout=300)
+                          "duration"    : 340},
+                        repeat=5, timeout=400)
         
                 do_test_cloud("integration/expiration.py",
                         { "auto"        : True,
@@ -173,16 +186,6 @@ try:
 #                          "cores"       : cores,
 #                          "slices"      : slices },
 #                        repeat=3)
-            
-                do_test_cloud("integration/many_keys.py",
-                        { "auto"        : True,
-                          "mode"        : mode,
-                          "no-valgrind" : not checker,
-                          "protocol"    : protocol,
-                          "cores"       : cores,
-                          "slices"      : slices,
-                          "num-keys"    : 50000},
-                        repeat=3, timeout=60*90)
 
                 do_test_cloud("integration/fuzz.py",
                         { "auto"        : True,
@@ -191,8 +194,28 @@ try:
                           "protocol"    : protocol,
                           "cores"       : cores,
                           "slices"      : slices,
-                          "duration"    : 240},
-                        repeat=3, timeout=270)
+                          "duration"    : 340},
+                        repeat=3, timeout=400)
+
+                do_test_cloud("integration/command_line_sanitizing.py",
+                        { "auto"        : False,
+                          "mode"        : mode,
+                          "no-valgrind" : not checker,
+                          "protocol"    : protocol,
+                          "cores"       : cores,
+                          "slices"      : slices},
+                        repeat=1, timeout=180)
+
+                for suite_test in glob.glob('integration/memcached_suite/*.t'):
+                    do_test_cloud("integration/memcached_suite.py",
+                            { "auto"        : True,
+                              "mode"        : mode,
+                              "no-valgrind" : not checker,
+                              "protocol"    : protocol,
+                              "cores"       : cores,
+                              "slices"      : slices,
+                              "suite-test"  : suite_test},
+                            repeat=3)
 
                 
                 # Don't run the corruption test in mockio or mockcache mode because in those modes

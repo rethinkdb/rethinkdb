@@ -32,7 +32,6 @@ typedef array_map_t page_map_t;
 // various components of the cache to improve performance.
 
 class mc_inner_buf_t {
-
     friend class load_buf_fsm_t;
     friend class mc_cache_t;
     friend class mc_transaction_t;

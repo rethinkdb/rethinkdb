@@ -9,7 +9,6 @@ array_map_t::local_buf_t::local_buf_t(mc_inner_buf_t *gbuf)
 }
 
 array_map_t::local_buf_t::~local_buf_t() {
-
     assert(gbuf->cache->page_map.array.get(gbuf->block_id));
     gbuf->cache->page_map.array.set(gbuf->block_id, NULL);
 }

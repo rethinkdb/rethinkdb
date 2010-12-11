@@ -27,7 +27,6 @@ size of the chunks to use.
 
 template <class value_t, int max_size, int chunk_size = DEFAULT_TWO_LEVEL_ARRAY_CHUNK_SIZE>
 class two_level_array_t {
-
 public:
     typedef unsigned int key_t;
 

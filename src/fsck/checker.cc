@@ -14,7 +14,6 @@
 
 namespace fsck {
 
-
 static const char *state = NULL;
 
 // Knowledge that we contain for every block id.
@@ -44,9 +43,7 @@ public:
         return known;
     }
     void operator=(const T& other) {
-        if (known) {
-            fail("Value already known.");
-        }
+        guarantee(!known, "Value already known.");
         value = other;
         known = true;
     }
@@ -55,9 +52,7 @@ public:
         return value;
     }
     T& operator*() {
-        if (!known) {
-            fail("Value not known.");
-        }
+        guarantee(known, "Value not known.");
         return value;
     }
     T *operator->() { return &operator*(); }
@@ -117,9 +112,7 @@ private:
 
 
 void unrecoverable_fact(bool fact, const char *test) {
-    if (!fact) {
-        fail("ERROR: test '%s' failed!  Cannot override.", test);
-    }
+    guarantee(fact, "ERROR: test '%s' failed!  Cannot override.", test);
 }
 
 class block : public raw_block {
@@ -306,7 +299,6 @@ bool check_metablock(direct_file_t *file, file_knowledge *knog, metablock_errors
             if (version == MB_BAD_VERSION || version < MB_START_VERSION || tx == NULL_SER_TRANSACTION_ID || tx < FIRST_SER_TRANSACTION_ID) {
                 errs->bad_content_count++;
             } else {
-
                 if (high_version < version) {
                     high_version = version;
                     high_version_index = i;
@@ -410,7 +402,6 @@ bool check_lba_extent(direct_file_t *file, file_knowledge *knog, unsigned int sh
         } else if (!is_valid_btree_block(knog, entry.offset.parts.value)) {
             errs->bad_offset_count++;
         } else {
-            
             if (knog->block_info.get_size() <= entry.block_id.value) {
                 knog->block_info.set_size(entry.block_id.value + 1, block_knowledge::unused);
             }
@@ -447,7 +438,6 @@ bool check_lba_shard(direct_file_t *file, file_knowledge *knog, lba_shard_metabl
 
     // 1. Read the entries from the superblock (if there is one).
     if (shards[shard_number].lba_superblock_offset != NULL_OFFSET) {
-
         if (!is_valid_device_block(knog, shard->lba_superblock_offset)) {
             errs->code = lba_shard_errors::bad_lba_superblock_offset;
             return false;
@@ -629,7 +619,6 @@ void check_large_buf(slicecx& cx, const large_buf_ref& ref, value_error *errs) {
         }
 
         if (levels > 1) {
-
             int64_t step = large_buf_t::compute_max_offset(cx.knog->static_config->block_size(), levels - 1);
 
             for (int64_t i = floor_aligned(ref.offset, step), e = ceil_aligned(ref.offset + ref.size, step); i < e; i += step) {
@@ -864,7 +853,6 @@ void check_slice_other_blocks(slicecx& cx, other_block_errors *errs) {
                 }
 
                 errs->unused_blocks.push_back(desc);
-
             } else if (info.offset.parts.is_delete) {
                 assert(info.transaction_id == NULL_SER_TRANSACTION_ID);
                 rogue_block_description desc;
@@ -1106,7 +1094,6 @@ void report_subtree_errors(const subtree_errors *errs) {
             if (e.block_not_found_error != btree_block::none) {
                 printf(" block not found: %s\n", btree_block::error_name(e.block_not_found_error));
             } else {
-
                 printf("%s%s%s%s%s%s%s%s%s\n",
                        e.block_underfull ? " block_underfull" : "",
                        e.bad_magic ? " bad_magic" : "",

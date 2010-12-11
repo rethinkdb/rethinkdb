@@ -9,10 +9,7 @@
 struct event_t;
 class rh_data_provider_t;
 
-class request_handler_t :
-    private cpu_message_t
-{
-
+class request_handler_t : private cpu_message_t {
 public:
     explicit request_handler_t()
         : data_provider(NULL), request_count(0) {}
@@ -179,14 +176,15 @@ private:
     void step() {
         assert(!completed);
         switch (mode) {
-            case unused:
-                fail("WTF");
             case fill:
                 do_fill();
                 break;
             case consume:
                 do_consume();
                 break;
+            case unused:
+            default:
+                unreachable();
         }
     }
 

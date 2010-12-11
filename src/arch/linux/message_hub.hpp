@@ -58,7 +58,6 @@ private:
     
     /* Queue for messages going from this->current_cpu to other CPUs */
     struct cpu_queue_t {
-    
         /* Messages are cached here before being pushed to the global list so that we don't
         have to acquire the spinlock as often */
         msg_list_t msg_local_list;
