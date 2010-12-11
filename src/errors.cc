@@ -128,7 +128,7 @@ void report_user_error(const char *msg, ...) {
 
     va_list args;
     va_start(args, msg);
-    fprintf(stderr, "\nError: ");
+    //fprintf(stderr, "\nError: ");
     vfprintf(stderr, msg, args);
     fprintf(stderr, "\n");
     va_end(args);
