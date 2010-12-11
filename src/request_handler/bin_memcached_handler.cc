@@ -45,8 +45,7 @@ public:
     }
     
     void value(const_buffer_group_t *buffer, store_t::get_callback_t::done_callback_t *cb,
-        mcflags_t flags, cas_t cas) {
-        
+            mcflags_t flags, cas_t cas) {
         response.status(bin_memcached_handler_t::bin_status_no_error);
         
         byte_t *value = new char[buffer->get_size()];
@@ -68,7 +67,6 @@ public:
     }
     
     void not_found() {
-        
         response.status(bin_memcached_handler_t::bin_status_key_not_found);
         
         response.send(rh);
@@ -98,6 +96,7 @@ public:
             case btree_set_fsm_t::set_type_replace:
                 rh->server->store->replace(key, &dp, mcflags, exptime, this);
                 break;
+            case btree_set_fsm_t::set_type_cas:
             default:
                 unreachable("Not implemented");
         }
@@ -334,7 +333,6 @@ bin_memcached_handler_t::parse_result_t bin_memcached_handler_t::parse_request(e
 }
 
 bin_memcached_handler_t::parse_result_t bin_memcached_handler_t::dispatch_appropriate_fsm(packet_t *pkt) {
-    
     pkt->key(key);
     
     switch (pkt->opcode()) {

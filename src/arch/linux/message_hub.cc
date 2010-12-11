@@ -11,7 +11,6 @@ linux_message_hub_t::linux_message_hub_t(linux_event_queue_t *queue, linux_threa
     int res;
 
     for (int i = 0; i < thread_pool->n_threads; i++) {
-    
         res = pthread_spin_init(&queues[i].lock, PTHREAD_PROCESS_PRIVATE);
         guarantee(res == 0, "Could not initialize spin lock");
 
@@ -30,11 +29,9 @@ linux_message_hub_t::linux_message_hub_t(linux_event_queue_t *queue, linux_threa
 }
 
 linux_message_hub_t::~linux_message_hub_t() {
-    
     int res;
     
     for (int i = 0; i < thread_pool->n_threads; i++) {
-        
         assert(queues[i].msg_local_list.empty());
         assert(queues[i].msg_global_list.empty());
         
@@ -53,7 +50,6 @@ void linux_message_hub_t::store_message(unsigned int ncpu, linux_cpu_message_t *
 }
 
 void linux_message_hub_t::insert_external_message(linux_cpu_message_t *msg) {
-    
     pthread_spin_lock(&queues[current_cpu].lock);
     queues[current_cpu].msg_global_list.push_back(msg);
     pthread_spin_unlock(&queues[current_cpu].lock);
@@ -64,7 +60,6 @@ void linux_message_hub_t::insert_external_message(linux_cpu_message_t *msg) {
 }
 
 void linux_message_hub_t::notify_t::on_event(int events) {
-
     // Read from the event so level-triggered mechanism such as poll
     // don't pester us and use 100% cpu
     eventfd_t value;
@@ -77,7 +72,6 @@ void linux_message_hub_t::notify_t::on_event(int events) {
 
 // Pulls the messages stored in global lists for a given CPU.
 void linux_message_hub_t::pull_messages(int cpu) {
-    
     msg_list_t msg_list;
     
     cpu_queue_t *queue = &queues[cpu];
@@ -96,14 +90,11 @@ void linux_message_hub_t::pull_messages(int cpu) {
 // Pushes messages collected locally global lists available to all
 // CPUs.
 void linux_message_hub_t::push_messages() {
-
     for (int i = 0; i < thread_pool->n_threads; i++) {
-    
         // Append the local list for ith cpu to that cpu's global
         // message list.
         cpu_queue_t *queue = &queues[i];
         if(!queue->msg_local_list.empty()) {
-            
             // Transfer messages to the other core
             pthread_spin_lock(&queue->lock);
             queue->msg_global_list.append_and_clear(&queue->msg_local_list);

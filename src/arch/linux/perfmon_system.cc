@@ -45,7 +45,6 @@ struct proc_pid_stat_t {
 
 private:
     bool read(char * path) {
-        
         int stat_file = open(path, O_RDONLY);
         if (stat_file == -1) {
             logWRN("Could not open '%s': %s (errno = %d)", path, strerror(errno), errno);
@@ -126,9 +125,7 @@ void poll_system_stats(void *) {
     if (last_ticks == 0) {
         last_stats = current_stats;
         last_ticks = current_ticks;
-    
     } else if (current_ticks > last_ticks + secs_to_ticks(1)) {
-        
         double realtime_elapsed = ticks_to_secs(current_ticks - last_ticks) * sysconf(_SC_CLK_TCK);
         pm_cpu_user.record((current_stats.utime - last_stats.utime) / realtime_elapsed);
         pm_cpu_system.record((current_stats.stime - last_stats.stime) / realtime_elapsed);

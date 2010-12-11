@@ -84,7 +84,6 @@ btree_get_fsm_t::transition_result_t btree_get_fsm_t::do_acquire_root(event_t *e
 }
 
 btree_get_fsm_t::transition_result_t btree_get_fsm_t::do_acquire_node(event_t *event) {
-
     assert(state == acquire_node);
     // Either we already have the node (then event should be NULL), or
     // we don't have the node (in which case we asked for it before,
@@ -107,7 +106,6 @@ btree_get_fsm_t::transition_result_t btree_get_fsm_t::do_acquire_node(event_t *e
 
     const node_t *node = ptr_cast<node_t>(buf->get_data_read());
     if(node_handler::is_internal(node)) {
-    
         block_id_t next_node_id = internal_node_handler::lookup((internal_node_t*)node, &key);
         assert(next_node_id != NULL_BLOCK_ID);
         assert(next_node_id != SUPERBLOCK_ID);
@@ -119,9 +117,7 @@ btree_get_fsm_t::transition_result_t btree_get_fsm_t::do_acquire_node(event_t *e
         } else {
             return btree_fsm_t::transition_incomplete;
         }
-        
     } else {
-    
         bool found = leaf_node_handler::lookup((leaf_node_t*)node, &key, &value);
         buf->release();
         buf = NULL;
@@ -139,16 +135,13 @@ btree_get_fsm_t::transition_result_t btree_get_fsm_t::do_acquire_node(event_t *e
             state = deliver_not_found_notification;
             if (continue_on_cpu(home_cpu, this)) return btree_fsm_t::transition_ok;
             else return btree_fsm_t::transition_incomplete;
-            
         } else if (value.is_large()) {
             // Don't commit transaction yet because we need to keep holding onto
             // the large buf until it's been read.
         
             state = acquire_large_value;
             return btree_fsm_t::transition_ok;
-            
         } else {
-            
             // Commit transaction now because we won't be returning to this core
             bool committed __attribute__((unused)) = transaction->commit(NULL);
             assert(committed);   // Read-only transactions complete immediately
@@ -280,7 +273,6 @@ void btree_get_fsm_t::do_transition(event_t *event) {
 
     while (res == btree_fsm_t::transition_ok) {
         switch (state) {
-            
             // Go to the core where the cache is
             case go_to_cache_core:
                 state = acquire_superblock;
@@ -344,6 +336,8 @@ void btree_get_fsm_t::do_transition(event_t *event) {
             case delete_self:
                 delete this;
                 return;
+            default:
+                unreachable();
         }
         event = NULL;
     }

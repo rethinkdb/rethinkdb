@@ -31,7 +31,6 @@ public:
 
 
     void operate(btree_value *old_value, large_buf_t *old_large_value) {
-
         if ((old_value && type == set_type_add) || (!old_value && type == set_type_replace)) {
             result = result_not_stored;
             data->get_value(NULL, this);
@@ -112,7 +111,6 @@ public:
     }
     
     void call_callback_and_delete() {
-        
         switch (result) {
             case result_stored:
                 callback->stored();
@@ -132,6 +130,8 @@ public:
             case result_data_provider_failed:
                 callback->data_provider_failed();
                 break;
+            default:
+                unreachable();
         }
         
         delete this;

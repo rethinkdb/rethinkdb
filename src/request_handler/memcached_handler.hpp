@@ -47,7 +47,6 @@ private:
 
 private:
     bool memcached_stats(char *stat_key, char *result) {
-        
         char *c = stat_key;
         
         //make things case insensitive

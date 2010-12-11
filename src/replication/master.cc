@@ -27,9 +27,7 @@ void replication_message_t::on_cpu_switch() {
 }
 
 void replication_message_t::on_lock_available() {
-
     if (buffer_group) {
-
         which_buffer_of_group = -1;
 
         int size = snprintf(header, sizeof(header), "CHANGED %*.*s %d %d %d %d\r\n",
@@ -38,9 +36,7 @@ void replication_message_t::on_lock_available() {
         assert(size < (int)sizeof(header));
 
         parent->conn->write_external(header, size, this);
-
     } else {
-
         int size = snprintf(header, sizeof(header), "DELETED %*.*s\r\n",
             (int)key->size, (int)key->size, key->contents);
         assert(size < (int)sizeof(header));
@@ -100,7 +96,6 @@ void replication_master_t::stopped() {
 }
 
 void replication_master_t::quit() {
-
     assert(!quitting);
     quitting = true;
 

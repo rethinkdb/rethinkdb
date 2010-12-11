@@ -62,7 +62,6 @@ linux_direct_file_t::linux_direct_file_t(const char *path, int mode) {
     if (is_block) {
         res = ioctl(fd, BLKGETSIZE64, &file_size);
         guarantee_err(res != -1, "Could not determine block device size");
-        
     } else {
         off64_t size = lseek64(fd, 0, SEEK_END);
         guarantee_err(size != -1, "Could not determine file size");
@@ -91,7 +90,6 @@ void linux_direct_file_t::set_size(size_t size) {
 void linux_direct_file_t::set_size_at_least(size_t size) {
     if (is_block) {
         assert(file_size >= size);
-    
     } else {
         /* Grow in large chunks at a time */
         if (file_size < size) {
@@ -254,7 +252,6 @@ void linux_io_calls_t::on_event(int) {
 }
 
 void linux_io_calls_t::aio_notify(iocb *event, int result) {
-    
     // Update stats
     if (event->aio_lio_opcode == IO_CMD_PREAD) pm_io_reads_completed++;
     else pm_io_writes_completed++;

@@ -97,7 +97,6 @@ class mock_cache_t :
     public serializer_t::read_callback_t,
     public serializer_t::write_txn_callback_t
 {
-    
 public:
     typedef mock_buf_t buf_t;
     typedef mock_transaction_t transaction_t;

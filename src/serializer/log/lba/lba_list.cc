@@ -17,7 +17,6 @@ lba_list_t::lba_list_t(extent_manager_t *em)
 
 /* This form of start() is called when we are creating a new database */
 void lba_list_t::start_new(direct_file_t *file) {
-    
     assert(state == state_unstarted);
     
     dbfile = file;
@@ -76,7 +75,6 @@ struct lba_start_fsm_t :
 
 /* This form of start() is called when we are loading an existing database */
 bool lba_list_t::start_existing(direct_file_t *file, metablock_mixin_t *last_metablock, ready_callback_t *cb) {
-    
     assert(state == state_unstarted);
     
     dbfile = file;
@@ -191,7 +189,6 @@ struct gc_fsm_t :
         }
     
     void do_replace_disk_structure() {
-        
         /* Replace the LBA with a new empty LBA */
         
         owner->disk_structures[i]->destroy();
@@ -265,7 +262,6 @@ bool lba_list_t::shutdown(shutdown_callback_t *cb) {
 }
 
 bool lba_list_t::__shutdown() {
-    
     for (int i = 0; i < LBA_SHARD_FACTOR; i++) {
         disk_structures[i]->shutdown();   // Also deletes it
         disk_structures[i] = NULL;

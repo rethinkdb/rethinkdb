@@ -1,4 +1,3 @@
-
 #ifndef __SERIALIZER_SEMANTIC_CHECKING_HPP__
 #define __SERIALIZER_SEMANTIC_CHECKING_HPP__
 
@@ -30,7 +29,6 @@ private:
     typedef uint32_t crc_t;
 
     struct block_info_t {
-
         enum state_t {
             state_unknown,
             state_deleted,
@@ -149,13 +147,11 @@ public:
             : parent(parent), block_id(block_id), buf(buf), expected_block_state(expected_block_state) {}
 
         void on_serializer_read() {
-
             /* Make sure that the value that the serializer returned was valid */
 
             crc_t actual_crc = parent->compute_crc(buf);
 
             switch (expected_block_state.state) {
-
                 case block_info_t::state_unknown: {
                     /* We don't know what this block was supposed to contain, so we can't do any
                     verification */
@@ -173,6 +169,8 @@ public:
                     guarantee(expected_block_state.crc == actual_crc, "Serializer returned bad value for block ID %u", block_id.value);
                     break;
                 }
+                default:
+                    unreachable();
             }
 
             if (callback) callback->on_serializer_read();
@@ -218,7 +216,6 @@ public:
     };
 
     bool do_write(write_t *writes, int num_writes, write_txn_callback_t *callback) {
-
         for (int i = 0; i < num_writes; i++) {
             block_info_t b;
             bzero((void*)&b, sizeof(b));  // make valgrind happy
@@ -273,6 +270,7 @@ public:
             case block_info_t::state_unknown: break;
             case block_info_t::state_deleted: assert(!in_use); break;
             case block_info_t::state_have_crc: assert(in_use); break;
+            default: unreachable();
         }
         return in_use;
     }

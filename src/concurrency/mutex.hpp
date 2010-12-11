@@ -5,7 +5,6 @@
 #include "concurrency/rwi_lock.hpp"   // For lock_available_callback_t
 
 class mutex_t {
-
     struct lock_request_t :
         public intrusive_list_node_t<lock_request_t>,
         public cpu_message_t

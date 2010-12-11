@@ -19,7 +19,6 @@ in_memory_index_t::info_t in_memory_index_t::get_block_info(ser_block_id_t id) {
 
 void in_memory_index_t::set_block_info(ser_block_id_t id, repli_timestamp recency,
                                      flagged_off64_t offset) {
-
     if (id.value >= blocks.get_size()) {
         blocks.set_size(id.value + 1, flagged_off64_t::unused());
         timestamps.set_size(id.value + 1, repli_timestamp::invalid);

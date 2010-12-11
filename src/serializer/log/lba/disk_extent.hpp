@@ -10,9 +10,7 @@
 #include "in_memory_index.hpp"
 
 class lba_disk_extent_t :
-    public intrusive_list_node_t<lba_disk_extent_t>
-{
-
+    public intrusive_list_node_t<lba_disk_extent_t> {
 private:
     extent_manager_t *em;
 
@@ -47,7 +45,6 @@ public:
     }
     
     void add_entry(lba_entry_t entry) {
-        
         // Make sure that entries will align with DEVICE_BLOCK_SIZE
         assert(DEVICE_BLOCK_SIZE % sizeof(lba_entry_t) == 0);
         
@@ -59,7 +56,6 @@ public:
     }
     
     void sync(extent_t::sync_callback_t *cb) {
-        
         while (data->amount_filled % DEVICE_BLOCK_SIZE != 0) {
             add_entry(lba_entry_t::make_padding_entry());
         }
@@ -79,14 +75,12 @@ public:
     };
     
     void read_step_1(read_info_t *info_out, extent_t::read_callback_t *cb) {
-        
         info_out->buffer = malloc_aligned(em->extent_size, DEVICE_BLOCK_SIZE);
         info_out->count = count;
         data->read(0, sizeof(lba_extent_t) + sizeof(lba_entry_t) * count, info_out->buffer, cb);
     }
     
     void read_step_2(read_info_t *info, in_memory_index_t *index) {
-
         lba_extent_t *extent = (lba_extent_t *)info->buffer;
         assert(memcmp(extent->header.magic, lba_magic, LBA_MAGIC_SIZE) == 0);
 

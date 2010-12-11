@@ -23,7 +23,6 @@ struct log_serializer_private_dynamic_config_t {
 /* Configuration for the serializer that can change from run to run */
 
 struct log_serializer_dynamic_config_t {
-
     /* When the proportion of garbage blocks hits gc_high_ratio, then the serializer will collect
     garbage until it reaches gc_low_ratio. */
     float gc_low_ratio, gc_high_ratio;
@@ -63,7 +62,6 @@ public:
 /* Configuration for the cache (it can all change from run to run) */
 
 struct mirrored_cache_config_t {
-    
     // Max amount of memory that will be used for the cache, in bytes.
     long long max_size;
     
@@ -86,7 +84,6 @@ struct mirrored_cache_config_t {
 serializer */
 
 struct btree_config_t {
-    
     int32_t n_slices;
 };
 
@@ -106,7 +103,6 @@ struct btree_key_value_store_dynamic_config_t {
 creation time */
 
 struct btree_key_value_store_static_config_t {
-    
     log_serializer_static_config_t serializer;
     btree_config_t btree;
 };

@@ -66,7 +66,6 @@ void conn_fsm_t::return_to_socket_connected(bool error = false) {
 }
 
 conn_fsm_t::result_t conn_fsm_t::fill_buf(void *buf, unsigned int *bytes_filled, unsigned int total_length) {
-    
     // TODO: we assume the command will fit comfortably into
     // IO_BUFFER_SIZE. We'll need to implement streaming later.
     assert(!we_are_closed);
@@ -319,7 +318,6 @@ void conn_fsm_t::on_net_conn_close() {
 }
 
 void conn_fsm_t::do_transition_and_handle_result(event_t *event) {
-    
     // Make sure we're not calling do_transition() recursively
     assert(!in_do_transition);
     in_do_transition = true;
@@ -327,7 +325,6 @@ void conn_fsm_t::do_transition_and_handle_result(event_t *event) {
     int old_state = state;
     
     switch (do_transition(event)) {
-        
         case fsm_transition_ok:
         case fsm_no_data_in_socket:
             if (state != old_state) {
@@ -342,8 +339,10 @@ void conn_fsm_t::do_transition_and_handle_result(event_t *event) {
             state_counters[old_state]->end(&start_time);
             delete this;
             break;
-        
-        default: unreachable("Unhandled fsm transition result");
+
+        case fsm_invalid:
+        default:
+            unreachable("Unhandled fsm transition result");
     }
 }
 
@@ -433,7 +432,6 @@ conn_fsm_t::conn_fsm_t(net_conn_t *c, request_handler_t *rh)
 }
 
 conn_fsm_t::~conn_fsm_t() {
-    
 #ifndef NDEBUG
     fprintf(stderr, "Closed socket %p\n", this);
 #endif
@@ -452,7 +450,6 @@ conn_fsm_t::~conn_fsm_t() {
 }
 
 void conn_fsm_t::quit() {
-    
     if (quitting) return;
     
     on_quit();

@@ -25,7 +25,6 @@ writeback_t::~writeback_t() {
 }
 
 bool writeback_t::sync(sync_callback_t *callback) {
-
     if (!writeback_in_progress) {
         /* Start the writeback process immediately */
         if (writeback_start_and_acquire_lock()) {
@@ -36,7 +35,6 @@ bool writeback_t::sync(sync_callback_t *callback) {
             if (callback) current_sync_callbacks.push_back(callback);
             return false;
         }
-    
     } else {
         /* There is a writeback currently in progress, but sync() has been called, so there is
         more data that needs to be flushed that didn't become part of the current sync. So we
@@ -50,21 +48,17 @@ bool writeback_t::sync(sync_callback_t *callback) {
 }
 
 bool writeback_t::sync_patiently(sync_callback_t *callback) {
-
     if (num_dirty_blocks() > 0) {
         if (callback) sync_callbacks.push_back(callback);
         return false;
-        
     } else {
         // There's nothing to flush, so the sync is "done"
         return true;
     }
 }
 
-bool writeback_t::begin_transaction(transaction_t *txn,
-        transaction_begin_callback_t *callback) {
-    
-    switch(txn->get_access()) {
+bool writeback_t::begin_transaction(transaction_t *txn, transaction_begin_callback_t *callback) {
+    switch (txn->get_access()) {
         case rwi_read:
             return true;
         case rwi_write:
@@ -76,13 +70,15 @@ bool writeback_t::begin_transaction(transaction_t *txn,
                 txn->begin_callback = callback;
                 return false;
             }
+        case rwi_read_outdated_ok:
+        case rwi_intent:
+        case rwi_upgrade:
         default:
             unreachable("Transaction access invalid.");
     }
 }
 
 void writeback_t::on_transaction_commit(transaction_t *txn) {
-    
     if (txn->get_access() == rwi_write) {
         flush_lock.unlock();
         
@@ -153,7 +149,6 @@ void writeback_t::flush_timer_callback(void *ctx) {
 }
 
 bool writeback_t::writeback_start_and_acquire_lock() {
-
     assert(!writeback_in_progress);
     writeback_in_progress = true;
     pm_flushes_locking.begin(&start_time);
@@ -186,7 +181,6 @@ bool writeback_t::writeback_start_and_acquire_lock() {
 }
 
 void writeback_t::on_lock_available() {
-
     assert(writeback_in_progress);
     writeback_acquire_bufs();
 }
@@ -208,7 +202,6 @@ struct buf_writer_t :
 };
 
 bool writeback_t::writeback_acquire_bufs() {
-    
     assert(writeback_in_progress);
     cache->assert_cpu();
     
@@ -223,7 +216,6 @@ bool writeback_t::writeback_acquire_bufs() {
 
     int i = 0;
     while (local_buf_t *lbuf = dirty_bufs.head()) {
-
         inner_buf_t *inner_buf = lbuf->gbuf;
 
         bool buf_dirty = lbuf->dirty;
@@ -236,7 +228,6 @@ bool writeback_t::writeback_acquire_bufs() {
         lbuf->set_recency_dirty(false);
 
         if (buf_dirty) {
-
             bool do_delete = inner_buf->do_delete;
 
             // Acquire the blocks
@@ -261,7 +252,6 @@ bool writeback_t::writeback_acquire_bufs() {
 
                 delete inner_buf;
             }
-
         } else {
             assert(recency_dirty);
 
@@ -278,7 +268,6 @@ bool writeback_t::writeback_acquire_bufs() {
 }
 
 bool writeback_t::writeback_do_write() {
-
     /* Start writing all the dirty bufs down, as a transaction. */
     
     // TODO(NNW): Now that the serializer/aio-system breaks writes up into
@@ -290,7 +279,6 @@ bool writeback_t::writeback_do_write() {
     
     if (serializer_writes.empty() ||
         cache->serializer->do_write(serializer_writes.data(), serializer_writes.size(), this)) {
-
         // We don't need this buffer any more.
         serializer_writes.clear();
         return do_on_cpu(cache->home_cpu, this, &writeback_t::writeback_do_cleanup);
@@ -300,14 +288,12 @@ bool writeback_t::writeback_do_write() {
 }
 
 void writeback_t::on_serializer_write_txn() {
-    
     assert(writeback_in_progress);
     cache->serializer->assert_cpu();
     do_on_cpu(cache->home_cpu, this, &writeback_t::writeback_do_cleanup);
 }
 
 bool writeback_t::writeback_do_cleanup() {
-    
     assert(writeback_in_progress);
     cache->assert_cpu();
     

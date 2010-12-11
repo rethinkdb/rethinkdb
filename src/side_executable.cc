@@ -8,7 +8,6 @@
 
 void consider_execve_side_executable(int argc, char **argv, const char *command_suffix) {
     if (argc >= 2 && !strcmp(argv[1], command_suffix)) {
-
         // We use "$argv[0]-$argv[1]" as the command name to search
         // for, and use "$argv[0] $argv[1]" as the command name to
         // pass on as the value of argv[0].

@@ -13,7 +13,6 @@ server_t::server_t(cmd_config_t *cmd_config, thread_pool_t *thread_pool)
       toggler(this) { }
 
 void server_t::do_start() {
-    
     assert_cpu();
     do_start_loggers();
 }
@@ -50,7 +49,6 @@ void server_t::on_store_check(bool ok) {
 }
 
 void server_t::do_start_store() {
-
     assert_cpu();
     
     store = new btree_key_value_store_t(&cmd_config->store_dynamic_config);
@@ -67,7 +65,6 @@ void server_t::do_start_store() {
 }
 
 void server_t::on_store_ready() {
-
     assert_cpu();
     
     if (cmd_config->shutdown_after_creation) {
@@ -79,7 +76,6 @@ void server_t::on_store_ready() {
 }
 
 void server_t::do_start_conn_acceptor() {
-    
     assert_cpu();
 
     // We've now loaded everything. It's safe to print the config
@@ -101,7 +97,6 @@ void server_t::do_start_conn_acceptor() {
 }
 
 conn_handler_t *server_t::create_request_handler(net_conn_t *conn, void *server) {
-    
     /* To re-enable the binary protocol and packet sniffing, replace
     "txt_memcached_handler_t" with "memcached_handler_t". */
     
@@ -113,7 +108,6 @@ conn_handler_t *server_t::create_request_handler(net_conn_t *conn, void *server)
 }
 
 void server_t::shutdown() {
-    
     /* This can be called from any CPU! */
     
     cpu_message_t *old_interrupt_msg = thread_pool->set_interrupt_message(NULL);
@@ -128,7 +122,6 @@ void server_t::shutdown() {
 }
 
 void server_t::do_shutdown() {
-    
     logINF("Shutting down...\n");
     
     assert_cpu();
@@ -136,7 +129,6 @@ void server_t::do_shutdown() {
 }
 
 void server_t::do_shutdown_conn_acceptor() {
-
 #ifdef REPLICATION_ENABLED
     messages_out = 2;
     if (replication_acceptor->shutdown(this)) on_conn_acceptor_shutdown();
@@ -218,7 +210,6 @@ void server_t::on_message_flush() {
 }
 
 void server_t::do_stop_threads() {
-    
     assert_cpu();
     // This returns immediately, but will cause all of the threads to stop after we
     // return to the event queue.

@@ -33,7 +33,6 @@ struct static_header_write_fsm_t : public iocallback_t {
 };
 
 bool static_header_write(direct_file_t *file, void *data, size_t data_size, static_header_write_callback_t *cb) {
-    
     static_header_write_fsm_t *fsm = new static_header_write_fsm_t();
     fsm->callback = cb;
     
@@ -71,7 +70,6 @@ struct static_header_read_fsm_t :
         free(buffer);
     }
     void on_io_complete(event_t *e) {
-        
         if (memcmp(buffer->software_name, SOFTWARE_NAME_STRING, sizeof(SOFTWARE_NAME_STRING)) != 0) {
             fail_due_to_user_error("This doesn't appear to be a RethinkDB data file.");
         }
@@ -89,7 +87,6 @@ struct static_header_read_fsm_t :
 };
 
 bool static_header_read(direct_file_t *file, void *data_out, size_t data_size, static_header_read_callback_t *cb) {
-        
     assert(sizeof(static_header_t) + data_size < DEVICE_BLOCK_SIZE);
     
     static_header_read_fsm_t *fsm = new static_header_read_fsm_t();

@@ -15,7 +15,6 @@ lba_disk_structure_t::lba_disk_structure_t(extent_manager_t *em, direct_file_t *
     }
     
     if (metablock->lba_superblock_offset != NULL_OFFSET) {
-        
         superblock_offset = metablock->lba_superblock_offset;
         startup_superblock_count = metablock->lba_superblock_entries_count;
 
@@ -32,16 +31,12 @@ lba_disk_structure_t::lba_disk_structure_t(extent_manager_t *em, direct_file_t *
             superblock_size,
             startup_superblock_buffer,
             this);
-            
     } else {
-    
         superblock_extent = NULL;
-        
     }
 }
 
 void lba_disk_structure_t::set_load_callback(load_callback_t *cb) {
-    
     if (superblock_extent) {
         start_callback = cb;
     } else {
@@ -50,7 +45,6 @@ void lba_disk_structure_t::set_load_callback(load_callback_t *cb) {
 }
 
 void lba_disk_structure_t::on_extent_read() {
-    
     for (int i = 0; i < startup_superblock_count; i++) {
         extents_in_superblock.push_back(
             new lba_disk_extent_t(em, file, 
@@ -64,9 +58,7 @@ void lba_disk_structure_t::on_extent_read() {
 }
 
 void lba_disk_structure_t::add_entry(ser_block_id_t block_id, repli_timestamp recency, flagged_off64_t offset) {
-
     if (last_extent && last_extent->full()) {
-
         /* We have filled up an extent. Transfer it to the superblock. */
 
         extents_in_superblock.push_back(last_extent);
@@ -120,7 +112,6 @@ void lba_disk_structure_t::add_entry(ser_block_id_t block_id, repli_timestamp re
 struct lba_writer_t :
     public extent_t::sync_callback_t
 {
-    
     int outstanding_cbs;
     lba_disk_structure_t::sync_callback_t *callback;
     
@@ -139,7 +130,6 @@ struct lba_writer_t :
 };
 
 void lba_disk_structure_t::sync(sync_callback_t *cb) {
-    
     lba_writer_t *writer = new lba_writer_t(cb);
     
     /* Count how many things need to be synced */
@@ -212,12 +202,10 @@ struct reader_t :
 };
 
 void lba_disk_structure_t::read(in_memory_index_t *index, read_callback_t *cb) {
-    
     new reader_t(this, index, cb);
 }
 
 void lba_disk_structure_t::prepare_metablock(lba_shard_metablock_t *mb_out) {
-    
     if (last_extent) {
         mb_out->last_lba_extent_offset = last_extent->offset;
         mb_out->last_lba_extent_entries_count = last_extent->count;

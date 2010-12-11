@@ -23,7 +23,6 @@ void usage(const char *name) {
 }
 
 void parse_cmd_args(int argc, char **argv, config_t *config) {
-
     // TODO disallow rogue options.
 
     optind = 1;  // reinit getopt.

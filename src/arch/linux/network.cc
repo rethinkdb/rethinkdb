@@ -25,7 +25,6 @@ linux_net_conn_t::linux_net_conn_t(fd_t sock)
 }
 
 void linux_net_conn_t::register_with_event_loop() {
-
     /* Register ourself to receive notifications from the event loop if we have not
     already done so. */
 
@@ -40,7 +39,6 @@ void linux_net_conn_t::register_with_event_loop() {
 }
 
 void linux_net_conn_t::read_external(void *buf, size_t size, linux_net_conn_read_external_callback_t *cb) {
-
     if (was_shut_down) {
         cb->on_net_conn_close();
         return;
@@ -69,13 +67,11 @@ void linux_net_conn_t::read_external(void *buf, size_t size, linux_net_conn_read
 }
 
 void linux_net_conn_t::try_to_read_external_buf() {
-
     assert(read_mode == read_mode_external);
 
     // The only time when external_read_size would be zero here is if read() was called to ask for
     // zero bytes.
     if (external_read_size > 0) {
-
         assert(external_read_buf);
         int res = ::read(sock, external_read_buf, external_read_size);
 
@@ -108,7 +104,6 @@ void linux_net_conn_t::try_to_read_external_buf() {
 }
 
 void linux_net_conn_t::read_buffered(linux_net_conn_read_buffered_callback_t *cb) {
-
     if (was_shut_down) {
         cb->on_net_conn_close();
         return;
@@ -129,7 +124,6 @@ void linux_net_conn_t::read_buffered(linux_net_conn_read_buffered_callback_t *cb
 }
 
 void linux_net_conn_t::put_more_data_in_peek_buffer() {
-
     assert(read_mode == read_mode_buffered);
 
     // Grow the peek buffer so we have some space to put what we're about to insert
@@ -168,7 +162,6 @@ void linux_net_conn_t::put_more_data_in_peek_buffer() {
 }
 
 bool linux_net_conn_t::see_if_callback_is_satisfied() {
-
     assert(read_mode == read_mode_buffered);
     assert(!in_read_buffered_cb);
 
@@ -193,7 +186,6 @@ bool linux_net_conn_t::see_if_callback_is_satisfied() {
 }
 
 void linux_net_conn_t::accept_buffer(size_t bytes) {
-
     assert(read_mode == read_mode_buffered);
     assert(in_read_buffered_cb);
 
@@ -206,7 +198,6 @@ void linux_net_conn_t::accept_buffer(size_t bytes) {
 }
 
 void linux_net_conn_t::write_external(const void *buf, size_t size, linux_net_conn_write_external_callback_t *cb) {
-
     if (was_shut_down) {
         cb->on_net_conn_close();
         return;
@@ -225,7 +216,6 @@ void linux_net_conn_t::write_external(const void *buf, size_t size, linux_net_co
 }
 
 void linux_net_conn_t::try_to_write_external_buf() {
-
     assert(write_mode == write_mode_external);
 
     // The only time when external_write_size would be zero here is if write() was called
@@ -259,7 +249,6 @@ void linux_net_conn_t::try_to_write_external_buf() {
 }
 
 void linux_net_conn_t::shutdown() {
-
     assert(!in_read_buffered_cb, "Please don't call net_conn_t::shutdown() from within "
         "on_net_conn_read_buffered() without calling accept_buffer(). The net_conn_t is "
         "sort of stupid and you just broke its fragile little mind.");
@@ -273,7 +262,6 @@ void linux_net_conn_t::shutdown() {
 }
 
 void linux_net_conn_t::on_shutdown() {
-
     assert(!was_shut_down);
     assert(sock != INVALID_FD);
     was_shut_down = true;
@@ -287,11 +275,13 @@ void linux_net_conn_t::on_shutdown() {
         case read_mode_none: break;
         case read_mode_external: read_external_cb->on_net_conn_close(); break;
         case read_mode_buffered: read_buffered_cb->on_net_conn_close(); break;
+        default: unreachable();
     }
 
     switch (write_mode) {
         case write_mode_none: break;
         case write_mode_external: write_external_cb->on_net_conn_close(); break;
+        default: unreachable();
     }
 
     // Deregister ourself with the event loop
@@ -303,11 +293,9 @@ void linux_net_conn_t::on_shutdown() {
 }
 
 linux_net_conn_t::~linux_net_conn_t() {
-
     // sock would be INVALID_FD if our sock was stolen by a
     // linux_oldstyle_net_conn_t.
     if (sock != INVALID_FD) {
-
         // So on_event() doesn't call us after we got deleted
         if (set_me_true_on_delete) *set_me_true_on_delete = true;
 
@@ -317,7 +305,6 @@ linux_net_conn_t::~linux_net_conn_t() {
 }
 
 void linux_net_conn_t::on_event(int events) {
-
     assert(sock != INVALID_FD);
     assert(!was_shut_down);
 
@@ -331,6 +318,7 @@ void linux_net_conn_t::on_event(int events) {
             case read_mode_none: break;
             case read_mode_external: try_to_read_external_buf(); break;
             case read_mode_buffered: put_more_data_in_peek_buffer(); break;
+            default: unreachable();
         }
         if (deleted || was_shut_down) {
             set_me_true_on_delete = NULL;
@@ -341,6 +329,7 @@ void linux_net_conn_t::on_event(int events) {
         switch (write_mode) {
             case write_mode_none: break;
             case write_mode_external: try_to_write_external_buf(); break;
+            default: unreachable();
         }
         if (deleted || was_shut_down) {
             set_me_true_on_delete = NULL;
@@ -391,7 +380,6 @@ linux_net_listener_t::linux_net_listener_t(int port)
 }
 
 void linux_net_listener_t::set_callback(linux_net_listener_callback_t *cb) {
-
     assert(!callback);
     assert(cb);
     callback = cb;
@@ -400,7 +388,6 @@ void linux_net_listener_t::set_callback(linux_net_listener_callback_t *cb) {
 }
 
 void linux_net_listener_t::on_event(int events) {
-
     while (true) {
         sockaddr_in client_addr;
         socklen_t client_addr_len = sizeof(client_addr);
@@ -428,7 +415,6 @@ void linux_net_listener_t::on_event(int events) {
 }
 
 linux_net_listener_t::~linux_net_listener_t() {
-
     int res;
 
     if (callback) linux_thread_pool_t::thread->queue.forget_resource(sock, this);
@@ -454,7 +440,6 @@ linux_oldstyle_net_conn_t::linux_oldstyle_net_conn_t(linux_net_conn_t *conn)
 }
 
 void linux_oldstyle_net_conn_t::set_callback(linux_oldstyle_net_conn_callback_t *cb) {
-
     assert(!callback);
     assert(cb);
     callback = cb;
@@ -467,7 +452,6 @@ ssize_t linux_oldstyle_net_conn_t::read_nonblocking(void *buf, size_t count) {
 }
 
 ssize_t linux_oldstyle_net_conn_t::write_nonblocking(const void *buf, size_t count) {
-
     int res = ::write(sock, buf, count);
     if (res == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
         // Whoops, got stuff to write, turn on write notification.
@@ -484,7 +468,6 @@ ssize_t linux_oldstyle_net_conn_t::write_nonblocking(const void *buf, size_t cou
 }
 
 void linux_oldstyle_net_conn_t::on_event(int events) {
-
     assert(callback);
 
     // So we can tell if the callback deletes the linux_oldstyle_net_conn_t
@@ -492,7 +475,6 @@ void linux_oldstyle_net_conn_t::on_event(int events) {
     set_me_true_on_delete = &was_deleted;
     
     if (events & poll_event_in || events & poll_event_out) {
-
         if (events & poll_event_in) {
             callback->on_net_conn_readable();
         }
@@ -502,15 +484,12 @@ void linux_oldstyle_net_conn_t::on_event(int events) {
             callback->on_net_conn_writable();
         }
         if (was_deleted) return;
-
     } else if (events & poll_event_err) {
-
         callback->on_net_conn_close();
         if (was_deleted) return;
 
         delete this;
         return;
-
     } else {
         // TODO: this actually happened at some point. Handle all of
         // these things properly.
@@ -521,7 +500,6 @@ void linux_oldstyle_net_conn_t::on_event(int events) {
 }
 
 linux_oldstyle_net_conn_t::~linux_oldstyle_net_conn_t() {
-
     if (set_me_true_on_delete)
         *set_me_true_on_delete = true;
 

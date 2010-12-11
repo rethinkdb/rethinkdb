@@ -14,7 +14,6 @@ struct mock_iocallback_t {
 template<class inner_io_config_t>
 class mock_direct_file_t
 {
-    
 public:
     enum mode_t {
         mode_read = 1 << 0,
@@ -22,7 +21,6 @@ public:
     };
     
     mock_direct_file_t(const char *path, int mode) {
-        
         int mode2 = 0;
         if (mode & mode_read) mode2 |= inner_io_config_t::direct_file_t::mode_read;
         if (mode & mode_write) mode2 |= inner_io_config_t::direct_file_t::mode_write;
@@ -64,21 +62,18 @@ public:
     /* These always return 'false'; the reason they return bool instead of void
     is for consistency with other asynchronous-callback methods */
     bool read_async(size_t offset, size_t length, void *buf, mock_iocallback_t *cb) {
-        
         read_blocking(offset, length, buf);
         random_delay(cb, &mock_iocallback_t::on_io_complete, (event_t*)NULL);
         return false;
     }
     
     bool write_async(size_t offset, size_t length, void *buf, mock_iocallback_t *cb) {
-        
         write_blocking(offset, length, buf);
         random_delay(cb, &mock_iocallback_t::on_io_complete, (event_t*)NULL);
         return false;
     }
     
     void read_blocking(size_t offset, size_t length, void *buf) {
-        
         verify(offset, length, buf);
         for (unsigned i = 0; i < length / DEVICE_BLOCK_SIZE; i += 1) {
             memcpy((char*)buf + i*DEVICE_BLOCK_SIZE, blocks[offset/DEVICE_BLOCK_SIZE + i].data, DEVICE_BLOCK_SIZE);
@@ -86,7 +81,6 @@ public:
     }
     
     void write_blocking(size_t offset, size_t length, void *buf) {
-        
         verify(offset, length, buf);
         for (unsigned i = 0; i < length / DEVICE_BLOCK_SIZE; i += 1) {
             memcpy(blocks[offset/DEVICE_BLOCK_SIZE + i].data, (char*)buf + i*DEVICE_BLOCK_SIZE, DEVICE_BLOCK_SIZE);
@@ -94,7 +88,6 @@ public:
     }
     
     ~mock_direct_file_t() {
-        
         inner_file->set_size(get_size());
         for (unsigned i = 0; i < get_size() / DEVICE_BLOCK_SIZE; i++) {
             inner_file->write_blocking(i*DEVICE_BLOCK_SIZE, DEVICE_BLOCK_SIZE, blocks[i].data);
@@ -124,7 +117,6 @@ private:
     segmented_vector_t<block_t, 10*GIGABYTE/DEVICE_BLOCK_SIZE> blocks;
     
     void verify(size_t offset, size_t length, void *buf) {
-        
         assert(buf);
         assert(offset + length <= get_size());
         assert((intptr_t)buf % DEVICE_BLOCK_SIZE == 0);

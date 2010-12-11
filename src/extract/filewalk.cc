@@ -237,7 +237,6 @@ bool get_large_buf_segments(const btree_key *key, direct_file_t& file, const lar
     }
 
     if (levels == 1) {
-
         block *b = new block();
         segblocks->bs.push_back(b);
         b->init(cfg.block_size(), &file, offsets[trans_id], trans);
@@ -249,9 +248,7 @@ bool get_large_buf_segments(const btree_key *key, direct_file_t& file, const lar
                    key->size, key->contents, offsets[trans.value], sizeof(leafbuf->magic), leafbuf->magic.bytes);
             return false;
         }
-
     } else {
-
         block internal;
         internal.init(cfg.block_size(), &file, offsets[trans.value], trans);
 
@@ -303,7 +300,6 @@ void dump_pair_value(dumper_t &dumper, direct_file_t& file, const cfg_t& cfg, co
 
 
     if (value->is_large()) {
-
         int mod_id = translator_serializer_t::untranslate_block_id(this_block, cfg.mod_count, CONFIG_BLOCK_ID);
 
         int64_t seg_size = large_buf_t::cache_size_to_leaf_bytes(cfg.block_size());
@@ -321,7 +317,6 @@ void dump_pair_value(dumper_t &dumper, direct_file_t& file, const cfg_t& cfg, co
             pieces[i].buf = reinterpret_cast<const large_buf_leaf *>(segblocks.bs[i]->buf)->buf;
             pieces[i].len = (i == n - 1 ? (ref.offset + ref.size) % seg_size : seg_size) - beg;
         }
-
     } else {
         pieces.resize(1);
         pieces[0].buf = valuebuf;

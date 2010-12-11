@@ -32,7 +32,7 @@ endif
 # Define configuration variables
 CXX:=g++
 LDFLAGS:=-lrt -laio
-CXXFLAGS:=-I$(SOURCE_DIR) -Wall -Wextra -Wformat=2 -Wno-unused-parameter -Werror
+CXXFLAGS:=-I$(SOURCE_DIR) -Wall -Wextra -Wformat=2 -Wno-unused-parameter -Wswitch-enum -Wswitch-default -Werror
 
 # Configure libcoroutine
 CXXFLAGS+=-DUSE_UCONTEXT

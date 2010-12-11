@@ -50,12 +50,10 @@ epoll_event_queue_t::epoll_event_queue_t(linux_queue_parent_t *parent)
 }
 
 void epoll_event_queue_t::run() {
-    
     int res;
     
     // Now, start the loop
     while (!parent->should_shut_down()) {
-    
         // Grab the events from the kernel!
         res = epoll_wait(epoll_fd, events, MAX_IO_EVENT_PROCESSING_BATCH_SIZE, -1);
         
@@ -110,7 +108,6 @@ epoll_event_queue_t::~epoll_event_queue_t()
 }
 
 void epoll_event_queue_t::watch_resource(fd_t resource, int watch_mode, linux_event_callback_t *cb) {
-
     assert(cb);
     epoll_event event;
     
@@ -132,7 +129,6 @@ void epoll_event_queue_t::adjust_resource(fd_t resource, int events, linux_event
 }
 
 void epoll_event_queue_t::forget_resource(fd_t resource, linux_event_callback_t *cb) {
-
     assert(cb);
     
     epoll_event event;
