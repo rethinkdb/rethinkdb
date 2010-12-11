@@ -175,7 +175,7 @@ try:
                           "no-valgrind" : not checker,
                           "protocol"    : protocol,
                           "cores"       : cores,
-                          "slices"      : slices 
+                          "slices"      : slices,
                           "num_ints"    : 1000000 },
                         repeat=3, timeout = 180)
             
