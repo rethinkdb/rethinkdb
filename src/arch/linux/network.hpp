@@ -126,6 +126,8 @@ public:
     explicit linux_net_listener_t(int port);
     void set_callback(linux_net_listener_callback_t *cb);
     ~linux_net_listener_t();
+    
+    bool defunct;
 
 private:
     fd_t sock;

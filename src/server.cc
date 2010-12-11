@@ -83,9 +83,13 @@ void server_t::do_start_conn_acceptor() {
     // db file).
     cmd_config->print();
     
-    logINF("Server is now accepting memcached connections on port %d.\n", cmd_config->port);
+    if (!conn_acceptor.start()) {
+        // If we got an error condition, shutdown myself
+        do_shutdown();
+    }
+    else
+        logINF("Server is now accepting memcached connections on port %d.\n", cmd_config->port);
     
-    conn_acceptor.start();
 
 #ifdef REPLICATION_ENABLED
     replication_acceptor = new conn_acceptor_t(cmd_config->port+1, &create_replication_master, (void*)store);

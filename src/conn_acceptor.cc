@@ -10,11 +10,15 @@ conn_acceptor_t::~conn_acceptor_t() {
     assert(n_active_conns == 0);
 }
 
-void conn_acceptor_t::start() {
+bool conn_acceptor_t::start() {
     listener = new net_listener_t(port);
+    
     listener->set_callback(this);
 
     state = state_ready;
+    
+    // Check for error conditions:
+    return !listener->defunct;
 }
 
 void conn_acceptor_t::on_net_listener_accept(net_conn_t *conn) {

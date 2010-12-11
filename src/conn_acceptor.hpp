@@ -23,7 +23,8 @@ public:
     function to make an object to handle it. */
     explicit conn_acceptor_t(int port, conn_handler_t *(*creator)(net_conn_t*, void*), void *udata);
 
-    void start();
+    // Returns false on error, true if everything is ok
+    bool start();
 
     struct shutdown_callback_t {
         virtual void on_conn_acceptor_shutdown() = 0;

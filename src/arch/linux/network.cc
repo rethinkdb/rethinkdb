@@ -353,6 +353,8 @@ void linux_net_conn_t::on_event(int events) {
 linux_net_listener_t::linux_net_listener_t(int port)
     : callback(NULL)
 {
+    defunct = false;
+
     int res;
 
     sock = socket(AF_INET, SOCK_STREAM, 0);
@@ -369,7 +371,13 @@ linux_net_listener_t::linux_net_listener_t(int port)
     serv_addr.sin_port = htons(port);
     serv_addr.sin_addr.s_addr = INADDR_ANY;
     res = bind(sock, (sockaddr*)&serv_addr, sizeof(serv_addr));
-    guarantee_err(res == 0, "Couldn't bind socket");
+    if (res != 0) {
+        fprintf(stderr, "Couldn't bind socket: %s\n", strerror(errno));
+        // We cannot simply terminate here, since this may lead to corrupted database files.
+        // defunct myself and rely on server to handle this condition and shutdown gracefully...
+        defunct = true;
+        return;
+    }
 
     // Start listening to connections
     res = listen(sock, 5);
@@ -380,6 +388,9 @@ linux_net_listener_t::linux_net_listener_t(int port)
 }
 
 void linux_net_listener_t::set_callback(linux_net_listener_callback_t *cb) {
+    if (defunct)
+        return;
+
     assert(!callback);
     assert(cb);
     callback = cb;
@@ -388,6 +399,9 @@ void linux_net_listener_t::set_callback(linux_net_listener_callback_t *cb) {
 }
 
 void linux_net_listener_t::on_event(int events) {
+    if (defunct)
+        return;
+        
     while (true) {
         sockaddr_in client_addr;
         socklen_t client_addr_len = sizeof(client_addr);
@@ -415,6 +429,9 @@ void linux_net_listener_t::on_event(int events) {
 }
 
 linux_net_listener_t::~linux_net_listener_t() {
+    if (defunct)
+        return;
+
     int res;
 
     if (callback) linux_thread_pool_t::thread->queue.forget_resource(sock, this);
