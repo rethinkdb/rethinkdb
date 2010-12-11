@@ -68,8 +68,11 @@ def check_rethinkdb_flags(opts, flags, expected_return_value):
     rethinkdb_result = run_rethinkdb(opts, flags, rethinkdb_check_timeout)
     if expected_return_value is None and rethinkdb_result is not None:
         raise ValueError("RethinkDB did exit with a return value of %i, although it was not expected to. Flags were: %s" % (rethinkdb_result[0], flags))
-    elif rethinkdb_result[0] != expected_return_value:
-        raise ValueError("RethinkDB gave a return value of %i, expected a value of %i. Flags were: %s" % (rethinkdb_result[0], expected_return_value, flags))
+    else:
+        if expected_return_value > 127:
+            expected_return_value = 128 - expected_return_value # We have to wrap over it seems
+        if rethinkdb_result[0] != expected_return_value:
+            raise ValueError("RethinkDB gave a return value of %i, expected a value of %i. Flags were: %s" % (rethinkdb_result[0], expected_return_value, flags))
     
     
 
