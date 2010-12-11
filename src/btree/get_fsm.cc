@@ -52,6 +52,7 @@ buf_t *co_acquire_transaction(transaction_t *transaction, block_id_t block_id, a
     co_block_available_callback_t *cb = new co_block_available_callback_t();
     buf_t *value = transaction->acquire(block_id, mode, cb);
     if (!value) value = cb->join();
+    delete cb;
     return value;
 }
 
