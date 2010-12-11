@@ -268,7 +268,7 @@ void parsing_cmd_config_t::set_last_semantic_file(const char* value) {
     // Check if we can create and access the file at this path
     FILE* logfile = fopen(value, "a+");
     if (logfile == NULL)
-        fail_due_to_user_error("Inaccessable or invalid semantic file: \"%s\": %s", value, strerror(errno));
+        fail_due_to_user_error("Inaccessible or invalid semantic file: \"%s\": %s", value, strerror(errno));
     else
         fclose(logfile);
         
@@ -386,7 +386,7 @@ void parsing_cmd_config_t::set_log_file(const char* value) {
     // See if we can open or create the file at this path with write permissions
     FILE* logfile = fopen(value, "a");
     if (logfile == NULL)
-        fail_due_to_user_error("Inaccessable or invalid log file: \"%s\": %s", value, strerror(errno));
+        fail_due_to_user_error("Inaccessible or invalid log file: \"%s\": %s", value, strerror(errno));
     else
         fclose(logfile);
     
