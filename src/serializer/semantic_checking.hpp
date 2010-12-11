@@ -73,7 +73,8 @@ public:
         {
             semantic_fd = open(private_config->semantic_filename.c_str(),
                 O_RDWR | O_CREAT, S_IRWXU | S_IRWXG | S_IRWXO);
-            guarantee_err(semantic_fd != -1, "Could not open a semantic checking data file");
+            if (semantic_fd == INVALID_FD)
+                fail_due_to_user_error("Inaccessible semantic checking file: \"%s\": %s", private_config->semantic_filename.c_str(), strerror(errno));
         }
 
     virtual ~semantic_checking_serializer_t() {
