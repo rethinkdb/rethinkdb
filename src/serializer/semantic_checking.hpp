@@ -270,6 +270,7 @@ public:
             case block_info_t::state_unknown: break;
             case block_info_t::state_deleted: assert(!in_use); break;
             case block_info_t::state_have_crc: assert(in_use); break;
+            default: unreachable();
         }
         return in_use;
     }
