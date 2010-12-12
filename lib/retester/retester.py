@@ -77,18 +77,19 @@ class Result(object):
     
     def __init__(self, start_time, result, description=None):
         
-        assert result in ["pass", "fail"]
-
         self.running_time = time.time() - start_time
         
         if result == "pass":
             self.result = "pass"
             assert description is None
-        
         elif result == "fail":
             self.result = "fail"
             assert description is not None
             self.description = str(description)
+            self.output_dir = None
+        else:
+            self.result = "fail"
+            self.description = "Test result wasn't 'pass' or 'fail' - investigate!"
             self.output_dir = None
 
 def format_exit_code(code):
