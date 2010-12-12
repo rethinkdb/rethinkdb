@@ -99,12 +99,11 @@ void epoll_event_queue_t::run() {
     }
 }
 
-epoll_event_queue_t::~epoll_event_queue_t()
-{
+epoll_event_queue_t::~epoll_event_queue_t() {
     int res;
     
     res = close(epoll_fd);
-    guarantee_err(res == 0, "Could not close epoll_fd");    // TODO: does this need to be changed to an assert?
+    assert_err(res == 0, "Could not close epoll_fd");
 }
 
 void epoll_event_queue_t::watch_resource(fd_t resource, int watch_mode, linux_event_callback_t *cb) {
