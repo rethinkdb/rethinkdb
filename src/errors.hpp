@@ -24,6 +24,8 @@
  *                                  All off the assert/guarantee functions use crash_or_trap.
  *  assert(cond)                    makes sure cond is true and is a no-op in release mode
  *  assert(cond, msg, ...)          ditto, with additional message and possibly some arguments used for formatting
+ *  assert_err(cond)                same as assert(cond), but also print errno error description
+ *  assert_err(cond, msg, ...)      same as assert(cond, msg, ...), but also print errno error description
  *  guarantee(cond)                 same as assert(cond), but the check is still done in release mode. Do not use for expensive checks!
  *  guarantee(cond, msg, ...)       same as assert(cond, msg, ...), but the check is still done in release mode. Do not use for expensive checks!
  *  guarantee_err(cond)             same as guarantee(cond), but also print errno error description
@@ -68,7 +70,7 @@ void report_user_error(const char*, ...);
 #define guarantee_err(cond, msg, args...) do {                                  \
         if (!(cond)) {                                                          \
             if (errno == 0) {                                                   \
-                crash_or_trap(format_assert_message("Guarantee", cond) msg);     \
+                crash_or_trap(format_assert_message("Guarantee", cond) msg);    \
             } else {                                                            \
                 crash_or_trap(format_assert_message("Guarantee", cond) " (errno %d - %s) " msg, errno, strerror(errno), ##args);  \
             }                                                                   \
@@ -81,11 +83,21 @@ void report_user_error(const char*, ...);
 #define UNUSED(x) ((void) x)
 #ifdef NDEBUG
 #define assert(cond, msg...) ((void)(0))
+#define assert_err(cond, msg...) ((void)(0))
 #else
 #define assert(cond, msg...) do {   \
         if (!(cond)) {              \
             crash_or_trap(format_assert_message("Assertion", cond) msg); \
         }                           \
+    } while (0)
+#define assert_err(cond, msg, args...) do {                                 \
+        if (!(cond)) {                                                      \
+            if (errno == 0) {                                               \
+                crash_or_trap(format_assert_message("Assert", cond) msg);   \
+            } else {                                                        \
+                crash_or_trap(format_assert_message("Assert", cond) " (errno %d - %s) " msg, errno, strerror(errno), ##args);  \
+            }                                                               \
+        }                                                                   \
     } while (0)
 #endif
 
