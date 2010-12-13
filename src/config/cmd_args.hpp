@@ -23,7 +23,6 @@ struct log_serializer_private_dynamic_config_t {
 /* Configuration for the serializer that can change from run to run */
 
 struct log_serializer_dynamic_config_t {
-
     /* When the proportion of garbage blocks hits gc_high_ratio, then the serializer will collect
     garbage until it reaches gc_low_ratio. */
     float gc_low_ratio, gc_high_ratio;
@@ -63,7 +62,6 @@ public:
 /* Configuration for the cache (it can all change from run to run) */
 
 struct mirrored_cache_config_t {
-    
     // Max amount of memory that will be used for the cache, in bytes.
     long long max_size;
     
@@ -86,7 +84,6 @@ struct mirrored_cache_config_t {
 serializer */
 
 struct btree_config_t {
-    
     int32_t n_slices;
 };
 
@@ -106,7 +103,6 @@ struct btree_key_value_store_dynamic_config_t {
 creation time */
 
 struct btree_key_value_store_static_config_t {
-    
     log_serializer_static_config_t serializer;
     btree_config_t btree;
 };
@@ -114,6 +110,18 @@ struct btree_key_value_store_static_config_t {
 /* All the configuration together */
 
 struct cmd_config_t {
+    /* Methods */
+
+    cmd_config_t(); // Automatically initializes to default values
+
+    void print();
+    void print_runtime_flags();
+    void print_database_flags();
+    void print_system_spec();
+
+    
+    /* Attributes */
+    
     int port;
     int n_workers;
     
@@ -129,11 +137,42 @@ struct cmd_config_t {
     bool verbose;
 };
 
-void parse_cmd_args(int argc, char *argv[], cmd_config_t *config);
+// This variant adds parsing functionality and also validates the values given
+class parsing_cmd_config_t : public cmd_config_t
+{
+public:
+    parsing_cmd_config_t();
+    
+    void set_cores(const char* value);
+    void set_port(const char* value);
+    void set_log_file(const char* value);
+    void set_slices(const char* value);
+    void set_max_cache_size(const char* value);
+    void set_wait_for_flush(const char* value);
+    void set_flush_threshold(const char* value);
+    void set_flush_timer(const char* value);
+    void set_gc_range(const char* value);
+    void set_active_data_extents(const char* value);
+    void set_block_size(const char* value);
+    void set_extent_size(const char* value);
+#ifdef SEMANTIC_SERIALIZER_CHECK
+    void set_last_semantic_file(const char* value);
+#endif
+    void push_private_config(const char* value);
+    
+private:
+    bool parsing_failed;
+    int parse_int(const char* value);
+    long long int parse_longlong(const char* value);
+    
+    template<typename T> bool is_positive(const T value) const;
+    template<typename T> bool is_in_range(const T value, const T minimum_value, const T maximum_value) const;
+    template<typename T> bool is_at_least(const T value, const T minimum_value) const;
+    template<typename T> bool is_at_most(const T value, const T maximum_value) const;
+};
 
-// TODO: remove this.
-void init_config(cmd_config_t *config);
-void print_config(cmd_config_t *config);
+cmd_config_t parse_cmd_args(int argc, char *argv[]);
+
 
 #endif // __CMD_ARGS_HPP__
 

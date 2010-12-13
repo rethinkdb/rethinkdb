@@ -16,7 +16,6 @@ struct no_arg_caller_t
 
 template<class cb_t>
 void random_delay(cb_t *cb, void (cb_t::*method)()) {
-    
     assert(cb);
     
     no_arg_caller_t<cb_t> *c = new no_arg_caller_t<cb_t>;
@@ -41,7 +40,6 @@ struct one_arg_caller_t
 
 template<class cb_t, class arg1_t>
 void random_delay(cb_t *cb, void (cb_t::*method)(arg1_t), arg1_t arg) {
-    
     assert(cb);
     
     one_arg_caller_t<cb_t, arg1_t> *c = new one_arg_caller_t<cb_t, arg1_t>;

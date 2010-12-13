@@ -205,6 +205,8 @@ public:
             case btree_set_fsm_t::set_type_cas:
                 rh->server->store->cas(key, data, flags, convert_exptime(exptime), req_cas, this);
                 break;
+            default:
+                unreachable();
         }
     }
 
@@ -408,7 +410,6 @@ public:
         memcpy(fields, fields_beg, fields_len);
 
         if (perfmon_get_stats(&stats, this)) {
-        
             /* The world is not ready for the power of completing a request immediately.
             So we delay so that the request handler doesn't get confused.  We don't know
             if this is necessary. */
@@ -428,12 +429,10 @@ public:
     }
 
     void build_response(linked_buf_t *sbuf) {
-
         if (strlen(fields) == 0) {
             for (perfmon_stats_t::iterator iter = stats.begin(); iter != stats.end(); iter++) {
                 sbuf->printf("STAT %s %s\r\n", iter->first.c_str(), iter->second.c_str());
             }
-            
         } else {
             char *fields_ptr = fields;
             char *stat;
@@ -598,7 +597,6 @@ txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::parse_request(e
         return get(state, line_len, false);
     } else if(!strcmp(cmd_str, "gets")) {
         return get(state, line_len, true);
-
     } else if(!strcmp(cmd_str, "set")) {     // check for storage commands
         return parse_storage_command(SET, state, line_len);
     } else if(!strcmp(cmd_str, "add")) {
@@ -611,10 +609,8 @@ txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::parse_request(e
         return parse_storage_command(PREPEND, state, line_len);
     } else if(!strcmp(cmd_str, "cas")) {
         return parse_storage_command(CAS, state, line_len);
-
     } else if(!strcmp(cmd_str, "delete")) {
         return remove(state, line_len);
-
     } else if(!strcmp(cmd_str, "incr")) {
         return parse_adjustment(true, state, line_len);
     } else if(!strcmp(cmd_str, "decr")) {
@@ -628,7 +624,6 @@ txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::parse_request(e
         // Quit the connection
         conn_fsm->consume(conn_fsm->nrbuf);
         return request_handler_t::op_req_quit;
-
     } else if(!strcmp(cmd_str, "shutdown")) {
         // Make sure there's no more tokens
         if (strtok_r(NULL, DELIMS, &state)) {  //strtok will return NULL if there are no more tokens
@@ -642,12 +637,10 @@ txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::parse_request(e
         server->shutdown();
         
         return request_handler_t::op_req_quit;
-
     } else if(!strcmp(cmd_str, "stats") || !strcmp(cmd_str, "stat")) {
         return parse_stat_command(line_len, cmd_str);
     } else if(!strcmp(cmd_str, "rethinkdbctl")) {
         return parse_gc_command(line_len, state);
-
     } else {
         // Invalid command
         conn_fsm->consume(line_len);
@@ -673,12 +666,15 @@ txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::parse_adjustmen
         }
     }
 
-    node_handler::str_to_key(key_tmp, &key);
-    // First convert to signed long to catch negative arguments (strtoull handles them as valid unsigned numbers)
-    signed long long signed_delta = strtoll(value_str, NULL, 10);
+    bool key_ok = node_handler::str_to_key(key_tmp, &key);
+    if (!key_ok) {
+        conn_fsm->consume(line_len);
+        return malformed_request();
+    }
+
     char *endptr = NULL;
-    unsigned long long delta = strtoull(value_str, &endptr, 10);
-    if (*endptr != '\0' || signed_delta < 0) {
+    unsigned long long delta = strtoull_strict(value_str, &endptr, 10);
+    if (*endptr != '\0') {
         if (!noreply) {
             conn_fsm->sbuf->printf(INCR_DECR_ON_NON_UINT_ARGUMENT);
             request_complete();
@@ -712,29 +708,34 @@ txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::parse_storage_c
     }
 
     cmd = command;
-    node_handler::str_to_key(key_tmp, &key);
+
+    bool key_ok = node_handler::str_to_key(key_tmp, &key);
+    if (!key_ok) {
+        conn_fsm->consume(line_len);
+        return malformed_request();
+    }
 
     char *invalid_char;
-    mcflags = strtoul(mcflags_str, &invalid_char, 10);  //a 32 bit integer.  int alone does not guarantee 32 bit length
+    mcflags = strtoul_strict(mcflags_str, &invalid_char, 10);  //a 32 bit integer.  int alone does not guarantee 32 bit length
     if (*invalid_char != '\0') {  // ensure there were no improper characters in the token - i.e. parse was successful
         conn_fsm->consume(line_len);
         return malformed_request();
     }
 
-    exptime = strtoul(exptime_str, &invalid_char, 10);
+    exptime = strtoul_strict(exptime_str, &invalid_char, 10);
     if (*invalid_char != '\0') {
         conn_fsm->consume(line_len);
         return malformed_request();
     }
 
-    bytes = strtoul(bytes_str, &invalid_char, 10);
+    bytes = strtoul_strict(bytes_str, &invalid_char, 10);
     if (*invalid_char != '\0') {
         conn_fsm->consume(line_len);
         return malformed_request();
     }
 
     if (cmd == CAS) {
-        cas = strtoull(cas_str, &invalid_char, 10);
+        cas = strtoull_strict(cas_str, &invalid_char, 10);
         if (*invalid_char != '\0') {
             conn_fsm->consume(line_len);
             return malformed_request();
@@ -757,16 +758,16 @@ txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::parse_storage_c
 }
 
 void txt_memcached_handler_t::on_large_value_completed(bool success) {
-    // Used for consuming data from the socket. XXX: This should be renamed.
+    // Used for consuming data from the socket. FIXME: This should be renamed.
     assert(success);
 }
 
 txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::read_data() {
-    check("memcached handler should be in loading data state", !loading_data);
-    
+    guarantee(loading_data, "memcached handler should be in loading data state");
+
     /* This function is a messy POS. It is possibly called many times per request, and it
     performs several different roles, some of which I don't entirely understand. */
-    
+
     data_provider_t *dp;
     bool is_large = bytes > MAX_BUFFERED_SET_SIZE;
     if (!is_large) {
@@ -829,7 +830,7 @@ txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::read_data() {
             new txt_memcached_append_prepend_request_t(this, &key, dp, false, noreply);
             break;
         default:
-            fail("Bad storage command.");
+            unreachable("Bad storage command.");
     }
     
     if (!is_large) {
@@ -862,13 +863,12 @@ txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::get(char *state
         txt_memcached_get_request_t *rq = new txt_memcached_get_request_t(this, with_cas);
 
         do {
-            if (strlen(key_str) >  MAX_KEY_SIZE) {
-                //check to make sure the key isn't too long
+            bool key_ok = node_handler::str_to_key(key_str, &key);
+            if (!key_ok) {
                 res = malformed_request();
                 delete rq;
                 goto error_breakout;
             }
-            node_handler::str_to_key(key_str, &key);
 
             if (!rq->add_get(&key)) {
                 // We can't fit any more operations, let's just break
@@ -927,7 +927,11 @@ txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::remove(char *st
         }
     }
 
-    node_handler::str_to_key(key_str, &key);
+    bool key_ok = node_handler::str_to_key(key_str, &key);
+    if (!key_ok) {
+        conn_fsm->consume(line_len);
+        return malformed_request();
+    }
 
     // Create request
     new txt_memcached_delete_request_t(this, &key, this->noreply);
@@ -964,7 +968,7 @@ static store_t::replicant_t *test_replicant;
 class test_replicant_t :
     public store_t::replicant_t
 {
-    void value(store_key_t *key, const_buffer_group_t *bg, done_callback_t *cb, mcflags_t flags, exptime_t exptime, cas_t cas) {
+    void value(const store_key_t *key, const_buffer_group_t *bg, done_callback_t *cb, mcflags_t flags, exptime_t exptime, cas_t cas, repli_timestamp value_timestamp) {
         flockfile(stderr);
         debugf("VALUE '%*.*s' = ", key->size, key->size, key->contents);
         if (bg) {
@@ -972,7 +976,7 @@ class test_replicant_t :
             for (int i = 0; i < (int)bg->buffers.size(); i++) {
                 fwrite(bg->buffers[i].data, 1, bg->buffers[i].size, stderr);
             }
-            fprintf(stderr, "' %d %d %d\n", (int)flags, (int)exptime, (int)cas);
+            fprintf(stderr, "' %d %d %d %d\n", (int)flags, (int)exptime, (int)cas, (int)value_timestamp.time);
         } else {
             assert(flags == 0);
             assert(exptime == 0);
@@ -990,7 +994,6 @@ class test_replicant_t :
 };
 
 txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::parse_gc_command(unsigned int line_len, char *state) {
-    
     const char *subcommand = strtok_r(NULL, DELIMS, &state);
 
     if (subcommand == NULL) {
@@ -1033,13 +1036,13 @@ txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::parse_gc_comman
         conn_fsm->consume(line_len);
         if (!test_replicant) {
             test_replicant = new test_replicant_t;
-            server->store->replicate(test_replicant);
+            int one_decade = 3600*24*365*10;
+            server->store->replicate(test_replicant, repli_time(time(NULL) - one_decade) /* TODO this is a hack for testing */);
             conn_fsm->sbuf->printf("Replicating to stderr.\r\n");
         } else {
             conn_fsm->sbuf->printf("Already replicating.\r\n");
         }
         return request_handler_t::op_req_send_now;
-
     } else if (!strcmp(subcommand, "unreplicate")) {
         conn_fsm->consume(line_len);
         if (test_replicant) {
@@ -1050,7 +1053,6 @@ txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::parse_gc_comman
             conn_fsm->sbuf->printf("Already not replicating.\r\n");
         }
         return request_handler_t::op_req_send_now;
-
     } else if (!strcmp(subcommand, "help")) {
         if (strtok_r(NULL, DELIMS, &state)) {
             conn_fsm->consume(line_len);

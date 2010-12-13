@@ -1,17 +1,11 @@
 #ifndef __CONN_FSM_HPP__
 #define __CONN_FSM_HPP__
 
-#include "containers/intrusive_list.hpp"
+#include "conn_acceptor.hpp"
 #include "containers/var_buf.hpp"
 #include "arch/arch.hpp"
 #include "event.hpp"
 #include <stdarg.h>
-
-// TODO: the lifetime of conn_fsm isn't well defined - some objects
-// may persist for far longer than others. The small object dynamic
-// pool allocator is designed for objects that have roughly the same
-// lifetime. We should use a different allocator for objects like
-// conn_fsm (and btree buffers).
 
 struct request_handler_t;
 
@@ -20,16 +14,10 @@ struct data_transferred_callback {
     virtual ~data_transferred_callback() {}
 };
 
-struct conn_fsm_shutdown_callback_t {
-    virtual void on_conn_fsm_quit() = 0;
-    virtual void on_conn_fsm_shutdown() = 0;
-    virtual ~conn_fsm_shutdown_callback_t() {}
-};
-
 // The actual state structure
 struct conn_fsm_t :
-    public intrusive_list_node_t<conn_fsm_t>,
-    public net_conn_callback_t
+    public conn_handler_t,
+    public oldstyle_net_conn_callback_t
 {
 public:
     typedef buffer_t<IO_BUFFER_SIZE> iobuf_t;
@@ -61,12 +49,12 @@ public:
     };
     
 public:
-    conn_fsm_t(net_conn_t *conn, conn_fsm_shutdown_callback_t *cb, request_handler_t *rh);
+    conn_fsm_t(net_conn_t *conn, request_handler_t *rh);
     ~conn_fsm_t();
 
 public:
     /* Called by conn_acceptor_t when the server is being shut down. */
-    void start_quit();
+    void quit();
 private:
     bool quitting; /* !< if true don't issue anymore requests just let them finish and then quit */
 #ifndef NDEBUG
@@ -82,7 +70,7 @@ public:
     void on_net_conn_close();
     
 public:
-    net_conn_t *conn;
+    oldstyle_net_conn_t *conn;
     state_t state;
     bool corked; //whether or not we should buffer our responses
     
@@ -102,8 +90,6 @@ public:
      *              if it returns op_req_complex then it MUST send an et_request_complete event}
      */
     request_handler_t *req_handler;
-
-    conn_fsm_shutdown_callback_t *shutdown_callback;
 
     void fill_external_buf(byte *external_buf, unsigned int size, data_transferred_callback *callback);
     void send_external_buf(const byte *external_buf, unsigned int size, data_transferred_callback *callback);

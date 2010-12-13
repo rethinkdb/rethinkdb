@@ -11,7 +11,6 @@ class initialize_superblock_fsm_t :
     private transaction_begin_callback_t,
     private transaction_commit_callback_t
 {
-
 public:
     explicit initialize_superblock_fsm_t(cache_t *cache)
         : state(state_unstarted), cache(cache), sb_buf(NULL), txn(NULL)
@@ -52,7 +51,6 @@ private:
     btree_slice_t *callback;
     
     bool next_initialize_superblock_step() {
-        
         if (state == state_begin_transaction) {
             txn = cache->begin_transaction(rwi_write, this);
             if (txn) {
@@ -96,7 +94,7 @@ private:
             return true;
         }
         
-        fail("Unexpected state");
+        unreachable("Unexpected state");
     }
     
     void on_txn_begin(transaction_t *t) {
@@ -155,9 +153,7 @@ bool btree_slice_t::start(ready_callback_t *cb) {
 }
 
 bool btree_slice_t::next_starting_up_step() {
-    
     if (state == state_starting_up_start_cache) {
-        
         /* For now, the cache's startup process is the same whether it is starting a new
         database or an existing one. This could change in the future, though. */
         
@@ -170,10 +166,8 @@ bool btree_slice_t::next_starting_up_step() {
     }
     
     if (state == state_starting_up_initialize_superblock) {
-    
         if (is_start_existing) {
             state = state_starting_up_finish;
-    
         } else {
             sb_fsm = new initialize_superblock_fsm_t(&cache);
             if (sb_fsm->initialize_superblock_if_necessary(this)) {
@@ -186,7 +180,6 @@ bool btree_slice_t::next_starting_up_step() {
     }
     
     if (state == state_starting_up_finish) {
-        
         if (!is_start_existing) delete sb_fsm;
         
         state = state_ready;
@@ -195,7 +188,7 @@ bool btree_slice_t::next_starting_up_step() {
         return true;
     }
     
-    fail("Unexpected state");
+    unreachable("Unexpected state");
 }
 
 void btree_slice_t::on_cache_ready() {
@@ -229,7 +222,6 @@ bool btree_slice_t::shutdown(shutdown_callback_t *cb) {
 }
 
 bool btree_slice_t::next_shutting_down_step() {
-    
     if (state == state_shutting_down_shutdown_cache) {
         if (cache.shutdown(this)) {
             state = state_shutting_down_finish;
@@ -245,7 +237,7 @@ bool btree_slice_t::next_shutting_down_step() {
         return true;
     }
     
-    fail("Invalid state.");
+    unreachable("Invalid state.");
 }
 
 void btree_slice_t::on_cache_shutdown() {

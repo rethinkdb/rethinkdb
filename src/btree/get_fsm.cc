@@ -92,7 +92,7 @@ struct btree_get_t {
         assert(transaction); // Read-only transaction always begins immediately.
         last_buf = co_acquire_transaction(transaction, SUPERBLOCK_ID, rwi_read);
         assert(last_buf);
-        block_id_t node_id = ((const btree_superblock_t*)last_buf->get_data_read())->root_block;
+        block_id_t node_id = ptr_cast<btree_superblock_t>(last_buf->get_data_read())->root_block;
         assert(node_id != SUPERBLOCK_ID);
 
         //Acquire the root
@@ -114,16 +114,16 @@ struct btree_get_t {
             printf("Going one level down the node tree\n");
             buf = co_acquire_transaction(transaction, node_id, rwi_read);
             assert(buf);
-            node_handler::validate(cache->get_block_size(), node_handler::node(buf->get_data_read()));
+            node_handler::validate(cache->get_block_size(), ptr_cast<node_t>(buf->get_data_read()));
             
             // Release the previous buffer
             last_buf->release();
             last_buf = NULL;
 
-            node = node_handler::node(buf->get_data_read());
+            node = ptr_cast<node_t>(buf->get_data_read());
             if(!node_handler::is_internal(node)) break;
 
-            block_id_t next_node_id = internal_node_handler::lookup((internal_node_t*)node, &key);
+            block_id_t next_node_id = internal_node_handler::lookup(ptr_cast<internal_node_t>(node), &key);
             assert(next_node_id != NULL_BLOCK_ID);
             assert(next_node_id != SUPERBLOCK_ID);
             last_buf = buf;
@@ -132,7 +132,7 @@ struct btree_get_t {
 
         //Got down to the leaf, now examine it
         printf("Got the leaf, now examine it\n");
-        bool found = leaf_node_handler::lookup((leaf_node_t*)node, &key, &value);
+        bool found = leaf_node_handler::lookup(ptr_cast<leaf_node_t>(node), &key, &value);
         buf->release();
         buf = NULL;
         
@@ -194,13 +194,14 @@ struct btree_get_t {
                 printf("Delivering value\n");
                 co_value(cb, &value_buffers, value.mcflags(), 0);
                 return;
+            case invalid_response:
             default:
-                fail("Invalid response object\n");
+                crash_or_trap("Invalid response object\n");
         }
     }
 
     static void finalize(void *arg) {
-        btree_get_t *receiver = (btree_get_t *)arg;
+        btree_get_t *receiver = ptr_cast<btree_get_t>(arg);
         printf("Releasing large value data structures\n");
         receiver->large_value->release();
         delete receiver->large_value;
@@ -209,8 +210,16 @@ struct btree_get_t {
     }
 
     ~btree_get_t() {
-        if (response == got_large_value) {
-            run_on_cpu(slice->home_cpu, finalize, this);
+        switch(response) {
+            case got_large_value:
+                run_on_cpu(slice->home_cpu, finalize, this);
+                return;
+            case got_small_value:
+            case not_found:
+                return;
+            case invalid_response:
+            default:
+                crash_or_trap("Invalid response object\n");
         }
     }
 };

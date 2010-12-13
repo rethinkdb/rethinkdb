@@ -31,7 +31,6 @@ public:
 
 
     void operate(btree_value *old_value, large_buf_t *old_large_value) {
-
         if ((old_value && type == set_type_add) || (!old_value && type == set_type_replace)) {
             result = result_not_stored;
             data->get_value(NULL, this);
@@ -72,7 +71,7 @@ public:
         } else {
             large_value = new large_buf_t(this->transaction);
             large_value->allocate(data->get_size(), value.large_buf_ref_ptr());
-            for (int i = 0; i < large_value->get_num_segments(); i++) {
+            for (int64_t i = 0; i < large_value->get_num_segments(); i++) {
                 uint16_t size;
                 void *data = large_value->get_segment_write(i, &size);
                 buffer_group.add_buffer(size, data);
@@ -88,6 +87,10 @@ public:
         
         if (result == result_stored) {
             have_finished_operating(&value, large_value);
+        } else if (result == result_too_large) {
+            /* To be standards-compliant we must delete the old value when an effort is made to
+            replace it with a value that is too large. */
+            have_finished_operating(NULL, NULL);
         } else {
             have_failed_operating();
         }
@@ -108,7 +111,6 @@ public:
     }
     
     void call_callback_and_delete() {
-        
         switch (result) {
             case result_stored:
                 callback->stored();
@@ -128,6 +130,8 @@ public:
             case result_data_provider_failed:
                 callback->data_provider_failed();
                 break;
+            default:
+                unreachable();
         }
         
         delete this;

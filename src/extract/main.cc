@@ -85,21 +85,21 @@ void parse_cmd_args(int argc, char **argv, config_t *config) {
             long bs = strtol(optarg, &endptr, 10);
             config->overrides.block_size_ = bs;
             if (*endptr != '\0' || bs <= 0) {
-                fail("Block size must be a positive integer.\n");
+                fail_due_to_user_error("Block size must be a positive integer.\n");
             }
         } break;
         case force_extent_size: {
             char *endptr;
             config->overrides.extent_size = strtol(optarg, &endptr, 10);
             if (*endptr != '\0' || config->overrides.extent_size <= 0) {
-                fail("Extent size must be a positive integer.\n");
+                fail_due_to_user_error("Extent size must be a positive integer.\n");
             }
         } break;
         case force_mod_count: {
             char *endptr;
             config->overrides.mod_count = strtol(optarg, &endptr, 10);
             if (*endptr != '\0' || config->overrides.mod_count <= 0) {
-                fail("The mod count must be a positive integer.\n");
+                fail_due_to_user_error("The mod count must be a positive integer.\n");
             }
         } break;
         case 'h':
@@ -114,24 +114,23 @@ void parse_cmd_args(int argc, char **argv, config_t *config) {
     }
 
     if (optind < argc) {
-        fail("Unexpected extra argument: \"%s\"", argv[optind]);
+        fail_due_to_user_error("Unexpected extra argument: \"%s\"", argv[optind]);
     }
 
     // Sanity-check the input.
 
     if (config->input_files.empty()) {
-        fail("A path must be specified with -f.");
+        fail_due_to_user_error("A path must be specified with -f.");
     }
 
     if (config->overrides.any() && config->input_files.size() >= 2) {
-        fail("--force-* options can only be used with one file at a time.");
+        fail_due_to_user_error("--force-* options can only be used with one file at a time.");
     }
 }
 
 }  // namespace extract
 
 int main(int argc, char **argv) {
-
     install_generic_crash_handler();
 
     extract::config_t config;

@@ -84,6 +84,7 @@ public:
     buf_t *acquire(block_id_t block_id, access_t mode,
                    block_available_callback_t *callback);
     buf_t *allocate(block_id_t *new_block_id);
+    repli_timestamp get_subtree_recency(block_id_t block_id);
 
     scc_cache_t<inner_cache_t> *cache;
 
@@ -101,10 +102,7 @@ private:
 /* Cache */
 
 template<class inner_cache_t>
-class scc_cache_t :
-    public home_cpu_mixin_t
-{
-
+class scc_cache_t : public home_cpu_mixin_t {
 public:
     typedef scc_buf_t<inner_cache_t> buf_t;
     typedef scc_transaction_t<inner_cache_t> transaction_t;

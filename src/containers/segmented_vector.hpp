@@ -37,7 +37,6 @@ public:
     }
     
     size_t get_size() const {
-    
         return size;
     }
 
@@ -45,7 +44,6 @@ public:
     // array to grow to that size (e.g. one hundred elements might be
     // initialized even though the array might be of size 1).
     void set_size(size_t new_size) {
-        
         assert(new_size < max_size);
         
         size_t num_segs = size ? ((size - 1) / ELEMENTS_PER_SEGMENT) + 1 : 0;
@@ -67,7 +65,6 @@ public:
     
     // This form of set_size fills the newly allocated space with a value
     void set_size(size_t new_size, element_t fill) {
-        
         size_t old_size = size;
         set_size(new_size);
         for (; old_size < new_size; old_size++) (*this)[old_size] = fill;

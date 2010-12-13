@@ -27,11 +27,9 @@ public:
     }
 
     void operate(btree_value *old_value, large_buf_t *old_large_buf) {
-
         if (!old_value) {
             result = result_not_found;
             have_failed_operating();
-        
         } else {
             valuecpy(&value, old_value);
             large_value = old_large_buf;
@@ -45,7 +43,7 @@ public:
             if (value.is_large()) {
                 result = result_large_value;
                 // Prepare the buffer group
-                for (int i = 0; i < old_large_buf->get_num_segments(); i++) {
+                for (int64_t i = 0; i < old_large_buf->get_num_segments(); i++) {
                     uint16_t size;
                     const void *data = old_large_buf->get_segment(i, &size);
                     buffer_group.add_buffer(size, data);
@@ -53,7 +51,6 @@ public:
                 
                 in_operate = true;   // So we intercept on_cpu_switch()
                 if (continue_on_cpu(home_cpu, this)) on_cpu_switch();
-                
             } else {
                 result = result_small_value;
                 done_with_operate();
@@ -84,8 +81,6 @@ public:
     
     void have_copied_value() {
         switch (result) {
-            case result_not_found:
-                fail("WTF?");
             case result_small_value:
                 delete this;
                 break;
@@ -93,6 +88,9 @@ public:
                 have_delivered_value = true;
                 if (continue_on_cpu(slice->home_cpu, this)) on_cpu_switch();
                 break;
+            case result_not_found:
+            default:
+                unreachable();
         }
     }
     
@@ -110,6 +108,8 @@ public:
                 // We already delivered our callback during operate().
                 delete this;
                 break;
+            default:
+                unreachable();
         }
     }
     

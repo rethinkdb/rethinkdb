@@ -17,7 +17,6 @@ public:
     }
 
     void operate(btree_value *old_value, large_buf_t *old_large_buf) {
-
         // If the key didn't exist before, we fail
         if (!old_value) {
             result = result_not_found;
@@ -32,7 +31,7 @@ public:
             memcpy(buffer, old_value->value(), old_value->size);
             buffer[old_value->size] = 0;
             char *endptr;
-            new_number = strtoull(buffer, &endptr, 10);
+            new_number = strtoull_strict(buffer, &endptr, 10);
             if (endptr == buffer) valid = false;
             else valid = true;
         } else {
@@ -45,8 +44,8 @@ public:
         }
 
         
-	// If we overflow when doing an increment, set number to 0 (this is as memcached does it as of version 1.4.5)
-	// for decrements, set to 0 on underflows
+        // If we overflow when doing an increment, set number to 0 (this is as memcached does it as of version 1.4.5)
+        // for decrements, set to 0 on underflows
         if (increment) {
             if (new_number + delta < new_number) new_number = 0;
             else new_number += delta;
@@ -79,6 +78,8 @@ public:
             case result_not_numeric:
                 callback->not_numeric();
                 break;
+            default:
+                unreachable();
         }
         
         delete this;

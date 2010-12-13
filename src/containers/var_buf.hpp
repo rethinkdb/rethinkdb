@@ -2,7 +2,7 @@
 #define __VAR_BUF_HPP__
 
 #include "config/args.hpp"
-#include "conn_fsm.hpp"
+#include "request_handler/conn_fsm.hpp"
 #include <stdarg.h>
 #include "utils.hpp"
 
@@ -70,7 +70,7 @@ struct linked_buf_t : public buffer_base_t<IO_BUFFER_SIZE>
             va_list args;
             va_start(args, format_str);
             int count = vsnprintf(buffer, MAX_MESSAGE_SIZE, format_str, args);
-            check("Message too big (increase MAX_MESSAGE_SIZE)", count == MAX_MESSAGE_SIZE);
+            guarantee(count != MAX_MESSAGE_SIZE, "Message too big (increase MAX_MESSAGE_SIZE)");
             va_end(args);
             append(buffer, count);
         }
@@ -88,7 +88,7 @@ struct linked_buf_t : public buffer_base_t<IO_BUFFER_SIZE>
         /*! \brief try to send as much of the buffer as possible
          *  \return true if there is still outstanding data
          */
-        linked_buf_state_t send(net_conn_t *conn) {
+        linked_buf_state_t send(oldstyle_net_conn_t *conn) {
             linked_buf_state_t res;
             if (nsent < nbuf) {
                 int sz = conn->write_nonblocking(this->buf + nsent, nbuf - nsent);

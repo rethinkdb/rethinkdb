@@ -10,7 +10,7 @@
 #include <sstream>
 #include "config/args.hpp"
 #include "utils2.hpp"
-#include "arch/linux/io.hpp"
+#include "arch/linux/disk.hpp"
 #include "arch/linux/event_queue/poll.hpp"
 #include "arch/linux/thread_pool.hpp"
 
@@ -42,21 +42,22 @@ poll_event_queue_t::poll_event_queue_t(linux_queue_parent_t *parent)
 }
 
 void poll_event_queue_t::run() {
-    
     int res;
     
     // Now, start the loop
     while (!parent->should_shut_down()) {
-    
         // Grab the events from the kernel!
         res = poll(&watched_fds[0], watched_fds.size(), -1);
         
         // epoll_wait might return with EINTR in some cases (in
         // particular under GDB), we just need to retry.
-        if(res == -1 && errno == EINTR) {
+        if (res == -1 && errno == EINTR) {
             continue;
         }
-        check("Waiting for poll events failed", res == -1);
+
+        // The only likely poll error here is ENOMEM, which we
+        // have no way of handling, and it's probably fatal.
+        guarantee_err(res == 0, "Waiting for poll events failed");
         
         pm_events_per_loop.record(res);
         
@@ -75,12 +76,10 @@ void poll_event_queue_t::run() {
     }
 }
 
-poll_event_queue_t::~poll_event_queue_t()
-{
+poll_event_queue_t::~poll_event_queue_t() {
 }
 
 void poll_event_queue_t::watch_resource(fd_t resource, int watch_mode, linux_event_callback_t *cb) {
-
     assert(cb);
 
     pollfd pfd;
@@ -104,7 +103,6 @@ void poll_event_queue_t::adjust_resource(fd_t resource, int events, linux_event_
 }
 
 void poll_event_queue_t::forget_resource(fd_t resource, linux_event_callback_t *cb) {
-
     assert(cb);
 
     // Erase the callback from the map

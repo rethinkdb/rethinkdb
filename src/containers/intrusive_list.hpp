@@ -8,7 +8,6 @@ template <class node_t> class intrusive_list_t;
 
 template <class derived_t>
 class intrusive_list_node_t {
-
     friend class intrusive_list_t<derived_t>;
 
 public:
@@ -35,7 +34,6 @@ private:
 
 template <class node_t>
 class intrusive_list_t {
-
 public:
     intrusive_list_t() : _head(NULL), _tail(NULL), _size(0) {}
 
@@ -196,7 +194,6 @@ public:
 #endif
     
     class iterator {
-        
         friend class intrusive_list_t<node_t>;
         
     private:

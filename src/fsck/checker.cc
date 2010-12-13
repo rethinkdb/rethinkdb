@@ -14,18 +14,6 @@
 
 namespace fsck {
 
-// The existence of these functions does not constitute an endorsement
-// of the use of these functions.  Maybe these are a bad, ugly,
-// overdesigned C++ism that you should flush out of this file.  Maybe
-// these should be moved to utils.hpp.  Maybe the fact that we have so
-// many calls to this function is a sign of poor software design.
-// Maybe not.
-template <class T>
-inline const T* ptr_cast(const void *p) { return reinterpret_cast<const T*>(p); }
-
-template <class T>
-inline T* ptr_cast(void *p) { return reinterpret_cast<T*>(p); }
-
 static const char *state = NULL;
 
 // Knowledge that we contain for every block id.
@@ -55,9 +43,7 @@ public:
         return known;
     }
     void operator=(const T& other) {
-        if (known) {
-            fail("Value already known.");
-        }
+        guarantee(!known, "Value already known.");
         value = other;
         known = true;
     }
@@ -66,9 +52,7 @@ public:
         return value;
     }
     T& operator*() {
-        if (!known) {
-            fail("Value not known.");
-        }
+        guarantee(known, "Value not known.");
         return value;
     }
     T *operator->() { return &operator*(); }
@@ -128,9 +112,7 @@ private:
 
 
 void unrecoverable_fact(bool fact, const char *test) {
-    if (!fact) {
-        fail("ERROR: test '%s' failed!  Cannot override.", test);
-    }
+    guarantee(fact, "ERROR: test '%s' failed!  Cannot override.", test);
 }
 
 class block : public raw_block {
@@ -317,7 +299,6 @@ bool check_metablock(direct_file_t *file, file_knowledge *knog, metablock_errors
             if (version == MB_BAD_VERSION || version < MB_START_VERSION || tx == NULL_SER_TRANSACTION_ID || tx < FIRST_SER_TRANSACTION_ID) {
                 errs->bad_content_count++;
             } else {
-
                 if (high_version < version) {
                     high_version = version;
                     high_version_index = i;
@@ -421,7 +402,6 @@ bool check_lba_extent(direct_file_t *file, file_knowledge *knog, unsigned int sh
         } else if (!is_valid_btree_block(knog, entry.offset.parts.value)) {
             errs->bad_offset_count++;
         } else {
-            
             if (knog->block_info.get_size() <= entry.block_id.value) {
                 knog->block_info.set_size(entry.block_id.value + 1, block_knowledge::unused);
             }
@@ -458,7 +438,6 @@ bool check_lba_shard(direct_file_t *file, file_knowledge *knog, lba_shard_metabl
 
     // 1. Read the entries from the superblock (if there is one).
     if (shards[shard_number].lba_superblock_offset != NULL_OFFSET) {
-
         if (!is_valid_device_block(knog, shard->lba_superblock_offset)) {
             errs->code = lba_shard_errors::bad_lba_superblock_offset;
             return false;
@@ -614,7 +593,7 @@ private:
 };
 
 
-bool is_valid_hash(const slicecx& cx, btree_key *key) {
+bool is_valid_hash(const slicecx& cx, const btree_key *key) {
     return btree_key_value_store_t::hash(key) % cx.knog->config_block->btree_config.n_slices == (unsigned)cx.global_slice_id;
 }
 
@@ -640,7 +619,6 @@ void check_large_buf(slicecx& cx, const large_buf_ref& ref, value_error *errs) {
         }
 
         if (levels > 1) {
-
             int64_t step = large_buf_t::compute_max_offset(cx.knog->static_config->block_size(), levels - 1);
 
             for (int64_t i = floor_aligned(ref.offset, step), e = ceil_aligned(ref.offset + ref.size, step); i < e; i += step) {
@@ -658,7 +636,7 @@ void check_large_buf(slicecx& cx, const large_buf_ref& ref, value_error *errs) {
     }
 }
 
-void check_value(slicecx& cx, btree_value *value, subtree_errors *tree_errs, value_error *errs) {
+void check_value(slicecx& cx, const btree_value *value, subtree_errors *tree_errs, value_error *errs) {
     errs->bad_metadata_flags = !!(value->metadata_flags & ~(MEMCACHED_FLAGS | MEMCACHED_CAS | MEMCACHED_EXPTIME | LARGE_VALUE));
 
     size_t size = value->value_size();
@@ -680,8 +658,8 @@ bool leaf_node_inspect_range(const slicecx& cx, const leaf_node_t *buf, uint16_t
     // pair->key.size, pair->value()->size, pair->value()->metadata_flags.
     if (cx.knog->static_config->block_size().value() - 3 >= offset
         && offset >= buf->frontmost_offset) {
-        btree_leaf_pair *pair = leaf_node_handler::get_pair(buf, offset);
-        btree_value *value = pair->value();
+        const btree_leaf_pair *pair = leaf_node_handler::get_pair(buf, offset);
+        const btree_value *value = pair->value();
         uint32_t value_offset = (ptr_cast<byte>(value) - ptr_cast<byte>(pair)) + offset;
         // The other HACK: We subtract 2 for value->size, value->metadata_flags.
         if (value_offset <= cx.knog->static_config->block_size().value() - 2) {
@@ -692,7 +670,7 @@ bool leaf_node_inspect_range(const slicecx& cx, const leaf_node_t *buf, uint16_t
     return false;
 }
 
-void check_subtree_leaf_node(slicecx& cx, const leaf_node_t *buf, btree_key *lo, btree_key *hi, subtree_errors *tree_errs, node_error *errs) {
+void check_subtree_leaf_node(slicecx& cx, const leaf_node_t *buf, const btree_key *lo, const btree_key *hi, subtree_errors *tree_errs, node_error *errs) {
     {
         std::vector<uint16_t> sorted_offsets(buf->pair_offsets, buf->pair_offsets + buf->npairs);
         std::sort(sorted_offsets.begin(), sorted_offsets.end());
@@ -710,10 +688,10 @@ void check_subtree_leaf_node(slicecx& cx, const leaf_node_t *buf, btree_key *lo,
 
     }
 
-    btree_key *prev_key = lo;
+    const btree_key *prev_key = lo;
     for (uint16_t i = 0; i < buf->npairs; ++i) {
         uint16_t offset = buf->pair_offsets[i];
-        btree_leaf_pair *pair = leaf_node_handler::get_pair(buf, offset);
+        const btree_leaf_pair *pair = leaf_node_handler::get_pair(buf, offset);
 
         errs->keys_too_big |= (pair->key.size > MAX_KEY_SIZE);
         errs->keys_in_wrong_slice |= !is_valid_hash(cx, &pair->key);
@@ -738,9 +716,9 @@ bool internal_node_begin_offset_in_range(const slicecx& cx, const internal_node_
     return (cx.knog->static_config->block_size().value() - sizeof(btree_internal_pair)) >= offset && offset >= buf->frontmost_offset;
 }
 
-void check_subtree(slicecx& cx, block_id_t id, btree_key *lo, btree_key *hi, subtree_errors *errs);
+void check_subtree(slicecx& cx, block_id_t id, const btree_key *lo, const btree_key *hi, subtree_errors *errs);
 
-void check_subtree_internal_node(slicecx& cx, const internal_node_t *buf, btree_key *lo, btree_key *hi, subtree_errors *tree_errs, node_error *errs) {
+void check_subtree_internal_node(slicecx& cx, const internal_node_t *buf, const btree_key *lo, const btree_key *hi, subtree_errors *tree_errs, node_error *errs) {
     {
         std::vector<uint16_t> sorted_offsets(buf->pair_offsets, buf->pair_offsets + buf->npairs);
         std::sort(sorted_offsets.begin(), sorted_offsets.end());
@@ -759,10 +737,10 @@ void check_subtree_internal_node(slicecx& cx, const internal_node_t *buf, btree_
 
     // Now check other things.
 
-    btree_key *prev_key = lo;
+    const btree_key *prev_key = lo;
     for (uint16_t i = 0; i < buf->npairs; ++i) {
         uint16_t offset = buf->pair_offsets[i];
-        btree_internal_pair *pair = internal_node_handler::get_pair(buf, offset);
+        const btree_internal_pair *pair = internal_node_handler::get_pair(buf, offset);
 
         errs->keys_too_big |= (pair->key.size > MAX_KEY_SIZE);
 
@@ -792,7 +770,7 @@ void check_subtree_internal_node(slicecx& cx, const internal_node_t *buf, btree_
     }
 }
 
-void check_subtree(slicecx& cx, block_id_t id, btree_key *lo, btree_key *hi, subtree_errors *errs) {
+void check_subtree(slicecx& cx, block_id_t id, const btree_key *lo, const btree_key *hi, subtree_errors *errs) {
     /* Walk tree */
 
     btree_block node;
@@ -807,7 +785,7 @@ void check_subtree(slicecx& cx, block_id_t id, btree_key *lo, btree_key *hi, sub
 
     if (lo != NULL && hi != NULL) {
         // (We're happy with an underfull root block.)
-        if (node_handler::is_underfull(cx.knog->static_config->block_size(), ptr_cast<btree_node>(node.buf))) {
+        if (node_handler::is_underfull(cx.knog->static_config->block_size(), ptr_cast<node_t>(node.buf))) {
             node_err.block_underfull = true;
         }
     }
@@ -875,7 +853,6 @@ void check_slice_other_blocks(slicecx& cx, other_block_errors *errs) {
                 }
 
                 errs->unused_blocks.push_back(desc);
-
             } else if (info.offset.parts.is_delete) {
                 assert(info.transaction_id == NULL_SER_TRANSACTION_ID);
                 rogue_block_description desc;
@@ -1117,7 +1094,6 @@ void report_subtree_errors(const subtree_errors *errs) {
             if (e.block_not_found_error != btree_block::none) {
                 printf(" block not found: %s\n", btree_block::error_name(e.block_not_found_error));
             } else {
-
                 printf("%s%s%s%s%s%s%s%s%s\n",
                        e.block_underfull ? " block_underfull" : "",
                        e.bad_magic ? " bad_magic" : "",

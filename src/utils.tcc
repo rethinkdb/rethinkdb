@@ -87,7 +87,8 @@ struct cpu_doer_t :
             case state_go_home:
                 delete this;
                 return;
-            default: fail("Bad state.");
+            default:
+                unreachable("Bad state.");
         }
     }
 };

@@ -32,7 +32,6 @@ typedef array_map_t page_map_t;
 // various components of the cache to improve performance.
 
 class mc_inner_buf_t {
-
     friend class load_buf_fsm_t;
     friend class mc_cache_t;
     friend class mc_transaction_t;
@@ -169,6 +168,7 @@ public:
     buf_t *acquire(block_id_t block_id, access_t mode,
                    block_available_callback_t *callback);
     buf_t *allocate(block_id_t *new_block_id);
+    repli_timestamp get_subtree_recency(block_id_t block_id);
 
     cache_t *cache;
 

@@ -18,7 +18,6 @@ public:
 
 
     void operate(btree_value *old_value, large_buf_t *old_large_value) {
-
         if (!old_value) {
             result = result_not_found;
             data->get_value(NULL, this);
@@ -49,7 +48,6 @@ public:
                 buffer_group.add_buffer(data->get_size(), value.value());
             }
             large_value = NULL;
-            
         } else {
             // Prepare the large value if necessary.
             if (!old_value->is_large()) { // small -> large; allocate a new large value and copy existing value into it.
@@ -70,7 +68,7 @@ public:
             uint32_t fill_size = data->get_size();
             uint32_t start_pos = append ? old_value->value_size() : 0;
             
-            uint16_t ix = large_value->pos_to_ix(start_pos);
+            int64_t ix = large_value->pos_to_ix(start_pos);
             uint16_t seg_pos = large_value->pos_to_seg_pos(start_pos);
             
             while (fill_size > 0) {
@@ -128,7 +126,6 @@ public:
     }
     
     void call_callback_and_delete() {
-        
         switch (result) {
             case result_success:
                 callback->success();
@@ -142,6 +139,8 @@ public:
             case result_data_provider_failed:
                 callback->data_provider_failed();
                 break;
+            default:
+                unreachable();
         }
         
         delete this;

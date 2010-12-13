@@ -1,4 +1,4 @@
-import subprocess, shlex, signal, os, time, shutil, tempfile, sys, traceback, types, gitroot
+import subprocess, shlex, signal, os, time, shutil, tempfile, sys, traceback, types, gitroot, datetime, shutil
 from vcoptparse import *
 
 reports = []
@@ -77,18 +77,19 @@ class Result(object):
     
     def __init__(self, start_time, result, description=None):
         
-        assert result in ["pass", "fail"]
-
-        self.running_time = time.clock() - start_time
+        self.running_time = time.time() - start_time
         
         if result == "pass":
             self.result = "pass"
             assert description is None
-        
         elif result == "fail":
             self.result = "fail"
             assert description is not None
             self.description = str(description)
+            self.output_dir = None
+        else:
+            self.result = "fail"
+            self.description = "Test result wasn't 'pass' or 'fail' - investigate!"
             self.output_dir = None
 
 def format_exit_code(code):
@@ -125,7 +126,7 @@ def run_test(command, timeout = None):
     environ["TMP"] = temp_dir.path
     environ["PYTHONUNBUFFERED"] = "1"
 
-    start_time = time.clock()
+    start_time = time.time()
 
     process = subprocess.Popen(
         command,
@@ -227,10 +228,10 @@ def run_test(command, timeout = None):
             # Replace the original directory that the SmartTemporaryDirectory created with our own
             # directory, but the SmartTemporaryDirectory will still be responsible for deleting it
             os.rmdir(new_output_dir.path)
-            os.rename(output_dir, new_output_dir.path)
+            shutil.move(output_dir, new_output_dir.path)
         
         # Put the output from the command into said directory as well
-        os.rename(output.take_file(), os.path.join(new_output_dir.path, "test_output.txt"))
+        shutil.move(output.take_file(), os.path.join(new_output_dir.path, "test_output.txt"))
     
     else:
         # Delete the output directory
@@ -375,7 +376,7 @@ def process_output_dir(result):
     i = 1
     while os.path.exists(os.path.join(retest_output_dir, str(i))): i += 1
     output_dir = os.path.join(retest_output_dir, str(i))
-    os.rename(result.output_dir.take_dir(), output_dir)
+    shutil.move(result.output_dir.take_dir(), output_dir)
     
     # Make a generator that scans all the files in the directory
     def walker():
@@ -512,11 +513,11 @@ def print_results_as_html(opts, tests):
         sub_failures = count_sub_failures(results)
         timesum = sum([result.running_time for result in results])
         if sub_failures == 0:
-            print """<td>%s</td><td><span style="color: green">Passed</span></td><td>(%f s)</td>""" % (code(name), timesum)
+            print """<td>%s</td><td><span style="color: green">Passed</span></td><td>(%f&nbsp;s)</td>""" % (code(name), timesum)
         else:
             if sub_failures == len(results): msg = "Failed"
             else: msg = "Failed (intermittently)"
-            print """<td>%s</td><td><span style="color: red">%s</span></td><td>(%f s)</td>""" % (code(name), msg, timesum)
+            print """<td>%s</td><td><span style="color: red">%s</span></td><td>(%f&nbsp;s)</td>""" % (code(name), msg, timesum)
         print """</tr>"""
     print """</table>"""
     
@@ -556,7 +557,7 @@ def print_results_as_html(opts, tests):
             print """<div style="border: solid 1px gray; border-top: none; padding: 0.3cm">"""
             
             if result.result == "pass":
-                print """<p><b>Run #%d:</b> <span style="color: green">Passed</span> (%f speconds)</p>""" % (i, result.running_time)
+                print """<p><b>Run #%d:</b> <span style="color: green">Passed</span> (%f seconds)</p>""" % (i, result.running_time)
                 
             else:
                 print """<p><b>Run #%d:</b> <span style="color: red">Failed</span>. (%f seconds) %s</p>""" % \
@@ -623,7 +624,10 @@ def send_email(opts, message, recipient):
     
     print "Email message sent."
 
+global_start_time = datetime.datetime.now()
+
 def send_results_by_email(opts, tests, recipient, message):
+    global global_start_time
     
     import email.mime.text, cStringIO
     
@@ -645,8 +649,16 @@ def send_results_by_email(opts, tests, recipient, message):
         stringio.close()
     
     message = email.mime.text.MIMEText(output, mime_type)
-    subject = "Test results: %d pass, %d fail" % \
-        (len(tests) - count_failures(tests), count_failures(tests))
+    running_user = os.getenv("USER", "N/A")
+    start_time = global_start_time
+    end_time = datetime.datetime.now()
+    if os.getenv("USE_CLOUD", "false") == "false":
+        cloud_flag_str = ""
+    else:
+        cloud_flag_str = ", run on EC2"
+    subject = "Test results: %d pass, %d fail (initiated by %s, %s - %s%s)" % \
+        (len(tests) - count_failures(tests), count_failures(tests), running_user, \
+        start_time, end_time, cloud_flag_str)
     message.add_header("Subject", subject)
     
     send_email(opts, message, recipient)

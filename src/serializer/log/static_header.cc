@@ -54,10 +54,11 @@ void co_static_header_read(direct_file_t *file, static_header_read_callback_t *c
     static_header_t *buffer = (static_header_t*)malloc_aligned(DEVICE_BLOCK_SIZE, DEVICE_BLOCK_SIZE);
     file->co_read(0, DEVICE_BLOCK_SIZE, buffer);
     if (memcmp(buffer->software_name, SOFTWARE_NAME_STRING, sizeof(SOFTWARE_NAME_STRING)) != 0) {
-        fail("This doesn't appear to be a RethinkDB data file.");
+        fail_due_to_user_error("This doesn't appear to be a RethinkDB data file.");
     }
+    
     if (memcmp(buffer->version, VERSION_STRING, sizeof(VERSION_STRING)) != 0) {
-        fail("File version is incorrect. This file was created with version %s of RethinkDB, "
+        fail_due_to_user_error("File version is incorrect. This file was created with version %s of RethinkDB, "
             "but you are trying to read it with version %s.", buffer->version, VERSION_STRING);
     }
     memcpy(data_out, buffer->data, data_size);

@@ -31,24 +31,31 @@ repli_timestamp repli_time(time_t t);
 // TODO: move this to a different file
 repli_timestamp current_time();
 
-// This is almost like std::max except it compares times "locally", so
-// that overflow is handled gracefully.  That is, it compares y - x to
-// 0, instead of comparing y to x.
-repli_timestamp later_time(repli_timestamp x, repli_timestamp y);
+// This is not a transitive operation.  It compares times "locally."
+// Imagine a comparison function that compares angles, in the range
+// [0, 2*pi), that is invariant with respect to rotation.  How would
+// you implement that?  This is a function that compares timestamps in
+// [0, 2**32), that is invariant with respect to translation.
+int repli_compare(repli_timestamp x, repli_timestamp y);
+
+// Like std::max, except it's technically not associative because it
+// uses repli_compare.
+repli_timestamp repli_max(repli_timestamp x, repli_timestamp y);
 
 
 void *malloc_aligned(size_t size, size_t alignment = 64);
 
-template<typename T1, typename T2>
+template <class T1, class T2>
 T1 ceil_aligned(T1 value, T2 alignment) {
-    if(value % alignment != 0) {
-        return value + alignment - (value % alignment);
-    } else {
-        return value;
-    }
+    return value + alignment - (((value + alignment - 1) % alignment) + 1);
 }
 
-template<typename T1, typename T2>
+template <class T1, class T2>
+T1 ceil_divide(T1 dividend, T2 alignment) {
+    return (dividend + alignment - 1) / alignment;
+}
+
+template <class T1, class T2>
 T1 floor_aligned(T1 value, T2 alignment) {
     return value - (value % alignment);
 }
@@ -88,7 +95,22 @@ void debugf(const char *msg, ...);
 // bias tends to get worse when RAND_MAX is far from a multiple of n.
 int randint(int n);
 
-// Put this in a private: declaration.
+// The existence of these functions does not constitute an endorsement
+// for casts.  These constitute an endorsement for the use of
+// reinterpret_cast, rather than C-style casts.  The latter can break
+// const correctness.
+template <class T>
+inline const T* ptr_cast(const void *p) { return reinterpret_cast<const T*>(p); }
+
+template <class T>
+inline T* ptr_cast(void *p) { return reinterpret_cast<T*>(p); }
+
+// strtoul() and strtoull() will for some reason not fail if the input begins with a minus
+// sign. strtoul_strict() and strtoull_strict() do.
+unsigned long strtoul_strict(const char *string, char **end, int base);
+unsigned long long strtoull_strict(const char *string, char **end, int base);
+
+// Put this in a private: section.
 #define DISABLE_COPYING(T)                      \
     T(const T&);                                \
     void operator=(const T&)

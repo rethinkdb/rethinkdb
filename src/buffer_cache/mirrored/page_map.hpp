@@ -9,7 +9,6 @@
 struct mc_inner_buf_t;
 
 struct array_map_t {
-    
     typedef mc_inner_buf_t inner_buf_t;
     
 public:

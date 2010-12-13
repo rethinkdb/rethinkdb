@@ -13,7 +13,6 @@ perfmon_counter_t
     pm_serializer_old_total_blocks("serializer_old_total_blocks");
 
 void data_block_manager_t::start_new(direct_file_t *file) {
-
     assert(state == state_unstarted);
     dbfile = file;
     
@@ -25,7 +24,6 @@ void data_block_manager_t::start_new(direct_file_t *file) {
 }
 
 void data_block_manager_t::start_reconstruct() {
-
     assert(state == state_unstarted);
     gc_state.set_step(gc_reconstruct);
 }
@@ -35,7 +33,6 @@ void data_block_manager_t::start_reconstruct() {
 // everything is presumed to be garbage, until we mark it as
 // non-garbage.)
 void data_block_manager_t::mark_live(off64_t offset) {
-
     assert(gc_state.step() == gc_reconstruct);  // This is called at startup.
 
     int extent_id = static_config->extent_index(offset);
@@ -53,24 +50,20 @@ void data_block_manager_t::mark_live(off64_t offset) {
 }
 
 void data_block_manager_t::end_reconstruct() {
-
     assert(state == state_unstarted);
     gc_state.set_step(gc_ready);
 }
 
 void data_block_manager_t::start_existing(direct_file_t *file, metablock_mixin_t *last_metablock) {
-
     assert(state == state_unstarted);
     dbfile = file;
     
     /* Reconstruct the active data block extents from the metablock. */
     
     for (unsigned int i = 0; i < MAX_ACTIVE_DATA_EXTENTS; i++) {
-        
         off64_t offset = last_metablock->active_extents[i];
         
         if (offset != NULL_OFFSET) {
-            
             /* It is possible to have an active data block extent with no actual data
             blocks in it. In this case we would not have created a gc_entry for the extent
             yet. */
@@ -89,11 +82,8 @@ void data_block_manager_t::start_existing(direct_file_t *file, metablock_mixin_t
             reconstructed_extents.remove(active_extents[i]);
             
             blocks_in_active_extent[i] = last_metablock->blocks_in_active_extent[i];
-            
         } else {
-            
             active_extents[i] = NULL;
-            
         }
     }
     
@@ -101,7 +91,6 @@ void data_block_manager_t::start_existing(direct_file_t *file, metablock_mixin_t
     into old extents */
     
     while (gc_entry *entry = reconstructed_extents.head()) {
-    
         reconstructed_extents.remove(entry);
         
         assert(entry->state == gc_entry::state_reconstructing);
@@ -117,7 +106,6 @@ void data_block_manager_t::start_existing(direct_file_t *file, metablock_mixin_t
 }
 
 bool data_block_manager_t::read(off64_t off_in, void *buf_out, iocallback_t *cb) {
-
     assert(state == state_ready);
     
     buf_data_t *data = (buf_data_t*)buf_out;
@@ -147,7 +135,6 @@ bool data_block_manager_t::write(const void *buf_in, ser_block_id_t block_id, se
 }
 
 void data_block_manager_t::mark_garbage(off64_t offset) {
-
     unsigned int extent_id = static_config->extent_index(offset);
     unsigned int block_id = static_config->block_index(offset);
     
@@ -162,16 +149,13 @@ void data_block_manager_t::mark_garbage(off64_t offset) {
     }
     
     if (entry->g_array.count() == static_config->blocks_per_extent() && entry->state != gc_entry::state_active) {
-    
         /* Every block in the extent is now garbage. */
-        
         switch (entry->state) {
-            
             case gc_entry::state_reconstructing:
-                fail("Marking something as garbage during startup.");
+                unreachable("Marking something as garbage during startup.");
             
             case gc_entry::state_active:
-                fail("We shouldn't have gotten here.");
+                unreachable("We shouldn't have gotten here.");
             
             /* Remove from the young extent queue */
             case gc_entry::state_young:
@@ -190,21 +174,20 @@ void data_block_manager_t::mark_garbage(off64_t offset) {
                 assert(gc_state.current_entry == entry);
                 gc_state.current_entry = NULL;
                 break;
+            default:
+                unreachable();
         }
         
         pm_serializer_data_extents_reclaimed++;
         
         entry->destroy();
-        
     } else if (entry->state == gc_entry::state_old) {
-    
         entry->our_pq_entry->update();
     }
 }
 
 void data_block_manager_t::start_gc() {
-    if (gc_state.step() == gc_ready )
-        run_gc();
+    if (gc_state.step() == gc_ready) run_gc();
 }
 
 void data_block_manager_t::run_gc() {
@@ -212,109 +195,108 @@ void data_block_manager_t::run_gc() {
     while (run_again) {
         run_again = false;
         switch (gc_state.step()) {
-    
-        case gc_ready:
-            if (gc_pq.empty() || !should_we_keep_gcing(*gc_pq.peak())) return;
-            
-            pm_serializer_data_extents_gced++;
-            
-            /* grab the entry */
-            gc_state.current_entry = gc_pq.pop();
-            gc_state.current_entry->our_pq_entry = NULL;
-            
-            assert(gc_state.current_entry->state == gc_entry::state_old);
-            gc_state.current_entry->state = gc_entry::state_in_gc;
-            gc_stats.old_garbage_blocks -= gc_state.current_entry->g_array.count();
-            gc_stats.old_total_blocks -= static_config->blocks_per_extent();
+            case gc_ready:
+                if (gc_pq.empty() || !should_we_keep_gcing(*gc_pq.peak())) return;
+                
+                pm_serializer_data_extents_gced++;
+                
+                /* grab the entry */
+                gc_state.current_entry = gc_pq.pop();
+                gc_state.current_entry->our_pq_entry = NULL;
+                
+                assert(gc_state.current_entry->state == gc_entry::state_old);
+                gc_state.current_entry->state = gc_entry::state_in_gc;
+                gc_stats.old_garbage_blocks -= gc_state.current_entry->g_array.count();
+                gc_stats.old_total_blocks -= static_config->blocks_per_extent();
 
-            /* read all the live data into buffers */
+                /* read all the live data into buffers */
 
-            /* make sure the read callback knows who we are */
-            gc_state.gc_read_callback.parent = this;
+                /* make sure the read callback knows who we are */
+                gc_state.gc_read_callback.parent = this;
 
-            for (unsigned int i = 0, bpe = static_config->blocks_per_extent(); i < bpe; i++) {
-                if (!gc_state.current_entry->g_array[i]) {
-                    dbfile->read_async(gc_state.current_entry->offset + (i * static_config->block_size().ser_value()),
-                                       static_config->block_size().ser_value(),
-                                       gc_state.gc_blocks + (i * static_config->block_size().ser_value()),
-                                       &(gc_state.gc_read_callback));
-                    gc_state.refcount++;
+                for (unsigned int i = 0, bpe = static_config->blocks_per_extent(); i < bpe; i++) {
+                    if (!gc_state.current_entry->g_array[i]) {
+                        dbfile->read_async(gc_state.current_entry->offset + (i * static_config->block_size().ser_value()),
+                                           static_config->block_size().ser_value(),
+                                           gc_state.gc_blocks + (i * static_config->block_size().ser_value()),
+                                           &(gc_state.gc_read_callback));
+                        gc_state.refcount++;
+                    }
                 }
-            }
-            assert(gc_state.refcount > 0);
-            gc_state.set_step(gc_read);
-            break;
-            
-        case gc_read: {
-            gc_state.refcount--;
-            if (gc_state.refcount > 0) {
-                /* We got a block, but there are still more to go */
+                assert(gc_state.refcount > 0);
+                gc_state.set_step(gc_read);
                 break;
-            }    
-            
-            /* If other forces cause all of the blocks in the extent to become garbage
-            before we even finish GCing it, they will set current_entry to NULL. */
-            if (gc_state.current_entry == NULL) {
-                gc_state.set_step(gc_ready);
-                break;
-            }
-            
-            /* an array to put our writes in */
+                
+            case gc_read: {
+                gc_state.refcount--;
+                if (gc_state.refcount > 0) {
+                    /* We got a block, but there are still more to go */
+                    break;
+                }    
+                
+                /* If other forces cause all of the blocks in the extent to become garbage
+                before we even finish GCing it, they will set current_entry to NULL. */
+                if (gc_state.current_entry == NULL) {
+                    gc_state.set_step(gc_ready);
+                    break;
+                }
+                
+                /* an array to put our writes in */
 #ifndef NDEBUG
-            int num_writes = static_config->blocks_per_extent() - gc_state.current_entry->g_array.count();
+                int num_writes = static_config->blocks_per_extent() - gc_state.current_entry->g_array.count();
 #endif
-            std::vector<log_serializer_t::write_t> writes;
+                std::vector<log_serializer_t::write_t> writes;
 
-            for (unsigned int i = 0; i < static_config->blocks_per_extent(); i++) {
-                /* We re-check the bit array here in case a write came in for one of the
-                blocks we are GCing. We wouldn't want to overwrite the new valid data with
-                out-of-date data. */
-                if (!gc_state.current_entry->g_array[i]) {
-                        writes.push_back(log_serializer_t::write_t::make_internal(*((ser_block_id_t *) (gc_state.gc_blocks + (i * static_config->block_size().ser_value()))),
-                                                                                  gc_state.gc_blocks + (i * static_config->block_size().ser_value()) + sizeof(buf_data_t),
-                                                                              NULL));
+                for (unsigned int i = 0; i < static_config->blocks_per_extent(); i++) {
+                    /* We re-check the bit array here in case a write came in for one of the
+                    blocks we are GCing. We wouldn't want to overwrite the new valid data with
+                    out-of-date data. */
+                    if (!gc_state.current_entry->g_array[i]) {
+                            writes.push_back(log_serializer_t::write_t::make_internal(
+                                    *((ser_block_id_t *) (gc_state.gc_blocks + (i * static_config->block_size().ser_value()))),
+                                    gc_state.gc_blocks + (i * static_config->block_size().ser_value()) + sizeof(buf_data_t), NULL));
+                    }
                 }
+
+                assert(writes.size() == (size_t)num_writes);
+
+                /* make sure the callback knows who we are */
+                gc_state.gc_write_callback.parent = this;
+                
+                gc_state.set_step(gc_write);
+
+                /* schedule the write */
+                bool done = serializer->do_write(writes.data(), writes.size(), &gc_state.gc_write_callback);
+                if (!done) break;
             }
+                
+            case gc_write:
+                mark_unyoung_entries(); //We need to do this here so that we don't get stuck on the GC treadmill
+                /* Our write should have forced all of the blocks in the extent to become garbage,
+                which should have caused the extent to be released and gc_state.current_offset to
+                become NULL. */
+                assert(gc_state.current_entry == NULL);
+                
+                assert(gc_state.refcount == 0);
 
-            assert(writes.size() == (size_t)num_writes);
+                gc_state.set_step(gc_ready);
 
-            /* make sure the callback knows who we are */
-            gc_state.gc_write_callback.parent = this;
-            
-            gc_state.set_step(gc_write);
+                if(state == state_shutting_down) {
+                    actually_shutdown();
+                    return;
+                }
 
-            /* schedule the write */
-            bool done = serializer->do_write(writes.data(), writes.size(), &gc_state.gc_write_callback);
-            if (!done) break;
-        }
-            
-        case gc_write:
-            mark_unyoung_entries(); //We need to do this here so that we don't get stuck on the GC treadmill
-            /* Our write should have forced all of the blocks in the extent to become garbage,
-            which should have caused the extent to be released and gc_state.current_offset to
-            become NULL. */
-            assert(gc_state.current_entry == NULL);
-            
-            assert(gc_state.refcount == 0);
-
-            gc_state.set_step(gc_ready);
-
-            if(state == state_shutting_down) {
-                actually_shutdown();
-                return;
-            }
-
-            run_again = true;   // We might want to start another GC round
-            break;
-            
-        default:
-            fail("Unknown gc_step");
+                run_again = true;   // We might want to start another GC round
+                break;
+                
+            case gc_reconstruct:
+            default:
+                unreachable("Unknown gc_step");
         }
     }
 }
 
 void data_block_manager_t::prepare_metablock(metablock_mixin_t *metablock) {
-    
     assert(state == state_ready || state == state_shutting_down);
     
     for (int i = 0; i < MAX_ACTIVE_DATA_EXTENTS; i++) {
@@ -344,7 +326,6 @@ bool data_block_manager_t::shutdown(shutdown_callback_t *cb) {
 }
 
 void data_block_manager_t::actually_shutdown() {
-    
     assert(state == state_shutting_down);
     state = state_shut_down;
     
@@ -370,11 +351,9 @@ void data_block_manager_t::actually_shutdown() {
 }
 
 off64_t data_block_manager_t::gimme_a_new_offset() {
-    
     /* Start a new extent if necessary */
     
     if (!active_extents[next_active_extent]) {
-        
         active_extents[next_active_extent] = new gc_entry(this);
         active_extents[next_active_extent]->state = gc_entry::state_active;
         blocks_in_active_extent[next_active_extent] = 0;
@@ -398,7 +377,6 @@ off64_t data_block_manager_t::gimme_a_new_offset() {
     /* Deactivate the extent if necessary */
     
     if (blocks_in_active_extent[next_active_extent] == static_config->blocks_per_extent()) {
-        
         assert(active_extents[next_active_extent]->g_array.count() < static_config->blocks_per_extent());
         active_extents[next_active_extent]->state = gc_entry::state_young;
         young_extent_queue.push_back(active_extents[next_active_extent]);
@@ -424,7 +402,6 @@ off64_t data_block_manager_t::gimme_a_new_offset() {
 // Looks at young_extent_queue and pops things off the queue that are
 // no longer deemed young, putting them on the priority queue.
 void data_block_manager_t::mark_unyoung_entries() {
-
     while (young_extent_queue.size() > GC_YOUNG_EXTENT_MAX_SIZE) {
         remove_last_unyoung_entry();
     }
@@ -440,7 +417,6 @@ void data_block_manager_t::mark_unyoung_entries() {
 // Pops young_extent_queue and puts it on the priority queue.
 // Assumes young_extent_queue is not empty.
 void data_block_manager_t::remove_last_unyoung_entry() {
-
     gc_entry *entry = young_extent_queue.head();
     young_extent_queue.remove(entry);
     

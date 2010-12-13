@@ -4,7 +4,6 @@
 #include "buffer_cache/buffer_cache.hpp"
 #include "config/args.hpp"
 #include "btree/node.hpp"
-#include "conn_fsm.hpp"
 
 class large_buf_t;
 
@@ -54,7 +53,7 @@ private:
     large_buf_available_callback_t *callback;
 
     transaction_t *transaction;
-    block_size_t cache_block_size;
+    block_size_t block_size;
 
 public: // XXX Should this be private?
     enum state_t {
@@ -93,14 +92,12 @@ public:
 
     const large_buf_ref& get_root_ref() const;
 
-    // TODO look at calls to this function, make sure people don't use
-    // uint16_t.
     int64_t get_num_segments();
 
-    uint16_t segment_size(int ix);
+    uint16_t segment_size(int64_t ix);
 
-    const byte *get_segment(int num, uint16_t *seg_size);
-    byte *get_segment_write(int num, uint16_t *seg_size);
+    const byte *get_segment(int64_t num, uint16_t *seg_size);
+    byte *get_segment_write(int64_t num, uint16_t *seg_size);
 
     void on_block_available(buf_t *buf);
 
@@ -110,10 +107,10 @@ public:
 
     friend struct acquire_buftree_fsm_t;
 
-    static int64_t cache_size_to_leaf_bytes(block_size_t cache_block_size);
-    static int64_t cache_size_to_internal_kids(block_size_t cache_block_size);
-    static int64_t compute_max_offset(block_size_t cache_block_size, int levels);
-    static int compute_num_levels(block_size_t cache_block_size, int64_t end_offset);
+    static int64_t cache_size_to_leaf_bytes(block_size_t block_size);
+    static int64_t cache_size_to_internal_kids(block_size_t block_size);
+    static int64_t compute_max_offset(block_size_t block_size, int levels);
+    static int compute_num_levels(block_size_t block_size, int64_t end_offset);
 
 private:
     int64_t num_leaf_bytes() const;
@@ -135,7 +132,7 @@ private:
     void delete_tree_structure(buftree_t *tr, int64_t offset, int64_t size, int levels);
     void only_mark_deleted_tree_structure(buftree_t *tr, int64_t offset, int64_t size, int levels);
     void release_tree_structure(buftree_t *tr, int64_t offset, int64_t size, int levels);
-    buf_t *get_segment_buf(int ix, uint16_t *seg_size, uint16_t *seg_offset);
+    buf_t *get_segment_buf(int64_t ix, uint16_t *seg_size, uint16_t *seg_offset);
     buftree_t *remove_level(buftree_t *tr, block_id_t id, block_id_t *idout);
 };
 

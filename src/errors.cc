@@ -9,7 +9,6 @@
 #include <execinfo.h>
 
 static bool parse_backtrace_line(char *line, char **filename, char **function, char **offset, char **address) {
-
     /*
     backtrace() gives us lines in one of the following two forms:
        ./path/to/the/binary(function+offset) [address]
@@ -54,7 +53,6 @@ static bool parse_backtrace_line(char *line, char **filename, char **function, c
 }
 
 static bool run_addr2line(char *executable, char *address, char *line, int line_size) {
-
     // Generate and run addr2line command
     char cmd_buf[255] = {0};
     snprintf(cmd_buf, sizeof(cmd_buf), "addr2line -s -e %s %s", executable, address);
@@ -74,7 +72,6 @@ static bool run_addr2line(char *executable, char *address, char *line, int line_
 }
 
 void print_backtrace(FILE *out, bool use_addr2line) {
-
     // Get a backtrace
     static const int max_frames = 100;
     void *stack_frames[max_frames];
@@ -83,7 +80,6 @@ void print_backtrace(FILE *out, bool use_addr2line) {
 
     if (symbols) {
         for (int i = 0; i < size; i ++) {
-
             // Parse each line of the backtrace
             char *line = strdup(symbols[i]);
             char *executable, *function, *offset, *address;
@@ -92,9 +88,7 @@ void print_backtrace(FILE *out, bool use_addr2line) {
 
             if (!parse_backtrace_line(line, &executable, &function, &offset, &address)) {
                 fprintf(out, "%s\n", symbols[i]);
-
             } else {
-
                 if (function) {
                     if (char *demangled = demangle_cpp_name(function)) {
                         fprintf(out, "%s", demangled);
@@ -122,13 +116,25 @@ void print_backtrace(FILE *out, bool use_addr2line) {
         }
 
         free(symbols);
-
     } else {
         fprintf(out, "(too little memory for backtrace)\n");
     }
 }
 
 #endif
+
+void report_user_error(const char *msg, ...) {
+    flockfile(stderr);
+
+    va_list args;
+    va_start(args, msg);
+    //fprintf(stderr, "\nError: ");
+    vfprintf(stderr, msg, args);
+    fprintf(stderr, "\n");
+    va_end(args);
+
+    funlockfile(stderr);
+}
 
 void report_fatal_error(const char *file, int line, const char *msg, ...) {
     flockfile(stderr);

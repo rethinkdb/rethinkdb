@@ -2,7 +2,6 @@
 #define __CONTAINERS_BITSET_HPP__
 
 class bitset_t {
-
 private:
     size_t _size, _count;
     uint64_t *bits;

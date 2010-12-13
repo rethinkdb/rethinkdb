@@ -66,38 +66,33 @@ void conn_fsm_t::return_to_socket_connected(bool error = false) {
 }
 
 conn_fsm_t::result_t conn_fsm_t::fill_buf(void *buf, unsigned int *bytes_filled, unsigned int total_length) {
-    
     // TODO: we assume the command will fit comfortably into
     // IO_BUFFER_SIZE. We'll need to implement streaming later.
     assert(!we_are_closed);
     ssize_t sz = conn->read_nonblocking((byte *) buf + *bytes_filled, total_length - *bytes_filled);
     
     if (sz == -1) {
-        if(errno == EAGAIN || errno == EWOULDBLOCK) {
-            // The machine can't be in
-            // fsm_socket_send_incomplete state here,
-            // since we break out in these cases. So it's
-            // safe to free the buffer.
+        if(errno == EAGAIN || errno == EWOULDBLOCK) {   // EAGAIN may be equal to EWOULDBLOCK, so can't put them in a switch below
+            // The machine can't be in fsm_socket_send_incomplete state here,
+            // since we break out in these cases. So it's safe to free the buffer.
             assert(state != fsm_socket_send_incomplete);
             if(state != fsm_socket_recv_incomplete && *bytes_filled == 0) {
                 send_msg_to_client();
-                if (sbuf && sbuf->outstanding() == linked_buf_t::linked_buf_empty)
+                if (sbuf && sbuf->outstanding() == linked_buf_t::linked_buf_empty) {
                     return_to_socket_connected();
+                }
             } else
                 state = fsm_socket_connected; //we're wating for a socket event
             //break;
-        } else if (errno == ENETDOWN) {
-            check("Enetdown wtf", sz == -1);
-        } else if (errno == ECONNRESET) {
+        } else {
+            // We must fail gracefully here, probably logging the error.
 #ifndef NDEBUG
             we_are_closed = true;
 #endif
-            if (shutdown_callback && !quitting)
-                shutdown_callback->on_conn_fsm_quit();
+            if (!quitting) on_quit();
+            quitting = true;
             assert(state == fsm_outstanding_data || state == fsm_socket_connected);
             return fsm_quit_connection;
-        } else {
-            check("Could not read from socket", sz == -1);
         }
     } else if (sz > 0) {
         *bytes_filled += sz;
@@ -110,8 +105,8 @@ conn_fsm_t::result_t conn_fsm_t::fill_buf(void *buf, unsigned int *bytes_filled,
 #ifndef NDEBUG
         we_are_closed = true;
 #endif
-        if (shutdown_callback && !quitting)
-            shutdown_callback->on_conn_fsm_quit();
+        if (!quitting) on_quit();
+        quitting = true;
         assert(state == fsm_outstanding_data
                || state == fsm_socket_connected
                || state == fsm_socket_recv_incomplete);
@@ -217,7 +212,7 @@ conn_fsm_t::result_t conn_fsm_t::do_fsm_btree_incomplete(event_t *event) {
             state = fsm_outstanding_data;
         }
     } else {
-        fail("fsm_btree_incomplete: Invalid event");
+        unreachable("fsm_btree_incomplete: Invalid event");
     }
     
     return fsm_transition_ok;
@@ -237,7 +232,7 @@ conn_fsm_t::result_t conn_fsm_t::do_socket_send_incomplete(event_t *event) {
             state = fsm_outstanding_data;
         }
     } else {
-        fail("fsm_socket_send_ready: Invalid event");
+        unreachable("fsm_socket_send_ready: Invalid event");
     }
     return fsm_transition_ok;
 }
@@ -270,8 +265,8 @@ conn_fsm_t::result_t conn_fsm_t::do_fsm_outstanding_req(event_t *event) {
             break;
         case request_handler_t::op_req_quit:
             // The connection has been closed
-            if (shutdown_callback && !quitting)
-                shutdown_callback->on_conn_fsm_quit();
+            if (!quitting) on_quit();
+            quitting = true;
             if (state == fsm_socket_send_incomplete || state == fsm_btree_incomplete) {
                 quitting = true;
                 return fsm_transition_ok;
@@ -294,7 +289,7 @@ conn_fsm_t::result_t conn_fsm_t::do_fsm_outstanding_req(event_t *event) {
             state = fsm_outstanding_data;
             return fsm_transition_ok;
         default:
-            fail("Unknown request parse result");
+            unreachable("Unknown request parse result");
     }
     return fsm_transition_ok;
 }
@@ -319,11 +314,10 @@ void conn_fsm_t::on_net_conn_writable() {
 
 void conn_fsm_t::on_net_conn_close() {
     conn = NULL;
-    start_quit();
+    quit();
 }
 
 void conn_fsm_t::do_transition_and_handle_result(event_t *event) {
-    
     // Make sure we're not calling do_transition() recursively
     assert(!in_do_transition);
     in_do_transition = true;
@@ -331,7 +325,6 @@ void conn_fsm_t::do_transition_and_handle_result(event_t *event) {
     int old_state = state;
     
     switch (do_transition(event)) {
-        
         case fsm_transition_ok:
         case fsm_no_data_in_socket:
             if (state != old_state) {
@@ -346,8 +339,10 @@ void conn_fsm_t::do_transition_and_handle_result(event_t *event) {
             state_counters[old_state]->end(&start_time);
             delete this;
             break;
-        
-        default: fail("Unhandled fsm transition result");
+
+        case fsm_invalid:
+        default:
+            unreachable("Unhandled fsm transition result");
     }
 }
 
@@ -372,7 +367,7 @@ conn_fsm_t::result_t conn_fsm_t::do_transition(event_t *event) {
             break;
         default:
             res = fsm_invalid;
-            fail("Invalid state");
+            unreachable("Invalid state");
     }
     if (state == fsm_outstanding_data && res != fsm_quit_connection) {
         if (nrbuf == 0) {
@@ -421,8 +416,8 @@ conn_fsm_t::result_t conn_fsm_t::do_transition(event_t *event) {
     return res;
 }
 
-conn_fsm_t::conn_fsm_t(net_conn_t *conn, conn_fsm_shutdown_callback_t *c, request_handler_t *rh)
-    : quitting(false), conn(conn), in_do_transition(false), req_handler(rh), shutdown_callback(c)
+conn_fsm_t::conn_fsm_t(net_conn_t *c, request_handler_t *rh)
+    : quitting(false), conn(new oldstyle_net_conn_t(c)), in_do_transition(false), req_handler(rh)
 {
 #ifndef NDEBUG
     we_are_closed = false;
@@ -437,7 +432,6 @@ conn_fsm_t::conn_fsm_t(net_conn_t *conn, conn_fsm_shutdown_callback_t *c, reques
 }
 
 conn_fsm_t::~conn_fsm_t() {
-    
 #ifndef NDEBUG
     fprintf(stderr, "Closed socket %p\n", this);
 #endif
@@ -453,18 +447,12 @@ conn_fsm_t::~conn_fsm_t() {
     if (sbuf) {
         delete (sbuf);
     }
-    
-    if (shutdown_callback)
-        shutdown_callback->on_conn_fsm_shutdown();
 }
 
-void conn_fsm_t::start_quit() {
-    
+void conn_fsm_t::quit() {
     if (quitting) return;
     
-    if (shutdown_callback)
-        shutdown_callback->on_conn_fsm_quit();
-    
+    on_quit();
     quitting = true;
 
     switch (state) {
@@ -481,7 +469,7 @@ void conn_fsm_t::start_quit() {
         case fsm_btree_incomplete:
             break;
         default:
-            fail("Bad state");
+            unreachable("Bad state");
     }
 }
 
@@ -510,7 +498,7 @@ void conn_fsm_t::send_msg_to_client() {
                 return_to_socket_connected(true);
                 break;
             default:
-                fail("Illegal value in res");
+                unreachable("Illegal value in res");
                 break;
         }
     }
