@@ -7,19 +7,21 @@ use_local_retester = os.getenv("USE_CLOUD", "false") == "false"
 
 # In order to enable running tests in Amazon's EC2, set the USE_CLOUD environment variable
 
-# Please configure these:
+# Please configure in ec2_configuration.py!
+from cloud_config import ec2_configuration
+import cloud_node_data
 
-testing_nodes_ec2_instance_type = os.getenv("EC2_INSTANCE_TYPE", "m1.large") # e.g. m1.large / t1.micro
-testing_nodes_ec2_count = int(os.getenv("EC2_INSTANCE_COUNT", "5")) # number of nodes to spin up
-testing_nodes_ec2_image_name = "ami-2272864b"
-testing_nodes_ec2_image_user_name = "ec2-user"
-testing_nodes_ec2_key_pair_name = "cloudtest_default"
-testing_nodes_ec2_security_group_name = "cloudtest_default"
-testing_nodes_ec2_region = "us-east-1"
-testing_nodes_ec2_access_key = "AKIAJUKUVO6J45QRZQKA"
-testing_nodes_ec2_private_key = "d9SiQpDD/YfGA2uC7CyqY7jmRoZg5utHM4pxTAhE" # TODO: Use environment variables instead?
+testing_nodes_ec2_instance_type = ec2_configuration.testing_nodes_ec2_instance_type
+testing_nodes_ec2_count = ec2_configuration.testing_nodes_ec2_count
+testing_nodes_ec2_image_name = ec2_configuration.testing_nodes_ec2_image_name
+testing_nodes_ec2_image_user_name = ec2_configuration.testing_nodes_ec2_image_user_name
+testing_nodes_ec2_key_pair_name = ec2_configuration.testing_nodes_ec2_key_pair_name
+testing_nodes_ec2_security_group_name = ec2_configuration.testing_nodes_ec2_security_group_name
+testing_nodes_ec2_region = ec2_configuration.testing_nodes_ec2_region
+testing_nodes_ec2_access_key = ec2_configuration.testing_nodes_ec2_access_key
+testing_nodes_ec2_private_key = ec2_configuration.testing_nodes_ec2_private_key
 
-private_ssh_key_filename = base_directory + "/east_ec2_private_key.pem"
+private_ssh_key_filename = ec2_configuration.private_ssh_key_filename
 
 round_robin_locking_timeout = 2
 wrapper_script_filename = "cloud_retester_run_test_wrapper.py" # must be just the name of the file, no path!
@@ -147,6 +149,7 @@ class TestingNode:
         
             # do the operation
             sftp_session.put(local_path, destination_path)
+            sftp_session.chmod(destination_path, os.stat(local_path)[ST_MODE])
         
             sftp_session.close()
         except (IOError, paramiko.SSHException) as e:
@@ -378,40 +381,25 @@ def copy_basedata_to_testing_node(node):
             print "Scp-ing base data from source node " + source_node.hostname
             if scp_basedata_to_testing_node(source_node, node):
                 return
-            
     
-    # TODO: All these static (source) paths are really ugly. Is there a more elegant way?
+    # Copy dependencies as specified in ec2_configuration        
     node.make_directory_recursively("/tmp/cloudtest_libs")
-    node.put_file("/usr/local/lib/libtcmalloc_minimal.so.0", "/tmp/cloudtest_libs/libtcmalloc_minimal.so.0")
-    node.put_file("/usr/local/lib/libmemcached.so.5", "/tmp/cloudtest_libs/libmemcached.so.5")
-    node.put_file("/usr/local/lib/libmemcached.so.6", "/tmp/cloudtest_libs/libmemcached.so.6")
-    node.put_file("/usr/lib/libstdc++.so.6", "/tmp/cloudtest_libs/libstdc++.so.6")
-    node.put_file("/usr/lib/libgccpp.so.1", "/tmp/cloudtest_libs/libgccpp.so.1")
-    node.make_directory_recursively("/tmp/cloudtest_libs/valgrind")
-    for valgrind_file in ["vgpreload_memcheck-amd64-linux.so", "vgpreload_core-amd64-linux.so", "memcheck-amd64-linux", "default.supp"]:
-        node.put_file("/usr/lib/valgrind/" + valgrind_file, "/tmp/cloudtest_libs/valgrind/" + valgrind_file)
-    command_result = node.run_command("chmod +x /tmp/cloudtest_libs/valgrind/*-amd64-linux")
-    if command_result[0] != 0:
-        print "Unable to make valgrind files executable"
-    # extend suppression file for EC2 images...
-    command_result = node.run_command("echo -n -e '\n{\n  General dynamic linker\n  Memcheck:Cond\n  obj:/lib64/ld-2.*\n}' >> /tmp/cloudtest_libs/valgrind/default.supp")
-    if command_result[0] != 0:
-        print "Unable to extend valgrind suppression file"
-    #node.put_directory("/usr/lib/valgrind", "/tmp/cloudtest_libs/valgrind")
+    for (source_path, target_path) in ec2_configuration.cloudtest_lib_dependencies:
+        node.make_directory_recursively("/tmp/cloudtest_libs/" + os.path.dirname(target_path))
+        node.put_file(source_path, "/tmp/cloudtest_libs/" + target_path)
     
     node.make_directory_recursively("/tmp/cloudtest_bin")
-    node.put_file("/usr/local/bin/netrecord", "/tmp/cloudtest_bin/netrecord")
-    node.put_file("/usr/bin/valgrind", "/tmp/cloudtest_bin/valgrind")
-    node.put_file("/usr/bin/valgrind.bin", "/tmp/cloudtest_bin/valgrind.bin")
+    for (source_path, target_path) in ec2_configuration.cloudtest_bin_dependencies:
+        node.make_directory_recursively("/tmp/cloudtest_bin/" + os.path.dirname(target_path))
+        node.put_file(source_path, "/tmp/cloudtest_bin/" + target_path)
     command_result = node.run_command("chmod +x /tmp/cloudtest_bin/*")
     if command_result[0] != 0:
         print "Unable to make cloudtest_bin files executable"
     
     node.make_directory_recursively("/tmp/cloudtest_python")
-    node.put_file(base_directory + "/../lib/vcoptparse/vcoptparse.py", "/tmp/cloudtest_python/vcoptparse.py")
-    node.put_file(base_directory + "/../lib/rethinkdb_memcache/rethinkdb_memcache.py", "/tmp/cloudtest_python/rethinkdb_memcache.py")
-    node.put_file("/usr/local/lib/python2.6/dist-packages/pylibmc.py", "/tmp/cloudtest_python/pylibmc.py")
-    node.put_file("/usr/local/lib/python2.6/dist-packages/_pylibmc.so", "/tmp/cloudtest_python/_pylibmc.so")
+    for (source_path, target_path) in ec2_configuration.cloudtest_python_dependencies:
+        node.make_directory_recursively("/tmp/cloudtest_python/" + os.path.dirname(target_path))
+        node.put_file(source_path, "/tmp/cloudtest_python/" + target_path)
     
     # Copy build hierarchy
     node.make_directory(node.global_build_path)
@@ -441,7 +429,8 @@ def copy_basedata_to_testing_node(node):
     node.put_directory(base_directory + "/integration", node.global_test_path + "/integration")
     
     # Install the wrapper script
-    node.put_file(base_directory + "/" + wrapper_script_filename, "%s/%s" % (node.global_test_path, wrapper_script_filename));
+    # TODO: Verify that this works!
+    node.put_file(os.path.dirname(cloud_node_data.__file__) + "/" + wrapper_script_filename, "%s/%s" % (node.global_test_path, wrapper_script_filename));
     
     node.basedata_installed = True
 
