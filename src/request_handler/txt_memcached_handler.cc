@@ -671,7 +671,7 @@ txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::parse_adjustmen
     bool key_ok = node_handler::str_to_key(key_tmp, &key);
     if (!key_ok) {
         conn_fsm->consume(line_len);
-        return malformed_request();
+        return malformed_format_request();
     }
 
     char *endptr = NULL;
