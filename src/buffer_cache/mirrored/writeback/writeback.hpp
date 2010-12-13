@@ -60,7 +60,7 @@ public:
         void set_dirty(bool _dirty = true);
         void set_recency_dirty(bool _recency_dirty = true);
         
-        bool safe_to_unload() const { return !dirty; }
+        bool safe_to_unload() const { return !dirty && !recency_dirty; }
 
     private:
         inner_buf_t *gbuf;
