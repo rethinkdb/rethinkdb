@@ -76,7 +76,6 @@ struct btree_get_t {
 
     btree_get_t(btree_key *_key, btree_key_value_store_t *store)
         : transaction(NULL), cache(NULL), store(store), response(invalid_response) {
-        printf("Instantiating\n");
         keycpy(&key, _key);
         slice = store->slice_for_key(&key);
         cache = &slice->cache;
@@ -86,7 +85,6 @@ struct btree_get_t {
 
     void run() {
         //Acquire the superblock
-        printf("Acquiring superblock\n");
         buf_t *buf, *last_buf;
         transaction = cache->begin_transaction(rwi_read, NULL);
         assert(transaction); // Read-only transaction always begins immediately.
@@ -96,7 +94,6 @@ struct btree_get_t {
         assert(node_id != SUPERBLOCK_ID);
 
         //Acquire the root
-        printf("Acquiring root\n");
         if (node_id == NULL_BLOCK_ID) {
             //No root exists
             last_buf->release();
@@ -111,7 +108,6 @@ struct btree_get_t {
         //Acquire the leaf node
         const node_t *node;
         while (true) {
-            printf("Going one level down the node tree\n");
             buf = co_acquire_transaction(transaction, node_id, rwi_read);
             assert(buf);
             node_handler::validate(cache->get_block_size(), ptr_cast<node_t>(buf->get_data_read()));
@@ -131,7 +127,6 @@ struct btree_get_t {
         }
 
         //Got down to the leaf, now examine it
-        printf("Got the leaf, now examine it\n");
         bool found = leaf_node_handler::lookup(ptr_cast<leaf_node_t>(node), &key, &value);
         buf->release();
         buf = NULL;
@@ -150,14 +145,12 @@ struct btree_get_t {
         a third path that is basically the same as the one for small values. */
         if (!found) {
             // Commit transaction now because we won't be returning to this core
-            printf("Not found\n");
             bool committed __attribute__((unused)) = transaction->commit(NULL);
             assert(committed);   // Read-only transactions complete immediately
             response = not_found;
         } else if (value.is_large()) {
             // Don't commit transaction yet because we need to keep holding onto
             // the large buf until it's been read.
-            printf("Large value\n");
             assert(value.is_large());
 
             large_value = new large_buf_t(transaction);
@@ -173,7 +166,6 @@ struct btree_get_t {
             }
             response = got_large_value;
         } else {
-            printf("Small value\n");
             // Commit transaction now because we won't be returning to this core
             bool committed __attribute__((unused)) = transaction->commit(NULL);
             assert(committed);   // Read-only transactions complete immediately
@@ -186,12 +178,10 @@ struct btree_get_t {
     void deliver(store_t::get_callback_t *cb) {
         switch (response) {
             case not_found:
-                printf("Delivering not found\n");
                 cb->not_found();
                 return;
             case got_small_value:
             case got_large_value:
-                printf("Delivering value\n");
                 co_value(cb, &value_buffers, value.mcflags(), 0);
                 return;
             case invalid_response:
@@ -202,7 +192,6 @@ struct btree_get_t {
 
     static void finalize(void *arg) {
         btree_get_t *receiver = ptr_cast<btree_get_t>(arg);
-        printf("Releasing large value data structures\n");
         receiver->large_value->release();
         delete receiver->large_value;
         bool committed __attribute__((unused)) = receiver->transaction->commit(NULL);
