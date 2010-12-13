@@ -87,14 +87,23 @@ public:
     is committed; the log serializer only commits the transaction after the metablock
     has been written. This guarantees that we will not overwrite extents that the
     most recent metablock points to. */
-    
+
     transaction_t *begin_transaction();
     off64_t gen_extent();
     void release_extent(off64_t extent);
     void end_transaction(transaction_t *t);
     void commit_transaction(transaction_t *t);
 
+    /* If we start a read on an extent and it takes a really long time, then the extent
+    might be released and overwritten before the read completes. lock_for_read() makes it impossible
+    for a given extent to be reused until unlock_for_read() has been called the same number
+    of times. */
+
+    void lock_for_read(off64_t extent);
+    void unlock_for_read(off64_t extent);
+
 public:
+    /* Number of extents that have been released but not handed back out again. */
     int held_extents();
 
 private:
