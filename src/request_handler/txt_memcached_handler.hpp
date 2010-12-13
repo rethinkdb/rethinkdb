@@ -49,6 +49,7 @@ private:
     parse_result_t get(char *state, unsigned int line_len, bool with_cas);
     parse_result_t remove(char *state, unsigned int line_len);
     parse_result_t malformed_request();
+    parse_result_t malformed_format_request();
     parse_result_t unimplemented_request();
 
 public:
