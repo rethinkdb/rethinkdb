@@ -55,6 +55,10 @@ struct memcached_sock_protocol_t : public protocol_t {
         // Setup the host/port data structures
         struct sockaddr_in sin;
         struct hostent *host = gethostbyname(_host);
+        if (!host) {
+            herror("Could not gethostbyname()");
+            exit(-1);
+        }
         memcpy(&sin.sin_addr.s_addr, host->h_addr, host->h_length);
         sin.sin_family = AF_INET;
         sin.sin_port = htons(port);
