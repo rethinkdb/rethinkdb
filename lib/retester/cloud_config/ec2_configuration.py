@@ -3,6 +3,9 @@ import cloud_config
 
 base_directory = os.path.dirname(os.path.join(os.getcwd(), sys.argv[0])) + "/../test"
 
+cloud_config_path = "/usr/local/cloud_config"
+#cloud_config_path = os.path.join (sys.prefix, "cloud_config") # sys.prefix does not match setup directory for some reason
+
 # Please configure these:
 
 testing_nodes_ec2_instance_type = os.getenv("EC2_INSTANCE_TYPE", "m1.large") # e.g. m1.large / t1.micro
@@ -15,7 +18,7 @@ testing_nodes_ec2_region = "us-east-1"
 testing_nodes_ec2_access_key = "AKIAJUKUVO6J45QRZQKA"
 testing_nodes_ec2_private_key = "d9SiQpDD/YfGA2uC7CyqY7jmRoZg5utHM4pxTAhE"
 
-private_ssh_key_filename = os.path.join (sys.prefix, "cloud_config/ec2_private_key.pem")
+private_ssh_key_filename = os.path.join (cloud_config_path, "ec2_private_key.pem")
 
 # END of configuration options
 
@@ -28,7 +31,7 @@ cloudtest_lib_dependencies = [("/usr/local/lib/libtcmalloc_minimal.so.0", "libtc
         ("/usr/lib/libgccpp.so.1", "libgccpp.so.1")]
 for valgrind_file in ["vgpreload_memcheck-amd64-linux.so", "vgpreload_core-amd64-linux.so", "memcheck-amd64-linux"]:
     cloudtest_lib_dependencies.append(("/usr/lib/valgrind/" + valgrind_file, "valgrind/" + valgrind_file))
-cloudtest_lib_dependencies.append((os.path.join (sys.prefix, "cloud_config/valgrind-default.supp"), "valgrind/default.supp"))
+cloudtest_lib_dependencies.append((os.path.join (cloud_config_path, "valgrind-default.supp"), "valgrind/default.supp"))
 
 cloudtest_bin_dependencies = [("/usr/local/bin/netrecord", "netrecord"),
         ("/usr/bin/valgrind", "valgrind"),
