@@ -107,17 +107,17 @@ endif
 DEP_DIR:=$(BUILD_DIR)/dep
 OBJ_DIR:=$(BUILD_DIR)/obj
 
-SOURCES:=$(shell find $(SOURCE_DIR) -regex '.*\.\(S\|cc\)')
-NAMES:=$(patsubst $(SOURCE_DIR)/%.S,%.S,$(patsubst $(SOURCE_DIR)/%.cc,%.cc,$(SOURCES)))
+SOURCES:=$(shell find $(SOURCE_DIR) -name '*.cc')
+NAMES:=$(patsubst $(SOURCE_DIR)/%.cc,%,$(SOURCES))
 DEPS:=$(patsubst %,$(DEP_DIR)/%.d,$(NAMES))
 OBJS:=$(patsubst %,$(OBJ_DIR)/%.o,$(NAMES))
 
-SERVER_EXEC_OBJS:=$(patsubst %.S,$(OBJ_DIR)/%.S.o,$(patsubst %.cc,$(OBJ_DIR)/%.cc.o,$(shell find $(SOURCE_DIR) -regex '.*\.\(S\|cc\)' | grep -vF "`find $(SOURCE_DIR)/extract $(SOURCE_DIR)/fsck -name '*.cc'`")))
+SERVER_EXEC_OBJS:=$(patsubst %.cc,$(OBJ_DIR)/%.o,$(shell find $(SOURCE_DIR) -name '*.cc' | grep -vF "`find $(SOURCE_DIR)/extract $(SOURCE_DIR)/fsck -name '*.cc'`"))
 
-SERVER_NOMAIN_OBJS:=$(patsubst %.S,$(OBJ_DIR)/%.S.o,$(patsubst %.cc,$(OBJ_DIR)/%.cc.o,$(shell find $(SOURCE_DIR) -regex '.*\.\(S\|cc\)' | grep -vF "`find $(SOURCE_DIR) -name 'main.cc'`")))
+SERVER_NOMAIN_OBJS:=$(patsubst %.cc,$(OBJ_DIR)/%.o,$(shell find $(SOURCE_DIR) -name '*.cc' | grep -vF "`find $(SOURCE_DIR) -name 'main.cc'`"))
 
-SERVER_EXTRACT_OBJS:=$(SERVER_NOMAIN_OBJS) $(OBJ_DIR)/extract/main.cc.o
-SERVER_FSCK_OBJS:=$(SERVER_NOMAIN_OBJS) $(OBJ_DIR)/fsck/main.cc.o
+SERVER_EXTRACT_OBJS:=$(SERVER_NOMAIN_OBJS) $(OBJ_DIR)/extract/main.o
+SERVER_FSCK_OBJS:=$(SERVER_NOMAIN_OBJS) $(OBJ_DIR)/fsck/main.o
 
 
 
@@ -225,7 +225,7 @@ ifeq ($(VERBOSE),0)
 	@echo "    RM $(CSCOPE_XREF)"
 endif
 	$(QUIET) find -name '*~' -exec rm {} \;
-	$(QUIET) rm -r $(BUILD_ROOT_DIR)
+	$(QUIET) rm -rf $(BUILD_ROOT_DIR)
 	$(QUIET) rm -f $(TAGS) $(CSCOPE_XREF)
 
 # Directories
@@ -233,7 +233,7 @@ $(BUILD_DIR):
 	$(QUIET) mkdir -p $(BUILD_DIR)
 
 # Object files
-$(OBJ_DIR)/%.o: $(SOURCE_DIR)/% Makefile
+$(OBJ_DIR)/%.o: $(SOURCE_DIR)/%.cc Makefile
 	$(QUIET) mkdir -p $(dir $@)
 ifeq ($(VERBOSE),0)
 	@echo "    CC $< -o $@"
@@ -241,7 +241,7 @@ endif
 	$(QUIET) $(CXX) $(CXXFLAGS) -c -o $@ $<
 
 # Dependencies
-$(DEP_DIR)/%.d: $(SOURCE_DIR)/%
+$(DEP_DIR)/%.d: $(SOURCE_DIR)/%.cc
 	$(QUIET) mkdir -p $(dir $@)
 	$(QUIET) $(CXX) $(CXXFLAGS) -M $< > $@.$$$$;				   \
 	sed 's,$(notdir $*)\.o[ :]*,$(OBJ_DIR)/$*.o $@ : ,g' < $@.$$$$ > $@;	  \
