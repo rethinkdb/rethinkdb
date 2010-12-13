@@ -95,7 +95,7 @@ void Coro_allocStackIfNeeded(Coro *self)
 
 	if (!self->stack)
 	{
-		self->stack = (void *)calloc(1, self->requestedStackSize + 16);
+		self->stack = (void *)malloc(self->requestedStackSize + 16); //No need to zero a stack
 		self->allocatedStackSize = self->requestedStackSize;
 		//printf("Coro_%p allocating stack size %i\n", (void *)self, self->requestedStackSize);
 		STACK_REGISTER(self);
