@@ -80,6 +80,10 @@ public:
     }
 
     void parse(char *str) {
+        if (!strchr(str, '-')) {
+            min = max = atoi(str);
+            return;
+        }
         char *tok = strtok(str, "-");
         int c = 0;
         while(tok != NULL) {
@@ -91,7 +95,7 @@ public:
                 max = atoi(tok);
                 break;
             default:
-                fprintf(stderr, "Invalid distr format (use MIN-MAX)\n");
+                fprintf(stderr, "Invalid distr format (use NUM or MIN-MAX)\n");
                 exit(-1);
                 break;
             }
@@ -99,11 +103,11 @@ public:
             c++;
         }
         if(c < 2) {
-            fprintf(stderr, "Invalid distr format (use MIN-MAX)\n");
+            fprintf(stderr, "Invalid distr format (use NUM or MIN-MAX)\n");
             exit(-1);
         }
         if (min > max) {
-            fprintf(stderr, "Invalid distr format (use MIN-MAX, where MIN <= MAX)\n");
+            fprintf(stderr, "Invalid distr format (use NUM or MIN-MAX, where MIN <= MAX)\n");
             exit(-1);
         }
     }
