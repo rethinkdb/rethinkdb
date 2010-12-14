@@ -7,6 +7,8 @@
 #include <vector>
 #include <boost/bind.hpp>
 
+extern perfmon_counter_t pm_active_coroutines;
+
 /* A coroutine represents an action with no return value */
 struct coro_t
     : private cpu_message_t

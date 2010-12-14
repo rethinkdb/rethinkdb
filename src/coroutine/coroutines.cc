@@ -2,6 +2,7 @@
 #include "arch/arch.hpp"
 #include <stdio.h>
 
+perfmon_counter_t pm_active_coroutines("active_coroutines");
 __thread coro_t *coro_t::current_coro = NULL;
 __thread coro_t *coro_t::scheduler = NULL;
 
@@ -70,6 +71,7 @@ coro_t::coro_t(void (*fn)(void *arg), void *arg) {
 }
 
 void *coro_t::initialize(void (*fn)(void *arg), void *arg) {
+    pm_active_coroutines++;
     underlying = Coro_new();
     dead = false;
     home_cpu = get_cpu_id();
@@ -86,6 +88,7 @@ void *coro_t::initialize(void (*fn)(void *arg), void *arg) {
 }
 
 coro_t::~coro_t() {
+    pm_active_coroutines--;
     Coro_free(underlying);
 }
 
@@ -114,7 +117,6 @@ void *task_t::join() {
     if (!done) {
         waiters.push_back(coro_t::self());
         while (!done) {
-            printf("Waiting...\n");
             coro_t::wait();
             notify();
         }
@@ -168,7 +170,6 @@ void do_run_on_cpu(void (*fn)(void *), void *arg, coro_t *coro
 #endif
     ) {
     assert(cpu == get_cpu_id());
-    printf("Doing on cpu\n");
     fn(arg);
     coro->notify();
 }
