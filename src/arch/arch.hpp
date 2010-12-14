@@ -68,7 +68,7 @@ inline bool continue_on_thread(int thread, thread_message_t *msg) {
 }
 
 // call_later_on_this_thread() will cause msg->on_thread_switch() to be called from the main event loop
-// of the CPU we are currently on. It's a bit of a hack.
+// of the thread we are currently on. It's a bit of a hack.
 inline void call_later_on_this_thread(thread_message_t *msg) {
     return io_config_t::call_later_on_this_thread(msg);
 }
@@ -81,7 +81,7 @@ This is because originally clients would just call store_message() directly.
 When continue_on_thread() was written, the code still assumed that the message's
 callback would not be called before continue_on_thread() returned. Using
 call_later_on_this_thread() is not ideal because it would be better to just
-continue processing immediately if we are already on the correct CPU, but
+continue processing immediately if we are already on the correct thread, but
 at the time it didn't seem worth rewriting it, so call_later_on_this_thread()
 was added to make it easy to simulate the old semantics. */
 

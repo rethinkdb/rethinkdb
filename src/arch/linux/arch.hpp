@@ -35,7 +35,7 @@ struct linux_io_config_t {
     
     static bool continue_on_thread(int thread, linux_thread_message_t *msg) {
         if (thread == get_thread_id()) {
-            // The CPU to continue on is the CPU we are already on
+            // The thread to continue on is the thread we are already on
             return true;
         } else {
             linux_thread_pool_t::thread->message_hub.store_message(thread, msg);

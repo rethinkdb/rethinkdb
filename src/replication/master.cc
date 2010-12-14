@@ -17,10 +17,10 @@ replication_message_t::replication_message_t(
 
 void replication_message_t::on_thread_switch() {
     if (!sent) {
-        /* We are switching to the parent CPU */
+        /* We are switching to the parent thread */
         parent->conn_write_mutex.lock(this);
     } else {
-        /* We are returning from the parent CPU */
+        /* We are returning from the parent thread */
         callback->have_copied_value();
         delete this;
     }

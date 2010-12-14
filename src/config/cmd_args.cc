@@ -411,7 +411,7 @@ void parsing_cmd_config_t::set_cores(const char* value) {
     int& target = n_workers;
     const int minimum_value = 1;
     // Subtract one because of utility cpu
-    const int maximum_value = MAX_CPUS - 1;
+    const int maximum_value = MAX_THREADS - 1;
     
     target = parse_int(optarg);
     if (parsing_failed || !is_in_range(target, minimum_value, maximum_value))

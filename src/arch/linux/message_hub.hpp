@@ -36,8 +36,8 @@ public:
     msg_global_list for that thread */
     void push_messages();
     
-    /* Schedules the given message to be sent to the given CPU by pushing it onto our
-    msg_local_list for that CPU */
+    /* Schedules the given message to be sent to the given thread by pushing it onto our
+    msg_local_list for that thread */
     void store_message(unsigned int nthread, linux_thread_message_t *msg);
     
     // Called by the thread pool when it needs to deliver a message from the main thread
@@ -49,14 +49,14 @@ public:
 private:
     /* pull_messages should be called on thread N with N as its argument. (The argument is
     partially redundant.) It will cause the actual delivery of messages that originated
-    on this->current_thread and are destined for CPU N. It is (almost) the only method on
-    linux_message_hub_t that is not called on the CPU that the message hub belongs to. */
+    on this->current_thread and are destined for thread N. It is (almost) the only method on
+    linux_message_hub_t that is not called on the thread that the message hub belongs to. */
     void pull_messages(int thread);
 
     linux_event_queue_t *queue;
     linux_thread_pool_t *thread_pool;
     
-    /* Queue for messages going from this->current_thread to other CPUs */
+    /* Queue for messages going from this->current_thread to other threads */
     struct thread_queue_t {
         /* Messages are cached here before being pushed to the global list so that we don't
         have to acquire the spinlock as often */
@@ -67,7 +67,7 @@ private:
         msg_list_t msg_global_list;
 
         pthread_spinlock_t lock;
-    } queues[MAX_CPUS];
+    } queues[MAX_THREADS];
 
     /* We keep one notify_t for each other message hub that we interact with. When it has
     messages for us, it signals the appropriate notify_t from our set of notify_ts. We get
@@ -75,8 +75,8 @@ private:
     struct notify_t : public linux_event_callback_t
     {
     public:
-        /* message_hubs[i]->notify[j].on_event() is called when CPU #j has messages for
-        CPU #i. */
+        /* message_hubs[i]->notify[j].on_event() is called when thread #j has messages for
+        thread #i. */
         void on_event(int events);
 
     public:
@@ -87,9 +87,9 @@ private:
         
         /* hub->notify[i].parent = hub */
         linux_message_hub_t *parent;
-    } notify[MAX_CPUS];
+    } notify[MAX_THREADS];
     
-    /* The CPU that we queue messages originating from. (Recall that there is one
+    /* The thread that we queue messages originating from. (Recall that there is one
     message_hub_t per thread.) */
     unsigned int current_thread;
 };

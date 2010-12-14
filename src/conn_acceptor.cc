@@ -1,5 +1,5 @@
 #include "conn_acceptor.hpp"
-#include "db_cpu_info.hpp"
+#include "db_thread_info.hpp"
 
 conn_acceptor_t::conn_acceptor_t(int port, conn_handler_t *(*creator)(net_conn_t*, void*), void *udata)
     : state(state_off), port(port), creator(creator), creator_udata(udata), listener(NULL), next_thread(0), n_active_conns(0) { }

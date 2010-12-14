@@ -1,5 +1,5 @@
 #include "key_value_store.hpp"
-#include "db_cpu_info.hpp"
+#include "db_thread_info.hpp"
 #include "btree/get_fsm.hpp"
 #include "btree/set_fsm.hpp"
 #include "btree/incr_decr_fsm.hpp"

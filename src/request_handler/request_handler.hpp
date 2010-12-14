@@ -95,7 +95,7 @@ private:
         consume   // Discard the data from the socket
     } mode;
 
-    int requestor_thread;   // CPU that callback must be called on
+    int requestor_thread;   // thread that callback must be called on
     data_provider_t::done_callback_t *cb;
 
     bool completed;

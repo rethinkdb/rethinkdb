@@ -275,7 +275,7 @@ conn_fsm_t::result_t conn_fsm_t::do_fsm_outstanding_req(event_t *event) {
             }
         case request_handler_t::op_req_complex:
             // Ain't nothing we can do now - the operations
-            // have been distributed accross CPUs. We can just
+            // have been distributed accross threads. We can just
             // sit back and wait until they come back.
             state = fsm_btree_incomplete;
             return fsm_transition_ok;

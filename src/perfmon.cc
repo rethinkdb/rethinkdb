@@ -131,7 +131,7 @@ perfmon_t::~perfmon_t() {
 perfmon_counter_t::perfmon_counter_t(std::string name)
     : name(name)
 {
-    for (int i = 0; i < MAX_CPUS; i++) values[i] = 0;
+    for (int i = 0; i < MAX_THREADS; i++) values[i] = 0;
 }
 
 int64_t &perfmon_counter_t::get() {
@@ -170,8 +170,8 @@ void perfmon_sampler_t::record(value_t v) {
 }
 
 struct perfmon_sampler_step_t {
-    uint64_t counts[MAX_CPUS];
-    perfmon_sampler_t::value_t values[MAX_CPUS], mins[MAX_CPUS], maxes[MAX_CPUS];
+    uint64_t counts[MAX_THREADS];
+    perfmon_sampler_t::value_t values[MAX_THREADS], mins[MAX_THREADS], maxes[MAX_THREADS];
 };
 
 void *perfmon_sampler_t::begin_stats() {

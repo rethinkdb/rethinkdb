@@ -37,7 +37,7 @@ struct buffer_t : public buffer_base_t<_size>
 {
 };
 
-/* The home CPU mixin is a simple mixin for objects that are primarily associated with
+/* The home thread mixin is a simple mixin for objects that are primarily associated with
 a single thread. It just keeps track of the thread that the object was created on and
 makes sure that it is destroyed from the same thread. It exposes the ID of that thread
 as the "home_thread" variable. */
@@ -93,7 +93,7 @@ inline uint64_t hton(uint64_t val) { return htobe64(val); }
 
 /* API to allow a nicer way of performing jobs on other cores than subclassing
 from thread_message_t. Call do_on_thread() with an object and a method for that object.
-The method will be called on the other CPU. If the thread to call the method on is
+The method will be called on the other thread. If the thread to call the method on is
 the current thread, returns the method's return value. Otherwise, returns false. */
 
 template<class callable_t>

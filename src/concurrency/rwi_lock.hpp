@@ -35,7 +35,7 @@ public:
             {}
         access_t op;
         lock_available_callback_t *callback;
-        void on_thread_switch();   // Actually, this is called later on the same CPU...
+        void on_thread_switch();   // Actually, this is called later on the same thread...
     };
 
     // Note, the receiver of lock_request_t completion notifications

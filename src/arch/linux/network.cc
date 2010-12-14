@@ -34,7 +34,7 @@ void linux_net_conn_t::register_with_event_loop() {
 
     } else if (registration_thread != linux_thread_pool_t::thread_id) {
         guarantee(registration_thread == linux_thread_pool_t::thread_id,
-            "Must always use a net_conn_t on the same CPU.");
+            "Must always use a net_conn_t on the same thread.");
     }
 }
 
