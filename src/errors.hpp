@@ -104,7 +104,7 @@ void report_user_error(const char*, ...);
 
 #ifndef NDEBUG
 void print_backtrace(FILE *out = stderr, bool use_addr2line = true);
-char *demangle_cpp_name(const char *mangled_name, char* buffer = NULL, size_t* buffer_length = NULL);
+char *demangle_cpp_name(const char *mangled_name);
 #endif
 
 #endif /* __ERRORS_HPP__ */
