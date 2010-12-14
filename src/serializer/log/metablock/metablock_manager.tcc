@@ -177,17 +177,11 @@ bool metablock_manager_t<metablock_t>::start_existing(direct_file_t *file, bool 
     new coro_t(start_existing_callback, this, file, mb_found, mb_out, cb);
     return false;
 }
-    
-
-
 template<class metablock_t>
 void metablock_manager_t<metablock_t>::co_write_metablock(metablock_t *mb) {
-    // There is a lock on writes, implemented with the outstanding_writes queue
-    if (state != state_ready) {
-        assert(state == state_writing);
-        outstanding_writes.push_back(coro_t::self());
-        coro_t::wait();
-    }
+    mutex_acquisition_t hold(&write_lock);
+
+    assert(state == state_ready);
     assert(!mb_buffer_in_use);
     
     mb_buffer->metablock = *mb;
@@ -198,6 +192,7 @@ void metablock_manager_t<metablock_t>::co_write_metablock(metablock_t *mb) {
 
     mb_buffer->set_crc();
     assert(mb_buffer->check_crc());
+
     mb_buffer_in_use = true;
     
     state = state_writing;
@@ -207,14 +202,6 @@ void metablock_manager_t<metablock_t>::co_write_metablock(metablock_t *mb) {
 
     state = state_ready;
     mb_buffer_in_use = false;
-    
-    // Start the next write if there are more in the queue
-    // i.e. unlock the lock for writes
-    if (!outstanding_writes.empty()) {
-            coro_t *req = outstanding_writes.front();
-        outstanding_writes.pop_front();
-        req->notify();
-    }
 }
 
 template<class metablock_t>

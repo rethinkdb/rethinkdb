@@ -9,6 +9,7 @@
 #include <deque>
 #include "serializer/log/static_header.hpp"
 #include "coroutine/coroutines.hpp"
+#include "concurrency/mutex.hpp"
 
 
 
@@ -116,7 +117,7 @@ public:
     void co_write_metablock(metablock_t *mb);
 
 private:
-    std::deque<coro_t*> outstanding_writes; //should there be a cooperative lock mechanism to abstract this?
+    mutex_t write_lock;
 
 public:
     void shutdown();
