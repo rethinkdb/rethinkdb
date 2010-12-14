@@ -8,7 +8,7 @@ array_free_list_t::array_free_list_t(translator_serializer_t *serializer)
 
 bool array_free_list_t::start(ready_callback_t *cb) {
     ready_callback = NULL;
-    if (do_on_cpu(serializer->home_cpu, this, &array_free_list_t::do_make_list)) {
+    if (do_on_thread(serializer->home_thread, this, &array_free_list_t::do_make_list)) {
         return true;
     } else {
         ready_callback = cb;
@@ -29,11 +29,11 @@ bool array_free_list_t::do_make_list() {
         }
     }
     
-    return do_on_cpu(home_cpu, this, &array_free_list_t::have_made_list);
+    return do_on_thread(home_thread, this, &array_free_list_t::have_made_list);
 }
 
 bool array_free_list_t::have_made_list() {
-    assert_cpu();
+    assert_thread();
     
     if (ready_callback) ready_callback->on_free_list_ready();
     

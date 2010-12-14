@@ -49,8 +49,8 @@ public:
                     buffer_group.add_buffer(size, data);
                 }
                 
-                in_operate = true;   // So we intercept on_cpu_switch()
-                if (continue_on_cpu(home_cpu, this)) on_cpu_switch();
+                in_operate = true;   // So we intercept on_thread_switch()
+                if (continue_on_thread(home_thread, this)) on_thread_switch();
             } else {
                 result = result_small_value;
                 done_with_operate();
@@ -66,7 +66,7 @@ public:
         }
     }
     
-    void on_cpu_switch() {
+    void on_thread_switch() {
         if (in_operate) {
             if (!have_delivered_value) {
                 callback->value(&buffer_group, this, value.mcflags(), value.cas());
@@ -75,7 +75,7 @@ public:
                 done_with_operate();
             }
         } else {
-            btree_modify_fsm_t::on_cpu_switch();
+            btree_modify_fsm_t::on_thread_switch();
         }
     }
     
@@ -86,7 +86,7 @@ public:
                 break;
             case result_large_value:
                 have_delivered_value = true;
-                if (continue_on_cpu(slice->home_cpu, this)) on_cpu_switch();
+                if (continue_on_thread(slice->home_thread, this)) on_thread_switch();
                 break;
             case result_not_found:
             default:

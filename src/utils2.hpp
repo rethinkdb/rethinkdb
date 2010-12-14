@@ -87,7 +87,7 @@ bool maybe_random_delay(cb_t *cb, void (cb_t::*method)());
 template<class cb_t, class arg1_t>
 bool maybe_random_delay(cb_t *cb, void (cb_t::*method)(arg1_t), arg1_t arg);
 
-/* Debugging printing API (prints CPU core in addition to message) */
+/* Debugging printing API (prints current thread in addition to message) */
 
 void debugf(const char *msg, ...);
 

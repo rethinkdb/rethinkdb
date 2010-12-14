@@ -8,7 +8,7 @@
 #include "arch/linux/timer.hpp"
 #include "arch/linux/message_hub.hpp"
 
-struct linux_cpu_message_t;
+struct linux_thread_message_t;
 struct linux_thread_t;
 
 /* A thread pool represents a group of threads, each of which is associated with an
@@ -23,12 +23,12 @@ public:
     // same thread that initial_message was delivered to, and interrupt_message will be set to
     // NULL. If you want to receive notification of further SIGINTs or SIGTERMs, you must call
     // set_interrupt_message() again. Returns the previous value of interrupt_message.
-    linux_cpu_message_t *set_interrupt_message(linux_cpu_message_t *interrupt_message);
+    linux_thread_message_t *set_interrupt_message(linux_thread_message_t *interrupt_message);
     
     // Blocks while threads are working. Only returns after shutdown() is called. initial_message
-    // is a CPU message that will be delivered to one of the threads after all of the event queues
+    // is a thread message that will be delivered to one of the threads after all of the event queues
     // have been started; it is used to start the server's activity.
-    void run(linux_cpu_message_t *initial_message);
+    void run(linux_thread_message_t *initial_message);
     
     // Shut down all the threads. Can be called from any thread.
     void shutdown();
@@ -40,7 +40,7 @@ private:
     
     static void interrupt_handler(int);
     pthread_spinlock_t interrupt_message_lock;
-    linux_cpu_message_t *interrupt_message;
+    linux_thread_message_t *interrupt_message;
     
     // Used to signal the main thread for shutdown
     bool do_shutdown;
@@ -48,15 +48,15 @@ private:
     pthread_mutex_t shutdown_cond_mutex;
 
 public:
-    pthread_t pthreads[MAX_CPUS];
-    linux_thread_t *threads[MAX_CPUS];
+    pthread_t pthreads[MAX_THREADS];
+    linux_thread_t *threads[MAX_THREADS];
     
     int n_threads;
     // The thread_pool that started the thread we are currently in
     static __thread linux_thread_pool_t *thread_pool;
     // The ID of the thread we are currently in
-    static __thread int cpu_id;
-    // The event queue for the thread we are currently in (same as &thread_pool->threads[cpu_id])
+    static __thread int thread_id;
+    // The event queue for the thread we are currently in (same as &thread_pool->threads[thread_id])
     static __thread linux_thread_t *thread;
 };
 

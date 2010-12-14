@@ -14,7 +14,7 @@ lasts for the entire lifetime of the server. */
 
 class conn_acceptor_t :
     public net_listener_callback_t,
-    public home_cpu_mixin_t
+    public home_thread_mixin_t
 {
     friend class conn_handler_t;
 
@@ -47,12 +47,12 @@ private:
     void *creator_udata;
 
     net_listener_t *listener;
-    int next_cpu;
+    int next_thread;
     void on_net_listener_accept(net_conn_t *conn);
     bool create_conn_on_this_core(net_conn_t *conn);
 
     int n_active_conns;
-    intrusive_list_t<conn_handler_t> conn_handlers[MAX_CPUS];
+    intrusive_list_t<conn_handler_t> conn_handlers[MAX_THREADS];
 
     bool have_shutdown_a_conn();
 

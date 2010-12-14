@@ -68,9 +68,9 @@ private:
     explicit linux_net_conn_t(fd_t sock);   // Used by net_listener_t
     fd_t sock;
 
-    /* Before we are being watched by any event loop, registration_cpu is -1. Once an
-    event loop is watching us, registration_cpu is its ID. */
-    int registration_cpu;
+    /* Before we are being watched by any event loop, registration_thread is -1. Once an
+    event loop is watching us, registration_thread is its ID. */
+    int registration_thread;
     void register_with_event_loop();
 
     void on_event(int events);

@@ -4,7 +4,7 @@
 // TODO: allow multiple values per key
 // TODO: add cursor/iterator mechanism
 
-void btree_fsm_t::on_cpu_switch() {
+void btree_fsm_t::on_thread_switch() {
     do_transition(NULL);
 }
 

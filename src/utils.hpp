@@ -37,20 +37,20 @@ struct buffer_t : public buffer_base_t<_size>
 {
 };
 
-/* The home CPU mixin is a simple mixin for objects that are primarily associated with
+/* The home thread mixin is a simple mixin for objects that are primarily associated with
 a single thread. It just keeps track of the thread that the object was created on and
 makes sure that it is destroyed from the same thread. It exposes the ID of that thread
-as the "home_cpu" variable. */
+as the "home_thread" variable. */
 
-struct home_cpu_mixin_t {
-    int home_cpu;
-    home_cpu_mixin_t() : home_cpu(get_cpu_id()) { }
-    ~home_cpu_mixin_t() { assert_cpu(); }
+struct home_thread_mixin_t {
+    int home_thread;
+    home_thread_mixin_t() : home_thread(get_thread_id()) { }
+    ~home_thread_mixin_t() { assert_thread(); }
     
 #ifndef NDEBUG
-    void assert_cpu() { assert(home_cpu == get_cpu_id()); }
+    void assert_thread() { assert(home_thread == get_thread_id()); }
 #else
-    void assert_cpu() { }
+    void assert_thread() { }
 #endif
 };
 
@@ -92,21 +92,21 @@ inline uint32_t hton(uint32_t val) { return htobe32(val); }
 inline uint64_t hton(uint64_t val) { return htobe64(val); }
 
 /* API to allow a nicer way of performing jobs on other cores than subclassing
-from cpu_message_t. Call do_on_cpu() with an object and a method for that object.
-The method will be called on the other CPU. If the cpu to call the method on is
-the current cpu, returns the method's return value. Otherwise, returns false. */
+from thread_message_t. Call do_on_thread() with an object and a method for that object.
+The method will be called on the other thread. If the thread to call the method on is
+the current thread, returns the method's return value. Otherwise, returns false. */
 
 template<class callable_t>
-bool do_on_cpu(int cpu, const callable_t &callable);
+bool do_on_thread(int thread, const callable_t &callable);
 
 template<class obj_t>
-bool do_on_cpu(int cpu, obj_t *obj, bool (obj_t::*on_other_core)());
+bool do_on_thread(int thread, obj_t *obj, bool (obj_t::*on_other_core)());
 
 template<class obj_t, class arg1_t>
-bool do_on_cpu(int cpu, obj_t *obj, bool (obj_t::*on_other_core)(arg1_t), arg1_t arg);
+bool do_on_thread(int thread, obj_t *obj, bool (obj_t::*on_other_core)(arg1_t), arg1_t arg);
 
 template<class obj_t, class arg1_t, class arg2_t>
-bool do_on_cpu(int cpu, obj_t *obj, bool (obj_t::*on_other_core)(arg1_t, arg2_t), arg1_t arg1, arg2_t arg2);
+bool do_on_thread(int thread, obj_t *obj, bool (obj_t::*on_other_core)(arg1_t, arg2_t), arg1_t arg1, arg2_t arg2);
 
 template<class callable_t>
 void do_later(const callable_t &callable);

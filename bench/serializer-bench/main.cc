@@ -94,7 +94,7 @@ struct config_t {
 };
 
 struct tester_t :
-    public cpu_message_t,
+    public thread_message_t,
     public log_serializer_t::ready_callback_t,
     public transaction_t::callback_t,
     public log_serializer_t::shutdown_callback_t
@@ -112,11 +112,11 @@ struct tester_t :
     unsigned secs_so_far;
     
     struct interrupt_msg_t :
-        public cpu_message_t
+        public thread_message_t
     {
         tester_t *tester;
         interrupt_msg_t(tester_t *tester) : tester(tester) { }
-        void on_cpu_switch() {
+        void on_thread_switch() {
             fprintf(stderr, "Interrupted.\n");
             tester->stop_test();
             cancel_timer(tester->timer);
@@ -132,9 +132,9 @@ struct tester_t :
         }
     }
     
-    /* When on_cpu_switch() is called, it could either be the start message telling us to run the
-    test or the shutdown message from call_later_on_this_cpu(). We differentiate by checking 'ser'. */
-    void on_cpu_switch() {
+    /* When on_thread_switch() is called, it could either be the start message telling us to run the
+    test or the shutdown message from call_later_on_this_thread(). We differentiate by checking 'ser'. */
+    void on_thread_switch() {
         if (!ser) start();
         else shutdown();
     }
@@ -197,7 +197,7 @@ struct tester_t :
         if (active_txns == 0 && stop) {
             /* Serializer doesn't like shutdown() to be called from within
                on_serializer_write_txn() */
-            call_later_on_this_cpu(this);
+            call_later_on_this_thread(this);
         }
     }
     

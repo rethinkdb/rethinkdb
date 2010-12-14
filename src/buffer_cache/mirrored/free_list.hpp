@@ -10,7 +10,7 @@
 /* TODO We could implement a free list in the unused cells of the page map, saving a little bit
 of memory. */
 
-class array_free_list_t : public home_cpu_mixin_t {
+class array_free_list_t : public home_thread_mixin_t {
 public:
     explicit array_free_list_t(translator_serializer_t *);
 
@@ -28,8 +28,8 @@ public:
 
 private:
     ready_callback_t *ready_callback;
-    bool do_make_list();   // Called on serializer CPU
-    bool have_made_list();   // Called on cache CPU
+    bool do_make_list();   // Called on serializer thread
+    bool have_made_list();   // Called on cache thread
     
     translator_serializer_t *serializer;
     

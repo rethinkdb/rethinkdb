@@ -6,7 +6,7 @@
 #include <vector>
 
 /* A coroutine represents an action with no return value */
-struct coro_t : public cpu_message_t {
+struct coro_t : public thread_message_t {
     coro_t(void (*fn)(void *arg), void *arg); //Creates and notifies a coroutine
     explicit coro_t(Coro *underlying) : underlying(underlying), dead(false)
 #ifndef NDEBUG
@@ -15,7 +15,7 @@ struct coro_t : public cpu_message_t {
     { }
     void notify(); //Wakes up the coroutine, allowing the scheduler to trigger it to continue
     ~coro_t();
-    virtual void on_cpu_switch();
+    virtual void on_thread_switch();
 
 private:
     void switch_to(coro_t *next);
