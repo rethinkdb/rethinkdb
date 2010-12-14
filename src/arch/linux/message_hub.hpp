@@ -13,10 +13,10 @@ struct linux_thread_pool_t;
 // TODO: perhaps we can issue cache prefetching commands to the CPU to
 // speed up the process of sending messages across cores.
 
-struct linux_cpu_message_t :
-    public intrusive_list_node_t<linux_cpu_message_t>
+struct linux_thread_message_t :
+    public intrusive_list_node_t<linux_thread_message_t>
 {
-    virtual void on_cpu_switch() = 0;
+    virtual void on_thread_switch() = 0;
 };
 
 /* There is one message hub per thread, NOT one message hub for the entire program.
@@ -27,10 +27,10 @@ other threads. It keeps a separate queue for messages destined for each other th
 struct linux_message_hub_t
 {
 public:
-    typedef intrusive_list_t<linux_cpu_message_t> msg_list_t;
+    typedef intrusive_list_t<linux_thread_message_t> msg_list_t;
     
 public:
-    linux_message_hub_t(linux_event_queue_t *queue, linux_thread_pool_t *thread_pool, int current_cpu);
+    linux_message_hub_t(linux_event_queue_t *queue, linux_thread_pool_t *thread_pool, int current_thread);
     
     /* For each thread, transfer messages from our msg_local_list for that thread to our
     msg_global_list for that thread */
@@ -38,26 +38,26 @@ public:
     
     /* Schedules the given message to be sent to the given CPU by pushing it onto our
     msg_local_list for that CPU */
-    void store_message(unsigned int ncpu, linux_cpu_message_t *msg);
+    void store_message(unsigned int nthread, linux_thread_message_t *msg);
     
     // Called by the thread pool when it needs to deliver a message from the main thread
     // (which does not have an event queue)
-    void insert_external_message(linux_cpu_message_t *msg);
+    void insert_external_message(linux_thread_message_t *msg);
     
     ~linux_message_hub_t();
 
 private:
-    /* pull_messages should be called on cpu N with N as its argument. (The argument is
+    /* pull_messages should be called on thread N with N as its argument. (The argument is
     partially redundant.) It will cause the actual delivery of messages that originated
-    on this->current_cpu and are destined for CPU N. It is (almost) the only method on
+    on this->current_thread and are destined for CPU N. It is (almost) the only method on
     linux_message_hub_t that is not called on the CPU that the message hub belongs to. */
-    void pull_messages(int cpu);
+    void pull_messages(int thread);
 
     linux_event_queue_t *queue;
     linux_thread_pool_t *thread_pool;
     
-    /* Queue for messages going from this->current_cpu to other CPUs */
-    struct cpu_queue_t {
+    /* Queue for messages going from this->current_thread to other CPUs */
+    struct thread_queue_t {
         /* Messages are cached here before being pushed to the global list so that we don't
         have to acquire the spinlock as often */
         msg_list_t msg_local_list;
@@ -80,8 +80,8 @@ private:
         void on_event(int events);
 
     public:
-        /* hub->notify[j].notifier_cpu == j */
-        int notifier_cpu;
+        /* hub->notify[j].notifier_thread == j */
+        int notifier_thread;
         
         fd_t fd;                    // the eventfd to call
         
@@ -91,7 +91,7 @@ private:
     
     /* The CPU that we queue messages originating from. (Recall that there is one
     message_hub_t per thread.) */
-    unsigned int current_cpu;
+    unsigned int current_thread;
 };
 
 #endif // __ARCH_LINUX_MESSAGE_HUB_HPP__

@@ -295,7 +295,7 @@ void btree_modify_fsm_t::do_transition(event_t *event) {
             // Go to the core with the cache on it.
             case go_to_cache_core: {
                 state = start_transaction;
-                if (continue_on_cpu(slice->home_cpu, this)) res = btree_fsm_t::transition_ok;
+                if (continue_on_thread(slice->home_thread, this)) res = btree_fsm_t::transition_ok;
                 else res = btree_fsm_t::transition_incomplete;
                 break;
             }
@@ -607,7 +607,7 @@ void btree_modify_fsm_t::do_transition(event_t *event) {
                 if (committed) {
                     transaction = NULL;
                     state = call_callback_and_delete_self;
-                    if (continue_on_cpu(home_cpu, this)) res = btree_fsm_t::transition_ok;
+                    if (continue_on_thread(home_thread, this)) res = btree_fsm_t::transition_ok;
                     else res = btree_fsm_t::transition_incomplete;
                 } else {
                     res = btree_fsm_t::transition_incomplete;
@@ -622,7 +622,7 @@ void btree_modify_fsm_t::do_transition(event_t *event) {
                     assert(event->buf == transaction);
                     transaction = NULL;
                     state = call_callback_and_delete_self;
-                    if (continue_on_cpu(home_cpu, this)) res = btree_fsm_t::transition_ok;
+                    if (continue_on_thread(home_thread, this)) res = btree_fsm_t::transition_ok;
                     else res = btree_fsm_t::transition_incomplete;
                 }
                 break;
@@ -630,7 +630,7 @@ void btree_modify_fsm_t::do_transition(event_t *event) {
             
             // Call the callback and clean up
             case call_callback_and_delete_self: {
-                assert_cpu();
+                assert_thread();
                 call_callback_and_delete();
                 res = btree_fsm_t::transition_incomplete;   // So we break out of the loop
                 break;

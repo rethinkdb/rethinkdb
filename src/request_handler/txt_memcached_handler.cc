@@ -397,7 +397,7 @@ public:
 };
 
 class txt_memcached_perfmon_request_t :
-    public cpu_message_t,   // For call_later_on_this_cpu()
+    public thread_message_t,   // For call_later_on_this_thread()
     public perfmon_callback_t
 {
     txt_memcached_handler_t *rh;
@@ -415,11 +415,11 @@ public:
             So we delay so that the request handler doesn't get confused.  We don't know
             if this is necessary. */
 
-            call_later_on_this_cpu(this);
+            call_later_on_this_thread(this);
         }
     }
     
-    void on_cpu_switch() {
+    void on_thread_switch() {
         on_perfmon_stats();
     }
     
@@ -466,8 +466,8 @@ private:
 
 class disable_gc_request_t :
     public server_t::all_gc_disabled_callback_t,  // gives us multiple_users_seen
-    public cpu_message_t,   // As with txt_memcached_perfmon_request_t, for call_later_on_this_cpu()
-    public home_cpu_mixin_t
+    public thread_message_t,   // As with txt_memcached_perfmon_request_t, for call_later_on_this_thread()
+    public home_thread_mixin_t
 {
     txt_memcached_handler_t *rh;
     
@@ -479,17 +479,17 @@ public:
         done = true;
     }
 
-    void on_cpu_switch() {
+    void on_thread_switch() {
         on_gc_disabled();
     }
 
     void on_gc_disabled() {
-        if (!continue_on_cpu(home_cpu, this)) {
+        if (!continue_on_thread(home_thread, this)) {
             return;
         }
 
         if (!done) {
-            call_later_on_this_cpu(this);
+            call_later_on_this_thread(this);
             return;
         }
 
@@ -509,8 +509,8 @@ private:
 
 class enable_gc_request_t :
     public server_t::all_gc_enabled_callback_t,  // gives us multiple_users_seen
-    public cpu_message_t,
-    public home_cpu_mixin_t
+    public thread_message_t,
+    public home_thread_mixin_t
 {
     txt_memcached_handler_t *rh;
     
@@ -522,17 +522,17 @@ public:
         done = true;
     }
 
-    void on_cpu_switch() {
+    void on_thread_switch() {
         on_gc_enabled();
     }
 
     void on_gc_enabled() {
-        if (!continue_on_cpu(home_cpu, this)) {
+        if (!continue_on_thread(home_thread, this)) {
             return;
         }
 
         if (!done) {
-            call_later_on_this_cpu(this);
+            call_later_on_this_thread(this);
             return;
         }
 

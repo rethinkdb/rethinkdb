@@ -23,13 +23,13 @@ void coro_t::notify() {
     assert(!notified);
     notified = true;
 #endif
-    call_later_on_this_cpu(this);
+    call_later_on_this_thread(this);
     //printf("The notified coros are:\n");
     //for (std::list<coro_t*>::iterator iter = notified_coros->begin(); iter != notified_coros->end(); iter++)
         //printf("   %zx\n", (size_t)(*iter));
 }
 
-void coro_t::on_cpu_switch() {
+void coro_t::on_thread_switch() {
     //printf("Resuming %zx\n", (size_t)this);
 #ifndef NDEBUG
     assert(notified);

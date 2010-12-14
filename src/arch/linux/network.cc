@@ -13,7 +13,7 @@ linux_net_conn_t::linux_net_conn_t(const char *host, int port) {
 
 linux_net_conn_t::linux_net_conn_t(fd_t sock)
     : sock(sock),
-      registration_cpu(-1), set_me_true_on_delete(NULL),
+      registration_thread(-1), set_me_true_on_delete(NULL),
       read_mode(read_mode_none), in_read_buffered_cb(false),
       write_mode(write_mode_none),
       was_shut_down(false)
@@ -28,12 +28,12 @@ void linux_net_conn_t::register_with_event_loop() {
     /* Register ourself to receive notifications from the event loop if we have not
     already done so. */
 
-    if (registration_cpu == -1) {
-        registration_cpu = linux_thread_pool_t::cpu_id;
+    if (registration_thread == -1) {
+        registration_thread = linux_thread_pool_t::thread_id;
         linux_thread_pool_t::thread->queue.watch_resource(sock, poll_event_in|poll_event_out, this);
 
-    } else if (registration_cpu != linux_thread_pool_t::cpu_id) {
-        guarantee(registration_cpu == linux_thread_pool_t::cpu_id,
+    } else if (registration_thread != linux_thread_pool_t::thread_id) {
+        guarantee(registration_thread == linux_thread_pool_t::thread_id,
             "Must always use a net_conn_t on the same CPU.");
     }
 }
@@ -286,8 +286,8 @@ void linux_net_conn_t::on_shutdown() {
 
     // Deregister ourself with the event loop
 
-    if (registration_cpu != -1) {
-        assert(registration_cpu == linux_thread_pool_t::cpu_id);
+    if (registration_thread != -1) {
+        assert(registration_thread == linux_thread_pool_t::thread_id);
         linux_thread_pool_t::thread->queue.forget_resource(sock, this);
     }
 }
@@ -452,7 +452,7 @@ linux_oldstyle_net_conn_t::linux_oldstyle_net_conn_t(linux_net_conn_t *conn)
     assert(sock != INVALID_FD);
 
     // Destroy the original wrapper since we own the socket now
-    assert(conn->registration_cpu == -1);
+    assert(conn->registration_thread == -1);
     conn->sock = INVALID_FD;
 }
 

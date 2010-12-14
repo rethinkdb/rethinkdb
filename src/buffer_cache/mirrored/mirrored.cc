@@ -8,7 +8,7 @@
 /* This mini-FSM loads a buf from disk. */
 
 struct load_buf_fsm_t :
-    public cpu_message_t,
+    public thread_message_t,
     serializer_t::read_callback_t
 {
     bool have_loaded;
@@ -17,9 +17,9 @@ struct load_buf_fsm_t :
         bool locked __attribute__((unused)) = inner_buf->lock.lock(rwi_write, NULL);
         assert(locked);
         have_loaded = false;
-        if (continue_on_cpu(inner_buf->cache->serializer->home_cpu, this)) on_cpu_switch();
+        if (continue_on_thread(inner_buf->cache->serializer->home_thread, this)) on_thread_switch();
     }
-    void on_cpu_switch() {
+    void on_thread_switch() {
         if (!have_loaded) {
             if (inner_buf->cache->serializer->do_read(inner_buf->block_id, inner_buf->data, this))
                 on_serializer_read();
@@ -30,7 +30,7 @@ struct load_buf_fsm_t :
     }
     void on_serializer_read() {
         have_loaded = true;
-        if (continue_on_cpu(inner_buf->cache->home_cpu, this)) on_cpu_switch();
+        if (continue_on_thread(inner_buf->cache->home_thread, this)) on_thread_switch();
     }
 };
 
@@ -67,7 +67,7 @@ mc_inner_buf_t::mc_inner_buf_t(cache_t *cache)
       writeback_buf(this),
       page_repl_buf(this),
       page_map_buf(this) {
-    cache->assert_cpu();
+    cache->assert_thread();
 
 #if !defined(NDEBUG) || defined(VALGRIND)
     // The memory allocator already filled this with 0xBD, but it's nice to be able to distinguish
@@ -82,7 +82,7 @@ mc_inner_buf_t::mc_inner_buf_t(cache_t *cache)
 }
 
 mc_inner_buf_t::~mc_inner_buf_t() {
-    cache->assert_cpu();
+    cache->assert_thread();
     
 #ifndef NDEBUG
     // We're about to free the data, let's set it to a recognizable
@@ -118,7 +118,7 @@ mc_buf_t::mc_buf_t(mc_inner_buf_t *inner, access_t mode)
 void mc_buf_t::on_lock_available() {
     pm_bufs_acquiring.end(&start_time);
     
-    inner_buf->cache->assert_cpu();
+    inner_buf->cache->assert_thread();
     assert(!inner_buf->do_delete);
     
     switch (mode) {
@@ -163,7 +163,7 @@ void mc_buf_t::on_lock_available() {
 void mc_buf_t::release() {
     pm_bufs_held.end(&start_time);
     
-    inner_buf->cache->assert_cpu();
+    inner_buf->cache->assert_thread();
     
     inner_buf->refcount--;
     

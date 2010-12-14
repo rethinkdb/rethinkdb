@@ -93,7 +93,7 @@ private:
 /* Cache */
 
 class mock_cache_t :
-    public home_cpu_mixin_t,
+    public home_thread_mixin_t,
     public serializer_t::read_callback_t,
     public serializer_t::write_txn_callback_t
 {

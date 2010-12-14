@@ -9,7 +9,7 @@
 struct event_t;
 class rh_data_provider_t;
 
-class request_handler_t : private cpu_message_t {
+class request_handler_t : private thread_message_t {
 public:
     explicit request_handler_t()
         : data_provider(NULL), request_count(0) {}
@@ -39,7 +39,7 @@ public:
 
 private:
     int request_count;   // The number of et_request_completes to send to the conn_fsm
-    void on_cpu_switch();
+    void on_thread_switch();
 };
 
 /* The buffered_data_provider_t provides data from an internal buffer. */
@@ -82,8 +82,8 @@ where the cache is and the core where the request handler is. */
 
 class rh_data_provider_t :
     public data_provider_t,
-    public cpu_message_t,
-    public home_cpu_mixin_t,
+    public thread_message_t,
+    public home_thread_mixin_t,
     public data_transferred_callback
 {
 private:
@@ -95,7 +95,7 @@ private:
         consume   // Discard the data from the socket
     } mode;
 
-    int requestor_cpu;   // CPU that callback must be called on
+    int requestor_thread;   // CPU that callback must be called on
     data_provider_t::done_callback_t *cb;
 
     bool completed;
@@ -140,22 +140,22 @@ public:
             dummy_buf = new char[IO_BUFFER_SIZE];
             bytes_consumed = 0;
         }
-        requestor_cpu = get_cpu_id();
+        requestor_thread = get_thread_id();
         completed = false;
         cb = c;
         
-        // call_later_on_this_cpu rather than on_cpu_switch() because if we call on_cpu_switch()
+        // call_later_on_this_thread rather than on_thread_switch() because if we call on_thread_switch()
         // immediately then we might try to read from the conn_fsm before the request handler has
         // even returned from parse_request(), and the conn_fsm will be confused.
-        if (continue_on_cpu(home_cpu, this)) call_later_on_this_cpu(this);
+        if (continue_on_thread(home_thread, this)) call_later_on_this_thread(this);
     }
 
-    void on_cpu_switch() {
+    void on_thread_switch() {
         if (!completed) {
-            assert_cpu();
+            assert_thread();
             step();
         } else {
-            assert(get_cpu_id() == requestor_cpu);
+            assert(get_thread_id() == requestor_thread);
             if (success) cb->have_provided_value();
             else cb->have_failed();
         }
@@ -168,8 +168,8 @@ public:
     void fill_complete(bool _success) {
         success = _success;
         completed = true;
-        if (continue_on_cpu(requestor_cpu, this)) {
-            call_later_on_this_cpu(this);
+        if (continue_on_thread(requestor_thread, this)) {
+            call_later_on_this_thread(this);
         }
     }
 private:
