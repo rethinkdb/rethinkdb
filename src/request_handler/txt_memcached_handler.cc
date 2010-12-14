@@ -15,6 +15,7 @@
 #define DELIMS " \t\n\r"
 #define MALFORMED_RESPONSE "ERROR\r\n"
 #define MALFORMED_FORMAT_RESPONSE "CLIENT_ERROR bad command line format\r\n"
+#define DELETE_USAGE_RESPONSE "CLIENT_ERROR bad command line format.  Usage: delete <key> [noreply]\r\n"
 #define UNIMPLEMENTED_RESPONSE "SERVER_ERROR functionality not supported\r\n"
 #define STORAGE_SUCCESS "STORED\r\n"
 #define STORAGE_FAILURE "NOT_STORED\r\n"
@@ -671,16 +672,18 @@ txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::parse_adjustmen
     bool key_ok = node_handler::str_to_key(key_tmp, &key);
     if (!key_ok) {
         conn_fsm->consume(line_len);
-        return malformed_request();
+        return malformed_format_request();
     }
 
     char *endptr = NULL;
     unsigned long long delta = strtoull_strict(value_str, &endptr, 10);
     if (*endptr != '\0') {
         if (!noreply) {
+            conn_fsm->consume(line_len);
             conn_fsm->sbuf->printf(INCR_DECR_ON_NON_UINT_ARGUMENT);
             request_complete();
         }
+        return request_handler_t::op_malformed;
     } else {
         new txt_memcached_incr_decr_request_t(this, &key, increment, delta, noreply);
     }
@@ -731,7 +734,8 @@ txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::parse_storage_c
     }
 
     bytes = strtoul_strict(bytes_str, &invalid_char, 10);
-    if (*invalid_char != '\0') {
+    // Check for signed 32 bit max value for Memcached compatibility...
+    if (*invalid_char != '\0' || bytes >= (1u << 31) - 1) {
         conn_fsm->consume(line_len);
         return malformed_format_request();
     }
@@ -932,6 +936,15 @@ txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::remove(char *st
                     //conn_fsm->consume(line_len);
                     //return malformed_request();
                 }
+            }
+            
+            // Fail on time != 0
+            if (time != 0)
+            {
+                conn_fsm->consume(line_len);
+                if (!this->noreply)
+                    conn_fsm->sbuf->printf(DELETE_USAGE_RESPONSE);
+                return request_handler_t::op_malformed;
             }
         }
     }

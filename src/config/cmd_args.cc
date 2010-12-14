@@ -8,13 +8,12 @@
 #include "utils.hpp"
 
 void usage(const char *name) {
-    // TODO: Make all messages break such that they fit into an 80-characters screen
     printf("Usage:\n");
     printf("\t%s [OPTIONS] [FILE]\n", name);
     
     printf("\nOptions:\n");
 
-    //     "                        24 characters start here.
+    //     "                        24 characters start here.                              | < last character
     printf("  -h, --help            Print these usage options.\n");
     printf("  -v, --verbose         Print extra information to standard output.\n");
     printf("      --create          Create a new database.\n");
@@ -24,31 +23,35 @@ void usage(const char *name) {
     printf("  -f, --file            Path to file or block device where database goes. Can be\n"
            "                        specified multiple times to use multiple files.\n");
 #ifdef SEMANTIC_SERIALIZER_CHECK
-    printf("  -S, --semantic-file   Path to the semantic file for the previously specified database file.\n"
-           "                        Can only be specified after the path to the database file.\n"
-           "                        Default is the name of the database file with '%s' appended.\n", DEFAULT_SEMANTIC_EXTENSION);
+    printf("  -S, --semantic-file   Path to the semantic file for the previously specified\n"
+           "                        database file. Can only be specified after the path to\n"
+           "                        the database file. Default is the name of the database\n"
+           "                        file with '%s' appended.\n", DEFAULT_SEMANTIC_EXTENSION);
 #endif
 
     printf("  -c, --cores           Number of cores to use for handling requests.\n");
     printf("  -m, --max-cache-size  Maximum amount of RAM to use for caching disk\n");
     printf("                        blocks, in megabytes.\n");
-    printf("  -l, --log-file        File to log to. If not provided, messages will be printed to stderr.\n");
+    printf("  -l, --log-file        File to log to. If not provided, messages will be\n"
+           "                        printed to stderr.\n");
     printf("  -p, --port            Socket port to listen on. Defaults to %d.\n", DEFAULT_LISTEN_PORT);
-    printf("      --wait-for-flush  Do not respond to commands until changes are durable. Expects\n"
-           "                        'y' or 'n'.\n");
-    printf("      --flush-timer     Time in milliseconds that the server should allow changes to sit\n"
-           "                        in memory before flushing it to disk. Pass 'disable' to allow modified data to\n"
-           "                        sit in memory indefinitely.\n");
+    printf("      --wait-for-flush  Do not respond to commands until changes are durable.\n"
+           "                        Expects 'y' or 'n'\n");
+    printf("      --flush-timer     Time in milliseconds that the server should allow\n"
+           "                        changes to sit in memory before flushing it to disk.\n"
+           "                        Pass 'disable' to allow modified data to sit in memory\n"
+           "                        indefinitely.\n");
     if (DEFAULT_FLUSH_TIMER_MS == NEVER_FLUSH) {
         printf("                        Defaults to 'disable'.\n");
     } else {
         printf("                        Defaults to %dms.\n", DEFAULT_FLUSH_TIMER_MS);
     }
     printf("      --flush-threshold If more than X%% of the server's maximum cache size is\n"
-           "                        modified data, the server will flush it all to disk. Pass 0 to flush\n"
-           "                        immediately when changes are made.\n");
+           "                        modified data, the server will flush it all to disk.\n"
+           "                        Pass 0 to flush immediately when changes are made.\n");
     printf("      --gc-range low-high  (e.g. --gc-range 0.5-0.75)\n"
-           "                        The proportion of garbage maintained by garbage collection.\n");
+           "                        The proportion of garbage maintained by garbage\n"
+           "                        collection.\n");
     printf("      --active-data-extents\n"
            "                        How many places in the file to write to at once.\n");
     printf("\nOptions for new databases:\n");
@@ -74,7 +77,6 @@ enum {
 cmd_config_t parse_cmd_args(int argc, char *argv[]) {
     parsing_cmd_config_t config;
 
-    // TODO: Overhaul private config parsing!
     std::vector<log_serializer_private_dynamic_config_t>& private_configs = config.store_dynamic_config.serializer_private;
     
     optind = 1; // reinit getopt

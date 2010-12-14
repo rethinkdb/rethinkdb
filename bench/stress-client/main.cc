@@ -107,7 +107,7 @@ int main(int argc, char *argv[])
         FILE *in_file = fopen(config.in_file, "r");
 
         if(in_file == NULL) {
-            fprintf(stderr, "Could not open output key file");
+            fprintf(stderr, "Could not open output key file\n");
             exit(-1);
         }
 
@@ -128,7 +128,7 @@ int main(int argc, char *argv[])
     for(int i = 0; i < config.clients; i++) {
         int res = pthread_create(&threads[i], NULL, run_client, &client_data[i]);
         if(res != 0) {
-            fprintf(stderr, "Can't create thread");
+            fprintf(stderr, "Can't create thread\n");
             exit(-1);
         }
     }
@@ -137,7 +137,7 @@ int main(int argc, char *argv[])
     for(int i = 0; i < config.clients; i++) {
         res = pthread_join(threads[i], NULL);
         if(res != 0) {
-            fprintf(stderr, "Can't join on the thread");
+            fprintf(stderr, "Can't join on the thread\n");
             exit(-1);
         }
     }
