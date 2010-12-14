@@ -53,34 +53,29 @@ buf_t *co_acquire_transaction(transaction_t *transaction, block_id_t block_id, a
     return value;
 }
 
-struct btree_get_t {
-    union {
-        char key_memory[MAX_KEY_SIZE+sizeof(btree_key)];
-        btree_key key;
-    };
+void _btree_get(btree_key *_key, btree_key_value_store_t *store, store_t::get_callback_t *cb) {
     union {
         char value_memory[MAX_TOTAL_NODE_CONTENTS_SIZE+sizeof(btree_value)];
         btree_value value;
     };
+    value_memory[0] = 0;
 
-    transaction_t *transaction;
-    cache_t *cache;
-    btree_key_value_store_t *store;
-    btree_slice_t *slice;
+    union {
+        char key_memory[MAX_KEY_SIZE+sizeof(btree_key)];
+        btree_key key;
+    };
+    key_memory[0] = 0;
+
+    keycpy(&key, _key);
+    transaction_t *transaction = NULL;
+    btree_slice_t *slice = store->slice_for_key(&key);
+    cache_t *cache = &slice->cache;
     large_buf_t *large_value;
     const_buffer_group_t value_buffers;
-    enum type_t { not_found, got_small_value, got_large_value, invalid_response } response;
+    enum type_t { not_found, got_small_value, got_large_value, invalid_response } response = invalid_response;
 
-    btree_get_t(btree_key *_key, btree_key_value_store_t *store)
-        : transaction(NULL), cache(NULL), store(store), response(invalid_response) {
-        keycpy(&key, _key);
-        slice = store->slice_for_key(&key);
-        cache = &slice->cache;
-    }
-
-    static void do_get(void *get) { ((btree_get_t*)get)->run(); }
-
-    void run() {
+    {
+        on_cpu_t moving(slice->home_cpu);
         //Acquire the superblock
         buf_t *buf, *last_buf;
         transaction = cache->begin_transaction(rwi_read, NULL);
@@ -99,7 +94,7 @@ struct btree_get_t {
             bool committed __attribute__((unused)) = transaction->commit(NULL);
             assert(committed);   // Read-only transactions complete immediately
             response = not_found;
-            return;
+            goto respond;
         }
 
         //Acquire the leaf node
@@ -171,8 +166,7 @@ struct btree_get_t {
             response = got_small_value;
         }
     }
-
-    void deliver(store_t::get_callback_t *cb) {
+    respond: {
         switch (response) {
             case not_found:
                 cb->not_found();
@@ -186,38 +180,13 @@ struct btree_get_t {
                 crash_or_trap("Invalid response object\n");
         }
     }
-
-    static void finalize(void *arg) {
-        btree_get_t *receiver = ptr_cast<btree_get_t>(arg);
-        receiver->large_value->release();
-        delete receiver->large_value;
-        bool committed __attribute__((unused)) = receiver->transaction->commit(NULL);
+    if (response == got_large_value) {
+        on_cpu_t mover(slice->home_cpu);
+        large_value->release();
+        delete large_value;
+        bool committed __attribute__((unused)) = transaction->commit(NULL);
         assert(committed);   // Read-only transactions complete immediately
     }
-
-    ~btree_get_t() {
-        switch(response) {
-            case got_large_value:
-                run_on_cpu(slice->home_cpu, finalize, this);
-                return;
-            case got_small_value:
-            case not_found:
-                return;
-            case invalid_response:
-            default:
-                crash_or_trap("Invalid response object\n");
-        }
-    }
-};
-
-//The rewritten btree get fsm, using coroutines
-void _btree_get(btree_key *key, btree_key_value_store_t *store, store_t::get_callback_t *cb) {
-    //This must be heap-allocated, otherwise GCC detects that strict aliasing rules
-    //are being broken (which they still are in this case anyway)
-    btree_get_t *computation = new btree_get_t(key, store);
-    run_on_cpu(computation->slice->home_cpu, &btree_get_t::do_get, ptr_cast<void>(computation));
-    computation->deliver(cb);
-    delete computation;
 }
 
 void btree_get(btree_key *key, btree_key_value_store_t *store, store_t::get_callback_t *cb) {

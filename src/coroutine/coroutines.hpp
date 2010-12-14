@@ -14,12 +14,14 @@ struct coro_t
     : private cpu_message_t
 {
     coro_t(void (*fn)(void *arg), void *arg); //Creates and notifies a coroutine
-    explicit coro_t(Coro *underlying) : underlying(underlying), dead(false)
+    explicit coro_t(Coro *underlying) : underlying(underlying), dead(false), changing_cpu(false)
 #ifndef NDEBUG
     , notified(false)
 #endif
     { }
     void notify(); //Wakes up the coroutine, allowing the scheduler to trigger it to continue
+    void notify(int cpu); //Wake up the coroutine on another CPU
+    static void move_to_cpu(int cpu); //Wait and notify self on the CPU (avoiding race conditions)
     ~coro_t();
     virtual void on_cpu_switch();
 
@@ -32,6 +34,7 @@ private:
     Coro *underlying;
     bool dead;
     int home_cpu; //not a home_cpu_mixin_t because this is set by initialize
+    bool changing_cpu;
 
 public:
     static void wait(); //Pauses the current coroutine until it's notified
@@ -221,8 +224,18 @@ private:
 void *call_on_cpu(int cpu, void *(*fn)(void *), void *arg);
 void run_on_cpu(int cpu, void (*fn)(void *), void *arg);
 
-//maybe make more things like these, maybe using boost::bind. Does bind return a function pointer, or just a function object?
+//maybe make more things like these, maybe using boost::bind
 
-#define CALL_ON_CPU(...) call_on_cpu(boost::bind(__VA_ARGS__))
+struct on_cpu_t {
+    int home_cpu;
+    on_cpu_t(int cpu) {
+        home_cpu = get_cpu_id();
+        coro_t::move_to_cpu(cpu);
+    }
+    ~on_cpu_t() {
+        coro_t::move_to_cpu(home_cpu);
+    }
+};
+
 
 #endif // __COROUTINES_HPP__
