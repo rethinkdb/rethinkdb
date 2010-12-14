@@ -212,9 +212,12 @@ struct btree_get_t {
 
 //The rewritten btree get fsm, using coroutines
 void _btree_get(btree_key *key, btree_key_value_store_t *store, store_t::get_callback_t *cb) {
-    btree_get_t computation(key, store);
-    run_on_cpu(computation.slice->home_cpu, &btree_get_t::do_get, (void *)&computation);
-    computation.deliver(cb);
+    //This must be heap-allocated, otherwise GCC detects that strict aliasing rules
+    //are being broken (which they still are in this case anyway)
+    btree_get_t *computation = new btree_get_t(key, store);
+    run_on_cpu(computation->slice->home_cpu, &btree_get_t::do_get, ptr_cast<void>(computation));
+    computation->deliver(cb);
+    delete computation;
 }
 
 void btree_get(btree_key *key, btree_key_value_store_t *store, store_t::get_callback_t *cb) {
