@@ -2,6 +2,7 @@
 #include "arch/arch.hpp"
 #include <unistd.h>
 #include <stdlib.h>
+#include <limits.h>
 
 /* System configuration*/
 int get_cpu_count() {
@@ -96,7 +97,13 @@ unsigned long strtoul_strict(const char *string, char **end, int base) {
         *end = const_cast<char *>(string);
         return 0;
     }
-    return strtoul(string, end, base);
+    unsigned long result = strtoul(string, end, base);
+    if (result == ULONG_MAX && errno == ERANGE)
+    {
+        *end = const_cast<char *>(string);
+        return 0;
+    }
+    return result;
 }
 
 unsigned long long strtoull_strict(const char *string, char **end, int base) {
@@ -104,7 +111,13 @@ unsigned long long strtoull_strict(const char *string, char **end, int base) {
         *end = const_cast<char *>(string);
         return 0;
     }
-    return strtoull(string, end, base);
+    unsigned long long result = strtoull(string, end, base);
+    if (result == ULLONG_MAX && errno == ERANGE)
+    {
+        *end = const_cast<char *>(string);
+        return 0;
+    }
+    return result;
 }
 
 ticks_t secs_to_ticks(float secs) {
