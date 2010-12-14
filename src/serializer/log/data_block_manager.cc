@@ -271,13 +271,25 @@ void data_block_manager_t::run_gc() {
                 std::vector<log_serializer_t::write_t> writes;
 
                 for (unsigned int i = 0; i < static_config->blocks_per_extent(); i++) {
+
                     /* We re-check the bit array here in case a write came in for one of the
                     blocks we are GCing. We wouldn't want to overwrite the new valid data with
                     out-of-date data. */
-                    if (!gc_state.current_entry->g_array[i]) {
-                            writes.push_back(log_serializer_t::write_t::make_internal(
-                                    *((ser_block_id_t *) (gc_state.gc_blocks + (i * static_config->block_size().ser_value()))),
-                                    gc_state.gc_blocks + (i * static_config->block_size().ser_value()) + sizeof(buf_data_t), NULL));
+                    if (gc_state.current_entry->g_array[i]) continue;
+
+                    byte_t *block = gc_state.gc_blocks + i * static_config->block_size().ser_value();
+                    ser_block_id_t id = *reinterpret_cast<ser_block_id_t *>(block);
+                    void *data = block + sizeof(buf_data_t);
+
+                    /* If the block is not currently in use, we must write a deletion. Otherwise we
+                    would write the zero-buf that was written when we first deleted it. I wonder if
+                    there's a way to make the data block manager not have to know about this... */
+                    if (serializer->block_in_use(id)) {
+                        /* make_internal() makes a write_t that will not change the timestamp. */
+                        writes.push_back(log_serializer_t::write_t::make_internal(id, data, NULL));
+                    } else {
+                        assert(memcmp(data, "zero", 4) == 0);   // Check for zerobuf magic
+                        writes.push_back(log_serializer_t::write_t::make_internal(id, NULL, NULL));
                     }
                 }
 

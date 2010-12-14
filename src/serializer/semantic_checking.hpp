@@ -218,6 +218,9 @@ public:
 
     bool do_write(write_t *writes, int num_writes, write_txn_callback_t *callback) {
         for (int i = 0; i < num_writes; i++) {
+
+            if (!writes[i].buf_specified) continue;
+
             block_info_t b;
             bzero((void*)&b, sizeof(b));  // make valgrind happy
             if (writes[i].buf) {
