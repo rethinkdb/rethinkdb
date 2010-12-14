@@ -78,7 +78,7 @@ void get_partition_map(std::vector<partition_info_t> &partitions) {
             partition->name = tokens[3];
             partition->name.insert(0, std::string("/dev/"));
 
-            //logDBG("maj%d min%d blk%d nm%s\n", partition->nmajor, partition->nminor, partition->nblocks, partition->name.c_str());
+            logDBG("maj%d min%d blk%d nm%s\n", partition->nmajor, partition->nminor, partition->nblocks, partition->name.c_str());
 
 
             partitions.push_back(*partition);
@@ -112,20 +112,30 @@ void log_disk_info(std::vector<log_serializer_private_dynamic_config_t> &seriali
         }
     }
 
-    std::string cmd = std::string("hdparm -I");
+    std::string cmd = std::string("hdparm -iI");
     for (std::set<std::string>::iterator it = devices.begin(); it != devices.end(); it++) {
-        logDBG("%s\n", (*it).c_str());
         cmd.append(std::string(" "));
         cmd.append(*it);
     }
 
 
-    logDBG("%s\n", cmd.c_str());
-
-
-
-    FILE *stream = popen(cmd.c_str(), "r";
-
-
-
+    char *buf = new char[1023];//(char *) malloc(sizeof(char) * 1024);
+    if (NULL == buf) {
+        logDBG("out of memory");
+    }
+    FILE *stream = popen(cmd.c_str(), "r");
+    size_t nbytes;
+    mlog_start(DBG);
+    while (1023 == (nbytes = fread(buf, 1, 1023, stream)))
+    {
+        mlogf("%s", buf);
+    }
+    buf[nbytes + 1] = '\0';
+    mlogf("%s\n", buf);
+    mlog_end();
+    fprintf(stderr, "yo\n");
+    delete buf;
+    fprintf(stderr, "yo\n");
+    pclose(stream);
+    fprintf(stderr, "yo\n");
 }

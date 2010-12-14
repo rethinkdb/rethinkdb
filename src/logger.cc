@@ -113,10 +113,29 @@ static __thread char message[MAX_LOG_MSGLEN];
 
 static void vmlogf(const char *format, va_list arg) {
     assert(logging);
-    message_len += vsnprintf(
-        message + message_len,
-        (size_t) MAX_LOG_MSGLEN - message_len,
-        format, arg);
+    /* If the incoming message will overflow our buffer, we need to flush
+     * the message. Unfortunately we don't know whether it will until we
+     * run vsnprintf, so we have to copy the argument list no matter what.*/
+    char *buf = new char[MAX_LOG_MSGLEN];
+
+    size_t max_bytes = MAX_LOG_MSGLEN - message_len;
+    size_t nbytes = vsnprintf(buf, max_bytes, format, arg);
+
+    assert(nbytes < MAX_LOG_MSGLEN); // don't send messages > MAX_LOG_MSGLEN
+
+    if (nbytes < max_bytes) {
+        strncpy(message + message_len, buf, nbytes);
+        //assert(message_len != 0 && nbytes < MAX_LOG_MSGLEN); // don't send messages > MAX_LOG_MSGLEN
+    }
+    else {
+        message[message_len + 1] = '\0';
+        mlog_end();
+        logging = true;
+        strncpy(message, buf, nbytes);
+    }
+    message_len += nbytes;
+    delete buf;
+    fprintf(stderr, "hi from vmlogf\n");
 }
 
 void _logf(const char *src_file, int src_line, log_level_t level, const char *format, ...) {

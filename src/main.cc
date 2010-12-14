@@ -5,6 +5,7 @@
 #include "server.hpp"
 #include "side_executable.hpp"
 #include "logger.hpp"
+#include "diskinfo.hpp"
 
 int main(int argc, char *argv[]) {
     // Before we do anything, we look at the first argument and
@@ -42,6 +43,12 @@ int main(int argc, char *argv[]) {
         }
     } starter;
     starter.cmd_config = &config;
+
+    log_disk_info(config.store_dynamic_config.serializer_private);
+
+    exit(-1);
+
+
 
     // Run the server.
     thread_pool_t thread_pool(config.n_workers);
