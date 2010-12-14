@@ -13,10 +13,9 @@ struct value_done_t : public store_t::get_callback_t::done_callback_t {
 };
 
 void co_value(store_t::get_callback_t *cb, const_buffer_group_t *value_buffers, mcflags_t flags, cas_t cas) {
-    value_done_t *done = new value_done_t();
-    cb->value(value_buffers, done, flags, cas);
+    value_done_t done;
+    cb->value(value_buffers, &done, flags, cas);
     coro_t::wait();
-    delete done;
 }
 
 struct large_value_acquired_t : public large_buf_available_callback_t {
@@ -26,10 +25,9 @@ struct large_value_acquired_t : public large_buf_available_callback_t {
 };
 
 void co_acquire_large_value(large_buf_t *large_value, large_buf_ref root_ref_, access_t access_) {
-    large_value_acquired_t *acquired = new large_value_acquired_t();
-    large_value->acquire(root_ref_, access_, acquired);
+    large_value_acquired_t acquired;
+    large_value->acquire(root_ref_, access_, &acquired);
     coro_t::wait();
-    delete acquired;
 }
 
 struct co_block_available_callback_t : public block_available_callback_t {
@@ -49,10 +47,9 @@ struct co_block_available_callback_t : public block_available_callback_t {
 };
 
 buf_t *co_acquire_transaction(transaction_t *transaction, block_id_t block_id, access_t mode) {
-    co_block_available_callback_t *cb = new co_block_available_callback_t();
-    buf_t *value = transaction->acquire(block_id, mode, cb);
-    if (!value) value = cb->join();
-    delete cb;
+    co_block_available_callback_t cb;
+    buf_t *value = transaction->acquire(block_id, mode, &cb);
+    if (!value) value = cb.join();
     return value;
 }
 
@@ -215,10 +212,9 @@ struct btree_get_t {
 
 //The rewritten btree get fsm, using coroutines
 void _btree_get(btree_key *key, btree_key_value_store_t *store, store_t::get_callback_t *cb) {
-    btree_get_t *computation = new btree_get_t(key, store);
-    run_on_cpu(computation->slice->home_cpu, &btree_get_t::do_get, (void *)computation);
-    computation->deliver(cb);
-    delete computation;
+    btree_get_t computation(key, store);
+    run_on_cpu(computation.slice->home_cpu, &btree_get_t::do_get, (void *)&computation);
+    computation.deliver(cb);
 }
 
 void btree_get(btree_key *key, btree_key_value_store_t *store, store_t::get_callback_t *cb) {
