@@ -3,7 +3,6 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdarg.h>
-#include <sys/ptrace.h>
 
 #ifndef NDEBUG
 
@@ -82,7 +81,8 @@ void print_backtrace(FILE *out, bool use_addr2line) {
     if (symbols) {
         for (int i = 0; i < size; i ++) {
             // Parse each line of the backtrace
-            char *line = strdup(symbols[i]);
+            char line[2048];
+            strncpy(line, symbols[i], sizeof(line) - 1);
             char *executable, *function, *offset, *address;
 
             fprintf(out, "%d: ", i+1);
@@ -91,9 +91,13 @@ void print_backtrace(FILE *out, bool use_addr2line) {
                 fprintf(out, "%s\n", symbols[i]);
             } else {
                 if (function) {
-                    if (char *demangled = demangle_cpp_name(function)) {
+                    // Allocate the buffer for the demangled name on the stack, instead of in free memory to not overwrite other data.
+                    // Please note that the behavior of demangle_cpp_name is actually undefined for buffers not allocated using malloc() (it may try to call relloc() on it). but as long as the demangled name fits into demangle_buffer, it should be ok.
+                    char demangle_buffer[1024];
+                    size_t demangle_buffer_size = sizeof(demangle_buffer);
+                    if (char *demangled = demangle_cpp_name(function, demangle_buffer, &demangle_buffer_size)) {
                         fprintf(out, "%s", demangled);
-                        free(demangled);
+                        //free(demangled);
                     } else {
                         fprintf(out, "%s+%s", function, offset);
                     }
@@ -113,7 +117,6 @@ void print_backtrace(FILE *out, bool use_addr2line) {
                 fprintf(out, "\n");
             }
 
-            free(line);
         }
 
         free(symbols);
@@ -148,8 +151,7 @@ void report_fatal_error(const char *file, int line, const char *msg, ...) {
     va_end(args);
 
 #ifndef NDEBUG
-    fprintf(stderr, "\nBacktrace:\n");
-    BREAKPOINT;
+    fprintf(stderr, "\nBacktrace:\n");zz
     print_backtrace();
 #endif
 
@@ -161,9 +163,9 @@ void report_fatal_error(const char *file, int line, const char *msg, ...) {
 #ifndef NDEBUG
 
 #include <cxxabi.h>
-char *demangle_cpp_name(const char *mangled_name) {
+char *demangle_cpp_name(const char *mangled_name, char* buffer, size_t* buffer_length) {
     int res;
-    char *name = abi::__cxa_demangle(mangled_name, NULL, NULL, &res);
+    char *name = abi::__cxa_demangle(mangled_name, buffer, buffer_length, &res);
     if (res == 0) {
         return name;
     } else {
