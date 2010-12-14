@@ -27,7 +27,7 @@ public:
  */
 struct rwi_lock_t {
 public:
-    struct lock_request_t : public cpu_message_t,
+    struct lock_request_t : public thread_message_t,
                             public intrusive_list_node_t<lock_request_t>
     {
         lock_request_t(access_t _op, lock_available_callback_t *_callback)
@@ -35,7 +35,7 @@ public:
             {}
         access_t op;
         lock_available_callback_t *callback;
-        void on_cpu_switch();   // Actually, this is called later on the same CPU...
+        void on_thread_switch();   // Actually, this is called later on the same CPU...
     };
 
     // Note, the receiver of lock_request_t completion notifications

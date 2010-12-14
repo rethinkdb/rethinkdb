@@ -12,10 +12,10 @@ replication_message_t::replication_message_t(
     : parent(parent), key(k), buffer_group(bg), callback(cb), flags(f), exptime(e), cas(c)
 {
     sent = false;
-    if (continue_on_cpu(parent->home_cpu, this)) on_cpu_switch();
+    if (continue_on_thread(parent->home_thread, this)) on_thread_switch();
 }
 
-void replication_message_t::on_cpu_switch() {
+void replication_message_t::on_thread_switch() {
     if (!sent) {
         /* We are switching to the parent CPU */
         parent->conn_write_mutex.lock(this);
@@ -66,7 +66,7 @@ void replication_message_t::on_net_conn_write_external() {
 void replication_message_t::done_sending() {
     parent->conn_write_mutex.unlock();
     sent = true;
-    if (continue_on_cpu(home_cpu, this)) on_cpu_switch();
+    if (continue_on_thread(home_thread, this)) on_thread_switch();
 }
 
 void replication_message_t::on_net_conn_close() {

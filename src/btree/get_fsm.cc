@@ -59,7 +59,7 @@ btree_get_fsm_t::transition_result_t btree_get_fsm_t::do_acquire_root(event_t *e
         assert(committed);   // Read-only transactions complete immediately
         
         state = deliver_not_found_notification;
-        if (continue_on_cpu(home_cpu, this)) return btree_fsm_t::transition_ok;
+        if (continue_on_thread(home_thread, this)) return btree_fsm_t::transition_ok;
         else return btree_fsm_t::transition_incomplete;
     }
 
@@ -133,7 +133,7 @@ btree_get_fsm_t::transition_result_t btree_get_fsm_t::do_acquire_node(event_t *e
             assert(committed);   // Read-only transactions complete immediately
             
             state = deliver_not_found_notification;
-            if (continue_on_cpu(home_cpu, this)) return btree_fsm_t::transition_ok;
+            if (continue_on_thread(home_thread, this)) return btree_fsm_t::transition_ok;
             else return btree_fsm_t::transition_incomplete;
         } else if (value.is_large()) {
             // Don't commit transaction yet because we need to keep holding onto
@@ -147,7 +147,7 @@ btree_get_fsm_t::transition_result_t btree_get_fsm_t::do_acquire_node(event_t *e
             assert(committed);   // Read-only transactions complete immediately
             
             state = deliver_small_value;
-            if (continue_on_cpu(home_cpu, this)) return btree_fsm_t::transition_ok;
+            if (continue_on_thread(home_thread, this)) return btree_fsm_t::transition_ok;
             else return btree_fsm_t::transition_incomplete;
         }
     }
@@ -189,7 +189,7 @@ btree_get_fsm_t::transition_result_t btree_get_fsm_t::do_deliver_large_value(eve
     }
     
     state = write_large_value;
-    if (continue_on_cpu(home_cpu, this)) return btree_fsm_t::transition_ok;
+    if (continue_on_thread(home_thread, this)) return btree_fsm_t::transition_ok;
     else return btree_fsm_t::transition_incomplete;
 }
 
@@ -215,7 +215,7 @@ btree_get_fsm_t::transition_result_t btree_get_fsm_t::do_return_after_deliver_la
     assert(state == return_after_deliver_large_value);
     
     state = free_large_value;
-    if (continue_on_cpu(slice->home_cpu, this)) return btree_fsm_t::transition_ok;
+    if (continue_on_thread(slice->home_thread, this)) return btree_fsm_t::transition_ok;
     else return btree_fsm_t::transition_incomplete;
 }
 
@@ -229,7 +229,7 @@ btree_get_fsm_t::transition_result_t btree_get_fsm_t::do_free_large_value(event_
     assert(committed);   // Read-only transactions complete immediately
     
     state = delete_self;
-    if (continue_on_cpu(home_cpu, this)) return btree_fsm_t::transition_ok;
+    if (continue_on_thread(home_thread, this)) return btree_fsm_t::transition_ok;
     else return btree_fsm_t::transition_incomplete;
 }
 
@@ -276,7 +276,7 @@ void btree_get_fsm_t::do_transition(event_t *event) {
             // Go to the core where the cache is
             case go_to_cache_core:
                 state = acquire_superblock;
-                if (continue_on_cpu(slice->home_cpu, this)) res = btree_fsm_t::transition_ok;
+                if (continue_on_thread(slice->home_thread, this)) res = btree_fsm_t::transition_ok;
                 else res = btree_fsm_t::transition_incomplete;
                 break;
             

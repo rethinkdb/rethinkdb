@@ -18,11 +18,11 @@ void request_handler_t::request_complete() {
     
     // If request count was nonzero before then we are already scheduled to be called
     if (request_count == 1) {
-        call_later_on_this_cpu(this);
+        call_later_on_this_thread(this);
     }
 }
 
-void request_handler_t::on_cpu_switch() {
+void request_handler_t::on_thread_switch() {
     int count = request_count;   // In case do_transition_and_handle_result() deletes us
     request_count = 0;
     for (; count > 0; count--) {

@@ -13,7 +13,7 @@ server_t::server_t(cmd_config_t *cmd_config, thread_pool_t *thread_pool)
       toggler(this) { }
 
 void server_t::do_start() {
-    assert_cpu();
+    assert_thread();
     do_start_loggers();
 }
 
@@ -49,7 +49,7 @@ void server_t::on_store_check(bool ok) {
 }
 
 void server_t::do_start_store() {
-    assert_cpu();
+    assert_thread();
     
     store = new btree_key_value_store_t(&cmd_config->store_dynamic_config);
     
@@ -65,7 +65,7 @@ void server_t::do_start_store() {
 }
 
 void server_t::on_store_ready() {
-    assert_cpu();
+    assert_thread();
     
     if (cmd_config->shutdown_after_creation) {
         logINF("Done creating database.\n");
@@ -76,7 +76,7 @@ void server_t::on_store_ready() {
 }
 
 void server_t::do_start_conn_acceptor() {
-    assert_cpu();
+    assert_thread();
 
     // We've now loaded everything. It's safe to print the config
     // specs (part of them depends on the information loaded from the
@@ -114,21 +114,21 @@ conn_handler_t *server_t::create_request_handler(net_conn_t *conn, void *server)
 void server_t::shutdown() {
     /* This can be called from any CPU! */
     
-    cpu_message_t *old_interrupt_msg = thread_pool->set_interrupt_message(NULL);
+    thread_message_t *old_interrupt_msg = thread_pool->set_interrupt_message(NULL);
     
     /* If the interrupt message already was NULL, that means that either shutdown() was for
     some reason called before we finished starting up or shutdown() was called twice and this
     is the second time. */
     if (!old_interrupt_msg) return;
     
-    if (continue_on_cpu(home_cpu, old_interrupt_msg))
-        call_later_on_this_cpu(old_interrupt_msg);
+    if (continue_on_thread(home_thread, old_interrupt_msg))
+        call_later_on_this_thread(old_interrupt_msg);
 }
 
 void server_t::do_shutdown() {
     logINF("Shutting down...\n");
     
-    assert_cpu();
+    assert_thread();
     do_shutdown_conn_acceptor();
 }
 
@@ -143,7 +143,7 @@ void server_t::do_shutdown_conn_acceptor() {
 }
 
 void server_t::on_conn_acceptor_shutdown() {
-    assert_cpu();
+    assert_thread();
     messages_out--;
     if (messages_out == 0) {
 #ifdef REPLICATION_ENABLED
@@ -158,7 +158,7 @@ void server_t::do_shutdown_store() {
 }
 
 void server_t::on_store_shutdown() {
-    assert_cpu();
+    assert_thread();
     delete store;
     store = NULL;
     do_shutdown_loggers();
@@ -169,7 +169,7 @@ void server_t::do_shutdown_loggers() {
 }
 
 void server_t::on_logger_shutdown() {
-    assert_cpu();
+    assert_thread();
     do_message_flush();
 }
 
@@ -181,28 +181,28 @@ shutdown messages would get "stuck" in the message hub when it shut down,
 leading to memory leaks. */
 
 struct flush_message_t :
-    public cpu_message_t
+    public thread_message_t
 {
     bool returning;
     server_t *server;
-    void on_cpu_switch() {
+    void on_thread_switch() {
         if (returning) {
             server->on_message_flush();
             delete this;
         } else {
             returning = true;
-            if (continue_on_cpu(server->home_cpu, this)) on_cpu_switch();
+            if (continue_on_thread(server->home_thread, this)) on_thread_switch();
         }
     }
 };
 
 void server_t::do_message_flush() {
-    messages_out = get_num_cpus();
-    for (int i = 0; i < get_num_cpus(); i++) {
+    messages_out = get_num_threads();
+    for (int i = 0; i < get_num_threads(); i++) {
         flush_message_t *m = new flush_message_t();
         m->returning = false;
         m->server = this;
-        if (continue_on_cpu(i, m)) m->on_cpu_switch();
+        if (continue_on_thread(i, m)) m->on_thread_switch();
     }
 }
 
@@ -214,7 +214,7 @@ void server_t::on_message_flush() {
 }
 
 void server_t::do_stop_threads() {
-    assert_cpu();
+    assert_thread();
     // This returns immediately, but will cause all of the threads to stop after we
     // return to the event queue.
     thread_pool->shutdown();
@@ -224,11 +224,11 @@ void server_t::do_stop_threads() {
 bool server_t::disable_gc(all_gc_disabled_callback_t *cb) {
     // The callback always gets called.
 
-    return do_on_cpu(home_cpu, this, &server_t::do_disable_gc, cb);
+    return do_on_thread(home_thread, this, &server_t::do_disable_gc, cb);
 }
 
 bool server_t::do_disable_gc(all_gc_disabled_callback_t *cb) {
-    assert_cpu();
+    assert_thread();
 
     return toggler.disable_gc(cb);
 }
@@ -236,11 +236,11 @@ bool server_t::do_disable_gc(all_gc_disabled_callback_t *cb) {
 bool server_t::enable_gc(all_gc_enabled_callback_t *cb) {
     // The callback always gets called.
 
-    return do_on_cpu(home_cpu, this, &server_t::do_enable_gc, cb);
+    return do_on_thread(home_thread, this, &server_t::do_enable_gc, cb);
 }
 
 bool server_t::do_enable_gc(all_gc_enabled_callback_t *cb) {
-    assert_cpu();
+    assert_thread();
 
     return toggler.enable_gc(cb);
 }
@@ -264,7 +264,7 @@ bool server_t::gc_toggler_t::disable_gc(server_t::all_gc_disabled_callback_t *cb
         num_disabled_serializers_ = 0;
         for (int i = 0; i < num_serializers; ++i) {
             standard_serializer_t::gc_disable_callback_t *this_as_callback = this;
-            do_on_cpu(server_->store->serializers[i]->home_cpu, server_->store->serializers[i], &standard_serializer_t::disable_gc, this_as_callback);
+            do_on_thread(server_->store->serializers[i]->home_thread, server_->store->serializers[i], &standard_serializer_t::disable_gc, this_as_callback);
         }
 
         return (state_ == disabled);
@@ -291,7 +291,7 @@ bool server_t::gc_toggler_t::enable_gc(all_gc_enabled_callback_t *cb) {
     // The return value of serializer_t::enable_gc is always true.
 
     for (int i = 0; i < num_serializers; ++i) {
-        do_on_cpu(server_->store->serializers[i]->home_cpu, server_->store->serializers[i], &standard_serializer_t::enable_gc);
+        do_on_thread(server_->store->serializers[i]->home_thread, server_->store->serializers[i], &standard_serializer_t::enable_gc);
     }
 
     if (state_ == enabled) {

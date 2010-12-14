@@ -174,7 +174,7 @@ void rwi_lock_t::process_queue() {
             break;
         } else {
             queue.remove(req);
-            call_later_on_this_cpu(req);
+            call_later_on_this_thread(req);
         }
         req = queue.head();
     }
@@ -188,7 +188,7 @@ void rwi_lock_t::process_queue() {
     // could be executed in parallel.
 }
 
-void rwi_lock_t::lock_request_t::on_cpu_switch() {
+void rwi_lock_t::lock_request_t::on_thread_switch() {
     callback->on_lock_available();
     delete this;
 }

@@ -166,7 +166,7 @@ mock_cache_t::~mock_cache_t() {
 
 bool mock_cache_t::start(ready_callback_t *cb) {
     ready_callback = NULL;
-    if (do_on_cpu(serializer->home_cpu, this, &mock_cache_t::load_blocks_from_serializer)) {
+    if (do_on_thread(serializer->home_thread, this, &mock_cache_t::load_blocks_from_serializer)) {
         return true;
     } else {
         ready_callback = cb;
@@ -181,7 +181,7 @@ bool mock_cache_t::load_blocks_from_serializer() {
         assert(SUPERBLOCK_ID == 0);
         bufs[SUPERBLOCK_ID] = new internal_buf_t(this, SUPERBLOCK_ID);
         
-        return do_on_cpu(home_cpu, this, &mock_cache_t::have_loaded_blocks);
+        return do_on_thread(home_thread, this, &mock_cache_t::have_loaded_blocks);
     } else {
         // Load the blocks from the serializer
         bufs.set_size(serializer->max_block_id(), NULL);
@@ -194,7 +194,7 @@ bool mock_cache_t::load_blocks_from_serializer() {
             }
         }
         if (blocks_to_load == 0) {
-            return do_on_cpu(home_cpu, this, &mock_cache_t::have_loaded_blocks);
+            return do_on_thread(home_thread, this, &mock_cache_t::have_loaded_blocks);
         } else {
             return false;
         }
@@ -204,7 +204,7 @@ bool mock_cache_t::load_blocks_from_serializer() {
 void mock_cache_t::on_serializer_read() {
     blocks_to_load--;
     if (blocks_to_load == 0) {
-        do_on_cpu(home_cpu, this, &mock_cache_t::have_loaded_blocks);
+        do_on_thread(home_thread, this, &mock_cache_t::have_loaded_blocks);
     }
 }
 
@@ -258,7 +258,7 @@ bool mock_cache_t::shutdown(shutdown_callback_t *cb) {
 }
 
 bool mock_cache_t::shutdown_write_bufs() {
-    return do_on_cpu(serializer->home_cpu, this, &mock_cache_t::shutdown_do_send_bufs_to_serializer);
+    return do_on_thread(serializer->home_thread, this, &mock_cache_t::shutdown_do_send_bufs_to_serializer);
 }
 
 bool mock_cache_t::shutdown_do_send_bufs_to_serializer() {
@@ -269,14 +269,14 @@ bool mock_cache_t::shutdown_do_send_bufs_to_serializer() {
     }
 
     if (serializer->do_write(writes.data(), writes.size(), this)) {
-        return do_on_cpu(home_cpu, this, &mock_cache_t::shutdown_destroy_bufs);
+        return do_on_thread(home_thread, this, &mock_cache_t::shutdown_destroy_bufs);
     } else {
         return false;
     }
 }
 
 void mock_cache_t::on_serializer_write_txn() {
-    do_on_cpu(home_cpu, this, &mock_cache_t::shutdown_destroy_bufs);
+    do_on_thread(home_thread, this, &mock_cache_t::shutdown_destroy_bufs);
 }
 
 bool mock_cache_t::shutdown_destroy_bufs() {

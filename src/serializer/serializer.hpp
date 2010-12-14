@@ -18,7 +18,7 @@ others. */
 struct serializer_t :
     /* Except as otherwise noted, the serializer's methods should only be called from the
     thread it was created on, and it should be destroyed on that same thread. */
-    public home_cpu_mixin_t
+    public home_thread_mixin_t
 {
     /* The buffers that are used with do_read() and do_write() must be allocated using
     these functions. They can be safely called from any thread. */

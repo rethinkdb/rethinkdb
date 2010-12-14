@@ -136,7 +136,7 @@ public:
 
     // enable_gc() should be called when you want to turn on the gc.
     // gc will be enabled immediately.  Always returns 'true' for
-    // do_on_cpu.
+    // do_on_thread.
     bool enable_gc();
 
     // The magic value used for "zero" buffers written upon deletion.

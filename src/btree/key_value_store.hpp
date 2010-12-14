@@ -50,7 +50,7 @@ struct bkvs_start_existing_serializer_fsm_t;
 struct btree_replicant_t;
 
 class btree_key_value_store_t :
-    public home_cpu_mixin_t,
+    public home_thread_mixin_t,
     public store_t,
     public standard_serializer_t::shutdown_callback_t
 {

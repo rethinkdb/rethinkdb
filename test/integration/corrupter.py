@@ -8,9 +8,11 @@ bits = map(lambda x : x ** 2, range(8))
 
 #p is the probability of flipping a bit
 def corrupt(filename, p):
-    print "Corrupting...",
+
     if p == 0.0:
         return 
+
+    print "Corrupting...",
 
     def flipcoin():
         return random.random() < p

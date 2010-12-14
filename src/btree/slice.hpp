@@ -17,7 +17,7 @@ struct btree_key_value_store_t;
 class btree_slice_t :
     private cache_t::ready_callback_t,
     private cache_t::shutdown_callback_t,
-    public home_cpu_mixin_t
+    public home_thread_mixin_t
 {
     friend class initialize_superblock_fsm_t;
     

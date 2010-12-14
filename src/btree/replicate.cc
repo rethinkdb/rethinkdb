@@ -24,7 +24,7 @@ btree_replicant_t::btree_replicant_t(store_t::replicant_t *cb, btree_key_value_s
 
     // Install ourselves as a trigger on each slice
     for (int i = 0; i < store->btree_static_config.n_slices; i++) {
-        do_on_cpu(store->slices[i]->home_cpu, this, &btree_replicant_t::install, store->slices[i]);
+        do_on_thread(store->slices[i]->home_thread, this, &btree_replicant_t::install, store->slices[i]);
     }
 }
 
@@ -44,13 +44,13 @@ bool btree_replicant_t::install(btree_slice_t *slice) {
 }
 
 void btree_replicant_t::stop() {
-    assert_cpu();
+    assert_thread();
     stopping = true;
 
     // Uninstall our triggers
     active_uninstallations = store->btree_static_config.n_slices;
     for (int i = 0; i < store->btree_static_config.n_slices; i++) {
-        do_on_cpu(store->slices[i]->home_cpu, this, &btree_replicant_t::uninstall, store->slices[i]);
+        do_on_thread(store->slices[i]->home_thread, this, &btree_replicant_t::uninstall, store->slices[i]);
     }
 }
 
@@ -61,7 +61,7 @@ bool btree_replicant_t::uninstall(btree_slice_t *slice) {
     for (it = slice->replicants.begin(); it != slice->replicants.end(); it++) {
         if (*it == this) {
             slice->replicants.erase(it);
-            do_on_cpu(home_cpu, this, &btree_replicant_t::have_uninstalled);
+            do_on_thread(home_thread, this, &btree_replicant_t::have_uninstalled);
             return true;
         }
     }
@@ -88,7 +88,7 @@ void btree_replicant_t::done() {
 to a replicant. */
 
 struct slice_walker_t :
-    public home_cpu_mixin_t,
+    public home_thread_mixin_t,
     public block_available_callback_t
 {
     btree_slice_t *slice;
@@ -98,7 +98,7 @@ struct slice_walker_t :
     slice_walker_t(btree_replicant_t *parent_, btree_slice_t *slice_)
         : slice(slice_), active_branch_walkers(0), parent(parent_)
     {
-        do_on_cpu(slice->home_cpu, this, &slice_walker_t::start);
+        do_on_thread(slice->home_thread, this, &slice_walker_t::start);
     }
     bool start() {
         txn = slice->cache.begin_transaction(rwi_read, NULL);
@@ -119,7 +119,7 @@ struct slice_walker_t :
     void done() {
         bool committed __attribute__((unused)) = txn->commit(NULL);
         assert(committed);
-        do_on_cpu(home_cpu, this, &slice_walker_t::report);
+        do_on_thread(home_thread, this, &slice_walker_t::report);
     }
     bool report() {
         parent->slice_walker_done();

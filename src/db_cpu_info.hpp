@@ -11,8 +11,8 @@
 // with the db code, the latency for these utils can increase
 // significantly. In particular, it causes timeout bugs in clients
 // that expect the acceptor to work faster.
-inline int get_num_db_cpus() {
-    return get_num_cpus() - 1;
+inline int get_num_db_threads() {
+    return get_num_threads() - 1;
 }
 
 #endif // __DB_CPU_INFO_HPP__

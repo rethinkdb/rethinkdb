@@ -50,39 +50,39 @@ typedef io_config_t::net_conn_write_external_callback_t net_conn_write_external_
 typedef io_config_t::oldstyle_net_conn_t oldstyle_net_conn_t;
 typedef io_config_t::oldstyle_net_conn_callback_t oldstyle_net_conn_callback_t;
 
-typedef io_config_t::cpu_message_t cpu_message_t;
+typedef io_config_t::thread_message_t thread_message_t;
 
-inline int get_cpu_id() {
-    return io_config_t::get_cpu_id();
+inline int get_thread_id() {
+    return io_config_t::get_thread_id();
 }
 
-inline int get_num_cpus() {
-    return io_config_t::get_num_cpus();
+inline int get_num_threads() {
+    return io_config_t::get_num_threads();
 }
 
-// continue_on_cpu() is used to send a message to another thread. If the 'cpu' parameter is the
+// continue_on_thread() is used to send a message to another thread. If the 'thread' parameter is the
 // thread that we are already on, then it returns 'true'; otherwise, it will cause the other
-// thread's event loop to call msg->on_cpu_switch().
-inline bool continue_on_cpu(int cpu, cpu_message_t *msg) {
-    return io_config_t::continue_on_cpu(cpu, msg);
+// thread's event loop to call msg->on_thread_switch().
+inline bool continue_on_thread(int thread, thread_message_t *msg) {
+    return io_config_t::continue_on_thread(thread, msg);
 }
 
-// call_later_on_this_cpu() will cause msg->on_cpu_switch() to be called from the main event loop
+// call_later_on_this_thread() will cause msg->on_thread_switch() to be called from the main event loop
 // of the CPU we are currently on. It's a bit of a hack.
-inline void call_later_on_this_cpu(cpu_message_t *msg) {
-    return io_config_t::call_later_on_this_cpu(msg);
+inline void call_later_on_this_thread(thread_message_t *msg) {
+    return io_config_t::call_later_on_this_thread(msg);
 }
 
 /* TODO: It is common in the codebase right now to have code like this:
 
-if (continue_on_cpu(cpu, msg)) call_later_on_this_cpu(msg);
+if (continue_on_thread(thread, msg)) call_later_on_this_thread(msg);
 
 This is because originally clients would just call store_message() directly.
-When continue_on_cpu() was written, the code still assumed that the message's
-callback would not be called before continue_on_cpu() returned. Using
-call_later_on_this_cpu() is not ideal because it would be better to just
+When continue_on_thread() was written, the code still assumed that the message's
+callback would not be called before continue_on_thread() returned. Using
+call_later_on_this_thread() is not ideal because it would be better to just
 continue processing immediately if we are already on the correct CPU, but
-at the time it didn't seem worth rewriting it, so call_later_on_this_cpu()
+at the time it didn't seem worth rewriting it, so call_later_on_this_thread()
 was added to make it easy to simulate the old semantics. */
 
 typedef io_config_t::timer_token_t timer_token_t;
