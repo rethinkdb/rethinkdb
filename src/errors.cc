@@ -151,7 +151,7 @@ void report_fatal_error(const char *file, int line, const char *msg, ...) {
     va_end(args);
 
 #ifndef NDEBUG
-    fprintf(stderr, "\nBacktrace:\n");zz
+    fprintf(stderr, "\nBacktrace:\n");
     print_backtrace();
 #endif
 
