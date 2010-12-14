@@ -26,7 +26,7 @@ public:
     linux_thread_message_t *set_interrupt_message(linux_thread_message_t *interrupt_message);
     
     // Blocks while threads are working. Only returns after shutdown() is called. initial_message
-    // is a CPU message that will be delivered to one of the threads after all of the event queues
+    // is a thread message that will be delivered to one of the threads after all of the event queues
     // have been started; it is used to start the server's activity.
     void run(linux_thread_message_t *initial_message);
     
@@ -48,8 +48,8 @@ private:
     pthread_mutex_t shutdown_cond_mutex;
 
 public:
-    pthread_t pthreads[MAX_CPUS];
-    linux_thread_t *threads[MAX_CPUS];
+    pthread_t pthreads[MAX_THREADS];
+    linux_thread_t *threads[MAX_THREADS];
     
     int n_threads;
     // The thread_pool that started the thread we are currently in

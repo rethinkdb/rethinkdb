@@ -52,7 +52,7 @@ private:
     bool create_conn_on_this_core(net_conn_t *conn);
 
     int n_active_conns;
-    intrusive_list_t<conn_handler_t> conn_handlers[MAX_CPUS];
+    intrusive_list_t<conn_handler_t> conn_handlers[MAX_THREADS];
 
     bool have_shutdown_a_conn();
 

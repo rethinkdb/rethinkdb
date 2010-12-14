@@ -43,7 +43,7 @@ linux_message_hub_t::~linux_message_hub_t() {
     }
 }
     
-// Collects a message for a given CPU onto a local list.
+// Collects a message for a given thread onto a local list.
 void linux_message_hub_t::store_message(unsigned int nthread, linux_thread_message_t *msg) {
     assert(nthread < (unsigned)thread_pool->n_threads);
     queues[nthread].msg_local_list.push_back(msg);
@@ -70,7 +70,7 @@ void linux_message_hub_t::notify_t::on_event(int events) {
     parent->thread_pool->threads[notifier_thread]->message_hub.pull_messages(parent->current_thread);
 }
 
-// Pulls the messages stored in global lists for a given CPU.
+// Pulls the messages stored in global lists for a given thread.
 void linux_message_hub_t::pull_messages(int thread) {
     msg_list_t msg_list;
     
@@ -88,7 +88,7 @@ void linux_message_hub_t::pull_messages(int thread) {
 }
 
 // Pushes messages collected locally global lists available to all
-// CPUs.
+// threads.
 void linux_message_hub_t::push_messages() {
     for (int i = 0; i < thread_pool->n_threads; i++) {
         // Append the local list for ith thread to that thread's global

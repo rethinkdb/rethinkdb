@@ -38,7 +38,7 @@ struct log_controller_t :
     
     bool shutting_down;
     int num_threads_up;
-    int messages_out[MAX_CPUS];
+    int messages_out[MAX_THREADS];
     logger_shutdown_callback_t *shutdown_callback;
     
     void shutdown(logger_shutdown_callback_t *cb) {

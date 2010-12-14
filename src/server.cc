@@ -1,5 +1,5 @@
 #include "server.hpp"
-#include "db_cpu_info.hpp"
+#include "db_thread_info.hpp"
 #include "request_handler/txt_memcached_handler.hpp"
 #include "request_handler/conn_fsm.hpp"
 #include "replication/master.hpp"
@@ -112,7 +112,7 @@ conn_handler_t *server_t::create_request_handler(net_conn_t *conn, void *server)
 }
 
 void server_t::shutdown() {
-    /* This can be called from any CPU! */
+    /* This can be called from any thread! */
     
     thread_message_t *old_interrupt_msg = thread_pool->set_interrupt_message(NULL);
     

@@ -19,7 +19,7 @@ linux_thread_pool_t::linux_thread_pool_t(int n_threads)
       n_threads(n_threads + 1) // we create an extra utility thread
 {
     assert(n_threads > 0);
-    assert(n_threads <= MAX_CPUS);
+    assert(n_threads <= MAX_THREADS);
     
     int res;
     
@@ -77,7 +77,7 @@ void *linux_thread_pool_t::start_thread(void *arg) {
         res = pthread_barrier_wait(tdata->barrier);
         guarantee(res == 0 || res == PTHREAD_BARRIER_SERIAL_THREAD, "Could not wait at start barrier");
         
-        // Prime the pump by calling the initial CPU message that was passed to thread_pool::run()
+        // Prime the pump by calling the initial thread message that was passed to thread_pool::run()
         if (tdata->initial_message) {
             thread.message_hub.store_message(tdata->current_thread, tdata->initial_message);
         }
@@ -115,7 +115,7 @@ void linux_thread_pool_t::run(linux_thread_message_t *initial_message) {
         tdata->thread_pool = this;
         tdata->current_thread = i;
         // The initial message (which creates utility workers) gets
-        // sent to the last CPU. The last CPU is not reported by
+        // sent to the last thread. The last thread is not reported by
         // get_num_db_threads() (see it for more details).
         tdata->initial_message = (i == n_threads - 1) ? initial_message : NULL;
         
@@ -207,7 +207,7 @@ void linux_thread_pool_t::interrupt_handler(int) {
     
     /* Set the interrupt message to NULL at the same time as we get it so that
     we don't send the same message twice. This is necessary because it's illegal
-    to send the same CPU message twice until it has been received the first time
+    to send the same thread message twice until it has been received the first time
     (because of the intrusive list), and we could hypothetically get two SIGINTs
     in quick succession. */
     linux_thread_message_t *interrupt_msg = self->set_interrupt_message(NULL);
