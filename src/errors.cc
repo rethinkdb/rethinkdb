@@ -3,6 +3,7 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdarg.h>
+#include <sys/ptrace.h>
 
 #ifndef NDEBUG
 
@@ -152,7 +153,9 @@ void report_fatal_error(const char *file, int line, const char *msg, ...) {
 
 #ifndef NDEBUG
     fprintf(stderr, "\nBacktrace:\n");
-    print_backtrace();
+    // Only print backtrace if not running inside a debugger (check as on http://vxheavens.com/lib/vsc04.html_
+    if (ptrace(PTRACE_TRACEME, 0, 1, 0) >= 0)
+        print_backtrace();
 #endif
 
     fprintf(stderr, "\nExiting.\n\n");
