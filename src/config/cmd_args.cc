@@ -8,7 +8,6 @@
 #include "utils.hpp"
 
 void usage(const char *name) {
-    // TODO: Make all messages break such that they fit into an 80-characters screen
     printf("Usage:\n");
     printf("\t%s [OPTIONS] [FILE]\n", name);
     
@@ -78,7 +77,6 @@ enum {
 cmd_config_t parse_cmd_args(int argc, char *argv[]) {
     parsing_cmd_config_t config;
 
-    // TODO: Overhaul private config parsing!
     std::vector<log_serializer_private_dynamic_config_t>& private_configs = config.store_dynamic_config.serializer_private;
     
     optind = 1; // reinit getopt
