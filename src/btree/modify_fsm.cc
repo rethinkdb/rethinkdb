@@ -412,9 +412,13 @@ void btree_modify_fsm_t::do_transition(event_t *event) {
                        bool success = leaf_node_handler::insert(cache->get_block_size(), ptr_cast<leaf_node_t>(buf->get_data_write()), &key, new_value, new_value_timestamp);
                        guarantee(success, "could not insert leaf btree node");
                    } else {
-                       // If we haven't already, do some deleting.
-                       // key found, and value deleted
-                       leaf_node_handler::remove(cache->get_block_size(), ptr_cast<leaf_node_t>(buf->get_data_write()), &key);
+                       if (key_found || expired) {
+                           leaf_node_handler::remove(cache->get_block_size(), ptr_cast<leaf_node_t>(buf->get_data_write()), &key);
+                       } else {
+                            // operate() told us to delete a value (update_needed && !old_value), but the
+                            // key wasn't in the node (!key_found && !expired). I'm still not convinced
+                            // that this should be handled here.
+                       }
                    }
                    update_done = true;
                 }
