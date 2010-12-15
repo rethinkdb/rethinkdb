@@ -81,8 +81,9 @@ conn_fsm_t::result_t conn_fsm_t::fill_buf(void *buf, unsigned int *bytes_filled,
                 if (sbuf && sbuf->outstanding() == linked_buf_t::linked_buf_empty) {
                     return_to_socket_connected();
                 }
-            } else
+            } else {
                 state = fsm_socket_connected; //we're wating for a socket event
+            }
             //break;
         } else {
             // We must fail gracefully here, probably logging the error.
