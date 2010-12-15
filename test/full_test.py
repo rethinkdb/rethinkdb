@@ -62,6 +62,20 @@ try:
                           "slices"      : slices,
                           "duration"    : 340 },
                         repeat=5, timeout=400)
+
+                # Run the serial mix test also with the other valgrind tools, drd and helgrind
+                if checker == "valgrind":
+                    for valgrind_tool in ["drd", "helgrind"]:
+                        do_test_cloud("integration/serial_mix.py",
+                                { "auto"        : True,
+                                  "mode"        : mode,
+                                  "no-valgrind" : not checker,
+                                  "valgrind-tool" : valgrind_tool,
+                                  "protocol"    : protocol,
+                                  "cores"       : cores,
+                                  "slices"      : slices,
+                                  "duration"    : 300 },
+                                repeat=3, timeout=400)
             
                 do_test_cloud("integration/serial_mix.py",
                         { "auto"        : True,
@@ -141,7 +155,16 @@ try:
                           "cores"       : cores,
                           "slices"      : slices },
                         repeat=3)
-            
+
+                do_test_cloud("integration/shrink.py",
+                        { "auto"        : True,
+                          "mode"        : mode,
+                          "no-valgrind" : not checker,
+                          "protocol"    : protocol,
+                          "cores"       : cores,
+                          "slices"      : slices },
+                        repeat=3)
+
                 do_test_cloud("integration/incr_decr.py",
                         { "auto"        : True,
                           "mode"        : mode,

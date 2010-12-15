@@ -7,7 +7,7 @@
 #include "protocol.hpp"
 
 struct memcached_protocol_t : public protocol_t {
-    memcached_protocol_t()
+    memcached_protocol_t(config_t *config) : protocol_t(config)
         {
         memcached_create(&memcached);
 
@@ -25,7 +25,7 @@ struct memcached_protocol_t : public protocol_t {
         memcached_free(&memcached);
     }
 
-    virtual void connect(config_t *config, server_t *server) {
+    virtual void connect(server_t *server) {
         // Parse the host string
         char _host[MAX_HOST];
         strncpy(_host, server->host, MAX_HOST);

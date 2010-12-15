@@ -258,9 +258,9 @@ def create_testing_nodes_from_reservation():
     global private_ssh_key_filename
     
     for instance in testing_nodes_ec2_reservation.instances:
-        new_testing_node = TestingNode(instance.public_dns_name, 22, testing_nodes_ec2_image_user_name, private_ssh_key_filename)
-        
-        testing_nodes.append(new_testing_node)
+        if instance.state == "running":
+            new_testing_node = TestingNode(instance.public_dns_name, 22, testing_nodes_ec2_image_user_name, private_ssh_key_filename)
+            testing_nodes.append(new_testing_node)
 
 
 
@@ -307,10 +307,15 @@ def start_testing_nodes():
             instance.update()
             if instance.state == "terminated":
                 # Something went wrong :-(
-                terminte_testing_nodes()
-                raise Exception("Could not allocate the requested number of nodes")
+                print "Could not allocate the requested number of nodes"
+                break
+                #terminate_testing_nodes()
+                #raise Exception("Could not allocate the requested number of nodes")
     
     create_testing_nodes_from_reservation()
+    if len(testing_nodes) == 0:
+        terminate_testing_nodes()
+        raise Exception("Could not allocate any testing node")
     
     # Give it another 120 seconds to start up...
     time.sleep(120)

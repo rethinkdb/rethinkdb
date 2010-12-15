@@ -11,8 +11,8 @@
 #include "protocol.hpp"
 
 struct memcached_sock_protocol_t : public protocol_t {
-    memcached_sock_protocol_t()
-        : sockfd(-1)
+    memcached_sock_protocol_t(config_t *config)
+        : sockfd(-1), protocol_t(config)
         {
             // init the socket
             sockfd = socket(AF_INET, SOCK_STREAM, 0);
@@ -21,6 +21,9 @@ struct memcached_sock_protocol_t : public protocol_t {
                 fprintf(stderr, "Could not create socket\n");
                 exit(-1);
             }
+            // Should be enough:
+            buffer = new char[config->values.max + 1024];
+            cmp_buff = new char[config->values.max + 1024];
         }
 
     virtual ~memcached_sock_protocol_t() {
@@ -32,9 +35,11 @@ struct memcached_sock_protocol_t : public protocol_t {
                 exit(-1);
             }
         }
+        delete buffer;
+        delete cmp_buff;
     }
 
-    virtual void connect(config_t *config, server_t *server) {
+    virtual void connect(server_t *server) {
         // Parse the host string
         char _host[MAX_HOST];
         strncpy(_host, server->host, MAX_HOST);
@@ -231,7 +236,8 @@ private:
 
 private:
     int sockfd;
-    char buffer[1024 * 10], cmp_buff[1024 * 10];
+    //char buffer[1024 * 10], cmp_buff[1024 * 10];
+    char *buffer, *cmp_buff;
 };
 
 

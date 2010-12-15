@@ -13,21 +13,20 @@
 using namespace std;
 
 struct sqlite_protocol_t : public protocol_t {
-    sqlite_protocol_t() : _id(-1), _dbname(NULL), _config(NULL), _dbhandle(NULL) {
+    sqlite_protocol_t(config_t *config) : _id(-1), _dbname(NULL), protocol_t(config), _dbhandle(NULL) {
     }
 
     ~sqlite_protocol_t() {
         sqlite3_close(_dbhandle);
     }
 
-    virtual void connect(config_t *config, server_t *server) {
+    virtual void connect(server_t *server) {
         if (_id == -1) {
             fprintf(stderr, "Can't connect unless you tell me my id\n");
             exit(-1);
         }
         sprintf(buffer, "%s/%d_%s", BACKUP_FOLDER, _id, config->db_file);
         sqlite3_open(buffer, &_dbhandle);
-        _config = config;
     }
 
     virtual void remove(const char *key, size_t key_size) {
@@ -122,7 +121,6 @@ public:
 private:
     int _id;
     char *_dbname;
-    config_t *_config;
     sqlite3 *_dbhandle;
     char buffer[MAX_COMMAND_SIZE];
     sqlite3_stmt *compiled_stmt;
