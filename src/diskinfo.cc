@@ -19,14 +19,18 @@ partition_info_t::partition_info_t(int nmajor, int nminor, int nblocks, std::str
 partition_info_t::partition_info_t() {}
 
 dev_t get_device(const char *filepath) {
+    /* Given a filepath, returns the device number. */
     struct stat st;
     if (stat(filepath, &st)) {
-        logDBG("%s\n", strerror(errno));
+        logERR("%s\n", strerror(errno));
     }
     return st.st_dev;
 }
 
 void tokenize_line(const std::string& line, std::vector<std::string> &tokens) {
+    /* Given a line and an empty vector to fill in, chops the line up by space
+     * characters and puts the words in the tokens vector.
+     */
     size_t start, end = 0;
     while (end < line.size()) {
         start = end;
@@ -78,9 +82,6 @@ void get_partition_map(std::vector<partition_info_t> &partitions) {
             partition->name = tokens[3];
             partition->name.insert(0, std::string("/dev/"));
 
-            logDBG("maj%d min%d blk%d nm%s\n", partition->nmajor, partition->nminor, partition->nblocks, partition->name.c_str());
-
-
             partitions.push_back(*partition);
 
         }
@@ -88,8 +89,16 @@ void get_partition_map(std::vector<partition_info_t> &partitions) {
 }
 
 void log_disk_info(std::vector<log_serializer_private_dynamic_config_t> &serializers) {
+    /* Logs information about the disks that the serializers' files reside on. */
     std::vector<partition_info_t> partitions;
     std::set<std::string> devices;
+
+    struct stat st;
+    if (-1 == (stat("/sbin/hdparm", &st))) {
+        logWRN("System lacks hdparm; giving up\n");
+        return;
+    }
+
     get_partition_map(partitions);
 
     int maj, min = 0;
@@ -119,23 +128,30 @@ void log_disk_info(std::vector<log_serializer_private_dynamic_config_t> &seriali
     }
 
 
-    char *buf = new char[1023];//(char *) malloc(sizeof(char) * 1024);
-    if (NULL == buf) {
-        logDBG("out of memory");
-    }
-    FILE *stream = popen(cmd.c_str(), "r");
+    char *buf = (char *) malloc(sizeof(char) * 1024);
+    FILE *stream;
     size_t nbytes;
-    mlog_start(DBG);
+
+    if (NULL == buf) {
+        logERR("out of memory\n");
+    }
+    if (NULL == (stream = popen(cmd.c_str(), "r"))) {
+        logERR("popen failed\n");
+    }
+
+    mlog_start(INF);
     while (1023 == (nbytes = fread(buf, 1, 1023, stream)))
     {
         mlogf("%s", buf);
     }
+    if (-1 == pclose(stream)) {
+        mlog_end();
+        logERR("pclose failed\n");
+        mlog_start(INF);
+    }
     buf[nbytes + 1] = '\0';
     mlogf("%s\n", buf);
     mlog_end();
-    fprintf(stderr, "yo\n");
-    delete buf;
-    fprintf(stderr, "yo\n");
-    pclose(stream);
-    fprintf(stderr, "yo\n");
+
+    free(buf);
 }
