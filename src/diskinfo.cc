@@ -12,6 +12,19 @@
 #include "config/cmd_args.hpp"
 
 const char *partitions_path = "/proc/partitions";
+const char *hdparm_path = "/sbin/hdparm";
+
+struct partition_info_t {
+    partition_info_t();
+    partition_info_t(int nmajor, int nminor, int nblocks, std::string name);
+    int nmajor;
+    int nminor;
+    int nblocks;
+    std::string name;
+};
+
+void get_partition_map(std::vector<partition_info_t> &partitions);
+
 
 partition_info_t::partition_info_t(int nmajor, int nminor, int nblocks, std::string name)
     : nmajor(nmajor), nminor(nminor), nblocks(nblocks), name(name) { }
@@ -60,7 +73,7 @@ void get_partition_map(std::vector<partition_info_t> &partitions) {
      * partition_info_t structs.
      *
      */
-    std::ifstream partitions_file ("/proc/partitions");
+    std::ifstream partitions_file (partitions_path);
     std::string line;
     std::vector<std::string> tokens;
     char *endptr;
@@ -89,12 +102,11 @@ void get_partition_map(std::vector<partition_info_t> &partitions) {
 }
 
 void log_disk_info(std::vector<log_serializer_private_dynamic_config_t> &serializers) {
-    /* Logs information about the disks that the serializers' files reside on. */
     std::vector<partition_info_t> partitions;
     std::set<std::string> devices;
 
     struct stat st;
-    if (-1 == (stat("/sbin/hdparm", &st))) {
+    if (-1 == (stat(hdparm_path, &st))) {
         logWRN("System lacks hdparm; giving up\n");
         return;
     }
@@ -121,7 +133,7 @@ void log_disk_info(std::vector<log_serializer_private_dynamic_config_t> &seriali
         }
     }
 
-    std::string cmd = std::string("hdparm -iI");
+    std::string cmd = std::string("%s -iI", hdparm_path);
     for (std::set<std::string>::iterator it = devices.begin(); it != devices.end(); it++) {
         cmd.append(std::string(" "));
         cmd.append(*it);
