@@ -22,10 +22,6 @@ void coro_t::switch_to(coro_t *next) {
 }
 
 void coro_t::notify() {
-    notify(home_cpu);
-}
-
-void coro_t::notify(int cpu) {
 #ifndef NDEBUG
     assert(!notified);
     notified = true;
@@ -33,7 +29,7 @@ void coro_t::notify(int cpu) {
     //We don't just call_later_on_this_cpu, in case notify is called from another CPU
     //I won't worry about race conditions with the notified error checking, because
     //(a) it's just error checking (b) coroutines should have well-defined ownership anyway
-    if (continue_on_cpu(cpu, this)) {
+    if (continue_on_cpu(home_cpu, this)) {
         call_later_on_this_cpu(this);
     }
 }
@@ -41,7 +37,7 @@ void coro_t::notify(int cpu) {
 
 void coro_t::move_to_cpu(int cpu) {
     self()->home_cpu = cpu;
-    self()->changing_cpu = true;
+    self()->notify();
     wait();
 }
 
@@ -52,10 +48,6 @@ void coro_t::on_cpu_switch() {
 #endif
     scheduler->switch_to(this);
     if (dead) delete this;
-    else if (changing_cpu) {
-        changing_cpu = false;
-        notify(home_cpu);
-    }
 }
 
 void coro_t::suicide() {
@@ -90,7 +82,6 @@ void *coro_t::initialize(void (*fn)(void *arg), void *arg) {
     underlying = Coro_new();
     dead = false;
     home_cpu = get_cpu_id();
-    changing_cpu = false;
 #ifndef NDEBUG
     notified = false;
 #endif
@@ -166,40 +157,9 @@ task_t::task_t(void *(*fn)(void *), void *arg)
     coroutine = new coro_t(run_task, fn, arg, this);
 }
 
-task_t::task_t(int cpu, void *(*fn)(void *), void *arg)
-  : coroutine(NULL), done(0), result(NULL), waiters() {
-    coroutine = new coro_on_cpu_t(cpu, run_task, fn, arg, this);
-}
-
 void task_t::notify() {
     coroutine->notify();
 }
-
-void *call_on_cpu(int cpu, void *(*fn)(void *), void *arg) {
-    task_t *task = new task_t(cpu, fn, arg);
-    return task->join();
-}
-
-/*
-void do_run_on_cpu(void (*fn)(void *), void *arg, coro_t *coro
-#ifndef NDEBUG
-        , int cpu
-#endif
-    ) {
-    assert(cpu == get_cpu_id());
-    fn(arg);
-    coro->notify();
-}
-
-void run_on_cpu(int cpu, void (*fn)(void *), void *arg) {
-    new coro_on_cpu_t(cpu, do_run_on_cpu, fn, arg, coro_t::self()
-#ifndef NDEBUG
-        , cpu
-#endif
-    );
-    coro_t::wait();
-}
-*/
 
 void run_on_cpu(int cpu, void (*fn)(void *), void *arg) {
     on_cpu_t foo(cpu);

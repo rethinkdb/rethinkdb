@@ -14,13 +14,12 @@ struct coro_t
     : private cpu_message_t
 {
     coro_t(void (*fn)(void *arg), void *arg); //Creates and notifies a coroutine
-    explicit coro_t(Coro *underlying) : underlying(underlying), dead(false), changing_cpu(false)
+    explicit coro_t(Coro *underlying) : underlying(underlying), dead(false)
 #ifndef NDEBUG
     , notified(false)
 #endif
     { }
     void notify(); //Wakes up the coroutine, allowing the scheduler to trigger it to continue
-    void notify(int cpu); //Wake up the coroutine on another CPU
     static void move_to_cpu(int cpu); //Wait and notify self on the CPU (avoiding race conditions)
     ~coro_t();
     virtual void on_cpu_switch();
@@ -34,7 +33,6 @@ private:
     Coro *underlying;
     bool dead;
     int home_cpu; //not a home_cpu_mixin_t because this is set by initialize
-    bool changing_cpu;
 
 public:
     static void wait(); //Pauses the current coroutine until it's notified
@@ -167,32 +165,6 @@ protected:
     coro_t() { }
 };
 
-struct coro_on_cpu_t : public coro_t {
-    coro_on_cpu_t(int i, void (*fn)(void *), void *arg) {
-        do_on_cpu(i, boost::bind(&coro_t::initialize, this, fn, arg));
-    }
-
-    template<typename A>
-    coro_on_cpu_t(int i, void(*fn)(A), A arg) {
-        do_on_cpu(i, boost::bind(&coro_t::initialize, this, (void (*)(void *))fn, (void *)arg));
-    }
-
-    template<typename A, typename B>
-    coro_on_cpu_t(int i, void (*fn)(A, B), A first, B second) {
-        do_on_cpu(i, boost::bind(&coro_t::initialize, this, &coro_t::start_binary<A, B>, (void *)new coro_t::binary<A, B>(fn, first, second)));
-    }
-
-    template<typename A, typename B, typename C>
-    coro_on_cpu_t(int i, void (*fn)(A, B, C), A first, B second, C third) {
-        do_on_cpu(i, boost::bind(&coro_t::initialize, this, &coro_t::start_ternary<A, B, C>, (void *)new coro_t::ternary<A, B, C>(fn, first, second, third)));
-    }
-
-    template<typename A, typename B, typename C, typename D>
-    coro_on_cpu_t(int i, void (*fn)(A, B, C, D), A first, B second, C third, D fourth) {
-        do_on_cpu(i, boost::bind(&coro_t::initialize, this, &coro_t::start_quaternary<A, B, C, D>, (void *)new coro_t::quaternary<A, B, C, D>(fn, first, second, third, fourth)));
-    }
-};
-
 struct task_callback_t {
     virtual void on_task_return(void *value) = 0;
 };
@@ -200,7 +172,6 @@ struct task_callback_t {
 /* A task represents an action with a return value that can be blocked on */
 struct task_t {
     task_t(void *(*fn)(void *), void *arg); //Creates and notifies a task to be joined
-    task_t(int cpu, void *(*fn)(void *), void *arg); //Creates and notifies a task on a different CPU
     void *join(); //Blocks the current coroutine until the task finishes, returning the result
     //Join should only be called once, or you can add a completion callback:
     void callback(task_callback_t *cb);
@@ -220,9 +191,6 @@ private:
 
 //TODO: Convenient constructors for task_t, similar to coro_t
 //I'll write this when I have a place to use it; otherwise it'd be annoying to test
-
-void *call_on_cpu(int cpu, void *(*fn)(void *), void *arg);
-void run_on_cpu(int cpu, void (*fn)(void *), void *arg);
 
 //maybe make more things like these, maybe using boost::bind
 
