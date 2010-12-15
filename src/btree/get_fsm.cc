@@ -70,12 +70,10 @@ void _btree_get(btree_key *_key, btree_key_value_store_t *store, store_t::get_ca
     transaction_t *transaction = NULL;
     btree_slice_t *slice = store->slice_for_key(&key);
     cache_t *cache = &slice->cache;
-    large_buf_t *large_value;
-    const_buffer_group_t value_buffers;
-    enum type_t { not_found, got_small_value, got_large_value, invalid_response } response = invalid_response;
+    int home_cpu = get_cpu_id();
 
     {
-        on_cpu_t moving(slice->home_cpu);
+        coro_t::move_to_cpu(slice->home_cpu);
         //Acquire the superblock
         buf_t *buf, *last_buf;
         transaction = cache->begin_transaction(rwi_read, NULL);
@@ -93,8 +91,9 @@ void _btree_get(btree_key *_key, btree_key_value_store_t *store, store_t::get_ca
             // Commit transaction now because we won't be returning to this core
             bool committed __attribute__((unused)) = transaction->commit(NULL);
             assert(committed);   // Read-only transactions complete immediately
-            response = not_found;
-            goto respond;
+            coro_t::move_to_cpu(home_cpu);
+            cb->not_found();
+            return;
         }
 
         //Acquire the leaf node
@@ -139,53 +138,46 @@ void _btree_get(btree_key *_key, btree_key_value_store_t *store, store_t::get_ca
             // Commit transaction now because we won't be returning to this core
             bool committed __attribute__((unused)) = transaction->commit(NULL);
             assert(committed);   // Read-only transactions complete immediately
-            response = not_found;
+            coro_t::move_to_cpu(home_cpu);
+            cb->not_found();
+            return;
         } else if (value.is_large()) {
             // Don't commit transaction yet because we need to keep holding onto
             // the large buf until it's been read.
             assert(value.is_large());
 
-            large_value = new large_buf_t(transaction);
+            large_buf_t *large_value = new large_buf_t(transaction);
 
             co_acquire_large_value(large_value, value.lb_ref(), rwi_read);
             assert(large_value->state == large_buf_t::loaded);
             assert(large_value->get_root_ref().block_id == value.lb_ref().block_id);
 
+            const_buffer_group_t value_buffers;
             for (int i = 0; i < large_value->get_num_segments(); i++) {
                 uint16_t size;
                 const void *data = large_value->get_segment(i, &size);
                 value_buffers.add_buffer(size, data);
             }
-            response = got_large_value;
+            coro_t::move_to_cpu(home_cpu);
+            co_value(cb, &value_buffers, value.mcflags(), 0);
+            {
+                on_cpu_t mover(slice->home_cpu);
+                large_value->release();
+                delete large_value;
+                bool committed __attribute__((unused)) = transaction->commit(NULL);
+                assert(committed);   // Read-only transactions complete immediately
+            }
         } else {
             // Commit transaction now because we won't be returning to this core
             bool committed __attribute__((unused)) = transaction->commit(NULL);
             assert(committed);   // Read-only transactions complete immediately
             
+            const_buffer_group_t value_buffers;
             value_buffers.add_buffer(value.value_size(), value.value());
-            response = got_small_value;
+            coro_t::move_to_cpu(home_cpu);
+            co_value(cb, &value_buffers, value.mcflags(), 0);
         }
-    }
-    respond: {
-        switch (response) {
-            case not_found:
-                cb->not_found();
-                return;
-            case got_small_value:
-            case got_large_value:
-                co_value(cb, &value_buffers, value.mcflags(), 0);
-                return;
-            case invalid_response:
-            default:
-                crash_or_trap("Invalid response object\n");
-        }
-    }
-    if (response == got_large_value) {
-        on_cpu_t mover(slice->home_cpu);
-        large_value->release();
-        delete large_value;
-        bool committed __attribute__((unused)) = transaction->commit(NULL);
-        assert(committed);   // Read-only transactions complete immediately
+
     }
 }
 
