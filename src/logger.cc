@@ -111,12 +111,30 @@ static __thread bool logging = false;
 static __thread int message_len;
 static __thread char message[MAX_LOG_MSGLEN];
 
+void mlog_flush();
+
 static void vmlogf(const char *format, va_list arg) {
     assert(logging);
-    message_len += vsnprintf(
-        message + message_len,
-        (size_t) MAX_LOG_MSGLEN - message_len,
-        format, arg);
+    /* If the incoming message will overflow our buffer, we need to flush
+     * the message. Unfortunately we don't know whether it will until we
+     * run vsnprintf, so we have to copy the argument list no matter what.*/
+    char *buf = (char *) calloc(MAX_LOG_MSGLEN, sizeof(char));
+
+    size_t max_bytes = MAX_LOG_MSGLEN - message_len;
+    size_t nbytes = vsnprintf(buf, MAX_LOG_MSGLEN, format, arg);
+
+    assert(nbytes < MAX_LOG_MSGLEN); // don't send messages > MAX_LOG_MSGLEN
+
+    if (nbytes < max_bytes) {
+        strncpy(message + message_len, buf, nbytes);
+    }
+    else {
+        mlog_flush();
+        message_len = 0;
+        strncpy(message, buf, nbytes);
+    }
+    message_len += nbytes;
+    free(buf);
 }
 
 void _logf(const char *src_file, int src_line, log_level_t level, const char *format, ...) {
@@ -160,10 +178,7 @@ void mlogf(const char *format, ...) {
     va_end(arg);
 }
 
-void mlog_end() {
-    assert(logging);
-    logging = false;
-    
+void mlog_flush() {
     if (log_controller) {
         // Send the message to the log controller to be routed to the appropriate thread
         log_controller->write(message, message_len);
@@ -171,4 +186,11 @@ void mlog_end() {
         // Write directly to the log file from whatever thread we're on
         fwrite(message, 1, message_len, log_file);
     }
+}
+
+void mlog_end() {
+    assert(logging);
+    logging = false;
+
+    mlog_flush();
 }

@@ -35,6 +35,7 @@ def make_option_parser():
     o["mclib"] = ChoiceFlag("--mclib", ["memcache", "pylibmc"], "pylibmc")
     o["protocol"] = ChoiceFlag("--protocol", ["text", "binary"], "text")
     o["valgrind"] = BoolFlag("--no-valgrind", invert = True)
+    o["valgrind-tool"] = StringFlag("--valgrind-tool", "memcheck")
     o["mode"] = StringFlag("--mode", "debug")
     o["netrecord"] = BoolFlag("--no-netrecord", invert = True)
     o["restart_server_prob"] = FloatFlag("--restart-server-prob", 0)
@@ -162,6 +163,9 @@ def get_executable_path(opts, name):
 
 class Server(object):
     
+    # Use the memcheck valgrind tool by default
+    valgrind_tool = "memcheck"
+    
     # Special exit code that we pass to Valgrind to indicate an error
     valgrind_error_code = 100
     
@@ -210,11 +214,15 @@ class Server(object):
                 
                 if self.opts["valgrind"]:
                     cmd_line = ["valgrind"]
+                    if self.opts["valgrind-tool"]:
+                        self.valgrind_tool = self.opts["valgrind-tool"]
                     if self.opts["interactive"]:
                         cmd_line += ["--db-attach=yes"]
                     cmd_line += \
-                        ["--leak-check=full",
+                        ["--tool=%s" % self.valgrind_tool,
                          "--error-exitcode=%d" % self.valgrind_error_code]
+                    if self.valgrind_tool == "memcheck":
+                        cmd_line.append("--leak-check=full")
                     command_line = cmd_line + command_line
                 
                 output_path = os.path.join(make_test_dir(), "creator_output.txt")
@@ -261,12 +269,16 @@ class Server(object):
         # Are we using valgrind?
         if self.opts["valgrind"]:
             cmd_line = ["valgrind"]
+            if self.opts["valgrind-tool"]:
+                self.valgrind_tool = self.opts["valgrind-tool"]
             if self.opts["interactive"]:
                 cmd_line += ["--db-attach=yes"]
             cmd_line += \
-                ["--leak-check=full",
-                 "--error-exitcode=%d" % self.valgrind_error_code,
-                 '--track-origins=yes']
+                ["--tool=%s" % self.valgrind_tool,
+                 "--error-exitcode=%d" % self.valgrind_error_code]
+            if self.valgrind_tool == "memcheck":
+                cmd_line.append("--leak-check=full")
+                cmd_line.append("--track-origins=yes")
             command_line = cmd_line + command_line
         
         # Start the server
