@@ -15,8 +15,6 @@ void coro_t::wait() {
 }
 
 void coro_t::switch_to(coro_t *next) {
-    coro_t *old_current_coro __attribute__((unused)) = current_coro;
-    coro_t *old_scheduler __attribute__((unused)) = scheduler;
     current_coro = next;
     Coro_switchTo_(this->underlying, next->underlying);
 }
@@ -26,14 +24,10 @@ void coro_t::notify() {
     assert(!notified);
     notified = true;
 #endif
-    //We don't just call_later_on_this_cpu, in case notify is called from another CPU
-    //I won't worry about race conditions with the notified error checking, because
-    //(a) it's just error checking (b) coroutines should have well-defined ownership anyway
     if (continue_on_cpu(home_cpu, this)) {
         call_later_on_this_cpu(this);
     }
 }
-
 
 void coro_t::move_to_cpu(int cpu) {
     self()->home_cpu = cpu;
@@ -97,11 +91,6 @@ void coro_t::destroy() {
     assert(scheduler == current_coro);
     delete scheduler;
     scheduler = current_coro = NULL;
-}
-
-void coro_t::yield() {
-    coro_t::self()->notify();
-    coro_t::wait();
 }
 
 /*

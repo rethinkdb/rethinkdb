@@ -10,30 +10,36 @@
 extern perfmon_counter_t pm_active_coroutines;
 
 /* A coroutine represents an action with no return value */
-// Don't instantiate this yourself!
 struct coro_t
     : private cpu_message_t
 {
+public:
+    static void wait(); //Pauses the current coroutine until it's notified
+    static coro_t *self(); //Returns the current coroutine
+    static void run();
+    static void destroy();
+    void notify(); //Wakes up the coroutine, allowing the scheduler to trigger it to continue
+    static void move_to_cpu(int cpu); //Wait and notify self on the CPU (avoiding race conditions)
+
+private:
+    ~coro_t();
+    virtual void on_cpu_switch();
+    void start();
+    
+    virtual void action() { }
+
     coro_t() : underlying(NULL), dead(false), home_cpu(get_cpu_id())
 #ifndef NDEBUG
     , notified(false)
 #endif
     { }
-    void notify(); //Wakes up the coroutine, allowing the scheduler to trigger it to continue
-    static void move_to_cpu(int cpu); //Wait and notify self on the CPU (avoiding race conditions)
-    ~coro_t();
-    virtual void on_cpu_switch();
-    void start();
-    
-protected:
-    virtual void action() { }
 
-private:
     explicit coro_t(Coro *underlying) : underlying(underlying), dead(false), home_cpu(get_cpu_id())
 #ifndef NDEBUG
     , notified(false)
 #endif
     { }
+
     void switch_to(coro_t *next);
 
     Coro *underlying;
@@ -44,14 +50,6 @@ private:
     bool notified;
 #endif
 
-public:
-    static void wait(); //Pauses the current coroutine until it's notified
-    static coro_t *self(); //Returns the current coroutine
-    static void run();
-    static void destroy();
-    static void yield();
-
-private:
     static void suicide();
     static void run_coroutine(void *);
 
@@ -59,44 +57,56 @@ private:
     static __thread coro_t *scheduler; //Epoll loop--main execution of program
 
     DISABLE_COPYING(coro_t);
-};
 
-template<typename callable_t>
-void spawn(callable_t fun) {
-    struct fun_runner_t : public coro_t {
-        callable_t fun;
-        fun_runner_t(callable_t fun) : fun(fun) { }
-        virtual void action() {
-            fun();
+public:
+    template<typename callable_t>
+    static void spawn(callable_t fun) {
+        struct fun_runner_t : public coro_t {
+            callable_t fun;
+            fun_runner_t(callable_t fun) : fun(fun) { }
+            virtual void action() {
+                fun();
+            }
+        } *coroutine = new fun_runner_t(fun);
+        coroutine->start();
+    }
+
+    template<typename callable_t, typename arg_t>
+    static void spawn(callable_t fun, arg_t arg) {
+        spawn(boost::bind(fun, arg));
+    }
+
+    template<typename callable_t, typename arg1_t, typename arg2_t>
+    static void spawn(callable_t fun, arg1_t arg1, arg2_t arg2) {
+        spawn(boost::bind(fun, arg1, arg2));
+    }
+
+    template<typename callable_t, typename arg1_t, typename arg2_t, typename arg3_t>
+    static void spawn(callable_t fun, arg1_t arg1, arg2_t arg2, arg3_t arg3) {
+        spawn(boost::bind(fun, arg1, arg2, arg3));
+    }
+
+    template<typename callable_t, typename arg1_t, typename arg2_t, typename arg3_t, typename arg4_t>
+    static void spawn(callable_t fun, arg1_t arg1, arg2_t arg2, arg3_t arg3, arg4_t arg4) {
+        spawn(boost::bind(fun, arg1, arg2, arg3, arg4));
+    }
+
+    template<typename callable_t, typename arg1_t, typename arg2_t, typename arg3_t, typename arg4_t, typename arg5_t>
+    static void spawn(callable_t fun, arg1_t arg1, arg2_t arg2, arg3_t arg3, arg4_t arg4, arg5_t arg5) {
+        spawn(boost::bind(fun, arg1, arg2, arg3, arg4, arg5));
+    }
+
+    struct on_cpu_t {
+        int home_cpu;
+        on_cpu_t(int cpu) {
+            home_cpu = get_cpu_id();
+            coro_t::move_to_cpu(cpu);
         }
-    } *coroutine = new fun_runner_t(fun);
-    coroutine->start();
-}
-
-template<typename callable_t, typename arg_t>
-void spawn(callable_t fun, arg_t arg) {
-    spawn(boost::bind(fun, arg));
-}
-
-template<typename callable_t, typename arg1_t, typename arg2_t>
-void spawn(callable_t fun, arg1_t arg1, arg2_t arg2) {
-    spawn(boost::bind(fun, arg1, arg2));
-}
-
-template<typename callable_t, typename arg1_t, typename arg2_t, typename arg3_t>
-void spawn(callable_t fun, arg1_t arg1, arg2_t arg2, arg3_t arg3) {
-    spawn(boost::bind(fun, arg1, arg2, arg3));
-}
-
-template<typename callable_t, typename arg1_t, typename arg2_t, typename arg3_t, typename arg4_t>
-void spawn(callable_t fun, arg1_t arg1, arg2_t arg2, arg3_t arg3, arg4_t arg4) {
-    spawn(boost::bind(fun, arg1, arg2, arg3, arg4));
-}
-
-template<typename callable_t, typename arg1_t, typename arg2_t, typename arg3_t, typename arg4_t, typename arg5_t>
-void spawn(callable_t fun, arg1_t arg1, arg2_t arg2, arg3_t arg3, arg4_t arg4, arg5_t arg5) {
-    spawn(boost::bind(fun, arg1, arg2, arg3, arg4, arg5));
-}
+        ~on_cpu_t() {
+            coro_t::move_to_cpu(home_cpu);
+        }
+    };
+};
 
 /*
 //Are tasks actually useful at all?
@@ -122,22 +132,6 @@ private:
     DISABLE_COPYING(task_t);
 };
 */
-
-//TODO: Convenient constructors for task_t, similar to coro_t
-//I'll write this when I have a place to use it; otherwise it'd be annoying to test
-
-//maybe make more things like these, maybe using boost::bind
-
-struct on_cpu_t {
-    int home_cpu;
-    on_cpu_t(int cpu) {
-        home_cpu = get_cpu_id();
-        coro_t::move_to_cpu(cpu);
-    }
-    ~on_cpu_t() {
-        coro_t::move_to_cpu(home_cpu);
-    }
-};
 
 
 #endif // __COROUTINES_HPP__

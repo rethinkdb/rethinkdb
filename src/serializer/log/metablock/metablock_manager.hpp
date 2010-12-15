@@ -101,7 +101,7 @@ public:
         virtual ~metablock_read_callback_t() {}
     };
 private:
-    static void start_existing_callback(metablock_manager_t<metablock_t> *receiver, direct_file_t *dbfile, bool *mb_found, metablock_t *mb_out, metablock_read_callback_t *cb);
+    void start_existing_callback(direct_file_t *dbfile, bool *mb_found, metablock_t *mb_out, metablock_read_callback_t *cb);
 public:
     bool start_existing(direct_file_t *dbfile, bool *mb_found, metablock_t *mb_out, metablock_read_callback_t *cb);
 
@@ -112,7 +112,7 @@ public:
     };
     bool write_metablock(metablock_t *mb, metablock_write_callback_t *cb);
 private:
-    static void write_metablock_callback(metablock_manager_t<metablock_t> *receiver, metablock_t *mb, metablock_write_callback_t *cb);
+    void write_metablock_callback(metablock_t *mb, metablock_write_callback_t *cb);
 public:
     void co_write_metablock(metablock_t *mb);
 

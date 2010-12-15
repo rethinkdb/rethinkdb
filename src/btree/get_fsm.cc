@@ -161,7 +161,7 @@ void _btree_get(btree_key *_key, btree_key_value_store_t *store, store_t::get_ca
             coro_t::move_to_cpu(home_cpu);
             co_value(cb, &value_buffers, value.mcflags(), 0);
             {
-                on_cpu_t mover(slice->home_cpu);
+                coro_t::on_cpu_t mover(slice->home_cpu);
                 large_value->release();
                 delete large_value;
                 bool committed __attribute__((unused)) = transaction->commit(NULL);
@@ -182,5 +182,5 @@ void _btree_get(btree_key *_key, btree_key_value_store_t *store, store_t::get_ca
 }
 
 void btree_get(btree_key *key, btree_key_value_store_t *store, store_t::get_callback_t *cb) {
-    spawn(_btree_get, key, store, cb);
+    coro_t::spawn(_btree_get, key, store, cb);
 }

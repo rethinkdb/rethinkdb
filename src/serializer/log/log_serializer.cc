@@ -35,7 +35,7 @@ void ls_check_existing(const char *filename, log_serializer_t::check_callback_t 
 }
 
 void log_serializer_t::check_existing(const char *filename, check_callback_t *cb) {
-    spawn(ls_check_existing, filename, cb);
+    coro_t::spawn(ls_check_existing, filename, cb);
 }
 
 /* The process of starting up the serializer is handled by the ls_start_*_fsm_t. This is not
@@ -82,7 +82,7 @@ void log_serializer_t::ls_start_new(static_config_t *config, ready_callback_t *r
 bool log_serializer_t::start_new(static_config_t *config, ready_callback_t *ready_cb) {
     assert(state == state_unstarted);
     assert_cpu();
-    spawn(&log_serializer_t::ls_start_new, this, config, ready_cb);
+    coro_t::spawn(&log_serializer_t::ls_start_new, this, config, ready_cb);
     return false;
 }
 
