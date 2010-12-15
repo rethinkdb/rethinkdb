@@ -133,7 +133,8 @@ void log_disk_info(std::vector<log_serializer_private_dynamic_config_t> &seriali
         }
     }
 
-    std::string cmd = std::string("%s -iI", hdparm_path);
+    std::string cmd = std::string(hdparm_path);
+    cmd.append(std::string(" -iI"));
     for (std::set<std::string>::iterator it = devices.begin(); it != devices.end(); it++) {
         cmd.append(std::string(" "));
         cmd.append(*it);
