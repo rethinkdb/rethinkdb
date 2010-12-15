@@ -10,11 +10,11 @@
 extern perfmon_counter_t pm_active_coroutines;
 
 /* A coroutine represents an action with no return value */
+// Don't instantiate this yourself!
 struct coro_t
     : private cpu_message_t
 {
-    coro_t(void (*fn)(void *arg), void *arg); //Creates and notifies a coroutine
-    explicit coro_t(Coro *underlying) : underlying(underlying), dead(false)
+    coro_t() : underlying(NULL), dead(false), home_cpu(get_cpu_id())
 #ifndef NDEBUG
     , notified(false)
 #endif
@@ -23,16 +23,26 @@ struct coro_t
     static void move_to_cpu(int cpu); //Wait and notify self on the CPU (avoiding race conditions)
     ~coro_t();
     virtual void on_cpu_switch();
-
-public:
-    void *initialize(void (*fn)(void *), void *arg);
+    void start();
+    
+protected:
+    virtual void action() { }
 
 private:
+    explicit coro_t(Coro *underlying) : underlying(underlying), dead(false), home_cpu(get_cpu_id())
+#ifndef NDEBUG
+    , notified(false)
+#endif
+    { }
     void switch_to(coro_t *next);
 
     Coro *underlying;
     bool dead;
     int home_cpu; //not a home_cpu_mixin_t because this is set by initialize
+
+#ifndef NDEBUG
+    bool notified;
+#endif
 
 public:
     static void wait(); //Pauses the current coroutine until it's notified
@@ -46,148 +56,72 @@ private:
     static void run_coroutine(void *);
 
     static __thread coro_t *current_coro;
-    static __thread coro_t *scheduler; //Main execution of program
+    static __thread coro_t *scheduler; //Epoll loop--main execution of program
 
     DISABLE_COPYING(coro_t);
-
-#ifndef NDEBUG
-    bool notified;
-#endif
-//Unary typed coroutines
-    template<typename T>
-    coro_t(void (*fn)(T), T arg) {
-        initialize((void (*)(void *))fn, (void *)arg);
-    }
-
-//Binary typed coroutines
-protected:
-    template<typename A, typename B>
-    struct binary {
-        void (*fn)(A, B);
-        A first;
-        B second;
-        binary(void (*fn)(A, B), A first, B second)
-            : fn(fn), first(first), second(second) { }
-    };
-
-    template<typename A, typename B>
-    static void start_binary(void *arg) {
-        binary<A, B> argument = *(binary<A, B> *)arg;
-        delete (binary<A, B> *)arg;
-        (*argument.fn)(argument.first, argument.second);
-    }
-
-public:
-    template<typename A, typename B>
-    coro_t(void (*fn)(A, B), A first, B second) {
-        initialize(start_binary<A, B>, (void *)new binary<A, B>(fn, first, second));
-    }
-
-//Ternary typed coroutines
-protected:
-    template<typename A, typename B, typename C>
-    struct ternary {
-        void (*fn)(A, B, C);
-        A first;
-        B second;
-        C third;
-        ternary(void (*fn)(A, B, C), A first, B second, C third)
-            : fn(fn), first(first), second(second), third(third) { }
-    };
-
-    template<typename A, typename B, typename C>
-    static void start_ternary(void *arg) {
-        ternary<A, B, C> argument = *(ternary<A, B, C> *)arg;
-        delete (ternary<A, B, C> *)arg;
-        (*argument.fn)(argument.first, argument.second, argument.third);
-    }
-
-public:
-    template<typename A, typename B, typename C>
-    coro_t(void (*fn)(A, B, C), A first, B second, C third) {
-        initialize(start_ternary<A, B, C>, (void *)new ternary<A, B, C>(fn, first, second, third));
-    }
-
-//Quaternary typed coroutines
-protected:
-    template<typename A, typename B, typename C, typename D>
-    struct quaternary {
-        void (*fn)(A, B, C, D);
-        A first;
-        B second;
-        C third;
-        D fourth;
-        quaternary(void (*fn)(A, B, C, D), A first, B second, C third, D fourth)
-            : fn(fn), first(first), second(second), third(third), fourth(fourth) { }
-    };
-
-    template<typename A, typename B, typename C, typename D>
-    static void start_quaternary(void *arg) {
-        quaternary<A, B, C, D> argument = *(quaternary<A, B, C, D> *)arg;
-        delete (quaternary<A, B, C, D> *)arg;
-        (*argument.fn)(argument.first, argument.second, argument.third, argument.fourth);
-    }
-
-public:
-    template<typename A, typename B, typename C, typename D>
-    coro_t(void (*fn)(A, B, C, D), A first, B second, C third, D fourth) {
-        initialize(start_quaternary<A, B, C, D>, (void *)new quaternary<A, B, C, D>(fn, first, second, third, fourth));
-    }
-
-//Fiveary (?) typed coroutines
-protected:
-    template<typename A, typename B, typename C, typename D, typename E>
-    struct fiveary {
-        void (*fn)(A, B, C, D, E);
-        A first;
-        B second;
-        C third;
-        D fourth;
-        E fifth;
-        fiveary(void (*fn)(A, B, C, D, E), A first, B second, C third, D fourth, E fifth)
-            : fn(fn), first(first), second(second), third(third), fourth(fourth), fifth(fifth) { }
-    };
-
-    template<typename A, typename B, typename C, typename D, typename E>
-    static void start_fiveary(void *arg) {
-        fiveary<A, B, C, D, E> argument = *(fiveary<A, B, C, D, E> *)arg;
-        delete (fiveary<A, B, C, D, E> *)arg;
-        (*argument.fn)(argument.first, argument.second, argument.third, argument.fourth, argument.fifth);
-    }
-
-public:
-    template<typename A, typename B, typename C, typename D, typename E>
-    coro_t(void (*fn)(A, B, C, D, E), A first, B second, C third, D fourth, E fifth) {
-        initialize(start_fiveary<A, B, C, D, E>, (void *)new fiveary<A, B, C, D, E>(fn, first, second, third, fourth, fifth));
-    }
-
-protected:
-    coro_t() { }
 };
 
+template<typename callable_t>
+void spawn(callable_t fun) {
+    struct fun_runner_t : public coro_t {
+        callable_t fun;
+        fun_runner_t(callable_t fun) : fun(fun) { }
+        virtual void action() {
+            fun();
+        }
+    } *coroutine = new fun_runner_t(fun);
+    coroutine->start();
+}
+
+template<typename callable_t, typename arg_t>
+void spawn(callable_t fun, arg_t arg) {
+    spawn(boost::bind(fun, arg));
+}
+
+template<typename callable_t, typename arg1_t, typename arg2_t>
+void spawn(callable_t fun, arg1_t arg1, arg2_t arg2) {
+    spawn(boost::bind(fun, arg1, arg2));
+}
+
+template<typename callable_t, typename arg1_t, typename arg2_t, typename arg3_t>
+void spawn(callable_t fun, arg1_t arg1, arg2_t arg2, arg3_t arg3) {
+    spawn(boost::bind(fun, arg1, arg2, arg3));
+}
+
+template<typename callable_t, typename arg1_t, typename arg2_t, typename arg3_t, typename arg4_t>
+void spawn(callable_t fun, arg1_t arg1, arg2_t arg2, arg3_t arg3, arg4_t arg4) {
+    spawn(boost::bind(fun, arg1, arg2, arg3, arg4));
+}
+
+template<typename callable_t, typename arg1_t, typename arg2_t, typename arg3_t, typename arg4_t, typename arg5_t>
+void spawn(callable_t fun, arg1_t arg1, arg2_t arg2, arg3_t arg3, arg4_t arg4, arg5_t arg5) {
+    spawn(boost::bind(fun, arg1, arg2, arg3, arg4, arg5));
+}
+
+/*
+//Are tasks actually useful at all?
 struct task_callback_t {
     virtual void on_task_return(void *value) = 0;
 };
 
-/* A task represents an action with a return value that can be blocked on */
+// A task represents an action with a return value that can be blocked on
 struct task_t {
     task_t(void *(*fn)(void *), void *arg); //Creates and notifies a task to be joined
     void *join(); //Blocks the current coroutine until the task finishes, returning the result
     //Join should only be called once, or you can add a completion callback:
     void callback(task_callback_t *cb);
-    static void run_task(void *(*)(void *), void *, task_t *);
-    void notify();
+    void run_task(void *(*)(void *), void *);
 
 private:
-    coro_t *coroutine;
     bool done;
     void *result;
     std::vector<coro_t*> waiters; //There should always be 0 or 1 waiters
 
-    static void run_callback(task_callback_t *cb, task_t *task);
+    void run_callback(task_callback_t *cb);
 
     DISABLE_COPYING(task_t);
 };
+*/
 
 //TODO: Convenient constructors for task_t, similar to coro_t
 //I'll write this when I have a place to use it; otherwise it'd be annoying to test

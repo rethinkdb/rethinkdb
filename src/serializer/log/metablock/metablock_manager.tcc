@@ -174,7 +174,7 @@ void metablock_manager_t<metablock_t>::start_existing_callback(metablock_manager
 
 template<class metablock_t>
 bool metablock_manager_t<metablock_t>::start_existing(direct_file_t *file, bool *mb_found, metablock_t *mb_out, metablock_read_callback_t *cb) {
-    new coro_t(start_existing_callback, this, file, mb_found, mb_out, cb);
+    spawn(start_existing_callback, this, file, mb_found, mb_out, cb);
     return false;
 }
 template<class metablock_t>
@@ -212,7 +212,7 @@ void metablock_manager_t<metablock_t>::write_metablock_callback(metablock_manage
 
 template<class metablock_t>
 bool metablock_manager_t<metablock_t>::write_metablock(metablock_t *mb, metablock_write_callback_t *cb) {
-    new coro_t(write_metablock_callback, this, mb, cb);
+    spawn(write_metablock_callback, this, mb, cb); //TODO: make a member function rather than static
     return false;
 }
 

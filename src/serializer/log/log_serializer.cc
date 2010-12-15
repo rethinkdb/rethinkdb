@@ -35,7 +35,7 @@ void ls_check_existing(const char *filename, log_serializer_t::check_callback_t 
 }
 
 void log_serializer_t::check_existing(const char *filename, check_callback_t *cb) {
-    new coro_t(ls_check_existing, filename, cb);
+    spawn(ls_check_existing, filename, cb);
 }
 
 /* The process of starting up the serializer is handled by the ls_start_*_fsm_t. This is not
@@ -43,46 +43,46 @@ necessary, because there is only ever one startup process for each serializer; t
 handle its own startup process. It is done this way to make it clear which parts of the serializer
 are involved in startup and which parts are not. */
 
-void log_serializer_t::ls_start_new(log_serializer_t *ser, static_config_t *config, ready_callback_t *ready_cb) {
-    assert(ser->state == log_serializer_t::state_unstarted);
-    ser->state = log_serializer_t::state_starting_up;
-    ser->static_config = *config;
-    ser->dbfile = new direct_file_t(ser->db_path, direct_file_t::mode_read|direct_file_t::mode_write);
-    co_static_header_write(ser->dbfile, &ser->static_config, sizeof(ser->static_config));
+void log_serializer_t::ls_start_new(static_config_t *config, ready_callback_t *ready_cb) {
+    assert(state == log_serializer_t::state_unstarted);
+    state = log_serializer_t::state_starting_up;
+    static_config = *config;
+    dbfile = new direct_file_t(db_path, direct_file_t::mode_read|direct_file_t::mode_write);
+    co_static_header_write(dbfile, &static_config, sizeof(static_config));
     
     log_serializer_t::metablock_t metablock_buffer;
-    ser->extent_manager = new extent_manager_t(ser->dbfile, &ser->static_config, ser->dynamic_config);
-    ser->extent_manager->reserve_extent(0);   /* For static header */
+    extent_manager = new extent_manager_t(dbfile, &static_config, dynamic_config);
+    extent_manager->reserve_extent(0);   /* For static header */
    
-    ser->metablock_manager = new mb_manager_t(ser->extent_manager);
-    ser->lba_index = new lba_index_t(ser->extent_manager);
-    ser->data_block_manager = new data_block_manager_t(ser, ser->dynamic_config, ser->extent_manager, &ser->static_config);
+    metablock_manager = new mb_manager_t(extent_manager);
+    lba_index = new lba_index_t(extent_manager);
+    data_block_manager = new data_block_manager_t(this, dynamic_config, extent_manager, &static_config);
     
-    ser->metablock_manager->start_new(ser->dbfile);
-    ser->lba_index->start_new(ser->dbfile);
-    ser->data_block_manager->start_new(ser->dbfile);
+    metablock_manager->start_new(dbfile);
+    lba_index->start_new(dbfile);
+    data_block_manager->start_new(dbfile);
     
-    ser->extent_manager->start_new();
+    extent_manager->start_new();
 
-    ser->current_transaction_id = FIRST_SER_TRANSACTION_ID;
+    current_transaction_id = FIRST_SER_TRANSACTION_ID;
 
 #ifndef NDEBUG
-    ser->prepare_metablock(&ser->debug_mb_buffer);
+    prepare_metablock(&debug_mb_buffer);
 #endif
-    ser->prepare_metablock(&metablock_buffer);
+    prepare_metablock(&metablock_buffer);
     
-    ser->metablock_manager->co_write_metablock(&metablock_buffer);
+    metablock_manager->co_write_metablock(&metablock_buffer);
     
-    assert(ser->state == log_serializer_t::state_starting_up);
-    ser->state = log_serializer_t::state_ready;
+    assert(state == log_serializer_t::state_starting_up);
+    state = log_serializer_t::state_ready;
 
-    ready_cb->on_serializer_ready(ser);
+    ready_cb->on_serializer_ready(this);
 };
 
 bool log_serializer_t::start_new(static_config_t *config, ready_callback_t *ready_cb) {
     assert(state == state_unstarted);
     assert_cpu();
-    new coro_t(ls_start_new, this, config, ready_cb);
+    spawn(&log_serializer_t::ls_start_new, this, config, ready_cb);
     return false;
 }
 

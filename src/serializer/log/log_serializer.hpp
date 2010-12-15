@@ -86,7 +86,7 @@ public:
     bool start_new(static_config_t *static_config, ready_callback_t *ready_cb);
     bool start_existing(ready_callback_t *ready_cb);
 private:
-    static void ls_start_new(log_serializer_t *, static_config_t *, ready_callback_t *);
+    void ls_start_new(static_config_t *, ready_callback_t *);
 
 public:
     /* Implementation of the serializer_t API */

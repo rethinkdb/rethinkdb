@@ -46,7 +46,9 @@ void coro_t::on_cpu_switch() {
     assert(notified);
     notified = false;
 #endif
+    assert(scheduler == current_coro);
     scheduler->switch_to(this);
+    assert(scheduler == current_coro);
     if (dead) delete this;
 }
 
@@ -56,8 +58,6 @@ void coro_t::suicide() {
 }
 
 struct coro_initialization_data {
-    void *arg;
-    void (*fn)(void *);
     coro_t *coroutine;
     coro_t *parent;
 };
@@ -69,38 +69,22 @@ void coro_t::run_coroutine(void *data) {
 #ifndef NDEBUG
     information.coroutine->notified = false;
 #endif
-    (information.fn)(information.arg);
+    information.coroutine->action();
     coro_t::suicide();
 }
 
-coro_t::coro_t(void (*fn)(void *arg), void *arg) {
-    initialize(fn, arg);
-}
-
-void *coro_t::initialize(void (*fn)(void *arg), void *arg) {
+void coro_t::start() {
     pm_active_coroutines++;
     underlying = Coro_new();
-    dead = false;
-    home_cpu = get_cpu_id();
-#ifndef NDEBUG
-    notified = false;
-#endif
     coro_initialization_data data;
-    data.fn = fn;
-    data.arg = arg;
     coro_t *previous_coro = data.parent = current_coro;
     data.coroutine = current_coro = this;
     Coro_startCoro_(previous_coro->underlying, underlying, &data, run_coroutine);
-    return NULL;
 }
 
 coro_t::~coro_t() {
     pm_active_coroutines--;
     Coro_free(underlying);
-}
-
-void execute(void (*arg)()) {
-    arg();
 }
 
 void coro_t::run() {
@@ -110,6 +94,7 @@ void coro_t::run() {
 }
 
 void coro_t::destroy() {
+    assert(scheduler == current_coro);
     delete scheduler;
     scheduler = current_coro = NULL;
 }
@@ -119,13 +104,13 @@ void coro_t::yield() {
     coro_t::wait();
 }
 
+/*
 void *task_t::join() {
     assert(waiters.size() == 0);
     if (!done) {
         waiters.push_back(coro_t::self());
         while (!done) {
             coro_t::wait();
-            notify();
         }
     }
     assert(done);
@@ -134,34 +119,26 @@ void *task_t::join() {
     return value;
 }
 
-void task_t::run_callback(task_callback_t *cb, task_t *task) {
-    cb->on_task_return(task->join());
+void task_t::run_callback(task_callback_t *cb) {
+    cb->on_task_return(join());
 }
 
 void task_t::callback(task_callback_t *cb) {
-    new coro_t(run_callback, cb, this);
+    spawn(&task_t::run_callback, cb);
 }
 
-void task_t::run_task(void *(*fn)(void *), void *arg, task_t *task) {
-    task->result = fn(arg);
-    task->done = 1;
-    for (std::vector<coro_t*>::iterator iter = task->waiters.begin();
-         iter != task->waiters.end();
+void task_t::run_task(void *(*fn)(void *), void *arg) {
+    result = fn(arg);
+    done = 1;
+    for (std::vector<coro_t*>::iterator iter = waiters.begin();
+         iter != waiters.end();
          iter++) {
         (*iter)->notify();
     }
 }
 
 task_t::task_t(void *(*fn)(void *), void *arg)
-  : coroutine(NULL), done(0), result(NULL), waiters() {
-    coroutine = new coro_t(run_task, fn, arg, this);
+  : done(0), result(NULL), waiters() {
+    spawn(&task_t::run_task, fn, arg);
 }
-
-void task_t::notify() {
-    coroutine->notify();
-}
-
-void run_on_cpu(int cpu, void (*fn)(void *), void *arg) {
-    on_cpu_t foo(cpu);
-    fn(arg);
-}
+*/

@@ -182,5 +182,5 @@ void _btree_get(btree_key *_key, btree_key_value_store_t *store, store_t::get_ca
 }
 
 void btree_get(btree_key *key, btree_key_value_store_t *store, store_t::get_callback_t *cb) {
-    new coro_t(_btree_get, key, store, cb);
+    spawn(_btree_get, key, store, cb);
 }
