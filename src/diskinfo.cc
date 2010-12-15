@@ -89,8 +89,8 @@ void get_partition_map(std::vector<partition_info_t> &partitions) {
             }
 
             partition_info_t *partition = new partition_info_t;
-            partition->nmajor = strtol(tokens[0].c_str(), &endptr, 10);
-            partition->nminor = strtol(tokens[1].c_str(), &endptr, 10);
+            partition->nmajor = strtol(tokens[0].c_str(), &endptr, 16);
+            partition->nminor = strtol(tokens[1].c_str(), &endptr, 16);
             partition->nblocks = strtol(tokens[2].c_str(), &endptr, 10);
             partition->name = tokens[3];
             partition->name.insert(0, std::string("/dev/"));
@@ -146,10 +146,10 @@ void log_disk_info(std::vector<log_serializer_private_dynamic_config_t> &seriali
     size_t nbytes;
 
     if (NULL == buf) {
-        logERR("out of memory\n");
+        crash("out of memory\n");
     }
     if (NULL == (stream = popen(cmd.c_str(), "r"))) {
-        logERR("popen failed\n");
+        crash("popen failed\n");
     }
 
     mlog_start(INF);
@@ -159,8 +159,7 @@ void log_disk_info(std::vector<log_serializer_private_dynamic_config_t> &seriali
     }
     if (-1 == pclose(stream)) {
         mlog_end();
-        logERR("pclose failed\n");
-        mlog_start(INF);
+        crash("pclose failed\n");
     }
     buf[nbytes + 1] = '\0';
     mlogf("%s\n", buf);
