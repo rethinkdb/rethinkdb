@@ -106,32 +106,56 @@ public:
             coro_t::move_to_cpu(home_cpu);
         }
     };
+
+    template<typename var_t>
+    struct cond_var_t {
+    private:
+        bool filled;
+        union {
+            var_t var;
+            void *nothing;
+        };
+        std::vector<coro_t*> waiters;
+        DISABLE_COPYING(cond_var_t);
+    public:
+        cond_var_t() : filled(false), nothing(NULL), waiters() {}
+        var_t join() {
+            if (!filled) {
+                waiters.push_back(self());
+                wait();
+            }
+            assert(filled);
+            return var;
+        }
+        void fill(var_t value) {
+            assert(!filled);
+            var = value;
+            filled = true;
+            for (std::vector<coro_t*>::iterator it = waiters.begin(); it != waiters.end(); ++it) {
+                (*it)->notify();
+            }
+        }
+    };
+
+    struct multi_wait_t {
+    private:
+        coro_t *waiter;
+        unsigned int notifications_left;
+        DISABLE_COPYING(multi_wait_t);
+    public:
+        multi_wait_t(unsigned int notifications_left)
+            : waiter(self()), notifications_left(notifications_left) {
+            assert(notifications_left > 0);
+        }
+        void notify() {
+            notifications_left--;
+            if (notifications_left == 0) {
+                waiter->notify();
+                delete this;
+            }
+        }
+    };
+
 };
-
-/*
-//Are tasks actually useful at all?
-struct task_callback_t {
-    virtual void on_task_return(void *value) = 0;
-};
-
-// A task represents an action with a return value that can be blocked on
-struct task_t {
-    task_t(void *(*fn)(void *), void *arg); //Creates and notifies a task to be joined
-    void *join(); //Blocks the current coroutine until the task finishes, returning the result
-    //Join should only be called once, or you can add a completion callback:
-    void callback(task_callback_t *cb);
-    void run_task(void *(*)(void *), void *);
-
-private:
-    bool done;
-    void *result;
-    std::vector<coro_t*> waiters; //There should always be 0 or 1 waiters
-
-    void run_callback(task_callback_t *cb);
-
-    DISABLE_COPYING(task_t);
-};
-*/
-
 
 #endif // __COROUTINES_HPP__
