@@ -773,7 +773,11 @@ ser_block_id_t log_serializer_t::max_block_id() {
 }
 
 bool log_serializer_t::block_in_use(ser_block_id_t id) {
-    assert(state == state_ready);
+    
+    // State is state_shutting_down if we're called from the data block manager during a GC
+    // during shutdown.
+    assert(state == state_ready || state == state_shutting_down);
+    
     assert_thread();
     
     return !(lba_index->get_block_offset(id).parts.is_delete);
