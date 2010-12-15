@@ -45,7 +45,7 @@ LDFLAGS+=-rdynamic
 else
 # gcse breaks the serializer
 # march=native breaks the serializer (I wonder which specific optimization does)
-CXXFLAGS+=-O3 -fno-gcse -DNDEBUG # -march=native
+CXXFLAGS+=-O3 -fno-gcse -DNDEBUG -fno-strict-aliasing # -march=native
 endif
 
 ifeq ($(OPROFILE),1)
