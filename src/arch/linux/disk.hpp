@@ -40,11 +40,6 @@ public:
     void read_blocking(size_t offset, size_t length, void *buf);
     void write_blocking(size_t offset, size_t length, void *buf);
  
-    //TODO: this should actually be in arch/arch.{hpp,cc}, so it can be
-    //used with the mock IO layer
-    void co_read(size_t offset, size_t length, void *buf);
-    void co_write(size_t offset, size_t length, void *buf);
-    
     ~linux_direct_file_t();
     
 private:

@@ -110,7 +110,7 @@ void metablock_manager_t<metablock_t>::co_start_existing(direct_file_t *file, bo
     
     dbfile->set_size_at_least(metablock_offsets[metablock_offsets.size() - 1] + DEVICE_BLOCK_SIZE);
     
-    dbfile->co_read(head.offset(), DEVICE_BLOCK_SIZE, mb_buffer);
+    co_read(dbfile, head.offset(), DEVICE_BLOCK_SIZE, mb_buffer);
     
     state = state_reading;
     bool done_looking = false;
@@ -160,7 +160,7 @@ void metablock_manager_t<metablock_t>::co_start_existing(direct_file_t *file, bo
             mb_buffer_in_use = false;
             state = state_ready;
         } else {
-            dbfile->co_read(head.offset(), DEVICE_BLOCK_SIZE, mb_buffer);
+            co_read(dbfile, head.offset(), DEVICE_BLOCK_SIZE, mb_buffer);
         }
     }
 }
@@ -196,7 +196,7 @@ void metablock_manager_t<metablock_t>::co_write_metablock(metablock_t *mb) {
     mb_buffer_in_use = true;
     
     state = state_writing;
-    dbfile->co_write(head.offset(), DEVICE_BLOCK_SIZE, mb_buffer);
+    co_write(dbfile, head.offset(), DEVICE_BLOCK_SIZE, mb_buffer);
 
     head++;
 
