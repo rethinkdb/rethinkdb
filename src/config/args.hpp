@@ -48,7 +48,7 @@
 // Max size of log file name
 #define MAX_LOG_FILE_NAME                         1024
 
-// Max length of log message
+// Max length of log message, including terminating \0
 #define MAX_LOG_MSGLEN                            1024
 
 // Queue ID of logging worker
