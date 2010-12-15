@@ -54,6 +54,8 @@ void usage(const char *name) {
            "                        collection.\n");
     printf("      --active-data-extents\n"
            "                        How many places in the file to write to at once.\n");
+    printf("      --disk-info\n"
+           "                        Write pertinent disk information to log file.\n");
     printf("\nOptions for new databases:\n");
     printf("  -s, --slices          Shards total.\n");
     printf("      --block-size      Size of a block, in bytes.\n");
@@ -71,7 +73,8 @@ enum {
     block_size,
     extent_size,
     create_database,
-    force_create
+    force_create,
+    disk_info
 };
 
 cmd_config_t parse_cmd_args(int argc, char *argv[]) {
@@ -85,6 +88,7 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
         int do_help = 0;
         int do_create_database = 0;
         int do_force_create = 0;
+        int do_disk_info = 0;
         struct option long_options[] =
             {
                 {"wait-for-flush",       required_argument, 0, wait_for_flush},
@@ -106,6 +110,7 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
                 {"verbose",              no_argument, (int*)&config.verbose, 1},
                 {"create",               no_argument, &do_create_database, 1},
                 {"force",                no_argument, &do_force_create, 1},
+                {"disk-info",            no_argument, &do_disk_info, 1},
                 {"help",                 no_argument, &do_help, 1},
                 {0, 0, 0, 0}
             };
@@ -119,6 +124,8 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
             c = create_database;
         if (do_force_create)
             c = force_create;
+        if (do_disk_info)
+            c = disk_info;
      
         /* Detect the end of the options. */
         if (c == -1)
@@ -166,6 +173,8 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
                 break;
             case force_create:
                 config.force_create = true; break;
+            case disk_info:
+                config.disk_info = true; break;
             case 'h':
                 usage(argv[0]);
                 break;
@@ -540,6 +549,7 @@ cmd_config_t::cmd_config_t() {
     
     create_store = false;
     force_create = false;
+    disk_info = false;
     shutdown_after_creation = false;
     
     store_static_config.serializer.unsafe_extent_size() = DEFAULT_EXTENT_SIZE;
