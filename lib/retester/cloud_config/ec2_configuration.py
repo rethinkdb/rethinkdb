@@ -29,7 +29,7 @@ cloudtest_lib_dependencies = [("/usr/local/lib/libtcmalloc_minimal.so.0", "libtc
         ("/usr/local/lib/libmemcached.so.6", "libmemcached.so.6"),
         ("/usr/lib/libstdc++.so.6", "libstdc++.so.6"),
         ("/usr/lib/libgccpp.so.1", "libgccpp.so.1")]
-for valgrind_file in ["vgpreload_memcheck-amd64-linux.so", "vgpreload_core-amd64-linux.so", "memcheck-amd64-linux"]:
+for valgrind_file in ["vgpreload_memcheck-amd64-linux.so", "vgpreload_core-amd64-linux.so", "memcheck-amd64-linux", "drd-amd64-linux", "helgrind-amd64-linux"]:
     cloudtest_lib_dependencies.append(("/usr/lib/valgrind/" + valgrind_file, "valgrind/" + valgrind_file))
 cloudtest_lib_dependencies.append((os.path.join (cloud_config_path, "valgrind-default.supp"), "valgrind/default.supp"))
 
