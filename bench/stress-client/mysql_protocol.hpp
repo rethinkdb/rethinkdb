@@ -11,7 +11,7 @@
 using namespace std;
 
 struct mysql_protocol_t : public protocol_t {
-    mysql_protocol_t() : _dbname(NULL), _config(NULL) {
+    mysql_protocol_t(config_t *config) : _dbname(NULL), protocol_t(config) {
         mysql_init(&mysql);
     }
 
@@ -25,9 +25,7 @@ struct mysql_protocol_t : public protocol_t {
         mysql_close(&mysql);
     }
 
-    virtual void connect(config_t *config, server_t *server) {
-        _config = config;
-
+    virtual void connect(server_t *server) {
         // Parse the host string
         char __host[512];
         strcpy(__host, server->host);
@@ -233,7 +231,7 @@ struct mysql_protocol_t : public protocol_t {
             bind[i].length = &keys[i].second;
         }
 
-        MYSQL_STMT *read_stmt = read_stmts[count - _config->batch_factor.min];
+        MYSQL_STMT *read_stmt = read_stmts[count - config->batch_factor.min];
         int res = mysql_stmt_bind_param(read_stmt, bind);
         if(res != 0) {
             fprintf(stderr, "Could not bind read statement\n");
@@ -285,7 +283,7 @@ struct mysql_protocol_t : public protocol_t {
     }
 
     virtual void shared_init() {
-        if(_config->in_file[0] == 0) {
+        if (config->in_file[0] == 0) {
             create_schema();
         }
     }
@@ -336,7 +334,7 @@ private:
                  "CREATE TABLE bench (__key varchar(%d), __value varchar(%d)," \
                  "PRIMARY KEY (__key)) "                             \
                  "ENGINE=InnoDB",
-                 _config->keys.max, _config->values.max);
+                 config->keys.max, config->values.max);
         status = mysql_query(&mysql, buf);
         if(status != 0) {
             fprintf(stderr, "Could not create the table.\n");
@@ -349,7 +347,6 @@ private:
     MYSQL_STMT *remove_stmt, *update_stmt, *insert_stmt;
     vector<MYSQL_STMT*> read_stmts;
     char *_dbname;
-    config_t *_config;
 };
 
 
