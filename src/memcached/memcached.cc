@@ -102,24 +102,30 @@ private:
                     done();
                 } else {
                     buffer_being_sent = -1;
-                    on_net_conn_write();   // Start the data transfer loop
+                    on_net_conn_write_external();   // Start the data transfer loop
                 }
             } else {
                 done();
             }
         }
         
-        void on_net_conn_write() {
+        void on_net_conn_write_external() {
             buffer_being_sent++;
             if (buffer_being_sent == (int)buffer->buffers.size()) {
                 callback->have_copied_value();
                 parent->rh->writef("\r\n");
                 done();
             } else {
-                parent->rh->write_async(
+                /* This is weird and temporary. The eventual goal of this bit of code is to stream
+                the data to the socket directly. However, we don't implement that yet; instead we
+                push the data into the send_buffer_t. The reason why we implement this recursively
+                instead of iteratively is that eventually we would like to call an asynchronous
+                API instead of write. That asynchronous API would call on_net_conn_write_external()
+                when it was done writing that buffer. So that's why this code looks weird. */
+                parent->rh->write(
                     (const char *)buffer->buffers[buffer_being_sent].data,
-                    buffer->buffers[buffer_being_sent].size,
-                    this);
+                    buffer->buffers[buffer_being_sent].size);
+                on_net_conn_write_external();
             }
         }
         
@@ -499,11 +505,14 @@ public:
         if (noreply && !is_streaming) nowait = true;
         else nowait = false;
 
-        if (nowait) rh->read_next_command();
-
         /* Dispatch the request now that we're sure that it parses properly. dispatch() is
         overriden by the subclass to do the appropriate thing. */
         dispatch(storage_command, &key, data, mcflags, exptime, req_cas);
+
+        if (nowait) {
+            rh->read_next_command();
+            rh = NULL;   // We shouldn't touch the request handler after this
+        }
     }
 
     void on_net_conn_close() {
@@ -637,11 +646,14 @@ public:
             noreply = false;
         }
 
-        if (noreply) rh->read_next_command();
-
         /* Dispatch the request */
         if (increment) rh->server->store->incr(key, delta, this);
         else rh->server->store->decr(key, delta, this);
+        
+        if (noreply) {
+            rh->read_next_command();
+            rh = NULL;   /* Since we're a noreply, we shouldn't touch the conn after this */
+        }
     }
 
     ~txt_memcached_incr_decr_request_t() {
@@ -757,10 +769,13 @@ public:
             noreply = false;
         }
 
-        if (noreply) rh->read_next_command();
-
         /* Dispatch the request */
         rh->server->store->delete_key(key, this);
+
+        if (noreply) {
+            rh->read_next_command();
+            rh = NULL;   /* Since we're a noreply, we shouldn't touch the conn after this */
+        }
     }
 
     ~txt_memcached_delete_request_t() {
@@ -873,17 +888,55 @@ private:
     DISABLE_COPYING(enable_gc_request_t);
 };
 
-void txt_memcached_handler_t::
-
 txt_memcached_handler_t::txt_memcached_handler_t(net_conn_t *conn, server_t *server)
-    : conn(conn), server(server)
+    : conn(conn), server(server), send_buffer(conn), have_quit(false)
 {
     read_next_command();
 }
 
+void txt_memcached_handler_t::quit() {
+
+    /* Any pending read or write operations will be interrupted. If the read or write operation
+    is in *_request_t, then it will eventually call read_next_command(), which will see that
+    the net_conn_t is closed and then delete us. If the read or write operation is in us, then
+    we will delete ourself immediately. */
+    on_quit();
+    have_quit = true;   // So on_quit() doesn't get called too many times
+    conn->shutdown();
+}
+
 void txt_memcached_handler_t::read_next_command() {
 
+    /* If this returns true, then the socket died during a read or write done by a *_request_t */
+    if (conn->closed()) {
+        /* have_quit would be true if there was a subcommand reading from the socket and then quit()
+        got called. have_quit would be false if the connection closed for some other reason while
+        there was a subcommand reading from the socket. */
+        if (!have_quit) on_quit();
+        delete this;
+    }
+
+    /* Before we read another command off the socket, we must make sure that there isn't
+    any data in the send buffer that we should flush first. */
+    send_buffer.flush(this);
+}
+
+void txt_memcached_handler_t::on_send_buffer_flush() {
+
+    /* Now that we're sure that the send buffer is empty, start reading a new line off of
+    the socket. */
     conn->read_buffered(this);
+}
+
+void txt_memcached_handler_t::on_send_buffer_socket_closed() {
+
+    /* Socket closed as we were flushing the send buffer. */
+
+    /* Inform conn_handler_t. have_quit would be true if the socket was closed because we
+    called shutdown() on it, in which case we already informed the conn_handler_t. */
+    if (!have_quit) on_quit();
+
+    delete this;
 }
 
 void txt_memcached_handler_t::on_net_conn_read_buffered(const char *buffer, size_t size) {
@@ -973,4 +1026,15 @@ void txt_memcached_handler_t::on_net_conn_read_buffered(const char *buffer, size
         writef("ERROR\r\n");
         read_next_command();
     }
+}
+
+void txt_memcached_handler_t::on_net_conn_close() {
+
+    /* The connection was closed as we were waiting for a complete line to buffer */
+
+    /* Inform conn_handler_t. have_quit would be true if the socket was closed because we
+    called shutdown() on it, in which case we already informed the conn_handler_t. */
+    if (!have_quit) on_quit();
+
+    delete this;
 }
