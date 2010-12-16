@@ -74,18 +74,10 @@ def test(opts, port):
 
     test_values_near_size(2 ** 16, port)
 
-    for i in xrange(73700 - 4096, 73750 - 4096):
-        assert False == test_value_of_size(i, port)
-
-    test_values_near_size(71000, port)
     test_values_near_size(73500, port)
 
-    for i in xrange(73700, 73750):
+    for i in xrange(73700, 73720):
         assert False == test_value_of_size(i, port)
-
-    test_values_near_size(73750, port)
-    test_values_near_size(74000, port)
-    test_values_near_size(75000, port)
 
     test_values_near_size(75000, port)
 

@@ -341,6 +341,7 @@ void conn_fsm_t::do_transition_and_handle_result(event_t *event) {
                 break;
             }
             // fallthrough
+            debugf("fallthrough, dummy_sock_got_quit.\n");  // SRH
         case fsm_quit_connection:
             state_counters[old_state]->end(&start_time);
             delete this;

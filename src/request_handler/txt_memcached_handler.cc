@@ -243,7 +243,7 @@ public:
     
     void data_provider_failed() {
         // read_data() handles printing the error
-        done();
+        delete this;
     }
     
     void done() {
