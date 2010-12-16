@@ -4,6 +4,7 @@
 #include "utils.hpp"
 #include <signal.h>
 #include "request_handler/request_handler.hpp"
+#include <string.h>
 
 /* Global counters for the number of conn_fsms in each state */
 
@@ -86,13 +87,12 @@ conn_fsm_t::result_t conn_fsm_t::fill_buf(void *buf, unsigned int *bytes_filled,
             }
             //break;
         } else {
-            // We must fail gracefully here, probably logging the error.
+            debugf("Connection closed: %s\n", strerror(errno));
 #ifndef NDEBUG
             we_are_closed = true;
 #endif
             if (!quitting) on_quit();
             quitting = true;
-            assert(state == fsm_outstanding_data || state == fsm_socket_connected);
             return fsm_quit_connection;
         }
     } else if (sz > 0) {
