@@ -43,7 +43,7 @@ def test_value_of_size(size, port):
         too_big = False
         print "ok."
 
-    elif msg.startswith("CLIENT_ERROR"):
+    elif msg.startswith("SERVER_ERROR object too large for cache"):
         print "too big."
         too_big = True
 
@@ -95,9 +95,11 @@ def test(opts, port):
 
     test_values_near_size(100000, port)
 
-
-    # threshold for max legal value size
+    # test values that are close to the limit
     test_values_near_size(1024 * 1024, port)
+
+    # test values that are way too big
+    test_values_near_size(1024 * 1024 + 100, port)
 
 if __name__ == "__main__":
     op = make_option_parser()
