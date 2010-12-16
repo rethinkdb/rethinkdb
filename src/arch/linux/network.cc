@@ -79,6 +79,7 @@ void linux_net_conn_t::try_to_read_external_buf() {
             } else if (errno == ECONNRESET || errno == ENOTCONN) {
                 // Socket was closed
                 on_shutdown();
+                return;
             } else {
                 crash("Could not read from socket: %s", strerror(errno));
             }
@@ -86,6 +87,7 @@ void linux_net_conn_t::try_to_read_external_buf() {
         } else if (res == 0) {
             // Socket was closed
             on_shutdown();
+            return;
 
         } else {
             external_read_size -= res;
@@ -325,6 +327,7 @@ linux_net_conn_t::~linux_net_conn_t() {
 }
 
 void linux_net_conn_t::on_event(int events) {
+
     assert(sock != INVALID_FD);
     assert(!was_shut_down);
 
