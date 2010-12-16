@@ -81,7 +81,7 @@ void log_serializer_t::ls_start_new(static_config_t *config, ready_callback_t *r
 
 bool log_serializer_t::start_new(static_config_t *config, ready_callback_t *ready_cb) {
     assert(state == state_unstarted);
-    assert_cpu();
+    assert_thread();
     coro_t::spawn(&log_serializer_t::ls_start_new, this, config, ready_cb);
     return false;
 }
@@ -238,14 +238,14 @@ struct ls_start_existing_fsm_t :
 
 bool log_serializer_t::start_existing(ready_callback_t *ready_cb) {
     assert(state == state_unstarted);
-    assert_cpu();
+    assert_thread();
     
     ls_start_existing_fsm_t *s = new ls_start_existing_fsm_t(this);
     return s->run(ready_cb);
 }
 
 void *log_serializer_t::malloc() {
-    assert(state == state_ready);
+    assert(state == state_ready || state == state_shutting_down);
     
     // TODO: we shouldn't use malloc_aligned here, we should use our
     // custom allocation system instead (and use corresponding
@@ -258,7 +258,7 @@ void *log_serializer_t::malloc() {
 }
 
 void *log_serializer_t::clone(void *_data) {
-    assert(state == state_ready);
+    assert(state == state_ready || state == state_shutting_down);
     
     // TODO: we shouldn't use malloc_aligned here, we should use our
     // custom allocation system instead (and use corresponding
@@ -272,7 +272,7 @@ void *log_serializer_t::clone(void *_data) {
 }
 
 void log_serializer_t::free(void *ptr) {
-    assert(state == state_ready);
+    assert(state == state_ready || state == state_shutting_down);
     
     char *data = (char *)ptr;
     data -= sizeof(buf_data_t);
@@ -601,7 +601,7 @@ bool log_serializer_t::do_write(write_t *writes, int num_writes, write_txn_callb
     // we're shutting down). That is ok, which is why we don't assert
     // on state here.
     
-    assert_cpu();
+    assert_thread();
 
 #ifndef NDEBUG
     {
@@ -693,7 +693,7 @@ struct ls_read_fsm_t :
 
 bool log_serializer_t::do_read(ser_block_id_t block_id, void *buf, read_callback_t *callback) {
     assert(state == state_ready);
-    assert_cpu();
+    assert_thread();
     
     ls_read_fsm_t *fsm = new ls_read_fsm_t(this, block_id, buf);
     return fsm->run(callback);
@@ -705,14 +705,18 @@ block_size_t log_serializer_t::get_block_size() {
 
 ser_block_id_t log_serializer_t::max_block_id() {
     assert(state == state_ready);
-    assert_cpu();
+    assert_thread();
     
     return lba_index->max_block_id();
 }
 
 bool log_serializer_t::block_in_use(ser_block_id_t id) {
-    assert(state == state_ready);
-    assert_cpu();
+    
+    // State is state_shutting_down if we're called from the data block manager during a GC
+    // during shutdown.
+    assert(state == state_ready || state == state_shutting_down);
+    
+    assert_thread();
     
     return !(lba_index->get_block_offset(id).parts.is_delete);
 }
@@ -724,7 +728,7 @@ repli_timestamp log_serializer_t::get_recency(ser_block_id_t id) {
 bool log_serializer_t::shutdown(shutdown_callback_t *cb) {
     assert(cb);
     assert(state == state_ready);
-    assert_cpu();
+    assert_thread();
     shutdown_callback = cb;
 
     shutdown_state = shutdown_begin;
@@ -734,7 +738,7 @@ bool log_serializer_t::shutdown(shutdown_callback_t *cb) {
 }
 
 bool log_serializer_t::next_shutdown_step() {
-    assert_cpu();
+    assert_thread();
     
     if(shutdown_state == shutdown_begin) {
         // First shutdown step

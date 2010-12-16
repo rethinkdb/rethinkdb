@@ -13,13 +13,15 @@ public:
     load_t()
         : deletes(1), updates(4),
           inserts(8), reads(64),
-          appends(0), prepends(0)
+          appends(0), prepends(0),
+          verifies(0)
         {}
 
-    load_t(int d, int u, int i, int r, int a, int p)
+    load_t(int d, int u, int i, int r, int a, int p, int v)
         : deletes(d), updates(u),
           inserts(i), reads(r),
-          appends(a), prepends(p)
+          appends(a), prepends(p),
+          verifies(v)
         {}
 
     enum load_op_t {

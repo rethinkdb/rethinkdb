@@ -70,10 +70,10 @@ void co_btree_get(btree_key *_key, btree_key_value_store_t *store, store_t::get_
     transaction_t *transaction = NULL;
     btree_slice_t *slice = store->slice_for_key(&key);
     cache_t *cache = &slice->cache;
-    int home_cpu = get_cpu_id();
+    int home_thread = get_thread_id();
 
     {
-        coro_t::move_to_cpu(slice->home_cpu);
+        coro_t::move_to_thread(slice->home_thread);
         //Acquire the superblock
         buf_t *buf, *last_buf;
         transaction = cache->begin_transaction(rwi_read, NULL);
@@ -91,7 +91,7 @@ void co_btree_get(btree_key *_key, btree_key_value_store_t *store, store_t::get_
             // Commit transaction now because we won't be returning to this core
             bool committed __attribute__((unused)) = transaction->commit(NULL);
             assert(committed);   // Read-only transactions complete immediately
-            coro_t::move_to_cpu(home_cpu);
+            coro_t::move_to_thread(home_thread);
             cb->not_found();
             return;
         }
@@ -138,7 +138,7 @@ void co_btree_get(btree_key *_key, btree_key_value_store_t *store, store_t::get_
             // Commit transaction now because we won't be returning to this core
             bool committed __attribute__((unused)) = transaction->commit(NULL);
             assert(committed);   // Read-only transactions complete immediately
-            coro_t::move_to_cpu(home_cpu);
+            coro_t::move_to_thread(home_thread);
             cb->not_found();
             return;
         } else if (value.is_large()) {
@@ -158,10 +158,10 @@ void co_btree_get(btree_key *_key, btree_key_value_store_t *store, store_t::get_
                 const void *data = large_value->get_segment(i, &size);
                 value_buffers.add_buffer(size, data);
             }
-            coro_t::move_to_cpu(home_cpu);
+            coro_t::move_to_thread(home_thread);
             co_value(cb, &value_buffers, value.mcflags(), 0);
             {
-                coro_t::on_cpu_t mover(slice->home_cpu);
+                coro_t::on_thread_t mover(slice->home_thread);
                 large_value->release();
                 delete large_value;
                 bool committed __attribute__((unused)) = transaction->commit(NULL);
@@ -174,7 +174,7 @@ void co_btree_get(btree_key *_key, btree_key_value_store_t *store, store_t::get_
             
             const_buffer_group_t value_buffers;
             value_buffers.add_buffer(value.value_size(), value.value());
-            coro_t::move_to_cpu(home_cpu);
+            coro_t::move_to_thread(home_thread);
             co_value(cb, &value_buffers, value.mcflags(), 0);
         }
 

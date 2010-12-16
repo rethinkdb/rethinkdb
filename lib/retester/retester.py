@@ -269,7 +269,18 @@ def do_test(cmd, cmd_args={}, cmd_format="gnu", repeat=1, timeout=60):
         
     results = []
     for i in xrange(repeat):
-        results.append(run_test(command, timeout = timeout))
+        result = run_test(command, timeout = timeout)
+        result_str = result.result
+        if repeat > 1:
+            print "Run %d " % i,
+        else:
+            result_str = result_str.capitalize()
+        if result.result == "pass":
+            print "\x1B[32m",
+        else:
+            print "\x1B[31m",
+        print "%sed after %f seconds\x1B[0m" % (result_str, result.running_time)
+        results.append(result)
         
     reports.append((command, results))
 

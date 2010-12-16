@@ -13,7 +13,7 @@ btree_replicant_t is created. When you call btree_key_value_store_t::stop_replic
 it is destroyed. */
 
 struct btree_replicant_t :
-    public home_cpu_mixin_t
+    public home_thread_mixin_t
 {
     store_t::replicant_t *callback;
     btree_key_value_store_t *store;

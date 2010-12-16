@@ -48,7 +48,7 @@
 // Max size of log file name
 #define MAX_LOG_FILE_NAME                         1024
 
-// Max length of log message
+// Max length of log message, including terminating \0
 #define MAX_LOG_MSGLEN                            1024
 
 // Queue ID of logging worker
@@ -61,9 +61,9 @@
 // TODO: make this dynamic and get rid of this parameter
 #define MAX_OPS_IN_REQUEST                        16
 
-// Maximum number of CPUs we support
+// Maximum number of threads we support
 // TODO: make this dynamic where possible
-#define MAX_CPUS                                  128
+#define MAX_THREADS                                  128
 
 // Maximum slices total
 #define MAX_SLICES                                128

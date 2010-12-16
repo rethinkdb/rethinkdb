@@ -9,8 +9,8 @@
 struct replication_master_t;
 
 struct replication_message_t :
-    public home_cpu_mixin_t,
-    public cpu_message_t,
+    public home_thread_mixin_t,
+    public thread_message_t,
     public lock_available_callback_t,
     public net_conn_write_external_callback_t
 {
@@ -37,7 +37,7 @@ struct replication_message_t :
     int which_buffer_of_group;
 
     void on_lock_available();
-    void on_cpu_switch();
+    void on_thread_switch();
     void on_net_conn_write_external();
     void on_net_conn_close();
     void done_sending();
@@ -46,7 +46,7 @@ struct replication_message_t :
 struct replication_master_t :
     public store_t::replicant_t,
     public conn_handler_t,
-    public home_cpu_mixin_t
+    public home_thread_mixin_t
 {
     replication_master_t(store_t *s, net_conn_t *c);
 

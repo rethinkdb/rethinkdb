@@ -19,19 +19,19 @@
 
 using namespace std;
 
-protocol_t* make_protocol(protocol_enum_t protocol) {
+protocol_t *make_protocol(protocol_enum_t protocol, config_t *config) {
     switch (protocol) {
         case protocol_mysql:
-            return (protocol_t*) new mysql_protocol_t();
+            return (protocol_t*) new mysql_protocol_t(config);
             break;
         case protocol_sockmemcached:
-            return (protocol_t*) new memcached_sock_protocol_t();
+            return (protocol_t*) new memcached_sock_protocol_t(config);
             break;
         case protocol_libmemcached:
-            return (protocol_t*) new memcached_protocol_t();
+            return (protocol_t*) new memcached_protocol_t(config);
             break;
         case protocol_sqlite:
-            return (protocol_t*) new sqlite_protocol_t();
+            return (protocol_t*) new sqlite_protocol_t(config);
             break;
         default:
             fprintf(stderr, "Unknown protocol\n");
@@ -57,17 +57,17 @@ int main(int argc, char *argv[])
 
     // Gotta run the shared init for each server.
     for (int i = 0; i < config.servers.size(); i++) {
-        protocol_t *p = make_protocol(config.servers[i].protocol);
-        p->connect(&config, &config.servers[i]);
+        protocol_t *p = make_protocol(config.servers[i].protocol, &config);
+        p->connect(&config.servers[i]);
         p->shared_init();
         delete p;
     }
 
     for (int i = 0; i < config.clients; i++) {
         if (config.db_file[0]) {
-            sqlite_protocol_t *sqlite = (sqlite_protocol_t *) make_protocol(protocol_sqlite);
+            sqlite_protocol_t *sqlite = new sqlite_protocol_t(&config);
             sqlite->set_id(i);
-            sqlite->connect(&config, &config.servers[0]);
+            sqlite->connect(&config.servers[0]);
             sqlite->shared_init();
             delete sqlite;
         };
@@ -91,12 +91,12 @@ int main(int argc, char *argv[])
 
         // Create and connect all protocols first to avoid weird TCP
         // timeout bugs
-        client_data[i].proto = (*make_protocol)(client_data[i].server->protocol);
-        client_data[i].proto->connect(&config, client_data[i].server);
+        client_data[i].proto = (*make_protocol)(client_data[i].server->protocol, &config);
+        client_data[i].proto->connect(client_data[i].server);
         if (config.db_file[0]) {
-            client_data[i].sqlite = (sqlite_protocol_t*)(*make_protocol)(protocol_sqlite);
+            client_data[i].sqlite = new sqlite_protocol_t(&config);
             client_data[i].sqlite->set_id(i);
-            client_data[i].sqlite->connect(&config, client_data[i].server);
+            client_data[i].sqlite->connect(client_data[i].server);
         } else {
             client_data[i].sqlite = NULL;
         }
@@ -107,7 +107,7 @@ int main(int argc, char *argv[])
         FILE *in_file = fopen(config.in_file, "r");
 
         if(in_file == NULL) {
-            fprintf(stderr, "Could not open output key file");
+            fprintf(stderr, "Could not open output key file\n");
             exit(-1);
         }
 
@@ -128,7 +128,7 @@ int main(int argc, char *argv[])
     for(int i = 0; i < config.clients; i++) {
         int res = pthread_create(&threads[i], NULL, run_client, &client_data[i]);
         if(res != 0) {
-            fprintf(stderr, "Can't create thread");
+            fprintf(stderr, "Can't create thread\n");
             exit(-1);
         }
     }
@@ -137,7 +137,7 @@ int main(int argc, char *argv[])
     for(int i = 0; i < config.clients; i++) {
         res = pthread_join(threads[i], NULL);
         if(res != 0) {
-            fprintf(stderr, "Can't join on the thread");
+            fprintf(stderr, "Can't join on the thread\n");
             exit(-1);
         }
     }

@@ -55,7 +55,7 @@ void usage(const char *name) {
     printf("\t-f, --db-file\n\t\tIf present drop kv pairs into sqlite and verify correctness on read.\n");
 
     printf("\nAdditional information:\n");
-    printf("\t\tDISTR format describes a range and can be specified in as MIN-MAX.\n\n");
+    printf("\t\tDISTR format describes a range and can be specified in as NUM or MIN-MAX.\n\n");
     printf("\t\tPossible protocols are libmemcached, sockmemcached, and mysql. Protocol\n");
     printf("\t\tis optional; if not specified, will default to [");
     _d_server.print_protocol();

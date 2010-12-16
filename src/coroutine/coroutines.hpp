@@ -11,7 +11,7 @@ extern perfmon_counter_t pm_active_coroutines;
 
 /* A coroutine represents an action with no return value */
 struct coro_t
-    : private cpu_message_t
+    : private thread_message_t
 {
 public:
     static void wait(); //Pauses the current coroutine until it's notified
@@ -19,22 +19,22 @@ public:
     static void run();
     static void destroy();
     void notify(); //Wakes up the coroutine, allowing the scheduler to trigger it to continue
-    static void move_to_cpu(int cpu); //Wait and notify self on the CPU (avoiding race conditions)
+    static void move_to_thread(int thread); //Wait and notify self on the CPU (avoiding race conditions)
 
 private:
     ~coro_t();
-    virtual void on_cpu_switch();
+    virtual void on_thread_switch();
     void start();
     
     virtual void action() { }
 
-    coro_t() : underlying(NULL), dead(false), home_cpu(get_cpu_id())
+    coro_t() : underlying(NULL), dead(false), home_thread(get_thread_id())
 #ifndef NDEBUG
     , notified(false)
 #endif
     { }
 
-    explicit coro_t(Coro *underlying) : underlying(underlying), dead(false), home_cpu(get_cpu_id())
+    explicit coro_t(Coro *underlying) : underlying(underlying), dead(false), home_thread(get_thread_id())
 #ifndef NDEBUG
     , notified(false)
 #endif
@@ -44,7 +44,7 @@ private:
 
     Coro *underlying;
     bool dead;
-    int home_cpu; //not a home_cpu_mixin_t because this is set by initialize
+    int home_thread; //not a home_thread_mixin_t because this is set by initialize
 
 #ifndef NDEBUG
     bool notified;
@@ -96,14 +96,14 @@ public:
         spawn(boost::bind(fun, arg1, arg2, arg3, arg4, arg5));
     }
 
-    struct on_cpu_t {
-        int home_cpu;
-        on_cpu_t(int cpu) {
-            home_cpu = get_cpu_id();
-            coro_t::move_to_cpu(cpu);
+    struct on_thread_t {
+        int home_thread;
+        on_thread_t(int thread) {
+            home_thread = get_thread_id();
+            coro_t::move_to_thread(thread);
         }
-        ~on_cpu_t() {
-            coro_t::move_to_cpu(home_cpu);
+        ~on_thread_t() {
+            coro_t::move_to_thread(home_thread);
         }
     };
 

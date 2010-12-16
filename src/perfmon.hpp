@@ -71,7 +71,7 @@ class perfmon_counter_t :
     public perfmon_t
 {
     friend class perfmon_counter_step_t;
-    int64_t values[MAX_CPUS];
+    int64_t values[MAX_THREADS];
     int64_t &get();
     std::string name;
 public:
@@ -104,7 +104,7 @@ private:
         ticks_t timestamp;
         sample_t(value_t v, time_t t) : value(v), timestamp(t) { }
     };
-    std::deque<sample_t> values[MAX_CPUS];
+    std::deque<sample_t> values[MAX_THREADS];
     void expire();
     std::string name;
     ticks_t length;

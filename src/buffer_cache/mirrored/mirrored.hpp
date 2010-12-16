@@ -192,7 +192,7 @@ private:
 struct mc_cache_t :
     private free_list_t::ready_callback_t,
     private writeback_t::sync_callback_t,
-    public home_cpu_mixin_t
+    public home_thread_mixin_t
 {
     friend class load_buf_fsm_t;
     friend class mc_buf_t;

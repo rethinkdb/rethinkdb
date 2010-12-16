@@ -44,31 +44,31 @@ struct four_arg_method_caller_t {
 };
 
 /* Functions to do something on another core in a way that is more convenient than
-continue_on_cpu() is. */
+continue_on_thread() is. */
 
 template<class callable_t>
-struct cpu_doer_t :
-    public cpu_message_t,
-    public home_cpu_mixin_t
+struct thread_doer_t :
+    public thread_message_t,
+    public home_thread_mixin_t
 {
     callable_t callable;
-    int cpu;
+    int thread;
     enum state_t {
         state_go_to_core,
         state_go_home
     } state;
     
-    cpu_doer_t(const callable_t &callable, int cpu)
-        : callable(callable), cpu(cpu), state(state_go_to_core) { }
+    thread_doer_t(const callable_t &callable, int thread)
+        : callable(callable), thread(thread), state(state_go_to_core) { }
     
     bool run() {
         state = state_go_to_core;
-        if (continue_on_cpu(cpu, this)) return do_perform_job();
+        if (continue_on_thread(thread, this)) return do_perform_job();
         else return false;
     }
     
     bool do_perform_job() {
-        assert(cpu == get_cpu_id());
+        assert(thread == get_thread_id());
         bool done = callable();
         do_return_home();
         return done;
@@ -76,10 +76,10 @@ struct cpu_doer_t :
     
     void do_return_home() {
         state = state_go_home;
-        if (continue_on_cpu(home_cpu, this)) delete this;
+        if (continue_on_thread(home_thread, this)) delete this;
     }
     
-    void on_cpu_switch() {
+    void on_thread_switch() {
         switch (state) {
             case state_go_to_core:
                 do_perform_job();
@@ -94,39 +94,39 @@ struct cpu_doer_t :
 };
 
 template<class callable_t>
-bool do_on_cpu(int cpu, const callable_t &callable) {
-    cpu_doer_t<callable_t> *fsm = new cpu_doer_t<callable_t>(callable, cpu);
+bool do_on_thread(int thread, const callable_t &callable) {
+    thread_doer_t<callable_t> *fsm = new thread_doer_t<callable_t>(callable, thread);
     return fsm->run();
 }
 template<class obj_t>
-bool do_on_cpu(int cpu, obj_t *obj, bool (obj_t::*on_other_core)()) {
-    return do_on_cpu(cpu, no_arg_method_caller_t<obj_t, bool>(obj, on_other_core));
+bool do_on_thread(int thread, obj_t *obj, bool (obj_t::*on_other_core)()) {
+    return do_on_thread(thread, no_arg_method_caller_t<obj_t, bool>(obj, on_other_core));
 }
 template<class obj_t, class arg1_t>
-bool do_on_cpu(int cpu, obj_t *obj, bool (obj_t::*on_other_core)(arg1_t), arg1_t arg1) {
-    return do_on_cpu(cpu, one_arg_method_caller_t<obj_t, arg1_t, bool>(obj, on_other_core, arg1));
+bool do_on_thread(int thread, obj_t *obj, bool (obj_t::*on_other_core)(arg1_t), arg1_t arg1) {
+    return do_on_thread(thread, one_arg_method_caller_t<obj_t, arg1_t, bool>(obj, on_other_core, arg1));
 }
 template<class obj_t, class arg1_t, class arg2_t>
-bool do_on_cpu(int cpu, obj_t *obj, bool (obj_t::*on_other_core)(arg1_t, arg2_t), arg1_t arg1, arg2_t arg2) {
-    return do_on_cpu(cpu, two_arg_method_caller_t<obj_t, arg1_t, arg2_t, bool>(obj, on_other_core, arg1, arg2));
+bool do_on_thread(int thread, obj_t *obj, bool (obj_t::*on_other_core)(arg1_t, arg2_t), arg1_t arg1, arg2_t arg2) {
+    return do_on_thread(thread, two_arg_method_caller_t<obj_t, arg1_t, arg2_t, bool>(obj, on_other_core, arg1, arg2));
 }
 template<class obj_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t>
-bool do_on_cpu(int cpu, obj_t *obj, bool (obj_t::*on_other_core)(arg1_t, arg2_t, arg3_t, arg4_t), arg1_t arg1, arg2_t arg2, arg3_t arg3, arg4_t arg4) {
-    return do_on_cpu(cpu, four_arg_method_caller_t<obj_t, arg1_t, arg2_t, arg3_t, arg4_t, bool>(obj, on_other_core, arg1, arg2, arg3, arg4));
+bool do_on_thread(int thread, obj_t *obj, bool (obj_t::*on_other_core)(arg1_t, arg2_t, arg3_t, arg4_t), arg1_t arg1, arg2_t arg2, arg3_t arg3, arg4_t arg4) {
+    return do_on_thread(thread, four_arg_method_caller_t<obj_t, arg1_t, arg2_t, arg3_t, arg4_t, bool>(obj, on_other_core, arg1, arg2, arg3, arg4));
 }
 
 template<class callable_t>
 struct later_doer_t :
-    public cpu_message_t
+    public thread_message_t
 {
     callable_t callable;
     
     later_doer_t(const callable_t &callable)
         : callable(callable) {
-        call_later_on_this_cpu(this);
+        call_later_on_this_thread(this);
     }
     
-    void on_cpu_switch() {
+    void on_thread_switch() {
         callable();
         delete this;
     }

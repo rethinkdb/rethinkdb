@@ -16,21 +16,21 @@ struct log_controller_t;
 static __thread log_controller_t *log_controller = NULL;   // Non-NULL if we are routing log messages
 
 struct log_controller_t :
-    public home_cpu_mixin_t
+    public home_thread_mixin_t
 {
     /* Startup process */
     
     log_controller_t() {
         shutting_down = false;
-        for (int i = 0; i < get_num_cpus(); i++) {
-            do_on_cpu(i, this, &log_controller_t::install);
+        for (int i = 0; i < get_num_threads(); i++) {
+            do_on_thread(i, this, &log_controller_t::install);
         }
     }
     
     bool install() {
         assert(log_controller == NULL);
         log_controller = this;
-        messages_out[get_cpu_id()] = 0;
+        messages_out[get_thread_id()] = 0;
         return true;
     }
     
@@ -38,23 +38,23 @@ struct log_controller_t :
     
     bool shutting_down;
     int num_threads_up;
-    int messages_out[MAX_CPUS];
+    int messages_out[MAX_THREADS];
     logger_shutdown_callback_t *shutdown_callback;
     
     void shutdown(logger_shutdown_callback_t *cb) {
         shutting_down = true;
-        num_threads_up = get_num_cpus();
+        num_threads_up = get_num_threads();
         shutdown_callback = cb;
-        for (int i = 0; i < get_num_cpus(); i++) {
-            do_on_cpu(i, this, &log_controller_t::uninstall);
+        for (int i = 0; i < get_num_threads(); i++) {
+            do_on_thread(i, this, &log_controller_t::uninstall);
         }
     }
     
     bool uninstall() {
         assert(log_controller == this);
         log_controller = NULL;
-        if (messages_out[get_cpu_id()] == 0)
-            do_on_cpu(home_cpu, this, &log_controller_t::have_uninstalled);
+        if (messages_out[get_thread_id()] == 0)
+            do_on_thread(home_thread, this, &log_controller_t::have_uninstalled);
         return true;
     }
     
@@ -71,21 +71,21 @@ struct log_controller_t :
     
     void write(const char *ptr, size_t length) {
         char *msg = strndup(ptr, length);
-        messages_out[get_cpu_id()]++;
-        do_on_cpu(home_cpu, this, &log_controller_t::do_write, msg, get_cpu_id());
+        messages_out[get_thread_id()]++;
+        do_on_thread(home_thread, this, &log_controller_t::do_write, msg, get_thread_id());
     }
     
-    bool do_write(char *msg, int return_cpu) {
+    bool do_write(char *msg, int return_thread) {
         fprintf(log_file, "%s", msg);
-        do_on_cpu(return_cpu, this, &log_controller_t::done, msg);
+        do_on_thread(return_thread, this, &log_controller_t::done, msg);
         return true;
     }
     
     bool done(char *msg) {
         free(msg);
-        messages_out[get_cpu_id()]--;
-        if (shutting_down && messages_out[get_cpu_id()] == 0) {
-            do_on_cpu(home_cpu, this, &log_controller_t::have_uninstalled);
+        messages_out[get_thread_id()]--;
+        if (shutting_down && messages_out[get_thread_id()] == 0) {
+            do_on_thread(home_thread, this, &log_controller_t::have_uninstalled);
         }
         return true;
     }
@@ -111,12 +111,30 @@ static __thread bool logging = false;
 static __thread int message_len;
 static __thread char message[MAX_LOG_MSGLEN];
 
+void mlog_flush();
+
 static void vmlogf(const char *format, va_list arg) {
     assert(logging);
-    message_len += vsnprintf(
-        message + message_len,
-        (size_t) MAX_LOG_MSGLEN - message_len,
-        format, arg);
+    /* If the incoming message will overflow our buffer, we need to flush
+     * the message. Unfortunately we don't know whether it will until we
+     * run vsnprintf, so we have to copy the argument list no matter what.*/
+    char *buf = (char *) calloc(MAX_LOG_MSGLEN, sizeof(char));
+
+    size_t max_bytes = MAX_LOG_MSGLEN - message_len;
+    size_t nbytes = vsnprintf(buf, MAX_LOG_MSGLEN, format, arg);
+
+    assert(nbytes < MAX_LOG_MSGLEN); // don't send messages > MAX_LOG_MSGLEN
+
+    if (nbytes < max_bytes) {
+        strncpy(message + message_len, buf, nbytes);
+    }
+    else {
+        mlog_flush();
+        message_len = 0;
+        strncpy(message, buf, nbytes);
+    }
+    message_len += nbytes;
+    free(buf);
 }
 
 void _logf(const char *src_file, int src_line, log_level_t level, const char *format, ...) {
@@ -149,7 +167,7 @@ void _mlog_start(const char *src_file, int src_line, log_level_t level) {
     /* If the log controller hasn't been started yet, then assume the thread pool hasn't been
     started either, so don't write which core the message came from. */
     
-    if (log_controller) mlogf("%s (Q%d, %s:%d): ", level_str, get_cpu_id(), src_file, src_line);
+    if (log_controller) mlogf("%s (Q%d, %s:%d): ", level_str, get_thread_id(), src_file, src_line);
     else mlogf("%s (%s:%d): ", level_str, src_file, src_line);
 }
 
@@ -160,10 +178,7 @@ void mlogf(const char *format, ...) {
     va_end(arg);
 }
 
-void mlog_end() {
-    assert(logging);
-    logging = false;
-    
+void mlog_flush() {
     if (log_controller) {
         // Send the message to the log controller to be routed to the appropriate thread
         log_controller->write(message, message_len);
@@ -171,4 +186,11 @@ void mlog_end() {
         // Write directly to the log file from whatever thread we're on
         fwrite(message, 1, message_len, log_file);
     }
+}
+
+void mlog_end() {
+    assert(logging);
+    logging = false;
+
+    mlog_flush();
 }

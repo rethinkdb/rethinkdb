@@ -43,9 +43,9 @@ CXXFLAGS+=-g -O0
 # -rdynamic is necessary so that backtrace_symbols() works properly
 LDFLAGS+=-rdynamic
 else
-# gcse breaks the serializer
-# march=native breaks the serializer (I wonder which specific optimization does)
-CXXFLAGS+=-O3 -fno-gcse -DNDEBUG -fno-strict-aliasing # -march=native
+# use -fno-strict-aliasing to not break things
+# march=native used to break the serializer
+CXXFLAGS+=-O3 -DNDEBUG -fno-strict-aliasing # -match=native
 endif
 
 ifeq ($(OPROFILE),1)
@@ -60,7 +60,7 @@ ifeq ($(SEMANTIC_SERIALIZER_CHECK),1)
 CXXFLAGS+=-DSEMANTIC_SERIALIZER_CHECK
 endif
 
-ifeq ($(FAST_PERFMON), 1)
+ifneq ($(FAST_PERFMON), 0)
 CXXFLAGS+=-DFAST_PERFMON
 endif
 
@@ -166,14 +166,14 @@ $(BUILD_DIR)/$(GDB_FUNCTIONS_NAME):
 # like the similarly-named targets except that they don't remove old data files.
 
 run: $(BUILD_DIR)/$(SERVER_EXEC_NAME)
-	$(QUIET) rm -f rethinkdb_data
+	$(QUIET) rm -f rethinkdb_data*
 	$(BUILD_DIR)/$(SERVER_EXEC_NAME) -p $(RUN_PORT) $(RUN_FLAGS)
 
 rerun: $(BUILD_DIR)/$(SERVER_EXEC_NAME)
 	$(BUILD_DIR)/$(SERVER_EXEC_NAME) -p $(RUN_PORT) $(RUN_FLAGS)
 
 gdb: $(BUILD_DIR)/$(SERVER_EXEC_NAME)
-	$(QUIET) rm -f rethinkdb_data
+	$(QUIET) rm -f rethinkdb_data*
 	gdb --args $(BUILD_DIR)/$(SERVER_EXEC_NAME) -p $(RUN_PORT) $(RUN_FLAGS)
 
 regdb: $(BUILD_DIR)/$(SERVER_EXEC_NAME)
@@ -187,7 +187,7 @@ ifeq ($(VALGRIND),0)
 	$(error Using the 'valgrind' target doesn't automatically set VALGRIND to 1. Try again with \
 'make valgrind VALGRIND=1')
 endif
-	$(QUIET) rm -f rethinkdb_data
+	$(QUIET) rm -f rethinkdb_data*
 	valgrind $(VALGRIND_FLAGS) $(BUILD_DIR)/$(SERVER_EXEC_NAME) -p $(RUN_PORT) $(RUN_FLAGS)
 
 revalgrind: $(BUILD_DIR)/$(SERVER_EXEC_NAME)
@@ -202,7 +202,7 @@ ifeq ($(CALLGRIND),0)
 	$(error Using the 'callgrind' target doesn't automatically set CALLGRIND to 1. Try again with \
 'make calgrind CALLGRIND=1')
 endif
-	$(QUIET) rm -f rethinkdb_data
+	$(QUIET) rm -f rethinkdb_data*
 	valgrind --tool=callgrind $(CALLGRIND_FLAGS) $(BUILD_DIR)/$(SERVER_EXEC_NAME) -p $(RUN_PORT) $(RUN_FLAGS)
 
 tags:

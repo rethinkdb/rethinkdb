@@ -12,7 +12,7 @@
 void poll_system_stats(void *);
 
 __thread linux_thread_pool_t *linux_thread_pool_t::thread_pool;
-__thread int linux_thread_pool_t::cpu_id;
+__thread int linux_thread_pool_t::thread_id;
 __thread linux_thread_t *linux_thread_pool_t::thread;
 
 linux_thread_pool_t::linux_thread_pool_t(int n_threads)
@@ -20,7 +20,7 @@ linux_thread_pool_t::linux_thread_pool_t(int n_threads)
       n_threads(n_threads + 1) // we create an extra utility thread
 {
     assert(n_threads > 0);
-    assert(n_threads <= MAX_CPUS);
+    assert(n_threads <= MAX_THREADS);
     
     int res;
     
@@ -34,13 +34,13 @@ linux_thread_pool_t::linux_thread_pool_t(int n_threads)
     guarantee(res == 0, "Could not create interrupt spin lock");
 }
 
-linux_cpu_message_t *linux_thread_pool_t::set_interrupt_message(linux_cpu_message_t *m) {
+linux_thread_message_t *linux_thread_pool_t::set_interrupt_message(linux_thread_message_t *m) {
     int res;
     
     res = pthread_spin_lock(&interrupt_message_lock);
     guarantee(res == 0, "Could not acquire interrupt message lock");
     
-    linux_cpu_message_t *o = interrupt_message;
+    linux_thread_message_t *o = interrupt_message;
     interrupt_message = m;
     
     res = pthread_spin_unlock(&interrupt_message_lock);
@@ -52,8 +52,8 @@ linux_cpu_message_t *linux_thread_pool_t::set_interrupt_message(linux_cpu_messag
 struct thread_data_t {
     pthread_barrier_t *barrier;
     linux_thread_pool_t *thread_pool;
-    int current_cpu;
-    linux_cpu_message_t *initial_message;
+    int current_thread;
+    linux_thread_message_t *initial_message;
 };
 
 void *linux_thread_pool_t::start_thread(void *arg) {
@@ -63,13 +63,13 @@ void *linux_thread_pool_t::start_thread(void *arg) {
     
     // Set thread-local variables
     linux_thread_pool_t::thread_pool = tdata->thread_pool;
-    linux_thread_pool_t::cpu_id = tdata->current_cpu;
+    linux_thread_pool_t::thread_id = tdata->current_thread;
     
     // Use a separate block so that it's very clear how long the thread lives for
     // It's not really necessary, but I like it.
     {
-        linux_thread_t thread(tdata->thread_pool, tdata->current_cpu);
-        tdata->thread_pool->threads[tdata->current_cpu] = &thread;
+        linux_thread_t thread(tdata->thread_pool, tdata->current_thread);
+        tdata->thread_pool->threads[tdata->current_thread] = &thread;
         linux_thread_pool_t::thread = &thread;
         
         // If one thread is allowed to run before another one has finished
@@ -78,9 +78,9 @@ void *linux_thread_pool_t::start_thread(void *arg) {
         res = pthread_barrier_wait(tdata->barrier);
         guarantee(res == 0 || res == PTHREAD_BARRIER_SERIAL_THREAD, "Could not wait at start barrier");
         
-        // Prime the pump by calling the initial CPU message that was passed to thread_pool::run()
+        // Prime the pump by calling the initial thread message that was passed to thread_pool::run()
         if (tdata->initial_message) {
-            thread.message_hub.store_message(tdata->current_cpu, tdata->initial_message);
+            thread.message_hub.store_message(tdata->current_thread, tdata->initial_message);
         }
 
         coro_t::run();
@@ -94,7 +94,7 @@ void *linux_thread_pool_t::start_thread(void *arg) {
         guarantee(res == 0 || res == PTHREAD_BARRIER_SERIAL_THREAD, "Could not wait at stop barrier");
         
         coro_t::destroy();
-        tdata->thread_pool->threads[tdata->current_cpu] = NULL;
+        tdata->thread_pool->threads[tdata->current_thread] = NULL;
         linux_thread_pool_t::thread = NULL;
     }
     
@@ -102,7 +102,7 @@ void *linux_thread_pool_t::start_thread(void *arg) {
     return NULL;
 }
 
-void linux_thread_pool_t::run(linux_cpu_message_t *initial_message) {
+void linux_thread_pool_t::run(linux_thread_message_t *initial_message) {
     int res;
     
     do_shutdown = false;
@@ -117,10 +117,10 @@ void linux_thread_pool_t::run(linux_cpu_message_t *initial_message) {
         thread_data_t *tdata = new thread_data_t();
         tdata->barrier = &barrier;
         tdata->thread_pool = this;
-        tdata->current_cpu = i;
+        tdata->current_thread = i;
         // The initial message (which creates utility workers) gets
-        // sent to the last CPU. The last CPU is not reported by
-        // get_num_db_cpus() (see it for more details).
+        // sent to the last thread. The last thread is not reported by
+        // get_num_db_threads() (see it for more details).
         tdata->initial_message = (i == n_threads - 1) ? initial_message : NULL;
         
         res = pthread_create(&pthreads[i], NULL, &start_thread, (void*)tdata);
@@ -157,7 +157,6 @@ void linux_thread_pool_t::run(linux_cpu_message_t *initial_message) {
     guarantee(res == 0, "Could not lock shutdown cond mutex");
     
     while (!do_shutdown) {   // while loop guards against spurious wakeups
-    
         res = pthread_cond_wait(&shutdown_cond, &shutdown_cond_mutex);
         guarantee(res == 0, "Could not wait for shutdown cond");
     }
@@ -215,10 +214,10 @@ void linux_thread_pool_t::interrupt_handler(int) {
     
     /* Set the interrupt message to NULL at the same time as we get it so that
     we don't send the same message twice. This is necessary because it's illegal
-    to send the same CPU message twice until it has been received the first time
+    to send the same thread message twice until it has been received the first time
     (because of the intrusive list), and we could hypothetically get two SIGINTs
     in quick succession. */
-    linux_cpu_message_t *interrupt_msg = self->set_interrupt_message(NULL);
+    linux_thread_message_t *interrupt_msg = self->set_interrupt_message(NULL);
     
     if (interrupt_msg) {
         self->threads[self->n_threads - 1]->message_hub.insert_external_message(interrupt_msg);

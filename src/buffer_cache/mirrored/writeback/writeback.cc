@@ -152,7 +152,7 @@ bool writeback_t::writeback_start_and_acquire_lock() {
     assert(!writeback_in_progress);
     writeback_in_progress = true;
     pm_flushes_locking.begin(&start_time);
-    cache->assert_cpu();
+    cache->assert_thread();
         
     // Cancel the flush timer because we're doing writeback now, so we don't need it to remind
     // us later. This happens only if the flush timer is running, and writeback starts for some
@@ -187,15 +187,15 @@ void writeback_t::on_lock_available() {
 
 struct buf_writer_t :
     public serializer_t::write_block_callback_t,
-    public cpu_message_t,
-    public home_cpu_mixin_t
+    public thread_message_t,
+    public home_thread_mixin_t
 {
     mc_buf_t *buf;
     explicit buf_writer_t(mc_buf_t *buf) : buf(buf) { }
     void on_serializer_write_block() {
-        if (continue_on_cpu(home_cpu, this)) on_cpu_switch();
+        if (continue_on_thread(home_thread, this)) on_thread_switch();
     }
-    void on_cpu_switch() {
+    void on_thread_switch() {
         buf->release();
         delete this;
     }
@@ -203,7 +203,7 @@ struct buf_writer_t :
 
 bool writeback_t::writeback_acquire_bufs() {
     assert(writeback_in_progress);
-    cache->assert_cpu();
+    cache->assert_thread();
     
     pm_flushes_locking.end(&start_time);
     pm_flushes_writing.begin(&start_time);
@@ -264,7 +264,7 @@ bool writeback_t::writeback_acquire_bufs() {
 
     flush_lock.unlock(); // Write transactions can now proceed again.
 
-    return do_on_cpu(cache->serializer->home_cpu, this, &writeback_t::writeback_do_write);
+    return do_on_thread(cache->serializer->home_thread, this, &writeback_t::writeback_do_write);
 }
 
 bool writeback_t::writeback_do_write() {
@@ -275,13 +275,13 @@ bool writeback_t::writeback_do_write() {
     // bufs earlier in the process so more write FSMs can proceed sooner.
     
     assert(writeback_in_progress);
-    cache->serializer->assert_cpu();
+    cache->serializer->assert_thread();
     
     if (serializer_writes.empty() ||
         cache->serializer->do_write(serializer_writes.data(), serializer_writes.size(), this)) {
         // We don't need this buffer any more.
         serializer_writes.clear();
-        return do_on_cpu(cache->home_cpu, this, &writeback_t::writeback_do_cleanup);
+        return do_on_thread(cache->home_thread, this, &writeback_t::writeback_do_cleanup);
     } else {
         return false;
     }
@@ -289,13 +289,13 @@ bool writeback_t::writeback_do_write() {
 
 void writeback_t::on_serializer_write_txn() {
     assert(writeback_in_progress);
-    cache->serializer->assert_cpu();
-    do_on_cpu(cache->home_cpu, this, &writeback_t::writeback_do_cleanup);
+    cache->serializer->assert_thread();
+    do_on_thread(cache->home_thread, this, &writeback_t::writeback_do_cleanup);
 }
 
 bool writeback_t::writeback_do_cleanup() {
     assert(writeback_in_progress);
-    cache->assert_cpu();
+    cache->assert_thread();
     
     /* We are done writing all of the buffers */
     

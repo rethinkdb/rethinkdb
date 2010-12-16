@@ -7,6 +7,21 @@
 static perfmon_counter_t pm_extents_in_use("serializer_extents_in_use");
 static perfmon_counter_t pm_bytes_in_use("serializer_bytes_in_use");
 
+struct extent_info_t {
+
+    enum state_t {
+        state_unreserved,
+        state_in_use,
+        state_free,
+        state_locked_for_read
+    } state;
+
+    union {
+        off64_t next_in_free_list;   // Valid if state == state_free
+        int reader_count;   // Valid if state == state_in_use
+    };
+};
+
 class extent_zone_t {
     off64_t start, end;
     size_t extent_size;
@@ -19,14 +34,13 @@ class extent_zone_t {
     }
     
     /* Combination free-list and extent map. Contains one entry per extent.
-    During the state_reserving_extents phase, contains EXTENT_UNRESERVED or
-    EXTENT_IN_USE at each entry. When we transition to the state_running phase,
-    we link all of the EXTENT_UNRESERVED entries in each zone together into an
-    extent free list, such that each free entry contains the offset of the next
-    free entry, and the last one contains EXTENT_FREE_LIST_END. There is one
-    free list per zone. */
-    
-    segmented_vector_t<off64_t, MAX_DATA_EXTENTS> extents;
+    During the state_reserving_extents phase, each extent has state state_unreserved
+    or state state_in_use. When we transition to the state_running phase,
+    we link all of the state_unreserved entries in each zone together into an
+    extent free list, such that each free entry's 'next_in_free_list' field is the
+    offset of the next free extent. */
+
+    segmented_vector_t<extent_info_t, MAX_DATA_EXTENTS> extents;
     
     off64_t free_list_head;
 private:
@@ -45,18 +59,24 @@ public:
     void reserve_extent(off64_t extent) {
         unsigned int id = offset_to_id(extent);
         
-        if (id >= extents.get_size()) extents.set_size(id + 1, EXTENT_UNRESERVED);
+        if (id >= extents.get_size()) {
+            extent_info_t default_info;
+            default_info.state = extent_info_t::state_unreserved;
+            extents.set_size(id + 1, default_info);
+        }
         
-        assert(extents[id] == EXTENT_UNRESERVED);
-        extents[id] = EXTENT_IN_USE;
+        assert(extents[id].state == extent_info_t::state_unreserved);
+        extents[id].state = extent_info_t::state_in_use;
+        extents[id].reader_count = 0;
     }
     
     void reconstruct_free_list() {
-        free_list_head = EXTENT_FREE_LIST_END;
+        free_list_head = NULL_OFFSET;
         
         for (off64_t extent = start; extent < start + (off64_t)(extents.get_size() * extent_size); extent += extent_size) {
-            if (extents[offset_to_id(extent)] == EXTENT_UNRESERVED) {
-                extents[offset_to_id(extent)] = free_list_head;
+            if (extents[offset_to_id(extent)].state == extent_info_t::state_unreserved) {
+                extents[offset_to_id(extent)].state = extent_info_t::state_free;
+                extents[offset_to_id(extent)].next_in_free_list = free_list_head;
                 free_list_head = extent;
                 _held_extents++;
             }
@@ -66,29 +86,52 @@ public:
     off64_t gen_extent() {
         off64_t extent;
         
-        if (free_list_head == EXTENT_FREE_LIST_END) {
+        if (free_list_head == NULL_OFFSET) {
             extent = start + extents.get_size() * extent_size;
             if (extent == end) return NULL_OFFSET;
             
             extents.set_size(extents.get_size() + 1);
         } else {
             extent = free_list_head;
-            free_list_head = extents[offset_to_id(free_list_head)];
+            free_list_head = extents[offset_to_id(free_list_head)].next_in_free_list;
             _held_extents--;
         }
         
-        extents[offset_to_id(extent)] = EXTENT_IN_USE;
+        extents[offset_to_id(extent)].state = extent_info_t::state_in_use;
+        extents[offset_to_id(extent)].reader_count = 0;
         
         return extent;
     }
     
     void release_extent(off64_t extent) {
-        assert(extents[offset_to_id(extent)] == EXTENT_IN_USE);
-        extents[offset_to_id(extent)] = free_list_head;
-        free_list_head = extent;
+        extent_info_t *info = &extents[offset_to_id(extent)];
+        assert(info->state == extent_info_t::state_in_use);
+        if (info->reader_count == 0) {
+            info->state = extent_info_t::state_free;
+            info->next_in_free_list = free_list_head;
+            free_list_head = extent;
+        } else {
+            info->state = extent_info_t::state_locked_for_read;
+        }
         _held_extents++;
     } 
 
+    void lock_for_read(off64_t extent) {
+        assert(extents[offset_to_id(extent)].state == extent_info_t::state_in_use);
+        extents[offset_to_id(extent)].reader_count++;
+    }
+
+    void unlock_for_read(off64_t extent) {
+        extent_info_t *info = &extents[offset_to_id(extent)];
+        assert(info->state == extent_info_t::state_in_use ||
+            info->state == extent_info_t::state_locked_for_read);
+        info->reader_count--;
+        if (info->reader_count == 0 && info->state == extent_info_t::state_locked_for_read) {
+            info->state = extent_info_t::state_free;
+            info->next_in_free_list = free_list_head;
+            free_list_head = extent;
+        }
+    }
 };
 
 extent_manager_t::extent_manager_t(direct_file_t *file, log_serializer_static_config_t *static_config, log_serializer_dynamic_config_t *dynamic_config)
@@ -264,6 +307,16 @@ void extent_manager_t::commit_transaction(transaction_t *t) {
         zone_for_offset(extent)->release_extent(extent);
     }
     delete t;
+}
+
+void extent_manager_t::lock_for_read(off64_t extent) {
+    assert(state == state_running);
+    zone_for_offset(extent)->lock_for_read(extent);
+}
+
+void extent_manager_t::unlock_for_read(off64_t extent) {
+    assert(state == state_running);
+    zone_for_offset(extent)->unlock_for_read(extent);
 }
 
 int extent_manager_t::held_extents() {

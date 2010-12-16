@@ -24,18 +24,18 @@ void coro_t::notify() {
     assert(!notified);
     notified = true;
 #endif
-    if (continue_on_cpu(home_cpu, this)) {
-        call_later_on_this_cpu(this);
+    if (continue_on_thread(home_thread, this)) {
+        call_later_on_this_thread(this);
     }
 }
 
-void coro_t::move_to_cpu(int cpu) {
-    self()->home_cpu = cpu;
+void coro_t::move_to_thread(int thread) {
+    self()->home_thread = thread;
     self()->notify();
     wait();
 }
 
-void coro_t::on_cpu_switch() {
+void coro_t::on_thread_switch() {
 #ifndef NDEBUG
     assert(notified);
     notified = false;

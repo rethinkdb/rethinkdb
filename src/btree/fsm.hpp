@@ -8,12 +8,12 @@
 #include "event.hpp"
 
 class btree_fsm_t :
-    public cpu_message_t,
+    public thread_message_t,
     public block_available_callback_t,
     public large_buf_available_callback_t,
     public transaction_begin_callback_t,
     public transaction_commit_callback_t,
-    public home_cpu_mixin_t
+    public home_thread_mixin_t
 {
 public:
     enum transition_result_t {
@@ -43,7 +43,7 @@ public:
     
     void done();
     
-    void on_cpu_switch();
+    void on_thread_switch();
     void on_block_available(buf_t *buf);
     void on_large_buf_available(large_buf_t *large_buf);
     void on_txn_begin(transaction_t *txn);

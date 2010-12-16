@@ -12,7 +12,7 @@ threads. */
 
 
 
-class translator_serializer_t : public home_cpu_mixin_t
+class translator_serializer_t : public home_thread_mixin_t
 {
 private:
     serializer_t *inner;

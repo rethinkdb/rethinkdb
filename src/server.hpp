@@ -16,7 +16,7 @@ main() creates the thread pool and then creates the server within the thread poo
 class flush_message_t;
 
 class server_t :
-    public home_cpu_mixin_t,
+    public home_thread_mixin_t,
     public logger_ready_callback_t,
     public btree_key_value_store_t::check_callback_t,
     public btree_key_value_store_t::ready_callback_t,
@@ -76,10 +76,10 @@ private:
     void do_start_conn_acceptor();
     
     struct interrupt_message_t :
-        public cpu_message_t
+        public thread_message_t
     {
         server_t *server;
-        void on_cpu_switch() {
+        void on_thread_switch() {
             server->do_shutdown();
         }
     } interrupt_message;

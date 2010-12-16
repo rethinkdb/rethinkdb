@@ -30,13 +30,13 @@ int main(int argc, char *argv[]) {
         log_file = fopen(config.log_file_name, "w");
     }
 
-    // Initial CPU message to start server
+    // Initial thread message to start server
     struct server_starter_t :
-        public cpu_message_t
+        public thread_message_t
     {
         cmd_config_t *cmd_config;
         thread_pool_t *thread_pool;
-        void on_cpu_switch() {
+        void on_thread_switch() {
             server_t *s = new server_t(cmd_config, thread_pool);
             s->do_start();
         }

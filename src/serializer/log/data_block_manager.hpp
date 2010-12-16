@@ -27,6 +27,9 @@ extern perfmon_counter_t
 class log_serializer_t;
 
 class data_block_manager_t {
+
+    friend class dbm_read_fsm_t;
+
 public:
     data_block_manager_t(log_serializer_t *ser, const log_serializer_dynamic_config_t *dynamic_config, extent_manager_t *em, const log_serializer_static_config_t *static_config)
         : shutdown_callback(NULL), state(state_unstarted), serializer(ser),

@@ -60,7 +60,7 @@ public:
         void set_dirty(bool _dirty = true);
         void set_recency_dirty(bool _recency_dirty = true);
         
-        bool safe_to_unload() const { return !dirty; }
+        bool safe_to_unload() const { return !dirty && !recency_dirty; }
 
     private:
         inner_buf_t *gbuf;
@@ -89,12 +89,12 @@ private:
     
     /* Functions and callbacks for different phases of the writeback */
     
-    bool writeback_start_and_acquire_lock();   // Called on cache CPU
-    virtual void on_lock_available();   // Called on cache CPU
-    bool writeback_acquire_bufs();   // Called on cache CPU
-    bool writeback_do_write();   // Called on serializer CPU
-    void on_serializer_write_txn();   // Called on serializer CPU
-    bool writeback_do_cleanup();   // Called on cache CPU
+    bool writeback_start_and_acquire_lock();   // Called on cache thread
+    virtual void on_lock_available();   // Called on cache thread
+    bool writeback_acquire_bufs();   // Called on cache thread
+    bool writeback_do_write();   // Called on serializer thread
+    void on_serializer_write_txn();   // Called on serializer thread
+    bool writeback_do_cleanup();   // Called on cache thread
     
     cache_t *cache;
 

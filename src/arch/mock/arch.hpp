@@ -25,19 +25,19 @@ struct mock_io_config_t {
     typedef typename inner_io_config_t::oldstyle_net_conn_t oldstyle_net_conn_t;
     typedef typename inner_io_config_t::oldstyle_net_conn_callback_t oldstyle_net_conn_callback_t;
     
-    typedef typename inner_io_config_t::cpu_message_t cpu_message_t;
+    typedef typename inner_io_config_t::thread_message_t thread_message_t;
     
-    static int get_cpu_id() {
-        return inner_io_config_t::get_cpu_id();
+    static int get_thread_id() {
+        return inner_io_config_t::get_thread_id();
     }
-    static int get_num_cpus() {
-        return inner_io_config_t::get_num_cpus();
+    static int get_num_threads() {
+        return inner_io_config_t::get_num_threads();
     }
-    static bool continue_on_cpu(int cpu, cpu_message_t *msg) {
-        return inner_io_config_t::continue_on_cpu(cpu, msg);
+    static bool continue_on_thread(int thread, thread_message_t *msg) {
+        return inner_io_config_t::continue_on_thread(thread, msg);
     }
-    static void call_later_on_this_cpu(cpu_message_t *msg) {
-        return inner_io_config_t::call_later_on_this_cpu(msg);
+    static void call_later_on_this_thread(thread_message_t *msg) {
+        return inner_io_config_t::call_later_on_this_thread(msg);
     }
     
     typedef typename inner_io_config_t::timer_token_t timer_token_t;

@@ -2,6 +2,7 @@
 #define __EVENT_HPP__
 
 #include <sys/types.h>
+#include <stdio.h>
 
 /* TODO: It would be nice to remove this file and the event_t type completely. Right now, it's used
 irregularly in a couple of different places, but it doesn't really mean anything and should just
@@ -33,6 +34,55 @@ struct event_t {
 
     void *buf;        // Location of the buffer
     off64_t offset;   // Offset into the file
+    void print() {
+#ifndef NDEBUG
+        printf("           Event        \n");
+        printf("------------------------\n|");
+        switch (event_type) {
+        case et_empty:
+            printf("et_empty\t\t");
+            break;
+        case et_sock:
+            printf("et_sock\t\t");
+            break;
+        case et_request_complete:
+            printf("et_request_complete\t");
+            break;
+        case et_cache:
+            printf("et_cache\t\t");
+            break;
+        case et_large_buf:
+            printf("et_large_buf\t");
+            break;
+        case et_cpu_event:
+            printf("et_cpu_event\t");
+            break;
+        case et_commit:
+            printf("et_commit\t");
+            break;
+        default:
+            printf("INVALID\t");
+            break;
+        }
+        printf("|\n");
+        printf("------------------------\n|");
+        switch(op) {
+        case eo_read:
+            printf("eo_read\t\t");
+            break;
+        case eo_write:
+            printf("eo_write\t\t");
+            break;
+        case eo_rdwr:
+            printf("eo_rdwr\t\t");
+            break;
+        default:
+            printf("INVALID");
+        }
+        printf("|\n");
+        printf("------------------------\n");
+#endif
+    }
 };
 
 #endif // __EVENT_HPP__

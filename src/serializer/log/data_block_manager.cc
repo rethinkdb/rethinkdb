@@ -3,6 +3,16 @@
 #include "utils.hpp"
 #include "arch/arch.hpp"
 
+/* TODO: Right now we perform garbage collection via the do_write() interface on the
+log_serializer_t. This leads to bugs in a couple of ways:
+1. We have to be sure to get the metadata (repli timestamp, delete bit) right. The data block
+   manager shouldn't have to know about that stuff.
+2. We have to special-case the serializer so that it allows us to submit do_write()s during
+   shutdown. If there were an alternative interface, it could ignore or refuse our GC requests
+   when it is shutting down.
+Later, rewrite this so that we have a special interface through which to order
+garbage collection. */
+
 perfmon_counter_t
     pm_serializer_data_extents("serializer_data_extents"),
     pm_serializer_data_extents_allocated("serializer_data_extents_allocated[dexts]"),
@@ -105,12 +115,35 @@ void data_block_manager_t::start_existing(direct_file_t *file, metablock_mixin_t
     state = state_ready;
 }
 
+struct dbm_read_fsm_t :
+    public iocallback_t
+{
+    data_block_manager_t *parent;
+    iocallback_t *callback;
+    off64_t extent;
+
+    dbm_read_fsm_t(data_block_manager_t *p, off64_t off_in, void *buf_out, iocallback_t *cb)
+        : parent(p), callback(cb)
+    {
+        extent = floor_aligned(off_in, parent->static_config->extent_size());
+        parent->extent_manager->lock_for_read(extent);
+
+        buf_data_t *data = (buf_data_t*)buf_out;
+        data--;
+        parent->dbfile->read_async(off_in, parent->static_config->block_size().ser_value(), data, this);
+    }
+
+    void on_io_complete(event_t *e) {
+        parent->extent_manager->unlock_for_read(extent);
+        callback->on_io_complete(e);
+        delete this;
+    }
+};
+
 bool data_block_manager_t::read(off64_t off_in, void *buf_out, iocallback_t *cb) {
     assert(state == state_ready);
-    
-    buf_data_t *data = (buf_data_t*)buf_out;
-    data--;
-    dbfile->read_async(off_in, static_config->block_size().ser_value(), data, cb);
+
+    new dbm_read_fsm_t(this, off_in, buf_out, cb);
 
     return false;
 }
@@ -248,13 +281,25 @@ void data_block_manager_t::run_gc() {
                 std::vector<log_serializer_t::write_t> writes;
 
                 for (unsigned int i = 0; i < static_config->blocks_per_extent(); i++) {
+
                     /* We re-check the bit array here in case a write came in for one of the
                     blocks we are GCing. We wouldn't want to overwrite the new valid data with
                     out-of-date data. */
-                    if (!gc_state.current_entry->g_array[i]) {
-                            writes.push_back(log_serializer_t::write_t::make_internal(
-                                    *((ser_block_id_t *) (gc_state.gc_blocks + (i * static_config->block_size().ser_value()))),
-                                    gc_state.gc_blocks + (i * static_config->block_size().ser_value()) + sizeof(buf_data_t), NULL));
+                    if (gc_state.current_entry->g_array[i]) continue;
+
+                    byte_t *block = gc_state.gc_blocks + i * static_config->block_size().ser_value();
+                    ser_block_id_t id = *reinterpret_cast<ser_block_id_t *>(block);
+                    void *data = block + sizeof(buf_data_t);
+
+                    /* If the block is not currently in use, we must write a deletion. Otherwise we
+                    would write the zero-buf that was written when we first deleted it. I wonder if
+                    there's a way to make the data block manager not have to know about this... */
+                    if (serializer->block_in_use(id)) {
+                        /* make_internal() makes a write_t that will not change the timestamp. */
+                        writes.push_back(log_serializer_t::write_t::make_internal(id, data, NULL));
+                    } else {
+                        assert(memcmp(data, "zero", 4) == 0);   // Check for zerobuf magic
+                        writes.push_back(log_serializer_t::write_t::make_internal(id, NULL, NULL));
                     }
                 }
 

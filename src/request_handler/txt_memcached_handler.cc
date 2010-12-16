@@ -14,6 +14,8 @@
 
 #define DELIMS " \t\n\r"
 #define MALFORMED_RESPONSE "ERROR\r\n"
+#define MALFORMED_FORMAT_RESPONSE "CLIENT_ERROR bad command line format\r\n"
+#define DELETE_USAGE_RESPONSE "CLIENT_ERROR bad command line format.  Usage: delete <key> [noreply]\r\n"
 #define UNIMPLEMENTED_RESPONSE "SERVER_ERROR functionality not supported\r\n"
 #define STORAGE_SUCCESS "STORED\r\n"
 #define STORAGE_FAILURE "NOT_STORED\r\n"
@@ -214,7 +216,7 @@ public:
     
     void data_provider_failed() {
         // read_data() handles printing the error
-        done();
+        delete this;
     }
     
     void done() {
@@ -369,7 +371,7 @@ public:
 };
 
 class txt_memcached_perfmon_request_t :
-    public cpu_message_t,   // For call_later_on_this_cpu()
+    public thread_message_t,   // For call_later_on_this_thread()
     public perfmon_callback_t
 {
     txt_memcached_handler_t *rh;
@@ -387,11 +389,11 @@ public:
             So we delay so that the request handler doesn't get confused.  We don't know
             if this is necessary. */
 
-            call_later_on_this_cpu(this);
+            call_later_on_this_thread(this);
         }
     }
     
-    void on_cpu_switch() {
+    void on_thread_switch() {
         on_perfmon_stats();
     }
     
@@ -438,8 +440,8 @@ private:
 
 class disable_gc_request_t :
     public server_t::all_gc_disabled_callback_t,  // gives us multiple_users_seen
-    public cpu_message_t,   // As with txt_memcached_perfmon_request_t, for call_later_on_this_cpu()
-    public home_cpu_mixin_t
+    public thread_message_t,   // As with txt_memcached_perfmon_request_t, for call_later_on_this_thread()
+    public home_thread_mixin_t
 {
     txt_memcached_handler_t *rh;
     
@@ -451,17 +453,17 @@ public:
         done = true;
     }
 
-    void on_cpu_switch() {
+    void on_thread_switch() {
         on_gc_disabled();
     }
 
     void on_gc_disabled() {
-        if (!continue_on_cpu(home_cpu, this)) {
+        if (!continue_on_thread(home_thread, this)) {
             return;
         }
 
         if (!done) {
-            call_later_on_this_cpu(this);
+            call_later_on_this_thread(this);
             return;
         }
 
@@ -481,8 +483,8 @@ private:
 
 class enable_gc_request_t :
     public server_t::all_gc_enabled_callback_t,  // gives us multiple_users_seen
-    public cpu_message_t,
-    public home_cpu_mixin_t
+    public thread_message_t,
+    public home_thread_mixin_t
 {
     txt_memcached_handler_t *rh;
     
@@ -494,17 +496,17 @@ public:
         done = true;
     }
 
-    void on_cpu_switch() {
+    void on_thread_switch() {
         on_gc_enabled();
     }
 
     void on_gc_enabled() {
-        if (!continue_on_cpu(home_cpu, this)) {
+        if (!continue_on_thread(home_thread, this)) {
             return;
         }
 
         if (!done) {
-            call_later_on_this_cpu(this);
+            call_later_on_this_thread(this);
             return;
         }
 
@@ -634,24 +636,27 @@ txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::parse_adjustmen
         if (!strcmp(noreply_str, "noreply")) {
             noreply = true;
         } else {
-            conn_fsm->consume(line_len);
-            return malformed_request();
+            // Memcached 1.4.5 ignores invalid tokens here
+            //conn_fsm->consume(line_len);
+            //return malformed_request();
         }
     }
 
     bool key_ok = node_handler::str_to_key(key_tmp, &key);
     if (!key_ok) {
         conn_fsm->consume(line_len);
-        return malformed_request();
+        return malformed_format_request();
     }
 
     char *endptr = NULL;
     unsigned long long delta = strtoull_strict(value_str, &endptr, 10);
     if (*endptr != '\0') {
         if (!noreply) {
+            conn_fsm->consume(line_len);
             conn_fsm->sbuf->printf(INCR_DECR_ON_NON_UINT_ARGUMENT);
             request_complete();
         }
+        return request_handler_t::op_malformed;
     } else {
         new txt_memcached_incr_decr_request_t(this, &key, increment, delta, noreply);
     }
@@ -685,33 +690,34 @@ txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::parse_storage_c
     bool key_ok = node_handler::str_to_key(key_tmp, &key);
     if (!key_ok) {
         conn_fsm->consume(line_len);
-        return malformed_request();
+        return malformed_format_request();
     }
 
     char *invalid_char;
     mcflags = strtoul_strict(mcflags_str, &invalid_char, 10);  //a 32 bit integer.  int alone does not guarantee 32 bit length
     if (*invalid_char != '\0') {  // ensure there were no improper characters in the token - i.e. parse was successful
         conn_fsm->consume(line_len);
-        return malformed_request();
+        return malformed_format_request();
     }
 
     exptime = strtoul_strict(exptime_str, &invalid_char, 10);
     if (*invalid_char != '\0') {
         conn_fsm->consume(line_len);
-        return malformed_request();
+        return malformed_format_request();
     }
 
     bytes = strtoul_strict(bytes_str, &invalid_char, 10);
-    if (*invalid_char != '\0') {
+    // Check for signed 32 bit max value for Memcached compatibility...
+    if (*invalid_char != '\0' || bytes >= (1u << 31) - 1) {
         conn_fsm->consume(line_len);
-        return malformed_request();
+        return malformed_format_request();
     }
 
     if (cmd == CAS) {
         cas = strtoull_strict(cas_str, &invalid_char, 10);
         if (*invalid_char != '\0') {
             conn_fsm->consume(line_len);
-            return malformed_request();
+            return malformed_format_request();
         }
     }
 
@@ -720,8 +726,9 @@ txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::parse_storage_c
         if (!strcmp(noreply_str, "noreply")) {
             this->noreply = true;
         } else {
-            conn_fsm->consume(line_len);
-            return malformed_request();
+            // Memcached 1.4.5 ignores invalid tokens here
+            //conn_fsm->consume(line_len);
+            //return malformed_request();
         }
     }
 
@@ -821,6 +828,11 @@ txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::malformed_reque
     return request_handler_t::op_malformed;
 }
 
+txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::malformed_format_request() {
+    conn_fsm->sbuf->printf(MALFORMED_FORMAT_RESPONSE);
+    return request_handler_t::op_malformed;
+}
+
 txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::unimplemented_request() {
     conn_fsm->sbuf->printf(UNIMPLEMENTED_RESPONSE);
     return request_handler_t::op_malformed;
@@ -838,7 +850,7 @@ txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::get(char *state
         do {
             bool key_ok = node_handler::str_to_key(key_str, &key);
             if (!key_ok) {
-                res = malformed_request();
+                res = malformed_format_request();
                 delete rq;
                 goto error_breakout;
             }
@@ -872,7 +884,7 @@ txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::remove(char *st
     char *key_str = strtok_r(NULL, DELIMS, &state);
     if (key_str == NULL) {
         conn_fsm->consume(line_len);
-        return malformed_request();
+        return malformed_format_request();
     }
 
     unsigned long time = 0;
@@ -893,9 +905,19 @@ txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::remove(char *st
                 if (!strcmp(noreply_str, "noreply")) {
                     this->noreply = true;
                 } else {
-                    conn_fsm->consume(line_len);
-                    return malformed_request();
+                    // Memcached 1.4.5 ignores invalid tokens here
+                    //conn_fsm->consume(line_len);
+                    //return malformed_request();
                 }
+            }
+            
+            // Fail on time != 0
+            if (time != 0)
+            {
+                conn_fsm->consume(line_len);
+                if (!this->noreply)
+                    conn_fsm->sbuf->printf(DELETE_USAGE_RESPONSE);
+                return request_handler_t::op_malformed;
             }
         }
     }
@@ -903,7 +925,7 @@ txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::remove(char *st
     bool key_ok = node_handler::str_to_key(key_str, &key);
     if (!key_ok) {
         conn_fsm->consume(line_len);
-        return malformed_request();
+        return malformed_format_request();
     }
 
     // Create request

@@ -52,8 +52,8 @@ spinlock_t &get_var_lock() {
 /* This is the function that actually gathers the stats. It is illegal to create or destroy
 perfmon_t objects while a perfmon_fsm_t is active. */
 
-void co_perfmon_visit(int cpu, const std::vector<void*> &data, coro_t::multi_wait_t *multi_wait) {
-    coro_t::on_cpu_t moving(cpu);
+void co_perfmon_visit(int thread, const std::vector<void*> &data, coro_t::multi_wait_t *multi_wait) {
+    coro_t::on_thread_t moving(thread);
     int i = 0;
     for (perfmon_t *p = get_var_list().head(); p; p = get_var_list().next(p)) {
         p->visit_stats(data[i++]);
@@ -69,9 +69,9 @@ void co_perfmon_get_stats(perfmon_stats_t *dest, perfmon_callback_t *cb) {
     for (perfmon_t *p = get_var_list().head(); p; p = get_var_list().next(p)) {
         data.push_back(p->begin_stats());
     }
-    int cpus = get_num_cpus();
-    coro_t::multi_wait_t *multi_wait = new coro_t::multi_wait_t(cpus);
-    for (int i = 0; i < cpus; i++) {
+    int threads = get_num_threads();
+    coro_t::multi_wait_t *multi_wait = new coro_t::multi_wait_t(threads);
+    for (int i = 0; i < threads; i++) {
         coro_t::spawn(co_perfmon_visit, i, data, multi_wait);
     }
     coro_t::wait();
@@ -112,24 +112,24 @@ perfmon_t::~perfmon_t() {
 perfmon_counter_t::perfmon_counter_t(std::string name)
     : name(name)
 {
-    for (int i = 0; i < MAX_CPUS; i++) values[i] = 0;
+    for (int i = 0; i < MAX_THREADS; i++) values[i] = 0;
 }
 
 int64_t &perfmon_counter_t::get() {
-    return values[get_cpu_id()];
+    return values[get_thread_id()];
 }
 
 void *perfmon_counter_t::begin_stats() {
-    return new int64_t[get_num_cpus()];
+    return new int64_t[get_num_threads()];
 }
 
 void perfmon_counter_t::visit_stats(void *data) {
-    ((int64_t *)data)[get_cpu_id()] = get();
+    ((int64_t *)data)[get_thread_id()] = get();
 }
 
 void perfmon_counter_t::end_stats(void *data, perfmon_stats_t *dest) {
     int64_t value = 0;
-    for (int i = 0; i < get_num_cpus(); i++) value += ((int64_t *)data)[i];
+    for (int i = 0; i < get_num_threads(); i++) value += ((int64_t *)data)[i];
     (*dest)[name] = format(value);
     delete[] (int64_t *)data;
 }
@@ -141,18 +141,18 @@ perfmon_sampler_t::perfmon_sampler_t(std::string name, ticks_t length, bool incl
 
 void perfmon_sampler_t::expire() {
     ticks_t now = get_ticks();
-    std::deque<sample_t> &queue = values[get_cpu_id()];
+    std::deque<sample_t> &queue = values[get_thread_id()];
     while (!queue.empty() && queue.front().timestamp + length < now) queue.pop_front();
 }
 
 void perfmon_sampler_t::record(value_t v) {
     expire();
-    values[get_cpu_id()].push_back(sample_t(v, get_ticks()));
+    values[get_thread_id()].push_back(sample_t(v, get_ticks()));
 }
 
 struct perfmon_sampler_step_t {
-    uint64_t counts[MAX_CPUS];
-    perfmon_sampler_t::value_t values[MAX_CPUS], mins[MAX_CPUS], maxes[MAX_CPUS];
+    uint64_t counts[MAX_THREADS];
+    perfmon_sampler_t::value_t values[MAX_THREADS], mins[MAX_THREADS], maxes[MAX_THREADS];
 };
 
 void *perfmon_sampler_t::begin_stats() {
@@ -162,19 +162,19 @@ void *perfmon_sampler_t::begin_stats() {
 void perfmon_sampler_t::visit_stats(void *data) {
     perfmon_sampler_step_t *d = (perfmon_sampler_step_t *)data;
     expire();
-    d->values[get_cpu_id()] = 0;
-    d->counts[get_cpu_id()] = 0;
-    for (std::deque<perfmon_sampler_t::sample_t>::iterator it = values[get_cpu_id()].begin();
-         it != values[get_cpu_id()].end(); it++) {
-        d->values[get_cpu_id()] += (*it).value;
-        if (d->counts[get_cpu_id()] > 0) {
-            d->mins[get_cpu_id()] = std::min(d->mins[get_cpu_id()], (*it).value);
-            d->maxes[get_cpu_id()] = std::max(d->maxes[get_cpu_id()], (*it).value);
+    d->values[get_thread_id()] = 0;
+    d->counts[get_thread_id()] = 0;
+    for (std::deque<perfmon_sampler_t::sample_t>::iterator it = values[get_thread_id()].begin();
+         it != values[get_thread_id()].end(); it++) {
+        d->values[get_thread_id()] += (*it).value;
+        if (d->counts[get_thread_id()] > 0) {
+            d->mins[get_thread_id()] = std::min(d->mins[get_thread_id()], (*it).value);
+            d->maxes[get_thread_id()] = std::max(d->maxes[get_thread_id()], (*it).value);
         } else {
-            d->mins[get_cpu_id()] = (*it).value;
-            d->maxes[get_cpu_id()] = (*it).value;
+            d->mins[get_thread_id()] = (*it).value;
+            d->maxes[get_thread_id()] = (*it).value;
         }
-        d->counts[get_cpu_id()]++;
+        d->counts[get_thread_id()]++;
     }
 }
 
@@ -184,7 +184,7 @@ void perfmon_sampler_t::end_stats(void *data, perfmon_stats_t *dest) {
     uint64_t count = 0;
     perfmon_sampler_t::value_t min = 0, max = 0;   /* Initializers to make GCC shut up */
     bool have_any = false;
-    for (int i = 0; i < get_num_cpus(); i++) {
+    for (int i = 0; i < get_num_threads(); i++) {
         value += d->values[i];
         count += d->counts[i];
         if (d->counts[i]) {
