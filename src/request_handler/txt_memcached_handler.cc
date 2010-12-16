@@ -52,10 +52,8 @@ public:
             get_t *g = &gets[num_gets++];
             keycpy(&g->key, key);
             g->parent = this;
-            g->got_value = new coro_t::cond_var_t<bool>();
             g->sent = new coro_t::cond_var_t<bool>();
-            if (with_cas) rh->server->store->get_cas(key, g);
-            else rh->server->store->get(key, g);
+            g->result = coro_t::task<store_t::get_result_t>(with_cas ? &store_t::co_get_cas : &store_t::co_get, rh->server->store, &g->key);
             return true;
         } else {
             return false;
@@ -71,7 +69,6 @@ public:
 
 private:
     struct get_t :
-        public store_t::get_callback_t,
         public data_transferred_callback
     {
         txt_memcached_get_request_t *parent;
@@ -80,47 +77,31 @@ private:
             btree_key key;
         };
         
-        const_buffer_group_t *buffer;   // Can be NULL
-        store_t::get_callback_t::done_callback_t *callback;
-        mcflags_t flags;
-        cas_t cas;
-        
-        coro_t::cond_var_t<bool> *got_value, *sent; //Don't actually care about the values
+        coro_t::cond_var_t<store_t::get_result_t> *result;
+        store_t::get_result_t get_result;
+        coro_t::cond_var_t<bool> *sent; //Don't actually care about the value, just used for waiting
+
         int buffer_being_sent;
 
-        void value(const_buffer_group_t *b, store_t::get_callback_t::done_callback_t *cb, mcflags_t f, cas_t c) {
-            assert(b);
-            buffer = b;
-            callback = cb;
-            flags = f;
-            cas = c;
-            got_value->fill(true);
-        }
-
-        void not_found() {
-            buffer = NULL;
-            got_value->fill(true);
-        }
-
         void write() {
-            got_value->join();
-            if (buffer) {
+            get_result = result->join();
+            if (get_result.buffer) {
                 if (parent->with_cas) {
                     parent->rh->conn_fsm->sbuf->printf(
                         "VALUE %*.*s %u %u %llu\r\n",
-                        key.size, key.size, key.contents, flags, buffer->get_size(), cas);
+                        key.size, key.size, key.contents, get_result.flags, get_result.buffer->get_size(), get_result.cas);
                 } else {
-                    assert(cas == 0);
+                    assert(get_result.cas == 0);
                     parent->rh->conn_fsm->sbuf->printf(
                         "VALUE %*.*s %u %u\r\n",
-                        key.size, key.size, key.contents, flags, buffer->get_size());
+                        key.size, key.size, key.contents, get_result.flags, get_result.buffer->get_size());
                 }
-                if (buffer->get_size() < MAX_BUFFERED_GET_SIZE) {
-                    for (int i = 0; i < (signed)buffer->buffers.size(); i++) {
-                        const_buffer_group_t::buffer_t b = buffer->buffers[i];
+                if (get_result.buffer->get_size() < MAX_BUFFERED_GET_SIZE) {
+                    for (int i = 0; i < (signed)get_result.buffer->buffers.size(); i++) {
+                        const_buffer_group_t::buffer_t b = get_result.buffer->buffers[i];
                         parent->rh->conn_fsm->sbuf->append((const char *)b.data, b.size);
                     }
-                    callback->have_copied_value();
+                    get_result.cb->have_copied_value();
                     parent->rh->conn_fsm->sbuf->printf("\r\n");
                     done();
                 } else {
@@ -134,12 +115,13 @@ private:
 
         void on_data_transferred() {
             buffer_being_sent++;
-            if (buffer_being_sent == (int)buffer->buffers.size()) {
-                callback->have_copied_value();
+            if (buffer_being_sent == (int)get_result.buffer->buffers.size()) {
+                get_result.cb->have_copied_value();
                 parent->rh->conn_fsm->sbuf->printf("\r\n");
                 done();
             } else {
-                parent->rh->write_value((const char *)buffer->buffers[buffer_being_sent].data, buffer->buffers[buffer_being_sent].size, this);
+                const_buffer_group_t::buffer_t buf = get_result.buffer->buffers[buffer_being_sent];
+                parent->rh->write_value((const char *)buf.data, buf.size, this);
             }
         }
 

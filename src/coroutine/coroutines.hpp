@@ -160,43 +160,49 @@ public:
         }
     };
 
+//TODO: Why am I using malloc, memcpy and free here? I can't get stuff to work! This is disgusting.
 private:
     template<typename return_t, typename callable_t>
-    static void run_task(callable_t fun, cond_var_t<return_t> *cond_var) {
-        cond_var->fill(fun());
+    static void run_task(callable_t *f, cond_var_t<return_t> *cond_var) {
+        return_t value = (*f)();
+        free(f);
+        cond_var->fill(value);
     }
 
 public:
     template<typename return_t, typename callable_t>
     static cond_var_t<return_t> *task(callable_t fun) {
         cond_var_t<return_t> *cond_var = new cond_var_t<return_t>();
-        spawn(&run_task<return_t, callable_t>, fun, cond_var);
+        callable_t *f = (callable_t *)malloc(sizeof(fun));
+        memcpy(f, &fun, sizeof(fun));
+        spawn(&run_task<return_t, callable_t>, f, cond_var);
+        //run_task<return_t, callable_t>(fun, cond_var);
         return cond_var;
     }
 
     template<typename return_t, typename callable_t, typename arg_t>
     static cond_var_t<return_t> *task(callable_t fun, arg_t arg) {
-        return task(boost::bind(fun, arg));
+        return task<return_t>(boost::bind(fun, arg));
     }
 
     template<typename return_t, typename callable_t, typename arg1_t, typename arg2_t>
     static cond_var_t<return_t> *task(callable_t fun, arg1_t arg1, arg2_t arg2) {
-        return task(boost::bind(fun, arg1, arg2));
+        return task<return_t>(boost::bind(fun, arg1, arg2));
     }
 
     template<typename return_t, typename callable_t, typename arg1_t, typename arg2_t, typename arg3_t>
     static cond_var_t<return_t> *task(callable_t fun, arg1_t arg1, arg2_t arg2, arg3_t arg3) {
-        return task(boost::bind(fun, arg1, arg2, arg3));
+        return task<return_t>(boost::bind(fun, arg1, arg2, arg3));
     }
 
     template<typename return_t, typename callable_t, typename arg1_t, typename arg2_t, typename arg3_t, typename arg4_t>
     static cond_var_t<return_t> *task(callable_t fun, arg1_t arg1, arg2_t arg2, arg3_t arg3, arg4_t arg4) {
-        return task(boost::bind(fun, arg1, arg2, arg3, arg4));
+        return task<return_t>(boost::bind(fun, arg1, arg2, arg3, arg4));
     }
 
     template<typename return_t, typename callable_t, typename arg1_t, typename arg2_t, typename arg3_t, typename arg4_t, typename arg5_t>
     static cond_var_t<return_t> *task(callable_t fun, arg1_t arg1, arg2_t arg2, arg3_t arg3, arg4_t arg4, arg5_t arg5) {
-        return task(boost::bind(fun, arg1, arg2, arg3, arg4, arg5));
+        return task<return_t>(boost::bind(fun, arg1, arg2, arg3, arg4, arg5));
     }
 
 };
