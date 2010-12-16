@@ -43,9 +43,9 @@ CXXFLAGS+=-g -O0
 # -rdynamic is necessary so that backtrace_symbols() works properly
 LDFLAGS+=-rdynamic
 else
-# gcse breaks the serializer
-# march=native breaks the serializer (I wonder which specific optimization does)
-CXXFLAGS+=-O3 -fno-gcse -DNDEBUG # -march=native
+# use -fno-strict-aliasing to not break things
+# march=native used to break the serializer
+CXXFLAGS+=-O3 -DNDEBUG -fno-strict-aliasing # -match=native
 endif
 
 ifeq ($(OPROFILE),1)

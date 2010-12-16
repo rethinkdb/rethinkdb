@@ -133,7 +133,6 @@ struct cmd_config_t {
     btree_key_value_store_dynamic_config_t store_dynamic_config;
     btree_key_value_store_static_config_t store_static_config;
     bool create_store, force_create, shutdown_after_creation;
-    bool disk_info;
 
     bool verbose;
 };

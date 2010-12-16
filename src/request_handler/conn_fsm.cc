@@ -4,6 +4,7 @@
 #include "utils.hpp"
 #include <signal.h>
 #include "request_handler/request_handler.hpp"
+#include <string.h>
 
 /* Global counters for the number of conn_fsms in each state */
 
@@ -70,7 +71,7 @@ conn_fsm_t::result_t conn_fsm_t::fill_buf(void *buf, unsigned int *bytes_filled,
     ssize_t sz = conn->read_nonblocking((byte *) buf + *bytes_filled, total_length - *bytes_filled);
     
     if (sz == -1) {
-        if(errno == EAGAIN || errno == EWOULDBLOCK) {   // EAGAIN may be equal to EWOULDBLOCK, so can't put them in a switch below
+        if(errno == EAGAIN || errno == EWOULDBLOCK) {
             // The machine can't be in fsm_socket_send_incomplete state here,
             // since we break out in these cases. So it's safe to free the buffer.
             assert(state != fsm_socket_send_incomplete);
@@ -82,15 +83,13 @@ conn_fsm_t::result_t conn_fsm_t::fill_buf(void *buf, unsigned int *bytes_filled,
             } else {
                 state = fsm_socket_connected; //we're wating for a socket event
             }
-            //break;
         } else {
-            // We must fail gracefully here, probably logging the error.
+            debugf("Connection closed: %s\n", strerror(errno));
 #ifndef NDEBUG
             we_are_closed = true;
 #endif
             if (!quitting) on_quit();
             quitting = true;
-            assert(state == fsm_outstanding_data || state == fsm_socket_connected);
             return fsm_quit_connection;
         }
     } else if (sz > 0) {
