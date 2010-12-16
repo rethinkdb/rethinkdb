@@ -6,7 +6,7 @@ class txt_memcached_get_request_t
 {
 public:
     txt_memcached_handler_t *rh;
-    
+
     txt_memcached_get_request_t(txt_memcached_handler_t *rh, bool with_cas, int argc, char **argv)
         : rh(rh), num_gets(0), curr_get(0), with_cas(with_cas)
     {
@@ -17,7 +17,7 @@ public:
         for (int i = 1; i < argc && num_gets < MAX_OPS_IN_REQUEST; i++) {
             get_t *g = &gets[num_gets++];
             if (!node_handler::str_to_key(argv[i], &g->key)) {
-                rh->writef("CLIENT_ERROR key too big\r\n");
+                rh->writef("CLIENT_ERROR bad command line format\r\n");
                 rh->read_next_command();
                 delete this;
                 return;
@@ -26,7 +26,7 @@ public:
             g->ready = false;
         }
         if (num_gets == 0) {
-            rh->writef("CLIENT_ERROR no gets\r\n");
+            rh->writef("ERROR\r\n");
             rh->read_next_command();
             delete this;
             return;
@@ -414,8 +414,7 @@ public:
         OR "cas" key flags exptime size cas [noreply] */
         if ((sc != cas_command && (argc != 5 && argc != 6)) ||
             (sc == cas_command && (argc != 6 && argc != 7))) {
-            if (sc == cas_command && argc == 5) rh->writef("ERROR\r\n");
-            else rh->writef("CLIENT_ERROR bad command line format\r\n");
+            rh->writef("ERROR\r\n");
             rh->read_next_command();
             delete this;
             return;
@@ -517,7 +516,7 @@ public:
             /* The buffered_data_provider_t doesn't check the CRLF, so we must check it here.
             The memcached_streaming_data_provider_t checks its own CRLF. */
             if (value_buffer[value_size] != '\r' || value_buffer[value_size + 1] != '\n') {
-                rh->writef("CLIENT_ERROR bad blob\r\n");
+                rh->writef("CLIENT_ERROR bad data chunk\r\n");
                 rh->read_next_command();
                 delete this;
                 return;
@@ -642,7 +641,7 @@ public:
     {
         /* cmd key delta [noreply] */
         if (argc != 3 && argc != 4) {
-            rh->writef("CLIENT_ERROR bad command line format\r\n");
+            rh->writef("ERROR\r\n");
             rh->read_next_command();
             delete this;
             return;
