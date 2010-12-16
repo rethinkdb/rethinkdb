@@ -27,6 +27,9 @@ void replication_message_t::on_thread_switch() {
 }
 
 void replication_message_t::on_lock_available() {
+
+    if (parent->conn->closed()) on_net_conn_close();
+
     if (buffer_group) {
         which_buffer_of_group = -1;
 
@@ -70,13 +73,12 @@ void replication_message_t::done_sending() {
 }
 
 void replication_message_t::on_net_conn_close() {
-    parent->conn_open = false;
     if (!parent->quitting) parent->quit();
     done_sending();   // So others can see that the conn died
 }
 
 replication_master_t::replication_master_t(store_t *s, net_conn_t *c)
-    : store(s), conn(c), quitting(false), conn_open(true)
+    : store(s), conn(c), quitting(false)
 {
     logINF("Opened replicant %p\n", this);
     store->replicate(this, repli_time(0));
@@ -99,7 +101,7 @@ void replication_master_t::quit() {
     assert(!quitting);
     quitting = true;
 
-    if (conn_open) conn->shutdown();
+    if (!conn->closed()) conn->shutdown();
 
     on_quit();
     store->stop_replicating(this);   // Will call stopped() when it is done

@@ -61,7 +61,7 @@ struct replication_master_t :
         mcflags_t flags, exptime_t exptime, cas_t cas, repli_timestamp ts);
     void stopped();
 
-    bool quitting, conn_open;
+    bool quitting;
     void quit();
 };
 

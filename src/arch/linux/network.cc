@@ -39,10 +39,7 @@ void linux_net_conn_t::register_with_event_loop() {
 }
 
 void linux_net_conn_t::read_external(void *buf, size_t size, linux_net_conn_read_external_callback_t *cb) {
-    if (was_shut_down) {
-        cb->on_net_conn_close();
-        return;
-    };
+    assert(!was_shut_down);
 
     register_with_event_loop();
     assert(sock != INVALID_FD);
@@ -104,10 +101,7 @@ void linux_net_conn_t::try_to_read_external_buf() {
 }
 
 void linux_net_conn_t::read_buffered(linux_net_conn_read_buffered_callback_t *cb) {
-    if (was_shut_down) {
-        cb->on_net_conn_close();
-        return;
-    };
+    assert(!was_shut_down);
 
     register_with_event_loop();
     assert(sock != INVALID_FD);
@@ -198,10 +192,7 @@ void linux_net_conn_t::accept_buffer(size_t bytes) {
 }
 
 void linux_net_conn_t::write_external(const void *buf, size_t size, linux_net_conn_write_external_callback_t *cb) {
-    if (was_shut_down) {
-        cb->on_net_conn_close();
-        return;
-    };
+    assert(!was_shut_down);
 
     register_with_event_loop();
     assert(sock != INVALID_FD);
@@ -290,6 +281,10 @@ void linux_net_conn_t::on_shutdown() {
         assert(registration_thread == linux_thread_pool_t::thread_id);
         linux_thread_pool_t::thread->queue.forget_resource(sock, this);
     }
+}
+
+bool linux_net_conn_t::closed() {
+    return was_shut_down;
 }
 
 linux_net_conn_t::~linux_net_conn_t() {
