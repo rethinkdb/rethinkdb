@@ -979,22 +979,22 @@ void txt_memcached_handler_t::quit() {
 
 void txt_memcached_handler_t::read_next_command() {
 
+    /* Prevent arbitrarily deep stacks when reading many commands that come quickly */
+    call_later_on_this_thread(this);
+}
+
+void txt_memcached_handler_t::on_thread_switch() {
+
     /* If conn->closed(), then the socket died during a read or write done by a *_request_t,
     and that's why we didn't find out about it immediately. */
     if (conn->closed()) {
         delete this;
         return;
     } else {
-        /* Prevent arbitrarily deep stacks when reading many commands that come quickly */
-        call_later_on_this_thread(this);
+        /* Before we read another command off the socket, we must make sure that there isn't
+        any data in the send buffer that we should flush first. */
+        send_buffer.flush(this);
     }
-}
-
-void txt_memcached_handler_t::on_thread_switch() {
-
-    /* Before we read another command off the socket, we must make sure that there isn't
-    any data in the send buffer that we should flush first. */
-    send_buffer.flush(this);
 }
 
 void txt_memcached_handler_t::on_send_buffer_flush() {
