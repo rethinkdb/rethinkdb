@@ -22,7 +22,7 @@ def test_function(opts, port):
 
     def send(str):
 #print str
-        s.send(str)
+        s.sendall(str)
 
     key = 'fizz'
     val_chunk = 'buzz'
@@ -34,6 +34,7 @@ def test_function(opts, port):
         send("append %s 0 0 %d noreply\r\n%s\r\n" % (key, len(val_chunk), val_chunk))
 
     val = "buzz" * (n_appends + 1)
+
 
     send("get %s\r\n" % key)
     expected_res = "VALUE %s 0 %d\r\n%s\r\nEND\r\n" % (key, len(val), val)
