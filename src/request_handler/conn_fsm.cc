@@ -272,7 +272,6 @@ conn_fsm_t::result_t conn_fsm_t::do_fsm_outstanding_req(event_t *event) {
             if (!quitting) on_quit();
             quitting = true;
             if (state == fsm_socket_send_incomplete || state == fsm_btree_incomplete) {
-                quitting = true;
                 return fsm_transition_ok;
             } else {
                 return fsm_quit_connection;
