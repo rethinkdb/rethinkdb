@@ -125,7 +125,11 @@ public:
                 wait();
             }
             assert(filled);
-            return var;
+            var_t value = var;
+            delete this; //would we ever have a condition variable that multiple things can wait on?
+                         //if so, we shouldn't delete this; the caller should delete it
+                         //if not, we shouldn't bother using a vector for waiters
+            return value;
         }
         void fill(var_t value) {
             assert(!filled);
@@ -155,6 +159,45 @@ public:
             }
         }
     };
+
+private:
+    template<typename return_t, typename callable_t>
+    static void run_task(callable_t fun, cond_var_t<return_t> *cond_var) {
+        cond_var->fill(fun());
+    }
+
+public:
+    template<typename return_t, typename callable_t>
+    static cond_var_t<return_t> *task(callable_t fun) {
+        cond_var_t<return_t> *cond_var = new cond_var_t<return_t>();
+        spawn(&run_task<return_t, callable_t>, fun, cond_var);
+        return cond_var;
+    }
+
+    template<typename return_t, typename callable_t, typename arg_t>
+    static cond_var_t<return_t> *task(callable_t fun, arg_t arg) {
+        return task(boost::bind(fun, arg));
+    }
+
+    template<typename return_t, typename callable_t, typename arg1_t, typename arg2_t>
+    static cond_var_t<return_t> *task(callable_t fun, arg1_t arg1, arg2_t arg2) {
+        return task(boost::bind(fun, arg1, arg2));
+    }
+
+    template<typename return_t, typename callable_t, typename arg1_t, typename arg2_t, typename arg3_t>
+    static cond_var_t<return_t> *task(callable_t fun, arg1_t arg1, arg2_t arg2, arg3_t arg3) {
+        return task(boost::bind(fun, arg1, arg2, arg3));
+    }
+
+    template<typename return_t, typename callable_t, typename arg1_t, typename arg2_t, typename arg3_t, typename arg4_t>
+    static cond_var_t<return_t> *task(callable_t fun, arg1_t arg1, arg2_t arg2, arg3_t arg3, arg4_t arg4) {
+        return task(boost::bind(fun, arg1, arg2, arg3, arg4));
+    }
+
+    template<typename return_t, typename callable_t, typename arg1_t, typename arg2_t, typename arg3_t, typename arg4_t, typename arg5_t>
+    static cond_var_t<return_t> *task(callable_t fun, arg1_t arg1, arg2_t arg2, arg3_t arg3, arg4_t arg4, arg5_t arg5) {
+        return task(boost::bind(fun, arg1, arg2, arg3, arg4, arg5));
+    }
 
 };
 

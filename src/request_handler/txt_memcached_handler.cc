@@ -43,7 +43,7 @@ public:
     txt_memcached_handler_t *rh;
     
     txt_memcached_get_request_t(txt_memcached_handler_t *rh, bool with_cas)
-        : rh(rh), num_gets(0), curr_get(-1), with_cas(with_cas)
+        : rh(rh), num_gets(0), with_cas(with_cas)
     {
     }
 
@@ -52,7 +52,8 @@ public:
             get_t *g = &gets[num_gets++];
             keycpy(&g->key, key);
             g->parent = this;
-            g->ready = false;
+            g->got_value = new coro_t::cond_var_t<bool>();
+            g->sent = new coro_t::cond_var_t<bool>();
             if (with_cas) rh->server->store->get_cas(key, g);
             else rh->server->store->get(key, g);
             return true;
@@ -62,8 +63,7 @@ public:
     }
     
     void dispatch() {
-        curr_get = 0;   // allow pump() to go
-        pump();
+        coro_t::spawn(&txt_memcached_get_request_t::write_each, this);
     }
     
     ~txt_memcached_get_request_t() {
@@ -85,29 +85,25 @@ private:
         mcflags_t flags;
         cas_t cas;
         
-        bool ready, sending;
+        coro_t::cond_var_t<bool> *got_value, *sent; //Don't actually care about the values
         int buffer_being_sent;
-        
+
         void value(const_buffer_group_t *b, store_t::get_callback_t::done_callback_t *cb, mcflags_t f, cas_t c) {
             assert(b);
             buffer = b;
             callback = cb;
             flags = f;
             cas = c;
-            ready = true;
-            sending = false;
-            parent->pump();
+            got_value->fill(true);
         }
-        
+
         void not_found() {
             buffer = NULL;
-            ready = true;
-            sending = false;
-            parent->pump();
+            got_value->fill(true);
         }
-        
+
         void write() {
-            sending = true;
+            got_value->join();
             if (buffer) {
                 if (parent->with_cas) {
                     parent->rh->conn_fsm->sbuf->printf(
@@ -135,7 +131,7 @@ private:
                 done();
             }
         }
-        
+
         void on_data_transferred() {
             buffer_being_sent++;
             if (buffer_being_sent == (int)buffer->buffers.size()) {
@@ -146,30 +142,25 @@ private:
                 parent->rh->write_value((const char *)buffer->buffers[buffer_being_sent].data, buffer->buffers[buffer_being_sent].size, this);
             }
         }
-        
+
         void done() {
-            assert(&parent->gets[parent->curr_get] == this);
-            parent->curr_get++;
-            parent->pump();
+            sent->fill(true);
         }
     };
     get_t gets[MAX_OPS_IN_REQUEST];
-    int num_gets, curr_get;
+    int num_gets;
     
     bool with_cas;
-    
-    void pump() {
-        if (curr_get == -1) return;   // So we don't finish before we're done starting
-        if (curr_get < num_gets) {
+
+    void write_each() {
+        for (int curr_get = 0; curr_get < num_gets; curr_get++) {
             get_t *g = &gets[curr_get];
-            if (g->ready && !g->sending) {
-                g->write();   // When this completes, it will increment curr_fsm and call pump()
-            }
-        } else {
-            rh->conn_fsm->sbuf->printf(RETRIEVE_TERMINATOR);
-            rh->request_complete();
-            delete this;
+            g->write();
+            g->sent->join();
         }
+        rh->conn_fsm->sbuf->printf(RETRIEVE_TERMINATOR);
+        rh->request_complete();
+        delete this;
     }
 };
 
