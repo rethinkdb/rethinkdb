@@ -127,6 +127,9 @@ void linux_net_conn_t::put_more_data_in_peek_buffer() {
     int res = ::read(sock, peek_buffer.data() + old_size, IO_BUFFER_SIZE);
 
     if (res == -1) {
+        // Reset the temporary increase in peek buffer size
+        peek_buffer.resize(old_size);
+
         if (errno == EAGAIN || errno == EWOULDBLOCK) {
             // We will get a callback via on_event() at a later date
             return;
@@ -138,6 +141,9 @@ void linux_net_conn_t::put_more_data_in_peek_buffer() {
         }
 
     } else if (res == 0) {
+        // Reset the temporary increase in peek buffer size
+        peek_buffer.resize(old_size);
+
         // Socket was closed
         on_shutdown();
 

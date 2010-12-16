@@ -80,38 +80,33 @@ bool conn_acceptor_t::shutdown(shutdown_callback_t *cb) {
 }
 
 bool conn_acceptor_t::shutdown_conns_on_this_core() {
-    while (conn_handler_t *h = conn_handlers[get_thread_id()].head()) {
-        assert(!h->quitting);   // If it's already quitting it shouldn't be in the list
-        h->quit();
-        
-        /* quit() should have called on_quit() which should have removed it from the list */
-        assert(h != conn_handlers[get_thread_id()].head());
+
+    /* Duplicate the conn list because when we call quit() on a conn_handler_t, it might remove
+    itself from conn_handlers[get_thread_id()]. So we need to make our own copy to safely iterate
+    over it. */
+    std::vector<conn_handler_t *> conns;
+    for (conn_handler_t *h = conn_handlers[get_thread_id()].head();
+         h;
+         h = conn_handlers[get_thread_id()].next(h)) {
+        conns.push_back(h);
     }
+
+    for (int i = 0; i < (int)conns.size(); i++) conns[i]->quit();
 
     return true;
 }
 
 perfmon_counter_t pm_conns_total("conns_total[conns]");
 
-conn_handler_t::conn_handler_t() : parent(NULL), quitting(false) {
+conn_handler_t::conn_handler_t() :
+    parent(NULL)
+{
     pm_conns_total++;
-}
-
-void conn_handler_t::on_quit() {
-    assert(parent);   // We shouldn't get an on_quit() before we finished starting
-
-    assert(!quitting);
-    quitting = true;
-
-    /* Remove ourselves from the conn_handlers list immediately so that if the server
-    gets a SIGINT before we get an on_conn_fsm_shutdown(), the conn_fsm_t won't be
-    told to quit when it already is quitting. */
-    parent->conn_handlers[get_thread_id()].remove(this);
+    // Can't do any more because we don't know who our parent is yet.
 }
 
 conn_handler_t::~conn_handler_t() {
-    assert(parent);
-    assert(quitting);
+    parent->conn_handlers[get_thread_id()].remove(this);
     do_on_thread(parent->home_thread, parent, &conn_acceptor_t::have_shutdown_a_conn);
     pm_conns_total--;
     delete conn;

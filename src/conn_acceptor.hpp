@@ -78,14 +78,16 @@ class conn_handler_t :
 
 public:
     conn_handler_t();
-    virtual void quit() = 0;   // Should call on_quit()
-    void on_quit();
+
+    // Should eventually close the socket and destroy the conn_handler_t, but doesn't need to
+    // do so immediately.
+    virtual void quit() = 0;
+
     ~conn_handler_t();
 
 private:
     conn_acceptor_t *parent;
     net_conn_t *conn;
-    bool quitting;
 };
 
 #endif /* __CONN_ACCEPTOR_HPP__ */

@@ -103,7 +103,6 @@ void replication_master_t::quit() {
 
     if (!conn->closed()) conn->shutdown();
 
-    on_quit();
     store->stop_replicating(this);   // Will call stopped() when it is done
 }
 

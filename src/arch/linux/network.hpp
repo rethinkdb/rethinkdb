@@ -16,7 +16,7 @@ struct linux_net_conn_read_external_callback_t
 
 struct linux_net_conn_read_buffered_callback_t
 {
-    virtual void on_net_conn_read_buffered(char *buffer, size_t size) = 0;
+    virtual void on_net_conn_read_buffered(const char *buffer, size_t size) = 0;
     virtual void on_net_conn_close() = 0;
     virtual ~linux_net_conn_read_buffered_callback_t() { }
 };

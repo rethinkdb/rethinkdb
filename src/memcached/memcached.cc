@@ -1,3 +1,6 @@
+#include "memcached/memcached.hpp"
+#include "server.hpp"
+#include <stdarg.h>
 
 class txt_memcached_get_request_t
 {
@@ -31,8 +34,8 @@ public:
 
         /* Now that we're sure they're all valid, send off the requests */
         for (int i = 0; i < num_gets; i++) {
-            if (with_cas) rh->server->store->get_cas(&gets[i]->key, &gets[i]);
-            else rh->server->store->get(&gets[i]->key, &gets[i]);
+            if (with_cas) rh->server->store->get_cas(&gets[i].key, &gets[i]);
+            else rh->server->store->get(&gets[i].key, &gets[i]);
         }
     }
 
@@ -44,8 +47,7 @@ private:
     the wrong order, but we still need to send the answers in the right order. */
 
     struct get_t :
-        public store_t::get_callback_t,
-        public net_conn_write_callback_t
+        public store_t::get_callback_t
     {
         txt_memcached_get_request_t *parent;
         union {
@@ -206,11 +208,11 @@ private:
 
     /* Mode goes from unused->fill->check_crlf->done or unused->consume->check_crlf->done */
     enum {
-        unused,   // mode = unused before get_value() has been called
-        fill,   // Fill some buffers with the data from the socket
-        consume,   // Discard the data from the socket
-        check_crlf,   // Make sure that the terminator is legal (after either fill or consume)
-        done
+        mode_unused,   // mode = mode_unused before get_value() has been called
+        mode_fill,   // Fill some buffers with the data from the socket
+        mode_consume,   // Discard the data from the socket
+        mode_check_crlf,   // Make sure that the terminator is legal (after either mode_fill or mode_consume)
+        mode_done
     } mode;
 
     int requestor_thread;   // thread that callback must be called on
@@ -219,7 +221,7 @@ private:
     /* false if the CRLF was not found or the connection was closed as we read */
     bool success;
 
-    txt_memcached_request_handler_t *rh;   // Request handler for us to read from
+    txt_memcached_handler_t *rh;   // Request handler for us to read from
     size_t length;   // Our length
 
     buffer_group_t *bg;   // Buffers to read into in fill mode
@@ -231,13 +233,13 @@ private:
     char crlf[2];   // Buf used to hold what should be CRLF
 
 public:
-    memcached_streaming_data_provider_t(txt_memcached_request_handler_t *rh, uint32_t length)
-        : mode(unused), rh(rh), length(length)
+    memcached_streaming_data_provider_t(txt_memcached_handler_t *rh, uint32_t length)
+        : mode(mode_unused), rh(rh), length(length)
     {
     }
     
-    ~rh_data_provider_t() {
-        assert(mode == done);
+    ~memcached_streaming_data_provider_t() {
+        assert(mode == mode_done);
         if (dummy_buf) {
             delete[] dummy_buf;
         }
@@ -248,38 +250,40 @@ public:
     }
     
     void get_value(buffer_group_t *b, data_provider_t::done_callback_t *c) {
-        assert(mode == unused);
+        assert(mode == mode_unused);
         if (b) {
-            mode = fill;
+            mode = mode_fill;
             dummy_buf = NULL;
             bg = b;
             bg_seg = bg_seg_pos = 0;
         } else {
             /* We are to read the data off the socket but not do anything with it. */
-            mode = consume;
+            mode = mode_consume;
             dummy_buf = new char[IO_BUFFER_SIZE];   // Space to put the garbage data
             bytes_consumed = 0;
         }
         requestor_thread = get_thread_id();
         cb = c;
         
-        if (continue_on_thread(home_thread, this)) on_cpu_switch();
+        if (continue_on_thread(home_thread, this)) on_thread_switch();
     }
 
     void on_thread_switch() {
-        switch (state) {
-            case fill:
-            case consume:
+        switch (mode) {
+            case mode_fill:
+            case mode_consume:
                 /* We're arriving on the thread with the request handler */
                 assert_thread();
                 on_net_conn_read_external();  // Start the read cycle
                 break;
-            case done:
+            case mode_done:
                 /* We're delivering our response to the btree-FSM that asked for the value */
                 assert(get_thread_id() == requestor_thread);
                 if (success) cb->have_provided_value();
                 else cb->have_failed();
                 break;
+            case mode_unused:
+            case mode_check_crlf:
             default:
                 unreachable();
         }
@@ -288,15 +292,17 @@ public:
 private:
     void on_net_conn_read_external() {
         switch (mode) {
-            case fill:
+            case mode_fill:
                 do_fill();
                 break;
-            case consume:
+            case mode_consume:
                 do_consume();
                 break;
-            case check_crlf:
+            case mode_check_crlf:
                 do_check_crlf();
                 break;
+            case mode_unused:
+            case mode_done:
             default:
                 unreachable();
         }
@@ -306,8 +312,8 @@ private:
         /* We get this callback if the connection is closed while we are reading the data
         from the socket. */
         success = false;
-        mode = done;
-        if (continue_on_thread(requestor_thread, this)) on_cpu_switch();
+        mode = mode_done;
+        if (continue_on_thread(requestor_thread, this)) on_thread_switch();
     }
 
     void do_consume() {
@@ -338,7 +344,7 @@ private:
 
     void check_crlf() {
         /* This is called to start checking the CRLF, *before* we have filled the CRLF buffer. */
-        mode = check_crlf;
+        mode = mode_check_crlf;
         rh->conn->read_external(crlf, 2, this);
     }
 
@@ -346,27 +352,37 @@ private:
         /* This is called in the process of checking the CRLF, *after* we have filled the CRLF
         buffer. */
         success = (memcmp(crlf, "\r\n", 2) == 0);
-        mode = done;
-        if (continue_on_thread(requestor_thread, this)) on_cpu_switch();
+        mode = mode_done;
+        if (continue_on_thread(requestor_thread, this)) on_thread_switch();
     }
 };
 
 /* Common superclass for txt_memcached_set_request_t, which handles set/add/replace/cas,
 and txt_memcached_append_prepend_request_t, which handles append/prepend. The subclass
 should override dispatch(). */
-class txt_memcached_storage_request_t
+struct txt_memcached_storage_request_t :
+    public net_conn_read_external_callback_t
 {
-    request_handler_t *rh;
+    txt_memcached_handler_t *rh;
     data_provider_t *data;
 
     /* If the command line says "noreply", then noreply = true. If the command line says "noreply"
     and the value is not being streamed, then nowait = true. */
     bool noreply, nowait;
 
+    enum storage_command_t {
+        set_command,
+        add_command,
+        replace_command,
+        cas_command,
+        append_command,
+        prepend_command
+    };
+
 private:
     /* Temporary space to store stuff while reading the value from the socket, assuming we don't
     stream the value. */
-    storage_command storage_command;
+    storage_command_t storage_command;
     union {
         char key_memory[MAX_KEY_SIZE + sizeof(btree_key)];
         btree_key key;
@@ -379,18 +395,24 @@ private:
     char *value_buffer;   // Only used if not streaming
 
 public:
-    txt_memcached_storage_request_t(
-        txt_memcached_handler_t *rh,
-        storage_command sc,
-        int argc, char **argv)
-        : rh(rh)
+    txt_memcached_storage_request_t()
+        : data(NULL)
     {
+    }
+
+    void init(
+        txt_memcached_handler_t *r,
+        storage_command_t sc,
+        int argc, char **argv)
+    {
+        rh = r;
+
         char *invalid_char;
 
         /* cmd key flags exptime size [noreply]
         OR "cas" key flags exptime size cas [noreply] */
-        if ((command != CAS && (argc != 5 && argc != 6)) ||
-            (command == CAS && (argc != 6 && argc != 7))) {
+        if ((sc != cas_command && (argc != 5 && argc != 6)) ||
+            (sc == cas_command && (argc != 6 && argc != 7))) {
             rh->writef("CLIENT_ERROR bad command line format\r\n");
             rh->read_next_command();
             delete this;
@@ -451,8 +473,8 @@ public:
             return;
         }
 
-        /* If a "cas", parse the CAS unique */
-        if (storage_command == CAS) {
+        /* If a "cas", parse the cas_command unique */
+        if (storage_command == cas_command) {
             req_cas = strtoull_strict(argv[5], &invalid_char, 10);
             if (*invalid_char != '\0') {
                 rh->writef("CLIENT_ERROR bad command line format\r\n");
@@ -463,7 +485,7 @@ public:
         }
 
         /* Check for noreply */
-        if ((storage_command != CAS && argc == 6) || (storage_command == CAS && argc == 7)) {
+        if ((storage_command != cas_command && argc == 6) || (storage_command == cas_command && argc == 7)) {
             if (strcmp(argv[6], "noreply") == 0) {
                 noreply = true;
             } else {
@@ -478,7 +500,7 @@ public:
         is_streaming = (value_size > MAX_BUFFERED_SET_SIZE);
         if (!is_streaming) {
             value_buffer = new char[value_size+2];   // +2 for the CRLF
-            rh->conn->read_external(value_buffer, value_size, this);
+            rh->conn->read_external(value_buffer, value_size+2, this);
         } else {
             data = new memcached_streaming_data_provider_t(rh, value_size);
             on_net_conn_read_external();   // Go ahead immediately; the value will be read later
@@ -488,7 +510,7 @@ public:
     void on_net_conn_read_external() {
 
         /* We finished creating the data provider. */
-        if (is_streaming) {
+        if (!is_streaming) {
             /* The buffered_data_provider_t doesn't check the CRLF, so we must check it here.
             The memcached_streaming_data_provider_t checks its own CRLF. */
             if (value_buffer[value_size] != '\r' || value_buffer[value_size + 1] != '\n') {
@@ -523,12 +545,12 @@ public:
         delete this;
     }
 
-    virtual void dispatch(storage_command storage_command,
+    virtual void dispatch(storage_command_t storage_command,
             btree_key *key, data_provider_t *data,
             mcflags_t flags, exptime_t exptime, cas_t cas) = 0;
 
     ~txt_memcached_storage_request_t() {
-        delete data;
+        if (data) delete data;
     }
 
     /* Called by the subclass after the KVS calls it back */
@@ -536,60 +558,70 @@ public:
         if (!nowait) rh->read_next_command();
         delete this;
     }
-}
+};
 
-class txt_memcached_set_request_t :
+struct txt_memcached_set_request_t :
     public txt_memcached_storage_request_t,
     public store_t::set_callback_t
 {
+    txt_memcached_set_request_t(
+        txt_memcached_handler_t *rh,
+        storage_command_t sc,
+        int argc, char **argv)
+    {
+        init(rh, sc, argc, argv);
+    }
+
     /* Called by the superclass when it's done parsing the value */
-    void dispatch(storage_command storage_command,
+    void dispatch(storage_command_t sc,
             btree_key *key, data_provider_t *data,
             mcflags_t flags, exptime_t exptime, cas_t cas) {
 
-        switch (storage_command) {
-            case SET:
+        switch (sc) {
+            case set_command:
                 rh->server->store->set(key, data, flags, exptime, this);
                 break;
-            case ADD
+            case add_command:
                 rh->server->store->add(key, data, flags, exptime, this);
                 break;
-            case REPLACE
+            case replace_command:
                 rh->server->store->replace(key, data, flags, exptime, this);
                 break;
-            case CAS:
+            case cas_command:
                 rh->server->store->cas(key, data, flags, exptime, cas, this);
                 break;
+            case append_command:
+            case prepend_command:
             default:
                 unreachable();
         }
     }
 
     void stored() {
-        if (!noreply) rh->writef(STORAGE_SUCCESS);
+        if (!noreply) rh->writef("STORED\r\n");
         done();
     }
     void not_stored() {
-        if (!noreply) rh->writef(STORAGE_FAILURE);
+        if (!noreply) rh->writef("NOT_STORED\r\n");
         done();
     }
     void exists() {
-        if (!noreply) rh->writef(KEY_EXISTS);
+        if (!noreply) rh->writef("EXISTS\r\n");
         done();
     }
     void not_found() {
-        if (!noreply) rh->writef(NOT_FOUND);
+        if (!noreply) rh->writef("NOT_FOUND\r\n");
         done();
     }
     void too_large() {
-        if (!noreply) rh->writef(TOO_LARGE);
+        if (!noreply) rh->writef("SERVER_ERROR object too large for cache\r\n");
         done();
     }
     void data_provider_failed() {
         // This is called if there was no CRLF at the end of the data block.
         /* Write BAD_BLOB even if we got a "noreply" because it's a syntax error in the
         command, not a result of the command. */
-        rh->writef(BAD_BLOB);
+        rh->writef("CLIENT_ERROR bad data chunk\r\n");
         done();
     }
 };
@@ -647,8 +679,8 @@ public:
         }
 
         /* Dispatch the request */
-        if (increment) rh->server->store->incr(key, delta, this);
-        else rh->server->store->decr(key, delta, this);
+        if (increment) rh->server->store->incr(&u.key, delta, this);
+        else rh->server->store->decr(&u.key, delta, this);
         
         if (noreply) {
             rh->read_next_command();
@@ -668,37 +700,48 @@ public:
     }
     void not_found() {
         if (!noreply) {
-            rh->writef(NOT_FOUND);
+            rh->writef("NOT_FOUND\r\n");
             rh->read_next_command();
         }
         delete this;
     }
     void not_numeric() {
         if (!noreply) {
-            rh->writef(INCR_DECR_ON_NON_NUMERIC_VALUE);
+            rh->writef("CLIENT_ERROR cannot increment or decrement non-numeric value\r\n");
             rh->read_next_command();
         }
         delete this;
     }
 };
 
-class txt_memcached_append_prepend_request_t :
+struct txt_memcached_append_prepend_request_t :
     public txt_memcached_storage_request_t,
     public store_t::append_prepend_callback_t
 {
-public:
+    txt_memcached_append_prepend_request_t(
+        txt_memcached_handler_t *rh,
+        storage_command_t sc,
+        int argc, char **argv)
+    {
+        init(rh, sc, argc, argv);
+    }
+
     /* Called by the superclass when it's done parsing the value */
-    void dispatch(storage_command storage_command,
+    void dispatch(storage_command_t sc,
             btree_key *key, data_provider_t *data,
             mcflags_t flags, exptime_t exptime, cas_t cas)
     {
-        switch (storage_command) {
-            case APPEND:
+        switch (sc) {
+            case append_command:
                 rh->server->store->append(key, data, this);
                 break;
-            case PREPEND:
+            case prepend_command:
                 rh->server->store->prepend(key, data, this);
                 break;
+            case set_command:
+            case add_command:
+            case replace_command:
+            case cas_command:
             default:
                 unreachable();
         }
@@ -709,20 +752,20 @@ public:
     }
 
     void success() {
-        if (!noreply) rh->writef(STORAGE_SUCCESS);
+        if (!noreply) rh->writef("STORED\r\n");
         done();
     }
     void too_large() {
-        if (!noreply) rh->writef(STORAGE_FAILURE);
+        if (!noreply) rh->writef("NOT_STORED\r\n");
         done();
     }
     void not_found() {
-        if (!noreply) rh->writef(STORAGE_FAILURE);
+        if (!noreply) rh->writef("NOT_STORED\r\n");
         done();
     }
     void data_provider_failed() {
         // See note in txt_memcached_set_request_t::data_provider_failed()
-        rh->writef(BAD_BLOB);
+        rh->writef("CLIENT_ERROR bad data chunk\r\n");
         done();
     }
 };
@@ -730,7 +773,7 @@ public:
 class txt_memcached_delete_request_t :
     public store_t::delete_callback_t
 {
-    request_handler_t *rh;
+    txt_memcached_handler_t *rh;
     bool noreply;
 
 public:
@@ -770,7 +813,7 @@ public:
         }
 
         /* Dispatch the request */
-        rh->server->store->delete_key(key, this);
+        rh->server->store->delete_key(&u.key, this);
 
         if (noreply) {
             rh->read_next_command();
@@ -783,14 +826,14 @@ public:
 
     void deleted() {
         if (!noreply) {
-            rh->writef(DELETE_SUCCESS);
+            rh->writef("DELETED\r\n");
             rh->read_next_command();
         }
         delete this;
     }
     void not_found() {
         if (!noreply) {
-            rh->writef(NOT_FOUND);
+            rh->writef("NOT_FOUND\r\n");
             rh->read_next_command();
         }
         delete this;
@@ -821,7 +864,7 @@ public:
                 rh->writef("STAT %s %s\r\n", iter->first.c_str(), iter->second.c_str());
             }
         } else {
-            for (int i = 0; i < fields.size(); i++) {
+            for (int i = 0; i < (int)fields.size(); i++) {
                 perfmon_stats_t::iterator stat_entry = stats.find(fields[i]);
                 if (stat_entry == stats.end()) {
                     rh->writef("NOT FOUND\r\n");
@@ -853,7 +896,7 @@ public:
     }
 
     void on_gc_disabled() {
-        assert_cpu();
+        assert_thread();
         // TODO: Figure out what to print here
         rh->writef("DISABLED%s\r\n", multiple_users_seen ? " (Warning: multiple users think they're the one who disabled the gc.)" : "");
         rh->read_next_command();
@@ -877,7 +920,7 @@ public:
     }
 
     void on_gc_enabled() {
-        assert_cpu();
+        assert_thread();
         // TODO: figure out what to print here.
         rh->writef("ENABLED%s\r\n", multiple_users_seen ? " (Warning: gc was already enabled.)" : "");
         rh->read_next_command();
@@ -889,9 +932,28 @@ private:
 };
 
 txt_memcached_handler_t::txt_memcached_handler_t(net_conn_t *conn, server_t *server)
-    : conn(conn), server(server), send_buffer(conn), have_quit(false)
+    : conn(conn), server(server), send_buffer(conn)
 {
+    logINF("Opened connection %p", this);
     read_next_command();
+}
+
+~txt_memcached_handler_t::txt_memcached_handler_t() {
+    logINF("Closed connection %p", this);
+}
+
+void txt_memcached_handler_t::write(const char *buffer, size_t bytes) {
+    send_buffer.write(bytes, buffer);
+}
+
+void txt_memcached_handler_t::writef(const char *format, ...) {
+    va_list args;
+    va_start(args, format);
+    char buffer[1000];
+    size_t bytes = vsnprintf(buffer, sizeof(buffer), format, args);
+    assert(bytes < sizeof(buffer));
+    send_buffer.write(bytes, buffer);
+    va_end(args);
 }
 
 void txt_memcached_handler_t::quit() {
@@ -900,20 +962,16 @@ void txt_memcached_handler_t::quit() {
     is in *_request_t, then it will eventually call read_next_command(), which will see that
     the net_conn_t is closed and then delete us. If the read or write operation is in us, then
     we will delete ourself immediately. */
-    on_quit();
-    have_quit = true;   // So on_quit() doesn't get called too many times
-    conn->shutdown();
+    if (!conn->closed()) conn->shutdown();
 }
 
 void txt_memcached_handler_t::read_next_command() {
 
-    /* If this returns true, then the socket died during a read or write done by a *_request_t */
+    /* If conn->closed(), then the socket died during a read or write done by a *_request_t,
+    and that's why we didn't find out about it immediately. */
     if (conn->closed()) {
-        /* have_quit would be true if there was a subcommand reading from the socket and then quit()
-        got called. have_quit would be false if the connection closed for some other reason while
-        there was a subcommand reading from the socket. */
-        if (!have_quit) on_quit();
         delete this;
+        return;
     }
 
     /* Before we read another command off the socket, we must make sure that there isn't
@@ -932,10 +990,6 @@ void txt_memcached_handler_t::on_send_buffer_socket_closed() {
 
     /* Socket closed as we were flushing the send buffer. */
 
-    /* Inform conn_handler_t. have_quit would be true if the socket was closed because we
-    called shutdown() on it, in which case we already informed the conn_handler_t. */
-    if (!have_quit) on_quit();
-
     delete this;
 }
 
@@ -946,17 +1000,19 @@ void txt_memcached_handler_t::on_net_conn_read_buffered(const char *buffer, size
 
     /* We must duplicate the line because accept_buffer() may invalidate "buffer" */
     int line_size = (char*)crlf_loc - buffer + 2;
-    std::vector line_storage;   // Easy way to make sure 'line' gets freed when we exit this function
-    line_storage.set_size(line_size);
-    char *line = line_storage.data();
-    memcpy(line, buffer, line_size);
+    std::vector<char> line_storage;   // Easy way to make sure 'line' gets freed when we exit this function
+    line_storage.resize(line_size);
+    memcpy(line_storage.data(), buffer, line_size);
     conn->accept_buffer(line_size);
-    
+    line_storage.push_back('\0');   // Null terminator
+    char *line = line_storage.data();
+
     /* Tokenize the line */
     std::vector<char *> args;
-    char *state;
-    while (char *cmd_str = strtok_r(line, DELIMS, &state)) {
+    char *l = line, *state = NULL;
+    while (char *cmd_str = strtok_r(l, " \r\n\t", &state)) {
         args.push_back(cmd_str);
+        l = NULL;
     }
 
     if (args.size() == 0) {
@@ -971,17 +1027,17 @@ void txt_memcached_handler_t::on_net_conn_read_buffered(const char *buffer, size
     } else if(!strcmp(args[0], "gets")) {
         new txt_memcached_get_request_t(this, true, args.size(), args.data());
     } else if(!strcmp(args[0], "set")) {     // check for storage commands
-        new txt_memcached_set_request_t(this, SET, args.size(), args.data());
+        new txt_memcached_set_request_t(this, txt_memcached_storage_request_t::set_command, args.size(), args.data());
     } else if(!strcmp(args[0], "add")) {
-        new txt_memcached_set_request_t(this, ADD, args.size(), args.data());
+        new txt_memcached_set_request_t(this, txt_memcached_storage_request_t::add_command, args.size(), args.data());
     } else if(!strcmp(args[0], "replace")) {
-        new txt_memcached_set_request_t(this, REPLACE, args.size(), args.data());
+        new txt_memcached_set_request_t(this, txt_memcached_storage_request_t::replace_command, args.size(), args.data());
     } else if(!strcmp(args[0], "append")) {
-        new txt_memcached_append_prepend_request_t(this, APPEND, args.size(), args.data());
+        new txt_memcached_append_prepend_request_t(this, txt_memcached_storage_request_t::append_command, args.size(), args.data());
     } else if(!strcmp(args[0], "prepend")) {
-        new txt_memcached_append_prepend_request_t(this, PREPEND, args.size(), args.data());
+        new txt_memcached_append_prepend_request_t(this, txt_memcached_storage_request_t::prepend_command, args.size(), args.data());
     } else if(!strcmp(args[0], "cas")) {
-        new txt_memcached_set_request_t(this, CAS, args.size(), args.data());
+        new txt_memcached_set_request_t(this, txt_memcached_storage_request_t::cas_command, args.size(), args.data());
     } else if(!strcmp(args[0], "delete")) {
         new txt_memcached_delete_request_t(this, args.size(), args.data());
     } else if(!strcmp(args[0], "incr")) {
@@ -1031,10 +1087,6 @@ void txt_memcached_handler_t::on_net_conn_read_buffered(const char *buffer, size
 void txt_memcached_handler_t::on_net_conn_close() {
 
     /* The connection was closed as we were waiting for a complete line to buffer */
-
-    /* Inform conn_handler_t. have_quit would be true if the socket was closed because we
-    called shutdown() on it, in which case we already informed the conn_handler_t. */
-    if (!have_quit) on_quit();
 
     delete this;
 }
