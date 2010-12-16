@@ -57,6 +57,7 @@ public:
     void quit();
 private:
     bool quitting; /* !< if true don't issue anymore requests just let them finish and then quit */
+    bool dummy_sock_got_quit;
 #ifndef NDEBUG
     bool we_are_closed;
 #endif

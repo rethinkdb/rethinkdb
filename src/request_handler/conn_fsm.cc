@@ -4,6 +4,7 @@
 #include "utils.hpp"
 #include <signal.h>
 #include "request_handler/request_handler.hpp"
+#include <string.h>
 
 /* Global counters for the number of conn_fsms in each state */
 
@@ -58,10 +59,8 @@ void conn_fsm_t::return_to_socket_connected(bool error = false) {
         assert(nrbuf == 0);
         assert(!sbuf || sbuf->outstanding() == linked_buf_t::linked_buf_empty);
     }
-    if(rbuf)
-        delete (iobuf_t*)(rbuf);
-    if(sbuf)
-        delete (linked_buf_t*)(sbuf);
+    delete (iobuf_t*)rbuf;
+    delete sbuf;
     init_state();
 }
 
@@ -72,7 +71,7 @@ conn_fsm_t::result_t conn_fsm_t::fill_buf(void *buf, unsigned int *bytes_filled,
     ssize_t sz = conn->read_nonblocking((byte *) buf + *bytes_filled, total_length - *bytes_filled);
     
     if (sz == -1) {
-        if(errno == EAGAIN || errno == EWOULDBLOCK) {   // EAGAIN may be equal to EWOULDBLOCK, so can't put them in a switch below
+        if(errno == EAGAIN || errno == EWOULDBLOCK) {
             // The machine can't be in fsm_socket_send_incomplete state here,
             // since we break out in these cases. So it's safe to free the buffer.
             assert(state != fsm_socket_send_incomplete);
@@ -81,17 +80,16 @@ conn_fsm_t::result_t conn_fsm_t::fill_buf(void *buf, unsigned int *bytes_filled,
                 if (sbuf && sbuf->outstanding() == linked_buf_t::linked_buf_empty) {
                     return_to_socket_connected();
                 }
-            } else
+            } else {
                 state = fsm_socket_connected; //we're wating for a socket event
-            //break;
+            }
         } else {
-            // We must fail gracefully here, probably logging the error.
+            debugf("Connection closed: %s\n", strerror(errno));
 #ifndef NDEBUG
             we_are_closed = true;
 #endif
             if (!quitting) on_quit();
             quitting = true;
-            assert(state == fsm_outstanding_data || state == fsm_socket_connected);
             return fsm_quit_connection;
         }
     } else if (sz > 0) {
@@ -105,7 +103,9 @@ conn_fsm_t::result_t conn_fsm_t::fill_buf(void *buf, unsigned int *bytes_filled,
 #ifndef NDEBUG
         we_are_closed = true;
 #endif
+        // If we got zero, we hit the eof on the connection and _we_ _are_ _done_.
         if (!quitting) on_quit();
+
         quitting = true;
         assert(state == fsm_outstanding_data
                || state == fsm_socket_connected
@@ -139,6 +139,9 @@ conn_fsm_t::result_t conn_fsm_t::fill_ext_rbuf() {
 conn_fsm_t::result_t conn_fsm_t::read_data(event_t *event) {
     // TODO: this is really silly; this notification should be done differently
     assert((conn_fsm_t *) event->state == this);
+
+    if (quitting)
+        return fsm_transition_ok;
     
     if (ext_rbuf) {
         result_t res = fill_ext_rbuf();
@@ -181,8 +184,9 @@ void conn_fsm_t::dummy_sock_event() {
     bzero((void*)&event, sizeof(event));
     event.event_type = et_sock;
     event.state = this;
-    do_transition(&event); // TODO: Figure this out once quit/shutdown is fixed.
-    //do_transition_and_handle_result(&event);
+    if (fsm_quit_connection == do_transition(&event)) {
+        dummy_sock_got_quit = true;
+    }
 }
 
 void conn_fsm_t::check_external_buf() {
@@ -268,7 +272,6 @@ conn_fsm_t::result_t conn_fsm_t::do_fsm_outstanding_req(event_t *event) {
             if (!quitting) on_quit();
             quitting = true;
             if (state == fsm_socket_send_incomplete || state == fsm_btree_incomplete) {
-                quitting = true;
                 return fsm_transition_ok;
             } else {
                 return fsm_quit_connection;
@@ -333,8 +336,11 @@ void conn_fsm_t::do_transition_and_handle_result(event_t *event) {
             }
             // No action
             in_do_transition = false;
-            break;
-            
+            if (!dummy_sock_got_quit) {
+                break;
+            }
+            // fallthrough
+            debugf("fallthrough, dummy_sock_got_quit.\n");  // SRH
         case fsm_quit_connection:
             state_counters[old_state]->end(&start_time);
             delete this;
@@ -417,14 +423,14 @@ conn_fsm_t::result_t conn_fsm_t::do_transition(event_t *event) {
 }
 
 conn_fsm_t::conn_fsm_t(net_conn_t *c, request_handler_t *rh)
-    : quitting(false), conn(new oldstyle_net_conn_t(c)), in_do_transition(false), req_handler(rh)
+    : quitting(false), dummy_sock_got_quit(false), conn(new oldstyle_net_conn_t(c)), in_do_transition(false), req_handler(rh)
 {
 #ifndef NDEBUG
     we_are_closed = false;
     fprintf(stderr, "Opened socket %p\n", this);
 #endif
     
-    conn->set_callback(this);   // I can haz chezborger when there is data on the network?
+    conn->set_callback(this);
     
     init_state();
     
@@ -435,18 +441,10 @@ conn_fsm_t::~conn_fsm_t() {
 #ifndef NDEBUG
     fprintf(stderr, "Closed socket %p\n", this);
 #endif
-    
-    if (conn) delete conn;
-    
+    delete conn;
     delete req_handler;
-    
-    if (rbuf) {
-        delete (iobuf_t*)(rbuf);
-    }
-    
-    if (sbuf) {
-        delete (sbuf);
-    }
+    delete (iobuf_t *)rbuf;
+    delete sbuf;
 }
 
 void conn_fsm_t::quit() {

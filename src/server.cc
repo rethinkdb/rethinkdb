@@ -3,6 +3,7 @@
 #include "request_handler/txt_memcached_handler.hpp"
 #include "request_handler/conn_fsm.hpp"
 #include "replication/master.hpp"
+#include "diskinfo.hpp"
 
 server_t::server_t(cmd_config_t *cmd_config, thread_pool_t *thread_pool)
     : cmd_config(cmd_config), thread_pool(thread_pool),
@@ -22,7 +23,7 @@ void server_t::do_start_loggers() {
 }
 
 void server_t::on_logger_ready() {
-    if (cmd_config->create_store && !cmd_config->force_create) do_check_store();
+    if (cmd_config->create_store) do_check_store();
     else do_start_store();
 }
 
@@ -39,7 +40,7 @@ void server_t::do_check_store() {
 }
 
 void server_t::on_store_check(bool ok) {
-    if (ok) {
+    if (ok && !cmd_config->force_create) {
         fail_due_to_user_error(
             "It looks like there already is a database here. RethinkDB will abort in case you "
             "didn't mean to overwrite it. Run with the '--force' flag to override this warning.");
@@ -61,6 +62,9 @@ void server_t::do_start_store() {
         logINF("Loading existing database...\n");
         done = store->start_existing(this);
     }
+
+    log_disk_info(cmd_config->store_dynamic_config.serializer_private);
+
     if (done) on_store_ready();
 }
 

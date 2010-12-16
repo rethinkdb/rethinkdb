@@ -89,14 +89,16 @@ struct linked_buf_t : public buffer_base_t<IO_BUFFER_SIZE>
          *  \return true if there is still outstanding data
          */
         linked_buf_state_t send(oldstyle_net_conn_t *conn) {
-            linked_buf_state_t res;
-            if (nsent < nbuf) {
+            linked_buf_state_t res = linked_buf_error;
+            while (nsent < nbuf) {
                 int sz = conn->write_nonblocking(this->buf + nsent, nbuf - nsent);
                 if(sz < 0) {
-                    if(errno == EAGAIN || errno == EWOULDBLOCK)
+                    if(errno == EAGAIN || errno == EWOULDBLOCK) {
                         res = linked_buf_outstanding;
-                    else
-                        return linked_buf_error;
+                    } else {
+                        res = linked_buf_error;
+                    }
+                     goto error_breakout;
                 } else {
                     nsent += sz;
                     if (next == NULL) {
@@ -105,25 +107,15 @@ struct linked_buf_t : public buffer_base_t<IO_BUFFER_SIZE>
                         nbuf -= nsent;
                         nsent = 0;
                     }
-
-                    if (nsent == nbuf) {
-                        if (next == NULL) {
-                            res = linked_buf_empty;
-                        } else {
-                            //the network handled this buffer without a problem
-                            //so maybe we can send more
-                            gc_me = true; //ask for garbage collection
-                            res = next->send(conn);
-                        }
-                    } else {
-                        res = linked_buf_outstanding;
-                    }
                 }
-            } else if (next != NULL) {
-                res = next->send(conn);
-            } else {
-                res = linked_buf_empty;
             }
+            if (next == NULL) {
+                res = linked_buf_empty;
+            } else {
+                gc_me = true;
+                res = next->send(conn);
+            }
+error_breakout:
             return res;
         }
 

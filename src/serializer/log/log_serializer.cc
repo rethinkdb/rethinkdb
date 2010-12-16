@@ -307,7 +307,7 @@ bool log_serializer_t::start_existing(ready_callback_t *ready_cb) {
 }
 
 void *log_serializer_t::malloc() {
-    assert(state == state_ready);
+    assert(state == state_ready || state == state_shutting_down);
     
     // TODO: we shouldn't use malloc_aligned here, we should use our
     // custom allocation system instead (and use corresponding
@@ -320,7 +320,7 @@ void *log_serializer_t::malloc() {
 }
 
 void *log_serializer_t::clone(void *_data) {
-    assert(state == state_ready);
+    assert(state == state_ready || state == state_shutting_down);
     
     // TODO: we shouldn't use malloc_aligned here, we should use our
     // custom allocation system instead (and use corresponding
@@ -334,7 +334,7 @@ void *log_serializer_t::clone(void *_data) {
 }
 
 void log_serializer_t::free(void *ptr) {
-    assert(state == state_ready);
+    assert(state == state_ready || state == state_shutting_down);
     
     char *data = (char *)ptr;
     data -= sizeof(buf_data_t);
