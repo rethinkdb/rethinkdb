@@ -1,4 +1,5 @@
 #include "large_buf.hpp"
+#include <algorithm>
 
 int64_t large_buf_t::cache_size_to_leaf_bytes(block_size_t block_size) {
     return block_size.value() - sizeof(large_buf_leaf);
@@ -257,6 +258,18 @@ void large_buf_t::acquire(large_buf_ref root_ref_, access_t access_, large_buf_a
     acquire_slice(root_ref_, access_, 0, root_ref_.size, callback_);
 }
 
+void large_buf_t::acquire_rhs(large_buf_ref root_ref_, access_t access_, large_buf_available_callback_t *callback_) {
+    int64_t beg = std::max(int64_t(0), root_ref_.size - 1);
+    int64_t end = root_ref_.size;
+    acquire_slice(root_ref_, access_, beg, end - beg, callback_);
+}
+
+void large_buf_t::acquire_lhs(large_buf_ref root_ref_, access_t access_, large_buf_available_callback_t *callback_) {
+    int64_t beg = 0;
+    int64_t end = std::min(int64_t(1), root_ref_.size);
+    acquire_slice(root_ref_, access_, beg, end - beg, callback_);
+}
+
 void large_buf_t::buftree_acquired(buftree_t *tr) {
     assert(state == loading);
     assert(tr);
@@ -422,7 +435,7 @@ void large_buf_t::fill_tree_at(buftree_t *tr, int64_t pos, const byte *data, int
             int64_t i = int64_t(k) * step;
             int64_t beg = std::max(i, pos);
             int64_t end = std::min(pos + fill_size, i + step);
-            fill_tree_at(tr->children[k], beg - i, data + (beg - pos), end - beg, levels - 1);
+            fill_tree_at(tr->children.at(k), beg - i, data + (beg - pos), end - beg, levels - 1);
         }
     }
     assert(root->level == num_levels(root_ref.offset + root_ref.size));
@@ -434,7 +447,7 @@ buftree_t *large_buf_t::remove_level(buftree_t *tr, block_id_t id, block_id_t *i
 #ifndef NDEBUG
     num_bufs--;
 #endif
-    buftree_t *ret = tr->children[0];
+    buftree_t *ret = tr->children.at(0);
     delete tr;
     *idout = ret->buf->get_block_id();
     return ret;
@@ -620,7 +633,7 @@ buf_t *large_buf_t::get_segment_buf(int64_t ix, uint16_t *seg_size, uint16_t *se
     buftree_t *tr = root;
     while (levels > 1) {
         int64_t step = max_offset(levels - 1);
-        tr = tr->children[pos / step];
+        tr = tr->children.at(pos / step);
         pos = pos % step;
         --levels;
         assert(tr->level == levels);

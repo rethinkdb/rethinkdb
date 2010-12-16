@@ -3,10 +3,10 @@ import os, sys, socket, random
 from test_common import *
 import time
 
-n_appends = 100000
+#n_appends = 100000
+n_appends = 2000
 
 def test_function(opts, port):
-    port = 11213
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.connect(("localhost", port))
 
@@ -30,7 +30,8 @@ def test_function(opts, port):
     actual_val = s.recv(len(expected_res))
     if (expected_res != actual_val):
         print "Expected val: %s" % expected_res
-        print "Incorrect val: %s", actual_val
+        print "Incorrect val: %s" % actual_val
+        raise ValueError("Incorrect value.")
 
 if __name__ == "__main__":
     op = make_option_parser()
