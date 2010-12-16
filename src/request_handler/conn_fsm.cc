@@ -58,10 +58,8 @@ void conn_fsm_t::return_to_socket_connected(bool error = false) {
         assert(nrbuf == 0);
         assert(!sbuf || sbuf->outstanding() == linked_buf_t::linked_buf_empty);
     }
-    if(rbuf)
-        delete (iobuf_t*)(rbuf);
-    if(sbuf)
-        delete (linked_buf_t*)(sbuf);
+    delete (iobuf_t*)rbuf;
+    delete sbuf;
     init_state();
 }
 
@@ -106,7 +104,9 @@ conn_fsm_t::result_t conn_fsm_t::fill_buf(void *buf, unsigned int *bytes_filled,
 #ifndef NDEBUG
         we_are_closed = true;
 #endif
+        // If we got zero, we hit the eof on the connection and _we_ _are_ _done_.
         if (!quitting) on_quit();
+
         quitting = true;
         assert(state == fsm_outstanding_data
                || state == fsm_socket_connected
@@ -185,8 +185,9 @@ void conn_fsm_t::dummy_sock_event() {
     bzero((void*)&event, sizeof(event));
     event.event_type = et_sock;
     event.state = this;
-    do_transition(&event); // TODO: Figure this out once quit/shutdown is fixed.
-    //do_transition_and_handle_result(&event);
+    if (fsm_quit_connection == do_transition(&event)) {
+        dummy_sock_got_quit = true;
+    }
 }
 
 void conn_fsm_t::check_external_buf() {
@@ -336,8 +337,10 @@ void conn_fsm_t::do_transition_and_handle_result(event_t *event) {
             }
             // No action
             in_do_transition = false;
-            break;
-            
+            if (!dummy_sock_got_quit) {
+                break;
+            }
+            // fallthrough
         case fsm_quit_connection:
             state_counters[old_state]->end(&start_time);
             delete this;
@@ -420,14 +423,14 @@ conn_fsm_t::result_t conn_fsm_t::do_transition(event_t *event) {
 }
 
 conn_fsm_t::conn_fsm_t(net_conn_t *c, request_handler_t *rh)
-    : quitting(false), conn(new oldstyle_net_conn_t(c)), in_do_transition(false), req_handler(rh)
+    : quitting(false), dummy_sock_got_quit(false), conn(new oldstyle_net_conn_t(c)), in_do_transition(false), req_handler(rh)
 {
 #ifndef NDEBUG
     we_are_closed = false;
     fprintf(stderr, "Opened socket %p\n", this);
 #endif
     
-    conn->set_callback(this);   // I can haz chezborger when there is data on the network?
+    conn->set_callback(this);
     
     init_state();
     
@@ -438,18 +441,10 @@ conn_fsm_t::~conn_fsm_t() {
 #ifndef NDEBUG
     fprintf(stderr, "Closed socket %p\n", this);
 #endif
-    
-    if (conn) delete conn;
-    
+    delete conn;
     delete req_handler;
-    
-    if (rbuf) {
-        delete (iobuf_t*)(rbuf);
-    }
-    
-    if (sbuf) {
-        delete (sbuf);
-    }
+    delete (iobuf_t *)rbuf;
+    delete sbuf;
 }
 
 void conn_fsm_t::quit() {
