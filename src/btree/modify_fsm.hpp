@@ -111,6 +111,8 @@ protected:
         btree_value old_value;
     };
 
+    virtual void actually_acquire_large_value(large_buf_t *lb, const large_buf_ref& lbref);
+
 private:
     bool dest_reached;
     bool key_found;

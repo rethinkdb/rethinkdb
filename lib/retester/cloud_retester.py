@@ -93,7 +93,7 @@ class TestingNode:
             self.ssh_transport.use_compression()
             self.ssh_transport.set_keepalive(60)
             self.ssh_transport.connect(username=self.username, pkey=self.private_ssh_key)
-        except (IOError, paramiko.SSHException) as e:
+        except (IOError, EOFError, paramiko.SSHException) as e:
             self.ssh_transport = None
             time.sleep(120) # Wait a bit in case the network needs time to recover
             if retry:
@@ -132,7 +132,7 @@ class TestingNode:
             #self.ssh_transport.close()
             
             return (command_exit_status, command_output)
-        except (IOError, paramiko.SSHException) as e:
+        except (IOError, EOFError, paramiko.SSHException) as e:
             self.ssh_transport = None
             if retry:
                 return self.run_command(command, retry=False)
@@ -152,7 +152,7 @@ class TestingNode:
             sftp_session.chmod(destination_path, os.stat(local_path)[ST_MODE])
         
             sftp_session.close()
-        except (IOError, paramiko.SSHException) as e:
+        except (IOError, EOFError, paramiko.SSHException) as e:
             self.ssh_transport = None
             if retry:
                 return self.put_file(local_path, destination_path, retry=False)
@@ -171,7 +171,7 @@ class TestingNode:
             sftp_session.get(remote_path, destination_path)
             
             sftp_session.close()
-        except (IOError, paramiko.SSHException) as e:
+        except (IOError, EOFError, paramiko.SSHException) as e:
             self.ssh_transport = None
             if retry:
                 return self.get_file(remote_path, destination_path, retry=False)
@@ -196,7 +196,7 @@ class TestingNode:
                     sftp_session.mkdir(os.path.join(destination_path + root[len(local_path):], name))
             
             sftp_session.close()
-        except (IOError, paramiko.SSHException) as e:
+        except (IOError, EOFError, paramiko.SSHException) as e:
             self.ssh_transport = None
             if retry:
                 return self.put_directory(local_path, destination_path, retry=False)
@@ -215,7 +215,7 @@ class TestingNode:
             sftp_session.mkdir(remote_path)
             
             sftp_session.close()
-        except (IOError, paramiko.SSHException) as e:
+        except (IOError, EOFError, paramiko.SSHException) as e:
             self.ssh_transport = None
             if retry:
                 return self.make_directory(remote_path, retry=False)
@@ -548,13 +548,13 @@ def start_test_on_node(node, test_command, test_timeout = None, locking_timeout 
         # Run test and release lock after it has finished
         command_result = node.run_command("sh -c \"nohup sh -c \\\"(cd %s; LD_LIBRARY_PATH=/tmp/cloudtest_libs:$LD_LIBRARY_PATH PATH=/tmp/cloudtest_bin:$PATH PYTHONPATH=/tmp/cloudtest_python:$PYTHONPATH VALGRIND_LIB=/tmp/cloudtest_libs/valgrind python %s; %s)&\\\" > /dev/null 2> /dev/null\"" % ("cloud_retest/%s/test" % test_reference, wrapper_script_filename.replace(" ", "\\ "), node.get_release_lock_command()))
             
-    except (IOError, paramiko.SSHException) as e:
+    except (IOError, EOFError, paramiko.SSHException) as e:
         print "Starting test failed: %s" % e
         test_reference = "Failed"
         
         try:
             node.release_lock()
-        except (IOError, paramiko.SSHException):
+        except (IOError, EOFError, paramiko.SSHException):
             print "Unable to release lock on node %s. Node is now defunct." % node.hostname
         
             
@@ -618,7 +618,7 @@ def wait_for_nodes_to_finish():
         try:
             node.acquire_lock()
             node.release_lock()
-        except (IOError, paramiko.SSHException) as e:
+        except (IOError, EOFError, paramiko.SSHException) as e:
             print "Node %s is broken" % node.hostname
 
 
@@ -638,7 +638,7 @@ def collect_reports_from_nodes():
                 # Clean test (maybe preserve data instead?)
                 node = single_run[0]
                 node.run_command("rm -rf cloud_retest/%s" % test_reference)
-            except (IOError, paramiko.SSHException) as e:
+            except (IOError, EOFError, paramiko.SSHException) as e:
                 print "Unable to retrieve result for %s from node %s" % (single_run[1], single_run[0].hostname)
         
         reports.append((test_reference.command, results))
@@ -647,7 +647,7 @@ def collect_reports_from_nodes():
     for node in testing_nodes:
         try:
             cleanup_testing_node(node)
-        except (IOError, paramiko.SSHException) as e:
+        except (IOError, EOFError, paramiko.SSHException) as e:
             print "Unable to cleanup node %s: %s" % (node.hostname, e)
         
     terminate_testing_nodes()

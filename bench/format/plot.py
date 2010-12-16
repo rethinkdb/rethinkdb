@@ -1,4 +1,4 @@
-import pdb
+import os, sys
 import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -12,6 +12,8 @@ import json
 import time
 from line import *
 from statlib import stats
+
+FONT_FILE = os.path.abspath(os.path.join(os.path.dirname(__file__), 'aurulent_sans_regular.ttf'))
 
 def safe_div(x, y):
     if y == 0:
@@ -171,7 +173,7 @@ class TimeSeriesCollection():
     def histogram(self, out_fname):
         assert self.data
 
-        font = fm.FontProperties(family=['sans-serif'],size='small',fname='/usr/share/fonts/truetype/aurulent_sans_regular.ttf')
+        font = fm.FontProperties(family=['sans-serif'],size='small',fname=FONT_FILE)
         fig = plt.figure()
         # Set the margins for the plot to ensure a minimum of whitespace
         ax = plt.axes([0.12,0.12,0.85,0.85])
@@ -215,12 +217,12 @@ class TimeSeriesCollection():
 
         queries_formatter = FuncFormatter(lambda x, pos: '%1.fk' % (x*1e-3))
         if not large:
-            font = fm.FontProperties(family=['sans-serif'],size='small',fname='/usr/share/fonts/truetype/aurulent_sans_regular.ttf')
+            font = fm.FontProperties(family=['sans-serif'],size='small',fname=FONT_FILE)
             mpl.rcParams['xtick.major.pad'] = 4
             mpl.rcParams['ytick.major.pad'] = 4
             mpl.rcParams['lines.linewidth'] = 1
         else:
-            font = fm.FontProperties(family=['sans-serif'],size=36,fname='/usr/share/fonts/truetype/aurulent_sans_regular.ttf')
+            font = fm.FontProperties(family=['sans-serif'],size=36,fname=FONT_FILE)
             mpl.rcParams['xtick.major.pad'] = 20
             mpl.rcParams['ytick.major.pad'] = 20
             mpl.rcParams['lines.linewidth'] = 5
@@ -300,7 +302,7 @@ class ScatterCollection():
         assert self.data
 
         queries_formatter = FuncFormatter(lambda x, pos: '%1.fk' % (x*1e-3))
-        font = fm.FontProperties(family=['sans-serif'],size='small',fname='/usr/share/fonts/truetype/aurulent_sans_regular.ttf')
+        font = fm.FontProperties(family=['sans-serif'],size='small',fname=FONT_FILE)
         fig = plt.figure()
         # Set the margins for the plot to ensure a minimum of whitespace
         ax = plt.axes([0.13,0.12,0.85,0.85])
