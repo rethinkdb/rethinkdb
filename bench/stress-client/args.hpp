@@ -20,6 +20,7 @@ void usage(const char *name) {
     _d_server.print();
     printf("].\n");
     printf("\t-c, --clients\n\t\tNumber of concurrent clients. Defaults to [%d].\n", _d.clients);
+    printf("\t--client-suffix\n\t\tAppend a per-client id to key names.\n");
     printf("\t-w, --workload\n\t\tTarget load to generate. Expects a value in format D/U/I/R/A/P/V, where\n" \
            "\t\t\tD - number of deletes\n" \
            "\t\t\tU - number of updates\n" \
@@ -91,6 +92,7 @@ void parse(config_t *config, int argc, char *argv[]) {
                 {"out-file",       required_argument, 0, 'o'},
                 {"in-file",        required_argument, 0, 'i'},
                 {"db-file",        required_argument, 0, 'f'},
+                {"client-suffix",  no_argument, 0, 'a'},
                 {"help",           no_argument, &do_help, 1},
                 {0, 0, 0, 0}
             };
@@ -151,6 +153,9 @@ void parse(config_t *config, int argc, char *argv[]) {
             break;
         case 'f':
             strncpy(config->db_file, optarg, MAX_FILE);
+            break;
+        case 'a':
+            config->keys.append_client_suffix = true;
             break;
         case 'h':
             usage(argv[0]);
