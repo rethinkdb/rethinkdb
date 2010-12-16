@@ -53,7 +53,7 @@ buf_t *co_acquire_transaction(transaction_t *transaction, block_id_t block_id, a
     return value;
 }
 
-void _btree_get(btree_key *_key, btree_key_value_store_t *store, store_t::get_callback_t *cb) {
+void co_btree_get(btree_key *_key, btree_key_value_store_t *store, store_t::get_callback_t *cb) {
     union {
         char value_memory[MAX_TOTAL_NODE_CONTENTS_SIZE+sizeof(btree_value)];
         btree_value value;
@@ -182,5 +182,5 @@ void _btree_get(btree_key *_key, btree_key_value_store_t *store, store_t::get_ca
 }
 
 void btree_get(btree_key *key, btree_key_value_store_t *store, store_t::get_callback_t *cb) {
-    coro_t::spawn(_btree_get, key, store, cb);
+    coro_t::spawn(co_btree_get, key, store, cb);
 }
