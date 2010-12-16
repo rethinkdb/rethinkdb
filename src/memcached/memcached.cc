@@ -8,7 +8,7 @@ public:
     txt_memcached_handler_t *rh;
     
     txt_memcached_get_request_t(txt_memcached_handler_t *rh, bool with_cas, int argc, char **argv)
-        : rh(rh), num_gets(0), curr_get(0)
+        : rh(rh), num_gets(0), curr_get(0), with_cas(with_cas)
     {
         assert(argc >= 1);
         assert(strcmp(argv[0], "get") == 0 || strcmp(argv[0], "gets") == 0);
@@ -33,7 +33,8 @@ public:
         }
 
         /* Now that we're sure they're all valid, send off the requests */
-        for (int i = 0; i < num_gets; i++) {
+        int ngets = num_gets;   // Make a copy in case we get deleted
+        for (int i = 0; i < ngets; i++) {
             if (with_cas) rh->server->store->get_cas(&gets[i].key, &gets[i]);
             else rh->server->store->get(&gets[i].key, &gets[i]);
         }
@@ -527,14 +528,13 @@ public:
         if (noreply && !is_streaming) nowait = true;
         else nowait = false;
 
+        if (nowait) {
+            rh->read_next_command();
+        }
+
         /* Dispatch the request now that we're sure that it parses properly. dispatch() is
         overriden by the subclass to do the appropriate thing. */
         dispatch(storage_command, &key, data, mcflags, exptime, req_cas);
-
-        if (nowait) {
-            rh->read_next_command();
-            rh = NULL;   // We shouldn't touch the request handler after this
-        }
     }
 
     void on_net_conn_close() {
@@ -678,14 +678,13 @@ public:
             noreply = false;
         }
 
+        if (noreply) {
+            rh->read_next_command();
+        }
+
         /* Dispatch the request */
         if (increment) rh->server->store->incr(&u.key, delta, this);
         else rh->server->store->decr(&u.key, delta, this);
-        
-        if (noreply) {
-            rh->read_next_command();
-            rh = NULL;   /* Since we're a noreply, we shouldn't touch the conn after this */
-        }
     }
 
     ~txt_memcached_incr_decr_request_t() {
@@ -812,13 +811,12 @@ public:
             noreply = false;
         }
 
-        /* Dispatch the request */
-        rh->server->store->delete_key(&u.key, this);
-
         if (noreply) {
             rh->read_next_command();
-            rh = NULL;   /* Since we're a noreply, we shouldn't touch the conn after this */
         }
+
+        /* Dispatch the request */
+        rh->server->store->delete_key(&u.key, this);
     }
 
     ~txt_memcached_delete_request_t() {
@@ -934,12 +932,12 @@ private:
 txt_memcached_handler_t::txt_memcached_handler_t(net_conn_t *conn, server_t *server)
     : conn(conn), server(server), send_buffer(conn)
 {
-    logINF("Opened connection %p", this);
+    logINF("Opened connection %p\n", this);
     read_next_command();
 }
 
-~txt_memcached_handler_t::txt_memcached_handler_t() {
-    logINF("Closed connection %p", this);
+txt_memcached_handler_t::~txt_memcached_handler_t() {
+    logINF("Closed connection %p\n", this);
 }
 
 void txt_memcached_handler_t::write(const char *buffer, size_t bytes) {

@@ -167,7 +167,20 @@ bool linux_net_conn_t::see_if_callback_is_satisfied() {
 
     in_read_buffered_cb = true;   // Make it legal to call accept_buffer()
 
+    /* Weird dance to figure out if we got deleted by the callback, while also making it possible
+    for on_event() to know if we got deleted */
+    bool deleted = false;
+    bool *prev_set_me_true_on_delete = set_me_true_on_delete;
+    set_me_true_on_delete = &deleted;
+
     read_buffered_cb->on_net_conn_read_buffered(peek_buffer.data(), peek_buffer.size());
+
+    if (deleted) {
+        *prev_set_me_true_on_delete = true;   // Tell on_event()
+        return true;
+    } else {
+        set_me_true_on_delete = prev_set_me_true_on_delete;
+    }
 
     if (in_read_buffered_cb) {
         // accept_buffer() was not called; our offer was rejected.
@@ -322,7 +335,7 @@ void linux_net_conn_t::on_event(int events) {
             default: unreachable();
         }
         if (deleted || was_shut_down) {
-            set_me_true_on_delete = NULL;
+            if (!deleted) set_me_true_on_delete = NULL;
             return;
         }
     }
@@ -333,7 +346,7 @@ void linux_net_conn_t::on_event(int events) {
             default: unreachable();
         }
         if (deleted || was_shut_down) {
-            set_me_true_on_delete = NULL;
+            if (!deleted) set_me_true_on_delete = NULL;
             return;
         }
     }
@@ -341,8 +354,8 @@ void linux_net_conn_t::on_event(int events) {
         // Should this be on_shutdown()? The difference is that by calling shutdown(), we
         // cause ::shutdown() to be called on our socket. But if there was a socket error,
         // it might have shut itself down already. This is probably safe.
-        shutdown();
         set_me_true_on_delete = NULL;
+        shutdown();
         return;
     }
 
