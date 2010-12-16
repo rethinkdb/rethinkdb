@@ -73,7 +73,7 @@ conn_fsm_t::result_t conn_fsm_t::fill_buf(void *buf, unsigned int *bytes_filled,
     ssize_t sz = conn->read_nonblocking((byte *) buf + *bytes_filled, total_length - *bytes_filled);
     
     if (sz == -1) {
-        if(errno == EAGAIN || errno == EWOULDBLOCK) {   // EAGAIN may be equal to EWOULDBLOCK, so can't put them in a switch below
+        if(errno == EAGAIN || errno == EWOULDBLOCK) {
             // The machine can't be in fsm_socket_send_incomplete state here,
             // since we break out in these cases. So it's safe to free the buffer.
             assert(state != fsm_socket_send_incomplete);
@@ -85,7 +85,6 @@ conn_fsm_t::result_t conn_fsm_t::fill_buf(void *buf, unsigned int *bytes_filled,
             } else {
                 state = fsm_socket_connected; //we're wating for a socket event
             }
-            //break;
         } else {
             debugf("Connection closed: %s\n", strerror(errno));
 #ifndef NDEBUG

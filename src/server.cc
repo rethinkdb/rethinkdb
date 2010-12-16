@@ -3,6 +3,7 @@
 #include "request_handler/txt_memcached_handler.hpp"
 #include "request_handler/conn_fsm.hpp"
 #include "replication/master.hpp"
+#include "diskinfo.hpp"
 
 server_t::server_t(cmd_config_t *cmd_config, thread_pool_t *thread_pool)
     : cmd_config(cmd_config), thread_pool(thread_pool),
@@ -61,6 +62,9 @@ void server_t::do_start_store() {
         logINF("Loading existing database...\n");
         done = store->start_existing(this);
     }
+
+    log_disk_info(cmd_config->store_dynamic_config.serializer_private);
+
     if (done) on_store_ready();
 }
 
