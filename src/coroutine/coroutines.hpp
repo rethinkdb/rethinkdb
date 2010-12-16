@@ -176,7 +176,6 @@ public:
         callable_t *f = (callable_t *)malloc(sizeof(fun));
         memcpy(f, &fun, sizeof(fun));
         spawn(&run_task<return_t, callable_t>, f, cond_var);
-        //run_task<return_t, callable_t>(fun, cond_var);
         return cond_var;
     }
 
