@@ -99,9 +99,11 @@ void server_t::do_start_conn_acceptor() {
     thread_pool->set_interrupt_message(&interrupt_message);
 }
 
-conn_handler_t *server_t::create_request_handler(net_conn_t *conn, void *server) {
+conn_handler_t *server_t::create_request_handler(conn_acceptor_t *acc, net_conn_t *conn, void *udata) {
 
-    return new txt_memcached_handler_t(conn, reinterpret_cast<server_t *>(server));
+    server_t *server = reinterpret_cast<server_t *>(udata);
+    assert(acc == &server->conn_acceptor);
+    return new txt_memcached_handler_t(&server->conn_acceptor, conn, server);
 }
 
 void server_t::shutdown() {

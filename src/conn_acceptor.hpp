@@ -21,7 +21,7 @@ class conn_acceptor_t :
 public:
     /* When the conn_acceptor_t gets an incoming connection, it calls the provided creator
     function to make an object to handle it. */
-    explicit conn_acceptor_t(int port, conn_handler_t *(*creator)(net_conn_t*, void*), void *udata);
+    explicit conn_acceptor_t(int port, conn_handler_t *(*creator)(conn_acceptor_t*, net_conn_t*, void*), void *udata);
 
     // Returns false on error, true if everything is ok
     bool start();
@@ -43,7 +43,7 @@ private:
 
     int port;
 
-    conn_handler_t *(*creator)(net_conn_t*, void*);
+    conn_handler_t *(*creator)(conn_acceptor_t*, net_conn_t*, void*);
     void *creator_udata;
 
     net_listener_t *listener;
@@ -77,7 +77,7 @@ class conn_handler_t :
     friend class conn_acceptor_t;
 
 public:
-    conn_handler_t();
+    conn_handler_t(conn_acceptor_t *, net_conn_t *);
 
     // Should eventually close the socket and destroy the conn_handler_t, but doesn't need to
     // do so immediately.

@@ -1,7 +1,7 @@
 #include "conn_acceptor.hpp"
 #include "db_thread_info.hpp"
 
-conn_acceptor_t::conn_acceptor_t(int port, conn_handler_t *(*creator)(net_conn_t*, void*), void *udata)
+conn_acceptor_t::conn_acceptor_t(int port, conn_handler_t *(*creator)(conn_acceptor_t*, net_conn_t*, void*), void *udata)
     : state(state_off), port(port), creator(creator), creator_udata(udata), listener(NULL), next_thread(0), n_active_conns(0) { }
 
 conn_acceptor_t::~conn_acceptor_t() {
@@ -30,12 +30,7 @@ void conn_acceptor_t::on_net_listener_accept(net_conn_t *conn) {
 }
 
 bool conn_acceptor_t::create_conn_on_this_core(net_conn_t *conn) {
-    conn_handler_t *handler = creator(conn, creator_udata);
-    assert(!handler->parent);
-    handler->parent = this;
-    handler->conn = conn;
-    conn_handlers[get_thread_id()].push_back(handler);
-
+    creator(this, conn, creator_udata);
     return true;
 }
 
@@ -98,11 +93,11 @@ bool conn_acceptor_t::shutdown_conns_on_this_core() {
 
 perfmon_counter_t pm_conns_total("conns_total[conns]");
 
-conn_handler_t::conn_handler_t() :
-    parent(NULL)
+conn_handler_t::conn_handler_t(conn_acceptor_t *parent, net_conn_t *conn)
+    : parent(parent), conn(conn)
 {
+    parent->conn_handlers[get_thread_id()].push_back(this);
     pm_conns_total++;
-    // Can't do any more because we don't know who our parent is yet.
 }
 
 conn_handler_t::~conn_handler_t() {

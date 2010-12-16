@@ -77,8 +77,8 @@ void replication_message_t::on_net_conn_close() {
     done_sending();   // So others can see that the conn died
 }
 
-replication_master_t::replication_master_t(store_t *s, net_conn_t *c)
-    : store(s), conn(c), quitting(false)
+replication_master_t::replication_master_t(conn_acceptor_t *acc, store_t *s, net_conn_t *c)
+    : conn_handler_t(acc, c), store(s), conn(c), quitting(false)
 {
     logINF("Opened replicant %p\n", this);
     store->replicate(this, repli_time(0));
@@ -106,6 +106,6 @@ void replication_master_t::quit() {
     store->stop_replicating(this);   // Will call stopped() when it is done
 }
 
-conn_handler_t *create_replication_master(net_conn_t *c, void *s) {
-    return new replication_master_t((store_t *)s, c);
+conn_handler_t *create_replication_master(conn_acceptor_t *acc, net_conn_t *c, void *s) {
+    return new replication_master_t(acc, (store_t *)s, c);
 }

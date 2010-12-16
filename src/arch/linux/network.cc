@@ -176,7 +176,9 @@ bool linux_net_conn_t::see_if_callback_is_satisfied() {
     read_buffered_cb->on_net_conn_read_buffered(peek_buffer.data(), peek_buffer.size());
 
     if (deleted) {
-        *prev_set_me_true_on_delete = true;   // Tell on_event()
+        if (prev_set_me_true_on_delete) {
+            *prev_set_me_true_on_delete = true;   // Tell on_event()
+        }
         return true;
     } else {
         set_me_true_on_delete = prev_set_me_true_on_delete;

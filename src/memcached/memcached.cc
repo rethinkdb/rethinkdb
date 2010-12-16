@@ -486,8 +486,9 @@ public:
         }
 
         /* Check for noreply */
-        if ((storage_command != cas_command && argc == 6) || (storage_command == cas_command && argc == 7)) {
-            if (strcmp(argv[6], "noreply") == 0) {
+        int offset = storage_command == cas_command ? 1 : 0;
+        if (argc == 6 + offset) {
+            if (strcmp(argv[5 + offset], "noreply") == 0) {
                 noreply = true;
             } else {
                 // Memcached 1.4.5 ignores invalid tokens here
@@ -528,13 +529,15 @@ public:
         if (noreply && !is_streaming) nowait = true;
         else nowait = false;
 
-        if (nowait) {
-            rh->read_next_command();
-        }
+        /* Store the request handler in case we get deleted */
+        txt_memcached_handler_t *_rh = rh;
+        bool _nowait = nowait;
 
         /* Dispatch the request now that we're sure that it parses properly. dispatch() is
         overriden by the subclass to do the appropriate thing. */
         dispatch(storage_command, &key, data, mcflags, exptime, req_cas);
+
+        if (_nowait) _rh->read_next_command();
     }
 
     void on_net_conn_close() {
@@ -678,13 +681,15 @@ public:
             noreply = false;
         }
 
-        if (noreply) {
-            rh->read_next_command();
-        }
+        /* Store the request handler in case we get deleted */
+        txt_memcached_handler_t *_rh = rh;
+        bool _noreply = noreply;
 
         /* Dispatch the request */
         if (increment) rh->server->store->incr(&u.key, delta, this);
         else rh->server->store->decr(&u.key, delta, this);
+
+        if (_noreply) _rh->read_next_command();
     }
 
     ~txt_memcached_incr_decr_request_t() {
@@ -744,10 +749,6 @@ struct txt_memcached_append_prepend_request_t :
             default:
                 unreachable();
         }
-    }
-
-    ~txt_memcached_append_prepend_request_t() {
-        delete data;
     }
 
     void success() {
@@ -811,12 +812,14 @@ public:
             noreply = false;
         }
 
-        if (noreply) {
-            rh->read_next_command();
-        }
+        /* Store the request handler in case we get deleted */
+        txt_memcached_handler_t *_rh = rh;
+        bool _noreply = noreply;
 
         /* Dispatch the request */
         rh->server->store->delete_key(&u.key, this);
+
+        if (_noreply) _rh->read_next_command();
     }
 
     ~txt_memcached_delete_request_t() {
@@ -929,8 +932,8 @@ private:
     DISABLE_COPYING(enable_gc_request_t);
 };
 
-txt_memcached_handler_t::txt_memcached_handler_t(net_conn_t *conn, server_t *server)
-    : conn(conn), server(server), send_buffer(conn)
+txt_memcached_handler_t::txt_memcached_handler_t(conn_acceptor_t *acc, net_conn_t *conn, server_t *server)
+    : conn_handler_t(acc, conn), conn(conn), server(server), send_buffer(conn)
 {
     logINF("Opened connection %p\n", this);
     read_next_command();
