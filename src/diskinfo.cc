@@ -1,6 +1,9 @@
 #include "diskinfo.hpp"
 
 #include <sys/stat.h>
+#include <sys/types.h>
+#include <pwd.h>
+#include <grp.h>
 #include <unistd.h>
 #include <string>
 #include <iostream>
@@ -60,7 +63,7 @@ void tokenize_line(const std::string& line, std::vector<std::string> &tokens) {
     }
 }
 
-void get_partition_map(std::vector<partition_info_t> &partitions) {
+void get_partition_map(std::vector<partition_info_t *> &partitions) {
     /* /proc partitions looks like this:
      * major minor  #blocks  name
      *
@@ -95,17 +98,19 @@ void get_partition_map(std::vector<partition_info_t> &partitions) {
             partition->name = tokens[3];
             partition->name.insert(0, std::string("/dev/"));
 
-            partitions.push_back(*partition);
-
+            partitions.push_back(partition);
         }
     }
 }
 
 void log_disk_info(std::vector<log_serializer_private_dynamic_config_t> &serializers) {
-    std::vector<partition_info_t> partitions;
+    std::vector<partition_info_t *> partitions;
     std::set<std::string> devices;
 
+    logINF("Disk info for database disks:\n");
+
     struct stat st;
+
     if (-1 == (stat(hdparm_path, &st))) {
         logWRN("System lacks hdparm; giving up\n");
         return;
@@ -127,23 +132,28 @@ void log_disk_info(std::vector<log_serializer_private_dynamic_config_t> &seriali
         }
 
         for (unsigned int j = 0; j < partitions.size(); j++) {
-            if (partitions[j].nmajor == maj && partitions[j].nminor == min) {
-                devices.insert(partitions[j].name);
+            if (partitions[j]->nmajor == maj && partitions[j]->nminor == min) {
+                devices.insert(partitions[j]->name);
             }
         }
     }
+    for (unsigned int i = 0; i < partitions.size(); i++) {
+        delete partitions[i];
+    }
+    partitions.clear();
 
     std::string cmd = std::string(hdparm_path);
-    cmd.append(std::string(" -iI"));
+    cmd.append(std::string(" -iI 2>/dev/null"));
     for (std::set<std::string>::iterator it = devices.begin(); it != devices.end(); it++) {
         cmd.append(std::string(" "));
         cmd.append(*it);
     }
 
 
-    char *buf = (char *) malloc(sizeof(char) * 1024);
+    char *buf = (char *) calloc(1024, sizeof(char));
     FILE *stream;
-    size_t nbytes;
+    size_t total_bytes = 0;
+    size_t nbytes = 0;
 
     if (NULL == buf) {
         crash("out of memory\n");
@@ -155,14 +165,22 @@ void log_disk_info(std::vector<log_serializer_private_dynamic_config_t> &seriali
     mlog_start(INF);
     while (1023 == (nbytes = fread(buf, 1, 1023, stream)))
     {
+        total_bytes += nbytes;
         mlogf("%s", buf);
     }
     if (-1 == pclose(stream)) {
         mlog_end();
         crash("pclose failed\n");
     }
+    total_bytes += nbytes;
     buf[nbytes + 1] = '\0';
-    mlogf("%s\n", buf);
+    if (total_bytes < 5) {
+        /* No output. We didn't have enough permissions to run hdparm.*/
+        mlogf("Must be root or part of group `disk' to get disk info.\n");
+    }
+    else {
+        mlogf("%s\n", buf);
+    }
     mlog_end();
 
     free(buf);

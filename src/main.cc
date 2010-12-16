@@ -44,9 +44,7 @@ int main(int argc, char *argv[]) {
     } starter;
     starter.cmd_config = &config;
 
-    if (config.disk_info) {
-        log_disk_info(config.store_dynamic_config.serializer_private);
-    }
+    log_disk_info(config.store_dynamic_config.serializer_private);
 
     // Run the server.
     thread_pool_t thread_pool(config.n_workers);
