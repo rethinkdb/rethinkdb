@@ -120,6 +120,7 @@ void log_disk_info(std::vector<log_serializer_private_dynamic_config_t> &seriali
 
     int maj, min = 0;
     const char *path;
+    mlog_start(INF);
     for (unsigned int i = 0; i < serializers.size(); i++) {
         path = serializers[i].db_filename.c_str();
         dev_t device = get_device(path);
@@ -127,7 +128,14 @@ void log_disk_info(std::vector<log_serializer_private_dynamic_config_t> &seriali
         min = minor(device);
         if (maj == 0) {
             /* We're looking at a device, not a file */
-            devices.insert(path);
+            if (strncmp("/dev/ram", path, 8)) {
+                devices.insert(path);
+            }
+            else {
+                /* Don't give ramdisks to hdparm because it won't produce
+                 * anything useful. */
+                mlogf("\n%s:\n    RAM disk\n", path);
+            }
             continue;
         }
 
@@ -142,12 +150,21 @@ void log_disk_info(std::vector<log_serializer_private_dynamic_config_t> &seriali
     }
     partitions.clear();
 
+
+    if (devices.size() < 1) {
+        /* Don't run hdparm unless we have devices to run it on. */
+        mlog_end();
+        return;
+    }
+
     std::string cmd = std::string(hdparm_path);
-    cmd.append(std::string(" -iI 2>/dev/null"));
+    cmd.append(std::string(" -iI"));
     for (std::set<std::string>::iterator it = devices.begin(); it != devices.end(); it++) {
         cmd.append(std::string(" "));
         cmd.append(*it);
     }
+    /* Standard error from hdparm isn't useful. */
+    cmd.append(std::string(" 2>/dev/null"));
 
 
     char *buf = (char *) calloc(1024, sizeof(char));
@@ -162,7 +179,6 @@ void log_disk_info(std::vector<log_serializer_private_dynamic_config_t> &seriali
         crash("popen failed\n");
     }
 
-    mlog_start(INF);
     while (1023 == (nbytes = fread(buf, 1, 1023, stream)))
     {
         total_bytes += nbytes;

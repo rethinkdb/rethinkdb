@@ -76,6 +76,8 @@ public:
 
     void allocate(int64_t _size, large_buf_ref *refout);
     void acquire(large_buf_ref root_ref_, access_t access_, large_buf_available_callback_t *callback_);
+    void acquire_rhs(large_buf_ref root_ref_, access_t access_, large_buf_available_callback_t *callback_);
+    void acquire_lhs(large_buf_ref root_ref_, access_t access_, large_buf_available_callback_t *callback_);
 
     void append(int64_t extra_size, large_buf_ref *refout);
     void prepend(int64_t extra_size, large_buf_ref *refout);
