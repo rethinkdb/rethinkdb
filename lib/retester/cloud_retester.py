@@ -44,7 +44,7 @@ testing_nodes_ec2_reservation = None
 testing_nodes = []
 
 next_node_to_issue_to = 0
-
+node_allocation_tries_count = 0
 
 
 class TestReference:
@@ -290,6 +290,7 @@ def start_testing_nodes():
     global testing_nodes_ec2_region
     global testing_nodes_ec2_access_key
     global testing_nodes_ec2_private_key
+    global node_allocation_tries_count
 
     # Reserve nodes in EC2
     
@@ -315,7 +316,14 @@ def start_testing_nodes():
     create_testing_nodes_from_reservation()
     if len(testing_nodes) == 0:
         terminate_testing_nodes()
-        raise Exception("Could not allocate any testing node")
+        node_allocation_tries_count += 1
+        if node_allocation_tries_count > 3:
+            raise Exception("Could not allocate any testing node, quitting...")
+        else:
+            print "Could not allocate any nodes, retrying..."
+            time.sleep(30)
+            start_testing_nodes()
+            return
     
     # Give it another 120 seconds to start up...
     time.sleep(120)

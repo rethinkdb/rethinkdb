@@ -30,16 +30,16 @@ void prepend(payload_t *p, payload_t *other) {
 struct distr_t {
 public:
     distr_t(int _min, int _max)
-        : min(_min), max(_max)
+        : min(_min), max(_max), append_client_suffix(false)
         {}
 
     distr_t()
-        : min(8), max(16)
+        : min(8), max(16), append_client_suffix(false)
         {}
 
     // Generates a random payload within given bounds. It is the
     // user's responsibility to clean up the payload.
-    void toss(payload_t *payload, uint64_t seed) {
+    void toss(payload_t *payload, uint64_t seed, const int client_id = -1, int max_client_id = -1) {
         /* compute out the size */
         uint64_t size = seed;
         size ^= SALT1;
@@ -77,6 +77,49 @@ public:
             }
             _size -= 4;
         } while(_size > 0);
+        
+        if (append_client_suffix) {
+            // Append the client id as a suffix
+            if (max_client_id < 0)
+                max_client_id = client_id;
+            if (client_id < 0) {
+                fprintf(stderr, "Internal error: No client id given to toss().\n");
+                exit(-2);
+            }
+            int remainder = max_client_id;
+            int denominator = 1;
+            size_t suffix_length = 1;
+            while (remainder > 10) {
+                denominator *= 10;
+                remainder /= 10;
+                ++suffix_length;
+            }
+            remainder = client_id;
+            for (size_t i = suffix_length; i > 0; --i) {
+                *l++ = '0' + (remainder / denominator);
+                remainder = remainder % denominator;
+                denominator *= 10;
+            }
+            payload->second += suffix_length;
+        }
+    }
+    
+    size_t calculate_max_length(const int client_id = -1) {
+        size_t suffix_length = 0;
+        if (append_client_suffix) {
+            if (client_id < 0) {
+                fprintf(stderr, "Internal error: No client id given to toss().\n");
+                exit(-2);
+            }
+            
+            int remainder = client_id;
+            ++suffix_length;
+            while (remainder >= 10) {
+                remainder /= 10;
+                ++suffix_length;
+            }
+        }
+        return max + suffix_length;
     }
 
     void parse(char *str) {
@@ -114,10 +157,13 @@ public:
 
     void print() {
         printf("%d-%d", min, max);
+        if (append_client_suffix)
+            printf(", per-client suffix");
     }
 
 public:
-    int min, max; 
+    int min, max;
+    bool append_client_suffix;
 };
 
 #endif // __DISTR_HPP__

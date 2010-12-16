@@ -189,6 +189,8 @@ void* run_client(void* data) {
     if(sqlite)
         sqlite->set_id(client_data->id);
 
+    const size_t per_key_size = config->keys.calculate_max_length(config->clients - 1);
+
     // Perform the ops
     ticks_t last_time = get_ticks(), start_time = last_time, last_qps_time = last_time, now_time;
     int qps = 0, tick = 0;
@@ -201,10 +203,10 @@ void* run_client(void* data) {
         load_t::load_op_t cmd = config->load.toss((config->batch_factor.min + config->batch_factor.max) / 2.0f);
 
         payload_t op_keys[config->batch_factor.max];
-        char key_space[config->keys.max * config->batch_factor.max];
+        char key_space[per_key_size * config->batch_factor.max];
 
         for (int i = 0; i < config->batch_factor.max; i++)
-            op_keys[i].first = key_space + (config->keys.max * i);
+            op_keys[i].first = key_space + (per_key_size * i);
 
         payload_t op_vals[config->batch_factor.max];
 
@@ -218,155 +220,159 @@ void* run_client(void* data) {
         int count;
         int keyn; //same deal
         uint64_t id_salt = client_data->id;
-        id_salt += id_salt << 40;
-
+        id_salt += id_salt << 32;
         // TODO: If an workload contains contains no inserts and there are no keys available for a particular client (and the duration is specified in q/i), it'll just loop forever.
-        switch(cmd) {
-        case load_t::delete_op:
-            if (client_data->min_seed == client_data->max_seed)
+        try {
+            switch(cmd) {
+            case load_t::delete_op:
+                if (client_data->min_seed == client_data->max_seed)
+                    break;
+
+                config->keys.toss(op_keys, client_data->min_seed ^ id_salt, client_data->id, config->clients - 1);
+
+                // Delete it from the server
+                proto->remove(op_keys->first, op_keys->second);
+                if (sqlite && (client_data->min_seed % RELIABILITY) == 0)
+                    sqlite->remove(op_keys->first, op_keys->second);
+
+                client_data->min_seed++;
+
+                qps++;
+                total_queries++;
+                total_deletes++;
                 break;
 
-            config->keys.toss(op_keys, client_data->min_seed ^ id_salt);
+            case load_t::update_op:
+                // Find the key and generate the payload
+                if (client_data->min_seed == client_data->max_seed)
+                    break;
 
-            // Delete it from the server
-            proto->remove(op_keys->first, op_keys->second);
-            if (sqlite && (client_data->min_seed % RELIABILITY) == 0)
-                sqlite->remove(op_keys->first, op_keys->second);
+                keyn = random(client_data->min_seed, client_data->max_seed);
 
-            client_data->min_seed++;
+                config->keys.toss(op_keys, keyn ^ id_salt, client_data->id, config->clients - 1);
+                op_vals[0].second = seeded_random(config->values.min, config->values.max, client_data->max_seed ^ id_salt ^ update_salt);
 
-            qps++;
-            total_queries++;
-            total_deletes++;
-            break;
+                // Send it to server
+                proto->update(op_keys->first, op_keys->second, op_vals[0].first, op_vals[0].second);
 
-        case load_t::update_op:
-            // Find the key and generate the payload
-            if (client_data->min_seed == client_data->max_seed)
+                if (sqlite && (keyn % RELIABILITY) == 0)
+                    sqlite->update(op_keys->first, op_keys->second, op_vals[0].first, op_vals[0].second);
+
+                // Free the value
+                qps++;
+                total_queries++;
                 break;
 
-            keyn = random(client_data->min_seed, client_data->max_seed);
+            case load_t::insert_op:
+                // Generate the payload
+                config->keys.toss(op_keys, client_data->max_seed ^ id_salt, client_data->id, config->clients - 1);
+                op_vals[0].second = seeded_random(config->values.min, config->values.max, client_data->max_seed ^ id_salt);
 
-            config->keys.toss(op_keys, keyn ^ id_salt);
-            op_vals[0].second = seeded_random(config->values.min, config->values.max, client_data->max_seed ^ id_salt ^ update_salt);
+                // Send it to server
+                proto->insert(op_keys->first, op_keys->second, op_vals[0].first, op_vals[0].second);
 
-            // Send it to server
-            proto->update(op_keys->first, op_keys->second, op_vals[0].first, op_vals[0].second);
+                if (sqlite && (client_data->max_seed % RELIABILITY) == 0)
+                    sqlite->insert(op_keys->first, op_keys->second, op_vals[0].first, op_vals[0].second);
 
-            if (sqlite && (keyn % RELIABILITY) == 0)
-                sqlite->update(op_keys->first, op_keys->second, op_vals[0].first, op_vals[0].second);
+                client_data->max_seed++;
 
-            // Free the value
-            qps++;
-            total_queries++;
-            break;
-
-        case load_t::insert_op:
-            // Generate the payload
-            config->keys.toss(op_keys, client_data->max_seed ^ id_salt);
-            op_vals[0].second = seeded_random(config->values.min, config->values.max, client_data->max_seed ^ id_salt);
-
-            // Send it to server
-            proto->insert(op_keys->first, op_keys->second, op_vals[0].first, op_vals[0].second);
-
-            if (sqlite && (client_data->max_seed % RELIABILITY) == 0)
-                sqlite->insert(op_keys->first, op_keys->second, op_vals[0].first, op_vals[0].second);
-
-            client_data->max_seed++;
-
-            // Free the value and save the key
-            qps++;
-            total_queries++;
-            total_inserts++;
-            break;
-
-        case load_t::read_op:
-            // Find the key
-            if(client_data->min_seed == client_data->max_seed)
-                break;
-            j = random(config->batch_factor.min, config->batch_factor.max);
-            j = std::min(j, client_data->max_seed - client_data->min_seed);
-            l = random(client_data->min_seed, client_data->max_seed - 1);
-            for (k = 0; k < j; k++) {
-                config->keys.toss(&op_keys[k], l ^ id_salt);
-                l++;
-                if(l >= client_data->max_seed)
-                    l = client_data->min_seed;
-
-            }
-            // Read it from the server
-            proto->read(&op_keys[0], j);
-
-            qps += j;
-            total_queries += j;
-            break;
-        case load_t::append_op:
-            //TODO, this doesn't check if we'll be making the value too big. Gotta check for that.
-            //Find the key
-            if (client_data->min_seed == client_data->max_seed)
+                // Free the value and save the key
+                qps++;
+                total_queries++;
+                total_inserts++;
                 break;
 
-            keyn = random(client_data->min_seed, client_data->max_seed);
+            case load_t::read_op:
+                // Find the key
+                if(client_data->min_seed == client_data->max_seed)
+                    break;
+                j = random(config->batch_factor.min, config->batch_factor.max);
+                j = std::min(j, client_data->max_seed - client_data->min_seed);
+                l = random(client_data->min_seed, client_data->max_seed - 1);
+                for (k = 0; k < j; k++) {
+                    config->keys.toss(&op_keys[k], l ^ id_salt, client_data->id, config->clients - 1);
+                    l++;
+                    if(l >= client_data->max_seed)
+                        l = client_data->min_seed;
 
-            config->keys.toss(op_keys, keyn ^ id_salt);
-            op_vals[0].second = seeded_random(config->values.min, config->values.max, client_data->max_seed ^ id_salt);
+                }
+                // Read it from the server
+                proto->read(&op_keys[0], j);
 
-            proto->append(op_keys->first, op_keys->second, op_vals->first, op_vals->second);
-            if (sqlite && (keyn % RELIABILITY) == 0)
-                sqlite->append(op_keys->first, op_keys->second, op_vals->first, op_vals->second);
+                qps += j;
+                total_queries += j;
+                break;
+            case load_t::append_op:
+                //TODO, this doesn't check if we'll be making the value too big. Gotta check for that.
+                //Find the key
+                if (client_data->min_seed == client_data->max_seed)
+                    break;
 
-            qps++;
-            total_queries++;
-            break;
+                keyn = random(client_data->min_seed, client_data->max_seed);
 
-        case load_t::prepend_op:
-            //Find the key
-            if (client_data->min_seed == client_data->max_seed)
+                config->keys.toss(op_keys, keyn ^ id_salt, client_data->id, config->clients - 1);
+                op_vals[0].second = seeded_random(config->values.min, config->values.max, client_data->max_seed ^ id_salt);
+
+                proto->append(op_keys->first, op_keys->second, op_vals->first, op_vals->second);
+                if (sqlite && (keyn % RELIABILITY) == 0)
+                    sqlite->append(op_keys->first, op_keys->second, op_vals->first, op_vals->second);
+
+                qps++;
+                total_queries++;
                 break;
 
-            keyn = random(client_data->min_seed, client_data->max_seed);
+            case load_t::prepend_op:
+                //Find the key
+                if (client_data->min_seed == client_data->max_seed)
+                    break;
 
-            config->keys.toss(op_keys, keyn ^ id_salt);
-            op_vals[0].second = seeded_random(config->values.min, config->values.max, client_data->max_seed ^ id_salt);
+                keyn = random(client_data->min_seed, client_data->max_seed);
 
-            proto->prepend(op_keys->first, op_keys->second, op_vals->first, op_vals->second);
-            if (sqlite && (keyn % RELIABILITY) == 0)
-                sqlite->prepend(op_keys->first, op_keys->second, op_vals->first, op_vals->second);
+                config->keys.toss(op_keys, keyn ^ id_salt, client_data->id, config->clients - 1);
+                op_vals[0].second = seeded_random(config->values.min, config->values.max, client_data->max_seed ^ id_salt);
 
-            qps++;
-            total_queries++;
-            break;
-        case load_t::verify_op:
-            /* this is a very expensive operation it will first do a very
-             * expensive operation on the SQLITE reference db and then it will
-             * do several queries on the db that's being stressed (and only add
-             * 1 total query), it does not make sense to use this as part of a
-             * benchmarking run */
-            
-            // we can't do anything without a reference
-            if (!sqlite)
+                proto->prepend(op_keys->first, op_keys->second, op_vals->first, op_vals->second);
+                if (sqlite && (keyn % RELIABILITY) == 0)
+                    sqlite->prepend(op_keys->first, op_keys->second, op_vals->first, op_vals->second);
+
+                qps++;
+                total_queries++;
                 break;
+            case load_t::verify_op:
+                /* this is a very expensive operation it will first do a very
+                 * expensive operation on the SQLITE reference db and then it will
+                 * do several queries on the db that's being stressed (and only add
+                 * 1 total query), it does not make sense to use this as part of a
+                 * benchmarking run */
+                
+                // we can't do anything without a reference
+                if (!sqlite)
+                    break;
 
-            /* this is hacky but whatever */
-            old_val_buffer = op_vals[0].first;
-            op_vals[0].first = val_verifcation_buffer;
-            op_vals[0].second = 0;
+                /* this is hacky but whatever */
+                old_val_buffer = op_vals[0].first;
+                op_vals[0].first = val_verifcation_buffer;
+                op_vals[0].second = 0;
 
-            sqlite->dump_start();
-            while (sqlite->dump_next(op_keys, op_vals)) {
-                proto->read(op_keys, 1, op_vals);
-            }
-            sqlite->dump_end();
+                sqlite->dump_start();
+                while (sqlite->dump_next(op_keys, op_vals)) {
+                    proto->read(op_keys, 1, op_vals);
+                }
+                sqlite->dump_end();
 
-            op_vals[0].first = old_val_buffer;
+                op_vals[0].first = old_val_buffer;
 
-            qps++;
-            total_queries++;
-            break;
-        default:
-            fprintf(stderr, "Uknown operation\n");
+                qps++;
+                total_queries++;
+                break;
+            default:
+                fprintf(stderr, "Uknown operation\n");
+                exit(-1);
+            };
+        } catch (const protocol_error_t& e) {
+            fprintf(stderr, "Protocol error: %s\n", e.c_str());
             exit(-1);
-        };
+        }
         now_time = get_ticks();
 
         // Deal with individual op latency

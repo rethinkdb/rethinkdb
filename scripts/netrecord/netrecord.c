@@ -419,7 +419,7 @@ int pump(thread_info_t *thread, pipe_info_t *pipe) {
 
     if (pipe->in->pollfd->revents & POLLIN) {
         
-        size_t bytes_read = read(pipe->in->fd, pipe->buffer + pipe->backup, BUFFER_SIZE - pipe->backup);
+        ssize_t bytes_read = read(pipe->in->fd, pipe->buffer + pipe->backup, BUFFER_SIZE - pipe->backup);
         if (bytes_read < 0) {
             fprintf(stderr, "Connection %d could not receive from %s: %s\n",
                 thread->id, pipe->in->name, strerror(errno));
@@ -462,7 +462,7 @@ int pump(thread_info_t *thread, pipe_info_t *pipe) {
 
 int try_write(thread_info_t *thread, pipe_info_t *pipe) {
     
-    size_t bytes_written = write(pipe->out->fd, pipe->buffer, pipe->backup);
+    ssize_t bytes_written = write(pipe->out->fd, pipe->buffer, pipe->backup);
     if (bytes_written < 0) {
         fprintf(stderr, "Connection %d could not send to %s: %s\n",
             thread->id, pipe->out->name, strerror(errno));

@@ -153,7 +153,6 @@ void linux_thread_pool_t::run(linux_thread_message_t *initial_message) {
     guarantee(res == 0, "Could not lock shutdown cond mutex");
     
     while (!do_shutdown) {   // while loop guards against spurious wakeups
-    
         res = pthread_cond_wait(&shutdown_cond, &shutdown_cond_mutex);
         guarantee(res == 0, "Could not wait for shutdown cond");
     }

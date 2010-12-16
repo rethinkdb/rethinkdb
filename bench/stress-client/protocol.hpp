@@ -2,7 +2,16 @@
 #ifndef __PROTOCOL_HPP__
 #define __PROTOCOL_HPP__
 
+#include <exception>
+#include <string>
+
 #include "distr.hpp"
+
+class protocol_error_t : public std::exception, public std::string {
+public:
+    protocol_error_t(const std::string& message) : std::string(message) { }
+    virtual ~protocol_error_t() throw () { }
+};
 
 struct protocol_t {
     protocol_t(config_t *config) : config(config) {}
