@@ -189,6 +189,8 @@ void* run_client(void* data) {
     if(sqlite)
         sqlite->set_id(client_data->id);
 
+    const size_t per_key_size = config->keys.calculate_max_length(config->clients - 1);
+
     // Perform the ops
     ticks_t last_time = get_ticks(), start_time = last_time, last_qps_time = last_time, now_time;
     int qps = 0, tick = 0;
@@ -201,10 +203,10 @@ void* run_client(void* data) {
         load_t::load_op_t cmd = config->load.toss((config->batch_factor.min + config->batch_factor.max) / 2.0f);
 
         payload_t op_keys[config->batch_factor.max];
-        char key_space[config->keys.max * config->batch_factor.max];
+        char key_space[per_key_size * config->batch_factor.max];
 
         for (int i = 0; i < config->batch_factor.max; i++)
-            op_keys[i].first = key_space + (config->keys.max * i);
+            op_keys[i].first = key_space + (per_key_size * i);
 
         payload_t op_vals[config->batch_factor.max];
 
@@ -218,8 +220,7 @@ void* run_client(void* data) {
         int count;
         int keyn; //same deal
         uint64_t id_salt = client_data->id;
-        id_salt += id_salt << 40;
-
+        id_salt += id_salt << 32;
         // TODO: If an workload contains contains no inserts and there are no keys available for a particular client (and the duration is specified in q/i), it'll just loop forever.
         try {
             switch(cmd) {
@@ -227,7 +228,7 @@ void* run_client(void* data) {
                 if (client_data->min_seed == client_data->max_seed)
                     break;
 
-                config->keys.toss(op_keys, client_data->min_seed ^ id_salt);
+                config->keys.toss(op_keys, client_data->min_seed ^ id_salt, client_data->id, config->clients - 1);
 
                 // Delete it from the server
                 proto->remove(op_keys->first, op_keys->second);
@@ -248,7 +249,7 @@ void* run_client(void* data) {
 
                 keyn = random(client_data->min_seed, client_data->max_seed);
 
-                config->keys.toss(op_keys, keyn ^ id_salt);
+                config->keys.toss(op_keys, keyn ^ id_salt, client_data->id, config->clients - 1);
                 op_vals[0].second = seeded_random(config->values.min, config->values.max, client_data->max_seed ^ id_salt ^ update_salt);
 
                 // Send it to server
@@ -264,7 +265,7 @@ void* run_client(void* data) {
 
             case load_t::insert_op:
                 // Generate the payload
-                config->keys.toss(op_keys, client_data->max_seed ^ id_salt);
+                config->keys.toss(op_keys, client_data->max_seed ^ id_salt, client_data->id, config->clients - 1);
                 op_vals[0].second = seeded_random(config->values.min, config->values.max, client_data->max_seed ^ id_salt);
 
                 // Send it to server
@@ -289,7 +290,7 @@ void* run_client(void* data) {
                 j = std::min(j, client_data->max_seed - client_data->min_seed);
                 l = random(client_data->min_seed, client_data->max_seed - 1);
                 for (k = 0; k < j; k++) {
-                    config->keys.toss(&op_keys[k], l ^ id_salt);
+                    config->keys.toss(&op_keys[k], l ^ id_salt, client_data->id, config->clients - 1);
                     l++;
                     if(l >= client_data->max_seed)
                         l = client_data->min_seed;
@@ -309,7 +310,7 @@ void* run_client(void* data) {
 
                 keyn = random(client_data->min_seed, client_data->max_seed);
 
-                config->keys.toss(op_keys, keyn ^ id_salt);
+                config->keys.toss(op_keys, keyn ^ id_salt, client_data->id, config->clients - 1);
                 op_vals[0].second = seeded_random(config->values.min, config->values.max, client_data->max_seed ^ id_salt);
 
                 proto->append(op_keys->first, op_keys->second, op_vals->first, op_vals->second);
@@ -327,7 +328,7 @@ void* run_client(void* data) {
 
                 keyn = random(client_data->min_seed, client_data->max_seed);
 
-                config->keys.toss(op_keys, keyn ^ id_salt);
+                config->keys.toss(op_keys, keyn ^ id_salt, client_data->id, config->clients - 1);
                 op_vals[0].second = seeded_random(config->values.min, config->values.max, client_data->max_seed ^ id_salt);
 
                 proto->prepend(op_keys->first, op_keys->second, op_vals->first, op_vals->second);
