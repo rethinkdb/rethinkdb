@@ -43,7 +43,7 @@ private:
     linux_thread_message_t *interrupt_message;
     
     // Used to signal the main thread for shutdown
-    bool do_shutdown;
+    volatile bool do_shutdown;
     pthread_cond_t shutdown_cond;
     pthread_mutex_t shutdown_cond_mutex;
 
@@ -75,7 +75,7 @@ public:
     linux_timer_handler_t timer_handler;
     linux_io_calls_t iosys;
     
-    bool do_shutdown;
+    volatile bool do_shutdown;
     fd_t shutdown_notify_fd;
     void pump();   // Called by the event queue
     bool should_shut_down();   // Called by the event queue

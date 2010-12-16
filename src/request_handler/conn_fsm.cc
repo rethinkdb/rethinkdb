@@ -72,7 +72,7 @@ conn_fsm_t::result_t conn_fsm_t::fill_buf(void *buf, unsigned int *bytes_filled,
     ssize_t sz = conn->read_nonblocking((byte *) buf + *bytes_filled, total_length - *bytes_filled);
     
     if (sz == -1) {
-        if(errno == EAGAIN || errno == EWOULDBLOCK) {   // EAGAIN may be equal to EWOULDBLOCK, so can't put them in a switch below
+        if(errno == EAGAIN || errno == EWOULDBLOCK) {
             // The machine can't be in fsm_socket_send_incomplete state here,
             // since we break out in these cases. So it's safe to free the buffer.
             assert(state != fsm_socket_send_incomplete);
@@ -81,9 +81,9 @@ conn_fsm_t::result_t conn_fsm_t::fill_buf(void *buf, unsigned int *bytes_filled,
                 if (sbuf && sbuf->outstanding() == linked_buf_t::linked_buf_empty) {
                     return_to_socket_connected();
                 }
-            } else
+            } else {
                 state = fsm_socket_connected; //we're wating for a socket event
-            //break;
+            }
         } else {
             // We must fail gracefully here, probably logging the error.
 #ifndef NDEBUG
@@ -139,6 +139,9 @@ conn_fsm_t::result_t conn_fsm_t::fill_ext_rbuf() {
 conn_fsm_t::result_t conn_fsm_t::read_data(event_t *event) {
     // TODO: this is really silly; this notification should be done differently
     assert((conn_fsm_t *) event->state == this);
+
+    if (quitting)
+        return fsm_transition_ok;
     
     if (ext_rbuf) {
         result_t res = fill_ext_rbuf();

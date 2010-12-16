@@ -3,6 +3,16 @@
 #include "utils.hpp"
 #include "arch/arch.hpp"
 
+/* TODO: Right now we perform garbage collection via the do_write() interface on the
+log_serializer_t. This leads to bugs in a couple of ways:
+1. We have to be sure to get the metadata (repli timestamp, delete bit) right. The data block
+   manager shouldn't have to know about that stuff.
+2. We have to special-case the serializer so that it allows us to submit do_write()s during
+   shutdown. If there were an alternative interface, it could ignore or refuse our GC requests
+   when it is shutting down.
+Later, rewrite this so that we have a special interface through which to order
+garbage collection. */
+
 perfmon_counter_t
     pm_serializer_data_extents("serializer_data_extents"),
     pm_serializer_data_extents_allocated("serializer_data_extents_allocated[dexts]"),
