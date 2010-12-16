@@ -43,7 +43,7 @@ def test_value_of_size(size, port):
         too_big = False
         print "ok."
 
-    elif msg.startswith("CLIENT_ERROR"):
+    elif msg == "SERVER_ERROR object too large for cache\r\n":
         print "too big."
         too_big = True
 
