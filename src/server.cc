@@ -23,7 +23,7 @@ void server_t::do_start_loggers() {
 }
 
 void server_t::on_logger_ready() {
-    if (cmd_config->create_store && !cmd_config->force_create) do_check_store();
+    if (cmd_config->create_store) do_check_store();
     else do_start_store();
 }
 
@@ -40,7 +40,7 @@ void server_t::do_check_store() {
 }
 
 void server_t::on_store_check(bool ok) {
-    if (ok) {
+    if (ok && !cmd_config->force_create) {
         fail_due_to_user_error(
             "It looks like there already is a database here. RethinkDB will abort in case you "
             "didn't mean to overwrite it. Run with the '--force' flag to override this warning.");

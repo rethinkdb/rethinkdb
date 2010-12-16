@@ -243,7 +243,7 @@ public:
     
     void data_provider_failed() {
         // read_data() handles printing the error
-        done();
+        delete this;
     }
     
     void done() {
@@ -923,8 +923,10 @@ txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::remove(char *st
         } else { //must represent a time, then
             char *invalid_char;
             time = strtoul(time_or_noreply_str, &invalid_char, 10);
-            if (*invalid_char != '\0')  // ensure there were no improper characters in the token - i.e. parse was successful
+            if (*invalid_char != '\0') {  // ensure there were no improper characters in the token - i.e. parse was successful
+                conn_fsm->consume(line_len);
                 return unimplemented_request();
+            }
 
             // see if there's a noreply arg too
             char *noreply_str = strtok_r(NULL, DELIMS, &state);

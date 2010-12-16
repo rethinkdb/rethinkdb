@@ -43,7 +43,7 @@ def test_value_of_size(size, port):
         too_big = False
         print "ok."
 
-    elif msg.startswith("CLIENT_ERROR"):
+    elif msg == "SERVER_ERROR object too large for cache\r\n":
         print "too big."
         too_big = True
 
@@ -72,28 +72,13 @@ def test(opts, port):
     # threshold for buffering vs. streaming
     test_values_near_size(10000, port)
 
+    # uint16_t overflow.
     test_values_near_size(2 ** 16, port)
 
-    for i in xrange(73700 - 4096, 73750 - 4096):
-        assert False == test_value_of_size(i, port)
+    # A common failure threshold when netrecord is turned on.
+    test_values_near_size(73710, port)
 
-    test_values_near_size(71000, port)
-    test_values_near_size(73500, port)
-
-    for i in xrange(73700, 73750):
-        assert False == test_value_of_size(i, port)
-
-    test_values_near_size(73750, port)
-    test_values_near_size(74000, port)
-    test_values_near_size(75000, port)
-
-    test_values_near_size(75000, port)
-
-    test_values_near_size(77500, port)
-
-    test_values_near_size(80000, port)
-
-    test_values_near_size(100000, port)
+    test_values_near_size(500000, port)
 
 
     # threshold for max legal value size
