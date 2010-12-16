@@ -276,10 +276,21 @@ void linux_net_conn_t::on_shutdown() {
     assert(sock != INVALID_FD);
     was_shut_down = true;
 
+    // Deregister ourself with the event loop
+
+    if (registration_thread != -1) {
+        assert(registration_thread == linux_thread_pool_t::thread_id);
+        linux_thread_pool_t::thread->queue.forget_resource(sock, this);
+    }
+
     // Inform any readers or writers that were waiting that the socket has been closed.
 
     // If there are no readers or writers, nothing gets informed until an attempt is made
     // to read or write. Is this a problem?
+
+    // Copy writer and registration thread in case we get deleted by one of the callbacks
+    int _write_mode = write_mode;
+    linux_net_conn_write_external_callback_t *_write_external_cb = write_external_cb;
 
     switch (read_mode) {
         case read_mode_none: break;
@@ -288,17 +299,10 @@ void linux_net_conn_t::on_shutdown() {
         default: unreachable();
     }
 
-    switch (write_mode) {
+    switch (_write_mode) {
         case write_mode_none: break;
-        case write_mode_external: write_external_cb->on_net_conn_close(); break;
+        case write_mode_external: _write_external_cb->on_net_conn_close(); break;
         default: unreachable();
-    }
-
-    // Deregister ourself with the event loop
-
-    if (registration_thread != -1) {
-        assert(registration_thread == linux_thread_pool_t::thread_id);
-        linux_thread_pool_t::thread->queue.forget_resource(sock, this);
     }
 }
 
