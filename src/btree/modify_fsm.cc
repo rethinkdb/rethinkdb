@@ -532,17 +532,7 @@ void btree_modify_fsm_t::do_transition(event_t *event) {
                 break;
             }
 
-// Replication is not set up to handle partially acquired bufs yet.
-#ifndef USE_REPLICATION
             case call_replicants: {
-                state = update_complete;
-                res = btree_fsm_t::transition_ok;
-                break;
-            }
-#else
-            // Notify anything that is waiting on a trigger
-            case call_replicants: {
-
                 // Release the final node
                 if (last_node_id != NULL_BLOCK_ID) {
                     last_buf->release();
@@ -550,6 +540,11 @@ void btree_modify_fsm_t::do_transition(event_t *event) {
                     last_node_id = NULL_BLOCK_ID;
                 }
 
+// Replication is not set up to handle partially acquired bufs yet.
+#ifndef USE_REPLICATION
+                state = update_complete;
+                res = btree_fsm_t::transition_ok;
+#else
                 if (update_needed) {
                     replicants_awaited = slice->replicants.size();
                     in_value_call = true;
@@ -592,9 +587,9 @@ void btree_modify_fsm_t::do_transition(event_t *event) {
                     state = update_complete;
                     res = btree_fsm_t::transition_ok;
                 }
+#endif  // USE_REPLICATION
                 break;
             }
-#endif  // USE_REPLICATION
             case update_complete: {
                 // Free large bufs if necessary
                 if (update_needed) {
