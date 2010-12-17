@@ -3,7 +3,7 @@
 #include "utils.hpp"
 
 void static_header_check(direct_file_t *file, static_header_check_callback_t *cb) {
-    if (file->get_size() < DEVICE_BLOCK_SIZE) {
+    if (!file->exists() || file->get_size() < DEVICE_BLOCK_SIZE) {
         cb->on_static_header_check(false);
     } else {
         static_header_t *buffer = (static_header_t *)malloc_aligned(DEVICE_BLOCK_SIZE, DEVICE_BLOCK_SIZE);

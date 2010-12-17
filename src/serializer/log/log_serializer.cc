@@ -68,7 +68,7 @@ struct ls_start_new_fsm_t :
         assert(ser->state == log_serializer_t::state_unstarted);
         ser->state = log_serializer_t::state_starting_up;
         ser->static_config = *config;
-        ser->dbfile = new direct_file_t(ser->db_path, direct_file_t::mode_read|direct_file_t::mode_write);
+        ser->dbfile = new direct_file_t(ser->db_path, direct_file_t::mode_read|direct_file_t::mode_write|direct_file_t::mode_create);
         
         ready_callback = NULL;
         if (write_static_header()) {

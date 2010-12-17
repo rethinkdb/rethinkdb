@@ -115,7 +115,7 @@ void log_disk_info(std::vector<log_serializer_private_dynamic_config_t> &seriali
     for (unsigned int i = 0; i < serializers.size(); i++) {
         path = serializers[i].db_filename.c_str();
         if (stat(path, &st)) {
-            mlogf("Cannot stat `%s': %s\n", path, strerror(errno));
+            mlogf("Cannot stat \"%s\": %s\n", path, strerror(errno));
             continue;
         }
 
