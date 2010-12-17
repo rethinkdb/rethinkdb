@@ -544,6 +544,9 @@ public:
 
         /* Network connection closed while we read a buffered (non-streaming) value. */
 
+        assert(!is_streaming);
+        delete[] value_buffer;
+
         rh->read_next_command();   // The RH will figure out that the connection is closed
         delete this;
     }
