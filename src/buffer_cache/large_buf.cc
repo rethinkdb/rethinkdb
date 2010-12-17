@@ -385,9 +385,9 @@ void large_buf_t::prepend(int64_t extra_size, large_buf_ref *refout) {
             memset(leaf->buf, 0, k);
         } else {
             large_buf_internal *node = ptr_cast<large_buf_internal>(tr->buf->get_data_write());
-            assert((int64_t)tr->children.size() == back_k);
-            tr->children.resize(back_k + k);
-            for (int w = back_k; w-- > 0;) {
+            assert((int64_t)tr->children.size() >= back_k);
+            tr->children.resize(tr->children.size() + k);
+            for (int w = tr->children->size(); w-- > 0;) {
                 node->kids[w + k] = node->kids[w];
                 tr->children[w + k] = tr->children[w];
             }
@@ -407,8 +407,8 @@ void large_buf_t::prepend(int64_t extra_size, large_buf_ref *refout) {
 
     *refout = root_ref;
     assert(root->level == num_levels(root_ref.offset + root_ref.size),
-        "root-level=%d num=%d offset=%ld size=%ld extra_size=%ld\n",
-        root->level, num_levels(root_ref.offset + root_ref.size), root_ref.offset, root_ref.size, extra_size);
+           "root-level=%d num=%d offset=%ld size=%ld extra_size=%ld\n",
+           root->level, num_levels(root_ref.offset + root_ref.size), root_ref.offset, root_ref.size, extra_size);
 }
 
 
