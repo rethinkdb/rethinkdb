@@ -385,9 +385,15 @@ void large_buf_t::prepend(int64_t extra_size, large_buf_ref *refout) {
             memset(leaf->buf, 0, k);
         } else {
             large_buf_internal *node = ptr_cast<large_buf_internal>(tr->buf->get_data_write());
-            assert((int64_t)tr->children.size() <= back_k);
-            tr->children.resize(tr->children.size() + k);
-            for (int w = tr->children.size(); w-- > 0;) {
+            int64_t children_back_k = tr->children.size();
+            assert(children_back_k <= back_k);
+            tr->children.resize(children_back_k + k);
+
+            for (int w = back_k - 1; w >= children_back_k; --w) {
+                debugf("moving block id %d\n", node->kids[w]);
+                node->kids[w + k] = node->kids[w];
+            }
+            for (int w = children_back_k - 1; w >= 0; --w) {
                 node->kids[w + k] = node->kids[w];
                 tr->children[w + k] = tr->children[w];
             }
@@ -709,7 +715,7 @@ uint16_t large_buf_t::pos_to_seg_pos(int64_t pos) {
 
 large_buf_t::~large_buf_t() {
     assert(state == released);
-    assert(num_bufs == 0);
+    assert(num_bufs == 0, "num_bufs == 0 failed.. num_bufs is %d", num_bufs);
 }
 
 
