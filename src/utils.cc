@@ -86,3 +86,63 @@ void print_hd(const void *vbuf, size_t offset, size_t ulength) {
     funlockfile(stderr);
 }
 
+// Precise time functions
+
+// These two fields are initialized with current clock values (roughly) at the same moment.
+// Since monotonic clock represents time since some arbitrary moment, we need to correlate it
+// to some other clock to print time more or less precisely.
+//
+// Of course that doesn't solve the problem of clocks having different rates.
+static struct {
+    timespec hi_res_clock;
+    time_t low_res_clock;
+} time_sync_data;
+
+void initialize_precise_time() {
+    int res = clock_gettime(CLOCK_MONOTONIC, &time_sync_data.hi_res_clock);
+    guarantee(res == 0, "Failed to get initial monotonic clock value");
+    (void) time(&time_sync_data.low_res_clock);
+}
+
+precise_time_t get_precise_time() {
+    precise_time_t result;
+    timespec now;
+
+    int err = clock_gettime(CLOCK_MONOTONIC, &now);
+    assert_err(err == 0, "Failed to get monotonic clock value");
+    if (err == 0) {
+        // Compute time difference between now and origin of time
+        time_t dsec = now.tv_sec - time_sync_data.hi_res_clock.tv_sec;
+        long dnsec = now.tv_nsec - time_sync_data.hi_res_clock.tv_nsec;
+        if (dnsec < 0) {
+            dnsec += 1e9;
+            dsec--;
+        }
+
+        time_t now_lowres = time_sync_data.low_res_clock + dsec;
+
+        (void) gmtime_r(&now_lowres, &result.low_res);
+        result.nanosec = dnsec;
+        return result;
+    } else {
+        // fallback: we can't get nanoseconds value, so we fake it
+        time_t now_lowres = time(NULL);
+        (void) gmtime_r(&now_lowres, &result.low_res);
+        result.nanosec = 0;
+        return result;
+    }
+}
+
+void format_precise_time(const precise_time_t& time, char* buf, size_t max_chars) {
+    int res = snprintf(buf, max_chars,
+        "%04d-%02d-%02d %02d:%02d:%02d.%06d",
+        time.low_res.tm_year+1900,
+        time.low_res.tm_mon+1,
+        time.low_res.tm_mday,
+        time.low_res.tm_hour,
+        time.low_res.tm_min,
+        time.low_res.tm_sec,
+        (int) (time.nanosec/1e3));
+    assert(res >= 0);
+}
+

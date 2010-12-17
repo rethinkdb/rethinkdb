@@ -21,10 +21,12 @@ def test_function(opts, mc):
     # Verify everything
     print "Verifying"
     i = 0
+    values = mc.get_multi(keys[i:i+16])
     for key in keys:
-        # if (i % 500 == 0 or (i < 500 and (i & (i - 1)) == 0)):
-        #     print i
-        value = mc.get(key)
+        if i % 16 == 0:
+            values = mc.get_multi(keys[i:i+16])
+            
+        value = values[key]
         if value != key:
             raise ValueError("Key %r is set to %r, expected %r" % (key, value, key))
         i += 1
