@@ -1,9 +1,8 @@
 #!/usr/bin/python
-import os, sys, socket, random
-from test_common import *
-import time
+import os, sys, socket, random, time
 
-import pdb
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir + '/integration')))
+from test_common import *
 
 def test_function(opts, *kwargs):
     make_test_dir()

@@ -1,7 +1,9 @@
 #!/usr/bin/python
 import os, sys, socket, random
-from test_common import *
 import time
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir + '/integration')))
+from test_common import *
 
 n_ops = 10000
 
