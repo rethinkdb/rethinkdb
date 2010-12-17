@@ -435,7 +435,7 @@ void large_buf_t::fill_tree_at(buftree_t *tr, int64_t pos, const byte *data, int
             int64_t i = int64_t(k) * step;
             int64_t beg = std::max(i, pos);
             int64_t end = std::min(pos + fill_size, i + step);
-            fill_tree_at(tr->children.at(k), beg - i, data + (beg - pos), end - beg, levels - 1);
+            fill_tree_at(tr->children[k], beg - i, data + (beg - pos), end - beg, levels - 1);
         }
     }
     assert(root->level == num_levels(root_ref.offset + root_ref.size));
@@ -447,7 +447,7 @@ buftree_t *large_buf_t::remove_level(buftree_t *tr, block_id_t id, block_id_t *i
 #ifndef NDEBUG
     num_bufs--;
 #endif
-    buftree_t *ret = tr->children.at(0);
+    buftree_t *ret = tr->children[0];
     delete tr;
     *idout = ret->buf->get_block_id();
     return ret;
@@ -633,7 +633,7 @@ buf_t *large_buf_t::get_segment_buf(int64_t ix, uint16_t *seg_size, uint16_t *se
     buftree_t *tr = root;
     while (levels > 1) {
         int64_t step = max_offset(levels - 1);
-        tr = tr->children.at(pos / step);
+        tr = tr->children[pos / step];
         pos = pos % step;
         --levels;
         assert(tr->level == levels);

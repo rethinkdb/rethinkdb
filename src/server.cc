@@ -1,7 +1,6 @@
 #include "server.hpp"
 #include "db_thread_info.hpp"
-#include "request_handler/txt_memcached_handler.hpp"
-#include "request_handler/conn_fsm.hpp"
+#include "memcached/memcached.hpp"
 #include "replication/master.hpp"
 #include "diskinfo.hpp"
 
@@ -104,15 +103,11 @@ void server_t::do_start_conn_acceptor() {
     thread_pool->set_interrupt_message(&interrupt_message);
 }
 
-conn_handler_t *server_t::create_request_handler(net_conn_t *conn, void *server) {
-    /* To re-enable the binary protocol and packet sniffing, replace
-    "txt_memcached_handler_t" with "memcached_handler_t". */
-    
-    request_handler_t *rh = new txt_memcached_handler_t((server_t *)server);
-    conn_fsm_t *conn_fsm = new conn_fsm_t(conn, rh);
-    rh->conn_fsm = conn_fsm;
-    
-    return conn_fsm;
+conn_handler_t *server_t::create_request_handler(conn_acceptor_t *acc, net_conn_t *conn, void *udata) {
+
+    server_t *server = reinterpret_cast<server_t *>(udata);
+    assert(acc == &server->conn_acceptor);
+    return new txt_memcached_handler_t(&server->conn_acceptor, conn, server);
 }
 
 void server_t::shutdown() {

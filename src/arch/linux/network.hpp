@@ -16,7 +16,7 @@ struct linux_net_conn_read_external_callback_t
 
 struct linux_net_conn_read_buffered_callback_t
 {
-    virtual void on_net_conn_read_buffered(char *buffer, size_t size) = 0;
+    virtual void on_net_conn_read_buffered(const char *buffer, size_t size) = 0;
     virtual void on_net_conn_close() = 0;
     virtual ~linux_net_conn_read_buffered_callback_t() { }
 };
@@ -48,7 +48,8 @@ public:
     then return from cb->on_net_conn_read_buffered() without calling accept_buffer(), and the
     net_conn_t will later call on_net_conn_read_buffered() again with more bytes. If the connection
     is closed before an acceptable amount of data is read, then cb->on_net_conn_close() is called.
-    */
+    This is useful for reading until you reach some delimiter, such as if you want to read until
+    you hit a newline. */
     void read_buffered(linux_net_conn_read_buffered_callback_t *cb);
     void accept_buffer(size_t size);
 
@@ -61,6 +62,9 @@ public:
     getting an on_net_conn_close() from a callback. If there are any active read or write attempts
     when shutdown() is called, they will get on_net_conn_close() called. */
     void shutdown();
+
+    /* Returns true if the connection has been closed, whether through shutdown() or by the peer. */
+    bool closed();
 
     ~linux_net_conn_t();
 

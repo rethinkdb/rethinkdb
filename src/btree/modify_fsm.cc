@@ -594,7 +594,7 @@ void btree_modify_fsm_t::do_transition(event_t *event) {
                 }
                 break;
             }
-#endif
+#endif  // USE_REPLICATION
             case update_complete: {
                 // Free large bufs if necessary
                 if (update_needed) {
