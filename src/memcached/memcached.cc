@@ -1017,7 +1017,29 @@ void txt_memcached_handler_t::on_send_buffer_socket_closed() {
 void txt_memcached_handler_t::on_net_conn_read_buffered(const char *buffer, size_t size) {
 
     void *crlf_loc = memmem(buffer, size, "\r\n", 2);
-    if (!crlf_loc) return;   // There is not a complete line on the socket yet
+    if (!crlf_loc) {
+        // There is not a complete line on the socket yet
+        
+        /* If a horribly malfunctioning client sends a lot of data without sending a CRLF, our
+        buffer will just grow and grow and grow. If this happens, then close the connection.
+        (This doesn't apply to large values because they are read from the socket via a
+        different mechanism.) Is there a better way to handle this situation? */
+        size_t threshold = MEGABYTE;
+        if (size > threshold) {
+            logERR("Aborting connection %p because we got more than %d bytes without a CRLF\n",
+                this, (int)threshold);
+            conn->accept_buffer(0);   // So that we can legally call shutdown()
+            conn->shutdown();
+            delete this;
+            return;
+        
+        } else {
+            /* If we return from on_net_conn_read_buffered() without calling accept_buffer(),
+            then the net_conn_t will call on_net_conn_read_buffered() again with a bigger buffer
+            when the data is available. This way we keep reading until we get a complete line. */
+            return;
+        }
+    }
 
     /* We must duplicate the line because accept_buffer() may invalidate "buffer" */
     int line_size = (char*)crlf_loc - buffer + 2;
