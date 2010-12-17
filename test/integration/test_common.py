@@ -53,6 +53,7 @@ def make_option_parser():
     o["flags"] = StringFlag("--flags", "")
     o["stress"] = StringFlag("--stress", "")
     o["no-timeout"] = BoolFlag("--no-timeout", invert = False)
+    o["ssds"] = AllArgsAfterFlag("--ssds", default = [])
     return o
 
 # Choose a random port at which to start searching to reduce the probability of collisions
@@ -210,12 +211,20 @@ class Server(object):
                 
                 # Create data file
                 
-                command_line = [self.executable_path,
-                    "--create", "--force",
-                    "-c", str(self.opts["cores"]),
-                    "-s", str(self.opts["slices"]),
-                    "-f", self.db_data_path
-                    ] + self.extra_flags + shlex.split(self.opts["flags"])
+                if not self.opts["ssds"]:
+                    command_line = [self.executable_path,
+                        "--create", "--force",
+                        "-c", str(self.opts["cores"]),
+                        "-s", str(self.opts["slices"]),
+                        "-f", self.db_data_path
+                        ] + self.extra_flags + shlex.split(self.opts["flags"])
+                else:
+                    command_line = [self.executable_path,
+                        "--create", "--force",
+                        "-c", str(self.opts["cores"]),
+                        "-s", str(self.opts["slices"])].append(
+                        ["-f %s" % ssd for ssd in self.opts["ssds"]] +
+                        self.extra_flags + shlex.split(self.opts["flags"]))
                 
                 if self.opts["valgrind"]:
                     cmd_line = ["valgrind"]
@@ -260,12 +269,20 @@ class Server(object):
         if self.opts["database"] == "rethinkdb":
             
             # Make a directory to hold server data files
-            command_line = [self.executable_path,
-                "-p", str(server_port),
-                "-c", str(self.opts["cores"]),
-                "-m", str(self.opts["memory"]),
-                "-f", self.db_data_path
-                ] + self.extra_flags + shlex.split(self.opts["flags"])
+            if not self.opts["ssds"]:
+                command_line = [self.executable_path,
+                    "-p", str(server_port),
+                    "-c", str(self.opts["cores"]),
+                    "-m", str(self.opts["memory"]),
+                    "-f", self.db_data_path
+                    ] + self.extra_flags + shlex.split(self.opts["flags"])
+            else:
+                command_line = [self.executable_path,
+                    "-p", str(server_port),
+                    "-c", str(self.opts["cores"]),
+                    "-m", str(self.opts["memory"])].append(
+                    ["-f %s" % ssd for ssd in self.opts["ssds"]] +
+                    self.extra_flags + shlex.split(self.opts["flags"]))
         
         elif self.opts["database"] == "memcached":
             
