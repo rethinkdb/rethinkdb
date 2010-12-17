@@ -3,8 +3,8 @@ import os, sys, socket, random
 from test_common import *
 import time
 
-#n_appends = 100000
-n_appends = 5000
+n_appends_valgrind = 3000
+n_appends_no_valgrind = 20000
 
 # A hacky function that reads a response from a socket of an expected size.
 def read_response_of_expected_size(s, n):
@@ -20,12 +20,14 @@ def test_function(opts, port):
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.connect(("localhost", port))
 
+    n_appends = n_appends_valgrind if opts["valgrind"] else n_appends_no_valgrind
+
     def send(str):
         # print str
         s.sendall(str)
 
     key = 'fizz'
-    val_chunks = ['buzz','baaz','bozo']
+    val_chunks = ['buzzBUZZZ','baazBAAZ','bozoBOZO']
 
     send("set %s 0 0 %d noreply\r\n%s\r\n" % (key, len(val_chunks[0]), val_chunks[0]))
 
