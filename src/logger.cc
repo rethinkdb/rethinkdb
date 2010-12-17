@@ -138,6 +138,12 @@ static void vmlogf(const char *format, va_list arg) {
 }
 
 void _logf(const char *src_file, int src_line, log_level_t level, const char *format, ...) {
+    bool was_logging = false;
+    if (logging) {
+        /* Flush any previous log messages first */
+        mlog_end();
+        was_logging = true;
+    }
     _mlog_start(src_file, src_line, level);
 
     va_list arg;
@@ -146,10 +152,12 @@ void _logf(const char *src_file, int src_line, log_level_t level, const char *fo
     va_end(arg);
 
     mlog_end();
+    if (was_logging) {
+        logging = true;
+    }
 }
 
 void _mlog_start(const char *src_file, int src_line, log_level_t level) {
-    assert(!logging);
     logging = true;
     
     message_len = 0;

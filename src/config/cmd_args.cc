@@ -59,7 +59,7 @@ void usage(const char *name) {
     printf("      --block-size      Size of a block, in bytes.\n");
     printf("      --extent-size     Size of an extent, in bytes.\n");
     
-    exit(-1);
+    exit(0);
 }
 
 enum {
