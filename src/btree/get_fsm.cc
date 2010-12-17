@@ -161,7 +161,6 @@ btree_get_fsm_t::transition_result_t btree_get_fsm_t::do_acquire_large_value(eve
 
     if (!event) {
         large_value = new large_buf_t(transaction);
-
         large_value->acquire(value.lb_ref(), rwi_read, this);
         return btree_fsm_t::transition_incomplete;
     } else {
@@ -221,7 +220,6 @@ btree_get_fsm_t::transition_result_t btree_get_fsm_t::do_return_after_deliver_la
 
 btree_get_fsm_t::transition_result_t btree_get_fsm_t::do_free_large_value(event_t *event) {
     assert(state == free_large_value);
-    
     large_value->release();
     delete large_value;
     

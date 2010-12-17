@@ -4,7 +4,7 @@ from test_common import *
 import time
 
 #n_appends = 100000
-n_appends = 10000
+n_appends = 5000
 
 # A hacky function that reads a response from a socket of an expected size.
 def read_response_of_expected_size(s, n):
@@ -21,20 +21,26 @@ def test_function(opts, port):
     s.connect(("localhost", port))
 
     def send(str):
-#print str
+        # print str
         s.sendall(str)
 
     key = 'fizz'
-    val_chunk = 'buzz'
+    val_chunks = ['buzz','baaz','bozo']
 
-    send("set %s 0 0 %d noreply\r\n%s\r\n" % (key, len(val_chunk), val_chunk))
+    send("set %s 0 0 %d noreply\r\n%s\r\n" % (key, len(val_chunks[0]), val_chunks[0]))
 
-    for i in range(n_appends):
+    # All commands have noreply except the last.
+    for i in xrange(1, n_appends):
         time.sleep(.001)
-        send("append %s 0 0 %d noreply\r\n%s\r\n" % (key, len(val_chunk), val_chunk))
+        send("append %s 0 0 %d%s\r\n%s\r\n" % (key, len(val_chunks[i % 3]), "" if i == n_appends - 1 else " noreply", val_chunks[i % 3]))
 
-    val = "buzz" * (n_appends + 1)
+    # Read the reply from the last command.
+    expected_stored = "STORED\r\n"
+    stored_reply = read_response_of_expected_size(s, len(expected_stored))
+    if (expected_stored != stored_reply):
+        raise ValueError("Expecting STORED reply.")
 
+    val = ''.join([val_chunks[i % 3] for i in xrange(n_appends)])
 
     send("get %s\r\n" % key)
     expected_res = "VALUE %s 0 %d\r\n%s\r\nEND\r\n" % (key, len(val), val)
