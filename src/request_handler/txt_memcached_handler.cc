@@ -839,7 +839,7 @@ txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::read_data() {
         default:
             unreachable("Bad storage command.");
     }
-
+    
     if (!is_large) {
         if (noreply)
             return request_handler_t::op_req_parallelizable;
@@ -896,7 +896,7 @@ txt_memcached_handler_t::parse_result_t txt_memcached_handler_t::get(char *state
             key_str = strtok_r(NULL, DELIMS, &state);
 
         } while(key_str);
-
+        
         rq->dispatch();
 
         res = request_handler_t::op_req_complex;
