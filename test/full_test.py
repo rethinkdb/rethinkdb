@@ -96,7 +96,7 @@ def run_all_tests(mode, checker, protocol, cores, slices):
                     "cores"       : cores,
                     "slices"      : slices,
                     "num-keys"    : 50000},
-                  repeat=3, timeout=60*90)
+                  repeat=3, timeout=720)
     
     do_test_cloud("integration/serial_mix.py",
                   { "auto"        : True,
