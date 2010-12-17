@@ -31,11 +31,16 @@ public:
 
 class memcached_response_t {
 public:
-    memcached_response_t() {
+    memcached_response_t(char* thread_buffer) {
         successful = false;
+        this->buffer = thread_buffer;
+        bytes_in_buffer = 0;
+        first_buffer_byte = 0;
+    }
+    ~memcached_response_t() {
     }
 
-    virtual void read_from_socket(const int socketfd) = 0;
+    void read_from_socket(const int socketfd) { }
     
     bool successful;
     std::string failure_message;
@@ -44,51 +49,67 @@ protected:
     int socketfd;
 
     // Helper methods for parsing server responses
-    std::string read_line() const {
-        std::string result;
-        result.reserve(256);
-        
-        // It's ugly, but it seems we have to read one byte at a time
-        
+    const char* read_line(size_t& result_length) {
         bool gotR = false;
-        char ch = '\0';
-        while (!gotR || ch != '\n') {
-            gotR = ch == '\r';
         
-            const ssize_t bytes_read = recv(socketfd, &ch, 1, 0);
+        size_t scanned_up_to_position = 0;
+        while (true) {
+            while (scanned_up_to_position < bytes_in_buffer) {
+                if (buffer[first_buffer_byte + scanned_up_to_position] == '\r')
+                    gotR = true;
+                else if (gotR && buffer[first_buffer_byte + scanned_up_to_position] == '\n') {
+                    result_length = scanned_up_to_position - 1;
+                    const char* result = buffer + first_buffer_byte;
+                    first_buffer_byte += scanned_up_to_position + 1;
+                    bytes_in_buffer -= scanned_up_to_position + 1;
+                    
+                    // Warning: This requires a certain minimum buffer size to work reliably
+                    if (first_buffer_byte > 4096) {
+                        // Wrap around and reset buffer
+                        memcpy(buffer, buffer + first_buffer_byte, bytes_in_buffer);
+                        first_buffer_byte = 0;
+                    }
+                    
+                    return result;
+                }
+                else
+                    gotR = false;
+
+                ++scanned_up_to_position;
+            }
+
+            // TODO: Check for buffer overflow!
+            const ssize_t bytes_read = recv(socketfd, buffer + first_buffer_byte + bytes_in_buffer, 512, 0);
             if (bytes_read <= 0) {
                 perror("Unable to read from socket");
                 exit(-1);
             }
-            result += ch;
+            bytes_in_buffer += bytes_read;
         }
-        
-        return result.substr(0, result.length() - 2);
     }
     
-    std::string read_n_bytes(const size_t n) const {        
-        char* buf = static_cast<char*>(malloc(n));
-        if (!buf) {
-            perror("Unable to allocate buffer");
-            exit(-1);
-        }
-        // MSG_WAITALL makes recv wait until it acutally receives the full n bytes
-        const ssize_t bytes_read = recv(socketfd, buf, n, MSG_WAITALL);
-        if(bytes_read < n) {
-            free(buf);
-            perror("Unable to read from socket");
-            exit(-1);
+    const char* read_n_bytes(const size_t n) {
+        // TODO: Check for buffer overflow!
+    
+        if (bytes_in_buffer < n) {
+            // MSG_WAITALL makes recv wait until it actually receives the full n bytes
+            const ssize_t bytes_read = recv(socketfd, buffer + first_buffer_byte + bytes_in_buffer, n - bytes_in_buffer, MSG_WAITALL);
+            if(bytes_read < n - bytes_in_buffer) {
+                perror("Unable to read from socket");
+                exit(-1);
+            }
+            bytes_in_buffer += bytes_read;
         }
         
-        std::string result;
-        result.reserve(n);
-        result.append(buf, n);
-        free(buf);
+        const char* result = buffer + first_buffer_byte;
+        first_buffer_byte += n;
+        bytes_in_buffer -= n;
+        
         return result;
     }
     
-    bool does_match_at_position(const std::string& check_in, const std::string& check_for, const size_t at_position = 0) const {
-        return check_in.substr(at_position, check_for.length()) == check_for;
+    bool does_match_at_position(const char* check_in, const char* check_for, const size_t check_in_length, const size_t at_position = 0) const {
+        return strlen(check_for) + at_position <= check_in_length && strncmp(check_in + at_position, check_for, strlen(check_for)) == 0;
     }
     
     int string_to_int(const std::string& string) const {
@@ -102,51 +123,62 @@ protected:
         return static_cast<int>(result);
     }
     
-    void check_for_error_condition(const std::string& response_line) const {
-        if (does_match_at_position(response_line, "ERROR"))
+    void check_for_error_condition(const char* response_line, const size_t line_length) const {
+        if (does_match_at_position(response_line, "ERROR", line_length))
             throw non_existent_command_error_t();
-        else if (does_match_at_position(response_line, "CLIENT_ERROR"))
-            throw client_error_t(response_line.substr(std::string("CLIENT_ERROR").length() + 1));
-        else if (does_match_at_position(response_line, "SERVER_ERROR"))
-            throw server_error_t(response_line.substr(std::string("SERVER_ERROR").length() + 1));
+        else if (does_match_at_position(response_line, "CLIENT_ERROR", line_length))
+            throw client_error_t(std::string(response_line, line_length).substr(std::string("CLIENT_ERROR").length() + 1));
+        else if (does_match_at_position(response_line, "SERVER_ERROR", line_length))
+            throw server_error_t(std::string(response_line, line_length).substr(std::string("SERVER_ERROR").length() + 1));
     }
+    
+private:
+    char* buffer;
+    size_t first_buffer_byte;
+    size_t bytes_in_buffer;
 };
 
 class memcached_delete_response_t : public memcached_response_t {
 public:
-    virtual void read_from_socket(const int socketfd) {
+    memcached_delete_response_t(char* thread_buffer) : memcached_response_t(thread_buffer) { }
+
+    void read_from_socket(const int socketfd) {
         this->socketfd = socketfd;
         
-        const std::string first_line = read_line();
-        check_for_error_condition(first_line);
+        size_t line_length = 0;
+        const char* line = read_line(line_length);
+        check_for_error_condition(line, line_length);
         
-        successful = first_line == "DELETED";
+        successful = line_length == 7 && strncmp("DELETED", line, line_length) == 0;
         if (!successful)
-            failure_message = first_line;
+            failure_message = std::string(line, line_length);
     }
 };
 
 class memcached_store_response_t : public memcached_response_t {
 public:
-    virtual void read_from_socket(const int socketfd) {
+    memcached_store_response_t(char* thread_buffer) : memcached_response_t(thread_buffer) { }
+
+    void read_from_socket(const int socketfd) {
         this->socketfd = socketfd;
         
-        const std::string first_line = read_line();
-        check_for_error_condition(first_line);
+        size_t line_length = 0;
+        const char* line = read_line(line_length);
+        check_for_error_condition(line, line_length);
         
-        successful = first_line == "STORED";
+        successful = line_length == 6 && strncmp("STORED", line, line_length) == 0;
         if (!successful)
-            failure_message = first_line;
+            failure_message = std::string(line, line_length);
     }
 };
 
 class memcached_retrieval_response_t : public memcached_response_t {
 public:
-    memcached_retrieval_response_t(const unsigned int number_of_keys) {
+    memcached_retrieval_response_t(char* thread_buffer, const unsigned int number_of_keys) : memcached_response_t(thread_buffer) {
         this->number_of_keys = number_of_keys;
     }
 
-    virtual void read_from_socket(const int socketfd) {
+    void read_from_socket(const int socketfd) {
         this->socketfd = socketfd;
         
         values.clear();
@@ -154,15 +186,18 @@ public:
         unsigned int number_of_failed_gets = 0;
         
         for (unsigned int values_left = number_of_keys; values_left > 0; --values_left) {
-            const std::string value_response = read_line();
-            check_for_error_condition(value_response); // We might still get ERROR...
+            size_t line_length = 0;
+            const char* line = read_line(line_length);
+            check_for_error_condition(line, line_length); // We might still get ERROR...
+            
+            const std::string value_response(line, line_length);
             
             if (value_response == "END") {
                 number_of_failed_gets = number_of_keys - values.size();
                 break;
             }
-            else if (does_match_at_position(value_response, "VALUE ", 0)) {
-                size_t parse_position = std::string("VALUE ").length();
+            else if (does_match_at_position(line, "VALUE ", line_length, 0)) {
+                size_t parse_position = 6;
                 
                 const size_t key_end_position = value_response.find(' ', parse_position);
                 if (key_end_position == value_response.npos)
@@ -181,20 +216,26 @@ public:
                 const int flags = string_to_int(flags_string);
                 const int size = string_to_int(size_string);
                 
-                const std::string value = read_n_bytes(static_cast<size_t>(size));
+                const char* value = read_n_bytes(static_cast<size_t>(size));
+                const std::string value_str(value, static_cast<size_t>(size));
                 
-                if (read_line() != "")
+                read_line(line_length);
+                if (line_length > 0)
                     throw protocol_error_t("Did not get line break after value.");
-            
-                values.insert(std::pair<std::string, std::string>(key, value));
+
+                values.insert(std::pair<std::string, std::string>(key, value_str));
                 this->flags.insert(std::pair<std::string, int>(key, flags));
             }
             else
                 throw protocol_error_t("Illegal response to get request: " + value_response);
         }
         
-        if (number_of_failed_gets == 0 && read_line() != "END")
-            throw protocol_error_t("Did not get END at end of retrieval response.");
+        if (number_of_failed_gets == 0) {
+            size_t line_length = 0;
+            const char* end_line = read_line(line_length);
+            if (line_length != 3 || strncmp(end_line, "END", line_length) != 0)
+                throw protocol_error_t("Did not get END at end of retrieval response.");
+        }
         
         successful = number_of_failed_gets == 0;
         char number_of_failed_gets_c_str[32];
@@ -222,7 +263,7 @@ struct memcached_sock_protocol_t : public protocol_t {
             }
             // Should be enough:
             buffer = new char[config->values.max + 1024];
-            cmp_buff = new char[config->values.max + 1024];
+            thread_buffer = new char[4096 * 1024]; // Should be enough, too...
         }
 
     virtual ~memcached_sock_protocol_t() {
@@ -234,8 +275,8 @@ struct memcached_sock_protocol_t : public protocol_t {
                 exit(-1);
             }
         }
-        delete buffer;
-        delete cmp_buff;
+        delete[] buffer;
+        delete[] thread_buffer;
     }
 
     virtual void connect(server_t *server) {
@@ -288,7 +329,7 @@ struct memcached_sock_protocol_t : public protocol_t {
         send_command(buf - buffer);
 
         // Parse the response
-        memcached_delete_response_t response;
+        memcached_delete_response_t response(thread_buffer);
         response.read_from_socket(sockfd);
 
         // Check the result
@@ -319,7 +360,7 @@ struct memcached_sock_protocol_t : public protocol_t {
         send_command(buf - buffer);
 
         // Parse the response
-        memcached_store_response_t response;
+        memcached_store_response_t response(thread_buffer);
         response.read_from_socket(sockfd);
 
         // Check the result
@@ -346,7 +387,7 @@ struct memcached_sock_protocol_t : public protocol_t {
         send_command(buf - buffer);
         
         // Parse the response
-        memcached_retrieval_response_t response(count);
+        memcached_retrieval_response_t response(thread_buffer, count);
         response.read_from_socket(sockfd);
 
         // Check the result
@@ -356,7 +397,6 @@ struct memcached_sock_protocol_t : public protocol_t {
         }
 
         if (values) {
-            char *expect_str = cmp_buff;
             for (int i = 0; i < count; i++) {
                 if (std::string(values[i].first) != response.values[std::string(keys[i].first)]) {
                     fprintf(stderr, "Got unexpected value: %s instead of %s\n", response.values[std::string(keys[i].first)].c_str(), values[i].first);
@@ -382,7 +422,7 @@ struct memcached_sock_protocol_t : public protocol_t {
         send_command(buf - buffer);
 
         // Parse the response
-        memcached_store_response_t response;
+        memcached_store_response_t response(thread_buffer);
         response.read_from_socket(sockfd);
 
         // Check the result
@@ -408,7 +448,7 @@ struct memcached_sock_protocol_t : public protocol_t {
         send_command(buf - buffer);
 
         // Parse the response
-        memcached_store_response_t response;
+        memcached_store_response_t response(thread_buffer);
         response.read_from_socket(sockfd);
 
         // Check the result
@@ -434,8 +474,8 @@ private:
 
 private:
     int sockfd;
-    //char buffer[1024 * 10], cmp_buff[1024 * 10];
-    char *buffer, *cmp_buff;
+    char *buffer;
+    char *thread_buffer;
 };
 
 

@@ -230,14 +230,32 @@ try:
                           "slices"      : slices},
                         repeat=1, timeout=180)
 
-                do_test_cloud("integration/issue_95.py",
+                do_test_cloud("regression/issue_69.py",
                         { "auto"        : True,
                           "mode"        : mode,
                           "no-valgrind" : not checker,
                           "protocol"    : protocol,
                           "cores"       : cores,
                           "slices"      : slices},
-                        repeat=1, timeout=180)
+                        repeat=1, timeout=60)
+
+                do_test_cloud("regression/issue_90.py",
+                        { "auto"        : True,
+                          "mode"        : mode,
+                          "no-valgrind" : not checker,
+                          "protocol"    : protocol,
+                          "cores"       : cores,
+                          "slices"      : slices},
+                        repeat=1, timeout=60)
+
+                do_test_cloud("regression/issue_95.py",
+                        { "auto"        : True,
+                          "mode"        : mode,
+                          "no-valgrind" : not checker,
+                          "protocol"    : protocol,
+                          "cores"       : cores,
+                          "slices"      : slices},
+                        repeat=1, timeout=60)
 
                 for suite_test in glob.glob('integration/memcached_suite/*.t'):
                     do_test_cloud("integration/memcached_suite.py",
