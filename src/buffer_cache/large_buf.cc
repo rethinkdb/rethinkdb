@@ -385,7 +385,7 @@ void large_buf_t::prepend(int64_t extra_size, large_buf_ref *refout) {
             memset(leaf->buf, 0, k);
         } else {
             large_buf_internal *node = ptr_cast<large_buf_internal>(tr->buf->get_data_write());
-            assert((int64_t)tr->children.size() >= back_k);
+            assert((int64_t)tr->children.size() <= back_k);
             tr->children.resize(tr->children.size() + k);
             for (int w = tr->children.size(); w-- > 0;) {
                 node->kids[w + k] = node->kids[w];
