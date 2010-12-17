@@ -377,16 +377,15 @@ def terminate_testing_nodes():
     global testing_nodes_ec2_private_key
 
     for testing_nodes_ec2_reservation in testing_nodes_ec2_reservations:
-        if testing_nodes_ec2_reservation != None:
+        if testing_nodes_ec2_reservation:
             print "Terminating EC2 nodes"
         
             ec2_connection = boto.ec2.connect_to_region(testing_nodes_ec2_region, aws_access_key_id=testing_nodes_ec2_access_key, aws_secret_access_key=testing_nodes_ec2_private_key)
         
             # Query AWS to stop all instances   
             testing_nodes_ec2_reservation.stop_all()
-                
-            testing_nodes_ec2_reservation = None
     
+    testing_nodes_ec2_reservations = []
     testing_nodes = None
 
 
@@ -567,7 +566,7 @@ def start_test_on_node(node, test_command, test_timeout = None, locking_timeout 
 
 
 def get_report_for_test(test_reference):
-    if test_referece[1] == "Failed":
+    if test_reference[1] == "Failed":
         result = Result(0.0, "fail", "The test could not be started on EC2.")
         return result
 
