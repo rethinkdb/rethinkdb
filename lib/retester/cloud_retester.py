@@ -438,8 +438,7 @@ def copy_basedata_to_testing_node(node):
         
     # Copy test hierarchy
     node.make_directory(node.global_test_path)
-    node.make_directory(node.global_test_path + "/integration")
-    node.put_directory(base_directory + "/integration", node.global_test_path + "/integration")
+    node.put_directory(base_directory, node.global_test_path)
     
     # Install the wrapper script
     # TODO: Verify that this works!
@@ -467,26 +466,6 @@ def copy_per_test_data_to_testing_node(node, test_reference, test_script):
     command_result = node.run_command("cp -af %s/* cloud_retest/%s/test" % (node.global_test_path, test_reference))
     if command_result[0] != 0:
         print "Unable to copy test environment"
-    
-    # Note: the following commented part is deprecated, as we install all tests as part of the base data (which is faster)
-    
-    # Create test and test/integration subdirectory
-    #node.make_directory_recursively("cloud_retest/%s/test/integration" % test_reference)    
-    
-    # copy common python files to there
-    #node.put_file(base_directory + "/integration/test_common.py", "cloud_retest/%s/test/integration/test_common.py" % test_reference)
-    #node.put_file(base_directory + "/integration/corrupter.py", "cloud_retest/%s/test/integration/corrupter.py" % test_reference)
-    #node.put_file(base_directory + "/integration/serial_mix.py", "cloud_retest/%s/test/integration/serial_mix.py" % test_reference)
-    
-    # copy test_script to there
-    # TODO: if test_script is not in test/integration, create the correct directory and copy into there
-    #node.put_file(base_directory + "/" + test_script, "cloud_retest/%s/test/%s" % (test_reference, test_script))
-    #command_result = node.run_command("chmod +x cloud_retest/%s/test/%s" % (test_reference, test_script))
-    #if command_result[0] != 0:
-    #    print "Unable to make test script executable"
-    
-    # Install the wrapper script
-    #node.put_file(base_directory + "/" + wrapper_script_filename, "cloud_retest/%s/test/%s" % (test_reference, wrapper_script_filename));
 
 
 def start_test_on_node(node, test_command, test_timeout = None, locking_timeout = 0):
