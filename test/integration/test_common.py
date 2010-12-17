@@ -5,6 +5,12 @@ from corrupter import *
 test_dir_name = "output_from_test"
 made_test_dir = False
 
+class TestFailure(Exception):
+    def __init__(self, value):
+        self.value = value
+    def __str__(self):
+        return repr(self.value)
+
 def make_test_dir():
     global made_test_dir
     if not made_test_dir:
@@ -185,7 +191,6 @@ class Server(object):
     wait_interval = 0.25
     
     def __init__(self, opts, name = "server", extra_flags = [], use_existing = False):
-        
         assert made_test_dir
         
         self.running = False
@@ -542,7 +547,6 @@ def simple_test_main(test_function, opts, timeout = 30, extra_flags = []):
     """Drop-in main() for tests that open a single connection against a single server that they
     do not shut down or start up again."""
     if opts["auto"]:
-        
         make_test_dir()
         
         server = Server(opts, extra_flags = extra_flags)
@@ -575,4 +579,4 @@ def simple_test_main(test_function, opts, timeout = 30, extra_flags = []):
         if not ok: sys.exit(1)
     
     sys.exit(0)
-    
+

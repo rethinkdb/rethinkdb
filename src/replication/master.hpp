@@ -48,7 +48,7 @@ struct replication_master_t :
     public conn_handler_t,
     public home_thread_mixin_t
 {
-    replication_master_t(store_t *s, net_conn_t *c);
+    replication_master_t(conn_acceptor_t *acc, store_t *s, net_conn_t *c);
 
     store_t *store;
     net_conn_t *conn;
@@ -61,7 +61,7 @@ struct replication_master_t :
         mcflags_t flags, exptime_t exptime, cas_t cas, repli_timestamp ts);
     void stopped();
 
-    bool quitting, conn_open;
+    bool quitting;
     void quit();
 };
 
