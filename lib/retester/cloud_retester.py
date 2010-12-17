@@ -292,32 +292,6 @@ def start_testing_nodes():
     
     print "Trying to allocate %i testing nodes" % remaining_nodes_to_allocate
     
-    try:
-        ec2_connection = boto.ec2.connect_to_region(testing_nodes_ec2_region, aws_access_key_id=testing_nodes_ec2_access_key, aws_secret_access_key=testing_nodes_ec2_private_key)
-    
-        # Query AWS to start all instances
-        ec2_image = ec2_connection.get_image(testing_nodes_ec2_image_name)
-        testing_nodes_ec2_reservation = ec2_image.run(min_count=testing_nodes_ec2_count, 
-                                                      max_count=testing_nodes_ec2_count,
-                                                      key_name=testing_nodes_ec2_key_pair_name,
-                                                      security_groups=[testing_nodes_ec2_security_group_name],
-                                                      instance_type=testing_nodes_ec2_instance_type)
-        # query AWS to wait for all instances to be available
-        for instance in testing_nodes_ec2_reservation.instances:
-            while instance.state != "running":
-                time.sleep(5)
-                instance.update()
-                if instance.state == "terminated":
-                    # Something went wrong :-(
-                    print "Could not allocate the requested number of nodes"
-                    break
-                    #terminate_testing_nodes()
-                    #raise Exception("Could not allocate the requested number of nodes")
-        create_testing_nodes_from_reservation()
-    except:
-        # We'll handle inability to spin up nodes in a moment
-        pass
-    
     # Query AWS to start all instances
     ec2_image = ec2_connection.get_image(testing_nodes_ec2_image_name)
     ec2_reservation = ec2_image.run(min_count=1, max_count=remaining_nodes_to_allocate, key_name=testing_nodes_ec2_key_pair_name, security_groups=[testing_nodes_ec2_security_group_name], instance_type=testing_nodes_ec2_instance_type)
