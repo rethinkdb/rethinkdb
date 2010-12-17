@@ -40,8 +40,9 @@ import retester
 
 reports = []
 test_references = [] # contains pairs of the form (node, tmp-path)
-testing_nodes_ec2_reservation = None
+testing_nodes_ec2_reservations = []
 testing_nodes = []
+remaining_nodes_to_allocate = testing_nodes_ec2_count
 
 next_node_to_issue_to = 0
 node_allocation_tries_count = 0
@@ -83,7 +84,7 @@ class TestingNode:
             self.ssh_transport.close()
 
         
-    def get_transport(self, retry=True):
+    def get_transport(self, retry = 5):
         if self.ssh_transport != None:
             return self.ssh_transport
     
@@ -93,11 +94,11 @@ class TestingNode:
             self.ssh_transport.use_compression()
             self.ssh_transport.set_keepalive(60)
             self.ssh_transport.connect(username=self.username, pkey=self.private_ssh_key)
-        except (IOError, EOFError, paramiko.SSHException) as e:
+        except (IOError, EOFError, paramiko.SSHException, Exception) as e:
             self.ssh_transport = None
             time.sleep(120) # Wait a bit in case the network needs time to recover
-            if retry:
-                return self.get_transport(retry=False)
+            if retry > 0:
+                return self.get_transport(retry-1)
             else:
                 raise e
 
@@ -105,7 +106,7 @@ class TestingNode:
         
     
     # returns a tupel (return code, output)
-    def run_command(self, command, retry = True):
+    def run_command(self, command, retry = 3):
         ssh_transport = self.get_transport()
         
         try:
@@ -120,7 +121,7 @@ class TestingNode:
             ssh_channel.settimeout(None)
             # read output until we get an EOF
             command_output = ""
-            output_read = ssh_channel.recv(4096) # No do-while loops in Python? wth?
+            output_read = ssh_channel.recv(4096) # No do-while loops in Python?
             while len(output_read) > 0:
                 command_output += output_read
                 output_read = ssh_channel.recv(4096)
@@ -132,15 +133,15 @@ class TestingNode:
             #self.ssh_transport.close()
             
             return (command_exit_status, command_output)
-        except (IOError, EOFError, paramiko.SSHException) as e:
+        except (IOError, EOFError, paramiko.SSHException, Exception) as e:
             self.ssh_transport = None
-            if retry:
-                return self.run_command(command, retry=False)
+            if retry > 0:
+                return self.run_command(command, retry-1)
             else:
                 raise e
            
         
-    def put_file(self, local_path, destination_path, retry = True):
+    def put_file(self, local_path, destination_path, retry = 3):
         ssh_transport = self.get_transport()
         
         try:
@@ -152,15 +153,15 @@ class TestingNode:
             sftp_session.chmod(destination_path, os.stat(local_path)[ST_MODE])
         
             sftp_session.close()
-        except (IOError, EOFError, paramiko.SSHException) as e:
+        except (IOError, EOFError, paramiko.SSHException, Exception) as e:
             self.ssh_transport = None
-            if retry:
-                return self.put_file(local_path, destination_path, retry=False)
+            if retry > 0:
+                return self.put_file(local_path, destination_path, retry-1)
             else:
                 raise e
         
         
-    def get_file(self, remote_path, destination_path, retry = True):        
+    def get_file(self, remote_path, destination_path, retry = 3):        
         ssh_transport = self.get_transport()
         
         try:
@@ -171,15 +172,15 @@ class TestingNode:
             sftp_session.get(remote_path, destination_path)
             
             sftp_session.close()
-        except (IOError, EOFError, paramiko.SSHException) as e:
+        except (IOError, EOFError, paramiko.SSHException, Exception) as e:
             self.ssh_transport = None
-            if retry:
-                return self.get_file(remote_path, destination_path, retry=False)
+            if retry > 0:
+                return self.get_file(remote_path, destination_path, retry-1)
             else:
                 raise e
         
         
-    def put_directory(self, local_path, destination_path, retry = True):
+    def put_directory(self, local_path, destination_path, retry = 3):
         ssh_transport = self.get_transport()
     
         try:
@@ -196,15 +197,15 @@ class TestingNode:
                     sftp_session.mkdir(os.path.join(destination_path + root[len(local_path):], name))
             
             sftp_session.close()
-        except (IOError, EOFError, paramiko.SSHException) as e:
+        except (IOError, EOFError, paramiko.SSHException, Exception) as e:
             self.ssh_transport = None
-            if retry:
-                return self.put_directory(local_path, destination_path, retry=False)
+            if retry > 0:
+                return self.put_directory(local_path, destination_path, retry-1)
             else:
                 raise e
         
         
-    def make_directory(self, remote_path, retry = True):
+    def make_directory(self, remote_path, retry = 3):
         ssh_transport = self.get_transport()
 
         try:
@@ -215,10 +216,10 @@ class TestingNode:
             sftp_session.mkdir(remote_path)
             
             sftp_session.close()
-        except (IOError, EOFError, paramiko.SSHException) as e:
+        except (IOError, EOFError, paramiko.SSHException, Exception) as e:
             self.ssh_transport = None
-            if retry:
-                return self.make_directory(remote_path, retry=False)
+            if retry > 0:
+                return self.make_directory(remote_path, retry-1)
             else:
                 raise e
         
@@ -234,30 +235,28 @@ class TestingNode:
             
     def acquire_lock(self, locking_timeout = 0):
         lock_sleeptime = 1
-        lock_command = "lockfile -%i -r -1 %s" % (lock_sleeptime, self.global_lock_file.replace(" ", "\' ")) # TODO: Better not use special characters in the lock filename with this incomplete escaping scheme...
+        lock_command = "lockfile -%i -r -1 %s" % (lock_sleeptime, self.global_lock_file.replace(" ", "\' "))
         if locking_timeout > 0:
-            lock_command = "lockfile -%i -r %i %s" % (lock_sleeptime, locking_timeout / lock_sleeptime, self.global_lock_file.replace(" ", "\' ")) # TODO: Better not use special characters in the lock filename with this incomplete escaping scheme...
+            lock_command = "lockfile -%i -r %i %s" % (lock_sleeptime, locking_timeout / lock_sleeptime, self.global_lock_file.replace(" ", "\' "))
         locking_result = self.run_command(lock_command)
         
         return locking_result[0] == 0
         
     def get_release_lock_command(self):
-        return "rm -f %s" % self.global_lock_file.replace(" ", "\' ") # TODO: Better not use special characters in the lock filename with this incomplete escaping scheme...
+        return "rm -f %s" % self.global_lock_file.replace(" ", "\' ")
         
     def release_lock(self):
         command_result = self.run_command(self.get_release_lock_command())
         if command_result[0] != 0:
-            print "Unable to release lock (maybe the node wasn't locked before?)"
-            # TODO: Throw exception or something,,,
+            print "Unable to release lock (maybe the node wasn't locked before?). Ignoring this."
 
 
-def create_testing_nodes_from_reservation():
+def create_testing_nodes_from_reservation(ec2_reservation):
     global testing_nodes
-    global testing_nodes_ec2_reservation
     global testing_nodes_ec2_image_user_name
     global private_ssh_key_filename
     
-    for instance in testing_nodes_ec2_reservation.instances:
+    for instance in ec2_reservation.instances:
         if instance.state == "running":
             new_testing_node = TestingNode(instance.public_dns_name, 22, testing_nodes_ec2_image_user_name, private_ssh_key_filename)
             testing_nodes.append(new_testing_node)
@@ -270,91 +269,97 @@ def setup_testing_nodes():
     
     if use_local_retester:
         return
-    
-    atexit.register(terminate_testing_nodes)
 
     start_testing_nodes()
-    
-    # Do this on demand, such that we can start running tests on the first node while others still have to be initilized...
-    #for node in testing_nodes:
-    #    copy_basedata_to_testing_node(node)
 
 def start_testing_nodes():
     global testing_nodes
-    global testing_nodes_ec2_reservation
+    global testing_nodes_ec2_reservations
+    global remaining_nodes_to_allocate
     global testing_nodes_ec2_image_name
     global testing_nodes_ec2_instance_type
-    global testing_nodes_ec2_count
     global testing_nodes_ec2_key_pair_name
     global testing_nodes_ec2_security_group_name
     global testing_nodes_ec2_region
     global testing_nodes_ec2_access_key
     global testing_nodes_ec2_private_key
     global node_allocation_tries_count
-
+    
+    if remaining_nodes_to_allocate == 0:
+        return
+    
     # Reserve nodes in EC2
     
-    print "Spinning up %i testing nodes" % testing_nodes_ec2_count
-    
-    ec2_connection = boto.ec2.connect_to_region(testing_nodes_ec2_region, aws_access_key_id=testing_nodes_ec2_access_key, aws_secret_access_key=testing_nodes_ec2_private_key)
+    print "Trying to allocate %i testing nodes" % remaining_nodes_to_allocate
     
     # Query AWS to start all instances
     ec2_image = ec2_connection.get_image(testing_nodes_ec2_image_name)
-    testing_nodes_ec2_reservation = ec2_image.run(min_count=testing_nodes_ec2_count, max_count=testing_nodes_ec2_count, key_name=testing_nodes_ec2_key_pair_name, security_groups=[testing_nodes_ec2_security_group_name], instance_type=testing_nodes_ec2_instance_type)
+    ec2_reservation = ec2_image.run(min_count=1, max_count=remaining_nodes_to_allocate, key_name=testing_nodes_ec2_key_pair_name, security_groups=[testing_nodes_ec2_security_group_name], instance_type=testing_nodes_ec2_instance_type)
+    testing_nodes_ec2_reservations.append(ec2_reservation)
     # query AWS to wait for all instances to be available
-    for instance in testing_nodes_ec2_reservation.instances:
+    for instance in ec2_reservation.instances:
         while instance.state != "running":
             time.sleep(5)
             instance.update()
             if instance.state == "terminated":
                 # Something went wrong :-(
-                print "Could not allocate the requested number of nodes"
+                print "Could not allocate the requested number of nodes. Retrying later..."
                 break
-                #terminate_testing_nodes()
-                #raise Exception("Could not allocate the requested number of nodes")
+        # Got a node running
+        remaining_nodes_to_allocate -= 1
     
-    create_testing_nodes_from_reservation()
-    if len(testing_nodes) == 0:
-        terminate_testing_nodes()
-        node_allocation_tries_count += 1
-        if node_allocation_tries_count > 3:
-            raise Exception("Could not allocate any testing node, quitting...")
-        else:
-            print "Could not allocate any nodes, retrying..."
-            time.sleep(30)
-            start_testing_nodes()
-            return
-    
+    create_testing_nodes_from_reservation(ec2_reservation)
+        
     # Give it another 120 seconds to start up...
     time.sleep(120)
     
     # Check that all testing nodes are up
+    nodes_to_remove = []
     for node in testing_nodes:
         # send a testing command
-        command_result = node.run_command("echo -n Are you up?")
-        if command_result[1] != "Are you up?":
-            print "Node %s is down!!" % node.hostname # TODO: Throw exception # TODO: This check fails with an exception anyway
+        try:
+            command_result = node.run_command("echo -n Are you up?")
+            if command_result[1] != "Are you up?":
+                print "Node %s is misfunctioning." % node.hostname
+                nodes_to_remove.append(node)
+            else:
+                print "Node %s is up" % node.hostname
+        except (IOError, EOFError, paramiko.SSHException, Exception) as e:
+            print "Node %s is not responding." % node.hostname
+            nodes_to_remove.append(node)
+    for node_to_remove in nodes_to_remove:
+        testing_nodes.remove(node_to_remove)
+        remaining_nodes_to_allocate += 1
+        
+    if len(testing_nodes) == 0:
+        terminate_testing_nodes()
+        node_allocation_tries_count += 1
+        if node_allocation_tries_count > 5:
+            raise Exception("Could not allocate any testing nodes after %d tries." % node_allocation_tries_count)
         else:
-            print "Node %s is up" % node.hostname
-        # TODO: handle problems gracefully...
+            print "Could not allocate any nodes, retrying..."
+            time.sleep(120)
+            start_testing_nodes()
+            return
 
 
 def terminate_testing_nodes():
     global testing_nodes
-    global testing_nodes_ec2_reservation
+    global testing_nodes_ec2_reservations
     global testing_nodes_ec2_region
     global testing_nodes_ec2_access_key
     global testing_nodes_ec2_private_key
 
-    if testing_nodes_ec2_reservation != None:
-        print "Terminating EC2 nodes"
+    for testing_nodes_ec2_reservation in testing_nodes_ec2_reservations:
+        if testing_nodes_ec2_reservation:
+            print "Terminating EC2 nodes"
+        
+            ec2_connection = boto.ec2.connect_to_region(testing_nodes_ec2_region, aws_access_key_id=testing_nodes_ec2_access_key, aws_secret_access_key=testing_nodes_ec2_private_key)
+        
+            # Query AWS to stop all instances   
+            testing_nodes_ec2_reservation.stop_all()
     
-        ec2_connection = boto.ec2.connect_to_region(testing_nodes_ec2_region, aws_access_key_id=testing_nodes_ec2_access_key, aws_secret_access_key=testing_nodes_ec2_private_key)
-    
-        # Query AWS to stop all instances
-        testing_nodes_ec2_reservation.stop_all()
-        testing_nodes_ec2_reservation = None
-    
+    testing_nodes_ec2_reservations = []
     testing_nodes = None
 
 
@@ -441,34 +446,36 @@ def copy_basedata_to_testing_node(node):
     node.put_directory(base_directory, node.global_test_path)
     
     # Install the wrapper script
-    # TODO: Verify that this works!
     node.put_file(os.path.dirname(cloud_node_data.__file__) + "/" + wrapper_script_filename, "%s/%s" % (node.global_test_path, wrapper_script_filename));
     
     node.basedata_installed = True
 
 
 
-def copy_per_test_data_to_testing_node(node, test_reference, test_script):    
+def copy_per_test_data_to_testing_node(node, test_reference):    
     # Link build hierarchy
     command_result = node.run_command("ln -s %s cloud_retest/%s/build" % (node.global_build_path, test_reference))
     if command_result[0] != 0:
         print "Unable to link build environment"
-        # TODO: Throw an exception
+        raise Exception("Unable to link build environment")
         
     # Link bench hierarchy
     command_result = node.run_command("ln -s %s cloud_retest/%s/bench" % (node.global_bench_path, test_reference))
     if command_result[0] != 0:
         print "Unable to link bench environment"
-        # TODO: Throw an exception
+        raise Exception("Unable to link bench environment")
     
     # copy over the global test hierarchy
     node.make_directory_recursively("cloud_retest/%s/test" % test_reference)    
     command_result = node.run_command("cp -af %s/* cloud_retest/%s/test" % (node.global_test_path, test_reference))
     if command_result[0] != 0:
         print "Unable to copy test environment"
+        raise Exception("Unable to copy test environment")
 
 
 def start_test_on_node(node, test_command, test_timeout = None, locking_timeout = 0):
+    global testing_nodes
+
     if locking_timeout == None:
         locking_timeout = 0
 
@@ -481,8 +488,6 @@ def start_test_on_node(node, test_command, test_timeout = None, locking_timeout 
         # Initialize node if not happened before...
         if node.basedata_installed == False:
             copy_basedata_to_testing_node(node)
-        
-        test_script = str.split(test_command)[0] # TODO: Does not allow for white spaces in script file name
 
         # Generate random reference
         system_random = random.SystemRandom()
@@ -502,7 +507,7 @@ def start_test_on_node(node, test_command, test_timeout = None, locking_timeout 
         print "Starting test with test reference %s on node %s" % (test_reference, node.hostname)
         
         # Prepare for test...
-        copy_per_test_data_to_testing_node(node, test_reference, test_script)
+        copy_per_test_data_to_testing_node(node, test_reference)
         # Store test_command and test_timeout into files on the remote node for the wrapper script to pick it up
         command_result = node.run_command("echo -n %s > cloud_retest/%s/test/test_command" % (test_command, test_reference))
         if command_result[0] != 0:
@@ -519,20 +524,26 @@ def start_test_on_node(node, test_command, test_timeout = None, locking_timeout 
         # Run test and release lock after it has finished
         command_result = node.run_command("sh -c \"nohup sh -c \\\"(cd %s; LD_LIBRARY_PATH=/tmp/cloudtest_libs:$LD_LIBRARY_PATH PATH=/tmp/cloudtest_bin:$PATH PYTHONPATH=/tmp/cloudtest_python:$PYTHONPATH VALGRIND_LIB=/tmp/cloudtest_libs/valgrind python %s; %s)&\\\" > /dev/null 2> /dev/null\"" % ("cloud_retest/%s/test" % test_reference, wrapper_script_filename.replace(" ", "\\ "), node.get_release_lock_command()))
             
-    except (IOError, EOFError, paramiko.SSHException) as e:
+    except (IOError, EOFError, paramiko.SSHException, Exception) as e:
         print "Starting test failed: %s" % e
         test_reference = "Failed"
         
         try:
             node.release_lock()
-        except (IOError, EOFError, paramiko.SSHException):
+        except (IOError, EOFError, paramiko.SSHException, Exception):
             print "Unable to release lock on node %s. Node is now defunct." % node.hostname
+            testing_nodes.remove(node)
+            remaining_nodes_to_allocate += 1
         
             
     return (node, test_reference)
 
 
 def get_report_for_test(test_reference):
+    if test_reference[1] == "Failed":
+        result = Result(0.0, "fail", "The test could not be started on EC2.")
+        return result
+
     node = test_reference[0]
     result_result = node.run_command("cat cloud_retest/" + test_reference[1] + "/test/result_result")[1]
     result_description = node.run_command("cat cloud_retest/" + test_reference[1] + "/test/result_description")[1]
@@ -565,6 +576,9 @@ def issue_test_to_some_node(test_command, test_timeout = 0):
     global next_node_to_issue_to
     global round_robin_locking_timeout
     
+    # Start remaining nodes
+    setup_testing_nodes()    
+    
     test_successfully_issued = False
     while test_successfully_issued == False:
         # wait for a limited amount of time until that node is free to get work
@@ -589,7 +603,7 @@ def wait_for_nodes_to_finish():
         try:
             node.acquire_lock()
             node.release_lock()
-        except (IOError, EOFError, paramiko.SSHException) as e:
+        except (IOError, EOFError, paramiko.SSHException, Exception) as e:
             print "Node %s is broken" % node.hostname
 
 
@@ -607,9 +621,10 @@ def collect_reports_from_nodes():
                 results.append(get_report_for_test(single_run))
             
                 # Clean test (maybe preserve data instead?)
-                node = single_run[0]
-                node.run_command("rm -rf cloud_retest/%s" % test_reference)
-            except (IOError, EOFError, paramiko.SSHException) as e:
+                if single_run[1] != "Failed":
+                    node = single_run[0]
+                    node.run_command("rm -rf cloud_retest/%s" % test_reference)
+            except (IOError, EOFError, paramiko.SSHException, Exception) as e:
                 print "Unable to retrieve result for %s from node %s" % (single_run[1], single_run[0].hostname)
         
         reports.append((test_reference.command, results))
@@ -618,7 +633,7 @@ def collect_reports_from_nodes():
     for node in testing_nodes:
         try:
             cleanup_testing_node(node)
-        except (IOError, EOFError, paramiko.SSHException) as e:
+        except (IOError, EOFError, paramiko.SSHException, Exception) as e:
             print "Unable to cleanup node %s: %s" % (node.hostname, e)
         
     terminate_testing_nodes()
