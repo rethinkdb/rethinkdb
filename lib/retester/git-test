@@ -40,7 +40,7 @@ if opts["background"]:
         extra_args.extend(["--file", opts["file"]])
     
     sys.stdout = sys.__stdout__ = sys.stderr = sys.__stderr__ = \
-        file(os.path.join(os.path.expanduser("~"), "git-test-%s-%s.out" % (os.getpid(), datetime.datetime.now())), "w", 0)
+        file(os.path.join(os.path.expanduser("~"), "git-test-%s-%s.out" % (datetime.datetime.now(), os.getpid())), "w", 0)
     signal.signal(signal.SIGHUP, signal.SIG_IGN)
     signal.siginterrupt(signal.SIGHUP, False)
 
