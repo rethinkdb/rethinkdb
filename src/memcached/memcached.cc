@@ -946,10 +946,16 @@ private:
     DISABLE_COPYING(enable_gc_request_t);
 };
 
+perfmon_duration_sampler_t
+    pm_conns_reading("conns_reading", secs_to_ticks(1)),
+    pm_conns_writing("conns_writing", secs_to_ticks(1)),
+    pm_conns_acting("conns_acting", secs_to_ticks(1));
+
 txt_memcached_handler_t::txt_memcached_handler_t(conn_acceptor_t *acc, net_conn_t *conn, server_t *server)
     : conn_handler_t(acc, conn), conn(conn), server(server), send_buffer(conn)
 {
     logINF("Opened connection %p\n", this);
+    pm_conns_acting.begin(&start_time);
     read_next_command();
 }
 
@@ -982,6 +988,8 @@ void txt_memcached_handler_t::quit() {
 
 void txt_memcached_handler_t::read_next_command() {
 
+    pm_conns_acting.end(&start_time);
+
     /* Prevent arbitrarily deep stacks when reading many commands that come quickly */
     call_later_on_this_thread(this);
 }
@@ -996,6 +1004,7 @@ void txt_memcached_handler_t::on_thread_switch() {
     } else {
         /* Before we read another command off the socket, we must make sure that there isn't
         any data in the send buffer that we should flush first. */
+        pm_conns_writing.begin(&start_time);
         send_buffer.flush(this);
     }
 }
@@ -1004,13 +1013,16 @@ void txt_memcached_handler_t::on_send_buffer_flush() {
 
     /* Now that we're sure that the send buffer is empty, start reading a new line off of
     the socket. */
+    pm_conns_writing.end(&start_time);
+    pm_conns_reading.begin(&start_time);
     conn->read_buffered(this);
 }
 
 void txt_memcached_handler_t::on_send_buffer_socket_closed() {
 
     /* Socket closed as we were flushing the send buffer. */
-
+    
+    pm_conns_writing.end(&start_time);
     delete this;
 }
 
@@ -1040,6 +1052,9 @@ void txt_memcached_handler_t::on_net_conn_read_buffered(const char *buffer, size
             return;
         }
     }
+
+    pm_conns_reading.end(&start_time);
+    pm_conns_acting.begin(&start_time);
 
     /* We must duplicate the line because accept_buffer() may invalidate "buffer" */
     int line_size = (char*)crlf_loc - buffer + 2;
@@ -1131,5 +1146,6 @@ void txt_memcached_handler_t::on_net_conn_close() {
 
     /* The connection was closed as we were waiting for a complete line to buffer */
 
+    pm_conns_reading.end(&start_time);
     delete this;
 }

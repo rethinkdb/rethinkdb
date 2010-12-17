@@ -19,15 +19,11 @@ public:
 private:
     net_conn_t *conn;
     send_buffer_callback_t *flush_cb;
-    bool writing;
 
-    /* One of these points to buffers[0] and the other points to buffers[1]. */
-    std::vector<char> *writing_buffer, *growing_buffer;
-    std::vector<char> buffers[2];
+    std::vector<char> buffer;
 
     void on_net_conn_write_external();
     void on_net_conn_close();
-    void write_growing_buffer();
 };
 
 #endif /* __MEMCACHED_SEND_BUFFER_HPP__ */
