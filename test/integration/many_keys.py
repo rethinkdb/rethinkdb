@@ -11,9 +11,8 @@ def test_function(opts, mc):
     
     i = 0
     for key in keys:
-        if(i % 100000 == 0):
-            #print i
-            pass
+        # if (i % 500 == 0 or (i < 500 and (i & (i - 1)) == 0)):
+        #     print i
         ok = mc.set(key, key)
         if ok == 0:
             raise ValueError("Could not set %r" % key)
