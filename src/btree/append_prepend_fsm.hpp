@@ -16,7 +16,6 @@ public:
         do_transition(NULL);
     }
 
-
     void operate(btree_value *old_value, large_buf_t *old_large_value) {
         if (!old_value) {
             result = result_not_found;
@@ -144,6 +143,15 @@ public:
         }
         
         delete this;
+    }
+
+protected:
+    void actually_acquire_large_value(large_buf_t *lb, const large_buf_ref& lbref) {
+        if (append) {
+            lb->acquire_rhs(lbref, rwi_write, this);
+        } else {
+            lb->acquire_lhs(lbref, rwi_write, this);
+        }
     }
 
 private:
