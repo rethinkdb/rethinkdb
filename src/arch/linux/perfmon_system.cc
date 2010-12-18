@@ -110,6 +110,7 @@ callback. */
 perfmon_sampler_t
     pm_cpu_user("cpu_user", secs_to_ticks(5)),
     pm_cpu_system("cpu_system", secs_to_ticks(5)),
+    pm_cpu_combined("cpu_combined", secs_to_ticks(5)),
     pm_memory_faults("memory_faults", secs_to_ticks(5));
 
 static __thread proc_pid_stat_t last_stats;
@@ -129,6 +130,10 @@ void poll_system_stats(void *) {
         double realtime_elapsed = ticks_to_secs(current_ticks - last_ticks) * sysconf(_SC_CLK_TCK);
         pm_cpu_user.record((current_stats.utime - last_stats.utime) / realtime_elapsed);
         pm_cpu_system.record((current_stats.stime - last_stats.stime) / realtime_elapsed);
+        pm_cpu_combined.record(
+            (current_stats.utime - last_stats.utime +
+             current_stats.stime - last_stats.stime) /
+             realtime_elapsed);
         pm_memory_faults.record((current_stats.majflt - last_stats.majflt) / realtime_elapsed);
         
         last_stats = current_stats;
