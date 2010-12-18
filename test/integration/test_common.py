@@ -222,9 +222,9 @@ class Server(object):
                     command_line = [self.executable_path,
                         "--create", "--force",
                         "-c", str(self.opts["cores"]),
-                        "-s", str(self.opts["slices"])].append(
-                        ["-f %s" % ssd for ssd in self.opts["ssds"]] +
-                        self.extra_flags + shlex.split(self.opts["flags"]))
+                        "-s", str(self.opts["slices"])] + \
+                        ["-f %s" % ssd for ssd in self.opts["ssds"]] + \
+                        self.extra_flags + shlex.split(self.opts["flags"])
                 
                 if self.opts["valgrind"]:
                     cmd_line = ["valgrind"]
@@ -280,9 +280,9 @@ class Server(object):
                 command_line = [self.executable_path,
                     "-p", str(server_port),
                     "-c", str(self.opts["cores"]),
-                    "-m", str(self.opts["memory"])].append(
-                    ["-f %s" % ssd for ssd in self.opts["ssds"]] +
-                    self.extra_flags + shlex.split(self.opts["flags"]))
+                    "-m", str(self.opts["memory"])] + \
+                    ["-f %s" % ssd for ssd in self.opts["ssds"]] + \
+                    self.extra_flags + shlex.split(self.opts["flags"])
         
         elif self.opts["database"] == "memcached":
             

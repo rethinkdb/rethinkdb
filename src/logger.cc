@@ -175,8 +175,12 @@ void _mlog_start(const char *src_file, int src_line, log_level_t level) {
     /* If the log controller hasn't been started yet, then assume the thread pool hasn't been
     started either, so don't write which core the message came from. */
     
-    if (log_controller) mlogf("%s (Q%d, %s:%d): ", level_str, get_thread_id(), src_file, src_line);
-    else mlogf("%s (%s:%d): ", level_str, src_file, src_line);
+    precise_time_t t = get_precise_time();
+    char formatted_time[formatted_precise_time_length+1];
+    format_precise_time(t, formatted_time, sizeof(formatted_time));
+
+    if (log_controller) mlogf("%s %s (Q%d, %s:%d): ", formatted_time, level_str, get_thread_id(), src_file, src_line);
+    else mlogf("%s %s (%s:%d): ", formatted_time, level_str, src_file, src_line);
 }
 
 void mlogf(const char *format, ...) {

@@ -14,6 +14,23 @@
 #include "arch/arch.hpp"
 #include "utils2.hpp"
 
+// Precise time (time+nanoseconds) for logging, etc.
+typedef struct {
+    uint32_t nanosec;
+    tm low_res;     // beware:
+                    //   tm_year is number of years since 1970,
+                    //   tm_mon is number of months since January,
+                    //   tm_sec is from 0 to 60 (to account for leap seconds)
+                    // For more information see man gmtime(3)
+} precise_time_t;
+
+void initialize_precise_time();     // should be called during startup
+precise_time_t get_precise_time();
+// format:
+// yyyy-mm-dd hh:mm:ss.MMMMMM   (26 characters)
+void format_precise_time(const precise_time_t& time, char* buf, size_t max_chars);
+const size_t formatted_precise_time_length = 26;    // not including null
+
 // The signal handler for SIGSEGV
 void generic_crash_handler(int signum);
 void ignore_crash_handler(int signum);
