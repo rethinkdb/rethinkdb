@@ -85,6 +85,9 @@ private:
 public:
     void init() { }
 
+    // mem_size returns the size of the contents array, not the size
+    // of the whole thing.  The size of the whole thing is 2 greater
+    // than mem_size.
     uint16_t mem_size() const {
         return value_offset() + size;
     }
@@ -156,24 +159,23 @@ public:
         return *cas_addr();
     }
 
-    void clear_space(byte *faddr, uint8_t fsize, uint8_t offset) {
-        memmove(faddr, faddr + fsize, mem_size() - offset - fsize);
-        //size -= fsize;
+    void clear_space(byte *faddr, uint8_t fsize) {
+        memmove(faddr, faddr + fsize, mem_size() - (faddr - contents) - fsize);
     }
 
-    void make_space(byte *faddr, uint8_t fsize, uint8_t offset) { // XXX This assumes there's enough space allocated to move the value into.
+    // This assumes there's enough space allocated to move the value into.
+    void make_space(byte *faddr, uint8_t fsize) {
         assert(mem_size() + fsize <= MAX_TOTAL_NODE_CONTENTS_SIZE);
-        //size += fsize;
-        memmove(faddr + fsize, faddr, mem_size() - offset);
+        memmove(faddr + fsize, faddr, mem_size() - (faddr - contents));
     }
 
     void set_mcflags(mcflags_t new_mcflags) {
         if (has_mcflags() && new_mcflags == 0) { // Flags is being set to 0, so we clear the 4 bytes we kept for it.
-            clear_space((byte *) mcflags_addr(), sizeof(mcflags_t), mcflags_offset());
+            clear_space((byte *) mcflags_addr(), sizeof(mcflags_t));
             metadata_flags &= ~MEMCACHED_FLAGS;
         } else if (!has_mcflags() && new_mcflags) { // Make space for non-zero mcflags.
             metadata_flags |= MEMCACHED_FLAGS;
-            make_space((byte *) mcflags_addr(), sizeof(mcflags_t), mcflags_offset());
+            make_space((byte *) mcflags_addr(), sizeof(mcflags_t));
         }
         if (new_mcflags) { // We've made space, so copy the mcflags over.
             *mcflags_addr() = new_mcflags;
@@ -182,11 +184,11 @@ public:
 
     void set_exptime(exptime_t new_exptime) {
         if (has_exptime() && new_exptime == 0) { // Exptime is being set to 0, so we clear the 4 bytes we kept for it.
-            clear_space((byte *) exptime_addr(), sizeof(exptime_t), exptime_offset());
+            clear_space((byte *) exptime_addr(), sizeof(exptime_t));
             metadata_flags &= ~MEMCACHED_EXPTIME;
         } else if (!has_exptime() && new_exptime) { // Make space for non-zero exptime.
             metadata_flags |= MEMCACHED_EXPTIME;
-            make_space((byte *) exptime_addr(), sizeof(exptime_t), exptime_offset());
+            make_space((byte *) exptime_addr(), sizeof(exptime_t));
         }
         if (new_exptime) {
             *exptime_addr() = new_exptime;
@@ -207,7 +209,7 @@ public:
         }
         if (!has_cas()) { // Make space for CAS.
             metadata_flags |= MEMCACHED_CAS;
-            make_space((byte *) cas_addr(), sizeof(cas_t), cas_offset());
+            make_space((byte *) cas_addr(), sizeof(cas_t));
         }
         *cas_addr() = new_cas;
     }
