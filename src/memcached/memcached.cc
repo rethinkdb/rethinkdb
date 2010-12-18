@@ -14,7 +14,9 @@ public:
         assert(strcmp(argv[0], "get") == 0 || strcmp(argv[0], "gets") == 0);
 
         /* First parse all of the keys to get */
-        for (int i = 1; i < argc && num_gets < MAX_OPS_IN_REQUEST; i++) {
+        const size_t total_number_of_gets = num_gets + argc - 1;
+        gets.resize(total_number_of_gets, get_t());
+        for (int i = 1; i < argc; i++) {
             get_t *g = &gets[num_gets++];
             if (!node_handler::str_to_key(argv[i], &g->key)) {
                 rh->writef("CLIENT_ERROR bad command line format\r\n");
@@ -48,7 +50,8 @@ private:
     the wrong order, but we still need to send the answers in the right order. */
 
     struct get_t :
-        public store_t::get_callback_t
+        public store_t::get_callback_t,
+        public send_buffer_external_write_callback_t
     {
         txt_memcached_get_request_t *parent;
         union {
@@ -81,64 +84,79 @@ private:
             sending = false;
             parent->pump();
         }
-        
+
         void write() {
             sending = true;
-            if (buffer) {
-                if (parent->with_cas) {
-                    parent->rh->writef(
-                        "VALUE %*.*s %u %u %llu\r\n",
-                        key.size, key.size, key.contents, flags, buffer->get_size(), cas);
-                } else {
-                    assert(cas == 0);
-                    parent->rh->writef(
-                        "VALUE %*.*s %u %u\r\n",
-                        key.size, key.size, key.contents, flags, buffer->get_size());
-                }
-                if (buffer->get_size() < MAX_BUFFERED_GET_SIZE) {
-                    for (int i = 0; i < (signed)buffer->buffers.size(); i++) {
-                        const_buffer_group_t::buffer_t b = buffer->buffers[i];
-                        parent->rh->write((const char *)b.data, b.size);
-                    }
-                    callback->have_copied_value();
-                    parent->rh->writef("\r\n");
-                    done();
-                } else {
-                    buffer_being_sent = -1;
-                    on_net_conn_write_external();   // Start the data transfer loop
-                }
-            } else {
+            if (parent->rh->conn->closed()) {
+                /* The conn closed as an earlier get in the multi-get was being sent.
+                We can't just abort because we wouldn't clean up properly, so instead we
+                go through the motions of waiting for each get to complete without actually
+                writing anything to the socket. */
+                if (buffer) callback->have_copied_value();
                 done();
+
+            } else {
+                if (buffer) {
+                    if (parent->with_cas) {
+                        parent->rh->writef(
+                            "VALUE %*.*s %u %u %llu\r\n",
+                            key.size, key.size, key.contents, flags, buffer->get_size(), cas);
+                    } else {
+                        assert(cas == 0);
+                        parent->rh->writef(
+                            "VALUE %*.*s %u %u\r\n",
+                            key.size, key.size, key.contents, flags, buffer->get_size());
+                    }
+                    if (buffer->get_size() < MAX_BUFFERED_GET_SIZE) {
+                        for (int i = 0; i < (signed)buffer->buffers.size(); i++) {
+                            const_buffer_group_t::buffer_t b = buffer->buffers[i];
+                            parent->rh->write((const char *)b.data, b.size);
+                        }
+                        callback->have_copied_value();
+                        parent->rh->writef("\r\n");
+                        done();
+                    } else {
+                        buffer_being_sent = -1;
+                        on_send_buffer_write_external();   // Start the data transfer loop
+                    }
+                } else {
+                    done();
+                }
             }
         }
         
-        void on_net_conn_write_external() {
+        void on_send_buffer_write_external() {
             buffer_being_sent++;
             if (buffer_being_sent == (int)buffer->buffers.size()) {
                 callback->have_copied_value();
                 parent->rh->writef("\r\n");
                 done();
             } else {
-                /* This is weird and temporary. The eventual goal of this bit of code is to stream
-                the data to the socket directly. However, we don't implement that yet; instead we
-                push the data into the send_buffer_t. The reason why we implement this recursively
-                instead of iteratively is that eventually we would like to call an asynchronous
-                API instead of write. That asynchronous API would call on_net_conn_write_external()
-                when it was done writing that buffer. So that's why this code looks weird. */
-                parent->rh->write(
+                parent->rh->send_buffer.write_external(
+                    buffer->buffers[buffer_being_sent].size,
                     (const char *)buffer->buffers[buffer_being_sent].data,
-                    buffer->buffers[buffer_being_sent].size);
-                on_net_conn_write_external();
+                    this);
             }
         }
-        
+
+        void on_send_buffer_socket_closed() {
+
+            /* The socket was closed as we were streaming the large value. Stop streaming
+            and go onto the next value. We can't just abort because then the gets wouldn't
+            get cleaned up properly; instead, we go through the motions of sending the
+            results without actually writing anything to the socket. */
+
+            if (buffer) callback->have_copied_value();
+            done();   // Go on to the rest of the gets so they can clean up
+        }
+
         void done() {
             assert(&parent->gets[parent->curr_get] == this);
             parent->curr_get++;
             parent->pump();
         }
     };
-    get_t gets[MAX_OPS_IN_REQUEST];
+    std::vector<get_t> gets;
     int num_gets, curr_get;
     
     bool with_cas;

@@ -57,10 +57,6 @@
 // Ratio of free ram to use for the cache by default
 #define DEFAULT_MAX_CACHE_RATIO                   0.8f
 
-// Maximum number of operations packed into a single request
-// TODO: make this dynamic and get rid of this parameter
-#define MAX_OPS_IN_REQUEST                        16
-
 // Maximum number of threads we support
 // TODO: make this dynamic where possible
 #define MAX_THREADS                                  128
