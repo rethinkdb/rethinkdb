@@ -144,5 +144,6 @@ void format_precise_time(const precise_time_t& time, char* buf, size_t max_chars
         time.low_res.tm_sec,
         (int) (time.nanosec/1e3));
     assert(res >= 0);
+    UNUSED(res);
 }
 
