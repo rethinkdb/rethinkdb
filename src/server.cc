@@ -22,8 +22,7 @@ void server_t::do_start_loggers() {
 }
 
 void server_t::on_logger_ready() {
-    if (cmd_config->create_store) do_check_store();
-    else do_start_store();
+    do_check_store();
 }
 
 void server_t::do_check_store() {
@@ -39,11 +38,14 @@ void server_t::do_check_store() {
 }
 
 void server_t::on_store_check(bool ok) {
-    if (ok && !cmd_config->force_create) {
+    if (ok && cmd_config->create_store && !cmd_config->force_create) {
         fail_due_to_user_error(
             "It looks like there already is a database here. RethinkDB will abort in case you "
             "didn't mean to overwrite it. Run with the '--force' flag to override this warning.");
     } else {
+        if (!ok) {
+            cmd_config->create_store = true;
+        }
         do_start_store();
     }
 }
@@ -62,13 +64,13 @@ void server_t::do_start_store() {
         done = store->start_existing(this);
     }
 
-    log_disk_info(cmd_config->store_dynamic_config.serializer_private);
 
     if (done) on_store_ready();
 }
 
 void server_t::on_store_ready() {
     assert_thread();
+    log_disk_info(cmd_config->store_dynamic_config.serializer_private);
     
     if (cmd_config->shutdown_after_creation) {
         logINF("Done creating database.\n");

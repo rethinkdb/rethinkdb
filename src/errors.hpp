@@ -43,7 +43,7 @@
 // TODO: Abort probably is not the right thing to do here.
 #define fail_due_to_user_error(msg, ...) do {                       \
         report_user_error(msg, ##__VA_ARGS__);                                     \
-        abort();                                                    \
+        exit(-1);                                                    \
     } while (0)
 
 #define crash(msg, ...) do {                                        \
@@ -80,7 +80,11 @@ void report_user_error(const char*, ...);
 #define unreachable(msg, ...) crash("Unreachable code: " msg, ##__VA_ARGS__)    // can't use crash_or_trap since code needs to depend on its noreturn property
 #define not_implemented(msg, ...) crash_or_trap("Not implemented: " msg, ##__VA_ARGS__)
 
+/* Another way to mark unused variables:
+ *   int foo __attribute__((unused)) = bar();
+ */
 #define UNUSED(x) ((void) x)
+
 #ifdef NDEBUG
 #define assert(cond, msg...) ((void)(0))
 #define assert_err(cond, msg...) ((void)(0))

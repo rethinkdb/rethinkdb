@@ -15,6 +15,7 @@ struct txt_memcached_handler_t :
     net_conn_t *conn;
     server_t *server;
     send_buffer_t send_buffer;
+    ticks_t start_time;   // Used for various perfmonning stuff
 
     txt_memcached_handler_t(conn_acceptor_t *acc, net_conn_t *, server_t *);
     ~txt_memcached_handler_t();

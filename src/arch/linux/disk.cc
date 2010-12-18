@@ -29,9 +29,13 @@ linux_direct_file_t::linux_direct_file_t(const char *path, int mode) {
     struct stat64 file_stat;
     bzero((void*)&file_stat, sizeof(file_stat)); // make valgrind happy
     res = stat64(path, &file_stat);
-    guarantee_err(res != -1 || errno == ENOENT, "Could not stat file");
+    guarantee_err(res == 0 || errno == ENOENT, "Could not stat file");
     
     if (res == -1 && errno == ENOENT) {
+        if (!(mode & mode_create)) {
+            file_exists = false;
+            return;
+        }
         is_block = false;
     } else {
         is_block = S_ISBLK(file_stat.st_mode);
@@ -41,10 +45,11 @@ linux_direct_file_t::linux_direct_file_t(const char *path, int mode) {
     
     int flags = O_CREAT | O_DIRECT | O_LARGEFILE;
     
-    if (mode == (mode_read | mode_write)) flags |= O_RDWR;
+    if ((mode & mode_write) && (mode & mode_read)) flags |= O_RDWR;
     else if (mode & mode_write) flags |= O_WRONLY;
     else if (mode & mode_read) flags |= O_RDONLY;
     else crash("Bad file access mode.");
+
     
     // O_NOATIME requires owner or root privileges. This is a bit of a hack; we assume that
     // if we are opening a regular file, we are the owner, but if we are opening a block device,
@@ -56,6 +61,8 @@ linux_direct_file_t::linux_direct_file_t(const char *path, int mode) {
     fd = open(path, flags, 0644);
     if (fd == INVALID_FD)
         fail_due_to_user_error("Inaccessible database file: \"%s\": %s", path, strerror(errno));
+
+    file_exists = true;
     
     // Determine the file size
     
@@ -70,6 +77,10 @@ linux_direct_file_t::linux_direct_file_t(const char *path, int mode) {
         
         file_size = size;
     }
+}
+
+bool linux_direct_file_t::exists() {
+    return file_exists;
 }
 
 bool linux_direct_file_t::is_block_device() {
