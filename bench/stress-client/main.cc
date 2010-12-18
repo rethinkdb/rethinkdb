@@ -162,7 +162,7 @@ int main(int argc, char *argv[])
     
     // Dump key vectors if we have an out file
     if(config.out_file[0] != 0) {
-        FILE *out_file = fopen(config.out_file, "aw");
+        FILE *out_file = fopen(config.out_file, "w");
 
         fwrite(&config.clients, sizeof(config.clients), 1, out_file);
 
