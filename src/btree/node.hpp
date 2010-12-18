@@ -85,13 +85,14 @@ private:
 public:
     void init() { }
 
-    // mem_size returns the size of the contents array, not the size
-    // of the whole thing.  The size of the whole thing is 2 greater
-    // than mem_size.
+    // The size of the contents array.  So [this, 2 + this->mem_size()
+    // + (byte *)this) is the interval of space occupied by the value.
+    // There are 2 bytes for the size and metadata flags fields.
     uint16_t mem_size() const {
         return value_offset() + size;
     }
 
+    // The size of the actual value, which might be the size of the large buf.
     int64_t value_size() const {
         if (is_large()) {
             int64_t ret = lb_ref().size;
@@ -102,16 +103,14 @@ public:
         }
     }
 
+    // Sets the size of the actual value, but it doesn't really create
+    // a large buf.
     void value_size(int64_t new_size) {
         if (new_size <= MAX_IN_NODE_VALUE_SIZE) {
-            if (is_large()) {
-                metadata_flags &= ~LARGE_VALUE;
-            }
+            metadata_flags &= ~LARGE_VALUE;
             size = new_size;
         } else {
-            if (!is_large()) {
-                metadata_flags |= LARGE_VALUE;
-            }
+            metadata_flags |= LARGE_VALUE;
             size = sizeof(large_buf_ref);
             large_buf_ref_ptr()->size = new_size;
         }
@@ -121,7 +120,9 @@ public:
     typedef uint64_t cas_t;
 
     // TODO: We assume that time_t can be converted to an exptime_t,
-    // which is 32 bits.  We may run into problems in 2038 or 2106.
+    // which is 32 bits.  We may run into problems in 2038 or 2106, or
+    // 68 years from the creation of the database, or something, if we
+    // do timestamp comparisons wrong.
     typedef uint32_t exptime_t;
 
     // Every value has mcflags, but they're very often 0, in which case we just
@@ -147,9 +148,15 @@ public:
 
     large_buf_ref *large_buf_ref_ptr() { return ptr_cast<large_buf_ref>(value()); }
 
-    const large_buf_ref& lb_ref() const { return *ptr_cast<large_buf_ref>(value()); }
+    const large_buf_ref& lb_ref() const {
+        assert(is_large());
+        assert(size == sizeof(large_buf_ref));
+        return *ptr_cast<large_buf_ref>(value());
+    }
     void set_lb_ref(const large_buf_ref& ref) {
-        *(large_buf_ref *) value() = ref;
+        assert(is_large());
+        assert(size == sizeof(large_buf_ref));
+        *reinterpret_cast<large_buf_ref *>(value()) = ref;
     }
 
     mcflags_t mcflags() const { return has_mcflags() ? *mcflags_addr() : 0; }
