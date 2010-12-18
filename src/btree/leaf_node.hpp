@@ -11,10 +11,11 @@
 #define LEAF_EPSILON (sizeof(btree_key) + MAX_KEY_SIZE + sizeof(btree_value) + MAX_TOTAL_NODE_CONTENTS_SIZE)
 
 
-//Note: This struct is stored directly on disk.  Changing it invalidates old data.
+// Note: This struct is stored directly on disk.  Changing it
+// invalidates old data.  (It's not really representative of what's
+// stored on disk, but be aware of how you might invalidate old data.)
 struct btree_leaf_pair {
     btree_key key;
-    // We have a sizeof(btree_leaf_pair) that depends on the presence of this value!!
     btree_value value_;
     // key is of variable size and there's a btree_value that follows
     // it that is of variable size.

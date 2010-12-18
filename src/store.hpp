@@ -12,6 +12,9 @@ typedef uint64_t cas_t;
 struct store_key_t {
     uint8_t size;
     char contents[0];
+    uint16_t full_size() const {
+        return size + offsetof(store_key_t, contents);
+    }
     void print() const {
         printf("%*.*s", size, size, contents);
     }

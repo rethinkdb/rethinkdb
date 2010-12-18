@@ -262,10 +262,10 @@ bool leaf_node_handler::is_full(const leaf_node_t *node, const btree_key *key, c
     // reuse that space.
     assert(value);
 #ifdef BTREE_DEBUG
-    printf("sizeof(leaf_node_t): %ld, (node->npairs + 1): %d, sizeof(*node->pair_offsets):%ld, sizeof(btree_leaf_pair): %ld, key->size: %d, value->mem_size(): %d, node->frontmost_offset: %d\n", sizeof(leaf_node_t), (node->npairs + 1), sizeof(*node->pair_offsets), sizeof(btree_leaf_pair), key->size, value->mem_size(), node->frontmost_offset);
+    printf("sizeof(leaf_node_t): %ld, (node->npairs + 1): %d, sizeof(*node->pair_offsets):%ld, key->size: %d, value->mem_size(): %d, node->frontmost_offset: %d\n", sizeof(leaf_node_t), (node->npairs + 1), sizeof(*node->pair_offsets), key->size, value->mem_size(), node->frontmost_offset);
 #endif
     return sizeof(leaf_node_t) + (node->npairs + 1)*sizeof(*node->pair_offsets) +
-        sizeof(btree_leaf_pair) + key->size + value->mem_size() >=
+        key->full_size() + value->full_size() >=
         node->frontmost_offset;
 }
 
@@ -307,7 +307,7 @@ bool leaf_node_handler::is_underfull(block_size_t block_size, const leaf_node_t 
 }
 
 size_t leaf_node_handler::pair_size(const btree_leaf_pair *pair) {
-    return sizeof(btree_leaf_pair) + pair->key.size + pair->value()->mem_size();
+    return pair->key.full_size() + pair->value()->full_size();
 }
 
 const btree_leaf_pair *leaf_node_handler::get_pair(const leaf_node_t *node, uint16_t offset) {
@@ -344,7 +344,7 @@ uint16_t leaf_node_handler::insert_pair(leaf_node_t *node, const btree_leaf_pair
 }
 
 uint16_t leaf_node_handler::insert_pair(leaf_node_t *node, const btree_value *value, const btree_key *key) {
-    node->frontmost_offset -= sizeof(btree_leaf_pair) + key->size + value->mem_size();
+    node->frontmost_offset -= key->full_size() + value->full_size();
     btree_leaf_pair *new_pair = get_pair(node, node->frontmost_offset);
 
     // insert contents
