@@ -13,6 +13,7 @@ int main(int argc, char *argv[]) {
 
     consider_execve_side_executable(argc, argv, "extract");
 
+    initialize_precise_time();
     install_generic_crash_handler();
 
 #ifndef NDEBUG

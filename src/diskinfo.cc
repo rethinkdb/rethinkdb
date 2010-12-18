@@ -34,15 +34,6 @@ partition_info_t::partition_info_t(int nmajor, int nminor, int nblocks, std::str
 
 partition_info_t::partition_info_t() {}
 
-dev_t get_device(const char *filepath) {
-    /* Given a filepath, returns the device number. */
-    struct stat st;
-    if (stat(filepath, &st)) {
-        logERR("%s\n", strerror(errno));
-    }
-    return st.st_dev;
-}
-
 void tokenize_line(const std::string& line, std::vector<std::string> &tokens) {
     /* Given a line and an empty vector to fill in, chops the line up by space
      * characters and puts the words in the tokens vector.
@@ -111,7 +102,7 @@ void log_disk_info(std::vector<log_serializer_private_dynamic_config_t> &seriali
 
     struct stat st;
 
-    if (-1 == (stat(hdparm_path, &st))) {
+    if (stat(hdparm_path, &st)) {
         logWRN("System lacks hdparm; giving up\n");
         return;
     }
@@ -123,9 +114,13 @@ void log_disk_info(std::vector<log_serializer_private_dynamic_config_t> &seriali
     mlog_start(INF);
     for (unsigned int i = 0; i < serializers.size(); i++) {
         path = serializers[i].db_filename.c_str();
-        dev_t device = get_device(path);
-        maj = major(device);
-        min = minor(device);
+        if (stat(path, &st)) {
+            mlogf("Cannot stat \"%s\": %s\n", path, strerror(errno));
+            continue;
+        }
+
+        maj = major(st.st_dev);
+        min = minor(st.st_dev);
         if (maj == 0) {
             /* We're looking at a device, not a file */
             if (strncmp("/dev/ram", path, 8)) {

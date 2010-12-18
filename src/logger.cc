@@ -138,6 +138,12 @@ static void vmlogf(const char *format, va_list arg) {
 }
 
 void _logf(const char *src_file, int src_line, log_level_t level, const char *format, ...) {
+    bool was_logging = false;
+    if (logging) {
+        /* Flush any previous log messages first */
+        mlog_end();
+        was_logging = true;
+    }
     _mlog_start(src_file, src_line, level);
 
     va_list arg;
@@ -146,10 +152,12 @@ void _logf(const char *src_file, int src_line, log_level_t level, const char *fo
     va_end(arg);
 
     mlog_end();
+    if (was_logging) {
+        logging = true;
+    }
 }
 
 void _mlog_start(const char *src_file, int src_line, log_level_t level) {
-    assert(!logging);
     logging = true;
     
     message_len = 0;
@@ -167,8 +175,12 @@ void _mlog_start(const char *src_file, int src_line, log_level_t level) {
     /* If the log controller hasn't been started yet, then assume the thread pool hasn't been
     started either, so don't write which core the message came from. */
     
-    if (log_controller) mlogf("%s (Q%d, %s:%d): ", level_str, get_thread_id(), src_file, src_line);
-    else mlogf("%s (%s:%d): ", level_str, src_file, src_line);
+    precise_time_t t = get_precise_time();
+    char formatted_time[formatted_precise_time_length+1];
+    format_precise_time(t, formatted_time, sizeof(formatted_time));
+
+    if (log_controller) mlogf("%s %s (Q%d, %s:%d): ", formatted_time, level_str, get_thread_id(), src_file, src_line);
+    else mlogf("%s %s (%s:%d): ", formatted_time, level_str, src_file, src_line);
 }
 
 void mlogf(const char *format, ...) {
