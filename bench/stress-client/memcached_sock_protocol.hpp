@@ -31,9 +31,8 @@ public:
 
 class memcached_response_t {
 public:
-    memcached_response_t(char* thread_buffer) {
+    memcached_response_t(std::vector<char>& thread_buffer) : buffer(thread_buffer) {
         successful = false;
-        this->buffer = thread_buffer;
         bytes_in_buffer = 0;
         first_buffer_byte = 0;
     }
@@ -59,14 +58,14 @@ protected:
                     gotR = true;
                 else if (gotR && buffer[first_buffer_byte + scanned_up_to_position] == '\n') {
                     result_length = scanned_up_to_position - 1;
-                    const char* result = buffer + first_buffer_byte;
+                    char* char_buffer = &buffer[0];
+                    const char* result = char_buffer + first_buffer_byte;
                     first_buffer_byte += scanned_up_to_position + 1;
                     bytes_in_buffer -= scanned_up_to_position + 1;
                     
-                    // Warning: This requires a certain minimum buffer size to work reliably
                     if (first_buffer_byte > 4096) {
                         // Wrap around and reset buffer
-                        memcpy(buffer, buffer + first_buffer_byte, bytes_in_buffer);
+                        memcpy(char_buffer, char_buffer + first_buffer_byte, bytes_in_buffer);
                         first_buffer_byte = 0;
                     }
                     
@@ -78,8 +77,9 @@ protected:
                 ++scanned_up_to_position;
             }
 
-            // TODO: Check for buffer overflow!
-            const ssize_t bytes_read = recv(socketfd, buffer + first_buffer_byte + bytes_in_buffer, 512, 0);
+            buffer.resize(std::max(first_buffer_byte + bytes_in_buffer + 512, buffer.size()), '\0');
+            char* char_buffer = &buffer[0];
+            const ssize_t bytes_read = recv(socketfd, char_buffer + first_buffer_byte + bytes_in_buffer, 512, 0);
             if (bytes_read <= 0) {
                 perror("Unable to read from socket");
                 exit(-1);
@@ -89,11 +89,11 @@ protected:
     }
     
     const char* read_n_bytes(const size_t n) {
-        // TODO: Check for buffer overflow!
-    
+        buffer.resize(std::max(first_buffer_byte + n, buffer.size()), '\0');
+        char* char_buffer = &buffer[0];
         if (bytes_in_buffer < n) {
             // MSG_WAITALL makes recv wait until it actually receives the full n bytes
-            const ssize_t bytes_read = recv(socketfd, buffer + first_buffer_byte + bytes_in_buffer, n - bytes_in_buffer, MSG_WAITALL);
+            const ssize_t bytes_read = recv(socketfd, char_buffer + first_buffer_byte + bytes_in_buffer, n - bytes_in_buffer, MSG_WAITALL);
             if(bytes_read < n - bytes_in_buffer) {
                 perror("Unable to read from socket");
                 exit(-1);
@@ -101,7 +101,7 @@ protected:
             bytes_in_buffer += bytes_read;
         }
         
-        const char* result = buffer + first_buffer_byte;
+        const char* result = char_buffer + first_buffer_byte;
         first_buffer_byte += n;
         bytes_in_buffer -= n;
         
@@ -133,14 +133,14 @@ protected:
     }
     
 private:
-    char* buffer;
+    std::vector<char>& buffer;
     size_t first_buffer_byte;
     size_t bytes_in_buffer;
 };
 
 class memcached_delete_response_t : public memcached_response_t {
 public:
-    memcached_delete_response_t(char* thread_buffer) : memcached_response_t(thread_buffer) { }
+    memcached_delete_response_t(std::vector<char>& thread_buffer) : memcached_response_t(thread_buffer) { }
 
     void read_from_socket(const int socketfd) {
         this->socketfd = socketfd;
@@ -157,7 +157,7 @@ public:
 
 class memcached_store_response_t : public memcached_response_t {
 public:
-    memcached_store_response_t(char* thread_buffer) : memcached_response_t(thread_buffer) { }
+    memcached_store_response_t(std::vector<char>& thread_buffer) : memcached_response_t(thread_buffer) { }
 
     void read_from_socket(const int socketfd) {
         this->socketfd = socketfd;
@@ -174,7 +174,7 @@ public:
 
 class memcached_retrieval_response_t : public memcached_response_t {
 public:
-    memcached_retrieval_response_t(char* thread_buffer, const unsigned int number_of_keys) : memcached_response_t(thread_buffer) {
+    memcached_retrieval_response_t(std::vector<char>& thread_buffer, const unsigned int number_of_keys) : memcached_response_t(thread_buffer) {
         this->number_of_keys = number_of_keys;
     }
 
@@ -263,7 +263,7 @@ struct memcached_sock_protocol_t : public protocol_t {
             }
             // Should be enough:
             buffer = new char[config->values.max + 1024];
-            thread_buffer = new char[4096 * 1024]; // Should be enough, too...
+            thread_buffer.resize(1024 * 8, '\0');
         }
 
     virtual ~memcached_sock_protocol_t() {
@@ -276,7 +276,6 @@ struct memcached_sock_protocol_t : public protocol_t {
             }
         }
         delete[] buffer;
-        delete[] thread_buffer;
     }
 
     virtual void connect(server_t *server) {
@@ -475,7 +474,7 @@ private:
 private:
     int sockfd;
     char *buffer;
-    char *thread_buffer;
+    std::vector<char> thread_buffer;
 };
 
 

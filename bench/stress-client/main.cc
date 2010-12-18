@@ -116,7 +116,8 @@ int main(int argc, char *argv[])
         }
         
         int check_clients = 0;
-        fread(&check_clients, sizeof(check_clients), 1, in_file);
+        size_t res __attribute__((unused));
+        res = fread(&check_clients, sizeof(check_clients), 1, in_file);
         
         if (check_clients != config.clients) {
             fprintf(stderr, "Client number mismatch. Input file is for %d clients, attempted to run with %d.\n", check_clients, config.clients);
@@ -125,7 +126,7 @@ int main(int argc, char *argv[])
 
         while(feof(in_file) == 0) {
             int id, min_seed, max_seed;
-            size_t res __attribute__((unused)) = fread(&id, sizeof(id), 1, in_file);
+            res = fread(&id, sizeof(id), 1, in_file);
             res = fread(&min_seed, sizeof(min_seed), 1, in_file);
             res = fread(&max_seed, sizeof(max_seed), 1, in_file);
 
