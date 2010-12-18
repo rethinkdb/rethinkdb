@@ -14,7 +14,9 @@ public:
         assert(strcmp(argv[0], "get") == 0 || strcmp(argv[0], "gets") == 0);
 
         /* First parse all of the keys to get */
-        for (int i = 1; i < argc && num_gets < MAX_OPS_IN_REQUEST; i++) {
+        const size_t total_number_of_gets = num_gets + argc - 1;
+        gets.resize(total_number_of_gets, get_t());
+        for (int i = 1; i < argc; i++) {
             get_t *g = &gets[num_gets++];
             if (!node_handler::str_to_key(argv[i], &g->key)) {
                 rh->writef("CLIENT_ERROR bad command line format\r\n");
@@ -138,7 +140,7 @@ private:
             parent->pump();
         }
     };
-    get_t gets[MAX_OPS_IN_REQUEST];
+    std::vector<get_t> gets;
     int num_gets, curr_get;
     
     bool with_cas;
