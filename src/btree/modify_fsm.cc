@@ -204,7 +204,7 @@ bool btree_modify_fsm_t::do_check_for_split(const node_t **node) {
 
         bool success = internal_node_handler::insert(cache->get_block_size(), last_node, median, node_id, rnode_id);
         assert(success, "could not insert internal btree node");
-        UNUSED(success);
+        (void)success;
 
 #ifdef BTREE_DEBUG
         printf("\t|\n\t| Median = "); median->print(); printf("\n\t|\n\tV\n");

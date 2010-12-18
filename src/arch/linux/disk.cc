@@ -168,14 +168,14 @@ void linux_direct_file_t::read_blocking(size_t offset, size_t length, void *buf)
     verify(offset, length, buf);
     size_t res = pread(fd, buf, length, offset);
     assert(res == length, "Blocking read failed");
-    UNUSED(res);
+    (void)res;
 }
 
 void linux_direct_file_t::write_blocking(size_t offset, size_t length, void *buf) {
     verify(offset, length, buf);
     size_t res = pwrite(fd, buf, length, offset);
     assert(res == length, "Blocking write failed");
-    UNUSED(res);
+    (void)res;
 }
 
 linux_direct_file_t::~linux_direct_file_t() {
