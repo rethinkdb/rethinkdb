@@ -174,8 +174,9 @@ public:
 
 class memcached_retrieval_response_t : public memcached_response_t {
 public:
-    memcached_retrieval_response_t(std::vector<char>& thread_buffer, const unsigned int number_of_keys) : memcached_response_t(thread_buffer) {
+    memcached_retrieval_response_t(std::vector<char>& thread_buffer, const unsigned int number_of_keys, const bool mock_parse) : memcached_response_t(thread_buffer) {
         this->number_of_keys = number_of_keys;
+        this->mock_parse = mock_parse;
     }
 
     void read_from_socket(const int socketfd) {
@@ -197,34 +198,10 @@ public:
                 break;
             }
             else if (does_match_at_position(line, "VALUE ", line_length, 0)) {
-                size_t parse_position = 6;
-                
-                const size_t key_end_position = value_response.find(' ', parse_position);
-                if (key_end_position == value_response.npos)
-                    throw protocol_error_t("Unable to retrieve key from get response.");
-                const std::string key = value_response.substr(parse_position, key_end_position - parse_position);
-                parse_position += key.length() + 1;
-                
-                const size_t flags_end_position = value_response.find(' ', parse_position);
-                if (flags_end_position == value_response.npos)
-                    throw protocol_error_t("Unable to retrieve flags from get response.");
-                const std::string flags_string = value_response.substr(parse_position, flags_end_position - parse_position);
-                parse_position += flags_string.length() + 1;
-                
-                const std::string size_string = value_response.substr(parse_position);
-                
-                const int flags = string_to_int(flags_string);
-                const int size = string_to_int(size_string);
-                
-                const char* value = read_n_bytes(static_cast<size_t>(size));
-                const std::string value_str(value, static_cast<size_t>(size));
-                
-                read_line(line_length);
-                if (line_length > 0)
-                    throw protocol_error_t("Did not get line break after value.");
-
-                values.insert(std::pair<std::string, std::string>(key, value_str));
-                this->flags.insert(std::pair<std::string, int>(key, flags));
+                if (mock_parse)
+                    parse_value_response_mock(value_response);
+                else
+                    parse_value_response(value_response);
             }
             else
                 throw protocol_error_t("Illegal response to get request: " + value_response);
@@ -247,6 +224,63 @@ public:
     std::map<std::string, int> flags;
     
 private:
+    void parse_value_response(const std::string& value_response) {
+        size_t parse_position = 6;
+                
+        const size_t key_end_position = value_response.find(' ', parse_position);
+        if (key_end_position == value_response.npos)
+            throw protocol_error_t("Unable to retrieve key from get response.");
+        const std::string key = value_response.substr(parse_position, key_end_position - parse_position);
+        parse_position += key_end_position - parse_position + 1;
+        
+        const size_t flags_end_position = value_response.find(' ', parse_position);
+        if (flags_end_position == value_response.npos)
+            throw protocol_error_t("Unable to retrieve flags from get response.");
+        const std::string flags_string = value_response.substr(parse_position, flags_end_position - parse_position);
+        parse_position += flags_end_position - parse_position + 1;
+        
+        const std::string size_string = value_response.substr(parse_position);
+        
+        const int flags = string_to_int(flags_string);
+        const int size = string_to_int(size_string);
+        
+        const char* value = read_n_bytes(static_cast<size_t>(size));
+        const std::string value_str(value, static_cast<size_t>(size));
+        
+        size_t line_length = 0;
+        read_line(line_length);
+        if (line_length > 0)
+            throw protocol_error_t("Did not get line break after value.");
+
+        values.insert(std::pair<std::string, std::string>(key, value_str));
+        this->flags.insert(std::pair<std::string, int>(key, flags));
+    }
+    
+    void parse_value_response_mock(const std::string& value_response) {
+        size_t parse_position = 6;
+
+        const size_t key_end_position = value_response.find(' ', parse_position);
+        if (key_end_position == value_response.npos)
+            throw protocol_error_t("Unable to retrieve key from get response.");
+        parse_position += key_end_position - parse_position + 1;
+        
+        const size_t flags_end_position = value_response.find(' ', parse_position);
+        if (flags_end_position == value_response.npos)
+            throw protocol_error_t("Unable to retrieve flags from get response.");
+        parse_position += flags_end_position - parse_position + 1;
+        
+        const std::string size_string = value_response.substr(parse_position);
+        const int size = string_to_int(size_string);
+        
+        const char* value = read_n_bytes(static_cast<size_t>(size));
+        
+        size_t line_length = 0;
+        read_line(line_length);
+        if (line_length > 0)
+            throw protocol_error_t("Did not get line break after value.");
+    }
+    
+    bool mock_parse;
     unsigned int number_of_keys;
 };
 
@@ -264,6 +298,7 @@ struct memcached_sock_protocol_t : public protocol_t {
             // Should be enough:
             buffer = new char[config->values.max + 1024];
             thread_buffer.resize(1024 * 8, '\0');
+            mock_parse = config->mock_parse;
         }
 
     virtual ~memcached_sock_protocol_t() {
@@ -386,7 +421,7 @@ struct memcached_sock_protocol_t : public protocol_t {
         send_command(buf - buffer);
         
         // Parse the response
-        memcached_retrieval_response_t response(thread_buffer, count);
+        memcached_retrieval_response_t response(thread_buffer, count, mock_parse);
         response.read_from_socket(sockfd);
 
         // Check the result
@@ -475,6 +510,7 @@ private:
     int sockfd;
     char *buffer;
     std::vector<char> thread_buffer;
+    bool mock_parse;
 };
 
 

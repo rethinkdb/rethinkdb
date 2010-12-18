@@ -52,6 +52,9 @@ int main(int argc, char *argv[])
         printf("Automatically enabled per-client key suffixes\n");
         config.keys.append_client_suffix = true;
     }
+    if (config.load.verifies > 0) {
+        config.mock_parse = false;
+    }
     config.print();
 
     /* make a directory for our sqlite files */

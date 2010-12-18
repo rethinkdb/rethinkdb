@@ -93,6 +93,7 @@ public:
           keys(distr_t(8, 16)), values(distr_t(8, 128)),
           duration(10000000L, duration_t::queries_t), batch_factor(distr_t(1, 16))
         {
+            mock_parse = true;
             latency_file[0] = 0;
             qps_file[0] = 0;
             out_file[0] = 0;
@@ -131,6 +132,7 @@ public:
     distr_t values;
     duration_t duration;
     distr_t batch_factor;
+    bool mock_parse;
     char latency_file[MAX_FILE];
     char qps_file[MAX_FILE];
     char out_file[MAX_FILE];
