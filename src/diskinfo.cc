@@ -152,14 +152,14 @@ void log_disk_info(std::vector<log_serializer_private_dynamic_config_t> &seriali
         return;
     }
 
-    std::string cmd = std::string(hdparm_path);
-    cmd.append(std::string(" -iI"));
+    std::string cmd;
     for (std::set<std::string>::iterator it = devices.begin(); it != devices.end(); it++) {
-        cmd.append(std::string(" "));
+        cmd.append(std::string(hdparm_path));
+        cmd.append(std::string(" -iI"));
         cmd.append(*it);
+        /* Standard error from hdparm isn't useful. */
+        cmd.append(std::string(" 2>/dev/null; "));
     }
-    /* Standard error from hdparm isn't useful. */
-    cmd.append(std::string(" 2>/dev/null"));
 
 
     char *buf = (char *) calloc(1024, sizeof(char));
