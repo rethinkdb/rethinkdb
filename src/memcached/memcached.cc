@@ -781,12 +781,11 @@ class txt_memcached_delete_request_t :
 
 public:
     txt_memcached_delete_request_t(txt_memcached_handler_t *rh, int argc, char **argv)
-        : rh(rh)
+        : rh(rh), noreply(false)
     {
         /* "delete" key [a number] ["noreply"] */
         if (argc < 2 || argc > 4) {
-            if (argc < 2) rh->writef("ERROR\r\n");
-            else rh->writef("CLIENT_ERROR bad command line format.  Usage: delete <key> [noreply]\r\n");
+            rh->writef("ERROR\r\n");
             rh->read_next_command();
             delete this;
             return;
@@ -806,24 +805,15 @@ public:
 
         /* Parse "noreply" */
         if (argc > 2) {
-            if (strcmp(argv[argc - 1], "noreply") == 0) {
-                noreply = true;
-            } else {
+            noreply = strcmp(argv[argc - 1], "noreply") == 0;
+
+            /* Check for non-"0" if needed */
+            if (!noreply && strcmp(argv[2], "0") != 0) {
                 rh->writef("CLIENT_ERROR bad command line format.  Usage: delete <key> [noreply]\r\n");
                 rh->read_next_command();
                 delete this;
                 return;
             }
-        } else {
-            noreply = false;
-        }
-
-        /* Go back and parse the number */
-        if (argc == 4 && strcmp(argv[2], "0") != 0) {
-            if (!noreply) rh->writef("CLIENT_ERROR bad command line format.  Usage: delete <key> [noreply]\r\n");
-            rh->read_next_command();
-            delete this;
-            return;
         }
 
         /* Store the request handler in case we get deleted */
