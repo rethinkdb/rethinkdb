@@ -111,6 +111,11 @@ void log_disk_info(std::vector<log_serializer_private_dynamic_config_t> &seriali
 
     int maj, min = 0;
     const char *path;
+    const char *dev_path;
+
+    uid_t uid = geteuid();
+    int device_idx;
+
     mlog_start(INF);
     for (unsigned int i = 0; i < serializers.size(); i++) {
         path = serializers[i].db_filename.c_str();
@@ -118,7 +123,6 @@ void log_disk_info(std::vector<log_serializer_private_dynamic_config_t> &seriali
             mlogf("Cannot stat \"%s\": %s\n", path, strerror(errno));
             continue;
         }
-
         maj = major(st.st_dev);
         min = minor(st.st_dev);
         if (maj == 0) {
@@ -134,11 +138,32 @@ void log_disk_info(std::vector<log_serializer_private_dynamic_config_t> &seriali
             continue;
         }
 
+        device_idx = -1;
         for (unsigned int j = 0; j < partitions.size(); j++) {
             if (partitions[j]->nmajor == maj && partitions[j]->nminor == min) {
-                devices.insert(partitions[j]->name);
+                device_idx = j;
+                break;
             }
         }
+
+        if (device_idx != -1) {
+            dev_path = partitions[device_idx]->name.c_str();
+            if (stat(dev_path, &st)) {
+                mlogf("Cannot stat \"%s\": %s\n", dev_path, strerror(errno));
+                continue;
+            }
+            if (S_ISDIR(st.st_mode) || S_ISFIFO(st.st_mode)) {
+                mlogf("Invalid database file: \"%s\"\n", dev_path);
+                continue;
+            }
+            if (-1 == access(dev_path, R_OK | W_OK) && 0 != uid) {
+                mlogf("Must be root or have write permissions on \"%s\" to get disk info.\n", dev_path);
+                continue;
+            }
+
+            devices.insert(partitions[device_idx]->name);
+        }
+
     }
     for (unsigned int i = 0; i < partitions.size(); i++) {
         delete partitions[i];
@@ -155,11 +180,13 @@ void log_disk_info(std::vector<log_serializer_private_dynamic_config_t> &seriali
     std::string cmd;
     for (std::set<std::string>::iterator it = devices.begin(); it != devices.end(); it++) {
         cmd.append(std::string(hdparm_path));
-        cmd.append(std::string(" -iI"));
+        cmd.append(std::string(" -iI "));
         cmd.append(*it);
         /* Standard error from hdparm isn't useful. */
         cmd.append(std::string(" 2>/dev/null; "));
     }
+
+    printf("%s\n", cmd.c_str());
 
 
     char *buf = (char *) calloc(1024, sizeof(char));
@@ -184,10 +211,10 @@ void log_disk_info(std::vector<log_serializer_private_dynamic_config_t> &seriali
         crash("pclose failed\n");
     }
     total_bytes += nbytes;
-    buf[nbytes + 1] = '\0';
-    if (total_bytes < 5) {
+    buf[nbytes] = '\0';
+    if (total_bytes < 20 * devices.size()) {
         /* No output. We didn't have enough permissions to run hdparm.*/
-        mlogf("Must be root or part of group `disk' to get disk info.\n");
+        mlogf("None of the supplied disks support disk info queries.\n");
     }
     else {
         mlogf("%s\n", buf);
