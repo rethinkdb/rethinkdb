@@ -8,18 +8,20 @@ from test_common import *
 n_ops = 10000
 
 def test_function(opts, port):
-    port = 11213
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.connect(("localhost", port))
 
     def assert_on_socket(string):
-        assert string == s.recv(len(string))
+        res = s.recv(len(string))
+        if string != res:
+            print "Got: %s, expect %s" % (res, string)
+        assert string == res
 
     s.send("set fizz 0 0 4\r\nbuzz\r\n")
     assert_on_socket('STORED\r\n')
 
     s.send('delete fizz fizz fizz fizz\r\n')
-    assert_on_socket('SERVER_ERROR functionality not supported\r\n')
+    assert_on_socket('ERROR\r\n')
 
     s.send('get fizz\r\n')
     assert_on_socket('VALUE fizz 0 4\r\nbuzz\r\nEND\r\n')

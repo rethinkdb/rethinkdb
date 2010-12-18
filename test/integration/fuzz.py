@@ -51,7 +51,7 @@ def test_function(opts, port):
     time.sleep(2)
 
     while (time.time() - start_time < opts["duration"]):
-        time.sleep(.01)
+        time.sleep(.05)
         str = ''
         for i in range(20):
             choice = random.random()
