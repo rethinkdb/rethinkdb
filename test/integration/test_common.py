@@ -223,7 +223,7 @@ class Server(object):
                         "--create", "--force",
                         "-c", str(self.opts["cores"]),
                         "-s", str(self.opts["slices"])] + \
-                        ["-f %s" % ssd for ssd in self.opts["ssds"]] + \
+                        ["-f %s" % ssd.replace(' ','') for ssd in self.opts["ssds"]] + \
                         self.extra_flags + shlex.split(self.opts["flags"])
                 
                 if self.opts["valgrind"]:
@@ -281,7 +281,7 @@ class Server(object):
                     "-p", str(server_port),
                     "-c", str(self.opts["cores"]),
                     "-m", str(self.opts["memory"])] + \
-                    ["-f %s" % ssd for ssd in self.opts["ssds"]] + \
+                    ["-f %s" % ssd.replace(' ', '') for ssd in self.opts["ssds"]] + \
                     self.extra_flags + shlex.split(self.opts["flags"])
         
         elif self.opts["database"] == "memcached":
