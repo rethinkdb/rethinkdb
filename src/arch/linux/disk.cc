@@ -10,6 +10,7 @@
 #include "arch/linux/arch.hpp"
 #include "config/args.hpp"
 #include "utils2.hpp"
+#include "logger.hpp"
 
 // #define DEBUG_DUMP_WRITES 1
 
@@ -29,7 +30,7 @@ linux_direct_file_t::linux_direct_file_t(const char *path, int mode) {
     struct stat64 file_stat;
     bzero((void*)&file_stat, sizeof(file_stat)); // make valgrind happy
     res = stat64(path, &file_stat);
-    guarantee_err(res == 0 || errno == ENOENT, "Could not stat file");
+    guarantee_err(res == 0 || errno == ENOENT, "Could not stat file '%s'", path);
     
     if (res == -1 && errno == ENOENT) {
         if (!(mode & mode_create)) {
@@ -203,7 +204,7 @@ linux_io_calls_t::linux_io_calls_t(linux_event_queue_t *queue)
     
     aio_context = 0;
     res = io_setup(MAX_CONCURRENT_IO_REQUESTS, &aio_context);
-    guarantee(res == 0, "Could not setup aio context");    // errors are returned in res (negated) instead of errno
+    guarantee_xerr(res == 0, -res, "Could not setup aio context");
     
     // Create aio notify fd
     
@@ -226,7 +227,7 @@ linux_io_calls_t::~linux_io_calls_t()
     guarantee_err(res == 0, "Could not close aio_notify_fd");
     
     res = io_destroy(aio_context);
-    guarantee_err(res == 0, "Could not destroy aio_context");
+    guarantee_xerr(res == 0, -res, "Could not destroy aio context");
 }
 
 void linux_io_calls_t::on_event(int) {
@@ -251,7 +252,7 @@ void linux_io_calls_t::on_event(int) {
         nevents = io_getevents(aio_context, 0,
                                std::min((int)nevents_total, MAX_IO_EVENT_PROCESSING_BATCH_SIZE),
                                events, NULL);
-        guarantee_err(nevents >= 1, "Waiting for AIO event failed");
+        guarantee_xerr(nevents >= 1, -nevents, "Waiting for AIO event failed");
         
         // Process the events
         for(int i = 0; i < nevents; i++) {
@@ -273,13 +274,11 @@ void linux_io_calls_t::aio_notify(iocb *event, int result) {
     
     // Check for failure (because the higher-level code usually doesn't)
     if (result != (int)event->u.c.nbytes) {
-        errno = -result;
-
         // Currently AIO is used only for disk files, not sockets.
         // Thus, if something fails, we have a good reason to crash
         // (note that that is not true for sockets: we should just
         // close the socket and cleanup then).
-        guarantee_err(false, "Read or write failed");
+        guarantee_xerr(false, -result, "Read or write failed");
     }
     
     // Notify the interested party about the event
@@ -314,7 +313,7 @@ void linux_io_calls_t::process_requests() {
         if(res < 0)
             break;
     }
-    guarantee_err(res >= 0 || res == -EAGAIN, "Could not submit IO request");
+    guarantee_xerr(res >= 0 || res == -EAGAIN, -res, "Could not submit IO request");
 }
 
 linux_io_calls_t::queue_t::queue_t(linux_io_calls_t *parent)
@@ -335,6 +334,8 @@ int linux_io_calls_t::queue_t::process_request_batch() {
             // the back. Perhaps we should optimize this somehow.
             queue.erase(queue.begin(), queue.begin() + res);
             parent->n_pending += res;
+        } else if (res < 0) {
+            logWRN("io_submit failed: %s\n", strerror(-res));
         }
     }
     return res;
