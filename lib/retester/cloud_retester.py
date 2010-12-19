@@ -394,14 +394,16 @@ def copy_basedata_to_testing_node(node):
     global testing_nodes
 
     print "Sending base data to node %s" % node.hostname
-    
+   
     # Check if we can use scp_basedata_to_testing_node instead:
     for source_node in testing_nodes:
         if source_node.basedata_installed:
             print "Scp-ing base data from source node " + source_node.hostname
             if scp_basedata_to_testing_node(source_node, node):
                 return
-    
+
+    node.basedata_installed = True
+ 
     # Copy dependencies as specified in ec2_configuration        
     node.make_directory_recursively("/tmp/cloudtest_libs")
     for (source_path, target_path) in ec2_configuration.cloudtest_lib_dependencies:
@@ -427,13 +429,16 @@ def copy_basedata_to_testing_node(node):
     # Just copy essential files to save time...
     for config in os.listdir(base_directory + "/../build"):
         if os.path.isdir(base_directory + "/../build/" + config):
-            node.make_directory(node.global_build_path + "/" + config)
-            node.put_file(base_directory + "/../build/" + config + "/rethinkdb", node.global_build_path + "/" + config + "/rethinkdb")
-            node.put_file(base_directory + "/../build/" + config + "/rethinkdb-extract", node.global_build_path + "/" + config + "/rethinkdb-extract")
-            #node.put_file(base_directory + "/../build/" + config + "/rethinkdb-fsck", node.global_build_path + "/" + config + "/rethinkdb-fsck")
-            command_result = node.run_command("chmod +x " + node.global_build_path + "/" + config + "/*")
-            if command_result[0] != 0:
-                print "Unable to make rethinkdb executable"
+            try:
+                node.make_directory(node.global_build_path + "/" + config)
+                node.put_file(base_directory + "/../build/" + config + "/rethinkdb", node.global_build_path + "/" + config + "/rethinkdb")
+                node.put_file(base_directory + "/../build/" + config + "/rethinkdb-extract", node.global_build_path + "/" + config + "/rethinkdb-extract")
+                #node.put_file(base_directory + "/../build/" + config + "/rethinkdb-fsck", node.global_build_path + "/" + config + "/rethinkdb-fsck")
+                command_result = node.run_command("chmod +x " + node.global_build_path + "/" + config + "/*")
+                if command_result[0] != 0:
+                    print "Unable to make rethinkdb executable"
+            except:
+                print "RethinkDB configuration %s could not be installed" % config
         
     # Copy benchmark stuff
     node.make_directory(node.global_bench_path)
@@ -449,8 +454,6 @@ def copy_basedata_to_testing_node(node):
     
     # Install the wrapper script
     node.put_file(os.path.dirname(cloud_node_data.__file__) + "/" + wrapper_script_filename, "%s/%s" % (node.global_test_path, wrapper_script_filename));
-    
-    node.basedata_installed = True
 
 
 
