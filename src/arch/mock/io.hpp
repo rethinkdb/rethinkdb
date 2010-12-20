@@ -17,13 +17,15 @@ class mock_direct_file_t
 public:
     enum mode_t {
         mode_read = 1 << 0,
-        mode_write = 1 << 1
+        mode_write = 1 << 1,
+        mode_create = 1 << 2
     };
     
     mock_direct_file_t(const char *path, int mode) {
         int mode2 = 0;
         if (mode & mode_read) mode2 |= inner_io_config_t::direct_file_t::mode_read;
         if (mode & mode_write) mode2 |= inner_io_config_t::direct_file_t::mode_write;
+        if (mode & mode_create) mode2 |= inner_io_config_t::direct_file_t::mode_create;
         inner_file = new typename inner_io_config_t::direct_file_t(path, mode2);
         
         if (inner_file->is_block_device()) {
@@ -37,6 +39,10 @@ public:
         for (unsigned i = 0; i < get_size() / DEVICE_BLOCK_SIZE; i++) {
             inner_file->read_blocking(i*DEVICE_BLOCK_SIZE, DEVICE_BLOCK_SIZE, blocks[i].data);
         }
+    }
+
+    bool exists() {
+        return inner_file->exists();
     }
     
     bool is_block_device() {
