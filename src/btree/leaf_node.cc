@@ -163,7 +163,7 @@ void leaf_node_handler::merge(block_size_t block_size, leaf_node_t *node, leaf_n
 #endif
 
     guarantee(sizeof(leaf_node_t) + (node->npairs + rnode->npairs)*sizeof(*node->pair_offsets) +
-              (block_size.value() - node->frontmost_offset) + (block_size.value() - rnode->frontmost_offset) < block_size.value(),
+              (block_size.value() - node->frontmost_offset) + (block_size.value() - rnode->frontmost_offset) <= block_size.value(),
               "leaf nodes too full to merge");
 
     // TODO: this is coarser than it could be.
