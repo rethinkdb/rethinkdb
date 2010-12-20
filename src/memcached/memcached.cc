@@ -824,10 +824,12 @@ public:
         /* Parse "noreply" */
         if (argc > 2) {
             noreply = strcmp(argv[argc - 1], "noreply") == 0;
+            bool zero = strcmp(argv[2], "0") == 0;
+            bool valid = (argc == 3 && (zero || noreply))
+                      || (argc == 4 && (zero && noreply));
 
-            /* Check for non-"0" if needed */
-            if (!noreply && strcmp(argv[2], "0") != 0) {
-                rh->writef("CLIENT_ERROR bad command line format.  Usage: delete <key> [noreply]\r\n");
+            if (!valid) {
+                if (!noreply) rh->writef("CLIENT_ERROR bad command line format.  Usage: delete <key> [noreply]\r\n");
                 rh->read_next_command();
                 delete this;
                 return;
