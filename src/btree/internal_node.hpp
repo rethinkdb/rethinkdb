@@ -28,7 +28,7 @@ public:
     static bool insert(block_size_t block_size, internal_node_t *node, const btree_key *key, block_id_t lnode, block_id_t rnode);
     static bool remove(block_size_t block_size, internal_node_t *node, const btree_key *key);
     static void split(block_size_t block_size, internal_node_t *node, internal_node_t *rnode, btree_key *median);
-    static void merge(block_size_t block_size, internal_node_t *node, internal_node_t *rnode, btree_key *key_to_remove, internal_node_t *parent);
+    static void merge(block_size_t block_size, const internal_node_t *node, internal_node_t *rnode, btree_key *key_to_remove, internal_node_t *parent);
     static bool level(block_size_t block_size, internal_node_t *node, internal_node_t *rnode, btree_key *key_to_replace, btree_key *replacement_key, internal_node_t *parent);
     static int sibling(const internal_node_t *node, btree_key *key, block_id_t *sib_id);
     static void update_key(internal_node_t *node, btree_key *key_to_replace, btree_key *replacement_key);

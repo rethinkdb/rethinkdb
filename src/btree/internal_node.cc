@@ -119,7 +119,7 @@ void internal_node_handler::split(block_size_t block_size, internal_node_t *node
     validate(block_size, rnode);
 }
 
-void internal_node_handler::merge(block_size_t block_size, internal_node_t *node, internal_node_t *rnode, btree_key *key_to_remove, internal_node_t *parent) {
+void internal_node_handler::merge(block_size_t block_size, const internal_node_t *node, internal_node_t *rnode, btree_key *key_to_remove, internal_node_t *parent) {
 #ifdef BTREE_DEBUG
     printf("merging\n");
     printf("node:\n");
