@@ -58,7 +58,6 @@ void co_perfmon_visit(int thread, const std::vector<void*> &data, coro_t::multi_
     for (perfmon_t *p = get_var_list().head(); p; p = get_var_list().next(p)) {
         p->visit_stats(data[i++]);
     }
-    printf("I'm done\n");
     multi_wait->notify();
 }
 
@@ -75,7 +74,6 @@ void co_perfmon_get_stats(perfmon_stats_t *dest, perfmon_callback_t *cb) {
         coro_t::spawn(co_perfmon_visit, i, data, multi_wait);
     }
     coro_t::wait();
-    printf("Let's finish this up\n");
     int i = 0;
     for (perfmon_t *p = get_var_list().head(); p; p = get_var_list().next(p)) {
         p->end_stats(data[i++], dest);
