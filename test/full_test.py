@@ -67,7 +67,7 @@ def run_canonical_tests(mode, checker, protocol, cores, slices):
                     "protocol"    : protocol,
                     "cores"       : cores,
                     "slices"      : slices,
-                    "num_ints"    : 1000000 },
+                    "num-ints"    : 1000000 },
                   repeat=3, timeout = 180)
     
     # Don't run the corruption test in mockio or mockcache mode because in those modes
