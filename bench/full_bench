@@ -46,12 +46,16 @@ for WORKLOAD in ../workloads/*; do
         
         for CONFIGURATION in $( find "$WORKLOAD" -type f -name "R*" | sort ); do
             echo -e "\033[1mRunning configuration $CONFIGURATION\033[0m"
-            "$BENCH_DIR/environment"
+            if [ -e "$BENCH_DIR/environment" ]; then
+                "$BENCH_DIR/environment"
+            fi
             $CONFIGURATION
         done
         
         if [ -e "$WORKLOAD/Teardown" ]; then
-            "$BENCH_DIR/environment"
+            if [ -e "$BENCH_DIR/environment" ]; then
+                "$BENCH_DIR/environment"
+            fi
             "$WORKLOAD/Teardown"
         fi
         
