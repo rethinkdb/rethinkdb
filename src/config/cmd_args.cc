@@ -286,7 +286,7 @@ void parsing_cmd_config_t::set_flush_timer(const char* value) {
         target = NEVER_FLUSH;
     else {
         target = parse_int(value);
-        if (parsing_failed || !is_at_most(target, 0))
+        if (parsing_failed || !is_at_least(target, 0))
             fail_due_to_user_error("flush timer should not be negative; use 'disable' to allow changes to sit in memory indefinitely.");
     }
 }
