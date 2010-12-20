@@ -1,0 +1,8 @@
+#!/bin/bash
+
+../../build/release/rethinkdb --create $SSD_DRIVES --force
+
+# Store keys in temporary file.
+export TMP_KEY_FILE="$(ssh dr-doom mktemp)"
+
+export -p > "$BENCH_DIR/environment"

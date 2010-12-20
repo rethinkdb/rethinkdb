@@ -1,0 +1,4 @@
+#!/bin/bash
+
+# Delete temporary key file.
+ssh dr-doom -- rm -f "$TMP_KEY_FILE"

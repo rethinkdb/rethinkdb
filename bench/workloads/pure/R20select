@@ -1,0 +1,9 @@
+#!/bin/bash
+
+# Pure selects performance (run right after insert without recreating the database)
+
+./dbench                                                                                        \
+    -d "$BENCH_DIR/bench_output/Pure_selects_on_canonical_hardware" -H magneto,magneto2         \
+    {server}rethinkdb:"-c 12 -m 32768 $SSD_DRIVES"                                              \
+    {client}stress[dr-doom:/home/teapot/stress]:"-c 512 -w 0/0/0/1 -i $TMP_KEY_FILE -d 60s"     \
+    iostat:1 vmstat:1 rdbstat:1
