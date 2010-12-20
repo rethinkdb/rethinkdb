@@ -40,7 +40,11 @@ DATABASE="rethinkdb"
 # Run workloads
 for WORKLOAD in ../workloads/*; do
     if [ -d "$WORKLOAD" ]; then
+<<<<<<< HEAD:bench/full_bench
         echo -e "n\E[37;44m\033[1m<----- Running workload in $WORKLOAD ----->\033[0m\n"
+=======
+        echo -e "\E[37;44m\033[1mRunning workload in $WORKLOAD\033[0m"
+>>>>>>> af4e4ac... Syntax error fixed:bench/full_bench
         export BENCH_DIR
         export SSD_DRIVES
         export HDD_DRIVES
@@ -51,10 +55,15 @@ for WORKLOAD in ../workloads/*; do
         fi
         
         for CONFIGURATION in $( find "$WORKLOAD" -type f -name "R*" | sort ); do
+<<<<<<< HEAD:bench/full_bench
             echo -e "\n\033[1mRunning $CONFIGURATION\033[0m"
             if [ -e "$BENCH_DIR/environment" ]; then
                 . "$BENCH_DIR/environment"
             fi
+=======
+            echo -e "\033[1mRunning configuration $CONFIGURATION\033[0m"
+            "$BENCH_DIR/environment"
+>>>>>>> af4e4ac... Syntax error fixed:bench/full_bench
             $CONFIGURATION
         done
         
