@@ -15,7 +15,7 @@ email="$(perl -e 'use List::Util qw(first); my $email_idx = 1 + first { $ARGV[$_
 # Build the server and the stress client
 cd src
 make clean
-make -j DEBUG=0 VALGRIND=0 FAST_PERFMON=1
+make -j DEBUG=0 VALGRIND=0 FAST_PERFMON=1 # TODO: Disable "FAST" Perfmon?
 cd ../bench/stress-client
 make
 scp stress dr-doom:/home/teapot/stress
@@ -31,8 +31,11 @@ function delete_database_files() { # They are large and useless.
 SSD_DRIVES="-f /dev/sdb -f /dev/sdc -f /dev/sdd -f /dev/sde"
 HDD_DRIVES="" # TODO
 
+<<<<<<< HEAD:bench/full_bench
 DATABASE="rethinkdb"
 
+=======
+>>>>>>> 04da3bd... Refactored full_bench:bench/full_bench
 
 # Run workloads
 for WORKLOAD in ../workloads/*; do
