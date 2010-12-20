@@ -457,7 +457,12 @@ void linux_net_listener_t::on_event(int events) {
                     case EINTR:
                         break;
                     default:
-                        guarantee_err(false, "Cannot accept new connection");
+                        // We can't do anything about failing accept, but we still
+                        // must continue processing current connections' request.
+                        // Thus, we can't bring down the server, and must ignore
+                        // the error.
+                        logERR("Cannot accept new connection: %s\n", strerror(errno));
+                        break;
                 }
             }
         } else {

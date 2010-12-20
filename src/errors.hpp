@@ -30,6 +30,8 @@
  *  guarantee(cond, msg, ...)       same as assert(cond, msg, ...), but the check is still done in release mode. Do not use for expensive checks!
  *  guarantee_err(cond)             same as guarantee(cond), but also print errno error description
  *  guarantee_err(cond, msg, ...)   same as guarantee(cond, msg, ...), but also print errno error description
+ *  guarantee_xerr(cond, err, msg, ...) same as guarantee_err(cond, msg, ...), but also allows to specify errno as err argument
+ *                                  (useful for async io functions, which return negated errno)
 */
 
 #ifdef __linux__
@@ -67,15 +69,16 @@ void report_user_error(const char*, ...);
             crash_or_trap(format_assert_message("Guarantee", cond) msg); \
         }                               \
     } while (0)
-#define guarantee_err(cond, msg, args...) do {                                  \
+#define guarantee_xerr(cond, err, msg, args...) do {                            \
         if (!(cond)) {                                                          \
-            if (errno == 0) {                                                   \
+            if (err == 0) {                                                     \
                 crash_or_trap(format_assert_message("Guarantee", cond) msg);    \
             } else {                                                            \
-                crash_or_trap(format_assert_message("Guarantee", cond) " (errno %d - %s) " msg, errno, strerror(errno), ##args);  \
+                crash_or_trap(format_assert_message("Guarantee", cond) " (errno %d - %s) " msg, err, strerror(err), ##args);  \
             }                                                                   \
         }                                                                       \
     } while (0)
+#define guarantee_err(cond, msg, args...) guarantee_xerr(cond, errno, msg, ##args)
 
 #define unreachable(msg, ...) crash("Unreachable code: " msg, ##__VA_ARGS__)    // can't use crash_or_trap since code needs to depend on its noreturn property
 #define not_implemented(msg, ...) crash_or_trap("Not implemented: " msg, ##__VA_ARGS__)
