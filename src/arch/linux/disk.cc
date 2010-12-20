@@ -334,8 +334,8 @@ int linux_io_calls_t::queue_t::process_request_batch() {
             // the back. Perhaps we should optimize this somehow.
             queue.erase(queue.begin(), queue.begin() + res);
             parent->n_pending += res;
-        } else if (res < 0) {
-            logWRN("io_submit failed: %s\n", strerror(-res));
+        } else if (res < 0 && (-res) != EAGAIN) {
+            logWRN("io_submit failed: (%d) %s\n", -res, strerror(-res));
         }
     }
     return res;
