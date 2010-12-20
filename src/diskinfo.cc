@@ -186,8 +186,6 @@ void log_disk_info(std::vector<log_serializer_private_dynamic_config_t> &seriali
         cmd.append(std::string(" 2>/dev/null; "));
     }
 
-    printf("%s\n", cmd.c_str());
-
 
     char *buf = (char *) calloc(1024, sizeof(char));
     FILE *stream;
