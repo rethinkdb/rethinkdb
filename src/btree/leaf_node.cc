@@ -153,7 +153,7 @@ void leaf_node_handler::split(block_size_t block_size, leaf_node_t *node, leaf_n
     keycpy(median_out, median_key);
 }
 
-void leaf_node_handler::merge(block_size_t block_size, leaf_node_t *node, leaf_node_t *rnode, btree_key *key_to_remove) {
+void leaf_node_handler::merge(block_size_t block_size, const leaf_node_t *node, leaf_node_t *rnode, btree_key *key_to_remove_out) {
 #ifdef BTREE_DEBUG
     printf("merging\n");
     printf("node:\n");
@@ -167,7 +167,7 @@ void leaf_node_handler::merge(block_size_t block_size, leaf_node_t *node, leaf_n
               "leaf nodes too full to merge");
 
     // TODO: this is coarser than it could be.
-    initialize_times(&node->times, repli_max(node->times.last_modified, rnode->times.last_modified));
+    initialize_times(&rnode->times, repli_max(node->times.last_modified, rnode->times.last_modified));
 
     memmove(rnode->pair_offsets + node->npairs, rnode->pair_offsets, rnode->npairs * sizeof(*rnode->pair_offsets));
 
@@ -176,7 +176,8 @@ void leaf_node_handler::merge(block_size_t block_size, leaf_node_t *node, leaf_n
     }
     rnode->npairs += node->npairs;
 
-    keycpy(key_to_remove, &get_pair(rnode, rnode->pair_offsets[0])->key);
+    keycpy(key_to_remove_out, &get_pair(rnode, rnode->pair_offsets[0])->key);
+
 #ifdef BTREE_DEBUG
     printf("\t|\n\t|\n\t|\n\tV\n");
     printf("node:\n");
@@ -184,7 +185,8 @@ void leaf_node_handler::merge(block_size_t block_size, leaf_node_t *node, leaf_n
     printf("rnode:\n");
     leaf_node_handler::print(rnode);
 #endif
-    validate(block_size, node);
+
+    validate(block_size, rnode);
 }
 
 bool leaf_node_handler::level(block_size_t block_size, leaf_node_t *node, leaf_node_t *sibling, btree_key *key_to_replace, btree_key *replacement_key) {
