@@ -47,19 +47,25 @@ for WORKLOAD in ../workloads/*; do
         for CONFIGURATION in $( find "$WORKLOAD" -type f -name "R*" | sort ); do
             echo -e "\033[1mRunning $CONFIGURATION\033[0m"
             if [ -e "$BENCH_DIR/environment" ]; then
-                `cat $BENCH_DIR/environment`
+                for DECLARE in `cat $BENCH_DIR/environment`; do
+                    $DECLARE
+                done
             fi
             $CONFIGURATION
         done
         
         if [ -e "$WORKLOAD/Teardown" ]; then
             if [ -e "$BENCH_DIR/environment" ]; then
-                `cat $BENCH_DIR/environment`
+                for DECLARE in `cat $BENCH_DIR/environment`; do
+                    $DECLARE
+                done
             fi
             "$WORKLOAD/Teardown"
         fi
         
-        rm -f "$BENCH_DIR/environment"
+        if [ -e "$BENCH_DIR/environment" ]; then
+            rm -f "$BENCH_DIR/environment"
+        fi
     fi
 done
 
