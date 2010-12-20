@@ -9,6 +9,7 @@ ln -s $BENCH_DIR $HOME/bench/latest
 
 
 # Horrible but working way of finding the argument after --email.
+# TODO
 email="$(perl -e 'use List::Util qw(first); my $email_idx = 1 + first { $ARGV[$_] eq "--email" } 0 .. $#ARGV; print $ARGV[$email_idx]' -- "$@")"
 
 # Build the server and the stress client
@@ -34,7 +35,7 @@ HDD_DRIVES="" # TODO
 # Run workloads
 for WORKLOAD in ../workloads/*; do
     if [ -d "$WORKLOAD" ]; then
-        echo -e '\E[37;44m'"\033[1mRunning workload in $WORKLOAD\033[0m"
+        echo -e "\E[37;44m\033[1mRunning workload in $WORKLOAD\033[0m"
         export BENCH_DIR
         export SSD_DRIVES
         export HDD_DRIVES
@@ -44,7 +45,7 @@ for WORKLOAD in ../workloads/*; do
         fi
         
         for CONFIGURATION in $( find "$WORKLOAD" -type f -name "R*" | sort ); do
-            echo -e '\033[1mRunning configuration $CONFIGURATION\033[0m"
+            echo -e "\033[1mRunning configuration $CONFIGURATION\033[0m"
             "$BENCH_DIR/environment"
             $CONFIGURATION
         done
