@@ -8,6 +8,7 @@
 #include <boost/bind.hpp>
 
 extern perfmon_counter_t pm_active_coroutines;
+extern perfmon_duration_sampler_t pm_move_thread;
 
 /* A coroutine represents an action with no return value */
 struct coro_t

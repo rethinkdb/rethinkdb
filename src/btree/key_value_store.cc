@@ -539,4 +539,5 @@ btree_key_value_store_t::~btree_key_value_store_t() {
 
 perfmon_duration_sampler_t
     pm_cmd_set("cmd_set", secs_to_ticks(1)),
+    pm_cmd_get_without_threads("cmd_get_without_threads", secs_to_ticks(1)),
     pm_cmd_get("cmd_get", secs_to_ticks(1));

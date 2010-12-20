@@ -54,8 +54,6 @@ buf_t *co_acquire_transaction(transaction_t *transaction, block_id_t block_id, a
 }
 
 void co_btree_get(btree_key *_key, btree_key_value_store_t *store, store_t::get_callback_t *cb) {
-    ticks_t start_time;
-    pm_cmd_get.begin(&start_time);
     union {
         char value_memory[MAX_TOTAL_NODE_CONTENTS_SIZE+sizeof(btree_value)];
         btree_value value;
@@ -68,6 +66,8 @@ void co_btree_get(btree_key *_key, btree_key_value_store_t *store, store_t::get_
     };
     key_memory[0] = 0; //Make GCC happy--I don't know how to mark value_memory as unused but OK
 
+    block_pm_duration get_time(&pm_cmd_get);
+
     keycpy(&key, _key);
     transaction_t *transaction = NULL;
     btree_slice_t *slice = store->slice_for_key(&key);
@@ -75,6 +75,8 @@ void co_btree_get(btree_key *_key, btree_key_value_store_t *store, store_t::get_
     int home_thread = get_thread_id();
 
     coro_t::move_to_thread(slice->home_thread);
+    ticks_t start_time;
+    pm_cmd_get_without_threads.begin(&start_time);
     //Acquire the superblock
     buf_t *buf, *last_buf;
     transaction = cache->begin_transaction(rwi_read, NULL);
@@ -92,9 +94,9 @@ void co_btree_get(btree_key *_key, btree_key_value_store_t *store, store_t::get_
 	// Commit transaction now because we won't be returning to this core
 	bool committed __attribute__((unused)) = transaction->commit(NULL);
 	assert(committed);   // Read-only transactions complete immediately
+        pm_cmd_get_without_threads.end(&start_time);
 	coro_t::move_to_thread(home_thread);
 	cb->not_found();
-	pm_cmd_get.end(&start_time);
 	return;
     }
 
@@ -140,6 +142,7 @@ void co_btree_get(btree_key *_key, btree_key_value_store_t *store, store_t::get_
 	// Commit transaction now because we won't be returning to this core
 	bool committed __attribute__((unused)) = transaction->commit(NULL);
 	assert(committed);   // Read-only transactions complete immediately
+        pm_cmd_get_without_threads.end(&start_time);
 	coro_t::move_to_thread(home_thread);
 	cb->not_found();
 	return;
@@ -160,6 +163,7 @@ void co_btree_get(btree_key *_key, btree_key_value_store_t *store, store_t::get_
 	    const void *data = large_value->get_segment(i, &size);
 	    value_buffers.add_buffer(size, data);
 	}
+        pm_cmd_get_without_threads.end(&start_time);
 	coro_t::move_to_thread(home_thread);
 	co_value(cb, &value_buffers, value.mcflags(), 0);
 	{
@@ -176,10 +180,10 @@ void co_btree_get(btree_key *_key, btree_key_value_store_t *store, store_t::get_
 	
 	const_buffer_group_t value_buffers;
 	value_buffers.add_buffer(value.value_size(), value.value());
+        pm_cmd_get_without_threads.end(&start_time);
 	coro_t::move_to_thread(home_thread);
 	co_value(cb, &value_buffers, value.mcflags(), 0);
     }
-    pm_cmd_get.end(&start_time);
 }
 
 void btree_get(btree_key *key, btree_key_value_store_t *store, store_t::get_callback_t *cb) {

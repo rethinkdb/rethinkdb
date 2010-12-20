@@ -179,6 +179,12 @@ private:
 
 extern perfmon_duration_sampler_t
     pm_cmd_set,
-    pm_cmd_get;
+    pm_cmd_get,
+    pm_cmd_get_without_threads;
+/*    pm_cmd_get_root,
+    pm_cmd_get_leaf,
+    pm_cmd_get_not_found,
+    pm_cmd_get_small_value,
+    pm_cmd_get_large_value, */
 
 #endif /* __BTREE_KEY_VALUE_STORE_HPP__ */

@@ -189,4 +189,15 @@ public:
     }
 };
 
+struct block_pm_duration {
+    ticks_t time;
+    perfmon_duration_sampler_t *pm;
+    block_pm_duration(perfmon_duration_sampler_t *pm) : pm(pm) {
+        pm->begin(&time);
+    }
+    ~block_pm_duration() {
+        pm->end(&time);
+    }
+};
+
 #endif /* __PERFMON_HPP__ */
