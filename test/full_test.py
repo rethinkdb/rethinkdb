@@ -60,6 +60,9 @@ def run_canonical_tests(mode, checker, protocol, cores, slices):
                     "slices"      : slices },
                   repeat=3, timeout=200)
     
+    # Note: we can't send too many things via the pipeline test now
+    # because it saturates network buffers. TODO: fix the pipeline
+    # test.
     do_test_cloud("integration/pipeline.py",
                   { "auto"        : True,
                     "mode"        : mode,
@@ -67,7 +70,7 @@ def run_canonical_tests(mode, checker, protocol, cores, slices):
                     "protocol"    : protocol,
                     "cores"       : cores,
                     "slices"      : slices,
-                    "num-ints"    : 1000000 },
+                    "num-ints"    : 50000 if (mode == "release" and not checker) else 1000 },
                   repeat=3, timeout = 180)
     
     # Don't run the corruption test in mockio or mockcache mode because in those modes
