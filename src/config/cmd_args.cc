@@ -1,27 +1,28 @@
-
 #include <getopt.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
 #include "config/cmd_args.hpp"
+#include "fsck/fsck.hpp"
+#include "extract/extract.hpp"
 #include "utils.hpp"
 
 void usage(const char *name) {
-    printf("Usage:\n");
-    printf("\t%s [OPTIONS] [FILE]\n", name);
+    printf("Usage:\n"
+           "        rethinkdb         [OPTIONS] [-f <file_1> -f <file_2> ...]\n"
+           "        rethinkdb extract [OPTIONS] -f data_file\n"
+           "        rethinkdb fsck    [OPTIONS] -f data_file_1 -f data_file_2 ...\n"
+           "        rethinkdb create  [OPTIONS] -f data_file_1 -f data_file_2 ...\n"
     
-    printf("\nOptions:\n");
+           "\nOptions:\n"
 
     //     "                        24 characters start here.                              | < last character
-    printf("  -h, --help            Print these usage options.\n");
-    printf("  -v, --verbose         Print extra information to standard output.\n");
-    printf("      --create          Create a new database.\n");
-    printf("      --force           Used with the --create flag to create a new database\n"
-           "                        even if there already is one.\n");
+           "  -h, --help            Print these usage options.\n"
+           "  -v, --verbose         Print extra information to standard output.\n"
 
-    printf("  -f, --file            Path to file or block device where database goes. Can be\n"
-           "                        specified multiple times to use multiple files.\n");
+           "  -f, --file            Path to file or block device where database goes.\n"
+           "                        Can be specified multiple times to use multiple files.\n");
 #ifdef SEMANTIC_SERIALIZER_CHECK
     printf("  -S, --semantic-file   Path to the semantic file for the previously specified\n"
            "                        database file. Can only be specified after the path to\n"
@@ -29,15 +30,15 @@ void usage(const char *name) {
            "                        file with '%s' appended.\n", DEFAULT_SEMANTIC_EXTENSION);
 #endif
 
-    printf("  -c, --cores           Number of cores to use for handling requests.\n");
-    printf("  -m, --max-cache-size  Maximum amount of RAM to use for caching disk\n");
-    printf("                        blocks, in megabytes.\n");
-    printf("  -l, --log-file        File to log to. If not provided, messages will be\n"
-           "                        printed to stderr.\n");
-    printf("  -p, --port            Socket port to listen on. Defaults to %d.\n", DEFAULT_LISTEN_PORT);
+    printf("  -c, --cores           Number of cores to use for handling requests.\n"
+           "  -m, --max-cache-size  Maximum amount of RAM to use for caching disk\n"
+           "                        blocks, in megabytes.\n"
+           "  -l, --log-file        File to log to. If not provided, messages will be\n"
+           "                        printed to stderr.\n"
+           "  -p, --port            Socket port to listen on. Defaults to %d.\n", DEFAULT_LISTEN_PORT);
     printf("      --wait-for-flush  Do not respond to commands until changes are durable.\n"
-           "                        Expects 'y' or 'n'\n");
-    printf("      --flush-timer     Time in milliseconds that the server should allow\n"
+           "                        Expects 'y' or 'n'\n"
+           "      --flush-timer     Time in milliseconds that the server should allow\n"
            "                        changes to sit in memory before flushing it to disk.\n"
            "                        Pass 'disable' to allow modified data to sit in memory\n"
            "                        indefinitely.\n");
@@ -48,17 +49,28 @@ void usage(const char *name) {
     }
     printf("      --flush-threshold If more than X%% of the server's maximum cache size is\n"
            "                        modified data, the server will flush it all to disk.\n"
-           "                        Pass 0 to flush immediately when changes are made.\n");
-    printf("      --gc-range low-high  (e.g. --gc-range 0.5-0.75)\n"
+           "                        Pass 0 to flush immediately when changes are made.\n"
+           "      --gc-range low-high  (e.g. --gc-range 0.5-0.75)\n"
            "                        The proportion of garbage maintained by garbage\n"
-           "                        collection.\n");
-    printf("      --active-data-extents\n"
+           "                        collection.\n"
+           "      --active-data-extents\n"
            "                        How many places in the file to write to at once.\n");
-    printf("\nOptions for new databases:\n");
-    printf("  -s, --slices          Shards total.\n");
-    printf("      --block-size      Size of a block, in bytes.\n");
-    printf("      --extent-size     Size of an extent, in bytes.\n");
-    
+    exit(0);
+}
+
+void usage_create(const char *name) {
+    printf("Usage:\n"
+           "        rethinkdb create [OPTIONS] -f <file_1> [-f <file_2> ...]\n"
+           "\nOptions:\n"
+           "  -h  --help            Print these usage options.\n"
+           "  -s, --slices          Shards total.\n"
+           "      --block-size      Size of a block, in bytes.\n"
+           "      --extent-size     Size of an extent, in bytes.\n"
+           "  -l, --log-file        File to log to. If not provided, messages will be\n"
+           "                        printed to stderr.\n"
+           "      --force           Create a new database even if there already is one.\n"
+           "  -f, --file            Path to file or block device where database goes. Can be\n"
+           "                        specified multiple times to use multiple files.\n");
     exit(0);
 }
 
@@ -70,20 +82,78 @@ enum {
     active_data_extents,
     block_size,
     extent_size,
-    create_database,
     force_create
 };
+
+enum rethinkdb_cmd {
+    cmd_extract,
+    cmd_create,
+    cmd_fsck,
+    cmd_help,
+    cmd_none
+};
+
+enum rethinkdb_cmd parse_cmd(char *arg) {
+    if      (!strncmp("extract", arg, 7)) return cmd_extract;
+    else if (!strncmp("create",  arg, 6)) return cmd_create;
+    else if (!strncmp("help",    arg, 4)) return cmd_help;
+    else if (!strncmp("fsck",    arg, 4)) return cmd_fsck;
+    else                                  return cmd_none;
+}
 
 cmd_config_t parse_cmd_args(int argc, char *argv[]) {
     parsing_cmd_config_t config;
 
     std::vector<log_serializer_private_dynamic_config_t>& private_configs = config.store_dynamic_config.serializer_private;
+
+
+    /* First, check to see if we're running a sub-command: one of create, fsck, help, extract. */
+
+    if (argc >= 2) {
+        enum rethinkdb_cmd cmd = parse_cmd(argv[1]);
+        enum rethinkdb_cmd help_cmd;
+
+        switch (cmd) {
+            case cmd_extract:
+                exit(run_extract(argc - 1, argv + 1));
+                break;
+            case cmd_create:
+                if (argc >= 3) {
+                    if (!strncmp("help", argv[2], 4)) {
+                        usage_create(argv[0]);
+                    }
+                }
+                config.create_store = true;
+                config.shutdown_after_creation = true;
+                argc--;
+                argv++;
+                break;
+            case cmd_fsck:
+                exit(run_fsck(argc - 1, argv + 1));
+                break;
+            case cmd_help:
+                if (argc >= 3) {
+                    help_cmd = parse_cmd(argv[2]);
+                    switch (help_cmd) {
+                        case cmd_extract: extract::usage(argv[0]); break;
+                        case cmd_create:  usage_create(argv[0]);   break;
+                        case cmd_fsck:    fsck::usage(argv[0]);    break;
+                        case cmd_none:    printf("No such command %s.\n", argv[2]);
+                        case cmd_help:                             break;
+                        default: crash("default");
+                    }
+                }
+                usage(argv[0]);
+                break;
+            case cmd_none: break;
+            default: crash("default");
+        }
+    }
     
     optind = 1; // reinit getopt
     while(1)
     {
         int do_help = 0;
-        int do_create_database = 0;
         int do_force_create = 0;
         struct option long_options[] =
             {
@@ -104,7 +174,6 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
                 {"log-file",             required_argument, 0, 'l'},
                 {"port",                 required_argument, 0, 'p'},
                 {"verbose",              no_argument, (int*)&config.verbose, 1},
-                {"create",               no_argument, &do_create_database, 1},
                 {"force",                no_argument, &do_force_create, 1},
                 {"help",                 no_argument, &do_help, 1},
                 {0, 0, 0, 0}
@@ -115,8 +184,6 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
 
         if (do_help)
             c = 'h';
-        if (do_create_database)
-            c = create_database;
         if (do_force_create)
             c = force_create;
      
@@ -160,19 +227,25 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
                 config.set_block_size(optarg); break;
             case extent_size:
                 config.set_extent_size(optarg); break;
-            case create_database:
-                config.create_store = true;
-                config.shutdown_after_creation = true;
-                break;
             case force_create:
                 config.force_create = true; break;
             case 'h':
-                usage(argv[0]);
+                if (config.create_store) {
+                    usage_create(argv[0]);
+                }
+                else {
+                    usage(argv[0]);
+                }
                 break;
          
             default:
                 /* getopt_long already printed an error message. */
-                usage(argv[0]);
+                if (config.create_store) {
+                    usage_create(argv[0]);
+                }
+                else {
+                    usage(argv[0]);
+                }
         }
     }
 
@@ -205,8 +278,9 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
     
     /* Sanity-check the input */
     
-    if (private_configs.empty()) {
-        fail_due_to_user_error("You must explicitly specify one or more paths with -f.");
+    else if (private_configs.empty() && config.create_store) {
+        fprintf(stderr, "You must explicitly specify one or more paths with -f.\n");
+        usage_create(argv[0]);
     }
     
     if (config.store_dynamic_config.cache.wait_for_flush == true &&

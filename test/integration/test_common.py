@@ -213,14 +213,14 @@ class Server(object):
                 
                 if not self.opts["ssds"]:
                     command_line = [self.executable_path,
-                        "--create", "--force",
+                        "create", "--force",
                         "-c", str(self.opts["cores"]),
                         "-s", str(self.opts["slices"]),
                         "-f", self.db_data_path
                         ] + self.extra_flags + shlex.split(self.opts["flags"])
                 else:
                     command_line = [self.executable_path,
-                        "--create", "--force",
+                        "create", "--force",
                         "-c", str(self.opts["cores"]),
                         "-s", str(self.opts["slices"])] + \
                         ["-f %s" % ssd.replace(' ','') for ssd in self.opts["ssds"]] + \

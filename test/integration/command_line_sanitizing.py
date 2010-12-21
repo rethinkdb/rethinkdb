@@ -58,7 +58,7 @@ def check_rethinkdb_flags(opts, flags, expected_return_value):
     rethinkdb_check_timeout = 10
     
     # Create an empty database file
-    create_result = run_rethinkdb(opts, ["--create", "--force"], create_db_timeout)
+    create_result = run_rethinkdb(opts, ["create", "--force"], create_db_timeout)
     if create_result is None:
         raise ValueError("Server took longer than %d seconds to create database." % server_create_time)
     if create_result[0] != 0:

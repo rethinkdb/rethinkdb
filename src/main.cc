@@ -11,8 +11,6 @@ int main(int argc, char *argv[]) {
     // consider running a different executable (such as
     // ./rethinkdb-extract).
 
-    consider_execve_side_executable(argc, argv, "extract");
-
     initialize_precise_time();
     install_generic_crash_handler();
 
