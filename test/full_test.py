@@ -58,7 +58,7 @@ def run_canonical_tests(mode, checker, protocol, cores, slices):
                     "protocol"    : protocol,
                     "cores"       : cores,
                     "slices"      : slices },
-                  repeat=3, timeout=120)
+                  repeat=3, timeout=200)
     
     do_test_cloud("integration/pipeline.py",
                   { "auto"        : True,
