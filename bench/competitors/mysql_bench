@@ -17,7 +17,7 @@ cd ../dbench
 
 SERVER_HOSTS="magneto,magneto2"
 
-MYSQL_COMMON_FLAGS="--innodb_support_xa=off --innodb_lock_wait_timeout=5 --innodb_flush_method=O_DIRECT --max-connections=600"
+MYSQL_COMMON_FLAGS="--skip-name-resolve --innodb_support_xa=off --innodb_lock_wait_timeout=5 --innodb_flush_method=O_DIRECT --max-connections=600"
 MYSQL_BUFFER_FLAGS="--innodb_buffer_pool_size=32768m"
 MYSQL_DURABILITY_FLAGS="--innodb_flush_log_at_trx_commit=0 --innodb_doublewrite=0 --innodb_log_file_size=256m"
 
