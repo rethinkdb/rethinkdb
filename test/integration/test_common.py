@@ -183,11 +183,11 @@ class Server(object):
     server_start_time = 30
     
     # Server should shut down within %(server_quit_time)d seconds of SIGINT
-    server_sigint_time = 15
+    server_sigint_time = 30
     
-    # If server does not respond to SIGINT, give SIGTERM and then, after %(server_sigterm_time)
+    # If server does not respond to SIGINT, give SIGquit and then, after %(server_sigquit_time)
     # seconds, send SIGKILL 
-    server_sigterm_time = 15
+    server_sigquit_time = 15
     
     wait_interval = 0.25
     
@@ -404,7 +404,7 @@ class Server(object):
             
             self.server.send_signal(signal.SIGQUIT)
             
-            dead = wait_with_timeout(self.server, self.server_sigterm_time) is not None
+            dead = wait_with_timeout(self.server, self.server_sigquit_time) is not None
             
             if not dead:
                 if self.opts["interactive"]:
@@ -413,7 +413,7 @@ class Server(object):
                 self.server.send_signal(signal.SIGKILL)
                 print "ERROR: %s did not shut down %d seconds after getting SIGINT, and " \
                     "did not respond within %d seconds of SIGQUIT either." % \
-                    (self.name.capitalize(), self.server_sigint_time, self.server_sigterm_time)
+                    (self.name.capitalize(), self.server_sigint_time, self.server_sigquit_time)
                 return False
             else:
                 print "ERROR: %s did not shut down %d seconds after getting SIGINT, " \
