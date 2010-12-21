@@ -245,7 +245,7 @@ bool leaf_node_handler::level(block_size_t block_size, leaf_node_t *node, leaf_n
         // TODO: Add some elementary checks that absolutely prevent us
         // from inserting too far onto node.  Right now our
         // correctness relies on the arithmetic, and not on the logic,
-        // so to speak.
+        // so to speak.  This is very low priority.
 
         // Proof that we aren't removing everything from sibling: We
         // are undershooting optimal_adjustment.
@@ -269,18 +269,17 @@ bool leaf_node_handler::level(block_size_t block_size, leaf_node_t *node, leaf_n
         // They are newer than they could be.
         initialize_times(&node->times, repli_max(node->times.last_modified, sibling->times.last_modified));
 
-        // TODO: Check that this is right.  Shouldn't it be
-        // node->pair_offsets[node->npairs - 1 - index]?  That offset
-        // the original value of node->npairs - 1.
+        // Copying node->pair_offsets[0]'s key to key_to_replace_out
+        // produces the same effect, later on, as copying
+        // node->pair_offsets[node->npairs - index - 1]'s key, or any
+        // key in between.  (The latter is the actual key stored in the parent.)
         keycpy(key_to_replace_out, &get_pair(node, node->pair_offsets[0])->key);
         keycpy(replacement_key_out, &get_pair(node, node->pair_offsets[node->npairs-1])->key);
 
-
     } else {
 
-
-        //first index in the sibling to copy
 #ifndef DEBUG_MAX_LEAF
+        // The first index in the sibling to copy
         int index;
         {
             int adjustment = optimal_adjustment;
@@ -306,7 +305,8 @@ bool leaf_node_handler::level(block_size_t block_size, leaf_node_t *node, leaf_n
         // optimal_adjustment in this case, so we need to be careful.
         // It's sufficient to show that sibling_size > 1300, and right
         // now we can prove that.  However, our correctness relies on
-        // the arithmetic, and not on the logic, so to speak.
+        // the arithmetic, and not on the logic, so to speak.  Also
+        // make sure that we aren't overfilling node.  This is very low priority.
 
         // Copy from the end of the sibling to the beginning of the node.
         memmove(node->pair_offsets + pairs_to_move, node->pair_offsets, node->npairs * sizeof(*node->pair_offsets));
@@ -351,10 +351,9 @@ bool leaf_node_handler::is_full(const leaf_node_t *node, const btree_key *key, c
 #ifdef DEBUG_MAX_LEAF
     return node->npairs >= DEBUG_MAX_LEAF;
 #endif
-    // will the data growing from front to right overlap data growing from back to left if we insert
-    // the new key value pair
-    // TODO: Account for the possibility that the key is already present, in which case we can
-    // reuse that space.
+    // Can the key/value pair fit?  We assume (conservatively) the
+    // key/value pair is not already part of the node.
+
     assert(value);
 #ifdef BTREE_DEBUG
     printf("sizeof(leaf_node_t): %ld, (node->npairs + 1): %d, sizeof(*node->pair_offsets):%ld, key->size: %d, value->mem_size(): %d, value->full_size(): %d, node->frontmost_offset: %d\n", sizeof(leaf_node_t), (node->npairs + 1), sizeof(*node->pair_offsets), key->size, value->mem_size(), value->full_size(), node->frontmost_offset);
@@ -380,7 +379,7 @@ bool leaf_node_handler::is_mergable(block_size_t block_size, const leaf_node_t *
 #ifdef DEBUG_MAX_INTERNAL
     return node->npairs + sibling->npairs < DEBUG_MAX_LEAF;
 #endif
-    return sizeof(leaf_node_t) + 
+    return sizeof(leaf_node_t) +
         (node->npairs + sibling->npairs)*sizeof(*node->pair_offsets) +
         (block_size.value() - node->frontmost_offset) +
         (block_size.value() - sibling->frontmost_offset) +
@@ -391,9 +390,9 @@ bool leaf_node_handler::is_underfull(block_size_t block_size, const leaf_node_t 
 #ifdef DEBUG_MAX_LEAF
     return node->npairs < (DEBUG_MAX_LEAF + 1) / 2;
 #endif
-    return (sizeof(leaf_node_t) + 1) / 2 + 
+    return (sizeof(leaf_node_t) + 1) / 2 +
         node->npairs*sizeof(*node->pair_offsets) +
-        (block_size.value() - node->frontmost_offset) + 
+        (block_size.value() - node->frontmost_offset) +
         /* EPSILON: this guaruntees that a node is not underfull directly following a split */
         // TODO: Right now the epsilon we use to make is_underfull not
         // return true after a split is too large. We should come back
