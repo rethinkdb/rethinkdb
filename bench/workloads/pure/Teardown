@@ -1,8 +1,4 @@
 #!/bin/bash
 
-if [ $DATABASE == "mysql" ]; then
-    rm -f /tmp/ib_logfile?
-fi
-
 # Delete temporary key file.
 ssh dr-doom -- rm -f "$TMP_KEY_FILE"
