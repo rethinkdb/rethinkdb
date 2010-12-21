@@ -434,6 +434,7 @@ void btree_modify_fsm_t::do_transition(event_t *event) {
                     // merge or level.
                     if(!sib_buf) { // Acquire a sibling to merge or level with
                         //logDBG("generic acquire sibling\n");
+
                         state = acquire_sibling;
                         break;
                     } else {

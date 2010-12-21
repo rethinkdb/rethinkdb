@@ -4,7 +4,7 @@
 
 #include "logger.hpp"
 
-//#define DEBUG_MAX_LEAF 10
+// #define DEBUG_MAX_LEAF 10
 
 void leaf_node_handler::init(block_size_t block_size, leaf_node_t *node, repli_timestamp modification_time) {
     node->magic = leaf_node_t::expected_magic;
@@ -119,6 +119,8 @@ bool leaf_node_handler::lookup(const leaf_node_t *node, const btree_key *key, bt
 // comfortable.  TODO: prove that block_size - node->frontmost_offset
 // meets this 1500 lower bound.
 void leaf_node_handler::split(block_size_t block_size, leaf_node_t *node, leaf_node_t *rnode, btree_key *median_out) {
+    assert(node != rnode);
+
     uint16_t total_pairs = block_size.value() - node->frontmost_offset;
     uint16_t first_pairs = 0;
     int index = 0;
@@ -154,6 +156,8 @@ void leaf_node_handler::split(block_size_t block_size, leaf_node_t *node, leaf_n
 }
 
 void leaf_node_handler::merge(block_size_t block_size, const leaf_node_t *node, leaf_node_t *rnode, btree_key *key_to_remove_out) {
+    assert(node != rnode);
+
 #ifdef BTREE_DEBUG
     printf("merging\n");
     printf("node:\n");
@@ -189,7 +193,10 @@ void leaf_node_handler::merge(block_size_t block_size, const leaf_node_t *node, 
     validate(block_size, rnode);
 }
 
-bool leaf_node_handler::level(block_size_t block_size, leaf_node_t *node, leaf_node_t *sibling, btree_key *key_to_replace, btree_key *replacement_key) {
+// TODO: check that we use the return value.
+bool leaf_node_handler::level(block_size_t block_size, leaf_node_t *node, leaf_node_t *sibling, btree_key *key_to_replace_out, btree_key *replacement_key_out) {
+    assert(node != sibling);
+
 #ifdef BTREE_DEBUG
     printf("leveling\n");
     printf("node:\n");
@@ -197,30 +204,63 @@ bool leaf_node_handler::level(block_size_t block_size, leaf_node_t *node, leaf_n
     printf("sibling:\n");
     leaf_node_handler::print(sibling);
 #endif
-    //Note: size does not take into account offsets
+
 #ifndef DEBUG_MAX_LEAF
-    uint16_t node_size = block_size.value() - node->frontmost_offset;
-    uint16_t sibling_size = block_size.value() - sibling->frontmost_offset;
-    int optimal_adjustment = (int) (sibling_size - node_size) / 2;
+    //Note: size does not take into account offsets
+    int node_size = block_size.value() - node->frontmost_offset;
+    int sibling_size = block_size.value() - sibling->frontmost_offset;
+
+    if (sibling_size < node_size + 2) {
+        return false;
+    }
+
+    // optimal_adjustment > 0.
+    int optimal_adjustment = (sibling_size - node_size) / 2;
+#else
+    if (sibling->npairs < node->npairs) {
+        return false;
+    }
 #endif
 
     if (nodecmp(node, sibling) < 0) {
 #ifndef DEBUG_MAX_LEAF
-        int index = -1;
-        while (optimal_adjustment > 0) {
-            optimal_adjustment -= pair_size(get_pair(sibling, sibling->pair_offsets[++index]));
+        int index;
+        {
+            // Assumes optimal_adjustment > 0.
+            int adjustment = optimal_adjustment;
+            index = -1;
+            while (adjustment > 0) {
+                adjustment -= pair_size(get_pair(sibling, sibling->pair_offsets[++index]));
+            }
         }
 #else
         int index = (sibling->npairs - node->npairs) / 2;
 #endif
-        if (index <= 0) return false;
-        //copy from beginning of sibling to end of node
-        for (int i = 0; i < index; i++) {
-            node->pair_offsets[node->npairs+i] = insert_pair(node, get_pair(sibling, sibling->pair_offsets[i]));
-        }
-        node->npairs += index;
 
-        //TODO: Make this more efficient.  Currently this loop involves repeated memmoves.
+        // Since optimal_adjustment > 0, we know that index >= 0.
+
+        if (index <= 0) {
+            return false;
+        }
+
+        // TODO: Add some elementary checks that absolutely prevent us
+        // from inserting too far onto node.  Right now our
+        // correctness relies on the arithmetic, and not on the logic,
+        // so to speak.
+
+        // Proof that we aren't removing everything from sibling: We
+        // are undershooting optimal_adjustment.
+
+        // Copy from the beginning of the sibling to end of this node.
+        {
+            int node_npairs = node->npairs;
+            node->npairs += index;
+            for (int i = 0; i < index; i++) {
+                node->pair_offsets[node_npairs + i] = insert_pair(node, get_pair(sibling, sibling->pair_offsets[i]));
+            }
+        }
+
+        // This is ~(n^2) where it could be ~(n).  Profile.
         for (int i = 0; i < index; i++) {
             delete_pair(sibling, sibling->pair_offsets[0]);
             delete_offset(sibling, 0);
@@ -230,32 +270,57 @@ bool leaf_node_handler::level(block_size_t block_size, leaf_node_t *node, leaf_n
         // They are newer than they could be.
         initialize_times(&node->times, repli_max(node->times.last_modified, sibling->times.last_modified));
 
-        keycpy(key_to_replace, &get_pair(node, node->pair_offsets[0])->key);
-        keycpy(replacement_key, &get_pair(node, node->pair_offsets[node->npairs-1])->key);
+        // TODO: Check that this is right.  Shouldn't it be
+        // node->pair_offsets[node->npairs - 1 - index]?  That offset
+        // the original value of node->npairs - 1.  
+        keycpy(key_to_replace_out, &get_pair(node, node->pair_offsets[0])->key);
+        keycpy(replacement_key_out, &get_pair(node, node->pair_offsets[node->npairs-1])->key);
+
+
     } else {
+
+
         //first index in the sibling to copy
 #ifndef DEBUG_MAX_LEAF
-        int index = sibling->npairs;
-        while (optimal_adjustment > 0) {
-            optimal_adjustment -= pair_size(get_pair(sibling, sibling->pair_offsets[--index]));
+        int index;
+        {
+            int adjustment = optimal_adjustment;
+            index = sibling->npairs;
+            while (adjustment > 0) {
+                adjustment -= pair_size(get_pair(sibling, sibling->pair_offsets[--index]));
+            }
         }
 #else
         int index = sibling->npairs - (sibling->npairs - node->npairs) / 2;
 #endif
-        int pairs_to_move = sibling->npairs - index;
-        assert(pairs_to_move >= 0, "could not level nodes");
 
-        if (pairs_to_move == 0) return false;
-        //copy from end of sibling to beginning of node
+        // If optimal_adjustment > 0, we know index < sibling->npairs.
+
+        int pairs_to_move = sibling->npairs - index;
+
+        if (pairs_to_move == 0) {
+            return false;
+        }
+
+        // TODO: Add some elemantary checks that absolutely prevent us
+        // from removing everything from sibling.  We're overshooting
+        // optimal_adjustment in this case, so we need to be careful.
+        // It's sufficient to show that sibling_size > 1300, and right
+        // now we can prove that.  However, our correctness relies on
+        // the arithmetic, and not on the logic, so to speak.
+
+        // Copy from the end of the sibling to the beginning of the node.
         memmove(node->pair_offsets + pairs_to_move, node->pair_offsets, node->npairs * sizeof(*node->pair_offsets));
+        node->npairs += pairs_to_move;
         for (int i = index; i < sibling->npairs; i++) {
             node->pair_offsets[i-index] = insert_pair(node, get_pair(sibling, sibling->pair_offsets[i]));
         }
-        node->npairs += pairs_to_move;
 
-        //TODO: Make this more efficient.  Currently this loop involves repeated memmoves.
+        // This is ~(n^2) when it could be ~(n).  Profile.
         while (index < sibling->npairs) {
-            delete_pair(sibling, sibling->pair_offsets[index]); //decrements sibling->npairs
+            delete_pair(sibling, sibling->pair_offsets[index]);
+
+            // Decrements sibling->npairs
             delete_offset(sibling, index);
         }
 
@@ -263,8 +328,8 @@ bool leaf_node_handler::level(block_size_t block_size, leaf_node_t *node, leaf_n
         // They are newer than they could be.
         initialize_times(&node->times, repli_max(node->times.last_modified, sibling->times.last_modified));
 
-        keycpy(key_to_replace, &get_pair(sibling, sibling->pair_offsets[0])->key);
-        keycpy(replacement_key, &get_pair(sibling, sibling->pair_offsets[sibling->npairs-1])->key);
+        keycpy(key_to_replace_out, &get_pair(sibling, sibling->pair_offsets[0])->key);
+        keycpy(replacement_key_out, &get_pair(sibling, sibling->pair_offsets[sibling->npairs-1])->key);
     }
 
 #ifdef BTREE_DEBUG
