@@ -22,7 +22,7 @@ perfmon_counter_t
     pm_io_writes_started("io_writes_started[iowrites]"),
     pm_io_writes_completed("io_writes_completed[iowrites]");
 
-linux_direct_file_t::linux_direct_file_t(const char *path, int mode) {
+linux_direct_file_t::linux_direct_file_t(const char *path, int mode) : fd(-1) {
     int res;
     
     // Determine if it is a block device
