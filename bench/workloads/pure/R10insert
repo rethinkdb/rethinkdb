@@ -18,7 +18,7 @@ elif [ $DATABASE == "membase" ]; then
     ./dbench                                                                                   \
         -d "$BENCH_DIR/bench_output/Pure_inserts_on_canonical_hardware" -H $SERVER_HOSTS \
         {server}membase:"-d $PERSISTENT_DATA_DIR -m 32768"                                       \
-        {client}stressfree[dr-doom:/home/teapot/stress]:'-c $CANONICAL_CLIENTS -d $CANONICAL_DURATION -w 0/0/1/0 -o $TMP_KEY_FILE' \
+        {client}stressfree[dr-doom:/home/teapot/stress]:"-c $CANONICAL_CLIENTS -d $CANONICAL_DURATION -w 0/0/1/0 -o $TMP_KEY_FILE" \
         iostat:1 vmstat:1
 else
     echo "No workload configuration for $DATABASE"

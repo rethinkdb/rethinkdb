@@ -4,6 +4,7 @@
 
 
 if [ $DATABASE == "rethinkdb" ]; then
+    ../../build/release/rethinkdb --create $SSD_DRIVES --force
     ./dbench                                                                                      \
         -d "$BENCH_DIR/bench_output/512_clients_on_canonical_hardware" -H $SERVER_HOSTS    \
         {server}rethinkdb:"-c 12 -m 32768 $SSD_DRIVES"                                            \
