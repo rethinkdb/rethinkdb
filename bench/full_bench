@@ -15,7 +15,7 @@ email="$(perl -e 'use List::Util qw(first); my $email_idx = 1 + first { $ARGV[$_
 # Build the server and the stress client
 cd src
 make clean
-make -j DEBUG=0 VALGRIND=0 FAST_PERFMON=1 # TODO: Disable "FAST" Perfmon?
+make -j DEBUG=0 VALGRIND=0 FAST_PERFMON=1
 cd ../bench/stress-client
 make
 scp stress dr-doom:/home/teapot/stress
@@ -31,34 +31,33 @@ function delete_database_files() { # They are large and useless.
 SSD_DRIVES="-f /dev/sdb -f /dev/sdc -f /dev/sdd -f /dev/sde"
 HDD_DRIVES="" # TODO
 
+DATABASE="rethinkdb"
+
 
 # Run workloads
 for WORKLOAD in ../workloads/*; do
     if [ -d "$WORKLOAD" ]; then
-        echo -e "\E[37;44m\033[1mRunning workload in $WORKLOAD\033[0m"
+        echo -e "n\E[37;44m\033[1m<----- Running workload in $WORKLOAD ----->\033[0m\n"
         export BENCH_DIR
         export SSD_DRIVES
         export HDD_DRIVES
+        export DATABASE
     
         if [ -e "$WORKLOAD/Setup" ]; then
             "$WORKLOAD/Setup"
         fi
         
         for CONFIGURATION in $( find "$WORKLOAD" -type f -name "R*" | sort ); do
-            echo -e "\033[1mRunning $CONFIGURATION\033[0m"
+            echo -e "\n\033[1mRunning $CONFIGURATION\033[0m"
             if [ -e "$BENCH_DIR/environment" ]; then
-                for DECLARE in `cat $BENCH_DIR/environment`; do
-                    $DECLARE
-                done
+                . "$BENCH_DIR/environment"
             fi
             $CONFIGURATION
         done
         
         if [ -e "$WORKLOAD/Teardown" ]; then
             if [ -e "$BENCH_DIR/environment" ]; then
-                for DECLARE in `cat $BENCH_DIR/environment`; do
-                    $DECLARE
-                done
+                . "$BENCH_DIR/environment"
             fi
             "$WORKLOAD/Teardown"
         fi
