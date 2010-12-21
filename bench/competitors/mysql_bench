@@ -30,6 +30,9 @@ MYSQL_DURABILITY_FLAGS="--innodb_flush_log_at_trx_commit=0 --innodb_doublewrite=
 
 DATABASE="mysql"
 
+# Remove old bench databases
+rm -rf /usr/local/mysql/var/bench
+
 # Initialize InnoDB RAW tablespace
 /usr/local/mysql/libexec/mysqld $MYSQL_COMMON_FLAGS $MYSQL_BUFFER_FLAGS $MYSQL_DURABILITY_FLAGS $MYSQL_SSD_CREATE_FLAGS --port=9874 &
 # Wait for server to finish initialization and shut it down
@@ -39,8 +42,11 @@ done
 
 
 # TODO: Consider / Benchmark influence of "cache warmup" (e.g. check what happens with longer test durations)
-# TODO: What about the number of cores?
-# TODO: See http://www.cyberciti.biz/faq/debian-rhel-centos-redhat-suse-hotplug-cpu/ on how to turn off CPUs
+
+
+echo "To get the canonical hardware, we have to disable all but 12 CPUs."
+echo 'Please give me authorization to run sh -c "for CPU in 12 13 14 15 16 17 18 19 20 21 22 23; do echo 0 > /sys/devices/system/cpu/cpu$CPU; done"'
+sudo sh -c "for CPU in 12 13 14 15 16 17 18 19 20 21 22 23; do echo 0 > /sys/devices/system/cpu/cpu$CPU; done"
 
 # Run workloads
 for WORKLOAD in ../workloads/*; do
@@ -88,6 +94,10 @@ done
 # Core/CPU scalability
 # Concurrent clients scalability
 # Canonical workload on HDD performance
+
+echo "We can turn on the CPUs again now..."
+echo 'Please give me authorization to run sh -c "for CPU in 12 13 14 15 16 17 18 19 20 21 22 23; do echo 1 > /sys/devices/system/cpu/cpu$CPU; done"'
+sudo sh -c "for CPU in 12 13 14 15 16 17 18 19 20 21 22 23; do echo 1 > /sys/devices/system/cpu/cpu$CPU; done"
 
 
 # Now that all benchmarks are done, delete any database files that might have been left over
