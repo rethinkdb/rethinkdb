@@ -237,7 +237,7 @@ bool internal_node_handler::level(block_size_t block_size, internal_node_t *node
     return true;
 }
 
-int internal_node_handler::sibling(const internal_node_t *node, btree_key *key, block_id_t *sib_id) {
+int internal_node_handler::sibling(const internal_node_t *node, const btree_key *key, block_id_t *sib_id) {
     int index = get_offset_index(node, key);
     const btree_internal_pair *sib_pair;
     int cmp;
