@@ -36,7 +36,7 @@ DATABASE="rethinkdb"
 # Run workloads
 for WORKLOAD in ../workloads/*; do
     if [ -d "$WORKLOAD" ]; then
-        echo -e "n\E[37;44m\033[1m<----- Running workload in $WORKLOAD ----->\033[0m\n"
+        echo -e "\n\E[37;44m\033[1m<----- Running workload in $WORKLOAD ----->\033[0m\n"
         export BENCH_DIR
         export SSD_DRIVES
         export HDD_DRIVES
