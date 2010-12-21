@@ -30,9 +30,15 @@ MYSQL_DURABILITY_FLAGS="--innodb_flush_log_at_trx_commit=0 --innodb_doublewrite=
 
 DATABASE="mysql"
 
+# Initialize InnoDB RAW tablespace
+/usr/local/mysql/libexec/mysqld $MYSQL_COMMON_FLAGS $MYSQL_BUFFER_FLAGS $MYSQL_DURABILITY_FLAGS $MYSQL_SSD_CREATE_FLAGS --port=9874 &
+# Wait for server to finish initialization and shut it down
+while ! /usr/local/mysql/bin/mysqladmin shutdown -u root --port=9874 2> /dev/null; do
+    sleep 5
+done
+
+
 # TODO: Consider / Benchmark influence of "cache warmup" (e.g. check what happens with longer test durations)
-# TODO: Run InnoDB on flash drives for better comparability
-# TODO: See http://dev.mysql.com/doc/refman/5.0/en/innodb-raw-devices.html on how to do that
 # TODO: What about the number of cores?
 # TODO: See http://www.cyberciti.biz/faq/debian-rhel-centos-redhat-suse-hotplug-cpu/ on how to turn off CPUs
 
@@ -48,7 +54,6 @@ for WORKLOAD in ../workloads/*; do
         export MYSQL_COMMON_FLAGS
         export MYSQL_BUFFER_FLAGS
         export MYSQL_DURABILITY_FLAGS
-        export MYSQL_SSD_CREATE_FLAGS
         export MYSQL_SSD_FLAGS
         export CANONICAL_CLIENTS
         export CANONICAL_DURATION
