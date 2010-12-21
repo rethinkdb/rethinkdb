@@ -158,6 +158,11 @@
 // How many LBA structures to have for each file
 #define LBA_SHARD_FACTOR                          16
 
+// How many bytes of buffering space we can use per disk when reading the LBA. If it's set
+// too high, then RethinkDB will eat a lot of memory at startup. This is bad because tcmalloc
+// doesn't return memory to the OS. If it's set too low, startup will take a longer time.
+#define LBA_READ_BUFFER_SIZE                      GIGABYTE
+
 // How many different places in each file we should be writing to at once, not counting the
 // metablock or LBA
 #define MAX_ACTIVE_DATA_EXTENTS                   64
