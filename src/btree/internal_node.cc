@@ -253,7 +253,7 @@ int internal_node_handler::sibling(const internal_node_t *node, btree_key *key, 
     return cmp; //equivalent to nodecmp(node, sibling)
 }
 
-void internal_node_handler::update_key(internal_node_t *node, btree_key *key_to_replace, btree_key *replacement_key) {
+void internal_node_handler::update_key(internal_node_t *node, const btree_key *key_to_replace, const btree_key *replacement_key) {
 #ifdef BTREE_DEBUG
     printf("updating key\n");
     internal_node_handler::print(node);
