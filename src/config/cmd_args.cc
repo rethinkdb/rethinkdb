@@ -14,6 +14,7 @@ void usage(const char *name) {
            "        rethinkdb extract [OPTIONS] -f data_file\n"
            "        rethinkdb fsck    [OPTIONS] -f data_file_1 -f data_file_2 ...\n"
            "        rethinkdb create  [OPTIONS] -f data_file_1 -f data_file_2 ...\n"
+           "        rethinkdb help    <cmd>\n"
     
            "\nOptions:\n"
 
