@@ -33,7 +33,6 @@ HDD_DRIVES="" # TODO
 
 DATABASE="rethinkdb"
 
-
 # Run workloads
 for WORKLOAD in ../workloads/*; do
     if [ -d "$WORKLOAD" ]; then
@@ -70,6 +69,7 @@ for WORKLOAD in ../workloads/*; do
 done
 
 # TODO:
+# Out of RAM performance
 # Core/CPU scalability
 # Concurrent clients scalability
 # Canonical workload on HDD performance
