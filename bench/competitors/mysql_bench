@@ -92,3 +92,5 @@ done
 
 # Now that all benchmarks are done, delete any database files that might have been left over
 #delete_database_files
+rm -f /tmp/ib_logfile?
+

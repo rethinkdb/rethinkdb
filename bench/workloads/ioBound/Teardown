@@ -1,5 +1,2 @@
 #!/bin/bash
 
-if [ $DATABASE == "mysql" ]; then
-    rm -f /tmp/ib_logfile?
-fi
