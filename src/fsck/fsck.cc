@@ -10,16 +10,16 @@
 namespace fsck {
 
 void usage(const char *name) {
-    printf("Usage:\n");
-    printf("        %s [OPTIONS] -f data_file_1 -f data_file_2 ...\n", name);
-    printf("\nOptions:\n"
+    printf("Usage:\n"
+           "        rethinkdb fsck [OPTIONS] -f data_file_1 -f data_file_2 ...\n"
+           "\nOptions:\n"
            "  -h  --help                Print these usage options.\n"
            "  -f  --file                Path to file or block device where part or all of\n"
            "                            the database exists.\n"
            "  -l  --log-file            File to log to.  If not provided, messages will be\n"
            "                            printed to stderr.\n");
 
-    exit(-1);
+    exit(0);
 }
 
 void parse_cmd_args(int argc, char **argv, config_t *config) {
@@ -72,7 +72,7 @@ void parse_cmd_args(int argc, char **argv, config_t *config) {
     // Sanity checks
 
     if (config->input_filenames.empty()) {
-        fprintf(stderr, "Please specify some files.");
+        fprintf(stderr, "Please specify some files.\n");
         usage(argv[0]);
     }
 
@@ -88,9 +88,7 @@ void parse_cmd_args(int argc, char **argv, config_t *config) {
 
 }  // namespace fsck
 
-int main(int argc, char **argv) {
-    install_generic_crash_handler();
-
+int run_fsck(int argc, char **argv) {
     fsck::config_t config;
     fsck::parse_cmd_args(argc, argv, &config);
 
@@ -99,4 +97,6 @@ int main(int argc, char **argv) {
     }
 
     check_files(config);
+
+    return 0;
 }

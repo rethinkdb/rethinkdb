@@ -14,9 +14,9 @@ void usage(const char *name) {
     // Note: some error messages may refer to the names of command
     // line options here, so keep them updated accordingly.
 
-    printf("Usage:\n");
-    printf("        %s [OPTIONS] -f data_file [-o dumpfile]\n", name);
-    printf("\nOptions:\n"
+    printf("Usage:\n"
+           "        rethinkdb extract [OPTIONS] -f data_file\n"
+           "\nOptions:\n"
            "  -h  --help                Print these usage options.\n"
            "      --force-block-size    Specifies block size, overriding file headers\n"
            "      --force-extent-size   Specifies extent size, overriding file headers\n"
@@ -30,7 +30,7 @@ void usage(const char *name) {
            "                            messages.  This file must not already exist.\n");
     printf("                            Defaults to \"%s\"\n", EXTRACT_CONFIG_DEFAULT_OUTPUT_FILE);
 
-    exit(-1);
+    exit(0);
 }
 
 enum { force_block_size = 256,  // Start these values above the ASCII range.
@@ -130,9 +130,7 @@ void parse_cmd_args(int argc, char **argv, config_t *config) {
 
 }  // namespace extract
 
-int main(int argc, char **argv) {
-    install_generic_crash_handler();
-
+int run_extract(int argc, char **argv) {
     extract::config_t config;
     extract::parse_cmd_args(argc, argv, &config);
 
@@ -141,4 +139,6 @@ int main(int argc, char **argv) {
     }
 
     extract::dumpfile(config);
+
+    return 0;
 }
