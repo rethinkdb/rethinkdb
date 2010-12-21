@@ -24,6 +24,8 @@ MYSQL_DURABILITY_FLAGS="--innodb_flush_log_at_trx_commit=0 --innodb_doublewrite=
 DATABASE="mysql"
 
 # TODO: Consider / Benchmark influence of "cache warmup" (e.g. check what happens with longer test durations)
+# TODO: Run InnoDB on flash drives for better comparability
+# TODO: What about the number of cores?
 
 # Run workloads
 for WORKLOAD in ../workloads/*; do
