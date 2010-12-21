@@ -2,4 +2,11 @@
 
 if [ $DATABASE == "rethinkdb" ]; then
     ../../build/release/rethinkdb --create $SSD_DRIVES --force
+elif [ $DATABASE == "mysql" ]; then
+    # Initialize InnoDB RAW tablespace
+    /usr/local/mysql/libexec/mysqld $MYSQL_COMMON_FLAGS $MYSQL_BUFFER_FLAGS $MYSQL_DURABILITY_FLAGS $MYSQL_SSD_CREATE_FLAGS --port=9874 &
+    # Wait for server to finish initialization and shut it down
+    while ! /usr/local/mysql/bin/mysqladmin shutdown -u root --port=9874 2> /dev/null; do
+        sleep 5
+    done
 fi
