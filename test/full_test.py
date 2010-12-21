@@ -62,7 +62,7 @@ def run_canonical_tests(mode, checker, protocol, cores, slices):
     
     # Note: we can't send too many things via the pipeline test now
     # because it saturates network buffers. TODO: fix the pipeline
-    # test.
+    # test (see issue 134).
     do_test_cloud("integration/pipeline.py",
                   { "auto"        : True,
                     "mode"        : mode,
