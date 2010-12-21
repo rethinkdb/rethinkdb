@@ -4,14 +4,14 @@
 
 if [ $DATABASE == "rethinkdb" ]; then
     ./dbench                                                                                        \
-        -d "$BENCH_DIR/bench_output/Pure_inserts_on_canonical_hardware" -H magneto,magneto2         \
+        -d "$BENCH_DIR/bench_output/Pure_inserts_on_canonical_hardware" -H $SERVER_HOSTS            \
         {server}rethinkdb:"-c 12 -m 32768 $SSD_DRIVES"                                              \
         {client}stress[dr-doom:/home/teapot/stress]:"-c 512 -w 0/0/1/0 -o $TMP_KEY_FILE -d 60s"     \
         iostat:1 vmstat:1 rdbstat:1
 elif [ $DATABASE == "mysql" ]; then
     # TODO: Does it make sense to use just 128 clients here?
     ./dbench                                                                                         \
-        -d "$BENCH_DIR/bench_output/Pure_inserts_on_canonical_hardware" -H 10.0.0.2                  \
+        -d "$BENCH_DIR/bench_output/Pure_inserts_on_canonical_hardware" -H $SERVER_HOSTS             \
         {server}mysql:"$MYSQL_COMMON_FLAGS $MYSQL_BUFFER_FLAGS $MYSQL_DURABILITY_FLAGS"              \
         {client}mysqlstress[dr-doom:/home/teapot/stress]:"-c 128 -w 0/0/1/0 -o $TMP_KEY_FILE -d 60s" \
         iostat:1 vmstat:1

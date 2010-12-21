@@ -31,6 +31,8 @@ function delete_database_files() { # They are large and useless.
 SSD_DRIVES="-f /dev/sdb -f /dev/sdc -f /dev/sdd -f /dev/sde"
 HDD_DRIVES="" # TODO
 
+SERVER_HOSTS="magneto,magneto2"
+
 DATABASE="rethinkdb"
 
 # Run workloads
@@ -41,6 +43,7 @@ for WORKLOAD in ../workloads/*; do
         export SSD_DRIVES
         export HDD_DRIVES
         export DATABASE
+        export SERVER_HOSTS
     
         if [ -e "$WORKLOAD/Setup" ]; then
             "$WORKLOAD/Setup"
