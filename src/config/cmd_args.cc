@@ -103,6 +103,9 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
             argc--;
             argv++;
         }
+        else if (!strncmp("help", argv[1], 4)) {
+            usage(argv[0]);
+        }
         else if (!strncmp("fsck", argv[1], 4)) {
             exit(run_fsck(argc - 1, argv + 1));
         }
