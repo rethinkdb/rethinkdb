@@ -30,7 +30,7 @@ function delete_database_files() { # They are large and useless.
 SSD_DRIVES="-f /dev/sdb -f /dev/sdc -f /dev/sdd -f /dev/sde"
 
 # Canonical workload on the canonical setup
-../../build/release/rethinkdb --create $SSD_DRIVES --force
+../../build/release/rethinkdb create $SSD_DRIVES --force
 ./dbench                                                                                      \
     -d "$BENCH_DIR/bench_output/Canonical_workload_on_canonical_hardware" -H magneto,magneto2 \
     {server}rethinkdb:"-c 12 -m 32768 $SSD_DRIVES"                                            \
@@ -39,7 +39,7 @@ SSD_DRIVES="-f /dev/sdb -f /dev/sdc -f /dev/sdd -f /dev/sde"
 
 # Out of RAM performance
 # SSD I/O bound performance
-../../build/release/rethinkdb --create $SSD_DRIVES --force
+../../build/release/rethinkdb create $SSD_DRIVES --force
 ./dbench                                                                \
     -d "$BENCH_DIR/bench_output/SSD_IO_performance" -H magneto,magneto2 \
     {server}rethinkdb:"-c 12 -m 0 $SSD_DRIVES"                          \
@@ -50,7 +50,7 @@ SSD_DRIVES="-f /dev/sdb -f /dev/sdc -f /dev/sdd -f /dev/sde"
 TMP_KEY_FILE="$(ssh dr-doom mktemp)"
 
 # Pure inserts performance
-../../build/release/rethinkdb --create $SSD_DRIVES --force
+../../build/release/rethinkdb create $SSD_DRIVES --force
 ./dbench                                                                                        \
     -d "$BENCH_DIR/bench_output/Pure_inserts_on_canonical_hardware" -H magneto,magneto2         \
     {server}rethinkdb:"-c 12 -m 32768 $SSD_DRIVES"                                              \
@@ -72,7 +72,7 @@ ssh dr-doom -- rm "$TMP_KEY_FILE"
 # Canonical workload on HDD performance
 
 # Durability settings performance
-../../build/release/rethinkdb --create $SSD_DRIVES --force
+../../build/release/rethinkdb create $SSD_DRIVES --force
 ./dbench                                                                              \
     -d "$BENCH_DIR/bench_output/Strong_durability_performance" -H magneto,magneto2    \
     {server}rethinkdb:"--wait-for-flush y --flush-timer 2 -c 12 -m 32768 $SSD_DRIVES" \
