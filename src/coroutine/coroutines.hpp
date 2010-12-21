@@ -3,12 +3,13 @@
 #include "coroutine/Coro.hpp"
 #include "arch/arch.hpp"
 #include "utils.hpp"
+#include "utils2.hpp"
 #include <list>
 #include <vector>
 #include <boost/bind.hpp>
 
 extern perfmon_counter_t pm_active_coroutines;
-extern perfmon_duration_sampler_t pm_move_thread;
+extern perfmon_duration_sampler_t pm_switch;
 
 /* A coroutine represents an action with no return value */
 struct coro_t
@@ -54,6 +55,7 @@ private:
     static void suicide();
     static void run_coroutine(void *);
 
+    ticks_t switch_time;
     static __thread coro_t *current_coro;
     static __thread coro_t *scheduler; //Epoll loop--main execution of program
 
@@ -62,13 +64,16 @@ private:
 public:
     template<typename callable_t>
     static void spawn(callable_t fun) {
+        callable_t *f = (callable_t *)malloc(sizeof(fun));
+        memcpy(f, &fun, sizeof(fun));
         struct fun_runner_t : public coro_t {
-            callable_t fun;
-            fun_runner_t(callable_t fun) : fun(fun) { }
+            callable_t *fun;
+            fun_runner_t(callable_t *fun) : fun(fun) { }
             virtual void action() {
-                fun();
+                (*fun)();
+                free(fun);
             }
-        } *coroutine = new fun_runner_t(fun);
+        } *coroutine = new fun_runner_t(f);
         coroutine->start();
     }
 

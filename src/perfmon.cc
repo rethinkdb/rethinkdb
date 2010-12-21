@@ -122,7 +122,9 @@ void *perfmon_counter_t::begin_stats() {
 }
 
 void perfmon_counter_t::visit_stats(void *data) {
+    //printf("Visiting the %dth thread for the stat %s\n", get_thread_id(), name.c_str());
     ((int64_t *)data)[get_thread_id()] = get();
+    //printf("Just visited the %dth thread for the stat %s\n", get_thread_id(), name.c_str());
 }
 
 void perfmon_counter_t::end_stats(void *data, perfmon_stats_t *dest) {

@@ -3,7 +3,7 @@
 #include <stdio.h>
 
 perfmon_counter_t pm_active_coroutines("active_coroutines");
-perfmon_duration_sampler_t pm_move_thread("move_thread", secs_to_ticks(1));
+perfmon_duration_sampler_t pm_switch("switch", secs_to_ticks(1));
 __thread coro_t *coro_t::current_coro = NULL;
 __thread coro_t *coro_t::scheduler = NULL;
 
@@ -17,7 +17,9 @@ void coro_t::wait() {
 
 void coro_t::switch_to(coro_t *next) {
     current_coro = next;
+    pm_switch.begin(&next->switch_time);
     Coro_switchTo_(this->underlying, next->underlying);
+    pm_switch.end(&current_coro->switch_time);
 }
 
 void coro_t::notify() {
@@ -31,7 +33,6 @@ void coro_t::notify() {
 }
 
 void coro_t::move_to_thread(int thread) {
-    block_pm_duration timer(&pm_move_thread);
     self()->home_thread = thread;
     self()->notify();
     wait();
