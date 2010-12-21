@@ -283,7 +283,6 @@ bool internal_node_handler::is_full(const internal_node_t *node) {
 #ifdef BTREE_DEBUG
     printf("sizeof(internal_node_t): %ld, (node->npairs + 1): %d, sizeof(*node->pair_offsets): %ld, sizeof(internal_node_t): %ld, MAX_KEY_SIZE: %d, node->frontmost_offset: %d\n", sizeof(internal_node_t), (node->npairs + 1), sizeof(*node->pair_offsets), sizeof(btree_internal_pair), MAX_KEY_SIZE, node->frontmost_offset);
 #endif
-    // TODO: we're using MAX_KEY_SIZE?  what.  pass the desired key size to this function, perhaps?
     return sizeof(internal_node_t) + (node->npairs + 1) * sizeof(*node->pair_offsets) + pair_size_with_key_size(MAX_KEY_SIZE) >=  node->frontmost_offset;
 }
 

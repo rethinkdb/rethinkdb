@@ -193,7 +193,6 @@ void leaf_node_handler::merge(block_size_t block_size, const leaf_node_t *node, 
     validate(block_size, rnode);
 }
 
-// TODO: check that we use the return value.
 bool leaf_node_handler::level(block_size_t block_size, leaf_node_t *node, leaf_node_t *sibling, btree_key *key_to_replace_out, btree_key *replacement_key_out) {
     assert(node != sibling);
 
@@ -272,7 +271,7 @@ bool leaf_node_handler::level(block_size_t block_size, leaf_node_t *node, leaf_n
 
         // TODO: Check that this is right.  Shouldn't it be
         // node->pair_offsets[node->npairs - 1 - index]?  That offset
-        // the original value of node->npairs - 1.  
+        // the original value of node->npairs - 1.
         keycpy(key_to_replace_out, &get_pair(node, node->pair_offsets[0])->key);
         keycpy(replacement_key_out, &get_pair(node, node->pair_offsets[node->npairs-1])->key);
 
