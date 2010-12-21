@@ -13,6 +13,10 @@ RUN_PORT?=11211
 RUN_FLAGS?=-s 3 -c 2 -m 10
 VALGRIND_FLAGS?=--leak-check=full --db-attach=yes --show-reachable=yes
 CALLGRIND_FLAGS?=--simulate-cache=yes --simulate-wb=yes --simulate-hwpref=yes --cacheuse=yes --collect-jumps=yes
+
+# Set SYMBOLS to 1 to enable symbols, even in release mode
+SYMBOLS?=0
+
 DEBUG?=1
 VALGRIND?=0
 SEMANTIC_SERIALIZER_CHECK?=0
@@ -39,7 +43,8 @@ CXXFLAGS+=-DUSE_UCONTEXT
 
 # Configure debug vs. release
 ifeq ($(DEBUG),1)
-CXXFLAGS+=-g -O0
+SYMBOLS=1
+CXXFLAGS+=-O0
 # -rdynamic is necessary so that backtrace_symbols() works properly
 LDFLAGS+=-rdynamic
 else
@@ -49,10 +54,13 @@ CXXFLAGS+=-O3 -DNDEBUG -fno-strict-aliasing # -match=native
 endif
 
 ifeq ($(OPROFILE),1)
-CXXFLAGS+=-g
+SYMBOLS=1
 endif
 
 ifeq ($(CALLGRIND),1)
+SYMBOLS=1
+endif
+ifeq ($(SYMBOLS),1)
 CXXFLAGS+=-g
 endif
 
