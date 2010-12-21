@@ -7,7 +7,6 @@ from test_common import *
 n_ops = 10000
 
 def test_function(opts, port):
-    port = 11213
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.connect(("localhost", port))
 
