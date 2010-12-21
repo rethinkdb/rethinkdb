@@ -32,6 +32,8 @@ SSD_DRIVES="-f /dev/sdb -f /dev/sdc -f /dev/sdd -f /dev/sde"
 HDD_DRIVES="" # TODO
 
 SERVER_HOSTS="magneto,magneto2"
+CANONICAL_CLIENTS="512"
+CANONICAL_DURATION="60s"
 
 DATABASE="rethinkdb"
 
@@ -44,6 +46,8 @@ for WORKLOAD in ../workloads/*; do
         export HDD_DRIVES
         export DATABASE
         export SERVER_HOSTS
+        export CANONICAL_CLIENTS
+        export CANONICAL_DURATION
     
         if [ -e "$WORKLOAD/Setup" ]; then
             "$WORKLOAD/Setup"
