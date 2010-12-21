@@ -14,6 +14,12 @@ elif [ $DATABASE == "mysql" ]; then
         {server}mysql:"$MYSQL_COMMON_FLAGS $MYSQL_BUFFER_FLAGS $MYSQL_DURABILITY_FLAGS $MYSQL_SSD_FLAGS"              \
         {client}mysqlstress[dr-doom:/home/teapot/stress]:"-c $CANONICAL_CLIENTS -d $CANONICAL_DURATION -w 0/0/0/1 -i $TMP_KEY_FILE" \
         iostat:1 vmstat:1
+elif [ $DATABASE == "membase" ]; then
+    ./dbench                                                                                   \
+        -d "$BENCH_DIR/bench_output/Pure_selects_on_canonical_hardware" -H $SERVER_HOSTS \
+        {server}membase:"-d $PERSISTENT_DATA_DIR -m 32768"                                       \
+        {client}stressfree[dr-doom:/home/teapot/stress]:'-c $CANONICAL_CLIENTS -d $CANONICAL_DURATION -w 0/0/0/1 -i $TMP_KEY_FILE' \
+        iostat:1 vmstat:1
 else
     echo "No workload configuration for $DATABASE"
 fi

@@ -17,14 +17,17 @@ cd ../dbench
 
 SSD_DRIVES="-f /dev/sdb -f /dev/sdc -f /dev/sdd -f /dev/sde"
 HDD_DRIVES="" # TODO
-MYSQL_SSD_CREATE_FLAGS="--innodb_data_home_dir= --innodb_data_file_path=/dev/sdb:10Gnewraw;/dev/sdc:10Gnewraw;/dev/sdd:10Gnewraw;/dev/sde:10Gnewraw"
-MYSQL_SSD_FLAGS="--innodb_data_home_dir= --innodb_data_file_path=/dev/sdb:10Graw;/dev/sdc:10Graw;/dev/sdd:10Graw;/dev/sde:10Graw"
+#MYSQL_SSD_CREATE_FLAGS="--innodb_data_home_dir= --innodb_data_file_path=/dev/sdb:10Gnewraw;/dev/sdc:10Gnewraw;/dev/sdd:10Gnewraw;/dev/sde:10Gnewraw"
+#MYSQL_SSD_FLAGS="--innodb_data_home_dir= --innodb_data_file_path=/dev/sdb:10Graw;/dev/sdc:10Graw;/dev/sdd:10Graw;/dev/sde:10Graw"
+# TODO: Configure RAID for this
+MYSQL_SSD_CREATE_FLAGS="--innodb_data_home_dir= --innodb_data_file_path=/dev/sdb:20Gnewraw"
+MYSQL_SSD_FLAGS="--innodb_data_home_dir= --innodb_data_file_path=/dev/sdb:20Graw"
 
 SERVER_HOSTS="magneto,magneto2"
 CANONICAL_CLIENTS="512"
 CANONICAL_DURATION="60s"
 
-MYSQL_COMMON_FLAGS="--skip-name-resolve --innodb_support_xa=off --innodb_lock_wait_timeout=5 --innodb_flush_method=O_DIRECT --max-connections=600 --innodb_log_group_home_dir=/tmp"
+MYSQL_COMMON_FLAGS="--skip-name-resolve --innodb_support_xa=off --innodb_lock_wait_timeout=5 --innodb_flush_method=O_DIRECT --max-connections=1030 --innodb_log_group_home_dir=/tmp"
 MYSQL_BUFFER_FLAGS="--innodb_buffer_pool_size=32768m"
 MYSQL_DURABILITY_FLAGS="--innodb_flush_log_at_trx_commit=0 --innodb_doublewrite=0 --innodb_log_file_size=256m"
 
@@ -41,12 +44,9 @@ while ! /usr/local/mysql/bin/mysqladmin shutdown -u root --port=9874 2> /dev/nul
 done
 
 
-# TODO: Consider / Benchmark influence of "cache warmup" (e.g. check what happens with longer test durations)
-
-
 echo "To get the canonical hardware, we have to disable all but 12 CPUs."
-echo 'Please give me authorization to run sh -c "for CPU in 12 13 14 15 16 17 18 19 20 21 22 23; do echo 0 > /sys/devices/system/cpu/cpu$CPU; done"'
-sudo sh -c "for CPU in 12 13 14 15 16 17 18 19 20 21 22 23; do echo 0 > /sys/devices/system/cpu/cpu$CPU; done"
+echo 'Please give me authorization to run sh -c "for CPU in 12 13 14 15 16 17 18 19 20 21 22 23; do echo 0 > /sys/devices/system/cpu/cpu\$CPU/online; done"'
+sudo sh -c "for CPU in 12 13 14 15 16 17 18 19 20 21 22 23; do echo 0 > /sys/devices/system/cpu/cpu\$CPU/online; done"
 
 # Run workloads
 for WORKLOAD in ../workloads/*; do
@@ -57,12 +57,12 @@ for WORKLOAD in ../workloads/*; do
         export HDD_DRIVES
         export DATABASE
         export SERVER_HOSTS
+        export CANONICAL_CLIENTS
+        export CANONICAL_DURATION
         export MYSQL_COMMON_FLAGS
         export MYSQL_BUFFER_FLAGS
         export MYSQL_DURABILITY_FLAGS
         export MYSQL_SSD_FLAGS
-        export CANONICAL_CLIENTS
-        export CANONICAL_DURATION
     
         if [ -e "$WORKLOAD/Setup" ]; then
             "$WORKLOAD/Setup"
@@ -96,8 +96,8 @@ done
 # Canonical workload on HDD performance
 
 echo "We can turn on the CPUs again now..."
-echo 'Please give me authorization to run sh -c "for CPU in 12 13 14 15 16 17 18 19 20 21 22 23; do echo 1 > /sys/devices/system/cpu/cpu$CPU; done"'
-sudo sh -c "for CPU in 12 13 14 15 16 17 18 19 20 21 22 23; do echo 1 > /sys/devices/system/cpu/cpu$CPU; done"
+echo 'Please give me authorization to run sh -c "for CPU in 12 13 14 15 16 17 18 19 20 21 22 23; do echo 1 > /sys/devices/system/cpu/cpu\$CPU/online; done"'
+sudo sh -c "for CPU in 12 13 14 15 16 17 18 19 20 21 22 23; do echo 1 > /sys/devices/system/cpu/cpu\$CPU/online; done"
 
 
 # Now that all benchmarks are done, delete any database files that might have been left over

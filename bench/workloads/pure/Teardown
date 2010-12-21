@@ -1,4 +1,8 @@
 #!/bin/bash
 
+if [ $DATABASE == "membase" ]; then
+    rm -rf $PERSISTENT_DATA_DIR
+fi
+
 # Delete temporary key file.
 ssh dr-doom -- rm -f "$TMP_KEY_FILE"
