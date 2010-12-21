@@ -85,29 +85,63 @@ enum {
     force_create
 };
 
+enum rethinkdb_cmd {
+    cmd_extract,
+    cmd_create,
+    cmd_fsck,
+    cmd_help,
+    cmd_none
+};
+
+enum rethinkdb_cmd parse_cmd(char *arg) {
+    if      (!strncmp("extract", arg, 7)) return cmd_extract;
+    else if (!strncmp("create",  arg, 6)) return cmd_create;
+    else if (!strncmp("help",    arg, 4)) return cmd_help;
+    else if (!strncmp("fsck",    arg, 4)) return cmd_fsck;
+    else                                  return cmd_none;
+}
+
 cmd_config_t parse_cmd_args(int argc, char *argv[]) {
     parsing_cmd_config_t config;
 
     std::vector<log_serializer_private_dynamic_config_t>& private_configs = config.store_dynamic_config.serializer_private;
 
 
-    /* First, check to see if we're running a sub-command: one of create, fsck, or extract. */
+    /* First, check to see if we're running a sub-command: one of create, fsck, help, extract. */
 
     if (argc >= 2) {
-        if (!strncmp("extract", argv[1], 7)) {
-            exit(run_extract(argc - 1, argv + 1));
-        }
-        else if (!strncmp("create", argv[1], 6)) {
-            config.create_store = true;
-            config.shutdown_after_creation = true;
-            argc--;
-            argv++;
-        }
-        else if (!strncmp("help", argv[1], 4)) {
-            usage(argv[0]);
-        }
-        else if (!strncmp("fsck", argv[1], 4)) {
-            exit(run_fsck(argc - 1, argv + 1));
+        enum rethinkdb_cmd cmd = parse_cmd(argv[1]);
+        enum rethinkdb_cmd help_cmd;
+
+        switch (cmd) {
+            case cmd_extract:
+                exit(run_extract(argc - 1, argv + 1));
+                break;
+            case cmd_create:
+                config.create_store = true;
+                config.shutdown_after_creation = true;
+                argc--;
+                argv++;
+                break;
+            case cmd_fsck:
+                exit(run_fsck(argc - 1, argv + 1));
+                break;
+            case cmd_help:
+                if (argc >= 3) {
+                    help_cmd = parse_cmd(argv[2]);
+                    switch (help_cmd) {
+                        case cmd_extract: extract::usage(argv[0]); break;
+                        case cmd_create:  usage_create(argv[0]);   break;
+                        case cmd_fsck:    fsck::usage(argv[0]);    break;
+                        case cmd_none:    printf("No such command %s.\n", argv[2]);
+                        case cmd_help:                             break;
+                        default: crash("default");
+                    }
+                }
+                usage(argv[0]);
+                break;
+            case cmd_none: break;
+            default: crash("default");
         }
     }
     

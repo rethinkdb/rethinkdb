@@ -3,4 +3,8 @@
 
 int run_fsck(int argc, char **argv);
 
+namespace fsck {
+    void usage(const char *name);
+}
+
 #endif

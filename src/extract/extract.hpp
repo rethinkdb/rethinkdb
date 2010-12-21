@@ -3,4 +3,8 @@
 
 int run_extract(int argc, char **argv);
 
+namespace extract {
+    void usage(const char *name);
+}
+
 #endif
