@@ -55,7 +55,7 @@ for WORKLOAD in ../workloads/*; do
         if [ -e "$WORKLOAD/Teardown" ]; then
             if [ -e "$BENCH_DIR/environment" ]; then
                 . "$BENCH_DIR/environment"
-            fi
+	    fi
             "$WORKLOAD/Teardown"
         fi
         
