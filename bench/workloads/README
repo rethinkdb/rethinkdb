@@ -13,6 +13,7 @@ The following environment variables are guaranteed to be set:
     HDD_DRIVES
     BENCH_DIR
     DATABASE (rethinkdb, mysql or membase)
+    SERVER_HOSTS
 
 The working directory is dbench.
 

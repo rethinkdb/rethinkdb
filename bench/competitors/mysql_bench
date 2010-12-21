@@ -15,6 +15,8 @@ make
 scp stress dr-doom:/home/teapot/stress
 cd ../dbench
 
+SERVER_HOSTS="magneto,magneto2"
+
 MYSQL_COMMON_FLAGS="--innodb_support_xa=off --innodb_lock_wait_timeout=5 --innodb_flush_method=O_DIRECT --max-connections=600"
 MYSQL_BUFFER_FLAGS="--innodb_buffer_pool_size=32768m"
 MYSQL_DURABILITY_FLAGS="--innodb_flush_log_at_trx_commit=0 --innodb_doublewrite=0 --innodb_log_file_size=256m"
@@ -31,6 +33,7 @@ for WORKLOAD in ../workloads/*; do
         export SSD_DRIVES
         export HDD_DRIVES
         export DATABASE
+        export SERVER_HOSTS
         export MYSQL_COMMON_FLAGS
         export MYSQL_BUFFER_FLAGS
         export MYSQL_DURABILITY_FLAGS

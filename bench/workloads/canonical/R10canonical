@@ -5,16 +5,16 @@
 
 if [ $DATABASE == "rethinkdb" ]; then
     ./dbench                                                                                      \
-        -d "$BENCH_DIR/bench_output/Canonical_workload_on_canonical_hardware" -H magneto,magneto2 \
+        -d "$BENCH_DIR/bench_output/Canonical_workload_on_canonical_hardware" -H $SERVER_HOSTS    \
         {server}rethinkdb:"-c 12 -m 32768 $SSD_DRIVES"                                            \
         {client}stress[dr-doom:/home/teapot/stress]:'-c 512 -d 60s'                               \
         iostat:1 vmstat:1 rdbstat:1
 elif [ $DATABASE == "mysql" ]; then
     # TODO: Does it make sense to use just 128 clients here?
-    ./dbench                                                                              \
-        -d "$BENCH_DIR/bench_output/Canonical_workload_on_canonical_hardware" -H 10.0.0.2 \
-        {server}mysql:"$MYSQL_COMMON_FLAGS $MYSQL_BUFFER_FLAGS $MYSQL_DURABILITY_FLAGS"   \
-        {client}mysqlstress[dr-doom:/home/teapot/stress]:'-c 128 -d 60s'                  \
+    ./dbench                                                                                   \
+        -d "$BENCH_DIR/bench_output/Canonical_workload_on_canonical_hardware" -H $SERVER_HOSTS \
+        {server}mysql:"$MYSQL_COMMON_FLAGS $MYSQL_BUFFER_FLAGS $MYSQL_DURABILITY_FLAGS"        \
+        {client}mysqlstress[dr-doom:/home/teapot/stress]:'-c 128 -d 60s'                       \
         iostat:1 vmstat:1
 else
     echo "No workload configuration for $DATABASE"
