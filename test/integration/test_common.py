@@ -183,7 +183,7 @@ class Server(object):
     server_start_time = 30
     
     # Server should shut down within %(server_quit_time)d seconds of SIGINT
-    server_sigint_time = 30
+    server_sigint_time = 60
     
     # If server does not respond to SIGINT, give SIGquit and then, after %(server_sigquit_time)
     # seconds, send SIGKILL 
