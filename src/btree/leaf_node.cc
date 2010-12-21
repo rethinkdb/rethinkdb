@@ -190,7 +190,9 @@ void leaf_node_handler::merge(block_size_t block_size, const leaf_node_t *node, 
     leaf_node_handler::print(rnode);
 #endif
 
+#ifndef NDEBUG
     validate(block_size, rnode);
+#endif
 }
 
 bool leaf_node_handler::level(block_size_t block_size, leaf_node_t *node, leaf_node_t *sibling, btree_key *key_to_replace_out, btree_key *replacement_key_out) {
@@ -210,6 +212,7 @@ bool leaf_node_handler::level(block_size_t block_size, leaf_node_t *node, leaf_n
     int sibling_size = block_size.value() - sibling->frontmost_offset;
 
     if (sibling_size < node_size + 2) {
+        logWRN("leaf_node_handler::level called with bad node_size %d and sibling_size %d on block id %u\n", node_size, sibling_size, reinterpret_cast<buf_data_t *>(reinterpret_cast<byte *>(node) - sizeof(buf_data_t))->block_id);
         return false;
     }
 
@@ -338,8 +341,12 @@ bool leaf_node_handler::level(block_size_t block_size, leaf_node_t *node, leaf_n
     printf("sibling:\n");
     leaf_node_handler::print(sibling);
 #endif
+
+#ifndef NDEBUG
     validate(block_size, node);
     validate(block_size, sibling);
+#endif
+
     return true;
 }
 
