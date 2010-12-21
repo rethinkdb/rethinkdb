@@ -41,6 +41,12 @@ enum { force_block_size = 256,  // Start these values above the ASCII range.
 void parse_cmd_args(int argc, char **argv, config_t *config) {
     config->init();
 
+    if (argc >= 2) {
+        if (!strncmp("help", argv[1], 4)) {
+            usage(argv[0]);
+        }
+    }
+
     optind = 1;  // reinit getopt.
     for (;;) {
         int do_help = 0;

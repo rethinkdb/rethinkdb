@@ -26,6 +26,11 @@ void parse_cmd_args(int argc, char **argv, config_t *config) {
     // TODO disallow rogue options.
 
     optind = 1;  // reinit getopt.
+    if (argc >= 2) {
+        if (!strncmp("help", argv[1], 4)) {
+            usage(argv[0]);
+        }
+    }
     for (;;) {
         int do_help = 0;
         static const struct option long_options[] =

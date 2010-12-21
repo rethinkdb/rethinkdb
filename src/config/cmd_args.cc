@@ -118,6 +118,11 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
                 exit(run_extract(argc - 1, argv + 1));
                 break;
             case cmd_create:
+                if (argc >= 3) {
+                    if (!strncmp("help", argv[2], 4)) {
+                        usage_create(argv[0]);
+                    }
+                }
                 config.create_store = true;
                 config.shutdown_after_creation = true;
                 argc--;
