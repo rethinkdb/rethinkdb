@@ -39,7 +39,7 @@ class dbench():
     bench_dir = 'bench_output'
     oprofile_dir = 'prof_output'
     flot_script_location = '/graph_viewer/index.html'
-    competitor_dir = '/home/teapot/competitor_bench'
+    competitor_dir = os.getenv("HOME", "/home/teapot") + '/competitor_bench'
 
     def __init__(self, dir, email_addr):
         self.email_addr = email_addr
