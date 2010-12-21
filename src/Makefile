@@ -20,6 +20,7 @@ VALGRIND?=0
 SEMANTIC_SERIALIZER_CHECK?=0
 MOCK_CACHE_CHECK?=0
 VERBOSE?=0
+UNITS?=0
 
 # Choose our directories
 # This makefile is meant to be run from the 'src' directory.
@@ -34,9 +35,10 @@ endif
 # Define configuration variables
 CXX:=g++
 LDFLAGS:=-lrt -laio
-# CXXFLAGS:=-I$(SOURCE_DIR) -Wall -Wextra -Wformat=2 -Wno-unused-parameter -Wswitch-enum -Wswitch-default -Werror
-# Turned off -Wswitch-default for googletest.
 CXXFLAGS:=-I$(SOURCE_DIR) -Wall -Wextra -Wformat=2 -Wno-unused-parameter -Wswitch-enum -Werror
+ifeq ($(UNITS),0)
+CXXFLAGS+=-Wswitch-default
+endif
 
 # Configure libcoroutine
 CXXFLAGS+=-DUSE_UCONTEXT

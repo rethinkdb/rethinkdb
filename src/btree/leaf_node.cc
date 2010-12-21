@@ -16,13 +16,13 @@ void leaf_node_handler::init(block_size_t block_size, leaf_node_t *node, repli_t
 }
 
 // Feel free to move this to a separate file.
-TEST(LeafNodeTest, InitValidates) {
+TEST(LeafNodeDeathTest, InitValidates) {
     int blocksize = 1028;  // a weird value
     block_size_t bs = block_size_t::unsafe_make(blocksize);
     leaf_node_t *p = reinterpret_cast<leaf_node_t *>(calloc(blocksize, 1));
 
     //    leaf_node_handler::init(bs, p, current_time());
-    leaf_node_handler::validate(bs, p);
+    ASSERT_DEATH({ leaf_node_handler::validate(bs, p); }, "");
     // ASSERT_EQ(0, 1);
 
     // TODO: uh, RAII?
