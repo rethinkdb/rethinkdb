@@ -34,7 +34,9 @@ endif
 # Define configuration variables
 CXX:=g++
 LDFLAGS:=-lrt -laio
-CXXFLAGS:=-I$(SOURCE_DIR) -Wall -Wextra -Wformat=2 -Wno-unused-parameter -Wswitch-enum -Wswitch-default -Werror
+# CXXFLAGS:=-I$(SOURCE_DIR) -Wall -Wextra -Wformat=2 -Wno-unused-parameter -Wswitch-enum -Wswitch-default -Werror
+# Turned off -Wswitch-default for googletest.
+CXXFLAGS:=-I$(SOURCE_DIR) -Wall -Wextra -Wformat=2 -Wno-unused-parameter -Wswitch-enum -Werror
 
 # Configure libcoroutine
 CXXFLAGS+=-DUSE_UCONTEXT
@@ -111,6 +113,9 @@ else
 QUIET:=@
 endif
 
+# googletest flags
+LDFLAGS+=-lgtest
+
 
 
 ##### Finding what to build
@@ -128,15 +133,12 @@ SERVER_EXEC_OBJS:=$(patsubst %.cc,$(OBJ_DIR)/%.o,$(shell find $(SOURCE_DIR) -nam
 SERVER_NOMAIN_OBJS:=$(patsubst %.cc,$(OBJ_DIR)/%.o,$(shell find $(SOURCE_DIR) -name '*.cc' | grep -vF "`find $(SOURCE_DIR) -name 'main.cc'`"))
 
 
-
-
 ##### Build targets
 
 # High level build targets
 
+# TODO: add unit tests.. perhaps
 all: $(BUILD_DIR)/$(SERVER_EXEC_NAME) $(BUILD_DIR)/$(START_DB_NAME) $(BUILD_DIR)/$(GDB_FUNCTIONS_NAME)
-
-
 
 
 $(BUILD_DIR)/$(SERVER_EXEC_NAME): $(OBJS) $(BUILD_DIR)
@@ -144,7 +146,6 @@ ifeq ($(VERBOSE),0)
 	@echo "    LD $@"
 endif
 	$(QUIET) $(CXX) $(LDFLAGS) $(SERVER_EXEC_OBJS) -o $(BUILD_DIR)/$(SERVER_EXEC_NAME)
-
 
 
 
