@@ -528,7 +528,8 @@ class RDBStats(TimeSeriesCollection):
                 res[match['name']] += [match['value']]
 
             m = take(self.end_line, data)
-            assert m != False
+	    if m == False: # Incomplete stats, might happen if monitor was killes while retrieving stats response
+                break
 
             if res:
                 lens = map(lambda x: len(x[1]), res.iteritems())
@@ -537,23 +538,32 @@ class RDBStats(TimeSeriesCollection):
 
     def process(self):
         differences = [('io_reads_completed', 'io_reads_started'), 
-                       ('io_writes_started', 'io_writes_completed'), 
-                       ('transactions_started', 'transactions_ready'), 
-                       ('transactions_ready', 'transactions_completed'),
-                       ('bufs_acquired', 'bufs_ready'),
-                       ('bufs_ready', 'bufs_released')]
-        ratios = [('conns_in_btree_incomplete', 'conns_total'),
-                  ('conns_in_outstanding_data', 'conns_total'),
-                  ('conns_in_socket_connected', 'conns_total'),
-                  ('conns_in_socket_recv_incomplete', 'conns_total'),
-                  ('conns_in_socket_send_incomplete', 'conns_total'),
+                       ('io_writes_started', 'io_writes_completed')]
+        ratios = [('conns_reading_total', 'conns_total'),
+                  ('conns_writing_total', 'conns_total'),
                   ('blocks_dirty', 'blocks_total'),
                   ('blocks_in_memory', 'blocks_total'),
                   ('serializer_old_garbage_blocks',  'serializer_old_total_blocks')]
 
-        slides = [('flushes_started', 'flushes_acquired_lock'),
-                  ('flushes_acquired_lock', 'flushes_completed'),
-                  ('io_writes_started', 'io_writes_completed')]
+        slides = [('io_writes_started', 'io_writes_completed')]
+#        differences = [('io_reads_completed', 'io_reads_started'), 
+#                       ('io_writes_started', 'io_writes_completed'), 
+#                       ('transactions_started', 'transactions_ready'), 
+#                       ('transactions_ready', 'transactions_completed'),
+#                       ('bufs_acquired', 'bufs_ready'),
+#                       ('bufs_ready', 'bufs_released')]
+#        ratios = [('conns_in_btree_incomplete', 'conns_total'),
+#                  ('conns_in_outstanding_data', 'conns_total'),
+#                  ('conns_in_socket_connected', 'conns_total'),
+#                  ('conns_in_socket_recv_incomplete', 'conns_total'),
+#                  ('conns_in_socket_send_incomplete', 'conns_total'),
+#                  ('blocks_dirty', 'blocks_total'),
+#                  ('blocks_in_memory', 'blocks_total'),
+#                  ('serializer_old_garbage_blocks',  'serializer_old_total_blocks')]
+#
+#        slides = [('flushes_started', 'flushes_acquired_lock'),
+#                  ('flushes_acquired_lock', 'flushes_completed'),
+#                  ('io_writes_started', 'io_writes_completed')]
         keys_to_drop = set()
         for dif in differences:
             self.derive(dif[0] + ' - ' + dif[1], dif, difference)
