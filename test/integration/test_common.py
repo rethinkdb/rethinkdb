@@ -254,9 +254,6 @@ class Server(object):
     # Server should not take more than %(server_start_time)d seconds to start up
     server_start_time = 30
     
-    # Server should shut down within %(server_quit_time)d seconds of SIGINT
-    server_sigint_time = opts["sigint-timeout"]
-    
     # If server does not respond to SIGINT, give SIGquit and then, after %(server_sigquit_time)
     # seconds, send SIGKILL 
     server_sigquit_time = 15
@@ -461,7 +458,7 @@ class Server(object):
         
         # Wait for the server to quit
         
-        dead = wait_with_timeout(self.server, self.server_sigint_time) is not None
+        dead = wait_with_timeout(self.server, self.opts["sigint-timeout"]) is not None
         
         if not dead and self.opts["valgrind"]:
             
@@ -470,7 +467,7 @@ class Server(object):
             # This is stupid and we shouldn't have to do this.
             self.server.send_signal(signal.SIGINT)
             
-            dead = wait_with_timeout(self.server, self.server_sigint_time) is not None
+            dead = wait_with_timeout(self.server, self.opts["sigint-timeout"]) is not None
         
         if not dead:
             
@@ -485,11 +482,11 @@ class Server(object):
                 self.server.send_signal(signal.SIGKILL)
                 print "ERROR: %s did not shut down %d seconds after getting SIGINT, and " \
                     "did not respond within %d seconds of SIGQUIT either." % \
-                    (self.name.capitalize(), self.server_sigint_time, self.server_sigquit_time)
+                    (self.name.capitalize(), self.opts["sigint-timeout"], self.server_sigquit_time)
                 return False
             else:
                 print "ERROR: %s did not shut down %d seconds after getting SIGINT, " \
-                    "but responded to SIGQUIT." % (self.name.capitalize(), self.server_sigint_time)
+                    "but responded to SIGQUIT." % (self.name.capitalize(), self.opts["sigint-timeout"])
                 return False
         
         # Make sure the server didn't encounter any problems
