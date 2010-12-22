@@ -11,8 +11,8 @@ if [ $DATABASE == "rethinkdb" ]; then
         iostat:1 vmstat:1 rdbstat:1
 elif [ $DATABASE == "mysql" ]; then
     ./dbench                                                                                   \
-        -d "$BENCH_DIR/bench_output/Canonical_workload_on_canonical_hardware" -H $SERVER_HOSTS \
-        {server}mysql:"$MYSQL_COMMON_FLAGS $MYSQL_BUFFER_FLAGS $MYSQL_DURABILITY_FLAGS $MYSQL_SSD_FLAGS"        \
+        -d "$BENCH_DIR/bench_output/Canonical_workload_on_canonical_hardware" -H $SERVER_HOSTS             \
+        {server}mysql:"$MYSQL_COMMON_FLAGS $MYSQL_BUFFER_FLAGS $MYSQL_DURABILITY_FLAGS  $MYSQL_SSD_FLAGS"              \
         {client}mysqlstress[dr-doom:/home/teapot/stress]:"-c $CANONICAL_CLIENTS -d $CANONICAL_DURATION" \
         iostat:1 vmstat:1
 elif [ $DATABASE == "membase" ]; then

@@ -175,7 +175,10 @@ class dbench():
                     run = self.multi_runs[multirun].runs[run_name]
                     multirun_data.append(reduce(lambda x,y: x+y, run.data).select('qps').remap('qps',run.name))
 
-                self.multi_runs[multirun].data = TimeSeriesMeans(multirun_data)
+                if multirun_data == []:
+                    print "Did not get multirun_data for %s" % multirun
+                else:
+                    self.multi_runs[multirun].data = TimeSeriesMeans(multirun_data)
 
         def parse_server_meta(self, data):
             threads_line = line('Number of DB threads: (\d+)', [('threads', 'd')])
