@@ -368,12 +368,13 @@ class dbench():
             for db_name in mean_data.keys():
                 current_data = mean_data[db_name].scatter
                 scatter_data[db_name] = []
+                if labels_are_x_values:
+                    for i, label in current_data.names.iteritems():
+                        current_data.data[i] = (float(label), current_data.data[i][1])
+                    # Sort data points before plotting
+                    current_data.data.sort()
                 for i, label in current_data.names.iteritems():
-                    if labels_are_x_values:
-                        current_data_point = (label, current_data.data[i][1])
-                    else:
-                        current_data_point = current_data.data[i]
-                    scatter_data[db_name].append(current_data_point)
+                    scatter_data[db_name].append(current_data.data[i])
 
             scatter = ScatterCollection(scatter_data)
             scatter.plot(os.path.join(self.out_dir, self.dir_str, 'mean' + multirun_name))
