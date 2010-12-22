@@ -21,10 +21,10 @@ for mode in ["debug", "release"]:
                             cmd_format="make")
 
 # Make sure auxillary tools compile
-do_test("cd ../bench/stress-client/; make clean; make",
+do_test("cd ../bench/stress-client/; make clean; nice make -j STATIC=1",
         {},
         cmd_format="make")
-do_test("cd ../bench/serializer-bench/; make clean; make",
+do_test("cd ../bench/serializer-bench/; make clean; nice make -j",
         {},
         cmd_format="make")
 
