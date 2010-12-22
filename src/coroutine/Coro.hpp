@@ -8,7 +8,6 @@
 #define USE_VALGRIND
 #endif
 
-#include "taskimpl.hpp"
 
 
 /*#if defined(__SYMBIAN32__)

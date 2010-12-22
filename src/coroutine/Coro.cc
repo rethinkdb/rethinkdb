@@ -39,7 +39,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stddef.h>
-#include "taskimpl.hpp"
+#include <stdint.h>
+#include <ucontext.h>
+#include "ucontext_i.h"
 
 #ifdef USE_VALGRIND
 #include <valgrind/valgrind.h>
@@ -58,6 +60,11 @@ VALGRIND_STACK_DEREGISTER((coro)->valgrindStackId)
 #define STACK_REGISTER(coro)
 #define STACK_DEREGISTER(coro)
 #endif
+
+extern "C" {
+	extern int lightweight_getcontext(ucontext_t *ucp);
+	extern int lightweight_swapcontext(ucontext_t *oucp, const ucontext_t *ucp);
+}
 
 typedef struct CallbackBlock
 {
@@ -249,7 +256,7 @@ void Coro_switchTo_(Coro *self, Coro *next)
 #elif defined(USE_FIBERS)
 	SwitchToFiber(next->fiber);
 #elif defined(USE_UCONTEXT)
-	swapcontext(&self->env, &next->env);
+	lightweight_swapcontext(&self->env, &next->env);
 #elif defined(USE_SETJMP)
 	if (setjmp(self->env) == 0)
 	{
@@ -298,7 +305,7 @@ void Coro_setup(Coro *self, void *arg)
 {
 	ucontext_t *ucp = (ucontext_t *) &self->env;
 
-	getcontext(ucp);
+	lightweight_getcontext(ucp);
 
 	ucp->uc_stack.ss_sp    = Coro_stack(self) + Coro_stackSize(self) - 8;
 	ucp->uc_stack.ss_size  = Coro_stackSize(self);
@@ -316,7 +323,7 @@ void Coro_setup(Coro *self, void *arg)
 {
 	ucontext_t *ucp = (ucontext_t *) &self->env;
 
-	getcontext(ucp);
+	lightweight_getcontext(ucp);
 
 	ucp->uc_stack.ss_sp    = Coro_stack(self);
 	ucp->uc_stack.ss_size  = Coro_stackSize(self);

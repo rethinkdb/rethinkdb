@@ -112,9 +112,9 @@ NAMES:=$(patsubst $(SOURCE_DIR)/%.cc,%,$(SOURCES))
 DEPS:=$(patsubst %,$(DEP_DIR)/%.d,$(NAMES))
 OBJS:=$(patsubst %,$(OBJ_DIR)/%.o,$(NAMES))
 
-SERVER_EXEC_OBJS:=$(patsubst %.cc,$(OBJ_DIR)/%.o,$(shell find $(SOURCE_DIR) -name '*.cc' | grep -vF "`find $(SOURCE_DIR)/extract $(SOURCE_DIR)/fsck -name '*.cc'`"))
+SERVER_EXEC_OBJS:=$(patsubst %.cc,$(OBJ_DIR)/%.o,$(shell find $(SOURCE_DIR) -name '*.cc' | grep -vF "`find $(SOURCE_DIR)/extract $(SOURCE_DIR)/fsck -name '*.cc'`")) $(OBJ_DIR)/coroutine/asm.o
 
-SERVER_NOMAIN_OBJS:=$(patsubst %.cc,$(OBJ_DIR)/%.o,$(shell find $(SOURCE_DIR) -name '*.cc' | grep -vF "`find $(SOURCE_DIR) -name 'main.cc'`"))
+SERVER_NOMAIN_OBJS:=$(patsubst %.cc,$(OBJ_DIR)/%.o,$(shell find $(SOURCE_DIR) -name '*.cc' | grep -vF "`find $(SOURCE_DIR) -name 'main.cc'`")) $(OBJ_DIR)/coroutine/asm.o
 
 SERVER_EXTRACT_OBJS:=$(SERVER_NOMAIN_OBJS) $(OBJ_DIR)/extract/main.o
 SERVER_FSCK_OBJS:=$(SERVER_NOMAIN_OBJS) $(OBJ_DIR)/fsck/main.o
@@ -131,19 +131,19 @@ all: $(BUILD_DIR)/$(SERVER_EXEC_NAME) $(BUILD_DIR)/$(SERVER_EXTRACT_NAME) $(BUIL
 
 
 # There is some copy-pastage between EXEC EXTRACT AND FSCK here.
-$(BUILD_DIR)/$(SERVER_EXEC_NAME): $(OBJS) $(BUILD_DIR)
+$(BUILD_DIR)/$(SERVER_EXEC_NAME): $(OBJS) $(BUILD_DIR) $(OBJ_DIR)/coroutine/asm.o
 ifeq ($(VERBOSE),0)
 	@echo "    LD $@"
 endif
 	$(QUIET) $(CXX) $(LDFLAGS) $(SERVER_EXEC_OBJS) -o $(BUILD_DIR)/$(SERVER_EXEC_NAME)
 
-$(BUILD_DIR)/$(SERVER_EXTRACT_NAME): $(OBJS) $(BUILD_DIR)
+$(BUILD_DIR)/$(SERVER_EXTRACT_NAME): $(OBJS) $(BUILD_DIR) $(OBJ_DIR)/coroutine/asm.o
 ifeq ($(VERBOSE),0)
 	@echo "    LD $@"
 endif
 	$(QUIET) $(CXX) $(LDFLAGS) $(SERVER_EXTRACT_OBJS) -o $(BUILD_DIR)/$(SERVER_EXTRACT_NAME)
 
-$(BUILD_DIR)/$(SERVER_FSCK_NAME): $(OBJS) $(BUILD_DIR)
+$(BUILD_DIR)/$(SERVER_FSCK_NAME): $(OBJS) $(BUILD_DIR) $(OBJ_DIR)/coroutine/asm.o
 ifeq ($(VERBOSE),0)
 	@echo "    LD $@"
 endif
@@ -233,6 +233,9 @@ $(BUILD_DIR):
 	$(QUIET) mkdir -p $(BUILD_DIR)
 
 # Object files
+$(OBJ_DIR)/coroutine/asm.o : $(SOURCE_DIR)/coroutine/asm.S Makefile
+	$(QUIET) $(CXX) -c -o $@ $<
+	
 $(OBJ_DIR)/%.o: $(SOURCE_DIR)/%.cc Makefile
 	$(QUIET) mkdir -p $(dir $@)
 ifeq ($(VERBOSE),0)
