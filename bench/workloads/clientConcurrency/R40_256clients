@@ -6,19 +6,19 @@
 if [ $DATABASE == "rethinkdb" ]; then
     ../../build/release/rethinkdb --create $SSD_DRIVES --force
     ./dbench                                                                                      \
-        -d "$BENCH_DIR/bench_output/256_clients_on_canonical_hardware" -H $SERVER_HOSTS    \
+        -d "$BENCH_DIR/bench_output/Number_of_clients_on_canonical_hardware/256" -H $SERVER_HOSTS    \
         {server}rethinkdb:"-c 12 -m 32768 $SSD_DRIVES"                                            \
         {client}stress[dr-doom:/home/teapot/stress]:"-c 256 -d $CANONICAL_DURATION"\
         iostat:1 vmstat:1 rdbstat:1
 elif [ $DATABASE == "mysql" ]; then
     ./dbench                                                                                   \
-        -d "$BENCH_DIR/bench_output/256_clients_on_canonical_hardware" -H $SERVER_HOSTS \
+        -d "$BENCH_DIR/bench_output/Number_of_clients_on_canonical_hardware/256" -H $SERVER_HOSTS \
         {server}mysql:"$MYSQL_COMMON_FLAGS $MYSQL_BUFFER_FLAGS $MYSQL_DURABILITY_FLAGS $MYSQL_SSD_FLAGS"        \
         {client}mysqlstress[dr-doom:/home/teapot/stress]:"-c 256 -d $CANONICAL_DURATION" \
         iostat:1 vmstat:1
 elif [ $DATABASE == "membase" ]; then
     ./dbench                                                                                   \
-        -d "$BENCH_DIR/bench_output/256_clients_on_canonical_hardware" -H $SERVER_HOSTS \
+        -d "$BENCH_DIR/bench_output/Number_of_clients_on_canonical_hardware/256" -H $SERVER_HOSTS \
         {server}membase:"-d $MEMBASE_DATA_PATH -m 32768"                                       \
         {client}stressfree[dr-doom:/home/teapot/stress]:"-c 256 -d $CANONICAL_DURATION" \
         iostat:1 vmstat:1
