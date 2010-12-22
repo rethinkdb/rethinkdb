@@ -356,6 +356,11 @@ class MySQL(Server):
         self.run_process('/usr/local/mysql/libexec/mysqld', args)
         self.wait_for_server_ready()
 
+    def internal_stop(self):
+        os.system("/usr/local/mysql/bin/mysqladmin shutdown -u root --port=%d" % self.dbench.port)
+        self.stop_process()
+        self.finished = True
+
 class Stress(Client):
     binary_paths = ['../../../../stress-client/stress', '../stress-client/stress']
 
