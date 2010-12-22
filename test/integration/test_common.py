@@ -53,7 +53,7 @@ def make_option_parser():
     o["duration"] = IntFlag("--duration", 10)
     o["flags"] = StringFlag("--flags", "")
     o["stress"] = StringFlag("--stress", "")
-    o["no-timeout"] = BoolFlag("--no-timeout", invert = False)
+    o["sigint-timeout"] = IntFlag("--sigint-timeout", 60)
     o["ssds"] = AllArgsAfterFlag("--ssds", default = [])
     o["mem-cap"] = IntFlag("--mem-cap", None)
     o["garbage-range"] = MultiValueFlag("--garbage-range", [float_converter, float_converter], default = None)
@@ -255,7 +255,7 @@ class Server(object):
     server_start_time = 30
     
     # Server should shut down within %(server_quit_time)d seconds of SIGINT
-    server_sigint_time = 60
+    server_sigint_time = opts["sigint-timeout"]
     
     # If server does not respond to SIGINT, give SIGquit and then, after %(server_sigquit_time)
     # seconds, send SIGKILL 
