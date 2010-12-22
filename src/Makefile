@@ -99,6 +99,11 @@ else
 LDFLAGS+=-ltcmalloc_minimal
 endif
 
+ifeq ($(NO_EPOLL),1)
+CXXFLAGS+=-DNO_EPOLL
+BUILD_DIR:=$(BUILD_DIR)-noepoll
+endif
+
 # Should makefile be noisy?
 ifeq ($(VERBOSE),1)
 QUIET:=

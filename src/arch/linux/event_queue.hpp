@@ -28,8 +28,6 @@ const int poll_event_err = 4;
 extern perfmon_sampler_t pm_events_per_loop;
 
 /* Pick the queue now*/
-//#define NO_EPOLL
-
 #ifdef NO_EPOLL
 
 // Use poll instead of epoll
