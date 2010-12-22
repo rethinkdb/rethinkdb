@@ -9,12 +9,9 @@ bool static_header_check(direct_file_t *file) {
     } else {
         static_header_t *buffer = (static_header_t *)malloc_aligned(DEVICE_BLOCK_SIZE, DEVICE_BLOCK_SIZE);
         co_read(file, 0, DEVICE_BLOCK_SIZE, buffer);
-        if (memcmp(buffer, SOFTWARE_NAME_STRING, sizeof(SOFTWARE_NAME_STRING)) == 0) {
-            return true;
-        } else {
-            return false;
-        }
+        bool equals = memcmp(buffer, SOFTWARE_NAME_STRING, sizeof(SOFTWARE_NAME_STRING)) == 0;
         free(buffer);
+        return equals;
     }
 }
 
