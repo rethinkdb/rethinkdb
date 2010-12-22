@@ -30,6 +30,7 @@ do_test("cd ../bench/serializer-bench/; make clean; make",
 
 # Running canonical tests
 def run_canonical_tests(mode, checker, protocol, cores, slices):
+    sigint_timeout = 240 if "mock" in mode else 60
     do_test_cloud("integration/multi_serial_mix.py",
                   { "auto"        : True,
                     "mode"        : mode,
@@ -38,8 +39,9 @@ def run_canonical_tests(mode, checker, protocol, cores, slices):
                     "cores"       : cores,
                     "slices"      : slices,
                     "num-testers" : 16,
-                    "duration"    : 340},
-                  repeat=5, timeout=400)
+                    "duration"    : 340,
+                    "sigint-timeout" : sigint_timeout },
+                  repeat=5, timeout = 340 + sigint_timeout)
     
     do_test_cloud("integration/multi_serial_mix.py",
                   { "auto"        : True,
@@ -50,8 +52,9 @@ def run_canonical_tests(mode, checker, protocol, cores, slices):
                     "slices"      : slices,
                     "num-testers" : 16,
                     "memory"      : 10,
-                    "duration"    : 340},
-                  repeat=5, timeout=400)
+                    "duration"    : 340,
+                    "sigint-timeout" : sigint_timeout },
+                  repeat=5, timeout = 340 + sigint_timeout)
     
     do_test_cloud("integration/big_values.py",
                   { "auto"        : True,
@@ -59,8 +62,9 @@ def run_canonical_tests(mode, checker, protocol, cores, slices):
                     "no-valgrind" : not checker,
                     "protocol"    : protocol,
                     "cores"       : cores,
-                    "slices"      : slices },
-                  repeat=3, timeout=200)
+                    "slices"      : slices,
+                    "sigint-timeout" : sigint_timeout },
+                  repeat=3, timeout = 200 + sigint_timeout)
     
     # Note: we can't send too many things via the pipeline test now
     # because it saturates network buffers. TODO: fix the pipeline
@@ -72,8 +76,9 @@ def run_canonical_tests(mode, checker, protocol, cores, slices):
                     "protocol"    : protocol,
                     "cores"       : cores,
                     "slices"      : slices,
-                    "num-ints"    : 50000 if (mode == "release" and not checker) else 1000 },
-                  repeat=3, timeout = 180)
+                    "num-ints"    : 50000 if (mode == "release" and not checker) else 1000,
+                    "sigint-timeout" : sigint_timeout },
+                  repeat=3, timeout = 180 + sigint_timeout)
     
     # Don't run the corruption test in mockio or mockcache mode because in those modes
     # we don't flush to disk at all until the server is shut down, so obviously the
@@ -284,8 +289,9 @@ def run_all_tests(mode, checker, protocol, cores, slices):
                         "protocol"    : protocol,
                         "cores"       : cores,
                         "slices"      : slices,
+                        "duration"    : 120,
                         "suite-test"  : suite_test},
-                      repeat=3, timeout=120)
+                      repeat=3, timeout=240)
                 
     # Canonical tests are included in all tests
     run_canonical_tests(mode, checker, protocol, cores, slices)
