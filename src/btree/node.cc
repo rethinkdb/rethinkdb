@@ -31,7 +31,7 @@ int node_handler::nodecmp(const node_t *node1, const node_t *node2) {
 }
 
 
-void node_handler::merge(block_size_t block_size, node_t *node, node_t *rnode, btree_key *key_to_remove, node_t *parent) {
+void node_handler::merge(block_size_t block_size, const node_t *node, node_t *rnode, btree_key *key_to_remove, node_t *parent) {
     if (node_handler::is_leaf(node)) {
         leaf_node_handler::merge(block_size, ptr_cast<leaf_node_t>(node), ptr_cast<leaf_node_t>(rnode), key_to_remove);
     } else {

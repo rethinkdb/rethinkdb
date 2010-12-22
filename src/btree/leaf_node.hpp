@@ -11,10 +11,11 @@
 #define LEAF_EPSILON (sizeof(btree_key) + MAX_KEY_SIZE + sizeof(btree_value) + MAX_TOTAL_NODE_CONTENTS_SIZE)
 
 
-//Note: This struct is stored directly on disk.  Changing it invalidates old data.
+// Note: This struct is stored directly on disk.  Changing it
+// invalidates old data.  (It's not really representative of what's
+// stored on disk, but be aware of how you might invalidate old data.)
 struct btree_leaf_pair {
     btree_key key;
-    // We have a sizeof(btree_leaf_pair) that depends on the presence of this value!!
     btree_value value_;
     // key is of variable size and there's a btree_value that follows
     // it that is of variable size.
@@ -35,10 +36,19 @@ public:
     static void init(block_size_t block_size, leaf_node_t *node, const leaf_node_t *lnode, const uint16_t *offsets, int numpairs, repli_timestamp modification_time);
 
     static bool lookup(const leaf_node_t *node, const btree_key *key, btree_value *value);
+
+    // Returns true if insertion was successful.  Returns false if the
+    // node was full.  TODO: make sure we always check return value.
     static bool insert(block_size_t block_size, leaf_node_t *node, const btree_key *key, const btree_value *value, repli_timestamp insertion_time);
-    static void remove(block_size_t block_size, leaf_node_t *node, const btree_key *key); // TODO: Currently untested
-    static void split(block_size_t block_size, leaf_node_t *node, leaf_node_t *rnode, btree_key *median);
-    static void merge(block_size_t block_size, leaf_node_t *node, leaf_node_t *rnode, btree_key *key_to_remove);
+
+    // Assumes key is contained inside the node.
+    static void remove(block_size_t block_size, leaf_node_t *node, const btree_key *key);
+
+    // Initializes rnode with the greater half of node, copying the
+    // new greatest key of node to median_out.
+    static void split(block_size_t block_size, leaf_node_t *node, leaf_node_t *rnode, btree_key *median_out);
+    // Merges the contents of node into rnode.
+    static void merge(block_size_t block_size, const leaf_node_t *node, leaf_node_t *rnode, btree_key *key_to_remove_out);
     static bool level(block_size_t block_size, leaf_node_t *node, leaf_node_t *sibling, btree_key *key_to_replace, btree_key *replacement_key);
 
 
@@ -47,6 +57,8 @@ public:
     static bool is_underfull(block_size_t block_size, const leaf_node_t *node);
     static bool is_mergable(block_size_t block_size, const leaf_node_t *node, const leaf_node_t *sibling);
     static void validate(block_size_t block_size, const leaf_node_t *node);
+
+    // Assumes node1 and node2 are non-empty.
     static int nodecmp(const leaf_node_t *node1, const leaf_node_t *node2);
 
     static void print(const leaf_node_t *node);
@@ -72,6 +84,7 @@ protected:
 
     // Shifts a newer timestamp onto the leaf_timestamps_t, pushing
     // the last one off.
+    // TODO: prove that rotate_time and remove_time can handle any return value from get_timestamp_offset
     static void rotate_time(leaf_timestamps_t *times, repli_timestamp latest_time, int prev_timestamp_offset);
     static void remove_time(leaf_timestamps_t *times, int offset);
 
@@ -85,11 +98,14 @@ class leaf_key_comp {
     const leaf_node_t *node;
     const btree_key *key;
     public:
+    enum { faux_offset = 0 };
+
     explicit leaf_key_comp(const leaf_node_t *_node) : node(_node), key(NULL)  { }
     leaf_key_comp(const leaf_node_t *_node, const btree_key *_key) : node(_node), key(_key)  { }
+
     bool operator()(const uint16_t offset1, const uint16_t offset2) {
-        const btree_key *key1 = offset1 == 0 ? key : &leaf_node_handler::get_pair(node, offset1)->key;
-        const btree_key *key2 = offset2 == 0 ? key : &leaf_node_handler::get_pair(node, offset2)->key;
+        const btree_key *key1 = offset1 == faux_offset ? key : &leaf_node_handler::get_pair(node, offset1)->key;
+        const btree_key *key2 = offset2 == faux_offset ? key : &leaf_node_handler::get_pair(node, offset2)->key;
         int cmp = leaf_key_comp::compare(key1, key2);
 
         return cmp < 0;

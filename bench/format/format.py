@@ -10,6 +10,7 @@ from line import *
 from email.MIMEMultipart import MIMEMultipart
 from email.MIMEText import MIMEText
 from email.MIMEImage import MIMEImage  
+import pdb
 
 locale.setlocale(locale.LC_ALL, '')
 
@@ -161,11 +162,20 @@ class dbench():
 
                 runs = {}
                 
+                # Collect the run data across all multirun runs
                 for run in run_dirs:
                     collect_run_data(run,os.path.join(multirun_dir,run,'1'), runs)
 
-                self.multi_runs[multirun] = Multirun(multirun, runs,unit)
-                #@glukhovsky MapReduce and make means for multirun.data which would yield a PointsCollection
+                # Create a new Multirun with the collected data
+                self.multi_runs[multirun] = Multirun(multirun, runs, unit)
+                
+                # Determine the mean of each run, create a new TimeSeriesMeans object so we can plot the means later
+                multirun_data = []
+                for run_name in self.multi_runs[multirun].runs:
+                    run = self.multi_runs[multirun].runs[run_name]
+                    multirun_data.append(reduce(lambda x,y: x+y, run.data).select('qps').remap('qps',run.name))
+
+                self.multi_runs[multirun].data = TimeSeriesMeans(multirun_data)
 
         def parse_server_meta(self, data):
             threads_line = line('Number of DB threads: (\d+)', [('threads', 'd')])
@@ -259,8 +269,7 @@ class dbench():
             print >>res, '<tr><td><h3 style="text-align: center">Queries per second</h3>'
             print >>res, image('qps' + run_name)
 
-            print >>res, """<table style="border-spacing: 0px; border-collapse: collapse; margin-left: auto; margin-right: auto; margin-top: 20px;">
-                                <tr style="font-weight: bold; text-align: left; border-bottom: 2px solid #FFFFFF; color: #FFFFFF; background: #556270;">
+            print >>res, """<table style="border-spacing: 0px; border-collapse: collapse; margin-left: auto; margin-right: auto; margin-top: 20px;"<tr style="font-weight: bold; text-align: left; border-bottom: 2px solid #FFFFFF; color: #FFFFFF; background: #556270;">
                                     <th style="padding: 0.5em 0.8em; font-size: small;"></th>
                                     <th style="padding: 0.5em 0.8em; font-size: small;">Mean qps</th>
                                     <th style="padding: 0.5em 0.8em; font-size: small;">Standard deviation</th>
@@ -321,31 +330,40 @@ class dbench():
             print >>res, '<div class="multi run">'
             print >>res, '<h2 style="font-size: xx-large; display: inline;">', multirun.name,'</h2>'
 
-            # Accumulating data for the run
-            data = reduce(lambda x, y: x + y, multirun.runs.data)
+            # Get the data for the multirun mean scatter plot
+            mean_data = {}
+            mean_data['RethinkDB'] = multirun.data
 
-            # RENOVED PENDING REVIEW Accumulating data for competitors' run TODO NOTE CHANGED IN MERGE
-#            competitor_data = {}
-#            for competitor in self.competitors.iteritems():
-#                try:
-#                    competitor_data[competitor[0]] = reduce(lambda x, y: x + y, competitor[1].single_runs[run_name].data)
-#                except KeyError:
-#                    print 'Competitor: %s did not report data for run %s' % (competitor[0], run.name)
+            for competitor in self.competitors.iteritems():
+                try:
+                    mean_data[competitor[0]] = competitor[1].multirun.data
+                except KeyError:
+                    print 'Competitor: %s did not report mean data for multirun %s' % (competitor[0], multirun.name) 
+                except AttributeError:
+                    print 'Competitor: %s has no multiruns.' % competitor[0]
 
             # REMOVED PENDING BETTER IMPLEMENTATION Add a link to the graph-viewer (flot) TODO
 #            data.json(self.out_dir + '/' + self.dir_str + '/' + flot_data + run_name,'Server:' + server_meta + 'Client:' + client_meta)
 #            print >>res, '<span style="display: inline;">', flot('/' + self.prof_dir + '/' + self.dir_str + '/' + flot_data + run_name + '.js', '(explore data)</span>')
             
             # Build data for mean run plot
-            mean_data = data.select('meanrun').remap('meanrun', 'RethinkDB')
+            #mean_data = data.select('meanrun').remap('meanrun', 'RethinkDB')
 
             # REMOVED PENDING REVIEW TODO
 #            for competitor in competitor_data.iteritems():
 #                qps_data += competitor[1].select('qps').remap('qps', competitor[0])
 
             # Plot the mean run data
-            mean_data.plot(os.path.join(self.out_dir, self.dir_str, 'meanrun' + multirun_name))
-            mean_data.plot(os.path.join(self.out_dir, self.dir_str, 'meanrun' + multirun_name + '_large'), True)
+            scatter_data = {}
+            for db_name in mean_data.keys():
+                current_data = mean_data[db_name].scatter
+                scatter_data[db_name] = []
+                for i in current_data.names.keys():
+                    scatter_data[db_name].append(current_data.data[i])
+
+            scatter = ScatterCollection(scatter_data)
+            scatter.plot(os.path.join(self.out_dir, self.dir_str, 'mean' + multirun_name))
+#            mean_data.plot(os.path.join(self.out_dir, self.dir_str, 'meanrun' + multirun_name + '_large'), True)
 
             # Add the mean run plot image and metadata
             print >>res, '<table style="width: 910px;" class="runPlots">'
@@ -390,14 +408,14 @@ class dbench():
 #                        """ % (cum_stats.get('rdb_qps_mean', '8===D'), cum_stats.get('rdb_qps_stdev', '8===D'), cum_stats.get('membase_qps_mean', '8===D'), cum_stats.get('membase_qps_stdev', '8===D'), cum_stats.get('mysql_qps_mean', '8===D'), cum_stats.get('mysql_qps.stdev', '8===D'))
 
             # Build data for the multiplot
-            multiplot_data = data.select('latency').remap('latency', 'rethinkdb')
+            #multiplot_data = data.select('latency').remap('latency', 'rethinkdb')
 
             # REMOVED PENDING REVIEW TODO
 #            for competitor in competitor_data.iteritems():
 #                lat_data += competitor[1].select('latency').remap('latency', competitor[0])
             
             # Plot the multiplot 
-            multiplot_data.histogram(os.path.join(self.out_dir, self.dir_str, 'latency' + run_name))
+            #multiplot_data.histogram(os.path.join(self.out_dir, self.dir_str, 'latency' + run_name))
 
             # REMOVED PENDING REVIEW Add the latency histogram image and metadata TODO
 #            print >>res, '<td><h3 style="text-align: center">Latency in microseconds</h3>'

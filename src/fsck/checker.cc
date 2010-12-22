@@ -1199,6 +1199,9 @@ void check_files(const config_t& cfg) {
     bool any = false;
     for (int i = 0; i < num_files; ++i) {
         check_to_config_block_errors errs;
+        if (!knog.files[i]->exists()) {
+            fail_due_to_user_error("No such file \"%s\"", knog.file_knog[i]->filename.c_str());
+        }
         if (!check_to_config_block(knog.files[i], knog.file_knog[i], &errs)) {
             any = true;
             std::string s = std::string("(in file '") + knog.file_knog[i]->filename + "')";

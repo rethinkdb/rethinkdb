@@ -22,7 +22,7 @@ perfmon_counter_t
     pm_io_writes_started("io_writes_started[iowrites]"),
     pm_io_writes_completed("io_writes_completed[iowrites]");
 
-linux_direct_file_t::linux_direct_file_t(const char *path, int mode) {
+linux_direct_file_t::linux_direct_file_t(const char *path, int mode) : fd(-1) {
     int res;
     
     // Determine if it is a block device
@@ -168,14 +168,14 @@ void linux_direct_file_t::read_blocking(size_t offset, size_t length, void *buf)
     verify(offset, length, buf);
     size_t res = pread(fd, buf, length, offset);
     assert(res == length, "Blocking read failed");
-    UNUSED(res);
+    (void)res;
 }
 
 void linux_direct_file_t::write_blocking(size_t offset, size_t length, void *buf) {
     verify(offset, length, buf);
     size_t res = pwrite(fd, buf, length, offset);
     assert(res == length, "Blocking write failed");
-    UNUSED(res);
+    (void)res;
 }
 
 linux_direct_file_t::~linux_direct_file_t() {

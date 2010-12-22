@@ -41,6 +41,10 @@ def test_function(opts, port):
         expected_response += ("VALUE "+ str(int) + " 0 " + str(len(str(int))) + "\r\n" + str(int) + "\r\nEND\r\n")
     
     strings = rand_split(command_string, opts["num_chunks"])
+    # TODO: if 'string' is too long, we saturate the network buffers
+    # because we send too much stuff but don't bother to receive. We
+    # need to fix the test to allow really long pipelines (see issue
+    # 134).
     for string in strings:
         s.send(string)
     
