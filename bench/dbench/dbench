@@ -358,6 +358,7 @@ class MySQL(Server):
 
     def internal_stop(self):
         os.system("/usr/local/mysql/bin/mysqladmin shutdown -u root --port=%d" % self.dbench.port)
+        sleep(15)
         self.stop_process()
         self.finished = True
 

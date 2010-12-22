@@ -36,6 +36,9 @@ DATABASE="mysql"
 # Remove old bench databases
 rm -rf /usr/local/mysql/var/bench
 
+#delete_database_files
+rm -f /tmp/ib_logfile?
+
 # Initialize InnoDB RAW tablespace
 /usr/local/mysql/libexec/mysqld $MYSQL_COMMON_FLAGS $MYSQL_BUFFER_FLAGS $MYSQL_DURABILITY_FLAGS $MYSQL_SSD_CREATE_FLAGS --port=9874 &
 # Wait for server to finish initialization and shut it down
