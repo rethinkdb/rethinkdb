@@ -1,3 +1,0 @@
-#!/bin/bash
-
-../../build/release/rethinkdb --create $SSD_DRIVES --force
