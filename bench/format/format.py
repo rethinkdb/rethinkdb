@@ -269,7 +269,8 @@ class dbench():
             print >>res, '<tr><td><h3 style="text-align: center">Queries per second</h3>'
             print >>res, image('qps' + run_name)
 
-            print >>res, """<table style="border-spacing: 0px; border-collapse: collapse; margin-left: auto; margin-right: auto; margin-top: 20px;"<tr style="font-weight: bold; text-align: left; border-bottom: 2px solid #FFFFFF; color: #FFFFFF; background: #556270;">
+            print >>res, """<table style="border-spacing: 0px; border-collapse: collapse; margin-left: auto; margin-right: auto; margin-top: 20px;">
+                                <tr style="font-weight: bold; text-align: left; border-bottom: 2px solid #FFFFFF; color: #FFFFFF; background: #556270;">
                                     <th style="padding: 0.5em 0.8em; font-size: small;"></th>
                                     <th style="padding: 0.5em 0.8em; font-size: small;">Mean qps</th>
                                     <th style="padding: 0.5em 0.8em; font-size: small;">Standard deviation</th>
@@ -323,8 +324,6 @@ class dbench():
         # Report stats for each multirun
         for multirun_name in self.rdb_stats.multi_runs.keys():
             multirun = self.rdb_stats.multi_runs[multirun_name]
-            #server_meta = run.server_meta
-            #client_meta = run.client_meta
 
             print >>res, '<hr style="height: 1px; width: 910px; border-top: 1px solid #999; margin: 30px 0px; padding: 0px 30px;" />'
             print >>res, '<div class="multi run">'
@@ -336,7 +335,7 @@ class dbench():
 
             for competitor in self.competitors.iteritems():
                 try:
-                    mean_data[competitor[0]] = competitor[1].multirun.data
+                    mean_data[competitor[0]] = competitor[1].multi_runs[multirun_name].data
                 except KeyError:
                     print 'Competitor: %s did not report mean data for multirun %s' % (competitor[0], multirun.name) 
                 except AttributeError:
@@ -346,12 +345,6 @@ class dbench():
 #            data.json(self.out_dir + '/' + self.dir_str + '/' + flot_data + run_name,'Server:' + server_meta + 'Client:' + client_meta)
 #            print >>res, '<span style="display: inline;">', flot('/' + self.prof_dir + '/' + self.dir_str + '/' + flot_data + run_name + '.js', '(explore data)</span>')
             
-            # Build data for mean run plot
-            #mean_data = data.select('meanrun').remap('meanrun', 'RethinkDB')
-
-            # REMOVED PENDING REVIEW TODO
-#            for competitor in competitor_data.iteritems():
-#                qps_data += competitor[1].select('qps').remap('qps', competitor[0])
 
             # Check if we can use the labels as x values (i.e. they are all numeric)
             labels_are_x_values = True
@@ -376,7 +369,7 @@ class dbench():
                 for i, label in current_data.names.iteritems():
                     scatter_data[db_name].append(current_data.data[i])
 
-            scatter = ScatterCollection(scatter_data)
+            scatter = ScatterCollection(scatter_data, multirun.unit)
             scatter.plot(os.path.join(self.out_dir, self.dir_str, 'mean' + multirun_name))
 #            mean_data.plot(os.path.join(self.out_dir, self.dir_str, 'meanrun' + multirun_name + '_large'), True)
 

@@ -23,3 +23,5 @@ elif [ $DATABASE == "membase" ]; then
 else
     echo "No workload configuration for $DATABASE"
 fi
+
+sync

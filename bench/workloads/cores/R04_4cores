@@ -1,0 +1,14 @@
+#!/bin/bash
+
+if [ $DATABASE == "rethinkdb" ]; then
+    ../../build/release/rethinkdb create $SSD_DRIVES --force
+    ./dbench                                                                                      \
+        -d "$BENCH_DIR/bench_output/Number_of_cores_on_canonical_hardware/4" -H $SERVER_HOSTS    \
+        {server}rethinkdb:"-c 4 -m 32768 $SSD_DRIVES"                                            \
+        {client}stress[dr-doom:/home/teapot/stress]:"-c $CANONICAL_CLIENTS -d $CANONICAL_DURATION" \
+        iostat:1 vmstat:1 rdbstat:1
+else
+    echo "No workload configuration for $DATABASE"
+fi
+
+# TODO: Implement others, MySQL at least
