@@ -1,9 +1,16 @@
 import shlex, sys, traceback, os, shutil, socket, subprocess, time, signal, threading, random
 from vcoptparse import *
 from corrupter import *
+from rdbstat import *
 
 test_dir_name = "output_from_test"
 made_test_dir = False
+
+class TestFailure(Exception):
+    def __init__(self, value):
+        self.value = value
+    def __str__(self):
+        return repr(self.value)
 
 def make_test_dir():
     global made_test_dir
@@ -47,6 +54,9 @@ def make_option_parser():
     o["flags"] = StringFlag("--flags", "")
     o["stress"] = StringFlag("--stress", "")
     o["no-timeout"] = BoolFlag("--no-timeout", invert = False)
+    o["ssds"] = AllArgsAfterFlag("--ssds", default = [])
+    o["mem-cap"] = IntFlag("--mem-cap")
+    o["garbage-range"] = MultiValueFlag("--garbage-range", [float_converter, float_converter], default = None)
     return o
 
 # Choose a random port at which to start searching to reduce the probability of collisions
@@ -150,6 +160,75 @@ class NetRecord(object):
     def __del__(self):
         if getattr(self, "process"): self.stop()
 
+num_stress_clients = 0
+
+def stress_client(port=8080, host="localhost", workload={"gets":1, "inserts":1}, duration="10000q"):
+    
+    global num_stress_clients
+    num_stress_clients += 1
+    
+    executable_path = os.path.join(os.path.dirname(__file__), "../../bench/stress-client/stress")
+    if not os.path.exists(executable_path):
+        raise ValueError("Looked for stress client at %r, didn't find it." % executable_path)
+    
+    command_line = [executable_path,
+        "-s", "%s:%d" % (host, port),
+        "-d", duration,
+        "-w", "%d/%d/%d/%d/%d/%d/%d" % (workload.get("deletes", 0), workload.get("updates", 0),
+            workload.get("inserts", 0), workload.get("gets", 0), workload.get("appends", 0),
+            workload.get("prepends", 0), workload.get("verifies", 0)),
+        ]
+    
+    key_file = os.path.join(make_test_dir(), "stress_client", "keys")
+    command_line.extend(["-o", key_file])
+    if os.path.exists(key_file): command_line.extend(["-i", key_file])
+    
+    output_dir = os.path.join(make_test_dir(), "stress_client")
+    if not os.path.isdir(output_dir): os.mkdir(output_dir)
+    output_path = os.path.join(output_dir, "round_%d" % num_stress_clients)
+    output_file = open(output_path, "w")
+    
+    print "Running %r..." % (" ".join(command_line))
+    client = subprocess.Popen(command_line,
+        stdout = output_file, stderr = subprocess.STDOUT)
+    start_time = time.time()
+    try:
+        result = client.wait()
+    finally:
+        try: client.terminate()
+        except: pass
+    if result != 0:
+        raise RuntimeError("Stress client exited with code %d.", result)
+    
+    print "Stress test done; it took %f seconds." % (time.time() - start_time)
+
+def rdb_stats(port=8080, host="localhost"):
+    
+    sock = socket.socket()
+    sock.connect((host, port))
+    sock.send("stats\r\n")
+    
+    buffer = ""
+    while "END\r\n" not in buffer:
+        buffer += sock.recv(4096)
+    
+    stats = {}
+    for line in buffer.split("\r\n"):
+        parts = line.split()
+        if parts == ["END"]:
+            break
+        elif parts:
+            assert parts[0] == "STAT"
+            name = parts[1]
+            value = " ".join(parts[2:])
+            stats[name] = value
+    else:
+        raise ValueError("Didn't get an END");
+    
+    sock.shutdown(socket.SHUT_RDWR)
+    sock.close()
+    return stats
+
 def get_executable_path(opts, name):
     executable_path = os.path.join(os.path.dirname(__file__), "../../build")
     executable_path = os.path.join(executable_path, opts["mode"])
@@ -176,16 +255,15 @@ class Server(object):
     server_start_time = 30
     
     # Server should shut down within %(server_quit_time)d seconds of SIGINT
-    server_sigint_time = 15
+    server_sigint_time = 60
     
-    # If server does not respond to SIGINT, give SIGTERM and then, after %(server_sigterm_time)
+    # If server does not respond to SIGINT, give SIGquit and then, after %(server_sigquit_time)
     # seconds, send SIGKILL 
-    server_sigterm_time = 15
+    server_sigquit_time = 15
     
     wait_interval = 0.25
     
     def __init__(self, opts, name = "server", extra_flags = [], use_existing = False):
-        
         assert made_test_dir
         
         self.running = False
@@ -205,12 +283,20 @@ class Server(object):
                 
                 # Create data file
                 
-                command_line = [self.executable_path,
-                    "--create", "--force",
-                    "-c", str(self.opts["cores"]),
-                    "-s", str(self.opts["slices"]),
-                    "-f", self.db_data_path
-                    ] + self.extra_flags + shlex.split(self.opts["flags"])
+                if not self.opts["ssds"]:
+                    command_line = [self.executable_path,
+                        "create", "--force",
+                        "-c", str(self.opts["cores"]),
+                        "-s", str(self.opts["slices"]),
+                        "-f", self.db_data_path
+                        ] + self.extra_flags + shlex.split(self.opts["flags"])
+                else:
+                    command_line = [self.executable_path,
+                        "create", "--force",
+                        "-c", str(self.opts["cores"]),
+                        "-s", str(self.opts["slices"])] + \
+                        ["-f %s" % ssd.replace(' ','') for ssd in self.opts["ssds"]] + \
+                        self.extra_flags + shlex.split(self.opts["flags"])
                 
                 if self.opts["valgrind"]:
                     cmd_line = ["valgrind"]
@@ -255,12 +341,20 @@ class Server(object):
         if self.opts["database"] == "rethinkdb":
             
             # Make a directory to hold server data files
-            command_line = [self.executable_path,
-                "-p", str(server_port),
-                "-c", str(self.opts["cores"]),
-                "-m", str(self.opts["memory"]),
-                "-f", self.db_data_path
-                ] + self.extra_flags + shlex.split(self.opts["flags"])
+            if not self.opts["ssds"]:
+                command_line = [self.executable_path,
+                    "-p", str(server_port),
+                    "-c", str(self.opts["cores"]),
+                    "-m", str(self.opts["memory"]),
+                    "-f", self.db_data_path
+                    ] + self.extra_flags + shlex.split(self.opts["flags"])
+            else:
+                command_line = [self.executable_path,
+                    "-p", str(server_port),
+                    "-c", str(self.opts["cores"]),
+                    "-m", str(self.opts["memory"])] + \
+                    ["-f %s" % ssd.replace(' ', '') for ssd in self.opts["ssds"]] + \
+                    self.extra_flags + shlex.split(self.opts["flags"])
         
         elif self.opts["database"] == "memcached":
             
@@ -382,7 +476,7 @@ class Server(object):
             
             self.server.send_signal(signal.SIGQUIT)
             
-            dead = wait_with_timeout(self.server, self.server_sigterm_time) is not None
+            dead = wait_with_timeout(self.server, self.server_sigquit_time) is not None
             
             if not dead:
                 if self.opts["interactive"]:
@@ -391,7 +485,7 @@ class Server(object):
                 self.server.send_signal(signal.SIGKILL)
                 print "ERROR: %s did not shut down %d seconds after getting SIGINT, and " \
                     "did not respond within %d seconds of SIGQUIT either." % \
-                    (self.name.capitalize(), self.server_sigint_time, self.server_sigterm_time)
+                    (self.name.capitalize(), self.server_sigint_time, self.server_sigquit_time)
                 return False
             else:
                 print "ERROR: %s did not shut down %d seconds after getting SIGINT, " \
@@ -504,6 +598,23 @@ def adjust_timeout(opts, timeout):
         return None
     else:
         return timeout + 15
+#make a dictionary of stat limits
+def start_stats(opts, port):
+    if not (opts["mem-cap"] or opts["garbage-range"]):
+        return None
+
+    limits = {}
+    if opts["mem-cap"]:
+        limits["memory_virtual[bytes]"] = StatRange(0, opts["mem-cap"])
+    if opts["garbage-range"]:
+        limits["serializer_garbage_ratio"] = StatRange(opts["garbage-range"][0], opts["garbage-range"][1])
+
+    if limits:
+        stat_checker = RDBStat(('localhost', port), limits)
+        stat_checker.start()
+        return stat_checker
+    else:
+        return None
 
 def auto_server_test_main(test_function, opts, timeout = 30, extra_flags = []):
     """Drop-in main() for tests that test against one server that they do not start up or shut
@@ -518,7 +629,14 @@ def auto_server_test_main(test_function, opts, timeout = 30, extra_flags = []):
         
         server = Server(opts, extra_flags = extra_flags)
         if not server.start(): sys.exit(1)
+
+        stat_checker = start_stats(opts, server.port)
+
         test_ok = run_and_report(test_function, (opts, server.port), timeout = adjust_timeout(opts, timeout))
+
+        if stat_checker:
+            stat_checker.stop()
+
         server_ok = server.shutdown()
         if not (test_ok and server_ok): sys.exit(1)
     
@@ -530,8 +648,13 @@ def auto_server_test_main(test_function, opts, timeout = 30, extra_flags = []):
         if opts["netrecord"]:
             nrc = NetRecord(port)
             port = nrc.port
-        
+
+        stat_checker = start_stats(opts, port)
+
         if not run_and_report(test_function, (opts, port), timeout = adjust_timeout(opts, timeout)): sys.exit(1)
+
+        if stat_checker:
+            stat_checker.stop()
         
         if opts["netrecord"]:
             nrc.stop()
@@ -542,14 +665,20 @@ def simple_test_main(test_function, opts, timeout = 30, extra_flags = []):
     """Drop-in main() for tests that open a single connection against a single server that they
     do not shut down or start up again."""
     if opts["auto"]:
-        
         make_test_dir()
         
         server = Server(opts, extra_flags = extra_flags)
         if not server.start(): sys.exit(1)
+
+        stat_checker = start_stats(opts, server.port)
+
         mc = connect_to_server(opts, server)
         test_ok = run_and_report(test_function, (opts, mc), timeout = adjust_timeout(opts, timeout))
         mc.disconnect_all()
+
+        if stat_checker:
+            stat_checker.stop()
+
         server_ok = server.shutdown()
         if not (test_ok and server_ok): sys.exit(1)
     
@@ -565,9 +694,13 @@ def simple_test_main(test_function, opts, timeout = 30, extra_flags = []):
             nrc = NetRecord(port)
             port = nrc.port
         
+        stat_checker = start_stats(opts, port)
         mc = connect_to_port(opts, port)
         ok = run_and_report(test_function, (opts, mc), timeout = adjust_timeout(opts, timeout))
         mc.disconnect_all()
+        if stat_checker:
+            stat_checker.stop()
+
         
         if opts["netrecord"]:
             nrc.stop()
@@ -575,4 +708,4 @@ def simple_test_main(test_function, opts, timeout = 30, extra_flags = []):
         if not ok: sys.exit(1)
     
     sys.exit(0)
-    
+

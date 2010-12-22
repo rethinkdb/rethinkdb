@@ -117,7 +117,6 @@ btree_modify_fsm_t::transition_result_t btree_modify_fsm_t::do_acquire_node(even
     }
 }
 
-// TODO: Fix this when large_buf's API supports it.
 btree_modify_fsm_t::transition_result_t btree_modify_fsm_t::do_acquire_large_value(event_t *event) {
     assert(state == acquire_large_value);
 
@@ -125,8 +124,7 @@ btree_modify_fsm_t::transition_result_t btree_modify_fsm_t::do_acquire_large_val
 
     if (!event) {
         old_large_buf = new large_buf_t(transaction);
-        // TODO: Put the cast in node.hpp
-        old_large_buf->acquire(old_value.lb_ref(), rwi_write, this);
+        actually_acquire_large_value(old_large_buf, old_value.lb_ref());
         return btree_fsm_t::transition_incomplete;
     } else {
         assert(event->buf);
@@ -135,6 +133,10 @@ btree_modify_fsm_t::transition_result_t btree_modify_fsm_t::do_acquire_large_val
         assert(old_large_buf->state == large_buf_t::loaded);
         return btree_fsm_t::transition_ok;
     }
+}
+
+void btree_modify_fsm_t::actually_acquire_large_value(large_buf_t *lb, const large_buf_ref& lbref) {
+    lb->acquire(lbref, rwi_write, this);
 }
 
 btree_modify_fsm_t::transition_result_t btree_modify_fsm_t::do_acquire_sibling(event_t *event) {
@@ -202,7 +204,7 @@ bool btree_modify_fsm_t::do_check_for_split(const node_t **node) {
 
         bool success = internal_node_handler::insert(cache->get_block_size(), last_node, median, node_id, rnode_id);
         assert(success, "could not insert internal btree node");
-        UNUSED(success);
+        (void)success;
 
 #ifdef BTREE_DEBUG
         printf("\t|\n\t| Median = "); median->print(); printf("\n\t|\n\tV\n");
@@ -432,6 +434,7 @@ void btree_modify_fsm_t::do_transition(event_t *event) {
                     // merge or level.
                     if(!sib_buf) { // Acquire a sibling to merge or level with
                         //logDBG("generic acquire sibling\n");
+
                         state = acquire_sibling;
                         break;
                     } else {
@@ -530,7 +533,6 @@ void btree_modify_fsm_t::do_transition(event_t *event) {
                 break;
             }
 
-            // Notify anything that is waiting on a trigger
             case call_replicants: {
                 // Release the final node
                 if (last_node_id != NULL_BLOCK_ID) {
@@ -539,6 +541,11 @@ void btree_modify_fsm_t::do_transition(event_t *event) {
                     last_node_id = NULL_BLOCK_ID;
                 }
 
+// Replication is not set up to handle partially acquired bufs yet.
+#ifndef USE_REPLICATION
+                state = update_complete;
+                res = btree_fsm_t::transition_ok;
+#else
                 if (update_needed) {
                     replicants_awaited = slice->replicants.size();
                     in_value_call = true;
@@ -581,9 +588,9 @@ void btree_modify_fsm_t::do_transition(event_t *event) {
                     state = update_complete;
                     res = btree_fsm_t::transition_ok;
                 }
+#endif  // USE_REPLICATION
                 break;
             }
-            
             case update_complete: {
                 // Free large bufs if necessary
                 if (update_needed) {

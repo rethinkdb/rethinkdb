@@ -102,7 +102,7 @@ bool mc_inner_buf_t::safe_to_unload() {
 }
 
 perfmon_duration_sampler_t
-    pm_bufs_acquiring("bufs_acquring", secs_to_ticks(1)),
+    pm_bufs_acquiring("bufs_acquiring", secs_to_ticks(1)),
     pm_bufs_held("bufs_held", secs_to_ticks(1));
 
 mc_buf_t::mc_buf_t(mc_inner_buf_t *inner, access_t mode)

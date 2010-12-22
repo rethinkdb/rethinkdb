@@ -58,7 +58,7 @@ def check_rethinkdb_flags(opts, flags, expected_return_value):
     rethinkdb_check_timeout = 10
     
     # Create an empty database file
-    create_result = run_rethinkdb(opts, ["--create", "--force"], create_db_timeout)
+    create_result = run_rethinkdb(opts, ["create", "--force"], create_db_timeout)
     if create_result is None:
         raise ValueError("Server took longer than %d seconds to create database." % server_create_time)
     if create_result[0] != 0:
@@ -69,15 +69,13 @@ def check_rethinkdb_flags(opts, flags, expected_return_value):
     if expected_return_value is None and rethinkdb_result is not None:
         raise ValueError("RethinkDB did exit with a return value of %i, although it was not expected to. Flags were: %s" % (rethinkdb_result[0], flags))
     else:
-        if expected_return_value > 127:
-            expected_return_value = 128 - expected_return_value # We have to wrap over it seems
         if rethinkdb_result[0] != expected_return_value:
             raise ValueError("RethinkDB gave a return value of %i, expected a value of %i. Flags were: %s" % (rethinkdb_result[0], expected_return_value, flags))
     
     
 
 def test_function(opts, mc):
-    exit_code_expected_on_error = 134 # That's what we get when abort() is called
+    exit_code_expected_on_error = 255 # we return -1 given a bad command line input
 
     for (flags, expected_return_value) in [
             (["-c", "string"], exit_code_expected_on_error),

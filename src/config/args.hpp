@@ -57,10 +57,6 @@
 // Ratio of free ram to use for the cache by default
 #define DEFAULT_MAX_CACHE_RATIO                   0.8f
 
-// Maximum number of operations packed into a single request
-// TODO: make this dynamic and get rid of this parameter
-#define MAX_OPS_IN_REQUEST                        16
-
 // Maximum number of threads we support
 // TODO: make this dynamic where possible
 #define MAX_THREADS                                  128
@@ -155,12 +151,18 @@
 // What's the definition of a "young" extent in microseconds?
 #define GC_YOUNG_EXTENT_TIMELIMIT_MICROS          50000
 
-// The ratio at which we should GC the lba list.
-#define LBA_GC_THRESHOLD_RATIO_NUMERATOR          9
-#define LBA_GC_THRESHOLD_RATIO_DENOMINATOR        10
+// If the size of the LBA on a given disk exceeds LBA_MIN_SIZE_FOR_GC, then the fraction of the
+// entries that are live and not garbage should be at least LBA_MIN_UNGARBAGE_FRACTION.
+#define LBA_MIN_SIZE_FOR_GC                       (MEGABYTE * 20)
+#define LBA_MIN_UNGARBAGE_FRACTION                0.15
 
 // How many LBA structures to have for each file
 #define LBA_SHARD_FACTOR                          16
+
+// How many bytes of buffering space we can use per disk when reading the LBA. If it's set
+// too high, then RethinkDB will eat a lot of memory at startup. This is bad because tcmalloc
+// doesn't return memory to the OS. If it's set too low, startup will take a longer time.
+#define LBA_READ_BUFFER_SIZE                      GIGABYTE
 
 // How many different places in each file we should be writing to at once, not counting the
 // metablock or LBA

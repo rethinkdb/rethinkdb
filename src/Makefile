@@ -1,8 +1,6 @@
 ##### Configuring stuff
 
 SERVER_EXEC_NAME:=rethinkdb
-SERVER_EXTRACT_NAME:=rethinkdb-extract
-SERVER_FSCK_NAME:=rethinkdb-fsck
 
 SCRIPTS_DIR:=../scripts
 START_DB_NAME:=start_rethinkdb
@@ -13,6 +11,10 @@ RUN_PORT?=11211
 RUN_FLAGS?=-s 3 -c 2 -m 10
 VALGRIND_FLAGS?=--leak-check=full --db-attach=yes --show-reachable=yes
 CALLGRIND_FLAGS?=--simulate-cache=yes --simulate-wb=yes --simulate-hwpref=yes --cacheuse=yes --collect-jumps=yes
+
+# Set SYMBOLS to 1 to enable symbols, even in release mode
+SYMBOLS?=0
+
 DEBUG?=1
 VALGRIND?=0
 SEMANTIC_SERIALIZER_CHECK?=0
@@ -39,7 +41,8 @@ CXXFLAGS+=-DUSE_UCONTEXT
 
 # Configure debug vs. release
 ifeq ($(DEBUG),1)
-CXXFLAGS+=-g -O0
+SYMBOLS=1
+CXXFLAGS+=-O0
 # -rdynamic is necessary so that backtrace_symbols() works properly
 LDFLAGS+=-rdynamic
 else
@@ -49,10 +52,13 @@ CXXFLAGS+=-O3 -DNDEBUG -fno-strict-aliasing # -match=native
 endif
 
 ifeq ($(OPROFILE),1)
-CXXFLAGS+=-g
+SYMBOLS=1
 endif
 
 ifeq ($(CALLGRIND),1)
+SYMBOLS=1
+endif
+ifeq ($(SYMBOLS),1)
 CXXFLAGS+=-g
 endif
 
@@ -112,12 +118,10 @@ NAMES:=$(patsubst $(SOURCE_DIR)/%.cc,%,$(SOURCES))
 DEPS:=$(patsubst %,$(DEP_DIR)/%.d,$(NAMES))
 OBJS:=$(patsubst %,$(OBJ_DIR)/%.o,$(NAMES))
 
-SERVER_EXEC_OBJS:=$(patsubst %.cc,$(OBJ_DIR)/%.o,$(shell find $(SOURCE_DIR) -name '*.cc' | grep -vF "`find $(SOURCE_DIR)/extract $(SOURCE_DIR)/fsck -name '*.cc'`")) $(OBJ_DIR)/coroutine/asm.o
+SERVER_EXEC_OBJS:=$(patsubst %.cc,$(OBJ_DIR)/%.o,$(shell find $(SOURCE_DIR) -name '*.cc')) $(OBJ_DIR)/coroutine/asm.o
 
 SERVER_NOMAIN_OBJS:=$(patsubst %.cc,$(OBJ_DIR)/%.o,$(shell find $(SOURCE_DIR) -name '*.cc' | grep -vF "`find $(SOURCE_DIR) -name 'main.cc'`")) $(OBJ_DIR)/coroutine/asm.o
 
-SERVER_EXTRACT_OBJS:=$(SERVER_NOMAIN_OBJS) $(OBJ_DIR)/extract/main.o
-SERVER_FSCK_OBJS:=$(SERVER_NOMAIN_OBJS) $(OBJ_DIR)/fsck/main.o
 
 
 
@@ -125,32 +129,16 @@ SERVER_FSCK_OBJS:=$(SERVER_NOMAIN_OBJS) $(OBJ_DIR)/fsck/main.o
 
 # High level build targets
 
-all: $(BUILD_DIR)/$(SERVER_EXEC_NAME) $(BUILD_DIR)/$(SERVER_EXTRACT_NAME) $(BUILD_DIR)/$(SERVER_FSCK_NAME) $(BUILD_DIR)/$(START_DB_NAME) $(BUILD_DIR)/$(GDB_FUNCTIONS_NAME)
+all: $(BUILD_DIR)/$(SERVER_EXEC_NAME) $(BUILD_DIR)/$(START_DB_NAME) $(BUILD_DIR)/$(GDB_FUNCTIONS_NAME)
 
 
 
 
-# There is some copy-pastage between EXEC EXTRACT AND FSCK here.
 $(BUILD_DIR)/$(SERVER_EXEC_NAME): $(OBJS) $(BUILD_DIR) $(OBJ_DIR)/coroutine/asm.o
 ifeq ($(VERBOSE),0)
 	@echo "    LD $@"
 endif
 	$(QUIET) $(CXX) $(LDFLAGS) $(SERVER_EXEC_OBJS) -o $(BUILD_DIR)/$(SERVER_EXEC_NAME)
-
-$(BUILD_DIR)/$(SERVER_EXTRACT_NAME): $(OBJS) $(BUILD_DIR) $(OBJ_DIR)/coroutine/asm.o
-ifeq ($(VERBOSE),0)
-	@echo "    LD $@"
-endif
-	$(QUIET) $(CXX) $(LDFLAGS) $(SERVER_EXTRACT_OBJS) -o $(BUILD_DIR)/$(SERVER_EXTRACT_NAME)
-
-$(BUILD_DIR)/$(SERVER_FSCK_NAME): $(OBJS) $(BUILD_DIR) $(OBJ_DIR)/coroutine/asm.o
-ifeq ($(VERBOSE),0)
-	@echo "    LD $@"
-endif
-	$(QUIET) $(CXX) $(LDFLAGS) $(SERVER_FSCK_OBJS) -o $(BUILD_DIR)/$(SERVER_FSCK_NAME)
-
-
-
 
 
 

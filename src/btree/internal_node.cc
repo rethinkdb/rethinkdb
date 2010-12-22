@@ -119,7 +119,7 @@ void internal_node_handler::split(block_size_t block_size, internal_node_t *node
     validate(block_size, rnode);
 }
 
-void internal_node_handler::merge(block_size_t block_size, internal_node_t *node, internal_node_t *rnode, btree_key *key_to_remove, internal_node_t *parent) {
+void internal_node_handler::merge(block_size_t block_size, const internal_node_t *node, internal_node_t *rnode, btree_key *key_to_remove, internal_node_t *parent) {
 #ifdef BTREE_DEBUG
     printf("merging\n");
     printf("node:\n");
@@ -237,7 +237,7 @@ bool internal_node_handler::level(block_size_t block_size, internal_node_t *node
     return true;
 }
 
-int internal_node_handler::sibling(const internal_node_t *node, btree_key *key, block_id_t *sib_id) {
+int internal_node_handler::sibling(const internal_node_t *node, const btree_key *key, block_id_t *sib_id) {
     int index = get_offset_index(node, key);
     const btree_internal_pair *sib_pair;
     int cmp;
@@ -253,7 +253,7 @@ int internal_node_handler::sibling(const internal_node_t *node, btree_key *key, 
     return cmp; //equivalent to nodecmp(node, sibling)
 }
 
-void internal_node_handler::update_key(internal_node_t *node, btree_key *key_to_replace, btree_key *replacement_key) {
+void internal_node_handler::update_key(internal_node_t *node, const btree_key *key_to_replace, const btree_key *replacement_key) {
 #ifdef BTREE_DEBUG
     printf("updating key\n");
     internal_node_handler::print(node);
@@ -283,7 +283,6 @@ bool internal_node_handler::is_full(const internal_node_t *node) {
 #ifdef BTREE_DEBUG
     printf("sizeof(internal_node_t): %ld, (node->npairs + 1): %d, sizeof(*node->pair_offsets): %ld, sizeof(internal_node_t): %ld, MAX_KEY_SIZE: %d, node->frontmost_offset: %d\n", sizeof(internal_node_t), (node->npairs + 1), sizeof(*node->pair_offsets), sizeof(btree_internal_pair), MAX_KEY_SIZE, node->frontmost_offset);
 #endif
-    // TODO: we're using MAX_KEY_SIZE?  what.  pass the desired key size to this function, perhaps?
     return sizeof(internal_node_t) + (node->npairs + 1) * sizeof(*node->pair_offsets) + pair_size_with_key_size(MAX_KEY_SIZE) >=  node->frontmost_offset;
 }
 

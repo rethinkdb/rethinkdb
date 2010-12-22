@@ -11,6 +11,7 @@
 #include "config/args.hpp"
 #include "utils2.hpp"
 #include "coroutine/coroutines.hpp"
+#include "logger.hpp"
 
 // #define DEBUG_DUMP_WRITES 1
 
@@ -22,7 +23,7 @@ perfmon_counter_t
     pm_io_writes_started("io_writes_started[iowrites]"),
     pm_io_writes_completed("io_writes_completed[iowrites]");
 
-linux_direct_file_t::linux_direct_file_t(const char *path, int mode) {
+linux_direct_file_t::linux_direct_file_t(const char *path, int mode) : fd(-1) {
     int res;
     
     // Determine if it is a block device
@@ -30,9 +31,13 @@ linux_direct_file_t::linux_direct_file_t(const char *path, int mode) {
     struct stat64 file_stat;
     bzero((void*)&file_stat, sizeof(file_stat)); // make valgrind happy
     res = stat64(path, &file_stat);
-    guarantee_err(res != -1 || errno == ENOENT, "Could not stat file");
+    guarantee_err(res == 0 || errno == ENOENT, "Could not stat file '%s'", path);
     
     if (res == -1 && errno == ENOENT) {
+        if (!(mode & mode_create)) {
+            file_exists = false;
+            return;
+        }
         is_block = false;
     } else {
         is_block = S_ISBLK(file_stat.st_mode);
@@ -42,10 +47,11 @@ linux_direct_file_t::linux_direct_file_t(const char *path, int mode) {
     
     int flags = O_CREAT | O_DIRECT | O_LARGEFILE;
     
-    if (mode == (mode_read | mode_write)) flags |= O_RDWR;
+    if ((mode & mode_write) && (mode & mode_read)) flags |= O_RDWR;
     else if (mode & mode_write) flags |= O_WRONLY;
     else if (mode & mode_read) flags |= O_RDONLY;
     else crash("Bad file access mode.");
+
     
     // O_NOATIME requires owner or root privileges. This is a bit of a hack; we assume that
     // if we are opening a regular file, we are the owner, but if we are opening a block device,
@@ -57,6 +63,8 @@ linux_direct_file_t::linux_direct_file_t(const char *path, int mode) {
     fd = open(path, flags, 0644);
     if (fd == INVALID_FD)
         fail_due_to_user_error("Inaccessible database file: \"%s\": %s", path, strerror(errno));
+
+    file_exists = true;
     
     // Determine the file size
     
@@ -71,6 +79,10 @@ linux_direct_file_t::linux_direct_file_t(const char *path, int mode) {
         
         file_size = size;
     }
+}
+
+bool linux_direct_file_t::exists() {
+    return file_exists;
 }
 
 bool linux_direct_file_t::is_block_device() {
@@ -157,14 +169,14 @@ void linux_direct_file_t::read_blocking(size_t offset, size_t length, void *buf)
     verify(offset, length, buf);
     size_t res = pread(fd, buf, length, offset);
     assert(res == length, "Blocking read failed");
-    UNUSED(res);
+    (void)res;
 }
 
 void linux_direct_file_t::write_blocking(size_t offset, size_t length, void *buf) {
     verify(offset, length, buf);
     size_t res = pwrite(fd, buf, length, offset);
     assert(res == length, "Blocking write failed");
-    UNUSED(res);
+    (void)res;
 }
 
 linux_direct_file_t::~linux_direct_file_t() {
@@ -193,7 +205,7 @@ linux_io_calls_t::linux_io_calls_t(linux_event_queue_t *queue)
     
     aio_context = 0;
     res = io_setup(MAX_CONCURRENT_IO_REQUESTS, &aio_context);
-    guarantee(res == 0, "Could not setup aio context");    // errors are returned in res (negated) instead of errno
+    guarantee_xerr(res == 0, -res, "Could not setup aio context");
     
     // Create aio notify fd
     
@@ -216,7 +228,7 @@ linux_io_calls_t::~linux_io_calls_t()
     guarantee_err(res == 0, "Could not close aio_notify_fd");
     
     res = io_destroy(aio_context);
-    guarantee_err(res == 0, "Could not destroy aio_context");
+    guarantee_xerr(res == 0, -res, "Could not destroy aio context");
 }
 
 void linux_io_calls_t::on_event(int) {
@@ -241,7 +253,7 @@ void linux_io_calls_t::on_event(int) {
         nevents = io_getevents(aio_context, 0,
                                std::min((int)nevents_total, MAX_IO_EVENT_PROCESSING_BATCH_SIZE),
                                events, NULL);
-        guarantee_err(nevents >= 1, "Waiting for AIO event failed");
+        guarantee_xerr(nevents >= 1, -nevents, "Waiting for AIO event failed");
         
         // Process the events
         for(int i = 0; i < nevents; i++) {
@@ -263,13 +275,11 @@ void linux_io_calls_t::aio_notify(iocb *event, int result) {
     
     // Check for failure (because the higher-level code usually doesn't)
     if (result != (int)event->u.c.nbytes) {
-        errno = -result;
-
         // Currently AIO is used only for disk files, not sockets.
         // Thus, if something fails, we have a good reason to crash
         // (note that that is not true for sockets: we should just
         // close the socket and cleanup then).
-        guarantee_err(false, "Read or write failed");
+        guarantee_xerr(false, -result, "Read or write failed");
     }
     
     // Notify the interested party about the event
@@ -304,7 +314,7 @@ void linux_io_calls_t::process_requests() {
         if(res < 0)
             break;
     }
-    guarantee_err(res >= 0 || res == -EAGAIN, "Could not submit IO request");
+    guarantee_xerr(res >= 0 || res == -EAGAIN, -res, "Could not submit IO request");
 }
 
 linux_io_calls_t::queue_t::queue_t(linux_io_calls_t *parent)
@@ -325,6 +335,8 @@ int linux_io_calls_t::queue_t::process_request_batch() {
             // the back. Perhaps we should optimize this somehow.
             queue.erase(queue.begin(), queue.begin() + res);
             parent->n_pending += res;
+        } else if (res < 0 && (-res) != EAGAIN) {
+            logWRN("io_submit failed: (%d) %s\n", -res, strerror(-res));
         }
     }
     return res;

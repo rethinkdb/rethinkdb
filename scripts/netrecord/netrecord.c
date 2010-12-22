@@ -421,6 +421,9 @@ int pump(thread_info_t *thread, pipe_info_t *pipe) {
         
         ssize_t bytes_read = read(pipe->in->fd, pipe->buffer + pipe->backup, BUFFER_SIZE - pipe->backup);
         if (bytes_read < 0) {
+            if (errno == EAGAIN || errno == EWOULDBLOCK) {
+                return 0;
+            }
             fprintf(stderr, "Connection %d could not receive from %s: %s\n",
                 thread->id, pipe->in->name, strerror(errno));
             return -1;
@@ -464,6 +467,9 @@ int try_write(thread_info_t *thread, pipe_info_t *pipe) {
     
     ssize_t bytes_written = write(pipe->out->fd, pipe->buffer, pipe->backup);
     if (bytes_written < 0) {
+        if (errno == EAGAIN || errno == EWOULDBLOCK) {
+            return 0;
+        }
         fprintf(stderr, "Connection %d could not send to %s: %s\n",
             thread->id, pipe->out->name, strerror(errno));
         return -1;

@@ -52,11 +52,9 @@ public:
 
     int num_entries_that_can_fit_in_an_extent() const;
 
-private:
     extent_manager_t *em;
     direct_file_t *file;
 
-public:
     extent_t *superblock_extent;   // Can be NULL
     off64_t superblock_offset;
     intrusive_list_t<lba_disk_extent_t> extents_in_superblock;

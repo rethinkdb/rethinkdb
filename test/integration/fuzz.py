@@ -51,7 +51,7 @@ def test_function(opts, port):
     time.sleep(2)
 
     while (time.time() - start_time < opts["duration"]):
-        time.sleep(.01)
+        time.sleep(.05)
         str = ''
         for i in range(20):
             choice = random.random()
@@ -84,4 +84,5 @@ def test_function(opts, port):
 if __name__ == "__main__":
     op = make_option_parser()
     op["duration"] = IntFlag("--duration", 1000)
-    auto_server_test_main(test_function, op.parse(sys.argv), timeout = 120)
+    opts = op.parse(sys.argv)
+    auto_server_test_main(test_function, opts, timeout = opts["duration"] + 30)

@@ -47,7 +47,7 @@ void log_serializer_t::ls_start_new(static_config_t *config, ready_callback_t *r
     assert(state == log_serializer_t::state_unstarted);
     state = log_serializer_t::state_starting_up;
     static_config = *config;
-    dbfile = new direct_file_t(db_path, direct_file_t::mode_read|direct_file_t::mode_write);
+    dbfile = new direct_file_t(db_path, direct_file_t::mode_read|direct_file_t::mode_write|direct_file_t::mode_create);
     co_static_header_write(dbfile, &static_config, sizeof(static_config));
     
     log_serializer_t::metablock_t metablock_buffer;

@@ -76,6 +76,8 @@ public:
 
     void allocate(int64_t _size, large_buf_ref *refout);
     void acquire(large_buf_ref root_ref_, access_t access_, large_buf_available_callback_t *callback_);
+    void acquire_rhs(large_buf_ref root_ref_, access_t access_, large_buf_available_callback_t *callback_);
+    void acquire_lhs(large_buf_ref root_ref_, access_t access_, large_buf_available_callback_t *callback_);
 
     void append(int64_t extra_size, large_buf_ref *refout);
     void prepend(int64_t extra_size, large_buf_ref *refout);
@@ -128,10 +130,10 @@ private:
 #endif
                          );
     void allocate_part_of_tree(buftree_t *tr, int64_t offset, int64_t size, int levels);
-    void walk_tree_structure(buftree_t *tr, int64_t offset, int64_t size, int levels, void (*bufdoer)(large_buf_t *, buf_t *), void (*buftree_cleaner)(buftree_t *));
+    buftree_t *walk_tree_structure(buftree_t *tr, int64_t offset, int64_t size, int levels, void (*bufdoer)(large_buf_t *, buf_t *), buftree_t *(*buftree_cleaner)(buftree_t *));
     void delete_tree_structure(buftree_t *tr, int64_t offset, int64_t size, int levels);
     void only_mark_deleted_tree_structure(buftree_t *tr, int64_t offset, int64_t size, int levels);
-    void release_tree_structure(buftree_t *tr, int64_t offset, int64_t size, int levels);
+    buftree_t *release_tree_structure(buftree_t *tr, int64_t offset, int64_t size, int levels);
     buf_t *get_segment_buf(int64_t ix, uint16_t *seg_size, uint16_t *seg_offset);
     buftree_t *remove_level(buftree_t *tr, block_id_t id, block_id_t *idout);
 };

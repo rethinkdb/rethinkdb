@@ -4,15 +4,18 @@ from cloud_retester import do_test, do_test_cloud, report_cloud, setup_testing_n
 # Clean the repo
 do_test("cd ../src/; make clean")
 
-# Build everything
+# Make every target first, as some tests depend on multiple targets
 for mode in ["debug", "release"]:
     for checker in ["valgrind", None]:
-        # Build our targets
-        do_test("cd ../src/; make -j8",
-                { "DEBUG"                     : 1 if mode    == "debug"    else 0,
-                  "VALGRIND"                  : 1 if checker == "valgrind" else 0,
-                  "SEMANTIC_SERIALIZER_CHECK" : 1 },
-                cmd_format="make")
+        for mock_io in [True, False]:
+            for mock_cache in [True, False]:
+                # Build our targets
+                do_test("cd ../src/; nice make -j",
+                        { "DEBUG"            : 1 if mode    == "debug"    else 0,
+                          "VALGRIND"         : 1 if checker == "valgrind" else 0,
+                          "MOCK_IO_LAYER"    : 1 if mock_io               else 0,
+                          "MOCK_CACHE_CHECK" : 1 if mock_cache            else 0},
+                        cmd_format="make")
 
 # Make sure auxillary tools compile
 do_test("cd ../bench/stress-client/; make clean; make",

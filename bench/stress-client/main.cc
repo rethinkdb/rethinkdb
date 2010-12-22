@@ -52,6 +52,9 @@ int main(int argc, char *argv[])
         printf("Automatically enabled per-client key suffixes\n");
         config.keys.append_client_suffix = true;
     }
+    if (config.load.verifies > 0) {
+        config.mock_parse = false;
+    }
     config.print();
 
     /* make a directory for our sqlite files */
@@ -114,10 +117,19 @@ int main(int argc, char *argv[])
             fprintf(stderr, "Could not open output key file\n");
             exit(-1);
         }
+        
+        int check_clients = 0;
+        size_t res __attribute__((unused));
+        res = fread(&check_clients, sizeof(check_clients), 1, in_file);
+        
+        if (check_clients != config.clients) {
+            fprintf(stderr, "Client number mismatch. Input file is for %d clients, attempted to run with %d.\n", check_clients, config.clients);
+            exit(-1);
+        }
 
         while(feof(in_file) == 0) {
             int id, min_seed, max_seed;
-            size_t res __attribute__((unused)) = fread(&id, sizeof(id), 1, in_file);
+            res = fread(&id, sizeof(id), 1, in_file);
             res = fread(&min_seed, sizeof(min_seed), 1, in_file);
             res = fread(&max_seed, sizeof(max_seed), 1, in_file);
 
@@ -153,7 +165,9 @@ int main(int argc, char *argv[])
     
     // Dump key vectors if we have an out file
     if(config.out_file[0] != 0) {
-        FILE *out_file = fopen(config.out_file, "aw");
+        FILE *out_file = fopen(config.out_file, "w");
+
+        fwrite(&config.clients, sizeof(config.clients), 1, out_file);
 
         // Dump the keys
         for(int i = 0; i < config.clients; i++) {

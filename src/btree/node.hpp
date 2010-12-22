@@ -85,10 +85,18 @@ private:
 public:
     void init() { }
 
+    // The full size of the value.  This is 2 greater than mem_size().
+    uint16_t full_size() const {
+        return mem_size() + sizeof(btree_value);
+    }
+
+    // The size of the contents array.  This is 2 less than full_size().
+    // TODO: this is horribly named.
     uint16_t mem_size() const {
         return value_offset() + size;
     }
 
+    // The size of the actual value, which might be the size of the large buf.
     int64_t value_size() const {
         if (is_large()) {
             int64_t ret = lb_ref().size;
@@ -99,16 +107,14 @@ public:
         }
     }
 
+    // Sets the size of the actual value, but it doesn't really create
+    // a large buf.
     void value_size(int64_t new_size) {
         if (new_size <= MAX_IN_NODE_VALUE_SIZE) {
-            if (is_large()) {
-                metadata_flags &= ~LARGE_VALUE;
-            }
+            metadata_flags &= ~LARGE_VALUE;
             size = new_size;
         } else {
-            if (!is_large()) {
-                metadata_flags |= LARGE_VALUE;
-            }
+            metadata_flags |= LARGE_VALUE;
             size = sizeof(large_buf_ref);
             large_buf_ref_ptr()->size = new_size;
         }
@@ -118,7 +124,9 @@ public:
     typedef uint64_t cas_t;
 
     // TODO: We assume that time_t can be converted to an exptime_t,
-    // which is 32 bits.  We may run into problems in 2038 or 2106.
+    // which is 32 bits.  We may run into problems in 2038 or 2106, or
+    // 68 years from the creation of the database, or something, if we
+    // do timestamp comparisons wrong.
     typedef uint32_t exptime_t;
 
     // Every value has mcflags, but they're very often 0, in which case we just
@@ -144,9 +152,15 @@ public:
 
     large_buf_ref *large_buf_ref_ptr() { return ptr_cast<large_buf_ref>(value()); }
 
-    const large_buf_ref& lb_ref() const { return *ptr_cast<large_buf_ref>(value()); }
+    const large_buf_ref& lb_ref() const {
+        assert(is_large());
+        assert(size == sizeof(large_buf_ref));
+        return *ptr_cast<large_buf_ref>(value());
+    }
     void set_lb_ref(const large_buf_ref& ref) {
-        *(large_buf_ref *) value() = ref;
+        assert(is_large());
+        assert(size == sizeof(large_buf_ref));
+        *reinterpret_cast<large_buf_ref *>(value()) = ref;
     }
 
     mcflags_t mcflags() const { return has_mcflags() ? *mcflags_addr() : 0; }
@@ -156,24 +170,23 @@ public:
         return *cas_addr();
     }
 
-    void clear_space(byte *faddr, uint8_t fsize, uint8_t offset) {
-        memmove(faddr, faddr + fsize, mem_size() - offset - fsize);
-        //size -= fsize;
+    void clear_space(byte *faddr, uint8_t fsize) {
+        memmove(faddr, faddr + fsize, mem_size() - (faddr - contents) - fsize);
     }
 
-    void make_space(byte *faddr, uint8_t fsize, uint8_t offset) { // XXX This assumes there's enough space allocated to move the value into.
+    // This assumes there's enough space allocated to move the value into.
+    void make_space(byte *faddr, uint8_t fsize) {
         assert(mem_size() + fsize <= MAX_TOTAL_NODE_CONTENTS_SIZE);
-        //size += fsize;
-        memmove(faddr + fsize, faddr, mem_size() - offset);
+        memmove(faddr + fsize, faddr, mem_size() - (faddr - contents));
     }
 
     void set_mcflags(mcflags_t new_mcflags) {
         if (has_mcflags() && new_mcflags == 0) { // Flags is being set to 0, so we clear the 4 bytes we kept for it.
-            clear_space((byte *) mcflags_addr(), sizeof(mcflags_t), mcflags_offset());
+            clear_space(reinterpret_cast<byte *>(mcflags_addr()), sizeof(mcflags_t));
             metadata_flags &= ~MEMCACHED_FLAGS;
         } else if (!has_mcflags() && new_mcflags) { // Make space for non-zero mcflags.
             metadata_flags |= MEMCACHED_FLAGS;
-            make_space((byte *) mcflags_addr(), sizeof(mcflags_t), mcflags_offset());
+            make_space(reinterpret_cast<byte *>(mcflags_addr()), sizeof(mcflags_t));
         }
         if (new_mcflags) { // We've made space, so copy the mcflags over.
             *mcflags_addr() = new_mcflags;
@@ -182,11 +195,11 @@ public:
 
     void set_exptime(exptime_t new_exptime) {
         if (has_exptime() && new_exptime == 0) { // Exptime is being set to 0, so we clear the 4 bytes we kept for it.
-            clear_space((byte *) exptime_addr(), sizeof(exptime_t), exptime_offset());
+            clear_space(reinterpret_cast<byte *>(exptime_addr()), sizeof(exptime_t));
             metadata_flags &= ~MEMCACHED_EXPTIME;
         } else if (!has_exptime() && new_exptime) { // Make space for non-zero exptime.
             metadata_flags |= MEMCACHED_EXPTIME;
-            make_space((byte *) exptime_addr(), sizeof(exptime_t), exptime_offset());
+            make_space(reinterpret_cast<byte *>(exptime_addr()), sizeof(exptime_t));
         }
         if (new_exptime) {
             *exptime_addr() = new_exptime;
@@ -207,7 +220,7 @@ public:
         }
         if (!has_cas()) { // Make space for CAS.
             metadata_flags |= MEMCACHED_CAS;
-            make_space((byte *) cas_addr(), sizeof(cas_t), cas_offset());
+            make_space(reinterpret_cast<byte *>(cas_addr()), sizeof(cas_t));
         }
         *cas_addr() = new_cas;
     }
@@ -251,7 +264,7 @@ class node_handler {
         static bool is_underfull(block_size_t block_size, const node_t *node);
         static bool is_mergable(block_size_t block_size, const node_t *node, const node_t *sibling, const node_t *parent);
         static int nodecmp(const node_t *node1, const node_t *node2);
-        static void merge(block_size_t block_size, node_t *node, node_t *rnode, btree_key *key_to_remove, node_t *parent);
+        static void merge(block_size_t block_size, const node_t *node, node_t *rnode, btree_key *key_to_remove, node_t *parent);
         static bool level(block_size_t block_size, node_t *node, node_t *rnode, btree_key *key_to_replace, btree_key *replacement_key, node_t *parent);
 
         static void print(const node_t *node);

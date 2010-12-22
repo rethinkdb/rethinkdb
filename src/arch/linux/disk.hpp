@@ -22,11 +22,13 @@ class linux_direct_file_t {
 public:
     enum mode_t {
         mode_read = 1 << 0,
-        mode_write = 1 << 1
+        mode_write = 1 << 1,
+        mode_create = 1 << 2
     };
     
     linux_direct_file_t(const char *path, int mode);
     
+    bool exists();
     bool is_block_device();
     uint64_t get_size();
     void set_size(size_t size);
@@ -45,6 +47,7 @@ public:
 private:
     fd_t fd;
     bool is_block;
+    bool file_exists;
     uint64_t file_size;
     void verify(size_t offset, size_t length, void* buf);
 

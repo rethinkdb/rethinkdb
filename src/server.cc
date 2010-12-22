@@ -1,7 +1,6 @@
 #include "server.hpp"
 #include "db_thread_info.hpp"
-#include "request_handler/txt_memcached_handler.hpp"
-#include "request_handler/conn_fsm.hpp"
+#include "memcached/memcached.hpp"
 #include "replication/master.hpp"
 #include "diskinfo.hpp"
 
@@ -23,8 +22,7 @@ void server_t::do_start_loggers() {
 }
 
 void server_t::on_logger_ready() {
-    if (cmd_config->create_store) do_check_store();
-    else do_start_store();
+    do_check_store();
 }
 
 void server_t::do_check_store() {
@@ -40,11 +38,14 @@ void server_t::do_check_store() {
 }
 
 void server_t::on_store_check(bool ok) {
-    if (ok && !cmd_config->force_create) {
+    if (ok && cmd_config->create_store && !cmd_config->force_create) {
         fail_due_to_user_error(
             "It looks like there already is a database here. RethinkDB will abort in case you "
             "didn't mean to overwrite it. Run with the '--force' flag to override this warning.");
     } else {
+        if (!ok) {
+            cmd_config->create_store = true;
+        }
         do_start_store();
     }
 }
@@ -63,13 +64,13 @@ void server_t::do_start_store() {
         done = store->start_existing(this);
     }
 
-    log_disk_info(cmd_config->store_dynamic_config.serializer_private);
 
     if (done) on_store_ready();
 }
 
 void server_t::on_store_ready() {
     assert_thread();
+    log_disk_info(cmd_config->store_dynamic_config.serializer_private);
     
     if (cmd_config->shutdown_after_creation) {
         logINF("Done creating database.\n");
@@ -104,15 +105,11 @@ void server_t::do_start_conn_acceptor() {
     thread_pool->set_interrupt_message(&interrupt_message);
 }
 
-conn_handler_t *server_t::create_request_handler(net_conn_t *conn, void *server) {
-    /* To re-enable the binary protocol and packet sniffing, replace
-    "txt_memcached_handler_t" with "memcached_handler_t". */
-    
-    request_handler_t *rh = new txt_memcached_handler_t((server_t *)server);
-    conn_fsm_t *conn_fsm = new conn_fsm_t(conn, rh);
-    rh->conn_fsm = conn_fsm;
-    
-    return conn_fsm;
+conn_handler_t *server_t::create_request_handler(conn_acceptor_t *acc, net_conn_t *conn, void *udata) {
+
+    server_t *server = reinterpret_cast<server_t *>(udata);
+    assert(acc == &server->conn_acceptor);
+    return new txt_memcached_handler_t(&server->conn_acceptor, conn, server);
 }
 
 void server_t::shutdown() {

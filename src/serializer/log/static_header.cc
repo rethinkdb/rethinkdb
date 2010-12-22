@@ -4,7 +4,7 @@
 #include "coroutine/coroutines.hpp"
     
 bool static_header_check(direct_file_t *file) {
-    if (file->get_size() < DEVICE_BLOCK_SIZE) {
+    if (!file->exists() || file->get_size() < DEVICE_BLOCK_SIZE) {
         return false;
     } else {
         static_header_t *buffer = (static_header_t *)malloc_aligned(DEVICE_BLOCK_SIZE, DEVICE_BLOCK_SIZE);
