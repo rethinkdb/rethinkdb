@@ -43,42 +43,38 @@ lightweight_swapcontext:
 	movq	%r14, oR14(%rdi)
 	movq	%r15, oR15(%rdi)
 
-	movq	%rdi, oRDI(%rdi)
+	/* Don't bother saving  and restoring argument registers */
+/*	movq	%rdi, oRDI(%rdi)
 	movq	%rsi, oRSI(%rdi)
 	movq	%rdx, oRDX(%rdi)
 	movq	%rcx, oRCX(%rdi)
 	movq	%r8, oR8(%rdi)
-	movq	%r9, oR9(%rdi)
+	movq	%r9, oR9(%rdi) */
 
 	movq	(%rsp), %rcx
 	movq	%rcx, oRIP(%rdi)
 	leaq	8(%rsp), %rcx		/* Exclude the return address.  */
 	movq	%rcx, oRSP(%rdi)
 
+
 	/* We have separate floating-point register content memory on the
 	   stack.  We use the __fpregs_mem block in the context.  Set the
 	   links up correctly.  */
-	leaq	oFPREGSMEM(%rdi), %rcx
-	movq	%rcx, oFPREGS(%rdi)
+/*	leaq	oFPREGSMEM(%rdi), %rcx
+	movq	%rcx, oFPREGS(%rdi) */
 	/* Save the floating-point environment.  */
-	fnstenv	(%rcx)
-	stmxcsr oMXCSR(%rdi)
+/*	fnstenv	(%rcx)
+	stmxcsr oMXCSR(%rdi) */
 
-
-	/* The syscall destroys some registers, save them.  */
-	movq	%rsi, %r12
 
 	/* Formerly here: a call to sigprocmask.
 	   Deleted because unnecessary for our application. */
 
-	/* Restore destroyed registers.  */
-	movq	%r12, %rsi
-
 	/* Restore the floating-point context.  Not the registers, only the
 	   rest.  */
-	movq	oFPREGS(%rsi), %rcx
+/*	movq	oFPREGS(%rsi), %rcx
 	fldenv	(%rcx)
-	ldmxcsr oMXCSR(%rsi)
+	ldmxcsr oMXCSR(%rsi) */
 
 	/* Load the new stack pointer and the preserved registers.  */
 	movq	oRSP(%rsi), %rsp
@@ -94,12 +90,12 @@ lightweight_swapcontext:
 	movq	oRIP(%rsi), %rcx
 	pushq	%rcx
 
-	/* Setup registers used for passing args.  */
+	/* Setup registers used for passing args--don't bother with this  */
 	movq	oRDI(%rsi), %rdi
-	movq	oRDX(%rsi), %rdx
+/*	movq	oRDX(%rsi), %rdx
 	movq	oRCX(%rsi), %rcx
 	movq	oR8(%rsi), %r8
-	movq	oR9(%rsi), %r9
+	movq	oR9(%rsi), %r9 */
 
 	/* Setup finally  %rsi.  */
 	movq	oRSI(%rsi), %rsi
