@@ -227,6 +227,10 @@ $(BUILD_DIR):
 
 # Object files
 $(OBJ_DIR)/coroutine/asm.o : $(SOURCE_DIR)/coroutine/asm.S Makefile
+	$(QUIET) mkdir -p $(dir $@)
+ifeq ($(VERBOSE),0)
+	@echo "    CC $< -o $@"
+endif
 	$(QUIET) $(CXX) -c -o $@ $<
 	
 $(OBJ_DIR)/%.o: $(SOURCE_DIR)/%.cc Makefile
