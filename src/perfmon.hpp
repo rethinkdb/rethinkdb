@@ -156,37 +156,38 @@ public:
     }
 };
 
-/* perfmon_function_t is a perfmon for outputting a function as a stat
- */
-template<class T>
+/* perfmon_function_t is a perfmon for calling an arbitrary function to compute a stat. You should
+not create such a perfmon at runtime; instead, declare it as a static variable and then construct
+a perfmon_function_t::internal_function_t instance for it. This way things get called on the
+right cores and if there are multiple internal_function_t instances the perfmon_function_t can
+combine them by inserting commas. */
 struct perfmon_function_t :
     public perfmon_t
 {
 public:
-    class internal_function_t {
-    public:
-        internal_function_t() {}
-        ~internal_function_t() {}
-        virtual T operator()() = 0;
+    struct internal_function_t :
+        public intrusive_list_node_t<internal_function_t>
+    {
+        internal_function_t(perfmon_function_t *p);
+        ~internal_function_t();
+        virtual std::string compute_stat() = 0;
+    private:
+        perfmon_function_t *parent;
     };
+
 private:
+    friend class internal_function_t;
     std::string name;
-    internal_function_t *function;
+    intrusive_list_t<internal_function_t> funs[MAX_THREADS];
 
 public:
-    perfmon_function_t(std::string name, internal_function_t *f)
-        : perfmon_t(), name(name), function(f) {}
+    perfmon_function_t(std::string name)
+        : perfmon_t(), name(name) {}
     ~perfmon_function_t() {}
 
-    void *begin_stats() {
-        return (void *) 0;
-    }
-    void visit_stats(void *) {
-        return;
-    }
-    void end_stats(void *unused, perfmon_stats_t *dest) {
-        (*dest)[name] = format((*function)());
-    }
+    void *begin_stats();
+    void visit_stats(void *data);
+    void end_stats(void *data, perfmon_stats_t *dest);
 };
 
 struct block_pm_duration {

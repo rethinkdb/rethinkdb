@@ -213,3 +213,33 @@ void perfmon_sampler_t::end_stats(void *data, perfmon_stats_t *dest) {
     delete d;
 };
 
+/* perfmon_function_t */
+
+perfmon_function_t::internal_function_t::internal_function_t(perfmon_function_t *p)
+    : parent(p)
+{
+    parent->funs[get_thread_id()].push_back(this);
+}
+
+perfmon_function_t::internal_function_t::~internal_function_t() {
+    parent->funs[get_thread_id()].remove(this);
+}
+
+void *perfmon_function_t::begin_stats() {
+    return reinterpret_cast<void*>(new std::string());
+}
+
+void perfmon_function_t::visit_stats(void *data) {
+    std::string *string = reinterpret_cast<std::string*>(data);
+    for (internal_function_t *f = funs[get_thread_id()].head(); f; f = funs[get_thread_id()].next(f)) {
+        if (string->size() > 0) (*string) += ", ";
+        (*string) += f->compute_stat();
+    }
+}
+
+void perfmon_function_t::end_stats(void *data, perfmon_stats_t *dest) {
+    std::string *string = reinterpret_cast<std::string*>(data);
+    if (string->size()) (*dest)[name] = *string;
+    else (*dest)[name] = "N/A";
+    delete string;
+}

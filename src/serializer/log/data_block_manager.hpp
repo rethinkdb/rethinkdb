@@ -24,6 +24,9 @@ extern perfmon_counter_t
     pm_serializer_old_garbage_blocks,
     pm_serializer_old_total_blocks;
 
+extern perfmon_function_t
+    pm_serializer_garbage_ratio;
+
 class log_serializer_t;
 
 class data_block_manager_t {
@@ -36,8 +39,7 @@ public:
           dynamic_config(dynamic_config), static_config(static_config), extent_manager(em),
           next_active_extent(0),
           gc_state(extent_manager->extent_size),
-          garbage_ratio_reporter(this),
-          pm_garbage_ratio("serializer_garbage_ratio", &garbage_ratio_reporter)
+          garbage_ratio_reporter(this)
     {
         assert(dynamic_config);
         assert(static_config);
@@ -374,27 +376,20 @@ public:
     /* \brief perfmon to output the garbage ratio
      */
     
-    /* TODO: This is dangerous because it's supposed to be illegal to create a perfmon
-    except by static initialization. If two serializers happen to start up at the same
-    time, then the perfmon list will be corrupted. */
-    
     class garbage_ratio_reporter_t :
-        public perfmon_function_t<float>::internal_function_t
+        public perfmon_function_t::internal_function_t
     {
     private: 
         data_block_manager_t *data_block_manager;
     public:
         explicit garbage_ratio_reporter_t(data_block_manager_t *data_block_manager)
-            : data_block_manager(data_block_manager) {}
+            : perfmon_function_t::internal_function_t(&pm_serializer_garbage_ratio),
+              data_block_manager(data_block_manager) {}
         ~garbage_ratio_reporter_t() {}
-        float operator()() {
-            return data_block_manager->garbage_ratio();
+        std::string compute_stat() {
+            return format(data_block_manager->garbage_ratio());
         }
-    };
-
-    garbage_ratio_reporter_t garbage_ratio_reporter;
-
-    perfmon_function_t<float> pm_garbage_ratio;
+    } garbage_ratio_reporter;
 
     int64_t garbage_ratio_total_blocks() const { return gc_stats.old_garbage_blocks.get(); }
     int64_t garbage_ratio_garbage_blocks() const { return gc_stats.old_garbage_blocks.get(); }
