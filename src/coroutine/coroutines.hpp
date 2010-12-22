@@ -70,10 +70,13 @@ public:
             callable_t fun;
             fun_runner_t(callable_t fun) : fun(fun) { }
             virtual void operator()() {
+                printf("Here I am in the body of the beast\n");
                 fun();
+                delete this;
             }
         } *runner = new fun_runner_t(fun);
         coro_t *coro = get_free_coro();
+        assert(!coro->active);
         coro->do_deed(runner);
     }
 
