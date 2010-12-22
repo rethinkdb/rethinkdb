@@ -1,5 +1,8 @@
 #!/bin/bash
 
+mkdir -p $BENCH_DIR/bench_output/Number_of_clients_on_canonical_hardware
+echo Clients > $BENCH_DIR/bench_output/Number_of_clients_on_canonical_hardware/multirun
+
 if [ $DATABASE == "rethinkdb" ]; then
-    ../../build/release/rethinkdb --create $SSD_DRIVES --force
+    ../../build/release/rethinkdb create $SSD_DRIVES --force
 fi
