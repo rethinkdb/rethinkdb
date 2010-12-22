@@ -110,11 +110,11 @@ enum rethinkdb_cmd {
 };
 
 enum rethinkdb_cmd parse_cmd(char *arg) {
-    if      (!strncmp("extract", arg, 7)) return cmd_extract;
-    else if (!strncmp("create",  arg, 6)) return cmd_create;
-    else if (!strncmp("help",    arg, 4)) return cmd_help;
-    else if (!strncmp("fsck",    arg, 4)) return cmd_fsck;
-    else if (!strncmp("serve",   arg, 5)) return cmd_serve;
+    if      (!strcmp("extract", arg)) return cmd_extract;
+    else if (!strcmp("create",  arg)) return cmd_create;
+    else if (!strcmp("help",    arg)) return cmd_help;
+    else if (!strcmp("fsck",    arg)) return cmd_fsck;
+    else if (!strcmp("serve",   arg)) return cmd_serve;
     else                                  return cmd_none;
 }
 
