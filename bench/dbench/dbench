@@ -355,7 +355,7 @@ class MySQL(Server):
         args = self.compute_args(['--port=%d' % self.dbench.port])
         self.run_process('/usr/local/mysql/libexec/mysqld', args)
         self.wait_for_server_ready()
-        time.sleep(5)
+        time.sleep(10)
 
     def internal_stop(self):
         os.system("/usr/local/mysql/bin/mysqladmin shutdown -u root --port=%d" % self.dbench.port)

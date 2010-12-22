@@ -33,10 +33,10 @@ DATABASE="membase"
 # TODO: Can we use SSDs? Would that make sense (maybe not)?
 MEMBASE_DATA_PATH="membase_data_tmp"
 
-
-echo "To get the canonical hardware, we have to disable all but 12 CPUs."
-echo 'Please give me authorization to run sh -c "for CPU in 12 13 14 15 16 17 18 19 20 21 22 23; do echo 0 > /sys/devices/system/cpu/cpu\$CPU/online; done"'
-sudo sh -c "for CPU in 12 13 14 15 16 17 18 19 20 21 22 23; do echo 0 > /sys/devices/system/cpu/cpu\$CPU/online; done"
+# TODO: erlang appears to crash if CPUs are switched off!
+#echo "To get the canonical hardware, we have to disable all but 12 CPUs."
+#echo 'Please give me authorization to run sh -c "for CPU in 12 13 14 15 16 17 18 19 20 21 22 23; do echo 0 > /sys/devices/system/cpu/cpu\$CPU/online; done"'
+#sudo sh -c "for CPU in 12 13 14 15 16 17 18 19 20 21 22 23; do echo 0 > /sys/devices/system/cpu/cpu\$CPU/online; done"
 
 # Run workloads
 for WORKLOAD in ../workloads/*; do
@@ -76,9 +76,9 @@ for WORKLOAD in ../workloads/*; do
     fi
 done
 
-echo "We can turn on the CPUs again now..."
-echo 'Please give me authorization to run sh -c "for CPU in 12 13 14 15 16 17 18 19 20 21 22 23; do echo 1 > /sys/devices/system/cpu/cpu\$CPU/online; done"'
-sudo sh -c "for CPU in 12 13 14 15 16 17 18 19 20 21 22 23; do echo 1 > /sys/devices/system/cpu/cpu\$CPU/online; done"
+#echo "We can turn on the CPUs again now..."
+#echo 'Please give me authorization to run sh -c "for CPU in 12 13 14 15 16 17 18 19 20 21 22 23; do echo 1 > /sys/devices/system/cpu/cpu\$CPU/online; done"'
+#sudo sh -c "for CPU in 12 13 14 15 16 17 18 19 20 21 22 23; do echo 1 > /sys/devices/system/cpu/cpu\$CPU/online; done"
 
 
 # Now that all benchmarks are done, delete any database files that might have been left over

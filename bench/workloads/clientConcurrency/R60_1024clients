@@ -20,7 +20,7 @@ elif [ $DATABASE == "membase" ]; then
     ./dbench                                                                                   \
         -d "$BENCH_DIR/bench_output/Number_of_clients_on_canonical_hardware/1024" -H $SERVER_HOSTS -p 11211 \
         {server}membase:"-d $MEMBASE_DATA_PATH -m 32768"                                       \
-        {client}stressfree[dr-doom:/home/teapot/stress]:"-c 1024 -d $CANONICAL_DURATION" \
+        {client}stress[dr-doom:/home/teapot/stress]:"-c 1024 -d $CANONICAL_DURATION" \
         iostat:1 vmstat:1
 else
     echo "No workload configuration for $DATABASE"
