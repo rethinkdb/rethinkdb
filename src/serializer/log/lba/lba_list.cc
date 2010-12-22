@@ -219,27 +219,30 @@ struct gc_fsm_t :
 
 // Decides, based on the number of unused entries.
 bool lba_list_t::we_want_to_gc(int i) {
-    // How much total space is being used (or unused) for entries on
-    // the disk?  (We don't count last_extent.)
 
+    // Don't count the extent we're currently writing to. If there is no superblock, then that
+    // extent is the only one, so we don't want to GC obviously.
     if (disk_structures[i]->superblock_extent == NULL) {
         return false;
     }
-    
+
+    // If the LBA is under the threshold, then don't GC regardless of how much is garbage
+    if (disk_structures[i]->extents_in_superblock.size() * extent_manager->extent_size <
+            LBA_MIN_SIZE_FOR_GC / LBA_SHARD_FACTOR) {
+        return false;
+    }
+
+    // How much space are we using on disk? How much of that space is absolutely necessary?
+    // If we are not using more than N times the amount of space that we need, don't GC
     int entries_per_extent = disk_structures[i]->num_entries_that_can_fit_in_an_extent();
+    int64_t entries_total = disk_structures[i]->extents_in_superblock.size() * entries_per_extent;
+    int64_t entries_live = max_block_id().value / LBA_SHARD_FACTOR;
+    if ((entries_live / (float)entries_total) > LBA_MIN_UNGARBAGE_FRACTION) {
+        return false;
+    }
 
-    // About how much space for entries is used on disk?
-    int64_t denom = disk_structures[i]->extents_in_superblock.size() * entries_per_extent;
-
-    int64_t numer = std::max<int64_t>(max_block_id().value, entries_per_extent);
-
-    // Is 1 - numer/denom >=
-    // LBA_GC_THRESHOLD_RATIO_NUMERATOR / LBA_GC_THRESHOLD_RATIO_DENOMINATOR?
-
-    // i.e. is (denom - numer)/denom >= ...
-
-    // It's possible that numer > denom here, but they're signed.
-    return (denom - numer) * LBA_GC_THRESHOLD_RATIO_DENOMINATOR >= LBA_GC_THRESHOLD_RATIO_NUMERATOR * denom;
+    // Looks like we're GCing
+    return true;
 }
 
 void lba_list_t::gc(int i) {

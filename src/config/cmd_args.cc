@@ -10,12 +10,26 @@
 
 void usage(const char *name) {
     printf("Usage:\n"
-           "        rethinkdb         [OPTIONS] [-f <file_1> -f <file_2> ...]\n"
-           "        rethinkdb extract [OPTIONS] -f data_file\n"
-           "        rethinkdb fsck    [OPTIONS] -f data_file_1 -f data_file_2 ...\n"
-           "        rethinkdb create  [OPTIONS] -f data_file_1 -f data_file_2 ...\n"
-           "        rethinkdb help    <cmd>\n"
-    
+           "        rethinkdb (serve) [-h] [-v] [-S <semantic_file>] [-c <ncores>]\n"
+           "                          [-m <maxRAM>] [-l <log_file>] [-p <port>]\n"
+           "                          [--flush-timer <ms>] [--wait-for-flush [y|n]]\n"
+           "                          [--flush-threshold <n%%>] [--gc-range <low>-<high>]\n"
+           "                          [--active-data-extents <nExtents>]\n"
+           "                          [-f <file_1> -f <file_2> ...]\n"
+           "        rethinkdb create  [-h] [-s <nshards>] [-l <log_file>]\n"
+           "                          [--block-size <nbytes>] [--extent-size <nbytes>]\n"
+           "                          [--force] -f data_file_1 -f data_file_2 ...\n"
+           "        rethinkdb extract [-h] [-l <log_file>] [-o <output-file>]\n"
+           "                          [--force-block-size] [--force-extent-size]\n"
+           "                          [--force-mod-count] -f data_file\n"
+           "        rethinkdb fsck    [-h] [-l <log_file>] -f data_file_1 -f data_file_2 ...\n"
+           "        rethinkdb help    <commmand>\n");
+    exit(0);
+}
+
+void usage_serve(const char *name) {
+    printf("Usage:\n"
+           "        rethinkdb (serve) [OPTIONS] [-f <file_1> -f <file_2> ...]\n"
            "\nOptions:\n"
 
     //     "                        24 characters start here.                              | < last character
@@ -91,6 +105,7 @@ enum rethinkdb_cmd {
     cmd_create,
     cmd_fsck,
     cmd_help,
+    cmd_serve,
     cmd_none
 };
 
@@ -99,6 +114,7 @@ enum rethinkdb_cmd parse_cmd(char *arg) {
     else if (!strncmp("create",  arg, 6)) return cmd_create;
     else if (!strncmp("help",    arg, 4)) return cmd_help;
     else if (!strncmp("fsck",    arg, 4)) return cmd_fsck;
+    else if (!strncmp("serve",   arg, 5)) return cmd_serve;
     else                                  return cmd_none;
 }
 
@@ -108,10 +124,13 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
     std::vector<log_serializer_private_dynamic_config_t>& private_configs = config.store_dynamic_config.serializer_private;
 
 
-    /* First, check to see if we're running a sub-command: one of create, fsck, help, extract. */
+    /* First, check to see if we're running a sub-command:
+     * one of serve, create, fsck, help, extract. */
 
+
+    enum rethinkdb_cmd cmd = cmd_none;
     if (argc >= 2) {
-        enum rethinkdb_cmd cmd = parse_cmd(argv[1]);
+        cmd = parse_cmd(argv[1]);
         enum rethinkdb_cmd help_cmd;
 
         switch (cmd) {
@@ -139,6 +158,7 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
                         case cmd_extract: extract::usage(argv[0]); break;
                         case cmd_create:  usage_create(argv[0]);   break;
                         case cmd_fsck:    fsck::usage(argv[0]);    break;
+                        case cmd_serve:   usage_serve(argv[0]);    break;
                         case cmd_none:    printf("No such command %s.\n", argv[2]);
                         case cmd_help:                             break;
                         default: crash("default");
@@ -146,6 +166,9 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
                 }
                 usage(argv[0]);
                 break;
+            case cmd_serve:
+                argc--;
+                argv++;
             case cmd_none: break;
             default: crash("default");
         }
@@ -231,20 +254,13 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
             case force_create:
                 config.force_create = true; break;
             case 'h':
-                if (config.create_store) {
-                    usage_create(argv[0]);
-                }
-                else {
-                    usage(argv[0]);
-                }
-                break;
-         
             default:
                 /* getopt_long already printed an error message. */
                 if (config.create_store) {
                     usage_create(argv[0]);
-                }
-                else {
+                } else if (cmd == cmd_serve) {
+                    usage_serve(argv[0]);
+                } else {
                     usage(argv[0]);
                 }
         }

@@ -112,7 +112,18 @@ def run_all_tests(mode, checker, protocol, cores, slices):
                     "slices"      : slices,
                     "duration"    : 340 },
                   repeat=5, timeout=400)
-
+    
+    # TODO: This should really only be run under one environment...
+    do_test_cloud("regression/gc_verification.py",
+                  { "auto"        : True,
+                    "mode"        : mode,
+                    "no-valgrind" : not checker,
+                    "protocol"    : protocol,
+                    "cores"       : cores,
+                    "slices"      : slices,
+                    "duration"    : 10000000 },
+                  repeat=3, timeout=400)
+    
     # Run the serial mix test also with the other valgrind tools, drd and helgrind
     if checker == "valgrind":
         for valgrind_tool in ["drd", "helgrind"]:

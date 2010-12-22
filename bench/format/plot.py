@@ -12,6 +12,7 @@ import json
 import time
 from line import *
 from statlib import stats
+import pdb
 
 FONT_FILE = os.path.abspath(os.path.join(os.path.dirname(__file__), 'aurulent_sans_regular.ttf'))
 
@@ -44,6 +45,8 @@ class Scatter():
     def __init__(self, list_of_tuples, xnames = None):
         self.data = list_of_tuples
         self.names = xnames
+    def __str__(self):
+        return "self.data: " + str(self.data) + "\nself.names: " + str(self.names)+"\n\n"
 
 class default_empty_timeseries_dict(dict):
     units_line = line("(\w+)\[(\w+)\]", [('key', 's'), ('units', 's')])
@@ -85,6 +88,9 @@ class default_empty_plot_dict(dict):
 class TimeSeriesCollection():
     def __init__(self):
         self.data = default_empty_timeseries_dict()
+
+    def __str__(self):
+        return "TimeSeriesCollection data: " + str(self.data) +"\n"
 
     def read(self, file_name):
         try:
@@ -297,9 +303,13 @@ class ScatterCollection():
         self.data = default_empty_plot_dict()
         self.xlabel = xlabel
         self.ylabel = ylabel
+        self.data.update(TimeSeriesCollections)
 
-    def plot(self, out_fname, normalize = False):
+    def plot(self, out_fname, large = False, normalize = False):
         assert self.data
+
+        max_x_value = 0
+        max_y_value = 0
 
         queries_formatter = FuncFormatter(lambda x, pos: '%1.fk' % (x*1e-3))
         font = fm.FontProperties(family=['sans-serif'],size='small',fname=FONT_FILE)
@@ -308,12 +318,18 @@ class ScatterCollection():
         ax = plt.axes([0.13,0.12,0.85,0.85])
         labels = []
         color_index = 0
-        for series in self.data.iteritems():
+        for series,series_data in self.data.iteritems():
+            x_values = []
+            y_values = []
+            for (x_value, y_value) in series_data:
+                max_x_value = max(max_x_value, x_value)
+                max_y_value = max(max_y_value, y_value)
+                x_values.append(x_value)
+                y_values.append(y_value)
             if normalize:
-                data_to_use = normalize(series[1])
-            else:
-                data_to_use = series[1].y
-            labels.append((ax.plot(series[1].x, data_to_use, colors[color_index]), series[0]))
+                y_values = normalize(y_values)
+
+            labels.append((ax.plot(x_values, y_values, colors[color_index]), series))
             color_index += 1
          
         for tick in ax.xaxis.get_major_ticks():
@@ -332,11 +348,11 @@ class ScatterCollection():
         else:
             ax.set_xlabel('Time (seconds)', fontproperties = font)
 
-        ax.set_xlim(0, max(self.data[self.data.keys()[0]].x) - 1)
+        ax.set_xlim(0, max_x_value - 1)
         if normalize:
             ax.set_ylim(0, 1.0)
         else:
-            ax.set_ylim(0, max(self.data[self.data.keys()[0]].y))
+            ax.set_ylim(0, max_y_value)
         ax.grid(True)
         plt.legend(tuple(map(lambda x: x[0], labels)), tuple(map(lambda x: x[1], labels)), loc=1, prop = font)
         fig.set_size_inches(5,3.7)
@@ -349,13 +365,15 @@ class ScatterCollection():
 class TimeSeriesMeans():
     def __init__(self, TimeSeriesCollections):
         TS = reduce(lambda x,y: x + y, TimeSeriesCollections)
-        series_means = TS.means(tuple(TS.data.keys()))
+        series_means = means(TS.data.values())
         names = {}
         for i,key in zip(range(len(TS.data.keys())), TS.data.keys()):
             names[i] = key
 
         self.scatter = Scatter(zip(range(len(series_means)), series_means), names)
         self.TimeSeriesCollections = TimeSeriesCollections
+    def __str__(self):
+        return self.scatter.__str__() + self.TimeSeriesCollections.__str__()
 
 #A few useful derivation functions
 #take discret derivative of a series (shorter by 1)
