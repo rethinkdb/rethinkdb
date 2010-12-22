@@ -265,6 +265,15 @@ def run_all_tests(mode, checker, protocol, cores, slices):
                     "slices"      : slices},
                   repeat=1, timeout=60)
 
+    do_test_cloud("regression/issue_133.py",
+                  { "auto"        : True,
+                    "mode"        : mode,
+                    "no-valgrind" : not checker,
+                    "protocol"    : protocol,
+                    "cores"       : cores,
+                    "slices"      : slices},
+                  repeat=10, timeout=30)
+
     for suite_test in glob.glob('integration/memcached_suite/*.t'):
         do_test_cloud("integration/memcached_suite.py",
                       { "auto"        : True,
@@ -274,7 +283,7 @@ def run_all_tests(mode, checker, protocol, cores, slices):
                         "cores"       : cores,
                         "slices"      : slices,
                         "suite-test"  : suite_test},
-                              repeat=3)
+                      repeat=3, timeout=120)
                 
     # Canonical tests are included in all tests
     run_canonical_tests(mode, checker, protocol, cores, slices)
