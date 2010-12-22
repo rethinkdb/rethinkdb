@@ -13,7 +13,7 @@
 struct btree_internal_pair {
     block_id_t lnode;
     btree_key key;
-};
+} __attribute__((__packed__));
 
 
 class internal_key_comp;
