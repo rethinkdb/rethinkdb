@@ -3,23 +3,22 @@
 #include <stdio.h>
 
 perfmon_counter_t pm_active_coroutines("active_coroutines");
-perfmon_duration_sampler_t pm_switch("switch", secs_to_ticks(1));
 __thread coro_t *coro_t::current_coro = NULL;
 __thread coro_t *coro_t::scheduler = NULL;
+__thread std::vector<coro_t*> *coro_t::free_coros = NULL;
 
 coro_t *coro_t::self() {
     return current_coro;
 }
 
 void coro_t::wait() {
+    assert(current_coro != scheduler);
     current_coro->switch_to(scheduler);
 }
 
 void coro_t::switch_to(coro_t *next) {
     current_coro = next;
-    pm_switch.begin(&next->switch_time);
     Coro_switchTo_(this->underlying, next->underlying);
-    pm_switch.end(&current_coro->switch_time);
 }
 
 void coro_t::notify() {
@@ -46,41 +45,46 @@ void coro_t::on_thread_switch() {
     assert(scheduler == current_coro);
     scheduler->switch_to(this);
     assert(scheduler == current_coro);
-    if (dead) delete this;
 }
-
-void coro_t::suicide() {
-    self()->dead = true;
-    wait();
-}
-
-struct coro_initialization_data {
-    coro_t *coroutine;
-    coro_t *parent;
-};
 
 void coro_t::run_coroutine(void *data) {
-    coro_initialization_data information = *(coro_initialization_data *)data;
-    information.coroutine->notify();
-    information.coroutine->switch_to(information.parent);
+    coro_t *self = (coro_t *)data;
+    while (true) {
+        wait();
+        pm_active_coroutines++;
 #ifndef NDEBUG
-    information.coroutine->notified = false;
+        self->active = true;
 #endif
-    information.coroutine->action();
-    coro_t::suicide();
+        (*self->deed)();
+        delete self->deed;
+#ifndef NDEBUG
+        self->active = false;
+#endif
+        pm_active_coroutines--;
+    }
 }
 
-void coro_t::start() {
-    pm_active_coroutines++;
-    underlying = Coro_new();
-    coro_initialization_data data;
-    coro_t *previous_coro = data.parent = current_coro;
-    data.coroutine = current_coro = this;
-    Coro_startCoro_(previous_coro->underlying, underlying, &data, run_coroutine);
+coro_t *coro_t::get_free_coro() {
+    if (free_coros->size() > 0) {
+        coro_t *coro = free_coros->back();
+        free_coros->pop_back();
+        return coro;
+    } else {
+        coro_t *previous_coro = current_coro;
+        coro_t *coro = current_coro = new coro_t(Coro_new());
+        Coro_startCoro_(previous_coro->underlying, current_coro->underlying, current_coro, run_coroutine);
+        return coro;
+    }
+}
+
+void coro_t::do_deed(deed_t *deed) {
+    assert(!active);
+    this->deed = deed;
+    home_thread = get_thread_id();
+    notify();
 }
 
 coro_t::~coro_t() {
-    pm_active_coroutines--;
     Coro_free(underlying);
 }
 
@@ -88,11 +92,17 @@ void coro_t::run() {
     Coro *mainCoro = Coro_new();
     Coro_initializeMainCoro(mainCoro);
     scheduler = current_coro = new coro_t(mainCoro);
+    free_coros = new std::vector<coro_t*>();
 }
 
 void coro_t::destroy() {
     assert(scheduler == current_coro);
     delete scheduler;
+    for (std::vector<coro_t*>::iterator it = free_coros->begin(); it != free_coros->end(); it++) {
+        delete *it;
+    }
+    delete free_coros;
     scheduler = current_coro = NULL;
+    free_coros = NULL;
 }
 

@@ -9,7 +9,6 @@
 #include <boost/bind.hpp>
 
 extern perfmon_counter_t pm_active_coroutines;
-extern perfmon_duration_sampler_t pm_switch;
 
 /* A coroutine represents an action with no return value */
 struct coro_t
@@ -26,30 +25,27 @@ public:
 private:
     ~coro_t();
     virtual void on_thread_switch();
-    void start();
     
     virtual void action() { }
 
-    coro_t() : underlying(NULL), dead(false), home_thread(get_thread_id())
+    explicit coro_t(Coro *underlying) : underlying(underlying), home_thread(get_thread_id()), deed(NULL)
 #ifndef NDEBUG
-    , notified(false)
-#endif
-    { }
-
-    explicit coro_t(Coro *underlying) : underlying(underlying), dead(false), home_thread(get_thread_id())
-#ifndef NDEBUG
-    , notified(false)
+    , notified(false), active(false)
 #endif
     { }
 
     void switch_to(coro_t *next);
 
     Coro *underlying;
-    bool dead;
-    int home_thread; //not a home_thread_mixin_t because this is set by initialize
+    int home_thread;
+
+    struct deed_t {
+        virtual void operator()() = 0;
+    } *deed;
 
 #ifndef NDEBUG
     bool notified;
+    bool active;
 #endif
 
     static void suicide();
@@ -59,22 +55,26 @@ private:
     static __thread coro_t *current_coro;
     static __thread coro_t *scheduler; //Epoll loop--main execution of program
 
+    static __thread std::vector<coro_t*> *free_coros;
+
     DISABLE_COPYING(coro_t);
+
+    void do_deed(deed_t *deed);
+
+    static coro_t *get_free_coro();
 
 public:
     template<typename callable_t>
     static void spawn(callable_t fun) {
-        callable_t *f = (callable_t *)malloc(sizeof(fun));
-        memcpy(f, &fun, sizeof(fun));
-        struct fun_runner_t : public coro_t {
-            callable_t *fun;
-            fun_runner_t(callable_t *fun) : fun(fun) { }
-            virtual void action() {
-                (*fun)();
-                free(fun);
+        struct fun_runner_t : public deed_t {
+            callable_t fun;
+            fun_runner_t(callable_t fun) : fun(fun) { }
+            virtual void operator()() {
+                fun();
             }
-        } *coroutine = new fun_runner_t(f);
-        coroutine->start();
+        } *runner = new fun_runner_t(fun);
+        coro_t *coro = get_free_coro();
+        coro->do_deed(runner);
     }
 
     template<typename callable_t, typename arg_t>
