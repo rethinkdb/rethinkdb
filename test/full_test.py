@@ -76,9 +76,10 @@ def run_canonical_tests(mode, checker, protocol, cores, slices):
                     "protocol"    : protocol,
                     "cores"       : cores,
                     "slices"      : slices,
-                    "num-ints"    : 50000 if (mode == "release" and not checker) else 1000,
+                    "chunk-size"  : 100,
+                    "num-ints"    : 50000 if (mode == "release" and not checker) else 1000 },
                     "sigint-timeout" : sigint_timeout },
-                  repeat=3, timeout = 180 + sigint_timeout)
+                  repeat=3, timeout = 180)
     
     # Don't run the corruption test in mockio or mockcache mode because in those modes
     # we don't flush to disk at all until the server is shut down, so obviously the

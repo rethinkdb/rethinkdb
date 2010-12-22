@@ -1,5 +1,5 @@
 #!/usr/bin/python
-import os, sys, socket, random
+import os, sys, socket, random, select, time
 from test_common import *
 
 # "I am a string" -> ["I a", "m a s", "trin", "g"]
@@ -31,27 +31,48 @@ def test_function(opts, port):
     for string in strings:
         s.send(string)
     
+    start = time.time()
     print "Get time"
     
     #pipeline some gets
     command_string = ''
     expected_response = ''
+    lengths = []
     for int in ints:
-        command_string += ("get " + str(int) + "\r\n")
-        expected_response += ("VALUE "+ str(int) + " 0 " + str(len(str(int))) + "\r\n" + str(int) + "\r\nEND\r\n")
-    
-    strings = rand_split(command_string, opts["num_chunks"])
-    # TODO: if 'string' is too long, we saturate the network buffers
-    # because we send too much stuff but don't bother to receive. We
-    # need to fix the test to allow really long pipelines (see issue
-    # 134).
-    for string in strings:
-        s.send(string)
-    
+        cmd = ("get " + str(int) + "\r\n")
+        rsp = ("VALUE "+ str(int) + " 0 " + str(len(str(int))) + "\r\n" + str(int) + "\r\nEND\r\n")
+        command_string += cmd
+        expected_response += rsp
+        lengths.append((len(cmd), len(rsp)))
+
+    sent_cmds = 0
+    sent_bytes = 0
     response = ''
-    while (len(response) < len(expected_response) and response == expected_response[0:len(response)]):
-        response += s.recv(len(expected_response) - len(response))
-    
+
+    foo = 0
+    #print len(command_string), len(expected_response)
+    while len(response) < len(expected_response):# and response == expected_response[0:len(response)]:
+        cur_cmds = sent_cmds
+        cur_bytes = sent_bytes
+        cmd = ""
+        while sent_bytes < len(command_string) and cur_cmds < sent_cmds + opts["chunk_size"]:
+            chunk = command_string[cur_bytes : cur_bytes + lengths[cur_cmds][0]]
+            cmd += chunk
+            cur_bytes += len(chunk)
+            cur_cmds += 1
+
+        sent_bytes += s.send(cmd)
+
+        out = ""
+        expected = sum([lengths[i][1] for i in range(sent_cmds, cur_cmds)])
+        while len(out) < expected:
+            out += s.recv(expected - len(out))
+
+        sent_cmds = cur_cmds
+        response += out
+
+    print "Finished gets in %f seconds" % (time.time() - start)
+
     if response != expected_response:
         raise ValueError("Incorrect response: %r Expected: %r" % (response, expected_response))
     
@@ -79,6 +100,7 @@ def test_function(opts, port):
 
 if __name__ == "__main__":
     op = make_option_parser()
+    op["chunk_size"] = IntFlag("--chunk-size", 10)
     op["num_ints"] = IntFlag("--num-ints", 1000)
     op["num_chunks"] = IntFlag("--num-chunks", 50)
-    auto_server_test_main(test_function, op.parse(sys.argv), timeout = 120)
+    auto_server_test_main(test_function, op.parse(sys.argv), timeout = 300)
