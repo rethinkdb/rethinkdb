@@ -353,13 +353,27 @@ class dbench():
 #            for competitor in competitor_data.iteritems():
 #                qps_data += competitor[1].select('qps').remap('qps', competitor[0])
 
+            # Check if we can use the labels as x values (i.e. they are all numeric)
+            labels_are_x_values = True
+            try:
+                for db_name in mean_data.keys():
+                    current_data = mean_data[db_name].scatter
+                    for label, i in current_data.names.keys():
+                        float(label)
+            except ValueError:
+                labels_are_x_values = False
+
             # Plot the mean run data
             scatter_data = {}
             for db_name in mean_data.keys():
                 current_data = mean_data[db_name].scatter
                 scatter_data[db_name] = []
-                for i in current_data.names.keys():
-                    scatter_data[db_name].append(current_data.data[i])
+                for label, i in current_data.names.keys():
+                    if labels_are_x_values:
+                        current_data_point = (label, current_data.data[i][1])
+                    else:
+                        current_data_point = current_data.data[i]
+                    scatter_data[db_name].append(current_data_point)
 
             scatter = ScatterCollection(scatter_data)
             scatter.plot(os.path.join(self.out_dir, self.dir_str, 'mean' + multirun_name))
