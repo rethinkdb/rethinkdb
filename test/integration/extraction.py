@@ -63,7 +63,7 @@ if __name__ == "__main__":
     
     if not server1.kill(): sys.exit(1)
 
-    extract_path = get_executable_path(opts, "rethinkdb-extract")
+    extract_path = get_executable_path(opts, "rethinkdb extract")
     dump_path = os.path.join(test_dir_name, "db_data_dump.txt")
     command_line = [extract_path,
                     "-f", os.path.join(test_dir_name, "db_data", "data_file"),
@@ -137,7 +137,7 @@ if __name__ == "__main__":
 #     server_killed = True
 #     if not server1.kill(): sys.exit(1)
 
-#     extract_path = get_executable_path(opts, "rethinkdb-extract")
+#     extract_path = get_executable_path(opts, "rethinkdb extract")
 
 #     dump_path = os.path.join(test_dir_name, "db_data_dump.txt")
 
