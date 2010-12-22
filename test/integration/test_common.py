@@ -55,7 +55,7 @@ def make_option_parser():
     o["stress"] = StringFlag("--stress", "")
     o["no-timeout"] = BoolFlag("--no-timeout", invert = False)
     o["ssds"] = AllArgsAfterFlag("--ssds", default = [])
-    o["mem-cap"] = IntFlag("--mem-cap")
+    o["mem-cap"] = IntFlag("--mem-cap", None)
     o["garbage-range"] = MultiValueFlag("--garbage-range", [float_converter, float_converter], default = None)
     return o
 
