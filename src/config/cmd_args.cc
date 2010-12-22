@@ -127,8 +127,10 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
     /* First, check to see if we're running a sub-command:
      * one of serve, create, fsck, help, extract. */
 
+
+    enum rethinkdb_cmd cmd = cmd_none;
     if (argc >= 2) {
-        enum rethinkdb_cmd cmd = parse_cmd(argv[1]);
+        cmd = parse_cmd(argv[1]);
         enum rethinkdb_cmd help_cmd;
 
         switch (cmd) {
@@ -165,6 +167,8 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
                 usage(argv[0]);
                 break;
             case cmd_serve:
+                argc--;
+                argv++;
             case cmd_none: break;
             default: crash("default");
         }
@@ -250,20 +254,13 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
             case force_create:
                 config.force_create = true; break;
             case 'h':
-                if (config.create_store) {
-                    usage_create(argv[0]);
-                }
-                else {
-                    usage(argv[0]);
-                }
-                break;
-         
             default:
                 /* getopt_long already printed an error message. */
                 if (config.create_store) {
                     usage_create(argv[0]);
-                }
-                else {
+                } else if (cmd == cmd_serve) {
+                    usage_serve(argv[0]);
+                } else {
                     usage(argv[0]);
                 }
         }
