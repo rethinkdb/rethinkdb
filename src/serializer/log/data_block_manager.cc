@@ -22,6 +22,9 @@ perfmon_counter_t
     pm_serializer_old_garbage_blocks("serializer_old_garbage_blocks"),
     pm_serializer_old_total_blocks("serializer_old_total_blocks");
 
+perfmon_function_t
+    pm_serializer_garbage_ratio("serializer_garbage_ratio");
+
 void data_block_manager_t::start_new(direct_file_t *file) {
     assert(state == state_unstarted);
     dbfile = file;

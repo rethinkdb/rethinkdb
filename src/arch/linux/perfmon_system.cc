@@ -47,7 +47,7 @@ private:
     bool read(char * path) {
         int stat_file = open(path, O_RDONLY);
         if (stat_file == -1) {
-            logWRN("Could not open '%s': %s (errno = %d)", path, strerror(errno), errno);
+            logWRN("Could not open '%s': %s (errno = %d)\n", path, strerror(errno), errno);
             return false;
         }
         

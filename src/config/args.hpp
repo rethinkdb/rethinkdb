@@ -151,9 +151,10 @@
 // What's the definition of a "young" extent in microseconds?
 #define GC_YOUNG_EXTENT_TIMELIMIT_MICROS          50000
 
-// The ratio at which we should GC the lba list.
-#define LBA_GC_THRESHOLD_RATIO_NUMERATOR          9
-#define LBA_GC_THRESHOLD_RATIO_DENOMINATOR        10
+// If the size of the LBA on a given disk exceeds LBA_MIN_SIZE_FOR_GC, then the fraction of the
+// entries that are live and not garbage should be at least LBA_MIN_UNGARBAGE_FRACTION.
+#define LBA_MIN_SIZE_FOR_GC                       (MEGABYTE * 20)
+#define LBA_MIN_UNGARBAGE_FRACTION                0.15
 
 // How many LBA structures to have for each file
 #define LBA_SHARD_FACTOR                          16

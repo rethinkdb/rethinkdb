@@ -13,6 +13,7 @@
 #include "arch/linux/disk.hpp"
 #include "arch/linux/event_queue/poll.hpp"
 #include "arch/linux/thread_pool.hpp"
+#include "logger.hpp"
 
 int user_to_poll(int mode) {
     int out_mode = 0;
@@ -57,7 +58,7 @@ void poll_event_queue_t::run() {
 
         // The only likely poll error here is ENOMEM, which we
         // have no way of handling, and it's probably fatal.
-        guarantee_err(res == 0, "Waiting for poll events failed");
+        guarantee_err(res != -1, "Waiting for poll events failed");
         
         pm_events_per_loop.record(res);
         

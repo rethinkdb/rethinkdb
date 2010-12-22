@@ -10,13 +10,15 @@ for mode in ["debug", "release"]:
     for checker in ["valgrind", None]:
         for mock_io in [True, False]:
             for mock_cache in [True, False]:
-                # Build our targets
-                do_test("cd ../src/; make -j8",
-                        { "DEBUG"            : 1 if mode    == "debug"    else 0,
-                          "VALGRIND"         : 1 if checker == "valgrind" else 0,
-                          "MOCK_IO_LAYER"    : 1 if mock_io               else 0,
-                          "MOCK_CACHE_CHECK" : 1 if mock_cache            else 0},
-                        cmd_format="make")
+                for poll_mode in ["poll", "epoll"]:
+                    # Build our targets
+                    do_test("cd ../src/; nice make -j",
+                            { "DEBUG"            : 1 if mode    == "debug"    else 0,
+                              "VALGRIND"         : 1 if checker == "valgrind" else 0,
+                              "MOCK_IO_LAYER"    : 1 if mock_io               else 0,
+                              "MOCK_CACHE_CHECK" : 1 if mock_cache            else 0,
+                              "NO_EPOLL"         : 1 if poll_mode == "poll"   else 0 },
+                            cmd_format="make")
 
 # Make sure auxillary tools compile
 do_test("cd ../bench/stress-client/; make clean; make",
@@ -110,7 +112,18 @@ def run_all_tests(mode, checker, protocol, cores, slices):
                     "slices"      : slices,
                     "duration"    : 340 },
                   repeat=5, timeout=400)
-
+    
+    # TODO: This should really only be run under one environment...
+    do_test_cloud("regression/gc_verification.py",
+                  { "auto"        : True,
+                    "mode"        : mode,
+                    "no-valgrind" : not checker,
+                    "protocol"    : protocol,
+                    "cores"       : cores,
+                    "slices"      : slices,
+                    "duration"    : 10000000 },
+                  repeat=3, timeout=400)
+    
     # Run the serial mix test also with the other valgrind tools, drd and helgrind
     if checker == "valgrind":
         for valgrind_tool in ["drd", "helgrind"]:
@@ -297,7 +310,8 @@ try:
             ("release", "valgrind"),
             ("release", None),
             ("release-mockio", None),
-            ("debug-mockcache", "valgrind")]:
+            ("debug-mockcache", "valgrind"),
+            ("debug-noepoll", "valgrind")]:
         for protocol in ["text"]: # ["text", "binary"]:
             for (cores, slices) in [(1, 1), (2, 8)]:
                 # RUN CANONICAL TESTS
