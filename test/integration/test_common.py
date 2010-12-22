@@ -1,6 +1,7 @@
 import shlex, sys, traceback, os, shutil, socket, subprocess, time, signal, threading, random
 from vcoptparse import *
 from corrupter import *
+from rdbstat import *
 
 test_dir_name = "output_from_test"
 made_test_dir = False
@@ -54,6 +55,8 @@ def make_option_parser():
     o["stress"] = StringFlag("--stress", "")
     o["no-timeout"] = BoolFlag("--no-timeout", invert = False)
     o["ssds"] = AllArgsAfterFlag("--ssds", default = [])
+    o["mem-cap"] = IntFlag("--mem-cap")
+    o["garbage-range"] = MultiValueFlag("--garbage-range", [float_converter, float_converter], default = None)
     return o
 
 # Choose a random port at which to start searching to reduce the probability of collisions
@@ -526,6 +529,23 @@ def adjust_timeout(opts, timeout):
         return None
     else:
         return timeout + 15
+#make a dictionary of stat limits
+def start_stats(opts, port):
+    if not (opts["mem-cap"] or opts["garbage-range"]):
+        return None
+
+    limits = {}
+    if opts["mem-cap"]:
+        limits["memory_virtual[bytes]"] = StatRange(0, opts["mem-cap"])
+    if opts["garbage-range"]:
+        limits["serializer_garbage_ratio"] = StatRange(opts["garbage-range"][0], opts["garbage-range"][1])
+
+    if limits:
+        stat_checker = RDBStat(('localhost', port), limits)
+        stat_checker.start()
+        return stat_checker
+    else:
+        return None
 
 def auto_server_test_main(test_function, opts, timeout = 30, extra_flags = []):
     """Drop-in main() for tests that test against one server that they do not start up or shut
@@ -540,7 +560,14 @@ def auto_server_test_main(test_function, opts, timeout = 30, extra_flags = []):
         
         server = Server(opts, extra_flags = extra_flags)
         if not server.start(): sys.exit(1)
+
+        stat_checker = start_stats(opts, server.port)
+
         test_ok = run_and_report(test_function, (opts, server.port), timeout = adjust_timeout(opts, timeout))
+
+        if stat_checker:
+            stat_checker.stop()
+
         server_ok = server.shutdown()
         if not (test_ok and server_ok): sys.exit(1)
     
@@ -552,8 +579,13 @@ def auto_server_test_main(test_function, opts, timeout = 30, extra_flags = []):
         if opts["netrecord"]:
             nrc = NetRecord(port)
             port = nrc.port
-        
+
+        stat_checker = start_stats(opts, port)
+
         if not run_and_report(test_function, (opts, port), timeout = adjust_timeout(opts, timeout)): sys.exit(1)
+
+        if stat_checker:
+            stat_checker.stop()
         
         if opts["netrecord"]:
             nrc.stop()
@@ -568,9 +600,16 @@ def simple_test_main(test_function, opts, timeout = 30, extra_flags = []):
         
         server = Server(opts, extra_flags = extra_flags)
         if not server.start(): sys.exit(1)
+
+        stat_checker = start_stats(opts, server.port)
+
         mc = connect_to_server(opts, server)
         test_ok = run_and_report(test_function, (opts, mc), timeout = adjust_timeout(opts, timeout))
         mc.disconnect_all()
+
+        if stat_checker:
+            stat_checker.stop()
+
         server_ok = server.shutdown()
         if not (test_ok and server_ok): sys.exit(1)
     
@@ -586,9 +625,13 @@ def simple_test_main(test_function, opts, timeout = 30, extra_flags = []):
             nrc = NetRecord(port)
             port = nrc.port
         
+        stat_checker = start_stats(opts, port)
         mc = connect_to_port(opts, port)
         ok = run_and_report(test_function, (opts, mc), timeout = adjust_timeout(opts, timeout))
         mc.disconnect_all()
+        if stat_checker:
+            stat_checker.stop()
+
         
         if opts["netrecord"]:
             nrc.stop()
