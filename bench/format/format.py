@@ -358,7 +358,7 @@ class dbench():
             try:
                 for db_name in mean_data.keys():
                     current_data = mean_data[db_name].scatter
-                    for label, i in current_data.names.keys():
+                    for label, i in current_data.names.iteritems():
                         float(label)
             except ValueError:
                 labels_are_x_values = False
@@ -368,7 +368,7 @@ class dbench():
             for db_name in mean_data.keys():
                 current_data = mean_data[db_name].scatter
                 scatter_data[db_name] = []
-                for label, i in current_data.names.keys():
+                for label, i in current_data.names.iteritems():
                     if labels_are_x_values:
                         current_data_point = (label, current_data.data[i][1])
                     else:
