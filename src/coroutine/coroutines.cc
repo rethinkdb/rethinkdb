@@ -48,19 +48,9 @@ void coro_t::on_thread_switch() {
 }
 
 void coro_t::run_coroutine(void *data) {
-    coro_t *parent = (coro_t *)data;
     coro_t *self = current_coro;
-    parent->notify();
-    printf("Starting a coroutine\n");
+    //printf("Starting a coroutine\n");
     while (true) {
-        printf("push %d\n", get_thread_id());
-        free_coros->push_back(self);
-#ifndef NDEBUG
-        //printf("Noting that we're inactive\n");
-        self->active = false;
-#endif
-        //printf("Waiting for a task\n");
-        wait();
         //printf("Got a task\n");
         pm_active_coroutines++;
 #ifndef NDEBUG
@@ -71,21 +61,31 @@ void coro_t::run_coroutine(void *data) {
         (*self->deed)();
         //printf("The deed is done\n");
         pm_active_coroutines--;
+
+        //printf("push %d\n", get_thread_id());
+        free_coros->push_back(self);
+#ifndef NDEBUG
+        //printf("Noting that we're inactive\n");
+        self->active = false;
+#endif
+        //printf("Waiting for a task\n");
+        wait();
     }
 }
 
 coro_t *coro_t::get_free_coro() {
     if (free_coros->size() == 0) {
-        printf("Making a new one from scratch\n");
-        coro_t *previous_coro = current_coro;
-        current_coro = new coro_t(Coro_new());
-        Coro_startCoro_(previous_coro->underlying, current_coro->underlying, previous_coro, run_coroutine);
+        //printf("Making a new one from scratch\n");
+        coro_t *coro = new coro_t(Coro_new());
+        Coro_startCoro_(coro->underlying, NULL, run_coroutine);
+        return coro;
+    } else {
+        assert(free_coros->size() > 0);
+        //printf("pop %d\n", get_thread_id());
+        coro_t *coro = free_coros->back();
+        free_coros->pop_back();
+        return coro;
     }
-    assert(free_coros->size() > 0);
-    printf("pop %d\n", get_thread_id());
-    coro_t *coro = free_coros->back();
-    free_coros->pop_back();
-    return coro;
 }
 
 void coro_t::do_deed(deed_t *deed) {

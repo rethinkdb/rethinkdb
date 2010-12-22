@@ -24,7 +24,6 @@
 //TODO: In a special testing mode, munmap the page above (below)
 //the stack so we can get an error if it overflows
 #define CORO_DEFAULT_STACK_SIZE 65536
-#define CORO_STACK_SIZE_MIN 1024
 
 #if !defined(__MINGW32__) && defined(WIN32)
 #if defined(BUILDING_CORO_DLL) || defined(BUILDING_IOVMALL_DLL)
@@ -78,8 +77,6 @@ typedef struct Coro Coro;
 
 struct Coro
 {
-	size_t requestedStackSize;
-	size_t allocatedStackSize;
 	void *stack;
 
 #ifdef USE_VALGRIND
@@ -112,7 +109,7 @@ CORO_API void Coro_initializeMainCoro(Coro *self);
 
 typedef void (CoroStartCallback)(void *);
 
-CORO_API void Coro_startCoro_(Coro *self, Coro *other, void *context, CoroStartCallback *callback);
+CORO_API void Coro_startCoro_(Coro *other, void *context, CoroStartCallback *callback);
 CORO_API void Coro_switchTo_(Coro *self, Coro *next);
 CORO_API void Coro_setup(Coro *self, void *arg); // private
 

@@ -50,8 +50,8 @@
 { \
 	Coro *c = (coro); \
 		c->valgrindStackId = VALGRIND_STACK_REGISTER( \
-											 c->stack, \
-											 (size_t)c->stack + c->requestedStackSize); \
+											 Coro_stack(c), \
+											 (size_t)Coro_stack(c) + Coro_stackSize(c)); \
 }
 
 #define STACK_DEREGISTER(coro) \
@@ -81,22 +81,14 @@ static CallbackBlock globalCallbackBlock;
 Coro *Coro_new(void)
 {
 	Coro *self = (Coro *)calloc(1, sizeof(Coro));
-	self->requestedStackSize = CORO_DEFAULT_STACK_SIZE;
-	self->allocatedStackSize = 0;
 
 #ifdef USE_FIBERS
-	self->fiber = NULL;
+	self->fiber = NULL; //Allocate a stack here
 #else
-	self->stack = NULL;
+	self->stack = malloc(CORO_DEFAULT_STACK_SIZE);
 #endif
-	return self;
-}
-
-void Coro_allocStack(Coro *self)
-{
-	self->stack = malloc(16384);
-	self->allocatedStackSize = self->requestedStackSize;
 	STACK_REGISTER(self);
+	return self;
 }
 
 void Coro_free(Coro *self)
@@ -109,15 +101,9 @@ void Coro_free(Coro *self)
 		DeleteFiber(self->fiber);
 	}
 #else
+        free(self->stack);
 	STACK_DEREGISTER(self);
 #endif
-	/*if (self->stack)
-	{
-		free(self->stack);
-	}*/
-
-	//printf("Coro_%p io_free\n", (void *)self);
-
 	free(self);
 }
 
@@ -130,49 +116,7 @@ void *Coro_stack(Coro *self)
 
 size_t Coro_stackSize(Coro *self)
 {
-	return self->requestedStackSize;
-}
-
-void Coro_setStackSize_(Coro *self, size_t sizeInBytes)
-{
-	self->requestedStackSize = sizeInBytes;
-	//self->stack = (void *)io_realloc(self->stack, sizeInBytes);
-	//printf("Coro_%p io_reallocating stack size %i\n", (void *)self, sizeInBytes);
-}
-
-#if __GNUC__ == 4
-uint8_t *Coro_CurrentStackPointer(void) __attribute__ ((noinline));
-#endif
-
-uint8_t *Coro_CurrentStackPointer(void)
-{
-	uint8_t a;
-	uint8_t *b = &a; // to avoid compiler warning about unused variables
-	return b;
-}
-
-size_t Coro_bytesLeftOnStack(Coro *self)
-{
-	unsigned char dummy;
-	ptrdiff_t p1 = (ptrdiff_t)(&dummy);
-	ptrdiff_t p2 = (ptrdiff_t)Coro_CurrentStackPointer();
-	int stackMovesUp = p2 > p1;
-	ptrdiff_t start = ((ptrdiff_t)self->stack);
-	ptrdiff_t end   = start + self->requestedStackSize;
-
-	if (stackMovesUp) // like x86
-	{
-		return end - p1;
-	}
-	else // like OSX on PPC
-	{
-		return p1 - start;
-	}
-}
-
-int Coro_stackSpaceAlmostGone(Coro *self)
-{
-	return Coro_bytesLeftOnStack(self) < CORO_STACK_SIZE_MIN;
+	return CORO_DEFAULT_STACK_SIZE - 16;
 }
 
 void Coro_initializeMainCoro(Coro *self)
@@ -190,17 +134,14 @@ void Coro_initializeMainCoro(Coro *self)
 #endif
 }
 
-void Coro_startCoro_(Coro *self, Coro *other, void *context, CoroStartCallback *callback)
+void Coro_startCoro_(Coro *other, void *context, CoroStartCallback *callback)
 {
-	CallbackBlock sblock;
-	CallbackBlock *block = &sblock;
-	//CallbackBlock *block = malloc(sizeof(CallbackBlock)); // memory leak
+        //This is actually unnecessary if we instead integrated Coro.cc with coroutines.cc
+	CallbackBlock *block = (CallbackBlock*)malloc(sizeof(CallbackBlock));
 	block->context = context;
 	block->func    = callback;
 	
-	Coro_allocStack(other);
 	Coro_setup(other, block);
-	Coro_switchTo_(self, other);
 }
 
 
@@ -208,7 +149,9 @@ void Coro_startCoro_(Coro *self, Coro *other, void *context, CoroStartCallback *
 void Coro_StartWithArg(unsigned int hiArg, unsigned int loArg)
 {
 	CallbackBlock *block = (CallbackBlock*)(((long long)hiArg << 32) | (long long)loArg);
-	(block->func)(block->context);
+        CallbackBlock cblock = *block;
+        free(block);
+	(cblock.func)(cblock.context);
 	printf("Scheduler error: returned from coro start function\n");
 	exit(-1);
 }
@@ -302,7 +245,8 @@ void Coro_setup(Coro *self, void *arg)
 	ucp->uc_stack.ss_flags = 0;
 	ucp->uc_link = NULL;
 
-	makecontext(ucp, (makecontext_func)Coro_StartWithArg, 1, arg); }
+	makecontext(ucp, (makecontext_func)Coro_StartWithArg, 1, arg);
+}
 
 
 #elif defined(USE_UCONTEXT)
