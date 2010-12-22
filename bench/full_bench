@@ -15,7 +15,7 @@ email="$(perl -e 'use List::Util qw(first); my $email_idx = 1 + first { $ARGV[$_
 # Build the server and the stress client
 cd src
 make clean
-make -j DEBUG=0 VALGRIND=0 FAST_PERFMON=1 # TODO: Disable "FAST" Perfmon?
+make -j DEBUG=0 VALGRIND=0 FAST_PERFMON=1
 cd ../bench/stress-client
 make
 scp stress dr-doom:/home/teapot/stress
@@ -58,7 +58,6 @@ for WORKLOAD in ../workloads/*; do
             if [ -e "$BENCH_DIR/environment" ]; then
                 . "$BENCH_DIR/environment"
             fi
-            
             $CONFIGURATION
         done
         
