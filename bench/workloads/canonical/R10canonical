@@ -17,7 +17,7 @@ elif [ $DATABASE == "mysql" ]; then
         iostat:1 vmstat:1
 elif [ $DATABASE == "membase" ]; then
     ./dbench                                                                                   \
-        -d "$BENCH_DIR/bench_output/Canonical_workload_on_canonical_hardware" -H $SERVER_HOSTS \
+        -d "$BENCH_DIR/bench_output/Canonical_workload_on_canonical_hardware" -H $SERVER_HOSTS -p 11211 \
         {server}membase:"-d $MEMBASE_DATA_PATH -m 32768"                                       \
         {client}stressfree[dr-doom:/home/teapot/stress]:"-c $CANONICAL_CLIENTS -d $CANONICAL_DURATION" \
         iostat:1 vmstat:1

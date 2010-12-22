@@ -7,7 +7,7 @@
 
 if [ $DATABASE == "membase" ]; then
     ./dbench                                                                                   \
-        -d "$BENCH_DIR/bench_output/SSD_IO_performance" -H $SERVER_HOSTS \
+        -d "$BENCH_DIR/bench_output/SSD_IO_performance" -H $SERVER_HOSTS -p 11211 \
         {server}membase:"-d $MEMBASE_DATA_PATH -m 256"                                       \
         {client}stressfree[dr-doom:/home/teapot/stress]:"-c $CANONICAL_CLIENTS -d $CANONICAL_DURATION" \
         iostat:1 vmstat:1
