@@ -63,7 +63,6 @@ VALGRIND_STACK_DEREGISTER((coro)->valgrindStackId)
 #endif
 
 extern "C" {
-	extern int lightweight_getcontext(ucontext_t *ucp);
 	extern int lightweight_swapcontext(ucontext_t *oucp, const ucontext_t *ucp);
 }
 
@@ -238,7 +237,7 @@ void Coro_setup(Coro *self, void *arg)
 {
 	ucontext_t *ucp = (ucontext_t *) &self->env;
 
-	lightweight_getcontext(ucp);
+	getcontext(ucp);
 
 	ucp->uc_stack.ss_sp    = Coro_stack(self) + Coro_stackSize(self) - 8;
 	ucp->uc_stack.ss_size  = Coro_stackSize(self);
@@ -257,7 +256,7 @@ void Coro_setup(Coro *self, void *arg)
 {
 	ucontext_t *ucp = (ucontext_t *) &self->env;
 
-	lightweight_getcontext(ucp);
+	getcontext(ucp);
 
 	ucp->uc_stack.ss_sp    = Coro_stack(self);
 	ucp->uc_stack.ss_size  = Coro_stackSize(self);
