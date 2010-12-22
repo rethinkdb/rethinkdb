@@ -323,8 +323,8 @@ class dbench():
         # Report stats for each multirun
         for multirun_name in self.rdb_stats.multi_runs.keys():
             multirun = self.rdb_stats.multi_runs[multirun_name]
-            server_meta = run.server_meta
-            client_meta = run.client_meta
+            #server_meta = run.server_meta
+            #client_meta = run.client_meta
 
             print >>res, '<hr style="height: 1px; width: 910px; border-top: 1px solid #999; margin: 30px 0px; padding: 0px 30px;" />'
             print >>res, '<div class="multi run">'
