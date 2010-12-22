@@ -48,6 +48,10 @@ int main(int argc, char *argv[])
     // Parse the arguments
     config_t config;
     parse(&config, argc, argv);
+    if (config.load.verifies > 0 && config.clients > 1) {
+        printf("Automatically enabled per-client key suffixes\n");
+        config.keys.append_client_suffix = true;
+    }
     config.print();
 
     /* make a directory for our sqlite files */

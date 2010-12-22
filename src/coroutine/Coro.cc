@@ -42,6 +42,33 @@
 #include <stdint.h>
 #include <ucontext.h>
 #include "ucontext_i.h"
+#include "arch/arch.hpp"
+
+typedef char coro_stack_t[16*1024];
+
+const int max_threads = 50;
+const int stacks_per_thread = 10000;
+
+struct alloc_state_t {
+    //For real, this would be a free list
+    coro_stack_t *base;
+    coro_stack_t *current;
+} allocators[max_threads]; //Hopefully never more than 50 threads
+
+coro_stack_t *get_stack() {
+    alloc_state_t *allocator = &allocators[get_thread_id()];
+    //printf("getting stack #%zd on thread %d\n", allocator->current - allocator->base, get_thread_id());
+    if (allocator->base + stacks_per_thread <= allocator->current) allocator->current = allocator->base;
+    return allocator->current++;
+}
+
+void initialize_stacks() {
+    allocators[get_thread_id()].base = allocators[get_thread_id()].current = (coro_stack_t *)calloc(1, sizeof(coro_stack_t)*stacks_per_thread);
+}
+
+void destroy_stacks() {
+    free(allocators[get_thread_id()].base);
+}
 
 #ifdef USE_VALGRIND
 #include <valgrind/valgrind.h>
@@ -91,22 +118,11 @@ Coro *Coro_new(void)
 	return self;
 }
 
-void Coro_allocStackIfNeeded(Coro *self)
+void Coro_allocStack(Coro *self)
 {
-	if (self->stack && self->requestedStackSize < self->allocatedStackSize)
-	{
-		free(self->stack);
-		self->stack = NULL;
-		self->requestedStackSize = 0;
-	}
-
-	if (!self->stack)
-	{
-		self->stack = (void *)malloc(self->requestedStackSize + 16); //No need to zero a stack
-		self->allocatedStackSize = self->requestedStackSize;
-		//printf("Coro_%p allocating stack size %i\n", (void *)self, self->requestedStackSize);
-		STACK_REGISTER(self);
-	}
+	self->stack = (void *)get_stack();
+	self->allocatedStackSize = self->requestedStackSize;
+	STACK_REGISTER(self);
 }
 
 void Coro_free(Coro *self)
@@ -121,13 +137,14 @@ void Coro_free(Coro *self)
 #else
 	STACK_DEREGISTER(self);
 #endif
-	if (self->stack)
+	/*if (self->stack)
 	{
 		free(self->stack);
-	}
+	}*/
 
 	//printf("Coro_%p io_free\n", (void *)self);
 
+	if (self->isMain) destroy_stacks();
 	free(self);
 }
 
@@ -188,6 +205,7 @@ int Coro_stackSpaceAlmostGone(Coro *self)
 void Coro_initializeMainCoro(Coro *self)
 {
 	self->isMain = 1;
+	initialize_stacks();
 #ifdef USE_FIBERS
 	// We must convert the current thread into a fiber if it hasn't already been done.
 	if ((LPVOID) 0x1e00 == GetCurrentFiber()) // value returned when not a fiber
@@ -208,7 +226,7 @@ void Coro_startCoro_(Coro *self, Coro *other, void *context, CoroStartCallback *
 	block->context = context;
 	block->func    = callback;
 	
-	Coro_allocStackIfNeeded(other);
+	Coro_allocStack(other);
 	Coro_setup(other, block);
 	Coro_switchTo_(self, other);
 }
