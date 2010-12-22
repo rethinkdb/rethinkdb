@@ -219,13 +219,19 @@ void linux_thread_pool_t::interrupt_handler(int) {
 void linux_thread_pool_t::shutdown() {
     int res;
     
-    // This will tell the main thread to tell all the child threads to
+    // This will tell the main() thread to tell all the child threads to
     // shut down.
+    
+    res = pthread_mutex_lock(&shutdown_cond_mutex);
+    guarantee(res == 0, "Could not lock shutdown cond mutex");
     
     do_shutdown = true;
     
     res = pthread_cond_signal(&shutdown_cond);
     guarantee(res == 0, "Could not signal shutdown cond");
+    
+    res = pthread_mutex_unlock(&shutdown_cond_mutex);
+    guarantee(res == 0, "Could not unlock shutdown cond mutex");
 }
 
 linux_thread_pool_t::~linux_thread_pool_t() {
