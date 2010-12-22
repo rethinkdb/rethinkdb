@@ -157,6 +157,75 @@ class NetRecord(object):
     def __del__(self):
         if getattr(self, "process"): self.stop()
 
+num_stress_clients = 0
+
+def stress_client(port=8080, host="localhost", workload={"gets":1, "inserts":1}, duration="10000q"):
+    
+    global num_stress_clients
+    num_stress_clients += 1
+    
+    executable_path = os.path.join(os.path.dirname(__file__), "../../bench/stress-client/stress")
+    if not os.path.exists(executable_path):
+        raise ValueError("Looked for stress client at %r, didn't find it." % executable_path)
+    
+    command_line = [executable_path,
+        "-s", "%s:%d" % (host, port),
+        "-d", duration,
+        "-w", "%d/%d/%d/%d/%d/%d/%d" % (workload.get("deletes", 0), workload.get("updates", 0),
+            workload.get("inserts", 0), workload.get("gets", 0), workload.get("appends", 0),
+            workload.get("prepends", 0), workload.get("verifies", 0)),
+        ]
+    
+    key_file = os.path.join(make_test_dir(), "stress_client", "keys")
+    command_line.extend(["-o", key_file])
+    if os.path.exists(key_file): command_line.extend(["-i", key_file])
+    
+    output_dir = os.path.join(make_test_dir(), "stress_client")
+    if not os.path.isdir(output_dir): os.mkdir(output_dir)
+    output_path = os.path.join(output_dir, "round_%d" % num_stress_clients)
+    output_file = open(output_path, "w")
+    
+    print "Running %r..." % (" ".join(command_line))
+    client = subprocess.Popen(command_line,
+        stdout = output_file, stderr = subprocess.STDOUT)
+    start_time = time.time()
+    try:
+        result = client.wait()
+    finally:
+        try: client.terminate()
+        except: pass
+    if result != 0:
+        raise RuntimeError("Stress client exited with code %d.", result)
+    
+    print "Stress test done; it took %f seconds." % (time.time() - start_time)
+
+def rdb_stats(port=8080, host="localhost"):
+    
+    sock = socket.socket()
+    sock.connect((host, port))
+    sock.send("stats\r\n")
+    
+    buffer = ""
+    while "END\r\n" not in buffer:
+        buffer += sock.recv(4096)
+    
+    stats = {}
+    for line in buffer.split("\r\n"):
+        parts = line.split()
+        if parts == ["END"]:
+            break
+        elif parts:
+            assert parts[0] == "STAT"
+            name = parts[1]
+            value = " ".join(parts[2:])
+            stats[name] = value
+    else:
+        raise ValueError("Didn't get an END");
+    
+    sock.shutdown(socket.SHUT_RDWR)
+    sock.close()
+    return stats
+
 def get_executable_path(opts, name):
     executable_path = os.path.join(os.path.dirname(__file__), "../../build")
     executable_path = os.path.join(executable_path, opts["mode"])
