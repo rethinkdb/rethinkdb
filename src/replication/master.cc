@@ -28,7 +28,7 @@ void replication_message_t::on_thread_switch() {
 
 void replication_message_t::on_lock_available() {
 
-    if (parent->conn->closed()) on_net_conn_close();
+    if (!parent->conn->is_write_open()) on_net_conn_close();
 
     if (buffer_group) {
         which_buffer_of_group = -1;
@@ -101,7 +101,8 @@ void replication_master_t::quit() {
     assert(!quitting);
     quitting = true;
 
-    if (!conn->closed()) conn->shutdown();
+    if (conn->is_read_open()) conn->shutdown_read();
+    if (conn->is_write_open()) conn->shutdown_write();
 
     store->stop_replicating(this);   // Will call stopped() when it is done
 }

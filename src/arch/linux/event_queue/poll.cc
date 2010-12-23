@@ -16,23 +16,26 @@
 #include "logger.hpp"
 
 int user_to_poll(int mode) {
+
+    assert((mode & (poll_event_in|poll_event_out)) == mode);
+
     int out_mode = 0;
-    if(mode & poll_event_in)
-        out_mode |= POLLIN;
-    if(mode & poll_event_out)
-        out_mode |= POLLOUT;
+    if (mode & poll_event_in) out_mode |= POLLIN;
+    if (mode & poll_event_out) out_mode |= POLLOUT;
 
     return out_mode;
 }
 
 int poll_to_user(int mode) {
+
+    assert((mode & (POLLIN|POLLOUT|POLLERR|POLLHUP|POLLRDHUP)) == mode);
+
     int out_mode = 0;
-    if(mode & POLLIN)
-        out_mode |= poll_event_in;
-    if(mode & POLLOUT)
-        out_mode |= poll_event_out;
-    if(mode & POLLRDHUP || mode & POLLERR || mode & POLLHUP)
-        out_mode |= poll_event_err;
+    if (mode & POLLIN) out_mode |= poll_event_in;
+    if (mode & POLLOUT) out_mode |= poll_event_out;
+    if (mode & POLLERR) out_mode |= poll_event_err;
+    if (mode & POLLHUP) out_mode |= poll_event_hup;
+    if (mode & POLLRDHUP) out_mode |= poll_event_rdhup;
 
     return out_mode;
 }
@@ -97,7 +100,8 @@ void poll_event_queue_t::adjust_resource(fd_t resource, int events, linux_event_
     callbacks[resource] = cb;
     for (unsigned int i = 0; i < watched_fds.size(); i++) {
         if(watched_fds[i].fd == resource) {
-            watched_fds[i].events = events;
+            watched_fds[i].events = user_to_poll(events);
+            watched_fds[i].revents &= user_to_poll(events);
             return;
         }
     }

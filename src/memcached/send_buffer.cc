@@ -22,7 +22,7 @@ void send_buffer_t::write_external(size_t s, const char *v, send_buffer_external
 
     assert(!external_write_cb, "Can't write to a send buffer while it's doing an external write.");
     assert(!flush_cb, "Can't write to a send_buffer_t while it's flushing.");
-    assert(!conn->closed());
+    assert(conn->is_write_open());
 
     external_write_cb = cb;
     external_write_buffer = v;
@@ -43,8 +43,16 @@ void send_buffer_t::flush(send_buffer_callback_t *cb) {
     assert(!external_write_cb);
 
     flush_cb = cb;
-    assert(!conn->closed());
+    assert(conn->is_write_open());
     conn->write_external(buffer.data(), buffer.size(), this);
+}
+
+void send_buffer_t::discard() {
+
+    assert(!flush_cb);
+    assert(!external_write_cb);
+
+    buffer.clear();
 }
 
 void send_buffer_t::on_net_conn_write_external() {
