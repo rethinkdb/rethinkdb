@@ -16,7 +16,6 @@
 // stored on disk, but be aware of how you might invalidate old data.)
 struct btree_leaf_pair {
     btree_key key;
-    btree_value value_;
     // key is of variable size and there's a btree_value that follows
     // it that is of variable size.
     btree_value *value() {

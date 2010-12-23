@@ -3,6 +3,7 @@
 #include "unittest/gtest.hpp"
 
 #include "btree/node.hpp"
+#include "btree/leaf_node.hpp"
 
 namespace unittest {
 
@@ -24,7 +25,6 @@ TEST(LeafNodeTest, Offsets) {
     EXPECT_EQ(16, sizeof(leaf_node_t));
 
 
-
     // Check leaf_timestamps_t, since that's specifically part of leaf_node_t.
     EXPECT_EQ(0, offsetof(leaf_timestamps_t, last_modified));
     EXPECT_EQ(4, offsetof(leaf_timestamps_t, earlier));
@@ -33,6 +33,14 @@ TEST(LeafNodeTest, Offsets) {
     EXPECT_EQ(2, NUM_LEAF_NODE_EARLIER_TIMES);
 
     EXPECT_EQ(8, sizeof(leaf_timestamps_t));
+
+
+    // Check btree_leaf_pair.
+    EXPECT_EQ(0, offsetof(btree_leaf_pair, key));
+
+    btree_leaf_pair p;
+    p.key.size = 173;
+    EXPECT_EQ(174, reinterpret_cast<byte *>(p.value()) - reinterpret_cast<byte *>(&p));
 }
 
 
