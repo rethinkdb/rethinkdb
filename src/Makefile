@@ -1,7 +1,7 @@
 ##### Configuring stuff
 
 SERVER_EXEC_NAME:=rethinkdb
-SERVER_UNITTEST_NAME:=rethinkdb-unittest
+SERVER_UNIT_TEST_NAME:=rethinkdb-unittest
 
 SCRIPTS_DIR:=../scripts
 START_DB_NAME:=start_rethinkdb
@@ -21,7 +21,7 @@ VALGRIND?=0
 SEMANTIC_SERIALIZER_CHECK?=0
 MOCK_CACHE_CHECK?=0
 VERBOSE?=0
-UNITTESTS?=1
+UNIT_TESTS?=0
 
 # Choose our directories
 # This makefile is meant to be run from the 'src' directory.
@@ -37,7 +37,7 @@ endif
 CXX:=g++
 LDFLAGS:=-lrt -laio
 CXXFLAGS:=-I$(SOURCE_DIR) -Wall -Wextra -Wformat=2 -Wno-unused-parameter -Wswitch-enum -Werror
-ifeq ($(UNITTESTS),0)
+ifeq ($(UNIT_TESTS),0)
 CXXFLAGS+=-Wswitch-default
 endif
 
@@ -117,16 +117,21 @@ QUIET:=@
 endif
 
 # googletest flags
+ifeq ($(UNIT_TESTS),1)
 LDFLAGS+=-lgtest
-
-
+endif
 
 ##### Finding what to build
 
 DEP_DIR:=$(BUILD_DIR)/dep
 OBJ_DIR:=$(BUILD_DIR)/obj
 
+ifeq ($(UNIT_TESTS),1)
 SOURCES:=$(shell find $(SOURCE_DIR) -name '*.cc')
+else
+SOURCES:=$(shell find $(SOURCE_DIR) -name '*.cc' | grep -vF "`find $(SOURCE_DIR)/unittest`")
+endif
+
 NAMES:=$(patsubst $(SOURCE_DIR)/%.cc,%,$(SOURCES))
 DEPS:=$(patsubst %,$(DEP_DIR)/%.d,$(NAMES))
 OBJS:=$(patsubst %,$(OBJ_DIR)/%.o,$(NAMES))
@@ -135,14 +140,14 @@ SERVER_EXEC_OBJS:=$(patsubst %.cc,$(OBJ_DIR)/%.o,$(shell find $(SOURCE_DIR) -nam
 
 SERVER_NOMAIN_OBJS:=$(patsubst %.cc,$(OBJ_DIR)/%.o,$(shell find $(SOURCE_DIR) -name '*.cc' | grep -vF "`find $(SOURCE_DIR) -name 'main.cc'`"))
 
-SERVER_UNITTEST_OBJS:=$(SERVER_NOMAIN_OBJS) $(OBJ_DIR)/unittest/main.o
+SERVER_UNIT_TEST_OBJS:=$(SERVER_NOMAIN_OBJS) $(OBJ_DIR)/unittest/main.o
 
 ##### Build targets
 
 # High level build targets
 
-ifeq ($(UNITTESTS),1)
-all: $(BUILD_DIR)/$(SERVER_EXEC_NAME) $(BUILD_DIR)/$(SERVER_UNITTEST_NAME) $(BUILD_DIR)/$(START_DB_NAME) $(BUILD_DIR)/$(GDB_FUNCTIONS_NAME)
+ifeq ($(UNIT_TESTS),1)
+all: $(BUILD_DIR)/$(SERVER_EXEC_NAME) $(BUILD_DIR)/$(SERVER_UNIT_TEST_NAME) $(BUILD_DIR)/$(START_DB_NAME) $(BUILD_DIR)/$(GDB_FUNCTIONS_NAME)
 else
 all: $(BUILD_DIR)/$(SERVER_EXEC_NAME) $(BUILD_DIR)/$(START_DB_NAME) $(BUILD_DIR)/$(GDB_FUNCTIONS_NAME)
 endif
@@ -154,11 +159,11 @@ ifeq ($(VERBOSE),0)
 endif
 	$(QUIET) $(CXX) $(LDFLAGS) $(SERVER_EXEC_OBJS) -o $(BUILD_DIR)/$(SERVER_EXEC_NAME)
 
-$(BUILD_DIR)/$(SERVER_UNITTEST_NAME): $(OBJS) $(BUILD_DIR)
+$(BUILD_DIR)/$(SERVER_UNIT_TEST_NAME): $(OBJS) $(BUILD_DIR)
 ifeq ($(VERBOSE),0)
 	@echo "    LD $@"
 endif
-	$(QUIET) $(CXX) $(LDFLAGS) $(SERVER_UNITTEST_OBJS) -o $(BUILD_DIR)/$(SERVER_UNITTEST_NAME)
+	$(QUIET) $(CXX) $(LDFLAGS) $(SERVER_UNIT_TEST_OBJS) -o $(BUILD_DIR)/$(SERVER_UNIT_TEST_NAME)
 
 
 

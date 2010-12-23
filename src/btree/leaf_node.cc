@@ -1,9 +1,6 @@
 
 #include "btree/leaf_node.hpp"
-
 #include <algorithm>
-#include <gtest/gtest.h>
-
 #include "logger.hpp"
 
 // #define DEBUG_MAX_LEAF 10
