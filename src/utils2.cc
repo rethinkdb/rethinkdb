@@ -76,13 +76,14 @@ void debugf(const char *msg, ...) {
     funlockfile(stderr);
 }
 
-int randint(int n) {
-    static bool initted = false;
-    if (!initted) {
+/* This object exists only to call srand(time(NULL)) in its constructor, before main() runs. */
+struct rand_initter_t {
+    rand_initter_t() {
         srand(time(NULL));
-        initted = true;
     }
+} rand_initter;
 
+int randint(int n) {
     assert(n > 0 && n < RAND_MAX);
     return rand() % n;
 }
