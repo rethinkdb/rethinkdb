@@ -4,7 +4,7 @@
 
 #include "btree/node.hpp"
 
-namespace leaf_node_test {
+namespace unittest {
 
 // TODO: this is rather duplicative of fsck::check_subtree_leaf_node.
 void verify_leaf_node_contiguity(block_size_t block_size, leaf_node_t *buf) {
@@ -36,5 +36,5 @@ TEST(LeafNodeTest, Offsets) {
 }
 
 
-}  // namespace leaf_node_test
+}  // namespace unittest
 
