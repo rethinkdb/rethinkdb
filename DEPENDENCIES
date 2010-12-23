@@ -1,0 +1,39 @@
+rethinkdb: [src/]
+  libc6 >= 2.10
+  libboost >= 1.40          -- for crc checks
+  libunwind >= 0.99-beta
+  gtest                     -- googletest <http://code.google.com/p/googletest/>
+  valgrind
+  libaio
+
+test: [test/]
+  retester
+  rethinkdb_memcached
+  libmemcached
+  libmysqlclient
+  pylibmc
+  subprocess.py
+  netrecord
+  termcolor
+  paramiko                  -- required by smoke-test
+  boto                      -- required by smoke-test
+
+stress-client: [bench/stress-client/]
+  libmysqlclient >= 16-dev
+  libmemcached
+
+rebench: [git://github.com/coffeemug/rebench.git]
+  libgsl0-dev
+
+tcmalloc_minimal: [lib/google-perftools-1.6/]
+
+libmemcached: [lib/libmemcached-0.44/]
+  memcached
+
+gtest: [lib/gtest-1.5.0]
+
+retester: [lib/retester/]
+
+rethinkdb_memcached: [lib/rethinkdb_memcached/]
+
+netrecord: [scripts/netrecord]
