@@ -1,6 +1,6 @@
 DEBUG?=0
 CXXFLAGS=-Wall -pg -g
-LDFLAGS=-Wall -rdynamic -lrt -laio -pg -g -lgtest
+LDFLAGS=-Wall -rdynamic -lrt -laio -pg -g
 OBJDIR:=../../build/release/obj
 
 serializer-bench: main.cc Makefile
