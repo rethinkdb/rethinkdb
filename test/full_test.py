@@ -74,7 +74,7 @@ def run_canonical_tests(mode, checker, protocol, cores, slices):
                     "cores"       : cores,
                     "slices"      : slices,
                     "chunk-size"  : 10000 if (mode == "release" and not checker) else 100,
-                    "num-ints"    : 1000000 if (mode == "release" and not checker) else 1000 },
+                    "num-ints"    : 1000000 if (mode == "release" and not checker) else 1000,
                     "sigint-timeout" : sigint_timeout },
                   repeat=3, timeout = 180)
     
