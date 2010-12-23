@@ -290,7 +290,6 @@ def run_all_tests(mode, checker, protocol, cores, slices):
                         "protocol"    : protocol,
                         "cores"       : cores,
                         "slices"      : slices,
-                        "duration"    : 120,
                         "suite-test"  : suite_test},
                       repeat=3, timeout=240)
                 
