@@ -66,9 +66,8 @@ def run_canonical_tests(mode, checker, protocol, cores, slices):
                     "sigint-timeout" : sigint_timeout },
                   repeat=3, timeout = 200 + sigint_timeout)
     
-    # Note: we can't send too many things via the pipeline test now
-    # because it saturates network buffers. TODO: fix the pipeline
-    # test (see issue 134).
+    # Note: pipeline test is still slow as hell for gets. TODO: fix
+    # the pipeline test (see issue 134).
     do_test_cloud("integration/pipeline.py",
                   { "auto"        : True,
                     "mode"        : mode,
