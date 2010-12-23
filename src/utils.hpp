@@ -81,25 +81,6 @@ bool is_sorted(ForwardIterator first, ForwardIterator last,
     return true;
 }
 
-// Extend STL less a bit
-namespace std {
-    //Scamped from:
-    //https://sdm.lbl.gov/fastbit/doc/html/util_8h_source.html
-    // specialization of less<> to work with char*
-    template <> struct less< char* > {
-        bool operator()(const char*x, const char*y) const {
-            return strcmp(x, y) < 0;
-        }
-    };
-
-    // specialization of less<> on const char* (case sensitive comparison)
-    template <> struct less< const char* > {
-        bool operator()(const char* x, const char* y) const {
-            return strcmp(x, y) < 0;
-        }
-    };
-};
-
 //network conversion
 inline uint16_t ntoh(uint16_t val) { return be16toh(val); }
 inline uint32_t ntoh(uint32_t val) { return be32toh(val); }
