@@ -49,7 +49,7 @@ struct config_t {
     std::string log_file_name;
 };
 
-void check_files(const config_t& config);
+bool check_files(const config_t& config);
 
 
 
