@@ -12,7 +12,7 @@ for mode in ["debug", "release"]:
             for mock_cache in [True, False]:
                 for poll_mode in ["poll", "epoll"]:
                     # Build our targets
-                    do_test("cd ../src/; nice make -j",
+                    do_test("cd ../src/; make -j",
                             { "DEBUG"            : 1 if mode    == "debug"    else 0,
                               "VALGRIND"         : 1 if checker == "valgrind" else 0,
                               "MOCK_IO_LAYER"    : 1 if mock_io               else 0,
