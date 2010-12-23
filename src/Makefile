@@ -1,6 +1,7 @@
 ##### Configuring stuff
 
 SERVER_EXEC_NAME:=rethinkdb
+SERVER_UNITTEST_NAME:=rethinkdb-unittest
 
 SCRIPTS_DIR:=../scripts
 START_DB_NAME:=start_rethinkdb
@@ -20,7 +21,7 @@ VALGRIND?=0
 SEMANTIC_SERIALIZER_CHECK?=0
 MOCK_CACHE_CHECK?=0
 VERBOSE?=0
-UNITS?=0
+UNITTESTS?=1
 
 # Choose our directories
 # This makefile is meant to be run from the 'src' directory.
@@ -36,7 +37,7 @@ endif
 CXX:=g++
 LDFLAGS:=-lrt -laio
 CXXFLAGS:=-I$(SOURCE_DIR) -Wall -Wextra -Wformat=2 -Wno-unused-parameter -Wswitch-enum -Werror
-ifeq ($(UNITS),0)
+ifeq ($(UNITTESTS),0)
 CXXFLAGS+=-Wswitch-default
 endif
 
@@ -130,17 +131,21 @@ NAMES:=$(patsubst $(SOURCE_DIR)/%.cc,%,$(SOURCES))
 DEPS:=$(patsubst %,$(DEP_DIR)/%.d,$(NAMES))
 OBJS:=$(patsubst %,$(OBJ_DIR)/%.o,$(NAMES))
 
-SERVER_EXEC_OBJS:=$(patsubst %.cc,$(OBJ_DIR)/%.o,$(shell find $(SOURCE_DIR) -name '*.cc'))
+SERVER_EXEC_OBJS:=$(patsubst %.cc,$(OBJ_DIR)/%.o,$(shell find $(SOURCE_DIR) -name '*.cc' | grep -vF "`find $(SOURCE_DIR)/unittest`"))
 
 SERVER_NOMAIN_OBJS:=$(patsubst %.cc,$(OBJ_DIR)/%.o,$(shell find $(SOURCE_DIR) -name '*.cc' | grep -vF "`find $(SOURCE_DIR) -name 'main.cc'`"))
 
+SERVER_UNITTEST_OBJS:=$(SERVER_NOMAIN_OBJS) $(OBJ_DIR)/unittest/main.o
 
 ##### Build targets
 
 # High level build targets
 
-# TODO: add unit tests.. perhaps
+ifeq ($(UNITTESTS),1)
+all: $(BUILD_DIR)/$(SERVER_EXEC_NAME) $(BUILD_DIR)/$(SERVER_UNITTEST_NAME) $(BUILD_DIR)/$(START_DB_NAME) $(BUILD_DIR)/$(GDB_FUNCTIONS_NAME)
+else
 all: $(BUILD_DIR)/$(SERVER_EXEC_NAME) $(BUILD_DIR)/$(START_DB_NAME) $(BUILD_DIR)/$(GDB_FUNCTIONS_NAME)
+endif
 
 
 $(BUILD_DIR)/$(SERVER_EXEC_NAME): $(OBJS) $(BUILD_DIR)
@@ -148,6 +153,12 @@ ifeq ($(VERBOSE),0)
 	@echo "    LD $@"
 endif
 	$(QUIET) $(CXX) $(LDFLAGS) $(SERVER_EXEC_OBJS) -o $(BUILD_DIR)/$(SERVER_EXEC_NAME)
+
+$(BUILD_DIR)/$(SERVER_UNITTEST_NAME): $(OBJS) $(BUILD_DIR)
+ifeq ($(VERBOSE),0)
+	@echo "    LD $@"
+endif
+	$(QUIET) $(CXX) $(LDFLAGS) $(SERVER_UNITTEST_OBJS) -o $(BUILD_DIR)/$(SERVER_UNITTEST_NAME)
 
 
 
