@@ -12,4 +12,4 @@ def test(opts, port):
 if __name__ == "__main__":
     op = make_option_parser()
     op["suite-test"] = StringFlag("--suite-test")
-    auto_server_test_main(test, op.parse(sys.argv), timeout=120)
+    auto_server_test_main(test, op.parse(sys.argv), timeout=180)

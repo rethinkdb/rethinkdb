@@ -112,5 +112,5 @@ if __name__ == "__main__":
     opts = op.parse(sys.argv)
     opts["mclib"] = "memcache"
     opts["auto"] = False # Never start server automatically
-    simple_test_main(test_function, opts, timeout = 5)
+    simple_test_main(test_function, opts, timeout = 60)
 
