@@ -21,10 +21,10 @@ for mode in ["debug", "release"]:
                             cmd_format="make")
 
 # Make sure auxillary tools compile
-do_test("cd ../bench/stress-client/; make clean; make",
+do_test("cd ../bench/stress-client/; make clean; nice make -j STATIC=1",
         {},
         cmd_format="make")
-do_test("cd ../bench/serializer-bench/; make clean; make",
+do_test("cd ../bench/serializer-bench/; make clean; nice make -j",
         {},
         cmd_format="make")
 
@@ -76,9 +76,10 @@ def run_canonical_tests(mode, checker, protocol, cores, slices):
                     "protocol"    : protocol,
                     "cores"       : cores,
                     "slices"      : slices,
-                    "num-ints"    : 50000 if (mode == "release" and not checker) else 1000,
+                    "chunk-size"  : 100,
+                    "num-ints"    : 50000 if (mode == "release" and not checker) else 1000 },
                     "sigint-timeout" : sigint_timeout },
-                  repeat=3, timeout = 180 + sigint_timeout)
+                  repeat=3, timeout = 180)
     
     # Don't run the corruption test in mockio or mockcache mode because in those modes
     # we don't flush to disk at all until the server is shut down, so obviously the
@@ -289,7 +290,6 @@ def run_all_tests(mode, checker, protocol, cores, slices):
                         "protocol"    : protocol,
                         "cores"       : cores,
                         "slices"      : slices,
-                        "duration"    : 120,
                         "suite-test"  : suite_test},
                       repeat=3, timeout=240)
                 

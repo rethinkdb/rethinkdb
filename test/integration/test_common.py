@@ -307,6 +307,8 @@ class Server(object):
                          "--error-exitcode=%d" % self.valgrind_error_code]
                     if self.valgrind_tool == "memcheck":
                         cmd_line.append("--leak-check=full")
+                    if self.valgrind_tool == "drd":
+                        cmd_line.append("--read-var-info=yes")
                     command_line = cmd_line + command_line
                 
                 output_path = os.path.join(make_test_dir(), "creator_output.txt")
