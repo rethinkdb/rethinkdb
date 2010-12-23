@@ -49,14 +49,17 @@ spinlock_t &get_var_lock() {
     return lock;
 }
 
+
 /* This is the function that actually gathers the stats. It is illegal to create or destroy
-perfmon_t objects while a perfmon_fsm_t is active. */
+perfmon_t objects while perfmon_get_stats is active. */
 
 void co_perfmon_visit(int thread, const std::vector<void*> &data, coro_t::multi_wait_t *multi_wait) {
-    coro_t::on_thread_t moving(thread);
-    int i = 0;
-    for (perfmon_t *p = get_var_list().head(); p; p = get_var_list().next(p)) {
-        p->visit_stats(data[i++]);
+    {
+        coro_t::on_thread_t moving(thread);
+        int i = 0;
+        for (perfmon_t *p = get_var_list().head(); p; p = get_var_list().next(p)) {
+            p->visit_stats(data[i++]);
+        }
     }
     multi_wait->notify();
 }
@@ -122,9 +125,7 @@ void *perfmon_counter_t::begin_stats() {
 }
 
 void perfmon_counter_t::visit_stats(void *data) {
-    //printf("Visiting the %dth thread for the stat %s\n", get_thread_id(), name.c_str());
     ((int64_t *)data)[get_thread_id()] = get();
-    //printf("Just visited the %dth thread for the stat %s\n", get_thread_id(), name.c_str());
 }
 
 void perfmon_counter_t::end_stats(void *data, perfmon_stats_t *dest) {
