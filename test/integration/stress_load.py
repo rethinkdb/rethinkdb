@@ -23,5 +23,5 @@ if __name__ == "__main__":
     op["nprepends"] = IntFlag("--nprepends", 0)
     opts = op.parse(sys.argv)
     opts["netrecord"] = False   # We don't want to slow down the network
-    auto_server_test_main(test_function, opts, timeout = opts["duration"] + 60)
+    auto_server_test_main(test_function, opts, timeout = opts["duration"] + 120)
 

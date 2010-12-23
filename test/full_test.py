@@ -106,6 +106,32 @@ def run_all_tests(mode, checker, protocol, cores, slices):
                     "num-keys"    : 50000},
                   repeat=3, timeout=720)
     
+    # Run a canonical workload for half hour
+    do_test_cloud("integration/stress_load.py",
+                  { "auto"        : True,
+                    "mode"        : mode,
+                    "no-valgrind" : not checker,
+                    "protocol"    : protocol,
+                    "cores"       : cores,
+                    "slices"      : slices,
+                    "duration"    : 1800},
+                  repeat=3, timeout=2400)
+
+    # Run an modify-heavy workload for half hour
+    do_test_cloud("integration/stress_load.py",
+                  { "auto"        : True,
+                    "mode"        : mode,
+                    "no-valgrind" : not checker,
+                    "protocol"    : protocol,
+                    "cores"       : cores,
+                    "slices"      : slices,
+                    "duration"    : 1800,
+                    "ndeletes"    : 1,
+                    "nupdates"    : 5,
+                    "ninserts"    : 10,
+                    "nreads"      : 1 },
+                  repeat=3, timeout=2400)
+
     do_test_cloud("integration/serial_mix.py",
                   { "auto"        : True,
                     "mode"        : mode,
