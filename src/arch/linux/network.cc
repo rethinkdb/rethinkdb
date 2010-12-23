@@ -5,6 +5,7 @@
 #include <errno.h>
 #include <string.h>
 #include <arpa/inet.h>
+#include <netinet/tcp.h>
 
 /* Network connection object */
 
@@ -452,6 +453,22 @@ linux_net_listener_t::linux_net_listener_t(int port)
     int sockoptval = 1;
     res = setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &sockoptval, sizeof(sockoptval));
     guarantee_err(res != -1, "Could not set REUSEADDR option");
+
+    /* XXX Making our socket NODELAY prevents the problem where responses to
+     * pipelined requests are delayed, since the TCP Nagle algorithm will
+     * notice when we send mulitple small packets and try to coalesce them. But
+     * if we are only sending a few of these small packets quickly, like during
+     * pipeline request responses, then Nagle delays for around 40 ms before
+     * sending out those coalesced packets if they don't reach the max window
+     * size. So for latency's sake we want to disable Nagle.
+     *
+     * This might decrease our throughput, so perhaps we should add a
+     * runtime option for it.
+     *
+     * - Jordan 12/22/10
+     */
+    res = setsockopt(sock, IPPROTO_TCP, TCP_NODELAY, &sockoptval, sizeof(sockoptval));
+    guarantee_err(res != -1, "Could not set TCP_NODELAY option");
 
     // Bind the socket
     sockaddr_in serv_addr;

@@ -519,16 +519,15 @@ def print_results_as_html(opts, tests):
         (len(tests), len(tests) - count_failures(tests), count_failures(tests))
     
     print """<table>"""
-    for (name, results) in tests:
+    for (test_num, (name, results)) in enumerate(tests):
         print """<tr>"""
         sub_failures = count_sub_failures(results)
         timesum = sum([result.running_time for result in results])
         if sub_failures == 0:
             print """<td>%s</td><td><span style="color: green">Passed</span></td><td>(%f&nbsp;s)</td>""" % (code(name), timesum)
         else:
-            if sub_failures == len(results): msg = "Failed"
-            else: msg = "Failed (intermittently)"
-            print """<td>%s</td><td><span style="color: red">%s</span></td><td>(%f&nbsp;s)</td>""" % (code(name), msg, timesum)
+            msg = """<a href="#%d"><span style="color: red">Failed%s</span></a>""" % (test_num, "" if sub_failures == len(results) else " (intermittently)")
+            print """<td>%s</td><td>%s</td><td>(%f&nbsp;s)</td>""" % (code(name), msg, timesum)
         print """</tr>"""
     print """</table>"""
     
@@ -537,13 +536,14 @@ def print_results_as_html(opts, tests):
     
     # A div for each failed test
     
-    for name, results in tests:
+    for (test_num, (name, results)) in enumerate(tests):
         
         sub_failures = count_sub_failures(results)
         
         if sub_failures == 0: continue
         
         print """<div style="border-top: solid 5px black; padding: 0; margin-bottom: 0.3cm">"""
+        print """<a name="%d"></a>""" % test_num
         
         # A div for the header
         

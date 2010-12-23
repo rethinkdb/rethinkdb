@@ -46,7 +46,8 @@ struct leaf_timestamps_t {
     uint16_t earlier[NUM_LEAF_NODE_EARLIER_TIMES];  // 4
 };
 
-//Note: This struct is stored directly on disk.  Changing it invalidates old data.
+// Note: This struct is stored directly on disk.  Changing it invalidates old data.
+// Offsets tested in leaf_node_test.cc
 struct leaf_node_t {
     block_magic_t magic;        // 0
     leaf_timestamps_t times;    // 4

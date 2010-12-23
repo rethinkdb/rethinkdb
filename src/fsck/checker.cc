@@ -643,8 +643,6 @@ void check_value(slicecx& cx, const btree_value *value, subtree_errors *tree_err
     if (!value->is_large()) {
         errs->too_big = (size > MAX_IN_NODE_VALUE_SIZE);
     } else {
-        // TODO check large value intergity.
-
         errs->lv_too_small = (size <= MAX_IN_NODE_VALUE_SIZE);
 
         large_buf_ref root_ref = value->lb_ref();
@@ -672,6 +670,11 @@ bool leaf_node_inspect_range(const slicecx& cx, const leaf_node_t *buf, uint16_t
 
 void check_subtree_leaf_node(slicecx& cx, const leaf_node_t *buf, const btree_key *lo, const btree_key *hi, subtree_errors *tree_errs, node_error *errs) {
     {
+        if (offsetof(leaf_node_t, pair_offsets) + buf->npairs * sizeof(*buf->pair_offsets) > buf->frontmost_offset
+            || buf->frontmost_offset > cx.knog->static_config->block_size().value()) {
+            errs->value_out_of_buf = true;
+            return;
+        }
         std::vector<uint16_t> sorted_offsets(buf->pair_offsets, buf->pair_offsets + buf->npairs);
         std::sort(sorted_offsets.begin(), sorted_offsets.end());
         uint16_t expected_offset = buf->frontmost_offset;
@@ -712,18 +715,23 @@ void check_subtree_leaf_node(slicecx& cx, const leaf_node_t *buf, const btree_ke
 }
 
 bool internal_node_begin_offset_in_range(const slicecx& cx, const internal_node_t *buf, uint16_t offset) {
-    // TODO: what about key size?  look in the buf?
-    return (cx.knog->static_config->block_size().value() - sizeof(btree_internal_pair)) >= offset && offset >= buf->frontmost_offset;
+    return (cx.knog->static_config->block_size().value() - sizeof(btree_internal_pair)) >= offset && offset >= buf->frontmost_offset && offset + sizeof(btree_internal_pair) + ptr_cast<btree_internal_pair>(ptr_cast<byte>(buf) + offset)->key.size <= cx.knog->static_config->block_size().value();
 }
 
 void check_subtree(slicecx& cx, block_id_t id, const btree_key *lo, const btree_key *hi, subtree_errors *errs);
 
 void check_subtree_internal_node(slicecx& cx, const internal_node_t *buf, const btree_key *lo, const btree_key *hi, subtree_errors *tree_errs, node_error *errs) {
     {
+        if (offsetof(internal_node_t, pair_offsets) + buf->npairs * sizeof(*buf->pair_offsets) > buf->frontmost_offset
+            || buf->frontmost_offset > cx.knog->static_config->block_size().value()) {
+            errs->value_out_of_buf = true;
+            return;
+        }
+
         std::vector<uint16_t> sorted_offsets(buf->pair_offsets, buf->pair_offsets + buf->npairs);
         std::sort(sorted_offsets.begin(), sorted_offsets.end());
         uint16_t expected_offset = buf->frontmost_offset;
-  
+
         for (int i = 0, n = sorted_offsets.size(); i < n; ++i) {
             errs->noncontiguous_offsets |= (sorted_offsets[i] != expected_offset);
             if (!internal_node_begin_offset_in_range(cx, buf, expected_offset)) {
