@@ -80,6 +80,71 @@ TEST(LeafNodeTest, Offsets) {
     EXPECT_EQ(174, reinterpret_cast<byte *>(p.value()) - reinterpret_cast<byte *>(&p));
 }
 
+class Value {
+public:
+    Value(const std::string& data = "", mcflags_t mcflags = 0, cas_t cas = 0, bool has_cas = false, exptime_t exptime = 0)
+        : mcflags_(mcflags), cas_(cas), exptime_(exptime),
+          has_cas_(has_cas)
+          data_(data) { }
+
+    void WriteBtreeValue(btree_value *out) const {
+        out->size = 0;
+        ASSERT_LE(data_.size(), MAX_IN_NODE_VALUE_SIZE);
+        out->value_size(data_.size());
+        out->set_mcflags(mcflags_);
+        out->set_exptime(exptime_);
+        if (has_cas_) {
+            out->set_cas(cas_);
+        }
+    }
+
+    static Value Make(const btree_value *v) {
+        ASSERT_FALSE(v->is_large());
+        return Value(std::string(v->value(), v->value() + v->value_size()),
+                     v->mcflags(), v->has_cas() ? v->cas() : 0, v->has_cas(), v->exptime());
+    }
+
+    bool operator==(const Value& rhs) {
+        return mcflags_ == rhs.mcflags_
+            && exptime_ == rhs.exptime_
+            && data_ == rhs.data_
+            && has_cas_ == rhs.has_cas_
+            && (has_cas_ ? cas_ == rhs.cas_ : true);
+    }
+
+private:
+    mcflags_t mcflags_;
+    cas_t cas_;
+    exptime_t exptime_;
+    bool has_cas_;
+    std::string data_;
+};
+
+template <int block_size>
+class LeafNodeGrinder {
+    typedef std::map<std::string, Value> expected_t;
+    expected_t expected;
+    leaf_node_t *node;
+
+    void insert(const std::string& k, const Value& v) {
+        std::pair<expected_t::iterator, bool> res = expected.insert(k, v);
+        if (!res.second) {
+            res.first->second = v;
+        }
+
+        
+
+
+    }
+
+
+
+};
+
+
+
+
+
 block_size_t make_bs() {
     // TODO: Test weird block sizes.
     return block_size_t::unsafe_make(4096);
