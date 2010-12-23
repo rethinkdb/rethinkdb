@@ -66,8 +66,6 @@ def run_canonical_tests(mode, checker, protocol, cores, slices):
                     "sigint-timeout" : sigint_timeout },
                   repeat=3, timeout = 200 + sigint_timeout)
     
-    # Note: pipeline test is still slow as hell for gets. TODO: fix
-    # the pipeline test (see issue 134).
     do_test_cloud("integration/pipeline.py",
                   { "auto"        : True,
                     "mode"        : mode,
@@ -75,8 +73,8 @@ def run_canonical_tests(mode, checker, protocol, cores, slices):
                     "protocol"    : protocol,
                     "cores"       : cores,
                     "slices"      : slices,
-                    "chunk-size"  : 100,
-                    "num-ints"    : 50000 if (mode == "release" and not checker) else 1000 },
+                    "chunk-size"  : 10000 if (mode == "release" and not checker) else 100,
+                    "num-ints"    : 1000000 if (mode == "release" and not checker) else 1000 },
                     "sigint-timeout" : sigint_timeout },
                   repeat=3, timeout = 180)
     
