@@ -33,7 +33,7 @@ HDD_DRIVES="" # TODO
 
 SERVER_HOSTS="magneto,magneto2"
 CANONICAL_CLIENTS="512"
-CANONICAL_DURATION="60s"
+CANONICAL_DURATION="300s"
 
 STRESS_CLIENT="puzzler:/home/teapot/stress"
 
@@ -79,8 +79,6 @@ done
 
 # TODO:
 # Out of RAM performance
-# Core/CPU scalability
-# Concurrent clients scalability
 # Canonical workload on HDD performance
 
 

@@ -25,7 +25,7 @@ MYSQL_SSD_FLAGS="--innodb_data_home_dir= --innodb_data_file_path=/dev/sdb:20Graw
 
 SERVER_HOSTS="magneto,magneto2"
 CANONICAL_CLIENTS="512"
-CANONICAL_DURATION="60s"
+CANONICAL_DURATION="300s"
 
 MYSQL_COMMON_FLAGS="--skip-name-resolve --innodb_support_xa=off --innodb_lock_wait_timeout=5 --innodb_flush_method=O_DIRECT --max-connections=1030 --max-prepared-stmt-count=32764 --innodb_log_group_home_dir=/tmp"
 MYSQL_BUFFER_FLAGS="--innodb_buffer_pool_size=32768m"
@@ -51,6 +51,16 @@ done
 echo "To get the canonical hardware, we have to disable all but 12 CPUs."
 echo 'Please give me authorization to run sh -c "for CPU in 12 13 14 15 16 17 18 19 20 21 22 23; do echo 0 > /sys/devices/system/cpu/cpu\$CPU/online; done"'
 sudo sh -c "for CPU in 12 13 14 15 16 17 18 19 20 21 22 23; do echo 0 > /sys/devices/system/cpu/cpu\$CPU/online; done"
+
+# "Initialize" the MySQL database by running some load now. Otherwise it fails on the first actual workload for some mysterious
+# TODO: This is just a hacky workaround. Investigate why this happens
+./dbench                                                                                   \
+        -d "$BENCH_DIR/bench_output/warmup" -H $SERVER_HOSTS             \
+        {server}mysql:"$MYSQL_COMMON_FLAGS $MYSQL_BUFFER_FLAGS $MYSQL_DURABILITY_FLAGS $MYSQL_SSD_FLAGS"              \
+        {client}mysqlstress[$STRESS_CLIENT]:"-c $CANONICAL_CLIENTS -d 10s" \
+        iostat:1 vmstat:1
+rm -rf "$BENCH_DIR/bench_output/warmup"
+
 
 # Run workloads
 for WORKLOAD in ../workloads/*; do

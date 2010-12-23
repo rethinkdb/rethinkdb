@@ -190,8 +190,7 @@ class TimeSeriesCollection():
         labels = []
         hists = []
         for series, color in zip(self.data.iteritems(), colors):
-# TODO: Clipping to 10000 is not the best way, is it?
-            clipped_data = clip(series[1], 0, 10000)
+            clipped_data = clip(series[1], 0, 5 * mean)
             if clipped_data:
                 _, _, foo = ax.hist(clipped_data, bins=200, histtype='bar', facecolor = color, alpha = .5, label = series[0])
                 hists.append(foo)
