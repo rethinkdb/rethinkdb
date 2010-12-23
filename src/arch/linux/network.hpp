@@ -53,19 +53,29 @@ public:
     void read_buffered(linux_net_conn_read_buffered_callback_t *cb);
     void accept_buffer(size_t size);
 
+    /* Call shutdown_read() to close the half of the pipe that goes from the peer to us. If there
+    are any outstanding read_*() commands, then they will get on_net_conn_closed() called. Further
+    calls to read_*() will fail. */
+    void shutdown_read();
+
+    /* Returns true if the half of the pipe that goes from the peer to us has been closed. */
+    bool is_read_open();
+
     /* write_external() writes 'size' bytes from 'buf' to the socket and calls
     cb->on_net_conn_write_external() when it's done. If the connection is closed before all the
     bytes can be written, cb->on_net_conn_close() is called. */
     void write_external(const void *buf, size_t size, linux_net_conn_write_external_callback_t *cb);
 
-    /* Call shutdown() to force the connection to close. shutdown() should not be called after
-    getting an on_net_conn_close() from a callback. If there are any active read or write attempts
-    when shutdown() is called, they will get on_net_conn_close() called. */
-    void shutdown();
+    /* Call shutdown_write() to close the half of the pipe that goes from us to the peer. If there
+    are any outstanding write_external() commands, they will get on_net_conn_closed() called. Further
+    calls to write_* will fail. */
+    void shutdown_write();
 
-    /* Returns true if the connection has been closed, whether through shutdown() or by the peer. */
-    bool closed();
+    /* Returns true if the half of the pipe that goes from us to the peer has been closed. */
+    bool is_write_open();
 
+    /* Note that closed_reading() and closed_writing() must both be true before the socket is
+    destroyed. */
     ~linux_net_conn_t();
 
 private:
@@ -110,10 +120,15 @@ private:
     linux_net_conn_write_external_callback_t *write_external_cb;
     void try_to_write_external_buf();
 
-    // Called when connection dies for any reason, either via shutdown() or by the remote host
-    void on_shutdown();
-    bool was_shut_down;   // True when connection is dead but net_conn_t not yet deallocated
-    
+    // Called when one half of connection dies for any reason, either via shutdown_*() or by the
+    // remote host
+    void on_shutdown_read();
+    void on_shutdown_write();
+
+    // True when the half of the connection has been shut down but the linux_net_conn_t has not
+    // been deleted yet
+    bool read_was_shut_down;
+    bool write_was_shut_down;
 };
 
 /* The linux_net_listener_t is used to listen on a network port for incoming

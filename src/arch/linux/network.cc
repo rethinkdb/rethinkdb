@@ -17,7 +17,7 @@ linux_net_conn_t::linux_net_conn_t(fd_t sock)
       registration_thread(-1), set_me_true_on_delete(NULL),
       read_mode(read_mode_none), in_read_buffered_cb(false),
       write_mode(write_mode_none),
-      was_shut_down(false)
+      read_was_shut_down(false), write_was_shut_down(false)
 {
     assert(sock != INVALID_FD);
 
@@ -40,8 +40,8 @@ void linux_net_conn_t::register_with_event_loop() {
 }
 
 void linux_net_conn_t::read_external(void *buf, size_t size, linux_net_conn_read_external_callback_t *cb) {
-    assert(!was_shut_down);
 
+    assert(!read_was_shut_down);
     register_with_event_loop();
     assert(sock != INVALID_FD);
     assert(read_mode == read_mode_none);
@@ -77,18 +77,18 @@ void linux_net_conn_t::try_to_read_external_buf() {
                 return;
             } else if (errno == ECONNRESET || errno == ENOTCONN) {
                 // Socket was closed
-                on_shutdown();
+                on_shutdown_read();
                 return;
             } else {
                 // This is not expected, but it will probably happen sometime so we shouldn't crash
                 logERR("Could not read from socket: %s", strerror(errno));
-                on_shutdown();
+                on_shutdown_read();
                 return;
             }
 
         } else if (res == 0) {
             // Socket was closed
-            on_shutdown();
+            on_shutdown_read();
             return;
 
         } else {
@@ -105,8 +105,8 @@ void linux_net_conn_t::try_to_read_external_buf() {
 }
 
 void linux_net_conn_t::read_buffered(linux_net_conn_read_buffered_callback_t *cb) {
-    assert(!was_shut_down);
 
+    assert(!read_was_shut_down);
     register_with_event_loop();
     assert(sock != INVALID_FD);
     assert(read_mode == read_mode_none);
@@ -139,11 +139,11 @@ void linux_net_conn_t::put_more_data_in_peek_buffer() {
             return;
         } else if (errno == ECONNRESET || errno == ENOTCONN) {
             // Socket was closed
-            on_shutdown();
+            on_shutdown_read();
         } else {
             // This is not expected, but it will probably happen sometime so we shouldn't crash
             logERR("Could not read from socket: %s", strerror(errno));
-            on_shutdown();
+            on_shutdown_read();
         }
 
     } else if (res == 0) {
@@ -151,7 +151,7 @@ void linux_net_conn_t::put_more_data_in_peek_buffer() {
         peek_buffer.resize(old_size);
 
         // Socket was closed
-        on_shutdown();
+        on_shutdown_read();
 
     } else {
         // Shrink the peek buffer so that its 'size' member is only how many bytes are
@@ -217,8 +217,8 @@ void linux_net_conn_t::accept_buffer(size_t bytes) {
 }
 
 void linux_net_conn_t::write_external(const void *buf, size_t size, linux_net_conn_write_external_callback_t *cb) {
-    assert(!was_shut_down);
 
+    assert(!write_was_shut_down);
     register_with_event_loop();
     assert(sock != INVALID_FD);
     assert(write_mode == write_mode_none);
@@ -245,21 +245,21 @@ void linux_net_conn_t::try_to_write_external_buf() {
                     errno == ENETDOWN || errno == EHOSTDOWN || errno == ECONNRESET) {
                 /* We expect that some of these errors could happen in practice, so just
                 shut down nicely */
-                on_shutdown();
+                on_shutdown_write();
                 return;
             } else {
                 /* In theory this should never happen, but in practice it probably will because
                 I probably didn't account for all possible error messages. So instead of crashing,
                 we write a log error message and then shut down gracefully. */
                 logERR("Could not write to socket: %s", strerror(errno));
-                on_shutdown();
+                on_shutdown_write();
                 return;
             }
         } else if (res == 0) {
             /* This should also probably never happen, but it's better to write an error message
             than to crash completely. */
             logERR("Didn't expect write() to return 0");
-            on_shutdown();
+            on_shutdown_write();
             return;
         } else {
             external_write_size -= res;
@@ -274,39 +274,40 @@ void linux_net_conn_t::try_to_write_external_buf() {
     }
 }
 
-void linux_net_conn_t::shutdown() {
+void linux_net_conn_t::shutdown_read() {
     assert(!in_read_buffered_cb, "Please don't call net_conn_t::shutdown() from within "
         "on_net_conn_read_buffered() without calling accept_buffer(). The net_conn_t is "
         "sort of stupid and you just broke its fragile little mind.");
 
-    int res = ::shutdown(sock, SHUT_RDWR);
+    int res = ::shutdown(sock, SHUT_RD);
     if (res != 0 && errno != ENOTCONN) {
-        logERR("Could not shutdown socket: %s", strerror(errno));
+        logERR("Could not shutdown socket for reading: %s", strerror(errno));
     }
 
-    on_shutdown();
+    on_shutdown_read();
 }
 
-void linux_net_conn_t::on_shutdown() {
-    assert(!was_shut_down);
+void linux_net_conn_t::on_shutdown_read() {
+    assert(!read_was_shut_down);
     assert(sock != INVALID_FD);
-    was_shut_down = true;
+    read_was_shut_down = true;
 
-    // Deregister ourself with the event loop
+    // Deregister ourself with the event loop. If the write half of the connection
+    // is still open, the make sure we stay registered for write.
 
     if (registration_thread != -1) {
         assert(registration_thread == linux_thread_pool_t::thread_id);
-        linux_thread_pool_t::thread->queue.forget_resource(sock, this);
+        if (write_was_shut_down) {
+            linux_thread_pool_t::thread->queue.forget_resource(sock, this);
+        } else {
+            linux_thread_pool_t::thread->queue.adjust_resource(sock, poll_event_out, this);
+        }
     }
 
-    // Inform any readers or writers that were waiting that the socket has been closed.
+    // Inform any readers that were waiting that the socket has been closed.
 
-    // If there are no readers or writers, nothing gets informed until an attempt is made
-    // to read or write. Is this a problem?
-
-    // Copy writer and registration thread in case we get deleted by one of the callbacks
-    int _write_mode = write_mode;
-    linux_net_conn_write_external_callback_t *_write_external_cb = write_external_cb;
+    // If there are no readers, nothing gets informed until an attempt is made to read. Is this a
+    // problem?
 
     switch (read_mode) {
         case read_mode_none: break;
@@ -314,16 +315,53 @@ void linux_net_conn_t::on_shutdown() {
         case read_mode_buffered: read_buffered_cb->on_net_conn_close(); break;
         default: unreachable();
     }
+}
 
-    switch (_write_mode) {
+bool linux_net_conn_t::is_read_open() {
+    return !read_was_shut_down;
+}
+
+void linux_net_conn_t::shutdown_write() {
+
+    int res = ::shutdown(sock, SHUT_WR);
+    if (res != 0 && errno != ENOTCONN) {
+        logERR("Could not shutdown socket for writing: %s", strerror(errno));
+    }
+
+    on_shutdown_write();
+}
+
+void linux_net_conn_t::on_shutdown_write() {
+    assert(!write_was_shut_down);
+    assert(sock != INVALID_FD);
+    write_was_shut_down = true;
+
+    // Deregister ourself with the event loop. If the read half of the connection
+    // is still open, the make sure we stay registered for read.
+
+    if (registration_thread != -1) {
+        assert(registration_thread == linux_thread_pool_t::thread_id);
+        if (read_was_shut_down) {
+            linux_thread_pool_t::thread->queue.forget_resource(sock, this);
+        } else {
+            linux_thread_pool_t::thread->queue.adjust_resource(sock, poll_event_in, this);
+        }
+    }
+
+    // Inform any writers that were waiting that the socket has been closed.
+
+    // If there are no writers, nothing gets informed until an attempt is made to write. Is this a
+    // problem?
+
+    switch (write_mode) {
         case write_mode_none: break;
-        case write_mode_external: _write_external_cb->on_net_conn_close(); break;
+        case write_mode_external: write_external_cb->on_net_conn_close(); break;
         default: unreachable();
     }
 }
 
-bool linux_net_conn_t::closed() {
-    return was_shut_down;
+bool linux_net_conn_t::is_write_open() {
+    return !write_was_shut_down;
 }
 
 linux_net_conn_t::~linux_net_conn_t() {
@@ -333,7 +371,9 @@ linux_net_conn_t::~linux_net_conn_t() {
         // So on_event() doesn't call us after we got deleted
         if (set_me_true_on_delete) *set_me_true_on_delete = true;
 
-        assert(was_shut_down);
+        assert(read_was_shut_down);
+        assert(write_was_shut_down);
+
         int res = ::close(sock);
         if (res != 0) {
             logERR("close() failed: %s", strerror(errno));
@@ -344,7 +384,6 @@ linux_net_conn_t::~linux_net_conn_t() {
 void linux_net_conn_t::on_event(int events) {
 
     assert(sock != INVALID_FD);
-    assert(!was_shut_down);
 
     // So we get notified if 'this' gets deleted and don't try to do any more
     // operations with it.
@@ -352,34 +391,46 @@ void linux_net_conn_t::on_event(int events) {
     set_me_true_on_delete = &deleted;
 
     if (events & poll_event_in) {
+        assert(!read_was_shut_down);
         switch (read_mode) {
             case read_mode_none: break;
             case read_mode_external: try_to_read_external_buf(); break;
             case read_mode_buffered: put_more_data_in_peek_buffer(); break;
             default: unreachable();
         }
-        if (deleted || was_shut_down) {
-            if (!deleted) set_me_true_on_delete = NULL;
-            return;
-        }
+        if (deleted) return;
     }
-    if (events & poll_event_out) {
+
+    // Check write_was_shut_down in case a read callback called shutdown_write()
+    if ((events & poll_event_out) && !write_was_shut_down) {
+        assert(!write_was_shut_down);
         switch (write_mode) {
             case write_mode_none: break;
             case write_mode_external: try_to_write_external_buf(); break;
             default: unreachable();
         }
-        if (deleted || was_shut_down) {
-            if (!deleted) set_me_true_on_delete = NULL;
-            return;
-        }
+        if (deleted) return;
     }
-    if (events & poll_event_err) {
-        // Should this be on_shutdown()? The difference is that by calling shutdown(), we
-        // cause ::shutdown() to be called on our socket. But if there was a socket error,
-        // it might have shut itself down already. This is probably safe.
+
+    if ((events & poll_event_err) && (events & poll_event_hup)) {
+        /* We get this when the socket is closed but there is still data we are trying to send.
+        For example, it can sometimes be reproduced by sending "nonsense\r\n" and then sending
+        "set [key] 0 0 [length] noreply\r\n[value]\r\n" a hundred times then immediately closing the
+        socket.
+        
+        I speculate that the "error" part comes from the fact that there is undelivered data
+        in the socket send buffer, and the "hup" part comes from the fact that the remote end
+        has hung up.
+        
+        Ignore it; the other logic will handle it properly. */
+        
+    } else if (events & poll_event_err) {
+        /* We don't know why we got this, so shut the hell down. */
+        logERR("Unexpected poll_event_err. Events: %d\n", events);
+        if (!read_was_shut_down) shutdown_read();
+        if (deleted) return;   // read callback could call shutdown_write() then delete us
+        if (!write_was_shut_down) shutdown_write();
         set_me_true_on_delete = NULL;
-        shutdown();
         return;
     }
 
@@ -439,7 +490,11 @@ void linux_net_listener_t::set_callback(linux_net_listener_callback_t *cb) {
 void linux_net_listener_t::on_event(int events) {
     if (defunct)
         return;
-        
+
+    if (events != poll_event_in) {
+        logERR("Unexpected event mask: %d\n", events);
+    }
+
     while (true) {
         sockaddr_in client_addr;
         socklen_t client_addr_len = sizeof(client_addr);
@@ -546,7 +601,7 @@ void linux_oldstyle_net_conn_t::on_event(int events) {
             callback->on_net_conn_writable();
         }
         if (was_deleted) return;
-    } else if (events & poll_event_err) {
+    } else if (events & (poll_event_err | poll_event_hup | poll_event_rdhup)) {
         callback->on_net_conn_close();
         if (was_deleted) return;
 

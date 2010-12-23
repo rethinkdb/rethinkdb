@@ -87,7 +87,7 @@ private:
 
         void write() {
             sending = true;
-            if (parent->rh->conn->closed()) {
+            if (!parent->rh->conn->is_write_open()) {
                 /* The conn closed as an earlier get in the multi-get was being sent.
                 We can't just abort because we wouldn't clean up properly, so instead we
                 go through the motions of waiting for each get to complete without actually
@@ -971,6 +971,9 @@ txt_memcached_handler_t::txt_memcached_handler_t(conn_acceptor_t *acc, net_conn_
 
 txt_memcached_handler_t::~txt_memcached_handler_t() {
     logINF("Closed connection %p\n", this);
+
+    if (conn->is_write_open()) conn->shutdown_write();
+    assert(!conn->is_read_open());
 }
 
 void txt_memcached_handler_t::write(const char *buffer, size_t bytes) {
@@ -989,11 +992,11 @@ void txt_memcached_handler_t::writef(const char *format, ...) {
 
 void txt_memcached_handler_t::quit() {
 
-    /* Any pending read or write operations will be interrupted. If the read or write operation
-    is in *_request_t, then it will eventually call read_next_command(), which will see that
-    the net_conn_t is closed and then delete us. If the read or write operation is in us, then
-    we will delete ourself immediately. */
-    if (!conn->closed()) conn->shutdown();
+    /* Any pending read operations will be interrupted. If the read operation is in *_request_t,
+    then it will eventually call read_next_command(), which will see that the net_conn_t is closed,
+    close it for writing, and then delete us. If the read operation is in us, then we will close
+    for writing and delete ourself immediately. */
+    if (conn->is_read_open()) conn->shutdown_read();
 }
 
 void txt_memcached_handler_t::read_next_command() {
@@ -1006,16 +1009,25 @@ void txt_memcached_handler_t::read_next_command() {
 
 void txt_memcached_handler_t::on_thread_switch() {
 
-    /* If conn->closed(), then the socket died during a read or write done by a *_request_t,
+    /* If !conn->is_read_open(), then the socket died during a read or write done by a *_request_t,
     and that's why we didn't find out about it immediately. */
-    if (conn->closed()) {
+    if (!conn->is_read_open()) {
         delete this;
         return;
     } else {
         /* Before we read another command off the socket, we must make sure that there isn't
         any data in the send buffer that we should flush first. */
         pm_conns_writing.begin(&start_time);
-        send_buffer.flush(this);
+        if (conn->is_write_open()) {
+            send_buffer.flush(this);
+        } else {
+            /* The peer is not letting us write to the socket for some reason. Usually this
+            means that the connection was closed, but there is still some data in the incoming
+            buffer. We don't want to abort because then we couldn't process the data in the
+            incoming buffer, so instead we skip the writing step. */
+            send_buffer.discard();
+            on_send_buffer_flush();
+        }
     }
 }
 
@@ -1030,10 +1042,10 @@ void txt_memcached_handler_t::on_send_buffer_flush() {
 
 void txt_memcached_handler_t::on_send_buffer_socket_closed() {
 
-    /* Socket closed as we were flushing the send buffer. */
-    
-    pm_conns_writing.end(&start_time);
-    delete this;
+    /* Socket write half closed as we were flushing the send buffer. We ignore the error and keep
+    going; we don't actually shut down until the read half has been shut down. */
+
+    on_send_buffer_flush();
 }
 
 void txt_memcached_handler_t::on_net_conn_read_buffered(const char *buffer, size_t size) {
@@ -1050,8 +1062,8 @@ void txt_memcached_handler_t::on_net_conn_read_buffered(const char *buffer, size
         if (size > threshold) {
             logERR("Aborting connection %p because we got more than %d bytes without a CRLF\n",
                 this, (int)threshold);
-            conn->accept_buffer(0);   // So that we can legally call shutdown()
-            conn->shutdown();
+            conn->accept_buffer(0);   // So that we can legally call shutdown_*()
+            conn->shutdown_read();
             delete this;
             return;
         
@@ -1120,7 +1132,7 @@ void txt_memcached_handler_t::on_net_conn_read_buffered(const char *buffer, size
             return;
         }
         // Quit the connection
-        conn->shutdown();
+        conn->shutdown_read();
         delete this;
     } else if (!strcmp(args[0], "shutdown")) {
         // Make sure there's no more tokens
@@ -1130,7 +1142,7 @@ void txt_memcached_handler_t::on_net_conn_read_buffered(const char *buffer, size
             return;
         }
         // Shutdown the server
-        conn->shutdown();
+        conn->shutdown_read();
         server->shutdown();
         delete this;
     } else if(!strcmp(args[0], "stats") || !strcmp(args[0], "stat")) {

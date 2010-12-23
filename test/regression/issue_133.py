@@ -16,6 +16,8 @@ def test_function(opts, port):
 
     s.close()
 
+    time.sleep(3)
+
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.connect(("localhost", port))
 
