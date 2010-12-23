@@ -277,7 +277,7 @@ class dbench():
                                     <th style="padding: 0.5em 0.8em; font-size: small;"></th>
                                     <th style="padding: 0.5em 0.8em; font-size: small;">Mean qps</th>
                                     <th style="padding: 0.5em 0.8em; font-size: small;">Standard deviation</th>
-                                    <th style="padding: 0.5em 0.8em; font-size: small;">Upper / Lower percentile</th>
+                                    <th style="padding: 0.5em 0.8em; font-size: small;">Upper / Lower 5-percentile</th>
                                 </tr>"""
             for competitor in data.iteritems():
                 print >>res,     """<tr style="text-align: left; border-bottom: 2px solid #FFFFFF;">
@@ -285,7 +285,7 @@ class dbench():
                                         <td style="background: #DBE2F1; padding: 0.5em 0.8em;">%s</td>
                                         <td style="background: #DBE2F1; padding: 0.5em 0.8em;">%s</td>
                                         <td style="background: #DBE2F1; padding: 0.5em 0.8em;">%s / %s</td>
-                                    </tr>""" % (competitor[0], format_metadata(competitor[1].select('qps').stats()['qps']['mean']), format_metadata(competitor[1].select('qps').stats()['qps']['stdev']), format_metadata(competitor[1].select('qps').stats()['qps']['upper_1_percentile']), format_metadata(competitor[1].select('qps').stats()['qps']['lower_1_percentile']))
+                                    </tr>""" % (competitor[0], format_metadata(competitor[1].select('qps').stats()['qps']['mean']), format_metadata(competitor[1].select('qps').stats()['qps']['stdev']), format_metadata(competitor[1].select('qps').stats()['qps']['upper_5_percentile']), format_metadata(competitor[1].select('qps').stats()['qps']['lower_5_percentile']))
             print >>res, """</table>
                         </td>"""
 
@@ -307,7 +307,7 @@ class dbench():
                                     <th style="padding: 0.5em 0.8em; font-size: small;"></th>
                                     <th style="padding: 0.5em 0.8em; font-size: small;">Mean latency</th>
                                     <th style="padding: 0.5em 0.8em; font-size: small;">Standard deviation</th>
-                                    <th style="padding: 0.5em 0.8em; font-size: small;">Upper / Lower percentile</th>
+                                    <th style="padding: 0.5em 0.8em; font-size: small;">Upper / Lower 5-percentile</th>
                                 </tr>"""
             for competitor in data.iteritems():
                 print >>res,     """<tr style="text-align: left; border-bottom: 2px solid #FFFFFF;">
@@ -315,7 +315,7 @@ class dbench():
                                         <td style="background: #DBE2F1; padding: 0.5em 0.8em;">%s</td>
                                         <td style="background: #DBE2F1; padding: 0.5em 0.8em;">%s</td>
                                         <td style="background: #DBE2F1; padding: 0.5em 0.8em;">%s / %s</td>
-                                    </tr>""" % (competitor[0], format_metadata(competitor[1].select('latency').stats()['latency']['mean']), format_metadata(competitor[1].select('latency').stats()['latency']['stdev']), format_metadata(competitor[1].select('qps').stats()['qps']['upper_1_percentile']), format_metadata(competitor[1].select('qps').stats()['qps']['lower_1_percentile']))
+                                    </tr>""" % (competitor[0], format_metadata(competitor[1].select('latency').stats()['latency']['mean']), format_metadata(competitor[1].select('latency').stats()['latency']['stdev']), format_metadata(competitor[1].select('latency').stats()['latency']['upper_5_percentile']), format_metadata(competitor[1].select('latency').stats()['latency']['lower_5_percentile']))
             print >>res, """</table>
                         </td>"""
 
