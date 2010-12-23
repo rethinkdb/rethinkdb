@@ -5,4 +5,4 @@ if [ $DATABASE == "membase" ]; then
 fi
 
 # Delete temporary key file.
-ssh dr-doom -- rm -f "$TMP_KEY_FILE"
+ssh puzzler -- rm -f "$TMP_KEY_FILE"

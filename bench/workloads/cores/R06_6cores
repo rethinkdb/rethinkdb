@@ -5,7 +5,7 @@ if [ $DATABASE == "rethinkdb" ]; then
     ./dbench                                                                                      \
         -d "$BENCH_DIR/bench_output/Number_of_cores_on_canonical_hardware/6" -H $SERVER_HOSTS    \
         {server}rethinkdb:"-c 6 -m 32768 $SSD_DRIVES"                                            \
-        {client}stress[dr-doom:/home/teapot/stress]:"-c $CANONICAL_CLIENTS -d $CANONICAL_DURATION" \
+        {client}stress[$STRESS_CLIENT]:"-c $CANONICAL_CLIENTS -d $CANONICAL_DURATION" \
         iostat:1 vmstat:1 rdbstat:1
 else
     echo "No workload configuration for $DATABASE"

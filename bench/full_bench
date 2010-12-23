@@ -18,7 +18,7 @@ make clean
 make -j DEBUG=0 VALGRIND=0 FAST_PERFMON=1
 cd ../bench/stress-client
 make
-scp stress dr-doom:/home/teapot/stress
+scp stress puzzler:/home/teapot/stress
 cd ../dbench
 
 # Some helper functions
@@ -35,6 +35,8 @@ SERVER_HOSTS="magneto,magneto2"
 CANONICAL_CLIENTS="512"
 CANONICAL_DURATION="60s"
 
+STRESS_CLIENT="puzzler:/home/teapot/stress"
+
 DATABASE="rethinkdb"
 
 # Run workloads
@@ -48,6 +50,7 @@ for WORKLOAD in ../workloads/*; do
         export SERVER_HOSTS
         export CANONICAL_CLIENTS
         export CANONICAL_DURATION
+        export STRESS_CLIENT
     
         if [ -e "$WORKLOAD/Setup" ]; then
             "$WORKLOAD/Setup"
@@ -85,7 +88,7 @@ done
 delete_database_files
 
 # OProfile example
-#./dbench -d  "$BENCH_DIR/prof_output"     -H magneto,magneto2 {server}rethinkdb:'-c 12 -s 128' {client}stress[dr-doom:/home/teapot/stress]:'-c 512 -d 10000000'             iostat:1 vmstat:1 rdbstat:1 oprofile
+#./dbench -d  "$BENCH_DIR/prof_output"     -H magneto,magneto2 {server}rethinkdb:'-c 12 -s 128' {client}stress[puzzler:/home/teapot/stress]:'-c 512 -d 10000000'             iostat:1 vmstat:1 rdbstat:1 oprofile
 #delete_database_files
 
 # Generate statistics and email.

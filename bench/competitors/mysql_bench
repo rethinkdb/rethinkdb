@@ -12,7 +12,7 @@ email="$(perl -e 'use List::Util qw(first); my $email_idx = 1 + first { $ARGV[$_
 # Build the stress client
 cd bench/stress-client
 make
-scp stress dr-doom:/home/teapot/stress
+scp stress puzzler:/home/teapot/stress
 cd ../dbench
 
 SSD_DRIVES="-f /dev/sdb -f /dev/sdc -f /dev/sdd -f /dev/sde"
@@ -30,6 +30,8 @@ CANONICAL_DURATION="60s"
 MYSQL_COMMON_FLAGS="--skip-name-resolve --innodb_support_xa=off --innodb_lock_wait_timeout=5 --innodb_flush_method=O_DIRECT --max-connections=1030 --max-prepared-stmt-count=32764 --innodb_log_group_home_dir=/tmp"
 MYSQL_BUFFER_FLAGS="--innodb_buffer_pool_size=32768m"
 MYSQL_DURABILITY_FLAGS="--innodb_flush_log_at_trx_commit=0 --innodb_doublewrite=0 --innodb_log_file_size=256m"
+
+STRESS_CLIENT="puzzler:/home/teapot/stress"
 
 DATABASE="mysql"
 
@@ -65,6 +67,7 @@ for WORKLOAD in ../workloads/*; do
         export MYSQL_BUFFER_FLAGS
         export MYSQL_DURABILITY_FLAGS
         export MYSQL_SSD_FLAGS
+        export STRESS_CLIENT
     
         if [ -e "$WORKLOAD/Setup" ]; then
             "$WORKLOAD/Setup"

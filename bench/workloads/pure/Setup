@@ -9,6 +9,6 @@ if [ $DATABASE == "membase" ]; then
 fi
 
 # Store keys in temporary file.
-export TMP_KEY_FILE="$(ssh dr-doom mktemp)"
+export TMP_KEY_FILE="$(ssh puzzler mktemp)"
 
 export -p > "$BENCH_DIR/environment"

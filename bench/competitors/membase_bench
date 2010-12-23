@@ -12,7 +12,7 @@ email="$(perl -e 'use List::Util qw(first); my $email_idx = 1 + first { $ARGV[$_
 # Build the stress client
 cd bench/stress-client
 make
-scp stress dr-doom:/home/teapot/stress
+scp stress puzzler:/home/teapot/stress
 cd ../dbench
 
 # Some helper functions
@@ -27,6 +27,8 @@ HDD_DRIVES="" # TODO
 SERVER_HOSTS="magneto,magneto2"
 CANONICAL_CLIENTS="512"
 CANONICAL_DURATION="60s"
+
+STRESS_CLIENT="puzzler:/home/teapot/stress"
 
 DATABASE="membase"
 
@@ -50,6 +52,7 @@ for WORKLOAD in ../workloads/*; do
         export CANONICAL_CLIENTS
         export CANONICAL_DURATION
         export MEMBASE_DATA_PATH
+        export STRESS_CLIENT
     
         if [ -e "$WORKLOAD/Setup" ]; then
             "$WORKLOAD/Setup"
