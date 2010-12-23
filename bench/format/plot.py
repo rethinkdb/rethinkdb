@@ -279,6 +279,10 @@ class TimeSeriesCollection():
 	    steady_series = full_series[int(len(full_series) * 0.7):]
             stat_report['mean'] = stats.mean(full_series)
             stat_report['stdev'] = stats.stdev(full_series)
+            stat_report['upper_1_percentile'] = stats.scoreatpercentile(full_series, 99)
+            stat_report['lower_1_percentile'] = stats.scoreatpercentile(full_series, 1)
+            stat_report['upper_5_percentile'] = stats.scoreatpercentile(full_series, 95)
+            stat_report['lower_5_percentile'] = stats.scoreatpercentile(full_series, 5)
             stat_report['steady_mean'] = stats.mean(steady_series)
             stat_report['steady_stdev'] = stats.stdev(steady_series)
 	    res[val[0]] = stat_report
@@ -351,7 +355,7 @@ class ScatterCollection():
         if normalize:
             ax.set_ylim(0, 1.0)
         else:
-            ax.set_ylim(0, max_y_value)
+            ax.set_ylim(0, max_y_value + max_y_value / 5)
         ax.grid(True)
         plt.legend(tuple(map(lambda x: x[0], labels)), tuple(map(lambda x: x[1], labels)), loc=1, prop = font)
         fig.set_size_inches(5,3.7)
