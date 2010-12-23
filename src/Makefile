@@ -35,7 +35,7 @@ endif
 
 # Define configuration variables
 CXX:=g++
-LDFLAGS:=-Wl,--no-as-needed -lrt -laio
+LDFLAGS:=-Wl,--no-as-needed -lpthread -lrt -laio
 CXXFLAGS:=-I$(SOURCE_DIR) -Wall -Wextra -Wformat=2 -Wno-unused-parameter -Wswitch-enum -Werror
 ifeq ($(UNIT_TESTS),0)
 CXXFLAGS+=-Wswitch-default
