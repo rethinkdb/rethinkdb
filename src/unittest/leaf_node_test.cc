@@ -122,8 +122,8 @@ TEST(LeafNodeTest, Initialization) {
     free(node);
 }
 
-// Inserts one value and looks it up.
-TEST(LeafNodeTest, InsertionLookup) {
+// Inserts one value and looks it up and removes it.
+TEST(LeafNodeTest, InsertLookupRemove) {
     block_size_t bs = make_bs();
     leaf_node_t *node = malloc_leaf_node(bs);
 
@@ -138,6 +138,7 @@ TEST(LeafNodeTest, InsertionLookup) {
 
     ASSERT_TRUE(leaf_node_handler::insert(bs, node, k, v, repli_timestamp::invalid));
     verify(bs, node);
+    ASSERT_EQ(1, node->npairs);
 
     union {
         byte readval_padding[MAX_TOTAL_NODE_CONTENTS_SIZE + sizeof(btree_value)];
@@ -150,12 +151,15 @@ TEST(LeafNodeTest, InsertionLookup) {
 
     ASSERT_EQ(0, memcmp(v, &readval, v->full_size()));
 
+    leaf_node_handler::remove(bs, node, k);
     verify(bs, node);
+    ASSERT_EQ(0, node->npairs);
 
     free(k);
     free(v);
     free(node);
 }
+
 
 }  // namespace unittest
 
