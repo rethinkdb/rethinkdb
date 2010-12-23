@@ -377,7 +377,8 @@ class Stress(Client):
 
         default_args = host_args + \
                        ['-l', self.LATENCY_FILE,
-                        '-q', self.QPS_FILE]
+                        '-q', self.QPS_FILE,
+                        '--client-suffix']
         args = self.compute_args(default_args)
         self.run_process(self.find_binary('stress'), args)
 

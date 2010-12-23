@@ -1,0 +1,6 @@
+#!/bin/bash
+
+if [ $DATABASE == "rethinkdb" ]; then
+    # Recover head stress client
+    ssh puzzler mv -f /home/teapot/stress-head /home/teapot/stress
+fi
