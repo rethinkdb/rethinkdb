@@ -122,16 +122,13 @@ TEST(LeafNodeTest, Initialization) {
     free(node);
 }
 
-// Inserts one value and looks it up and removes it.
-TEST(LeafNodeTest, InsertLookupRemove) {
+// Runs an InsertLookupRemove test with key and value.
+void InsertLookupRemoveHelper(const char *key, const char *value) {
     block_size_t bs = make_bs();
     leaf_node_t *node = malloc_leaf_node(bs);
 
     leaf_node_handler::init(bs, node, repli_timestamp::invalid);
     verify(bs, node);
-
-    const char *key = "key";
-    const char *value = "value";
 
     btree_key *k = malloc_key(key);
     btree_value *v = malloc_value(value);
@@ -158,6 +155,19 @@ TEST(LeafNodeTest, InsertLookupRemove) {
     free(k);
     free(v);
     free(node);
+}
+
+TEST(LeafNodeTest, ElementaryInsertLookupRemove) {
+    InsertLookupRemoveHelper("the_key", "the_value");
+}
+TEST(LeafNodeTest, EmptyValueInsertLookupRemove) {
+    InsertLookupRemoveHelper("the_key", "");
+}
+TEST(LeafNodeTest, EmptyKeyInsertLookupRemove) {
+    InsertLookupRemoveHelper("", "the_value");
+}
+TEST(LeafNodeTest, EmptyKeyValueInsertLookupRemove) {
+    InsertLookupRemoveHelper("", "");
 }
 
 
