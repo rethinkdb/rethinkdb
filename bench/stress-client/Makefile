@@ -1,17 +1,25 @@
 
-INCLUDE = -I../../../lib/libmemcached -I /usr/local/mysql/include
-LIBS = -L. -lmemcached -lmysqlclient -L /usr/local/mysql/lib/mysql -lpthread -ldl
+LIBS = -lpthread -ldl
 SRC = main.cc utils.cc random.cc sqlite3.c
 
-STATIC ?= 0
+MYSQL ?= 1
+LIBMEMCACHED ?= 1
+
+ifeq ($(MYSQL),1)
+    INCLUDE += -I /usr/local/mysql/include
+    LIBS += -lmysqlclient -L /usr/local/mysql/lib/mysql 
+    DEFINES += -DUSE_MYSQL
+endif
+
+ifeq ($(LIBMEMCACHED),1)
+    INCLUDE += -I../../../lib/libmemcached
+    LIBS += -lmemcached
+    DEFINES += -DUSE_LIBMEMCACHED
+endif
 
 EXEC_NAME = stress
 CXX = g++
-CXXFLAGS = -g $(INCLUDE) -O3
-
-ifeq ($(STATIC),1)
-    CXXFLAGS += -static-libgcc
-endif
+CXXFLAGS = -g $(INCLUDE) -O3 $(DEFINES)
 
 OBJ = $(addsuffix .o, $(basename $(SRC)))
 
