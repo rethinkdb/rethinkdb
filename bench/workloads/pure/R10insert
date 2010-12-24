@@ -12,13 +12,13 @@ elif [ $DATABASE == "mysql" ]; then
     ./dbench                                                                                         \
         -d "$BENCH_DIR/bench_output/Pure_inserts_on_canonical_hardware" -H $SERVER_HOSTS             \
         {server}mysql:"$MYSQL_COMMON_FLAGS $MYSQL_BUFFER_FLAGS $MYSQL_DURABILITY_FLAGS  $MYSQL_SSD_FLAGS"              \
-        {client}mysqlstress[$STRESS_CLIENT]:"-c $CANONICAL_CLIENTS -d 100000000i -w 0/0/1/0 -o $TMP_KEY_FILE" \
+        {client}mysqlstress[$STRESS_CLIENT]:"-c $CANONICAL_CLIENTS -d 1000000i -w 0/0/1/0 -o $TMP_KEY_FILE" \
         iostat:1 vmstat:1
 elif [ $DATABASE == "membase" ]; then
     ./dbench                                                                                   \
         -d "$BENCH_DIR/bench_output/Pure_inserts_on_canonical_hardware" -H $SERVER_HOSTS -p 11211 \
         {server}membase:"-d $PERSISTENT_DATA_DIR -m 32768"                                       \
-        {client}stress[$STRESS_CLIENT]:"-c $CANONICAL_CLIENTS -d 100000000i -w 0/0/1/0 -o $TMP_KEY_FILE" \
+        {client}stress[$STRESS_CLIENT]:"-c $CANONICAL_CLIENTS -d 10000000i -w 0/0/1/0 -o $TMP_KEY_FILE" \
         iostat:1 vmstat:1
 else
     echo "No workload configuration for $DATABASE"
