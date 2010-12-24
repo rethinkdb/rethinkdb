@@ -175,7 +175,7 @@ void _mlog_start(const char *src_file, int src_line, log_level_t level) {
     /* If the log controller hasn't been started yet, then assume the thread pool hasn't been
     started either, so don't write which core the message came from. */
     
-    precise_time_t t = get_precise_time();
+    precise_time_t t = get_time_now();
     char formatted_time[formatted_precise_time_length+1];
     format_precise_time(t, formatted_time, sizeof(formatted_time));
 
