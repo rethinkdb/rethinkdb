@@ -86,7 +86,8 @@ if __name__ == "__main__":
         expected_crlf = next_line[int(length):]
 
         if value != mutual_dict[key]:
-            raise ValueError("Invalid value for key '%s'" % key)
+            #raise ValueError("Invalid value for key '%s', was '%s', should be '%s'" % (key, value, mutual_dict[key]))
+            raise ValueError("Invalid value for key '%s', has length %d, should have length %d" % (key, len(value), len(mutual_dict[key])))
         if expected_crlf != "\r\n":
             raise ValueError("Lacking CRLF suffix for value of key '%s'" % key)
 
