@@ -2,13 +2,15 @@
 
 if [ $DATABASE == "rethinkdb" ]; then
     cd ../..
+    git checkout origin/bench_baseline
     LOCAL_GIT_ROOT=`pwd`
     mkdir -p /tmp/baseline-git
     cd /tmp/baseline-git
     git clone "$LOCAL_GIT_ROOT"
-    git checkout bench_baseline
+    cd rethinkdb
+    #git checkout bench_baseline
     
-    cd rethinkdb/src
+    cd src
     make clean
     make -j DEBUG=0 VALGRIND=0 FAST_PERFMON=1
     cd ../bench/stress-client
