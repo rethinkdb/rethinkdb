@@ -22,7 +22,7 @@ if __name__ == "__main__":
     opts_without_valgrind = dict(opts)
     opts_without_valgrind["valgrind"] = False
     server1 = Server(opts_without_valgrind, "first server", extra_flags = ["--wait-for-flush", "y", "--flush-timer", "0"])
-    if not server1.start(): sys.exit(1)
+    server1.start()
     server_killed = False
     
     # Run procedure to insert some values into database
@@ -52,20 +52,20 @@ if __name__ == "__main__":
     # Kill first server
     
     server_killed = True
-    if not server1.kill(): sys.exit(1)
+    server1.kill()
     
     # Store snapshot of possibly-corrupted data files
     
     print
-    snapshot_dir = os.path.join(test_dir_name, "db_data_snapshot")
+    snapshot_dir = os.path.join(make_test_dir(), "db_data_snapshot")
     print "Storing snapshot of data files in %r." % snapshot_dir
-    shutil.copytree(os.path.join(test_dir_name, "db_data"), snapshot_dir)
+    shutil.copytree(os.path.join(make_test_dir(), "db_data"), snapshot_dir)
     print
     
     # Start second server
     
-    server2 = Server(opts, "second server", use_existing = True)
-    if not server2.start(): sys.exit(1)
+    server2 = Server(opts, "second server", data_files = server1.data_files)
+    server2.start()
     
     # Check to make sure that the values are all present
     
@@ -85,10 +85,9 @@ if __name__ == "__main__":
             (len(mutual_list), successes)
         if fails > 10:   # Arbitrary threshold above which to declare the test a failure
             raise ValueError("Unacceptably many values were missing.")
-    test_ok = run_and_report(second_test, timeout = 10, name = "second test")
+    run_with_timeout(second_test, timeout = 30, name = "second test")
     
     # Clean up
     
-    server_ok = server2.shutdown()
-    
-    if not (test_ok and server_ok): sys.exit(1)
+    server2.shutdown()
+
