@@ -1,0 +1,16 @@
+#!/bin/bash
+
+# SSD I/O bound performance
+
+# This is specifically for Membase, which has a minimal cache size of 256 MB.
+# TODO: Really use SSD drives here!
+
+if [ $DATABASE == "membase" ]; then
+    ./dbench                                                                                   \
+        -d "$BENCH_DIR/bench_output/SSD_IO_performance" -H $SERVER_HOSTS -p 11211 \
+        {server}membase:"-d $MEMBASE_DATA_PATH -m 256"                                       \
+        {client}stress[$STRESS_CLIENT]:"-c $CANONICAL_CLIENTS -d $CANONICAL_DURATION" \
+        iostat:1 vmstat:1
+else
+    echo "No workload configuration for $DATABASE"
+fi

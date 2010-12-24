@@ -1,0 +1,16 @@
+#!/bin/bash
+
+# Canonical workload on the canonical setup using the baseline version of RethinkDB
+
+
+if [ $DATABASE == "rethinkdb" ]; then
+    cd ../workloads/baseline/baseline-git/bench/dbench
+    ./dbench                                                                                      \
+        -d "$BENCH_DIR/bench_output/Baseline_performance" -H $SERVER_HOSTS    \
+        {server}rethinkdb:"-c 12 -m 32768 $SSD_DRIVES"                                            \
+        {client}stress[$STRESS_CLIENT]:"-c $CANONICAL_CLIENTS -d $CANONICAL_DURATION"\
+        iostat:1 vmstat:1 rdbstat:1
+else
+    echo "No workload configuration for $DATABASE"
+fi
+

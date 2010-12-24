@@ -1,0 +1,15 @@
+#!/bin/bash
+
+if [ $DATABASE == "rethinkdb" ]; then
+    cd ../workloads/baseline/baseline-git/src
+    make clean
+    make -j DEBUG=0 VALGRIND=0 FAST_PERFMON=1
+    cd ../bench/stress-client
+    make
+    # Use baseline stress client for this test. We must recover the original version after the test!
+    ssh puzzler mv -f /home/teapot/stress /home/teapot/stress-head
+    scp stress puzzler:/home/teapot/stress
+    cd ../dbench
+    
+    ../../build/release/rethinkdb create $SSD_DRIVES --force
+fi
