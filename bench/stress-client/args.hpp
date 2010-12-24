@@ -3,6 +3,19 @@
 #define __ARGS_HPP__
 #include <getopt.h>
 
+/* List supported protocols. */
+void list_protocols() {
+    // I'll just cheat here.
+    printf("sockmemcached,");
+#ifdef USE_MYSQL
+    printf("mysql,");
+#endif
+#ifdef USE_LIBMEMCACHED
+    printf("libmemcached,");
+#endif
+    printf("sqlite");
+}
+
 /* Usage */
 void usage(const char *name) {
     // Create a default config
@@ -57,14 +70,18 @@ void usage(const char *name) {
 
     printf("\nAdditional information:\n");
     printf("\t\tDISTR format describes a range and can be specified in as NUM or MIN-MAX.\n\n");
-    printf("\t\tPossible protocols are libmemcached, sockmemcached, and mysql. Protocol\n");
+    printf("\t\tPossible protocols are [");
+    list_protocols();
+    printf("]. Protocol\n");
     printf("\t\tis optional; if not specified, will default to [");
     _d_server.print_protocol();
     printf("].\n\n");
 
     printf("\t\tFor memcached protocols the host argument should be in the form host:port.\n");
+#ifdef USE_MYSQL
     printf("\t\tFor mysql protocol the host argument should be in the following\n" \
            "\t\tformat: username/password@host:port+database.\n\n");
+#endif
 
     printf("\t\tDuration can be specified as a number of queries (e.g. 5000 or 5000q),\n" \
            "\t\ta number of rows inserted (e.g. 5000i), or a number of seconds (e.g. 5000s).\n");

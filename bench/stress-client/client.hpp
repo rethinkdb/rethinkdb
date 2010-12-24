@@ -6,7 +6,6 @@
 #include "protocol.hpp"
 #include "sqlite_protocol.hpp"
 #include <stdint.h>
-#include "sqlite3.h"
 #include "assert.h"
 
 #define update_salt 6830
