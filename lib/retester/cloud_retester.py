@@ -432,7 +432,7 @@ def copy_basedata_to_testing_node(node):
             try:
                 node.make_directory(node.global_build_path + "/" + config)
                 node.put_file(base_directory + "/../build/" + config + "/rethinkdb", node.global_build_path + "/" + config + "/rethinkdb")
-                node.put_file(base_directory + "/../build/" + config + "/rethinkdb-extract", node.global_build_path + "/" + config + "/rethinkdb-extract")
+                #node.put_file(base_directory + "/../build/" + config + "/rethinkdb-extract", node.global_build_path + "/" + config + "/rethinkdb-extract")
                 #node.put_file(base_directory + "/../build/" + config + "/rethinkdb-fsck", node.global_build_path + "/" + config + "/rethinkdb-fsck")
                 command_result = node.run_command("chmod +x " + node.global_build_path + "/" + config + "/*")
                 if command_result[0] != 0:
