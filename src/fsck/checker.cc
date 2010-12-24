@@ -822,7 +822,7 @@ struct rogue_block_description {
 };
 
 struct other_block_errors {
-    std::vector<rogue_block_description> unused_blocks;
+    std::vector<rogue_block_description> orphan_blocks;
     std::vector<rogue_block_description> allegedly_deleted_blocks;
     ser_block_id_t contiguity_failure;
     other_block_errors() : contiguity_failure(ser_block_id_t::null()) { }
@@ -849,7 +849,7 @@ void check_slice_other_blocks(slicecx& cx, other_block_errors *errs) {
             }
 
             if (!info.offset.parts.is_delete && info.transaction_id == NULL_SER_TRANSACTION_ID) {
-                // Aha!  We have an unused block!  Crap.
+                // Aha!  We have an orphan block!  Crap.
                 rogue_block_description desc;
                 desc.block_id = id;
 
@@ -860,7 +860,7 @@ void check_slice_other_blocks(slicecx& cx, other_block_errors *errs) {
                     desc.magic = *ptr_cast<block_magic_t>(b.buf);
                 }
 
-                errs->unused_blocks.push_back(desc);
+                errs->orphan_blocks.push_back(desc);
             } else if (info.offset.parts.is_delete) {
                 assert(info.transaction_id == NULL_SER_TRANSACTION_ID);
                 rogue_block_description desc;
@@ -1093,7 +1093,7 @@ void report_interfile_errors(const interfile_errors &errs) {
     }
 }
 
-void report_subtree_errors(const subtree_errors *errs) {
+bool report_subtree_errors(const subtree_errors *errs) {
     if (!errs->node_errors.empty()) {
         printf("ERROR %s subtree node errors found...\n", state);
         for (int i = 0, n = errs->node_errors.size(); i < n; ++i) {
@@ -1142,6 +1142,8 @@ void report_subtree_errors(const subtree_errors *errs) {
             printf("\n");
         }
     }
+
+    return errs->node_errors.empty() && errs->value_errors.empty();
 }
 
 void report_rogue_block_description(const char *title, const rogue_block_description& desc) {
@@ -1153,32 +1155,37 @@ void report_rogue_block_description(const char *title, const rogue_block_descrip
     }
 }
 
-void report_other_block_errors(const other_block_errors *errs) {
-    for (int i = 0, n = errs->unused_blocks.size(); i < n; ++i) {
-        report_rogue_block_description("unused block", errs->unused_blocks[i]);
+bool report_other_block_errors(const other_block_errors *errs) {
+    for (int i = 0, n = errs->orphan_blocks.size(); i < n; ++i) {
+        report_rogue_block_description("orphan block", errs->orphan_blocks[i]);
     }
     for (int i = 0, n = errs->allegedly_deleted_blocks.size(); i < n; ++i) {
         report_rogue_block_description("nonzeroed deleted block", errs->allegedly_deleted_blocks[i]);
     }
+    bool ok = errs->orphan_blocks.empty() && errs->allegedly_deleted_blocks.empty();
     if (errs->contiguity_failure != ser_block_id_t::null()) {
         printf("ERROR %s slice block contiguity failure at serializer block id %u\n", state, errs->contiguity_failure.value);
+        ok = false;
     }
+    return ok;
 }
 
-void report_slice_errors(const slice_errors *errs) {
+bool report_slice_errors(const slice_errors *errs) {
     if (errs->superblock_code != btree_block::none) {
         printf("ERROR %s could not find btree superblock: %s\n", state, btree_block::error_name(errs->superblock_code));
-        return;
+        return false;
     }
     if (errs->superblock_bad_magic) {
         printf("ERROR %s btree superblock had bad magic\n", state);
-        return;
+        return false;
     }
-    report_subtree_errors(&errs->tree_errs);
-    report_other_block_errors(&errs->other_block_errs);
+    bool no_subtree_errors = report_subtree_errors(&errs->tree_errs);
+    bool no_other_block_errors = report_other_block_errors(&errs->other_block_errs);
+    return no_subtree_errors && no_other_block_errors;
 }
 
-void report_post_config_block_errors(const all_slices_errors& slices_errs) {
+bool report_post_config_block_errors(const all_slices_errors& slices_errs) {
+    bool ok = true;
     for (int i = 0; i < slices_errs.n_slices; ++i) {
         char buf[100] = { 0 };
         snprintf(buf, 99, "%d", i);
@@ -1186,8 +1193,10 @@ void report_post_config_block_errors(const all_slices_errors& slices_errs) {
         std::string s = std::string("(slice ") + buf + ", file '" + file + "')";
         state = s.c_str();
 
-        report_slice_errors(&slices_errs.slice[i]);
+        ok &= report_slice_errors(&slices_errs.slice[i]);
     }
+
+    return ok;
 }
 
 void print_interfile_summary(const serializer_config_block_t& c) {
@@ -1196,7 +1205,7 @@ void print_interfile_summary(const serializer_config_block_t& c) {
     printf("config_block n_slices: %d\n", c.btree_config.n_slices);
 }
 
-void check_files(const config_t& cfg) {
+bool check_files(const config_t& cfg) {
     // 1. Open.
     knowledge knog(cfg.input_filenames);
 
@@ -1219,13 +1228,13 @@ void check_files(const config_t& cfg) {
     }
 
     if (any) {
-        return;
+        return false;
     }
 
     interfile_errors errs;
     if (!check_interfile(&knog, &errs)) {
         report_interfile_errors(errs);
-        return;
+        return false;
     }
 
     print_interfile_summary(*knog.file_knog[0]->config_block);
@@ -1235,7 +1244,8 @@ void check_files(const config_t& cfg) {
         check_after_config_block(knog.files[i], knog.file_knog[i], &slices_errs);
     }
 
-    report_post_config_block_errors(slices_errs);
+    bool ok = report_post_config_block_errors(slices_errs);
+    return ok;
 }
 
 

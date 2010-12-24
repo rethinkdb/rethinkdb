@@ -400,7 +400,7 @@ uint16_t internal_node_handler::insert_pair(internal_node_t *node, block_id_t ln
 }
 
 int internal_node_handler::get_offset_index(const internal_node_t *node, const btree_key *key) {
-    return std::lower_bound(node->pair_offsets, node->pair_offsets+node->npairs, NULL, internal_key_comp(node, key)) - node->pair_offsets;
+    return std::lower_bound(node->pair_offsets, node->pair_offsets+node->npairs, (uint16_t) internal_key_comp::faux_offset, internal_key_comp(node, key)) - node->pair_offsets;
 }
 
 void internal_node_handler::delete_offset(internal_node_t *node, int index) {

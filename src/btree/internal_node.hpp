@@ -63,7 +63,9 @@ protected:
 class internal_key_comp {
     const internal_node_t *node;
     const btree_key *key;
-    public:
+public:
+    enum { faux_offset = 0 };
+
     explicit internal_key_comp(const internal_node_t *_node) : node(_node), key(NULL)  { }
     internal_key_comp(const internal_node_t *_node, const btree_key *_key) : node(_node), key(_key)  { }
     bool operator()(const uint16_t offset1, const uint16_t offset2) {
