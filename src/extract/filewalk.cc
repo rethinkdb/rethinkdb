@@ -315,7 +315,7 @@ void dump_pair_value(dumper_t &dumper, direct_file_t& file, const cfg_t& cfg, co
         for (int64_t i = 0, n = segblocks.bs.size(); i < n; ++i) {
             int64_t beg = (i == 0 ? ref.offset % seg_size : 0);
             pieces[i].buf = reinterpret_cast<const large_buf_leaf *>(segblocks.bs[i]->buf)->buf;
-            pieces[i].len = (i == n - 1 ? (ref.offset + ref.size) % seg_size : seg_size) - beg;
+            pieces[i].len = (i == n - 1 ? (ref.offset + ref.size) % (seg_size+1) : seg_size) - beg;
         }
     } else {
         pieces.resize(1);
