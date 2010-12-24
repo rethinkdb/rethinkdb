@@ -71,10 +71,12 @@ def check_rethinkdb_flags(opts, flags, expected_return_value):
     else:
         if rethinkdb_result[0] != expected_return_value:
             raise ValueError("RethinkDB gave a return value of %i, expected a value of %i. Flags were: %s" % (rethinkdb_result[0], expected_return_value, flags))
-    
-    
 
-def test_function(opts, mc):
+if __name__ == "__main__":
+    op = make_option_parser()
+    opts = op.parse(sys.argv)
+    opts["mclib"] = "memcache"
+    
     exit_code_expected_on_error = 255 # we return -1 given a bad command line input
 
     for (flags, expected_return_value) in [
@@ -105,12 +107,4 @@ def test_function(opts, mc):
         check_rethinkdb_flags(opts, flags, expected_return_value)
         
         # TODO: Also check -l behvior on missing permissions and slashes in file name
-    
-
-if __name__ == "__main__":
-    op = make_option_parser()
-    opts = op.parse(sys.argv)
-    opts["mclib"] = "memcache"
-    opts["auto"] = False # Never start server automatically
-    simple_test_main(test_function, opts, timeout = 60)
 

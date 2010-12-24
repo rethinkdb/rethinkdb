@@ -15,7 +15,7 @@ if __name__ == "__main__":
     # Start server
 
     server = Server(opts)
-    if not server.start(): sys.exit(1)
+    server.start()
 
     # Insert many keys, then remove them all
 
@@ -41,8 +41,8 @@ if __name__ == "__main__":
 
     # Restart server
 
-    if not server.shutdown(): sys.exit(1)
-    if not server.start(): sys.exit(1)
+    server.shutdown()
+    server.start()
 
     # Make sure no keys are present
 
@@ -55,5 +55,5 @@ if __name__ == "__main__":
 
     # Clean up
     
-    if not server.shutdown(): sys.exit(1)
+    server.shutdown()
 
