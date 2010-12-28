@@ -10,7 +10,7 @@ namespace unittest {
 
 // TODO: This is rather duplicative of fsck::check_value.
 void expect_valid_value_shallowly(const btree_value *value) {
-    EXPECT_TRUE(!(value->metadata_flags & ~(MEMCACHED_FLAGS | MEMCACHED_CAS | MEMCACHED_EXPTIME | LARGE_VALUE)));
+    EXPECT_EQ(0, value->metadata_flags & ~(MEMCACHED_FLAGS | MEMCACHED_CAS | MEMCACHED_EXPTIME | LARGE_VALUE));
 
     size_t size = value->value_size();
 
@@ -100,6 +100,7 @@ public:
         if (has_cas_) {
             out->set_cas(cas_);
         }
+        memcpy(v->value(), data_.c_str(), data_.size());
     }
 
     static Value Make(const btree_value *v) {
@@ -108,7 +109,7 @@ public:
                      v->mcflags(), v->has_cas() ? v->cas() : 0, v->has_cas(), v->exptime());
     }
 
-    bool operator==(const Value& rhs) {
+    bool operator==(const Value& rhs) const {
         return mcflags_ == rhs.mcflags_
             && exptime_ == rhs.exptime_
             && data_ == rhs.data_
@@ -121,6 +122,8 @@ public:
             + (exptime_ ? sizeof(exptime_t) : 0) + data_.size();
     }
 
+    friend std::ostream& operator<<(std::ostream&, const Value&);
+
 private:
     mcflags_t mcflags_;
     cas_t cas_;
@@ -128,6 +131,18 @@ private:
     bool has_cas_;
     std::string data_;
 };
+
+std::ostream& operator<<(std::ostream& out, const Value& v) {
+    out << "Value[mcflags=" << v.mcflags_;
+    if (v.has_cas_) {
+        out << " cas=" << v.cas_;
+    }
+
+    // TODO: string escape v.data_.
+    out << " exptime=" << v.exptime_
+        << " data='" << v.data_ << "']";
+    return out;
+}
 
 class StackKey {
 public:
@@ -174,32 +189,67 @@ class LeafNodeGrinder {
     block_size_t bs;
     typedef std::map<std::string, Value> expected_t;
     expected_t expected;
-    int expected_free_space;
+    int expected_frontmost_offset;
+    int expected_npairs;
     leaf_node_t *node;
 
+public:
+    LeafNodeGrinder() : bs(block_size_t::unsafe_make(block_size)), expected(), expected_frontmost_offset(bs.value()), expected_npairs(0), node(reinterpret_cast<leaf_node_t *>(malloc(bs.value()))) {
+    }
+
+    ~LeafNodeGrinder() {
+        free(node);
+    }
+
+    int expected_space() const {
+        return expected_frontmost_offset - (offsetof(leaf_node_t, pair_offsets) + sizeof(*node->pair_offsets) * expected_npairs);
+    }
+
+    void init() {
+        SCOPED_TRACE("init");
+        leaf_node_handler::init(bs, node, repli_timestamp::invalid);
+        validate();
+    }
+
     void insert(const std::string& k, const Value& v) {
-        if (expected_free_space < sizeof(*node->pair_offsets) + v.full_size()) {
-            StackKey skey(k);
-            StackValue sval(v);
+        SCOPED_TRACE("insert");
+        StackKey skey(k);
+        StackValue sval(v);
+
+        if (expected_space() < int((1 + k.size()) + v.full_size() + sizeof(*node->pair_offsets))) {
             ASSERT_FALSE(leaf_node_handler::insert(bs, node, skey.look(), sval.look(), repli_timestamp::invalid));
         } else {
+            ASSERT_TRUE(leaf_node_handler::insert(bs, node, skey.look(), sval.look(), repli_timestamp::invalid));
+
             std::pair<expected_t::iterator, bool> res = expected.insert(std::make_pair(k, v));
             if (res.second) {
                 // The key didn't previously exist.
-                expected_free_space -= v.full_size() + sizeof(*node->pair_offsets);
+                printf("new key '%s', subtracting %ld\n", k.c_str(), (1 + k.size()) + v.full_size() + sizeof(*node->pair_offsets));
+                expected_frontmost_offset -= (1 + k.size()) + v.full_size();
+                expected_npairs++;
             } else {
                 // The key previously existed.
-                expected_free_space += res.first->second.full_size();
-                expected_free_space -= v.full_size();
+                printf("same key '%s', adding %d subtracting %d\n", k.c_str(),
+                       res.first->second.full_size(), v.full_size());
+                expected_frontmost_offset += res.first->second.full_size();
+                expected_frontmost_offset -= v.full_size();
                 res.first->second = v;
             }
         }
 
-        verify(bs, node, expected_free_space);
+        validate();
+    }
+
+    void lookup(const std::string& k, const Value& expected) const {
+        StackKey skey(k);
+        StackValue sval;
+        ASSERT_TRUE(leaf_node_handler::lookup(node, skey.look(), sval.look_write()));
+        ASSERT_EQ(expected, Value::Make(sval.look()));
     }
 
     // Expects the key to be in the node.
     void remove(const std::string& k) {
+        SCOPED_TRACE("remove");
         expected_t::iterator p = expected.find(k);
 
         // There's a bug in the test if we're trying to remove a key that's not there.
@@ -207,16 +257,31 @@ class LeafNodeGrinder {
 
         // The key should be in there.
         StackKey skey(k);
-        StackValue sval();
+        StackValue sval;
 
         ASSERT_TRUE(leaf_node_handler::lookup(node, skey.look(), sval.look_write()));
 
         leaf_node_handler::remove(bs, node, skey.look());
-        expected_free_space -= (sval.look()->full_size() + sizeof(sval.look()->pair_offsets[0]));
+        expected.erase(p);
+        printf("removal of '%s', adding %ld\n", k.c_str(), (1 + k.size()) + sval.look()->full_size() + sizeof(*node->pair_offsets));
+        expected_frontmost_offset += (1 + k.size()) + sval.look()->full_size() + sizeof(*node->pair_offsets);
 
-        verify(bs, node, expected_free_space);
+        validate();
     }
 
+    void validate() const {
+        ASSERT_EQ(expected_npairs, node->npairs);
+        ASSERT_EQ(expected_frontmost_offset, node->frontmost_offset);
+
+        verify(bs, node, expected_space());
+
+        for (expected_t::const_iterator p = expected.begin(), e = expected.end(); p != e; ++p) {
+            lookup(p->first, p->second);
+        }
+
+        // We're confident there are no bad keys because
+        // expected_free_space matched up.
+    }
 
 };
 
@@ -266,6 +331,17 @@ TEST(LeafNodeTest, Initialization) {
     free(node);
 }
 
+void AlternateInsertLookupRemoveHelper(const std::string& key, const char *value) {
+    LeafNodeGrinder<4096> gr;
+
+    Value v(value);
+
+    gr.init();
+    gr.insert(key, v);
+    gr.lookup(key, v);
+    gr.remove(key);
+}
+
 // Runs an InsertLookupRemove test with key and value.
 void InsertLookupRemoveHelper(const char *key, const char *value) {
     block_size_t bs = make_bs();
@@ -302,16 +378,16 @@ void InsertLookupRemoveHelper(const char *key, const char *value) {
 }
 
 TEST(LeafNodeTest, ElementaryInsertLookupRemove) {
-    InsertLookupRemoveHelper("the_key", "the_value");
+    AlternateInsertLookupRemoveHelper("the_key", "the_value");
 }
 TEST(LeafNodeTest, EmptyValueInsertLookupRemove) {
-    InsertLookupRemoveHelper("the_key", "");
+    AlternateInsertLookupRemoveHelper("the_key", "");
 }
 TEST(LeafNodeTest, EmptyKeyInsertLookupRemove) {
-    InsertLookupRemoveHelper("", "the_value");
+    AlternateInsertLookupRemoveHelper("", "the_value");
 }
 TEST(LeafNodeTest, EmptyKeyValueInsertLookupRemove) {
-    InsertLookupRemoveHelper("", "");
+    AlternateInsertLookupRemoveHelper("", "");
 }
 
 
