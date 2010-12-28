@@ -24,10 +24,12 @@ void expect_valid_value_shallowly(const btree_value *value) {
 }
 
 // TODO: This is rather duplicative of fsck::check_subtree_leaf_node.
-void verify(block_size_t block_size, const leaf_node_t *buf) {
+void verify(block_size_t block_size, const leaf_node_t *buf, int expected_free_space) {
 
-    ASSERT_LE(offsetof(leaf_node_t, pair_offsets) + buf->npairs * 2, buf->frontmost_offset);
+    int end_of_pair_offsets = offsetof(leaf_node_t, pair_offsets) + buf->npairs * 2;
+    ASSERT_LE(end_of_pair_offsets, buf->frontmost_offset);
     ASSERT_LE(buf->frontmost_offset, block_size.value());
+    ASSERT_EQ(expected_free_space, buf->frontmost_offset - end_of_pair_offsets);
 
     std::vector<uint16_t> offsets(buf->pair_offsets, buf->pair_offsets + buf->npairs);
     std::sort(offsets.begin(), offsets.end());
@@ -84,9 +86,9 @@ class Value {
 public:
     Value(const std::string& data = "", mcflags_t mcflags = 0, cas_t cas = 0, bool has_cas = false, exptime_t exptime = 0)
         : mcflags_(mcflags), cas_(cas), exptime_(exptime),
-          has_cas_(has_cas)
+          has_cas_(has_cas),
           data_(data) {
-        ASSERT_LE(data_.size(), MAX_IN_NODE_VALUE_SIZE);
+        EXPECT_LE(data_.size(), MAX_IN_NODE_VALUE_SIZE);
     }
 
     void WriteBtreeValue(btree_value *out) const {
@@ -101,7 +103,7 @@ public:
     }
 
     static Value Make(const btree_value *v) {
-        ASSERT_FALSE(v->is_large());
+        EXPECT_FALSE(v->is_large());
         return Value(std::string(v->value(), v->value() + v->value_size()),
                      v->mcflags(), v->has_cas() ? v->cas() : 0, v->has_cas(), v->exptime());
     }
@@ -130,7 +132,7 @@ private:
 class StackKey {
 public:
     explicit StackKey(const std::string& key) {
-        ASSERT_LE(key.size(), MAX_KEY_SIZE);
+        EXPECT_LE(key.size(), MAX_KEY_SIZE);
         keyval.size = key.size();
         memcpy(keyval.contents, key.c_str(), key.size());
     }
@@ -177,7 +179,7 @@ class LeafNodeGrinder {
             verify(bs, node, expected_free_space);
         }
 
-        std::pair<expected_t::iterator, bool> res = expected.insert(k, v);
+        std::pair<expected_t::iterator, bool> res = expected.insert(std::make_pair(k, v));
         if (res.second) {
             // The key didn't previously exist.
             expected_free_space -= v.full_size() + sizeof(*node->pair_offsets);
@@ -247,7 +249,7 @@ TEST(LeafNodeTest, Initialization) {
     leaf_node_t *node = malloc_leaf_node(bs);
 
     leaf_node_handler::init(bs, node, repli_timestamp::invalid);
-    verify(bs, node);
+    verify(bs, node, bs.value() - offsetof(leaf_node_t, pair_offsets));
     free(node);
 }
 
@@ -257,13 +259,13 @@ void InsertLookupRemoveHelper(const char *key, const char *value) {
     leaf_node_t *node = malloc_leaf_node(bs);
 
     leaf_node_handler::init(bs, node, repli_timestamp::invalid);
-    verify(bs, node);
+    verify(bs, node, bs.value() - offsetof(leaf_node_t, pair_offsets));
 
     btree_key *k = malloc_key(key);
     btree_value *v = malloc_value(value);
 
     ASSERT_TRUE(leaf_node_handler::insert(bs, node, k, v, repli_timestamp::invalid));
-    verify(bs, node);
+    verify(bs, node, bs.value() - offsetof(leaf_node_t, pair_offsets) - k->full_size() - v->full_size() - 2);
     ASSERT_EQ(1, node->npairs);
 
     union {
@@ -278,7 +280,7 @@ void InsertLookupRemoveHelper(const char *key, const char *value) {
     ASSERT_EQ(0, memcmp(v, &readval, v->full_size()));
 
     leaf_node_handler::remove(bs, node, k);
-    verify(bs, node);
+    verify(bs, node, bs.value() - offsetof(leaf_node_t, pair_offsets));
     ASSERT_EQ(0, node->npairs);
 
     free(k);
