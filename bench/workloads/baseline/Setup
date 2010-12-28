@@ -2,7 +2,7 @@
 
 if [ $DATABASE == "rethinkdb" ]; then
     cd ../..
-    git checkout origin/bench_baseline
+    git checkout bench_baseline
     LOCAL_GIT_ROOT=`pwd`
     mkdir -p /tmp/baseline-git
     cd /tmp/baseline-git
