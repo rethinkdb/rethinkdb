@@ -85,7 +85,9 @@ public:
     Value(const std::string& data = "", mcflags_t mcflags = 0, cas_t cas = 0, bool has_cas = false, exptime_t exptime = 0)
         : mcflags_(mcflags), cas_(cas), exptime_(exptime),
           has_cas_(has_cas)
-          data_(data) { }
+          data_(data) {
+        ASSERT_LE(data_.size(), MAX_IN_NODE_VALUE_SIZE);
+    }
 
     void WriteBtreeValue(btree_value *out) const {
         out->size = 0;
@@ -112,6 +114,11 @@ public:
             && (has_cas_ ? cas_ == rhs.cas_ : true);
     }
 
+    int full_size() const {
+        return sizeof(btree_value) + (mcflags_ ? sizeof(mcflags_t) : 0) + (has_cas_ ? sizeof(cas_t) : 0)
+            + (exptime_ ? sizeof(exptime_t) : 0) + data_.size();
+    }
+
 private:
     mcflags_t mcflags_;
     cas_t cas_;
@@ -120,20 +127,77 @@ private:
     std::string data_;
 };
 
+class StackKey {
+public:
+    explicit StackKey(const std::string& key) {
+        ASSERT_LE(key.size(), MAX_KEY_SIZE);
+        keyval.size = key.size();
+        memcpy(keyval.contents, key.c_str(), key.size());
+    }
+
+    const btree_key *look() const {
+        return &keyval;
+    }
+
+private:
+    union {
+        byte keyval_padding[sizeof(btree_key) + MAX_KEY_SIZE];
+        btree_key keyval;
+    };
+};
+
+class StackValue {
+public:
+    explicit StackValue(const Value& value) {
+        value.WriteBtreeValue(&val);
+    }
+    const btree_value *look() const {
+        return &val;
+    }
+private:
+    union {
+        byte val_padding[sizeof(btree_value) + MAX_TOTAL_NODE_CONTENTS_SIZE];
+        btree_value val;
+    };
+};
+
 template <int block_size>
 class LeafNodeGrinder {
+    block_size_t bs;
     typedef std::map<std::string, Value> expected_t;
     expected_t expected;
+    int expected_free_space;
     leaf_node_t *node;
 
     void insert(const std::string& k, const Value& v) {
+        if (expected_free_space < sizeof(*node->pair_offsets) + v.full_size()) {
+            StackKey skey(k);
+            StackValue sval(v);
+            ASSERT_FALSE(leaf_node_handler::insert(bs, node, skey.look(), sval.look(), repli_timestamp::invalid));
+            verify(bs, node, expected_free_space);
+        }
+
         std::pair<expected_t::iterator, bool> res = expected.insert(k, v);
-        if (!res.second) {
+        if (res.second) {
+            // The key didn't previously exist.
+            expected_free_space -= v.full_size() + sizeof(*node->pair_offsets);
+        } else {
+            // The key previously existed.
+            expected_free_space += res.first->second.full_size();
+            expected_free_space -= v.full_size();
             res.first->second = v;
         }
 
-        
+        verify(bs, node, expected_free_space);
+    }
 
+    void remove(const std::string& k) {
+        expected_t::iterator p = expected.find(k);
+        if (p != expected.end()) {
+            
+
+
+        }
 
     }
 
