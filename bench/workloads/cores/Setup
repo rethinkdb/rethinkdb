@@ -1,7 +1,7 @@
 #!/bin/bash
 
-mkdir -p $BENCH_DIR/bench_output/Number_of_cores_on_canonical_hardware
-echo CPU Cores > $BENCH_DIR/bench_output/Number_of_cores_on_canonical_hardware/multirun
+mkdir -p $BENCH_DIR/bench_output/Number_of_cores_canonical_workload
+echo CPU Cores > $BENCH_DIR/bench_output/Number_of_cores_canonical_workload/multirun
 
 if [ $DATABASE == "rethinkdb" ]; then
     ../../build/release/rethinkdb create $SSD_DRIVES --force

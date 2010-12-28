@@ -3,16 +3,16 @@
 if [ $DATABASE == "rethinkdb" ]; then
     ../../build/release/rethinkdb create $SSD_DRIVES --force
     ./dbench                                                                                      \
-        -d "$BENCH_DIR/bench_output/Number_of_cores_canonical_workload/1" -H $SERVER_HOSTS    \
+        -d "$BENCH_DIR/bench_output/Number_of_cores_select_only_workload/1" -H $SERVER_HOSTS    \
         {server}rethinkdb:"-c 1 -m 32768 $SSD_DRIVES"                                            \
-        {client}stress[$STRESS_CLIENT]:"-c $CANONICAL_CLIENTS -d $CANONICAL_DURATION" \
+        {client}stress[$STRESS_CLIENT]:"-c $CANONICAL_CLIENTS -d 100000000q -w 0/0/0/1 -i $TMP_KEY_FILE" \
         iostat:1 vmstat:1 rdbstat:1
 elif [ $DATABASE == "mysql" ]; then
     sudo sh -c "for CPU in {1..23}; do echo 0 > /sys/devices/system/cpu/cpu\$CPU/online; done"
     ./dbench                                                                                   \
-        -d "$BENCH_DIR/bench_output/Number_of_cores_canonical_workload/1" -H $SERVER_HOSTS             \
+        -d "$BENCH_DIR/bench_output/Number_of_cores_select_only_workload/1" -H $SERVER_HOSTS             \
         {server}mysql:"$MYSQL_COMMON_FLAGS $MYSQL_BUFFER_FLAGS $MYSQL_DURABILITY_FLAGS $MYSQL_SSD_FLAGS"              \
-        {client}mysqlstress[$STRESS_CLIENT]:"-c $CANONICAL_CLIENTS -d $CANONICAL_DURATION" \
+        {client}mysqlstress[$STRESS_CLIENT]:"-c $CANONICAL_CLIENTS -d 10000000q -w 0/0/0/1 -i $TMP_KEY_FILE" \
         iostat:1 vmstat:1
     sudo sh -c "for CPU in {1..23}; do echo 1 > /sys/devices/system/cpu/cpu\$CPU/online; done"
 else
