@@ -254,9 +254,9 @@ class TimeSeriesCollection():
 
         ax.set_xlim(0, len(self.data[self.data.keys()[0]]) - 1)
         if normalize:
-            ax.set_ylim(0, 1.0)
+            ax.set_ylim(0, 1.2)
         else:
-            ax.set_ylim(0, max(reduce(lambda x,y :x + y, self.data.values())))
+            ax.set_ylim(0, 1.2 * max(reduce(lambda x,y :x + y, self.data.values())))
         ax.grid(True)
         plt.legend(tuple(map(lambda x: x[0], labels)), tuple(map(lambda x: x[1], labels)), loc=1, prop = font)
         if not large:
@@ -269,19 +269,43 @@ class TimeSeriesCollection():
             fig.set_size_inches(20,14.8)
             fig.set_dpi(300)
             plt.savefig(out_fname, bbox_inches="tight")
+            
+    # This is from http://code.activestate.com/recipes/511478/
+    def percentile(N, percent, key=lambda x:x):
+        """
+        Find the percentile of a list of values.
+
+        @parameter N - is a list of values. Note N MUST BE already sorted.
+        @parameter percent - a float value from 0.0 to 1.0.
+        @parameter key - optional key function to compute value from each element of N.
+
+        @return - the percentile of the values
+        """
+        if not N:
+            return None
+        k = (len(N)-1) * percent
+        f = math.floor(k)
+        c = math.ceil(k)
+        if f == c:
+            return key(N[int(k)])
+        d0 = key(N[int(f)]) * (k-f)
+        d1 = key(N[int(c)]) * (c-k)
+        return d0+d1
 
     def stats(self):
         res = {}
         for val in self.data.iteritems():
             stat_report = {}
 	    full_series = map(lambda x: x, val[1])
+	    full_series_sorted = full_series
+	    full_series_sorted.sort()
 	    steady_series = full_series[int(len(full_series) * 0.7):]
             stat_report['mean'] = stats.mean(full_series)
             stat_report['stdev'] = stats.stdev(full_series)
-            stat_report['upper_1_percentile'] = stats.scoreatpercentile(full_series, 0.99)
-            stat_report['lower_1_percentile'] = stats.scoreatpercentile(full_series, 0.01)
-            stat_report['upper_5_percentile'] = stats.scoreatpercentile(full_series, 0.95)
-            stat_report['lower_5_percentile'] = stats.scoreatpercentile(full_series, 0.05)
+            stat_report['upper_1_percentile'] = percentile(full_series_sorted, 0.99)
+            stat_report['lower_1_percentile'] = percentile(full_series_sorted, 0.01)
+            stat_report['upper_5_percentile'] = percentile(full_series_sorted, 0.95)
+            stat_report['lower_5_percentile'] = percentile(full_series_sorted, 0.05)
             stat_report['steady_mean'] = stats.mean(steady_series)
             stat_report['steady_stdev'] = stats.stdev(steady_series)
 	    res[val[0]] = stat_report
@@ -352,9 +376,9 @@ class ScatterCollection():
 
         ax.set_xlim(0, max_x_value - 1)
         if normalize:
-            ax.set_ylim(0, 1.0)
+            ax.set_ylim(0, 1.2)
         else:
-            ax.set_ylim(0, max_y_value + max_y_value / 5)
+            ax.set_ylim(0, 1.2 * max_y_value)
         ax.grid(True)
         plt.legend(tuple(map(lambda x: x[0], labels)), tuple(map(lambda x: x[1], labels)), loc=1, prop = font)
         fig.set_size_inches(5,3.7)
