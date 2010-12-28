@@ -464,8 +464,9 @@ bool check_lba_shard(direct_file_t *file, file_knowledge *knog, lba_shard_metabl
 
 
     // 2. Read the entries from the last extent.
-    if (!check_lba_extent(file, knog, shard_number, shard->last_lba_extent_offset,
-                          shard->last_lba_extent_entries_count, &errs->extent_errors)) {
+    if (shard->last_lba_extent_offset != -1
+        && !check_lba_extent(file, knog, shard_number, shard->last_lba_extent_offset,
+                             shard->last_lba_extent_entries_count, &errs->extent_errors)) {
         errs->code = lba_shard_errors::bad_lba_extent;
         errs->bad_extent_number = shard->lba_superblock_entries_count;
         return false;
