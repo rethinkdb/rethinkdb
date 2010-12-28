@@ -14,6 +14,14 @@ struct mc_buf_t;
 struct mc_inner_buf_t;
 struct mc_transaction_t;
 
+struct enqueue_writeback_t :
+    public thread_message_t
+{
+    lock_available_callback_t *callback;
+    enqueue_writeback_t(lock_available_callback_t *_callback);
+    void on_thread_switch();
+};
+
 struct writeback_t :
     public lock_available_callback_t,
     public serializer_t::write_txn_callback_t

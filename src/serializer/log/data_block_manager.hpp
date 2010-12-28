@@ -24,8 +24,8 @@ extern perfmon_counter_t
     pm_serializer_old_garbage_blocks,
     pm_serializer_old_total_blocks;
 
-extern perfmon_function_t
-    pm_serializer_garbage_ratio;
+//extern perfmon_function_t
+//    pm_serializer_garbage_ratio;
 
 class log_serializer_t;
 
@@ -38,8 +38,8 @@ public:
         : shutdown_callback(NULL), state(state_unstarted), serializer(ser),
           dynamic_config(dynamic_config), static_config(static_config), extent_manager(em),
           next_active_extent(0),
-          gc_state(extent_manager->extent_size),
-          garbage_ratio_reporter(this)
+          gc_state(extent_manager->extent_size)//,
+//          garbage_ratio_reporter(this)
     {
         assert(dynamic_config);
         assert(static_config);
@@ -376,7 +376,7 @@ public:
     /* \brief perfmon to output the garbage ratio
      */
     
-    class garbage_ratio_reporter_t :
+/*    class garbage_ratio_reporter_t :
         public perfmon_function_t::internal_function_t
     {
     private: 
@@ -390,7 +390,7 @@ public:
             return format(data_block_manager->garbage_ratio());
         }
     } garbage_ratio_reporter;
-
+*/
     int64_t garbage_ratio_total_blocks() const { return gc_stats.old_garbage_blocks.get(); }
     int64_t garbage_ratio_garbage_blocks() const { return gc_stats.old_garbage_blocks.get(); }
 
