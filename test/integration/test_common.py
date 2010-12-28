@@ -54,6 +54,7 @@ def make_option_parser():
     o["valgrind-tool"] = StringFlag("--valgrind-tool", "memcheck")
     o["mode"] = StringFlag("--mode", "debug")
     o["netrecord"] = BoolFlag("--no-netrecord", invert = True)
+    o["fsck"] = BoolFlag("--no-fsck", invert = True)
     o["restart_server_prob"] = FloatFlag("--restart-server-prob", 0)
     o["corruption_p"] = FloatFlag("--corruption-p", 0)
     o["cores"] = IntFlag("--cores", 2)
@@ -323,7 +324,7 @@ class DataFiles(object):
         run_executable(
             [get_executable_path(self.opts, "rethinkdb"), "fsck"] + self.rethinkdb_flags(),
             "fsck_output.txt",
-            timeout = 30,
+            timeout = 600,
             valgrind_tool = self.opts["valgrind-tool"] if self.opts["valgrind"] else None
             )
 
@@ -526,7 +527,7 @@ class Server(object):
         
         print "%s shut down successfully." % self.name.capitalize()
         
-        self.data_files.fsck()
+        if self.opts["fsck"]: self.data_files.fsck()
         
     def kill(self):
         
@@ -548,7 +549,7 @@ class Server(object):
         
         print "Killed %s." % self.name
         
-        self.data_files.fsck()
+        if self.opts["fsck"]: self.data_files.fsck()
     
     def __del__(self):
         
