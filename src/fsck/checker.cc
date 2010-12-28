@@ -620,6 +620,7 @@ void check_large_buf(slicecx& cx, const large_buf_ref& ref, value_error *errs) {
         }
 
         if (levels > 1) {
+
             int64_t step = large_buf_t::compute_max_offset(cx.knog->static_config->block_size(), levels - 1);
 
             for (int64_t i = floor_aligned(ref.offset, step), e = ceil_aligned(ref.offset + ref.size, step); i < e; i += step) {
@@ -631,7 +632,7 @@ void check_large_buf(slicecx& cx, const large_buf_ref& ref, value_error *errs) {
                 r.size = end - beg;
                 r.block_id = ptr_cast<large_buf_internal>(b.buf)->kids[i / step];
 
-                check_large_buf(cx, ref, errs);
+                check_large_buf(cx, r, errs);
             }
         }
     }
@@ -873,7 +874,7 @@ void check_slice_other_blocks(slicecx& cx, other_block_errors *errs) {
                     errs->allegedly_deleted_blocks.push_back(desc);
                 } else {
                     block_magic_t magic = *ptr_cast<block_magic_t>(zeroblock.buf);
-                    if (log_serializer_t::zerobuf_magic == magic) {
+                    if (!(log_serializer_t::zerobuf_magic == magic)) {
                         desc.magic = magic;
                         errs->allegedly_deleted_blocks.push_back(desc);
                     }
@@ -1161,7 +1162,7 @@ bool report_other_block_errors(const other_block_errors *errs) {
         report_rogue_block_description("orphan block", errs->orphan_blocks[i]);
     }
     for (int i = 0, n = errs->allegedly_deleted_blocks.size(); i < n; ++i) {
-        report_rogue_block_description("nonzeroed deleted block", errs->allegedly_deleted_blocks[i]);
+        report_rogue_block_description("allegedly deleted block", errs->allegedly_deleted_blocks[i]);
     }
     bool ok = errs->orphan_blocks.empty() && errs->allegedly_deleted_blocks.empty();
     if (errs->contiguity_failure != ser_block_id_t::null()) {

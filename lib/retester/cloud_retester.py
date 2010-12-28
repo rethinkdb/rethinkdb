@@ -571,7 +571,8 @@ def get_report_for_test(test_reference):
         if command_result[0] == 0:
             open(result.output_dir.path + "/" + file_name, 'w').write(command_result[1])
     
-    # TODO: Also fetch network logs if any?    
+    # TODO: Also fetch network logs if any?
+    # TODO: Definitely fetch fsck output.
     
     return result
 
