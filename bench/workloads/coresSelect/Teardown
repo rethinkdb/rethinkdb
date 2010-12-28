@@ -6,5 +6,5 @@ rm -rf /tmp/insert_setup_out
 ssh puzzler -- rm -f "$TMP_KEY_FILE"
 
 if [ $DATABASE == "mysql" ]; then
-    sudo sh -c "for CPU in {12..23}; do echo 0 > /sys/devices/system/cpu/cpu\$CPU/online; done"
+    sudo bash -c "for CPU in {12..23}; do echo 0 > /sys/devices/system/cpu/cpu\$CPU/online; done"
 fi
