@@ -42,8 +42,13 @@ public:
           update_needed(false), update_done(false), did_split(false), cas_already_set(false),
           dest_reached(false), key_found(false), old_large_buf(NULL)
     {
+        store->started_a_query();
     }
-
+    
+    ~btree_modify_fsm_t() {
+        store->finished_a_query();
+    }
+    
     void do_transition(event_t *event);
 
     /* btree_modify_fsm calls operate() when it finds the leaf node.
