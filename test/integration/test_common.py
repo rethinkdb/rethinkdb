@@ -322,7 +322,7 @@ class DataFiles(object):
         
         run_executable(
             [get_executable_path(self.opts, "rethinkdb"), "fsck"] + self.rethinkdb_flags(),
-            "fsck/fsck_output",
+            "fsck_output.txt",
             timeout = 30,
             valgrind_tool = self.opts["valgrind-tool"] if self.opts["valgrind"] else None
             )

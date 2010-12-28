@@ -566,13 +566,12 @@ def get_report_for_test(test_reference):
     
     # Collect a few additional results into a temporary directory
     result.output_dir = SmartTemporaryDirectory("out_")
-    for file_name in ["server_output.txt", "creator_output.txt", "test_output.txt"]:
+    for file_name in ["server_output.txt", "creator_output.txt", "test_output.txt", "fsck_output.txt"]:
         command_result = node.run_command("cat cloud_retest/" + test_reference[1] + "/test/output_from_test/" + file_name)
         if command_result[0] == 0:
             open(result.output_dir.path + "/" + file_name, 'w').write(command_result[1])
     
     # TODO: Also fetch network logs if any?
-    # TODO: Definitely fetch fsck output.
     
     return result
 
