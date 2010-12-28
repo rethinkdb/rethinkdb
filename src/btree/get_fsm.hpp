@@ -35,11 +35,13 @@ public:
         : btree_fsm_t(_key, store),
           large_value(NULL), callback(cb), state(go_to_cache_core), last_buf(NULL), buf(NULL), node_id(NULL_BLOCK_ID)
     {
+        store->started_a_query();
         pm_cmd_get.begin(&start_time);
         do_transition(NULL);
     }
 
     ~btree_get_fsm_t() {
+        store->finished_a_query();
         pm_cmd_get.end(&start_time);
     }
     
