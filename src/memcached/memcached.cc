@@ -339,7 +339,11 @@ private:
         if (bytes_consumed < length) {
             size_t bytes_to_transfer = std::min(IO_BUFFER_SIZE, (long int)length - (long int)bytes_consumed);
             bytes_consumed += bytes_to_transfer;
-            rh->conn->read_external(dummy_buf, bytes_to_transfer, this);
+            if (rh->conn->is_read_open()) {
+                rh->conn->read_external(dummy_buf, bytes_to_transfer, this);
+            } else {
+                on_net_conn_close();
+            }
         } else {
             check_crlf();
         }
@@ -355,7 +359,11 @@ private:
                 bg_seg++;
                 bg_seg_pos = 0;
             }
-            rh->conn->read_external((char*)bg_buf->data + start_pos, bytes_to_transfer, this);
+            if (rh->conn->is_read_open()) {
+                rh->conn->read_external((char*)bg_buf->data + start_pos, bytes_to_transfer, this);
+            } else {
+                on_net_conn_close();
+            }
         } else {
             check_crlf();
         }
@@ -364,7 +372,11 @@ private:
     void check_crlf() {
         /* This is called to start checking the CRLF, *before* we have filled the CRLF buffer. */
         mode = mode_check_crlf;
-        rh->conn->read_external(crlf, 2, this);
+        if (rh->conn->is_read_open()) {
+            rh->conn->read_external(crlf, 2, this);
+        } else {
+            on_net_conn_close();
+        }
     }
 
     void do_check_crlf() {
