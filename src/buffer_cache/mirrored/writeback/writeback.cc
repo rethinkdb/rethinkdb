@@ -5,6 +5,14 @@ perfmon_duration_sampler_t
     pm_flushes_locking("flushes_locking", secs_to_ticks(1)),
     pm_flushes_writing("flushes_writing", secs_to_ticks(1));
 
+enqueue_writeback_t::enqueue_writeback_t(lock_available_callback_t *_callback)
+    : callback(_callback) {}
+
+void enqueue_writeback_t::on_thread_switch() {
+        callback->on_lock_available();
+        delete this;
+}
+
 writeback_t::writeback_t(
         cache_t *cache,
         bool wait_for_flush,
@@ -64,10 +72,20 @@ bool writeback_t::begin_transaction(transaction_t *txn, transaction_begin_callba
         case rwi_write:
             // Lock the flush lock "for reading", but what we really mean is to lock it non-
             // exclusively because more than one write transaction can proceed at once.
+            txn->begin_callback = callback;
             if (flush_lock.lock(rwi_read, txn)) {
-                return true;
+                /* push callback on the global event queue - if the lock
+                 * returns true, then the request won't have been put on the
+                 * flush lock's queue, which can lead to the
+                 * transaction_begin_callback not being called when it should be
+                 * in certain cases, as shown by append_stress append
+                 * reorderings.
+                 */
+                call_later_on_this_thread(new enqueue_writeback_t(txn));
+                return false;
             } else {
-                txn->begin_callback = callback;
+                /* If the lock returns false then the request will be properly
+                 * enqueued and the callback will run when it should. */
                 return false;
             }
         case rwi_read_outdated_ok:
