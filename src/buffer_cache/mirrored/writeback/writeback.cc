@@ -82,6 +82,7 @@ bool writeback_t::begin_transaction(transaction_t *txn, transaction_begin_callba
                  * reorderings.
                  */
                 call_later_on_this_thread(new enqueue_writeback_t(txn));
+                return false;
             } else {
                 /* If the lock returns false then the request will be properly
                  * enqueued and the callback will run when it should. */
