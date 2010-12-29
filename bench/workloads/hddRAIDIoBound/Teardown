@@ -1,0 +1,17 @@
+#!/bin/bash
+
+if [ $DATABASE == "mysql" ]; then
+    sudo ./raidconfig hdd single
+
+    # Remove bench databases
+    rm -rf /usr/local/mysql/var/bench
+
+    # delete_database_files
+    rm -f /tmp/raidtest/ib_logfile?
+fi
+
+if [ $DATABASE == "membase" ]; then
+    sudo umount /tmp/raid_mount
+    
+    sudo ./raidconfig hdd single
+fi

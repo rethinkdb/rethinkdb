@@ -29,7 +29,7 @@ function delete_database_files() { # They are large and useless.
 # Set up the SSDs as individual devices, and note their names to pass to rethinkdb.
 #SSD_DRIVES="$(sudo /usr/local/bin/raidconfig ssd single | sed 's/^/-f /; s/$/ /' | tr -d '\n')"
 SSD_DRIVES="-f /dev/sdf -f /dev/sdg -f /dev/sdh -f /dev/sdi"
-HDD_DRIVES="" # TODO
+HDD_DRIVES="-f /dev/sdb -f /dev/sdc -f /dev/sdd -f /dev/sde"
 
 SERVER_HOSTS="magneto,magneto2"
 CANONICAL_CLIENTS="512"
