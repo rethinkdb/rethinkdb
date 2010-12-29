@@ -8,6 +8,8 @@
 #include <vector>
 #include <boost/bind.hpp>
 
+const size_t MAX_COROUTINE_STACK_SIZE = 8*1024*1024;
+
 extern perfmon_counter_t pm_active_coroutines, pm_allocated_coroutines;
 
 /* A coroutine represents an action with no return value */
@@ -66,10 +68,14 @@ private:
 
     static coro_t *get_free_coro();
 
+    static size_t stack_size;
 public:
 #ifndef NDEBUG
     static int in_coro_from_cpu(void *addr);
 #endif
+    static void set_coroutine_stack_size(size_t size) {
+        stack_size = size;
+    }
 
     template<typename callable_t>
     static void spawn(callable_t fun) {

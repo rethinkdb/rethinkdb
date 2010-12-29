@@ -78,6 +78,7 @@ typedef struct Coro Coro;
 struct Coro
 {
     void *stack;
+    size_t stack_size;
 
 #ifdef USE_VALGRIND
     unsigned int valgrindStackId;
@@ -94,7 +95,7 @@ struct Coro
     unsigned char isMain;
 };
 
-CORO_API Coro *Coro_new(void);
+CORO_API Coro *Coro_new(size_t);
 CORO_API void Coro_free(Coro *self);
 
 // stack

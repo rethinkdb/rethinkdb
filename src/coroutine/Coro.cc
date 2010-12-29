@@ -78,15 +78,18 @@ typedef struct CallbackBlock
 static CallbackBlock globalCallbackBlock;
 #endif
 
-Coro *Coro_new(void)
+Coro *Coro_new(size_t stack_size)
 {
     Coro *self = (Coro *)calloc(1, sizeof(Coro));
+    self->stack_size = stack_size;
 
 #ifdef USE_FIBERS
     self->fiber = NULL; //Allocate a stack here
 #else
-    self->stack = valloc(CORO_DEFAULT_STACK_SIZE);
-    mprotect(self->stack, getpagesize(), PROT_NONE);
+    if (stack_size > 0) {
+        self->stack = valloc(stack_size);
+        mprotect(self->stack, getpagesize(), PROT_NONE);
+    }
 #endif
     STACK_REGISTER(self);
     return self;
@@ -118,7 +121,7 @@ void *Coro_stack(Coro *self)
 
 size_t Coro_stackSize(Coro *self)
 {
-    return CORO_DEFAULT_STACK_SIZE - 16;
+    return self->stack_size - 16;
 }
 
 void Coro_initializeMainCoro(Coro *self)

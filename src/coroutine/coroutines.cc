@@ -5,12 +5,16 @@
 
 perfmon_counter_t pm_active_coroutines("active_coroutines"),
                   pm_allocated_coroutines("allocated_coroutines");
+
 #ifndef NDEBUG
 std::vector<std::vector<coro_t*> > coro_t::all_coros;
 #endif
+
 __thread coro_t *coro_t::current_coro = NULL;
 __thread coro_t *coro_t::scheduler = NULL;
 __thread std::vector<coro_t*> *coro_t::free_coros = NULL;
+
+size_t coro_t::stack_size = 65536; //Default, setable by command-line parameter
 
 coro_t *coro_t::self() {
     return current_coro;
@@ -81,7 +85,7 @@ void coro_t::run_coroutine(void *data) {
 coro_t *coro_t::get_free_coro() {
     if (free_coros->size() == 0) {
         //printf("Making a new one from scratch\n");
-        coro_t *coro = new coro_t(Coro_new());
+        coro_t *coro = new coro_t(Coro_new(stack_size));
         pm_allocated_coroutines++;
 #ifndef NDEBUG
         all_coros[get_thread_id()].push_back(coro);
@@ -123,7 +127,7 @@ coro_t::~coro_t() {
 }
 
 void coro_t::run() {
-    Coro *mainCoro = Coro_new();
+    Coro *mainCoro = Coro_new(0);
     Coro_initializeMainCoro(mainCoro);
     scheduler = current_coro = new coro_t(mainCoro);
     free_coros = new std::vector<coro_t*>();

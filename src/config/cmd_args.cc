@@ -7,6 +7,7 @@
 #include "fsck/fsck.hpp"
 #include "extract/extract.hpp"
 #include "utils.hpp"
+#include "coroutine/coroutines.hpp"
 
 void usage(const char *name) {
     printf("Usage:\n"
@@ -16,6 +17,7 @@ void usage(const char *name) {
            "                          [--flush-threshold <n%%>] [--gc-range <low>-<high>]\n"
            "                          [--active-data-extents <nExtents>]\n"
            "                          [-f <file_1> -f <file_2> ...]\n"
+           "                          [--coroutine-stack-size <bytes>]\n"
            "        rethinkdb create  [-h] [-s <nshards>] [-l <log_file>]\n"
            "                          [--block-size <nbytes>] [--extent-size <nbytes>]\n"
            "                          [--force] -f data_file_1 -f data_file_2 ...\n"
@@ -69,7 +71,9 @@ void usage_serve(const char *name) {
            "                        The proportion of garbage maintained by garbage\n"
            "                        collection.\n"
            "      --active-data-extents\n"
-           "                        How many places in the file to write to at once.\n");
+           "                        How many places in the file to write to at once.\n"
+           "      --coroutine-stack-size\n"
+           "                        How much space is allocated for the stacks of coroutines.\n");
     exit(0);
 }
 
@@ -97,7 +101,8 @@ enum {
     active_data_extents,
     block_size,
     extent_size,
-    force_create
+    force_create,
+    coroutine_stack_size
 };
 
 enum rethinkdb_cmd {
@@ -188,6 +193,7 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
                 {"block-size",           required_argument, 0, block_size},
                 {"extent-size",          required_argument, 0, extent_size},
                 {"active-data-extents",  required_argument, 0, active_data_extents},
+                {"coroutine-stack-size", required_argument, 0, coroutine_stack_size},
                 {"cores",                required_argument, 0, 'c'},
                 {"slices",               required_argument, 0, 's'},
                 {"file",                 required_argument, 0, 'f'},
@@ -251,6 +257,8 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
                 config.set_block_size(optarg); break;
             case extent_size:
                 config.set_extent_size(optarg); break;
+            case coroutine_stack_size:
+                config.set_coroutine_stack_size(optarg); break;
             case force_create:
                 config.force_create = true; break;
             case 'h':
@@ -505,6 +513,17 @@ void parsing_cmd_config_t::set_cores(const char* value) {
     target = parse_int(optarg);
     if (parsing_failed || !is_in_range(target, minimum_value, maximum_value))
         fail_due_to_user_error("Number of CPUs must be a number from %d to %d.", minimum_value, maximum_value);
+}
+
+void parsing_cmd_config_t::set_coroutine_stack_size(const char* value) {
+    const int minimum_value = 8126;
+    const int maximum_value = MAX_COROUTINE_STACK_SIZE;
+    
+    int target = parse_int(optarg);
+    if (parsing_failed || !is_in_range(target, minimum_value, maximum_value))
+        fail_due_to_user_error("Coroutine stack size must be a number from %d to %d.", minimum_value, maximum_value);
+
+    coro_t::set_coroutine_stack_size(parse_int(optarg));
 }
 
 long long int parsing_cmd_config_t::parse_longlong(const char* value) {
