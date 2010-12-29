@@ -334,7 +334,7 @@ TEST(LeafNodeTest, Initialization) {
     free(node);
 }
 
-void AlternateInsertLookupRemoveHelper(const std::string& key, const char *value) {
+void InsertLookupRemoveHelper(const std::string& key, const char *value) {
     LeafNodeGrinder<4096> gr;
 
     Value v(value);
@@ -345,52 +345,17 @@ void AlternateInsertLookupRemoveHelper(const std::string& key, const char *value
     gr.remove(key);
 }
 
-// Runs an InsertLookupRemove test with key and value.
-void InsertLookupRemoveHelper(const char *key, const char *value) {
-    block_size_t bs = make_bs();
-    leaf_node_t *node = malloc_leaf_node(bs);
-
-    leaf_node_handler::init(bs, node, repli_timestamp::invalid);
-    verify(bs, node, bs.value() - offsetof(leaf_node_t, pair_offsets));
-
-    btree_key *k = malloc_key(key);
-    btree_value *v = malloc_value(value);
-
-    ASSERT_TRUE(leaf_node_handler::insert(bs, node, k, v, repli_timestamp::invalid));
-    verify(bs, node, bs.value() - offsetof(leaf_node_t, pair_offsets) - k->full_size() - v->full_size() - 2);
-    ASSERT_EQ(1, node->npairs);
-
-    union {
-        byte readval_padding[MAX_TOTAL_NODE_CONTENTS_SIZE + sizeof(btree_value)];
-        btree_value readval;
-    };
-
-    (void)readval_padding;
-
-    ASSERT_TRUE(leaf_node_handler::lookup(node, k, &readval));
-
-    ASSERT_EQ(0, memcmp(v, &readval, v->full_size()));
-
-    leaf_node_handler::remove(bs, node, k);
-    verify(bs, node, bs.value() - offsetof(leaf_node_t, pair_offsets));
-    ASSERT_EQ(0, node->npairs);
-
-    free(k);
-    free(v);
-    free(node);
-}
-
 TEST(LeafNodeTest, ElementaryInsertLookupRemove) {
-    AlternateInsertLookupRemoveHelper("the_key", "the_value");
+    InsertLookupRemoveHelper("the_key", "the_value");
 }
 TEST(LeafNodeTest, EmptyValueInsertLookupRemove) {
-    AlternateInsertLookupRemoveHelper("the_key", "");
+    InsertLookupRemoveHelper("the_key", "");
 }
 TEST(LeafNodeTest, EmptyKeyInsertLookupRemove) {
-    AlternateInsertLookupRemoveHelper("", "the_value");
+    InsertLookupRemoveHelper("", "the_value");
 }
 TEST(LeafNodeTest, EmptyKeyValueInsertLookupRemove) {
-    AlternateInsertLookupRemoveHelper("", "");
+    InsertLookupRemoveHelper("", "");
 }
 
 
