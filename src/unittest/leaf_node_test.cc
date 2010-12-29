@@ -210,8 +210,18 @@ public:
         validate();
     }
 
+    void insert_nocheck(const std::string& k, const Value& v) {
+        SCOPED_TRACE("insert_nocheck k='" + std::string(k) + "' v='" + format(v) + "'");
+        do_insert(k, v);
+    }
+
     void insert(const std::string& k, const Value& v) {
-        SCOPED_TRACE("insert");
+        SCOPED_TRACE("insert k='" + k + "' v='" + format(v) + "'");
+        do_insert(k, v);
+        validate();
+    }
+
+    void do_insert(const std::string& k, const Value& v) {
         ASSERT_TRUE(initialized);
         StackKey skey(k);
         StackValue sval(v);
@@ -233,13 +243,25 @@ public:
                 res.first->second = v;
             }
         }
+    }
 
-        validate();
+    // Allows the key not to be in the node.
+    void try_remove(const std::string& k) {
+        SCOPED_TRACE("try_remove '" + k + "'");
+        if (expected.find(k) != expected.end()) {
+            do_remove(k);
+            validate();
+        }
     }
 
     // Expects the key to be in the node.
     void remove(const std::string& k) {
-        SCOPED_TRACE("remove");
+        SCOPED_TRACE("remove '" + k + "'");
+        do_remove(k);
+        validate();
+    }
+
+    void do_remove(const std::string& k) {
         ASSERT_TRUE(initialized);
         expected_t::iterator p = expected.find(k);
 
@@ -256,8 +278,6 @@ public:
         expected.erase(p);
         expected_frontmost_offset += (1 + k.size()) + sval.look()->full_size();
         -- expected_npairs;
-
-        validate();
     }
 
     void validate() const {
@@ -269,11 +289,29 @@ public:
         verify(bs, node, expected_space());
 
         for (expected_t::const_iterator p = expected.begin(), e = expected.end(); p != e; ++p) {
+            SCOPED_TRACE("lookup '" + p->first + "'");
             lookup(p->first, p->second);
         }
 
         // We're confident there are no bad keys because
         // expected_free_space matched up.
+    }
+
+    void remove_all() {
+        SCOPED_TRACE("remove_all");
+        ASSERT_TRUE(initialized);
+
+        std::vector<std::string> keys;
+        for (expected_t::const_iterator p = expected.begin(), e = expected.end(); p != e; ++p) {
+            keys.push_back(p->first);
+        }
+
+        for (std::vector<std::string>::iterator p = keys.begin(), e = keys.end(); p != e; ++p) {
+            SCOPED_TRACE("removing '" + *p + "'");
+            do_remove(*p);
+        }
+
+        validate();
     }
 
 private:
@@ -351,6 +389,37 @@ TEST(LeafNodeTest, InsertRemoveOnce) {
     InsertRemoveHelper("the_key", "");
     InsertRemoveHelper("", "the_value");
     InsertRemoveHelper("", "");
+}
+
+TEST(LeafNodeTest, Crazy) {
+    LeafNodeGrinder gr(4096);
+    gr.init();
+
+    const int m = 500;
+
+    for (int i = 0; i < m; ++i) {
+        std::string s = format(i);
+
+        gr.insert_nocheck(format(i), format(i * i));
+    }
+
+    for (int i = 0; i < m; i += 2) {
+        gr.try_remove(format(i));
+    }
+
+    for (int i = 0; i < m; i += 4) {
+        gr.insert_nocheck(format(i), format(i * i * i));
+    }
+
+    for (int i = 0; i < m; i += 8) {
+        gr.try_remove(format(i));
+    }
+
+    for (int i = 0; i < 500; ++i) {
+        gr.insert_nocheck(format(i), format(i * i + i));
+    }
+
+    gr.remove_all();
 }
 
 
