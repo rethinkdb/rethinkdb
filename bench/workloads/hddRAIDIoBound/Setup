@@ -18,10 +18,10 @@ if [ $DATABASE == "mysql" ]; then
     export MYSQL_HDD_COMMON_FLAGS
     export -p > "$BENCH_DIR/environment"
 
-    # Remove old bench databases
+    # Remove old bench database
     rm -rf /usr/local/mysql/var/bench
 
-    #delete_database_files
+    # delete_dangling database_files
     rm -f /tmp/raidtest/ib_logfile?
     mkdir -p /tmp/raidtest
 

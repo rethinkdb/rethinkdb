@@ -77,6 +77,7 @@ for WORKLOAD in ../workloads/*; do
         export MYSQL_BUFFER_FLAGS
         export MYSQL_DURABILITY_FLAGS
         export MYSQL_SSD_FLAGS
+        export MYSQL_SSD_CREATE_FLAGS
         export STRESS_CLIENT
     
         if [ -e "$WORKLOAD/Setup" ]; then

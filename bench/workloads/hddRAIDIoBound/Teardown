@@ -8,6 +8,25 @@ if [ $DATABASE == "mysql" ]; then
 
     # delete_database_files
     rm -f /tmp/raidtest/ib_logfile?
+    
+    # delete_dangling database_files
+    rm -f /tmp/ib_logfile?
+    
+    # Initialize InnoDB RAW tablespace for SSD based tests again
+    /usr/local/mysql/libexec/mysqld $MYSQL_COMMON_FLAGS $MYSQL_BUFFER_FLAGS $MYSQL_DURABILITY_FLAGS $MYSQL_SSD_CREATE_FLAGS --port=9874 &
+    # Wait for server to finish initialization and shut it down
+    while ! /usr/local/mysql/bin/mysqladmin shutdown -u root --port=9874 2> /dev/null; do
+        sleep 5
+    done
+
+    # "Initialize" the MySQL database by running some load now. Otherwise it fails on the first actual workload for some mysterious
+    # TODO: This is just a hacky workaround. Investigate why this happens
+    ./dbench                                                                                   \
+            -d "$BENCH_DIR/bench_output/warmup" -H $SERVER_HOSTS             \
+            {server}mysql:"$MYSQL_COMMON_FLAGS $MYSQL_BUFFER_FLAGS $MYSQL_DURABILITY_FLAGS $MYSQL_SSD_FLAGS"              \
+            {client}mysqlstress[$STRESS_CLIENT]:"-c $CANONICAL_CLIENTS -d 10s" \
+            iostat:1 vmstat:1
+    rm -rf "$BENCH_DIR/bench_output/warmup"
 fi
 
 if [ $DATABASE == "membase" ]; then
