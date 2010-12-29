@@ -48,6 +48,7 @@ public:
     static void split(block_size_t block_size, leaf_node_t *node, leaf_node_t *rnode, btree_key *median_out);
     // Merges the contents of node into rnode.
     static void merge(block_size_t block_size, const leaf_node_t *node, leaf_node_t *rnode, btree_key *key_to_remove_out);
+    // Removes pairs from sibling, adds them to node.
     static bool level(block_size_t block_size, leaf_node_t *node, leaf_node_t *sibling, btree_key *key_to_replace, btree_key *replacement_key);
 
 

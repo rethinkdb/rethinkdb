@@ -152,6 +152,10 @@ std::ostream& operator<<(std::ostream& out, const Value& v) {
 
 class StackKey {
 public:
+    StackKey() {
+        keyval.size = 0;
+    }
+
     explicit StackKey(const std::string& key) {
         EXPECT_LE(key.size(), MAX_KEY_SIZE);
         keyval.size = key.size();
@@ -159,6 +163,10 @@ public:
     }
 
     const btree_key *look() const {
+        return &keyval;
+    }
+
+    btree_key *look_write() {
         return &keyval;
     }
 
@@ -199,8 +207,12 @@ public:
         free(node);
     }
 
+    static int space(int frontmont_offset, int npairs) {
+        return frontmont_offset - (offsetof(leaf_node_t, pair_offsets) + sizeof(*((leaf_node_t *)0)->pair_offsets) * npairs);
+    }
+
     int expected_space() const {
-        return expected_frontmost_offset - (offsetof(leaf_node_t, pair_offsets) + sizeof(*node->pair_offsets) * expected_npairs);
+        return space(expected_frontmost_offset, expected_npairs);
     }
 
     void init() {
@@ -312,14 +324,123 @@ public:
         }
 
         validate();
+
+        ASSERT_EQ(bs.value(), expected_frontmost_offset);
+        ASSERT_EQ(0, expected_npairs);
     }
 
-private:
-    void lookup(const std::string& k, const Value& expected) const {
-        StackKey skey(k);
-        StackValue sval;
-        ASSERT_TRUE(leaf_node_handler::lookup(node, skey.look(), sval.look_write()));
-        ASSERT_EQ(expected, Value::Make(sval.look()));
+    void merge(const LeafNodeGrinder& lnode) {
+        SCOPED_TRACE("merge");
+        ASSERT_TRUE(initialized);
+
+        ASSERT_EQ(bs.ser_value(), lnode.bs.ser_value());
+
+
+        int next_expected_fo = bs.value() - ((bs.value() - expected_frontmost_offset) + (lnode.bs.value() - lnode.expected_frontmost_offset));
+        int next_expected_npairs = expected_npairs + lnode.expected_npairs;
+
+        // TODO: call merge under pathological conditions too, and
+        // change merge so that it can refuse to merge.
+
+        if (0 <= space(next_expected_fo, next_expected_npairs)) {
+            // TODO: before we merge, add assertions that the keys fit
+            // in two mutually exclusive intervals.
+
+            StackKey skey;
+            leaf_node_handler::merge(bs, lnode.node, node, skey.look_write());
+
+            for (expected_t::const_iterator p = lnode.expected.begin(), e = lnode.expected.end();
+                 p != e;
+                 ++p) {
+                expected.insert(*p);
+            }
+
+            expected_frontmost_offset = next_expected_fo;
+            expected_npairs = node->npairs;
+
+            validate();
+        }
+    }
+
+    void level(LeafNodeGrinder& sibling) {
+        SCOPED_TRACE("level");
+        ASSERT_TRUE(initialized);
+
+        ASSERT_EQ(bs.ser_value(), sibling.bs.ser_value());
+
+        StackKey key_to_replace;
+        StackKey replacement_key;
+
+        int cmp = leaf_node_handler::nodecmp(node, sibling.node);
+
+        int fo_sum = expected_frontmost_offset + sibling.expected_frontmost_offset;
+        int npair_sum = expected_npairs + sibling.expected_npairs;
+
+        leaf_node_handler::level(bs, node, sibling.node, key_to_replace.look_write(), replacement_key.look_write());
+
+        // Sanity check that npairs and frontmost_offset are in sane ranges.
+
+        ASSERT_LE(0, node->npairs);
+        ASSERT_LE(0, sibling.node->npairs);
+
+        // We move stuff *into* node.
+        ASSERT_LE(expected_npairs, node->npairs);
+
+        ASSERT_LE(node->frontmost_offset, bs.value());
+        ASSERT_LE(sibling.node->frontmost_offset, bs.value());
+
+        ASSERT_LE(0, space(node->frontmost_offset, node->npairs));
+        ASSERT_LE(0, space(sibling.node->frontmost_offset, sibling.node->npairs));
+
+        // Check that the size of our data is exactly the same.
+
+        ASSERT_EQ(fo_sum, node->frontmost_offset + sibling.node->frontmost_offset);
+        ASSERT_EQ(npair_sum, node->npairs + sibling.node->npairs);
+
+        // Modify expecteds.  This test does not precisely calculate
+        // how much leveling it expects to happen.
+
+        int movement = node->npairs - expected_npairs;
+
+        // We expect level to move things into node.
+        ASSERT_LE(0, movement);
+        ASSERT_LE(movement, sibling.expected_npairs);
+
+        if (cmp < 0) {
+            // We expect we moved things from the left end of sibling
+            // onto the right end of node.
+
+            for (int i = 0; i < movement; ++i) {
+                // TODO: this could be slightly more efficient.
+                expected_t::iterator p = sibling.expected.begin();
+                expected.insert(*p);
+                sibling.expected.erase(p);
+            }
+        } else {
+            // We expect we moved things from the right end of sibling
+            // onto the left end of node.
+
+            for (int i = 0; i < movement; ++i) {
+                expected_t::iterator p = sibling.expected.end();
+                --p;
+                expected.insert(*p);
+                sibling.expected.erase(p);
+            }
+        }
+
+
+        sibling.expected_frontmost_offset = sibling.node->frontmost_offset;
+        sibling.expected_npairs = sibling.node->npairs;
+
+        expected_frontmost_offset = node->frontmost_offset;
+        expected_npairs = node->npairs;
+
+        // TODO: We don't really check that leveling happens.
+        // leaf_node_handler::level could be a no-op and would pass
+        // this test.
+
+        validate();
+        sibling.validate();
     }
 
     block_size_t bs;
@@ -329,6 +450,16 @@ private:
     int expected_npairs;
     leaf_node_t *node;
     bool initialized;
+
+private:
+    void lookup(const std::string& k, const Value& expected) const {
+        StackKey skey(k);
+        StackValue sval;
+        ASSERT_TRUE(leaf_node_handler::lookup(node, skey.look(), sval.look_write()));
+        ASSERT_EQ(expected, Value::Make(sval.look()));
+    }
+
+    DISABLE_COPYING(LeafNodeGrinder);
 };
 
 
@@ -368,6 +499,14 @@ btree_value *malloc_value(const char *s) {
     return v;
 }
 
+void fill_nonsense(LeafNodeGrinder& gr) {
+    // TODO: stop when it's filled.
+    for (int i = 0; i < 500; ++i) {
+        gr.insert_nocheck(format(i), format(i*i));
+    }
+    gr.validate();
+}
+
 TEST(LeafNodeTest, Initialization) {
     LeafNodeGrinder gr(4096);
 
@@ -391,6 +530,7 @@ TEST(LeafNodeTest, InsertRemoveOnce) {
     InsertRemoveHelper("", "");
 }
 
+
 TEST(LeafNodeTest, Crazy) {
     LeafNodeGrinder gr(4096);
     gr.init();
@@ -402,6 +542,7 @@ TEST(LeafNodeTest, Crazy) {
 
         gr.insert_nocheck(format(i), format(i * i));
     }
+    gr.validate();
 
     for (int i = 0; i < m; i += 2) {
         gr.try_remove(format(i));
@@ -410,21 +551,73 @@ TEST(LeafNodeTest, Crazy) {
     for (int i = 0; i < m; i += 4) {
         gr.insert_nocheck(format(i), format(i * i * i));
     }
+    gr.validate();
 
     for (int i = 0; i < m; i += 8) {
         gr.try_remove(format(i));
     }
 
-    for (int i = 0; i < 500; ++i) {
+    for (int i = 0; i < m; ++i) {
         gr.insert_nocheck(format(i), format(i * i + i));
     }
+    gr.validate();
 
     gr.remove_all();
 }
 
+TEST(LeafNodeTest, Merging) {
+    const int bs = 4096;
 
+    LeafNodeGrinder x(bs);
+    LeafNodeGrinder y(bs);
 
+    x.init();
+    y.init();
 
+    // Empty node merging.
+    x.merge(y);
+
+    // Basic merging.
+    for (int i = 0; i < 500; ++i) {
+        x.insert_nocheck(format(i), format(i*i));
+    }
+    x.validate();
+
+    // Merge nothing into something
+    x.merge(y);
+
+    // Merge something into nothing
+    y.merge(x);
+
+    // Merge two full things.
+    y.merge(x);  // TODO this test doesn't really happen
+}
+
+TEST(LeafNodeTest, Leveling) {
+    const int bs = 4096;
+
+    LeafNodeGrinder x(bs);
+    LeafNodeGrinder y(bs);
+
+    x.init();
+    y.init();
+
+    // Empty node leveling.
+    x.level(y);
+
+    fill_nonsense(x);
+
+    // Leveling nothing into something.
+    x.level(y);
+
+    // Leveling something into nothing.
+    y.level(x);
+
+    fill_nonsense(x);
+    fill_nonsense(y);
+
+    y.level(x);
+}
 
 
 
