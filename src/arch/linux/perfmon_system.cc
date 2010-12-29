@@ -99,6 +99,7 @@ class perfmon_system_t :
     void end_stats(void *, perfmon_stats_t *dest) {
         proc_pid_stat_t pid_stat;
         if (pid_stat.read_stats(getpid())) {
+            (*dest)["version"] = std::string(RETHINKDB_VERSION);
             (*dest)["pid"] = format(pid_stat.pid);
             (*dest)["memory_virtual[bytes]"] = format(pid_stat.vsize);
             (*dest)["memory_real[bytes]"] = format(pid_stat.rss * sysconf(_SC_PAGESIZE));
