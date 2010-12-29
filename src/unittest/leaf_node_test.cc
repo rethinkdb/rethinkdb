@@ -80,6 +80,10 @@ TEST(LeafNodeTest, Offsets) {
     btree_leaf_pair p;
     p.key.size = 173;
     EXPECT_EQ(174, reinterpret_cast<byte *>(p.value()) - reinterpret_cast<byte *>(&p));
+
+    EXPECT_EQ(1, sizeof(btree_key));
+    EXPECT_EQ(1, offsetof(btree_key, contents));
+    EXPECT_EQ(2, sizeof(btree_value));
 }
 
 class Value {
@@ -93,6 +97,8 @@ public:
 
     void WriteBtreeValue(btree_value *out) const {
         out->size = 0;
+        out->metadata_flags = 0;
+
         ASSERT_LE(data_.size(), MAX_IN_NODE_VALUE_SIZE);
         out->value_size(data_.size());
         out->set_mcflags(mcflags_);
@@ -100,7 +106,7 @@ public:
         if (has_cas_) {
             out->set_cas(cas_);
         }
-        memcpy(v->value(), data_.c_str(), data_.size());
+        memcpy(out->value(), data_.c_str(), data_.size());
     }
 
     static Value Make(const btree_value *v) {
@@ -224,13 +230,10 @@ public:
             std::pair<expected_t::iterator, bool> res = expected.insert(std::make_pair(k, v));
             if (res.second) {
                 // The key didn't previously exist.
-                printf("new key '%s', subtracting %ld\n", k.c_str(), (1 + k.size()) + v.full_size() + sizeof(*node->pair_offsets));
                 expected_frontmost_offset -= (1 + k.size()) + v.full_size();
                 expected_npairs++;
             } else {
                 // The key previously existed.
-                printf("same key '%s', adding %d subtracting %d\n", k.c_str(),
-                       res.first->second.full_size(), v.full_size());
                 expected_frontmost_offset += res.first->second.full_size();
                 expected_frontmost_offset -= v.full_size();
                 res.first->second = v;
@@ -263,8 +266,8 @@ public:
 
         leaf_node_handler::remove(bs, node, skey.look());
         expected.erase(p);
-        printf("removal of '%s', adding %ld\n", k.c_str(), (1 + k.size()) + sval.look()->full_size() + sizeof(*node->pair_offsets));
-        expected_frontmost_offset += (1 + k.size()) + sval.look()->full_size() + sizeof(*node->pair_offsets);
+        expected_frontmost_offset += (1 + k.size()) + sval.look()->full_size();
+        -- expected_npairs;
 
         validate();
     }
