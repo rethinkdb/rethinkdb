@@ -5,7 +5,8 @@ function run_with_cores {
     NUMBER_OF_CORES=$1
     
     if [ $DATABASE == "rethinkdb" ]; then
-        ./dbench                                                                                      \
+        ./dbench                                                                                                \
+            --prime-caches                                                                                      \
             -d "$BENCH_DIR/bench_output/Number_of_cores_select_only_workload/$NUMBER_OF_CORES" -H $SERVER_HOSTS    \
             {server}rethinkdb:"-c $NUMBER_OF_CORES -m 32768 $SSD_DRIVES"                                            \
             {client}stress[$STRESS_CLIENT]:"-c $CANONICAL_CLIENTS -d 100000000q -w 0/0/0/1 -i $TMP_KEY_FILE" \
@@ -14,7 +15,8 @@ function run_with_cores {
         if [ "$NUMBER_OF_CORES" -lt "24" ]; then
             sudo bash -c "for CPU in {$NUMBER_OF_CORES..23}; do echo 0 > /sys/devices/system/cpu/cpu\$CPU/online; done"
         fi
-        ./dbench                                                                                   \
+        ./dbench                                                                                                \
+            --prime-caches                                                                                   \
             -d "$BENCH_DIR/bench_output/Number_of_cores_select_only_workload/$NUMBER_OF_CORES" -H $SERVER_HOSTS             \
             {server}mysql:"$MYSQL_COMMON_FLAGS $MYSQL_BUFFER_FLAGS $MYSQL_DURABILITY_FLAGS $MYSQL_SSD_FLAGS"              \
             {client}mysqlstress[$STRESS_CLIENT]:"-c $CANONICAL_CLIENTS -d 5000000q -w 0/0/0/1 -i $TMP_KEY_FILE" \

@@ -28,19 +28,22 @@ function run_with_clients {
     
     # Run benchmark
     if [ $DATABASE == "rethinkdb" ]; then
-        ./dbench                                                                                      \
+        ./dbench                                                                                                \
+            --prime-caches                                                                                      \
             -d "$BENCH_DIR/bench_output/Number_of_clients_on_canonical_hardware_select_only_workload/$NUMBER_OF_CLIENTS" -H $SERVER_HOSTS    \
             {server}rethinkdb:"-c 12 -m 32768 $SSD_DRIVES"                                            \
             {client}stress[$STRESS_CLIENT]:"-c $NUMBER_OF_CLIENTS -d 100000000q -w 0/0/0/1 -i $TMP_KEY_FILE" \
             iostat:1 vmstat:1 rdbstat:1
     elif [ $DATABASE == "mysql" ]; then
-        ./dbench                                                                                   \
+        ./dbench                                                                                                \
+            --prime-caches                                                                                   \
             -d "$BENCH_DIR/bench_output/Number_of_clients_on_canonical_hardware_select_only_workload/$NUMBER_OF_CLIENTS" -H $SERVER_HOSTS \
             {server}mysql:"$MYSQL_COMMON_FLAGS $MYSQL_BUFFER_FLAGS $MYSQL_DURABILITY_FLAGS $MYSQL_SSD_FLAGS"        \
             {client}mysqlstress[$STRESS_CLIENT]:"-c $NUMBER_OF_CLIENTS -d 5000000q -w 0/0/0/1 -i $TMP_KEY_FILE" \
             iostat:1 vmstat:1
     elif [ $DATABASE == "membase" ]; then
-        ./dbench                                                                                   \
+        ./dbench                                                                                                \
+            --prime-caches                                                                                   \
             -d "$BENCH_DIR/bench_output/Number_of_clients_on_canonical_hardware_select_only_workload/$NUMBER_OF_CLIENTS" -H $SERVER_HOSTS -p 11211 \
             {server}membase:"-d $MEMBASE_DATA_PATH -m 32768"                                       \
             {client}stress[$STRESS_CLIENT]:"-c $NUMBER_OF_CLIENTS -d 10000000q -w 0/0/0/1 -i $TMP_KEY_FILE" \
