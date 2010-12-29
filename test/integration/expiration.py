@@ -9,12 +9,12 @@ def test_function(opts, mc):
         raise ValueError, "Set failed"
 
     print "Make sure we can get the element back after short sleep"
-    time.sleep(3)
+    time.sleep(1)
     if mc.get("a") != "aaa":
         raise ValueError("Failure: value can't be found but it's supposed to be")
         
     print "Make sure the element eventually expires"
-    time.sleep(2)
+    time.sleep(4)
     if mc.get("a") != None:
         raise ValueError("Failure: value should have expired but didn't")
         
