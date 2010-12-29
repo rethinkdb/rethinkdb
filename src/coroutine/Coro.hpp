@@ -11,15 +11,15 @@
 
 
 /*#if defined(__SYMBIAN32__)
-	#define CORO_STACK_SIZE     8192
-	#define CORO_STACK_SIZE_MIN 1024
+    #define CORO_STACK_SIZE     8192
+    #define CORO_STACK_SIZE_MIN 1024
 #else
-	//#define CORO_DEFAULT_STACK_SIZE     (65536/2)
-	//#define CORO_DEFAULT_STACK_SIZE  (65536*4)
+    //#define CORO_DEFAULT_STACK_SIZE     (65536/2)
+    //#define CORO_DEFAULT_STACK_SIZE  (65536*4)
 
-	//128k needed on PPC due to parser
-	#define CORO_DEFAULT_STACK_SIZE (128*1024)
-	#define CORO_STACK_SIZE_MIN 8192
+    //128k needed on PPC due to parser
+    #define CORO_DEFAULT_STACK_SIZE (128*1024)
+    #define CORO_STACK_SIZE_MIN 8192
 #endif*/
 //TODO: In a special testing mode, munmap the page above (below)
 //the stack so we can get an error if it overflows
@@ -38,7 +38,7 @@
 
 /*
 #if defined(__amd64__) && !defined(__x86_64__)
-	#define __x86_64__ 1
+    #define __x86_64__ 1
 #endif
 */
 
@@ -47,26 +47,26 @@
 #if !defined(USE_FIBERS) && !defined(USE_UCONTEXT) && !defined(USE_SETJMP)
 
 #if defined(WIN32) && defined(HAS_FIBERS)
-#	define USE_FIBERS
+#    define USE_FIBERS
 #elif defined(HAS_UCONTEXT)
 //#elif defined(HAS_UCONTEXT) && !defined(__x86_64__)
-#	if !defined(USE_UCONTEXT)
-#		define USE_UCONTEXT
-#	endif
+#    if !defined(USE_UCONTEXT)
+#        define USE_UCONTEXT
+#    endif
 #else
-#	define USE_SETJMP
+#    define USE_SETJMP
 #endif
 
 #endif
 
 #if defined(USE_FIBERS)
-	#define CORO_IMPLEMENTATION "fibers"
+    #define CORO_IMPLEMENTATION "fibers"
 #elif defined(USE_UCONTEXT)
-	#include <sys/ucontext.h>
-	#define CORO_IMPLEMENTATION "ucontext"
+    #include <sys/ucontext.h>
+    #define CORO_IMPLEMENTATION "ucontext"
 #elif defined(USE_SETJMP)
-	#include <setjmp.h>
-	#define CORO_IMPLEMENTATION "setjmp"
+    #include <setjmp.h>
+    #define CORO_IMPLEMENTATION "setjmp"
 #endif
 
 #ifdef __cplusplus
@@ -77,21 +77,21 @@ typedef struct Coro Coro;
 
 struct Coro
 {
-	void *stack;
+    void *stack;
 
 #ifdef USE_VALGRIND
-	unsigned int valgrindStackId;
+    unsigned int valgrindStackId;
 #endif
 
 #if defined(USE_FIBERS)
-	void *fiber;
+    void *fiber;
 #elif defined(USE_UCONTEXT)
-	ucontext_t env;
+    ucontext_t env;
 #elif defined(USE_SETJMP)
-	jmp_buf env;
+    jmp_buf env;
 #endif
 
-	unsigned char isMain;
+    unsigned char isMain;
 };
 
 CORO_API Coro *Coro_new(void);
