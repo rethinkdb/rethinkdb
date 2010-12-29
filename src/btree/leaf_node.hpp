@@ -28,7 +28,7 @@ struct btree_leaf_pair {
 
 class leaf_key_comp;
 
-class leaf_node_handler : public node_handler {
+class leaf_node_handler {
     friend class leaf_key_comp;
 public:
     static void init(block_size_t block_size, leaf_node_t *node, repli_timestamp modification_time);
