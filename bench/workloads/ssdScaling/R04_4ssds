@@ -3,8 +3,8 @@
 if [ $DATABASE == "rethinkdb" ]; then
     ../../build/release/rethinkdb create $SSD_DRIVES_4 --force
     ./dbench                                                                                      \
-        -d "$BENCH_DIR/bench_output/Number_of_SSD/4" -H $SERVER_HOSTS    \
-        {server}rethinkdb:"-c 12 -m 32768 $SSD_DRIVES_4"                                            \
+        -d "$BENCH_DIR/bench_output/Number_of_SSD_64m_cache_canonical_workload/4" -H $SERVER_HOSTS    \
+        {server}rethinkdb:"-c 12 -m 64 $SSD_DRIVES_4"                                            \
         {client}stress[$STRESS_CLIENT]:"-c $CANONICAL_CLIENTS -d $CANONICAL_DURATION" \
         iostat:1 vmstat:1 rdbstat:1
 else
