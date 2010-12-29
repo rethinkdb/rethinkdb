@@ -192,13 +192,6 @@ private:
 
 template <int block_size>
 class LeafNodeGrinder {
-    block_size_t bs;
-    typedef std::map<std::string, Value> expected_t;
-    expected_t expected;
-    int expected_frontmost_offset;
-    int expected_npairs;
-    leaf_node_t *node;
-
 public:
     LeafNodeGrinder() : bs(block_size_t::unsafe_make(block_size)), expected(), expected_frontmost_offset(bs.value()), expected_npairs(0), node(reinterpret_cast<leaf_node_t *>(malloc(bs.value()))) {
     }
@@ -243,13 +236,6 @@ public:
         validate();
     }
 
-    void lookup(const std::string& k, const Value& expected) const {
-        StackKey skey(k);
-        StackValue sval;
-        ASSERT_TRUE(leaf_node_handler::lookup(node, skey.look(), sval.look_write()));
-        ASSERT_EQ(expected, Value::Make(sval.look()));
-    }
-
     // Expects the key to be in the node.
     void remove(const std::string& k) {
         SCOPED_TRACE("remove");
@@ -286,6 +272,20 @@ public:
         // expected_free_space matched up.
     }
 
+private:
+    void lookup(const std::string& k, const Value& expected) const {
+        StackKey skey(k);
+        StackValue sval;
+        ASSERT_TRUE(leaf_node_handler::lookup(node, skey.look(), sval.look_write()));
+        ASSERT_EQ(expected, Value::Make(sval.look()));
+    }
+
+    block_size_t bs;
+    typedef std::map<std::string, Value> expected_t;
+    expected_t expected;
+    int expected_frontmost_offset;
+    int expected_npairs;
+    leaf_node_t *node;
 };
 
 
@@ -341,7 +341,6 @@ void InsertLookupRemoveHelper(const std::string& key, const char *value) {
 
     gr.init();
     gr.insert(key, v);
-    gr.lookup(key, v);
     gr.remove(key);
 }
 
