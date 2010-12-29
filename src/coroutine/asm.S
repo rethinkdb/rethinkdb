@@ -91,14 +91,14 @@ lightweight_swapcontext:
 	pushq	%rcx
 
 	/* Setup registers used for passing args--don't bother with this  */
-	movq	oRDI(%rsi), %rdi
-/*	movq	oRDX(%rsi), %rdx
+/*	movq	oRDI(%rsi), %rdi
+	movq	oRDX(%rsi), %rdx
 	movq	oRCX(%rsi), %rcx
 	movq	oR8(%rsi), %r8
 	movq	oR9(%rsi), %r9 */
 
 	/* Setup finally  %rsi.  */
-	movq	oRSI(%rsi), %rsi
+/*	movq	oRSI(%rsi), %rsi */
 
 	/* Clear rax to indicate success.  */
 	xorl	%eax, %eax

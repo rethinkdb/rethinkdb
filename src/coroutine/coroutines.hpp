@@ -51,7 +51,9 @@ private:
 #endif
 
     static void suicide();
-    static void run_coroutine(void *);
+
+    friend void Coro_setup(Coro *);
+    static void run_coroutine();
 
     ticks_t switch_time;
     static __thread coro_t *current_coro;

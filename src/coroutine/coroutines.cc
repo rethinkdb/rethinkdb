@@ -14,7 +14,7 @@ __thread coro_t *coro_t::current_coro = NULL;
 __thread coro_t *coro_t::scheduler = NULL;
 __thread std::vector<coro_t*> *coro_t::free_coros = NULL;
 
-size_t coro_t::stack_size = 65536; //Default, setable by command-line parameter
+size_t coro_t::stack_size = CORO_DEFAULT_STACK_SIZE; //Default, setable by command-line parameter
 
 coro_t *coro_t::self() {
     return current_coro;
@@ -56,7 +56,7 @@ void coro_t::on_thread_switch() {
     assert(scheduler == current_coro);
 }
 
-void coro_t::run_coroutine(void *data) {
+void coro_t::run_coroutine() {
     coro_t *self = current_coro;
     //printf("Starting a coroutine\n");
     while (true) {
@@ -90,7 +90,7 @@ coro_t *coro_t::get_free_coro() {
 #ifndef NDEBUG
         all_coros[get_thread_id()].push_back(coro);
 #endif
-        Coro_startCoro_(coro->underlying, NULL, run_coroutine);
+        Coro_setup(coro->underlying); //calls run_coroutine
         return coro;
     } else {
         assert(free_coros->size() > 0);
