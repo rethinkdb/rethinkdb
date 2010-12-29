@@ -64,6 +64,14 @@ block_id_t translator_serializer_t::max_block_id() {
         x /= mod_count;
     }
     assert(xlate(x).value >= inner->max_block_id().value);
+
+    while (x > 0) {
+        --x;
+        if (block_in_use(x)) {
+            ++x;
+            break;
+        }
+    }
     return x;
 }
 

@@ -87,8 +87,10 @@ struct serializer_t :
     /* max_block_id() and block_in_use() are used by the buffer cache to reconstruct
     the free list of unused block IDs. */
     
-    /* Returns a block ID such that every existing block has an ID less than
-    that ID. Note that block_in_use(max_block_id() - 1) is not guaranteed. */
+    /* Returns a block ID such that every existing block has an ID
+    less than that ID. Note that block_in_use(max_block_id() - 1) is
+    not guaranteed.  Note that for k > 0, max_block_id() - k might have
+    never been created. */
     virtual ser_block_id_t max_block_id() = 0;
     
     /* Checks whether a given block ID exists */

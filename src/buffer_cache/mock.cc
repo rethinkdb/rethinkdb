@@ -175,7 +175,8 @@ bool mock_cache_t::start(ready_callback_t *cb) {
 }
 
 bool mock_cache_t::load_blocks_from_serializer() {
-    if (serializer->max_block_id() == 0) {
+    block_id_t end_block_id = serializer->max_block_id();
+    if (end_block_id == 0) {
         // Create the superblock
         bufs.set_size(1);
         assert(SUPERBLOCK_ID == 0);
@@ -184,9 +185,9 @@ bool mock_cache_t::load_blocks_from_serializer() {
         return do_on_thread(home_thread, this, &mock_cache_t::have_loaded_blocks);
     } else {
         // Load the blocks from the serializer
-        bufs.set_size(serializer->max_block_id(), NULL);
+        bufs.set_size(end_block_id, NULL);
         blocks_to_load = 0;
-        for (block_id_t i = 0; i < serializer->max_block_id(); i++) {
+        for (block_id_t i = 0; i < end_block_id; i++) {
             if (serializer->block_in_use(i)) {
                 internal_buf_t *internal_buf = bufs[i] = new internal_buf_t(this, i);
                 serializer->do_read(i, internal_buf->data, this);
