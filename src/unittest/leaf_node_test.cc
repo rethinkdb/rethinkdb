@@ -190,10 +190,9 @@ private:
     };
 };
 
-template <int block_size>
 class LeafNodeGrinder {
 public:
-    LeafNodeGrinder() : bs(block_size_t::unsafe_make(block_size)), expected(), expected_frontmost_offset(bs.value()), expected_npairs(0), node(reinterpret_cast<leaf_node_t *>(malloc(bs.value()))) {
+    LeafNodeGrinder(int block_size) : bs(block_size_t::unsafe_make(block_size)), expected(), expected_frontmost_offset(bs.value()), expected_npairs(0), node(reinterpret_cast<leaf_node_t *>(malloc(bs.value()))), initialized(false) {
     }
 
     ~LeafNodeGrinder() {
@@ -207,11 +206,13 @@ public:
     void init() {
         SCOPED_TRACE("init");
         leaf_node_handler::init(bs, node, repli_timestamp::invalid);
+        initialized = true;
         validate();
     }
 
     void insert(const std::string& k, const Value& v) {
         SCOPED_TRACE("insert");
+        ASSERT_TRUE(initialized);
         StackKey skey(k);
         StackValue sval(v);
 
@@ -239,6 +240,7 @@ public:
     // Expects the key to be in the node.
     void remove(const std::string& k) {
         SCOPED_TRACE("remove");
+        ASSERT_TRUE(initialized);
         expected_t::iterator p = expected.find(k);
 
         // There's a bug in the test if we're trying to remove a key that's not there.
@@ -259,6 +261,8 @@ public:
     }
 
     void validate() const {
+        SCOPED_TRACE("validate");
+        ASSERT_TRUE(initialized);
         ASSERT_EQ(expected_npairs, node->npairs);
         ASSERT_EQ(expected_frontmost_offset, node->frontmost_offset);
 
@@ -286,6 +290,7 @@ private:
     int expected_frontmost_offset;
     int expected_npairs;
     leaf_node_t *node;
+    bool initialized;
 };
 
 
@@ -326,36 +331,36 @@ btree_value *malloc_value(const char *s) {
 }
 
 TEST(LeafNodeTest, Initialization) {
-    block_size_t bs = make_bs();
-    leaf_node_t *node = malloc_leaf_node(bs);
-
-    leaf_node_handler::init(bs, node, repli_timestamp::invalid);
-    verify(bs, node, bs.value() - offsetof(leaf_node_t, pair_offsets));
-    free(node);
-}
-
-void InsertLookupRemoveHelper(const std::string& key, const char *value) {
-    LeafNodeGrinder<4096> gr;
-
-    Value v(value);
+    LeafNodeGrinder gr(4096);
 
     gr.init();
-    gr.insert(key, v);
+}
+
+void InsertRemoveHelper(const std::string& key, const char *value) {
+    LeafNodeGrinder gr(4096);
+
+    gr.init();
+    gr.insert(key, Value(value));
     gr.remove(key);
 }
 
 TEST(LeafNodeTest, ElementaryInsertLookupRemove) {
-    InsertLookupRemoveHelper("the_key", "the_value");
+    InsertRemoveHelper("the_key", "the_value");
 }
 TEST(LeafNodeTest, EmptyValueInsertLookupRemove) {
-    InsertLookupRemoveHelper("the_key", "");
+    InsertRemoveHelper("the_key", "");
 }
 TEST(LeafNodeTest, EmptyKeyInsertLookupRemove) {
-    InsertLookupRemoveHelper("", "the_value");
+    InsertRemoveHelper("", "the_value");
 }
 TEST(LeafNodeTest, EmptyKeyValueInsertLookupRemove) {
-    InsertLookupRemoveHelper("", "");
+    InsertRemoveHelper("", "");
 }
+
+
+
+
+
 
 
 }  // namespace unittest
