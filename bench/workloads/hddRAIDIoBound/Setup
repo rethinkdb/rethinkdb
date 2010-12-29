@@ -48,7 +48,7 @@ if [ $DATABASE == "membase" ]; then
     export RAID_DEVICE
     export -p > "$BENCH_DIR/environment"
 
-    mkfs.ext3 -F "$RAID_DEVICE"
+    sudo mkfs.ext3 -F "$RAID_DEVICE"
     mkdir -p /tmp/raid_mount
     sudo mount "$RAID_DEVICE" /tmp/raid_mount
     sudo mkdir -p /tmp/raid_mount/membase_data

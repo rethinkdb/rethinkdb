@@ -59,7 +59,6 @@ for WORKLOAD in ../workloads/*; do
         fi
         
         for CONFIGURATION in $( find "$WORKLOAD" -maxdepth 1 -type f -name "R*" | sort ); do
-!
             echo -e "\n\033[1mRunning $CONFIGURATION\033[0m"
             if [ -e "$BENCH_DIR/environment" ]; then
                 . "$BENCH_DIR/environment"
