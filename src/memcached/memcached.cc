@@ -1146,28 +1146,24 @@ void txt_memcached_handler_t::on_net_conn_read_buffered(const char *buffer, size
         // Quit the connection
         conn->shutdown_read();
         delete this;
-    } else if (!strcmp(args[0], "shutdown")) {
-        // Make sure there's no more tokens
-        if (args.size() > 1) {
-            writef("ERROR\r\n");
-            read_next_command();
-            return;
-        }
-        // Shutdown the server
-        conn->shutdown_read();
-        server->shutdown();
-        delete this;
     } else if(!strcmp(args[0], "stats") || !strcmp(args[0], "stat")) {
         new txt_memcached_perfmon_request_t(this, args.size(), args.data());
-    } else if(!strcmp(args[0], "rethinkdbctl")) {
-        if (args.size() == 3 && strcmp(args[1], "gc") == 0 && strcmp(args[2], "enable") == 0) {
-            new enable_gc_request_t(this);
-        } else if (args.size() == 3 && strcmp(args[1], "gc") == 0 && strcmp(args[2], "disable") == 0) {
-            new disable_gc_request_t(this);
+    } else if(!strcmp(args[0], "rethinkdb")) {
+        if (args.size() == 2 && !strcmp(args[1], "shutdown")) {
+            // Shut down the server
+            conn->shutdown_read();
+            server->shutdown();
+            delete this;
+        // TODO: `rethinkdb gc` crashes the server, and isn't very important, so it's comented out for now.
+        //} else if (args.size() == 3 && strcmp(args[1], "gc") == 0 && strcmp(args[2], "enable") == 0) {
+        //    new enable_gc_request_t(this);
+        //} else if (args.size() == 3 && strcmp(args[1], "gc") == 0 && strcmp(args[2], "disable") == 0) {
+        //    new disable_gc_request_t(this);
         } else {
-            writef("Commonly used commands:\r\n");
-            writef("rethinkdbctl gc enable\r\n");
-            writef("rethinkdbctl gc disable\r\n");
+            writef("Available commands:\r\n");
+            writef("rethinkdb shutdown\r\n");
+            //writef("rethinkdb gc enable\r\n");
+            //writef("rethinkdb gc disable\r\n");
             read_next_command();
         }
     } else {
