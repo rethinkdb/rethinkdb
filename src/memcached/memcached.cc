@@ -1166,6 +1166,13 @@ void txt_memcached_handler_t::on_net_conn_read_buffered(const char *buffer, size
             //writef("rethinkdb gc disable\r\n");
             read_next_command();
         }
+    } else if(!strcmp(args[0], "version")) {
+        if (args.size() == 2) {
+            writef("VERSION rethinkdb-%s\r\n", RETHINKDB_VERSION);
+        } else {
+            writef("ERROR\r\n");
+        }
+        read_next_command();
     } else {
         writef("ERROR\r\n");
         read_next_command();
