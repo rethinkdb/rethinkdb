@@ -417,7 +417,7 @@ int pump(thread_info_t *thread, pipe_info_t *pipe) {
         if (res < 0) return -1;
     }
 
-    if (pipe->in->pollfd->revents & POLLIN) {
+    if (pipe->in->pollfd->revents & POLLIN && pipe->backup < BUFFER_SIZE) {
         
         ssize_t bytes_read = read(pipe->in->fd, pipe->buffer + pipe->backup, BUFFER_SIZE - pipe->backup);
         if (bytes_read < 0) {
