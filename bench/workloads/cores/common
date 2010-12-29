@@ -12,13 +12,17 @@ function run_with_cores {
             {client}stress[$STRESS_CLIENT]:"-c $CANONICAL_CLIENTS -d $CANONICAL_DURATION" \
             iostat:1 vmstat:1 rdbstat:1
     elif [ $DATABASE == "mysql" ]; then
-        sudo bash -c "for CPU in {$NUMBER_OF_CORES..23}; do echo 0 > /sys/devices/system/cpu/cpu\$CPU/online; done"
+        if [ "$NUMBER_OF_CORES" -lt "24" ]; then
+            sudo bash -c "for CPU in {$NUMBER_OF_CORES..23}; do echo 0 > /sys/devices/system/cpu/cpu\$CPU/online; done"
+        fi
         ./dbench                                                                                   \
             -d "$BENCH_DIR/bench_output/Number_of_cores_canonical_workload/$NUMBER_OF_CORES" -H $SERVER_HOSTS             \
             {server}mysql:"$MYSQL_COMMON_FLAGS $MYSQL_BUFFER_FLAGS $MYSQL_DURABILITY_FLAGS $MYSQL_SSD_FLAGS"              \
             {client}mysqlstress[$STRESS_CLIENT]:"-c $CANONICAL_CLIENTS -d $CANONICAL_DURATION" \
             iostat:1 vmstat:1
-        sudo bash -c "for CPU in {$NUMBER_OF_CORES..23}; do echo 1 > /sys/devices/system/cpu/cpu\$CPU/online; done"
+        if [ "$NUMBER_OF_CORES" -lt "24" ]; then
+            sudo bash -c "for CPU in {$NUMBER_OF_CORES..23}; do echo 1 > /sys/devices/system/cpu/cpu\$CPU/online; done"
+        fi
     else
         echo "No workload configuration for $DATABASE"
     fi

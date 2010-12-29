@@ -7,6 +7,10 @@ if [ $DATABASE == "rethinkdb" ]; then
     ../../build/release/rethinkdb create $SSD_DRIVES --force
 fi
 
+if [ $DATABASE == "mysql" ]; then
+    sudo bash -c "for CPU in {0..23}; do echo 1 > /sys/devices/system/cpu/cpu\$CPU/online; done"
+fi
+
 # Store keys in temporary file.
 export TMP_KEY_FILE="$(ssh puzzler mktemp)"
 
