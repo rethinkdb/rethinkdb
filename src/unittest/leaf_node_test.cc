@@ -337,6 +337,8 @@ TEST(LeafNodeTest, Initialization) {
 }
 
 void InsertRemoveHelper(const std::string& key, const char *value) {
+    SCOPED_TRACE(std::string("InsertRemoveHelper(key='") + key + "' value='" + value + "'");
+
     LeafNodeGrinder gr(4096);
 
     gr.init();
@@ -344,16 +346,10 @@ void InsertRemoveHelper(const std::string& key, const char *value) {
     gr.remove(key);
 }
 
-TEST(LeafNodeTest, ElementaryInsertLookupRemove) {
+TEST(LeafNodeTest, InsertRemoveOnce) {
     InsertRemoveHelper("the_key", "the_value");
-}
-TEST(LeafNodeTest, EmptyValueInsertLookupRemove) {
     InsertRemoveHelper("the_key", "");
-}
-TEST(LeafNodeTest, EmptyKeyInsertLookupRemove) {
     InsertRemoveHelper("", "the_value");
-}
-TEST(LeafNodeTest, EmptyKeyValueInsertLookupRemove) {
     InsertRemoveHelper("", "");
 }
 
