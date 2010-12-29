@@ -142,6 +142,10 @@ SERVER_NOMAIN_OBJS:=$(patsubst %.cc,$(OBJ_DIR)/%.o,$(shell find $(SOURCE_DIR) -n
 
 SERVER_UNIT_TEST_OBJS:=$(SERVER_NOMAIN_OBJS) $(OBJ_DIR)/unittest/main.o
 
+#### Version number handling
+RETHINKDB_VERSION:=$(shell ../tools/gen-version.sh)
+CXXFLAGS+=-DRETHINKDB_VERSION=\"$(RETHINKDB_VERSION)\"
+
 ##### Build targets
 
 # High level build targets
@@ -158,6 +162,7 @@ ifeq ($(VERBOSE),0)
 	@echo "    LD $@"
 endif
 	$(QUIET) $(CXX) $(LDFLAGS) $(SERVER_EXEC_OBJS) -o $(BUILD_DIR)/$(SERVER_EXEC_NAME)
+	@echo "    Finished building RethinkDB key-value store server version '${RETHINKDB_VERSION}'"
 
 $(BUILD_DIR)/$(SERVER_UNIT_TEST_NAME): $(OBJS) $(BUILD_DIR)
 ifeq ($(VERBOSE),0)
