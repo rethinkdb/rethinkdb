@@ -86,7 +86,6 @@ Coro *Coro_new(void)
     self->fiber = NULL; //Allocate a stack here
 #else
     self->stack = valloc(CORO_DEFAULT_STACK_SIZE);
-    printf("I'm allocating a stack at 0x%zx\n", (size_t)self->stack);
     mprotect(self->stack, getpagesize(), PROT_NONE);
 #endif
     STACK_REGISTER(self);

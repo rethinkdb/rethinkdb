@@ -72,25 +72,27 @@ void *linux_thread_pool_t::start_thread(void *arg) {
         tdata->thread_pool->threads[tdata->current_thread] = &thread;
         linux_thread_pool_t::thread = &thread;
         
+#ifndef NDEBUG
         stack_t segv_stack;
         segv_stack.ss_sp = valloc(SEGV_STACK_SIZE);
         guarantee_err(segv_stack.ss_sp != 0, "malloc failed");
         segv_stack.ss_flags = SS_ONSTACK;
         segv_stack.ss_size = SEGV_STACK_SIZE;
-        int res = sigaltstack(&segv_stack, NULL);
-        guarantee_err(res == 0, "sigaltstack failed");
+        int r = sigaltstack(&segv_stack, NULL);
+        guarantee_err(r == 0, "sigaltstack failed");
 
         struct sigaction action;
         bzero(&action, sizeof(action));
         action.sa_flags = SA_SIGINFO|SA_STACK;
         action.sa_sigaction = &linux_thread_pool_t::sigsegv_handler;
-        res = sigaction(SIGSEGV, &action, NULL);
-        guarantee_err(res == 0, "Could not install SEGV handler");
+        r = sigaction(SIGSEGV, &action, NULL);
+        guarantee_err(r == 0, "Could not install SEGV handler");
+#endif
         
         // If one thread is allowed to run before another one has finished
         // starting up, then it might try to access an uninitialized part of the
         // unstarted one.
-        res = pthread_barrier_wait(tdata->barrier);
+        int res = pthread_barrier_wait(tdata->barrier);
         guarantee(res == 0 || res == PTHREAD_BARRIER_SERIAL_THREAD, "Could not wait at start barrier");
         
         // Prime the pump by calling the initial thread message that was passed to thread_pool::run()
@@ -109,7 +111,9 @@ void *linux_thread_pool_t::start_thread(void *arg) {
         guarantee(res == 0 || res == PTHREAD_BARRIER_SERIAL_THREAD, "Could not wait at stop barrier");
         
         coro_t::destroy();
+#ifndef NDEBUG
         free(segv_stack.ss_sp);
+#endif
         tdata->thread_pool->threads[tdata->current_thread] = NULL;
         linux_thread_pool_t::thread = NULL;
     }
@@ -240,13 +244,21 @@ void linux_thread_pool_t::interrupt_handler(int) {
     }
 }
 
+#ifndef NDEBUG
 void linux_thread_pool_t::sigsegv_handler(int signum, siginfo_t *info, void *data) {
     if (signum == SIGSEGV) {
-        crash("Segmentation fault from reading the address 0x%zx.", (size_t)info->si_addr);
+        void *addr = info->si_addr;
+        int cpu = coro_t::in_coro_from_cpu(addr);
+        if (cpu == -1) {
+            crash("Segmentation fault from reading the address %p.", addr);
+        } else {
+            crash("Callstack overflow from a coroutine initialized on CPU %d at address %p.", cpu, addr);
+        }
     } else {
         crash("Unexpected signal: %d\n", signum);
     }
 }
+#endif
 
 void linux_thread_pool_t::shutdown() {
     int res;

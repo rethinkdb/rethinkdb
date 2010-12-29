@@ -8,7 +8,7 @@
 #include <vector>
 #include <boost/bind.hpp>
 
-extern perfmon_counter_t pm_active_coroutines;
+extern perfmon_counter_t pm_active_coroutines, pm_allocated_coroutines;
 
 /* A coroutine represents an action with no return value */
 struct coro_t
@@ -56,6 +56,9 @@ private:
     static __thread coro_t *scheduler; //Epoll loop--main execution of program
 
     static __thread std::vector<coro_t*> *free_coros;
+#ifndef NDEBUG
+    static std::vector<std::vector<coro_t*> > all_coros;
+#endif
 
     DISABLE_COPYING(coro_t);
 
@@ -64,6 +67,10 @@ private:
     static coro_t *get_free_coro();
 
 public:
+#ifndef NDEBUG
+    static int in_coro_from_cpu(void *addr);
+#endif
+
     template<typename callable_t>
     static void spawn(callable_t fun) {
         struct fun_runner_t : public deed_t {

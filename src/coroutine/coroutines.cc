@@ -1,8 +1,13 @@
 #include "coroutine/coroutines.hpp"
 #include "arch/arch.hpp"
 #include <stdio.h>
+#include <vector>
 
-perfmon_counter_t pm_active_coroutines("active_coroutines");
+perfmon_counter_t pm_active_coroutines("active_coroutines"),
+                  pm_allocated_coroutines("allocated_coroutines");
+#ifndef NDEBUG
+std::vector<std::vector<coro_t*> > coro_t::all_coros;
+#endif
 __thread coro_t *coro_t::current_coro = NULL;
 __thread coro_t *coro_t::scheduler = NULL;
 __thread std::vector<coro_t*> *coro_t::free_coros = NULL;
@@ -77,6 +82,10 @@ coro_t *coro_t::get_free_coro() {
     if (free_coros->size() == 0) {
         //printf("Making a new one from scratch\n");
         coro_t *coro = new coro_t(Coro_new());
+        pm_allocated_coroutines++;
+#ifndef NDEBUG
+        all_coros[get_thread_id()].push_back(coro);
+#endif
         Coro_startCoro_(coro->underlying, NULL, run_coroutine);
         return coro;
     } else {
@@ -87,6 +96,20 @@ coro_t *coro_t::get_free_coro() {
         return coro;
     }
 }
+
+#ifndef NDEBUG
+int coro_t::in_coro_from_cpu(void *addr) {
+    size_t base = (size_t)addr - ((size_t)addr % getpagesize());
+    for (std::vector<std::vector<coro_t*> >::iterator i = all_coros.begin(); i != all_coros.end(); i++) {
+        for (std::vector<coro_t*>::iterator j = i->begin(); j != i->end(); j++) {
+            if (base == (size_t)((*j)->underlying->stack)) {
+                return i - all_coros.begin();
+            }
+        }
+    }
+    return -1;
+}
+#endif
 
 void coro_t::do_deed(deed_t *deed) {
     assert(!active);
@@ -104,6 +127,9 @@ void coro_t::run() {
     Coro_initializeMainCoro(mainCoro);
     scheduler = current_coro = new coro_t(mainCoro);
     free_coros = new std::vector<coro_t*>();
+#ifndef NDEBUG
+    all_coros.resize(get_num_threads());
+#endif
 }
 
 void coro_t::destroy() {
