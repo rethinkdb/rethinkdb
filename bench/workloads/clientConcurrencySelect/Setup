@@ -3,10 +3,6 @@
 mkdir -p $BENCH_DIR/bench_output/Number_of_clients_on_canonical_hardware_select_only_workload
 echo Clients > $BENCH_DIR/bench_output/Number_of_clients_on_canonical_hardware_select_only_workload/multirun
 
-if [ $DATABASE == "rethinkdb" ]; then
-    ../../build/release/rethinkdb create $SSD_DRIVES --force
-fi
-
 if [ $DATABASE == "membase" ]; then
     export PERSISTENT_DATA_DIR="$BENCH_DIR/membase_data_persistent"
 fi
@@ -16,23 +12,3 @@ export TMP_KEY_FILE="$(ssh puzzler mktemp)"
 
 export -p > "$BENCH_DIR/environment"
 
-
-if [ $DATABASE == "rethinkdb" ]; then
-    ./dbench                                                                                        \
-        -d "/tmp/insert_setup_out" -H $SERVER_HOSTS            \
-        {server}rethinkdb:"-c 12 -m 32768 $SSD_DRIVES"                                              \
-        {client}stress[$STRESS_CLIENT]:"-c $CANONICAL_CLIENTS -d 100000000i -w 0/0/1/0 -o $TMP_KEY_FILE"     \
-        iostat:1 vmstat:1 rdbstat:1
-elif [ $DATABASE == "mysql" ]; then
-    ./dbench                                                                                         \
-        -d "/tmp/insert_setup_out" -H $SERVER_HOSTS             \
-        {server}mysql:"$MYSQL_COMMON_FLAGS $MYSQL_BUFFER_FLAGS $MYSQL_DURABILITY_FLAGS  $MYSQL_SSD_FLAGS"              \
-        {client}mysqlstress[$STRESS_CLIENT]:"-c $CANONICAL_CLIENTS -d 10000000i -w 0/0/1/0 -o $TMP_KEY_FILE" \
-        iostat:1 vmstat:1
-elif [ $DATABASE == "membase" ]; then
-    ./dbench                                                                                   \
-        -d "/tmp/insert_setup_out" -H $SERVER_HOSTS -p 11211 \
-        {server}membase:"-d $PERSISTENT_DATA_DIR -m 32768"                                       \
-        {client}stress[$STRESS_CLIENT]:"-c $CANONICAL_CLIENTS -d 10000000i -w 0/0/1/0 -o $TMP_KEY_FILE" \
-        iostat:1 vmstat:1
-fi
