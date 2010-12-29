@@ -5,7 +5,6 @@ function run_with_cores {
     NUMBER_OF_CORES=$1
     
     if [ $DATABASE == "rethinkdb" ]; then
-        ../../build/release/rethinkdb create $SSD_DRIVES --force
         ./dbench                                                                                      \
             -d "$BENCH_DIR/bench_output/Number_of_cores_select_only_workload/$NUMBER_OF_CORES" -H $SERVER_HOSTS    \
             {server}rethinkdb:"-c $NUMBER_OF_CORES -m 32768 $SSD_DRIVES"                                            \

@@ -68,6 +68,12 @@ public:
     };
     bool do_write(write_t *writes, int num_writes, serializer_t::write_txn_callback_t *callback);
     block_size_t get_block_size();
+
+    // Returns the first never-used block id.  Every block with id
+    // less than this has been created, and possibly deleted.  Every
+    // block with id greater than or equal to this has never been
+    // created.  As long as you don't skip ahead past max_block_id,
+    // block id contiguity will be ensured.
     block_id_t max_block_id();
     bool block_in_use(block_id_t id);
     repli_timestamp get_recency(block_id_t id);

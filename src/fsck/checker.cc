@@ -841,6 +841,7 @@ void check_slice_other_blocks(slicecx& cx, other_block_errors *errs) {
 
     for (ser_block_id_t::number_t id = min_block.value, end = block_info.get_size(); id < end; id += cx.mod_count) {
         block_knowledge info = block_info[id];
+        debugf("block_info[%d]: is_delete=%d offset=%d tx_id=%ld\n", id, info.offset.parts.is_delete, info.offset.parts.value, info.transaction_id);
         if (!flagged_off64_t::has_value(info.offset)) {
             if (first_valueless_block == ser_block_id_t::null()) {
                 first_valueless_block = ser_block_id_t::make(id);
