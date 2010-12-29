@@ -12,10 +12,6 @@
     #error "Coroutines aren't defined for this platform"
 #endif
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 typedef struct Coro Coro;
 
 struct Coro
@@ -45,7 +41,4 @@ void Coro_initializeMainCoro(Coro *self);
 void Coro_switchTo_(Coro *self, Coro *next);
 void Coro_setup(Coro *self);
 
-#ifdef __cplusplus
-}
-#endif
 #endif
