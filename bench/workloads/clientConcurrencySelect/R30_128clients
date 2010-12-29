@@ -1,26 +1,7 @@
 #!/bin/bash
 
+. `dirname "$0"`/common
 
-if [ $DATABASE == "rethinkdb" ]; then
-    ../../build/release/rethinkdb create $SSD_DRIVES --force
-    ./dbench                                                                                      \
-        -d "$BENCH_DIR/bench_output/Number_of_clients_on_canonical_hardware_select_only_workload/128" -H $SERVER_HOSTS    \
-        {server}rethinkdb:"-c 12 -m 32768 $SSD_DRIVES"                                            \
-        {client}stress[$STRESS_CLIENT]:"-c 128 -d 100000000q -w 0/0/0/1 -i $TMP_KEY_FILE"\
-        iostat:1 vmstat:1 rdbstat:1
-elif [ $DATABASE == "mysql" ]; then
-    ./dbench                                                                                   \
-        -d "$BENCH_DIR/bench_output/Number_of_clients_on_canonical_hardware_select_only_workload/128" -H $SERVER_HOSTS \
-        {server}mysql:"$MYSQL_COMMON_FLAGS $MYSQL_BUFFER_FLAGS $MYSQL_DURABILITY_FLAGS $MYSQL_SSD_FLAGS"        \
-        {client}mysqlstress[$STRESS_CLIENT]:"-c 128 -d 10000000q -w 0/0/0/1 -i $TMP_KEY_FILE" \
-        iostat:1 vmstat:1
-elif [ $DATABASE == "membase" ]; then
-    ./dbench                                                                                   \
-        -d "$BENCH_DIR/bench_output/Number_of_clients_on_canonical_hardware_select_only_workload/128" -H $SERVER_HOSTS -p 11211 \
-        {server}membase:"-d $MEMBASE_DATA_PATH -m 32768"                                       \
-        {client}stress[$STRESS_CLIENT]:"-c 128 -d 10000000q -w 0/0/0/1 -i $TMP_KEY_FILE" \
-        iostat:1 vmstat:1
-else
-    echo "No workload configuration for $DATABASE"
-fi
+run_with_clients 128
+
 
