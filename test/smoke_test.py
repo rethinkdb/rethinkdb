@@ -6,18 +6,16 @@ do_test("cd ../src/; make clean")
 
 # Make every target first, as some tests depend on multiple targets
 for mode in ["debug", "release"]:
-    for checker in ["valgrind", None]:
-        for mock_io in [True, False]:
-            for mock_cache in [True, False]:
-                for poll_mode in ["poll", "epoll"]:
-                    # Build our targets
-                    do_test("cd ../src/; nice make -j",
-                            { "DEBUG"            : 1 if mode    == "debug"    else 0,
-                              "VALGRIND"         : 1 if checker == "valgrind" else 0,
-                              "MOCK_IO_LAYER"    : 1 if mock_io               else 0,
-                              "MOCK_CACHE_CHECK" : 1 if mock_cache            else 0,
-                              "NO_EPOLL"         : 1 if poll_mode == "poll"   else 0 },
-                            cmd_format="make")
+    # Build our targets
+    do_test("cd ../src/; nice make -j",
+            { "DEBUG"            : 1 if mode    == "debug"    else 0 },
+            cmd_format="make")
+
+for special in ["NO_EPOLL", "MOCK_IO_LAYER", "MOCK_CACHE_CHECK", "VALGRIND"]:
+    do_test("cd ../src/; nice make -j",
+            { "DEBUG" : 1,
+              special : 1},
+            cmd_format="make")
 
 # Make sure auxillary tools compile
 do_test("cd ../bench/stress-client/; make clean; make",
