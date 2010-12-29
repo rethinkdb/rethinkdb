@@ -18,7 +18,7 @@ struct btree_internal_pair {
 
 class internal_key_comp;
 
-class internal_node_handler : public node_handler {
+class internal_node_handler {
     friend class internal_key_comp;
 public:
     static void init(block_size_t block_size, internal_node_t *node);

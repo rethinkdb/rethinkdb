@@ -19,18 +19,15 @@ lf='
 ##### Find the top of the repository
 
 start_dir="$(pwd)"
-pushd . > /dev/null
-while [ ! -d .git ] && [ ! "$(pwd)" = / ]; do cd ..; done
-if [ -d .git ]; then
-  repo_available=1
-  repo_dir="$(pwd)"
-  version_file="${repo_dir}/VERSION.OVERRIDE"
+
+repo_dir=$(git rev-parse --show-cdup)
+if [ 0 == $? ]; then
+    repo_available=1
+    version_file="${repo_dir}/VERSION.OVERRIDE"
 else
-  repo_available=0
-  # repo_dir is left unset, will print error, if it's accessed below
-  version_file="${start_dir}/VERSION"
+    unset repo_dir
+    version_file="${start_dir}/VERSION"
 fi
-popd > /dev/null
 
 #### Compute version
 

@@ -53,7 +53,7 @@ union flagged_off64_t {
         return ret;
     }
 
-    static bool has_value(flagged_off64_t offset) {
+    static inline bool has_value(flagged_off64_t offset) {
         offset.parts.is_delete = 1;
         return offset.whole_value != off64_t(-1);
     }

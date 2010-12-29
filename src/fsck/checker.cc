@@ -200,8 +200,8 @@ void check_filesize(direct_file_t *file, file_knowledge *knog) {
     knog->filesize = file->get_size();
 }
 
-const char *static_config_errstring[] = { "none", "bad_software_name", "bad_version", "bad_sizes", "bad_filesize" };
-enum static_config_error { static_config_none = 0, bad_software_name, bad_version, bad_sizes, bad_filesize };
+const char *static_config_errstring[] = { "none", "bad_software_name", "bad_version", "bad_sizes" };
+enum static_config_error { static_config_none = 0, bad_software_name, bad_version, bad_sizes };
 
 bool check_static_config(direct_file_t *file, file_knowledge *knog, static_config_error *err) {
     block header;
@@ -235,8 +235,8 @@ bool check_static_config(direct_file_t *file, file_knowledge *knog, static_confi
         return false;
     }
     if (!(file_size % extent_size == 0)) {
-        *err = bad_filesize;
-        return false;
+        // It's a bit of a HACK to put this here.
+        printf("WARNING file_size is not a multiple of extent_size\n");
     }
 
     knog->static_config = *static_cfg;
@@ -841,7 +841,6 @@ void check_slice_other_blocks(slicecx& cx, other_block_errors *errs) {
 
     for (ser_block_id_t::number_t id = min_block.value, end = block_info.get_size(); id < end; id += cx.mod_count) {
         block_knowledge info = block_info[id];
-        debugf("block_info[%d]: is_delete=%d offset=%d tx_id=%ld\n", id, info.offset.parts.is_delete, info.offset.parts.value, info.transaction_id);
         if (!flagged_off64_t::has_value(info.offset)) {
             if (first_valueless_block == ser_block_id_t::null()) {
                 first_valueless_block = ser_block_id_t::make(id);
