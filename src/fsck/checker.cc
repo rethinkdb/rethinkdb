@@ -445,10 +445,10 @@ bool check_lba_shard(direct_file_t *file, file_knowledge *knog, lba_shard_metabl
 
         block superblock;
         superblock.init(superblock_aligned_size, file, shard->lba_superblock_offset);
-        const lba_superblock_t *buf = ptr_cast<lba_superblock_t>(superblock.buf);
+        const lba_superblock_t *buf = ptr_cast<lba_superblock_t>(superblock.realbuf);
 
         if (0 != memcmp(buf, lba_super_magic, LBA_SUPER_MAGIC_SIZE)) {
-            errs->code = lba_shard_errors::bad_lba_superblock_offset;
+            errs->code = lba_shard_errors::bad_lba_superblock_magic;
             return false;
         }
 
