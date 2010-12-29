@@ -196,9 +196,14 @@ struct gc_fsm_t :
         
         /* Put entries in the new empty LBA */
 
-        for (ser_block_id_t::number_t id = i; id < owner->max_block_id().value; id += LBA_SHARD_FACTOR) {
-            assert(id % LBA_SHARD_FACTOR == (unsigned)i);
-            owner->disk_structures[i]->add_entry(ser_block_id_t::make(id), owner->get_block_recency(ser_block_id_t::make(id)), owner->get_block_offset(ser_block_id_t::make(id)));
+        for (ser_block_id_t::number_t id = i, end_id = owner->max_block_id().value;
+             id < end_id;
+             id += LBA_SHARD_FACTOR) {
+            ser_block_id_t block_id = ser_block_id_t::make(id);
+            flagged_off64_t off = owner->get_block_offset(block_id);
+            if (flagged_off64_t::has_value(off)) {
+                owner->disk_structures[i]->add_entry(block_id, owner->get_block_recency(block_id), off);
+            }
         }
 
         /* Sync the new LBA */
