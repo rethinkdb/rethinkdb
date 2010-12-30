@@ -25,7 +25,7 @@ SERVER_HOSTS="magneto,magneto2"
 CANONICAL_CLIENTS="512"
 CANONICAL_DURATION="300s"
 
-MYSQL_COMMON_FLAGS="--skip-name-resolve --innodb_support_xa=off --innodb_lock_wait_timeout=5 --innodb_flush_method=O_DIRECT --max-connections=1030 --max-prepared-stmt-count=32764 --innodb_log_group_home_dir=/tmp"
+MYSQL_COMMON_FLAGS="--skip-name-resolve --transaction_isolation=READ-UNCOMMITTED --innodb_support_xa=off --innodb_lock_wait_timeout=5 --innodb_flush_method=O_DIRECT --max-connections=1030 --max-prepared-stmt-count=32764 --innodb_log_group_home_dir=/tmp"
 MYSQL_BUFFER_FLAGS="--innodb_buffer_pool_size=32768m"
 MYSQL_DURABILITY_FLAGS="--innodb_flush_log_at_trx_commit=0 --innodb_doublewrite=0 --innodb_log_file_size=1024m"
 
