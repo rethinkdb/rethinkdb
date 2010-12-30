@@ -113,6 +113,10 @@
 // Values larger than this will be streamed in a get operation
 #define MAX_BUFFERED_GET_SIZE                     10000
 
+// If a single connection sends this many 'noreply' commands, the next command will
+// have to wait until the first one finishes
+#define MAX_CONCURRENT_QUERIES_PER_CONNECTION     500
+
 // How many timestamps we store in a leaf node.  We store the
 // NUM_LEAF_NODE_EARLIER_TIMES+1 most-recent timestamps.
 #define NUM_LEAF_NODE_EARLIER_TIMES               2
