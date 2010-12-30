@@ -20,7 +20,11 @@ lf='
 
 start_dir="$(pwd)"
 
-repo_dir="$(git rev-parse --show-toplevel 2> /dev/null || true)"
+repo_dir="$(git rev-parse --show-cdup 2> /dev/null || true)"
+if [ -z "$repo_dir" ]; then
+    repo_dir="."
+fi
+
 if [ -d "$repo_dir" ]; then
     repo_available=1
     version_file="${repo_dir}/VERSION.OVERRIDE"
