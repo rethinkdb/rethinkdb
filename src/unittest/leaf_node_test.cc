@@ -8,7 +8,8 @@
 
 namespace unittest {
 
-// TODO: This is rather duplicative of fsck::check_value.
+// TODO: Sperg out and make these tests much more brutal.
+
 void expect_valid_value_shallowly(const btree_value *value) {
     EXPECT_EQ(0, value->metadata_flags & ~(MEMCACHED_FLAGS | MEMCACHED_CAS | MEMCACHED_EXPTIME | LARGE_VALUE));
 
@@ -23,7 +24,6 @@ void expect_valid_value_shallowly(const btree_value *value) {
     }
 }
 
-// TODO: This is rather duplicative of fsck::check_subtree_leaf_node.
 void verify(block_size_t block_size, const leaf_node_t *buf, int expected_free_space) {
 
     int end_of_pair_offsets = offsetof(leaf_node_t, pair_offsets) + buf->npairs * 2;

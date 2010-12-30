@@ -26,7 +26,8 @@ public:
         When we start back up and reconstruct the free list, we assert that it is the same.
         I would wrap this in #ifndef NDEBUG except that I don't want the format to change
         between debug and release mode. */
-        int debug_extents_in_use;
+        int32_t debug_extents_in_use;
+        int32_t padding;
     };
 
 private:
