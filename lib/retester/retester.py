@@ -1,4 +1,5 @@
 import subprocess, shlex, signal, os, time, shutil, tempfile, sys, traceback, types, gitroot, datetime, shutil
+import socket
 from vcoptparse import *
 
 reports = []
@@ -499,8 +500,16 @@ def print_results_as_plaintext(opts, tests):
 def print_results_as_html(opts, tests):
     """Given a list of pairs of (command, result), print the results to the shell in HTML format."""
     
+    def replace_tags(string):
+        result = string
+        tags = {'FAILURE': '<font color="#ff0000"><b>',
+            '/FAILURE': '</b></font>'}
+        for tag, replacement in tags.items():
+            result = result.replace("[%s]" % tag, replacement)
+        return result
+    
     def escape(string):
-        return string.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+        return replace_tags(string.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;"))
     
     def code(string):
         return """<code>%s</code>""" % escape(string).replace("\n", "<br>")
@@ -576,7 +585,7 @@ def print_results_as_html(opts, tests):
             
                 if result.output_dir is not None:
                     (output_dir, output_files) = process_output_dir(result)
-                    print """<p>Output from run #%d was put in %s.</p>""" % (i, code(output_dir))
+                    print """<p>Output from run #%d was put in %s.</p>""" % (i, code(socket.gethostname() + ":" + output_dir))
                     
                     # Only for one of the runs do we print a full listing of the files, because
                     # the information is probably redundant.
@@ -590,7 +599,7 @@ def print_results_as_html(opts, tests):
                             if report[0] == "other":
                                 print """<p>%s: (%s)</p>""" % (code(name), report[1])
                             else:
-                                print """<p>%s:</p>""" % code(name)
+                                print """<p>%s:</p>""" % code(socket.gethostname() + ":" + name)
                                 print """<div style="border: dashed 1px; padding-left: 0.5cm">"""
                                 if report[0] == "ok":
                                     print """<pre>%s</pre>""" % escape(report[1].strip())
