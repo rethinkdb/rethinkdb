@@ -4,45 +4,44 @@
 
 namespace unittest {
 
-class BitsetTest : public ::testing::Test {
-    public:
-        BitsetTest() {
-            bitset = new bitset_t(100);
-        }
-        bitset_t *bitset;
-};
-
-TEST_F(BitsetTest, ClearedAtStart) {
-    ASSERT_TRUE(100 == bitset->size());
-    ASSERT_TRUE(0 == bitset->count());
-    for (int i = 0; i < 100; i++)
-    {
-        ASSERT_FALSE(bitset->test(i));
+TEST(BitsetTest, ClearedAtStart) {
+    bitset_t b(100);
+    ASSERT_TRUE(100 == b.size());
+    ASSERT_TRUE(0 == b.count());
+    for (int i = 0; i < 100; i++) {
+        ASSERT_FALSE(b.test(i));
     }
 }
 
-TEST_F(BitsetTest, SetsGets) {
-    bitset->set(20, true);
-    bitset->set(0, true);
-    bitset->set(99, true);
+TEST(BitsetTest, SetsGets) {
+    bitset_t b(100);
 
-    ASSERT_TRUE(bitset->test(20));
-    ASSERT_TRUE(bitset->test(0));
-    ASSERT_TRUE(bitset->test(99));
-    ASSERT_TRUE((*bitset)[99]);
-    ASSERT_FALSE(bitset->test(50));
+    b.set(20, true);
+    b.set(0, true);
+    b.set(99, true);
 
-    ASSERT_TRUE(3 == bitset->count());
+    ASSERT_TRUE(b.test(20));
+    ASSERT_TRUE(b.test(0));
+    ASSERT_TRUE(b.test(99));
+    ASSERT_TRUE(b[99]);
+    ASSERT_FALSE(b.test(50));
 
-    bitset->set();
+    ASSERT_TRUE(3 == b.count());
 
-    ASSERT_TRUE(100 == bitset->count());
-    ASSERT_TRUE((*bitset)[80]);
+    b.set();
+
+    ASSERT_TRUE(100 == b.count());
+    ASSERT_TRUE(b[80]);
 }
 
-TEST_F(BitsetTest, BoundsChecking) {
-    ASSERT_DEATH(bitset->test(400), "");
-    ASSERT_DEATH(bitset->set(-5), "");
+TEST(BitsetTest, BoundsChecking) {
+    bitset_t b(100);
+    ASSERT_DEATH(b.test(400), "");
+    ASSERT_DEATH(b.set(-5), "");
+    ASSERT_DEATH(b.test(100), "");
+    ASSERT_DEATH(b.test(-1), "");
+    b.set(99, true);
+    ASSERT_TRUE(b.test(99));
 }
 
 }

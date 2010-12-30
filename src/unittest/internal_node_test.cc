@@ -12,7 +12,12 @@ namespace unittest {
 void verify(block_size_t block_size, const internal_node_t *buf) {
     EXPECT_TRUE(check_magic<internal_node_t>(buf->magic));
 
-    ASSERT_LE(0, buf->npairs);
+    // Internal nodes must have at least one pair.
+    ASSERT_LE(1, buf->npairs);
+
+    // Thus buf->npairs - 1 >= 0.
+    const uint16_t last_pair_offset = buf->pair_offsets[buf->npairs - 1];
+
     ASSERT_LE(buf->npairs, block_size.value());  // sanity checking to prevent overflow
     ASSERT_LE(offsetof(internal_node_t, pair_offsets) + sizeof(*buf->pair_offsets) * buf->npairs, buf->frontmost_offset);
     ASSERT_LE(buf->frontmost_offset, block_size.value());
@@ -39,6 +44,8 @@ void verify(block_size_t block_size, const internal_node_t *buf) {
 
         last_key = next_key;
     }
+
+    EXPECT_EQ(0, internal_node_handler::get_pair(buf, last_pair_offset)->key.size);
 }
 
 TEST(InternalNodeTest, Offsets) {
