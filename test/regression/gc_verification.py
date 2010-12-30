@@ -3,7 +3,7 @@ from __future__ import division
 import os, sys, socket, random
 import time
 
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir + '/integration')))
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
 from test_common import *
 
 extent_size = 1024 * 1024

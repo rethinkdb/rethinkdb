@@ -1,6 +1,7 @@
 #!/usr/bin/python
+import time, sys, os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
 from test_common import *
-import time
 
 def test_function(opts, mc):
 

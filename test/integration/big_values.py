@@ -1,7 +1,9 @@
 #!/usr/bin/env python
 
-from test_common import *
 from socket import *
+import sys, os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
+from test_common import *
 
 def readline(s):
     buf = ""
@@ -25,7 +27,7 @@ def test_value_of_size(size, port):
     print "Sending a %d-byte value..." % size,
     sys.stdout.flush()
 
-    s = socket()
+    s = socket.socket()
     s.connect(("localhost", port))
 
     s.send("set x 0 0 %d\r\n" % size + "a" * size + "\r\n")

@@ -1,7 +1,7 @@
 #!/usr/bin/python
-import os, sys, socket, random
+import os, sys, socket, random, time
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
 from test_common import *
-import time
 
 n_appends_valgrind = 3000
 n_appends_no_valgrind = 20000
