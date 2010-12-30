@@ -10,7 +10,6 @@
 #include "extents/extent_manager.hpp"
 #include "serializer/serializer.hpp"
 #include "serializer/types.hpp"
-#include <bitset>
 #include <functional>
 #include <queue>
 #include <utility>
