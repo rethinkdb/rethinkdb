@@ -233,10 +233,15 @@ linux_io_calls_t::~linux_io_calls_t()
     guarantee_xerr(res == 0, -res, "Could not destroy aio context");
 }
 
-void linux_io_calls_t::on_event(int) {
+void linux_io_calls_t::on_event(int event_mask) {
+
     int res, nevents;
     eventfd_t nevents_total;
-    
+
+    if (event_mask != poll_event_in) {
+        logERR("Unexpected event mask: %d\n", event_mask);
+    }
+
     res = eventfd_read(aio_notify_fd, &nevents_total);
     guarantee_err(res == 0, "Could not read aio_notify_fd value");
 
@@ -245,7 +250,7 @@ void linux_io_calls_t::on_event(int) {
     // multiple times if we have to (which should be very unlikely,
     // anyway).
     io_event events[MAX_IO_EVENT_PROCESSING_BATCH_SIZE];
-    
+
     do {
         // Grab the events. Note: we need to make sure we don't read
         // more than nevents_total, otherwise we risk reading an io
@@ -256,13 +261,13 @@ void linux_io_calls_t::on_event(int) {
                                std::min((int)nevents_total, MAX_IO_EVENT_PROCESSING_BATCH_SIZE),
                                events, NULL);
         guarantee_xerr(nevents >= 1, -nevents, "Waiting for AIO event failed");
-        
+
         // Process the events
         for(int i = 0; i < nevents; i++) {
             aio_notify((iocb*)events[i].obj, events[i].res);
         }
         nevents_total -= nevents;
-        
+
     } while (nevents_total > 0);
 }
 
@@ -338,7 +343,7 @@ int linux_io_calls_t::queue_t::process_request_batch() {
             queue.erase(queue.begin(), queue.begin() + res);
             parent->n_pending += res;
         } else if (res < 0 && (-res) != EAGAIN) {
-            logWRN("io_submit failed: (%d) %s\n", -res, strerror(-res));
+            logERR("io_submit failed: (%d) %s\n", -res, strerror(-res));
         }
     }
     return res;

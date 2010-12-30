@@ -15,21 +15,28 @@
 #include "utils2.hpp"
 
 // Precise time (time+nanoseconds) for logging, etc.
-typedef struct {
-    uint32_t nanosec;
-    tm low_res;     // beware:
-                    //   tm_year is number of years since 1970,
-                    //   tm_mon is number of months since January,
-                    //   tm_sec is from 0 to 60 (to account for leap seconds)
+struct precise_time_t : public tm {
+    uint32_t ns;    // nanoseconds since the start of the second
+                    // beware:
+                    //   tm::tm_year is number of years since 1970,
+                    //   tm::tm_mon is number of months since January,
+                    //   tm::tm_sec is from 0 to 60 (to account for leap seconds)
                     // For more information see man gmtime(3)
-} precise_time_t;
+};
 
 void initialize_precise_time();     // should be called during startup
-precise_time_t get_precise_time();
-// format:
+timespec get_uptime();              // returns relative time since initialize_precise_time(),
+                                    // can return low precision time if clock_gettime call fails
+precise_time_t get_absolute_time(const timespec& relative_time); // converts relative time to absolute
+precise_time_t get_time_now();      // equivalent to get_absolute_time(get_uptime())
+
+// formatted precise time:
 // yyyy-mm-dd hh:mm:ss.MMMMMM   (26 characters)
-void format_precise_time(const precise_time_t& time, char* buf, size_t max_chars);
 const size_t formatted_precise_time_length = 26;    // not including null
+
+void format_precise_time(const precise_time_t& time, char* buf, size_t max_chars);
+std::string format_precise_time(const precise_time_t& time);
+
 
 // The signal handler for SIGSEGV
 void generic_crash_handler(int signum);
@@ -80,25 +87,6 @@ bool is_sorted(ForwardIterator first, ForwardIterator last,
     }
     return true;
 }
-
-// Extend STL less a bit
-namespace std {
-    //Scamped from:
-    //https://sdm.lbl.gov/fastbit/doc/html/util_8h_source.html
-    // specialization of less<> to work with char*
-    template <> struct less< char* > {
-        bool operator()(const char*x, const char*y) const {
-            return strcmp(x, y) < 0;
-        }
-    };
-
-    // specialization of less<> on const char* (case sensitive comparison)
-    template <> struct less< const char* > {
-        bool operator()(const char* x, const char* y) const {
-            return strcmp(x, y) < 0;
-        }
-    };
-};
 
 //network conversion
 inline uint16_t ntoh(uint16_t val) { return be16toh(val); }

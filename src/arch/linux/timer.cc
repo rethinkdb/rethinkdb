@@ -5,6 +5,7 @@
 #include <sys/eventfd.h>
 #include "event_queue.hpp"
 #include "timer.hpp"
+#include "logger.hpp"
 
 linux_timer_handler_t::linux_timer_handler_t(linux_event_queue_t *queue)
     : queue(queue)
@@ -44,6 +45,11 @@ linux_timer_handler_t::~linux_timer_handler_t() {
 }
 
 void linux_timer_handler_t::on_event(int events) {
+
+    if (events != poll_event_in) {
+        logERR("Unexpected event mask: %d\n", events);
+    }
+
     int res;
     eventfd_t nexpirations;
     

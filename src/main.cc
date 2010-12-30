@@ -6,6 +6,7 @@
 #include "side_executable.hpp"
 #include "logger.hpp"
 
+
 int main(int argc, char *argv[]) {
     // Before we do anything, we look at the first argument and
     // consider running a different executable (such as

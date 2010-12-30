@@ -40,7 +40,7 @@ class dbench():
     bench_dir = 'bench_output'
     oprofile_dir = 'prof_output'
     flot_script_location = '/graph_viewer/index.html'
-    competitor_dir = '/home/teapot/competitor_bench'
+    competitor_dir = os.getenv("HOME", "/home/teapot") + '/competitor_bench'
 
     def __init__(self, dir, email_addr):
         self.email_addr = email_addr
@@ -175,7 +175,10 @@ class dbench():
                     run = self.multi_runs[multirun].runs[run_name]
                     multirun_data.append(reduce(lambda x,y: x+y, run.data).select('qps').remap('qps',run.name))
 
-                self.multi_runs[multirun].data = TimeSeriesMeans(multirun_data)
+                if multirun_data == []:
+                    print "Did not get multirun_data for %s" % multirun
+                else:
+                    self.multi_runs[multirun].data = TimeSeriesMeans(multirun_data)
 
         def parse_server_meta(self, data):
             threads_line = line('Number of DB threads: (\d+)', [('threads', 'd')])
@@ -269,17 +272,20 @@ class dbench():
             print >>res, '<tr><td><h3 style="text-align: center">Queries per second</h3>'
             print >>res, image('qps' + run_name)
 
-            print >>res, """<table style="border-spacing: 0px; border-collapse: collapse; margin-left: auto; margin-right: auto; margin-top: 20px;"<tr style="font-weight: bold; text-align: left; border-bottom: 2px solid #FFFFFF; color: #FFFFFF; background: #556270;">
+            print >>res, """<table style="border-spacing: 0px; border-collapse: collapse; margin-left: auto; margin-right: auto; margin-top: 20px;">
+                                <tr style="font-weight: bold; text-align: left; border-bottom: 2px solid #FFFFFF; color: #FFFFFF; background: #556270;">
                                     <th style="padding: 0.5em 0.8em; font-size: small;"></th>
                                     <th style="padding: 0.5em 0.8em; font-size: small;">Mean qps</th>
                                     <th style="padding: 0.5em 0.8em; font-size: small;">Standard deviation</th>
+                                    <th style="padding: 0.5em 0.8em; font-size: small;">Upper / Lower 5-percentile</th>
                                 </tr>"""
             for competitor in data.iteritems():
                 print >>res,     """<tr style="text-align: left; border-bottom: 2px solid #FFFFFF;">
                                         <td style="background: #DBE2F1; padding: 0.5em 0.8em; font-weight: bold;">%s</td>
                                         <td style="background: #DBE2F1; padding: 0.5em 0.8em;">%s</td>
                                         <td style="background: #DBE2F1; padding: 0.5em 0.8em;">%s</td>
-                                    </tr>""" % (competitor[0], format_metadata(competitor[1].select('qps').stats()['qps']['mean']), format_metadata(competitor[1].select('qps').stats()['qps']['stdev']))
+                                        <td style="background: #DBE2F1; padding: 0.5em 0.8em;">%s / %s</td>
+                                    </tr>""" % (competitor[0], format_metadata(competitor[1].select('qps').stats()['qps']['mean']), format_metadata(competitor[1].select('qps').stats()['qps']['stdev']), format_metadata(competitor[1].select('qps').stats()['qps']['upper_5_percentile']), format_metadata(competitor[1].select('qps').stats()['qps']['lower_5_percentile']))
             print >>res, """</table>
                         </td>"""
 
@@ -301,13 +307,15 @@ class dbench():
                                     <th style="padding: 0.5em 0.8em; font-size: small;"></th>
                                     <th style="padding: 0.5em 0.8em; font-size: small;">Mean latency</th>
                                     <th style="padding: 0.5em 0.8em; font-size: small;">Standard deviation</th>
+                                    <th style="padding: 0.5em 0.8em; font-size: small;">Upper / Lower 5-percentile</th>
                                 </tr>"""
             for competitor in data.iteritems():
                 print >>res,     """<tr style="text-align: left; border-bottom: 2px solid #FFFFFF;">
                                         <td style="background: #DBE2F1; padding: 0.5em 0.8em; font-weight: bold;">%s</td>
                                         <td style="background: #DBE2F1; padding: 0.5em 0.8em;">%s</td>
                                         <td style="background: #DBE2F1; padding: 0.5em 0.8em;">%s</td>
-                                    </tr>""" % (competitor[0], format_metadata(competitor[1].select('latency').stats()['latency']['mean']), format_metadata(competitor[1].select('latency').stats()['latency']['stdev']))
+                                        <td style="background: #DBE2F1; padding: 0.5em 0.8em;">%s / %s</td>
+                                    </tr>""" % (competitor[0], format_metadata(competitor[1].select('latency').stats()['latency']['mean']), format_metadata(competitor[1].select('latency').stats()['latency']['stdev']), format_metadata(competitor[1].select('latency').stats()['latency']['upper_5_percentile']), format_metadata(competitor[1].select('latency').stats()['latency']['lower_5_percentile']))
             print >>res, """</table>
                         </td>"""
 
@@ -323,8 +331,6 @@ class dbench():
         # Report stats for each multirun
         for multirun_name in self.rdb_stats.multi_runs.keys():
             multirun = self.rdb_stats.multi_runs[multirun_name]
-            server_meta = run.server_meta
-            client_meta = run.client_meta
 
             print >>res, '<hr style="height: 1px; width: 910px; border-top: 1px solid #999; margin: 30px 0px; padding: 0px 30px;" />'
             print >>res, '<div class="multi run">'
@@ -336,7 +342,7 @@ class dbench():
 
             for competitor in self.competitors.iteritems():
                 try:
-                    mean_data[competitor[0]] = competitor[1].multirun.data
+                    mean_data[competitor[0]] = competitor[1].multi_runs[multirun_name].data
                 except KeyError:
                     print 'Competitor: %s did not report mean data for multirun %s' % (competitor[0], multirun.name) 
                 except AttributeError:
@@ -346,22 +352,31 @@ class dbench():
 #            data.json(self.out_dir + '/' + self.dir_str + '/' + flot_data + run_name,'Server:' + server_meta + 'Client:' + client_meta)
 #            print >>res, '<span style="display: inline;">', flot('/' + self.prof_dir + '/' + self.dir_str + '/' + flot_data + run_name + '.js', '(explore data)</span>')
             
-            # Build data for mean run plot
-            #mean_data = data.select('meanrun').remap('meanrun', 'RethinkDB')
 
-            # REMOVED PENDING REVIEW TODO
-#            for competitor in competitor_data.iteritems():
-#                qps_data += competitor[1].select('qps').remap('qps', competitor[0])
+            # Check if we can use the labels as x values (i.e. they are all numeric)
+            labels_are_x_values = True
+            try:
+                for db_name in mean_data.keys():
+                    current_data = mean_data[db_name].scatter
+                    for i, label in current_data.names.iteritems():
+                        float(label)
+            except ValueError:
+                labels_are_x_values = False
 
             # Plot the mean run data
             scatter_data = {}
             for db_name in mean_data.keys():
                 current_data = mean_data[db_name].scatter
                 scatter_data[db_name] = []
-                for i in current_data.names.keys():
+                if labels_are_x_values:
+                    for i, label in current_data.names.iteritems():
+                        current_data.data[i] = (float(label), current_data.data[i][1])
+                    # Sort data points before plotting
+                    current_data.data.sort()
+                for i, label in current_data.names.iteritems():
                     scatter_data[db_name].append(current_data.data[i])
 
-            scatter = ScatterCollection(scatter_data)
+            scatter = ScatterCollection(scatter_data, multirun.unit)
             scatter.plot(os.path.join(self.out_dir, self.dir_str, 'mean' + multirun_name))
 #            mean_data.plot(os.path.join(self.out_dir, self.dir_str, 'meanrun' + multirun_name + '_large'), True)
 

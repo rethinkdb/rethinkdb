@@ -190,9 +190,7 @@ class TimeSeriesCollection():
         labels = []
         hists = []
         for series, color in zip(self.data.iteritems(), colors):
-#TODO @mglukhovsky a clipping at 6000 means that some competitors (membase)
-#don't have any data points on the histogram
-            clipped_data = clip(series[1], 0, 6000)
+            clipped_data = clip(series[1], 0, 5 * mean)
             if clipped_data:
                 _, _, foo = ax.hist(clipped_data, bins=200, histtype='bar', facecolor = color, alpha = .5, label = series[0])
                 hists.append(foo)
@@ -256,9 +254,9 @@ class TimeSeriesCollection():
 
         ax.set_xlim(0, len(self.data[self.data.keys()[0]]) - 1)
         if normalize:
-            ax.set_ylim(0, 1.0)
+            ax.set_ylim(0, 1.2)
         else:
-            ax.set_ylim(0, max(reduce(lambda x,y :x + y, self.data.values())))
+            ax.set_ylim(0, 1.2 * max(reduce(lambda x,y :x + y, self.data.values())))
         ax.grid(True)
         plt.legend(tuple(map(lambda x: x[0], labels)), tuple(map(lambda x: x[1], labels)), loc=1, prop = font)
         if not large:
@@ -271,15 +269,43 @@ class TimeSeriesCollection():
             fig.set_size_inches(20,14.8)
             fig.set_dpi(300)
             plt.savefig(out_fname, bbox_inches="tight")
+            
+    # This is from http://code.activestate.com/recipes/511478/
+    def percentile(N, percent, key=lambda x:x):
+        """
+        Find the percentile of a list of values.
+
+        @parameter N - is a list of values. Note N MUST BE already sorted.
+        @parameter percent - a float value from 0.0 to 1.0.
+        @parameter key - optional key function to compute value from each element of N.
+
+        @return - the percentile of the values
+        """
+        if not N:
+            return None
+        k = (len(N)-1) * percent
+        f = math.floor(k)
+        c = math.ceil(k)
+        if f == c:
+            return key(N[int(k)])
+        d0 = key(N[int(f)]) * (k-f)
+        d1 = key(N[int(c)]) * (c-k)
+        return d0+d1
 
     def stats(self):
         res = {}
         for val in self.data.iteritems():
             stat_report = {}
 	    full_series = map(lambda x: x, val[1])
+	    full_series_sorted = full_series
+	    full_series_sorted.sort()
 	    steady_series = full_series[int(len(full_series) * 0.7):]
             stat_report['mean'] = stats.mean(full_series)
             stat_report['stdev'] = stats.stdev(full_series)
+            stat_report['upper_1_percentile'] = percentile(full_series_sorted, 0.99)
+            stat_report['lower_1_percentile'] = percentile(full_series_sorted, 0.01)
+            stat_report['upper_5_percentile'] = percentile(full_series_sorted, 0.95)
+            stat_report['lower_5_percentile'] = percentile(full_series_sorted, 0.05)
             stat_report['steady_mean'] = stats.mean(steady_series)
             stat_report['steady_stdev'] = stats.stdev(steady_series)
 	    res[val[0]] = stat_report
@@ -346,13 +372,13 @@ class ScatterCollection():
         if self.xlabel:
             ax.set_xlabel(self.xlabel, fontproperties = font)
         else:
-            ax.set_xlabel('Time (seconds)', fontproperties = font)
+            ax.set_xlabel('N/A', fontproperties = font)
 
         ax.set_xlim(0, max_x_value - 1)
         if normalize:
-            ax.set_ylim(0, 1.0)
+            ax.set_ylim(0, 1.2)
         else:
-            ax.set_ylim(0, max_y_value)
+            ax.set_ylim(0, 1.2 * max_y_value)
         ax.grid(True)
         plt.legend(tuple(map(lambda x: x[0], labels)), tuple(map(lambda x: x[1], labels)), loc=1, prop = font)
         fig.set_size_inches(5,3.7)
@@ -528,7 +554,8 @@ class RDBStats(TimeSeriesCollection):
                 res[match['name']] += [match['value']]
 
             m = take(self.end_line, data)
-            assert m != False
+	    if m == False: # Incomplete stats, might happen if monitor was killes while retrieving stats response
+                break
 
             if res:
                 lens = map(lambda x: len(x[1]), res.iteritems())
@@ -537,23 +564,32 @@ class RDBStats(TimeSeriesCollection):
 
     def process(self):
         differences = [('io_reads_completed', 'io_reads_started'), 
-                       ('io_writes_started', 'io_writes_completed'), 
-                       ('transactions_started', 'transactions_ready'), 
-                       ('transactions_ready', 'transactions_completed'),
-                       ('bufs_acquired', 'bufs_ready'),
-                       ('bufs_ready', 'bufs_released')]
-        ratios = [('conns_in_btree_incomplete', 'conns_total'),
-                  ('conns_in_outstanding_data', 'conns_total'),
-                  ('conns_in_socket_connected', 'conns_total'),
-                  ('conns_in_socket_recv_incomplete', 'conns_total'),
-                  ('conns_in_socket_send_incomplete', 'conns_total'),
+                       ('io_writes_started', 'io_writes_completed')]
+        ratios = [('conns_reading_total', 'conns_total'),
+                  ('conns_writing_total', 'conns_total'),
                   ('blocks_dirty', 'blocks_total'),
                   ('blocks_in_memory', 'blocks_total'),
                   ('serializer_old_garbage_blocks',  'serializer_old_total_blocks')]
 
-        slides = [('flushes_started', 'flushes_acquired_lock'),
-                  ('flushes_acquired_lock', 'flushes_completed'),
-                  ('io_writes_started', 'io_writes_completed')]
+        slides = [('io_writes_started', 'io_writes_completed')]
+#        differences = [('io_reads_completed', 'io_reads_started'), 
+#                       ('io_writes_started', 'io_writes_completed'), 
+#                       ('transactions_started', 'transactions_ready'), 
+#                       ('transactions_ready', 'transactions_completed'),
+#                       ('bufs_acquired', 'bufs_ready'),
+#                       ('bufs_ready', 'bufs_released')]
+#        ratios = [('conns_in_btree_incomplete', 'conns_total'),
+#                  ('conns_in_outstanding_data', 'conns_total'),
+#                  ('conns_in_socket_connected', 'conns_total'),
+#                  ('conns_in_socket_recv_incomplete', 'conns_total'),
+#                  ('conns_in_socket_send_incomplete', 'conns_total'),
+#                  ('blocks_dirty', 'blocks_total'),
+#                  ('blocks_in_memory', 'blocks_total'),
+#                  ('serializer_old_garbage_blocks',  'serializer_old_total_blocks')]
+#
+#        slides = [('flushes_started', 'flushes_acquired_lock'),
+#                  ('flushes_acquired_lock', 'flushes_completed'),
+#                  ('io_writes_started', 'io_writes_completed')]
         keys_to_drop = set()
         for dif in differences:
             self.derive(dif[0] + ' - ' + dif[1], dif, difference)

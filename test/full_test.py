@@ -12,7 +12,7 @@ for mode in ["debug", "release"]:
             for mock_cache in [True, False]:
                 for poll_mode in ["poll", "epoll"]:
                     # Build our targets
-                    do_test("cd ../src/; nice make -j",
+                    do_test("cd ../src/; make -j",
                             { "DEBUG"            : 1 if mode    == "debug"    else 0,
                               "VALGRIND"         : 1 if checker == "valgrind" else 0,
                               "MOCK_IO_LAYER"    : 1 if mock_io               else 0,
@@ -21,10 +21,10 @@ for mode in ["debug", "release"]:
                             cmd_format="make")
 
 # Make sure auxillary tools compile
-do_test("cd ../bench/stress-client/; make clean; nice make -j STATIC=1",
+do_test("cd ../bench/stress-client/; make clean; make -j MYSQL=0 LIBMEMCACHED=0",
         {},
         cmd_format="make")
-do_test("cd ../bench/serializer-bench/; make clean; nice make -j",
+do_test("cd ../bench/serializer-bench/; make clean; make -j",
         {},
         cmd_format="make")
 
@@ -66,9 +66,6 @@ def run_canonical_tests(mode, checker, protocol, cores, slices):
                     "sigint-timeout" : sigint_timeout },
                   repeat=3, timeout = 200 + sigint_timeout)
     
-    # Note: we can't send too many things via the pipeline test now
-    # because it saturates network buffers. TODO: fix the pipeline
-    # test (see issue 134).
     do_test_cloud("integration/pipeline.py",
                   { "auto"        : True,
                     "mode"        : mode,
@@ -76,8 +73,8 @@ def run_canonical_tests(mode, checker, protocol, cores, slices):
                     "protocol"    : protocol,
                     "cores"       : cores,
                     "slices"      : slices,
-                    "chunk-size"  : 100,
-                    "num-ints"    : 50000 if (mode == "release" and not checker) else 1000 },
+                    "chunk-size"  : 10000 if (mode == "release" and not checker) else 100,
+                    "num-ints"    : 1000000 if (mode == "release" and not checker) else 1000,
                     "sigint-timeout" : sigint_timeout },
                   repeat=3, timeout = 180)
     
@@ -109,6 +106,32 @@ def run_all_tests(mode, checker, protocol, cores, slices):
                     "num-keys"    : 50000},
                   repeat=3, timeout=720)
     
+    # Run a canonical workload for half hour
+    do_test_cloud("integration/stress_load.py",
+                  { "auto"        : True,
+                    "mode"        : mode,
+                    "no-valgrind" : not checker,
+                    "protocol"    : protocol,
+                    "cores"       : cores,
+                    "slices"      : slices,
+                    "duration"    : 1800},
+                  repeat=3, timeout=2400)
+
+    # Run an modify-heavy workload for half hour
+    do_test_cloud("integration/stress_load.py",
+                  { "auto"        : True,
+                    "mode"        : mode,
+                    "no-valgrind" : not checker,
+                    "protocol"    : protocol,
+                    "cores"       : cores,
+                    "slices"      : slices,
+                    "duration"    : 1800,
+                    "ndeletes"    : 1,
+                    "nupdates"    : 5,
+                    "ninserts"    : 10,
+                    "nreads"      : 1 },
+                  repeat=3, timeout=2400)
+
     do_test_cloud("integration/serial_mix.py",
                   { "auto"        : True,
                     "mode"        : mode,
@@ -290,9 +313,8 @@ def run_all_tests(mode, checker, protocol, cores, slices):
                         "protocol"    : protocol,
                         "cores"       : cores,
                         "slices"      : slices,
-                        "duration"    : 120,
                         "suite-test"  : suite_test},
-                      repeat=3, timeout=240)
+                      repeat=3, timeout=420)
                 
     # Canonical tests are included in all tests
     run_canonical_tests(mode, checker, protocol, cores, slices)

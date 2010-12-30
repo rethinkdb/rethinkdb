@@ -20,6 +20,7 @@ public:
     void write(size_t bytes, const char *buffer);
     void write_external(size_t bytes, const char *buffer, send_buffer_external_write_callback_t *cb);
     void flush(send_buffer_callback_t *cb);
+    void discard();
 
 private:
     net_conn_t *conn;

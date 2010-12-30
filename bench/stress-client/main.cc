@@ -11,25 +11,34 @@
 #include "config.hpp"
 #include "client.hpp"
 #include "args.hpp"
-#include "memcached_sock_protocol.hpp"
-#include "memcached_protocol.hpp"
-#include "mysql_protocol.hpp"
-#include "sqlite_protocol.hpp"
 #include "sys/stat.h"
+#include "memcached_sock_protocol.hpp"
+#ifdef USE_LIBMEMCACHED
+#  include "memcached_protocol.hpp"
+#endif
+#ifdef USE_MYSQL
+#  include "mysql_protocol.hpp"
+#endif
+#include "sqlite_protocol.hpp"
+
 
 using namespace std;
 
 protocol_t *make_protocol(protocol_enum_t protocol, config_t *config) {
     switch (protocol) {
-        case protocol_mysql:
-            return (protocol_t*) new mysql_protocol_t(config);
-            break;
         case protocol_sockmemcached:
             return (protocol_t*) new memcached_sock_protocol_t(config);
             break;
+#ifdef USE_MYSQL
+        case protocol_mysql:
+            return (protocol_t*) new mysql_protocol_t(config);
+            break;
+#endif
+#ifdef USE_LIBMEMCACHED
         case protocol_libmemcached:
             return (protocol_t*) new memcached_protocol_t(config);
             break;
+#endif
         case protocol_sqlite:
             return (protocol_t*) new sqlite_protocol_t(config);
             break;

@@ -1,0 +1,12 @@
+#!/bin/bash
+
+mkdir -p $BENCH_DIR/bench_output/Number_of_cores_canonical_workload
+echo CPU Cores > $BENCH_DIR/bench_output/Number_of_cores_canonical_workload/multirun
+
+if [ $DATABASE == "rethinkdb" ]; then
+    ../../build/release/rethinkdb create $SSD_DRIVES --force
+fi
+
+if [ $DATABASE == "mysql" ]; then
+    sudo bash -c "for CPU in {0..23}; do echo 1 > /sys/devices/system/cpu/cpu\$CPU/online; done"
+fi

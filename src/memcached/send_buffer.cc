@@ -2,7 +2,11 @@
 #include "coroutine/coroutines.hpp"
 
 send_buffer_t::send_buffer_t(net_conn_t *conn)
-    : conn(conn), state(ready) { }
+    : conn(conn)
+#ifndef NDEBUG
+      , state(ready)
+#endif
+{ }
 
 void send_buffer_t::write(size_t s, const char *v) {
     assert(state == ready, "The state was %d but it should have been %d", state, ready);
@@ -19,11 +23,10 @@ void send_buffer_t::write_external(size_t s, const char *v, send_buffer_external
 }
 
 void send_buffer_t::do_write_external(size_t s, const char *v, send_buffer_external_write_callback_t *cb) {
-
 #ifndef NDEBUG
     assert(state == ready);
     state = writing;
-    assert(!conn->closed());
+    assert(conn->is_write_open());
 #endif
 
     if (buffer.size()) {
@@ -65,7 +68,7 @@ void send_buffer_t::do_flush(send_buffer_callback_t *cb) {
     state = flushing;
 #endif
 
-    assert(!conn->closed());
+    assert(conn->is_write_open());
     net_conn_write_external_result_t result = co_write_external(conn, buffer.data(), buffer.size());
     if (result.result == net_conn_write_external_result_t::closed) {
         /* We were interrupted while flushing the internal buffer by
@@ -84,4 +87,8 @@ void send_buffer_t::do_flush(send_buffer_callback_t *cb) {
 #endif
         cb->on_send_buffer_flush();
     }
+}
+
+void send_buffer_t::discard() {
+    buffer.clear();
 }

@@ -1,4 +1,4 @@
-import subprocess, shlex, signal, os, time, shutil, tempfile, sys, traceback, types, gitroot, random, atexit
+import subprocess, shlex, signal, os, time, shutil, tempfile, sys, traceback, types, gitroot, random, atexit, stat
 base_directory = os.path.dirname(os.path.join(os.getcwd(), sys.argv[0])) + "/../test"
 use_local_retester = os.getenv("USE_CLOUD", "false") == "false"
 
@@ -142,6 +142,9 @@ class TestingNode:
            
         
     def put_file(self, local_path, destination_path, retry = 3):
+        
+        print "Sending file %r to cloud..." % local_path
+        
         ssh_transport = self.get_transport()
         
         try:
@@ -181,6 +184,9 @@ class TestingNode:
         
         
     def put_directory(self, local_path, destination_path, retry = 3):
+        
+        print "Sending directory %r to cloud..." % local_path
+        
         ssh_transport = self.get_transport()
     
         try:
@@ -203,7 +209,21 @@ class TestingNode:
                 return self.put_directory(local_path, destination_path, retry-1)
             else:
                 raise e
+    
+    def list_directory(self, remote_path, retry = 3):
         
+        ssh_transport = self.get_transport()
+        try:
+            sftp_session = paramiko.SFTPClient.from_transport(ssh_transport)
+            list = sftp_session.listdir_attr(remote_path)
+            sftp_session.close()
+            return list
+        except (IOError, EOFError, paramiko.SSHException, Exception) as e:
+            self.ssh_transport = None
+            if retry > 0:
+                return self.list_directory(remote_path, retry-1)
+            else:
+                raise e
         
     def make_directory(self, remote_path, retry = 3):
         ssh_transport = self.get_transport()
@@ -432,7 +452,7 @@ def copy_basedata_to_testing_node(node):
             try:
                 node.make_directory(node.global_build_path + "/" + config)
                 node.put_file(base_directory + "/../build/" + config + "/rethinkdb", node.global_build_path + "/" + config + "/rethinkdb")
-                node.put_file(base_directory + "/../build/" + config + "/rethinkdb-extract", node.global_build_path + "/" + config + "/rethinkdb-extract")
+                #node.put_file(base_directory + "/../build/" + config + "/rethinkdb-extract", node.global_build_path + "/" + config + "/rethinkdb-extract")
                 #node.put_file(base_directory + "/../build/" + config + "/rethinkdb-fsck", node.global_build_path + "/" + config + "/rethinkdb-fsck")
                 command_result = node.run_command("chmod +x " + node.global_build_path + "/" + config + "/*")
                 if command_result[0] != 0:
@@ -540,7 +560,6 @@ def start_test_on_node(node, test_command, test_timeout = None, locking_timeout 
             testing_nodes.remove(node)
             remaining_nodes_to_allocate += 1
         
-            
     return (node, test_reference)
 
 
@@ -566,12 +585,31 @@ def get_report_for_test(test_reference):
     
     # Collect a few additional results into a temporary directory
     result.output_dir = SmartTemporaryDirectory("out_")
-    for file_name in ["server_output.txt", "creator_output.txt", "test_output.txt"]:
-        command_result = node.run_command("cat cloud_retest/" + test_reference[1] + "/test/output_from_test/" + file_name)
-        if command_result[0] == 0:
-            open(result.output_dir.path + "/" + file_name, 'w').write(command_result[1])
     
-    # TODO: Also fetch network logs if any?    
+    def get_directory(remote_path, destination_path):
+        
+        assert os.path.isdir(destination_path)
+        for file in node.list_directory(remote_path):
+            r_path = os.path.join(remote_path, file.filename)
+            d_path = os.path.join(destination_path, file.filename)
+            assert not os.path.exists(d_path)
+            if stat.S_ISDIR(file.st_mode):
+                os.mkdir(d_path)
+                get_directory(r_path, d_path)
+            elif file.st_size < 10000000:
+                node.get_file(r_path, d_path)
+            else:
+                f = open(d_path, "w")
+                res = node.run_command("head -c 5MB \"%s\"" % r_path)
+                if res[0] == 0: f.write(res[1])
+                else: f.write("[cloud_retester failed to retrieve part of this file: %s]" % res[0])
+                f.write("\n\n[cloud_retester omitted %d bytes of this file]\n\n" % (file.st_size - 10000000))
+                res = node.run_command("head -c -5MB \"%s\"" % r_path)
+                if res[0] == 0: f.write(res[1])
+                else: f.write("[cloud_retester failed to retrieve part of this file: %s]" % res[0])
+                f.close()
+    
+    get_directory(os.path.join("cloud_retest", test_reference[1], "test", "output_from_test"), result.output_dir.path)
     
     return result
 
@@ -630,7 +668,8 @@ def collect_reports_from_nodes():
                     node = single_run[0]
                     node.run_command("rm -rf cloud_retest/%s" % test_reference)
             except (IOError, EOFError, paramiko.SSHException, Exception) as e:
-                print "Unable to retrieve result for %s from node %s" % (single_run[1], single_run[0].hostname)
+                print "Unable to retrieve result for %s from node %s:" % (single_run[1], single_run[0].hostname)
+                traceback.print_exc()
         
         reports.append((test_reference.command, results))
     
@@ -639,7 +678,8 @@ def collect_reports_from_nodes():
         try:
             cleanup_testing_node(node)
         except (IOError, EOFError, paramiko.SSHException, Exception) as e:
-            print "Unable to cleanup node %s: %s" % (node.hostname, e)
+            print "Unable to cleanup node %s:" % node.hostname
+            traceback.print_exc()
         
     terminate_testing_nodes()
 

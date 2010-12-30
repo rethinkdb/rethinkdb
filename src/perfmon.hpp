@@ -14,11 +14,16 @@
 /* Number formatter */
 
 template<class T>
-std::string format(T value) {
+std::string format(T value, std::streamsize prec) {
     std::stringstream ss;
-    ss.precision(8);
+    ss.precision(prec);
     ss << std::fixed << value;
     return ss.str();
+}
+
+template<class T>
+std::string format(T value) {
+    return format(value, 8);
 }
 
 

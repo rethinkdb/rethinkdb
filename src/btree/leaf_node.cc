@@ -1,7 +1,6 @@
 
 #include "btree/leaf_node.hpp"
 #include <algorithm>
-
 #include "logger.hpp"
 
 // #define DEBUG_MAX_LEAF 10

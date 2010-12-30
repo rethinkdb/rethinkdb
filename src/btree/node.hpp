@@ -42,19 +42,20 @@ struct internal_node_t {
 // newer than it really is.  So when earlier[i] overflows,
 // we pin it to 0xFFFF.
 struct leaf_timestamps_t {
-    repli_timestamp last_modified;  // 0
-    uint16_t earlier[NUM_LEAF_NODE_EARLIER_TIMES];  // 4
+    repli_timestamp last_modified;
+    uint16_t earlier[NUM_LEAF_NODE_EARLIER_TIMES];
 };
 
-//Note: This struct is stored directly on disk.  Changing it invalidates old data.
+// Note: This struct is stored directly on disk.  Changing it invalidates old data.
+// Offsets tested in leaf_node_test.cc
 struct leaf_node_t {
-    block_magic_t magic;        // 0
-    leaf_timestamps_t times;    // 4
-    uint16_t npairs;            // 12
+    block_magic_t magic;
+    leaf_timestamps_t times;
+    uint16_t npairs;
 
     // The smallest offset in pair_offsets
-    uint16_t frontmost_offset;  // 14
-    uint16_t pair_offsets[0];   // 16
+    uint16_t frontmost_offset;
+    uint16_t pair_offsets[0];
 
     static const block_magic_t expected_magic;
 };

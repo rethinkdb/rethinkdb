@@ -6,9 +6,12 @@
 #include <sys/syscall.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <sstream>
+#include <iomanip>
 
 #include "perfmon.hpp"
 #include "logger.hpp"
+#include "utils.hpp"
 
 /* Class to represent and parse the contents of /proc/[pid]/stat */
 
@@ -96,10 +99,22 @@ class perfmon_system_t :
     void end_stats(void *, perfmon_stats_t *dest) {
         proc_pid_stat_t pid_stat;
         if (pid_stat.read_stats(getpid())) {
+            (*dest)["version"] = std::string(RETHINKDB_VERSION);
             (*dest)["pid"] = format(pid_stat.pid);
             (*dest)["memory_virtual[bytes]"] = format(pid_stat.vsize);
             (*dest)["memory_real[bytes]"] = format(pid_stat.rss * sysconf(_SC_PAGESIZE));
         }
+
+        put_timestamp(dest);
+    }
+    void put_timestamp(perfmon_stats_t *dest) {
+        timespec uptime = get_uptime();
+        std::stringstream uptime_str;
+        uptime_str << uptime.tv_sec << '.' << std::setfill('0') << std::setw(6) << uptime.tv_nsec / 1000;
+        precise_time_t now = get_absolute_time(uptime);
+
+        (*dest)["uptime"] = uptime_str.str();
+        (*dest)["timestamp"] = format_precise_time(get_absolute_time(uptime));
     }
 } pm_system;
 

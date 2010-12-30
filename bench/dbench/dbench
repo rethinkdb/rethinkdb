@@ -238,7 +238,7 @@ class Sleep(Worker):
 class Server(Worker):
     argtype = 'Server'
 
-    MAX_WAIT_TIME = 30
+    MAX_WAIT_TIME = 60
     WAIT_INTERVAL = 0.5
     def wait_for_server_ready(self):
         bound = time.time() + self.MAX_WAIT_TIME
@@ -311,7 +311,7 @@ class Membase(MemcachedLikeServer):
         self.run_process(self.find_binary('membase-wrapper'), args)
         self.wait_for_server_ready()
 
-    MAX_WAIT_TIME = 30
+    MAX_WAIT_TIME = 60
     WAIT_INTERVAL = 0.5
     # When membase is first run, before the configuration step is complete,
     # clients that connect are automatically directed to a "null bucket", and
@@ -355,6 +355,13 @@ class MySQL(Server):
         args = self.compute_args(['--port=%d' % self.dbench.port])
         self.run_process('/usr/local/mysql/libexec/mysqld', args)
         self.wait_for_server_ready()
+        time.sleep(10)
+
+    def internal_stop(self):
+        os.system("/usr/local/mysql/bin/mysqladmin shutdown -u root --port=%d" % self.dbench.port)
+        time.sleep(15)
+        self.stop_process()
+        self.finished = True
 
 class Stress(Client):
     binary_paths = ['../../../../stress-client/stress', '../stress-client/stress']
@@ -370,7 +377,8 @@ class Stress(Client):
 
         default_args = host_args + \
                        ['-l', self.LATENCY_FILE,
-                        '-q', self.QPS_FILE]
+                        '-q', self.QPS_FILE,
+                        '--client-suffix']
         args = self.compute_args(default_args)
         self.run_process(self.find_binary('stress'), args)
 
@@ -537,6 +545,8 @@ class DBench(object):
                             nargs='*', type=self.parse_worker)
         parser.add_argument('-f', '--force', help='Delete output directory before starting',
                             action='store_true')
+        parser.add_argument('-P', '--prime-caches', help='Run client twice to prime caches',
+                            action='store_true')
         parser.add_argument('-d', '--output-directory', help='Directory to output benchmarks to.',
                             type=str, default='./bench_output')
         parser.add_argument('-p', '--port', help='Server port (if not specified, will find unused port automatically).', type=int)
@@ -626,7 +636,17 @@ class DBench(object):
                 print >> f, msg
 
     def start_workers(self):
-        for w in [self.server] + self.monitors + [self.client]:
+        self.server.start()
+        self.info('%s started' % self.server)
+        if self.args.prime_caches:
+            # Run client twice to prime caches of the server
+            self.client.start()
+            self.info('%s started for cache priming' % self.client)
+            self.info('Waiting for client...')
+            self.client.wait()
+            self.info('Client completed')
+            
+        for w in self.monitors + [self.client]:
             w.start()
             self.info('%s started' % w)
     def stop_workers(self):

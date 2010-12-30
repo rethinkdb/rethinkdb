@@ -101,7 +101,9 @@ int run_fsck(int argc, char **argv) {
         log_file = fopen(config.log_file_name.c_str(), "w");
     }
 
-    check_files(config);
-
-    return 0;
+    if (check_files(config)) {
+        return EXIT_SUCCESS;
+    } else {
+        return EXIT_FAILURE;
+    }
 }

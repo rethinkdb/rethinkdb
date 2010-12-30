@@ -1,0 +1,7 @@
+#!/bin/bash
+
+. `dirname "$0"`/common
+
+run_with_clients 1024
+
+

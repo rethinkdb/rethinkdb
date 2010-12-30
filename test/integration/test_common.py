@@ -3,17 +3,16 @@ from vcoptparse import *
 from corrupter import *
 from rdbstat import *
 
-test_dir_name = "output_from_test"
-made_test_dir = False
-
 class TestFailure(Exception):
     def __init__(self, value):
         self.value = value
     def __str__(self):
         return repr(self.value)
 
+made_test_dir = False
 def make_test_dir():
     global made_test_dir
+    test_dir_name = "output_from_test"
     if not made_test_dir:
         if os.path.exists(test_dir_name):
             assert os.path.isdir(test_dir_name)
@@ -22,11 +21,21 @@ def make_test_dir():
         made_test_dir = True
     return test_dir_name
 
+def make_test_file(name):
+    dirname = os.path.join(make_test_dir(), os.path.dirname(name))
+    if not os.path.isdir(dirname): os.makedirs(dirname)
+    basename = os.path.basename(name)
+    tries = 0
+    while os.path.exists(os.path.join(dirname, basename)):
+        tries += 1
+        basename = os.path.basename(name) + "_%d" % tries
+    return os.path.join(dirname, basename)
+
 class StdoutAsLog(object):
     def __init__(self, name):
         self.name = name
     def __enter__(self):
-        self.path = os.path.join(make_test_dir(), self.name)
+        self.path = make_test_file(self.name)
         print "Writing log file %r." % self.path
         self.f = file(self.path, "w")
         sys.stdout = self.f
@@ -45,6 +54,7 @@ def make_option_parser():
     o["valgrind-tool"] = StringFlag("--valgrind-tool", "memcheck")
     o["mode"] = StringFlag("--mode", "debug")
     o["netrecord"] = BoolFlag("--no-netrecord", invert = True)
+    o["fsck"] = BoolFlag("--no-fsck", invert = True)
     o["restart_server_prob"] = FloatFlag("--restart-server-prob", 0)
     o["corruption_p"] = FloatFlag("--corruption-p", 0)
     o["cores"] = IntFlag("--cores", 2)
@@ -93,15 +103,66 @@ def signal_with_number(number):
     return str(number)
 
 def wait_with_timeout(process, timeout):
-    wait_interval = 0.05
-    n_intervals = int(timeout / wait_interval) + 1
-    while process.poll() is None:
-        n_intervals -= 1
-        if n_intervals == 0: break
-        time.sleep(wait_interval)
-    return process.poll()
+    if timeout is None:
+        return process.wait()
+    else:
+        wait_interval = 0.05
+        n_intervals = int(timeout / wait_interval) + 1
+        while process.poll() is None:
+            n_intervals -= 1
+            if n_intervals == 0: break
+            time.sleep(wait_interval)
+        return process.poll()
 
-def run_and_report(obj, args = (), kwargs = {}, timeout = None, name = "the test"):
+def run_executable(command_line, output_path, timeout=60, valgrind_tool=None):
+    
+    summary = os.path.basename(command_line[0])
+    if len(command_line) > 4: summary += " " + cmd_join(command_line[1:4]) + " [...]"
+    else: summary += " " + cmd_join(command_line[1:])
+    print "Running %r;" % summary,
+    sys.stdout.flush()
+    
+    output_path = make_test_file(output_path)
+    
+    if not os.path.exists(command_line[0]):
+        raise RuntimeError("Bad executable: %r does not exist." % command_line[0])
+    
+    valgrind_error_code = 100
+    if valgrind_tool is not None:
+        cmd_line = ["valgrind",
+            "--tool=%s" % valgrind_tool,
+            "--error-exitcode=%d" % valgrind_error_code]
+        if valgrind_tool == "memcheck": cmd_line.append("--leak-check=full")
+        if valgrind_tool == "drd": cmd_line.append("--read-var-info=yes")
+        command_line = cmd_line + command_line
+    
+    with file(output_path, "w") as output_file:
+        sub = subprocess.Popen(command_line, stdout = output_file, stderr = subprocess.STDOUT)
+        start_time = time.time()
+        try:
+            res = wait_with_timeout(sub, timeout)
+            total_time = time.time() - start_time
+        finally:
+            try: sub.terminate()
+            except: pass
+    
+    if res is None:
+        assert timeout is not None
+        raise RuntimeError("%r took more than %d seconds. Output is at %r." % \
+            (" ".join(command_line), timeout, output_path))
+    elif valgrind_tool is not None and res == valgrind_error_code:
+        raise RuntimeError("Valgrind reported errors in %r. See %r." % \
+            (" ".join(command_line), output_path))
+    elif res > 0:
+        raise RuntimeError("%r exited with exit status %d." % \
+            (" ".join(command_line), res))
+    elif res < 0:
+        raise RuntimeError("%r exited with signal %s." % \
+            (" ".join(command_line), signal_with_number(-res)))
+    else:
+        print "done after %f seconds." % total_time
+
+def run_with_timeout(obj, args = (), kwargs = {}, timeout = None, name = "the test"):
     
     print "Running %s..." % name
     
@@ -119,16 +180,13 @@ def run_and_report(obj, args = (), kwargs = {}, timeout = None, name = "the test
     thr.join(timeout)
 
     if thr.isAlive():
-        print "ERROR: %s timed out, probably because the timeout (%s) was set too short or the server " \
-            "wasn't replying to queries fast enough." % (name.capitalize(), timeout)
-        return False
+        raise RuntimeError("%s timed out, probably because the timeout (%s) was set too short or the server " \
+            "wasn't replying to queries fast enough." % (name.capitalize(), timeout))
     elif result_holder[0] == "exception":
-        print "ERROR: There was an error in %s:" % name
-        print "".join(traceback.format_exception(*result_holder[1])).rstrip()
-        return False
+        raise RuntimeError("There was an error in %s:\n" % name + \
+            "".join(traceback.format_exception(*result_holder[1])).rstrip())
     elif result_holder[0] == "ok":
         print "%s succeeded." % name.capitalize()
-        return True
     else:
         assert False
 
@@ -136,9 +194,9 @@ class NetRecord(object):
     
     def __init__(self, target_port, name = "net"):
     
-        nrc_log_dir = os.path.join(make_test_dir(), "network_logs")
-        if not os.path.isdir(nrc_log_dir): os.mkdir(nrc_log_dir)
-        nrc_log_root = os.path.join(nrc_log_dir, "%s_conn" % name.replace(" ","_"))
+        nrc_log_dir = make_test_file("netrecord/%s" % name.replace(" ", "_"))
+        os.mkdir(nrc_log_dir)
+        nrc_log_root = os.path.join(nrc_log_dir, "conn")
         print "Logging network traffic to %s_*." % nrc_log_root
         
         self.port = find_unused_port()
@@ -180,28 +238,12 @@ def stress_client(port=8080, host="localhost", workload={"gets":1, "inserts":1},
             workload.get("prepends", 0), workload.get("verifies", 0)),
         ]
     
+    os.makedirs(os.path.join(make_test_dir(), "stress_client"))
     key_file = os.path.join(make_test_dir(), "stress_client", "keys")
     command_line.extend(["-o", key_file])
     if os.path.exists(key_file): command_line.extend(["-i", key_file])
     
-    output_dir = os.path.join(make_test_dir(), "stress_client")
-    if not os.path.isdir(output_dir): os.mkdir(output_dir)
-    output_path = os.path.join(output_dir, "round_%d" % num_stress_clients)
-    output_file = open(output_path, "w")
-    
-    print "Running %r..." % (" ".join(command_line))
-    client = subprocess.Popen(command_line,
-        stdout = output_file, stderr = subprocess.STDOUT)
-    start_time = time.time()
-    try:
-        result = client.wait()
-    finally:
-        try: client.terminate()
-        except: pass
-    if result != 0:
-        raise RuntimeError("Stress client exited with code %d.", result)
-    
-    print "Stress test done; it took %f seconds." % (time.time() - start_time)
+    run_executable(command_line, "stress_client/output", timeout=None)
 
 def rdb_stats(port=8080, host="localhost"):
     
@@ -241,16 +283,52 @@ def get_executable_path(opts, name):
 
     return executable_path
 
+class DataFiles(object):
+    
+    def __init__(self, opts):
+        
+        self.opts = opts
+        
+        if self.opts["ssds"]:
+            self.files = [ssd.replace(' ','') for ssd in self.opts["ssds"]]
+        else:
+            db_data_dir = os.path.join(make_test_dir(), "db_data")
+            if not os.path.isdir(db_data_dir): os.mkdir(db_data_dir)
+            db_data_path = os.path.join(db_data_dir, "data_file")
+            tries = 0
+            while os.path.exists(db_data_path):
+                tries += 1
+                db_data_path = os.path.join(db_data_dir, "data_file_%d" % tries)
+            self.files = [db_data_path]
+        
+        run_executable([
+            get_executable_path(opts, "rethinkdb"), "create", "--force",
+            "-s", str(self.opts["slices"]),
+            "-c", str(self.opts["cores"]),
+            ] + self.rethinkdb_flags() + \
+            shlex.split(self.opts["flags"]),
+            "creator_output",
+            timeout = 30,
+            valgrind_tool = self.opts["valgrind-tool"] if self.opts["valgrind"] else None
+            )
+    
+    def rethinkdb_flags(self):
+        flags = []
+        for file in self.files:
+            flags.append("-f")
+            flags.append(file)
+        return flags
+    
+    def fsck(self):
+        
+        run_executable(
+            [get_executable_path(self.opts, "rethinkdb"), "fsck"] + self.rethinkdb_flags(),
+            "fsck_output.txt",
+            timeout = 600,
+            valgrind_tool = self.opts["valgrind-tool"] if self.opts["valgrind"] else None
+            )
+
 class Server(object):
-    
-    # Use the memcheck valgrind tool by default
-    valgrind_tool = "memcheck"
-    
-    # Special exit code that we pass to Valgrind to indicate an error
-    valgrind_error_code = 100
-    
-    # Server should not take more than %(server_create_time)d seconds to create database
-    server_create_time = 15
     
     # Server should not take more than %(server_start_time)d seconds to start up
     server_start_time = 30
@@ -261,7 +339,9 @@ class Server(object):
     
     wait_interval = 0.25
     
-    def __init__(self, opts, name = "server", extra_flags = [], use_existing = False):
+    valgrind_error_code = 100
+    
+    def __init__(self, opts, name = "server", extra_flags = [], data_files = None):
         assert made_test_dir
         
         self.running = False
@@ -273,54 +353,10 @@ class Server(object):
             
             self.executable_path = get_executable_path(self.opts, "rethinkdb")
             
-            db_data_dir = os.path.join(make_test_dir(), "db_data")
-            if not os.path.isdir(db_data_dir): os.mkdir(db_data_dir)
-            self.db_data_path = os.path.join(db_data_dir, "data_file")
-            
-            if not use_existing:
-                
-                # Create data file
-                
-                if not self.opts["ssds"]:
-                    command_line = [self.executable_path,
-                        "create", "--force",
-                        "-c", str(self.opts["cores"]),
-                        "-s", str(self.opts["slices"]),
-                        "-f", self.db_data_path
-                        ] + self.extra_flags + shlex.split(self.opts["flags"])
-                else:
-                    command_line = [self.executable_path,
-                        "create", "--force",
-                        "-c", str(self.opts["cores"]),
-                        "-s", str(self.opts["slices"])] + \
-                        ["-f %s" % ssd.replace(' ','') for ssd in self.opts["ssds"]] + \
-                        self.extra_flags + shlex.split(self.opts["flags"])
-                
-                if self.opts["valgrind"]:
-                    cmd_line = ["valgrind"]
-                    if self.opts["valgrind-tool"]:
-                        self.valgrind_tool = self.opts["valgrind-tool"]
-                    if self.opts["interactive"]:
-                        cmd_line += ["--db-attach=yes"]
-                    cmd_line += \
-                        ["--tool=%s" % self.valgrind_tool,
-                         "--error-exitcode=%d" % self.valgrind_error_code]
-                    if self.valgrind_tool == "memcheck":
-                        cmd_line.append("--leak-check=full")
-                    if self.valgrind_tool == "drd":
-                        cmd_line.append("--read-var-info=yes")
-                    command_line = cmd_line + command_line
-                
-                output_path = os.path.join(make_test_dir(), "creator_output.txt")
-                creator_output = file(output_path, "w") 
-                
-                creator_server = subprocess.Popen(command_line,
-                    stdout = creator_output, stderr = subprocess.STDOUT);
-                
-                dead = wait_with_timeout(creator_server, self.server_create_time) is not None
-                if not dead:
-                    raise ValueError("Server took longer than %d seconds to create database." %
-                        self.server_create_time)
+            if data_files is not None:
+                self.data_files = data_files
+            else:
+                self.data_files = DataFiles(self.opts)
         
         self.times_started = 0
     
@@ -339,25 +375,15 @@ class Server(object):
         server_port = find_unused_port()
         
         if self.opts["database"] == "rethinkdb":
-            
-            # Make a directory to hold server data files
-            if not self.opts["ssds"]:
-                command_line = [self.executable_path,
-                    "-p", str(server_port),
-                    "-c", str(self.opts["cores"]),
-                    "-m", str(self.opts["memory"]),
-                    "-f", self.db_data_path
-                    ] + self.extra_flags + shlex.split(self.opts["flags"])
-            else:
-                command_line = [self.executable_path,
-                    "-p", str(server_port),
-                    "-c", str(self.opts["cores"]),
-                    "-m", str(self.opts["memory"])] + \
-                    ["-f %s" % ssd.replace(' ', '') for ssd in self.opts["ssds"]] + \
-                    self.extra_flags + shlex.split(self.opts["flags"])
+            command_line = [self.executable_path,
+                "-p", str(server_port),
+                "-c", str(self.opts["cores"]),
+                "-m", str(self.opts["memory"]),
+                ] + self.data_files.rethinkdb_flags() + \
+                shlex.split(self.opts["flags"]) + \
+                self.extra_flags
         
         elif self.opts["database"] == "memcached":
-            
             command_line = ["memcached", "-p", str(server_port), "-M"]
         
         # Are we using valgrind?
@@ -373,6 +399,8 @@ class Server(object):
             if self.valgrind_tool == "memcheck":
                 cmd_line.append("--leak-check=full")
                 cmd_line.append("--track-origins=yes")
+            if self.valgrind_tool == "drd":
+                cmd_line.append("--read-var-info=yes")
             command_line = cmd_line + command_line
         
         # Start the server
@@ -411,14 +439,14 @@ class Server(object):
             else: break
             finally: s.close()
         else:
-            print "%s took longer than %.2f seconds to start." % (self.name.capitalize(), self.server_start_time)
-            return False
+            raise RuntimeError("%s took longer than %.2f seconds to start." % \
+                (self.name.capitalize(), self.server_start_time))
         print "%s took %.2f seconds to start." % (self.name.capitalize(), waited)
         time.sleep(0.2)
         
         # Make sure nothing went wrong during startup
         
-        return self.verify()
+        self.verify()
         
     def verify(self):
         
@@ -427,24 +455,20 @@ class Server(object):
         if self.server.poll() != None:
             self.running = False
             if self.server.poll() == 0:
-                print "ERROR: %s shut down without being asked to." % self.name.capitalize()
+                raise RuntimeError("%s shut down without being asked to." % self.name.capitalize())
             elif self.opts["valgrind"] and self.server.poll() == self.valgrind_error_code:
-                print "ERROR: Valgrind reported errors in %s." % self.name
+                raise RuntimeError("Valgrind reported errors in %s." % self.name)
             elif self.server.poll() > 0:
-                print "ERROR: %s terminated unexpectedly with exit code %d" % \
-                    (self.name.capitalize(), self.server.poll())
+                raise RuntimeError("%s terminated unexpectedly with exit code %d" % \
+                    (self.name.capitalize(), self.server.poll()))
             else:
-                print "ERROR: %s terminated unexpectedly with signal %s" % \
-                    (self.name.capitalize(), signal_with_number(-self.server.poll()))
-            return False
-        
-        return True
+                raise RuntimeError("%s terminated unexpectedly with signal %s" % \
+                    (self.name.capitalize(), signal_with_number(-self.server.poll())))
     
     def shutdown(self):
         
         # Make sure the server didn't shut down without being asked to
-        if not self.verify():
-            return False
+        self.verify()
         
         assert self.running
         self.running = False
@@ -483,29 +507,27 @@ class Server(object):
                     # We're in interactive mode, probably in GDB. Don't kill it.
                     return
                 self.server.send_signal(signal.SIGKILL)
-                print "ERROR: %s did not shut down %d seconds after getting SIGINT, and " \
+                raise RuntimeError("%s did not shut down %d seconds after getting SIGINT, and " \
                     "did not respond within %d seconds of SIGQUIT either." % \
-                    (self.name.capitalize(), self.opts["sigint-timeout"], self.server_sigquit_time)
-                return False
+                    (self.name.capitalize(), self.opts["sigint-timeout"], self.server_sigquit_time))
             else:
-                print "ERROR: %s did not shut down %d seconds after getting SIGINT, " \
-                    "but responded to SIGQUIT." % (self.name.capitalize(), self.opts["sigint-timeout"])
-                return False
+                raise RuntimeError("%s did not shut down %d seconds after getting SIGINT, " \
+                    "but responded to SIGQUIT." % (self.name.capitalize(), self.opts["sigint-timeout"]))
         
         # Make sure the server didn't encounter any problems
         if self.server.poll() != 0:
             if self.opts["valgrind"] and self.server.poll() == self.valgrind_error_code:
-                print "ERROR: Valgrind reported errors in %s." % self.name
+                raise RuntimeError("Valgrind reported errors in %s." % self.name)
             elif self.server.poll() > 0:
-                print "ERROR: %s shut down with exit code %d." % \
-                    (self.name.capitalize(), self.server.poll())
+                raise RuntimeError("%s shut down with exit code %d." % \
+                    (self.name.capitalize(), self.server.poll()))
             else:
-                print "ERROR: %s shut down with signal %s." % \
-                    (self.name.capitalize(), signal_with_number(-self.server.poll()))
-            return False
+                raise RuntimeError("%s shut down with signal %s." % \
+                    (self.name.capitalize(), signal_with_number(-self.server.poll())))
         
         print "%s shut down successfully." % self.name.capitalize()
-        return True
+        
+        if self.opts["fsck"]: self.data_files.fsck()
         
     def kill(self):
         
@@ -514,8 +536,7 @@ class Server(object):
             return True
         
         # Make sure the server didn't shut down without being asked to
-        if not self.verify():
-            return False
+        self.verify()
         
         assert self.running
         self.running = False
@@ -527,7 +548,8 @@ class Server(object):
             self.nrc.stop()
         
         print "Killed %s." % self.name
-        return True
+        
+        if self.opts["fsck"]: self.data_files.fsck()
     
     def __del__(self):
         
@@ -550,20 +572,19 @@ class MemcachedWrapperThatRestartsServer(object):
         self.internal_mc.disconnect_all()
         print "Interrupting test to restart server..."
         
-        shutdown_ok = self.server.shutdown()
+        try:
+            self.server.shutdown()
+        finally:
+            snapshot_dir = os.path.join(make_test_dir(), "db_data", self.server.name.replace(" ", "_"))
+            print "Storing a snapshot of server data files in %r." % snapshot_dir
+            os.mkdir(snapshot_dir)
+            for fn in os.listdir(os.path.join(make_test_dir(), "db_data")):
+                path = os.path.join(make_test_dir(), "db_data", fn)
+                if os.path.isfile(path):
+                    corrupt(path, self.opts["corruption_p"])
+                    shutil.copyfile(path, os.path.join(snapshot_dir, fn))
         
-        snapshot_dir = os.path.join(make_test_dir(), "db_data", self.server.name.replace(" ", "_"))
-        print "Storing a snapshot of server data files in %r." % snapshot_dir
-        os.mkdir(snapshot_dir)
-        for fn in os.listdir(os.path.join(make_test_dir(), "db_data")):
-            path = os.path.join(make_test_dir(), "db_data", fn)
-            if os.path.isfile(path):
-                corrupt(path, self.opts["corruption_p"])
-                shutil.copyfile(path, os.path.join(snapshot_dir, fn))
-        
-        assert shutdown_ok
-        
-        assert self.server.start()
+        self.server.start()
         
         print "Done restarting server; now resuming test."
         self.internal_mc = self.internal_mc_maker()
@@ -628,17 +649,23 @@ def auto_server_test_main(test_function, opts, timeout = 30, extra_flags = []):
         make_test_dir()
         
         server = Server(opts, extra_flags = extra_flags)
-        if not server.start(): sys.exit(1)
+        server.start()
 
         stat_checker = start_stats(opts, server.port)
 
-        test_ok = run_and_report(test_function, (opts, server.port), timeout = adjust_timeout(opts, timeout))
+        try:
+            run_with_timeout(test_function, (opts, server.port), timeout = adjust_timeout(opts, timeout))
+        except Exception, e:
+            test_failure = e
+        else:
+            test_failure = None
 
         if stat_checker:
             stat_checker.stop()
 
-        server_ok = server.shutdown()
-        if not (test_ok and server_ok): sys.exit(1)
+        server.shutdown()
+
+        if test_failure: raise test_failure
     
     else:
         
@@ -651,15 +678,13 @@ def auto_server_test_main(test_function, opts, timeout = 30, extra_flags = []):
 
         stat_checker = start_stats(opts, port)
 
-        if not run_and_report(test_function, (opts, port), timeout = adjust_timeout(opts, timeout)): sys.exit(1)
+        run_with_timeout(test_function, (opts, port), timeout = adjust_timeout(opts, timeout))
 
         if stat_checker:
             stat_checker.stop()
         
         if opts["netrecord"]:
             nrc.stop()
-    
-    sys.exit(0)
 
 def simple_test_main(test_function, opts, timeout = 30, extra_flags = []):
     """Drop-in main() for tests that open a single connection against a single server that they
@@ -668,20 +693,26 @@ def simple_test_main(test_function, opts, timeout = 30, extra_flags = []):
         make_test_dir()
         
         server = Server(opts, extra_flags = extra_flags)
-        if not server.start(): sys.exit(1)
+        server.start()
 
         stat_checker = start_stats(opts, server.port)
 
         mc = connect_to_server(opts, server)
-        test_ok = run_and_report(test_function, (opts, mc), timeout = adjust_timeout(opts, timeout))
+        try:
+            run_with_timeout(test_function, (opts, mc), timeout = adjust_timeout(opts, timeout))
+        except Exception, e:
+            test_failure = e
+        else:
+            test_failure = None
         mc.disconnect_all()
 
         if stat_checker:
             stat_checker.stop()
 
-        server_ok = server.shutdown()
-        if not (test_ok and server_ok): sys.exit(1)
-    
+        if server.running: server.shutdown()
+
+        if test_failure: raise test_failure
+
     else:
         
         if opts["restart_server_prob"]:
@@ -696,16 +727,13 @@ def simple_test_main(test_function, opts, timeout = 30, extra_flags = []):
         
         stat_checker = start_stats(opts, port)
         mc = connect_to_port(opts, port)
-        ok = run_and_report(test_function, (opts, mc), timeout = adjust_timeout(opts, timeout))
+        run_with_timeout(test_function, (opts, mc), timeout = adjust_timeout(opts, timeout))
         mc.disconnect_all()
         if stat_checker:
             stat_checker.stop()
-
         
         if opts["netrecord"]:
             nrc.stop()
-        
-        if not ok: sys.exit(1)
     
     sys.exit(0)
 

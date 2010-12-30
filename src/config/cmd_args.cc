@@ -9,9 +9,18 @@
 #include "utils.hpp"
 #include "coroutine/coroutines.hpp"
 
+void print_version_message() {
+    printf("rethinkdb " RETHINKDB_VERSION
+#ifndef NDEBUG
+           " (debug)"
+#endif
+           "\n");
+    exit(0);
+}
+
 void usage(const char *name) {
     printf("Usage:\n"
-           "        rethinkdb (serve) [-h] [-v] [-S <semantic_file>] [-c <ncores>]\n"
+           "        rethinkdb [serve] [-h] [-v] [-S <semantic_file>] [-c <ncores>]\n"
            "                          [-m <maxRAM>] [-l <log_file>] [-p <port>]\n"
            "                          [--flush-timer <ms>] [--wait-for-flush [y|n]]\n"
            "                          [--flush-threshold <n%%>] [--gc-range <low>-<high>]\n"
@@ -25,7 +34,10 @@ void usage(const char *name) {
            "                          [--force-block-size] [--force-extent-size]\n"
            "                          [--force-mod-count] -f data_file\n"
            "        rethinkdb fsck    [-h] [-l <log_file>] -f data_file_1 -f data_file_2 ...\n"
-           "        rethinkdb help    <commmand>\n");
+           "        rethinkdb help    <command>\n"
+           "\n"
+           "        rethinkdb --version     Print version information and exit.\n"
+           "        rethinkdb --help        Print this usage message and exit.\n");
     exit(0);
 }
 
@@ -35,7 +47,8 @@ void usage_serve(const char *name) {
            "\nOptions:\n"
 
     //     "                        24 characters start here.                              | < last character
-           "  -h, --help            Print these usage options.\n"
+           "      --version         Print version information and exit.\n"
+           "  -h, --help            Print these usage options and exit.\n"
            "  -v, --verbose         Print extra information to standard output.\n"
 
            "  -f, --file            Path to file or block device where database goes.\n"
@@ -102,7 +115,8 @@ enum {
     block_size,
     extent_size,
     force_create,
-    coroutine_stack_size
+    coroutine_stack_size,
+    print_version
 };
 
 enum rethinkdb_cmd {
@@ -183,6 +197,7 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
     while(1)
     {
         int do_help = 0;
+        int do_version = 0;
         int do_force_create = 0;
         struct option long_options[] =
             {
@@ -205,6 +220,7 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
                 {"port",                 required_argument, 0, 'p'},
                 {"verbose",              no_argument, (int*)&config.verbose, 1},
                 {"force",                no_argument, &do_force_create, 1},
+                {"version",              no_argument, &do_version, 1},
                 {"help",                 no_argument, &do_help, 1},
                 {0, 0, 0, 0}
             };
@@ -214,6 +230,8 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
 
         if (do_help)
             c = 'h';
+        if (do_version)
+            c = print_version;
         if (do_force_create)
             c = force_create;
      
@@ -261,6 +279,8 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
                 config.set_coroutine_stack_size(optarg); break;
             case force_create:
                 config.force_create = true; break;
+            case print_version:
+                print_version_message(); break;
             case 'h':
             default:
                 /* getopt_long already printed an error message. */

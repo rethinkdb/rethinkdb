@@ -390,7 +390,6 @@ void large_buf_t::prepend(int64_t extra_size, large_buf_ref *refout) {
             tr->children.resize(children_back_k + k);
 
             for (int w = back_k - 1; w >= children_back_k; --w) {
-                debugf("moving block id %d\n", node->kids[w]);
                 node->kids[w + k] = node->kids[w];
             }
             for (int w = children_back_k - 1; w >= 0; --w) {

@@ -6,9 +6,8 @@
 #include <grp.h>
 #include <unistd.h>
 #include <string>
-#include <iostream>
-#include <fstream>
 #include <vector>
+#include <fstream>
 #include <set>
 
 #include "logger.hpp"
@@ -26,7 +25,7 @@ struct partition_info_t {
     std::string name;
 };
 
-void get_partition_map(std::vector<partition_info_t> &partitions);
+void get_partition_map(std::vector<partition_info_t> *partitions);
 
 
 partition_info_t::partition_info_t(int nmajor, int nminor, int nblocks, std::string name)
@@ -54,7 +53,7 @@ void tokenize_line(const std::string& line, std::vector<std::string> &tokens) {
     }
 }
 
-void get_partition_map(std::vector<partition_info_t *> &partitions) {
+void get_partition_map(std::vector<partition_info_t *> *partitions) {
     /* /proc partitions looks like this:
      * major minor  #blocks  name
      *
@@ -89,12 +88,12 @@ void get_partition_map(std::vector<partition_info_t *> &partitions) {
             partition->name = tokens[3];
             partition->name.insert(0, std::string("/dev/"));
 
-            partitions.push_back(partition);
+            partitions->push_back(partition);
         }
     }
 }
 
-void log_disk_info(std::vector<log_serializer_private_dynamic_config_t> &serializers) {
+void log_disk_info(std::vector<log_serializer_private_dynamic_config_t> const &serializers) {
     std::vector<partition_info_t *> partitions;
     std::set<std::string> devices;
 
@@ -107,7 +106,7 @@ void log_disk_info(std::vector<log_serializer_private_dynamic_config_t> &seriali
         return;
     }
 
-    get_partition_map(partitions);
+    get_partition_map(&partitions);
 
     int maj, min = 0;
     const char *path;
@@ -129,8 +128,7 @@ void log_disk_info(std::vector<log_serializer_private_dynamic_config_t> &seriali
             /* We're looking at a device, not a file */
             if (strncmp("/dev/ram", path, 8)) {
                 devices.insert(path);
-            }
-            else {
+            } else {
                 /* Don't give ramdisks to hdparm because it won't produce
                  * anything useful. */
                 mlogf("\n%s:\n    RAM disk\n", path);
@@ -163,7 +161,6 @@ void log_disk_info(std::vector<log_serializer_private_dynamic_config_t> &seriali
 
             devices.insert(partitions[device_idx]->name);
         }
-
     }
     for (unsigned int i = 0; i < partitions.size(); i++) {
         delete partitions[i];
@@ -213,8 +210,7 @@ void log_disk_info(std::vector<log_serializer_private_dynamic_config_t> &seriali
     if (total_bytes < 20 * devices.size()) {
         /* No output. We didn't have enough permissions to run hdparm.*/
         mlogf("None of the supplied disks support disk info queries.\n");
-    }
-    else {
+    } else {
         mlogf("%s\n", buf);
     }
     mlog_end();

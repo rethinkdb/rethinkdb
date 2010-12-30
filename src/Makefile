@@ -1,6 +1,7 @@
 ##### Configuring stuff
 
 SERVER_EXEC_NAME:=rethinkdb
+SERVER_UNIT_TEST_NAME:=rethinkdb-unittest
 
 SCRIPTS_DIR:=../scripts
 START_DB_NAME:=start_rethinkdb
@@ -20,6 +21,7 @@ VALGRIND?=0
 SEMANTIC_SERIALIZER_CHECK?=0
 MOCK_CACHE_CHECK?=0
 VERBOSE?=0
+UNIT_TESTS?=0
 
 # Choose our directories
 # This makefile is meant to be run from the 'src' directory.
@@ -33,8 +35,11 @@ endif
 
 # Define configuration variables
 CXX:=g++
-LDFLAGS:=-lrt -laio
-CXXFLAGS:=-I$(SOURCE_DIR) -Wall -Wextra -Wformat=2 -Wno-unused-parameter -Wswitch-enum -Wswitch-default -Werror
+LDFLAGS:=-Wl,--no-as-needed -lpthread -lrt -laio
+CXXFLAGS:=-I$(SOURCE_DIR) -Wall -Wextra -Wformat=2 -Wno-unused-parameter -Wswitch-enum -Werror
+ifeq ($(UNIT_TESTS),0)
+CXXFLAGS+=-Wswitch-default
+endif
 
 # Configure libcoroutine
 CXXFLAGS+=-DUSE_UCONTEXT
@@ -111,32 +116,45 @@ else
 QUIET:=@
 endif
 
-
+# googletest flags
+ifeq ($(UNIT_TESTS),1)
+LDFLAGS+=-lgtest
+endif
 
 ##### Finding what to build
 
 DEP_DIR:=$(BUILD_DIR)/dep
 OBJ_DIR:=$(BUILD_DIR)/obj
 
+ifeq ($(UNIT_TESTS),1)
 SOURCES:=$(shell find $(SOURCE_DIR) -name '*.cc')
+else
+SOURCES:=$(shell find $(SOURCE_DIR) -name '*.cc' | grep -vF "`find $(SOURCE_DIR)/unittest`")
+endif
+
 NAMES:=$(patsubst $(SOURCE_DIR)/%.cc,%,$(SOURCES))
 DEPS:=$(patsubst %,$(DEP_DIR)/%.d,$(NAMES))
 OBJS:=$(patsubst %,$(OBJ_DIR)/%.o,$(NAMES))
 
-SERVER_EXEC_OBJS:=$(patsubst %.cc,$(OBJ_DIR)/%.o,$(shell find $(SOURCE_DIR) -name '*.cc')) $(OBJ_DIR)/coroutine/asm.o
+SERVER_EXEC_OBJS:=$(patsubst %.cc,$(OBJ_DIR)/%.o,$(shell find $(SOURCE_DIR) -name '*.cc' | grep -vF "`find $(SOURCE_DIR)/unittest`")) $(OBJ_DIR)/coroutine/asm.o
 
 SERVER_NOMAIN_OBJS:=$(patsubst %.cc,$(OBJ_DIR)/%.o,$(shell find $(SOURCE_DIR) -name '*.cc' | grep -vF "`find $(SOURCE_DIR) -name 'main.cc'`")) $(OBJ_DIR)/coroutine/asm.o
 
+SERVER_UNIT_TEST_OBJS:=$(SERVER_NOMAIN_OBJS) $(OBJ_DIR)/unittest/main.o
 
-
+#### Version number handling
+RETHINKDB_VERSION:=$(shell ../tools/gen-version.sh)
+CXXFLAGS+=-DRETHINKDB_VERSION=\"$(RETHINKDB_VERSION)\"
 
 ##### Build targets
 
 # High level build targets
 
+ifeq ($(UNIT_TESTS),1)
+all: $(BUILD_DIR)/$(SERVER_EXEC_NAME) $(BUILD_DIR)/$(SERVER_UNIT_TEST_NAME) $(BUILD_DIR)/$(START_DB_NAME) $(BUILD_DIR)/$(GDB_FUNCTIONS_NAME)
+else
 all: $(BUILD_DIR)/$(SERVER_EXEC_NAME) $(BUILD_DIR)/$(START_DB_NAME) $(BUILD_DIR)/$(GDB_FUNCTIONS_NAME)
-
-
+endif
 
 
 $(BUILD_DIR)/$(SERVER_EXEC_NAME): $(OBJS) $(BUILD_DIR) $(OBJ_DIR)/coroutine/asm.o
@@ -144,7 +162,13 @@ ifeq ($(VERBOSE),0)
 	@echo "    LD $@"
 endif
 	$(QUIET) $(CXX) $(LDFLAGS) $(SERVER_EXEC_OBJS) -o $(BUILD_DIR)/$(SERVER_EXEC_NAME)
+	@echo "    Finished building RethinkDB key-value store server version '${RETHINKDB_VERSION}'"
 
+$(BUILD_DIR)/$(SERVER_UNIT_TEST_NAME): $(OBJS) $(BUILD_DIR)
+ifeq ($(VERBOSE),0)
+	@echo "    LD $@"
+endif
+	$(QUIET) $(CXX) $(LDFLAGS) $(SERVER_UNIT_TEST_OBJS) -o $(BUILD_DIR)/$(SERVER_UNIT_TEST_NAME)
 
 
 

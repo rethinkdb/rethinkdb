@@ -1,0 +1,56 @@
+#!/bin/bash
+
+if [ $DATABASE == "rethinkdb" ]; then
+    ../../build/release/rethinkdb create $HDD_DRIVES --force
+fi
+
+if [ $DATABASE == "mysql" ]; then
+    RAID_DEVICE=`sudo ./raidconfig hdd raid0`
+
+    MYSQL_HDD_CREATE_FLAGS="--innodb_data_home_dir= --innodb_data_file_path=$RAID_DEVICE:20Gnewraw"
+    MYSQL_HDD_FLAGS="--innodb_data_home_dir= --innodb_data_file_path=$RAID_DEVICE:20Graw"
+
+    # Use a different innodb log path
+    MYSQL_HDD_COMMON_FLAGS="--skip-name-resolve --innodb_support_xa=off --innodb_lock_wait_timeout=5 --innodb_flush_method=O_DIRECT --max-connections=1030 --max-prepared-stmt-count=32764 --innodb_log_group_home_dir=/tmp/raidtest"
+    
+    export RAID_DEVICE
+    export MYSQL_HDD_FLAGS
+    export MYSQL_HDD_COMMON_FLAGS
+    export -p > "$BENCH_DIR/environment"
+
+    # Remove old bench database
+    rm -rf /usr/local/mysql/var/bench
+
+    # delete_dangling database_files
+    rm -f /tmp/raidtest/ib_logfile?
+    mkdir -p /tmp/raidtest
+
+    # Initialize InnoDB RAW tablespace
+    /usr/local/mysql/libexec/mysqld $MYSQL_HDD_COMMON_FLAGS $MYSQL_HDD_CREATE_FLAGS $MYSQL_DURABILITY_FLAGS --port=9874 &
+    # Wait for server to finish initialization and shut it down
+    while ! /usr/local/mysql/bin/mysqladmin shutdown -u root --port=9874 2> /dev/null; do
+        sleep 5
+    done
+
+    # "Initialize" the MySQL database by running some load now. Otherwise it fails on the first actual workload for some mysterious
+    # TODO: This is just a hacky workaround. Investigate why this happens
+    ./dbench                                                                                   \
+            -d "$BENCH_DIR/bench_output/warmup" -H $SERVER_HOSTS             \
+            {server}mysql:"$MYSQL_HDD_COMMON_FLAGS $MYSQL_HDD_FLAGS $MYSQL_DURABILITY_FLAGS"              \
+            {client}mysqlstress[$STRESS_CLIENT]:"-c $CANONICAL_CLIENTS -d 10s" \
+            iostat:1 vmstat:1
+    rm -rf "$BENCH_DIR/bench_output/warmup"
+fi
+
+if [ $DATABASE == "membase" ]; then
+    RAID_DEVICE=`sudo ./raidconfig hdd raid0`
+
+    export RAID_DEVICE
+    export -p > "$BENCH_DIR/environment"
+
+    sudo mkfs.ext3 -F "$RAID_DEVICE"
+    mkdir -p /tmp/raid_mount
+    sudo mount "$RAID_DEVICE" /tmp/raid_mount
+    sudo mkdir -p /tmp/raid_mount/membase_data
+    sudo chmod uog+rwx /tmp/raid_mount/membase_data
+fi

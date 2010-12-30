@@ -23,6 +23,8 @@ struct linux_queue_parent_t {
 const int poll_event_in = 1;
 const int poll_event_out = 2;
 const int poll_event_err = 4;
+const int poll_event_hup = 8;
+const int poll_event_rdhup = 16;
 
 // Queue stats (declared here so whichever queue is chosen can access it)
 extern perfmon_sampler_t pm_events_per_loop;

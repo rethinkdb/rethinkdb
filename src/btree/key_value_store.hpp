@@ -112,8 +112,19 @@ public:
     translator_serializer_t *pseudoserializers[MAX_SLICES];
     btree_slice_t *slices[MAX_SLICES];
     
+    /* If a query is sent to the key-value store and then it is immediately shut down, sometimes
+    it will finish shutting down while the query is still travelling to the correct slice. The
+    solution to this is to keep track of the number of queries originating on each thread and wait
+    for the number of queries to drop to zero before we begin the shutdown process in earnest. */
+    // TODO: This is effectively an RWI lock. Switch to a real RWI lock when we have coroutines.
+    int queries_out[MAX_THREADS];
+    bool waiting_for_queries_out[MAX_THREADS];
+    void started_a_query();   // Called by btree fsm
+    void finished_a_query();
+    
     btree_slice_t *slice_for_key(btree_key *key);
     
+    // TODO: How should replicants interact with shutdown?
     std::vector<btree_replicant_t *> replicants;
     
     enum state_t {
@@ -155,6 +166,10 @@ public:
     /* Shutdown process */
     
     shutdown_callback_t *shutdown_callback;
+    
+    void shutdown_finish_queries();   // Called on home thread
+    bool shutdown_finish_queries_on_thread();   // Called on each thread
+    bool shutdown_have_finished_queries_on_thread();   // Called on home thread
     
     void shutdown_slices();   // Called on home thread
     bool shutdown_a_slice(int id);   // Called on slice thread

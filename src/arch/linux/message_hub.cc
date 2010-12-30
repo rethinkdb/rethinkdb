@@ -5,6 +5,7 @@
 #include "message_hub.hpp"
 #include "arch/linux/event_queue.hpp"
 #include "arch/linux/thread_pool.hpp"
+#include "logger.hpp"
 
 linux_message_hub_t::linux_message_hub_t(linux_event_queue_t *queue, linux_thread_pool_t *thread_pool, int current_thread)
     : queue(queue), thread_pool(thread_pool), current_thread(current_thread) {
@@ -60,6 +61,11 @@ void linux_message_hub_t::insert_external_message(linux_thread_message_t *msg) {
 }
 
 void linux_message_hub_t::notify_t::on_event(int events) {
+
+    if (events != poll_event_in) {
+        logERR("Unexpected event mask: %d\n", events);
+    }
+
     // Read from the event so level-triggered mechanism such as poll
     // don't pester us and use 100% cpu
     eventfd_t value;

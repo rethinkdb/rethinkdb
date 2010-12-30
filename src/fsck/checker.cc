@@ -200,8 +200,8 @@ void check_filesize(direct_file_t *file, file_knowledge *knog) {
     knog->filesize = file->get_size();
 }
 
-const char *static_config_errstring[] = { "none", "bad_software_name", "bad_version", "bad_sizes", "bad_filesize" };
-enum static_config_error { static_config_none = 0, bad_software_name, bad_version, bad_sizes, bad_filesize };
+const char *static_config_errstring[] = { "none", "bad_software_name", "bad_version", "bad_sizes" };
+enum static_config_error { static_config_none = 0, bad_software_name, bad_version, bad_sizes };
 
 bool check_static_config(direct_file_t *file, file_knowledge *knog, static_config_error *err) {
     block header;
@@ -235,8 +235,8 @@ bool check_static_config(direct_file_t *file, file_knowledge *knog, static_confi
         return false;
     }
     if (!(file_size % extent_size == 0)) {
-        *err = bad_filesize;
-        return false;
+        // It's a bit of a HACK to put this here.
+        printf("WARNING file_size is not a multiple of extent_size\n");
     }
 
     knog->static_config = *static_cfg;
@@ -445,10 +445,10 @@ bool check_lba_shard(direct_file_t *file, file_knowledge *knog, lba_shard_metabl
 
         block superblock;
         superblock.init(superblock_aligned_size, file, shard->lba_superblock_offset);
-        const lba_superblock_t *buf = ptr_cast<lba_superblock_t>(superblock.buf);
+        const lba_superblock_t *buf = ptr_cast<lba_superblock_t>(superblock.realbuf);
 
         if (0 != memcmp(buf, lba_super_magic, LBA_SUPER_MAGIC_SIZE)) {
-            errs->code = lba_shard_errors::bad_lba_superblock_offset;
+            errs->code = lba_shard_errors::bad_lba_superblock_magic;
             return false;
         }
 
@@ -464,8 +464,9 @@ bool check_lba_shard(direct_file_t *file, file_knowledge *knog, lba_shard_metabl
 
 
     // 2. Read the entries from the last extent.
-    if (!check_lba_extent(file, knog, shard_number, shard->last_lba_extent_offset,
-                          shard->last_lba_extent_entries_count, &errs->extent_errors)) {
+    if (shard->last_lba_extent_offset != -1
+        && !check_lba_extent(file, knog, shard_number, shard->last_lba_extent_offset,
+                             shard->last_lba_extent_entries_count, &errs->extent_errors)) {
         errs->code = lba_shard_errors::bad_lba_extent;
         errs->bad_extent_number = shard->lba_superblock_entries_count;
         return false;
@@ -619,6 +620,7 @@ void check_large_buf(slicecx& cx, const large_buf_ref& ref, value_error *errs) {
         }
 
         if (levels > 1) {
+
             int64_t step = large_buf_t::compute_max_offset(cx.knog->static_config->block_size(), levels - 1);
 
             for (int64_t i = floor_aligned(ref.offset, step), e = ceil_aligned(ref.offset + ref.size, step); i < e; i += step) {
@@ -630,7 +632,7 @@ void check_large_buf(slicecx& cx, const large_buf_ref& ref, value_error *errs) {
                 r.size = end - beg;
                 r.block_id = ptr_cast<large_buf_internal>(b.buf)->kids[i / step];
 
-                check_large_buf(cx, ref, errs);
+                check_large_buf(cx, r, errs);
             }
         }
     }
@@ -643,8 +645,6 @@ void check_value(slicecx& cx, const btree_value *value, subtree_errors *tree_err
     if (!value->is_large()) {
         errs->too_big = (size > MAX_IN_NODE_VALUE_SIZE);
     } else {
-        // TODO check large value intergity.
-
         errs->lv_too_small = (size <= MAX_IN_NODE_VALUE_SIZE);
 
         large_buf_ref root_ref = value->lb_ref();
@@ -672,6 +672,11 @@ bool leaf_node_inspect_range(const slicecx& cx, const leaf_node_t *buf, uint16_t
 
 void check_subtree_leaf_node(slicecx& cx, const leaf_node_t *buf, const btree_key *lo, const btree_key *hi, subtree_errors *tree_errs, node_error *errs) {
     {
+        if (offsetof(leaf_node_t, pair_offsets) + buf->npairs * sizeof(*buf->pair_offsets) > buf->frontmost_offset
+            || buf->frontmost_offset > cx.knog->static_config->block_size().value()) {
+            errs->value_out_of_buf = true;
+            return;
+        }
         std::vector<uint16_t> sorted_offsets(buf->pair_offsets, buf->pair_offsets + buf->npairs);
         std::sort(sorted_offsets.begin(), sorted_offsets.end());
         uint16_t expected_offset = buf->frontmost_offset;
@@ -712,18 +717,23 @@ void check_subtree_leaf_node(slicecx& cx, const leaf_node_t *buf, const btree_ke
 }
 
 bool internal_node_begin_offset_in_range(const slicecx& cx, const internal_node_t *buf, uint16_t offset) {
-    // TODO: what about key size?  look in the buf?
-    return (cx.knog->static_config->block_size().value() - sizeof(btree_internal_pair)) >= offset && offset >= buf->frontmost_offset;
+    return (cx.knog->static_config->block_size().value() - sizeof(btree_internal_pair)) >= offset && offset >= buf->frontmost_offset && offset + sizeof(btree_internal_pair) + ptr_cast<btree_internal_pair>(ptr_cast<byte>(buf) + offset)->key.size <= cx.knog->static_config->block_size().value();
 }
 
 void check_subtree(slicecx& cx, block_id_t id, const btree_key *lo, const btree_key *hi, subtree_errors *errs);
 
 void check_subtree_internal_node(slicecx& cx, const internal_node_t *buf, const btree_key *lo, const btree_key *hi, subtree_errors *tree_errs, node_error *errs) {
     {
+        if (offsetof(internal_node_t, pair_offsets) + buf->npairs * sizeof(*buf->pair_offsets) > buf->frontmost_offset
+            || buf->frontmost_offset > cx.knog->static_config->block_size().value()) {
+            errs->value_out_of_buf = true;
+            return;
+        }
+
         std::vector<uint16_t> sorted_offsets(buf->pair_offsets, buf->pair_offsets + buf->npairs);
         std::sort(sorted_offsets.begin(), sorted_offsets.end());
         uint16_t expected_offset = buf->frontmost_offset;
-  
+
         for (int i = 0, n = sorted_offsets.size(); i < n; ++i) {
             errs->noncontiguous_offsets |= (sorted_offsets[i] != expected_offset);
             if (!internal_node_begin_offset_in_range(cx, buf, expected_offset)) {
@@ -814,7 +824,7 @@ struct rogue_block_description {
 };
 
 struct other_block_errors {
-    std::vector<rogue_block_description> unused_blocks;
+    std::vector<rogue_block_description> orphan_blocks;
     std::vector<rogue_block_description> allegedly_deleted_blocks;
     ser_block_id_t contiguity_failure;
     other_block_errors() : contiguity_failure(ser_block_id_t::null()) { }
@@ -841,7 +851,7 @@ void check_slice_other_blocks(slicecx& cx, other_block_errors *errs) {
             }
 
             if (!info.offset.parts.is_delete && info.transaction_id == NULL_SER_TRANSACTION_ID) {
-                // Aha!  We have an unused block!  Crap.
+                // Aha!  We have an orphan block!  Crap.
                 rogue_block_description desc;
                 desc.block_id = id;
 
@@ -852,7 +862,7 @@ void check_slice_other_blocks(slicecx& cx, other_block_errors *errs) {
                     desc.magic = *ptr_cast<block_magic_t>(b.buf);
                 }
 
-                errs->unused_blocks.push_back(desc);
+                errs->orphan_blocks.push_back(desc);
             } else if (info.offset.parts.is_delete) {
                 assert(info.transaction_id == NULL_SER_TRANSACTION_ID);
                 rogue_block_description desc;
@@ -864,7 +874,7 @@ void check_slice_other_blocks(slicecx& cx, other_block_errors *errs) {
                     errs->allegedly_deleted_blocks.push_back(desc);
                 } else {
                     block_magic_t magic = *ptr_cast<block_magic_t>(zeroblock.buf);
-                    if (log_serializer_t::zerobuf_magic == magic) {
+                    if (!(log_serializer_t::zerobuf_magic == magic)) {
                         desc.magic = magic;
                         errs->allegedly_deleted_blocks.push_back(desc);
                     }
@@ -1085,7 +1095,7 @@ void report_interfile_errors(const interfile_errors &errs) {
     }
 }
 
-void report_subtree_errors(const subtree_errors *errs) {
+bool report_subtree_errors(const subtree_errors *errs) {
     if (!errs->node_errors.empty()) {
         printf("ERROR %s subtree node errors found...\n", state);
         for (int i = 0, n = errs->node_errors.size(); i < n; ++i) {
@@ -1134,6 +1144,8 @@ void report_subtree_errors(const subtree_errors *errs) {
             printf("\n");
         }
     }
+
+    return errs->node_errors.empty() && errs->value_errors.empty();
 }
 
 void report_rogue_block_description(const char *title, const rogue_block_description& desc) {
@@ -1145,32 +1157,37 @@ void report_rogue_block_description(const char *title, const rogue_block_descrip
     }
 }
 
-void report_other_block_errors(const other_block_errors *errs) {
-    for (int i = 0, n = errs->unused_blocks.size(); i < n; ++i) {
-        report_rogue_block_description("unused block", errs->unused_blocks[i]);
+bool report_other_block_errors(const other_block_errors *errs) {
+    for (int i = 0, n = errs->orphan_blocks.size(); i < n; ++i) {
+        report_rogue_block_description("orphan block", errs->orphan_blocks[i]);
     }
     for (int i = 0, n = errs->allegedly_deleted_blocks.size(); i < n; ++i) {
-        report_rogue_block_description("nonzeroed deleted block", errs->allegedly_deleted_blocks[i]);
+        report_rogue_block_description("allegedly deleted block", errs->allegedly_deleted_blocks[i]);
     }
+    bool ok = errs->orphan_blocks.empty() && errs->allegedly_deleted_blocks.empty();
     if (errs->contiguity_failure != ser_block_id_t::null()) {
         printf("ERROR %s slice block contiguity failure at serializer block id %u\n", state, errs->contiguity_failure.value);
+        ok = false;
     }
+    return ok;
 }
 
-void report_slice_errors(const slice_errors *errs) {
+bool report_slice_errors(const slice_errors *errs) {
     if (errs->superblock_code != btree_block::none) {
         printf("ERROR %s could not find btree superblock: %s\n", state, btree_block::error_name(errs->superblock_code));
-        return;
+        return false;
     }
     if (errs->superblock_bad_magic) {
         printf("ERROR %s btree superblock had bad magic\n", state);
-        return;
+        return false;
     }
-    report_subtree_errors(&errs->tree_errs);
-    report_other_block_errors(&errs->other_block_errs);
+    bool no_subtree_errors = report_subtree_errors(&errs->tree_errs);
+    bool no_other_block_errors = report_other_block_errors(&errs->other_block_errs);
+    return no_subtree_errors && no_other_block_errors;
 }
 
-void report_post_config_block_errors(const all_slices_errors& slices_errs) {
+bool report_post_config_block_errors(const all_slices_errors& slices_errs) {
+    bool ok = true;
     for (int i = 0; i < slices_errs.n_slices; ++i) {
         char buf[100] = { 0 };
         snprintf(buf, 99, "%d", i);
@@ -1178,8 +1195,10 @@ void report_post_config_block_errors(const all_slices_errors& slices_errs) {
         std::string s = std::string("(slice ") + buf + ", file '" + file + "')";
         state = s.c_str();
 
-        report_slice_errors(&slices_errs.slice[i]);
+        ok &= report_slice_errors(&slices_errs.slice[i]);
     }
+
+    return ok;
 }
 
 void print_interfile_summary(const serializer_config_block_t& c) {
@@ -1188,7 +1207,7 @@ void print_interfile_summary(const serializer_config_block_t& c) {
     printf("config_block n_slices: %d\n", c.btree_config.n_slices);
 }
 
-void check_files(const config_t& cfg) {
+bool check_files(const config_t& cfg) {
     // 1. Open.
     knowledge knog(cfg.input_filenames);
 
@@ -1211,13 +1230,13 @@ void check_files(const config_t& cfg) {
     }
 
     if (any) {
-        return;
+        return false;
     }
 
     interfile_errors errs;
     if (!check_interfile(&knog, &errs)) {
         report_interfile_errors(errs);
-        return;
+        return false;
     }
 
     print_interfile_summary(*knog.file_knog[0]->config_block);
@@ -1227,7 +1246,8 @@ void check_files(const config_t& cfg) {
         check_after_config_block(knog.files[i], knog.file_knog[i], &slices_errs);
     }
 
-    report_post_config_block_errors(slices_errs);
+    bool ok = report_post_config_block_errors(slices_errs);
+    return ok;
 }
 
 

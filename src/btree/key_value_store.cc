@@ -28,6 +28,10 @@ btree_key_value_store_t::btree_key_value_store_t(
     for (int i = 0; i < n_files; i++) {
         serializers[i] = NULL;
     }
+    for (int i = 0; i < get_num_threads(); i++) {
+        queries_out[i] = 0;
+        waiting_for_queries_out[i] = false;
+    }
 }
 
 /* Function to check if any of the files seem to contain existing databases */
@@ -440,20 +444,58 @@ void btree_key_value_store_t::stop_replicating(replicant_t *cb) {
     crash("stop_replicating() called on a replicant that isn't replicating.");
 }
 
+void btree_key_value_store_t::started_a_query() {
+    assert(state == state_ready);
+    assert(!waiting_for_queries_out[get_thread_id()]);
+    queries_out[get_thread_id()]++;
+}
+
+void btree_key_value_store_t::finished_a_query() {
+    assert(queries_out[get_thread_id()] > 0);
+    queries_out[get_thread_id()]--;
+    if (queries_out[get_thread_id()] == 0 && waiting_for_queries_out[get_thread_id()]) {
+        do_on_thread(home_thread, this, &btree_key_value_store_t::shutdown_have_finished_queries_on_thread);
+    }
+}
+
 /* Process of shutting down */
 
 bool btree_key_value_store_t::shutdown(shutdown_callback_t *cb) {
     assert(state == state_ready);
+    assert_thread();
     state = state_shutting_down;
     
     shutdown_callback = NULL;
-    shutdown_slices();
+    shutdown_finish_queries();
     if (state == state_off) {
         return true;
     } else {
         shutdown_callback = cb;
         return false;
     }
+}
+
+void btree_key_value_store_t::shutdown_finish_queries() {
+    messages_out = get_num_threads();
+    for (int i = 0; i < get_num_threads(); i++) {
+        do_on_thread(i, this, &btree_key_value_store_t::shutdown_finish_queries_on_thread);
+    }
+}
+
+bool btree_key_value_store_t::shutdown_finish_queries_on_thread() {
+    if (queries_out[get_thread_id()] == 0) {
+        do_on_thread(home_thread, this, &btree_key_value_store_t::shutdown_have_finished_queries_on_thread);
+    } else {
+        waiting_for_queries_out[get_thread_id()] = true;
+        // finished_a_query() will continue the process for us later
+    }
+    return true;
+}
+
+bool btree_key_value_store_t::shutdown_have_finished_queries_on_thread() {
+    messages_out--;
+    if (messages_out == 0) shutdown_slices();
+    return true;
 }
 
 void btree_key_value_store_t::shutdown_slices() {

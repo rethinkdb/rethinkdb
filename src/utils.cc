@@ -104,46 +104,63 @@ void initialize_precise_time() {
     (void) time(&time_sync_data.low_res_clock);
 }
 
-precise_time_t get_precise_time() {
-    precise_time_t result;
+timespec get_uptime() {
     timespec now;
 
     int err = clock_gettime(CLOCK_MONOTONIC, &now);
     assert_err(err == 0, "Failed to get monotonic clock value");
     if (err == 0) {
         // Compute time difference between now and origin of time
-        time_t dsec = now.tv_sec - time_sync_data.hi_res_clock.tv_sec;
-        long dnsec = now.tv_nsec - time_sync_data.hi_res_clock.tv_nsec;
-        if (dnsec < 0) {
-            dnsec += 1e9;
-            dsec--;
+        now.tv_sec -= time_sync_data.hi_res_clock.tv_sec;
+        now.tv_nsec -= time_sync_data.hi_res_clock.tv_nsec;
+        if (now.tv_nsec < 0) {
+            now.tv_nsec += 1e9;
+            now.tv_sec--;
         }
-
-        time_t now_lowres = time_sync_data.low_res_clock + dsec;
-
-        (void) gmtime_r(&now_lowres, &result.low_res);
-        result.nanosec = dnsec;
-        return result;
+        return now;
     } else {
         // fallback: we can't get nanoseconds value, so we fake it
-        time_t now_lowres = time(NULL);
-        (void) gmtime_r(&now_lowres, &result.low_res);
-        result.nanosec = 0;
-        return result;
+        time_t now_low_res = time(NULL);
+        now.tv_sec = now_low_res - time_sync_data.low_res_clock;
+        now.tv_nsec = 0;
+        return now;
     }
+}
+
+precise_time_t get_absolute_time(const timespec& relative_time) {
+    precise_time_t result;
+    time_t sec = time_sync_data.low_res_clock + relative_time.tv_sec;
+    uint32_t nsec = time_sync_data.hi_res_clock.tv_nsec + relative_time.tv_nsec;
+    if (nsec > 1e9) {
+        nsec -= 1e9;
+        sec++;
+    }
+    (void) gmtime_r(&sec, &result);
+    result.ns = nsec;
+    return result;
+}
+
+precise_time_t get_time_now() {
+    return get_absolute_time(get_uptime());
 }
 
 void format_precise_time(const precise_time_t& time, char* buf, size_t max_chars) {
     int res = snprintf(buf, max_chars,
         "%04d-%02d-%02d %02d:%02d:%02d.%06d",
-        time.low_res.tm_year+1900,
-        time.low_res.tm_mon+1,
-        time.low_res.tm_mday,
-        time.low_res.tm_hour,
-        time.low_res.tm_min,
-        time.low_res.tm_sec,
-        (int) (time.nanosec/1e3));
-    (void)res;
+        time.tm_year+1900,
+        time.tm_mon+1,
+        time.tm_mday,
+        time.tm_hour,
+        time.tm_min,
+        time.tm_sec,
+        (int) (time.ns/1e3));
+    (void) res;
     assert(0 <= res);
+}
+
+std::string format_precise_time(const precise_time_t& time) {
+    char buf[formatted_precise_time_length+1];
+    format_precise_time(time, buf, sizeof(buf));
+    return std::string(buf);
 }
 
