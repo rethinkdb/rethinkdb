@@ -1,7 +1,7 @@
 #!/usr/bin/python
-import os, time, random, re
+import sys, os, time, random, re, threading
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
 from test_common import *
-import threading
 
 if __name__ == "__main__":
     

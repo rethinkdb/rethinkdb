@@ -1,5 +1,6 @@
 #!/usr/bin/python
-import random, time
+import random, time, sys, os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
 from test_common import *
 
 def random_key(opts):

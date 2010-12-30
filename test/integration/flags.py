@@ -1,5 +1,7 @@
 #!/usr/bin/python
 from random import shuffle
+import sys, os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
 from test_common import *
 
 def test(opts, mc):

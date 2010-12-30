@@ -3,6 +3,7 @@
 from random import shuffle, randint
 from time import sleep
 import os, socket, sys
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
 from test_common import *
 
 NUM_INTS = 5

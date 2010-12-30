@@ -53,7 +53,7 @@ public:
 public:
     struct metablock_mixin_t {
         off64_t active_extents[MAX_ACTIVE_DATA_EXTENTS];
-        size_t blocks_in_active_extent[MAX_ACTIVE_DATA_EXTENTS];
+        uint64_t blocks_in_active_extent[MAX_ACTIVE_DATA_EXTENTS];
     };
 
     /* When initializing the database from scratch, call start() with just the database FD. When
