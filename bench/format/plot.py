@@ -13,6 +13,7 @@ import time
 from line import *
 from statlib import stats
 import pdb
+import math
 
 FONT_FILE = os.path.abspath(os.path.join(os.path.dirname(__file__), 'aurulent_sans_regular.ttf'))
 
@@ -271,7 +272,7 @@ class TimeSeriesCollection():
             plt.savefig(out_fname, bbox_inches="tight")
             
     # This is from http://code.activestate.com/recipes/511478/
-    def percentile(N, percent, key=lambda x:x):
+    def percentile(self, N, percent, key=lambda x:x):
         """
         Find the percentile of a list of values.
 
@@ -302,10 +303,10 @@ class TimeSeriesCollection():
 	    steady_series = full_series[int(len(full_series) * 0.7):]
             stat_report['mean'] = stats.mean(full_series)
             stat_report['stdev'] = stats.stdev(full_series)
-            stat_report['upper_1_percentile'] = percentile(full_series_sorted, 0.99)
-            stat_report['lower_1_percentile'] = percentile(full_series_sorted, 0.01)
-            stat_report['upper_5_percentile'] = percentile(full_series_sorted, 0.95)
-            stat_report['lower_5_percentile'] = percentile(full_series_sorted, 0.05)
+            stat_report['upper_1_percentile'] = self.percentile(full_series_sorted, 0.99)
+            stat_report['lower_1_percentile'] = self.percentile(full_series_sorted, 0.01)
+            stat_report['upper_5_percentile'] = self.percentile(full_series_sorted, 0.95)
+            stat_report['lower_5_percentile'] = self.percentile(full_series_sorted, 0.05)
             stat_report['steady_mean'] = stats.mean(steady_series)
             stat_report['steady_stdev'] = stats.stdev(steady_series)
 	    res[val[0]] = stat_report
