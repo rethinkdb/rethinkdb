@@ -598,7 +598,7 @@ def connect_to_server(opts, server, test_dir):
     return mc
 
 def adjust_timeout(opts, timeout):
-    if opts["interactive"] or opts["no-timeout"]:
+    if not timeout or opts["interactive"] or opts["no-timeout"]:
         return None
     else:
         return timeout + 15
