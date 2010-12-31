@@ -604,7 +604,7 @@ def get_report_for_test(test_reference):
                 if res[0] == 0: f.write(res[1])
                 else: f.write("[cloud_retester failed to retrieve part of this file: %s]" % res[0])
                 f.write("\n\n[cloud_retester omitted %d bytes of this file]\n\n" % (file.st_size - max_file_size + (max_file_size % 2)))
-                res = node.run_command("head -c -%d \"%s\"" % (max_file_size / 2, r_path))
+                res = node.run_command("tail -c %d \"%s\"" % (max_file_size / 2, r_path))
                 if res[0] == 0: f.write(res[1])
                 else: f.write("[cloud_retester failed to retrieve part of this file: %s]" % res[0])
                 f.close()
