@@ -22,6 +22,10 @@ op["tests2"] = AllArgsAfterFlag("--args", default = [])   # Backwards compatibil
 opts = op.parse(sys.argv)
 extra_args = []
 
+# Disable buffering the test script's output
+environ = dict(os.environ)
+environ["PYTHONUNBUFFERED"] = "1"
+
 # If we are backgrounded, then we do not print anything to stdout or stderr and we ignore SIGHUP.
 if opts["background"]:
     
@@ -83,7 +87,8 @@ try:
     rc = subprocess.call(command_line,
         cwd = os.path.join(temp_dir, root_to_current_dir),
         stdout = sys.stdout,
-        stderr = sys.stderr)
+        stderr = sys.stderr,
+        env=environ)
     
     sys.exit(rc)
     

@@ -727,6 +727,11 @@ def report():
             else:
                 return ("print", )
     op["targets"] = TargetArg()
+    try:
+        p = subprocess.Popen(["../tools/gen-version.sh"], stdout=subprocess.PIPE)
+        rethinkdb_version = p.communicate()[0]
+    except:
+        rethinkdb_version = "N/A"
     op["header"] = StringFlag("--header", default = None)
     op["tests"] = ManyPositionalArgs()
     
@@ -739,6 +744,8 @@ def report():
     if not opts["targets"]:
         print "No targets specified. Oops?"
         sys.exit(1)
+
+    opts['header'] = "RethinkDB version " + rethinkdb_version + "\n" + opts['header']
     
     # Report the results
     output = None
