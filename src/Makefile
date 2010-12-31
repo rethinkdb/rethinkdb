@@ -22,7 +22,6 @@ SEMANTIC_SERIALIZER_CHECK?=0
 MOCK_CACHE_CHECK?=0
 VERBOSE?=0
 UNIT_TESTS?=0
-COROUTINE_STACK_SIZE?=65536
 
 # Choose our directories
 # This makefile is meant to be run from the 'src' directory.
@@ -43,7 +42,7 @@ CXXFLAGS+=-Wswitch-default
 endif
 
 # Configure libcoroutine
-CXXFLAGS+=-DUSE_UCONTEXT -DCOROUTINE_STACK_SIZE=$(COROUTINE_STACK_SIZE)
+CXXFLAGS+=-DUSE_UCONTEXT
 
 # Configure debug vs. release
 ifeq ($(DEBUG),1)
