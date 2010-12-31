@@ -353,7 +353,11 @@ mc_cache_t::mc_cache_t(
         this,
         config->wait_for_flush,
         config->flush_timer_ms,
-        config->max_size / serializer->get_block_size().value() * config->flush_threshold_percent / 100),  // TODO: ser_value?
+        config->max_size / serializer->get_block_size().value() * config->flush_threshold_percent / 100,  // TODO: ser_value?
+        
+        // If more than half of the blocks are dirty, don't allow new write transactions to
+        // proceed. TODO: Make this configurable, or at least a defined constant.
+        config->max_size / serializer->get_block_size().value() / 2),
     free_list(serializer),
     shutdown_transaction_backdoor(false),
     state(state_unstarted),

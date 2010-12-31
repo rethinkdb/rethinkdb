@@ -14,14 +14,6 @@ struct mc_buf_t;
 struct mc_inner_buf_t;
 struct mc_transaction_t;
 
-struct enqueue_writeback_t :
-    public thread_message_t
-{
-    lock_available_callback_t *callback;
-    enqueue_writeback_t(lock_available_callback_t *_callback);
-    void on_thread_switch();
-};
-
 struct writeback_t :
     public lock_available_callback_t,
     public serializer_t::write_txn_callback_t
@@ -38,7 +30,9 @@ public:
         cache_t *cache,
         bool wait_for_flush,
         unsigned int flush_timer_ms,
-        unsigned int flush_threshold);
+        unsigned int flush_threshold,
+        unsigned int max_dirty_blocks
+        );
     virtual ~writeback_t();
     
     struct sync_callback_t : public intrusive_list_node_t<sync_callback_t> {
@@ -55,9 +49,55 @@ public:
 
     bool begin_transaction(transaction_t *txn, transaction_begin_callback_t *cb);
     void on_transaction_commit(transaction_t *txn);
-    
+
+    struct begin_transaction_fsm_t :
+        public thread_message_t,
+        public lock_available_callback_t,
+        public intrusive_list_node_t<begin_transaction_fsm_t>
+    {
+        writeback_t *writeback;
+        mc_transaction_t *transaction;
+        mc_transaction_begin_callback_t *callback;
+        begin_transaction_fsm_t(writeback_t *wb, mc_transaction_t *txn, mc_transaction_begin_callback_t *cb)
+            : writeback(wb), transaction(txn), callback(cb)
+        {
+            if (writeback->too_many_dirty_blocks()) {
+                /* When a flush happens, we will get popped off the throttled transactions list
+                and given a green light. */
+                writeback->throttled_transactions_list.push_back(this);
+            } else {
+                green_light();
+            }
+        }
+        void green_light() {
+            // Lock the flush lock "for reading", but what we really mean is to lock it non-
+            // exclusively because more than one write transaction can proceed at once.
+            if (writeback->flush_lock.lock(rwi_read, this)) {
+                /* push callback on the global event queue - if the lock
+                 * returns true, then the request won't have been put on the
+                 * flush lock's queue, which can lead to the
+                 * transaction_begin_callback not being called when it should be
+                 * in certain cases, as shown by append_stress append
+                 * reorderings.
+                 */
+                call_later_on_this_thread(this);
+            }
+        }
+        void on_thread_switch() {
+            on_lock_available();
+        }
+        void on_lock_available() {
+            callback->on_txn_begin(transaction);
+            delete this;
+        }
+    };
+    intrusive_list_t<begin_transaction_fsm_t> throttled_transactions_list;
+
     unsigned int num_dirty_blocks();
-    
+
+    bool too_many_dirty_blocks();
+    void possibly_unthrottle_transactions();
+
     class local_buf_t : public intrusive_list_node_t<local_buf_t> {
         friend class writeback_t;
         
@@ -80,7 +120,9 @@ public:
     /* User-controlled settings. */
     
     bool wait_for_flush;
-
+    
+    unsigned int max_dirty_blocks;   // Number of blocks, not percentage
+    
 private:
     flush_time_randomizer_t flush_time_randomizer;
     unsigned int flush_threshold;   // Number of blocks, not percentage

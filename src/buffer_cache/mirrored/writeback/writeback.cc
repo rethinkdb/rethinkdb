@@ -5,20 +5,15 @@ perfmon_duration_sampler_t
     pm_flushes_locking("flushes_locking", secs_to_ticks(1)),
     pm_flushes_writing("flushes_writing", secs_to_ticks(1));
 
-enqueue_writeback_t::enqueue_writeback_t(lock_available_callback_t *_callback)
-    : callback(_callback) {}
-
-void enqueue_writeback_t::on_thread_switch() {
-        callback->on_lock_available();
-        delete this;
-}
-
 writeback_t::writeback_t(
         cache_t *cache,
         bool wait_for_flush,
         unsigned int flush_timer_ms,
-        unsigned int flush_threshold)
+        unsigned int flush_threshold,
+        unsigned int max_dirty_blocks
+        )
     : wait_for_flush(wait_for_flush),
+      max_dirty_blocks(max_dirty_blocks),
       flush_time_randomizer(flush_timer_ms),
       flush_threshold(flush_threshold),
       flush_timer(NULL),
@@ -70,24 +65,8 @@ bool writeback_t::begin_transaction(transaction_t *txn, transaction_begin_callba
         case rwi_read:
             return true;
         case rwi_write:
-            // Lock the flush lock "for reading", but what we really mean is to lock it non-
-            // exclusively because more than one write transaction can proceed at once.
-            txn->begin_callback = callback;
-            if (flush_lock.lock(rwi_read, txn)) {
-                /* push callback on the global event queue - if the lock
-                 * returns true, then the request won't have been put on the
-                 * flush lock's queue, which can lead to the
-                 * transaction_begin_callback not being called when it should be
-                 * in certain cases, as shown by append_stress append
-                 * reorderings.
-                 */
-                call_later_on_this_thread(new enqueue_writeback_t(txn));
-                return false;
-            } else {
-                /* If the lock returns false then the request will be properly
-                 * enqueued and the callback will run when it should. */
-                return false;
-            }
+            new begin_transaction_fsm_t(this, txn, callback);
+            return false;
         case rwi_read_outdated_ok:
         case rwi_intent:
         case rwi_upgrade:
@@ -118,6 +97,23 @@ unsigned int writeback_t::num_dirty_blocks() {
     return dirty_bufs.size();
 }
 
+bool writeback_t::too_many_dirty_blocks() {
+    return num_dirty_blocks() >= max_dirty_blocks;
+}
+
+void writeback_t::possibly_unthrottle_transactions() {
+    if (!too_many_dirty_blocks()) {
+        begin_transaction_fsm_t *fsm = throttled_transactions_list.head();
+        if (!fsm) return;
+        throttled_transactions_list.remove(fsm);
+        fsm->green_light();
+
+        /* green_light() should never have an immediate effect; the most it can do is push the
+        transaction onto the event queue. */
+        assert(!too_many_dirty_blocks());
+    }
+}
+
 void writeback_t::local_buf_t::set_dirty(bool _dirty) {
     if (!dirty && _dirty) {
         // Mark block as dirty if it hasn't been already
@@ -132,6 +128,7 @@ void writeback_t::local_buf_t::set_dirty(bool _dirty) {
         dirty = false;
         if (!recency_dirty) {
             gbuf->cache->writeback.dirty_bufs.remove(this);
+            gbuf->cache->writeback.possibly_unthrottle_transactions();
         }
         pm_n_blocks_dirty--;
     }
@@ -150,6 +147,7 @@ void writeback_t::local_buf_t::set_recency_dirty(bool _recency_dirty) {
         recency_dirty = false;
         if (!dirty) {
             gbuf->cache->writeback.dirty_bufs.remove(this);
+            gbuf->cache->writeback.possibly_unthrottle_transactions();
         }
         // TODO perfmon
     }

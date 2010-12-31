@@ -146,6 +146,7 @@ public:
 /* Transaction class. */
 class mc_transaction_t :
     public lock_available_callback_t,
+    public intrusive_list_node_t<mc_transaction_t>,
     public writeback_t::sync_callback_t
 {
     typedef mc_cache_t cache_t;
@@ -180,8 +181,6 @@ private:
     
     virtual void on_lock_available();
     virtual void on_sync();
-
-    void process_buf(buf_t *buf, access_t mode);
     
     access_t access;
     transaction_begin_callback_t *begin_callback;
