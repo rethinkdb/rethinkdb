@@ -77,7 +77,7 @@ void *linux_thread_pool_t::start_thread(void *arg) {
         stack_t segv_stack;
         segv_stack.ss_sp = valloc(SEGV_STACK_SIZE);
         guarantee_err(segv_stack.ss_sp != 0, "malloc failed");
-        segv_stack.ss_flags = SS_ONSTACK;
+        segv_stack.ss_flags = 0;
         segv_stack.ss_size = SEGV_STACK_SIZE;
         int r = sigaltstack(&segv_stack, NULL);
         guarantee_err(r == 0, "sigaltstack failed");
