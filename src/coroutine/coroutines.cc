@@ -7,9 +7,7 @@
 perfmon_counter_t pm_active_coroutines("active_coroutines"),
                   pm_allocated_coroutines("allocated_coroutines");
 
-#ifndef NDEBUG
 std::vector<std::vector<coro_t*> > coro_t::all_coros;
-#endif
 
 __thread coro_t *coro_t::current_coro = NULL;
 __thread coro_t *coro_t::scheduler = NULL;
@@ -59,50 +57,37 @@ void coro_t::on_thread_switch() {
 
 void coro_t::run_coroutine() {
     coro_t *self = current_coro;
-    //printf("Starting a coroutine\n");
     while (true) {
-        //printf("Got a task\n");
         pm_active_coroutines++;
 #ifndef NDEBUG
-        //printf("Now we're active\n");
         self->active = true;
 #endif
-        //printf("Doing the deed\n");
         (*self->deed)();
-        //printf("The deed is done\n");
         pm_active_coroutines--;
 
-        //printf("push %d\n", get_thread_id());
         free_coros->push_back(self);
 #ifndef NDEBUG
-        //printf("Noting that we're inactive\n");
         self->active = false;
 #endif
-        //printf("Waiting for a task\n");
         wait();
     }
 }
 
 coro_t *coro_t::get_free_coro() {
     if (free_coros->size() == 0) {
-        //printf("Making a new one from scratch\n");
         coro_t *coro = new coro_t(Coro_new(stack_size));
         pm_allocated_coroutines++;
-#ifndef NDEBUG
         all_coros[get_thread_id()].push_back(coro);
-#endif
         Coro_setup(coro->underlying); //calls run_coroutine
         return coro;
     } else {
         assert(free_coros->size() > 0);
-        //printf("pop %d\n", get_thread_id());
         coro_t *coro = free_coros->back();
         free_coros->pop_back();
         return coro;
     }
 }
 
-#ifndef NDEBUG
 int coro_t::in_coro_from_cpu(void *addr) {
     size_t base = (size_t)addr - ((size_t)addr % getpagesize());
     for (std::vector<std::vector<coro_t*> >::iterator i = all_coros.begin(); i != all_coros.end(); i++) {
@@ -114,7 +99,6 @@ int coro_t::in_coro_from_cpu(void *addr) {
     }
     return -1;
 }
-#endif
 
 void coro_t::do_deed(deed_t *deed) {
     assert(!active);
@@ -132,9 +116,7 @@ void coro_t::run() {
     Coro_initializeMainCoro(mainCoro);
     scheduler = current_coro = new coro_t(mainCoro);
     free_coros = new std::vector<coro_t*>();
-#ifndef NDEBUG
     all_coros.resize(get_num_threads());
-#endif
 }
 
 void coro_t::destroy() {

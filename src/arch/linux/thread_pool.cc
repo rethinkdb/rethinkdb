@@ -73,7 +73,6 @@ void *linux_thread_pool_t::start_thread(void *arg) {
         tdata->thread_pool->threads[tdata->current_thread] = &thread;
         linux_thread_pool_t::thread = &thread;
         
-#ifndef NDEBUG
         stack_t segv_stack;
         segv_stack.ss_sp = valloc(SEGV_STACK_SIZE);
         guarantee_err(segv_stack.ss_sp != 0, "malloc failed");
@@ -88,7 +87,6 @@ void *linux_thread_pool_t::start_thread(void *arg) {
         action.sa_sigaction = &linux_thread_pool_t::sigsegv_handler;
         r = sigaction(SIGSEGV, &action, NULL);
         guarantee_err(r == 0, "Could not install SEGV handler");
-#endif
         
         // If one thread is allowed to run before another one has finished
         // starting up, then it might try to access an uninitialized part of the
@@ -112,9 +110,7 @@ void *linux_thread_pool_t::start_thread(void *arg) {
         guarantee(res == 0 || res == PTHREAD_BARRIER_SERIAL_THREAD, "Could not wait at stop barrier");
         
         coro_t::destroy();
-#ifndef NDEBUG
         free(segv_stack.ss_sp);
-#endif
         tdata->thread_pool->threads[tdata->current_thread] = NULL;
         linux_thread_pool_t::thread = NULL;
     }
@@ -245,7 +241,6 @@ void linux_thread_pool_t::interrupt_handler(int) {
     }
 }
 
-#ifndef NDEBUG
 void linux_thread_pool_t::sigsegv_handler(int signum, siginfo_t *info, void *data) {
     if (signum == SIGSEGV) {
         void *addr = info->si_addr;
@@ -259,7 +254,6 @@ void linux_thread_pool_t::sigsegv_handler(int signum, siginfo_t *info, void *dat
         crash("Unexpected signal: %d\n", signum);
     }
 }
-#endif
 
 void linux_thread_pool_t::shutdown() {
     int res;

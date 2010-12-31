@@ -60,9 +60,7 @@ private:
     static __thread coro_t *scheduler; //Epoll loop--main execution of program
 
     static __thread std::vector<coro_t*> *free_coros;
-#ifndef NDEBUG
     static std::vector<std::vector<coro_t*> > all_coros;
-#endif
 
     DISABLE_COPYING(coro_t);
 
@@ -72,9 +70,7 @@ private:
 
     static size_t stack_size;
 public:
-#ifndef NDEBUG
     static int in_coro_from_cpu(void *addr);
-#endif
     static void set_coroutine_stack_size(size_t size) {
         stack_size = size;
     }
