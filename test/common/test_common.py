@@ -689,51 +689,58 @@ def auto_server_test_main(test_function, opts, timeout = 30, extra_flags = []):
 def simple_test_main(test_function, opts, timeout = 30, extra_flags = []):
     """Drop-in main() for tests that open a single connection against a single server that they
     do not shut down or start up again."""
-    if opts["auto"]:
-        make_test_dir()
-        
-        server = Server(opts, extra_flags = extra_flags)
-        server.start()
+    try:
+        if opts["auto"]:
+            make_test_dir()
+            
+            server = Server(opts, extra_flags = extra_flags)
+            server.start()
 
-        stat_checker = start_stats(opts, server.port)
+            stat_checker = start_stats(opts, server.port)
 
-        mc = connect_to_server(opts, server)
-        try:
-            run_with_timeout(test_function, (opts, mc), timeout = adjust_timeout(opts, timeout))
-        except Exception, e:
-            test_failure = e
+            mc = connect_to_server(opts, server)
+            try:
+                run_with_timeout(test_function, (opts, mc), timeout = adjust_timeout(opts, timeout))
+            except Exception, e:
+                test_failure = e
+            else:
+                test_failure = None
+            mc.disconnect_all()
+
+            if stat_checker:
+                stat_checker.stop()
+
+            if server.running: server.shutdown()
+
+            if test_failure: raise test_failure
+
         else:
-            test_failure = None
-        mc.disconnect_all()
+            
+            if opts["restart_server_prob"]:
+                raise ValueError("--restart-server-prob is invalid without --auto.")
+            
+            port = int(os.environ.get("RUN_PORT", "11211"))
+            print "Assuming user has started a server on port %d." % port
+            
+            if opts["netrecord"]:
+                nrc = NetRecord(port)
+                port = nrc.port
+            
+            stat_checker = start_stats(opts, port)
+            mc = connect_to_port(opts, port)
+            run_with_timeout(test_function, (opts, mc), timeout = adjust_timeout(opts, timeout))
+            mc.disconnect_all()
+            if stat_checker:
+                stat_checker.stop()
+            
+            if opts["netrecord"]:
+                nrc.stop()
 
-        if stat_checker:
-            stat_checker.stop()
-
-        if server.running: server.shutdown()
-
-        if test_failure: raise test_failure
-
-    else:
-        
-        if opts["restart_server_prob"]:
-            raise ValueError("--restart-server-prob is invalid without --auto.")
-        
-        port = int(os.environ.get("RUN_PORT", "11211"))
-        print "Assuming user has started a server on port %d." % port
-        
-        if opts["netrecord"]:
-            nrc = NetRecord(port)
-            port = nrc.port
-        
-        stat_checker = start_stats(opts, port)
-        mc = connect_to_port(opts, port)
-        run_with_timeout(test_function, (opts, mc), timeout = adjust_timeout(opts, timeout))
-        mc.disconnect_all()
-        if stat_checker:
-            stat_checker.stop()
-        
-        if opts["netrecord"]:
-            nrc.stop()
+    except ValueError, e:
+        # Handle ValueError explicitly to give nicer error output
+        print ""
+        print "[FAILURE]Value Error: %s[/FAILURE]" % e
+        sys.exit(1)
     
     sys.exit(0)
 

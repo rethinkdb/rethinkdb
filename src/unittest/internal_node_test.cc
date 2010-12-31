@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <vector>
 
 #include "unittest/gtest.hpp"
@@ -8,11 +9,43 @@
 namespace unittest {
 
 // TODO: this is rather duplicative of fsck::check_subtree_internal_node.
-void verify_internal_node_contiguity(block_size_t block_size, internal_node_t *buf) {
+void verify(block_size_t block_size, const internal_node_t *buf) {
+    EXPECT_TRUE(check_magic<internal_node_t>(buf->magic));
 
+    // Internal nodes must have at least one pair.
+    ASSERT_LE(1, buf->npairs);
 
+    // Thus buf->npairs - 1 >= 0.
+    const uint16_t last_pair_offset = buf->pair_offsets[buf->npairs - 1];
 
+    ASSERT_LE(buf->npairs, block_size.value());  // sanity checking to prevent overflow
+    ASSERT_LE(offsetof(internal_node_t, pair_offsets) + sizeof(*buf->pair_offsets) * buf->npairs, buf->frontmost_offset);
+    ASSERT_LE(buf->frontmost_offset, block_size.value());
 
+    std::vector<uint16_t> offsets(buf->pair_offsets, buf->pair_offsets + buf->npairs);
+    std::sort(offsets.begin(), offsets.end());
+
+    uint16_t expected = buf->frontmost_offset;
+    for (std::vector<uint16_t>::const_iterator p = offsets.begin(), e = offsets.end(); p < e; ++p) {
+        ASSERT_LE(expected, block_size.value());
+        ASSERT_EQ(expected, *p);
+        expected += internal_node_handler::pair_size(internal_node_handler::get_pair(buf, *p));
+    }
+    ASSERT_EQ(block_size.value(), expected);
+
+    const btree_key *last_key = NULL;
+    for (const uint16_t *p = buf->pair_offsets, *e = p + buf->npairs; p < e; ++p) {
+        const btree_internal_pair *pair = internal_node_handler::get_pair(buf, *p);
+        const btree_key *next_key = &pair->key;
+
+        if (last_key != NULL) {
+            EXPECT_LT(internal_key_comp::compare(last_key, next_key), 0);
+        }
+
+        last_key = next_key;
+    }
+
+    EXPECT_EQ(0, internal_node_handler::get_pair(buf, last_pair_offset)->key.size);
 }
 
 TEST(InternalNodeTest, Offsets) {

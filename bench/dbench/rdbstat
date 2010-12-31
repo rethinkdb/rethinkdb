@@ -24,6 +24,7 @@ def read_print_stats(sock):
         if buf == '': raise socket.error('Socket closed')
         else: stats += buf
     sys.stdout.write(stats)
+    sys.stdout.flush()
 
 def start(args):
     sock = socket.socket()

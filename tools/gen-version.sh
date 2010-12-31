@@ -20,12 +20,17 @@ lf='
 
 start_dir="$(pwd)"
 
-repo_dir=$(git rev-parse --show-cdup)
-if [ 0 == $? ]; then
+repo_dir="$(git rev-parse --show-cdup 2> /dev/null || true)"
+if [ -z "$repo_dir" ]; then
+    repo_dir="."
+fi
+
+if [ -d "$repo_dir" ]; then
     repo_available=1
     version_file="${repo_dir}/VERSION.OVERRIDE"
 else
     unset repo_dir
+    repo_available=0
     version_file="${start_dir}/VERSION"
 fi
 

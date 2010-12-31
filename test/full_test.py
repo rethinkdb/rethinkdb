@@ -314,7 +314,7 @@ def run_all_tests(mode, checker, protocol, cores, slices):
                         "cores"       : cores,
                         "slices"      : slices,
                         "suite-test"  : suite_test},
-                      repeat=3, timeout=300)
+                      repeat=3, timeout=420)
                 
     # Canonical tests are included in all tests
     run_canonical_tests(mode, checker, protocol, cores, slices)

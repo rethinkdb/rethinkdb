@@ -21,6 +21,7 @@ struct load_buf_fsm_t :
     }
     void on_thread_switch() {
         if (!have_loaded) {
+            inner_buf->subtree_recency = inner_buf->cache->serializer->get_recency(inner_buf->block_id);
             if (inner_buf->cache->serializer->do_read(inner_buf->block_id, inner_buf->data, this))
                 on_serializer_read();
         } else {
@@ -39,7 +40,6 @@ struct load_buf_fsm_t :
 mc_inner_buf_t::mc_inner_buf_t(cache_t *cache, block_id_t block_id)
     : cache(cache),
       block_id(block_id),
-      subtree_recency(cache->serializer->get_recency(block_id)),
       data(cache->serializer->malloc()),
       refcount(0),
       do_delete(false),
@@ -326,14 +326,23 @@ mc_buf_t *mc_transaction_t::acquire(block_id_t block_id, access_t mode,
 }
 
 repli_timestamp mc_transaction_t::get_subtree_recency(block_id_t block_id) {
+    crash("Operation not implemented: mc_transaction_t::get_subtree_recency");
+    /*
     inner_buf_t *inner_buf = cache->page_map.find(block_id);
     if (inner_buf) {
         // The buf is in the cache and we must use its recency.
         return inner_buf->subtree_recency;
     } else {
         // The buf is not in the cache, so ask the serializer.
+        // This is dangerous and will make things crash.
+
         return cache->serializer->get_recency(block_id);
+
+        // This is dangerous because we're not on the same core, being
+        // on the same core would be a hassle for a feature that never
+        // gets used so far.
     }
+*/
 }
 
 /**

@@ -1,6 +1,10 @@
 #ifndef __CONTAINERS_BITSET_HPP__
 #define __CONTAINERS_BITSET_HPP__
 
+#include <stdint.h>
+
+#include "utils2.hpp"
+
 class bitset_t {
 private:
     size_t _size, _count;
@@ -24,18 +28,18 @@ public:
     bool operator[](unsigned int place) const {
         return test(place);
     }
-    
+
     bool test(unsigned int place) const {
         assert(place < size());
         return bits[place / 64] & (uint64_t(1) << (place % 64));
     }
-    
+
     void set() {
         for (unsigned int i = 0; i < size(); i++) {
             set(i);
         }
     }
-    
+
     void set(unsigned int place, bool value = true) {
         assert(place < size());
         if (value) {
@@ -49,11 +53,11 @@ public:
         verify();
 #endif
     }
-    
+
     size_t size() const {
         return _size;
     }
-    
+
     size_t count() const {
         return _count;
     }

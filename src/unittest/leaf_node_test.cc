@@ -8,7 +8,8 @@
 
 namespace unittest {
 
-// TODO: This is rather duplicative of fsck::check_value.
+// TODO: Sperg out and make these tests much more brutal.
+
 void expect_valid_value_shallowly(const btree_value *value) {
     EXPECT_EQ(0, value->metadata_flags & ~(MEMCACHED_FLAGS | MEMCACHED_CAS | MEMCACHED_EXPTIME | LARGE_VALUE));
 
@@ -23,10 +24,10 @@ void expect_valid_value_shallowly(const btree_value *value) {
     }
 }
 
-// TODO: This is rather duplicative of fsck::check_subtree_leaf_node.
 void verify(block_size_t block_size, const leaf_node_t *buf, int expected_free_space) {
 
     int end_of_pair_offsets = offsetof(leaf_node_t, pair_offsets) + buf->npairs * 2;
+    EXPECT_TRUE(check_magic<leaf_node_t>(buf->magic));
     ASSERT_LE(end_of_pair_offsets, buf->frontmost_offset);
     ASSERT_LE(buf->frontmost_offset, block_size.value());
     ASSERT_EQ(expected_free_space, buf->frontmost_offset - end_of_pair_offsets);
@@ -45,11 +46,13 @@ void verify(block_size_t block_size, const leaf_node_t *buf, int expected_free_s
     const btree_key *last_key = NULL;
     for (const uint16_t *p = buf->pair_offsets, *e = p + buf->npairs; p < e; ++p) {
         const btree_leaf_pair *pair = leaf_node_handler::get_pair(buf, *p);
+        const btree_key *next_key = &pair->key;
+
         if (last_key != NULL) {
-            const btree_key *next_key = &pair->key;
             EXPECT_LT(leaf_key_comp::compare(last_key, next_key), 0);
-            last_key = next_key;
         }
+
+        last_key = next_key;
         expect_valid_value_shallowly(pair->value());
     }
 }
@@ -213,6 +216,10 @@ public:
 
     int expected_space() const {
         return space(expected_frontmost_offset, expected_npairs);
+    }
+
+    int expected_used() const {
+        return (bs.value() - offsetof(leaf_node_t, pair_offsets)) - expected_space();
     }
 
     void init() {
@@ -499,12 +506,23 @@ btree_value *malloc_value(const char *s) {
     return v;
 }
 
-void fill_nonsense(LeafNodeGrinder& gr) {
-    // TODO: stop when it's filled.
-    for (int i = 0; i < 500; ++i) {
-        gr.insert_nocheck(format(i), format(i*i));
+void fill_nonsense(LeafNodeGrinder& gr, const char *prefix, int max_space_filled) {
+    std::string p(prefix);
+    int i = 0;
+    for (;;) {
+        std::string key = p + format(i);
+        Value value(format(i * i));
+        if (gr.expected_used() + value.full_size() + int(key.size()) + 1 > max_space_filled) {
+            break;
+        }
+        gr.insert(key, value);
+        ++i;
     }
     gr.validate();
+}
+
+void fill_nonsense(LeafNodeGrinder& gr, const char *prefix) {
+    fill_nonsense(gr, prefix, gr.expected_space());
 }
 
 TEST(LeafNodeTest, Initialization) {
@@ -532,6 +550,7 @@ TEST(LeafNodeTest, InsertRemoveOnce) {
 
 
 TEST(LeafNodeTest, Crazy) {
+    /*
     LeafNodeGrinder gr(4096);
     gr.init();
 
@@ -563,6 +582,7 @@ TEST(LeafNodeTest, Crazy) {
     gr.validate();
 
     gr.remove_all();
+    */
 }
 
 TEST(LeafNodeTest, Merging) {
@@ -577,11 +597,7 @@ TEST(LeafNodeTest, Merging) {
     // Empty node merging.
     x.merge(y);
 
-    // Basic merging.
-    for (int i = 0; i < 500; ++i) {
-        x.insert_nocheck(format(i), format(i*i));
-    }
-    x.validate();
+    fill_nonsense(x, "x");
 
     // Merge nothing into something
     x.merge(y);
@@ -590,7 +606,20 @@ TEST(LeafNodeTest, Merging) {
     y.merge(x);
 
     // Merge two full things.
-    y.merge(x);  // TODO this test doesn't really happen
+    y.remove_all();
+    fill_nonsense(y, "y");
+
+    // TODO: This doesn't really try merging them.
+    x.merge(y);
+
+    x.remove_all();
+    y.remove_all();
+
+    fill_nonsense(x, "x", x.expected_space() / 3);
+    fill_nonsense(y, "y", y.expected_space() / 3);
+
+    y.merge(x);
+
 }
 
 TEST(LeafNodeTest, Leveling) {
@@ -605,7 +634,7 @@ TEST(LeafNodeTest, Leveling) {
     // Empty node leveling.
     x.level(y);
 
-    fill_nonsense(x);
+    fill_nonsense(x, "x");
 
     // Leveling nothing into something.
     x.level(y);
@@ -613,10 +642,13 @@ TEST(LeafNodeTest, Leveling) {
     // Leveling something into nothing.
     y.level(x);
 
-    fill_nonsense(x);
-    fill_nonsense(y);
+    x.remove_all();
+    y.remove_all();
 
-    y.level(x);
+    fill_nonsense(x, "x", x.expected_space() / 2);
+    fill_nonsense(y, "y", y.expected_space() / 2);
+
+    x.level(y);
 }
 
 

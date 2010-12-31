@@ -1,4 +1,6 @@
 #!/usr/bin/python
+import sys, os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
 from test_common import *
 
 # returns (return_value, stdout, stderr) or None in case the process did not terminate within timeout seconds

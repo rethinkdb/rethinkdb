@@ -587,29 +587,35 @@ def get_report_for_test(test_reference):
     result.output_dir = SmartTemporaryDirectory("out_")
     
     def get_directory(remote_path, destination_path):
-        
         assert os.path.isdir(destination_path)
         for file in node.list_directory(remote_path):
+            max_file_size = 100000
             r_path = os.path.join(remote_path, file.filename)
             d_path = os.path.join(destination_path, file.filename)
             assert not os.path.exists(d_path)
             if stat.S_ISDIR(file.st_mode):
                 os.mkdir(d_path)
                 get_directory(r_path, d_path)
-            elif file.st_size < 10000000:
+            elif file.st_size <= max_file_size:
                 node.get_file(r_path, d_path)
             else:
                 f = open(d_path, "w")
-                res = node.run_command("head -c 5MB \"%s\"" % r_path)
+                res = node.run_command("head -c %d \"%s\"" % (max_file_size / 2, r_path))
                 if res[0] == 0: f.write(res[1])
                 else: f.write("[cloud_retester failed to retrieve part of this file: %s]" % res[0])
-                f.write("\n\n[cloud_retester omitted %d bytes of this file]\n\n" % (file.st_size - 10000000))
-                res = node.run_command("head -c -5MB \"%s\"" % r_path)
+                f.write("\n\n[cloud_retester omitted %d bytes of this file]\n\n" % (file.st_size - max_file_size + (max_file_size % 2)))
+                res = node.run_command("tail -c %d \"%s\"" % (max_file_size / 2, r_path))
                 if res[0] == 0: f.write(res[1])
                 else: f.write("[cloud_retester failed to retrieve part of this file: %s]" % res[0])
                 f.close()
     
-    get_directory(os.path.join("cloud_retest", test_reference[1], "test", "output_from_test"), result.output_dir.path)
+    if result_result == "fail":
+        get_directory(os.path.join("cloud_retest", test_reference[1], "test", "output_from_test"), result.output_dir.path)
+    else:
+        for file_name in ["server_output.txt", "creator_output.txt", "test_output.txt", "fsck_output.txt"]:
+            command_result = node.run_command("cat 'cloud_retest/" + test_reference[1] + "/test/output_from_test/" + file_name + "'")
+            if command_result[0] == 0:
+                open(result.output_dir.path + "/" + file_name, 'w').write(command_result[1])
     
     return result
 

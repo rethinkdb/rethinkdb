@@ -15,21 +15,19 @@ make
 scp stress puzzler:/home/teapot/stress
 cd ../dbench
 
-SSD_DRIVES="-f /dev/sdf -f /dev/sdg -f /dev/sdh -f /dev/sdi"
+SSD_DRIVES="-f /dev/sdf"
 HDD_DRIVES="" # TODO
-#MYSQL_SSD_CREATE_FLAGS="--innodb_data_home_dir= --innodb_data_file_path=/dev/sdb:10Gnewraw;/dev/sdc:10Gnewraw;/dev/sdd:10Gnewraw;/dev/sde:10Gnewraw"
-#MYSQL_SSD_FLAGS="--innodb_data_home_dir= --innodb_data_file_path=/dev/sdb:10Graw;/dev/sdc:10Graw;/dev/sdd:10Graw;/dev/sde:10Graw"
-# TODO: Configure RAID for this
-MYSQL_SSD_CREATE_FLAGS="--innodb_data_home_dir= --innodb_data_file_path=/dev/sdf:20Gnewraw"
-MYSQL_SSD_FLAGS="--innodb_data_home_dir= --innodb_data_file_path=/dev/sdf:20Graw"
+# NOTE: Expects /dev/sdf to be a RAID of SSD drives
+MYSQL_SSD_CREATE_FLAGS="--innodb_data_home_dir= --innodb_data_file_path=/dev/sdf:30Gnewraw"
+MYSQL_SSD_FLAGS="--innodb_data_home_dir= --innodb_data_file_path=/dev/sdf:30Graw"
 
 SERVER_HOSTS="magneto,magneto2"
 CANONICAL_CLIENTS="512"
 CANONICAL_DURATION="300s"
 
-MYSQL_COMMON_FLAGS="--skip-name-resolve --innodb_support_xa=off --innodb_lock_wait_timeout=5 --innodb_flush_method=O_DIRECT --max-connections=1030 --max-prepared-stmt-count=32764 --innodb_log_group_home_dir=/tmp"
+MYSQL_COMMON_FLAGS="--skip-name-resolve --query_cache_size=0 --transaction_isolation=READ-UNCOMMITTED --innodb_support_xa=off --innodb_lock_wait_timeout=5 --innodb_flush_method=O_DIRECT --max-connections=1030 --max-prepared-stmt-count=32764 --innodb_log_group_home_dir=/tmp"
 MYSQL_BUFFER_FLAGS="--innodb_buffer_pool_size=32768m"
-MYSQL_DURABILITY_FLAGS="--innodb_flush_log_at_trx_commit=0 --innodb_doublewrite=0 --innodb_log_file_size=256m"
+MYSQL_DURABILITY_FLAGS="--innodb_flush_log_at_trx_commit=0 --innodb_doublewrite=0 --innodb_log_file_size=2G"
 
 STRESS_CLIENT="puzzler:/home/teapot/stress"
 

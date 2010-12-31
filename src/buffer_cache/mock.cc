@@ -12,7 +12,11 @@ struct internal_buf_t
     rwi_lock_t lock;
     
     internal_buf_t(mock_cache_t *cache, block_id_t block_id)
-        : cache(cache), block_id(block_id), subtree_recency(cache->serializer->get_recency(block_id)), data(cache->serializer->malloc()) {
+        : cache(cache), block_id(block_id), subtree_recency(
+                                                            // cache->serializer->get_recency(block_id)
+                                                            // TODO: We can't call cache->serializer->get_recency because it's on a different core.  Rearchitect this when we start actually using timestamps.
+                                                            repli_timestamp::invalid
+), data(cache->serializer->malloc()) {
         assert(data);
         bzero(data, cache->block_size.value());
     }

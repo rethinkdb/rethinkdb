@@ -13,7 +13,7 @@ if [ $DATABASE == "rethinkdb" ]; then
 elif [ $DATABASE == "mysql" ]; then
     ./dbench                                                                              \
         -d "$BENCH_DIR/bench_output/Strong_durability_on_canonical_hardware_canonical_workload" -H $SERVER_HOSTS       \
-        {server}mysql:"$MYSQL_COMMON_FLAGS $MYSQL_BUFFER_FLAGS --innodb_flush_log_at_trx_commit=1 --innodb_doublewrite=1 --innodb_log_file_size=256m $MYSQL_SSD_FLAGS"   \
+        {server}mysql:"$MYSQL_COMMON_FLAGS $MYSQL_BUFFER_FLAGS --innodb_flush_log_at_trx_commit=1 --innodb_doublewrite=1 --innodb_log_file_size=2G $MYSQL_SSD_FLAGS"   \
         {client}mysqlstress[$STRESS_CLIENT]:"-c $CANONICAL_CLIENTS -d $CANONICAL_DURATION"                  \
         iostat:1 vmstat:1
 else

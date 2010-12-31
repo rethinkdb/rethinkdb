@@ -71,11 +71,13 @@ struct lba_shard_metablock_t {
      * moved to the lba superblock, and the next block gets a
      * reference to the clean extent. */
     off64_t last_lba_extent_offset;
-    int last_lba_extent_entries_count;
+    int32_t last_lba_extent_entries_count;
+    int32_t padding1;
 
     /* Reference to the LBA superblock and its size */
     off64_t lba_superblock_offset;
-    int lba_superblock_entries_count;
+    int32_t lba_superblock_entries_count;
+    int32_t padding2;
 };
 
 struct lba_metablock_mixin_t {
@@ -132,7 +134,7 @@ struct lba_extent_t {
 
 struct lba_superblock_entry_t {
     off64_t offset;
-    int lba_entries_count;
+    int64_t lba_entries_count;
 };
 
 #define LBA_SUPER_MAGIC_SIZE 8

@@ -32,7 +32,7 @@ STRESS_CLIENT="puzzler:/home/teapot/stress"
 
 DATABASE="membase"
 
-# TODO: Can we use SSDs? Would that make sense (maybe not)?
+# TODO: Can we use SSDs? Would that make sense?
 MEMBASE_DATA_PATH="membase_data_tmp"
 
 # TODO: erlang appears to crash if CPUs are switched off!

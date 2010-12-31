@@ -21,7 +21,7 @@ if [ $DATABASE == "rethinkdb" ]; then
     ./dbench                                                                                        \
         -d "/tmp/insert_setup_out" -H $SERVER_HOSTS            \
         {server}rethinkdb:"-c 12 -m 32768 $SSD_DRIVES"                                              \
-        {client}stress[$STRESS_CLIENT]:"-c $CANONICAL_CLIENTS -d 100000000i -w 0/0/1/0 -o $TMP_KEY_FILE"     \
+        {client}stress[$STRESS_CLIENT]:"-c $CANONICAL_CLIENTS -d 10000000i -w 0/0/1/0 -o $TMP_KEY_FILE"     \
         iostat:1 vmstat:1 rdbstat:1
 elif [ $DATABASE == "mysql" ]; then
     ./dbench                                                                                         \
