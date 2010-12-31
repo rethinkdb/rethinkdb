@@ -27,6 +27,7 @@ void expect_valid_value_shallowly(const btree_value *value) {
 void verify(block_size_t block_size, const leaf_node_t *buf, int expected_free_space) {
 
     int end_of_pair_offsets = offsetof(leaf_node_t, pair_offsets) + buf->npairs * 2;
+    EXPECT_TRUE(check_magic<leaf_node_t>(buf->magic));
     ASSERT_LE(end_of_pair_offsets, buf->frontmost_offset);
     ASSERT_LE(buf->frontmost_offset, block_size.value());
     ASSERT_EQ(expected_free_space, buf->frontmost_offset - end_of_pair_offsets);
