@@ -392,7 +392,8 @@ private:
 and txt_memcached_append_prepend_request_t, which handles append/prepend. The subclass
 should override dispatch(). */
 struct txt_memcached_storage_request_t :
-    public net_conn_read_external_callback_t
+    public net_conn_read_external_callback_t,
+    public semaphore_available_callback_t
 {
     txt_memcached_handler_t *rh;
     data_provider_t *data;
@@ -555,6 +556,13 @@ public:
             delete[] value_buffer;
         }
 
+        /* Notify the memcached handler that we are starting a write request so that it
+        will not let too many go at once */
+        rh->begin_write_command(this);
+    }
+
+    void on_semaphore_available() {
+
         /* If we are streaming the value, then we cannot pipeline another command yet. */
         if (noreply && !is_streaming) nowait = true;
         else nowait = false;
@@ -587,6 +595,7 @@ public:
 
     ~txt_memcached_storage_request_t() {
         if (data) delete data;
+        rh->end_write_command();
     }
 
     /* Called by the subclass after the KVS calls it back */
@@ -663,14 +672,21 @@ struct txt_memcached_set_request_t :
 };
 
 class txt_memcached_incr_decr_request_t :
+    public semaphore_available_callback_t,
     public store_t::incr_decr_callback_t
 {
     txt_memcached_handler_t *rh;
+    bool increment;
     bool noreply;
-    
+    union {
+        char key_memory[MAX_KEY_SIZE + sizeof(btree_key)];
+        btree_key key;
+    };
+    unsigned long long delta;
+
 public:
-    txt_memcached_incr_decr_request_t(txt_memcached_handler_t *rh, bool increment, int argc, char **argv)
-        : rh(rh)
+    txt_memcached_incr_decr_request_t(txt_memcached_handler_t *rh, bool i, int argc, char **argv)
+        : rh(rh), increment(i)
     {
         /* cmd key delta [noreply] */
         if (argc != 3 && argc != 4) {
@@ -681,11 +697,7 @@ public:
         }
 
         /* Parse key */
-        union {
-            char key_memory[MAX_KEY_SIZE + sizeof(btree_key)];
-            btree_key key;
-        } u;
-        if (!node_handler::str_to_key(argv[1], &u.key)) {
+        if (!node_handler::str_to_key(argv[1], &key)) {
             rh->writef("CLIENT_ERROR bad command line format\r\n");
             rh->read_next_command();
             delete this;
@@ -694,7 +706,7 @@ public:
 
         /* Parse amount to change by */
         char *invalid_char;
-        unsigned long long delta = strtoull_strict(argv[2], &invalid_char, 10);
+        delta = strtoull_strict(argv[2], &invalid_char, 10);
         if (*invalid_char != '\0') {
             rh->writef("CLIENT_ERROR bad command line format\r\n");
             rh->read_next_command();
@@ -714,18 +726,24 @@ public:
             noreply = false;
         }
 
+        rh->begin_write_command(this);
+    }
+
+    void on_semaphore_available() {
+
         /* Store the request handler in case we get deleted */
         txt_memcached_handler_t *_rh = rh;
         bool _noreply = noreply;
 
         /* Dispatch the request */
-        if (increment) rh->server->store->incr(&u.key, delta, this);
-        else rh->server->store->decr(&u.key, delta, this);
+        if (increment) rh->server->store->incr(&key, delta, this);
+        else rh->server->store->decr(&key, delta, this);
 
         if (_noreply) _rh->read_next_command();
     }
 
     ~txt_memcached_incr_decr_request_t() {
+        rh->end_write_command();
     }
     
     void success(unsigned long long new_value) {
@@ -804,10 +822,15 @@ struct txt_memcached_append_prepend_request_t :
 };
 
 class txt_memcached_delete_request_t :
+    public semaphore_available_callback_t,
     public store_t::delete_callback_t
 {
     txt_memcached_handler_t *rh;
     bool noreply;
+    union {
+        char key_memory[MAX_KEY_SIZE + sizeof(btree_key)];
+        btree_key key;
+    };
 
 public:
     txt_memcached_delete_request_t(txt_memcached_handler_t *rh, int argc, char **argv)
@@ -822,11 +845,7 @@ public:
         }
 
         /* Parse key */
-        union {
-            char key_memory[MAX_KEY_SIZE + sizeof(btree_key)];
-            btree_key key;
-        } u;
-        if (!node_handler::str_to_key(argv[1], &u.key)) {
+        if (!node_handler::str_to_key(argv[1], &key)) {
             rh->writef("CLIENT_ERROR bad command line format\r\n");
             rh->read_next_command();
             delete this;
@@ -848,17 +867,23 @@ public:
             }
         }
 
+        rh->begin_write_command(this);
+    }
+
+    void on_semaphore_available() {
+
         /* Store the request handler in case we get deleted */
         txt_memcached_handler_t *_rh = rh;
         bool _noreply = noreply;
 
         /* Dispatch the request */
-        rh->server->store->delete_key(&u.key, this);
+        rh->server->store->delete_key(&key, this);
 
         if (_noreply) _rh->read_next_command();
     }
 
     ~txt_memcached_delete_request_t() {
+        rh->end_write_command();
     }
 
     void deleted() {
@@ -974,7 +999,12 @@ perfmon_duration_sampler_t
     pm_conns_acting("conns_acting", secs_to_ticks(1));
 
 txt_memcached_handler_t::txt_memcached_handler_t(conn_acceptor_t *acc, net_conn_t *conn, server_t *server)
-    : conn_handler_t(acc, conn), conn(conn), server(server), send_buffer(conn)
+    : conn_handler_t(acc, conn),
+      conn(conn),
+      server(server),
+      send_buffer(conn),
+      requests_out_sem(MAX_CONCURRENT_QUERIES_PER_CONNECTION),
+      shutting_down(false)
 {
     logINF("Opened connection %p\n", this);
     pm_conns_acting.begin(&start_time);
@@ -1011,6 +1041,17 @@ void txt_memcached_handler_t::quit() {
     if (conn->is_read_open()) conn->shutdown_read();
 }
 
+void txt_memcached_handler_t::shut_down() {
+
+    /* This is called after the connection has closed. */
+    assert_thread();
+    assert(!conn->is_read_open());
+
+    /* Acquire the lock in exclusive mode to wait until all requests are done */
+    shutting_down = true;
+    if (prevent_shutdown_lock.lock(rwi_write, this)) on_lock_available();
+}
+
 void txt_memcached_handler_t::read_next_command() {
 
     pm_conns_acting.end(&start_time);
@@ -1041,6 +1082,16 @@ void txt_memcached_handler_t::on_thread_switch() {
             on_send_buffer_flush();
         }
     }
+}
+
+void txt_memcached_handler_t::on_lock_available() {
+
+    /* We just acquired the prevent_shutdown_lock in exclusive mode, which means there
+    are no outstanding write requests that refer to request_out_sem and we can safely
+    delete ourself now */
+
+    assert(shutting_down);
+    delete this;
 }
 
 void txt_memcached_handler_t::on_send_buffer_flush() {
@@ -1076,7 +1127,7 @@ void txt_memcached_handler_t::on_net_conn_read_buffered(const char *buffer, size
                 this, (int)threshold);
             conn->accept_buffer(0);   // So that we can legally call shutdown_*()
             conn->shutdown_read();
-            delete this;
+            shut_down();
             return;
         
         } else {
@@ -1145,15 +1196,15 @@ void txt_memcached_handler_t::on_net_conn_read_buffered(const char *buffer, size
         }
         // Quit the connection
         conn->shutdown_read();
-        delete this;
+        shut_down();
     } else if(!strcmp(args[0], "stats") || !strcmp(args[0], "stat")) {
         new txt_memcached_perfmon_request_t(this, args.size(), args.data());
     } else if(!strcmp(args[0], "rethinkdb")) {
         if (args.size() == 2 && !strcmp(args[1], "shutdown")) {
             // Shut down the server
-            conn->shutdown_read();
             server->shutdown();
-            delete this;
+            conn->shutdown_read();
+            shut_down();
         // TODO: `rethinkdb gc` crashes the server, and isn't very important, so it's comented out for now.
         //} else if (args.size() == 3 && strcmp(args[1], "gc") == 0 && strcmp(args[2], "enable") == 0) {
         //    new enable_gc_request_t(this);
@@ -1184,5 +1235,30 @@ void txt_memcached_handler_t::on_net_conn_close() {
     /* The connection was closed as we were waiting for a complete line to buffer */
 
     pm_conns_reading.end(&start_time);
-    delete this;
+    shut_down();
 }
+
+void txt_memcached_handler_t::begin_write_command(semaphore_available_callback_t *cb) {
+
+    /* Called whenever a write command begins to make sure that not too many write commands
+    are being dispatched to the key-value store. */
+
+    assert_thread();
+    assert(!shutting_down);
+
+    bool locked __attribute__((unused)) = prevent_shutdown_lock.lock(rwi_read, NULL);
+    assert(locked);
+
+    requests_out_sem.lock(cb);
+}
+
+void txt_memcached_handler_t::end_write_command() {
+
+    /* Called once for each call to begin_write_command() */
+
+    assert_thread();
+
+    prevent_shutdown_lock.unlock();
+    requests_out_sem.unlock();
+}
+
