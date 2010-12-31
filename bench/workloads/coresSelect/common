@@ -9,7 +9,7 @@ function run_with_cores {
             --prime-caches                                                                                      \
             -d "$BENCH_DIR/bench_output/Number_of_cores_select_only_workload/$NUMBER_OF_CORES" -H $SERVER_HOSTS    \
             {server}rethinkdb:"-c $NUMBER_OF_CORES -m 32768 $SSD_DRIVES"                                            \
-            {client}stress[$STRESS_CLIENT]:"-c $CANONICAL_CLIENTS -d 100000000q -w 0/0/0/1 -i $TMP_KEY_FILE" \
+            {client}stress[$STRESS_CLIENT]:"-c $CANONICAL_CLIENTS -d 10000000q -w 0/0/0/1 -i $TMP_KEY_FILE" \
             iostat:1 vmstat:1 rdbstat:1
     elif [ $DATABASE == "mysql" ]; then
         if [ "$NUMBER_OF_CORES" -lt "24" ]; then
