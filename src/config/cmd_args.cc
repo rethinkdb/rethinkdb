@@ -86,7 +86,8 @@ void usage_serve(const char *name) {
            "      --active-data-extents\n"
            "                        How many places in the file to write to at once.\n"
            "      --coroutine-stack-size\n"
-           "                        How much space is allocated for the stacks of coroutines.\n");
+           "                        How much space is allocated for the stacks of coroutines.\n"
+           "                        Defaults to %d\n", COROUTINE_STACK_SIZE);
     exit(0);
 }
 

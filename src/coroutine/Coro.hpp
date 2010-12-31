@@ -1,8 +1,6 @@
 #ifndef CORO_DEFINED
 #define CORO_DEFINED 1
 
-#define CORO_DEFAULT_STACK_SIZE 65536
-
 #if defined(USE_FIBERS)
     #define CORO_IMPLEMENTATION "fibers"
 #elif defined(USE_UCONTEXT)

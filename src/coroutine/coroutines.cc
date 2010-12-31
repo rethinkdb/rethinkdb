@@ -14,7 +14,7 @@ __thread coro_t *coro_t::current_coro = NULL;
 __thread coro_t *coro_t::scheduler = NULL;
 __thread std::vector<coro_t*> *coro_t::free_coros = NULL;
 
-size_t coro_t::stack_size = CORO_DEFAULT_STACK_SIZE; //Default, setable by command-line parameter
+size_t coro_t::stack_size = COROUTINE_STACK_SIZE; //Default, setable by command-line parameter
 
 coro_t *coro_t::self() {
     return current_coro;
