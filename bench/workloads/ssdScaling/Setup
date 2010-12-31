@@ -1,7 +1,7 @@
 #!/bin/bash
 
 mkdir -p $BENCH_DIR/bench_output/Number_of_SSD_64MB_cache_canonical_workload
-echo Number of SSDs > $BENCH_DIR/bench_output/Number_of_SSD_64MB_cache_canonical_workload
+echo Number of SSDs > $BENCH_DIR/bench_output/Number_of_SSD_64MB_cache_canonical_workload/multirun
 
 
 export SSD_DRIVES_1="-f /dev/sdf"
