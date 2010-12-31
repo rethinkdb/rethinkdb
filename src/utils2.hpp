@@ -105,6 +105,7 @@ inline const T* ptr_cast(const void *p) { return reinterpret_cast<const T*>(p); 
 template <class T>
 inline T* ptr_cast(void *p) { return reinterpret_cast<T*>(p); }
 
+bool begins_with_minus(const char *string);
 // strtoul() and strtoull() will for some reason not fail if the input begins with a minus
 // sign. strtoul_strict() and strtoull_strict() do.
 unsigned long strtoul_strict(const char *string, char **end, int base);
