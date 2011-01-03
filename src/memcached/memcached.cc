@@ -882,15 +882,14 @@ public:
         if (_noreply) _rh->read_next_command();
     }
 
-    ~txt_memcached_delete_request_t() {
-        rh->end_write_command();
-    }
+    ~txt_memcached_delete_request_t() {}
 
     void deleted() {
         if (!noreply) {
             rh->writef("DELETED\r\n");
             rh->read_next_command();
         }
+        rh->end_write_command();
         delete this;
     }
     void not_found() {
@@ -898,6 +897,7 @@ public:
             rh->writef("NOT_FOUND\r\n");
             rh->read_next_command();
         }
+        rh->end_write_command();
         delete this;
     }
 };
