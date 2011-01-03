@@ -595,12 +595,12 @@ public:
 
     ~txt_memcached_storage_request_t() {
         if (data) delete data;
-        rh->end_write_command();
     }
 
     /* Called by the subclass after the KVS calls it back */
     void done() {
         if (!nowait) rh->read_next_command();
+        rh->end_write_command();
         delete this;
     }
 };
@@ -743,7 +743,6 @@ public:
     }
 
     ~txt_memcached_incr_decr_request_t() {
-        rh->end_write_command();
     }
     
     void success(unsigned long long new_value) {
@@ -751,6 +750,7 @@ public:
             rh->writef("%llu\r\n", new_value);
             rh->read_next_command();
         }
+        rh->end_write_command();
         delete this;
     }
     void not_found() {
@@ -758,6 +758,7 @@ public:
             rh->writef("NOT_FOUND\r\n");
             rh->read_next_command();
         }
+        rh->end_write_command();
         delete this;
     }
     void not_numeric() {
@@ -765,6 +766,7 @@ public:
             rh->writef("CLIENT_ERROR cannot increment or decrement non-numeric value\r\n");
             rh->read_next_command();
         }
+        rh->end_write_command();
         delete this;
     }
 };
@@ -1240,8 +1242,12 @@ void txt_memcached_handler_t::on_net_conn_close() {
 
 void txt_memcached_handler_t::begin_write_command(semaphore_available_callback_t *cb) {
 
-    /* Called whenever a write command begins to make sure that not too many write commands
-    are being dispatched to the key-value store. */
+    /* Called whenever a write command begins to make sure that not too many
+     * write commands are being dispatched to the key-value store. */
+
+    /* This should only be called when a command is actually sent to the
+     * key-value store ie it should not be called if the command fails in the
+     * parsing stage (Issue 153)*/
 
     assert_thread();
     assert(!shutting_down);
