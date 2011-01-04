@@ -500,6 +500,7 @@ def copy_per_test_data_to_testing_node(node, test_reference):
 
 def start_test_on_node(node, test_command, test_timeout = None, locking_timeout = 0):
     global testing_nodes
+    global remaining_nodes_to_allocate
 
     if locking_timeout == None:
         locking_timeout = 0
