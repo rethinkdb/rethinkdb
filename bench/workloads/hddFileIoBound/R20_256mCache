@@ -8,18 +8,19 @@ if [ $DATABASE == "rethinkdb" ]; then
         {server}rethinkdb:"-c 12 -m 256 -f /tmp/rethinkdb_tmp_data"                          \
         {client}stress[$STRESS_CLIENT]:"-c $CANONICAL_CLIENTS -d $CANONICAL_DURATION"          \
         iostat:1 vmstat:1 rdbstat:1
-elif [ $DATABASE == "mysql" ]; then
-    ./dbench                                                                 \
-        -d "$BENCH_DIR/bench_output/HDD_file_performance_256MB_cache" -H $SERVER_HOSTS     \
-        {server}mysql:"$MYSQL_COMMON_FLAGS --innodb_buffer_pool_size=256m $MYSQL_DURABILITY_FLAGS"  \
-        {client}mysqlstress[$STRESS_CLIENT]:"-c $CANONICAL_CLIENTS -d $CANONICAL_DURATION"     \
-        iostat:1 vmstat:1
-elif [ $DATABASE == "membase" ]; then
-    ./dbench                                                                                   \
-        -d "$BENCH_DIR/bench_output/HDD_file_performance_256MB_cache" -H $SERVER_HOSTS -p 11211 \
-        {server}membase:"-d $MEMBASE_DATA_PATH -m 256"                                       \
-        {client}stress[$STRESS_CLIENT]:"-c $CANONICAL_CLIENTS -d $CANONICAL_DURATION" \
-        iostat:1 vmstat:1
+#TODO: Implement!
+#elif [ $DATABASE == "mysql" ]; then
+#    ./dbench                                                                 \
+#        -d "$BENCH_DIR/bench_output/HDD_file_performance_256MB_cache" -H $SERVER_HOSTS     \
+#        {server}mysql:"$MYSQL_COMMON_FLAGS --innodb_buffer_pool_size=256m $MYSQL_DURABILITY_FLAGS"  \
+#        {client}mysqlstress[$STRESS_CLIENT]:"-c $CANONICAL_CLIENTS -d $CANONICAL_DURATION"     \
+#        iostat:1 vmstat:1
+#elif [ $DATABASE == "membase" ]; then
+#    ./dbench                                                                                   \
+#        -d "$BENCH_DIR/bench_output/HDD_file_performance_256MB_cache" -H $SERVER_HOSTS -p 11211 \
+#        {server}membase:"-d $MEMBASE_DATA_PATH -m 256"                                       \
+#        {client}stress[$STRESS_CLIENT]:"-c $CANONICAL_CLIENTS -d $CANONICAL_DURATION" \
+#        iostat:1 vmstat:1
 else
     echo "No workload configuration for $DATABASE"
 fi
