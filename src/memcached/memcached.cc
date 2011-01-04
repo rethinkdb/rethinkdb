@@ -1067,8 +1067,8 @@ void txt_memcached_handler_t::on_thread_switch() {
     /* If !conn->is_read_open(), then the socket died during a read or write done by a *_request_t,
     and that's why we didn't find out about it immediately. */
     if (!conn->is_read_open()) {
-        delete this;
-        return;
+        shut_down();
+
     } else {
         /* Before we read another command off the socket, we must make sure that there isn't
         any data in the send buffer that we should flush first. */
