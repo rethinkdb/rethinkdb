@@ -1,6 +1,7 @@
 #!/bin/bash
 
 # Takes the number of cores as its argument
+# Note: We run with a doubled number of clients here!
 function run_with_cores {
     NUMBER_OF_CORES=$1
     
@@ -9,7 +10,7 @@ function run_with_cores {
         ./dbench                                                                                      \
             -d "$BENCH_DIR/bench_output/Number_of_cores_canonical_workload/$NUMBER_OF_CORES" -H $SERVER_HOSTS    \
             {server}rethinkdb:"-c $NUMBER_OF_CORES -m 32768 $SSD_DRIVES"                                            \
-            {client}stress[$STRESS_CLIENT]:"-c $CANONICAL_CLIENTS -d $CANONICAL_DURATION" \
+            {client}stress[$STRESS_CLIENT]:"-c 1024 -d $CANONICAL_DURATION" \
             iostat:1 vmstat:1 rdbstat:1
     elif [ $DATABASE == "mysql" ]; then
         if [ "$NUMBER_OF_CORES" -lt "24" ]; then
@@ -18,7 +19,7 @@ function run_with_cores {
         ./dbench                                                                                   \
             -d "$BENCH_DIR/bench_output/Number_of_cores_canonical_workload/$NUMBER_OF_CORES" -H $SERVER_HOSTS             \
             {server}mysql:"$MYSQL_COMMON_FLAGS $MYSQL_BUFFER_FLAGS $MYSQL_DURABILITY_FLAGS $MYSQL_SSD_FLAGS"              \
-            {client}mysqlstress[$STRESS_CLIENT]:"-c $CANONICAL_CLIENTS -d $CANONICAL_DURATION" \
+            {client}mysqlstress[$STRESS_CLIENT]:"-c 128 -d $CANONICAL_DURATION" \
             iostat:1 vmstat:1
         if [ "$NUMBER_OF_CORES" -lt "24" ]; then
             sudo bash -c "for CPU in {$NUMBER_OF_CORES..23}; do echo 1 > /sys/devices/system/cpu/cpu\$CPU/online; done"
