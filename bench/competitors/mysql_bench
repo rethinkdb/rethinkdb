@@ -17,17 +17,24 @@ cd ../dbench
 
 SSD_DRIVES="-f /dev/sdf"
 HDD_DRIVES="" # TODO
+SSD_RAID_DEVICE="/dev/sdf"
 # NOTE: Expects /dev/sdf to be a RAID of SSD drives
-MYSQL_SSD_CREATE_FLAGS="--innodb_data_home_dir= --innodb_data_file_path=/dev/sdf:30Gnewraw"
-MYSQL_SSD_FLAGS="--innodb_data_home_dir= --innodb_data_file_path=/dev/sdf:30Graw"
+sudo mkfs.ext3 -F "$SSD_RAID_DEVICE"
+mkdir -p /tmp/ssd_mount
+sudo mount "$SSD_RAID_DEVICE" /tmp/ssd_mount
+sudo mkdir -p /tmp/ssd_mount/mysql_data
+sudo chmod uog+rwx /tmp/ssd_mount/mysql_data
+
+MYSQL_SSD_CREATE_FLAGS="--innodb_data_home_dir=/tmp/ssd_mount/mysql_data --innodb_log_file_size=1G"
+MYSQL_SSD_FLAGS="--innodb_data_home_dir=/tmp/ssd_mount/mysql_data --innodb_log_file_size=1G"
 
 SERVER_HOSTS="magneto,magneto2"
-CANONICAL_CLIENTS="512"
+CANONICAL_CLIENTS="64"
 CANONICAL_DURATION="300s"
 
-MYSQL_COMMON_FLAGS="--skip-name-resolve --query_cache_size=0 --transaction_isolation=READ-UNCOMMITTED --innodb_support_xa=off --innodb_lock_wait_timeout=5 --innodb_flush_method=O_DIRECT --max-connections=1030 --max-prepared-stmt-count=32764 --innodb_log_group_home_dir=/tmp"
+MYSQL_COMMON_FLAGS="--skip-name-resolve --query_cache_size=0 --transaction_isolation=READ-UNCOMMITTED --innodb_support_xa=off --innodb_lock_wait_timeout=5 --innodb_flush_method=O_DIRECT --max-connections=1030 --max-prepared-stmt-count=32764 --innodb_log_group_home_dir=/tmp/ssd_mount/mysql_data"
 MYSQL_BUFFER_FLAGS="--innodb_buffer_pool_size=32768m"
-MYSQL_DURABILITY_FLAGS="--innodb_flush_log_at_trx_commit=0 --innodb_doublewrite=0 --innodb_log_file_size=2G"
+MYSQL_DURABILITY_FLAGS="--innodb_flush_log_at_trx_commit=0 --innodb_doublewrite=0"
 
 STRESS_CLIENT="puzzler:/home/teapot/stress"
 
@@ -115,6 +122,5 @@ sudo bash -c "for CPU in {12..23}; do echo 1 > /sys/devices/system/cpu/cpu\$CPU/
 
 
 # Now that all benchmarks are done, delete any database files that might have been left over
-#delete_database_files
-rm -f /tmp/ib_logfile?
+sudo umount /tmp/ssd_mount
 

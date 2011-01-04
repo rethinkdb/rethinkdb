@@ -15,14 +15,10 @@ make
 scp stress puzzler:/home/teapot/stress
 cd ../dbench
 
-# Some helper functions
-function delete_database_files() { # They are large and useless.
-    rm -rf "$(find "$BENCH_DIR" -name membase_data_tmp)"
-}
 
-
-SSD_DRIVES="-f /dev/sdf -f /dev/sdg -f /dev/sdh -f /dev/sdi"
+SSD_DRIVES="-f /dev/sdf"
 HDD_DRIVES="" # TODO
+SSD_RAID_DEVICE="/dev/sdf"
 
 SERVER_HOSTS="magneto,magneto2"
 CANONICAL_CLIENTS="512"
@@ -32,8 +28,14 @@ STRESS_CLIENT="puzzler:/home/teapot/stress"
 
 DATABASE="membase"
 
-# TODO: Can we use SSDs? Would that make sense?
-MEMBASE_DATA_PATH="membase_data_tmp"
+
+sudo mkfs.ext3 -F "$SSD_RAID_DEVICE"
+mkdir -p /tmp/ssd_mount
+sudo mount "$SSD_RAID_DEVICE" /tmp/ssd_mount
+sudo mkdir -p /tmp/ssd_mount/membase_data
+sudo chmod uog+rwx /tmp/ssd_mount/membase_data
+
+MEMBASE_DATA_PATH="/tmp/ssd_mount/membase_data"
 
 # TODO: erlang appears to crash if CPUs are switched off!
 #echo "To get the canonical hardware, we have to disable all but 12 CPUs."
@@ -85,4 +87,5 @@ done
 
 
 # Now that all benchmarks are done, delete any database files that might have been left over
-delete_database_files
+sudo umount /tmp/ssd_mount
+

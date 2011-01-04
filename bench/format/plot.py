@@ -298,6 +298,7 @@ class TimeSeriesCollection():
         for val in self.data.iteritems():
             stat_report = {}
 	    full_series = map(lambda x: x, val[1])
+	    full_series = full_series[int(len(full_series) * 0.05):] # Cut off first five percent to get more reliable data
 	    full_series_sorted = full_series
 	    full_series_sorted.sort()
 	    steady_series = full_series[int(len(full_series) * 0.7):]
@@ -375,7 +376,7 @@ class ScatterCollection():
         else:
             ax.set_xlabel('N/A', fontproperties = font)
 
-        ax.set_xlim(0, max_x_value - 1)
+        ax.set_xlim(0, max_x_value)
         if normalize:
             ax.set_ylim(0, 1.2)
         else:
