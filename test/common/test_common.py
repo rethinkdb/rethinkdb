@@ -238,8 +238,7 @@ def stress_client(port=8080, host="localhost", workload={"gets":1, "inserts":1},
             workload.get("prepends", 0), workload.get("verifies", 0)),
         ]
     
-    os.makedirs(os.path.join(make_test_dir(), "stress_client"))
-    key_file = os.path.join(make_test_dir(), "stress_client", "keys")
+    key_file = make_test_file("stress_client/keys")
     command_line.extend(["-o", key_file])
     if os.path.exists(key_file): command_line.extend(["-i", key_file])
     

@@ -150,8 +150,8 @@ def run_all_tests(mode, checker, protocol, cores, slices):
                     "protocol"    : protocol,
                     "cores"       : cores,
                     "slices"      : slices,
-                    "duration"    : 10000000 },
-                  repeat=3, timeout=400)
+                    "duration"    : 400 },
+                  repeat=3, timeout=450)
     
     # Run the serial mix test also with the other valgrind tools, drd and helgrind
     if checker == "valgrind":

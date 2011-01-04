@@ -54,15 +54,16 @@ def summarize(stats):
     assert (dblocks_live / dblocks_total_min) > (dblock_gc_threshold - 0.05)
 
 def test_function(opts, port):
+    end_time = time.time() + opts["duration"]
     
     inserts = 0
-    while inserts < opts["duration"]:
+    inserts_per_round = 100000
+    while time.time() < end_time:
         
         print "The current time is", time.strftime("%H:%M:%S")
         
-        round_size = min(opts["duration"] - inserts, 5000000)
-        stress_client(port, workload={"inserts":1}, duration="%dq" % round_size)
-        inserts += round_size
+        stress_client(port, workload={"inserts":1}, duration="%dq" % inserts_per_round)
+        inserts += inserts_per_round
         print "Have inserted %d keys total up to this point." % inserts
         
         print "Waiting for cache flush..."
