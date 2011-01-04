@@ -1,13 +1,14 @@
 #!/bin/bash
 #
 # Determines the version:
-# 1. If we are in a git repository:
-# 1.a. if VERSION.OVERRIDE file exists at the top of the repository, it's first word is the version (unless it's empty)
-# 1.b. otherwise, use git-describe to generate a version number, using the closest 'v[0-9]*' tag
-# 1.c. "-dirty" is appended to the version if there are local changes
-# 2. otherwise, if VERSION file exists in current directory, it's first word is the version (unless it's empty)
-# 3. otherwise, use default_version variable (defined below) as the version
-# 4. 'v' at the beginning of the version number is stripped
+# 1. If the variable VERSION_FILE is set, it's the first word of that file
+# 2. If we are in a git repository:
+# 2.a. if VERSION.OVERRIDE file exists at the top of the repository, it's first word is the version (unless it's empty)
+# 2.b. otherwise, use git-describe to generate a version number, using the closest 'v[0-9]*' tag
+# 2.c. "-dirty" is appended to the version if there are local changes
+# 3. otherwise, if VERSION file exists in current directory, it's first word is the version (unless it's empty)
+# 4. otherwise, use default_version variable (defined below) as the version
+# 5. 'v' at the beginning of the version number is stripped
 
 set -euo pipefail
 
@@ -20,7 +21,11 @@ lf='
 
 start_dir="$(pwd)"
 
-if repo_dir="$(git rev-parse --show-cdup 2> /dev/null)" && \
+if [ -n "$(/bin/bash -c 'echo $VERSION_FILE')" ]; then # If VERSION_FILE is set, use it
+    unset repo_dir
+    repo_available=0
+    version_file="$VERSION_FILE"
+elif repo_dir="$(git rev-parse --show-cdup 2> /dev/null)" && \
    repo_dir="${repo_dir:-.}" && \
    [ -d "$repo_dir/.git" ]; then
 

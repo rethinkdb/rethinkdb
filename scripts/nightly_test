@@ -25,9 +25,18 @@ export USE_CLOUD=true
 export EC2_INSTANCE_TYPE=m1.large
 export EC2_INSTANCE_COUNT=10
 
+# Generate a temporary VERSION file
+VERSION_FILE_INT=$(tempfile -p VERS)
+unset VERSION_FILE
+tools/gen-version.sh > "$VERSION_FILE_INT"
+export VERSION_FILE="$VERSION_FILE_INT"
+
 # Run the tests
 export RETESTER_EMAIL_SENDER=buildbot@rethinkdb.com:allspark
 git test -b --revision HEAD --email all@rethinkdb.com --file /var/www/code.rethinkdb.com/htdocs/tests.html test/full_test.py
+
+# Remove the temporary VERSION file
+rm -f "$VERSION_FILE_INT"
 
 # Remove the breakout file
 rm -f $BREAKOUT_FILE_NAME
