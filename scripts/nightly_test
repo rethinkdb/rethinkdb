@@ -37,6 +37,7 @@ git test -b --revision HEAD --email all@rethinkdb.com --file /var/www/code.rethi
 
 # Remove the temporary VERSION file
 rm -f "$VERSION_FILE_INT"
+unset VERSION_FILE
 
 # Remove the breakout file
 rm -f $BREAKOUT_FILE_NAME
