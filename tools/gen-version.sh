@@ -11,7 +11,7 @@
 
 set -euo pipefail
 
-default_version='0.0-internal'
+default_version='0.0-internal-unknown'
 
 lf='
 '
@@ -20,12 +20,10 @@ lf='
 
 start_dir="$(pwd)"
 
-repo_dir="$(git rev-parse --show-cdup 2> /dev/null || true)"
-if [ -z "$repo_dir" ]; then
-    repo_dir="."
-fi
+if repo_dir="$(git rev-parse --show-cdup 2> /dev/null)" && \
+   repo_dir="${repo_dir:-.}" && \
+   [ -d "$repo_dir/.git" ]; then
 
-if [ -d "$repo_dir" ]; then
     repo_available=1
     version_file="${repo_dir}/VERSION.OVERRIDE"
 else
