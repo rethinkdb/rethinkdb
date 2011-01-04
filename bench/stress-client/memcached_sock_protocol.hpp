@@ -368,8 +368,7 @@ struct memcached_sock_protocol_t : public protocol_t {
 
         // Check the result
         if (!response.successful) {
-            fprintf(stderr, "Failed to remove key %s: %s\n", key, response.failure_message.c_str());
-            //exit(-1);
+            //fprintf(stderr, "Failed to remove key %s: %s\n", key, response.failure_message.c_str());
         }
     }
 
@@ -399,8 +398,7 @@ struct memcached_sock_protocol_t : public protocol_t {
 
         // Check the result
         if (!response.successful) {
-            fprintf(stderr, "Failed to store key %s: %s\n", key, response.failure_message.c_str());
-            //exit(-1);
+            //fprintf(stderr, "Failed to store key %s: %s\n", key, response.failure_message.c_str());
         }
     }
 
@@ -426,15 +424,13 @@ struct memcached_sock_protocol_t : public protocol_t {
 
         // Check the result
         if (!response.successful) {
-            fprintf(stderr, "Failed to read: %s\n", response.failure_message.c_str());
-            //exit(-1);
+            //fprintf(stderr, "Failed to read: %s\n", response.failure_message.c_str());
         }
 
         if (values) {
             for (int i = 0; i < count; i++) {
                 if (std::string(values[i].first) != response.values[std::string(keys[i].first)]) {
                     fprintf(stderr, "Got unexpected value: %s instead of %s\n", response.values[std::string(keys[i].first)].c_str(), values[i].first);
-                    //exit(-1);
                 }
             }
         }
@@ -461,8 +457,7 @@ struct memcached_sock_protocol_t : public protocol_t {
 
         // Check the result
         if (!response.successful) {
-            fprintf(stderr, "Failed to store key %s (append): %s\n", key, response.failure_message.c_str());
-            //exit(-1);
+            //fprintf(stderr, "Failed to store key %s (append): %s\n", key, response.failure_message.c_str());
         }
     }
 
@@ -487,8 +482,7 @@ struct memcached_sock_protocol_t : public protocol_t {
 
         // Check the result
         if (!response.successful) {
-            fprintf(stderr, "Failed to store key %s (prepend): %s\n", key, response.failure_message.c_str());
-            //exit(-1);
+            //fprintf(stderr, "Failed to store key %s (prepend): %s\n", key, response.failure_message.c_str());
         }
     }
 
