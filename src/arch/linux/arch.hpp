@@ -20,9 +20,6 @@ struct linux_io_config_t {
     typedef linux_net_conn_read_buffered_callback_t net_conn_read_buffered_callback_t;
     typedef linux_net_conn_write_external_callback_t net_conn_write_external_callback_t;
     
-    typedef linux_oldstyle_net_conn_t oldstyle_net_conn_t;
-    typedef linux_oldstyle_net_conn_callback_t oldstyle_net_conn_callback_t;
-    
     typedef linux_thread_message_t thread_message_t;
     
     static int get_thread_id() {

@@ -4,19 +4,18 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.
 from test_common import *
 
 if __name__ == "__main__":
-    
     op = make_option_parser()
     op["mclib"].default = "memcache"   # memcache plays nicer with this test than pylibmc does
     opts = op.parse(sys.argv)
     
-    make_test_dir()
+    test_dir = TestDir()
     mutual_dict = {}
     
     # Start server
     
     opts_without_valgrind = dict(opts)
     opts_without_valgrind["valgrind"] = False
-    server1 = Server(opts_without_valgrind, "first server", extra_flags = ["--wait-for-flush", "y", "--flush-timer", "0"])
+    server1 = Server(opts_without_valgrind, name="first server", extra_flags = ["--wait-for-flush", "y", "--flush-timer", "0"], test_dir=test_dir)
     server1.start()
 
     # Put some values in server
@@ -38,11 +37,12 @@ if __name__ == "__main__":
     # Run rethinkdb-extract
 
     extract_path = get_executable_path(opts, "rethinkdb")
-    dump_path = os.path.join(make_test_dir(), "db_data_dump.txt")
+    dump_path = test_dir.p("db_data_dump.txt")
     run_executable(
         [extract_path, "extract", "-o", dump_path] + server1.data_files.rethinkdb_flags(),
         "extractor_output.txt",
-        valgrind_tool = opts["valgrind-tool"] if opts["valgrind"] else None
+        valgrind_tool = opts["valgrind-tool"] if opts["valgrind"] else None,
+        test_dir = test_dir
         )
 
     # Make sure extracted info is correct

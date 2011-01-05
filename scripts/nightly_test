@@ -27,7 +27,6 @@ export EC2_INSTANCE_COUNT=10
 
 # Generate a temporary VERSION file
 VERSION_FILE_INT=$(tempfile -p VERS)
-unset VERSION_FILE
 tools/gen-version.sh > "$VERSION_FILE_INT"
 export VERSION_FILE="$VERSION_FILE_INT"
 

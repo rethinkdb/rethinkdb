@@ -4,9 +4,10 @@ import os, sys, socket, random, time
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
 from test_common import *
 
-def test_function(opts, port):
+def test_function(opts, port, test_dir):
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.connect(("localhost", port))
+    s.shutdown(socket.SHUT_RD)
 
     s.send("nonsense\r\n")
 
@@ -14,9 +15,11 @@ def test_function(opts, port):
         v = str(i)
         s.send("set key 0 0 %d noreply\r\n%s\r\n" % (len(v), v))
 
+    time.sleep(2)
+
     s.close()
 
-    time.sleep(3)
+    time.sleep(2)
 
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.connect(("localhost", port))

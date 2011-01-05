@@ -3,7 +3,7 @@ import os, sys
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
 from test_common import *
 
-def test_function(opts, port):
+def test_function(opts, port, test_dir):
     stress_client = opts['stress']
     os.system(stress_client + ' -s localhost:%d -d infinity -c 128 -w 0/0/1/0/0/0/0' % port)
 

@@ -75,7 +75,7 @@ public:
         explicit queue_t(linux_io_calls_t *parent);
         int process_request_batch();
         ~queue_t();
-    } r_requests, w_requests;
+    } io_requests;
 
 public:
     void on_event(int events);

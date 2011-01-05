@@ -732,7 +732,7 @@ def report():
         rethinkdb_version = p.communicate()[0]
     except:
         rethinkdb_version = "N/A"
-    op["header"] = StringFlag("--header", default = None)
+    op["header"] = StringFlag("--header", default = "")
     op["tests"] = ManyPositionalArgs()
     
     try:

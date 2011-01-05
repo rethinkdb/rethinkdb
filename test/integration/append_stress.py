@@ -16,7 +16,7 @@ def read_response_of_expected_size(s, n):
             return data
     return data
 
-def test_function(opts, port):
+def test_function(opts, port, test_dir):
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.connect(("localhost", port))
 
