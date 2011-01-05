@@ -321,8 +321,7 @@ def run_all_tests(mode, checker, protocol, cores, slices):
                     "no-valgrind" : not checker,
                     "protocol"    : protocol,
                     "cores"       : cores,
-                    "slices"      : slices,
-                    "no-netrecord": True}, # Until netrecord bug is fixed.
+                    "slices"      : slices},
                   repeat=10, timeout=30)
 
     for suite_test in glob.glob('integration/memcached_suite/*.t'):
