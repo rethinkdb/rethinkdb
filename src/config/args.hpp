@@ -43,7 +43,7 @@
 #define MAX_DATA_EXTENTS                          (TERABYTE / (16 * KILOBYTE))
 
 // Size of each extent (in bytes)
-#define DEFAULT_EXTENT_SIZE                       (1 * MEGABYTE)
+#define DEFAULT_EXTENT_SIZE                       (8 * MEGABYTE)
 
 // Max size of log file name
 #define MAX_LOG_FILE_NAME                         1024
