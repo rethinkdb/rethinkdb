@@ -9,19 +9,23 @@ function run_with_clients {
         ./dbench                                                                                      \
             -d "$BENCH_DIR/bench_output/Number_of_clients_on_canonical_hardware_canonical_workload/$NUMBER_OF_CLIENTS" -H $SERVER_HOSTS    \
             {server}rethinkdb:"-c 12 -m 32768 $SSD_DRIVES"                                            \
-            {client}stress[$STRESS_CLIENT]:"-c $NUMBER_OF_CLIENTS -d $CANONICAL_DURATION" \
+            {client}stress[$STRESS_CLIENT]:"-c $NUMBER_OF_CLIENTS -d $CANONICAL_MULTIRUN_DURATION" \
             iostat:1 vmstat:1 rdbstat:1
     elif [ $DATABASE == "mysql" ]; then
-        ./dbench                                                                                   \
-            -d "$BENCH_DIR/bench_output/Number_of_clients_on_canonical_hardware_canonical_workload/$NUMBER_OF_CLIENTS" -H $SERVER_HOSTS \
-            {server}mysql:"$MYSQL_COMMON_FLAGS $MYSQL_BUFFER_FLAGS $MYSQL_DURABILITY_FLAGS $MYSQL_SSD_FLAGS"        \
-            {client}mysqlstress[$STRESS_CLIENT]:"-c $NUMBER_OF_CLIENTS -d $CANONICAL_DURATION" \
-            iostat:1 vmstat:1
+        if [ "$NUMBER_OF_CLIENTS" -lt "1025" ]; then
+            ./dbench                                                                                   \
+                -d "$BENCH_DIR/bench_output/Number_of_clients_on_canonical_hardware_canonical_workload/$NUMBER_OF_CLIENTS" -H $SERVER_HOSTS \
+                {server}mysql:"$MYSQL_COMMON_FLAGS $MYSQL_BUFFER_FLAGS $MYSQL_DURABILITY_FLAGS $MYSQL_SSD_FLAGS"        \
+                {client}mysqlstress[$STRESS_CLIENT]:"-c $NUMBER_OF_CLIENTS -d $CANONICAL_MULTIRUN_DURATION" \
+                iostat:1 vmstat:1
+        else
+            echo "Not running MySQL for more than 1024 clients"
+        fi
     elif [ $DATABASE == "membase" ]; then
         ./dbench                                                                                   \
             -d "$BENCH_DIR/bench_output/Number_of_clients_on_canonical_hardware_canonical_workload/$NUMBER_OF_CLIENTS" -H $SERVER_HOSTS -p 11211 \
             {server}membase:"-d $MEMBASE_DATA_PATH -m 32768"                                       \
-            {client}stress[$STRESS_CLIENT]:"-c $NUMBER_OF_CLIENTS -d $CANONICAL_DURATION" \
+            {client}stress[$STRESS_CLIENT]:"-c $NUMBER_OF_CLIENTS -d $CANONICAL_MULTIRUN_DURATION" \
             iostat:1 vmstat:1
     else
         echo "No workload configuration for $DATABASE"
