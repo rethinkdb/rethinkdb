@@ -88,4 +88,4 @@ if __name__ == "__main__":
     op["memory"].default = 1024 * 40   # Lots and lots of cache space; we're testing the serializer here.
     opts = op.parse(sys.argv)
     opts["valgrind"] = opts["netrecord"] = False   # Nobody will want these; no need to type --no-netrecord, etc.
-    auto_server_test_main(test_function, opts, timeout = opts["duration"] / 1000 + 20)
+    auto_server_test_main(test_function, opts, timeout = opts["duration"] + 60)

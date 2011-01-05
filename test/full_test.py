@@ -39,9 +39,9 @@ def run_canonical_tests(mode, checker, protocol, cores, slices):
                     "cores"       : cores,
                     "slices"      : slices,
                     "num-testers" : 16,
-                    "duration"    : 340,
+                    "duration"    : 420,
                     "sigint-timeout" : sigint_timeout },
-                  repeat=5, timeout = 340 + sigint_timeout)
+                  repeat=5, timeout = 480 + sigint_timeout)
     
     do_test_cloud("integration/multi_serial_mix.py",
                   { "auto"        : True,
@@ -52,9 +52,9 @@ def run_canonical_tests(mode, checker, protocol, cores, slices):
                     "slices"      : slices,
                     "num-testers" : 16,
                     "memory"      : 10,
-                    "duration"    : 340,
+                    "duration"    : 420,
                     "sigint-timeout" : sigint_timeout },
-                  repeat=5, timeout = 340 + sigint_timeout)
+                  repeat=5, timeout = 480 + sigint_timeout)
     
     do_test_cloud("integration/big_values.py",
                   { "auto"        : True,
@@ -151,7 +151,7 @@ def run_all_tests(mode, checker, protocol, cores, slices):
                     "cores"       : cores,
                     "slices"      : slices,
                     "duration"    : 400 },
-                  repeat=3, timeout=450)
+                  repeat=3, timeout=600)
     
     # Run the serial mix test also with the other valgrind tools, drd and helgrind
     if checker == "valgrind":
@@ -315,7 +315,7 @@ def run_all_tests(mode, checker, protocol, cores, slices):
                         "cores"       : cores,
                         "slices"      : slices,
                         "suite-test"  : suite_test},
-                      repeat=3, timeout=420)
+                      repeat=3, timeout=480)
                 
     # Canonical tests are included in all tests
     run_canonical_tests(mode, checker, protocol, cores, slices)
