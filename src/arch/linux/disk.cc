@@ -126,7 +126,7 @@ bool linux_direct_file_t::read_async(size_t offset, size_t length, void *buf, li
     request->data = callback;
 
     // Add it to a list of outstanding read requests
-    iosys->r_requests.queue.push_back(request);
+    iosys->io_requests.queue.push_back(request);
     
     pm_io_reads_started++;
 
@@ -156,7 +156,7 @@ bool linux_direct_file_t::write_async(size_t offset, size_t length, void *buf, l
     request->data = callback;
 
     // Add it to a list of outstanding write requests
-    iosys->w_requests.queue.push_back(request);
+    iosys->io_requests.queue.push_back(request);
     
     pm_io_writes_started++;
     
@@ -198,7 +198,7 @@ void linux_direct_file_t::verify(size_t offset, size_t length, void *buf) {
 call to io_submit(). */
 
 linux_io_calls_t::linux_io_calls_t(linux_event_queue_t *queue)
-    : queue(queue), n_pending(0), r_requests(this), w_requests(this)
+    : queue(queue), n_pending(0), io_requests(this)
 {
     int res;
     
@@ -311,12 +311,8 @@ void linux_io_calls_t::process_requests() {
         return;
     
     int res = 0;
-    while(!r_requests.queue.empty() || !w_requests.queue.empty()) {
-        res = r_requests.process_request_batch();
-        if(res < 0)
-            break;
-        
-        res = w_requests.process_request_batch();
+    while(!io_requests.queue.empty()) {
+        res = io_requests.process_request_batch();
         if(res < 0)
             break;
     }
