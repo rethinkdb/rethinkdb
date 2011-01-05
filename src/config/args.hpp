@@ -84,9 +84,9 @@
 // How many milliseconds to allow changes to sit in memory before flushing to disk
 #define DEFAULT_FLUSH_TIMER_MS                    5000
 
-// If the number of dirty buffers is more than X% of the maximum number of buffers allowed, then
-// writeback will be started. DEFAULT_FLUSH_THRESHOLD_PERCENT is the default value of X.
-#define DEFAULT_FLUSH_THRESHOLD_PERCENT           30
+// If more than this many bytes of dirty data accumulate in the cache, then write
+// transactions will be throttled.
+#define DEFAULT_UNSAVED_DATA_LIMIT                GIGABYTE
 
 // How many times the page replacement algorithm tries to find an eligible page before giving up
 #define PAGE_REPL_NUM_TRIES                       3
@@ -104,10 +104,9 @@
 #define MAX_TOTAL_NODE_CONTENTS_SIZE              (MAX_IN_NODE_VALUE_SIZE + sizeof(uint32_t) + sizeof(uint64_t) + sizeof(uint32_t))
 
 // memcached specifies the maximum value size to be 1MB
-#define MAX_VALUE_SIZE                            (1024 * KILOBYTE)
+#define MAX_VALUE_SIZE                            MEGABYTE
 
-// Values larger than this will be streamed in a set operation. Must be smaller
-// than the size of the conn_fsm's rbuf.
+// Values larger than this will be streamed in a set operation.
 #define MAX_BUFFERED_SET_SIZE                     1000
 
 // Values larger than this will be streamed in a get operation

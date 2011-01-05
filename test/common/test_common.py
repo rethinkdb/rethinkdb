@@ -296,7 +296,7 @@ class DataFiles(object):
             [get_executable_path(self.opts, "rethinkdb"), "fsck"] + self.rethinkdb_flags(),
             "fsck_output.txt",
             timeout = 2000, #TODO this should be based on the size of the data file 4.6Gb takes about 30 minutes
-            valgrind_tool = self.opts["valgrind-tool"] if self.opts["valgrind"] else None
+            valgrind_tool = self.opts["valgrind-tool"] if self.opts["valgrind"] else None,
             test_dir = self.test_dir
             )
 
