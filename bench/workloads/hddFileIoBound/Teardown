@@ -1,5 +1,0 @@
-#!/bin/bash
-
-if [ $DATABASE == "rethinkdb" ]; then
-    rm -f /tmp/rethinkdb_tmp_data
-fi

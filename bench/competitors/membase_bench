@@ -19,10 +19,12 @@ cd ../dbench
 SSD_DRIVES="-f /dev/sdf"
 HDD_DRIVES="" # TODO
 SSD_RAID_DEVICE="/dev/sdf"
+sudo 'echo noop > /sys/block/sdf/queue/scheduler'
 
 SERVER_HOSTS="magneto,magneto2"
 CANONICAL_CLIENTS="512"
-CANONICAL_DURATION="300s"
+CANONICAL_DURATION="180s"
+CANONICAL_MULTIRUN_DURATION="45s"
 
 STRESS_CLIENT="puzzler:/home/teapot/stress"
 
@@ -53,6 +55,7 @@ for WORKLOAD in ../workloads/*; do
         export SERVER_HOSTS
         export CANONICAL_CLIENTS
         export CANONICAL_DURATION
+        export CANONICAL_MULTIRUN_DURATION
         export MEMBASE_DATA_PATH
         export STRESS_CLIENT
     

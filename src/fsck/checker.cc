@@ -71,17 +71,54 @@ struct file_knowledge {
     // The metablock with the most recent version.
     learned<log_serializer_metablock_t> metablock;
 
-    // Information about some of the blocks.
-    segmented_vector_t<block_knowledge, MAX_BLOCK_ID> block_info;
-
     // The block from CONFIG_BLOCK_ID (well, the beginning of such a block).
     learned<serializer_config_block_t> config_block;
 
-    explicit file_knowledge(const std::string filename) : filename(filename) { }
+    explicit file_knowledge(const std::string filename) : filename(filename) {
+        guarantee_err(!pthread_rwlock_init(&block_info_lock_, NULL), "pthread_rwlock_init failed");
+    }
+
+    friend class read_locker;
+    friend class write_locker;
 
 private:
+    // Information about some of the blocks.
+    segmented_vector_t<block_knowledge, MAX_BLOCK_ID> block_info_;
+
+    pthread_rwlock_t block_info_lock_;
+
     DISABLE_COPYING(file_knowledge);
 };
+
+
+struct read_locker {
+    read_locker(file_knowledge *knog) : knog_(knog) {
+        guarantee_err(!pthread_rwlock_rdlock(&knog->block_info_lock_), "pthread_rwlock_rdlock failed");
+    }
+    const segmented_vector_t<block_knowledge, MAX_BLOCK_ID>& block_info() const {
+        return knog_->block_info_;
+    }
+    ~read_locker() {
+        guarantee_err(!pthread_rwlock_unlock(&knog_->block_info_lock_), "pthread_rwlock_unlock failed");
+    }
+private:
+    file_knowledge *knog_;
+};
+
+struct write_locker {
+    write_locker(file_knowledge *knog) : knog_(knog) {
+        guarantee_err(!pthread_rwlock_wrlock(&knog->block_info_lock_), "pthread_rwlock_wrlock failed");
+    }
+    segmented_vector_t<block_knowledge, MAX_BLOCK_ID>& block_info() {
+        return knog_->block_info_;
+    }
+    ~write_locker() {
+        guarantee_err(!pthread_rwlock_unlock(&knog_->block_info_lock_), "pthread_rwlock_unlock failed");
+    }
+private:
+    file_knowledge *knog_;
+};
+
 
 // All the files' file_knowledge.
 struct knowledge {
@@ -131,7 +168,7 @@ struct slicecx {
     slicecx(direct_file_t *file, file_knowledge *knog, int global_slice_id)
         : file(file), knog(knog), global_slice_id(global_slice_id), local_slice_id(global_slice_id / knog->config_block->n_files),
           mod_count(btree_key_value_store_t::compute_mod_count(knog->config_block->this_serializer, knog->config_block->n_files, knog->config_block->btree_config.n_slices)) { }
-    ser_block_id_t to_ser_block_id(block_id_t id) {
+    ser_block_id_t to_ser_block_id(block_id_t id) const {
         return translator_serializer_t::translate_block_id(id, mod_count, local_slice_id, CONFIG_BLOCK_ID);
     }
 private:
@@ -158,13 +195,16 @@ public:
 
     // Modifies knog->block_info[ser_block_id].
     bool init(direct_file_t *file, file_knowledge *knog, ser_block_id_t ser_block_id) {
-        if (ser_block_id.value >= knog->block_info.get_size()) {
-            err = no_block;
-            return false;
+        block_knowledge info;
+        {
+            read_locker locker(knog);
+            if (ser_block_id.value >= locker.block_info().get_size()) {
+                err = no_block;
+                return false;
+            }
+            info = locker.block_info()[ser_block_id.value];
         }
-        block_knowledge& info = knog->block_info[ser_block_id.value];
-        flagged_off64_t offset = info.offset;
-        if (!flagged_off64_t::has_value(offset)) {
+        if (!flagged_off64_t::has_value(info.offset)) {
             err = no_block;
             return false;
         }
@@ -173,7 +213,7 @@ public:
             return false;
         }
 
-        if (!raw_block::init(knog->static_config->block_size(), file, offset.parts.value, ser_block_id)) {
+        if (!raw_block::init(knog->static_config->block_size(), file, info.offset.parts.value, ser_block_id)) {
             return false;
         }
 
@@ -188,7 +228,10 @@ public:
 
         // (This line, which modifies the file_knowledge object, is
         // the main reason we have this btree_block abstraction.)
-        info.transaction_id = tx_id;
+        {
+            write_locker locker(knog);
+            locker.block_info()[ser_block_id.value].transaction_id = tx_id;
+        }
 
         err = none;
         return true;
@@ -402,11 +445,11 @@ bool check_lba_extent(direct_file_t *file, file_knowledge *knog, unsigned int sh
         } else if (!is_valid_btree_block(knog, entry.offset.parts.value)) {
             errs->bad_offset_count++;
         } else {
-            if (knog->block_info.get_size() <= entry.block_id.value) {
-                knog->block_info.set_size(entry.block_id.value + 1, block_knowledge::unused);
+            write_locker locker(knog);
+            if (locker.block_info().get_size() <= entry.block_id.value) {
+                locker.block_info().set_size(entry.block_id.value + 1, block_knowledge::unused);
             }
-            knog->block_info[entry.block_id.value].offset = entry.offset;
-
+            locker.block_info()[entry.block_id.value].offset = entry.offset;
         }
     }
 
@@ -835,12 +878,20 @@ private:
 void check_slice_other_blocks(slicecx& cx, other_block_errors *errs) {
     ser_block_id_t min_block = translator_serializer_t::translate_block_id(0, cx.mod_count, cx.local_slice_id, CONFIG_BLOCK_ID);
 
-    segmented_vector_t<block_knowledge, MAX_BLOCK_ID>& block_info = cx.knog->block_info;
+    ser_block_id_t::number_t end;
+    {
+        read_locker locker(cx.knog);
+        end = locker.block_info().get_size();
+    }
 
     ser_block_id_t first_valueless_block = ser_block_id_t::null();
 
-    for (ser_block_id_t::number_t id = min_block.value, end = block_info.get_size(); id < end; id += cx.mod_count) {
-        block_knowledge info = block_info[id];
+    for (ser_block_id_t::number_t id = min_block.value; id < end; id += cx.mod_count) {
+        block_knowledge info;
+        {
+            read_locker locker(cx.knog);
+            info = locker.block_info()[id];
+        }
         if (!flagged_off64_t::has_value(info.offset)) {
             if (first_valueless_block == ser_block_id_t::null()) {
                 first_valueless_block = ser_block_id_t::make(id);
@@ -1001,13 +1052,32 @@ struct all_slices_errors {
     ~all_slices_errors() { delete[] slice; }
 };
 
-void check_after_config_block(direct_file_t *file, file_knowledge *knog, all_slices_errors *errs) {
+struct slice_parameter_t {
+    direct_file_t *file;
+    file_knowledge *knog;
+    int global_slice_number;
+    slice_errors *errs;
+};
+
+void *do_check_slice(void *slice_param) {
+    slice_parameter_t *p = reinterpret_cast<slice_parameter_t *>(slice_param);
+    check_slice(p->file, p->knog, p->global_slice_number, p->errs);
+    delete p;
+    return NULL;
+}
+
+void launch_check_after_config_block(direct_file_t *file, std::vector<pthread_t>& threads, file_knowledge *knog, all_slices_errors *errs) {
     int step = knog->config_block->n_files;
 
     for (int i = knog->config_block->this_serializer; i < errs->n_slices; i += step) {
         errs->slice[i].global_slice_number = i;
         errs->slice[i].home_filename = knog->filename;
-        check_slice(file, knog, i, &errs->slice[i]);
+        slice_parameter_t *param = new slice_parameter_t;
+        param->file = file;
+        param->knog = knog;
+        param->global_slice_number = i;
+        param->errs = &errs->slice[i];
+        guarantee_err(!pthread_create(&threads[i], NULL, do_check_slice, param), "pthread_create not working");
     }
 }
 
@@ -1241,9 +1311,17 @@ bool check_files(const config_t& cfg) {
 
     print_interfile_summary(*knog.file_knog[0]->config_block);
 
-    all_slices_errors slices_errs(knog.file_knog[0]->config_block->btree_config.n_slices);
+    // A thread for every slice.
+    int n_slices = knog.file_knog[0]->config_block->btree_config.n_slices;
+    std::vector<pthread_t> threads(n_slices);
+    all_slices_errors slices_errs(n_slices);
     for (int i = 0; i < num_files; ++i) {
-        check_after_config_block(knog.files[i], knog.file_knog[i], &slices_errs);
+        launch_check_after_config_block(knog.files[i], threads, knog.file_knog[i], &slices_errs);
+    }
+
+    // Wait for all threads to finish.
+    for (int i = 0; i < n_slices; ++i) {
+        guarantee_err(!pthread_join(threads[i], NULL), "pthread_join failing");
     }
 
     bool ok = report_post_config_block_errors(slices_errs);
