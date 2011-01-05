@@ -30,7 +30,7 @@ do_test("cd ../bench/serializer-bench/; make clean; make -j",
 
 # Running canonical tests
 def run_canonical_tests(mode, checker, protocol, cores, slices):
-    sigint_timeout = 240 if "mock" in mode else 60
+    sigint_timeout = 360 if "mock" in mode else 60
     do_test_cloud("integration/multi_serial_mix.py",
                   { "auto"        : True,
                     "mode"        : mode,
@@ -54,7 +54,7 @@ def run_canonical_tests(mode, checker, protocol, cores, slices):
                     "memory"      : 10,
                     "duration"    : 420,
                     "sigint-timeout" : sigint_timeout },
-                  repeat=5, timeout = 480 + sigint_timeout)
+                  repeat=5, timeout = 540 + sigint_timeout)
     
     do_test_cloud("integration/big_values.py",
                   { "auto"        : True,
@@ -140,7 +140,7 @@ def run_all_tests(mode, checker, protocol, cores, slices):
                     "cores"       : cores,
                     "slices"      : slices,
                     "duration"    : 340 },
-                  repeat=5, timeout=400)
+                  repeat=5, timeout=460)
     
     # TODO: This should really only be run under one environment...
     do_test_cloud("regression/gc_verification.py",
