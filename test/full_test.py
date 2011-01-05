@@ -260,6 +260,17 @@ def run_all_tests(mode, checker, protocol, cores, slices):
                     "duration"    : 340},
                   repeat=3, timeout=400)
 
+    do_test_cloud("integration/serial_mix.py",
+                  { "auto"        : True,
+                    "mode"        : mode,
+                    "no-valgrind" : not checker,
+                    "protocol"    : protocol,
+                    "cores"       : cores,
+                    "slices"      : slices,
+                    "serve-flags" : "--flush-timer 50",
+                    "duration"    : 60},
+                  repeat=1, timeout = 120)
+
     do_test_cloud("integration/command_line_sanitizing.py",
                   { "auto"        : False,
                     "mode"        : mode,
