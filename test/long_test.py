@@ -1,7 +1,7 @@
 #!/usr/bin/python
-import sys
+import sys, os
+from datetime import datetime
 from subprocess import Popen, PIPE
-import os
 from optparse import OptionParser
 from cloud_retester import do_test, do_test_cloud, report_cloud, setup_testing_nodes, terminate_testing_nodes
 
@@ -12,6 +12,7 @@ from git_util import *
 long_test_branch = "ivan_long_test"
 long_test_port = 10297
 no_checkout_arg = "--no-checkout"
+long_test_logs_dir = "~/long_test_logs"
 
 rdb_num_threads = 12
 rdb_db_files = ["/dev/sdb", "/dev/sdc", "/dev/sdd", "/dev/sde"] 
@@ -28,13 +29,11 @@ def main():
 
     if options['checkout']:
         if repo_has_local_changes():
-            print "found local changes, bailing out"
+            print >> sys.stderr, "Found local changes, bailing out"
             sys.exit(1)
         print "Pulling the latest updates to long-test branch"
         git_checkout(long_test_branch)
         exec_self(sys.argv[1:] + [no_checkout_arg])
-    else:
-        print "Checked out"
 
     if options['make']:
         # Clean the repo
@@ -46,12 +45,14 @@ def main():
         # Make sure auxillary tools compile
         do_test("cd ../bench/stress-client/; make clean; make -j MYSQL=0 LIBMEMCACHED=0", cmd_format="make")
 
+    ts = datetime.now().replace(microsecond=0)
+    dir_name = "%s-%s" % (ts.isoformat(), repo_version())
+    test_dir = TestDir(os.path.expanduser(os.path.join(long_test_logs_dir, dir_name)))
+    print "Test directory: %s" % test_dir.name
+
     # Run the DB
     # build/release/rethinkdb serve -c 7 -m 40000 -f /dev/sdb -f /dev/sdc -f /dev/sdd -f /dev/sde 2>&1 | tee ../long_test_logs/server_log.txt
-    auto_server_test_main(long_test_function, options, timeout=None)
-
-    # Run stress-client
-    #bench/stress-client/stress -s localhost:8080 -c 128 -w 0/0/1/0 -d infinity -o ../long_test_logs/keys
+    auto_server_test_main(long_test_function, opts=options, timeout=None, test_dir=test_dir)
 
 def parse_arguments(args):
     op = make_option_parser()
@@ -76,16 +77,16 @@ def parse_arguments(args):
 
     return opts
 
-def long_test_function(opts, port):
+def long_test_function(opts, port, test_dir):
     print 'Running stress-client...'
-    stress_client(port, workload = {
-        "deletes":  opts["ndeletes"],
-        "updates":  opts["nupdates"],
-        "inserts":  opts["ninserts"],
-        "gets":     opts["nreads"],
-        "appends":  opts["nappends"],
-        "prepends": opts["nprepends"]
-        }, duration=opts["duration"])
+    stress_client(port=port, workload =
+            { "deletes":  opts["ndeletes"]
+            , "updates":  opts["nupdates"]
+            , "inserts":  opts["ninserts"]
+            , "gets":     opts["nreads"]
+            , "appends":  opts["nappends"]
+            , "prepends": opts["nprepends"]
+            }, duration=opts["duration"], test_dir = test_dir)
 
 
 if __name__ == "__main__":
