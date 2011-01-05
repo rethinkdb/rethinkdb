@@ -114,7 +114,8 @@ def run_all_tests(mode, checker, protocol, cores, slices):
                     "protocol"    : protocol,
                     "cores"       : cores,
                     "slices"      : slices,
-                    "duration"    : 1800},
+                    "duration"    : 1800,
+                    "fsck"        : False},
                   repeat=3, timeout=2400)
 
     # Run an modify-heavy workload for half hour
@@ -129,7 +130,25 @@ def run_all_tests(mode, checker, protocol, cores, slices):
                     "ndeletes"    : 1,
                     "nupdates"    : 5,
                     "ninserts"    : 10,
-                    "nreads"      : 1 },
+                    "nreads"      : 1,
+                    "fsck"        : False},
+                  repeat=3, timeout=2400)
+
+    do_test_cloud("integration/stress_load.py",
+                  { "auto"        : True,
+                    "mode"        : mode,
+                    "no-valgrind" : not checker,
+                    "protocol"    : protocol,
+                    "cores"       : cores,
+                    "slices"      : slices,
+                    "duration"    : 1800,
+                    "memory"      : 1000,
+                    "mem-cap"     : 1100,
+                    "ndeletes"    : 0,
+                    "nupdates"    : 0,
+                    "ninserts"    : 1,
+                    "nreads"      : 0,
+                    "fsck"        : False},
                   repeat=3, timeout=2400)
 
     do_test_cloud("integration/serial_mix.py",
