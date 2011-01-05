@@ -5,9 +5,9 @@ from test_common import *
 
 # returns (return_value, stdout, stderr) or None in case the process did not terminate within timeout seconds
 # run_rethinkdb() automatically fills in -f, -s, -c and -p if not specified in flags
-def run_rethinkdb(opts, flags = [], timeout = 10):
+def run_rethinkdb(opts, test_dir, flags = [], timeout = 10):
     executable_path = get_executable_path(opts, "rethinkdb")
-    db_data_dir = os.path.join(make_test_dir(), "db_data")
+    db_data_dir = test_dir.p("db_data")
     if not os.path.isdir(db_data_dir): os.mkdir(db_data_dir)
     db_data_path = os.path.join(db_data_dir, "data_file")
     
@@ -35,8 +35,8 @@ def run_rethinkdb(opts, flags = [], timeout = 10):
     print "Executing " + subprocess.list2cmdline(command_line)
     
     # Redirect output to temporary files to circumvent all the problems with pipe buffers filling up
-    stdout_path = os.path.join(make_test_dir(), "rethinkdb_stdout.txt")
-    stderr_path = os.path.join(make_test_dir(), "rethinkdb_stderr.txt")
+    stdout_path = test_dir.p("rethinkdb_stdout.txt")
+    stderr_path = test_dir.p("rethinkdb_stderr.txt")
     rethinkdb_stdout = file(stdout_path, "w")
     rethinkdb_stderr = file(stderr_path, "w")
     
@@ -59,15 +59,16 @@ def check_rethinkdb_flags(opts, flags, expected_return_value):
     create_db_timeout = 15
     rethinkdb_check_timeout = 10
     
+    test_dir = TestDir()
     # Create an empty database file
-    create_result = run_rethinkdb(opts, ["create", "--force"], create_db_timeout)
+    create_result = run_rethinkdb(opts, test_dir, ["create", "--force"], create_db_timeout)
     if create_result is None:
         raise ValueError("Server took longer than %d seconds to create database." % server_create_time)
     if create_result[0] != 0:
         raise ValueError("Server failed to create database.")
     
     # Run RethinkDB with the specified flags
-    rethinkdb_result = run_rethinkdb(opts, flags, rethinkdb_check_timeout)
+    rethinkdb_result = run_rethinkdb(opts, test_dir, flags, rethinkdb_check_timeout)
     if expected_return_value is None and rethinkdb_result is not None:
         raise ValueError("RethinkDB did exit with a return value of %i, although it was not expected to. Flags were: %s" % (rethinkdb_result[0], flags))
     else:

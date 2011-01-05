@@ -21,8 +21,7 @@ def get_pipelined(socket):
     if actual_response != expected_response:
         raise ValueError("Pipelined get failed, expected %s, got %s" % (repr(expected_response), repr(actual_response)))
 
-def test_function(opts, port):
-    
+def test_function(opts, port, test_dir):
     print "Inserting"
     mc = connect_to_port(opts, port)
     insert_dict = dict((str(i),str(i)) for i in xrange(NUM_INTS))

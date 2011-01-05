@@ -3,15 +3,16 @@ import os, sys, socket, random, time
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
 from test_common import *
 
-def test_function(opts, port):
+def test_function(opts, port, test_dir):
     print "Starting stress client at ", time.strftime("%H:%M:%S")
-    stress_client(port, workload= { "deletes":  opts["ndeletes"],
+    stress_client(port=port, workload=
+                                  { "deletes":  opts["ndeletes"],
                                     "updates":  opts["nupdates"],
                                     "inserts":  opts["ninserts"],
                                     "gets":     opts["nreads"],
                                     "appends":  opts["nappends"],
                                     "prepends": opts["nprepends"] },
-                  duration="%ds" % opts["duration"])
+                  duration="%ds" % opts["duration"], test_dir=test_dir)
         
 if __name__ == "__main__":
     op = make_option_parser()

@@ -4,15 +4,14 @@ import sys, os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
 from test_common import *
 
-def test(opts, mc):
-
+def test(opts, mc, test_dir):
     print "Shuffling numbers"
     ints = range(0, opts["num_ints"])
     shuffle(ints)
 
     print "Checking cas on numbers"
     
-    with StdoutAsLog("cas_log.txt"):
+    with StdoutAsLog("cas_log.txt", test_dir):
         for i in ints:
             print "Inserting %d" % i
             if (0 == mc.set(str(i), str(i))):

@@ -66,7 +66,7 @@ def test_values_near_size(size, port):
         too_big = test_value_of_size(s, port)
         assert too_big == (s > max_legal_value_size)
 
-def test(opts, port):
+def test(opts, port, test_dir):
 
     # threshold for storing in node vs. storing in large bug
     test_values_near_size(250, port)

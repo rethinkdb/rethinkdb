@@ -128,8 +128,7 @@ def random_action(opts, mc, clone, deleted):
         # verify_all(opts, mc, clone, deleted)
         pass
 
-def test(opts, mc):
-
+def test(opts, mc, test_dir):
     clone = {}
     deleted = set()
     
