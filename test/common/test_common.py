@@ -330,7 +330,7 @@ class DataFiles(object):
 class Server(object):
     
     # Server should not take more than %(server_start_time)d seconds to start up
-    server_start_time = 30
+    server_start_time = 60
     
     # If server does not respond to SIGINT, give SIGquit and then, after %(server_sigquit_time)
     # seconds, send SIGKILL 
