@@ -143,4 +143,4 @@ if __name__ == "__main__":
     op["thorough"] = BoolFlag("--thorough")
     op["restart_server_prob"] = FloatFlag("--restart-server-prob", 0)
     opts = op.parse(sys.argv)
-    simple_test_main(test, opts, timeout = opts["duration"] + 5)
+    simple_test_main(test, opts, timeout = opts["duration"] + 15)

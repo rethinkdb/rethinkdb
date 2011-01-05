@@ -307,7 +307,7 @@ class TestDir(object):
         if os.path.exists(dir_name):
             assert os.path.isdir(dir_name)
             shutil.rmtree(dir_name)
-            os.mkdir(dir_name)
+        os.mkdir(dir_name)
 
     def p(self, *path_elements):
         return os.path.join(self.name, *path_elements)
@@ -561,7 +561,7 @@ class MemcachedWrapperThatRestartsServer(object):
             snapshot_dir = self.test_dir.p("db_data", self.server.name.replace(" ", "_"))
             print "Storing a snapshot of server data files in %r." % snapshot_dir
             os.mkdir(snapshot_dir)
-            for fn in os.listdir(test_dir.p("db_data")):
+            for fn in os.listdir(self.test_dir.p("db_data")):
                 path = self.test_dir.p("db_data", fn)
                 if os.path.isfile(path):
                     corrupt(path, self.opts["corruption_p"])

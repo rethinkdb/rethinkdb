@@ -3,18 +3,18 @@ import multiprocessing, sys, os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
 from test_common import *
 
-def child(opts, log_path, port):
+def child(opts, log_path, test_dir, port):
     # This is run in a separate process
     import sys
     sys.stdout = sys.stderr = file(log_path, "w")
     print "Starting test against server at port %d..." % port
     import serial_mix
     mc = connect_to_port(opts, port)
-    serial_mix.test(opts, mc)
+    serial_mix.test(opts, mc, test_dir)
     mc.disconnect_all()
     print "Done with test."
 
-shutdown_grace_period = 0.5
+shutdown_grace_period = 15
 
 def test(opts, port, test_dir):
     
@@ -36,7 +36,8 @@ def test(opts, port, test_dir):
             opts2 = dict(opts)
             opts2["keysuffix"] = "_%d" % id   # Prevent collisions between tests
             
-            process = multiprocessing.Process(target = child, args = (opts2, log_path, port))
+	    nth_test_dir = os.path.join(test_dir.p("testers/%d/" %id))
+            process = multiprocessing.Process(target = child, args = (opts2, log_path, nth_test_dir, port))
             process.start()
             
             processes.append((process, id))
