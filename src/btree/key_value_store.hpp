@@ -117,6 +117,9 @@ public:
     solution to this is to keep track of the number of queries originating on each thread and wait
     for the number of queries to drop to zero before we begin the shutdown process in earnest. */
     // TODO: This is effectively an RWI lock. Switch to a real RWI lock when we have coroutines.
+    // TODO: This is now redundant because the memcached handler will not shut down until all of its
+    // noreply requests have come back, so we cannot ever be shut down while there are outstanding
+    // requests. Remove it after our first release.
     int queries_out[MAX_THREADS];
     bool waiting_for_queries_out[MAX_THREADS];
     void started_a_query();   // Called by btree fsm

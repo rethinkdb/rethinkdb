@@ -15,7 +15,7 @@ def rand_split(string, nsub_strings):
 
     return strings
 
-def test_function(opts, port):
+def test_function(opts, port, test_dir):
     
     ints = range(opts["num_ints"])
     

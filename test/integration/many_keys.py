@@ -3,7 +3,7 @@ import random, sys, os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
 from test_common import *
 
-def test_function(opts, mc):
+def test_function(opts, mc, test_dir):
     
     print "Inserting"
     keys = [str(x) for x in xrange(opts["num_keys"])]

@@ -9,33 +9,12 @@ class TestFailure(Exception):
     def __str__(self):
         return repr(self.value)
 
-made_test_dir = False
-def make_test_dir():
-    global made_test_dir
-    test_dir_name = "output_from_test"
-    if not made_test_dir:
-        if os.path.exists(test_dir_name):
-            assert os.path.isdir(test_dir_name)
-            shutil.rmtree(test_dir_name)
-        os.mkdir(test_dir_name)
-        made_test_dir = True
-    return test_dir_name
-
-def make_test_file(name):
-    dirname = os.path.join(make_test_dir(), os.path.dirname(name))
-    if not os.path.isdir(dirname): os.makedirs(dirname)
-    basename = os.path.basename(name)
-    tries = 0
-    while os.path.exists(os.path.join(dirname, basename)):
-        tries += 1
-        basename = os.path.basename(name) + "_%d" % tries
-    return os.path.join(dirname, basename)
-
 class StdoutAsLog(object):
-    def __init__(self, name):
+    def __init__(self, name, test_dir):
         self.name = name
+        self.test_dir = test_dir
     def __enter__(self):
-        self.path = make_test_file(self.name)
+        self.path = self.test_dir.make_file(self.name)
         print "Writing log file %r." % self.path
         self.f = file(self.path, "w")
         sys.stdout = self.f
@@ -61,7 +40,7 @@ def make_option_parser():
     o["slices"] = IntFlag("--slices", 3)
     o["memory"] = IntFlag("--memory", 100)
     o["duration"] = IntFlag("--duration", 10)
-    o["flags"] = StringFlag("--flags", "")
+    o["serve-flags"] = StringFlag("--serve-flags", "")
     o["stress"] = StringFlag("--stress", "")
     o["sigint-timeout"] = IntFlag("--sigint-timeout", 60)
     o["no-timeout"] = BoolFlag("--no-timeout", invert = False)
@@ -114,15 +93,14 @@ def wait_with_timeout(process, timeout):
             time.sleep(wait_interval)
         return process.poll()
 
-def run_executable(command_line, output_path, timeout=60, valgrind_tool=None):
-    
+def run_executable(command_line, output_path, test_dir, timeout=60, valgrind_tool=None):
     summary = os.path.basename(command_line[0])
     if len(command_line) > 4: summary += " " + cmd_join(command_line[1:4]) + " [...]"
     else: summary += " " + cmd_join(command_line[1:])
     print "Running %r;" % summary,
     sys.stdout.flush()
     
-    output_path = make_test_file(output_path)
+    output_path = test_dir.make_file(output_path)
     
     if not os.path.exists(command_line[0]):
         raise RuntimeError("Bad executable: %r does not exist." % command_line[0])
@@ -162,11 +140,11 @@ def run_executable(command_line, output_path, timeout=60, valgrind_tool=None):
     else:
         print "done after %f seconds." % total_time
 
-def run_with_timeout(obj, args = (), kwargs = {}, timeout = None, name = "the test"):
-    
+def run_with_timeout(obj, test_dir, args = (), kwargs = {}, timeout = None, name = "the test"):
     print "Running %s..." % name
     
     result_holder = [None, None]
+    kwargs['test_dir'] = test_dir
     def run():
         try:
             result = obj(*args, **kwargs)
@@ -191,10 +169,8 @@ def run_with_timeout(obj, args = (), kwargs = {}, timeout = None, name = "the te
         assert False
 
 class NetRecord(object):
-    
-    def __init__(self, target_port, name = "net"):
-    
-        nrc_log_dir = make_test_file("netrecord/%s" % name.replace(" ", "_"))
+    def __init__(self, target_port, test_dir, name = "net"):
+        nrc_log_dir = test_dir.make_file("netrecord/%s" % name.replace(" ", "_"))
         os.mkdir(nrc_log_dir)
         nrc_log_root = os.path.join(nrc_log_dir, "conn")
         print "Logging network traffic to %s_*." % nrc_log_root
@@ -221,8 +197,7 @@ class NetRecord(object):
 
 num_stress_clients = 0
 
-def stress_client(port=8080, host="localhost", workload={"gets":1, "inserts":1}, duration="10000q"):
-    
+def stress_client(test_dir, port=8080, host="localhost", workload={"gets":1, "inserts":1}, duration="10000q"):
     global num_stress_clients
     num_stress_clients += 1
     
@@ -238,14 +213,13 @@ def stress_client(port=8080, host="localhost", workload={"gets":1, "inserts":1},
             workload.get("prepends", 0), workload.get("verifies", 0)),
         ]
     
-    key_file = make_test_file("stress_client/keys")
+    key_file = test_dir.make_file("stress_client/keys")
     command_line.extend(["-o", key_file])
     if os.path.exists(key_file): command_line.extend(["-i", key_file])
     
-    run_executable(command_line, "stress_client/output", timeout=None)
+    run_executable(command_line, "stress_client/output", timeout=None, test_dir=test_dir)
 
 def rdb_stats(port=8080, host="localhost"):
-    
     sock = socket.socket()
     sock.connect((host, port))
     sock.send("stats\r\n")
@@ -283,15 +257,14 @@ def get_executable_path(opts, name):
     return executable_path
 
 class DataFiles(object):
-    
-    def __init__(self, opts):
-        
+    def __init__(self, opts, test_dir):
         self.opts = opts
+        self.test_dir = test_dir
         
         if self.opts["ssds"]:
             self.files = [ssd.replace(' ','') for ssd in self.opts["ssds"]]
         else:
-            db_data_dir = os.path.join(make_test_dir(), "db_data")
+            db_data_dir = test_dir.p("db_data")
             if not os.path.isdir(db_data_dir): os.mkdir(db_data_dir)
             db_data_path = os.path.join(db_data_dir, "data_file")
             tries = 0
@@ -304,11 +277,11 @@ class DataFiles(object):
             get_executable_path(opts, "rethinkdb"), "create", "--force",
             "-s", str(self.opts["slices"]),
             "-c", str(self.opts["cores"]),
-            ] + self.rethinkdb_flags() + \
-            shlex.split(self.opts["flags"]),
+            ] + self.rethinkdb_flags(),
             "creator_output",
             timeout = 30,
-            valgrind_tool = self.opts["valgrind-tool"] if self.opts["valgrind"] else None
+            valgrind_tool = self.opts["valgrind-tool"] if self.opts["valgrind"] else None,
+            test_dir = self.test_dir
             )
     
     def rethinkdb_flags(self):
@@ -319,16 +292,36 @@ class DataFiles(object):
         return flags
     
     def fsck(self):
-        
         run_executable(
             [get_executable_path(self.opts, "rethinkdb"), "fsck"] + self.rethinkdb_flags(),
             "fsck_output.txt",
-            timeout = 600,
+            timeout = 2000, #TODO this should be based on the size of the data file 4.6Gb takes about 30 minutes
             valgrind_tool = self.opts["valgrind-tool"] if self.opts["valgrind"] else None
+            test_dir = self.test_dir
             )
 
+class TestDir(object):
+    def __init__(self, dir_name = "output_from_test"):
+        self.name = dir_name
+        if os.path.exists(dir_name):
+            assert os.path.isdir(dir_name)
+            shutil.rmtree(dir_name)
+        os.mkdir(dir_name)
+
+    def p(self, *path_elements):
+        return os.path.join(self.name, *path_elements)
+
+    def make_file(self, name):
+        dirname = self.p(os.path.dirname(name))
+        if not os.path.isdir(dirname): os.makedirs(dirname)
+        basename = os.path.basename(name)
+        tries = 0
+        while os.path.exists(os.path.join(dirname, basename)):
+            tries += 1
+            basename = os.path.basename(name) + (".%d" % tries)
+        return os.path.join(dirname, basename)
+
 class Server(object):
-    
     # Server should not take more than %(server_start_time)d seconds to start up
     server_start_time = 60
     
@@ -340,34 +333,30 @@ class Server(object):
     
     valgrind_error_code = 100
     
-    def __init__(self, opts, name = "server", extra_flags = [], data_files = None):
-        assert made_test_dir
-        
+    def __init__(self, opts, test_dir, name = "server", extra_flags = [], data_files = None):
         self.running = False
         self.opts = opts
         self.base_name = name
         self.extra_flags = extra_flags
+        self.test_dir = test_dir
         
         if self.opts["database"] == "rethinkdb":
-            
             self.executable_path = get_executable_path(self.opts, "rethinkdb")
-            
             if data_files is not None:
                 self.data_files = data_files
             else:
-                self.data_files = DataFiles(self.opts)
+                self.data_files = DataFiles(self.opts, test_dir=test_dir)
         
         self.times_started = 0
     
     def start(self):
-        
         self.times_started += 1
         if self.times_started == 1: self.name = self.base_name
         else: self.name = self.base_name + " %d" % self.times_started
         print "Starting %s." % self.name
         
         # Make a file to log what the server prints
-        output_path = os.path.join(make_test_dir(), "%s_output.txt" % self.name.replace(" ","_"))
+        output_path = self.test_dir.p("%s_output.txt" % self.name.replace(" ","_"))
         print "Redirecting output to %r." % output_path
         server_output = file(output_path, "w")
         
@@ -379,7 +368,7 @@ class Server(object):
                 "-c", str(self.opts["cores"]),
                 "-m", str(self.opts["memory"]),
                 ] + self.data_files.rethinkdb_flags() + \
-                shlex.split(self.opts["flags"]) + \
+                shlex.split(self.opts["serve-flags"]) + \
                 self.extra_flags
         
         elif self.opts["database"] == "memcached":
@@ -418,7 +407,7 @@ class Server(object):
         # Start netrecord if necessary
         
         if self.opts["netrecord"]:
-            self.nrc = NetRecord(server_port, self.name)
+            self.nrc = NetRecord(target_port=server_port, test_dir=self.test_dir, name=self.name)
             self.port = self.nrc.port
         else:
             self.port = server_port
@@ -427,6 +416,7 @@ class Server(object):
         
         waited = 0
         while waited < self.server_start_time:
+            self.verify()
             s = socket.socket()
             try: s.connect(("localhost", server_port))
             except Exception, e:
@@ -448,7 +438,6 @@ class Server(object):
         self.verify()
         
     def verify(self):
-        
         assert self.running
         
         if self.server.poll() != None:
@@ -465,7 +454,6 @@ class Server(object):
                     (self.name.capitalize(), signal_with_number(-self.server.poll())))
     
     def shutdown(self):
-        
         # Make sure the server didn't shut down without being asked to
         self.verify()
         
@@ -487,7 +475,6 @@ class Server(object):
         dead = wait_with_timeout(self.server, self.opts["sigint-timeout"]) is not None
         
         if not dead and self.opts["valgrind"]:
-            
             # Sometimes valgrind loses track of the first SIGINT, especially if it receives it
             # right as it is starting up. Send a second SIGINT to make sure the server gets it.
             # This is stupid and we shouldn't have to do this.
@@ -496,7 +483,6 @@ class Server(object):
             dead = wait_with_timeout(self.server, self.opts["sigint-timeout"]) is not None
         
         if not dead:
-            
             self.server.send_signal(signal.SIGQUIT)
             
             dead = wait_with_timeout(self.server, self.server_sigquit_time) is not None
@@ -529,7 +515,6 @@ class Server(object):
         if self.opts["fsck"]: self.data_files.fsck()
         
     def kill(self):
-        
         if self.opts["interactive"]:
             # We're in interactive mode, probably in GDB. Don't kill it.
             return True
@@ -551,34 +536,33 @@ class Server(object):
         if self.opts["fsck"]: self.data_files.fsck()
     
     def __del__(self):
-        
         # Avoid leaking processes in case there is an error in the test before we call end().
         if hasattr(self, "server") and self.server.poll() == None:
             self.server.send_signal(signal.SIGKILL)
 
 class MemcachedWrapperThatRestartsServer(object):
-    def __init__(self, opts, server, internal_mc_maker):
+    def __init__(self, opts, server, internal_mc_maker, test_dir):
         self.opts = opts
         self.server = server
         self.internal_mc_maker = internal_mc_maker
         self.internal_mc = self.internal_mc_maker()
+        self.test_dir = test_dir
     def __getattr__(self, name):
         if random.random() < self.opts["restart_server_prob"]:
             self.do_restart()
         return getattr(self.internal_mc, name)
     def do_restart(self):
-        
         self.internal_mc.disconnect_all()
         print "Interrupting test to restart server..."
         
         try:
             self.server.shutdown()
         finally:
-            snapshot_dir = os.path.join(make_test_dir(), "db_data", self.server.name.replace(" ", "_"))
+            snapshot_dir = self.test_dir.p("db_data", self.server.name.replace(" ", "_"))
             print "Storing a snapshot of server data files in %r." % snapshot_dir
             os.mkdir(snapshot_dir)
-            for fn in os.listdir(os.path.join(make_test_dir(), "db_data")):
-                path = os.path.join(make_test_dir(), "db_data", fn)
+            for fn in os.listdir(self.test_dir.p("db_data")):
+                path = self.test_dir.p("db_data", fn)
                 if os.path.isfile(path):
                     corrupt(path, self.opts["corruption_p"])
                     shutil.copyfile(path, os.path.join(snapshot_dir, fn))
@@ -589,7 +573,6 @@ class MemcachedWrapperThatRestartsServer(object):
         self.internal_mc = self.internal_mc_maker()
 
 def connect_to_port(opts, port):
-    
     if opts["mclib"] == "pylibmc":
         import pylibmc
         mc = pylibmc.Client(["localhost:%d" % port], binary = (opts["protocol"] == "binary"))
@@ -602,11 +585,10 @@ def connect_to_port(opts, port):
     
     return mc
 
-def connect_to_server(opts, server):
-    
+def connect_to_server(opts, server, test_dir):
     if opts.get("restart_server_prob", 0) > 0:
         mc_maker = lambda: connect_to_port(opts, server.port)
-        mc = MemcachedWrapperThatRestartsServer(opts, server, mc_maker)
+        mc = MemcachedWrapperThatRestartsServer(opts, server, mc_maker, test_dir)
     
     else:
         mc = connect_to_port(opts, server.port)
@@ -625,7 +607,7 @@ def start_stats(opts, port):
 
     limits = {}
     if opts["mem-cap"]:
-        limits["memory_virtual[bytes]"] = StatRange(0, opts["mem-cap"])
+        limits["memory_virtual[bytes]"] = StatRange(0, opts["mem-cap"] * 1024 * 1024)
     if opts["garbage-range"]:
         limits["serializer_garbage_ratio"] = StatRange(opts["garbage-range"][0], opts["garbage-range"][1])
 
@@ -636,7 +618,7 @@ def start_stats(opts, port):
     else:
         return None
 
-def auto_server_test_main(test_function, opts, timeout = 30, extra_flags = []):
+def auto_server_test_main(test_function, opts, timeout = 30, extra_flags = [], test_dir=TestDir()):
     """Drop-in main() for tests that test against one server that they do not start up or shut
     down, but that they may open multiple connections against."""
     
@@ -644,16 +626,13 @@ def auto_server_test_main(test_function, opts, timeout = 30, extra_flags = []):
         raise ValueError("--restart-server-prob is invalid for this test.")
     
     if opts["auto"]:
-        
-        make_test_dir()
-        
-        server = Server(opts, extra_flags = extra_flags)
+        server = Server(opts, extra_flags=extra_flags, test_dir=test_dir)
         server.start()
 
         stat_checker = start_stats(opts, server.port)
 
         try:
-            run_with_timeout(test_function, (opts, server.port), timeout = adjust_timeout(opts, timeout))
+            run_with_timeout(test_function, args=(opts, server.port), timeout = adjust_timeout(opts, timeout), test_dir=test_dir)
         except Exception, e:
             test_failure = e
         else:
@@ -665,19 +644,17 @@ def auto_server_test_main(test_function, opts, timeout = 30, extra_flags = []):
         server.shutdown()
 
         if test_failure: raise test_failure
-    
     else:
-        
         port = int(os.environ.get("RUN_PORT", "11211"))
         print "Assuming user has started a server on port %d." % port
         
         if opts["netrecord"]:
-            nrc = NetRecord(port)
+            nrc = NetRecord(target_port=port, test_dir=test_dir)
             port = nrc.port
 
         stat_checker = start_stats(opts, port)
 
-        run_with_timeout(test_function, (opts, port), timeout = adjust_timeout(opts, timeout))
+        run_with_timeout(test_function, args=(opts, port), timeout = adjust_timeout(opts, timeout), test_dir=test_dir)
 
         if stat_checker:
             stat_checker.stop()
@@ -685,21 +662,19 @@ def auto_server_test_main(test_function, opts, timeout = 30, extra_flags = []):
         if opts["netrecord"]:
             nrc.stop()
 
-def simple_test_main(test_function, opts, timeout = 30, extra_flags = []):
+def simple_test_main(test_function, opts, timeout = 30, extra_flags = [], test_dir=TestDir()):
     """Drop-in main() for tests that open a single connection against a single server that they
     do not shut down or start up again."""
     try:
         if opts["auto"]:
-            make_test_dir()
-            
-            server = Server(opts, extra_flags = extra_flags)
+            server = Server(opts, extra_flags=extra_flags, test_dir=test_dir)
             server.start()
 
             stat_checker = start_stats(opts, server.port)
 
-            mc = connect_to_server(opts, server)
+            mc = connect_to_server(opts, server, test_dir=test_dir)
             try:
-                run_with_timeout(test_function, (opts, mc), timeout = adjust_timeout(opts, timeout))
+                run_with_timeout(test_function, args=(opts, mc), timeout = adjust_timeout(opts, timeout), test_dir=test_dir)
             except Exception, e:
                 test_failure = e
             else:
@@ -714,7 +689,6 @@ def simple_test_main(test_function, opts, timeout = 30, extra_flags = []):
             if test_failure: raise test_failure
 
         else:
-            
             if opts["restart_server_prob"]:
                 raise ValueError("--restart-server-prob is invalid without --auto.")
             
@@ -722,12 +696,12 @@ def simple_test_main(test_function, opts, timeout = 30, extra_flags = []):
             print "Assuming user has started a server on port %d." % port
             
             if opts["netrecord"]:
-                nrc = NetRecord(port)
+                nrc = NetRecord(target_port=port, test_dir=test_dir)
                 port = nrc.port
             
             stat_checker = start_stats(opts, port)
             mc = connect_to_port(opts, port)
-            run_with_timeout(test_function, (opts, mc), timeout = adjust_timeout(opts, timeout))
+            run_with_timeout(test_function, args=(opts, mc), timeout = adjust_timeout(opts, timeout), test_dir=test_dir)
             mc.disconnect_all()
             if stat_checker:
                 stat_checker.stop()

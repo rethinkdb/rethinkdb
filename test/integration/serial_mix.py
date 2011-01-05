@@ -128,8 +128,7 @@ def random_action(opts, mc, clone, deleted):
         # verify_all(opts, mc, clone, deleted)
         pass
 
-def test(opts, mc):
-
+def test(opts, mc, test_dir):
     clone = {}
     deleted = set()
     
@@ -144,4 +143,4 @@ if __name__ == "__main__":
     op["thorough"] = BoolFlag("--thorough")
     op["restart_server_prob"] = FloatFlag("--restart-server-prob", 0)
     opts = op.parse(sys.argv)
-    simple_test_main(test, opts, timeout = opts["duration"] + 5)
+    simple_test_main(test, opts, timeout = opts["duration"] + 60)

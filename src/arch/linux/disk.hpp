@@ -65,7 +65,10 @@ public:
     io_context_t aio_context;
     fd_t aio_notify_fd;
     
+    // Number of requests in the OS right now
     int n_pending;
+    
+    // TODO: now that we have only one queue, merge queue_t and linux_io_calls_t
     
     struct queue_t {
         linux_io_calls_t *parent;
@@ -75,7 +78,7 @@ public:
         explicit queue_t(linux_io_calls_t *parent);
         int process_request_batch();
         ~queue_t();
-    } r_requests, w_requests;
+    } io_requests;
 
 public:
     void on_event(int events);

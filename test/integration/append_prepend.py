@@ -3,8 +3,7 @@ import sys, os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
 from test_common import *
 
-def test_function(opts, mc):
-
+def test_function(opts, mc, test_dir):
     print "Testing append"
     if mc.set("a", "aaa") == 0:
         raise ValueError, "Set failed"

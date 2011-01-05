@@ -30,7 +30,7 @@ do_test("cd ../bench/serializer-bench/; make clean; make -j",
 
 # Running canonical tests
 def run_canonical_tests(mode, checker, protocol, cores, slices):
-    sigint_timeout = 240 if "mock" in mode else 60
+    sigint_timeout = 360 if "mock" in mode else 60
     do_test_cloud("integration/multi_serial_mix.py",
                   { "auto"        : True,
                     "mode"        : mode,
@@ -54,7 +54,7 @@ def run_canonical_tests(mode, checker, protocol, cores, slices):
                     "memory"      : 10,
                     "duration"    : 420,
                     "sigint-timeout" : sigint_timeout },
-                  repeat=5, timeout = 480 + sigint_timeout)
+                  repeat=5, timeout = 540 + sigint_timeout)
     
     do_test_cloud("integration/big_values.py",
                   { "auto"        : True,
@@ -114,7 +114,8 @@ def run_all_tests(mode, checker, protocol, cores, slices):
                     "protocol"    : protocol,
                     "cores"       : cores,
                     "slices"      : slices,
-                    "duration"    : 1800},
+                    "duration"    : 1800,
+                    "fsck"        : False},
                   repeat=3, timeout=2400)
 
     # Run an modify-heavy workload for half hour
@@ -129,7 +130,25 @@ def run_all_tests(mode, checker, protocol, cores, slices):
                     "ndeletes"    : 1,
                     "nupdates"    : 5,
                     "ninserts"    : 10,
-                    "nreads"      : 1 },
+                    "nreads"      : 1,
+                    "fsck"        : False},
+                  repeat=3, timeout=2400)
+
+    do_test_cloud("integration/stress_load.py",
+                  { "auto"        : True,
+                    "mode"        : mode,
+                    "no-valgrind" : not checker,
+                    "protocol"    : protocol,
+                    "cores"       : cores,
+                    "slices"      : slices,
+                    "duration"    : 1800,
+                    "memory"      : 1000,
+                    "mem-cap"     : 1100,
+                    "ndeletes"    : 0,
+                    "nupdates"    : 0,
+                    "ninserts"    : 1,
+                    "nreads"      : 0,
+                    "fsck"        : False},
                   repeat=3, timeout=2400)
 
     do_test_cloud("integration/serial_mix.py",
@@ -140,7 +159,7 @@ def run_all_tests(mode, checker, protocol, cores, slices):
                     "cores"       : cores,
                     "slices"      : slices,
                     "duration"    : 340 },
-                  repeat=5, timeout=400)
+                  repeat=5, timeout=460)
     
     # TODO: This should really only be run under one environment...
     do_test_cloud("regression/gc_verification.py",
@@ -260,6 +279,17 @@ def run_all_tests(mode, checker, protocol, cores, slices):
                     "duration"    : 340},
                   repeat=3, timeout=400)
 
+    do_test_cloud("integration/serial_mix.py",
+                  { "auto"        : True,
+                    "mode"        : mode,
+                    "no-valgrind" : not checker,
+                    "protocol"    : protocol,
+                    "cores"       : cores,
+                    "slices"      : slices,
+                    "serve-flags" : "--flush-timer 50",
+                    "duration"    : 60},
+                  repeat=1, timeout = 120)
+
     do_test_cloud("integration/command_line_sanitizing.py",
                   { "auto"        : False,
                     "mode"        : mode,
@@ -302,8 +332,7 @@ def run_all_tests(mode, checker, protocol, cores, slices):
                     "no-valgrind" : not checker,
                     "protocol"    : protocol,
                     "cores"       : cores,
-                    "slices"      : slices,
-                    "no-netrecord": True}, # Until netrecord bug is fixed.
+                    "slices"      : slices},
                   repeat=10, timeout=30)
 
     for suite_test in glob.glob('integration/memcached_suite/*.t'):

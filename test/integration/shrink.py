@@ -4,17 +4,16 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.
 from test_common import *
 
 if __name__ == "__main__":
-
     op = make_option_parser()
     op["mclib"].default = "memcache"   # memcache plays nicer with this test than pylibmc does
     op["num_keys"] = IntFlag("--num-keys", 1000)
     opts = op.parse(sys.argv)
 
-    make_test_dir()
+    test_dir = TestDir()
 
     # Start server
 
-    server = Server(opts)
+    server = Server(opts, test_dir=test_dir)
     server.start()
 
     # Insert many keys, then remove them all

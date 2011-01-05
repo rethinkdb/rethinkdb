@@ -39,7 +39,7 @@ def garbage():
 def funny():
     return "Yo dawg"
 
-def test_function(opts, port):
+def test_function(opts, port, test_dir):
 
     sent_log = open('fuzz_sent', 'w')
     recv_log = open('fuzz_recv', 'w')

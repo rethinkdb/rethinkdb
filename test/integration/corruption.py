@@ -14,14 +14,14 @@ if __name__ == "__main__":
     op["mclib"].default = "memcache"   # memcache plays nicer with this test than pylibmc does
     opts = op.parse(sys.argv)
     
-    make_test_dir()
+    test_dir = TestDir()
     mutual_list = []
     
     # Start first server
     
     opts_without_valgrind = dict(opts)
     opts_without_valgrind["valgrind"] = False
-    server1 = Server(opts_without_valgrind, "first server", extra_flags = ["--wait-for-flush", "y", "--flush-timer", "0"])
+    server1 = Server(opts_without_valgrind, name="first server", extra_flags = ["--wait-for-flush", "y", "--flush-timer", "0"], test_dir = test_dir)
     server1.start()
     server_killed = False
     
@@ -57,19 +57,19 @@ if __name__ == "__main__":
     # Store snapshot of possibly-corrupted data files
     
     print
-    snapshot_dir = os.path.join(make_test_dir(), "db_data_snapshot")
+    snapshot_dir = test_dir.p("db_data_snapshot")
     print "Storing snapshot of data files in %r." % snapshot_dir
-    shutil.copytree(os.path.join(make_test_dir(), "db_data"), snapshot_dir)
+    shutil.copytree(test_dir.p("db_data"), snapshot_dir)
     print
     
     # Start second server
     
-    server2 = Server(opts, "second server", data_files = server1.data_files)
+    server2 = Server(opts, name="second server", data_files = server1.data_files, test_dir = test_dir)
     server2.start()
     
     # Check to make sure that the values are all present
     
-    def second_test():
+    def second_test(test_dir):
         mc = connect_to_port(opts, server2.port)
         successes = fails = 0
         for value in mutual_list:
@@ -85,7 +85,7 @@ if __name__ == "__main__":
             (len(mutual_list), successes)
         if fails > 10:   # Arbitrary threshold above which to declare the test a failure
             raise ValueError("Unacceptably many values were missing.")
-    run_with_timeout(second_test, timeout = 30, name = "second test")
+    run_with_timeout(second_test, timeout = 30, name = "second test", test_dir = test_dir)
     
     # Clean up
     
