@@ -295,8 +295,8 @@ class DataFiles(object):
         run_executable(
             [get_executable_path(self.opts, "rethinkdb"), "fsck"] + self.rethinkdb_flags(),
             "fsck_output.txt",
-            timeout = 600,
-            valgrind_tool = self.opts["valgrind-tool"] if self.opts["valgrind"] else None,
+            timeout = 2000, #TODO this should be based on the size of the data file 4.6Gb takes about 30 minutes
+            valgrind_tool = self.opts["valgrind-tool"] if self.opts["valgrind"] else None
             test_dir = self.test_dir
             )
 
@@ -607,7 +607,7 @@ def start_stats(opts, port):
 
     limits = {}
     if opts["mem-cap"]:
-        limits["memory_virtual[bytes]"] = StatRange(0, opts["mem-cap"])
+        limits["memory_virtual[bytes]"] = StatRange(0, opts["mem-cap"] * 1024 * 1024)
     if opts["garbage-range"]:
         limits["serializer_garbage_ratio"] = StatRange(opts["garbage-range"][0], opts["garbage-range"][1])
 

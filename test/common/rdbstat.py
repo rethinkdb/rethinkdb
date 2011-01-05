@@ -69,8 +69,6 @@ class RDBStat():
 
         for name, acceptable_range in self.limits.iteritems():
             if not stat_dict[name] in acceptable_range:
-                import pdb
-                pdb.set_trace()
                 raise(StatError(name, stat_dict[name], acceptable_range))
 
     def run(self):
