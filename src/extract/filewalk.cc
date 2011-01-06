@@ -76,7 +76,7 @@ void walk_extents(dumper_t &dumper, direct_file_t &file, const cfg_t static_conf
 void observe_blocks(block_registry &registry, direct_file_t &file, const cfg_t cfg, uint64_t filesize);
 void get_all_values(dumper_t& dumper, const segmented_vector_t<off64_t, MAX_BLOCK_ID>& offsets, direct_file_t& file, const cfg_t cfg, uint64_t filesize);
 bool check_config(const cfg_t& cfg);
-void dump_pair_value(dumper_t &dumper, direct_file_t& file, const cfg_t& cfg, const segmented_vector_t<off64_t, MAX_BLOCK_ID>& offsets, const btree_leaf_pair *pair, ser_block_id_t this_block);
+void dump_pair_value(dumper_t &dumper, direct_file_t& file, const cfg_t& cfg, const segmented_vector_t<off64_t, MAX_BLOCK_ID>& offsets, const btree_leaf_pair *pair, ser_block_id_t this_block, int pair_size_limiter);
 void walkfile(dumper_t &dumper, const char *path);
 
 
@@ -128,7 +128,7 @@ void walk_extents(dumper_t &dumper, direct_file_t &file, cfg_t cfg) {
         if (!(CONFIG_BLOCK_ID.ser_id.value < n && offsets[CONFIG_BLOCK_ID.ser_id.value] != block_registry::null)) {
             fail_due_to_user_error(
                 "Config block cannot be found (CONFIG_BLOCK_ID = %u, offsets.get_size() = %u)."
-                "  Use --force-mod-count to override.\n",
+                "  Use --force-slice-count to override.\n",
                  CONFIG_BLOCK_ID, n);
         }
         
@@ -196,12 +196,19 @@ void get_all_values(dumper_t& dumper, const segmented_vector_t<off64_t, MAX_BLOC
             const leaf_node_t *leaf = (leaf_node_t *)b.buf;
 
             if (check_magic<leaf_node_t>(leaf->magic)) {
-                uint16_t num_pairs = leaf->npairs;
+                int num_pairs = leaf->npairs;
                 logDBG("We have a leaf node with %d pairs.\n", num_pairs);
-                for (uint16_t j = 0; j < num_pairs; ++j) {
-                    const btree_leaf_pair *pair = leaf_node_handler::get_pair(leaf, leaf->pair_offsets[j]);
 
-                    dump_pair_value(dumper, file, cfg, offsets, pair, block_id);
+                int pair_offsets_back_offset = offsetof(leaf_node_t, pair_offsets) + sizeof(*leaf->pair_offsets) * num_pairs;
+                if (unsigned(pair_offsets_back_offset) < cfg.block_size().value()) {
+
+                    for (int j = 0; j < num_pairs; ++j) {
+                        uint16_t pair_offset = leaf->pair_offsets[j];
+                        if (pair_offset >= pair_offsets_back_offset && pair_offset <= cfg.block_size().value()) {
+                            const btree_leaf_pair *pair = leaf_node_handler::get_pair(leaf, leaf->pair_offsets[j]);
+                            dump_pair_value(dumper, file, cfg, offsets, pair, block_id, cfg.block_size().value() - pair_offset);
+                        }
+                    }
                 }
             }
         }
@@ -280,9 +287,24 @@ bool get_large_buf_segments(const btree_key *key, direct_file_t& file, const lar
 
 
 // Dumps the values for a given pair.
-void dump_pair_value(dumper_t &dumper, direct_file_t& file, const cfg_t& cfg, const segmented_vector_t<off64_t, MAX_BLOCK_ID>& offsets, const btree_leaf_pair *pair, ser_block_id_t this_block) {
+void dump_pair_value(dumper_t &dumper, direct_file_t& file, const cfg_t& cfg, const segmented_vector_t<off64_t, MAX_BLOCK_ID>& offsets, const btree_leaf_pair *pair, ser_block_id_t this_block, int pair_size_limiter) {
     const btree_key *key = &pair->key;
+
+    // TODO: move this functionality to btree_leaf_pair, give it a
+    // "fits(int size_limiter)" method so that we ourselves don't have
+    // to carefully parse our way through without stepping too far.
+
+    if (int(int(key->size) + sizeof(btree_key) + sizeof(btree_value)) > pair_size_limiter) {
+        logERR("(In block %u, offset %lu) A pair's key juts off the end of the block.  Partial key: '%.*s'", this_block, offsets[this_block.value], std::min<int>(pair_size_limiter - 1, key->size), key->contents);
+        return;
+    }
+
     const btree_value *value = pair->value();
+
+    if (key->size + 1 + value->full_size() > pair_size_limiter) {
+        logERR("(In block %u, offset %lu) A pair's value juts off the end of the block.  The key is '%.*s'", this_block, offsets[this_block.value], key->size, key->contents);
+        return;
+    }
 
     btree_value::mcflags_t flags = value->mcflags();
     btree_value::exptime_t exptime = value->exptime();
