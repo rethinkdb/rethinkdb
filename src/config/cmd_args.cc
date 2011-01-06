@@ -18,87 +18,112 @@ void print_version_message() {
 }
 
 void usage(const char *name) {
-    printf("Usage:\n"
-           "        rethinkdb [serve] [-h] [-v] [-S <semantic_file>] [-c <ncores>]\n"
-           "                          [-m <maxRAM>] [-l <log_file>] [-p <port>]\n"
-           "                          [--flush-timer <ms>] [--wait-for-flush [y|n]]\n"
-           "                          [--flush-threshold <n%%>] [--gc-range <low>-<high>]\n"
-           "                          [--active-data-extents <nExtents>]\n"
-           "                          [-f <file_1> -f <file_2> ...]\n"
-           "        rethinkdb create  [-h] [-s <nshards>] [-l <log_file>]\n"
-           "                          [--block-size <nbytes>] [--extent-size <nbytes>]\n"
-           "                          [--force] -f data_file_1 -f data_file_2 ...\n"
-           "        rethinkdb extract [-h] [-l <log_file>] [-o <output-file>]\n"
-           "                          [--force-block-size] [--force-extent-size]\n"
-           "                          [--force-mod-count] -f data_file\n"
-           "        rethinkdb fsck    [-h] [-l <log_file>] -f data_file_1 -f data_file_2 ...\n"
-           "        rethinkdb help    <command>\n"
+    printf("Usage: rethinkdb COMMAND ...\n"
+           "Commands:\n"
+           "    help        Display help about rethinkdb and rethinkdb commands.\n"
            "\n"
-           "        rethinkdb --version     Print version information and exit.\n"
-           "        rethinkdb --help        Print this usage message and exit.\n");
+           "Creating and serving databases:\n"
+           "    create      Create an empty database.\n"
+           "    serve       Serve an existing database.\n"
+           "\n"
+           "Administrating databases:\n"
+           "    extract     Extract as much data as possible from a corrupted database.\n"
+           "    fsck        Check a database for corruption.\n"
+           "Use 'rethinkdb help COMMAND' for help on a single command.\n"
+           "Use 'rethinkdb --version' for the current version of rethinkdb.\n");
     exit(0);
 }
 
 void usage_serve(const char *name) {
     printf("Usage:\n"
-           "        rethinkdb (serve) [OPTIONS] [-f <file_1> -f <file_2> ...]\n"
-           "\nOptions:\n"
+           "        rethinkdb serve [OPTIONS] [-f <file_1> -f <file_2> ...]\n"
+           "        Serve a database with one or more storage files.\n"
+           "\n"
+           "Options:\n"
 
     //     "                        24 characters start here.                              | < last character
-           "      --version         Print version information and exit.\n"
-           "  -h, --help            Print these usage options and exit.\n"
-           "  -v, --verbose         Print extra information to standard output.\n"
-
            "  -f, --file            Path to file or block device where database goes.\n"
            "                        Can be specified multiple times to use multiple files.\n");
+    printf("  -c, --cores           Number of cores to use for handling requests.\n"
+           "  -m, --max-cache-size  Maximum amount of RAM to use for caching disk\n"
+           "                        blocks, in megabytes. This should be ~90%% of\n" 
+           "                        the RAM you want RethinkDB to use\n"
+           "  -p, --port            Socket port to listen on. Defaults to %d.\n", DEFAULT_LISTEN_PORT);
+    printf("\n"
+           "Flushing options:\n");
+    printf("      --wait-for-flush  Do not respond to commands until changes are durable.\n"
+           "                        Expects 'y' or 'n'\n"
+           "      --flush-timer     Time in milliseconds that the server should allow\n"
+           "                        changes to sit in memory before flushing it to disk.\n"
+           "                        Pass 'disable' to allow modified data to sit in memory\n"
+           "                        indefinitely.\n"
+           "      --flush-threshold If more than X%% of the server's maximum cache size is\n"
+           "                        modified data, the server will flush it all to disk.\n"
+           "                        Pass 0 to flush immediately when changes are made.\n");
+    if (DEFAULT_FLUSH_TIMER_MS == NEVER_FLUSH) {
+        printf("                        Defaults to 'disable'.\n");
+    } else {
+        printf("                        Defaults to %dms.\n", DEFAULT_FLUSH_TIMER_MS);
+    }
+    printf("\n"
+           "Disk options:\n");
+    printf("      --gc-range low-high  (e.g. --gc-range 0.5-0.75)\n"
+           "                        The proportion of garbage maintained by garbage\n"
+           "                        collection.\n"
+           "      --active-data-extents\n"
+           "                        How many places in the file to write to at once.\n"
+           "\n"
+           "Output options:\n"
+           "  -v, --verbose         Print extra information to standard output.\n");
+    printf("  -l, --log-file        File to log to. If not provided, messages will be\n"
+           "                        printed to stderr.\n");
 #ifdef SEMANTIC_SERIALIZER_CHECK
     printf("  -S, --semantic-file   Path to the semantic file for the previously specified\n"
            "                        database file. Can only be specified after the path to\n"
            "                        the database file. Default is the name of the database\n"
            "                        file with '%s' appended.\n", DEFAULT_SEMANTIC_EXTENSION);
 #endif
-
-    printf("  -c, --cores           Number of cores to use for handling requests.\n"
-           "  -m, --max-cache-size  Maximum amount of RAM to use for caching disk\n"
-           "                        blocks, in megabytes.\n"
-           "  -l, --log-file        File to log to. If not provided, messages will be\n"
-           "                        printed to stderr.\n"
-           "  -p, --port            Socket port to listen on. Defaults to %d.\n", DEFAULT_LISTEN_PORT);
-    printf("      --wait-for-flush  Do not respond to commands until changes are durable.\n"
-           "                        Expects 'y' or 'n'\n"
-           "      --flush-timer     Time in milliseconds that the server should allow\n"
-           "                        changes to sit in memory before flushing it to disk.\n"
-           "                        Pass 'disable' to allow modified data to sit in memory\n"
-           "                        indefinitely.\n");
-    if (DEFAULT_FLUSH_TIMER_MS == NEVER_FLUSH) {
-        printf("                        Defaults to 'disable'.\n");
-    } else {
-        printf("                        Defaults to %dms.\n", DEFAULT_FLUSH_TIMER_MS);
-    }
-    printf("      --flush-threshold If more than X%% of the server's maximum cache size is\n"
-           "                        modified data, the server will flush it all to disk.\n"
-           "                        Pass 0 to flush immediately when changes are made.\n"
-           "      --gc-range low-high  (e.g. --gc-range 0.5-0.75)\n"
-           "                        The proportion of garbage maintained by garbage\n"
-           "                        collection.\n"
-           "      --active-data-extents\n"
-           "                        How many places in the file to write to at once.\n");
+    printf("\n"
+           "Serve can be called with no arguments to run a server with default parameters.\n"
+           "For best performance RethinkDB should be run with one -file per device and a\n"
+           "--max-cache-size no more than 90%% of the RAM it will have available to it\n");
+    printf("\n"
+           "Flush options go here once tim updates them\n");
+    printf("\n"
+           "The --gc-range defines the proportion of the database that can be garbage.\n"
+           "A high value will result in better performance at the cost of higher disk usage.\n"
+           "The --active-data-extents should be based on the devices being used.\n"
+           "For values known to maximize performance, consult RethinkDB support.\n");
     exit(0);
 }
 
 void usage_create(const char *name) {
     printf("Usage:\n"
            "        rethinkdb create [OPTIONS] -f <file_1> [-f <file_2> ...]\n"
-           "\nOptions:\n"
-           "  -h  --help            Print these usage options.\n"
+           "        Create an empty database with one or more storage files.\n");
+    printf("\n"
+           "On disk format options:\n"
+           "  -f, --file            Path to file or block device where database goes. Can be\n"
+           "                        specified multiple times to use multiple files.\n"
            "  -s, --slices          Shards total.\n"
            "      --block-size      Size of a block, in bytes.\n"
-           "      --extent-size     Size of an extent, in bytes.\n"
+           "      --extent-size     Size of an extent, in bytes.\n");
+    printf("\n"
+           "Output options:\n"
            "  -l, --log-file        File to log to. If not provided, messages will be\n"
            "                        printed to stderr.\n"
+           );
+    printf("\n"
+           "Behaviour options:\n"
            "      --force           Create a new database even if there already is one.\n"
-           "  -f, --file            Path to file or block device where database goes. Can be\n"
-           "                        specified multiple times to use multiple files.\n");
+           );
+    printf("\n"
+           "Create makes an empty RethinkDB database. This files must be served together\n"
+           "using the serve command and. For best performance RethinkDB should be run with\n"
+           "one -file per device\n");
+    printf("\n"
+           "--block-size and --extent-size should be based on the devices being used.\n"
+           "For values known to maximize performance, consult RethinkDB support.\n");
     exit(0);
 }
 
