@@ -324,12 +324,26 @@ class dbench():
                                     <th style="padding: 0.5em 0.8em; font-size: small;">Upper / Lower 5-percentile</th>
                                 </tr>"""
             for competitor in data.iteritems():
+                try:
+                    mean_latency = format_metadata(competitor[1].select('latency').stats()['latency']['mean'])
+                except KeyError:
+                    mean_latency = "N/A"
+                try:
+                    standard_dev = format_metadata(competitor[1].select('latency').stats()['latency']['stdev'])
+                except KeyError:
+                    standard_dev = "N/A"
+                try:
+                    upper_percentile = format_metadata(competitor[1].select('latency').stats()['latency']['upper_5_percentile'])
+                    lower_percentile = format_metadata(competitor[1].select('latency').stats()['latency']['lower_5_percentile'])
+                except KeyError:
+                    upper_percentile = "N/A"
+                    lower_percentile = "N/A"
                 print >>res,     """<tr style="text-align: left; border-bottom: 2px solid #FFFFFF;">
                                         <td style="background: #DBE2F1; padding: 0.5em 0.8em; font-weight: bold;">%s</td>
                                         <td style="background: #DBE2F1; padding: 0.5em 0.8em;">%s</td>
                                         <td style="background: #DBE2F1; padding: 0.5em 0.8em;">%s</td>
                                         <td style="background: #DBE2F1; padding: 0.5em 0.8em;">%s / %s</td>
-                                    </tr>""" % (competitor[0], format_metadata(competitor[1].select('latency').stats()['latency']['mean']), format_metadata(competitor[1].select('latency').stats()['latency']['stdev']), format_metadata(competitor[1].select('latency').stats()['latency']['upper_5_percentile']), format_metadata(competitor[1].select('latency').stats()['latency']['lower_5_percentile']))
+                                    </tr>""" % (competitor[0], mean_latency, standard_dev, upper_percentile, lower_percentile)
             print >>res, """</table>
                         </td>"""
 
