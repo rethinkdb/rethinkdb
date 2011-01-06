@@ -277,13 +277,13 @@ class DataFiles(object):
             get_executable_path(opts, "rethinkdb"), "create", "--force",
             "-s", str(self.opts["slices"]),
             "-c", str(self.opts["cores"]),
-            ] + self.rethinkdb_flags(),
+            ] + (["--extent-size", "1048576"] if self.opts["valgrind"] else []) + self.rethinkdb_flags(),
             "creator_output",
             timeout = 30,
             valgrind_tool = self.opts["valgrind-tool"] if self.opts["valgrind"] else None,
             test_dir = self.test_dir
             )
-    
+
     def rethinkdb_flags(self):
         flags = []
         for file in self.files:

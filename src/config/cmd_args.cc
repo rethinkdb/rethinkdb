@@ -7,6 +7,7 @@
 #include "fsck/fsck.hpp"
 #include "extract/extract.hpp"
 #include "utils.hpp"
+#include "help.hpp"
 
 void print_version_message() {
     printf("rethinkdb " RETHINKDB_VERSION
@@ -18,7 +19,8 @@ void print_version_message() {
 }
 
 void usage(const char *name) {
-    printf("Usage: rethinkdb COMMAND ...\n"
+    Help_Pager *help = Help_Pager::instance();
+    help->pagef("Usage: rethinkdb COMMAND ...\n"
            "Commands:\n"
            "    help        Display help about rethinkdb and rethinkdb commands.\n"
            "\n"
@@ -35,7 +37,8 @@ void usage(const char *name) {
 }
 
 void usage_serve(const char *name) {
-    printf("Usage:\n"
+    Help_Pager *help = Help_Pager::instance();
+    help->pagef("Usage:\n"
            "        rethinkdb serve [OPTIONS] [-f <file_1> -f <file_2> ...]\n"
            "        Serve a database with one or more storage files.\n"
            "\n"
@@ -44,14 +47,14 @@ void usage_serve(const char *name) {
     //     "                        24 characters start here.                              | < last character
            "  -f, --file            Path to file or block device where database goes.\n"
            "                        Can be specified multiple times to use multiple files.\n");
-    printf("  -c, --cores           Number of cores to use for handling requests.\n"
+    help->pagef("  -c, --cores           Number of cores to use for handling requests.\n"
            "  -m, --max-cache-size  Maximum amount of RAM to use for caching disk\n"
            "                        blocks, in megabytes. This should be ~90%% of\n" 
            "                        the RAM you want RethinkDB to use\n"
            "  -p, --port            Socket port to listen on. Defaults to %d.\n", DEFAULT_LISTEN_PORT);
-    printf("\n"
+    help->pagef("\n"
            "Flushing options:\n");
-    printf("      --wait-for-flush  Do not respond to commands until changes are durable.\n"
+    help->pagef("      --wait-for-flush  Do not respond to commands until changes are durable.\n"
            "                        Expects 'y' or 'n'\n"
            "      --flush-timer     Time in milliseconds that the server should allow\n"
            "                        changes to sit in memory before flushing it to disk.\n"
@@ -61,13 +64,13 @@ void usage_serve(const char *name) {
            "                        The maximum amount of dirty data (data which is held in memory\n"
            "                        but has not yet been serialized to disk\n");
     if (DEFAULT_FLUSH_TIMER_MS == NEVER_FLUSH) {
-        printf("                        Defaults to 'disable'.\n");
+        help->pagef("                        Defaults to 'disable'.\n");
     } else {
-        printf("                        Defaults to %dms.\n", DEFAULT_FLUSH_TIMER_MS);
+        help->pagef("                        Defaults to %dms.\n", DEFAULT_FLUSH_TIMER_MS);
     }
-    printf("\n"
+    help->pagef("\n"
            "Disk options:\n");
-    printf("      --gc-range low-high  (e.g. --gc-range 0.5-0.75)\n"
+    help->pagef("      --gc-range low-high  (e.g. --gc-range 0.5-0.75)\n"
            "                        The proportion of garbage maintained by garbage\n"
            "                        collection.\n"
            "      --active-data-extents\n"
@@ -75,19 +78,19 @@ void usage_serve(const char *name) {
            "\n"
            "Output options:\n"
            "  -v, --verbose         Print extra information to standard output.\n");
-    printf("  -l, --log-file        File to log to. If not provided, messages will be\n"
+    help->pagef("  -l, --log-file        File to log to. If not provided, messages will be\n"
            "                        printed to stderr.\n");
 #ifdef SEMANTIC_SERIALIZER_CHECK
-    printf("  -S, --semantic-file   Path to the semantic file for the previously specified\n"
+    help->pagef("  -S, --semantic-file   Path to the semantic file for the previously specified\n"
            "                        database file. Can only be specified after the path to\n"
            "                        the database file. Default is the name of the database\n"
            "                        file with '%s' appended.\n", DEFAULT_SEMANTIC_EXTENSION);
 #endif
-    printf("\n"
+    help->pagef("\n"
            "Serve can be called with no arguments to run a server with default parameters.\n"
            "For best performance RethinkDB should be run with one -file per device and a\n"
            "--max-cache-size no more than 90%% of the RAM it will have available to it\n");
-    printf("\n"
+    help->pagef("\n"
            "In general how you flush is a tradeoff between performance and how much data\n" 
            "you risk losing to a crash. With --wait-for-flush enabled no data is ever at risk.\n"
            "Specifying --flush-timer means that data sent more than --flush-timer is guarunteed\n" //TODO @slava this guaruntee isn't quite true but is easy to explain is it okay?
@@ -95,7 +98,7 @@ void usage_serve(const char *name) {
            "--unsaved-data-limit allows you to limit how much data could be lost with a crash.\n"
            "Unlike --flush-timer this flag is a hard limit and will throttle connections when it\n"
            "is reached. This value cannot be more than 1/2 of the cache\n");
-    printf("\n"
+    help->pagef("\n"
            "The --gc-range defines the proportion of the database that can be garbage.\n"
            "A high value will result in better performance at the cost of higher disk usage.\n"
            "The --active-data-extents should be based on the devices being used.\n"
@@ -104,30 +107,31 @@ void usage_serve(const char *name) {
 }
 
 void usage_create(const char *name) {
-    printf("Usage:\n"
+    Help_Pager *help = Help_Pager::instance();
+    help->pagef("Usage:\n"
            "        rethinkdb create [OPTIONS] -f <file_1> [-f <file_2> ...]\n"
            "        Create an empty database with one or more storage files.\n");
-    printf("\n"
+    help->pagef("\n"
            "On disk format options:\n"
            "  -f, --file            Path to file or block device where database goes. Can be\n"
            "                        specified multiple times to use multiple files.\n"
            "  -s, --slices          Shards total.\n"
            "      --block-size      Size of a block, in bytes.\n"
            "      --extent-size     Size of an extent, in bytes.\n");
-    printf("\n"
+    help->pagef("\n"
            "Output options:\n"
            "  -l, --log-file        File to log to. If not provided, messages will be\n"
            "                        printed to stderr.\n"
            );
-    printf("\n"
+    help->pagef("\n"
            "Behaviour options:\n"
            "      --force           Create a new database even if there already is one.\n"
            );
-    printf("\n"
+    help->pagef("\n"
            "Create makes an empty RethinkDB database. This files must be served together\n"
            "using the serve command and. For best performance RethinkDB should be run with\n"
            "one -file per device\n");
-    printf("\n"
+    help->pagef("\n"
            "--block-size and --extent-size should be based on the devices being used.\n"
            "For values known to maximize performance, consult RethinkDB support.\n");
     exit(0);
