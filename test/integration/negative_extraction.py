@@ -34,7 +34,6 @@ if __name__ == "__main__":
     
     server1.kill()
 
-    npairs = None
 
 
     # Corrupt the file, slightly.  This is a bit of a hack because we
@@ -55,7 +54,7 @@ if __name__ == "__main__":
         if last_leaf_blockid == None:
             raise ValueError("the data file had no leaf nodes")
 
-        f.seek(0)
+        f.seek(0, os.SEEK_SET)
 
         high_transaction_number = -1
         high_transaction_index = 0
@@ -65,7 +64,7 @@ if __name__ == "__main__":
             block = f.read(4096)
             if block == '':
                 done = True
-            elif block[0:4] == last_leaf_blockid:
+            elif block[0:4] == last_leaf_blockid and (block[12:16] == 'inte' or block[12:16] == 'leaf'):
                 trans_no = struct.unpack('=q', block[4:12])
                 if trans_no > high_transaction_number:
                     high_transaction_number = trans_no
@@ -75,7 +74,8 @@ if __name__ == "__main__":
         if high_transaction_number == -1:
             raise RuntimeError("A block seems to have disappeared from the file!  This is very confusing.")
 
-        f.seek(4096 * high_transaction_index)
+        print "high_transaction_index = %d" % high_transaction_index
+        f.seek(4096 * high_transaction_index, os.SEEK_SET)
 
         block = f.read(4096)
         if block[0:4] != last_leaf_blockid:
@@ -88,7 +88,8 @@ if __name__ == "__main__":
             # rarely.  Maybe it's not worth fixing.
             raise RuntimeError("The block we are considering turned out to be an internal node (this is ok if it happens infrequently)")
 
-        (npairs,) = struct.unpack('=H', block[24:26])
+#        print [ord(block[i]) for i in xrange(4096)]
+        print "block magic = %d %d %d %d = '%s'" % (ord(block[12]), ord(block[13]), ord(block[14]), ord(block[15]), block[12:16])
 
         # set pair_offsets[0] to 5000
         writeblock = block[0:28] + struct.pack('=H', 5000) + block[30:4096]
@@ -96,6 +97,8 @@ if __name__ == "__main__":
         f.write(writeblock)
 
     # Maybe we shouldn't modify the original file in place and instead write a copy.
+
+    # We could double-check here that fsck gets an error.  But we'll get a failure later when we find that we've received every key we've entered.
 
     # Run rethinkdb-extract
 
@@ -130,12 +133,9 @@ if __name__ == "__main__":
         if expected_crlf != "\r\n":
             raise ValueError("Lacking CRLF suffix for value of key '%s'" % key)
 
-    if npairs == None:
-        raise ValueError("database file had no leaf nodes!??")
-
-    if len(mutual_dict) - npairs < len(dumplines) / 2:
+    if len(mutual_dict) - 1 < len(dumplines) / 2:
         raise ValueError("extraction dump has too many keys")
-    elif len(mutual_dict) - npairs > len(dumplines) / 2:
+    elif len(mutual_dict) - 1 > len(dumplines) / 2:
         raise ValueError("extraction dump lacks keys")
 
     print "Extraction test succeeded."
