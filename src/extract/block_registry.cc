@@ -7,7 +7,7 @@ block_registry::block_registry() { }
 
 void block_registry::tell_block(off64_t offset, const buf_data_t& buf_data) {
     ser_block_id_t block_id = buf_data.block_id;
-    if (0 <= block_id.value && block_id.value < MAX_BLOCK_ID) {
+    if (block_id.value < MAX_BLOCK_ID) {
         ser_transaction_id_t transaction_id = buf_data.transaction_id;
 
         if (block_id.value >= transaction_ids.get_size()) {
