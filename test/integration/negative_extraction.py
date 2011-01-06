@@ -57,24 +57,43 @@ if __name__ == "__main__":
 
         f.seek(0)
 
+        high_transaction_number = -1
+        high_transaction_index = 0
+        index = 0
         done = False
         while not done:
             block = f.read(4096)
             if block == '':
                 done = True
             elif block[0:4] == last_leaf_blockid:
-                if block[12:16] == 'inte':
-                    # We accidentally hit a leaf node that
-                    # eventually becomes an internal node.  This
-                    # means the test broke, not RethinkDB.  You
-                    # could ignore this error, if it happens
-                    # rarely.
-                    raise RuntimeError("the block we are considering was once an internal node (but relax)")
-                elif block[12:16] == 'leaf':
-                    # set pair_offsets[0] to 5000
-                    writeblock = block[0:28] + struct.pack('H', 5000) + block[30:4096]
-                    f.seek(-4096, os.SEEK_CUR)
-                    f.write(writeblock)
+                trans_no = struct.unpack('=q', block[4:12])
+                if trans_no > high_transaction_number:
+                    high_transaction_number = trans_no
+                    high_transaction_index = index
+            index = index + 1
+
+        if high_transaction_number == -1:
+            raise RuntimeError("A block seems to have disappeared from the file!  This is very confusing.")
+
+        f.seek(4096 * high_transaction_index)
+
+        block = f.read(4096)
+        if block[0:4] != last_leaf_blockid:
+            raise RuntimeError("A block seems to have changed its block id!  This is very confusing.")
+
+        if block[12:16] == 'inte':
+            # We accidentally hit a leaf node that eventually becomes
+            # an internal node.  This means the test broke, not
+            # RethinkDB.  You could ignore this error, if it happens
+            # rarely.  Maybe it's not worth fixing.
+            raise RuntimeError("The block we are considering turned out to be an internal node (this is ok if it happens infrequently)")
+
+        (npairs,) = struct.unpack('=H', block[24:26])
+
+        # set pair_offsets[0] to 5000
+        writeblock = block[0:28] + struct.pack('=H', 5000) + block[30:4096]
+        f.seek(-4096, os.SEEK_CUR)
+        f.write(writeblock)
 
     # Maybe we shouldn't modify the original file in place and instead write a copy.
 
