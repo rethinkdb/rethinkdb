@@ -5,7 +5,7 @@ echo Clients > $BENCH_DIR/bench_output/Number_of_clients_on_canonical_hardware_c
 
 # Fake a 0-clients result for nicer graphs
 mkdir -p $BENCH_DIR/bench_output/Number_of_clients_on_canonical_hardware_canonical_workload/0/1/client
-echo 0 > $BENCH_DIR/bench_output/Number_of_clients_on_canonical_hardware_canonical_workload/0/1/client/qps.txt
+echo -e "1\t\t0" > $BENCH_DIR/bench_output/Number_of_clients_on_canonical_hardware_canonical_workload/0/1/client/qps.txt
 
 if [ $DATABASE == "rethinkdb" ]; then
     ../../build/release/rethinkdb create $SSD_DRIVES --force

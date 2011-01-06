@@ -11,7 +11,7 @@ if [ $DATABASE == "mysql" ]; then
     MYSQL_HDD_FLAGS="--innodb_data_home_dir= --innodb_data_file_path=$RAID_DEVICE:20Graw"
 
     # Use a different innodb log path
-    MYSQL_HDD_COMMON_FLAGS="--skip-name-resolve --innodb_support_xa=off --innodb_lock_wait_timeout=5 --innodb_flush_method=O_DIRECT --max-connections=1030 --max-prepared-stmt-count=32764 --innodb_log_group_home_dir=/tmp/raidtest"
+    MYSQL_HDD_COMMON_FLAGS="--disable-log-bin --skip-name-resolve --query_cache_size=0 --transaction_isolation=READ-UNCOMMITTED --innodb_support_xa=off --innodb_lock_wait_timeout=5 --innodb_flush_method=O_DIRECT --max-connections=1030 --max-prepared-stmt-count=32764 --innodb_log_group_home_dir=/tmp/raidtest"
     
     export RAID_DEVICE
     export MYSQL_HDD_FLAGS
