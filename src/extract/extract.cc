@@ -41,7 +41,7 @@ void usage(const char *name) {
             "distinct create commands.\n"
             "\n"
             "--force-block-size, --force-extent-size and --force-slice-count should be used if the file is corrupted\n"
-            "to a point that these values are not available (it will tell you when this is the case).\n"); //TODO either explain the gotcha with slice count or change stuff so that it is no longer there.
+            "to a point that these values are not available (it will tell you when this is the case).\n");
     exit(0);        
 }
 
