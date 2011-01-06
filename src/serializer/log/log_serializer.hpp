@@ -178,6 +178,8 @@ private:
     /* Keeps track of buffers that are currently being written, so that if we get a read
     for a block ID that we are currently writing but is not on disk yet, we can return
     the most current version. */
+    // TODO: This is unnecessary now that the IO layer is supposed to guarantee ordering of reads
+    // and writes.
     typedef std::map<
         ser_block_id_t, ls_block_writer_t*
         > block_writer_map_t;
