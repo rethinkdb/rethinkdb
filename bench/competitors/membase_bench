@@ -19,7 +19,7 @@ cd ../dbench
 SSD_DRIVES="-f /dev/sdf"
 HDD_DRIVES="" # TODO
 SSD_RAID_DEVICE="/dev/sdf"
-sudo 'echo noop > /sys/block/sdf/queue/scheduler'
+sudo sh -c 'echo noop > /sys/block/sdf/queue/scheduler'
 
 SERVER_HOSTS="magneto,magneto2"
 CANONICAL_CLIENTS="512"

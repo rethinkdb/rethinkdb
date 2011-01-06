@@ -11,14 +11,17 @@ namespace fsck {
 
 void usage(const char *name) {
     printf("Usage:\n"
-           "        rethinkdb fsck [OPTIONS] -f data_file_1 -f data_file_2 ...\n"
-           "\nOptions:\n"
-           "  -h  --help                Print these usage options.\n"
+           "        rethinkdb fsck [OPTIONS] -f <file_1> [-f <file_2> ...]\n");
+    printf("\n"
+           "Options:\n"
            "  -f  --file                Path to file or block device where part or all of\n"
-           "                            the database exists.\n"
+           "                            the database exists.\n");
+    printf("\n"
+           "Output options:\n"
            "  -l  --log-file            File to log to.  If not provided, messages will be\n"
            "                            printed to stderr.\n");
-
+    printf("\n"
+           "Fsck is used to check one or more files for consistency\n");
     exit(0);
 }
 

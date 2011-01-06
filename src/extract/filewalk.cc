@@ -128,7 +128,7 @@ void walk_extents(dumper_t &dumper, direct_file_t &file, cfg_t cfg) {
         if (!(CONFIG_BLOCK_ID.ser_id.value < n && offsets[CONFIG_BLOCK_ID.ser_id.value] != block_registry::null)) {
             fail_due_to_user_error(
                 "Config block cannot be found (CONFIG_BLOCK_ID = %u, offsets.get_size() = %u)."
-                "  Use --force-mod-count to override.\n",
+                "  Use --force-slice-count to override.\n",
                  CONFIG_BLOCK_ID, n);
         }
         
