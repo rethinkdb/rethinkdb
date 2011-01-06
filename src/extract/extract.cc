@@ -15,22 +15,34 @@ void usage(const char *name) {
     // line options here, so keep them updated accordingly.
 
     printf("Usage:\n"
-           "        rethinkdb extract [OPTIONS] -f data_file\n"
-           "\nOptions:\n"
-           "  -h  --help                Print these usage options.\n"
+           "        rethinkdb extract [OPTIONS] -f <file_1> [-f <file_2> ...]\n"
+           "        Extract data from possibly corrupted database files as a series of memcached commands\n");
+    printf("\n"
+           "Options:\n"
+           "  -f  --file                Path to file or block device where part or all of\n"
+           "                            the database exists.\n");
+    printf("\n"
+           "On disk format options:\n"
            "      --force-block-size    Specifies block size, overriding file headers\n"
            "      --force-extent-size   Specifies extent size, overriding file headers\n"
-           "      --force-mod-count     Specifies number of slices in *this* file,\n"
-           "                            overriding file headers.\n"
-           "  -f  --file                Path to file or block device where part or all of\n"
-           "                            the database exists.\n"
+           "      --force-slice-count     Specifies number of slices in *this* file,\n"
+           "                            overriding file headers.\n");
+    printf("\n"
+           "Output options:\n"
            "  -l  --log-file            File to log to.  If not provided, messages will be\n"
            "                            printed to stderr.\n"
            "  -o  --output-file         File to which to output text memcached protocol\n"
            "                            messages.  This file must not already exist.\n");
     printf("                            Defaults to \"%s\"\n", EXTRACT_CONFIG_DEFAULT_OUTPUT_FILE);
-
-    exit(0);
+    printf("\n"
+           "Extract is useful both for recovering data from a corrupted database and exporting data\n"
+            "to another system. Unlike serve extract need not be run on all of the files made with a\n"
+            "create command it can be run on them individually. Furthermore it can be run on files made with\n"
+            "distinct create commands.\n"
+            "\n"
+            "--force-block-size, --force-extent-size and --force-slice-count should be used if the file is corrupted\n"
+            "to a point that these values are not available (it will tell you when this is the case).\n");
+    exit(0);        
 }
 
 enum { force_block_size = 256,  // Start these values above the ASCII range.
@@ -54,7 +66,7 @@ void parse_cmd_args(int argc, char **argv, config_t *config) {
             {
                 {"force-block-size", required_argument, 0, force_block_size},
                 {"force-extent-size", required_argument, 0, force_extent_size},
-                {"force-mod-count", required_argument, 0, force_mod_count},
+                {"force-slice-count", required_argument, 0, force_mod_count},
 
                 {"file", required_argument, 0, 'f'},
                 {"log-file", required_argument, 0, 'l'},
