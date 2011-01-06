@@ -298,7 +298,7 @@ class TimeSeriesCollection():
         for val in self.data.iteritems():
             stat_report = {}
 	    full_series = map(lambda x: x, val[1])
-	    full_series = full_series[int(len(full_series) * 0.05):] # Cut off first five percent to get more reliable data
+	    full_series = full_series[int(len(full_series) * 0.25):] # Cut off first quarter to get more reliable data
 	    full_series_sorted = full_series
 	    full_series_sorted.sort()
 	    steady_series = full_series[int(len(full_series) * 0.7):]
