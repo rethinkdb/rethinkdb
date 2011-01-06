@@ -1,6 +1,43 @@
 #include "writeback.hpp"
 #include "buffer_cache/mirrored/mirrored.hpp"
 
+writeback_t::begin_transaction_fsm_t::begin_transaction_fsm_t(writeback_t *wb, mc_transaction_t *txn, mc_transaction_begin_callback_t *cb)
+    : writeback(wb), transaction(txn)
+{
+    txn->begin_callback = cb;
+    if (writeback->too_many_dirty_blocks()) {
+        /* When a flush happens, we will get popped off the throttled transactions list
+        and given a green light. */
+        writeback->throttled_transactions_list.push_back(this);
+    } else {
+        green_light();
+    }
+}
+
+void writeback_t::begin_transaction_fsm_t::green_light() {
+    // Lock the flush lock "for reading", but what we really mean is to lock it non-
+    // exclusively because more than one write transaction can proceed at once.
+    if (writeback->flush_lock.lock(rwi_read, this)) {
+        /* push callback on the global event queue - if the lock
+         * returns true, then the request won't have been put on the
+         * flush lock's queue, which can lead to the
+         * transaction_begin_callback not being called when it should be
+         * in certain cases, as shown by append_stress append
+         * reorderings.
+         */
+        call_later_on_this_thread(this);
+    }
+}
+
+void writeback_t::begin_transaction_fsm_t::on_thread_switch() {
+    on_lock_available();
+}
+
+void writeback_t::begin_transaction_fsm_t::on_lock_available() {
+    transaction->green_light();
+    delete this;
+}
+
 perfmon_duration_sampler_t
     pm_flushes_locking("flushes_locking", secs_to_ticks(1)),
     pm_flushes_writing("flushes_writing", secs_to_ticks(1));
