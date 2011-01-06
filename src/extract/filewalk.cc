@@ -234,7 +234,7 @@ bool get_large_buf_segments(const btree_key *key, direct_file_t& file, const lar
     ser_block_id_t::number_t trans_id = trans.value;
 
     if (!(trans_id < offsets.get_size())) {
-        logERR("With key '%.*s': large value has invalid block id: %u (buffer_cache block id = %u, mod_id = %d, mod_count = %d)\n");
+        logERR("With key '%.*s': large value has invalid block id: %u (buffer_cache block id = %u, mod_id = %d, mod_count = %d)\n", key->size, key->contents, trans_id, ref.block_id, mod_id, cfg.mod_count);
         return false;
     }
     if (offsets[trans_id] == block_registry::null) {

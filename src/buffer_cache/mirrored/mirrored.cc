@@ -227,7 +227,7 @@ mc_transaction_t::~mc_transaction_t() {
     pm_transactions_committing.end(&start_time);
 }
 
-void mc_transaction_t::on_lock_available() {
+void mc_transaction_t::green_light() {
     pm_transactions_starting.end(&start_time);
     pm_transactions_active.begin(&start_time);
     begin_callback->on_txn_begin(this);

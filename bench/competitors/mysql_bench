@@ -59,7 +59,7 @@ echo "To get the canonical hardware, we have to disable all but 12 CPUs."
 echo 'Please give me authorization to run bash -c "for CPU in {12..23}; do echo 0 > /sys/devices/system/cpu/cpu\$CPU/online; done"'
 sudo bash -c "for CPU in {12..23}; do echo 0 > /sys/devices/system/cpu/cpu\$CPU/online; done"
 
-# "Initialize" the MySQL database by running some load now. Otherwise it fails on the first actual workload for some mysterious
+# "Initialize" the MySQL database by running some load now. Otherwise it fails on the first actual workload for some mysterious reason
 # TODO: This is just a hacky workaround. Investigate why this happens
 ./dbench                                                                                   \
         -d "$BENCH_DIR/bench_output/warmup" -H $SERVER_HOSTS             \
@@ -87,6 +87,15 @@ for WORKLOAD in ../workloads/*; do
         export MYSQL_SSD_FLAGS
         export MYSQL_SSD_CREATE_FLAGS
         export STRESS_CLIENT
+        
+        # Drop potentially existing bench tables before continueing
+        /usr/local/mysql/libexec/mysqld $MYSQL_COMMON_FLAGS $MYSQL_BUFFER_FLAGS $MYSQL_DURABILITY_FLAGS $MYSQL_SSD_FLAGS --port=9874 &
+        # Wait for server to finish initialization and shut it down
+        while ! echo exit | /usr/local/mysql/bin/mysql -u root --port=9874 2> /dev/null ; do
+            sleep 5
+        done
+        echo drop table bench if exists; | /usr/local/mysql/bin/mysql -u root --port=9874
+        /usr/local/mysql/bin/mysqladmin shutdown -u root --port=9874 2> /dev/null
     
         if [ -e "$WORKLOAD/Setup" ]; then
             "$WORKLOAD/Setup"

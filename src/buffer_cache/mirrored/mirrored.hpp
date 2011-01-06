@@ -145,7 +145,6 @@ public:
 
 /* Transaction class. */
 class mc_transaction_t :
-    public lock_available_callback_t,
     public intrusive_list_node_t<mc_transaction_t>,
     public writeback_t::sync_callback_t
 {
@@ -179,7 +178,7 @@ private:
     
     ticks_t start_time;
     
-    virtual void on_lock_available();
+    void green_light();   // Called by the writeback when it's OK for us to start
     virtual void on_sync();
     
     access_t access;

@@ -70,7 +70,70 @@ def mutate_file(f, block_mutator):
     f.seek(-4096, os.SEEK_CUR)
     f.write(writeblock)
 
-def try_block_mutation(mutation_name, mutation):
+def block_based_mutator(block_mutator):
+    def file_based_mutator(f):
+        mutate_file(f, block_mutator)
+    return file_based_mutator
+
+def gen_random_skip():
+    x = 0
+    while x <= 0:
+        ms = [30, 300, 3000, 30000]
+        m = ms[random.randint(0, 3)]
+        x = random.gauss(m, m / 3.0)
+    return x
+
+
+def garbage_data(length):
+    # Some code that parses the results assumes that we don't have
+    # crazy newlines.  That's why we omit newlines here.  (Also, there
+    # is no reason to include them.)  It's still possible that we
+    # might have newline trouble caused by incidental instances of the
+    # value 10, though, which would result in incorrect underreportage
+    # of keys.
+    return ''.join([chr(random.randint(32,126)) for i in xrange(length)])
+
+random_mutation_probability = 0.25
+
+def random_mutator(f):
+    f.seek(0, os.SEEK_END)
+    filesize = f.tell()
+    # Skip the static header
+    position = 4096
+    f.seek(position, os.SEEK_SET)
+    done = False
+    p = random_mutation_probability
+    while not done:
+        junk = random.randint(1, 2) == 1
+        skip = int(round(gen_random_skip() * (1 if junk else 1.0/p - 1.0)))
+        if position + skip > filesize:
+            done = True
+        elif junk:
+            f.write(garbage_data(skip))
+        else:
+            f.seek(skip, os.SEEK_CUR)
+        position = position + skip
+
+def check_proportional_wrong(mutual_len, dump_len):
+    # We'd naively expect 0.75 to be the threshold (with some
+    # tolerance) since random_mutation_probability is 0.25, but there
+    # are many ways an individual keyvalue can get corrupted.  We're
+    # really just interested in seeing that we have _any_ keys at all
+    # -- the real benefit of this test is when running under valgrind.
+    if float(dump_len) / mutual_len < 0.1:
+        raise ValueError("extraction dump has too few keys: %d/%d = %f", dump_len, mutual_len, float(dump_len) / mutual_len)
+
+def check_one_wrong(mutual_len, dump_len):
+    # mutation is expected to only remove one key from the playing
+    # field.  Feel free to update this code when you create a mutation
+    # that modifies more keys or wipes out an entire leaf node.
+    if mutual_len - 1 < dump_len:
+        raise ValueError("extraction dump has too many keys")
+    elif mutual_len - 1 > dump_len:
+        raise ValueError("extraction dump lacks keys")
+
+
+def try_block_mutation(mutation_name, mutation, length_checker):
     print "Trying the '%s' block mutation..." % mutation_name
 
     shutil.copyfile(server1.data_files.files[0] + '.original', server1.data_files.files[0])
@@ -80,7 +143,7 @@ def try_block_mutation(mutation_name, mutation):
     # becomes an internal node.  This is unlikely but not impossible.
     # So we might get some clearly labeled RuntimeErrors.
     with open(server1.data_files.files[0], 'r+b') as f:
-        mutate_file(f, mutation)
+        mutation(f)
 
     # Maybe we shouldn't modify the original file in place and instead write a copy.
 
@@ -91,7 +154,7 @@ def try_block_mutation(mutation_name, mutation):
     extract_path = get_executable_path(opts, "rethinkdb")
     dump_path = test_dir.p("db_data_dump." + mutation_name + ".txt")
     run_executable(
-        [extract_path, "extract", "-o", dump_path] + server1.data_files.rethinkdb_flags(),
+        [extract_path, "extract", "-o", dump_path, "--force-slice-count", str(opts['slices'])] + server1.data_files.rethinkdb_flags(),
         "extractor_output.txt",
         valgrind_tool = opts["valgrind-tool"] if opts["valgrind"] else None,
         test_dir = test_dir
@@ -102,30 +165,27 @@ def try_block_mutation(mutation_name, mutation):
     dumpfile = open(dump_path, "r")
     dumplines = dumpfile.readlines()
 
+    invalids = 0
+
     equiv_dict = {}
     for i in xrange(0, len(dumplines) / 2):
         m = re.match(r"set (\d+) 0 0 (\d+) noreply\r\n", dumplines[2 * i])
         if m == None:
-            raise ValueError("Invalid extraction for this test (line %d)" % (2 * i))
+            invalids = invalids + 1
+            continue
         (key, length) = m.groups()
 
         next_line = dumplines[2 * i + 1]
         value = next_line[0:int(length)]
         expected_crlf = next_line[int(length):]
 
-        if value != mutual_dict[key]:
-            #raise ValueError("Invalid value for key '%s', was '%s', should be '%s'" % (key, value, mutual_dict[key]))
-            raise ValueError("Invalid value for key '%s', has length %d, should have length %d" % (key, len(value), len(mutual_dict[key])))
+        if value != mutual_dict.get(key):
+            invalids = invalids + 1
+            print "Invalid value for key '%s', has length %d, should have length %d" % (key, len(value), len(mutual_dict[key]))
         if expected_crlf != "\r\n":
             raise ValueError("Lacking CRLF suffix for value of key '%s'" % key)
 
-    # mutation is expected to only remove one key from the playing
-    # field.  Feel free to update this code when you create a mutation
-    # that modifies more keys or wipes out an entire leaf node.
-    if len(mutual_dict) - 1 < len(dumplines) / 2:
-        raise ValueError("extraction dump has too many keys")
-    elif len(mutual_dict) - 1 > len(dumplines) / 2:
-        raise ValueError("extraction dump lacks keys")
+    length_checker(len(mutual_dict), len(dumplines) / 2 - invalids)
 
     print "The '%s' block mutation succeeded." % mutation_name
 
@@ -152,7 +212,7 @@ if __name__ == "__main__":
     # Put some values in server
 
     mc = connect_to_port(opts, server1.port)
-    for i in xrange(0, 100):
+    for i in xrange(0, 1000):
         key = str(i)
         value = str(str(random.randint(0, 9)) * random.randint(0, 10000))
         ok = mc.set(key, value)
@@ -167,8 +227,9 @@ if __name__ == "__main__":
 
     shutil.copyfile(server1.data_files.files[0], server1.data_files.files[0] + '.original')
 
-    try_block_mutation('mutate_pair_offset_zero', mutate_pair_offset_zero)
-    try_block_mutation('mutate_pair_value', mutate_pair_value)
+    try_block_mutation('mutate_pair_offset_zero', block_based_mutator(mutate_pair_offset_zero), check_one_wrong)
+    try_block_mutation('mutate_pair_value', block_based_mutator(mutate_pair_value), check_one_wrong)
+    try_block_mutation('random_mutator', random_mutator, check_proportional_wrong)
 
     print "Extraction test succeeded."
 

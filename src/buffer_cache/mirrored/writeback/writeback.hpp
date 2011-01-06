@@ -57,39 +57,10 @@ public:
     {
         writeback_t *writeback;
         mc_transaction_t *transaction;
-        mc_transaction_begin_callback_t *callback;
-        begin_transaction_fsm_t(writeback_t *wb, mc_transaction_t *txn, mc_transaction_begin_callback_t *cb)
-            : writeback(wb), transaction(txn), callback(cb)
-        {
-            if (writeback->too_many_dirty_blocks()) {
-                /* When a flush happens, we will get popped off the throttled transactions list
-                and given a green light. */
-                writeback->throttled_transactions_list.push_back(this);
-            } else {
-                green_light();
-            }
-        }
-        void green_light() {
-            // Lock the flush lock "for reading", but what we really mean is to lock it non-
-            // exclusively because more than one write transaction can proceed at once.
-            if (writeback->flush_lock.lock(rwi_read, this)) {
-                /* push callback on the global event queue - if the lock
-                 * returns true, then the request won't have been put on the
-                 * flush lock's queue, which can lead to the
-                 * transaction_begin_callback not being called when it should be
-                 * in certain cases, as shown by append_stress append
-                 * reorderings.
-                 */
-                call_later_on_this_thread(this);
-            }
-        }
-        void on_thread_switch() {
-            on_lock_available();
-        }
-        void on_lock_available() {
-            callback->on_txn_begin(transaction);
-            delete this;
-        }
+        begin_transaction_fsm_t(writeback_t *wb, mc_transaction_t *txn, mc_transaction_begin_callback_t *cb);
+        void green_light();
+        void on_thread_switch();
+        void on_lock_available();
     };
     intrusive_list_t<begin_transaction_fsm_t> throttled_transactions_list;
 
