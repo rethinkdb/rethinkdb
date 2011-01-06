@@ -294,7 +294,7 @@ void dump_pair_value(dumper_t &dumper, direct_file_t& file, const cfg_t& cfg, co
     // "fits(int size_limiter)" method so that we ourselves don't have
     // to carefully parse our way through without stepping too far.
 
-    if (key->size + 1 >= pair_size_limiter) {
+    if (int(int(key->size) + sizeof(btree_key) + sizeof(btree_value)) > pair_size_limiter) {
         logERR("(In block %u, offset %lu) A pair's key juts off the end of the block.  Partial key: '%.*s'", this_block, offsets[this_block.value], std::min<int>(pair_size_limiter - 1, key->size), key->contents);
         return;
     }
