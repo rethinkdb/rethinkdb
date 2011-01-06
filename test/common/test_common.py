@@ -1,4 +1,5 @@
 import shlex, sys, traceback, os, shutil, socket, subprocess, time, signal, threading, random
+from threading import Timer
 from vcoptparse import *
 from corrupter import *
 from rdbstat import *
@@ -82,6 +83,25 @@ def signal_with_number(number):
             return name
     return str(number)
 
+def terminate_process(process, timeout=10, send_term=True, wait_to_finish=True):
+    def send_kill():
+        if process.poll() == None:
+            process.kill()
+
+    if send_term:
+        process.terminate()
+
+    if timeout:
+        timer = Timer(timeout, send_kill)
+        timer.start()
+
+    if wait_to_finish:
+        res = process.wait()
+        timer.cancel()
+        return res
+    else:
+        return None
+    
 def wait_with_timeout(process, timeout):
     if timeout is None:
         return process.wait()
@@ -280,7 +300,7 @@ class DataFiles(object):
             "-s", str(self.opts["slices"]),
             "-c", str(self.opts["cores"]),
             ] + (["--extent-size", "1048576"] if self.opts["valgrind"] else []) + self.rethinkdb_flags(),
-            "creator_output",
+            "creator_output.txt",
             timeout = 30,
             valgrind_tool = self.opts["valgrind-tool"] if self.opts["valgrind"] else None,
             test_dir = self.test_dir
