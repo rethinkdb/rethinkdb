@@ -4,7 +4,7 @@ _complete_rethinkdb() {
     create_tokens="-f --file -s --slices --block-size --extent-size -l --log-file --force"
     help_tokens="$commands"
     fsck_tokens="-f --file -l --log-file"
-    serve_tokens="-f --file -c --cores -m --max-cache-size -p --port --wait-for-flush --flush-timer --flush-threshold --gc-range --active-data-extents -v --verbose -l --log-file"
+    serve_tokens="-f --file -c --cores -m --max-cache-size -p --port --wait-for-flush --flush-timer --unsaved-data-limit --gc-range --active-data-extents -v --verbose -l --log-file"
     cur=${COMP_WORDS[COMP_CWORD]}
     if [ "$COMP_CWORD" -eq 1 ]; then
         COMPREPLY=( $( compgen -W "$commands" -- "$cur" ) )
