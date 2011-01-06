@@ -57,9 +57,9 @@ void usage_serve(const char *name) {
            "                        changes to sit in memory before flushing it to disk.\n"
            "                        Pass 'disable' to allow modified data to sit in memory\n"
            "                        indefinitely.\n"
-           "      --flush-threshold If more than X%% of the server's maximum cache size is\n"
-           "                        modified data, the server will flush it all to disk.\n"
-           "                        Pass 0 to flush immediately when changes are made.\n");
+           "      --unsaved-data-limit\n" 
+           "                        The maximum amount of dirty data (data which is held in memory\n"
+           "                        but has not yet been serialized to disk\n");
     if (DEFAULT_FLUSH_TIMER_MS == NEVER_FLUSH) {
         printf("                        Defaults to 'disable'.\n");
     } else {
@@ -88,7 +88,13 @@ void usage_serve(const char *name) {
            "For best performance RethinkDB should be run with one -file per device and a\n"
            "--max-cache-size no more than 90%% of the RAM it will have available to it\n");
     printf("\n"
-           "Flush options go here once tim updates them\n");
+           "In general how you flush is a tradeoff between performance and how much data\n" 
+           "you risk losing to a crash. With --wait-for-flush enabled no data is ever at risk.\n"
+           "Specifying --flush-timer means that data sent more than --flush-timer is guarunteed\n" //TODO @slava this guaruntee isn't quite true but is easy to explain is it okay?
+           "to be on disk. Warning: when IO reaches saturation this guaruntee no longer exists.\n"
+           "--unsaved-data-limit allows you to limit how much data could be lost with a crash.\n"
+           "Unlike --flush-timer this flag is a hard limit and will throttle connections when it\n"
+           "is reached. This value cannot be more than 1/2 of the cache\n");
     printf("\n"
            "The --gc-range defines the proportion of the database that can be garbage.\n"
            "A high value will result in better performance at the cost of higher disk usage.\n"
