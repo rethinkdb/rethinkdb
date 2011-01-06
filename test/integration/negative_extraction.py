@@ -78,8 +78,8 @@ def block_based_mutator(block_mutator):
 def gen_random_skip():
     x = 0
     while x <= 0:
-        ms = [10, 30, 300, 3000, 30000]
-        m = ms[random.randint(0, 4)]
+        ms = [30, 300, 3000, 30000]
+        m = ms[random.randint(0, 3)]
         x = random.gauss(m, m / 3.0)
     return x
 
@@ -144,7 +144,7 @@ def try_block_mutation(mutation_name, mutation, length_checker):
     extract_path = get_executable_path(opts, "rethinkdb")
     dump_path = test_dir.p("db_data_dump." + mutation_name + ".txt")
     run_executable(
-        [extract_path, "extract", "-o", dump_path] + server1.data_files.rethinkdb_flags(),
+        [extract_path, "extract", "-o", dump_path, "--force-slice-count", "3"] + server1.data_files.rethinkdb_flags(),
         "extractor_output.txt",
         valgrind_tool = opts["valgrind-tool"] if opts["valgrind"] else None,
         test_dir = test_dir
@@ -161,14 +161,15 @@ def try_block_mutation(mutation_name, mutation, length_checker):
     for i in xrange(0, len(dumplines) / 2):
         m = re.match(r"set (\d+) 0 0 (\d+) noreply\r\n", dumplines[2 * i])
         if m == None:
-            raise ValueError("Invalid extraction for this test (line %d)" % (2 * i))
+            invalids = invalids + 1
+            continue
         (key, length) = m.groups()
 
         next_line = dumplines[2 * i + 1]
         value = next_line[0:int(length)]
         expected_crlf = next_line[int(length):]
 
-        if value != mutual_dict[key]:
+        if value != mutual_dict.get(key):
             invalids = invalids + 1
             print "Invalid value for key '%s', has length %d, should have length %d" % (key, len(value), len(mutual_dict[key]))
         if expected_crlf != "\r\n":
@@ -201,7 +202,7 @@ if __name__ == "__main__":
     # Put some values in server
 
     mc = connect_to_port(opts, server1.port)
-    for i in xrange(0, 100):
+    for i in xrange(0, 1000):
         key = str(i)
         value = str(str(random.randint(0, 9)) * random.randint(0, 10000))
         ok = mc.set(key, value)
