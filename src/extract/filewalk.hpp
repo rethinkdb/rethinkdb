@@ -38,7 +38,7 @@ struct config_t {
     static const int NO_FORCED_MOD_COUNT = 0;
     config_t() { init(); }
 
-    void init() { 
+    void init() {
         overrides.block_size_ = NO_FORCED_BLOCK_SIZE;
         overrides.extent_size = NO_FORCED_EXTENT_SIZE;
         overrides.mod_count = NO_FORCED_MOD_COUNT;
