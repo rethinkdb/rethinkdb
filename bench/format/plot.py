@@ -444,7 +444,10 @@ def ratio(serieses):
 def means(serieses):
     res = []
     for series in serieses:
-        res.append(stats.mean(map(lambda x: x, series)))
+        try:
+            res.append(stats.mean(map(lambda x: x, series)))
+        except ZeroDivisionError:
+            res.append(0.0)
     return res
 
 def drop_points(serieses):
