@@ -33,7 +33,8 @@ HDD_DRIVES="-f /dev/sdb -f /dev/sdc -f /dev/sdd -f /dev/sde"
 
 SERVER_HOSTS="magneto,magneto2"
 CANONICAL_CLIENTS="512"
-CANONICAL_DURATION="300s"
+CANONICAL_DURATION="180s"
+CANONICAL_MULTIRUN_DURATION="45s"
 
 STRESS_CLIENT="puzzler:/home/teapot/stress"
 
@@ -50,6 +51,7 @@ for WORKLOAD in ../workloads/*; do
         export SERVER_HOSTS
         export CANONICAL_CLIENTS
         export CANONICAL_DURATION
+        export CANONICAL_MULTIRUN_DURATION
         export STRESS_CLIENT
     
         if [ -e "$WORKLOAD/Setup" ]; then

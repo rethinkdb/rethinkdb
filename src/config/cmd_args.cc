@@ -130,7 +130,7 @@ void usage_create(const char *name) {
 enum {
     wait_for_flush = 256, // Start these values above the ASCII range.
     flush_timer,
-    flush_threshold,
+    unsaved_data_limit,
     gc_range,
     active_data_extents,
     block_size,
@@ -194,12 +194,23 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
                 if (argc >= 3) {
                     help_cmd = parse_cmd(argv[2]);
                     switch (help_cmd) {
-                        case cmd_extract: extract::usage(argv[0]); break;
-                        case cmd_create:  usage_create(argv[0]);   break;
-                        case cmd_fsck:    fsck::usage(argv[0]);    break;
-                        case cmd_serve:   usage_serve(argv[0]);    break;
-                        case cmd_none:    printf("No such command %s.\n", argv[2]);
-                        case cmd_help:                             break;
+                        case cmd_extract:
+                            extract::usage(argv[0]);
+                            break;
+                        case cmd_create:
+                            usage_create(argv[0]);
+                            break;
+                        case cmd_fsck:
+                            fsck::usage(argv[0]);
+                            break;
+                        case cmd_serve:
+                            usage_serve(argv[0]);
+                            break;
+                        case cmd_none:
+                            printf("No such command %s.\n", argv[2]);
+                            break;
+                        case cmd_help:
+                            break;
                         default: crash("default");
                     }
                 }
@@ -208,6 +219,7 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
             case cmd_serve:
                 argc--;
                 argv++;
+                break;
             case cmd_none: break;
             default: crash("default");
         }
@@ -223,7 +235,7 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
             {
                 {"wait-for-flush",       required_argument, 0, wait_for_flush},
                 {"flush-timer",          required_argument, 0, flush_timer},
-                {"flush-threshold",      required_argument, 0, flush_threshold},
+                {"unsaved-data-limit",   required_argument, 0, unsaved_data_limit},
                 {"gc-range",             required_argument, 0, gc_range},
                 {"block-size",           required_argument, 0, block_size},
                 {"extent-size",          required_argument, 0, extent_size},
@@ -284,8 +296,8 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
                 config.set_wait_for_flush(optarg); break;
             case flush_timer:
                 config.set_flush_timer(optarg); break;
-            case flush_threshold:
-                config.set_flush_threshold(optarg); break;
+            case unsaved_data_limit:
+                config.set_unsaved_data_limit(optarg); break;
             case gc_range:
                 config.set_gc_range(optarg); break;
             case active_data_extents: 
@@ -336,23 +348,30 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
         } else {
             fail_due_to_user_error("Could not access() path \"%s\": %s", DEFAULT_DB_FILE_NAME, strerror(errno));
         }
-    }
-    
-    /* Sanity-check the input */
-    
-    else if (private_configs.empty() && config.create_store) {
+    } else if (private_configs.empty() && config.create_store) {
         fprintf(stderr, "You must explicitly specify one or more paths with -f.\n");
         usage_create(argv[0]);
     }
     
+    /* Sanity-check the input */
+    
+    if (config.store_dynamic_config.cache.max_dirty_size >
+        config.store_dynamic_config.cache.max_size / 2) {
+        
+        /* The page replacement algorithm won't work properly if the number of dirty bufs
+        is allowed to be more than about half of the total number of bufs. */
+        config.store_dynamic_config.cache.max_dirty_size =
+            config.store_dynamic_config.cache.max_size / 2;
+    }
+    
     if (config.store_dynamic_config.cache.wait_for_flush == true &&
         config.store_dynamic_config.cache.flush_timer_ms == NEVER_FLUSH &&
-        config.store_dynamic_config.cache.flush_threshold_percent != 0) {
-                       printf("WARNING: Server is configured to wait for data to be flushed\n"
+        config.store_dynamic_config.cache.flush_dirty_size != 0) {
+        printf("WARNING: Server is configured to wait for data to be flushed\n"
                "to disk before returning, but also configured to wait\n"
                "indefinitely before flushing data to disk. Setting wait-for-flush\n"
                "to 'no'.\n\n");
-                       config.store_dynamic_config.cache.wait_for_flush = false;
+        config.store_dynamic_config.cache.wait_for_flush = false;
     }
     
     if (config.store_static_config.serializer.extent_size() % config.store_static_config.serializer.block_size().ser_value() != 0) {
@@ -367,6 +386,9 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
                "unlimited zone size to get the effect you probably want.\n");
     }
     
+    // It's probably not necessary for this parameter to be independently configurable
+    config.store_dynamic_config.cache.flush_dirty_size =
+        config.store_dynamic_config.cache.max_dirty_size / 2;
     
     return config;
 }
@@ -480,14 +502,12 @@ void parsing_cmd_config_t::set_gc_range(const char* value) {
     store_dynamic_config.serializer.gc_high_ratio = high;
 }
 
-void parsing_cmd_config_t::set_flush_threshold(const char* value) {
-    int& target = store_dynamic_config.cache.flush_threshold_percent;
-    const int minimum_value = 0;
-    const int maximum_value = 99;
-    
-    target = parse_int(optarg);
-    if (parsing_failed || !is_in_range(target, minimum_value, maximum_value))
-        fail_due_to_user_error("Flush threshold must be a number from %d to %d.", minimum_value, maximum_value);
+void parsing_cmd_config_t::set_unsaved_data_limit(const char* value) {
+    int int_value = parse_int(optarg);
+    if (parsing_failed || !is_positive(int_value))
+        fail_due_to_user_error("Unsaved data limit must be a positive number.");
+        
+    store_dynamic_config.cache.max_dirty_size = (long long)(int_value) * MEGABYTE;
 }
 
 void parsing_cmd_config_t::set_wait_for_flush(const char* value) {
@@ -504,7 +524,7 @@ void parsing_cmd_config_t::set_max_cache_size(const char* value) {
     //if (is_at_most(int_value, static_cast<int>(get_total_ram() / 1024 / 1024)))
     //    fail_due_to_user_error("Cache size is larger than this machine's total memory (%s MB).", get_total_ram() / 1024 / 1024);
         
-    store_dynamic_config.cache.max_size = (long long)(int_value) * 1024ll * 1024ll;
+    store_dynamic_config.cache.max_size = (long long)(int_value) * MEGABYTE;
 }
 
 void parsing_cmd_config_t::set_slices(const char* value) {
@@ -672,7 +692,7 @@ cmd_config_t::cmd_config_t() {
     store_dynamic_config.cache.max_size = DEFAULT_MAX_CACHE_RATIO * get_available_ram();
     store_dynamic_config.cache.wait_for_flush = false;
     store_dynamic_config.cache.flush_timer_ms = DEFAULT_FLUSH_TIMER_MS;
-    store_dynamic_config.cache.flush_threshold_percent = DEFAULT_FLUSH_THRESHOLD_PERCENT;
+    store_dynamic_config.cache.max_dirty_size = DEFAULT_UNSAVED_DATA_LIMIT;
     
     create_store = false;
     force_create = false;

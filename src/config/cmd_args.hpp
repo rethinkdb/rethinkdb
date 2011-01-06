@@ -74,10 +74,13 @@ struct mirrored_cache_config_t {
     // memory indefinitely.
     int flush_timer_ms;
     
-    // flush_threshold_percent is a number between 0 and 100. If the number of dirty blocks in a
-    // buffer cache is more than (flush_threshold_percent / 100) of the maximum number of blocks
-    // allowed in memory, then dirty blocks will be flushed to disk.
-    int flush_threshold_percent; // TODO: this probably should not be configurable
+    // max_dirty_size is the most unsaved data that is allowed in memory before the cache will
+    // throttle write transactions. It's in bytes.
+    long long max_dirty_size;
+    
+    // flush_dirty_size is the amount of unsaved data that will trigger an immediate flush. It
+    // should be much less than max_dirty_size. It's in bytes.
+    long long flush_dirty_size;
 };
 
 /* Configuration for the btree that is set when the database is created and serialized in the
@@ -149,7 +152,7 @@ public:
     void set_slices(const char* value);
     void set_max_cache_size(const char* value);
     void set_wait_for_flush(const char* value);
-    void set_flush_threshold(const char* value);
+    void set_unsaved_data_limit(const char* value);
     void set_flush_timer(const char* value);
     void set_gc_range(const char* value);
     void set_active_data_extents(const char* value);

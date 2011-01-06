@@ -40,7 +40,7 @@ def make_option_parser():
     o["slices"] = IntFlag("--slices", 3)
     o["memory"] = IntFlag("--memory", 100)
     o["duration"] = IntFlag("--duration", 10)
-    o["flags"] = StringFlag("--flags", "")
+    o["serve-flags"] = StringFlag("--serve-flags", "")
     o["stress"] = StringFlag("--stress", "")
     o["sigint-timeout"] = IntFlag("--sigint-timeout", 60)
     o["no-timeout"] = BoolFlag("--no-timeout", invert = False)
@@ -277,8 +277,7 @@ class DataFiles(object):
             get_executable_path(opts, "rethinkdb"), "create", "--force",
             "-s", str(self.opts["slices"]),
             "-c", str(self.opts["cores"]),
-            ] + self.rethinkdb_flags() + \
-            shlex.split(self.opts["flags"]),
+            ] + self.rethinkdb_flags(),
             "creator_output",
             timeout = 30,
             valgrind_tool = self.opts["valgrind-tool"] if self.opts["valgrind"] else None,
@@ -297,7 +296,7 @@ class DataFiles(object):
             [get_executable_path(self.opts, "rethinkdb"), "fsck"] + self.rethinkdb_flags(),
             "fsck_output.txt",
             timeout = 2000, #TODO this should be based on the size of the data file 4.6Gb takes about 30 minutes
-            valgrind_tool = self.opts["valgrind-tool"] if self.opts["valgrind"] else None
+            valgrind_tool = self.opts["valgrind-tool"] if self.opts["valgrind"] else None,
             test_dir = self.test_dir
             )
 
@@ -369,7 +368,7 @@ class Server(object):
                 "-c", str(self.opts["cores"]),
                 "-m", str(self.opts["memory"]),
                 ] + self.data_files.rethinkdb_flags() + \
-                shlex.split(self.opts["flags"]) + \
+                shlex.split(self.opts["serve-flags"]) + \
                 self.extra_flags
         
         elif self.opts["database"] == "memcached":
@@ -417,6 +416,7 @@ class Server(object):
         
         waited = 0
         while waited < self.server_start_time:
+            self.verify()
             s = socket.socket()
             try: s.connect(("localhost", server_port))
             except Exception, e:

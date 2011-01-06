@@ -100,6 +100,9 @@ public:
     for a given extent to be reused until unlock_for_read() has been called the same number
     of times. */
 
+    // TODO: Remove this now that the IO layer is supposed to guarantee that reads and writes go
+    // to the device in the same order that they are issued in.
+
     void lock_for_read(off64_t extent);
     void unlock_for_read(off64_t extent);
 
