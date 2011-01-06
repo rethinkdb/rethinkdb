@@ -4,8 +4,6 @@ import time
 import threading
 import re
 
-tick = 1 #how frequently to poll stats
-
 class StatRange():
     def __init__(self, min, max):
         self.min = min
@@ -27,19 +25,23 @@ class StatError(Exception):
 class RDBStat():
     int_line = line("^STAT\s+([\w\[\]]+)\s+(\d+|-)$", [('name', 's'), ('value', 'd')])
     flt_line = line("^STAT\s+([\w\[\]]+)\s+([\d\.]+|-)$", [('name', 's'), ('value', 'f')])
+    str_line = line("^STAT\s+([\w\[\]]+)\s+(.+)$", [('name', 's'), ('value', 's')])
     end_line = line("END", [])
 
-    def __init__(self, addrinfo, limits = None):
+    def __init__(self, addrinfo, limits = {}, interval = 1, stats_callback=None):
         self.socket = socket.socket()
         self.socket.connect(addrinfo)
         self.socket.setblocking(True)
         self.limits = limits
+        self.interval = interval
+        self.stats_callback = stats_callback    # we pass a dictionary with stats whenever we get the new stats
+        self.last_stats = {}
 
     def check(self, limits = None):
         if limits:
             self.limits = limits
 
-        assert self.limits
+        # assert self.limits
 
         #send the stat request
         self.socket.send("stat\r\n")
@@ -50,16 +52,21 @@ class RDBStat():
             try:
                 if re.search("END", data):
                     break
-                data += self.socket.recv(1000)
+                new_data = self.socket.recv(1000)
+                if len(new_data) == 0:
+                    self.keep_going = False
+                    return
+                data += new_data
             except:
-                break
+                self.keep_going = False
+                return
 
         assert data #make sure the server actually gave us back something
 
         data = data.splitlines()
         data.reverse()
 
-        matches = take_while([self.int_line, self.flt_line], data)
+        matches = take_while([self.int_line, self.flt_line, self.str_line], data)
         if not matches:
             return
 
@@ -67,15 +74,24 @@ class RDBStat():
         for stat in matches:
             stat_dict[stat["name"]] = stat["value"]
 
+        self.last_stats = stat_dict
+        if self.stats_callback:
+            self.stats_callback(stat_dict)
+
         for name, acceptable_range in self.limits.iteritems():
             if not stat_dict[name] in acceptable_range:
                 raise(StatError(name, stat_dict[name], acceptable_range))
 
     def run(self):
         self.keep_going = True
-        while self.keep_going:
-            self.check()
-            time.sleep(tick)
+        try:
+            while self.keep_going:
+                self.check()
+                time.sleep(self.interval)
+        finally:
+            self.keep_going = False
+            try: self.socket.close()
+            except: pass
 
     def start(self):
         self.thr = threading.Thread(target = self.run)
@@ -83,5 +99,5 @@ class RDBStat():
 
     def stop(self):
         self.keep_going = False
-        if self.thr:
+        if self.thr and self.thr.is_alive():
             self.thr.join()
