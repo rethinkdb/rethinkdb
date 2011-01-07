@@ -312,28 +312,32 @@ def start_testing_nodes():
     
     print "Trying to allocate %i testing nodes" % remaining_nodes_to_allocate
     
-    ec2_connection = boto.ec2.connect_to_region(testing_nodes_ec2_region, aws_access_key_id=testing_nodes_ec2_access_key, aws_secret_access_key=testing_nodes_ec2_private_key)
+    try:
+        ec2_connection = boto.ec2.connect_to_region(testing_nodes_ec2_region, aws_access_key_id=testing_nodes_ec2_access_key, aws_secret_access_key=testing_nodes_ec2_private_key)
 
-    # Query AWS to start all instances
-    ec2_image = ec2_connection.get_image(testing_nodes_ec2_image_name)
-    ec2_reservation = ec2_image.run(min_count=1, max_count=remaining_nodes_to_allocate, key_name=testing_nodes_ec2_key_pair_name, security_groups=[testing_nodes_ec2_security_group_name], instance_type=testing_nodes_ec2_instance_type)
-    testing_nodes_ec2_reservations.append(ec2_reservation)
-    # query AWS to wait for all instances to be available
-    for instance in ec2_reservation.instances:
-        while instance.state != "running":
-            time.sleep(5)
-            instance.update()
-            if instance.state == "terminated":
-                # Something went wrong :-(
-                print "Could not allocate the requested number of nodes. Retrying later..."
-                break
-        # Got a node running
-        remaining_nodes_to_allocate -= 1
-    
-    create_testing_nodes_from_reservation(ec2_reservation)
+        # Query AWS to start all instances
+        ec2_image = ec2_connection.get_image(testing_nodes_ec2_image_name)
+        ec2_reservation = ec2_image.run(min_count=1, max_count=remaining_nodes_to_allocate, key_name=testing_nodes_ec2_key_pair_name, security_groups=[testing_nodes_ec2_security_group_name], instance_type=testing_nodes_ec2_instance_type)
+        testing_nodes_ec2_reservations.append(ec2_reservation)
+        # query AWS to wait for all instances to be available
+        for instance in ec2_reservation.instances:
+            while instance.state != "running":
+                time.sleep(5)
+                instance.update()
+                if instance.state == "terminated":
+                    # Something went wrong :-(
+                    print "Could not allocate the requested number of nodes. Retrying later..."
+                    break
+            # Got a node running
+            remaining_nodes_to_allocate -= 1
         
-    # Give it another 120 seconds to start up...
-    time.sleep(120)
+        create_testing_nodes_from_reservation(ec2_reservation)
+        
+        # Give it another 120 seconds to start up...
+        time.sleep(120)
+    except (Exception) as e:
+        print "An exception occured while trying to request a node from EC: \n%s" % e
+        
     
     # Check that all testing nodes are up
     nodes_to_remove = []
