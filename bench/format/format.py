@@ -269,7 +269,7 @@ class dbench():
 
             # Add the qps plot image and metadata
             print >>res, '<table style="width: 910px;" class="runPlots">'
-            print >>res, '<tr><td><h3 style="text-align: center">Queries per second</h3>'
+            print >>res, '<tr><td valign="top"><h3 style="text-align: center">Queries per second</h3>'
             print >>res, image('qps' + run_name)
 
             print >>res, """<table style="border-spacing: 0px; border-collapse: collapse; margin-left: auto; margin-right: auto; margin-top: 20px;">
@@ -298,7 +298,7 @@ class dbench():
                                         <td style="background: #DBE2F1; padding: 0.5em 0.8em; font-weight: bold;">%s</td>
                                         <td style="background: #DBE2F1; padding: 0.5em 0.8em;">%s</td>
                                         <td style="background: #DBE2F1; padding: 0.5em 0.8em;">%s</td>
-                                        <td style="background: #DBE2F1; padding: 0.5em 0.8em;">%s / %s</td>
+                                        <td style="background: #DBE2F1; padding: 0.5em 0.8em;">%s <br>/ %s</td>
                                     </tr>""" % (competitor[0], mean_qps, standard_dev, upper_percentile, lower_percentile)
             print >>res, """</table>
                         </td>"""
@@ -313,7 +313,7 @@ class dbench():
             lat_data.histogram(os.path.join(self.out_dir, self.dir_str, 'latency' + run_name))
 
             # Add the latency histogram image and metadata
-            print >>res, '<td><h3 style="text-align: center">Latency in microseconds</h3>'
+            print >>res, '<td valign="top"><h3 style="text-align: center">Latency in microseconds</h3>'
             print >>res, image('latency' + run_name)
 
             print >>res, """<table style="border-spacing: 0px; border-collapse: collapse; margin-left: auto; margin-right: auto; margin-top: 20px;">
@@ -334,6 +334,7 @@ class dbench():
                     standard_dev = "N/A"
                 try:
                     upper_percentile = format_metadata(competitor[1].select('latency').stats()['latency']['upper_5_percentile'])
+                    upper_01_percentile = format_metadata(competitor[1].select('latency').stats()['latency']['upper_0.1_percentile'])
                     lower_percentile = format_metadata(competitor[1].select('latency').stats()['latency']['lower_5_percentile'])
                 except KeyError:
                     upper_percentile = "N/A"
@@ -342,7 +343,7 @@ class dbench():
                                         <td style="background: #DBE2F1; padding: 0.5em 0.8em; font-weight: bold;">%s</td>
                                         <td style="background: #DBE2F1; padding: 0.5em 0.8em;">%s</td>
                                         <td style="background: #DBE2F1; padding: 0.5em 0.8em;">%s</td>
-                                        <td style="background: #DBE2F1; padding: 0.5em 0.8em;">%s / %s</td>
+                                        <td style="background: #DBE2F1; padding: 0.5em 0.8em;">%s <br>/ %s</td>
                                     </tr>""" % (competitor[0], mean_latency, standard_dev, upper_percentile, lower_percentile)
             print >>res, """</table>
                         </td>"""

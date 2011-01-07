@@ -236,6 +236,7 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
         }
     }
     
+    bool slices_set_by_user = false;
     optind = 1; // reinit getopt
     while(1)
     {
@@ -280,7 +281,7 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
         /* Detect the end of the options. */
         if (c == -1)
             break;
-     
+
         switch (c)
         {
             case 0:
@@ -294,6 +295,7 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
             case 'c':
                 config.set_cores(optarg); break;
             case 's':
+                slices_set_by_user = true;
                 config.set_slices(optarg); break;
             case 'f':
                 config.push_private_config(optarg); break;
@@ -402,8 +404,15 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
         config.store_dynamic_config.cache.max_dirty_size / 2;
 
     //slices divisable by the number of files
-    if ((config.store_static_config.btree.n_slices % config.store_dynamic_config.serializer_private.size()) != 0)
-        fail_due_to_user_error("Slices must be divisable by the number of files\n");
+    if ((config.store_static_config.btree.n_slices % config.store_dynamic_config.serializer_private.size()) != 0) {
+        if (slices_set_by_user)
+            fail_due_to_user_error("Slices must be divisable by the number of files\n");
+        else {
+            config.store_static_config.btree.n_slices -= config.store_static_config.btree.n_slices % config.store_dynamic_config.serializer_private.size();
+            if (config.store_static_config.btree.n_slices <= 0)
+                fail_due_to_user_error("Failed to set number of slices automatically. Please specify it manually by using the -s option.\n");
+        }
+    }
     
     return config;
 }

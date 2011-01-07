@@ -70,7 +70,7 @@
 // The number of ways we split a BTree (the most optimal is the number
 // of cores, but we use a higher split factor to allow upgrading to
 // more cores without migrating the database file).
-#define DEFAULT_BTREE_SHARD_FACTOR                16
+#define DEFAULT_BTREE_SHARD_FACTOR                64
 
 // Default port to listen on
 #define DEFAULT_LISTEN_PORT                       8080
