@@ -50,25 +50,25 @@ void usage_serve(const char *name) {
                 "                        Can be specified multiple times to use multiple files.\n");
     help->pagef("  -c, --cores           Number of cores to use for handling requests.\n"
                 "  -m, --max-cache-size  Maximum amount of RAM to use for caching disk\n"
-                "                        blocks, in megabytes. This should be ~90%% of\n" 
-                "                        the RAM you want RethinkDB to use\n"
+                "                        blocks, in megabytes. This should be ~80%% of\n" 
+                "                        the RAM you want RethinkDB to use.\n"
                 "  -p, --port            Socket port to listen on. Defaults to %d.\n", DEFAULT_LISTEN_PORT);
     help->pagef("\n"
                 "Flushing options:\n");
     help->pagef("      --wait-for-flush  Do not respond to commands until changes are durable.\n"
-                "                        Expects 'y' or 'n'\n"
+                "                        Expects 'y' or 'n'.\n"
                 "      --flush-timer     Time in milliseconds that the server should allow\n"
                 "                        changes to sit in memory before flushing it to disk.\n"
-                "                        Pass 'disable' to allow modified data to sit in memory\n"
-                "                        indefinitely.\n"
-                "      --unsaved-data-limit\n" 
-                "                        The maximum amount of dirty data (data which is held in memory\n"
-                "                        but has not yet been serialized to disk\n");
+                "                        Pass \"disable\" to allow modified data to sit in memory\n"
+                "                        indefinitely.");
     if (DEFAULT_FLUSH_TIMER_MS == NEVER_FLUSH) {
-        help->pagef("                        Defaults to 'disable'.\n");
+        help->pagef(" Defaults to \"disable\".\n");
     } else {
-        help->pagef("                        Defaults to %dms.\n", DEFAULT_FLUSH_TIMER_MS);
+        help->pagef(" Defaults to %dms.\n", DEFAULT_FLUSH_TIMER_MS);
     }
+    help->pagef("      --unsaved-data-limit\n" 
+                "                        The maximum amount of dirty data (data which is held in memory\n"
+                "                        but has not yet been serialized to disk. Defaults to %d MB.\n", DEFAULT_UNSAVED_DATA_LIMIT / MEGABYTE);
     help->pagef("\n"
                 "Disk options:\n");
     help->pagef("      --gc-range low-high  (e.g. --gc-range 0.5-0.75)\n"
@@ -85,20 +85,20 @@ void usage_serve(const char *name) {
     help->pagef("  -S, --semantic-file   Path to the semantic file for the previously specified\n"
                 "                        database file. Can only be specified after the path to\n"
                 "                        the database file. Default is the name of the database\n"
-                "                        file with '%s' appended.\n", DEFAULT_SEMANTIC_EXTENSION);
+                "                        file with \"%s\" appended.\n", DEFAULT_SEMANTIC_EXTENSION);
 #endif
     help->pagef("\n"
                 "Serve can be called with no arguments to run a server with default parameters.\n"
-                "For best performance RethinkDB should be run with one -file per device and a\n"
-                "--max-cache-size no more than 90%% of the RAM it will have available to it\n");
+                "For best performance RethinkDB should be run with one --file per device and a\n"
+                "--max-cache-size no more than 80%% of the RAM it will have available to it\n");
     help->pagef("\n"
-                "In general how you flush is a tradeoff between performance and how much data\n" 
+                "In general how you flush is a trade-off between performance and how much data\n" 
                 "you risk losing to a crash. With --wait-for-flush enabled no data is ever at risk.\n"
-                "Specifying --flush-timer means that data sent more than --flush-timer is guarunteed\n" //TODO @slava this guaruntee isn't quite true but is easy to explain is it okay?
-                "to be on disk. Warning: when IO reaches saturation this guaruntee no longer exists.\n"
+                "Specifying --flush-timer means that data sent more than --flush-timer is guaranteed\n" //TODO @slava this guarantee isn't quite true but is easy to explain is it okay?
+                "to be on disk. Warning: when IO reaches saturation this guarantee no longer exists.\n"
                 "--unsaved-data-limit allows you to limit how much data could be lost with a crash.\n"
                 "Unlike --flush-timer this flag is a hard limit and will throttle connections when it\n"
-                "is reached. This value cannot be more than 1/2 of the cache\n");
+                "is reached.\n");
     help->pagef("\n"
                 "The --gc-range defines the proportion of the database that can be garbage.\n"
                 "A high value will result in better performance at the cost of higher disk usage.\n"
@@ -116,7 +116,7 @@ void usage_create(const char *name) {
                 "On disk format options:\n"
                 "  -f, --file            Path to file or block device where database goes. Can be\n"
                 "                        specified multiple times to use multiple files.\n"
-                "  -s, --slices          Shards total.\n"
+                "  -s, --slices          Total number of slices.\n"
                 "      --block-size      Size of a block, in bytes.\n"
                 "      --extent-size     Size of an extent, in bytes.\n");
     help->pagef("\n"
