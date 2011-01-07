@@ -3,6 +3,10 @@
 mkdir -p $BENCH_DIR/bench_output/Number_of_SSD_64MB_cache_canonical_workload
 echo Number of SSDs > $BENCH_DIR/bench_output/Number_of_SSD_64MB_cache_canonical_workload/multirun
 
+# Fake a 0-cores result for nicer graphs
+mkdir -p $BENCH_DIR/bench_output/Number_of_SSD_64MB_cache_canonical_workload/0/1/client
+echo -e "1\t\t0" > $BENCH_DIR/bench_output/Number_of_SSD_64MB_cache_canonical_workload/0/1/client/qps.txt
+
 
 export SSD_DRIVES_1="-f /dev/sdf"
 export SSD_DRIVES_2="-f /dev/sdf -f /dev/sdh"

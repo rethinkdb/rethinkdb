@@ -39,7 +39,7 @@ from retester import *
 import retester
 
 reports = []
-test_references = [] # contains pairs of the form (node, tmp-path)
+test_references = []
 testing_nodes_ec2_reservations = []
 testing_nodes = []
 remaining_nodes_to_allocate = testing_nodes_ec2_count
@@ -52,6 +52,7 @@ class TestReference:
     def __init__(self, command):
         self.single_runs = []
         self.command = command
+        self.results = []
 
 class TestingNode:
     def __init__(self, hostname, port, username, private_ssh_key_filename):
@@ -501,6 +502,29 @@ def copy_per_test_data_to_testing_node(node, test_reference):
         print "Unable to copy test environment"
         raise Exception("Unable to copy test environment")
 
+def retrieve_results_from_node(node):
+    global testing_nodes
+    global reports
+    global test_references
+
+    for test_reference in test_references:
+        single_runs_to_remove = []
+        for single_run in test_reference.single_runs:
+            run_node = single_run[0]
+            if run_node == node:
+                try:
+                    test_reference.results.append(get_report_for_test(single_run))
+                    single_runs_to_remove.append(single_run)
+                    
+                    # Clean test
+                    run_node.run_command("rm -rf cloud_retest/%s" % single_run[1])
+                except (IOError, EOFError, paramiko.SSHException, Exception) as e:
+                    print "Unable to retrieve result for %s from node %s:" % (single_run[1], single_run[0].hostname)
+                    traceback.print_exc()
+                    
+        for single_run_to_remove in single_runs_to_remove:
+            test_reference.single_runs.remove(single_run_to_remove)
+
 
 def start_test_on_node(node, test_command, test_timeout = None, locking_timeout = 0):
     global testing_nodes
@@ -513,6 +537,9 @@ def start_test_on_node(node, test_command, test_timeout = None, locking_timeout 
     if node.acquire_lock(locking_timeout) == False:
         return False
     #print ("Got lock!")
+    
+    # Check if we can retrieve previous test results for this node now
+    retrieve_results_from_node(node)
     
     try:
         # Initialize node if not happened before...
@@ -569,6 +596,8 @@ def start_test_on_node(node, test_command, test_timeout = None, locking_timeout 
 
 
 def get_report_for_test(test_reference):
+    print "Downloading results for test %s" % test_reference[1]
+    
     if test_reference[1] == "Failed":
         result = Result(0.0, "fail", "The test could not be started on EC2.")
         return result
@@ -669,20 +698,24 @@ def collect_reports_from_nodes():
     print "Collecting reports"
     
     for test_reference in test_references:
-        results = []
+        single_runs_to_remove = []
         for single_run in test_reference.single_runs:
             try:
-                results.append(get_report_for_test(single_run))
+                test_reference.results.append(get_report_for_test(single_run))
+                single_runs_to_remove.append(single_run)
             
-                # Clean test (maybe preserve data instead?)
-                if single_run[1] != "Failed":
-                    node = single_run[0]
-                    node.run_command("rm -rf cloud_retest/%s" % test_reference)
+                # Clean test
+                node = single_run[0]
+                node.run_command("rm -rf cloud_retest/%s" % single_run[1])
             except (IOError, EOFError, paramiko.SSHException, Exception) as e:
                 print "Unable to retrieve result for %s from node %s:" % (single_run[1], single_run[0].hostname)
                 traceback.print_exc()
+                
+        for single_run_to_remove in single_runs_to_remove:
+            test_reference.single_runs.remove(single_run_to_remove)
         
-        reports.append((test_reference.command, results))
+        # Generate report object for all results of this test
+        reports.append((test_reference.command, test_reference.results))
     
     # Clean node
     for node in testing_nodes:

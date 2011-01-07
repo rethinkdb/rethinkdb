@@ -34,6 +34,8 @@ export VERSION_FILE="$VERSION_FILE_INT"
 export RETESTER_EMAIL_SENDER=buildbot@rethinkdb.com:allspark
 git test -b --revision HEAD --email all@rethinkdb.com --file /var/www/code.rethinkdb.com/htdocs/tests.html test/full_test.py
 
+#TODO: This does not work, as git test -b returns immediately!
+
 # Remove the temporary VERSION file
 rm -f "$VERSION_FILE_INT"
 unset VERSION_FILE
