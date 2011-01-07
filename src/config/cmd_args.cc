@@ -367,12 +367,12 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
     /* Sanity-check the input */
     
     if (config.store_dynamic_config.cache.max_dirty_size >
-        config.store_dynamic_config.cache.max_size / 2) {
+        config.store_dynamic_config.cache.max_size * MAX_UNSAVED_DATA_LIMIT_FRACTION) {
         
         /* The page replacement algorithm won't work properly if the number of dirty bufs
         is allowed to be more than about half of the total number of bufs. */
         config.store_dynamic_config.cache.max_dirty_size =
-            config.store_dynamic_config.cache.max_size / 2;
+            config.store_dynamic_config.cache.max_size * MAX_UNSAVED_DATA_LIMIT_FRACTION;
     }
     
     if (config.store_dynamic_config.cache.wait_for_flush == true &&
