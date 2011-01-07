@@ -17,7 +17,7 @@ def repo_has_local_changes():
 def repo_version():
     tl = repo_toplevel()
     if tl:
-        p = Popen([os.path.join(tl, "tools/gen-version.sh")], stdout=PIPE)
+        p = Popen([os.path.join(tl, "scripts/gen-version.sh")], stdout=PIPE)
         result = p.communicate()[0].rstrip('\n')
         if p.wait() == 0:
             return result

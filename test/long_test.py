@@ -1,9 +1,12 @@
 #!/usr/bin/python
-import sys, os, signal
+import sys, os, signal, math
 from datetime import datetime
 from subprocess import Popen, PIPE
 from optparse import OptionParser
-from cloud_retester import do_test, do_test_cloud, report_cloud, setup_testing_nodes, terminate_testing_nodes
+from retester import send_email, do_test
+import numpy as np
+#import matplotlib.pyplot as plt
+#import matplotlib.mlab as mlab
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), 'common')))
 from test_common import *
@@ -37,14 +40,14 @@ def main():
             sys.exit(1)
         print "Pulling the latest updates to long-test branch"
         git_checkout(long_test_branch)
-        exec_self(sys.argv[1:] + [no_checkout_arg])
+        exec_self([no_checkout_arg] + sys.argv[1:])
 
     if options['make']:
         # Clean the repo
         do_test("cd ../src && make -j clean", cmd_format="make")
 
         # Build release build with symbols
-        do_test("cd ../src && make -j DEBUG=0 SYMBOLS=1", cmd_format="make")
+        do_test("cd ../src && make -j DEBUG=0 SYMBOLS=1 FAST_PERFMON=0", cmd_format="make")
 
         # Make sure auxillary tools compile
         do_test("cd ../bench/stress-client/; make clean; make -j MYSQL=0 LIBMEMCACHED=0", cmd_format="make")
@@ -83,12 +86,18 @@ def parse_arguments(args):
 
 server = None
 rdbstat = None
+stats_sender = None
+
 def long_test_function(opts, test_dir):
     global server
     global rdbstat
+    global stats_sender
+
     print 'Starting server...'
     server = Server(opts, extra_flags=[], test_dir=test_dir)
     server.start()
+
+    #stats_sender = StatsSender(server)
 
     stats_file = test_dir.make_file("stats.gz")
     print "Collecting stats data into '%s'..." % stats_file
@@ -106,17 +115,25 @@ def long_test_function(opts, test_dir):
                 , "prepends": opts["nprepends"]
                 }, duration=opts["duration"], test_dir = test_dir)
     except:
+        pass
+    finally:
         shutdown()
+
 
 def shutdown():
     global server
     global rdbstat
+    global stats_sender
     if server:
         server.shutdown()   # this also stops stress_client
         server = None
     if rdbstat:
         rdbstat.stop()
         rdbstat = None
+    if stats_sender:
+        stats_sender.post_results()
+        stats_sender.stop()
+        stats_sender = None
 
 def set_signal_handler():
     def signal_handler(signum, frame):
@@ -126,6 +143,92 @@ def set_signal_handler():
     signal.signal(signal.SIGTERM, signal_handler)
     signal.signal(signal.SIGQUIT, signal_handler)
 
+class PointValue(object):
+    def __init__(self):
+        self.reset()
+    def add(self, val):
+        self.values.append(val)
+    def reset(self):
+        self.values = []
+    def min(self):
+        return self.apply(np.min)
+    def max(self):
+        return self.apply(np.max)
+    def median(self):
+        return self.apply(np.median)
+    def mean(self):
+        return self.apply(np.mean)
+    def std(self):
+        return self.apply(np.std)
+    def apply(self, func):
+        if len(self.values) == 0:
+            return None
+        else:
+            return func(self.values)
+
+class StatsSender(object):
+    monitoring = [
+        'blocks_dirty[blocks]',
+        'blocks_in_memory[blocks]',
+        'cpu_user_avg',
+        'cpu_system_avg',
+        'cpu_combined_avg',
+        'memory_faults_avg',
+        'memory_real[bytes]',
+        'memory_virtual[bytes]',
+        'serializer_bytes_in_use',
+        'serializer_old_garbage_blocks',
+        'serializer_old_total_blocks',
+        'serializer_reads_total',
+        'serializer_writes_total'
+    ]
+    def __init__(self, server):
+        def stats_aggregator(stats):
+            self.ts = stats['uptime']
+            for k in StatsSender.monitoring:
+                if k in stats and stats[k]:
+                    self.stats[k].add(stats[k])
+
+        self.reset_stats()
+
+        self.rdbstat = RDBStat(('localhost', server.port), interval=1, stats_callback=stats_aggregator)
+        self.rdbstat.start()
+
+    def reset_stats(self):
+        self.ts = 0
+        self.stats = {}
+        for k in StatsSender.monitoring:
+            self.stats[k] = PointValue()
+
+    def post_results(self):
+        stat_format = "%s (min/med/max): %s/%s/%s"
+        msg_lines = []
+
+        def fmt(v):
+            if not v or math.isnan(v):
+                return '-'
+            else:
+                return '%.12g' % v
+
+        for (k, pv) in self.stats.iteritems():
+            msg_lines.append(stat_format % (k, fmt(pv.min()), fmt(pv.median()), fmt(pv.max())))
+
+        msg_text = '\n'.join(msg_lines)
+
+        from email.mime.text import MIMEText
+        recipient = 'ivan@rethinkdb.com'
+        msg = MIMEText(msg_text, 'plain')
+        msg['Subject'] = 'Long test [%fs]' % self.ts
+        msg['From'] = 'buildbot@rethinkdb.com'
+        msg['To'] = recipient
+        os.environ['RETESTER_EMAIL_SENDER'] = 'buildbot@rethinkdb.com:allspark'
+        send_email(None, msg, recipient)
+
+        self.reset_stats()
+
+    def stop(self):
+        import pdb; pdb.set_trace()
+        self.rdbstat.stop()
 
 
 class RDBStatLogger(object):
