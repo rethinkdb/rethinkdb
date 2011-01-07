@@ -6,22 +6,24 @@
 #include "fsck/checker.hpp"
 #include "logger.hpp"
 #include "utils.hpp"
+#include "help.hpp"
 
 namespace fsck {
 
 void usage(const char *name) {
-    printf("Usage:\n"
-           "        rethinkdb fsck [OPTIONS] -f <file_1> [-f <file_2> ...]\n");
-    printf("\n"
-           "Options:\n"
-           "  -f  --file                Path to file or block device where part or all of\n"
-           "                            the database exists.\n");
-    printf("\n"
-           "Output options:\n"
-           "  -l  --log-file            File to log to.  If not provided, messages will be\n"
-           "                            printed to stderr.\n");
-    printf("\n"
-           "Fsck is used to check one or more files for consistency\n");
+    Help_Pager *help = Help_Pager::instance();
+    help->pagef("Usage:\n"
+                "        rethinkdb fsck [OPTIONS] -f <file_1> [-f <file_2> ...]\n");
+    help->pagef("\n"
+                "Options:\n"
+                "  -f  --file                Path to file or block device where part or all of\n"
+                "                            the database exists.\n");
+    help->pagef("\n"
+                "Output options:\n"
+                "  -l  --log-file            File to log to.  If not provided, messages will be\n"
+                "                            printed to stderr.\n");
+    help->pagef("\n"
+                "Fsck is used to check one or more files for consistency\n");
     exit(0);
 }
 

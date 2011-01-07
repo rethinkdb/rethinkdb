@@ -84,7 +84,7 @@ class TestingNode:
             self.ssh_transport.close()
 
         
-    def get_transport(self, retry = 5):
+    def get_transport(self, retry = 3):
         if self.ssh_transport != None:
             return self.ssh_transport
     
@@ -96,7 +96,7 @@ class TestingNode:
             self.ssh_transport.connect(username=self.username, pkey=self.private_ssh_key)
         except (IOError, EOFError, paramiko.SSHException, Exception) as e:
             self.ssh_transport = None
-            time.sleep(120) # Wait a bit in case the network needs time to recover
+            time.sleep(90) # Wait a bit in case the network needs time to recover
             if retry > 0:
                 return self.get_transport(retry-1)
             else:
