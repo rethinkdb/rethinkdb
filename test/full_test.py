@@ -277,7 +277,7 @@ def run_all_tests(mode, checker, protocol, cores, slices):
                     "protocol"    : protocol,
                     "cores"       : cores,
                     "slices"      : slices },
-                  repeat=5)
+                  repeat=5, timeout = 120)
 
     do_test_cloud("integration/fuzz.py",
                   { "auto"        : True,
