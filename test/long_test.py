@@ -9,7 +9,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), 'common'
 from test_common import *
 from git_util import *
 
-long_test_branch = "ivan_long_test"
+long_test_branch = "long-test"
 no_checkout_arg = "--no-checkout"
 long_test_logs_dir = "~/long_test_logs"
 
