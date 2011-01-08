@@ -98,13 +98,18 @@ private:
     flush_time_randomizer_t flush_time_randomizer;
     unsigned int flush_threshold;   // Number of blocks, not percentage
     
-private:    
+private:
+    friend class buf_writer_t;
+
     // The writeback system has a mechanism to keep data safe if the server crashes. If modified
     // data sits in memory for longer than flush_timer_ms milliseconds, a writeback will be
     // automatically started to store it on disk. flush_timer is the timer to keep track of how
     // much longer the data can sit in memory.
     timer_token_t *flush_timer;
     static void flush_timer_callback(void *ctx);
+    
+    /* The number of writes that we dispatched to the disk that have not come back yet. */
+    unsigned long long outstanding_disk_writes;
     
     bool writeback_in_progress;
     

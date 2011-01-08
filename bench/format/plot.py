@@ -304,6 +304,8 @@ class TimeSeriesCollection():
 	    steady_series = full_series[int(len(full_series) * 0.7):]
             stat_report['mean'] = stats.mean(full_series)
             stat_report['stdev'] = stats.stdev(full_series)
+            stat_report['upper_0.1_percentile'] = self.percentile(full_series_sorted, 0.999)
+            stat_report['lower_0.1_percentile'] = self.percentile(full_series_sorted, 0.001)
             stat_report['upper_1_percentile'] = self.percentile(full_series_sorted, 0.99)
             stat_report['lower_1_percentile'] = self.percentile(full_series_sorted, 0.01)
             stat_report['upper_5_percentile'] = self.percentile(full_series_sorted, 0.95)

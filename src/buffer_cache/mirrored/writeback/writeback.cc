@@ -54,6 +54,7 @@ writeback_t::writeback_t(
       flush_time_randomizer(flush_timer_ms),
       flush_threshold(flush_threshold),
       flush_timer(NULL),
+      outstanding_disk_writes(0),
       writeback_in_progress(false),
       cache(cache),
       start_next_sync_immediately(false),
@@ -62,6 +63,7 @@ writeback_t::writeback_t(
 
 writeback_t::~writeback_t() {
     assert(!flush_timer);
+    assert(outstanding_disk_writes == 0);
 }
 
 bool writeback_t::sync(sync_callback_t *callback) {
@@ -135,7 +137,7 @@ unsigned int writeback_t::num_dirty_blocks() {
 }
 
 bool writeback_t::too_many_dirty_blocks() {
-    return num_dirty_blocks() >= max_dirty_blocks;
+    return num_dirty_blocks() + outstanding_disk_writes >= max_dirty_blocks;
 }
 
 void writeback_t::possibly_unthrottle_transactions() {
@@ -243,13 +245,20 @@ struct buf_writer_t :
     public thread_message_t,
     public home_thread_mixin_t
 {
+    writeback_t *parent;
     mc_buf_t *buf;
-    explicit buf_writer_t(mc_buf_t *buf) : buf(buf) { }
+    explicit buf_writer_t(writeback_t *wb, mc_buf_t *buf)
+        : parent(wb), buf(buf)
+    {
+        parent->outstanding_disk_writes++;
+    }
     void on_serializer_write_block() {
         if (continue_on_thread(home_thread, this)) on_thread_switch();
     }
     void on_thread_switch() {
         buf->release();
+        parent->outstanding_disk_writes--;
+        parent->possibly_unthrottle_transactions();
         delete this;
     }
 };
@@ -291,12 +300,21 @@ bool writeback_t::writeback_acquire_bufs() {
 
             // Fill the serializer structure
             if (!do_delete) {
-                serializer_writes.push_back(translator_serializer_t::write_t::make(inner_buf->block_id, inner_buf->subtree_recency,
-                                                                                   buf->get_data_read(), new buf_writer_t(buf)));
+                serializer_writes.push_back(translator_serializer_t::write_t::make(
+                    inner_buf->block_id,
+                    inner_buf->subtree_recency,
+                    buf->get_data_read(),
+                    new buf_writer_t(this, buf)
+                    ));
+
             } else {
                 // NULL indicates a deletion
-                serializer_writes.push_back(translator_serializer_t::write_t::make(inner_buf->block_id, inner_buf->subtree_recency,
-                                                                                   NULL, NULL));
+                serializer_writes.push_back(translator_serializer_t::write_t::make(
+                    inner_buf->block_id,
+                    inner_buf->subtree_recency,
+                    NULL,
+                    NULL
+                    ));
 
                 assert(buf_access_mode != rwi_read_outdated_ok);
                 buf->release();

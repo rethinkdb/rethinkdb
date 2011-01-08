@@ -39,7 +39,7 @@ from retester import *
 import retester
 
 reports = []
-test_references = [] # contains pairs of the form (node, tmp-path)
+test_references = []
 testing_nodes_ec2_reservations = []
 testing_nodes = []
 remaining_nodes_to_allocate = testing_nodes_ec2_count
@@ -52,6 +52,7 @@ class TestReference:
     def __init__(self, command):
         self.single_runs = []
         self.command = command
+        self.results = []
 
 class TestingNode:
     def __init__(self, hostname, port, username, private_ssh_key_filename):
@@ -312,28 +313,32 @@ def start_testing_nodes():
     
     print "Trying to allocate %i testing nodes" % remaining_nodes_to_allocate
     
-    ec2_connection = boto.ec2.connect_to_region(testing_nodes_ec2_region, aws_access_key_id=testing_nodes_ec2_access_key, aws_secret_access_key=testing_nodes_ec2_private_key)
+    try:
+        ec2_connection = boto.ec2.connect_to_region(testing_nodes_ec2_region, aws_access_key_id=testing_nodes_ec2_access_key, aws_secret_access_key=testing_nodes_ec2_private_key)
 
-    # Query AWS to start all instances
-    ec2_image = ec2_connection.get_image(testing_nodes_ec2_image_name)
-    ec2_reservation = ec2_image.run(min_count=1, max_count=remaining_nodes_to_allocate, key_name=testing_nodes_ec2_key_pair_name, security_groups=[testing_nodes_ec2_security_group_name], instance_type=testing_nodes_ec2_instance_type)
-    testing_nodes_ec2_reservations.append(ec2_reservation)
-    # query AWS to wait for all instances to be available
-    for instance in ec2_reservation.instances:
-        while instance.state != "running":
-            time.sleep(5)
-            instance.update()
-            if instance.state == "terminated":
-                # Something went wrong :-(
-                print "Could not allocate the requested number of nodes. Retrying later..."
-                break
-        # Got a node running
-        remaining_nodes_to_allocate -= 1
-    
-    create_testing_nodes_from_reservation(ec2_reservation)
+        # Query AWS to start all instances
+        ec2_image = ec2_connection.get_image(testing_nodes_ec2_image_name)
+        ec2_reservation = ec2_image.run(min_count=1, max_count=remaining_nodes_to_allocate, key_name=testing_nodes_ec2_key_pair_name, security_groups=[testing_nodes_ec2_security_group_name], instance_type=testing_nodes_ec2_instance_type)
+        testing_nodes_ec2_reservations.append(ec2_reservation)
+        # query AWS to wait for all instances to be available
+        for instance in ec2_reservation.instances:
+            while instance.state != "running":
+                time.sleep(5)
+                instance.update()
+                if instance.state == "terminated":
+                    # Something went wrong :-(
+                    print "Could not allocate the requested number of nodes. Retrying later..."
+                    break
+            # Got a node running
+            remaining_nodes_to_allocate -= 1
         
-    # Give it another 120 seconds to start up...
-    time.sleep(120)
+        create_testing_nodes_from_reservation(ec2_reservation)
+        
+        # Give it another 120 seconds to start up...
+        time.sleep(120)
+    except (Exception) as e:
+        print "An exception occured while trying to request a node from EC: \n%s" % e
+        
     
     # Check that all testing nodes are up
     nodes_to_remove = []
@@ -497,6 +502,29 @@ def copy_per_test_data_to_testing_node(node, test_reference):
         print "Unable to copy test environment"
         raise Exception("Unable to copy test environment")
 
+def retrieve_results_from_node(node):
+    global testing_nodes
+    global reports
+    global test_references
+
+    for test_reference in test_references:
+        single_runs_to_remove = []
+        for single_run in test_reference.single_runs:
+            run_node = single_run[0]
+            if run_node == node:
+                try:
+                    test_reference.results.append(get_report_for_test(single_run))
+                    single_runs_to_remove.append(single_run)
+                    
+                    # Clean test
+                    run_node.run_command("rm -rf cloud_retest/%s" % single_run[1])
+                except (IOError, EOFError, paramiko.SSHException, Exception) as e:
+                    print "Unable to retrieve result for %s from node %s:" % (single_run[1], single_run[0].hostname)
+                    traceback.print_exc()
+                    
+        for single_run_to_remove in single_runs_to_remove:
+            test_reference.single_runs.remove(single_run_to_remove)
+
 
 def start_test_on_node(node, test_command, test_timeout = None, locking_timeout = 0):
     global testing_nodes
@@ -509,6 +537,9 @@ def start_test_on_node(node, test_command, test_timeout = None, locking_timeout 
     if node.acquire_lock(locking_timeout) == False:
         return False
     #print ("Got lock!")
+    
+    # Check if we can retrieve previous test results for this node now
+    retrieve_results_from_node(node)
     
     try:
         # Initialize node if not happened before...
@@ -565,6 +596,8 @@ def start_test_on_node(node, test_command, test_timeout = None, locking_timeout 
 
 
 def get_report_for_test(test_reference):
+    print "Downloading results for test %s" % test_reference[1]
+    
     if test_reference[1] == "Failed":
         result = Result(0.0, "fail", "The test could not be started on EC2.")
         return result
@@ -665,20 +698,24 @@ def collect_reports_from_nodes():
     print "Collecting reports"
     
     for test_reference in test_references:
-        results = []
+        single_runs_to_remove = []
         for single_run in test_reference.single_runs:
             try:
-                results.append(get_report_for_test(single_run))
+                test_reference.results.append(get_report_for_test(single_run))
+                single_runs_to_remove.append(single_run)
             
-                # Clean test (maybe preserve data instead?)
-                if single_run[1] != "Failed":
-                    node = single_run[0]
-                    node.run_command("rm -rf cloud_retest/%s" % test_reference)
+                # Clean test
+                node = single_run[0]
+                node.run_command("rm -rf cloud_retest/%s" % single_run[1])
             except (IOError, EOFError, paramiko.SSHException, Exception) as e:
                 print "Unable to retrieve result for %s from node %s:" % (single_run[1], single_run[0].hostname)
                 traceback.print_exc()
+                
+        for single_run_to_remove in single_runs_to_remove:
+            test_reference.single_runs.remove(single_run_to_remove)
         
-        reports.append((test_reference.command, results))
+        # Generate report object for all results of this test
+        reports.append((test_reference.command, test_reference.results))
     
     # Clean node
     for node in testing_nodes:

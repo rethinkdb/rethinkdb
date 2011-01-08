@@ -70,7 +70,7 @@
 // The number of ways we split a BTree (the most optimal is the number
 // of cores, but we use a higher split factor to allow upgrading to
 // more cores without migrating the database file).
-#define DEFAULT_BTREE_SHARD_FACTOR                16
+#define DEFAULT_BTREE_SHARD_FACTOR                64
 
 // Default port to listen on
 #define DEFAULT_LISTEN_PORT                       8080
@@ -88,8 +88,14 @@
 // transactions will be throttled.
 #define DEFAULT_UNSAVED_DATA_LIMIT                GIGABYTE
 
-// How many times the page replacement algorithm tries to find an eligible page before giving up
-#define PAGE_REPL_NUM_TRIES                       3
+// The unsaved data limit cannot exceed this fraction of the max cache size
+#define MAX_UNSAVED_DATA_LIMIT_FRACTION           0.9
+
+// How many times the page replacement algorithm tries to find an eligible page before giving up.
+// Note that (MAX_UNSAVED_DATA_LIMIT_FRACTION ** PAGE_REPL_NUM_TRIES) is the probability that the
+// page replacement algorithm will succeed on a given try, and if that probability is less than 1/2
+// then the page replacement algorithm will on average be unable to evict pages from the cache.
+#define PAGE_REPL_NUM_TRIES                       10
 
 // How large can the key be, in bytes?  This value needs to fit in a byte.
 #define MAX_KEY_SIZE                              250
