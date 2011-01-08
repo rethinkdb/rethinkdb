@@ -72,9 +72,10 @@ def parse_arguments(args):
     op['checkout']  = BoolFlag(no_checkout_arg, invert = True)  # Tim says that means that checkout is True by default
     op['make']      = BoolFlag("--no-make", invert = True)
     op['clients']   = IntFlag("--clients", 512)
+    op['slices']    = IntFlag("--slices", 36)
     op['reporting_interval']   = IntFlag("--rinterval", 28800)
     op['emailfrom'] = StringFlag("--emailfrom", 'buildbot@rethinkdb.com:allspark')
-    op['recipient'] = StringFlag("--email", 'ivan@rethinkdb.com, daniel@rethinkdb.com') # RSI
+    op['recipient'] = StringFlag("--email", 'all@rethinkdb.com')
 
     opts = op.parse(args)
     opts["netrecord"] = False   # We don't want to slow down the network
