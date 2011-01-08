@@ -198,7 +198,7 @@ class NetRecord(object):
 
 num_stress_clients = 0
 
-def stress_client(test_dir, port=8080, host="localhost", workload={"gets":1, "inserts":1}, duration="10000q"):
+def stress_client(test_dir, port=8080, host="localhost", workload={"gets":1, "inserts":1}, duration="10000q", clients=64):
     global num_stress_clients
     num_stress_clients += 1
     
@@ -212,6 +212,7 @@ def stress_client(test_dir, port=8080, host="localhost", workload={"gets":1, "in
         "-w", "%d/%d/%d/%d/%d/%d/%d" % (workload.get("deletes", 0), workload.get("updates", 0),
             workload.get("inserts", 0), workload.get("gets", 0), workload.get("appends", 0),
             workload.get("prepends", 0), workload.get("verifies", 0)),
+        "-c", str(clients),
         ]
     
     key_file = test_dir.make_file("stress_client/keys")
