@@ -76,6 +76,9 @@ def parse_arguments(args):
     op['checkout']  = BoolFlag(no_checkout_arg, invert = True)  # Tim says that means that checkout is True by default
     op['make']      = BoolFlag("--no-make", invert = True)
     op['clients']   = IntFlag("--clients", 512)
+    op['reporting_interval']   = IntFlag("--rinterval", 7200) # RSI
+    op['emailfrom'] = StringFlag("--emailfrom", 'buildbot@rethinkdb.com:allspark')
+    op['recipient'] = StringFlag("--email", 'ivan@rethinkdb.com') # RSI
 
     opts = op.parse(args)
     opts["netrecord"] = False   # We don't want to slow down the network
@@ -98,7 +101,7 @@ def long_test_function(opts, test_dir):
     server = Server(opts, extra_flags=[], test_dir=test_dir)
     server.start()
 
-    #stats_sender = StatsSender(server)
+    stats_sender = StatsSender(opts, server)
 
     stats_file = test_dir.make_file("stats.gz")
     print "Collecting stats data into '%s'..." % stats_file
@@ -133,7 +136,7 @@ def shutdown():
         rdbstat.stop()
         rdbstat = None
     if stats_sender:
-        stats_sender.post_results()
+        # stats_sender.post_results()
         stats_sender.stop()
         stats_sender = None
 
@@ -145,31 +148,13 @@ def set_signal_handler():
     signal.signal(signal.SIGTERM, signal_handler)
     signal.signal(signal.SIGQUIT, signal_handler)
 
-class PointValue(object):
-    def __init__(self):
-        self.reset()
-    def add(self, val):
-        self.values.append(val)
-    def reset(self):
-        self.values = []
-    def min(self):
-        return self.apply(np.min)
-    def max(self):
-        return self.apply(np.max)
-    def median(self):
-        return self.apply(np.median)
-    def mean(self):
-        return self.apply(np.mean)
-    def std(self):
-        return self.apply(np.std)
-    def apply(self, func):
-        if len(self.values) == 0:
-            return None
-        else:
-            return func(self.values)
-
 class StatsSender(object):
     monitoring = [
+        'io_writes_started[iowrites]',
+        'io_reads_started[ioreads]',
+        'io_writes_completed[iowrites]',
+        'io_reads_completed[ioreads]',
+
         'blocks_dirty[blocks]',
         'blocks_in_memory[blocks]',
         'cpu_user_avg',
@@ -182,54 +167,70 @@ class StatsSender(object):
         'serializer_old_garbage_blocks',
         'serializer_old_total_blocks',
         'serializer_reads_total',
-        'serializer_writes_total'
+        'serializer_writes_total',
+        'uptime'
     ]
-    def __init__(self, server):
+    def __init__(self, opts, server):
         def stats_aggregator(stats):
-            self.ts = stats['uptime']
+            stats_snapshot = {}
             for k in StatsSender.monitoring:
-                if k in stats and stats[k]:
-                    self.stats[k].add(stats[k])
+                if k in stats:
+                    stats_snapshot[k] = stats[k]
+            self.stats.append(stats_snapshot)
 
-        self.reset_stats()
+            if self.need_to_post():
+                all_stats = self.reset_stats()
+                self.post_results(all_stats) # new thread
+
+        self.opts = opts
+        self.stats = []
 
         self.rdbstat = RDBStat(('localhost', server.port), interval=1, stats_callback=stats_aggregator)
         self.rdbstat.start()
 
+    def need_to_post(self):
+        return self.stats[-1]['uptime'] - self.stats[0]['uptime'] >= self.opts['reporting_interval']
+
     def reset_stats(self):
-        self.ts = 0
-        self.stats = {}
-        for k in StatsSender.monitoring:
-            self.stats[k] = PointValue()
+        old_stats = self.stats
+        self.stats = []
+        return old_stats
 
-    def post_results(self):
-        stat_format = "%s (min/med/max): %s/%s/%s"
-        msg_lines = []
+    def post_results(self, all_stats):
+        from email.mime.image import MIMEImage
+        from email.mime.multipart import MIMEMultipart
 
-        def fmt(v):
-            if not v or math.isnan(v):
-                return '-'
-            else:
-                return '%.12g' % v
-
-        for (k, pv) in self.stats.iteritems():
-            msg_lines.append(stat_format % (k, fmt(pv.min()), fmt(pv.median()), fmt(pv.max())))
-
-        msg_text = '\n'.join(msg_lines)
-
-        from email.mime.text import MIMEText
-        recipient = 'ivan@rethinkdb.com'
-        msg = MIMEText(msg_text, 'plain')
-        msg['Subject'] = 'Long test [%fs]' % self.ts
+        msg = MIMEMultipart()
+        msg['Subject'] = 'Long test [%fs]' % all_stats[-1]['uptime']
         msg['From'] = 'buildbot@rethinkdb.com'
-        msg['To'] = recipient
-        os.environ['RETESTER_EMAIL_SENDER'] = 'buildbot@rethinkdb.com:allspark'
-        send_email(None, msg, recipient)
+        msg['To'] = self.opts['recipient']
 
-        self.reset_stats()
+        msg.preamble = 'Preamble is here'
+
+        for img in self.generate_plots(all_stats):
+            msg.attach(MIMEImage(img))
+
+        os.environ['RETESTER_EMAIL_SENDER'] = self.opts['emailfrom']
+        send_email(None, msg, self.opts['recipient'])
+        print "Sent an email"
+
+    def generate_plots(self, all_stats):
+        # tplot -o result.png -of png -if - -tf num -k 'cmd_get' 'quantilel 100 0.05,0.5,0.95' -k 'cmd_set' 'quantilel 100 0.05,0.5,0.95' -k transactions_starting_avg 'quantilel 100 0.05,0.5,0.95' -k cmd_set/s 'quantilel 100 0.05,0.5,0.95' -k cmd_get/s 'quantilel 100 0.05,0.5,0.95'  -k io_writes/s 'quantile 100 0.05,0.5,0.95' -k outstanding_writes 'quantile 100 0.05,0.5,0.95' -or 1024x2048
+        plot_instructions = [ '-k', 'io_writes/s', 'quantile 36 0.05,0.5,0.95' ]
+        tplot = Popen(['tplot', '-if', '-', '-o', '/dev/stdout', '-of', 'png', '-tf', 'num', '-or', '1024x768'] + plot_instructions, stdin=PIPE, stdout=PIPE)
+        ts = None
+        io_writes_total = None
+        for stats in all_stats:
+            old_ts = ts
+            ts = stats['uptime']
+            old_io_writes_total = io_writes_total
+            io_writes_total = stats['io_writes_started[iowrites]']
+            if old_ts and ts - old_ts > 0:
+                print >>tplot.stdin, "%f =io_writes/s %f" % (ts, (io_writes_total - old_io_writes_total) / (ts - old_ts))
+        tplot.stdin.close()
+        return [tplot.stdout.read()]
 
     def stop(self):
-        import pdb; pdb.set_trace()
         self.rdbstat.stop()
 
 
