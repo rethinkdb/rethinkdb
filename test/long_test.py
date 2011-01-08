@@ -75,6 +75,7 @@ def parse_arguments(args):
     op['duration']  = StringFlag("--duration", "30s") # RSI
     op['checkout']  = BoolFlag(no_checkout_arg, invert = True)  # Tim says that means that checkout is True by default
     op['make']      = BoolFlag("--no-make", invert = True)
+    op['clients']   = IntFlag("--clients", 512)
 
     opts = op.parse(args)
     opts["netrecord"] = False   # We don't want to slow down the network
@@ -113,7 +114,8 @@ def long_test_function(opts, test_dir):
                 , "gets":     opts["nreads"]
                 , "appends":  opts["nappends"]
                 , "prepends": opts["nprepends"]
-                }, duration=opts["duration"], test_dir = test_dir)
+                }, duration=opts["duration"], test_dir = test_dir,
+                clients = opts["clients"])
     except:
         pass
     finally:
