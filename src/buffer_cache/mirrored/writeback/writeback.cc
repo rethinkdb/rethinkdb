@@ -15,6 +15,9 @@ writeback_t::begin_transaction_fsm_t::begin_transaction_fsm_t(writeback_t *wb, m
 }
 
 void writeback_t::begin_transaction_fsm_t::green_light() {
+
+    writeback->active_write_transactions++;
+
     // Lock the flush lock "for reading", but what we really mean is to lock it non-
     // exclusively because more than one write transaction can proceed at once.
     if (writeback->flush_lock.lock(rwi_read, this)) {
@@ -55,6 +58,7 @@ writeback_t::writeback_t(
       flush_threshold(flush_threshold),
       flush_timer(NULL),
       outstanding_disk_writes(0),
+      active_write_transactions(0),
       writeback_in_progress(false),
       cache(cache),
       start_next_sync_immediately(false),
@@ -64,6 +68,7 @@ writeback_t::writeback_t(
 writeback_t::~writeback_t() {
     assert(!flush_timer);
     assert(outstanding_disk_writes == 0);
+    assert(active_write_transactions == 0);
 }
 
 bool writeback_t::sync(sync_callback_t *callback) {
@@ -116,6 +121,10 @@ bool writeback_t::begin_transaction(transaction_t *txn, transaction_begin_callba
 
 void writeback_t::on_transaction_commit(transaction_t *txn) {
     if (txn->get_access() == rwi_write) {
+        
+        active_write_transactions--;
+        possibly_unthrottle_transactions();
+        
         flush_lock.unlock();
         
         /* At the end of every write transaction, check if the number of dirty blocks exceeds the
@@ -137,11 +146,13 @@ unsigned int writeback_t::num_dirty_blocks() {
 }
 
 bool writeback_t::too_many_dirty_blocks() {
-    return num_dirty_blocks() + outstanding_disk_writes >= max_dirty_blocks;
+    return
+        num_dirty_blocks() + outstanding_disk_writes + active_write_transactions * 3
+        >= max_dirty_blocks;
 }
 
 void writeback_t::possibly_unthrottle_transactions() {
-    if (!too_many_dirty_blocks()) {
+    while (!too_many_dirty_blocks()) {
         begin_transaction_fsm_t *fsm = throttled_transactions_list.head();
         if (!fsm) return;
         throttled_transactions_list.remove(fsm);
