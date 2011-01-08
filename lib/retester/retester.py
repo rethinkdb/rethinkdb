@@ -728,7 +728,7 @@ def report():
                 return ("print", )
     op["targets"] = TargetArg()
     try:
-        p = subprocess.Popen(["../tools/gen-version.sh"], stdout=subprocess.PIPE)
+        p = subprocess.Popen(["../scripts/gen-version.sh"], stdout=subprocess.PIPE)
         rethinkdb_version = p.communicate()[0]
     except:
         rethinkdb_version = "N/A"
