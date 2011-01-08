@@ -182,5 +182,7 @@
 #define DEFAULT_FILE_ZONE_SIZE                    GIGABYTE
 #define MAX_FILE_ZONES                            (TERABYTE / DEFAULT_FILE_ZONE_SIZE)
 
+#define COROUTINE_STACK_SIZE                      65536
+
 #endif // __CONFIG_ARGS_H__
 

@@ -41,7 +41,7 @@ public:
     
     void read_blocking(size_t offset, size_t length, void *buf);
     void write_blocking(size_t offset, size_t length, void *buf);
-    
+ 
     ~linux_direct_file_t();
     
 private:

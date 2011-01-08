@@ -158,6 +158,7 @@ public:
     void set_active_data_extents(const char* value);
     void set_block_size(const char* value);
     void set_extent_size(const char* value);
+    void set_coroutine_stack_size(const char* value);
 #ifdef SEMANTIC_SERIALIZER_CHECK
     void set_last_semantic_file(const char* value);
 #endif
