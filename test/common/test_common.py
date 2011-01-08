@@ -33,7 +33,7 @@ def make_option_parser():
     o["valgrind-tool"] = StringFlag("--valgrind-tool", "memcheck")
     o["mode"] = StringFlag("--mode", "debug")
     o["netrecord"] = BoolFlag("--no-netrecord", invert = True)
-    o["fsck"] = BoolFlag("--no-fsck", invert = True)
+    o["fsck"] = BoolFlag("--fsck")
     o["restart_server_prob"] = FloatFlag("--restart-server-prob", 0)
     o["corruption_p"] = FloatFlag("--corruption-p", 0)
     o["cores"] = IntFlag("--cores", 2)

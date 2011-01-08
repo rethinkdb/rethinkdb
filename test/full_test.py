@@ -162,6 +162,17 @@ def run_all_tests(mode, checker, protocol, cores, slices):
                     "duration"    : 340 },
                   repeat=5, timeout=460)
     
+    do_test_cloud("integration/serial_mix.py",
+                  { "auto"        : True,
+                    "mode"        : mode,
+                    "no-valgrind" : not checker,
+                    "protocol"    : protocol,
+                    "cores"       : cores,
+                    "slices"      : slices,
+                    "duration"    : 60,
+                    "fsck"        : True},
+                  repeat=5, timeout=600)
+    
     # TODO: This should really only be run under one environment...
     do_test_cloud("regression/gc_verification.py",
                   { "auto"        : True,
