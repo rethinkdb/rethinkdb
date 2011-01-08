@@ -190,7 +190,7 @@ class StatsSender(object):
 
     plotters = [
         ('blocks_dirty', plot_style_quantile, simple_plotter('blocks_dirty[blocks]')),
-        ('blocks_in_memory', plot_style_quantile, simple_plotter('blocks_in_memory[blocks]')),
+        ('blocks_in_memory', plot_style_line, simple_plotter('blocks_in_memory[blocks]')),
         ('cmd_get_avg', plot_style_quantile_log, simple_plotter('cmd_get_avg')),
         ('cmd_get/s', plot_style_quantile_log, differential_plotter('cmd_get_total')),
         ('cmd_set_avg', plot_style_quantile_log, simple_plotter('cmd_set_avg')),
@@ -206,7 +206,7 @@ class StatsSender(object):
         ('memory_real', plot_style_line, simple_plotter('memory_real[bytes]', 1.0/(1024*1024))),
         ('memory_virtual', plot_style_line, simple_plotter('memory_virtual[bytes]', 1.0/(1024*1024))),
         ('gc_ratio', plot_style_line, two_stats_ratio_plotter('serializer_old_garbage_blocks', 'serializer_old_total_blocks')),
-        ('serializer_MB_in_use', plot_style_quantile, simple_plotter('serializer_bytes_in_use', 1.0/(1024*1024))),
+        ('serializer_MB_in_use', plot_style_line, simple_plotter('serializer_bytes_in_use', 1.0/(1024*1024))),
     ]
     def __init__(self, opts, server):
         def stats_aggregator(stats):
