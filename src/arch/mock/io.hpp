@@ -14,6 +14,8 @@ struct mock_iocallback_t {
 template<class inner_io_config_t>
 class mock_direct_file_t
 {
+    int mode;
+
 public:
     enum mode_t {
         mode_read = 1 << 0,
@@ -21,7 +23,9 @@ public:
         mode_create = 1 << 2
     };
     
-    mock_direct_file_t(const char *path, int mode) {
+    mock_direct_file_t(const char *path, int mode)
+        : mode(mode)
+    {
         int mode2 = 0;
         if (mode & mode_read) mode2 |= inner_io_config_t::direct_file_t::mode_read;
         // We always enable writing because the mock layer does
@@ -70,18 +74,21 @@ public:
     /* These always return 'false'; the reason they return bool instead of void
     is for consistency with other asynchronous-callback methods */
     bool read_async(size_t offset, size_t length, void *buf, mock_iocallback_t *cb) {
+        assert(mode & mode_read);
         read_blocking(offset, length, buf);
         random_delay(cb, &mock_iocallback_t::on_io_complete, (event_t*)NULL);
         return false;
     }
     
     bool write_async(size_t offset, size_t length, void *buf, mock_iocallback_t *cb) {
+        assert(mode & mode_write);
         write_blocking(offset, length, buf);
         random_delay(cb, &mock_iocallback_t::on_io_complete, (event_t*)NULL);
         return false;
     }
     
     void read_blocking(size_t offset, size_t length, void *buf) {
+        assert(mode & mode_read);
         verify(offset, length, buf);
         for (unsigned i = 0; i < length / DEVICE_BLOCK_SIZE; i += 1) {
             memcpy((char*)buf + i*DEVICE_BLOCK_SIZE, blocks[offset/DEVICE_BLOCK_SIZE + i].data, DEVICE_BLOCK_SIZE);
@@ -89,6 +96,7 @@ public:
     }
     
     void write_blocking(size_t offset, size_t length, void *buf) {
+        assert(mode & mode_write);
         verify(offset, length, buf);
         for (unsigned i = 0; i < length / DEVICE_BLOCK_SIZE; i += 1) {
             memcpy(blocks[offset/DEVICE_BLOCK_SIZE + i].data, (char*)buf + i*DEVICE_BLOCK_SIZE, DEVICE_BLOCK_SIZE);
@@ -96,11 +104,15 @@ public:
     }
     
     ~mock_direct_file_t() {
-        if(exists()) {
-            inner_file->set_size(get_size());
-        }
-        for (unsigned i = 0; i < get_size() / DEVICE_BLOCK_SIZE; i++) {
-            inner_file->write_blocking(i*DEVICE_BLOCK_SIZE, DEVICE_BLOCK_SIZE, blocks[i].data);
+        if (mode & mode_write) {
+            if(exists()) {
+                inner_file->set_size(get_size());
+            }
+            // This is horrible. We write every single block of the file, sequentially, in a
+            // blocking fashion. There must be a better way to do this...
+            for (unsigned i = 0; i < get_size() / DEVICE_BLOCK_SIZE; i++) {
+                inner_file->write_blocking(i*DEVICE_BLOCK_SIZE, DEVICE_BLOCK_SIZE, blocks[i].data);
+            }
         }
         
         delete inner_file;
