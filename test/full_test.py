@@ -148,7 +148,8 @@ def run_all_tests(mode, checker, protocol, cores, slices):
                     "nupdates"    : 0,
                     "ninserts"    : 1,
                     "nreads"      : 0,
-                    "fsck"        : False},
+                    "fsck"        : False
+                    "min-qps"     : 20}, # a very reasonable limit
                   repeat=3, timeout=2400)
 
     do_test_cloud("integration/serial_mix.py",
