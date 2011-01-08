@@ -46,6 +46,7 @@ def make_option_parser():
     o["no-timeout"] = BoolFlag("--no-timeout", invert = False)
     o["ssds"] = AllArgsAfterFlag("--ssds", default = [])
     o["mem-cap"] = IntFlag("--mem-cap", None)
+    o["min-qps"] = IntFlag("--min-qps", None)
     o["garbage-range"] = MultiValueFlag("--garbage-range", [float_converter, float_converter], default = None)
     return o
 
@@ -602,14 +603,13 @@ def adjust_timeout(opts, timeout):
         return timeout + 15
 #make a dictionary of stat limits
 def start_stats(opts, port):
-    if not (opts["mem-cap"] or opts["garbage-range"]):
-        return None
-
     limits = {}
     if opts["mem-cap"]:
         limits["memory_virtual[bytes]"] = StatRange(0, opts["mem-cap"] * 1024 * 1024)
     if opts["garbage-range"]:
         limits["serializer_garbage_ratio"] = StatRange(opts["garbage-range"][0], opts["garbage-range"][1])
+    if opts["min-qps"]:
+        limits["cmd_set_persec"] = StatRange(opts["min-qps"])
 
     if limits:
         stat_checker = RDBStat(('localhost', port), limits)
