@@ -176,7 +176,9 @@ def run_all_tests(mode, checker, protocol, cores, slices):
     # Run the serial mix test also with the other valgrind tools, drd and helgrind
     if checker == "valgrind":
         for valgrind_tool in ["drd", "helgrind"]:
-            do_test_cloud("integration/serial_mix.py",
+            # Use do_test() instead of do_test_cloud() because DRD produces hundreds of apparently
+            # bogus errors when run on EC2, but runs just fine locally.
+            do_test("integration/serial_mix.py",
                           { "auto"        : True,
                             "mode"        : mode,
                             "no-valgrind" : not checker,
