@@ -14,10 +14,10 @@ if [ $DATABASE == "rethinkdb" ]; then
     make clean
     make -j DEBUG=0 VALGRIND=0 FAST_PERFMON=1
     cd ../bench/stress-client
-    make
+    #make
     # Use baseline stress client for this test. We must recover the original version after the test!
-    ssh puzzler mv -f /home/teapot/stress /home/teapot/stress-head
-    scp stress puzzler:/home/teapot/stress
+    #ssh puzzler mv -f /home/teapot/stress /home/teapot/stress-head
+    #scp stress puzzler:/home/teapot/stress
     cd ../dbench
     
     ../../build/release/rethinkdb create $SSD_DRIVES --force

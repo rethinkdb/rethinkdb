@@ -18,7 +18,11 @@ cd ../dbench
 SSD_DRIVES="-f /dev/sdf"
 HDD_DRIVES="" # TODO
 SSD_RAID_DEVICE="/dev/sdf"
-sudo sh -c 'echo noop > /sys/block/sdf/queue/scheduler'
+# Set the I/O scheduler to noop
+for DRIVE in sdf; do
+    sudo set-scheduler $DRIVE noop
+done
+
 # NOTE: Expects /dev/sdf to be a RAID of SSD drives
 sudo mkfs.ext3 -F "$SSD_RAID_DEVICE"
 mkdir -p /tmp/ssd_mount
