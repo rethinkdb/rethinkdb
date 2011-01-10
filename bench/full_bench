@@ -38,8 +38,8 @@ HDD_DRIVES="-f /dev/sdb -f /dev/sdc -f /dev/sdd -f /dev/sde"
 
 SERVER_HOSTS="magneto,magneto2"
 CANONICAL_CLIENTS="512"
-CANONICAL_DURATION="180s"
-CANONICAL_MULTIRUN_DURATION="45s"
+CANONICAL_DURATION="1800s"
+CANONICAL_MULTIRUN_DURATION="300s"
 
 STRESS_CLIENT="puzzler:/home/teapot/stress"
 
