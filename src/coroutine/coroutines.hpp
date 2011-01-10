@@ -60,7 +60,7 @@ private:
     static __thread coro_t *scheduler; //Epoll loop--main execution of program
 
     static __thread std::vector<coro_t*> *free_coros;
-    static std::vector<std::vector<coro_t*> > all_coros;
+    static std::vector<coro_t*> all_coros[MAX_THREADS];
 
     DISABLE_COPYING(coro_t);
 

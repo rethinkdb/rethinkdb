@@ -7,7 +7,7 @@
 perfmon_counter_t pm_active_coroutines("active_coroutines"),
                   pm_allocated_coroutines("allocated_coroutines");
 
-std::vector<std::vector<coro_t*> > coro_t::all_coros;
+std::vector<coro_t*> coro_t::all_coros[MAX_THREADS];
 
 __thread coro_t *coro_t::current_coro = NULL;
 __thread coro_t *coro_t::scheduler = NULL;
@@ -90,10 +90,10 @@ coro_t *coro_t::get_free_coro() {
 
 int coro_t::in_coro_from_cpu(void *addr) {
     size_t base = (size_t)addr - ((size_t)addr % getpagesize());
-    for (std::vector<std::vector<coro_t*> >::iterator i = all_coros.begin(); i != all_coros.end(); i++) {
-        for (std::vector<coro_t*>::iterator j = i->begin(); j != i->end(); j++) {
-            if (base == (size_t)((*j)->underlying->stack)) {
-                return i - all_coros.begin();
+    for (int i = 0; i < MAX_THREADS; i++) {
+        for (std::vector<coro_t*>::iterator p = all_coros[i].begin(); p != all_coros[i].end(); p++) {
+            if (base == (size_t)((*p)->underlying->stack)) {
+                return i;
             }
         }
     }
@@ -116,7 +116,6 @@ void coro_t::run() {
     Coro_initializeMainCoro(mainCoro);
     scheduler = current_coro = new coro_t(mainCoro);
     free_coros = new std::vector<coro_t*>();
-    all_coros.resize(get_num_threads());
 }
 
 void coro_t::destroy() {
