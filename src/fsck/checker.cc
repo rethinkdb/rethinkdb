@@ -1142,7 +1142,7 @@ void report_pre_config_block_errors(const check_to_config_block_errors& errs) {
 void report_interfile_errors(const interfile_errors &errs) {
     if (!errs.all_have_same_num_files) {
         printf("ERROR config blocks disagree on number of files\n");
-    } else if (!errs.all_have_same_num_files) {
+    } else if (!errs.all_have_correct_num_files) {
         printf("WARNING wrong number of files specified on command line\n");
     }
 
