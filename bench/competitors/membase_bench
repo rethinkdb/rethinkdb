@@ -19,7 +19,10 @@ cd ../dbench
 SSD_DRIVES="-f /dev/sdf"
 HDD_DRIVES="" # TODO
 SSD_RAID_DEVICE="/dev/sdf"
-sudo sh -c 'echo noop > /sys/block/sdf/queue/scheduler'
+# Set the I/O scheduler to noop
+for DRIVE in sdf; do
+    sudo set-scheduler $DRIVE noop
+done
 
 SERVER_HOSTS="magneto,magneto2"
 CANONICAL_CLIENTS="512"

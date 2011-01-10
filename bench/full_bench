@@ -26,6 +26,11 @@ function delete_database_files() { # They are large and useless.
     rm -f "$(find "$BENCH_DIR" -name rethinkdb_data)"
 }
 
+# Set the I/O scheduler to noop
+for DRIVE in sdf sdg sdh sdi; do
+    sudo set-scheduler $DRIVE noop
+done
+
 # Set up the SSDs as individual devices, and note their names to pass to rethinkdb.
 #SSD_DRIVES="$(sudo /usr/local/bin/raidconfig ssd single | sed 's/^/-f /; s/$/ /' | tr -d '\n')"
 SSD_DRIVES="-f /dev/sdf -f /dev/sdg -f /dev/sdh -f /dev/sdi"
