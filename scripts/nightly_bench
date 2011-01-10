@@ -1,5 +1,16 @@
 #!/bin/bash
 
+BREAKOUT_FILE_NAME=~/nightly_bench_running
+
+# Don't start the test if it's running already
+if [ -f $BREAKOUT_FILE_NAME ]
+then
+exit
+fi
+
+# Create the breakout file
+touch $BREAKOUT_FILE_NAME
+
 # We need our git-test
 export PATH=$PATH:/usr/local/bin/
 
@@ -11,4 +22,8 @@ git pull
 
 # Run the tests
 # Email is hard-wired for now.
-git test -b --email all@rethinkdb.com --revision HEAD bench/full_bench
+git test -l --email all@rethinkdb.com --revision HEAD bench/full_bench
+
+# Remove the breakout file
+rm -f $BREAKOUT_FILE_NAME
+
