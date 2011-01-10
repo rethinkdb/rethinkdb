@@ -82,14 +82,17 @@ def run_canonical_tests(mode, checker, protocol, cores, slices):
     # we don't flush to disk at all until the server is shut down, so obviously the
     # corruption test will fail.
     if "mock" not in mode:
-        do_test_cloud("integration/corruption.py",
-                      { "auto"        : True,
-                        "mode"        : mode,
-                        "no-valgrind" : not checker,
-                        "protocol"    : protocol,
-                        "cores"       : cores,
-                        "slices"      : slices },
-                      repeat=12)
+        for dur in [2, 5, 10, 60, 300, 420]:
+            do_test_cloud("integration/corruption.py",
+                          { "auto"          : True,
+                            "mode"          : mode,
+                            "no-valgrind"   : not checker,
+                            "protocol"      : protocol,
+                            "cores"         : cores,
+                            "slices"        : slices,
+                            "duration"      : dur,
+                            "verify-timeout": dur },
+                          repeat=2, timeout=dur * 4)
 
 # Running all tests
 def run_all_tests(mode, checker, protocol, cores, slices):
@@ -148,7 +151,8 @@ def run_all_tests(mode, checker, protocol, cores, slices):
                     "nupdates"    : 0,
                     "ninserts"    : 1,
                     "nreads"      : 0,
-                    "fsck"        : False},
+                    "fsck"        : False,
+                    "min-qps"     : 20}, # a very reasonable limit
                   repeat=3, timeout=2400)
 
     do_test_cloud("integration/serial_mix.py",
@@ -160,6 +164,17 @@ def run_all_tests(mode, checker, protocol, cores, slices):
                     "slices"      : slices,
                     "duration"    : 340 },
                   repeat=5, timeout=460)
+    
+    do_test_cloud("integration/serial_mix.py",
+                  { "auto"        : True,
+                    "mode"        : mode,
+                    "no-valgrind" : not checker,
+                    "protocol"    : protocol,
+                    "cores"       : cores,
+                    "slices"      : slices,
+                    "duration"    : 60,
+                    "fsck"        : True},
+                  repeat=5, timeout=600)
     
     # TODO: This should really only be run under one environment...
     do_test_cloud("regression/gc_verification.py",
@@ -175,7 +190,9 @@ def run_all_tests(mode, checker, protocol, cores, slices):
     # Run the serial mix test also with the other valgrind tools, drd and helgrind
     if checker == "valgrind":
         for valgrind_tool in ["drd", "helgrind"]:
-            do_test_cloud("integration/serial_mix.py",
+            # Use do_test() instead of do_test_cloud() because DRD produces hundreds of apparently
+            # bogus errors when run on EC2, but runs just fine locally.
+            do_test("integration/serial_mix.py",
                           { "auto"        : True,
                             "mode"        : mode,
                             "no-valgrind" : not checker,
@@ -276,7 +293,7 @@ def run_all_tests(mode, checker, protocol, cores, slices):
                     "protocol"    : protocol,
                     "cores"       : cores,
                     "slices"      : slices },
-                  repeat=5)
+                  repeat=5, timeout = 120)
 
     do_test_cloud("integration/fuzz.py",
                   { "auto"        : True,
@@ -295,7 +312,7 @@ def run_all_tests(mode, checker, protocol, cores, slices):
                     "protocol"    : protocol,
                     "cores"       : cores,
                     "slices"      : slices,
-                    "serve-flags" : "--flush-timer 50",
+                    "serve-flags" : "\"--flush-timer 50\"",
                     "duration"    : 60},
                   repeat=1, timeout = 120)
 

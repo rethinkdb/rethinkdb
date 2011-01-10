@@ -5,12 +5,16 @@ import threading
 import re
 
 class StatRange():
-    def __init__(self, min, max):
+    def __init__(self, min = None, max = None):
         self.min = min
         self.max = max
 
     def __contains__(self, x):
-        return (self.min <= x and x <= self.max)
+        if self.min and self.min > x:
+            return False
+        if self.max and self.max <= x:
+            return False
+        return True
 
 class StatError(Exception):
     def __init__(self, stat, val, range):
@@ -18,7 +22,7 @@ class StatError(Exception):
         self.val = val
         self.range = range
 
-    def __str__(self):
+    def __repr__(self):
         return "Stat: %s had value: %s outside of range [%s, %s]" % (self.stat, repr(self.val), repr(self.range[0]), repr(self.range[1]))
 
 
@@ -84,6 +88,7 @@ class RDBStat():
 
     def run(self):
         self.keep_going = True
+        time.sleep(5)
         try:
             while self.keep_going:
                 self.check()

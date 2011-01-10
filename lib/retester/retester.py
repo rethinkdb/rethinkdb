@@ -254,7 +254,7 @@ def do_test(cmd, cmd_args={}, cmd_format="gnu", repeat=1, timeout=60):
                 if cmd_args[arg]:
                     command += "--%s" % arg
             else:
-                command += "--%s %s" % (arg, str(cmd_args[arg]))
+                command += "--%s \"%s\"" % (arg, str(cmd_args[arg]).replace("\\", "\\\\").replace("\"", "\\\""))
         # Make cmd line builder
         elif cmd_format == "make":
             command += "%s=%s" % (arg, str(cmd_args[arg]))
@@ -728,7 +728,7 @@ def report():
                 return ("print", )
     op["targets"] = TargetArg()
     try:
-        p = subprocess.Popen(["../tools/gen-version.sh"], stdout=subprocess.PIPE)
+        p = subprocess.Popen(["../scripts/gen-version.sh"], stdout=subprocess.PIPE)
         rethinkdb_version = p.communicate()[0]
     except:
         rethinkdb_version = "N/A"

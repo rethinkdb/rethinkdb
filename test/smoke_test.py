@@ -63,6 +63,15 @@ try:
                   "no-valgrind" : not checker,
                   "protocol"    : protocol })
         
+        do_test_cloud("integration/serial_mix.py",
+                { "auto"        : True,
+                  "mode"        : mode,
+                  "no-valgrind" : not checker,
+                  "protocol"    : protocol,
+                  "duration"    : 10,
+                  "fsck"        : True},
+                repeat=1, timeout=60)
+        
         # More advanced tests in various cores/slices configuration
         for (cores, slices) in [(1, 1)]:
             do_test_cloud("integration/many_keys.py",

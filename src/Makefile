@@ -143,7 +143,7 @@ SERVER_NOMAIN_OBJS:=$(patsubst %.cc,$(OBJ_DIR)/%.o,$(shell find $(SOURCE_DIR) -n
 SERVER_UNIT_TEST_OBJS:=$(SERVER_NOMAIN_OBJS) $(OBJ_DIR)/unittest/main.o
 
 #### Version number handling
-RETHINKDB_VERSION:=$(shell ../tools/gen-version.sh)
+RETHINKDB_VERSION:=$(shell ../scripts/gen-version.sh)
 CXXFLAGS+=-DRETHINKDB_VERSION=\"$(RETHINKDB_VERSION)\"
 
 ##### Build targets

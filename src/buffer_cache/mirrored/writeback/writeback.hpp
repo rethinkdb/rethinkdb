@@ -111,6 +111,9 @@ private:
     /* The number of writes that we dispatched to the disk that have not come back yet. */
     unsigned long long outstanding_disk_writes;
     
+    /* The number of currently active write transactions */
+    int active_write_transactions;
+    
     bool writeback_in_progress;
     
     /* Functions and callbacks for different phases of the writeback */
