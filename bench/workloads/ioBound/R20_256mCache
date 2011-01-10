@@ -5,7 +5,7 @@
 if [ $DATABASE == "rethinkdb" ]; then
     ./dbench                                                                 \
         -d "$BENCH_DIR/bench_output/SSD_IO_performance_(canonical_workload)" -H $SERVER_HOSTS     \
-        {server}rethinkdb:"-c 12 -m 256 $SSD_DRIVES"                          \
+        {server}rethinkdb:"--active-data-extents 1 -c 12 -m 256 $SSD_DRIVES"                          \
         {client}stress[$STRESS_CLIENT]:"-c $CANONICAL_CLIENTS -d $CANONICAL_DURATION"          \
         iostat:1 vmstat:1 rdbstat:1
 elif [ $DATABASE == "mysql" ]; then
