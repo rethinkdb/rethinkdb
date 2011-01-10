@@ -1,3 +1,4 @@
+#TODO make an index.html version that uses a href tags rather than cid tags (email embedding)
 import sys, os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir + '/oprofile')))
 from plot import *
@@ -26,10 +27,6 @@ class Multirun(object):
         self.name = name.replace('_', ' ')
         self.runs = runs
         self.unit = unit
-
-#        print means([runs[run].data.select('iostat') for run in runs]) 
-
-  #      self.data = multirun_data
 
 class dbench():
     log_file = 'bench_log.txt'
@@ -221,6 +218,39 @@ class dbench():
         def format_metadata(f):
             return locale.format("%.2f", f, grouping=True)
 
+        def summary_table(datatype, dataset):
+            table = """<table style="border-spacing: 0px; border-collapse: collapse; margin-left: auto; margin-right: auto; margin-top: 20px;">
+                                <tr style="font-weight: bold; text-align: left; border-bottom: 2px solid #FFFFFF; color: #FFFFFF; background: #556270;">
+                                    <th style="padding: 0.5em 0.8em; font-size: small;"></th>
+                                    <th style="padding: 0.5em 0.8em; font-size: small;">Mean %s</th>
+                                    <th style="padding: 0.5em 0.8em; font-size: small;">Standard deviation</th>
+                                    <th style="padding: 0.5em 0.8em; font-size: small;">Upper / Lower 5-percentile</th>
+                                </tr>""" % datatype
+            for competitor in data.iteritems():
+                try:
+                    mean_data = format_metadata(competitor[1].select(datatype).stats()[datatype]['mean'])
+                except KeyError:
+                    mean_data = "N/A"
+                try:
+                    standard_dev = format_metadata(competitor[1].select(datatype).stats()[datatype]['stdev'])
+                except KeyError:
+                    standard_dev = "N/A"
+                try:
+                    upper_percentile = format_metadata(competitor[1].select(datatype).stats()[datatype]['upper_5_percentile'])
+                    lower_percentile = format_metadata(competitor[1].select(datatype).stats()[datatype]['lower_5_percentile'])
+                except KeyError:
+                    upper_percentile = "N/A"
+                    lower_percentile = "N/A"
+
+                table += """<tr style="text-align: left; border-bottom: 2px solid #FFFFFF;">
+                                    <td style="background: #DBE2F1; padding: 0.5em 0.8em; font-weight: bold;">%s</td>
+                                    <td style="background: #DBE2F1; padding: 0.5em 0.8em;">%s</td>
+                                    <td style="background: #DBE2F1; padding: 0.5em 0.8em;">%s</td>
+                                    <td style="background: #DBE2F1; padding: 0.5em 0.8em;">%s / %s</td>
+                                </tr>""" % (competitor[0], mean_data, standard_dev, upper_percentile, lower_percentile)
+            table += "</table>"
+            return table
+
         res = StringIO.StringIO()
 
 
@@ -258,6 +288,7 @@ class dbench():
             data['RethinkDB'].json(self.out_dir + '/' + self.dir_str + '/' + flot_data + run_name,'Server:' + server_meta + 'Client:' + client_meta)
             print >>res, '<span style="display: inline;">', flot('/' + self.prof_dir + '/' + self.dir_str + '/' + flot_data + run_name + '.js', '(explore data)</span>')
             
+            # Build data for the qps plot
             qps_data = TimeSeriesCollection()
 
             for database in data.iteritems():
@@ -267,41 +298,12 @@ class dbench():
             qps_data.plot(os.path.join(self.out_dir, self.dir_str, 'qps' + run_name))
             qps_data.plot(os.path.join(self.out_dir, self.dir_str, 'qps' + run_name + '_large'), True)
 
-            # Add the qps plot image and metadata
+            # Add the qps plot image metadata
             print >>res, '<table style="width: 910px;" class="runPlots">'
             print >>res, '<tr><td valign="top"><h3 style="text-align: center">Queries per second</h3>'
             print >>res, image('qps' + run_name)
-
-            print >>res, """<table style="border-spacing: 0px; border-collapse: collapse; margin-left: auto; margin-right: auto; margin-top: 20px;">
-                                <tr style="font-weight: bold; text-align: left; border-bottom: 2px solid #FFFFFF; color: #FFFFFF; background: #556270;">
-                                    <th style="padding: 0.5em 0.8em; font-size: small;"></th>
-                                    <th style="padding: 0.5em 0.8em; font-size: small;">Mean qps</th>
-                                    <th style="padding: 0.5em 0.8em; font-size: small;">Standard deviation</th>
-                                    <th style="padding: 0.5em 0.8em; font-size: small;">Upper / Lower 5-percentile</th>
-                                </tr>"""
-            for competitor in data.iteritems():
-                try:
-                    mean_qps = format_metadata(competitor[1].select('qps').stats()['qps']['mean'])
-                except KeyError:
-                    mean_qps = "N/A"
-                try:
-                    standard_dev = format_metadata(competitor[1].select('qps').stats()['qps']['stdev'])
-                except KeyError:
-                    standard_dev = "N/A"
-                try:
-                    upper_percentile = format_metadata(competitor[1].select('qps').stats()['qps']['upper_5_percentile'])
-                    lower_percentile = format_metadata(competitor[1].select('qps').stats()['qps']['lower_5_percentile'])
-                except KeyError:
-                    upper_percentile = "N/A"
-                    lower_percentile = "N/A"
-                print >>res,     """<tr style="text-align: left; border-bottom: 2px solid #FFFFFF;">
-                                        <td style="background: #DBE2F1; padding: 0.5em 0.8em; font-weight: bold;">%s</td>
-                                        <td style="background: #DBE2F1; padding: 0.5em 0.8em;">%s</td>
-                                        <td style="background: #DBE2F1; padding: 0.5em 0.8em;">%s</td>
-                                        <td style="background: #DBE2F1; padding: 0.5em 0.8em;">%s <br>/ %s</td>
-                                    </tr>""" % (competitor[0], mean_qps, standard_dev, upper_percentile, lower_percentile)
-            print >>res, """</table>
-                        </td>"""
+            print >>res, summary_table('qps', data)
+            print >>res, """</td>"""
 
             # Build data for the latency histogram
             lat_data = TimeSeriesCollection()
@@ -315,39 +317,8 @@ class dbench():
             # Add the latency histogram image and metadata
             print >>res, '<td valign="top"><h3 style="text-align: center">Latency in microseconds</h3>'
             print >>res, image('latency' + run_name)
-
-            print >>res, """<table style="border-spacing: 0px; border-collapse: collapse; margin-left: auto; margin-right: auto; margin-top: 20px;">
-                                <tr style="font-weight: bold; text-align: left; border-bottom: 2px solid #FFFFFF; color: #FFFFFF; background: #556270;">
-                                    <th style="padding: 0.5em 0.8em; font-size: small;"></th>
-                                    <th style="padding: 0.5em 0.8em; font-size: small;">Mean latency</th>
-                                    <th style="padding: 0.5em 0.8em; font-size: small;">Standard deviation</th>
-                                    <th style="padding: 0.5em 0.8em; font-size: small;">Upper / Lower 5-percentile</th>
-                                </tr>"""
-            for competitor in data.iteritems():
-                try:
-                    mean_latency = format_metadata(competitor[1].select('latency').stats()['latency']['mean'])
-                except KeyError:
-                    mean_latency = "N/A"
-                try:
-                    standard_dev = format_metadata(competitor[1].select('latency').stats()['latency']['stdev'])
-                except KeyError:
-                    standard_dev = "N/A"
-                try:
-                    upper_percentile = format_metadata(competitor[1].select('latency').stats()['latency']['upper_5_percentile'])
-                    upper_01_percentile = format_metadata(competitor[1].select('latency').stats()['latency']['upper_0.1_percentile'])
-                    lower_percentile = format_metadata(competitor[1].select('latency').stats()['latency']['lower_5_percentile'])
-                except KeyError:
-                    upper_percentile = "N/A"
-                    lower_percentile = "N/A"
-                print >>res,     """<tr style="text-align: left; border-bottom: 2px solid #FFFFFF;">
-                                        <td style="background: #DBE2F1; padding: 0.5em 0.8em; font-weight: bold;">%s</td>
-                                        <td style="background: #DBE2F1; padding: 0.5em 0.8em;">%s</td>
-                                        <td style="background: #DBE2F1; padding: 0.5em 0.8em;">%s</td>
-                                        <td style="background: #DBE2F1; padding: 0.5em 0.8em;">%s <br>/ %s</td>
-                                    </tr>""" % (competitor[0], mean_latency, standard_dev, upper_percentile, lower_percentile)
-            print >>res, """</table>
-                        </td>"""
-
+            print >>res, summary_table('latency', data)
+            print >>res, """</td>"""
 
             # Metadata about the server and client
 #            print >>res, '<table style="table-layout: fixed; width: 910px;" class="meta">'
@@ -362,11 +333,12 @@ class dbench():
             multirun = self.rdb_stats.multi_runs[multirun_name]
 
             print >>res, '<hr style="height: 1px; width: 910px; border-top: 1px solid #999; margin: 30px 0px; padding: 0px 30px;" />'
-            print >>res, '<div class="multi run">'
+            print >>res, '<div class="multirun">'
             print >>res, '<h2 style="font-size: xx-large; display: inline;">', multirun.name,'</h2>'
 
             # Get the data for the multirun mean scatter plot
             mean_data = {}
+            # For now we just collect RethinkDB's multirun data. In the future, we'll have to add competitors TODO
             mean_data['RethinkDB'] = multirun.data
 
             for competitor in self.competitors.iteritems():
@@ -377,10 +349,19 @@ class dbench():
                 except AttributeError:
                     print 'Competitor: %s has no multiruns.' % competitor[0]
 
-            # REMOVED PENDING BETTER IMPLEMENTATION Add a link to the graph-viewer (flot) TODO
-#            data.json(self.out_dir + '/' + self.dir_str + '/' + flot_data + run_name,'Server:' + server_meta + 'Client:' + client_meta)
-#            print >>res, '<span style="display: inline;">', flot('/' + self.prof_dir + '/' + self.dir_str + '/' + flot_data + run_name + '.js', '(explore data)</span>')
-            
+            print >>res, '<span style="display: inline;">(explore data:'
+
+            # Add a link to each run in the multirun
+            for run_name in multirun.runs.keys():
+                flot_data_filename = flot_data + multirun.name + run_name
+                current_run_data = reduce(lambda x, y: x + y, multirun.runs[run_name].data) 
+                current_run_data.json(self.out_dir + '/' + self.dir_str + '/' + flot_data_filename,'Server:' + server_meta + 'Client:' + client_meta)
+                print >>res, flot('/' + self.prof_dir + '/' + self.dir_str + '/' + flot_data_filename + '.js', run_name)
+
+                if run_name != multirun.runs.keys()[-1]:
+                    print >>res, ' | '
+
+            print >>res, ')</span>'
 
             # Check if we can use the labels as x values (i.e. they are all numeric)
             labels_are_x_values = True
@@ -407,120 +388,99 @@ class dbench():
 
             scatter = ScatterCollection(scatter_data, multirun.unit)
             scatter.plot(os.path.join(self.out_dir, self.dir_str, 'mean' + multirun_name))
-#            mean_data.plot(os.path.join(self.out_dir, self.dir_str, 'meanrun' + multirun_name + '_large'), True)
+            scatter.plot(os.path.join(self.out_dir, self.dir_str, 'mean' + multirun_name + '_large'), True)
 
             # Add the mean run plot image and metadata
             print >>res, '<table style="width: 910px;" class="runPlots">'
-            print >>res, '<tr><td><h3 style="text-align: center">Queries per second</h3>'
+            print >>res, '<tr><td><h3 style="text-align: center">Average queries per second across runs</h3>'
             print >>res, image('mean' + multirun_name)
 
-            # REMOVED PENDING REVIEW TODO
-            #cum_stats = {}
-            #cum_stats['rdb_qps_mean'] = format_metadata(data.select('qps').stats()['qps']['mean'])
-            #cum_stats['rdb_qps_stdev'] = format_metadata(data.select('qps').stats()['qps']['stdev'])
+            #print >>res, """<table style="border-spacing: 0px; border-collapse: collapse; margin-left: auto; margin-right: auto; margin-top: 20px;">
+            #                    <tr style="font-weight: bold; text-align: left; border-bottom: 2px solid #FFFFFF; color: #FFFFFF; background: #556270;">
+            #                        <th style="padding: 0.5em 0.8em; font-size: small;"></th>
+            #                        <th style="padding: 0.5em 0.8em; font-size: small;">Mean qps</th>
+            #                        <th style="padding: 0.5em 0.8em; font-size: small;">Standard deviation</th>
+            #                        <th style="padding: 0.5em 0.8em; font-size: small;">Upper / Lower 5-percentile</th>
+            #                    </tr>"""
+            #for competitor in mean_data.iteritems():
+            #    competitor_mean = 0
+            #    competitor_stdev = 0
+            #    competitor_upper_5_percentile = 0
+            #    competitor_lower_5_percentile = 0
+            #    pdb.set_trace()
+            #    try:
+            #        competitor_mean = competitor[1].select('qps').stats()['qps']['mean']
+            #    except NameError:
+            #        print competitor[0] + " does not have a recorded mean for qps."
+            #    try:
+            #        competitor_stdev = competitor[1].select('qps').stats()['qps']['stdev']
+            #    except NameError:
+            #        print competitor[0] + " does not have a recorded standard deviation for qps."
+            #    try:
+            #        competitor_upper_5_percentile = competitor[1].select('qps').stats()['qps']['upper_5_percentile']
+            #    except NameError:
+            #        print competitor[0] + " does not have a recorded upper 5-percentile for qps."
+            #    try:
+            #        competitor_lower_5_percentile = competitor[1].select('qps').stats()['qps']['lower_5_percentile']
+            #    except NameError:
+            #        print competitor[0] + " does not have a recorded lower 5-percentile for qps."
 
-            # REMOVED PENDING REIVEW TODO
-#            for competitor in competitor_data.iteritems():
-#                cum_stats[competitor[0] + '_qps_mean'] = format_metadata(competitor[1].select('qps').stats()['qps']['mean'])
-#                cum_stats[competitor[0] + '_qps_stdev']= format_metadata(competitor[1].select('qps').stats()['qps']['stdev'])
+            #    print >>res,     """<tr style="text-align: left; border-bottom: 2px solid #FFFFFF;">
+            #                            <td style="background: #DBE2F1; padding: 0.5em 0.8em; font-weight: bold;">%s</td>
+            #                            <td style="background: #DBE2F1; padding: 0.5em 0.8em;">%s</td>
+            #                            <td style="background: #DBE2F1; padding: 0.5em 0.8em;">%s</td>
+            #                            <td style="background: #DBE2F1; padding: 0.5em 0.8em;">%s / %s</td>
+            #                        </tr>""" % (competitor[0], format_metadata(competitor_mean), format_metadata(competitor_stdev), format_metadata(competitor_upper_5_percentile), format_metadata(competitor_lower_5_percentile))
+            #print >>res, """</table>
+            #            </td>"""
+            # TODO remove later
+            print >>res, """</td>"""
 
-#            qps_mean = format_metadata(data.select('qps').stats()['qps']['mean'])
-#            qps_stdev = format_metadata(data.select('qps').stats()['qps']['stdev'])
-#            print >>res, """<table style="border-spacing: 0px; border-collapse: collapse; margin-left: auto; margin-right: auto; margin-top: 20px;">
-#                                <tr style="font-weight: bold; text-align: left; border-bottom: 2px solid #FFFFFF; color: #FFFFFF; background: #556270;">
-#                                    <th style="padding: 0.5em 0.8em; font-size: small;"></th>
-#                                    <th style="padding: 0.5em 0.8em; font-size: small;">Mean qps</th>
-#                                    <th style="padding: 0.5em 0.8em; font-size: small;">Standard deviation</th>
-#                                </tr>
-#                                <tr style="text-align: left; border-bottom: 2px solid #FFFFFF;">
-#                                    <td style="background: #DBE2F1; padding: 0.5em 0.8em; font-weight: bold;">RethinkDB</td>
-#                                    <td style="background: #DBE2F1; padding: 0.5em 0.8em;">%s</td>
-#                                    <td style="background: #DBE2F1; padding: 0.5em 0.8em;">%s</td>
-#                                </tr>
-#                                <tr style="text-align: left; border-bottom: 2px solid #FFFFFF;">
-#                                    <td style="background: #DBE2F1; padding: 0.5em 0.8em; font-weight: bold;">Membase</td>
-#                                    <td style="background: #DBE2F1; padding: 0.5em 0.8em;">%s</td>
-#                                    <td style="background: #DBE2F1; padding: 0.5em 0.8em;">%s</td>
-#                                </tr>
-#                                <tr style="text-align: left; border-bottom: 2px solid #FFFFFF;">
-#                                    <td style="background: #DBE2F1; padding: 0.5em 0.8em; font-weight: bold;">MySQL</td>
-#                                    <td style="background: #DBE2F1; padding: 0.5em 0.8em;">%s</td>
-#                                    <td style="background: #DBE2F1; padding: 0.5em 0.8em;">%s</td>
-#                                </tr>
-#                            </table>
-#                        </td>
-#                        """ % (cum_stats.get('rdb_qps_mean', '8===D'), cum_stats.get('rdb_qps_stdev', '8===D'), cum_stats.get('membase_qps_mean', '8===D'), cum_stats.get('membase_qps_stdev', '8===D'), cum_stats.get('mysql_qps_mean', '8===D'), cum_stats.get('mysql_qps.stdev', '8===D'))
+            # Plot the multiplot; each subplot shows one of the runs of the multirun 
+            multiplot_data = {}
 
-            # Build data for the multiplot
-            #multiplot_data = data.select('latency').remap('latency', 'rethinkdb')
+            # Build the intial set of run data with just RethinkDB's run used in multiruns
+            for run_name, run in multirun.runs.iteritems():
+                multiplot_data[run_name] = {}
+                
+                multiplot_data[run_name] = reduce(lambda x, y: x + y, run.data).select('qps').remap('qps','RethinkDB')
+                
+            competitors_with_multiruns = {}
+            for competitor in self.competitors.iteritems():
+                try:
+                    competitors_with_multiruns[competitor[0]] = competitor[1].multirun
+                except AttributeError:
+                    print 'Competitor: %s has no multiruns.' % competitor[0]
 
-            # REMOVED PENDING REVIEW TODO
-#            for competitor in competitor_data.iteritems():
-#                lat_data += competitor[1].select('latency').remap('latency', competitor[0])
-            
-            # Plot the multiplot 
-            #multiplot_data.histogram(os.path.join(self.out_dir, self.dir_str, 'latency' + run_name))
+            # Determine if any competitors have matching data for any runs, then add them to the data set as needed
+            for run_name in multiplot_data.keys():
+                for competitor_name, competitor_multirun in competitors_with_multiruns.iteritems():
+                    try:
+                        competitor_multirun_data = competitor_multirun.runs[run_name].data
+                        multiplot_data[run_name] += competitor_multirun_data.select('qps').remap('qps',competitor_name)
+                    except KeyError:
+                        print 'Competitor: %s did not report run % in its data for multirun %s' % (competitor[0], run_name, multirun.name) 
 
-            # REMOVED PENDING REVIEW Add the latency histogram image and metadata TODO
-#            print >>res, '<td><h3 style="text-align: center">Latency in microseconds</h3>'
-#            print >>res, image('latency' + run_name)
-#
-#            latency_mean = format_metadata(data.select('latency').stats()['latency']['mean'])
-#            latency_stdev = format_metadata(data.select('latency').stats()['latency']['stdev'])
-#            print >>res, """<table style="border-spacing: 0px; border-collapse: collapse; margin-left: auto; margin-right: auto; margin-top: 20px;">
-#                                <tr style="font-weight: bold; text-align: left; border-bottom: 2px solid #FFFFFF; color: #FFFFFF; background: #556270;">
-#                                    <th style="padding: 0.5em 0.8em; font-size: small;"></th>
-#                                    <th style="padding: 0.5em 0.8em; font-size: small;">Mean latency</th>
-#                                    <th style="padding: 0.5em 0.8em; font-size: small;">Standard deviation</th>
-#                                </tr>
-#                                <tr style="text-align: left; border-bottom: 2px solid #FFFFFF;">
-#                                    <td style="background: #DBE2F1; padding: 0.5em 0.8em; font-weight: bold;">RethinkDB</td>
-#                                    <td style="background: #DBE2F1; padding: 0.5em 0.8em;">%s</td>
-#                                    <td style="background: #DBE2F1; padding: 0.5em 0.8em;">%s</td>
-#                                </tr>
-#                                <tr style="text-align: left; border-bottom: 2px solid #FFFFFF;">
-#                                    <td style="background: #DBE2F1; padding: 0.5em 0.8em; font-weight: bold;">Membase</td>
-#                                    <td style="background: #DBE2F1; padding: 0.5em 0.8em;">%s</td>
-#                                    <td style="background: #DBE2F1; padding: 0.5em 0.8em;">%s</td>
-#                                </tr>
-#                                <tr style="text-align: left; border-bottom: 2px solid #FFFFFF;">
-#                                    <td style="background: #DBE2F1; padding: 0.5em 0.8em; font-weight: bold;">MySQL</td>
-#                                    <td style="background: #DBE2F1; padding: 0.5em 0.8em;">%s</td>
-#                                    <td style="background: #DBE2F1; padding: 0.5em 0.8em;">%s</td>
-#                                </tr>
-#                            </table>
-#                        </td>
-#                        """ % (latency_mean, latency_stdev, latency_mean, latency_stdev, latency_mean, latency_stdev)
-#            print >>res, '</tr></table>'
+            # Create the multiplot and output a small and large version
+            multiplot = SubplotCollection(multiplot_data)
+            multiplot.plot(os.path.join(self.out_dir, self.dir_str, 'multiplot' + multirun_name))
+            multiplot.plot(os.path.join(self.out_dir, self.dir_str, 'multiplot' + multirun_name + '_large'), True)
 
+            # Add the multiplot plot image and metadata
+            print >>res, '<td><h3 style="text-align: center">Queries per second across runs</h3>'
+            print >>res, image('multiplot' + multirun_name)
 
-
+            #ADD A TABLE, PENDING REVIEW TODO
             # Metadata about the server and client
 #            print >>res, '<table style="table-layout: fixed; width: 910px;" class="meta">'
 #            print >>res, '<tr><td style="vertical-align: top; width: 50%; padding-right: 40px;"><pre style="font-size: x-small; color: #888;">', server_meta, '</pre></td>'
 #            print >>res, '<td style="vertical-align: top; width: 50%; padding-right: 40px;"><pre style="font-size: x-small; color: #888;">', client_meta, '</pre></td></tr>'
 #            print >>res, '</table>'
+# BELOW IS A TEMPORARY HACK, remove the triple quotes
+            print >>res, """</td> """
 
             print >>res, '</div>'
             
-        # Accumulate data across multiple runs, and plot an average for each one (this is for plots where we compare run, e.g. comparing the same workload against different numbers of cores, drives, etc.)
-#        try:
-#            core_runs_names=['c1','c2', 'c4', 'c8', 'c16', 'c32']
-#            core_runs = {}
-#            for name in core_runs_names:
-#                core_runs[name]  = reduce(lambda x,y: x+y,run.data).select('qps').remap('qps', name + 'qps')
-#
-#            core_means = reduce(lambda x,y: x + y, map(lambda x: x[1], core_runs.iteritems())).derive('qps', map(lambda x : x + 'qps', core_runs_names), means)
-#
-#            # Plot the cross-run averages
-#            print >>res, '<p id="#server_meta" style="font-size:large">', 'Core scalability', '</p>'
-#            core_means.select('qps').plot(os.path.join(self.out_dir, self.dir_str, 'core_scalability'))
-#            print >>res, image('core_scalability')
-#            
-#        except KeyError:
-#            print 'Not enough core runs to report data, that or a fuck up. Let\'s face it if we were betting men, we\'d bet on it being a fuck up' 
-
-        
         # Add oprofile data
 #        print >> res, '<div class="oprofile">' 
 #        if self.prof_stats:

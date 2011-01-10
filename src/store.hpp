@@ -2,6 +2,7 @@
 #define __STORE_HPP__
 
 #include "utils.hpp"
+#include "coroutine/coroutines.hpp"
 
 typedef uint32_t mcflags_t;
 typedef uint32_t exptime_t;
@@ -82,6 +83,7 @@ struct store_t {
     not_found() may be called on any core, so you are responsible for switching to the request
     handler core. */
     
+    //Non-coroutine interface
     struct get_callback_t {
         struct done_callback_t {
             virtual void have_copied_value() = 0;
@@ -93,6 +95,47 @@ struct store_t {
     };
     virtual void get(store_key_t *key, get_callback_t *cb) = 0;
     virtual void get_cas(store_key_t *key, get_callback_t *cb) = 0;
+
+    //Blocking coroutine interface
+    struct get_result_t {
+        const_buffer_group_t *buffer; //NULL means not found
+        get_callback_t::done_callback_t *cb;
+        mcflags_t flags;
+        cas_t cas;
+    };
+
+private:
+    struct co_get_callback_t : public get_callback_t {
+        get_result_t result;
+        coro_t *self;
+        co_get_callback_t() : self(coro_t::self()) { }
+        virtual void value(const_buffer_group_t *value, done_callback_t *cb, mcflags_t flags, cas_t cas) {
+            result.buffer = value;
+            result.cb = cb;
+            result.flags = flags;
+            result.cas = cas;
+            self->notify();
+        }
+        virtual void not_found() {
+            result.buffer = NULL;
+            self->notify();
+        }
+    };
+
+public:
+    get_result_t co_get(store_key_t *key) {
+        co_get_callback_t cb;
+        get(key, &cb);
+        coro_t::wait();
+        return cb.result;
+    }
+
+    get_result_t co_get_cas(store_key_t *key) {
+        co_get_callback_t cb;
+        get_cas(key, &cb);
+        coro_t::wait();
+        return cb.result;
+    }
     
     /* To set a value in the database, call set(), add(), or replace(). Provide a key* for the key
     to be set and a data_provider_t* for the data. Note that the data_provider_t may be called on
