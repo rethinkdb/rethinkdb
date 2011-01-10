@@ -8,6 +8,8 @@
 #include <cstddef>
 #include <deque>
 #include "serializer/log/static_header.hpp"
+#include "coroutine/coroutines.hpp"
+#include "concurrency/mutex.hpp"
 
 
 
@@ -29,9 +31,7 @@ void initialize_metablock_offsets(off64_t extent_size, std::vector<off64_t> *off
 
 
 template<class metablock_t>
-class metablock_manager_t : private iocallback_t {
-    static const uint32_t poly = 0x1337BEEF;
-
+class metablock_manager_t {
 public:
     typedef int64_t metablock_version_t;
 
@@ -95,16 +95,15 @@ public:
     void start_new(direct_file_t *dbfile);
     
     /* Tries to load existing metablocks */
+    void co_start_existing(direct_file_t *dbfile, bool *mb_found, metablock_t *mb_out);
     struct metablock_read_callback_t {
         virtual void on_metablock_read() = 0;
         virtual ~metablock_read_callback_t() {}
     };
-    bool start_existing(direct_file_t *dbfile, bool *mb_found, metablock_t *mb_out, metablock_read_callback_t *cb);
-    
 private:
-    metablock_read_callback_t *read_callback;
-    metablock_t *mb_out; /* !< where to put the metablock once we find it */
-    bool *mb_found; /* where to put whether or not we found the metablock */
+    void start_existing_callback(direct_file_t *dbfile, bool *mb_found, metablock_t *mb_out, metablock_read_callback_t *cb);
+public:
+    bool start_existing(direct_file_t *dbfile, bool *mb_found, metablock_t *mb_out, metablock_read_callback_t *cb);
 
 public:
     struct metablock_write_callback_t {
@@ -113,15 +112,12 @@ public:
     };
     bool write_metablock(metablock_t *mb, metablock_write_callback_t *cb);
 private:
-    struct metablock_write_req_t {
-        metablock_write_req_t(metablock_t *, metablock_write_callback_t *);
-        metablock_t *mb;
-        metablock_write_callback_t *cb;
-    };
+    void write_metablock_callback(metablock_t *mb, metablock_write_callback_t *cb);
+public:
+    void co_write_metablock(metablock_t *mb);
 
-    metablock_write_callback_t *write_callback;
-
-    std::deque<metablock_write_req_t> outstanding_writes;
+private:
+    mutex_t write_lock;
 
 public:
     void shutdown();

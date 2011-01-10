@@ -16,4 +16,3 @@ void initialize_metablock_offsets(off64_t extent_size, std::vector<off64_t> *off
         }
     }
 }
-

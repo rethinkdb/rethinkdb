@@ -49,5 +49,18 @@ public:
     }
 };
 
+void co_lock_mutex(mutex_t *mutex);
+
+struct mutex_acquisition_t {
+    mutex_t *lock;
+    mutex_acquisition_t(mutex_t *lock) : lock(lock) {
+        co_lock_mutex(lock);
+    }
+    ~mutex_acquisition_t() {
+        lock->unlock();
+    }
+};
+
+
 #endif /* __CONCURRENCY_MUTEX_HPP__ */
 

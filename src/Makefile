@@ -136,9 +136,9 @@ NAMES:=$(patsubst $(SOURCE_DIR)/%.cc,%,$(SOURCES))
 DEPS:=$(patsubst %,$(DEP_DIR)/%.d,$(NAMES))
 OBJS:=$(patsubst %,$(OBJ_DIR)/%.o,$(NAMES))
 
-SERVER_EXEC_OBJS:=$(patsubst %.cc,$(OBJ_DIR)/%.o,$(shell find $(SOURCE_DIR) -name '*.cc' | grep -vF "`find $(SOURCE_DIR)/unittest`"))
+SERVER_EXEC_OBJS:=$(patsubst %.cc,$(OBJ_DIR)/%.o,$(shell find $(SOURCE_DIR) -name '*.cc' | grep -vF "`find $(SOURCE_DIR)/unittest`")) $(OBJ_DIR)/coroutine/asm.o
 
-SERVER_NOMAIN_OBJS:=$(patsubst %.cc,$(OBJ_DIR)/%.o,$(shell find $(SOURCE_DIR) -name '*.cc' | grep -vF "`find $(SOURCE_DIR) -name 'main.cc'`"))
+SERVER_NOMAIN_OBJS:=$(patsubst %.cc,$(OBJ_DIR)/%.o,$(shell find $(SOURCE_DIR) -name '*.cc' | grep -vF "`find $(SOURCE_DIR) -name 'main.cc'`")) $(OBJ_DIR)/coroutine/asm.o
 
 SERVER_UNIT_TEST_OBJS:=$(SERVER_NOMAIN_OBJS) $(OBJ_DIR)/unittest/main.o
 
@@ -157,7 +157,7 @@ all: $(BUILD_DIR)/$(SERVER_EXEC_NAME) $(BUILD_DIR)/$(START_DB_NAME) $(BUILD_DIR)
 endif
 
 
-$(BUILD_DIR)/$(SERVER_EXEC_NAME): $(OBJS) $(BUILD_DIR)
+$(BUILD_DIR)/$(SERVER_EXEC_NAME): $(OBJS) $(BUILD_DIR) $(OBJ_DIR)/coroutine/asm.o
 ifeq ($(VERBOSE),0)
 	@echo "    LD $@"
 endif
@@ -169,7 +169,6 @@ ifeq ($(VERBOSE),0)
 	@echo "    LD $@"
 endif
 	$(QUIET) $(CXX) $(LDFLAGS) $(SERVER_UNIT_TEST_OBJS) -o $(BUILD_DIR)/$(SERVER_UNIT_TEST_NAME)
-
 
 
 
@@ -251,6 +250,13 @@ $(BUILD_DIR):
 	$(QUIET) mkdir -p $(BUILD_DIR)
 
 # Object files
+$(OBJ_DIR)/coroutine/asm.o : $(SOURCE_DIR)/coroutine/asm.S Makefile
+	$(QUIET) mkdir -p $(dir $@)
+ifeq ($(VERBOSE),0)
+	@echo "    CC $< -o $@"
+endif
+	$(QUIET) $(CXX) -c -o $@ $<
+	
 $(OBJ_DIR)/%.o: $(SOURCE_DIR)/%.cc Makefile
 	$(QUIET) mkdir -p $(dir $@)
 ifeq ($(VERBOSE),0)
