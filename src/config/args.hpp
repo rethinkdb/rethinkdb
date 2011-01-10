@@ -12,7 +12,7 @@
  */
 
 #define SOFTWARE_NAME_STRING "RethinkDB"
-#define VERSION_STRING "0.0.1"
+#define VERSION_STRING "0.1"
 
 /**
  * Basic configuration parameters.
