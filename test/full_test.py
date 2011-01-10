@@ -148,7 +148,7 @@ def run_all_tests(mode, checker, protocol, cores, slices):
                     "nupdates"    : 0,
                     "ninserts"    : 1,
                     "nreads"      : 0,
-                    "fsck"        : False
+                    "fsck"        : False,
                     "min-qps"     : 20}, # a very reasonable limit
                   repeat=3, timeout=2400)
 
@@ -296,7 +296,7 @@ def run_all_tests(mode, checker, protocol, cores, slices):
                     "protocol"    : protocol,
                     "cores"       : cores,
                     "slices"      : slices,
-                    "serve-flags" : "--flush-timer 50",
+                    "serve-flags" : "\"--flush-timer 50\"",
                     "duration"    : 60},
                   repeat=1, timeout = 120)
 
