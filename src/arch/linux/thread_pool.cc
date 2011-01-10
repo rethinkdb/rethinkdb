@@ -3,10 +3,13 @@
 #include "thread_pool.hpp"
 #include "errors.hpp"
 #include "arch/linux/event_queue.hpp"
+#include "coroutine/coroutines.hpp"
 #include <sys/eventfd.h>
 #include <signal.h>
 #include <fcntl.h>
 #include "logger.hpp"
+
+const int SEGV_STACK_SIZE = 8126;
 
 /* Defined in perfmon_system.cc */
 void poll_system_stats(void *);
@@ -57,8 +60,6 @@ struct thread_data_t {
 };
 
 void *linux_thread_pool_t::start_thread(void *arg) {
-    int res;
-    
     thread_data_t *tdata = (thread_data_t*)arg;
     
     // Set thread-local variables
@@ -72,16 +73,33 @@ void *linux_thread_pool_t::start_thread(void *arg) {
         tdata->thread_pool->threads[tdata->current_thread] = &thread;
         linux_thread_pool_t::thread = &thread;
         
+        stack_t segv_stack;
+        segv_stack.ss_sp = valloc(SEGV_STACK_SIZE);
+        guarantee_err(segv_stack.ss_sp != 0, "malloc failed");
+        segv_stack.ss_flags = 0;
+        segv_stack.ss_size = SEGV_STACK_SIZE;
+        int r = sigaltstack(&segv_stack, NULL);
+        guarantee_err(r == 0, "sigaltstack failed");
+
+        struct sigaction action;
+        bzero(&action, sizeof(action));
+        action.sa_flags = SA_SIGINFO|SA_STACK;
+        action.sa_sigaction = &linux_thread_pool_t::sigsegv_handler;
+        r = sigaction(SIGSEGV, &action, NULL);
+        guarantee_err(r == 0, "Could not install SEGV handler");
+        
         // If one thread is allowed to run before another one has finished
         // starting up, then it might try to access an uninitialized part of the
         // unstarted one.
-        res = pthread_barrier_wait(tdata->barrier);
+        int res = pthread_barrier_wait(tdata->barrier);
         guarantee(res == 0 || res == PTHREAD_BARRIER_SERIAL_THREAD, "Could not wait at start barrier");
         
         // Prime the pump by calling the initial thread message that was passed to thread_pool::run()
         if (tdata->initial_message) {
             thread.message_hub.store_message(tdata->current_thread, tdata->initial_message);
         }
+
+        coro_t::run();
         
         thread.queue.run();
         
@@ -91,6 +109,8 @@ void *linux_thread_pool_t::start_thread(void *arg) {
         res = pthread_barrier_wait(tdata->barrier);
         guarantee(res == 0 || res == PTHREAD_BARRIER_SERIAL_THREAD, "Could not wait at stop barrier");
         
+        coro_t::destroy();
+        free(segv_stack.ss_sp);
         tdata->thread_pool->threads[tdata->current_thread] = NULL;
         linux_thread_pool_t::thread = NULL;
     }
@@ -199,6 +219,10 @@ void linux_thread_pool_t::run(linux_thread_message_t *initial_message) {
     // Fin.
 }
 
+// Note: Maybe we should use a signalfd instead of a signal handler, and then
+// there would be no issues with potential race conditions because the signal
+// would just be pulled out in the main poll/epoll loop. But as long as this works,
+// there's no real reason to change it.
 void linux_thread_pool_t::interrupt_handler(int) {
     /* The interrupt handler should run on the main thread, the same thread that
     run() was called on. */
@@ -214,6 +238,20 @@ void linux_thread_pool_t::interrupt_handler(int) {
     
     if (interrupt_msg) {
         self->threads[self->n_threads - 1]->message_hub.insert_external_message(interrupt_msg);
+    }
+}
+
+void linux_thread_pool_t::sigsegv_handler(int signum, siginfo_t *info, void *data) {
+    if (signum == SIGSEGV) {
+        void *addr = info->si_addr;
+        int cpu = coro_t::in_coro_from_cpu(addr);
+        if (cpu == -1) {
+            crash("Segmentation fault from reading the address %p.", addr);
+        } else {
+            crash("Callstack overflow from a coroutine initialized on CPU %d at address %p.", cpu, addr);
+        }
+    } else {
+        crash("Unexpected signal: %d\n", signum);
     }
 }
 
