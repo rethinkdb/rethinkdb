@@ -162,6 +162,17 @@ def run_all_tests(mode, checker, protocol, cores, slices):
                     "duration"    : 340 },
                   repeat=5, timeout=460)
     
+    do_test_cloud("integration/serial_mix.py",
+                  { "auto"        : True,
+                    "mode"        : mode,
+                    "no-valgrind" : not checker,
+                    "protocol"    : protocol,
+                    "cores"       : cores,
+                    "slices"      : slices,
+                    "duration"    : 60,
+                    "fsck"        : True},
+                  repeat=5, timeout=600)
+    
     # TODO: This should really only be run under one environment...
     do_test_cloud("regression/gc_verification.py",
                   { "auto"        : True,
@@ -176,7 +187,9 @@ def run_all_tests(mode, checker, protocol, cores, slices):
     # Run the serial mix test also with the other valgrind tools, drd and helgrind
     if checker == "valgrind":
         for valgrind_tool in ["drd", "helgrind"]:
-            do_test_cloud("integration/serial_mix.py",
+            # Use do_test() instead of do_test_cloud() because DRD produces hundreds of apparently
+            # bogus errors when run on EC2, but runs just fine locally.
+            do_test("integration/serial_mix.py",
                           { "auto"        : True,
                             "mode"        : mode,
                             "no-valgrind" : not checker,
@@ -277,7 +290,7 @@ def run_all_tests(mode, checker, protocol, cores, slices):
                     "protocol"    : protocol,
                     "cores"       : cores,
                     "slices"      : slices },
-                  repeat=5)
+                  repeat=5, timeout = 120)
 
     do_test_cloud("integration/fuzz.py",
                   { "auto"        : True,

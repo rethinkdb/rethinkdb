@@ -1,4 +1,5 @@
 import shlex, sys, traceback, os, shutil, socket, subprocess, time, signal, threading, random
+from threading import Timer
 from vcoptparse import *
 from corrupter import *
 from rdbstat import *
@@ -33,7 +34,7 @@ def make_option_parser():
     o["valgrind-tool"] = StringFlag("--valgrind-tool", "memcheck")
     o["mode"] = StringFlag("--mode", "debug")
     o["netrecord"] = BoolFlag("--no-netrecord", invert = True)
-    o["fsck"] = BoolFlag("--no-fsck", invert = True)
+    o["fsck"] = BoolFlag("--fsck")
     o["restart_server_prob"] = FloatFlag("--restart-server-prob", 0)
     o["corruption_p"] = FloatFlag("--corruption-p", 0)
     o["cores"] = IntFlag("--cores", 2)
@@ -82,6 +83,25 @@ def signal_with_number(number):
             return name
     return str(number)
 
+def terminate_process(process, timeout=10, send_term=True, wait_to_finish=True):
+    def send_kill():
+        if process.poll() == None:
+            process.kill()
+
+    if send_term:
+        process.terminate()
+
+    if timeout:
+        timer = Timer(timeout, send_kill)
+        timer.start()
+
+    if wait_to_finish:
+        res = process.wait()
+        timer.cancel()
+        return res
+    else:
+        return None
+    
 def wait_with_timeout(process, timeout):
     if timeout is None:
         return process.wait()
@@ -198,7 +218,7 @@ class NetRecord(object):
 
 num_stress_clients = 0
 
-def stress_client(test_dir, port=8080, host="localhost", workload={"gets":1, "inserts":1}, duration="10000q"):
+def stress_client(test_dir, port=8080, host="localhost", workload={"gets":1, "inserts":1}, duration="10000q", clients=64):
     global num_stress_clients
     num_stress_clients += 1
     
@@ -212,6 +232,7 @@ def stress_client(test_dir, port=8080, host="localhost", workload={"gets":1, "in
         "-w", "%d/%d/%d/%d/%d/%d/%d" % (workload.get("deletes", 0), workload.get("updates", 0),
             workload.get("inserts", 0), workload.get("gets", 0), workload.get("appends", 0),
             workload.get("prepends", 0), workload.get("verifies", 0)),
+        "-c", str(clients),
         ]
     
     key_file = test_dir.make_file("stress_client/keys")
@@ -279,7 +300,7 @@ class DataFiles(object):
             "-s", str(self.opts["slices"]),
             "-c", str(self.opts["cores"]),
             ] + (["--extent-size", "1048576"] if self.opts["valgrind"] else []) + self.rethinkdb_flags(),
-            "creator_output",
+            "creator_output.txt",
             timeout = 30,
             valgrind_tool = self.opts["valgrind-tool"] if self.opts["valgrind"] else None,
             test_dir = self.test_dir
@@ -597,7 +618,7 @@ def connect_to_server(opts, server, test_dir):
     return mc
 
 def adjust_timeout(opts, timeout):
-    if opts["interactive"] or opts["no-timeout"]:
+    if not timeout or opts["interactive"] or opts["no-timeout"]:
         return None
     else:
         return timeout + 15
