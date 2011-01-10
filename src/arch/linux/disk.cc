@@ -168,14 +168,22 @@ bool linux_direct_file_t::write_async(size_t offset, size_t length, void *buf, l
 
 void linux_direct_file_t::read_blocking(size_t offset, size_t length, void *buf) {
     verify(offset, length, buf);
-    size_t res = pread(fd, buf, length, offset);
+ tryagain:
+    ssize_t res = pread(fd, buf, length, offset);
+    if (res == -1 && errno == EINTR) {
+        goto tryagain;
+    }
     assert(res == length, "Blocking read failed");
     (void)res;
 }
 
 void linux_direct_file_t::write_blocking(size_t offset, size_t length, void *buf) {
     verify(offset, length, buf);
-    size_t res = pwrite(fd, buf, length, offset);
+ tryagain:
+    ssize_t res = pwrite(fd, buf, length, offset);
+    if (res == -1 && errno == EINTR) {
+        goto tryagain;
+    }
     assert(res == length, "Blocking write failed");
     (void)res;
 }
