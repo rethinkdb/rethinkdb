@@ -18,15 +18,6 @@ if [ $DATABASE == "mysql" ]; then
     while ! /usr/local/mysql/bin/mysqladmin shutdown -u root --port=9874 2> /dev/null; do
         sleep 5
     done
-
-    # "Initialize" the MySQL database by running some load now. Otherwise it fails on the first actual workload for some mysterious
-    # TODO: This is just a hacky workaround. Investigate why this happens
-    ./dbench                                                                                   \
-            -d "$BENCH_DIR/bench_output/warmup" -H $SERVER_HOSTS             \
-            {server}mysql:"$MYSQL_COMMON_FLAGS $MYSQL_BUFFER_FLAGS $MYSQL_DURABILITY_FLAGS $MYSQL_SSD_FLAGS"              \
-            {client}mysqlstress[$STRESS_CLIENT]:"-c $CANONICAL_CLIENTS -d 10s" \
-            iostat:1 vmstat:1
-    rm -rf "$BENCH_DIR/bench_output/warmup"
 fi
 
 if [ $DATABASE == "membase" ]; then

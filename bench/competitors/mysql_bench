@@ -63,15 +63,6 @@ echo "To get the canonical hardware, we have to disable all but 12 CPUs."
 echo 'Please give me authorization to run bash -c "for CPU in {12..23}; do echo 0 > /sys/devices/system/cpu/cpu\$CPU/online; done"'
 sudo bash -c "for CPU in {12..23}; do echo 0 > /sys/devices/system/cpu/cpu\$CPU/online; done"
 
-# "Initialize" the MySQL database by running some load now. Otherwise it fails on the first actual workload for some mysterious reason
-# TODO: This is just a hacky workaround. Investigate why this happens
-./dbench                                                                                   \
-        -d "$BENCH_DIR/bench_output/warmup" -H $SERVER_HOSTS             \
-        {server}mysql:"$MYSQL_COMMON_FLAGS $MYSQL_BUFFER_FLAGS $MYSQL_DURABILITY_FLAGS $MYSQL_SSD_FLAGS"              \
-        {client}mysqlstress[$STRESS_CLIENT]:"-c $CANONICAL_CLIENTS -d 10s" \
-        iostat:1 vmstat:1
-rm -rf "$BENCH_DIR/bench_output/warmup"
-
 
 # Run workloads
 for WORKLOAD in ../workloads/*; do
