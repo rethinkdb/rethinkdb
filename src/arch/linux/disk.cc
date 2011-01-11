@@ -23,18 +23,16 @@ perfmon_counter_t
     pm_io_writes_started("io_writes_started[iowrites]"),
     pm_io_writes_completed("io_writes_completed[iowrites]");
 
-linux_direct_file_t::linux_direct_file_t(const char *path, int mode, bool is_really_direct)
+linux_file_t::linux_file_t(const char *path, int mode, bool is_really_direct)
     : fd(INVALID_FD)
 {
-    int res;
-    
     // Determine if it is a block device
-    
+
     struct stat64 file_stat;
     bzero((void*)&file_stat, sizeof(file_stat)); // make valgrind happy
-    res = stat64(path, &file_stat);
+    int res = stat64(path, &file_stat);
     guarantee_err(res == 0 || errno == ENOENT, "Could not stat file '%s'", path);
-    
+
     if (res == -1 && errno == ENOENT) {
         if (!(mode & mode_create)) {
             file_exists = false;
@@ -83,26 +81,26 @@ linux_direct_file_t::linux_direct_file_t(const char *path, int mode, bool is_rea
     }
 }
 
-bool linux_direct_file_t::exists() {
+bool linux_file_t::exists() {
     return file_exists;
 }
 
-bool linux_direct_file_t::is_block_device() {
+bool linux_file_t::is_block_device() {
     return is_block;
 }
 
-size_t linux_direct_file_t::get_size() {
+size_t linux_file_t::get_size() {
     return file_size;
 }
 
-void linux_direct_file_t::set_size(size_t size) {
+void linux_file_t::set_size(size_t size) {
     assert(!is_block);
     int res = ftruncate(fd, size);
     guarantee_err(res == 0, "Could not ftruncate()");
     file_size = size;
 }
 
-void linux_direct_file_t::set_size_at_least(size_t size) {
+void linux_file_t::set_size_at_least(size_t size) {
     if (is_block) {
         assert(file_size >= size);
     } else {
@@ -115,7 +113,7 @@ void linux_direct_file_t::set_size_at_least(size_t size) {
     }
 }
 
-bool linux_direct_file_t::read_async(size_t offset, size_t length, void *buf, linux_iocallback_t *callback) {
+bool linux_file_t::read_async(size_t offset, size_t length, void *buf, linux_iocallback_t *callback) {
     verify(offset, length, buf);
     
     linux_io_calls_t *iosys = &linux_thread_pool_t::thread->iosys;
@@ -137,7 +135,7 @@ bool linux_direct_file_t::read_async(size_t offset, size_t length, void *buf, li
     return false;
 }
 
-bool linux_direct_file_t::write_async(size_t offset, size_t length, void *buf, linux_iocallback_t *callback) {
+bool linux_file_t::write_async(size_t offset, size_t length, void *buf, linux_iocallback_t *callback) {
 #ifdef DEBUG_DUMP_WRITES
     printf("--- WRITE BEGIN ---\n");
     print_backtrace(stdout);
@@ -167,7 +165,7 @@ bool linux_direct_file_t::write_async(size_t offset, size_t length, void *buf, l
     return false;
 }
 
-void linux_direct_file_t::read_blocking(size_t offset, size_t length, void *buf) {
+void linux_file_t::read_blocking(size_t offset, size_t length, void *buf) {
     verify(offset, length, buf);
  tryagain:
     ssize_t res = pread(fd, buf, length, offset);
@@ -178,7 +176,7 @@ void linux_direct_file_t::read_blocking(size_t offset, size_t length, void *buf)
     (void)res;
 }
 
-void linux_direct_file_t::write_blocking(size_t offset, size_t length, void *buf) {
+void linux_file_t::write_blocking(size_t offset, size_t length, void *buf) {
     verify(offset, length, buf);
  tryagain:
     ssize_t res = pwrite(fd, buf, length, offset);
@@ -189,11 +187,11 @@ void linux_direct_file_t::write_blocking(size_t offset, size_t length, void *buf
     (void)res;
 }
 
-linux_direct_file_t::~linux_direct_file_t() {
+linux_file_t::~linux_file_t() {
     if (fd != INVALID_FD) close(fd);
 }
 
-void linux_direct_file_t::verify(size_t offset, size_t length, void *buf) {
+void linux_file_t::verify(size_t offset, size_t length, void *buf) {
     assert(buf);
     assert(offset + length <= file_size);
     assert((intptr_t)buf % DEVICE_BLOCK_SIZE == 0);

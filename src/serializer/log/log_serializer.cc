@@ -29,7 +29,7 @@ log_serializer_t::~log_serializer_t() {
 }
 
 void ls_check_existing(const char *filename, log_serializer_t::check_callback_t *cb) {
-    direct_file_t df(filename, direct_file_t::mode_read);
+    direct_file_t df(filename, file_t::mode_read);
     cb->on_serializer_check(static_header_check(&df));
 }
 
@@ -46,7 +46,7 @@ void log_serializer_t::ls_start_new(static_config_t *config, ready_callback_t *r
     assert(state == log_serializer_t::state_unstarted);
     state = log_serializer_t::state_starting_up;
     static_config = *config;
-    dbfile = new direct_file_t(db_path, direct_file_t::mode_read|direct_file_t::mode_write|direct_file_t::mode_create);
+    dbfile = new direct_file_t(db_path, file_t::mode_read | file_t::mode_write | file_t::mode_create);
     co_static_header_write(dbfile, &static_config, sizeof(static_config));
     
     log_serializer_t::metablock_t metablock_buffer;
@@ -102,7 +102,7 @@ struct ls_start_existing_fsm_t :
         assert(ser->state == log_serializer_t::state_unstarted);
         ser->state = log_serializer_t::state_starting_up;
         
-        ser->dbfile = new direct_file_t(ser->db_path, direct_file_t::mode_read|direct_file_t::mode_write);
+        ser->dbfile = new direct_file_t(ser->db_path, file_t::mode_read | file_t::mode_write);
         
         state = state_read_static_header;
         ready_callback = NULL;

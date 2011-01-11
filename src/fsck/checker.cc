@@ -122,13 +122,13 @@ private:
 
 // All the files' file_knowledge.
 struct knowledge {
-    std::vector<direct_file_t *> files;
+    std::vector<nondirect_file_t *> files;
     std::vector<file_knowledge *> file_knog;
 
     explicit knowledge(const std::vector<std::string>& filenames)
         : files(filenames.size(), NULL), file_knog(filenames.size(), NULL) {
         for (int i = 0, n = filenames.size(); i < n; ++i) {
-            direct_file_t *file = new direct_file_t(filenames[i].c_str(), direct_file_t::mode_read, false);
+            nondirect_file_t *file = new nondirect_file_t(filenames[i].c_str(), file_t::mode_read);
             files[i] = file;
             file_knog[i] = new file_knowledge(filenames[i]);
         }
@@ -160,12 +160,12 @@ public:
 
 // This doesn't really make the blocks, but it's a nice name.  See btree_block below.
 struct slicecx {
-    direct_file_t *file;
+    nondirect_file_t *file;
     file_knowledge *knog;
     int global_slice_id;
     int local_slice_id;
     int mod_count;
-    slicecx(direct_file_t *file, file_knowledge *knog, int global_slice_id)
+    slicecx(nondirect_file_t *file, file_knowledge *knog, int global_slice_id)
         : file(file), knog(knog), global_slice_id(global_slice_id), local_slice_id(global_slice_id / knog->config_block->n_files),
           mod_count(btree_key_value_store_t::compute_mod_count(knog->config_block->this_serializer, knog->config_block->n_files, knog->config_block->btree_config.n_slices)) { }
     ser_block_id_t to_ser_block_id(block_id_t id) const {
@@ -194,7 +194,7 @@ public:
     }
 
     // Modifies knog->block_info[ser_block_id].
-    bool init(direct_file_t *file, file_knowledge *knog, ser_block_id_t ser_block_id) {
+    bool init(nondirect_file_t *file, file_knowledge *knog, ser_block_id_t ser_block_id) {
         block_knowledge info;
         {
             read_locker locker(knog);
@@ -239,14 +239,14 @@ public:
 };
 
 
-void check_filesize(direct_file_t *file, file_knowledge *knog) {
+void check_filesize(nondirect_file_t *file, file_knowledge *knog) {
     knog->filesize = file->get_size();
 }
 
 const char *static_config_errstring[] = { "none", "bad_software_name", "bad_version", "bad_sizes" };
 enum static_config_error { static_config_none = 0, bad_software_name, bad_version, bad_sizes };
 
-bool check_static_config(direct_file_t *file, file_knowledge *knog, static_config_error *err) {
+bool check_static_config(nondirect_file_t *file, file_knowledge *knog, static_config_error *err) {
     block header;
     header.init(DEVICE_BLOCK_SIZE, file, 0);
     static_header_t *buf = ptr_cast<static_header_t>(header.realbuf);
@@ -297,7 +297,7 @@ struct metablock_errors {
     bool no_valid_metablocks;  // must be false
 };
 
-bool check_metablock(direct_file_t *file, file_knowledge *knog, metablock_errors *errs) {
+bool check_metablock(nondirect_file_t *file, file_knowledge *knog, metablock_errors *errs) {
     errs->bad_markers_count = 0;
     errs->bad_crc_count = 0;
     errs->bad_content_count = 0;
@@ -416,7 +416,7 @@ struct lba_extent_errors {
     }
 };
 
-bool check_lba_extent(direct_file_t *file, file_knowledge *knog, unsigned int shard_number, off64_t extent_offset, int entries_count, lba_extent_errors *errs) {
+bool check_lba_extent(nondirect_file_t *file, file_knowledge *knog, unsigned int shard_number, off64_t extent_offset, int entries_count, lba_extent_errors *errs) {
     if (!is_valid_extent(knog, extent_offset)) {
         errs->code = lba_extent_errors::bad_extent_offset;
         return false;
@@ -468,7 +468,7 @@ struct lba_shard_errors {
 };
 
 // Returns true if the LBA shard was successfully read, false otherwise.
-bool check_lba_shard(direct_file_t *file, file_knowledge *knog, lba_shard_metablock_t *shards, int shard_number, lba_shard_errors *errs) {
+bool check_lba_shard(nondirect_file_t *file, file_knowledge *knog, lba_shard_metablock_t *shards, int shard_number, lba_shard_errors *errs) {
     errs->code = lba_shard_errors::none;
     errs->bad_extent_number = -1;
     errs->extent_errors.wipe();
@@ -526,7 +526,7 @@ struct lba_errors {
     lba_shard_errors shard_errors[LBA_SHARD_FACTOR];
 };
 
-bool check_lba(direct_file_t *file, file_knowledge *knog, lba_errors *errs) {
+bool check_lba(nondirect_file_t *file, file_knowledge *knog, lba_errors *errs) {
     errs->error_happened = false;
     lba_shard_metablock_t *shards = knog->metablock->lba_index_part.shards;
 
@@ -543,7 +543,7 @@ struct config_block_errors {
     bool bad_magic;  // must be false
 };
 
-bool check_config_block(direct_file_t *file, file_knowledge *knog, config_block_errors *errs) {
+bool check_config_block(nondirect_file_t *file, file_knowledge *knog, config_block_errors *errs) {
     errs->block_open_code = btree_block::none;
     errs->bad_magic = false;
 
@@ -953,7 +953,7 @@ struct slice_errors {
     }
 };
 
-void check_slice(direct_file_t *file, file_knowledge *knog, int global_slice_number, slice_errors *errs) {
+void check_slice(nondirect_file_t *file, file_knowledge *knog, int global_slice_number, slice_errors *errs) {
     slicecx cx(file, knog, global_slice_number);
     block_id_t root_block_id;
     {
@@ -985,7 +985,7 @@ struct check_to_config_block_errors {
 };
 
 
-bool check_to_config_block(direct_file_t *file, file_knowledge *knog, check_to_config_block_errors *errs) {
+bool check_to_config_block(nondirect_file_t *file, file_knowledge *knog, check_to_config_block_errors *errs) {
     check_filesize(file, knog);
 
     return check_static_config(file, knog, &errs->static_config_err.use())
@@ -1053,7 +1053,7 @@ struct all_slices_errors {
 };
 
 struct slice_parameter_t {
-    direct_file_t *file;
+    nondirect_file_t *file;
     file_knowledge *knog;
     int global_slice_number;
     slice_errors *errs;
@@ -1066,7 +1066,7 @@ void *do_check_slice(void *slice_param) {
     return NULL;
 }
 
-void launch_check_after_config_block(direct_file_t *file, std::vector<pthread_t>& threads, file_knowledge *knog, all_slices_errors *errs) {
+void launch_check_after_config_block(nondirect_file_t *file, std::vector<pthread_t>& threads, file_knowledge *knog, all_slices_errors *errs) {
     int step = knog->config_block->n_files;
 
     for (int i = knog->config_block->this_serializer; i < errs->n_slices; i += step) {

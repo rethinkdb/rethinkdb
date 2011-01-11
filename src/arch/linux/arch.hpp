@@ -9,10 +9,12 @@
 
 struct linux_io_config_t {
     typedef linux_thread_pool_t thread_pool_t;
-    
+
+    typedef linux_file_t file_t;
     typedef linux_direct_file_t direct_file_t;
+    typedef linux_nondirect_file_t nondirect_file_t;
     typedef linux_iocallback_t iocallback_t;
-    
+
     typedef linux_net_listener_t net_listener_t;
     typedef linux_net_listener_callback_t net_listener_callback_t;
     
