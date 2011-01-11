@@ -173,7 +173,7 @@ void linux_direct_file_t::read_blocking(size_t offset, size_t length, void *buf)
     if (res == -1 && errno == EINTR) {
         goto tryagain;
     }
-    assert(res == length, "Blocking read failed");
+    assert(size_t(res) == length, "Blocking read failed");
     (void)res;
 }
 
@@ -184,7 +184,7 @@ void linux_direct_file_t::write_blocking(size_t offset, size_t length, void *buf
     if (res == -1 && errno == EINTR) {
         goto tryagain;
     }
-    assert(res == length, "Blocking write failed");
+    assert(size_t(res) == length, "Blocking write failed");
     (void)res;
 }
 
