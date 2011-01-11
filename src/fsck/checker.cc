@@ -128,7 +128,7 @@ struct knowledge {
     explicit knowledge(const std::vector<std::string>& filenames)
         : files(filenames.size(), NULL), file_knog(filenames.size(), NULL) {
         for (int i = 0, n = filenames.size(); i < n; ++i) {
-            direct_file_t *file = new direct_file_t(filenames[i].c_str(), direct_file_t::mode_read);
+            direct_file_t *file = new direct_file_t(filenames[i].c_str(), direct_file_t::mode_read, false);
             files[i] = file;
             file_knog[i] = new file_knowledge(filenames[i]);
         }

@@ -357,7 +357,7 @@ void dump_pair_value(dumper_t &dumper, direct_file_t& file, const cfg_t& cfg, co
 
 
 void walkfile(dumper_t& dumper, const std::string& db_file, cfg_t overrides) {
-    direct_file_t file(db_file.c_str(), direct_file_t::mode_read);
+    direct_file_t file(db_file.c_str(), direct_file_t::mode_read, false);
 
     block headerblock;
     headerblock.init(DEVICE_BLOCK_SIZE, &file, 0);

@@ -22,7 +22,7 @@ perfmon_counter_t
     pm_io_writes_started("io_writes_started[iowrites]"),
     pm_io_writes_completed("io_writes_completed[iowrites]");
 
-linux_direct_file_t::linux_direct_file_t(const char *path, int mode)
+linux_direct_file_t::linux_direct_file_t(const char *path, int mode, bool is_really_direct)
     : fd(INVALID_FD)
 {
     int res;
@@ -46,7 +46,7 @@ linux_direct_file_t::linux_direct_file_t(const char *path, int mode)
     
     // Construct file flags
     
-    int flags = O_CREAT | O_DIRECT | O_LARGEFILE;
+    int flags = O_CREAT | (is_really_direct ? O_DIRECT : 0) | O_LARGEFILE;
     
     if ((mode & mode_write) && (mode & mode_read)) flags |= O_RDWR;
     else if (mode & mode_write) flags |= O_WRONLY;
