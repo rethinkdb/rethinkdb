@@ -12,5 +12,5 @@ if [ $DATABASE == "rethinkdb" ]; then
 fi
 
 if [ $DATABASE == "mysql" ]; then
-    sudo bash -c "for CPU in {0..23}; do echo 1 > /sys/devices/system/cpu/cpu\$CPU/online; done"
+    sudo set-cores 24
 fi
