@@ -23,7 +23,7 @@ public:
         mode_create = 1 << 2
     };
     
-    mock_direct_file_t(const char *path, int mode)
+    mock_direct_file_t(const char *path, int mode, bool is_really_direct = true)
         : mode(mode)
     {
         int mode2 = 0;
@@ -32,7 +32,7 @@ public:
         // truncation on exit
         mode2 |= inner_io_config_t::direct_file_t::mode_write;
         if (mode & mode_create) mode2 |= inner_io_config_t::direct_file_t::mode_create;
-        inner_file = new typename inner_io_config_t::direct_file_t(path, mode2);
+        inner_file = new typename inner_io_config_t::direct_file_t(path, mode2, is_really_direct);
         
         if (inner_file->is_block_device()) {
             fail_due_to_user_error(

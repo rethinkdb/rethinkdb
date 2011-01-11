@@ -8,22 +8,18 @@ function run_with_cores {
     if [ $DATABASE == "rethinkdb" ]; then
         ../../build/release/rethinkdb create $SSD_DRIVES --force
         ./dbench                                                                                      \
-            -d "$BENCH_DIR/bench_output/Number_of_cores_canonical_workload/$NUMBER_OF_CORES" -H $SERVER_HOSTS    \
+            -d "$BENCH_DIR/bench_output/Number_of_cores_scalability_(canonical_workload)/$NUMBER_OF_CORES" -H $SERVER_HOSTS    \
             {server}rethinkdb:"-c $NUMBER_OF_CORES -m 32768 $SSD_DRIVES"                                            \
             {client}stress[$STRESS_CLIENT]:"-c 1024 -d $CANONICAL_MULTIRUN_DURATION" \
             iostat:1 vmstat:1 rdbstat:1
     elif [ $DATABASE == "mysql" ]; then
-        if [ "$NUMBER_OF_CORES" -lt "24" ]; then
-            sudo bash -c "for CPU in {$NUMBER_OF_CORES..23}; do echo 0 > /sys/devices/system/cpu/cpu\$CPU/online; done"
-        fi
+        sudo set-corecount $NUMBER_OF_CORES
         ./dbench                                                                                   \
-            -d "$BENCH_DIR/bench_output/Number_of_cores_canonical_workload/$NUMBER_OF_CORES" -H $SERVER_HOSTS             \
+            -d "$BENCH_DIR/bench_output/Number_of_cores_scalability_(canonical_workload)/$NUMBER_OF_CORES" -H $SERVER_HOSTS             \
             {server}mysql:"$MYSQL_COMMON_FLAGS $MYSQL_BUFFER_FLAGS $MYSQL_DURABILITY_FLAGS $MYSQL_SSD_FLAGS"              \
             {client}mysqlstress[$STRESS_CLIENT]:"-c 128 -d $CANONICAL_MULTIRUN_DURATION" \
             iostat:1 vmstat:1
-        if [ "$NUMBER_OF_CORES" -lt "24" ]; then
-            sudo bash -c "for CPU in {$NUMBER_OF_CORES..23}; do echo 1 > /sys/devices/system/cpu/cpu\$CPU/online; done"
-        fi
+        sudo set-corecount 24
     else
         echo "No workload configuration for $DATABASE"
     fi

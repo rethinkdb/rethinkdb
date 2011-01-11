@@ -1,0 +1,154 @@
+'\" t
+.\"     Title: rethinkdb 
+.\"    Author: Joe Doliner
+.\"      Date: 1/10/2011
+.\"    Manual: RethinkDB Manual
+.\"    Source: RethinkDB 0.1
+.\"  Language: English
+.\"
+.TH "RETHINKDB" "1" "1/10/2011" "RethinkDB 0\&.1" "RethinkDB Manual"
+.SH "NAME"
+rethinkdb \- the database for solid state drives
+.SH "SYNOPSIS"
+.sp
+.nf 
+.TP
+\fI\fBrethinkdb\fR [serve] [<\-f | \-\-file> <file_1> ...]
+[<\-c | \-\-cores> \fIcount\fP]
+[<\-m | \-\-max\-cache\-size> \fImegabytes\fP]
+[<\-p | \-\-port> \fIport\fP]
+[\-\-wait\-for\-flush <y|n>]
+[\-\-flush\-timer \fImilliseconds\fP]
+[\-\-unsaved\-data\-limit \fImegabytes\fP]
+[\-\-gc\-range \fIlow\fP-\fIhigh\fP]
+[\-\-active\-data\-extents \fIcount\fP]
+.TP
+\fI\fBrethinkdb\fR create <\-f | \-\-file> <file_1> [<\-f | \-\-file> <file_2 ...>] 
+[<-s | \-\-slices> \fIcount\fP] 
+[\-\-block\-size \fIbytes\fP] 
+[\-\-extent\-size \fIbytes\fP] 
+[<\-l | \-\-log\-file> \fIlog file\fP] 
+[\-\-force]
+.TP
+\fI\fBrethinkdb\fR extract <\-f | \-\-file> <file_1> [<\-f | \-\-file> <file_2 ...>] 
+[\-\-force\-block\-size \fIbytes\fP]
+[\-\-force\-extent\-size \fIbytes\fP]
+[\-\-force\-slice\-count \fIcount\fP]
+[<\-l | \-\-log\-file> \fIfile\fP]
+[<\-o | \-\-output\-file> \fIfile\fP]
+.TP
+\fI\fBrethinkdb\fR fsck <\-f | \-\-file> <file_1> [<\-f | \-\-file> <file_2 ...>] 
+[<\-l | \-\-log\-file> \fIfile\fP]
+.TP
+\fI\fBrethinkdb\fR help [rethinkdb_command]
+.TP
+\fI\fBrethinkdb\fR --version
+.fi
+.sp
+.SH "DESCRIPTION"
+.sp
+RethinkDB is a key value store designed for solid state drives\&.
+.SH "OPTIONS"
+.TP
+
+.TP
+Serve:
+.br
+.B \-f, 
+.B \-\-file            
+    A file or block device to be written to.
+
+.B \-c, 
+.B \-\-cores
+    Number of cores to use.
+
+.B \-m, 
+.B \-\-max\-cache\-size  
+    Maximum amount of RAM to use for caching.
+
+.B \-\-wait\-for\-flush  
+    Do not respond to commands until changes are on disk.
+
+.B \-\-flush\-timer     
+    Time between changes are flushed to disk.
+
+.B \-\-unsaved\-data\-limit
+    Maximum amount of data cached and not on disk.
+
+.B \-\-gc\-range
+    The acceptable range of data on disk.
+
+.B \-\-active\-data\-extents
+    How many places in the file to write to at once.
+
+.B \-v, 
+.B \-\-verbose
+    Print extra information to standard output.
+
+.B \-l, 
+.B \-\-log\-file
+    A file to log to (otherwise messages are logged to stderr.)
+
+Create:
+.br
+.B \-f,
+.B \-\-file
+    A file or block device to be written to.
+
+.B \-s,
+.B \-\-slices
+    The total number of slices across all devices.
+
+.B \-\-block\-size
+    The size (in MB) of a serialized block, (must be divisable by 4096.)
+
+.B \-\-extent\-size,
+    The size (in MB) of the disk extents.
+
+.B \-l,
+.B \-\-log\-file
+    A file to log to (otherwise messages are logged to stderr.)
+
+.B \-\-force
+    Create a database even though it will destroy an existing one.
+
+.TP
+Extract:
+.br
+.B \-f, 
+.B \-\-file            
+    A file or block device to read from.
+
+.B \-\-force\-block\-size    
+    Specifies block size, overriding file headers
+
+.B \-\-force\-extent\-size   
+    Specifies extent size, overriding file headers
+
+.B \-\-force\-slice\-count     
+    Specifies number of slices in *this* file, overriding file headers.
+
+.B \-l, 
+.B \-\-log\-file
+    A file to log to (otherwise messages are logged to stderr.)
+
+.B \-o, 
+.B \-\-output\-file
+    A file to put output in (otherwise output goes to memcached_dump_file_out.)
+
+.TP
+Fsck:
+.br
+.B \-f, 
+.B \-\-file            
+    A file or block device to read from.
+
+.B \-l, 
+.B \-\-log\-file
+    A file to log to (otherwise messages are logged to stderr.)
+
+.SH "KNOWN ISSUES"
+RethinkDB is known to give very choppy performance when disk throughput is saturated.
+Should you experience periods of high latency decrease the overall traffic to the server.
+.sp
+.fi

@@ -128,7 +128,7 @@ struct knowledge {
     explicit knowledge(const std::vector<std::string>& filenames)
         : files(filenames.size(), NULL), file_knog(filenames.size(), NULL) {
         for (int i = 0, n = filenames.size(); i < n; ++i) {
-            direct_file_t *file = new direct_file_t(filenames[i].c_str(), direct_file_t::mode_read);
+            direct_file_t *file = new direct_file_t(filenames[i].c_str(), direct_file_t::mode_read, false);
             files[i] = file;
             file_knog[i] = new file_knowledge(filenames[i]);
         }
@@ -1142,7 +1142,7 @@ void report_pre_config_block_errors(const check_to_config_block_errors& errs) {
 void report_interfile_errors(const interfile_errors &errs) {
     if (!errs.all_have_same_num_files) {
         printf("ERROR config blocks disagree on number of files\n");
-    } else if (!errs.all_have_same_num_files) {
+    } else if (!errs.all_have_correct_num_files) {
         printf("WARNING wrong number of files specified on command line\n");
     }
 

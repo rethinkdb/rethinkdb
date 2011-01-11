@@ -108,7 +108,7 @@ public:
         size_t suffix_length = 0;
         if (append_client_suffix) {
             if (client_id < 0) {
-                fprintf(stderr, "Internal error: No client id given to toss().\n");
+                fprintf(stderr, "Internal error: No client id given to calculate_max_length().\n");
                 exit(-2);
             }
             

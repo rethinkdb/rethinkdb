@@ -1,5 +1,7 @@
 #!/bin/bash
 
+RETHINKDB_BRANCH="v_0.1.x"
+
 # Set up the directory
 BENCH_DIR="$HOME/bench/$(date +%Y-%m-%d-%H:%M)"
 mkdir -p "$BENCH_DIR"
@@ -14,8 +16,10 @@ email="$(perl -e 'use List::Util qw(first); my $email_idx = 1 + first { $ARGV[$_
 
 # Build the server and the stress client
 cd src
+git checkout $RETHINKDB_BRANCH
 make clean
 make -j DEBUG=0 VALGRIND=0 FAST_PERFMON=1
+git checkout master
 cd ../bench/stress-client
 make
 scp stress puzzler:/home/teapot/stress
@@ -38,8 +42,8 @@ HDD_DRIVES="-f /dev/sdb -f /dev/sdc -f /dev/sdd -f /dev/sde"
 
 SERVER_HOSTS="magneto,magneto2"
 CANONICAL_CLIENTS="512"
-CANONICAL_DURATION="180s"
-CANONICAL_MULTIRUN_DURATION="45s"
+CANONICAL_DURATION="1800s"
+CANONICAL_MULTIRUN_DURATION="300s"
 
 STRESS_CLIENT="puzzler:/home/teapot/stress"
 
