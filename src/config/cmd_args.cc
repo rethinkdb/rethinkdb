@@ -67,8 +67,8 @@ void usage_serve(const char *name) {
         help->pagef(" Defaults to %dms.\n", DEFAULT_FLUSH_TIMER_MS);
     }
     help->pagef("      --unsaved-data-limit\n" 
-                "                        The maximum amount of dirty data (data which is held in memory\n"
-                "                        but has not yet been serialized to disk. Defaults to %d MB.\n", DEFAULT_UNSAVED_DATA_LIMIT / MEGABYTE);
+                "                        The maximum amount (in MB) of dirty data (data which is held in memory\n"
+                "                        but has not yet been serialized to disk.) Defaults to %d MB.\n", DEFAULT_UNSAVED_DATA_LIMIT / MEGABYTE);
     help->pagef("\n"
                 "Disk options:\n");
     help->pagef("      --gc-range low-high  (e.g. --gc-range 0.5-0.75)\n"
