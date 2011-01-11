@@ -1,2 +1,0 @@
-#!/bin/sh
-nroff -man $1 | less
