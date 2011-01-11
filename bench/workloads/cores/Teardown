@@ -1,5 +1,5 @@
 #!/bin/bash
 
 if [ $DATABASE == "mysql" ]; then
-    sudo set-cores 12
+    sudo set-corecount 12
 fi
