@@ -178,8 +178,11 @@ class StatsSender(object):
         'serializer_bytes_in_use',
         'serializer_old_garbage_blocks',
         'serializer_old_total_blocks',
-#        'serializer_reads_total',
-#        'serializer_writes_total',
+        'serializer_reads_total',
+        'serializer_writes_total',
+        'serializer_lba_gcs',
+        'serializer_data_extents_gced[dexts]',
+        'transactions_starting_avg',
         'uptime',
     ]
     bucket_size = 100
@@ -207,6 +210,12 @@ class StatsSender(object):
         ('memory_virtual', plot_style_line, simple_plotter('memory_virtual[bytes]', 1.0/(1024*1024))),
         ('gc_ratio', plot_style_line, two_stats_ratio_plotter('serializer_old_garbage_blocks', 'serializer_old_total_blocks')),
         ('serializer_MB_in_use', plot_style_line, simple_plotter('serializer_bytes_in_use', 1.0/(1024*1024))),
+        ('serializer_reads/s', plot_style_quantile, differential_plotter('serializer_reads_total')),
+        ('serializer_writes/s', plot_style_quantile, differential_plotter('serializer_writes_total')),
+        ('serializer_data_blks_wr/s', plot_style_quantile, differential_plotter('serializer_writes_total')),
+        ('gc_lba/s', plot_style_quantile, differential_plotter('serializer_lba_gcs')),
+        ('gc_data_ext/s', plot_style_quantile, differential_plotter('serializer_data_extents_gced[dexts]')),
+        ('txn_starting_avg', plot_style_quantile_log, simple_plotter('transactions_starting_avg')),
     ]
     def __init__(self, opts, server):
         def stats_aggregator(stats):
