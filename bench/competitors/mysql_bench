@@ -59,18 +59,7 @@ while ! /usr/local/mysql/bin/mysqladmin shutdown -u root --port=9874 2> /dev/nul
     sleep 5
 done
 
-echo "To get the canonical hardware, we have to disable all but 12 CPUs."
-echo 'Please give me authorization to run bash -c "for CPU in {12..23}; do echo 0 > /sys/devices/system/cpu/cpu\$CPU/online; done"'
-sudo bash -c "for CPU in {12..23}; do echo 0 > /sys/devices/system/cpu/cpu\$CPU/online; done"
-
-# "Initialize" the MySQL database by running some load now. Otherwise it fails on the first actual workload for some mysterious reason
-# TODO: This is just a hacky workaround. Investigate why this happens
-./dbench                                                                                   \
-        -d "$BENCH_DIR/bench_output/warmup" -H $SERVER_HOSTS             \
-        {server}mysql:"$MYSQL_COMMON_FLAGS $MYSQL_BUFFER_FLAGS $MYSQL_DURABILITY_FLAGS $MYSQL_SSD_FLAGS"              \
-        {client}mysqlstress[$STRESS_CLIENT]:"-c $CANONICAL_CLIENTS -d 10s" \
-        iostat:1 vmstat:1
-rm -rf "$BENCH_DIR/bench_output/warmup"
+sudo set-corecount 12
 
 
 # Run workloads
@@ -127,15 +116,7 @@ for WORKLOAD in ../workloads/*; do
     fi
 done
 
-# TODO:
-# Out of RAM performance
-# Core/CPU scalability
-# Concurrent clients scalability
-# Canonical workload on HDD performance
-
-echo "We can turn on the CPUs again now..."
-echo 'Please give me authorization to run sh -c "for CPU in {12..23}; do echo 1 > /sys/devices/system/cpu/cpu\$CPU/online; done"'
-sudo bash -c "for CPU in {12..23}; do echo 1 > /sys/devices/system/cpu/cpu\$CPU/online; done"
+sudo set-corecount 24
 
 
 # Now that all benchmarks are done, delete any database files that might have been left over
