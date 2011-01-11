@@ -1,5 +1,7 @@
 #!/bin/bash
 
+RETHINKDB_BRANCH="v_0.1.x"
+
 # Set up the directory
 BENCH_DIR="$HOME/bench/$(date +%Y-%m-%d-%H:%M)"
 mkdir -p "$BENCH_DIR"
@@ -14,8 +16,10 @@ email="$(perl -e 'use List::Util qw(first); my $email_idx = 1 + first { $ARGV[$_
 
 # Build the server and the stress client
 cd src
+git checkout $RETHINKDB_BRANCH
 make clean
 make -j DEBUG=0 VALGRIND=0 FAST_PERFMON=1
+git checkout master
 cd ../bench/stress-client
 make
 scp stress puzzler:/home/teapot/stress
@@ -26,6 +30,11 @@ function delete_database_files() { # They are large and useless.
     rm -f "$(find "$BENCH_DIR" -name rethinkdb_data)"
 }
 
+# Set the I/O scheduler to noop
+for DRIVE in sdf sdg sdh sdi; do
+    sudo set-scheduler $DRIVE noop
+done
+
 # Set up the SSDs as individual devices, and note their names to pass to rethinkdb.
 #SSD_DRIVES="$(sudo /usr/local/bin/raidconfig ssd single | sed 's/^/-f /; s/$/ /' | tr -d '\n')"
 SSD_DRIVES="-f /dev/sdf -f /dev/sdg -f /dev/sdh -f /dev/sdi"
@@ -33,8 +42,8 @@ HDD_DRIVES="-f /dev/sdb -f /dev/sdc -f /dev/sdd -f /dev/sde"
 
 SERVER_HOSTS="magneto,magneto2"
 CANONICAL_CLIENTS="512"
-CANONICAL_DURATION="180s"
-CANONICAL_MULTIRUN_DURATION="45s"
+CANONICAL_DURATION="1800s"
+CANONICAL_MULTIRUN_DURATION="300s"
 
 STRESS_CLIENT="puzzler:/home/teapot/stress"
 

@@ -334,7 +334,7 @@ private:
                  "CREATE TABLE bench (__key varchar(%d), __value varchar(%d)," \
                  "PRIMARY KEY (__key)) "                             \
                  "ENGINE=InnoDB",
-                 config->keys.max, config->values.max);
+                 config->keys.calculate_max_length(config->clients - 1), config->values.max);
         status = mysql_query(&mysql, buf);
         if(status != 0) {
             fprintf(stderr, "Could not create the table.\n");

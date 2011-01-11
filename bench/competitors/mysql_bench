@@ -18,7 +18,11 @@ cd ../dbench
 SSD_DRIVES="-f /dev/sdf"
 HDD_DRIVES="" # TODO
 SSD_RAID_DEVICE="/dev/sdf"
-sudo sh -c 'echo noop > /sys/block/sdf/queue/scheduler'
+# Set the I/O scheduler to noop
+for DRIVE in sdf; do
+    sudo set-scheduler $DRIVE noop
+done
+
 # NOTE: Expects /dev/sdf to be a RAID of SSD drives
 sudo mkfs.ext3 -F "$SSD_RAID_DEVICE"
 mkdir -p /tmp/ssd_mount
@@ -31,8 +35,8 @@ MYSQL_SSD_FLAGS="--innodb_data_home_dir=/tmp/ssd_mount/mysql_data --innodb_log_f
 
 SERVER_HOSTS="magneto,magneto2"
 CANONICAL_CLIENTS="96"
-CANONICAL_DURATION="180s"
-CANONICAL_MULTIRUN_DURATION="45s"
+CANONICAL_DURATION="1800s"
+CANONICAL_MULTIRUN_DURATION="300s"
 
 MYSQL_COMMON_FLAGS="--disable-log-bin --skip-name-resolve --query_cache_size=0 --transaction_isolation=READ-UNCOMMITTED --innodb_support_xa=off --innodb_lock_wait_timeout=5 --innodb_flush_method=O_DIRECT --max-connections=1030 --max-prepared-stmt-count=32764 --innodb_log_group_home_dir=/tmp/ssd_mount/mysql_data"
 MYSQL_BUFFER_FLAGS="--innodb_buffer_pool_size=32768m"
@@ -94,7 +98,8 @@ for WORKLOAD in ../workloads/*; do
         while ! echo exit | /usr/local/mysql/bin/mysql -u root --port=9874 2> /dev/null ; do
             sleep 5
         done
-        echo drop table bench if exists; | /usr/local/mysql/bin/mysql -u root --port=9874
+        echo "drop table bench if exists;" | /usr/local/mysql/bin/mysql -u root --port=9874
+        echo "drop database if exists bench;" | /usr/local/mysql/bin/mysql -u root --port=9874
         /usr/local/mysql/bin/mysqladmin shutdown -u root --port=9874 2> /dev/null
     
         if [ -e "$WORKLOAD/Setup" ]; then

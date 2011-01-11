@@ -2,6 +2,7 @@
 #include "arch/arch.hpp"
 #include "utils.hpp"
 #include <stdarg.h>
+#include "coroutine/coroutines.hpp"
 
 /* The var list keeps track of all of the perfmon_t objects. */
 
@@ -48,63 +49,44 @@ spinlock_t &get_var_lock() {
     return lock;
 }
 
-/* This is the function that actually gathers the stats. It is illegal to create or destroy
-perfmon_t objects while a perfmon_fsm_t is active. */
 
-struct perfmon_fsm_t :
-    public home_thread_mixin_t
-{
-    perfmon_callback_t *cb;
-    perfmon_stats_t *dest;
-    std::vector<void*> data;
-    int messages_out;
-    explicit perfmon_fsm_t(perfmon_stats_t *dest) : cb(NULL), dest(dest) {
-        data.reserve(get_var_list().size());
-        for (perfmon_t *p = get_var_list().head(); p; p = get_var_list().next(p)) {
-            data.push_back(p->begin_stats());
-        }
-        messages_out = get_num_threads();
-        for (int i = 0; i < get_num_threads(); i++) {
-            do_on_thread(i, this, &perfmon_fsm_t::visit);
-        }
-    }
-    bool visit() {
+/* This is the function that actually gathers the stats. It is illegal to create or destroy
+perfmon_t objects while perfmon_get_stats is active. */
+
+void co_perfmon_visit(int thread, const std::vector<void*> &data, coro_t::multi_wait_t *multi_wait) {
+    {
+        coro_t::on_thread_t moving(thread);
         int i = 0;
         for (perfmon_t *p = get_var_list().head(); p; p = get_var_list().next(p)) {
             p->visit_stats(data[i++]);
         }
-        do_on_thread(home_thread, this, &perfmon_fsm_t::have_visited);
-        return true;
     }
-    bool have_visited() {
-        messages_out--;
-        if (messages_out == 0) {
-            int i = 0;
-            for (perfmon_t *p = get_var_list().head(); p; p = get_var_list().next(p)) {
-                p->end_stats(data[i++], dest);
-            }
-            if (cb) {
-                cb->on_perfmon_stats();
-                delete this;
-            } else {
-                /* Don't delete ourself; perfmon_get_stats() will delete us */
-            }
-        }
-        return true;
-    }
-};
+    multi_wait->notify();
+}
 
-bool perfmon_get_stats(perfmon_stats_t *dest, perfmon_callback_t *cb) {
-    perfmon_fsm_t *fsm = new perfmon_fsm_t(dest);
-    if (fsm->messages_out == 0) {
-        /* It has already finished */
-        delete fsm;
-        return true;
-    } else {
-        /* It has not finished yet */
-        fsm->cb = cb;
-        return false;
+
+void co_perfmon_get_stats(perfmon_stats_t *dest, perfmon_callback_t *cb) {
+    std::vector<void*> data;
+    data.reserve(get_var_list().size());
+    for (perfmon_t *p = get_var_list().head(); p; p = get_var_list().next(p)) {
+        data.push_back(p->begin_stats());
     }
+    int threads = get_num_threads();
+    coro_t::multi_wait_t *multi_wait = new coro_t::multi_wait_t(threads);
+    for (int i = 0; i < threads; i++) {
+        coro_t::spawn(co_perfmon_visit, i, data, multi_wait);
+    }
+    coro_t::wait();
+    int i = 0;
+    for (perfmon_t *p = get_var_list().head(); p; p = get_var_list().next(p)) {
+        p->end_stats(data[i++], dest);
+    }
+    cb->on_perfmon_stats();
+}
+    
+bool perfmon_get_stats(perfmon_stats_t *dest, perfmon_callback_t *cb) {
+    coro_t::spawn(co_perfmon_get_stats, dest, cb);
+    return false;
 }
 
 /* Constructor and destructor register and deregister the perfmon.

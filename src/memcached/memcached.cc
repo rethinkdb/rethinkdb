@@ -8,7 +8,7 @@ public:
     txt_memcached_handler_t *rh;
 
     txt_memcached_get_request_t(txt_memcached_handler_t *rh, bool with_cas, int argc, char **argv)
-        : rh(rh), num_gets(0), curr_get(0), with_cas(with_cas)
+        : rh(rh), num_gets(0), with_cas(with_cas)
     {
         assert(argc >= 1);
         assert(strcmp(argv[0], "get") == 0 || strcmp(argv[0], "gets") == 0);
@@ -25,7 +25,7 @@ public:
                 return;
             }
             g->parent = this;
-            g->ready = false;
+            g->sent = new coro_t::cond_var_t<bool>();
         }
         if (num_gets == 0) {
             rh->writef("ERROR\r\n");
@@ -37,9 +37,12 @@ public:
         /* Now that we're sure they're all valid, send off the requests */
         int ngets = num_gets;   // Make a copy in case we get deleted
         for (int i = 0; i < ngets; i++) {
-            if (with_cas) rh->server->store->get_cas(&gets[i].key, &gets[i]);
-            else rh->server->store->get(&gets[i].key, &gets[i]);
+            gets[i].result = coro_t::task<store_t::get_result_t>(
+                with_cas ? &store_t::co_get_cas : &store_t::co_get,
+                rh->server->store,
+                &gets[i].key);
         }
+        coro_t::spawn(&txt_memcached_get_request_t::write_each, this);
     }
 
     ~txt_memcached_get_request_t() {
@@ -50,7 +53,6 @@ private:
     the wrong order, but we still need to send the answers in the right order. */
 
     struct get_t :
-        public store_t::get_callback_t,
         public send_buffer_external_write_callback_t
     {
         txt_memcached_get_request_t *parent;
@@ -59,60 +61,40 @@ private:
             btree_key key;
         };
         
-        const_buffer_group_t *buffer;   // NULL if the value was not found
-        store_t::get_callback_t::done_callback_t *callback;
-        mcflags_t flags;
-        cas_t cas;
-        
-        bool ready, sending;
+        coro_t::cond_var_t<store_t::get_result_t> *result;
+        store_t::get_result_t get_result;
+        coro_t::cond_var_t<bool> *sent; //Don't actually care about the value, just used for waiting
+
         int buffer_being_sent;
         
-        void value(const_buffer_group_t *b, store_t::get_callback_t::done_callback_t *cb, mcflags_t f, cas_t c) {
-            assert(b);
-            buffer = b;
-            callback = cb;
-            flags = f;
-            cas = c;
-            ready = true;
-            sending = false;
-            parent->pump();
-        }
-        
-        void not_found() {
-            buffer = NULL;
-            ready = true;
-            sending = false;
-            parent->pump();
-        }
-
         void write() {
-            sending = true;
+            get_result = result->join();
             if (!parent->rh->conn->is_write_open()) {
                 /* The conn closed as an earlier get in the multi-get was being sent.
                 We can't just abort because we wouldn't clean up properly, so instead we
                 go through the motions of waiting for each get to complete without actually
                 writing anything to the socket. */
-                if (buffer) callback->have_copied_value();
+                if (get_result.buffer) get_result.cb->have_copied_value();
                 done();
 
             } else {
-                if (buffer) {
+                if (get_result.buffer) {
                     if (parent->with_cas) {
                         parent->rh->writef(
                             "VALUE %*.*s %u %u %llu\r\n",
-                            key.size, key.size, key.contents, flags, buffer->get_size(), cas);
+                            key.size, key.size, key.contents, get_result.flags, get_result.buffer->get_size(), get_result.cas);
                     } else {
-                        assert(cas == 0);
+                        assert(get_result.cas == 0);
                         parent->rh->writef(
                             "VALUE %*.*s %u %u\r\n",
-                            key.size, key.size, key.contents, flags, buffer->get_size());
+                            key.size, key.size, key.contents, get_result.flags, get_result.buffer->get_size());
                     }
-                    if (buffer->get_size() < MAX_BUFFERED_GET_SIZE) {
-                        for (int i = 0; i < (signed)buffer->buffers.size(); i++) {
-                            const_buffer_group_t::buffer_t b = buffer->buffers[i];
+                    if (get_result.buffer->get_size() < MAX_BUFFERED_GET_SIZE) {
+                        for (int i = 0; i < (signed)get_result.buffer->buffers.size(); i++) {
+                            const_buffer_group_t::buffer_t b = get_result.buffer->buffers[i];
                             parent->rh->write((const char *)b.data, b.size);
                         }
-                        callback->have_copied_value();
+                        get_result.cb->have_copied_value();
                         parent->rh->writef("\r\n");
                         done();
                     } else {
@@ -127,14 +109,14 @@ private:
         
         void on_send_buffer_write_external() {
             buffer_being_sent++;
-            if (buffer_being_sent == (int)buffer->buffers.size()) {
-                callback->have_copied_value();
+            if (buffer_being_sent == (int)get_result.buffer->buffers.size()) {
+                get_result.cb->have_copied_value();
                 parent->rh->writef("\r\n");
                 done();
             } else {
                 parent->rh->send_buffer.write_external(
-                    buffer->buffers[buffer_being_sent].size,
-                    (const char *)buffer->buffers[buffer_being_sent].data,
+                    get_result.buffer->buffers[buffer_being_sent].size,
+                    (const char *)get_result.buffer->buffers[buffer_being_sent].data,
                     this);
             }
         }
@@ -146,32 +128,30 @@ private:
             get cleaned up properly; instead, we go through the motions of sending the
             results without actually writing anything to the socket. */
 
-            if (buffer) callback->have_copied_value();
+            if (get_result.buffer) get_result.cb->have_copied_value();
             done();   // Go on to the rest of the gets so they can clean up
         }
 
         void done() {
-            assert(&parent->gets[parent->curr_get] == this);
-            parent->curr_get++;
-            parent->pump();
+            sent->fill(true);
         }
     };
+
     std::vector<get_t> gets;
-    int num_gets, curr_get;
+
+    int num_gets;
     
     bool with_cas;
     
-    void pump() {
-        if (curr_get < num_gets) {
+    void write_each() {
+        for (int curr_get = 0; curr_get < num_gets; curr_get++) {
             get_t *g = &gets[curr_get];
-            if (g->ready && !g->sending) {
-                g->write();   // When this completes, it will increment curr_fsm and call pump()
-            }
-        } else {
-            rh->writef("END\r\n");
-            rh->read_next_command();
-            delete this;
+            g->write(); //actually, this should just be blocking rather than having a join below
+            g->sent->join();
         }
+        rh->writef("END\r\n");
+        rh->read_next_command();
+        delete this;
     }
 };
 

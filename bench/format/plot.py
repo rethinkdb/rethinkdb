@@ -1,9 +1,11 @@
 import os, sys
 import numpy as np
 import matplotlib as mpl
+mpl.use('Agg') # can't use tk since we don't have X11
 import matplotlib.pyplot as plt
 import matplotlib.mlab as mlab
 import matplotlib.font_manager as fm
+import matplotlib.gridspec as gridspec
 from matplotlib.ticker import FuncFormatter
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib.collections import PolyCollection
@@ -12,6 +14,7 @@ import json
 import time
 from line import *
 from statlib import stats
+import math
 import pdb
 import math
 
@@ -236,12 +239,12 @@ class TimeSeriesCollection():
         ax = plt.axes([0.13,0.12,0.85,0.85])
         labels = []
         color_index = 0
-        for series in self.data.iteritems():
+        for series, series_data in self.data.iteritems():
             if normalize:
-                data_to_use = normalize(series[1])
+                data_to_use = normalize(series_data)
             else:
-                data_to_use = series[1]
-            labels.append((ax.plot(range(len(series[1])), data_to_use, colors[color_index]), series[0]))
+                data_to_use = series_data
+            labels.append((ax.plot(range(len(series_data)), data_to_use, colors[color_index]), series))
             color_index += 1
          
         for tick in ax.xaxis.get_major_ticks():
@@ -342,7 +345,16 @@ class ScatterCollection():
         max_y_value = 0
 
         queries_formatter = FuncFormatter(lambda x, pos: '%1.fk' % (x*1e-3))
-        font = fm.FontProperties(family=['sans-serif'],size='small',fname=FONT_FILE)
+        if not large:
+            font = fm.FontProperties(family=['sans-serif'],size='small',fname=FONT_FILE)
+            mpl.rcParams['xtick.major.pad'] = 4
+            mpl.rcParams['ytick.major.pad'] = 4
+            mpl.rcParams['lines.linewidth'] = 1
+        else:
+            font = fm.FontProperties(family=['sans-serif'],size=36,fname=FONT_FILE)
+            mpl.rcParams['xtick.major.pad'] = 20
+            mpl.rcParams['ytick.major.pad'] = 20
+            mpl.rcParams['lines.linewidth'] = 5
         fig = plt.figure()
         # Set the margins for the plot to ensure a minimum of whitespace
         ax = plt.axes([0.13,0.12,0.85,0.85])
@@ -391,6 +403,106 @@ class ScatterCollection():
         fig.set_size_inches(20,14.8)
         fig.set_dpi(300)
         plt.savefig(out_fname + '_large')
+
+class SubplotCollection():
+    def __init__(self, TimeSeriesCollections, xlabel = None, ylabel = None):
+        self.data = default_empty_plot_dict()
+        self.xlabel = xlabel
+        self.ylabel = ylabel
+        self.data.update(TimeSeriesCollections)
+
+    # Plots a single subplot for use in the whole figure
+    def plot_subplot(self, ax, subplot, queries_formatter, font):
+        max_y_value = 0
+
+        # Set the margins for the plot to ensure a minimum of whitespace
+        labels = []
+        color_index = 0
+        for series,series_data in subplot.data.iteritems():
+            y_values = []
+            for y_value in series_data:
+                max_y_value = max(max_y_value, y_value)
+                y_values.append(y_value)
+            if normalize:
+                y_values = normalize(y_values)
+
+            labels.append((ax.plot(range(len(series_data)), y_values, colors[color_index]), series))
+            color_index += 1
+         
+        for tick in ax.xaxis.get_major_ticks():
+            tick.label1.set_fontproperties(font)
+        for tick in ax.yaxis.get_major_ticks():
+            tick.label1.set_fontproperties(font)
+
+        ax.yaxis.set_major_formatter(queries_formatter)
+
+        ax.set_xlim(0, len(subplot.data[subplot.data.keys()[0]]) - 1)
+        if normalize:
+            ax.set_ylim(0, 1.0)
+        else:
+            ax.set_ylim(0, max_y_value)
+        ax.grid(True)
+
+    # Plots a given set of subplots onto a figure
+    def plot(self, out_fname, large = False, normalize = False):
+        assert self.data
+
+        queries_formatter = FuncFormatter(lambda x, pos: '%1.fk' % (x*1e-3))
+        if not large:
+            font = fm.FontProperties(family=['sans-serif'],size='xx-small',fname=FONT_FILE)
+            ax_label_font = fm.FontProperties(family=['sans-serif'],size='small',fname=FONT_FILE)
+            mpl.rcParams['xtick.major.pad'] = 4
+            mpl.rcParams['ytick.major.pad'] = 4
+            mpl.rcParams['lines.linewidth'] = 1
+        else:
+            font = fm.FontProperties(family=['sans-serif'],size='medium',fname=FONT_FILE)
+            ax_label_font = fm.FontProperties(family=['sans-serif'],size=36,fname=FONT_FILE)
+            mpl.rcParams['xtick.major.pad'] = 20
+            mpl.rcParams['ytick.major.pad'] = 20
+            mpl.rcParams['lines.linewidth'] = 5
+
+        # data has a list of dictionaries representing subplots, so the number of subplots is the length of the list
+        num_subplots = len(self.data)
+        subplot_dim = int(math.ceil(math.sqrt(num_subplots)))
+
+        fig = plt.figure()
+
+        # gs_wrapper contains the x and y axis labels, and the subplots' GridSpec
+        gs_wrapper = gridspec.GridSpec(2, 2, wspace = 0.15, hspace = 0.15, width_ratios = [1,100], height_ratios = [100,1])
+
+        # x_title_ax and y_title_ax are empty plots to ensure we always have a common x and y axis label for all subplots
+        # We have to hide the grid, ticks, and border, so only the labels remain.
+        x_title_ax = plt.subplot(gs_wrapper[1,:])
+        x_title_ax.set_xlabel('Times (seconds)', fontproperties = ax_label_font)
+        y_title_ax = plt.subplot(gs_wrapper[0,0])
+        y_title_ax.set_ylabel('Queries', fontproperties = ax_label_font) 
+        for title_ax in [x_title_ax, y_title_ax]:
+            title_ax.grid(False)
+            title_ax.set_xticks([])
+            title_ax.set_yticks([])
+            title_ax.set_frame_on(False)
+            for tick in title_ax.get_xticklabels():
+                tick.set_visible(False)
+            for tick in title_ax.get_yticklabels():
+                tick.set_visible(False)
+
+        # This GridSpec defines the layout of the subplots
+        gs = gridspec.GridSpecFromSubplotSpec(subplot_dim, subplot_dim, subplot_spec=gs_wrapper[0,1])
+
+        for i in range(subplot_dim):
+            for j in range(subplot_dim):
+                subplot_num = i * subplot_dim + j
+                if subplot_num < num_subplots:
+                    self.plot_subplot(plt.subplot(gs[i,j]), self.data[str(subplot_num+1)], queries_formatter, font)
+        
+        fig.set_size_inches(5,3.7)
+        fig.set_dpi(90)
+        plt.savefig(out_fname, bbox_inches="tight")
+
+        fig.set_size_inches(20,14.8)
+        fig.set_dpi(300)
+        plt.savefig(out_fname + '_large')
+
 
 class TimeSeriesMeans():
     def __init__(self, TimeSeriesCollections):

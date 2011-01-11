@@ -26,7 +26,7 @@ public:
         mode_create = 1 << 2
     };
     
-    linux_direct_file_t(const char *path, int mode);
+    linux_direct_file_t(const char *path, int mode, bool is_really_direct = true);
     
     bool exists();
     bool is_block_device();
@@ -41,7 +41,7 @@ public:
     
     void read_blocking(size_t offset, size_t length, void *buf);
     void write_blocking(size_t offset, size_t length, void *buf);
-    
+ 
     ~linux_direct_file_t();
     
 private:

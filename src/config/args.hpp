@@ -12,7 +12,7 @@
  */
 
 #define SOFTWARE_NAME_STRING "RethinkDB"
-#define VERSION_STRING "0.0.1"
+#define VERSION_STRING "0.1"
 
 /**
  * Basic configuration parameters.
@@ -73,7 +73,7 @@
 #define DEFAULT_BTREE_SHARD_FACTOR                64
 
 // Default port to listen on
-#define DEFAULT_LISTEN_PORT                       8080
+#define DEFAULT_LISTEN_PORT                       11211
 
 // Default extension for the semantic file which is appended to the database name
 #define DEFAULT_SEMANTIC_EXTENSION                ".semantic"
@@ -181,6 +181,8 @@
 // How many zones the serializer will divide a block device into
 #define DEFAULT_FILE_ZONE_SIZE                    GIGABYTE
 #define MAX_FILE_ZONES                            (TERABYTE / DEFAULT_FILE_ZONE_SIZE)
+
+#define COROUTINE_STACK_SIZE                      65536
 
 #endif // __CONFIG_ARGS_H__
 

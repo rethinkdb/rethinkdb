@@ -8,6 +8,7 @@
 #include "extract/extract.hpp"
 #include "utils.hpp"
 #include "help.hpp"
+#include "coroutine/coroutines.hpp"
 
 void print_version_message() {
     printf("rethinkdb " RETHINKDB_VERSION
@@ -87,6 +88,9 @@ void usage_serve(const char *name) {
                 "                        the database file. Default is the name of the database\n"
                 "                        file with \"%s\" appended.\n", DEFAULT_SEMANTIC_EXTENSION);
 #endif
+    help->pagef("      --coroutine-stack-size\n"
+                "                        How much space is allocated for the stacks of coroutines.\n"
+                "                        Defaults to %d\n", COROUTINE_STACK_SIZE);
     help->pagef("\n"
                 "Serve can be called with no arguments to run a server with default parameters.\n"
                 "For best performance RethinkDB should be run with one --file per device and a\n"
@@ -147,6 +151,7 @@ enum {
     block_size,
     extent_size,
     force_create,
+    coroutine_stack_size,
     print_version
 };
 
@@ -252,6 +257,7 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
                 {"block-size",           required_argument, 0, block_size},
                 {"extent-size",          required_argument, 0, extent_size},
                 {"active-data-extents",  required_argument, 0, active_data_extents},
+                {"coroutine-stack-size", required_argument, 0, coroutine_stack_size},
                 {"cores",                required_argument, 0, 'c'},
                 {"slices",               required_argument, 0, 's'},
                 {"file",                 required_argument, 0, 'f'},
@@ -319,6 +325,8 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
                 config.set_block_size(optarg); break;
             case extent_size:
                 config.set_extent_size(optarg); break;
+            case coroutine_stack_size:
+                config.set_coroutine_stack_size(optarg); break;
             case force_create:
                 config.force_create = true; break;
             case print_version:
@@ -594,6 +602,17 @@ void parsing_cmd_config_t::set_cores(const char* value) {
     target = parse_int(optarg);
     if (parsing_failed || !is_in_range(target, minimum_value, maximum_value))
         fail_due_to_user_error("Number of CPUs must be a number from %d to %d.", minimum_value, maximum_value);
+}
+
+void parsing_cmd_config_t::set_coroutine_stack_size(const char* value) {
+    const int minimum_value = 8126;
+    const int maximum_value = MAX_COROUTINE_STACK_SIZE;
+    
+    int target = parse_int(optarg);
+    if (parsing_failed || !is_in_range(target, minimum_value, maximum_value))
+        fail_due_to_user_error("Coroutine stack size must be a number from %d to %d.", minimum_value, maximum_value);
+
+    coro_t::set_coroutine_stack_size(parse_int(optarg));
 }
 
 long long int parsing_cmd_config_t::parse_longlong(const char* value) {

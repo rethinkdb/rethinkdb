@@ -10,6 +10,7 @@
 #include "arch/linux/arch.hpp"
 #include "config/args.hpp"
 #include "utils2.hpp"
+#include "coroutine/coroutines.hpp"
 #include "logger.hpp"
 
 // #define DEBUG_DUMP_WRITES 1
@@ -22,7 +23,7 @@ perfmon_counter_t
     pm_io_writes_started("io_writes_started[iowrites]"),
     pm_io_writes_completed("io_writes_completed[iowrites]");
 
-linux_direct_file_t::linux_direct_file_t(const char *path, int mode)
+linux_direct_file_t::linux_direct_file_t(const char *path, int mode, bool is_really_direct)
     : fd(INVALID_FD)
 {
     int res;
@@ -46,7 +47,7 @@ linux_direct_file_t::linux_direct_file_t(const char *path, int mode)
     
     // Construct file flags
     
-    int flags = O_CREAT | O_DIRECT | O_LARGEFILE;
+    int flags = O_CREAT | (is_really_direct ? O_DIRECT : 0) | O_LARGEFILE;
     
     if ((mode & mode_write) && (mode & mode_read)) flags |= O_RDWR;
     else if (mode & mode_write) flags |= O_WRONLY;
@@ -168,15 +169,23 @@ bool linux_direct_file_t::write_async(size_t offset, size_t length, void *buf, l
 
 void linux_direct_file_t::read_blocking(size_t offset, size_t length, void *buf) {
     verify(offset, length, buf);
-    size_t res = pread(fd, buf, length, offset);
-    assert(res == length, "Blocking read failed");
+ tryagain:
+    ssize_t res = pread(fd, buf, length, offset);
+    if (res == -1 && errno == EINTR) {
+        goto tryagain;
+    }
+    assert(size_t(res) == length, "Blocking read failed");
     (void)res;
 }
 
 void linux_direct_file_t::write_blocking(size_t offset, size_t length, void *buf) {
     verify(offset, length, buf);
-    size_t res = pwrite(fd, buf, length, offset);
-    assert(res == length, "Blocking write failed");
+ tryagain:
+    ssize_t res = pwrite(fd, buf, length, offset);
+    if (res == -1 && errno == EINTR) {
+        goto tryagain;
+    }
+    assert(size_t(res) == length, "Blocking write failed");
     (void)res;
 }
 

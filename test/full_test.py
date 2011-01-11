@@ -82,14 +82,17 @@ def run_canonical_tests(mode, checker, protocol, cores, slices):
     # we don't flush to disk at all until the server is shut down, so obviously the
     # corruption test will fail.
     if "mock" not in mode:
-        do_test_cloud("integration/corruption.py",
-                      { "auto"        : True,
-                        "mode"        : mode,
-                        "no-valgrind" : not checker,
-                        "protocol"    : protocol,
-                        "cores"       : cores,
-                        "slices"      : slices },
-                      repeat=12)
+        for dur in [2, 5, 10, 60, 300, 420]:
+            do_test_cloud("integration/corruption.py",
+                          { "auto"          : True,
+                            "mode"          : mode,
+                            "no-valgrind"   : not checker,
+                            "protocol"      : protocol,
+                            "cores"         : cores,
+                            "slices"        : slices,
+                            "duration"      : dur,
+                            "verify-timeout": dur },
+                          repeat=2, timeout=dur * 4)
 
 # Running all tests
 def run_all_tests(mode, checker, protocol, cores, slices):
