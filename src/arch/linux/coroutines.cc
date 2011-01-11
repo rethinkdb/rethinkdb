@@ -14,10 +14,55 @@ perfmon_counter_t pm_active_coroutines("active_coroutines"),
 
 size_t coro_stack_size = COROUTINE_STACK_SIZE; //Default, setable by command-line parameter
 
-/* Defined in asm.S */
+/* We have a custom implementation of swapcontext() that doesn't swap the floating-point
+registers, the SSE registers, or the signal mask. This is for performance reasons. */
+
 extern "C" {
     extern int lightweight_swapcontext(ucontext_t *oucp, const ucontext_t *ucp);
 }
+
+#define oRBP "120"
+#define oRSP "160"
+#define oRBX "128"
+#define oR12 "72"
+#define oR13 "80"
+#define oR14 "88"
+#define oR15 "96"
+#define oRIP "168"
+
+asm(
+    ".section .text\n"
+    ".globl lightweight_swapcontext\n"
+    "lightweight_swapcontext:\n"
+
+    /* Save the preserved registers and the return address */
+    "\tmovq\t%rbx, "oRBX"(%rdi)\n"
+    "\tmovq\t%rbp, "oRBP"(%rdi)\n"
+    "\tmovq\t%r12, "oR12"(%rdi)\n"
+    "\tmovq\t%r13, "oR13"(%rdi)\n"
+    "\tmovq\t%r14, "oR14"(%rdi)\n"
+    "\tmovq\t%r15, "oR15"(%rdi)\n"
+    "\tmovq\t(%rsp), %rcx\n"
+    "\tmovq\t%rcx, "oRIP"(%rdi)\n"
+    "\tleaq\t8(%rsp), %rcx\n"        /* Exclude the return address.  */
+    "\tmovq\t%rcx, "oRSP"(%rdi)\n"
+
+    /* Load the new stack pointer and the preserved registers.  */
+    "\tmovq\t"oRSP"(%rsi), %rsp\n"
+    "\tmovq\t"oRBX"(%rsi), %rbx\n"
+    "\tmovq\t"oRBP"(%rsi), %rbp\n"
+    "\tmovq\t"oR12"(%rsi), %r12\n"
+    "\tmovq\t"oR13"(%rsi), %r13\n"
+    "\tmovq\t"oR14"(%rsi), %r14\n"
+    "\tmovq\t"oR15"(%rsi), %r15\n"
+
+    /* The following ret should return to the address set with
+    getcontext.  Therefore push the address on the stack.  */
+    "\tmovq\t"oRIP"(%rsi), %rcx\n"
+    "\tpushq\t%rcx\n"
+    "\txorl\t%eax, %eax\n"
+    "\tret\n"
+);
 
 /* coro_context_t is only used internally within the coroutine logic. For performance reasons,
 we recycle stacks and ucontexts; the coro_context_t represents a stack and a ucontext. */
@@ -217,6 +262,10 @@ void coro_t::on_thread_switch() {
 void coro_t::set_coroutine_stack_size(size_t size) {
     coro_stack_size = size;
 }
+
+/* Called by SIGSEGV handler to identify segfaults that come from overflowing a coroutine's
+stack. Could also in theory be used by a function to check if it's about to overflow
+the stack. */
 
 bool is_coroutine_stack_overflow(void *addr) {
     void *base = (void *)floor_aligned((intptr_t)addr, getpagesize());
