@@ -7,14 +7,14 @@ function run_with_clients {
     if [ $DATABASE == "rethinkdb" ]; then
         ../../build/release/rethinkdb create $SSD_DRIVES --force
         ./dbench                                                                                      \
-            -d "$BENCH_DIR/bench_output/Number_of_clients_on_canonical_hardware_canonical_workload/$NUMBER_OF_CLIENTS" -H $SERVER_HOSTS    \
+            -d "$BENCH_DIR/bench_output/Concurrent_clients_(canonical_workload)/$NUMBER_OF_CLIENTS" -H $SERVER_HOSTS    \
             {server}rethinkdb:"-c 12 -m 32768 $SSD_DRIVES"                                            \
             {client}stress[$STRESS_CLIENT]:"-c $NUMBER_OF_CLIENTS -d $CANONICAL_MULTIRUN_DURATION" \
             iostat:1 vmstat:1 rdbstat:1
     elif [ $DATABASE == "mysql" ]; then
         if [ "$NUMBER_OF_CLIENTS" -lt "1025" ]; then
             ./dbench                                                                                   \
-                -d "$BENCH_DIR/bench_output/Number_of_clients_on_canonical_hardware_canonical_workload/$NUMBER_OF_CLIENTS" -H $SERVER_HOSTS \
+                -d "$BENCH_DIR/bench_output/Concurrent_clients_(canonical_workload)/$NUMBER_OF_CLIENTS" -H $SERVER_HOSTS \
                 {server}mysql:"$MYSQL_COMMON_FLAGS $MYSQL_BUFFER_FLAGS $MYSQL_DURABILITY_FLAGS $MYSQL_SSD_FLAGS"        \
                 {client}mysqlstress[$STRESS_CLIENT]:"-c $NUMBER_OF_CLIENTS -d $CANONICAL_MULTIRUN_DURATION" \
                 iostat:1 vmstat:1
@@ -23,7 +23,7 @@ function run_with_clients {
         fi
     elif [ $DATABASE == "membase" ]; then
         ./dbench                                                                                   \
-            -d "$BENCH_DIR/bench_output/Number_of_clients_on_canonical_hardware_canonical_workload/$NUMBER_OF_CLIENTS" -H $SERVER_HOSTS -p 11211 \
+            -d "$BENCH_DIR/bench_output/Concurrent_clients_(canonical_workload)/$NUMBER_OF_CLIENTS" -H $SERVER_HOSTS -p 11211 \
             {server}membase:"-d $MEMBASE_DATA_PATH -m 32768"                                       \
             {client}stress[$STRESS_CLIENT]:"-c $NUMBER_OF_CLIENTS -d $CANONICAL_MULTIRUN_DURATION" \
             iostat:1 vmstat:1
