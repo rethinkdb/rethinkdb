@@ -99,6 +99,7 @@ for WORKLOAD in ../workloads/*; do
             sleep 5
         done
         echo "drop table bench if exists;" | /usr/local/mysql/bin/mysql -u root --port=9874
+        echo "drop database if exists bench;" | /usr/local/mysql/bin/mysql -u root --port=9874
         /usr/local/mysql/bin/mysqladmin shutdown -u root --port=9874 2> /dev/null
     
         if [ -e "$WORKLOAD/Setup" ]; then
