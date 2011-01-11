@@ -1,6 +1,7 @@
 #include "get_fsm.hpp"
 #include "utils.hpp"
 
+#include "btree/buf_lock.hpp"
 #include "btree/co_functions.hpp"
 #include "btree/internal_node.hpp"
 #include "btree/leaf_node.hpp"
@@ -43,20 +44,21 @@ void co_btree_get(btree_key *_key, btree_key_value_store_t *store, store_t::get_
     coro_t::move_to_thread(slice->home_thread);
     ticks_t start_time;
     pm_cmd_get_without_threads.begin(&start_time);
-    //Acquire the superblock
-    buf_t *buf, *last_buf;
+
     transaction = cache->begin_transaction(rwi_read, NULL);
     assert(transaction); // Read-only transaction always begins immediately.
-    last_buf = co_acquire_transaction(transaction, SUPERBLOCK_ID, rwi_read);
-    assert(last_buf);
-    block_id_t node_id = ptr_cast<btree_superblock_t>(last_buf->get_data_read())->root_block;
+
+    //Acquire the superblock
+    buf_lock_t buf_lock(transaction, SUPERBLOCK_ID, rwi_read);
+
+    block_id_t node_id = ptr_cast<btree_superblock_t>(buf_lock.buf()->get_data_read())->root_block;
     assert(node_id != SUPERBLOCK_ID);
 
     //Acquire the root
     if (node_id == NULL_BLOCK_ID) {
-        //No root exists
-        last_buf->release();
-        last_buf = NULL;
+        // No root exists
+        buf_lock.release();
+
         // Commit transaction now because we won't be returning to this core
         bool committed __attribute__((unused)) = transaction->commit(NULL);
         assert(committed);   // Read-only transactions complete immediately
@@ -66,32 +68,34 @@ void co_btree_get(btree_key *_key, btree_key_value_store_t *store, store_t::get_
         return;
     }
 
-    //Acquire the leaf node
-    const node_t *node;
+    // Acquire the leaf node
     while (true) {
-        buf = co_acquire_transaction(transaction, node_id, rwi_read);
-        assert(buf);
-        node_handler::validate(cache->get_block_size(), ptr_cast<node_t>(buf->get_data_read()));
-        
-        // Release the previous buffer
-        last_buf->release();
-        last_buf = NULL;
+        {
+            buf_lock_t tmp(transaction, node_id, rwi_read);
+            buf_lock.swap(tmp);
+        }
 
-        node = ptr_cast<node_t>(buf->get_data_read());
-        if(!node_handler::is_internal(node)) break;
+#ifndef NDEBUG
+	node_handler::validate(cache->get_block_size(), ptr_cast<node_t>(buf_lock.buf()->get_data_read()));
+#endif
 
-        block_id_t next_node_id = internal_node_handler::lookup(ptr_cast<internal_node_t>(node), &key);
-        assert(next_node_id != NULL_BLOCK_ID);
-        assert(next_node_id != SUPERBLOCK_ID);
-        last_buf = buf;
-        node_id = next_node_id;
+	const node_t *node = ptr_cast<node_t>(buf_lock.buf()->get_data_read());
+	if (!node_handler::is_internal(node)) {
+            break;
+        }
+
+	block_id_t next_node_id = internal_node_handler::lookup(ptr_cast<internal_node_t>(node), &key);
+	assert(next_node_id != NULL_BLOCK_ID);
+	assert(next_node_id != SUPERBLOCK_ID);
+
+	node_id = next_node_id;
     }
 
-    //Got down to the leaf, now examine it
-    bool found = leaf_node_handler::lookup(ptr_cast<leaf_node_t>(node), &key, &value);
-    buf->release();
-    buf = NULL;
-    
+
+    // Got down to the leaf, now examine it
+    bool found = leaf_node_handler::lookup(ptr_cast<leaf_node_t>(buf_lock.buf()->get_data_read()), &key, &value);
+    buf_lock.release();
+
     if (found && value.expired()) {
         delete_expired(&key, store);
         found = false;
