@@ -1,5 +1,5 @@
 #include "send_buffer.hpp"
-#include "coroutine/coroutines.hpp"
+#include "concurrency/task.hpp"
 
 send_buffer_t::send_buffer_t(net_conn_t *conn)
     : conn(conn)
@@ -22,6 +22,20 @@ void send_buffer_t::write_external(size_t s, const char *v, send_buffer_external
     coro_t::spawn(&send_buffer_t::do_write_external, this, s, v, cb);
 }
 
+bool send_buffer_t::co_write_external(size_t bytes, const char *buffer) {
+    
+    /* There's probably a better way to do this. Maybe we can call do_write_external(), or a variant
+    thereof, directly? */
+    struct : public send_buffer_external_write_callback_t {
+        cond_var_t<bool> *to_notify;
+        void on_send_buffer_write_external() { to_notify->fill(true); }
+        void on_send_buffer_socket_closed() { to_notify->fill(false); }
+    } cb;
+    cb.to_notify = new cond_var_t<bool>;
+    write_external(bytes, buffer, &cb);
+    return cb.to_notify->join();
+}
+
 void send_buffer_t::do_write_external(size_t s, const char *v, send_buffer_external_write_callback_t *cb) {
 #ifndef NDEBUG
     assert(state == ready);
@@ -32,7 +46,7 @@ void send_buffer_t::do_write_external(size_t s, const char *v, send_buffer_exter
     if (buffer.size()) {
         /* There's data in our internal buffer that we haven't flushed yet. Flush it now
         before we write the external buffer. */
-        net_conn_write_external_result_t result = co_write_external(conn, buffer.data(), buffer.size());
+        net_conn_write_external_result_t result = ::co_write_external(conn, buffer.data(), buffer.size());
         if (result.result == net_conn_write_external_result_t::closed) {
             /* We just finished writing the external buffer. */
 #ifndef NDEBUG
@@ -43,7 +57,7 @@ void send_buffer_t::do_write_external(size_t s, const char *v, send_buffer_exter
         }
         buffer.resize(0);
     }
-    net_conn_write_external_result_t result = co_write_external(conn, v, s);
+    net_conn_write_external_result_t result = ::co_write_external(conn, v, s);
     if (result.result == net_conn_write_external_result_t::closed) {
 #ifndef NDEBUG
         state = ready;
@@ -69,7 +83,7 @@ void send_buffer_t::do_flush(send_buffer_callback_t *cb) {
 #endif
 
     assert(conn->is_write_open());
-    net_conn_write_external_result_t result = co_write_external(conn, buffer.data(), buffer.size());
+    net_conn_write_external_result_t result = ::co_write_external(conn, buffer.data(), buffer.size());
     if (result.result == net_conn_write_external_result_t::closed) {
         /* We were interrupted while flushing the internal buffer by
         request of the request handler. */

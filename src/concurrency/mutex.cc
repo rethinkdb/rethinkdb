@@ -1,4 +1,4 @@
-#include "coroutine/coroutines.hpp"
+#include "arch/arch.hpp"
 #include "concurrency/mutex.hpp"
 
 struct co_lock_waiter_t : public lock_available_callback_t {

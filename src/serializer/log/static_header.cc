@@ -1,7 +1,6 @@
 #include "static_header.hpp"
 #include "config/args.hpp"
 #include "utils.hpp"
-#include "coroutine/coroutines.hpp"
     
 bool static_header_check(direct_file_t *file) {
     if (!file->exists() || file->get_size() < DEVICE_BLOCK_SIZE) {

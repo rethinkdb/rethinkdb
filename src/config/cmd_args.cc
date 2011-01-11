@@ -8,7 +8,7 @@
 #include "extract/extract.hpp"
 #include "utils.hpp"
 #include "help.hpp"
-#include "coroutine/coroutines.hpp"
+#include "arch/arch.hpp"
 
 void print_version_message() {
     printf("rethinkdb " RETHINKDB_VERSION

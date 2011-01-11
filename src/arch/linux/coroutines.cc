@@ -1,0 +1,224 @@
+#include "arch/linux/coroutines.hpp"
+#include "arch/linux/thread_pool.hpp"
+#include "config/args.hpp"
+#include <stdio.h>
+#include <sys/mman.h>
+#include <ucontext.h>
+
+#ifdef VALGRIND
+#include <valgrind/valgrind.h>
+#endif
+
+perfmon_counter_t pm_active_coroutines("active_coroutines"),
+                  pm_allocated_coroutines("allocated_coroutines");
+
+size_t coro_stack_size = COROUTINE_STACK_SIZE; //Default, setable by command-line parameter
+
+/* Defined in asm.S */
+extern "C" {
+    extern int lightweight_swapcontext(ucontext_t *oucp, const ucontext_t *ucp);
+}
+
+/* coro_context_t is only used internally within the coroutine logic. For performance reasons,
+we recycle stacks and ucontexts; the coro_context_t represents a stack and a ucontext. */
+
+struct coro_context_t :
+    public intrusive_list_node_t<coro_context_t>
+{
+    coro_context_t();
+
+    /* The run() function is at the bottom of every coro_context_t's call stack. It repeatedly
+    waits for a coroutine to run and then calls that coroutine's run() method. */
+    static void run();
+
+    ~coro_context_t();
+
+    /* The guts of the coro_context_t */
+    void *stack;
+    ucontext_t env;
+#ifdef VALGRIND
+    unsigned int valgrind_stack_id;
+#endif
+};
+
+/* The coroutine we're currently in, if any. NULL if we are in the main context. */
+static __thread coro_t *current_coro = NULL;
+
+/* The main context. */
+static __thread ucontext_t scheduler;
+
+/* A list of coro_context_t objects that are not in use. */
+static __thread intrusive_list_t<coro_context_t> *free_contexts = NULL;
+
+/* coro_globals_t */
+
+coro_globals_t::coro_globals_t()
+{
+    assert(!current_coro);
+
+    assert(free_contexts == NULL);
+    free_contexts = new intrusive_list_t<coro_context_t>;
+}
+
+coro_globals_t::~coro_globals_t()
+{
+    assert(!current_coro);
+
+    /* Destroy remaining coroutines */
+    while (coro_context_t *s = free_contexts->head()) {
+        free_contexts->remove(s);
+        delete s;
+    }
+
+    delete free_contexts;
+    free_contexts = NULL;
+}
+
+/* coro_context_t */
+
+coro_context_t::coro_context_t()
+{
+    pm_allocated_coroutines++;
+
+    stack = malloc(coro_stack_size);
+
+    /* Protect the end of the stack so that we crash when we get a stack overflow instead of
+    corrupting memory. */
+    mprotect(stack, getpagesize(), PROT_NONE);
+
+    /* Register our stack with Valgrind so that it understands what's going on and doesn't
+    create spurious errors */
+#ifdef VALGRIND
+    valgrind_stack_id = VALGRIND_STACK_REGISTER(stack, (intptr_t)stack + coro_stack_size);
+#endif
+
+    getcontext(&env);   /* Why do we call getcontext() here? */
+
+    env.uc_stack.ss_sp = stack;
+    env.uc_stack.ss_size = coro_stack_size;
+    env.uc_stack.ss_flags = 0;
+    env.uc_link = NULL;
+
+    /* run() is the main worker loop for a coroutine. */
+    makecontext(&env, &coro_context_t::run, 0);
+}
+
+void coro_context_t::run() {
+
+    coro_context_t *self = current_coro->context;
+
+    /* Make sure we're on the right stack. */
+#ifndef NDEBUG
+    char dummy;
+    assert(&dummy >= (char*)self->stack);
+    assert(&dummy < (char*)self->stack + coro_stack_size);
+#endif
+
+    while (true) {
+
+        current_coro->run();
+
+        current_coro = NULL;
+        lightweight_swapcontext(&self->env, &scheduler);
+    }
+}
+
+coro_context_t::~coro_context_t() {
+
+#ifdef VALGRIND
+    VALGRIND_STACK_DEREGISTER(valgrind_stack_id);
+#endif
+
+    mprotect(stack, getpagesize(), PROT_READ|PROT_WRITE); //Undo protections changes
+
+    free(stack);
+
+    pm_allocated_coroutines--;
+}
+
+/* coro_t */
+
+coro_t::coro_t(deed_t *deed) :
+    deed(deed),
+    current_thread(linux_thread_pool_t::thread_id),
+    notified(false)
+{
+
+    pm_active_coroutines++;
+
+    /* Find us a stack */
+    if (free_contexts->size() == 0) {
+        context = new coro_context_t();
+    } else {
+        context = free_contexts->tail();
+        free_contexts->remove(context);
+    }
+
+    /* Eventually our run() method will be called within the coroutine. */
+    notify();
+}
+
+coro_t::~coro_t() {
+
+    /* Return the context to the free-contexts list */
+    free_contexts->push_back(context);
+
+    pm_active_coroutines--;
+}
+
+void coro_t::run() {
+
+    assert(current_coro == this);
+
+    (*deed)();
+
+    delete this;
+}
+
+coro_t *coro_t::self() {   /* class method */
+    return current_coro;
+}
+
+void coro_t::wait() {   /* class method */
+    assert(current_coro != NULL);
+    coro_context_t *context = current_coro->context;
+    current_coro = NULL;
+    lightweight_swapcontext(&context->env, &scheduler);
+    assert(current_coro != NULL);
+}
+
+void coro_t::notify() {
+
+    assert(!notified);
+    notified = true;
+
+    /* current_thread is the thread that the coroutine lives on, which may or may not be the
+    same as get_thread_id(). */
+    linux_thread_pool_t::thread->message_hub.store_message(current_thread, this);
+}
+
+void coro_t::move_to_thread(int thread) {   /* class method */
+    self()->current_thread = thread;
+    self()->notify();
+    wait();
+}
+
+void coro_t::on_thread_switch() {
+
+    assert(notified);
+    notified = false;
+
+    assert(current_coro == NULL);
+    current_coro = this;
+    lightweight_swapcontext(&scheduler, &context->env);
+    assert(current_coro == NULL);
+}
+
+void coro_t::set_coroutine_stack_size(size_t size) {
+    coro_stack_size = size;
+}
+
+bool is_coroutine_stack_overflow(void *addr) {
+    void *base = (void *)floor_aligned((intptr_t)addr, getpagesize());
+    return current_coro && current_coro->context->stack == base;
+}

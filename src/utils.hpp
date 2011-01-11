@@ -78,6 +78,17 @@ struct home_thread_mixin_t {
 #endif
 };
 
+struct on_thread_t :
+    public home_thread_mixin_t
+{
+    on_thread_t(int thread) {
+        coro_t::move_to_thread(thread);
+    }
+    ~on_thread_t() {
+        coro_t::move_to_thread(home_thread);
+    }
+};
+
 template <class ForwardIterator, class StrictWeakOrdering>
 bool is_sorted(ForwardIterator first, ForwardIterator last,
                        StrictWeakOrdering comp) {
