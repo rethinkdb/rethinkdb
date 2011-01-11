@@ -9,8 +9,7 @@ fi
 NUMBER_OF_CORES=$1
 
 CURRENT_CORE=0
-for CORE in /sys/devices/system/cpu/cpu*; do
-    echo CORES=$NUMBER_OF_CORES, CURRENT=$CURRENT_CORE
+for CORE in /sys/devices/system/cpu/cpu? /sys/devices/system/cpu/cpu??; do
     if [ "$NUMBER_OF_CORES" -gt "$CURRENT_CORE" ]; then
         echo 1 > $CORE/online
     else
