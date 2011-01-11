@@ -4,6 +4,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
+#include <sys/ioctl.h>
+#include <unistd.h>
+#include "errors.hpp"
 
 //TODO make sure this doesn't get messed up if we run on a machine that doesn't
 //have less installed
@@ -13,14 +16,57 @@
  * stderr
  */
 
+#define MAX_HELP_MSG_LEN (1024*1024)
+
 class Help_Pager {
 private:
-    FILE *help_fp;
-    Help_Pager() {
-        help_fp = popen(HELP_VIEWER, "w");
+    char msg[MAX_HELP_MSG_LEN];
+    char *msg_hd;
+
+    /* !< \brief the number of lines in the terminal
+     */
+    int term_lines() {
+#ifdef TIOCGSIZE
+        struct ttysize ts;
+        ioctl(STDIN_FILENO, TIOCGSIZE, &ts);
+        return ts.ts_lines;
+#elif defined(TIOCGWINSZ)
+        struct winsize ts;
+        ioctl(STDIN_FILENO, TIOCGWINSZ, &ts);
+        return ts.ws_row;
+#endif /* TIOCGSIZE */
     }
+
+    /* !< \brief The number of lines in the message
+     */
+    int msg_lines() {
+        char *c = msg; 
+        int nlines = 0;
+
+        while (c != msg_hd)
+            if (*c++ == '\n') nlines++;
+
+        return nlines;
+    }
+
+    Help_Pager() {
+        msg[0] = '\0'; //in case someone tries to print an empty message
+        msg_hd = msg;
+    }
+
     ~Help_Pager() {
-        fclose(help_fp);
+        FILE *print_to;
+        if (msg_lines() > term_lines()) {
+            print_to = popen(HELP_VIEWER, "w");
+        } else {
+            print_to = stderr;
+        }
+
+        msg_hd = '\0'; //Null terminate it;
+        fprintf(print_to, "%s", msg);
+
+        if (print_to != stderr)
+            fclose(print_to);
     }
 
 public:
@@ -29,10 +75,16 @@ public:
         return &help;
     }
     int pagef(const char *format, ...) {
+        int res;
         va_list arg;
         va_start(arg, format);
 
-        int res = vfprintf(help_fp, format, arg);
+        if (msg_hd < msg + MAX_HELP_MSG_LEN - 1)
+            res = vsnprintf(msg_hd, (msg + MAX_HELP_MSG_LEN - 1) - msg_hd, format, arg);
+        else
+            unreachable("Help message is too big, increase MAX_HELP_MSG_LEN");
+
+        msg_hd += res;
         va_end(arg);
         return res;
     }
