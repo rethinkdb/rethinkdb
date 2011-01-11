@@ -12,5 +12,5 @@ if [ $DATABASE == "rethinkdb" ]; then
 fi
 
 if [ $DATABASE == "mysql" ]; then
-    sudo set-cores 24
+    sudo set-corecount 24
 fi
