@@ -1,7 +1,9 @@
 #ifndef __BTREE_BUF_LOCK_HPP__
 #define __BTREE_BUF_LOCK_HPP__
 
-// TODO: put this in buffer_cache/
+// TODO: put this in buffer_cache/.
+
+// TODO: get rid of a separate buf_t entirely (that is, have buf_t use RAII).
 
 #include "buffer_cache/buffer_cache.hpp"
 
