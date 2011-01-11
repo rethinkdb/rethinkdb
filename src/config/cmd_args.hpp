@@ -39,13 +39,11 @@ struct log_serializer_dynamic_config_t {
     size_t file_zone_size;
 };
 
-
 /* Configuration for the serializer that is set when the database is created */
-class log_serializer_static_config_t {
+struct log_serializer_static_config_t {
     uint64_t block_size_;
     uint64_t extent_size_;
 
-public:
     uint64_t blocks_per_extent() const { return extent_size_ / block_size_; }
     int block_index(off64_t offset) const { return (offset % extent_size_) / block_size_; }
     int extent_index(off64_t offset) const { return offset / extent_size_; }
