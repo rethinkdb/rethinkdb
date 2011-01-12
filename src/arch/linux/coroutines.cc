@@ -21,6 +21,12 @@ extern "C" {
     extern int lightweight_swapcontext(ucontext_t *oucp, const ucontext_t *ucp);
 }
 
+/* The register definitions and the definition of lightweight_swapcontext itself are
+derived from GLibC, which is covered under the LGPL. */
+
+/* These are the byte offsets of various fields in the GLibC ucontext_t type. To be
+more portable, maybe we should define our own makecontext()/getcontext()/setcontext()
+as well; right now we're tied tightly to GLibC. */
 #define oRBP "120"
 #define oRSP "160"
 #define oRBX "128"
@@ -236,6 +242,9 @@ void coro_t::notify() {
 
     assert(!notified);
     notified = true;
+
+    /* notify() doesn't switch to the coroutine immediately; instead, it just pushes
+    the coroutine onto the event queue. */
 
     /* current_thread is the thread that the coroutine lives on, which may or may not be the
     same as get_thread_id(). */
