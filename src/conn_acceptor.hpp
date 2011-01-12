@@ -69,5 +69,4 @@ private:
     void close_connections(int thread);
 };
 
-
 #endif /* __CONN_ACCEPTOR_HPP__ */
