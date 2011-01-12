@@ -294,10 +294,6 @@ struct ls_block_writer_t :
     // A buffer that's zeroed out (except in the beginning, where we
     // write the block id), which we write upon deletion.  Can be NULL.
     void *zerobuf;
-    
-    /* true if another write came along and changed the same buf again before we
-    finished writing to disk. */
-    bool superceded;
 
     ls_block_writer_t(log_serializer_t *ser,
                       const log_serializer_t::write_t &write)
@@ -315,14 +311,6 @@ struct ls_block_writer_t :
     
     bool do_write() {
         if (write.buf_specified) {
-            /* If there was another write currently in progress for the same block, then
-               remove it from the block map because we are superceding it */
-            log_serializer_t::block_writer_map_t::iterator it = ser->block_writer_map.find(write.block_id);
-            if (it != ser->block_writer_map.end()) {
-                ls_block_writer_t *writer_we_are_superceding = (*it).second;
-                writer_we_are_superceding->superceded = true;
-                ser->block_writer_map.erase(it);
-            }
 
             /* mark the garbage */
             flagged_off64_t gc_offset = ser->lba_index->get_block_offset(write.block_id);
@@ -339,20 +327,11 @@ struct ls_block_writer_t :
                 done = ser->data_block_manager->write(write.buf, write.block_id, ser->current_transaction_id, &new_offset, this);
 
                 ser->lba_index->set_block_offset(write.block_id, recency, flagged_off64_t::real(new_offset));
-
-                /* Insert ourselves into the block_writer_map so that if a reader comes looking for the
-                   block before we finish writing it to disk, it will be able to find us to get the most
-                   recent version */
-                ser->block_writer_map[write.block_id] = this;
-                superceded = false;
             } else {
                 /* Deletion */
 
                 /* We tell the data_block_manager to write a zero block to
-                   make recovery from a corrupted file more likely.  We
-                   don't need to add anything to the block_writer_map
-                   because that's for readers' sake, and you can't read a
-                   deleted block. */
+                   make recovery from a corrupted file more likely. */
 
                 // We write a zero buffer with the given block_id at the front.
                 zerobuf = ser->malloc();
@@ -386,14 +365,6 @@ struct ls_block_writer_t :
     }
 
     bool do_finish() {
-        /* Now that the block is safely on disk, we remove ourselves from the block_writer_map; if
-        a reader comes along looking for the block, it will get it from disk. */
-        if (write.buf && !superceded) {
-            log_serializer_t::block_writer_map_t::iterator it = ser->block_writer_map.find(write.block_id);
-            assert((*it).second == this);
-            ser->block_writer_map.erase(it);
-        }
-
         if (write.callback) write.callback->on_serializer_write_block();
         if (extra_cb) extra_cb->on_io_complete(NULL);
 
@@ -657,25 +628,14 @@ struct ls_read_fsm_t :
     }
     
     bool do_read() {
-        /* See if we are currently in the process of writing the block */
-        log_serializer_t::block_writer_map_t::iterator it = ser->block_writer_map.find(block_id);
         
-        if (it == ser->block_writer_map.end()) {
-            /* We are not currently writing the block; go to disk to get it */
-            
-            flagged_off64_t offset = ser->lba_index->get_block_offset(block_id);
-            assert(!offset.parts.is_delete);   // Make sure the block actually exists
-            
-            if (ser->data_block_manager->read(offset.parts.value, buf, this)) {
-                return done();
-            } else {
-                return false;
-            }
-        } else {
-            /* We are currently writing the block; we can just get it from memory */
-            // TODO:  This is a block_size_t.  Is this the right block size to use?
-            memcpy(buf, (*it).second->write.buf, ser->get_block_size().value());
+        flagged_off64_t offset = ser->lba_index->get_block_offset(block_id);
+        assert(!offset.parts.is_delete);   // Make sure the block actually exists
+        
+        if (ser->data_block_manager->read(offset.parts.value, buf, this)) {
             return done();
+        } else {
+            return false;
         }
     }
     
