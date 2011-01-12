@@ -8,27 +8,23 @@
 #include "utils.hpp"
 #include "perfmon.hpp"
 
-/* There is one server_t per server (obviously). It acts as a "master FSM" that is
-responsible for the entire lifetime of the server. It creates and destroys the
-loggers, caches, and connection acceptor. It does NOT create the thread pool -- instead,
-main() creates the thread pool and then creates the server within the thread pool. */
+/* server_main() is meant to be run in a coroutine. It should be started at server
+start. It will return right when the server shuts down. */
 
-class flush_message_t;
+void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool);
+
+/* server_t is mostly a holdover from before we had coroutines. It should eventually
+disappear. Right now it only exists so pointers to it can be passed around. */
 
 class server_t :
-    public home_thread_mixin_t,
-    public logger_ready_callback_t,
-    public btree_key_value_store_t::check_callback_t,
-    public btree_key_value_store_t::ready_callback_t,
-    public conn_acceptor_t::shutdown_callback_t,
-    public btree_key_value_store_t::shutdown_callback_t,
-    public logger_shutdown_callback_t
+    public home_thread_mixin_t
 {
-    friend class flush_message_t;
-
 public:
-    server_t(cmd_config_t *config, thread_pool_t *tp);
-    void do_start();
+    server_t(cmd_config_t *cmd_config, thread_pool_t *thread_pool)
+        : cmd_config(cmd_config), thread_pool(thread_pool), toggler(this)
+    {
+    }
+
     void shutdown();   // Can be called from any thread
 
     struct all_gc_disabled_callback_t {
@@ -39,6 +35,7 @@ public:
         virtual ~all_gc_disabled_callback_t() {}
     };
     bool disable_gc(all_gc_disabled_callback_t *);
+    bool do_disable_gc(all_gc_disabled_callback_t *cb);
 
     struct all_gc_enabled_callback_t {
         bool multiple_users_seen;
@@ -48,53 +45,13 @@ public:
         virtual ~all_gc_enabled_callback_t() {}
     };
     bool enable_gc(all_gc_enabled_callback_t *);
+    bool do_enable_gc(all_gc_enabled_callback_t *cb);
 
     cmd_config_t *cmd_config;
+    btree_key_value_store_t *store;
     thread_pool_t *thread_pool;
 
-    btree_key_value_store_t *store;
-    conn_acceptor_t conn_acceptor;
-
-#ifdef REPLICATION_ENABLED
-    conn_acceptor_t *replication_acceptor;
-#endif
-    
 private:
-
-    bool do_disable_gc(all_gc_disabled_callback_t *cb);
-    bool do_enable_gc(all_gc_enabled_callback_t *cb);
-    static conn_handler_t *create_request_handler(conn_acceptor_t *acc, net_conn_t *conn, void *server);
-    
-    int messages_out;
-    
-    void do_start_loggers();
-    void on_logger_ready();
-    void do_check_store();
-    void on_store_check(bool is_existing);
-    void do_start_store();
-    void on_store_ready();
-    void do_start_conn_acceptor();
-    
-    struct interrupt_message_t :
-        public thread_message_t
-    {
-        server_t *server;
-        void on_thread_switch() {
-            server->do_shutdown();
-        }
-    } interrupt_message;
-    
-    void do_shutdown();
-    void do_shutdown_conn_acceptor();
-    void on_conn_acceptor_shutdown();
-    void do_shutdown_store();
-    void on_store_shutdown();
-    void do_shutdown_loggers();
-    void on_logger_shutdown();
-    void do_message_flush();
-    void on_message_flush();
-    void do_stop_threads();
-
     class gc_toggler_t : public standard_serializer_t::gc_disable_callback_t {
     public:
         explicit gc_toggler_t(server_t *server);
@@ -119,9 +76,8 @@ private:
         server_t *server_;
 
         DISABLE_COPYING(gc_toggler_t);
-    };
 
-    gc_toggler_t toggler;
+    } toggler;
 };
 
 #endif // __SERVER_HPP__
