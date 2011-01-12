@@ -3,9 +3,14 @@
 BREAKOUT_FILE_NAME=~/nightly_test_running
 DESCRIBE_FILE_NAME=last_test_describe
 
+if [ "$1" = "--force" ] ; then
+    rm "$DESCRIBE_FILE_NAME"
+fi
+
 # Don't start the test if it's running already
 if [ -f $BREAKOUT_FILE_NAME ]
 then
+echo "Test already running."
 exit
 fi
 
@@ -16,7 +21,7 @@ touch $BREAKOUT_FILE_NAME
 export PATH=$PATH:/usr/local/bin/
 
 # Go into var rethinkdb directory
-cd /var/git/rethinkdb/
+#cd /var/git/rethinkdb/
 
 # Pull latest from master
 git pull
@@ -27,7 +32,7 @@ last_test_describe=`cat $DESCRIBE_FILE_NAME`
 this_test_describe=`git describe`
 
 if [ "$last_test_describe" = "$this_test_describe" ] ; then
-    echo "Nothing changed since last test"
+    echo "Nothing changed since last test use --force to test anyway"
 else
     # Cloud retester configuration
     export USE_CLOUD=true
