@@ -116,8 +116,6 @@ unsigned long long strtoull_strict(const char *string, char **end, int base);
     T(const T&);                                \
     void operator=(const T&)
 
-
-
 #include "utils2.tcc"
 
 #endif /* __UTILS2_HPP__ */
