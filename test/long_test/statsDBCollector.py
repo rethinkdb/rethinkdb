@@ -29,7 +29,7 @@ class StatsDBCollector(object):
     def __init__(self, opts, server):
         def stats_aggregator(stats):
             ts = time.time()
-            for k in self..monitoring:
+            for k in self.monitoring:
                 if k in stats:
                     self.insert_stat(ts, k, stats[k]) # TODO: Use timestamp from stats
 
