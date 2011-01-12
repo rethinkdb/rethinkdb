@@ -12,14 +12,10 @@ struct extent_info_t {
     enum state_t {
         state_unreserved,
         state_in_use,
-        state_free,
-        state_locked_for_read
+        state_free
     } state;
 
-    union {
-        off64_t next_in_free_list;   // Valid if state == state_free
-        int reader_count;   // Valid if state == state_in_use
-    };
+    off64_t next_in_free_list;   // Valid if state == state_free
 };
 
 class extent_zone_t {
@@ -67,7 +63,6 @@ public:
         
         assert(extents[id].state == extent_info_t::state_unreserved);
         extents[id].state = extent_info_t::state_in_use;
-        extents[id].reader_count = 0;
     }
     
     void reconstruct_free_list() {
@@ -98,7 +93,6 @@ public:
         }
         
         extents[offset_to_id(extent)].state = extent_info_t::state_in_use;
-        extents[offset_to_id(extent)].reader_count = 0;
         
         return extent;
     }
@@ -106,32 +100,11 @@ public:
     void release_extent(off64_t extent) {
         extent_info_t *info = &extents[offset_to_id(extent)];
         assert(info->state == extent_info_t::state_in_use);
-        if (info->reader_count == 0) {
-            info->state = extent_info_t::state_free;
-            info->next_in_free_list = free_list_head;
-            free_list_head = extent;
-        } else {
-            info->state = extent_info_t::state_locked_for_read;
-        }
+        info->state = extent_info_t::state_free;
+        info->next_in_free_list = free_list_head;
+        free_list_head = extent;
         _held_extents++;
     } 
-
-    void lock_for_read(off64_t extent) {
-        assert(extents[offset_to_id(extent)].state == extent_info_t::state_in_use);
-        extents[offset_to_id(extent)].reader_count++;
-    }
-
-    void unlock_for_read(off64_t extent) {
-        extent_info_t *info = &extents[offset_to_id(extent)];
-        assert(info->state == extent_info_t::state_in_use ||
-            info->state == extent_info_t::state_locked_for_read);
-        info->reader_count--;
-        if (info->reader_count == 0 && info->state == extent_info_t::state_locked_for_read) {
-            info->state = extent_info_t::state_free;
-            info->next_in_free_list = free_list_head;
-            free_list_head = extent;
-        }
-    }
 };
 
 extent_manager_t::extent_manager_t(direct_file_t *file, log_serializer_static_config_t *static_config, log_serializer_dynamic_config_t *dynamic_config)
@@ -307,16 +280,6 @@ void extent_manager_t::commit_transaction(transaction_t *t) {
         zone_for_offset(extent)->release_extent(extent);
     }
     delete t;
-}
-
-void extent_manager_t::lock_for_read(off64_t extent) {
-    assert(state == state_running);
-    zone_for_offset(extent)->lock_for_read(extent);
-}
-
-void extent_manager_t::unlock_for_read(off64_t extent) {
-    assert(state == state_running);
-    zone_for_offset(extent)->unlock_for_read(extent);
 }
 
 int extent_manager_t::held_extents() {

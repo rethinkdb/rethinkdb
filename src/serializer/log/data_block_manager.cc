@@ -118,35 +118,12 @@ void data_block_manager_t::start_existing(direct_file_t *file, metablock_mixin_t
     state = state_ready;
 }
 
-struct dbm_read_fsm_t :
-    public iocallback_t
-{
-    data_block_manager_t *parent;
-    iocallback_t *callback;
-    off64_t extent;
-
-    dbm_read_fsm_t(data_block_manager_t *p, off64_t off_in, void *buf_out, iocallback_t *cb)
-        : parent(p), callback(cb)
-    {
-        extent = floor_aligned(off_in, parent->static_config->extent_size());
-        parent->extent_manager->lock_for_read(extent);
-
-        buf_data_t *data = (buf_data_t*)buf_out;
-        data--;
-        parent->dbfile->read_async(off_in, parent->static_config->block_size().ser_value(), data, this);
-    }
-
-    void on_io_complete(event_t *e) {
-        parent->extent_manager->unlock_for_read(extent);
-        callback->on_io_complete(e);
-        delete this;
-    }
-};
-
 bool data_block_manager_t::read(off64_t off_in, void *buf_out, iocallback_t *cb) {
     assert(state == state_ready);
 
-    new dbm_read_fsm_t(this, off_in, buf_out, cb);
+    buf_data_t *data = (buf_data_t*)buf_out;
+    data--;
+    dbfile->read_async(off_in, static_config->block_size().ser_value(), data, cb);
 
     return false;
 }
