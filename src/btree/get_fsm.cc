@@ -24,13 +24,13 @@ void co_btree_get(btree_key *_key, btree_key_value_store_t *store, store_t::get_
         char value_memory[MAX_TOTAL_NODE_CONTENTS_SIZE+sizeof(btree_value)];
         btree_value value;
     };
-    value_memory[0] = 0; //Make GCC happy--I don't know how to mark value_memory as unused but OK
+    (void)value_memory;
 
     union {
         char key_memory[MAX_KEY_SIZE+sizeof(btree_key)];
         btree_key key;
     };
-    key_memory[0] = 0; //Make GCC happy--I don't know how to mark value_memory as unused but OK
+    (void)key_memory;
 
     block_pm_duration get_time(&pm_cmd_get);
 
