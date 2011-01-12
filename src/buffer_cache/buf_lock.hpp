@@ -4,6 +4,7 @@
 // TODO: get rid of a separate buf_t entirely (that is, have buf_t use RAII).
 
 #include "buffer_cache/buffer_cache.hpp"
+#include "buffer_cache/transactor.hpp"
 
 // A buf_lock_t acquires and holds a buf_t.  Make sure you call
 // release() as soon as it's feasible to do so.  The destructor will
@@ -12,7 +13,10 @@
 class buf_lock_t {
 public:
     buf_lock_t() : buf_(NULL) { }
+
+    // TODO: get rid of the transaction_t version.
     buf_lock_t(transaction_t *tx, block_id_t block_id, access_t mode);
+    buf_lock_t(transactor_t& txor, block_id_t block_id, access_t mode);
     ~buf_lock_t();
 
     // Releases the buf.  You can only release once (unless you swap

@@ -24,18 +24,18 @@ void co_btree_get(btree_key *_key, btree_key_value_store_t *store, store_t::get_
         char value_memory[MAX_TOTAL_NODE_CONTENTS_SIZE+sizeof(btree_value)];
         btree_value value;
     };
-    value_memory[0] = 0; //Make GCC happy--I don't know how to mark value_memory as unused but OK
+    (void)value_memory;
 
     union {
         char key_memory[MAX_KEY_SIZE+sizeof(btree_key)];
         btree_key key;
     };
-    key_memory[0] = 0; //Make GCC happy--I don't know how to mark value_memory as unused but OK
+    (void)key_memory;
 
     block_pm_duration get_time(&pm_cmd_get);
 
     keycpy(&key, _key);
-    transaction_t *transaction = NULL;
+
     btree_slice_t *slice = store->slice_for_key(&key);
     cache_t *cache = &slice->cache;
     int home_thread = get_thread_id();
@@ -44,11 +44,10 @@ void co_btree_get(btree_key *_key, btree_key_value_store_t *store, store_t::get_
     ticks_t start_time;
     pm_cmd_get_without_threads.begin(&start_time);
 
-    transaction = cache->begin_transaction(rwi_read, NULL);
-    assert(transaction); // Read-only transaction always begins immediately.
+    transactor_t transactor(cache, rwi_read);
 
     //Acquire the superblock
-    buf_lock_t buf_lock(transaction, SUPERBLOCK_ID, rwi_read);
+    buf_lock_t buf_lock(transactor, SUPERBLOCK_ID, rwi_read);
 
     block_id_t node_id = ptr_cast<btree_superblock_t>(buf_lock.buf()->get_data_read())->root_block;
     assert(node_id != SUPERBLOCK_ID);
@@ -59,8 +58,7 @@ void co_btree_get(btree_key *_key, btree_key_value_store_t *store, store_t::get_
         buf_lock.release();
 
         // Commit transaction now because we won't be returning to this core
-        bool committed __attribute__((unused)) = transaction->commit(NULL);
-        assert(committed);   // Read-only transactions complete immediately
+        transactor.commit();
         pm_cmd_get_without_threads.end(&start_time);
         coro_t::move_to_thread(home_thread);
         cb->not_found();
@@ -70,7 +68,7 @@ void co_btree_get(btree_key *_key, btree_key_value_store_t *store, store_t::get_
     // Acquire the leaf node
     while (true) {
         {
-            buf_lock_t tmp(transaction, node_id, rwi_read);
+            buf_lock_t tmp(transactor, node_id, rwi_read);
             buf_lock.swap(tmp);
         }
 
@@ -109,8 +107,8 @@ void co_btree_get(btree_key *_key, btree_key_value_store_t *store, store_t::get_
     a third path that is basically the same as the one for small values. */
     if (!found) {
         // Commit transaction now because we won't be returning to this core
-        bool committed __attribute__((unused)) = transaction->commit(NULL);
-        assert(committed);   // Read-only transactions complete immediately
+        transactor.commit();
+
         pm_cmd_get_without_threads.end(&start_time);
         coro_t::move_to_thread(home_thread);
         cb->not_found();
@@ -120,7 +118,7 @@ void co_btree_get(btree_key *_key, btree_key_value_store_t *store, store_t::get_
         // the large buf until it's been read.
         assert(value.is_large());
 
-        large_buf_t *large_value = new large_buf_t(transaction);
+        large_buf_t *large_value = new large_buf_t(transactor.transaction());
 
         co_acquire_large_value(large_value, value.lb_ref(), rwi_read);
         assert(large_value->state == large_buf_t::loaded);
@@ -139,14 +137,12 @@ void co_btree_get(btree_key *_key, btree_key_value_store_t *store, store_t::get_
             on_thread_t mover(slice->home_thread);
             large_value->release();
             delete large_value;
-            bool committed __attribute__((unused)) = transaction->commit(NULL);
-            assert(committed);   // Read-only transactions complete immediately
+            transactor.commit();
         }
     } else {
         // Commit transaction now because we won't be returning to this core
-        bool committed __attribute__((unused)) = transaction->commit(NULL);
-        assert(committed);   // Read-only transactions complete immediately
-        
+        transactor.commit();
+
         const_buffer_group_t value_buffers;
         value_buffers.add_buffer(value.value_size(), value.value());
         pm_cmd_get_without_threads.end(&start_time);
