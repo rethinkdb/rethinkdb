@@ -16,7 +16,7 @@ no_checkout_arg = "--no-checkout"
 long_test_logs_dir = "~/long_test_logs"
 
 rdb_num_threads = 12
-rdb_db_files = ["/dev/sdb", "/dev/sdc", "/dev/sdd", "/dev/sde"] 
+rdb_db_files = ["/dev/sdb", "/dev/sdc", "/dev/sdd", "/dev/sde"]
 rdb_cache_size = 25000
 
 rdbstat_path = "bench/dbench/rdbstat"

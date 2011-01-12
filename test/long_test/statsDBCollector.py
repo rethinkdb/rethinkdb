@@ -9,7 +9,7 @@ from test_common import *
 
 class StatsDBCollector(object):
     # Please note: Monitored stats must have an entry in the stat_names table!
-    
+
     def read_monitored_stats(self):
         self.monitoring = []
         self.db_conn.query("SELECT `name` FROM `stat_names`")
@@ -17,7 +17,7 @@ class StatsDBCollector(object):
         rows = result.fetch_row(maxrows=0) # Fetch all rows
         for row in rows:
             self.monitoring.append(row[0])
-    
+
     def insert_stat(self, timestamp, stat, value):
         timestamp = self.db_conn.escape_string(str(timestamp))
         stat = self.db_conn.escape_string(stat)
@@ -25,7 +25,7 @@ class StatsDBCollector(object):
         self.db_conn.query("INSERT INTO `stats` VALUES ('%s', (SELECT `id` FROM `stat_names` WHERE `name` = '%s' LIMIT 1), '%s')" % (timestamp, stat, value) )
         if self.db_conn.affected_rows() != 1:
             raise Exception("Cannot insert stat %s into database" % stat)
-    
+
     def __init__(self, opts, server):
         def stats_aggregator(stats):
             ts = time.time()
@@ -35,7 +35,7 @@ class StatsDBCollector(object):
 
 
         self.opts = opts
-        
+
         self.db_conn = _mysql.connect(self.opts['db_server'], self.opts['db_user'], self.opts['db_password'], self.opts['db_database'])
         self.read_monitored_stats()
 
@@ -47,5 +47,5 @@ class StatsDBCollector(object):
     def stop(self):
         self.rdbstat.stop()
         self.db_conn.close()
-        
+
 

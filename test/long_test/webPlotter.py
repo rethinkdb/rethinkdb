@@ -19,17 +19,17 @@ class PlotTemplate(tornado.web.RequestHandler):
         self.write('</head><body bgcolor="#404040" text="#ffffff" link="#eeeeee" alink="#ffffff" vlink="#eeeeee">')
         if title:
             self.write('<h1>%s</h1>' % title)
-    
+
     def tail(self):
         self.write('</body></html>')
 
 class PlotSelectHandler(PlotTemplate):
     def get(self):
         self.head("Build your plot!")
-        
+
         self.write('<form method="GET" action="configurePlot.html">')
         self.write('<table border="0">')
-        
+
         self.write('<tr><td>Name of plot:</td><td><input name="name" value="plot"></td></tr>')
         self.write('<tr><td>End timestamp:</td><td><input name="end_timestamp" value="%d"></td></tr>' % time.time())
         self.write('<tr><td>Plot duration:</td><td><input name="duration" value="6" size="3"> hours</td></tr>')
@@ -44,11 +44,11 @@ class PlotSelectHandler(PlotTemplate):
             <option value="quantile">quantiles (linear)</option> \
             <option value="quantilel">quantiles (logarithmic)</option> \
             </select></td></tr>')
-        
+
         self.write('</table>')
         self.write('<br><input type="submit" value="Continue">')
         self.write('</form>')
-        
+
         self.tail()
         
 class PlotConfigureHandler(PlotTemplate):
@@ -83,24 +83,24 @@ class PlotConfigureHandler(PlotTemplate):
     def get(self):
         name = self.get_argument("name")
         end_timestamp = self.get_argument("end_timestamp")
-        start_timestamp = str(int(end_timestamp) - int(self.get_argument("duration")) * 3600)
+        start_timestamp = str(int(end_timestamp) - int(float(self.get_argument("duration")) * 3600))
         plotter_type = self.get_argument("plotter_type")
         plot_style = self.get_argument("plot_style")
-    
+
         self.head()
-        
+
         self.write('<form method="GET" action="generatePlot.html">')
         self.write('<table border="0">')
-        
+
         if plot_style == "quantile" or plot_style == "quantilel":
             self.write('<tr><td>Bucket size:</td><td><input name="quantile_bucket_size" value="20" size="5"></td></tr>')
-            self.write('<tr><td>Ranges:</td><td><input name="quantile_ranges" value="0.05,0.5,0.95"></td></tr>')    
-        
+            self.write('<tr><td>Ranges:</td><td><input name="quantile_ranges" value="0.05,0.5,0.95"></td></tr>')
+
         if plotter_type == "simple_plotter":
             self.write('<tr><td>Stat:</td><td><select name="simple_plotter_stat">')
             for stat in self.stats_for_display:
                 self.write('<option value="%s">%s</option>' % (stat, stat) )
-            self.write('</select></td></tr>')            
+            self.write('</select></td></tr>')
             self.write('<tr><td>Multiplier:</td><td><input name="simple_plotter_multiplier" value="1" size="5"></td></tr>')
         elif plotter_type == "differential_plotter":
             self.write('<tr><td>Stat:</td><td><select name="differential_plotter_stat">')
@@ -125,7 +125,7 @@ class PlotConfigureHandler(PlotTemplate):
             for stat in self.stats_for_display:
                 self.write('<option value="%s">%s</option>' % (stat, stat) )
             self.write('</select></td></tr>')
-        
+
         self.write('</table>')
         for (hidden_name, hidden_value) in [
                 ("name", name),
@@ -136,7 +136,7 @@ class PlotConfigureHandler(PlotTemplate):
             self.write('<input type="hidden" name="%s" value="%s">' % (hidden_name, hidden_value) ); # Cross site scripting vulnerability! ;-)
         self.write('<br><input type="submit" value="Generate">')
         self.write('</form>')
-        
+
         self.tail()
 
 class PlotGeneratorHandler(PlotTemplate):
@@ -146,14 +146,14 @@ class PlotGeneratorHandler(PlotTemplate):
             ("start_timestamp", self.get_argument("start_timestamp")),
             ("end_timestamp", self.get_argument("end_timestamp")),
             ("plotter_type", self.get_argument("plotter_type"))]
-            
+
         plot_style = self.get_argument("plot_style")
         if plot_style == "quantile" or plot_style == "quantilel":
             quantile_bucket_size = self.get_argument("quantile_bucket_size")
             quantile_ranges = self.get_argument("quantile_ranges")
             plot_style = "%s %d %s" % (plot_style, int(quantile_bucket_size), quantile_ranges)
         pass_values.append(("plot_style", plot_style))
-        
+
         plotter_type = self.get_argument("plotter_type")
         pass_values.append(("plotter_type", plotter_type))
         if plotter_type == "simple_plotter":
@@ -167,20 +167,20 @@ class PlotGeneratorHandler(PlotTemplate):
         elif plotter_type == "two_stats_ratio_plotter":
             pass_values.append(("two_stats_ratio_plotter_dividend", self.get_argument("two_stats_ratio_plotter_dividend")))
             pass_values.append(("two_stats_ratio_plotter_divisor", self.get_argument("two_stats_ratio_plotter_divisor")))
-    
+
         self.head()
-        
+
         plot_url = "plot.png?" + urllib.urlencode(pass_values)
-        
+
         self.write('Your plot is being generated...<br>')
         self.write('If it does not open automatically, <a target="_blank" href="%s">click here</a> (please enable popup windows for this site).<br><br>Set up <a href="selectPlot.html">another plot</a>.' % plot_url)
-        
+
         self.write('<script language="JavaScript">')
         self.write('window.open("%s","Plot - %s (generated at %d)", "menubar=no,width=1054,height=158,toolbar=no");' % (plot_url, name, time.time()))
         self.write('</script>')
-        
+
         self.tail()
-        
+
 class PlotHandler(tornado.web.RequestHandler):
     def get(self):
         # Get arguments
@@ -207,10 +207,10 @@ class PlotHandler(tornado.web.RequestHandler):
         else:
             # TODO: Handle error condition
             raise Exception("Unsupported plotter_type: %s" % plotter_type)
-        
+
         # Generate plot
         plot = DBPlot(start_timestamp, end_timestamp, name, plot_style, plotter)
-    
+
         # Send the response...
         self.set_header("Content-Type", "image/png")
         self.write(plot.get_plot())
@@ -229,5 +229,5 @@ if __name__ == "__main__":
     http_server.listen(port)
     print "Listening on port %d" % port
     tornado.ioloop.IOLoop.instance().start()
-    
+
 

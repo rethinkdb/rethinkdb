@@ -25,7 +25,7 @@ class Plot(object):
         self.plotter = plotter
         self.plot = None
         self.stats = stats
-        
+
     def get_plot(self):
         if not self.plot:
             self.plot = self.generate_plot(self.stats)
@@ -57,9 +57,9 @@ class DBPlot(Plot):
         self.db_conn = _mysql.connect("newton", "longtest", "rethinkdb2010", "longtest") # TODO
         stats = self.load_stats_from_db(start_timestamp, end_timestamp)
         self.db_conn.close()
-        
+
         Plot.__init__(self, stats, name, plot_style, plotter)
-        
+
     def load_stats_from_db(self, start_timestamp, end_timestamp):
         start_timestamp = self.db_conn.escape_string(start_timestamp)
         end_timestamp = self.db_conn.escape_string(end_timestamp)
@@ -75,12 +75,9 @@ class DBPlot(Plot):
                 current_sample = {}
             current_sample[row[1]] = float(row[2])
             last_ts = row[0]
-            
+
         if len(current_sample) > 0:
             stats.append(current_sample) # Store the last sample
-            
-        return stats
 
-        
-    
+        return stats
 
