@@ -29,6 +29,12 @@ public:
     virtual ~server_error_t() throw () { }
 };
 
+class temporary_server_error_t : public server_error_t {
+public:
+    temporary_server_error_t(const std::string& message) : server_error_t(message) { }
+    virtual ~temporary_server_error_t() throw () { }
+};
+
 class memcached_response_t {
 public:
     memcached_response_t(std::vector<char>& thread_buffer) : buffer(thread_buffer) {
@@ -128,8 +134,14 @@ protected:
             throw non_existent_command_error_t();
         else if (does_match_at_position(response_line, "CLIENT_ERROR", line_length))
             throw client_error_t(std::string(response_line, line_length).substr(std::string("CLIENT_ERROR").length() + 1));
-        else if (does_match_at_position(response_line, "SERVER_ERROR", line_length))
-            throw server_error_t(std::string(response_line, line_length).substr(std::string("SERVER_ERROR").length() + 1));
+        else if (does_match_at_position(response_line, "SERVER_ERROR", line_length)) {
+            const std::string error_message = std::string(response_line, line_length).substr(std::string("SERVER_ERROR").length() + 1);
+            // Check for special Membase temporary failure case
+            if (error_message == "temporary failure")
+                throw temporary_server_error_t(error_message);
+            else
+                throw server_error_t(error_message);
+        }
     }
     
 private:
@@ -359,12 +371,20 @@ struct memcached_sock_protocol_t : public protocol_t {
         buf += key_size;
         buf += sprintf(buf, "\r\n");
 
+        memcached_delete_response_t response(thread_buffer);
+
+        retry:
         // Send it on its merry way to the server
         send_command(buf - buffer);
 
         // Parse the response
-        memcached_delete_response_t response(thread_buffer);
-        response.read_from_socket(sockfd);
+        try {
+            response.read_from_socket(sockfd);
+        } catch (temporary_server_error_t& e) {
+            // Sleep a moment, then retry
+            usleep(1000);
+            goto retry;
+        }
 
         // Check the result
         if (!response.successful) {
@@ -389,12 +409,21 @@ struct memcached_sock_protocol_t : public protocol_t {
         buf += value_size;
         buf += sprintf(buf, "\r\n");
 
+        memcached_store_response_t response(thread_buffer);
+
+        retry:
         // Send it on its merry way to the server
         send_command(buf - buffer);
 
         // Parse the response
-        memcached_store_response_t response(thread_buffer);
-        response.read_from_socket(sockfd);
+        try {
+            response.read_from_socket(sockfd);
+        } catch (temporary_server_error_t& e) {
+            // Sleep a moment, then retry
+            usleep(1000);
+            goto retry;
+        }
+
 
         // Check the result
         if (!response.successful) {
@@ -415,12 +444,20 @@ struct memcached_sock_protocol_t : public protocol_t {
         }
         buf += sprintf(buf, "\r\n");
 
+        memcached_retrieval_response_t response(thread_buffer, count, mock_parse);
+
+        retry:
         // Send it on its merry way to the server
         send_command(buf - buffer);
-        
+
         // Parse the response
-        memcached_retrieval_response_t response(thread_buffer, count, mock_parse);
-        response.read_from_socket(sockfd);
+        try {
+            response.read_from_socket(sockfd);
+        } catch (temporary_server_error_t& e) {
+            // Sleep a moment, then retry
+            usleep(1000);
+            goto retry;
+        }
 
         // Check the result
         if (!response.successful) {
@@ -448,12 +485,20 @@ struct memcached_sock_protocol_t : public protocol_t {
         buf += value_size;
         buf += sprintf(buf, "\r\n");
 
+        memcached_store_response_t response(thread_buffer);
+
+        retry:
         // Send it on its merry way to the server
         send_command(buf - buffer);
 
         // Parse the response
-        memcached_store_response_t response(thread_buffer);
-        response.read_from_socket(sockfd);
+        try {
+            response.read_from_socket(sockfd);
+        } catch (temporary_server_error_t& e) {
+            // Sleep a moment, then retry
+            usleep(1000);
+            goto retry;
+        }
 
         // Check the result
         if (!response.successful) {
@@ -473,12 +518,20 @@ struct memcached_sock_protocol_t : public protocol_t {
         buf += value_size;
         buf += sprintf(buf, "\r\n");
 
+        memcached_store_response_t response(thread_buffer);
+
+        retry:
         // Send it on its merry way to the server
         send_command(buf - buffer);
 
         // Parse the response
-        memcached_store_response_t response(thread_buffer);
-        response.read_from_socket(sockfd);
+        try {
+            response.read_from_socket(sockfd);
+        } catch (temporary_server_error_t& e) {
+            // Sleep a moment, then retry
+            usleep(1000);
+            goto retry;
+        }
 
         // Check the result
         if (!response.successful) {
