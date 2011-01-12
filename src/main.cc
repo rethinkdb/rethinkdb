@@ -37,8 +37,7 @@ int main(int argc, char *argv[]) {
         cmd_config_t *cmd_config;
         thread_pool_t *thread_pool;
         void on_thread_switch() {
-            server_t *s = new server_t(cmd_config, thread_pool);
-            s->do_start();
+            coro_t::spawn(&server_main, cmd_config, thread_pool);
         }
     } starter;
     starter.cmd_config = &config;

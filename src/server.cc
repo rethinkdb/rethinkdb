@@ -3,29 +3,26 @@
 #include "memcached/memcached.hpp"
 #include "replication/master.hpp"
 #include "diskinfo.hpp"
+#include "concurrency/cond_var.hpp"
 
-server_t::server_t(cmd_config_t *cmd_config, thread_pool_t *thread_pool)
-    : cmd_config(cmd_config), thread_pool(thread_pool),
-      conn_acceptor(cmd_config->port, &server_t::create_request_handler, (void*)this),
-#ifdef REPLICATION_ENABLED
-      replication_acceptor(NULL),
-#endif
-      toggler(this) { }
+conn_handler_t *create_request_handler(conn_acceptor_t *acc, net_conn_t *conn, void *udata) {
 
-void server_t::do_start() {
-    assert_thread();
-    do_start_loggers();
+    server_t *server = reinterpret_cast<server_t *>(udata);
+    return new txt_memcached_handler_t(acc, conn, server);
 }
 
-void server_t::do_start_loggers() {
-    logger_start(this);
-}
+void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
 
-void server_t::on_logger_ready() {
-    do_check_store();
-}
+    /* Create a server object. It only exists so we can give pointers to it to other things. */
+    server_t server(cmd_config, thread_pool);
 
-void server_t::do_check_store() {
+    /* Start logger */
+    struct : public logger_ready_callback_t, public cond_t {
+        void on_logger_ready() { pulse(); }
+    } logger_ready_cb;
+    logger_start(&logger_ready_cb);
+    logger_ready_cb.wait();
+
     /* Copy database filenames from private serializer configurations into a single vector of strings */
     std::vector<std::string> db_filenames;
     std::vector<log_serializer_private_dynamic_config_t>& serializer_private = cmd_config->store_dynamic_config.serializer_private;
@@ -34,82 +31,105 @@ void server_t::do_check_store() {
     for (it = serializer_private.begin(); it != serializer_private.end(); ++it) {
         db_filenames.push_back((*it).db_filename);
     }
-    btree_key_value_store_t::check_existing(db_filenames, this);
-}
 
-void server_t::on_store_check(bool ok) {
-    if (ok && cmd_config->create_store && !cmd_config->force_create) {
+    /* Check to see if there is an existing database */
+    struct : public btree_key_value_store_t::check_callback_t, public value_cond_t<bool> {
+        void on_store_check(bool ok) { pulse(ok); }
+    } check_cb;
+    btree_key_value_store_t::check_existing(db_filenames, &check_cb);
+    bool existing = check_cb.wait();
+    if (existing && cmd_config->create_store && !cmd_config->force_create) {
         fail_due_to_user_error(
             "It looks like there already is a database here. RethinkDB will abort in case you "
             "didn't mean to overwrite it. Run with the '--force' flag to override this warning.");
     } else {
-        if (!ok) {
+        if (!existing) {
             cmd_config->create_store = true;
         }
-        do_start_store();
     }
-}
 
-void server_t::do_start_store() {
-    assert_thread();
-    
-    store = new btree_key_value_store_t(&cmd_config->store_dynamic_config);
-    
-    bool done;
+    /* Start key-value store */
+    btree_key_value_store_t store(&cmd_config->store_dynamic_config);
+
+    struct : public btree_key_value_store_t::ready_callback_t, public cond_t {
+        void on_store_ready() { pulse(); }
+    } store_ready_cb;
     if (cmd_config->create_store) {
         logINF("Creating new database...\n");
-        done = store->start_new(this, &cmd_config->store_static_config);
+        if (!store.start_new(&store_ready_cb, &cmd_config->store_static_config)) store_ready_cb.wait();
     } else {
         logINF("Loading existing database...\n");
-        done = store->start_existing(this);
+        if (!store.start_existing(&store_ready_cb)) store_ready_cb.wait();
     }
 
+    server.store = &store;   /* So things can access it */
 
-    if (done) on_store_ready();
-}
-
-void server_t::on_store_ready() {
-    assert_thread();
-    log_disk_info(cmd_config->store_dynamic_config.serializer_private);
+    if (!cmd_config->shutdown_after_creation) {
+        /* Start connection acceptor */
+        conn_acceptor_t conn_acceptor(cmd_config->port, &create_request_handler, (void*)&server);
     
-    if (cmd_config->shutdown_after_creation) {
-        logINF("Done creating database.\n");
-        do_shutdown_store();
-    } else {
-        do_start_conn_acceptor();
-    }
-}
-
-void server_t::do_start_conn_acceptor() {
-    assert_thread();
-
-    // We've now loaded everything. It's safe to print the config
-    // specs (part of them depends on the information loaded from the
-    // db file).
-    cmd_config->print();
+        if (conn_acceptor.start()) {
+            logINF("Server is now accepting memcache connections on port %d.\n", cmd_config->port);
     
-    if (!conn_acceptor.start()) {
-        // If we got an error condition, shutdown myself
-        do_shutdown();
-    }
-    else
-        logINF("Server is now accepting memcached connections on port %d.\n", cmd_config->port);
-    
-
 #ifdef REPLICATION_ENABLED
-    replication_acceptor = new conn_acceptor_t(cmd_config->port+1, &create_replication_master, (void*)store);
-    replication_acceptor->start();
+            /* Start replication acceptor */
+            conn_acceptor_t replication_acceptor(cmd_config->port+1, &create_replication_master, (void*)&store);
+            if (!replication_acceptor.start()) {
+                crash("Can't start replication acceptor");
+            }
 #endif
     
-    interrupt_message.server = this;
-    thread_pool->set_interrupt_message(&interrupt_message);
-}
+            /* Wait for an order to shut down */
+            struct : public thread_message_t, public cond_t {
+                void on_thread_switch() { pulse(); }
+            } interrupt_cond;
+            thread_pool->set_interrupt_message(&interrupt_cond);
+            interrupt_cond.wait();
+    
+#ifdef REPLICATION_ENABLED
+            /* Stop replication acceptor */
+            struct : public conn_acceptor_t::shutdown_callback_t, public cond_t {
+                void on_conn_acceptor_shutdown() { pulse(); }
+            } ra_shutdown_cb;
+            if (!replication_acceptor.shutdown(&ra_shutdown_cb)) ra_shutdown_cb.wait();
+#endif
+        }
 
-conn_handler_t *server_t::create_request_handler(conn_acceptor_t *acc, net_conn_t *conn, void *udata) {
+        /* Stop connection acceptor */
+        struct : public conn_acceptor_t::shutdown_callback_t, public cond_t {
+            void on_conn_acceptor_shutdown() { pulse(); }
+        } ca_shutdown_cb;
+        if (!conn_acceptor.shutdown(&ca_shutdown_cb)) ca_shutdown_cb.wait();
+    }
 
-    server_t *server = reinterpret_cast<server_t *>(udata);
-    assert(acc == &server->conn_acceptor);
-    return new txt_memcached_handler_t(&server->conn_acceptor, conn, server);
+    logINF("Shutting down... this may take time if there is a lot of unsaved data.\n");
+
+    /* Shut down key-value store */
+    struct : public btree_key_value_store_t::shutdown_callback_t, public cond_t {
+        void on_store_shutdown() { pulse(); }
+    } store_shutdown_cb;
+    if (!store.shutdown(&store_shutdown_cb)) store_shutdown_cb.wait();
+
+    /* Shut down loggers */
+    struct : public logger_shutdown_callback_t, public cond_t {
+        void on_logger_shutdown() { pulse(); }
+    } logger_shutdown_cb;
+    logger_shutdown(&logger_shutdown_cb);
+    logger_shutdown_cb.wait();
+
+    /* The penultimate step of shutting down is to make sure that all messages
+    have reached their destinations so that they can be freed. The way we do this
+    is to send one final message to each core; when those messages all get back
+    we know that all messages have been processed properly. Otherwise, logger
+    shutdown messages would get "stuck" in the message hub when it shut down,
+    leading to memory leaks. */
+    for (int i = 0; i < get_num_threads(); i++) {
+        on_thread_t thread_switcher(i);
+    }
+
+    /* Finally tell the thread pool to stop. TODO: Eventually, the thread pool should stop
+    automatically when server_main() returns. */
+    thread_pool->shutdown();
 }
 
 void server_t::shutdown() {
@@ -124,102 +144,6 @@ void server_t::shutdown() {
     
     if (continue_on_thread(home_thread, old_interrupt_msg))
         call_later_on_this_thread(old_interrupt_msg);
-}
-
-void server_t::do_shutdown() {
-    logINF("Shutting down...\n");
-    
-    assert_thread();
-    do_shutdown_conn_acceptor();
-}
-
-void server_t::do_shutdown_conn_acceptor() {
-#ifdef REPLICATION_ENABLED
-    messages_out = 2;
-    if (replication_acceptor->shutdown(this)) on_conn_acceptor_shutdown();
-#else
-    messages_out = 1;
-#endif
-    if (conn_acceptor.shutdown(this)) on_conn_acceptor_shutdown();
-}
-
-void server_t::on_conn_acceptor_shutdown() {
-    assert_thread();
-    messages_out--;
-    if (messages_out == 0) {
-#ifdef REPLICATION_ENABLED
-        delete replication_acceptor;
-#endif
-        do_shutdown_store();
-    }
-}
-
-void server_t::do_shutdown_store() {
-    if (store->shutdown(this)) on_store_shutdown();
-}
-
-void server_t::on_store_shutdown() {
-    assert_thread();
-    delete store;
-    store = NULL;
-    do_shutdown_loggers();
-}
-
-void server_t::do_shutdown_loggers() {
-    logger_shutdown(this);
-}
-
-void server_t::on_logger_shutdown() {
-    assert_thread();
-    do_message_flush();
-}
-
-/* The penultimate step of shutting down is to make sure that all messages
-have reached their destinations so that they can be freed. The way we do this
-is to send one final message to each core; when those messages all get back
-we know that all messages have been processed properly. Otherwise, logger
-shutdown messages would get "stuck" in the message hub when it shut down,
-leading to memory leaks. */
-
-struct flush_message_t :
-    public thread_message_t
-{
-    bool returning;
-    server_t *server;
-    void on_thread_switch() {
-        if (returning) {
-            server->on_message_flush();
-            delete this;
-        } else {
-            returning = true;
-            if (continue_on_thread(server->home_thread, this)) on_thread_switch();
-        }
-    }
-};
-
-void server_t::do_message_flush() {
-    messages_out = get_num_threads();
-    for (int i = 0; i < get_num_threads(); i++) {
-        flush_message_t *m = new flush_message_t();
-        m->returning = false;
-        m->server = this;
-        if (continue_on_thread(i, m)) m->on_thread_switch();
-    }
-}
-
-void server_t::on_message_flush() {
-    messages_out--;
-    if (messages_out == 0) {
-        do_stop_threads();
-    }
-}
-
-void server_t::do_stop_threads() {
-    assert_thread();
-    // This returns immediately, but will cause all of the threads to stop after we
-    // return to the event queue.
-    thread_pool->shutdown();
-    delete this;
 }
 
 bool server_t::disable_gc(all_gc_disabled_callback_t *cb) {
