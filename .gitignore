@@ -22,5 +22,5 @@ vgcore.*
 test/unit/.retest
 bench/stress-client/stress
 bench/serializer-bench/serializer-bench
-last_test_describe
+last_tested_versions
 .deps/

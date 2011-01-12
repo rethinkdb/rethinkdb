@@ -1,10 +1,11 @@
 #!/bin/bash
 
 BREAKOUT_FILE_NAME=~/nightly_test_running
-DESCRIBE_FILE_NAME=last_test_describe
+DESCRIBE_DIR=last_tested_versions
+BRANCHES_FILE=scripts/branches_to_test
 
 if [ "$1" = "--force" ] ; then
-    rm "$DESCRIBE_FILE_NAME"
+    rm -rf "$DESCRIBE_DIR"
 fi
 
 # Don't start the test if it's running already
@@ -21,41 +22,53 @@ touch $BREAKOUT_FILE_NAME
 export PATH=$PATH:/usr/local/bin/
 
 # Go into var rethinkdb directory
-#cd /var/git/rethinkdb/
+cd /var/git/rethinkdb/
 
-# Pull latest from master
-git pull
-
-#check if there are changes to the repo
-touch "$DESCRIBE_FILE_NAME" #in case the file gets deleted somehow
-last_test_describe=`cat $DESCRIBE_FILE_NAME`
-this_test_describe=`git describe`
-
-if [ "$last_test_describe" = "$this_test_describe" ] ; then
-    echo "Nothing changed since last test use --force to test anyway"
-else
-    # Cloud retester configuration
-    export USE_CLOUD=true
-    export EC2_INSTANCE_TYPE=m1.large
-    export EC2_INSTANCE_COUNT=10
-
-    # Generate a temporary VERSION file
-    VERSION_FILE_INT=$(tempfile -p VERS)
-    scripts/gen-version.sh > "$VERSION_FILE_INT"
-    export VERSION_FILE="$VERSION_FILE_INT"
-
-    # Run the tests
-    export RETESTER_EMAIL_SENDER=buildbot@rethinkdb.com:allspark
-    git test -l --revision HEAD --email all@rethinkdb.com --file /var/www/code.rethinkdb.com/htdocs/tests.html test/full_test.py
-    
-    # Remove the temporary VERSION file
-    rm -f "$VERSION_FILE_INT"
-    unset VERSION_FILE
-
+if [ ! -d "$DESCRIBE_DIR" ] ; then
+    mkdir "$DESCRIBE_DIR"
 fi
+
+for branch in $(cat "$BRANCHES_FILE"); do
+
+    # Pull latest from branch
+    git checkout "$branch"
+    git pull
+
+    #check if there are changes to the repo
+    touch "$DESCRIBE_DIR"/"$branch" #in case the file gets deleted somehow
+    last_test_describe=`cat "$DESCRIBE_DIR"/"$branch"`
+    this_test_describe=`git describe`
+
+    if [ "$last_test_describe" = "$this_test_describe" ] ; then
+        echo "Nothing changed on $branch since last test use --force to test anyway"
+    else
+        echo "Running tests on $branch"
+        # Cloud retester configuration
+        export USE_CLOUD=true
+        export EC2_INSTANCE_TYPE=m1.large
+        export EC2_INSTANCE_COUNT=10
+
+        # Generate a temporary VERSION file
+        VERSION_FILE_INT=$(tempfile -p VERS)
+        scripts/gen-version.sh > "$VERSION_FILE_INT"
+        export VERSION_FILE="$VERSION_FILE_INT"
+
+        # Run the tests
+        export RETESTER_EMAIL_SENDER=buildbot@rethinkdb.com:allspark
+        git test -l --revision HEAD --email all@rethinkdb.com --file /var/www/code.rethinkdb.com/htdocs/tests.html test/full_test.py
+        
+        # Remove the temporary VERSION file
+        rm -f "$VERSION_FILE_INT"
+        unset VERSION_FILE
+
+    fi
+
+    #Record this describe as the most recently tested descrive
+    git describe > "$DESCRIBE_DIR"/"$branch"
+
+done
+
+git checkout master
 
 # Remove the breakout file
 rm -f $BREAKOUT_FILE_NAME
-
-#Record this describe as the most recently tested descrive
-git describe > "$DESCRIBE_FILE_NAME"
