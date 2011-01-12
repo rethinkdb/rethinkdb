@@ -3,58 +3,45 @@ import sys, os, signal, math, time
 import _mysql
 from datetime import datetime
 
+sys.path.append(os.path.abspath(os.path.join(os.path.join(os.path.dirname(__file__), ".."), 'common')))
+from test_common import *
+
 
 class StatsDBCollector(object):
-    monitoring = [
-        'blocks_dirty[blocks]',
-        'blocks_in_memory[blocks]',
-        'cmd_get_avg',
-        'cmd_set_avg',
-        'cmd_get_total',
-        'cmd_set_total',
-        'io_writes_started[iowrites]',
-        'io_reads_started[ioreads]',
-        'io_writes_completed[iowrites]',
-        'io_reads_completed[ioreads]',
-        'cpu_combined_avg',
-        'cpu_system_avg',
-        'cpu_user_avg',
-        'memory_faults_max',
-        'memory_real[bytes]',
-        'memory_virtual[bytes]',
-        'serializer_bytes_in_use',
-        'serializer_old_garbage_blocks',
-        'serializer_old_total_blocks',
-        'serializer_reads_total',
-        'serializer_writes_total',
-        'serializer_lba_gcs',
-        'serializer_data_extents_gced[dexts]',
-        'transactions_starting_avg',
-        'uptime',
-    ]
+    # Please note: Monitored stats must have an entry in the stat_names table!
     
-    def insert_stat(self, timestamp, stat, value)
-        timestamp = db_conn.escape_string(timestamp)
+    def read_monitored_stats(self):
+        self.monitoring = []
+        self.db_conn.query("SELECT `name` FROM `stat_names`")
+        result = self.db_conn.use_result()
+        rows = result.fetch_row(maxrows=0) # Fetch all rows
+        for row in rows:
+            self.monitoring.append(row[0])
+    
+    def insert_stat(self, timestamp, stat, value):
+        timestamp = self.db_conn.escape_string(str(timestamp))
         stat = self.db_conn.escape_string(stat)
-        value = self.db_conn.escape_string(value)
-        self.db_conn.query("INSERT INTO `stats` VALUES ('%s', '%s', '%s')" % (timestamp, stat, value) )
-        # TODO: Check success!
-        #if self.db_conn.affected_rows() != 1
-            #...
+        value = self.db_conn.escape_string(str(value))
+        self.db_conn.query("INSERT INTO `stats` VALUES ('%s', (SELECT `id` FROM `stat_names` WHERE `name` = '%s' LIMIT 1), '%s')" % (timestamp, stat, value) )
+        if self.db_conn.affected_rows() != 1:
+            raise Exception("Cannot insert stat %s into database" % stat)
     
     def __init__(self, opts, server):
         def stats_aggregator(stats):
             ts = time.time()
-            for k in StatsDBCollector.monitoring:
+            for k in self..monitoring:
                 if k in stats:
-                    insert_stat(ts, k, stats[k]) # TODO: Use timestamp from stats
+                    self.insert_stat(ts, k, stats[k]) # TODO: Use timestamp from stats
 
 
         self.opts = opts
         
-        self.db_conn = _mysql.connect("newton", "longtest", "rethinkdb2010", "longtest") # TODO
+        self.db_conn = _mysql.connect(self.opts['db_server'], self.opts['db_user'], self.opts['db_password'], self.opts['db_database'])
+        self.read_monitored_stats()
 
-        self.rdbstat = RDBStat(('localhost', server.port), interval=1, stats_callback=stats_aggregator)
+        self.rdbstat = RDBStat(('localhost', server.port), interval=5, stats_callback=stats_aggregator)
+        # For testing:
+        #self.rdbstat = RDBStat(('electro', 8952), interval=5, stats_callback=stats_aggregator)
         self.rdbstat.start()
 
     def stop(self):
