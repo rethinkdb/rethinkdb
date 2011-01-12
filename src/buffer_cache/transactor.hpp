@@ -13,9 +13,12 @@ public:
     transactor_t(cache_t *cache, access_t access);
     ~transactor_t();
 
+    transaction_t *transaction() { return transaction_; }
     void commit();
 private:
     transaction_t *transaction_;
+
+    DISABLE_COPYING(transactor_t);
 };
 
 
