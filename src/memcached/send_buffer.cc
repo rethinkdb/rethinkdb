@@ -26,14 +26,12 @@ bool send_buffer_t::co_write_external(size_t bytes, const char *buffer) {
     
     /* There's probably a better way to do this. Maybe we can call do_write_external(), or a variant
     thereof, directly? */
-    struct : public send_buffer_external_write_callback_t {
-        cond_var_t<bool> *to_notify;
-        void on_send_buffer_write_external() { to_notify->fill(true); }
-        void on_send_buffer_socket_closed() { to_notify->fill(false); }
+    struct : public send_buffer_external_write_callback_t, value_cond_t<bool> {
+        void on_send_buffer_write_external() { pulse(true); }
+        void on_send_buffer_socket_closed() { pulse(false); }
     } cb;
-    cb.to_notify = new cond_var_t<bool>;
     write_external(bytes, buffer, &cb);
-    return cb.to_notify->join();
+    return cb.wait();
 }
 
 void send_buffer_t::do_write_external(size_t s, const char *v, send_buffer_external_write_callback_t *cb) {

@@ -14,7 +14,7 @@ public:
             char key_memory[MAX_KEY_SIZE+sizeof(btree_key)];
             btree_key key;
         };
-        cond_var_t<store_t::get_result_t> *result;
+        task_t<store_t::get_result_t> *result;
     };
     std::vector<get_t> gets;
 
