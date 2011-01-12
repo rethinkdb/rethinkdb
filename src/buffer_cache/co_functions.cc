@@ -38,13 +38,19 @@ struct large_value_acquired_t : public large_buf_available_callback_t {
 
 void co_acquire_large_value(large_buf_t *large_value, large_buf_ref root_ref_, access_t access_) {
     large_value_acquired_t acquired;
+    // TODO: what if this calls acquired immediately?  Then
+    // self->notify() gets called before coro_t::wait().
+
+    // One way to fix this possible bug without learning about
+    // coroutines: make large_value->acquire return bool, the usual
+    // way, and then do what co_commit does.
     large_value->acquire(root_ref_, access_, &acquired);
     coro_t::wait();
 }
 
 
 
-// Well this is repetetive.
+// Well this is repetitive.
 struct transaction_begun_callback_t : public transaction_begin_callback_t {
     coro_t *self;
     transaction_t *value;
@@ -69,4 +75,22 @@ transaction_t *co_begin_transaction(cache_t *cache, access_t access) {
     }
     assert(value);
     return value;
+}
+
+
+
+struct transaction_committed_t : public transaction_commit_callback_t {
+    coro_t *self;
+    transaction_committed_t() : self(coro_t::self()) { }
+    void on_txn_commit(transaction_t *transaction) {
+        self->notify();
+    }
+};
+
+
+void co_commit(transaction_t *transaction) {
+    transaction_committed_t cb;
+    if (!transaction->commit(&cb)) {
+        coro_t::wait();
+    }
 }

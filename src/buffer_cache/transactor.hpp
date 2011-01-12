@@ -13,6 +13,7 @@ public:
     transactor_t(cache_t *cache, access_t access);
     ~transactor_t();
 
+    void commit();
 private:
     transaction_t *transaction_;
 };
