@@ -1,5 +1,5 @@
-#ifndef __BTREE_CO_FUNCTIONS_HPP__
-#define __BTREE_CO_FUNCTIONS_HPP__
+#ifndef __BUFFER_CACHE_CO_FUNCTIONS_HPP__
+#define __BUFFER_CACHE_CO_FUNCTIONS_HPP__
 
 // TODO: Some of this stuff (all of it?) actually belongs in buffer_cache/.
 
@@ -12,4 +12,4 @@ void co_acquire_large_value(large_buf_t *large_value, large_buf_ref root_ref_, a
 
 
 
-#endif  // __BTREE_CO_FUNCTIONS_HPP__
+#endif  // __BUFFER_CACHE_CO_FUNCTIONS_HPP__

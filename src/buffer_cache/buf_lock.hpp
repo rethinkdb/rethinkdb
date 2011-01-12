@@ -1,7 +1,5 @@
-#ifndef __BTREE_BUF_LOCK_HPP__
-#define __BTREE_BUF_LOCK_HPP__
-
-// TODO: put this in buffer_cache/.
+#ifndef __BUFFER_CACHE_BUF_LOCK_HPP__
+#define __BUFFER_CACHE_BUF_LOCK_HPP__
 
 // TODO: get rid of a separate buf_t entirely (that is, have buf_t use RAII).
 
@@ -45,4 +43,4 @@ private:
 
 
 
-#endif  // __BTREE_BUF_LOCK_HPP__
+#endif  // __BUFFER_CACHE_BUF_LOCK_HPP__

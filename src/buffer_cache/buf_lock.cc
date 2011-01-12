@@ -1,6 +1,6 @@
-#include "btree/buf_lock.hpp"
+#include "buffer_cache/buf_lock.hpp"
+#include "buffer_cache/co_functions.hpp"
 
-#include "btree/co_functions.hpp"
 #include "errors.hpp"
 
 buf_lock_t::buf_lock_t(transaction_t *tx, block_id_t block_id, access_t mode) : buf_(co_acquire_transaction(tx, block_id, mode)) { }
