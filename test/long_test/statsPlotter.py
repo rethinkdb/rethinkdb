@@ -53,17 +53,17 @@ class Plot(object):
         return tplot.stdout.read()
 
 class DBPlot(Plot):
-    def __init__(self, start_timestamp, end_timestamp, name, plot_style, plotter):
+    def __init__(self, run, start_timestamp, end_timestamp, name, plot_style, plotter):
         self.db_conn = _mysql.connect("newton", "longtest", "rethinkdb2010", "longtest") # TODO
-        stats = self.load_stats_from_db(start_timestamp, end_timestamp)
+        stats = self.load_stats_from_db(run, start_timestamp, end_timestamp)
         self.db_conn.close()
 
         Plot.__init__(self, stats, name, plot_style, plotter)
 
-    def load_stats_from_db(self, start_timestamp, end_timestamp):
+    def load_stats_from_db(self, run, start_timestamp, end_timestamp):
         start_timestamp = self.db_conn.escape_string(start_timestamp)
         end_timestamp = self.db_conn.escape_string(end_timestamp)
-        self.db_conn.query("SELECT `timestamp`,`stat_names`.`name` AS `stat`,`value` FROM `stats` JOIN `stat_names` ON `stats`.`stat` = `stat_names`.`id` WHERE `timestamp` BETWEEN '%s' AND '%s' ORDER BY `timestamp` ASC" % (start_timestamp, end_timestamp) )
+        self.db_conn.query("SELECT `timestamp`,`stat_names`.`name` AS `stat`,`value` FROM `stats` JOIN `stat_names` ON `stats`.`stat` = `stat_names`.`id` WHERE (`timestamp` BETWEEN '%s' AND '%s') AND (`run` = '%s') ORDER BY `timestamp` ASC" % (start_timestamp, end_timestamp, run) )
         result = self.db_conn.use_result()
         rows = result.fetch_row(maxrows=0) # Fetch all rows
         last_ts = -1
