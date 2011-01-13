@@ -171,12 +171,13 @@ class PlotGeneratorHandler(PlotTemplate):
         self.head()
 
         plot_url = "plot.png?" + urllib.urlencode(pass_values)
+        window_open_js = "window.open('%s','Plot - %s (generated at %d)', 'menubar=no,width=1054,height=158,toolbar=no');" % (plot_url, name, time.time())
 
         self.write('Your plot is being generated...<br>')
-        self.write('If it does not open automatically, <a target="_blank" href="%s">click here</a> (please enable popup windows for this site).<br><br>Set up <a href="selectPlot.html">another plot</a>.' % plot_url)
+        self.write('If it does not open automatically, <a target="_blank" onClick="%s return false" href="%s">click here</a> (please enable popup windows for this site).<br><br>Set up <a href="selectPlot.html">another plot</a>.' % (window_open_js, plot_url))
 
         self.write('<script language="JavaScript">')
-        self.write('window.open("%s","Plot - %s (generated at %d)", "menubar=no,width=1054,height=158,toolbar=no");' % (plot_url, name, time.time()))
+        self.write(window_open_js)
         self.write('</script>')
 
         self.tail()
