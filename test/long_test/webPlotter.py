@@ -8,6 +8,7 @@ import tornado.ioloop
 import tornado.web
 import urllib
 import time
+import datetime
 
 
 class PlotTemplate(tornado.web.RequestHandler):
@@ -31,8 +32,21 @@ class PlotSelectHandler(PlotTemplate):
         self.write('<table border="0">')
 
         self.write('<tr><td>Name of plot:</td><td><input name="name" value="plot"></td></tr>')
-        self.write('<tr><td>End timestamp:</td><td><input name="end_timestamp" value="%d"></td></tr>' % time.time())
-        self.write('<tr><td>Plot duration:</td><td><input name="duration" value="6" size="3"> hours</td></tr>')
+        self.write('<tr><td>Test run:</td><td><select name="run">')
+        db_conn = _mysql.connect("newton", "longtest", "rethinkdb2010", "longtest") # TODO
+        db_conn.query("SELECT `run` FROM `stats` GROUP BY `run` ORDER BY `run` DESC")
+        result = db_conn.use_result()
+        rows = result.fetch_row(maxrows=0) # Fetch all rows
+        for row in rows:
+            run_timestamp = int(row[0])
+            self.write('<option value="%d">%s</option>' % (run_timestamp, str(datetime.datetime.fromtimestamp(run_timestamp))))
+        db_conn.close()
+        self.write('</select></td></tr>')
+        self.write('<tr><td>End plot</td><td><input name="end_hours" value="0" size="3"> hours before the latest available data of the run</td></tr>')
+        self.write('<tr><td>...and start</td><td><input name="duration" value="6" size="3"> hours before that point.</td></tr>')
+
+        #self.write('<tr><td>End timestamp:</td><td><input name="end_timestamp" value="%d"></td></tr>' % time.time())
+        #self.write('<tr><td>Plot duration:</td><td><input name="duration" value="6" size="3"> hours</td></tr>')
         self.write('<tr><td>Plotter type:</td><td><select name="plotter_type"> \
             <option value="simple_plotter">simple plotter</option> \
             <option value="differential_plotter">differential plotter</option> \
@@ -82,8 +96,15 @@ class PlotConfigureHandler(PlotTemplate):
 
     def get(self):
         name = self.get_argument("name")
-        end_timestamp = self.get_argument("end_timestamp")
-        start_timestamp = str(int(end_timestamp) - int(float(self.get_argument("duration")) * 3600))
+        run = self.get_argument("run")
+        db_conn = _mysql.connect("newton", "longtest", "rethinkdb2010", "longtest") # TODO
+        db_conn.query("SELECT `timestamp` FROM `stats` WHERE `run` = '%s' ORDER BY `timestamp` DESC LIMIT 1" % db_conn.escape_string(run))
+        result = db_conn.use_result()
+        rows = result.fetch_row(maxrows=0) # Fetch all rows
+        latest_timestamp = int(rows[0][0])
+        db_conn.close()
+        end_timestamp = str(int(latest_timestamp) - int(float(self.get_argument("end_hours")) * 3600.0))
+        start_timestamp = str(int(end_timestamp) - int(float(self.get_argument("duration")) * 3600.0))
         plotter_type = self.get_argument("plotter_type")
         plot_style = self.get_argument("plot_style")
 
@@ -132,6 +153,7 @@ class PlotConfigureHandler(PlotTemplate):
                 ("plotter_type", plotter_type),
                 ("plot_style", plot_style),
                 ("start_timestamp", start_timestamp),
+                ("run", run),
                 ("end_timestamp", end_timestamp)]:
             self.write('<input type="hidden" name="%s" value="%s">' % (hidden_name, hidden_value) ); # Cross site scripting vulnerability! ;-)
         self.write('<br><input type="submit" value="Generate">')
@@ -145,6 +167,7 @@ class PlotGeneratorHandler(PlotTemplate):
         pass_values = [("name", name),
             ("start_timestamp", self.get_argument("start_timestamp")),
             ("end_timestamp", self.get_argument("end_timestamp")),
+            ("run", self.get_argument("run")),
             ("plotter_type", self.get_argument("plotter_type"))]
 
         plot_style = self.get_argument("plot_style")
@@ -171,12 +194,13 @@ class PlotGeneratorHandler(PlotTemplate):
         self.head()
 
         plot_url = "plot.png?" + urllib.urlencode(pass_values)
+        window_open_js = "window.open('%s','Plot - %s (generated at %d)', 'menubar=no,width=1054,height=158,toolbar=no');" % (plot_url, name, time.time())
 
         self.write('Your plot is being generated...<br>')
-        self.write('If it does not open automatically, <a target="_blank" href="%s">click here</a> (please enable popup windows for this site).<br><br>Set up <a href="selectPlot.html">another plot</a>.' % plot_url)
+        self.write('If it does not open automatically, <a target="_blank" onClick="%s return false" href="%s">click here</a> (please enable popup windows for this site).<br><br>Set up <a href="selectPlot.html">another plot</a>.' % (window_open_js, plot_url))
 
         self.write('<script language="JavaScript">')
-        self.write('window.open("%s","Plot - %s (generated at %d)", "menubar=no,width=1054,height=158,toolbar=no");' % (plot_url, name, time.time()))
+        self.write(window_open_js)
         self.write('</script>')
 
         self.tail()
@@ -186,6 +210,7 @@ class PlotHandler(tornado.web.RequestHandler):
         # Get arguments
         start_timestamp = self.get_argument("start_timestamp")
         end_timestamp = self.get_argument("end_timestamp")
+        run = self.get_argument("run")
         name = self.get_argument("name")
         plot_style = self.get_argument("plot_style", "quantile 20 0.05,0.5,0.95")
         plotter_type = self.get_argument("plotter_type", "simple_plotter")
@@ -209,7 +234,7 @@ class PlotHandler(tornado.web.RequestHandler):
             raise Exception("Unsupported plotter_type: %s" % plotter_type)
 
         # Generate plot
-        plot = DBPlot(start_timestamp, end_timestamp, name, plot_style, plotter)
+        plot = DBPlot(run, start_timestamp, end_timestamp, name, plot_style, plotter)
 
         # Send the response...
         self.set_header("Content-Type", "image/png")

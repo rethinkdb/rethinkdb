@@ -210,7 +210,7 @@ class dbench():
             # Construct the path to the high-resolution version of the plot, append the plot image to the list of images to be attached.
             large_img_path = 'http://'+os.path.join(self.hostname, self.prof_dir, self.dir_str, name+'_large.png')
             self.images_used.append(name)
-            return "<a href=\"%s\"> <img src=\"%s\" width=\"450\" /> </a>" % (large_img_path, 'cid:'+name)
+            return "<a href=\"%s\"> <img border=\"0\" src=\"%s\" width=\"450\" /> </a>" % (large_img_path, 'cid:'+name)
 
         def flot(source, text):
             return "<a href=\"%s\">%s</a>" % ('http://' + self.hostname + self.flot_script_location + '#' + source, text)

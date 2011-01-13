@@ -194,7 +194,7 @@ class TimeSeriesCollection():
         labels = []
         hists = []
         for series, color in zip(self.data.iteritems(), colors):
-            clipped_data = clip(series[1], 0, 5 * mean)
+            clipped_data = clip(series[1], 0, 3 * mean)
             if clipped_data:
                 _, _, foo = ax.hist(clipped_data, bins=200, histtype='bar', facecolor = color, alpha = .5, label = series[0])
                 hists.append(foo)
@@ -260,7 +260,8 @@ class TimeSeriesCollection():
         if normalize:
             ax.set_ylim(0, 1.2)
         else:
-            ax.set_ylim(0, 1.2 * max(reduce(lambda x,y :x + y, self.data.values())))
+            reduced_list = reduce(lambda x,y :x + y, self.data.values())
+            ax.set_ylim(0, 1.2 * max(reduced_list[(len(reduced_list) / 10):])) # Ignore first 10 % of the data for ylim calculation, as they might contain high peeks
         ax.grid(True)
         plt.legend(tuple(map(lambda x: x[0], labels)), tuple(map(lambda x: x[1], labels)), loc=1, prop = font)
         if not large:
@@ -365,8 +366,7 @@ class ScatterCollection():
             y_values = []
             for (x_value, y_value) in series_data:
                 max_x_value = max(max_x_value, x_value)
-                if len(y_values) >= len(series_data) / 10: # Ignore first 10 % for y limit calculation, as they might contain very high peeks
-                    max_y_value = max(max_y_value, y_value)
+                max_y_value = max(max_y_value, y_value)
                 x_values.append(x_value)
                 y_values.append(y_value)
             if normalize:
@@ -490,11 +490,15 @@ class SubplotCollection():
         # This GridSpec defines the layout of the subplots
         gs = gridspec.GridSpecFromSubplotSpec(subplot_dim, subplot_dim, subplot_spec=gs_wrapper[0,1])
 
+	# Sort the data keys so that the subplots display in order.
+	sorted_data_keys = self.data.keys()
+	sorted_data_keys.sort()
+
         for i in range(subplot_dim):
             for j in range(subplot_dim):
                 subplot_num = i * subplot_dim + j
                 if subplot_num < num_subplots:
-                    self.plot_subplot(plt.subplot(gs[i,j]), self.data[str(subplot_num+1)], queries_formatter, font)
+                    self.plot_subplot(plt.subplot(gs[i,j]), self.data[sorted_data_keys[subplot_num]], queries_formatter, font)
         
         fig.set_size_inches(5,3.7)
         fig.set_dpi(90)
