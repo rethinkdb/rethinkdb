@@ -203,7 +203,10 @@ class dbench():
 
         #send stuff to host
         os.system('scp -r "%s" "%s:%s"' % (self.out_dir + '/' + self.dir_str, self.hostname, self.www_dir + self.prof_dir))
-        os.system('scp "%s" "%s:%s"' % (self.out_dir + '/' + 'index.html', self.hostname, self.www_dir + self.prof_dir))
+        #os.system('scp "%s" "%s:%s"' % (self.out_dir + '/' + 'index.html', self.hostname, self.www_dir + self.prof_dir))
+        print 'scp "%s" "%s:%s"' % (self.out_dir + '/' + 'index.html', self.hostname, self.www_dir + self.prof_dir + "/" + self.dir_str + "/index.html")
+        os.system('scp "%s" "%s:%s"' % (self.out_dir + '/' + 'index.html', self.hostname, self.www_dir + self.prof_dir + "/" + self.dir_str + "/index.html"))
+        os.system('ssh "%s" ln -s -f "%s" "%s"' % (self.hostname, self.www_dir + self.prof_dir + "/" + self.dir_str, self.www_dir + self.prof_dir + "/" + "latest"))
 
     def report_as_html(self):
         def image(name):
