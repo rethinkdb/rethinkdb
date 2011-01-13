@@ -194,7 +194,7 @@ class TimeSeriesCollection():
         labels = []
         hists = []
         for series, color in zip(self.data.iteritems(), colors):
-            clipped_data = clip(series[1], 0, 5 * mean)
+            clipped_data = clip(series[1], 0, 3 * mean)
             if clipped_data:
                 _, _, foo = ax.hist(clipped_data, bins=200, histtype='bar', facecolor = color, alpha = .5, label = series[0])
                 hists.append(foo)
@@ -260,7 +260,8 @@ class TimeSeriesCollection():
         if normalize:
             ax.set_ylim(0, 1.2)
         else:
-            ax.set_ylim(0, 1.2 * max(reduce(lambda x,y :x + y, self.data.values())))
+            reduced_list = reduce(lambda x,y :x + y, self.data.values())
+            ax.set_ylim(0, 1.2 * max(reduced_list[(len(reduced_list) / 10):])) # Ignore first 10 % of the data for ylim calculation, as they might contain high peeks
         ax.grid(True)
         plt.legend(tuple(map(lambda x: x[0], labels)), tuple(map(lambda x: x[1], labels)), loc=1, prop = font)
         if not large:
@@ -365,8 +366,7 @@ class ScatterCollection():
             y_values = []
             for (x_value, y_value) in series_data:
                 max_x_value = max(max_x_value, x_value)
-                if len(y_values) >= len(series_data) / 10: # Ignore first 10 % for y limit calculation, as they might contain very high peeks
-                    max_y_value = max(max_y_value, y_value)
+                max_y_value = max(max_y_value, y_value)
                 x_values.append(x_value)
                 y_values.append(y_value)
             if normalize:
