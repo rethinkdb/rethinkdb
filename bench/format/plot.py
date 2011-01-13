@@ -664,6 +664,7 @@ class QPS(TimeSeriesCollection):
 class RDBStats(TimeSeriesCollection):
     int_line = line("^STAT\s+([\w\[\]]+)\s+(\d+|-)\r$", [('name', 's'), ('value', 'd')])
     flt_line = line("^STAT\s+([\w\[\]]+)\s+([\d\.]+|-)\r$", [('name', 's'), ('value', 'f')])
+    str_line = line("^STAT\s+([\w\[\]]+)\s+(.+|-)\r$", [('name', 's'), ('value', 's')])
     end_line = line("END", [])
     
     def parse(self, data):
@@ -671,7 +672,7 @@ class RDBStats(TimeSeriesCollection):
         data.reverse()
         
         while True:
-            m = take_while([self.int_line, self.flt_line], data)
+            m = take_while([self.int_line, self.flt_line, self.str_line], data)
             if not m:
                 break
             for match in m:
