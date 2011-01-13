@@ -3,6 +3,7 @@
 
 #include "btree/modify_fsm.hpp"
 
+#include "buffer_cache/co_functions.hpp"
 #include "btree/coro_wrappers.hpp"
 
 class btree_append_prepend_fsm_t :

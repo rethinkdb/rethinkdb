@@ -5,13 +5,13 @@ transactor_t::transactor_t(cache_t *cache, access_t access) : transaction_(co_be
 
 transactor_t::~transactor_t() {
     if (transaction_) {
-        co_commit(transaction_);
+        co_commit_transaction(transaction_);
         transaction_ = NULL;
     }
 }
 
 void transactor_t::commit() {
     guarantee(transaction_ != NULL);
-    co_commit(transaction_);
+    co_commit_transaction(transaction_);
     transaction_ = NULL;
 }

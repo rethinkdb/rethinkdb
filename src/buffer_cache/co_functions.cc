@@ -16,7 +16,7 @@ struct co_block_available_callback_t : public block_available_callback_t {
     }
 };
 
-buf_t *co_acquire_transaction(transaction_t *transaction, block_id_t block_id, access_t mode) {
+buf_t *co_acquire_block(transaction_t *transaction, block_id_t block_id, access_t mode) {
     co_block_available_callback_t cb;
     buf_t *value = transaction->acquire(block_id, mode, &cb);
     if (!value) {
@@ -25,9 +25,6 @@ buf_t *co_acquire_transaction(transaction_t *transaction, block_id_t block_id, a
     assert(value);
     return value;
 }
-
-
-
 
 
 struct large_value_acquired_t : public large_buf_available_callback_t {
@@ -48,6 +45,17 @@ void co_acquire_large_value(large_buf_t *large_value, large_buf_ref root_ref_, a
     coro_t::wait();
 }
 
+void co_acquire_large_value_lhs(large_buf_t *large_value, large_buf_ref root_ref_, access_t access_) {
+    large_value_acquired_t acquired;
+    large_value->acquire_lhs(root_ref_, access_, &acquired);
+    coro_t::wait();
+}
+
+void co_acquire_large_value_rhs(large_buf_t *large_value, large_buf_ref root_ref_, access_t access_) {
+    large_value_acquired_t acquired;
+    large_value->acquire_rhs(root_ref_, access_, &acquired);
+    coro_t::wait();
+}
 
 
 // Well this is repetitive.
@@ -88,7 +96,7 @@ struct transaction_committed_t : public transaction_commit_callback_t {
 };
 
 
-void co_commit(transaction_t *transaction) {
+void co_commit_transaction(transaction_t *transaction) {
     transaction_committed_t cb;
     if (!transaction->commit(&cb)) {
         coro_t::wait();

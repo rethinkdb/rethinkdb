@@ -5,6 +5,7 @@
 #include "btree/internal_node.hpp"
 #include "btree/replicate.hpp"
 
+#include "buffer_cache/co_functions.hpp"
 #include "btree/coro_wrappers.hpp"
 
 // TODO: consider B#/B* trees to improve space efficiency
