@@ -12,7 +12,7 @@ struct mock_iocallback_t {
 };
 
 template<class inner_io_config_t>
-class mock_direct_file_t
+class mock_file_t
 {
     int mode;
 
@@ -22,21 +22,22 @@ public:
         mode_write = 1 << 1,
         mode_create = 1 << 2
     };
-    
-    mock_direct_file_t(const char *path, int mode)
+
+protected:
+    mock_file_t(const char *path, int mode)
         : mode(mode)
     {
         int mode2 = 0;
-        if (mode & mode_read) mode2 |= inner_io_config_t::direct_file_t::mode_read;
+        if (mode & mode_read) mode2 |= inner_io_config_t::file_t::mode_read;
         // We always enable writing because the mock layer does
         // truncation on exit
-        mode2 |= inner_io_config_t::direct_file_t::mode_write;
-        if (mode & mode_create) mode2 |= inner_io_config_t::direct_file_t::mode_create;
-        inner_file = new typename inner_io_config_t::direct_file_t(path, mode2);
-        
+        mode2 |= inner_io_config_t::file_t::mode_write;
+        if (mode & mode_create) mode2 |= inner_io_config_t::file_t::mode_create;
+        inner_file = new typename inner_io_config_t::nondirect_file_t(path, mode2);
+
         if (inner_file->is_block_device()) {
             fail_due_to_user_error(
-                "Using mock_direct_file_t with a block device is a really bad idea because it "
+                "Using mock_file_t with a block device is a really bad idea because it "
                 "reads the entire contents of the underlying file into memory, which could be "
                 "a lot for a block device.");
         }
@@ -103,7 +104,7 @@ public:
         }
     }
     
-    ~mock_direct_file_t() {
+    ~mock_file_t() {
         if (mode & mode_write) {
             if(exists()) {
                 inner_file->set_size(get_size());
@@ -119,7 +120,7 @@ public:
     }
 
 private:
-    typename inner_io_config_t::direct_file_t *inner_file;
+    typename inner_io_config_t::nondirect_file_t *inner_file;
     
     struct block_t {
         char *data;
@@ -145,6 +146,47 @@ private:
         assert(offset % DEVICE_BLOCK_SIZE == 0);
         assert(length % DEVICE_BLOCK_SIZE == 0);
     }
+
+    DISABLE_COPYING(mock_file_t);
 };
+
+template <class inner_io_config_t>
+class mock_direct_file_t : private mock_file_t<inner_io_config_t> {
+public:
+    using mock_file_t<inner_io_config_t>::exists;
+    using mock_file_t<inner_io_config_t>::is_block_device;
+    using mock_file_t<inner_io_config_t>::get_size;
+    using mock_file_t<inner_io_config_t>::set_size;
+    using mock_file_t<inner_io_config_t>::set_size_at_least;
+    using mock_file_t<inner_io_config_t>::read_async;
+    using mock_file_t<inner_io_config_t>::write_async;
+    using mock_file_t<inner_io_config_t>::read_blocking;
+    using mock_file_t<inner_io_config_t>::write_blocking;
+
+    mock_direct_file_t(const char *path, int mode) : mock_file_t<inner_io_config_t>(path, mode) { }
+
+private:
+    DISABLE_COPYING(mock_direct_file_t);
+};
+
+template <class inner_io_config_t>
+class mock_nondirect_file_t : private mock_file_t<inner_io_config_t> {
+public:
+    using mock_file_t<inner_io_config_t>::exists;
+    using mock_file_t<inner_io_config_t>::is_block_device;
+    using mock_file_t<inner_io_config_t>::get_size;
+    using mock_file_t<inner_io_config_t>::set_size;
+    using mock_file_t<inner_io_config_t>::set_size_at_least;
+    using mock_file_t<inner_io_config_t>::read_async;
+    using mock_file_t<inner_io_config_t>::write_async;
+    using mock_file_t<inner_io_config_t>::read_blocking;
+    using mock_file_t<inner_io_config_t>::write_blocking;
+
+    mock_nondirect_file_t(const char *path, int mode) : mock_file_t<inner_io_config_t>(path, mode) { }
+
+private:
+    DISABLE_COPYING(mock_nondirect_file_t);
+};
+
 
 #endif /* __ARCH_MOCK_IO_HPP__ */

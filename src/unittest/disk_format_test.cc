@@ -127,6 +127,21 @@ TEST(DiskFormatTest, LogSerializerMetablockT) {
     EXPECT_EQ(1552, sizeof(log_serializer_metablock_t));
 }
 
+TEST(DiskFormatTest, LogSerializerStaticConfigT) {
+    EXPECT_EQ(0, offsetof(log_serializer_static_config_t, block_size_));
+    EXPECT_EQ(8, offsetof(log_serializer_static_config_t, extent_size_));
+    EXPECT_EQ(16, sizeof(log_serializer_static_config_t));
+}
 
+TEST(DiskFormatTest, BtreeConfigT) {
+    EXPECT_EQ(0, offsetof(btree_config_t, n_slices));
+    EXPECT_EQ(4, sizeof(btree_config_t));
+}
+
+TEST(DiskFormatTest, BtreeKeyValueStoreStaticConfigT) {
+    EXPECT_EQ(0, offsetof(btree_key_value_store_static_config_t, serializer));
+    EXPECT_EQ(16, offsetof(btree_key_value_store_static_config_t, btree));
+    EXPECT_EQ(20, sizeof(btree_key_value_store_static_config_t));
+}
 
 }  // namespace unittest

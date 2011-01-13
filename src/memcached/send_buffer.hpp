@@ -19,6 +19,7 @@ public:
     send_buffer_t(net_conn_t *conn);
     void write(size_t bytes, const char *buffer);
     void write_external(size_t bytes, const char *buffer, send_buffer_external_write_callback_t *cb);
+    bool co_write_external(size_t bytes, const char *buffer);
     void flush(send_buffer_callback_t *cb);
     void discard();
 

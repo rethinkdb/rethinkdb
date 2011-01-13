@@ -29,7 +29,7 @@ environ["PYTHONUNBUFFERED"] = "1"
 
 # Running in the background implies log output
 if opts["background"]:
-    opts["logoutput"] = True;
+    opts["logoutput"] = True
 
 # If we are backgrounded, then we ignore SIGHUP and implicitly set the email flag if not given.
 if opts["background"]:

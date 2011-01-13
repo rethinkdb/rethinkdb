@@ -1,4 +1,3 @@
-#include "coroutine/coroutines.hpp"
 #include "arch/arch.hpp"
 
 struct io_coroutine_adapter_t : public iocallback_t {

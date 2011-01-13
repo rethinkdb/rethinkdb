@@ -72,6 +72,7 @@ for WORKLOAD in ../workloads/*; do
                 . "$BENCH_DIR/environment"
             fi
             $CONFIGURATION
+            epmd -kill
         done
         
         if [ -e "$WORKLOAD/Teardown" ]; then

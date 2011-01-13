@@ -9,24 +9,28 @@
 #include "arch/linux/event_queue.hpp"
 #include "event.hpp"
 
-/* The "direct" in linux_direct_file_t refers to the fact that the file is opened in
-O_DIRECT mode, and there are restrictions on the alignment of the chunks being written
-and read to and from the file. */
+/* The "direct" in linux_direct_file_t refers to the fact that the
+file is opened in O_DIRECT mode, and there are restrictions on the
+alignment of the chunks being written and read to and from the file.
+Sometimes, the file is _not_ actually opened in direct mode.  See the
+is_really_direct parameter.  There are still the same restrictions on
+chunk alignment. */
 
 struct linux_iocallback_t {
     virtual ~linux_iocallback_t() {}
     virtual void on_io_complete(event_t *event) = 0;
 };
 
-class linux_direct_file_t {
+class linux_file_t {
 public:
     enum mode_t {
         mode_read = 1 << 0,
         mode_write = 1 << 1,
         mode_create = 1 << 2
     };
-    
-    linux_direct_file_t(const char *path, int mode);
+
+protected:
+    linux_file_t(const char *path, int mode, bool is_really_direct);
     
     bool exists();
     bool is_block_device();
@@ -42,7 +46,7 @@ public:
     void read_blocking(size_t offset, size_t length, void *buf);
     void write_blocking(size_t offset, size_t length, void *buf);
  
-    ~linux_direct_file_t();
+    ~linux_file_t();
     
 private:
     fd_t fd;
@@ -51,7 +55,43 @@ private:
     uint64_t file_size;
     void verify(size_t offset, size_t length, void* buf);
 
+    DISABLE_COPYING(linux_file_t);
+};
+
+class linux_direct_file_t : private linux_file_t {
+public:
+    using linux_file_t::exists;
+    using linux_file_t::is_block_device;
+    using linux_file_t::get_size;
+    using linux_file_t::set_size;
+    using linux_file_t::set_size_at_least;
+    using linux_file_t::read_async;
+    using linux_file_t::write_async;
+    using linux_file_t::read_blocking;
+    using linux_file_t::write_blocking;
+
+    linux_direct_file_t(const char *path, int mode) : linux_file_t(path, mode, true) { }
+
+private:
     DISABLE_COPYING(linux_direct_file_t);
+};
+
+class linux_nondirect_file_t : private linux_file_t {
+public:
+    using linux_file_t::exists;
+    using linux_file_t::is_block_device;
+    using linux_file_t::get_size;
+    using linux_file_t::set_size;
+    using linux_file_t::set_size_at_least;
+    using linux_file_t::read_async;
+    using linux_file_t::write_async;
+    using linux_file_t::read_blocking;
+    using linux_file_t::write_blocking;
+
+    linux_nondirect_file_t(const char *path, int mode) : linux_file_t(path, mode, false) { }
+
+private:
+    DISABLE_COPYING(linux_nondirect_file_t);
 };
 
 class linux_io_calls_t : public linux_event_callback_t {

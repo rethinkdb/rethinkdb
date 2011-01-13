@@ -95,17 +95,6 @@ public:
     void end_transaction(transaction_t *t);
     void commit_transaction(transaction_t *t);
 
-    /* If we start a read on an extent and it takes a really long time, then the extent
-    might be released and overwritten before the read completes. lock_for_read() makes it impossible
-    for a given extent to be reused until unlock_for_read() has been called the same number
-    of times. */
-
-    // TODO: Remove this now that the IO layer is supposed to guarantee that reads and writes go
-    // to the device in the same order that they are issued in.
-
-    void lock_for_read(off64_t extent);
-    void unlock_for_read(off64_t extent);
-
 public:
     /* Number of extents that have been released but not handed back out again. */
     int held_extents();

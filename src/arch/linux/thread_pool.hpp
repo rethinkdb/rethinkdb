@@ -7,6 +7,7 @@
 #include "arch/linux/disk.hpp"
 #include "arch/linux/timer.hpp"
 #include "arch/linux/message_hub.hpp"
+#include "arch/linux/coroutines.hpp"
 
 struct linux_thread_message_t;
 struct linux_thread_t;
@@ -75,6 +76,10 @@ public:
     linux_message_hub_t message_hub;
     linux_timer_handler_t timer_handler;
     linux_io_calls_t iosys;
+    
+    /* Never accessed; its constructor and destructor set up and tear down thread-local variables
+    for coroutines. */
+    coro_globals_t coro_globals;
     
     volatile bool do_shutdown;
     fd_t shutdown_notify_fd;

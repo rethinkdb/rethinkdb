@@ -8,13 +8,15 @@ from retester import send_email, do_test
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), 'common')))
 from test_common import *
 from git_util import *
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), 'long_test')))
+from statsDBCollector import *
 
 long_test_branch = "long-test"
 no_checkout_arg = "--no-checkout"
 long_test_logs_dir = "~/long_test_logs"
 
 rdb_num_threads = 12
-rdb_db_files = ["/dev/sdb", "/dev/sdc", "/dev/sdd", "/dev/sde"] 
+rdb_db_files = ["/dev/sdb", "/dev/sdc", "/dev/sdd", "/dev/sde"]
 rdb_cache_size = 25000
 
 rdbstat_path = "bench/dbench/rdbstat"
@@ -76,6 +78,10 @@ def parse_arguments(args):
     op['reporting_interval']   = IntFlag("--rinterval", 28800)
     op['emailfrom'] = StringFlag("--emailfrom", 'buildbot@rethinkdb.com:allspark')
     op['recipient'] = StringFlag("--email", 'all@rethinkdb.com')
+    op['db_server'] = StringFlag("--db-server", 'newton')
+    op['db_user'] = StringFlag("--db-user", 'longtest')
+    op['db_password'] = StringFlag("--db-password", 'rethinkdb2010')
+    op['db_database'] = StringFlag("--db-database", 'longtest')
 
     opts = op.parse(args)
     opts["netrecord"] = False   # We don't want to slow down the network
@@ -88,17 +94,21 @@ def parse_arguments(args):
 server = None
 rdbstat = None
 stats_sender = None
+stats_collector = None
 
 def long_test_function(opts, test_dir):
     global server
     global rdbstat
     global stats_sender
+    global stats_collector
 
     print 'Starting server...'
     server = Server(opts, extra_flags=[], test_dir=test_dir)
     server.start()
 
     stats_sender = StatsSender(opts, server)
+    
+    stats_collector = StatsDBCollector(opts, server)
 
     stats_file = test_dir.make_file("stats.gz")
     print "Collecting stats data into '%s'..." % stats_file
@@ -126,6 +136,10 @@ def shutdown():
     global server
     global rdbstat
     global stats_sender
+    global stats_collector
+    if stats_collector:
+        stats_collector.stop()
+        stats_collector = None
     if server:
         server.shutdown()   # this also stops stress_client
         server = None
@@ -145,18 +159,10 @@ def set_signal_handler():
     signal.signal(signal.SIGTERM, signal_handler)
     signal.signal(signal.SIGQUIT, signal_handler)
 
-def simple_plotter(name, multiplier = 1):
-    return lambda (old, new): new[name]*multiplier if new[name] else None
 
-def differential_plotter(name):
-    return lambda (old, new): (new[name]-old[name])/(new['uptime']-old['uptime']) if new[name] and old[name] else None
+from statsPlotter import *
 
-def two_stats_diff_plotter(stat1, stat2):
-    return lambda (old, new): new[stat1]-new[stat2] if new[stat1] and new[stat2] else None
-
-def two_stats_ratio_plotter(dividend, divisor):
-    return lambda (old, new): new[dividend]/new[divisor] if new[dividend] and new[divisor] and new[divisor] != 0 else None
-
+# TODO: Use Plot from statsPlotter to generate individual plot images and put them in an HTML e-mail
 class StatsSender(object):
     monitoring = [
         'blocks_dirty[blocks]',
@@ -178,8 +184,11 @@ class StatsSender(object):
         'serializer_bytes_in_use',
         'serializer_old_garbage_blocks',
         'serializer_old_total_blocks',
-#        'serializer_reads_total',
-#        'serializer_writes_total',
+        'serializer_reads_total',
+        'serializer_writes_total',
+        'serializer_lba_gcs',
+        'serializer_data_extents_gced[dexts]',
+        'transactions_starting_avg',
         'uptime',
     ]
     bucket_size = 100
@@ -207,6 +216,12 @@ class StatsSender(object):
         ('memory_virtual', plot_style_line, simple_plotter('memory_virtual[bytes]', 1.0/(1024*1024))),
         ('gc_ratio', plot_style_line, two_stats_ratio_plotter('serializer_old_garbage_blocks', 'serializer_old_total_blocks')),
         ('serializer_MB_in_use', plot_style_line, simple_plotter('serializer_bytes_in_use', 1.0/(1024*1024))),
+        ('serializer_reads/s', plot_style_quantile, differential_plotter('serializer_reads_total')),
+        ('serializer_writes/s', plot_style_quantile, differential_plotter('serializer_writes_total')),
+        ('serializer_data_blks_wr/s', plot_style_quantile, differential_plotter('serializer_writes_total')),
+        ('gc_lba/s', plot_style_quantile, differential_plotter('serializer_lba_gcs')),
+        ('gc_data_ext/s', plot_style_quantile, differential_plotter('serializer_data_extents_gced[dexts]')),
+        ('txn_starting_avg', plot_style_quantile_log, simple_plotter('transactions_starting_avg')),
     ]
     def __init__(self, opts, server):
         def stats_aggregator(stats):

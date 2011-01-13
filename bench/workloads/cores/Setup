@@ -1,16 +1,16 @@
 #!/bin/bash
 
-mkdir -p $BENCH_DIR/bench_output/Number_of_cores_scalability_(canonical_workload)
-echo CPU Cores > $BENCH_DIR/bench_output/Number_of_cores_scalability_(canonical_workload)/multirun
+mkdir -p "$BENCH_DIR/bench_output/Number_of_cores_scalability_(canonical_workload)"
+echo CPU Cores > "$BENCH_DIR/bench_output/Number_of_cores_scalability_(canonical_workload)/multirun"
 
 # Fake a 0-cores result for nicer graphs
-mkdir -p $BENCH_DIR/bench_output/Number_of_cores_scalability_(canonical_workload)/0/1/client
-echo -e "1\t\t0" > $BENCH_DIR/bench_output/Number_of_cores_scalability_(canonical_workload)/0/1/client/qps.txt
+mkdir -p "$BENCH_DIR/bench_output/Number_of_cores_scalability_(canonical_workload)/0/1/client"
+echo -e "1\t\t0" > "$BENCH_DIR/bench_output/Number_of_cores_scalability_(canonical_workload)/0/1/client/qps.txt"
 
 if [ $DATABASE == "rethinkdb" ]; then
     ../../build/release/rethinkdb create $SSD_DRIVES --force
 fi
 
 if [ $DATABASE == "mysql" ]; then
-    sudo bash -c "for CPU in {0..23}; do echo 1 > /sys/devices/system/cpu/cpu\$CPU/online; done"
+    sudo set-corecount 24
 fi

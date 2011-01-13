@@ -36,7 +36,9 @@ typedef mock_io_config_t<platform_io_config_t> io_config_t;
 
 typedef io_config_t::thread_pool_t thread_pool_t;
 
+typedef io_config_t::file_t file_t;
 typedef io_config_t::direct_file_t direct_file_t;
+typedef io_config_t::nondirect_file_t nondirect_file_t;
 typedef io_config_t::iocallback_t iocallback_t;
 
 typedef io_config_t::net_listener_t net_listener_t;

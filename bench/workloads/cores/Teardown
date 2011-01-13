@@ -1,5 +1,5 @@
 #!/bin/bash
 
 if [ $DATABASE == "mysql" ]; then
-    sudo bash -c "for CPU in {12..23}; do echo 0 > /sys/devices/system/cpu/cpu\$CPU/online; done"
+    sudo set-corecount 12
 fi

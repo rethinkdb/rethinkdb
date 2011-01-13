@@ -13,15 +13,18 @@ using namespace std;
 struct mysql_protocol_t : public protocol_t {
     mysql_protocol_t(config_t *config) : _dbname(NULL), protocol_t(config) {
         mysql_init(&mysql);
+        initialized = false;
     }
 
     virtual ~mysql_protocol_t() {
-        for(int i = 0; i < read_stmts.size(); i++) {
-            mysql_stmt_close(read_stmts[i]);
+        if (initialized) {
+            for(int i = 0; i < read_stmts.size(); i++) {
+                mysql_stmt_close(read_stmts[i]);
+            }
+            mysql_stmt_close(insert_stmt);
+            mysql_stmt_close(update_stmt);
+            mysql_stmt_close(remove_stmt);
         }
-        mysql_stmt_close(insert_stmt);
-        mysql_stmt_close(update_stmt);
-        mysql_stmt_close(remove_stmt);
         mysql_close(&mysql);
     }
 
@@ -76,6 +79,7 @@ struct mysql_protocol_t : public protocol_t {
 
         // Use the db we want (it should have been created via shared_init)
         if(use_db(false)) {
+            initialized = true;
             // Prepare remove statement
             remove_stmt = mysql_stmt_init(&mysql);
             const char remove_stmt_str[] = "DELETE FROM bench WHERE __key=?";
@@ -334,7 +338,7 @@ private:
                  "CREATE TABLE bench (__key varchar(%d), __value varchar(%d)," \
                  "PRIMARY KEY (__key)) "                             \
                  "ENGINE=InnoDB",
-                 config->keys.max, config->values.max);
+                 config->keys.calculate_max_length(config->clients - 1), config->values.max);
         status = mysql_query(&mysql, buf);
         if(status != 0) {
             fprintf(stderr, "Could not create the table.\n");
@@ -347,6 +351,7 @@ private:
     MYSQL_STMT *remove_stmt, *update_stmt, *insert_stmt;
     vector<MYSQL_STMT*> read_stmts;
     char *_dbname;
+    bool initialized;
 };
 
 

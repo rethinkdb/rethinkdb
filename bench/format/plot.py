@@ -365,7 +365,8 @@ class ScatterCollection():
             y_values = []
             for (x_value, y_value) in series_data:
                 max_x_value = max(max_x_value, x_value)
-                max_y_value = max(max_y_value, y_value)
+                if len(y_values) >= len(series_data) / 10: # Ignore first 10 % for y limit calculation, as they might contain very high peeks
+                    max_y_value = max(max_y_value, y_value)
                 x_values.append(x_value)
                 y_values.append(y_value)
             if normalize:

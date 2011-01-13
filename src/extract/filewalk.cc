@@ -72,11 +72,11 @@ private:
     DISABLE_COPYING(dumper_t);
 };
 
-void walk_extents(dumper_t &dumper, direct_file_t &file, const cfg_t static_config);
-void observe_blocks(block_registry &registry, direct_file_t &file, const cfg_t cfg, uint64_t filesize);
-void get_all_values(dumper_t& dumper, const segmented_vector_t<off64_t, MAX_BLOCK_ID>& offsets, direct_file_t& file, const cfg_t cfg, uint64_t filesize);
+void walk_extents(dumper_t &dumper, nondirect_file_t &file, const cfg_t static_config);
+void observe_blocks(block_registry &registry, nondirect_file_t &file, const cfg_t cfg, uint64_t filesize);
+void get_all_values(dumper_t& dumper, const segmented_vector_t<off64_t, MAX_BLOCK_ID>& offsets, nondirect_file_t& file, const cfg_t cfg, uint64_t filesize);
 bool check_config(const cfg_t& cfg);
-void dump_pair_value(dumper_t &dumper, direct_file_t& file, const cfg_t& cfg, const segmented_vector_t<off64_t, MAX_BLOCK_ID>& offsets, const btree_leaf_pair *pair, ser_block_id_t this_block, int pair_size_limiter);
+void dump_pair_value(dumper_t &dumper, nondirect_file_t& file, const cfg_t& cfg, const segmented_vector_t<off64_t, MAX_BLOCK_ID>& offsets, const btree_leaf_pair *pair, ser_block_id_t this_block, int pair_size_limiter);
 void walkfile(dumper_t &dumper, const char *path);
 
 
@@ -103,7 +103,7 @@ bool check_config(size_t filesize, const cfg_t cfg) {
     return !errors;
 }
 
-void walk_extents(dumper_t &dumper, direct_file_t &file, cfg_t cfg) {
+void walk_extents(dumper_t &dumper, nondirect_file_t &file, cfg_t cfg) {
     uint64_t filesize = file.get_size();
 
     if (!check_config(filesize, cfg)) {
@@ -166,7 +166,7 @@ bool check_all_known_magic(block_magic_t magic) {
         || magic == log_serializer_t::zerobuf_magic;
 }
 
-void observe_blocks(block_registry& registry, direct_file_t& file, const cfg_t cfg, uint64_t filesize) {
+void observe_blocks(block_registry& registry, nondirect_file_t& file, const cfg_t cfg, uint64_t filesize) {
     for (off64_t offset = 0, max_offset = filesize - cfg.block_size().ser_value();
          offset <= max_offset;
          offset += cfg.block_size().ser_value()) {
@@ -179,7 +179,7 @@ void observe_blocks(block_registry& registry, direct_file_t& file, const cfg_t c
     }
 }
 
-void get_all_values(dumper_t& dumper, const segmented_vector_t<off64_t, MAX_BLOCK_ID>& offsets, direct_file_t& file, const cfg_t cfg, uint64_t filesize) {
+void get_all_values(dumper_t& dumper, const segmented_vector_t<off64_t, MAX_BLOCK_ID>& offsets, nondirect_file_t& file, const cfg_t cfg, uint64_t filesize) {
     // If the database has been copied to a normal filesystem, it's
     // _way_ faster to rescan the file in order of offset than in
     // order of block id.  However, we still do some random access
@@ -227,7 +227,7 @@ private:
     DISABLE_COPYING(blocks);
 };
 
-bool get_large_buf_segments(const btree_key *key, direct_file_t& file, const large_buf_ref& ref, const cfg_t& cfg, int mod_id, const segmented_vector_t<off64_t, MAX_BLOCK_ID>& offsets, blocks *segblocks) {
+bool get_large_buf_segments(const btree_key *key, nondirect_file_t& file, const large_buf_ref& ref, const cfg_t& cfg, int mod_id, const segmented_vector_t<off64_t, MAX_BLOCK_ID>& offsets, blocks *segblocks) {
     int levels = large_buf_t::compute_num_levels(cfg.block_size(), ref.offset + ref.size);
 
     ser_block_id_t trans = translator_serializer_t::translate_block_id(ref.block_id, cfg.mod_count, mod_id, CONFIG_BLOCK_ID);
@@ -287,7 +287,7 @@ bool get_large_buf_segments(const btree_key *key, direct_file_t& file, const lar
 
 
 // Dumps the values for a given pair.
-void dump_pair_value(dumper_t &dumper, direct_file_t& file, const cfg_t& cfg, const segmented_vector_t<off64_t, MAX_BLOCK_ID>& offsets, const btree_leaf_pair *pair, ser_block_id_t this_block, int pair_size_limiter) {
+void dump_pair_value(dumper_t &dumper, nondirect_file_t& file, const cfg_t& cfg, const segmented_vector_t<off64_t, MAX_BLOCK_ID>& offsets, const btree_leaf_pair *pair, ser_block_id_t this_block, int pair_size_limiter) {
     const btree_key *key = &pair->key;
 
     // TODO: move this functionality to btree_leaf_pair, give it a
@@ -357,7 +357,7 @@ void dump_pair_value(dumper_t &dumper, direct_file_t& file, const cfg_t& cfg, co
 
 
 void walkfile(dumper_t& dumper, const std::string& db_file, cfg_t overrides) {
-    direct_file_t file(db_file.c_str(), direct_file_t::mode_read);
+    nondirect_file_t file(db_file.c_str(), file_t::mode_read);
 
     block headerblock;
     headerblock.init(DEVICE_BLOCK_SIZE, &file, 0);

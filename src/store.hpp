@@ -2,7 +2,7 @@
 #define __STORE_HPP__
 
 #include "utils.hpp"
-#include "coroutine/coroutines.hpp"
+#include "arch/arch.hpp"
 
 typedef uint32_t mcflags_t;
 typedef uint32_t exptime_t;
