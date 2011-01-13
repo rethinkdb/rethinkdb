@@ -33,6 +33,10 @@ else
 BUILD_DIR:=$(BUILD_ROOT_DIR)/release
 endif
 
+PACKAGES_DIR:=$(BUILD_ROOT_DIR)/packages
+RPM_PACKAGE_DIR:=$(PACKAGES_DIR)/rpm
+DEB_PACKAGE_DIR:=$(PACKAGES_DIR)/deb
+
 # Define configuration variables
 CXX:=g++
 LDFLAGS:=-Wl,--no-as-needed -lpthread -lrt -laio
@@ -154,6 +158,38 @@ ifeq ($(UNIT_TESTS),1)
 all: $(BUILD_DIR)/$(SERVER_EXEC_NAME) $(BUILD_DIR)/$(SERVER_UNIT_TEST_NAME) $(BUILD_DIR)/$(START_DB_NAME) $(BUILD_DIR)/$(GDB_FUNCTIONS_NAME)
 else
 all: $(BUILD_DIR)/$(SERVER_EXEC_NAME) $(BUILD_DIR)/$(START_DB_NAME) $(BUILD_DIR)/$(GDB_FUNCTIONS_NAME)
+endif
+
+ifeq ($(PACKAGING),1)
+TEMP_SPEC:=$(shell mktemp -t XXXX.spec)
+package: all
+	@echo Building package for RethinkDB version $(RETHINKDB_VERSION)
+
+	$(QUIET) mkdir -p $(RPM_PACKAGE_DIR)
+	$(QUIET) for d in BUILD RPMS/x86_64 SOURCES SPECS SRPMS; do mkdir -p $(RPM_PACKAGE_DIR)/$$d; done
+	$(QUIET) for d in /usr/bin /usr/share/man/man1; do mkdir -p $(RPM_PACKAGE_DIR)/BUILD$$d; done
+	$(QUIET) cat ../packaging/rpm.spec | \
+		sed s/VERSION/$(shell echo $(RETHINKDB_VERSION) | sed s/-/_/g)/ | \
+		sed s:TOPDIR:$(RPM_PACKAGE_DIR): | \
+		cat > $(TEMP_SPEC)
+	$(QUIET) cp $(BUILD_DIR)/$(SERVER_EXEC_NAME) $(RPM_PACKAGE_DIR)/BUILD/usr/bin
+	$(QUIET) cat ../docs/rethinkdb.1 | gzip > $(RPM_PACKAGE_DIR)/BUILD/usr/share/man/man1/rethinkdb.1.gz
+
+# FIXME: write rpmbuild output out to stderr if there's an error
+	$(QUIET) rpmbuild -bb --target=x86_64 --buildroot $$(cd $(RPM_PACKAGE_DIR)/BUILD; pwd) $(TEMP_SPEC) > /tmp/rpmbuild.stdout 2> /tmp/rpmbuild.stderr;
+	$(QUIET) rm $(TEMP_SPEC)
+	$(QUIET) echo
+	$(QUIET) echo "Your RPM packages are here:"
+	$(QUIET) for f in $(RPM_PACKAGE_DIR)/RPMS/x86_64/*.rpm; do \
+			mv $$f $(PACKAGES_DIR)/; \
+			echo "  $$(cd $(PACKAGES_DIR); pwd)/$$(basename $$f)"; \
+		done
+	$(QUIET) echo
+
+else
+.NOTPARALLEL: clean
+package: clean
+	@$(MAKE) PACKAGING=1 DEBUG=0 SYMBOLS=1 package
 endif
 
 
