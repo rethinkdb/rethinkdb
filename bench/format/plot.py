@@ -490,11 +490,15 @@ class SubplotCollection():
         # This GridSpec defines the layout of the subplots
         gs = gridspec.GridSpecFromSubplotSpec(subplot_dim, subplot_dim, subplot_spec=gs_wrapper[0,1])
 
+	# Sort the data keys so that the subplots display in order.
+	sorted_data_keys = self.data.keys()
+	sorted_data_keys.sort()
+
         for i in range(subplot_dim):
             for j in range(subplot_dim):
                 subplot_num = i * subplot_dim + j
                 if subplot_num < num_subplots:
-                    self.plot_subplot(plt.subplot(gs[i,j]), self.data[str(subplot_num+1)], queries_formatter, font)
+                    self.plot_subplot(plt.subplot(gs[i,j]), self.data[sorted_data_keys[subplot_num]], queries_formatter, font)
         
         fig.set_size_inches(5,3.7)
         fig.set_dpi(90)
