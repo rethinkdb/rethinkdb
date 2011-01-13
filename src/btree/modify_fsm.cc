@@ -214,6 +214,8 @@ void btree_modify_fsm_t::run(btree_key_value_store_t *store, btree_key *_key) {
     };
     (void) key_memory;
 
+    keycpy(&key, _key);
+
     slice = store->slice_for_key(&key); // XXX
     cache_t *cache = &slice->cache;
     block_size_t block_size = cache->get_block_size();
