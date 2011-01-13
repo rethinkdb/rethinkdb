@@ -214,6 +214,7 @@ public:
     struct replicant_t {
         struct done_callback_t {
             virtual void have_copied_value() = 0;
+            virtual ~done_callback_t() {}
         };
         virtual void value(const store_key_t *key, const_buffer_group_t *value, done_callback_t *cb, mcflags_t flags, exptime_t exptime, cas_t cas, repli_timestamp timestamp) = 0;
         

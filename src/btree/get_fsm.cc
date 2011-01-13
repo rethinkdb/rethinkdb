@@ -6,52 +6,7 @@
 
 #include "btree/delete_expired_fsm.hpp"
 
-struct value_done_t : public store_t::get_callback_t::done_callback_t {
-    coro_t *self;
-    value_done_t() : self(coro_t::self()) { }
-    void have_copied_value() { self->notify(); }
-};
-
-void co_value(store_t::get_callback_t *cb, const_buffer_group_t *value_buffers, mcflags_t flags, cas_t cas) {
-    value_done_t done;
-    cb->value(value_buffers, &done, flags, cas);
-    coro_t::wait();
-}
-
-struct large_value_acquired_t : public large_buf_available_callback_t {
-    coro_t *self;
-    large_value_acquired_t() : self(coro_t::self()) { }
-    void on_large_buf_available(large_buf_t *large_value) { self->notify(); }
-};
-
-void co_acquire_large_value(large_buf_t *large_value, large_buf_ref root_ref_, access_t access_) {
-    large_value_acquired_t acquired;
-    large_value->acquire(root_ref_, access_, &acquired);
-    coro_t::wait();
-}
-
-struct co_block_available_callback_t : public block_available_callback_t {
-    coro_t *self;
-    buf_t *value;
-
-    virtual void on_block_available(buf_t *block) {
-        value = block;
-        self->notify();
-    }
-
-    buf_t *join() {
-        self = coro_t::self();
-        coro_t::wait();
-        return value;
-    }
-};
-
-buf_t *co_acquire_transaction(transaction_t *transaction, block_id_t block_id, access_t mode) {
-    co_block_available_callback_t cb;
-    buf_t *value = transaction->acquire(block_id, mode, &cb);
-    if (!value) value = cb.join();
-    return value;
-}
+#include "btree/coro_wrappers.hpp"
 
 void co_btree_get(btree_key *_key, btree_key_value_store_t *store, store_t::get_callback_t *cb) {
     union {
@@ -81,7 +36,7 @@ void co_btree_get(btree_key *_key, btree_key_value_store_t *store, store_t::get_
     buf_t *buf, *last_buf;
     transaction = cache->begin_transaction(rwi_read, NULL);
     assert(transaction); // Read-only transaction always begins immediately.
-    last_buf = co_acquire_transaction(transaction, SUPERBLOCK_ID, rwi_read);
+    last_buf = co_acquire_block(transaction, SUPERBLOCK_ID, rwi_read);
     assert(last_buf);
     block_id_t node_id = ptr_cast<btree_superblock_t>(last_buf->get_data_read())->root_block;
     assert(node_id != SUPERBLOCK_ID);
@@ -103,7 +58,7 @@ void co_btree_get(btree_key *_key, btree_key_value_store_t *store, store_t::get_
     //Acquire the leaf node
     const node_t *node;
     while (true) {
-	buf = co_acquire_transaction(transaction, node_id, rwi_read);
+	buf = co_acquire_block(transaction, node_id, rwi_read);
 	assert(buf);
 	node_handler::validate(cache->get_block_size(), ptr_cast<node_t>(buf->get_data_read()));
 	
@@ -127,7 +82,7 @@ void co_btree_get(btree_key *_key, btree_key_value_store_t *store, store_t::get_
     buf = NULL;
     
     if (found && value.expired()) {
-	delete_expired(&key, store);
+	btree_delete_expired(&key, store);
 	found = false;
     }
     

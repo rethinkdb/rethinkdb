@@ -5,23 +5,19 @@
 
 class btree_incr_decr_fsm_t : public btree_modify_fsm_t
 {
-    typedef btree_fsm_t::transition_result_t transition_result_t;
 public:
-    explicit btree_incr_decr_fsm_t(btree_key *_key, btree_key_value_store_t *store, bool increment, unsigned long long delta, store_t::incr_decr_callback_t *cb)
-        : btree_modify_fsm_t(_key, store),
+    explicit btree_incr_decr_fsm_t(bool increment, unsigned long long delta, store_t::incr_decr_callback_t *cb)
+        : btree_modify_fsm_t(),
           increment(increment),
           delta(delta),
           callback(cb)
-    {
-        do_transition(NULL);
-    }
+    { }
 
-    void operate(btree_value *old_value, large_buf_t *old_large_buf) {
+    bool operate(btree_value *old_value, large_buf_t *old_large_buf, btree_value **new_value, large_buf_t **new_large_buf) {
         // If the key didn't exist before, we fail
         if (!old_value) {
             result = result_not_found;
-            have_failed_operating();
-            return;
+            return false;
         }
         
         // If we can't parse the key as a number, we fail
@@ -39,8 +35,7 @@ public:
         }
         if (!valid) {
             result = result_not_numeric;
-            have_failed_operating();
-            return;
+            return false;
         }
 
         
@@ -64,7 +59,9 @@ public:
         temp_value.value_size(chars_written);
         
         result = result_success;
-        have_finished_operating(&temp_value, NULL);
+        *new_value = &temp_value;
+        *new_large_buf = NULL;
+        return true;
     }
     
     void call_callback_and_delete() {
@@ -104,5 +101,14 @@ private:
     } result;
     uint64_t new_number;
 };
+
+void co_btree_incr_decr(btree_key *key, btree_key_value_store_t *store, bool increment, unsigned long long delta, store_t::incr_decr_callback_t *cb) {
+    btree_incr_decr_fsm_t *fsm = new btree_incr_decr_fsm_t(increment, delta, cb);
+    fsm->run(store, key);
+}
+
+void btree_incr_decr(btree_key *key, btree_key_value_store_t *store, bool increment, unsigned long long delta, store_t::incr_decr_callback_t *cb) {
+    coro_t::spawn(co_btree_incr_decr, key, store, increment, delta, cb);
+}
 
 #endif // __BTREE_SET_FSM_HPP__
