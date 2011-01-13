@@ -10,87 +10,58 @@
 // unnecessary.
 
 class btree_get_cas_fsm_t :
-    public btree_modify_fsm_t,
-    public store_t::get_callback_t::done_callback_t
+    public btree_modify_fsm_t
 {
-    typedef btree_fsm_t::transition_result_t transition_result_t;
 public:
-    explicit btree_get_cas_fsm_t(btree_key *_key, btree_key_value_store_t *store, store_t::get_callback_t *cb)
-        : btree_modify_fsm_t(_key, store), callback(cb), in_operate(false)
+    explicit btree_get_cas_fsm_t(store_t::get_callback_t *cb)
+        : btree_modify_fsm_t(), callback(cb), in_operate(false)
     {
         pm_cmd_get.begin(&start_time);
-        do_transition(NULL);
     }
     
     ~btree_get_cas_fsm_t() {
         pm_cmd_get.end(&start_time);
     }
 
-    void operate(btree_value *old_value, large_buf_t *old_large_buf) {
+    bool operate(btree_value *old_value, large_buf_t *old_large_buf, btree_value **new_value, large_buf_t **new_large_buf) {
         if (!old_value) {
             result = result_not_found;
-            have_failed_operating();
-        } else {
-            valuecpy(&value, old_value);
-            large_value = old_large_buf;
-
-            there_was_cas_before = value.has_cas();
-            if (!value.has_cas()) { // We have always been at war with Eurasia.
-                value.set_cas(slice->gen_cas());
-                this->cas_already_set = true;
-            }
-
-            if (value.is_large()) {
-                result = result_large_value;
-                // Prepare the buffer group
-                for (int64_t i = 0; i < old_large_buf->get_num_segments(); i++) {
-                    uint16_t size;
-                    const void *data = old_large_buf->get_segment(i, &size);
-                    buffer_group.add_buffer(size, data);
-                }
-                
-                in_operate = true;   // So we intercept on_thread_switch()
-                if (continue_on_thread(home_thread, this)) on_thread_switch();
-            } else {
-                result = result_small_value;
-                done_with_operate();
-            }
+            return false;
         }
-    }
-    
-    void done_with_operate() {
+
+        valuecpy(&value, old_value);
+        large_value = old_large_buf;
+
+        there_was_cas_before = value.has_cas();
+        if (!value.has_cas()) { // We have always been at war with Eurasia.
+            value.set_cas(slice->gen_cas());
+            this->cas_already_set = true;
+        }
+
+        if (value.is_large()) {
+            result = result_large_value;
+            // Prepare the buffer group
+            for (int64_t i = 0; i < old_large_buf->get_num_segments(); i++) {
+                uint16_t size;
+                const void *data = old_large_buf->get_segment(i, &size);
+                buffer_group.add_buffer(size, data);
+            }
+
+            { // TODO: Actually use RAII.
+                coro_t::move_to_thread(home_thread);
+                co_value(callback, &buffer_group, value.mcflags(), value.cas());
+                coro_t::move_to_thread(slice->home_thread);
+            }
+        } else {
+            result = result_small_value;
+        }
+
         if (there_was_cas_before) {
-            have_failed_operating();   // We didn't actually fail, but we made no change
+            return false; // We didn't actually fail, but we made no change
         } else {
-            have_finished_operating(&value, large_value);
-        }
-    }
-    
-    void on_thread_switch() {
-        if (in_operate) {
-            if (!have_delivered_value) {
-                callback->value(&buffer_group, this, value.mcflags(), value.cas());
-            } else {
-                in_operate = false;
-                done_with_operate();
-            }
-        } else {
-            btree_modify_fsm_t::on_thread_switch();
-        }
-    }
-    
-    void have_copied_value() {
-        switch (result) {
-            case result_small_value:
-                delete this;
-                break;
-            case result_large_value:
-                have_delivered_value = true;
-                if (continue_on_thread(slice->home_thread, this)) on_thread_switch();
-                break;
-            case result_not_found:
-            default:
-                unreachable();
+            *new_value = &value;
+            *new_large_buf = large_value;
+            return true;
         }
     }
     
@@ -102,7 +73,8 @@ public:
                 break;
             case result_small_value:
                 buffer_group.add_buffer(value.value_size(), value.value());
-                callback->value(&buffer_group, this, value.mcflags(), value.cas());
+                co_value(callback, &buffer_group, value.mcflags(), value.cas());
+                delete this;
                 break;
             case result_large_value:
                 // We already delivered our callback during operate().
@@ -132,5 +104,14 @@ private:
         result_large_value,
     } result;
 };
+
+void co_btree_get_cas(btree_key *key, btree_key_value_store_t *store, store_t::get_callback_t *cb) {
+    btree_get_cas_fsm_t *fsm = new btree_get_cas_fsm_t(cb);
+    fsm->run(store, key);
+}
+
+void btree_get_cas(btree_key *key, btree_key_value_store_t *store, store_t::get_callback_t *cb) {
+    coro_t::spawn(co_btree_get_cas, key, store, cb);
+}
 
 #endif // __BTREE_GET_CAS_FSM_HPP__
