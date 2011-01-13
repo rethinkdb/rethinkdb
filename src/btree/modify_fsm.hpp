@@ -19,16 +19,17 @@ public:
 
     virtual ~btree_modify_fsm_t() { }
 
-    /* btree_modify_fsm calls operate() when it finds the leaf node.
-     * 'old_value' is the previous value or NULL if the key was not present
-     * before. 'old_large_buf' is the large buf for the old value, if the old
-     * value is a large value. When the subclass is done, it should call
-     * have_finished_operating() or have_failed_operating(). If it calls
-     * have_finished_operating(), the buffer it passes should remain valid
-     * until the btree_modify_fsm is destroyed.
+    /* operate() is called when the leaf node is reached. 'old_value' is the
+     * previous value or NULL if the key was not present before.
+     * 'old_large_buf' is the large buf for the old value, if the old value is
+     * a large value. operate()'s return value indicates whether the leaf
+     * should be updated. If it returns true, it's responsible for setting
+     * *new_value and *new_large_buf to the correct new values (note that these
+     * must match up). If *new_value is NULL, the value will be deleted (and
+     * similarly for *new_large_buf).
      */
-    // TODO: Fix operate()'s documentation.
-    virtual bool operate(btree_value *old_value, large_buf_t *old_large_buf, btree_value **new_value, large_buf_t **new_large_buf) = 0;
+    virtual bool operate(btree_value *old_value, large_buf_t *old_large_buf,
+                         btree_value **new_value, large_buf_t **new_large_buf) = 0;
 
     /* btree_modify_fsm calls call_callback_and_delete() after it has
      * returned to the core on which it originated. Subclasses use

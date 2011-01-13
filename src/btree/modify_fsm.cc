@@ -32,8 +32,10 @@ void btree_modify_fsm_t::check_and_handle_split(const node_t **node, const btree
     // Split the node if necessary
     bool full;
     if (node_handler::is_leaf(*node)) { // This should only be called when update_needed.
+        assert(new_value);
         full = leaf_node_handler::is_full(ptr_cast<leaf_node_t>(*node), key, new_value);
     } else {
+        assert(!new_value);
         full = internal_node_handler::is_full(ptr_cast<internal_node_t>(*node));
     }
 
@@ -180,15 +182,6 @@ void btree_modify_fsm_t::run(btree_key_value_store_t *store, btree_key *_key) {
 
     buf = get_root(&sb_buf, block_size);
 
-    bool update_needed = false;
-    bool key_found = false;
-    bool expired = false;
-    large_buf_t *old_large_buf = NULL;
-    large_buf_t *new_large_buf;
-    // When we reach the leaf node and it's time to call operate(), we store the result in
-    // 'new_value' until we are ready to insert it.
-    btree_value *new_value = NULL;
-
     repli_timestamp new_value_timestamp = repli_timestamp::invalid;
 
     const node_t *node;
@@ -198,7 +191,7 @@ void btree_modify_fsm_t::run(btree_key_value_store_t *store, btree_key *_key) {
     while (node_handler::is_internal(node)) {
 
         // Check if it's overfull. If so we would need to do proactive split (since this is an internal node).
-        check_and_handle_split(&node, &key, &sb_buf, new_value, block_size);
+        check_and_handle_split(&node, &key, &sb_buf, NULL, block_size);
 
         // Check to see if it's underfull, and merge/level if it is.
         check_and_handle_underfull(&node, &key, &sb_buf, block_size);
@@ -209,8 +202,10 @@ void btree_modify_fsm_t::run(btree_key_value_store_t *store, btree_key *_key) {
             sb_buf = NULL;
         }
 
-        // Release the previous previous node.
-        if (last_buf) last_buf->release();
+        // Release the old previous node, and set the new previous node.
+        if (last_buf) {
+            last_buf->release();
+        }
         last_buf = buf;
 
         // Look up the next node.
@@ -221,15 +216,16 @@ void btree_modify_fsm_t::run(btree_key_value_store_t *store, btree_key *_key) {
         node = ptr_cast<node_t>(buf->get_data_read());
     }
 
-    key_found = leaf_node_handler::lookup(ptr_cast<leaf_node_t>(node), &key, &old_value);
+    bool key_found = leaf_node_handler::lookup(ptr_cast<leaf_node_t>(node), &key, &old_value);
 
-    if (key_found && old_value.is_large() && !old_large_buf) {
+    large_buf_t *old_large_buf = NULL;
+    if (key_found && old_value.is_large()) {
         old_large_buf = new large_buf_t(transaction);
         actually_acquire_large_value(old_large_buf, old_value.lb_ref());
         assert(old_large_buf->state == large_buf_t::loaded);
     }
 
-    expired = key_found && old_value.expired();
+    bool expired = key_found && old_value.expired();
     if (expired) {
         // We tell operate() that the key wasn't found. If it tells us to make
         // a change, we'll replace/delete the value as usual; if it tells us to
@@ -237,10 +233,13 @@ void btree_modify_fsm_t::run(btree_key_value_store_t *store, btree_key *_key) {
         key_found = false;
     }
 
-    // We've found the old value, or determined that it is not
-    // present or expired; now compute the new value.
+    // We've found the old value, or determined that it is not present or
+    // expired; now compute the new value.
 
-    update_needed = operate(key_found ? &old_value : NULL, old_large_buf, &new_value, &new_large_buf);
+    btree_value *new_value;
+    large_buf_t *new_large_buf;
+
+    bool update_needed = operate(key_found ? &old_value : NULL, old_large_buf, &new_value, &new_large_buf);
 
     if (update_needed) {
         if (new_value && new_value->is_large()) {
@@ -260,29 +259,27 @@ void btree_modify_fsm_t::run(btree_key_value_store_t *store, btree_key *_key) {
         check_and_handle_split(&node, &key, &sb_buf, new_value, block_size);
     }
 
-    // STEP 3: Update if operate() told us to.
+    // Update if operate() told us to.
     if (update_needed) {
         // TODO make sure we're updating leaf node timestamps.
-
-       if (new_value) { // We have a new value to insert
+       if (new_value) {
            if (new_value->has_cas() && !cas_already_set) {
                new_value->set_cas(slice->gen_cas());
            }
-           new_value_timestamp = current_time();
+           repli_timestamp new_value_timestamp = current_time(); // TODO: When the replication code is put back in this'll probably need to be changed.
            bool success = leaf_node_handler::insert(block_size, ptr_cast<leaf_node_t>(buf->get_data_write()), &key, new_value, new_value_timestamp);
            guarantee(success, "could not insert leaf btree node");
-       } else {
+       } else { // Delete
            if (key_found || expired) {
                leaf_node_handler::remove(block_size, ptr_cast<leaf_node_t>(buf->get_data_write()), &key);
            } else {
-                // operate() told us to delete a value (update_needed && !old_value), but the
-                // key wasn't in the node (!key_found && !expired). I'm still not convinced
-                // that this should be handled here.
+                // operate() told us to delete a value (update_needed && !new_value), but the
+                // key wasn't in the node (!key_found && !expired), so we do nothing.
            }
        }
     }
 
-    // STEP 4: Check to see if it's underfull, and merge/level if it is.
+    // Check to see if it's underfull, and merge/level if it is.
     check_and_handle_underfull(&node, &key, &sb_buf, block_size);
 
     // Release bufs as necessary.
