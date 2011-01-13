@@ -1036,7 +1036,11 @@ void txt_memcached_handler_t::on_send_buffer_flush() {
     the socket. */
     pm_conns_writing.end(&start_time);
     pm_conns_reading.begin(&start_time);
-    conn->read_buffered(this);
+    if (conn->is_read_open()) {
+        conn->read_buffered(this);
+    } else {
+        shut_down();
+    }
 }
 
 void txt_memcached_handler_t::on_send_buffer_socket_closed() {
