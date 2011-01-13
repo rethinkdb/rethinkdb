@@ -16,7 +16,7 @@ class conn_acceptor_t :
     public net_listener_callback_t,
     public home_thread_mixin_t
 {
-    friend class conn_handler_t;
+    //    friend class conn_handler_t;
 
 public:
 
@@ -45,6 +45,9 @@ public:
 
     /* Will make sure all connections are closed before it returns. May block. */
     ~conn_acceptor_t();
+
+    void register_handler_on_this_core(conn_handler_t *h);
+    void deregister_handler_on_this_core(conn_handler_t *h);
 
 private:
     handler_t *handler;

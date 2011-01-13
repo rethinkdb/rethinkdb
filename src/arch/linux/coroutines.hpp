@@ -37,6 +37,8 @@ private:
     /* A deed_t is a virtual superclass for callable objects. */
     struct deed_t {
         virtual void operator()() = 0;
+    protected:
+        ~deed_t() { }
     };
 
 public:
