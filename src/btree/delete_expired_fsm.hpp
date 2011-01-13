@@ -18,13 +18,22 @@ public:
     }
 };
 
-void co_btree_delete_expired(btree_key *key, btree_key_value_store_t *store) {
+// This function is called when doing a btree_get() and finding an expired key.
+// However, sometimes the get coroutine finishes before the delete_expired
+// coroutine has a chance to start and copy the key from the get coroutine's
+// stack. So for now we'll make a copy of the key and then free it when
+// delete_expired is done.
+
+void co_btree_delete_expired(btree_key *key_copy, btree_key_value_store_t *store) {
     btree_delete_expired_fsm_t *fsm = new btree_delete_expired_fsm_t();
-    fsm->run(store, key);
+    fsm->run(store, key_copy);
+    free(key_copy);
 }
 
 void btree_delete_expired(btree_key *key, btree_key_value_store_t *store) {
-    coro_t::spawn(co_btree_delete_expired, key, store);
+    btree_key *key_copy = (btree_key *) malloc(key->size + sizeof(btree_key));
+    keycpy(key_copy, key);
+    coro_t::spawn(co_btree_delete_expired, key_copy, store);
 }
 
 #endif // __BTREE_DELETE_EXPIRED_FSM_HPP__
