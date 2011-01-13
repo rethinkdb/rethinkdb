@@ -67,8 +67,13 @@ void usage_serve(const char *name) {
         help->pagef(" Defaults to %dms.\n", DEFAULT_FLUSH_TIMER_MS);
     }
     help->pagef("      --unsaved-data-limit\n" 
-                "                        The maximum amount (in MB) of dirty data (data which is held in memory\n"
-                "                        but has not yet been serialized to disk.) Defaults to %d MB.\n", DEFAULT_UNSAVED_DATA_LIMIT / MEGABYTE);
+                "                        The maximum amount (in MB) of dirty data (data which is\n"
+                "                        held in memory but has not yet been serialized to disk.)\n"
+                "                        ");
+    if (DEFAULT_UNSAVED_DATA_LIMIT == 0)
+        help->pagef("Defaults to %1.1f times the max cache size.\n", MAX_UNSAVED_DATA_LIMIT_FRACTION);
+    else
+        help->pagef("Defaults to %d MB.\n", DEFAULT_UNSAVED_DATA_LIMIT / MEGABYTE);
     help->pagef("\n"
                 "Disk options:\n");
     help->pagef("      --gc-range low-high  (e.g. --gc-range 0.5-0.75)\n"
@@ -368,7 +373,8 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
     
     /* Sanity-check the input */
     
-    if (config.store_dynamic_config.cache.max_dirty_size >
+    if (config.store_dynamic_config.cache.max_dirty_size == 0 ||
+        config.store_dynamic_config.cache.max_dirty_size >
         config.store_dynamic_config.cache.max_size * MAX_UNSAVED_DATA_LIMIT_FRACTION) {
         
         /* The page replacement algorithm won't work properly if the number of dirty bufs

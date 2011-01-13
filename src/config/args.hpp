@@ -86,7 +86,9 @@
 
 // If more than this many bytes of dirty data accumulate in the cache, then write
 // transactions will be throttled.
-#define DEFAULT_UNSAVED_DATA_LIMIT                GIGABYTE
+// A value of 0 means that it will automatically be set to MAX_UNSAVED_DATA_LIMIT_FRACTION
+// times the max cache size
+#define DEFAULT_UNSAVED_DATA_LIMIT                0
 
 // The unsaved data limit cannot exceed this fraction of the max cache size
 #define MAX_UNSAVED_DATA_LIMIT_FRACTION           0.9
