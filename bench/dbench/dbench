@@ -238,7 +238,7 @@ class Sleep(Worker):
 class Server(Worker):
     argtype = 'Server'
 
-    MAX_WAIT_TIME = 60
+    MAX_WAIT_TIME = 600
     WAIT_INTERVAL = 0.5
     def wait_for_server_ready(self):
         bound = time.time() + self.MAX_WAIT_TIME
@@ -311,7 +311,7 @@ class Membase(MemcachedLikeServer):
         self.run_process(self.find_binary('membase-wrapper'), args)
         self.wait_for_server_ready()
 
-    MAX_WAIT_TIME = 60
+    MAX_WAIT_TIME = 600
     WAIT_INTERVAL = 0.5
     # When membase is first run, before the configuration step is complete,
     # clients that connect are automatically directed to a "null bucket", and
