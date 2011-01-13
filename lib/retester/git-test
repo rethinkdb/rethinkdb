@@ -31,30 +31,29 @@ environ["PYTHONUNBUFFERED"] = "1"
 if opts["background"]:
     opts["logoutput"] = True
 
-# If we are backgrounded, then we ignore SIGHUP and implicitly set the email flag if not given.
-if opts["background"]:
-    
-    # If we are running in the background, automatically email the user
+# If we run with logoutput, we redirect all output to a log file
+if opts["logoutput"]:
+    # If we are running with logoutput, automatically email the user
     if opts["email"]:
         recipient = opts["email"]
     else:
         recipient = gitroot.run_command(["git", "config", "--get", "user.email"]).strip()
     extra_args.extend(["--email", recipient])
     
+    if opts["file"]:
+        extra_args.extend(["--file", opts["file"]])
+
+    sys.stdout = sys.__stdout__ = sys.stderr = sys.__stderr__ = \
+        file(os.path.join(os.path.expanduser("~"), "git-test-%s-%s.out" % (datetime.datetime.now(), os.getpid())), "w", 0)
+
+# If we are backgrounded, then we ignore SIGHUP and implicitly set the email flag if not given.
+if opts["background"]:
     if os.fork() != 0:
         print "Running in background; will email '%s' when done." % recipient
         sys.exit(0)
     
-    if opts["file"]:
-        extra_args.extend(["--file", opts["file"]])
-    
     signal.signal(signal.SIGHUP, signal.SIG_IGN)
     signal.siginterrupt(signal.SIGHUP, False)
-    
-# If we run with logoutput, we redirect all output to a log file
-if opts["logoutput"]:
-    sys.stdout = sys.__stdout__ = sys.stderr = sys.__stderr__ = \
-        file(os.path.join(os.path.expanduser("~"), "git-test-%s-%s.out" % (datetime.datetime.now(), os.getpid())), "w", 0)
 
 # Find the git repository root
 root_to_current_dir = "."
