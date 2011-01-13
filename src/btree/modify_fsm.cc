@@ -44,11 +44,9 @@ void btree_modify_fsm_t::check_and_handle_split(const node_t **node, const btree
         btree_key *median = reinterpret_cast<btree_key *>(memory);
         buf_t *rbuf;
         internal_node_t *last_node;
-        block_id_t rnode_id;
-        split_node(buf, &rbuf, &rnode_id, median, block_size);
+        split_node(buf, &rbuf, median, block_size);
         if (last_buf == NULL) { // We're splitting a root, so create a new root.
-            block_id_t last_node_id; // TODO: transaction->allocate doesn't need to give you a block_id, since you can just call buf->get_block_id().
-            last_buf = transaction->allocate(&last_node_id);
+            last_buf = transaction->allocate();
             last_node = ptr_cast<internal_node_t>(last_buf->get_data_write());
             internal_node_handler::init(block_size, last_node);
 
@@ -58,7 +56,7 @@ void btree_modify_fsm_t::check_and_handle_split(const node_t **node, const btree
             last_node = ptr_cast<internal_node_t>(last_buf->get_data_write());
         }
 
-        bool success __attribute__((unused)) = internal_node_handler::insert(block_size, last_node, median, buf->get_block_id(), rnode_id);
+        bool success __attribute__((unused)) = internal_node_handler::insert(block_size, last_node, median, buf->get_block_id(), rbuf->get_block_id());
         assert(success, "could not insert internal btree node");
 
         // Figure out where the key goes
@@ -145,7 +143,7 @@ buf_t *btree_modify_fsm_t::get_root(buf_t **sb_buf, block_size_t block_size) {
     if (node_id != NULL_BLOCK_ID) {
         return co_acquire_block(transaction, node_id, rwi_write);
     } else { // Make a new block.
-        buf_t *buf = transaction->allocate(&node_id);
+        buf_t *buf = transaction->allocate();
         leaf_node_handler::init(block_size, ptr_cast<leaf_node_t>(buf->get_data_write()), current_time());
         insert_root(buf->get_block_id(), sb_buf);
         pm_btree_depth++;
@@ -325,17 +323,16 @@ void btree_modify_fsm_t::run(btree_key_value_store_t *store, btree_key *_key) {
 }
 
 // TODO: All these functions should move into node.hpp etc.; better yet, they should be abolished.
-void btree_modify_fsm_t::split_node(buf_t *buf, buf_t **rbuf, block_id_t *rnode_id, btree_key *median, block_size_t block_size) {
-    buf_t *res = transaction->allocate(rnode_id);
+void btree_modify_fsm_t::split_node(buf_t *buf, buf_t **rbuf, btree_key *median, block_size_t block_size) {
+    *rbuf = transaction->allocate();
     if(node_handler::is_leaf(ptr_cast<node_t>(buf->get_data_read()))) {
         leaf_node_t *node = ptr_cast<leaf_node_t>(buf->get_data_write());
-        leaf_node_t *rnode = ptr_cast<leaf_node_t>(res->get_data_write());
+        leaf_node_t *rnode = ptr_cast<leaf_node_t>((*rbuf)->get_data_write());
         leaf_node_handler::split(block_size, node, rnode, median);
     } else {
         internal_node_t *node = ptr_cast<internal_node_t>(buf->get_data_write());
-        internal_node_t *rnode = ptr_cast<internal_node_t>(res->get_data_write());
+        internal_node_t *rnode = ptr_cast<internal_node_t>((*rbuf)->get_data_write());
         internal_node_handler::split(block_size, node, rnode, median);
     }
-    *rbuf = res;
 }
 

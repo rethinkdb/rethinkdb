@@ -51,7 +51,7 @@ private:
     void check_and_handle_split(const node_t **node, const btree_key *key, buf_t **sb_buf, btree_value *new_value, block_size_t block_size);
     void check_and_handle_underfull(const node_t **node, const btree_key *key, buf_t **sb_buf, block_size_t block_size);
 
-    void split_node(buf_t *node, buf_t **rnode, block_id_t *rnode_id, btree_key *median, block_size_t block_size);
+    void split_node(buf_t *node, buf_t **rnode, btree_key *median, block_size_t block_size);
 
     void call_replicants(btree_key *key, btree_value *new_value, large_buf_t *new_large_buf, repli_timestamp new_value_timestamp);
 

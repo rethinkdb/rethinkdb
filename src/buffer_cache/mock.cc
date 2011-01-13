@@ -121,10 +121,10 @@ mock_buf_t *mock_transaction_t::acquire(block_id_t block_id, access_t mode, mock
     }
 }
 
-mock_buf_t *mock_transaction_t::allocate(block_id_t *new_block_id) {
+mock_buf_t *mock_transaction_t::allocate() {
     assert(this->access == rwi_write);
     
-    block_id_t block_id = *new_block_id = cache->bufs.get_size();
+    block_id_t block_id = cache->bufs.get_size();
     cache->bufs.set_size(block_id + 1);
     internal_buf_t *internal_buf = cache->bufs[block_id] = new internal_buf_t(cache, block_id);
     bool locked __attribute__((unused)) = internal_buf->lock.lock(rwi_write, NULL);
