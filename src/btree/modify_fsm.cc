@@ -115,7 +115,6 @@ void btree_modify_fsm_t::check_and_handle_underfull(const node_t **node, const b
             } else {
                 // parent has only 1 key (which means it is also the root), replace it with the node
                 // when we get here node_id should be the id of the new root
-                assert(node_handler::is_leaf(*node));
                 last_buf->mark_deleted();
                 insert_root(buf->get_block_id(), sb_buf);
                 pm_btree_depth--;
