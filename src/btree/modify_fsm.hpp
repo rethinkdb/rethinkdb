@@ -10,10 +10,7 @@
 /* Stats */
 extern perfmon_counter_t pm_btree_depth;
 
-class btree_modify_fsm_t :
-    public home_thread_mixin_t,
-    public store_t::replicant_t::done_callback_t
-{
+class btree_modify_fsm_t : public home_thread_mixin_t {
 public:
     explicit btree_modify_fsm_t()
         : transaction(NULL), slice(NULL), buf(NULL),
@@ -72,8 +69,6 @@ private:
     void have_copied_value();   // Called by replicants when they are done with the value we gave em
     bool in_value_call;
     int replicants_awaited;
-
-    coro_t *self; // XXX: This is only used for replication; it shouldn't be here.
 };
 
 #endif // __BTREE_MODIFY_FSM_HPP__

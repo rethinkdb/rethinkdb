@@ -71,53 +71,6 @@ void btree_modify_fsm_t::check_and_handle_split(const node_t **node, const btree
     }
 }
 
-// have_copied_value is called by the replicant when it's done with the value
-void btree_modify_fsm_t::have_copied_value() {
-    replicants_awaited--;
-    assert(replicants_awaited >= 0);
-    if (replicants_awaited == 0 && !in_value_call) {
-        self->notify();
-    }
-}
-
-void btree_modify_fsm_t::call_replicants(btree_key *key, btree_value *new_value, large_buf_t *new_large_buf, repli_timestamp new_value_timestamp) {
-    replicants_awaited = slice->replicants.size();
-    in_value_call = true;
-    const_buffer_group_t replicant_bg;
-
-    if (new_value) {
-        // Build a value to pass to the replicants
-        if (new_value->is_large()) {
-            for (int64_t i = 0; i < new_large_buf->get_num_segments(); i++) {
-                uint16_t size;
-                const void *data = new_large_buf->get_segment(i, &size);
-                replicant_bg.add_buffer(size, data);
-            }
-        } else {
-            replicant_bg.add_buffer(new_value->value_size(), new_value->value());
-        }
-
-        // Pass it to the replicants
-        for (int i = 0; i < (int)slice->replicants.size(); i++) {
-            slice->replicants[i]->callback->value(key, &replicant_bg, this,
-                new_value->mcflags(), new_value->exptime(),
-                                                  new_value->has_cas() ? new_value->cas() : 0, new_value_timestamp);
-        }
-    } else {
-        // Pass NULL to the replicants
-        for (int i = 0; i < (int)slice->replicants.size(); i++) {
-            slice->replicants[i]->callback->value(key, NULL, this, 0, 0, 0, current_time());
-        }
-
-    }
-
-    in_value_call = false;
-
-    if (replicants_awaited != 0) {
-        coro_t::wait();
-    }
-}
-
 void btree_modify_fsm_t::actually_acquire_large_value(large_buf_t *lb, const large_buf_ref& lbref) {
     co_acquire_large_value(lb, lbref, rwi_write);
 }
@@ -200,7 +153,6 @@ buf_t *btree_modify_fsm_t::get_root(buf_t **sb_buf, block_size_t block_size) {
 
 void btree_modify_fsm_t::run(btree_key_value_store_t *store, btree_key *_key) {
     // TODO: Use RAII for these.
-    self = coro_t::self();
 
     union {
         byte old_value_memory[MAX_TOTAL_NODE_CONTENTS_SIZE+sizeof(btree_value)];
@@ -349,10 +301,6 @@ void btree_modify_fsm_t::run(btree_key_value_store_t *store, btree_key *_key) {
     }
 
     if (update_needed) {
-#ifdef USE_REPLICATION
-        // Replication is not set up to handle partially acquired bufs yet.
-        call_replicants(&key, new_value, new_large_buf, new_value_timestamp);
-#endif
         if (old_large_buf && new_large_buf != old_large_buf) {
             assert(old_value.is_large());
             assert(old_value.lb_ref().block_id == old_large_buf->get_root_ref().block_id);
