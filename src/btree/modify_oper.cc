@@ -251,7 +251,8 @@ void run_btree_modify_oper(btree_modify_oper_t *oper, btree_key_value_store_t *s
             }
         }
 
-        // If operate() decided not to make any change, silently delete the key.
+        // If the value is expired and operate() decided not to make any
+        // change, we'll silently delete the key.
         if (!update_needed && expired) {
             new_value = NULL;
             new_large_buf = NULL;
