@@ -140,15 +140,25 @@ def shutdown():
     if stats_collector:
         stats_collector.stop()
         stats_collector = None
+    errors = []
     if server:
-        server.shutdown()   # this also stops stress_client
+        try:
+            server.shutdown()   # this also stops stress_client
+        except Exception as e:
+            errors.append(e)
         server = None
     if rdbstat:
-        rdbstat.stop()
+        try:
+            rdbstat.stop()
+        except Exception as e:
+            errors.append(e)
         rdbstat = None
     if stats_sender:
-        stats_sender.stop()
-        stats_sender.post_results()
+        try:
+            stats_sender.stop()
+        except Exception as e:
+            errors.append(e)
+        stats_sender.post_results(errors=errors)
         stats_sender = None
 
 def set_signal_handler():
@@ -248,7 +258,7 @@ class StatsSender(object):
         self.stats = []
         return old_stats
 
-    def post_results(self):
+    def post_results(self, errors=[]):
         all_stats = self.reset_stats()
         if len(all_stats) > 0:
             from email.mime.image import MIMEImage
