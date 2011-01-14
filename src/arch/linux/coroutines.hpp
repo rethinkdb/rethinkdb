@@ -79,6 +79,21 @@ public:
         spawn(boost::bind(fun, arg1, arg2, arg3, arg4, arg5));
     }
 
+    template<typename callable_t, typename arg1_t, typename arg2_t, typename arg3_t, typename arg4_t, typename arg5_t, typename arg6_t>
+    static void spawn(callable_t fun, arg1_t arg1, arg2_t arg2, arg3_t arg3, arg4_t arg4, arg5_t arg5, arg6_t arg6) {
+        spawn(boost::bind(fun, arg1, arg2, arg3, arg4, arg5, arg6));
+    }
+
+    template<typename callable_t, typename arg1_t, typename arg2_t, typename arg3_t, typename arg4_t, typename arg5_t, typename arg6_t, typename arg7_t>
+    static void spawn(callable_t fun, arg1_t arg1, arg2_t arg2, arg3_t arg3, arg4_t arg4, arg5_t arg5, arg6_t arg6, arg7_t arg7) {
+        spawn(boost::bind(fun, arg1, arg2, arg3, arg4, arg5, arg6, arg7));
+    }
+
+    template<typename callable_t, typename arg1_t, typename arg2_t, typename arg3_t, typename arg4_t, typename arg5_t, typename arg6_t, typename arg7_t, typename arg8_t>
+    static void spawn(callable_t fun, arg1_t arg1, arg2_t arg2, arg3_t arg3, arg4_t arg4, arg5_t arg5, arg6_t arg6, arg7_t arg7, arg8_t arg8) {
+        spawn(boost::bind(fun, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8));
+    }
+
 public:
     static void wait(); //Pauses the current coroutine until it's notified
     static coro_t *self(); //Returns the current coroutine

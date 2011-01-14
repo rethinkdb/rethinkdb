@@ -1,15 +1,12 @@
 #ifndef __BTREE_SET_FSM_HPP__
 #define __BTREE_SET_FSM_HPP__
 
-#include "btree/modify_fsm.hpp"
+#include "btree/modify_oper.hpp"
 
-class btree_set_fsm_t :
-    public btree_modify_fsm_t,
-    public data_provider_t::done_callback_t
-{
-private:
-    typedef btree_fsm_t::transition_result_t transition_result_t;
+#include "buffer_cache/co_functions.hpp"
+#include "btree/coro_wrappers.hpp"
 
+class btree_set_oper_t : public btree_modify_oper_t {
 public:
     enum set_type_t {
         set_type_set,
@@ -18,42 +15,46 @@ public:
         set_type_cas
     };
 
-    explicit btree_set_fsm_t(btree_key *key, btree_key_value_store_t *store, data_provider_t *data, set_type_t type, btree_value::mcflags_t mcflags, btree_value::exptime_t exptime, btree_value::cas_t req_cas, store_t::set_callback_t *cb)
-        : btree_modify_fsm_t(key, store), data(data), type(type), mcflags(mcflags), exptime(exptime), req_cas(req_cas), large_value(NULL), callback(cb)
+    explicit btree_set_oper_t(data_provider_t *data, set_type_t type, btree_value::mcflags_t mcflags, btree_value::exptime_t exptime, btree_value::cas_t req_cas, store_t::set_callback_t *cb)
+        : btree_modify_oper_t(), data(data), type(type), mcflags(mcflags), exptime(exptime), req_cas(req_cas), large_value(NULL), callback(cb)
     {
         pm_cmd_set.begin(&start_time);
-        do_transition(NULL);
     }
     
-    ~btree_set_fsm_t() {
+    ~btree_set_oper_t() {
         pm_cmd_set.end(&start_time);
     }
 
 
-    void operate(btree_value *old_value, large_buf_t *old_large_value) {
+    bool operate(transaction_t *txn, btree_value *old_value, large_buf_t *old_large_value, btree_value **new_value, large_buf_t **new_large_buf) {
         if ((old_value && type == set_type_add) || (!old_value && type == set_type_replace)) {
             result = result_not_stored;
-            data->get_value(NULL, this);
-            return;
+            // TODO: If the value is too large, we should reply with TOO_LARGE rather than NOT_STORED, like memcached.
+            co_get_data_provider_value(data, NULL);
+            return false;
         }
         
         if (type == set_type_cas) { // TODO: CAS stats
             if (!old_value) {
                 result = result_not_found;
-                data->get_value(NULL, this);
-                return;
+                co_get_data_provider_value(data, NULL);
+                return false;
             }
             if (!old_value->has_cas() || old_value->cas() != req_cas) {
                 result = result_exists;
-                data->get_value(NULL, this);
-                return;
+                co_get_data_provider_value(data, NULL);
+                return false;
             }
         }
         
         if (data->get_size() > MAX_VALUE_SIZE) {
             result = result_too_large;
-            data->get_value(NULL, this);
-            return;
+            co_get_data_provider_value(data, NULL);
+            /* To be standards-compliant we must delete the old value when an effort is made to
+            replace it with a value that is too large. */
+            *new_value = NULL;
+            *new_large_buf = NULL;
+            return true;
         }
         
         value.metadata_flags = 0;
@@ -62,14 +63,14 @@ public:
         value.set_exptime(exptime);
         value.value_size(data->get_size());
         if (type == set_type_cas || (old_value && old_value->has_cas())) {
-            value.set_cas(0xCA5ADDED); // Turns the flag on and makes room. modify_fsm will set an actual CAS later. TODO: We should probably have a separate function for this.
+            value.set_cas(0xCA5ADDED); // Turns the flag on and makes room. run_btree_modify_oper() will set an actual CAS later. TODO: We should probably have a separate function for this.
         }
         
         assert(data->get_size() <= MAX_VALUE_SIZE);
         if (data->get_size() <= MAX_IN_NODE_VALUE_SIZE) {
             buffer_group.add_buffer(data->get_size(), value.value());
         } else {
-            large_value = new large_buf_t(this->transaction);
+            large_value = new large_buf_t(txn);
             large_value->allocate(data->get_size(), value.large_buf_ref_ptr());
             for (int64_t i = 0; i < large_value->get_num_segments(); i++) {
                 uint16_t size;
@@ -79,38 +80,24 @@ public:
         }
         
         result = result_stored;
-        data->get_value(&buffer_group, this);
-    }
-    
-    void have_provided_value() {
-        /* Called by the data provider when it filled the buffer we gave it. */
-        
-        if (result == result_stored) {
-            have_finished_operating(&value, large_value);
-        } else if (result == result_too_large) {
-            /* To be standards-compliant we must delete the old value when an effort is made to
-            replace it with a value that is too large. */
-            have_finished_operating(NULL, NULL);
-        } else {
-            have_failed_operating();
+        bool success = co_get_data_provider_value(data, &buffer_group);
+        if (!success) {
+            if (large_value) {
+                large_value->mark_deleted();
+                large_value->release();
+                delete large_value;
+                large_value = NULL;
+            }
+
+            result = result_data_provider_failed;
+            return false;
         }
+        *new_value = &value;
+        *new_large_buf = large_value;
+        return true;
     }
-    
-    void have_failed() {
-        /* Called by the data provider when something went wrong. */
-        
-        if (large_value) {
-            large_value->mark_deleted();
-            large_value->release();
-            delete large_value;
-            large_value = NULL;
-        }
-        
-        result = result_data_provider_failed;
-        have_failed_operating();
-    }
-    
-    void call_callback_and_delete() {
+
+    void call_callback() {
         switch (result) {
             case result_stored:
                 callback->stored();
@@ -133,10 +120,8 @@ public:
             default:
                 unreachable();
         }
-        
-        delete this;
     }
-    
+
 private:
     ticks_t start_time;
 
@@ -164,5 +149,14 @@ private:
     
     store_t::set_callback_t *callback;
 };
+
+void co_btree_set(btree_key *key, btree_key_value_store_t *store, data_provider_t *data, btree_set_oper_t::set_type_t type, btree_value::mcflags_t mcflags, btree_value::exptime_t exptime, btree_value::cas_t req_cas, store_t::set_callback_t *cb) {
+    btree_set_oper_t *oper = new btree_set_oper_t(data, type, mcflags, exptime, req_cas, cb);
+    run_btree_modify_oper(oper, store, key);
+}
+
+void btree_set(btree_key *key, btree_key_value_store_t *store, data_provider_t *data, btree_set_oper_t::set_type_t type, btree_value::mcflags_t mcflags, btree_value::exptime_t exptime, btree_value::cas_t req_cas, store_t::set_callback_t *cb) {
+    coro_t::spawn(co_btree_set, key, store, data, type, mcflags, exptime, req_cas, cb);
+}
 
 #endif // __BTREE_SET_FSM_HPP__

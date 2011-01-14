@@ -1,23 +1,13 @@
-#include "btree/get_fsm.hpp"
+#include "btree/get.hpp"
 
 #include "utils.hpp"
-#include "btree/delete_expired_fsm.hpp"
+#include "btree/delete_expired.hpp"
 #include "btree/internal_node.hpp"
 #include "btree/leaf_node.hpp"
 #include "buffer_cache/buf_lock.hpp"
 #include "buffer_cache/co_functions.hpp"
 
-struct value_done_t : public store_t::get_callback_t::done_callback_t {
-    coro_t *self;
-    value_done_t() : self(coro_t::self()) { }
-    void have_copied_value() { self->notify(); }
-};
-
-void co_value(store_t::get_callback_t *cb, const_buffer_group_t *value_buffers, mcflags_t flags, cas_t cas) {
-    value_done_t done;
-    cb->value(value_buffers, &done, flags, cas);
-    coro_t::wait();
-}
+#include "btree/coro_wrappers.hpp"
 
 void co_btree_get(btree_key *_key, btree_key_value_store_t *store, store_t::get_callback_t *cb) {
     union {
@@ -94,11 +84,11 @@ void co_btree_get(btree_key *_key, btree_key_value_store_t *store, store_t::get_
     buf_lock.release();
 
     if (found && value.expired()) {
-        delete_expired(&key, store);
-        found = false;
+	btree_delete_expired(&key, store);
+	found = false;
     }
     
-    /* The get_fsm has two paths it takes: one for large values and one for small ones. For large
+    /* get() has two paths it takes: one for large values and one for small ones. For large
     values, it holds onto the large value buffer while it goes back to the request handler's core
     and delivers the large value. Then it returns again to the cache's core and frees the value,
     and finally goes to the request handler's core again to free itself. For small values, it

@@ -282,14 +282,13 @@ void mc_transaction_t::on_sync() {
     }
 }
 
-mc_buf_t *mc_transaction_t::allocate(block_id_t *block_id) {
+mc_buf_t *mc_transaction_t::allocate() {
     /* Make a completely new block, complete with a shiny new block_id. */
     
     assert(access == rwi_write);
     
     // This form of the inner_buf_t constructor generates a new block with a new block ID.
     inner_buf_t *inner_buf = new inner_buf_t(cache);
-    *block_id = inner_buf->block_id;   // Find out what block ID the buf was assigned
     
     // This must pass since no one else holds references to this block.
     buf_t *buf = new buf_t(inner_buf, rwi_write);
