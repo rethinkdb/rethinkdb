@@ -407,7 +407,7 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
     
     // It's probably not necessary for this parameter to be independently configurable
     config.store_dynamic_config.cache.flush_dirty_size =
-        config.store_dynamic_config.cache.max_dirty_size / 2;
+        config.store_dynamic_config.cache.max_dirty_size * FLUSH_AT_FRACTION_OF_UNSAVED_DATA_LIMIT;
 
     //slices divisable by the number of files
     if ((config.store_static_config.btree.n_slices % config.store_dynamic_config.serializer_private.size()) != 0) {

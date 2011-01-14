@@ -93,6 +93,9 @@
 // The unsaved data limit cannot exceed this fraction of the max cache size
 #define MAX_UNSAVED_DATA_LIMIT_FRACTION           0.9
 
+// We start flushing dirty pages as soon as we hit this fraction of the unsaved data limit
+#define FLUSH_AT_FRACTION_OF_UNSAVED_DATA_LIMIT   0.9
+
 // How many times the page replacement algorithm tries to find an eligible page before giving up.
 // Note that (MAX_UNSAVED_DATA_LIMIT_FRACTION ** PAGE_REPL_NUM_TRIES) is the probability that the
 // page replacement algorithm will succeed on a given try, and if that probability is less than 1/2
