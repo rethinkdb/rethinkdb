@@ -11,6 +11,11 @@ struct task_t {
 public:   // But not really
     task_t() { }
     value_cond_t<var_t> cond;
+    template<class callable_t>
+    void run(callable_t *f) {
+        cond.pulse((*f)());
+        delete f;
+    }
 public:
     var_t join() {
         var_t value = cond.wait();
@@ -21,7 +26,7 @@ private:
     DISABLE_COPYING(task_t);
 };
 
-template<typename var_t, typename callable_t>
+template<typename callable_t, typename var_t>
 void run_task(task_t<var_t> *t, callable_t *f) {
     t->cond.pulse((*f)());
     delete f;
@@ -32,6 +37,12 @@ struct task_t<void> {
 public:   // But not really
     task_t() { }
     cond_t cond;
+    template<class callable_t>
+    void run(callable_t *f) {
+        (*f)();
+        cond.pulse();
+        delete f;
+    }
 public:
     void join() {
         cond.wait();
@@ -53,7 +64,8 @@ void run_task(task_t<void> *t, callable_t *f) {
 template<typename return_t, typename callable_t>
 task_t<return_t> *task(callable_t fun) {
     task_t<return_t> *t = new task_t<return_t>();
-    coro_t::spawn(&run_task<return_t, callable_t>, t, new callable_t(fun));
+    void (task_t<return_t>::*f2)(callable_t*) = &task_t<return_t>::run;
+    coro_t::spawn(f2, t, new callable_t(fun));
     return t;
 }
 

@@ -16,106 +16,97 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
     /* Create a server object. It only exists so we can give pointers to it to other things. */
     server_t server(cmd_config, thread_pool);
 
-    /* Start logger */
-    struct : public logger_ready_callback_t, public cond_t {
-        void on_logger_ready() { pulse(); }
-    } logger_ready_cb;
-    logger_start(&logger_ready_cb);
-    logger_ready_cb.wait();
-
-    /* Copy database filenames from private serializer configurations into a single vector of strings */
-    std::vector<std::string> db_filenames;
-    std::vector<log_serializer_private_dynamic_config_t>& serializer_private = cmd_config->store_dynamic_config.serializer_private;
-    std::vector<log_serializer_private_dynamic_config_t>::iterator it;
-
-    for (it = serializer_private.begin(); it != serializer_private.end(); ++it) {
-        db_filenames.push_back((*it).db_filename);
-    }
-
-    /* Check to see if there is an existing database */
-    struct : public btree_key_value_store_t::check_callback_t, public value_cond_t<bool> {
-        void on_store_check(bool ok) { pulse(ok); }
-    } check_cb;
-    btree_key_value_store_t::check_existing(db_filenames, &check_cb);
-    bool existing = check_cb.wait();
-    if (existing && cmd_config->create_store && !cmd_config->force_create) {
-        fail_due_to_user_error(
-            "It looks like there already is a database here. RethinkDB will abort in case you "
-            "didn't mean to overwrite it. Run with the '--force' flag to override this warning.");
-    } else {
-        if (!existing) {
-            cmd_config->create_store = true;
+    {
+        /* Start logger */
+        log_controller_t log_controller;
+    
+        /* Copy database filenames from private serializer configurations into a single vector of strings */
+        std::vector<std::string> db_filenames;
+        std::vector<log_serializer_private_dynamic_config_t>& serializer_private = cmd_config->store_dynamic_config.serializer_private;
+        std::vector<log_serializer_private_dynamic_config_t>::iterator it;
+    
+        for (it = serializer_private.begin(); it != serializer_private.end(); ++it) {
+            db_filenames.push_back((*it).db_filename);
         }
-    }
-
-    /* Start key-value store */
-    btree_key_value_store_t store(&cmd_config->store_dynamic_config);
-
-    struct : public btree_key_value_store_t::ready_callback_t, public cond_t {
-        void on_store_ready() { pulse(); }
-    } store_ready_cb;
-    if (cmd_config->create_store) {
-        logINF("Creating new database...\n");
-        if (!store.start_new(&store_ready_cb, &cmd_config->store_static_config)) store_ready_cb.wait();
-    } else {
-        logINF("Loading existing database...\n");
-        if (!store.start_existing(&store_ready_cb)) store_ready_cb.wait();
-    }
-
-    server.store = &store;   /* So things can access it */
-
-    if (!cmd_config->shutdown_after_creation) {
-        /* Start connection acceptor */
-        conn_acceptor_t conn_acceptor(cmd_config->port, &create_request_handler, (void*)&server);
     
-        if (conn_acceptor.start()) {
-            logINF("Server is now accepting memcache connections on port %d.\n", cmd_config->port);
-    
-#ifdef REPLICATION_ENABLED
-            /* Start replication acceptor */
-            conn_acceptor_t replication_acceptor(cmd_config->port+1, &create_replication_master, (void*)&store);
-            if (!replication_acceptor.start()) {
-                crash("Can't start replication acceptor");
+        /* Check to see if there is an existing database */
+        struct : public btree_key_value_store_t::check_callback_t, public value_cond_t<bool> {
+            void on_store_check(bool ok) { pulse(ok); }
+        } check_cb;
+        btree_key_value_store_t::check_existing(db_filenames, &check_cb);
+        bool existing = check_cb.wait();
+        if (existing && cmd_config->create_store && !cmd_config->force_create) {
+            fail_due_to_user_error(
+                "It looks like there already is a database here. RethinkDB will abort in case you "
+                "didn't mean to overwrite it. Run with the '--force' flag to override this warning.");
+        } else {
+            if (!existing) {
+                cmd_config->create_store = true;
             }
-#endif
+        }
     
-            /* Wait for an order to shut down */
-            struct : public thread_message_t, public cond_t {
-                void on_thread_switch() { pulse(); }
-            } interrupt_cond;
-            thread_pool->set_interrupt_message(&interrupt_cond);
-            interrupt_cond.wait();
+        /* Start key-value store */
+        btree_key_value_store_t store(&cmd_config->store_dynamic_config);
     
-#ifdef REPLICATION_ENABLED
-            /* Stop replication acceptor */
+        struct : public btree_key_value_store_t::ready_callback_t, public cond_t {
+            void on_store_ready() { pulse(); }
+        } store_ready_cb;
+        if (cmd_config->create_store) {
+            logINF("Creating new database...\n");
+            if (!store.start_new(&store_ready_cb, &cmd_config->store_static_config)) store_ready_cb.wait();
+        } else {
+            logINF("Loading existing database...\n");
+            if (!store.start_existing(&store_ready_cb)) store_ready_cb.wait();
+        }
+    
+        server.store = &store;   /* So things can access it */
+    
+        if (!cmd_config->shutdown_after_creation) {
+            /* Start connection acceptor */
+            conn_acceptor_t conn_acceptor(cmd_config->port, &create_request_handler, (void*)&server);
+        
+            if (conn_acceptor.start()) {
+                logINF("Server is now accepting memcache connections on port %d.\n", cmd_config->port);
+        
+    #ifdef REPLICATION_ENABLED
+                /* Start replication acceptor */
+                conn_acceptor_t replication_acceptor(cmd_config->port+1, &create_replication_master, (void*)&store);
+                if (!replication_acceptor.start()) {
+                    crash("Can't start replication acceptor");
+                }
+    #endif
+        
+                /* Wait for an order to shut down */
+                struct : public thread_message_t, public cond_t {
+                    void on_thread_switch() { pulse(); }
+                } interrupt_cond;
+                thread_pool->set_interrupt_message(&interrupt_cond);
+                interrupt_cond.wait();
+        
+    #ifdef REPLICATION_ENABLED
+                /* Stop replication acceptor */
+                struct : public conn_acceptor_t::shutdown_callback_t, public cond_t {
+                    void on_conn_acceptor_shutdown() { pulse(); }
+                } ra_shutdown_cb;
+                if (!replication_acceptor.shutdown(&ra_shutdown_cb)) ra_shutdown_cb.wait();
+    #endif
+            }
+    
+            /* Stop connection acceptor */
             struct : public conn_acceptor_t::shutdown_callback_t, public cond_t {
                 void on_conn_acceptor_shutdown() { pulse(); }
-            } ra_shutdown_cb;
-            if (!replication_acceptor.shutdown(&ra_shutdown_cb)) ra_shutdown_cb.wait();
-#endif
+            } ca_shutdown_cb;
+            if (!conn_acceptor.shutdown(&ca_shutdown_cb)) ca_shutdown_cb.wait();
         }
-
-        /* Stop connection acceptor */
-        struct : public conn_acceptor_t::shutdown_callback_t, public cond_t {
-            void on_conn_acceptor_shutdown() { pulse(); }
-        } ca_shutdown_cb;
-        if (!conn_acceptor.shutdown(&ca_shutdown_cb)) ca_shutdown_cb.wait();
+    
+        logINF("Shutting down... this may take time if there is a lot of unsaved data.\n");
+    
+        /* Shut down key-value store */
+        struct : public btree_key_value_store_t::shutdown_callback_t, public cond_t {
+            void on_store_shutdown() { pulse(); }
+        } store_shutdown_cb;
+        if (!store.shutdown(&store_shutdown_cb)) store_shutdown_cb.wait();
     }
-
-    logINF("Shutting down... this may take time if there is a lot of unsaved data.\n");
-
-    /* Shut down key-value store */
-    struct : public btree_key_value_store_t::shutdown_callback_t, public cond_t {
-        void on_store_shutdown() { pulse(); }
-    } store_shutdown_cb;
-    if (!store.shutdown(&store_shutdown_cb)) store_shutdown_cb.wait();
-
-    /* Shut down loggers */
-    struct : public logger_shutdown_callback_t, public cond_t {
-        void on_logger_shutdown() { pulse(); }
-    } logger_shutdown_cb;
-    logger_shutdown(&logger_shutdown_cb);
-    logger_shutdown_cb.wait();
 
     /* The penultimate step of shutting down is to make sure that all messages
     have reached their destinations so that they can be freed. The way we do this

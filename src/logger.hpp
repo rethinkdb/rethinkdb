@@ -41,21 +41,18 @@ void mlog_end();
 /* The logger has two modes. During the main phase of the server running, it will send all log
 messages to one thread and write them to the file from there; this makes it so that we don't block
 on the log file's lock. During the startup and shutdown phases, we just write messages directly
-from the file and don't care about the performance hit from the lock. */
+from the file and don't care about the performance hit from the lock. To enter the high-performance
+mode, construct a log_controller_t from within a coroutine in a thread pool. */
 
-// Enter mode where we route all log messages to the core that logger_start() is called on. Only
-// call this after the thread pool has started up.
-struct logger_ready_callback_t {
-    virtual void on_logger_ready() = 0;
-    virtual ~logger_ready_callback_t() {}
-};
-void logger_start(logger_ready_callback_t *cb);
+class log_controller_t
+{
 
-// Exit log-message-routing mode. Call this before the thread pool shuts down.
-struct logger_shutdown_callback_t {
-    virtual void on_logger_shutdown() = 0;
-    virtual ~logger_shutdown_callback_t() {}
+public:
+    // The constructor and destructor are potentially blocking.
+    log_controller_t();
+    ~log_controller_t();
+
+    int home_thread;
 };
-void logger_shutdown(logger_shutdown_callback_t *cb);
 
 #endif // __LOGGER_HPP__
