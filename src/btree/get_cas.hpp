@@ -1,5 +1,5 @@
-#ifndef __BTREE_GET_CAS_FSM_HPP__
-#define __BTREE_GET_CAS_FSM_HPP__
+#ifndef __BTREE_GET_CAS_HPP__
+#define __BTREE_GET_CAS_HPP__
 
 #include "btree/modify_oper.hpp"
 
@@ -109,4 +109,4 @@ void btree_get_cas(btree_key *key, btree_key_value_store_t *store, store_t::get_
     coro_t::spawn(co_btree_get_cas, key, store, cb);
 }
 
-#endif // __BTREE_GET_CAS_FSM_HPP__
+#endif // __BTREE_GET_CAS_HPP__

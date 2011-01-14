@@ -1,5 +1,5 @@
-#ifndef __BTREE_APPEND_PREPEND_FSM_HPP__
-#define __BTREE_APPEND_PREPEND_FSM_HPP__
+#ifndef __BTREE_APPEND_PREPEND_HPP__
+#define __BTREE_APPEND_PREPEND_HPP__
 
 #include "btree/modify_oper.hpp"
 
@@ -169,4 +169,4 @@ void btree_append_prepend(btree_key *key, btree_key_value_store_t *store, data_p
     coro_t::spawn(co_btree_append_prepend, key, store, data, append, cb);
 }
 
-#endif // __BTREE_APPEND_PREPEND_FSM_HPP__
+#endif // __BTREE_APPEND_PREPEND_HPP__

@@ -1,5 +1,5 @@
-#ifndef __BTREE_INCR_DECR_FSM_HPP__
-#define __BTREE_INCR_DECR_FSM_HPP__
+#ifndef __BTREE_INCR_DECR_HPP__
+#define __BTREE_INCR_DECR_HPP__
 
 #include "btree/modify_oper.hpp"
 
@@ -105,4 +105,4 @@ void btree_incr_decr(btree_key *key, btree_key_value_store_t *store, bool increm
     coro_t::spawn(co_btree_incr_decr, key, store, increment, delta, cb);
 }
 
-#endif // __BTREE_SET_FSM_HPP__
+#endif // __BTREE_SET_HPP__

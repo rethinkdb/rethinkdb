@@ -1,5 +1,5 @@
-#ifndef __BTREE_MODIFY_FSM_HPP__
-#define __BTREE_MODIFY_FSM_HPP__
+#ifndef __BTREE_MODIFY_OPER_HPP__
+#define __BTREE_MODIFY_OPER_HPP__
 
 #include "btree/node.hpp"
 #include "utils.hpp"
@@ -63,4 +63,4 @@ void check_and_handle_underfull(transaction_t *txn,
                                 const btree_key *key, block_size_t block_size);
 
 
-#endif // __BTREE_MODIFY_FSM_HPP__
+#endif // __BTREE_MODIFY_OPER_HPP__

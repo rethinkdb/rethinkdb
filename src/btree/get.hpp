@@ -1,5 +1,5 @@
-#ifndef __BTREE_GET_FSM_HPP__
-#define __BTREE_GET_FSM_HPP__
+#ifndef __BTREE_GET_HPP__
+#define __BTREE_GET_HPP__
 
 #include "utils.hpp"
 #include "buffer_cache/buffer_cache.hpp"
@@ -9,4 +9,4 @@
 void btree_get(btree_key *key, btree_key_value_store_t *store, store_t::get_callback_t *cb);
 void co_btree_get(btree_key *key, btree_key_value_store_t *store, store_t::get_callback_t *cb);
 
-#endif // __BTREE_GET_FSM_HPP__
+#endif // __BTREE_GET_HPP__

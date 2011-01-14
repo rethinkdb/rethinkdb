@@ -1,5 +1,5 @@
-#ifndef __BTREE_DELETE_EXPIRED_FSM_HPP__
-#define __BTREE_DELETE_EXPIRED_FSM_HPP__
+#ifndef __BTREE_DELETE_EXPIRED_HPP__
+#define __BTREE_DELETE_EXPIRED_HPP__
 
 #include "btree/modify_oper.hpp"
 
@@ -34,4 +34,4 @@ void btree_delete_expired(btree_key *key, btree_key_value_store_t *store) {
     coro_t::spawn(co_btree_delete_expired, key_copy, store);
 }
 
-#endif // __BTREE_DELETE_EXPIRED_FSM_HPP__
+#endif // __BTREE_DELETE_EXPIRED_HPP__

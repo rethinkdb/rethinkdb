@@ -1,5 +1,5 @@
-#ifndef __BTREE_SET_FSM_HPP__
-#define __BTREE_SET_FSM_HPP__
+#ifndef __BTREE_SET_HPP__
+#define __BTREE_SET_HPP__
 
 #include "btree/modify_oper.hpp"
 
@@ -159,4 +159,4 @@ void btree_set(btree_key *key, btree_key_value_store_t *store, data_provider_t *
     coro_t::spawn(co_btree_set, key, store, data, type, mcflags, exptime, req_cas, cb);
 }
 
-#endif // __BTREE_SET_FSM_HPP__
+#endif // __BTREE_SET_HPP__
