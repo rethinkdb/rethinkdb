@@ -1,5 +1,7 @@
 #!/bin/bash
 
+rm -rf /tmp/insert_setup_out
+
 if [ $DATABASE == "membase" ]; then
     rm -rf $PERSISTENT_DATA_DIR
 fi

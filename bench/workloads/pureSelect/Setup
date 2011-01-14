@@ -17,19 +17,19 @@ export -p > "$BENCH_DIR/environment"
 DB_SIZE=50000000
 if [ $DATABASE == "rethinkdb" ]; then
     ./dbench                                                                                        \
-        -d "$BENCH_DIR/bench_output/Insert_performance" -H $SERVER_HOSTS            \
+        -d "/tmp/insert_setup_out" -H $SERVER_HOSTS            \
         {server}rethinkdb:"-c 12 -m 32768 $SSD_DRIVES"                                              \
         {client}stress[$STRESS_CLIENT]:"-b 8-32 -v 8-32 -c $CANONICAL_CLIENTS -d $DB_SIZEi -w 0/0/1/0 -o $TMP_KEY_FILE"     \
         iostat:1 vmstat:1 rdbstat:1
 elif [ $DATABASE == "mysql" ]; then
     ./dbench                                                                                         \
-        -d "$BENCH_DIR/bench_output/Insert_performance" -H $SERVER_HOSTS             \
+        -d "/tmp/insert_setup_out" -H $SERVER_HOSTS             \
         {server}mysql:"$MYSQL_COMMON_FLAGS $MYSQL_BUFFER_FLAGS $MYSQL_DURABILITY_FLAGS  $MYSQL_SSD_FLAGS"              \
         {client}mysqlstress[$STRESS_CLIENT]:"-b 8-32 -v 8-32 -c $CANONICAL_CLIENTS -d $DB_SIZEi -w 0/0/1/0 -o $TMP_KEY_FILE" \
         iostat:1 vmstat:1
 elif [ $DATABASE == "membase" ]; then
     ./dbench                                                                                   \
-        -d "$BENCH_DIR/bench_output/Insert_performance" -H $SERVER_HOSTS -p 11211 \
+        -d "/tmp/insert_setup_out" -H $SERVER_HOSTS -p 11211 \
         {server}membase:"-d $PERSISTENT_DATA_DIR -m 32768"                                       \
         {client}stress[$STRESS_CLIENT]:"-b 8-32 -v 8-32 -c $CANONICAL_CLIENTS -d $DB_SIZEi -w 0/0/1/0 -o $TMP_KEY_FILE" \
         iostat:1 vmstat:1
