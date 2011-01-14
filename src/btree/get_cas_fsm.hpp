@@ -23,7 +23,7 @@ public:
         pm_cmd_get.end(&start_time);
     }
 
-    bool operate(btree_value *old_value, large_buf_t *old_large_buf, btree_value **new_value, large_buf_t **new_large_buf) {
+    bool operate(transaction_t *txn, btree_value *old_value, large_buf_t *old_large_buf, btree_value **new_value, large_buf_t **new_large_buf) {
         if (!old_value) {
             result = result_not_found;
             return false;

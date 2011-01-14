@@ -28,7 +28,7 @@ public:
     }
 
 
-    bool operate(btree_value *old_value, large_buf_t *old_large_value, btree_value **new_value, large_buf_t **new_large_buf) {
+    bool operate(transaction_t *txn, btree_value *old_value, large_buf_t *old_large_value, btree_value **new_value, large_buf_t **new_large_buf) {
         if ((old_value && type == set_type_add) || (!old_value && type == set_type_replace)) {
             result = result_not_stored;
             // TODO: If the value is too large, we should reply with TOO_LARGE rather than NOT_STORED, like memcached.
@@ -72,7 +72,7 @@ public:
         if (data->get_size() <= MAX_IN_NODE_VALUE_SIZE) {
             buffer_group.add_buffer(data->get_size(), value.value());
         } else {
-            large_value = new large_buf_t(this->transaction);
+            large_value = new large_buf_t(txn);
             large_value->allocate(data->get_size(), value.large_buf_ref_ptr());
             for (int64_t i = 0; i < large_value->get_num_segments(); i++) {
                 uint16_t size;

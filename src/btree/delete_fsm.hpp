@@ -17,7 +17,7 @@ public:
 
     bool exists;
 
-    bool operate(btree_value *old_value, large_buf_t *old_large_buf, btree_value **new_value, large_buf_t **new_large_buf) {
+    bool operate(transaction_t *txn, btree_value *old_value, large_buf_t *old_large_buf, btree_value **new_value, large_buf_t **new_large_buf) {
         exists = bool(old_value);
         if (exists) {
             *new_value = NULL;

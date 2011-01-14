@@ -24,11 +24,13 @@ perfmon_counter_t pm_btree_depth("btree_depth");
 void btree_modify_fsm_t::insert_root(block_id_t root_id, buf_t **sb_buf) {
     assert(*sb_buf);
     ptr_cast<btree_superblock_t>((*sb_buf)->get_data_write())->root_block = root_id;
-    (*sb_buf)->release(); // XXX: Does sb_buf need to be released here?
+    (*sb_buf)->release();
     *sb_buf = NULL;
 }
 
-void btree_modify_fsm_t::check_and_handle_split(buf_t **buf, buf_t **last_buf, buf_t **sb_buf, const btree_key *key, btree_value *new_value, block_size_t block_size) {
+void btree_modify_fsm_t::check_and_handle_split(transaction_t *txn,
+                                                buf_t **buf, buf_t **last_buf, buf_t **sb_buf,
+                                                const btree_key *key, btree_value *new_value, block_size_t block_size) {
     // Split the node if necessary
     const node_t *node = ptr_cast<node_t>((*buf)->get_data_read());
     if (node_handler::is_leaf(node)) { // This should only be called when update_needed.
@@ -43,9 +45,9 @@ void btree_modify_fsm_t::check_and_handle_split(buf_t **buf, buf_t **last_buf, b
     btree_key *median = reinterpret_cast<btree_key *>(memory);
     buf_t *rbuf;
     internal_node_t *last_node;
-    split_node(*buf, &rbuf, median, block_size);
+    split_node(txn, *buf, &rbuf, median, block_size);
     if (*last_buf == NULL) { // We're splitting a root, so create a new root.
-        *last_buf = transaction->allocate();
+        *last_buf = txn->allocate();
         last_node = ptr_cast<internal_node_t>((*last_buf)->get_data_write());
         internal_node_handler::init(block_size, last_node);
 
@@ -72,7 +74,9 @@ void btree_modify_fsm_t::actually_acquire_large_value(large_buf_t *lb, const lar
     co_acquire_large_value(lb, lbref, rwi_write);
 }
 
-void btree_modify_fsm_t::check_and_handle_underfull(buf_t **buf, buf_t **last_buf, buf_t **sb_buf, const btree_key *key, block_size_t block_size) {
+void btree_modify_fsm_t::check_and_handle_underfull(transaction_t *txn,
+                                                    buf_t **buf, buf_t **last_buf, buf_t **sb_buf,
+                                                    const btree_key *key, block_size_t block_size) {
     const node_t *node = ptr_cast<node_t>((*buf)->get_data_read());
     if (*last_buf && node_handler::is_underfull(block_size, node)) { // The root node is never underfull.
         node_t *parent_node = ptr_cast<node_t>((*last_buf)->get_data_write());
@@ -83,7 +87,7 @@ void btree_modify_fsm_t::check_and_handle_underfull(buf_t **buf, buf_t **last_bu
         block_id_t sib_node_id;
         internal_node_handler::sibling(last_node, key, &sib_node_id); // TODO: This returns nodecmp(node, sib), but we compare them again when we merge.
 
-        buf_t *sib_buf = co_acquire_block(transaction, sib_node_id, rwi_write);
+        buf_t *sib_buf = co_acquire_block(txn, sib_node_id, rwi_write);
 
         // Sibling acquired, now decide whether to merge or level
         node_t *sib_node = ptr_cast<node_t>(sib_buf->get_data_write());
@@ -133,13 +137,13 @@ void btree_modify_fsm_t::check_and_handle_underfull(buf_t **buf, buf_t **last_bu
     }
 }
 
-buf_t *btree_modify_fsm_t::get_root(buf_t **sb_buf, block_size_t block_size) {
+buf_t *btree_modify_fsm_t::get_root(transaction_t *txn, buf_t **sb_buf, block_size_t block_size) {
     block_id_t node_id = reinterpret_cast<const btree_superblock_t*>((*sb_buf)->get_data_read())->root_block;
 
     if (node_id != NULL_BLOCK_ID) {
-        return co_acquire_block(transaction, node_id, rwi_write);
+        return co_acquire_block(txn, node_id, rwi_write);
     } else { // Make a new block.
-        buf_t *buf = transaction->allocate();
+        buf_t *buf = txn->allocate();
         leaf_node_handler::init(block_size, ptr_cast<leaf_node_t>(buf->get_data_write()), current_time());
         insert_root(buf->get_block_id(), sb_buf);
         pm_btree_depth++;
@@ -171,19 +175,19 @@ void btree_modify_fsm_t::run(btree_key_value_store_t *store, btree_key *_key) {
     store->started_a_query(); // TODO: This should use RAII too.
 
     coro_t::move_to_thread(slice->home_thread);
-    transaction = co_begin_transaction(cache, rwi_write);
-    buf_t *sb_buf = co_acquire_block(transaction, SUPERBLOCK_ID, rwi_write);
+    transaction_t *txn = co_begin_transaction(cache, rwi_write);
+    buf_t *sb_buf = co_acquire_block(txn, SUPERBLOCK_ID, rwi_write);
 
     buf_t *last_buf = NULL;
-    buf_t *buf = get_root(&sb_buf, block_size);
+    buf_t *buf = get_root(txn, &sb_buf, block_size);
 
     repli_timestamp new_value_timestamp = repli_timestamp::invalid;
 
     while (node_handler::is_internal(ptr_cast<node_t>(buf->get_data_read()))) {
         // Check if the node is overfull and proactively split it if it is (since this is an internal node).
-        check_and_handle_split(&buf, &last_buf, &sb_buf, &key, NULL, block_size);
+        check_and_handle_split(txn, &buf, &last_buf, &sb_buf, &key, NULL, block_size);
         // Check if the node is underfull, and merge/level if it is.
-        check_and_handle_underfull(&buf, &last_buf, &sb_buf, &key, block_size);
+        check_and_handle_underfull(txn, &buf, &last_buf, &sb_buf, &key, block_size);
 
         // Release the superblock, if we've gone past the root (and haven't already released it).
         if (sb_buf && last_buf) {
@@ -191,24 +195,22 @@ void btree_modify_fsm_t::run(btree_key_value_store_t *store, btree_key *_key) {
             sb_buf = NULL;
         }
 
-        // Release the old previous node, and set the new previous node.
-        if (last_buf) {
-            last_buf->release();
-        }
+        // Release the old previous node (unless we're at the root), and set the new previous node.
+        if (last_buf) last_buf->release();
         last_buf = buf;
 
         // Look up the next node.
         block_id_t node_id = internal_node_handler::lookup(ptr_cast<internal_node_t>(buf->get_data_read()), &key);
         assert(node_id != NULL_BLOCK_ID && node_id != SUPERBLOCK_ID);
 
-        buf = co_acquire_block(transaction, node_id, rwi_write);
+        buf = co_acquire_block(txn, node_id, rwi_write);
     }
 
     bool key_found = leaf_node_handler::lookup(ptr_cast<leaf_node_t>(buf->get_data_read()), &key, &old_value);
 
     large_buf_t *old_large_buf = NULL;
     if (key_found && old_value.is_large()) {
-        old_large_buf = new large_buf_t(transaction);
+        old_large_buf = new large_buf_t(txn);
         actually_acquire_large_value(old_large_buf, old_value.lb_ref());
         assert(old_large_buf->state == large_buf_t::loaded);
     }
@@ -227,7 +229,7 @@ void btree_modify_fsm_t::run(btree_key_value_store_t *store, btree_key *_key) {
     btree_value *new_value;
     large_buf_t *new_large_buf;
 
-    bool update_needed = operate(key_found ? &old_value : NULL, old_large_buf, &new_value, &new_large_buf);
+    bool update_needed = operate(txn, key_found ? &old_value : NULL, old_large_buf, &new_value, &new_large_buf);
 
     if (update_needed) {
         if (new_value && new_value->is_large()) {
@@ -244,7 +246,7 @@ void btree_modify_fsm_t::run(btree_key_value_store_t *store, btree_key *_key) {
     }
 
     if (update_needed && new_value != NULL) { // If we're deleting a value, there's no need to split.
-        check_and_handle_split(&buf, &last_buf, &sb_buf, &key, new_value, block_size);
+        check_and_handle_split(txn, &buf, &last_buf, &sb_buf, &key, new_value, block_size);
     }
 
     // Update if operate() told us to.
@@ -268,7 +270,7 @@ void btree_modify_fsm_t::run(btree_key_value_store_t *store, btree_key *_key) {
     }
 
     // Check to see if it's underfull, and merge/level if it is.
-    check_and_handle_underfull(&buf, &last_buf, &sb_buf, &key, block_size);
+    check_and_handle_underfull(txn, &buf, &last_buf, &sb_buf, &key, block_size);
 
     // Release bufs as necessary.
     if (sb_buf) {
@@ -304,7 +306,7 @@ void btree_modify_fsm_t::run(btree_key_value_store_t *store, btree_key *_key) {
         }
     }
 
-    co_commit_transaction(transaction);
+    co_commit_transaction(txn);
     coro_t::move_to_thread(home_thread);
 
     call_callback_and_delete();
@@ -313,8 +315,8 @@ void btree_modify_fsm_t::run(btree_key_value_store_t *store, btree_key *_key) {
 }
 
 // TODO: All these functions should move into node.hpp etc.; better yet, they should be abolished.
-void btree_modify_fsm_t::split_node(buf_t *buf, buf_t **rbuf, btree_key *median, block_size_t block_size) {
-    *rbuf = transaction->allocate();
+void btree_modify_fsm_t::split_node(transaction_t *txn, buf_t *buf, buf_t **rbuf, btree_key *median, block_size_t block_size) {
+    *rbuf = txn->allocate();
     if(node_handler::is_leaf(ptr_cast<node_t>(buf->get_data_read()))) {
         leaf_node_t *node = ptr_cast<leaf_node_t>(buf->get_data_write());
         leaf_node_t *rnode = ptr_cast<leaf_node_t>((*rbuf)->get_data_write());

@@ -7,7 +7,7 @@ class btree_delete_expired_fsm_t :
     public btree_modify_fsm_t
 {
 public:
-    bool operate(btree_value *old_value, large_buf_t *old_large_buf, btree_value **new_value, large_buf_t **new_large_buf) {
+    bool operate(transaction_t *txn, btree_value *old_value, large_buf_t *old_large_buf, btree_value **new_value, large_buf_t **new_large_buf) {
         /* Don't do anything. The modify_fsm will take advantage of the fact that we got to
         the leaf in write mode to automatically delete the expired key if necessary. */
         return false;

@@ -13,7 +13,7 @@ extern perfmon_counter_t pm_btree_depth;
 class btree_modify_fsm_t : public home_thread_mixin_t {
 public:
     explicit btree_modify_fsm_t()
-        : transaction(NULL), slice(NULL), cas_already_set(false)
+        : slice(NULL), cas_already_set(false)
     { }
 
     virtual ~btree_modify_fsm_t() { }
@@ -27,8 +27,8 @@ public:
      * must match up). If *new_value is NULL, the value will be deleted (and
      * similarly for *new_large_buf).
      */
-    virtual bool operate(btree_value *old_value, large_buf_t *old_large_buf,
-                         btree_value **new_value, large_buf_t **new_large_buf) = 0;
+    virtual bool operate(transaction_t *txn, btree_value *old_value, large_buf_t *old_large_buf,
+                                             btree_value **new_value, large_buf_t **new_large_buf) = 0;
 
     /* btree_modify_fsm calls call_callback_and_delete() after it has
      * returned to the core on which it originated. Subclasses use
@@ -38,23 +38,24 @@ public:
     virtual void call_callback_and_delete() = 0;
 
 public:
-
-    transaction_t *transaction;
-    btree_slice_t *slice;
-
     void run(btree_key_value_store_t *store, btree_key *_key);
 
 private:
-    buf_t *get_root(buf_t **sb_buf, block_size_t block_size);
-    void insert_root(block_id_t root_id, buf_t **sb_buf); // XXX: This should probably just get a buf_t *.
-    void check_and_handle_split(buf_t **buf, buf_t **last_buf, buf_t **sb_buf, const btree_key *key, btree_value *new_value, block_size_t block_size);
-    void check_and_handle_underfull(buf_t **buf, buf_t **last_buf, buf_t **sb_buf, const btree_key *key, block_size_t block_size);
+    buf_t *get_root(transaction_t *txn, buf_t **sb_buf, block_size_t block_size);
+    void insert_root(block_id_t root_id, buf_t **sb_buf);
+    void check_and_handle_split(transaction_t *txn,
+                                buf_t **buf, buf_t **last_buf, buf_t **sb_buf,
+                                const btree_key *key, btree_value *new_value, block_size_t block_size);
+    void check_and_handle_underfull(transaction_t *txn,
+                                    buf_t **buf, buf_t **last_buf, buf_t **sb_buf,
+                                    const btree_key *key, block_size_t block_size);
 
-    void split_node(buf_t *node, buf_t **rnode, btree_key *median, block_size_t block_size);
+    void split_node(transaction_t *txn, buf_t *node, buf_t **rnode, btree_key *median, block_size_t block_size);
 
     void call_replicants(btree_key *key, btree_value *new_value, large_buf_t *new_large_buf, repli_timestamp new_value_timestamp);
 
 protected:
+    btree_slice_t *slice;
     bool cas_already_set; // In case a sub-class needs to set the CAS itself.
 
     // Acquires the old large value; this exists because not all of the value

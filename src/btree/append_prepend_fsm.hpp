@@ -14,7 +14,7 @@ public:
         : btree_modify_fsm_t(), data(data), append(append), callback(cb)
     { }
 
-    bool operate(btree_value *old_value, large_buf_t *old_large_value, btree_value **new_value, large_buf_t **new_large_buf) {
+    bool operate(transaction_t *txn, btree_value *old_value, large_buf_t *old_large_value, btree_value **new_value, large_buf_t **new_large_buf) {
         if (!old_value) {
             result = result_not_found;
             co_get_data_provider_value(data, NULL);
@@ -48,7 +48,7 @@ public:
         } else {
             // Prepare the large value if necessary.
             if (!old_value->is_large()) { // small -> large; allocate a new large value and copy existing value into it.
-                large_value = new large_buf_t(this->transaction);
+                large_value = new large_buf_t(txn);
                 large_value->allocate(new_size, value.large_buf_ref_ptr());
                 if (append) large_value->fill_at(0, old_value->value(), old_value->value_size());
                 else        large_value->fill_at(data->get_size(), old_value->value(), old_value->value_size());
