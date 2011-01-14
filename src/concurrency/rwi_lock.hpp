@@ -48,6 +48,9 @@ public:
     // Call to lock for read, write, intent, or upgrade intent to write
     bool lock(access_t access, lock_available_callback_t *callback);
 
+    // Like lock() but blocks; only legal in a coroutine.
+    void co_lock(access_t access);
+
     // Call if you've locked for read or write, or upgraded to write,
     // and are now unlocking.
     void unlock();

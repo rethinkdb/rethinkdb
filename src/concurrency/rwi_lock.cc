@@ -2,6 +2,7 @@
 
 #include "config/args.hpp"
 #include "arch/arch.hpp"
+#include "concurrency/cond_var.hpp"
 
 bool rwi_lock_t::lock(access_t access, lock_available_callback_t *callback) {
     if (try_lock(access, false)) {
@@ -10,6 +11,13 @@ bool rwi_lock_t::lock(access_t access, lock_available_callback_t *callback) {
         enqueue_request(access, callback);
         return false;
     }
+}
+
+void rwi_lock_t::co_lock(access_t access) {
+    struct : public lock_available_callback_t, public cond_t {
+        void on_lock_available() { pulse(); }
+    } cb;
+    if (!lock(access, &cb)) cb.wait();
 }
 
 // Call if you've locked for read or write, or upgraded to write,

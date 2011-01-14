@@ -74,7 +74,7 @@ void send_buffer_t::flush(send_buffer_callback_t *cb) {
     coro_t::spawn(&send_buffer_t::do_flush, this, cb);
 }
 
-void send_buffer_t::do_flush(send_buffer_callback_t *cb) {
+bool send_buffer_t::co_flush() {
 #ifndef NDEBUG
     assert(state == ready);
     state = flushing;
@@ -89,7 +89,7 @@ void send_buffer_t::do_flush(send_buffer_callback_t *cb) {
 #ifndef NDEBUG
         state = ready;
 #endif
-        cb->on_send_buffer_socket_closed();
+        return false;
     } else {
         /* We just finished flushing the internal buffer by request of the request handler. */
         buffer.resize(0);
@@ -97,7 +97,15 @@ void send_buffer_t::do_flush(send_buffer_callback_t *cb) {
 #ifndef NDEBUG
         state = ready;
 #endif
+        return true;
+    }
+}
+
+void send_buffer_t::do_flush(send_buffer_callback_t *cb) {
+    if (co_flush()) {
         cb->on_send_buffer_flush();
+    } else {
+        cb->on_send_buffer_socket_closed();
     }
 }
 
