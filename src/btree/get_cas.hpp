@@ -9,7 +9,7 @@
 // hasn't been set, for instance), but depending on how CAS is used, that may
 // be unnecessary.
 
-class btree_get_cas_oper_t : public btree_modify_oper_t {
+class btree_get_cas_oper_t : public btree_modify_oper_t, public home_thread_mixin_t {
 public:
     explicit btree_get_cas_oper_t(store_t::get_callback_t *cb)
         : btree_modify_oper_t(), callback(cb), in_operate(false)
@@ -46,7 +46,6 @@ public:
             }
 
             { // TODO: Actually use RAII.
-                int home_thread = get_thread_id();
                 coro_t::move_to_thread(home_thread);
                 co_value(callback, &buffer_group, value.mcflags(), value.cas());
                 coro_t::move_to_thread(slice->home_thread);

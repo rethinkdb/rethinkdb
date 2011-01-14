@@ -15,9 +15,9 @@ bool node_handler::is_underfull(block_size_t block_size, const node_t *node) {
 }
 
 
-bool node_handler::is_mergable(block_size_t block_size, const node_t *node, const node_t *sibling, const node_t *parent) {
+bool node_handler::is_mergable(block_size_t block_size, const node_t *node, const node_t *sibling, const internal_node_t *parent) {
     return (node_handler::is_leaf(node)     &&     leaf_node_handler::is_mergable(block_size, ptr_cast<leaf_node_t>(node), ptr_cast<leaf_node_t>(sibling)))
-        || (node_handler::is_internal(node) && internal_node_handler::is_mergable(block_size, ptr_cast<internal_node_t>(node), ptr_cast<internal_node_t>(sibling), ptr_cast<internal_node_t>(parent)));
+        || (node_handler::is_internal(node) && internal_node_handler::is_mergable(block_size, ptr_cast<internal_node_t>(node), ptr_cast<internal_node_t>(sibling), parent));
 }
 
 
@@ -38,19 +38,19 @@ void node_handler::split(block_size_t block_size, node_t *node, node_t *rnode, b
     }
 }
 
-void node_handler::merge(block_size_t block_size, const node_t *node, node_t *rnode, btree_key *key_to_remove, node_t *parent) {
+void node_handler::merge(block_size_t block_size, const node_t *node, node_t *rnode, btree_key *key_to_remove, internal_node_t *parent) {
     if (node_handler::is_leaf(node)) {
         leaf_node_handler::merge(block_size, ptr_cast<leaf_node_t>(node), ptr_cast<leaf_node_t>(rnode), key_to_remove);
     } else {
-        internal_node_handler::merge(block_size, ptr_cast<internal_node_t>(node), ptr_cast<internal_node_t>(rnode), key_to_remove, ptr_cast<internal_node_t>(parent));
+        internal_node_handler::merge(block_size, ptr_cast<internal_node_t>(node), ptr_cast<internal_node_t>(rnode), key_to_remove, parent);
     }
 }
 
-bool node_handler::level(block_size_t block_size, node_t *node, node_t *rnode, btree_key *key_to_replace, btree_key *replacement_key, node_t *parent) {
+bool node_handler::level(block_size_t block_size, node_t *node, node_t *rnode, btree_key *key_to_replace, btree_key *replacement_key, internal_node_t *parent) {
     if (node_handler::is_leaf(node)) {
         return leaf_node_handler::level(block_size, ptr_cast<leaf_node_t>(node), ptr_cast<leaf_node_t>(rnode), key_to_replace, replacement_key);
     } else {
-        return internal_node_handler::level(block_size, ptr_cast<internal_node_t>(node), ptr_cast<internal_node_t>(rnode), key_to_replace, replacement_key, ptr_cast<internal_node_t>(parent));
+        return internal_node_handler::level(block_size, ptr_cast<internal_node_t>(node), ptr_cast<internal_node_t>(rnode), key_to_replace, replacement_key, parent);
     }
 }
 
