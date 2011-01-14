@@ -67,6 +67,11 @@ class dbench():
         except:
             print 'No competitors found in: '+self.competitor_dir
 
+        # For now: enforce that MySQL is in the list ahead of Membase, as we have all benchs working for MySQL, but just some for Membase.
+        #    Not doing so results in different color coding of MySQL in tests where Membase is available and tests where it is not.
+        competitor_dirs.sort()
+        competitor_dirs.reverse()
+
         for dir in competitor_dirs:
             self.competitors[dir] = self.bench_stats(os.path.join(self.competitor_dir, dir, self.bench_dir))
 
