@@ -3,65 +3,54 @@
 #include <string.h>
 #include <unistd.h>
 #include <sys/eventfd.h>
-#include "event_queue.hpp"
+#include "arch/linux/event_queue.hpp"
 #include "timer.hpp"
 #include "logger.hpp"
 
-linux_timer_handler_t::linux_timer_handler_t(linux_event_queue_t *queue)
-    : queue(queue)
+/* Timer token */
+struct timer_token_t :
+    public intrusive_list_node_t<timer_token_t>
 {
-    int res;
+    friend class timer_handler_t;
     
-    timer_fd = timerfd_create(CLOCK_MONOTONIC, 0);
-    guarantee_err(timer_fd != -1, "Could not create timer");
+private:
+    bool once;   // If 'false', the timer is repeating
+    long interval_ms;   // If a repeating timer, this is the time between 'rings'
+    long next_time_in_ms;   // This is the time (in ms since the server started) of the next 'ring'
+    
+    // It's unsafe to remove arbitrary timers from the list as we iterate over
+    // it, so instead we set the 'deleted' flag and then remove them in a
+    // controlled fashion.
+    bool deleted;
+    
+    void (*callback)(void *ctx);
+    void *context;
+};
 
-    res = fcntl(timer_fd, F_SETFL, O_NONBLOCK);
-    guarantee_err(res == 0, "Could not make timer non-blocking");
-
-    itimerspec timer_spec;
-    bzero(&timer_spec, sizeof(timer_spec));
-    timer_spec.it_value.tv_sec = timer_spec.it_interval.tv_sec = TIMER_TICKS_IN_MS / 1000;
-    timer_spec.it_value.tv_nsec = timer_spec.it_interval.tv_nsec = (TIMER_TICKS_IN_MS % 1000) * 1000000L;
-    res = timerfd_settime(timer_fd, 0, &timer_spec, NULL);
-    guarantee_err(res == 0, "Could not arm the timer");
-    
-    timer_ticks_since_server_startup = 0;
-    
-    queue->watch_resource(timer_fd, poll_event_in, this);
+/* Timer implementation */
+timer_handler_t::timer_handler_t(linux_event_queue_t *queue)
+    : timer_provider(queue, this, TIMER_TICKS_IN_MS / 1000, (TIMER_TICKS_IN_MS % 1000) * 1000000L),
+      timer_ticks_since_server_startup(0)
+{
+    // Nothing to do here, timer_provider handles the OS
 }
 
-linux_timer_handler_t::~linux_timer_handler_t() {
-    int res;
-    
+timer_handler_t::~timer_handler_t() {
     // Delete the registered timers
-    while (linux_timer_token_t *t = timers.head()) {
+    while (timer_token_t *t = timers.head()) {
         assert(t->deleted);
         timers.remove(t);
         delete t;
     }
-    
-    res = close(timer_fd);
-    guarantee_err(res == 0, "Could not close the timer.");
 }
 
-void linux_timer_handler_t::on_event(int events) {
-
-    if (events != poll_event_in) {
-        logERR("Unexpected event mask: %d\n", events);
-    }
-
-    int res;
-    eventfd_t nexpirations;
-    
-    res = eventfd_read(timer_fd, &nexpirations);
-    guarantee(res == 0, "Could not read timer_fd value");
-    
+void timer_handler_t::on_timer(int nexpirations) {
     timer_ticks_since_server_startup += nexpirations;
     long time_in_ms = timer_ticks_since_server_startup * TIMER_TICKS_IN_MS;
 
-    intrusive_list_t<linux_timer_token_t>::iterator t;
+    intrusive_list_t<timer_token_t>::iterator t;
     for (t = timers.begin(); t != timers.end(); ) {
-        linux_timer_token_t *timer = &*t;
+        timer_token_t *timer = &*t;
         
         // Increment now instead of in the header of the 'for' loop because we may
         // delete the timer we are on
@@ -90,10 +79,10 @@ void linux_timer_handler_t::on_event(int events) {
     }
 }
     
-linux_timer_token_t *linux_timer_handler_t::add_timer_internal(long ms, void (*callback)(void *ctx), void *ctx, bool once) {
+timer_token_t *timer_handler_t::add_timer_internal(long ms, void (*callback)(void *ctx), void *ctx, bool once) {
     assert(ms >= 0);
     
-    linux_timer_token_t *t = new linux_timer_token_t();
+    timer_token_t *t = new timer_token_t();
     t->next_time_in_ms = timer_ticks_since_server_startup * TIMER_TICKS_IN_MS + ms;
     t->once = once;
     if (once) t->interval_ms = ms;
@@ -106,7 +95,7 @@ linux_timer_token_t *linux_timer_handler_t::add_timer_internal(long ms, void (*c
     return t;
 }
 
-void linux_timer_handler_t::cancel_timer(linux_timer_token_t *timer) {
+void timer_handler_t::cancel_timer(timer_token_t *timer) {
     timer->deleted = true;
 }
 
