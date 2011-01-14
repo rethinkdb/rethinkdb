@@ -769,26 +769,16 @@ void do_delete(txt_memcached_handler_t *rh, int argc, char **argv) {
 
 void do_stats(txt_memcached_handler_t *rh, int argc, char **argv) {
 
-    std::vector<std::string> fields;
-
-    for (int i = 1; i < argc; i++) {
-        fields.push_back(argv[i]);
-    }
-
     perfmon_stats_t stats;
-    struct : public perfmon_callback_t, public cond_t {
-        void on_perfmon_stats() { pulse(); }
-    } cb;
-    if (!perfmon_get_stats(&stats, &cb)) cb.wait();
+    perfmon_get_stats(&stats);
 
-    
-    if (fields.size() == 0) {
+    if (argc == 1) {
         for (perfmon_stats_t::iterator iter = stats.begin(); iter != stats.end(); iter++) {
             rh->writef("STAT %s %s\r\n", iter->first.c_str(), iter->second.c_str());
         }
     } else {
-        for (int i = 0; i < (int)fields.size(); i++) {
-            perfmon_stats_t::iterator stat_entry = stats.find(fields[i]);
+        for (int i = 1; i < argc; i++) {
+            perfmon_stats_t::iterator stat_entry = stats.find(argv[i]);
             if (stat_entry == stats.end()) {
                 rh->writef("NOT FOUND\r\n");
             } else {

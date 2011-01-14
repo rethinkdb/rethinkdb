@@ -36,15 +36,10 @@ stores statistics about the server. */
 typedef std::map<std::string, std::string> perfmon_stats_t;
 
 /* perfmon_get_stats() collects all the stats about the server and puts them
-into the given perfmon_stats_t object. Its interface is asynchronous, but at
-the moment it will always return true. */
+into the given perfmon_stats_t object. It must be run in a coroutine and it blocks
+until it is done. */
 
-struct perfmon_callback_t {
-    virtual void on_perfmon_stats() = 0;
-    virtual ~perfmon_callback_t() {}
-};
-
-bool perfmon_get_stats(perfmon_stats_t *dest, perfmon_callback_t *cb);
+void perfmon_get_stats(perfmon_stats_t *dest);
 
 /* A perfmon_t represents a stat about the server.
 

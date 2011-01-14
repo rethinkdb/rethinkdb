@@ -65,7 +65,7 @@ void co_perfmon_visit(int thread, const std::vector<void*> &data, multi_wait_t *
 }
 
 
-void co_perfmon_get_stats(perfmon_stats_t *dest, perfmon_callback_t *cb) {
+void perfmon_get_stats(perfmon_stats_t *dest) {
     std::vector<void*> data;
     data.reserve(get_var_list().size());
     for (perfmon_t *p = get_var_list().head(); p; p = get_var_list().next(p)) {
@@ -81,19 +81,9 @@ void co_perfmon_get_stats(perfmon_stats_t *dest, perfmon_callback_t *cb) {
     for (perfmon_t *p = get_var_list().head(); p; p = get_var_list().next(p)) {
         p->end_stats(data[i++], dest);
     }
-    cb->on_perfmon_stats();
-}
-    
-bool perfmon_get_stats(perfmon_stats_t *dest, perfmon_callback_t *cb) {
-    coro_t::spawn(co_perfmon_get_stats, dest, cb);
-    return false;
 }
 
-/* Constructor and destructor register and deregister the perfmon.
-
-Right now, it is illegal to make perfmon_t objects that are not static variables, so
-we don't have to worry about locking the var list. If we locked it, then we could
-create and destroy perfmon_ts at runtime. */
+/* Constructor and destructor register and deregister the perfmon. */
 
 perfmon_t::perfmon_t()
 {
