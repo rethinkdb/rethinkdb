@@ -50,8 +50,6 @@ private:
                                     buf_t **buf, buf_t **last_buf, buf_t **sb_buf,
                                     const btree_key *key, block_size_t block_size);
 
-    void split_node(transaction_t *txn, buf_t *node, buf_t **rnode, btree_key *median, block_size_t block_size);
-
     void call_replicants(btree_key *key, btree_value *new_value, large_buf_t *new_large_buf, repli_timestamp new_value_timestamp);
 
 protected:

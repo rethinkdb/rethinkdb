@@ -43,9 +43,10 @@ void btree_modify_fsm_t::check_and_handle_split(transaction_t *txn,
 
     byte memory[sizeof(btree_key) + MAX_KEY_SIZE];
     btree_key *median = reinterpret_cast<btree_key *>(memory);
-    buf_t *rbuf;
+    buf_t *rbuf = txn->allocate();
+    node_handler::split(block_size, ptr_cast<node_t>((*buf)->get_data_write()), ptr_cast<node_t>(rbuf->get_data_write()), median);
+
     internal_node_t *last_node;
-    split_node(txn, *buf, &rbuf, median, block_size);
     if (*last_buf == NULL) { // We're splitting a root, so create a new root.
         *last_buf = txn->allocate();
         last_node = ptr_cast<internal_node_t>((*last_buf)->get_data_write());
@@ -62,8 +63,7 @@ void btree_modify_fsm_t::check_and_handle_split(transaction_t *txn,
 
     // Figure out where the key goes
     if (sized_strcmp(key->contents, key->size, median->contents, median->size) <= 0) {
-        // Left node and node are the same thing
-        rbuf->release();
+        rbuf->release(); // Left node and node are the same thing
     } else {
         (*buf)->release();
         *buf = rbuf;
@@ -312,18 +312,4 @@ void btree_modify_fsm_t::run(btree_key_value_store_t *store, btree_key *_key) {
     call_callback_and_delete();
 
     store->finished_a_query();
-}
-
-// TODO: All these functions should move into node.hpp etc.; better yet, they should be abolished.
-void btree_modify_fsm_t::split_node(transaction_t *txn, buf_t *buf, buf_t **rbuf, btree_key *median, block_size_t block_size) {
-    *rbuf = txn->allocate();
-    if(node_handler::is_leaf(ptr_cast<node_t>(buf->get_data_read()))) {
-        leaf_node_t *node = ptr_cast<leaf_node_t>(buf->get_data_write());
-        leaf_node_t *rnode = ptr_cast<leaf_node_t>((*rbuf)->get_data_write());
-        leaf_node_handler::split(block_size, node, rnode, median);
-    } else {
-        internal_node_t *node = ptr_cast<internal_node_t>(buf->get_data_write());
-        internal_node_t *rnode = ptr_cast<internal_node_t>((*rbuf)->get_data_write());
-        internal_node_handler::split(block_size, node, rnode, median);
-    }
 }

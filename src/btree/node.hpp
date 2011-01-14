@@ -265,6 +265,7 @@ class node_handler {
         static bool is_underfull(block_size_t block_size, const node_t *node);
         static bool is_mergable(block_size_t block_size, const node_t *node, const node_t *sibling, const node_t *parent);
         static int nodecmp(const node_t *node1, const node_t *node2);
+        static void split(block_size_t block_size, node_t *node, node_t *rnode, btree_key *median);
         static void merge(block_size_t block_size, const node_t *node, node_t *rnode, btree_key *key_to_remove, node_t *parent);
         static bool level(block_size_t block_size, node_t *node, node_t *rnode, btree_key *key_to_replace, btree_key *replacement_key, node_t *parent);
 
