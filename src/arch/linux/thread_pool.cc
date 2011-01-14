@@ -146,6 +146,14 @@ void linux_thread_pool_t::run(linux_thread_message_t *initial_message) {
         
         res = sigaction(SIGINT, &sa, NULL);
         guarantee_err(res == 0, "Could not install INT handler");
+
+        // Block all signals (will be unblocked by the event queue)
+        sigset_t sigmask;
+        res = sigfillset(&sigmask);
+        guarantee_err(res == 0, "Could not get a full sigmask");
+        
+        res = pthread_sigmask(SIG_BLOCK, &sigmask, NULL);
+        guarantee_err(res == 0, "Could not block signal");
     }
     
     // Wait for order to shut down
