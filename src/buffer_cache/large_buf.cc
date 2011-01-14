@@ -62,7 +62,8 @@ buftree_t *large_buf_t::allocate_buftree(int64_t offset, int64_t size, int level
     ret->level = levels;
 #endif
 
-    ret->buf = transaction->allocate(block_id);
+    ret->buf = transaction->allocate();
+    *block_id = ret->buf->get_block_id();
 
 #ifndef NDEBUG
     num_bufs++;
@@ -289,7 +290,8 @@ buftree_t *large_buf_t::add_level(buftree_t *tr, block_id_t id, block_id_t *new_
     ret->level = nextlevels;
 #endif
 
-    ret->buf = transaction->allocate(new_id);
+    ret->buf = transaction->allocate();
+    *new_id = ret->buf->get_block_id();
 
 #ifndef NDEBUG
     num_bufs++;

@@ -89,10 +89,10 @@ scc_buf_t<inner_cache_t> *scc_transaction_t<inner_cache_t>::acquire(block_id_t b
 }
 
 template<class inner_cache_t>
-scc_buf_t<inner_cache_t> *scc_transaction_t<inner_cache_t>::allocate(block_id_t *new_block_id) {
+scc_buf_t<inner_cache_t> *scc_transaction_t<inner_cache_t>::allocate() {
     scc_buf_t<inner_cache_t> *buf = new scc_buf_t<inner_cache_t>(this->cache);
-    buf->inner_buf = inner_transaction->allocate(new_block_id);
-    cache->crc_map.set(*new_block_id, buf->compute_crc());
+    buf->inner_buf = inner_transaction->allocate();
+    cache->crc_map.set(buf->inner_buf->get_block_id(), buf->compute_crc());
     return buf;
 }
 
