@@ -4,110 +4,99 @@
 #include "server.hpp"
 #include <stdarg.h>
 
-class txt_memcached_get_request_t
-{
-public:
-    txt_memcached_handler_t *rh;
-    bool with_cas;
-    struct get_t {
-        union {
-            char key_memory[MAX_KEY_SIZE+sizeof(btree_key)];
-            btree_key key;
-        };
-        task_t<store_t::get_result_t> *result;
+/* do_get() is used for "get" and "gets" commands. */
+
+struct get_t {
+    union {
+        char key_memory[MAX_KEY_SIZE+sizeof(btree_key)];
+        btree_key key;
     };
+    task_t<store_t::get_result_t> *result;
+};
+
+void do_get(txt_memcached_handler_t *rh, bool with_cas, int argc, char **argv) {
+
+    assert(argc >= 1);
+    assert(strcmp(argv[0], "get") == 0 || strcmp(argv[0], "gets") == 0);
+
+    /* Vector to store the keys and the task-objects */
     std::vector<get_t> gets;
 
-    txt_memcached_get_request_t(txt_memcached_handler_t *rh, bool with_cas, int argc, char **argv)
-        : rh(rh), with_cas(with_cas)
-    {
-        assert(argc >= 1);
-        assert(strcmp(argv[0], "get") == 0 || strcmp(argv[0], "gets") == 0);
-
-        /* First parse all of the keys to get */
-        gets.reserve(argc - 1);
-        for (int i = 1; i < argc; i++) {
-            gets.push_back(get_t());
-            if (!node_handler::str_to_key(argv[i], &gets.back().key)) {
-                rh->writef("CLIENT_ERROR bad command line format\r\n");
-                rh->read_next_command();
-                delete this;
-                return;
-            }
-        }
-        if (gets.size() == 0) {
-            rh->writef("ERROR\r\n");
-            rh->read_next_command();
-            delete this;
+    /* First parse all of the keys to get */
+    gets.reserve(argc - 1);
+    for (int i = 1; i < argc; i++) {
+        gets.push_back(get_t());
+        if (!node_handler::str_to_key(argv[i], &gets.back().key)) {
+            rh->writef("CLIENT_ERROR bad command line format\r\n");
             return;
         }
-
-        /* Now that we're sure they're all valid, send off the requests */
-        for (int i = 0; i < (int)gets.size(); i++) {
-            gets[i].result = task<store_t::get_result_t>(
-                with_cas ? &store_t::co_get_cas : &store_t::co_get,
-                rh->server->store,
-                &gets[i].key);
-        }
-
-        coro_t::spawn(&txt_memcached_get_request_t::write_each, this);
+    }
+    if (gets.size() == 0) {
+        rh->writef("ERROR\r\n");
+        return;
     }
 
-    void write_each() {
+    /* Now that we're sure they're all valid, send off the requests */
+    for (int i = 0; i < (int)gets.size(); i++) {
+        gets[i].result = task<store_t::get_result_t>(
+            with_cas ? &store_t::co_get_cas : &store_t::co_get,
+            rh->server->store,
+            &gets[i].key);
+    }
 
-        for (int i = 0; i < (int)gets.size(); i++) {
+    /* Handle the results in sequence */
+    for (int i = 0; i < (int)gets.size(); i++) {
 
-            store_t::get_result_t res = gets[i].result->join();
+        store_t::get_result_t res = gets[i].result->join();
 
-            /* If the write half of the connection has been closed, there's no point in trying
-            to send anything */
-            if (rh->conn->is_write_open()) {
-                btree_key &key = gets[i].key;
+        /* If the write half of the connection has been closed, there's no point in trying
+        to send anything */
+        if (rh->conn->is_write_open()) {
+            btree_key &key = gets[i].key;
 
-                /* If res.buffer is NULL that means the value was not found so we don't write
-                anything */
-                if (res.buffer) {
+            /* If res.buffer is NULL that means the value was not found so we don't write
+            anything */
+            if (res.buffer) {
 
-                    /* Write the "VALUE ..." header */
-                    if (with_cas) {
-                        rh->writef("VALUE %*.*s %u %u %llu\r\n",
-                            key.size, key.size, key.contents, res.flags, res.buffer->get_size(), res.cas);
-                    } else {
-                        assert(res.cas == 0);
-                        rh->writef("VALUE %*.*s %u %u\r\n",
-                            key.size, key.size, key.contents, res.flags, res.buffer->get_size());
+                /* Write the "VALUE ..." header */
+                if (with_cas) {
+                    rh->writef("VALUE %*.*s %u %u %llu\r\n",
+                        key.size, key.size, key.contents, res.flags, res.buffer->get_size(), res.cas);
+                } else {
+                    assert(res.cas == 0);
+                    rh->writef("VALUE %*.*s %u %u\r\n",
+                        key.size, key.size, key.contents, res.flags, res.buffer->get_size());
+                }
+
+                /* Write the value itself. If the value is small, write it into the send buffer;
+                otherwise, stream it. */
+                if (res.buffer->get_size() < MAX_BUFFERED_GET_SIZE) {
+                    for (int i = 0; i < (signed)res.buffer->buffers.size(); i++) {
+                        const_buffer_group_t::buffer_t b = res.buffer->buffers[i];
+                        rh->write((const char *)b.data, b.size);
                     }
+                    rh->writef("\r\n");
 
-                    /* Write the value itself. If the value is small, write it into the send buffer;
-                    otherwise, stream it. */
-                    if (res.buffer->get_size() < MAX_BUFFERED_GET_SIZE) {
-                        for (int i = 0; i < (signed)res.buffer->buffers.size(); i++) {
-                            const_buffer_group_t::buffer_t b = res.buffer->buffers[i];
-                            rh->write((const char *)b.data, b.size);
-                        }
-                        rh->writef("\r\n");
-
-                    } else {
-                        bool ok = true;
-                        for (int i = 0; i < (signed)res.buffer->buffers.size(); i++) {
-                            const_buffer_group_t::buffer_t b = res.buffer->buffers[i];
-                            ok = rh->send_buffer.co_write_external(b.size, (const char *)b.data);
-                            if (!ok) break;
-                        }
-                        if (ok) rh->writef("\r\n");
+                } else {
+                    bool ok = true;
+                    for (int i = 0; i < (signed)res.buffer->buffers.size(); i++) {
+                        const_buffer_group_t::buffer_t b = res.buffer->buffers[i];
+                        ok = rh->send_buffer.co_write_external(b.size, (const char *)b.data);
+                        if (!ok) break;
                     }
+                    if (ok) rh->writef("\r\n");
                 }
             }
-
-            /* Call the callback so that the value is released */
-            if (res.buffer) res.cb->have_copied_value();
         }
 
-        rh->writef("END\r\n");
-        rh->read_next_command();
-        delete this;
+        /* Call the callback so that the value is released */
+        if (res.buffer) res.cb->have_copied_value();
     }
+
+    rh->writef("END\r\n");
 };
+
+/* "set", "add", "replace", "cas", "append", and "prepend" command logic */
 
 /* The buffered_data_provider_t provides data from an internal buffer. */
 
@@ -322,611 +311,492 @@ private:
     }
 };
 
-/* Common superclass for txt_memcached_set_request_t, which handles set/add/replace/cas,
-and txt_memcached_append_prepend_request_t, which handles append/prepend. The subclass
-should override dispatch(). */
-struct txt_memcached_storage_request_t :
-    public net_conn_read_external_callback_t,
-    public semaphore_available_callback_t
-{
-    txt_memcached_handler_t *rh;
-    data_provider_t *data;
-
-    /* If the command line says "noreply", then noreply = true. If the command line says "noreply"
-    and the value is not being streamed, then nowait = true. */
-    bool noreply, nowait;
-
-    enum storage_command_t {
-        set_command,
-        add_command,
-        replace_command,
-        cas_command,
-        append_command,
-        prepend_command
-    };
-
-private:
-    /* Temporary space to store stuff while reading the value from the socket, assuming we don't
-    stream the value. */
-    storage_command_t storage_command;
-    union {
-        char key_memory[MAX_KEY_SIZE + sizeof(btree_key)];
-        btree_key key;
-    };
-    mcflags_t mcflags;
-    exptime_t exptime;
-    size_t value_size;
-    cas_t req_cas;
-    bool is_streaming;
-    char *value_buffer;   // Only used if not streaming
-
-public:
-    txt_memcached_storage_request_t()
-        : data(NULL)
-    {
-    }
-
-    void init(
-        txt_memcached_handler_t *r,
-        storage_command_t sc,
-        int argc, char **argv)
-    {
-        rh = r;
-
-        char *invalid_char;
-
-        /* cmd key flags exptime size [noreply]
-        OR "cas" key flags exptime size cas [noreply] */
-        if ((sc != cas_command && (argc != 5 && argc != 6)) ||
-            (sc == cas_command && (argc != 6 && argc != 7))) {
-            rh->writef("ERROR\r\n");
-            rh->read_next_command();
-            delete this;
-            return;
-        }
-
-        /* Storage command */
-        storage_command = sc;
-
-        /* First parse the key */
-        if (!node_handler::str_to_key(argv[1], &key)) {
-            rh->writef("CLIENT_ERROR bad command line format\r\n");
-            rh->read_next_command();
-            delete this;
-            return;
-        }
-
-        /* Next parse the flags */
-        mcflags = strtoul_strict(argv[2], &invalid_char, 10);
-        if (*invalid_char != '\0') {
-            rh->writef("CLIENT_ERROR bad command line format\r\n");
-            rh->read_next_command();
-            delete this;
-            return;
-        }
-
-        /* Now parse the expiration time */
-        exptime = strtoul_strict(argv[3], &invalid_char, 10);
-        if (*invalid_char != '\0') {
-            rh->writef("CLIENT_ERROR bad command line format\r\n");
-            rh->read_next_command();
-            delete this;
-            return;
-        }
-        
-        // This is protocol.txt, verbatim:
-        // Some commands involve a client sending some kind of expiration time
-        // (relative to an item or to an operation requested by the client) to
-        // the server. In all such cases, the actual value sent may either be
-        // Unix time (number of seconds since January 1, 1970, as a 32-bit
-        // value), or a number of seconds starting from current time. In the
-        // latter case, this number of seconds may not exceed 60*60*24*30 (number
-        // of seconds in 30 days); if the number sent by a client is larger than
-        // that, the server will consider it to be real Unix time value rather
-        // than an offset from current time.
-        if (exptime <= 60*60*24*30 && exptime > 0) {
-            // TODO: Do we need to handle exptimes in the past here?
-            exptime += time(NULL);
-        }
-
-        /* Now parse the value length */
-        value_size = strtoul_strict(argv[4], &invalid_char, 10);
-        // Check for signed 32 bit max value for Memcached compatibility...
-        if (*invalid_char != '\0' || value_size >= (1u << 31) - 1) {
-            rh->writef("CLIENT_ERROR bad command line format\r\n");
-            rh->read_next_command();
-            delete this;
-            return;
-        }
-
-        /* If a "cas", parse the cas_command unique */
-        if (storage_command == cas_command) {
-            req_cas = strtoull_strict(argv[5], &invalid_char, 10);
-            if (*invalid_char != '\0') {
-                rh->writef("CLIENT_ERROR bad command line format\r\n");
-                rh->read_next_command();
-                delete this;
-                return;
-            }
-        }
-
-        /* Check for noreply */
-        int offset = storage_command == cas_command ? 1 : 0;
-        if (argc == 6 + offset) {
-            if (strcmp(argv[5 + offset], "noreply") == 0) {
-                noreply = true;
-            } else {
-                // Memcached 1.4.5 ignores invalid tokens here
-                noreply = false;
-            }
-        } else {
-            noreply = false;
-        }
-
-        /* Make a data provider */
-        is_streaming = (value_size > MAX_BUFFERED_SET_SIZE);
-        if (!is_streaming) {
-            value_buffer = new char[value_size+2];   // +2 for the CRLF
-            rh->conn->read_external(value_buffer, value_size+2, this);
-        } else {
-            data = new memcached_streaming_data_provider_t(rh, value_size);
-            on_net_conn_read_external();   // Go ahead immediately; the value will be read later
-        }
-    }
-
-    void on_net_conn_read_external() {
-
-        /* We finished creating the data provider. */
-        if (!is_streaming) {
-            /* The buffered_data_provider_t doesn't check the CRLF, so we must check it here.
-            The memcached_streaming_data_provider_t checks its own CRLF. */
-            if (value_buffer[value_size] != '\r' || value_buffer[value_size + 1] != '\n') {
-                rh->writef("CLIENT_ERROR bad data chunk\r\n");
-                rh->read_next_command();
-                delete this;
-                return;
-            }
-            data = new buffered_data_provider_t(value_buffer, value_size);
-            delete[] value_buffer;
-        }
-
-        /* Notify the memcached handler that we are starting a write request so that it
-        will not let too many go at once */
-        rh->begin_write_command(this);
-    }
-
-    void on_semaphore_available() {
-
-        /* If we are streaming the value, then we cannot pipeline another command yet. */
-        if (noreply && !is_streaming) nowait = true;
-        else nowait = false;
-
-        /* Store the request handler in case we get deleted */
-        txt_memcached_handler_t *_rh = rh;
-        bool _nowait = nowait;
-
-        /* Dispatch the request now that we're sure that it parses properly. dispatch() is
-        overriden by the subclass to do the appropriate thing. */
-        dispatch(storage_command, &key, data, mcflags, exptime, req_cas);
-
-        if (_nowait) _rh->read_next_command();
-    }
-
-    void on_net_conn_close() {
-
-        /* Network connection closed while we read a buffered (non-streaming) value. */
-
-        assert(!is_streaming);
-        delete[] value_buffer;
-
-        rh->read_next_command();   // The RH will figure out that the connection is closed
-        delete this;
-    }
-
-    virtual void dispatch(storage_command_t storage_command,
-            btree_key *key, data_provider_t *data,
-            mcflags_t flags, exptime_t exptime, cas_t cas) = 0;
-
-    ~txt_memcached_storage_request_t() {
-        if (data) delete data;
-    }
-
-    /* Called by the subclass after the KVS calls it back */
-    void done() {
-        if (!nowait) rh->read_next_command();
-        rh->end_write_command();
-        delete this;
-    }
+enum storage_command_t {
+    set_command,
+    add_command,
+    replace_command,
+    cas_command,
+    append_command,
+    prepend_command
 };
 
-struct txt_memcached_set_request_t :
-    public txt_memcached_storage_request_t,
-    public store_t::set_callback_t
+enum set_result_t {
+    sr_stored,
+    sr_not_stored,
+    sr_not_found,
+    sr_exists,
+    sr_too_large,
+    sr_data_provider_failed
+};
+
+struct set_callback_t
+    : public store_t::set_callback_t, public value_cond_t<set_result_t>
 {
-    txt_memcached_set_request_t(
-        txt_memcached_handler_t *rh,
-        storage_command_t sc,
-        int argc, char **argv)
-    {
-        init(rh, sc, argc, argv);
-    }
+    void stored() { pulse(sr_stored); }
+    void not_stored() { pulse(sr_not_stored); }
+    void not_found() { pulse(sr_not_found); }
+    void exists() { pulse(sr_exists); }
+    void too_large() { pulse(sr_too_large); }
+    void data_provider_failed() { pulse(sr_data_provider_failed); }
+};
 
-    /* Called by the superclass when it's done parsing the value */
-    void dispatch(storage_command_t sc,
-            btree_key *key, data_provider_t *data,
-            mcflags_t flags, exptime_t exptime, cas_t cas) {
+set_result_t co_set(store_t *store, store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime) {
+    set_callback_t cb;
+    store->set(key, data, flags, exptime, &cb);
+    return cb.wait();
+};
 
+set_result_t co_add(store_t *store, store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime) {
+    set_callback_t cb;
+    store->add(key, data, flags, exptime, &cb);
+    return cb.wait();
+}
+
+set_result_t co_replace(store_t *store, store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime) {
+    set_callback_t cb;
+    store->replace(key, data, flags, exptime, &cb);
+    return cb.wait();
+}
+
+set_result_t co_cas(store_t *store, store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, cas_t unique) {
+    set_callback_t cb;
+    store->cas(key, data, flags, exptime, unique, &cb);
+    return cb.wait();
+}
+
+enum append_prepend_result_t {
+    apr_success,
+    apr_too_large,
+    apr_not_found,
+    apr_data_provider_failed
+};
+
+struct append_prepend_callback_t
+    : public store_t::append_prepend_callback_t, public value_cond_t<append_prepend_result_t>
+{
+    void success() { pulse(apr_success); }
+    void not_found() { pulse(apr_not_found); }
+    void too_large() { pulse(apr_too_large); }
+    void data_provider_failed() { pulse(apr_data_provider_failed); }
+};
+
+append_prepend_result_t co_append(store_t *store, store_key_t *key, data_provider_t *data) {
+    append_prepend_callback_t cb;
+    store->append(key, data, &cb);
+    return cb.wait();
+}
+
+append_prepend_result_t co_prepend(store_t *store, store_key_t *key, data_provider_t *data) {
+    append_prepend_callback_t cb;
+    store->prepend(key, data, &cb);
+    return cb.wait();
+}
+
+void run_storage_command(txt_memcached_handler_t *rh, storage_command_t sc, store_key_and_buffer_t key, data_provider_t *data, mcflags_t mcflags, exptime_t exptime, cas_t unique, bool noreply) {
+
+    if (sc != append_command && sc != prepend_command) {
+        set_result_t res;
         switch (sc) {
-            case set_command:
-                rh->server->store->set(key, data, flags, exptime, this);
-                break;
-            case add_command:
-                rh->server->store->add(key, data, flags, exptime, this);
-                break;
-            case replace_command:
-                rh->server->store->replace(key, data, flags, exptime, this);
-                break;
-            case cas_command:
-                rh->server->store->cas(key, data, flags, exptime, cas, this);
-                break;
+            case set_command: res = co_set(rh->server->store, &key.key, data, mcflags, exptime); break;
+            case add_command: res = co_add(rh->server->store, &key.key, data, mcflags, exptime); break;
+            case replace_command: res = co_replace(rh->server->store, &key.key, data, mcflags, exptime); break;
+            case cas_command: res = co_cas(rh->server->store, &key.key, data, mcflags, exptime, unique); break;
             case append_command:
             case prepend_command:
             default:
                 unreachable();
         }
-    }
-
-    void stored() {
-        if (!noreply) rh->writef("STORED\r\n");
-        done();
-    }
-    void not_stored() {
-        if (!noreply) rh->writef("NOT_STORED\r\n");
-        done();
-    }
-    void exists() {
-        if (!noreply) rh->writef("EXISTS\r\n");
-        done();
-    }
-    void not_found() {
-        if (!noreply) rh->writef("NOT_FOUND\r\n");
-        done();
-    }
-    void too_large() {
-        if (!noreply) rh->writef("SERVER_ERROR object too large for cache\r\n");
-        done();
-    }
-    void data_provider_failed() {
-        // This is called if there was no CRLF at the end of the data block.
-        /* Write BAD_BLOB even if we got a "noreply" because it's a syntax error in the
-        command, not a result of the command. */
-        rh->writef("CLIENT_ERROR bad data chunk\r\n");
-        done();
-    }
-};
-
-class txt_memcached_incr_decr_request_t :
-    public semaphore_available_callback_t,
-    public store_t::incr_decr_callback_t
-{
-    txt_memcached_handler_t *rh;
-    bool increment;
-    bool noreply;
-    union {
-        char key_memory[MAX_KEY_SIZE + sizeof(btree_key)];
-        btree_key key;
-    };
-    unsigned long long delta;
-
-public:
-    txt_memcached_incr_decr_request_t(txt_memcached_handler_t *rh, bool i, int argc, char **argv)
-        : rh(rh), increment(i)
-    {
-        /* cmd key delta [noreply] */
-        if (argc != 3 && argc != 4) {
-            rh->writef("ERROR\r\n");
-            rh->read_next_command();
-            delete this;
-            return;
-        }
-
-        /* Parse key */
-        if (!node_handler::str_to_key(argv[1], &key)) {
-            rh->writef("CLIENT_ERROR bad command line format\r\n");
-            rh->read_next_command();
-            delete this;
-            return;
-        }
-
-        /* Parse amount to change by */
-        char *invalid_char;
-        delta = strtoull_strict(argv[2], &invalid_char, 10);
-        if (*invalid_char != '\0') {
-            rh->writef("CLIENT_ERROR bad command line format\r\n");
-            rh->read_next_command();
-            delete this;
-            return;
-        }
-
-        /* Parse "noreply" */
-        if (argc == 4) {
-            if (strcmp(argv[3], "noreply") == 0) {
-                noreply = true;
-            } else {
-                // Memcached 1.4.5 ignores invalid tokens here
-                noreply = false;
+        /* Ignore 'noreply' if we got sr_data_provider_failed because that's considered a syntax
+        error. Note that we can only get sr_data_provider_failed if we had a streaming data
+        provider, so there is no risk of interfering with the output from the next command. */
+        if (!noreply || res == sr_data_provider_failed) {
+            switch (res) {
+                case sr_stored: rh->writef("STORED\r\n"); break;
+                case sr_not_stored: rh->writef("NOT_STORED\r\n"); break;
+                case sr_exists: rh->writef("EXISTS\r\n"); break;
+                case sr_not_found: rh->writef("NOT_FOUND\r\n"); break;
+                case sr_too_large:
+                    rh->writef("SERVER_ERROR object too large for cache\r\n");
+                    break;
+                case sr_data_provider_failed:
+                    rh->writef("CLIENT_ERROR bad data chunk\r\n");
+                    break;
+                default: unreachable();
             }
-        } else {
-            noreply = false;
         }
-
-        rh->begin_write_command(this);
+    } else {
+        append_prepend_result_t res;
+        switch (sc) {
+            case append_command: res = co_append(rh->server->store, &key.key, data); break;
+            case prepend_command: res = co_prepend(rh->server->store, &key.key, data); break;
+            case set_command:
+            case add_command:
+            case replace_command:
+            case cas_command:
+            default:
+                unreachable();
+        }
+        if (!noreply || res == apr_data_provider_failed) {
+            switch (res) {
+                case apr_success: rh->writef("STORED\r\n"); break;
+                case apr_not_found: rh->writef("NOT_FOUND\r\n"); break;
+                case apr_too_large:
+                    rh->writef("SERVER_ERROR object too large for cache\r\n");
+                    break;
+                case apr_data_provider_failed:
+                    rh->writef("CLIENT_ERROR bad data chunk\r\n");
+                    break;
+                default: unreachable();
+            }
+        }
     }
 
-    void on_semaphore_available() {
+    delete data;
+    rh->end_write_command();
+}
 
-        /* Store the request handler in case we get deleted */
-        txt_memcached_handler_t *_rh = rh;
-        bool _noreply = noreply;
+void do_storage(txt_memcached_handler_t *rh, storage_command_t sc, int argc, char **argv) {
 
-        /* Dispatch the request */
-        if (increment) rh->server->store->incr(&key, delta, this);
-        else rh->server->store->decr(&key, delta, this);
+    char *invalid_char;
 
-        if (_noreply) _rh->read_next_command();
+    /* cmd key flags exptime size [noreply]
+    OR "cas" key flags exptime size cas [noreply] */
+    if ((sc != cas_command && (argc != 5 && argc != 6)) ||
+        (sc == cas_command && (argc != 6 && argc != 7))) {
+        rh->writef("ERROR\r\n");
+        return;
     }
 
-    ~txt_memcached_incr_decr_request_t() {
+    /* First parse the key */
+    store_key_and_buffer_t key;
+    if (!node_handler::str_to_key(argv[1], &key.key)) {
+        rh->writef("CLIENT_ERROR bad command line format\r\n");
+        return;
+    }
+
+    /* Next parse the flags */
+    mcflags_t mcflags = strtoul_strict(argv[2], &invalid_char, 10);
+    if (*invalid_char != '\0') {
+        rh->writef("CLIENT_ERROR bad command line format\r\n");
+        return;
+    }
+
+    /* Now parse the expiration time */
+    exptime_t exptime = strtoul_strict(argv[3], &invalid_char, 10);
+    if (*invalid_char != '\0') {
+        rh->writef("CLIENT_ERROR bad command line format\r\n");
+        return;
     }
     
-    void success(unsigned long long new_value) {
-        if (!noreply) {
-            rh->writef("%llu\r\n", new_value);
-            rh->read_next_command();
+    // This is protocol.txt, verbatim:
+    // Some commands involve a client sending some kind of expiration time
+    // (relative to an item or to an operation requested by the client) to
+    // the server. In all such cases, the actual value sent may either be
+    // Unix time (number of seconds since January 1, 1970, as a 32-bit
+    // value), or a number of seconds starting from current time. In the
+    // latter case, this number of seconds may not exceed 60*60*24*30 (number
+    // of seconds in 30 days); if the number sent by a client is larger than
+    // that, the server will consider it to be real Unix time value rather
+    // than an offset from current time.
+    if (exptime <= 60*60*24*30 && exptime > 0) {
+        // TODO: Do we need to handle exptimes in the past here?
+        exptime += time(NULL);
+    }
+
+    /* Now parse the value length */
+    size_t value_size = strtoul_strict(argv[4], &invalid_char, 10);
+    // Check for signed 32 bit max value for Memcached compatibility...
+    if (*invalid_char != '\0' || value_size >= (1u << 31) - 1) {
+        rh->writef("CLIENT_ERROR bad command line format\r\n");
+        return;
+    }
+
+    /* If a "cas", parse the cas_command unique */
+    cas_t unique = 0;
+    if (sc == cas_command) {
+        unique = strtoull_strict(argv[5], &invalid_char, 10);
+        if (*invalid_char != '\0') {
+            rh->writef("CLIENT_ERROR bad command line format\r\n");
+            return;
         }
-        rh->end_write_command();
-        delete this;
+    }
+
+    /* Check for noreply */
+    int offset = (sc == cas_command ? 1 : 0);
+    bool noreply;
+    if (argc == 6 + offset) {
+        if (strcmp(argv[5 + offset], "noreply") == 0) {
+            noreply = true;
+        } else {
+            // Memcached 1.4.5 ignores invalid tokens here
+            noreply = false;
+        }
+    } else {
+        noreply = false;
+    }
+
+    /* Make a data provider */
+    data_provider_t *data;
+    bool nowait;
+    if (value_size <= MAX_BUFFERED_SET_SIZE) {
+        /* Buffer the value */
+        char value_buffer[value_size+2];   // +2 for the CRLF
+
+        if (co_read_external(rh->conn, value_buffer, value_size+2).result ==
+                net_conn_read_external_result_t::closed) {
+            return;
+        }
+
+        /* The buffered_data_provider_t doesn't check the CRLF, so we must check it here.
+        The memcached_streaming_data_provider_t checks its own CRLF. */
+        if (value_buffer[value_size] != '\r' || value_buffer[value_size + 1] != '\n') {
+            rh->writef("CLIENT_ERROR bad data chunk\r\n");
+            return;
+        }
+
+        /* Copies value_buffer */
+        data = new buffered_data_provider_t(value_buffer, value_size);
+        nowait = noreply;
+
+    } else {
+        /* Stream the value from the socket */
+        data = new memcached_streaming_data_provider_t(rh, value_size);
+        nowait = false;
+    }
+
+    /* This operation may block if a lot of sets were streamed. The corresponding call to
+    end_write_command() is in run_storage_command(). */
+    rh->begin_write_command();
+
+    /* If nowait is true, then we will wait for the command to complete before returning. There are
+    two reasons why this might be true. The first is that noreply was not specified, so we need
+    to send a reply before reading the next command. The second is that we are streaming a large
+    value off the socket, so we can't read the next command until we're sure this one is done. */
+
+    if (nowait) {
+        coro_t::spawn(&run_storage_command, rh, sc, key, data, mcflags, exptime, unique, false);
+    } else {
+        run_storage_command(rh, sc, key, data, mcflags, exptime, unique, noreply);
+    }
+}
+
+/* "incr" and "decr" commands */
+
+struct incr_decr_result_t {
+    enum result_t {
+        idr_success,
+        idr_not_found,
+        idr_not_numeric
+    } res;
+    unsigned long long new_value;   // Valid only if idr_success
+    incr_decr_result_t(result_t r, unsigned long long n = 0) : res(r), new_value(n) { }
+};
+
+struct incr_decr_callback_t :
+    public store_t::incr_decr_callback_t,
+    public value_cond_t<incr_decr_result_t>
+{
+    void success(unsigned long long new_value) {
+        pulse(incr_decr_result_t(incr_decr_result_t::idr_success, new_value));
     }
     void not_found() {
-        if (!noreply) {
-            rh->writef("NOT_FOUND\r\n");
-            rh->read_next_command();
-        }
-        rh->end_write_command();
-        delete this;
+        pulse(incr_decr_result_t(incr_decr_result_t::idr_not_found));
     }
     void not_numeric() {
-        if (!noreply) {
-            rh->writef("CLIENT_ERROR cannot increment or decrement non-numeric value\r\n");
-            rh->read_next_command();
-        }
-        rh->end_write_command();
-        delete this;
+        pulse(incr_decr_result_t(incr_decr_result_t::idr_not_numeric));
     }
 };
 
-struct txt_memcached_append_prepend_request_t :
-    public txt_memcached_storage_request_t,
-    public store_t::append_prepend_callback_t
-{
-    txt_memcached_append_prepend_request_t(
-        txt_memcached_handler_t *rh,
-        storage_command_t sc,
-        int argc, char **argv)
-    {
-        init(rh, sc, argc, argv);
-    }
+incr_decr_result_t co_incr(store_t *store, store_key_t *key, unsigned long long amount) {
+    incr_decr_callback_t cb;
+    store->incr(key, amount, &cb);
+    return cb.wait();
+}
 
-    /* Called by the superclass when it's done parsing the value */
-    void dispatch(storage_command_t sc,
-            btree_key *key, data_provider_t *data,
-            mcflags_t flags, exptime_t exptime, cas_t cas)
-    {
-        switch (sc) {
-            case append_command:
-                rh->server->store->append(key, data, this);
+incr_decr_result_t co_decr(store_t *store, store_key_t *key, unsigned long long amount) {
+    incr_decr_callback_t cb;
+    store->decr(key, amount, &cb);
+    return cb.wait();
+}
+
+void run_incr_decr(txt_memcached_handler_t *rh, store_key_and_buffer_t key, unsigned long long amount, bool incr, bool noreply) {
+
+    incr_decr_result_t res = incr ?
+        co_incr(rh->server->store, &key.key, amount) :
+        co_decr(rh->server->store, &key.key, amount);
+
+    if (!noreply) {
+        switch (res.res) {
+            case incr_decr_result_t::idr_success:
+                rh->writef("%llu\r\n", res.new_value);
                 break;
-            case prepend_command:
-                rh->server->store->prepend(key, data, this);
+            case incr_decr_result_t::idr_not_found:
+                rh->writef("NOT_FOUND\r\n");
                 break;
-            case set_command:
-            case add_command:
-            case replace_command:
-            case cas_command:
-            default:
-                unreachable();
+            case incr_decr_result_t::idr_not_numeric:
+                rh->writef("CLIENT_ERROR cannot increment or decrement non-numeric value\r\n");
+                break;
+            default: unreachable();
         }
     }
 
-    void success() {
-        if (!noreply) rh->writef("STORED\r\n");
-        done();
-    }
-    void too_large() {
-        if (!noreply) rh->writef("NOT_STORED\r\n");
-        done();
-    }
-    void not_found() {
-        if (!noreply) rh->writef("NOT_STORED\r\n");
-        done();
-    }
-    void data_provider_failed() {
-        // See note in txt_memcached_set_request_t::data_provider_failed()
-        rh->writef("CLIENT_ERROR bad data chunk\r\n");
-        done();
-    }
-};
+    rh->end_write_command();
+}
 
-class txt_memcached_delete_request_t :
-    public semaphore_available_callback_t,
-    public store_t::delete_callback_t
-{
-    txt_memcached_handler_t *rh;
+void do_incr_decr(txt_memcached_handler_t *rh, bool i, int argc, char **argv) {
+
+    /* cmd key delta [noreply] */
+    if (argc != 3 && argc != 4) {
+        rh->writef("ERROR\r\n");
+        return;
+    }
+
+    /* Parse key */
+    store_key_and_buffer_t key;
+    if (!node_handler::str_to_key(argv[1], &key.key)) {
+        rh->writef("CLIENT_ERROR bad command line format\r\n");
+        return;
+    }
+
+    /* Parse amount to change by */
+    char *invalid_char;
+    unsigned long long delta = strtoull_strict(argv[2], &invalid_char, 10);
+    if (*invalid_char != '\0') {
+        rh->writef("CLIENT_ERROR bad command line format\r\n");
+        return;
+    }
+
+    /* Parse "noreply" */
     bool noreply;
-    union {
-        char key_memory[MAX_KEY_SIZE + sizeof(btree_key)];
-        btree_key key;
-    };
-
-public:
-    txt_memcached_delete_request_t(txt_memcached_handler_t *rh, int argc, char **argv)
-        : rh(rh), noreply(false)
-    {
-        /* "delete" key [a number] ["noreply"] */
-        if (argc < 2 || argc > 4) {
-            rh->writef("ERROR\r\n");
-            rh->read_next_command();
-            delete this;
-            return;
-        }
-
-        /* Parse key */
-        if (!node_handler::str_to_key(argv[1], &key)) {
-            rh->writef("CLIENT_ERROR bad command line format\r\n");
-            rh->read_next_command();
-            delete this;
-            return;
-        }
-
-        /* Parse "noreply" */
-        if (argc > 2) {
-            noreply = strcmp(argv[argc - 1], "noreply") == 0;
-            bool zero = strcmp(argv[2], "0") == 0;
-            bool valid = (argc == 3 && (zero || noreply))
-                      || (argc == 4 && (zero && noreply));
-
-            if (!valid) {
-                if (!noreply) rh->writef("CLIENT_ERROR bad command line format.  Usage: delete <key> [noreply]\r\n");
-                rh->read_next_command();
-                delete this;
-                return;
-            }
-        }
-
-        rh->begin_write_command(this);
-    }
-
-    void on_semaphore_available() {
-
-        /* Store the request handler in case we get deleted */
-        txt_memcached_handler_t *_rh = rh;
-        bool _noreply = noreply;
-
-        /* Dispatch the request */
-        rh->server->store->delete_key(&key, this);
-
-        if (_noreply) _rh->read_next_command();
-    }
-
-    ~txt_memcached_delete_request_t() {}
-
-    void deleted() {
-        if (!noreply) {
-            rh->writef("DELETED\r\n");
-            rh->read_next_command();
-        }
-        rh->end_write_command();
-        delete this;
-    }
-    void not_found() {
-        if (!noreply) {
-            rh->writef("NOT_FOUND\r\n");
-            rh->read_next_command();
-        }
-        rh->end_write_command();
-        delete this;
-    }
-};
-
-class txt_memcached_perfmon_request_t :
-    public perfmon_callback_t
-{
-    txt_memcached_handler_t *rh;
-    perfmon_stats_t stats;
-    std::vector<std::string> fields;
-    
-public:
-    txt_memcached_perfmon_request_t(txt_memcached_handler_t *rh, int argc, char **argv)
-        : rh(rh) {
-
-        for (int i = 1; i < argc; i++) {
-            fields.push_back(argv[i]);
-        }
-
-        if (perfmon_get_stats(&stats, this)) on_perfmon_stats();
-    }
-
-    void on_perfmon_stats() {
-        if (fields.size() == 0) {
-            for (perfmon_stats_t::iterator iter = stats.begin(); iter != stats.end(); iter++) {
-                rh->writef("STAT %s %s\r\n", iter->first.c_str(), iter->second.c_str());
-            }
+    if (argc == 4) {
+        if (strcmp(argv[3], "noreply") == 0) {
+            noreply = true;
         } else {
-            for (int i = 0; i < (int)fields.size(); i++) {
-                perfmon_stats_t::iterator stat_entry = stats.find(fields[i]);
-                if (stat_entry == stats.end()) {
-                    rh->writef("NOT FOUND\r\n");
-                } else {
-                    rh->writef("%s\r\n", stat_entry->second.c_str());
-                }
+            // Memcached 1.4.5 ignores invalid tokens here
+            noreply = false;
+        }
+    } else {
+        noreply = false;
+    }
+
+    rh->begin_write_command();
+
+    if (noreply) {
+        coro_t::spawn(&run_incr_decr, rh, key, delta, i, true);
+    } else {
+        run_incr_decr(rh, key, delta, i, false);
+    }
+}
+
+/* "delete" commands */
+
+enum delete_result_t {
+    dr_deleted,
+    dr_not_found
+};
+
+struct delete_callback_t :
+    public store_t::delete_callback_t, public value_cond_t<delete_result_t>
+{
+    void deleted() { pulse(dr_deleted); }
+    void not_found() { pulse(dr_not_found); }
+};
+
+delete_result_t co_delete(store_t *store, store_key_t *key) {
+    delete_callback_t cb;
+    store->delete_key(key, &cb);
+    return cb.wait();
+}
+
+void run_delete(txt_memcached_handler_t *rh, store_key_and_buffer_t key, bool noreply) {
+
+    delete_result_t res = co_delete(rh->server->store, &key.key);
+
+    if (!noreply) {
+        switch (res) {
+            case dr_deleted: rh->writef("DELETED\r\n"); break;
+            case dr_not_found: rh->writef("NOT_FOUND\r\n"); break;
+            default: unreachable();
+        }
+    }
+
+    rh->end_write_command();
+}
+
+void do_delete(txt_memcached_handler_t *rh, int argc, char **argv) {
+
+    /* "delete" key [a number] ["noreply"] */
+    if (argc < 2 || argc > 4) {
+        rh->writef("ERROR\r\n");
+        return;
+    }
+
+    /* Parse key */
+    store_key_and_buffer_t key;
+    if (!node_handler::str_to_key(argv[1], &key.key)) {
+        rh->writef("CLIENT_ERROR bad command line format\r\n");
+        return;
+    }
+
+    /* Parse "noreply" */
+    bool noreply;
+    if (argc > 2) {
+        noreply = strcmp(argv[argc - 1], "noreply") == 0;
+
+        /* We don't support the delete queue, but we do tolerate weird bits of syntax that are
+        related to it */
+        bool zero = strcmp(argv[2], "0") == 0;
+
+        bool valid = (argc == 3 && (zero || noreply))
+                  || (argc == 4 && (zero && noreply));
+
+        if (!valid) {
+            if (!noreply) rh->writef("CLIENT_ERROR bad command line format.  Usage: delete <key> [noreply]\r\n");
+            return;
+        }
+    } else {
+        noreply = false;
+    }
+
+    rh->begin_write_command();
+
+    if (noreply) {
+        coro_t::spawn(&run_delete, rh, key, true);
+    } else {
+        run_delete(rh, key, false);
+    }
+};
+
+void do_stats(txt_memcached_handler_t *rh, int argc, char **argv) {
+
+    std::vector<std::string> fields;
+
+    for (int i = 1; i < argc; i++) {
+        fields.push_back(argv[i]);
+    }
+
+    perfmon_stats_t stats;
+    struct : public perfmon_callback_t, public cond_t {
+        void on_perfmon_stats() { pulse(); }
+    } cb;
+    if (!perfmon_get_stats(&stats, &cb)) cb.wait();
+
+    
+    if (fields.size() == 0) {
+        for (perfmon_stats_t::iterator iter = stats.begin(); iter != stats.end(); iter++) {
+            rh->writef("STAT %s %s\r\n", iter->first.c_str(), iter->second.c_str());
+        }
+    } else {
+        for (int i = 0; i < (int)fields.size(); i++) {
+            perfmon_stats_t::iterator stat_entry = stats.find(fields[i]);
+            if (stat_entry == stats.end()) {
+                rh->writef("NOT FOUND\r\n");
+            } else {
+                rh->writef("%s\r\n", stat_entry->second.c_str());
             }
         }
-        rh->writef("END\r\n");
-
-        rh->read_next_command();
-        delete this;
     }
-
-private:
-    DISABLE_COPYING(txt_memcached_perfmon_request_t);
-};
-
-class disable_gc_request_t :
-    public server_t::all_gc_disabled_callback_t,  // gives us multiple_users_seen
-    public home_thread_mixin_t
-{
-    txt_memcached_handler_t *rh;
-    
-public:
-    explicit disable_gc_request_t(txt_memcached_handler_t *rh)
-        : rh(rh) {
-        rh->server->disable_gc(this);
-    }
-
-    void on_gc_disabled() {
-        assert_thread();
-        // TODO: Figure out what to print here
-        rh->writef("DISABLED%s\r\n", multiple_users_seen ? " (Warning: multiple users think they're the one who disabled the gc.)" : "");
-        rh->read_next_command();
-        delete this;
-    }
-
-private:
-    DISABLE_COPYING(disable_gc_request_t);
-};
-
-class enable_gc_request_t :
-    public server_t::all_gc_enabled_callback_t,  // gives us multiple_users_seen
-    public home_thread_mixin_t
-{
-    txt_memcached_handler_t *rh;
-    
-public:
-    explicit enable_gc_request_t(txt_memcached_handler_t *rh)
-        : rh(rh) {
-        rh->server->enable_gc(this);
-    }
-
-    void on_gc_enabled() {
-        assert_thread();
-        // TODO: figure out what to print here.
-        rh->writef("ENABLED%s\r\n", multiple_users_seen ? " (Warning: gc was already enabled.)" : "");
-        rh->read_next_command();
-        delete this;
-    }
-
-private:
-    DISABLE_COPYING(enable_gc_request_t);
+    rh->writef("END\r\n");
 };
 
 perfmon_duration_sampler_t
@@ -965,12 +835,6 @@ void txt_memcached_handler_t::quit() {
     close it for writing, and then delete us. If the read operation is in us, then we will close
     for writing and delete ourself immediately. */
     if (conn->is_read_open()) conn->shutdown_read();
-}
-
-void txt_memcached_handler_t::read_next_command() {
-
-    /* Will cause the coroutine to resume */
-    next_command_cond->pulse();
 }
 
 bool read_line(net_conn_t *conn, std::vector<char> *dest) {
@@ -1074,58 +938,46 @@ void txt_memcached_handler_t::run() {
             continue;
         }
 
-        /* Make a cond that the dispatched thing will notify when necessary */
-        cond_t cond;
-        next_command_cond = &cond;   // So it can find the cond
-
         /* Dispatch to the appropriate subclass */
         if(!strcmp(args[0], "get")) {    // check for retrieval commands
-            new txt_memcached_get_request_t(this, false, args.size(), args.data());
+            do_get(this, false, args.size(), args.data());
         } else if(!strcmp(args[0], "gets")) {
-            new txt_memcached_get_request_t(this, true, args.size(), args.data());
+            do_get(this, true, args.size(), args.data());
         } else if(!strcmp(args[0], "set")) {     // check for storage commands
-            new txt_memcached_set_request_t(this, txt_memcached_storage_request_t::set_command, args.size(), args.data());
+            do_storage(this, set_command, args.size(), args.data());
         } else if(!strcmp(args[0], "add")) {
-            new txt_memcached_set_request_t(this, txt_memcached_storage_request_t::add_command, args.size(), args.data());
+            do_storage(this, add_command, args.size(), args.data());
         } else if(!strcmp(args[0], "replace")) {
-            new txt_memcached_set_request_t(this, txt_memcached_storage_request_t::replace_command, args.size(), args.data());
+            do_storage(this, replace_command, args.size(), args.data());
         } else if(!strcmp(args[0], "append")) {
-            new txt_memcached_append_prepend_request_t(this, txt_memcached_storage_request_t::append_command, args.size(), args.data());
+            do_storage(this, append_command, args.size(), args.data());
         } else if(!strcmp(args[0], "prepend")) {
-            new txt_memcached_append_prepend_request_t(this, txt_memcached_storage_request_t::prepend_command, args.size(), args.data());
+            do_storage(this, prepend_command, args.size(), args.data());
         } else if(!strcmp(args[0], "cas")) {
-            new txt_memcached_set_request_t(this, txt_memcached_storage_request_t::cas_command, args.size(), args.data());
+            do_storage(this, cas_command, args.size(), args.data());
         } else if(!strcmp(args[0], "delete")) {
-            new txt_memcached_delete_request_t(this, args.size(), args.data());
+            do_delete(this, args.size(), args.data());
         } else if(!strcmp(args[0], "incr")) {
-            new txt_memcached_incr_decr_request_t(this, true, args.size(), args.data());
+            do_incr_decr(this, true, args.size(), args.data());
         } else if(!strcmp(args[0], "decr")) {
-            new txt_memcached_incr_decr_request_t(this, false, args.size(), args.data());
+            do_incr_decr(this, false, args.size(), args.data());
         } else if(!strcmp(args[0], "quit")) {
             // Make sure there's no more tokens
             if (args.size() > 1) {
                 writef("ERROR\r\n");
                 continue;
             }
-            // Quit the connection
             break;
         } else if(!strcmp(args[0], "stats") || !strcmp(args[0], "stat")) {
-            new txt_memcached_perfmon_request_t(this, args.size(), args.data());
+            do_stats(this, args.size(), args.data());
         } else if(!strcmp(args[0], "rethinkdb")) {
             if (args.size() == 2 && !strcmp(args[1], "shutdown")) {
                 // Shut down the server
                 server->shutdown();
                 break;
-            // TODO: `rethinkdb gc` crashes the server, and isn't very important, so it's comented out for now.
-            //} else if (args.size() == 3 && strcmp(args[1], "gc") == 0 && strcmp(args[2], "enable") == 0) {
-            //    new enable_gc_request_t(this);
-            //} else if (args.size() == 3 && strcmp(args[1], "gc") == 0 && strcmp(args[2], "disable") == 0) {
-            //    new disable_gc_request_t(this);
             } else {
                 writef("Available commands:\r\n");
                 writef("rethinkdb shutdown\r\n");
-                //writef("rethinkdb gc enable\r\n");
-                //writef("rethinkdb gc disable\r\n");
                 continue;
             }
         } else if(!strcmp(args[0], "version")) {
@@ -1139,10 +991,6 @@ void txt_memcached_handler_t::run() {
             writef("ERROR\r\n");
             continue;
         }
-
-        /* Wait for the dispatched command to complete */
-        cond.wait();
-        next_command_cond = NULL;
 
         action_timer.end();
     }
@@ -1159,7 +1007,7 @@ void txt_memcached_handler_t::run() {
     delete this;
 }
 
-void txt_memcached_handler_t::begin_write_command(semaphore_available_callback_t *cb) {
+void txt_memcached_handler_t::begin_write_command() {
 
     /* Called whenever a write command begins to make sure that not too many
      * write commands are being dispatched to the key-value store. */
@@ -1169,11 +1017,8 @@ void txt_memcached_handler_t::begin_write_command(semaphore_available_callback_t
      * parsing stage (Issue 153)*/
 
     assert_thread();
-
-    bool locked __attribute__((unused)) = prevent_shutdown_lock.lock(rwi_read, NULL);
-    assert(locked);
-
-    requests_out_sem.lock(cb);
+    prevent_shutdown_lock.co_lock(rwi_read);
+    requests_out_sem.co_lock();
 }
 
 void txt_memcached_handler_t::end_write_command() {
@@ -1181,7 +1026,6 @@ void txt_memcached_handler_t::end_write_command() {
     /* Called once for each call to begin_write_command() */
 
     assert_thread();
-
     prevent_shutdown_lock.unlock();
     requests_out_sem.unlock();
 }

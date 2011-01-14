@@ -37,19 +37,22 @@ TODO: Is this actually used in more than one place? */
 template<class val_t>
 struct value_cond_t {
 
-    value_cond_t() { }
+    value_cond_t() : value(NULL) { }
     void pulse(val_t v) {
-        value = v;
+        value = new val_t(v);
         cond.pulse();
     }
     val_t wait() {
         cond.wait();
-        return value;
+        return *value;
+    }
+    ~value_cond_t() {
+        if (value) delete value;
     }
 
 private:
     cond_t cond;
-    val_t value;
+    val_t *value;
 };
 
 #endif /* __CONCURRENCY_COND_VAR_HPP__ */

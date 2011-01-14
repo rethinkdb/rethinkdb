@@ -21,6 +21,11 @@ struct store_key_t {
     }
 };
 
+union store_key_and_buffer_t {
+    store_key_t key;
+    char buffer[sizeof(store_key_t) + MAX_KEY_SIZE];
+};
+
 struct buffer_group_t {
     struct buffer_t {
         ssize_t size;

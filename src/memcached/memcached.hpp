@@ -35,14 +35,10 @@ struct txt_memcached_handler_t :
 
     void quit();   // Called by conn_acceptor_t when the server is being shut down
 
-    // Called to start the process of reading a new command off the socket
-    void read_next_command();
-    cond_t *next_command_cond;
-
     // Used to implement throttling. Write requests should call begin_write_command() and
     // end_write_command() to make sure that not too many write requests are sent
     // concurrently.
-    void begin_write_command(semaphore_available_callback_t *cb);
+    void begin_write_command();
     void end_write_command();
 
     void run();   // Main loop; meant to be run in a coroutine

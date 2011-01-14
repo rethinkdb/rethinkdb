@@ -3,6 +3,7 @@
 #define __CONCURRENCY_SEMAPHORE_HPP__
 
 #include "concurrency/rwi_lock.hpp"   // For lock_available_callback_t
+#include "concurrency/cond_var.hpp"
 
 struct semaphore_available_callback_t {
     virtual void on_semaphore_available() = 0;
@@ -35,6 +36,14 @@ public:
             current++;
             cb->on_semaphore_available();
         }
+    }
+
+    void co_lock() {
+        struct : public semaphore_available_callback_t, public cond_t {
+            void on_semaphore_available() { pulse(); }
+        } cb;
+        lock(&cb);
+        cb.wait();
     }
 
     void unlock() {
