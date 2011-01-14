@@ -42,8 +42,8 @@ struct serializer_config_block_t {
 };
 
 /* btree_key_value_store_t represents a collection of slices, possibly distributed
-across several cores, each of which holds a btree. Together with the btree_fsms, it
-provides the abstraction of a key-value store. */
+across several cores, each of which holds a btree. Together with the btree functions,
+it provides the abstraction of a key-value store. */
 
 struct bkvs_start_new_serializer_fsm_t;
 struct bkvs_start_existing_serializer_fsm_t;
@@ -122,7 +122,7 @@ public:
     // requests. Remove it after our first release.
     int queries_out[MAX_THREADS];
     bool waiting_for_queries_out[MAX_THREADS];
-    void started_a_query();   // Called by btree fsm
+    void started_a_query();   // Called by btree functions
     void finished_a_query();
     
     btree_slice_t *slice_for_key(btree_key *key);

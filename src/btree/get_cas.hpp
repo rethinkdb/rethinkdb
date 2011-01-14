@@ -1,25 +1,23 @@
 #ifndef __BTREE_GET_CAS_FSM_HPP__
 #define __BTREE_GET_CAS_FSM_HPP__
 
-#include "btree/modify_fsm.hpp"
+#include "btree/modify_oper.hpp"
 
-// This FSM is like get_fsm, except that it sets a CAS value if there isn't one
-// already, so it has to be a subclass of modify_fsm. Potentially we can use a
-// regular get_fsm for this (that replaces itself with this one if a CAS value
-// hasn't been set, for instance), but depending on how CAS is used, that may be
-// unnecessary.
+// This function is like get(), except that it sets a CAS value if there isn't
+// one already, so it has to be a btree_modify_oper_t. Potentially we can use a
+// regular get() for this (that replaces itself with this one if a CAS value
+// hasn't been set, for instance), but depending on how CAS is used, that may
+// be unnecessary.
 
-class btree_get_cas_fsm_t :
-    public btree_modify_fsm_t
-{
+class btree_get_cas_oper_t : public btree_modify_oper_t {
 public:
-    explicit btree_get_cas_fsm_t(store_t::get_callback_t *cb)
-        : btree_modify_fsm_t(), callback(cb), in_operate(false)
+    explicit btree_get_cas_oper_t(store_t::get_callback_t *cb)
+        : btree_modify_oper_t(), callback(cb), in_operate(false)
     {
         pm_cmd_get.begin(&start_time);
     }
     
-    ~btree_get_cas_fsm_t() {
+    ~btree_get_cas_oper_t() {
         pm_cmd_get.end(&start_time);
     }
 
@@ -48,6 +46,7 @@ public:
             }
 
             { // TODO: Actually use RAII.
+                int home_thread = get_thread_id();
                 coro_t::move_to_thread(home_thread);
                 co_value(callback, &buffer_group, value.mcflags(), value.cas());
                 coro_t::move_to_thread(slice->home_thread);
@@ -65,20 +64,17 @@ public:
         }
     }
     
-    void call_callback_and_delete() {
+    void call_callback() {
         switch (result) {
             case result_not_found:
                 callback->not_found();
-                delete this;
                 break;
             case result_small_value:
                 buffer_group.add_buffer(value.value_size(), value.value());
                 co_value(callback, &buffer_group, value.mcflags(), value.cas());
-                delete this;
                 break;
             case result_large_value:
                 // We already delivered our callback during operate().
-                delete this;
                 break;
             default:
                 unreachable();
@@ -106,8 +102,8 @@ private:
 };
 
 void co_btree_get_cas(btree_key *key, btree_key_value_store_t *store, store_t::get_callback_t *cb) {
-    btree_get_cas_fsm_t *fsm = new btree_get_cas_fsm_t(cb);
-    fsm->run(store, key);
+    btree_get_cas_oper_t *oper = new btree_get_cas_oper_t(cb);
+    run_btree_modify_oper(oper, store, key);
 }
 
 void btree_get_cas(btree_key *key, btree_key_value_store_t *store, store_t::get_callback_t *cb) {

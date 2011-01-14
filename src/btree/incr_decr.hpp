@@ -1,16 +1,12 @@
 #ifndef __BTREE_INCR_DECR_FSM_HPP__
 #define __BTREE_INCR_DECR_FSM_HPP__
 
-#include "btree/modify_fsm.hpp"
+#include "btree/modify_oper.hpp"
 
-class btree_incr_decr_fsm_t : public btree_modify_fsm_t
-{
+class btree_incr_decr_oper_t : public btree_modify_oper_t {
 public:
-    explicit btree_incr_decr_fsm_t(bool increment, unsigned long long delta, store_t::incr_decr_callback_t *cb)
-        : btree_modify_fsm_t(),
-          increment(increment),
-          delta(delta),
-          callback(cb)
+    explicit btree_incr_decr_oper_t(bool increment, unsigned long long delta, store_t::incr_decr_callback_t *cb)
+        : btree_modify_oper_t(), increment(increment), delta(delta), callback(cb)
     { }
 
     bool operate(transaction_t *txn, btree_value *old_value, large_buf_t *old_large_buf, btree_value **new_value, large_buf_t **new_large_buf) {
@@ -64,7 +60,7 @@ public:
         return true;
     }
     
-    void call_callback_and_delete() {
+    void call_callback() {
         switch (result) {
             case result_success:
                 callback->success(new_number);
@@ -78,8 +74,6 @@ public:
             default:
                 unreachable();
         }
-        
-        delete this;
     }
     
 private:
@@ -88,7 +82,7 @@ private:
     store_t::incr_decr_callback_t *callback;
     
     /* Used as temporary storage, so that the value we return from operate() doesn't become invalid
-    before modify_fsm is done with it. */
+    before run_btree_modify_oper is done with it. */
     union {
         char temp_value_memory[MAX_TOTAL_NODE_CONTENTS_SIZE+sizeof(btree_value)];
         btree_value temp_value;
@@ -103,8 +97,8 @@ private:
 };
 
 void co_btree_incr_decr(btree_key *key, btree_key_value_store_t *store, bool increment, unsigned long long delta, store_t::incr_decr_callback_t *cb) {
-    btree_incr_decr_fsm_t *fsm = new btree_incr_decr_fsm_t(increment, delta, cb);
-    fsm->run(store, key);
+    btree_incr_decr_oper_t *oper = new btree_incr_decr_oper_t(increment, delta, cb);
+    run_btree_modify_oper(oper, store, key);
 }
 
 void btree_incr_decr(btree_key *key, btree_key_value_store_t *store, bool increment, unsigned long long delta, store_t::incr_decr_callback_t *cb) {

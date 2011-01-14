@@ -1,7 +1,7 @@
-#include "btree/get_fsm.hpp"
+#include "btree/get.hpp"
 
 #include "utils.hpp"
-#include "btree/delete_expired_fsm.hpp"
+#include "btree/delete_expired.hpp"
 #include "btree/internal_node.hpp"
 #include "btree/leaf_node.hpp"
 #include "buffer_cache/buf_lock.hpp"
@@ -88,7 +88,7 @@ void co_btree_get(btree_key *_key, btree_key_value_store_t *store, store_t::get_
 	found = false;
     }
     
-    /* The get_fsm has two paths it takes: one for large values and one for small ones. For large
+    /* get() has two paths it takes: one for large values and one for small ones. For large
     values, it holds onto the large value buffer while it goes back to the request handler's core
     and delivers the large value. Then it returns again to the cache's core and frees the value,
     and finally goes to the request handler's core again to free itself. For small values, it

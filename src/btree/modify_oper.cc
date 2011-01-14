@@ -1,4 +1,4 @@
-#include "btree/modify_fsm.hpp"
+#include "btree/modify_oper.hpp"
 #include "utils.hpp"
 #include "buffer_cache/large_buf.hpp"
 #include "btree/leaf_node.hpp"
@@ -21,15 +21,14 @@
 
 perfmon_counter_t pm_btree_depth("btree_depth");
 
-void btree_modify_fsm_t::insert_root(block_id_t root_id, buf_t **sb_buf) {
+void insert_root(block_id_t root_id, buf_t **sb_buf) {
     assert(*sb_buf);
     ptr_cast<btree_superblock_t>((*sb_buf)->get_data_write())->root_block = root_id;
     (*sb_buf)->release();
     *sb_buf = NULL;
 }
 
-void btree_modify_fsm_t::check_and_handle_split(transaction_t *txn,
-                                                buf_t **buf, buf_t **last_buf, buf_t **sb_buf,
+void check_and_handle_split(transaction_t *txn, buf_t **buf, buf_t **last_buf, buf_t **sb_buf,
                                                 const btree_key *key, btree_value *new_value, block_size_t block_size) {
     // Split the node if necessary
     const node_t *node = ptr_cast<node_t>((*buf)->get_data_read());
@@ -70,12 +69,7 @@ void btree_modify_fsm_t::check_and_handle_split(transaction_t *txn,
     }
 }
 
-void btree_modify_fsm_t::actually_acquire_large_value(large_buf_t *lb, const large_buf_ref& lbref) {
-    co_acquire_large_value(lb, lbref, rwi_write);
-}
-
-void btree_modify_fsm_t::check_and_handle_underfull(transaction_t *txn,
-                                                    buf_t **buf, buf_t **last_buf, buf_t **sb_buf,
+void check_and_handle_underfull(transaction_t *txn, buf_t **buf, buf_t **last_buf, buf_t **sb_buf,
                                                     const btree_key *key, block_size_t block_size) {
     const node_t *node = ptr_cast<node_t>((*buf)->get_data_read());
     if (*last_buf && node_handler::is_underfull(block_size, node)) { // The root node is never underfull.
@@ -137,7 +131,7 @@ void btree_modify_fsm_t::check_and_handle_underfull(transaction_t *txn,
     }
 }
 
-buf_t *btree_modify_fsm_t::get_root(transaction_t *txn, buf_t **sb_buf, block_size_t block_size) {
+buf_t *get_root(transaction_t *txn, buf_t **sb_buf, block_size_t block_size) {
     block_id_t node_id = reinterpret_cast<const btree_superblock_t*>((*sb_buf)->get_data_read())->root_block;
 
     if (node_id != NULL_BLOCK_ID) {
@@ -151,7 +145,7 @@ buf_t *btree_modify_fsm_t::get_root(transaction_t *txn, buf_t **sb_buf, block_si
     }
 }
 
-void btree_modify_fsm_t::run(btree_key_value_store_t *store, btree_key *_key) {
+void run_btree_modify_oper(btree_modify_oper_t *oper, btree_key_value_store_t *store, btree_key *_key) {
     // TODO: Use RAII for these.
 
     union {
@@ -168,12 +162,14 @@ void btree_modify_fsm_t::run(btree_key_value_store_t *store, btree_key *_key) {
 
     keycpy(&key, _key);
 
-    slice = store->slice_for_key(&key); // XXX
+    btree_slice_t *slice = store->slice_for_key(&key);
+    oper->slice = slice; // TODO: Figure out a way to avoid this.
     cache_t *cache = &slice->cache;
     block_size_t block_size = cache->get_block_size();
 
     store->started_a_query(); // TODO: This should use RAII too.
 
+    int home_thread = get_thread_id(); // TODO: Use RAII already!
     coro_t::move_to_thread(slice->home_thread);
     transaction_t *txn = co_begin_transaction(cache, rwi_write);
     buf_t *sb_buf = co_acquire_block(txn, SUPERBLOCK_ID, rwi_write);
@@ -211,7 +207,7 @@ void btree_modify_fsm_t::run(btree_key_value_store_t *store, btree_key *_key) {
     large_buf_t *old_large_buf = NULL;
     if (key_found && old_value.is_large()) {
         old_large_buf = new large_buf_t(txn);
-        actually_acquire_large_value(old_large_buf, old_value.lb_ref());
+        oper->actually_acquire_large_value(old_large_buf, old_value.lb_ref());
         assert(old_large_buf->state == large_buf_t::loaded);
     }
 
@@ -229,7 +225,7 @@ void btree_modify_fsm_t::run(btree_key_value_store_t *store, btree_key *_key) {
     btree_value *new_value;
     large_buf_t *new_large_buf;
 
-    bool update_needed = operate(txn, key_found ? &old_value : NULL, old_large_buf, &new_value, &new_large_buf);
+    bool update_needed = oper->operate(txn, key_found ? &old_value : NULL, old_large_buf, &new_value, &new_large_buf);
 
     if (update_needed) {
         if (new_value && new_value->is_large()) {
@@ -253,7 +249,7 @@ void btree_modify_fsm_t::run(btree_key_value_store_t *store, btree_key *_key) {
     if (update_needed) {
         // TODO make sure we're updating leaf node timestamps.
        if (new_value) {
-           if (new_value->has_cas() && !cas_already_set) {
+           if (new_value->has_cas() && !oper->cas_already_set) {
                new_value->set_cas(slice->gen_cas());
            }
            repli_timestamp new_value_timestamp = current_time(); // TODO: When the replication code is put back in this'll probably need to be changed.
@@ -309,7 +305,8 @@ void btree_modify_fsm_t::run(btree_key_value_store_t *store, btree_key *_key) {
     co_commit_transaction(txn);
     coro_t::move_to_thread(home_thread);
 
-    call_callback_and_delete();
+    oper->call_callback();
+    delete oper;
 
     store->finished_a_query();
 }

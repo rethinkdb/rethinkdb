@@ -1,14 +1,12 @@
 #ifndef __BTREE_SET_FSM_HPP__
 #define __BTREE_SET_FSM_HPP__
 
-#include "btree/modify_fsm.hpp"
+#include "btree/modify_oper.hpp"
 
 #include "buffer_cache/co_functions.hpp"
 #include "btree/coro_wrappers.hpp"
 
-class btree_set_fsm_t :
-    public btree_modify_fsm_t
-{
+class btree_set_oper_t : public btree_modify_oper_t {
 public:
     enum set_type_t {
         set_type_set,
@@ -17,13 +15,13 @@ public:
         set_type_cas
     };
 
-    explicit btree_set_fsm_t(data_provider_t *data, set_type_t type, btree_value::mcflags_t mcflags, btree_value::exptime_t exptime, btree_value::cas_t req_cas, store_t::set_callback_t *cb)
-        : btree_modify_fsm_t(), data(data), type(type), mcflags(mcflags), exptime(exptime), req_cas(req_cas), large_value(NULL), callback(cb)
+    explicit btree_set_oper_t(data_provider_t *data, set_type_t type, btree_value::mcflags_t mcflags, btree_value::exptime_t exptime, btree_value::cas_t req_cas, store_t::set_callback_t *cb)
+        : btree_modify_oper_t(), data(data), type(type), mcflags(mcflags), exptime(exptime), req_cas(req_cas), large_value(NULL), callback(cb)
     {
         pm_cmd_set.begin(&start_time);
     }
     
-    ~btree_set_fsm_t() {
+    ~btree_set_oper_t() {
         pm_cmd_set.end(&start_time);
     }
 
@@ -65,7 +63,7 @@ public:
         value.set_exptime(exptime);
         value.value_size(data->get_size());
         if (type == set_type_cas || (old_value && old_value->has_cas())) {
-            value.set_cas(0xCA5ADDED); // Turns the flag on and makes room. modify_fsm will set an actual CAS later. TODO: We should probably have a separate function for this.
+            value.set_cas(0xCA5ADDED); // Turns the flag on and makes room. run_btree_modify_oper() will set an actual CAS later. TODO: We should probably have a separate function for this.
         }
         
         assert(data->get_size() <= MAX_VALUE_SIZE);
@@ -99,7 +97,7 @@ public:
         return true;
     }
 
-    void call_callback_and_delete() {
+    void call_callback() {
         switch (result) {
             case result_stored:
                 callback->stored();
@@ -122,8 +120,6 @@ public:
             default:
                 unreachable();
         }
-
-        delete this;
     }
 
 private:
@@ -154,12 +150,12 @@ private:
     store_t::set_callback_t *callback;
 };
 
-void co_btree_set(btree_key *key, btree_key_value_store_t *store, data_provider_t *data, btree_set_fsm_t::set_type_t type, btree_value::mcflags_t mcflags, btree_value::exptime_t exptime, btree_value::cas_t req_cas, store_t::set_callback_t *cb) {
-    btree_set_fsm_t *fsm = new btree_set_fsm_t(data, type, mcflags, exptime, req_cas, cb);
-    fsm->run(store, key);
+void co_btree_set(btree_key *key, btree_key_value_store_t *store, data_provider_t *data, btree_set_oper_t::set_type_t type, btree_value::mcflags_t mcflags, btree_value::exptime_t exptime, btree_value::cas_t req_cas, store_t::set_callback_t *cb) {
+    btree_set_oper_t *oper = new btree_set_oper_t(data, type, mcflags, exptime, req_cas, cb);
+    run_btree_modify_oper(oper, store, key);
 }
 
-void btree_set(btree_key *key, btree_key_value_store_t *store, data_provider_t *data, btree_set_fsm_t::set_type_t type, btree_value::mcflags_t mcflags, btree_value::exptime_t exptime, btree_value::cas_t req_cas, store_t::set_callback_t *cb) {
+void btree_set(btree_key *key, btree_key_value_store_t *store, data_provider_t *data, btree_set_oper_t::set_type_t type, btree_value::mcflags_t mcflags, btree_value::exptime_t exptime, btree_value::cas_t req_cas, store_t::set_callback_t *cb) {
     coro_t::spawn(co_btree_set, key, store, data, type, mcflags, exptime, req_cas, cb);
 }
 

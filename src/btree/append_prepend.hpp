@@ -1,17 +1,15 @@
 #ifndef __BTREE_APPEND_PREPEND_FSM_HPP__
 #define __BTREE_APPEND_PREPEND_FSM_HPP__
 
-#include "btree/modify_fsm.hpp"
+#include "btree/modify_oper.hpp"
 
 #include "buffer_cache/co_functions.hpp"
 #include "btree/coro_wrappers.hpp"
 
-class btree_append_prepend_fsm_t :
-    public btree_modify_fsm_t
-{
+class btree_append_prepend_oper_t : public btree_modify_oper_t {
 public:
-    explicit btree_append_prepend_fsm_t(data_provider_t *data, bool append, store_t::append_prepend_callback_t *cb)
-        : btree_modify_fsm_t(), data(data), append(append), callback(cb)
+    explicit btree_append_prepend_oper_t(data_provider_t *data, bool append, store_t::append_prepend_callback_t *cb)
+        : btree_modify_oper_t(), data(data), append(append), callback(cb)
     { }
 
     bool operate(transaction_t *txn, btree_value *old_value, large_buf_t *old_large_value, btree_value **new_value, large_buf_t **new_large_buf) {
@@ -113,7 +111,7 @@ public:
         return true;
     }
     
-    void call_callback_and_delete() {
+    void call_callback() {
         switch (result) {
             case result_success:
                 callback->success();
@@ -130,8 +128,6 @@ public:
             default:
                 unreachable();
         }
-        
-        delete this;
     }
 
 protected:
@@ -165,8 +161,8 @@ private:
 };
 
 void co_btree_append_prepend(btree_key *key, btree_key_value_store_t *store, data_provider_t *data, bool append, store_t::append_prepend_callback_t *cb) {
-    btree_append_prepend_fsm_t *fsm = new btree_append_prepend_fsm_t(data, append, cb);
-    fsm->run(store, key);
+    btree_append_prepend_oper_t *oper = new btree_append_prepend_oper_t(data, append, cb);
+    run_btree_modify_oper(oper, store, key);
 }
 
 void btree_append_prepend(btree_key *key, btree_key_value_store_t *store, data_provider_t *data, bool append, store_t::append_prepend_callback_t *cb) {
