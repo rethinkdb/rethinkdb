@@ -183,7 +183,8 @@ void run_btree_modify_oper(btree_modify_oper_t *oper, btree_key_value_store_t *s
 
     {
         on_thread_t mover(slice->home_thread); // Move to the slice's thread.
-        transaction_t *txn = co_begin_transaction(&slice->cache, rwi_write); // TODO: Use transactor_t.
+        transactor_t transactor(&slice->cache, rwi_write);
+        transaction_t *txn = transactor.transaction();
 
         // Acquire the superblock.
         buf_t *sb_buf = co_acquire_block(txn, SUPERBLOCK_ID, rwi_write);
@@ -323,8 +324,8 @@ void run_btree_modify_oper(btree_modify_oper_t *oper, btree_key_value_store_t *s
             }
         }
 
-        co_commit_transaction(txn);
-        // Moving back to the home thread is handled automatically with RAII.
+        // Committing the transaction and moving back to the home thread are
+        // handled automatically with RAII.
     }
 
     // Report the result of the operation and delete the oper.
