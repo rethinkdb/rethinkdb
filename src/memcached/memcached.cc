@@ -1,8 +1,65 @@
+#include <stdarg.h>
 #include "memcached/memcached.hpp"
+#include "memcached/send_buffer.hpp"
 #include "concurrency/task.hpp"
+#include "concurrency/semaphore.hpp"
+#include "concurrency/rwi_lock.hpp"
+#include "concurrency/cond_var.hpp"
 #include "arch/arch.hpp"
 #include "server.hpp"
-#include <stdarg.h>
+
+/* txt_memcached_handler_t is basically defunct; it only exists as a convenient thing to pass
+around to do_get(), do_storage(), and the like. */
+
+struct txt_memcached_handler_t {
+
+    net_conn_t *conn;
+    server_t *server;
+
+    txt_memcached_handler_t(net_conn_t *conn, server_t *server) :
+        conn(conn),
+        server(server),
+        send_buffer(conn),
+        requests_out_sem(MAX_CONCURRENT_QUERIES_PER_CONNECTION)
+    { }
+
+    /* TODO: The send_buffer_t should really be folded into net_conn_t. */
+    send_buffer_t send_buffer;
+    void write(const char *buffer, size_t bytes) {
+        send_buffer.write(bytes, buffer);
+    }
+    void writef(const char *format, ...) {
+        va_list args;
+        va_start(args, format);
+        char buffer[1000];
+        size_t bytes = vsnprintf(buffer, sizeof(buffer), format, args);
+        assert(bytes < sizeof(buffer));
+        send_buffer.write(bytes, buffer);
+        va_end(args);
+    }
+
+    // Used to limit number of concurrent noreply requests
+    semaphore_t requests_out_sem;
+
+    /* If a client sends a bunch of noreply requests and then a 'quit', we cannot delete ourself
+    immediately because the noreply requests still hold the 'requests_out' semaphore. We use this
+    lock to figure out when we can delete ourself. Each request acquires this lock in non-exclusive
+    (read) mode, and when we want to shut down we acquire it in exclusive (write) mode. That way
+    we don't shut down until everything that holds a reference to the semaphore is gone. */
+    rwi_lock_t prevent_shutdown_lock;
+
+    // Used to implement throttling. Write requests should call begin_write_command() and
+    // end_write_command() to make sure that not too many write requests are sent
+    // concurrently.
+    void begin_write_command() {
+        prevent_shutdown_lock.co_lock(rwi_read);
+        requests_out_sem.co_lock();
+    }
+    void end_write_command() {
+        prevent_shutdown_lock.unlock();
+        requests_out_sem.unlock();
+    }
+};
 
 /* do_get() is used for "get" and "gets" commands. */
 
@@ -767,6 +824,8 @@ void do_delete(txt_memcached_handler_t *rh, int argc, char **argv) {
     }
 };
 
+/* "stats"/"stat" commands */
+
 void do_stats(txt_memcached_handler_t *rh, int argc, char **argv) {
 
     perfmon_stats_t stats;
@@ -789,43 +848,12 @@ void do_stats(txt_memcached_handler_t *rh, int argc, char **argv) {
     rh->writef("END\r\n");
 };
 
+/* Main connection loop */
+
 perfmon_duration_sampler_t
     pm_conns_reading("conns_reading", secs_to_ticks(1)),
     pm_conns_writing("conns_writing", secs_to_ticks(1)),
     pm_conns_acting("conns_acting", secs_to_ticks(1));
-
-txt_memcached_handler_t::txt_memcached_handler_t(conn_acceptor_t *acc, net_conn_t *conn, server_t *server)
-    : conn_handler_t(acc, conn),
-      conn(conn),
-      server(server),
-      send_buffer(conn),
-      requests_out_sem(MAX_CONCURRENT_QUERIES_PER_CONNECTION)
-{
-    coro_t::spawn(&txt_memcached_handler_t::run, this);
-}
-
-void txt_memcached_handler_t::write(const char *buffer, size_t bytes) {
-    send_buffer.write(bytes, buffer);
-}
-
-void txt_memcached_handler_t::writef(const char *format, ...) {
-    va_list args;
-    va_start(args, format);
-    char buffer[1000];
-    size_t bytes = vsnprintf(buffer, sizeof(buffer), format, args);
-    assert(bytes < sizeof(buffer));
-    send_buffer.write(bytes, buffer);
-    va_end(args);
-}
-
-void txt_memcached_handler_t::quit() {
-
-    /* Any pending read operations will be interrupted. If the read operation is in *_request_t,
-    then it will eventually call read_next_command(), which will see that the net_conn_t is closed,
-    close it for writing, and then delete us. If the read operation is in us, then we will close
-    for writing and delete ourself immediately. */
-    if (conn->is_read_open()) conn->shutdown_read();
-}
 
 bool read_line(net_conn_t *conn, std::vector<char> *dest) {
 
@@ -888,9 +916,12 @@ bool read_line(net_conn_t *conn, std::vector<char> *dest) {
     }
 };
 
-void txt_memcached_handler_t::run() {
+void serve_memcache(net_conn_t *conn, server_t *server) {
 
-    logINF("Opened connection %p\n", this);
+    logINF("Opened connection %p\n", coro_t::self());
+
+    /* Object that we pass around to subroutines (is there a better way to do this?) */
+    txt_memcached_handler_t rh(conn, server);
 
     /* Declared outside the while-loop so it doesn't repeatedly reallocate its buffer */
     std::vector<char> line;
@@ -900,10 +931,10 @@ void txt_memcached_handler_t::run() {
         /* Flush if necessary (no reason to do this the first time around, but it's easier
         to put it here than after every thing that could need to flush */
         block_pm_duration flush_timer(&pm_conns_writing);
-        if (!send_buffer.co_flush()) {
+        if (!rh.send_buffer.co_flush()) {
             /* Ignore errors; it's OK for the write end of the connection to be closed. Just discard
             any data that would have been written and move on. */
-            send_buffer.discard();
+            rh.send_buffer.discard();
         }
         flush_timer.end();
 
@@ -924,99 +955,68 @@ void txt_memcached_handler_t::run() {
         }
 
         if (args.size() == 0) {
-            writef("ERROR\r\n");
+            rh.writef("ERROR\r\n");
             continue;
         }
 
         /* Dispatch to the appropriate subclass */
         if(!strcmp(args[0], "get")) {    // check for retrieval commands
-            do_get(this, false, args.size(), args.data());
+            do_get(&rh, false, args.size(), args.data());
         } else if(!strcmp(args[0], "gets")) {
-            do_get(this, true, args.size(), args.data());
+            do_get(&rh, true, args.size(), args.data());
         } else if(!strcmp(args[0], "set")) {     // check for storage commands
-            do_storage(this, set_command, args.size(), args.data());
+            do_storage(&rh, set_command, args.size(), args.data());
         } else if(!strcmp(args[0], "add")) {
-            do_storage(this, add_command, args.size(), args.data());
+            do_storage(&rh, add_command, args.size(), args.data());
         } else if(!strcmp(args[0], "replace")) {
-            do_storage(this, replace_command, args.size(), args.data());
+            do_storage(&rh, replace_command, args.size(), args.data());
         } else if(!strcmp(args[0], "append")) {
-            do_storage(this, append_command, args.size(), args.data());
+            do_storage(&rh, append_command, args.size(), args.data());
         } else if(!strcmp(args[0], "prepend")) {
-            do_storage(this, prepend_command, args.size(), args.data());
+            do_storage(&rh, prepend_command, args.size(), args.data());
         } else if(!strcmp(args[0], "cas")) {
-            do_storage(this, cas_command, args.size(), args.data());
+            do_storage(&rh, cas_command, args.size(), args.data());
         } else if(!strcmp(args[0], "delete")) {
-            do_delete(this, args.size(), args.data());
+            do_delete(&rh, args.size(), args.data());
         } else if(!strcmp(args[0], "incr")) {
-            do_incr_decr(this, true, args.size(), args.data());
+            do_incr_decr(&rh, true, args.size(), args.data());
         } else if(!strcmp(args[0], "decr")) {
-            do_incr_decr(this, false, args.size(), args.data());
+            do_incr_decr(&rh, false, args.size(), args.data());
         } else if(!strcmp(args[0], "quit")) {
             // Make sure there's no more tokens
             if (args.size() > 1) {
-                writef("ERROR\r\n");
-                continue;
+                rh.writef("ERROR\r\n");
+            } else {
+                break;
             }
-            break;
         } else if(!strcmp(args[0], "stats") || !strcmp(args[0], "stat")) {
-            do_stats(this, args.size(), args.data());
+            do_stats(&rh, args.size(), args.data());
         } else if(!strcmp(args[0], "rethinkdb")) {
             if (args.size() == 2 && !strcmp(args[1], "shutdown")) {
                 // Shut down the server
                 server->shutdown();
                 break;
             } else {
-                writef("Available commands:\r\n");
-                writef("rethinkdb shutdown\r\n");
-                continue;
+                rh.writef("Available commands:\r\n");
+                rh.writef("rethinkdb shutdown\r\n");
             }
         } else if(!strcmp(args[0], "version")) {
             if (args.size() == 2) {
-                writef("VERSION rethinkdb-%s\r\n", RETHINKDB_VERSION);
+                rh.writef("VERSION rethinkdb-%s\r\n", RETHINKDB_VERSION);
             } else {
-                writef("ERROR\r\n");
+                rh.writef("ERROR\r\n");
             }
-            continue;
         } else {
-            writef("ERROR\r\n");
-            continue;
+            rh.writef("ERROR\r\n");
         }
 
         action_timer.end();
     }
 
-    if (conn->is_read_open()) conn->shutdown_read();
-    if (conn->is_write_open()) conn->shutdown_write();
-
     /* Acquire the prevent-shutdown lock to make sure that anything that might refer to us is
     done by now */
-    prevent_shutdown_lock.co_lock(rwi_write);
+    rh.prevent_shutdown_lock.co_lock(rwi_write);
 
-    logINF("Closed connection %p\n", this);
-
-    delete this;
-}
-
-void txt_memcached_handler_t::begin_write_command() {
-
-    /* Called whenever a write command begins to make sure that not too many
-     * write commands are being dispatched to the key-value store. */
-
-    /* This should only be called when a command is actually sent to the
-     * key-value store ie it should not be called if the command fails in the
-     * parsing stage (Issue 153)*/
-
-    assert_thread();
-    prevent_shutdown_lock.co_lock(rwi_read);
-    requests_out_sem.co_lock();
-}
-
-void txt_memcached_handler_t::end_write_command() {
-
-    /* Called once for each call to begin_write_command() */
-
-    assert_thread();
-    prevent_shutdown_lock.unlock();
-    requests_out_sem.unlock();
+    logINF("Closed connection %p\n", coro_t::self());
 }
 

@@ -1,15 +1,8 @@
 #include "server.hpp"
 #include "db_thread_info.hpp"
 #include "memcached/memcached.hpp"
-#include "replication/master.hpp"
 #include "diskinfo.hpp"
 #include "concurrency/cond_var.hpp"
-
-conn_handler_t *create_request_handler(conn_acceptor_t *acc, net_conn_t *conn, void *udata) {
-
-    server_t *server = reinterpret_cast<server_t *>(udata);
-    return new txt_memcached_handler_t(acc, conn, server);
-}
 
 void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
 
@@ -58,49 +51,46 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
             logINF("Loading existing database...\n");
             if (!store.start_existing(&store_ready_cb)) store_ready_cb.wait();
         }
-    
+
         server.store = &store;   /* So things can access it */
-    
+
+        /* Record information about disk drives to log file */
+        log_disk_info(cmd_config->store_dynamic_config.serializer_private);
+
         if (!cmd_config->shutdown_after_creation) {
+
             /* Start connection acceptor */
-            conn_acceptor_t conn_acceptor(cmd_config->port, &create_request_handler, (void*)&server);
-        
-            if (conn_acceptor.start()) {
-                logINF("Server is now accepting memcache connections on port %d.\n", cmd_config->port);
-        
-    #ifdef REPLICATION_ENABLED
-                /* Start replication acceptor */
-                conn_acceptor_t replication_acceptor(cmd_config->port+1, &create_replication_master, (void*)&store);
-                if (!replication_acceptor.start()) {
-                    crash("Can't start replication acceptor");
+            struct : public conn_acceptor_t::handler_t {
+                server_t *parent;
+                void handle(net_conn_t *conn) {
+                    serve_memcache(conn, parent);
                 }
-    #endif
-        
+            } handler;
+            handler.parent = &server;
+
+            try {
+                conn_acceptor_t conn_acceptor(cmd_config->port, &handler);
+
+                logINF("Server is now accepting memcache connections on port %d.\n", cmd_config->port);
+
                 /* Wait for an order to shut down */
                 struct : public thread_message_t, public cond_t {
                     void on_thread_switch() { pulse(); }
                 } interrupt_cond;
                 thread_pool->set_interrupt_message(&interrupt_cond);
                 interrupt_cond.wait();
-        
-    #ifdef REPLICATION_ENABLED
-                /* Stop replication acceptor */
-                struct : public conn_acceptor_t::shutdown_callback_t, public cond_t {
-                    void on_conn_acceptor_shutdown() { pulse(); }
-                } ra_shutdown_cb;
-                if (!replication_acceptor.shutdown(&ra_shutdown_cb)) ra_shutdown_cb.wait();
-    #endif
+
+                logINF("Shutting down... this may take time if there is a lot of unsaved data.\n");
+
+            } catch (conn_acceptor_t::address_in_use_exc_t) {
+                logERR("Port %d is already in use -- aborting.\n", cmd_config->port);
             }
-    
-            /* Stop connection acceptor */
-            struct : public conn_acceptor_t::shutdown_callback_t, public cond_t {
-                void on_conn_acceptor_shutdown() { pulse(); }
-            } ca_shutdown_cb;
-            if (!conn_acceptor.shutdown(&ca_shutdown_cb)) ca_shutdown_cb.wait();
+
+        } else {
+        
+            logINF("Shutting down...\n");
         }
-    
-        logINF("Shutting down... this may take time if there is a lot of unsaved data.\n");
-    
+
         /* Shut down key-value store */
         struct : public btree_key_value_store_t::shutdown_callback_t, public cond_t {
             void on_store_shutdown() { pulse(); }

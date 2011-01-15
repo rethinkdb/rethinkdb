@@ -53,6 +53,11 @@ struct log_message_t
         as is needed. */
         static const int chunk_length_guess = 200;
 
+        /* vsnprintf mutates its 'arg' parameter, so we need to duplicate it in case we will be
+        calling it a second time. */
+        va_list arg2;
+        va_copy(arg2, arg);
+
         int old_length = contents.size();
         contents.resize(old_length + chunk_length_guess + 1);   // +1 for NUL-terminator
         int chunk_length = vsnprintf(
@@ -70,12 +75,13 @@ struct log_message_t
             contents.resize(old_length + chunk_length);
 
         } else {
-            /* Our guess was insufficient; grow the buffer and print it again. */
+            /* Our guess was insufficient; grow the buffer and print it again. Fortunately,
+            'chunk_length' is now exactly as much space as we need. */
             contents.resize(old_length + chunk_length + 1);   // +1 for NUL-terminator
-            int chunk_length_2 = vsnprintf(
+            int chunk_length_2 __attribute__((unused)) = vsnprintf(
                 contents.data() + old_length,
                 chunk_length + 1,   // +1 for NUL-terminator
-                format, arg);
+                format, arg2);
             assert(chunk_length_2 == chunk_length);   /* snprintf should be deterministic... */
 
             /* Cut off NUL-terminator */
