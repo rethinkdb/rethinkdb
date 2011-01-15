@@ -45,7 +45,7 @@ $(document).ready(function() {
 	
 	plot_bm.options = {
 		series:  {
-			shadowSize: 6,
+			shadowSize: 0,
 		},
 		grid: {
 			clickable: true,
