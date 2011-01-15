@@ -100,12 +100,12 @@ private:
     } result;
 };
 
-void co_btree_get_cas(btree_key *key, btree_key_value_store_t *store, store_t::get_callback_t *cb) {
+void co_btree_get_cas(const btree_key *key, btree_key_value_store_t *store, store_t::get_callback_t *cb) {
     btree_get_cas_oper_t *oper = new btree_get_cas_oper_t(cb);
     run_btree_modify_oper(oper, store, key);
 }
 
-void btree_get_cas(btree_key *key, btree_key_value_store_t *store, store_t::get_callback_t *cb) {
+void btree_get_cas(const btree_key *key, btree_key_value_store_t *store, store_t::get_callback_t *cb) {
     coro_t::spawn(co_btree_get_cas, key, store, cb);
 }
 

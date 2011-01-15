@@ -380,7 +380,7 @@ uint32_t btree_key_value_store_t::hash(const btree_key *key) {
     return hash;
 }
 
-btree_slice_t *btree_key_value_store_t::slice_for_key(btree_key *key) {
+btree_slice_t *btree_key_value_store_t::slice_for_key(const btree_key *key) {
     return slices[hash(key) % btree_static_config.n_slices];
 }
 
