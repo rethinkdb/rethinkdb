@@ -48,15 +48,20 @@ poll_event_queue_t::poll_event_queue_t(linux_queue_parent_t *parent)
 void poll_event_queue_t::run() {
     int res;
     
+    // Create an empty sigmask for epoll
+    sigset_t sigmask;
+    res = sigemptyset(&sigmask);
+    guarantee_err(res == 0, "Could not create an empty signal mask");
+
     // Now, start the loop
     while (!parent->should_shut_down()) {
         // Grab the events from the kernel!
-        res = poll(&watched_fds[0], watched_fds.size(), -1);
+        res = ppoll(&watched_fds[0], watched_fds.size(), NULL, &sigmask);
         
         // epoll_wait might return with EINTR in some cases (in
         // particular under GDB), we just need to retry.
         if (res == -1 && errno == EINTR) {
-            continue;
+            res = 0;
         }
 
         // The only likely poll error here is ENOMEM, which we
@@ -78,6 +83,10 @@ void poll_event_queue_t::run() {
         
         parent->pump();
     }
+
+    // Unblock all events
+    res = pthread_sigmask(SIG_BLOCK, &sigmask, NULL);
+    guarantee_err(res == 0, "Could not block signal");
 }
 
 poll_event_queue_t::~poll_event_queue_t() {

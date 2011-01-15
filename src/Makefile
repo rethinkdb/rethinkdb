@@ -102,6 +102,11 @@ CXXFLAGS+=-DNO_EPOLL
 BUILD_DIR:=$(BUILD_DIR)-noepoll
 endif
 
+ifeq ($(NO_EVENTFD),1)
+CXXFLAGS+=-DNO_EVENTFD
+BUILD_DIR:=$(BUILD_DIR)-noeventfd
+endif
+
 ifeq ($(VALGRIND),1)
 CXXFLAGS+=-DVALGRIND
 BUILD_DIR:=$(BUILD_DIR)-valgrind

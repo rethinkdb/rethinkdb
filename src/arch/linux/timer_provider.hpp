@@ -6,9 +6,7 @@
 // interface) depending on which system we're on. Some older kernels
 // don't support fdtimers, so we have to resort to signals.
 
-//#define USE_SIGNAL_TIMER
-
-#ifdef USE_SIGNAL_TIMER
+#ifdef NO_EVENTFD
 #include "timer/timer_signal_provider.hpp"
 typedef timer_signal_provider_t timer_provider_t;
 #else
