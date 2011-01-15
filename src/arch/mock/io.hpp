@@ -7,7 +7,7 @@
 #include <stdlib.h>
 
 struct mock_iocallback_t {
-    virtual void on_io_complete(event_t *event) = 0;
+    virtual void on_io_complete() = 0;
     virtual ~mock_iocallback_t() {}
 };
 
@@ -77,14 +77,14 @@ protected:
     bool read_async(size_t offset, size_t length, void *buf, mock_iocallback_t *cb) {
         assert(mode & mode_read);
         read_blocking(offset, length, buf);
-        random_delay(cb, &mock_iocallback_t::on_io_complete, (event_t*)NULL);
+        random_delay(cb, &mock_iocallback_t::on_io_complete);
         return false;
     }
     
     bool write_async(size_t offset, size_t length, void *buf, mock_iocallback_t *cb) {
         assert(mode & mode_write);
         write_blocking(offset, length, buf);
-        random_delay(cb, &mock_iocallback_t::on_io_complete, (event_t*)NULL);
+        random_delay(cb, &mock_iocallback_t::on_io_complete);
         return false;
     }
     

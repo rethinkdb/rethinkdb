@@ -3,7 +3,7 @@
 struct io_coroutine_adapter_t : public iocallback_t {
     coro_t *cont;
     io_coroutine_adapter_t() : cont(coro_t::self()) { }
-    void on_io_complete(event_t *e) {
+    void on_io_complete() {
         cont->notify();
     }
 };

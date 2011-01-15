@@ -7,7 +7,6 @@
 #include "utils2.hpp"
 #include "config/args.hpp"
 #include "arch/linux/event_queue.hpp"
-#include "event.hpp"
 
 /* The "direct" in linux_direct_file_t refers to the fact that the
 file is opened in O_DIRECT mode, and there are restrictions on the
@@ -18,7 +17,7 @@ chunk alignment. */
 
 struct linux_iocallback_t {
     virtual ~linux_iocallback_t() {}
-    virtual void on_io_complete(event_t *event) = 0;
+    virtual void on_io_complete() = 0;
 };
 
 class linux_file_t {

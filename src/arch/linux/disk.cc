@@ -298,16 +298,7 @@ void linux_io_calls_t::aio_notify(iocb *event, int result) {
     // Notify the interested party about the event
     linux_iocallback_t *callback = (linux_iocallback_t*)event->data;
     
-    // Prepare event_t for the callback
-    event_t qevent;
-    bzero((void*)&qevent, sizeof(qevent));
-    qevent.state = NULL;
-    qevent.result = result;
-    qevent.buf = event->u.c.buf;
-    qevent.offset = event->u.c.offset;
-    qevent.op = event->aio_lio_opcode == IO_CMD_PREAD ? eo_read : eo_write;
-
-    callback->on_io_complete(&qevent);
+    callback->on_io_complete();
     
     // Free the iocb structure
     delete event;

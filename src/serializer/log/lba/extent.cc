@@ -38,7 +38,7 @@ struct extent_block_t :
         if (have_finished_sync) done();
     }
     
-    void on_io_complete(event_t *) {
+    void on_io_complete() {
         assert(!have_finished_sync);
         have_finished_sync = true;
         if (!waiting_for_prev) done();

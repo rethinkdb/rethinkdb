@@ -126,7 +126,7 @@ public:
 
 private:
     head_t head; /* !< keeps track of where we are in the extents */
-    void on_io_complete(event_t *e);
+    void on_io_complete();
 
     metablock_version_t next_version_number;
 

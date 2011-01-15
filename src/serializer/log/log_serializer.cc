@@ -360,13 +360,13 @@ struct ls_block_writer_t :
         }
     }
 
-    void on_io_complete(event_t *e) {
+    void on_io_complete() {
         do_finish();
     }
 
     bool do_finish() {
         if (write.callback) write.callback->on_serializer_write_block();
-        if (extra_cb) extra_cb->on_io_complete(NULL);
+        if (extra_cb) extra_cb->on_io_complete();
 
         if (zerobuf) {
             ser->free(zerobuf);
@@ -476,7 +476,7 @@ struct ls_write_fsm_t :
         return maybe_write_metablock();
     }
     
-    void on_io_complete(event_t *unused) {
+    void on_io_complete() {
         assert(state == state_waiting_for_data_and_lba);
         assert(num_writes_waited_for > 0);
         num_writes_waited_for--;
@@ -639,7 +639,7 @@ struct ls_read_fsm_t :
         }
     }
     
-    void on_io_complete(event_t *e) {
+    void on_io_complete() {
         done();
     }
     
