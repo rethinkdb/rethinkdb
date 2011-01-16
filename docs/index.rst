@@ -31,7 +31,7 @@ maintain efficient operation:
 
 In addition to supporting legacy hardware, RethinkDB takes full
 advantage of modern architectures, including multicore servers,
-solid-state drives, NUMA architectures, and fast ethernet. It ships
+solid-state drives, NUMA architectures, and fast Ethernet. It ships
 with tools that help easily perform data migration and recovery, run
 data consistency checks, do performance tuning, etc.
 
@@ -66,7 +66,7 @@ Prerequisites
 
 RethinkDB requires the following software to operate:
 
-- A linux distribution with a 64 bit, recent 2.6 kernel
+- A Linux distribution with a 64 bit, recent 2.6 kernel
 
 ------------
 Installation
@@ -164,7 +164,7 @@ page:
 http://code.sixapart.com/svn/memcached/trunk/server/doc/protocol.txt. All
 specified commands should work as expected, and clients that work with
 Memcached implementations should continue working with RethinkDB. The
-following is a list of known discreptanices with the Memcached
+following is a list of known discrepancies with the Memcached
 protocol:
 
 - Currently, only the text protocol is supported.
@@ -173,7 +173,7 @@ protocol:
 - The ``flush_all`` command is not supported.
 - The ``stat`` command returns different statistics than specified in
   the protocol. Some of the statistics that do not make sense in the
-  context of a persistent engine are removed, and new statitics are
+  context of a persistent engine are removed, and new statistics are
   added.
 
 -----------
@@ -201,7 +201,7 @@ solid-state drives no synchronization is possible, and because these
 drives often have varying latency the entire array works as fast as
 the slowest operation at any given time. This significantly increases
 latency on write operation. RethinkDB implements disk striping that
-gets around this problem by writing to each disk independetly. In
+gets around this problem by writing to each disk independently. In
 order to take advantage of this feature you can partition a RethinkDB
 database across multiple files (located on one or many disks), and
 RethinkDB will take care of striping and latency issues
@@ -213,7 +213,7 @@ If the files ``file1.db`` and ``file2.db`` are located on different
 disks, the I/O performance will double without using the RAID
 controller and without any sacrifice of latency.
 
-Note, this feature does not implement mirroring and parity gurantees
+Note, this feature does not implement mirroring and parity guarantees
 implemented by advanced RAID controllers. The intention is not to
 entirely replace RAID, but to support an alternative partitioning
 method which can be very useful in certain situations.
@@ -249,7 +249,7 @@ should use can be specified explicitly::
   $ rethinkdb --cores 8
 
 This will limit the server to using eight cores. It is OK to
-overprovision cores (passing a larger number than the machine has),
+over-provision cores (passing a larger number than the machine has),
 which may or may not increase performance in a real-world scenario.
 
 ``````
@@ -344,7 +344,7 @@ This command extracts the data from the database file ``file.db`` into
 a file named ``memcached.out``. The contents of ``memcached.out`` will
 be standard Memcached insertion commands which can be piped into a
 different server that supports the Memcached protocol, or
-programatically converted to other formats. For example, if we have a
+programmatically converted to other formats. For example, if we have a
 different server that supports a Memcached interface (including
 RethinkDB) running on a port ``8080`` we can fill it with the contents
 of the database with the following Unix command::
@@ -380,7 +380,7 @@ first needs to be formatted::
 
 The database can be sharded across multiple devices::
 
-  $ rethinkdb crete -f /dev/sdb -f /dev/sdc
+  $ rethinkdb create -f /dev/sdb -f /dev/sdc
 
 If a database already exists on a device, RethinkDB will output an
 error message. The block device can be reformatted by using a
