@@ -631,7 +631,7 @@ void do_storage(txt_memcached_handler_t *rh, storage_command_t sc, int argc, cha
     value off the socket, so we can't read the next command until we're sure this one is done. */
 
     if (nowait) {
-        coro_t::spawn(&run_storage_command, rh, sc, key, data, mcflags, exptime, unique, false);
+        coro_t::spawn(&run_storage_command, rh, sc, key, data, mcflags, exptime, unique, noreply);
     } else {
         run_storage_command(rh, sc, key, data, mcflags, exptime, unique, noreply);
     }
