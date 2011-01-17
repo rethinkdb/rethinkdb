@@ -1,6 +1,7 @@
 #!/bin/bash
 
 if [ $DATABASE == "rethinkdb" ]; then
+    . `dirname "$0"`/DESCRIPTION > "$BENCH_DIR/bench_output/Insert_performance/DESCRIPTION"
     ../../build/release/rethinkdb create $SSD_DRIVES --force
 fi
 
@@ -10,5 +11,8 @@ fi
 
 # Store keys in temporary file.
 export TMP_KEY_FILE="$(ssh puzzler mktemp)"
+
+mkdir -p "$BENCH_DIR/bench_output/Insert_performance"
+. `dirname "$0"`/DESCRIPTION_RUN > "$BENCH_DIR/bench_output/Insert_performance/DESCRIPTION_RUN"
 
 export -p > "$BENCH_DIR/environment"
