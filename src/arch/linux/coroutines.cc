@@ -131,7 +131,7 @@ coro_context_t::coro_context_t()
 {
     pm_allocated_coroutines++;
 
-    stack = malloc(coro_stack_size);
+    stack = malloc_aligned(coro_stack_size, getpagesize());
 
     /* Protect the end of the stack so that we crash when we get a stack overflow instead of
     corrupting memory. */
