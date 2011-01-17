@@ -108,6 +108,12 @@ struct btree_key_value_store_static_config_t {
     btree_config_t btree;
 };
 
+/* Configuration for replication */
+struct replication_config_t {
+    char hostname[MAX_HOSTNAME_LEN];
+    int port;
+};
+
 /* All the configuration together */
 
 struct cmd_config_t {
@@ -135,6 +141,9 @@ struct cmd_config_t {
     btree_key_value_store_static_config_t store_static_config;
     bool create_store, force_create, shutdown_after_creation;
 
+    //replication configuration
+    replication_config_t replication_config;
+
     bool verbose;
 };
 
@@ -160,6 +169,7 @@ public:
 #ifdef SEMANTIC_SERIALIZER_CHECK
     void set_last_semantic_file(const char* value);
 #endif
+    void set_master_addr(const char *value);
     void push_private_config(const char* value);
     
 private:
