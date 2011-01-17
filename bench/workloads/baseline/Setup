@@ -1,10 +1,10 @@
 #!/bin/bash
 
 mkdir -p "$BENCH_DIR/bench_output/Baseline_performance"
-. ./DESCRIPTION_RUN > "$BENCH_DIR/bench_output/Baseline_performance/DESCRIPTION_RUN"
+. `dirname "$0"`/DESCRIPTION_RUN > "$BENCH_DIR/bench_output/Baseline_performance/DESCRIPTION_RUN"
 
 if [ $DATABASE == "rethinkdb" ]; then
-    . ./DESCRIPTION > "$BENCH_DIR/bench_output/Baseline_performance/DESCRIPTION"
+    . `dirname "$0"`/DESCRIPTION > "$BENCH_DIR/bench_output/Baseline_performance/DESCRIPTION"
     cd ../..
     git checkout bench_baseline
     LOCAL_GIT_ROOT=`pwd`
