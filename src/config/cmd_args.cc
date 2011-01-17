@@ -157,7 +157,8 @@ enum {
     extent_size,
     force_create,
     coroutine_stack_size,
-    print_version
+    print_version,
+    slave_of,
 };
 
 enum rethinkdb_cmd {
@@ -276,6 +277,7 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
                 {"force",                no_argument, &do_force_create, 1},
                 {"version",              no_argument, &do_version, 1},
                 {"help",                 no_argument, &do_help, 1},
+                {"slave_of",             required_argument, 0, slave_of},
                 {0, 0, 0, 0}
             };
 
@@ -336,6 +338,8 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
                 config.force_create = true; break;
             case print_version:
                 print_version_message(); break;
+            case slave_of:
+                config.set_master_addr(optarg); break;
             case 'h':
             default:
                 /* getopt_long already printed an error message. */
@@ -619,6 +623,20 @@ void parsing_cmd_config_t::set_coroutine_stack_size(const char* value) {
         fail_due_to_user_error("Coroutine stack size must be a number from %d to %d.", minimum_value, maximum_value);
 
     coro_t::set_coroutine_stack_size(parse_int(optarg));
+}
+
+void parsing_cmd_config_t::set_master_addr(const char *value) {
+    char *token = strtok(value, ":");
+    if (token == NULL || strlen(token) > MAX_HOSTNAME_LEN)
+        fail_due_to_user_error("Invalid master address, address should be of the form hostname:port");
+
+    strcpy(replication_config.hostname, token);
+
+    token = strtok(NULL, ":");
+    if (token == NULL)
+        fail_due_to_user_error("Invalid master address, address should be of the form hostname:port");
+
+    replication_config.port = parse_int(token);
 }
 
 long long int parsing_cmd_config_t::parse_longlong(const char* value) {

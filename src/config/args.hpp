@@ -190,5 +190,8 @@
 // XXX: I increased this from 65536; make sure it's actually needed.
 #define COROUTINE_STACK_SIZE                      131072
 
+// Maximum length of a hostname we communicate with
+#define MAX_HOSTNAME_LEN                          100
+
 #endif // __CONFIG_ARGS_H__
 
