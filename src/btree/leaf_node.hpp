@@ -26,6 +26,8 @@ struct btree_leaf_pair {
     }
 };
 
+bool leaf_pair_fits(const btree_leaf_pair *pair, size_t size);
+
 class leaf_key_comp;
 
 class leaf_node_handler {

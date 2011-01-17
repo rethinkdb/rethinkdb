@@ -66,8 +66,10 @@ a single thread. It just keeps track of the thread that the object was created o
 makes sure that it is destroyed from the same thread. It exposes the ID of that thread
 as the "home_thread" variable. */
 
-struct home_thread_mixin_t {
+class home_thread_mixin_t {
+public:
     int home_thread;
+protected:
     home_thread_mixin_t() : home_thread(get_thread_id()) { }
     ~home_thread_mixin_t() { assert_thread(); }
     

@@ -17,12 +17,14 @@
 // TODO move serializer_config_block_t to separate file
 /* This is the format that block ID 0 on each serializer takes. */
 
+typedef uint32_t database_magic_t;
+
 struct serializer_config_block_t {
     block_magic_t magic;
     
     /* What time the database was created. To help catch the case where files from two
     databases are mixed. */
-    uint32_t database_magic;
+    database_magic_t database_magic;
     
     /* How many serializers the database is using (in case user creates the database with
     some number of serializers and then specifies less than that many on a subsequent
