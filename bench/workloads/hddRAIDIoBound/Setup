@@ -1,10 +1,6 @@
 #!/bin/bash
 
-mkdir -p "$BENCH_DIR/bench_output/HDD_IO_performance_(canonical_workload)"
-. `dirname "$0"`/DESCRIPTION_RUN > "$BENCH_DIR/bench_output/HDD_IO_performance_(canonical_workload)/DESCRIPTION_RUN"
-
 if [ $DATABASE == "rethinkdb" ]; then
-    . `dirname "$0"`/DESCRIPTION > "$BENCH_DIR/bench_output/HDD_IO_performance_(canonical_workload)/DESCRIPTION"
     ../../build/release/rethinkdb create $HDD_DRIVES --force
 fi
 
