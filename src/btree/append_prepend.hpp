@@ -160,12 +160,12 @@ private:
     buffer_group_t buffer_group;
 };
 
-void co_btree_append_prepend(btree_key *key, btree_key_value_store_t *store, data_provider_t *data, bool append, store_t::append_prepend_callback_t *cb) {
+void co_btree_append_prepend(const btree_key *key, btree_key_value_store_t *store, data_provider_t *data, bool append, store_t::append_prepend_callback_t *cb) {
     btree_append_prepend_oper_t *oper = new btree_append_prepend_oper_t(data, append, cb);
     run_btree_modify_oper(oper, store, key);
 }
 
-void btree_append_prepend(btree_key *key, btree_key_value_store_t *store, data_provider_t *data, bool append, store_t::append_prepend_callback_t *cb) {
+void btree_append_prepend(const btree_key *key, btree_key_value_store_t *store, data_provider_t *data, bool append, store_t::append_prepend_callback_t *cb) {
     coro_t::spawn(co_btree_append_prepend, key, store, data, append, cb);
 }
 

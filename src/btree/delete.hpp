@@ -2,7 +2,6 @@
 #define __BTREE_DELETE_HPP__
 
 #include "btree/modify_oper.hpp"
-#include "event.hpp"
 #include "btree/node.hpp"
 #include "btree/internal_node.hpp"
 #include "btree/leaf_node.hpp"
@@ -34,12 +33,12 @@ public:
     }
 };
 
-void co_btree_delete(btree_key *key, btree_key_value_store_t *store, store_t::delete_callback_t *cb) {
+void co_btree_delete(const btree_key *key, btree_key_value_store_t *store, store_t::delete_callback_t *cb) {
     btree_delete_oper_t *oper = new btree_delete_oper_t(cb);
     run_btree_modify_oper(oper, store, key);
 }
 
-void btree_delete(btree_key *key, btree_key_value_store_t *store, store_t::delete_callback_t *cb) {
+void btree_delete(const btree_key *key, btree_key_value_store_t *store, store_t::delete_callback_t *cb) {
     coro_t::spawn(co_btree_delete, key, store, cb);
 }
 

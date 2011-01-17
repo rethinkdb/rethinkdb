@@ -285,7 +285,7 @@ private:
     /* internal garbage collection structures */
     struct gc_read_callback_t : public iocallback_t {
         data_block_manager_t *parent;
-        void on_io_complete(event_t *) {
+        void on_io_complete() {
             parent->run_gc();
         }
     };

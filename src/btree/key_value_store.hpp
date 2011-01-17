@@ -124,7 +124,7 @@ public:
     void started_a_query();   // Called by btree functions
     void finished_a_query();
     
-    btree_slice_t *slice_for_key(btree_key *key);
+    btree_slice_t *slice_for_key(const btree_key *key);
     
     // TODO: How should replicants interact with shutdown?
     std::vector<btree_replicant_t *> replicants;

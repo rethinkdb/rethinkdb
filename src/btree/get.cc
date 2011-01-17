@@ -9,24 +9,16 @@
 
 #include "btree/coro_wrappers.hpp"
 
-void co_btree_get(btree_key *_key, btree_key_value_store_t *store, store_t::get_callback_t *cb) {
+void co_btree_get(const btree_key *key, btree_key_value_store_t *store, store_t::get_callback_t *cb) {
     union {
         char value_memory[MAX_TOTAL_NODE_CONTENTS_SIZE+sizeof(btree_value)];
         btree_value value;
     };
     (void)value_memory;
 
-    union {
-        char key_memory[MAX_KEY_SIZE+sizeof(btree_key)];
-        btree_key key;
-    };
-    (void)key_memory;
-
     block_pm_duration get_time(&pm_cmd_get);
 
-    keycpy(&key, _key);
-
-    btree_slice_t *slice = store->slice_for_key(&key);
+    btree_slice_t *slice = store->slice_for_key(key);
     cache_t *cache = &slice->cache;
     int home_thread = get_thread_id();
 
@@ -71,7 +63,7 @@ void co_btree_get(btree_key *_key, btree_key_value_store_t *store, store_t::get_
             break;
         }
 
-	block_id_t next_node_id = internal_node_handler::lookup(ptr_cast<internal_node_t>(node), &key);
+	block_id_t next_node_id = internal_node_handler::lookup(ptr_cast<internal_node_t>(node), key);
 	assert(next_node_id != NULL_BLOCK_ID);
 	assert(next_node_id != SUPERBLOCK_ID);
 
@@ -80,11 +72,11 @@ void co_btree_get(btree_key *_key, btree_key_value_store_t *store, store_t::get_
 
 
     // Got down to the leaf, now examine it
-    bool found = leaf_node_handler::lookup(ptr_cast<leaf_node_t>(buf_lock.buf()->get_data_read()), &key, &value);
+    bool found = leaf_node_handler::lookup(ptr_cast<leaf_node_t>(buf_lock.buf()->get_data_read()), key, &value);
     buf_lock.release();
 
     if (found && value.expired()) {
-	btree_delete_expired(&key, store);
+	btree_delete_expired(key, store);
 	found = false;
     }
     
@@ -141,6 +133,6 @@ void co_btree_get(btree_key *_key, btree_key_value_store_t *store, store_t::get_
     }
 }
 
-void btree_get(btree_key *key, btree_key_value_store_t *store, store_t::get_callback_t *cb) {
+void btree_get(const btree_key *key, btree_key_value_store_t *store, store_t::get_callback_t *cb) {
     coro_t::spawn(co_btree_get, key, store, cb);
 }

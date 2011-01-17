@@ -22,7 +22,7 @@ public:
         friend class extent_t;
         virtual void on_extent_read() = 0;
     private:
-        void on_io_complete(event_t *) { on_extent_read(); }
+        void on_io_complete() { on_extent_read(); }
     };
     void read(size_t pos, size_t length, void *buffer, read_callback_t *);
     

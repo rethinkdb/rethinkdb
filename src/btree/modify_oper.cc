@@ -160,22 +160,14 @@ buf_t *get_root(transaction_t *txn, buf_t **sb_buf, block_size_t block_size) {
 }
 
 // Runs a btree_modify_oper_t.
-void run_btree_modify_oper(btree_modify_oper_t *oper, btree_key_value_store_t *store, btree_key *_key) {
+void run_btree_modify_oper(btree_modify_oper_t *oper, btree_key_value_store_t *store, const btree_key *key) {
     union {
         byte old_value_memory[MAX_TOTAL_NODE_CONTENTS_SIZE+sizeof(btree_value)];
         btree_value old_value;
     };
     (void) old_value_memory;
 
-    union {
-        byte key_memory[MAX_KEY_SIZE + sizeof(btree_key)];
-        btree_key key;
-    };
-    (void) key_memory;
-
-    keycpy(&key, _key);
-
-    btree_slice_t *slice = store->slice_for_key(&key);
+    btree_slice_t *slice = store->slice_for_key(key);
     oper->slice = slice; // TODO: Figure out a way to do this more nicely -- it's only used for generating a CAS value.
     block_size_t block_size = slice->cache.get_block_size();
 
@@ -183,7 +175,8 @@ void run_btree_modify_oper(btree_modify_oper_t *oper, btree_key_value_store_t *s
 
     {
         on_thread_t mover(slice->home_thread); // Move to the slice's thread.
-        transaction_t *txn = co_begin_transaction(&slice->cache, rwi_write); // TODO: Use transactor_t.
+        transactor_t transactor(&slice->cache, rwi_write);
+        transaction_t *txn = transactor.transaction();
 
         // Acquire the superblock.
         buf_t *sb_buf = co_acquire_block(txn, SUPERBLOCK_ID, rwi_write);
@@ -193,9 +186,9 @@ void run_btree_modify_oper(btree_modify_oper_t *oper, btree_key_value_store_t *s
         // Walk down the tree to the leaf.
         while (node_handler::is_internal(ptr_cast<node_t>(buf->get_data_read()))) {
             // Check if the node is overfull and proactively split it if it is (since this is an internal node).
-            check_and_handle_split(txn, &buf, &last_buf, &sb_buf, &key, NULL, block_size);
+            check_and_handle_split(txn, &buf, &last_buf, &sb_buf, key, NULL, block_size);
             // Check if the node is underfull, and merge/level if it is.
-            check_and_handle_underfull(txn, &buf, &last_buf, &sb_buf, &key, block_size);
+            check_and_handle_underfull(txn, &buf, &last_buf, &sb_buf, key, block_size);
 
             // Release the superblock, if we've gone past the root (and haven't
             // already released it). If we're still at the root or at one of
@@ -212,13 +205,13 @@ void run_btree_modify_oper(btree_modify_oper_t *oper, btree_key_value_store_t *s
             last_buf = buf;
 
             // Look up and acquire the next node.
-            block_id_t node_id = internal_node_handler::lookup(ptr_cast<internal_node_t>(buf->get_data_read()), &key);
+            block_id_t node_id = internal_node_handler::lookup(ptr_cast<internal_node_t>(buf->get_data_read()), key);
             assert(node_id != NULL_BLOCK_ID && node_id != SUPERBLOCK_ID);
             buf = co_acquire_block(txn, node_id, rwi_write);
         }
 
         // We've gone down the tree and gotten to a leaf. Now look up the key.
-        bool key_found = leaf_node_handler::lookup(ptr_cast<leaf_node_t>(buf->get_data_read()), &key, &old_value);
+        bool key_found = leaf_node_handler::lookup(ptr_cast<leaf_node_t>(buf->get_data_read()), key, &old_value);
 
         // If there's a large value, acquire that too.
         large_buf_t *old_large_buf = NULL;
@@ -266,7 +259,7 @@ void run_btree_modify_oper(btree_modify_oper_t *oper, btree_key_value_store_t *s
                 // Split the node if necessary, to make sure that we have room
                 // for the value; This isn't necessary when we're deleting,
                 // because the node isn't going to grow.
-                check_and_handle_split(txn, &buf, &last_buf, &sb_buf, &key, new_value, block_size);
+                check_and_handle_split(txn, &buf, &last_buf, &sb_buf, key, new_value, block_size);
 
                 // Add a CAS to the value if necessary (this won't change its size).
                 if (new_value->has_cas() && !oper->cas_already_set) {
@@ -275,11 +268,11 @@ void run_btree_modify_oper(btree_modify_oper_t *oper, btree_key_value_store_t *s
 
                 repli_timestamp new_value_timestamp = current_time(); // TODO: When the replication code is put back in this'll probably need to be changed.
 
-                bool success = leaf_node_handler::insert(block_size, ptr_cast<leaf_node_t>(buf->get_data_write()), &key, new_value, new_value_timestamp);
+                bool success = leaf_node_handler::insert(block_size, ptr_cast<leaf_node_t>(buf->get_data_write()), key, new_value, new_value_timestamp);
                 guarantee(success, "could not insert leaf btree node");
             } else { // Delete the value if it's there.
                 if (key_found || expired) {
-                    leaf_node_handler::remove(block_size, ptr_cast<leaf_node_t>(buf->get_data_write()), &key);
+                    leaf_node_handler::remove(block_size, ptr_cast<leaf_node_t>(buf->get_data_write()), key);
                 } else {
                      // operate() told us to delete a value (update_needed && !new_value), but the
                      // key wasn't in the node (!key_found && !expired), so we do nothing.
@@ -292,7 +285,7 @@ void run_btree_modify_oper(btree_modify_oper_t *oper, btree_key_value_store_t *s
 
             // Check to see if the leaf is underfull (following a change in
             // size or a deletion), and merge/level if it is.
-            check_and_handle_underfull(txn, &buf, &last_buf, &sb_buf, &key, block_size);
+            check_and_handle_underfull(txn, &buf, &last_buf, &sb_buf, key, block_size);
         }
 
         // Release bufs as necessary.
@@ -323,8 +316,8 @@ void run_btree_modify_oper(btree_modify_oper_t *oper, btree_key_value_store_t *s
             }
         }
 
-        co_commit_transaction(txn);
-        // Moving back to the home thread is handled automatically with RAII.
+        // Committing the transaction and moving back to the home thread are
+        // handled automatically with RAII.
     }
 
     // Report the result of the operation and delete the oper.

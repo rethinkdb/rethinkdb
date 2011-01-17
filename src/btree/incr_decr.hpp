@@ -96,12 +96,12 @@ private:
     uint64_t new_number;
 };
 
-void co_btree_incr_decr(btree_key *key, btree_key_value_store_t *store, bool increment, unsigned long long delta, store_t::incr_decr_callback_t *cb) {
+void co_btree_incr_decr(const btree_key *key, btree_key_value_store_t *store, bool increment, unsigned long long delta, store_t::incr_decr_callback_t *cb) {
     btree_incr_decr_oper_t *oper = new btree_incr_decr_oper_t(increment, delta, cb);
     run_btree_modify_oper(oper, store, key);
 }
 
-void btree_incr_decr(btree_key *key, btree_key_value_store_t *store, bool increment, unsigned long long delta, store_t::incr_decr_callback_t *cb) {
+void btree_incr_decr(const btree_key *key, btree_key_value_store_t *store, bool increment, unsigned long long delta, store_t::incr_decr_callback_t *cb) {
     coro_t::spawn(co_btree_incr_decr, key, store, increment, delta, cb);
 }
 

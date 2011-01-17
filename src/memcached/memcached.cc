@@ -631,7 +631,7 @@ void do_storage(txt_memcached_handler_t *rh, storage_command_t sc, int argc, cha
     value off the socket, so we can't read the next command until we're sure this one is done. */
 
     if (nowait) {
-        coro_t::spawn(&run_storage_command, rh, sc, key, data, mcflags, exptime, unique, false);
+        coro_t::spawn(&run_storage_command, rh, sc, key, data, mcflags, exptime, unique, noreply);
     } else {
         run_storage_command(rh, sc, key, data, mcflags, exptime, unique, noreply);
     }
@@ -931,9 +931,10 @@ void serve_memcache(net_conn_t *conn, server_t *server) {
         /* Flush if necessary (no reason to do this the first time around, but it's easier
         to put it here than after every thing that could need to flush */
         block_pm_duration flush_timer(&pm_conns_writing);
-        if (!rh.send_buffer.co_flush()) {
-            /* Ignore errors; it's OK for the write end of the connection to be closed. Just discard
-            any data that would have been written and move on. */
+        /* co_flush() may block */
+        if (!conn->is_write_open() || !rh.send_buffer.co_flush()) {
+            /* Ignore errors; it's OK for the write end of the connection to be closed. Just
+            discard any data that would have been written and move on. */
             rh.send_buffer.discard();
         }
         flush_timer.end();

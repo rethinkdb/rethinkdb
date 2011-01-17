@@ -232,20 +232,21 @@ class dbench():
                                     <th style="padding: 0.5em 0.8em; font-size: small;"></th>
                                     <th style="padding: 0.5em 0.8em; font-size: small;">Mean %s</th>
                                     <th style="padding: 0.5em 0.8em; font-size: small;">Standard deviation</th>
-                                    <th style="padding: 0.5em 0.8em; font-size: small;">Upper / Lower 5-percentile</th>
+                                    <th style="padding: 0.5em 0.8em; font-size: small;">Upper 1-percentile</th>
+                                    <th style="padding: 0.5em 0.8em; font-size: small;"> Lower 1-percentile</th>
                                 </tr>""" % datatype
-            for competitor in data.iteritems():
+            for competitor_name, competitor in data.iteritems():
                 try:
-                    mean_data = format_metadata(competitor[1].select(datatype).stats()[datatype]['mean'])
+                    mean_data = format_metadata(competitor.select(datatype).stats()[datatype]['mean'])
                 except KeyError:
                     mean_data = "N/A"
                 try:
-                    standard_dev = format_metadata(competitor[1].select(datatype).stats()[datatype]['stdev'])
+                    standard_dev = format_metadata(competitor.select(datatype).stats()[datatype]['stdev'])
                 except KeyError:
                     standard_dev = "N/A"
                 try:
-                    upper_percentile = format_metadata(competitor[1].select(datatype).stats()[datatype]['upper_5_percentile'])
-                    lower_percentile = format_metadata(competitor[1].select(datatype).stats()[datatype]['lower_5_percentile'])
+                    upper_percentile = format_metadata(competitor.select(datatype).stats()[datatype]['upper_1_percentile'])
+                    lower_percentile = format_metadata(competitor.select(datatype).stats()[datatype]['lower_1_percentile'])
                 except KeyError:
                     upper_percentile = "N/A"
                     lower_percentile = "N/A"
@@ -254,8 +255,50 @@ class dbench():
                                     <td style="background: #DBE2F1; padding: 0.5em 0.8em; font-weight: bold;">%s</td>
                                     <td style="background: #DBE2F1; padding: 0.5em 0.8em;">%s</td>
                                     <td style="background: #DBE2F1; padding: 0.5em 0.8em;">%s</td>
-                                    <td style="background: #DBE2F1; padding: 0.5em 0.8em;">%s / %s</td>
-                                </tr>""" % (competitor[0], mean_data, standard_dev, upper_percentile, lower_percentile)
+                                    <td style="background: #DBE2F1; padding: 0.5em 0.8em;">%s</td>
+                                    <td style="background: #DBE2F1; padding: 0.5em 0.8em;">%s</td>    
+                                </tr>""" % (competitor_name, mean_data, standard_dev, upper_percentile, lower_percentile)
+            table += "</table>"
+            return table
+
+        def multirun_summary_table(dataset, unit):
+            datatypes = ['qps', 'latency']
+            stat_types = ['mean','stdev','upper_5_percentile','lower_5_percentile']
+
+            table = """<table style="border-spacing: 0px; border-collapse: collapse; margin-left: auto; margin-right: auto; margin-top: 20px;">
+                           <tr style="font-weight: bold; text-align: left; border-bottom: 2px solid #FFFFFF; color: #FFFFFF; background: #556270;">
+                               <th style="padding: 0.5em 0.8em; font-size: small;"></th>"""
+            for d in datatypes:
+                table +="""    <th style="padding: 0.5em 0.8em; font-size: small;">Mean %s</th>
+                               <th style="padding: 0.5em 0.8em; font-size: small;">Standard deviation for %s</th>
+                               <th style="padding: 0.5em 0.8em; font-size: small;">Lower 5%% for %s</th>
+                               <th style="padding: 0.5em 0.8em; font-size: small;">Upper 5%% for %s</th>""" % (d,d,d,d)
+            table += "     </tr>"
+            for run_name, run in dataset.iteritems():
+                table += """<tr style="background: #B3BEC6; text-align: left; border-bottom: 2px solid #FFFFFF">
+                                <th style="background: #B3BEC6; padding: 0.5em 0.8em; font-weight: bold;" colspan="%s">%s</td>
+                            </tr>""" % (str(len(datatypes) * len(stat_types) + 1), run_name + " " + unit)
+                for competitor_name, competitor in run.iteritems():
+                    stats = {}
+                    for datatype in datatypes:
+                        stats[datatype] = {}
+                        for stat_type in stat_types:
+                            try:
+                                stats[datatype][stat_type] = format_metadata(competitor.select(datatype).stats()[datatype][stat_type])
+                            except KeyError:
+                                stats[datatype][stat_type] = "N/A"
+
+                    table += """<tr style="text-align: left; border-bottom: 2px solid #FFFFFF;">
+                                        <td style="background: #DBE2F1; padding: 0.5em 0.8em;  padding-left: 2em; font-weight: bold;">%s</td>""" % competitor_name
+                    for datatype in datatypes:
+                        output = []
+                        for stat_type in stat_types:
+                            output.append(stats[datatype][stat_type])
+                        table += """    <td style="background: #DBE2F1; padding: 0.5em 0.8em;">%s</td>
+                                        <td style="background: #DBE2F1; padding: 0.5em 0.8em;">%s</td>
+                                        <td style="background: #DBE2F1; padding: 0.5em 0.8em;">%s</td>
+                                        <td style="background: #DBE2F1; padding: 0.5em 0.8em;">%s</td>""" % tuple(output)
+                    table += "</tr>"        
             table += "</table>"
             return table
 
@@ -402,70 +445,36 @@ class dbench():
             print >>res, '<table style="width: 910px;" class="runPlots">'
             print >>res, '<tr><td><h3 style="text-align: center">Average queries per second across runs</h3>'
             print >>res, image('mean' + multirun_name)
-
-            #print >>res, """<table style="border-spacing: 0px; border-collapse: collapse; margin-left: auto; margin-right: auto; margin-top: 20px;">
-            #                    <tr style="font-weight: bold; text-align: left; border-bottom: 2px solid #FFFFFF; color: #FFFFFF; background: #556270;">
-            #                        <th style="padding: 0.5em 0.8em; font-size: small;"></th>
-            #                        <th style="padding: 0.5em 0.8em; font-size: small;">Mean qps</th>
-            #                        <th style="padding: 0.5em 0.8em; font-size: small;">Standard deviation</th>
-            #                        <th style="padding: 0.5em 0.8em; font-size: small;">Upper / Lower 5-percentile</th>
-            #                    </tr>"""
-            #for competitor in mean_data.iteritems():
-            #    competitor_mean = 0
-            #    competitor_stdev = 0
-            #    competitor_upper_5_percentile = 0
-            #    competitor_lower_5_percentile = 0
-            #    pdb.set_trace()
-            #    try:
-            #        competitor_mean = competitor[1].select('qps').stats()['qps']['mean']
-            #    except NameError:
-            #        print competitor[0] + " does not have a recorded mean for qps."
-            #    try:
-            #        competitor_stdev = competitor[1].select('qps').stats()['qps']['stdev']
-            #    except NameError:
-            #        print competitor[0] + " does not have a recorded standard deviation for qps."
-            #    try:
-            #        competitor_upper_5_percentile = competitor[1].select('qps').stats()['qps']['upper_5_percentile']
-            #    except NameError:
-            #        print competitor[0] + " does not have a recorded upper 5-percentile for qps."
-            #    try:
-            #        competitor_lower_5_percentile = competitor[1].select('qps').stats()['qps']['lower_5_percentile']
-            #    except NameError:
-            #        print competitor[0] + " does not have a recorded lower 5-percentile for qps."
-
-            #    print >>res,     """<tr style="text-align: left; border-bottom: 2px solid #FFFFFF;">
-            #                            <td style="background: #DBE2F1; padding: 0.5em 0.8em; font-weight: bold;">%s</td>
-            #                            <td style="background: #DBE2F1; padding: 0.5em 0.8em;">%s</td>
-            #                            <td style="background: #DBE2F1; padding: 0.5em 0.8em;">%s</td>
-            #                            <td style="background: #DBE2F1; padding: 0.5em 0.8em;">%s / %s</td>
-            #                        </tr>""" % (competitor[0], format_metadata(competitor_mean), format_metadata(competitor_stdev), format_metadata(competitor_upper_5_percentile), format_metadata(competitor_lower_5_percentile))
-            #print >>res, """</table>
-            #            </td>"""
-            # TODO remove later
+            # INSERT PLOT HERE
             print >>res, """</td>"""
 
             # Plot the multiplot; each subplot shows one of the runs of the multirun 
+            #multiplot_data = build_multiplot_data(['qps', 'latency'])
             multiplot_data = {}
+            summary_table_data = {}
 
-            # Build the intial set of run data with just RethinkDB's run used in multiruns
+            # Build the intial set of run data with just RethinkDB's run used in multiruns. In the meantime, build RethinkDB's data for the summary table.
             for run_name, run in multirun.runs.iteritems():
                 multiplot_data[run_name] = {}
-                
                 multiplot_data[run_name] = reduce(lambda x, y: x + y, run.data).select('qps').remap('qps','RethinkDB')
+
+                summary_table_data[run_name] = {}
+                summary_table_data[run_name]['RethinkDB'] = reduce(lambda x, y: x+ y, run.data)
                 
             competitors_with_multiruns = {}
-            for competitor in self.competitors.iteritems():
+            for competitor_name, competitor in self.competitors.iteritems():
                 try:
-                    competitors_with_multiruns[competitor[0]] = competitor[1].multirun
+                    competitors_with_multiruns[competitor_name] = competitor.multirun
                 except AttributeError:
-                    print 'Competitor: %s has no multiruns.' % competitor[0]
+                    print 'Competitor: %s has no multiruns.' % competitor_name
 
-            # Determine if any competitors have matching data for any runs, then add them to the data set as needed
+            # Determine if any competitors have matching data for each run, then add them to the data set as needed. Add them to the summary table for each run as well.
             for run_name in multiplot_data.keys():
                 for competitor_name, competitor_multirun in competitors_with_multiruns.iteritems():
                     try:
                         competitor_multirun_data = competitor_multirun.runs[run_name].data
                         multiplot_data[run_name] += competitor_multirun_data.select('qps').remap('qps',competitor_name)
+                        summary_table_data[run_name][competitor_name] = competitor_multirun_data
                     except KeyError:
                         print 'Competitor: %s did not report run % in its data for multirun %s' % (competitor[0], run_name, multirun.name) 
 
@@ -486,9 +495,9 @@ class dbench():
 #            print >>res, '</table>'
 # BELOW IS A TEMPORARY HACK, remove the triple quotes
             print >>res, """</td> """
-
             print >>res, '</div>'
             
+            print >>res, multirun_summary_table(summary_table_data, multirun.unit)
         # Add oprofile data
 #        print >> res, '<div class="oprofile">' 
 #        if self.prof_stats:

@@ -302,12 +302,15 @@ class TimeSeriesCollection():
         for val in self.data.iteritems():
             stat_report = {}
 	    full_series = map(lambda x: x, val[1])
-	    full_series = full_series[int(len(full_series) * 0.25):] # Cut off first quarter to get more reliable data
+	    full_series = full_series[(len(full_series) / 4):] # Cut off first quarter to get more reliable data
 	    full_series_sorted = full_series
 	    full_series_sorted.sort()
 	    steady_series = full_series[int(len(full_series) * 0.7):]
             stat_report['mean'] = stats.mean(full_series)
-            stat_report['stdev'] = stats.stdev(full_series)
+            try:
+                stat_report['stdev'] = stats.stdev(full_series)
+            except ZeroDivisionError:
+                stat_report['stdev'] = 0
             stat_report['upper_0.1_percentile'] = self.percentile(full_series_sorted, 0.999)
             stat_report['lower_0.1_percentile'] = self.percentile(full_series_sorted, 0.001)
             stat_report['upper_1_percentile'] = self.percentile(full_series_sorted, 0.99)
@@ -315,7 +318,10 @@ class TimeSeriesCollection():
             stat_report['upper_5_percentile'] = self.percentile(full_series_sorted, 0.95)
             stat_report['lower_5_percentile'] = self.percentile(full_series_sorted, 0.05)
             stat_report['steady_mean'] = stats.mean(steady_series)
-            stat_report['steady_stdev'] = stats.stdev(steady_series)
+            try:
+                stat_report['steady_stdev'] = stats.stdev(full_series)
+            except ZeroDivisionError:
+                stat_report['steady_stdev'] = 0
 	    res[val[0]] = stat_report
 
         return res

@@ -150,12 +150,12 @@ private:
     store_t::set_callback_t *callback;
 };
 
-void co_btree_set(btree_key *key, btree_key_value_store_t *store, data_provider_t *data, btree_set_oper_t::set_type_t type, btree_value::mcflags_t mcflags, btree_value::exptime_t exptime, btree_value::cas_t req_cas, store_t::set_callback_t *cb) {
+void co_btree_set(const btree_key *key, btree_key_value_store_t *store, data_provider_t *data, btree_set_oper_t::set_type_t type, btree_value::mcflags_t mcflags, btree_value::exptime_t exptime, btree_value::cas_t req_cas, store_t::set_callback_t *cb) {
     btree_set_oper_t *oper = new btree_set_oper_t(data, type, mcflags, exptime, req_cas, cb);
     run_btree_modify_oper(oper, store, key);
 }
 
-void btree_set(btree_key *key, btree_key_value_store_t *store, data_provider_t *data, btree_set_oper_t::set_type_t type, btree_value::mcflags_t mcflags, btree_value::exptime_t exptime, btree_value::cas_t req_cas, store_t::set_callback_t *cb) {
+void btree_set(const btree_key *key, btree_key_value_store_t *store, data_provider_t *data, btree_set_oper_t::set_type_t type, btree_value::mcflags_t mcflags, btree_value::exptime_t exptime, btree_value::cas_t req_cas, store_t::set_callback_t *cb) {
     coro_t::spawn(co_btree_set, key, store, data, type, mcflags, exptime, req_cas, cb);
 }
 
