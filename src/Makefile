@@ -1,5 +1,12 @@
 ##### Configuring stuff
 
+prefix?=/usr
+bindir=$(prefix)/bin
+docdir=$(prefix)/share/doc/rethinkdb
+mandir=$(prefix)/share/man
+man1dir=$(mandir)/man1
+bashcompletiondir=/etc/bash_completion.d
+
 SERVER_EXEC_NAME:=rethinkdb
 SERVER_UNIT_TEST_NAME:=rethinkdb-unittest
 
@@ -32,6 +39,8 @@ BUILD_DIR:=$(BUILD_ROOT_DIR)/debug
 else
 BUILD_DIR:=$(BUILD_ROOT_DIR)/release
 endif
+
+MAN_PAGES:=$(wildcard ../docs/*.1)
 
 PACKAGES_DIR:=$(BUILD_ROOT_DIR)/packages
 RPM_PACKAGE_DIR:=$(PACKAGES_DIR)/rpm
@@ -164,19 +173,35 @@ ifeq ($(PACKAGING),1)
 TEMP_SPEC:=$(shell mktemp -t XXXX.spec)
 RPM_BUILD_ROOT=$(RPM_PACKAGE_DIR)/BUILD
 
-prepare_package_dirs:
+prepare_rpm_package_dirs:
 # Prepare directories
 	$(QUIET) mkdir -p $(RPM_PACKAGE_DIR)
 	$(QUIET) for d in BUILD RPMS/x86_64 SOURCES SPECS SRPMS; do mkdir -p $(RPM_PACKAGE_DIR)/$$d; done
-	$(QUIET) for d in \
-				/usr/bin \
-				/usr/share/man/man1 \
-				/etc/bash_completion.d \
-				; do \
-			mkdir -p $(RPM_BUILD_ROOT)$$d; \
-		done
 
-package: all prepare_package_dirs
+install-binaries: $(BUILD_DIR)/$(SERVER_EXEC_NAME)
+	$(QUIET) install -m755 -d $(DESTDIR)$(bindir)
+	$(QUIET) install -m644 $(BUILD_DIR)/$(SERVER_EXEC_NAME) $(DESTDIR)$(bindir)
+
+install-manpages: $(MAN_PAGES)
+	$(QUIET) install -m755 -d $(DESTDIR)$(man1dir)
+# TODO: support other man sections
+	$(QUIET) man_tmp=$$(mktemp -d); \
+		for manpage in $(MAN_PAGES); do \
+			manname=$$(basename $$manpage); \
+			gzip < $$manpage > $${man_tmp}/$${manname}.gz; \
+			install -m644  $${man_tmp}/$${manname}.gz $(DESTDIR)$(man1dir); \
+		done; \
+		rm -r $$man_tmp
+
+install-tools: ../scripts/rethinkdb.bash
+	$(QUIET) install -m755 -d $(DESTDIR)$(bashcompletiondir)
+	$(QUIET) install -m644 ../scripts/rethinkdb.bash $(DESTDIR)$(bashcompletiondir)/rethinkdb
+
+install-docs:
+
+install: install-binaries install-manpages install-docs install-tools
+
+rpm: all prepare_rpm_package_dirs
 	@echo Building package for RethinkDB version $(RETHINKDB_VERSION)
 
 # Replace version/topdir fields in the spec file
@@ -186,13 +211,11 @@ package: all prepare_package_dirs
 		cat > $(TEMP_SPEC)
 
 # Copy files to their correct places
-	$(QUIET) cp $(BUILD_DIR)/$(SERVER_EXEC_NAME) $(RPM_BUILD_ROOT)/usr/bin
-	$(QUIET) cp ../scripts/rethinkdb.bash $(RPM_BUILD_ROOT)/etc/bash_completion.d/rethinkdb
-	$(QUIET) cat ../docs/rethinkdb.1 | gzip > $(RPM_BUILD_ROOT)/usr/share/man/man1/rethinkdb.1.gz
+	$(MAKE) DESTDIR=$(RPM_BUILD_ROOT) install
 
 # Produce RPM package
 # FIXME: write rpmbuild output out to stderr if there's an error
-	$(QUIET) rpmbuild -bb --target=x86_64 --buildroot $(realpath $(RPM_BUILD_ROOT)) $(TEMP_SPEC) > /tmp/rpmbuild.stdout 2> /tmp/rpmbuild.stderr;
+	$(QUIET) rpmbuild -bb --target=x86_64 --buildroot $(realpath $(RPM_BUILD_ROOT)) $(TEMP_SPEC) > /tmp/rpmbuild.stdout 2> /tmp/rpmbuild.stderr
 	$(QUIET) rm $(TEMP_SPEC)
 	$(QUIET) echo
 	$(QUIET) echo "Your RPM packages are here:"
@@ -201,10 +224,9 @@ package: all prepare_package_dirs
 			echo "  $(realpath $(PACKAGES_DIR))/$$(basename $$f)"; \
 		done
 	$(QUIET) echo
-
 else
-package: clean
-	@$(MAKE) PACKAGING=1 DEBUG=0 SYMBOLS=1 package
+rpm: clean
+	@$(MAKE) PACKAGING=1 DEBUG=0 SYMBOLS=1 rpm
 endif
 
 
