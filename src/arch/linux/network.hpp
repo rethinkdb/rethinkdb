@@ -8,7 +8,7 @@
 template<class value_t>
 struct value_cond_t;
 
-/* linux_tcp_conn__t provides a nice wrapper around a TCP network connection. */
+/* linux_tcp_conn_t provides a nice wrapper around a TCP network connection. */
 
 struct linux_tcp_conn_t :
     public linux_event_callback_t
@@ -42,7 +42,7 @@ public:
     is an outstanding read() or peek_until() operation, it will throw read_closed_exc_t. */
     void shutdown_read();
 
-    /* Returns true if the half of the pipe that goes from the peer to us has been closed. */
+    /* Returns false if the half of the pipe that goes from the peer to us has been closed. */
     bool is_read_open();
 
     /* Writing */
@@ -68,7 +68,7 @@ public:
     is a write currently happening, it will get write_closed_exc_t. */
     void shutdown_write();
 
-    /* Returns true if the half of the pipe that goes from us to the peer has been closed. */
+    /* Returns false if the half of the pipe that goes from us to the peer has been closed. */
     bool is_write_open();
 
     /* Note that is_read_open() and is_write_open() must both be false1 before the socket is
